@@ -1,0 +1,14 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Tests
+Bundle-SymbolicName: de.peeeq.Pscript.tests
+Bundle-Version: 1.0.0.qualifier
+Export-Package: de.peeeq.Pscript.tests
+Import-Package: org.eclipse.xtext.junit
+Require-Bundle: de.peeeq.Pscript;bundle-version="1.0.0",
+ org.eclipse.emf.ecore;bundle-version="2.6.1",
+ org.junit4;bundle-version="4.8.1",
+ org.eclipse.xtext.junit;bundle-version="1.0.2",
+ com.google.collect;bundle-version="0.8.0",
+ com.google.inject;bundle-version="2.0.0",
+ org.eclipse.xtext;bundle-version="1.0.2"

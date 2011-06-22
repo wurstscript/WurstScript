@@ -1,0 +1,9 @@
+de.peeeq.pscript.pscript.impl.TypeExprImpl@178a7d9 (name: Int) add(de.peeeq.pscript.pscript.impl.TypeExprImpl@52eef4 (name: Int) x,de.peeeq.pscript.pscript.impl.TypeExprImpl@19067e5 (name: Int) y) {
+
+
+return ((1 * 2)  + 3) ;
+
+
+
+}
+

@@ -1,0 +1,16 @@
+package test {
+
+	function add(x:Int, y:Int, z:Int): Int {
+		return x + y + z
+	}
+	
+	function add(x:Int, y:Int):Int {
+		return x + y
+	}
+	
+	function test() {
+		return add(1,2,3)
+	}
+
+}
+
