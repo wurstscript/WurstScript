@@ -47,10 +47,11 @@ private static final String INVALID_TYPE = "INVALID_TYPE";
 	public void checkTypes(Expr e) {
 		PscriptType t = attrManager.getAttValue(AttrExprType.class, e);
 		if (t == null) {
-			error("Could not determine type of expression", PscriptPackage.EXPR, INVALID_TYPE, e.toString());
+			this.
+			error("Could not determine type of expression", PscriptPackage.Literals.EXPR.getEStructuralFeature(0) , INVALID_TYPE, e.toString());
 		}
 		if (t instanceof PscriptTypeError) {
-			error(t.getName(), PscriptPackage.EXPR, INVALID_TYPE, e.toString());
+			error(t.getName(), PscriptPackage.Literals.EXPR.getEStructuralFeature(0), INVALID_TYPE, e.toString());
 		}
 	}
 	
@@ -63,7 +64,9 @@ private static final String INVALID_TYPE = "INVALID_TYPE";
 	@Check
 	public void checkClassNames(ClassDef c) {
 		if (!Character.isUpperCase(c.getName().charAt(0))) {
-			error("Type names must start with a capital letter", PscriptPackage.CLASS_DEF__NAME , INVALID_TYPE_NAME, c.getName());
+			error("Type names must start with a capital letter", 
+					PscriptPackage.Literals.CLASS_DEF.getEStructuralFeature("name")
+					/*PscriptPackage.CLASS_DEF__NAME*/ , INVALID_TYPE_NAME, c.getName());
 			//error("Type names must start with a capital letter", TYPE_NAME, INVALID_TYPE_NAME, c.getName());
 		}
 		

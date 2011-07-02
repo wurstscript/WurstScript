@@ -3729,7 +3729,7 @@ protected class StmtExpr_NLTerminalRuleCall_1 extends UnassignedTextToken {
  * not					// unary
  * 
  * .					// member
- * * ///ExprAtomic
+ * * / //ExprAtomic
  * Expr:
  * 	ExprAssignment;
  *

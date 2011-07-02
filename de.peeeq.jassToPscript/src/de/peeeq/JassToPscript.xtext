@@ -1,0 +1,73 @@
+grammar de.peeeq.JassToPscript with org.eclipse.xtext.common.Terminals
+
+generate jassToPscript "http://www.JassToPscript"
+
+Prog:
+	(elems+=Entity)*
+;
+
+Entity:
+	TypeDef
+	| GlobalBlock
+	| NativeDef
+;
+
+GlobalBlock:
+	{GlobalBlock} 'globals'
+		(vars+=Constant)*
+	'endglobals'
+;
+
+
+Constant:
+	'constant' type=ID name=ID '=' value=Expr
+;
+
+Expr:
+	Literal | FunctionCall | Mult
+;
+
+Mult:
+	left=Literal '*' right=Literal 
+;
+
+
+FunctionCall:
+	name=ID '(' (parameters+=Expr (',' parameters+=Expr)*)? ')'
+;
+
+
+
+Literal:
+	{IntLiteral} intVal=INT
+	| {BoolLiteral} boolVal=('true'|'false')
+;
+
+
+
+
+NativeDef:
+	'constant'? 'native' name=ID 'takes' params=FormalParameters 'returns' returnType=ReturnType
+;
+
+ReturnType:
+	{ReturnsNothing} 'nothing'
+	| name=ID
+;
+
+
+FormalParameters:
+	{ParamNothing} 'nothing'
+	| parameters+=FormalParameter (',' parameters+=FormalParameter)*
+;
+
+FormalParameter:
+	type=ID name=ID
+;
+
+
+
+
+TypeDef:
+	'type' name=ID 'extends' extendName=ID
+;

@@ -160,7 +160,7 @@ public class PscriptGrammarAccess extends AbstractGrammarElementFinder {
 		private final Keyword cFullStopKeyword_1_0 = (Keyword)cGroup_1.eContents().get(0);
 		private final RuleCall cIDTerminalRuleCall_1_1 = (RuleCall)cGroup_1.eContents().get(1);
 		
-		//QualifiedName returns ecore::EString:
+		//QualifiedName:
 		//	ID ("." ID)*;
 		public ParserRule getRule() { return rule; }
 
@@ -186,7 +186,7 @@ public class PscriptGrammarAccess extends AbstractGrammarElementFinder {
 		private final RuleCall cQualifiedNameParserRuleCall_0 = (RuleCall)cGroup.eContents().get(0);
 		private final Keyword cFullStopAsteriskKeyword_1 = (Keyword)cGroup.eContents().get(1);
 		
-		//QualifiedNameWithWildCard returns ecore::EString:
+		//QualifiedNameWithWildCard:
 		//	QualifiedName ".*"?;
 		public ParserRule getRule() { return rule; }
 
@@ -831,7 +831,7 @@ public class PscriptGrammarAccess extends AbstractGrammarElementFinder {
 		//not					// unary
 		//
 		//.					// member
-		// * ///ExprAtomic
+		// * / //ExprAtomic
 		//Expr:
 		//	ExprAssignment;
 		public ParserRule getRule() { return rule; }
@@ -1722,7 +1722,7 @@ public class PscriptGrammarAccess extends AbstractGrammarElementFinder {
 		return getImportAccess().getRule();
 	}
 
-	//QualifiedName returns ecore::EString:
+	//QualifiedName:
 	//	ID ("." ID)*;
 	public QualifiedNameElements getQualifiedNameAccess() {
 		return (pQualifiedName != null) ? pQualifiedName : (pQualifiedName = new QualifiedNameElements());
@@ -1732,7 +1732,7 @@ public class PscriptGrammarAccess extends AbstractGrammarElementFinder {
 		return getQualifiedNameAccess().getRule();
 	}
 
-	//QualifiedNameWithWildCard returns ecore::EString:
+	//QualifiedNameWithWildCard:
 	//	QualifiedName ".*"?;
 	public QualifiedNameWithWildCardElements getQualifiedNameWithWildCardAccess() {
 		return (pQualifiedNameWithWildCard != null) ? pQualifiedNameWithWildCard : (pQualifiedNameWithWildCard = new QualifiedNameWithWildCardElements());
@@ -1896,7 +1896,7 @@ public class PscriptGrammarAccess extends AbstractGrammarElementFinder {
 	//not					// unary
 	//
 	//.					// member
-	// * ///ExprAtomic
+	// * / //ExprAtomic
 	//Expr:
 	//	ExprAssignment;
 	public ExprElements getExprAccess() {
@@ -2057,7 +2057,7 @@ public class PscriptGrammarAccess extends AbstractGrammarElementFinder {
 	//TypeRef:
 	//  referenced=[Class|QualifiedName];
 	//	
-	// * /terminal ID:
+	// * / terminal ID:
 	//	("a".."z" | "A".."Z" | "_") ("a".."z" | "A".."Z" | "_" | "0".."9")*;
 	public TerminalRule getIDRule() {
 		return (tID != null) ? tID : (tID = (TerminalRule) GrammarUtil.findRuleForName(getGrammar(), "ID"));

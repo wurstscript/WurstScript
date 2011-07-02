@@ -1,0 +1,37 @@
+«IMPORT de::peeeq::pscript::ui::wizard»
+
+«DEFINE main FOR PscriptProjectInfo»
+«EXPAND model FOR this»
+«EXPAND workflow FOR this»
+«ENDDEFINE»
+
+«DEFINE model FOR PscriptProjectInfo»
+«FILE "src/helloWord.pscript"-»
+/*
+ * This is an example script file.
+ * Delete or edit it.
+ */
+
+package hello {
+
+
+	init {
+		print("Hello World!")		
+	}
+
+}
+«ENDFILE»
+«ENDDEFINE»
+
+«DEFINE workflow FOR PscriptProjectInfo»
+«FILE "src/Generator.mwe2"-»
+module Generator
+
+var targetDir = "src-gen"
+var modelPath = "src/model"
+
+Workflow {
+	component = @workflow.PscriptGenerator auto-inject {}
+}
+«ENDFILE»
+«ENDDEFINE»

@@ -3,66 +3,43 @@ package de.peeeq.pscript.scoping;
 import java.util.Iterator;
 
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.xtext.naming.IQualifiedNameConverter;
 import org.eclipse.xtext.naming.IQualifiedNameProvider;
+import org.eclipse.xtext.naming.QualifiedName;
+
+import com.google.inject.Inject;
 
 import de.peeeq.pscript.pscript.*;
 import de.peeeq.pscript.pscript.util.PscriptSwitch;
 
 public class PscriptNameProvider extends IQualifiedNameProvider.AbstractImpl {
 
+	@Inject 
+	IQualifiedNameConverter qNameProvider;
+	
+
 	@Override
-	public String getQualifiedName(EObject obj) {
-		return new PscriptSwitch<String>() {
+	public QualifiedName getFullyQualifiedName(EObject obj) {
+		return new PscriptSwitch<QualifiedName>() {
 			@Override
-			public String casePackageDeclaration(PackageDeclaration p) {
-				return p.getName();
+			public QualifiedName casePackageDeclaration(PackageDeclaration p) {
+				return qNameProvider.toQualifiedName(p.getName());
 			}
 
 			@Override
-			public String caseNameDef(NameDef v) {
-				StringBuilder sb = new StringBuilder();
-				// recursively add name of my parent
-				//sb.append(doSwitch(v.eContainer()));
-				//sb.append(".");
-				sb.append(v.getName());
-				return sb.toString();
+			public QualifiedName caseNameDef(NameDef v) {
+				return qNameProvider.toQualifiedName(v.getName());
 			}
 			
 			@Override
-			public String caseVarDef(VarDef v) {
+			public QualifiedName caseVarDef(VarDef v) {
 				StringBuilder sb = new StringBuilder();
 				// recursively add name of my parent
 				sb.append(doSwitch(v.eContainer()));
 				sb.append(".");
 				sb.append(v.getName());
-				return sb.toString();
+				return qNameProvider.toQualifiedName(sb.toString());
 			}
-			
-			
-			
-//			@Override
-//			public String caseFuncDef(FuncDef f) {
-//				StringBuilder sb = new StringBuilder();
-//				// recursively add name of my parent
-//				sb.append(doSwitch(f.eContainer()));
-//				sb.append(".");
-//				sb.append(f.getName());
-//				sb.append("(");
-//				boolean first = true;
-//				for (NameDef nd : f.getParameters()) {
-//					if (!first) {
-//						sb.append(",");
-//						first = false;
-//					}
-//					ParameterDef pd = (ParameterDef) nd;
-//					sb.append(pd.getType()); // TODO doSwitch on Type?
-//				}
-//				sb.append(")");
-//				return sb.toString();
-//			}
-			
-			
 		}.doSwitch(obj);
 	}
-
 }

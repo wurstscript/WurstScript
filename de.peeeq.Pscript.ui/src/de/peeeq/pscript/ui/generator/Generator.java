@@ -19,6 +19,7 @@ import org.eclipse.xtend.expression.Variable;
 import org.eclipse.xtend.type.impl.java.JavaBeansMetaModel;
 import org.eclipse.xtext.builder.IXtextBuilderParticipant;
 //import org.eclipse.xtext.example.domainmodel.DomainmodelPackage;
+import org.eclipse.xtext.naming.QualifiedName;
 import org.eclipse.xtext.resource.IEObjectDescription;
 import org.eclipse.xtext.resource.IResourceDescription;
 
@@ -63,33 +64,33 @@ public class Generator implements IXtextBuilderParticipant {
 		for (IResourceDescription.Delta delta : context.getDeltas()) {
 			// handle deletion
 			if (delta.getNew() == null) {
-				Iterable<IEObjectDescription> iterable = delta.getOld().getExportedObjects(
-						PscriptPackage.Literals.PACKAGE_DECLARATION);
+				Iterable<IEObjectDescription> iterable = delta.getOld().getExportedObjects(); // TODO
+//						PscriptPackage.Literals.PACKAGE_DECLARATION, null, false);
 //						DomainmodelPackage.Literals.ENTITY);
 				for (IEObjectDescription ieObjectDescription : iterable) {
-					String qualifiedName = ieObjectDescription.getQualifiedName();
-					IFile file = createFile(folder, qualifiedName);
+					QualifiedName qualifiedName = ieObjectDescription.getQualifiedName();
+					IFile file = createFile(folder, qualifiedName.toString());
 					if (file.exists()) {
 						file.delete(true, monitor);
 						context.needRebuild();
 					}
 				}
 			} else {
-				Iterable<IEObjectDescription> newOnes = delta.getNew().getExportedObjects(
-						PscriptPackage.Literals.PACKAGE_DECLARATION);
+				Iterable<IEObjectDescription> newOnes = delta.getNew().getExportedObjects(); // TODO
+//						PscriptPackage.Literals.PACKAGE_DECLARATION, null, false);
 				if (delta.getOld() != null) {
-					Iterable<IEObjectDescription> oldOnes = delta.getOld().getExportedObjects(
-							PscriptPackage.Literals.PACKAGE_DECLARATION);
-					Set<String> names = Sets.newHashSet(Iterables.transform(newOnes,
-							new Function<IEObjectDescription, String>() {
-								public String apply(IEObjectDescription from) {
+					Iterable<IEObjectDescription> oldOnes = delta.getOld().getExportedObjects(); // TODO
+//							PscriptPackage.Literals.PACKAGE_DECLARATION, null, false);
+					Set<QualifiedName> names = Sets.newHashSet(Iterables.transform(newOnes,
+							new Function<IEObjectDescription, QualifiedName>() {
+								public QualifiedName apply(IEObjectDescription from) {
 									return from.getQualifiedName();
 								}
 							}));
 
 					for (IEObjectDescription descr : oldOnes) {
 						if (!names.contains(descr.getQualifiedName())) {
-							IFile file = createFile(folder, descr.getQualifiedName());
+							IFile file = createFile(folder, descr.getQualifiedName().toString());
 							if (file.exists()) {
 								file.delete(true, monitor);
 								context.needRebuild();

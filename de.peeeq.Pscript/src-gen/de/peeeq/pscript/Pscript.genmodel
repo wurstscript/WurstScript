@@ -7,143 +7,143 @@
     rootExtendsClass="org.eclipse.emf.ecore.impl.MinimalEObjectImpl$Container" complianceLevel="5.0"
     copyrightFields="false" editPluginID="de.peeeq.Pscript.edit" editorPluginID="de.peeeq.Pscript.editor">
   <genPackages prefix="Pscript" basePackage="de.peeeq.pscript" disposableProviderFactory="true"
-      ecorePackage="Pscript.ecore#/">
-    <genClasses ecoreClass="Pscript.ecore#//Program">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//Program/packages"/>
+      ecorePackage="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#/">
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//Program">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//Program/packages"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//PackageDeclaration">
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Pscript.ecore#//PackageDeclaration/name"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//PackageDeclaration/imports"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//PackageDeclaration/elements"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//PackageDeclaration">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//PackageDeclaration/name"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//PackageDeclaration/imports"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//PackageDeclaration/elements"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//Import">
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Pscript.ecore#//Import/importedNamespace"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//Import">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//Import/importedNamespace"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//NameDef">
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Pscript.ecore#//NameDef/name"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//NameDef">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//NameDef/name"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//TypeExpr">
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Pscript.ecore#//TypeExpr/name"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//TypeExpr">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//TypeExpr/name"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//Statements">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//Statements/statements"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//Statements">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//Statements/statements"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//Statement"/>
-    <genClasses ecoreClass="Pscript.ecore#//StmtReturn">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//StmtReturn/e"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//Statement"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//StmtReturn">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//StmtReturn/e"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//StmtIf">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//StmtIf/cond"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//StmtIf/thenBlock"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//StmtIf/elseBlock"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//StmtIf">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//StmtIf/cond"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//StmtIf/thenBlock"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//StmtIf/elseBlock"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//StmtWhile">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//StmtWhile/cond"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//StmtWhile/body"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//StmtWhile">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//StmtWhile/cond"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//StmtWhile/body"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//StmtExpr">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//StmtExpr/e"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//StmtExpr">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//StmtExpr/e"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//Expr"/>
-    <genClasses ecoreClass="Pscript.ecore#//ExprList">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ExprList/params"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//Expr"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprList">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprList/params"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//NativeType">
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Pscript.ecore#//NativeType/origName"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//NativeType">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//NativeType/origName"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//ClassDef">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ClassDef/members"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ClassDef">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ClassDef/members"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//VarDef">
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Pscript.ecore#//VarDef/constant"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//VarDef/type"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//VarDef/e"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//VarDef">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//VarDef/constant"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//VarDef/type"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//VarDef/e"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//FuncDef">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//FuncDef/parameters"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//FuncDef/type"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//FuncDef/body"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//FuncDef">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//FuncDef/parameters"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//FuncDef/type"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//FuncDef/body"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//ParameterDef">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ParameterDef/type"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ParameterDef">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ParameterDef/type"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//ExprAssignment">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ExprAssignment/left"/>
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Pscript.ecore#//ExprAssignment/op"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ExprAssignment/right"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprAssignment">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprAssignment/left"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprAssignment/op"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprAssignment/right"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//ExprOr">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ExprOr/left"/>
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Pscript.ecore#//ExprOr/op"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ExprOr/right"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprOr">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprOr/left"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprOr/op"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprOr/right"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//ExprAnd">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ExprAnd/left"/>
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Pscript.ecore#//ExprAnd/op"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ExprAnd/right"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprAnd">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprAnd/left"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprAnd/op"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprAnd/right"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//ExprEquality">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ExprEquality/left"/>
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Pscript.ecore#//ExprEquality/op"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ExprEquality/right"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprEquality">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprEquality/left"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprEquality/op"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprEquality/right"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//ExprComparison">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ExprComparison/left"/>
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Pscript.ecore#//ExprComparison/op"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ExprComparison/right"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprComparison">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprComparison/left"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprComparison/op"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprComparison/right"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//ExprAdditive">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ExprAdditive/left"/>
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Pscript.ecore#//ExprAdditive/op"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ExprAdditive/right"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprAdditive">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprAdditive/left"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprAdditive/op"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprAdditive/right"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//ExprMult">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ExprMult/left"/>
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Pscript.ecore#//ExprMult/op"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ExprMult/right"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprMult">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprMult/left"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprMult/op"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprMult/right"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//ExprSign">
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Pscript.ecore#//ExprSign/op"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ExprSign/right"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprSign">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprSign/op"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprSign/right"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//ExprNot">
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Pscript.ecore#//ExprNot/op"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ExprNot/right"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprNot">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprNot/op"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprNot/right"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//ExprCustomOperator">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ExprCustomOperator/left"/>
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Pscript.ecore#//ExprCustomOperator/op"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ExprCustomOperator/right"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprCustomOperator">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprCustomOperator/left"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprCustomOperator/op"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprCustomOperator/right"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//ExprMember">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ExprMember/left"/>
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Pscript.ecore#//ExprMember/op"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ExprMember/right"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprMember">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprMember/left"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprMember/op"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprMember/right"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//ExprFunctioncall">
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Pscript.ecore#//ExprFunctioncall/nameVal"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ExprFunctioncall/parameters"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprFunctioncall">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprFunctioncall/nameVal"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprFunctioncall/parameters"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//ExprIdentifier">
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Pscript.ecore#//ExprIdentifier/nameVal"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprIdentifier">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprIdentifier/nameVal"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//ExprIntVal">
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Pscript.ecore#//ExprIntVal/intVal"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprIntVal">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprIntVal/intVal"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//ExprNumVal">
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Pscript.ecore#//ExprNumVal/numVal"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprNumVal">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprNumVal/numVal"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//ExprStrval">
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Pscript.ecore#//ExprStrval/strVal"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprStrval">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprStrval/strVal"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//ExprBuildinFunction">
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Pscript.ecore#//ExprBuildinFunction/name"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ExprBuildinFunction/parameters"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprBuildinFunction">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprBuildinFunction/name"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprBuildinFunction/parameters"/>
     </genClasses>
-    <genClasses ecoreClass="Pscript.ecore#//ExprBuildinOperator">
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ExprBuildinOperator/left"/>
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Pscript.ecore#//ExprBuildinOperator/op"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Pscript.ecore#//ExprBuildinOperator/right"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprBuildinOperator">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprBuildinOperator/left"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprBuildinOperator/op"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprBuildinOperator/right"/>
     </genClasses>
   </genPackages>
 </genmodel:GenModel>

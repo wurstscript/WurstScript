@@ -26,23 +26,71 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         "<invalid>", "<EOR>", "<DOWN>", "<UP>", "RULE_NL", "RULE_ID", "RULE_OPERATOR", "RULE_INT", "RULE_NUMBER", "RULE_STRING", "RULE_ML_COMMENT", "RULE_SL_COMMENT", "RULE_WS", "RULE_ANY_OTHER", "'var'", "'='", "'+='", "'-='", "'!='", "'=='", "'<='", "'<'", "'>='", "'>'", "'+'", "'-'", "'*'", "'/'", "'%'", "'mod'", "'div'", "'package'", "'{'", "'}'", "'import'", "'.'", "'.*'", "'native'", "'type'", "'class'", "':'", "'function'", "'('", "')'", "','", "'return'", "'if'", "'else'", "'while'", "'buildin'", "'val'", "'or'", "'and'", "'not'"
     };
     public static final int RULE_ID=5;
-    public static final int RULE_STRING=9;
-    public static final int RULE_NUMBER=8;
+    public static final int T__29=29;
+    public static final int T__28=28;
+    public static final int T__27=27;
+    public static final int T__26=26;
+    public static final int T__25=25;
+    public static final int T__24=24;
+    public static final int T__23=23;
+    public static final int T__22=22;
     public static final int RULE_ANY_OTHER=13;
-    public static final int RULE_NL=4;
+    public static final int T__21=21;
+    public static final int T__20=20;
+    public static final int EOF=-1;
+    public static final int T__19=19;
+    public static final int T__16=16;
+    public static final int T__51=51;
+    public static final int T__15=15;
+    public static final int T__52=52;
+    public static final int T__18=18;
+    public static final int T__53=53;
+    public static final int T__17=17;
+    public static final int RULE_NUMBER=8;
+    public static final int T__14=14;
     public static final int RULE_INT=7;
+    public static final int T__50=50;
+    public static final int T__42=42;
+    public static final int T__43=43;
+    public static final int T__40=40;
+    public static final int T__41=41;
+    public static final int T__46=46;
+    public static final int T__47=47;
+    public static final int T__44=44;
+    public static final int T__45=45;
+    public static final int T__48=48;
+    public static final int T__49=49;
+    public static final int RULE_NL=4;
+    public static final int RULE_SL_COMMENT=11;
+    public static final int RULE_ML_COMMENT=10;
+    public static final int T__30=30;
+    public static final int T__31=31;
+    public static final int RULE_STRING=9;
+    public static final int T__32=32;
+    public static final int T__33=33;
+    public static final int T__34=34;
+    public static final int T__35=35;
+    public static final int T__36=36;
+    public static final int T__37=37;
+    public static final int T__38=38;
+    public static final int T__39=39;
     public static final int RULE_OPERATOR=6;
     public static final int RULE_WS=12;
-    public static final int RULE_SL_COMMENT=11;
-    public static final int EOF=-1;
-    public static final int RULE_ML_COMMENT=10;
+
+    // delegates
+    // delegators
+
 
         public InternalPscriptParser(TokenStream input) {
-            super(input);
+            this(input, new RecognizerSharedState());
+        }
+        public InternalPscriptParser(TokenStream input, RecognizerSharedState state) {
+            super(input, state);
+             
         }
         
 
-    public String[] getTokenNames() { return tokenNames; }
+    public String[] getTokenNames() { return InternalPscriptParser.tokenNames; }
     public String getGrammarFileName() { return "../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g"; }
 
 
@@ -66,7 +114,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
 
 
 
-    // $ANTLR start entryRuleProgram
+    // $ANTLR start "entryRuleProgram"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:61:1: entryRuleProgram : ruleProgram EOF ;
     public final void entryRuleProgram() throws RecognitionException {
         try {
@@ -76,7 +124,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getProgramRule()); 
             pushFollow(FOLLOW_ruleProgram_in_entryRuleProgram61);
             ruleProgram();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getProgramRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleProgram68); 
@@ -92,10 +141,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleProgram
+    // $ANTLR end "entryRuleProgram"
 
 
-    // $ANTLR start ruleProgram
+    // $ANTLR start "ruleProgram"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:70:1: ruleProgram : ( ( rule__Program__Group__0 ) ) ;
     public final void ruleProgram() throws RecognitionException {
 
@@ -114,7 +163,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__Program__Group__0_in_ruleProgram94);
             rule__Program__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -138,10 +188,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleProgram
+    // $ANTLR end "ruleProgram"
 
 
-    // $ANTLR start entryRulePackageDeclaration
+    // $ANTLR start "entryRulePackageDeclaration"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:89:1: entryRulePackageDeclaration : rulePackageDeclaration EOF ;
     public final void entryRulePackageDeclaration() throws RecognitionException {
         try {
@@ -151,7 +201,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getPackageDeclarationRule()); 
             pushFollow(FOLLOW_rulePackageDeclaration_in_entryRulePackageDeclaration121);
             rulePackageDeclaration();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getPackageDeclarationRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRulePackageDeclaration128); 
@@ -167,10 +218,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRulePackageDeclaration
+    // $ANTLR end "entryRulePackageDeclaration"
 
 
-    // $ANTLR start rulePackageDeclaration
+    // $ANTLR start "rulePackageDeclaration"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:98:1: rulePackageDeclaration : ( ( rule__PackageDeclaration__Group__0 ) ) ;
     public final void rulePackageDeclaration() throws RecognitionException {
 
@@ -189,7 +240,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__PackageDeclaration__Group__0_in_rulePackageDeclaration154);
             rule__PackageDeclaration__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -213,10 +265,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rulePackageDeclaration
+    // $ANTLR end "rulePackageDeclaration"
 
 
-    // $ANTLR start entryRuleImport
+    // $ANTLR start "entryRuleImport"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:117:1: entryRuleImport : ruleImport EOF ;
     public final void entryRuleImport() throws RecognitionException {
         try {
@@ -226,7 +278,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getImportRule()); 
             pushFollow(FOLLOW_ruleImport_in_entryRuleImport181);
             ruleImport();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getImportRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleImport188); 
@@ -242,10 +295,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleImport
+    // $ANTLR end "entryRuleImport"
 
 
-    // $ANTLR start ruleImport
+    // $ANTLR start "ruleImport"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:126:1: ruleImport : ( ( rule__Import__Group__0 ) ) ;
     public final void ruleImport() throws RecognitionException {
 
@@ -264,7 +317,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__Import__Group__0_in_ruleImport214);
             rule__Import__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -288,10 +342,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleImport
+    // $ANTLR end "ruleImport"
 
 
-    // $ANTLR start entryRuleQualifiedName
+    // $ANTLR start "entryRuleQualifiedName"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:145:1: entryRuleQualifiedName : ruleQualifiedName EOF ;
     public final void entryRuleQualifiedName() throws RecognitionException {
         try {
@@ -301,7 +355,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getQualifiedNameRule()); 
             pushFollow(FOLLOW_ruleQualifiedName_in_entryRuleQualifiedName241);
             ruleQualifiedName();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getQualifiedNameRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleQualifiedName248); 
@@ -317,10 +372,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleQualifiedName
+    // $ANTLR end "entryRuleQualifiedName"
 
 
-    // $ANTLR start ruleQualifiedName
+    // $ANTLR start "ruleQualifiedName"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:154:1: ruleQualifiedName : ( ( rule__QualifiedName__Group__0 ) ) ;
     public final void ruleQualifiedName() throws RecognitionException {
 
@@ -339,7 +394,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__QualifiedName__Group__0_in_ruleQualifiedName274);
             rule__QualifiedName__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -363,10 +419,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleQualifiedName
+    // $ANTLR end "ruleQualifiedName"
 
 
-    // $ANTLR start entryRuleQualifiedNameWithWildCard
+    // $ANTLR start "entryRuleQualifiedNameWithWildCard"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:173:1: entryRuleQualifiedNameWithWildCard : ruleQualifiedNameWithWildCard EOF ;
     public final void entryRuleQualifiedNameWithWildCard() throws RecognitionException {
         try {
@@ -376,7 +432,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getQualifiedNameWithWildCardRule()); 
             pushFollow(FOLLOW_ruleQualifiedNameWithWildCard_in_entryRuleQualifiedNameWithWildCard301);
             ruleQualifiedNameWithWildCard();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getQualifiedNameWithWildCardRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleQualifiedNameWithWildCard308); 
@@ -392,10 +449,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleQualifiedNameWithWildCard
+    // $ANTLR end "entryRuleQualifiedNameWithWildCard"
 
 
-    // $ANTLR start ruleQualifiedNameWithWildCard
+    // $ANTLR start "ruleQualifiedNameWithWildCard"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:182:1: ruleQualifiedNameWithWildCard : ( ( rule__QualifiedNameWithWildCard__Group__0 ) ) ;
     public final void ruleQualifiedNameWithWildCard() throws RecognitionException {
 
@@ -414,7 +471,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__QualifiedNameWithWildCard__Group__0_in_ruleQualifiedNameWithWildCard334);
             rule__QualifiedNameWithWildCard__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -438,10 +496,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleQualifiedNameWithWildCard
+    // $ANTLR end "ruleQualifiedNameWithWildCard"
 
 
-    // $ANTLR start entryRuleEntity
+    // $ANTLR start "entryRuleEntity"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:201:1: entryRuleEntity : ruleEntity EOF ;
     public final void entryRuleEntity() throws RecognitionException {
         try {
@@ -451,7 +509,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getEntityRule()); 
             pushFollow(FOLLOW_ruleEntity_in_entryRuleEntity361);
             ruleEntity();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getEntityRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleEntity368); 
@@ -467,10 +526,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleEntity
+    // $ANTLR end "entryRuleEntity"
 
 
-    // $ANTLR start ruleEntity
+    // $ANTLR start "ruleEntity"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:210:1: ruleEntity : ( ( rule__Entity__Alternatives ) ) ;
     public final void ruleEntity() throws RecognitionException {
 
@@ -489,7 +548,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__Entity__Alternatives_in_ruleEntity394);
             rule__Entity__Alternatives();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -513,10 +573,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleEntity
+    // $ANTLR end "ruleEntity"
 
 
-    // $ANTLR start entryRuleNativeType
+    // $ANTLR start "entryRuleNativeType"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:229:1: entryRuleNativeType : ruleNativeType EOF ;
     public final void entryRuleNativeType() throws RecognitionException {
         try {
@@ -526,7 +586,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getNativeTypeRule()); 
             pushFollow(FOLLOW_ruleNativeType_in_entryRuleNativeType421);
             ruleNativeType();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getNativeTypeRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleNativeType428); 
@@ -542,10 +603,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleNativeType
+    // $ANTLR end "entryRuleNativeType"
 
 
-    // $ANTLR start ruleNativeType
+    // $ANTLR start "ruleNativeType"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:238:1: ruleNativeType : ( ( rule__NativeType__Group__0 ) ) ;
     public final void ruleNativeType() throws RecognitionException {
 
@@ -564,7 +625,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__NativeType__Group__0_in_ruleNativeType454);
             rule__NativeType__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -588,10 +650,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleNativeType
+    // $ANTLR end "ruleNativeType"
 
 
-    // $ANTLR start entryRuleClassDef
+    // $ANTLR start "entryRuleClassDef"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:257:1: entryRuleClassDef : ruleClassDef EOF ;
     public final void entryRuleClassDef() throws RecognitionException {
         try {
@@ -601,7 +663,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getClassDefRule()); 
             pushFollow(FOLLOW_ruleClassDef_in_entryRuleClassDef481);
             ruleClassDef();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getClassDefRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleClassDef488); 
@@ -617,10 +680,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleClassDef
+    // $ANTLR end "entryRuleClassDef"
 
 
-    // $ANTLR start ruleClassDef
+    // $ANTLR start "ruleClassDef"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:266:1: ruleClassDef : ( ( rule__ClassDef__Group__0 ) ) ;
     public final void ruleClassDef() throws RecognitionException {
 
@@ -639,7 +702,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ClassDef__Group__0_in_ruleClassDef514);
             rule__ClassDef__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -663,10 +727,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleClassDef
+    // $ANTLR end "ruleClassDef"
 
 
-    // $ANTLR start entryRuleClassMember
+    // $ANTLR start "entryRuleClassMember"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:285:1: entryRuleClassMember : ruleClassMember EOF ;
     public final void entryRuleClassMember() throws RecognitionException {
         try {
@@ -676,7 +740,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getClassMemberRule()); 
             pushFollow(FOLLOW_ruleClassMember_in_entryRuleClassMember541);
             ruleClassMember();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getClassMemberRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleClassMember548); 
@@ -692,10 +757,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleClassMember
+    // $ANTLR end "entryRuleClassMember"
 
 
-    // $ANTLR start ruleClassMember
+    // $ANTLR start "ruleClassMember"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:294:1: ruleClassMember : ( ( rule__ClassMember__Group__0 ) ) ;
     public final void ruleClassMember() throws RecognitionException {
 
@@ -714,7 +779,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ClassMember__Group__0_in_ruleClassMember574);
             rule__ClassMember__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -738,10 +804,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleClassMember
+    // $ANTLR end "ruleClassMember"
 
 
-    // $ANTLR start entryRuleVarDef
+    // $ANTLR start "entryRuleVarDef"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:313:1: entryRuleVarDef : ruleVarDef EOF ;
     public final void entryRuleVarDef() throws RecognitionException {
         try {
@@ -751,7 +817,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getVarDefRule()); 
             pushFollow(FOLLOW_ruleVarDef_in_entryRuleVarDef601);
             ruleVarDef();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getVarDefRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleVarDef608); 
@@ -767,10 +834,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleVarDef
+    // $ANTLR end "entryRuleVarDef"
 
 
-    // $ANTLR start ruleVarDef
+    // $ANTLR start "ruleVarDef"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:322:1: ruleVarDef : ( ( rule__VarDef__Group__0 ) ) ;
     public final void ruleVarDef() throws RecognitionException {
 
@@ -789,7 +856,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__VarDef__Group__0_in_ruleVarDef634);
             rule__VarDef__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -813,10 +881,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleVarDef
+    // $ANTLR end "ruleVarDef"
 
 
-    // $ANTLR start entryRuleTypeExpr
+    // $ANTLR start "entryRuleTypeExpr"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:341:1: entryRuleTypeExpr : ruleTypeExpr EOF ;
     public final void entryRuleTypeExpr() throws RecognitionException {
         try {
@@ -826,7 +894,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getTypeExprRule()); 
             pushFollow(FOLLOW_ruleTypeExpr_in_entryRuleTypeExpr661);
             ruleTypeExpr();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getTypeExprRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleTypeExpr668); 
@@ -842,10 +911,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleTypeExpr
+    // $ANTLR end "entryRuleTypeExpr"
 
 
-    // $ANTLR start ruleTypeExpr
+    // $ANTLR start "ruleTypeExpr"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:350:1: ruleTypeExpr : ( ( rule__TypeExpr__Group__0 ) ) ;
     public final void ruleTypeExpr() throws RecognitionException {
 
@@ -864,7 +933,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__TypeExpr__Group__0_in_ruleTypeExpr694);
             rule__TypeExpr__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -888,10 +958,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleTypeExpr
+    // $ANTLR end "ruleTypeExpr"
 
 
-    // $ANTLR start entryRuleFuncDef
+    // $ANTLR start "entryRuleFuncDef"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:369:1: entryRuleFuncDef : ruleFuncDef EOF ;
     public final void entryRuleFuncDef() throws RecognitionException {
         try {
@@ -901,7 +971,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getFuncDefRule()); 
             pushFollow(FOLLOW_ruleFuncDef_in_entryRuleFuncDef721);
             ruleFuncDef();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getFuncDefRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleFuncDef728); 
@@ -917,10 +988,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleFuncDef
+    // $ANTLR end "entryRuleFuncDef"
 
 
-    // $ANTLR start ruleFuncDef
+    // $ANTLR start "ruleFuncDef"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:378:1: ruleFuncDef : ( ( rule__FuncDef__Group__0 ) ) ;
     public final void ruleFuncDef() throws RecognitionException {
 
@@ -939,7 +1010,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__FuncDef__Group__0_in_ruleFuncDef754);
             rule__FuncDef__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -963,10 +1035,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleFuncDef
+    // $ANTLR end "ruleFuncDef"
 
 
-    // $ANTLR start entryRuleParameterDef
+    // $ANTLR start "entryRuleParameterDef"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:397:1: entryRuleParameterDef : ruleParameterDef EOF ;
     public final void entryRuleParameterDef() throws RecognitionException {
         try {
@@ -976,7 +1048,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getParameterDefRule()); 
             pushFollow(FOLLOW_ruleParameterDef_in_entryRuleParameterDef781);
             ruleParameterDef();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getParameterDefRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleParameterDef788); 
@@ -992,10 +1065,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleParameterDef
+    // $ANTLR end "entryRuleParameterDef"
 
 
-    // $ANTLR start ruleParameterDef
+    // $ANTLR start "ruleParameterDef"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:406:1: ruleParameterDef : ( ( rule__ParameterDef__Group__0 ) ) ;
     public final void ruleParameterDef() throws RecognitionException {
 
@@ -1014,7 +1087,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ParameterDef__Group__0_in_ruleParameterDef814);
             rule__ParameterDef__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -1038,10 +1112,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleParameterDef
+    // $ANTLR end "ruleParameterDef"
 
 
-    // $ANTLR start entryRuleStatements
+    // $ANTLR start "entryRuleStatements"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:425:1: entryRuleStatements : ruleStatements EOF ;
     public final void entryRuleStatements() throws RecognitionException {
         try {
@@ -1051,7 +1125,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getStatementsRule()); 
             pushFollow(FOLLOW_ruleStatements_in_entryRuleStatements841);
             ruleStatements();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getStatementsRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleStatements848); 
@@ -1067,10 +1142,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleStatements
+    // $ANTLR end "entryRuleStatements"
 
 
-    // $ANTLR start ruleStatements
+    // $ANTLR start "ruleStatements"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:434:1: ruleStatements : ( ( rule__Statements__Group__0 ) ) ;
     public final void ruleStatements() throws RecognitionException {
 
@@ -1089,7 +1164,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__Statements__Group__0_in_ruleStatements874);
             rule__Statements__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -1113,10 +1189,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleStatements
+    // $ANTLR end "ruleStatements"
 
 
-    // $ANTLR start entryRuleStatement
+    // $ANTLR start "entryRuleStatement"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:453:1: entryRuleStatement : ruleStatement EOF ;
     public final void entryRuleStatement() throws RecognitionException {
         try {
@@ -1126,7 +1202,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getStatementRule()); 
             pushFollow(FOLLOW_ruleStatement_in_entryRuleStatement901);
             ruleStatement();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getStatementRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleStatement908); 
@@ -1142,10 +1219,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleStatement
+    // $ANTLR end "entryRuleStatement"
 
 
-    // $ANTLR start ruleStatement
+    // $ANTLR start "ruleStatement"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:462:1: ruleStatement : ( ( rule__Statement__Alternatives ) ) ;
     public final void ruleStatement() throws RecognitionException {
 
@@ -1164,7 +1241,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__Statement__Alternatives_in_ruleStatement934);
             rule__Statement__Alternatives();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -1188,10 +1266,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleStatement
+    // $ANTLR end "ruleStatement"
 
 
-    // $ANTLR start entryRuleStmtReturn
+    // $ANTLR start "entryRuleStmtReturn"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:481:1: entryRuleStmtReturn : ruleStmtReturn EOF ;
     public final void entryRuleStmtReturn() throws RecognitionException {
         try {
@@ -1201,7 +1279,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getStmtReturnRule()); 
             pushFollow(FOLLOW_ruleStmtReturn_in_entryRuleStmtReturn961);
             ruleStmtReturn();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getStmtReturnRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleStmtReturn968); 
@@ -1217,10 +1296,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleStmtReturn
+    // $ANTLR end "entryRuleStmtReturn"
 
 
-    // $ANTLR start ruleStmtReturn
+    // $ANTLR start "ruleStmtReturn"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:490:1: ruleStmtReturn : ( ( rule__StmtReturn__Group__0 ) ) ;
     public final void ruleStmtReturn() throws RecognitionException {
 
@@ -1239,7 +1318,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtReturn__Group__0_in_ruleStmtReturn994);
             rule__StmtReturn__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -1263,10 +1343,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleStmtReturn
+    // $ANTLR end "ruleStmtReturn"
 
 
-    // $ANTLR start entryRuleStmtIf
+    // $ANTLR start "entryRuleStmtIf"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:509:1: entryRuleStmtIf : ruleStmtIf EOF ;
     public final void entryRuleStmtIf() throws RecognitionException {
         try {
@@ -1276,7 +1356,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getStmtIfRule()); 
             pushFollow(FOLLOW_ruleStmtIf_in_entryRuleStmtIf1021);
             ruleStmtIf();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getStmtIfRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleStmtIf1028); 
@@ -1292,10 +1373,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleStmtIf
+    // $ANTLR end "entryRuleStmtIf"
 
 
-    // $ANTLR start ruleStmtIf
+    // $ANTLR start "ruleStmtIf"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:518:1: ruleStmtIf : ( ( rule__StmtIf__Group__0 ) ) ;
     public final void ruleStmtIf() throws RecognitionException {
 
@@ -1314,7 +1395,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtIf__Group__0_in_ruleStmtIf1054);
             rule__StmtIf__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -1338,10 +1420,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleStmtIf
+    // $ANTLR end "ruleStmtIf"
 
 
-    // $ANTLR start entryRuleStmtWhile
+    // $ANTLR start "entryRuleStmtWhile"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:537:1: entryRuleStmtWhile : ruleStmtWhile EOF ;
     public final void entryRuleStmtWhile() throws RecognitionException {
         try {
@@ -1351,7 +1433,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getStmtWhileRule()); 
             pushFollow(FOLLOW_ruleStmtWhile_in_entryRuleStmtWhile1081);
             ruleStmtWhile();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getStmtWhileRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleStmtWhile1088); 
@@ -1367,10 +1450,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleStmtWhile
+    // $ANTLR end "entryRuleStmtWhile"
 
 
-    // $ANTLR start ruleStmtWhile
+    // $ANTLR start "ruleStmtWhile"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:546:1: ruleStmtWhile : ( ( rule__StmtWhile__Group__0 ) ) ;
     public final void ruleStmtWhile() throws RecognitionException {
 
@@ -1389,7 +1472,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtWhile__Group__0_in_ruleStmtWhile1114);
             rule__StmtWhile__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -1413,10 +1497,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleStmtWhile
+    // $ANTLR end "ruleStmtWhile"
 
 
-    // $ANTLR start entryRuleStmtExpr
+    // $ANTLR start "entryRuleStmtExpr"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:565:1: entryRuleStmtExpr : ruleStmtExpr EOF ;
     public final void entryRuleStmtExpr() throws RecognitionException {
         try {
@@ -1426,7 +1510,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getStmtExprRule()); 
             pushFollow(FOLLOW_ruleStmtExpr_in_entryRuleStmtExpr1141);
             ruleStmtExpr();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getStmtExprRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleStmtExpr1148); 
@@ -1442,10 +1527,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleStmtExpr
+    // $ANTLR end "entryRuleStmtExpr"
 
 
-    // $ANTLR start ruleStmtExpr
+    // $ANTLR start "ruleStmtExpr"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:574:1: ruleStmtExpr : ( ( rule__StmtExpr__Group__0 ) ) ;
     public final void ruleStmtExpr() throws RecognitionException {
 
@@ -1464,7 +1549,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtExpr__Group__0_in_ruleStmtExpr1174);
             rule__StmtExpr__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -1488,10 +1574,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleStmtExpr
+    // $ANTLR end "ruleStmtExpr"
 
 
-    // $ANTLR start entryRuleExpr
+    // $ANTLR start "entryRuleExpr"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:593:1: entryRuleExpr : ruleExpr EOF ;
     public final void entryRuleExpr() throws RecognitionException {
         try {
@@ -1501,7 +1587,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprRule()); 
             pushFollow(FOLLOW_ruleExpr_in_entryRuleExpr1201);
             ruleExpr();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleExpr1208); 
@@ -1517,10 +1604,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleExpr
+    // $ANTLR end "entryRuleExpr"
 
 
-    // $ANTLR start ruleExpr
+    // $ANTLR start "ruleExpr"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:602:1: ruleExpr : ( ruleExprAssignment ) ;
     public final void ruleExpr() throws RecognitionException {
 
@@ -1536,7 +1623,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprAccess().getExprAssignmentParserRuleCall()); 
             pushFollow(FOLLOW_ruleExprAssignment_in_ruleExpr1234);
             ruleExprAssignment();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprAccess().getExprAssignmentParserRuleCall()); 
 
@@ -1557,10 +1645,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleExpr
+    // $ANTLR end "ruleExpr"
 
 
-    // $ANTLR start entryRuleExprAssignment
+    // $ANTLR start "entryRuleExprAssignment"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:621:1: entryRuleExprAssignment : ruleExprAssignment EOF ;
     public final void entryRuleExprAssignment() throws RecognitionException {
         try {
@@ -1570,7 +1658,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprAssignmentRule()); 
             pushFollow(FOLLOW_ruleExprAssignment_in_entryRuleExprAssignment1260);
             ruleExprAssignment();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprAssignmentRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleExprAssignment1267); 
@@ -1586,10 +1675,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleExprAssignment
+    // $ANTLR end "entryRuleExprAssignment"
 
 
-    // $ANTLR start ruleExprAssignment
+    // $ANTLR start "ruleExprAssignment"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:630:1: ruleExprAssignment : ( ( rule__ExprAssignment__Group__0 ) ) ;
     public final void ruleExprAssignment() throws RecognitionException {
 
@@ -1608,7 +1697,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAssignment__Group__0_in_ruleExprAssignment1293);
             rule__ExprAssignment__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -1632,10 +1722,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleExprAssignment
+    // $ANTLR end "ruleExprAssignment"
 
 
-    // $ANTLR start entryRuleExprOr
+    // $ANTLR start "entryRuleExprOr"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:649:1: entryRuleExprOr : ruleExprOr EOF ;
     public final void entryRuleExprOr() throws RecognitionException {
         try {
@@ -1645,7 +1735,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprOrRule()); 
             pushFollow(FOLLOW_ruleExprOr_in_entryRuleExprOr1320);
             ruleExprOr();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprOrRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleExprOr1327); 
@@ -1661,10 +1752,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleExprOr
+    // $ANTLR end "entryRuleExprOr"
 
 
-    // $ANTLR start ruleExprOr
+    // $ANTLR start "ruleExprOr"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:658:1: ruleExprOr : ( ( rule__ExprOr__Group__0 ) ) ;
     public final void ruleExprOr() throws RecognitionException {
 
@@ -1683,7 +1774,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprOr__Group__0_in_ruleExprOr1353);
             rule__ExprOr__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -1707,10 +1799,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleExprOr
+    // $ANTLR end "ruleExprOr"
 
 
-    // $ANTLR start entryRuleExprAnd
+    // $ANTLR start "entryRuleExprAnd"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:677:1: entryRuleExprAnd : ruleExprAnd EOF ;
     public final void entryRuleExprAnd() throws RecognitionException {
         try {
@@ -1720,7 +1812,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprAndRule()); 
             pushFollow(FOLLOW_ruleExprAnd_in_entryRuleExprAnd1380);
             ruleExprAnd();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprAndRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleExprAnd1387); 
@@ -1736,10 +1829,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleExprAnd
+    // $ANTLR end "entryRuleExprAnd"
 
 
-    // $ANTLR start ruleExprAnd
+    // $ANTLR start "ruleExprAnd"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:686:1: ruleExprAnd : ( ( rule__ExprAnd__Group__0 ) ) ;
     public final void ruleExprAnd() throws RecognitionException {
 
@@ -1758,7 +1851,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAnd__Group__0_in_ruleExprAnd1413);
             rule__ExprAnd__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -1782,10 +1876,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleExprAnd
+    // $ANTLR end "ruleExprAnd"
 
 
-    // $ANTLR start entryRuleExprEquality
+    // $ANTLR start "entryRuleExprEquality"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:705:1: entryRuleExprEquality : ruleExprEquality EOF ;
     public final void entryRuleExprEquality() throws RecognitionException {
         try {
@@ -1795,7 +1889,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprEqualityRule()); 
             pushFollow(FOLLOW_ruleExprEquality_in_entryRuleExprEquality1440);
             ruleExprEquality();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprEqualityRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleExprEquality1447); 
@@ -1811,10 +1906,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleExprEquality
+    // $ANTLR end "entryRuleExprEquality"
 
 
-    // $ANTLR start ruleExprEquality
+    // $ANTLR start "ruleExprEquality"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:714:1: ruleExprEquality : ( ( rule__ExprEquality__Group__0 ) ) ;
     public final void ruleExprEquality() throws RecognitionException {
 
@@ -1833,7 +1928,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprEquality__Group__0_in_ruleExprEquality1473);
             rule__ExprEquality__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -1857,10 +1953,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleExprEquality
+    // $ANTLR end "ruleExprEquality"
 
 
-    // $ANTLR start entryRuleExprComparison
+    // $ANTLR start "entryRuleExprComparison"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:733:1: entryRuleExprComparison : ruleExprComparison EOF ;
     public final void entryRuleExprComparison() throws RecognitionException {
         try {
@@ -1870,7 +1966,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprComparisonRule()); 
             pushFollow(FOLLOW_ruleExprComparison_in_entryRuleExprComparison1500);
             ruleExprComparison();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprComparisonRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleExprComparison1507); 
@@ -1886,10 +1983,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleExprComparison
+    // $ANTLR end "entryRuleExprComparison"
 
 
-    // $ANTLR start ruleExprComparison
+    // $ANTLR start "ruleExprComparison"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:742:1: ruleExprComparison : ( ( rule__ExprComparison__Group__0 ) ) ;
     public final void ruleExprComparison() throws RecognitionException {
 
@@ -1908,7 +2005,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprComparison__Group__0_in_ruleExprComparison1533);
             rule__ExprComparison__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -1932,10 +2030,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleExprComparison
+    // $ANTLR end "ruleExprComparison"
 
 
-    // $ANTLR start entryRuleExprAdditive
+    // $ANTLR start "entryRuleExprAdditive"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:761:1: entryRuleExprAdditive : ruleExprAdditive EOF ;
     public final void entryRuleExprAdditive() throws RecognitionException {
         try {
@@ -1945,7 +2043,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprAdditiveRule()); 
             pushFollow(FOLLOW_ruleExprAdditive_in_entryRuleExprAdditive1560);
             ruleExprAdditive();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprAdditiveRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleExprAdditive1567); 
@@ -1961,10 +2060,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleExprAdditive
+    // $ANTLR end "entryRuleExprAdditive"
 
 
-    // $ANTLR start ruleExprAdditive
+    // $ANTLR start "ruleExprAdditive"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:770:1: ruleExprAdditive : ( ( rule__ExprAdditive__Group__0 ) ) ;
     public final void ruleExprAdditive() throws RecognitionException {
 
@@ -1983,7 +2082,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAdditive__Group__0_in_ruleExprAdditive1593);
             rule__ExprAdditive__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -2007,10 +2107,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleExprAdditive
+    // $ANTLR end "ruleExprAdditive"
 
 
-    // $ANTLR start entryRuleExprMult
+    // $ANTLR start "entryRuleExprMult"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:789:1: entryRuleExprMult : ruleExprMult EOF ;
     public final void entryRuleExprMult() throws RecognitionException {
         try {
@@ -2020,7 +2120,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprMultRule()); 
             pushFollow(FOLLOW_ruleExprMult_in_entryRuleExprMult1620);
             ruleExprMult();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprMultRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleExprMult1627); 
@@ -2036,10 +2137,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleExprMult
+    // $ANTLR end "entryRuleExprMult"
 
 
-    // $ANTLR start ruleExprMult
+    // $ANTLR start "ruleExprMult"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:798:1: ruleExprMult : ( ( rule__ExprMult__Group__0 ) ) ;
     public final void ruleExprMult() throws RecognitionException {
 
@@ -2058,7 +2159,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprMult__Group__0_in_ruleExprMult1653);
             rule__ExprMult__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -2082,10 +2184,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleExprMult
+    // $ANTLR end "ruleExprMult"
 
 
-    // $ANTLR start entryRuleExprSign
+    // $ANTLR start "entryRuleExprSign"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:817:1: entryRuleExprSign : ruleExprSign EOF ;
     public final void entryRuleExprSign() throws RecognitionException {
         try {
@@ -2095,7 +2197,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprSignRule()); 
             pushFollow(FOLLOW_ruleExprSign_in_entryRuleExprSign1680);
             ruleExprSign();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprSignRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleExprSign1687); 
@@ -2111,10 +2214,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleExprSign
+    // $ANTLR end "entryRuleExprSign"
 
 
-    // $ANTLR start ruleExprSign
+    // $ANTLR start "ruleExprSign"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:826:1: ruleExprSign : ( ( rule__ExprSign__Alternatives ) ) ;
     public final void ruleExprSign() throws RecognitionException {
 
@@ -2133,7 +2236,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprSign__Alternatives_in_ruleExprSign1713);
             rule__ExprSign__Alternatives();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -2157,10 +2261,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleExprSign
+    // $ANTLR end "ruleExprSign"
 
 
-    // $ANTLR start entryRuleExprNot
+    // $ANTLR start "entryRuleExprNot"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:845:1: entryRuleExprNot : ruleExprNot EOF ;
     public final void entryRuleExprNot() throws RecognitionException {
         try {
@@ -2170,7 +2274,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprNotRule()); 
             pushFollow(FOLLOW_ruleExprNot_in_entryRuleExprNot1740);
             ruleExprNot();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprNotRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleExprNot1747); 
@@ -2186,10 +2291,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleExprNot
+    // $ANTLR end "entryRuleExprNot"
 
 
-    // $ANTLR start ruleExprNot
+    // $ANTLR start "ruleExprNot"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:854:1: ruleExprNot : ( ( rule__ExprNot__Alternatives ) ) ;
     public final void ruleExprNot() throws RecognitionException {
 
@@ -2208,7 +2313,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprNot__Alternatives_in_ruleExprNot1773);
             rule__ExprNot__Alternatives();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -2232,10 +2338,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleExprNot
+    // $ANTLR end "ruleExprNot"
 
 
-    // $ANTLR start entryRuleExprCustomOperator
+    // $ANTLR start "entryRuleExprCustomOperator"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:873:1: entryRuleExprCustomOperator : ruleExprCustomOperator EOF ;
     public final void entryRuleExprCustomOperator() throws RecognitionException {
         try {
@@ -2245,7 +2351,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprCustomOperatorRule()); 
             pushFollow(FOLLOW_ruleExprCustomOperator_in_entryRuleExprCustomOperator1800);
             ruleExprCustomOperator();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprCustomOperatorRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleExprCustomOperator1807); 
@@ -2261,10 +2368,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleExprCustomOperator
+    // $ANTLR end "entryRuleExprCustomOperator"
 
 
-    // $ANTLR start ruleExprCustomOperator
+    // $ANTLR start "ruleExprCustomOperator"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:882:1: ruleExprCustomOperator : ( ( rule__ExprCustomOperator__Group__0 ) ) ;
     public final void ruleExprCustomOperator() throws RecognitionException {
 
@@ -2283,7 +2390,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprCustomOperator__Group__0_in_ruleExprCustomOperator1833);
             rule__ExprCustomOperator__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -2307,10 +2415,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleExprCustomOperator
+    // $ANTLR end "ruleExprCustomOperator"
 
 
-    // $ANTLR start entryRuleExprMember
+    // $ANTLR start "entryRuleExprMember"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:901:1: entryRuleExprMember : ruleExprMember EOF ;
     public final void entryRuleExprMember() throws RecognitionException {
         try {
@@ -2320,7 +2428,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprMemberRule()); 
             pushFollow(FOLLOW_ruleExprMember_in_entryRuleExprMember1860);
             ruleExprMember();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprMemberRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleExprMember1867); 
@@ -2336,10 +2445,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleExprMember
+    // $ANTLR end "entryRuleExprMember"
 
 
-    // $ANTLR start ruleExprMember
+    // $ANTLR start "ruleExprMember"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:910:1: ruleExprMember : ( ( rule__ExprMember__Group__0 ) ) ;
     public final void ruleExprMember() throws RecognitionException {
 
@@ -2358,7 +2467,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprMember__Group__0_in_ruleExprMember1893);
             rule__ExprMember__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -2382,10 +2492,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleExprMember
+    // $ANTLR end "ruleExprMember"
 
 
-    // $ANTLR start entryRuleExprAtomic
+    // $ANTLR start "entryRuleExprAtomic"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:929:1: entryRuleExprAtomic : ruleExprAtomic EOF ;
     public final void entryRuleExprAtomic() throws RecognitionException {
         try {
@@ -2395,7 +2505,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprAtomicRule()); 
             pushFollow(FOLLOW_ruleExprAtomic_in_entryRuleExprAtomic1920);
             ruleExprAtomic();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprAtomicRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleExprAtomic1927); 
@@ -2411,10 +2522,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleExprAtomic
+    // $ANTLR end "entryRuleExprAtomic"
 
 
-    // $ANTLR start ruleExprAtomic
+    // $ANTLR start "ruleExprAtomic"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:938:1: ruleExprAtomic : ( ( rule__ExprAtomic__Alternatives ) ) ;
     public final void ruleExprAtomic() throws RecognitionException {
 
@@ -2433,7 +2544,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Alternatives_in_ruleExprAtomic1953);
             rule__ExprAtomic__Alternatives();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -2457,10 +2569,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleExprAtomic
+    // $ANTLR end "ruleExprAtomic"
 
 
-    // $ANTLR start entryRuleExprList
+    // $ANTLR start "entryRuleExprList"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:957:1: entryRuleExprList : ruleExprList EOF ;
     public final void entryRuleExprList() throws RecognitionException {
         try {
@@ -2470,7 +2582,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprListRule()); 
             pushFollow(FOLLOW_ruleExprList_in_entryRuleExprList1980);
             ruleExprList();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprListRule()); 
             match(input,EOF,FOLLOW_EOF_in_entryRuleExprList1987); 
@@ -2486,10 +2599,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end entryRuleExprList
+    // $ANTLR end "entryRuleExprList"
 
 
-    // $ANTLR start ruleExprList
+    // $ANTLR start "ruleExprList"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:966:1: ruleExprList : ( ( rule__ExprList__Group__0 ) ) ;
     public final void ruleExprList() throws RecognitionException {
 
@@ -2508,7 +2621,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprList__Group__0_in_ruleExprList2013);
             rule__ExprList__Group__0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -2532,10 +2646,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end ruleExprList
+    // $ANTLR end "ruleExprList"
 
 
-    // $ANTLR start rule__Entity__Alternatives
+    // $ANTLR start "rule__Entity__Alternatives"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:985:1: rule__Entity__Alternatives : ( ( ruleClassDef ) | ( ruleNativeType ) | ( ruleFuncDef ) | ( ruleVarDef ) );
     public final void rule__Entity__Alternatives() throws RecognitionException {
 
@@ -2568,7 +2682,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                 break;
             default:
                 NoViableAltException nvae =
-                    new NoViableAltException("985:1: rule__Entity__Alternatives : ( ( ruleClassDef ) | ( ruleNativeType ) | ( ruleFuncDef ) | ( ruleVarDef ) );", 1, 0, input);
+                    new NoViableAltException("", 1, 0, input);
 
                 throw nvae;
             }
@@ -2583,7 +2697,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                      before(grammarAccess.getEntityAccess().getClassDefParserRuleCall_0()); 
                     pushFollow(FOLLOW_ruleClassDef_in_rule__Entity__Alternatives2049);
                     ruleClassDef();
-                    _fsp--;
+
+                    state._fsp--;
 
                      after(grammarAccess.getEntityAccess().getClassDefParserRuleCall_0()); 
 
@@ -2601,7 +2716,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                      before(grammarAccess.getEntityAccess().getNativeTypeParserRuleCall_1()); 
                     pushFollow(FOLLOW_ruleNativeType_in_rule__Entity__Alternatives2066);
                     ruleNativeType();
-                    _fsp--;
+
+                    state._fsp--;
 
                      after(grammarAccess.getEntityAccess().getNativeTypeParserRuleCall_1()); 
 
@@ -2619,7 +2735,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                      before(grammarAccess.getEntityAccess().getFuncDefParserRuleCall_2()); 
                     pushFollow(FOLLOW_ruleFuncDef_in_rule__Entity__Alternatives2083);
                     ruleFuncDef();
-                    _fsp--;
+
+                    state._fsp--;
 
                      after(grammarAccess.getEntityAccess().getFuncDefParserRuleCall_2()); 
 
@@ -2637,7 +2754,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                      before(grammarAccess.getEntityAccess().getVarDefParserRuleCall_3()); 
                     pushFollow(FOLLOW_ruleVarDef_in_rule__Entity__Alternatives2100);
                     ruleVarDef();
-                    _fsp--;
+
+                    state._fsp--;
 
                      after(grammarAccess.getEntityAccess().getVarDefParserRuleCall_3()); 
 
@@ -2660,10 +2778,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__Entity__Alternatives
+    // $ANTLR end "rule__Entity__Alternatives"
 
 
-    // $ANTLR start rule__ClassMember__Alternatives_1
+    // $ANTLR start "rule__ClassMember__Alternatives_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1019:1: rule__ClassMember__Alternatives_1 : ( ( ruleVarDef ) | ( ruleFuncDef ) );
     public final void rule__ClassMember__Alternatives_1() throws RecognitionException {
 
@@ -2682,7 +2800,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             }
             else {
                 NoViableAltException nvae =
-                    new NoViableAltException("1019:1: rule__ClassMember__Alternatives_1 : ( ( ruleVarDef ) | ( ruleFuncDef ) );", 2, 0, input);
+                    new NoViableAltException("", 2, 0, input);
 
                 throw nvae;
             }
@@ -2696,7 +2814,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                      before(grammarAccess.getClassMemberAccess().getVarDefParserRuleCall_1_0()); 
                     pushFollow(FOLLOW_ruleVarDef_in_rule__ClassMember__Alternatives_12132);
                     ruleVarDef();
-                    _fsp--;
+
+                    state._fsp--;
 
                      after(grammarAccess.getClassMemberAccess().getVarDefParserRuleCall_1_0()); 
 
@@ -2714,7 +2833,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                      before(grammarAccess.getClassMemberAccess().getFuncDefParserRuleCall_1_1()); 
                     pushFollow(FOLLOW_ruleFuncDef_in_rule__ClassMember__Alternatives_12149);
                     ruleFuncDef();
-                    _fsp--;
+
+                    state._fsp--;
 
                      after(grammarAccess.getClassMemberAccess().getFuncDefParserRuleCall_1_1()); 
 
@@ -2737,10 +2857,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ClassMember__Alternatives_1
+    // $ANTLR end "rule__ClassMember__Alternatives_1"
 
 
-    // $ANTLR start rule__VarDef__Alternatives_1
+    // $ANTLR start "rule__VarDef__Alternatives_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1041:1: rule__VarDef__Alternatives_1 : ( ( 'var' ) | ( ( rule__VarDef__ConstantAssignment_1_1 ) ) );
     public final void rule__VarDef__Alternatives_1() throws RecognitionException {
 
@@ -2759,7 +2879,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             }
             else {
                 NoViableAltException nvae =
-                    new NoViableAltException("1041:1: rule__VarDef__Alternatives_1 : ( ( 'var' ) | ( ( rule__VarDef__ConstantAssignment_1_1 ) ) );", 3, 0, input);
+                    new NoViableAltException("", 3, 0, input);
 
                 throw nvae;
             }
@@ -2791,7 +2911,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                     {
                     pushFollow(FOLLOW_rule__VarDef__ConstantAssignment_1_1_in_rule__VarDef__Alternatives_12201);
                     rule__VarDef__ConstantAssignment_1_1();
-                    _fsp--;
+
+                    state._fsp--;
 
 
                     }
@@ -2817,10 +2938,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__VarDef__Alternatives_1
+    // $ANTLR end "rule__VarDef__Alternatives_1"
 
 
-    // $ANTLR start rule__Statements__Alternatives_1
+    // $ANTLR start "rule__Statements__Alternatives_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1065:1: rule__Statements__Alternatives_1 : ( ( RULE_NL ) | ( ( rule__Statements__StatementsAssignment_1_1 ) ) );
     public final void rule__Statements__Alternatives_1() throws RecognitionException {
 
@@ -2839,7 +2960,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             }
             else {
                 NoViableAltException nvae =
-                    new NoViableAltException("1065:1: rule__Statements__Alternatives_1 : ( ( RULE_NL ) | ( ( rule__Statements__StatementsAssignment_1_1 ) ) );", 4, 0, input);
+                    new NoViableAltException("", 4, 0, input);
 
                 throw nvae;
             }
@@ -2871,7 +2992,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                     {
                     pushFollow(FOLLOW_rule__Statements__StatementsAssignment_1_1_in_rule__Statements__Alternatives_12251);
                     rule__Statements__StatementsAssignment_1_1();
-                    _fsp--;
+
+                    state._fsp--;
 
 
                     }
@@ -2897,10 +3019,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__Statements__Alternatives_1
+    // $ANTLR end "rule__Statements__Alternatives_1"
 
 
-    // $ANTLR start rule__Statement__Alternatives
+    // $ANTLR start "rule__Statement__Alternatives"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1087:1: rule__Statement__Alternatives : ( ( ruleStmtIf ) | ( ruleStmtWhile ) | ( ruleVarDef ) | ( ruleStmtExpr ) | ( ruleStmtReturn ) );
     public final void rule__Statement__Alternatives() throws RecognitionException {
 
@@ -2946,7 +3068,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                 break;
             default:
                 NoViableAltException nvae =
-                    new NoViableAltException("1087:1: rule__Statement__Alternatives : ( ( ruleStmtIf ) | ( ruleStmtWhile ) | ( ruleVarDef ) | ( ruleStmtExpr ) | ( ruleStmtReturn ) );", 5, 0, input);
+                    new NoViableAltException("", 5, 0, input);
 
                 throw nvae;
             }
@@ -2961,7 +3083,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                      before(grammarAccess.getStatementAccess().getStmtIfParserRuleCall_0()); 
                     pushFollow(FOLLOW_ruleStmtIf_in_rule__Statement__Alternatives2284);
                     ruleStmtIf();
-                    _fsp--;
+
+                    state._fsp--;
 
                      after(grammarAccess.getStatementAccess().getStmtIfParserRuleCall_0()); 
 
@@ -2979,7 +3102,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                      before(grammarAccess.getStatementAccess().getStmtWhileParserRuleCall_1()); 
                     pushFollow(FOLLOW_ruleStmtWhile_in_rule__Statement__Alternatives2301);
                     ruleStmtWhile();
-                    _fsp--;
+
+                    state._fsp--;
 
                      after(grammarAccess.getStatementAccess().getStmtWhileParserRuleCall_1()); 
 
@@ -2997,7 +3121,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                      before(grammarAccess.getStatementAccess().getVarDefParserRuleCall_2()); 
                     pushFollow(FOLLOW_ruleVarDef_in_rule__Statement__Alternatives2318);
                     ruleVarDef();
-                    _fsp--;
+
+                    state._fsp--;
 
                      after(grammarAccess.getStatementAccess().getVarDefParserRuleCall_2()); 
 
@@ -3015,7 +3140,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                      before(grammarAccess.getStatementAccess().getStmtExprParserRuleCall_3()); 
                     pushFollow(FOLLOW_ruleStmtExpr_in_rule__Statement__Alternatives2335);
                     ruleStmtExpr();
-                    _fsp--;
+
+                    state._fsp--;
 
                      after(grammarAccess.getStatementAccess().getStmtExprParserRuleCall_3()); 
 
@@ -3033,7 +3159,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                      before(grammarAccess.getStatementAccess().getStmtReturnParserRuleCall_4()); 
                     pushFollow(FOLLOW_ruleStmtReturn_in_rule__Statement__Alternatives2352);
                     ruleStmtReturn();
-                    _fsp--;
+
+                    state._fsp--;
 
                      after(grammarAccess.getStatementAccess().getStmtReturnParserRuleCall_4()); 
 
@@ -3056,10 +3183,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__Statement__Alternatives
+    // $ANTLR end "rule__Statement__Alternatives"
 
 
-    // $ANTLR start rule__ExprAssignment__OpAlternatives_1_1_0
+    // $ANTLR start "rule__ExprAssignment__OpAlternatives_1_1_0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1127:1: rule__ExprAssignment__OpAlternatives_1_1_0 : ( ( '=' ) | ( '+=' ) | ( '-=' ) );
     public final void rule__ExprAssignment__OpAlternatives_1_1_0() throws RecognitionException {
 
@@ -3086,7 +3213,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                 break;
             default:
                 NoViableAltException nvae =
-                    new NoViableAltException("1127:1: rule__ExprAssignment__OpAlternatives_1_1_0 : ( ( '=' ) | ( '+=' ) | ( '-=' ) );", 6, 0, input);
+                    new NoViableAltException("", 6, 0, input);
 
                 throw nvae;
             }
@@ -3151,10 +3278,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAssignment__OpAlternatives_1_1_0
+    // $ANTLR end "rule__ExprAssignment__OpAlternatives_1_1_0"
 
 
-    // $ANTLR start rule__ExprEquality__OpAlternatives_1_1_0
+    // $ANTLR start "rule__ExprEquality__OpAlternatives_1_1_0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1161:1: rule__ExprEquality__OpAlternatives_1_1_0 : ( ( '!=' ) | ( '==' ) );
     public final void rule__ExprEquality__OpAlternatives_1_1_0() throws RecognitionException {
 
@@ -3173,7 +3300,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             }
             else {
                 NoViableAltException nvae =
-                    new NoViableAltException("1161:1: rule__ExprEquality__OpAlternatives_1_1_0 : ( ( '!=' ) | ( '==' ) );", 7, 0, input);
+                    new NoViableAltException("", 7, 0, input);
 
                 throw nvae;
             }
@@ -3222,10 +3349,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprEquality__OpAlternatives_1_1_0
+    // $ANTLR end "rule__ExprEquality__OpAlternatives_1_1_0"
 
 
-    // $ANTLR start rule__ExprComparison__OpAlternatives_1_1_0
+    // $ANTLR start "rule__ExprComparison__OpAlternatives_1_1_0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1187:1: rule__ExprComparison__OpAlternatives_1_1_0 : ( ( '<=' ) | ( '<' ) | ( '>=' ) | ( '>' ) );
     public final void rule__ExprComparison__OpAlternatives_1_1_0() throws RecognitionException {
 
@@ -3257,7 +3384,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                 break;
             default:
                 NoViableAltException nvae =
-                    new NoViableAltException("1187:1: rule__ExprComparison__OpAlternatives_1_1_0 : ( ( '<=' ) | ( '<' ) | ( '>=' ) | ( '>' ) );", 8, 0, input);
+                    new NoViableAltException("", 8, 0, input);
 
                 throw nvae;
             }
@@ -3337,10 +3464,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprComparison__OpAlternatives_1_1_0
+    // $ANTLR end "rule__ExprComparison__OpAlternatives_1_1_0"
 
 
-    // $ANTLR start rule__ExprAdditive__OpAlternatives_1_1_0
+    // $ANTLR start "rule__ExprAdditive__OpAlternatives_1_1_0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1229:1: rule__ExprAdditive__OpAlternatives_1_1_0 : ( ( '+' ) | ( '-' ) );
     public final void rule__ExprAdditive__OpAlternatives_1_1_0() throws RecognitionException {
 
@@ -3359,7 +3486,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             }
             else {
                 NoViableAltException nvae =
-                    new NoViableAltException("1229:1: rule__ExprAdditive__OpAlternatives_1_1_0 : ( ( '+' ) | ( '-' ) );", 9, 0, input);
+                    new NoViableAltException("", 9, 0, input);
 
                 throw nvae;
             }
@@ -3408,10 +3535,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAdditive__OpAlternatives_1_1_0
+    // $ANTLR end "rule__ExprAdditive__OpAlternatives_1_1_0"
 
 
-    // $ANTLR start rule__ExprMult__OpAlternatives_1_1_0
+    // $ANTLR start "rule__ExprMult__OpAlternatives_1_1_0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1255:1: rule__ExprMult__OpAlternatives_1_1_0 : ( ( '*' ) | ( '/' ) | ( '%' ) | ( 'mod' ) | ( 'div' ) );
     public final void rule__ExprMult__OpAlternatives_1_1_0() throws RecognitionException {
 
@@ -3448,7 +3575,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                 break;
             default:
                 NoViableAltException nvae =
-                    new NoViableAltException("1255:1: rule__ExprMult__OpAlternatives_1_1_0 : ( ( '*' ) | ( '/' ) | ( '%' ) | ( 'mod' ) | ( 'div' ) );", 10, 0, input);
+                    new NoViableAltException("", 10, 0, input);
 
                 throw nvae;
             }
@@ -3543,10 +3670,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprMult__OpAlternatives_1_1_0
+    // $ANTLR end "rule__ExprMult__OpAlternatives_1_1_0"
 
 
-    // $ANTLR start rule__ExprSign__Alternatives
+    // $ANTLR start "rule__ExprSign__Alternatives"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1305:1: rule__ExprSign__Alternatives : ( ( ( rule__ExprSign__Group_0__0 ) ) | ( ruleExprNot ) );
     public final void rule__ExprSign__Alternatives() throws RecognitionException {
 
@@ -3565,7 +3692,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             }
             else {
                 NoViableAltException nvae =
-                    new NoViableAltException("1305:1: rule__ExprSign__Alternatives : ( ( ( rule__ExprSign__Group_0__0 ) ) | ( ruleExprNot ) );", 11, 0, input);
+                    new NoViableAltException("", 11, 0, input);
 
                 throw nvae;
             }
@@ -3582,7 +3709,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                     {
                     pushFollow(FOLLOW_rule__ExprSign__Group_0__0_in_rule__ExprSign__Alternatives2779);
                     rule__ExprSign__Group_0__0();
-                    _fsp--;
+
+                    state._fsp--;
 
 
                     }
@@ -3603,7 +3731,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                      before(grammarAccess.getExprSignAccess().getExprNotParserRuleCall_1()); 
                     pushFollow(FOLLOW_ruleExprNot_in_rule__ExprSign__Alternatives2797);
                     ruleExprNot();
-                    _fsp--;
+
+                    state._fsp--;
 
                      after(grammarAccess.getExprSignAccess().getExprNotParserRuleCall_1()); 
 
@@ -3626,10 +3755,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprSign__Alternatives
+    // $ANTLR end "rule__ExprSign__Alternatives"
 
 
-    // $ANTLR start rule__ExprSign__OpAlternatives_0_1_0
+    // $ANTLR start "rule__ExprSign__OpAlternatives_0_1_0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1327:1: rule__ExprSign__OpAlternatives_0_1_0 : ( ( '+' ) | ( '-' ) );
     public final void rule__ExprSign__OpAlternatives_0_1_0() throws RecognitionException {
 
@@ -3648,7 +3777,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             }
             else {
                 NoViableAltException nvae =
-                    new NoViableAltException("1327:1: rule__ExprSign__OpAlternatives_0_1_0 : ( ( '+' ) | ( '-' ) );", 12, 0, input);
+                    new NoViableAltException("", 12, 0, input);
 
                 throw nvae;
             }
@@ -3697,10 +3826,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprSign__OpAlternatives_0_1_0
+    // $ANTLR end "rule__ExprSign__OpAlternatives_0_1_0"
 
 
-    // $ANTLR start rule__ExprNot__Alternatives
+    // $ANTLR start "rule__ExprNot__Alternatives"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1353:1: rule__ExprNot__Alternatives : ( ( ( rule__ExprNot__Group_0__0 ) ) | ( ruleExprCustomOperator ) );
     public final void rule__ExprNot__Alternatives() throws RecognitionException {
 
@@ -3719,7 +3848,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             }
             else {
                 NoViableAltException nvae =
-                    new NoViableAltException("1353:1: rule__ExprNot__Alternatives : ( ( ( rule__ExprNot__Group_0__0 ) ) | ( ruleExprCustomOperator ) );", 13, 0, input);
+                    new NoViableAltException("", 13, 0, input);
 
                 throw nvae;
             }
@@ -3736,7 +3865,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                     {
                     pushFollow(FOLLOW_rule__ExprNot__Group_0__0_in_rule__ExprNot__Alternatives2884);
                     rule__ExprNot__Group_0__0();
-                    _fsp--;
+
+                    state._fsp--;
 
 
                     }
@@ -3757,7 +3887,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                      before(grammarAccess.getExprNotAccess().getExprCustomOperatorParserRuleCall_1()); 
                     pushFollow(FOLLOW_ruleExprCustomOperator_in_rule__ExprNot__Alternatives2902);
                     ruleExprCustomOperator();
-                    _fsp--;
+
+                    state._fsp--;
 
                      after(grammarAccess.getExprNotAccess().getExprCustomOperatorParserRuleCall_1()); 
 
@@ -3780,10 +3911,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprNot__Alternatives
+    // $ANTLR end "rule__ExprNot__Alternatives"
 
 
-    // $ANTLR start rule__ExprAtomic__Alternatives
+    // $ANTLR start "rule__ExprAtomic__Alternatives"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1375:1: rule__ExprAtomic__Alternatives : ( ( ( rule__ExprAtomic__Group_0__0 ) ) | ( ( rule__ExprAtomic__Group_1__0 ) ) | ( ( rule__ExprAtomic__Group_2__0 ) ) | ( ( rule__ExprAtomic__Group_3__0 ) ) | ( ( rule__ExprAtomic__Group_4__0 ) ) | ( ( rule__ExprAtomic__Group_5__0 ) ) | ( ( rule__ExprAtomic__Group_6__0 ) ) | ( ( rule__ExprAtomic__Group_7__0 ) ) | ( ( rule__ExprAtomic__Group_8__0 ) ) );
     public final void rule__ExprAtomic__Alternatives() throws RecognitionException {
 
@@ -3792,83 +3923,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         try {
             // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1379:1: ( ( ( rule__ExprAtomic__Group_0__0 ) ) | ( ( rule__ExprAtomic__Group_1__0 ) ) | ( ( rule__ExprAtomic__Group_2__0 ) ) | ( ( rule__ExprAtomic__Group_3__0 ) ) | ( ( rule__ExprAtomic__Group_4__0 ) ) | ( ( rule__ExprAtomic__Group_5__0 ) ) | ( ( rule__ExprAtomic__Group_6__0 ) ) | ( ( rule__ExprAtomic__Group_7__0 ) ) | ( ( rule__ExprAtomic__Group_8__0 ) ) )
             int alt14=9;
-            switch ( input.LA(1) ) {
-            case RULE_ID:
-                {
-                int LA14_1 = input.LA(2);
-
-                if ( (LA14_1==EOF||LA14_1==RULE_NL||LA14_1==RULE_OPERATOR||(LA14_1>=15 && LA14_1<=30)||LA14_1==32||LA14_1==35||(LA14_1>=43 && LA14_1<=44)||(LA14_1>=51 && LA14_1<=52)) ) {
-                    alt14=3;
-                }
-                else if ( (LA14_1==42) ) {
-                    int LA14_8 = input.LA(3);
-
-                    if ( (LA14_8==RULE_ID||(LA14_8>=RULE_INT && LA14_8<=RULE_STRING)||(LA14_8>=24 && LA14_8<=25)||LA14_8==42||LA14_8==49||LA14_8==53) ) {
-                        alt14=1;
-                    }
-                    else if ( (LA14_8==43) ) {
-                        alt14=2;
-                    }
-                    else {
-                        NoViableAltException nvae =
-                            new NoViableAltException("1375:1: rule__ExprAtomic__Alternatives : ( ( ( rule__ExprAtomic__Group_0__0 ) ) | ( ( rule__ExprAtomic__Group_1__0 ) ) | ( ( rule__ExprAtomic__Group_2__0 ) ) | ( ( rule__ExprAtomic__Group_3__0 ) ) | ( ( rule__ExprAtomic__Group_4__0 ) ) | ( ( rule__ExprAtomic__Group_5__0 ) ) | ( ( rule__ExprAtomic__Group_6__0 ) ) | ( ( rule__ExprAtomic__Group_7__0 ) ) | ( ( rule__ExprAtomic__Group_8__0 ) ) );", 14, 8, input);
-
-                        throw nvae;
-                    }
-                }
-                else {
-                    NoViableAltException nvae =
-                        new NoViableAltException("1375:1: rule__ExprAtomic__Alternatives : ( ( ( rule__ExprAtomic__Group_0__0 ) ) | ( ( rule__ExprAtomic__Group_1__0 ) ) | ( ( rule__ExprAtomic__Group_2__0 ) ) | ( ( rule__ExprAtomic__Group_3__0 ) ) | ( ( rule__ExprAtomic__Group_4__0 ) ) | ( ( rule__ExprAtomic__Group_5__0 ) ) | ( ( rule__ExprAtomic__Group_6__0 ) ) | ( ( rule__ExprAtomic__Group_7__0 ) ) | ( ( rule__ExprAtomic__Group_8__0 ) ) );", 14, 1, input);
-
-                    throw nvae;
-                }
-                }
-                break;
-            case 42:
-                {
-                alt14=4;
-                }
-                break;
-            case RULE_INT:
-                {
-                alt14=5;
-                }
-                break;
-            case RULE_NUMBER:
-                {
-                alt14=6;
-                }
-                break;
-            case RULE_STRING:
-                {
-                alt14=7;
-                }
-                break;
-            case 49:
-                {
-                int LA14_6 = input.LA(2);
-
-                if ( (LA14_6==RULE_ID) ) {
-                    alt14=8;
-                }
-                else if ( (LA14_6==42) ) {
-                    alt14=9;
-                }
-                else {
-                    NoViableAltException nvae =
-                        new NoViableAltException("1375:1: rule__ExprAtomic__Alternatives : ( ( ( rule__ExprAtomic__Group_0__0 ) ) | ( ( rule__ExprAtomic__Group_1__0 ) ) | ( ( rule__ExprAtomic__Group_2__0 ) ) | ( ( rule__ExprAtomic__Group_3__0 ) ) | ( ( rule__ExprAtomic__Group_4__0 ) ) | ( ( rule__ExprAtomic__Group_5__0 ) ) | ( ( rule__ExprAtomic__Group_6__0 ) ) | ( ( rule__ExprAtomic__Group_7__0 ) ) | ( ( rule__ExprAtomic__Group_8__0 ) ) );", 14, 6, input);
-
-                    throw nvae;
-                }
-                }
-                break;
-            default:
-                NoViableAltException nvae =
-                    new NoViableAltException("1375:1: rule__ExprAtomic__Alternatives : ( ( ( rule__ExprAtomic__Group_0__0 ) ) | ( ( rule__ExprAtomic__Group_1__0 ) ) | ( ( rule__ExprAtomic__Group_2__0 ) ) | ( ( rule__ExprAtomic__Group_3__0 ) ) | ( ( rule__ExprAtomic__Group_4__0 ) ) | ( ( rule__ExprAtomic__Group_5__0 ) ) | ( ( rule__ExprAtomic__Group_6__0 ) ) | ( ( rule__ExprAtomic__Group_7__0 ) ) | ( ( rule__ExprAtomic__Group_8__0 ) ) );", 14, 0, input);
-
-                throw nvae;
-            }
-
+            alt14 = dfa14.predict(input);
             switch (alt14) {
                 case 1 :
                     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1380:1: ( ( rule__ExprAtomic__Group_0__0 ) )
@@ -3882,7 +3937,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                     {
                     pushFollow(FOLLOW_rule__ExprAtomic__Group_0__0_in_rule__ExprAtomic__Alternatives2934);
                     rule__ExprAtomic__Group_0__0();
-                    _fsp--;
+
+                    state._fsp--;
 
 
                     }
@@ -3906,7 +3962,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                     {
                     pushFollow(FOLLOW_rule__ExprAtomic__Group_1__0_in_rule__ExprAtomic__Alternatives2952);
                     rule__ExprAtomic__Group_1__0();
-                    _fsp--;
+
+                    state._fsp--;
 
 
                     }
@@ -3930,7 +3987,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                     {
                     pushFollow(FOLLOW_rule__ExprAtomic__Group_2__0_in_rule__ExprAtomic__Alternatives2970);
                     rule__ExprAtomic__Group_2__0();
-                    _fsp--;
+
+                    state._fsp--;
 
 
                     }
@@ -3954,7 +4012,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                     {
                     pushFollow(FOLLOW_rule__ExprAtomic__Group_3__0_in_rule__ExprAtomic__Alternatives2988);
                     rule__ExprAtomic__Group_3__0();
-                    _fsp--;
+
+                    state._fsp--;
 
 
                     }
@@ -3978,7 +4037,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                     {
                     pushFollow(FOLLOW_rule__ExprAtomic__Group_4__0_in_rule__ExprAtomic__Alternatives3006);
                     rule__ExprAtomic__Group_4__0();
-                    _fsp--;
+
+                    state._fsp--;
 
 
                     }
@@ -4002,7 +4062,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                     {
                     pushFollow(FOLLOW_rule__ExprAtomic__Group_5__0_in_rule__ExprAtomic__Alternatives3024);
                     rule__ExprAtomic__Group_5__0();
-                    _fsp--;
+
+                    state._fsp--;
 
 
                     }
@@ -4026,7 +4087,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                     {
                     pushFollow(FOLLOW_rule__ExprAtomic__Group_6__0_in_rule__ExprAtomic__Alternatives3042);
                     rule__ExprAtomic__Group_6__0();
-                    _fsp--;
+
+                    state._fsp--;
 
 
                     }
@@ -4050,7 +4112,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                     {
                     pushFollow(FOLLOW_rule__ExprAtomic__Group_7__0_in_rule__ExprAtomic__Alternatives3060);
                     rule__ExprAtomic__Group_7__0();
-                    _fsp--;
+
+                    state._fsp--;
 
 
                     }
@@ -4074,7 +4137,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                     {
                     pushFollow(FOLLOW_rule__ExprAtomic__Group_8__0_in_rule__ExprAtomic__Alternatives3078);
                     rule__ExprAtomic__Group_8__0();
-                    _fsp--;
+
+                    state._fsp--;
 
 
                     }
@@ -4100,10 +4164,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Alternatives
+    // $ANTLR end "rule__ExprAtomic__Alternatives"
 
 
-    // $ANTLR start rule__ExprAtomic__Alternatives_7_3
+    // $ANTLR start "rule__ExprAtomic__Alternatives_7_3"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1439:1: rule__ExprAtomic__Alternatives_7_3 : ( ( ( rule__ExprAtomic__ParametersAssignment_7_3_0 ) ) | ( ( rule__ExprAtomic__Group_7_3_1__0 ) ) );
     public final void rule__ExprAtomic__Alternatives_7_3() throws RecognitionException {
 
@@ -4117,22 +4181,22 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             if ( (LA15_0==42) ) {
                 int LA15_1 = input.LA(2);
 
-                if ( (LA15_1==RULE_ID||(LA15_1>=RULE_INT && LA15_1<=RULE_STRING)||(LA15_1>=24 && LA15_1<=25)||LA15_1==42||LA15_1==49||LA15_1==53) ) {
-                    alt15=1;
-                }
-                else if ( (LA15_1==43) ) {
+                if ( (LA15_1==43) ) {
                     alt15=2;
+                }
+                else if ( (LA15_1==RULE_ID||(LA15_1>=RULE_INT && LA15_1<=RULE_STRING)||(LA15_1>=24 && LA15_1<=25)||LA15_1==42||LA15_1==49||LA15_1==53) ) {
+                    alt15=1;
                 }
                 else {
                     NoViableAltException nvae =
-                        new NoViableAltException("1439:1: rule__ExprAtomic__Alternatives_7_3 : ( ( ( rule__ExprAtomic__ParametersAssignment_7_3_0 ) ) | ( ( rule__ExprAtomic__Group_7_3_1__0 ) ) );", 15, 1, input);
+                        new NoViableAltException("", 15, 1, input);
 
                     throw nvae;
                 }
             }
             else {
                 NoViableAltException nvae =
-                    new NoViableAltException("1439:1: rule__ExprAtomic__Alternatives_7_3 : ( ( ( rule__ExprAtomic__ParametersAssignment_7_3_0 ) ) | ( ( rule__ExprAtomic__Group_7_3_1__0 ) ) );", 15, 0, input);
+                    new NoViableAltException("", 15, 0, input);
 
                 throw nvae;
             }
@@ -4149,7 +4213,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                     {
                     pushFollow(FOLLOW_rule__ExprAtomic__ParametersAssignment_7_3_0_in_rule__ExprAtomic__Alternatives_7_33111);
                     rule__ExprAtomic__ParametersAssignment_7_3_0();
-                    _fsp--;
+
+                    state._fsp--;
 
 
                     }
@@ -4173,7 +4238,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                     {
                     pushFollow(FOLLOW_rule__ExprAtomic__Group_7_3_1__0_in_rule__ExprAtomic__Alternatives_7_33129);
                     rule__ExprAtomic__Group_7_3_1__0();
-                    _fsp--;
+
+                    state._fsp--;
 
 
                     }
@@ -4199,10 +4265,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Alternatives_7_3
+    // $ANTLR end "rule__ExprAtomic__Alternatives_7_3"
 
 
-    // $ANTLR start rule__Program__Group__0
+    // $ANTLR start "rule__Program__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1463:1: rule__Program__Group__0 : rule__Program__Group__0__Impl rule__Program__Group__1 ;
     public final void rule__Program__Group__0() throws RecognitionException {
 
@@ -4214,11 +4280,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__Program__Group__0__Impl_in_rule__Program__Group__03160);
             rule__Program__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__Program__Group__1_in_rule__Program__Group__03163);
             rule__Program__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -4235,10 +4303,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__Program__Group__0
+    // $ANTLR end "rule__Program__Group__0"
 
 
-    // $ANTLR start rule__Program__Group__0__Impl
+    // $ANTLR start "rule__Program__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1475:1: rule__Program__Group__0__Impl : ( ( RULE_NL )* ) ;
     public final void rule__Program__Group__0__Impl() throws RecognitionException {
 
@@ -4296,10 +4364,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__Program__Group__0__Impl
+    // $ANTLR end "rule__Program__Group__0__Impl"
 
 
-    // $ANTLR start rule__Program__Group__1
+    // $ANTLR start "rule__Program__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1492:1: rule__Program__Group__1 : rule__Program__Group__1__Impl rule__Program__Group__2 ;
     public final void rule__Program__Group__1() throws RecognitionException {
 
@@ -4311,11 +4379,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__Program__Group__1__Impl_in_rule__Program__Group__13222);
             rule__Program__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__Program__Group__2_in_rule__Program__Group__13225);
             rule__Program__Group__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -4332,10 +4402,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__Program__Group__1
+    // $ANTLR end "rule__Program__Group__1"
 
 
-    // $ANTLR start rule__Program__Group__1__Impl
+    // $ANTLR start "rule__Program__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1504:1: rule__Program__Group__1__Impl : ( ( rule__Program__PackagesAssignment_1 ) ) ;
     public final void rule__Program__Group__1__Impl() throws RecognitionException {
 
@@ -4354,7 +4424,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__Program__PackagesAssignment_1_in_rule__Program__Group__1__Impl3252);
             rule__Program__PackagesAssignment_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -4378,10 +4449,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__Program__Group__1__Impl
+    // $ANTLR end "rule__Program__Group__1__Impl"
 
 
-    // $ANTLR start rule__Program__Group__2
+    // $ANTLR start "rule__Program__Group__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1521:1: rule__Program__Group__2 : rule__Program__Group__2__Impl rule__Program__Group__3 ;
     public final void rule__Program__Group__2() throws RecognitionException {
 
@@ -4393,11 +4464,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__Program__Group__2__Impl_in_rule__Program__Group__23282);
             rule__Program__Group__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__Program__Group__3_in_rule__Program__Group__23285);
             rule__Program__Group__3();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -4414,10 +4487,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__Program__Group__2
+    // $ANTLR end "rule__Program__Group__2"
 
 
-    // $ANTLR start rule__Program__Group__2__Impl
+    // $ANTLR start "rule__Program__Group__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1533:1: rule__Program__Group__2__Impl : ( ( rule__Program__PackagesAssignment_2 )* ) ;
     public final void rule__Program__Group__2__Impl() throws RecognitionException {
 
@@ -4448,7 +4521,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             	    {
             	    pushFollow(FOLLOW_rule__Program__PackagesAssignment_2_in_rule__Program__Group__2__Impl3312);
             	    rule__Program__PackagesAssignment_2();
-            	    _fsp--;
+
+            	    state._fsp--;
 
 
             	    }
@@ -4478,10 +4552,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__Program__Group__2__Impl
+    // $ANTLR end "rule__Program__Group__2__Impl"
 
 
-    // $ANTLR start rule__Program__Group__3
+    // $ANTLR start "rule__Program__Group__3"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1550:1: rule__Program__Group__3 : rule__Program__Group__3__Impl ;
     public final void rule__Program__Group__3() throws RecognitionException {
 
@@ -4493,7 +4567,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__Program__Group__3__Impl_in_rule__Program__Group__33343);
             rule__Program__Group__3__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -4510,10 +4585,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__Program__Group__3
+    // $ANTLR end "rule__Program__Group__3"
 
 
-    // $ANTLR start rule__Program__Group__3__Impl
+    // $ANTLR start "rule__Program__Group__3__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1561:1: rule__Program__Group__3__Impl : ( ( RULE_NL )* ) ;
     public final void rule__Program__Group__3__Impl() throws RecognitionException {
 
@@ -4571,10 +4646,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__Program__Group__3__Impl
+    // $ANTLR end "rule__Program__Group__3__Impl"
 
 
-    // $ANTLR start rule__PackageDeclaration__Group__0
+    // $ANTLR start "rule__PackageDeclaration__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1586:1: rule__PackageDeclaration__Group__0 : rule__PackageDeclaration__Group__0__Impl rule__PackageDeclaration__Group__1 ;
     public final void rule__PackageDeclaration__Group__0() throws RecognitionException {
 
@@ -4586,11 +4661,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__PackageDeclaration__Group__0__Impl_in_rule__PackageDeclaration__Group__03410);
             rule__PackageDeclaration__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__PackageDeclaration__Group__1_in_rule__PackageDeclaration__Group__03413);
             rule__PackageDeclaration__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -4607,10 +4684,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__Group__0
+    // $ANTLR end "rule__PackageDeclaration__Group__0"
 
 
-    // $ANTLR start rule__PackageDeclaration__Group__0__Impl
+    // $ANTLR start "rule__PackageDeclaration__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1598:1: rule__PackageDeclaration__Group__0__Impl : ( 'package' ) ;
     public final void rule__PackageDeclaration__Group__0__Impl() throws RecognitionException {
 
@@ -4644,10 +4721,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__Group__0__Impl
+    // $ANTLR end "rule__PackageDeclaration__Group__0__Impl"
 
 
-    // $ANTLR start rule__PackageDeclaration__Group__1
+    // $ANTLR start "rule__PackageDeclaration__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1617:1: rule__PackageDeclaration__Group__1 : rule__PackageDeclaration__Group__1__Impl rule__PackageDeclaration__Group__2 ;
     public final void rule__PackageDeclaration__Group__1() throws RecognitionException {
 
@@ -4659,11 +4736,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__PackageDeclaration__Group__1__Impl_in_rule__PackageDeclaration__Group__13472);
             rule__PackageDeclaration__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__PackageDeclaration__Group__2_in_rule__PackageDeclaration__Group__13475);
             rule__PackageDeclaration__Group__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -4680,10 +4759,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__Group__1
+    // $ANTLR end "rule__PackageDeclaration__Group__1"
 
 
-    // $ANTLR start rule__PackageDeclaration__Group__1__Impl
+    // $ANTLR start "rule__PackageDeclaration__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1629:1: rule__PackageDeclaration__Group__1__Impl : ( ( rule__PackageDeclaration__NameAssignment_1 ) ) ;
     public final void rule__PackageDeclaration__Group__1__Impl() throws RecognitionException {
 
@@ -4702,7 +4781,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__PackageDeclaration__NameAssignment_1_in_rule__PackageDeclaration__Group__1__Impl3502);
             rule__PackageDeclaration__NameAssignment_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -4726,10 +4806,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__Group__1__Impl
+    // $ANTLR end "rule__PackageDeclaration__Group__1__Impl"
 
 
-    // $ANTLR start rule__PackageDeclaration__Group__2
+    // $ANTLR start "rule__PackageDeclaration__Group__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1646:1: rule__PackageDeclaration__Group__2 : rule__PackageDeclaration__Group__2__Impl rule__PackageDeclaration__Group__3 ;
     public final void rule__PackageDeclaration__Group__2() throws RecognitionException {
 
@@ -4741,11 +4821,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__PackageDeclaration__Group__2__Impl_in_rule__PackageDeclaration__Group__23532);
             rule__PackageDeclaration__Group__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__PackageDeclaration__Group__3_in_rule__PackageDeclaration__Group__23535);
             rule__PackageDeclaration__Group__3();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -4762,10 +4844,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__Group__2
+    // $ANTLR end "rule__PackageDeclaration__Group__2"
 
 
-    // $ANTLR start rule__PackageDeclaration__Group__2__Impl
+    // $ANTLR start "rule__PackageDeclaration__Group__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1658:1: rule__PackageDeclaration__Group__2__Impl : ( '{' ) ;
     public final void rule__PackageDeclaration__Group__2__Impl() throws RecognitionException {
 
@@ -4799,10 +4881,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__Group__2__Impl
+    // $ANTLR end "rule__PackageDeclaration__Group__2__Impl"
 
 
-    // $ANTLR start rule__PackageDeclaration__Group__3
+    // $ANTLR start "rule__PackageDeclaration__Group__3"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1677:1: rule__PackageDeclaration__Group__3 : rule__PackageDeclaration__Group__3__Impl rule__PackageDeclaration__Group__4 ;
     public final void rule__PackageDeclaration__Group__3() throws RecognitionException {
 
@@ -4814,11 +4896,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__PackageDeclaration__Group__3__Impl_in_rule__PackageDeclaration__Group__33594);
             rule__PackageDeclaration__Group__3__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__PackageDeclaration__Group__4_in_rule__PackageDeclaration__Group__33597);
             rule__PackageDeclaration__Group__4();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -4835,10 +4919,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__Group__3
+    // $ANTLR end "rule__PackageDeclaration__Group__3"
 
 
-    // $ANTLR start rule__PackageDeclaration__Group__3__Impl
+    // $ANTLR start "rule__PackageDeclaration__Group__3__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1689:1: rule__PackageDeclaration__Group__3__Impl : ( ( rule__PackageDeclaration__Group_3__0 )* ) ;
     public final void rule__PackageDeclaration__Group__3__Impl() throws RecognitionException {
 
@@ -4863,7 +4947,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             	    {
             	    pushFollow(FOLLOW_rule__PackageDeclaration__Group_3__0_in_rule__PackageDeclaration__Group__3__Impl3624);
             	    rule__PackageDeclaration__Group_3__0();
-            	    _fsp--;
+
+            	    state._fsp--;
 
 
             	    }
@@ -4893,10 +4978,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__Group__3__Impl
+    // $ANTLR end "rule__PackageDeclaration__Group__3__Impl"
 
 
-    // $ANTLR start rule__PackageDeclaration__Group__4
+    // $ANTLR start "rule__PackageDeclaration__Group__4"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1706:1: rule__PackageDeclaration__Group__4 : rule__PackageDeclaration__Group__4__Impl rule__PackageDeclaration__Group__5 ;
     public final void rule__PackageDeclaration__Group__4() throws RecognitionException {
 
@@ -4908,11 +4993,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__PackageDeclaration__Group__4__Impl_in_rule__PackageDeclaration__Group__43655);
             rule__PackageDeclaration__Group__4__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__PackageDeclaration__Group__5_in_rule__PackageDeclaration__Group__43658);
             rule__PackageDeclaration__Group__5();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -4929,10 +5016,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__Group__4
+    // $ANTLR end "rule__PackageDeclaration__Group__4"
 
 
-    // $ANTLR start rule__PackageDeclaration__Group__4__Impl
+    // $ANTLR start "rule__PackageDeclaration__Group__4__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1718:1: rule__PackageDeclaration__Group__4__Impl : ( ( RULE_NL )* ) ;
     public final void rule__PackageDeclaration__Group__4__Impl() throws RecognitionException {
 
@@ -4990,10 +5077,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__Group__4__Impl
+    // $ANTLR end "rule__PackageDeclaration__Group__4__Impl"
 
 
-    // $ANTLR start rule__PackageDeclaration__Group__5
+    // $ANTLR start "rule__PackageDeclaration__Group__5"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1735:1: rule__PackageDeclaration__Group__5 : rule__PackageDeclaration__Group__5__Impl rule__PackageDeclaration__Group__6 ;
     public final void rule__PackageDeclaration__Group__5() throws RecognitionException {
 
@@ -5005,11 +5092,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__PackageDeclaration__Group__5__Impl_in_rule__PackageDeclaration__Group__53717);
             rule__PackageDeclaration__Group__5__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__PackageDeclaration__Group__6_in_rule__PackageDeclaration__Group__53720);
             rule__PackageDeclaration__Group__6();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -5026,10 +5115,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__Group__5
+    // $ANTLR end "rule__PackageDeclaration__Group__5"
 
 
-    // $ANTLR start rule__PackageDeclaration__Group__5__Impl
+    // $ANTLR start "rule__PackageDeclaration__Group__5__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1747:1: rule__PackageDeclaration__Group__5__Impl : ( ( rule__PackageDeclaration__Group_5__0 )* ) ;
     public final void rule__PackageDeclaration__Group__5__Impl() throws RecognitionException {
 
@@ -5060,7 +5149,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             	    {
             	    pushFollow(FOLLOW_rule__PackageDeclaration__Group_5__0_in_rule__PackageDeclaration__Group__5__Impl3747);
             	    rule__PackageDeclaration__Group_5__0();
-            	    _fsp--;
+
+            	    state._fsp--;
 
 
             	    }
@@ -5090,10 +5180,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__Group__5__Impl
+    // $ANTLR end "rule__PackageDeclaration__Group__5__Impl"
 
 
-    // $ANTLR start rule__PackageDeclaration__Group__6
+    // $ANTLR start "rule__PackageDeclaration__Group__6"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1764:1: rule__PackageDeclaration__Group__6 : rule__PackageDeclaration__Group__6__Impl rule__PackageDeclaration__Group__7 ;
     public final void rule__PackageDeclaration__Group__6() throws RecognitionException {
 
@@ -5105,11 +5195,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__PackageDeclaration__Group__6__Impl_in_rule__PackageDeclaration__Group__63778);
             rule__PackageDeclaration__Group__6__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__PackageDeclaration__Group__7_in_rule__PackageDeclaration__Group__63781);
             rule__PackageDeclaration__Group__7();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -5126,10 +5218,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__Group__6
+    // $ANTLR end "rule__PackageDeclaration__Group__6"
 
 
-    // $ANTLR start rule__PackageDeclaration__Group__6__Impl
+    // $ANTLR start "rule__PackageDeclaration__Group__6__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1776:1: rule__PackageDeclaration__Group__6__Impl : ( '}' ) ;
     public final void rule__PackageDeclaration__Group__6__Impl() throws RecognitionException {
 
@@ -5163,10 +5255,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__Group__6__Impl
+    // $ANTLR end "rule__PackageDeclaration__Group__6__Impl"
 
 
-    // $ANTLR start rule__PackageDeclaration__Group__7
+    // $ANTLR start "rule__PackageDeclaration__Group__7"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1795:1: rule__PackageDeclaration__Group__7 : rule__PackageDeclaration__Group__7__Impl ;
     public final void rule__PackageDeclaration__Group__7() throws RecognitionException {
 
@@ -5178,7 +5270,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__PackageDeclaration__Group__7__Impl_in_rule__PackageDeclaration__Group__73840);
             rule__PackageDeclaration__Group__7__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -5195,10 +5288,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__Group__7
+    // $ANTLR end "rule__PackageDeclaration__Group__7"
 
 
-    // $ANTLR start rule__PackageDeclaration__Group__7__Impl
+    // $ANTLR start "rule__PackageDeclaration__Group__7__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1806:1: rule__PackageDeclaration__Group__7__Impl : ( ( RULE_NL )* ) ;
     public final void rule__PackageDeclaration__Group__7__Impl() throws RecognitionException {
 
@@ -5256,10 +5349,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__Group__7__Impl
+    // $ANTLR end "rule__PackageDeclaration__Group__7__Impl"
 
 
-    // $ANTLR start rule__PackageDeclaration__Group_3__0
+    // $ANTLR start "rule__PackageDeclaration__Group_3__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1839:1: rule__PackageDeclaration__Group_3__0 : rule__PackageDeclaration__Group_3__0__Impl rule__PackageDeclaration__Group_3__1 ;
     public final void rule__PackageDeclaration__Group_3__0() throws RecognitionException {
 
@@ -5271,11 +5364,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__PackageDeclaration__Group_3__0__Impl_in_rule__PackageDeclaration__Group_3__03915);
             rule__PackageDeclaration__Group_3__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__PackageDeclaration__Group_3__1_in_rule__PackageDeclaration__Group_3__03918);
             rule__PackageDeclaration__Group_3__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -5292,10 +5387,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__Group_3__0
+    // $ANTLR end "rule__PackageDeclaration__Group_3__0"
 
 
-    // $ANTLR start rule__PackageDeclaration__Group_3__0__Impl
+    // $ANTLR start "rule__PackageDeclaration__Group_3__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1851:1: rule__PackageDeclaration__Group_3__0__Impl : ( ( RULE_NL )* ) ;
     public final void rule__PackageDeclaration__Group_3__0__Impl() throws RecognitionException {
 
@@ -5353,10 +5448,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__Group_3__0__Impl
+    // $ANTLR end "rule__PackageDeclaration__Group_3__0__Impl"
 
 
-    // $ANTLR start rule__PackageDeclaration__Group_3__1
+    // $ANTLR start "rule__PackageDeclaration__Group_3__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1868:1: rule__PackageDeclaration__Group_3__1 : rule__PackageDeclaration__Group_3__1__Impl ;
     public final void rule__PackageDeclaration__Group_3__1() throws RecognitionException {
 
@@ -5368,7 +5463,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__PackageDeclaration__Group_3__1__Impl_in_rule__PackageDeclaration__Group_3__13977);
             rule__PackageDeclaration__Group_3__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -5385,10 +5481,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__Group_3__1
+    // $ANTLR end "rule__PackageDeclaration__Group_3__1"
 
 
-    // $ANTLR start rule__PackageDeclaration__Group_3__1__Impl
+    // $ANTLR start "rule__PackageDeclaration__Group_3__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1879:1: rule__PackageDeclaration__Group_3__1__Impl : ( ( rule__PackageDeclaration__ImportsAssignment_3_1 ) ) ;
     public final void rule__PackageDeclaration__Group_3__1__Impl() throws RecognitionException {
 
@@ -5407,7 +5503,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__PackageDeclaration__ImportsAssignment_3_1_in_rule__PackageDeclaration__Group_3__1__Impl4004);
             rule__PackageDeclaration__ImportsAssignment_3_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -5431,10 +5528,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__Group_3__1__Impl
+    // $ANTLR end "rule__PackageDeclaration__Group_3__1__Impl"
 
 
-    // $ANTLR start rule__PackageDeclaration__Group_5__0
+    // $ANTLR start "rule__PackageDeclaration__Group_5__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1900:1: rule__PackageDeclaration__Group_5__0 : rule__PackageDeclaration__Group_5__0__Impl rule__PackageDeclaration__Group_5__1 ;
     public final void rule__PackageDeclaration__Group_5__0() throws RecognitionException {
 
@@ -5446,11 +5543,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__PackageDeclaration__Group_5__0__Impl_in_rule__PackageDeclaration__Group_5__04038);
             rule__PackageDeclaration__Group_5__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__PackageDeclaration__Group_5__1_in_rule__PackageDeclaration__Group_5__04041);
             rule__PackageDeclaration__Group_5__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -5467,10 +5566,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__Group_5__0
+    // $ANTLR end "rule__PackageDeclaration__Group_5__0"
 
 
-    // $ANTLR start rule__PackageDeclaration__Group_5__0__Impl
+    // $ANTLR start "rule__PackageDeclaration__Group_5__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1912:1: rule__PackageDeclaration__Group_5__0__Impl : ( ( rule__PackageDeclaration__ElementsAssignment_5_0 ) ) ;
     public final void rule__PackageDeclaration__Group_5__0__Impl() throws RecognitionException {
 
@@ -5489,7 +5588,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__PackageDeclaration__ElementsAssignment_5_0_in_rule__PackageDeclaration__Group_5__0__Impl4068);
             rule__PackageDeclaration__ElementsAssignment_5_0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -5513,10 +5613,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__Group_5__0__Impl
+    // $ANTLR end "rule__PackageDeclaration__Group_5__0__Impl"
 
 
-    // $ANTLR start rule__PackageDeclaration__Group_5__1
+    // $ANTLR start "rule__PackageDeclaration__Group_5__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1929:1: rule__PackageDeclaration__Group_5__1 : rule__PackageDeclaration__Group_5__1__Impl ;
     public final void rule__PackageDeclaration__Group_5__1() throws RecognitionException {
 
@@ -5528,7 +5628,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__PackageDeclaration__Group_5__1__Impl_in_rule__PackageDeclaration__Group_5__14098);
             rule__PackageDeclaration__Group_5__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -5545,10 +5646,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__Group_5__1
+    // $ANTLR end "rule__PackageDeclaration__Group_5__1"
 
 
-    // $ANTLR start rule__PackageDeclaration__Group_5__1__Impl
+    // $ANTLR start "rule__PackageDeclaration__Group_5__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1940:1: rule__PackageDeclaration__Group_5__1__Impl : ( ( RULE_NL )* ) ;
     public final void rule__PackageDeclaration__Group_5__1__Impl() throws RecognitionException {
 
@@ -5606,10 +5707,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__Group_5__1__Impl
+    // $ANTLR end "rule__PackageDeclaration__Group_5__1__Impl"
 
 
-    // $ANTLR start rule__Import__Group__0
+    // $ANTLR start "rule__Import__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1961:1: rule__Import__Group__0 : rule__Import__Group__0__Impl rule__Import__Group__1 ;
     public final void rule__Import__Group__0() throws RecognitionException {
 
@@ -5621,11 +5722,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__Import__Group__0__Impl_in_rule__Import__Group__04161);
             rule__Import__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__Import__Group__1_in_rule__Import__Group__04164);
             rule__Import__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -5642,10 +5745,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__Import__Group__0
+    // $ANTLR end "rule__Import__Group__0"
 
 
-    // $ANTLR start rule__Import__Group__0__Impl
+    // $ANTLR start "rule__Import__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1973:1: rule__Import__Group__0__Impl : ( 'import' ) ;
     public final void rule__Import__Group__0__Impl() throws RecognitionException {
 
@@ -5679,10 +5782,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__Import__Group__0__Impl
+    // $ANTLR end "rule__Import__Group__0__Impl"
 
 
-    // $ANTLR start rule__Import__Group__1
+    // $ANTLR start "rule__Import__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1992:1: rule__Import__Group__1 : rule__Import__Group__1__Impl rule__Import__Group__2 ;
     public final void rule__Import__Group__1() throws RecognitionException {
 
@@ -5694,11 +5797,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__Import__Group__1__Impl_in_rule__Import__Group__14223);
             rule__Import__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__Import__Group__2_in_rule__Import__Group__14226);
             rule__Import__Group__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -5715,10 +5820,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__Import__Group__1
+    // $ANTLR end "rule__Import__Group__1"
 
 
-    // $ANTLR start rule__Import__Group__1__Impl
+    // $ANTLR start "rule__Import__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2004:1: rule__Import__Group__1__Impl : ( ( rule__Import__ImportedNamespaceAssignment_1 ) ) ;
     public final void rule__Import__Group__1__Impl() throws RecognitionException {
 
@@ -5737,7 +5842,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__Import__ImportedNamespaceAssignment_1_in_rule__Import__Group__1__Impl4253);
             rule__Import__ImportedNamespaceAssignment_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -5761,10 +5867,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__Import__Group__1__Impl
+    // $ANTLR end "rule__Import__Group__1__Impl"
 
 
-    // $ANTLR start rule__Import__Group__2
+    // $ANTLR start "rule__Import__Group__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2021:1: rule__Import__Group__2 : rule__Import__Group__2__Impl ;
     public final void rule__Import__Group__2() throws RecognitionException {
 
@@ -5776,7 +5882,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__Import__Group__2__Impl_in_rule__Import__Group__24283);
             rule__Import__Group__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -5793,10 +5900,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__Import__Group__2
+    // $ANTLR end "rule__Import__Group__2"
 
 
-    // $ANTLR start rule__Import__Group__2__Impl
+    // $ANTLR start "rule__Import__Group__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2032:1: rule__Import__Group__2__Impl : ( RULE_NL ) ;
     public final void rule__Import__Group__2__Impl() throws RecognitionException {
 
@@ -5830,10 +5937,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__Import__Group__2__Impl
+    // $ANTLR end "rule__Import__Group__2__Impl"
 
 
-    // $ANTLR start rule__QualifiedName__Group__0
+    // $ANTLR start "rule__QualifiedName__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2055:1: rule__QualifiedName__Group__0 : rule__QualifiedName__Group__0__Impl rule__QualifiedName__Group__1 ;
     public final void rule__QualifiedName__Group__0() throws RecognitionException {
 
@@ -5845,11 +5952,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__QualifiedName__Group__0__Impl_in_rule__QualifiedName__Group__04345);
             rule__QualifiedName__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__QualifiedName__Group__1_in_rule__QualifiedName__Group__04348);
             rule__QualifiedName__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -5866,10 +5975,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__QualifiedName__Group__0
+    // $ANTLR end "rule__QualifiedName__Group__0"
 
 
-    // $ANTLR start rule__QualifiedName__Group__0__Impl
+    // $ANTLR start "rule__QualifiedName__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2067:1: rule__QualifiedName__Group__0__Impl : ( RULE_ID ) ;
     public final void rule__QualifiedName__Group__0__Impl() throws RecognitionException {
 
@@ -5903,10 +6012,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__QualifiedName__Group__0__Impl
+    // $ANTLR end "rule__QualifiedName__Group__0__Impl"
 
 
-    // $ANTLR start rule__QualifiedName__Group__1
+    // $ANTLR start "rule__QualifiedName__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2084:1: rule__QualifiedName__Group__1 : rule__QualifiedName__Group__1__Impl ;
     public final void rule__QualifiedName__Group__1() throws RecognitionException {
 
@@ -5918,7 +6027,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__QualifiedName__Group__1__Impl_in_rule__QualifiedName__Group__14404);
             rule__QualifiedName__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -5935,10 +6045,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__QualifiedName__Group__1
+    // $ANTLR end "rule__QualifiedName__Group__1"
 
 
-    // $ANTLR start rule__QualifiedName__Group__1__Impl
+    // $ANTLR start "rule__QualifiedName__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2095:1: rule__QualifiedName__Group__1__Impl : ( ( rule__QualifiedName__Group_1__0 )* ) ;
     public final void rule__QualifiedName__Group__1__Impl() throws RecognitionException {
 
@@ -5969,7 +6079,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             	    {
             	    pushFollow(FOLLOW_rule__QualifiedName__Group_1__0_in_rule__QualifiedName__Group__1__Impl4431);
             	    rule__QualifiedName__Group_1__0();
-            	    _fsp--;
+
+            	    state._fsp--;
 
 
             	    }
@@ -5999,10 +6110,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__QualifiedName__Group__1__Impl
+    // $ANTLR end "rule__QualifiedName__Group__1__Impl"
 
 
-    // $ANTLR start rule__QualifiedName__Group_1__0
+    // $ANTLR start "rule__QualifiedName__Group_1__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2116:1: rule__QualifiedName__Group_1__0 : rule__QualifiedName__Group_1__0__Impl rule__QualifiedName__Group_1__1 ;
     public final void rule__QualifiedName__Group_1__0() throws RecognitionException {
 
@@ -6014,11 +6125,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__QualifiedName__Group_1__0__Impl_in_rule__QualifiedName__Group_1__04466);
             rule__QualifiedName__Group_1__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__QualifiedName__Group_1__1_in_rule__QualifiedName__Group_1__04469);
             rule__QualifiedName__Group_1__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -6035,10 +6148,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__QualifiedName__Group_1__0
+    // $ANTLR end "rule__QualifiedName__Group_1__0"
 
 
-    // $ANTLR start rule__QualifiedName__Group_1__0__Impl
+    // $ANTLR start "rule__QualifiedName__Group_1__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2128:1: rule__QualifiedName__Group_1__0__Impl : ( '.' ) ;
     public final void rule__QualifiedName__Group_1__0__Impl() throws RecognitionException {
 
@@ -6072,10 +6185,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__QualifiedName__Group_1__0__Impl
+    // $ANTLR end "rule__QualifiedName__Group_1__0__Impl"
 
 
-    // $ANTLR start rule__QualifiedName__Group_1__1
+    // $ANTLR start "rule__QualifiedName__Group_1__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2147:1: rule__QualifiedName__Group_1__1 : rule__QualifiedName__Group_1__1__Impl ;
     public final void rule__QualifiedName__Group_1__1() throws RecognitionException {
 
@@ -6087,7 +6200,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__QualifiedName__Group_1__1__Impl_in_rule__QualifiedName__Group_1__14528);
             rule__QualifiedName__Group_1__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -6104,10 +6218,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__QualifiedName__Group_1__1
+    // $ANTLR end "rule__QualifiedName__Group_1__1"
 
 
-    // $ANTLR start rule__QualifiedName__Group_1__1__Impl
+    // $ANTLR start "rule__QualifiedName__Group_1__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2158:1: rule__QualifiedName__Group_1__1__Impl : ( RULE_ID ) ;
     public final void rule__QualifiedName__Group_1__1__Impl() throws RecognitionException {
 
@@ -6141,10 +6255,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__QualifiedName__Group_1__1__Impl
+    // $ANTLR end "rule__QualifiedName__Group_1__1__Impl"
 
 
-    // $ANTLR start rule__QualifiedNameWithWildCard__Group__0
+    // $ANTLR start "rule__QualifiedNameWithWildCard__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2179:1: rule__QualifiedNameWithWildCard__Group__0 : rule__QualifiedNameWithWildCard__Group__0__Impl rule__QualifiedNameWithWildCard__Group__1 ;
     public final void rule__QualifiedNameWithWildCard__Group__0() throws RecognitionException {
 
@@ -6156,11 +6270,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__QualifiedNameWithWildCard__Group__0__Impl_in_rule__QualifiedNameWithWildCard__Group__04588);
             rule__QualifiedNameWithWildCard__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__QualifiedNameWithWildCard__Group__1_in_rule__QualifiedNameWithWildCard__Group__04591);
             rule__QualifiedNameWithWildCard__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -6177,10 +6293,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__QualifiedNameWithWildCard__Group__0
+    // $ANTLR end "rule__QualifiedNameWithWildCard__Group__0"
 
 
-    // $ANTLR start rule__QualifiedNameWithWildCard__Group__0__Impl
+    // $ANTLR start "rule__QualifiedNameWithWildCard__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2191:1: rule__QualifiedNameWithWildCard__Group__0__Impl : ( ruleQualifiedName ) ;
     public final void rule__QualifiedNameWithWildCard__Group__0__Impl() throws RecognitionException {
 
@@ -6196,7 +6312,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getQualifiedNameWithWildCardAccess().getQualifiedNameParserRuleCall_0()); 
             pushFollow(FOLLOW_ruleQualifiedName_in_rule__QualifiedNameWithWildCard__Group__0__Impl4618);
             ruleQualifiedName();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getQualifiedNameWithWildCardAccess().getQualifiedNameParserRuleCall_0()); 
 
@@ -6217,10 +6334,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__QualifiedNameWithWildCard__Group__0__Impl
+    // $ANTLR end "rule__QualifiedNameWithWildCard__Group__0__Impl"
 
 
-    // $ANTLR start rule__QualifiedNameWithWildCard__Group__1
+    // $ANTLR start "rule__QualifiedNameWithWildCard__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2208:1: rule__QualifiedNameWithWildCard__Group__1 : rule__QualifiedNameWithWildCard__Group__1__Impl ;
     public final void rule__QualifiedNameWithWildCard__Group__1() throws RecognitionException {
 
@@ -6232,7 +6349,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__QualifiedNameWithWildCard__Group__1__Impl_in_rule__QualifiedNameWithWildCard__Group__14647);
             rule__QualifiedNameWithWildCard__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -6249,10 +6367,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__QualifiedNameWithWildCard__Group__1
+    // $ANTLR end "rule__QualifiedNameWithWildCard__Group__1"
 
 
-    // $ANTLR start rule__QualifiedNameWithWildCard__Group__1__Impl
+    // $ANTLR start "rule__QualifiedNameWithWildCard__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2219:1: rule__QualifiedNameWithWildCard__Group__1__Impl : ( ( '.*' )? ) ;
     public final void rule__QualifiedNameWithWildCard__Group__1__Impl() throws RecognitionException {
 
@@ -6303,10 +6421,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__QualifiedNameWithWildCard__Group__1__Impl
+    // $ANTLR end "rule__QualifiedNameWithWildCard__Group__1__Impl"
 
 
-    // $ANTLR start rule__NativeType__Group__0
+    // $ANTLR start "rule__NativeType__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2242:1: rule__NativeType__Group__0 : rule__NativeType__Group__0__Impl rule__NativeType__Group__1 ;
     public final void rule__NativeType__Group__0() throws RecognitionException {
 
@@ -6318,11 +6436,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__NativeType__Group__0__Impl_in_rule__NativeType__Group__04713);
             rule__NativeType__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__NativeType__Group__1_in_rule__NativeType__Group__04716);
             rule__NativeType__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -6339,10 +6459,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__NativeType__Group__0
+    // $ANTLR end "rule__NativeType__Group__0"
 
 
-    // $ANTLR start rule__NativeType__Group__0__Impl
+    // $ANTLR start "rule__NativeType__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2254:1: rule__NativeType__Group__0__Impl : ( () ) ;
     public final void rule__NativeType__Group__0__Impl() throws RecognitionException {
 
@@ -6376,10 +6496,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__NativeType__Group__0__Impl
+    // $ANTLR end "rule__NativeType__Group__0__Impl"
 
 
-    // $ANTLR start rule__NativeType__Group__1
+    // $ANTLR start "rule__NativeType__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2273:1: rule__NativeType__Group__1 : rule__NativeType__Group__1__Impl rule__NativeType__Group__2 ;
     public final void rule__NativeType__Group__1() throws RecognitionException {
 
@@ -6391,11 +6511,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__NativeType__Group__1__Impl_in_rule__NativeType__Group__14774);
             rule__NativeType__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__NativeType__Group__2_in_rule__NativeType__Group__14777);
             rule__NativeType__Group__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -6412,10 +6534,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__NativeType__Group__1
+    // $ANTLR end "rule__NativeType__Group__1"
 
 
-    // $ANTLR start rule__NativeType__Group__1__Impl
+    // $ANTLR start "rule__NativeType__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2285:1: rule__NativeType__Group__1__Impl : ( 'native' ) ;
     public final void rule__NativeType__Group__1__Impl() throws RecognitionException {
 
@@ -6449,10 +6571,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__NativeType__Group__1__Impl
+    // $ANTLR end "rule__NativeType__Group__1__Impl"
 
 
-    // $ANTLR start rule__NativeType__Group__2
+    // $ANTLR start "rule__NativeType__Group__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2304:1: rule__NativeType__Group__2 : rule__NativeType__Group__2__Impl rule__NativeType__Group__3 ;
     public final void rule__NativeType__Group__2() throws RecognitionException {
 
@@ -6464,11 +6586,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__NativeType__Group__2__Impl_in_rule__NativeType__Group__24836);
             rule__NativeType__Group__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__NativeType__Group__3_in_rule__NativeType__Group__24839);
             rule__NativeType__Group__3();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -6485,10 +6609,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__NativeType__Group__2
+    // $ANTLR end "rule__NativeType__Group__2"
 
 
-    // $ANTLR start rule__NativeType__Group__2__Impl
+    // $ANTLR start "rule__NativeType__Group__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2316:1: rule__NativeType__Group__2__Impl : ( 'type' ) ;
     public final void rule__NativeType__Group__2__Impl() throws RecognitionException {
 
@@ -6522,10 +6646,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__NativeType__Group__2__Impl
+    // $ANTLR end "rule__NativeType__Group__2__Impl"
 
 
-    // $ANTLR start rule__NativeType__Group__3
+    // $ANTLR start "rule__NativeType__Group__3"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2335:1: rule__NativeType__Group__3 : rule__NativeType__Group__3__Impl rule__NativeType__Group__4 ;
     public final void rule__NativeType__Group__3() throws RecognitionException {
 
@@ -6537,11 +6661,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__NativeType__Group__3__Impl_in_rule__NativeType__Group__34898);
             rule__NativeType__Group__3__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__NativeType__Group__4_in_rule__NativeType__Group__34901);
             rule__NativeType__Group__4();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -6558,10 +6684,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__NativeType__Group__3
+    // $ANTLR end "rule__NativeType__Group__3"
 
 
-    // $ANTLR start rule__NativeType__Group__3__Impl
+    // $ANTLR start "rule__NativeType__Group__3__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2347:1: rule__NativeType__Group__3__Impl : ( ( rule__NativeType__NameAssignment_3 ) ) ;
     public final void rule__NativeType__Group__3__Impl() throws RecognitionException {
 
@@ -6580,7 +6706,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__NativeType__NameAssignment_3_in_rule__NativeType__Group__3__Impl4928);
             rule__NativeType__NameAssignment_3();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -6604,10 +6731,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__NativeType__Group__3__Impl
+    // $ANTLR end "rule__NativeType__Group__3__Impl"
 
 
-    // $ANTLR start rule__NativeType__Group__4
+    // $ANTLR start "rule__NativeType__Group__4"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2364:1: rule__NativeType__Group__4 : rule__NativeType__Group__4__Impl rule__NativeType__Group__5 ;
     public final void rule__NativeType__Group__4() throws RecognitionException {
 
@@ -6619,11 +6746,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__NativeType__Group__4__Impl_in_rule__NativeType__Group__44958);
             rule__NativeType__Group__4__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__NativeType__Group__5_in_rule__NativeType__Group__44961);
             rule__NativeType__Group__5();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -6640,10 +6769,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__NativeType__Group__4
+    // $ANTLR end "rule__NativeType__Group__4"
 
 
-    // $ANTLR start rule__NativeType__Group__4__Impl
+    // $ANTLR start "rule__NativeType__Group__4__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2376:1: rule__NativeType__Group__4__Impl : ( '=' ) ;
     public final void rule__NativeType__Group__4__Impl() throws RecognitionException {
 
@@ -6677,10 +6806,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__NativeType__Group__4__Impl
+    // $ANTLR end "rule__NativeType__Group__4__Impl"
 
 
-    // $ANTLR start rule__NativeType__Group__5
+    // $ANTLR start "rule__NativeType__Group__5"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2395:1: rule__NativeType__Group__5 : rule__NativeType__Group__5__Impl rule__NativeType__Group__6 ;
     public final void rule__NativeType__Group__5() throws RecognitionException {
 
@@ -6692,11 +6821,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__NativeType__Group__5__Impl_in_rule__NativeType__Group__55020);
             rule__NativeType__Group__5__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__NativeType__Group__6_in_rule__NativeType__Group__55023);
             rule__NativeType__Group__6();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -6713,10 +6844,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__NativeType__Group__5
+    // $ANTLR end "rule__NativeType__Group__5"
 
 
-    // $ANTLR start rule__NativeType__Group__5__Impl
+    // $ANTLR start "rule__NativeType__Group__5__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2407:1: rule__NativeType__Group__5__Impl : ( ( rule__NativeType__OrigNameAssignment_5 ) ) ;
     public final void rule__NativeType__Group__5__Impl() throws RecognitionException {
 
@@ -6735,7 +6866,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__NativeType__OrigNameAssignment_5_in_rule__NativeType__Group__5__Impl5050);
             rule__NativeType__OrigNameAssignment_5();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -6759,10 +6891,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__NativeType__Group__5__Impl
+    // $ANTLR end "rule__NativeType__Group__5__Impl"
 
 
-    // $ANTLR start rule__NativeType__Group__6
+    // $ANTLR start "rule__NativeType__Group__6"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2424:1: rule__NativeType__Group__6 : rule__NativeType__Group__6__Impl ;
     public final void rule__NativeType__Group__6() throws RecognitionException {
 
@@ -6774,7 +6906,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__NativeType__Group__6__Impl_in_rule__NativeType__Group__65080);
             rule__NativeType__Group__6__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -6791,10 +6924,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__NativeType__Group__6
+    // $ANTLR end "rule__NativeType__Group__6"
 
 
-    // $ANTLR start rule__NativeType__Group__6__Impl
+    // $ANTLR start "rule__NativeType__Group__6__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2435:1: rule__NativeType__Group__6__Impl : ( RULE_NL ) ;
     public final void rule__NativeType__Group__6__Impl() throws RecognitionException {
 
@@ -6828,10 +6961,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__NativeType__Group__6__Impl
+    // $ANTLR end "rule__NativeType__Group__6__Impl"
 
 
-    // $ANTLR start rule__ClassDef__Group__0
+    // $ANTLR start "rule__ClassDef__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2466:1: rule__ClassDef__Group__0 : rule__ClassDef__Group__0__Impl rule__ClassDef__Group__1 ;
     public final void rule__ClassDef__Group__0() throws RecognitionException {
 
@@ -6843,11 +6976,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ClassDef__Group__0__Impl_in_rule__ClassDef__Group__05150);
             rule__ClassDef__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ClassDef__Group__1_in_rule__ClassDef__Group__05153);
             rule__ClassDef__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -6864,10 +6999,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ClassDef__Group__0
+    // $ANTLR end "rule__ClassDef__Group__0"
 
 
-    // $ANTLR start rule__ClassDef__Group__0__Impl
+    // $ANTLR start "rule__ClassDef__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2478:1: rule__ClassDef__Group__0__Impl : ( () ) ;
     public final void rule__ClassDef__Group__0__Impl() throws RecognitionException {
 
@@ -6901,10 +7036,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ClassDef__Group__0__Impl
+    // $ANTLR end "rule__ClassDef__Group__0__Impl"
 
 
-    // $ANTLR start rule__ClassDef__Group__1
+    // $ANTLR start "rule__ClassDef__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2497:1: rule__ClassDef__Group__1 : rule__ClassDef__Group__1__Impl rule__ClassDef__Group__2 ;
     public final void rule__ClassDef__Group__1() throws RecognitionException {
 
@@ -6916,11 +7051,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ClassDef__Group__1__Impl_in_rule__ClassDef__Group__15211);
             rule__ClassDef__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ClassDef__Group__2_in_rule__ClassDef__Group__15214);
             rule__ClassDef__Group__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -6937,10 +7074,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ClassDef__Group__1
+    // $ANTLR end "rule__ClassDef__Group__1"
 
 
-    // $ANTLR start rule__ClassDef__Group__1__Impl
+    // $ANTLR start "rule__ClassDef__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2509:1: rule__ClassDef__Group__1__Impl : ( 'class' ) ;
     public final void rule__ClassDef__Group__1__Impl() throws RecognitionException {
 
@@ -6974,10 +7111,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ClassDef__Group__1__Impl
+    // $ANTLR end "rule__ClassDef__Group__1__Impl"
 
 
-    // $ANTLR start rule__ClassDef__Group__2
+    // $ANTLR start "rule__ClassDef__Group__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2528:1: rule__ClassDef__Group__2 : rule__ClassDef__Group__2__Impl rule__ClassDef__Group__3 ;
     public final void rule__ClassDef__Group__2() throws RecognitionException {
 
@@ -6989,11 +7126,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ClassDef__Group__2__Impl_in_rule__ClassDef__Group__25273);
             rule__ClassDef__Group__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ClassDef__Group__3_in_rule__ClassDef__Group__25276);
             rule__ClassDef__Group__3();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -7010,10 +7149,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ClassDef__Group__2
+    // $ANTLR end "rule__ClassDef__Group__2"
 
 
-    // $ANTLR start rule__ClassDef__Group__2__Impl
+    // $ANTLR start "rule__ClassDef__Group__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2540:1: rule__ClassDef__Group__2__Impl : ( ( rule__ClassDef__NameAssignment_2 ) ) ;
     public final void rule__ClassDef__Group__2__Impl() throws RecognitionException {
 
@@ -7032,7 +7171,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ClassDef__NameAssignment_2_in_rule__ClassDef__Group__2__Impl5303);
             rule__ClassDef__NameAssignment_2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -7056,10 +7196,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ClassDef__Group__2__Impl
+    // $ANTLR end "rule__ClassDef__Group__2__Impl"
 
 
-    // $ANTLR start rule__ClassDef__Group__3
+    // $ANTLR start "rule__ClassDef__Group__3"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2557:1: rule__ClassDef__Group__3 : rule__ClassDef__Group__3__Impl rule__ClassDef__Group__4 ;
     public final void rule__ClassDef__Group__3() throws RecognitionException {
 
@@ -7071,11 +7211,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ClassDef__Group__3__Impl_in_rule__ClassDef__Group__35333);
             rule__ClassDef__Group__3__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ClassDef__Group__4_in_rule__ClassDef__Group__35336);
             rule__ClassDef__Group__4();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -7092,10 +7234,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ClassDef__Group__3
+    // $ANTLR end "rule__ClassDef__Group__3"
 
 
-    // $ANTLR start rule__ClassDef__Group__3__Impl
+    // $ANTLR start "rule__ClassDef__Group__3__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2569:1: rule__ClassDef__Group__3__Impl : ( '{' ) ;
     public final void rule__ClassDef__Group__3__Impl() throws RecognitionException {
 
@@ -7129,10 +7271,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ClassDef__Group__3__Impl
+    // $ANTLR end "rule__ClassDef__Group__3__Impl"
 
 
-    // $ANTLR start rule__ClassDef__Group__4
+    // $ANTLR start "rule__ClassDef__Group__4"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2588:1: rule__ClassDef__Group__4 : rule__ClassDef__Group__4__Impl rule__ClassDef__Group__5 ;
     public final void rule__ClassDef__Group__4() throws RecognitionException {
 
@@ -7144,11 +7286,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ClassDef__Group__4__Impl_in_rule__ClassDef__Group__45395);
             rule__ClassDef__Group__4__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ClassDef__Group__5_in_rule__ClassDef__Group__45398);
             rule__ClassDef__Group__5();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -7165,10 +7309,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ClassDef__Group__4
+    // $ANTLR end "rule__ClassDef__Group__4"
 
 
-    // $ANTLR start rule__ClassDef__Group__4__Impl
+    // $ANTLR start "rule__ClassDef__Group__4__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2600:1: rule__ClassDef__Group__4__Impl : ( ( rule__ClassDef__MembersAssignment_4 )* ) ;
     public final void rule__ClassDef__Group__4__Impl() throws RecognitionException {
 
@@ -7193,7 +7337,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             	    {
             	    pushFollow(FOLLOW_rule__ClassDef__MembersAssignment_4_in_rule__ClassDef__Group__4__Impl5425);
             	    rule__ClassDef__MembersAssignment_4();
-            	    _fsp--;
+
+            	    state._fsp--;
 
 
             	    }
@@ -7223,10 +7368,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ClassDef__Group__4__Impl
+    // $ANTLR end "rule__ClassDef__Group__4__Impl"
 
 
-    // $ANTLR start rule__ClassDef__Group__5
+    // $ANTLR start "rule__ClassDef__Group__5"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2617:1: rule__ClassDef__Group__5 : rule__ClassDef__Group__5__Impl rule__ClassDef__Group__6 ;
     public final void rule__ClassDef__Group__5() throws RecognitionException {
 
@@ -7238,11 +7383,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ClassDef__Group__5__Impl_in_rule__ClassDef__Group__55456);
             rule__ClassDef__Group__5__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ClassDef__Group__6_in_rule__ClassDef__Group__55459);
             rule__ClassDef__Group__6();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -7259,10 +7406,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ClassDef__Group__5
+    // $ANTLR end "rule__ClassDef__Group__5"
 
 
-    // $ANTLR start rule__ClassDef__Group__5__Impl
+    // $ANTLR start "rule__ClassDef__Group__5__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2629:1: rule__ClassDef__Group__5__Impl : ( ( RULE_NL )* ) ;
     public final void rule__ClassDef__Group__5__Impl() throws RecognitionException {
 
@@ -7320,10 +7467,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ClassDef__Group__5__Impl
+    // $ANTLR end "rule__ClassDef__Group__5__Impl"
 
 
-    // $ANTLR start rule__ClassDef__Group__6
+    // $ANTLR start "rule__ClassDef__Group__6"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2646:1: rule__ClassDef__Group__6 : rule__ClassDef__Group__6__Impl rule__ClassDef__Group__7 ;
     public final void rule__ClassDef__Group__6() throws RecognitionException {
 
@@ -7335,11 +7482,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ClassDef__Group__6__Impl_in_rule__ClassDef__Group__65518);
             rule__ClassDef__Group__6__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ClassDef__Group__7_in_rule__ClassDef__Group__65521);
             rule__ClassDef__Group__7();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -7356,10 +7505,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ClassDef__Group__6
+    // $ANTLR end "rule__ClassDef__Group__6"
 
 
-    // $ANTLR start rule__ClassDef__Group__6__Impl
+    // $ANTLR start "rule__ClassDef__Group__6__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2658:1: rule__ClassDef__Group__6__Impl : ( '}' ) ;
     public final void rule__ClassDef__Group__6__Impl() throws RecognitionException {
 
@@ -7393,10 +7542,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ClassDef__Group__6__Impl
+    // $ANTLR end "rule__ClassDef__Group__6__Impl"
 
 
-    // $ANTLR start rule__ClassDef__Group__7
+    // $ANTLR start "rule__ClassDef__Group__7"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2677:1: rule__ClassDef__Group__7 : rule__ClassDef__Group__7__Impl ;
     public final void rule__ClassDef__Group__7() throws RecognitionException {
 
@@ -7408,7 +7557,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ClassDef__Group__7__Impl_in_rule__ClassDef__Group__75580);
             rule__ClassDef__Group__7__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -7425,10 +7575,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ClassDef__Group__7
+    // $ANTLR end "rule__ClassDef__Group__7"
 
 
-    // $ANTLR start rule__ClassDef__Group__7__Impl
+    // $ANTLR start "rule__ClassDef__Group__7__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2688:1: rule__ClassDef__Group__7__Impl : ( RULE_NL ) ;
     public final void rule__ClassDef__Group__7__Impl() throws RecognitionException {
 
@@ -7462,10 +7612,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ClassDef__Group__7__Impl
+    // $ANTLR end "rule__ClassDef__Group__7__Impl"
 
 
-    // $ANTLR start rule__ClassMember__Group__0
+    // $ANTLR start "rule__ClassMember__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2721:1: rule__ClassMember__Group__0 : rule__ClassMember__Group__0__Impl rule__ClassMember__Group__1 ;
     public final void rule__ClassMember__Group__0() throws RecognitionException {
 
@@ -7477,11 +7627,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ClassMember__Group__0__Impl_in_rule__ClassMember__Group__05652);
             rule__ClassMember__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ClassMember__Group__1_in_rule__ClassMember__Group__05655);
             rule__ClassMember__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -7498,10 +7650,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ClassMember__Group__0
+    // $ANTLR end "rule__ClassMember__Group__0"
 
 
-    // $ANTLR start rule__ClassMember__Group__0__Impl
+    // $ANTLR start "rule__ClassMember__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2733:1: rule__ClassMember__Group__0__Impl : ( ( RULE_NL )* ) ;
     public final void rule__ClassMember__Group__0__Impl() throws RecognitionException {
 
@@ -7559,10 +7711,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ClassMember__Group__0__Impl
+    // $ANTLR end "rule__ClassMember__Group__0__Impl"
 
 
-    // $ANTLR start rule__ClassMember__Group__1
+    // $ANTLR start "rule__ClassMember__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2750:1: rule__ClassMember__Group__1 : rule__ClassMember__Group__1__Impl ;
     public final void rule__ClassMember__Group__1() throws RecognitionException {
 
@@ -7574,7 +7726,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ClassMember__Group__1__Impl_in_rule__ClassMember__Group__15714);
             rule__ClassMember__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -7591,10 +7744,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ClassMember__Group__1
+    // $ANTLR end "rule__ClassMember__Group__1"
 
 
-    // $ANTLR start rule__ClassMember__Group__1__Impl
+    // $ANTLR start "rule__ClassMember__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2761:1: rule__ClassMember__Group__1__Impl : ( ( rule__ClassMember__Alternatives_1 ) ) ;
     public final void rule__ClassMember__Group__1__Impl() throws RecognitionException {
 
@@ -7613,7 +7766,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ClassMember__Alternatives_1_in_rule__ClassMember__Group__1__Impl5741);
             rule__ClassMember__Alternatives_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -7637,10 +7791,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ClassMember__Group__1__Impl
+    // $ANTLR end "rule__ClassMember__Group__1__Impl"
 
 
-    // $ANTLR start rule__VarDef__Group__0
+    // $ANTLR start "rule__VarDef__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2782:1: rule__VarDef__Group__0 : rule__VarDef__Group__0__Impl rule__VarDef__Group__1 ;
     public final void rule__VarDef__Group__0() throws RecognitionException {
 
@@ -7652,11 +7806,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__VarDef__Group__0__Impl_in_rule__VarDef__Group__05775);
             rule__VarDef__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__VarDef__Group__1_in_rule__VarDef__Group__05778);
             rule__VarDef__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -7673,10 +7829,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__VarDef__Group__0
+    // $ANTLR end "rule__VarDef__Group__0"
 
 
-    // $ANTLR start rule__VarDef__Group__0__Impl
+    // $ANTLR start "rule__VarDef__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2794:1: rule__VarDef__Group__0__Impl : ( () ) ;
     public final void rule__VarDef__Group__0__Impl() throws RecognitionException {
 
@@ -7710,10 +7866,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__VarDef__Group__0__Impl
+    // $ANTLR end "rule__VarDef__Group__0__Impl"
 
 
-    // $ANTLR start rule__VarDef__Group__1
+    // $ANTLR start "rule__VarDef__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2813:1: rule__VarDef__Group__1 : rule__VarDef__Group__1__Impl rule__VarDef__Group__2 ;
     public final void rule__VarDef__Group__1() throws RecognitionException {
 
@@ -7725,11 +7881,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__VarDef__Group__1__Impl_in_rule__VarDef__Group__15836);
             rule__VarDef__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__VarDef__Group__2_in_rule__VarDef__Group__15839);
             rule__VarDef__Group__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -7746,10 +7904,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__VarDef__Group__1
+    // $ANTLR end "rule__VarDef__Group__1"
 
 
-    // $ANTLR start rule__VarDef__Group__1__Impl
+    // $ANTLR start "rule__VarDef__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2825:1: rule__VarDef__Group__1__Impl : ( ( rule__VarDef__Alternatives_1 ) ) ;
     public final void rule__VarDef__Group__1__Impl() throws RecognitionException {
 
@@ -7768,7 +7926,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__VarDef__Alternatives_1_in_rule__VarDef__Group__1__Impl5866);
             rule__VarDef__Alternatives_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -7792,10 +7951,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__VarDef__Group__1__Impl
+    // $ANTLR end "rule__VarDef__Group__1__Impl"
 
 
-    // $ANTLR start rule__VarDef__Group__2
+    // $ANTLR start "rule__VarDef__Group__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2842:1: rule__VarDef__Group__2 : rule__VarDef__Group__2__Impl rule__VarDef__Group__3 ;
     public final void rule__VarDef__Group__2() throws RecognitionException {
 
@@ -7807,11 +7966,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__VarDef__Group__2__Impl_in_rule__VarDef__Group__25896);
             rule__VarDef__Group__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__VarDef__Group__3_in_rule__VarDef__Group__25899);
             rule__VarDef__Group__3();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -7828,10 +7989,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__VarDef__Group__2
+    // $ANTLR end "rule__VarDef__Group__2"
 
 
-    // $ANTLR start rule__VarDef__Group__2__Impl
+    // $ANTLR start "rule__VarDef__Group__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2854:1: rule__VarDef__Group__2__Impl : ( ( rule__VarDef__NameAssignment_2 ) ) ;
     public final void rule__VarDef__Group__2__Impl() throws RecognitionException {
 
@@ -7850,7 +8011,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__VarDef__NameAssignment_2_in_rule__VarDef__Group__2__Impl5926);
             rule__VarDef__NameAssignment_2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -7874,10 +8036,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__VarDef__Group__2__Impl
+    // $ANTLR end "rule__VarDef__Group__2__Impl"
 
 
-    // $ANTLR start rule__VarDef__Group__3
+    // $ANTLR start "rule__VarDef__Group__3"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2871:1: rule__VarDef__Group__3 : rule__VarDef__Group__3__Impl rule__VarDef__Group__4 ;
     public final void rule__VarDef__Group__3() throws RecognitionException {
 
@@ -7889,11 +8051,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__VarDef__Group__3__Impl_in_rule__VarDef__Group__35956);
             rule__VarDef__Group__3__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__VarDef__Group__4_in_rule__VarDef__Group__35959);
             rule__VarDef__Group__4();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -7910,10 +8074,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__VarDef__Group__3
+    // $ANTLR end "rule__VarDef__Group__3"
 
 
-    // $ANTLR start rule__VarDef__Group__3__Impl
+    // $ANTLR start "rule__VarDef__Group__3__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2883:1: rule__VarDef__Group__3__Impl : ( ( rule__VarDef__Group_3__0 )? ) ;
     public final void rule__VarDef__Group__3__Impl() throws RecognitionException {
 
@@ -7940,7 +8104,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                     {
                     pushFollow(FOLLOW_rule__VarDef__Group_3__0_in_rule__VarDef__Group__3__Impl5986);
                     rule__VarDef__Group_3__0();
-                    _fsp--;
+
+                    state._fsp--;
 
 
                     }
@@ -7967,10 +8132,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__VarDef__Group__3__Impl
+    // $ANTLR end "rule__VarDef__Group__3__Impl"
 
 
-    // $ANTLR start rule__VarDef__Group__4
+    // $ANTLR start "rule__VarDef__Group__4"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2900:1: rule__VarDef__Group__4 : rule__VarDef__Group__4__Impl rule__VarDef__Group__5 ;
     public final void rule__VarDef__Group__4() throws RecognitionException {
 
@@ -7982,11 +8147,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__VarDef__Group__4__Impl_in_rule__VarDef__Group__46017);
             rule__VarDef__Group__4__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__VarDef__Group__5_in_rule__VarDef__Group__46020);
             rule__VarDef__Group__5();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -8003,10 +8170,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__VarDef__Group__4
+    // $ANTLR end "rule__VarDef__Group__4"
 
 
-    // $ANTLR start rule__VarDef__Group__4__Impl
+    // $ANTLR start "rule__VarDef__Group__4__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2912:1: rule__VarDef__Group__4__Impl : ( ( rule__VarDef__Group_4__0 )? ) ;
     public final void rule__VarDef__Group__4__Impl() throws RecognitionException {
 
@@ -8033,7 +8200,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                     {
                     pushFollow(FOLLOW_rule__VarDef__Group_4__0_in_rule__VarDef__Group__4__Impl6047);
                     rule__VarDef__Group_4__0();
-                    _fsp--;
+
+                    state._fsp--;
 
 
                     }
@@ -8060,10 +8228,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__VarDef__Group__4__Impl
+    // $ANTLR end "rule__VarDef__Group__4__Impl"
 
 
-    // $ANTLR start rule__VarDef__Group__5
+    // $ANTLR start "rule__VarDef__Group__5"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2929:1: rule__VarDef__Group__5 : rule__VarDef__Group__5__Impl ;
     public final void rule__VarDef__Group__5() throws RecognitionException {
 
@@ -8075,7 +8243,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__VarDef__Group__5__Impl_in_rule__VarDef__Group__56078);
             rule__VarDef__Group__5__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -8092,10 +8261,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__VarDef__Group__5
+    // $ANTLR end "rule__VarDef__Group__5"
 
 
-    // $ANTLR start rule__VarDef__Group__5__Impl
+    // $ANTLR start "rule__VarDef__Group__5__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2940:1: rule__VarDef__Group__5__Impl : ( RULE_NL ) ;
     public final void rule__VarDef__Group__5__Impl() throws RecognitionException {
 
@@ -8129,10 +8298,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__VarDef__Group__5__Impl
+    // $ANTLR end "rule__VarDef__Group__5__Impl"
 
 
-    // $ANTLR start rule__VarDef__Group_3__0
+    // $ANTLR start "rule__VarDef__Group_3__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2969:1: rule__VarDef__Group_3__0 : rule__VarDef__Group_3__0__Impl rule__VarDef__Group_3__1 ;
     public final void rule__VarDef__Group_3__0() throws RecognitionException {
 
@@ -8144,11 +8313,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__VarDef__Group_3__0__Impl_in_rule__VarDef__Group_3__06146);
             rule__VarDef__Group_3__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__VarDef__Group_3__1_in_rule__VarDef__Group_3__06149);
             rule__VarDef__Group_3__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -8165,10 +8336,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__VarDef__Group_3__0
+    // $ANTLR end "rule__VarDef__Group_3__0"
 
 
-    // $ANTLR start rule__VarDef__Group_3__0__Impl
+    // $ANTLR start "rule__VarDef__Group_3__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:2981:1: rule__VarDef__Group_3__0__Impl : ( ':' ) ;
     public final void rule__VarDef__Group_3__0__Impl() throws RecognitionException {
 
@@ -8202,10 +8373,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__VarDef__Group_3__0__Impl
+    // $ANTLR end "rule__VarDef__Group_3__0__Impl"
 
 
-    // $ANTLR start rule__VarDef__Group_3__1
+    // $ANTLR start "rule__VarDef__Group_3__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3000:1: rule__VarDef__Group_3__1 : rule__VarDef__Group_3__1__Impl ;
     public final void rule__VarDef__Group_3__1() throws RecognitionException {
 
@@ -8217,7 +8388,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__VarDef__Group_3__1__Impl_in_rule__VarDef__Group_3__16208);
             rule__VarDef__Group_3__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -8234,10 +8406,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__VarDef__Group_3__1
+    // $ANTLR end "rule__VarDef__Group_3__1"
 
 
-    // $ANTLR start rule__VarDef__Group_3__1__Impl
+    // $ANTLR start "rule__VarDef__Group_3__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3011:1: rule__VarDef__Group_3__1__Impl : ( ( rule__VarDef__TypeAssignment_3_1 ) ) ;
     public final void rule__VarDef__Group_3__1__Impl() throws RecognitionException {
 
@@ -8256,7 +8428,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__VarDef__TypeAssignment_3_1_in_rule__VarDef__Group_3__1__Impl6235);
             rule__VarDef__TypeAssignment_3_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -8280,10 +8453,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__VarDef__Group_3__1__Impl
+    // $ANTLR end "rule__VarDef__Group_3__1__Impl"
 
 
-    // $ANTLR start rule__VarDef__Group_4__0
+    // $ANTLR start "rule__VarDef__Group_4__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3032:1: rule__VarDef__Group_4__0 : rule__VarDef__Group_4__0__Impl rule__VarDef__Group_4__1 ;
     public final void rule__VarDef__Group_4__0() throws RecognitionException {
 
@@ -8295,11 +8468,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__VarDef__Group_4__0__Impl_in_rule__VarDef__Group_4__06269);
             rule__VarDef__Group_4__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__VarDef__Group_4__1_in_rule__VarDef__Group_4__06272);
             rule__VarDef__Group_4__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -8316,10 +8491,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__VarDef__Group_4__0
+    // $ANTLR end "rule__VarDef__Group_4__0"
 
 
-    // $ANTLR start rule__VarDef__Group_4__0__Impl
+    // $ANTLR start "rule__VarDef__Group_4__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3044:1: rule__VarDef__Group_4__0__Impl : ( '=' ) ;
     public final void rule__VarDef__Group_4__0__Impl() throws RecognitionException {
 
@@ -8353,10 +8528,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__VarDef__Group_4__0__Impl
+    // $ANTLR end "rule__VarDef__Group_4__0__Impl"
 
 
-    // $ANTLR start rule__VarDef__Group_4__1
+    // $ANTLR start "rule__VarDef__Group_4__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3063:1: rule__VarDef__Group_4__1 : rule__VarDef__Group_4__1__Impl ;
     public final void rule__VarDef__Group_4__1() throws RecognitionException {
 
@@ -8368,7 +8543,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__VarDef__Group_4__1__Impl_in_rule__VarDef__Group_4__16331);
             rule__VarDef__Group_4__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -8385,10 +8561,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__VarDef__Group_4__1
+    // $ANTLR end "rule__VarDef__Group_4__1"
 
 
-    // $ANTLR start rule__VarDef__Group_4__1__Impl
+    // $ANTLR start "rule__VarDef__Group_4__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3074:1: rule__VarDef__Group_4__1__Impl : ( ( rule__VarDef__EAssignment_4_1 ) ) ;
     public final void rule__VarDef__Group_4__1__Impl() throws RecognitionException {
 
@@ -8407,7 +8583,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__VarDef__EAssignment_4_1_in_rule__VarDef__Group_4__1__Impl6358);
             rule__VarDef__EAssignment_4_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -8431,10 +8608,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__VarDef__Group_4__1__Impl
+    // $ANTLR end "rule__VarDef__Group_4__1__Impl"
 
 
-    // $ANTLR start rule__TypeExpr__Group__0
+    // $ANTLR start "rule__TypeExpr__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3095:1: rule__TypeExpr__Group__0 : rule__TypeExpr__Group__0__Impl rule__TypeExpr__Group__1 ;
     public final void rule__TypeExpr__Group__0() throws RecognitionException {
 
@@ -8446,11 +8623,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__TypeExpr__Group__0__Impl_in_rule__TypeExpr__Group__06392);
             rule__TypeExpr__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__TypeExpr__Group__1_in_rule__TypeExpr__Group__06395);
             rule__TypeExpr__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -8467,10 +8646,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__TypeExpr__Group__0
+    // $ANTLR end "rule__TypeExpr__Group__0"
 
 
-    // $ANTLR start rule__TypeExpr__Group__0__Impl
+    // $ANTLR start "rule__TypeExpr__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3107:1: rule__TypeExpr__Group__0__Impl : ( () ) ;
     public final void rule__TypeExpr__Group__0__Impl() throws RecognitionException {
 
@@ -8504,10 +8683,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__TypeExpr__Group__0__Impl
+    // $ANTLR end "rule__TypeExpr__Group__0__Impl"
 
 
-    // $ANTLR start rule__TypeExpr__Group__1
+    // $ANTLR start "rule__TypeExpr__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3126:1: rule__TypeExpr__Group__1 : rule__TypeExpr__Group__1__Impl ;
     public final void rule__TypeExpr__Group__1() throws RecognitionException {
 
@@ -8519,7 +8698,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__TypeExpr__Group__1__Impl_in_rule__TypeExpr__Group__16453);
             rule__TypeExpr__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -8536,10 +8716,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__TypeExpr__Group__1
+    // $ANTLR end "rule__TypeExpr__Group__1"
 
 
-    // $ANTLR start rule__TypeExpr__Group__1__Impl
+    // $ANTLR start "rule__TypeExpr__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3137:1: rule__TypeExpr__Group__1__Impl : ( ( rule__TypeExpr__NameAssignment_1 ) ) ;
     public final void rule__TypeExpr__Group__1__Impl() throws RecognitionException {
 
@@ -8558,7 +8738,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__TypeExpr__NameAssignment_1_in_rule__TypeExpr__Group__1__Impl6480);
             rule__TypeExpr__NameAssignment_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -8582,10 +8763,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__TypeExpr__Group__1__Impl
+    // $ANTLR end "rule__TypeExpr__Group__1__Impl"
 
 
-    // $ANTLR start rule__FuncDef__Group__0
+    // $ANTLR start "rule__FuncDef__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3158:1: rule__FuncDef__Group__0 : rule__FuncDef__Group__0__Impl rule__FuncDef__Group__1 ;
     public final void rule__FuncDef__Group__0() throws RecognitionException {
 
@@ -8597,11 +8778,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__FuncDef__Group__0__Impl_in_rule__FuncDef__Group__06514);
             rule__FuncDef__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__FuncDef__Group__1_in_rule__FuncDef__Group__06517);
             rule__FuncDef__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -8618,10 +8801,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group__0
+    // $ANTLR end "rule__FuncDef__Group__0"
 
 
-    // $ANTLR start rule__FuncDef__Group__0__Impl
+    // $ANTLR start "rule__FuncDef__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3170:1: rule__FuncDef__Group__0__Impl : ( () ) ;
     public final void rule__FuncDef__Group__0__Impl() throws RecognitionException {
 
@@ -8655,10 +8838,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group__0__Impl
+    // $ANTLR end "rule__FuncDef__Group__0__Impl"
 
 
-    // $ANTLR start rule__FuncDef__Group__1
+    // $ANTLR start "rule__FuncDef__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3189:1: rule__FuncDef__Group__1 : rule__FuncDef__Group__1__Impl rule__FuncDef__Group__2 ;
     public final void rule__FuncDef__Group__1() throws RecognitionException {
 
@@ -8670,11 +8853,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__FuncDef__Group__1__Impl_in_rule__FuncDef__Group__16575);
             rule__FuncDef__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__FuncDef__Group__2_in_rule__FuncDef__Group__16578);
             rule__FuncDef__Group__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -8691,10 +8876,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group__1
+    // $ANTLR end "rule__FuncDef__Group__1"
 
 
-    // $ANTLR start rule__FuncDef__Group__1__Impl
+    // $ANTLR start "rule__FuncDef__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3201:1: rule__FuncDef__Group__1__Impl : ( 'function' ) ;
     public final void rule__FuncDef__Group__1__Impl() throws RecognitionException {
 
@@ -8728,10 +8913,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group__1__Impl
+    // $ANTLR end "rule__FuncDef__Group__1__Impl"
 
 
-    // $ANTLR start rule__FuncDef__Group__2
+    // $ANTLR start "rule__FuncDef__Group__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3220:1: rule__FuncDef__Group__2 : rule__FuncDef__Group__2__Impl rule__FuncDef__Group__3 ;
     public final void rule__FuncDef__Group__2() throws RecognitionException {
 
@@ -8743,11 +8928,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__FuncDef__Group__2__Impl_in_rule__FuncDef__Group__26637);
             rule__FuncDef__Group__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__FuncDef__Group__3_in_rule__FuncDef__Group__26640);
             rule__FuncDef__Group__3();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -8764,10 +8951,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group__2
+    // $ANTLR end "rule__FuncDef__Group__2"
 
 
-    // $ANTLR start rule__FuncDef__Group__2__Impl
+    // $ANTLR start "rule__FuncDef__Group__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3232:1: rule__FuncDef__Group__2__Impl : ( ( rule__FuncDef__NameAssignment_2 ) ) ;
     public final void rule__FuncDef__Group__2__Impl() throws RecognitionException {
 
@@ -8786,7 +8973,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__FuncDef__NameAssignment_2_in_rule__FuncDef__Group__2__Impl6667);
             rule__FuncDef__NameAssignment_2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -8810,10 +8998,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group__2__Impl
+    // $ANTLR end "rule__FuncDef__Group__2__Impl"
 
 
-    // $ANTLR start rule__FuncDef__Group__3
+    // $ANTLR start "rule__FuncDef__Group__3"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3249:1: rule__FuncDef__Group__3 : rule__FuncDef__Group__3__Impl rule__FuncDef__Group__4 ;
     public final void rule__FuncDef__Group__3() throws RecognitionException {
 
@@ -8825,11 +9013,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__FuncDef__Group__3__Impl_in_rule__FuncDef__Group__36697);
             rule__FuncDef__Group__3__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__FuncDef__Group__4_in_rule__FuncDef__Group__36700);
             rule__FuncDef__Group__4();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -8846,10 +9036,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group__3
+    // $ANTLR end "rule__FuncDef__Group__3"
 
 
-    // $ANTLR start rule__FuncDef__Group__3__Impl
+    // $ANTLR start "rule__FuncDef__Group__3__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3261:1: rule__FuncDef__Group__3__Impl : ( '(' ) ;
     public final void rule__FuncDef__Group__3__Impl() throws RecognitionException {
 
@@ -8883,10 +9073,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group__3__Impl
+    // $ANTLR end "rule__FuncDef__Group__3__Impl"
 
 
-    // $ANTLR start rule__FuncDef__Group__4
+    // $ANTLR start "rule__FuncDef__Group__4"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3280:1: rule__FuncDef__Group__4 : rule__FuncDef__Group__4__Impl rule__FuncDef__Group__5 ;
     public final void rule__FuncDef__Group__4() throws RecognitionException {
 
@@ -8898,11 +9088,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__FuncDef__Group__4__Impl_in_rule__FuncDef__Group__46759);
             rule__FuncDef__Group__4__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__FuncDef__Group__5_in_rule__FuncDef__Group__46762);
             rule__FuncDef__Group__5();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -8919,10 +9111,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group__4
+    // $ANTLR end "rule__FuncDef__Group__4"
 
 
-    // $ANTLR start rule__FuncDef__Group__4__Impl
+    // $ANTLR start "rule__FuncDef__Group__4__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3292:1: rule__FuncDef__Group__4__Impl : ( ( rule__FuncDef__Group_4__0 )? ) ;
     public final void rule__FuncDef__Group__4__Impl() throws RecognitionException {
 
@@ -8949,7 +9141,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                     {
                     pushFollow(FOLLOW_rule__FuncDef__Group_4__0_in_rule__FuncDef__Group__4__Impl6789);
                     rule__FuncDef__Group_4__0();
-                    _fsp--;
+
+                    state._fsp--;
 
 
                     }
@@ -8976,10 +9169,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group__4__Impl
+    // $ANTLR end "rule__FuncDef__Group__4__Impl"
 
 
-    // $ANTLR start rule__FuncDef__Group__5
+    // $ANTLR start "rule__FuncDef__Group__5"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3309:1: rule__FuncDef__Group__5 : rule__FuncDef__Group__5__Impl rule__FuncDef__Group__6 ;
     public final void rule__FuncDef__Group__5() throws RecognitionException {
 
@@ -8991,11 +9184,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__FuncDef__Group__5__Impl_in_rule__FuncDef__Group__56820);
             rule__FuncDef__Group__5__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__FuncDef__Group__6_in_rule__FuncDef__Group__56823);
             rule__FuncDef__Group__6();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -9012,10 +9207,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group__5
+    // $ANTLR end "rule__FuncDef__Group__5"
 
 
-    // $ANTLR start rule__FuncDef__Group__5__Impl
+    // $ANTLR start "rule__FuncDef__Group__5__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3321:1: rule__FuncDef__Group__5__Impl : ( ')' ) ;
     public final void rule__FuncDef__Group__5__Impl() throws RecognitionException {
 
@@ -9049,10 +9244,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group__5__Impl
+    // $ANTLR end "rule__FuncDef__Group__5__Impl"
 
 
-    // $ANTLR start rule__FuncDef__Group__6
+    // $ANTLR start "rule__FuncDef__Group__6"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3340:1: rule__FuncDef__Group__6 : rule__FuncDef__Group__6__Impl rule__FuncDef__Group__7 ;
     public final void rule__FuncDef__Group__6() throws RecognitionException {
 
@@ -9064,11 +9259,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__FuncDef__Group__6__Impl_in_rule__FuncDef__Group__66882);
             rule__FuncDef__Group__6__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__FuncDef__Group__7_in_rule__FuncDef__Group__66885);
             rule__FuncDef__Group__7();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -9085,10 +9282,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group__6
+    // $ANTLR end "rule__FuncDef__Group__6"
 
 
-    // $ANTLR start rule__FuncDef__Group__6__Impl
+    // $ANTLR start "rule__FuncDef__Group__6__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3352:1: rule__FuncDef__Group__6__Impl : ( ( rule__FuncDef__Group_6__0 )? ) ;
     public final void rule__FuncDef__Group__6__Impl() throws RecognitionException {
 
@@ -9115,7 +9312,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                     {
                     pushFollow(FOLLOW_rule__FuncDef__Group_6__0_in_rule__FuncDef__Group__6__Impl6912);
                     rule__FuncDef__Group_6__0();
-                    _fsp--;
+
+                    state._fsp--;
 
 
                     }
@@ -9142,10 +9340,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group__6__Impl
+    // $ANTLR end "rule__FuncDef__Group__6__Impl"
 
 
-    // $ANTLR start rule__FuncDef__Group__7
+    // $ANTLR start "rule__FuncDef__Group__7"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3369:1: rule__FuncDef__Group__7 : rule__FuncDef__Group__7__Impl rule__FuncDef__Group__8 ;
     public final void rule__FuncDef__Group__7() throws RecognitionException {
 
@@ -9157,11 +9355,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__FuncDef__Group__7__Impl_in_rule__FuncDef__Group__76943);
             rule__FuncDef__Group__7__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__FuncDef__Group__8_in_rule__FuncDef__Group__76946);
             rule__FuncDef__Group__8();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -9178,10 +9378,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group__7
+    // $ANTLR end "rule__FuncDef__Group__7"
 
 
-    // $ANTLR start rule__FuncDef__Group__7__Impl
+    // $ANTLR start "rule__FuncDef__Group__7__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3381:1: rule__FuncDef__Group__7__Impl : ( '{' ) ;
     public final void rule__FuncDef__Group__7__Impl() throws RecognitionException {
 
@@ -9215,10 +9415,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group__7__Impl
+    // $ANTLR end "rule__FuncDef__Group__7__Impl"
 
 
-    // $ANTLR start rule__FuncDef__Group__8
+    // $ANTLR start "rule__FuncDef__Group__8"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3400:1: rule__FuncDef__Group__8 : rule__FuncDef__Group__8__Impl rule__FuncDef__Group__9 ;
     public final void rule__FuncDef__Group__8() throws RecognitionException {
 
@@ -9230,11 +9430,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__FuncDef__Group__8__Impl_in_rule__FuncDef__Group__87005);
             rule__FuncDef__Group__8__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__FuncDef__Group__9_in_rule__FuncDef__Group__87008);
             rule__FuncDef__Group__9();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -9251,10 +9453,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group__8
+    // $ANTLR end "rule__FuncDef__Group__8"
 
 
-    // $ANTLR start rule__FuncDef__Group__8__Impl
+    // $ANTLR start "rule__FuncDef__Group__8__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3412:1: rule__FuncDef__Group__8__Impl : ( ( rule__FuncDef__BodyAssignment_8 ) ) ;
     public final void rule__FuncDef__Group__8__Impl() throws RecognitionException {
 
@@ -9273,7 +9475,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__FuncDef__BodyAssignment_8_in_rule__FuncDef__Group__8__Impl7035);
             rule__FuncDef__BodyAssignment_8();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -9297,10 +9500,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group__8__Impl
+    // $ANTLR end "rule__FuncDef__Group__8__Impl"
 
 
-    // $ANTLR start rule__FuncDef__Group__9
+    // $ANTLR start "rule__FuncDef__Group__9"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3429:1: rule__FuncDef__Group__9 : rule__FuncDef__Group__9__Impl ;
     public final void rule__FuncDef__Group__9() throws RecognitionException {
 
@@ -9312,7 +9515,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__FuncDef__Group__9__Impl_in_rule__FuncDef__Group__97065);
             rule__FuncDef__Group__9__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -9329,10 +9533,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group__9
+    // $ANTLR end "rule__FuncDef__Group__9"
 
 
-    // $ANTLR start rule__FuncDef__Group__9__Impl
+    // $ANTLR start "rule__FuncDef__Group__9__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3440:1: rule__FuncDef__Group__9__Impl : ( '}' ) ;
     public final void rule__FuncDef__Group__9__Impl() throws RecognitionException {
 
@@ -9366,10 +9570,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group__9__Impl
+    // $ANTLR end "rule__FuncDef__Group__9__Impl"
 
 
-    // $ANTLR start rule__FuncDef__Group_4__0
+    // $ANTLR start "rule__FuncDef__Group_4__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3479:1: rule__FuncDef__Group_4__0 : rule__FuncDef__Group_4__0__Impl rule__FuncDef__Group_4__1 ;
     public final void rule__FuncDef__Group_4__0() throws RecognitionException {
 
@@ -9381,11 +9585,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__FuncDef__Group_4__0__Impl_in_rule__FuncDef__Group_4__07144);
             rule__FuncDef__Group_4__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__FuncDef__Group_4__1_in_rule__FuncDef__Group_4__07147);
             rule__FuncDef__Group_4__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -9402,10 +9608,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group_4__0
+    // $ANTLR end "rule__FuncDef__Group_4__0"
 
 
-    // $ANTLR start rule__FuncDef__Group_4__0__Impl
+    // $ANTLR start "rule__FuncDef__Group_4__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3491:1: rule__FuncDef__Group_4__0__Impl : ( ( rule__FuncDef__ParametersAssignment_4_0 ) ) ;
     public final void rule__FuncDef__Group_4__0__Impl() throws RecognitionException {
 
@@ -9424,7 +9630,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__FuncDef__ParametersAssignment_4_0_in_rule__FuncDef__Group_4__0__Impl7174);
             rule__FuncDef__ParametersAssignment_4_0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -9448,10 +9655,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group_4__0__Impl
+    // $ANTLR end "rule__FuncDef__Group_4__0__Impl"
 
 
-    // $ANTLR start rule__FuncDef__Group_4__1
+    // $ANTLR start "rule__FuncDef__Group_4__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3508:1: rule__FuncDef__Group_4__1 : rule__FuncDef__Group_4__1__Impl ;
     public final void rule__FuncDef__Group_4__1() throws RecognitionException {
 
@@ -9463,7 +9670,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__FuncDef__Group_4__1__Impl_in_rule__FuncDef__Group_4__17204);
             rule__FuncDef__Group_4__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -9480,10 +9688,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group_4__1
+    // $ANTLR end "rule__FuncDef__Group_4__1"
 
 
-    // $ANTLR start rule__FuncDef__Group_4__1__Impl
+    // $ANTLR start "rule__FuncDef__Group_4__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3519:1: rule__FuncDef__Group_4__1__Impl : ( ( rule__FuncDef__Group_4_1__0 )* ) ;
     public final void rule__FuncDef__Group_4__1__Impl() throws RecognitionException {
 
@@ -9514,7 +9722,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             	    {
             	    pushFollow(FOLLOW_rule__FuncDef__Group_4_1__0_in_rule__FuncDef__Group_4__1__Impl7231);
             	    rule__FuncDef__Group_4_1__0();
-            	    _fsp--;
+
+            	    state._fsp--;
 
 
             	    }
@@ -9544,10 +9753,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group_4__1__Impl
+    // $ANTLR end "rule__FuncDef__Group_4__1__Impl"
 
 
-    // $ANTLR start rule__FuncDef__Group_4_1__0
+    // $ANTLR start "rule__FuncDef__Group_4_1__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3540:1: rule__FuncDef__Group_4_1__0 : rule__FuncDef__Group_4_1__0__Impl rule__FuncDef__Group_4_1__1 ;
     public final void rule__FuncDef__Group_4_1__0() throws RecognitionException {
 
@@ -9559,11 +9768,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__FuncDef__Group_4_1__0__Impl_in_rule__FuncDef__Group_4_1__07266);
             rule__FuncDef__Group_4_1__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__FuncDef__Group_4_1__1_in_rule__FuncDef__Group_4_1__07269);
             rule__FuncDef__Group_4_1__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -9580,10 +9791,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group_4_1__0
+    // $ANTLR end "rule__FuncDef__Group_4_1__0"
 
 
-    // $ANTLR start rule__FuncDef__Group_4_1__0__Impl
+    // $ANTLR start "rule__FuncDef__Group_4_1__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3552:1: rule__FuncDef__Group_4_1__0__Impl : ( ',' ) ;
     public final void rule__FuncDef__Group_4_1__0__Impl() throws RecognitionException {
 
@@ -9617,10 +9828,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group_4_1__0__Impl
+    // $ANTLR end "rule__FuncDef__Group_4_1__0__Impl"
 
 
-    // $ANTLR start rule__FuncDef__Group_4_1__1
+    // $ANTLR start "rule__FuncDef__Group_4_1__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3571:1: rule__FuncDef__Group_4_1__1 : rule__FuncDef__Group_4_1__1__Impl ;
     public final void rule__FuncDef__Group_4_1__1() throws RecognitionException {
 
@@ -9632,7 +9843,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__FuncDef__Group_4_1__1__Impl_in_rule__FuncDef__Group_4_1__17328);
             rule__FuncDef__Group_4_1__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -9649,10 +9861,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group_4_1__1
+    // $ANTLR end "rule__FuncDef__Group_4_1__1"
 
 
-    // $ANTLR start rule__FuncDef__Group_4_1__1__Impl
+    // $ANTLR start "rule__FuncDef__Group_4_1__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3582:1: rule__FuncDef__Group_4_1__1__Impl : ( ( rule__FuncDef__ParametersAssignment_4_1_1 ) ) ;
     public final void rule__FuncDef__Group_4_1__1__Impl() throws RecognitionException {
 
@@ -9671,7 +9883,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__FuncDef__ParametersAssignment_4_1_1_in_rule__FuncDef__Group_4_1__1__Impl7355);
             rule__FuncDef__ParametersAssignment_4_1_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -9695,10 +9908,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group_4_1__1__Impl
+    // $ANTLR end "rule__FuncDef__Group_4_1__1__Impl"
 
 
-    // $ANTLR start rule__FuncDef__Group_6__0
+    // $ANTLR start "rule__FuncDef__Group_6__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3603:1: rule__FuncDef__Group_6__0 : rule__FuncDef__Group_6__0__Impl rule__FuncDef__Group_6__1 ;
     public final void rule__FuncDef__Group_6__0() throws RecognitionException {
 
@@ -9710,11 +9923,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__FuncDef__Group_6__0__Impl_in_rule__FuncDef__Group_6__07389);
             rule__FuncDef__Group_6__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__FuncDef__Group_6__1_in_rule__FuncDef__Group_6__07392);
             rule__FuncDef__Group_6__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -9731,10 +9946,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group_6__0
+    // $ANTLR end "rule__FuncDef__Group_6__0"
 
 
-    // $ANTLR start rule__FuncDef__Group_6__0__Impl
+    // $ANTLR start "rule__FuncDef__Group_6__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3615:1: rule__FuncDef__Group_6__0__Impl : ( ':' ) ;
     public final void rule__FuncDef__Group_6__0__Impl() throws RecognitionException {
 
@@ -9768,10 +9983,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group_6__0__Impl
+    // $ANTLR end "rule__FuncDef__Group_6__0__Impl"
 
 
-    // $ANTLR start rule__FuncDef__Group_6__1
+    // $ANTLR start "rule__FuncDef__Group_6__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3634:1: rule__FuncDef__Group_6__1 : rule__FuncDef__Group_6__1__Impl ;
     public final void rule__FuncDef__Group_6__1() throws RecognitionException {
 
@@ -9783,7 +9998,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__FuncDef__Group_6__1__Impl_in_rule__FuncDef__Group_6__17451);
             rule__FuncDef__Group_6__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -9800,10 +10016,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group_6__1
+    // $ANTLR end "rule__FuncDef__Group_6__1"
 
 
-    // $ANTLR start rule__FuncDef__Group_6__1__Impl
+    // $ANTLR start "rule__FuncDef__Group_6__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3645:1: rule__FuncDef__Group_6__1__Impl : ( ( rule__FuncDef__TypeAssignment_6_1 ) ) ;
     public final void rule__FuncDef__Group_6__1__Impl() throws RecognitionException {
 
@@ -9822,7 +10038,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__FuncDef__TypeAssignment_6_1_in_rule__FuncDef__Group_6__1__Impl7478);
             rule__FuncDef__TypeAssignment_6_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -9846,10 +10063,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__Group_6__1__Impl
+    // $ANTLR end "rule__FuncDef__Group_6__1__Impl"
 
 
-    // $ANTLR start rule__ParameterDef__Group__0
+    // $ANTLR start "rule__ParameterDef__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3666:1: rule__ParameterDef__Group__0 : rule__ParameterDef__Group__0__Impl rule__ParameterDef__Group__1 ;
     public final void rule__ParameterDef__Group__0() throws RecognitionException {
 
@@ -9861,11 +10078,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ParameterDef__Group__0__Impl_in_rule__ParameterDef__Group__07512);
             rule__ParameterDef__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ParameterDef__Group__1_in_rule__ParameterDef__Group__07515);
             rule__ParameterDef__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -9882,10 +10101,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ParameterDef__Group__0
+    // $ANTLR end "rule__ParameterDef__Group__0"
 
 
-    // $ANTLR start rule__ParameterDef__Group__0__Impl
+    // $ANTLR start "rule__ParameterDef__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3678:1: rule__ParameterDef__Group__0__Impl : ( () ) ;
     public final void rule__ParameterDef__Group__0__Impl() throws RecognitionException {
 
@@ -9919,10 +10138,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ParameterDef__Group__0__Impl
+    // $ANTLR end "rule__ParameterDef__Group__0__Impl"
 
 
-    // $ANTLR start rule__ParameterDef__Group__1
+    // $ANTLR start "rule__ParameterDef__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3697:1: rule__ParameterDef__Group__1 : rule__ParameterDef__Group__1__Impl rule__ParameterDef__Group__2 ;
     public final void rule__ParameterDef__Group__1() throws RecognitionException {
 
@@ -9934,11 +10153,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ParameterDef__Group__1__Impl_in_rule__ParameterDef__Group__17573);
             rule__ParameterDef__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ParameterDef__Group__2_in_rule__ParameterDef__Group__17576);
             rule__ParameterDef__Group__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -9955,10 +10176,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ParameterDef__Group__1
+    // $ANTLR end "rule__ParameterDef__Group__1"
 
 
-    // $ANTLR start rule__ParameterDef__Group__1__Impl
+    // $ANTLR start "rule__ParameterDef__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3709:1: rule__ParameterDef__Group__1__Impl : ( ( rule__ParameterDef__NameAssignment_1 ) ) ;
     public final void rule__ParameterDef__Group__1__Impl() throws RecognitionException {
 
@@ -9977,7 +10198,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ParameterDef__NameAssignment_1_in_rule__ParameterDef__Group__1__Impl7603);
             rule__ParameterDef__NameAssignment_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -10001,10 +10223,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ParameterDef__Group__1__Impl
+    // $ANTLR end "rule__ParameterDef__Group__1__Impl"
 
 
-    // $ANTLR start rule__ParameterDef__Group__2
+    // $ANTLR start "rule__ParameterDef__Group__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3726:1: rule__ParameterDef__Group__2 : rule__ParameterDef__Group__2__Impl rule__ParameterDef__Group__3 ;
     public final void rule__ParameterDef__Group__2() throws RecognitionException {
 
@@ -10016,11 +10238,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ParameterDef__Group__2__Impl_in_rule__ParameterDef__Group__27633);
             rule__ParameterDef__Group__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ParameterDef__Group__3_in_rule__ParameterDef__Group__27636);
             rule__ParameterDef__Group__3();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -10037,10 +10261,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ParameterDef__Group__2
+    // $ANTLR end "rule__ParameterDef__Group__2"
 
 
-    // $ANTLR start rule__ParameterDef__Group__2__Impl
+    // $ANTLR start "rule__ParameterDef__Group__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3738:1: rule__ParameterDef__Group__2__Impl : ( ':' ) ;
     public final void rule__ParameterDef__Group__2__Impl() throws RecognitionException {
 
@@ -10074,10 +10298,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ParameterDef__Group__2__Impl
+    // $ANTLR end "rule__ParameterDef__Group__2__Impl"
 
 
-    // $ANTLR start rule__ParameterDef__Group__3
+    // $ANTLR start "rule__ParameterDef__Group__3"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3757:1: rule__ParameterDef__Group__3 : rule__ParameterDef__Group__3__Impl ;
     public final void rule__ParameterDef__Group__3() throws RecognitionException {
 
@@ -10089,7 +10313,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ParameterDef__Group__3__Impl_in_rule__ParameterDef__Group__37695);
             rule__ParameterDef__Group__3__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -10106,10 +10331,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ParameterDef__Group__3
+    // $ANTLR end "rule__ParameterDef__Group__3"
 
 
-    // $ANTLR start rule__ParameterDef__Group__3__Impl
+    // $ANTLR start "rule__ParameterDef__Group__3__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3768:1: rule__ParameterDef__Group__3__Impl : ( ( rule__ParameterDef__TypeAssignment_3 ) ) ;
     public final void rule__ParameterDef__Group__3__Impl() throws RecognitionException {
 
@@ -10128,7 +10353,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ParameterDef__TypeAssignment_3_in_rule__ParameterDef__Group__3__Impl7722);
             rule__ParameterDef__TypeAssignment_3();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -10152,10 +10378,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ParameterDef__Group__3__Impl
+    // $ANTLR end "rule__ParameterDef__Group__3__Impl"
 
 
-    // $ANTLR start rule__Statements__Group__0
+    // $ANTLR start "rule__Statements__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3793:1: rule__Statements__Group__0 : rule__Statements__Group__0__Impl rule__Statements__Group__1 ;
     public final void rule__Statements__Group__0() throws RecognitionException {
 
@@ -10167,11 +10393,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__Statements__Group__0__Impl_in_rule__Statements__Group__07760);
             rule__Statements__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__Statements__Group__1_in_rule__Statements__Group__07763);
             rule__Statements__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -10188,10 +10416,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__Statements__Group__0
+    // $ANTLR end "rule__Statements__Group__0"
 
 
-    // $ANTLR start rule__Statements__Group__0__Impl
+    // $ANTLR start "rule__Statements__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3805:1: rule__Statements__Group__0__Impl : ( () ) ;
     public final void rule__Statements__Group__0__Impl() throws RecognitionException {
 
@@ -10225,10 +10453,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__Statements__Group__0__Impl
+    // $ANTLR end "rule__Statements__Group__0__Impl"
 
 
-    // $ANTLR start rule__Statements__Group__1
+    // $ANTLR start "rule__Statements__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3824:1: rule__Statements__Group__1 : rule__Statements__Group__1__Impl ;
     public final void rule__Statements__Group__1() throws RecognitionException {
 
@@ -10240,7 +10468,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__Statements__Group__1__Impl_in_rule__Statements__Group__17821);
             rule__Statements__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -10257,10 +10486,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__Statements__Group__1
+    // $ANTLR end "rule__Statements__Group__1"
 
 
-    // $ANTLR start rule__Statements__Group__1__Impl
+    // $ANTLR start "rule__Statements__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3835:1: rule__Statements__Group__1__Impl : ( ( rule__Statements__Alternatives_1 )* ) ;
     public final void rule__Statements__Group__1__Impl() throws RecognitionException {
 
@@ -10291,7 +10520,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             	    {
             	    pushFollow(FOLLOW_rule__Statements__Alternatives_1_in_rule__Statements__Group__1__Impl7848);
             	    rule__Statements__Alternatives_1();
-            	    _fsp--;
+
+            	    state._fsp--;
 
 
             	    }
@@ -10321,10 +10551,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__Statements__Group__1__Impl
+    // $ANTLR end "rule__Statements__Group__1__Impl"
 
 
-    // $ANTLR start rule__StmtReturn__Group__0
+    // $ANTLR start "rule__StmtReturn__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3856:1: rule__StmtReturn__Group__0 : rule__StmtReturn__Group__0__Impl rule__StmtReturn__Group__1 ;
     public final void rule__StmtReturn__Group__0() throws RecognitionException {
 
@@ -10336,11 +10566,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtReturn__Group__0__Impl_in_rule__StmtReturn__Group__07883);
             rule__StmtReturn__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__StmtReturn__Group__1_in_rule__StmtReturn__Group__07886);
             rule__StmtReturn__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -10357,10 +10589,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtReturn__Group__0
+    // $ANTLR end "rule__StmtReturn__Group__0"
 
 
-    // $ANTLR start rule__StmtReturn__Group__0__Impl
+    // $ANTLR start "rule__StmtReturn__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3868:1: rule__StmtReturn__Group__0__Impl : ( () ) ;
     public final void rule__StmtReturn__Group__0__Impl() throws RecognitionException {
 
@@ -10394,10 +10626,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtReturn__Group__0__Impl
+    // $ANTLR end "rule__StmtReturn__Group__0__Impl"
 
 
-    // $ANTLR start rule__StmtReturn__Group__1
+    // $ANTLR start "rule__StmtReturn__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3887:1: rule__StmtReturn__Group__1 : rule__StmtReturn__Group__1__Impl rule__StmtReturn__Group__2 ;
     public final void rule__StmtReturn__Group__1() throws RecognitionException {
 
@@ -10409,11 +10641,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtReturn__Group__1__Impl_in_rule__StmtReturn__Group__17944);
             rule__StmtReturn__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__StmtReturn__Group__2_in_rule__StmtReturn__Group__17947);
             rule__StmtReturn__Group__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -10430,10 +10664,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtReturn__Group__1
+    // $ANTLR end "rule__StmtReturn__Group__1"
 
 
-    // $ANTLR start rule__StmtReturn__Group__1__Impl
+    // $ANTLR start "rule__StmtReturn__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3899:1: rule__StmtReturn__Group__1__Impl : ( 'return' ) ;
     public final void rule__StmtReturn__Group__1__Impl() throws RecognitionException {
 
@@ -10467,10 +10701,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtReturn__Group__1__Impl
+    // $ANTLR end "rule__StmtReturn__Group__1__Impl"
 
 
-    // $ANTLR start rule__StmtReturn__Group__2
+    // $ANTLR start "rule__StmtReturn__Group__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3918:1: rule__StmtReturn__Group__2 : rule__StmtReturn__Group__2__Impl rule__StmtReturn__Group__3 ;
     public final void rule__StmtReturn__Group__2() throws RecognitionException {
 
@@ -10482,11 +10716,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtReturn__Group__2__Impl_in_rule__StmtReturn__Group__28006);
             rule__StmtReturn__Group__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__StmtReturn__Group__3_in_rule__StmtReturn__Group__28009);
             rule__StmtReturn__Group__3();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -10503,10 +10739,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtReturn__Group__2
+    // $ANTLR end "rule__StmtReturn__Group__2"
 
 
-    // $ANTLR start rule__StmtReturn__Group__2__Impl
+    // $ANTLR start "rule__StmtReturn__Group__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3930:1: rule__StmtReturn__Group__2__Impl : ( ( rule__StmtReturn__EAssignment_2 )? ) ;
     public final void rule__StmtReturn__Group__2__Impl() throws RecognitionException {
 
@@ -10533,7 +10769,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                     {
                     pushFollow(FOLLOW_rule__StmtReturn__EAssignment_2_in_rule__StmtReturn__Group__2__Impl8036);
                     rule__StmtReturn__EAssignment_2();
-                    _fsp--;
+
+                    state._fsp--;
 
 
                     }
@@ -10560,10 +10797,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtReturn__Group__2__Impl
+    // $ANTLR end "rule__StmtReturn__Group__2__Impl"
 
 
-    // $ANTLR start rule__StmtReturn__Group__3
+    // $ANTLR start "rule__StmtReturn__Group__3"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3947:1: rule__StmtReturn__Group__3 : rule__StmtReturn__Group__3__Impl ;
     public final void rule__StmtReturn__Group__3() throws RecognitionException {
 
@@ -10575,7 +10812,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtReturn__Group__3__Impl_in_rule__StmtReturn__Group__38067);
             rule__StmtReturn__Group__3__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -10592,10 +10830,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtReturn__Group__3
+    // $ANTLR end "rule__StmtReturn__Group__3"
 
 
-    // $ANTLR start rule__StmtReturn__Group__3__Impl
+    // $ANTLR start "rule__StmtReturn__Group__3__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3958:1: rule__StmtReturn__Group__3__Impl : ( RULE_NL ) ;
     public final void rule__StmtReturn__Group__3__Impl() throws RecognitionException {
 
@@ -10629,10 +10867,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtReturn__Group__3__Impl
+    // $ANTLR end "rule__StmtReturn__Group__3__Impl"
 
 
-    // $ANTLR start rule__StmtIf__Group__0
+    // $ANTLR start "rule__StmtIf__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3983:1: rule__StmtIf__Group__0 : rule__StmtIf__Group__0__Impl rule__StmtIf__Group__1 ;
     public final void rule__StmtIf__Group__0() throws RecognitionException {
 
@@ -10644,11 +10882,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtIf__Group__0__Impl_in_rule__StmtIf__Group__08131);
             rule__StmtIf__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__StmtIf__Group__1_in_rule__StmtIf__Group__08134);
             rule__StmtIf__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -10665,10 +10905,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtIf__Group__0
+    // $ANTLR end "rule__StmtIf__Group__0"
 
 
-    // $ANTLR start rule__StmtIf__Group__0__Impl
+    // $ANTLR start "rule__StmtIf__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:3995:1: rule__StmtIf__Group__0__Impl : ( 'if' ) ;
     public final void rule__StmtIf__Group__0__Impl() throws RecognitionException {
 
@@ -10702,10 +10942,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtIf__Group__0__Impl
+    // $ANTLR end "rule__StmtIf__Group__0__Impl"
 
 
-    // $ANTLR start rule__StmtIf__Group__1
+    // $ANTLR start "rule__StmtIf__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4014:1: rule__StmtIf__Group__1 : rule__StmtIf__Group__1__Impl rule__StmtIf__Group__2 ;
     public final void rule__StmtIf__Group__1() throws RecognitionException {
 
@@ -10717,11 +10957,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtIf__Group__1__Impl_in_rule__StmtIf__Group__18193);
             rule__StmtIf__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__StmtIf__Group__2_in_rule__StmtIf__Group__18196);
             rule__StmtIf__Group__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -10738,10 +10980,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtIf__Group__1
+    // $ANTLR end "rule__StmtIf__Group__1"
 
 
-    // $ANTLR start rule__StmtIf__Group__1__Impl
+    // $ANTLR start "rule__StmtIf__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4026:1: rule__StmtIf__Group__1__Impl : ( ( rule__StmtIf__CondAssignment_1 ) ) ;
     public final void rule__StmtIf__Group__1__Impl() throws RecognitionException {
 
@@ -10760,7 +11002,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtIf__CondAssignment_1_in_rule__StmtIf__Group__1__Impl8223);
             rule__StmtIf__CondAssignment_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -10784,10 +11027,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtIf__Group__1__Impl
+    // $ANTLR end "rule__StmtIf__Group__1__Impl"
 
 
-    // $ANTLR start rule__StmtIf__Group__2
+    // $ANTLR start "rule__StmtIf__Group__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4043:1: rule__StmtIf__Group__2 : rule__StmtIf__Group__2__Impl rule__StmtIf__Group__3 ;
     public final void rule__StmtIf__Group__2() throws RecognitionException {
 
@@ -10799,11 +11042,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtIf__Group__2__Impl_in_rule__StmtIf__Group__28253);
             rule__StmtIf__Group__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__StmtIf__Group__3_in_rule__StmtIf__Group__28256);
             rule__StmtIf__Group__3();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -10820,10 +11065,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtIf__Group__2
+    // $ANTLR end "rule__StmtIf__Group__2"
 
 
-    // $ANTLR start rule__StmtIf__Group__2__Impl
+    // $ANTLR start "rule__StmtIf__Group__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4055:1: rule__StmtIf__Group__2__Impl : ( '{' ) ;
     public final void rule__StmtIf__Group__2__Impl() throws RecognitionException {
 
@@ -10857,10 +11102,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtIf__Group__2__Impl
+    // $ANTLR end "rule__StmtIf__Group__2__Impl"
 
 
-    // $ANTLR start rule__StmtIf__Group__3
+    // $ANTLR start "rule__StmtIf__Group__3"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4074:1: rule__StmtIf__Group__3 : rule__StmtIf__Group__3__Impl rule__StmtIf__Group__4 ;
     public final void rule__StmtIf__Group__3() throws RecognitionException {
 
@@ -10872,11 +11117,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtIf__Group__3__Impl_in_rule__StmtIf__Group__38315);
             rule__StmtIf__Group__3__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__StmtIf__Group__4_in_rule__StmtIf__Group__38318);
             rule__StmtIf__Group__4();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -10893,10 +11140,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtIf__Group__3
+    // $ANTLR end "rule__StmtIf__Group__3"
 
 
-    // $ANTLR start rule__StmtIf__Group__3__Impl
+    // $ANTLR start "rule__StmtIf__Group__3__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4086:1: rule__StmtIf__Group__3__Impl : ( ( rule__StmtIf__ThenBlockAssignment_3 ) ) ;
     public final void rule__StmtIf__Group__3__Impl() throws RecognitionException {
 
@@ -10915,7 +11162,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtIf__ThenBlockAssignment_3_in_rule__StmtIf__Group__3__Impl8345);
             rule__StmtIf__ThenBlockAssignment_3();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -10939,10 +11187,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtIf__Group__3__Impl
+    // $ANTLR end "rule__StmtIf__Group__3__Impl"
 
 
-    // $ANTLR start rule__StmtIf__Group__4
+    // $ANTLR start "rule__StmtIf__Group__4"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4103:1: rule__StmtIf__Group__4 : rule__StmtIf__Group__4__Impl rule__StmtIf__Group__5 ;
     public final void rule__StmtIf__Group__4() throws RecognitionException {
 
@@ -10954,11 +11202,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtIf__Group__4__Impl_in_rule__StmtIf__Group__48375);
             rule__StmtIf__Group__4__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__StmtIf__Group__5_in_rule__StmtIf__Group__48378);
             rule__StmtIf__Group__5();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -10975,10 +11225,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtIf__Group__4
+    // $ANTLR end "rule__StmtIf__Group__4"
 
 
-    // $ANTLR start rule__StmtIf__Group__4__Impl
+    // $ANTLR start "rule__StmtIf__Group__4__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4115:1: rule__StmtIf__Group__4__Impl : ( '}' ) ;
     public final void rule__StmtIf__Group__4__Impl() throws RecognitionException {
 
@@ -11012,10 +11262,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtIf__Group__4__Impl
+    // $ANTLR end "rule__StmtIf__Group__4__Impl"
 
 
-    // $ANTLR start rule__StmtIf__Group__5
+    // $ANTLR start "rule__StmtIf__Group__5"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4134:1: rule__StmtIf__Group__5 : rule__StmtIf__Group__5__Impl ;
     public final void rule__StmtIf__Group__5() throws RecognitionException {
 
@@ -11027,7 +11277,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtIf__Group__5__Impl_in_rule__StmtIf__Group__58437);
             rule__StmtIf__Group__5__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -11044,10 +11295,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtIf__Group__5
+    // $ANTLR end "rule__StmtIf__Group__5"
 
 
-    // $ANTLR start rule__StmtIf__Group__5__Impl
+    // $ANTLR start "rule__StmtIf__Group__5__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4145:1: rule__StmtIf__Group__5__Impl : ( ( rule__StmtIf__Group_5__0 )? ) ;
     public final void rule__StmtIf__Group__5__Impl() throws RecognitionException {
 
@@ -11074,7 +11325,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
                     {
                     pushFollow(FOLLOW_rule__StmtIf__Group_5__0_in_rule__StmtIf__Group__5__Impl8464);
                     rule__StmtIf__Group_5__0();
-                    _fsp--;
+
+                    state._fsp--;
 
 
                     }
@@ -11101,10 +11353,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtIf__Group__5__Impl
+    // $ANTLR end "rule__StmtIf__Group__5__Impl"
 
 
-    // $ANTLR start rule__StmtIf__Group_5__0
+    // $ANTLR start "rule__StmtIf__Group_5__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4174:1: rule__StmtIf__Group_5__0 : rule__StmtIf__Group_5__0__Impl rule__StmtIf__Group_5__1 ;
     public final void rule__StmtIf__Group_5__0() throws RecognitionException {
 
@@ -11116,11 +11368,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtIf__Group_5__0__Impl_in_rule__StmtIf__Group_5__08507);
             rule__StmtIf__Group_5__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__StmtIf__Group_5__1_in_rule__StmtIf__Group_5__08510);
             rule__StmtIf__Group_5__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -11137,10 +11391,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtIf__Group_5__0
+    // $ANTLR end "rule__StmtIf__Group_5__0"
 
 
-    // $ANTLR start rule__StmtIf__Group_5__0__Impl
+    // $ANTLR start "rule__StmtIf__Group_5__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4186:1: rule__StmtIf__Group_5__0__Impl : ( 'else' ) ;
     public final void rule__StmtIf__Group_5__0__Impl() throws RecognitionException {
 
@@ -11174,10 +11428,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtIf__Group_5__0__Impl
+    // $ANTLR end "rule__StmtIf__Group_5__0__Impl"
 
 
-    // $ANTLR start rule__StmtIf__Group_5__1
+    // $ANTLR start "rule__StmtIf__Group_5__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4205:1: rule__StmtIf__Group_5__1 : rule__StmtIf__Group_5__1__Impl rule__StmtIf__Group_5__2 ;
     public final void rule__StmtIf__Group_5__1() throws RecognitionException {
 
@@ -11189,11 +11443,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtIf__Group_5__1__Impl_in_rule__StmtIf__Group_5__18569);
             rule__StmtIf__Group_5__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__StmtIf__Group_5__2_in_rule__StmtIf__Group_5__18572);
             rule__StmtIf__Group_5__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -11210,10 +11466,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtIf__Group_5__1
+    // $ANTLR end "rule__StmtIf__Group_5__1"
 
 
-    // $ANTLR start rule__StmtIf__Group_5__1__Impl
+    // $ANTLR start "rule__StmtIf__Group_5__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4217:1: rule__StmtIf__Group_5__1__Impl : ( '{' ) ;
     public final void rule__StmtIf__Group_5__1__Impl() throws RecognitionException {
 
@@ -11247,10 +11503,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtIf__Group_5__1__Impl
+    // $ANTLR end "rule__StmtIf__Group_5__1__Impl"
 
 
-    // $ANTLR start rule__StmtIf__Group_5__2
+    // $ANTLR start "rule__StmtIf__Group_5__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4236:1: rule__StmtIf__Group_5__2 : rule__StmtIf__Group_5__2__Impl rule__StmtIf__Group_5__3 ;
     public final void rule__StmtIf__Group_5__2() throws RecognitionException {
 
@@ -11262,11 +11518,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtIf__Group_5__2__Impl_in_rule__StmtIf__Group_5__28631);
             rule__StmtIf__Group_5__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__StmtIf__Group_5__3_in_rule__StmtIf__Group_5__28634);
             rule__StmtIf__Group_5__3();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -11283,10 +11541,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtIf__Group_5__2
+    // $ANTLR end "rule__StmtIf__Group_5__2"
 
 
-    // $ANTLR start rule__StmtIf__Group_5__2__Impl
+    // $ANTLR start "rule__StmtIf__Group_5__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4248:1: rule__StmtIf__Group_5__2__Impl : ( ( rule__StmtIf__ElseBlockAssignment_5_2 ) ) ;
     public final void rule__StmtIf__Group_5__2__Impl() throws RecognitionException {
 
@@ -11305,7 +11563,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtIf__ElseBlockAssignment_5_2_in_rule__StmtIf__Group_5__2__Impl8661);
             rule__StmtIf__ElseBlockAssignment_5_2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -11329,10 +11588,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtIf__Group_5__2__Impl
+    // $ANTLR end "rule__StmtIf__Group_5__2__Impl"
 
 
-    // $ANTLR start rule__StmtIf__Group_5__3
+    // $ANTLR start "rule__StmtIf__Group_5__3"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4265:1: rule__StmtIf__Group_5__3 : rule__StmtIf__Group_5__3__Impl ;
     public final void rule__StmtIf__Group_5__3() throws RecognitionException {
 
@@ -11344,7 +11603,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtIf__Group_5__3__Impl_in_rule__StmtIf__Group_5__38691);
             rule__StmtIf__Group_5__3__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -11361,10 +11621,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtIf__Group_5__3
+    // $ANTLR end "rule__StmtIf__Group_5__3"
 
 
-    // $ANTLR start rule__StmtIf__Group_5__3__Impl
+    // $ANTLR start "rule__StmtIf__Group_5__3__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4276:1: rule__StmtIf__Group_5__3__Impl : ( '}' ) ;
     public final void rule__StmtIf__Group_5__3__Impl() throws RecognitionException {
 
@@ -11398,10 +11658,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtIf__Group_5__3__Impl
+    // $ANTLR end "rule__StmtIf__Group_5__3__Impl"
 
 
-    // $ANTLR start rule__StmtWhile__Group__0
+    // $ANTLR start "rule__StmtWhile__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4303:1: rule__StmtWhile__Group__0 : rule__StmtWhile__Group__0__Impl rule__StmtWhile__Group__1 ;
     public final void rule__StmtWhile__Group__0() throws RecognitionException {
 
@@ -11413,11 +11673,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtWhile__Group__0__Impl_in_rule__StmtWhile__Group__08758);
             rule__StmtWhile__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__StmtWhile__Group__1_in_rule__StmtWhile__Group__08761);
             rule__StmtWhile__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -11434,10 +11696,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtWhile__Group__0
+    // $ANTLR end "rule__StmtWhile__Group__0"
 
 
-    // $ANTLR start rule__StmtWhile__Group__0__Impl
+    // $ANTLR start "rule__StmtWhile__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4315:1: rule__StmtWhile__Group__0__Impl : ( 'while' ) ;
     public final void rule__StmtWhile__Group__0__Impl() throws RecognitionException {
 
@@ -11471,10 +11733,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtWhile__Group__0__Impl
+    // $ANTLR end "rule__StmtWhile__Group__0__Impl"
 
 
-    // $ANTLR start rule__StmtWhile__Group__1
+    // $ANTLR start "rule__StmtWhile__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4334:1: rule__StmtWhile__Group__1 : rule__StmtWhile__Group__1__Impl rule__StmtWhile__Group__2 ;
     public final void rule__StmtWhile__Group__1() throws RecognitionException {
 
@@ -11486,11 +11748,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtWhile__Group__1__Impl_in_rule__StmtWhile__Group__18820);
             rule__StmtWhile__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__StmtWhile__Group__2_in_rule__StmtWhile__Group__18823);
             rule__StmtWhile__Group__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -11507,10 +11771,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtWhile__Group__1
+    // $ANTLR end "rule__StmtWhile__Group__1"
 
 
-    // $ANTLR start rule__StmtWhile__Group__1__Impl
+    // $ANTLR start "rule__StmtWhile__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4346:1: rule__StmtWhile__Group__1__Impl : ( ( rule__StmtWhile__CondAssignment_1 ) ) ;
     public final void rule__StmtWhile__Group__1__Impl() throws RecognitionException {
 
@@ -11529,7 +11793,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtWhile__CondAssignment_1_in_rule__StmtWhile__Group__1__Impl8850);
             rule__StmtWhile__CondAssignment_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -11553,10 +11818,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtWhile__Group__1__Impl
+    // $ANTLR end "rule__StmtWhile__Group__1__Impl"
 
 
-    // $ANTLR start rule__StmtWhile__Group__2
+    // $ANTLR start "rule__StmtWhile__Group__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4363:1: rule__StmtWhile__Group__2 : rule__StmtWhile__Group__2__Impl rule__StmtWhile__Group__3 ;
     public final void rule__StmtWhile__Group__2() throws RecognitionException {
 
@@ -11568,11 +11833,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtWhile__Group__2__Impl_in_rule__StmtWhile__Group__28880);
             rule__StmtWhile__Group__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__StmtWhile__Group__3_in_rule__StmtWhile__Group__28883);
             rule__StmtWhile__Group__3();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -11589,10 +11856,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtWhile__Group__2
+    // $ANTLR end "rule__StmtWhile__Group__2"
 
 
-    // $ANTLR start rule__StmtWhile__Group__2__Impl
+    // $ANTLR start "rule__StmtWhile__Group__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4375:1: rule__StmtWhile__Group__2__Impl : ( '{' ) ;
     public final void rule__StmtWhile__Group__2__Impl() throws RecognitionException {
 
@@ -11626,10 +11893,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtWhile__Group__2__Impl
+    // $ANTLR end "rule__StmtWhile__Group__2__Impl"
 
 
-    // $ANTLR start rule__StmtWhile__Group__3
+    // $ANTLR start "rule__StmtWhile__Group__3"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4394:1: rule__StmtWhile__Group__3 : rule__StmtWhile__Group__3__Impl rule__StmtWhile__Group__4 ;
     public final void rule__StmtWhile__Group__3() throws RecognitionException {
 
@@ -11641,11 +11908,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtWhile__Group__3__Impl_in_rule__StmtWhile__Group__38942);
             rule__StmtWhile__Group__3__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__StmtWhile__Group__4_in_rule__StmtWhile__Group__38945);
             rule__StmtWhile__Group__4();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -11662,10 +11931,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtWhile__Group__3
+    // $ANTLR end "rule__StmtWhile__Group__3"
 
 
-    // $ANTLR start rule__StmtWhile__Group__3__Impl
+    // $ANTLR start "rule__StmtWhile__Group__3__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4406:1: rule__StmtWhile__Group__3__Impl : ( ( rule__StmtWhile__BodyAssignment_3 ) ) ;
     public final void rule__StmtWhile__Group__3__Impl() throws RecognitionException {
 
@@ -11684,7 +11953,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtWhile__BodyAssignment_3_in_rule__StmtWhile__Group__3__Impl8972);
             rule__StmtWhile__BodyAssignment_3();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -11708,10 +11978,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtWhile__Group__3__Impl
+    // $ANTLR end "rule__StmtWhile__Group__3__Impl"
 
 
-    // $ANTLR start rule__StmtWhile__Group__4
+    // $ANTLR start "rule__StmtWhile__Group__4"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4423:1: rule__StmtWhile__Group__4 : rule__StmtWhile__Group__4__Impl ;
     public final void rule__StmtWhile__Group__4() throws RecognitionException {
 
@@ -11723,7 +11993,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtWhile__Group__4__Impl_in_rule__StmtWhile__Group__49002);
             rule__StmtWhile__Group__4__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -11740,10 +12011,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtWhile__Group__4
+    // $ANTLR end "rule__StmtWhile__Group__4"
 
 
-    // $ANTLR start rule__StmtWhile__Group__4__Impl
+    // $ANTLR start "rule__StmtWhile__Group__4__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4434:1: rule__StmtWhile__Group__4__Impl : ( '}' ) ;
     public final void rule__StmtWhile__Group__4__Impl() throws RecognitionException {
 
@@ -11777,10 +12048,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtWhile__Group__4__Impl
+    // $ANTLR end "rule__StmtWhile__Group__4__Impl"
 
 
-    // $ANTLR start rule__StmtExpr__Group__0
+    // $ANTLR start "rule__StmtExpr__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4463:1: rule__StmtExpr__Group__0 : rule__StmtExpr__Group__0__Impl rule__StmtExpr__Group__1 ;
     public final void rule__StmtExpr__Group__0() throws RecognitionException {
 
@@ -11792,11 +12063,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtExpr__Group__0__Impl_in_rule__StmtExpr__Group__09071);
             rule__StmtExpr__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__StmtExpr__Group__1_in_rule__StmtExpr__Group__09074);
             rule__StmtExpr__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -11813,10 +12086,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtExpr__Group__0
+    // $ANTLR end "rule__StmtExpr__Group__0"
 
 
-    // $ANTLR start rule__StmtExpr__Group__0__Impl
+    // $ANTLR start "rule__StmtExpr__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4475:1: rule__StmtExpr__Group__0__Impl : ( ( rule__StmtExpr__EAssignment_0 ) ) ;
     public final void rule__StmtExpr__Group__0__Impl() throws RecognitionException {
 
@@ -11835,7 +12108,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtExpr__EAssignment_0_in_rule__StmtExpr__Group__0__Impl9101);
             rule__StmtExpr__EAssignment_0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -11859,10 +12133,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtExpr__Group__0__Impl
+    // $ANTLR end "rule__StmtExpr__Group__0__Impl"
 
 
-    // $ANTLR start rule__StmtExpr__Group__1
+    // $ANTLR start "rule__StmtExpr__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4492:1: rule__StmtExpr__Group__1 : rule__StmtExpr__Group__1__Impl ;
     public final void rule__StmtExpr__Group__1() throws RecognitionException {
 
@@ -11874,7 +12148,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__StmtExpr__Group__1__Impl_in_rule__StmtExpr__Group__19131);
             rule__StmtExpr__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -11891,10 +12166,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtExpr__Group__1
+    // $ANTLR end "rule__StmtExpr__Group__1"
 
 
-    // $ANTLR start rule__StmtExpr__Group__1__Impl
+    // $ANTLR start "rule__StmtExpr__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4503:1: rule__StmtExpr__Group__1__Impl : ( RULE_NL ) ;
     public final void rule__StmtExpr__Group__1__Impl() throws RecognitionException {
 
@@ -11928,10 +12203,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtExpr__Group__1__Impl
+    // $ANTLR end "rule__StmtExpr__Group__1__Impl"
 
 
-    // $ANTLR start rule__ExprAssignment__Group__0
+    // $ANTLR start "rule__ExprAssignment__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4524:1: rule__ExprAssignment__Group__0 : rule__ExprAssignment__Group__0__Impl rule__ExprAssignment__Group__1 ;
     public final void rule__ExprAssignment__Group__0() throws RecognitionException {
 
@@ -11943,11 +12218,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAssignment__Group__0__Impl_in_rule__ExprAssignment__Group__09191);
             rule__ExprAssignment__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAssignment__Group__1_in_rule__ExprAssignment__Group__09194);
             rule__ExprAssignment__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -11964,10 +12241,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAssignment__Group__0
+    // $ANTLR end "rule__ExprAssignment__Group__0"
 
 
-    // $ANTLR start rule__ExprAssignment__Group__0__Impl
+    // $ANTLR start "rule__ExprAssignment__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4536:1: rule__ExprAssignment__Group__0__Impl : ( ruleExprOr ) ;
     public final void rule__ExprAssignment__Group__0__Impl() throws RecognitionException {
 
@@ -11983,7 +12260,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprAssignmentAccess().getExprOrParserRuleCall_0()); 
             pushFollow(FOLLOW_ruleExprOr_in_rule__ExprAssignment__Group__0__Impl9221);
             ruleExprOr();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprAssignmentAccess().getExprOrParserRuleCall_0()); 
 
@@ -12004,10 +12282,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAssignment__Group__0__Impl
+    // $ANTLR end "rule__ExprAssignment__Group__0__Impl"
 
 
-    // $ANTLR start rule__ExprAssignment__Group__1
+    // $ANTLR start "rule__ExprAssignment__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4553:1: rule__ExprAssignment__Group__1 : rule__ExprAssignment__Group__1__Impl ;
     public final void rule__ExprAssignment__Group__1() throws RecognitionException {
 
@@ -12019,7 +12297,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAssignment__Group__1__Impl_in_rule__ExprAssignment__Group__19250);
             rule__ExprAssignment__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -12036,10 +12315,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAssignment__Group__1
+    // $ANTLR end "rule__ExprAssignment__Group__1"
 
 
-    // $ANTLR start rule__ExprAssignment__Group__1__Impl
+    // $ANTLR start "rule__ExprAssignment__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4564:1: rule__ExprAssignment__Group__1__Impl : ( ( rule__ExprAssignment__Group_1__0 )* ) ;
     public final void rule__ExprAssignment__Group__1__Impl() throws RecognitionException {
 
@@ -12082,7 +12361,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             	    {
             	    pushFollow(FOLLOW_rule__ExprAssignment__Group_1__0_in_rule__ExprAssignment__Group__1__Impl9277);
             	    rule__ExprAssignment__Group_1__0();
-            	    _fsp--;
+
+            	    state._fsp--;
 
 
             	    }
@@ -12112,10 +12392,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAssignment__Group__1__Impl
+    // $ANTLR end "rule__ExprAssignment__Group__1__Impl"
 
 
-    // $ANTLR start rule__ExprAssignment__Group_1__0
+    // $ANTLR start "rule__ExprAssignment__Group_1__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4585:1: rule__ExprAssignment__Group_1__0 : rule__ExprAssignment__Group_1__0__Impl rule__ExprAssignment__Group_1__1 ;
     public final void rule__ExprAssignment__Group_1__0() throws RecognitionException {
 
@@ -12127,11 +12407,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAssignment__Group_1__0__Impl_in_rule__ExprAssignment__Group_1__09312);
             rule__ExprAssignment__Group_1__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAssignment__Group_1__1_in_rule__ExprAssignment__Group_1__09315);
             rule__ExprAssignment__Group_1__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -12148,10 +12430,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAssignment__Group_1__0
+    // $ANTLR end "rule__ExprAssignment__Group_1__0"
 
 
-    // $ANTLR start rule__ExprAssignment__Group_1__0__Impl
+    // $ANTLR start "rule__ExprAssignment__Group_1__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4597:1: rule__ExprAssignment__Group_1__0__Impl : ( () ) ;
     public final void rule__ExprAssignment__Group_1__0__Impl() throws RecognitionException {
 
@@ -12185,10 +12467,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAssignment__Group_1__0__Impl
+    // $ANTLR end "rule__ExprAssignment__Group_1__0__Impl"
 
 
-    // $ANTLR start rule__ExprAssignment__Group_1__1
+    // $ANTLR start "rule__ExprAssignment__Group_1__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4616:1: rule__ExprAssignment__Group_1__1 : rule__ExprAssignment__Group_1__1__Impl rule__ExprAssignment__Group_1__2 ;
     public final void rule__ExprAssignment__Group_1__1() throws RecognitionException {
 
@@ -12200,11 +12482,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAssignment__Group_1__1__Impl_in_rule__ExprAssignment__Group_1__19373);
             rule__ExprAssignment__Group_1__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAssignment__Group_1__2_in_rule__ExprAssignment__Group_1__19376);
             rule__ExprAssignment__Group_1__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -12221,10 +12505,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAssignment__Group_1__1
+    // $ANTLR end "rule__ExprAssignment__Group_1__1"
 
 
-    // $ANTLR start rule__ExprAssignment__Group_1__1__Impl
+    // $ANTLR start "rule__ExprAssignment__Group_1__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4628:1: rule__ExprAssignment__Group_1__1__Impl : ( ( rule__ExprAssignment__OpAssignment_1_1 ) ) ;
     public final void rule__ExprAssignment__Group_1__1__Impl() throws RecognitionException {
 
@@ -12243,7 +12527,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAssignment__OpAssignment_1_1_in_rule__ExprAssignment__Group_1__1__Impl9403);
             rule__ExprAssignment__OpAssignment_1_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -12267,10 +12552,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAssignment__Group_1__1__Impl
+    // $ANTLR end "rule__ExprAssignment__Group_1__1__Impl"
 
 
-    // $ANTLR start rule__ExprAssignment__Group_1__2
+    // $ANTLR start "rule__ExprAssignment__Group_1__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4645:1: rule__ExprAssignment__Group_1__2 : rule__ExprAssignment__Group_1__2__Impl ;
     public final void rule__ExprAssignment__Group_1__2() throws RecognitionException {
 
@@ -12282,7 +12567,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAssignment__Group_1__2__Impl_in_rule__ExprAssignment__Group_1__29433);
             rule__ExprAssignment__Group_1__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -12299,10 +12585,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAssignment__Group_1__2
+    // $ANTLR end "rule__ExprAssignment__Group_1__2"
 
 
-    // $ANTLR start rule__ExprAssignment__Group_1__2__Impl
+    // $ANTLR start "rule__ExprAssignment__Group_1__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4656:1: rule__ExprAssignment__Group_1__2__Impl : ( ( rule__ExprAssignment__RightAssignment_1_2 ) ) ;
     public final void rule__ExprAssignment__Group_1__2__Impl() throws RecognitionException {
 
@@ -12321,7 +12607,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAssignment__RightAssignment_1_2_in_rule__ExprAssignment__Group_1__2__Impl9460);
             rule__ExprAssignment__RightAssignment_1_2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -12345,10 +12632,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAssignment__Group_1__2__Impl
+    // $ANTLR end "rule__ExprAssignment__Group_1__2__Impl"
 
 
-    // $ANTLR start rule__ExprOr__Group__0
+    // $ANTLR start "rule__ExprOr__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4679:1: rule__ExprOr__Group__0 : rule__ExprOr__Group__0__Impl rule__ExprOr__Group__1 ;
     public final void rule__ExprOr__Group__0() throws RecognitionException {
 
@@ -12360,11 +12647,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprOr__Group__0__Impl_in_rule__ExprOr__Group__09496);
             rule__ExprOr__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprOr__Group__1_in_rule__ExprOr__Group__09499);
             rule__ExprOr__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -12381,10 +12670,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprOr__Group__0
+    // $ANTLR end "rule__ExprOr__Group__0"
 
 
-    // $ANTLR start rule__ExprOr__Group__0__Impl
+    // $ANTLR start "rule__ExprOr__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4691:1: rule__ExprOr__Group__0__Impl : ( ruleExprAnd ) ;
     public final void rule__ExprOr__Group__0__Impl() throws RecognitionException {
 
@@ -12400,7 +12689,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprOrAccess().getExprAndParserRuleCall_0()); 
             pushFollow(FOLLOW_ruleExprAnd_in_rule__ExprOr__Group__0__Impl9526);
             ruleExprAnd();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprOrAccess().getExprAndParserRuleCall_0()); 
 
@@ -12421,10 +12711,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprOr__Group__0__Impl
+    // $ANTLR end "rule__ExprOr__Group__0__Impl"
 
 
-    // $ANTLR start rule__ExprOr__Group__1
+    // $ANTLR start "rule__ExprOr__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4708:1: rule__ExprOr__Group__1 : rule__ExprOr__Group__1__Impl ;
     public final void rule__ExprOr__Group__1() throws RecognitionException {
 
@@ -12436,7 +12726,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprOr__Group__1__Impl_in_rule__ExprOr__Group__19555);
             rule__ExprOr__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -12453,10 +12744,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprOr__Group__1
+    // $ANTLR end "rule__ExprOr__Group__1"
 
 
-    // $ANTLR start rule__ExprOr__Group__1__Impl
+    // $ANTLR start "rule__ExprOr__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4719:1: rule__ExprOr__Group__1__Impl : ( ( rule__ExprOr__Group_1__0 )* ) ;
     public final void rule__ExprOr__Group__1__Impl() throws RecognitionException {
 
@@ -12487,7 +12778,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             	    {
             	    pushFollow(FOLLOW_rule__ExprOr__Group_1__0_in_rule__ExprOr__Group__1__Impl9582);
             	    rule__ExprOr__Group_1__0();
-            	    _fsp--;
+
+            	    state._fsp--;
 
 
             	    }
@@ -12517,10 +12809,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprOr__Group__1__Impl
+    // $ANTLR end "rule__ExprOr__Group__1__Impl"
 
 
-    // $ANTLR start rule__ExprOr__Group_1__0
+    // $ANTLR start "rule__ExprOr__Group_1__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4740:1: rule__ExprOr__Group_1__0 : rule__ExprOr__Group_1__0__Impl rule__ExprOr__Group_1__1 ;
     public final void rule__ExprOr__Group_1__0() throws RecognitionException {
 
@@ -12532,11 +12824,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprOr__Group_1__0__Impl_in_rule__ExprOr__Group_1__09617);
             rule__ExprOr__Group_1__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprOr__Group_1__1_in_rule__ExprOr__Group_1__09620);
             rule__ExprOr__Group_1__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -12553,10 +12847,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprOr__Group_1__0
+    // $ANTLR end "rule__ExprOr__Group_1__0"
 
 
-    // $ANTLR start rule__ExprOr__Group_1__0__Impl
+    // $ANTLR start "rule__ExprOr__Group_1__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4752:1: rule__ExprOr__Group_1__0__Impl : ( () ) ;
     public final void rule__ExprOr__Group_1__0__Impl() throws RecognitionException {
 
@@ -12590,10 +12884,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprOr__Group_1__0__Impl
+    // $ANTLR end "rule__ExprOr__Group_1__0__Impl"
 
 
-    // $ANTLR start rule__ExprOr__Group_1__1
+    // $ANTLR start "rule__ExprOr__Group_1__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4771:1: rule__ExprOr__Group_1__1 : rule__ExprOr__Group_1__1__Impl rule__ExprOr__Group_1__2 ;
     public final void rule__ExprOr__Group_1__1() throws RecognitionException {
 
@@ -12605,11 +12899,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprOr__Group_1__1__Impl_in_rule__ExprOr__Group_1__19678);
             rule__ExprOr__Group_1__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprOr__Group_1__2_in_rule__ExprOr__Group_1__19681);
             rule__ExprOr__Group_1__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -12626,10 +12922,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprOr__Group_1__1
+    // $ANTLR end "rule__ExprOr__Group_1__1"
 
 
-    // $ANTLR start rule__ExprOr__Group_1__1__Impl
+    // $ANTLR start "rule__ExprOr__Group_1__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4783:1: rule__ExprOr__Group_1__1__Impl : ( ( rule__ExprOr__OpAssignment_1_1 ) ) ;
     public final void rule__ExprOr__Group_1__1__Impl() throws RecognitionException {
 
@@ -12648,7 +12944,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprOr__OpAssignment_1_1_in_rule__ExprOr__Group_1__1__Impl9708);
             rule__ExprOr__OpAssignment_1_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -12672,10 +12969,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprOr__Group_1__1__Impl
+    // $ANTLR end "rule__ExprOr__Group_1__1__Impl"
 
 
-    // $ANTLR start rule__ExprOr__Group_1__2
+    // $ANTLR start "rule__ExprOr__Group_1__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4800:1: rule__ExprOr__Group_1__2 : rule__ExprOr__Group_1__2__Impl ;
     public final void rule__ExprOr__Group_1__2() throws RecognitionException {
 
@@ -12687,7 +12984,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprOr__Group_1__2__Impl_in_rule__ExprOr__Group_1__29738);
             rule__ExprOr__Group_1__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -12704,10 +13002,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprOr__Group_1__2
+    // $ANTLR end "rule__ExprOr__Group_1__2"
 
 
-    // $ANTLR start rule__ExprOr__Group_1__2__Impl
+    // $ANTLR start "rule__ExprOr__Group_1__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4811:1: rule__ExprOr__Group_1__2__Impl : ( ( rule__ExprOr__RightAssignment_1_2 ) ) ;
     public final void rule__ExprOr__Group_1__2__Impl() throws RecognitionException {
 
@@ -12726,7 +13024,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprOr__RightAssignment_1_2_in_rule__ExprOr__Group_1__2__Impl9765);
             rule__ExprOr__RightAssignment_1_2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -12750,10 +13049,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprOr__Group_1__2__Impl
+    // $ANTLR end "rule__ExprOr__Group_1__2__Impl"
 
 
-    // $ANTLR start rule__ExprAnd__Group__0
+    // $ANTLR start "rule__ExprAnd__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4834:1: rule__ExprAnd__Group__0 : rule__ExprAnd__Group__0__Impl rule__ExprAnd__Group__1 ;
     public final void rule__ExprAnd__Group__0() throws RecognitionException {
 
@@ -12765,11 +13064,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAnd__Group__0__Impl_in_rule__ExprAnd__Group__09801);
             rule__ExprAnd__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAnd__Group__1_in_rule__ExprAnd__Group__09804);
             rule__ExprAnd__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -12786,10 +13087,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAnd__Group__0
+    // $ANTLR end "rule__ExprAnd__Group__0"
 
 
-    // $ANTLR start rule__ExprAnd__Group__0__Impl
+    // $ANTLR start "rule__ExprAnd__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4846:1: rule__ExprAnd__Group__0__Impl : ( ruleExprEquality ) ;
     public final void rule__ExprAnd__Group__0__Impl() throws RecognitionException {
 
@@ -12805,7 +13106,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprAndAccess().getExprEqualityParserRuleCall_0()); 
             pushFollow(FOLLOW_ruleExprEquality_in_rule__ExprAnd__Group__0__Impl9831);
             ruleExprEquality();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprAndAccess().getExprEqualityParserRuleCall_0()); 
 
@@ -12826,10 +13128,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAnd__Group__0__Impl
+    // $ANTLR end "rule__ExprAnd__Group__0__Impl"
 
 
-    // $ANTLR start rule__ExprAnd__Group__1
+    // $ANTLR start "rule__ExprAnd__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4863:1: rule__ExprAnd__Group__1 : rule__ExprAnd__Group__1__Impl ;
     public final void rule__ExprAnd__Group__1() throws RecognitionException {
 
@@ -12841,7 +13143,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAnd__Group__1__Impl_in_rule__ExprAnd__Group__19860);
             rule__ExprAnd__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -12858,10 +13161,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAnd__Group__1
+    // $ANTLR end "rule__ExprAnd__Group__1"
 
 
-    // $ANTLR start rule__ExprAnd__Group__1__Impl
+    // $ANTLR start "rule__ExprAnd__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4874:1: rule__ExprAnd__Group__1__Impl : ( ( rule__ExprAnd__Group_1__0 )* ) ;
     public final void rule__ExprAnd__Group__1__Impl() throws RecognitionException {
 
@@ -12892,7 +13195,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             	    {
             	    pushFollow(FOLLOW_rule__ExprAnd__Group_1__0_in_rule__ExprAnd__Group__1__Impl9887);
             	    rule__ExprAnd__Group_1__0();
-            	    _fsp--;
+
+            	    state._fsp--;
 
 
             	    }
@@ -12922,10 +13226,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAnd__Group__1__Impl
+    // $ANTLR end "rule__ExprAnd__Group__1__Impl"
 
 
-    // $ANTLR start rule__ExprAnd__Group_1__0
+    // $ANTLR start "rule__ExprAnd__Group_1__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4895:1: rule__ExprAnd__Group_1__0 : rule__ExprAnd__Group_1__0__Impl rule__ExprAnd__Group_1__1 ;
     public final void rule__ExprAnd__Group_1__0() throws RecognitionException {
 
@@ -12937,11 +13241,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAnd__Group_1__0__Impl_in_rule__ExprAnd__Group_1__09922);
             rule__ExprAnd__Group_1__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAnd__Group_1__1_in_rule__ExprAnd__Group_1__09925);
             rule__ExprAnd__Group_1__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -12958,10 +13264,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAnd__Group_1__0
+    // $ANTLR end "rule__ExprAnd__Group_1__0"
 
 
-    // $ANTLR start rule__ExprAnd__Group_1__0__Impl
+    // $ANTLR start "rule__ExprAnd__Group_1__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4907:1: rule__ExprAnd__Group_1__0__Impl : ( () ) ;
     public final void rule__ExprAnd__Group_1__0__Impl() throws RecognitionException {
 
@@ -12995,10 +13301,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAnd__Group_1__0__Impl
+    // $ANTLR end "rule__ExprAnd__Group_1__0__Impl"
 
 
-    // $ANTLR start rule__ExprAnd__Group_1__1
+    // $ANTLR start "rule__ExprAnd__Group_1__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4926:1: rule__ExprAnd__Group_1__1 : rule__ExprAnd__Group_1__1__Impl rule__ExprAnd__Group_1__2 ;
     public final void rule__ExprAnd__Group_1__1() throws RecognitionException {
 
@@ -13010,11 +13316,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAnd__Group_1__1__Impl_in_rule__ExprAnd__Group_1__19983);
             rule__ExprAnd__Group_1__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAnd__Group_1__2_in_rule__ExprAnd__Group_1__19986);
             rule__ExprAnd__Group_1__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -13031,10 +13339,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAnd__Group_1__1
+    // $ANTLR end "rule__ExprAnd__Group_1__1"
 
 
-    // $ANTLR start rule__ExprAnd__Group_1__1__Impl
+    // $ANTLR start "rule__ExprAnd__Group_1__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4938:1: rule__ExprAnd__Group_1__1__Impl : ( ( rule__ExprAnd__OpAssignment_1_1 ) ) ;
     public final void rule__ExprAnd__Group_1__1__Impl() throws RecognitionException {
 
@@ -13053,7 +13361,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAnd__OpAssignment_1_1_in_rule__ExprAnd__Group_1__1__Impl10013);
             rule__ExprAnd__OpAssignment_1_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -13077,10 +13386,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAnd__Group_1__1__Impl
+    // $ANTLR end "rule__ExprAnd__Group_1__1__Impl"
 
 
-    // $ANTLR start rule__ExprAnd__Group_1__2
+    // $ANTLR start "rule__ExprAnd__Group_1__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4955:1: rule__ExprAnd__Group_1__2 : rule__ExprAnd__Group_1__2__Impl ;
     public final void rule__ExprAnd__Group_1__2() throws RecognitionException {
 
@@ -13092,7 +13401,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAnd__Group_1__2__Impl_in_rule__ExprAnd__Group_1__210043);
             rule__ExprAnd__Group_1__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -13109,10 +13419,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAnd__Group_1__2
+    // $ANTLR end "rule__ExprAnd__Group_1__2"
 
 
-    // $ANTLR start rule__ExprAnd__Group_1__2__Impl
+    // $ANTLR start "rule__ExprAnd__Group_1__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4966:1: rule__ExprAnd__Group_1__2__Impl : ( ( rule__ExprAnd__RightAssignment_1_2 ) ) ;
     public final void rule__ExprAnd__Group_1__2__Impl() throws RecognitionException {
 
@@ -13131,7 +13441,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAnd__RightAssignment_1_2_in_rule__ExprAnd__Group_1__2__Impl10070);
             rule__ExprAnd__RightAssignment_1_2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -13155,10 +13466,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAnd__Group_1__2__Impl
+    // $ANTLR end "rule__ExprAnd__Group_1__2__Impl"
 
 
-    // $ANTLR start rule__ExprEquality__Group__0
+    // $ANTLR start "rule__ExprEquality__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:4989:1: rule__ExprEquality__Group__0 : rule__ExprEquality__Group__0__Impl rule__ExprEquality__Group__1 ;
     public final void rule__ExprEquality__Group__0() throws RecognitionException {
 
@@ -13170,11 +13481,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprEquality__Group__0__Impl_in_rule__ExprEquality__Group__010106);
             rule__ExprEquality__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprEquality__Group__1_in_rule__ExprEquality__Group__010109);
             rule__ExprEquality__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -13191,10 +13504,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprEquality__Group__0
+    // $ANTLR end "rule__ExprEquality__Group__0"
 
 
-    // $ANTLR start rule__ExprEquality__Group__0__Impl
+    // $ANTLR start "rule__ExprEquality__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5001:1: rule__ExprEquality__Group__0__Impl : ( ruleExprComparison ) ;
     public final void rule__ExprEquality__Group__0__Impl() throws RecognitionException {
 
@@ -13210,7 +13523,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprEqualityAccess().getExprComparisonParserRuleCall_0()); 
             pushFollow(FOLLOW_ruleExprComparison_in_rule__ExprEquality__Group__0__Impl10136);
             ruleExprComparison();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprEqualityAccess().getExprComparisonParserRuleCall_0()); 
 
@@ -13231,10 +13545,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprEquality__Group__0__Impl
+    // $ANTLR end "rule__ExprEquality__Group__0__Impl"
 
 
-    // $ANTLR start rule__ExprEquality__Group__1
+    // $ANTLR start "rule__ExprEquality__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5018:1: rule__ExprEquality__Group__1 : rule__ExprEquality__Group__1__Impl ;
     public final void rule__ExprEquality__Group__1() throws RecognitionException {
 
@@ -13246,7 +13560,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprEquality__Group__1__Impl_in_rule__ExprEquality__Group__110165);
             rule__ExprEquality__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -13263,10 +13578,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprEquality__Group__1
+    // $ANTLR end "rule__ExprEquality__Group__1"
 
 
-    // $ANTLR start rule__ExprEquality__Group__1__Impl
+    // $ANTLR start "rule__ExprEquality__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5029:1: rule__ExprEquality__Group__1__Impl : ( ( rule__ExprEquality__Group_1__0 )* ) ;
     public final void rule__ExprEquality__Group__1__Impl() throws RecognitionException {
 
@@ -13300,7 +13615,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             	    {
             	    pushFollow(FOLLOW_rule__ExprEquality__Group_1__0_in_rule__ExprEquality__Group__1__Impl10192);
             	    rule__ExprEquality__Group_1__0();
-            	    _fsp--;
+
+            	    state._fsp--;
 
 
             	    }
@@ -13330,10 +13646,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprEquality__Group__1__Impl
+    // $ANTLR end "rule__ExprEquality__Group__1__Impl"
 
 
-    // $ANTLR start rule__ExprEquality__Group_1__0
+    // $ANTLR start "rule__ExprEquality__Group_1__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5050:1: rule__ExprEquality__Group_1__0 : rule__ExprEquality__Group_1__0__Impl rule__ExprEquality__Group_1__1 ;
     public final void rule__ExprEquality__Group_1__0() throws RecognitionException {
 
@@ -13345,11 +13661,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprEquality__Group_1__0__Impl_in_rule__ExprEquality__Group_1__010227);
             rule__ExprEquality__Group_1__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprEquality__Group_1__1_in_rule__ExprEquality__Group_1__010230);
             rule__ExprEquality__Group_1__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -13366,10 +13684,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprEquality__Group_1__0
+    // $ANTLR end "rule__ExprEquality__Group_1__0"
 
 
-    // $ANTLR start rule__ExprEquality__Group_1__0__Impl
+    // $ANTLR start "rule__ExprEquality__Group_1__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5062:1: rule__ExprEquality__Group_1__0__Impl : ( () ) ;
     public final void rule__ExprEquality__Group_1__0__Impl() throws RecognitionException {
 
@@ -13403,10 +13721,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprEquality__Group_1__0__Impl
+    // $ANTLR end "rule__ExprEquality__Group_1__0__Impl"
 
 
-    // $ANTLR start rule__ExprEquality__Group_1__1
+    // $ANTLR start "rule__ExprEquality__Group_1__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5081:1: rule__ExprEquality__Group_1__1 : rule__ExprEquality__Group_1__1__Impl rule__ExprEquality__Group_1__2 ;
     public final void rule__ExprEquality__Group_1__1() throws RecognitionException {
 
@@ -13418,11 +13736,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprEquality__Group_1__1__Impl_in_rule__ExprEquality__Group_1__110288);
             rule__ExprEquality__Group_1__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprEquality__Group_1__2_in_rule__ExprEquality__Group_1__110291);
             rule__ExprEquality__Group_1__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -13439,10 +13759,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprEquality__Group_1__1
+    // $ANTLR end "rule__ExprEquality__Group_1__1"
 
 
-    // $ANTLR start rule__ExprEquality__Group_1__1__Impl
+    // $ANTLR start "rule__ExprEquality__Group_1__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5093:1: rule__ExprEquality__Group_1__1__Impl : ( ( rule__ExprEquality__OpAssignment_1_1 ) ) ;
     public final void rule__ExprEquality__Group_1__1__Impl() throws RecognitionException {
 
@@ -13461,7 +13781,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprEquality__OpAssignment_1_1_in_rule__ExprEquality__Group_1__1__Impl10318);
             rule__ExprEquality__OpAssignment_1_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -13485,10 +13806,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprEquality__Group_1__1__Impl
+    // $ANTLR end "rule__ExprEquality__Group_1__1__Impl"
 
 
-    // $ANTLR start rule__ExprEquality__Group_1__2
+    // $ANTLR start "rule__ExprEquality__Group_1__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5110:1: rule__ExprEquality__Group_1__2 : rule__ExprEquality__Group_1__2__Impl ;
     public final void rule__ExprEquality__Group_1__2() throws RecognitionException {
 
@@ -13500,7 +13821,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprEquality__Group_1__2__Impl_in_rule__ExprEquality__Group_1__210348);
             rule__ExprEquality__Group_1__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -13517,10 +13839,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprEquality__Group_1__2
+    // $ANTLR end "rule__ExprEquality__Group_1__2"
 
 
-    // $ANTLR start rule__ExprEquality__Group_1__2__Impl
+    // $ANTLR start "rule__ExprEquality__Group_1__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5121:1: rule__ExprEquality__Group_1__2__Impl : ( ( rule__ExprEquality__RightAssignment_1_2 ) ) ;
     public final void rule__ExprEquality__Group_1__2__Impl() throws RecognitionException {
 
@@ -13539,7 +13861,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprEquality__RightAssignment_1_2_in_rule__ExprEquality__Group_1__2__Impl10375);
             rule__ExprEquality__RightAssignment_1_2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -13563,10 +13886,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprEquality__Group_1__2__Impl
+    // $ANTLR end "rule__ExprEquality__Group_1__2__Impl"
 
 
-    // $ANTLR start rule__ExprComparison__Group__0
+    // $ANTLR start "rule__ExprComparison__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5144:1: rule__ExprComparison__Group__0 : rule__ExprComparison__Group__0__Impl rule__ExprComparison__Group__1 ;
     public final void rule__ExprComparison__Group__0() throws RecognitionException {
 
@@ -13578,11 +13901,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprComparison__Group__0__Impl_in_rule__ExprComparison__Group__010411);
             rule__ExprComparison__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprComparison__Group__1_in_rule__ExprComparison__Group__010414);
             rule__ExprComparison__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -13599,10 +13924,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprComparison__Group__0
+    // $ANTLR end "rule__ExprComparison__Group__0"
 
 
-    // $ANTLR start rule__ExprComparison__Group__0__Impl
+    // $ANTLR start "rule__ExprComparison__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5156:1: rule__ExprComparison__Group__0__Impl : ( ruleExprAdditive ) ;
     public final void rule__ExprComparison__Group__0__Impl() throws RecognitionException {
 
@@ -13618,7 +13943,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprComparisonAccess().getExprAdditiveParserRuleCall_0()); 
             pushFollow(FOLLOW_ruleExprAdditive_in_rule__ExprComparison__Group__0__Impl10441);
             ruleExprAdditive();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprComparisonAccess().getExprAdditiveParserRuleCall_0()); 
 
@@ -13639,10 +13965,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprComparison__Group__0__Impl
+    // $ANTLR end "rule__ExprComparison__Group__0__Impl"
 
 
-    // $ANTLR start rule__ExprComparison__Group__1
+    // $ANTLR start "rule__ExprComparison__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5173:1: rule__ExprComparison__Group__1 : rule__ExprComparison__Group__1__Impl ;
     public final void rule__ExprComparison__Group__1() throws RecognitionException {
 
@@ -13654,7 +13980,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprComparison__Group__1__Impl_in_rule__ExprComparison__Group__110470);
             rule__ExprComparison__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -13671,10 +13998,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprComparison__Group__1
+    // $ANTLR end "rule__ExprComparison__Group__1"
 
 
-    // $ANTLR start rule__ExprComparison__Group__1__Impl
+    // $ANTLR start "rule__ExprComparison__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5184:1: rule__ExprComparison__Group__1__Impl : ( ( rule__ExprComparison__Group_1__0 )* ) ;
     public final void rule__ExprComparison__Group__1__Impl() throws RecognitionException {
 
@@ -13722,7 +14049,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             	    {
             	    pushFollow(FOLLOW_rule__ExprComparison__Group_1__0_in_rule__ExprComparison__Group__1__Impl10497);
             	    rule__ExprComparison__Group_1__0();
-            	    _fsp--;
+
+            	    state._fsp--;
 
 
             	    }
@@ -13752,10 +14080,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprComparison__Group__1__Impl
+    // $ANTLR end "rule__ExprComparison__Group__1__Impl"
 
 
-    // $ANTLR start rule__ExprComparison__Group_1__0
+    // $ANTLR start "rule__ExprComparison__Group_1__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5205:1: rule__ExprComparison__Group_1__0 : rule__ExprComparison__Group_1__0__Impl rule__ExprComparison__Group_1__1 ;
     public final void rule__ExprComparison__Group_1__0() throws RecognitionException {
 
@@ -13767,11 +14095,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprComparison__Group_1__0__Impl_in_rule__ExprComparison__Group_1__010532);
             rule__ExprComparison__Group_1__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprComparison__Group_1__1_in_rule__ExprComparison__Group_1__010535);
             rule__ExprComparison__Group_1__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -13788,10 +14118,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprComparison__Group_1__0
+    // $ANTLR end "rule__ExprComparison__Group_1__0"
 
 
-    // $ANTLR start rule__ExprComparison__Group_1__0__Impl
+    // $ANTLR start "rule__ExprComparison__Group_1__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5217:1: rule__ExprComparison__Group_1__0__Impl : ( () ) ;
     public final void rule__ExprComparison__Group_1__0__Impl() throws RecognitionException {
 
@@ -13825,10 +14155,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprComparison__Group_1__0__Impl
+    // $ANTLR end "rule__ExprComparison__Group_1__0__Impl"
 
 
-    // $ANTLR start rule__ExprComparison__Group_1__1
+    // $ANTLR start "rule__ExprComparison__Group_1__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5236:1: rule__ExprComparison__Group_1__1 : rule__ExprComparison__Group_1__1__Impl rule__ExprComparison__Group_1__2 ;
     public final void rule__ExprComparison__Group_1__1() throws RecognitionException {
 
@@ -13840,11 +14170,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprComparison__Group_1__1__Impl_in_rule__ExprComparison__Group_1__110593);
             rule__ExprComparison__Group_1__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprComparison__Group_1__2_in_rule__ExprComparison__Group_1__110596);
             rule__ExprComparison__Group_1__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -13861,10 +14193,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprComparison__Group_1__1
+    // $ANTLR end "rule__ExprComparison__Group_1__1"
 
 
-    // $ANTLR start rule__ExprComparison__Group_1__1__Impl
+    // $ANTLR start "rule__ExprComparison__Group_1__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5248:1: rule__ExprComparison__Group_1__1__Impl : ( ( rule__ExprComparison__OpAssignment_1_1 ) ) ;
     public final void rule__ExprComparison__Group_1__1__Impl() throws RecognitionException {
 
@@ -13883,7 +14215,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprComparison__OpAssignment_1_1_in_rule__ExprComparison__Group_1__1__Impl10623);
             rule__ExprComparison__OpAssignment_1_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -13907,10 +14240,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprComparison__Group_1__1__Impl
+    // $ANTLR end "rule__ExprComparison__Group_1__1__Impl"
 
 
-    // $ANTLR start rule__ExprComparison__Group_1__2
+    // $ANTLR start "rule__ExprComparison__Group_1__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5265:1: rule__ExprComparison__Group_1__2 : rule__ExprComparison__Group_1__2__Impl ;
     public final void rule__ExprComparison__Group_1__2() throws RecognitionException {
 
@@ -13922,7 +14255,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprComparison__Group_1__2__Impl_in_rule__ExprComparison__Group_1__210653);
             rule__ExprComparison__Group_1__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -13939,10 +14273,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprComparison__Group_1__2
+    // $ANTLR end "rule__ExprComparison__Group_1__2"
 
 
-    // $ANTLR start rule__ExprComparison__Group_1__2__Impl
+    // $ANTLR start "rule__ExprComparison__Group_1__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5276:1: rule__ExprComparison__Group_1__2__Impl : ( ( rule__ExprComparison__RightAssignment_1_2 ) ) ;
     public final void rule__ExprComparison__Group_1__2__Impl() throws RecognitionException {
 
@@ -13961,7 +14295,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprComparison__RightAssignment_1_2_in_rule__ExprComparison__Group_1__2__Impl10680);
             rule__ExprComparison__RightAssignment_1_2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -13985,10 +14320,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprComparison__Group_1__2__Impl
+    // $ANTLR end "rule__ExprComparison__Group_1__2__Impl"
 
 
-    // $ANTLR start rule__ExprAdditive__Group__0
+    // $ANTLR start "rule__ExprAdditive__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5299:1: rule__ExprAdditive__Group__0 : rule__ExprAdditive__Group__0__Impl rule__ExprAdditive__Group__1 ;
     public final void rule__ExprAdditive__Group__0() throws RecognitionException {
 
@@ -14000,11 +14335,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAdditive__Group__0__Impl_in_rule__ExprAdditive__Group__010716);
             rule__ExprAdditive__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAdditive__Group__1_in_rule__ExprAdditive__Group__010719);
             rule__ExprAdditive__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -14021,10 +14358,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAdditive__Group__0
+    // $ANTLR end "rule__ExprAdditive__Group__0"
 
 
-    // $ANTLR start rule__ExprAdditive__Group__0__Impl
+    // $ANTLR start "rule__ExprAdditive__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5311:1: rule__ExprAdditive__Group__0__Impl : ( ruleExprMult ) ;
     public final void rule__ExprAdditive__Group__0__Impl() throws RecognitionException {
 
@@ -14040,7 +14377,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprAdditiveAccess().getExprMultParserRuleCall_0()); 
             pushFollow(FOLLOW_ruleExprMult_in_rule__ExprAdditive__Group__0__Impl10746);
             ruleExprMult();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprAdditiveAccess().getExprMultParserRuleCall_0()); 
 
@@ -14061,10 +14399,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAdditive__Group__0__Impl
+    // $ANTLR end "rule__ExprAdditive__Group__0__Impl"
 
 
-    // $ANTLR start rule__ExprAdditive__Group__1
+    // $ANTLR start "rule__ExprAdditive__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5328:1: rule__ExprAdditive__Group__1 : rule__ExprAdditive__Group__1__Impl ;
     public final void rule__ExprAdditive__Group__1() throws RecognitionException {
 
@@ -14076,7 +14414,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAdditive__Group__1__Impl_in_rule__ExprAdditive__Group__110775);
             rule__ExprAdditive__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -14093,10 +14432,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAdditive__Group__1
+    // $ANTLR end "rule__ExprAdditive__Group__1"
 
 
-    // $ANTLR start rule__ExprAdditive__Group__1__Impl
+    // $ANTLR start "rule__ExprAdditive__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5339:1: rule__ExprAdditive__Group__1__Impl : ( ( rule__ExprAdditive__Group_1__0 )* ) ;
     public final void rule__ExprAdditive__Group__1__Impl() throws RecognitionException {
 
@@ -14130,7 +14469,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             	    {
             	    pushFollow(FOLLOW_rule__ExprAdditive__Group_1__0_in_rule__ExprAdditive__Group__1__Impl10802);
             	    rule__ExprAdditive__Group_1__0();
-            	    _fsp--;
+
+            	    state._fsp--;
 
 
             	    }
@@ -14160,10 +14500,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAdditive__Group__1__Impl
+    // $ANTLR end "rule__ExprAdditive__Group__1__Impl"
 
 
-    // $ANTLR start rule__ExprAdditive__Group_1__0
+    // $ANTLR start "rule__ExprAdditive__Group_1__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5360:1: rule__ExprAdditive__Group_1__0 : rule__ExprAdditive__Group_1__0__Impl rule__ExprAdditive__Group_1__1 ;
     public final void rule__ExprAdditive__Group_1__0() throws RecognitionException {
 
@@ -14175,11 +14515,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAdditive__Group_1__0__Impl_in_rule__ExprAdditive__Group_1__010837);
             rule__ExprAdditive__Group_1__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAdditive__Group_1__1_in_rule__ExprAdditive__Group_1__010840);
             rule__ExprAdditive__Group_1__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -14196,10 +14538,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAdditive__Group_1__0
+    // $ANTLR end "rule__ExprAdditive__Group_1__0"
 
 
-    // $ANTLR start rule__ExprAdditive__Group_1__0__Impl
+    // $ANTLR start "rule__ExprAdditive__Group_1__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5372:1: rule__ExprAdditive__Group_1__0__Impl : ( () ) ;
     public final void rule__ExprAdditive__Group_1__0__Impl() throws RecognitionException {
 
@@ -14233,10 +14575,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAdditive__Group_1__0__Impl
+    // $ANTLR end "rule__ExprAdditive__Group_1__0__Impl"
 
 
-    // $ANTLR start rule__ExprAdditive__Group_1__1
+    // $ANTLR start "rule__ExprAdditive__Group_1__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5391:1: rule__ExprAdditive__Group_1__1 : rule__ExprAdditive__Group_1__1__Impl rule__ExprAdditive__Group_1__2 ;
     public final void rule__ExprAdditive__Group_1__1() throws RecognitionException {
 
@@ -14248,11 +14590,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAdditive__Group_1__1__Impl_in_rule__ExprAdditive__Group_1__110898);
             rule__ExprAdditive__Group_1__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAdditive__Group_1__2_in_rule__ExprAdditive__Group_1__110901);
             rule__ExprAdditive__Group_1__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -14269,10 +14613,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAdditive__Group_1__1
+    // $ANTLR end "rule__ExprAdditive__Group_1__1"
 
 
-    // $ANTLR start rule__ExprAdditive__Group_1__1__Impl
+    // $ANTLR start "rule__ExprAdditive__Group_1__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5403:1: rule__ExprAdditive__Group_1__1__Impl : ( ( rule__ExprAdditive__OpAssignment_1_1 ) ) ;
     public final void rule__ExprAdditive__Group_1__1__Impl() throws RecognitionException {
 
@@ -14291,7 +14635,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAdditive__OpAssignment_1_1_in_rule__ExprAdditive__Group_1__1__Impl10928);
             rule__ExprAdditive__OpAssignment_1_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -14315,10 +14660,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAdditive__Group_1__1__Impl
+    // $ANTLR end "rule__ExprAdditive__Group_1__1__Impl"
 
 
-    // $ANTLR start rule__ExprAdditive__Group_1__2
+    // $ANTLR start "rule__ExprAdditive__Group_1__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5420:1: rule__ExprAdditive__Group_1__2 : rule__ExprAdditive__Group_1__2__Impl ;
     public final void rule__ExprAdditive__Group_1__2() throws RecognitionException {
 
@@ -14330,7 +14675,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAdditive__Group_1__2__Impl_in_rule__ExprAdditive__Group_1__210958);
             rule__ExprAdditive__Group_1__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -14347,10 +14693,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAdditive__Group_1__2
+    // $ANTLR end "rule__ExprAdditive__Group_1__2"
 
 
-    // $ANTLR start rule__ExprAdditive__Group_1__2__Impl
+    // $ANTLR start "rule__ExprAdditive__Group_1__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5431:1: rule__ExprAdditive__Group_1__2__Impl : ( ( rule__ExprAdditive__RightAssignment_1_2 ) ) ;
     public final void rule__ExprAdditive__Group_1__2__Impl() throws RecognitionException {
 
@@ -14369,7 +14715,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAdditive__RightAssignment_1_2_in_rule__ExprAdditive__Group_1__2__Impl10985);
             rule__ExprAdditive__RightAssignment_1_2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -14393,10 +14740,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAdditive__Group_1__2__Impl
+    // $ANTLR end "rule__ExprAdditive__Group_1__2__Impl"
 
 
-    // $ANTLR start rule__ExprMult__Group__0
+    // $ANTLR start "rule__ExprMult__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5454:1: rule__ExprMult__Group__0 : rule__ExprMult__Group__0__Impl rule__ExprMult__Group__1 ;
     public final void rule__ExprMult__Group__0() throws RecognitionException {
 
@@ -14408,11 +14755,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprMult__Group__0__Impl_in_rule__ExprMult__Group__011021);
             rule__ExprMult__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprMult__Group__1_in_rule__ExprMult__Group__011024);
             rule__ExprMult__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -14429,10 +14778,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprMult__Group__0
+    // $ANTLR end "rule__ExprMult__Group__0"
 
 
-    // $ANTLR start rule__ExprMult__Group__0__Impl
+    // $ANTLR start "rule__ExprMult__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5466:1: rule__ExprMult__Group__0__Impl : ( ruleExprSign ) ;
     public final void rule__ExprMult__Group__0__Impl() throws RecognitionException {
 
@@ -14448,7 +14797,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprMultAccess().getExprSignParserRuleCall_0()); 
             pushFollow(FOLLOW_ruleExprSign_in_rule__ExprMult__Group__0__Impl11051);
             ruleExprSign();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprMultAccess().getExprSignParserRuleCall_0()); 
 
@@ -14469,10 +14819,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprMult__Group__0__Impl
+    // $ANTLR end "rule__ExprMult__Group__0__Impl"
 
 
-    // $ANTLR start rule__ExprMult__Group__1
+    // $ANTLR start "rule__ExprMult__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5483:1: rule__ExprMult__Group__1 : rule__ExprMult__Group__1__Impl ;
     public final void rule__ExprMult__Group__1() throws RecognitionException {
 
@@ -14484,7 +14834,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprMult__Group__1__Impl_in_rule__ExprMult__Group__111080);
             rule__ExprMult__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -14501,10 +14852,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprMult__Group__1
+    // $ANTLR end "rule__ExprMult__Group__1"
 
 
-    // $ANTLR start rule__ExprMult__Group__1__Impl
+    // $ANTLR start "rule__ExprMult__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5494:1: rule__ExprMult__Group__1__Impl : ( ( rule__ExprMult__Group_1__0 )* ) ;
     public final void rule__ExprMult__Group__1__Impl() throws RecognitionException {
 
@@ -14557,7 +14908,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             	    {
             	    pushFollow(FOLLOW_rule__ExprMult__Group_1__0_in_rule__ExprMult__Group__1__Impl11107);
             	    rule__ExprMult__Group_1__0();
-            	    _fsp--;
+
+            	    state._fsp--;
 
 
             	    }
@@ -14587,10 +14939,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprMult__Group__1__Impl
+    // $ANTLR end "rule__ExprMult__Group__1__Impl"
 
 
-    // $ANTLR start rule__ExprMult__Group_1__0
+    // $ANTLR start "rule__ExprMult__Group_1__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5515:1: rule__ExprMult__Group_1__0 : rule__ExprMult__Group_1__0__Impl rule__ExprMult__Group_1__1 ;
     public final void rule__ExprMult__Group_1__0() throws RecognitionException {
 
@@ -14602,11 +14954,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprMult__Group_1__0__Impl_in_rule__ExprMult__Group_1__011142);
             rule__ExprMult__Group_1__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprMult__Group_1__1_in_rule__ExprMult__Group_1__011145);
             rule__ExprMult__Group_1__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -14623,10 +14977,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprMult__Group_1__0
+    // $ANTLR end "rule__ExprMult__Group_1__0"
 
 
-    // $ANTLR start rule__ExprMult__Group_1__0__Impl
+    // $ANTLR start "rule__ExprMult__Group_1__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5527:1: rule__ExprMult__Group_1__0__Impl : ( () ) ;
     public final void rule__ExprMult__Group_1__0__Impl() throws RecognitionException {
 
@@ -14660,10 +15014,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprMult__Group_1__0__Impl
+    // $ANTLR end "rule__ExprMult__Group_1__0__Impl"
 
 
-    // $ANTLR start rule__ExprMult__Group_1__1
+    // $ANTLR start "rule__ExprMult__Group_1__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5546:1: rule__ExprMult__Group_1__1 : rule__ExprMult__Group_1__1__Impl rule__ExprMult__Group_1__2 ;
     public final void rule__ExprMult__Group_1__1() throws RecognitionException {
 
@@ -14675,11 +15029,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprMult__Group_1__1__Impl_in_rule__ExprMult__Group_1__111203);
             rule__ExprMult__Group_1__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprMult__Group_1__2_in_rule__ExprMult__Group_1__111206);
             rule__ExprMult__Group_1__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -14696,10 +15052,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprMult__Group_1__1
+    // $ANTLR end "rule__ExprMult__Group_1__1"
 
 
-    // $ANTLR start rule__ExprMult__Group_1__1__Impl
+    // $ANTLR start "rule__ExprMult__Group_1__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5558:1: rule__ExprMult__Group_1__1__Impl : ( ( rule__ExprMult__OpAssignment_1_1 ) ) ;
     public final void rule__ExprMult__Group_1__1__Impl() throws RecognitionException {
 
@@ -14718,7 +15074,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprMult__OpAssignment_1_1_in_rule__ExprMult__Group_1__1__Impl11233);
             rule__ExprMult__OpAssignment_1_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -14742,10 +15099,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprMult__Group_1__1__Impl
+    // $ANTLR end "rule__ExprMult__Group_1__1__Impl"
 
 
-    // $ANTLR start rule__ExprMult__Group_1__2
+    // $ANTLR start "rule__ExprMult__Group_1__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5575:1: rule__ExprMult__Group_1__2 : rule__ExprMult__Group_1__2__Impl ;
     public final void rule__ExprMult__Group_1__2() throws RecognitionException {
 
@@ -14757,7 +15114,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprMult__Group_1__2__Impl_in_rule__ExprMult__Group_1__211263);
             rule__ExprMult__Group_1__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -14774,10 +15132,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprMult__Group_1__2
+    // $ANTLR end "rule__ExprMult__Group_1__2"
 
 
-    // $ANTLR start rule__ExprMult__Group_1__2__Impl
+    // $ANTLR start "rule__ExprMult__Group_1__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5586:1: rule__ExprMult__Group_1__2__Impl : ( ( rule__ExprMult__RightAssignment_1_2 ) ) ;
     public final void rule__ExprMult__Group_1__2__Impl() throws RecognitionException {
 
@@ -14796,7 +15154,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprMult__RightAssignment_1_2_in_rule__ExprMult__Group_1__2__Impl11290);
             rule__ExprMult__RightAssignment_1_2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -14820,10 +15179,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprMult__Group_1__2__Impl
+    // $ANTLR end "rule__ExprMult__Group_1__2__Impl"
 
 
-    // $ANTLR start rule__ExprSign__Group_0__0
+    // $ANTLR start "rule__ExprSign__Group_0__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5609:1: rule__ExprSign__Group_0__0 : rule__ExprSign__Group_0__0__Impl rule__ExprSign__Group_0__1 ;
     public final void rule__ExprSign__Group_0__0() throws RecognitionException {
 
@@ -14835,11 +15194,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprSign__Group_0__0__Impl_in_rule__ExprSign__Group_0__011326);
             rule__ExprSign__Group_0__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprSign__Group_0__1_in_rule__ExprSign__Group_0__011329);
             rule__ExprSign__Group_0__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -14856,10 +15217,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprSign__Group_0__0
+    // $ANTLR end "rule__ExprSign__Group_0__0"
 
 
-    // $ANTLR start rule__ExprSign__Group_0__0__Impl
+    // $ANTLR start "rule__ExprSign__Group_0__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5621:1: rule__ExprSign__Group_0__0__Impl : ( () ) ;
     public final void rule__ExprSign__Group_0__0__Impl() throws RecognitionException {
 
@@ -14893,10 +15254,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprSign__Group_0__0__Impl
+    // $ANTLR end "rule__ExprSign__Group_0__0__Impl"
 
 
-    // $ANTLR start rule__ExprSign__Group_0__1
+    // $ANTLR start "rule__ExprSign__Group_0__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5640:1: rule__ExprSign__Group_0__1 : rule__ExprSign__Group_0__1__Impl rule__ExprSign__Group_0__2 ;
     public final void rule__ExprSign__Group_0__1() throws RecognitionException {
 
@@ -14908,11 +15269,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprSign__Group_0__1__Impl_in_rule__ExprSign__Group_0__111387);
             rule__ExprSign__Group_0__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprSign__Group_0__2_in_rule__ExprSign__Group_0__111390);
             rule__ExprSign__Group_0__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -14929,10 +15292,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprSign__Group_0__1
+    // $ANTLR end "rule__ExprSign__Group_0__1"
 
 
-    // $ANTLR start rule__ExprSign__Group_0__1__Impl
+    // $ANTLR start "rule__ExprSign__Group_0__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5652:1: rule__ExprSign__Group_0__1__Impl : ( ( rule__ExprSign__OpAssignment_0_1 ) ) ;
     public final void rule__ExprSign__Group_0__1__Impl() throws RecognitionException {
 
@@ -14951,7 +15314,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprSign__OpAssignment_0_1_in_rule__ExprSign__Group_0__1__Impl11417);
             rule__ExprSign__OpAssignment_0_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -14975,10 +15339,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprSign__Group_0__1__Impl
+    // $ANTLR end "rule__ExprSign__Group_0__1__Impl"
 
 
-    // $ANTLR start rule__ExprSign__Group_0__2
+    // $ANTLR start "rule__ExprSign__Group_0__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5669:1: rule__ExprSign__Group_0__2 : rule__ExprSign__Group_0__2__Impl ;
     public final void rule__ExprSign__Group_0__2() throws RecognitionException {
 
@@ -14990,7 +15354,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprSign__Group_0__2__Impl_in_rule__ExprSign__Group_0__211447);
             rule__ExprSign__Group_0__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -15007,10 +15372,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprSign__Group_0__2
+    // $ANTLR end "rule__ExprSign__Group_0__2"
 
 
-    // $ANTLR start rule__ExprSign__Group_0__2__Impl
+    // $ANTLR start "rule__ExprSign__Group_0__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5680:1: rule__ExprSign__Group_0__2__Impl : ( ( rule__ExprSign__RightAssignment_0_2 ) ) ;
     public final void rule__ExprSign__Group_0__2__Impl() throws RecognitionException {
 
@@ -15029,7 +15394,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprSign__RightAssignment_0_2_in_rule__ExprSign__Group_0__2__Impl11474);
             rule__ExprSign__RightAssignment_0_2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -15053,10 +15419,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprSign__Group_0__2__Impl
+    // $ANTLR end "rule__ExprSign__Group_0__2__Impl"
 
 
-    // $ANTLR start rule__ExprNot__Group_0__0
+    // $ANTLR start "rule__ExprNot__Group_0__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5703:1: rule__ExprNot__Group_0__0 : rule__ExprNot__Group_0__0__Impl rule__ExprNot__Group_0__1 ;
     public final void rule__ExprNot__Group_0__0() throws RecognitionException {
 
@@ -15068,11 +15434,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprNot__Group_0__0__Impl_in_rule__ExprNot__Group_0__011510);
             rule__ExprNot__Group_0__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprNot__Group_0__1_in_rule__ExprNot__Group_0__011513);
             rule__ExprNot__Group_0__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -15089,10 +15457,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprNot__Group_0__0
+    // $ANTLR end "rule__ExprNot__Group_0__0"
 
 
-    // $ANTLR start rule__ExprNot__Group_0__0__Impl
+    // $ANTLR start "rule__ExprNot__Group_0__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5715:1: rule__ExprNot__Group_0__0__Impl : ( () ) ;
     public final void rule__ExprNot__Group_0__0__Impl() throws RecognitionException {
 
@@ -15126,10 +15494,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprNot__Group_0__0__Impl
+    // $ANTLR end "rule__ExprNot__Group_0__0__Impl"
 
 
-    // $ANTLR start rule__ExprNot__Group_0__1
+    // $ANTLR start "rule__ExprNot__Group_0__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5734:1: rule__ExprNot__Group_0__1 : rule__ExprNot__Group_0__1__Impl rule__ExprNot__Group_0__2 ;
     public final void rule__ExprNot__Group_0__1() throws RecognitionException {
 
@@ -15141,11 +15509,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprNot__Group_0__1__Impl_in_rule__ExprNot__Group_0__111571);
             rule__ExprNot__Group_0__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprNot__Group_0__2_in_rule__ExprNot__Group_0__111574);
             rule__ExprNot__Group_0__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -15162,10 +15532,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprNot__Group_0__1
+    // $ANTLR end "rule__ExprNot__Group_0__1"
 
 
-    // $ANTLR start rule__ExprNot__Group_0__1__Impl
+    // $ANTLR start "rule__ExprNot__Group_0__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5746:1: rule__ExprNot__Group_0__1__Impl : ( ( rule__ExprNot__OpAssignment_0_1 ) ) ;
     public final void rule__ExprNot__Group_0__1__Impl() throws RecognitionException {
 
@@ -15184,7 +15554,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprNot__OpAssignment_0_1_in_rule__ExprNot__Group_0__1__Impl11601);
             rule__ExprNot__OpAssignment_0_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -15208,10 +15579,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprNot__Group_0__1__Impl
+    // $ANTLR end "rule__ExprNot__Group_0__1__Impl"
 
 
-    // $ANTLR start rule__ExprNot__Group_0__2
+    // $ANTLR start "rule__ExprNot__Group_0__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5763:1: rule__ExprNot__Group_0__2 : rule__ExprNot__Group_0__2__Impl ;
     public final void rule__ExprNot__Group_0__2() throws RecognitionException {
 
@@ -15223,7 +15594,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprNot__Group_0__2__Impl_in_rule__ExprNot__Group_0__211631);
             rule__ExprNot__Group_0__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -15240,10 +15612,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprNot__Group_0__2
+    // $ANTLR end "rule__ExprNot__Group_0__2"
 
 
-    // $ANTLR start rule__ExprNot__Group_0__2__Impl
+    // $ANTLR start "rule__ExprNot__Group_0__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5774:1: rule__ExprNot__Group_0__2__Impl : ( ( rule__ExprNot__RightAssignment_0_2 ) ) ;
     public final void rule__ExprNot__Group_0__2__Impl() throws RecognitionException {
 
@@ -15262,7 +15634,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprNot__RightAssignment_0_2_in_rule__ExprNot__Group_0__2__Impl11658);
             rule__ExprNot__RightAssignment_0_2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -15286,10 +15659,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprNot__Group_0__2__Impl
+    // $ANTLR end "rule__ExprNot__Group_0__2__Impl"
 
 
-    // $ANTLR start rule__ExprCustomOperator__Group__0
+    // $ANTLR start "rule__ExprCustomOperator__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5797:1: rule__ExprCustomOperator__Group__0 : rule__ExprCustomOperator__Group__0__Impl rule__ExprCustomOperator__Group__1 ;
     public final void rule__ExprCustomOperator__Group__0() throws RecognitionException {
 
@@ -15301,11 +15674,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprCustomOperator__Group__0__Impl_in_rule__ExprCustomOperator__Group__011694);
             rule__ExprCustomOperator__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprCustomOperator__Group__1_in_rule__ExprCustomOperator__Group__011697);
             rule__ExprCustomOperator__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -15322,10 +15697,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprCustomOperator__Group__0
+    // $ANTLR end "rule__ExprCustomOperator__Group__0"
 
 
-    // $ANTLR start rule__ExprCustomOperator__Group__0__Impl
+    // $ANTLR start "rule__ExprCustomOperator__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5809:1: rule__ExprCustomOperator__Group__0__Impl : ( ruleExprMember ) ;
     public final void rule__ExprCustomOperator__Group__0__Impl() throws RecognitionException {
 
@@ -15341,7 +15716,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprCustomOperatorAccess().getExprMemberParserRuleCall_0()); 
             pushFollow(FOLLOW_ruleExprMember_in_rule__ExprCustomOperator__Group__0__Impl11724);
             ruleExprMember();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprCustomOperatorAccess().getExprMemberParserRuleCall_0()); 
 
@@ -15362,10 +15738,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprCustomOperator__Group__0__Impl
+    // $ANTLR end "rule__ExprCustomOperator__Group__0__Impl"
 
 
-    // $ANTLR start rule__ExprCustomOperator__Group__1
+    // $ANTLR start "rule__ExprCustomOperator__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5826:1: rule__ExprCustomOperator__Group__1 : rule__ExprCustomOperator__Group__1__Impl ;
     public final void rule__ExprCustomOperator__Group__1() throws RecognitionException {
 
@@ -15377,7 +15753,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprCustomOperator__Group__1__Impl_in_rule__ExprCustomOperator__Group__111753);
             rule__ExprCustomOperator__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -15394,10 +15771,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprCustomOperator__Group__1
+    // $ANTLR end "rule__ExprCustomOperator__Group__1"
 
 
-    // $ANTLR start rule__ExprCustomOperator__Group__1__Impl
+    // $ANTLR start "rule__ExprCustomOperator__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5837:1: rule__ExprCustomOperator__Group__1__Impl : ( ( rule__ExprCustomOperator__Group_1__0 )* ) ;
     public final void rule__ExprCustomOperator__Group__1__Impl() throws RecognitionException {
 
@@ -15428,7 +15805,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             	    {
             	    pushFollow(FOLLOW_rule__ExprCustomOperator__Group_1__0_in_rule__ExprCustomOperator__Group__1__Impl11780);
             	    rule__ExprCustomOperator__Group_1__0();
-            	    _fsp--;
+
+            	    state._fsp--;
 
 
             	    }
@@ -15458,10 +15836,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprCustomOperator__Group__1__Impl
+    // $ANTLR end "rule__ExprCustomOperator__Group__1__Impl"
 
 
-    // $ANTLR start rule__ExprCustomOperator__Group_1__0
+    // $ANTLR start "rule__ExprCustomOperator__Group_1__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5858:1: rule__ExprCustomOperator__Group_1__0 : rule__ExprCustomOperator__Group_1__0__Impl rule__ExprCustomOperator__Group_1__1 ;
     public final void rule__ExprCustomOperator__Group_1__0() throws RecognitionException {
 
@@ -15473,11 +15851,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprCustomOperator__Group_1__0__Impl_in_rule__ExprCustomOperator__Group_1__011815);
             rule__ExprCustomOperator__Group_1__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprCustomOperator__Group_1__1_in_rule__ExprCustomOperator__Group_1__011818);
             rule__ExprCustomOperator__Group_1__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -15494,10 +15874,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprCustomOperator__Group_1__0
+    // $ANTLR end "rule__ExprCustomOperator__Group_1__0"
 
 
-    // $ANTLR start rule__ExprCustomOperator__Group_1__0__Impl
+    // $ANTLR start "rule__ExprCustomOperator__Group_1__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5870:1: rule__ExprCustomOperator__Group_1__0__Impl : ( () ) ;
     public final void rule__ExprCustomOperator__Group_1__0__Impl() throws RecognitionException {
 
@@ -15531,10 +15911,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprCustomOperator__Group_1__0__Impl
+    // $ANTLR end "rule__ExprCustomOperator__Group_1__0__Impl"
 
 
-    // $ANTLR start rule__ExprCustomOperator__Group_1__1
+    // $ANTLR start "rule__ExprCustomOperator__Group_1__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5889:1: rule__ExprCustomOperator__Group_1__1 : rule__ExprCustomOperator__Group_1__1__Impl rule__ExprCustomOperator__Group_1__2 ;
     public final void rule__ExprCustomOperator__Group_1__1() throws RecognitionException {
 
@@ -15546,11 +15926,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprCustomOperator__Group_1__1__Impl_in_rule__ExprCustomOperator__Group_1__111876);
             rule__ExprCustomOperator__Group_1__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprCustomOperator__Group_1__2_in_rule__ExprCustomOperator__Group_1__111879);
             rule__ExprCustomOperator__Group_1__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -15567,10 +15949,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprCustomOperator__Group_1__1
+    // $ANTLR end "rule__ExprCustomOperator__Group_1__1"
 
 
-    // $ANTLR start rule__ExprCustomOperator__Group_1__1__Impl
+    // $ANTLR start "rule__ExprCustomOperator__Group_1__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5901:1: rule__ExprCustomOperator__Group_1__1__Impl : ( ( rule__ExprCustomOperator__OpAssignment_1_1 ) ) ;
     public final void rule__ExprCustomOperator__Group_1__1__Impl() throws RecognitionException {
 
@@ -15589,7 +15971,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprCustomOperator__OpAssignment_1_1_in_rule__ExprCustomOperator__Group_1__1__Impl11906);
             rule__ExprCustomOperator__OpAssignment_1_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -15613,10 +15996,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprCustomOperator__Group_1__1__Impl
+    // $ANTLR end "rule__ExprCustomOperator__Group_1__1__Impl"
 
 
-    // $ANTLR start rule__ExprCustomOperator__Group_1__2
+    // $ANTLR start "rule__ExprCustomOperator__Group_1__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5918:1: rule__ExprCustomOperator__Group_1__2 : rule__ExprCustomOperator__Group_1__2__Impl ;
     public final void rule__ExprCustomOperator__Group_1__2() throws RecognitionException {
 
@@ -15628,7 +16011,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprCustomOperator__Group_1__2__Impl_in_rule__ExprCustomOperator__Group_1__211936);
             rule__ExprCustomOperator__Group_1__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -15645,10 +16029,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprCustomOperator__Group_1__2
+    // $ANTLR end "rule__ExprCustomOperator__Group_1__2"
 
 
-    // $ANTLR start rule__ExprCustomOperator__Group_1__2__Impl
+    // $ANTLR start "rule__ExprCustomOperator__Group_1__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5929:1: rule__ExprCustomOperator__Group_1__2__Impl : ( ( rule__ExprCustomOperator__RightAssignment_1_2 ) ) ;
     public final void rule__ExprCustomOperator__Group_1__2__Impl() throws RecognitionException {
 
@@ -15667,7 +16051,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprCustomOperator__RightAssignment_1_2_in_rule__ExprCustomOperator__Group_1__2__Impl11963);
             rule__ExprCustomOperator__RightAssignment_1_2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -15691,10 +16076,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprCustomOperator__Group_1__2__Impl
+    // $ANTLR end "rule__ExprCustomOperator__Group_1__2__Impl"
 
 
-    // $ANTLR start rule__ExprMember__Group__0
+    // $ANTLR start "rule__ExprMember__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5952:1: rule__ExprMember__Group__0 : rule__ExprMember__Group__0__Impl rule__ExprMember__Group__1 ;
     public final void rule__ExprMember__Group__0() throws RecognitionException {
 
@@ -15706,11 +16091,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprMember__Group__0__Impl_in_rule__ExprMember__Group__011999);
             rule__ExprMember__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprMember__Group__1_in_rule__ExprMember__Group__012002);
             rule__ExprMember__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -15727,10 +16114,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprMember__Group__0
+    // $ANTLR end "rule__ExprMember__Group__0"
 
 
-    // $ANTLR start rule__ExprMember__Group__0__Impl
+    // $ANTLR start "rule__ExprMember__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5964:1: rule__ExprMember__Group__0__Impl : ( ruleExprAtomic ) ;
     public final void rule__ExprMember__Group__0__Impl() throws RecognitionException {
 
@@ -15746,7 +16133,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprMemberAccess().getExprAtomicParserRuleCall_0()); 
             pushFollow(FOLLOW_ruleExprAtomic_in_rule__ExprMember__Group__0__Impl12029);
             ruleExprAtomic();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprMemberAccess().getExprAtomicParserRuleCall_0()); 
 
@@ -15767,10 +16155,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprMember__Group__0__Impl
+    // $ANTLR end "rule__ExprMember__Group__0__Impl"
 
 
-    // $ANTLR start rule__ExprMember__Group__1
+    // $ANTLR start "rule__ExprMember__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5981:1: rule__ExprMember__Group__1 : rule__ExprMember__Group__1__Impl ;
     public final void rule__ExprMember__Group__1() throws RecognitionException {
 
@@ -15782,7 +16170,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprMember__Group__1__Impl_in_rule__ExprMember__Group__112058);
             rule__ExprMember__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -15799,10 +16188,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprMember__Group__1
+    // $ANTLR end "rule__ExprMember__Group__1"
 
 
-    // $ANTLR start rule__ExprMember__Group__1__Impl
+    // $ANTLR start "rule__ExprMember__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:5992:1: rule__ExprMember__Group__1__Impl : ( ( rule__ExprMember__Group_1__0 )* ) ;
     public final void rule__ExprMember__Group__1__Impl() throws RecognitionException {
 
@@ -15833,7 +16222,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             	    {
             	    pushFollow(FOLLOW_rule__ExprMember__Group_1__0_in_rule__ExprMember__Group__1__Impl12085);
             	    rule__ExprMember__Group_1__0();
-            	    _fsp--;
+
+            	    state._fsp--;
 
 
             	    }
@@ -15863,10 +16253,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprMember__Group__1__Impl
+    // $ANTLR end "rule__ExprMember__Group__1__Impl"
 
 
-    // $ANTLR start rule__ExprMember__Group_1__0
+    // $ANTLR start "rule__ExprMember__Group_1__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6013:1: rule__ExprMember__Group_1__0 : rule__ExprMember__Group_1__0__Impl rule__ExprMember__Group_1__1 ;
     public final void rule__ExprMember__Group_1__0() throws RecognitionException {
 
@@ -15878,11 +16268,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprMember__Group_1__0__Impl_in_rule__ExprMember__Group_1__012120);
             rule__ExprMember__Group_1__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprMember__Group_1__1_in_rule__ExprMember__Group_1__012123);
             rule__ExprMember__Group_1__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -15899,10 +16291,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprMember__Group_1__0
+    // $ANTLR end "rule__ExprMember__Group_1__0"
 
 
-    // $ANTLR start rule__ExprMember__Group_1__0__Impl
+    // $ANTLR start "rule__ExprMember__Group_1__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6025:1: rule__ExprMember__Group_1__0__Impl : ( () ) ;
     public final void rule__ExprMember__Group_1__0__Impl() throws RecognitionException {
 
@@ -15936,10 +16328,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprMember__Group_1__0__Impl
+    // $ANTLR end "rule__ExprMember__Group_1__0__Impl"
 
 
-    // $ANTLR start rule__ExprMember__Group_1__1
+    // $ANTLR start "rule__ExprMember__Group_1__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6044:1: rule__ExprMember__Group_1__1 : rule__ExprMember__Group_1__1__Impl rule__ExprMember__Group_1__2 ;
     public final void rule__ExprMember__Group_1__1() throws RecognitionException {
 
@@ -15951,11 +16343,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprMember__Group_1__1__Impl_in_rule__ExprMember__Group_1__112181);
             rule__ExprMember__Group_1__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprMember__Group_1__2_in_rule__ExprMember__Group_1__112184);
             rule__ExprMember__Group_1__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -15972,10 +16366,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprMember__Group_1__1
+    // $ANTLR end "rule__ExprMember__Group_1__1"
 
 
-    // $ANTLR start rule__ExprMember__Group_1__1__Impl
+    // $ANTLR start "rule__ExprMember__Group_1__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6056:1: rule__ExprMember__Group_1__1__Impl : ( ( rule__ExprMember__OpAssignment_1_1 ) ) ;
     public final void rule__ExprMember__Group_1__1__Impl() throws RecognitionException {
 
@@ -15994,7 +16388,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprMember__OpAssignment_1_1_in_rule__ExprMember__Group_1__1__Impl12211);
             rule__ExprMember__OpAssignment_1_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -16018,10 +16413,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprMember__Group_1__1__Impl
+    // $ANTLR end "rule__ExprMember__Group_1__1__Impl"
 
 
-    // $ANTLR start rule__ExprMember__Group_1__2
+    // $ANTLR start "rule__ExprMember__Group_1__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6073:1: rule__ExprMember__Group_1__2 : rule__ExprMember__Group_1__2__Impl ;
     public final void rule__ExprMember__Group_1__2() throws RecognitionException {
 
@@ -16033,7 +16428,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprMember__Group_1__2__Impl_in_rule__ExprMember__Group_1__212241);
             rule__ExprMember__Group_1__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -16050,10 +16446,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprMember__Group_1__2
+    // $ANTLR end "rule__ExprMember__Group_1__2"
 
 
-    // $ANTLR start rule__ExprMember__Group_1__2__Impl
+    // $ANTLR start "rule__ExprMember__Group_1__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6084:1: rule__ExprMember__Group_1__2__Impl : ( ( rule__ExprMember__RightAssignment_1_2 ) ) ;
     public final void rule__ExprMember__Group_1__2__Impl() throws RecognitionException {
 
@@ -16072,7 +16468,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprMember__RightAssignment_1_2_in_rule__ExprMember__Group_1__2__Impl12268);
             rule__ExprMember__RightAssignment_1_2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -16096,10 +16493,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprMember__Group_1__2__Impl
+    // $ANTLR end "rule__ExprMember__Group_1__2__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_0__0
+    // $ANTLR start "rule__ExprAtomic__Group_0__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6107:1: rule__ExprAtomic__Group_0__0 : rule__ExprAtomic__Group_0__0__Impl rule__ExprAtomic__Group_0__1 ;
     public final void rule__ExprAtomic__Group_0__0() throws RecognitionException {
 
@@ -16111,11 +16508,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_0__0__Impl_in_rule__ExprAtomic__Group_0__012304);
             rule__ExprAtomic__Group_0__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAtomic__Group_0__1_in_rule__ExprAtomic__Group_0__012307);
             rule__ExprAtomic__Group_0__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -16132,10 +16531,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_0__0
+    // $ANTLR end "rule__ExprAtomic__Group_0__0"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_0__0__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_0__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6119:1: rule__ExprAtomic__Group_0__0__Impl : ( () ) ;
     public final void rule__ExprAtomic__Group_0__0__Impl() throws RecognitionException {
 
@@ -16169,10 +16568,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_0__0__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_0__0__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_0__1
+    // $ANTLR start "rule__ExprAtomic__Group_0__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6138:1: rule__ExprAtomic__Group_0__1 : rule__ExprAtomic__Group_0__1__Impl rule__ExprAtomic__Group_0__2 ;
     public final void rule__ExprAtomic__Group_0__1() throws RecognitionException {
 
@@ -16184,11 +16583,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_0__1__Impl_in_rule__ExprAtomic__Group_0__112365);
             rule__ExprAtomic__Group_0__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAtomic__Group_0__2_in_rule__ExprAtomic__Group_0__112368);
             rule__ExprAtomic__Group_0__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -16205,10 +16606,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_0__1
+    // $ANTLR end "rule__ExprAtomic__Group_0__1"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_0__1__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_0__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6150:1: rule__ExprAtomic__Group_0__1__Impl : ( ( rule__ExprAtomic__NameValAssignment_0_1 ) ) ;
     public final void rule__ExprAtomic__Group_0__1__Impl() throws RecognitionException {
 
@@ -16227,7 +16628,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__NameValAssignment_0_1_in_rule__ExprAtomic__Group_0__1__Impl12395);
             rule__ExprAtomic__NameValAssignment_0_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -16251,10 +16653,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_0__1__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_0__1__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_0__2
+    // $ANTLR start "rule__ExprAtomic__Group_0__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6167:1: rule__ExprAtomic__Group_0__2 : rule__ExprAtomic__Group_0__2__Impl ;
     public final void rule__ExprAtomic__Group_0__2() throws RecognitionException {
 
@@ -16266,7 +16668,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_0__2__Impl_in_rule__ExprAtomic__Group_0__212425);
             rule__ExprAtomic__Group_0__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -16283,10 +16686,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_0__2
+    // $ANTLR end "rule__ExprAtomic__Group_0__2"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_0__2__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_0__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6178:1: rule__ExprAtomic__Group_0__2__Impl : ( ( rule__ExprAtomic__ParametersAssignment_0_2 ) ) ;
     public final void rule__ExprAtomic__Group_0__2__Impl() throws RecognitionException {
 
@@ -16305,7 +16708,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__ParametersAssignment_0_2_in_rule__ExprAtomic__Group_0__2__Impl12452);
             rule__ExprAtomic__ParametersAssignment_0_2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -16329,10 +16733,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_0__2__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_0__2__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_1__0
+    // $ANTLR start "rule__ExprAtomic__Group_1__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6201:1: rule__ExprAtomic__Group_1__0 : rule__ExprAtomic__Group_1__0__Impl rule__ExprAtomic__Group_1__1 ;
     public final void rule__ExprAtomic__Group_1__0() throws RecognitionException {
 
@@ -16344,11 +16748,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_1__0__Impl_in_rule__ExprAtomic__Group_1__012488);
             rule__ExprAtomic__Group_1__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAtomic__Group_1__1_in_rule__ExprAtomic__Group_1__012491);
             rule__ExprAtomic__Group_1__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -16365,10 +16771,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_1__0
+    // $ANTLR end "rule__ExprAtomic__Group_1__0"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_1__0__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_1__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6213:1: rule__ExprAtomic__Group_1__0__Impl : ( () ) ;
     public final void rule__ExprAtomic__Group_1__0__Impl() throws RecognitionException {
 
@@ -16402,10 +16808,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_1__0__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_1__0__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_1__1
+    // $ANTLR start "rule__ExprAtomic__Group_1__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6232:1: rule__ExprAtomic__Group_1__1 : rule__ExprAtomic__Group_1__1__Impl rule__ExprAtomic__Group_1__2 ;
     public final void rule__ExprAtomic__Group_1__1() throws RecognitionException {
 
@@ -16417,11 +16823,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_1__1__Impl_in_rule__ExprAtomic__Group_1__112549);
             rule__ExprAtomic__Group_1__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAtomic__Group_1__2_in_rule__ExprAtomic__Group_1__112552);
             rule__ExprAtomic__Group_1__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -16438,10 +16846,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_1__1
+    // $ANTLR end "rule__ExprAtomic__Group_1__1"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_1__1__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_1__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6244:1: rule__ExprAtomic__Group_1__1__Impl : ( ( rule__ExprAtomic__NameValAssignment_1_1 ) ) ;
     public final void rule__ExprAtomic__Group_1__1__Impl() throws RecognitionException {
 
@@ -16460,7 +16868,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__NameValAssignment_1_1_in_rule__ExprAtomic__Group_1__1__Impl12579);
             rule__ExprAtomic__NameValAssignment_1_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -16484,10 +16893,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_1__1__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_1__1__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_1__2
+    // $ANTLR start "rule__ExprAtomic__Group_1__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6261:1: rule__ExprAtomic__Group_1__2 : rule__ExprAtomic__Group_1__2__Impl rule__ExprAtomic__Group_1__3 ;
     public final void rule__ExprAtomic__Group_1__2() throws RecognitionException {
 
@@ -16499,11 +16908,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_1__2__Impl_in_rule__ExprAtomic__Group_1__212609);
             rule__ExprAtomic__Group_1__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAtomic__Group_1__3_in_rule__ExprAtomic__Group_1__212612);
             rule__ExprAtomic__Group_1__3();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -16520,10 +16931,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_1__2
+    // $ANTLR end "rule__ExprAtomic__Group_1__2"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_1__2__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_1__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6273:1: rule__ExprAtomic__Group_1__2__Impl : ( '(' ) ;
     public final void rule__ExprAtomic__Group_1__2__Impl() throws RecognitionException {
 
@@ -16557,10 +16968,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_1__2__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_1__2__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_1__3
+    // $ANTLR start "rule__ExprAtomic__Group_1__3"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6292:1: rule__ExprAtomic__Group_1__3 : rule__ExprAtomic__Group_1__3__Impl ;
     public final void rule__ExprAtomic__Group_1__3() throws RecognitionException {
 
@@ -16572,7 +16983,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_1__3__Impl_in_rule__ExprAtomic__Group_1__312671);
             rule__ExprAtomic__Group_1__3__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -16589,10 +17001,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_1__3
+    // $ANTLR end "rule__ExprAtomic__Group_1__3"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_1__3__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_1__3__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6303:1: rule__ExprAtomic__Group_1__3__Impl : ( ')' ) ;
     public final void rule__ExprAtomic__Group_1__3__Impl() throws RecognitionException {
 
@@ -16626,10 +17038,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_1__3__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_1__3__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_2__0
+    // $ANTLR start "rule__ExprAtomic__Group_2__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6330:1: rule__ExprAtomic__Group_2__0 : rule__ExprAtomic__Group_2__0__Impl rule__ExprAtomic__Group_2__1 ;
     public final void rule__ExprAtomic__Group_2__0() throws RecognitionException {
 
@@ -16641,11 +17053,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_2__0__Impl_in_rule__ExprAtomic__Group_2__012738);
             rule__ExprAtomic__Group_2__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAtomic__Group_2__1_in_rule__ExprAtomic__Group_2__012741);
             rule__ExprAtomic__Group_2__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -16662,10 +17076,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_2__0
+    // $ANTLR end "rule__ExprAtomic__Group_2__0"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_2__0__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_2__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6342:1: rule__ExprAtomic__Group_2__0__Impl : ( () ) ;
     public final void rule__ExprAtomic__Group_2__0__Impl() throws RecognitionException {
 
@@ -16699,10 +17113,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_2__0__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_2__0__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_2__1
+    // $ANTLR start "rule__ExprAtomic__Group_2__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6361:1: rule__ExprAtomic__Group_2__1 : rule__ExprAtomic__Group_2__1__Impl ;
     public final void rule__ExprAtomic__Group_2__1() throws RecognitionException {
 
@@ -16714,7 +17128,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_2__1__Impl_in_rule__ExprAtomic__Group_2__112799);
             rule__ExprAtomic__Group_2__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -16731,10 +17146,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_2__1
+    // $ANTLR end "rule__ExprAtomic__Group_2__1"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_2__1__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_2__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6372:1: rule__ExprAtomic__Group_2__1__Impl : ( ( rule__ExprAtomic__NameValAssignment_2_1 ) ) ;
     public final void rule__ExprAtomic__Group_2__1__Impl() throws RecognitionException {
 
@@ -16753,7 +17168,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__NameValAssignment_2_1_in_rule__ExprAtomic__Group_2__1__Impl12826);
             rule__ExprAtomic__NameValAssignment_2_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -16777,10 +17193,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_2__1__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_2__1__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_3__0
+    // $ANTLR start "rule__ExprAtomic__Group_3__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6393:1: rule__ExprAtomic__Group_3__0 : rule__ExprAtomic__Group_3__0__Impl rule__ExprAtomic__Group_3__1 ;
     public final void rule__ExprAtomic__Group_3__0() throws RecognitionException {
 
@@ -16792,11 +17208,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_3__0__Impl_in_rule__ExprAtomic__Group_3__012860);
             rule__ExprAtomic__Group_3__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAtomic__Group_3__1_in_rule__ExprAtomic__Group_3__012863);
             rule__ExprAtomic__Group_3__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -16813,10 +17231,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_3__0
+    // $ANTLR end "rule__ExprAtomic__Group_3__0"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_3__0__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_3__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6405:1: rule__ExprAtomic__Group_3__0__Impl : ( '(' ) ;
     public final void rule__ExprAtomic__Group_3__0__Impl() throws RecognitionException {
 
@@ -16850,10 +17268,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_3__0__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_3__0__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_3__1
+    // $ANTLR start "rule__ExprAtomic__Group_3__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6424:1: rule__ExprAtomic__Group_3__1 : rule__ExprAtomic__Group_3__1__Impl rule__ExprAtomic__Group_3__2 ;
     public final void rule__ExprAtomic__Group_3__1() throws RecognitionException {
 
@@ -16865,11 +17283,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_3__1__Impl_in_rule__ExprAtomic__Group_3__112922);
             rule__ExprAtomic__Group_3__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAtomic__Group_3__2_in_rule__ExprAtomic__Group_3__112925);
             rule__ExprAtomic__Group_3__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -16886,10 +17306,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_3__1
+    // $ANTLR end "rule__ExprAtomic__Group_3__1"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_3__1__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_3__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6436:1: rule__ExprAtomic__Group_3__1__Impl : ( ruleExpr ) ;
     public final void rule__ExprAtomic__Group_3__1__Impl() throws RecognitionException {
 
@@ -16905,7 +17325,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprAtomicAccess().getExprParserRuleCall_3_1()); 
             pushFollow(FOLLOW_ruleExpr_in_rule__ExprAtomic__Group_3__1__Impl12952);
             ruleExpr();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprAtomicAccess().getExprParserRuleCall_3_1()); 
 
@@ -16926,10 +17347,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_3__1__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_3__1__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_3__2
+    // $ANTLR start "rule__ExprAtomic__Group_3__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6453:1: rule__ExprAtomic__Group_3__2 : rule__ExprAtomic__Group_3__2__Impl ;
     public final void rule__ExprAtomic__Group_3__2() throws RecognitionException {
 
@@ -16941,7 +17362,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_3__2__Impl_in_rule__ExprAtomic__Group_3__212981);
             rule__ExprAtomic__Group_3__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -16958,10 +17380,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_3__2
+    // $ANTLR end "rule__ExprAtomic__Group_3__2"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_3__2__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_3__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6464:1: rule__ExprAtomic__Group_3__2__Impl : ( ')' ) ;
     public final void rule__ExprAtomic__Group_3__2__Impl() throws RecognitionException {
 
@@ -16995,10 +17417,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_3__2__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_3__2__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_4__0
+    // $ANTLR start "rule__ExprAtomic__Group_4__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6489:1: rule__ExprAtomic__Group_4__0 : rule__ExprAtomic__Group_4__0__Impl rule__ExprAtomic__Group_4__1 ;
     public final void rule__ExprAtomic__Group_4__0() throws RecognitionException {
 
@@ -17010,11 +17432,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_4__0__Impl_in_rule__ExprAtomic__Group_4__013046);
             rule__ExprAtomic__Group_4__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAtomic__Group_4__1_in_rule__ExprAtomic__Group_4__013049);
             rule__ExprAtomic__Group_4__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -17031,10 +17455,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_4__0
+    // $ANTLR end "rule__ExprAtomic__Group_4__0"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_4__0__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_4__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6501:1: rule__ExprAtomic__Group_4__0__Impl : ( () ) ;
     public final void rule__ExprAtomic__Group_4__0__Impl() throws RecognitionException {
 
@@ -17068,10 +17492,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_4__0__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_4__0__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_4__1
+    // $ANTLR start "rule__ExprAtomic__Group_4__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6520:1: rule__ExprAtomic__Group_4__1 : rule__ExprAtomic__Group_4__1__Impl ;
     public final void rule__ExprAtomic__Group_4__1() throws RecognitionException {
 
@@ -17083,7 +17507,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_4__1__Impl_in_rule__ExprAtomic__Group_4__113107);
             rule__ExprAtomic__Group_4__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -17100,10 +17525,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_4__1
+    // $ANTLR end "rule__ExprAtomic__Group_4__1"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_4__1__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_4__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6531:1: rule__ExprAtomic__Group_4__1__Impl : ( ( rule__ExprAtomic__IntValAssignment_4_1 ) ) ;
     public final void rule__ExprAtomic__Group_4__1__Impl() throws RecognitionException {
 
@@ -17122,7 +17547,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__IntValAssignment_4_1_in_rule__ExprAtomic__Group_4__1__Impl13134);
             rule__ExprAtomic__IntValAssignment_4_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -17146,10 +17572,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_4__1__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_4__1__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_5__0
+    // $ANTLR start "rule__ExprAtomic__Group_5__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6552:1: rule__ExprAtomic__Group_5__0 : rule__ExprAtomic__Group_5__0__Impl rule__ExprAtomic__Group_5__1 ;
     public final void rule__ExprAtomic__Group_5__0() throws RecognitionException {
 
@@ -17161,11 +17587,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_5__0__Impl_in_rule__ExprAtomic__Group_5__013168);
             rule__ExprAtomic__Group_5__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAtomic__Group_5__1_in_rule__ExprAtomic__Group_5__013171);
             rule__ExprAtomic__Group_5__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -17182,10 +17610,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_5__0
+    // $ANTLR end "rule__ExprAtomic__Group_5__0"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_5__0__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_5__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6564:1: rule__ExprAtomic__Group_5__0__Impl : ( () ) ;
     public final void rule__ExprAtomic__Group_5__0__Impl() throws RecognitionException {
 
@@ -17219,10 +17647,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_5__0__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_5__0__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_5__1
+    // $ANTLR start "rule__ExprAtomic__Group_5__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6583:1: rule__ExprAtomic__Group_5__1 : rule__ExprAtomic__Group_5__1__Impl ;
     public final void rule__ExprAtomic__Group_5__1() throws RecognitionException {
 
@@ -17234,7 +17662,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_5__1__Impl_in_rule__ExprAtomic__Group_5__113229);
             rule__ExprAtomic__Group_5__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -17251,10 +17680,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_5__1
+    // $ANTLR end "rule__ExprAtomic__Group_5__1"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_5__1__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_5__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6594:1: rule__ExprAtomic__Group_5__1__Impl : ( ( rule__ExprAtomic__NumValAssignment_5_1 ) ) ;
     public final void rule__ExprAtomic__Group_5__1__Impl() throws RecognitionException {
 
@@ -17273,7 +17702,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__NumValAssignment_5_1_in_rule__ExprAtomic__Group_5__1__Impl13256);
             rule__ExprAtomic__NumValAssignment_5_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -17297,10 +17727,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_5__1__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_5__1__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_6__0
+    // $ANTLR start "rule__ExprAtomic__Group_6__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6615:1: rule__ExprAtomic__Group_6__0 : rule__ExprAtomic__Group_6__0__Impl rule__ExprAtomic__Group_6__1 ;
     public final void rule__ExprAtomic__Group_6__0() throws RecognitionException {
 
@@ -17312,11 +17742,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_6__0__Impl_in_rule__ExprAtomic__Group_6__013290);
             rule__ExprAtomic__Group_6__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAtomic__Group_6__1_in_rule__ExprAtomic__Group_6__013293);
             rule__ExprAtomic__Group_6__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -17333,10 +17765,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_6__0
+    // $ANTLR end "rule__ExprAtomic__Group_6__0"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_6__0__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_6__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6627:1: rule__ExprAtomic__Group_6__0__Impl : ( () ) ;
     public final void rule__ExprAtomic__Group_6__0__Impl() throws RecognitionException {
 
@@ -17370,10 +17802,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_6__0__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_6__0__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_6__1
+    // $ANTLR start "rule__ExprAtomic__Group_6__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6646:1: rule__ExprAtomic__Group_6__1 : rule__ExprAtomic__Group_6__1__Impl ;
     public final void rule__ExprAtomic__Group_6__1() throws RecognitionException {
 
@@ -17385,7 +17817,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_6__1__Impl_in_rule__ExprAtomic__Group_6__113351);
             rule__ExprAtomic__Group_6__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -17402,10 +17835,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_6__1
+    // $ANTLR end "rule__ExprAtomic__Group_6__1"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_6__1__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_6__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6657:1: rule__ExprAtomic__Group_6__1__Impl : ( ( rule__ExprAtomic__StrValAssignment_6_1 ) ) ;
     public final void rule__ExprAtomic__Group_6__1__Impl() throws RecognitionException {
 
@@ -17424,7 +17857,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__StrValAssignment_6_1_in_rule__ExprAtomic__Group_6__1__Impl13378);
             rule__ExprAtomic__StrValAssignment_6_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -17448,10 +17882,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_6__1__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_6__1__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_7__0
+    // $ANTLR start "rule__ExprAtomic__Group_7__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6678:1: rule__ExprAtomic__Group_7__0 : rule__ExprAtomic__Group_7__0__Impl rule__ExprAtomic__Group_7__1 ;
     public final void rule__ExprAtomic__Group_7__0() throws RecognitionException {
 
@@ -17463,11 +17897,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_7__0__Impl_in_rule__ExprAtomic__Group_7__013412);
             rule__ExprAtomic__Group_7__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAtomic__Group_7__1_in_rule__ExprAtomic__Group_7__013415);
             rule__ExprAtomic__Group_7__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -17484,10 +17920,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_7__0
+    // $ANTLR end "rule__ExprAtomic__Group_7__0"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_7__0__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_7__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6690:1: rule__ExprAtomic__Group_7__0__Impl : ( () ) ;
     public final void rule__ExprAtomic__Group_7__0__Impl() throws RecognitionException {
 
@@ -17521,10 +17957,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_7__0__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_7__0__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_7__1
+    // $ANTLR start "rule__ExprAtomic__Group_7__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6709:1: rule__ExprAtomic__Group_7__1 : rule__ExprAtomic__Group_7__1__Impl rule__ExprAtomic__Group_7__2 ;
     public final void rule__ExprAtomic__Group_7__1() throws RecognitionException {
 
@@ -17536,11 +17972,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_7__1__Impl_in_rule__ExprAtomic__Group_7__113473);
             rule__ExprAtomic__Group_7__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAtomic__Group_7__2_in_rule__ExprAtomic__Group_7__113476);
             rule__ExprAtomic__Group_7__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -17557,10 +17995,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_7__1
+    // $ANTLR end "rule__ExprAtomic__Group_7__1"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_7__1__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_7__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6721:1: rule__ExprAtomic__Group_7__1__Impl : ( 'buildin' ) ;
     public final void rule__ExprAtomic__Group_7__1__Impl() throws RecognitionException {
 
@@ -17594,10 +18032,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_7__1__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_7__1__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_7__2
+    // $ANTLR start "rule__ExprAtomic__Group_7__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6740:1: rule__ExprAtomic__Group_7__2 : rule__ExprAtomic__Group_7__2__Impl rule__ExprAtomic__Group_7__3 ;
     public final void rule__ExprAtomic__Group_7__2() throws RecognitionException {
 
@@ -17609,11 +18047,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_7__2__Impl_in_rule__ExprAtomic__Group_7__213535);
             rule__ExprAtomic__Group_7__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAtomic__Group_7__3_in_rule__ExprAtomic__Group_7__213538);
             rule__ExprAtomic__Group_7__3();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -17630,10 +18070,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_7__2
+    // $ANTLR end "rule__ExprAtomic__Group_7__2"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_7__2__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_7__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6752:1: rule__ExprAtomic__Group_7__2__Impl : ( ( rule__ExprAtomic__NameAssignment_7_2 ) ) ;
     public final void rule__ExprAtomic__Group_7__2__Impl() throws RecognitionException {
 
@@ -17652,7 +18092,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__NameAssignment_7_2_in_rule__ExprAtomic__Group_7__2__Impl13565);
             rule__ExprAtomic__NameAssignment_7_2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -17676,10 +18117,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_7__2__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_7__2__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_7__3
+    // $ANTLR start "rule__ExprAtomic__Group_7__3"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6769:1: rule__ExprAtomic__Group_7__3 : rule__ExprAtomic__Group_7__3__Impl ;
     public final void rule__ExprAtomic__Group_7__3() throws RecognitionException {
 
@@ -17691,7 +18132,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_7__3__Impl_in_rule__ExprAtomic__Group_7__313595);
             rule__ExprAtomic__Group_7__3__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -17708,10 +18150,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_7__3
+    // $ANTLR end "rule__ExprAtomic__Group_7__3"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_7__3__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_7__3__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6780:1: rule__ExprAtomic__Group_7__3__Impl : ( ( rule__ExprAtomic__Alternatives_7_3 ) ) ;
     public final void rule__ExprAtomic__Group_7__3__Impl() throws RecognitionException {
 
@@ -17730,7 +18172,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Alternatives_7_3_in_rule__ExprAtomic__Group_7__3__Impl13622);
             rule__ExprAtomic__Alternatives_7_3();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -17754,10 +18197,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_7__3__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_7__3__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_7_3_1__0
+    // $ANTLR start "rule__ExprAtomic__Group_7_3_1__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6805:1: rule__ExprAtomic__Group_7_3_1__0 : rule__ExprAtomic__Group_7_3_1__0__Impl rule__ExprAtomic__Group_7_3_1__1 ;
     public final void rule__ExprAtomic__Group_7_3_1__0() throws RecognitionException {
 
@@ -17769,11 +18212,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_7_3_1__0__Impl_in_rule__ExprAtomic__Group_7_3_1__013660);
             rule__ExprAtomic__Group_7_3_1__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAtomic__Group_7_3_1__1_in_rule__ExprAtomic__Group_7_3_1__013663);
             rule__ExprAtomic__Group_7_3_1__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -17790,10 +18235,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_7_3_1__0
+    // $ANTLR end "rule__ExprAtomic__Group_7_3_1__0"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_7_3_1__0__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_7_3_1__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6817:1: rule__ExprAtomic__Group_7_3_1__0__Impl : ( '(' ) ;
     public final void rule__ExprAtomic__Group_7_3_1__0__Impl() throws RecognitionException {
 
@@ -17827,10 +18272,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_7_3_1__0__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_7_3_1__0__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_7_3_1__1
+    // $ANTLR start "rule__ExprAtomic__Group_7_3_1__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6836:1: rule__ExprAtomic__Group_7_3_1__1 : rule__ExprAtomic__Group_7_3_1__1__Impl ;
     public final void rule__ExprAtomic__Group_7_3_1__1() throws RecognitionException {
 
@@ -17842,7 +18287,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_7_3_1__1__Impl_in_rule__ExprAtomic__Group_7_3_1__113722);
             rule__ExprAtomic__Group_7_3_1__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -17859,10 +18305,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_7_3_1__1
+    // $ANTLR end "rule__ExprAtomic__Group_7_3_1__1"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_7_3_1__1__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_7_3_1__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6847:1: rule__ExprAtomic__Group_7_3_1__1__Impl : ( ')' ) ;
     public final void rule__ExprAtomic__Group_7_3_1__1__Impl() throws RecognitionException {
 
@@ -17896,10 +18342,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_7_3_1__1__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_7_3_1__1__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_8__0
+    // $ANTLR start "rule__ExprAtomic__Group_8__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6870:1: rule__ExprAtomic__Group_8__0 : rule__ExprAtomic__Group_8__0__Impl rule__ExprAtomic__Group_8__1 ;
     public final void rule__ExprAtomic__Group_8__0() throws RecognitionException {
 
@@ -17911,11 +18357,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_8__0__Impl_in_rule__ExprAtomic__Group_8__013785);
             rule__ExprAtomic__Group_8__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAtomic__Group_8__1_in_rule__ExprAtomic__Group_8__013788);
             rule__ExprAtomic__Group_8__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -17932,10 +18380,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_8__0
+    // $ANTLR end "rule__ExprAtomic__Group_8__0"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_8__0__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_8__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6882:1: rule__ExprAtomic__Group_8__0__Impl : ( () ) ;
     public final void rule__ExprAtomic__Group_8__0__Impl() throws RecognitionException {
 
@@ -17969,10 +18417,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_8__0__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_8__0__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_8__1
+    // $ANTLR start "rule__ExprAtomic__Group_8__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6901:1: rule__ExprAtomic__Group_8__1 : rule__ExprAtomic__Group_8__1__Impl rule__ExprAtomic__Group_8__2 ;
     public final void rule__ExprAtomic__Group_8__1() throws RecognitionException {
 
@@ -17984,11 +18432,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_8__1__Impl_in_rule__ExprAtomic__Group_8__113846);
             rule__ExprAtomic__Group_8__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAtomic__Group_8__2_in_rule__ExprAtomic__Group_8__113849);
             rule__ExprAtomic__Group_8__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -18005,10 +18455,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_8__1
+    // $ANTLR end "rule__ExprAtomic__Group_8__1"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_8__1__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_8__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6913:1: rule__ExprAtomic__Group_8__1__Impl : ( 'buildin' ) ;
     public final void rule__ExprAtomic__Group_8__1__Impl() throws RecognitionException {
 
@@ -18042,10 +18492,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_8__1__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_8__1__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_8__2
+    // $ANTLR start "rule__ExprAtomic__Group_8__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6932:1: rule__ExprAtomic__Group_8__2 : rule__ExprAtomic__Group_8__2__Impl rule__ExprAtomic__Group_8__3 ;
     public final void rule__ExprAtomic__Group_8__2() throws RecognitionException {
 
@@ -18057,11 +18507,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_8__2__Impl_in_rule__ExprAtomic__Group_8__213908);
             rule__ExprAtomic__Group_8__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAtomic__Group_8__3_in_rule__ExprAtomic__Group_8__213911);
             rule__ExprAtomic__Group_8__3();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -18078,10 +18530,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_8__2
+    // $ANTLR end "rule__ExprAtomic__Group_8__2"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_8__2__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_8__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6944:1: rule__ExprAtomic__Group_8__2__Impl : ( '(' ) ;
     public final void rule__ExprAtomic__Group_8__2__Impl() throws RecognitionException {
 
@@ -18115,10 +18567,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_8__2__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_8__2__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_8__3
+    // $ANTLR start "rule__ExprAtomic__Group_8__3"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6963:1: rule__ExprAtomic__Group_8__3 : rule__ExprAtomic__Group_8__3__Impl rule__ExprAtomic__Group_8__4 ;
     public final void rule__ExprAtomic__Group_8__3() throws RecognitionException {
 
@@ -18130,11 +18582,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_8__3__Impl_in_rule__ExprAtomic__Group_8__313970);
             rule__ExprAtomic__Group_8__3__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAtomic__Group_8__4_in_rule__ExprAtomic__Group_8__313973);
             rule__ExprAtomic__Group_8__4();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -18151,10 +18605,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_8__3
+    // $ANTLR end "rule__ExprAtomic__Group_8__3"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_8__3__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_8__3__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6975:1: rule__ExprAtomic__Group_8__3__Impl : ( ( rule__ExprAtomic__LeftAssignment_8_3 ) ) ;
     public final void rule__ExprAtomic__Group_8__3__Impl() throws RecognitionException {
 
@@ -18173,7 +18627,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__LeftAssignment_8_3_in_rule__ExprAtomic__Group_8__3__Impl14000);
             rule__ExprAtomic__LeftAssignment_8_3();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -18197,10 +18652,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_8__3__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_8__3__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_8__4
+    // $ANTLR start "rule__ExprAtomic__Group_8__4"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:6992:1: rule__ExprAtomic__Group_8__4 : rule__ExprAtomic__Group_8__4__Impl rule__ExprAtomic__Group_8__5 ;
     public final void rule__ExprAtomic__Group_8__4() throws RecognitionException {
 
@@ -18212,11 +18667,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_8__4__Impl_in_rule__ExprAtomic__Group_8__414030);
             rule__ExprAtomic__Group_8__4__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAtomic__Group_8__5_in_rule__ExprAtomic__Group_8__414033);
             rule__ExprAtomic__Group_8__5();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -18233,10 +18690,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_8__4
+    // $ANTLR end "rule__ExprAtomic__Group_8__4"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_8__4__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_8__4__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7004:1: rule__ExprAtomic__Group_8__4__Impl : ( ( rule__ExprAtomic__OpAssignment_8_4 ) ) ;
     public final void rule__ExprAtomic__Group_8__4__Impl() throws RecognitionException {
 
@@ -18255,7 +18712,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__OpAssignment_8_4_in_rule__ExprAtomic__Group_8__4__Impl14060);
             rule__ExprAtomic__OpAssignment_8_4();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -18279,10 +18737,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_8__4__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_8__4__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_8__5
+    // $ANTLR start "rule__ExprAtomic__Group_8__5"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7021:1: rule__ExprAtomic__Group_8__5 : rule__ExprAtomic__Group_8__5__Impl rule__ExprAtomic__Group_8__6 ;
     public final void rule__ExprAtomic__Group_8__5() throws RecognitionException {
 
@@ -18294,11 +18752,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_8__5__Impl_in_rule__ExprAtomic__Group_8__514090);
             rule__ExprAtomic__Group_8__5__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprAtomic__Group_8__6_in_rule__ExprAtomic__Group_8__514093);
             rule__ExprAtomic__Group_8__6();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -18315,10 +18775,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_8__5
+    // $ANTLR end "rule__ExprAtomic__Group_8__5"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_8__5__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_8__5__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7033:1: rule__ExprAtomic__Group_8__5__Impl : ( ( rule__ExprAtomic__RightAssignment_8_5 ) ) ;
     public final void rule__ExprAtomic__Group_8__5__Impl() throws RecognitionException {
 
@@ -18337,7 +18797,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__RightAssignment_8_5_in_rule__ExprAtomic__Group_8__5__Impl14120);
             rule__ExprAtomic__RightAssignment_8_5();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -18361,10 +18822,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_8__5__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_8__5__Impl"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_8__6
+    // $ANTLR start "rule__ExprAtomic__Group_8__6"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7050:1: rule__ExprAtomic__Group_8__6 : rule__ExprAtomic__Group_8__6__Impl ;
     public final void rule__ExprAtomic__Group_8__6() throws RecognitionException {
 
@@ -18376,7 +18837,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAtomic__Group_8__6__Impl_in_rule__ExprAtomic__Group_8__614150);
             rule__ExprAtomic__Group_8__6__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -18393,10 +18855,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_8__6
+    // $ANTLR end "rule__ExprAtomic__Group_8__6"
 
 
-    // $ANTLR start rule__ExprAtomic__Group_8__6__Impl
+    // $ANTLR start "rule__ExprAtomic__Group_8__6__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7061:1: rule__ExprAtomic__Group_8__6__Impl : ( ')' ) ;
     public final void rule__ExprAtomic__Group_8__6__Impl() throws RecognitionException {
 
@@ -18430,10 +18892,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__Group_8__6__Impl
+    // $ANTLR end "rule__ExprAtomic__Group_8__6__Impl"
 
 
-    // $ANTLR start rule__ExprList__Group__0
+    // $ANTLR start "rule__ExprList__Group__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7094:1: rule__ExprList__Group__0 : rule__ExprList__Group__0__Impl rule__ExprList__Group__1 ;
     public final void rule__ExprList__Group__0() throws RecognitionException {
 
@@ -18445,11 +18907,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprList__Group__0__Impl_in_rule__ExprList__Group__014223);
             rule__ExprList__Group__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprList__Group__1_in_rule__ExprList__Group__014226);
             rule__ExprList__Group__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -18466,10 +18930,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprList__Group__0
+    // $ANTLR end "rule__ExprList__Group__0"
 
 
-    // $ANTLR start rule__ExprList__Group__0__Impl
+    // $ANTLR start "rule__ExprList__Group__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7106:1: rule__ExprList__Group__0__Impl : ( '(' ) ;
     public final void rule__ExprList__Group__0__Impl() throws RecognitionException {
 
@@ -18503,10 +18967,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprList__Group__0__Impl
+    // $ANTLR end "rule__ExprList__Group__0__Impl"
 
 
-    // $ANTLR start rule__ExprList__Group__1
+    // $ANTLR start "rule__ExprList__Group__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7125:1: rule__ExprList__Group__1 : rule__ExprList__Group__1__Impl rule__ExprList__Group__2 ;
     public final void rule__ExprList__Group__1() throws RecognitionException {
 
@@ -18518,11 +18982,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprList__Group__1__Impl_in_rule__ExprList__Group__114285);
             rule__ExprList__Group__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprList__Group__2_in_rule__ExprList__Group__114288);
             rule__ExprList__Group__2();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -18539,10 +19005,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprList__Group__1
+    // $ANTLR end "rule__ExprList__Group__1"
 
 
-    // $ANTLR start rule__ExprList__Group__1__Impl
+    // $ANTLR start "rule__ExprList__Group__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7137:1: rule__ExprList__Group__1__Impl : ( ( rule__ExprList__ParamsAssignment_1 ) ) ;
     public final void rule__ExprList__Group__1__Impl() throws RecognitionException {
 
@@ -18561,7 +19027,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprList__ParamsAssignment_1_in_rule__ExprList__Group__1__Impl14315);
             rule__ExprList__ParamsAssignment_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -18585,10 +19052,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprList__Group__1__Impl
+    // $ANTLR end "rule__ExprList__Group__1__Impl"
 
 
-    // $ANTLR start rule__ExprList__Group__2
+    // $ANTLR start "rule__ExprList__Group__2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7154:1: rule__ExprList__Group__2 : rule__ExprList__Group__2__Impl rule__ExprList__Group__3 ;
     public final void rule__ExprList__Group__2() throws RecognitionException {
 
@@ -18600,11 +19067,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprList__Group__2__Impl_in_rule__ExprList__Group__214345);
             rule__ExprList__Group__2__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprList__Group__3_in_rule__ExprList__Group__214348);
             rule__ExprList__Group__3();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -18621,10 +19090,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprList__Group__2
+    // $ANTLR end "rule__ExprList__Group__2"
 
 
-    // $ANTLR start rule__ExprList__Group__2__Impl
+    // $ANTLR start "rule__ExprList__Group__2__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7166:1: rule__ExprList__Group__2__Impl : ( ( rule__ExprList__Group_2__0 )* ) ;
     public final void rule__ExprList__Group__2__Impl() throws RecognitionException {
 
@@ -18655,7 +19124,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             	    {
             	    pushFollow(FOLLOW_rule__ExprList__Group_2__0_in_rule__ExprList__Group__2__Impl14375);
             	    rule__ExprList__Group_2__0();
-            	    _fsp--;
+
+            	    state._fsp--;
 
 
             	    }
@@ -18685,10 +19155,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprList__Group__2__Impl
+    // $ANTLR end "rule__ExprList__Group__2__Impl"
 
 
-    // $ANTLR start rule__ExprList__Group__3
+    // $ANTLR start "rule__ExprList__Group__3"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7183:1: rule__ExprList__Group__3 : rule__ExprList__Group__3__Impl ;
     public final void rule__ExprList__Group__3() throws RecognitionException {
 
@@ -18700,7 +19170,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprList__Group__3__Impl_in_rule__ExprList__Group__314406);
             rule__ExprList__Group__3__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -18717,10 +19188,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprList__Group__3
+    // $ANTLR end "rule__ExprList__Group__3"
 
 
-    // $ANTLR start rule__ExprList__Group__3__Impl
+    // $ANTLR start "rule__ExprList__Group__3__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7194:1: rule__ExprList__Group__3__Impl : ( ')' ) ;
     public final void rule__ExprList__Group__3__Impl() throws RecognitionException {
 
@@ -18754,10 +19225,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprList__Group__3__Impl
+    // $ANTLR end "rule__ExprList__Group__3__Impl"
 
 
-    // $ANTLR start rule__ExprList__Group_2__0
+    // $ANTLR start "rule__ExprList__Group_2__0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7221:1: rule__ExprList__Group_2__0 : rule__ExprList__Group_2__0__Impl rule__ExprList__Group_2__1 ;
     public final void rule__ExprList__Group_2__0() throws RecognitionException {
 
@@ -18769,11 +19240,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprList__Group_2__0__Impl_in_rule__ExprList__Group_2__014473);
             rule__ExprList__Group_2__0__Impl();
-            _fsp--;
+
+            state._fsp--;
 
             pushFollow(FOLLOW_rule__ExprList__Group_2__1_in_rule__ExprList__Group_2__014476);
             rule__ExprList__Group_2__1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -18790,10 +19263,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprList__Group_2__0
+    // $ANTLR end "rule__ExprList__Group_2__0"
 
 
-    // $ANTLR start rule__ExprList__Group_2__0__Impl
+    // $ANTLR start "rule__ExprList__Group_2__0__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7233:1: rule__ExprList__Group_2__0__Impl : ( ',' ) ;
     public final void rule__ExprList__Group_2__0__Impl() throws RecognitionException {
 
@@ -18827,10 +19300,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprList__Group_2__0__Impl
+    // $ANTLR end "rule__ExprList__Group_2__0__Impl"
 
 
-    // $ANTLR start rule__ExprList__Group_2__1
+    // $ANTLR start "rule__ExprList__Group_2__1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7252:1: rule__ExprList__Group_2__1 : rule__ExprList__Group_2__1__Impl ;
     public final void rule__ExprList__Group_2__1() throws RecognitionException {
 
@@ -18842,7 +19315,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprList__Group_2__1__Impl_in_rule__ExprList__Group_2__114535);
             rule__ExprList__Group_2__1__Impl();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -18859,10 +19333,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprList__Group_2__1
+    // $ANTLR end "rule__ExprList__Group_2__1"
 
 
-    // $ANTLR start rule__ExprList__Group_2__1__Impl
+    // $ANTLR start "rule__ExprList__Group_2__1__Impl"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7263:1: rule__ExprList__Group_2__1__Impl : ( ( rule__ExprList__ParamsAssignment_2_1 ) ) ;
     public final void rule__ExprList__Group_2__1__Impl() throws RecognitionException {
 
@@ -18881,7 +19355,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprList__ParamsAssignment_2_1_in_rule__ExprList__Group_2__1__Impl14562);
             rule__ExprList__ParamsAssignment_2_1();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -18905,10 +19380,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprList__Group_2__1__Impl
+    // $ANTLR end "rule__ExprList__Group_2__1__Impl"
 
 
-    // $ANTLR start rule__Program__PackagesAssignment_1
+    // $ANTLR start "rule__Program__PackagesAssignment_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7285:1: rule__Program__PackagesAssignment_1 : ( rulePackageDeclaration ) ;
     public final void rule__Program__PackagesAssignment_1() throws RecognitionException {
 
@@ -18924,7 +19399,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getProgramAccess().getPackagesPackageDeclarationParserRuleCall_1_0()); 
             pushFollow(FOLLOW_rulePackageDeclaration_in_rule__Program__PackagesAssignment_114601);
             rulePackageDeclaration();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getProgramAccess().getPackagesPackageDeclarationParserRuleCall_1_0()); 
 
@@ -18945,10 +19421,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__Program__PackagesAssignment_1
+    // $ANTLR end "rule__Program__PackagesAssignment_1"
 
 
-    // $ANTLR start rule__Program__PackagesAssignment_2
+    // $ANTLR start "rule__Program__PackagesAssignment_2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7300:1: rule__Program__PackagesAssignment_2 : ( rulePackageDeclaration ) ;
     public final void rule__Program__PackagesAssignment_2() throws RecognitionException {
 
@@ -18964,7 +19440,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getProgramAccess().getPackagesPackageDeclarationParserRuleCall_2_0()); 
             pushFollow(FOLLOW_rulePackageDeclaration_in_rule__Program__PackagesAssignment_214632);
             rulePackageDeclaration();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getProgramAccess().getPackagesPackageDeclarationParserRuleCall_2_0()); 
 
@@ -18985,10 +19462,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__Program__PackagesAssignment_2
+    // $ANTLR end "rule__Program__PackagesAssignment_2"
 
 
-    // $ANTLR start rule__PackageDeclaration__NameAssignment_1
+    // $ANTLR start "rule__PackageDeclaration__NameAssignment_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7315:1: rule__PackageDeclaration__NameAssignment_1 : ( ruleQualifiedName ) ;
     public final void rule__PackageDeclaration__NameAssignment_1() throws RecognitionException {
 
@@ -19004,7 +19481,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getPackageDeclarationAccess().getNameQualifiedNameParserRuleCall_1_0()); 
             pushFollow(FOLLOW_ruleQualifiedName_in_rule__PackageDeclaration__NameAssignment_114663);
             ruleQualifiedName();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getPackageDeclarationAccess().getNameQualifiedNameParserRuleCall_1_0()); 
 
@@ -19025,10 +19503,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__NameAssignment_1
+    // $ANTLR end "rule__PackageDeclaration__NameAssignment_1"
 
 
-    // $ANTLR start rule__PackageDeclaration__ImportsAssignment_3_1
+    // $ANTLR start "rule__PackageDeclaration__ImportsAssignment_3_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7330:1: rule__PackageDeclaration__ImportsAssignment_3_1 : ( ruleImport ) ;
     public final void rule__PackageDeclaration__ImportsAssignment_3_1() throws RecognitionException {
 
@@ -19044,7 +19522,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getPackageDeclarationAccess().getImportsImportParserRuleCall_3_1_0()); 
             pushFollow(FOLLOW_ruleImport_in_rule__PackageDeclaration__ImportsAssignment_3_114694);
             ruleImport();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getPackageDeclarationAccess().getImportsImportParserRuleCall_3_1_0()); 
 
@@ -19065,10 +19544,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__ImportsAssignment_3_1
+    // $ANTLR end "rule__PackageDeclaration__ImportsAssignment_3_1"
 
 
-    // $ANTLR start rule__PackageDeclaration__ElementsAssignment_5_0
+    // $ANTLR start "rule__PackageDeclaration__ElementsAssignment_5_0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7345:1: rule__PackageDeclaration__ElementsAssignment_5_0 : ( ruleEntity ) ;
     public final void rule__PackageDeclaration__ElementsAssignment_5_0() throws RecognitionException {
 
@@ -19084,7 +19563,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getPackageDeclarationAccess().getElementsEntityParserRuleCall_5_0_0()); 
             pushFollow(FOLLOW_ruleEntity_in_rule__PackageDeclaration__ElementsAssignment_5_014725);
             ruleEntity();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getPackageDeclarationAccess().getElementsEntityParserRuleCall_5_0_0()); 
 
@@ -19105,10 +19585,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__PackageDeclaration__ElementsAssignment_5_0
+    // $ANTLR end "rule__PackageDeclaration__ElementsAssignment_5_0"
 
 
-    // $ANTLR start rule__Import__ImportedNamespaceAssignment_1
+    // $ANTLR start "rule__Import__ImportedNamespaceAssignment_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7360:1: rule__Import__ImportedNamespaceAssignment_1 : ( ruleQualifiedNameWithWildCard ) ;
     public final void rule__Import__ImportedNamespaceAssignment_1() throws RecognitionException {
 
@@ -19124,7 +19604,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getImportAccess().getImportedNamespaceQualifiedNameWithWildCardParserRuleCall_1_0()); 
             pushFollow(FOLLOW_ruleQualifiedNameWithWildCard_in_rule__Import__ImportedNamespaceAssignment_114756);
             ruleQualifiedNameWithWildCard();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getImportAccess().getImportedNamespaceQualifiedNameWithWildCardParserRuleCall_1_0()); 
 
@@ -19145,10 +19626,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__Import__ImportedNamespaceAssignment_1
+    // $ANTLR end "rule__Import__ImportedNamespaceAssignment_1"
 
 
-    // $ANTLR start rule__NativeType__NameAssignment_3
+    // $ANTLR start "rule__NativeType__NameAssignment_3"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7375:1: rule__NativeType__NameAssignment_3 : ( RULE_ID ) ;
     public final void rule__NativeType__NameAssignment_3() throws RecognitionException {
 
@@ -19182,10 +19663,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__NativeType__NameAssignment_3
+    // $ANTLR end "rule__NativeType__NameAssignment_3"
 
 
-    // $ANTLR start rule__NativeType__OrigNameAssignment_5
+    // $ANTLR start "rule__NativeType__OrigNameAssignment_5"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7390:1: rule__NativeType__OrigNameAssignment_5 : ( RULE_ID ) ;
     public final void rule__NativeType__OrigNameAssignment_5() throws RecognitionException {
 
@@ -19219,10 +19700,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__NativeType__OrigNameAssignment_5
+    // $ANTLR end "rule__NativeType__OrigNameAssignment_5"
 
 
-    // $ANTLR start rule__ClassDef__NameAssignment_2
+    // $ANTLR start "rule__ClassDef__NameAssignment_2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7405:1: rule__ClassDef__NameAssignment_2 : ( RULE_ID ) ;
     public final void rule__ClassDef__NameAssignment_2() throws RecognitionException {
 
@@ -19256,10 +19737,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ClassDef__NameAssignment_2
+    // $ANTLR end "rule__ClassDef__NameAssignment_2"
 
 
-    // $ANTLR start rule__ClassDef__MembersAssignment_4
+    // $ANTLR start "rule__ClassDef__MembersAssignment_4"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7420:1: rule__ClassDef__MembersAssignment_4 : ( ruleClassMember ) ;
     public final void rule__ClassDef__MembersAssignment_4() throws RecognitionException {
 
@@ -19275,7 +19756,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getClassDefAccess().getMembersClassMemberParserRuleCall_4_0()); 
             pushFollow(FOLLOW_ruleClassMember_in_rule__ClassDef__MembersAssignment_414880);
             ruleClassMember();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getClassDefAccess().getMembersClassMemberParserRuleCall_4_0()); 
 
@@ -19296,10 +19778,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ClassDef__MembersAssignment_4
+    // $ANTLR end "rule__ClassDef__MembersAssignment_4"
 
 
-    // $ANTLR start rule__VarDef__ConstantAssignment_1_1
+    // $ANTLR start "rule__VarDef__ConstantAssignment_1_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7435:1: rule__VarDef__ConstantAssignment_1_1 : ( ( 'val' ) ) ;
     public final void rule__VarDef__ConstantAssignment_1_1() throws RecognitionException {
 
@@ -19341,10 +19823,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__VarDef__ConstantAssignment_1_1
+    // $ANTLR end "rule__VarDef__ConstantAssignment_1_1"
 
 
-    // $ANTLR start rule__VarDef__NameAssignment_2
+    // $ANTLR start "rule__VarDef__NameAssignment_2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7458:1: rule__VarDef__NameAssignment_2 : ( RULE_ID ) ;
     public final void rule__VarDef__NameAssignment_2() throws RecognitionException {
 
@@ -19378,10 +19860,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__VarDef__NameAssignment_2
+    // $ANTLR end "rule__VarDef__NameAssignment_2"
 
 
-    // $ANTLR start rule__VarDef__TypeAssignment_3_1
+    // $ANTLR start "rule__VarDef__TypeAssignment_3_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7473:1: rule__VarDef__TypeAssignment_3_1 : ( ruleTypeExpr ) ;
     public final void rule__VarDef__TypeAssignment_3_1() throws RecognitionException {
 
@@ -19397,7 +19879,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getVarDefAccess().getTypeTypeExprParserRuleCall_3_1_0()); 
             pushFollow(FOLLOW_ruleTypeExpr_in_rule__VarDef__TypeAssignment_3_114986);
             ruleTypeExpr();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getVarDefAccess().getTypeTypeExprParserRuleCall_3_1_0()); 
 
@@ -19418,10 +19901,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__VarDef__TypeAssignment_3_1
+    // $ANTLR end "rule__VarDef__TypeAssignment_3_1"
 
 
-    // $ANTLR start rule__VarDef__EAssignment_4_1
+    // $ANTLR start "rule__VarDef__EAssignment_4_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7488:1: rule__VarDef__EAssignment_4_1 : ( ruleExpr ) ;
     public final void rule__VarDef__EAssignment_4_1() throws RecognitionException {
 
@@ -19437,7 +19920,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getVarDefAccess().getEExprParserRuleCall_4_1_0()); 
             pushFollow(FOLLOW_ruleExpr_in_rule__VarDef__EAssignment_4_115017);
             ruleExpr();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getVarDefAccess().getEExprParserRuleCall_4_1_0()); 
 
@@ -19458,10 +19942,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__VarDef__EAssignment_4_1
+    // $ANTLR end "rule__VarDef__EAssignment_4_1"
 
 
-    // $ANTLR start rule__TypeExpr__NameAssignment_1
+    // $ANTLR start "rule__TypeExpr__NameAssignment_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7503:1: rule__TypeExpr__NameAssignment_1 : ( RULE_ID ) ;
     public final void rule__TypeExpr__NameAssignment_1() throws RecognitionException {
 
@@ -19495,10 +19979,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__TypeExpr__NameAssignment_1
+    // $ANTLR end "rule__TypeExpr__NameAssignment_1"
 
 
-    // $ANTLR start rule__FuncDef__NameAssignment_2
+    // $ANTLR start "rule__FuncDef__NameAssignment_2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7518:1: rule__FuncDef__NameAssignment_2 : ( RULE_ID ) ;
     public final void rule__FuncDef__NameAssignment_2() throws RecognitionException {
 
@@ -19532,10 +20016,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__NameAssignment_2
+    // $ANTLR end "rule__FuncDef__NameAssignment_2"
 
 
-    // $ANTLR start rule__FuncDef__ParametersAssignment_4_0
+    // $ANTLR start "rule__FuncDef__ParametersAssignment_4_0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7533:1: rule__FuncDef__ParametersAssignment_4_0 : ( ruleParameterDef ) ;
     public final void rule__FuncDef__ParametersAssignment_4_0() throws RecognitionException {
 
@@ -19551,7 +20035,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getFuncDefAccess().getParametersParameterDefParserRuleCall_4_0_0()); 
             pushFollow(FOLLOW_ruleParameterDef_in_rule__FuncDef__ParametersAssignment_4_015110);
             ruleParameterDef();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getFuncDefAccess().getParametersParameterDefParserRuleCall_4_0_0()); 
 
@@ -19572,10 +20057,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__ParametersAssignment_4_0
+    // $ANTLR end "rule__FuncDef__ParametersAssignment_4_0"
 
 
-    // $ANTLR start rule__FuncDef__ParametersAssignment_4_1_1
+    // $ANTLR start "rule__FuncDef__ParametersAssignment_4_1_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7548:1: rule__FuncDef__ParametersAssignment_4_1_1 : ( ruleParameterDef ) ;
     public final void rule__FuncDef__ParametersAssignment_4_1_1() throws RecognitionException {
 
@@ -19591,7 +20076,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getFuncDefAccess().getParametersParameterDefParserRuleCall_4_1_1_0()); 
             pushFollow(FOLLOW_ruleParameterDef_in_rule__FuncDef__ParametersAssignment_4_1_115141);
             ruleParameterDef();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getFuncDefAccess().getParametersParameterDefParserRuleCall_4_1_1_0()); 
 
@@ -19612,10 +20098,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__ParametersAssignment_4_1_1
+    // $ANTLR end "rule__FuncDef__ParametersAssignment_4_1_1"
 
 
-    // $ANTLR start rule__FuncDef__TypeAssignment_6_1
+    // $ANTLR start "rule__FuncDef__TypeAssignment_6_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7563:1: rule__FuncDef__TypeAssignment_6_1 : ( ruleTypeExpr ) ;
     public final void rule__FuncDef__TypeAssignment_6_1() throws RecognitionException {
 
@@ -19631,7 +20117,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getFuncDefAccess().getTypeTypeExprParserRuleCall_6_1_0()); 
             pushFollow(FOLLOW_ruleTypeExpr_in_rule__FuncDef__TypeAssignment_6_115172);
             ruleTypeExpr();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getFuncDefAccess().getTypeTypeExprParserRuleCall_6_1_0()); 
 
@@ -19652,10 +20139,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__TypeAssignment_6_1
+    // $ANTLR end "rule__FuncDef__TypeAssignment_6_1"
 
 
-    // $ANTLR start rule__FuncDef__BodyAssignment_8
+    // $ANTLR start "rule__FuncDef__BodyAssignment_8"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7578:1: rule__FuncDef__BodyAssignment_8 : ( ruleStatements ) ;
     public final void rule__FuncDef__BodyAssignment_8() throws RecognitionException {
 
@@ -19671,7 +20158,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getFuncDefAccess().getBodyStatementsParserRuleCall_8_0()); 
             pushFollow(FOLLOW_ruleStatements_in_rule__FuncDef__BodyAssignment_815203);
             ruleStatements();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getFuncDefAccess().getBodyStatementsParserRuleCall_8_0()); 
 
@@ -19692,10 +20180,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__FuncDef__BodyAssignment_8
+    // $ANTLR end "rule__FuncDef__BodyAssignment_8"
 
 
-    // $ANTLR start rule__ParameterDef__NameAssignment_1
+    // $ANTLR start "rule__ParameterDef__NameAssignment_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7593:1: rule__ParameterDef__NameAssignment_1 : ( RULE_ID ) ;
     public final void rule__ParameterDef__NameAssignment_1() throws RecognitionException {
 
@@ -19729,10 +20217,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ParameterDef__NameAssignment_1
+    // $ANTLR end "rule__ParameterDef__NameAssignment_1"
 
 
-    // $ANTLR start rule__ParameterDef__TypeAssignment_3
+    // $ANTLR start "rule__ParameterDef__TypeAssignment_3"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7608:1: rule__ParameterDef__TypeAssignment_3 : ( ruleTypeExpr ) ;
     public final void rule__ParameterDef__TypeAssignment_3() throws RecognitionException {
 
@@ -19748,7 +20236,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getParameterDefAccess().getTypeTypeExprParserRuleCall_3_0()); 
             pushFollow(FOLLOW_ruleTypeExpr_in_rule__ParameterDef__TypeAssignment_315265);
             ruleTypeExpr();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getParameterDefAccess().getTypeTypeExprParserRuleCall_3_0()); 
 
@@ -19769,10 +20258,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ParameterDef__TypeAssignment_3
+    // $ANTLR end "rule__ParameterDef__TypeAssignment_3"
 
 
-    // $ANTLR start rule__Statements__StatementsAssignment_1_1
+    // $ANTLR start "rule__Statements__StatementsAssignment_1_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7623:1: rule__Statements__StatementsAssignment_1_1 : ( ruleStatement ) ;
     public final void rule__Statements__StatementsAssignment_1_1() throws RecognitionException {
 
@@ -19788,7 +20277,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getStatementsAccess().getStatementsStatementParserRuleCall_1_1_0()); 
             pushFollow(FOLLOW_ruleStatement_in_rule__Statements__StatementsAssignment_1_115296);
             ruleStatement();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getStatementsAccess().getStatementsStatementParserRuleCall_1_1_0()); 
 
@@ -19809,10 +20299,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__Statements__StatementsAssignment_1_1
+    // $ANTLR end "rule__Statements__StatementsAssignment_1_1"
 
 
-    // $ANTLR start rule__StmtReturn__EAssignment_2
+    // $ANTLR start "rule__StmtReturn__EAssignment_2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7638:1: rule__StmtReturn__EAssignment_2 : ( ruleExpr ) ;
     public final void rule__StmtReturn__EAssignment_2() throws RecognitionException {
 
@@ -19828,7 +20318,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getStmtReturnAccess().getEExprParserRuleCall_2_0()); 
             pushFollow(FOLLOW_ruleExpr_in_rule__StmtReturn__EAssignment_215327);
             ruleExpr();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getStmtReturnAccess().getEExprParserRuleCall_2_0()); 
 
@@ -19849,10 +20340,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtReturn__EAssignment_2
+    // $ANTLR end "rule__StmtReturn__EAssignment_2"
 
 
-    // $ANTLR start rule__StmtIf__CondAssignment_1
+    // $ANTLR start "rule__StmtIf__CondAssignment_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7653:1: rule__StmtIf__CondAssignment_1 : ( ruleExpr ) ;
     public final void rule__StmtIf__CondAssignment_1() throws RecognitionException {
 
@@ -19868,7 +20359,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getStmtIfAccess().getCondExprParserRuleCall_1_0()); 
             pushFollow(FOLLOW_ruleExpr_in_rule__StmtIf__CondAssignment_115358);
             ruleExpr();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getStmtIfAccess().getCondExprParserRuleCall_1_0()); 
 
@@ -19889,10 +20381,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtIf__CondAssignment_1
+    // $ANTLR end "rule__StmtIf__CondAssignment_1"
 
 
-    // $ANTLR start rule__StmtIf__ThenBlockAssignment_3
+    // $ANTLR start "rule__StmtIf__ThenBlockAssignment_3"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7668:1: rule__StmtIf__ThenBlockAssignment_3 : ( ruleStatements ) ;
     public final void rule__StmtIf__ThenBlockAssignment_3() throws RecognitionException {
 
@@ -19908,7 +20400,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getStmtIfAccess().getThenBlockStatementsParserRuleCall_3_0()); 
             pushFollow(FOLLOW_ruleStatements_in_rule__StmtIf__ThenBlockAssignment_315389);
             ruleStatements();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getStmtIfAccess().getThenBlockStatementsParserRuleCall_3_0()); 
 
@@ -19929,10 +20422,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtIf__ThenBlockAssignment_3
+    // $ANTLR end "rule__StmtIf__ThenBlockAssignment_3"
 
 
-    // $ANTLR start rule__StmtIf__ElseBlockAssignment_5_2
+    // $ANTLR start "rule__StmtIf__ElseBlockAssignment_5_2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7683:1: rule__StmtIf__ElseBlockAssignment_5_2 : ( ruleStatements ) ;
     public final void rule__StmtIf__ElseBlockAssignment_5_2() throws RecognitionException {
 
@@ -19948,7 +20441,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getStmtIfAccess().getElseBlockStatementsParserRuleCall_5_2_0()); 
             pushFollow(FOLLOW_ruleStatements_in_rule__StmtIf__ElseBlockAssignment_5_215420);
             ruleStatements();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getStmtIfAccess().getElseBlockStatementsParserRuleCall_5_2_0()); 
 
@@ -19969,10 +20463,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtIf__ElseBlockAssignment_5_2
+    // $ANTLR end "rule__StmtIf__ElseBlockAssignment_5_2"
 
 
-    // $ANTLR start rule__StmtWhile__CondAssignment_1
+    // $ANTLR start "rule__StmtWhile__CondAssignment_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7698:1: rule__StmtWhile__CondAssignment_1 : ( ruleExpr ) ;
     public final void rule__StmtWhile__CondAssignment_1() throws RecognitionException {
 
@@ -19988,7 +20482,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getStmtWhileAccess().getCondExprParserRuleCall_1_0()); 
             pushFollow(FOLLOW_ruleExpr_in_rule__StmtWhile__CondAssignment_115451);
             ruleExpr();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getStmtWhileAccess().getCondExprParserRuleCall_1_0()); 
 
@@ -20009,10 +20504,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtWhile__CondAssignment_1
+    // $ANTLR end "rule__StmtWhile__CondAssignment_1"
 
 
-    // $ANTLR start rule__StmtWhile__BodyAssignment_3
+    // $ANTLR start "rule__StmtWhile__BodyAssignment_3"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7713:1: rule__StmtWhile__BodyAssignment_3 : ( ruleStatements ) ;
     public final void rule__StmtWhile__BodyAssignment_3() throws RecognitionException {
 
@@ -20028,7 +20523,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getStmtWhileAccess().getBodyStatementsParserRuleCall_3_0()); 
             pushFollow(FOLLOW_ruleStatements_in_rule__StmtWhile__BodyAssignment_315482);
             ruleStatements();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getStmtWhileAccess().getBodyStatementsParserRuleCall_3_0()); 
 
@@ -20049,10 +20545,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtWhile__BodyAssignment_3
+    // $ANTLR end "rule__StmtWhile__BodyAssignment_3"
 
 
-    // $ANTLR start rule__StmtExpr__EAssignment_0
+    // $ANTLR start "rule__StmtExpr__EAssignment_0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7728:1: rule__StmtExpr__EAssignment_0 : ( ruleExpr ) ;
     public final void rule__StmtExpr__EAssignment_0() throws RecognitionException {
 
@@ -20068,7 +20564,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getStmtExprAccess().getEExprParserRuleCall_0_0()); 
             pushFollow(FOLLOW_ruleExpr_in_rule__StmtExpr__EAssignment_015513);
             ruleExpr();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getStmtExprAccess().getEExprParserRuleCall_0_0()); 
 
@@ -20089,10 +20586,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__StmtExpr__EAssignment_0
+    // $ANTLR end "rule__StmtExpr__EAssignment_0"
 
 
-    // $ANTLR start rule__ExprAssignment__OpAssignment_1_1
+    // $ANTLR start "rule__ExprAssignment__OpAssignment_1_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7743:1: rule__ExprAssignment__OpAssignment_1_1 : ( ( rule__ExprAssignment__OpAlternatives_1_1_0 ) ) ;
     public final void rule__ExprAssignment__OpAssignment_1_1() throws RecognitionException {
 
@@ -20111,7 +20608,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAssignment__OpAlternatives_1_1_0_in_rule__ExprAssignment__OpAssignment_1_115544);
             rule__ExprAssignment__OpAlternatives_1_1_0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -20135,10 +20633,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAssignment__OpAssignment_1_1
+    // $ANTLR end "rule__ExprAssignment__OpAssignment_1_1"
 
 
-    // $ANTLR start rule__ExprAssignment__RightAssignment_1_2
+    // $ANTLR start "rule__ExprAssignment__RightAssignment_1_2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7759:1: rule__ExprAssignment__RightAssignment_1_2 : ( ruleExprOr ) ;
     public final void rule__ExprAssignment__RightAssignment_1_2() throws RecognitionException {
 
@@ -20154,7 +20652,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprAssignmentAccess().getRightExprOrParserRuleCall_1_2_0()); 
             pushFollow(FOLLOW_ruleExprOr_in_rule__ExprAssignment__RightAssignment_1_215577);
             ruleExprOr();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprAssignmentAccess().getRightExprOrParserRuleCall_1_2_0()); 
 
@@ -20175,10 +20674,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAssignment__RightAssignment_1_2
+    // $ANTLR end "rule__ExprAssignment__RightAssignment_1_2"
 
 
-    // $ANTLR start rule__ExprOr__OpAssignment_1_1
+    // $ANTLR start "rule__ExprOr__OpAssignment_1_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7774:1: rule__ExprOr__OpAssignment_1_1 : ( ( 'or' ) ) ;
     public final void rule__ExprOr__OpAssignment_1_1() throws RecognitionException {
 
@@ -20220,10 +20719,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprOr__OpAssignment_1_1
+    // $ANTLR end "rule__ExprOr__OpAssignment_1_1"
 
 
-    // $ANTLR start rule__ExprOr__RightAssignment_1_2
+    // $ANTLR start "rule__ExprOr__RightAssignment_1_2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7797:1: rule__ExprOr__RightAssignment_1_2 : ( ruleExprAnd ) ;
     public final void rule__ExprOr__RightAssignment_1_2() throws RecognitionException {
 
@@ -20239,7 +20738,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprOrAccess().getRightExprAndParserRuleCall_1_2_0()); 
             pushFollow(FOLLOW_ruleExprAnd_in_rule__ExprOr__RightAssignment_1_215652);
             ruleExprAnd();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprOrAccess().getRightExprAndParserRuleCall_1_2_0()); 
 
@@ -20260,10 +20760,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprOr__RightAssignment_1_2
+    // $ANTLR end "rule__ExprOr__RightAssignment_1_2"
 
 
-    // $ANTLR start rule__ExprAnd__OpAssignment_1_1
+    // $ANTLR start "rule__ExprAnd__OpAssignment_1_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7812:1: rule__ExprAnd__OpAssignment_1_1 : ( ( 'and' ) ) ;
     public final void rule__ExprAnd__OpAssignment_1_1() throws RecognitionException {
 
@@ -20305,10 +20805,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAnd__OpAssignment_1_1
+    // $ANTLR end "rule__ExprAnd__OpAssignment_1_1"
 
 
-    // $ANTLR start rule__ExprAnd__RightAssignment_1_2
+    // $ANTLR start "rule__ExprAnd__RightAssignment_1_2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7835:1: rule__ExprAnd__RightAssignment_1_2 : ( ruleExprEquality ) ;
     public final void rule__ExprAnd__RightAssignment_1_2() throws RecognitionException {
 
@@ -20324,7 +20824,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprAndAccess().getRightExprEqualityParserRuleCall_1_2_0()); 
             pushFollow(FOLLOW_ruleExprEquality_in_rule__ExprAnd__RightAssignment_1_215727);
             ruleExprEquality();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprAndAccess().getRightExprEqualityParserRuleCall_1_2_0()); 
 
@@ -20345,10 +20846,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAnd__RightAssignment_1_2
+    // $ANTLR end "rule__ExprAnd__RightAssignment_1_2"
 
 
-    // $ANTLR start rule__ExprEquality__OpAssignment_1_1
+    // $ANTLR start "rule__ExprEquality__OpAssignment_1_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7850:1: rule__ExprEquality__OpAssignment_1_1 : ( ( rule__ExprEquality__OpAlternatives_1_1_0 ) ) ;
     public final void rule__ExprEquality__OpAssignment_1_1() throws RecognitionException {
 
@@ -20367,7 +20868,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprEquality__OpAlternatives_1_1_0_in_rule__ExprEquality__OpAssignment_1_115758);
             rule__ExprEquality__OpAlternatives_1_1_0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -20391,10 +20893,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprEquality__OpAssignment_1_1
+    // $ANTLR end "rule__ExprEquality__OpAssignment_1_1"
 
 
-    // $ANTLR start rule__ExprEquality__RightAssignment_1_2
+    // $ANTLR start "rule__ExprEquality__RightAssignment_1_2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7866:1: rule__ExprEquality__RightAssignment_1_2 : ( ruleExprComparison ) ;
     public final void rule__ExprEquality__RightAssignment_1_2() throws RecognitionException {
 
@@ -20410,7 +20912,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprEqualityAccess().getRightExprComparisonParserRuleCall_1_2_0()); 
             pushFollow(FOLLOW_ruleExprComparison_in_rule__ExprEquality__RightAssignment_1_215791);
             ruleExprComparison();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprEqualityAccess().getRightExprComparisonParserRuleCall_1_2_0()); 
 
@@ -20431,10 +20934,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprEquality__RightAssignment_1_2
+    // $ANTLR end "rule__ExprEquality__RightAssignment_1_2"
 
 
-    // $ANTLR start rule__ExprComparison__OpAssignment_1_1
+    // $ANTLR start "rule__ExprComparison__OpAssignment_1_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7881:1: rule__ExprComparison__OpAssignment_1_1 : ( ( rule__ExprComparison__OpAlternatives_1_1_0 ) ) ;
     public final void rule__ExprComparison__OpAssignment_1_1() throws RecognitionException {
 
@@ -20453,7 +20956,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprComparison__OpAlternatives_1_1_0_in_rule__ExprComparison__OpAssignment_1_115822);
             rule__ExprComparison__OpAlternatives_1_1_0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -20477,10 +20981,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprComparison__OpAssignment_1_1
+    // $ANTLR end "rule__ExprComparison__OpAssignment_1_1"
 
 
-    // $ANTLR start rule__ExprComparison__RightAssignment_1_2
+    // $ANTLR start "rule__ExprComparison__RightAssignment_1_2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7897:1: rule__ExprComparison__RightAssignment_1_2 : ( ruleExprAdditive ) ;
     public final void rule__ExprComparison__RightAssignment_1_2() throws RecognitionException {
 
@@ -20496,7 +21000,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprComparisonAccess().getRightExprAdditiveParserRuleCall_1_2_0()); 
             pushFollow(FOLLOW_ruleExprAdditive_in_rule__ExprComparison__RightAssignment_1_215855);
             ruleExprAdditive();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprComparisonAccess().getRightExprAdditiveParserRuleCall_1_2_0()); 
 
@@ -20517,10 +21022,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprComparison__RightAssignment_1_2
+    // $ANTLR end "rule__ExprComparison__RightAssignment_1_2"
 
 
-    // $ANTLR start rule__ExprAdditive__OpAssignment_1_1
+    // $ANTLR start "rule__ExprAdditive__OpAssignment_1_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7912:1: rule__ExprAdditive__OpAssignment_1_1 : ( ( rule__ExprAdditive__OpAlternatives_1_1_0 ) ) ;
     public final void rule__ExprAdditive__OpAssignment_1_1() throws RecognitionException {
 
@@ -20539,7 +21044,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprAdditive__OpAlternatives_1_1_0_in_rule__ExprAdditive__OpAssignment_1_115886);
             rule__ExprAdditive__OpAlternatives_1_1_0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -20563,10 +21069,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAdditive__OpAssignment_1_1
+    // $ANTLR end "rule__ExprAdditive__OpAssignment_1_1"
 
 
-    // $ANTLR start rule__ExprAdditive__RightAssignment_1_2
+    // $ANTLR start "rule__ExprAdditive__RightAssignment_1_2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7928:1: rule__ExprAdditive__RightAssignment_1_2 : ( ruleExprMult ) ;
     public final void rule__ExprAdditive__RightAssignment_1_2() throws RecognitionException {
 
@@ -20582,7 +21088,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprAdditiveAccess().getRightExprMultParserRuleCall_1_2_0()); 
             pushFollow(FOLLOW_ruleExprMult_in_rule__ExprAdditive__RightAssignment_1_215919);
             ruleExprMult();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprAdditiveAccess().getRightExprMultParserRuleCall_1_2_0()); 
 
@@ -20603,10 +21110,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAdditive__RightAssignment_1_2
+    // $ANTLR end "rule__ExprAdditive__RightAssignment_1_2"
 
 
-    // $ANTLR start rule__ExprMult__OpAssignment_1_1
+    // $ANTLR start "rule__ExprMult__OpAssignment_1_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7943:1: rule__ExprMult__OpAssignment_1_1 : ( ( rule__ExprMult__OpAlternatives_1_1_0 ) ) ;
     public final void rule__ExprMult__OpAssignment_1_1() throws RecognitionException {
 
@@ -20625,7 +21132,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprMult__OpAlternatives_1_1_0_in_rule__ExprMult__OpAssignment_1_115950);
             rule__ExprMult__OpAlternatives_1_1_0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -20649,10 +21157,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprMult__OpAssignment_1_1
+    // $ANTLR end "rule__ExprMult__OpAssignment_1_1"
 
 
-    // $ANTLR start rule__ExprMult__RightAssignment_1_2
+    // $ANTLR start "rule__ExprMult__RightAssignment_1_2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7959:1: rule__ExprMult__RightAssignment_1_2 : ( ruleExprSign ) ;
     public final void rule__ExprMult__RightAssignment_1_2() throws RecognitionException {
 
@@ -20668,7 +21176,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprMultAccess().getRightExprSignParserRuleCall_1_2_0()); 
             pushFollow(FOLLOW_ruleExprSign_in_rule__ExprMult__RightAssignment_1_215983);
             ruleExprSign();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprMultAccess().getRightExprSignParserRuleCall_1_2_0()); 
 
@@ -20689,10 +21198,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprMult__RightAssignment_1_2
+    // $ANTLR end "rule__ExprMult__RightAssignment_1_2"
 
 
-    // $ANTLR start rule__ExprSign__OpAssignment_0_1
+    // $ANTLR start "rule__ExprSign__OpAssignment_0_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7974:1: rule__ExprSign__OpAssignment_0_1 : ( ( rule__ExprSign__OpAlternatives_0_1_0 ) ) ;
     public final void rule__ExprSign__OpAssignment_0_1() throws RecognitionException {
 
@@ -20711,7 +21220,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
             {
             pushFollow(FOLLOW_rule__ExprSign__OpAlternatives_0_1_0_in_rule__ExprSign__OpAssignment_0_116014);
             rule__ExprSign__OpAlternatives_0_1_0();
-            _fsp--;
+
+            state._fsp--;
 
 
             }
@@ -20735,10 +21245,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprSign__OpAssignment_0_1
+    // $ANTLR end "rule__ExprSign__OpAssignment_0_1"
 
 
-    // $ANTLR start rule__ExprSign__RightAssignment_0_2
+    // $ANTLR start "rule__ExprSign__RightAssignment_0_2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:7990:1: rule__ExprSign__RightAssignment_0_2 : ( ruleExprNot ) ;
     public final void rule__ExprSign__RightAssignment_0_2() throws RecognitionException {
 
@@ -20754,7 +21264,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprSignAccess().getRightExprNotParserRuleCall_0_2_0()); 
             pushFollow(FOLLOW_ruleExprNot_in_rule__ExprSign__RightAssignment_0_216047);
             ruleExprNot();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprSignAccess().getRightExprNotParserRuleCall_0_2_0()); 
 
@@ -20775,10 +21286,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprSign__RightAssignment_0_2
+    // $ANTLR end "rule__ExprSign__RightAssignment_0_2"
 
 
-    // $ANTLR start rule__ExprNot__OpAssignment_0_1
+    // $ANTLR start "rule__ExprNot__OpAssignment_0_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8005:1: rule__ExprNot__OpAssignment_0_1 : ( ( 'not' ) ) ;
     public final void rule__ExprNot__OpAssignment_0_1() throws RecognitionException {
 
@@ -20820,10 +21331,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprNot__OpAssignment_0_1
+    // $ANTLR end "rule__ExprNot__OpAssignment_0_1"
 
 
-    // $ANTLR start rule__ExprNot__RightAssignment_0_2
+    // $ANTLR start "rule__ExprNot__RightAssignment_0_2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8028:1: rule__ExprNot__RightAssignment_0_2 : ( ruleExprCustomOperator ) ;
     public final void rule__ExprNot__RightAssignment_0_2() throws RecognitionException {
 
@@ -20839,7 +21350,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprNotAccess().getRightExprCustomOperatorParserRuleCall_0_2_0()); 
             pushFollow(FOLLOW_ruleExprCustomOperator_in_rule__ExprNot__RightAssignment_0_216122);
             ruleExprCustomOperator();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprNotAccess().getRightExprCustomOperatorParserRuleCall_0_2_0()); 
 
@@ -20860,10 +21372,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprNot__RightAssignment_0_2
+    // $ANTLR end "rule__ExprNot__RightAssignment_0_2"
 
 
-    // $ANTLR start rule__ExprCustomOperator__OpAssignment_1_1
+    // $ANTLR start "rule__ExprCustomOperator__OpAssignment_1_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8043:1: rule__ExprCustomOperator__OpAssignment_1_1 : ( RULE_OPERATOR ) ;
     public final void rule__ExprCustomOperator__OpAssignment_1_1() throws RecognitionException {
 
@@ -20897,10 +21409,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprCustomOperator__OpAssignment_1_1
+    // $ANTLR end "rule__ExprCustomOperator__OpAssignment_1_1"
 
 
-    // $ANTLR start rule__ExprCustomOperator__RightAssignment_1_2
+    // $ANTLR start "rule__ExprCustomOperator__RightAssignment_1_2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8058:1: rule__ExprCustomOperator__RightAssignment_1_2 : ( ruleExpr ) ;
     public final void rule__ExprCustomOperator__RightAssignment_1_2() throws RecognitionException {
 
@@ -20916,7 +21428,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprCustomOperatorAccess().getRightExprParserRuleCall_1_2_0()); 
             pushFollow(FOLLOW_ruleExpr_in_rule__ExprCustomOperator__RightAssignment_1_216184);
             ruleExpr();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprCustomOperatorAccess().getRightExprParserRuleCall_1_2_0()); 
 
@@ -20937,10 +21450,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprCustomOperator__RightAssignment_1_2
+    // $ANTLR end "rule__ExprCustomOperator__RightAssignment_1_2"
 
 
-    // $ANTLR start rule__ExprMember__OpAssignment_1_1
+    // $ANTLR start "rule__ExprMember__OpAssignment_1_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8073:1: rule__ExprMember__OpAssignment_1_1 : ( ( '.' ) ) ;
     public final void rule__ExprMember__OpAssignment_1_1() throws RecognitionException {
 
@@ -20982,10 +21495,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprMember__OpAssignment_1_1
+    // $ANTLR end "rule__ExprMember__OpAssignment_1_1"
 
 
-    // $ANTLR start rule__ExprMember__RightAssignment_1_2
+    // $ANTLR start "rule__ExprMember__RightAssignment_1_2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8096:1: rule__ExprMember__RightAssignment_1_2 : ( ruleExprAtomic ) ;
     public final void rule__ExprMember__RightAssignment_1_2() throws RecognitionException {
 
@@ -21001,7 +21514,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprMemberAccess().getRightExprAtomicParserRuleCall_1_2_0()); 
             pushFollow(FOLLOW_ruleExprAtomic_in_rule__ExprMember__RightAssignment_1_216259);
             ruleExprAtomic();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprMemberAccess().getRightExprAtomicParserRuleCall_1_2_0()); 
 
@@ -21022,10 +21536,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprMember__RightAssignment_1_2
+    // $ANTLR end "rule__ExprMember__RightAssignment_1_2"
 
 
-    // $ANTLR start rule__ExprAtomic__NameValAssignment_0_1
+    // $ANTLR start "rule__ExprAtomic__NameValAssignment_0_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8111:1: rule__ExprAtomic__NameValAssignment_0_1 : ( RULE_ID ) ;
     public final void rule__ExprAtomic__NameValAssignment_0_1() throws RecognitionException {
 
@@ -21059,10 +21573,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__NameValAssignment_0_1
+    // $ANTLR end "rule__ExprAtomic__NameValAssignment_0_1"
 
 
-    // $ANTLR start rule__ExprAtomic__ParametersAssignment_0_2
+    // $ANTLR start "rule__ExprAtomic__ParametersAssignment_0_2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8126:1: rule__ExprAtomic__ParametersAssignment_0_2 : ( ruleExprList ) ;
     public final void rule__ExprAtomic__ParametersAssignment_0_2() throws RecognitionException {
 
@@ -21078,7 +21592,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprAtomicAccess().getParametersExprListParserRuleCall_0_2_0()); 
             pushFollow(FOLLOW_ruleExprList_in_rule__ExprAtomic__ParametersAssignment_0_216321);
             ruleExprList();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprAtomicAccess().getParametersExprListParserRuleCall_0_2_0()); 
 
@@ -21099,10 +21614,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__ParametersAssignment_0_2
+    // $ANTLR end "rule__ExprAtomic__ParametersAssignment_0_2"
 
 
-    // $ANTLR start rule__ExprAtomic__NameValAssignment_1_1
+    // $ANTLR start "rule__ExprAtomic__NameValAssignment_1_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8141:1: rule__ExprAtomic__NameValAssignment_1_1 : ( RULE_ID ) ;
     public final void rule__ExprAtomic__NameValAssignment_1_1() throws RecognitionException {
 
@@ -21136,10 +21651,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__NameValAssignment_1_1
+    // $ANTLR end "rule__ExprAtomic__NameValAssignment_1_1"
 
 
-    // $ANTLR start rule__ExprAtomic__NameValAssignment_2_1
+    // $ANTLR start "rule__ExprAtomic__NameValAssignment_2_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8156:1: rule__ExprAtomic__NameValAssignment_2_1 : ( RULE_ID ) ;
     public final void rule__ExprAtomic__NameValAssignment_2_1() throws RecognitionException {
 
@@ -21173,10 +21688,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__NameValAssignment_2_1
+    // $ANTLR end "rule__ExprAtomic__NameValAssignment_2_1"
 
 
-    // $ANTLR start rule__ExprAtomic__IntValAssignment_4_1
+    // $ANTLR start "rule__ExprAtomic__IntValAssignment_4_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8171:1: rule__ExprAtomic__IntValAssignment_4_1 : ( RULE_INT ) ;
     public final void rule__ExprAtomic__IntValAssignment_4_1() throws RecognitionException {
 
@@ -21210,10 +21725,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__IntValAssignment_4_1
+    // $ANTLR end "rule__ExprAtomic__IntValAssignment_4_1"
 
 
-    // $ANTLR start rule__ExprAtomic__NumValAssignment_5_1
+    // $ANTLR start "rule__ExprAtomic__NumValAssignment_5_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8186:1: rule__ExprAtomic__NumValAssignment_5_1 : ( RULE_NUMBER ) ;
     public final void rule__ExprAtomic__NumValAssignment_5_1() throws RecognitionException {
 
@@ -21247,10 +21762,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__NumValAssignment_5_1
+    // $ANTLR end "rule__ExprAtomic__NumValAssignment_5_1"
 
 
-    // $ANTLR start rule__ExprAtomic__StrValAssignment_6_1
+    // $ANTLR start "rule__ExprAtomic__StrValAssignment_6_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8201:1: rule__ExprAtomic__StrValAssignment_6_1 : ( RULE_STRING ) ;
     public final void rule__ExprAtomic__StrValAssignment_6_1() throws RecognitionException {
 
@@ -21284,10 +21799,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__StrValAssignment_6_1
+    // $ANTLR end "rule__ExprAtomic__StrValAssignment_6_1"
 
 
-    // $ANTLR start rule__ExprAtomic__NameAssignment_7_2
+    // $ANTLR start "rule__ExprAtomic__NameAssignment_7_2"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8216:1: rule__ExprAtomic__NameAssignment_7_2 : ( RULE_ID ) ;
     public final void rule__ExprAtomic__NameAssignment_7_2() throws RecognitionException {
 
@@ -21321,10 +21836,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__NameAssignment_7_2
+    // $ANTLR end "rule__ExprAtomic__NameAssignment_7_2"
 
 
-    // $ANTLR start rule__ExprAtomic__ParametersAssignment_7_3_0
+    // $ANTLR start "rule__ExprAtomic__ParametersAssignment_7_3_0"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8231:1: rule__ExprAtomic__ParametersAssignment_7_3_0 : ( ruleExprList ) ;
     public final void rule__ExprAtomic__ParametersAssignment_7_3_0() throws RecognitionException {
 
@@ -21340,7 +21855,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprAtomicAccess().getParametersExprListParserRuleCall_7_3_0_0()); 
             pushFollow(FOLLOW_ruleExprList_in_rule__ExprAtomic__ParametersAssignment_7_3_016538);
             ruleExprList();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprAtomicAccess().getParametersExprListParserRuleCall_7_3_0_0()); 
 
@@ -21361,10 +21877,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__ParametersAssignment_7_3_0
+    // $ANTLR end "rule__ExprAtomic__ParametersAssignment_7_3_0"
 
 
-    // $ANTLR start rule__ExprAtomic__LeftAssignment_8_3
+    // $ANTLR start "rule__ExprAtomic__LeftAssignment_8_3"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8246:1: rule__ExprAtomic__LeftAssignment_8_3 : ( ruleExpr ) ;
     public final void rule__ExprAtomic__LeftAssignment_8_3() throws RecognitionException {
 
@@ -21380,7 +21896,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprAtomicAccess().getLeftExprParserRuleCall_8_3_0()); 
             pushFollow(FOLLOW_ruleExpr_in_rule__ExprAtomic__LeftAssignment_8_316569);
             ruleExpr();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprAtomicAccess().getLeftExprParserRuleCall_8_3_0()); 
 
@@ -21401,10 +21918,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__LeftAssignment_8_3
+    // $ANTLR end "rule__ExprAtomic__LeftAssignment_8_3"
 
 
-    // $ANTLR start rule__ExprAtomic__OpAssignment_8_4
+    // $ANTLR start "rule__ExprAtomic__OpAssignment_8_4"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8261:1: rule__ExprAtomic__OpAssignment_8_4 : ( RULE_OPERATOR ) ;
     public final void rule__ExprAtomic__OpAssignment_8_4() throws RecognitionException {
 
@@ -21438,10 +21955,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__OpAssignment_8_4
+    // $ANTLR end "rule__ExprAtomic__OpAssignment_8_4"
 
 
-    // $ANTLR start rule__ExprAtomic__RightAssignment_8_5
+    // $ANTLR start "rule__ExprAtomic__RightAssignment_8_5"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8276:1: rule__ExprAtomic__RightAssignment_8_5 : ( ruleExpr ) ;
     public final void rule__ExprAtomic__RightAssignment_8_5() throws RecognitionException {
 
@@ -21457,7 +21974,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprAtomicAccess().getRightExprParserRuleCall_8_5_0()); 
             pushFollow(FOLLOW_ruleExpr_in_rule__ExprAtomic__RightAssignment_8_516631);
             ruleExpr();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprAtomicAccess().getRightExprParserRuleCall_8_5_0()); 
 
@@ -21478,10 +21996,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprAtomic__RightAssignment_8_5
+    // $ANTLR end "rule__ExprAtomic__RightAssignment_8_5"
 
 
-    // $ANTLR start rule__ExprList__ParamsAssignment_1
+    // $ANTLR start "rule__ExprList__ParamsAssignment_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8291:1: rule__ExprList__ParamsAssignment_1 : ( ruleExpr ) ;
     public final void rule__ExprList__ParamsAssignment_1() throws RecognitionException {
 
@@ -21497,7 +22015,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprListAccess().getParamsExprParserRuleCall_1_0()); 
             pushFollow(FOLLOW_ruleExpr_in_rule__ExprList__ParamsAssignment_116662);
             ruleExpr();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprListAccess().getParamsExprParserRuleCall_1_0()); 
 
@@ -21518,10 +22037,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprList__ParamsAssignment_1
+    // $ANTLR end "rule__ExprList__ParamsAssignment_1"
 
 
-    // $ANTLR start rule__ExprList__ParamsAssignment_2_1
+    // $ANTLR start "rule__ExprList__ParamsAssignment_2_1"
     // ../de.peeeq.Pscript.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8306:1: rule__ExprList__ParamsAssignment_2_1 : ( ruleExpr ) ;
     public final void rule__ExprList__ParamsAssignment_2_1() throws RecognitionException {
 
@@ -21537,7 +22056,8 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
              before(grammarAccess.getExprListAccess().getParamsExprParserRuleCall_2_1_0()); 
             pushFollow(FOLLOW_ruleExpr_in_rule__ExprList__ParamsAssignment_2_116693);
             ruleExpr();
-            _fsp--;
+
+            state._fsp--;
 
              after(grammarAccess.getExprListAccess().getParamsExprParserRuleCall_2_1_0()); 
 
@@ -21558,11 +22078,77 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
         }
         return ;
     }
-    // $ANTLR end rule__ExprList__ParamsAssignment_2_1
+    // $ANTLR end "rule__ExprList__ParamsAssignment_2_1"
+
+    // Delegated rules
 
 
+    protected DFA14 dfa14 = new DFA14(this);
     protected DFA19 dfa19 = new DFA19(this);
     protected DFA27 dfa27 = new DFA27(this);
+    static final String DFA14_eotS =
+        "\15\uffff";
+    static final String DFA14_eofS =
+        "\1\uffff\1\10\13\uffff";
+    static final String DFA14_minS =
+        "\1\5\1\4\4\uffff\2\5\5\uffff";
+    static final String DFA14_maxS =
+        "\1\61\1\64\4\uffff\1\52\1\65\5\uffff";
+    static final String DFA14_acceptS =
+        "\2\uffff\1\4\1\5\1\6\1\7\2\uffff\1\3\1\11\1\10\1\1\1\2";
+    static final String DFA14_specialS =
+        "\15\uffff}>";
+    static final String[] DFA14_transitionS = {
+            "\1\1\1\uffff\1\3\1\4\1\5\40\uffff\1\2\6\uffff\1\6",
+            "\1\10\1\uffff\1\10\10\uffff\20\10\1\uffff\1\10\2\uffff\1\10"+
+            "\6\uffff\1\7\2\10\6\uffff\2\10",
+            "",
+            "",
+            "",
+            "",
+            "\1\12\44\uffff\1\11",
+            "\1\13\1\uffff\3\13\16\uffff\2\13\20\uffff\1\13\1\14\5\uffff"+
+            "\1\13\3\uffff\1\13",
+            "",
+            "",
+            "",
+            "",
+            ""
+    };
+
+    static final short[] DFA14_eot = DFA.unpackEncodedString(DFA14_eotS);
+    static final short[] DFA14_eof = DFA.unpackEncodedString(DFA14_eofS);
+    static final char[] DFA14_min = DFA.unpackEncodedStringToUnsignedChars(DFA14_minS);
+    static final char[] DFA14_max = DFA.unpackEncodedStringToUnsignedChars(DFA14_maxS);
+    static final short[] DFA14_accept = DFA.unpackEncodedString(DFA14_acceptS);
+    static final short[] DFA14_special = DFA.unpackEncodedString(DFA14_specialS);
+    static final short[][] DFA14_transition;
+
+    static {
+        int numStates = DFA14_transitionS.length;
+        DFA14_transition = new short[numStates][];
+        for (int i=0; i<numStates; i++) {
+            DFA14_transition[i] = DFA.unpackEncodedString(DFA14_transitionS[i]);
+        }
+    }
+
+    class DFA14 extends DFA {
+
+        public DFA14(BaseRecognizer recognizer) {
+            this.recognizer = recognizer;
+            this.decisionNumber = 14;
+            this.eot = DFA14_eot;
+            this.eof = DFA14_eof;
+            this.min = DFA14_min;
+            this.max = DFA14_max;
+            this.accept = DFA14_accept;
+            this.special = DFA14_special;
+            this.transition = DFA14_transition;
+        }
+        public String getDescription() {
+            return "1375:1: rule__ExprAtomic__Alternatives : ( ( ( rule__ExprAtomic__Group_0__0 ) ) | ( ( rule__ExprAtomic__Group_1__0 ) ) | ( ( rule__ExprAtomic__Group_2__0 ) ) | ( ( rule__ExprAtomic__Group_3__0 ) ) | ( ( rule__ExprAtomic__Group_4__0 ) ) | ( ( rule__ExprAtomic__Group_5__0 ) ) | ( ( rule__ExprAtomic__Group_6__0 ) ) | ( ( rule__ExprAtomic__Group_7__0 ) ) | ( ( rule__ExprAtomic__Group_8__0 ) ) );";
+        }
+    }
     static final String DFA19_eotS =
         "\4\uffff";
     static final String DFA19_eofS =
@@ -21576,10 +22162,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
     static final String DFA19_specialS =
         "\4\uffff}>";
     static final String[] DFA19_transitionS = {
-            "\1\1\11\uffff\1\2\22\uffff\1\2\1\3\2\uffff\1\2\1\uffff\1\2\1"+
-            "\uffff\1\2\10\uffff\1\2",
-            "\1\1\11\uffff\1\2\22\uffff\1\2\1\3\2\uffff\1\2\1\uffff\1\2\1"+
-            "\uffff\1\2\10\uffff\1\2",
+            "\1\1\11\uffff\1\2\22\uffff\1\2\1\3\2\uffff\1\2\1\uffff\1\2"+
+            "\1\uffff\1\2\10\uffff\1\2",
+            "\1\1\11\uffff\1\2\22\uffff\1\2\1\3\2\uffff\1\2\1\uffff\1\2"+
+            "\1\uffff\1\2\10\uffff\1\2",
             "",
             ""
     };
@@ -21821,10 +22407,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
     public static final BitSet FOLLOW_rule__Program__Group__0__Impl_in_rule__Program__Group__03160 = new BitSet(new long[]{0x0000000080000000L});
     public static final BitSet FOLLOW_rule__Program__Group__1_in_rule__Program__Group__03163 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_RULE_NL_in_rule__Program__Group__0__Impl3191 = new BitSet(new long[]{0x0000000000000012L});
-    public static final BitSet FOLLOW_rule__Program__Group__1__Impl_in_rule__Program__Group__13222 = new BitSet(new long[]{0x0000000080000012L});
+    public static final BitSet FOLLOW_rule__Program__Group__1__Impl_in_rule__Program__Group__13222 = new BitSet(new long[]{0x0000000080000010L});
     public static final BitSet FOLLOW_rule__Program__Group__2_in_rule__Program__Group__13225 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__Program__PackagesAssignment_1_in_rule__Program__Group__1__Impl3252 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__Program__Group__2__Impl_in_rule__Program__Group__23282 = new BitSet(new long[]{0x0000000000000012L});
+    public static final BitSet FOLLOW_rule__Program__Group__2__Impl_in_rule__Program__Group__23282 = new BitSet(new long[]{0x0000000080000010L});
     public static final BitSet FOLLOW_rule__Program__Group__3_in_rule__Program__Group__23285 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__Program__PackagesAssignment_2_in_rule__Program__Group__2__Impl3312 = new BitSet(new long[]{0x0000000080000002L});
     public static final BitSet FOLLOW_rule__Program__Group__3__Impl_in_rule__Program__Group__33343 = new BitSet(new long[]{0x0000000000000002L});
@@ -21838,26 +22424,26 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
     public static final BitSet FOLLOW_rule__PackageDeclaration__Group__2__Impl_in_rule__PackageDeclaration__Group__23532 = new BitSet(new long[]{0x000402A600004010L});
     public static final BitSet FOLLOW_rule__PackageDeclaration__Group__3_in_rule__PackageDeclaration__Group__23535 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_32_in_rule__PackageDeclaration__Group__2__Impl3563 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__PackageDeclaration__Group__3__Impl_in_rule__PackageDeclaration__Group__33594 = new BitSet(new long[]{0x000402A200004010L});
+    public static final BitSet FOLLOW_rule__PackageDeclaration__Group__3__Impl_in_rule__PackageDeclaration__Group__33594 = new BitSet(new long[]{0x000402A600004010L});
     public static final BitSet FOLLOW_rule__PackageDeclaration__Group__4_in_rule__PackageDeclaration__Group__33597 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__PackageDeclaration__Group_3__0_in_rule__PackageDeclaration__Group__3__Impl3624 = new BitSet(new long[]{0x0000000400000012L});
-    public static final BitSet FOLLOW_rule__PackageDeclaration__Group__4__Impl_in_rule__PackageDeclaration__Group__43655 = new BitSet(new long[]{0x000402A200004000L});
+    public static final BitSet FOLLOW_rule__PackageDeclaration__Group__4__Impl_in_rule__PackageDeclaration__Group__43655 = new BitSet(new long[]{0x000402A600004010L});
     public static final BitSet FOLLOW_rule__PackageDeclaration__Group__5_in_rule__PackageDeclaration__Group__43658 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_RULE_NL_in_rule__PackageDeclaration__Group__4__Impl3686 = new BitSet(new long[]{0x0000000000000012L});
-    public static final BitSet FOLLOW_rule__PackageDeclaration__Group__5__Impl_in_rule__PackageDeclaration__Group__53717 = new BitSet(new long[]{0x0000000200000000L});
+    public static final BitSet FOLLOW_rule__PackageDeclaration__Group__5__Impl_in_rule__PackageDeclaration__Group__53717 = new BitSet(new long[]{0x000402A600004010L});
     public static final BitSet FOLLOW_rule__PackageDeclaration__Group__6_in_rule__PackageDeclaration__Group__53720 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__PackageDeclaration__Group_5__0_in_rule__PackageDeclaration__Group__5__Impl3747 = new BitSet(new long[]{0x000402A000004002L});
-    public static final BitSet FOLLOW_rule__PackageDeclaration__Group__6__Impl_in_rule__PackageDeclaration__Group__63778 = new BitSet(new long[]{0x0000000000000012L});
+    public static final BitSet FOLLOW_rule__PackageDeclaration__Group__6__Impl_in_rule__PackageDeclaration__Group__63778 = new BitSet(new long[]{0x0000000000000010L});
     public static final BitSet FOLLOW_rule__PackageDeclaration__Group__7_in_rule__PackageDeclaration__Group__63781 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_33_in_rule__PackageDeclaration__Group__6__Impl3809 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__PackageDeclaration__Group__7__Impl_in_rule__PackageDeclaration__Group__73840 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_RULE_NL_in_rule__PackageDeclaration__Group__7__Impl3868 = new BitSet(new long[]{0x0000000000000012L});
-    public static final BitSet FOLLOW_rule__PackageDeclaration__Group_3__0__Impl_in_rule__PackageDeclaration__Group_3__03915 = new BitSet(new long[]{0x0000000400000000L});
+    public static final BitSet FOLLOW_rule__PackageDeclaration__Group_3__0__Impl_in_rule__PackageDeclaration__Group_3__03915 = new BitSet(new long[]{0x0000000400000010L});
     public static final BitSet FOLLOW_rule__PackageDeclaration__Group_3__1_in_rule__PackageDeclaration__Group_3__03918 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_RULE_NL_in_rule__PackageDeclaration__Group_3__0__Impl3946 = new BitSet(new long[]{0x0000000000000012L});
     public static final BitSet FOLLOW_rule__PackageDeclaration__Group_3__1__Impl_in_rule__PackageDeclaration__Group_3__13977 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__PackageDeclaration__ImportsAssignment_3_1_in_rule__PackageDeclaration__Group_3__1__Impl4004 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__PackageDeclaration__Group_5__0__Impl_in_rule__PackageDeclaration__Group_5__04038 = new BitSet(new long[]{0x0000000000000012L});
+    public static final BitSet FOLLOW_rule__PackageDeclaration__Group_5__0__Impl_in_rule__PackageDeclaration__Group_5__04038 = new BitSet(new long[]{0x0000000000000010L});
     public static final BitSet FOLLOW_rule__PackageDeclaration__Group_5__1_in_rule__PackageDeclaration__Group_5__04041 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__PackageDeclaration__ElementsAssignment_5_0_in_rule__PackageDeclaration__Group_5__0__Impl4068 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__PackageDeclaration__Group_5__1__Impl_in_rule__PackageDeclaration__Group_5__14098 = new BitSet(new long[]{0x0000000000000002L});
@@ -21870,7 +22456,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
     public static final BitSet FOLLOW_rule__Import__ImportedNamespaceAssignment_1_in_rule__Import__Group__1__Impl4253 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__Import__Group__2__Impl_in_rule__Import__Group__24283 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_RULE_NL_in_rule__Import__Group__2__Impl4310 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__QualifiedName__Group__0__Impl_in_rule__QualifiedName__Group__04345 = new BitSet(new long[]{0x0000000800000002L});
+    public static final BitSet FOLLOW_rule__QualifiedName__Group__0__Impl_in_rule__QualifiedName__Group__04345 = new BitSet(new long[]{0x0000000800000000L});
     public static final BitSet FOLLOW_rule__QualifiedName__Group__1_in_rule__QualifiedName__Group__04348 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_RULE_ID_in_rule__QualifiedName__Group__0__Impl4375 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__QualifiedName__Group__1__Impl_in_rule__QualifiedName__Group__14404 = new BitSet(new long[]{0x0000000000000002L});
@@ -21880,7 +22466,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
     public static final BitSet FOLLOW_35_in_rule__QualifiedName__Group_1__0__Impl4497 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__QualifiedName__Group_1__1__Impl_in_rule__QualifiedName__Group_1__14528 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_RULE_ID_in_rule__QualifiedName__Group_1__1__Impl4555 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__QualifiedNameWithWildCard__Group__0__Impl_in_rule__QualifiedNameWithWildCard__Group__04588 = new BitSet(new long[]{0x0000001000000002L});
+    public static final BitSet FOLLOW_rule__QualifiedNameWithWildCard__Group__0__Impl_in_rule__QualifiedNameWithWildCard__Group__04588 = new BitSet(new long[]{0x0000001000000000L});
     public static final BitSet FOLLOW_rule__QualifiedNameWithWildCard__Group__1_in_rule__QualifiedNameWithWildCard__Group__04591 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_ruleQualifiedName_in_rule__QualifiedNameWithWildCard__Group__0__Impl4618 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__QualifiedNameWithWildCard__Group__1__Impl_in_rule__QualifiedNameWithWildCard__Group__14647 = new BitSet(new long[]{0x0000000000000002L});
@@ -21912,13 +22498,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
     public static final BitSet FOLLOW_rule__ClassDef__Group__2__Impl_in_rule__ClassDef__Group__25273 = new BitSet(new long[]{0x0000000100000000L});
     public static final BitSet FOLLOW_rule__ClassDef__Group__3_in_rule__ClassDef__Group__25276 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ClassDef__NameAssignment_2_in_rule__ClassDef__Group__2__Impl5303 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__ClassDef__Group__3__Impl_in_rule__ClassDef__Group__35333 = new BitSet(new long[]{0x0004020200004010L});
+    public static final BitSet FOLLOW_rule__ClassDef__Group__3__Impl_in_rule__ClassDef__Group__35333 = new BitSet(new long[]{0x000402A200004010L});
     public static final BitSet FOLLOW_rule__ClassDef__Group__4_in_rule__ClassDef__Group__35336 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_32_in_rule__ClassDef__Group__3__Impl5364 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__ClassDef__Group__4__Impl_in_rule__ClassDef__Group__45395 = new BitSet(new long[]{0x0000000200000010L});
+    public static final BitSet FOLLOW_rule__ClassDef__Group__4__Impl_in_rule__ClassDef__Group__45395 = new BitSet(new long[]{0x000402A200004010L});
     public static final BitSet FOLLOW_rule__ClassDef__Group__5_in_rule__ClassDef__Group__45398 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__ClassDef__MembersAssignment_4_in_rule__ClassDef__Group__4__Impl5425 = new BitSet(new long[]{0x0004020000004012L});
-    public static final BitSet FOLLOW_rule__ClassDef__Group__5__Impl_in_rule__ClassDef__Group__55456 = new BitSet(new long[]{0x0000000200000000L});
+    public static final BitSet FOLLOW_rule__ClassDef__MembersAssignment_4_in_rule__ClassDef__Group__4__Impl5425 = new BitSet(new long[]{0x000402A000004012L});
+    public static final BitSet FOLLOW_rule__ClassDef__Group__5__Impl_in_rule__ClassDef__Group__55456 = new BitSet(new long[]{0x000402A200004010L});
     public static final BitSet FOLLOW_rule__ClassDef__Group__6_in_rule__ClassDef__Group__55459 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_RULE_NL_in_rule__ClassDef__Group__5__Impl5487 = new BitSet(new long[]{0x0000000000000012L});
     public static final BitSet FOLLOW_rule__ClassDef__Group__6__Impl_in_rule__ClassDef__Group__65518 = new BitSet(new long[]{0x0000000000000010L});
@@ -21926,12 +22512,12 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
     public static final BitSet FOLLOW_33_in_rule__ClassDef__Group__6__Impl5549 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ClassDef__Group__7__Impl_in_rule__ClassDef__Group__75580 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_RULE_NL_in_rule__ClassDef__Group__7__Impl5607 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__ClassMember__Group__0__Impl_in_rule__ClassMember__Group__05652 = new BitSet(new long[]{0x0004020000004000L});
+    public static final BitSet FOLLOW_rule__ClassMember__Group__0__Impl_in_rule__ClassMember__Group__05652 = new BitSet(new long[]{0x000402A000004010L});
     public static final BitSet FOLLOW_rule__ClassMember__Group__1_in_rule__ClassMember__Group__05655 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_RULE_NL_in_rule__ClassMember__Group__0__Impl5683 = new BitSet(new long[]{0x0000000000000012L});
     public static final BitSet FOLLOW_rule__ClassMember__Group__1__Impl_in_rule__ClassMember__Group__15714 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ClassMember__Alternatives_1_in_rule__ClassMember__Group__1__Impl5741 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__VarDef__Group__0__Impl_in_rule__VarDef__Group__05775 = new BitSet(new long[]{0x0004000000004000L});
+    public static final BitSet FOLLOW_rule__VarDef__Group__0__Impl_in_rule__VarDef__Group__05775 = new BitSet(new long[]{0x000402A000004000L});
     public static final BitSet FOLLOW_rule__VarDef__Group__1_in_rule__VarDef__Group__05778 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__VarDef__Group__1__Impl_in_rule__VarDef__Group__15836 = new BitSet(new long[]{0x0000000000000020L});
     public static final BitSet FOLLOW_rule__VarDef__Group__2_in_rule__VarDef__Group__15839 = new BitSet(new long[]{0x0000000000000002L});
@@ -21939,10 +22525,10 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
     public static final BitSet FOLLOW_rule__VarDef__Group__2__Impl_in_rule__VarDef__Group__25896 = new BitSet(new long[]{0x0000010000008010L});
     public static final BitSet FOLLOW_rule__VarDef__Group__3_in_rule__VarDef__Group__25899 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__VarDef__NameAssignment_2_in_rule__VarDef__Group__2__Impl5926 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__VarDef__Group__3__Impl_in_rule__VarDef__Group__35956 = new BitSet(new long[]{0x0000000000008010L});
+    public static final BitSet FOLLOW_rule__VarDef__Group__3__Impl_in_rule__VarDef__Group__35956 = new BitSet(new long[]{0x0000010000008010L});
     public static final BitSet FOLLOW_rule__VarDef__Group__4_in_rule__VarDef__Group__35959 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__VarDef__Group_3__0_in_rule__VarDef__Group__3__Impl5986 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__VarDef__Group__4__Impl_in_rule__VarDef__Group__46017 = new BitSet(new long[]{0x0000000000000010L});
+    public static final BitSet FOLLOW_rule__VarDef__Group__4__Impl_in_rule__VarDef__Group__46017 = new BitSet(new long[]{0x0000010000008010L});
     public static final BitSet FOLLOW_rule__VarDef__Group__5_in_rule__VarDef__Group__46020 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__VarDef__Group_4__0_in_rule__VarDef__Group__4__Impl6047 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__VarDef__Group__5__Impl_in_rule__VarDef__Group__56078 = new BitSet(new long[]{0x0000000000000002L});
@@ -21972,16 +22558,16 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
     public static final BitSet FOLLOW_rule__FuncDef__Group__3__Impl_in_rule__FuncDef__Group__36697 = new BitSet(new long[]{0x0000080000000020L});
     public static final BitSet FOLLOW_rule__FuncDef__Group__4_in_rule__FuncDef__Group__36700 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_42_in_rule__FuncDef__Group__3__Impl6728 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__FuncDef__Group__4__Impl_in_rule__FuncDef__Group__46759 = new BitSet(new long[]{0x0000080000000000L});
+    public static final BitSet FOLLOW_rule__FuncDef__Group__4__Impl_in_rule__FuncDef__Group__46759 = new BitSet(new long[]{0x0000080000000020L});
     public static final BitSet FOLLOW_rule__FuncDef__Group__5_in_rule__FuncDef__Group__46762 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__FuncDef__Group_4__0_in_rule__FuncDef__Group__4__Impl6789 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__FuncDef__Group__5__Impl_in_rule__FuncDef__Group__56820 = new BitSet(new long[]{0x0000010100000000L});
     public static final BitSet FOLLOW_rule__FuncDef__Group__6_in_rule__FuncDef__Group__56823 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_43_in_rule__FuncDef__Group__5__Impl6851 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__FuncDef__Group__6__Impl_in_rule__FuncDef__Group__66882 = new BitSet(new long[]{0x0000000100000000L});
+    public static final BitSet FOLLOW_rule__FuncDef__Group__6__Impl_in_rule__FuncDef__Group__66882 = new BitSet(new long[]{0x0000010100000000L});
     public static final BitSet FOLLOW_rule__FuncDef__Group__7_in_rule__FuncDef__Group__66885 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__FuncDef__Group_6__0_in_rule__FuncDef__Group__6__Impl6912 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__FuncDef__Group__7__Impl_in_rule__FuncDef__Group__76943 = new BitSet(new long[]{0x00276402030043B0L});
+    public static final BitSet FOLLOW_rule__FuncDef__Group__7__Impl_in_rule__FuncDef__Group__76943 = new BitSet(new long[]{0x002766A0030043B0L});
     public static final BitSet FOLLOW_rule__FuncDef__Group__8_in_rule__FuncDef__Group__76946 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_32_in_rule__FuncDef__Group__7__Impl6974 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__FuncDef__Group__8__Impl_in_rule__FuncDef__Group__87005 = new BitSet(new long[]{0x0000000200000000L});
@@ -21989,7 +22575,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
     public static final BitSet FOLLOW_rule__FuncDef__BodyAssignment_8_in_rule__FuncDef__Group__8__Impl7035 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__FuncDef__Group__9__Impl_in_rule__FuncDef__Group__97065 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_33_in_rule__FuncDef__Group__9__Impl7093 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__FuncDef__Group_4__0__Impl_in_rule__FuncDef__Group_4__07144 = new BitSet(new long[]{0x0000100000000002L});
+    public static final BitSet FOLLOW_rule__FuncDef__Group_4__0__Impl_in_rule__FuncDef__Group_4__07144 = new BitSet(new long[]{0x0000100000000000L});
     public static final BitSet FOLLOW_rule__FuncDef__Group_4__1_in_rule__FuncDef__Group_4__07147 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__FuncDef__ParametersAssignment_4_0_in_rule__FuncDef__Group_4__0__Impl7174 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__FuncDef__Group_4__1__Impl_in_rule__FuncDef__Group_4__17204 = new BitSet(new long[]{0x0000000000000002L});
@@ -22014,16 +22600,16 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
     public static final BitSet FOLLOW_40_in_rule__ParameterDef__Group__2__Impl7664 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ParameterDef__Group__3__Impl_in_rule__ParameterDef__Group__37695 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ParameterDef__TypeAssignment_3_in_rule__ParameterDef__Group__3__Impl7722 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__Statements__Group__0__Impl_in_rule__Statements__Group__07760 = new BitSet(new long[]{0x00276400030043B2L});
+    public static final BitSet FOLLOW_rule__Statements__Group__0__Impl_in_rule__Statements__Group__07760 = new BitSet(new long[]{0x002766A0030043B0L});
     public static final BitSet FOLLOW_rule__Statements__Group__1_in_rule__Statements__Group__07763 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__Statements__Group__1__Impl_in_rule__Statements__Group__17821 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__Statements__Alternatives_1_in_rule__Statements__Group__1__Impl7848 = new BitSet(new long[]{0x00276400030043B2L});
-    public static final BitSet FOLLOW_rule__StmtReturn__Group__0__Impl_in_rule__StmtReturn__Group__07883 = new BitSet(new long[]{0x0000200000000000L});
+    public static final BitSet FOLLOW_rule__Statements__Alternatives_1_in_rule__Statements__Group__1__Impl7848 = new BitSet(new long[]{0x002766A0030043B2L});
+    public static final BitSet FOLLOW_rule__StmtReturn__Group__0__Impl_in_rule__StmtReturn__Group__07883 = new BitSet(new long[]{0x002766A0030043B0L});
     public static final BitSet FOLLOW_rule__StmtReturn__Group__1_in_rule__StmtReturn__Group__07886 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__StmtReturn__Group__1__Impl_in_rule__StmtReturn__Group__17944 = new BitSet(new long[]{0x00220400030003B0L});
     public static final BitSet FOLLOW_rule__StmtReturn__Group__2_in_rule__StmtReturn__Group__17947 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_45_in_rule__StmtReturn__Group__1__Impl7975 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__StmtReturn__Group__2__Impl_in_rule__StmtReturn__Group__28006 = new BitSet(new long[]{0x0000000000000010L});
+    public static final BitSet FOLLOW_rule__StmtReturn__Group__2__Impl_in_rule__StmtReturn__Group__28006 = new BitSet(new long[]{0x00220400030003B0L});
     public static final BitSet FOLLOW_rule__StmtReturn__Group__3_in_rule__StmtReturn__Group__28009 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__StmtReturn__EAssignment_2_in_rule__StmtReturn__Group__2__Impl8036 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__StmtReturn__Group__3__Impl_in_rule__StmtReturn__Group__38067 = new BitSet(new long[]{0x0000000000000002L});
@@ -22034,13 +22620,13 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
     public static final BitSet FOLLOW_rule__StmtIf__Group__1__Impl_in_rule__StmtIf__Group__18193 = new BitSet(new long[]{0x0000000100000000L});
     public static final BitSet FOLLOW_rule__StmtIf__Group__2_in_rule__StmtIf__Group__18196 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__StmtIf__CondAssignment_1_in_rule__StmtIf__Group__1__Impl8223 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__StmtIf__Group__2__Impl_in_rule__StmtIf__Group__28253 = new BitSet(new long[]{0x00276402030043B0L});
+    public static final BitSet FOLLOW_rule__StmtIf__Group__2__Impl_in_rule__StmtIf__Group__28253 = new BitSet(new long[]{0x002766A0030043B0L});
     public static final BitSet FOLLOW_rule__StmtIf__Group__3_in_rule__StmtIf__Group__28256 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_32_in_rule__StmtIf__Group__2__Impl8284 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__StmtIf__Group__3__Impl_in_rule__StmtIf__Group__38315 = new BitSet(new long[]{0x0000000200000000L});
     public static final BitSet FOLLOW_rule__StmtIf__Group__4_in_rule__StmtIf__Group__38318 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__StmtIf__ThenBlockAssignment_3_in_rule__StmtIf__Group__3__Impl8345 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__StmtIf__Group__4__Impl_in_rule__StmtIf__Group__48375 = new BitSet(new long[]{0x0000800000000002L});
+    public static final BitSet FOLLOW_rule__StmtIf__Group__4__Impl_in_rule__StmtIf__Group__48375 = new BitSet(new long[]{0x0000800000000000L});
     public static final BitSet FOLLOW_rule__StmtIf__Group__5_in_rule__StmtIf__Group__48378 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_33_in_rule__StmtIf__Group__4__Impl8406 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__StmtIf__Group__5__Impl_in_rule__StmtIf__Group__58437 = new BitSet(new long[]{0x0000000000000002L});
@@ -22048,7 +22634,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
     public static final BitSet FOLLOW_rule__StmtIf__Group_5__0__Impl_in_rule__StmtIf__Group_5__08507 = new BitSet(new long[]{0x0000000100000000L});
     public static final BitSet FOLLOW_rule__StmtIf__Group_5__1_in_rule__StmtIf__Group_5__08510 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_47_in_rule__StmtIf__Group_5__0__Impl8538 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__StmtIf__Group_5__1__Impl_in_rule__StmtIf__Group_5__18569 = new BitSet(new long[]{0x00276402030043B0L});
+    public static final BitSet FOLLOW_rule__StmtIf__Group_5__1__Impl_in_rule__StmtIf__Group_5__18569 = new BitSet(new long[]{0x002766A0030043B0L});
     public static final BitSet FOLLOW_rule__StmtIf__Group_5__2_in_rule__StmtIf__Group_5__18572 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_32_in_rule__StmtIf__Group_5__1__Impl8600 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__StmtIf__Group_5__2__Impl_in_rule__StmtIf__Group_5__28631 = new BitSet(new long[]{0x0000000200000000L});
@@ -22062,7 +22648,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
     public static final BitSet FOLLOW_rule__StmtWhile__Group__1__Impl_in_rule__StmtWhile__Group__18820 = new BitSet(new long[]{0x0000000100000000L});
     public static final BitSet FOLLOW_rule__StmtWhile__Group__2_in_rule__StmtWhile__Group__18823 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__StmtWhile__CondAssignment_1_in_rule__StmtWhile__Group__1__Impl8850 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__StmtWhile__Group__2__Impl_in_rule__StmtWhile__Group__28880 = new BitSet(new long[]{0x00276402030043B0L});
+    public static final BitSet FOLLOW_rule__StmtWhile__Group__2__Impl_in_rule__StmtWhile__Group__28880 = new BitSet(new long[]{0x002766A0030043B0L});
     public static final BitSet FOLLOW_rule__StmtWhile__Group__3_in_rule__StmtWhile__Group__28883 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_32_in_rule__StmtWhile__Group__2__Impl8911 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__StmtWhile__Group__3__Impl_in_rule__StmtWhile__Group__38942 = new BitSet(new long[]{0x0000000200000000L});
@@ -22075,7 +22661,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
     public static final BitSet FOLLOW_rule__StmtExpr__EAssignment_0_in_rule__StmtExpr__Group__0__Impl9101 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__StmtExpr__Group__1__Impl_in_rule__StmtExpr__Group__19131 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_RULE_NL_in_rule__StmtExpr__Group__1__Impl9158 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__ExprAssignment__Group__0__Impl_in_rule__ExprAssignment__Group__09191 = new BitSet(new long[]{0x0000000000038002L});
+    public static final BitSet FOLLOW_rule__ExprAssignment__Group__0__Impl_in_rule__ExprAssignment__Group__09191 = new BitSet(new long[]{0x0000000000038000L});
     public static final BitSet FOLLOW_rule__ExprAssignment__Group__1_in_rule__ExprAssignment__Group__09194 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_ruleExprOr_in_rule__ExprAssignment__Group__0__Impl9221 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprAssignment__Group__1__Impl_in_rule__ExprAssignment__Group__19250 = new BitSet(new long[]{0x0000000000000002L});
@@ -22087,7 +22673,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
     public static final BitSet FOLLOW_rule__ExprAssignment__OpAssignment_1_1_in_rule__ExprAssignment__Group_1__1__Impl9403 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprAssignment__Group_1__2__Impl_in_rule__ExprAssignment__Group_1__29433 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprAssignment__RightAssignment_1_2_in_rule__ExprAssignment__Group_1__2__Impl9460 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__ExprOr__Group__0__Impl_in_rule__ExprOr__Group__09496 = new BitSet(new long[]{0x0008000000000002L});
+    public static final BitSet FOLLOW_rule__ExprOr__Group__0__Impl_in_rule__ExprOr__Group__09496 = new BitSet(new long[]{0x0008000000000000L});
     public static final BitSet FOLLOW_rule__ExprOr__Group__1_in_rule__ExprOr__Group__09499 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_ruleExprAnd_in_rule__ExprOr__Group__0__Impl9526 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprOr__Group__1__Impl_in_rule__ExprOr__Group__19555 = new BitSet(new long[]{0x0000000000000002L});
@@ -22099,7 +22685,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
     public static final BitSet FOLLOW_rule__ExprOr__OpAssignment_1_1_in_rule__ExprOr__Group_1__1__Impl9708 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprOr__Group_1__2__Impl_in_rule__ExprOr__Group_1__29738 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprOr__RightAssignment_1_2_in_rule__ExprOr__Group_1__2__Impl9765 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__ExprAnd__Group__0__Impl_in_rule__ExprAnd__Group__09801 = new BitSet(new long[]{0x0010000000000002L});
+    public static final BitSet FOLLOW_rule__ExprAnd__Group__0__Impl_in_rule__ExprAnd__Group__09801 = new BitSet(new long[]{0x0010000000000000L});
     public static final BitSet FOLLOW_rule__ExprAnd__Group__1_in_rule__ExprAnd__Group__09804 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_ruleExprEquality_in_rule__ExprAnd__Group__0__Impl9831 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprAnd__Group__1__Impl_in_rule__ExprAnd__Group__19860 = new BitSet(new long[]{0x0000000000000002L});
@@ -22111,7 +22697,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
     public static final BitSet FOLLOW_rule__ExprAnd__OpAssignment_1_1_in_rule__ExprAnd__Group_1__1__Impl10013 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprAnd__Group_1__2__Impl_in_rule__ExprAnd__Group_1__210043 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprAnd__RightAssignment_1_2_in_rule__ExprAnd__Group_1__2__Impl10070 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__ExprEquality__Group__0__Impl_in_rule__ExprEquality__Group__010106 = new BitSet(new long[]{0x00000000000C0002L});
+    public static final BitSet FOLLOW_rule__ExprEquality__Group__0__Impl_in_rule__ExprEquality__Group__010106 = new BitSet(new long[]{0x00000000000C0000L});
     public static final BitSet FOLLOW_rule__ExprEquality__Group__1_in_rule__ExprEquality__Group__010109 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_ruleExprComparison_in_rule__ExprEquality__Group__0__Impl10136 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprEquality__Group__1__Impl_in_rule__ExprEquality__Group__110165 = new BitSet(new long[]{0x0000000000000002L});
@@ -22123,7 +22709,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
     public static final BitSet FOLLOW_rule__ExprEquality__OpAssignment_1_1_in_rule__ExprEquality__Group_1__1__Impl10318 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprEquality__Group_1__2__Impl_in_rule__ExprEquality__Group_1__210348 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprEquality__RightAssignment_1_2_in_rule__ExprEquality__Group_1__2__Impl10375 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__ExprComparison__Group__0__Impl_in_rule__ExprComparison__Group__010411 = new BitSet(new long[]{0x0000000000F00002L});
+    public static final BitSet FOLLOW_rule__ExprComparison__Group__0__Impl_in_rule__ExprComparison__Group__010411 = new BitSet(new long[]{0x0000000000F00000L});
     public static final BitSet FOLLOW_rule__ExprComparison__Group__1_in_rule__ExprComparison__Group__010414 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_ruleExprAdditive_in_rule__ExprComparison__Group__0__Impl10441 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprComparison__Group__1__Impl_in_rule__ExprComparison__Group__110470 = new BitSet(new long[]{0x0000000000000002L});
@@ -22135,7 +22721,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
     public static final BitSet FOLLOW_rule__ExprComparison__OpAssignment_1_1_in_rule__ExprComparison__Group_1__1__Impl10623 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprComparison__Group_1__2__Impl_in_rule__ExprComparison__Group_1__210653 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprComparison__RightAssignment_1_2_in_rule__ExprComparison__Group_1__2__Impl10680 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__ExprAdditive__Group__0__Impl_in_rule__ExprAdditive__Group__010716 = new BitSet(new long[]{0x0000000003000002L});
+    public static final BitSet FOLLOW_rule__ExprAdditive__Group__0__Impl_in_rule__ExprAdditive__Group__010716 = new BitSet(new long[]{0x0000000003000000L});
     public static final BitSet FOLLOW_rule__ExprAdditive__Group__1_in_rule__ExprAdditive__Group__010719 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_ruleExprMult_in_rule__ExprAdditive__Group__0__Impl10746 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprAdditive__Group__1__Impl_in_rule__ExprAdditive__Group__110775 = new BitSet(new long[]{0x0000000000000002L});
@@ -22147,7 +22733,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
     public static final BitSet FOLLOW_rule__ExprAdditive__OpAssignment_1_1_in_rule__ExprAdditive__Group_1__1__Impl10928 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprAdditive__Group_1__2__Impl_in_rule__ExprAdditive__Group_1__210958 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprAdditive__RightAssignment_1_2_in_rule__ExprAdditive__Group_1__2__Impl10985 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__ExprMult__Group__0__Impl_in_rule__ExprMult__Group__011021 = new BitSet(new long[]{0x000000007C000002L});
+    public static final BitSet FOLLOW_rule__ExprMult__Group__0__Impl_in_rule__ExprMult__Group__011021 = new BitSet(new long[]{0x000000007C000000L});
     public static final BitSet FOLLOW_rule__ExprMult__Group__1_in_rule__ExprMult__Group__011024 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_ruleExprSign_in_rule__ExprMult__Group__0__Impl11051 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprMult__Group__1__Impl_in_rule__ExprMult__Group__111080 = new BitSet(new long[]{0x0000000000000002L});
@@ -22161,19 +22747,19 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
     public static final BitSet FOLLOW_rule__ExprMult__RightAssignment_1_2_in_rule__ExprMult__Group_1__2__Impl11290 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprSign__Group_0__0__Impl_in_rule__ExprSign__Group_0__011326 = new BitSet(new long[]{0x0000000003000000L});
     public static final BitSet FOLLOW_rule__ExprSign__Group_0__1_in_rule__ExprSign__Group_0__011329 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__ExprSign__Group_0__1__Impl_in_rule__ExprSign__Group_0__111387 = new BitSet(new long[]{0x00220400000003A0L});
+    public static final BitSet FOLLOW_rule__ExprSign__Group_0__1__Impl_in_rule__ExprSign__Group_0__111387 = new BitSet(new long[]{0x00220400030003A0L});
     public static final BitSet FOLLOW_rule__ExprSign__Group_0__2_in_rule__ExprSign__Group_0__111390 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprSign__OpAssignment_0_1_in_rule__ExprSign__Group_0__1__Impl11417 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprSign__Group_0__2__Impl_in_rule__ExprSign__Group_0__211447 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprSign__RightAssignment_0_2_in_rule__ExprSign__Group_0__2__Impl11474 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprNot__Group_0__0__Impl_in_rule__ExprNot__Group_0__011510 = new BitSet(new long[]{0x0020000000000000L});
     public static final BitSet FOLLOW_rule__ExprNot__Group_0__1_in_rule__ExprNot__Group_0__011513 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__ExprNot__Group_0__1__Impl_in_rule__ExprNot__Group_0__111571 = new BitSet(new long[]{0x00020400000003A0L});
+    public static final BitSet FOLLOW_rule__ExprNot__Group_0__1__Impl_in_rule__ExprNot__Group_0__111571 = new BitSet(new long[]{0x00220400030003A0L});
     public static final BitSet FOLLOW_rule__ExprNot__Group_0__2_in_rule__ExprNot__Group_0__111574 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprNot__OpAssignment_0_1_in_rule__ExprNot__Group_0__1__Impl11601 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprNot__Group_0__2__Impl_in_rule__ExprNot__Group_0__211631 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprNot__RightAssignment_0_2_in_rule__ExprNot__Group_0__2__Impl11658 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__ExprCustomOperator__Group__0__Impl_in_rule__ExprCustomOperator__Group__011694 = new BitSet(new long[]{0x0000000000000042L});
+    public static final BitSet FOLLOW_rule__ExprCustomOperator__Group__0__Impl_in_rule__ExprCustomOperator__Group__011694 = new BitSet(new long[]{0x0000000000000040L});
     public static final BitSet FOLLOW_rule__ExprCustomOperator__Group__1_in_rule__ExprCustomOperator__Group__011697 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_ruleExprMember_in_rule__ExprCustomOperator__Group__0__Impl11724 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprCustomOperator__Group__1__Impl_in_rule__ExprCustomOperator__Group__111753 = new BitSet(new long[]{0x0000000000000002L});
@@ -22185,14 +22771,14 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
     public static final BitSet FOLLOW_rule__ExprCustomOperator__OpAssignment_1_1_in_rule__ExprCustomOperator__Group_1__1__Impl11906 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprCustomOperator__Group_1__2__Impl_in_rule__ExprCustomOperator__Group_1__211936 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprCustomOperator__RightAssignment_1_2_in_rule__ExprCustomOperator__Group_1__2__Impl11963 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__ExprMember__Group__0__Impl_in_rule__ExprMember__Group__011999 = new BitSet(new long[]{0x0000000800000002L});
+    public static final BitSet FOLLOW_rule__ExprMember__Group__0__Impl_in_rule__ExprMember__Group__011999 = new BitSet(new long[]{0x0000000800000000L});
     public static final BitSet FOLLOW_rule__ExprMember__Group__1_in_rule__ExprMember__Group__012002 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_ruleExprAtomic_in_rule__ExprMember__Group__0__Impl12029 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprMember__Group__1__Impl_in_rule__ExprMember__Group__112058 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprMember__Group_1__0_in_rule__ExprMember__Group__1__Impl12085 = new BitSet(new long[]{0x0000000800000002L});
     public static final BitSet FOLLOW_rule__ExprMember__Group_1__0__Impl_in_rule__ExprMember__Group_1__012120 = new BitSet(new long[]{0x0000000800000000L});
     public static final BitSet FOLLOW_rule__ExprMember__Group_1__1_in_rule__ExprMember__Group_1__012123 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__ExprMember__Group_1__1__Impl_in_rule__ExprMember__Group_1__112181 = new BitSet(new long[]{0x00020400000003A0L});
+    public static final BitSet FOLLOW_rule__ExprMember__Group_1__1__Impl_in_rule__ExprMember__Group_1__112181 = new BitSet(new long[]{0x00220400030003A0L});
     public static final BitSet FOLLOW_rule__ExprMember__Group_1__2_in_rule__ExprMember__Group_1__112184 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprMember__OpAssignment_1_1_in_rule__ExprMember__Group_1__1__Impl12211 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprMember__Group_1__2__Impl_in_rule__ExprMember__Group_1__212241 = new BitSet(new long[]{0x0000000000000002L});
@@ -22253,7 +22839,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
     public static final BitSet FOLLOW_42_in_rule__ExprAtomic__Group_7_3_1__0__Impl13691 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprAtomic__Group_7_3_1__1__Impl_in_rule__ExprAtomic__Group_7_3_1__113722 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_43_in_rule__ExprAtomic__Group_7_3_1__1__Impl13750 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__ExprAtomic__Group_8__0__Impl_in_rule__ExprAtomic__Group_8__013785 = new BitSet(new long[]{0x0002000000000000L});
+    public static final BitSet FOLLOW_rule__ExprAtomic__Group_8__0__Impl_in_rule__ExprAtomic__Group_8__013785 = new BitSet(new long[]{0x00220400030003A0L});
     public static final BitSet FOLLOW_rule__ExprAtomic__Group_8__1_in_rule__ExprAtomic__Group_8__013788 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprAtomic__Group_8__1__Impl_in_rule__ExprAtomic__Group_8__113846 = new BitSet(new long[]{0x0000040000000000L});
     public static final BitSet FOLLOW_rule__ExprAtomic__Group_8__2_in_rule__ExprAtomic__Group_8__113849 = new BitSet(new long[]{0x0000000000000002L});
@@ -22278,7 +22864,7 @@ public class InternalPscriptParser extends AbstractInternalContentAssistParser {
     public static final BitSet FOLLOW_rule__ExprList__Group__1__Impl_in_rule__ExprList__Group__114285 = new BitSet(new long[]{0x0000180000000000L});
     public static final BitSet FOLLOW_rule__ExprList__Group__2_in_rule__ExprList__Group__114288 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprList__ParamsAssignment_1_in_rule__ExprList__Group__1__Impl14315 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_rule__ExprList__Group__2__Impl_in_rule__ExprList__Group__214345 = new BitSet(new long[]{0x0000080000000000L});
+    public static final BitSet FOLLOW_rule__ExprList__Group__2__Impl_in_rule__ExprList__Group__214345 = new BitSet(new long[]{0x0000180000000000L});
     public static final BitSet FOLLOW_rule__ExprList__Group__3_in_rule__ExprList__Group__214348 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_rule__ExprList__Group_2__0_in_rule__ExprList__Group__2__Impl14375 = new BitSet(new long[]{0x0000100000000002L});
     public static final BitSet FOLLOW_rule__ExprList__Group__3__Impl_in_rule__ExprList__Group__314406 = new BitSet(new long[]{0x0000000000000002L});
