@@ -1,0 +1,9 @@
+package test {
+	function foo(x: Int):Int {
+		if x < 3 {
+			return x*3 + 4
+		} else {
+			return x-1
+		}
+	}
+}
