@@ -24,11 +24,11 @@ import org.eclipse.emf.common.util.EList;
  * @model
  * @generated
  */
-public interface ClassDef extends NameDef
+public interface ClassDef extends TypeDef
 {
   /**
    * Returns the value of the '<em><b>Members</b></em>' containment reference list.
-   * The list contents are of type {@link de.peeeq.pscript.pscript.NameDef}.
+   * The list contents are of type {@link de.peeeq.pscript.pscript.ClassMember}.
    * <!-- begin-user-doc -->
    * <p>
    * If the meaning of the '<em>Members</em>' containment reference list isn't clear,
@@ -40,6 +40,6 @@ public interface ClassDef extends NameDef
    * @model containment="true"
    * @generated
    */
-  EList<NameDef> getMembers();
+  EList<ClassMember> getMembers();
 
 } // ClassDef

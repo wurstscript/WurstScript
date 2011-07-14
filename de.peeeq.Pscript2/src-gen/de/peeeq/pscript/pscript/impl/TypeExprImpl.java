@@ -6,8 +6,8 @@
  */
 package de.peeeq.pscript.pscript.impl;
 
-import de.peeeq.pscript.pscript.NameDef;
 import de.peeeq.pscript.pscript.PscriptPackage;
+import de.peeeq.pscript.pscript.TypeDef;
 import de.peeeq.pscript.pscript.TypeExpr;
 
 import org.eclipse.emf.common.notify.Notification;
@@ -41,7 +41,7 @@ public class TypeExprImpl extends MinimalEObjectImpl.Container implements TypeEx
    * @generated
    * @ordered
    */
-  protected NameDef name;
+  protected TypeDef name;
 
   /**
    * <!-- begin-user-doc -->
@@ -69,12 +69,12 @@ public class TypeExprImpl extends MinimalEObjectImpl.Container implements TypeEx
    * <!-- end-user-doc -->
    * @generated
    */
-  public NameDef getName()
+  public TypeDef getName()
   {
     if (name != null && name.eIsProxy())
     {
       InternalEObject oldName = (InternalEObject)name;
-      name = (NameDef)eResolveProxy(oldName);
+      name = (TypeDef)eResolveProxy(oldName);
       if (name != oldName)
       {
         if (eNotificationRequired())
@@ -89,7 +89,7 @@ public class TypeExprImpl extends MinimalEObjectImpl.Container implements TypeEx
    * <!-- end-user-doc -->
    * @generated
    */
-  public NameDef basicGetName()
+  public TypeDef basicGetName()
   {
     return name;
   }
@@ -99,9 +99,9 @@ public class TypeExprImpl extends MinimalEObjectImpl.Container implements TypeEx
    * <!-- end-user-doc -->
    * @generated
    */
-  public void setName(NameDef newName)
+  public void setName(TypeDef newName)
   {
-    NameDef oldName = name;
+    TypeDef oldName = name;
     name = newName;
     if (eNotificationRequired())
       eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.TYPE_EXPR__NAME, oldName, name));
@@ -135,7 +135,7 @@ public class TypeExprImpl extends MinimalEObjectImpl.Container implements TypeEx
     switch (featureID)
     {
       case PscriptPackage.TYPE_EXPR__NAME:
-        setName((NameDef)newValue);
+        setName((TypeDef)newValue);
         return;
     }
     super.eSet(featureID, newValue);
@@ -152,7 +152,7 @@ public class TypeExprImpl extends MinimalEObjectImpl.Container implements TypeEx
     switch (featureID)
     {
       case PscriptPackage.TYPE_EXPR__NAME:
-        setName((NameDef)null);
+        setName((TypeDef)null);
         return;
     }
     super.eUnset(featureID);

@@ -8,12 +8,6 @@
 package de.peeeq.pscript.scoping;
 
 import org.eclipse.xtext.naming.DefaultDeclarativeQualifiedNameProvider;
-import org.eclipse.xtext.naming.IQualifiedNameConverter;
-import org.eclipse.xtext.naming.QualifiedName;
-
-import com.google.inject.Inject;
-
-import de.peeeq.pscript.pscript.FuncDef;
 
 
 public class PscriptQualifiedNameProvider extends DefaultDeclarativeQualifiedNameProvider {

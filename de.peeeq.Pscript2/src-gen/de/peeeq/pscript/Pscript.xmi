@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="ASCII"?>
-<xtext:Grammar xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:xtext="http://www.eclipse.org/2008/Xtext" name="de.peeeq.pscript.Pscript" definesHiddenTokens="true" hiddenTokens="//@rules.39 //@rules.37 //@rules.38">
+<xtext:Grammar xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:xtext="http://www.eclipse.org/2008/Xtext" name="de.peeeq.pscript.Pscript" definesHiddenTokens="true" hiddenTokens="//@rules.45 //@rules.43 //@rules.44">
   <metamodelDeclarations xsi:type="xtext:ReferencedMetamodel" alias="ecore">
     <ePackage href="http://www.eclipse.org/emf/2002/Ecore#/"/>
   </metamodelDeclarations>
@@ -11,14 +11,14 @@
       <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//Program"/>
     </type>
     <alternatives xsi:type="xtext:Group">
-      <elements xsi:type="xtext:RuleCall" cardinality="*" rule="//@rules.40"/>
+      <elements xsi:type="xtext:RuleCall" cardinality="*" rule="//@rules.46"/>
       <elements xsi:type="xtext:Assignment" feature="packages" operator="+=">
         <terminal xsi:type="xtext:RuleCall" rule="//@rules.1"/>
       </elements>
       <elements xsi:type="xtext:Assignment" cardinality="*" feature="packages" operator="+=">
         <terminal xsi:type="xtext:RuleCall" rule="//@rules.1"/>
       </elements>
-      <elements xsi:type="xtext:RuleCall" cardinality="*" rule="//@rules.40"/>
+      <elements xsi:type="xtext:RuleCall" cardinality="*" rule="//@rules.46"/>
     </alternatives>
   </rules>
   <rules xsi:type="xtext:ParserRule" name="PackageDeclaration">
@@ -26,26 +26,31 @@
       <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//PackageDeclaration"/>
     </type>
     <alternatives xsi:type="xtext:Group">
+      <elements xsi:type="xtext:Action">
+        <type metamodel="//@metamodelDeclarations.1">
+          <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//PackageDeclaration"/>
+        </type>
+      </elements>
       <elements xsi:type="xtext:Keyword" value="package"/>
       <elements xsi:type="xtext:Assignment" feature="name" operator="=">
-        <terminal xsi:type="xtext:RuleCall" rule="//@rules.3"/>
+        <terminal xsi:type="xtext:RuleCall" rule="//@rules.40"/>
       </elements>
       <elements xsi:type="xtext:Keyword" value="{"/>
       <elements xsi:type="xtext:Group" cardinality="*">
-        <elements xsi:type="xtext:RuleCall" cardinality="*" rule="//@rules.40"/>
+        <elements xsi:type="xtext:RuleCall" cardinality="*" rule="//@rules.46"/>
         <elements xsi:type="xtext:Assignment" feature="imports" operator="+=">
           <terminal xsi:type="xtext:RuleCall" rule="//@rules.2"/>
         </elements>
       </elements>
-      <elements xsi:type="xtext:RuleCall" cardinality="*" rule="//@rules.40"/>
+      <elements xsi:type="xtext:RuleCall" cardinality="*" rule="//@rules.46"/>
       <elements xsi:type="xtext:Group" cardinality="*">
         <elements xsi:type="xtext:Assignment" feature="elements" operator="+=">
-          <terminal xsi:type="xtext:RuleCall" rule="//@rules.5"/>
+          <terminal xsi:type="xtext:RuleCall" rule="//@rules.4"/>
         </elements>
-        <elements xsi:type="xtext:RuleCall" cardinality="*" rule="//@rules.40"/>
+        <elements xsi:type="xtext:RuleCall" cardinality="*" rule="//@rules.46"/>
       </elements>
       <elements xsi:type="xtext:Keyword" value="}"/>
-      <elements xsi:type="xtext:RuleCall" cardinality="*" rule="//@rules.40"/>
+      <elements xsi:type="xtext:RuleCall" cardinality="*" rule="//@rules.46"/>
     </alternatives>
   </rules>
   <rules xsi:type="xtext:ParserRule" name="Import">
@@ -55,45 +60,53 @@
     <alternatives xsi:type="xtext:Group">
       <elements xsi:type="xtext:Keyword" value="import"/>
       <elements xsi:type="xtext:Assignment" feature="importedNamespace" operator="=">
-        <terminal xsi:type="xtext:RuleCall" rule="//@rules.4"/>
+        <terminal xsi:type="xtext:RuleCall" rule="//@rules.3"/>
       </elements>
+      <elements xsi:type="xtext:RuleCall" rule="//@rules.46"/>
+    </alternatives>
+  </rules>
+  <rules xsi:type="xtext:ParserRule" name="ImportString">
+    <type metamodel="//@metamodelDeclarations.0">
+      <classifier xsi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </type>
+    <alternatives xsi:type="xtext:Group">
       <elements xsi:type="xtext:RuleCall" rule="//@rules.40"/>
-    </alternatives>
-  </rules>
-  <rules xsi:type="xtext:ParserRule" name="QualifiedName">
-    <type metamodel="//@metamodelDeclarations.0">
-      <classifier xsi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-    </type>
-    <alternatives xsi:type="xtext:Group">
-      <elements xsi:type="xtext:RuleCall" rule="//@rules.33"/>
-      <elements xsi:type="xtext:Group" cardinality="*">
-        <elements xsi:type="xtext:Keyword" value="."/>
-        <elements xsi:type="xtext:RuleCall" rule="//@rules.33"/>
+      <elements xsi:type="xtext:Keyword" value="."/>
+      <elements xsi:type="xtext:Alternatives">
+        <elements xsi:type="xtext:Keyword" value="*"/>
+        <elements xsi:type="xtext:RuleCall" rule="//@rules.40"/>
       </elements>
-    </alternatives>
-  </rules>
-  <rules xsi:type="xtext:ParserRule" name="QualifiedNameWithWildCard">
-    <type metamodel="//@metamodelDeclarations.0">
-      <classifier xsi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-    </type>
-    <alternatives xsi:type="xtext:Group">
-      <elements xsi:type="xtext:RuleCall" rule="//@rules.3"/>
-      <elements xsi:type="xtext:Keyword" cardinality="?" value=".*"/>
     </alternatives>
   </rules>
   <rules xsi:type="xtext:ParserRule" name="Entity">
     <type metamodel="//@metamodelDeclarations.1">
-      <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//NameDef"/>
+      <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//Entity"/>
     </type>
     <alternatives xsi:type="xtext:Alternatives">
       <elements xsi:type="xtext:RuleCall" rule="//@rules.6"/>
       <elements xsi:type="xtext:RuleCall" rule="//@rules.12"/>
       <elements xsi:type="xtext:RuleCall" rule="//@rules.10"/>
+      <elements xsi:type="xtext:RuleCall" rule="//@rules.5"/>
+    </alternatives>
+  </rules>
+  <rules xsi:type="xtext:ParserRule" name="InitBlock">
+    <type metamodel="//@metamodelDeclarations.1">
+      <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//InitBlock"/>
+    </type>
+    <alternatives xsi:type="xtext:Group">
+      <elements xsi:type="xtext:Assignment" feature="name" operator="=">
+        <terminal xsi:type="xtext:Keyword" value="init"/>
+      </elements>
+      <elements xsi:type="xtext:Keyword" value="{"/>
+      <elements xsi:type="xtext:Assignment" feature="body" operator="=">
+        <terminal xsi:type="xtext:RuleCall" rule="//@rules.14"/>
+      </elements>
+      <elements xsi:type="xtext:Keyword" value="}"/>
     </alternatives>
   </rules>
   <rules xsi:type="xtext:ParserRule" name="TypeDef">
     <type metamodel="//@metamodelDeclarations.1">
-      <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//NameDef"/>
+      <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//TypeDef"/>
     </type>
     <alternatives xsi:type="xtext:Alternatives">
       <elements xsi:type="xtext:RuleCall" rule="//@rules.7"/>
@@ -102,7 +115,7 @@
   </rules>
   <rules xsi:type="xtext:ParserRule" name="NativeType">
     <type metamodel="//@metamodelDeclarations.1">
-      <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//NameDef"/>
+      <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//TypeDef"/>
     </type>
     <alternatives xsi:type="xtext:Group">
       <elements xsi:type="xtext:Action">
@@ -113,24 +126,24 @@
       <elements xsi:type="xtext:Keyword" value="native"/>
       <elements xsi:type="xtext:Keyword" value="type"/>
       <elements xsi:type="xtext:Assignment" feature="name" operator="=">
-        <terminal xsi:type="xtext:RuleCall" rule="//@rules.33"/>
+        <terminal xsi:type="xtext:RuleCall" rule="//@rules.40"/>
       </elements>
       <elements xsi:type="xtext:Keyword" value="="/>
       <elements xsi:type="xtext:Assignment" feature="origName" operator="=">
-        <terminal xsi:type="xtext:RuleCall" rule="//@rules.33"/>
+        <terminal xsi:type="xtext:RuleCall" rule="//@rules.40"/>
       </elements>
       <elements xsi:type="xtext:Group" cardinality="?">
         <elements xsi:type="xtext:Keyword" value="extends"/>
         <elements xsi:type="xtext:Assignment" feature="superName" operator="=">
-          <terminal xsi:type="xtext:RuleCall" rule="//@rules.33"/>
+          <terminal xsi:type="xtext:RuleCall" rule="//@rules.11"/>
         </elements>
       </elements>
-      <elements xsi:type="xtext:RuleCall" rule="//@rules.40"/>
+      <elements xsi:type="xtext:RuleCall" rule="//@rules.46"/>
     </alternatives>
   </rules>
   <rules xsi:type="xtext:ParserRule" name="ClassDef">
     <type metamodel="//@metamodelDeclarations.1">
-      <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//NameDef"/>
+      <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//TypeDef"/>
     </type>
     <alternatives xsi:type="xtext:Group">
       <elements xsi:type="xtext:Action">
@@ -140,23 +153,23 @@
       </elements>
       <elements xsi:type="xtext:Keyword" value="class"/>
       <elements xsi:type="xtext:Assignment" feature="name" operator="=">
-        <terminal xsi:type="xtext:RuleCall" rule="//@rules.33"/>
+        <terminal xsi:type="xtext:RuleCall" rule="//@rules.40"/>
       </elements>
       <elements xsi:type="xtext:Keyword" value="{"/>
       <elements xsi:type="xtext:Assignment" cardinality="*" feature="members" operator="+=">
         <terminal xsi:type="xtext:RuleCall" rule="//@rules.9"/>
       </elements>
-      <elements xsi:type="xtext:RuleCall" cardinality="*" rule="//@rules.40"/>
+      <elements xsi:type="xtext:RuleCall" cardinality="*" rule="//@rules.46"/>
       <elements xsi:type="xtext:Keyword" value="}"/>
-      <elements xsi:type="xtext:RuleCall" rule="//@rules.40"/>
+      <elements xsi:type="xtext:RuleCall" rule="//@rules.46"/>
     </alternatives>
   </rules>
   <rules xsi:type="xtext:ParserRule" name="ClassMember">
     <type metamodel="//@metamodelDeclarations.1">
-      <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//NameDef"/>
+      <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//ClassMember"/>
     </type>
     <alternatives xsi:type="xtext:Group">
-      <elements xsi:type="xtext:RuleCall" cardinality="*" rule="//@rules.40"/>
+      <elements xsi:type="xtext:RuleCall" cardinality="*" rule="//@rules.46"/>
       <elements xsi:type="xtext:Alternatives">
         <elements xsi:type="xtext:RuleCall" rule="//@rules.10"/>
         <elements xsi:type="xtext:RuleCall" rule="//@rules.12"/>
@@ -165,7 +178,7 @@
   </rules>
   <rules xsi:type="xtext:ParserRule" name="VarDef">
     <type metamodel="//@metamodelDeclarations.1">
-      <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//NameDef"/>
+      <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//VarDef"/>
     </type>
     <alternatives xsi:type="xtext:Group">
       <elements xsi:type="xtext:Action">
@@ -180,7 +193,7 @@
         </elements>
       </elements>
       <elements xsi:type="xtext:Assignment" feature="name" operator="=">
-        <terminal xsi:type="xtext:RuleCall" rule="//@rules.33"/>
+        <terminal xsi:type="xtext:RuleCall" rule="//@rules.40"/>
       </elements>
       <elements xsi:type="xtext:Group" cardinality="?">
         <elements xsi:type="xtext:Keyword" value=":"/>
@@ -194,7 +207,7 @@
           <terminal xsi:type="xtext:RuleCall" rule="//@rules.20"/>
         </elements>
       </elements>
-      <elements xsi:type="xtext:RuleCall" rule="//@rules.40"/>
+      <elements xsi:type="xtext:RuleCall" rule="//@rules.46"/>
     </alternatives>
   </rules>
   <rules xsi:type="xtext:ParserRule" name="TypeExpr">
@@ -210,16 +223,16 @@
       <elements xsi:type="xtext:Assignment" feature="name" operator="=">
         <terminal xsi:type="xtext:CrossReference">
           <type metamodel="//@metamodelDeclarations.1">
-            <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//NameDef"/>
+            <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//TypeDef"/>
           </type>
-          <terminal xsi:type="xtext:RuleCall" rule="//@rules.33"/>
+          <terminal xsi:type="xtext:RuleCall" rule="//@rules.40"/>
         </terminal>
       </elements>
     </alternatives>
   </rules>
   <rules xsi:type="xtext:ParserRule" name="FuncDef">
     <type metamodel="//@metamodelDeclarations.1">
-      <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//NameDef"/>
+      <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//FuncDef"/>
     </type>
     <alternatives xsi:type="xtext:Group">
       <elements xsi:type="xtext:Action">
@@ -229,7 +242,7 @@
       </elements>
       <elements xsi:type="xtext:Keyword" value="function"/>
       <elements xsi:type="xtext:Assignment" feature="name" operator="=">
-        <terminal xsi:type="xtext:RuleCall" rule="//@rules.33"/>
+        <terminal xsi:type="xtext:RuleCall" rule="//@rules.40"/>
       </elements>
       <elements xsi:type="xtext:Keyword" value="("/>
       <elements xsi:type="xtext:Group" cardinality="?">
@@ -259,7 +272,7 @@
   </rules>
   <rules xsi:type="xtext:ParserRule" name="ParameterDef">
     <type metamodel="//@metamodelDeclarations.1">
-      <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//NameDef"/>
+      <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//VarDef"/>
     </type>
     <alternatives xsi:type="xtext:Group">
       <elements xsi:type="xtext:Action">
@@ -268,7 +281,7 @@
         </type>
       </elements>
       <elements xsi:type="xtext:Assignment" feature="name" operator="=">
-        <terminal xsi:type="xtext:RuleCall" rule="//@rules.33"/>
+        <terminal xsi:type="xtext:RuleCall" rule="//@rules.40"/>
       </elements>
       <elements xsi:type="xtext:Keyword" value=":"/>
       <elements xsi:type="xtext:Assignment" feature="type" operator="=">
@@ -287,7 +300,7 @@
         </type>
       </elements>
       <elements xsi:type="xtext:Alternatives" cardinality="*">
-        <elements xsi:type="xtext:RuleCall" rule="//@rules.40"/>
+        <elements xsi:type="xtext:RuleCall" rule="//@rules.46"/>
         <elements xsi:type="xtext:Assignment" feature="statements" operator="+=">
           <terminal xsi:type="xtext:RuleCall" rule="//@rules.15"/>
         </elements>
@@ -320,7 +333,7 @@
       <elements xsi:type="xtext:Assignment" cardinality="?" feature="e" operator="=">
         <terminal xsi:type="xtext:RuleCall" rule="//@rules.20"/>
       </elements>
-      <elements xsi:type="xtext:RuleCall" rule="//@rules.40"/>
+      <elements xsi:type="xtext:RuleCall" rule="//@rules.46"/>
     </alternatives>
   </rules>
   <rules xsi:type="xtext:ParserRule" name="StmtIf">
@@ -371,7 +384,7 @@
       <elements xsi:type="xtext:Assignment" feature="e" operator="=">
         <terminal xsi:type="xtext:RuleCall" rule="//@rules.20"/>
       </elements>
-      <elements xsi:type="xtext:RuleCall" rule="//@rules.40"/>
+      <elements xsi:type="xtext:RuleCall" rule="//@rules.46"/>
     </alternatives>
   </rules>
   <rules xsi:type="xtext:ParserRule" name="Expr">
@@ -385,7 +398,7 @@
       <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//Expr"/>
     </type>
     <alternatives xsi:type="xtext:Group">
-      <elements xsi:type="xtext:RuleCall" rule="//@rules.22"/>
+      <elements xsi:type="xtext:RuleCall" rule="//@rules.23"/>
       <elements xsi:type="xtext:Group" cardinality="*">
         <elements xsi:type="xtext:Action" feature="left" operator="=">
           <type metamodel="//@metamodelDeclarations.1">
@@ -393,15 +406,42 @@
           </type>
         </elements>
         <elements xsi:type="xtext:Assignment" feature="op" operator="=">
-          <terminal xsi:type="xtext:Alternatives">
-            <elements xsi:type="xtext:Keyword" value="="/>
-            <elements xsi:type="xtext:Keyword" value="+="/>
-            <elements xsi:type="xtext:Keyword" value="-="/>
-          </terminal>
-        </elements>
-        <elements xsi:type="xtext:Assignment" feature="right" operator="=">
           <terminal xsi:type="xtext:RuleCall" rule="//@rules.22"/>
         </elements>
+        <elements xsi:type="xtext:Assignment" feature="right" operator="=">
+          <terminal xsi:type="xtext:RuleCall" rule="//@rules.23"/>
+        </elements>
+      </elements>
+    </alternatives>
+  </rules>
+  <rules xsi:type="xtext:ParserRule" name="OpAssignment">
+    <type metamodel="//@metamodelDeclarations.1">
+      <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//OpAssignment"/>
+    </type>
+    <alternatives xsi:type="xtext:Alternatives">
+      <elements xsi:type="xtext:Group">
+        <elements xsi:type="xtext:Action">
+          <type metamodel="//@metamodelDeclarations.1">
+            <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//OpAssign"/>
+          </type>
+        </elements>
+        <elements xsi:type="xtext:Keyword" value="="/>
+      </elements>
+      <elements xsi:type="xtext:Group">
+        <elements xsi:type="xtext:Action">
+          <type metamodel="//@metamodelDeclarations.1">
+            <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//OpPlusAssign"/>
+          </type>
+        </elements>
+        <elements xsi:type="xtext:Keyword" value="+="/>
+      </elements>
+      <elements xsi:type="xtext:Group">
+        <elements xsi:type="xtext:Action">
+          <type metamodel="//@metamodelDeclarations.1">
+            <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//OpMinusAssign"/>
+          </type>
+        </elements>
+        <elements xsi:type="xtext:Keyword" value="-="/>
       </elements>
     </alternatives>
   </rules>
@@ -410,7 +450,7 @@
       <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//Expr"/>
     </type>
     <alternatives xsi:type="xtext:Group">
-      <elements xsi:type="xtext:RuleCall" rule="//@rules.23"/>
+      <elements xsi:type="xtext:RuleCall" rule="//@rules.24"/>
       <elements xsi:type="xtext:Group" cardinality="*">
         <elements xsi:type="xtext:Action" feature="left" operator="=">
           <type metamodel="//@metamodelDeclarations.1">
@@ -421,7 +461,7 @@
           <terminal xsi:type="xtext:Keyword" value="or"/>
         </elements>
         <elements xsi:type="xtext:Assignment" feature="right" operator="=">
-          <terminal xsi:type="xtext:RuleCall" rule="//@rules.23"/>
+          <terminal xsi:type="xtext:RuleCall" rule="//@rules.24"/>
         </elements>
       </elements>
     </alternatives>
@@ -431,7 +471,7 @@
       <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//Expr"/>
     </type>
     <alternatives xsi:type="xtext:Group">
-      <elements xsi:type="xtext:RuleCall" rule="//@rules.24"/>
+      <elements xsi:type="xtext:RuleCall" rule="//@rules.25"/>
       <elements xsi:type="xtext:Group" cardinality="*">
         <elements xsi:type="xtext:Action" feature="left" operator="=">
           <type metamodel="//@metamodelDeclarations.1">
@@ -442,7 +482,7 @@
           <terminal xsi:type="xtext:Keyword" value="and"/>
         </elements>
         <elements xsi:type="xtext:Assignment" feature="right" operator="=">
-          <terminal xsi:type="xtext:RuleCall" rule="//@rules.24"/>
+          <terminal xsi:type="xtext:RuleCall" rule="//@rules.25"/>
         </elements>
       </elements>
     </alternatives>
@@ -452,7 +492,7 @@
       <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//Expr"/>
     </type>
     <alternatives xsi:type="xtext:Group">
-      <elements xsi:type="xtext:RuleCall" rule="//@rules.25"/>
+      <elements xsi:type="xtext:RuleCall" rule="//@rules.27"/>
       <elements xsi:type="xtext:Group" cardinality="*">
         <elements xsi:type="xtext:Action" feature="left" operator="=">
           <type metamodel="//@metamodelDeclarations.1">
@@ -460,14 +500,34 @@
           </type>
         </elements>
         <elements xsi:type="xtext:Assignment" feature="op" operator="=">
-          <terminal xsi:type="xtext:Alternatives">
-            <elements xsi:type="xtext:Keyword" value="!="/>
-            <elements xsi:type="xtext:Keyword" value="=="/>
-          </terminal>
+          <terminal xsi:type="xtext:RuleCall" rule="//@rules.26"/>
         </elements>
         <elements xsi:type="xtext:Assignment" feature="right" operator="=">
-          <terminal xsi:type="xtext:RuleCall" rule="//@rules.25"/>
+          <terminal xsi:type="xtext:RuleCall" rule="//@rules.27"/>
         </elements>
+      </elements>
+    </alternatives>
+  </rules>
+  <rules xsi:type="xtext:ParserRule" name="OpEquality">
+    <type metamodel="//@metamodelDeclarations.1">
+      <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//OpEquality"/>
+    </type>
+    <alternatives xsi:type="xtext:Alternatives">
+      <elements xsi:type="xtext:Group">
+        <elements xsi:type="xtext:Action">
+          <type metamodel="//@metamodelDeclarations.1">
+            <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//OpEquals"/>
+          </type>
+        </elements>
+        <elements xsi:type="xtext:Keyword" value="=="/>
+      </elements>
+      <elements xsi:type="xtext:Group">
+        <elements xsi:type="xtext:Action">
+          <type metamodel="//@metamodelDeclarations.1">
+            <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//OpUnequals"/>
+          </type>
+        </elements>
+        <elements xsi:type="xtext:Keyword" value="!="/>
       </elements>
     </alternatives>
   </rules>
@@ -476,7 +536,7 @@
       <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//Expr"/>
     </type>
     <alternatives xsi:type="xtext:Group">
-      <elements xsi:type="xtext:RuleCall" rule="//@rules.26"/>
+      <elements xsi:type="xtext:RuleCall" rule="//@rules.29"/>
       <elements xsi:type="xtext:Group" cardinality="*">
         <elements xsi:type="xtext:Action" feature="left" operator="=">
           <type metamodel="//@metamodelDeclarations.1">
@@ -484,16 +544,50 @@
           </type>
         </elements>
         <elements xsi:type="xtext:Assignment" feature="op" operator="=">
-          <terminal xsi:type="xtext:Alternatives">
-            <elements xsi:type="xtext:Keyword" value="&lt;="/>
-            <elements xsi:type="xtext:Keyword" value="&lt;"/>
-            <elements xsi:type="xtext:Keyword" value=">="/>
-            <elements xsi:type="xtext:Keyword" value=">"/>
-          </terminal>
+          <terminal xsi:type="xtext:RuleCall" rule="//@rules.28"/>
         </elements>
         <elements xsi:type="xtext:Assignment" feature="right" operator="=">
-          <terminal xsi:type="xtext:RuleCall" rule="//@rules.26"/>
+          <terminal xsi:type="xtext:RuleCall" rule="//@rules.29"/>
         </elements>
+      </elements>
+    </alternatives>
+  </rules>
+  <rules xsi:type="xtext:ParserRule" name="OpComparison">
+    <type metamodel="//@metamodelDeclarations.1">
+      <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//OpComparison"/>
+    </type>
+    <alternatives xsi:type="xtext:Alternatives">
+      <elements xsi:type="xtext:Group">
+        <elements xsi:type="xtext:Action">
+          <type metamodel="//@metamodelDeclarations.1">
+            <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//OpLessEq"/>
+          </type>
+        </elements>
+        <elements xsi:type="xtext:Keyword" value="&lt;="/>
+      </elements>
+      <elements xsi:type="xtext:Group">
+        <elements xsi:type="xtext:Action">
+          <type metamodel="//@metamodelDeclarations.1">
+            <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//OpLess"/>
+          </type>
+        </elements>
+        <elements xsi:type="xtext:Keyword" value="&lt;"/>
+      </elements>
+      <elements xsi:type="xtext:Group">
+        <elements xsi:type="xtext:Action">
+          <type metamodel="//@metamodelDeclarations.1">
+            <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//OpGreaterEq"/>
+          </type>
+        </elements>
+        <elements xsi:type="xtext:Keyword" value=">="/>
+      </elements>
+      <elements xsi:type="xtext:Group">
+        <elements xsi:type="xtext:Action">
+          <type metamodel="//@metamodelDeclarations.1">
+            <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//OpGreater"/>
+          </type>
+        </elements>
+        <elements xsi:type="xtext:Keyword" value=">"/>
       </elements>
     </alternatives>
   </rules>
@@ -502,7 +596,7 @@
       <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//Expr"/>
     </type>
     <alternatives xsi:type="xtext:Group">
-      <elements xsi:type="xtext:RuleCall" rule="//@rules.27"/>
+      <elements xsi:type="xtext:RuleCall" rule="//@rules.31"/>
       <elements xsi:type="xtext:Group" cardinality="*">
         <elements xsi:type="xtext:Action" feature="left" operator="=">
           <type metamodel="//@metamodelDeclarations.1">
@@ -510,14 +604,34 @@
           </type>
         </elements>
         <elements xsi:type="xtext:Assignment" feature="op" operator="=">
-          <terminal xsi:type="xtext:Alternatives">
-            <elements xsi:type="xtext:Keyword" value="+"/>
-            <elements xsi:type="xtext:Keyword" value="-"/>
-          </terminal>
+          <terminal xsi:type="xtext:RuleCall" rule="//@rules.30"/>
         </elements>
         <elements xsi:type="xtext:Assignment" feature="right" operator="=">
-          <terminal xsi:type="xtext:RuleCall" rule="//@rules.27"/>
+          <terminal xsi:type="xtext:RuleCall" rule="//@rules.31"/>
         </elements>
+      </elements>
+    </alternatives>
+  </rules>
+  <rules xsi:type="xtext:ParserRule" name="OpAdditive">
+    <type metamodel="//@metamodelDeclarations.1">
+      <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//OpAdditive"/>
+    </type>
+    <alternatives xsi:type="xtext:Alternatives">
+      <elements xsi:type="xtext:Group">
+        <elements xsi:type="xtext:Action">
+          <type metamodel="//@metamodelDeclarations.1">
+            <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//OpPlus"/>
+          </type>
+        </elements>
+        <elements xsi:type="xtext:Keyword" value="+"/>
+      </elements>
+      <elements xsi:type="xtext:Group">
+        <elements xsi:type="xtext:Action">
+          <type metamodel="//@metamodelDeclarations.1">
+            <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//OpMinus"/>
+          </type>
+        </elements>
+        <elements xsi:type="xtext:Keyword" value="-"/>
       </elements>
     </alternatives>
   </rules>
@@ -526,7 +640,7 @@
       <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//Expr"/>
     </type>
     <alternatives xsi:type="xtext:Group">
-      <elements xsi:type="xtext:RuleCall" rule="//@rules.28"/>
+      <elements xsi:type="xtext:RuleCall" rule="//@rules.33"/>
       <elements xsi:type="xtext:Group" cardinality="*">
         <elements xsi:type="xtext:Action" feature="left" operator="=">
           <type metamodel="//@metamodelDeclarations.1">
@@ -534,17 +648,58 @@
           </type>
         </elements>
         <elements xsi:type="xtext:Assignment" feature="op" operator="=">
-          <terminal xsi:type="xtext:Alternatives">
-            <elements xsi:type="xtext:Keyword" value="*"/>
-            <elements xsi:type="xtext:Keyword" value="/"/>
-            <elements xsi:type="xtext:Keyword" value="%"/>
-            <elements xsi:type="xtext:Keyword" value="mod"/>
-            <elements xsi:type="xtext:Keyword" value="div"/>
-          </terminal>
+          <terminal xsi:type="xtext:RuleCall" rule="//@rules.32"/>
         </elements>
         <elements xsi:type="xtext:Assignment" feature="right" operator="=">
-          <terminal xsi:type="xtext:RuleCall" rule="//@rules.28"/>
+          <terminal xsi:type="xtext:RuleCall" rule="//@rules.33"/>
         </elements>
+      </elements>
+    </alternatives>
+  </rules>
+  <rules xsi:type="xtext:ParserRule" name="OpMultiplicative">
+    <type metamodel="//@metamodelDeclarations.1">
+      <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//OpMultiplicative"/>
+    </type>
+    <alternatives xsi:type="xtext:Alternatives">
+      <elements xsi:type="xtext:Group">
+        <elements xsi:type="xtext:Action">
+          <type metamodel="//@metamodelDeclarations.1">
+            <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//OpMult"/>
+          </type>
+        </elements>
+        <elements xsi:type="xtext:Keyword" value="*"/>
+      </elements>
+      <elements xsi:type="xtext:Group">
+        <elements xsi:type="xtext:Action">
+          <type metamodel="//@metamodelDeclarations.1">
+            <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//OpDivReal"/>
+          </type>
+        </elements>
+        <elements xsi:type="xtext:Keyword" value="/"/>
+      </elements>
+      <elements xsi:type="xtext:Group">
+        <elements xsi:type="xtext:Action">
+          <type metamodel="//@metamodelDeclarations.1">
+            <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//OpModReal"/>
+          </type>
+        </elements>
+        <elements xsi:type="xtext:Keyword" value="%"/>
+      </elements>
+      <elements xsi:type="xtext:Group">
+        <elements xsi:type="xtext:Action">
+          <type metamodel="//@metamodelDeclarations.1">
+            <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//OpModInt"/>
+          </type>
+        </elements>
+        <elements xsi:type="xtext:Keyword" value="mod"/>
+      </elements>
+      <elements xsi:type="xtext:Group">
+        <elements xsi:type="xtext:Action">
+          <type metamodel="//@metamodelDeclarations.1">
+            <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//OpModReal"/>
+          </type>
+        </elements>
+        <elements xsi:type="xtext:Keyword" value="div"/>
       </elements>
     </alternatives>
   </rules>
@@ -560,16 +715,13 @@
           </type>
         </elements>
         <elements xsi:type="xtext:Assignment" feature="op" operator="=">
-          <terminal xsi:type="xtext:Alternatives">
-            <elements xsi:type="xtext:Keyword" value="+"/>
-            <elements xsi:type="xtext:Keyword" value="-"/>
-          </terminal>
+          <terminal xsi:type="xtext:RuleCall" rule="//@rules.30"/>
         </elements>
         <elements xsi:type="xtext:Assignment" feature="right" operator="=">
-          <terminal xsi:type="xtext:RuleCall" rule="//@rules.29"/>
+          <terminal xsi:type="xtext:RuleCall" rule="//@rules.34"/>
         </elements>
       </elements>
-      <elements xsi:type="xtext:RuleCall" rule="//@rules.29"/>
+      <elements xsi:type="xtext:RuleCall" rule="//@rules.34"/>
     </alternatives>
   </rules>
   <rules xsi:type="xtext:ParserRule" name="ExprNot">
@@ -583,14 +735,12 @@
             <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//ExprNot"/>
           </type>
         </elements>
-        <elements xsi:type="xtext:Assignment" feature="op" operator="=">
-          <terminal xsi:type="xtext:Keyword" value="not"/>
-        </elements>
+        <elements xsi:type="xtext:Keyword" value="not"/>
         <elements xsi:type="xtext:Assignment" feature="right" operator="=">
-          <terminal xsi:type="xtext:RuleCall" rule="//@rules.30"/>
+          <terminal xsi:type="xtext:RuleCall" rule="//@rules.35"/>
         </elements>
       </elements>
-      <elements xsi:type="xtext:RuleCall" rule="//@rules.30"/>
+      <elements xsi:type="xtext:RuleCall" rule="//@rules.35"/>
     </alternatives>
   </rules>
   <rules xsi:type="xtext:ParserRule" name="ExprMember">
@@ -598,77 +748,26 @@
       <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//Expr"/>
     </type>
     <alternatives xsi:type="xtext:Group">
-      <elements xsi:type="xtext:RuleCall" rule="//@rules.31"/>
+      <elements xsi:type="xtext:RuleCall" rule="//@rules.36"/>
       <elements xsi:type="xtext:Group" cardinality="*">
         <elements xsi:type="xtext:Action" feature="left" operator="=">
           <type metamodel="//@metamodelDeclarations.1">
             <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//ExprMember"/>
           </type>
         </elements>
-        <elements xsi:type="xtext:Assignment" feature="op" operator="=">
-          <terminal xsi:type="xtext:Keyword" value="."/>
-        </elements>
+        <elements xsi:type="xtext:Keyword" value="."/>
         <elements xsi:type="xtext:Assignment" feature="right" operator="=">
-          <terminal xsi:type="xtext:RuleCall" rule="//@rules.31"/>
+          <terminal xsi:type="xtext:RuleCall" rule="//@rules.38"/>
         </elements>
       </elements>
     </alternatives>
   </rules>
-  <rules xsi:type="xtext:ParserRule" name="ExprAtomic">
+  <rules xsi:type="xtext:ParserRule" name="ExprSingle">
     <type metamodel="//@metamodelDeclarations.1">
       <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//Expr"/>
     </type>
     <alternatives xsi:type="xtext:Alternatives">
-      <elements xsi:type="xtext:Group">
-        <elements xsi:type="xtext:Action">
-          <type metamodel="//@metamodelDeclarations.1">
-            <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//ExprFunctioncall"/>
-          </type>
-        </elements>
-        <elements xsi:type="xtext:Assignment" feature="nameVal" operator="=">
-          <terminal xsi:type="xtext:CrossReference">
-            <type metamodel="//@metamodelDeclarations.1">
-              <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//FuncDef"/>
-            </type>
-            <terminal xsi:type="xtext:RuleCall" rule="//@rules.33"/>
-          </terminal>
-        </elements>
-        <elements xsi:type="xtext:Assignment" feature="parameters" operator="=">
-          <terminal xsi:type="xtext:RuleCall" rule="//@rules.32"/>
-        </elements>
-      </elements>
-      <elements xsi:type="xtext:Group">
-        <elements xsi:type="xtext:Action">
-          <type metamodel="//@metamodelDeclarations.1">
-            <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//ExprFunctioncall"/>
-          </type>
-        </elements>
-        <elements xsi:type="xtext:Assignment" feature="nameVal" operator="=">
-          <terminal xsi:type="xtext:CrossReference">
-            <type metamodel="//@metamodelDeclarations.1">
-              <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//FuncDef"/>
-            </type>
-            <terminal xsi:type="xtext:RuleCall" rule="//@rules.33"/>
-          </terminal>
-        </elements>
-        <elements xsi:type="xtext:Keyword" value="("/>
-        <elements xsi:type="xtext:Keyword" value=")"/>
-      </elements>
-      <elements xsi:type="xtext:Group">
-        <elements xsi:type="xtext:Action">
-          <type metamodel="//@metamodelDeclarations.1">
-            <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//ExprIdentifier"/>
-          </type>
-        </elements>
-        <elements xsi:type="xtext:Assignment" feature="nameVal" operator="=">
-          <terminal xsi:type="xtext:CrossReference">
-            <type metamodel="//@metamodelDeclarations.1">
-              <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//NameDef"/>
-            </type>
-            <terminal xsi:type="xtext:RuleCall" rule="//@rules.33"/>
-          </terminal>
-        </elements>
-      </elements>
+      <elements xsi:type="xtext:RuleCall" rule="//@rules.38"/>
       <elements xsi:type="xtext:Group">
         <elements xsi:type="xtext:Keyword" value="("/>
         <elements xsi:type="xtext:RuleCall" rule="//@rules.20"/>
@@ -681,7 +780,7 @@
           </type>
         </elements>
         <elements xsi:type="xtext:Assignment" feature="intVal" operator="=">
-          <terminal xsi:type="xtext:RuleCall" rule="//@rules.34"/>
+          <terminal xsi:type="xtext:RuleCall" rule="//@rules.41"/>
         </elements>
       </elements>
       <elements xsi:type="xtext:Group">
@@ -691,7 +790,7 @@
           </type>
         </elements>
         <elements xsi:type="xtext:Assignment" feature="numVal" operator="=">
-          <terminal xsi:type="xtext:RuleCall" rule="//@rules.35"/>
+          <terminal xsi:type="xtext:RuleCall" rule="//@rules.37"/>
         </elements>
       </elements>
       <elements xsi:type="xtext:Group">
@@ -701,7 +800,7 @@
           </type>
         </elements>
         <elements xsi:type="xtext:Assignment" feature="strVal" operator="=">
-          <terminal xsi:type="xtext:RuleCall" rule="//@rules.36"/>
+          <terminal xsi:type="xtext:RuleCall" rule="//@rules.42"/>
         </elements>
       </elements>
       <elements xsi:type="xtext:Group">
@@ -725,16 +824,83 @@
         </elements>
         <elements xsi:type="xtext:Keyword" value="buildin"/>
         <elements xsi:type="xtext:Assignment" feature="name" operator="=">
-          <terminal xsi:type="xtext:RuleCall" rule="//@rules.33"/>
+          <terminal xsi:type="xtext:RuleCall" rule="//@rules.40"/>
         </elements>
         <elements xsi:type="xtext:Alternatives">
           <elements xsi:type="xtext:Assignment" feature="parameters" operator="=">
-            <terminal xsi:type="xtext:RuleCall" rule="//@rules.32"/>
+            <terminal xsi:type="xtext:RuleCall" rule="//@rules.39"/>
           </elements>
           <elements xsi:type="xtext:Group">
             <elements xsi:type="xtext:Keyword" value="("/>
             <elements xsi:type="xtext:Keyword" value=")"/>
           </elements>
+        </elements>
+      </elements>
+    </alternatives>
+  </rules>
+  <rules xsi:type="xtext:ParserRule" name="Number">
+    <type metamodel="//@metamodelDeclarations.0">
+      <classifier xsi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </type>
+    <alternatives xsi:type="xtext:Group">
+      <elements xsi:type="xtext:RuleCall" rule="//@rules.41"/>
+      <elements xsi:type="xtext:Keyword" value="."/>
+      <elements xsi:type="xtext:RuleCall" rule="//@rules.41"/>
+    </alternatives>
+  </rules>
+  <rules xsi:type="xtext:ParserRule" name="ExprAtomic">
+    <type metamodel="//@metamodelDeclarations.1">
+      <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//Expr"/>
+    </type>
+    <alternatives xsi:type="xtext:Alternatives">
+      <elements xsi:type="xtext:Group">
+        <elements xsi:type="xtext:Action">
+          <type metamodel="//@metamodelDeclarations.1">
+            <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//ExprFunctioncall"/>
+          </type>
+        </elements>
+        <elements xsi:type="xtext:Assignment" feature="nameVal" operator="=">
+          <terminal xsi:type="xtext:CrossReference">
+            <type metamodel="//@metamodelDeclarations.1">
+              <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//FuncDef"/>
+            </type>
+            <terminal xsi:type="xtext:RuleCall" rule="//@rules.40"/>
+          </terminal>
+        </elements>
+        <elements xsi:type="xtext:Assignment" feature="parameters" operator="=">
+          <terminal xsi:type="xtext:RuleCall" rule="//@rules.39"/>
+        </elements>
+      </elements>
+      <elements xsi:type="xtext:Group">
+        <elements xsi:type="xtext:Action">
+          <type metamodel="//@metamodelDeclarations.1">
+            <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//ExprFunctioncall"/>
+          </type>
+        </elements>
+        <elements xsi:type="xtext:Assignment" feature="nameVal" operator="=">
+          <terminal xsi:type="xtext:CrossReference">
+            <type metamodel="//@metamodelDeclarations.1">
+              <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//FuncDef"/>
+            </type>
+            <terminal xsi:type="xtext:RuleCall" rule="//@rules.40"/>
+          </terminal>
+        </elements>
+        <elements xsi:type="xtext:Keyword" value="("/>
+        <elements xsi:type="xtext:Keyword" value=")"/>
+      </elements>
+      <elements xsi:type="xtext:Group">
+        <elements xsi:type="xtext:Action">
+          <type metamodel="//@metamodelDeclarations.1">
+            <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//ExprIdentifier"/>
+          </type>
+        </elements>
+        <elements xsi:type="xtext:Assignment" feature="nameVal" operator="=">
+          <terminal xsi:type="xtext:CrossReference">
+            <type metamodel="//@metamodelDeclarations.1">
+              <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//VarDef"/>
+            </type>
+            <terminal xsi:type="xtext:RuleCall" rule="//@rules.40"/>
+          </terminal>
         </elements>
       </elements>
     </alternatives>
@@ -797,16 +963,6 @@
     <alternatives xsi:type="xtext:CharacterRange" cardinality="+">
       <left value="0"/>
       <right value="9"/>
-    </alternatives>
-  </rules>
-  <rules xsi:type="xtext:TerminalRule" name="NUMBER">
-    <type metamodel="//@metamodelDeclarations.0">
-      <classifier xsi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-    </type>
-    <alternatives xsi:type="xtext:Group">
-      <elements xsi:type="xtext:Keyword" cardinality="+" value="0..9"/>
-      <elements xsi:type="xtext:Keyword" value="."/>
-      <elements xsi:type="xtext:Keyword" cardinality="*" value="0..9"/>
     </alternatives>
   </rules>
   <rules xsi:type="xtext:TerminalRule" name="STRING">
@@ -874,6 +1030,12 @@
       <elements xsi:type="xtext:Keyword" value="/*"/>
       <elements xsi:type="xtext:UntilToken">
         <terminal xsi:type="xtext:Keyword" value="*/"/>
+      </elements>
+      <elements xsi:type="xtext:Alternatives" cardinality="*">
+        <elements xsi:type="xtext:Keyword" value=" "/>
+        <elements xsi:type="xtext:Keyword" value="&#x9;"/>
+        <elements xsi:type="xtext:Keyword" value="&#xA;"/>
+        <elements xsi:type="xtext:Keyword" value="&#xD;"/>
       </elements>
     </alternatives>
   </rules>

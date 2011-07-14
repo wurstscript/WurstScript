@@ -163,33 +163,14 @@ public interface PscriptPackage extends EPackage
   int IMPORT_FEATURE_COUNT = 1;
 
   /**
-   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.StatementImpl <em>Statement</em>}' class.
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.EntityImpl <em>Entity</em>}' class.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @see de.peeeq.pscript.pscript.impl.StatementImpl
-   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getStatement()
+   * @see de.peeeq.pscript.pscript.impl.EntityImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getEntity()
    * @generated
    */
-  int STATEMENT = 6;
-
-  /**
-   * The number of structural features of the '<em>Statement</em>' class.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int STATEMENT_FEATURE_COUNT = 0;
-
-  /**
-   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.NameDefImpl <em>Name Def</em>}' class.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @see de.peeeq.pscript.pscript.impl.NameDefImpl
-   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getNameDef()
-   * @generated
-   */
-  int NAME_DEF = 3;
+  int ENTITY = 3;
 
   /**
    * The feature id for the '<em><b>Name</b></em>' attribute.
@@ -198,16 +179,155 @@ public interface PscriptPackage extends EPackage
    * @generated
    * @ordered
    */
-  int NAME_DEF__NAME = STATEMENT_FEATURE_COUNT + 0;
+  int ENTITY__NAME = 0;
 
   /**
-   * The number of structural features of the '<em>Name Def</em>' class.
+   * The number of structural features of the '<em>Entity</em>' class.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
    * @ordered
    */
-  int NAME_DEF_FEATURE_COUNT = STATEMENT_FEATURE_COUNT + 1;
+  int ENTITY_FEATURE_COUNT = 1;
+
+  /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.InitBlockImpl <em>Init Block</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.InitBlockImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getInitBlock()
+   * @generated
+   */
+  int INIT_BLOCK = 4;
+
+  /**
+   * The feature id for the '<em><b>Name</b></em>' attribute.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int INIT_BLOCK__NAME = ENTITY__NAME;
+
+  /**
+   * The feature id for the '<em><b>Body</b></em>' containment reference.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int INIT_BLOCK__BODY = ENTITY_FEATURE_COUNT + 0;
+
+  /**
+   * The number of structural features of the '<em>Init Block</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int INIT_BLOCK_FEATURE_COUNT = ENTITY_FEATURE_COUNT + 1;
+
+  /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.TypeDefImpl <em>Type Def</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.TypeDefImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getTypeDef()
+   * @generated
+   */
+  int TYPE_DEF = 5;
+
+  /**
+   * The feature id for the '<em><b>Name</b></em>' attribute.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int TYPE_DEF__NAME = ENTITY__NAME;
+
+  /**
+   * The number of structural features of the '<em>Type Def</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int TYPE_DEF_FEATURE_COUNT = ENTITY_FEATURE_COUNT + 0;
+
+  /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.ClassMemberImpl <em>Class Member</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.ClassMemberImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getClassMember()
+   * @generated
+   */
+  int CLASS_MEMBER = 6;
+
+  /**
+   * The number of structural features of the '<em>Class Member</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int CLASS_MEMBER_FEATURE_COUNT = 0;
+
+  /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.VarDefImpl <em>Var Def</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.VarDefImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getVarDef()
+   * @generated
+   */
+  int VAR_DEF = 7;
+
+  /**
+   * The feature id for the '<em><b>Name</b></em>' attribute.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int VAR_DEF__NAME = ENTITY__NAME;
+
+  /**
+   * The feature id for the '<em><b>Constant</b></em>' attribute.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int VAR_DEF__CONSTANT = ENTITY_FEATURE_COUNT + 0;
+
+  /**
+   * The feature id for the '<em><b>Type</b></em>' containment reference.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int VAR_DEF__TYPE = ENTITY_FEATURE_COUNT + 1;
+
+  /**
+   * The feature id for the '<em><b>E</b></em>' containment reference.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int VAR_DEF__E = ENTITY_FEATURE_COUNT + 2;
+
+  /**
+   * The number of structural features of the '<em>Var Def</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int VAR_DEF_FEATURE_COUNT = ENTITY_FEATURE_COUNT + 3;
 
   /**
    * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.TypeExprImpl <em>Type Expr</em>}' class.
@@ -217,7 +337,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getTypeExpr()
    * @generated
    */
-  int TYPE_EXPR = 4;
+  int TYPE_EXPR = 8;
 
   /**
    * The feature id for the '<em><b>Name</b></em>' reference.
@@ -238,6 +358,61 @@ public interface PscriptPackage extends EPackage
   int TYPE_EXPR_FEATURE_COUNT = 1;
 
   /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.FuncDefImpl <em>Func Def</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.FuncDefImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getFuncDef()
+   * @generated
+   */
+  int FUNC_DEF = 9;
+
+  /**
+   * The feature id for the '<em><b>Name</b></em>' attribute.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int FUNC_DEF__NAME = ENTITY__NAME;
+
+  /**
+   * The feature id for the '<em><b>Parameters</b></em>' containment reference list.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int FUNC_DEF__PARAMETERS = ENTITY_FEATURE_COUNT + 0;
+
+  /**
+   * The feature id for the '<em><b>Type</b></em>' containment reference.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int FUNC_DEF__TYPE = ENTITY_FEATURE_COUNT + 1;
+
+  /**
+   * The feature id for the '<em><b>Body</b></em>' containment reference.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int FUNC_DEF__BODY = ENTITY_FEATURE_COUNT + 2;
+
+  /**
+   * The number of structural features of the '<em>Func Def</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int FUNC_DEF_FEATURE_COUNT = ENTITY_FEATURE_COUNT + 3;
+
+  /**
    * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.StatementsImpl <em>Statements</em>}' class.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -245,7 +420,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getStatements()
    * @generated
    */
-  int STATEMENTS = 5;
+  int STATEMENTS = 10;
 
   /**
    * The feature id for the '<em><b>Statements</b></em>' containment reference list.
@@ -266,6 +441,25 @@ public interface PscriptPackage extends EPackage
   int STATEMENTS_FEATURE_COUNT = 1;
 
   /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.StatementImpl <em>Statement</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.StatementImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getStatement()
+   * @generated
+   */
+  int STATEMENT = 11;
+
+  /**
+   * The number of structural features of the '<em>Statement</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int STATEMENT_FEATURE_COUNT = 0;
+
+  /**
    * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.StmtReturnImpl <em>Stmt Return</em>}' class.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -273,7 +467,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getStmtReturn()
    * @generated
    */
-  int STMT_RETURN = 7;
+  int STMT_RETURN = 12;
 
   /**
    * The feature id for the '<em><b>E</b></em>' containment reference.
@@ -301,7 +495,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getStmtIf()
    * @generated
    */
-  int STMT_IF = 8;
+  int STMT_IF = 13;
 
   /**
    * The feature id for the '<em><b>Cond</b></em>' containment reference.
@@ -347,7 +541,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getStmtWhile()
    * @generated
    */
-  int STMT_WHILE = 9;
+  int STMT_WHILE = 14;
 
   /**
    * The feature id for the '<em><b>Cond</b></em>' containment reference.
@@ -384,7 +578,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getStmtExpr()
    * @generated
    */
-  int STMT_EXPR = 10;
+  int STMT_EXPR = 15;
 
   /**
    * The feature id for the '<em><b>E</b></em>' containment reference.
@@ -412,7 +606,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExpr()
    * @generated
    */
-  int EXPR = 11;
+  int EXPR = 16;
 
   /**
    * The number of structural features of the '<em>Expr</em>' class.
@@ -424,6 +618,101 @@ public interface PscriptPackage extends EPackage
   int EXPR_FEATURE_COUNT = 0;
 
   /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.OpAssignmentImpl <em>Op Assignment</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.OpAssignmentImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpAssignment()
+   * @generated
+   */
+  int OP_ASSIGNMENT = 17;
+
+  /**
+   * The number of structural features of the '<em>Op Assignment</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int OP_ASSIGNMENT_FEATURE_COUNT = 0;
+
+  /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.OpEqualityImpl <em>Op Equality</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.OpEqualityImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpEquality()
+   * @generated
+   */
+  int OP_EQUALITY = 18;
+
+  /**
+   * The number of structural features of the '<em>Op Equality</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int OP_EQUALITY_FEATURE_COUNT = 0;
+
+  /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.OpComparisonImpl <em>Op Comparison</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.OpComparisonImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpComparison()
+   * @generated
+   */
+  int OP_COMPARISON = 19;
+
+  /**
+   * The number of structural features of the '<em>Op Comparison</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int OP_COMPARISON_FEATURE_COUNT = 0;
+
+  /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.OpAdditiveImpl <em>Op Additive</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.OpAdditiveImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpAdditive()
+   * @generated
+   */
+  int OP_ADDITIVE = 20;
+
+  /**
+   * The number of structural features of the '<em>Op Additive</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int OP_ADDITIVE_FEATURE_COUNT = 0;
+
+  /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.OpMultiplicativeImpl <em>Op Multiplicative</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.OpMultiplicativeImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpMultiplicative()
+   * @generated
+   */
+  int OP_MULTIPLICATIVE = 21;
+
+  /**
+   * The number of structural features of the '<em>Op Multiplicative</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int OP_MULTIPLICATIVE_FEATURE_COUNT = 0;
+
+  /**
    * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.ExprListImpl <em>Expr List</em>}' class.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -431,7 +720,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprList()
    * @generated
    */
-  int EXPR_LIST = 12;
+  int EXPR_LIST = 22;
 
   /**
    * The feature id for the '<em><b>Params</b></em>' containment reference list.
@@ -459,7 +748,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getNativeType()
    * @generated
    */
-  int NATIVE_TYPE = 13;
+  int NATIVE_TYPE = 23;
 
   /**
    * The feature id for the '<em><b>Name</b></em>' attribute.
@@ -468,7 +757,7 @@ public interface PscriptPackage extends EPackage
    * @generated
    * @ordered
    */
-  int NATIVE_TYPE__NAME = NAME_DEF__NAME;
+  int NATIVE_TYPE__NAME = TYPE_DEF__NAME;
 
   /**
    * The feature id for the '<em><b>Orig Name</b></em>' attribute.
@@ -477,16 +766,16 @@ public interface PscriptPackage extends EPackage
    * @generated
    * @ordered
    */
-  int NATIVE_TYPE__ORIG_NAME = NAME_DEF_FEATURE_COUNT + 0;
+  int NATIVE_TYPE__ORIG_NAME = TYPE_DEF_FEATURE_COUNT + 0;
 
   /**
-   * The feature id for the '<em><b>Super Name</b></em>' attribute.
+   * The feature id for the '<em><b>Super Name</b></em>' containment reference.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
    * @ordered
    */
-  int NATIVE_TYPE__SUPER_NAME = NAME_DEF_FEATURE_COUNT + 1;
+  int NATIVE_TYPE__SUPER_NAME = TYPE_DEF_FEATURE_COUNT + 1;
 
   /**
    * The number of structural features of the '<em>Native Type</em>' class.
@@ -495,7 +784,7 @@ public interface PscriptPackage extends EPackage
    * @generated
    * @ordered
    */
-  int NATIVE_TYPE_FEATURE_COUNT = NAME_DEF_FEATURE_COUNT + 2;
+  int NATIVE_TYPE_FEATURE_COUNT = TYPE_DEF_FEATURE_COUNT + 2;
 
   /**
    * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.ClassDefImpl <em>Class Def</em>}' class.
@@ -505,7 +794,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getClassDef()
    * @generated
    */
-  int CLASS_DEF = 14;
+  int CLASS_DEF = 24;
 
   /**
    * The feature id for the '<em><b>Name</b></em>' attribute.
@@ -514,7 +803,7 @@ public interface PscriptPackage extends EPackage
    * @generated
    * @ordered
    */
-  int CLASS_DEF__NAME = NAME_DEF__NAME;
+  int CLASS_DEF__NAME = TYPE_DEF__NAME;
 
   /**
    * The feature id for the '<em><b>Members</b></em>' containment reference list.
@@ -523,7 +812,7 @@ public interface PscriptPackage extends EPackage
    * @generated
    * @ordered
    */
-  int CLASS_DEF__MEMBERS = NAME_DEF_FEATURE_COUNT + 0;
+  int CLASS_DEF__MEMBERS = TYPE_DEF_FEATURE_COUNT + 0;
 
   /**
    * The number of structural features of the '<em>Class Def</em>' class.
@@ -532,117 +821,7 @@ public interface PscriptPackage extends EPackage
    * @generated
    * @ordered
    */
-  int CLASS_DEF_FEATURE_COUNT = NAME_DEF_FEATURE_COUNT + 1;
-
-  /**
-   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.VarDefImpl <em>Var Def</em>}' class.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @see de.peeeq.pscript.pscript.impl.VarDefImpl
-   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getVarDef()
-   * @generated
-   */
-  int VAR_DEF = 15;
-
-  /**
-   * The feature id for the '<em><b>Name</b></em>' attribute.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int VAR_DEF__NAME = NAME_DEF__NAME;
-
-  /**
-   * The feature id for the '<em><b>Constant</b></em>' attribute.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int VAR_DEF__CONSTANT = NAME_DEF_FEATURE_COUNT + 0;
-
-  /**
-   * The feature id for the '<em><b>Type</b></em>' containment reference.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int VAR_DEF__TYPE = NAME_DEF_FEATURE_COUNT + 1;
-
-  /**
-   * The feature id for the '<em><b>E</b></em>' containment reference.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int VAR_DEF__E = NAME_DEF_FEATURE_COUNT + 2;
-
-  /**
-   * The number of structural features of the '<em>Var Def</em>' class.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int VAR_DEF_FEATURE_COUNT = NAME_DEF_FEATURE_COUNT + 3;
-
-  /**
-   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.FuncDefImpl <em>Func Def</em>}' class.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @see de.peeeq.pscript.pscript.impl.FuncDefImpl
-   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getFuncDef()
-   * @generated
-   */
-  int FUNC_DEF = 16;
-
-  /**
-   * The feature id for the '<em><b>Name</b></em>' attribute.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int FUNC_DEF__NAME = NAME_DEF__NAME;
-
-  /**
-   * The feature id for the '<em><b>Parameters</b></em>' containment reference list.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int FUNC_DEF__PARAMETERS = NAME_DEF_FEATURE_COUNT + 0;
-
-  /**
-   * The feature id for the '<em><b>Type</b></em>' containment reference.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int FUNC_DEF__TYPE = NAME_DEF_FEATURE_COUNT + 1;
-
-  /**
-   * The feature id for the '<em><b>Body</b></em>' containment reference.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int FUNC_DEF__BODY = NAME_DEF_FEATURE_COUNT + 2;
-
-  /**
-   * The number of structural features of the '<em>Func Def</em>' class.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int FUNC_DEF_FEATURE_COUNT = NAME_DEF_FEATURE_COUNT + 3;
+  int CLASS_DEF_FEATURE_COUNT = TYPE_DEF_FEATURE_COUNT + 1;
 
   /**
    * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.ParameterDefImpl <em>Parameter Def</em>}' class.
@@ -652,7 +831,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getParameterDef()
    * @generated
    */
-  int PARAMETER_DEF = 17;
+  int PARAMETER_DEF = 25;
 
   /**
    * The feature id for the '<em><b>Name</b></em>' attribute.
@@ -661,7 +840,16 @@ public interface PscriptPackage extends EPackage
    * @generated
    * @ordered
    */
-  int PARAMETER_DEF__NAME = NAME_DEF__NAME;
+  int PARAMETER_DEF__NAME = VAR_DEF__NAME;
+
+  /**
+   * The feature id for the '<em><b>Constant</b></em>' attribute.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int PARAMETER_DEF__CONSTANT = VAR_DEF__CONSTANT;
 
   /**
    * The feature id for the '<em><b>Type</b></em>' containment reference.
@@ -670,7 +858,16 @@ public interface PscriptPackage extends EPackage
    * @generated
    * @ordered
    */
-  int PARAMETER_DEF__TYPE = NAME_DEF_FEATURE_COUNT + 0;
+  int PARAMETER_DEF__TYPE = VAR_DEF__TYPE;
+
+  /**
+   * The feature id for the '<em><b>E</b></em>' containment reference.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int PARAMETER_DEF__E = VAR_DEF__E;
 
   /**
    * The number of structural features of the '<em>Parameter Def</em>' class.
@@ -679,7 +876,7 @@ public interface PscriptPackage extends EPackage
    * @generated
    * @ordered
    */
-  int PARAMETER_DEF_FEATURE_COUNT = NAME_DEF_FEATURE_COUNT + 1;
+  int PARAMETER_DEF_FEATURE_COUNT = VAR_DEF_FEATURE_COUNT + 0;
 
   /**
    * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.ExprAssignmentImpl <em>Expr Assignment</em>}' class.
@@ -689,7 +886,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprAssignment()
    * @generated
    */
-  int EXPR_ASSIGNMENT = 18;
+  int EXPR_ASSIGNMENT = 26;
 
   /**
    * The feature id for the '<em><b>Left</b></em>' containment reference.
@@ -701,7 +898,7 @@ public interface PscriptPackage extends EPackage
   int EXPR_ASSIGNMENT__LEFT = EXPR_FEATURE_COUNT + 0;
 
   /**
-   * The feature id for the '<em><b>Op</b></em>' attribute.
+   * The feature id for the '<em><b>Op</b></em>' containment reference.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
@@ -728,6 +925,63 @@ public interface PscriptPackage extends EPackage
   int EXPR_ASSIGNMENT_FEATURE_COUNT = EXPR_FEATURE_COUNT + 3;
 
   /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.OpAssignImpl <em>Op Assign</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.OpAssignImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpAssign()
+   * @generated
+   */
+  int OP_ASSIGN = 27;
+
+  /**
+   * The number of structural features of the '<em>Op Assign</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int OP_ASSIGN_FEATURE_COUNT = OP_ASSIGNMENT_FEATURE_COUNT + 0;
+
+  /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.OpPlusAssignImpl <em>Op Plus Assign</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.OpPlusAssignImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpPlusAssign()
+   * @generated
+   */
+  int OP_PLUS_ASSIGN = 28;
+
+  /**
+   * The number of structural features of the '<em>Op Plus Assign</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int OP_PLUS_ASSIGN_FEATURE_COUNT = OP_ASSIGNMENT_FEATURE_COUNT + 0;
+
+  /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.OpMinusAssignImpl <em>Op Minus Assign</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.OpMinusAssignImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpMinusAssign()
+   * @generated
+   */
+  int OP_MINUS_ASSIGN = 29;
+
+  /**
+   * The number of structural features of the '<em>Op Minus Assign</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int OP_MINUS_ASSIGN_FEATURE_COUNT = OP_ASSIGNMENT_FEATURE_COUNT + 0;
+
+  /**
    * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.ExprOrImpl <em>Expr Or</em>}' class.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -735,7 +989,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprOr()
    * @generated
    */
-  int EXPR_OR = 19;
+  int EXPR_OR = 30;
 
   /**
    * The feature id for the '<em><b>Left</b></em>' containment reference.
@@ -781,7 +1035,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprAnd()
    * @generated
    */
-  int EXPR_AND = 20;
+  int EXPR_AND = 31;
 
   /**
    * The feature id for the '<em><b>Left</b></em>' containment reference.
@@ -827,7 +1081,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprEquality()
    * @generated
    */
-  int EXPR_EQUALITY = 21;
+  int EXPR_EQUALITY = 32;
 
   /**
    * The feature id for the '<em><b>Left</b></em>' containment reference.
@@ -839,7 +1093,7 @@ public interface PscriptPackage extends EPackage
   int EXPR_EQUALITY__LEFT = EXPR_FEATURE_COUNT + 0;
 
   /**
-   * The feature id for the '<em><b>Op</b></em>' attribute.
+   * The feature id for the '<em><b>Op</b></em>' containment reference.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
@@ -866,6 +1120,44 @@ public interface PscriptPackage extends EPackage
   int EXPR_EQUALITY_FEATURE_COUNT = EXPR_FEATURE_COUNT + 3;
 
   /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.OpEqualsImpl <em>Op Equals</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.OpEqualsImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpEquals()
+   * @generated
+   */
+  int OP_EQUALS = 33;
+
+  /**
+   * The number of structural features of the '<em>Op Equals</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int OP_EQUALS_FEATURE_COUNT = OP_EQUALITY_FEATURE_COUNT + 0;
+
+  /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.OpUnequalsImpl <em>Op Unequals</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.OpUnequalsImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpUnequals()
+   * @generated
+   */
+  int OP_UNEQUALS = 34;
+
+  /**
+   * The number of structural features of the '<em>Op Unequals</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int OP_UNEQUALS_FEATURE_COUNT = OP_EQUALITY_FEATURE_COUNT + 0;
+
+  /**
    * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.ExprComparisonImpl <em>Expr Comparison</em>}' class.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -873,7 +1165,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprComparison()
    * @generated
    */
-  int EXPR_COMPARISON = 22;
+  int EXPR_COMPARISON = 35;
 
   /**
    * The feature id for the '<em><b>Left</b></em>' containment reference.
@@ -885,7 +1177,7 @@ public interface PscriptPackage extends EPackage
   int EXPR_COMPARISON__LEFT = EXPR_FEATURE_COUNT + 0;
 
   /**
-   * The feature id for the '<em><b>Op</b></em>' attribute.
+   * The feature id for the '<em><b>Op</b></em>' containment reference.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
@@ -912,6 +1204,82 @@ public interface PscriptPackage extends EPackage
   int EXPR_COMPARISON_FEATURE_COUNT = EXPR_FEATURE_COUNT + 3;
 
   /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.OpLessEqImpl <em>Op Less Eq</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.OpLessEqImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpLessEq()
+   * @generated
+   */
+  int OP_LESS_EQ = 36;
+
+  /**
+   * The number of structural features of the '<em>Op Less Eq</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int OP_LESS_EQ_FEATURE_COUNT = OP_COMPARISON_FEATURE_COUNT + 0;
+
+  /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.OpLessImpl <em>Op Less</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.OpLessImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpLess()
+   * @generated
+   */
+  int OP_LESS = 37;
+
+  /**
+   * The number of structural features of the '<em>Op Less</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int OP_LESS_FEATURE_COUNT = OP_COMPARISON_FEATURE_COUNT + 0;
+
+  /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.OpGreaterEqImpl <em>Op Greater Eq</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.OpGreaterEqImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpGreaterEq()
+   * @generated
+   */
+  int OP_GREATER_EQ = 38;
+
+  /**
+   * The number of structural features of the '<em>Op Greater Eq</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int OP_GREATER_EQ_FEATURE_COUNT = OP_COMPARISON_FEATURE_COUNT + 0;
+
+  /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.OpGreaterImpl <em>Op Greater</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.OpGreaterImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpGreater()
+   * @generated
+   */
+  int OP_GREATER = 39;
+
+  /**
+   * The number of structural features of the '<em>Op Greater</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int OP_GREATER_FEATURE_COUNT = OP_COMPARISON_FEATURE_COUNT + 0;
+
+  /**
    * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.ExprAdditiveImpl <em>Expr Additive</em>}' class.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -919,7 +1287,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprAdditive()
    * @generated
    */
-  int EXPR_ADDITIVE = 23;
+  int EXPR_ADDITIVE = 40;
 
   /**
    * The feature id for the '<em><b>Left</b></em>' containment reference.
@@ -931,7 +1299,7 @@ public interface PscriptPackage extends EPackage
   int EXPR_ADDITIVE__LEFT = EXPR_FEATURE_COUNT + 0;
 
   /**
-   * The feature id for the '<em><b>Op</b></em>' attribute.
+   * The feature id for the '<em><b>Op</b></em>' containment reference.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
@@ -958,6 +1326,44 @@ public interface PscriptPackage extends EPackage
   int EXPR_ADDITIVE_FEATURE_COUNT = EXPR_FEATURE_COUNT + 3;
 
   /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.OpPlusImpl <em>Op Plus</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.OpPlusImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpPlus()
+   * @generated
+   */
+  int OP_PLUS = 41;
+
+  /**
+   * The number of structural features of the '<em>Op Plus</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int OP_PLUS_FEATURE_COUNT = OP_ADDITIVE_FEATURE_COUNT + 0;
+
+  /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.OpMinusImpl <em>Op Minus</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.OpMinusImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpMinus()
+   * @generated
+   */
+  int OP_MINUS = 42;
+
+  /**
+   * The number of structural features of the '<em>Op Minus</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int OP_MINUS_FEATURE_COUNT = OP_ADDITIVE_FEATURE_COUNT + 0;
+
+  /**
    * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.ExprMultImpl <em>Expr Mult</em>}' class.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -965,7 +1371,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprMult()
    * @generated
    */
-  int EXPR_MULT = 24;
+  int EXPR_MULT = 43;
 
   /**
    * The feature id for the '<em><b>Left</b></em>' containment reference.
@@ -977,7 +1383,7 @@ public interface PscriptPackage extends EPackage
   int EXPR_MULT__LEFT = EXPR_FEATURE_COUNT + 0;
 
   /**
-   * The feature id for the '<em><b>Op</b></em>' attribute.
+   * The feature id for the '<em><b>Op</b></em>' containment reference.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
@@ -1004,6 +1410,82 @@ public interface PscriptPackage extends EPackage
   int EXPR_MULT_FEATURE_COUNT = EXPR_FEATURE_COUNT + 3;
 
   /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.OpMultImpl <em>Op Mult</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.OpMultImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpMult()
+   * @generated
+   */
+  int OP_MULT = 44;
+
+  /**
+   * The number of structural features of the '<em>Op Mult</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int OP_MULT_FEATURE_COUNT = OP_MULTIPLICATIVE_FEATURE_COUNT + 0;
+
+  /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.OpDivRealImpl <em>Op Div Real</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.OpDivRealImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpDivReal()
+   * @generated
+   */
+  int OP_DIV_REAL = 45;
+
+  /**
+   * The number of structural features of the '<em>Op Div Real</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int OP_DIV_REAL_FEATURE_COUNT = OP_MULTIPLICATIVE_FEATURE_COUNT + 0;
+
+  /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.OpModRealImpl <em>Op Mod Real</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.OpModRealImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpModReal()
+   * @generated
+   */
+  int OP_MOD_REAL = 46;
+
+  /**
+   * The number of structural features of the '<em>Op Mod Real</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int OP_MOD_REAL_FEATURE_COUNT = OP_MULTIPLICATIVE_FEATURE_COUNT + 0;
+
+  /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.OpModIntImpl <em>Op Mod Int</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.OpModIntImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpModInt()
+   * @generated
+   */
+  int OP_MOD_INT = 47;
+
+  /**
+   * The number of structural features of the '<em>Op Mod Int</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int OP_MOD_INT_FEATURE_COUNT = OP_MULTIPLICATIVE_FEATURE_COUNT + 0;
+
+  /**
    * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.ExprSignImpl <em>Expr Sign</em>}' class.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -1011,10 +1493,10 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprSign()
    * @generated
    */
-  int EXPR_SIGN = 25;
+  int EXPR_SIGN = 48;
 
   /**
-   * The feature id for the '<em><b>Op</b></em>' attribute.
+   * The feature id for the '<em><b>Op</b></em>' containment reference.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
@@ -1048,16 +1530,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprNot()
    * @generated
    */
-  int EXPR_NOT = 26;
-
-  /**
-   * The feature id for the '<em><b>Op</b></em>' attribute.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int EXPR_NOT__OP = EXPR_FEATURE_COUNT + 0;
+  int EXPR_NOT = 49;
 
   /**
    * The feature id for the '<em><b>Right</b></em>' containment reference.
@@ -1066,7 +1539,7 @@ public interface PscriptPackage extends EPackage
    * @generated
    * @ordered
    */
-  int EXPR_NOT__RIGHT = EXPR_FEATURE_COUNT + 1;
+  int EXPR_NOT__RIGHT = EXPR_FEATURE_COUNT + 0;
 
   /**
    * The number of structural features of the '<em>Expr Not</em>' class.
@@ -1075,7 +1548,7 @@ public interface PscriptPackage extends EPackage
    * @generated
    * @ordered
    */
-  int EXPR_NOT_FEATURE_COUNT = EXPR_FEATURE_COUNT + 2;
+  int EXPR_NOT_FEATURE_COUNT = EXPR_FEATURE_COUNT + 1;
 
   /**
    * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.ExprMemberImpl <em>Expr Member</em>}' class.
@@ -1085,7 +1558,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprMember()
    * @generated
    */
-  int EXPR_MEMBER = 27;
+  int EXPR_MEMBER = 50;
 
   /**
    * The feature id for the '<em><b>Left</b></em>' containment reference.
@@ -1097,22 +1570,13 @@ public interface PscriptPackage extends EPackage
   int EXPR_MEMBER__LEFT = EXPR_FEATURE_COUNT + 0;
 
   /**
-   * The feature id for the '<em><b>Op</b></em>' attribute.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int EXPR_MEMBER__OP = EXPR_FEATURE_COUNT + 1;
-
-  /**
    * The feature id for the '<em><b>Right</b></em>' containment reference.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
    * @ordered
    */
-  int EXPR_MEMBER__RIGHT = EXPR_FEATURE_COUNT + 2;
+  int EXPR_MEMBER__RIGHT = EXPR_FEATURE_COUNT + 1;
 
   /**
    * The number of structural features of the '<em>Expr Member</em>' class.
@@ -1121,7 +1585,156 @@ public interface PscriptPackage extends EPackage
    * @generated
    * @ordered
    */
-  int EXPR_MEMBER_FEATURE_COUNT = EXPR_FEATURE_COUNT + 3;
+  int EXPR_MEMBER_FEATURE_COUNT = EXPR_FEATURE_COUNT + 2;
+
+  /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.ExprIntValImpl <em>Expr Int Val</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.ExprIntValImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprIntVal()
+   * @generated
+   */
+  int EXPR_INT_VAL = 51;
+
+  /**
+   * The feature id for the '<em><b>Int Val</b></em>' attribute.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int EXPR_INT_VAL__INT_VAL = EXPR_FEATURE_COUNT + 0;
+
+  /**
+   * The number of structural features of the '<em>Expr Int Val</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int EXPR_INT_VAL_FEATURE_COUNT = EXPR_FEATURE_COUNT + 1;
+
+  /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.ExprNumValImpl <em>Expr Num Val</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.ExprNumValImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprNumVal()
+   * @generated
+   */
+  int EXPR_NUM_VAL = 52;
+
+  /**
+   * The feature id for the '<em><b>Num Val</b></em>' attribute.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int EXPR_NUM_VAL__NUM_VAL = EXPR_FEATURE_COUNT + 0;
+
+  /**
+   * The number of structural features of the '<em>Expr Num Val</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int EXPR_NUM_VAL_FEATURE_COUNT = EXPR_FEATURE_COUNT + 1;
+
+  /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.ExprStrvalImpl <em>Expr Strval</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.ExprStrvalImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprStrval()
+   * @generated
+   */
+  int EXPR_STRVAL = 53;
+
+  /**
+   * The feature id for the '<em><b>Str Val</b></em>' attribute.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int EXPR_STRVAL__STR_VAL = EXPR_FEATURE_COUNT + 0;
+
+  /**
+   * The number of structural features of the '<em>Expr Strval</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int EXPR_STRVAL_FEATURE_COUNT = EXPR_FEATURE_COUNT + 1;
+
+  /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.ExprBoolValImpl <em>Expr Bool Val</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.ExprBoolValImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprBoolVal()
+   * @generated
+   */
+  int EXPR_BOOL_VAL = 54;
+
+  /**
+   * The feature id for the '<em><b>Bool Val</b></em>' attribute.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int EXPR_BOOL_VAL__BOOL_VAL = EXPR_FEATURE_COUNT + 0;
+
+  /**
+   * The number of structural features of the '<em>Expr Bool Val</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int EXPR_BOOL_VAL_FEATURE_COUNT = EXPR_FEATURE_COUNT + 1;
+
+  /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.ExprBuildinFunctionImpl <em>Expr Buildin Function</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.ExprBuildinFunctionImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprBuildinFunction()
+   * @generated
+   */
+  int EXPR_BUILDIN_FUNCTION = 55;
+
+  /**
+   * The feature id for the '<em><b>Name</b></em>' attribute.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int EXPR_BUILDIN_FUNCTION__NAME = EXPR_FEATURE_COUNT + 0;
+
+  /**
+   * The feature id for the '<em><b>Parameters</b></em>' containment reference.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int EXPR_BUILDIN_FUNCTION__PARAMETERS = EXPR_FEATURE_COUNT + 1;
+
+  /**
+   * The number of structural features of the '<em>Expr Buildin Function</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int EXPR_BUILDIN_FUNCTION_FEATURE_COUNT = EXPR_FEATURE_COUNT + 2;
 
   /**
    * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.ExprFunctioncallImpl <em>Expr Functioncall</em>}' class.
@@ -1131,7 +1744,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprFunctioncall()
    * @generated
    */
-  int EXPR_FUNCTIONCALL = 28;
+  int EXPR_FUNCTIONCALL = 56;
 
   /**
    * The feature id for the '<em><b>Name Val</b></em>' reference.
@@ -1168,7 +1781,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprIdentifier()
    * @generated
    */
-  int EXPR_IDENTIFIER = 29;
+  int EXPR_IDENTIFIER = 57;
 
   /**
    * The feature id for the '<em><b>Name Val</b></em>' reference.
@@ -1187,155 +1800,6 @@ public interface PscriptPackage extends EPackage
    * @ordered
    */
   int EXPR_IDENTIFIER_FEATURE_COUNT = EXPR_FEATURE_COUNT + 1;
-
-  /**
-   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.ExprIntValImpl <em>Expr Int Val</em>}' class.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @see de.peeeq.pscript.pscript.impl.ExprIntValImpl
-   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprIntVal()
-   * @generated
-   */
-  int EXPR_INT_VAL = 30;
-
-  /**
-   * The feature id for the '<em><b>Int Val</b></em>' attribute.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int EXPR_INT_VAL__INT_VAL = EXPR_FEATURE_COUNT + 0;
-
-  /**
-   * The number of structural features of the '<em>Expr Int Val</em>' class.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int EXPR_INT_VAL_FEATURE_COUNT = EXPR_FEATURE_COUNT + 1;
-
-  /**
-   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.ExprNumValImpl <em>Expr Num Val</em>}' class.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @see de.peeeq.pscript.pscript.impl.ExprNumValImpl
-   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprNumVal()
-   * @generated
-   */
-  int EXPR_NUM_VAL = 31;
-
-  /**
-   * The feature id for the '<em><b>Num Val</b></em>' attribute.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int EXPR_NUM_VAL__NUM_VAL = EXPR_FEATURE_COUNT + 0;
-
-  /**
-   * The number of structural features of the '<em>Expr Num Val</em>' class.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int EXPR_NUM_VAL_FEATURE_COUNT = EXPR_FEATURE_COUNT + 1;
-
-  /**
-   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.ExprStrvalImpl <em>Expr Strval</em>}' class.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @see de.peeeq.pscript.pscript.impl.ExprStrvalImpl
-   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprStrval()
-   * @generated
-   */
-  int EXPR_STRVAL = 32;
-
-  /**
-   * The feature id for the '<em><b>Str Val</b></em>' attribute.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int EXPR_STRVAL__STR_VAL = EXPR_FEATURE_COUNT + 0;
-
-  /**
-   * The number of structural features of the '<em>Expr Strval</em>' class.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int EXPR_STRVAL_FEATURE_COUNT = EXPR_FEATURE_COUNT + 1;
-
-  /**
-   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.ExprBoolValImpl <em>Expr Bool Val</em>}' class.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @see de.peeeq.pscript.pscript.impl.ExprBoolValImpl
-   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprBoolVal()
-   * @generated
-   */
-  int EXPR_BOOL_VAL = 33;
-
-  /**
-   * The feature id for the '<em><b>Bool Val</b></em>' attribute.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int EXPR_BOOL_VAL__BOOL_VAL = EXPR_FEATURE_COUNT + 0;
-
-  /**
-   * The number of structural features of the '<em>Expr Bool Val</em>' class.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int EXPR_BOOL_VAL_FEATURE_COUNT = EXPR_FEATURE_COUNT + 1;
-
-  /**
-   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.ExprBuildinFunctionImpl <em>Expr Buildin Function</em>}' class.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @see de.peeeq.pscript.pscript.impl.ExprBuildinFunctionImpl
-   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprBuildinFunction()
-   * @generated
-   */
-  int EXPR_BUILDIN_FUNCTION = 34;
-
-  /**
-   * The feature id for the '<em><b>Name</b></em>' attribute.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int EXPR_BUILDIN_FUNCTION__NAME = EXPR_FEATURE_COUNT + 0;
-
-  /**
-   * The feature id for the '<em><b>Parameters</b></em>' containment reference.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int EXPR_BUILDIN_FUNCTION__PARAMETERS = EXPR_FEATURE_COUNT + 1;
-
-  /**
-   * The number of structural features of the '<em>Expr Buildin Function</em>' class.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int EXPR_BUILDIN_FUNCTION_FEATURE_COUNT = EXPR_FEATURE_COUNT + 2;
 
 
   /**
@@ -1424,25 +1888,109 @@ public interface PscriptPackage extends EPackage
   EAttribute getImport_ImportedNamespace();
 
   /**
-   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.NameDef <em>Name Def</em>}'.
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.Entity <em>Entity</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return the meta object for class '<em>Name Def</em>'.
-   * @see de.peeeq.pscript.pscript.NameDef
+   * @return the meta object for class '<em>Entity</em>'.
+   * @see de.peeeq.pscript.pscript.Entity
    * @generated
    */
-  EClass getNameDef();
+  EClass getEntity();
 
   /**
-   * Returns the meta object for the attribute '{@link de.peeeq.pscript.pscript.NameDef#getName <em>Name</em>}'.
+   * Returns the meta object for the attribute '{@link de.peeeq.pscript.pscript.Entity#getName <em>Name</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @return the meta object for the attribute '<em>Name</em>'.
-   * @see de.peeeq.pscript.pscript.NameDef#getName()
-   * @see #getNameDef()
+   * @see de.peeeq.pscript.pscript.Entity#getName()
+   * @see #getEntity()
    * @generated
    */
-  EAttribute getNameDef_Name();
+  EAttribute getEntity_Name();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.InitBlock <em>Init Block</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Init Block</em>'.
+   * @see de.peeeq.pscript.pscript.InitBlock
+   * @generated
+   */
+  EClass getInitBlock();
+
+  /**
+   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.InitBlock#getBody <em>Body</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the containment reference '<em>Body</em>'.
+   * @see de.peeeq.pscript.pscript.InitBlock#getBody()
+   * @see #getInitBlock()
+   * @generated
+   */
+  EReference getInitBlock_Body();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.TypeDef <em>Type Def</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Type Def</em>'.
+   * @see de.peeeq.pscript.pscript.TypeDef
+   * @generated
+   */
+  EClass getTypeDef();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.ClassMember <em>Class Member</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Class Member</em>'.
+   * @see de.peeeq.pscript.pscript.ClassMember
+   * @generated
+   */
+  EClass getClassMember();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.VarDef <em>Var Def</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Var Def</em>'.
+   * @see de.peeeq.pscript.pscript.VarDef
+   * @generated
+   */
+  EClass getVarDef();
+
+  /**
+   * Returns the meta object for the attribute '{@link de.peeeq.pscript.pscript.VarDef#isConstant <em>Constant</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the attribute '<em>Constant</em>'.
+   * @see de.peeeq.pscript.pscript.VarDef#isConstant()
+   * @see #getVarDef()
+   * @generated
+   */
+  EAttribute getVarDef_Constant();
+
+  /**
+   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.VarDef#getType <em>Type</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the containment reference '<em>Type</em>'.
+   * @see de.peeeq.pscript.pscript.VarDef#getType()
+   * @see #getVarDef()
+   * @generated
+   */
+  EReference getVarDef_Type();
+
+  /**
+   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.VarDef#getE <em>E</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the containment reference '<em>E</em>'.
+   * @see de.peeeq.pscript.pscript.VarDef#getE()
+   * @see #getVarDef()
+   * @generated
+   */
+  EReference getVarDef_E();
 
   /**
    * Returns the meta object for class '{@link de.peeeq.pscript.pscript.TypeExpr <em>Type Expr</em>}'.
@@ -1464,6 +2012,49 @@ public interface PscriptPackage extends EPackage
    * @generated
    */
   EReference getTypeExpr_Name();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.FuncDef <em>Func Def</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Func Def</em>'.
+   * @see de.peeeq.pscript.pscript.FuncDef
+   * @generated
+   */
+  EClass getFuncDef();
+
+  /**
+   * Returns the meta object for the containment reference list '{@link de.peeeq.pscript.pscript.FuncDef#getParameters <em>Parameters</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the containment reference list '<em>Parameters</em>'.
+   * @see de.peeeq.pscript.pscript.FuncDef#getParameters()
+   * @see #getFuncDef()
+   * @generated
+   */
+  EReference getFuncDef_Parameters();
+
+  /**
+   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.FuncDef#getType <em>Type</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the containment reference '<em>Type</em>'.
+   * @see de.peeeq.pscript.pscript.FuncDef#getType()
+   * @see #getFuncDef()
+   * @generated
+   */
+  EReference getFuncDef_Type();
+
+  /**
+   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.FuncDef#getBody <em>Body</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the containment reference '<em>Body</em>'.
+   * @see de.peeeq.pscript.pscript.FuncDef#getBody()
+   * @see #getFuncDef()
+   * @generated
+   */
+  EReference getFuncDef_Body();
 
   /**
    * Returns the meta object for class '{@link de.peeeq.pscript.pscript.Statements <em>Statements</em>}'.
@@ -1624,6 +2215,56 @@ public interface PscriptPackage extends EPackage
   EClass getExpr();
 
   /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.OpAssignment <em>Op Assignment</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Op Assignment</em>'.
+   * @see de.peeeq.pscript.pscript.OpAssignment
+   * @generated
+   */
+  EClass getOpAssignment();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.OpEquality <em>Op Equality</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Op Equality</em>'.
+   * @see de.peeeq.pscript.pscript.OpEquality
+   * @generated
+   */
+  EClass getOpEquality();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.OpComparison <em>Op Comparison</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Op Comparison</em>'.
+   * @see de.peeeq.pscript.pscript.OpComparison
+   * @generated
+   */
+  EClass getOpComparison();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.OpAdditive <em>Op Additive</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Op Additive</em>'.
+   * @see de.peeeq.pscript.pscript.OpAdditive
+   * @generated
+   */
+  EClass getOpAdditive();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.OpMultiplicative <em>Op Multiplicative</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Op Multiplicative</em>'.
+   * @see de.peeeq.pscript.pscript.OpMultiplicative
+   * @generated
+   */
+  EClass getOpMultiplicative();
+
+  /**
    * Returns the meta object for class '{@link de.peeeq.pscript.pscript.ExprList <em>Expr List</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -1666,15 +2307,15 @@ public interface PscriptPackage extends EPackage
   EAttribute getNativeType_OrigName();
 
   /**
-   * Returns the meta object for the attribute '{@link de.peeeq.pscript.pscript.NativeType#getSuperName <em>Super Name</em>}'.
+   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.NativeType#getSuperName <em>Super Name</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return the meta object for the attribute '<em>Super Name</em>'.
+   * @return the meta object for the containment reference '<em>Super Name</em>'.
    * @see de.peeeq.pscript.pscript.NativeType#getSuperName()
    * @see #getNativeType()
    * @generated
    */
-  EAttribute getNativeType_SuperName();
+  EReference getNativeType_SuperName();
 
   /**
    * Returns the meta object for class '{@link de.peeeq.pscript.pscript.ClassDef <em>Class Def</em>}'.
@@ -1698,92 +2339,6 @@ public interface PscriptPackage extends EPackage
   EReference getClassDef_Members();
 
   /**
-   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.VarDef <em>Var Def</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for class '<em>Var Def</em>'.
-   * @see de.peeeq.pscript.pscript.VarDef
-   * @generated
-   */
-  EClass getVarDef();
-
-  /**
-   * Returns the meta object for the attribute '{@link de.peeeq.pscript.pscript.VarDef#isConstant <em>Constant</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the attribute '<em>Constant</em>'.
-   * @see de.peeeq.pscript.pscript.VarDef#isConstant()
-   * @see #getVarDef()
-   * @generated
-   */
-  EAttribute getVarDef_Constant();
-
-  /**
-   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.VarDef#getType <em>Type</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the containment reference '<em>Type</em>'.
-   * @see de.peeeq.pscript.pscript.VarDef#getType()
-   * @see #getVarDef()
-   * @generated
-   */
-  EReference getVarDef_Type();
-
-  /**
-   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.VarDef#getE <em>E</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the containment reference '<em>E</em>'.
-   * @see de.peeeq.pscript.pscript.VarDef#getE()
-   * @see #getVarDef()
-   * @generated
-   */
-  EReference getVarDef_E();
-
-  /**
-   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.FuncDef <em>Func Def</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for class '<em>Func Def</em>'.
-   * @see de.peeeq.pscript.pscript.FuncDef
-   * @generated
-   */
-  EClass getFuncDef();
-
-  /**
-   * Returns the meta object for the containment reference list '{@link de.peeeq.pscript.pscript.FuncDef#getParameters <em>Parameters</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the containment reference list '<em>Parameters</em>'.
-   * @see de.peeeq.pscript.pscript.FuncDef#getParameters()
-   * @see #getFuncDef()
-   * @generated
-   */
-  EReference getFuncDef_Parameters();
-
-  /**
-   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.FuncDef#getType <em>Type</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the containment reference '<em>Type</em>'.
-   * @see de.peeeq.pscript.pscript.FuncDef#getType()
-   * @see #getFuncDef()
-   * @generated
-   */
-  EReference getFuncDef_Type();
-
-  /**
-   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.FuncDef#getBody <em>Body</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the containment reference '<em>Body</em>'.
-   * @see de.peeeq.pscript.pscript.FuncDef#getBody()
-   * @see #getFuncDef()
-   * @generated
-   */
-  EReference getFuncDef_Body();
-
-  /**
    * Returns the meta object for class '{@link de.peeeq.pscript.pscript.ParameterDef <em>Parameter Def</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -1792,17 +2347,6 @@ public interface PscriptPackage extends EPackage
    * @generated
    */
   EClass getParameterDef();
-
-  /**
-   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.ParameterDef#getType <em>Type</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the containment reference '<em>Type</em>'.
-   * @see de.peeeq.pscript.pscript.ParameterDef#getType()
-   * @see #getParameterDef()
-   * @generated
-   */
-  EReference getParameterDef_Type();
 
   /**
    * Returns the meta object for class '{@link de.peeeq.pscript.pscript.ExprAssignment <em>Expr Assignment</em>}'.
@@ -1826,15 +2370,15 @@ public interface PscriptPackage extends EPackage
   EReference getExprAssignment_Left();
 
   /**
-   * Returns the meta object for the attribute '{@link de.peeeq.pscript.pscript.ExprAssignment#getOp <em>Op</em>}'.
+   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.ExprAssignment#getOp <em>Op</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return the meta object for the attribute '<em>Op</em>'.
+   * @return the meta object for the containment reference '<em>Op</em>'.
    * @see de.peeeq.pscript.pscript.ExprAssignment#getOp()
    * @see #getExprAssignment()
    * @generated
    */
-  EAttribute getExprAssignment_Op();
+  EReference getExprAssignment_Op();
 
   /**
    * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.ExprAssignment#getRight <em>Right</em>}'.
@@ -1846,6 +2390,36 @@ public interface PscriptPackage extends EPackage
    * @generated
    */
   EReference getExprAssignment_Right();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.OpAssign <em>Op Assign</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Op Assign</em>'.
+   * @see de.peeeq.pscript.pscript.OpAssign
+   * @generated
+   */
+  EClass getOpAssign();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.OpPlusAssign <em>Op Plus Assign</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Op Plus Assign</em>'.
+   * @see de.peeeq.pscript.pscript.OpPlusAssign
+   * @generated
+   */
+  EClass getOpPlusAssign();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.OpMinusAssign <em>Op Minus Assign</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Op Minus Assign</em>'.
+   * @see de.peeeq.pscript.pscript.OpMinusAssign
+   * @generated
+   */
+  EClass getOpMinusAssign();
 
   /**
    * Returns the meta object for class '{@link de.peeeq.pscript.pscript.ExprOr <em>Expr Or</em>}'.
@@ -1955,15 +2529,15 @@ public interface PscriptPackage extends EPackage
   EReference getExprEquality_Left();
 
   /**
-   * Returns the meta object for the attribute '{@link de.peeeq.pscript.pscript.ExprEquality#getOp <em>Op</em>}'.
+   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.ExprEquality#getOp <em>Op</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return the meta object for the attribute '<em>Op</em>'.
+   * @return the meta object for the containment reference '<em>Op</em>'.
    * @see de.peeeq.pscript.pscript.ExprEquality#getOp()
    * @see #getExprEquality()
    * @generated
    */
-  EAttribute getExprEquality_Op();
+  EReference getExprEquality_Op();
 
   /**
    * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.ExprEquality#getRight <em>Right</em>}'.
@@ -1975,6 +2549,26 @@ public interface PscriptPackage extends EPackage
    * @generated
    */
   EReference getExprEquality_Right();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.OpEquals <em>Op Equals</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Op Equals</em>'.
+   * @see de.peeeq.pscript.pscript.OpEquals
+   * @generated
+   */
+  EClass getOpEquals();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.OpUnequals <em>Op Unequals</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Op Unequals</em>'.
+   * @see de.peeeq.pscript.pscript.OpUnequals
+   * @generated
+   */
+  EClass getOpUnequals();
 
   /**
    * Returns the meta object for class '{@link de.peeeq.pscript.pscript.ExprComparison <em>Expr Comparison</em>}'.
@@ -1998,15 +2592,15 @@ public interface PscriptPackage extends EPackage
   EReference getExprComparison_Left();
 
   /**
-   * Returns the meta object for the attribute '{@link de.peeeq.pscript.pscript.ExprComparison#getOp <em>Op</em>}'.
+   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.ExprComparison#getOp <em>Op</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return the meta object for the attribute '<em>Op</em>'.
+   * @return the meta object for the containment reference '<em>Op</em>'.
    * @see de.peeeq.pscript.pscript.ExprComparison#getOp()
    * @see #getExprComparison()
    * @generated
    */
-  EAttribute getExprComparison_Op();
+  EReference getExprComparison_Op();
 
   /**
    * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.ExprComparison#getRight <em>Right</em>}'.
@@ -2018,6 +2612,46 @@ public interface PscriptPackage extends EPackage
    * @generated
    */
   EReference getExprComparison_Right();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.OpLessEq <em>Op Less Eq</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Op Less Eq</em>'.
+   * @see de.peeeq.pscript.pscript.OpLessEq
+   * @generated
+   */
+  EClass getOpLessEq();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.OpLess <em>Op Less</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Op Less</em>'.
+   * @see de.peeeq.pscript.pscript.OpLess
+   * @generated
+   */
+  EClass getOpLess();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.OpGreaterEq <em>Op Greater Eq</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Op Greater Eq</em>'.
+   * @see de.peeeq.pscript.pscript.OpGreaterEq
+   * @generated
+   */
+  EClass getOpGreaterEq();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.OpGreater <em>Op Greater</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Op Greater</em>'.
+   * @see de.peeeq.pscript.pscript.OpGreater
+   * @generated
+   */
+  EClass getOpGreater();
 
   /**
    * Returns the meta object for class '{@link de.peeeq.pscript.pscript.ExprAdditive <em>Expr Additive</em>}'.
@@ -2041,15 +2675,15 @@ public interface PscriptPackage extends EPackage
   EReference getExprAdditive_Left();
 
   /**
-   * Returns the meta object for the attribute '{@link de.peeeq.pscript.pscript.ExprAdditive#getOp <em>Op</em>}'.
+   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.ExprAdditive#getOp <em>Op</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return the meta object for the attribute '<em>Op</em>'.
+   * @return the meta object for the containment reference '<em>Op</em>'.
    * @see de.peeeq.pscript.pscript.ExprAdditive#getOp()
    * @see #getExprAdditive()
    * @generated
    */
-  EAttribute getExprAdditive_Op();
+  EReference getExprAdditive_Op();
 
   /**
    * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.ExprAdditive#getRight <em>Right</em>}'.
@@ -2061,6 +2695,26 @@ public interface PscriptPackage extends EPackage
    * @generated
    */
   EReference getExprAdditive_Right();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.OpPlus <em>Op Plus</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Op Plus</em>'.
+   * @see de.peeeq.pscript.pscript.OpPlus
+   * @generated
+   */
+  EClass getOpPlus();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.OpMinus <em>Op Minus</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Op Minus</em>'.
+   * @see de.peeeq.pscript.pscript.OpMinus
+   * @generated
+   */
+  EClass getOpMinus();
 
   /**
    * Returns the meta object for class '{@link de.peeeq.pscript.pscript.ExprMult <em>Expr Mult</em>}'.
@@ -2084,15 +2738,15 @@ public interface PscriptPackage extends EPackage
   EReference getExprMult_Left();
 
   /**
-   * Returns the meta object for the attribute '{@link de.peeeq.pscript.pscript.ExprMult#getOp <em>Op</em>}'.
+   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.ExprMult#getOp <em>Op</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return the meta object for the attribute '<em>Op</em>'.
+   * @return the meta object for the containment reference '<em>Op</em>'.
    * @see de.peeeq.pscript.pscript.ExprMult#getOp()
    * @see #getExprMult()
    * @generated
    */
-  EAttribute getExprMult_Op();
+  EReference getExprMult_Op();
 
   /**
    * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.ExprMult#getRight <em>Right</em>}'.
@@ -2106,6 +2760,46 @@ public interface PscriptPackage extends EPackage
   EReference getExprMult_Right();
 
   /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.OpMult <em>Op Mult</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Op Mult</em>'.
+   * @see de.peeeq.pscript.pscript.OpMult
+   * @generated
+   */
+  EClass getOpMult();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.OpDivReal <em>Op Div Real</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Op Div Real</em>'.
+   * @see de.peeeq.pscript.pscript.OpDivReal
+   * @generated
+   */
+  EClass getOpDivReal();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.OpModReal <em>Op Mod Real</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Op Mod Real</em>'.
+   * @see de.peeeq.pscript.pscript.OpModReal
+   * @generated
+   */
+  EClass getOpModReal();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.OpModInt <em>Op Mod Int</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Op Mod Int</em>'.
+   * @see de.peeeq.pscript.pscript.OpModInt
+   * @generated
+   */
+  EClass getOpModInt();
+
+  /**
    * Returns the meta object for class '{@link de.peeeq.pscript.pscript.ExprSign <em>Expr Sign</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -2116,15 +2810,15 @@ public interface PscriptPackage extends EPackage
   EClass getExprSign();
 
   /**
-   * Returns the meta object for the attribute '{@link de.peeeq.pscript.pscript.ExprSign#getOp <em>Op</em>}'.
+   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.ExprSign#getOp <em>Op</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return the meta object for the attribute '<em>Op</em>'.
+   * @return the meta object for the containment reference '<em>Op</em>'.
    * @see de.peeeq.pscript.pscript.ExprSign#getOp()
    * @see #getExprSign()
    * @generated
    */
-  EAttribute getExprSign_Op();
+  EReference getExprSign_Op();
 
   /**
    * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.ExprSign#getRight <em>Right</em>}'.
@@ -2146,17 +2840,6 @@ public interface PscriptPackage extends EPackage
    * @generated
    */
   EClass getExprNot();
-
-  /**
-   * Returns the meta object for the attribute '{@link de.peeeq.pscript.pscript.ExprNot#getOp <em>Op</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the attribute '<em>Op</em>'.
-   * @see de.peeeq.pscript.pscript.ExprNot#getOp()
-   * @see #getExprNot()
-   * @generated
-   */
-  EAttribute getExprNot_Op();
 
   /**
    * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.ExprNot#getRight <em>Right</em>}'.
@@ -2191,17 +2874,6 @@ public interface PscriptPackage extends EPackage
   EReference getExprMember_Left();
 
   /**
-   * Returns the meta object for the attribute '{@link de.peeeq.pscript.pscript.ExprMember#getOp <em>Op</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the attribute '<em>Op</em>'.
-   * @see de.peeeq.pscript.pscript.ExprMember#getOp()
-   * @see #getExprMember()
-   * @generated
-   */
-  EAttribute getExprMember_Op();
-
-  /**
    * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.ExprMember#getRight <em>Right</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -2211,59 +2883,6 @@ public interface PscriptPackage extends EPackage
    * @generated
    */
   EReference getExprMember_Right();
-
-  /**
-   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.ExprFunctioncall <em>Expr Functioncall</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for class '<em>Expr Functioncall</em>'.
-   * @see de.peeeq.pscript.pscript.ExprFunctioncall
-   * @generated
-   */
-  EClass getExprFunctioncall();
-
-  /**
-   * Returns the meta object for the reference '{@link de.peeeq.pscript.pscript.ExprFunctioncall#getNameVal <em>Name Val</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the reference '<em>Name Val</em>'.
-   * @see de.peeeq.pscript.pscript.ExprFunctioncall#getNameVal()
-   * @see #getExprFunctioncall()
-   * @generated
-   */
-  EReference getExprFunctioncall_NameVal();
-
-  /**
-   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.ExprFunctioncall#getParameters <em>Parameters</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the containment reference '<em>Parameters</em>'.
-   * @see de.peeeq.pscript.pscript.ExprFunctioncall#getParameters()
-   * @see #getExprFunctioncall()
-   * @generated
-   */
-  EReference getExprFunctioncall_Parameters();
-
-  /**
-   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.ExprIdentifier <em>Expr Identifier</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for class '<em>Expr Identifier</em>'.
-   * @see de.peeeq.pscript.pscript.ExprIdentifier
-   * @generated
-   */
-  EClass getExprIdentifier();
-
-  /**
-   * Returns the meta object for the reference '{@link de.peeeq.pscript.pscript.ExprIdentifier#getNameVal <em>Name Val</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the reference '<em>Name Val</em>'.
-   * @see de.peeeq.pscript.pscript.ExprIdentifier#getNameVal()
-   * @see #getExprIdentifier()
-   * @generated
-   */
-  EReference getExprIdentifier_NameVal();
 
   /**
    * Returns the meta object for class '{@link de.peeeq.pscript.pscript.ExprIntVal <em>Expr Int Val</em>}'.
@@ -2382,6 +3001,59 @@ public interface PscriptPackage extends EPackage
   EReference getExprBuildinFunction_Parameters();
 
   /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.ExprFunctioncall <em>Expr Functioncall</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Expr Functioncall</em>'.
+   * @see de.peeeq.pscript.pscript.ExprFunctioncall
+   * @generated
+   */
+  EClass getExprFunctioncall();
+
+  /**
+   * Returns the meta object for the reference '{@link de.peeeq.pscript.pscript.ExprFunctioncall#getNameVal <em>Name Val</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the reference '<em>Name Val</em>'.
+   * @see de.peeeq.pscript.pscript.ExprFunctioncall#getNameVal()
+   * @see #getExprFunctioncall()
+   * @generated
+   */
+  EReference getExprFunctioncall_NameVal();
+
+  /**
+   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.ExprFunctioncall#getParameters <em>Parameters</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the containment reference '<em>Parameters</em>'.
+   * @see de.peeeq.pscript.pscript.ExprFunctioncall#getParameters()
+   * @see #getExprFunctioncall()
+   * @generated
+   */
+  EReference getExprFunctioncall_Parameters();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.ExprIdentifier <em>Expr Identifier</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Expr Identifier</em>'.
+   * @see de.peeeq.pscript.pscript.ExprIdentifier
+   * @generated
+   */
+  EClass getExprIdentifier();
+
+  /**
+   * Returns the meta object for the reference '{@link de.peeeq.pscript.pscript.ExprIdentifier#getNameVal <em>Name Val</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the reference '<em>Name Val</em>'.
+   * @see de.peeeq.pscript.pscript.ExprIdentifier#getNameVal()
+   * @see #getExprIdentifier()
+   * @generated
+   */
+  EReference getExprIdentifier_NameVal();
+
+  /**
    * Returns the factory that creates the instances of the model.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -2475,14 +3147,14 @@ public interface PscriptPackage extends EPackage
     EAttribute IMPORT__IMPORTED_NAMESPACE = eINSTANCE.getImport_ImportedNamespace();
 
     /**
-     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.NameDefImpl <em>Name Def</em>}' class.
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.EntityImpl <em>Entity</em>}' class.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
-     * @see de.peeeq.pscript.pscript.impl.NameDefImpl
-     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getNameDef()
+     * @see de.peeeq.pscript.pscript.impl.EntityImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getEntity()
      * @generated
      */
-    EClass NAME_DEF = eINSTANCE.getNameDef();
+    EClass ENTITY = eINSTANCE.getEntity();
 
     /**
      * The meta object literal for the '<em><b>Name</b></em>' attribute feature.
@@ -2490,7 +3162,79 @@ public interface PscriptPackage extends EPackage
      * <!-- end-user-doc -->
      * @generated
      */
-    EAttribute NAME_DEF__NAME = eINSTANCE.getNameDef_Name();
+    EAttribute ENTITY__NAME = eINSTANCE.getEntity_Name();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.InitBlockImpl <em>Init Block</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.InitBlockImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getInitBlock()
+     * @generated
+     */
+    EClass INIT_BLOCK = eINSTANCE.getInitBlock();
+
+    /**
+     * The meta object literal for the '<em><b>Body</b></em>' containment reference feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EReference INIT_BLOCK__BODY = eINSTANCE.getInitBlock_Body();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.TypeDefImpl <em>Type Def</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.TypeDefImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getTypeDef()
+     * @generated
+     */
+    EClass TYPE_DEF = eINSTANCE.getTypeDef();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.ClassMemberImpl <em>Class Member</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.ClassMemberImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getClassMember()
+     * @generated
+     */
+    EClass CLASS_MEMBER = eINSTANCE.getClassMember();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.VarDefImpl <em>Var Def</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.VarDefImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getVarDef()
+     * @generated
+     */
+    EClass VAR_DEF = eINSTANCE.getVarDef();
+
+    /**
+     * The meta object literal for the '<em><b>Constant</b></em>' attribute feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EAttribute VAR_DEF__CONSTANT = eINSTANCE.getVarDef_Constant();
+
+    /**
+     * The meta object literal for the '<em><b>Type</b></em>' containment reference feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EReference VAR_DEF__TYPE = eINSTANCE.getVarDef_Type();
+
+    /**
+     * The meta object literal for the '<em><b>E</b></em>' containment reference feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EReference VAR_DEF__E = eINSTANCE.getVarDef_E();
 
     /**
      * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.TypeExprImpl <em>Type Expr</em>}' class.
@@ -2509,6 +3253,40 @@ public interface PscriptPackage extends EPackage
      * @generated
      */
     EReference TYPE_EXPR__NAME = eINSTANCE.getTypeExpr_Name();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.FuncDefImpl <em>Func Def</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.FuncDefImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getFuncDef()
+     * @generated
+     */
+    EClass FUNC_DEF = eINSTANCE.getFuncDef();
+
+    /**
+     * The meta object literal for the '<em><b>Parameters</b></em>' containment reference list feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EReference FUNC_DEF__PARAMETERS = eINSTANCE.getFuncDef_Parameters();
+
+    /**
+     * The meta object literal for the '<em><b>Type</b></em>' containment reference feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EReference FUNC_DEF__TYPE = eINSTANCE.getFuncDef_Type();
+
+    /**
+     * The meta object literal for the '<em><b>Body</b></em>' containment reference feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EReference FUNC_DEF__BODY = eINSTANCE.getFuncDef_Body();
 
     /**
      * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.StatementsImpl <em>Statements</em>}' class.
@@ -2645,6 +3423,56 @@ public interface PscriptPackage extends EPackage
     EClass EXPR = eINSTANCE.getExpr();
 
     /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.OpAssignmentImpl <em>Op Assignment</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.OpAssignmentImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpAssignment()
+     * @generated
+     */
+    EClass OP_ASSIGNMENT = eINSTANCE.getOpAssignment();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.OpEqualityImpl <em>Op Equality</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.OpEqualityImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpEquality()
+     * @generated
+     */
+    EClass OP_EQUALITY = eINSTANCE.getOpEquality();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.OpComparisonImpl <em>Op Comparison</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.OpComparisonImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpComparison()
+     * @generated
+     */
+    EClass OP_COMPARISON = eINSTANCE.getOpComparison();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.OpAdditiveImpl <em>Op Additive</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.OpAdditiveImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpAdditive()
+     * @generated
+     */
+    EClass OP_ADDITIVE = eINSTANCE.getOpAdditive();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.OpMultiplicativeImpl <em>Op Multiplicative</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.OpMultiplicativeImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpMultiplicative()
+     * @generated
+     */
+    EClass OP_MULTIPLICATIVE = eINSTANCE.getOpMultiplicative();
+
+    /**
      * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.ExprListImpl <em>Expr List</em>}' class.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
@@ -2681,12 +3509,12 @@ public interface PscriptPackage extends EPackage
     EAttribute NATIVE_TYPE__ORIG_NAME = eINSTANCE.getNativeType_OrigName();
 
     /**
-     * The meta object literal for the '<em><b>Super Name</b></em>' attribute feature.
+     * The meta object literal for the '<em><b>Super Name</b></em>' containment reference feature.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
      * @generated
      */
-    EAttribute NATIVE_TYPE__SUPER_NAME = eINSTANCE.getNativeType_SuperName();
+    EReference NATIVE_TYPE__SUPER_NAME = eINSTANCE.getNativeType_SuperName();
 
     /**
      * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.ClassDefImpl <em>Class Def</em>}' class.
@@ -2707,74 +3535,6 @@ public interface PscriptPackage extends EPackage
     EReference CLASS_DEF__MEMBERS = eINSTANCE.getClassDef_Members();
 
     /**
-     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.VarDefImpl <em>Var Def</em>}' class.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @see de.peeeq.pscript.pscript.impl.VarDefImpl
-     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getVarDef()
-     * @generated
-     */
-    EClass VAR_DEF = eINSTANCE.getVarDef();
-
-    /**
-     * The meta object literal for the '<em><b>Constant</b></em>' attribute feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EAttribute VAR_DEF__CONSTANT = eINSTANCE.getVarDef_Constant();
-
-    /**
-     * The meta object literal for the '<em><b>Type</b></em>' containment reference feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference VAR_DEF__TYPE = eINSTANCE.getVarDef_Type();
-
-    /**
-     * The meta object literal for the '<em><b>E</b></em>' containment reference feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference VAR_DEF__E = eINSTANCE.getVarDef_E();
-
-    /**
-     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.FuncDefImpl <em>Func Def</em>}' class.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @see de.peeeq.pscript.pscript.impl.FuncDefImpl
-     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getFuncDef()
-     * @generated
-     */
-    EClass FUNC_DEF = eINSTANCE.getFuncDef();
-
-    /**
-     * The meta object literal for the '<em><b>Parameters</b></em>' containment reference list feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference FUNC_DEF__PARAMETERS = eINSTANCE.getFuncDef_Parameters();
-
-    /**
-     * The meta object literal for the '<em><b>Type</b></em>' containment reference feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference FUNC_DEF__TYPE = eINSTANCE.getFuncDef_Type();
-
-    /**
-     * The meta object literal for the '<em><b>Body</b></em>' containment reference feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference FUNC_DEF__BODY = eINSTANCE.getFuncDef_Body();
-
-    /**
      * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.ParameterDefImpl <em>Parameter Def</em>}' class.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
@@ -2783,14 +3543,6 @@ public interface PscriptPackage extends EPackage
      * @generated
      */
     EClass PARAMETER_DEF = eINSTANCE.getParameterDef();
-
-    /**
-     * The meta object literal for the '<em><b>Type</b></em>' containment reference feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference PARAMETER_DEF__TYPE = eINSTANCE.getParameterDef_Type();
 
     /**
      * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.ExprAssignmentImpl <em>Expr Assignment</em>}' class.
@@ -2811,12 +3563,12 @@ public interface PscriptPackage extends EPackage
     EReference EXPR_ASSIGNMENT__LEFT = eINSTANCE.getExprAssignment_Left();
 
     /**
-     * The meta object literal for the '<em><b>Op</b></em>' attribute feature.
+     * The meta object literal for the '<em><b>Op</b></em>' containment reference feature.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
      * @generated
      */
-    EAttribute EXPR_ASSIGNMENT__OP = eINSTANCE.getExprAssignment_Op();
+    EReference EXPR_ASSIGNMENT__OP = eINSTANCE.getExprAssignment_Op();
 
     /**
      * The meta object literal for the '<em><b>Right</b></em>' containment reference feature.
@@ -2825,6 +3577,36 @@ public interface PscriptPackage extends EPackage
      * @generated
      */
     EReference EXPR_ASSIGNMENT__RIGHT = eINSTANCE.getExprAssignment_Right();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.OpAssignImpl <em>Op Assign</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.OpAssignImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpAssign()
+     * @generated
+     */
+    EClass OP_ASSIGN = eINSTANCE.getOpAssign();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.OpPlusAssignImpl <em>Op Plus Assign</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.OpPlusAssignImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpPlusAssign()
+     * @generated
+     */
+    EClass OP_PLUS_ASSIGN = eINSTANCE.getOpPlusAssign();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.OpMinusAssignImpl <em>Op Minus Assign</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.OpMinusAssignImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpMinusAssign()
+     * @generated
+     */
+    EClass OP_MINUS_ASSIGN = eINSTANCE.getOpMinusAssign();
 
     /**
      * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.ExprOrImpl <em>Expr Or</em>}' class.
@@ -2913,12 +3695,12 @@ public interface PscriptPackage extends EPackage
     EReference EXPR_EQUALITY__LEFT = eINSTANCE.getExprEquality_Left();
 
     /**
-     * The meta object literal for the '<em><b>Op</b></em>' attribute feature.
+     * The meta object literal for the '<em><b>Op</b></em>' containment reference feature.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
      * @generated
      */
-    EAttribute EXPR_EQUALITY__OP = eINSTANCE.getExprEquality_Op();
+    EReference EXPR_EQUALITY__OP = eINSTANCE.getExprEquality_Op();
 
     /**
      * The meta object literal for the '<em><b>Right</b></em>' containment reference feature.
@@ -2927,6 +3709,26 @@ public interface PscriptPackage extends EPackage
      * @generated
      */
     EReference EXPR_EQUALITY__RIGHT = eINSTANCE.getExprEquality_Right();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.OpEqualsImpl <em>Op Equals</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.OpEqualsImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpEquals()
+     * @generated
+     */
+    EClass OP_EQUALS = eINSTANCE.getOpEquals();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.OpUnequalsImpl <em>Op Unequals</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.OpUnequalsImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpUnequals()
+     * @generated
+     */
+    EClass OP_UNEQUALS = eINSTANCE.getOpUnequals();
 
     /**
      * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.ExprComparisonImpl <em>Expr Comparison</em>}' class.
@@ -2947,12 +3749,12 @@ public interface PscriptPackage extends EPackage
     EReference EXPR_COMPARISON__LEFT = eINSTANCE.getExprComparison_Left();
 
     /**
-     * The meta object literal for the '<em><b>Op</b></em>' attribute feature.
+     * The meta object literal for the '<em><b>Op</b></em>' containment reference feature.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
      * @generated
      */
-    EAttribute EXPR_COMPARISON__OP = eINSTANCE.getExprComparison_Op();
+    EReference EXPR_COMPARISON__OP = eINSTANCE.getExprComparison_Op();
 
     /**
      * The meta object literal for the '<em><b>Right</b></em>' containment reference feature.
@@ -2961,6 +3763,46 @@ public interface PscriptPackage extends EPackage
      * @generated
      */
     EReference EXPR_COMPARISON__RIGHT = eINSTANCE.getExprComparison_Right();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.OpLessEqImpl <em>Op Less Eq</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.OpLessEqImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpLessEq()
+     * @generated
+     */
+    EClass OP_LESS_EQ = eINSTANCE.getOpLessEq();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.OpLessImpl <em>Op Less</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.OpLessImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpLess()
+     * @generated
+     */
+    EClass OP_LESS = eINSTANCE.getOpLess();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.OpGreaterEqImpl <em>Op Greater Eq</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.OpGreaterEqImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpGreaterEq()
+     * @generated
+     */
+    EClass OP_GREATER_EQ = eINSTANCE.getOpGreaterEq();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.OpGreaterImpl <em>Op Greater</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.OpGreaterImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpGreater()
+     * @generated
+     */
+    EClass OP_GREATER = eINSTANCE.getOpGreater();
 
     /**
      * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.ExprAdditiveImpl <em>Expr Additive</em>}' class.
@@ -2981,12 +3823,12 @@ public interface PscriptPackage extends EPackage
     EReference EXPR_ADDITIVE__LEFT = eINSTANCE.getExprAdditive_Left();
 
     /**
-     * The meta object literal for the '<em><b>Op</b></em>' attribute feature.
+     * The meta object literal for the '<em><b>Op</b></em>' containment reference feature.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
      * @generated
      */
-    EAttribute EXPR_ADDITIVE__OP = eINSTANCE.getExprAdditive_Op();
+    EReference EXPR_ADDITIVE__OP = eINSTANCE.getExprAdditive_Op();
 
     /**
      * The meta object literal for the '<em><b>Right</b></em>' containment reference feature.
@@ -2995,6 +3837,26 @@ public interface PscriptPackage extends EPackage
      * @generated
      */
     EReference EXPR_ADDITIVE__RIGHT = eINSTANCE.getExprAdditive_Right();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.OpPlusImpl <em>Op Plus</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.OpPlusImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpPlus()
+     * @generated
+     */
+    EClass OP_PLUS = eINSTANCE.getOpPlus();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.OpMinusImpl <em>Op Minus</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.OpMinusImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpMinus()
+     * @generated
+     */
+    EClass OP_MINUS = eINSTANCE.getOpMinus();
 
     /**
      * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.ExprMultImpl <em>Expr Mult</em>}' class.
@@ -3015,12 +3877,12 @@ public interface PscriptPackage extends EPackage
     EReference EXPR_MULT__LEFT = eINSTANCE.getExprMult_Left();
 
     /**
-     * The meta object literal for the '<em><b>Op</b></em>' attribute feature.
+     * The meta object literal for the '<em><b>Op</b></em>' containment reference feature.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
      * @generated
      */
-    EAttribute EXPR_MULT__OP = eINSTANCE.getExprMult_Op();
+    EReference EXPR_MULT__OP = eINSTANCE.getExprMult_Op();
 
     /**
      * The meta object literal for the '<em><b>Right</b></em>' containment reference feature.
@@ -3029,6 +3891,46 @@ public interface PscriptPackage extends EPackage
      * @generated
      */
     EReference EXPR_MULT__RIGHT = eINSTANCE.getExprMult_Right();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.OpMultImpl <em>Op Mult</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.OpMultImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpMult()
+     * @generated
+     */
+    EClass OP_MULT = eINSTANCE.getOpMult();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.OpDivRealImpl <em>Op Div Real</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.OpDivRealImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpDivReal()
+     * @generated
+     */
+    EClass OP_DIV_REAL = eINSTANCE.getOpDivReal();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.OpModRealImpl <em>Op Mod Real</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.OpModRealImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpModReal()
+     * @generated
+     */
+    EClass OP_MOD_REAL = eINSTANCE.getOpModReal();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.OpModIntImpl <em>Op Mod Int</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.OpModIntImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpModInt()
+     * @generated
+     */
+    EClass OP_MOD_INT = eINSTANCE.getOpModInt();
 
     /**
      * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.ExprSignImpl <em>Expr Sign</em>}' class.
@@ -3041,12 +3943,12 @@ public interface PscriptPackage extends EPackage
     EClass EXPR_SIGN = eINSTANCE.getExprSign();
 
     /**
-     * The meta object literal for the '<em><b>Op</b></em>' attribute feature.
+     * The meta object literal for the '<em><b>Op</b></em>' containment reference feature.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
      * @generated
      */
-    EAttribute EXPR_SIGN__OP = eINSTANCE.getExprSign_Op();
+    EReference EXPR_SIGN__OP = eINSTANCE.getExprSign_Op();
 
     /**
      * The meta object literal for the '<em><b>Right</b></em>' containment reference feature.
@@ -3065,14 +3967,6 @@ public interface PscriptPackage extends EPackage
      * @generated
      */
     EClass EXPR_NOT = eINSTANCE.getExprNot();
-
-    /**
-     * The meta object literal for the '<em><b>Op</b></em>' attribute feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EAttribute EXPR_NOT__OP = eINSTANCE.getExprNot_Op();
 
     /**
      * The meta object literal for the '<em><b>Right</b></em>' containment reference feature.
@@ -3101,64 +3995,12 @@ public interface PscriptPackage extends EPackage
     EReference EXPR_MEMBER__LEFT = eINSTANCE.getExprMember_Left();
 
     /**
-     * The meta object literal for the '<em><b>Op</b></em>' attribute feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EAttribute EXPR_MEMBER__OP = eINSTANCE.getExprMember_Op();
-
-    /**
      * The meta object literal for the '<em><b>Right</b></em>' containment reference feature.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
      * @generated
      */
     EReference EXPR_MEMBER__RIGHT = eINSTANCE.getExprMember_Right();
-
-    /**
-     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.ExprFunctioncallImpl <em>Expr Functioncall</em>}' class.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @see de.peeeq.pscript.pscript.impl.ExprFunctioncallImpl
-     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprFunctioncall()
-     * @generated
-     */
-    EClass EXPR_FUNCTIONCALL = eINSTANCE.getExprFunctioncall();
-
-    /**
-     * The meta object literal for the '<em><b>Name Val</b></em>' reference feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference EXPR_FUNCTIONCALL__NAME_VAL = eINSTANCE.getExprFunctioncall_NameVal();
-
-    /**
-     * The meta object literal for the '<em><b>Parameters</b></em>' containment reference feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference EXPR_FUNCTIONCALL__PARAMETERS = eINSTANCE.getExprFunctioncall_Parameters();
-
-    /**
-     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.ExprIdentifierImpl <em>Expr Identifier</em>}' class.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @see de.peeeq.pscript.pscript.impl.ExprIdentifierImpl
-     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprIdentifier()
-     * @generated
-     */
-    EClass EXPR_IDENTIFIER = eINSTANCE.getExprIdentifier();
-
-    /**
-     * The meta object literal for the '<em><b>Name Val</b></em>' reference feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference EXPR_IDENTIFIER__NAME_VAL = eINSTANCE.getExprIdentifier_NameVal();
 
     /**
      * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.ExprIntValImpl <em>Expr Int Val</em>}' class.
@@ -3257,6 +4099,50 @@ public interface PscriptPackage extends EPackage
      * @generated
      */
     EReference EXPR_BUILDIN_FUNCTION__PARAMETERS = eINSTANCE.getExprBuildinFunction_Parameters();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.ExprFunctioncallImpl <em>Expr Functioncall</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.ExprFunctioncallImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprFunctioncall()
+     * @generated
+     */
+    EClass EXPR_FUNCTIONCALL = eINSTANCE.getExprFunctioncall();
+
+    /**
+     * The meta object literal for the '<em><b>Name Val</b></em>' reference feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EReference EXPR_FUNCTIONCALL__NAME_VAL = eINSTANCE.getExprFunctioncall_NameVal();
+
+    /**
+     * The meta object literal for the '<em><b>Parameters</b></em>' containment reference feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EReference EXPR_FUNCTIONCALL__PARAMETERS = eINSTANCE.getExprFunctioncall_Parameters();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.ExprIdentifierImpl <em>Expr Identifier</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.ExprIdentifierImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprIdentifier()
+     * @generated
+     */
+    EClass EXPR_IDENTIFIER = eINSTANCE.getExprIdentifier();
+
+    /**
+     * The meta object literal for the '<em><b>Name Val</b></em>' reference feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EReference EXPR_IDENTIFIER__NAME_VAL = eINSTANCE.getExprIdentifier_NameVal();
 
   }
 

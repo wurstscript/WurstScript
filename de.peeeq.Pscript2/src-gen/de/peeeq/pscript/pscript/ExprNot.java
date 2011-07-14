@@ -15,7 +15,6 @@ package de.peeeq.pscript.pscript;
  * <p>
  * The following features are supported:
  * <ul>
- *   <li>{@link de.peeeq.pscript.pscript.ExprNot#getOp <em>Op</em>}</li>
  *   <li>{@link de.peeeq.pscript.pscript.ExprNot#getRight <em>Right</em>}</li>
  * </ul>
  * </p>
@@ -26,32 +25,6 @@ package de.peeeq.pscript.pscript;
  */
 public interface ExprNot extends Expr
 {
-  /**
-   * Returns the value of the '<em><b>Op</b></em>' attribute.
-   * <!-- begin-user-doc -->
-   * <p>
-   * If the meaning of the '<em>Op</em>' attribute isn't clear,
-   * there really should be more of a description here...
-   * </p>
-   * <!-- end-user-doc -->
-   * @return the value of the '<em>Op</em>' attribute.
-   * @see #setOp(String)
-   * @see de.peeeq.pscript.pscript.PscriptPackage#getExprNot_Op()
-   * @model
-   * @generated
-   */
-  String getOp();
-
-  /**
-   * Sets the value of the '{@link de.peeeq.pscript.pscript.ExprNot#getOp <em>Op</em>}' attribute.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @param value the new value of the '<em>Op</em>' attribute.
-   * @see #getOp()
-   * @generated
-   */
-  void setOp(String value);
-
   /**
    * Returns the value of the '<em><b>Right</b></em>' containment reference.
    * <!-- begin-user-doc -->

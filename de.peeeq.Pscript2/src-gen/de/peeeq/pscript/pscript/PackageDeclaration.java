@@ -74,7 +74,7 @@ public interface PackageDeclaration extends EObject
 
   /**
    * Returns the value of the '<em><b>Elements</b></em>' containment reference list.
-   * The list contents are of type {@link de.peeeq.pscript.pscript.NameDef}.
+   * The list contents are of type {@link de.peeeq.pscript.pscript.Entity}.
    * <!-- begin-user-doc -->
    * <p>
    * If the meaning of the '<em>Elements</em>' containment reference list isn't clear,
@@ -86,6 +86,6 @@ public interface PackageDeclaration extends EObject
    * @model containment="true"
    * @generated
    */
-  EList<NameDef> getElements();
+  EList<Entity> getElements();
 
 } // PackageDeclaration

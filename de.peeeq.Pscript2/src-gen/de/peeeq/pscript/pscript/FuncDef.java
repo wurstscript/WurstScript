@@ -26,11 +26,11 @@ import org.eclipse.emf.common.util.EList;
  * @model
  * @generated
  */
-public interface FuncDef extends NameDef
+public interface FuncDef extends Entity, ClassMember
 {
   /**
    * Returns the value of the '<em><b>Parameters</b></em>' containment reference list.
-   * The list contents are of type {@link de.peeeq.pscript.pscript.NameDef}.
+   * The list contents are of type {@link de.peeeq.pscript.pscript.VarDef}.
    * <!-- begin-user-doc -->
    * <p>
    * If the meaning of the '<em>Parameters</em>' containment reference list isn't clear,
@@ -42,7 +42,7 @@ public interface FuncDef extends NameDef
    * @model containment="true"
    * @generated
    */
-  EList<NameDef> getParameters();
+  EList<VarDef> getParameters();
 
   /**
    * Returns the value of the '<em><b>Type</b></em>' containment reference.

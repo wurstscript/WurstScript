@@ -54,13 +54,49 @@ public interface PscriptFactory extends EFactory
   Import createImport();
 
   /**
-   * Returns a new object of class '<em>Name Def</em>'.
+   * Returns a new object of class '<em>Entity</em>'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return a new object of class '<em>Name Def</em>'.
+   * @return a new object of class '<em>Entity</em>'.
    * @generated
    */
-  NameDef createNameDef();
+  Entity createEntity();
+
+  /**
+   * Returns a new object of class '<em>Init Block</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Init Block</em>'.
+   * @generated
+   */
+  InitBlock createInitBlock();
+
+  /**
+   * Returns a new object of class '<em>Type Def</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Type Def</em>'.
+   * @generated
+   */
+  TypeDef createTypeDef();
+
+  /**
+   * Returns a new object of class '<em>Class Member</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Class Member</em>'.
+   * @generated
+   */
+  ClassMember createClassMember();
+
+  /**
+   * Returns a new object of class '<em>Var Def</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Var Def</em>'.
+   * @generated
+   */
+  VarDef createVarDef();
 
   /**
    * Returns a new object of class '<em>Type Expr</em>'.
@@ -70,6 +106,15 @@ public interface PscriptFactory extends EFactory
    * @generated
    */
   TypeExpr createTypeExpr();
+
+  /**
+   * Returns a new object of class '<em>Func Def</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Func Def</em>'.
+   * @generated
+   */
+  FuncDef createFuncDef();
 
   /**
    * Returns a new object of class '<em>Statements</em>'.
@@ -135,6 +180,51 @@ public interface PscriptFactory extends EFactory
   Expr createExpr();
 
   /**
+   * Returns a new object of class '<em>Op Assignment</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Op Assignment</em>'.
+   * @generated
+   */
+  OpAssignment createOpAssignment();
+
+  /**
+   * Returns a new object of class '<em>Op Equality</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Op Equality</em>'.
+   * @generated
+   */
+  OpEquality createOpEquality();
+
+  /**
+   * Returns a new object of class '<em>Op Comparison</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Op Comparison</em>'.
+   * @generated
+   */
+  OpComparison createOpComparison();
+
+  /**
+   * Returns a new object of class '<em>Op Additive</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Op Additive</em>'.
+   * @generated
+   */
+  OpAdditive createOpAdditive();
+
+  /**
+   * Returns a new object of class '<em>Op Multiplicative</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Op Multiplicative</em>'.
+   * @generated
+   */
+  OpMultiplicative createOpMultiplicative();
+
+  /**
    * Returns a new object of class '<em>Expr List</em>'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -162,24 +252,6 @@ public interface PscriptFactory extends EFactory
   ClassDef createClassDef();
 
   /**
-   * Returns a new object of class '<em>Var Def</em>'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return a new object of class '<em>Var Def</em>'.
-   * @generated
-   */
-  VarDef createVarDef();
-
-  /**
-   * Returns a new object of class '<em>Func Def</em>'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return a new object of class '<em>Func Def</em>'.
-   * @generated
-   */
-  FuncDef createFuncDef();
-
-  /**
    * Returns a new object of class '<em>Parameter Def</em>'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -196,6 +268,33 @@ public interface PscriptFactory extends EFactory
    * @generated
    */
   ExprAssignment createExprAssignment();
+
+  /**
+   * Returns a new object of class '<em>Op Assign</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Op Assign</em>'.
+   * @generated
+   */
+  OpAssign createOpAssign();
+
+  /**
+   * Returns a new object of class '<em>Op Plus Assign</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Op Plus Assign</em>'.
+   * @generated
+   */
+  OpPlusAssign createOpPlusAssign();
+
+  /**
+   * Returns a new object of class '<em>Op Minus Assign</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Op Minus Assign</em>'.
+   * @generated
+   */
+  OpMinusAssign createOpMinusAssign();
 
   /**
    * Returns a new object of class '<em>Expr Or</em>'.
@@ -225,6 +324,24 @@ public interface PscriptFactory extends EFactory
   ExprEquality createExprEquality();
 
   /**
+   * Returns a new object of class '<em>Op Equals</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Op Equals</em>'.
+   * @generated
+   */
+  OpEquals createOpEquals();
+
+  /**
+   * Returns a new object of class '<em>Op Unequals</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Op Unequals</em>'.
+   * @generated
+   */
+  OpUnequals createOpUnequals();
+
+  /**
    * Returns a new object of class '<em>Expr Comparison</em>'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -232,6 +349,42 @@ public interface PscriptFactory extends EFactory
    * @generated
    */
   ExprComparison createExprComparison();
+
+  /**
+   * Returns a new object of class '<em>Op Less Eq</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Op Less Eq</em>'.
+   * @generated
+   */
+  OpLessEq createOpLessEq();
+
+  /**
+   * Returns a new object of class '<em>Op Less</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Op Less</em>'.
+   * @generated
+   */
+  OpLess createOpLess();
+
+  /**
+   * Returns a new object of class '<em>Op Greater Eq</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Op Greater Eq</em>'.
+   * @generated
+   */
+  OpGreaterEq createOpGreaterEq();
+
+  /**
+   * Returns a new object of class '<em>Op Greater</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Op Greater</em>'.
+   * @generated
+   */
+  OpGreater createOpGreater();
 
   /**
    * Returns a new object of class '<em>Expr Additive</em>'.
@@ -243,6 +396,24 @@ public interface PscriptFactory extends EFactory
   ExprAdditive createExprAdditive();
 
   /**
+   * Returns a new object of class '<em>Op Plus</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Op Plus</em>'.
+   * @generated
+   */
+  OpPlus createOpPlus();
+
+  /**
+   * Returns a new object of class '<em>Op Minus</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Op Minus</em>'.
+   * @generated
+   */
+  OpMinus createOpMinus();
+
+  /**
    * Returns a new object of class '<em>Expr Mult</em>'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -250,6 +421,42 @@ public interface PscriptFactory extends EFactory
    * @generated
    */
   ExprMult createExprMult();
+
+  /**
+   * Returns a new object of class '<em>Op Mult</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Op Mult</em>'.
+   * @generated
+   */
+  OpMult createOpMult();
+
+  /**
+   * Returns a new object of class '<em>Op Div Real</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Op Div Real</em>'.
+   * @generated
+   */
+  OpDivReal createOpDivReal();
+
+  /**
+   * Returns a new object of class '<em>Op Mod Real</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Op Mod Real</em>'.
+   * @generated
+   */
+  OpModReal createOpModReal();
+
+  /**
+   * Returns a new object of class '<em>Op Mod Int</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Op Mod Int</em>'.
+   * @generated
+   */
+  OpModInt createOpModInt();
 
   /**
    * Returns a new object of class '<em>Expr Sign</em>'.
@@ -277,24 +484,6 @@ public interface PscriptFactory extends EFactory
    * @generated
    */
   ExprMember createExprMember();
-
-  /**
-   * Returns a new object of class '<em>Expr Functioncall</em>'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return a new object of class '<em>Expr Functioncall</em>'.
-   * @generated
-   */
-  ExprFunctioncall createExprFunctioncall();
-
-  /**
-   * Returns a new object of class '<em>Expr Identifier</em>'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return a new object of class '<em>Expr Identifier</em>'.
-   * @generated
-   */
-  ExprIdentifier createExprIdentifier();
 
   /**
    * Returns a new object of class '<em>Expr Int Val</em>'.
@@ -340,6 +529,24 @@ public interface PscriptFactory extends EFactory
    * @generated
    */
   ExprBuildinFunction createExprBuildinFunction();
+
+  /**
+   * Returns a new object of class '<em>Expr Functioncall</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Expr Functioncall</em>'.
+   * @generated
+   */
+  ExprFunctioncall createExprFunctioncall();
+
+  /**
+   * Returns a new object of class '<em>Expr Identifier</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Expr Identifier</em>'.
+   * @generated
+   */
+  ExprIdentifier createExprIdentifier();
 
   /**
    * Returns the package supported by this factory.

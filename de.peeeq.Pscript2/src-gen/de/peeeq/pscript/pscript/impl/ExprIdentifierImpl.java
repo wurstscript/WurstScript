@@ -7,8 +7,8 @@
 package de.peeeq.pscript.pscript.impl;
 
 import de.peeeq.pscript.pscript.ExprIdentifier;
-import de.peeeq.pscript.pscript.NameDef;
 import de.peeeq.pscript.pscript.PscriptPackage;
+import de.peeeq.pscript.pscript.VarDef;
 
 import org.eclipse.emf.common.notify.Notification;
 
@@ -40,7 +40,7 @@ public class ExprIdentifierImpl extends ExprImpl implements ExprIdentifier
    * @generated
    * @ordered
    */
-  protected NameDef nameVal;
+  protected VarDef nameVal;
 
   /**
    * <!-- begin-user-doc -->
@@ -68,12 +68,12 @@ public class ExprIdentifierImpl extends ExprImpl implements ExprIdentifier
    * <!-- end-user-doc -->
    * @generated
    */
-  public NameDef getNameVal()
+  public VarDef getNameVal()
   {
     if (nameVal != null && nameVal.eIsProxy())
     {
       InternalEObject oldNameVal = (InternalEObject)nameVal;
-      nameVal = (NameDef)eResolveProxy(oldNameVal);
+      nameVal = (VarDef)eResolveProxy(oldNameVal);
       if (nameVal != oldNameVal)
       {
         if (eNotificationRequired())
@@ -88,7 +88,7 @@ public class ExprIdentifierImpl extends ExprImpl implements ExprIdentifier
    * <!-- end-user-doc -->
    * @generated
    */
-  public NameDef basicGetNameVal()
+  public VarDef basicGetNameVal()
   {
     return nameVal;
   }
@@ -98,9 +98,9 @@ public class ExprIdentifierImpl extends ExprImpl implements ExprIdentifier
    * <!-- end-user-doc -->
    * @generated
    */
-  public void setNameVal(NameDef newNameVal)
+  public void setNameVal(VarDef newNameVal)
   {
-    NameDef oldNameVal = nameVal;
+    VarDef oldNameVal = nameVal;
     nameVal = newNameVal;
     if (eNotificationRequired())
       eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.EXPR_IDENTIFIER__NAME_VAL, oldNameVal, nameVal));
@@ -134,7 +134,7 @@ public class ExprIdentifierImpl extends ExprImpl implements ExprIdentifier
     switch (featureID)
     {
       case PscriptPackage.EXPR_IDENTIFIER__NAME_VAL:
-        setNameVal((NameDef)newValue);
+        setNameVal((VarDef)newValue);
         return;
     }
     super.eSet(featureID, newValue);
@@ -151,7 +151,7 @@ public class ExprIdentifierImpl extends ExprImpl implements ExprIdentifier
     switch (featureID)
     {
       case PscriptPackage.EXPR_IDENTIFIER__NAME_VAL:
-        setNameVal((NameDef)null);
+        setNameVal((VarDef)null);
         return;
     }
     super.eUnset(featureID);

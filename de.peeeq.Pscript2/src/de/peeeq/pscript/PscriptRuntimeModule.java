@@ -5,7 +5,15 @@ package de.peeeq.pscript;
 
 import org.eclipse.xtext.naming.IQualifiedNameProvider;
 
+import com.google.inject.Binder;
+
+import de.peeeq.pscript.attributes.infrastructure.AttributeManager;
+import de.peeeq.pscript.attributes.infrastructure.AttributeManagerImpl;
+import de.peeeq.pscript.intermediateLang.IntermediateCodeGenerator;
+import de.peeeq.pscript.intermediateLang.IntermediateCodeGeneratorImpl;
 import de.peeeq.pscript.scoping.PscriptQualifiedNameProvider;
+import de.peeeq.pscript.validation.ErrorSink;
+import de.peeeq.pscript.validation.ErrorSinkImpl;
 
 
 /**
@@ -18,4 +26,16 @@ public class PscriptRuntimeModule extends de.peeeq.pscript.AbstractPscriptRuntim
 		return PscriptQualifiedNameProvider.class;
 	}
 	
+	 @Override
+	    public void configure(Binder binder) {
+	        super.configure(binder);
+	        // bind the errorSink singleton:
+	        binder.bind(ErrorSink.class).to(ErrorSinkImpl.class);
+	        
+	        // attribute manager for all the attributes
+	        binder.bind(AttributeManager.class).to(AttributeManagerImpl.class);
+	        
+	        binder.bind(IntermediateCodeGenerator.class).to(IntermediateCodeGeneratorImpl.class);
+	    }
+	 
 }

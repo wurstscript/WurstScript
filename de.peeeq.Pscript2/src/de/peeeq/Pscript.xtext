@@ -8,56 +8,60 @@ Program:
 	NL* packages+=PackageDeclaration (packages+=PackageDeclaration)* NL*;
 
 
+
+
+
+
 	
 PackageDeclaration:
-  'package' name=QualifiedName '{'
+  {PackageDeclaration} 'package' name=ID '{'
   	(NL* imports+=Import)*  NL*
     (elements+=Entity NL*)*
   '}' NL*
 ;	
 
 Import:
-  'import' importedNamespace=QualifiedNameWithWildCard NL;
+  'import' importedNamespace=ImportString NL;
 
-QualifiedName:
-  ID ('.' ID)*;	
-  
-QualifiedNameWithWildCard:
-  QualifiedName '.*'?;  
+ImportString:
+	ID '.' ('*'|ID)
+;
 
 
-Entity returns NameDef:
+
+Entity:
 	(TypeDef|FuncDef|VarDef|InitBlock);
 
 InitBlock:
-	'init' '{' body=Statements '}'
+	name='init' '{' body=Statements '}'
 ;
 	
 
-/* natives: */
 
 
-TypeDef returns NameDef: 
+
+
+TypeDef: 
 	(NativeType|ClassDef)
 ;
 
-NativeType returns NameDef:
-	{NativeType} 'native' 'type' name=ID '=' origName=ID ('extends' superName=[TypeExpr])? NL
+NativeType returns TypeDef:
+	{NativeType} 'native' 'type' name=ID '=' origName=ID ('extends' superName=TypeExpr)? NL
 ;
 
 /* classes and their members */	
 
-ClassDef returns NameDef:
+ClassDef returns TypeDef:
 	{ClassDef} 'class' name=ID '{' 
 		(members+=ClassMember)* NL* 
 	'}' NL;	
 
 	
-ClassMember returns NameDef:
+ClassMember:
 	NL* (VarDef | FuncDef);
 	
 
-VarDef returns NameDef:
+VarDef:
 	{VarDef} ('var' | constant?='val') name=ID 
 	( ':' type=TypeExpr )?
 	( '=' e=Expr)?
@@ -65,19 +69,19 @@ VarDef returns NameDef:
 ;	
 
 TypeExpr:
-	{TypeExpr} name=[NameDef]
+	{TypeExpr} name=[TypeDef]
 ;
 
 
 /* functions */
 
-FuncDef returns NameDef:
+FuncDef:
 	{FuncDef} 'function' name=ID '(' (parameters+=ParameterDef (',' parameters+=ParameterDef)*)? ')' (':' type=TypeExpr)? '{'
 		body=Statements 
 	'}'
 ; 
 
-ParameterDef returns NameDef:
+ParameterDef returns VarDef:
 	{ParameterDef} name=ID ':' type=TypeExpr;	
 
 Statements:
@@ -117,10 +121,10 @@ StmtExpr:
 /* operator precedence (weakest first):
 or
 and
-= !=				// equals has only one (why would we need more? ;)
+== !=				// 
 <= >= < >			// comparisons
 + -
-* / % mod div		// mod and div work on integers, / and % 
+* / % mod div		// mod and div work on integers, / and % for reals
 
 
 + -					// unary
@@ -139,8 +143,13 @@ Expr:
 
 ExprAssignment returns Expr:
   ExprOr ({ExprAssignment.left=current} 
-    op=('='|'+='|'-=') right=ExprOr)*
+    op=OpAssignment right=ExprOr)*
 ;
+
+OpAssignment:
+	{OpAssign} '='| {OpPlusAssign}'+='| {OpMinusAssign}'-='
+;
+
 
 ExprOr returns Expr:
   ExprAnd ({ExprOr.left=current} 
@@ -154,31 +163,60 @@ ExprAnd returns Expr:
  
 ExprEquality returns Expr:
 	ExprComparison ({ExprEquality.left=current} 
-    op=('!='|'==') right=ExprComparison)*
-;  
+    op=OpEquality right=ExprComparison)*
+;
+
+OpEquality:
+	 {OpEquals} '=='
+	| {OpUnequals} '!='
+;
+  
  
 ExprComparison returns Expr:
 	ExprAdditive ({ExprComparison.left=current} 
-    op=('<='|'<'|'>='|'>') right=ExprAdditive)*
-;  
+    op=OpComparison right=ExprAdditive)*
+;
+
+OpComparison:
+		{OpLessEq} '<='
+	|	{OpLess} '<'
+	| 	{OpGreaterEq} '>='
+	| 	{OpGreater} '>'
+;
+  
 
 ExprAdditive returns Expr:
 	ExprMult ({ExprAdditive.left=current} 
-    op=('+'|'-') right=ExprMult)*
-;  
+    op=OpAdditive right=ExprMult)*
+;
+
+OpAdditive:
+		{OpPlus} '+'
+	|	{OpMinus} '-'
+;
+  
 
 ExprMult returns Expr:
 	ExprSign ({ExprMult.left=current} 
-    op=('*'|'/'|'%'|'mod'|'div') right=ExprSign)*
-;  
+    op=OpMultiplicative right=ExprSign)*
+;
+
+OpMultiplicative:
+		{OpMult} '*'
+	|	{OpDivReal} '/'
+	|	{OpModReal} '%'
+	|	{OpModInt} 'mod'
+	|	{OpModReal} 'div'
+;
+  
 
 ExprSign returns Expr: 
-      ({ExprSign} op=('+'|'-') right=ExprNot)
+      ({ExprSign} op=OpAdditive right=ExprNot)
     | ExprNot
 ;  
 
 ExprNot returns Expr: 
-    ({ExprNot} op='not' right=ExprMember)
+    ({ExprNot} 'not' right=ExprMember)
     | ExprMember
 ;  
 
@@ -187,17 +225,19 @@ ExprNot returns Expr:
 //; 
 
 ExprMember returns Expr:
-	ExprAtomic ({ExprMember.left=current} 
-    op='.' right=ExprAtomic)*
-;  
+	ExprSingle ({ExprMember.left=current} 
+    '.' right=ExprAtomic)*
+;
 
-ExprAtomic returns Expr:
-	  {ExprFunctioncall} nameVal=[FuncDef] parameters=ExprList
-	| {ExprFunctioncall} nameVal=[FuncDef] '(' ')'
-	| {ExprIdentifier} nameVal=[NameDef]
+
+
+
+
+ExprSingle returns Expr:
+	  ExprAtomic
 	| '(' Expr ')'
 	| {ExprIntVal} intVal=INT
-	| {ExprNumVal} numVal=NUMBER 
+	| {ExprNumVal} numVal=Number 
 	| {ExprStrval} strVal=STRING
 	| {ExprBoolVal} boolVal=('true'|'false')
 	| {ExprBuildinFunction} 'buildin' name=ID (parameters=ExprList | '(' ')')
@@ -208,46 +248,44 @@ ExprAtomic returns Expr:
 //	| buildin?='buildin' '(' left=Expr op=OPERATOR right=Expr ')' // build in operators
 ;
 
+Number:
+	INT '.' INT
+;
+
+
+ExprAtomic returns Expr:
+	  {ExprFunctioncall} nameVal=[FuncDef] parameters=ExprList
+	| {ExprFunctioncall} nameVal=[FuncDef] '(' ')'
+	| {ExprIdentifier} nameVal=[VarDef]
+;
+
 
 ExprList:
 	'(' params+=Expr (',' params+=Expr)* ')'
 ;	
 
 
+// Pseudo rules to add common super types:
 
-// stolen and adjusted from java antlr grammer:
 
-
-//Ref:
-//	referenced=[NameDef|ID];
-
-/* reference types 
-FuncRef:
-	referenced=[FuncDef|QualifiedName];
-
-VarRef:
-	referenced=[VarDef|QualifiedName];
 	
-TypeRef:
-  referenced=[Class|QualifiedName];
-	
-*/
-	
-
-
+// Terminals:
 terminal ID  		: ('a'..'z'|'A'..'Z'|'_') ('a'..'z'|'A'..'Z'|'_'|'0'..'9')*;
 terminal INT returns ecore::EInt: ('0'..'9')+;
-terminal NUMBER 	: ('0..9')+ '.' ('0..9')*;
 terminal STRING	: 
 			'"' ( '\\' ('b'|'t'|'n'|'f'|'r'|'"'|"'"|'\\') | !('\\'|'"') )* '"' |
 			"'" ( '\\' ('b'|'t'|'n'|'f'|'r'|'"'|"'"|'\\') | !('\\'|"'") )* "'"
-		; 
-terminal ML_COMMENT	: '/*' -> '*/';
+		;
+		
+		
+// multiline comments changed to consume whitespace to make the javadoc work		
+terminal ML_COMMENT	: '/*' -> '*/' (' '|'\t'|'\n'|'\r')*;  
 terminal SL_COMMENT 	: '//' !('\n'|'\r')* ('\r'? '\n')?;
 
 terminal WS			: (' '|'\t')+;
 
 terminal NL			: ('\n\r' | '\n' | '\r' | '\r\n');
+
 
 //terminal OPERATOR : ('+'|'-'|'*'|'/'|'%'|'$'|'<'|'>'|'='|'~'|'!'|'^'|'|'|'&'|':')+;
 

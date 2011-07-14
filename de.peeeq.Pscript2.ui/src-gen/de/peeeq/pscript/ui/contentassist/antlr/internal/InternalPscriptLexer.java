@@ -12,7 +12,7 @@ import java.util.ArrayList;
 
 @SuppressWarnings("all")
 public class InternalPscriptLexer extends Lexer {
-    public static final int RULE_ID=5;
+    public static final int RULE_ID=4;
     public static final int T__29=29;
     public static final int T__28=28;
     public static final int T__27=27;
@@ -22,20 +22,19 @@ public class InternalPscriptLexer extends Lexer {
     public static final int T__23=23;
     public static final int T__22=22;
     public static final int T__21=21;
-    public static final int RULE_ANY_OTHER=12;
+    public static final int RULE_ANY_OTHER=11;
     public static final int T__20=20;
     public static final int EOF=-1;
-    public static final int T__55=55;
     public static final int T__19=19;
     public static final int T__51=51;
     public static final int T__16=16;
-    public static final int T__15=15;
     public static final int T__52=52;
+    public static final int T__15=15;
     public static final int T__53=53;
     public static final int T__18=18;
     public static final int T__54=54;
     public static final int T__17=17;
-    public static final int RULE_NUMBER=7;
+    public static final int T__12=12;
     public static final int T__14=14;
     public static final int T__13=13;
     public static final int RULE_INT=6;
@@ -50,13 +49,13 @@ public class InternalPscriptLexer extends Lexer {
     public static final int T__45=45;
     public static final int T__48=48;
     public static final int T__49=49;
-    public static final int RULE_NL=4;
-    public static final int RULE_SL_COMMENT=10;
-    public static final int RULE_ML_COMMENT=9;
+    public static final int RULE_NL=5;
+    public static final int RULE_SL_COMMENT=9;
+    public static final int RULE_ML_COMMENT=8;
     public static final int T__30=30;
     public static final int T__31=31;
     public static final int T__32=32;
-    public static final int RULE_STRING=8;
+    public static final int RULE_STRING=7;
     public static final int T__33=33;
     public static final int T__34=34;
     public static final int T__35=35;
@@ -64,7 +63,7 @@ public class InternalPscriptLexer extends Lexer {
     public static final int T__37=37;
     public static final int T__38=38;
     public static final int T__39=39;
-    public static final int RULE_WS=11;
+    public static final int RULE_WS=10;
 
     // delegates
     // delegators
@@ -79,13 +78,33 @@ public class InternalPscriptLexer extends Lexer {
     }
     public String getGrammarFileName() { return "../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g"; }
 
+    // $ANTLR start "T__12"
+    public final void mT__12() throws RecognitionException {
+        try {
+            int _type = T__12;
+            int _channel = DEFAULT_TOKEN_CHANNEL;
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:11:7: ( '*' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:11:9: '*'
+            {
+            match('*'); 
+
+            }
+
+            state.type = _type;
+            state.channel = _channel;
+        }
+        finally {
+        }
+    }
+    // $ANTLR end "T__12"
+
     // $ANTLR start "T__13"
     public final void mT__13() throws RecognitionException {
         try {
             int _type = T__13;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:11:7: ( 'var' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:11:9: 'var'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:12:7: ( 'var' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:12:9: 'var'
             {
             match("var"); 
 
@@ -105,10 +124,11 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__14;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:12:7: ( '=' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:12:9: '='
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:13:7: ( 'true' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:13:9: 'true'
             {
-            match('='); 
+            match("true"); 
+
 
             }
 
@@ -125,10 +145,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__15;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:13:7: ( '+=' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:13:9: '+='
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:14:7: ( 'false' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:14:9: 'false'
             {
-            match("+="); 
+            match("false"); 
 
 
             }
@@ -146,10 +166,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__16;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:14:7: ( '-=' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:14:9: '-='
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:15:7: ( 'package' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:15:9: 'package'
             {
-            match("-="); 
+            match("package"); 
 
 
             }
@@ -167,11 +187,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__17;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:15:7: ( '!=' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:15:9: '!='
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:16:7: ( '{' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:16:9: '{'
             {
-            match("!="); 
-
+            match('{'); 
 
             }
 
@@ -188,11 +207,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__18;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:16:7: ( '==' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:16:9: '=='
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:17:7: ( '}' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:17:9: '}'
             {
-            match("=="); 
-
+            match('}'); 
 
             }
 
@@ -209,10 +227,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__19;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:17:7: ( '<=' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:17:9: '<='
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:18:7: ( 'import' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:18:9: 'import'
             {
-            match("<="); 
+            match("import"); 
 
 
             }
@@ -230,10 +248,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__20;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:18:7: ( '<' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:18:9: '<'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:19:7: ( '.' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:19:9: '.'
             {
-            match('<'); 
+            match('.'); 
 
             }
 
@@ -250,10 +268,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__21;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:19:7: ( '>=' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:19:9: '>='
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:20:7: ( 'native' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:20:9: 'native'
             {
-            match(">="); 
+            match("native"); 
 
 
             }
@@ -271,10 +289,11 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__22;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:20:7: ( '>' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:20:9: '>'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:21:7: ( 'type' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:21:9: 'type'
             {
-            match('>'); 
+            match("type"); 
+
 
             }
 
@@ -291,10 +310,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__23;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:21:7: ( '+' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:21:9: '+'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:22:7: ( '=' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:22:9: '='
             {
-            match('+'); 
+            match('='); 
 
             }
 
@@ -311,10 +330,11 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__24;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:22:7: ( '-' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:22:9: '-'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:23:7: ( 'extends' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:23:9: 'extends'
             {
-            match('-'); 
+            match("extends"); 
+
 
             }
 
@@ -331,10 +351,11 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__25;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:23:7: ( '*' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:23:9: '*'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:24:7: ( 'class' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:24:9: 'class'
             {
-            match('*'); 
+            match("class"); 
+
 
             }
 
@@ -351,10 +372,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__26;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:24:7: ( '/' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:24:9: '/'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:25:7: ( ':' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:25:9: ':'
             {
-            match('/'); 
+            match(':'); 
 
             }
 
@@ -371,10 +392,11 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__27;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:25:7: ( '%' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:25:9: '%'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:26:7: ( 'function' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:26:9: 'function'
             {
-            match('%'); 
+            match("function"); 
+
 
             }
 
@@ -391,11 +413,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__28;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:26:7: ( 'mod' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:26:9: 'mod'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:27:7: ( '(' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:27:9: '('
             {
-            match("mod"); 
-
+            match('('); 
 
             }
 
@@ -412,11 +433,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__29;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:27:7: ( 'div' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:27:9: 'div'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:28:7: ( ')' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:28:9: ')'
             {
-            match("div"); 
-
+            match(')'); 
 
             }
 
@@ -433,11 +453,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__30;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:28:7: ( 'true' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:28:9: 'true'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:29:7: ( ',' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:29:9: ','
             {
-            match("true"); 
-
+            match(','); 
 
             }
 
@@ -454,10 +473,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__31;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:29:7: ( 'false' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:29:9: 'false'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:30:7: ( 'return' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:30:9: 'return'
             {
-            match("false"); 
+            match("return"); 
 
 
             }
@@ -475,10 +494,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__32;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:30:7: ( 'package' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:30:9: 'package'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:31:7: ( 'if' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:31:9: 'if'
             {
-            match("package"); 
+            match("if"); 
 
 
             }
@@ -496,10 +515,11 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__33;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:31:7: ( '{' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:31:9: '{'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:32:7: ( 'else' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:32:9: 'else'
             {
-            match('{'); 
+            match("else"); 
+
 
             }
 
@@ -516,10 +536,11 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__34;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:32:7: ( '}' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:32:9: '}'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:33:7: ( 'while' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:33:9: 'while'
             {
-            match('}'); 
+            match("while"); 
+
 
             }
 
@@ -536,10 +557,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__35;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:33:7: ( 'import' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:33:9: 'import'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:34:7: ( '+=' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:34:9: '+='
             {
-            match("import"); 
+            match("+="); 
 
 
             }
@@ -557,10 +578,11 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__36;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:34:7: ( '.' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:34:9: '.'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:35:7: ( '-=' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:35:9: '-='
             {
-            match('.'); 
+            match("-="); 
+
 
             }
 
@@ -577,10 +599,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__37;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:35:7: ( '.*' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:35:9: '.*'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:36:7: ( '==' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:36:9: '=='
             {
-            match(".*"); 
+            match("=="); 
 
 
             }
@@ -598,10 +620,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__38;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:36:7: ( 'native' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:36:9: 'native'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:37:7: ( '!=' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:37:9: '!='
             {
-            match("native"); 
+            match("!="); 
 
 
             }
@@ -619,10 +641,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__39;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:37:7: ( 'type' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:37:9: 'type'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:38:7: ( '<=' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:38:9: '<='
             {
-            match("type"); 
+            match("<="); 
 
 
             }
@@ -640,11 +662,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__40;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:38:7: ( 'extends' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:38:9: 'extends'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:39:7: ( '<' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:39:9: '<'
             {
-            match("extends"); 
-
+            match('<'); 
 
             }
 
@@ -661,10 +682,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__41;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:39:7: ( 'class' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:39:9: 'class'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:40:7: ( '>=' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:40:9: '>='
             {
-            match("class"); 
+            match(">="); 
 
 
             }
@@ -682,10 +703,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__42;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:40:7: ( ':' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:40:9: ':'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:41:7: ( '>' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:41:9: '>'
             {
-            match(':'); 
+            match('>'); 
 
             }
 
@@ -702,11 +723,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__43;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:41:7: ( 'function' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:41:9: 'function'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:42:7: ( '+' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:42:9: '+'
             {
-            match("function"); 
-
+            match('+'); 
 
             }
 
@@ -723,10 +743,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__44;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:42:7: ( '(' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:42:9: '('
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:43:7: ( '-' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:43:9: '-'
             {
-            match('('); 
+            match('-'); 
 
             }
 
@@ -743,10 +763,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__45;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:43:7: ( ')' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:43:9: ')'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:44:7: ( '/' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:44:9: '/'
             {
-            match(')'); 
+            match('/'); 
 
             }
 
@@ -763,10 +783,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__46;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:44:7: ( ',' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:44:9: ','
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:45:7: ( '%' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:45:9: '%'
             {
-            match(','); 
+            match('%'); 
 
             }
 
@@ -783,10 +803,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__47;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:45:7: ( 'return' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:45:9: 'return'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:46:7: ( 'mod' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:46:9: 'mod'
             {
-            match("return"); 
+            match("mod"); 
 
 
             }
@@ -804,10 +824,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__48;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:46:7: ( 'if' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:46:9: 'if'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:47:7: ( 'div' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:47:9: 'div'
             {
-            match("if"); 
+            match("div"); 
 
 
             }
@@ -825,10 +845,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__49;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:47:7: ( 'else' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:47:9: 'else'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:48:7: ( 'not' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:48:9: 'not'
             {
-            match("else"); 
+            match("not"); 
 
 
             }
@@ -846,10 +866,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__50;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:48:7: ( 'while' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:48:9: 'while'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:49:7: ( 'buildin' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:49:9: 'buildin'
             {
-            match("while"); 
+            match("buildin"); 
 
 
             }
@@ -867,10 +887,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__51;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:49:7: ( 'buildin' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:49:9: 'buildin'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:50:7: ( 'init' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:50:9: 'init'
             {
-            match("buildin"); 
+            match("init"); 
 
 
             }
@@ -888,8 +908,8 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__52;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:50:7: ( 'val' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:50:9: 'val'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:51:7: ( 'val' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:51:9: 'val'
             {
             match("val"); 
 
@@ -909,8 +929,8 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__53;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:51:7: ( 'or' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:51:9: 'or'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:52:7: ( 'or' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:52:9: 'or'
             {
             match("or"); 
 
@@ -930,8 +950,8 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = T__54;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:52:7: ( 'and' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:52:9: 'and'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:53:7: ( 'and' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:53:9: 'and'
             {
             match("and"); 
 
@@ -946,34 +966,13 @@ public class InternalPscriptLexer extends Lexer {
     }
     // $ANTLR end "T__54"
 
-    // $ANTLR start "T__55"
-    public final void mT__55() throws RecognitionException {
-        try {
-            int _type = T__55;
-            int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:53:7: ( 'not' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:53:9: 'not'
-            {
-            match("not"); 
-
-
-            }
-
-            state.type = _type;
-            state.channel = _channel;
-        }
-        finally {
-        }
-    }
-    // $ANTLR end "T__55"
-
     // $ANTLR start "RULE_ID"
     public final void mRULE_ID() throws RecognitionException {
         try {
             int _type = RULE_ID;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8114:9: ( ( 'a' .. 'z' | 'A' .. 'Z' | '_' ) ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9' )* )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8114:11: ( 'a' .. 'z' | 'A' .. 'Z' | '_' ) ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9' )*
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9489:9: ( ( 'a' .. 'z' | 'A' .. 'Z' | '_' ) ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9' )* )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9489:11: ( 'a' .. 'z' | 'A' .. 'Z' | '_' ) ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9' )*
             {
             if ( (input.LA(1)>='A' && input.LA(1)<='Z')||input.LA(1)=='_'||(input.LA(1)>='a' && input.LA(1)<='z') ) {
                 input.consume();
@@ -984,7 +983,7 @@ public class InternalPscriptLexer extends Lexer {
                 recover(mse);
                 throw mse;}
 
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8114:35: ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9' )*
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9489:35: ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9' )*
             loop1:
             do {
                 int alt1=2;
@@ -1033,10 +1032,10 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = RULE_INT;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8116:10: ( ( '0' .. '9' )+ )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8116:12: ( '0' .. '9' )+
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9491:10: ( ( '0' .. '9' )+ )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9491:12: ( '0' .. '9' )+
             {
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8116:12: ( '0' .. '9' )+
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9491:12: ( '0' .. '9' )+
             int cnt2=0;
             loop2:
             do {
@@ -1050,7 +1049,7 @@ public class InternalPscriptLexer extends Lexer {
 
                 switch (alt2) {
             	case 1 :
-            	    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8116:13: '0' .. '9'
+            	    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9491:13: '0' .. '9'
             	    {
             	    matchRange('0','9'); 
 
@@ -1077,129 +1076,52 @@ public class InternalPscriptLexer extends Lexer {
     }
     // $ANTLR end "RULE_INT"
 
-    // $ANTLR start "RULE_NUMBER"
-    public final void mRULE_NUMBER() throws RecognitionException {
-        try {
-            int _type = RULE_NUMBER;
-            int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8118:13: ( ( '0..9' )+ '.' ( '0..9' )* )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8118:15: ( '0..9' )+ '.' ( '0..9' )*
-            {
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8118:15: ( '0..9' )+
-            int cnt3=0;
-            loop3:
-            do {
-                int alt3=2;
-                int LA3_0 = input.LA(1);
-
-                if ( (LA3_0=='0') ) {
-                    alt3=1;
-                }
-
-
-                switch (alt3) {
-            	case 1 :
-            	    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8118:15: '0..9'
-            	    {
-            	    match("0..9"); 
-
-
-            	    }
-            	    break;
-
-            	default :
-            	    if ( cnt3 >= 1 ) break loop3;
-                        EarlyExitException eee =
-                            new EarlyExitException(3, input);
-                        throw eee;
-                }
-                cnt3++;
-            } while (true);
-
-            match('.'); 
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8118:27: ( '0..9' )*
-            loop4:
-            do {
-                int alt4=2;
-                int LA4_0 = input.LA(1);
-
-                if ( (LA4_0=='0') ) {
-                    alt4=1;
-                }
-
-
-                switch (alt4) {
-            	case 1 :
-            	    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8118:27: '0..9'
-            	    {
-            	    match("0..9"); 
-
-
-            	    }
-            	    break;
-
-            	default :
-            	    break loop4;
-                }
-            } while (true);
-
-
-            }
-
-            state.type = _type;
-            state.channel = _channel;
-        }
-        finally {
-        }
-    }
-    // $ANTLR end "RULE_NUMBER"
-
     // $ANTLR start "RULE_STRING"
     public final void mRULE_STRING() throws RecognitionException {
         try {
             int _type = RULE_STRING;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8120:13: ( ( '\"' ( '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\"' | '\\'' | '\\\\' ) | ~ ( ( '\\\\' | '\"' ) ) )* '\"' | '\\'' ( '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\"' | '\\'' | '\\\\' ) | ~ ( ( '\\\\' | '\\'' ) ) )* '\\'' ) )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8120:15: ( '\"' ( '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\"' | '\\'' | '\\\\' ) | ~ ( ( '\\\\' | '\"' ) ) )* '\"' | '\\'' ( '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\"' | '\\'' | '\\\\' ) | ~ ( ( '\\\\' | '\\'' ) ) )* '\\'' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9493:13: ( ( '\"' ( '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\"' | '\\'' | '\\\\' ) | ~ ( ( '\\\\' | '\"' ) ) )* '\"' | '\\'' ( '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\"' | '\\'' | '\\\\' ) | ~ ( ( '\\\\' | '\\'' ) ) )* '\\'' ) )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9493:15: ( '\"' ( '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\"' | '\\'' | '\\\\' ) | ~ ( ( '\\\\' | '\"' ) ) )* '\"' | '\\'' ( '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\"' | '\\'' | '\\\\' ) | ~ ( ( '\\\\' | '\\'' ) ) )* '\\'' )
             {
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8120:15: ( '\"' ( '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\"' | '\\'' | '\\\\' ) | ~ ( ( '\\\\' | '\"' ) ) )* '\"' | '\\'' ( '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\"' | '\\'' | '\\\\' ) | ~ ( ( '\\\\' | '\\'' ) ) )* '\\'' )
-            int alt7=2;
-            int LA7_0 = input.LA(1);
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9493:15: ( '\"' ( '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\"' | '\\'' | '\\\\' ) | ~ ( ( '\\\\' | '\"' ) ) )* '\"' | '\\'' ( '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\"' | '\\'' | '\\\\' ) | ~ ( ( '\\\\' | '\\'' ) ) )* '\\'' )
+            int alt5=2;
+            int LA5_0 = input.LA(1);
 
-            if ( (LA7_0=='\"') ) {
-                alt7=1;
+            if ( (LA5_0=='\"') ) {
+                alt5=1;
             }
-            else if ( (LA7_0=='\'') ) {
-                alt7=2;
+            else if ( (LA5_0=='\'') ) {
+                alt5=2;
             }
             else {
                 NoViableAltException nvae =
-                    new NoViableAltException("", 7, 0, input);
+                    new NoViableAltException("", 5, 0, input);
 
                 throw nvae;
             }
-            switch (alt7) {
+            switch (alt5) {
                 case 1 :
-                    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8120:16: '\"' ( '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\"' | '\\'' | '\\\\' ) | ~ ( ( '\\\\' | '\"' ) ) )* '\"'
+                    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9493:16: '\"' ( '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\"' | '\\'' | '\\\\' ) | ~ ( ( '\\\\' | '\"' ) ) )* '\"'
                     {
                     match('\"'); 
-                    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8120:20: ( '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\"' | '\\'' | '\\\\' ) | ~ ( ( '\\\\' | '\"' ) ) )*
-                    loop5:
+                    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9493:20: ( '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\"' | '\\'' | '\\\\' ) | ~ ( ( '\\\\' | '\"' ) ) )*
+                    loop3:
                     do {
-                        int alt5=3;
-                        int LA5_0 = input.LA(1);
+                        int alt3=3;
+                        int LA3_0 = input.LA(1);
 
-                        if ( (LA5_0=='\\') ) {
-                            alt5=1;
+                        if ( (LA3_0=='\\') ) {
+                            alt3=1;
                         }
-                        else if ( ((LA5_0>='\u0000' && LA5_0<='!')||(LA5_0>='#' && LA5_0<='[')||(LA5_0>=']' && LA5_0<='\uFFFF')) ) {
-                            alt5=2;
+                        else if ( ((LA3_0>='\u0000' && LA3_0<='!')||(LA3_0>='#' && LA3_0<='[')||(LA3_0>=']' && LA3_0<='\uFFFF')) ) {
+                            alt3=2;
                         }
 
 
-                        switch (alt5) {
+                        switch (alt3) {
                     	case 1 :
-                    	    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8120:21: '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\"' | '\\'' | '\\\\' )
+                    	    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9493:21: '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\"' | '\\'' | '\\\\' )
                     	    {
                     	    match('\\'); 
                     	    if ( input.LA(1)=='\"'||input.LA(1)=='\''||input.LA(1)=='\\'||input.LA(1)=='b'||input.LA(1)=='f'||input.LA(1)=='n'||input.LA(1)=='r'||input.LA(1)=='t' ) {
@@ -1215,7 +1137,7 @@ public class InternalPscriptLexer extends Lexer {
                     	    }
                     	    break;
                     	case 2 :
-                    	    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8120:62: ~ ( ( '\\\\' | '\"' ) )
+                    	    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9493:62: ~ ( ( '\\\\' | '\"' ) )
                     	    {
                     	    if ( (input.LA(1)>='\u0000' && input.LA(1)<='!')||(input.LA(1)>='#' && input.LA(1)<='[')||(input.LA(1)>=']' && input.LA(1)<='\uFFFF') ) {
                     	        input.consume();
@@ -1231,7 +1153,7 @@ public class InternalPscriptLexer extends Lexer {
                     	    break;
 
                     	default :
-                    	    break loop5;
+                    	    break loop3;
                         }
                     } while (true);
 
@@ -1240,26 +1162,26 @@ public class InternalPscriptLexer extends Lexer {
                     }
                     break;
                 case 2 :
-                    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8120:82: '\\'' ( '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\"' | '\\'' | '\\\\' ) | ~ ( ( '\\\\' | '\\'' ) ) )* '\\''
+                    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9493:82: '\\'' ( '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\"' | '\\'' | '\\\\' ) | ~ ( ( '\\\\' | '\\'' ) ) )* '\\''
                     {
                     match('\''); 
-                    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8120:87: ( '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\"' | '\\'' | '\\\\' ) | ~ ( ( '\\\\' | '\\'' ) ) )*
-                    loop6:
+                    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9493:87: ( '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\"' | '\\'' | '\\\\' ) | ~ ( ( '\\\\' | '\\'' ) ) )*
+                    loop4:
                     do {
-                        int alt6=3;
-                        int LA6_0 = input.LA(1);
+                        int alt4=3;
+                        int LA4_0 = input.LA(1);
 
-                        if ( (LA6_0=='\\') ) {
-                            alt6=1;
+                        if ( (LA4_0=='\\') ) {
+                            alt4=1;
                         }
-                        else if ( ((LA6_0>='\u0000' && LA6_0<='&')||(LA6_0>='(' && LA6_0<='[')||(LA6_0>=']' && LA6_0<='\uFFFF')) ) {
-                            alt6=2;
+                        else if ( ((LA4_0>='\u0000' && LA4_0<='&')||(LA4_0>='(' && LA4_0<='[')||(LA4_0>=']' && LA4_0<='\uFFFF')) ) {
+                            alt4=2;
                         }
 
 
-                        switch (alt6) {
+                        switch (alt4) {
                     	case 1 :
-                    	    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8120:88: '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\"' | '\\'' | '\\\\' )
+                    	    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9493:88: '\\\\' ( 'b' | 't' | 'n' | 'f' | 'r' | '\"' | '\\'' | '\\\\' )
                     	    {
                     	    match('\\'); 
                     	    if ( input.LA(1)=='\"'||input.LA(1)=='\''||input.LA(1)=='\\'||input.LA(1)=='b'||input.LA(1)=='f'||input.LA(1)=='n'||input.LA(1)=='r'||input.LA(1)=='t' ) {
@@ -1275,7 +1197,7 @@ public class InternalPscriptLexer extends Lexer {
                     	    }
                     	    break;
                     	case 2 :
-                    	    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8120:129: ~ ( ( '\\\\' | '\\'' ) )
+                    	    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9493:129: ~ ( ( '\\\\' | '\\'' ) )
                     	    {
                     	    if ( (input.LA(1)>='\u0000' && input.LA(1)<='&')||(input.LA(1)>='(' && input.LA(1)<='[')||(input.LA(1)>=']' && input.LA(1)<='\uFFFF') ) {
                     	        input.consume();
@@ -1291,7 +1213,7 @@ public class InternalPscriptLexer extends Lexer {
                     	    break;
 
                     	default :
-                    	    break loop6;
+                    	    break loop4;
                         }
                     } while (true);
 
@@ -1318,37 +1240,37 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = RULE_ML_COMMENT;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8122:17: ( '/*' ( options {greedy=false; } : . )* '*/' )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8122:19: '/*' ( options {greedy=false; } : . )* '*/'
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9495:17: ( '/*' ( options {greedy=false; } : . )* '*/' ( ' ' | '\\t' | '\\n' | '\\r' )* )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9495:19: '/*' ( options {greedy=false; } : . )* '*/' ( ' ' | '\\t' | '\\n' | '\\r' )*
             {
             match("/*"); 
 
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8122:24: ( options {greedy=false; } : . )*
-            loop8:
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9495:24: ( options {greedy=false; } : . )*
+            loop6:
             do {
-                int alt8=2;
-                int LA8_0 = input.LA(1);
+                int alt6=2;
+                int LA6_0 = input.LA(1);
 
-                if ( (LA8_0=='*') ) {
-                    int LA8_1 = input.LA(2);
+                if ( (LA6_0=='*') ) {
+                    int LA6_1 = input.LA(2);
 
-                    if ( (LA8_1=='/') ) {
-                        alt8=2;
+                    if ( (LA6_1=='/') ) {
+                        alt6=2;
                     }
-                    else if ( ((LA8_1>='\u0000' && LA8_1<='.')||(LA8_1>='0' && LA8_1<='\uFFFF')) ) {
-                        alt8=1;
+                    else if ( ((LA6_1>='\u0000' && LA6_1<='.')||(LA6_1>='0' && LA6_1<='\uFFFF')) ) {
+                        alt6=1;
                     }
 
 
                 }
-                else if ( ((LA8_0>='\u0000' && LA8_0<=')')||(LA8_0>='+' && LA8_0<='\uFFFF')) ) {
-                    alt8=1;
+                else if ( ((LA6_0>='\u0000' && LA6_0<=')')||(LA6_0>='+' && LA6_0<='\uFFFF')) ) {
+                    alt6=1;
                 }
 
 
-                switch (alt8) {
+                switch (alt6) {
             	case 1 :
-            	    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8122:52: .
+            	    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9495:52: .
             	    {
             	    matchAny(); 
 
@@ -1356,11 +1278,44 @@ public class InternalPscriptLexer extends Lexer {
             	    break;
 
             	default :
-            	    break loop8;
+            	    break loop6;
                 }
             } while (true);
 
             match("*/"); 
+
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9495:61: ( ' ' | '\\t' | '\\n' | '\\r' )*
+            loop7:
+            do {
+                int alt7=2;
+                int LA7_0 = input.LA(1);
+
+                if ( ((LA7_0>='\t' && LA7_0<='\n')||LA7_0=='\r'||LA7_0==' ') ) {
+                    alt7=1;
+                }
+
+
+                switch (alt7) {
+            	case 1 :
+            	    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:
+            	    {
+            	    if ( (input.LA(1)>='\t' && input.LA(1)<='\n')||input.LA(1)=='\r'||input.LA(1)==' ' ) {
+            	        input.consume();
+
+            	    }
+            	    else {
+            	        MismatchedSetException mse = new MismatchedSetException(null,input);
+            	        recover(mse);
+            	        throw mse;}
+
+
+            	    }
+            	    break;
+
+            	default :
+            	    break loop7;
+                }
+            } while (true);
 
 
             }
@@ -1378,25 +1333,25 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = RULE_SL_COMMENT;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8124:17: ( '//' (~ ( ( '\\n' | '\\r' ) ) )* ( ( '\\r' )? '\\n' )? )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8124:19: '//' (~ ( ( '\\n' | '\\r' ) ) )* ( ( '\\r' )? '\\n' )?
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9497:17: ( '//' (~ ( ( '\\n' | '\\r' ) ) )* ( ( '\\r' )? '\\n' )? )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9497:19: '//' (~ ( ( '\\n' | '\\r' ) ) )* ( ( '\\r' )? '\\n' )?
             {
             match("//"); 
 
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8124:24: (~ ( ( '\\n' | '\\r' ) ) )*
-            loop9:
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9497:24: (~ ( ( '\\n' | '\\r' ) ) )*
+            loop8:
             do {
-                int alt9=2;
-                int LA9_0 = input.LA(1);
+                int alt8=2;
+                int LA8_0 = input.LA(1);
 
-                if ( ((LA9_0>='\u0000' && LA9_0<='\t')||(LA9_0>='\u000B' && LA9_0<='\f')||(LA9_0>='\u000E' && LA9_0<='\uFFFF')) ) {
-                    alt9=1;
+                if ( ((LA8_0>='\u0000' && LA8_0<='\t')||(LA8_0>='\u000B' && LA8_0<='\f')||(LA8_0>='\u000E' && LA8_0<='\uFFFF')) ) {
+                    alt8=1;
                 }
 
 
-                switch (alt9) {
+                switch (alt8) {
             	case 1 :
-            	    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8124:24: ~ ( ( '\\n' | '\\r' ) )
+            	    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9497:24: ~ ( ( '\\n' | '\\r' ) )
             	    {
             	    if ( (input.LA(1)>='\u0000' && input.LA(1)<='\t')||(input.LA(1)>='\u000B' && input.LA(1)<='\f')||(input.LA(1)>='\u000E' && input.LA(1)<='\uFFFF') ) {
             	        input.consume();
@@ -1412,31 +1367,31 @@ public class InternalPscriptLexer extends Lexer {
             	    break;
 
             	default :
-            	    break loop9;
+            	    break loop8;
                 }
             } while (true);
 
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8124:40: ( ( '\\r' )? '\\n' )?
-            int alt11=2;
-            int LA11_0 = input.LA(1);
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9497:40: ( ( '\\r' )? '\\n' )?
+            int alt10=2;
+            int LA10_0 = input.LA(1);
 
-            if ( (LA11_0=='\n'||LA11_0=='\r') ) {
-                alt11=1;
+            if ( (LA10_0=='\n'||LA10_0=='\r') ) {
+                alt10=1;
             }
-            switch (alt11) {
+            switch (alt10) {
                 case 1 :
-                    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8124:41: ( '\\r' )? '\\n'
+                    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9497:41: ( '\\r' )? '\\n'
                     {
-                    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8124:41: ( '\\r' )?
-                    int alt10=2;
-                    int LA10_0 = input.LA(1);
+                    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9497:41: ( '\\r' )?
+                    int alt9=2;
+                    int LA9_0 = input.LA(1);
 
-                    if ( (LA10_0=='\r') ) {
-                        alt10=1;
+                    if ( (LA9_0=='\r') ) {
+                        alt9=1;
                     }
-                    switch (alt10) {
+                    switch (alt9) {
                         case 1 :
-                            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8124:41: '\\r'
+                            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9497:41: '\\r'
                             {
                             match('\r'); 
 
@@ -1468,22 +1423,22 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = RULE_WS;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8126:9: ( ( ' ' | '\\t' )+ )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8126:11: ( ' ' | '\\t' )+
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9499:9: ( ( ' ' | '\\t' )+ )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9499:11: ( ' ' | '\\t' )+
             {
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8126:11: ( ' ' | '\\t' )+
-            int cnt12=0;
-            loop12:
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9499:11: ( ' ' | '\\t' )+
+            int cnt11=0;
+            loop11:
             do {
-                int alt12=2;
-                int LA12_0 = input.LA(1);
+                int alt11=2;
+                int LA11_0 = input.LA(1);
 
-                if ( (LA12_0=='\t'||LA12_0==' ') ) {
-                    alt12=1;
+                if ( (LA11_0=='\t'||LA11_0==' ') ) {
+                    alt11=1;
                 }
 
 
-                switch (alt12) {
+                switch (alt11) {
             	case 1 :
             	    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:
             	    {
@@ -1501,12 +1456,12 @@ public class InternalPscriptLexer extends Lexer {
             	    break;
 
             	default :
-            	    if ( cnt12 >= 1 ) break loop12;
+            	    if ( cnt11 >= 1 ) break loop11;
                         EarlyExitException eee =
-                            new EarlyExitException(12, input);
+                            new EarlyExitException(11, input);
                         throw eee;
                 }
-                cnt12++;
+                cnt11++;
             } while (true);
 
 
@@ -1525,40 +1480,40 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = RULE_NL;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8128:9: ( ( '\\n\\r' | '\\n' | '\\r' | '\\r\\n' ) )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8128:11: ( '\\n\\r' | '\\n' | '\\r' | '\\r\\n' )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9501:9: ( ( '\\n\\r' | '\\n' | '\\r' | '\\r\\n' ) )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9501:11: ( '\\n\\r' | '\\n' | '\\r' | '\\r\\n' )
             {
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8128:11: ( '\\n\\r' | '\\n' | '\\r' | '\\r\\n' )
-            int alt13=4;
-            int LA13_0 = input.LA(1);
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9501:11: ( '\\n\\r' | '\\n' | '\\r' | '\\r\\n' )
+            int alt12=4;
+            int LA12_0 = input.LA(1);
 
-            if ( (LA13_0=='\n') ) {
-                int LA13_1 = input.LA(2);
+            if ( (LA12_0=='\n') ) {
+                int LA12_1 = input.LA(2);
 
-                if ( (LA13_1=='\r') ) {
-                    alt13=1;
+                if ( (LA12_1=='\r') ) {
+                    alt12=1;
                 }
                 else {
-                    alt13=2;}
+                    alt12=2;}
             }
-            else if ( (LA13_0=='\r') ) {
-                int LA13_2 = input.LA(2);
+            else if ( (LA12_0=='\r') ) {
+                int LA12_2 = input.LA(2);
 
-                if ( (LA13_2=='\n') ) {
-                    alt13=4;
+                if ( (LA12_2=='\n') ) {
+                    alt12=4;
                 }
                 else {
-                    alt13=3;}
+                    alt12=3;}
             }
             else {
                 NoViableAltException nvae =
-                    new NoViableAltException("", 13, 0, input);
+                    new NoViableAltException("", 12, 0, input);
 
                 throw nvae;
             }
-            switch (alt13) {
+            switch (alt12) {
                 case 1 :
-                    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8128:12: '\\n\\r'
+                    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9501:12: '\\n\\r'
                     {
                     match("\n\r"); 
 
@@ -1566,21 +1521,21 @@ public class InternalPscriptLexer extends Lexer {
                     }
                     break;
                 case 2 :
-                    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8128:19: '\\n'
+                    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9501:19: '\\n'
                     {
                     match('\n'); 
 
                     }
                     break;
                 case 3 :
-                    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8128:24: '\\r'
+                    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9501:24: '\\r'
                     {
                     match('\r'); 
 
                     }
                     break;
                 case 4 :
-                    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8128:29: '\\r\\n'
+                    // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9501:29: '\\r\\n'
                     {
                     match("\r\n"); 
 
@@ -1606,8 +1561,8 @@ public class InternalPscriptLexer extends Lexer {
         try {
             int _type = RULE_ANY_OTHER;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8130:16: ( . )
-            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:8130:18: .
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9503:16: ( . )
+            // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:9503:18: .
             {
             matchAny(); 
 
@@ -1622,308 +1577,308 @@ public class InternalPscriptLexer extends Lexer {
     // $ANTLR end "RULE_ANY_OTHER"
 
     public void mTokens() throws RecognitionException {
-        // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:8: ( T__13 | T__14 | T__15 | T__16 | T__17 | T__18 | T__19 | T__20 | T__21 | T__22 | T__23 | T__24 | T__25 | T__26 | T__27 | T__28 | T__29 | T__30 | T__31 | T__32 | T__33 | T__34 | T__35 | T__36 | T__37 | T__38 | T__39 | T__40 | T__41 | T__42 | T__43 | T__44 | T__45 | T__46 | T__47 | T__48 | T__49 | T__50 | T__51 | T__52 | T__53 | T__54 | T__55 | RULE_ID | RULE_INT | RULE_NUMBER | RULE_STRING | RULE_ML_COMMENT | RULE_SL_COMMENT | RULE_WS | RULE_NL | RULE_ANY_OTHER )
-        int alt14=52;
-        alt14 = dfa14.predict(input);
-        switch (alt14) {
+        // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:8: ( T__12 | T__13 | T__14 | T__15 | T__16 | T__17 | T__18 | T__19 | T__20 | T__21 | T__22 | T__23 | T__24 | T__25 | T__26 | T__27 | T__28 | T__29 | T__30 | T__31 | T__32 | T__33 | T__34 | T__35 | T__36 | T__37 | T__38 | T__39 | T__40 | T__41 | T__42 | T__43 | T__44 | T__45 | T__46 | T__47 | T__48 | T__49 | T__50 | T__51 | T__52 | T__53 | T__54 | RULE_ID | RULE_INT | RULE_STRING | RULE_ML_COMMENT | RULE_SL_COMMENT | RULE_WS | RULE_NL | RULE_ANY_OTHER )
+        int alt13=51;
+        alt13 = dfa13.predict(input);
+        switch (alt13) {
             case 1 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:10: T__13
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:10: T__12
+                {
+                mT__12(); 
+
+                }
+                break;
+            case 2 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:16: T__13
                 {
                 mT__13(); 
 
                 }
                 break;
-            case 2 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:16: T__14
+            case 3 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:22: T__14
                 {
                 mT__14(); 
 
                 }
                 break;
-            case 3 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:22: T__15
+            case 4 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:28: T__15
                 {
                 mT__15(); 
 
                 }
                 break;
-            case 4 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:28: T__16
+            case 5 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:34: T__16
                 {
                 mT__16(); 
 
                 }
                 break;
-            case 5 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:34: T__17
+            case 6 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:40: T__17
                 {
                 mT__17(); 
 
                 }
                 break;
-            case 6 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:40: T__18
+            case 7 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:46: T__18
                 {
                 mT__18(); 
 
                 }
                 break;
-            case 7 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:46: T__19
+            case 8 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:52: T__19
                 {
                 mT__19(); 
 
                 }
                 break;
-            case 8 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:52: T__20
+            case 9 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:58: T__20
                 {
                 mT__20(); 
 
                 }
                 break;
-            case 9 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:58: T__21
+            case 10 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:64: T__21
                 {
                 mT__21(); 
 
                 }
                 break;
-            case 10 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:64: T__22
+            case 11 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:70: T__22
                 {
                 mT__22(); 
 
                 }
                 break;
-            case 11 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:70: T__23
+            case 12 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:76: T__23
                 {
                 mT__23(); 
 
                 }
                 break;
-            case 12 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:76: T__24
+            case 13 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:82: T__24
                 {
                 mT__24(); 
 
                 }
                 break;
-            case 13 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:82: T__25
+            case 14 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:88: T__25
                 {
                 mT__25(); 
 
                 }
                 break;
-            case 14 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:88: T__26
+            case 15 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:94: T__26
                 {
                 mT__26(); 
 
                 }
                 break;
-            case 15 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:94: T__27
+            case 16 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:100: T__27
                 {
                 mT__27(); 
 
                 }
                 break;
-            case 16 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:100: T__28
+            case 17 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:106: T__28
                 {
                 mT__28(); 
 
                 }
                 break;
-            case 17 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:106: T__29
+            case 18 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:112: T__29
                 {
                 mT__29(); 
 
                 }
                 break;
-            case 18 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:112: T__30
+            case 19 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:118: T__30
                 {
                 mT__30(); 
 
                 }
                 break;
-            case 19 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:118: T__31
+            case 20 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:124: T__31
                 {
                 mT__31(); 
 
                 }
                 break;
-            case 20 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:124: T__32
+            case 21 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:130: T__32
                 {
                 mT__32(); 
 
                 }
                 break;
-            case 21 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:130: T__33
+            case 22 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:136: T__33
                 {
                 mT__33(); 
 
                 }
                 break;
-            case 22 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:136: T__34
+            case 23 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:142: T__34
                 {
                 mT__34(); 
 
                 }
                 break;
-            case 23 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:142: T__35
+            case 24 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:148: T__35
                 {
                 mT__35(); 
 
                 }
                 break;
-            case 24 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:148: T__36
+            case 25 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:154: T__36
                 {
                 mT__36(); 
 
                 }
                 break;
-            case 25 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:154: T__37
+            case 26 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:160: T__37
                 {
                 mT__37(); 
 
                 }
                 break;
-            case 26 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:160: T__38
+            case 27 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:166: T__38
                 {
                 mT__38(); 
 
                 }
                 break;
-            case 27 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:166: T__39
+            case 28 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:172: T__39
                 {
                 mT__39(); 
 
                 }
                 break;
-            case 28 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:172: T__40
+            case 29 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:178: T__40
                 {
                 mT__40(); 
 
                 }
                 break;
-            case 29 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:178: T__41
+            case 30 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:184: T__41
                 {
                 mT__41(); 
 
                 }
                 break;
-            case 30 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:184: T__42
+            case 31 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:190: T__42
                 {
                 mT__42(); 
 
                 }
                 break;
-            case 31 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:190: T__43
+            case 32 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:196: T__43
                 {
                 mT__43(); 
 
                 }
                 break;
-            case 32 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:196: T__44
+            case 33 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:202: T__44
                 {
                 mT__44(); 
 
                 }
                 break;
-            case 33 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:202: T__45
+            case 34 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:208: T__45
                 {
                 mT__45(); 
 
                 }
                 break;
-            case 34 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:208: T__46
+            case 35 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:214: T__46
                 {
                 mT__46(); 
 
                 }
                 break;
-            case 35 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:214: T__47
+            case 36 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:220: T__47
                 {
                 mT__47(); 
 
                 }
                 break;
-            case 36 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:220: T__48
+            case 37 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:226: T__48
                 {
                 mT__48(); 
 
                 }
                 break;
-            case 37 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:226: T__49
+            case 38 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:232: T__49
                 {
                 mT__49(); 
 
                 }
                 break;
-            case 38 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:232: T__50
+            case 39 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:238: T__50
                 {
                 mT__50(); 
 
                 }
                 break;
-            case 39 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:238: T__51
+            case 40 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:244: T__51
                 {
                 mT__51(); 
 
                 }
                 break;
-            case 40 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:244: T__52
+            case 41 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:250: T__52
                 {
                 mT__52(); 
 
                 }
                 break;
-            case 41 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:250: T__53
+            case 42 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:256: T__53
                 {
                 mT__53(); 
 
                 }
                 break;
-            case 42 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:256: T__54
+            case 43 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:262: T__54
                 {
                 mT__54(); 
-
-                }
-                break;
-            case 43 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:262: T__55
-                {
-                mT__55(); 
 
                 }
                 break;
@@ -1942,49 +1897,42 @@ public class InternalPscriptLexer extends Lexer {
                 }
                 break;
             case 46 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:285: RULE_NUMBER
-                {
-                mRULE_NUMBER(); 
-
-                }
-                break;
-            case 47 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:297: RULE_STRING
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:285: RULE_STRING
                 {
                 mRULE_STRING(); 
 
                 }
                 break;
-            case 48 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:309: RULE_ML_COMMENT
+            case 47 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:297: RULE_ML_COMMENT
                 {
                 mRULE_ML_COMMENT(); 
 
                 }
                 break;
-            case 49 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:325: RULE_SL_COMMENT
+            case 48 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:313: RULE_SL_COMMENT
                 {
                 mRULE_SL_COMMENT(); 
 
                 }
                 break;
-            case 50 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:341: RULE_WS
+            case 49 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:329: RULE_WS
                 {
                 mRULE_WS(); 
 
                 }
                 break;
-            case 51 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:349: RULE_NL
+            case 50 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:337: RULE_NL
                 {
                 mRULE_NL(); 
 
                 }
                 break;
-            case 52 :
-                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:357: RULE_ANY_OTHER
+            case 51 :
+                // ../de.peeeq.Pscript2.ui/src-gen/de/peeeq/pscript/ui/contentassist/antlr/internal/InternalPscript.g:1:345: RULE_ANY_OTHER
                 {
                 mRULE_ANY_OTHER(); 
 
@@ -1996,173 +1944,174 @@ public class InternalPscriptLexer extends Lexer {
     }
 
 
-    protected DFA14 dfa14 = new DFA14(this);
-    static final String DFA14_eotS =
-        "\1\uffff\1\52\1\54\1\56\1\60\1\50\1\63\1\65\1\uffff\1\71\1\uffff"+
-        "\5\52\2\uffff\1\52\1\107\3\52\4\uffff\5\52\1\uffff\1\127\1\uffff"+
-        "\2\50\4\uffff\1\52\21\uffff\7\52\2\uffff\1\52\1\145\2\uffff\5\52"+
-        "\4\uffff\3\52\1\156\1\52\5\uffff\1\160\1\161\1\162\1\163\6\52\1"+
-        "\uffff\1\52\1\173\6\52\1\uffff\1\u0082\4\uffff\1\u0083\1\u0084\5"+
-        "\52\1\uffff\1\52\1\u008b\4\52\3\uffff\1\u0090\5\52\1\uffff\1\u0096"+
-        "\1\52\1\u0098\1\52\1\uffff\2\52\1\u009c\1\u009d\1\52\1\uffff\1\u009f"+
-        "\1\uffff\2\52\1\u00a2\2\uffff\1\u00a3\1\uffff\1\u00a4\1\u00a5\4"+
-        "\uffff";
-    static final String DFA14_eofS =
-        "\u00a6\uffff";
-    static final String DFA14_minS =
-        "\1\0\1\141\6\75\1\uffff\1\52\1\uffff\1\157\1\151\1\162\2\141\2"+
-        "\uffff\1\146\1\52\1\141\2\154\4\uffff\1\145\1\150\1\165\1\162\1"+
-        "\156\1\uffff\1\56\1\uffff\2\0\4\uffff\1\154\21\uffff\1\144\1\166"+
-        "\1\165\1\160\1\154\1\156\1\143\2\uffff\1\160\1\60\2\uffff\3\164"+
-        "\1\163\1\141\4\uffff\1\164\2\151\1\60\1\144\5\uffff\4\60\2\145\1"+
-        "\163\1\143\1\153\1\157\1\uffff\1\151\1\60\2\145\1\163\1\165\2\154"+
-        "\1\uffff\1\60\4\uffff\2\60\1\145\1\164\1\141\1\162\1\166\1\uffff"+
-        "\1\156\1\60\1\163\1\162\1\145\1\144\3\uffff\1\60\1\151\1\147\1\164"+
+    protected DFA13 dfa13 = new DFA13(this);
+    static final String DFA13_eotS =
+        "\2\uffff\4\52\2\uffff\1\52\1\uffff\1\52\1\71\2\52\4\uffff\2\52"+
+        "\1\104\1\106\1\47\1\111\1\113\1\116\1\uffff\5\52\2\uffff\2\47\5"+
+        "\uffff\1\52\1\uffff\5\52\2\uffff\1\52\1\141\1\52\1\uffff\2\52\2"+
+        "\uffff\3\52\4\uffff\2\52\15\uffff\3\52\1\155\1\52\4\uffff\1\157"+
+        "\1\160\6\52\1\uffff\2\52\1\171\5\52\1\177\1\u0080\1\52\1\uffff\1"+
+        "\u0082\2\uffff\1\u0083\1\u0084\4\52\1\u0089\1\52\1\uffff\1\52\1"+
+        "\u008c\3\52\2\uffff\1\52\3\uffff\1\u0091\3\52\1\uffff\2\52\1\uffff"+
+        "\1\u0097\1\52\1\u0099\1\52\1\uffff\2\52\1\u009d\1\u009e\1\52\1\uffff"+
+        "\1\u00a0\1\uffff\2\52\1\u00a3\2\uffff\1\u00a4\1\uffff\1\u00a5\1"+
+        "\u00a6\4\uffff";
+    static final String DFA13_eofS =
+        "\u00a7\uffff";
+    static final String DFA13_minS =
+        "\1\0\1\uffff\1\141\1\162\2\141\2\uffff\1\146\1\uffff\1\141\1\75"+
+        "\2\154\4\uffff\1\145\1\150\5\75\1\52\1\uffff\1\157\1\151\1\165\1"+
+        "\162\1\156\2\uffff\2\0\5\uffff\1\154\1\uffff\1\165\1\160\1\154\1"+
+        "\156\1\143\2\uffff\1\160\1\60\1\151\1\uffff\2\164\2\uffff\1\164"+
+        "\1\163\1\141\4\uffff\1\164\1\151\15\uffff\1\144\1\166\1\151\1\60"+
+        "\1\144\4\uffff\2\60\2\145\1\163\1\143\1\153\1\157\1\uffff\1\164"+
+        "\1\151\1\60\2\145\1\163\1\165\1\154\2\60\1\154\1\uffff\1\60\2\uffff"+
+        "\2\60\1\145\1\164\1\141\1\162\1\60\1\166\1\uffff\1\156\1\60\1\163"+
+        "\1\162\1\145\2\uffff\1\144\3\uffff\1\60\1\151\1\147\1\164\1\uffff"+
         "\1\145\1\144\1\uffff\1\60\1\156\1\60\1\151\1\uffff\1\157\1\145\2"+
         "\60\1\163\1\uffff\1\60\1\uffff\2\156\1\60\2\uffff\1\60\1\uffff\2"+
         "\60\4\uffff";
-    static final String DFA14_maxS =
-        "\1\uffff\1\141\6\75\1\uffff\1\57\1\uffff\1\157\1\151\1\171\1\165"+
-        "\1\141\2\uffff\1\155\1\52\1\157\1\170\1\154\4\uffff\1\145\1\150"+
-        "\1\165\1\162\1\156\1\uffff\1\56\1\uffff\2\uffff\4\uffff\1\162\21"+
-        "\uffff\1\144\1\166\1\165\1\160\1\154\1\156\1\143\2\uffff\1\160\1"+
-        "\172\2\uffff\3\164\1\163\1\141\4\uffff\1\164\2\151\1\172\1\144\5"+
-        "\uffff\4\172\2\145\1\163\1\143\1\153\1\157\1\uffff\1\151\1\172\2"+
-        "\145\1\163\1\165\2\154\1\uffff\1\172\4\uffff\2\172\1\145\1\164\1"+
-        "\141\1\162\1\166\1\uffff\1\156\1\172\1\163\1\162\1\145\1\144\3\uffff"+
-        "\1\172\1\151\1\147\1\164\1\145\1\144\1\uffff\1\172\1\156\1\172\1"+
-        "\151\1\uffff\1\157\1\145\2\172\1\163\1\uffff\1\172\1\uffff\2\156"+
-        "\1\172\2\uffff\1\172\1\uffff\2\172\4\uffff";
-    static final String DFA14_acceptS =
-        "\10\uffff\1\15\1\uffff\1\17\5\uffff\1\25\1\26\5\uffff\1\36\1\40"+
-        "\1\41\1\42\5\uffff\1\54\1\uffff\1\55\2\uffff\1\62\2\63\1\64\1\uffff"+
-        "\1\54\1\6\1\2\1\3\1\13\1\4\1\14\1\5\1\7\1\10\1\11\1\12\1\15\1\60"+
-        "\1\61\1\16\1\17\7\uffff\1\25\1\26\2\uffff\1\31\1\30\5\uffff\1\36"+
-        "\1\40\1\41\1\42\5\uffff\1\56\1\55\1\57\1\62\1\63\12\uffff\1\44\10"+
-        "\uffff\1\51\1\uffff\1\1\1\50\1\20\1\21\7\uffff\1\53\6\uffff\1\52"+
-        "\1\22\1\33\6\uffff\1\45\4\uffff\1\23\5\uffff\1\35\1\uffff\1\46\3"+
-        "\uffff\1\27\1\32\1\uffff\1\43\2\uffff\1\24\1\34\1\47\1\37";
-    static final String DFA14_specialS =
-        "\1\1\42\uffff\1\2\1\0\u0081\uffff}>";
-    static final String[] DFA14_transitionS = {
-            "\11\50\1\45\1\46\2\50\1\47\22\50\1\45\1\5\1\43\2\50\1\12\1"+
-            "\50\1\44\1\30\1\31\1\10\1\3\1\32\1\4\1\23\1\11\1\41\11\42\1"+
-            "\27\1\50\1\6\1\2\1\7\2\50\32\40\4\50\1\40\1\50\1\37\1\35\1\26"+
-            "\1\14\1\25\1\16\2\40\1\22\3\40\1\13\1\24\1\36\1\17\1\40\1\33"+
-            "\1\40\1\15\1\40\1\1\1\34\3\40\1\20\1\50\1\21\uff82\50",
+    static final String DFA13_maxS =
+        "\1\uffff\1\uffff\1\141\1\171\1\165\1\141\2\uffff\1\156\1\uffff"+
+        "\1\157\1\75\1\170\1\154\4\uffff\1\145\1\150\5\75\1\57\1\uffff\1"+
+        "\157\1\151\1\165\1\162\1\156\2\uffff\2\uffff\5\uffff\1\162\1\uffff"+
+        "\1\165\1\160\1\154\1\156\1\143\2\uffff\1\160\1\172\1\151\1\uffff"+
+        "\2\164\2\uffff\1\164\1\163\1\141\4\uffff\1\164\1\151\15\uffff\1"+
+        "\144\1\166\1\151\1\172\1\144\4\uffff\2\172\2\145\1\163\1\143\1\153"+
+        "\1\157\1\uffff\1\164\1\151\1\172\2\145\1\163\1\165\1\154\2\172\1"+
+        "\154\1\uffff\1\172\2\uffff\2\172\1\145\1\164\1\141\1\162\1\172\1"+
+        "\166\1\uffff\1\156\1\172\1\163\1\162\1\145\2\uffff\1\144\3\uffff"+
+        "\1\172\1\151\1\147\1\164\1\uffff\1\145\1\144\1\uffff\1\172\1\156"+
+        "\1\172\1\151\1\uffff\1\157\1\145\2\172\1\163\1\uffff\1\172\1\uffff"+
+        "\2\156\1\172\2\uffff\1\172\1\uffff\2\172\4\uffff";
+    static final String DFA13_acceptS =
+        "\1\uffff\1\1\4\uffff\1\6\1\7\1\uffff\1\11\4\uffff\1\17\1\21\1\22"+
+        "\1\23\10\uffff\1\43\5\uffff\1\54\1\55\2\uffff\1\61\2\62\1\63\1\1"+
+        "\1\uffff\1\54\5\uffff\1\6\1\7\3\uffff\1\11\2\uffff\1\32\1\14\3\uffff"+
+        "\1\17\1\21\1\22\1\23\2\uffff\1\30\1\40\1\31\1\41\1\33\1\34\1\35"+
+        "\1\36\1\37\1\57\1\60\1\42\1\43\5\uffff\1\55\1\56\1\61\1\62\10\uffff"+
+        "\1\25\13\uffff\1\52\1\uffff\1\2\1\51\10\uffff\1\46\5\uffff\1\44"+
+        "\1\45\1\uffff\1\53\1\3\1\13\4\uffff\1\50\2\uffff\1\26\4\uffff\1"+
+        "\4\5\uffff\1\16\1\uffff\1\27\3\uffff\1\10\1\12\1\uffff\1\24\2\uffff"+
+        "\1\5\1\15\1\47\1\20";
+    static final String DFA13_specialS =
+        "\1\0\41\uffff\1\1\1\2\u0083\uffff}>";
+    static final String[] DFA13_transitionS = {
+            "\11\47\1\44\1\45\2\47\1\46\22\47\1\44\1\26\1\42\2\47\1\32\1"+
+            "\47\1\43\1\17\1\20\1\1\1\24\1\21\1\25\1\11\1\31\12\41\1\16\1"+
+            "\47\1\27\1\13\1\30\2\47\32\40\4\47\1\40\1\47\1\37\1\35\1\15"+
+            "\1\34\1\14\1\4\2\40\1\10\3\40\1\33\1\12\1\36\1\5\1\40\1\22\1"+
+            "\40\1\3\1\40\1\2\1\23\3\40\1\6\1\47\1\7\uff82\47",
+            "",
             "\1\51",
-            "\1\53",
-            "\1\55",
+            "\1\53\6\uffff\1\54",
+            "\1\55\23\uffff\1\56",
             "\1\57",
-            "\1\61",
-            "\1\62",
-            "\1\64",
             "",
-            "\1\67\4\uffff\1\70",
             "",
-            "\1\73",
+            "\1\63\6\uffff\1\62\1\64",
+            "",
+            "\1\66\15\uffff\1\67",
+            "\1\70",
+            "\1\73\13\uffff\1\72",
             "\1\74",
-            "\1\75\6\uffff\1\76",
-            "\1\77\23\uffff\1\100",
+            "",
+            "",
+            "",
+            "",
             "\1\101",
+            "\1\102",
+            "\1\103",
+            "\1\105",
+            "\1\107",
+            "\1\110",
+            "\1\112",
+            "\1\114\4\uffff\1\115",
             "",
-            "",
-            "\1\105\6\uffff\1\104",
-            "\1\106",
-            "\1\110\15\uffff\1\111",
-            "\1\113\13\uffff\1\112",
-            "\1\114",
-            "",
-            "",
-            "",
-            "",
+            "\1\120",
             "\1\121",
             "\1\122",
             "\1\123",
             "\1\124",
-            "\1\125",
-            "",
-            "\1\126",
-            "",
-            "\0\130",
-            "\0\130",
             "",
             "",
-            "",
-            "",
-            "\1\134\5\uffff\1\133",
+            "\0\126",
+            "\0\126",
             "",
             "",
             "",
             "",
             "",
+            "\1\132\5\uffff\1\131",
             "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
+            "\1\133",
+            "\1\134",
             "\1\135",
             "\1\136",
             "\1\137",
+            "",
+            "",
             "\1\140",
-            "\1\141",
-            "\1\142",
-            "\1\143",
-            "",
-            "",
-            "\1\144",
             "\12\52\7\uffff\32\52\4\uffff\1\52\1\uffff\32\52",
+            "\1\142",
+            "",
+            "\1\143",
+            "\1\144",
             "",
             "",
+            "\1\145",
             "\1\146",
             "\1\147",
+            "",
+            "",
+            "",
+            "",
             "\1\150",
             "\1\151",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
             "\1\152",
-            "",
-            "",
-            "",
-            "",
             "\1\153",
             "\1\154",
-            "\1\155",
             "\12\52\7\uffff\32\52\4\uffff\1\52\1\uffff\32\52",
-            "\1\157",
-            "",
+            "\1\156",
             "",
             "",
             "",
             "",
             "\12\52\7\uffff\32\52\4\uffff\1\52\1\uffff\32\52",
             "\12\52\7\uffff\32\52\4\uffff\1\52\1\uffff\32\52",
-            "\12\52\7\uffff\32\52\4\uffff\1\52\1\uffff\32\52",
-            "\12\52\7\uffff\32\52\4\uffff\1\52\1\uffff\32\52",
+            "\1\161",
+            "\1\162",
+            "\1\163",
             "\1\164",
             "\1\165",
             "\1\166",
+            "",
             "\1\167",
             "\1\170",
-            "\1\171",
-            "",
-            "\1\172",
             "\12\52\7\uffff\32\52\4\uffff\1\52\1\uffff\32\52",
+            "\1\172",
+            "\1\173",
             "\1\174",
             "\1\175",
             "\1\176",
-            "\1\177",
-            "\1\u0080",
+            "\12\52\7\uffff\32\52\4\uffff\1\52\1\uffff\32\52",
+            "\12\52\7\uffff\32\52\4\uffff\1\52\1\uffff\32\52",
             "\1\u0081",
             "",
             "\12\52\7\uffff\32\52\4\uffff\1\52\1\uffff\32\52",
-            "",
-            "",
             "",
             "",
             "\12\52\7\uffff\32\52\4\uffff\1\52\1\uffff\32\52",
@@ -2171,39 +2120,43 @@ public class InternalPscriptLexer extends Lexer {
             "\1\u0086",
             "\1\u0087",
             "\1\u0088",
-            "\1\u0089",
-            "",
-            "\1\u008a",
             "\12\52\7\uffff\32\52\4\uffff\1\52\1\uffff\32\52",
-            "\1\u008c",
+            "\1\u008a",
+            "",
+            "\1\u008b",
+            "\12\52\7\uffff\32\52\4\uffff\1\52\1\uffff\32\52",
             "\1\u008d",
             "\1\u008e",
             "\1\u008f",
             "",
             "",
+            "\1\u0090",
+            "",
+            "",
             "",
             "\12\52\7\uffff\32\52\4\uffff\1\52\1\uffff\32\52",
-            "\1\u0091",
             "\1\u0092",
             "\1\u0093",
             "\1\u0094",
+            "",
             "\1\u0095",
+            "\1\u0096",
             "",
             "\12\52\7\uffff\32\52\4\uffff\1\52\1\uffff\32\52",
-            "\1\u0097",
+            "\1\u0098",
             "\12\52\7\uffff\32\52\4\uffff\1\52\1\uffff\32\52",
-            "\1\u0099",
-            "",
             "\1\u009a",
+            "",
             "\1\u009b",
+            "\1\u009c",
             "\12\52\7\uffff\32\52\4\uffff\1\52\1\uffff\32\52",
             "\12\52\7\uffff\32\52\4\uffff\1\52\1\uffff\32\52",
-            "\1\u009e",
+            "\1\u009f",
             "",
             "\12\52\7\uffff\32\52\4\uffff\1\52\1\uffff\32\52",
             "",
-            "\1\u00a0",
             "\1\u00a1",
+            "\1\u00a2",
             "\12\52\7\uffff\32\52\4\uffff\1\52\1\uffff\32\52",
             "",
             "",
@@ -2217,151 +2170,149 @@ public class InternalPscriptLexer extends Lexer {
             ""
     };
 
-    static final short[] DFA14_eot = DFA.unpackEncodedString(DFA14_eotS);
-    static final short[] DFA14_eof = DFA.unpackEncodedString(DFA14_eofS);
-    static final char[] DFA14_min = DFA.unpackEncodedStringToUnsignedChars(DFA14_minS);
-    static final char[] DFA14_max = DFA.unpackEncodedStringToUnsignedChars(DFA14_maxS);
-    static final short[] DFA14_accept = DFA.unpackEncodedString(DFA14_acceptS);
-    static final short[] DFA14_special = DFA.unpackEncodedString(DFA14_specialS);
-    static final short[][] DFA14_transition;
+    static final short[] DFA13_eot = DFA.unpackEncodedString(DFA13_eotS);
+    static final short[] DFA13_eof = DFA.unpackEncodedString(DFA13_eofS);
+    static final char[] DFA13_min = DFA.unpackEncodedStringToUnsignedChars(DFA13_minS);
+    static final char[] DFA13_max = DFA.unpackEncodedStringToUnsignedChars(DFA13_maxS);
+    static final short[] DFA13_accept = DFA.unpackEncodedString(DFA13_acceptS);
+    static final short[] DFA13_special = DFA.unpackEncodedString(DFA13_specialS);
+    static final short[][] DFA13_transition;
 
     static {
-        int numStates = DFA14_transitionS.length;
-        DFA14_transition = new short[numStates][];
+        int numStates = DFA13_transitionS.length;
+        DFA13_transition = new short[numStates][];
         for (int i=0; i<numStates; i++) {
-            DFA14_transition[i] = DFA.unpackEncodedString(DFA14_transitionS[i]);
+            DFA13_transition[i] = DFA.unpackEncodedString(DFA13_transitionS[i]);
         }
     }
 
-    class DFA14 extends DFA {
+    class DFA13 extends DFA {
 
-        public DFA14(BaseRecognizer recognizer) {
+        public DFA13(BaseRecognizer recognizer) {
             this.recognizer = recognizer;
-            this.decisionNumber = 14;
-            this.eot = DFA14_eot;
-            this.eof = DFA14_eof;
-            this.min = DFA14_min;
-            this.max = DFA14_max;
-            this.accept = DFA14_accept;
-            this.special = DFA14_special;
-            this.transition = DFA14_transition;
+            this.decisionNumber = 13;
+            this.eot = DFA13_eot;
+            this.eof = DFA13_eof;
+            this.min = DFA13_min;
+            this.max = DFA13_max;
+            this.accept = DFA13_accept;
+            this.special = DFA13_special;
+            this.transition = DFA13_transition;
         }
         public String getDescription() {
-            return "1:1: Tokens : ( T__13 | T__14 | T__15 | T__16 | T__17 | T__18 | T__19 | T__20 | T__21 | T__22 | T__23 | T__24 | T__25 | T__26 | T__27 | T__28 | T__29 | T__30 | T__31 | T__32 | T__33 | T__34 | T__35 | T__36 | T__37 | T__38 | T__39 | T__40 | T__41 | T__42 | T__43 | T__44 | T__45 | T__46 | T__47 | T__48 | T__49 | T__50 | T__51 | T__52 | T__53 | T__54 | T__55 | RULE_ID | RULE_INT | RULE_NUMBER | RULE_STRING | RULE_ML_COMMENT | RULE_SL_COMMENT | RULE_WS | RULE_NL | RULE_ANY_OTHER );";
+            return "1:1: Tokens : ( T__12 | T__13 | T__14 | T__15 | T__16 | T__17 | T__18 | T__19 | T__20 | T__21 | T__22 | T__23 | T__24 | T__25 | T__26 | T__27 | T__28 | T__29 | T__30 | T__31 | T__32 | T__33 | T__34 | T__35 | T__36 | T__37 | T__38 | T__39 | T__40 | T__41 | T__42 | T__43 | T__44 | T__45 | T__46 | T__47 | T__48 | T__49 | T__50 | T__51 | T__52 | T__53 | T__54 | RULE_ID | RULE_INT | RULE_STRING | RULE_ML_COMMENT | RULE_SL_COMMENT | RULE_WS | RULE_NL | RULE_ANY_OTHER );";
         }
         public int specialStateTransition(int s, IntStream _input) throws NoViableAltException {
             IntStream input = _input;
         	int _s = s;
             switch ( s ) {
                     case 0 : 
-                        int LA14_36 = input.LA(1);
+                        int LA13_0 = input.LA(1);
 
                         s = -1;
-                        if ( ((LA14_36>='\u0000' && LA14_36<='\uFFFF')) ) {s = 88;}
+                        if ( (LA13_0=='*') ) {s = 1;}
 
-                        else s = 40;
+                        else if ( (LA13_0=='v') ) {s = 2;}
+
+                        else if ( (LA13_0=='t') ) {s = 3;}
+
+                        else if ( (LA13_0=='f') ) {s = 4;}
+
+                        else if ( (LA13_0=='p') ) {s = 5;}
+
+                        else if ( (LA13_0=='{') ) {s = 6;}
+
+                        else if ( (LA13_0=='}') ) {s = 7;}
+
+                        else if ( (LA13_0=='i') ) {s = 8;}
+
+                        else if ( (LA13_0=='.') ) {s = 9;}
+
+                        else if ( (LA13_0=='n') ) {s = 10;}
+
+                        else if ( (LA13_0=='=') ) {s = 11;}
+
+                        else if ( (LA13_0=='e') ) {s = 12;}
+
+                        else if ( (LA13_0=='c') ) {s = 13;}
+
+                        else if ( (LA13_0==':') ) {s = 14;}
+
+                        else if ( (LA13_0=='(') ) {s = 15;}
+
+                        else if ( (LA13_0==')') ) {s = 16;}
+
+                        else if ( (LA13_0==',') ) {s = 17;}
+
+                        else if ( (LA13_0=='r') ) {s = 18;}
+
+                        else if ( (LA13_0=='w') ) {s = 19;}
+
+                        else if ( (LA13_0=='+') ) {s = 20;}
+
+                        else if ( (LA13_0=='-') ) {s = 21;}
+
+                        else if ( (LA13_0=='!') ) {s = 22;}
+
+                        else if ( (LA13_0=='<') ) {s = 23;}
+
+                        else if ( (LA13_0=='>') ) {s = 24;}
+
+                        else if ( (LA13_0=='/') ) {s = 25;}
+
+                        else if ( (LA13_0=='%') ) {s = 26;}
+
+                        else if ( (LA13_0=='m') ) {s = 27;}
+
+                        else if ( (LA13_0=='d') ) {s = 28;}
+
+                        else if ( (LA13_0=='b') ) {s = 29;}
+
+                        else if ( (LA13_0=='o') ) {s = 30;}
+
+                        else if ( (LA13_0=='a') ) {s = 31;}
+
+                        else if ( ((LA13_0>='A' && LA13_0<='Z')||LA13_0=='_'||(LA13_0>='g' && LA13_0<='h')||(LA13_0>='j' && LA13_0<='l')||LA13_0=='q'||LA13_0=='s'||LA13_0=='u'||(LA13_0>='x' && LA13_0<='z')) ) {s = 32;}
+
+                        else if ( ((LA13_0>='0' && LA13_0<='9')) ) {s = 33;}
+
+                        else if ( (LA13_0=='\"') ) {s = 34;}
+
+                        else if ( (LA13_0=='\'') ) {s = 35;}
+
+                        else if ( (LA13_0=='\t'||LA13_0==' ') ) {s = 36;}
+
+                        else if ( (LA13_0=='\n') ) {s = 37;}
+
+                        else if ( (LA13_0=='\r') ) {s = 38;}
+
+                        else if ( ((LA13_0>='\u0000' && LA13_0<='\b')||(LA13_0>='\u000B' && LA13_0<='\f')||(LA13_0>='\u000E' && LA13_0<='\u001F')||(LA13_0>='#' && LA13_0<='$')||LA13_0=='&'||LA13_0==';'||(LA13_0>='?' && LA13_0<='@')||(LA13_0>='[' && LA13_0<='^')||LA13_0=='`'||LA13_0=='|'||(LA13_0>='~' && LA13_0<='\uFFFF')) ) {s = 39;}
 
                         if ( s>=0 ) return s;
                         break;
                     case 1 : 
-                        int LA14_0 = input.LA(1);
+                        int LA13_34 = input.LA(1);
 
                         s = -1;
-                        if ( (LA14_0=='v') ) {s = 1;}
+                        if ( ((LA13_34>='\u0000' && LA13_34<='\uFFFF')) ) {s = 86;}
 
-                        else if ( (LA14_0=='=') ) {s = 2;}
-
-                        else if ( (LA14_0=='+') ) {s = 3;}
-
-                        else if ( (LA14_0=='-') ) {s = 4;}
-
-                        else if ( (LA14_0=='!') ) {s = 5;}
-
-                        else if ( (LA14_0=='<') ) {s = 6;}
-
-                        else if ( (LA14_0=='>') ) {s = 7;}
-
-                        else if ( (LA14_0=='*') ) {s = 8;}
-
-                        else if ( (LA14_0=='/') ) {s = 9;}
-
-                        else if ( (LA14_0=='%') ) {s = 10;}
-
-                        else if ( (LA14_0=='m') ) {s = 11;}
-
-                        else if ( (LA14_0=='d') ) {s = 12;}
-
-                        else if ( (LA14_0=='t') ) {s = 13;}
-
-                        else if ( (LA14_0=='f') ) {s = 14;}
-
-                        else if ( (LA14_0=='p') ) {s = 15;}
-
-                        else if ( (LA14_0=='{') ) {s = 16;}
-
-                        else if ( (LA14_0=='}') ) {s = 17;}
-
-                        else if ( (LA14_0=='i') ) {s = 18;}
-
-                        else if ( (LA14_0=='.') ) {s = 19;}
-
-                        else if ( (LA14_0=='n') ) {s = 20;}
-
-                        else if ( (LA14_0=='e') ) {s = 21;}
-
-                        else if ( (LA14_0=='c') ) {s = 22;}
-
-                        else if ( (LA14_0==':') ) {s = 23;}
-
-                        else if ( (LA14_0=='(') ) {s = 24;}
-
-                        else if ( (LA14_0==')') ) {s = 25;}
-
-                        else if ( (LA14_0==',') ) {s = 26;}
-
-                        else if ( (LA14_0=='r') ) {s = 27;}
-
-                        else if ( (LA14_0=='w') ) {s = 28;}
-
-                        else if ( (LA14_0=='b') ) {s = 29;}
-
-                        else if ( (LA14_0=='o') ) {s = 30;}
-
-                        else if ( (LA14_0=='a') ) {s = 31;}
-
-                        else if ( ((LA14_0>='A' && LA14_0<='Z')||LA14_0=='_'||(LA14_0>='g' && LA14_0<='h')||(LA14_0>='j' && LA14_0<='l')||LA14_0=='q'||LA14_0=='s'||LA14_0=='u'||(LA14_0>='x' && LA14_0<='z')) ) {s = 32;}
-
-                        else if ( (LA14_0=='0') ) {s = 33;}
-
-                        else if ( ((LA14_0>='1' && LA14_0<='9')) ) {s = 34;}
-
-                        else if ( (LA14_0=='\"') ) {s = 35;}
-
-                        else if ( (LA14_0=='\'') ) {s = 36;}
-
-                        else if ( (LA14_0=='\t'||LA14_0==' ') ) {s = 37;}
-
-                        else if ( (LA14_0=='\n') ) {s = 38;}
-
-                        else if ( (LA14_0=='\r') ) {s = 39;}
-
-                        else if ( ((LA14_0>='\u0000' && LA14_0<='\b')||(LA14_0>='\u000B' && LA14_0<='\f')||(LA14_0>='\u000E' && LA14_0<='\u001F')||(LA14_0>='#' && LA14_0<='$')||LA14_0=='&'||LA14_0==';'||(LA14_0>='?' && LA14_0<='@')||(LA14_0>='[' && LA14_0<='^')||LA14_0=='`'||LA14_0=='|'||(LA14_0>='~' && LA14_0<='\uFFFF')) ) {s = 40;}
+                        else s = 39;
 
                         if ( s>=0 ) return s;
                         break;
                     case 2 : 
-                        int LA14_35 = input.LA(1);
+                        int LA13_35 = input.LA(1);
 
                         s = -1;
-                        if ( ((LA14_35>='\u0000' && LA14_35<='\uFFFF')) ) {s = 88;}
+                        if ( ((LA13_35>='\u0000' && LA13_35<='\uFFFF')) ) {s = 86;}
 
-                        else s = 40;
+                        else s = 39;
 
                         if ( s>=0 ) return s;
                         break;
             }
             NoViableAltException nvae =
-                new NoViableAltException(getDescription(), 14, _s, input);
+                new NoViableAltException(getDescription(), 13, _s, input);
             error(nvae);
             throw nvae;
         }

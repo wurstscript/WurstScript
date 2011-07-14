@@ -16,7 +16,6 @@ package de.peeeq.pscript.pscript;
  * The following features are supported:
  * <ul>
  *   <li>{@link de.peeeq.pscript.pscript.ExprMember#getLeft <em>Left</em>}</li>
- *   <li>{@link de.peeeq.pscript.pscript.ExprMember#getOp <em>Op</em>}</li>
  *   <li>{@link de.peeeq.pscript.pscript.ExprMember#getRight <em>Right</em>}</li>
  * </ul>
  * </p>
@@ -52,32 +51,6 @@ public interface ExprMember extends Expr
    * @generated
    */
   void setLeft(Expr value);
-
-  /**
-   * Returns the value of the '<em><b>Op</b></em>' attribute.
-   * <!-- begin-user-doc -->
-   * <p>
-   * If the meaning of the '<em>Op</em>' attribute isn't clear,
-   * there really should be more of a description here...
-   * </p>
-   * <!-- end-user-doc -->
-   * @return the value of the '<em>Op</em>' attribute.
-   * @see #setOp(String)
-   * @see de.peeeq.pscript.pscript.PscriptPackage#getExprMember_Op()
-   * @model
-   * @generated
-   */
-  String getOp();
-
-  /**
-   * Sets the value of the '{@link de.peeeq.pscript.pscript.ExprMember#getOp <em>Op</em>}' attribute.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @param value the new value of the '<em>Op</em>' attribute.
-   * @see #getOp()
-   * @generated
-   */
-  void setOp(String value);
 
   /**
    * Returns the value of the '<em><b>Right</b></em>' containment reference.

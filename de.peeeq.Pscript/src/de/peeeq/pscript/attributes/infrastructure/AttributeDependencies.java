@@ -39,7 +39,9 @@ class AttributeOfNode {
 	private Class<? extends AbstractAttribute<? extends EObject, ?>> attr;
 	
 	public AttributeOfNode(EObject node, Class<? extends AbstractAttribute<? extends EObject, ?>> attr) {
-		if (node == null || attr == null) throw new IllegalArgumentException();
+		if (node == null) throw new IllegalArgumentException("node was null");
+		if (attr == null) throw new IllegalArgumentException("attr was null");
+		
 		this.node = node;
 		this.attr = attr;
 	}

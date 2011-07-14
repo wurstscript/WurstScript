@@ -54,30 +54,30 @@ public interface ExprAdditive extends Expr
   void setLeft(Expr value);
 
   /**
-   * Returns the value of the '<em><b>Op</b></em>' attribute.
+   * Returns the value of the '<em><b>Op</b></em>' containment reference.
    * <!-- begin-user-doc -->
    * <p>
-   * If the meaning of the '<em>Op</em>' attribute isn't clear,
+   * If the meaning of the '<em>Op</em>' containment reference isn't clear,
    * there really should be more of a description here...
    * </p>
    * <!-- end-user-doc -->
-   * @return the value of the '<em>Op</em>' attribute.
-   * @see #setOp(String)
+   * @return the value of the '<em>Op</em>' containment reference.
+   * @see #setOp(OpAdditive)
    * @see de.peeeq.pscript.pscript.PscriptPackage#getExprAdditive_Op()
-   * @model
+   * @model containment="true"
    * @generated
    */
-  String getOp();
+  OpAdditive getOp();
 
   /**
-   * Sets the value of the '{@link de.peeeq.pscript.pscript.ExprAdditive#getOp <em>Op</em>}' attribute.
+   * Sets the value of the '{@link de.peeeq.pscript.pscript.ExprAdditive#getOp <em>Op</em>}' containment reference.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @param value the new value of the '<em>Op</em>' attribute.
+   * @param value the new value of the '<em>Op</em>' containment reference.
    * @see #getOp()
    * @generated
    */
-  void setOp(String value);
+  void setOp(OpAdditive value);
 
   /**
    * Returns the value of the '<em><b>Right</b></em>' containment reference.

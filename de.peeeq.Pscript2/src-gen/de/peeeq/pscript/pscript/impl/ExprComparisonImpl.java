@@ -8,6 +8,7 @@ package de.peeeq.pscript.pscript.impl;
 
 import de.peeeq.pscript.pscript.Expr;
 import de.peeeq.pscript.pscript.ExprComparison;
+import de.peeeq.pscript.pscript.OpComparison;
 import de.peeeq.pscript.pscript.PscriptPackage;
 
 import org.eclipse.emf.common.notify.Notification;
@@ -46,24 +47,14 @@ public class ExprComparisonImpl extends ExprImpl implements ExprComparison
   protected Expr left;
 
   /**
-   * The default value of the '{@link #getOp() <em>Op</em>}' attribute.
+   * The cached value of the '{@link #getOp() <em>Op</em>}' containment reference.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @see #getOp()
    * @generated
    * @ordered
    */
-  protected static final String OP_EDEFAULT = null;
-
-  /**
-   * The cached value of the '{@link #getOp() <em>Op</em>}' attribute.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @see #getOp()
-   * @generated
-   * @ordered
-   */
-  protected String op = OP_EDEFAULT;
+  protected OpComparison op;
 
   /**
    * The cached value of the '{@link #getRight() <em>Right</em>}' containment reference.
@@ -149,7 +140,7 @@ public class ExprComparisonImpl extends ExprImpl implements ExprComparison
    * <!-- end-user-doc -->
    * @generated
    */
-  public String getOp()
+  public OpComparison getOp()
   {
     return op;
   }
@@ -159,12 +150,37 @@ public class ExprComparisonImpl extends ExprImpl implements ExprComparison
    * <!-- end-user-doc -->
    * @generated
    */
-  public void setOp(String newOp)
+  public NotificationChain basicSetOp(OpComparison newOp, NotificationChain msgs)
   {
-    String oldOp = op;
+    OpComparison oldOp = op;
     op = newOp;
     if (eNotificationRequired())
-      eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.EXPR_COMPARISON__OP, oldOp, op));
+    {
+      ENotificationImpl notification = new ENotificationImpl(this, Notification.SET, PscriptPackage.EXPR_COMPARISON__OP, oldOp, newOp);
+      if (msgs == null) msgs = notification; else msgs.add(notification);
+    }
+    return msgs;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public void setOp(OpComparison newOp)
+  {
+    if (newOp != op)
+    {
+      NotificationChain msgs = null;
+      if (op != null)
+        msgs = ((InternalEObject)op).eInverseRemove(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.EXPR_COMPARISON__OP, null, msgs);
+      if (newOp != null)
+        msgs = ((InternalEObject)newOp).eInverseAdd(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.EXPR_COMPARISON__OP, null, msgs);
+      msgs = basicSetOp(newOp, msgs);
+      if (msgs != null) msgs.dispatch();
+    }
+    else if (eNotificationRequired())
+      eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.EXPR_COMPARISON__OP, newOp, newOp));
   }
 
   /**
@@ -227,6 +243,8 @@ public class ExprComparisonImpl extends ExprImpl implements ExprComparison
     {
       case PscriptPackage.EXPR_COMPARISON__LEFT:
         return basicSetLeft(null, msgs);
+      case PscriptPackage.EXPR_COMPARISON__OP:
+        return basicSetOp(null, msgs);
       case PscriptPackage.EXPR_COMPARISON__RIGHT:
         return basicSetRight(null, msgs);
     }
@@ -267,7 +285,7 @@ public class ExprComparisonImpl extends ExprImpl implements ExprComparison
         setLeft((Expr)newValue);
         return;
       case PscriptPackage.EXPR_COMPARISON__OP:
-        setOp((String)newValue);
+        setOp((OpComparison)newValue);
         return;
       case PscriptPackage.EXPR_COMPARISON__RIGHT:
         setRight((Expr)newValue);
@@ -290,7 +308,7 @@ public class ExprComparisonImpl extends ExprImpl implements ExprComparison
         setLeft((Expr)null);
         return;
       case PscriptPackage.EXPR_COMPARISON__OP:
-        setOp(OP_EDEFAULT);
+        setOp((OpComparison)null);
         return;
       case PscriptPackage.EXPR_COMPARISON__RIGHT:
         setRight((Expr)null);
@@ -312,28 +330,11 @@ public class ExprComparisonImpl extends ExprImpl implements ExprComparison
       case PscriptPackage.EXPR_COMPARISON__LEFT:
         return left != null;
       case PscriptPackage.EXPR_COMPARISON__OP:
-        return OP_EDEFAULT == null ? op != null : !OP_EDEFAULT.equals(op);
+        return op != null;
       case PscriptPackage.EXPR_COMPARISON__RIGHT:
         return right != null;
     }
     return super.eIsSet(featureID);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  @Override
-  public String toString()
-  {
-    if (eIsProxy()) return super.toString();
-
-    StringBuffer result = new StringBuffer(super.toString());
-    result.append(" (op: ");
-    result.append(op);
-    result.append(')');
-    return result.toString();
   }
 
 } //ExprComparisonImpl

@@ -7,7 +7,7 @@
 package de.peeeq.pscript.pscript.impl;
 
 import de.peeeq.pscript.pscript.ClassDef;
-import de.peeeq.pscript.pscript.NameDef;
+import de.peeeq.pscript.pscript.ClassMember;
 import de.peeeq.pscript.pscript.PscriptPackage;
 
 import java.util.Collection;
@@ -35,7 +35,7 @@ import org.eclipse.emf.ecore.util.InternalEList;
  *
  * @generated
  */
-public class ClassDefImpl extends NameDefImpl implements ClassDef
+public class ClassDefImpl extends TypeDefImpl implements ClassDef
 {
   /**
    * The cached value of the '{@link #getMembers() <em>Members</em>}' containment reference list.
@@ -45,7 +45,7 @@ public class ClassDefImpl extends NameDefImpl implements ClassDef
    * @generated
    * @ordered
    */
-  protected EList<NameDef> members;
+  protected EList<ClassMember> members;
 
   /**
    * <!-- begin-user-doc -->
@@ -73,11 +73,11 @@ public class ClassDefImpl extends NameDefImpl implements ClassDef
    * <!-- end-user-doc -->
    * @generated
    */
-  public EList<NameDef> getMembers()
+  public EList<ClassMember> getMembers()
   {
     if (members == null)
     {
-      members = new EObjectContainmentEList<NameDef>(NameDef.class, this, PscriptPackage.CLASS_DEF__MEMBERS);
+      members = new EObjectContainmentEList<ClassMember>(ClassMember.class, this, PscriptPackage.CLASS_DEF__MEMBERS);
     }
     return members;
   }
@@ -127,7 +127,7 @@ public class ClassDefImpl extends NameDefImpl implements ClassDef
     {
       case PscriptPackage.CLASS_DEF__MEMBERS:
         getMembers().clear();
-        getMembers().addAll((Collection<? extends NameDef>)newValue);
+        getMembers().addAll((Collection<? extends ClassMember>)newValue);
         return;
     }
     super.eSet(featureID, newValue);

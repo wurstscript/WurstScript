@@ -71,8 +71,13 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
       case PscriptPackage.PROGRAM: return createProgram();
       case PscriptPackage.PACKAGE_DECLARATION: return createPackageDeclaration();
       case PscriptPackage.IMPORT: return createImport();
-      case PscriptPackage.NAME_DEF: return createNameDef();
+      case PscriptPackage.ENTITY: return createEntity();
+      case PscriptPackage.INIT_BLOCK: return createInitBlock();
+      case PscriptPackage.TYPE_DEF: return createTypeDef();
+      case PscriptPackage.CLASS_MEMBER: return createClassMember();
+      case PscriptPackage.VAR_DEF: return createVarDef();
       case PscriptPackage.TYPE_EXPR: return createTypeExpr();
+      case PscriptPackage.FUNC_DEF: return createFuncDef();
       case PscriptPackage.STATEMENTS: return createStatements();
       case PscriptPackage.STATEMENT: return createStatement();
       case PscriptPackage.STMT_RETURN: return createStmtReturn();
@@ -80,29 +85,47 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
       case PscriptPackage.STMT_WHILE: return createStmtWhile();
       case PscriptPackage.STMT_EXPR: return createStmtExpr();
       case PscriptPackage.EXPR: return createExpr();
+      case PscriptPackage.OP_ASSIGNMENT: return createOpAssignment();
+      case PscriptPackage.OP_EQUALITY: return createOpEquality();
+      case PscriptPackage.OP_COMPARISON: return createOpComparison();
+      case PscriptPackage.OP_ADDITIVE: return createOpAdditive();
+      case PscriptPackage.OP_MULTIPLICATIVE: return createOpMultiplicative();
       case PscriptPackage.EXPR_LIST: return createExprList();
       case PscriptPackage.NATIVE_TYPE: return createNativeType();
       case PscriptPackage.CLASS_DEF: return createClassDef();
-      case PscriptPackage.VAR_DEF: return createVarDef();
-      case PscriptPackage.FUNC_DEF: return createFuncDef();
       case PscriptPackage.PARAMETER_DEF: return createParameterDef();
       case PscriptPackage.EXPR_ASSIGNMENT: return createExprAssignment();
+      case PscriptPackage.OP_ASSIGN: return createOpAssign();
+      case PscriptPackage.OP_PLUS_ASSIGN: return createOpPlusAssign();
+      case PscriptPackage.OP_MINUS_ASSIGN: return createOpMinusAssign();
       case PscriptPackage.EXPR_OR: return createExprOr();
       case PscriptPackage.EXPR_AND: return createExprAnd();
       case PscriptPackage.EXPR_EQUALITY: return createExprEquality();
+      case PscriptPackage.OP_EQUALS: return createOpEquals();
+      case PscriptPackage.OP_UNEQUALS: return createOpUnequals();
       case PscriptPackage.EXPR_COMPARISON: return createExprComparison();
+      case PscriptPackage.OP_LESS_EQ: return createOpLessEq();
+      case PscriptPackage.OP_LESS: return createOpLess();
+      case PscriptPackage.OP_GREATER_EQ: return createOpGreaterEq();
+      case PscriptPackage.OP_GREATER: return createOpGreater();
       case PscriptPackage.EXPR_ADDITIVE: return createExprAdditive();
+      case PscriptPackage.OP_PLUS: return createOpPlus();
+      case PscriptPackage.OP_MINUS: return createOpMinus();
       case PscriptPackage.EXPR_MULT: return createExprMult();
+      case PscriptPackage.OP_MULT: return createOpMult();
+      case PscriptPackage.OP_DIV_REAL: return createOpDivReal();
+      case PscriptPackage.OP_MOD_REAL: return createOpModReal();
+      case PscriptPackage.OP_MOD_INT: return createOpModInt();
       case PscriptPackage.EXPR_SIGN: return createExprSign();
       case PscriptPackage.EXPR_NOT: return createExprNot();
       case PscriptPackage.EXPR_MEMBER: return createExprMember();
-      case PscriptPackage.EXPR_FUNCTIONCALL: return createExprFunctioncall();
-      case PscriptPackage.EXPR_IDENTIFIER: return createExprIdentifier();
       case PscriptPackage.EXPR_INT_VAL: return createExprIntVal();
       case PscriptPackage.EXPR_NUM_VAL: return createExprNumVal();
       case PscriptPackage.EXPR_STRVAL: return createExprStrval();
       case PscriptPackage.EXPR_BOOL_VAL: return createExprBoolVal();
       case PscriptPackage.EXPR_BUILDIN_FUNCTION: return createExprBuildinFunction();
+      case PscriptPackage.EXPR_FUNCTIONCALL: return createExprFunctioncall();
+      case PscriptPackage.EXPR_IDENTIFIER: return createExprIdentifier();
       default:
         throw new IllegalArgumentException("The class '" + eClass.getName() + "' is not a valid classifier");
     }
@@ -146,10 +169,54 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
    * <!-- end-user-doc -->
    * @generated
    */
-  public NameDef createNameDef()
+  public Entity createEntity()
   {
-    NameDefImpl nameDef = new NameDefImpl();
-    return nameDef;
+    EntityImpl entity = new EntityImpl();
+    return entity;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public InitBlock createInitBlock()
+  {
+    InitBlockImpl initBlock = new InitBlockImpl();
+    return initBlock;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public TypeDef createTypeDef()
+  {
+    TypeDefImpl typeDef = new TypeDefImpl();
+    return typeDef;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public ClassMember createClassMember()
+  {
+    ClassMemberImpl classMember = new ClassMemberImpl();
+    return classMember;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public VarDef createVarDef()
+  {
+    VarDefImpl varDef = new VarDefImpl();
+    return varDef;
   }
 
   /**
@@ -161,6 +228,17 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
   {
     TypeExprImpl typeExpr = new TypeExprImpl();
     return typeExpr;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public FuncDef createFuncDef()
+  {
+    FuncDefImpl funcDef = new FuncDefImpl();
+    return funcDef;
   }
 
   /**
@@ -245,6 +323,61 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
    * <!-- end-user-doc -->
    * @generated
    */
+  public OpAssignment createOpAssignment()
+  {
+    OpAssignmentImpl opAssignment = new OpAssignmentImpl();
+    return opAssignment;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public OpEquality createOpEquality()
+  {
+    OpEqualityImpl opEquality = new OpEqualityImpl();
+    return opEquality;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public OpComparison createOpComparison()
+  {
+    OpComparisonImpl opComparison = new OpComparisonImpl();
+    return opComparison;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public OpAdditive createOpAdditive()
+  {
+    OpAdditiveImpl opAdditive = new OpAdditiveImpl();
+    return opAdditive;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public OpMultiplicative createOpMultiplicative()
+  {
+    OpMultiplicativeImpl opMultiplicative = new OpMultiplicativeImpl();
+    return opMultiplicative;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
   public ExprList createExprList()
   {
     ExprListImpl exprList = new ExprListImpl();
@@ -278,28 +411,6 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
    * <!-- end-user-doc -->
    * @generated
    */
-  public VarDef createVarDef()
-  {
-    VarDefImpl varDef = new VarDefImpl();
-    return varDef;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public FuncDef createFuncDef()
-  {
-    FuncDefImpl funcDef = new FuncDefImpl();
-    return funcDef;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
   public ParameterDef createParameterDef()
   {
     ParameterDefImpl parameterDef = new ParameterDefImpl();
@@ -315,6 +426,39 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
   {
     ExprAssignmentImpl exprAssignment = new ExprAssignmentImpl();
     return exprAssignment;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public OpAssign createOpAssign()
+  {
+    OpAssignImpl opAssign = new OpAssignImpl();
+    return opAssign;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public OpPlusAssign createOpPlusAssign()
+  {
+    OpPlusAssignImpl opPlusAssign = new OpPlusAssignImpl();
+    return opPlusAssign;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public OpMinusAssign createOpMinusAssign()
+  {
+    OpMinusAssignImpl opMinusAssign = new OpMinusAssignImpl();
+    return opMinusAssign;
   }
 
   /**
@@ -355,10 +499,76 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
    * <!-- end-user-doc -->
    * @generated
    */
+  public OpEquals createOpEquals()
+  {
+    OpEqualsImpl opEquals = new OpEqualsImpl();
+    return opEquals;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public OpUnequals createOpUnequals()
+  {
+    OpUnequalsImpl opUnequals = new OpUnequalsImpl();
+    return opUnequals;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
   public ExprComparison createExprComparison()
   {
     ExprComparisonImpl exprComparison = new ExprComparisonImpl();
     return exprComparison;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public OpLessEq createOpLessEq()
+  {
+    OpLessEqImpl opLessEq = new OpLessEqImpl();
+    return opLessEq;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public OpLess createOpLess()
+  {
+    OpLessImpl opLess = new OpLessImpl();
+    return opLess;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public OpGreaterEq createOpGreaterEq()
+  {
+    OpGreaterEqImpl opGreaterEq = new OpGreaterEqImpl();
+    return opGreaterEq;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public OpGreater createOpGreater()
+  {
+    OpGreaterImpl opGreater = new OpGreaterImpl();
+    return opGreater;
   }
 
   /**
@@ -377,10 +587,76 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
    * <!-- end-user-doc -->
    * @generated
    */
+  public OpPlus createOpPlus()
+  {
+    OpPlusImpl opPlus = new OpPlusImpl();
+    return opPlus;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public OpMinus createOpMinus()
+  {
+    OpMinusImpl opMinus = new OpMinusImpl();
+    return opMinus;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
   public ExprMult createExprMult()
   {
     ExprMultImpl exprMult = new ExprMultImpl();
     return exprMult;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public OpMult createOpMult()
+  {
+    OpMultImpl opMult = new OpMultImpl();
+    return opMult;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public OpDivReal createOpDivReal()
+  {
+    OpDivRealImpl opDivReal = new OpDivRealImpl();
+    return opDivReal;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public OpModReal createOpModReal()
+  {
+    OpModRealImpl opModReal = new OpModRealImpl();
+    return opModReal;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public OpModInt createOpModInt()
+  {
+    OpModIntImpl opModInt = new OpModIntImpl();
+    return opModInt;
   }
 
   /**
@@ -414,28 +690,6 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
   {
     ExprMemberImpl exprMember = new ExprMemberImpl();
     return exprMember;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public ExprFunctioncall createExprFunctioncall()
-  {
-    ExprFunctioncallImpl exprFunctioncall = new ExprFunctioncallImpl();
-    return exprFunctioncall;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public ExprIdentifier createExprIdentifier()
-  {
-    ExprIdentifierImpl exprIdentifier = new ExprIdentifierImpl();
-    return exprIdentifier;
   }
 
   /**
@@ -491,6 +745,28 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
   {
     ExprBuildinFunctionImpl exprBuildinFunction = new ExprBuildinFunctionImpl();
     return exprBuildinFunction;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public ExprFunctioncall createExprFunctioncall()
+  {
+    ExprFunctioncallImpl exprFunctioncall = new ExprFunctioncallImpl();
+    return exprFunctioncall;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public ExprIdentifier createExprIdentifier()
+  {
+    ExprIdentifierImpl exprIdentifier = new ExprIdentifierImpl();
+    return exprIdentifier;
   }
 
   /**

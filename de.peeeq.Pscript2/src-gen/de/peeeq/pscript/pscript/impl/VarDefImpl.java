@@ -34,7 +34,7 @@ import org.eclipse.emf.ecore.impl.ENotificationImpl;
  *
  * @generated
  */
-public class VarDefImpl extends NameDefImpl implements VarDef
+public class VarDefImpl extends EntityImpl implements VarDef
 {
   /**
    * The default value of the '{@link #isConstant() <em>Constant</em>}' attribute.

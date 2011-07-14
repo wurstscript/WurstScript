@@ -8,6 +8,7 @@ package de.peeeq.pscript.pscript.impl;
 
 import de.peeeq.pscript.pscript.Expr;
 import de.peeeq.pscript.pscript.ExprAdditive;
+import de.peeeq.pscript.pscript.OpAdditive;
 import de.peeeq.pscript.pscript.PscriptPackage;
 
 import org.eclipse.emf.common.notify.Notification;
@@ -46,24 +47,14 @@ public class ExprAdditiveImpl extends ExprImpl implements ExprAdditive
   protected Expr left;
 
   /**
-   * The default value of the '{@link #getOp() <em>Op</em>}' attribute.
+   * The cached value of the '{@link #getOp() <em>Op</em>}' containment reference.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @see #getOp()
    * @generated
    * @ordered
    */
-  protected static final String OP_EDEFAULT = null;
-
-  /**
-   * The cached value of the '{@link #getOp() <em>Op</em>}' attribute.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @see #getOp()
-   * @generated
-   * @ordered
-   */
-  protected String op = OP_EDEFAULT;
+  protected OpAdditive op;
 
   /**
    * The cached value of the '{@link #getRight() <em>Right</em>}' containment reference.
@@ -149,7 +140,7 @@ public class ExprAdditiveImpl extends ExprImpl implements ExprAdditive
    * <!-- end-user-doc -->
    * @generated
    */
-  public String getOp()
+  public OpAdditive getOp()
   {
     return op;
   }
@@ -159,12 +150,37 @@ public class ExprAdditiveImpl extends ExprImpl implements ExprAdditive
    * <!-- end-user-doc -->
    * @generated
    */
-  public void setOp(String newOp)
+  public NotificationChain basicSetOp(OpAdditive newOp, NotificationChain msgs)
   {
-    String oldOp = op;
+    OpAdditive oldOp = op;
     op = newOp;
     if (eNotificationRequired())
-      eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.EXPR_ADDITIVE__OP, oldOp, op));
+    {
+      ENotificationImpl notification = new ENotificationImpl(this, Notification.SET, PscriptPackage.EXPR_ADDITIVE__OP, oldOp, newOp);
+      if (msgs == null) msgs = notification; else msgs.add(notification);
+    }
+    return msgs;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public void setOp(OpAdditive newOp)
+  {
+    if (newOp != op)
+    {
+      NotificationChain msgs = null;
+      if (op != null)
+        msgs = ((InternalEObject)op).eInverseRemove(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.EXPR_ADDITIVE__OP, null, msgs);
+      if (newOp != null)
+        msgs = ((InternalEObject)newOp).eInverseAdd(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.EXPR_ADDITIVE__OP, null, msgs);
+      msgs = basicSetOp(newOp, msgs);
+      if (msgs != null) msgs.dispatch();
+    }
+    else if (eNotificationRequired())
+      eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.EXPR_ADDITIVE__OP, newOp, newOp));
   }
 
   /**
@@ -227,6 +243,8 @@ public class ExprAdditiveImpl extends ExprImpl implements ExprAdditive
     {
       case PscriptPackage.EXPR_ADDITIVE__LEFT:
         return basicSetLeft(null, msgs);
+      case PscriptPackage.EXPR_ADDITIVE__OP:
+        return basicSetOp(null, msgs);
       case PscriptPackage.EXPR_ADDITIVE__RIGHT:
         return basicSetRight(null, msgs);
     }
@@ -267,7 +285,7 @@ public class ExprAdditiveImpl extends ExprImpl implements ExprAdditive
         setLeft((Expr)newValue);
         return;
       case PscriptPackage.EXPR_ADDITIVE__OP:
-        setOp((String)newValue);
+        setOp((OpAdditive)newValue);
         return;
       case PscriptPackage.EXPR_ADDITIVE__RIGHT:
         setRight((Expr)newValue);
@@ -290,7 +308,7 @@ public class ExprAdditiveImpl extends ExprImpl implements ExprAdditive
         setLeft((Expr)null);
         return;
       case PscriptPackage.EXPR_ADDITIVE__OP:
-        setOp(OP_EDEFAULT);
+        setOp((OpAdditive)null);
         return;
       case PscriptPackage.EXPR_ADDITIVE__RIGHT:
         setRight((Expr)null);
@@ -312,28 +330,11 @@ public class ExprAdditiveImpl extends ExprImpl implements ExprAdditive
       case PscriptPackage.EXPR_ADDITIVE__LEFT:
         return left != null;
       case PscriptPackage.EXPR_ADDITIVE__OP:
-        return OP_EDEFAULT == null ? op != null : !OP_EDEFAULT.equals(op);
+        return op != null;
       case PscriptPackage.EXPR_ADDITIVE__RIGHT:
         return right != null;
     }
     return super.eIsSet(featureID);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  @Override
-  public String toString()
-  {
-    if (eIsProxy()) return super.toString();
-
-    StringBuffer result = new StringBuffer(super.toString());
-    result.append(" (op: ");
-    result.append(op);
-    result.append(')');
-    return result.toString();
   }
 
 } //ExprAdditiveImpl

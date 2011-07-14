@@ -6,8 +6,8 @@
  */
 package de.peeeq.pscript.pscript.impl;
 
+import de.peeeq.pscript.pscript.Entity;
 import de.peeeq.pscript.pscript.Import;
-import de.peeeq.pscript.pscript.NameDef;
 import de.peeeq.pscript.pscript.PackageDeclaration;
 import de.peeeq.pscript.pscript.PscriptPackage;
 
@@ -82,7 +82,7 @@ public class PackageDeclarationImpl extends MinimalEObjectImpl.Container impleme
    * @generated
    * @ordered
    */
-  protected EList<NameDef> elements;
+  protected EList<Entity> elements;
 
   /**
    * <!-- begin-user-doc -->
@@ -147,11 +147,11 @@ public class PackageDeclarationImpl extends MinimalEObjectImpl.Container impleme
    * <!-- end-user-doc -->
    * @generated
    */
-  public EList<NameDef> getElements()
+  public EList<Entity> getElements()
   {
     if (elements == null)
     {
-      elements = new EObjectContainmentEList<NameDef>(NameDef.class, this, PscriptPackage.PACKAGE_DECLARATION__ELEMENTS);
+      elements = new EObjectContainmentEList<Entity>(Entity.class, this, PscriptPackage.PACKAGE_DECLARATION__ELEMENTS);
     }
     return elements;
   }
@@ -214,7 +214,7 @@ public class PackageDeclarationImpl extends MinimalEObjectImpl.Container impleme
         return;
       case PscriptPackage.PACKAGE_DECLARATION__ELEMENTS:
         getElements().clear();
-        getElements().addAll((Collection<? extends NameDef>)newValue);
+        getElements().addAll((Collection<? extends Entity>)newValue);
         return;
     }
     super.eSet(featureID, newValue);

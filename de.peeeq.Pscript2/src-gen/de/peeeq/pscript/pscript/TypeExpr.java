@@ -35,12 +35,12 @@ public interface TypeExpr extends EObject
    * </p>
    * <!-- end-user-doc -->
    * @return the value of the '<em>Name</em>' reference.
-   * @see #setName(NameDef)
+   * @see #setName(TypeDef)
    * @see de.peeeq.pscript.pscript.PscriptPackage#getTypeExpr_Name()
    * @model
    * @generated
    */
-  NameDef getName();
+  TypeDef getName();
 
   /**
    * Sets the value of the '{@link de.peeeq.pscript.pscript.TypeExpr#getName <em>Name</em>}' reference.
@@ -50,6 +50,6 @@ public interface TypeExpr extends EObject
    * @see #getName()
    * @generated
    */
-  void setName(NameDef value);
+  void setName(TypeDef value);
 
 } // TypeExpr

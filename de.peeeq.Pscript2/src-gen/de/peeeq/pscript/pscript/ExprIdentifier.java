@@ -34,12 +34,12 @@ public interface ExprIdentifier extends Expr
    * </p>
    * <!-- end-user-doc -->
    * @return the value of the '<em>Name Val</em>' reference.
-   * @see #setNameVal(NameDef)
+   * @see #setNameVal(VarDef)
    * @see de.peeeq.pscript.pscript.PscriptPackage#getExprIdentifier_NameVal()
    * @model
    * @generated
    */
-  NameDef getNameVal();
+  VarDef getNameVal();
 
   /**
    * Sets the value of the '{@link de.peeeq.pscript.pscript.ExprIdentifier#getNameVal <em>Name Val</em>}' reference.
@@ -49,6 +49,6 @@ public interface ExprIdentifier extends Expr
    * @see #getNameVal()
    * @generated
    */
-  void setNameVal(NameDef value);
+  void setNameVal(VarDef value);
 
 } // ExprIdentifier

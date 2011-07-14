@@ -7,6 +7,8 @@
 package de.peeeq.pscript.pscript.impl;
 
 import de.peeeq.pscript.pscript.ClassDef;
+import de.peeeq.pscript.pscript.ClassMember;
+import de.peeeq.pscript.pscript.Entity;
 import de.peeeq.pscript.pscript.Expr;
 import de.peeeq.pscript.pscript.ExprAdditive;
 import de.peeeq.pscript.pscript.ExprAnd;
@@ -28,8 +30,28 @@ import de.peeeq.pscript.pscript.ExprSign;
 import de.peeeq.pscript.pscript.ExprStrval;
 import de.peeeq.pscript.pscript.FuncDef;
 import de.peeeq.pscript.pscript.Import;
-import de.peeeq.pscript.pscript.NameDef;
+import de.peeeq.pscript.pscript.InitBlock;
 import de.peeeq.pscript.pscript.NativeType;
+import de.peeeq.pscript.pscript.OpAdditive;
+import de.peeeq.pscript.pscript.OpAssign;
+import de.peeeq.pscript.pscript.OpAssignment;
+import de.peeeq.pscript.pscript.OpComparison;
+import de.peeeq.pscript.pscript.OpDivReal;
+import de.peeeq.pscript.pscript.OpEquality;
+import de.peeeq.pscript.pscript.OpEquals;
+import de.peeeq.pscript.pscript.OpGreater;
+import de.peeeq.pscript.pscript.OpGreaterEq;
+import de.peeeq.pscript.pscript.OpLess;
+import de.peeeq.pscript.pscript.OpLessEq;
+import de.peeeq.pscript.pscript.OpMinus;
+import de.peeeq.pscript.pscript.OpMinusAssign;
+import de.peeeq.pscript.pscript.OpModInt;
+import de.peeeq.pscript.pscript.OpModReal;
+import de.peeeq.pscript.pscript.OpMult;
+import de.peeeq.pscript.pscript.OpMultiplicative;
+import de.peeeq.pscript.pscript.OpPlus;
+import de.peeeq.pscript.pscript.OpPlusAssign;
+import de.peeeq.pscript.pscript.OpUnequals;
 import de.peeeq.pscript.pscript.PackageDeclaration;
 import de.peeeq.pscript.pscript.ParameterDef;
 import de.peeeq.pscript.pscript.Program;
@@ -41,6 +63,7 @@ import de.peeeq.pscript.pscript.StmtExpr;
 import de.peeeq.pscript.pscript.StmtIf;
 import de.peeeq.pscript.pscript.StmtReturn;
 import de.peeeq.pscript.pscript.StmtWhile;
+import de.peeeq.pscript.pscript.TypeDef;
 import de.peeeq.pscript.pscript.TypeExpr;
 import de.peeeq.pscript.pscript.VarDef;
 
@@ -85,7 +108,35 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
-  private EClass nameDefEClass = null;
+  private EClass entityEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass initBlockEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass typeDefEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass classMemberEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass varDefEClass = null;
 
   /**
    * <!-- begin-user-doc -->
@@ -93,6 +144,13 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * @generated
    */
   private EClass typeExprEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass funcDefEClass = null;
 
   /**
    * <!-- begin-user-doc -->
@@ -148,6 +206,41 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
+  private EClass opAssignmentEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass opEqualityEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass opComparisonEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass opAdditiveEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass opMultiplicativeEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
   private EClass exprListEClass = null;
 
   /**
@@ -169,20 +262,6 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
-  private EClass varDefEClass = null;
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  private EClass funcDefEClass = null;
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
   private EClass parameterDefEClass = null;
 
   /**
@@ -191,6 +270,27 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * @generated
    */
   private EClass exprAssignmentEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass opAssignEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass opPlusAssignEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass opMinusAssignEClass = null;
 
   /**
    * <!-- begin-user-doc -->
@@ -218,7 +318,49 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
+  private EClass opEqualsEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass opUnequalsEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
   private EClass exprComparisonEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass opLessEqEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass opLessEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass opGreaterEqEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass opGreaterEClass = null;
 
   /**
    * <!-- begin-user-doc -->
@@ -232,7 +374,49 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
+  private EClass opPlusEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass opMinusEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
   private EClass exprMultEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass opMultEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass opDivRealEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass opModRealEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass opModIntEClass = null;
 
   /**
    * <!-- begin-user-doc -->
@@ -254,20 +438,6 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * @generated
    */
   private EClass exprMemberEClass = null;
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  private EClass exprFunctioncallEClass = null;
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  private EClass exprIdentifierEClass = null;
 
   /**
    * <!-- begin-user-doc -->
@@ -303,6 +473,20 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * @generated
    */
   private EClass exprBuildinFunctionEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass exprFunctioncallEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass exprIdentifierEClass = null;
 
   /**
    * Creates an instance of the model <b>Package</b>, registered with
@@ -452,9 +636,9 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
-  public EClass getNameDef()
+  public EClass getEntity()
   {
-    return nameDefEClass;
+    return entityEClass;
   }
 
   /**
@@ -462,9 +646,89 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
-  public EAttribute getNameDef_Name()
+  public EAttribute getEntity_Name()
   {
-    return (EAttribute)nameDefEClass.getEStructuralFeatures().get(0);
+    return (EAttribute)entityEClass.getEStructuralFeatures().get(0);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getInitBlock()
+  {
+    return initBlockEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EReference getInitBlock_Body()
+  {
+    return (EReference)initBlockEClass.getEStructuralFeatures().get(0);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getTypeDef()
+  {
+    return typeDefEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getClassMember()
+  {
+    return classMemberEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getVarDef()
+  {
+    return varDefEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EAttribute getVarDef_Constant()
+  {
+    return (EAttribute)varDefEClass.getEStructuralFeatures().get(0);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EReference getVarDef_Type()
+  {
+    return (EReference)varDefEClass.getEStructuralFeatures().get(1);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EReference getVarDef_E()
+  {
+    return (EReference)varDefEClass.getEStructuralFeatures().get(2);
   }
 
   /**
@@ -485,6 +749,46 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
   public EReference getTypeExpr_Name()
   {
     return (EReference)typeExprEClass.getEStructuralFeatures().get(0);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getFuncDef()
+  {
+    return funcDefEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EReference getFuncDef_Parameters()
+  {
+    return (EReference)funcDefEClass.getEStructuralFeatures().get(0);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EReference getFuncDef_Type()
+  {
+    return (EReference)funcDefEClass.getEStructuralFeatures().get(1);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EReference getFuncDef_Body()
+  {
+    return (EReference)funcDefEClass.getEStructuralFeatures().get(2);
   }
 
   /**
@@ -642,6 +946,56 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
+  public EClass getOpAssignment()
+  {
+    return opAssignmentEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getOpEquality()
+  {
+    return opEqualityEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getOpComparison()
+  {
+    return opComparisonEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getOpAdditive()
+  {
+    return opAdditiveEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getOpMultiplicative()
+  {
+    return opMultiplicativeEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
   public EClass getExprList()
   {
     return exprListEClass;
@@ -682,9 +1036,9 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
-  public EAttribute getNativeType_SuperName()
+  public EReference getNativeType_SuperName()
   {
-    return (EAttribute)nativeTypeEClass.getEStructuralFeatures().get(1);
+    return (EReference)nativeTypeEClass.getEStructuralFeatures().get(1);
   }
 
   /**
@@ -712,99 +1066,9 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
-  public EClass getVarDef()
-  {
-    return varDefEClass;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public EAttribute getVarDef_Constant()
-  {
-    return (EAttribute)varDefEClass.getEStructuralFeatures().get(0);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public EReference getVarDef_Type()
-  {
-    return (EReference)varDefEClass.getEStructuralFeatures().get(1);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public EReference getVarDef_E()
-  {
-    return (EReference)varDefEClass.getEStructuralFeatures().get(2);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public EClass getFuncDef()
-  {
-    return funcDefEClass;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public EReference getFuncDef_Parameters()
-  {
-    return (EReference)funcDefEClass.getEStructuralFeatures().get(0);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public EReference getFuncDef_Type()
-  {
-    return (EReference)funcDefEClass.getEStructuralFeatures().get(1);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public EReference getFuncDef_Body()
-  {
-    return (EReference)funcDefEClass.getEStructuralFeatures().get(2);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
   public EClass getParameterDef()
   {
     return parameterDefEClass;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public EReference getParameterDef_Type()
-  {
-    return (EReference)parameterDefEClass.getEStructuralFeatures().get(0);
   }
 
   /**
@@ -832,9 +1096,9 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
-  public EAttribute getExprAssignment_Op()
+  public EReference getExprAssignment_Op()
   {
-    return (EAttribute)exprAssignmentEClass.getEStructuralFeatures().get(1);
+    return (EReference)exprAssignmentEClass.getEStructuralFeatures().get(1);
   }
 
   /**
@@ -845,6 +1109,36 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
   public EReference getExprAssignment_Right()
   {
     return (EReference)exprAssignmentEClass.getEStructuralFeatures().get(2);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getOpAssign()
+  {
+    return opAssignEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getOpPlusAssign()
+  {
+    return opPlusAssignEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getOpMinusAssign()
+  {
+    return opMinusAssignEClass;
   }
 
   /**
@@ -952,9 +1246,9 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
-  public EAttribute getExprEquality_Op()
+  public EReference getExprEquality_Op()
   {
-    return (EAttribute)exprEqualityEClass.getEStructuralFeatures().get(1);
+    return (EReference)exprEqualityEClass.getEStructuralFeatures().get(1);
   }
 
   /**
@@ -965,6 +1259,26 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
   public EReference getExprEquality_Right()
   {
     return (EReference)exprEqualityEClass.getEStructuralFeatures().get(2);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getOpEquals()
+  {
+    return opEqualsEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getOpUnequals()
+  {
+    return opUnequalsEClass;
   }
 
   /**
@@ -992,9 +1306,9 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
-  public EAttribute getExprComparison_Op()
+  public EReference getExprComparison_Op()
   {
-    return (EAttribute)exprComparisonEClass.getEStructuralFeatures().get(1);
+    return (EReference)exprComparisonEClass.getEStructuralFeatures().get(1);
   }
 
   /**
@@ -1005,6 +1319,46 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
   public EReference getExprComparison_Right()
   {
     return (EReference)exprComparisonEClass.getEStructuralFeatures().get(2);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getOpLessEq()
+  {
+    return opLessEqEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getOpLess()
+  {
+    return opLessEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getOpGreaterEq()
+  {
+    return opGreaterEqEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getOpGreater()
+  {
+    return opGreaterEClass;
   }
 
   /**
@@ -1032,9 +1386,9 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
-  public EAttribute getExprAdditive_Op()
+  public EReference getExprAdditive_Op()
   {
-    return (EAttribute)exprAdditiveEClass.getEStructuralFeatures().get(1);
+    return (EReference)exprAdditiveEClass.getEStructuralFeatures().get(1);
   }
 
   /**
@@ -1045,6 +1399,26 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
   public EReference getExprAdditive_Right()
   {
     return (EReference)exprAdditiveEClass.getEStructuralFeatures().get(2);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getOpPlus()
+  {
+    return opPlusEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getOpMinus()
+  {
+    return opMinusEClass;
   }
 
   /**
@@ -1072,9 +1446,9 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
-  public EAttribute getExprMult_Op()
+  public EReference getExprMult_Op()
   {
-    return (EAttribute)exprMultEClass.getEStructuralFeatures().get(1);
+    return (EReference)exprMultEClass.getEStructuralFeatures().get(1);
   }
 
   /**
@@ -1092,6 +1466,46 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
+  public EClass getOpMult()
+  {
+    return opMultEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getOpDivReal()
+  {
+    return opDivRealEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getOpModReal()
+  {
+    return opModRealEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getOpModInt()
+  {
+    return opModIntEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
   public EClass getExprSign()
   {
     return exprSignEClass;
@@ -1102,9 +1516,9 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
-  public EAttribute getExprSign_Op()
+  public EReference getExprSign_Op()
   {
-    return (EAttribute)exprSignEClass.getEStructuralFeatures().get(0);
+    return (EReference)exprSignEClass.getEStructuralFeatures().get(0);
   }
 
   /**
@@ -1132,19 +1546,9 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
-  public EAttribute getExprNot_Op()
-  {
-    return (EAttribute)exprNotEClass.getEStructuralFeatures().get(0);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
   public EReference getExprNot_Right()
   {
-    return (EReference)exprNotEClass.getEStructuralFeatures().get(1);
+    return (EReference)exprNotEClass.getEStructuralFeatures().get(0);
   }
 
   /**
@@ -1172,69 +1576,9 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
-  public EAttribute getExprMember_Op()
-  {
-    return (EAttribute)exprMemberEClass.getEStructuralFeatures().get(1);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
   public EReference getExprMember_Right()
   {
-    return (EReference)exprMemberEClass.getEStructuralFeatures().get(2);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public EClass getExprFunctioncall()
-  {
-    return exprFunctioncallEClass;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public EReference getExprFunctioncall_NameVal()
-  {
-    return (EReference)exprFunctioncallEClass.getEStructuralFeatures().get(0);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public EReference getExprFunctioncall_Parameters()
-  {
-    return (EReference)exprFunctioncallEClass.getEStructuralFeatures().get(1);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public EClass getExprIdentifier()
-  {
-    return exprIdentifierEClass;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public EReference getExprIdentifier_NameVal()
-  {
-    return (EReference)exprIdentifierEClass.getEStructuralFeatures().get(0);
+    return (EReference)exprMemberEClass.getEStructuralFeatures().get(1);
   }
 
   /**
@@ -1352,6 +1696,56 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
+  public EClass getExprFunctioncall()
+  {
+    return exprFunctioncallEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EReference getExprFunctioncall_NameVal()
+  {
+    return (EReference)exprFunctioncallEClass.getEStructuralFeatures().get(0);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EReference getExprFunctioncall_Parameters()
+  {
+    return (EReference)exprFunctioncallEClass.getEStructuralFeatures().get(1);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getExprIdentifier()
+  {
+    return exprIdentifierEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EReference getExprIdentifier_NameVal()
+  {
+    return (EReference)exprIdentifierEClass.getEStructuralFeatures().get(0);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
   public PscriptFactory getPscriptFactory()
   {
     return (PscriptFactory)getEFactoryInstance();
@@ -1388,11 +1782,28 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
     importEClass = createEClass(IMPORT);
     createEAttribute(importEClass, IMPORT__IMPORTED_NAMESPACE);
 
-    nameDefEClass = createEClass(NAME_DEF);
-    createEAttribute(nameDefEClass, NAME_DEF__NAME);
+    entityEClass = createEClass(ENTITY);
+    createEAttribute(entityEClass, ENTITY__NAME);
+
+    initBlockEClass = createEClass(INIT_BLOCK);
+    createEReference(initBlockEClass, INIT_BLOCK__BODY);
+
+    typeDefEClass = createEClass(TYPE_DEF);
+
+    classMemberEClass = createEClass(CLASS_MEMBER);
+
+    varDefEClass = createEClass(VAR_DEF);
+    createEAttribute(varDefEClass, VAR_DEF__CONSTANT);
+    createEReference(varDefEClass, VAR_DEF__TYPE);
+    createEReference(varDefEClass, VAR_DEF__E);
 
     typeExprEClass = createEClass(TYPE_EXPR);
     createEReference(typeExprEClass, TYPE_EXPR__NAME);
+
+    funcDefEClass = createEClass(FUNC_DEF);
+    createEReference(funcDefEClass, FUNC_DEF__PARAMETERS);
+    createEReference(funcDefEClass, FUNC_DEF__TYPE);
+    createEReference(funcDefEClass, FUNC_DEF__BODY);
 
     statementsEClass = createEClass(STATEMENTS);
     createEReference(statementsEClass, STATEMENTS__STATEMENTS);
@@ -1416,33 +1827,38 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
 
     exprEClass = createEClass(EXPR);
 
+    opAssignmentEClass = createEClass(OP_ASSIGNMENT);
+
+    opEqualityEClass = createEClass(OP_EQUALITY);
+
+    opComparisonEClass = createEClass(OP_COMPARISON);
+
+    opAdditiveEClass = createEClass(OP_ADDITIVE);
+
+    opMultiplicativeEClass = createEClass(OP_MULTIPLICATIVE);
+
     exprListEClass = createEClass(EXPR_LIST);
     createEReference(exprListEClass, EXPR_LIST__PARAMS);
 
     nativeTypeEClass = createEClass(NATIVE_TYPE);
     createEAttribute(nativeTypeEClass, NATIVE_TYPE__ORIG_NAME);
-    createEAttribute(nativeTypeEClass, NATIVE_TYPE__SUPER_NAME);
+    createEReference(nativeTypeEClass, NATIVE_TYPE__SUPER_NAME);
 
     classDefEClass = createEClass(CLASS_DEF);
     createEReference(classDefEClass, CLASS_DEF__MEMBERS);
 
-    varDefEClass = createEClass(VAR_DEF);
-    createEAttribute(varDefEClass, VAR_DEF__CONSTANT);
-    createEReference(varDefEClass, VAR_DEF__TYPE);
-    createEReference(varDefEClass, VAR_DEF__E);
-
-    funcDefEClass = createEClass(FUNC_DEF);
-    createEReference(funcDefEClass, FUNC_DEF__PARAMETERS);
-    createEReference(funcDefEClass, FUNC_DEF__TYPE);
-    createEReference(funcDefEClass, FUNC_DEF__BODY);
-
     parameterDefEClass = createEClass(PARAMETER_DEF);
-    createEReference(parameterDefEClass, PARAMETER_DEF__TYPE);
 
     exprAssignmentEClass = createEClass(EXPR_ASSIGNMENT);
     createEReference(exprAssignmentEClass, EXPR_ASSIGNMENT__LEFT);
-    createEAttribute(exprAssignmentEClass, EXPR_ASSIGNMENT__OP);
+    createEReference(exprAssignmentEClass, EXPR_ASSIGNMENT__OP);
     createEReference(exprAssignmentEClass, EXPR_ASSIGNMENT__RIGHT);
+
+    opAssignEClass = createEClass(OP_ASSIGN);
+
+    opPlusAssignEClass = createEClass(OP_PLUS_ASSIGN);
+
+    opMinusAssignEClass = createEClass(OP_MINUS_ASSIGN);
 
     exprOrEClass = createEClass(EXPR_OR);
     createEReference(exprOrEClass, EXPR_OR__LEFT);
@@ -1456,43 +1872,58 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
 
     exprEqualityEClass = createEClass(EXPR_EQUALITY);
     createEReference(exprEqualityEClass, EXPR_EQUALITY__LEFT);
-    createEAttribute(exprEqualityEClass, EXPR_EQUALITY__OP);
+    createEReference(exprEqualityEClass, EXPR_EQUALITY__OP);
     createEReference(exprEqualityEClass, EXPR_EQUALITY__RIGHT);
+
+    opEqualsEClass = createEClass(OP_EQUALS);
+
+    opUnequalsEClass = createEClass(OP_UNEQUALS);
 
     exprComparisonEClass = createEClass(EXPR_COMPARISON);
     createEReference(exprComparisonEClass, EXPR_COMPARISON__LEFT);
-    createEAttribute(exprComparisonEClass, EXPR_COMPARISON__OP);
+    createEReference(exprComparisonEClass, EXPR_COMPARISON__OP);
     createEReference(exprComparisonEClass, EXPR_COMPARISON__RIGHT);
+
+    opLessEqEClass = createEClass(OP_LESS_EQ);
+
+    opLessEClass = createEClass(OP_LESS);
+
+    opGreaterEqEClass = createEClass(OP_GREATER_EQ);
+
+    opGreaterEClass = createEClass(OP_GREATER);
 
     exprAdditiveEClass = createEClass(EXPR_ADDITIVE);
     createEReference(exprAdditiveEClass, EXPR_ADDITIVE__LEFT);
-    createEAttribute(exprAdditiveEClass, EXPR_ADDITIVE__OP);
+    createEReference(exprAdditiveEClass, EXPR_ADDITIVE__OP);
     createEReference(exprAdditiveEClass, EXPR_ADDITIVE__RIGHT);
+
+    opPlusEClass = createEClass(OP_PLUS);
+
+    opMinusEClass = createEClass(OP_MINUS);
 
     exprMultEClass = createEClass(EXPR_MULT);
     createEReference(exprMultEClass, EXPR_MULT__LEFT);
-    createEAttribute(exprMultEClass, EXPR_MULT__OP);
+    createEReference(exprMultEClass, EXPR_MULT__OP);
     createEReference(exprMultEClass, EXPR_MULT__RIGHT);
 
+    opMultEClass = createEClass(OP_MULT);
+
+    opDivRealEClass = createEClass(OP_DIV_REAL);
+
+    opModRealEClass = createEClass(OP_MOD_REAL);
+
+    opModIntEClass = createEClass(OP_MOD_INT);
+
     exprSignEClass = createEClass(EXPR_SIGN);
-    createEAttribute(exprSignEClass, EXPR_SIGN__OP);
+    createEReference(exprSignEClass, EXPR_SIGN__OP);
     createEReference(exprSignEClass, EXPR_SIGN__RIGHT);
 
     exprNotEClass = createEClass(EXPR_NOT);
-    createEAttribute(exprNotEClass, EXPR_NOT__OP);
     createEReference(exprNotEClass, EXPR_NOT__RIGHT);
 
     exprMemberEClass = createEClass(EXPR_MEMBER);
     createEReference(exprMemberEClass, EXPR_MEMBER__LEFT);
-    createEAttribute(exprMemberEClass, EXPR_MEMBER__OP);
     createEReference(exprMemberEClass, EXPR_MEMBER__RIGHT);
-
-    exprFunctioncallEClass = createEClass(EXPR_FUNCTIONCALL);
-    createEReference(exprFunctioncallEClass, EXPR_FUNCTIONCALL__NAME_VAL);
-    createEReference(exprFunctioncallEClass, EXPR_FUNCTIONCALL__PARAMETERS);
-
-    exprIdentifierEClass = createEClass(EXPR_IDENTIFIER);
-    createEReference(exprIdentifierEClass, EXPR_IDENTIFIER__NAME_VAL);
 
     exprIntValEClass = createEClass(EXPR_INT_VAL);
     createEAttribute(exprIntValEClass, EXPR_INT_VAL__INT_VAL);
@@ -1509,6 +1940,13 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
     exprBuildinFunctionEClass = createEClass(EXPR_BUILDIN_FUNCTION);
     createEAttribute(exprBuildinFunctionEClass, EXPR_BUILDIN_FUNCTION__NAME);
     createEReference(exprBuildinFunctionEClass, EXPR_BUILDIN_FUNCTION__PARAMETERS);
+
+    exprFunctioncallEClass = createEClass(EXPR_FUNCTIONCALL);
+    createEReference(exprFunctioncallEClass, EXPR_FUNCTIONCALL__NAME_VAL);
+    createEReference(exprFunctioncallEClass, EXPR_FUNCTIONCALL__PARAMETERS);
+
+    exprIdentifierEClass = createEClass(EXPR_IDENTIFIER);
+    createEReference(exprIdentifierEClass, EXPR_IDENTIFIER__NAME_VAL);
   }
 
   /**
@@ -1540,33 +1978,52 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
     // Set bounds for type parameters
 
     // Add supertypes to classes
-    nameDefEClass.getESuperTypes().add(this.getStatement());
+    initBlockEClass.getESuperTypes().add(this.getEntity());
+    typeDefEClass.getESuperTypes().add(this.getEntity());
+    varDefEClass.getESuperTypes().add(this.getEntity());
+    varDefEClass.getESuperTypes().add(this.getClassMember());
+    varDefEClass.getESuperTypes().add(this.getStatement());
+    funcDefEClass.getESuperTypes().add(this.getEntity());
+    funcDefEClass.getESuperTypes().add(this.getClassMember());
     stmtReturnEClass.getESuperTypes().add(this.getStatement());
     stmtIfEClass.getESuperTypes().add(this.getStatement());
     stmtWhileEClass.getESuperTypes().add(this.getStatement());
     stmtExprEClass.getESuperTypes().add(this.getStatement());
-    nativeTypeEClass.getESuperTypes().add(this.getNameDef());
-    classDefEClass.getESuperTypes().add(this.getNameDef());
-    varDefEClass.getESuperTypes().add(this.getNameDef());
-    funcDefEClass.getESuperTypes().add(this.getNameDef());
-    parameterDefEClass.getESuperTypes().add(this.getNameDef());
+    nativeTypeEClass.getESuperTypes().add(this.getTypeDef());
+    classDefEClass.getESuperTypes().add(this.getTypeDef());
+    parameterDefEClass.getESuperTypes().add(this.getVarDef());
     exprAssignmentEClass.getESuperTypes().add(this.getExpr());
+    opAssignEClass.getESuperTypes().add(this.getOpAssignment());
+    opPlusAssignEClass.getESuperTypes().add(this.getOpAssignment());
+    opMinusAssignEClass.getESuperTypes().add(this.getOpAssignment());
     exprOrEClass.getESuperTypes().add(this.getExpr());
     exprAndEClass.getESuperTypes().add(this.getExpr());
     exprEqualityEClass.getESuperTypes().add(this.getExpr());
+    opEqualsEClass.getESuperTypes().add(this.getOpEquality());
+    opUnequalsEClass.getESuperTypes().add(this.getOpEquality());
     exprComparisonEClass.getESuperTypes().add(this.getExpr());
+    opLessEqEClass.getESuperTypes().add(this.getOpComparison());
+    opLessEClass.getESuperTypes().add(this.getOpComparison());
+    opGreaterEqEClass.getESuperTypes().add(this.getOpComparison());
+    opGreaterEClass.getESuperTypes().add(this.getOpComparison());
     exprAdditiveEClass.getESuperTypes().add(this.getExpr());
+    opPlusEClass.getESuperTypes().add(this.getOpAdditive());
+    opMinusEClass.getESuperTypes().add(this.getOpAdditive());
     exprMultEClass.getESuperTypes().add(this.getExpr());
+    opMultEClass.getESuperTypes().add(this.getOpMultiplicative());
+    opDivRealEClass.getESuperTypes().add(this.getOpMultiplicative());
+    opModRealEClass.getESuperTypes().add(this.getOpMultiplicative());
+    opModIntEClass.getESuperTypes().add(this.getOpMultiplicative());
     exprSignEClass.getESuperTypes().add(this.getExpr());
     exprNotEClass.getESuperTypes().add(this.getExpr());
     exprMemberEClass.getESuperTypes().add(this.getExpr());
-    exprFunctioncallEClass.getESuperTypes().add(this.getExpr());
-    exprIdentifierEClass.getESuperTypes().add(this.getExpr());
     exprIntValEClass.getESuperTypes().add(this.getExpr());
     exprNumValEClass.getESuperTypes().add(this.getExpr());
     exprStrvalEClass.getESuperTypes().add(this.getExpr());
     exprBoolValEClass.getESuperTypes().add(this.getExpr());
     exprBuildinFunctionEClass.getESuperTypes().add(this.getExpr());
+    exprFunctioncallEClass.getESuperTypes().add(this.getExpr());
+    exprIdentifierEClass.getESuperTypes().add(this.getExpr());
 
     // Initialize classes and features; add operations and parameters
     initEClass(programEClass, Program.class, "Program", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
@@ -1575,16 +2032,33 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
     initEClass(packageDeclarationEClass, PackageDeclaration.class, "PackageDeclaration", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEAttribute(getPackageDeclaration_Name(), ecorePackage.getEString(), "name", null, 0, 1, PackageDeclaration.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
     initEReference(getPackageDeclaration_Imports(), this.getImport(), null, "imports", null, 0, -1, PackageDeclaration.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getPackageDeclaration_Elements(), this.getNameDef(), null, "elements", null, 0, -1, PackageDeclaration.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getPackageDeclaration_Elements(), this.getEntity(), null, "elements", null, 0, -1, PackageDeclaration.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(importEClass, Import.class, "Import", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEAttribute(getImport_ImportedNamespace(), ecorePackage.getEString(), "importedNamespace", null, 0, 1, Import.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
-    initEClass(nameDefEClass, NameDef.class, "NameDef", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
-    initEAttribute(getNameDef_Name(), ecorePackage.getEString(), "name", null, 0, 1, NameDef.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEClass(entityEClass, Entity.class, "Entity", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+    initEAttribute(getEntity_Name(), ecorePackage.getEString(), "name", null, 0, 1, Entity.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
+    initEClass(initBlockEClass, InitBlock.class, "InitBlock", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+    initEReference(getInitBlock_Body(), this.getStatements(), null, "body", null, 0, 1, InitBlock.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
+    initEClass(typeDefEClass, TypeDef.class, "TypeDef", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+
+    initEClass(classMemberEClass, ClassMember.class, "ClassMember", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+
+    initEClass(varDefEClass, VarDef.class, "VarDef", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+    initEAttribute(getVarDef_Constant(), ecorePackage.getEBoolean(), "constant", null, 0, 1, VarDef.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getVarDef_Type(), this.getTypeExpr(), null, "type", null, 0, 1, VarDef.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getVarDef_E(), this.getExpr(), null, "e", null, 0, 1, VarDef.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(typeExprEClass, TypeExpr.class, "TypeExpr", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
-    initEReference(getTypeExpr_Name(), this.getNameDef(), null, "name", null, 0, 1, TypeExpr.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getTypeExpr_Name(), this.getTypeDef(), null, "name", null, 0, 1, TypeExpr.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
+    initEClass(funcDefEClass, FuncDef.class, "FuncDef", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+    initEReference(getFuncDef_Parameters(), this.getVarDef(), null, "parameters", null, 0, -1, FuncDef.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getFuncDef_Type(), this.getTypeExpr(), null, "type", null, 0, 1, FuncDef.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getFuncDef_Body(), this.getStatements(), null, "body", null, 0, 1, FuncDef.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(statementsEClass, Statements.class, "Statements", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEReference(getStatements_Statements(), this.getStatement(), null, "statements", null, 0, -1, Statements.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
@@ -1608,33 +2082,38 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
 
     initEClass(exprEClass, Expr.class, "Expr", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 
+    initEClass(opAssignmentEClass, OpAssignment.class, "OpAssignment", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+
+    initEClass(opEqualityEClass, OpEquality.class, "OpEquality", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+
+    initEClass(opComparisonEClass, OpComparison.class, "OpComparison", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+
+    initEClass(opAdditiveEClass, OpAdditive.class, "OpAdditive", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+
+    initEClass(opMultiplicativeEClass, OpMultiplicative.class, "OpMultiplicative", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+
     initEClass(exprListEClass, ExprList.class, "ExprList", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEReference(getExprList_Params(), this.getExpr(), null, "params", null, 0, -1, ExprList.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(nativeTypeEClass, NativeType.class, "NativeType", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEAttribute(getNativeType_OrigName(), ecorePackage.getEString(), "origName", null, 0, 1, NativeType.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEAttribute(getNativeType_SuperName(), ecorePackage.getEString(), "superName", null, 0, 1, NativeType.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getNativeType_SuperName(), this.getTypeExpr(), null, "superName", null, 0, 1, NativeType.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(classDefEClass, ClassDef.class, "ClassDef", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
-    initEReference(getClassDef_Members(), this.getNameDef(), null, "members", null, 0, -1, ClassDef.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-
-    initEClass(varDefEClass, VarDef.class, "VarDef", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
-    initEAttribute(getVarDef_Constant(), ecorePackage.getEBoolean(), "constant", null, 0, 1, VarDef.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getVarDef_Type(), this.getTypeExpr(), null, "type", null, 0, 1, VarDef.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getVarDef_E(), this.getExpr(), null, "e", null, 0, 1, VarDef.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-
-    initEClass(funcDefEClass, FuncDef.class, "FuncDef", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
-    initEReference(getFuncDef_Parameters(), this.getNameDef(), null, "parameters", null, 0, -1, FuncDef.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getFuncDef_Type(), this.getTypeExpr(), null, "type", null, 0, 1, FuncDef.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getFuncDef_Body(), this.getStatements(), null, "body", null, 0, 1, FuncDef.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getClassDef_Members(), this.getClassMember(), null, "members", null, 0, -1, ClassDef.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(parameterDefEClass, ParameterDef.class, "ParameterDef", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
-    initEReference(getParameterDef_Type(), this.getTypeExpr(), null, "type", null, 0, 1, ParameterDef.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(exprAssignmentEClass, ExprAssignment.class, "ExprAssignment", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEReference(getExprAssignment_Left(), this.getExpr(), null, "left", null, 0, 1, ExprAssignment.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEAttribute(getExprAssignment_Op(), ecorePackage.getEString(), "op", null, 0, 1, ExprAssignment.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getExprAssignment_Op(), this.getOpAssignment(), null, "op", null, 0, 1, ExprAssignment.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
     initEReference(getExprAssignment_Right(), this.getExpr(), null, "right", null, 0, 1, ExprAssignment.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
+    initEClass(opAssignEClass, OpAssign.class, "OpAssign", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+
+    initEClass(opPlusAssignEClass, OpPlusAssign.class, "OpPlusAssign", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+
+    initEClass(opMinusAssignEClass, OpMinusAssign.class, "OpMinusAssign", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 
     initEClass(exprOrEClass, ExprOr.class, "ExprOr", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEReference(getExprOr_Left(), this.getExpr(), null, "left", null, 0, 1, ExprOr.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
@@ -1648,43 +2127,58 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
 
     initEClass(exprEqualityEClass, ExprEquality.class, "ExprEquality", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEReference(getExprEquality_Left(), this.getExpr(), null, "left", null, 0, 1, ExprEquality.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEAttribute(getExprEquality_Op(), ecorePackage.getEString(), "op", null, 0, 1, ExprEquality.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getExprEquality_Op(), this.getOpEquality(), null, "op", null, 0, 1, ExprEquality.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
     initEReference(getExprEquality_Right(), this.getExpr(), null, "right", null, 0, 1, ExprEquality.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
+    initEClass(opEqualsEClass, OpEquals.class, "OpEquals", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+
+    initEClass(opUnequalsEClass, OpUnequals.class, "OpUnequals", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 
     initEClass(exprComparisonEClass, ExprComparison.class, "ExprComparison", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEReference(getExprComparison_Left(), this.getExpr(), null, "left", null, 0, 1, ExprComparison.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEAttribute(getExprComparison_Op(), ecorePackage.getEString(), "op", null, 0, 1, ExprComparison.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getExprComparison_Op(), this.getOpComparison(), null, "op", null, 0, 1, ExprComparison.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
     initEReference(getExprComparison_Right(), this.getExpr(), null, "right", null, 0, 1, ExprComparison.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
+    initEClass(opLessEqEClass, OpLessEq.class, "OpLessEq", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+
+    initEClass(opLessEClass, OpLess.class, "OpLess", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+
+    initEClass(opGreaterEqEClass, OpGreaterEq.class, "OpGreaterEq", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+
+    initEClass(opGreaterEClass, OpGreater.class, "OpGreater", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 
     initEClass(exprAdditiveEClass, ExprAdditive.class, "ExprAdditive", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEReference(getExprAdditive_Left(), this.getExpr(), null, "left", null, 0, 1, ExprAdditive.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEAttribute(getExprAdditive_Op(), ecorePackage.getEString(), "op", null, 0, 1, ExprAdditive.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getExprAdditive_Op(), this.getOpAdditive(), null, "op", null, 0, 1, ExprAdditive.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
     initEReference(getExprAdditive_Right(), this.getExpr(), null, "right", null, 0, 1, ExprAdditive.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
+    initEClass(opPlusEClass, OpPlus.class, "OpPlus", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+
+    initEClass(opMinusEClass, OpMinus.class, "OpMinus", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 
     initEClass(exprMultEClass, ExprMult.class, "ExprMult", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEReference(getExprMult_Left(), this.getExpr(), null, "left", null, 0, 1, ExprMult.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEAttribute(getExprMult_Op(), ecorePackage.getEString(), "op", null, 0, 1, ExprMult.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getExprMult_Op(), this.getOpMultiplicative(), null, "op", null, 0, 1, ExprMult.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
     initEReference(getExprMult_Right(), this.getExpr(), null, "right", null, 0, 1, ExprMult.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
+    initEClass(opMultEClass, OpMult.class, "OpMult", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+
+    initEClass(opDivRealEClass, OpDivReal.class, "OpDivReal", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+
+    initEClass(opModRealEClass, OpModReal.class, "OpModReal", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+
+    initEClass(opModIntEClass, OpModInt.class, "OpModInt", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+
     initEClass(exprSignEClass, ExprSign.class, "ExprSign", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
-    initEAttribute(getExprSign_Op(), ecorePackage.getEString(), "op", null, 0, 1, ExprSign.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getExprSign_Op(), this.getOpAdditive(), null, "op", null, 0, 1, ExprSign.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
     initEReference(getExprSign_Right(), this.getExpr(), null, "right", null, 0, 1, ExprSign.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(exprNotEClass, ExprNot.class, "ExprNot", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
-    initEAttribute(getExprNot_Op(), ecorePackage.getEString(), "op", null, 0, 1, ExprNot.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
     initEReference(getExprNot_Right(), this.getExpr(), null, "right", null, 0, 1, ExprNot.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(exprMemberEClass, ExprMember.class, "ExprMember", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEReference(getExprMember_Left(), this.getExpr(), null, "left", null, 0, 1, ExprMember.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEAttribute(getExprMember_Op(), ecorePackage.getEString(), "op", null, 0, 1, ExprMember.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
     initEReference(getExprMember_Right(), this.getExpr(), null, "right", null, 0, 1, ExprMember.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-
-    initEClass(exprFunctioncallEClass, ExprFunctioncall.class, "ExprFunctioncall", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
-    initEReference(getExprFunctioncall_NameVal(), this.getFuncDef(), null, "nameVal", null, 0, 1, ExprFunctioncall.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getExprFunctioncall_Parameters(), this.getExprList(), null, "parameters", null, 0, 1, ExprFunctioncall.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-
-    initEClass(exprIdentifierEClass, ExprIdentifier.class, "ExprIdentifier", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
-    initEReference(getExprIdentifier_NameVal(), this.getNameDef(), null, "nameVal", null, 0, 1, ExprIdentifier.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(exprIntValEClass, ExprIntVal.class, "ExprIntVal", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEAttribute(getExprIntVal_IntVal(), ecorePackage.getEInt(), "intVal", null, 0, 1, ExprIntVal.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
@@ -1701,6 +2195,13 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
     initEClass(exprBuildinFunctionEClass, ExprBuildinFunction.class, "ExprBuildinFunction", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEAttribute(getExprBuildinFunction_Name(), ecorePackage.getEString(), "name", null, 0, 1, ExprBuildinFunction.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
     initEReference(getExprBuildinFunction_Parameters(), this.getExprList(), null, "parameters", null, 0, 1, ExprBuildinFunction.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
+    initEClass(exprFunctioncallEClass, ExprFunctioncall.class, "ExprFunctioncall", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+    initEReference(getExprFunctioncall_NameVal(), this.getFuncDef(), null, "nameVal", null, 0, 1, ExprFunctioncall.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getExprFunctioncall_Parameters(), this.getExprList(), null, "parameters", null, 0, 1, ExprFunctioncall.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
+    initEClass(exprIdentifierEClass, ExprIdentifier.class, "ExprIdentifier", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+    initEReference(getExprIdentifier_NameVal(), this.getVarDef(), null, "nameVal", null, 0, 1, ExprIdentifier.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     // Create resource
     createResource(eNS_URI);

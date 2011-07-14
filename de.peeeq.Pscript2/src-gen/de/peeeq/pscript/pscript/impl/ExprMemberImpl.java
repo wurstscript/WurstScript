@@ -26,7 +26,6 @@ import org.eclipse.emf.ecore.impl.ENotificationImpl;
  * The following features are implemented:
  * <ul>
  *   <li>{@link de.peeeq.pscript.pscript.impl.ExprMemberImpl#getLeft <em>Left</em>}</li>
- *   <li>{@link de.peeeq.pscript.pscript.impl.ExprMemberImpl#getOp <em>Op</em>}</li>
  *   <li>{@link de.peeeq.pscript.pscript.impl.ExprMemberImpl#getRight <em>Right</em>}</li>
  * </ul>
  * </p>
@@ -44,26 +43,6 @@ public class ExprMemberImpl extends ExprImpl implements ExprMember
    * @ordered
    */
   protected Expr left;
-
-  /**
-   * The default value of the '{@link #getOp() <em>Op</em>}' attribute.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @see #getOp()
-   * @generated
-   * @ordered
-   */
-  protected static final String OP_EDEFAULT = null;
-
-  /**
-   * The cached value of the '{@link #getOp() <em>Op</em>}' attribute.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @see #getOp()
-   * @generated
-   * @ordered
-   */
-  protected String op = OP_EDEFAULT;
 
   /**
    * The cached value of the '{@link #getRight() <em>Right</em>}' containment reference.
@@ -149,29 +128,6 @@ public class ExprMemberImpl extends ExprImpl implements ExprMember
    * <!-- end-user-doc -->
    * @generated
    */
-  public String getOp()
-  {
-    return op;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public void setOp(String newOp)
-  {
-    String oldOp = op;
-    op = newOp;
-    if (eNotificationRequired())
-      eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.EXPR_MEMBER__OP, oldOp, op));
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
   public Expr getRight()
   {
     return right;
@@ -245,8 +201,6 @@ public class ExprMemberImpl extends ExprImpl implements ExprMember
     {
       case PscriptPackage.EXPR_MEMBER__LEFT:
         return getLeft();
-      case PscriptPackage.EXPR_MEMBER__OP:
-        return getOp();
       case PscriptPackage.EXPR_MEMBER__RIGHT:
         return getRight();
     }
@@ -265,9 +219,6 @@ public class ExprMemberImpl extends ExprImpl implements ExprMember
     {
       case PscriptPackage.EXPR_MEMBER__LEFT:
         setLeft((Expr)newValue);
-        return;
-      case PscriptPackage.EXPR_MEMBER__OP:
-        setOp((String)newValue);
         return;
       case PscriptPackage.EXPR_MEMBER__RIGHT:
         setRight((Expr)newValue);
@@ -289,9 +240,6 @@ public class ExprMemberImpl extends ExprImpl implements ExprMember
       case PscriptPackage.EXPR_MEMBER__LEFT:
         setLeft((Expr)null);
         return;
-      case PscriptPackage.EXPR_MEMBER__OP:
-        setOp(OP_EDEFAULT);
-        return;
       case PscriptPackage.EXPR_MEMBER__RIGHT:
         setRight((Expr)null);
         return;
@@ -311,29 +259,10 @@ public class ExprMemberImpl extends ExprImpl implements ExprMember
     {
       case PscriptPackage.EXPR_MEMBER__LEFT:
         return left != null;
-      case PscriptPackage.EXPR_MEMBER__OP:
-        return OP_EDEFAULT == null ? op != null : !OP_EDEFAULT.equals(op);
       case PscriptPackage.EXPR_MEMBER__RIGHT:
         return right != null;
     }
     return super.eIsSet(featureID);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  @Override
-  public String toString()
-  {
-    if (eIsProxy()) return super.toString();
-
-    StringBuffer result = new StringBuffer(super.toString());
-    result.append(" (op: ");
-    result.append(op);
-    result.append(')');
-    return result.toString();
   }
 
 } //ExprMemberImpl

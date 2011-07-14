@@ -118,19 +118,22 @@ Workflow {
 			// provides a preference page for template proposals 
 			fragment = templates.CodetemplatesGeneratorFragment {}
 
+/** Experimental: */
+
 			// rename refactoring
-            // fragment = refactoring.RefactorElementNameFragment {}
+            fragment = refactoring.RefactorElementNameFragment {}
 
             // provides a compare view
-            // fragment = compare.CompareFragment {
-            //    fileExtensions = file.extensions
-            // }
+             fragment = compare.CompareFragment {
+                fileExtensions = file.extensions
+             }
 
             // Serializer 2.0
-            // fragment = serializer.SerializerFragment {}
+             fragment = serializer.SerializerFragment {}
             
             // generate katja files:
             // TODO fragment = KatjaFragment {}
 		}
 	}
+	
 }

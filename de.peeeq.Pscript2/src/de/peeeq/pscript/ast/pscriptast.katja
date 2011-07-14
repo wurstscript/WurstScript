@@ -56,7 +56,9 @@ AClassMember = AVarDef | AFuncDef
 
 AVarDef(EObject source, String name, ATypeExpr typeExpr, Boolean constant, AExpr initial)
 
-ATypeExpr = ATypeExprSimple(String name)
+ATypeExpr = 
+	  ATypeExprSimple(String name)
+	| ATypeExprInfer() // type expression not given explicitly e.g.: val x = 4
 
 
 AFuncDef(EObject source, String name, AReturnType retType, AFormalParameters params, ABlock body)
@@ -75,6 +77,7 @@ AStatement = ABlock
           | AReturn     ( EObject source, AExpr retValue )
           | AVoidReturn ( EObject source )
           | AAssignment ( EObject source, AExpr left, AExpr right )
+		  | AVarDef
           | AExpr
 
 AExpr =   APrefix ( EObject source, APrefixOp op, AExpr e )
@@ -96,7 +99,8 @@ ALiteral = AIntegerLiteral ( EObject source, Integer value )
         | ABooleanLiteral  (EObject source, Boolean value)
 
 
-AInfixOp = AEqEq ()
+AInfixOp = AEquals ()
+		| AUnequal()
 		| AGt  ()
         | AGtEq ()
         | ALt ()
@@ -107,6 +111,7 @@ AInfixOp = AEqEq ()
         | ADiv ()
         | ADivInt ()
         | AModulo ()
+		| AModuloReal() 
         | ADot  ()
 		| AAnd()
 		| AOr()

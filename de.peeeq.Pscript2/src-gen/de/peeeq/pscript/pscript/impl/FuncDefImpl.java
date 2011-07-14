@@ -7,10 +7,10 @@
 package de.peeeq.pscript.pscript.impl;
 
 import de.peeeq.pscript.pscript.FuncDef;
-import de.peeeq.pscript.pscript.NameDef;
 import de.peeeq.pscript.pscript.PscriptPackage;
 import de.peeeq.pscript.pscript.Statements;
 import de.peeeq.pscript.pscript.TypeExpr;
+import de.peeeq.pscript.pscript.VarDef;
 
 import java.util.Collection;
 
@@ -42,7 +42,7 @@ import org.eclipse.emf.ecore.util.InternalEList;
  *
  * @generated
  */
-public class FuncDefImpl extends NameDefImpl implements FuncDef
+public class FuncDefImpl extends EntityImpl implements FuncDef
 {
   /**
    * The cached value of the '{@link #getParameters() <em>Parameters</em>}' containment reference list.
@@ -52,7 +52,7 @@ public class FuncDefImpl extends NameDefImpl implements FuncDef
    * @generated
    * @ordered
    */
-  protected EList<NameDef> parameters;
+  protected EList<VarDef> parameters;
 
   /**
    * The cached value of the '{@link #getType() <em>Type</em>}' containment reference.
@@ -100,11 +100,11 @@ public class FuncDefImpl extends NameDefImpl implements FuncDef
    * <!-- end-user-doc -->
    * @generated
    */
-  public EList<NameDef> getParameters()
+  public EList<VarDef> getParameters()
   {
     if (parameters == null)
     {
-      parameters = new EObjectContainmentEList<NameDef>(NameDef.class, this, PscriptPackage.FUNC_DEF__PARAMETERS);
+      parameters = new EObjectContainmentEList<VarDef>(VarDef.class, this, PscriptPackage.FUNC_DEF__PARAMETERS);
     }
     return parameters;
   }
@@ -258,7 +258,7 @@ public class FuncDefImpl extends NameDefImpl implements FuncDef
     {
       case PscriptPackage.FUNC_DEF__PARAMETERS:
         getParameters().clear();
-        getParameters().addAll((Collection<? extends NameDef>)newValue);
+        getParameters().addAll((Collection<? extends VarDef>)newValue);
         return;
       case PscriptPackage.FUNC_DEF__TYPE:
         setType((TypeExpr)newValue);

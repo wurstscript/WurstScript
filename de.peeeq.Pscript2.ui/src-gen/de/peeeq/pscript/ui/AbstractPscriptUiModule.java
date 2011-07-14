@@ -193,5 +193,10 @@ public abstract class AbstractPscriptUiModule extends DefaultUiModule {
 		return de.peeeq.pscript.ui.contentassist.antlr.PartialPscriptContentAssistParser.class;
 	}
 
+	// contributed by org.eclipse.xtext.ui.generator.compare.CompareFragment
+	public Class<? extends org.eclipse.compare.IViewerCreator> bindIViewerCreator() {
+		return org.eclipse.xtext.ui.compare.DefaultViewerCreator.class;
+	}
+
 
 }

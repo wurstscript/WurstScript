@@ -8,10 +8,13 @@ package de.peeeq.pscript.pscript.impl;
 
 import de.peeeq.pscript.pscript.NativeType;
 import de.peeeq.pscript.pscript.PscriptPackage;
+import de.peeeq.pscript.pscript.TypeExpr;
 
 import org.eclipse.emf.common.notify.Notification;
+import org.eclipse.emf.common.notify.NotificationChain;
 
 import org.eclipse.emf.ecore.EClass;
+import org.eclipse.emf.ecore.InternalEObject;
 
 import org.eclipse.emf.ecore.impl.ENotificationImpl;
 
@@ -29,7 +32,7 @@ import org.eclipse.emf.ecore.impl.ENotificationImpl;
  *
  * @generated
  */
-public class NativeTypeImpl extends NameDefImpl implements NativeType
+public class NativeTypeImpl extends TypeDefImpl implements NativeType
 {
   /**
    * The default value of the '{@link #getOrigName() <em>Orig Name</em>}' attribute.
@@ -52,24 +55,14 @@ public class NativeTypeImpl extends NameDefImpl implements NativeType
   protected String origName = ORIG_NAME_EDEFAULT;
 
   /**
-   * The default value of the '{@link #getSuperName() <em>Super Name</em>}' attribute.
+   * The cached value of the '{@link #getSuperName() <em>Super Name</em>}' containment reference.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @see #getSuperName()
    * @generated
    * @ordered
    */
-  protected static final String SUPER_NAME_EDEFAULT = null;
-
-  /**
-   * The cached value of the '{@link #getSuperName() <em>Super Name</em>}' attribute.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @see #getSuperName()
-   * @generated
-   * @ordered
-   */
-  protected String superName = SUPER_NAME_EDEFAULT;
+  protected TypeExpr superName;
 
   /**
    * <!-- begin-user-doc -->
@@ -120,7 +113,7 @@ public class NativeTypeImpl extends NameDefImpl implements NativeType
    * <!-- end-user-doc -->
    * @generated
    */
-  public String getSuperName()
+  public TypeExpr getSuperName()
   {
     return superName;
   }
@@ -130,12 +123,53 @@ public class NativeTypeImpl extends NameDefImpl implements NativeType
    * <!-- end-user-doc -->
    * @generated
    */
-  public void setSuperName(String newSuperName)
+  public NotificationChain basicSetSuperName(TypeExpr newSuperName, NotificationChain msgs)
   {
-    String oldSuperName = superName;
+    TypeExpr oldSuperName = superName;
     superName = newSuperName;
     if (eNotificationRequired())
-      eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.NATIVE_TYPE__SUPER_NAME, oldSuperName, superName));
+    {
+      ENotificationImpl notification = new ENotificationImpl(this, Notification.SET, PscriptPackage.NATIVE_TYPE__SUPER_NAME, oldSuperName, newSuperName);
+      if (msgs == null) msgs = notification; else msgs.add(notification);
+    }
+    return msgs;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public void setSuperName(TypeExpr newSuperName)
+  {
+    if (newSuperName != superName)
+    {
+      NotificationChain msgs = null;
+      if (superName != null)
+        msgs = ((InternalEObject)superName).eInverseRemove(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.NATIVE_TYPE__SUPER_NAME, null, msgs);
+      if (newSuperName != null)
+        msgs = ((InternalEObject)newSuperName).eInverseAdd(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.NATIVE_TYPE__SUPER_NAME, null, msgs);
+      msgs = basicSetSuperName(newSuperName, msgs);
+      if (msgs != null) msgs.dispatch();
+    }
+    else if (eNotificationRequired())
+      eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.NATIVE_TYPE__SUPER_NAME, newSuperName, newSuperName));
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  @Override
+  public NotificationChain eInverseRemove(InternalEObject otherEnd, int featureID, NotificationChain msgs)
+  {
+    switch (featureID)
+    {
+      case PscriptPackage.NATIVE_TYPE__SUPER_NAME:
+        return basicSetSuperName(null, msgs);
+    }
+    return super.eInverseRemove(otherEnd, featureID, msgs);
   }
 
   /**
@@ -170,7 +204,7 @@ public class NativeTypeImpl extends NameDefImpl implements NativeType
         setOrigName((String)newValue);
         return;
       case PscriptPackage.NATIVE_TYPE__SUPER_NAME:
-        setSuperName((String)newValue);
+        setSuperName((TypeExpr)newValue);
         return;
     }
     super.eSet(featureID, newValue);
@@ -190,7 +224,7 @@ public class NativeTypeImpl extends NameDefImpl implements NativeType
         setOrigName(ORIG_NAME_EDEFAULT);
         return;
       case PscriptPackage.NATIVE_TYPE__SUPER_NAME:
-        setSuperName(SUPER_NAME_EDEFAULT);
+        setSuperName((TypeExpr)null);
         return;
     }
     super.eUnset(featureID);
@@ -209,7 +243,7 @@ public class NativeTypeImpl extends NameDefImpl implements NativeType
       case PscriptPackage.NATIVE_TYPE__ORIG_NAME:
         return ORIG_NAME_EDEFAULT == null ? origName != null : !ORIG_NAME_EDEFAULT.equals(origName);
       case PscriptPackage.NATIVE_TYPE__SUPER_NAME:
-        return SUPER_NAME_EDEFAULT == null ? superName != null : !SUPER_NAME_EDEFAULT.equals(superName);
+        return superName != null;
     }
     return super.eIsSet(featureID);
   }
@@ -227,8 +261,6 @@ public class NativeTypeImpl extends NameDefImpl implements NativeType
     StringBuffer result = new StringBuffer(super.toString());
     result.append(" (origName: ");
     result.append(origName);
-    result.append(", superName: ");
-    result.append(superName);
     result.append(')');
     return result.toString();
   }

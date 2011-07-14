@@ -8,6 +8,7 @@ package de.peeeq.pscript.pscript.impl;
 
 import de.peeeq.pscript.pscript.Expr;
 import de.peeeq.pscript.pscript.ExprMult;
+import de.peeeq.pscript.pscript.OpMultiplicative;
 import de.peeeq.pscript.pscript.PscriptPackage;
 
 import org.eclipse.emf.common.notify.Notification;
@@ -46,24 +47,14 @@ public class ExprMultImpl extends ExprImpl implements ExprMult
   protected Expr left;
 
   /**
-   * The default value of the '{@link #getOp() <em>Op</em>}' attribute.
+   * The cached value of the '{@link #getOp() <em>Op</em>}' containment reference.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @see #getOp()
    * @generated
    * @ordered
    */
-  protected static final String OP_EDEFAULT = null;
-
-  /**
-   * The cached value of the '{@link #getOp() <em>Op</em>}' attribute.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @see #getOp()
-   * @generated
-   * @ordered
-   */
-  protected String op = OP_EDEFAULT;
+  protected OpMultiplicative op;
 
   /**
    * The cached value of the '{@link #getRight() <em>Right</em>}' containment reference.
@@ -149,7 +140,7 @@ public class ExprMultImpl extends ExprImpl implements ExprMult
    * <!-- end-user-doc -->
    * @generated
    */
-  public String getOp()
+  public OpMultiplicative getOp()
   {
     return op;
   }
@@ -159,12 +150,37 @@ public class ExprMultImpl extends ExprImpl implements ExprMult
    * <!-- end-user-doc -->
    * @generated
    */
-  public void setOp(String newOp)
+  public NotificationChain basicSetOp(OpMultiplicative newOp, NotificationChain msgs)
   {
-    String oldOp = op;
+    OpMultiplicative oldOp = op;
     op = newOp;
     if (eNotificationRequired())
-      eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.EXPR_MULT__OP, oldOp, op));
+    {
+      ENotificationImpl notification = new ENotificationImpl(this, Notification.SET, PscriptPackage.EXPR_MULT__OP, oldOp, newOp);
+      if (msgs == null) msgs = notification; else msgs.add(notification);
+    }
+    return msgs;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public void setOp(OpMultiplicative newOp)
+  {
+    if (newOp != op)
+    {
+      NotificationChain msgs = null;
+      if (op != null)
+        msgs = ((InternalEObject)op).eInverseRemove(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.EXPR_MULT__OP, null, msgs);
+      if (newOp != null)
+        msgs = ((InternalEObject)newOp).eInverseAdd(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.EXPR_MULT__OP, null, msgs);
+      msgs = basicSetOp(newOp, msgs);
+      if (msgs != null) msgs.dispatch();
+    }
+    else if (eNotificationRequired())
+      eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.EXPR_MULT__OP, newOp, newOp));
   }
 
   /**
@@ -227,6 +243,8 @@ public class ExprMultImpl extends ExprImpl implements ExprMult
     {
       case PscriptPackage.EXPR_MULT__LEFT:
         return basicSetLeft(null, msgs);
+      case PscriptPackage.EXPR_MULT__OP:
+        return basicSetOp(null, msgs);
       case PscriptPackage.EXPR_MULT__RIGHT:
         return basicSetRight(null, msgs);
     }
@@ -267,7 +285,7 @@ public class ExprMultImpl extends ExprImpl implements ExprMult
         setLeft((Expr)newValue);
         return;
       case PscriptPackage.EXPR_MULT__OP:
-        setOp((String)newValue);
+        setOp((OpMultiplicative)newValue);
         return;
       case PscriptPackage.EXPR_MULT__RIGHT:
         setRight((Expr)newValue);
@@ -290,7 +308,7 @@ public class ExprMultImpl extends ExprImpl implements ExprMult
         setLeft((Expr)null);
         return;
       case PscriptPackage.EXPR_MULT__OP:
-        setOp(OP_EDEFAULT);
+        setOp((OpMultiplicative)null);
         return;
       case PscriptPackage.EXPR_MULT__RIGHT:
         setRight((Expr)null);
@@ -312,28 +330,11 @@ public class ExprMultImpl extends ExprImpl implements ExprMult
       case PscriptPackage.EXPR_MULT__LEFT:
         return left != null;
       case PscriptPackage.EXPR_MULT__OP:
-        return OP_EDEFAULT == null ? op != null : !OP_EDEFAULT.equals(op);
+        return op != null;
       case PscriptPackage.EXPR_MULT__RIGHT:
         return right != null;
     }
     return super.eIsSet(featureID);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  @Override
-  public String toString()
-  {
-    if (eIsProxy()) return super.toString();
-
-    StringBuffer result = new StringBuffer(super.toString());
-    result.append(" (op: ");
-    result.append(op);
-    result.append(')');
-    return result.toString();
   }
 
 } //ExprMultImpl
