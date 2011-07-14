@@ -41,6 +41,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 		List<ILStatement> body = func.getBody();
 		
 		Map<String, ILconst> localVarMap = new HashMap<String, ILconst>();
+		
 		for (ILvar v : locals) {
 			ILconst value = null;
 			if (v.getType() instanceof PScriptTypeInt) {
@@ -85,10 +86,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 			translateReturn(localVarMap, (ILreturn) s);
 		} else {
 			// TODO mögliche andere Statements
-			// das ist jetzt dein part, dass hier keine exception mehr kommt. ;)
-			// umlaute in kommentaren? tss
-			// wo ist da ein umlau, java ist utf8 :D
-			// k, bei netbeans kommtn error
+
 			throw new Error("not implemented " + s);
 		}
 	}
@@ -120,12 +118,14 @@ public class ILInterpreterImpl implements ILInterpreter {
 			}
 		}
 		
-		if (isLocal(localVarMap, s.getResultVar())) {
-			localVarMap.put(s.getResultVar().getName(), result);
-		} else {
-			// TODO global
-			throw new Error("not implemented");
-		}
+//		if (isLocal(localVarMap, s.getResultVar())) {
+//			localVarMap.put(s.getResultVar().getName(), result);
+//		} else {
+//			// TODO global
+//			throw new Error("not implemented");
+//		}
+		
+		addVarToProperMap(localVarMap,s.getResultVar(), result);
 		
 	}
 
@@ -133,12 +133,14 @@ public class ILInterpreterImpl implements ILInterpreter {
 			IlsetConst s) {
 		// TODO Auto-generated method stub
 
-		if (isLocal(localVarMap, s.getResultVar())) {
-			localVarMap.put(s.getResultVar().getName(), s.getConstant());
-		} else {
-			// TODO global
-			throw new Error("not implemented");
-		}
+//		if (isLocal(localVarMap, s.getResultVar())) {
+//			localVarMap.put(s.getResultVar().getName(), s.getConstant());
+//		} else {
+//			// TODO global
+//			throw new Error("not implemented");
+//		}
+		
+		addVarToProperMap(localVarMap,s.getResultVar(), s.getConstant());
 		
 	}
 
@@ -148,28 +150,18 @@ public class ILInterpreterImpl implements ILInterpreter {
 		ILconst value = lookupVarValue(localVarMap, s.getVar());
 //		value2 = lookupVarValue(localVarMap, s.getResultVar());
 		
-		if (isLocal(localVarMap, s.getResultVar())) {
-			localVarMap.put(s.getResultVar().getName(), value);
-		} else {
-			// TODO global
-			throw new Error("not implemented");
-		}
-		
-		
-		
-	}
-
-	private boolean isLocal(Map<String, ILconst> localVarMap, ILvar resultVar) {
-		return localVarMap.containsKey(resultVar.getName());
-//		for (String v : localVarMap.keySet()) {
-//			System.out.println("var = " + v.getName());
-//			if (v.getName().equals(resultVar.getName())) {
-//				return true;
-//			}
+//		if (isLocal(localVarMap, s.getResultVar())) {
+//			localVarMap.put(s.getResultVar().getName(), value);
+//		} else {
+//			// TODO global
+//			throw new Error("not implemented");
 //		}
-//		return false;
+		addVarToProperMap(localVarMap,s.getResultVar(), value);
+		
+		
+		
 	}
-
+	
 	private void translateStatementIf(Map<String, ILconst> localVarMap, ILif s) {
 		ILvar cond = s.getCond();	
 		ILconstBool condValue = (ILconstBool) lookupVarValue(localVarMap, cond);
@@ -181,6 +173,25 @@ public class ILInterpreterImpl implements ILInterpreter {
 		}
 		
 	}
+
+	
+	private void addVarToProperMap(Map<String, ILconst> localVarMap, ILvar v, ILconst s ) {
+		if (isLocal(localVarMap, v)) {
+			localVarMap.put(v.getName(), s);
+		} else if (true) {
+			// TODO globalVarMap 
+			
+		} else {
+			throw new Error("var is neither local nor global?");
+		}
+	}
+	
+	
+	private boolean isLocal(Map<String, ILconst> localVarMap, ILvar resultVar) {
+		return localVarMap.containsKey(resultVar.getName());
+
+	}
+	
 
 	private ILconst lookupVarValue(Map<String, ILconst> localVarMap, ILvar var) {
 		ILconst value = localVarMap.get(var.getName());
