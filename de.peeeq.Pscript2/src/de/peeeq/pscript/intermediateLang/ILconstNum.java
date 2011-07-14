@@ -2,7 +2,7 @@ package de.peeeq.pscript.intermediateLang;
 
 import com.ibm.icu.math.BigDecimal;
 
-public class ILconstNum implements ILconst {
+public class ILconstNum extends ILconst {
 
 	private BigDecimal val;
 

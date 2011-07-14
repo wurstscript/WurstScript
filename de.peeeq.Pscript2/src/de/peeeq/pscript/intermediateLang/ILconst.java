@@ -1,7 +1,12 @@
 package de.peeeq.pscript.intermediateLang;
 
-public interface ILconst {
+public abstract class ILconst {
 
-	String print();
+	public abstract String print();
 
+	
+	@Override
+	public String toString() {
+		return print();
+	}
 }

@@ -1,6 +1,6 @@
 package de.peeeq.pscript.intermediateLang;
 
-public class ILconstBool implements ILconst {
+public class ILconstBool extends ILconst {
 
 	private boolean val;
 
@@ -15,6 +15,10 @@ public class ILconstBool implements ILconst {
 		
 	}
 	
+	public ILconstBool(boolean b) {
+		val = b;
+	}
+
 	public boolean getVal() {
 		return val;
 	}

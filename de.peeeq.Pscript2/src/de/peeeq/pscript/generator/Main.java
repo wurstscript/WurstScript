@@ -23,13 +23,14 @@ import com.google.inject.Provider;
 public class Main {
 	
 	public static void main(String[] args) {
-		if (args.length==0) {
-			System.err.println("Aborting: no path to EMF resource provided!");
-			return;
-		}
+//		if (args.length==0) {
+//			System.err.println("Aborting: no path to EMF resource provided!");
+//			return;
+//		}
 		Injector injector = new de.peeeq.pscript.PscriptStandaloneSetupGenerated().createInjectorAndDoEMFRegistration();
 		Main main = injector.getInstance(Main.class);
-		main.runGenerator(args[0]);
+//		main.runGenerator(args[0]);
+		main.runGenerator("file://C:/Users/Frotty/Documents/PScript/de.peeeq.Pscript2/src/de/peeeq/pscript/intermediateLang/interpreter/test.pscript");
 	}
 	
 	@Inject 

@@ -30,7 +30,7 @@ public class ILvar {
 	public boolean equals(Object obj) {
 		if (obj instanceof ILvar) {
 			ILvar v = (ILvar) obj;
-			return v.name.equals(name) && v.type.equals(type);
+			return v.name.equals(name) ; //&& v.type.equals(type);
 		}
 		return false;
 	}

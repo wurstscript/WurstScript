@@ -1,6 +1,6 @@
 package de.peeeq.pscript.intermediateLang;
 
-public class ILconstString implements ILconst {
+public class ILconstString extends ILconst {
 
 	private String val; // including the quotes
 

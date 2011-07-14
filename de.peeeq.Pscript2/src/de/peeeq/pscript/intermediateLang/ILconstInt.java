@@ -1,6 +1,6 @@
 package de.peeeq.pscript.intermediateLang;
 
-public class ILconstInt implements ILconst {
+public class ILconstInt extends ILconst {
 
 	private int val;
 
@@ -8,9 +8,14 @@ public class ILconstInt implements ILconst {
 		this.val = intVal;
 	}
 
+	public int getVal() {
+		return val;
+	}
+	
 	@Override
 	public String print() {
 		return val+"";
 	}
+	
 
 }
