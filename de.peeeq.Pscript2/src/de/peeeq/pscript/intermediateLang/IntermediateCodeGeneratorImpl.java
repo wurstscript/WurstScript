@@ -381,12 +381,14 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 			@Override
 			public List<ILStatement> caseExprBuildinFunction(ExprBuildinFunction exprBuildinFunction) {
 				ILvar[] paramVars = new ILvar[0];
-				if (exprBuildinFunction.getParameters().getParams() != null) {
+				if (exprBuildinFunction.getParameters() != null && exprBuildinFunction.getParameters().getParams() != null) {
 					EList<Expr> params = exprBuildinFunction.getParameters().getParams();
 					// translate params
 					paramVars = new ILvar[params.size()];
 					for (int i=0; i<params.size(); i++) {
-						paramVars[i] = getLocalVar( exprBuildinFunction.getName() +  "_param" + i , locals);
+						PscriptType typ = attrManager.getAttValue(AttrExprType.class, params.get(i));
+						//						paramVars[i] = getLocalVar( exprBuildinFunction.getName() +  "_param" + i , locals);
+						paramVars[i] = getNewLocalVar( exprBuildinFunction.getName() +  "_param" + i, typ, locals);
 						result.addAll(translateExpr(params.get(i), paramVars[i], locals));
 					}
 					

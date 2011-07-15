@@ -33,6 +33,7 @@ import de.peeeq.pscript.intermediateLang.IlsetConst
 import de.peeeq.pscript.intermediateLang.Ilunary
 import de.peeeq.pscript.intermediateLang.Iloperator
 import de.peeeq.pscript.intermediateLang.ILconst
+import de.peeeq.pscript.types.PScriptTypeVoid
 
 class PscriptGenerator implements IGenerator {
 	
@@ -75,7 +76,9 @@ class PscriptGenerator implements IGenerator {
 	def printType(PscriptType type, ILprog prog)  {
 		if (type == null)
 			'''nothing'''
-		else 
+		else if (type instanceof PScriptTypeVoid)
+			'''nothing'''
+		else
 			'''«prog.lookupNativeTranslation(type.getName())»'''
 	}
 	

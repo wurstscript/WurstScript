@@ -9,13 +9,16 @@ import de.peeeq.pscript.intermediateLang.ILconst;
 import de.peeeq.pscript.intermediateLang.ILconstBool;
 import de.peeeq.pscript.intermediateLang.ILconstInt;
 import de.peeeq.pscript.intermediateLang.ILconstNum;
+import de.peeeq.pscript.intermediateLang.ILconstString;
 import de.peeeq.pscript.intermediateLang.ILcopy;
 import de.peeeq.pscript.intermediateLang.ILfunction;
+import de.peeeq.pscript.intermediateLang.ILfunctionCall;
 import de.peeeq.pscript.intermediateLang.ILif;
 import de.peeeq.pscript.intermediateLang.ILprog;
 import de.peeeq.pscript.intermediateLang.ILreturn;
 import de.peeeq.pscript.intermediateLang.ILvar;
 import de.peeeq.pscript.intermediateLang.Ilbinary;
+import de.peeeq.pscript.intermediateLang.IlbuildinFunctionCall;
 import de.peeeq.pscript.intermediateLang.Iloperator;
 import de.peeeq.pscript.intermediateLang.IlsetConst;
 import de.peeeq.pscript.types.PScriptTypeInt;
@@ -33,6 +36,9 @@ public class ILInterpreterImpl implements ILInterpreter {
 
 	@Override
 	public ILconst executeFunction(String name, ILconst... arguments) {
+		
+		
+		
 		
 		ILfunction func = searchFunction(name);
 		List<ILvar> locals = func.getLocals();
@@ -85,11 +91,41 @@ public class ILInterpreterImpl implements ILInterpreter {
 			translateIlbinary( localVarMap, (Ilbinary)s);
 		} else if (s instanceof ILreturn) {
 			translateReturn(localVarMap, (ILreturn) s);
+		} else if (s instanceof ILfunctionCall) {
+			translateFunctionCall(localVarMap, (ILfunctionCall) s);
+		} else if (s instanceof IlbuildinFunctionCall) {
+			translateBuildinFunction(localVarMap, (IlbuildinFunctionCall) s);
 		} else {
 			// TODO mögliche andere Statements
 
 			throw new Error("not implemented " + s);
 		}
+	}
+
+	private void translateBuildinFunction(Map<String, ILconst> localVarMap,
+			IlbuildinFunctionCall s) {
+		String name = s.getFuncName();
+		
+		// native methods:
+		if (name.equals("print")) {
+			// Example: print method
+			ILconstString msg = (ILconstString) lookupVarValue(localVarMap, s.getArgs().get(0));
+			System.out.println(msg.getVal());
+		} else {
+			throw new Error("Function " + name 
+					+ " not implemented.");
+			// TODO other methods
+		}
+		
+	}
+
+	private void translateFunctionCall(Map<String, ILconst> localVarMap,
+			ILfunctionCall s) {
+		ILconst[] arguments = new ILconst[s.getArgs().size()];
+		for (int i=0; i< arguments.length; i++) {
+			arguments[i] = lookupVarValue(localVarMap, s.getArgs().get(i));
+		}
+		executeFunction(s.getName(), arguments );
 	}
 
 	private void translateReturn(Map<String, ILconst> localVarMap, ILreturn s) {

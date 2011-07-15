@@ -8,6 +8,10 @@ public class ILconstString extends ILconst {
 		this.val = strVal;
 	}
 
+	public String getVal() {
+		return val;
+	}
+	
 	@Override
 	public String print() {
 		return val;

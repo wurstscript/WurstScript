@@ -93,11 +93,19 @@ public class PscriptGenerator implements IGenerator {
       _builder.append("nothing");
       _xifexpression = _builder;
     } else {
-      StringConcatenation _builder_1 = new StringConcatenation();
-      String _name = type.getName();
-      String _lookupNativeTranslation = prog.lookupNativeTranslation(_name);
-      _builder_1.append(_lookupNativeTranslation, "");
-      _xifexpression = _builder_1;
+      StringConcatenation _xifexpression_1 = null;
+      if ((type instanceof de.peeeq.pscript.types.PScriptTypeVoid)) {
+        StringConcatenation _builder_1 = new StringConcatenation();
+        _builder_1.append("nothing");
+        _xifexpression_1 = _builder_1;
+      } else {
+        StringConcatenation _builder_2 = new StringConcatenation();
+        String _name = type.getName();
+        String _lookupNativeTranslation = prog.lookupNativeTranslation(_name);
+        _builder_2.append(_lookupNativeTranslation, "");
+        _xifexpression_1 = _builder_2;
+      }
+      _xifexpression = _xifexpression_1;
     }
     return _xifexpression;
   }
