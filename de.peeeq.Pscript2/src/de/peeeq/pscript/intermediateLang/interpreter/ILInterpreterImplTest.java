@@ -39,12 +39,14 @@ public class ILInterpreterImplTest {
 		Injector injector = new de.peeeq.pscript.PscriptStandaloneSetupGenerated().createInjectorAndDoEMFRegistration();
 		ILInterpreterImplTest t = injector.getInstance(ILInterpreterImplTest.class);
 		
-		t.runTest("file://C:/pscript/de.peeeq.Pscript2/src/de/peeeq/pscript/intermediateLang/interpreter/test.pscript");
+		t.runTest("platform:/resource/de.peeeq.Pscript2/src/de/peeeq/pscript/intermediateLang/interpreter/test.pscript");
 		
 		
 	}
 	
 	private void runTest(String uri) {
+		new org.eclipse.emf.mwe.utils.StandaloneSetup().setPlatformUri("../");
+		
 		ResourceSet set = resourceSetProvider.get();
 		Resource resource = set.getResource(URI.createURI(uri), true);
 		
