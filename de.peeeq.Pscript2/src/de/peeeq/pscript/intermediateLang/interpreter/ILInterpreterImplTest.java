@@ -61,7 +61,7 @@ public class ILInterpreterImplTest {
 		// load the program:
 		interpreter.LoadProgram(prog);
 		// execute function test.foo
-		ILconst result = interpreter.executeFunction("test_foo", new ILconstInt(2));
+		ILconst result = interpreter.executeFunction("test_foo", new ILconstInt(4));
 		
 		System.out.println("result = " + result);
 		

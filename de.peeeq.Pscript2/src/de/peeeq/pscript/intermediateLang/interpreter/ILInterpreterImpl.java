@@ -8,6 +8,7 @@ import de.peeeq.pscript.intermediateLang.ILStatement;
 import de.peeeq.pscript.intermediateLang.ILconst;
 import de.peeeq.pscript.intermediateLang.ILconstBool;
 import de.peeeq.pscript.intermediateLang.ILconstInt;
+import de.peeeq.pscript.intermediateLang.ILconstNum;
 import de.peeeq.pscript.intermediateLang.ILcopy;
 import de.peeeq.pscript.intermediateLang.ILfunction;
 import de.peeeq.pscript.intermediateLang.ILif;
@@ -104,26 +105,71 @@ public class ILInterpreterImpl implements ILInterpreter {
 		ILconst leftValue = lookupVarValue(localVarMap, s.getLeft());
 		ILconst rightvalue = lookupVarValue(localVarMap, s.getRight());
 		ILconst result = null;
+
 		if (s.getOp() == Iloperator.PLUS) {
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
 				ILconstInt r = (ILconstInt) rightvalue;
 				result  = new ILconstInt(l.getVal() + r.getVal());
 			}
-		} else if (s.getOp() == Iloperator.LESS) { 
+		}else if (s.getOp() == Iloperator.MINUS) {
+			if (leftValue instanceof ILconstInt) {
+				ILconstInt l = (ILconstInt) leftValue;
+				ILconstInt r = (ILconstInt) rightvalue;
+				result  = new ILconstInt(l.getVal() - r.getVal());
+			}
+		}else if (s.getOp() == Iloperator.MULT) {
+			if (leftValue instanceof ILconstInt) {
+				ILconstInt l = (ILconstInt) leftValue;
+				ILconstInt r = (ILconstInt) rightvalue;
+				result  = new ILconstInt(l.getVal() * r.getVal());
+			}
+		}else if (s.getOp() == Iloperator.DIV_INT || s.getOp() == Iloperator.DIV_REAL ) {
+			if (leftValue instanceof ILconstInt) {
+				ILconstInt l = (ILconstInt) leftValue;
+				ILconstInt r = (ILconstInt) rightvalue;
+				result  = new ILconstInt(l.getVal() / r.getVal());
+			}
+			// TODO Reals
+		}else if (s.getOp() == Iloperator.LESS) { 
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
 				ILconstInt r = (ILconstInt) rightvalue;
 				result  = new ILconstBool(l.getVal() < r.getVal());
 			}
+		}else if (s.getOp() == Iloperator.LESS_EQ) { 
+			if (leftValue instanceof ILconstInt) {
+				ILconstInt l = (ILconstInt) leftValue;
+				ILconstInt r = (ILconstInt) rightvalue;
+				result  = new ILconstBool(l.getVal() <= r.getVal());
+			}
+		}else if (s.getOp() == Iloperator.GREATER) {
+			if (leftValue instanceof ILconstInt) {
+				ILconstInt l = (ILconstInt) leftValue;
+				ILconstInt r = (ILconstInt) rightvalue;
+				result  = new ILconstBool(l.getVal() > r.getVal());
+			}
+		}else if (s.getOp() == Iloperator.GREATER_EQ) {
+			if (leftValue instanceof ILconstInt) {
+				ILconstInt l = (ILconstInt) leftValue;
+				ILconstInt r = (ILconstInt) rightvalue;
+				result  = new ILconstBool(l.getVal() >= r.getVal());
+			}
+		}else if (s.getOp() == Iloperator.EQUALITY) {
+			if (leftValue instanceof ILconstInt) {
+				ILconstInt l = (ILconstInt) leftValue;
+				ILconstInt r = (ILconstInt) rightvalue;
+				result  = new ILconstBool(l.getVal() == r.getVal());
+			}
+		}else if (s.getOp() == Iloperator.UNEQUALITY) {
+			if (leftValue instanceof ILconstInt) {
+				ILconstInt l = (ILconstInt) leftValue;
+				ILconstInt r = (ILconstInt) rightvalue;
+				result  = new ILconstBool(l.getVal() != r.getVal());
+			}
 		}
 		
-//		if (isLocal(localVarMap, s.getResultVar())) {
-//			localVarMap.put(s.getResultVar().getName(), result);
-//		} else {
-//			// TODO global
-//			throw new Error("not implemented");
-//		}
+
 		
 		addVarToProperMap(localVarMap,s.getResultVar(), result);
 		
@@ -132,13 +178,6 @@ public class ILInterpreterImpl implements ILInterpreter {
 	private void translateIlsetConst(Map<String, ILconst> localVarMap,
 			IlsetConst s) {
 		// TODO Auto-generated method stub
-
-//		if (isLocal(localVarMap, s.getResultVar())) {
-//			localVarMap.put(s.getResultVar().getName(), s.getConstant());
-//		} else {
-//			// TODO global
-//			throw new Error("not implemented");
-//		}
 		
 		addVarToProperMap(localVarMap,s.getResultVar(), s.getConstant());
 		
@@ -148,17 +187,8 @@ public class ILInterpreterImpl implements ILInterpreter {
 		// TODO Auto-generated method stub
 		// set x = y
 		ILconst value = lookupVarValue(localVarMap, s.getVar());
-//		value2 = lookupVarValue(localVarMap, s.getResultVar());
-		
-//		if (isLocal(localVarMap, s.getResultVar())) {
-//			localVarMap.put(s.getResultVar().getName(), value);
-//		} else {
-//			// TODO global
-//			throw new Error("not implemented");
-//		}
-		addVarToProperMap(localVarMap,s.getResultVar(), value);
-		
-		
+
+		addVarToProperMap(localVarMap,s.getResultVar(), value);	
 		
 	}
 	
@@ -180,7 +210,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 			localVarMap.put(v.getName(), s);
 		} else if (true) {
 			// TODO globalVarMap 
-			
+			throw new Error("not yet implemented");
 		} else {
 			throw new Error("var is neither local nor global?");
 		}

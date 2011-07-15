@@ -1,10 +1,10 @@
 package test {
 	native type Int = integer
 	native type Bool = boolean
-
+	
 	function foo(x: Int):Int {
-		if x < 2 {
-			return 3 + 4
+		if x < 3{
+			return 3 + 2 * 4 + 2
 		} else {
 			return x+1
 		}
