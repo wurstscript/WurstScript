@@ -30,7 +30,8 @@ public class Main {
 		Injector injector = new de.peeeq.pscript.PscriptStandaloneSetupGenerated().createInjectorAndDoEMFRegistration();
 		Main main = injector.getInstance(Main.class);
 //		main.runGenerator(args[0]);
-		main.runGenerator("file://C:/Users/Frotty/Documents/PScript/de.peeeq.Pscript2/src/de/peeeq/pscript/intermediateLang/interpreter/test.pscript");
+//		main.runGenerator("file://C:/pscript/de.peeeq.Pscript2/src/de/peeeq/pscript/intermediateLang/interpreter/test.pscript");
+		main.runGenerator("platform:/resource/de.peeeq.Pscript2/src/de/peeeq/pscript/intermediateLang/interpreter/test.pscript");
 	}
 	
 	@Inject 
@@ -46,6 +47,8 @@ public class Main {
 	private JavaIoFileSystemAccess fileAccess;
 
 	protected void runGenerator(String string) {
+		new org.eclipse.emf.mwe.utils.StandaloneSetup().setPlatformUri("../");
+		
 		// load the resource
 		ResourceSet set = resourceSetProvider.get();
 		Resource resource = set.getResource(URI.createURI(string), true);

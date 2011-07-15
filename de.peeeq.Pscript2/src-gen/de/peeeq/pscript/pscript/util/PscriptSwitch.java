@@ -157,6 +157,7 @@ public class PscriptSwitch<T> extends Switch<T>
       {
         Statements statements = (Statements)theEObject;
         T result = caseStatements(statements);
+        if (result == null) result = caseElseBlock(statements);
         if (result == null) result = defaultCase(theEObject);
         return result;
       }
@@ -180,6 +181,13 @@ public class PscriptSwitch<T> extends Switch<T>
         StmtIf stmtIf = (StmtIf)theEObject;
         T result = caseStmtIf(stmtIf);
         if (result == null) result = caseStatement(stmtIf);
+        if (result == null) result = defaultCase(theEObject);
+        return result;
+      }
+      case PscriptPackage.ELSE_BLOCK:
+      {
+        ElseBlock elseBlock = (ElseBlock)theEObject;
+        T result = caseElseBlock(elseBlock);
         if (result == null) result = defaultCase(theEObject);
         return result;
       }
@@ -757,6 +765,22 @@ public class PscriptSwitch<T> extends Switch<T>
    * @generated
    */
   public T caseStmtIf(StmtIf object)
+  {
+    return null;
+  }
+
+  /**
+   * Returns the result of interpreting the object as an instance of '<em>Else Block</em>'.
+   * <!-- begin-user-doc -->
+   * This implementation returns null;
+   * returning a non-null result will terminate the switch.
+   * <!-- end-user-doc -->
+   * @param object the target of the switch.
+   * @return the result of interpreting the object as an instance of '<em>Else Block</em>'.
+   * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
+   * @generated
+   */
+  public T caseElseBlock(ElseBlock object)
   {
     return null;
   }

@@ -671,8 +671,16 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 				}
 				else break;
 			case PscriptPackage.STATEMENTS:
-				if(context == grammarAccess.getStatementsRule()) {
+				if(context == grammarAccess.getElseBlockRule()) {
+					sequence_ElseBlock_Statements(context, (Statements) semanticObject); 
+					return; 
+				}
+				else if(context == grammarAccess.getStatementsRule()) {
 					sequence_Statements_Statements(context, (Statements) semanticObject); 
+					return; 
+				}
+				else if(context == grammarAccess.getElseIfBlockRule()) {
+					sequence_ElseIfBlock_Statements(context, (Statements) semanticObject); 
 					return; 
 				}
 				else break;
@@ -732,6 +740,30 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 	 *    members[0, *]
 	 */
 	protected void sequence_ClassDef_ClassDef(EObject context, ClassDef semanticObject) {
+		genericSequencer.createSequence(context, semanticObject);
+	}
+	
+	
+	/**
+	 * Constraint:
+	 *     ((statements+=Statement*) | statements+=StmtIf)
+	 *
+	 * Features:
+	 *    statements[0, *]
+	 */
+	protected void sequence_ElseBlock_Statements(EObject context, Statements semanticObject) {
+		genericSequencer.createSequence(context, semanticObject);
+	}
+	
+	
+	/**
+	 * Constraint:
+	 *     statements+=StmtIf
+	 *
+	 * Features:
+	 *    statements[1, 1]
+	 */
+	protected void sequence_ElseIfBlock_Statements(EObject context, Statements semanticObject) {
 		genericSequencer.createSequence(context, semanticObject);
 	}
 	
@@ -1427,7 +1459,7 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 	
 	/**
 	 * Constraint:
-	 *     (cond=Expr thenBlock=Statements elseBlock=Statements?)
+	 *     (cond=Expr thenBlock=Statements elseBlock=ElseBlock?)
 	 *
 	 * Features:
 	 *    cond[1, 1]

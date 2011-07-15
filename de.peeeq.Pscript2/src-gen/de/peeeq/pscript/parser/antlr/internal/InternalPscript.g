@@ -1326,33 +1326,112 @@ ruleStmtIf returns [EObject current=null]
     {
     	newLeafNode(otherlv_5, grammarAccess.getStmtIfAccess().getElseKeyword_5_0());
     }
-	otherlv_6='{' 
-    {
-    	newLeafNode(otherlv_6, grammarAccess.getStmtIfAccess().getLeftCurlyBracketKeyword_5_1());
-    }
 (
 (
 		{ 
-	        newCompositeNode(grammarAccess.getStmtIfAccess().getElseBlockStatementsParserRuleCall_5_2_0()); 
+	        newCompositeNode(grammarAccess.getStmtIfAccess().getElseBlockElseBlockParserRuleCall_5_1_0()); 
 	    }
-		lv_elseBlock_7_0=ruleStatements		{
+		lv_elseBlock_6_0=ruleElseBlock		{
 	        if ($current==null) {
 	            $current = createModelElementForParent(grammarAccess.getStmtIfRule());
 	        }
        		set(
        			$current, 
        			"elseBlock",
-        		lv_elseBlock_7_0, 
-        		"Statements");
+        		lv_elseBlock_6_0, 
+        		"ElseBlock");
 	        afterParserOrEnumRuleCall();
 	    }
 
 )
-)	otherlv_8='}' 
-    {
-    	newLeafNode(otherlv_8, grammarAccess.getStmtIfAccess().getRightCurlyBracketKeyword_5_3());
+))?)
+;
+
+
+
+
+
+// Entry rule entryRuleElseBlock
+entryRuleElseBlock returns [EObject current=null] 
+	:
+	{ newCompositeNode(grammarAccess.getElseBlockRule()); }
+	 iv_ruleElseBlock=ruleElseBlock 
+	 { $current=$iv_ruleElseBlock.current; } 
+	 EOF 
+;
+
+// Rule ElseBlock
+ruleElseBlock returns [EObject current=null] 
+    @init { enterRule(); 
     }
-)?)
+    @after { leaveRule(); }:
+((	otherlv_0='{' 
+    {
+    	newLeafNode(otherlv_0, grammarAccess.getElseBlockAccess().getLeftCurlyBracketKeyword_0_0());
+    }
+
+    { 
+        newCompositeNode(grammarAccess.getElseBlockAccess().getStatementsParserRuleCall_0_1()); 
+    }
+    this_Statements_1=ruleStatements
+    { 
+        $current = $this_Statements_1.current; 
+        afterParserOrEnumRuleCall();
+    }
+	otherlv_2='}' 
+    {
+    	newLeafNode(otherlv_2, grammarAccess.getElseBlockAccess().getRightCurlyBracketKeyword_0_2());
+    }
+)
+    |
+    { 
+        newCompositeNode(grammarAccess.getElseBlockAccess().getElseIfBlockParserRuleCall_1()); 
+    }
+    this_ElseIfBlock_3=ruleElseIfBlock
+    { 
+        $current = $this_ElseIfBlock_3.current; 
+        afterParserOrEnumRuleCall();
+    }
+)
+;
+
+
+
+
+
+// Entry rule entryRuleElseIfBlock
+entryRuleElseIfBlock returns [EObject current=null] 
+	:
+	{ newCompositeNode(grammarAccess.getElseIfBlockRule()); }
+	 iv_ruleElseIfBlock=ruleElseIfBlock 
+	 { $current=$iv_ruleElseIfBlock.current; } 
+	 EOF 
+;
+
+// Rule ElseIfBlock
+ruleElseIfBlock returns [EObject current=null] 
+    @init { enterRule(); 
+    }
+    @after { leaveRule(); }:
+(
+(
+		{ 
+	        newCompositeNode(grammarAccess.getElseIfBlockAccess().getStatementsStmtIfParserRuleCall_0()); 
+	    }
+		lv_statements_0_0=ruleStmtIf		{
+	        if ($current==null) {
+	            $current = createModelElementForParent(grammarAccess.getElseIfBlockRule());
+	        }
+       		add(
+       			$current, 
+       			"statements",
+        		lv_statements_0_0, 
+        		"StmtIf");
+	        afterParserOrEnumRuleCall();
+	    }
+
+)
+)
 ;
 
 

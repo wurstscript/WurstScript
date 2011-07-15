@@ -149,6 +149,11 @@ public class PscriptAdapterFactory extends AdapterFactoryImpl
         return createStmtIfAdapter();
       }
       @Override
+      public Adapter caseElseBlock(ElseBlock object)
+      {
+        return createElseBlockAdapter();
+      }
+      @Override
       public Adapter caseStmtWhile(StmtWhile object)
       {
         return createStmtWhileAdapter();
@@ -596,6 +601,21 @@ public class PscriptAdapterFactory extends AdapterFactoryImpl
    * @generated
    */
   public Adapter createStmtIfAdapter()
+  {
+    return null;
+  }
+
+  /**
+   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.ElseBlock <em>Else Block</em>}'.
+   * <!-- begin-user-doc -->
+   * This default implementation returns null so that we can easily ignore cases;
+   * it's useful to ignore a case when inheritance will catch all the cases anyway.
+   * <!-- end-user-doc -->
+   * @return the new adapter.
+   * @see de.peeeq.pscript.pscript.ElseBlock
+   * @generated
+   */
+  public Adapter createElseBlockAdapter()
   {
     return null;
   }

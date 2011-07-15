@@ -6,6 +6,7 @@
  */
 package de.peeeq.pscript.pscript.impl;
 
+import de.peeeq.pscript.pscript.ElseBlock;
 import de.peeeq.pscript.pscript.Expr;
 import de.peeeq.pscript.pscript.PscriptPackage;
 import de.peeeq.pscript.pscript.Statements;
@@ -64,7 +65,7 @@ public class StmtIfImpl extends StatementImpl implements StmtIf
    * @generated
    * @ordered
    */
-  protected Statements elseBlock;
+  protected ElseBlock elseBlock;
 
   /**
    * <!-- begin-user-doc -->
@@ -188,7 +189,7 @@ public class StmtIfImpl extends StatementImpl implements StmtIf
    * <!-- end-user-doc -->
    * @generated
    */
-  public Statements getElseBlock()
+  public ElseBlock getElseBlock()
   {
     return elseBlock;
   }
@@ -198,9 +199,9 @@ public class StmtIfImpl extends StatementImpl implements StmtIf
    * <!-- end-user-doc -->
    * @generated
    */
-  public NotificationChain basicSetElseBlock(Statements newElseBlock, NotificationChain msgs)
+  public NotificationChain basicSetElseBlock(ElseBlock newElseBlock, NotificationChain msgs)
   {
-    Statements oldElseBlock = elseBlock;
+    ElseBlock oldElseBlock = elseBlock;
     elseBlock = newElseBlock;
     if (eNotificationRequired())
     {
@@ -215,7 +216,7 @@ public class StmtIfImpl extends StatementImpl implements StmtIf
    * <!-- end-user-doc -->
    * @generated
    */
-  public void setElseBlock(Statements newElseBlock)
+  public void setElseBlock(ElseBlock newElseBlock)
   {
     if (newElseBlock != elseBlock)
     {
@@ -288,7 +289,7 @@ public class StmtIfImpl extends StatementImpl implements StmtIf
         setThenBlock((Statements)newValue);
         return;
       case PscriptPackage.STMT_IF__ELSE_BLOCK:
-        setElseBlock((Statements)newValue);
+        setElseBlock((ElseBlock)newValue);
         return;
     }
     super.eSet(featureID, newValue);
@@ -311,7 +312,7 @@ public class StmtIfImpl extends StatementImpl implements StmtIf
         setThenBlock((Statements)null);
         return;
       case PscriptPackage.STMT_IF__ELSE_BLOCK:
-        setElseBlock((Statements)null);
+        setElseBlock((ElseBlock)null);
         return;
     }
     super.eUnset(featureID);

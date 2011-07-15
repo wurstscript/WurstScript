@@ -762,16 +762,14 @@ public class PscriptGrammarAccess extends AbstractGrammarElementFinder {
 		private final Keyword cRightCurlyBracketKeyword_4 = (Keyword)cGroup.eContents().get(4);
 		private final Group cGroup_5 = (Group)cGroup.eContents().get(5);
 		private final Keyword cElseKeyword_5_0 = (Keyword)cGroup_5.eContents().get(0);
-		private final Keyword cLeftCurlyBracketKeyword_5_1 = (Keyword)cGroup_5.eContents().get(1);
-		private final Assignment cElseBlockAssignment_5_2 = (Assignment)cGroup_5.eContents().get(2);
-		private final RuleCall cElseBlockStatementsParserRuleCall_5_2_0 = (RuleCall)cElseBlockAssignment_5_2.eContents().get(0);
-		private final Keyword cRightCurlyBracketKeyword_5_3 = (Keyword)cGroup_5.eContents().get(3);
+		private final Assignment cElseBlockAssignment_5_1 = (Assignment)cGroup_5.eContents().get(1);
+		private final RuleCall cElseBlockElseBlockParserRuleCall_5_1_0 = (RuleCall)cElseBlockAssignment_5_1.eContents().get(0);
 		
 		//StmtIf:
-		//	"if" cond=Expr "{" thenBlock=Statements "}" ("else" "{" elseBlock=Statements "}")?;
+		//	"if" cond=Expr "{" thenBlock=Statements "}" ("else" elseBlock=ElseBlock)?;
 		public ParserRule getRule() { return rule; }
 
-		//"if" cond=Expr "{" thenBlock=Statements "}" ("else" "{" elseBlock=Statements "}")?
+		//"if" cond=Expr "{" thenBlock=Statements "}" ("else" elseBlock=ElseBlock)?
 		public Group getGroup() { return cGroup; }
 
 		//"if"
@@ -795,23 +793,65 @@ public class PscriptGrammarAccess extends AbstractGrammarElementFinder {
 		//"}"
 		public Keyword getRightCurlyBracketKeyword_4() { return cRightCurlyBracketKeyword_4; }
 
-		//("else" "{" elseBlock=Statements "}")?
+		//("else" elseBlock=ElseBlock)?
 		public Group getGroup_5() { return cGroup_5; }
 
 		//"else"
 		public Keyword getElseKeyword_5_0() { return cElseKeyword_5_0; }
 
-		//"{"
-		public Keyword getLeftCurlyBracketKeyword_5_1() { return cLeftCurlyBracketKeyword_5_1; }
+		//elseBlock=ElseBlock
+		public Assignment getElseBlockAssignment_5_1() { return cElseBlockAssignment_5_1; }
 
-		//elseBlock=Statements
-		public Assignment getElseBlockAssignment_5_2() { return cElseBlockAssignment_5_2; }
+		//ElseBlock
+		public RuleCall getElseBlockElseBlockParserRuleCall_5_1_0() { return cElseBlockElseBlockParserRuleCall_5_1_0; }
+	}
+
+	public class ElseBlockElements extends AbstractParserRuleElementFinder {
+		private final ParserRule rule = (ParserRule) GrammarUtil.findRuleForName(getGrammar(), "ElseBlock");
+		private final Alternatives cAlternatives = (Alternatives)rule.eContents().get(1);
+		private final Group cGroup_0 = (Group)cAlternatives.eContents().get(0);
+		private final Keyword cLeftCurlyBracketKeyword_0_0 = (Keyword)cGroup_0.eContents().get(0);
+		private final RuleCall cStatementsParserRuleCall_0_1 = (RuleCall)cGroup_0.eContents().get(1);
+		private final Keyword cRightCurlyBracketKeyword_0_2 = (Keyword)cGroup_0.eContents().get(2);
+		private final RuleCall cElseIfBlockParserRuleCall_1 = (RuleCall)cAlternatives.eContents().get(1);
+		
+		//ElseBlock:
+		//	"{" Statements "}" | ElseIfBlock;
+		public ParserRule getRule() { return rule; }
+
+		//"{" Statements "}" | ElseIfBlock
+		public Alternatives getAlternatives() { return cAlternatives; }
+
+		//"{" Statements "}"
+		public Group getGroup_0() { return cGroup_0; }
+
+		//"{"
+		public Keyword getLeftCurlyBracketKeyword_0_0() { return cLeftCurlyBracketKeyword_0_0; }
 
 		//Statements
-		public RuleCall getElseBlockStatementsParserRuleCall_5_2_0() { return cElseBlockStatementsParserRuleCall_5_2_0; }
+		public RuleCall getStatementsParserRuleCall_0_1() { return cStatementsParserRuleCall_0_1; }
 
 		//"}"
-		public Keyword getRightCurlyBracketKeyword_5_3() { return cRightCurlyBracketKeyword_5_3; }
+		public Keyword getRightCurlyBracketKeyword_0_2() { return cRightCurlyBracketKeyword_0_2; }
+
+		//ElseIfBlock
+		public RuleCall getElseIfBlockParserRuleCall_1() { return cElseIfBlockParserRuleCall_1; }
+	}
+
+	public class ElseIfBlockElements extends AbstractParserRuleElementFinder {
+		private final ParserRule rule = (ParserRule) GrammarUtil.findRuleForName(getGrammar(), "ElseIfBlock");
+		private final Assignment cStatementsAssignment = (Assignment)rule.eContents().get(1);
+		private final RuleCall cStatementsStmtIfParserRuleCall_0 = (RuleCall)cStatementsAssignment.eContents().get(0);
+		
+		//ElseIfBlock returns Statements:
+		//	statements+=StmtIf;
+		public ParserRule getRule() { return rule; }
+
+		//statements+=StmtIf
+		public Assignment getStatementsAssignment() { return cStatementsAssignment; }
+
+		//StmtIf
+		public RuleCall getStatementsStmtIfParserRuleCall_0() { return cStatementsStmtIfParserRuleCall_0; }
 	}
 
 	public class StmtWhileElements extends AbstractParserRuleElementFinder {
@@ -1905,6 +1945,8 @@ public class PscriptGrammarAccess extends AbstractGrammarElementFinder {
 	private StatementElements pStatement;
 	private StmtReturnElements pStmtReturn;
 	private StmtIfElements pStmtIf;
+	private ElseBlockElements pElseBlock;
+	private ElseIfBlockElements pElseIfBlock;
 	private StmtWhileElements pStmtWhile;
 	private StmtExprElements pStmtExpr;
 	private ExprElements pExpr;
@@ -2121,13 +2163,33 @@ public class PscriptGrammarAccess extends AbstractGrammarElementFinder {
 	}
 
 	//StmtIf:
-	//	"if" cond=Expr "{" thenBlock=Statements "}" ("else" "{" elseBlock=Statements "}")?;
+	//	"if" cond=Expr "{" thenBlock=Statements "}" ("else" elseBlock=ElseBlock)?;
 	public StmtIfElements getStmtIfAccess() {
 		return (pStmtIf != null) ? pStmtIf : (pStmtIf = new StmtIfElements());
 	}
 	
 	public ParserRule getStmtIfRule() {
 		return getStmtIfAccess().getRule();
+	}
+
+	//ElseBlock:
+	//	"{" Statements "}" | ElseIfBlock;
+	public ElseBlockElements getElseBlockAccess() {
+		return (pElseBlock != null) ? pElseBlock : (pElseBlock = new ElseBlockElements());
+	}
+	
+	public ParserRule getElseBlockRule() {
+		return getElseBlockAccess().getRule();
+	}
+
+	//ElseIfBlock returns Statements:
+	//	statements+=StmtIf;
+	public ElseIfBlockElements getElseIfBlockAccess() {
+		return (pElseIfBlock != null) ? pElseIfBlock : (pElseIfBlock = new ElseIfBlockElements());
+	}
+	
+	public ParserRule getElseIfBlockRule() {
+		return getElseIfBlockAccess().getRule();
 	}
 
 	//StmtWhile:

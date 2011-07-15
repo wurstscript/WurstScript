@@ -88,12 +88,12 @@ public interface StmtIf extends Statement
    * </p>
    * <!-- end-user-doc -->
    * @return the value of the '<em>Else Block</em>' containment reference.
-   * @see #setElseBlock(Statements)
+   * @see #setElseBlock(ElseBlock)
    * @see de.peeeq.pscript.pscript.PscriptPackage#getStmtIf_ElseBlock()
    * @model containment="true"
    * @generated
    */
-  Statements getElseBlock();
+  ElseBlock getElseBlock();
 
   /**
    * Sets the value of the '{@link de.peeeq.pscript.pscript.StmtIf#getElseBlock <em>Else Block</em>}' containment reference.
@@ -103,6 +103,6 @@ public interface StmtIf extends Statement
    * @see #getElseBlock()
    * @generated
    */
-  void setElseBlock(Statements value);
+  void setElseBlock(ElseBlock value);
 
 } // StmtIf

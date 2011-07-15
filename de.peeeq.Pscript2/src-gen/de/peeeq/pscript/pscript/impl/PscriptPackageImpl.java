@@ -8,6 +8,7 @@ package de.peeeq.pscript.pscript.impl;
 
 import de.peeeq.pscript.pscript.ClassDef;
 import de.peeeq.pscript.pscript.ClassMember;
+import de.peeeq.pscript.pscript.ElseBlock;
 import de.peeeq.pscript.pscript.Entity;
 import de.peeeq.pscript.pscript.Expr;
 import de.peeeq.pscript.pscript.ExprAdditive;
@@ -179,6 +180,13 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * @generated
    */
   private EClass stmtIfEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass elseBlockEClass = null;
 
   /**
    * <!-- begin-user-doc -->
@@ -879,6 +887,16 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
   public EReference getStmtIf_ElseBlock()
   {
     return (EReference)stmtIfEClass.getEStructuralFeatures().get(2);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getElseBlock()
+  {
+    return elseBlockEClass;
   }
 
   /**
@@ -1818,6 +1836,8 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
     createEReference(stmtIfEClass, STMT_IF__THEN_BLOCK);
     createEReference(stmtIfEClass, STMT_IF__ELSE_BLOCK);
 
+    elseBlockEClass = createEClass(ELSE_BLOCK);
+
     stmtWhileEClass = createEClass(STMT_WHILE);
     createEReference(stmtWhileEClass, STMT_WHILE__COND);
     createEReference(stmtWhileEClass, STMT_WHILE__BODY);
@@ -1985,6 +2005,7 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
     varDefEClass.getESuperTypes().add(this.getStatement());
     funcDefEClass.getESuperTypes().add(this.getEntity());
     funcDefEClass.getESuperTypes().add(this.getClassMember());
+    statementsEClass.getESuperTypes().add(this.getElseBlock());
     stmtReturnEClass.getESuperTypes().add(this.getStatement());
     stmtIfEClass.getESuperTypes().add(this.getStatement());
     stmtWhileEClass.getESuperTypes().add(this.getStatement());
@@ -2071,7 +2092,9 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
     initEClass(stmtIfEClass, StmtIf.class, "StmtIf", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEReference(getStmtIf_Cond(), this.getExpr(), null, "cond", null, 0, 1, StmtIf.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
     initEReference(getStmtIf_ThenBlock(), this.getStatements(), null, "thenBlock", null, 0, 1, StmtIf.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getStmtIf_ElseBlock(), this.getStatements(), null, "elseBlock", null, 0, 1, StmtIf.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getStmtIf_ElseBlock(), this.getElseBlock(), null, "elseBlock", null, 0, 1, StmtIf.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
+    initEClass(elseBlockEClass, ElseBlock.class, "ElseBlock", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 
     initEClass(stmtWhileEClass, StmtWhile.class, "StmtWhile", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEReference(getStmtWhile_Cond(), this.getExpr(), null, "cond", null, 0, 1, StmtWhile.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);

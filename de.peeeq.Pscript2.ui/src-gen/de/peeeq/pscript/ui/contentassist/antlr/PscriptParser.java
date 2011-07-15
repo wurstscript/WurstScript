@@ -44,6 +44,7 @@ public class PscriptParser extends AbstractContentAssistParser {
 					put(grammarAccess.getVarDefAccess().getAlternatives_1(), "rule__VarDef__Alternatives_1");
 					put(grammarAccess.getStatementsAccess().getAlternatives_1(), "rule__Statements__Alternatives_1");
 					put(grammarAccess.getStatementAccess().getAlternatives(), "rule__Statement__Alternatives");
+					put(grammarAccess.getElseBlockAccess().getAlternatives(), "rule__ElseBlock__Alternatives");
 					put(grammarAccess.getOpAssignmentAccess().getAlternatives(), "rule__OpAssignment__Alternatives");
 					put(grammarAccess.getOpEqualityAccess().getAlternatives(), "rule__OpEquality__Alternatives");
 					put(grammarAccess.getOpComparisonAccess().getAlternatives(), "rule__OpComparison__Alternatives");
@@ -79,6 +80,7 @@ public class PscriptParser extends AbstractContentAssistParser {
 					put(grammarAccess.getStmtReturnAccess().getGroup(), "rule__StmtReturn__Group__0");
 					put(grammarAccess.getStmtIfAccess().getGroup(), "rule__StmtIf__Group__0");
 					put(grammarAccess.getStmtIfAccess().getGroup_5(), "rule__StmtIf__Group_5__0");
+					put(grammarAccess.getElseBlockAccess().getGroup_0(), "rule__ElseBlock__Group_0__0");
 					put(grammarAccess.getStmtWhileAccess().getGroup(), "rule__StmtWhile__Group__0");
 					put(grammarAccess.getStmtExprAccess().getGroup(), "rule__StmtExpr__Group__0");
 					put(grammarAccess.getExprAssignmentAccess().getGroup(), "rule__ExprAssignment__Group__0");
@@ -157,7 +159,8 @@ public class PscriptParser extends AbstractContentAssistParser {
 					put(grammarAccess.getStmtReturnAccess().getEAssignment_2(), "rule__StmtReturn__EAssignment_2");
 					put(grammarAccess.getStmtIfAccess().getCondAssignment_1(), "rule__StmtIf__CondAssignment_1");
 					put(grammarAccess.getStmtIfAccess().getThenBlockAssignment_3(), "rule__StmtIf__ThenBlockAssignment_3");
-					put(grammarAccess.getStmtIfAccess().getElseBlockAssignment_5_2(), "rule__StmtIf__ElseBlockAssignment_5_2");
+					put(grammarAccess.getStmtIfAccess().getElseBlockAssignment_5_1(), "rule__StmtIf__ElseBlockAssignment_5_1");
+					put(grammarAccess.getElseIfBlockAccess().getStatementsAssignment(), "rule__ElseIfBlock__StatementsAssignment");
 					put(grammarAccess.getStmtWhileAccess().getCondAssignment_1(), "rule__StmtWhile__CondAssignment_1");
 					put(grammarAccess.getStmtWhileAccess().getBodyAssignment_3(), "rule__StmtWhile__BodyAssignment_3");
 					put(grammarAccess.getStmtExprAccess().getEAssignment_0(), "rule__StmtExpr__EAssignment_0");

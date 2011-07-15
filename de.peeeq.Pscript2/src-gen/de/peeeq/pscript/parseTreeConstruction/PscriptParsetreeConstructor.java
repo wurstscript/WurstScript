@@ -48,27 +48,29 @@ protected class ThisRootNode extends RootToken {
 			case 14: return new Statement_Alternatives(this, this, 14, inst);
 			case 15: return new StmtReturn_Group(this, this, 15, inst);
 			case 16: return new StmtIf_Group(this, this, 16, inst);
-			case 17: return new StmtWhile_Group(this, this, 17, inst);
-			case 18: return new StmtExpr_Group(this, this, 18, inst);
-			case 19: return new Expr_ExprAssignmentParserRuleCall(this, this, 19, inst);
-			case 20: return new ExprAssignment_Group(this, this, 20, inst);
-			case 21: return new OpAssignment_Alternatives(this, this, 21, inst);
-			case 22: return new ExprOr_Group(this, this, 22, inst);
-			case 23: return new ExprAnd_Group(this, this, 23, inst);
-			case 24: return new ExprEquality_Group(this, this, 24, inst);
-			case 25: return new OpEquality_Alternatives(this, this, 25, inst);
-			case 26: return new ExprComparison_Group(this, this, 26, inst);
-			case 27: return new OpComparison_Alternatives(this, this, 27, inst);
-			case 28: return new ExprAdditive_Group(this, this, 28, inst);
-			case 29: return new OpAdditive_Alternatives(this, this, 29, inst);
-			case 30: return new ExprMult_Group(this, this, 30, inst);
-			case 31: return new OpMultiplicative_Alternatives(this, this, 31, inst);
-			case 32: return new ExprSign_Alternatives(this, this, 32, inst);
-			case 33: return new ExprNot_Alternatives(this, this, 33, inst);
-			case 34: return new ExprMember_Group(this, this, 34, inst);
-			case 35: return new ExprSingle_Alternatives(this, this, 35, inst);
-			case 36: return new ExprAtomic_Alternatives(this, this, 36, inst);
-			case 37: return new ExprList_Group(this, this, 37, inst);
+			case 17: return new ElseBlock_Alternatives(this, this, 17, inst);
+			case 18: return new ElseIfBlock_StatementsAssignment(this, this, 18, inst);
+			case 19: return new StmtWhile_Group(this, this, 19, inst);
+			case 20: return new StmtExpr_Group(this, this, 20, inst);
+			case 21: return new Expr_ExprAssignmentParserRuleCall(this, this, 21, inst);
+			case 22: return new ExprAssignment_Group(this, this, 22, inst);
+			case 23: return new OpAssignment_Alternatives(this, this, 23, inst);
+			case 24: return new ExprOr_Group(this, this, 24, inst);
+			case 25: return new ExprAnd_Group(this, this, 25, inst);
+			case 26: return new ExprEquality_Group(this, this, 26, inst);
+			case 27: return new OpEquality_Alternatives(this, this, 27, inst);
+			case 28: return new ExprComparison_Group(this, this, 28, inst);
+			case 29: return new OpComparison_Alternatives(this, this, 29, inst);
+			case 30: return new ExprAdditive_Group(this, this, 30, inst);
+			case 31: return new OpAdditive_Alternatives(this, this, 31, inst);
+			case 32: return new ExprMult_Group(this, this, 32, inst);
+			case 33: return new OpMultiplicative_Alternatives(this, this, 33, inst);
+			case 34: return new ExprSign_Alternatives(this, this, 34, inst);
+			case 35: return new ExprNot_Alternatives(this, this, 35, inst);
+			case 36: return new ExprMember_Group(this, this, 36, inst);
+			case 37: return new ExprSingle_Alternatives(this, this, 37, inst);
+			case 38: return new ExprAtomic_Alternatives(this, this, 38, inst);
+			case 39: return new ExprList_Group(this, this, 39, inst);
 			default: return null;
 		}	
 	}	
@@ -3487,11 +3489,11 @@ protected class StmtReturn_NLTerminalRuleCall_3 extends UnassignedTextToken {
 /************ begin Rule StmtIf ****************
  *
  * StmtIf:
- * 	"if" cond=Expr "{" thenBlock=Statements "}" ("else" "{" elseBlock=Statements "}")?;
+ * 	"if" cond=Expr "{" thenBlock=Statements "}" ("else" elseBlock=ElseBlock)?;
  *
  **/
 
-// "if" cond=Expr "{" thenBlock=Statements "}" ("else" "{" elseBlock=Statements "}")?
+// "if" cond=Expr "{" thenBlock=Statements "}" ("else" elseBlock=ElseBlock)?
 protected class StmtIf_Group extends GroupToken {
 	
 	public StmtIf_Group(AbstractToken lastRuleCallOrigin, AbstractToken next, int transitionIndex, IEObjectConsumer eObjectConsumer) {
@@ -3678,7 +3680,7 @@ protected class StmtIf_RightCurlyBracketKeyword_4 extends KeywordToken  {
 
 }
 
-// ("else" "{" elseBlock=Statements "}")?
+// ("else" elseBlock=ElseBlock)?
 protected class StmtIf_Group_5 extends GroupToken {
 	
 	public StmtIf_Group_5(AbstractToken lastRuleCallOrigin, AbstractToken next, int transitionIndex, IEObjectConsumer eObjectConsumer) {
@@ -3693,7 +3695,7 @@ protected class StmtIf_Group_5 extends GroupToken {
     @Override
 	public AbstractToken createFollower(int index, IEObjectConsumer inst) {
 		switch(index) {
-			case 0: return new StmtIf_RightCurlyBracketKeyword_5_3(lastRuleCallOrigin, this, 0, inst);
+			case 0: return new StmtIf_ElseBlockAssignment_5_1(lastRuleCallOrigin, this, 0, inst);
 			default: return null;
 		}	
 	}
@@ -3722,44 +3724,22 @@ protected class StmtIf_ElseKeyword_5_0 extends KeywordToken  {
 
 }
 
-// "{"
-protected class StmtIf_LeftCurlyBracketKeyword_5_1 extends KeywordToken  {
+// elseBlock=ElseBlock
+protected class StmtIf_ElseBlockAssignment_5_1 extends AssignmentToken  {
 	
-	public StmtIf_LeftCurlyBracketKeyword_5_1(AbstractToken lastRuleCallOrigin, AbstractToken next, int transitionIndex, IEObjectConsumer eObjectConsumer) {
-		super(lastRuleCallOrigin, next, transitionIndex, eObjectConsumer);
-	}
-	
-	@Override
-	public Keyword getGrammarElement() {
-		return grammarAccess.getStmtIfAccess().getLeftCurlyBracketKeyword_5_1();
-	}
-
-    @Override
-	public AbstractToken createFollower(int index, IEObjectConsumer inst) {
-		switch(index) {
-			case 0: return new StmtIf_ElseKeyword_5_0(lastRuleCallOrigin, this, 0, inst);
-			default: return null;
-		}	
-	}
-
-}
-
-// elseBlock=Statements
-protected class StmtIf_ElseBlockAssignment_5_2 extends AssignmentToken  {
-	
-	public StmtIf_ElseBlockAssignment_5_2(AbstractToken lastRuleCallOrigin, AbstractToken next, int transitionIndex, IEObjectConsumer eObjectConsumer) {
+	public StmtIf_ElseBlockAssignment_5_1(AbstractToken lastRuleCallOrigin, AbstractToken next, int transitionIndex, IEObjectConsumer eObjectConsumer) {
 		super(lastRuleCallOrigin, next, transitionIndex, eObjectConsumer);
 	}
 	
 	@Override
 	public Assignment getGrammarElement() {
-		return grammarAccess.getStmtIfAccess().getElseBlockAssignment_5_2();
+		return grammarAccess.getStmtIfAccess().getElseBlockAssignment_5_1();
 	}
 
     @Override
 	public AbstractToken createFollower(int index, IEObjectConsumer inst) {
 		switch(index) {
-			case 0: return new Statements_Group(this, this, 0, inst);
+			case 0: return new ElseBlock_Alternatives(this, this, 0, inst);
 			default: return null;
 		}	
 	}
@@ -3770,9 +3750,9 @@ protected class StmtIf_ElseBlockAssignment_5_2 extends AssignmentToken  {
 		IEObjectConsumer obj = eObjectConsumer.cloneAndConsume("elseBlock");
 		if(value instanceof EObject) { // org::eclipse::xtext::impl::RuleCallImpl
 			IEObjectConsumer param = createEObjectConsumer((EObject)value);
-			if(param.isInstanceOf(grammarAccess.getStatementsRule().getType().getClassifier())) {
+			if(param.isInstanceOf(grammarAccess.getElseBlockRule().getType().getClassifier())) {
 				type = AssignmentType.PARSER_RULE_CALL;
-				element = grammarAccess.getStmtIfAccess().getElseBlockStatementsParserRuleCall_5_2_0(); 
+				element = grammarAccess.getStmtIfAccess().getElseBlockElseBlockParserRuleCall_5_1_0(); 
 				consumed = obj;
 				return param;
 			}
@@ -3784,28 +3764,148 @@ protected class StmtIf_ElseBlockAssignment_5_2 extends AssignmentToken  {
 	public AbstractToken createFollowerAfterReturn(AbstractToken next,	int actIndex, int index, IEObjectConsumer inst) {
 		if(value == inst.getEObject() && !inst.isConsumed()) return null;
 		switch(index) {
-			case 0: return new StmtIf_LeftCurlyBracketKeyword_5_1(lastRuleCallOrigin, next, actIndex, consumed);
+			case 0: return new StmtIf_ElseKeyword_5_0(lastRuleCallOrigin, next, actIndex, consumed);
+			default: return null;
+		}	
+	}	
+}
+
+
+
+/************ end Rule StmtIf ****************/
+
+
+/************ begin Rule ElseBlock ****************
+ *
+ * ElseBlock:
+ * 	"{" Statements "}" | ElseIfBlock;
+ *
+ **/
+
+// "{" Statements "}" | ElseIfBlock
+protected class ElseBlock_Alternatives extends AlternativesToken {
+
+	public ElseBlock_Alternatives(AbstractToken lastRuleCallOrigin, AbstractToken next, int transitionIndex, IEObjectConsumer eObjectConsumer) {
+		super(lastRuleCallOrigin, next, transitionIndex, eObjectConsumer);
+	}
+	
+	@Override
+	public Alternatives getGrammarElement() {
+		return grammarAccess.getElseBlockAccess().getAlternatives();
+	}
+
+    @Override
+	public AbstractToken createFollower(int index, IEObjectConsumer inst) {
+		switch(index) {
+			case 0: return new ElseBlock_Group_0(lastRuleCallOrigin, this, 0, inst);
+			case 1: return new ElseBlock_ElseIfBlockParserRuleCall_1(lastRuleCallOrigin, this, 1, inst);
+			default: return null;
+		}	
+	}
+
+    @Override
+	public IEObjectConsumer tryConsume() {
+		if(getEObject().eClass() != grammarAccess.getElseIfBlockRule().getType().getClassifier())
+			return null;
+		return eObjectConsumer;
+	}
+
+}
+
+// "{" Statements "}"
+protected class ElseBlock_Group_0 extends GroupToken {
+	
+	public ElseBlock_Group_0(AbstractToken lastRuleCallOrigin, AbstractToken next, int transitionIndex, IEObjectConsumer eObjectConsumer) {
+		super(lastRuleCallOrigin, next, transitionIndex, eObjectConsumer);
+	}
+	
+	@Override
+	public Group getGrammarElement() {
+		return grammarAccess.getElseBlockAccess().getGroup_0();
+	}
+
+    @Override
+	public AbstractToken createFollower(int index, IEObjectConsumer inst) {
+		switch(index) {
+			case 0: return new ElseBlock_RightCurlyBracketKeyword_0_2(lastRuleCallOrigin, this, 0, inst);
+			default: return null;
+		}	
+	}
+
+}
+
+// "{"
+protected class ElseBlock_LeftCurlyBracketKeyword_0_0 extends KeywordToken  {
+	
+	public ElseBlock_LeftCurlyBracketKeyword_0_0(AbstractToken lastRuleCallOrigin, AbstractToken next, int transitionIndex, IEObjectConsumer eObjectConsumer) {
+		super(lastRuleCallOrigin, next, transitionIndex, eObjectConsumer);
+	}
+	
+	@Override
+	public Keyword getGrammarElement() {
+		return grammarAccess.getElseBlockAccess().getLeftCurlyBracketKeyword_0_0();
+	}
+
+    @Override
+	public AbstractToken createFollower(int index, IEObjectConsumer inst) {
+		switch(index) {
+			default: return lastRuleCallOrigin.createFollowerAfterReturn(this, index, index, inst);
+		}	
+	}
+
+}
+
+// Statements
+protected class ElseBlock_StatementsParserRuleCall_0_1 extends RuleCallToken {
+	
+	public ElseBlock_StatementsParserRuleCall_0_1(AbstractToken lastRuleCallOrigin, AbstractToken next, int transitionIndex, IEObjectConsumer eObjectConsumer) {
+		super(lastRuleCallOrigin, next, transitionIndex, eObjectConsumer);
+	}
+	
+	@Override
+	public RuleCall getGrammarElement() {
+		return grammarAccess.getElseBlockAccess().getStatementsParserRuleCall_0_1();
+	}
+
+    @Override
+	public AbstractToken createFollower(int index, IEObjectConsumer inst) {
+		switch(index) {
+			case 0: return new Statements_Group(this, this, 0, inst);
+			default: return null;
+		}	
+	}
+
+    @Override
+	public IEObjectConsumer tryConsume() {
+		if(checkForRecursion(Statements_Group.class, eObjectConsumer)) return null;
+		return eObjectConsumer;
+	}
+	
+    @Override
+	public AbstractToken createFollowerAfterReturn(AbstractToken next,	int actIndex, int index, IEObjectConsumer inst) {
+		switch(index) {
+			case 0: return new ElseBlock_LeftCurlyBracketKeyword_0_0(lastRuleCallOrigin, next, actIndex, inst);
 			default: return null;
 		}	
 	}	
 }
 
 // "}"
-protected class StmtIf_RightCurlyBracketKeyword_5_3 extends KeywordToken  {
+protected class ElseBlock_RightCurlyBracketKeyword_0_2 extends KeywordToken  {
 	
-	public StmtIf_RightCurlyBracketKeyword_5_3(AbstractToken lastRuleCallOrigin, AbstractToken next, int transitionIndex, IEObjectConsumer eObjectConsumer) {
+	public ElseBlock_RightCurlyBracketKeyword_0_2(AbstractToken lastRuleCallOrigin, AbstractToken next, int transitionIndex, IEObjectConsumer eObjectConsumer) {
 		super(lastRuleCallOrigin, next, transitionIndex, eObjectConsumer);
 	}
 	
 	@Override
 	public Keyword getGrammarElement() {
-		return grammarAccess.getStmtIfAccess().getRightCurlyBracketKeyword_5_3();
+		return grammarAccess.getElseBlockAccess().getRightCurlyBracketKeyword_0_2();
 	}
 
     @Override
 	public AbstractToken createFollower(int index, IEObjectConsumer inst) {
 		switch(index) {
-			case 0: return new StmtIf_ElseBlockAssignment_5_2(lastRuleCallOrigin, this, 0, inst);
+			case 0: return new ElseBlock_StatementsParserRuleCall_0_1(lastRuleCallOrigin, this, 0, inst);
 			default: return null;
 		}	
 	}
@@ -3813,8 +3913,99 @@ protected class StmtIf_RightCurlyBracketKeyword_5_3 extends KeywordToken  {
 }
 
 
+// ElseIfBlock
+protected class ElseBlock_ElseIfBlockParserRuleCall_1 extends RuleCallToken {
+	
+	public ElseBlock_ElseIfBlockParserRuleCall_1(AbstractToken lastRuleCallOrigin, AbstractToken next, int transitionIndex, IEObjectConsumer eObjectConsumer) {
+		super(lastRuleCallOrigin, next, transitionIndex, eObjectConsumer);
+	}
+	
+	@Override
+	public RuleCall getGrammarElement() {
+		return grammarAccess.getElseBlockAccess().getElseIfBlockParserRuleCall_1();
+	}
 
-/************ end Rule StmtIf ****************/
+    @Override
+	public AbstractToken createFollower(int index, IEObjectConsumer inst) {
+		switch(index) {
+			case 0: return new ElseIfBlock_StatementsAssignment(this, this, 0, inst);
+			default: return null;
+		}	
+	}
+
+    @Override
+	public IEObjectConsumer tryConsume() {
+		if(checkForRecursion(ElseIfBlock_StatementsAssignment.class, eObjectConsumer)) return null;
+		return eObjectConsumer;
+	}
+	
+    @Override
+	public AbstractToken createFollowerAfterReturn(AbstractToken next,	int actIndex, int index, IEObjectConsumer inst) {
+		switch(index) {
+			default: return lastRuleCallOrigin.createFollowerAfterReturn(next, actIndex , index, inst);
+		}	
+	}	
+}
+
+
+/************ end Rule ElseBlock ****************/
+
+
+/************ begin Rule ElseIfBlock ****************
+ *
+ * ElseIfBlock returns Statements:
+ * 	statements+=StmtIf;
+ *
+ **/
+
+// statements+=StmtIf
+protected class ElseIfBlock_StatementsAssignment extends AssignmentToken  {
+	
+	public ElseIfBlock_StatementsAssignment(AbstractToken lastRuleCallOrigin, AbstractToken next, int transitionIndex, IEObjectConsumer eObjectConsumer) {
+		super(lastRuleCallOrigin, next, transitionIndex, eObjectConsumer);
+	}
+	
+	@Override
+	public Assignment getGrammarElement() {
+		return grammarAccess.getElseIfBlockAccess().getStatementsAssignment();
+	}
+
+    @Override
+	public AbstractToken createFollower(int index, IEObjectConsumer inst) {
+		switch(index) {
+			case 0: return new StmtIf_Group(this, this, 0, inst);
+			default: return null;
+		}	
+	}
+
+    @Override	
+	public IEObjectConsumer tryConsume() {
+		if(getEObject().eClass() != grammarAccess.getElseIfBlockRule().getType().getClassifier())
+			return null;
+		if((value = eObjectConsumer.getConsumable("statements",true)) == null) return null;
+		IEObjectConsumer obj = eObjectConsumer.cloneAndConsume("statements");
+		if(value instanceof EObject) { // org::eclipse::xtext::impl::RuleCallImpl
+			IEObjectConsumer param = createEObjectConsumer((EObject)value);
+			if(param.isInstanceOf(grammarAccess.getStmtIfRule().getType().getClassifier())) {
+				type = AssignmentType.PARSER_RULE_CALL;
+				element = grammarAccess.getElseIfBlockAccess().getStatementsStmtIfParserRuleCall_0(); 
+				consumed = obj;
+				return param;
+			}
+		}
+		return null;
+	}
+
+    @Override
+	public AbstractToken createFollowerAfterReturn(AbstractToken next,	int actIndex, int index, IEObjectConsumer inst) {
+		if(value == inst.getEObject() && !inst.isConsumed()) return null;
+		switch(index) {
+			default: return lastRuleCallOrigin.createFollowerAfterReturn(next, actIndex , index, consumed);
+		}	
+	}	
+}
+
+/************ end Rule ElseIfBlock ****************/
 
 
 /************ begin Rule StmtWhile ****************

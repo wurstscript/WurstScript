@@ -153,6 +153,15 @@ public interface PscriptFactory extends EFactory
   StmtIf createStmtIf();
 
   /**
+   * Returns a new object of class '<em>Else Block</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Else Block</em>'.
+   * @generated
+   */
+  ElseBlock createElseBlock();
+
+  /**
    * Returns a new object of class '<em>Stmt While</em>'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->

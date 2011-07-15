@@ -15,6 +15,7 @@ import de.peeeq.pscript.attributes.AttrTypeExprType;
 import de.peeeq.pscript.attributes.AttrVarDefType;
 import de.peeeq.pscript.attributes.infrastructure.AttributeManager;
 import de.peeeq.pscript.pscript.ClassDef;
+import de.peeeq.pscript.pscript.ElseBlock;
 import de.peeeq.pscript.pscript.Entity;
 import de.peeeq.pscript.pscript.Expr;
 import de.peeeq.pscript.pscript.ExprAdditive;
@@ -66,6 +67,7 @@ import de.peeeq.pscript.pscript.StmtReturn;
 import de.peeeq.pscript.pscript.StmtWhile;
 import de.peeeq.pscript.pscript.TypeDef;
 import de.peeeq.pscript.pscript.VarDef;
+import de.peeeq.pscript.pscript.util.ElseBlockSwitch;
 import de.peeeq.pscript.pscript.util.EntitySwitchVoid;
 import de.peeeq.pscript.pscript.util.ExprSwitch;
 import de.peeeq.pscript.pscript.util.OpAdditiveSwitch;
@@ -255,7 +257,7 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 				ILvar resultVar = getNewLocalVar("whileCond", PScriptTypeBool.instance(), locals);
 				List<ILStatement> cond = translateExpr(stmtIf.getCond(), resultVar, locals);
 				List<ILStatement> thenBlock = translateStatements(stmtIf.getThenBlock(), locals);
-				List<ILStatement> elseBlock = translateStatements(stmtIf.getElseBlock(), locals);
+				List<ILStatement> elseBlock = translateElseBlock(stmtIf.getElseBlock(), locals);
 				result.addAll(cond);
 				result.add(new ILif(resultVar, thenBlock, elseBlock));
 				return result;
@@ -272,6 +274,16 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 			}
 			
 		}.doSwitch(s);
+	}
+
+	protected List<ILStatement> translateElseBlock(ElseBlock elseBlock,	final List<ILvar> locals) {
+		return new ElseBlockSwitch<List<ILStatement>>() {
+
+			@Override
+			public List<ILStatement> caseStatements(Statements statements) {
+				return translateStatements(statements, locals);
+			}
+		}.doSwitch(elseBlock);
 	}
 
 	protected List<ILStatement> translateAssignment(ILvar localVar, Expr e, List<ILvar> locals ) {

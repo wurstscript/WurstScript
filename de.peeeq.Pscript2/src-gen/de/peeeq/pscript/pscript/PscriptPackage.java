@@ -413,6 +413,25 @@ public interface PscriptPackage extends EPackage
   int FUNC_DEF_FEATURE_COUNT = ENTITY_FEATURE_COUNT + 3;
 
   /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.ElseBlockImpl <em>Else Block</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.ElseBlockImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getElseBlock()
+   * @generated
+   */
+  int ELSE_BLOCK = 14;
+
+  /**
+   * The number of structural features of the '<em>Else Block</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int ELSE_BLOCK_FEATURE_COUNT = 0;
+
+  /**
    * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.StatementsImpl <em>Statements</em>}' class.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -429,7 +448,7 @@ public interface PscriptPackage extends EPackage
    * @generated
    * @ordered
    */
-  int STATEMENTS__STATEMENTS = 0;
+  int STATEMENTS__STATEMENTS = ELSE_BLOCK_FEATURE_COUNT + 0;
 
   /**
    * The number of structural features of the '<em>Statements</em>' class.
@@ -438,7 +457,7 @@ public interface PscriptPackage extends EPackage
    * @generated
    * @ordered
    */
-  int STATEMENTS_FEATURE_COUNT = 1;
+  int STATEMENTS_FEATURE_COUNT = ELSE_BLOCK_FEATURE_COUNT + 1;
 
   /**
    * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.StatementImpl <em>Statement</em>}' class.
@@ -541,7 +560,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getStmtWhile()
    * @generated
    */
-  int STMT_WHILE = 14;
+  int STMT_WHILE = 15;
 
   /**
    * The feature id for the '<em><b>Cond</b></em>' containment reference.
@@ -578,7 +597,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getStmtExpr()
    * @generated
    */
-  int STMT_EXPR = 15;
+  int STMT_EXPR = 16;
 
   /**
    * The feature id for the '<em><b>E</b></em>' containment reference.
@@ -606,7 +625,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExpr()
    * @generated
    */
-  int EXPR = 16;
+  int EXPR = 17;
 
   /**
    * The number of structural features of the '<em>Expr</em>' class.
@@ -625,7 +644,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpAssignment()
    * @generated
    */
-  int OP_ASSIGNMENT = 17;
+  int OP_ASSIGNMENT = 18;
 
   /**
    * The number of structural features of the '<em>Op Assignment</em>' class.
@@ -644,7 +663,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpEquality()
    * @generated
    */
-  int OP_EQUALITY = 18;
+  int OP_EQUALITY = 19;
 
   /**
    * The number of structural features of the '<em>Op Equality</em>' class.
@@ -663,7 +682,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpComparison()
    * @generated
    */
-  int OP_COMPARISON = 19;
+  int OP_COMPARISON = 20;
 
   /**
    * The number of structural features of the '<em>Op Comparison</em>' class.
@@ -682,7 +701,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpAdditive()
    * @generated
    */
-  int OP_ADDITIVE = 20;
+  int OP_ADDITIVE = 21;
 
   /**
    * The number of structural features of the '<em>Op Additive</em>' class.
@@ -701,7 +720,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpMultiplicative()
    * @generated
    */
-  int OP_MULTIPLICATIVE = 21;
+  int OP_MULTIPLICATIVE = 22;
 
   /**
    * The number of structural features of the '<em>Op Multiplicative</em>' class.
@@ -720,7 +739,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprList()
    * @generated
    */
-  int EXPR_LIST = 22;
+  int EXPR_LIST = 23;
 
   /**
    * The feature id for the '<em><b>Params</b></em>' containment reference list.
@@ -748,7 +767,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getNativeType()
    * @generated
    */
-  int NATIVE_TYPE = 23;
+  int NATIVE_TYPE = 24;
 
   /**
    * The feature id for the '<em><b>Name</b></em>' attribute.
@@ -794,7 +813,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getClassDef()
    * @generated
    */
-  int CLASS_DEF = 24;
+  int CLASS_DEF = 25;
 
   /**
    * The feature id for the '<em><b>Name</b></em>' attribute.
@@ -831,7 +850,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getParameterDef()
    * @generated
    */
-  int PARAMETER_DEF = 25;
+  int PARAMETER_DEF = 26;
 
   /**
    * The feature id for the '<em><b>Name</b></em>' attribute.
@@ -886,7 +905,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprAssignment()
    * @generated
    */
-  int EXPR_ASSIGNMENT = 26;
+  int EXPR_ASSIGNMENT = 27;
 
   /**
    * The feature id for the '<em><b>Left</b></em>' containment reference.
@@ -932,7 +951,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpAssign()
    * @generated
    */
-  int OP_ASSIGN = 27;
+  int OP_ASSIGN = 28;
 
   /**
    * The number of structural features of the '<em>Op Assign</em>' class.
@@ -951,7 +970,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpPlusAssign()
    * @generated
    */
-  int OP_PLUS_ASSIGN = 28;
+  int OP_PLUS_ASSIGN = 29;
 
   /**
    * The number of structural features of the '<em>Op Plus Assign</em>' class.
@@ -970,7 +989,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpMinusAssign()
    * @generated
    */
-  int OP_MINUS_ASSIGN = 29;
+  int OP_MINUS_ASSIGN = 30;
 
   /**
    * The number of structural features of the '<em>Op Minus Assign</em>' class.
@@ -989,7 +1008,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprOr()
    * @generated
    */
-  int EXPR_OR = 30;
+  int EXPR_OR = 31;
 
   /**
    * The feature id for the '<em><b>Left</b></em>' containment reference.
@@ -1035,7 +1054,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprAnd()
    * @generated
    */
-  int EXPR_AND = 31;
+  int EXPR_AND = 32;
 
   /**
    * The feature id for the '<em><b>Left</b></em>' containment reference.
@@ -1081,7 +1100,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprEquality()
    * @generated
    */
-  int EXPR_EQUALITY = 32;
+  int EXPR_EQUALITY = 33;
 
   /**
    * The feature id for the '<em><b>Left</b></em>' containment reference.
@@ -1127,7 +1146,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpEquals()
    * @generated
    */
-  int OP_EQUALS = 33;
+  int OP_EQUALS = 34;
 
   /**
    * The number of structural features of the '<em>Op Equals</em>' class.
@@ -1146,7 +1165,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpUnequals()
    * @generated
    */
-  int OP_UNEQUALS = 34;
+  int OP_UNEQUALS = 35;
 
   /**
    * The number of structural features of the '<em>Op Unequals</em>' class.
@@ -1165,7 +1184,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprComparison()
    * @generated
    */
-  int EXPR_COMPARISON = 35;
+  int EXPR_COMPARISON = 36;
 
   /**
    * The feature id for the '<em><b>Left</b></em>' containment reference.
@@ -1211,7 +1230,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpLessEq()
    * @generated
    */
-  int OP_LESS_EQ = 36;
+  int OP_LESS_EQ = 37;
 
   /**
    * The number of structural features of the '<em>Op Less Eq</em>' class.
@@ -1230,7 +1249,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpLess()
    * @generated
    */
-  int OP_LESS = 37;
+  int OP_LESS = 38;
 
   /**
    * The number of structural features of the '<em>Op Less</em>' class.
@@ -1249,7 +1268,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpGreaterEq()
    * @generated
    */
-  int OP_GREATER_EQ = 38;
+  int OP_GREATER_EQ = 39;
 
   /**
    * The number of structural features of the '<em>Op Greater Eq</em>' class.
@@ -1268,7 +1287,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpGreater()
    * @generated
    */
-  int OP_GREATER = 39;
+  int OP_GREATER = 40;
 
   /**
    * The number of structural features of the '<em>Op Greater</em>' class.
@@ -1287,7 +1306,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprAdditive()
    * @generated
    */
-  int EXPR_ADDITIVE = 40;
+  int EXPR_ADDITIVE = 41;
 
   /**
    * The feature id for the '<em><b>Left</b></em>' containment reference.
@@ -1333,7 +1352,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpPlus()
    * @generated
    */
-  int OP_PLUS = 41;
+  int OP_PLUS = 42;
 
   /**
    * The number of structural features of the '<em>Op Plus</em>' class.
@@ -1352,7 +1371,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpMinus()
    * @generated
    */
-  int OP_MINUS = 42;
+  int OP_MINUS = 43;
 
   /**
    * The number of structural features of the '<em>Op Minus</em>' class.
@@ -1371,7 +1390,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprMult()
    * @generated
    */
-  int EXPR_MULT = 43;
+  int EXPR_MULT = 44;
 
   /**
    * The feature id for the '<em><b>Left</b></em>' containment reference.
@@ -1417,7 +1436,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpMult()
    * @generated
    */
-  int OP_MULT = 44;
+  int OP_MULT = 45;
 
   /**
    * The number of structural features of the '<em>Op Mult</em>' class.
@@ -1436,7 +1455,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpDivReal()
    * @generated
    */
-  int OP_DIV_REAL = 45;
+  int OP_DIV_REAL = 46;
 
   /**
    * The number of structural features of the '<em>Op Div Real</em>' class.
@@ -1455,7 +1474,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpModReal()
    * @generated
    */
-  int OP_MOD_REAL = 46;
+  int OP_MOD_REAL = 47;
 
   /**
    * The number of structural features of the '<em>Op Mod Real</em>' class.
@@ -1474,7 +1493,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpModInt()
    * @generated
    */
-  int OP_MOD_INT = 47;
+  int OP_MOD_INT = 48;
 
   /**
    * The number of structural features of the '<em>Op Mod Int</em>' class.
@@ -1493,7 +1512,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprSign()
    * @generated
    */
-  int EXPR_SIGN = 48;
+  int EXPR_SIGN = 49;
 
   /**
    * The feature id for the '<em><b>Op</b></em>' containment reference.
@@ -1530,7 +1549,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprNot()
    * @generated
    */
-  int EXPR_NOT = 49;
+  int EXPR_NOT = 50;
 
   /**
    * The feature id for the '<em><b>Right</b></em>' containment reference.
@@ -1558,7 +1577,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprMember()
    * @generated
    */
-  int EXPR_MEMBER = 50;
+  int EXPR_MEMBER = 51;
 
   /**
    * The feature id for the '<em><b>Left</b></em>' containment reference.
@@ -1595,7 +1614,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprIntVal()
    * @generated
    */
-  int EXPR_INT_VAL = 51;
+  int EXPR_INT_VAL = 52;
 
   /**
    * The feature id for the '<em><b>Int Val</b></em>' attribute.
@@ -1623,7 +1642,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprNumVal()
    * @generated
    */
-  int EXPR_NUM_VAL = 52;
+  int EXPR_NUM_VAL = 53;
 
   /**
    * The feature id for the '<em><b>Num Val</b></em>' attribute.
@@ -1651,7 +1670,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprStrval()
    * @generated
    */
-  int EXPR_STRVAL = 53;
+  int EXPR_STRVAL = 54;
 
   /**
    * The feature id for the '<em><b>Str Val</b></em>' attribute.
@@ -1679,7 +1698,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprBoolVal()
    * @generated
    */
-  int EXPR_BOOL_VAL = 54;
+  int EXPR_BOOL_VAL = 55;
 
   /**
    * The feature id for the '<em><b>Bool Val</b></em>' attribute.
@@ -1707,7 +1726,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprBuildinFunction()
    * @generated
    */
-  int EXPR_BUILDIN_FUNCTION = 55;
+  int EXPR_BUILDIN_FUNCTION = 56;
 
   /**
    * The feature id for the '<em><b>Name</b></em>' attribute.
@@ -1744,7 +1763,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprFunctioncall()
    * @generated
    */
-  int EXPR_FUNCTIONCALL = 56;
+  int EXPR_FUNCTIONCALL = 57;
 
   /**
    * The feature id for the '<em><b>Name Val</b></em>' reference.
@@ -1781,7 +1800,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprIdentifier()
    * @generated
    */
-  int EXPR_IDENTIFIER = 57;
+  int EXPR_IDENTIFIER = 58;
 
   /**
    * The feature id for the '<em><b>Name Val</b></em>' reference.
@@ -2150,6 +2169,16 @@ public interface PscriptPackage extends EPackage
    * @generated
    */
   EReference getStmtIf_ElseBlock();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.ElseBlock <em>Else Block</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Else Block</em>'.
+   * @see de.peeeq.pscript.pscript.ElseBlock
+   * @generated
+   */
+  EClass getElseBlock();
 
   /**
    * Returns the meta object for class '{@link de.peeeq.pscript.pscript.StmtWhile <em>Stmt While</em>}'.
@@ -3367,6 +3396,16 @@ public interface PscriptPackage extends EPackage
      * @generated
      */
     EReference STMT_IF__ELSE_BLOCK = eINSTANCE.getStmtIf_ElseBlock();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.ElseBlockImpl <em>Else Block</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.ElseBlockImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getElseBlock()
+     * @generated
+     */
+    EClass ELSE_BLOCK = eINSTANCE.getElseBlock();
 
     /**
      * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.StmtWhileImpl <em>Stmt While</em>}' class.

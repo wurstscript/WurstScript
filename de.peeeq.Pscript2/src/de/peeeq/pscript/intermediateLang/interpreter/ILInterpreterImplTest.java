@@ -3,34 +3,24 @@ package de.peeeq.pscript.intermediateLang.interpreter;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringReader;
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
-import org.eclipse.emf.ecore.resource.impl.ResourceImpl;
-import org.eclipse.xtext.xtend2.lib.StringConcatenation;
+import org.eclipse.xtext.util.CancelIndicator;
+import org.eclipse.xtext.validation.CheckMode;
+import org.eclipse.xtext.validation.IResourceValidator;
+import org.eclipse.xtext.validation.Issue;
 
-import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Provider;
 
-import de.peeeq.pscript.PscriptRuntimeModule;
-import de.peeeq.pscript.generator.Main;
-import de.peeeq.pscript.intermediateLang.ILStatement;
 import de.peeeq.pscript.intermediateLang.ILconst;
 import de.peeeq.pscript.intermediateLang.ILconstInt;
-import de.peeeq.pscript.intermediateLang.ILfunction;
 import de.peeeq.pscript.intermediateLang.ILprog;
-import de.peeeq.pscript.intermediateLang.ILvar;
 import de.peeeq.pscript.intermediateLang.IntermediateCodeGenerator;
-import de.peeeq.pscript.types.PScriptTypeBool;
-import de.peeeq.pscript.types.PScriptTypeInt;
-import de.peeeq.pscript.types.PscriptType;
 
 
 public class ILInterpreterImplTest {
@@ -41,12 +31,15 @@ public class ILInterpreterImplTest {
 	@Inject 
 	private IntermediateCodeGenerator iLconverter;
 	
+	@Inject
+	private IResourceValidator validator;
+	
 	static public void main(String ... args) throws IOException {
 		
 		Injector injector = new de.peeeq.pscript.PscriptStandaloneSetupGenerated().createInjectorAndDoEMFRegistration();
 		ILInterpreterImplTest t = injector.getInstance(ILInterpreterImplTest.class);
 		
-		t.runTest("file://C:/Users/Frotty/Documents/PScript/de.peeeq.Pscript2/src/de/peeeq/pscript/intermediateLang/interpreter/test.pscript");
+		t.runTest("file://C:/pscript/de.peeeq.Pscript2/src/de/peeeq/pscript/intermediateLang/interpreter/test.pscript");
 		
 		
 	}
@@ -54,6 +47,16 @@ public class ILInterpreterImplTest {
 	private void runTest(String uri) {
 		ResourceSet set = resourceSetProvider.get();
 		Resource resource = set.getResource(URI.createURI(uri), true);
+		
+		// validate the resource
+		List<Issue> list = validator.validate(resource, CheckMode.ALL, CancelIndicator.NullImpl);
+		if (!list.isEmpty()) {
+			for (Issue issue : list) {
+				System.err.println(issue);
+			}
+			return;
+		}
+		
 		ILprog prog = iLconverter.translateProg(resource );
 		
 		

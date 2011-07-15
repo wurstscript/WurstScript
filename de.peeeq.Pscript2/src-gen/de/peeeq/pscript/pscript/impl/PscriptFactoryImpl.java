@@ -82,6 +82,7 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
       case PscriptPackage.STATEMENT: return createStatement();
       case PscriptPackage.STMT_RETURN: return createStmtReturn();
       case PscriptPackage.STMT_IF: return createStmtIf();
+      case PscriptPackage.ELSE_BLOCK: return createElseBlock();
       case PscriptPackage.STMT_WHILE: return createStmtWhile();
       case PscriptPackage.STMT_EXPR: return createStmtExpr();
       case PscriptPackage.EXPR: return createExpr();
@@ -283,6 +284,17 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
   {
     StmtIfImpl stmtIf = new StmtIfImpl();
     return stmtIf;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public ElseBlock createElseBlock()
+  {
+    ElseBlockImpl elseBlock = new ElseBlockImpl();
+    return elseBlock;
   }
 
   /**

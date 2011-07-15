@@ -99,10 +99,19 @@ StmtReturn:
 StmtIf:
 	'if' cond=Expr '{' 
 		thenBlock=Statements 
-	'}' ('else' '{' 
-		elseBlock=Statements 
-	'}')? 
-;  
+	'}' ('else' elseBlock=ElseBlock)? 
+;
+
+ElseBlock:
+	('{' Statements	'}')
+	| ElseIfBlock
+;
+
+ElseIfBlock returns Statements:
+	statements+=StmtIf
+;
+
+  
 	
 StmtWhile:
 	'while' cond=Expr '{' 
