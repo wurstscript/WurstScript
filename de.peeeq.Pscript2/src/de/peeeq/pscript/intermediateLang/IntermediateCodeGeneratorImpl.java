@@ -183,7 +183,7 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 						returnType = PScriptTypeVoid.instance();
 					}
 					function.set(params, returnType , locals, body);  
-					prog.addFunction(function);
+//					prog.addFunction(function);
 				}
 
 				@Override
@@ -230,13 +230,15 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 
 			@Override
 			public List<ILStatement> caseStmtWhile(StmtWhile stmtWhile) {
-				ILvar resultVar = getNewLocalVar("whileCond", PScriptTypeBool.instance(), locals);
-				List<ILStatement> cond = translateExpr(stmtWhile.getCond(), resultVar, locals);
+				ILvar var_cond = getNewLocalVar("whileCond", PScriptTypeBool.instance(), locals);
+				ILvar var_condNot = getNewLocalVar("not_whileCond", PScriptTypeBool.instance(), locals);
+				List<ILStatement> cond = translateExpr(stmtWhile.getCond(), var_cond, locals);
 				List<ILStatement> whileBody = translateStatements(stmtWhile.getBody(), locals);
 				
 				List<ILStatement> loopBody = new NotNullList<ILStatement>();
 				loopBody.addAll(cond);
-				loopBody.add(new ILexitwhen(resultVar));
+				loopBody.add(new Ilunary(var_condNot, Iloperator.NOT, var_cond));
+				loopBody.add(new ILexitwhen(var_condNot));
 				loopBody.addAll(whileBody);
 				result.add(new ILloop(loopBody));	
 				
@@ -254,7 +256,7 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 
 			@Override
 			public List<ILStatement> caseStmtIf(StmtIf stmtIf) {
-				ILvar resultVar = getNewLocalVar("whileCond", PScriptTypeBool.instance(), locals);
+				ILvar resultVar = getNewLocalVar("ifCond", PScriptTypeBool.instance(), locals);
 				List<ILStatement> cond = translateExpr(stmtIf.getCond(), resultVar, locals);
 				List<ILStatement> thenBlock = translateStatements(stmtIf.getThenBlock(), locals);
 				List<ILStatement> elseBlock = translateElseBlock(stmtIf.getElseBlock(), locals);
