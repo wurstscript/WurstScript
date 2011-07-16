@@ -28,4 +28,8 @@ public class ILconstBool extends ILconst {
 		return val ? "true" : "false";
 	}
 
+	public boolean not() {
+		return !val;
+	}
+
 }

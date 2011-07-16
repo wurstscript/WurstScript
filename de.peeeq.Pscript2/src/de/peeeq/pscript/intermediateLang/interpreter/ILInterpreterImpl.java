@@ -23,6 +23,7 @@ import de.peeeq.pscript.intermediateLang.Ilbinary;
 import de.peeeq.pscript.intermediateLang.IlbuildinFunctionCall;
 import de.peeeq.pscript.intermediateLang.Iloperator;
 import de.peeeq.pscript.intermediateLang.IlsetConst;
+import de.peeeq.pscript.intermediateLang.Ilunary;
 import de.peeeq.pscript.types.PScriptTypeInt;
 
 public class ILInterpreterImpl implements ILInterpreter {
@@ -92,6 +93,8 @@ public class ILInterpreterImpl implements ILInterpreter {
 			translateIlsetConst( localVarMap, (IlsetConst)s);
 		} else if (s instanceof Ilbinary) {
 			translateIlbinary( localVarMap, (Ilbinary)s);
+		} else if (s instanceof Ilunary) {
+			translateIlunary(localVarMap, (Ilunary) s);
 		} else if (s instanceof ILreturn) {
 			translateReturn(localVarMap, (ILreturn) s);
 		} else if (s instanceof ILloop) {
@@ -107,6 +110,29 @@ public class ILInterpreterImpl implements ILInterpreter {
 
 			throw new Error("not implemented " + s);
 		}
+	}
+
+	private void translateIlunary(Map<String, ILconst> localVarMap,
+			Ilunary s) {
+		ILconst rightValue = lookupVarValue(localVarMap, s.getRight());
+		ILconst result = null;
+		if (s.getOp() == Iloperator.MINUS) {
+			if (rightValue instanceof ILconstInt) {
+				ILconstInt r = (ILconstInt) rightValue;
+				result  = new ILconstInt(r.negate());
+			} else if (rightValue instanceof ILconstNum) {
+				ILconstNum r = (ILconstNum) rightValue;
+				result  = new ILconstNum(r.negate());
+			}
+		}else if (s.getOp() == Iloperator.NOT) {
+			if (rightValue instanceof ILconstBool) {
+				ILconstBool r = (ILconstBool) rightValue;
+				result  = new ILconstBool(r.not());
+			}
+		}
+		
+		addVarToProperMap(localVarMap,s.getResultVar(), result);
+		
 	}
 
 	private void translateExitwhen(Map<String, ILconst> localVarMap,
@@ -160,74 +186,156 @@ public class ILInterpreterImpl implements ILInterpreter {
 	}
 
 	private void translateIlbinary(Map<String, ILconst> localVarMap, Ilbinary s) {
-		// set x = a + b
-		// set x = a * b
 		ILconst leftValue = lookupVarValue(localVarMap, s.getLeft());
-		ILconst rightvalue = lookupVarValue(localVarMap, s.getRight());
+		ILconst rightValue = lookupVarValue(localVarMap, s.getRight());
 		ILconst result = null;
 
 		if (s.getOp() == Iloperator.PLUS) {
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
-				ILconstInt r = (ILconstInt) rightvalue;
+				ILconstInt r = (ILconstInt) rightValue;
 				result  = new ILconstInt(l.getVal() + r.getVal());
+			} else if (leftValue instanceof ILconstNum) {
+				float l = ((ILconstNum) leftValue).getVal().floatValue();
+				float r = ((ILconstNum) rightValue).getVal().floatValue();
+				result  = new ILconstNum(l + r);
+			} else if (leftValue instanceof ILconstString) {
+				String l = ((ILconstString) leftValue).getVal();
+				String r = ((ILconstString) rightValue).getVal();
+				result  = new ILconstString(l + r);
 			}
 		}else if (s.getOp() == Iloperator.MINUS) {
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
-				ILconstInt r = (ILconstInt) rightvalue;
+				ILconstInt r = (ILconstInt) rightValue;
 				result  = new ILconstInt(l.getVal() - r.getVal());
+			} else if (leftValue instanceof ILconstNum) {
+				float l = ((ILconstNum) leftValue).getVal().floatValue();
+				float r = ((ILconstNum) rightValue).getVal().floatValue();
+				result  = new ILconstNum(l - r);
 			}
 		}else if (s.getOp() == Iloperator.MULT) {
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
-				ILconstInt r = (ILconstInt) rightvalue;
+				ILconstInt r = (ILconstInt) rightValue;
 				result  = new ILconstInt(l.getVal() * r.getVal());
+			} else if (leftValue instanceof ILconstNum) {
+				float l = ((ILconstNum) leftValue).getVal().floatValue();
+				float r = ((ILconstNum) rightValue).getVal().floatValue();
+				result  = new ILconstNum(l * r);
 			}
-		}else if (s.getOp() == Iloperator.DIV_INT || s.getOp() == Iloperator.DIV_REAL ) {
+		}else if ( s.getOp() == Iloperator.DIV_REAL ) {
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
-				ILconstInt r = (ILconstInt) rightvalue;
+				ILconstInt r = (ILconstInt) rightValue;
 				result  = new ILconstInt(l.getVal() / r.getVal());
+			}else if(leftValue instanceof ILconstNum) {
+				float l = ((ILconstNum) leftValue).getVal().floatValue();
+				float r = ((ILconstNum) rightValue).getVal().floatValue();
+				float sum = l + r;
+				result  = new ILconstNum( sum );
 			}
 			// TODO Reals
 		}else if (s.getOp() == Iloperator.LESS) { 
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
-				ILconstInt r = (ILconstInt) rightvalue;
+				ILconstInt r = (ILconstInt) rightValue;
 				result  = new ILconstBool(l.getVal() < r.getVal());
+			} else if (leftValue instanceof ILconstNum) {
+				float l = ((ILconstNum) leftValue).getVal().floatValue();
+				float r = ((ILconstNum) rightValue).getVal().floatValue();
+				result  = new ILconstBool(l < r);
 			}
 		}else if (s.getOp() == Iloperator.LESS_EQ) { 
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
-				ILconstInt r = (ILconstInt) rightvalue;
+				ILconstInt r = (ILconstInt) rightValue;
 				result  = new ILconstBool(l.getVal() <= r.getVal());
+			} else if (leftValue instanceof ILconstNum) {
+				float l = ((ILconstNum) leftValue).getVal().floatValue();
+				float r = ((ILconstNum) rightValue).getVal().floatValue();
+				result  = new ILconstBool(l <= r);
 			}
 		}else if (s.getOp() == Iloperator.GREATER) {
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
-				ILconstInt r = (ILconstInt) rightvalue;
+				ILconstInt r = (ILconstInt) rightValue;
 				result  = new ILconstBool(l.getVal() > r.getVal());
+			} else if (leftValue instanceof ILconstNum) {
+				float l = ((ILconstNum) leftValue).getVal().floatValue();
+				float r = ((ILconstNum) rightValue).getVal().floatValue();
+				result  = new ILconstBool(l > r);
 			}
 		}else if (s.getOp() == Iloperator.GREATER_EQ) {
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
-				ILconstInt r = (ILconstInt) rightvalue;
+				ILconstInt r = (ILconstInt) rightValue;
 				result  = new ILconstBool(l.getVal() >= r.getVal());
+			} else if (leftValue instanceof ILconstNum) {
+				float l = ((ILconstNum) leftValue).getVal().floatValue();
+				float r = ((ILconstNum) rightValue).getVal().floatValue();
+				result  = new ILconstBool(l >= r);
 			}
 		}else if (s.getOp() == Iloperator.EQUALITY) {
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
-				ILconstInt r = (ILconstInt) rightvalue;
+				ILconstInt r = (ILconstInt) rightValue;
 				result  = new ILconstBool(l.getVal() == r.getVal());
+			} else if (leftValue instanceof ILconstNum) {
+				float l = ((ILconstNum) leftValue).getVal().floatValue();
+				float r = ((ILconstNum) rightValue).getVal().floatValue();
+				result  = new ILconstBool(l == r);
+			}  else if (leftValue instanceof ILconstBool) {
+				boolean l = ((ILconstBool) leftValue).getVal();
+				boolean r = ((ILconstBool) rightValue).getVal();
+				result  = new ILconstBool(l == r);
+			} else if (leftValue instanceof ILconstString) {
+				String l = ((ILconstString) leftValue).getVal();
+				String r = ((ILconstString) rightValue).getVal();
+				result  = new ILconstBool(l == r);
 			}
 		}else if (s.getOp() == Iloperator.UNEQUALITY) {
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
-				ILconstInt r = (ILconstInt) rightvalue;
+				ILconstInt r = (ILconstInt) rightValue;
 				result  = new ILconstBool(l.getVal() != r.getVal());
+			} else if (leftValue instanceof ILconstNum) {
+				float l = ((ILconstNum) leftValue).getVal().floatValue();
+				float r = ((ILconstNum) rightValue).getVal().floatValue();
+				result  = new ILconstBool(l != r);
+			} else if (leftValue instanceof ILconstBool) {
+				boolean l = ((ILconstBool) leftValue).getVal();
+				boolean r = ((ILconstBool) rightValue).getVal();
+				result  = new ILconstBool(l != r);
+			} else if (leftValue instanceof ILconstString) {
+				String l = ((ILconstString) leftValue).getVal();
+				String r = ((ILconstString) rightValue).getVal();
+				result  = new ILconstBool(l != r);
+			}
+		}else if (s.getOp() == Iloperator.AND ) {
+			if (leftValue instanceof ILconstBool) {
+				boolean l = ((ILconstBool) leftValue).getVal();
+				boolean r = ((ILconstBool) rightValue).getVal();
+				result  = new ILconstBool(l && r);
+			}
+		}else if (s.getOp() == Iloperator.OR ) {
+			if (leftValue instanceof ILconstBool) {
+				boolean l = ((ILconstBool) leftValue).getVal();
+				boolean r = ((ILconstBool) rightValue).getVal();
+				result  = new ILconstBool(l || r);
+			}
+		}else if (s.getOp() == Iloperator.MOD_INT ) {
+			if (leftValue instanceof ILconstInt) {
+				ILconstInt l = (ILconstInt) leftValue;
+				ILconstInt r = (ILconstInt) rightValue;
+				result  = new ILconstInt(l.getVal() % r.getVal());
+			} else if (leftValue instanceof ILconstNum) {
+				float l = ((ILconstNum) leftValue).getVal().floatValue();
+				float r = ((ILconstNum) rightValue).getVal().floatValue();
+				result  = new ILconstNum(l % r);
 			}
 		}
+		// TODO DIV_INT, MOD_REAL (MOD ansich?)
 		
 
 		

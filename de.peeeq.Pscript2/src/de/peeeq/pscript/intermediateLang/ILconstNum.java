@@ -10,9 +10,21 @@ public class ILconstNum extends ILconst {
 		this.val = new BigDecimal(numVal);
 	}
 
+	public ILconstNum(float numVal) {
+		this.val = new BigDecimal(numVal);
+	}
+	
+	public float negate() {
+		return val.negate().floatValue();
+	}
+
 	@Override
 	public String print() {
 		return val.toString();
+	}
+
+	public BigDecimal getVal() {
+		return val;
 	}
 
 }

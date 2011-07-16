@@ -1,6 +1,6 @@
 package de.peeeq.pscript.intermediateLang.interpreter;
 
-import java.io.ByteArrayInputStream;
+import java.io.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -34,15 +34,48 @@ public class ILInterpreterImplTest {
 	@Inject
 	private IResourceValidator validator;
 	
+	private final static String ENDING = ".pscript"; 
+	
 	static public void main(String ... args) throws IOException {
 		
 		Injector injector = new de.peeeq.pscript.PscriptStandaloneSetupGenerated().createInjectorAndDoEMFRegistration();
 		ILInterpreterImplTest t = injector.getInstance(ILInterpreterImplTest.class);
+		boolean exists = (new File("./src/de/peeeq/pscript/intermediateLang/interpreter")).exists();
+		if (exists) {
+			System.out.print("ja");
+		} else {
+			System.out.print("nein");	
+		}
+		File dir = new File("./src/de/peeeq/pscript/intermediateLang/interpreter");
+		File[] fileList = dir.listFiles();
+		File[] pscriptFiles = new File[50];
 		
-		t.runTest("platform:/resource/de.peeeq.Pscript2/src/de/peeeq/pscript/intermediateLang/interpreter/test.pscript");
+		int files = 0;
+		if ( fileList != null ) {
+			for(File f : fileList) {
+				String name = f.getName().toLowerCase();
+				if (name.endsWith(ENDING)) {
+					pscriptFiles[files] = f;
+					System.out.println("File: " + name + " added.");
+					files++;
+				}
+	
+			}
+		}
+		System.out.println( files);
+		try {
+			for ( int i = 0; i < files; i++) {
+				t.runTest(pscriptFiles[i].getPath());
+			}
+		}catch (TestFailException e) {
+			
+		}
+		
+		//t.runTest("platform:/resource/de.peeeq.Pscript2/src/de/peeeq/pscript/intermediateLang/interpreter/test.pscript");
 		
 		
 	}
+	
 	
 	private void runTest(String uri) {
 		new org.eclipse.emf.mwe.utils.StandaloneSetup().setPlatformUri("../");
@@ -72,21 +105,6 @@ public class ILInterpreterImplTest {
 		
 	}
 
-	private static InputStream testProg1() {
-		String prog = 
-		"package test { \n" +
-			"int foo(x: Int) { \n" +
-				"if x < 3 { \n" +
-					"return x*3 + 4 \n" +
-				"} else { \n" +
-					"return x-1 \n" +
-				"} \n" +
-			"} \n" +
-		"}";
-		
-		
-		return new ByteArrayInputStream(prog.getBytes());
-	}
 
 	// example function 
 //	private static ILfunction functionFoo() {

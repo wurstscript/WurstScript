@@ -3,7 +3,7 @@ package test {
 	native type Bool = boolean
 	
 	function foo(x: Int, y: Int):Int {
-		while ( x > 0 ) {
+		while ( not (x > 0) or x <= 0 ) {
 			y = y + 1
 			x = x - 1
 		}

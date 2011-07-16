@@ -12,6 +12,10 @@ public class ILconstInt extends ILconst {
 		return val;
 	}
 	
+	public int negate() {
+		return val = -val;
+	}
+	
 	@Override
 	public String print() {
 		return val+"";
