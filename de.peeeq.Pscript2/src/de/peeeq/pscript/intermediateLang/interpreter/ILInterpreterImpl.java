@@ -11,9 +11,11 @@ import de.peeeq.pscript.intermediateLang.ILconstInt;
 import de.peeeq.pscript.intermediateLang.ILconstNum;
 import de.peeeq.pscript.intermediateLang.ILconstString;
 import de.peeeq.pscript.intermediateLang.ILcopy;
+import de.peeeq.pscript.intermediateLang.ILexitwhen;
 import de.peeeq.pscript.intermediateLang.ILfunction;
 import de.peeeq.pscript.intermediateLang.ILfunctionCall;
 import de.peeeq.pscript.intermediateLang.ILif;
+import de.peeeq.pscript.intermediateLang.ILloop;
 import de.peeeq.pscript.intermediateLang.ILprog;
 import de.peeeq.pscript.intermediateLang.ILreturn;
 import de.peeeq.pscript.intermediateLang.ILvar;
@@ -26,6 +28,7 @@ import de.peeeq.pscript.types.PScriptTypeInt;
 public class ILInterpreterImpl implements ILInterpreter {
 
 	private ILprog prog;
+	private static ExitwhenException staticExitwhenException = new ExitwhenException();
 
 	@Override
 	public void LoadProgram(ILprog prog) {
@@ -91,6 +94,10 @@ public class ILInterpreterImpl implements ILInterpreter {
 			translateIlbinary( localVarMap, (Ilbinary)s);
 		} else if (s instanceof ILreturn) {
 			translateReturn(localVarMap, (ILreturn) s);
+		} else if (s instanceof ILloop) {
+			translateLoop(localVarMap, (ILloop) s);
+		} else if (s instanceof ILexitwhen) {
+			translateExitwhen(localVarMap, (ILexitwhen) s);
 		} else if (s instanceof ILfunctionCall) {
 			translateFunctionCall(localVarMap, (ILfunctionCall) s);
 		} else if (s instanceof IlbuildinFunctionCall) {
@@ -100,6 +107,23 @@ public class ILInterpreterImpl implements ILInterpreter {
 
 			throw new Error("not implemented " + s);
 		}
+	}
+
+	private void translateExitwhen(Map<String, ILconst> localVarMap,
+			ILexitwhen s) {
+		ILconst value = lookupVarValue(localVarMap, s.getVar());
+		if (((ILconstBool)value).getVal())
+		{
+			throw staticExitwhenException;
+		}
+		
+	}
+
+	private void translateLoop(Map<String, ILconst> localVarMap, ILloop s) {
+		try{
+			while (true) { executeStatements(localVarMap, s.getLoopBody() ); }
+		} catch (ExitwhenException e){}
+		
 	}
 
 	private void translateBuildinFunction(Map<String, ILconst> localVarMap,
