@@ -25,7 +25,6 @@ import org.eclipse.emf.ecore.impl.ENotificationImpl;
  * <p>
  * The following features are implemented:
  * <ul>
- *   <li>{@link de.peeeq.pscript.pscript.impl.NativeTypeImpl#getOrigName <em>Orig Name</em>}</li>
  *   <li>{@link de.peeeq.pscript.pscript.impl.NativeTypeImpl#getSuperName <em>Super Name</em>}</li>
  * </ul>
  * </p>
@@ -34,26 +33,6 @@ import org.eclipse.emf.ecore.impl.ENotificationImpl;
  */
 public class NativeTypeImpl extends TypeDefImpl implements NativeType
 {
-  /**
-   * The default value of the '{@link #getOrigName() <em>Orig Name</em>}' attribute.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @see #getOrigName()
-   * @generated
-   * @ordered
-   */
-  protected static final String ORIG_NAME_EDEFAULT = null;
-
-  /**
-   * The cached value of the '{@link #getOrigName() <em>Orig Name</em>}' attribute.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @see #getOrigName()
-   * @generated
-   * @ordered
-   */
-  protected String origName = ORIG_NAME_EDEFAULT;
-
   /**
    * The cached value of the '{@link #getSuperName() <em>Super Name</em>}' containment reference.
    * <!-- begin-user-doc -->
@@ -83,29 +62,6 @@ public class NativeTypeImpl extends TypeDefImpl implements NativeType
   protected EClass eStaticClass()
   {
     return PscriptPackage.Literals.NATIVE_TYPE;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public String getOrigName()
-  {
-    return origName;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public void setOrigName(String newOrigName)
-  {
-    String oldOrigName = origName;
-    origName = newOrigName;
-    if (eNotificationRequired())
-      eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.NATIVE_TYPE__ORIG_NAME, oldOrigName, origName));
   }
 
   /**
@@ -182,8 +138,6 @@ public class NativeTypeImpl extends TypeDefImpl implements NativeType
   {
     switch (featureID)
     {
-      case PscriptPackage.NATIVE_TYPE__ORIG_NAME:
-        return getOrigName();
       case PscriptPackage.NATIVE_TYPE__SUPER_NAME:
         return getSuperName();
     }
@@ -200,9 +154,6 @@ public class NativeTypeImpl extends TypeDefImpl implements NativeType
   {
     switch (featureID)
     {
-      case PscriptPackage.NATIVE_TYPE__ORIG_NAME:
-        setOrigName((String)newValue);
-        return;
       case PscriptPackage.NATIVE_TYPE__SUPER_NAME:
         setSuperName((TypeExpr)newValue);
         return;
@@ -220,9 +171,6 @@ public class NativeTypeImpl extends TypeDefImpl implements NativeType
   {
     switch (featureID)
     {
-      case PscriptPackage.NATIVE_TYPE__ORIG_NAME:
-        setOrigName(ORIG_NAME_EDEFAULT);
-        return;
       case PscriptPackage.NATIVE_TYPE__SUPER_NAME:
         setSuperName((TypeExpr)null);
         return;
@@ -240,29 +188,10 @@ public class NativeTypeImpl extends TypeDefImpl implements NativeType
   {
     switch (featureID)
     {
-      case PscriptPackage.NATIVE_TYPE__ORIG_NAME:
-        return ORIG_NAME_EDEFAULT == null ? origName != null : !ORIG_NAME_EDEFAULT.equals(origName);
       case PscriptPackage.NATIVE_TYPE__SUPER_NAME:
         return superName != null;
     }
     return super.eIsSet(featureID);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  @Override
-  public String toString()
-  {
-    if (eIsProxy()) return super.toString();
-
-    StringBuffer result = new StringBuffer(super.toString());
-    result.append(" (origName: ");
-    result.append(origName);
-    result.append(')');
-    return result.toString();
   }
 
 } //NativeTypeImpl

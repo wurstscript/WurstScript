@@ -16,12 +16,12 @@ public class PScriptTypeBool extends PscriptType {
 
 	@Override
 	public String getName() {
-		return "Bool";
+		return "boolean";
 	}
 
 	@Override
 	public String getFullName() {
-		return "Bool";
+		return "boolean";
 	}
 
 	public static PScriptTypeBool instance() {

@@ -3,8 +3,15 @@
  */
 package de.peeeq.pscript.formatting;
 
+import java.util.List;
+
+import org.eclipse.xtext.AbstractElement;
+import org.eclipse.xtext.Keyword;
 import org.eclipse.xtext.formatting.impl.AbstractDeclarativeFormatter;
 import org.eclipse.xtext.formatting.impl.FormattingConfig;
+import org.eclipse.xtext.util.Pair;
+
+import de.peeeq.pscript.services.PscriptGrammarAccess;
 
 /**
  * This class contains custom formatting description.
@@ -23,5 +30,67 @@ public class PscriptFormatter extends AbstractDeclarativeFormatter {
 //		c.setLinewrap(0, 1, 2).before(getGrammarAccess().getSL_COMMENTRule());
 //		c.setLinewrap(0, 1, 2).before(getGrammarAccess().getML_COMMENTRule());
 //		c.setLinewrap(0, 1, 1).after(getGrammarAccess().getML_COMMENTRule());
+		
+//		PscriptGrammarAccess f = (PscriptGrammarAccess) getGrammarAccess();
+//		
+//		AbstractElement beginElement;
+//		c.setIndentationIncrement().after();
+//		c.setIndentation(f.getFuncDefRule());
+		
+		PscriptGrammarAccess f = (PscriptGrammarAccess) getGrammarAccess();
+		
+		
+	    // find common keywords an specify formatting for them
+	    for (Pair<Keyword, Keyword> pair : f.findKeywordPairs("(", ")")) {
+	      c.setNoSpace().after(pair.getFirst());
+	      c.setNoSpace().before(pair.getSecond());
+	    }
+	    for (Keyword comma : f.findKeywords(",")) {
+	      c.setNoSpace().before(comma);
+	    }
+	    
+	    for (Keyword dot : f.findKeywords(".")) {
+	      c.setNoSpace().before(dot);
+	      c.setNoSpace().after(dot);
+	    }
+	    
+		// indentation:
+		List<Pair<Keyword,Keyword>> pairs = f.findKeywordPairs("function", "endfunction");
+		for (Pair<Keyword, Keyword> pair : pairs) {
+			c.setIndentation(pair.getFirst(), pair.getSecond());
+		}
+		
+		for (Keyword k : f.findKeywords("else", "elseif")) {
+			c.setIndentationDecrement().before(k);
+			c.setIndentationIncrement().after(k);
+	    }
+		
+		
+		pairs = f.findKeywordPairs("if", "endif");
+		for (Pair<Keyword, Keyword> pair : pairs) {
+			c.setIndentation(pair.getFirst(), pair.getSecond());
+		}
+		
+		pairs = f.findKeywordPairs("package", "endpackage");
+		for (Pair<Keyword, Keyword> pair : pairs) {
+			c.setIndentation(pair.getFirst(), pair.getSecond());
+		}
+		
+		
+		pairs = f.findKeywordPairs("while", "endwhile");
+		for (Pair<Keyword, Keyword> pair : pairs) {
+			c.setIndentation(pair.getFirst(), pair.getSecond());
+		}
+		
+
+		pairs = f.findKeywordPairs("loop", "endloop");
+		for (Pair<Keyword, Keyword> pair : pairs) {
+			c.setIndentation(pair.getFirst(), pair.getSecond());
+		}
+		
+		pairs = f.findKeywordPairs("class", "endclass");
+		for (Pair<Keyword, Keyword> pair : pairs) {
+			c.setIndentation(pair.getFirst(), pair.getSecond());
+		}
 	}
 }

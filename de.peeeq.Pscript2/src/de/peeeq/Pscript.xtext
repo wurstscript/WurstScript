@@ -14,10 +14,10 @@ Program:
 
 	
 PackageDeclaration:
-  {PackageDeclaration} 'package' name=ID '{'
+  {PackageDeclaration} 'package' name=ID 
   	(NL* imports+=Import)*  NL*
     (elements+=Entity NL*)*
-  '}' NL*
+  'endpackage' NL*
 ;	
 
 Import:
@@ -30,10 +30,10 @@ ImportString:
 
 
 Entity:
-	(TypeDef|FuncDef|VarDef|InitBlock);
+	(TypeDef|FuncDef|VarDef|InitBlock|NativeFunc);
 
 InitBlock:
-	name='init' '{' body=Statements '}'
+	name='init' body=Statements 'endinit'
 ;
 	
 
@@ -45,51 +45,108 @@ TypeDef:
 	(NativeType|ClassDef)
 ;
 
+NativeFunc returns FuncDef:
+	{NativeFunc} 'constant'? 'native' name=ID 
+			(
+				  '(' (parameters+=ParameterDef (',' parameters+=ParameterDef)*)? ')'
+				| 'takes' 'nothing'
+				| 'takes' parameters+=ParameterDef (',' parameters+=ParameterDef)*
+			)
+			(
+				'returns' type=TypeExpr
+				| ('returns' 'nothing')?
+			) NL
+;
+
+
 NativeType returns TypeDef:
-	{NativeType} 'native' 'type' name=ID '=' origName=ID ('extends' superName=TypeExpr)? NL
+	{NativeType} 'type' name=ID ('extends' superName=TypeExpr)? NL
 ;
 
 /* classes and their members */	
 
 ClassDef returns TypeDef:
-	{ClassDef} 'class' name=ID '{' 
-		(members+=ClassMember)* NL* 
-	'}' NL;	
+	{ClassDef} 'class' name=ID   NL
+		(NL | members+=ClassMember)*  
+	'endclass' NL;	
 
 	
 ClassMember:
-	NL* (VarDef | FuncDef);
+	(VarDef | FuncDef);
 	
 
 VarDef:
-	{VarDef} ('var' | constant?='val') name=ID 
-	( ':' type=TypeExpr )?
-	( '=' e=Expr)?
+	{VarDef} (
+		  constant?='val' (type=TypeExpr)? name=ID '=' e=Expr
+		| (constant?='constant')?  type=TypeExpr name = ID ('=' e=Expr)?
+		| 'glob' name=ID '=' e=Expr  
+	) 
 	 NL
 ;	
 
 TypeExpr:
-	{TypeExpr} name=[TypeDef]
+	{TypeExprRef} name=[TypeDef]
+	| {TypeExprBuildin} 
+		name=(
+			  'integer' 
+			| 'real' 
+			| 'string'
+			| 'boolean'
+			| 'handle'
+			| 'code'
+		)
 ;
 
 
 /* functions */
 
 FuncDef:
-	{FuncDef} 'function' name=ID '(' (parameters+=ParameterDef (',' parameters+=ParameterDef)*)? ')' (':' type=TypeExpr)? '{'
+	'function' name=ID 
+			(
+				  '(' (parameters+=ParameterDef (',' parameters+=ParameterDef)*)? ')'
+				| 'takes' 'nothing'
+				| 'takes' parameters+=ParameterDef (',' parameters+=ParameterDef)*
+			)
+			(
+				'returns' type=TypeExpr
+				| ('returns' 'nothing')?
+			) NL
 		body=Statements 
-	'}'
+	'endfunction'
+	 
 ; 
 
 ParameterDef returns VarDef:
-	{ParameterDef} name=ID ':' type=TypeExpr;	
+	{ParameterDef}  type=TypeExpr name=ID;	
 
 Statements:
 	{Statements} (NL | statements+=Statement)*;
 
 
 Statement:
-	StmtIf | StmtWhile | VarDef | StmtExpr | StmtReturn;
+	StmtIf | StmtWhile | LocalVarDef | StmtSetOrCall | StmtReturn | StmtLoop | StmtExitwhen;
+
+LocalVarDef returns VarDef:
+	{VarDef} ('local' | constant?='val') (type=TypeExpr)? name=ID 
+	( '=' e=Expr)?
+	 NL
+;
+
+
+StmtExitwhen:
+	'exitwhen' e=Expr NL
+;
+
+
+StmtLoop:
+	'loop' NL
+		body=Statements
+	'endloop' NL
+;
+
+
+
+
 	
 StmtReturn:
 	{StmtReturn} 'return' (e=Expr)? NL
@@ -97,32 +154,39 @@ StmtReturn:
 
 
 StmtIf:
-	'if' cond=Expr '{' 
+	'if' cond=Expr 'then'? NL 
 		thenBlock=Statements 
-	'}' ('else' elseBlock=ElseBlock)? 
+	(	
+		'elseif' elseIfConds+=Expr 'then'? NL 
+			elseIfBlocks+=Statements		
+	)*		
+	(
+		'else' NL 
+			elseBlock=Statements
+	)?
+	'endif' NL
 ;
 
-ElseBlock:
-	('{' Statements	'}')
-	| ElseIfBlock
-;
-
-ElseIfBlock returns Statements:
-	statements+=StmtIf
-;
 
   
 	
 StmtWhile:
-	'while' cond=Expr '{' 
+	'while' cond=Expr NL 
 		body=Statements 
-	'}' 
+	'endwhile' NL
 ;  	
 
 
-	
-StmtExpr:
-	e=Expr NL
+
+
+
+StmtSetOrCall:
+	{StmtCall} ('call'|'set')? e=Expr ({StmtSet.left=current} opAssignment=OpAssignment right=Expr)? NL
+;
+
+
+OpAssignment:
+	{OpAssign} '='| {OpPlusAssign}'+='| {OpMinusAssign}'-='
 ;
 	
 /* expressions */
@@ -144,20 +208,14 @@ not					// unary
 
 
 Expr:
-	ExprAssignment
-	//ExprAtomic
+	ExprOr
 ;
 
 // TODO this is not really an expression, it should only be used at top level
 
-ExprAssignment returns Expr:
-  ExprOr ({ExprAssignment.left=current} 
-    op=OpAssignment right=ExprOr)*
-;
 
-OpAssignment:
-	{OpAssign} '='| {OpPlusAssign}'+='| {OpMinusAssign}'-='
-;
+
+
 
 
 ExprOr returns Expr:
@@ -249,7 +307,7 @@ ExprSingle returns Expr:
 	| {ExprNumVal} numVal=Number 
 	| {ExprStrval} strVal=STRING
 	| {ExprBoolVal} boolVal=('true'|'false')
-	| {ExprBuildinFunction} 'buildin' name=ID (parameters=ExprList | '(' ')')
+//	| {ExprBuildinFunction} 'buildin' name=ID (parameters=ExprList | '(' ')')
 //	| {ExprBuildinOperator} 'buildin' '(' left=Expr op=OPERATOR right=Expr ')'	
 	
 //	| buildin?='buildin' name=ID parameters=ExprList
@@ -263,9 +321,15 @@ Number:
 
 
 ExprAtomic returns Expr:
+	ExprFunctionCall 
+	| {ExprFuncRef} 'function' nameVal=[FuncDef]
+	| {ExprIdentifier} nameVal=[VarDef]
+;
+
+
+ExprFunctionCall returns Expr:
 	  {ExprFunctioncall} nameVal=[FuncDef] parameters=ExprList
 	| {ExprFunctioncall} nameVal=[FuncDef] '(' ')'
-	| {ExprIdentifier} nameVal=[VarDef]
 ;
 
 
@@ -280,16 +344,17 @@ ExprList:
 	
 // Terminals:
 terminal ID  		: ('a'..'z'|'A'..'Z'|'_') ('a'..'z'|'A'..'Z'|'_'|'0'..'9')*;
-terminal INT returns ecore::EInt: ('0'..'9')+;
+terminal INT returns ecore::EInt: ('0'..'9')+; // TODO special ints (hex, oct, ascii)
 terminal STRING	: 
-			'"' ( '\\' ('b'|'t'|'n'|'f'|'r'|'"'|"'"|'\\') | !('\\'|'"') )* '"' |
-			"'" ( '\\' ('b'|'t'|'n'|'f'|'r'|'"'|"'"|'\\') | !('\\'|"'") )* "'"
+			'"' ( '\\' ('b'|'t'|'n'|'f'|'r'|'"'|"'"|'\\') | !('\\'|'"') )* '"' 
 		;
 		
 		
 // multiline comments changed to consume whitespace to make the javadoc work		
 terminal ML_COMMENT	: '/*' -> '*/' (' '|'\t'|'\n'|'\r')*;  
-terminal SL_COMMENT 	: '//' !('\n'|'\r')* ('\r'? '\n')?;
+terminal SL_COMMENT 	: ('//' !('\n'|'\r')* ('\r'? '\n')?) 
+		| 'globals' | 'endglobals'
+;
 
 terminal WS			: (' '|'\t')+;
 

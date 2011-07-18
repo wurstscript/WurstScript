@@ -9,6 +9,7 @@ import java.util.Set;
 import de.peeeq.pscript.attributes.AttrVarDefType;
 import de.peeeq.pscript.attributes.infrastructure.AttributeManager;
 import de.peeeq.pscript.pscript.FuncDef;
+import de.peeeq.pscript.pscript.NativeFunc;
 import de.peeeq.pscript.pscript.PackageDeclaration;
 import de.peeeq.pscript.pscript.VarDef;
 import de.peeeq.pscript.types.PscriptType;
@@ -55,12 +56,9 @@ public class ILprog {
 	}
 
 
-	public String lookupNativeTranslation(String s) {
-		String name = nativeTranslations.get(s);
-		if (name == null) {
-			name =  "UNKNOWN_NAME("+s+")";
-		}
-		return name;
+	public String lookupNativeTranslation(PscriptType t) {
+		// TODO
+		return t.getName();
 	}
 	
 
@@ -104,6 +102,10 @@ public class ILprog {
 
 
 	public ILfunction getFunc(FuncDef func) {
+		if (func instanceof NativeFunc) {
+			return new ILfunction(func.getName());
+		}
+		
 		if (functionTable.containsKey(func)) {
 			return functionTable.get(func);
 		}

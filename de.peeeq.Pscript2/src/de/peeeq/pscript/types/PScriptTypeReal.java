@@ -16,12 +16,12 @@ public class PScriptTypeReal extends PscriptType {
 
 	@Override
 	public String getName() {
-		return "Real";
+		return "real";
 	}
 
 	@Override
 	public String getFullName() {
-		return "Real";
+		return "real";
 	}
 
 	public static PScriptTypeReal instance() {

@@ -1,28 +1,23 @@
-package test {
-	native type Int = integer
-	native type Bool = boolean
-	native type String = string
+package test
 	
-	function testFail(msg:String) {
-		buildin testFail(msg)
-	}
+	native testFail(string msg)
 	
-	function testSuccess() {
-		buildin testSuccess()
-	}
+	native testSuccess()
 	
 	
-	function runTest() {
-		var i = 0
-		while (i < 10) {
+	function runTest()
+		local i = 0
+		while i < 10
 			i = i + 1
-		}
-		if (i == 10) {
+		endwhile
+		if i == 10
 			testSuccess()
-		} else {
+		else
 			testFail("defect in whileLoop")
-		}
-	}
+		endif
+	endfunction
 	
 	
-}
+endpackage
+	
+	

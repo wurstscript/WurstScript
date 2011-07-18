@@ -14,7 +14,7 @@ public class ILconstString extends ILconst {
 	
 	@Override
 	public String print() {
-		return val;
+		return "\"" + val + "\"";
 	}
 
 }

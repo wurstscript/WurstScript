@@ -1,0 +1,7 @@
+module SwitchGenerator
+
+Workflow {
+  component = de.peeeq.switchgenerator.SwitchGenerator {
+        uri = "src-gen/de/peeeq/pscript/Pscript.ecore"
+  }
+} 

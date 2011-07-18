@@ -81,6 +81,15 @@ public interface PscriptFactory extends EFactory
   TypeDef createTypeDef();
 
   /**
+   * Returns a new object of class '<em>Func Def</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Func Def</em>'.
+   * @generated
+   */
+  FuncDef createFuncDef();
+
+  /**
    * Returns a new object of class '<em>Class Member</em>'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -108,15 +117,6 @@ public interface PscriptFactory extends EFactory
   TypeExpr createTypeExpr();
 
   /**
-   * Returns a new object of class '<em>Func Def</em>'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return a new object of class '<em>Func Def</em>'.
-   * @generated
-   */
-  FuncDef createFuncDef();
-
-  /**
    * Returns a new object of class '<em>Statements</em>'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -133,6 +133,24 @@ public interface PscriptFactory extends EFactory
    * @generated
    */
   Statement createStatement();
+
+  /**
+   * Returns a new object of class '<em>Stmt Exitwhen</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Stmt Exitwhen</em>'.
+   * @generated
+   */
+  StmtExitwhen createStmtExitwhen();
+
+  /**
+   * Returns a new object of class '<em>Stmt Loop</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Stmt Loop</em>'.
+   * @generated
+   */
+  StmtLoop createStmtLoop();
 
   /**
    * Returns a new object of class '<em>Stmt Return</em>'.
@@ -153,15 +171,6 @@ public interface PscriptFactory extends EFactory
   StmtIf createStmtIf();
 
   /**
-   * Returns a new object of class '<em>Else Block</em>'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return a new object of class '<em>Else Block</em>'.
-   * @generated
-   */
-  ElseBlock createElseBlock();
-
-  /**
    * Returns a new object of class '<em>Stmt While</em>'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -171,22 +180,13 @@ public interface PscriptFactory extends EFactory
   StmtWhile createStmtWhile();
 
   /**
-   * Returns a new object of class '<em>Stmt Expr</em>'.
+   * Returns a new object of class '<em>Stmt Set Or Call</em>'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return a new object of class '<em>Stmt Expr</em>'.
+   * @return a new object of class '<em>Stmt Set Or Call</em>'.
    * @generated
    */
-  StmtExpr createStmtExpr();
-
-  /**
-   * Returns a new object of class '<em>Expr</em>'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return a new object of class '<em>Expr</em>'.
-   * @generated
-   */
-  Expr createExpr();
+  StmtSetOrCall createStmtSetOrCall();
 
   /**
    * Returns a new object of class '<em>Op Assignment</em>'.
@@ -196,6 +196,15 @@ public interface PscriptFactory extends EFactory
    * @generated
    */
   OpAssignment createOpAssignment();
+
+  /**
+   * Returns a new object of class '<em>Expr</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Expr</em>'.
+   * @generated
+   */
+  Expr createExpr();
 
   /**
    * Returns a new object of class '<em>Op Equality</em>'.
@@ -243,6 +252,15 @@ public interface PscriptFactory extends EFactory
   ExprList createExprList();
 
   /**
+   * Returns a new object of class '<em>Native Func</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Native Func</em>'.
+   * @generated
+   */
+  NativeFunc createNativeFunc();
+
+  /**
    * Returns a new object of class '<em>Native Type</em>'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -261,6 +279,24 @@ public interface PscriptFactory extends EFactory
   ClassDef createClassDef();
 
   /**
+   * Returns a new object of class '<em>Type Expr Ref</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Type Expr Ref</em>'.
+   * @generated
+   */
+  TypeExprRef createTypeExprRef();
+
+  /**
+   * Returns a new object of class '<em>Type Expr Buildin</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Type Expr Buildin</em>'.
+   * @generated
+   */
+  TypeExprBuildin createTypeExprBuildin();
+
+  /**
    * Returns a new object of class '<em>Parameter Def</em>'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -270,13 +306,22 @@ public interface PscriptFactory extends EFactory
   ParameterDef createParameterDef();
 
   /**
-   * Returns a new object of class '<em>Expr Assignment</em>'.
+   * Returns a new object of class '<em>Stmt Call</em>'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return a new object of class '<em>Expr Assignment</em>'.
+   * @return a new object of class '<em>Stmt Call</em>'.
    * @generated
    */
-  ExprAssignment createExprAssignment();
+  StmtCall createStmtCall();
+
+  /**
+   * Returns a new object of class '<em>Stmt Set</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Stmt Set</em>'.
+   * @generated
+   */
+  StmtSet createStmtSet();
 
   /**
    * Returns a new object of class '<em>Op Assign</em>'.
@@ -531,22 +576,13 @@ public interface PscriptFactory extends EFactory
   ExprBoolVal createExprBoolVal();
 
   /**
-   * Returns a new object of class '<em>Expr Buildin Function</em>'.
+   * Returns a new object of class '<em>Expr Func Ref</em>'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return a new object of class '<em>Expr Buildin Function</em>'.
+   * @return a new object of class '<em>Expr Func Ref</em>'.
    * @generated
    */
-  ExprBuildinFunction createExprBuildinFunction();
-
-  /**
-   * Returns a new object of class '<em>Expr Functioncall</em>'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return a new object of class '<em>Expr Functioncall</em>'.
-   * @generated
-   */
-  ExprFunctioncall createExprFunctioncall();
+  ExprFuncRef createExprFuncRef();
 
   /**
    * Returns a new object of class '<em>Expr Identifier</em>'.
@@ -556,6 +592,15 @@ public interface PscriptFactory extends EFactory
    * @generated
    */
   ExprIdentifier createExprIdentifier();
+
+  /**
+   * Returns a new object of class '<em>Expr Functioncall</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Expr Functioncall</em>'.
+   * @generated
+   */
+  ExprFunctioncall createExprFunctioncall();
 
   /**
    * Returns the package supported by this factory.

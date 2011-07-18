@@ -8,7 +8,7 @@ package de.peeeq.pscript.pscript.impl;
 
 import de.peeeq.pscript.pscript.Expr;
 import de.peeeq.pscript.pscript.PscriptPackage;
-import de.peeeq.pscript.pscript.StmtExpr;
+import de.peeeq.pscript.pscript.StmtExitwhen;
 
 import org.eclipse.emf.common.notify.Notification;
 import org.eclipse.emf.common.notify.NotificationChain;
@@ -20,18 +20,18 @@ import org.eclipse.emf.ecore.impl.ENotificationImpl;
 
 /**
  * <!-- begin-user-doc -->
- * An implementation of the model object '<em><b>Stmt Expr</b></em>'.
+ * An implementation of the model object '<em><b>Stmt Exitwhen</b></em>'.
  * <!-- end-user-doc -->
  * <p>
  * The following features are implemented:
  * <ul>
- *   <li>{@link de.peeeq.pscript.pscript.impl.StmtExprImpl#getE <em>E</em>}</li>
+ *   <li>{@link de.peeeq.pscript.pscript.impl.StmtExitwhenImpl#getE <em>E</em>}</li>
  * </ul>
  * </p>
  *
  * @generated
  */
-public class StmtExprImpl extends StatementImpl implements StmtExpr
+public class StmtExitwhenImpl extends StatementImpl implements StmtExitwhen
 {
   /**
    * The cached value of the '{@link #getE() <em>E</em>}' containment reference.
@@ -48,7 +48,7 @@ public class StmtExprImpl extends StatementImpl implements StmtExpr
    * <!-- end-user-doc -->
    * @generated
    */
-  protected StmtExprImpl()
+  protected StmtExitwhenImpl()
   {
     super();
   }
@@ -61,7 +61,7 @@ public class StmtExprImpl extends StatementImpl implements StmtExpr
   @Override
   protected EClass eStaticClass()
   {
-    return PscriptPackage.Literals.STMT_EXPR;
+    return PscriptPackage.Literals.STMT_EXITWHEN;
   }
 
   /**
@@ -85,7 +85,7 @@ public class StmtExprImpl extends StatementImpl implements StmtExpr
     e = newE;
     if (eNotificationRequired())
     {
-      ENotificationImpl notification = new ENotificationImpl(this, Notification.SET, PscriptPackage.STMT_EXPR__E, oldE, newE);
+      ENotificationImpl notification = new ENotificationImpl(this, Notification.SET, PscriptPackage.STMT_EXITWHEN__E, oldE, newE);
       if (msgs == null) msgs = notification; else msgs.add(notification);
     }
     return msgs;
@@ -102,14 +102,14 @@ public class StmtExprImpl extends StatementImpl implements StmtExpr
     {
       NotificationChain msgs = null;
       if (e != null)
-        msgs = ((InternalEObject)e).eInverseRemove(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.STMT_EXPR__E, null, msgs);
+        msgs = ((InternalEObject)e).eInverseRemove(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.STMT_EXITWHEN__E, null, msgs);
       if (newE != null)
-        msgs = ((InternalEObject)newE).eInverseAdd(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.STMT_EXPR__E, null, msgs);
+        msgs = ((InternalEObject)newE).eInverseAdd(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.STMT_EXITWHEN__E, null, msgs);
       msgs = basicSetE(newE, msgs);
       if (msgs != null) msgs.dispatch();
     }
     else if (eNotificationRequired())
-      eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.STMT_EXPR__E, newE, newE));
+      eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.STMT_EXITWHEN__E, newE, newE));
   }
 
   /**
@@ -122,7 +122,7 @@ public class StmtExprImpl extends StatementImpl implements StmtExpr
   {
     switch (featureID)
     {
-      case PscriptPackage.STMT_EXPR__E:
+      case PscriptPackage.STMT_EXITWHEN__E:
         return basicSetE(null, msgs);
     }
     return super.eInverseRemove(otherEnd, featureID, msgs);
@@ -138,7 +138,7 @@ public class StmtExprImpl extends StatementImpl implements StmtExpr
   {
     switch (featureID)
     {
-      case PscriptPackage.STMT_EXPR__E:
+      case PscriptPackage.STMT_EXITWHEN__E:
         return getE();
     }
     return super.eGet(featureID, resolve, coreType);
@@ -154,7 +154,7 @@ public class StmtExprImpl extends StatementImpl implements StmtExpr
   {
     switch (featureID)
     {
-      case PscriptPackage.STMT_EXPR__E:
+      case PscriptPackage.STMT_EXITWHEN__E:
         setE((Expr)newValue);
         return;
     }
@@ -171,7 +171,7 @@ public class StmtExprImpl extends StatementImpl implements StmtExpr
   {
     switch (featureID)
     {
-      case PscriptPackage.STMT_EXPR__E:
+      case PscriptPackage.STMT_EXITWHEN__E:
         setE((Expr)null);
         return;
     }
@@ -188,10 +188,10 @@ public class StmtExprImpl extends StatementImpl implements StmtExpr
   {
     switch (featureID)
     {
-      case PscriptPackage.STMT_EXPR__E:
+      case PscriptPackage.STMT_EXITWHEN__E:
         return e != null;
     }
     return super.eIsSet(featureID);
   }
 
-} //StmtExprImpl
+} //StmtExitwhenImpl

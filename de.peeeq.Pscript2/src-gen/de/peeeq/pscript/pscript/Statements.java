@@ -8,6 +8,8 @@ package de.peeeq.pscript.pscript;
 
 import org.eclipse.emf.common.util.EList;
 
+import org.eclipse.emf.ecore.EObject;
+
 /**
  * <!-- begin-user-doc -->
  * A representation of the model object '<em><b>Statements</b></em>'.
@@ -24,7 +26,7 @@ import org.eclipse.emf.common.util.EList;
  * @model
  * @generated
  */
-public interface Statements extends ElseBlock
+public interface Statements extends EObject
 {
   /**
    * Returns the value of the '<em><b>Statements</b></em>' containment reference list.

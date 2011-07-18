@@ -137,6 +137,9 @@ public class SwitchGenerator implements IWorkflowComponent  {
 		String argumentName = toFirstLower(eclass.getName());
 		sb.append(argumentName);
 		sb.append(") {\n");
+		sb.append("if ( ");
+		sb.append(argumentName);
+		sb.append(" == null) throw new IllegalArgumentException(\"Switch element must not be null.\");\n");
 		for (EClass subtype: subClasses) {
 			sb.append("		if (");
 			sb.append(argumentName);
@@ -150,7 +153,9 @@ public class SwitchGenerator implements IWorkflowComponent  {
 			sb.append(argumentName);
 			sb.append(");\n");
 		}
-		sb.append("		throw new Error(\"Switch did not match any case.\");\n");
+		sb.append("		throw new Error(\"Switch did not match any case: \" + ");
+		sb.append(argumentName);
+		sb.append(");\n");
 		sb.append("	}\n");
 		sb.append("}\n\n");
 		System.out.println(sb);

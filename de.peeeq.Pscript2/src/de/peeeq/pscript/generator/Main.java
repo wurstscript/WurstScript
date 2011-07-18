@@ -31,7 +31,7 @@ public class Main {
 		Main main = injector.getInstance(Main.class);
 //		main.runGenerator(args[0]);
 //		main.runGenerator("file://C:/pscript/de.peeeq.Pscript2/src/de/peeeq/pscript/intermediateLang/interpreter/test.pscript");
-		main.runGenerator("platform:/resource/de.peeeq.Pscript2/src/de/peeeq/pscript/intermediateLang/interpreter/test.pscript");
+		main.runGenerator("platform:/resource/de.peeeq.Pscript2/src/de/peeeq/pscript/generator/test.pscript");
 	}
 	
 	@Inject 

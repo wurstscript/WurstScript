@@ -2,14 +2,15 @@ package de.peeeq.pscript.validation;
 
 import org.eclipse.emf.common.util.EList;
 
-import de.peeeq.immutablecollections.ImmutableList;
 import de.peeeq.immutablecollections.ImmutableMap;
 import de.peeeq.pscript.pscript.FuncDef;
 import de.peeeq.pscript.pscript.Statement;
 import de.peeeq.pscript.pscript.Statements;
-import de.peeeq.pscript.pscript.StmtExpr;
+import de.peeeq.pscript.pscript.StmtExitwhen;
 import de.peeeq.pscript.pscript.StmtIf;
+import de.peeeq.pscript.pscript.StmtLoop;
 import de.peeeq.pscript.pscript.StmtReturn;
+import de.peeeq.pscript.pscript.StmtSetOrCall;
 import de.peeeq.pscript.pscript.StmtWhile;
 import de.peeeq.pscript.pscript.VarDef;
 import de.peeeq.pscript.pscript.util.StatementSwitch;
@@ -56,11 +57,6 @@ public class FunctionChecker {
 				return null;
 			}
 
-			@Override
-			public CheckResult caseStmtExpr(StmtExpr stmtExpr) {
-				// TODO Auto-generated method stub
-				return null;
-			}
 
 			@Override
 			public CheckResult caseVarDef(VarDef varDef) {
@@ -76,6 +72,27 @@ public class FunctionChecker {
 
 			@Override
 			public CheckResult caseStmtIf(StmtIf stmtIf) {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+
+			@Override
+			public CheckResult caseStmtSetOrCall(StmtSetOrCall stmtSetOrCall) {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+
+			@Override
+			public CheckResult caseStmtLoop(StmtLoop stmtLoop) {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+
+			@Override
+			public CheckResult caseStmtExitwhen(StmtExitwhen stmtExitwhen) {
 				// TODO Auto-generated method stub
 				return null;
 			}

@@ -16,12 +16,12 @@ public class PScriptTypeInt extends PscriptType {
 
 	@Override
 	public String getName() {
-		return "Int";
+		return "integer";
 	}
 
 	@Override
 	public String getFullName() {
-		return "Int";
+		return "integer";
 	}
 
 	public static PScriptTypeInt instance() {

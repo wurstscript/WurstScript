@@ -21,13 +21,17 @@ public class Utils {
 	
 	@SuppressWarnings("unchecked")
 	public static <T> ImmutableList<T> collectRec(EObject target, Class<T> search) {
+		if (target == null) throw new IllegalArgumentException("target must not be null");
+		
 		ImmutableList<T> result = ImmutableList.emptyList();
 		if (search.isInstance(target)) {
 			result = result.appFront((T) target);
 		}
-		for (EObject child :target.eContents()) {
-			result = result.cons(collectRec(child, search));
-		}		
+		if (target.eContents() != null) {
+			for (EObject child :target.eContents()) {
+				result = result.cons(collectRec(child, search));
+			}		
+		}
 		return result;
 	}
 

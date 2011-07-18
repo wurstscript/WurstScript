@@ -1,5 +1,6 @@
 package de.peeeq.pscript.intermediateLang;
 
+import java.util.LinkedList;
 import java.util.List;
 
 import org.eclipse.emf.common.util.EList;
@@ -15,16 +16,14 @@ import de.peeeq.pscript.attributes.AttrTypeExprType;
 import de.peeeq.pscript.attributes.AttrVarDefType;
 import de.peeeq.pscript.attributes.infrastructure.AttributeManager;
 import de.peeeq.pscript.pscript.ClassDef;
-import de.peeeq.pscript.pscript.ElseBlock;
 import de.peeeq.pscript.pscript.Entity;
 import de.peeeq.pscript.pscript.Expr;
 import de.peeeq.pscript.pscript.ExprAdditive;
 import de.peeeq.pscript.pscript.ExprAnd;
-import de.peeeq.pscript.pscript.ExprAssignment;
 import de.peeeq.pscript.pscript.ExprBoolVal;
-import de.peeeq.pscript.pscript.ExprBuildinFunction;
 import de.peeeq.pscript.pscript.ExprComparison;
 import de.peeeq.pscript.pscript.ExprEquality;
+import de.peeeq.pscript.pscript.ExprFuncRef;
 import de.peeeq.pscript.pscript.ExprFunctioncall;
 import de.peeeq.pscript.pscript.ExprIdentifier;
 import de.peeeq.pscript.pscript.ExprIntVal;
@@ -38,9 +37,9 @@ import de.peeeq.pscript.pscript.ExprSign;
 import de.peeeq.pscript.pscript.ExprStrval;
 import de.peeeq.pscript.pscript.FuncDef;
 import de.peeeq.pscript.pscript.InitBlock;
+import de.peeeq.pscript.pscript.NativeFunc;
 import de.peeeq.pscript.pscript.NativeType;
 import de.peeeq.pscript.pscript.OpAdditive;
-import de.peeeq.pscript.pscript.OpAssign;
 import de.peeeq.pscript.pscript.OpComparison;
 import de.peeeq.pscript.pscript.OpDivReal;
 import de.peeeq.pscript.pscript.OpEquals;
@@ -49,33 +48,34 @@ import de.peeeq.pscript.pscript.OpGreaterEq;
 import de.peeeq.pscript.pscript.OpLess;
 import de.peeeq.pscript.pscript.OpLessEq;
 import de.peeeq.pscript.pscript.OpMinus;
-import de.peeeq.pscript.pscript.OpMinusAssign;
 import de.peeeq.pscript.pscript.OpModInt;
 import de.peeeq.pscript.pscript.OpModReal;
 import de.peeeq.pscript.pscript.OpMult;
 import de.peeeq.pscript.pscript.OpMultiplicative;
 import de.peeeq.pscript.pscript.OpPlus;
-import de.peeeq.pscript.pscript.OpPlusAssign;
 import de.peeeq.pscript.pscript.OpUnequals;
 import de.peeeq.pscript.pscript.PackageDeclaration;
 import de.peeeq.pscript.pscript.Program;
 import de.peeeq.pscript.pscript.Statement;
 import de.peeeq.pscript.pscript.Statements;
-import de.peeeq.pscript.pscript.StmtExpr;
+import de.peeeq.pscript.pscript.StmtCall;
+import de.peeeq.pscript.pscript.StmtExitwhen;
 import de.peeeq.pscript.pscript.StmtIf;
+import de.peeeq.pscript.pscript.StmtLoop;
 import de.peeeq.pscript.pscript.StmtReturn;
+import de.peeeq.pscript.pscript.StmtSet;
+import de.peeeq.pscript.pscript.StmtSetOrCall;
 import de.peeeq.pscript.pscript.StmtWhile;
 import de.peeeq.pscript.pscript.TypeDef;
 import de.peeeq.pscript.pscript.VarDef;
-import de.peeeq.pscript.pscript.util.ElseBlockSwitch;
 import de.peeeq.pscript.pscript.util.EntitySwitchVoid;
 import de.peeeq.pscript.pscript.util.ExprSwitch;
 import de.peeeq.pscript.pscript.util.OpAdditiveSwitch;
-import de.peeeq.pscript.pscript.util.OpAssignmentSwitchVoid;
 import de.peeeq.pscript.pscript.util.OpComparisonSwitch;
 import de.peeeq.pscript.pscript.util.OpEqualitySwitch;
 import de.peeeq.pscript.pscript.util.OpMultiplicativeSwitch;
 import de.peeeq.pscript.pscript.util.StatementSwitch;
+import de.peeeq.pscript.pscript.util.StmtSetOrCallSwitchVoid;
 import de.peeeq.pscript.pscript.util.TypeDefSwitchVoid;
 import de.peeeq.pscript.types.PScriptTypeBool;
 import de.peeeq.pscript.types.PScriptTypeVoid;
@@ -154,7 +154,8 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 						
 						@Override
 						public void caseNativeType(NativeType nativeType) {
-							prog.addNativeTranslation(nativeType.getName(), nativeType.getOrigName());							
+							// TODO not needed anymore, I think
+							prog.addNativeTranslation(nativeType.getName(), nativeType.getName());							
 						}
 						
 						
@@ -169,6 +170,12 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 
 				@Override
 				public void caseFuncDef(FuncDef funcDef) {
+					if (funcDef instanceof NativeFunc) {
+						// do not translate native functions
+						return;
+						
+					}
+					
 					ILfunction function = prog.getFunc(funcDef);
 					
 					List<ILvar> params = translateParams(funcDef.getParameters());
@@ -190,6 +197,7 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 				public void caseVarDef(VarDef varDef) {
 					// TODO add init code
 				}
+
 				
 			}.doSwitch(elem);
 		}		
@@ -213,6 +221,9 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 	}
 
 	protected List<ILStatement> translateStatements(Statements body, List<ILvar> locals) {
+		if (body == null) {
+			return new LinkedList<ILStatement>();
+		}
 		return translateStatements(body.getStatements(), locals);
 	}
 
@@ -259,33 +270,86 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 				ILvar resultVar = getNewLocalVar("ifCond", PScriptTypeBool.instance(), locals);
 				List<ILStatement> cond = translateExpr(stmtIf.getCond(), resultVar, locals);
 				List<ILStatement> thenBlock = translateStatements(stmtIf.getThenBlock(), locals);
-				List<ILStatement> elseBlock = translateElseBlock(stmtIf.getElseBlock(), locals);
+				List<ILStatement> elseBlock = translateElseBlock(0, stmtIf.getElseIfConds(), stmtIf.getElseIfBlocks(), 
+						stmtIf.getElseBlock(), locals);
 				result.addAll(cond);
 				result.add(new ILif(resultVar, thenBlock, elseBlock));
 				return result;
 			}
 
 			@Override
-			public List<ILStatement> caseStmtExpr(StmtExpr stmtExpr) {
-				return translateExpr(stmtExpr.getE(), null, locals);
+			public List<ILStatement> caseVarDef(VarDef varDef) {
+				return translateAssignment(getLocalVar(varDef.getName(), locals), varDef.getE(), locals);
 			}
 
 			@Override
-			public List<ILStatement> caseVarDef(VarDef varDef) {
-				return translateAssignment(getLocalVar(varDef.getName(), locals), varDef.getE(), locals);
+			public List<ILStatement> caseStmtSetOrCall(	StmtSetOrCall stmtSetOrCall) {
+				new StmtSetOrCallSwitchVoid() {
+
+					@Override
+					public void caseStmtSet(StmtSet stmtSet) {
+						Expr left = stmtSet.getLeft().getE();
+						if (left instanceof ExprIdentifier) {
+							ExprIdentifier left2 = (ExprIdentifier) left;
+							
+							ILvar leftVar = getVar(left2.getNameVal(), locals);
+							result.addAll(translateExpr(stmtSet.getRight(), leftVar , locals));
+							
+						} else {
+							// TODO assignments to arrays, classmembers
+							throw new Error("not implemented Assignment to " + left);
+						}
+						
+					}
+
+					@Override
+					public void caseStmtCall(StmtCall stmtCall) {
+						// TODO Auto-generated method stub
+						result.addAll(translateExpr(stmtCall.getE(), null , locals));
+					}
+					
+				}.doSwitch(stmtSetOrCall);
+				return result;
+			}
+
+			@Override
+			public List<ILStatement> caseStmtLoop(StmtLoop stmtLoop) {
+				List<ILStatement> body = translateStatements(stmtLoop.getBody(), locals);
+				result.add(new ILloop(body));
+				return result;
+			}
+
+			@Override
+			public List<ILStatement> caseStmtExitwhen(StmtExitwhen stmtExitwhen) {
+				ILvar exitWhenVar = getNewLocalVar("exitwhenVar", PScriptTypeBool.instance(), locals);
+				result.addAll(translateExpr(stmtExitwhen.getE(), exitWhenVar, locals));
+				result.add(new ILexitwhen(exitWhenVar));
+				return result;
 			}
 			
 		}.doSwitch(s);
 	}
 
-	protected List<ILStatement> translateElseBlock(ElseBlock elseBlock,	final List<ILvar> locals) {
-		return new ElseBlockSwitch<List<ILStatement>>() {
 
-			@Override
-			public List<ILStatement> caseStatements(Statements statements) {
-				return translateStatements(statements, locals);
-			}
-		}.doSwitch(elseBlock);
+
+	protected List<ILStatement> translateElseBlock(int i, EList<Expr> elseIfConds, EList<Statements> elseIfBlocks,
+			Statements elseBlock, List<ILvar> locals) {
+		if (i >= elseIfConds.size()) {
+			return translateStatements(elseBlock, locals);
+		} else {
+			List<ILStatement> result = new LinkedList<ILStatement>();
+			ILvar condVar = getNewLocalVar("elseifCond", PScriptTypeBool.instance(), locals);
+			List<ILStatement> cond = translateExpr(elseIfConds.get(i), condVar , locals);
+			result.addAll(cond);
+			
+			List<ILStatement> then1 = translateStatements(elseIfBlocks.get(i), locals);
+			List<ILStatement> else1 = translateElseBlock(i+1, elseIfConds, elseIfBlocks, elseBlock, locals);
+			
+			result.add(new ILif(condVar, then1, else1));
+			
+			return result ;
+		}
+		
 	}
 
 	protected List<ILStatement> translateAssignment(ILvar localVar, Expr e, List<ILvar> locals ) {
@@ -380,24 +444,24 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 				return translateBinary(exprAdditive.getLeft(), op , exprAdditive.getRight());
 			}
 
-			@Override
-			public List<ILStatement> caseExprBuildinFunction(ExprBuildinFunction exprBuildinFunction) {
-				ILvar[] paramVars = new ILvar[0];
-				if (exprBuildinFunction.getParameters() != null && exprBuildinFunction.getParameters().getParams() != null) {
-					EList<Expr> params = exprBuildinFunction.getParameters().getParams();
-					// translate params
-					paramVars = new ILvar[params.size()];
-					for (int i=0; i<params.size(); i++) {
-						PscriptType typ = attrManager.getAttValue(AttrExprType.class, params.get(i));
-						//						paramVars[i] = getLocalVar( exprBuildinFunction.getName() +  "_param" + i , locals);
-						paramVars[i] = getNewLocalVar( exprBuildinFunction.getName() +  "_param" + i, typ, locals);
-						result.addAll(translateExpr(params.get(i), paramVars[i], locals));
-					}
-					
-				}
-				result.add(new IlbuildinFunctionCall(resultVar, exprBuildinFunction.getName(), paramVars));
-				return result;
-			}
+//			@Override
+//			public List<ILStatement> caseExprBuildinFunction(ExprBuildinFunction exprBuildinFunction) {
+//				ILvar[] paramVars = new ILvar[0];
+//				if (exprBuildinFunction.getParameters() != null && exprBuildinFunction.getParameters().getParams() != null) {
+//					EList<Expr> params = exprBuildinFunction.getParameters().getParams();
+//					// translate params
+//					paramVars = new ILvar[params.size()];
+//					for (int i=0; i<params.size(); i++) {
+//						PscriptType typ = attrManager.getAttValue(AttrExprType.class, params.get(i));
+//						//						paramVars[i] = getLocalVar( exprBuildinFunction.getName() +  "_param" + i , locals);
+//						paramVars[i] = getNewLocalVar( exprBuildinFunction.getName() +  "_param" + i, typ, locals);
+//						result.addAll(translateExpr(params.get(i), paramVars[i], locals));
+//					}
+//					
+//				}
+//				result.add(new IlbuildinFunctionCall(resultVar, exprBuildinFunction.getName(), paramVars));
+//				return result;
+//			}
 
 			@Override
 			public List<ILStatement> caseExprSign(ExprSign exprSign) {
@@ -432,39 +496,39 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 				return result;
 			}
 
-			@Override
-			public List<ILStatement> caseExprAssignment(final ExprAssignment exprAssignment) {
-				
-				new OpAssignmentSwitchVoid() {
-
-					@Override
-					public void caseOpPlusAssign(OpPlusAssign opPlusAssign) {
-						throw new Error("not implemented"); // TODO
-					}
-
-					@Override
-					public void caseOpAssign(OpAssign opAssign) {
-						Expr left = exprAssignment.getLeft();
-						if (left instanceof ExprIdentifier) {
-							ExprIdentifier id = (ExprIdentifier) left;
-							VarDef decl = id.getNameVal();
-							ILvar var = getVar(decl, locals);
-							result.addAll(translateExpr(exprAssignment.getRight(), var, locals));
-						}
-						// TODO other assignments
-					}
-
-					@Override
-					public void caseOpMinusAssign(OpMinusAssign opMinusAssign) {
-						throw new Error("not implemented"); // TODO
-					}
-					
-				}.doSwitch(exprAssignment.getOp());
-				// TODO different assignment operators
-				
-								
-				return result;
-			}
+//			@Override
+//			public List<ILStatement> caseExprAssignment(final ExprAssignment exprAssignment) {
+//				
+//				new OpAssignmentSwitchVoid() {
+//
+//					@Override
+//					public void caseOpPlusAssign(OpPlusAssign opPlusAssign) {
+//						throw new Error("not implemented"); // TODO
+//					}
+//
+//					@Override
+//					public void caseOpAssign(OpAssign opAssign) {
+//						Expr left = exprAssignment.getLeft();
+//						if (left instanceof ExprIdentifier) {
+//							ExprIdentifier id = (ExprIdentifier) left;
+//							VarDef decl = id.getNameVal();
+//							ILvar var = getVar(decl, locals);
+//							result.addAll(translateExpr(exprAssignment.getRight(), var, locals));
+//						}
+//						// TODO other assignments
+//					}
+//
+//					@Override
+//					public void caseOpMinusAssign(OpMinusAssign opMinusAssign) {
+//						throw new Error("not implemented"); // TODO
+//					}
+//					
+//				}.doSwitch(exprAssignment.getOp());
+//				// TODO different assignment operators
+//				
+//								
+//				return result;
+//			}
 
 			// Constants:
 			
@@ -520,13 +584,18 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 			}
 
 			@Override
-			public List<ILStatement> caseExprFunctioncall(
-					ExprFunctioncall exprFunctioncall) {
+			public List<ILStatement> caseExprFunctioncall(ExprFunctioncall exprFunctioncall) {
 				List<Expr> args = new NotNullList<Expr>();
 				if (exprFunctioncall.getParameters() != null) {
 					args = exprFunctioncall.getParameters().getParams();
 				}
 				return translateFunctionCall(resultVar, exprFunctioncall.getNameVal(), args , locals);
+			}
+
+			@Override
+			public List<ILStatement> caseExprFuncRef(ExprFuncRef exprFuncRef) {
+				// TODO Auto-generated method stub
+				return null;
 			}
 
 			
@@ -618,8 +687,11 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 		}
 		
 		String name = prog.getFuncDefName(func);
-		
-		result.add(new ILfunctionCall(resultVar, name, argumentTypes, argumentVars));
+		if (func instanceof NativeFunc) {
+			result.add(new IlbuildinFunctionCall(resultVar, name, argumentVars));
+		} else {
+			result.add(new ILfunctionCall(resultVar, name, argumentTypes, argumentVars));
+		}
 		
 		return result;
 	}

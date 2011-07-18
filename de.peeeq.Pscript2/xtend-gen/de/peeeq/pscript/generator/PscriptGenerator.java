@@ -100,8 +100,7 @@ public class PscriptGenerator implements IGenerator {
         _xifexpression_1 = _builder_1;
       } else {
         StringConcatenation _builder_2 = new StringConcatenation();
-        String _name = type.getName();
-        String _lookupNativeTranslation = prog.lookupNativeTranslation(_name);
+        String _lookupNativeTranslation = prog.lookupNativeTranslation(type);
         _builder_2.append(_lookupNativeTranslation, "");
         _xifexpression_1 = _builder_2;
       }

@@ -79,7 +79,7 @@ class PscriptGenerator implements IGenerator {
 		else if (type instanceof PScriptTypeVoid)
 			'''nothing'''
 		else
-			'''«prog.lookupNativeTranslation(type.getName())»'''
+			'''«prog.lookupNativeTranslation(type)»'''
 	}
 	
 	def printFunction(ILfunction f, ILprog prog) '''

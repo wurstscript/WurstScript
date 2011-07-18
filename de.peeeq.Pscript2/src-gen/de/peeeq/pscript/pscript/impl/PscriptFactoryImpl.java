@@ -74,28 +74,33 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
       case PscriptPackage.ENTITY: return createEntity();
       case PscriptPackage.INIT_BLOCK: return createInitBlock();
       case PscriptPackage.TYPE_DEF: return createTypeDef();
+      case PscriptPackage.FUNC_DEF: return createFuncDef();
       case PscriptPackage.CLASS_MEMBER: return createClassMember();
       case PscriptPackage.VAR_DEF: return createVarDef();
       case PscriptPackage.TYPE_EXPR: return createTypeExpr();
-      case PscriptPackage.FUNC_DEF: return createFuncDef();
       case PscriptPackage.STATEMENTS: return createStatements();
       case PscriptPackage.STATEMENT: return createStatement();
+      case PscriptPackage.STMT_EXITWHEN: return createStmtExitwhen();
+      case PscriptPackage.STMT_LOOP: return createStmtLoop();
       case PscriptPackage.STMT_RETURN: return createStmtReturn();
       case PscriptPackage.STMT_IF: return createStmtIf();
-      case PscriptPackage.ELSE_BLOCK: return createElseBlock();
       case PscriptPackage.STMT_WHILE: return createStmtWhile();
-      case PscriptPackage.STMT_EXPR: return createStmtExpr();
-      case PscriptPackage.EXPR: return createExpr();
+      case PscriptPackage.STMT_SET_OR_CALL: return createStmtSetOrCall();
       case PscriptPackage.OP_ASSIGNMENT: return createOpAssignment();
+      case PscriptPackage.EXPR: return createExpr();
       case PscriptPackage.OP_EQUALITY: return createOpEquality();
       case PscriptPackage.OP_COMPARISON: return createOpComparison();
       case PscriptPackage.OP_ADDITIVE: return createOpAdditive();
       case PscriptPackage.OP_MULTIPLICATIVE: return createOpMultiplicative();
       case PscriptPackage.EXPR_LIST: return createExprList();
+      case PscriptPackage.NATIVE_FUNC: return createNativeFunc();
       case PscriptPackage.NATIVE_TYPE: return createNativeType();
       case PscriptPackage.CLASS_DEF: return createClassDef();
+      case PscriptPackage.TYPE_EXPR_REF: return createTypeExprRef();
+      case PscriptPackage.TYPE_EXPR_BUILDIN: return createTypeExprBuildin();
       case PscriptPackage.PARAMETER_DEF: return createParameterDef();
-      case PscriptPackage.EXPR_ASSIGNMENT: return createExprAssignment();
+      case PscriptPackage.STMT_CALL: return createStmtCall();
+      case PscriptPackage.STMT_SET: return createStmtSet();
       case PscriptPackage.OP_ASSIGN: return createOpAssign();
       case PscriptPackage.OP_PLUS_ASSIGN: return createOpPlusAssign();
       case PscriptPackage.OP_MINUS_ASSIGN: return createOpMinusAssign();
@@ -124,9 +129,9 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
       case PscriptPackage.EXPR_NUM_VAL: return createExprNumVal();
       case PscriptPackage.EXPR_STRVAL: return createExprStrval();
       case PscriptPackage.EXPR_BOOL_VAL: return createExprBoolVal();
-      case PscriptPackage.EXPR_BUILDIN_FUNCTION: return createExprBuildinFunction();
-      case PscriptPackage.EXPR_FUNCTIONCALL: return createExprFunctioncall();
+      case PscriptPackage.EXPR_FUNC_REF: return createExprFuncRef();
       case PscriptPackage.EXPR_IDENTIFIER: return createExprIdentifier();
+      case PscriptPackage.EXPR_FUNCTIONCALL: return createExprFunctioncall();
       default:
         throw new IllegalArgumentException("The class '" + eClass.getName() + "' is not a valid classifier");
     }
@@ -203,6 +208,17 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
    * <!-- end-user-doc -->
    * @generated
    */
+  public FuncDef createFuncDef()
+  {
+    FuncDefImpl funcDef = new FuncDefImpl();
+    return funcDef;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
   public ClassMember createClassMember()
   {
     ClassMemberImpl classMember = new ClassMemberImpl();
@@ -236,17 +252,6 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
    * <!-- end-user-doc -->
    * @generated
    */
-  public FuncDef createFuncDef()
-  {
-    FuncDefImpl funcDef = new FuncDefImpl();
-    return funcDef;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
   public Statements createStatements()
   {
     StatementsImpl statements = new StatementsImpl();
@@ -262,6 +267,28 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
   {
     StatementImpl statement = new StatementImpl();
     return statement;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public StmtExitwhen createStmtExitwhen()
+  {
+    StmtExitwhenImpl stmtExitwhen = new StmtExitwhenImpl();
+    return stmtExitwhen;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public StmtLoop createStmtLoop()
+  {
+    StmtLoopImpl stmtLoop = new StmtLoopImpl();
+    return stmtLoop;
   }
 
   /**
@@ -291,17 +318,6 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
    * <!-- end-user-doc -->
    * @generated
    */
-  public ElseBlock createElseBlock()
-  {
-    ElseBlockImpl elseBlock = new ElseBlockImpl();
-    return elseBlock;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
   public StmtWhile createStmtWhile()
   {
     StmtWhileImpl stmtWhile = new StmtWhileImpl();
@@ -313,21 +329,10 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
    * <!-- end-user-doc -->
    * @generated
    */
-  public StmtExpr createStmtExpr()
+  public StmtSetOrCall createStmtSetOrCall()
   {
-    StmtExprImpl stmtExpr = new StmtExprImpl();
-    return stmtExpr;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public Expr createExpr()
-  {
-    ExprImpl expr = new ExprImpl();
-    return expr;
+    StmtSetOrCallImpl stmtSetOrCall = new StmtSetOrCallImpl();
+    return stmtSetOrCall;
   }
 
   /**
@@ -339,6 +344,17 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
   {
     OpAssignmentImpl opAssignment = new OpAssignmentImpl();
     return opAssignment;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public Expr createExpr()
+  {
+    ExprImpl expr = new ExprImpl();
+    return expr;
   }
 
   /**
@@ -401,6 +417,17 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
    * <!-- end-user-doc -->
    * @generated
    */
+  public NativeFunc createNativeFunc()
+  {
+    NativeFuncImpl nativeFunc = new NativeFuncImpl();
+    return nativeFunc;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
   public NativeType createNativeType()
   {
     NativeTypeImpl nativeType = new NativeTypeImpl();
@@ -423,6 +450,28 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
    * <!-- end-user-doc -->
    * @generated
    */
+  public TypeExprRef createTypeExprRef()
+  {
+    TypeExprRefImpl typeExprRef = new TypeExprRefImpl();
+    return typeExprRef;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public TypeExprBuildin createTypeExprBuildin()
+  {
+    TypeExprBuildinImpl typeExprBuildin = new TypeExprBuildinImpl();
+    return typeExprBuildin;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
   public ParameterDef createParameterDef()
   {
     ParameterDefImpl parameterDef = new ParameterDefImpl();
@@ -434,10 +483,21 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
    * <!-- end-user-doc -->
    * @generated
    */
-  public ExprAssignment createExprAssignment()
+  public StmtCall createStmtCall()
   {
-    ExprAssignmentImpl exprAssignment = new ExprAssignmentImpl();
-    return exprAssignment;
+    StmtCallImpl stmtCall = new StmtCallImpl();
+    return stmtCall;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public StmtSet createStmtSet()
+  {
+    StmtSetImpl stmtSet = new StmtSetImpl();
+    return stmtSet;
   }
 
   /**
@@ -753,21 +813,10 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
    * <!-- end-user-doc -->
    * @generated
    */
-  public ExprBuildinFunction createExprBuildinFunction()
+  public ExprFuncRef createExprFuncRef()
   {
-    ExprBuildinFunctionImpl exprBuildinFunction = new ExprBuildinFunctionImpl();
-    return exprBuildinFunction;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public ExprFunctioncall createExprFunctioncall()
-  {
-    ExprFunctioncallImpl exprFunctioncall = new ExprFunctioncallImpl();
-    return exprFunctioncall;
+    ExprFuncRefImpl exprFuncRef = new ExprFuncRefImpl();
+    return exprFuncRef;
   }
 
   /**
@@ -779,6 +828,17 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
   {
     ExprIdentifierImpl exprIdentifier = new ExprIdentifierImpl();
     return exprIdentifier;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public ExprFunctioncall createExprFunctioncall()
+  {
+    ExprFunctioncallImpl exprFunctioncall = new ExprFunctioncallImpl();
+    return exprFunctioncall;
   }
 
   /**

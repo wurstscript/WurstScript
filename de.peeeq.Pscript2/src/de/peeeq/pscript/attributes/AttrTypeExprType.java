@@ -8,8 +8,11 @@ import de.peeeq.pscript.pscript.ClassDef;
 import de.peeeq.pscript.pscript.NativeType;
 import de.peeeq.pscript.pscript.TypeDef;
 import de.peeeq.pscript.pscript.TypeExpr;
+import de.peeeq.pscript.pscript.TypeExprBuildin;
+import de.peeeq.pscript.pscript.TypeExprRef;
 import de.peeeq.pscript.pscript.impl.TypeDefImpl;
 import de.peeeq.pscript.pscript.util.TypeDefSwitch;
+import de.peeeq.pscript.pscript.util.TypeExprSwitch;
 import de.peeeq.pscript.types.PScriptTypeBool;
 import de.peeeq.pscript.types.PScriptTypeCode;
 import de.peeeq.pscript.types.PScriptTypeHandle;
@@ -34,12 +37,43 @@ public class AttrTypeExprType extends AbstractAttribute<TypeExpr, PscriptType> {
 	public
 	PscriptType calculate(final AttributeManager attributeManager,
 			AttributeDependencies dependencies, TypeExpr node) {
-		TypeDef typeDef = node.getName();
-		if (typeDef == null || typeDef.getClass().equals(TypeDefImpl.class)) {
-			return new PscriptTypeError("Unknown type");
-		}
-		PscriptType result = getType(attributeManager, typeDef);	
-		return result;
+		return new TypeExprSwitch<PscriptType>() {
+
+			@Override
+			public PscriptType caseTypeExprBuildin(
+					TypeExprBuildin typeExprBuildin) {
+				String name = typeExprBuildin.getName();
+				if (name.equals("integer")) {
+					return PScriptTypeInt.instance();
+				}
+				if (name.equals("real")) {
+					return PScriptTypeReal.instance();
+				}
+				if (name.equals("string")) {
+					return PScriptTypeString.instance();
+				}
+				if (name.equals("boolean")) {
+					return PScriptTypeBool.instance();
+				}
+				if (name.equals("handle")) {
+					return PScriptTypeHandle.instance();
+				}
+				if (name.equals("code")) {
+					return PScriptTypeCode.instance();
+				}				
+				throw new Error("Unknown buildin type: " + name);
+			}
+
+			@Override
+			public PscriptType caseTypeExprRef(TypeExprRef typeExprRef) {
+				TypeDef typeDef = typeExprRef.getName();
+				if (typeDef == null || typeDef.getClass().equals(TypeDefImpl.class)) {
+					return new PscriptTypeError("Unknown type");
+				}
+				PscriptType result = getType(attributeManager, typeDef);	
+				return result;
+			}
+		}.doSwitch(node);
 	}
 
 	private PscriptType getType(final AttributeManager attributeManager,final TypeDef typeDef) {
@@ -54,6 +88,7 @@ public class AttrTypeExprType extends AbstractAttribute<TypeExpr, PscriptType> {
 			public PscriptType caseNativeType(NativeType nativeType) {
 				return getType_NativeType(attributeManager, (NativeType) typeDef);
 			}
+
 		}.doSwitch(typeDef);
 		
 //		return new PscriptTypeError("unexpected typeDef type: " + typeDef.getName() + " ( " + typeDef + " )");

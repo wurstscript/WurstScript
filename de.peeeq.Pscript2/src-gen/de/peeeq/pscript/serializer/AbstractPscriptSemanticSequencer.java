@@ -5,11 +5,10 @@ import com.google.inject.Provider;
 import de.peeeq.pscript.pscript.ClassDef;
 import de.peeeq.pscript.pscript.ExprAdditive;
 import de.peeeq.pscript.pscript.ExprAnd;
-import de.peeeq.pscript.pscript.ExprAssignment;
 import de.peeeq.pscript.pscript.ExprBoolVal;
-import de.peeeq.pscript.pscript.ExprBuildinFunction;
 import de.peeeq.pscript.pscript.ExprComparison;
 import de.peeeq.pscript.pscript.ExprEquality;
+import de.peeeq.pscript.pscript.ExprFuncRef;
 import de.peeeq.pscript.pscript.ExprFunctioncall;
 import de.peeeq.pscript.pscript.ExprIdentifier;
 import de.peeeq.pscript.pscript.ExprIntVal;
@@ -24,6 +23,7 @@ import de.peeeq.pscript.pscript.ExprStrval;
 import de.peeeq.pscript.pscript.FuncDef;
 import de.peeeq.pscript.pscript.Import;
 import de.peeeq.pscript.pscript.InitBlock;
+import de.peeeq.pscript.pscript.NativeFunc;
 import de.peeeq.pscript.pscript.NativeType;
 import de.peeeq.pscript.pscript.OpAssign;
 import de.peeeq.pscript.pscript.OpDivReal;
@@ -45,11 +45,15 @@ import de.peeeq.pscript.pscript.ParameterDef;
 import de.peeeq.pscript.pscript.Program;
 import de.peeeq.pscript.pscript.PscriptPackage;
 import de.peeeq.pscript.pscript.Statements;
-import de.peeeq.pscript.pscript.StmtExpr;
+import de.peeeq.pscript.pscript.StmtCall;
+import de.peeeq.pscript.pscript.StmtExitwhen;
 import de.peeeq.pscript.pscript.StmtIf;
+import de.peeeq.pscript.pscript.StmtLoop;
 import de.peeeq.pscript.pscript.StmtReturn;
+import de.peeeq.pscript.pscript.StmtSet;
 import de.peeeq.pscript.pscript.StmtWhile;
-import de.peeeq.pscript.pscript.TypeExpr;
+import de.peeeq.pscript.pscript.TypeExprBuildin;
+import de.peeeq.pscript.pscript.TypeExprRef;
 import de.peeeq.pscript.pscript.VarDef;
 import de.peeeq.pscript.services.PscriptGrammarAccess;
 import org.eclipse.emf.ecore.EObject;
@@ -102,8 +106,6 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 				else break;
 			case PscriptPackage.EXPR_ADDITIVE:
 				if(context == grammarAccess.getExprRule() ||
-				   context == grammarAccess.getExprAssignmentRule() ||
-				   context == grammarAccess.getExprAssignmentAccess().getExprAssignmentLeftAction_1_0() ||
 				   context == grammarAccess.getExprOrRule() ||
 				   context == grammarAccess.getExprOrAccess().getExprOrLeftAction_1_0() ||
 				   context == grammarAccess.getExprAndRule() ||
@@ -127,8 +129,6 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 				else break;
 			case PscriptPackage.EXPR_AND:
 				if(context == grammarAccess.getExprRule() ||
-				   context == grammarAccess.getExprAssignmentRule() ||
-				   context == grammarAccess.getExprAssignmentAccess().getExprAssignmentLeftAction_1_0() ||
 				   context == grammarAccess.getExprOrRule() ||
 				   context == grammarAccess.getExprOrAccess().getExprOrLeftAction_1_0() ||
 				   context == grammarAccess.getExprAndRule() ||
@@ -150,35 +150,8 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 					return; 
 				}
 				else break;
-			case PscriptPackage.EXPR_ASSIGNMENT:
-				if(context == grammarAccess.getExprRule() ||
-				   context == grammarAccess.getExprAssignmentRule() ||
-				   context == grammarAccess.getExprAssignmentAccess().getExprAssignmentLeftAction_1_0() ||
-				   context == grammarAccess.getExprOrRule() ||
-				   context == grammarAccess.getExprOrAccess().getExprOrLeftAction_1_0() ||
-				   context == grammarAccess.getExprAndRule() ||
-				   context == grammarAccess.getExprAndAccess().getExprAndLeftAction_1_0() ||
-				   context == grammarAccess.getExprEqualityRule() ||
-				   context == grammarAccess.getExprEqualityAccess().getExprEqualityLeftAction_1_0() ||
-				   context == grammarAccess.getExprComparisonRule() ||
-				   context == grammarAccess.getExprComparisonAccess().getExprComparisonLeftAction_1_0() ||
-				   context == grammarAccess.getExprAdditiveRule() ||
-				   context == grammarAccess.getExprAdditiveAccess().getExprAdditiveLeftAction_1_0() ||
-				   context == grammarAccess.getExprMultRule() ||
-				   context == grammarAccess.getExprMultAccess().getExprMultLeftAction_1_0() ||
-				   context == grammarAccess.getExprSignRule() ||
-				   context == grammarAccess.getExprNotRule() ||
-				   context == grammarAccess.getExprMemberRule() ||
-				   context == grammarAccess.getExprMemberAccess().getExprMemberLeftAction_1_0() ||
-				   context == grammarAccess.getExprSingleRule()) {
-					sequence_ExprAssignment_ExprAssignment(context, (ExprAssignment) semanticObject); 
-					return; 
-				}
-				else break;
 			case PscriptPackage.EXPR_BOOL_VAL:
 				if(context == grammarAccess.getExprRule() ||
-				   context == grammarAccess.getExprAssignmentRule() ||
-				   context == grammarAccess.getExprAssignmentAccess().getExprAssignmentLeftAction_1_0() ||
 				   context == grammarAccess.getExprOrRule() ||
 				   context == grammarAccess.getExprOrAccess().getExprOrLeftAction_1_0() ||
 				   context == grammarAccess.getExprAndRule() ||
@@ -200,35 +173,8 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 					return; 
 				}
 				else break;
-			case PscriptPackage.EXPR_BUILDIN_FUNCTION:
-				if(context == grammarAccess.getExprRule() ||
-				   context == grammarAccess.getExprAssignmentRule() ||
-				   context == grammarAccess.getExprAssignmentAccess().getExprAssignmentLeftAction_1_0() ||
-				   context == grammarAccess.getExprOrRule() ||
-				   context == grammarAccess.getExprOrAccess().getExprOrLeftAction_1_0() ||
-				   context == grammarAccess.getExprAndRule() ||
-				   context == grammarAccess.getExprAndAccess().getExprAndLeftAction_1_0() ||
-				   context == grammarAccess.getExprEqualityRule() ||
-				   context == grammarAccess.getExprEqualityAccess().getExprEqualityLeftAction_1_0() ||
-				   context == grammarAccess.getExprComparisonRule() ||
-				   context == grammarAccess.getExprComparisonAccess().getExprComparisonLeftAction_1_0() ||
-				   context == grammarAccess.getExprAdditiveRule() ||
-				   context == grammarAccess.getExprAdditiveAccess().getExprAdditiveLeftAction_1_0() ||
-				   context == grammarAccess.getExprMultRule() ||
-				   context == grammarAccess.getExprMultAccess().getExprMultLeftAction_1_0() ||
-				   context == grammarAccess.getExprSignRule() ||
-				   context == grammarAccess.getExprNotRule() ||
-				   context == grammarAccess.getExprMemberRule() ||
-				   context == grammarAccess.getExprMemberAccess().getExprMemberLeftAction_1_0() ||
-				   context == grammarAccess.getExprSingleRule()) {
-					sequence_ExprSingle_ExprBuildinFunction(context, (ExprBuildinFunction) semanticObject); 
-					return; 
-				}
-				else break;
 			case PscriptPackage.EXPR_COMPARISON:
 				if(context == grammarAccess.getExprRule() ||
-				   context == grammarAccess.getExprAssignmentRule() ||
-				   context == grammarAccess.getExprAssignmentAccess().getExprAssignmentLeftAction_1_0() ||
 				   context == grammarAccess.getExprOrRule() ||
 				   context == grammarAccess.getExprOrAccess().getExprOrLeftAction_1_0() ||
 				   context == grammarAccess.getExprAndRule() ||
@@ -252,8 +198,6 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 				else break;
 			case PscriptPackage.EXPR_EQUALITY:
 				if(context == grammarAccess.getExprRule() ||
-				   context == grammarAccess.getExprAssignmentRule() ||
-				   context == grammarAccess.getExprAssignmentAccess().getExprAssignmentLeftAction_1_0() ||
 				   context == grammarAccess.getExprOrRule() ||
 				   context == grammarAccess.getExprOrAccess().getExprOrLeftAction_1_0() ||
 				   context == grammarAccess.getExprAndRule() ||
@@ -275,10 +219,8 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 					return; 
 				}
 				else break;
-			case PscriptPackage.EXPR_FUNCTIONCALL:
+			case PscriptPackage.EXPR_FUNC_REF:
 				if(context == grammarAccess.getExprRule() ||
-				   context == grammarAccess.getExprAssignmentRule() ||
-				   context == grammarAccess.getExprAssignmentAccess().getExprAssignmentLeftAction_1_0() ||
 				   context == grammarAccess.getExprOrRule() ||
 				   context == grammarAccess.getExprOrAccess().getExprOrLeftAction_1_0() ||
 				   context == grammarAccess.getExprAndRule() ||
@@ -297,14 +239,37 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 				   context == grammarAccess.getExprMemberAccess().getExprMemberLeftAction_1_0() ||
 				   context == grammarAccess.getExprSingleRule() ||
 				   context == grammarAccess.getExprAtomicRule()) {
-					sequence_ExprAtomic_ExprFunctioncall(context, (ExprFunctioncall) semanticObject); 
+					sequence_ExprAtomic_ExprFuncRef(context, (ExprFuncRef) semanticObject); 
+					return; 
+				}
+				else break;
+			case PscriptPackage.EXPR_FUNCTIONCALL:
+				if(context == grammarAccess.getExprRule() ||
+				   context == grammarAccess.getExprOrRule() ||
+				   context == grammarAccess.getExprOrAccess().getExprOrLeftAction_1_0() ||
+				   context == grammarAccess.getExprAndRule() ||
+				   context == grammarAccess.getExprAndAccess().getExprAndLeftAction_1_0() ||
+				   context == grammarAccess.getExprEqualityRule() ||
+				   context == grammarAccess.getExprEqualityAccess().getExprEqualityLeftAction_1_0() ||
+				   context == grammarAccess.getExprComparisonRule() ||
+				   context == grammarAccess.getExprComparisonAccess().getExprComparisonLeftAction_1_0() ||
+				   context == grammarAccess.getExprAdditiveRule() ||
+				   context == grammarAccess.getExprAdditiveAccess().getExprAdditiveLeftAction_1_0() ||
+				   context == grammarAccess.getExprMultRule() ||
+				   context == grammarAccess.getExprMultAccess().getExprMultLeftAction_1_0() ||
+				   context == grammarAccess.getExprSignRule() ||
+				   context == grammarAccess.getExprNotRule() ||
+				   context == grammarAccess.getExprMemberRule() ||
+				   context == grammarAccess.getExprMemberAccess().getExprMemberLeftAction_1_0() ||
+				   context == grammarAccess.getExprSingleRule() ||
+				   context == grammarAccess.getExprAtomicRule() ||
+				   context == grammarAccess.getExprFunctionCallRule()) {
+					sequence_ExprFunctionCall_ExprFunctioncall(context, (ExprFunctioncall) semanticObject); 
 					return; 
 				}
 				else break;
 			case PscriptPackage.EXPR_IDENTIFIER:
 				if(context == grammarAccess.getExprRule() ||
-				   context == grammarAccess.getExprAssignmentRule() ||
-				   context == grammarAccess.getExprAssignmentAccess().getExprAssignmentLeftAction_1_0() ||
 				   context == grammarAccess.getExprOrRule() ||
 				   context == grammarAccess.getExprOrAccess().getExprOrLeftAction_1_0() ||
 				   context == grammarAccess.getExprAndRule() ||
@@ -329,8 +294,6 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 				else break;
 			case PscriptPackage.EXPR_INT_VAL:
 				if(context == grammarAccess.getExprRule() ||
-				   context == grammarAccess.getExprAssignmentRule() ||
-				   context == grammarAccess.getExprAssignmentAccess().getExprAssignmentLeftAction_1_0() ||
 				   context == grammarAccess.getExprOrRule() ||
 				   context == grammarAccess.getExprOrAccess().getExprOrLeftAction_1_0() ||
 				   context == grammarAccess.getExprAndRule() ||
@@ -360,8 +323,6 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 				else break;
 			case PscriptPackage.EXPR_MEMBER:
 				if(context == grammarAccess.getExprRule() ||
-				   context == grammarAccess.getExprAssignmentRule() ||
-				   context == grammarAccess.getExprAssignmentAccess().getExprAssignmentLeftAction_1_0() ||
 				   context == grammarAccess.getExprOrRule() ||
 				   context == grammarAccess.getExprOrAccess().getExprOrLeftAction_1_0() ||
 				   context == grammarAccess.getExprAndRule() ||
@@ -385,8 +346,6 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 				else break;
 			case PscriptPackage.EXPR_MULT:
 				if(context == grammarAccess.getExprRule() ||
-				   context == grammarAccess.getExprAssignmentRule() ||
-				   context == grammarAccess.getExprAssignmentAccess().getExprAssignmentLeftAction_1_0() ||
 				   context == grammarAccess.getExprOrRule() ||
 				   context == grammarAccess.getExprOrAccess().getExprOrLeftAction_1_0() ||
 				   context == grammarAccess.getExprAndRule() ||
@@ -410,8 +369,6 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 				else break;
 			case PscriptPackage.EXPR_NOT:
 				if(context == grammarAccess.getExprRule() ||
-				   context == grammarAccess.getExprAssignmentRule() ||
-				   context == grammarAccess.getExprAssignmentAccess().getExprAssignmentLeftAction_1_0() ||
 				   context == grammarAccess.getExprOrRule() ||
 				   context == grammarAccess.getExprOrAccess().getExprOrLeftAction_1_0() ||
 				   context == grammarAccess.getExprAndRule() ||
@@ -435,8 +392,6 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 				else break;
 			case PscriptPackage.EXPR_NUM_VAL:
 				if(context == grammarAccess.getExprRule() ||
-				   context == grammarAccess.getExprAssignmentRule() ||
-				   context == grammarAccess.getExprAssignmentAccess().getExprAssignmentLeftAction_1_0() ||
 				   context == grammarAccess.getExprOrRule() ||
 				   context == grammarAccess.getExprOrAccess().getExprOrLeftAction_1_0() ||
 				   context == grammarAccess.getExprAndRule() ||
@@ -460,8 +415,6 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 				else break;
 			case PscriptPackage.EXPR_OR:
 				if(context == grammarAccess.getExprRule() ||
-				   context == grammarAccess.getExprAssignmentRule() ||
-				   context == grammarAccess.getExprAssignmentAccess().getExprAssignmentLeftAction_1_0() ||
 				   context == grammarAccess.getExprOrRule() ||
 				   context == grammarAccess.getExprOrAccess().getExprOrLeftAction_1_0() ||
 				   context == grammarAccess.getExprAndRule() ||
@@ -485,8 +438,6 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 				else break;
 			case PscriptPackage.EXPR_SIGN:
 				if(context == grammarAccess.getExprRule() ||
-				   context == grammarAccess.getExprAssignmentRule() ||
-				   context == grammarAccess.getExprAssignmentAccess().getExprAssignmentLeftAction_1_0() ||
 				   context == grammarAccess.getExprOrRule() ||
 				   context == grammarAccess.getExprOrAccess().getExprOrLeftAction_1_0() ||
 				   context == grammarAccess.getExprAndRule() ||
@@ -510,8 +461,6 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 				else break;
 			case PscriptPackage.EXPR_STRVAL:
 				if(context == grammarAccess.getExprRule() ||
-				   context == grammarAccess.getExprAssignmentRule() ||
-				   context == grammarAccess.getExprAssignmentAccess().getExprAssignmentLeftAction_1_0() ||
 				   context == grammarAccess.getExprOrRule() ||
 				   context == grammarAccess.getExprOrAccess().getExprOrLeftAction_1_0() ||
 				   context == grammarAccess.getExprAndRule() ||
@@ -551,6 +500,13 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 				if(context == grammarAccess.getEntityRule() ||
 				   context == grammarAccess.getInitBlockRule()) {
 					sequence_InitBlock_InitBlock(context, (InitBlock) semanticObject); 
+					return; 
+				}
+				else break;
+			case PscriptPackage.NATIVE_FUNC:
+				if(context == grammarAccess.getEntityRule() ||
+				   context == grammarAccess.getNativeFuncRule()) {
+					sequence_NativeFunc_NativeFunc(context, (NativeFunc) semanticObject); 
 					return; 
 				}
 				else break;
@@ -671,23 +627,23 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 				}
 				else break;
 			case PscriptPackage.STATEMENTS:
-				if(context == grammarAccess.getElseBlockRule()) {
-					sequence_ElseBlock_Statements(context, (Statements) semanticObject); 
-					return; 
-				}
-				else if(context == grammarAccess.getStatementsRule()) {
+				if(context == grammarAccess.getStatementsRule()) {
 					sequence_Statements_Statements(context, (Statements) semanticObject); 
 					return; 
 				}
-				else if(context == grammarAccess.getElseIfBlockRule()) {
-					sequence_ElseIfBlock_Statements(context, (Statements) semanticObject); 
+				else break;
+			case PscriptPackage.STMT_CALL:
+				if(context == grammarAccess.getStatementRule() ||
+				   context == grammarAccess.getStmtSetOrCallRule() ||
+				   context == grammarAccess.getStmtSetOrCallAccess().getStmtSetLeftAction_3_0()) {
+					sequence_StmtSetOrCall_StmtCall(context, (StmtCall) semanticObject); 
 					return; 
 				}
 				else break;
-			case PscriptPackage.STMT_EXPR:
+			case PscriptPackage.STMT_EXITWHEN:
 				if(context == grammarAccess.getStatementRule() ||
-				   context == grammarAccess.getStmtExprRule()) {
-					sequence_StmtExpr_StmtExpr(context, (StmtExpr) semanticObject); 
+				   context == grammarAccess.getStmtExitwhenRule()) {
+					sequence_StmtExitwhen_StmtExitwhen(context, (StmtExitwhen) semanticObject); 
 					return; 
 				}
 				else break;
@@ -698,10 +654,24 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 					return; 
 				}
 				else break;
+			case PscriptPackage.STMT_LOOP:
+				if(context == grammarAccess.getStatementRule() ||
+				   context == grammarAccess.getStmtLoopRule()) {
+					sequence_StmtLoop_StmtLoop(context, (StmtLoop) semanticObject); 
+					return; 
+				}
+				else break;
 			case PscriptPackage.STMT_RETURN:
 				if(context == grammarAccess.getStatementRule() ||
 				   context == grammarAccess.getStmtReturnRule()) {
 					sequence_StmtReturn_StmtReturn(context, (StmtReturn) semanticObject); 
+					return; 
+				}
+				else break;
+			case PscriptPackage.STMT_SET:
+				if(context == grammarAccess.getStatementRule() ||
+				   context == grammarAccess.getStmtSetOrCallRule()) {
+					sequence_StmtSetOrCall_StmtSet(context, (StmtSet) semanticObject); 
 					return; 
 				}
 				else break;
@@ -712,17 +682,27 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 					return; 
 				}
 				else break;
-			case PscriptPackage.TYPE_EXPR:
+			case PscriptPackage.TYPE_EXPR_BUILDIN:
 				if(context == grammarAccess.getTypeExprRule()) {
-					sequence_TypeExpr_TypeExpr(context, (TypeExpr) semanticObject); 
+					sequence_TypeExpr_TypeExprBuildin(context, (TypeExprBuildin) semanticObject); 
+					return; 
+				}
+				else break;
+			case PscriptPackage.TYPE_EXPR_REF:
+				if(context == grammarAccess.getTypeExprRule()) {
+					sequence_TypeExpr_TypeExprRef(context, (TypeExprRef) semanticObject); 
 					return; 
 				}
 				else break;
 			case PscriptPackage.VAR_DEF:
-				if(context == grammarAccess.getEntityRule() ||
+				if(context == grammarAccess.getStatementRule() ||
+				   context == grammarAccess.getLocalVarDefRule()) {
+					sequence_LocalVarDef_VarDef(context, (VarDef) semanticObject); 
+					return; 
+				}
+				else if(context == grammarAccess.getEntityRule() ||
 				   context == grammarAccess.getClassMemberRule() ||
-				   context == grammarAccess.getVarDefRule() ||
-				   context == grammarAccess.getStatementRule()) {
+				   context == grammarAccess.getVarDefRule()) {
 					sequence_VarDef_VarDef(context, (VarDef) semanticObject); 
 					return; 
 				}
@@ -740,30 +720,6 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 	 *    members[0, *]
 	 */
 	protected void sequence_ClassDef_ClassDef(EObject context, ClassDef semanticObject) {
-		genericSequencer.createSequence(context, semanticObject);
-	}
-	
-	
-	/**
-	 * Constraint:
-	 *     ((statements+=Statement*) | statements+=StmtIf)
-	 *
-	 * Features:
-	 *    statements[0, *]
-	 */
-	protected void sequence_ElseBlock_Statements(EObject context, Statements semanticObject) {
-		genericSequencer.createSequence(context, semanticObject);
-	}
-	
-	
-	/**
-	 * Constraint:
-	 *     statements+=StmtIf
-	 *
-	 * Features:
-	 *    statements[1, 1]
-	 */
-	protected void sequence_ElseIfBlock_Statements(EObject context, Statements semanticObject) {
 		genericSequencer.createSequence(context, semanticObject);
 	}
 	
@@ -824,44 +780,20 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 	
 	/**
 	 * Constraint:
-	 *     (left=ExprAssignment_ExprAssignment_1_0 op=OpAssignment right=ExprOr)
+	 *     nameVal=[FuncDef|ID]
 	 *
 	 * Features:
-	 *    left[1, 1]
-	 *    op[1, 1]
-	 *    right[1, 1]
+	 *    nameVal[1, 1]
 	 */
-	protected void sequence_ExprAssignment_ExprAssignment(EObject context, ExprAssignment semanticObject) {
+	protected void sequence_ExprAtomic_ExprFuncRef(EObject context, ExprFuncRef semanticObject) {
 		if(errorAcceptor != null) {
-			if(transientValues.isValueTransient(semanticObject, PscriptPackage.Literals.EXPR_ASSIGNMENT__LEFT) == ValueTransient.YES)
-				errorAcceptor.accept(diagnosticProvider.createFeatureValueMissing(semanticObject, PscriptPackage.Literals.EXPR_ASSIGNMENT__LEFT));
-			if(transientValues.isValueTransient(semanticObject, PscriptPackage.Literals.EXPR_ASSIGNMENT__OP) == ValueTransient.YES)
-				errorAcceptor.accept(diagnosticProvider.createFeatureValueMissing(semanticObject, PscriptPackage.Literals.EXPR_ASSIGNMENT__OP));
-			if(transientValues.isValueTransient(semanticObject, PscriptPackage.Literals.EXPR_ASSIGNMENT__RIGHT) == ValueTransient.YES)
-				errorAcceptor.accept(diagnosticProvider.createFeatureValueMissing(semanticObject, PscriptPackage.Literals.EXPR_ASSIGNMENT__RIGHT));
+			if(transientValues.isValueTransient(semanticObject, PscriptPackage.Literals.EXPR_FUNC_REF__NAME_VAL) == ValueTransient.YES)
+				errorAcceptor.accept(diagnosticProvider.createFeatureValueMissing(semanticObject, PscriptPackage.Literals.EXPR_FUNC_REF__NAME_VAL));
 		}
 		INodesForEObjectProvider nodes = createNodeProvider(semanticObject);
 		SequenceFeeder feeder = createSequencerFeeder(semanticObject, nodes);
-		feeder.accept(grammarAccess.getExprAssignmentAccess().getExprAssignmentLeftAction_1_0(), semanticObject.getLeft());
-		feeder.accept(grammarAccess.getExprAssignmentAccess().getOpOpAssignmentParserRuleCall_1_1_0(), semanticObject.getOp());
-		feeder.accept(grammarAccess.getExprAssignmentAccess().getRightExprOrParserRuleCall_1_2_0(), semanticObject.getRight());
+		feeder.accept(grammarAccess.getExprAtomicAccess().getNameValFuncDefIDTerminalRuleCall_1_2_0_1(), semanticObject.getNameVal());
 		feeder.finish();
-	}
-	
-	
-	/**
-	 * Constraint:
-	 *     ((nameVal=[FuncDef|ID] parameters=ExprList) | nameVal=[FuncDef|ID])
-	 *
-	 * Features:
-	 *    nameVal[1, 2]
-	 *    parameters[1, 1]
-	 *         EXCLUDE_IF_UNSET nameVal
-	 *         MANDATORY_IF_SET nameVal
-	 *         EXCLUDE_IF_SET nameVal
-	 */
-	protected void sequence_ExprAtomic_ExprFunctioncall(EObject context, ExprFunctioncall semanticObject) {
-		genericSequencer.createSequence(context, semanticObject);
 	}
 	
 	
@@ -935,6 +867,22 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 		feeder.accept(grammarAccess.getExprEqualityAccess().getOpOpEqualityParserRuleCall_1_1_0(), semanticObject.getOp());
 		feeder.accept(grammarAccess.getExprEqualityAccess().getRightExprComparisonParserRuleCall_1_2_0(), semanticObject.getRight());
 		feeder.finish();
+	}
+	
+	
+	/**
+	 * Constraint:
+	 *     ((nameVal=[FuncDef|ID] parameters=ExprList) | nameVal=[FuncDef|ID])
+	 *
+	 * Features:
+	 *    nameVal[1, 2]
+	 *    parameters[1, 1]
+	 *         EXCLUDE_IF_UNSET nameVal
+	 *         MANDATORY_IF_SET nameVal
+	 *         EXCLUDE_IF_SET nameVal
+	 */
+	protected void sequence_ExprFunctionCall_ExprFunctioncall(EObject context, ExprFunctioncall semanticObject) {
+		genericSequencer.createSequence(context, semanticObject);
 	}
 	
 	
@@ -1083,19 +1031,6 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 	
 	/**
 	 * Constraint:
-	 *     (name=ID parameters=ExprList?)
-	 *
-	 * Features:
-	 *    name[1, 1]
-	 *    parameters[0, 1]
-	 */
-	protected void sequence_ExprSingle_ExprBuildinFunction(EObject context, ExprBuildinFunction semanticObject) {
-		genericSequencer.createSequence(context, semanticObject);
-	}
-	
-	
-	/**
-	 * Constraint:
 	 *     intVal=INT
 	 *
 	 * Features:
@@ -1153,11 +1088,16 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 	
 	/**
 	 * Constraint:
-	 *     (name=ID (parameters+=ParameterDef parameters+=ParameterDef*)? type=TypeExpr? body=Statements)
+	 *     (
+	 *         name=ID 
+	 *         ((parameters+=ParameterDef parameters+=ParameterDef*)? | (parameters+=ParameterDef parameters+=ParameterDef*))? 
+	 *         type=TypeExpr? 
+	 *         body=Statements
+	 *     )
 	 *
 	 * Features:
 	 *    name[1, 1]
-	 *    parameters[0, *]
+	 *    parameters[1, *]
 	 *    type[0, 1]
 	 *    body[1, 1]
 	 */
@@ -1203,18 +1143,46 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 		INodesForEObjectProvider nodes = createNodeProvider(semanticObject);
 		SequenceFeeder feeder = createSequencerFeeder(semanticObject, nodes);
 		feeder.accept(grammarAccess.getInitBlockAccess().getNameInitKeyword_0_0(), semanticObject.getName());
-		feeder.accept(grammarAccess.getInitBlockAccess().getBodyStatementsParserRuleCall_2_0(), semanticObject.getBody());
+		feeder.accept(grammarAccess.getInitBlockAccess().getBodyStatementsParserRuleCall_1_0(), semanticObject.getBody());
 		feeder.finish();
 	}
 	
 	
 	/**
 	 * Constraint:
-	 *     (name=ID origName=ID superName=TypeExpr?)
+	 *     (constant?='val'? type=TypeExpr? name=ID e=Expr?)
 	 *
 	 * Features:
 	 *    name[1, 1]
-	 *    origName[1, 1]
+	 *    constant[0, 1]
+	 *    type[0, 1]
+	 *    e[0, 1]
+	 */
+	protected void sequence_LocalVarDef_VarDef(EObject context, VarDef semanticObject) {
+		genericSequencer.createSequence(context, semanticObject);
+	}
+	
+	
+	/**
+	 * Constraint:
+	 *     (name=ID ((parameters+=ParameterDef parameters+=ParameterDef*)? | (parameters+=ParameterDef parameters+=ParameterDef*))? type=TypeExpr?)
+	 *
+	 * Features:
+	 *    name[1, 1]
+	 *    parameters[1, *]
+	 *    type[0, 1]
+	 */
+	protected void sequence_NativeFunc_NativeFunc(EObject context, NativeFunc semanticObject) {
+		genericSequencer.createSequence(context, semanticObject);
+	}
+	
+	
+	/**
+	 * Constraint:
+	 *     (name=ID superName=TypeExpr?)
+	 *
+	 * Features:
+	 *    name[1, 1]
 	 *    superName[0, 1]
 	 */
 	protected void sequence_NativeType_NativeType(EObject context, NativeType semanticObject) {
@@ -1403,7 +1371,7 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 	
 	/**
 	 * Constraint:
-	 *     (name=ID type=TypeExpr)
+	 *     (type=TypeExpr name=ID)
 	 *
 	 * Features:
 	 *    name[1, 1]
@@ -1445,29 +1413,52 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 	 * Features:
 	 *    e[1, 1]
 	 */
-	protected void sequence_StmtExpr_StmtExpr(EObject context, StmtExpr semanticObject) {
+	protected void sequence_StmtExitwhen_StmtExitwhen(EObject context, StmtExitwhen semanticObject) {
 		if(errorAcceptor != null) {
-			if(transientValues.isValueTransient(semanticObject, PscriptPackage.Literals.STMT_EXPR__E) == ValueTransient.YES)
-				errorAcceptor.accept(diagnosticProvider.createFeatureValueMissing(semanticObject, PscriptPackage.Literals.STMT_EXPR__E));
+			if(transientValues.isValueTransient(semanticObject, PscriptPackage.Literals.STMT_EXITWHEN__E) == ValueTransient.YES)
+				errorAcceptor.accept(diagnosticProvider.createFeatureValueMissing(semanticObject, PscriptPackage.Literals.STMT_EXITWHEN__E));
 		}
 		INodesForEObjectProvider nodes = createNodeProvider(semanticObject);
 		SequenceFeeder feeder = createSequencerFeeder(semanticObject, nodes);
-		feeder.accept(grammarAccess.getStmtExprAccess().getEExprParserRuleCall_0_0(), semanticObject.getE());
+		feeder.accept(grammarAccess.getStmtExitwhenAccess().getEExprParserRuleCall_1_0(), semanticObject.getE());
 		feeder.finish();
 	}
 	
 	
 	/**
 	 * Constraint:
-	 *     (cond=Expr thenBlock=Statements elseBlock=ElseBlock?)
+	 *     (cond=Expr thenBlock=Statements (elseIfConds+=Expr elseIfBlocks+=Statements)* elseBlock=Statements?)
 	 *
 	 * Features:
 	 *    cond[1, 1]
 	 *    thenBlock[1, 1]
+	 *    elseIfConds[0, *]
+	 *         SAME elseIfBlocks
+	 *    elseIfBlocks[0, *]
+	 *         SAME elseIfConds
 	 *    elseBlock[0, 1]
 	 */
 	protected void sequence_StmtIf_StmtIf(EObject context, StmtIf semanticObject) {
 		genericSequencer.createSequence(context, semanticObject);
+	}
+	
+	
+	/**
+	 * Constraint:
+	 *     body=Statements
+	 *
+	 * Features:
+	 *    body[1, 1]
+	 */
+	protected void sequence_StmtLoop_StmtLoop(EObject context, StmtLoop semanticObject) {
+		if(errorAcceptor != null) {
+			if(transientValues.isValueTransient(semanticObject, PscriptPackage.Literals.STMT_LOOP__BODY) == ValueTransient.YES)
+				errorAcceptor.accept(diagnosticProvider.createFeatureValueMissing(semanticObject, PscriptPackage.Literals.STMT_LOOP__BODY));
+		}
+		INodesForEObjectProvider nodes = createNodeProvider(semanticObject);
+		SequenceFeeder feeder = createSequencerFeeder(semanticObject, nodes);
+		feeder.accept(grammarAccess.getStmtLoopAccess().getBodyStatementsParserRuleCall_2_0(), semanticObject.getBody());
+		feeder.finish();
 	}
 	
 	
@@ -1480,6 +1471,52 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 	 */
 	protected void sequence_StmtReturn_StmtReturn(EObject context, StmtReturn semanticObject) {
 		genericSequencer.createSequence(context, semanticObject);
+	}
+	
+	
+	/**
+	 * Constraint:
+	 *     e=Expr
+	 *
+	 * Features:
+	 *    e[1, 1]
+	 */
+	protected void sequence_StmtSetOrCall_StmtCall(EObject context, StmtCall semanticObject) {
+		if(errorAcceptor != null) {
+			if(transientValues.isValueTransient(semanticObject, PscriptPackage.Literals.STMT_CALL__E) == ValueTransient.YES)
+				errorAcceptor.accept(diagnosticProvider.createFeatureValueMissing(semanticObject, PscriptPackage.Literals.STMT_CALL__E));
+		}
+		INodesForEObjectProvider nodes = createNodeProvider(semanticObject);
+		SequenceFeeder feeder = createSequencerFeeder(semanticObject, nodes);
+		feeder.accept(grammarAccess.getStmtSetOrCallAccess().getEExprParserRuleCall_2_0(), semanticObject.getE());
+		feeder.finish();
+	}
+	
+	
+	/**
+	 * Constraint:
+	 *     (left=StmtSetOrCall_StmtSet_3_0 opAssignment=OpAssignment right=Expr)
+	 *
+	 * Features:
+	 *    left[1, 1]
+	 *    opAssignment[1, 1]
+	 *    right[1, 1]
+	 */
+	protected void sequence_StmtSetOrCall_StmtSet(EObject context, StmtSet semanticObject) {
+		if(errorAcceptor != null) {
+			if(transientValues.isValueTransient(semanticObject, PscriptPackage.Literals.STMT_SET__LEFT) == ValueTransient.YES)
+				errorAcceptor.accept(diagnosticProvider.createFeatureValueMissing(semanticObject, PscriptPackage.Literals.STMT_SET__LEFT));
+			if(transientValues.isValueTransient(semanticObject, PscriptPackage.Literals.STMT_SET__OP_ASSIGNMENT) == ValueTransient.YES)
+				errorAcceptor.accept(diagnosticProvider.createFeatureValueMissing(semanticObject, PscriptPackage.Literals.STMT_SET__OP_ASSIGNMENT));
+			if(transientValues.isValueTransient(semanticObject, PscriptPackage.Literals.STMT_SET__RIGHT) == ValueTransient.YES)
+				errorAcceptor.accept(diagnosticProvider.createFeatureValueMissing(semanticObject, PscriptPackage.Literals.STMT_SET__RIGHT));
+		}
+		INodesForEObjectProvider nodes = createNodeProvider(semanticObject);
+		SequenceFeeder feeder = createSequencerFeeder(semanticObject, nodes);
+		feeder.accept(grammarAccess.getStmtSetOrCallAccess().getStmtSetLeftAction_3_0(), semanticObject.getLeft());
+		feeder.accept(grammarAccess.getStmtSetOrCallAccess().getOpAssignmentOpAssignmentParserRuleCall_3_1_0(), semanticObject.getOpAssignment());
+		feeder.accept(grammarAccess.getStmtSetOrCallAccess().getRightExprParserRuleCall_3_2_0(), semanticObject.getRight());
+		feeder.finish();
 	}
 	
 	
@@ -1508,32 +1545,55 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 	
 	/**
 	 * Constraint:
+	 *     (
+	 *         name='integer' | 
+	 *         name='real' | 
+	 *         name='string' | 
+	 *         name='boolean' | 
+	 *         name='handle' | 
+	 *         name='code'
+	 *     )
+	 *
+	 * Features:
+	 *    name[0, 6]
+	 */
+	protected void sequence_TypeExpr_TypeExprBuildin(EObject context, TypeExprBuildin semanticObject) {
+		genericSequencer.createSequence(context, semanticObject);
+	}
+	
+	
+	/**
+	 * Constraint:
 	 *     name=[TypeDef|ID]
 	 *
 	 * Features:
 	 *    name[1, 1]
 	 */
-	protected void sequence_TypeExpr_TypeExpr(EObject context, TypeExpr semanticObject) {
+	protected void sequence_TypeExpr_TypeExprRef(EObject context, TypeExprRef semanticObject) {
 		if(errorAcceptor != null) {
-			if(transientValues.isValueTransient(semanticObject, PscriptPackage.Literals.TYPE_EXPR__NAME) == ValueTransient.YES)
-				errorAcceptor.accept(diagnosticProvider.createFeatureValueMissing(semanticObject, PscriptPackage.Literals.TYPE_EXPR__NAME));
+			if(transientValues.isValueTransient(semanticObject, PscriptPackage.Literals.TYPE_EXPR_REF__NAME) == ValueTransient.YES)
+				errorAcceptor.accept(diagnosticProvider.createFeatureValueMissing(semanticObject, PscriptPackage.Literals.TYPE_EXPR_REF__NAME));
 		}
 		INodesForEObjectProvider nodes = createNodeProvider(semanticObject);
 		SequenceFeeder feeder = createSequencerFeeder(semanticObject, nodes);
-		feeder.accept(grammarAccess.getTypeExprAccess().getNameTypeDefIDTerminalRuleCall_1_0_1(), semanticObject.getName());
+		feeder.accept(grammarAccess.getTypeExprAccess().getNameTypeDefIDTerminalRuleCall_0_1_0_1(), semanticObject.getName());
 		feeder.finish();
 	}
 	
 	
 	/**
 	 * Constraint:
-	 *     (constant?='val'? name=ID type=TypeExpr? e=Expr?)
+	 *     ((constant?='val' type=TypeExpr? name=ID e=Expr) | (constant?='constant'? type=TypeExpr name=ID e=Expr?) | (name=ID e=Expr))
 	 *
 	 * Features:
-	 *    name[1, 1]
-	 *    constant[0, 1]
-	 *    type[0, 1]
-	 *    e[0, 1]
+	 *    name[3, 3]
+	 *    constant[1, 2]
+	 *         EXCLUDE_IF_SET name
+	 *         EXCLUDE_IF_SET e
+	 *    type[1, 2]
+	 *         EXCLUDE_IF_SET name
+	 *         EXCLUDE_IF_SET e
+	 *    e[2, 3]
 	 */
 	protected void sequence_VarDef_VarDef(EObject context, VarDef semanticObject) {
 		genericSequencer.createSequence(context, semanticObject);

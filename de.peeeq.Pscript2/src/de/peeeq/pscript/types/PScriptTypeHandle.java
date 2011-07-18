@@ -16,12 +16,12 @@ public class PScriptTypeHandle extends PscriptType {
 
 	@Override
 	public String getName() {
-		return "Handle";
+		return "handle";
 	}
 
 	@Override
 	public String getFullName() {
-		return "Handle";
+		return "handle";
 	}
 
 	public static PScriptTypeHandle instance() {

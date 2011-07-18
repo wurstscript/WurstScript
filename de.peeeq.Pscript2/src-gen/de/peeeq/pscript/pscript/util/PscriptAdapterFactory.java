@@ -109,6 +109,11 @@ public class PscriptAdapterFactory extends AdapterFactoryImpl
         return createTypeDefAdapter();
       }
       @Override
+      public Adapter caseFuncDef(FuncDef object)
+      {
+        return createFuncDefAdapter();
+      }
+      @Override
       public Adapter caseClassMember(ClassMember object)
       {
         return createClassMemberAdapter();
@@ -124,11 +129,6 @@ public class PscriptAdapterFactory extends AdapterFactoryImpl
         return createTypeExprAdapter();
       }
       @Override
-      public Adapter caseFuncDef(FuncDef object)
-      {
-        return createFuncDefAdapter();
-      }
-      @Override
       public Adapter caseStatements(Statements object)
       {
         return createStatementsAdapter();
@@ -137,6 +137,16 @@ public class PscriptAdapterFactory extends AdapterFactoryImpl
       public Adapter caseStatement(Statement object)
       {
         return createStatementAdapter();
+      }
+      @Override
+      public Adapter caseStmtExitwhen(StmtExitwhen object)
+      {
+        return createStmtExitwhenAdapter();
+      }
+      @Override
+      public Adapter caseStmtLoop(StmtLoop object)
+      {
+        return createStmtLoopAdapter();
       }
       @Override
       public Adapter caseStmtReturn(StmtReturn object)
@@ -149,29 +159,24 @@ public class PscriptAdapterFactory extends AdapterFactoryImpl
         return createStmtIfAdapter();
       }
       @Override
-      public Adapter caseElseBlock(ElseBlock object)
-      {
-        return createElseBlockAdapter();
-      }
-      @Override
       public Adapter caseStmtWhile(StmtWhile object)
       {
         return createStmtWhileAdapter();
       }
       @Override
-      public Adapter caseStmtExpr(StmtExpr object)
+      public Adapter caseStmtSetOrCall(StmtSetOrCall object)
       {
-        return createStmtExprAdapter();
-      }
-      @Override
-      public Adapter caseExpr(Expr object)
-      {
-        return createExprAdapter();
+        return createStmtSetOrCallAdapter();
       }
       @Override
       public Adapter caseOpAssignment(OpAssignment object)
       {
         return createOpAssignmentAdapter();
+      }
+      @Override
+      public Adapter caseExpr(Expr object)
+      {
+        return createExprAdapter();
       }
       @Override
       public Adapter caseOpEquality(OpEquality object)
@@ -199,6 +204,11 @@ public class PscriptAdapterFactory extends AdapterFactoryImpl
         return createExprListAdapter();
       }
       @Override
+      public Adapter caseNativeFunc(NativeFunc object)
+      {
+        return createNativeFuncAdapter();
+      }
+      @Override
       public Adapter caseNativeType(NativeType object)
       {
         return createNativeTypeAdapter();
@@ -209,14 +219,29 @@ public class PscriptAdapterFactory extends AdapterFactoryImpl
         return createClassDefAdapter();
       }
       @Override
+      public Adapter caseTypeExprRef(TypeExprRef object)
+      {
+        return createTypeExprRefAdapter();
+      }
+      @Override
+      public Adapter caseTypeExprBuildin(TypeExprBuildin object)
+      {
+        return createTypeExprBuildinAdapter();
+      }
+      @Override
       public Adapter caseParameterDef(ParameterDef object)
       {
         return createParameterDefAdapter();
       }
       @Override
-      public Adapter caseExprAssignment(ExprAssignment object)
+      public Adapter caseStmtCall(StmtCall object)
       {
-        return createExprAssignmentAdapter();
+        return createStmtCallAdapter();
+      }
+      @Override
+      public Adapter caseStmtSet(StmtSet object)
+      {
+        return createStmtSetAdapter();
       }
       @Override
       public Adapter caseOpAssign(OpAssign object)
@@ -359,19 +384,19 @@ public class PscriptAdapterFactory extends AdapterFactoryImpl
         return createExprBoolValAdapter();
       }
       @Override
-      public Adapter caseExprBuildinFunction(ExprBuildinFunction object)
+      public Adapter caseExprFuncRef(ExprFuncRef object)
       {
-        return createExprBuildinFunctionAdapter();
-      }
-      @Override
-      public Adapter caseExprFunctioncall(ExprFunctioncall object)
-      {
-        return createExprFunctioncallAdapter();
+        return createExprFuncRefAdapter();
       }
       @Override
       public Adapter caseExprIdentifier(ExprIdentifier object)
       {
         return createExprIdentifierAdapter();
+      }
+      @Override
+      public Adapter caseExprFunctioncall(ExprFunctioncall object)
+      {
+        return createExprFunctioncallAdapter();
       }
       @Override
       public Adapter defaultCase(EObject object)
@@ -486,6 +511,21 @@ public class PscriptAdapterFactory extends AdapterFactoryImpl
   }
 
   /**
+   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.FuncDef <em>Func Def</em>}'.
+   * <!-- begin-user-doc -->
+   * This default implementation returns null so that we can easily ignore cases;
+   * it's useful to ignore a case when inheritance will catch all the cases anyway.
+   * <!-- end-user-doc -->
+   * @return the new adapter.
+   * @see de.peeeq.pscript.pscript.FuncDef
+   * @generated
+   */
+  public Adapter createFuncDefAdapter()
+  {
+    return null;
+  }
+
+  /**
    * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.ClassMember <em>Class Member</em>}'.
    * <!-- begin-user-doc -->
    * This default implementation returns null so that we can easily ignore cases;
@@ -531,21 +571,6 @@ public class PscriptAdapterFactory extends AdapterFactoryImpl
   }
 
   /**
-   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.FuncDef <em>Func Def</em>}'.
-   * <!-- begin-user-doc -->
-   * This default implementation returns null so that we can easily ignore cases;
-   * it's useful to ignore a case when inheritance will catch all the cases anyway.
-   * <!-- end-user-doc -->
-   * @return the new adapter.
-   * @see de.peeeq.pscript.pscript.FuncDef
-   * @generated
-   */
-  public Adapter createFuncDefAdapter()
-  {
-    return null;
-  }
-
-  /**
    * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.Statements <em>Statements</em>}'.
    * <!-- begin-user-doc -->
    * This default implementation returns null so that we can easily ignore cases;
@@ -571,6 +596,36 @@ public class PscriptAdapterFactory extends AdapterFactoryImpl
    * @generated
    */
   public Adapter createStatementAdapter()
+  {
+    return null;
+  }
+
+  /**
+   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.StmtExitwhen <em>Stmt Exitwhen</em>}'.
+   * <!-- begin-user-doc -->
+   * This default implementation returns null so that we can easily ignore cases;
+   * it's useful to ignore a case when inheritance will catch all the cases anyway.
+   * <!-- end-user-doc -->
+   * @return the new adapter.
+   * @see de.peeeq.pscript.pscript.StmtExitwhen
+   * @generated
+   */
+  public Adapter createStmtExitwhenAdapter()
+  {
+    return null;
+  }
+
+  /**
+   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.StmtLoop <em>Stmt Loop</em>}'.
+   * <!-- begin-user-doc -->
+   * This default implementation returns null so that we can easily ignore cases;
+   * it's useful to ignore a case when inheritance will catch all the cases anyway.
+   * <!-- end-user-doc -->
+   * @return the new adapter.
+   * @see de.peeeq.pscript.pscript.StmtLoop
+   * @generated
+   */
+  public Adapter createStmtLoopAdapter()
   {
     return null;
   }
@@ -606,21 +661,6 @@ public class PscriptAdapterFactory extends AdapterFactoryImpl
   }
 
   /**
-   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.ElseBlock <em>Else Block</em>}'.
-   * <!-- begin-user-doc -->
-   * This default implementation returns null so that we can easily ignore cases;
-   * it's useful to ignore a case when inheritance will catch all the cases anyway.
-   * <!-- end-user-doc -->
-   * @return the new adapter.
-   * @see de.peeeq.pscript.pscript.ElseBlock
-   * @generated
-   */
-  public Adapter createElseBlockAdapter()
-  {
-    return null;
-  }
-
-  /**
    * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.StmtWhile <em>Stmt While</em>}'.
    * <!-- begin-user-doc -->
    * This default implementation returns null so that we can easily ignore cases;
@@ -636,31 +676,16 @@ public class PscriptAdapterFactory extends AdapterFactoryImpl
   }
 
   /**
-   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.StmtExpr <em>Stmt Expr</em>}'.
+   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.StmtSetOrCall <em>Stmt Set Or Call</em>}'.
    * <!-- begin-user-doc -->
    * This default implementation returns null so that we can easily ignore cases;
    * it's useful to ignore a case when inheritance will catch all the cases anyway.
    * <!-- end-user-doc -->
    * @return the new adapter.
-   * @see de.peeeq.pscript.pscript.StmtExpr
+   * @see de.peeeq.pscript.pscript.StmtSetOrCall
    * @generated
    */
-  public Adapter createStmtExprAdapter()
-  {
-    return null;
-  }
-
-  /**
-   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.Expr <em>Expr</em>}'.
-   * <!-- begin-user-doc -->
-   * This default implementation returns null so that we can easily ignore cases;
-   * it's useful to ignore a case when inheritance will catch all the cases anyway.
-   * <!-- end-user-doc -->
-   * @return the new adapter.
-   * @see de.peeeq.pscript.pscript.Expr
-   * @generated
-   */
-  public Adapter createExprAdapter()
+  public Adapter createStmtSetOrCallAdapter()
   {
     return null;
   }
@@ -676,6 +701,21 @@ public class PscriptAdapterFactory extends AdapterFactoryImpl
    * @generated
    */
   public Adapter createOpAssignmentAdapter()
+  {
+    return null;
+  }
+
+  /**
+   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.Expr <em>Expr</em>}'.
+   * <!-- begin-user-doc -->
+   * This default implementation returns null so that we can easily ignore cases;
+   * it's useful to ignore a case when inheritance will catch all the cases anyway.
+   * <!-- end-user-doc -->
+   * @return the new adapter.
+   * @see de.peeeq.pscript.pscript.Expr
+   * @generated
+   */
+  public Adapter createExprAdapter()
   {
     return null;
   }
@@ -756,6 +796,21 @@ public class PscriptAdapterFactory extends AdapterFactoryImpl
   }
 
   /**
+   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.NativeFunc <em>Native Func</em>}'.
+   * <!-- begin-user-doc -->
+   * This default implementation returns null so that we can easily ignore cases;
+   * it's useful to ignore a case when inheritance will catch all the cases anyway.
+   * <!-- end-user-doc -->
+   * @return the new adapter.
+   * @see de.peeeq.pscript.pscript.NativeFunc
+   * @generated
+   */
+  public Adapter createNativeFuncAdapter()
+  {
+    return null;
+  }
+
+  /**
    * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.NativeType <em>Native Type</em>}'.
    * <!-- begin-user-doc -->
    * This default implementation returns null so that we can easily ignore cases;
@@ -786,6 +841,36 @@ public class PscriptAdapterFactory extends AdapterFactoryImpl
   }
 
   /**
+   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.TypeExprRef <em>Type Expr Ref</em>}'.
+   * <!-- begin-user-doc -->
+   * This default implementation returns null so that we can easily ignore cases;
+   * it's useful to ignore a case when inheritance will catch all the cases anyway.
+   * <!-- end-user-doc -->
+   * @return the new adapter.
+   * @see de.peeeq.pscript.pscript.TypeExprRef
+   * @generated
+   */
+  public Adapter createTypeExprRefAdapter()
+  {
+    return null;
+  }
+
+  /**
+   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.TypeExprBuildin <em>Type Expr Buildin</em>}'.
+   * <!-- begin-user-doc -->
+   * This default implementation returns null so that we can easily ignore cases;
+   * it's useful to ignore a case when inheritance will catch all the cases anyway.
+   * <!-- end-user-doc -->
+   * @return the new adapter.
+   * @see de.peeeq.pscript.pscript.TypeExprBuildin
+   * @generated
+   */
+  public Adapter createTypeExprBuildinAdapter()
+  {
+    return null;
+  }
+
+  /**
    * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.ParameterDef <em>Parameter Def</em>}'.
    * <!-- begin-user-doc -->
    * This default implementation returns null so that we can easily ignore cases;
@@ -801,16 +886,31 @@ public class PscriptAdapterFactory extends AdapterFactoryImpl
   }
 
   /**
-   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.ExprAssignment <em>Expr Assignment</em>}'.
+   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.StmtCall <em>Stmt Call</em>}'.
    * <!-- begin-user-doc -->
    * This default implementation returns null so that we can easily ignore cases;
    * it's useful to ignore a case when inheritance will catch all the cases anyway.
    * <!-- end-user-doc -->
    * @return the new adapter.
-   * @see de.peeeq.pscript.pscript.ExprAssignment
+   * @see de.peeeq.pscript.pscript.StmtCall
    * @generated
    */
-  public Adapter createExprAssignmentAdapter()
+  public Adapter createStmtCallAdapter()
+  {
+    return null;
+  }
+
+  /**
+   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.StmtSet <em>Stmt Set</em>}'.
+   * <!-- begin-user-doc -->
+   * This default implementation returns null so that we can easily ignore cases;
+   * it's useful to ignore a case when inheritance will catch all the cases anyway.
+   * <!-- end-user-doc -->
+   * @return the new adapter.
+   * @see de.peeeq.pscript.pscript.StmtSet
+   * @generated
+   */
+  public Adapter createStmtSetAdapter()
   {
     return null;
   }
@@ -1236,31 +1336,16 @@ public class PscriptAdapterFactory extends AdapterFactoryImpl
   }
 
   /**
-   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.ExprBuildinFunction <em>Expr Buildin Function</em>}'.
+   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.ExprFuncRef <em>Expr Func Ref</em>}'.
    * <!-- begin-user-doc -->
    * This default implementation returns null so that we can easily ignore cases;
    * it's useful to ignore a case when inheritance will catch all the cases anyway.
    * <!-- end-user-doc -->
    * @return the new adapter.
-   * @see de.peeeq.pscript.pscript.ExprBuildinFunction
+   * @see de.peeeq.pscript.pscript.ExprFuncRef
    * @generated
    */
-  public Adapter createExprBuildinFunctionAdapter()
-  {
-    return null;
-  }
-
-  /**
-   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.ExprFunctioncall <em>Expr Functioncall</em>}'.
-   * <!-- begin-user-doc -->
-   * This default implementation returns null so that we can easily ignore cases;
-   * it's useful to ignore a case when inheritance will catch all the cases anyway.
-   * <!-- end-user-doc -->
-   * @return the new adapter.
-   * @see de.peeeq.pscript.pscript.ExprFunctioncall
-   * @generated
-   */
-  public Adapter createExprFunctioncallAdapter()
+  public Adapter createExprFuncRefAdapter()
   {
     return null;
   }
@@ -1276,6 +1361,21 @@ public class PscriptAdapterFactory extends AdapterFactoryImpl
    * @generated
    */
   public Adapter createExprIdentifierAdapter()
+  {
+    return null;
+  }
+
+  /**
+   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.ExprFunctioncall <em>Expr Functioncall</em>}'.
+   * <!-- begin-user-doc -->
+   * This default implementation returns null so that we can easily ignore cases;
+   * it's useful to ignore a case when inheritance will catch all the cases anyway.
+   * <!-- end-user-doc -->
+   * @return the new adapter.
+   * @see de.peeeq.pscript.pscript.ExprFunctioncall
+   * @generated
+   */
+  public Adapter createExprFunctioncallAdapter()
   {
     return null;
   }

@@ -7,9 +7,10 @@
 package de.peeeq.pscript.pscript.impl;
 
 import de.peeeq.pscript.pscript.Expr;
-import de.peeeq.pscript.pscript.ExprAssignment;
 import de.peeeq.pscript.pscript.OpAssignment;
 import de.peeeq.pscript.pscript.PscriptPackage;
+import de.peeeq.pscript.pscript.StmtCall;
+import de.peeeq.pscript.pscript.StmtSet;
 
 import org.eclipse.emf.common.notify.Notification;
 import org.eclipse.emf.common.notify.NotificationChain;
@@ -21,20 +22,20 @@ import org.eclipse.emf.ecore.impl.ENotificationImpl;
 
 /**
  * <!-- begin-user-doc -->
- * An implementation of the model object '<em><b>Expr Assignment</b></em>'.
+ * An implementation of the model object '<em><b>Stmt Set</b></em>'.
  * <!-- end-user-doc -->
  * <p>
  * The following features are implemented:
  * <ul>
- *   <li>{@link de.peeeq.pscript.pscript.impl.ExprAssignmentImpl#getLeft <em>Left</em>}</li>
- *   <li>{@link de.peeeq.pscript.pscript.impl.ExprAssignmentImpl#getOp <em>Op</em>}</li>
- *   <li>{@link de.peeeq.pscript.pscript.impl.ExprAssignmentImpl#getRight <em>Right</em>}</li>
+ *   <li>{@link de.peeeq.pscript.pscript.impl.StmtSetImpl#getLeft <em>Left</em>}</li>
+ *   <li>{@link de.peeeq.pscript.pscript.impl.StmtSetImpl#getOpAssignment <em>Op Assignment</em>}</li>
+ *   <li>{@link de.peeeq.pscript.pscript.impl.StmtSetImpl#getRight <em>Right</em>}</li>
  * </ul>
  * </p>
  *
  * @generated
  */
-public class ExprAssignmentImpl extends ExprImpl implements ExprAssignment
+public class StmtSetImpl extends StmtSetOrCallImpl implements StmtSet
 {
   /**
    * The cached value of the '{@link #getLeft() <em>Left</em>}' containment reference.
@@ -44,17 +45,17 @@ public class ExprAssignmentImpl extends ExprImpl implements ExprAssignment
    * @generated
    * @ordered
    */
-  protected Expr left;
+  protected StmtCall left;
 
   /**
-   * The cached value of the '{@link #getOp() <em>Op</em>}' containment reference.
+   * The cached value of the '{@link #getOpAssignment() <em>Op Assignment</em>}' containment reference.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @see #getOp()
+   * @see #getOpAssignment()
    * @generated
    * @ordered
    */
-  protected OpAssignment op;
+  protected OpAssignment opAssignment;
 
   /**
    * The cached value of the '{@link #getRight() <em>Right</em>}' containment reference.
@@ -71,7 +72,7 @@ public class ExprAssignmentImpl extends ExprImpl implements ExprAssignment
    * <!-- end-user-doc -->
    * @generated
    */
-  protected ExprAssignmentImpl()
+  protected StmtSetImpl()
   {
     super();
   }
@@ -84,7 +85,7 @@ public class ExprAssignmentImpl extends ExprImpl implements ExprAssignment
   @Override
   protected EClass eStaticClass()
   {
-    return PscriptPackage.Literals.EXPR_ASSIGNMENT;
+    return PscriptPackage.Literals.STMT_SET;
   }
 
   /**
@@ -92,7 +93,7 @@ public class ExprAssignmentImpl extends ExprImpl implements ExprAssignment
    * <!-- end-user-doc -->
    * @generated
    */
-  public Expr getLeft()
+  public StmtCall getLeft()
   {
     return left;
   }
@@ -102,13 +103,13 @@ public class ExprAssignmentImpl extends ExprImpl implements ExprAssignment
    * <!-- end-user-doc -->
    * @generated
    */
-  public NotificationChain basicSetLeft(Expr newLeft, NotificationChain msgs)
+  public NotificationChain basicSetLeft(StmtCall newLeft, NotificationChain msgs)
   {
-    Expr oldLeft = left;
+    StmtCall oldLeft = left;
     left = newLeft;
     if (eNotificationRequired())
     {
-      ENotificationImpl notification = new ENotificationImpl(this, Notification.SET, PscriptPackage.EXPR_ASSIGNMENT__LEFT, oldLeft, newLeft);
+      ENotificationImpl notification = new ENotificationImpl(this, Notification.SET, PscriptPackage.STMT_SET__LEFT, oldLeft, newLeft);
       if (msgs == null) msgs = notification; else msgs.add(notification);
     }
     return msgs;
@@ -119,20 +120,20 @@ public class ExprAssignmentImpl extends ExprImpl implements ExprAssignment
    * <!-- end-user-doc -->
    * @generated
    */
-  public void setLeft(Expr newLeft)
+  public void setLeft(StmtCall newLeft)
   {
     if (newLeft != left)
     {
       NotificationChain msgs = null;
       if (left != null)
-        msgs = ((InternalEObject)left).eInverseRemove(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.EXPR_ASSIGNMENT__LEFT, null, msgs);
+        msgs = ((InternalEObject)left).eInverseRemove(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.STMT_SET__LEFT, null, msgs);
       if (newLeft != null)
-        msgs = ((InternalEObject)newLeft).eInverseAdd(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.EXPR_ASSIGNMENT__LEFT, null, msgs);
+        msgs = ((InternalEObject)newLeft).eInverseAdd(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.STMT_SET__LEFT, null, msgs);
       msgs = basicSetLeft(newLeft, msgs);
       if (msgs != null) msgs.dispatch();
     }
     else if (eNotificationRequired())
-      eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.EXPR_ASSIGNMENT__LEFT, newLeft, newLeft));
+      eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.STMT_SET__LEFT, newLeft, newLeft));
   }
 
   /**
@@ -140,9 +141,9 @@ public class ExprAssignmentImpl extends ExprImpl implements ExprAssignment
    * <!-- end-user-doc -->
    * @generated
    */
-  public OpAssignment getOp()
+  public OpAssignment getOpAssignment()
   {
-    return op;
+    return opAssignment;
   }
 
   /**
@@ -150,13 +151,13 @@ public class ExprAssignmentImpl extends ExprImpl implements ExprAssignment
    * <!-- end-user-doc -->
    * @generated
    */
-  public NotificationChain basicSetOp(OpAssignment newOp, NotificationChain msgs)
+  public NotificationChain basicSetOpAssignment(OpAssignment newOpAssignment, NotificationChain msgs)
   {
-    OpAssignment oldOp = op;
-    op = newOp;
+    OpAssignment oldOpAssignment = opAssignment;
+    opAssignment = newOpAssignment;
     if (eNotificationRequired())
     {
-      ENotificationImpl notification = new ENotificationImpl(this, Notification.SET, PscriptPackage.EXPR_ASSIGNMENT__OP, oldOp, newOp);
+      ENotificationImpl notification = new ENotificationImpl(this, Notification.SET, PscriptPackage.STMT_SET__OP_ASSIGNMENT, oldOpAssignment, newOpAssignment);
       if (msgs == null) msgs = notification; else msgs.add(notification);
     }
     return msgs;
@@ -167,20 +168,20 @@ public class ExprAssignmentImpl extends ExprImpl implements ExprAssignment
    * <!-- end-user-doc -->
    * @generated
    */
-  public void setOp(OpAssignment newOp)
+  public void setOpAssignment(OpAssignment newOpAssignment)
   {
-    if (newOp != op)
+    if (newOpAssignment != opAssignment)
     {
       NotificationChain msgs = null;
-      if (op != null)
-        msgs = ((InternalEObject)op).eInverseRemove(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.EXPR_ASSIGNMENT__OP, null, msgs);
-      if (newOp != null)
-        msgs = ((InternalEObject)newOp).eInverseAdd(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.EXPR_ASSIGNMENT__OP, null, msgs);
-      msgs = basicSetOp(newOp, msgs);
+      if (opAssignment != null)
+        msgs = ((InternalEObject)opAssignment).eInverseRemove(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.STMT_SET__OP_ASSIGNMENT, null, msgs);
+      if (newOpAssignment != null)
+        msgs = ((InternalEObject)newOpAssignment).eInverseAdd(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.STMT_SET__OP_ASSIGNMENT, null, msgs);
+      msgs = basicSetOpAssignment(newOpAssignment, msgs);
       if (msgs != null) msgs.dispatch();
     }
     else if (eNotificationRequired())
-      eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.EXPR_ASSIGNMENT__OP, newOp, newOp));
+      eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.STMT_SET__OP_ASSIGNMENT, newOpAssignment, newOpAssignment));
   }
 
   /**
@@ -204,7 +205,7 @@ public class ExprAssignmentImpl extends ExprImpl implements ExprAssignment
     right = newRight;
     if (eNotificationRequired())
     {
-      ENotificationImpl notification = new ENotificationImpl(this, Notification.SET, PscriptPackage.EXPR_ASSIGNMENT__RIGHT, oldRight, newRight);
+      ENotificationImpl notification = new ENotificationImpl(this, Notification.SET, PscriptPackage.STMT_SET__RIGHT, oldRight, newRight);
       if (msgs == null) msgs = notification; else msgs.add(notification);
     }
     return msgs;
@@ -221,14 +222,14 @@ public class ExprAssignmentImpl extends ExprImpl implements ExprAssignment
     {
       NotificationChain msgs = null;
       if (right != null)
-        msgs = ((InternalEObject)right).eInverseRemove(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.EXPR_ASSIGNMENT__RIGHT, null, msgs);
+        msgs = ((InternalEObject)right).eInverseRemove(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.STMT_SET__RIGHT, null, msgs);
       if (newRight != null)
-        msgs = ((InternalEObject)newRight).eInverseAdd(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.EXPR_ASSIGNMENT__RIGHT, null, msgs);
+        msgs = ((InternalEObject)newRight).eInverseAdd(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.STMT_SET__RIGHT, null, msgs);
       msgs = basicSetRight(newRight, msgs);
       if (msgs != null) msgs.dispatch();
     }
     else if (eNotificationRequired())
-      eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.EXPR_ASSIGNMENT__RIGHT, newRight, newRight));
+      eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.STMT_SET__RIGHT, newRight, newRight));
   }
 
   /**
@@ -241,11 +242,11 @@ public class ExprAssignmentImpl extends ExprImpl implements ExprAssignment
   {
     switch (featureID)
     {
-      case PscriptPackage.EXPR_ASSIGNMENT__LEFT:
+      case PscriptPackage.STMT_SET__LEFT:
         return basicSetLeft(null, msgs);
-      case PscriptPackage.EXPR_ASSIGNMENT__OP:
-        return basicSetOp(null, msgs);
-      case PscriptPackage.EXPR_ASSIGNMENT__RIGHT:
+      case PscriptPackage.STMT_SET__OP_ASSIGNMENT:
+        return basicSetOpAssignment(null, msgs);
+      case PscriptPackage.STMT_SET__RIGHT:
         return basicSetRight(null, msgs);
     }
     return super.eInverseRemove(otherEnd, featureID, msgs);
@@ -261,11 +262,11 @@ public class ExprAssignmentImpl extends ExprImpl implements ExprAssignment
   {
     switch (featureID)
     {
-      case PscriptPackage.EXPR_ASSIGNMENT__LEFT:
+      case PscriptPackage.STMT_SET__LEFT:
         return getLeft();
-      case PscriptPackage.EXPR_ASSIGNMENT__OP:
-        return getOp();
-      case PscriptPackage.EXPR_ASSIGNMENT__RIGHT:
+      case PscriptPackage.STMT_SET__OP_ASSIGNMENT:
+        return getOpAssignment();
+      case PscriptPackage.STMT_SET__RIGHT:
         return getRight();
     }
     return super.eGet(featureID, resolve, coreType);
@@ -281,13 +282,13 @@ public class ExprAssignmentImpl extends ExprImpl implements ExprAssignment
   {
     switch (featureID)
     {
-      case PscriptPackage.EXPR_ASSIGNMENT__LEFT:
-        setLeft((Expr)newValue);
+      case PscriptPackage.STMT_SET__LEFT:
+        setLeft((StmtCall)newValue);
         return;
-      case PscriptPackage.EXPR_ASSIGNMENT__OP:
-        setOp((OpAssignment)newValue);
+      case PscriptPackage.STMT_SET__OP_ASSIGNMENT:
+        setOpAssignment((OpAssignment)newValue);
         return;
-      case PscriptPackage.EXPR_ASSIGNMENT__RIGHT:
+      case PscriptPackage.STMT_SET__RIGHT:
         setRight((Expr)newValue);
         return;
     }
@@ -304,13 +305,13 @@ public class ExprAssignmentImpl extends ExprImpl implements ExprAssignment
   {
     switch (featureID)
     {
-      case PscriptPackage.EXPR_ASSIGNMENT__LEFT:
-        setLeft((Expr)null);
+      case PscriptPackage.STMT_SET__LEFT:
+        setLeft((StmtCall)null);
         return;
-      case PscriptPackage.EXPR_ASSIGNMENT__OP:
-        setOp((OpAssignment)null);
+      case PscriptPackage.STMT_SET__OP_ASSIGNMENT:
+        setOpAssignment((OpAssignment)null);
         return;
-      case PscriptPackage.EXPR_ASSIGNMENT__RIGHT:
+      case PscriptPackage.STMT_SET__RIGHT:
         setRight((Expr)null);
         return;
     }
@@ -327,14 +328,14 @@ public class ExprAssignmentImpl extends ExprImpl implements ExprAssignment
   {
     switch (featureID)
     {
-      case PscriptPackage.EXPR_ASSIGNMENT__LEFT:
+      case PscriptPackage.STMT_SET__LEFT:
         return left != null;
-      case PscriptPackage.EXPR_ASSIGNMENT__OP:
-        return op != null;
-      case PscriptPackage.EXPR_ASSIGNMENT__RIGHT:
+      case PscriptPackage.STMT_SET__OP_ASSIGNMENT:
+        return opAssignment != null;
+      case PscriptPackage.STMT_SET__RIGHT:
         return right != null;
     }
     return super.eIsSet(featureID);
   }
 
-} //ExprAssignmentImpl
+} //StmtSetImpl

@@ -286,7 +286,7 @@ public class JassPrinter extends PrintHelper {
 	}
 
 	private void printType(PscriptType type) {
-		prog.lookupNativeTranslation(type.getName());
+//		prog.lookupNativeTranslation(type.getName()); TODO
 		
 	}
 }

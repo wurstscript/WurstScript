@@ -16,12 +16,12 @@ public class PScriptTypeCode extends PscriptType {
 
 	@Override
 	public String getName() {
-		return "Code";
+		return "code";
 	}
 
 	@Override
 	public String getFullName() {
-		return "Code";
+		return "code";
 	}
 
 	public static PScriptTypeCode instance() {

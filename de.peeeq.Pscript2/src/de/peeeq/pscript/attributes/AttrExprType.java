@@ -6,11 +6,10 @@ import de.peeeq.pscript.attributes.infrastructure.AttributeManager;
 import de.peeeq.pscript.pscript.Expr;
 import de.peeeq.pscript.pscript.ExprAdditive;
 import de.peeeq.pscript.pscript.ExprAnd;
-import de.peeeq.pscript.pscript.ExprAssignment;
 import de.peeeq.pscript.pscript.ExprBoolVal;
-import de.peeeq.pscript.pscript.ExprBuildinFunction;
 import de.peeeq.pscript.pscript.ExprComparison;
 import de.peeeq.pscript.pscript.ExprEquality;
+import de.peeeq.pscript.pscript.ExprFuncRef;
 import de.peeeq.pscript.pscript.ExprFunctioncall;
 import de.peeeq.pscript.pscript.ExprIdentifier;
 import de.peeeq.pscript.pscript.ExprIntVal;
@@ -32,7 +31,7 @@ import de.peeeq.pscript.pscript.ParameterDef;
 import de.peeeq.pscript.pscript.VarDef;
 import de.peeeq.pscript.pscript.util.ExprSwitch;
 import de.peeeq.pscript.types.PScriptTypeBool;
-import de.peeeq.pscript.types.PScriptTypeInfer;
+import de.peeeq.pscript.types.PScriptTypeCode;
 import de.peeeq.pscript.types.PScriptTypeInt;
 import de.peeeq.pscript.types.PScriptTypePackage;
 import de.peeeq.pscript.types.PScriptTypeReal;
@@ -156,11 +155,6 @@ public class AttrExprType extends AbstractAttribute<Expr, PscriptType> {
 				return PScriptTypeBool.instance();
 			}
 			
-			@Override public PscriptType caseExprAssignment(ExprAssignment e) {
-				// an assignment has type void (=> can only be used as statement)
-				return PScriptTypeVoid.instance();
-			}
-			
 			@Override public PscriptType caseExprNot(ExprNot e) {
 				PscriptType rightType = attributeManager.getAttValue(AttrExprType.class, e.getRight());
 				if (!rightType.isSubtypeOf(PScriptTypeBool.instance())) {
@@ -255,10 +249,10 @@ public class AttrExprType extends AbstractAttribute<Expr, PscriptType> {
 				return PScriptTypeReal.instance();
 			}
 
+
 			@Override
-			public PscriptType caseExprBuildinFunction(
-					ExprBuildinFunction exprBuildinFunction) {
-				return PScriptTypeInfer.instance();
+			public PscriptType caseExprFuncRef(ExprFuncRef exprFuncRef) {
+				return PScriptTypeCode.instance();
 			}
 			
 				

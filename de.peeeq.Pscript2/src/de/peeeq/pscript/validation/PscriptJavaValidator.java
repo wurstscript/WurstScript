@@ -12,13 +12,13 @@ import de.peeeq.pscript.attributes.AttrVarDefType;
 import de.peeeq.pscript.attributes.infrastructure.AttributeManager;
 import de.peeeq.pscript.pscript.ClassDef;
 import de.peeeq.pscript.pscript.Expr;
-import de.peeeq.pscript.pscript.ExprAssignment;
 import de.peeeq.pscript.pscript.ExprFunctioncall;
 import de.peeeq.pscript.pscript.ExprMember;
 import de.peeeq.pscript.pscript.FuncDef;
 import de.peeeq.pscript.pscript.ParameterDef;
 import de.peeeq.pscript.pscript.Program;
 import de.peeeq.pscript.pscript.PscriptPackage;
+import de.peeeq.pscript.pscript.StmtSet;
 import de.peeeq.pscript.pscript.VarDef;
 import de.peeeq.pscript.types.PscriptType;
 import de.peeeq.pscript.types.PscriptTypeError;
@@ -84,13 +84,13 @@ public class PscriptJavaValidator extends AbstractPscriptJavaValidator {
 	}
 	
 	@Check 
-	public void checkAssignments(ExprAssignment e) {
-		PscriptType leftType = attrManager.getAttValue(AttrExprType.class, e.getLeft());
+	public void checkAssignments(StmtSet e) {
+		PscriptType leftType = attrManager.getAttValue(AttrExprType.class, e.getLeft().getE());
 		PscriptType rightType = attrManager.getAttValue(AttrExprType.class, e.getRight());
 		// TODO check if left side is variable and not constant
 		if (! leftType.isSupertypeOf(rightType)) {
 			error("Cannot assign value of type " + rightType + " to variable of type " + leftType + ".",
-					PscriptPackage.Literals.EXPR_ASSIGNMENT__RIGHT, NO_CATEGORY);
+					PscriptPackage.Literals.STMT_SET__OP_ASSIGNMENT, NO_CATEGORY);
 			return;
 		}
 		
@@ -201,6 +201,6 @@ public class PscriptJavaValidator extends AbstractPscriptJavaValidator {
 	
 	// TODO check return statements
 	// TODO check for unique names
-	
+	// TODO while, if, exitwhen, etc
 	
 }

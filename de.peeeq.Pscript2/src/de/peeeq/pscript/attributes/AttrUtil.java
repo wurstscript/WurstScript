@@ -5,7 +5,11 @@ import org.eclipse.emf.common.util.EList;
 import de.peeeq.pscript.attributes.infrastructure.AttributeManager;
 import de.peeeq.pscript.pscript.FuncDef;
 import de.peeeq.pscript.pscript.ParameterDef;
+import de.peeeq.pscript.pscript.TypeExpr;
+import de.peeeq.pscript.pscript.TypeExprBuildin;
+import de.peeeq.pscript.pscript.TypeExprRef;
 import de.peeeq.pscript.pscript.VarDef;
+import de.peeeq.pscript.pscript.util.TypeExprSwitch;
 import de.peeeq.pscript.types.PscriptType;
 
 public class AttrUtil {
@@ -24,9 +28,29 @@ public class AttrUtil {
 	
 
 	static String printFuncDef(FuncDef f) {
-		return f.getName() + "(" + AttrUtil.printParams(f.getParameters()) + "):" + f.getType().getName();
+		return f.getName() + "(" + AttrUtil.printParams(f.getParameters()) + "):" + printTypeExpr(f.getType());
 	}
 	
+	private static String printTypeExpr(TypeExpr type) {
+		return new TypeExprSwitch<String>() {
+
+			@Override
+			public String caseTypeExprBuildin(TypeExprBuildin typeExprBuildin) {
+				return typeExprBuildin.getName();
+			}
+
+			@Override
+			public String caseTypeExprRef(TypeExprRef typeExprRef) {
+				try {
+					return typeExprRef.getName().getName();
+				} catch (Throwable t) {
+					return "Unknown";
+				}
+			}
+			
+		}.doSwitch(type);
+	}
+
 	static String printParams(EList<VarDef> eList) {
 		String result = "";
 		boolean first = true;
@@ -37,7 +61,7 @@ public class AttrUtil {
 			}
 			result += p.getName();
 			result += ":";
-			result += p.getType().getName();
+			result += printTypeExpr(p.getType());
 			
 			first = false;
 		}
