@@ -93,8 +93,8 @@ public class ILInterpreterImpl implements ILInterpreter {
 			translateIlsetConst( localVarMap, (IlsetConst)s);
 		} else if (s instanceof Ilbinary) {
 			translateIlbinary( localVarMap, (Ilbinary)s);
-		} else if (s instanceof Ilunary) {
-			translateIlunary(localVarMap, (Ilunary) s);
+//		} else if (s instanceof Ilunary) {
+//			translateIlunary(localVarMap, (Ilunary) s);
 		} else if (s instanceof ILreturn) {
 			translateReturn(localVarMap, (ILreturn) s);
 		} else if (s instanceof ILloop) {

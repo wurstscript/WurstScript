@@ -34,19 +34,23 @@ public class ILInterpreterImplTest {
 	@Inject
 	private IResourceValidator validator;
 	
-	private final static String ENDING = ".pscript"; 
+	private final static String PSCRIPT_ENDING = ".pscript"; 
 	
 	static public void main(String ... args) throws IOException {
 		
 		Injector injector = new de.peeeq.pscript.PscriptStandaloneSetupGenerated().createInjectorAndDoEMFRegistration();
 		ILInterpreterImplTest t = injector.getInstance(ILInterpreterImplTest.class);
-		boolean exists = (new File("./src/de/peeeq/pscript/intermediateLang/interpreter")).exists();
-		if (exists) {
-			System.out.print("ja");
-		} else {
-			System.out.print("nein");	
-		}
+		
 		File dir = new File("./src/de/peeeq/pscript/intermediateLang/interpreter");
+		
+		boolean exists = dir.exists();
+		if (exists) {
+			System.out.println("Directory exists!");
+		} else {
+			System.out.println("Directory could not be found!");	
+		}
+		
+		
 		File[] fileList = dir.listFiles();
 		File[] pscriptFiles = new File[50];
 		
@@ -54,7 +58,7 @@ public class ILInterpreterImplTest {
 		if ( fileList != null ) {
 			for(File f : fileList) {
 				String name = f.getName().toLowerCase();
-				if (name.endsWith(ENDING)) {
+				if (name.endsWith(PSCRIPT_ENDING)) {
 					pscriptFiles[files] = f;
 					System.out.println("File: " + name + " added.");
 					files++;
@@ -62,13 +66,13 @@ public class ILInterpreterImplTest {
 	
 			}
 		}
-		System.out.println( files);
+		System.out.println( "Found Files: " + files );
 		try {
 			for ( int i = 0; i < files; i++) {
 				t.runTest(pscriptFiles[i].getPath());
 			}
-		}catch (TestFailException e) {
-			
+		}catch (Error e) {
+			System.out.println("Failed.");
 		}
 		
 		//t.runTest("platform:/resource/de.peeeq.Pscript2/src/de/peeeq/pscript/intermediateLang/interpreter/test.pscript");
@@ -92,6 +96,7 @@ public class ILInterpreterImplTest {
 			return;
 		}
 		
+		
 		ILprog prog = iLconverter.translateProg(resource );
 		
 		
@@ -99,9 +104,9 @@ public class ILInterpreterImplTest {
 		// load the program:
 		interpreter.LoadProgram(prog);
 		// execute function test.foo
-		ILconst result = interpreter.executeFunction("test_foo", new ILconstInt(4),new ILconstInt(0));
-		
-		System.out.println("result = " + result);
+//		ILconst result = interpreter.executeFunction("test_foo", new ILconstInt(4),new ILconstInt(0));
+//
+//		System.out.println("result = " + result);
 		
 	}
 
