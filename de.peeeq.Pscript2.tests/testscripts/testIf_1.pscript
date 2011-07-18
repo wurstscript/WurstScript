@@ -1,0 +1,24 @@
+package test {
+	native type Int = integer
+	native type Bool = boolean
+	native type String = string
+	
+	function testFail(msg:String) {
+		buildin testFail(msg)
+	}
+	
+	function testSuccess() {
+		buildin testSuccess()
+	}
+	
+	
+	function runTest() {
+		if (3+4 == 7) {
+			testSuccess()
+		} else {
+			testFail("defect in if")
+		}
+	}
+	
+	
+}

@@ -1,8 +1,7 @@
-package de.peeeq.pscript.intermediateLang.interpreter;
+package de.peeeq.interpretertests;
 
 import java.io.*;
-import java.io.IOException;
-import java.io.InputStream;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.eclipse.emf.common.util.URI;
@@ -21,6 +20,8 @@ import de.peeeq.pscript.intermediateLang.ILconst;
 import de.peeeq.pscript.intermediateLang.ILconstInt;
 import de.peeeq.pscript.intermediateLang.ILprog;
 import de.peeeq.pscript.intermediateLang.IntermediateCodeGenerator;
+import de.peeeq.pscript.intermediateLang.interpreter.*;
+
 
 
 public class ILInterpreterImplTest {
@@ -41,7 +42,7 @@ public class ILInterpreterImplTest {
 		Injector injector = new de.peeeq.pscript.PscriptStandaloneSetupGenerated().createInjectorAndDoEMFRegistration();
 		ILInterpreterImplTest t = injector.getInstance(ILInterpreterImplTest.class);
 		
-		File dir = new File("./src/de/peeeq/pscript/intermediateLang/interpreter");
+		File dir = new File("./testscripts");
 		
 		boolean exists = dir.exists();
 		if (exists) {
@@ -52,27 +53,48 @@ public class ILInterpreterImplTest {
 		
 		
 		File[] fileList = dir.listFiles();
-		File[] pscriptFiles = new File[50];
+		List<File> pscriptFiles = new LinkedList<File>();
 		
 		int files = 0;
 		if ( fileList != null ) {
 			for(File f : fileList) {
 				String name = f.getName().toLowerCase();
 				if (name.endsWith(PSCRIPT_ENDING)) {
-					pscriptFiles[files] = f;
+					pscriptFiles.add(f);
 					System.out.println("File: " + name + " added.");
 					files++;
 				}
 	
 			}
 		}
+		
+		int testsFailed = 0;
+		int testCount = 0;
 		System.out.println( "Found Files: " + files );
-		try {
-			for ( int i = 0; i < files; i++) {
-				t.runTest(pscriptFiles[i].getPath());
+		for ( File file : pscriptFiles) {
+			
+			System.out.println( "----------------------------------------------");
+			System.out.println( "Testing file: " + file );
+			try {
+				testCount++;
+				t.runTest(file.getPath());
+				System.out.println("Test did not succeed");
+				testsFailed++;
+			} catch (TestFailException e) {
+				testsFailed++;
+				System.out.println("Failed: " + e.getVal());
+			} catch (TestSuccessException e) {
+				System.out.println("Ok");
+			} catch (Throwable e) {
+				System.err.println(file + " failed with exception.");
+				e.printStackTrace();
 			}
-		}catch (Error e) {
-			System.out.println("Failed.");
+			System.out.println();
+		}
+		
+		System.out.println(testsFailed + " of " + testCount + " Tests failed.");
+		if (testsFailed == 0) {
+			System.out.println("Everything went better than expected :)");
 		}
 		
 		//t.runTest("platform:/resource/de.peeeq.Pscript2/src/de/peeeq/pscript/intermediateLang/interpreter/test.pscript");
@@ -103,8 +125,8 @@ public class ILInterpreterImplTest {
 		ILInterpreter interpreter = new ILInterpreterImpl();
 		// load the program:
 		interpreter.LoadProgram(prog);
-		// execute function test.foo
-//		ILconst result = interpreter.executeFunction("test_foo", new ILconstInt(4),new ILconstInt(0));
+		//execute function test.foo
+		ILconst result = interpreter.executeFunction("test_runTest");
 //
 //		System.out.println("result = " + result);
 		

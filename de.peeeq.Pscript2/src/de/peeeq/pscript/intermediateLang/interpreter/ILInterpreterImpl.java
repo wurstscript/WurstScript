@@ -93,8 +93,8 @@ public class ILInterpreterImpl implements ILInterpreter {
 			translateIlsetConst( localVarMap, (IlsetConst)s);
 		} else if (s instanceof Ilbinary) {
 			translateIlbinary( localVarMap, (Ilbinary)s);
-//		} else if (s instanceof Ilunary) {
-//			translateIlunary(localVarMap, (Ilunary) s);
+		} else if (s instanceof Ilunary) {
+			translateIlunary(localVarMap, (Ilunary) s);
 		} else if (s instanceof ILreturn) {
 			translateReturn(localVarMap, (ILreturn) s);
 		} else if (s instanceof ILloop) {
@@ -161,6 +161,11 @@ public class ILInterpreterImpl implements ILInterpreter {
 			// Example: print method
 			ILconstString msg = (ILconstString) lookupVarValue(localVarMap, s.getArgs().get(0));
 			System.out.println(msg.getVal());
+		} else if (name.equals("testFail")) {
+			ILconstString msg = (ILconstString) lookupVarValue(localVarMap, s.getArgs().get(0));
+			throw new TestFailException(msg.getVal());
+		} else if (name.equals("testSuccess")) {
+			throw TestSuccessException.instance;
 		} else {
 			throw new Error("Function " + name 
 					+ " not implemented.");
