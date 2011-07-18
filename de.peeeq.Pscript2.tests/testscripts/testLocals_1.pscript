@@ -1,14 +1,15 @@
-package test
-	
+package test 
+
 	native testFail(string msg)
 	
 	native testSuccess()
 	
 	function runTest()
-		if 2 == 2
+		integer x
+		if x == 0
 			testSuccess()
 		else
-			testFail("defect in equality if")
+			testFail("defect in testing uninitialised variable")
 		endif
 	endfunction
 	

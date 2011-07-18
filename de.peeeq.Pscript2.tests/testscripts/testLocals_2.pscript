@@ -3,12 +3,13 @@ package test
 	native testFail(string msg)
 	
 	native testSuccess()
-	
+
 	function runTest()
-		if 2 == 2
+		integer x = 1
+		if x == 1 
 			testSuccess()
 		else
-			testFail("defect in equality if")
+			testFail("defect in initialising variable on declaration")
 		endif
 	endfunction
 	

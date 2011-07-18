@@ -3,12 +3,12 @@ package test
 	native testFail(string msg)
 	
 	native testSuccess()
-	
+
 	function runTest()
-		if 2 == 2
+		if (10 == 10 and 5 == 5)
 			testSuccess()
 		else
-			testFail("defect in equality if")
+			testFail("defect in and if")
 		endif
 	endfunction
 	

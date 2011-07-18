@@ -46,9 +46,9 @@ public class ILInterpreterImplTest {
 		
 		boolean exists = dir.exists();
 		if (exists) {
-			System.out.println("Directory exists!");
+			System.out.println("Directory " + dir + " exists!");
 		} else {
-			System.out.println("Directory could not be found!");	
+			System.out.println("Directory " + dir + " could not be found!");	
 		}
 		
 		

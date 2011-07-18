@@ -24,17 +24,40 @@ import de.peeeq.pscript.intermediateLang.IlbuildinFunctionCall;
 import de.peeeq.pscript.intermediateLang.Iloperator;
 import de.peeeq.pscript.intermediateLang.IlsetConst;
 import de.peeeq.pscript.intermediateLang.Ilunary;
+import de.peeeq.pscript.types.PScriptTypeBool;
 import de.peeeq.pscript.types.PScriptTypeInt;
+import de.peeeq.pscript.types.PScriptTypeReal;
+import de.peeeq.pscript.types.PScriptTypeString;
 
 public class ILInterpreterImpl implements ILInterpreter {
 
 	private ILprog prog;
 	private static ExitwhenException staticExitwhenException = new ExitwhenException();
+	private Map<String, ILconst> globalVarMap;
 
 	@Override
 	public void LoadProgram(ILprog prog) {
 		this.prog = prog;
-		// TODO initialize global variables
+		globalVarMap = new HashMap<String, ILconst>();
+		
+		List<ILvar> globals = prog.getGlobals();
+		// TODO globals initialisieren
+		for (ILvar v : globals) {
+			ILconst value = null;
+			if (v.getType() instanceof PScriptTypeInt) {
+				value  = new ILconstInt(0);
+			}else if (v.getType() instanceof PScriptTypeBool) {
+				value  = new ILconstBool(false);
+			}else if (v.getType() instanceof PScriptTypeReal) {
+				value  = new ILconstNum(0.0f);
+			}else if (v.getType() instanceof PScriptTypeString) {
+				value  = new ILconstString("");
+			}else {
+				// TODO Andere Types
+				throw new Error("not implemented " + value);
+			}
+			globalVarMap.put(v.getName(), value );
+		}
 
 	}
 
@@ -47,16 +70,23 @@ public class ILInterpreterImpl implements ILInterpreter {
 		ILfunction func = searchFunction(name);
 		List<ILvar> locals = func.getLocals();
 		
-		// TODO initialize local variables
 		
 		List<ILStatement> body = func.getBody();
 		
 		Map<String, ILconst> localVarMap = new HashMap<String, ILconst>();
-		
+		// TODO locals initialisieren
 		for (ILvar v : locals) {
 			ILconst value = null;
 			if (v.getType() instanceof PScriptTypeInt) {
-				value  = new ILconstInt(0); // TODO boolean, etc.
+				value  = new ILconstInt(0);
+			}else if (v.getType() instanceof PScriptTypeBool) {
+				value  = new ILconstBool(false);
+			}else if (v.getType() instanceof PScriptTypeReal) {
+				value  = new ILconstNum(0.0f);
+			}else if (v.getType() instanceof PScriptTypeString) {
+				value  = new ILconstString("");
+			}else {
+				throw new Error("not implemented " + value);
 			}
 			localVarMap.put(v.getName(), value );
 		}
@@ -67,7 +97,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 			i++;
 		}
 		try {
-			this.executeStatements(localVarMap, body); // TODO maybe add a parameter for local variables
+			this.executeStatements(localVarMap, body);
 		} catch (ReturnException e) {
 			return e.getVal();
 		}
@@ -84,7 +114,6 @@ public class ILInterpreterImpl implements ILInterpreter {
 
 
 	private void executeStatement(Map<String, ILconst> localVarMap, ILStatement s) {
-		// TODO Auto-generated method stub
 		if (s instanceof ILif) {
 			translateStatementIf(localVarMap, (ILif)s);
 		} else if (s instanceof ILcopy) {
@@ -106,7 +135,6 @@ public class ILInterpreterImpl implements ILInterpreter {
 		} else if (s instanceof IlbuildinFunctionCall) {
 			translateBuildinFunction(localVarMap, (IlbuildinFunctionCall) s);
 		} else {
-			// TODO mögliche andere Statements
 
 			throw new Error("not implemented " + s);
 		}
@@ -166,7 +194,9 @@ public class ILInterpreterImpl implements ILInterpreter {
 			throw new TestFailException(msg.getVal());
 		} else if (name.equals("testSuccess")) {
 			throw TestSuccessException.instance;
-		} else {
+		}
+		else {
+		
 			throw new Error("Function " + name 
 					+ " not implemented.");
 			// TODO other methods
@@ -240,7 +270,12 @@ public class ILInterpreterImpl implements ILInterpreter {
 				float sum = l + r;
 				result  = new ILconstNum( sum );
 			}
-			// TODO Reals
+		}else if ( s.getOp() == Iloperator.DIV_INT ) {
+			if (leftValue instanceof ILconstInt) {
+				ILconstInt l = (ILconstInt) leftValue;
+				ILconstInt r = (ILconstInt) rightValue;
+				result  = new ILconstInt(l.getVal() / r.getVal());
+			}
 		}else if (s.getOp() == Iloperator.LESS) { 
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
@@ -329,7 +364,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 				boolean r = ((ILconstBool) rightValue).getVal();
 				result  = new ILconstBool(l || r);
 			}
-		}else if (s.getOp() == Iloperator.MOD_INT ) {
+		}else if (s.getOp() == Iloperator.MOD_INT || s.getOp() == Iloperator.MOD_REAL) {
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
 				ILconstInt r = (ILconstInt) rightValue;
@@ -340,7 +375,6 @@ public class ILInterpreterImpl implements ILInterpreter {
 				result  = new ILconstNum(l % r);
 			}
 		}
-		// TODO DIV_INT, MOD_REAL (MOD ansich?)
 		
 
 		
@@ -350,15 +384,12 @@ public class ILInterpreterImpl implements ILInterpreter {
 
 	private void translateIlsetConst(Map<String, ILconst> localVarMap,
 			IlsetConst s) {
-		// TODO Auto-generated method stub
 		
 		addVarToProperMap(localVarMap,s.getResultVar(), s.getConstant());
 		
 	}
 
 	private void translateIlcopy(Map<String, ILconst> localVarMap, ILcopy s) {
-		// TODO Auto-generated method stub
-		// set x = y
 		ILconst value = lookupVarValue(localVarMap, s.getVar());
 
 		addVarToProperMap(localVarMap,s.getResultVar(), value);	
@@ -381,9 +412,9 @@ public class ILInterpreterImpl implements ILInterpreter {
 	private void addVarToProperMap(Map<String, ILconst> localVarMap, ILvar v, ILconst s ) {
 		if (isLocal(localVarMap, v)) {
 			localVarMap.put(v.getName(), s);
-		} else if (true) {
-			// TODO globalVarMap 
-			throw new Error("not yet implemented");
+		} else if (isGlobal( v )) {
+			globalVarMap.put(v.getName(), s);
+			System.out.println("global added: " + s);
 		} else {
 			throw new Error("var is neither local nor global?");
 		}
@@ -395,12 +426,19 @@ public class ILInterpreterImpl implements ILInterpreter {
 
 	}
 	
+	private boolean isGlobal( ILvar resultVar) {
+		return globalVarMap.containsKey(resultVar.getName());
 
+	}
+	
 	private ILconst lookupVarValue(Map<String, ILconst> localVarMap, ILvar var) {
 		ILconst value = localVarMap.get(var.getName());
 		if (value == null) {
-			// TODO bei globalen variablen nachgucken
-			throw new Error("Variable " + var.getName() + " not found.");
+			System.out.println("var ist global");
+			value = globalVarMap.get(var.getName());
+			if (value == null) {
+				throw new Error("Variable " + var.getName() + " not found.");
+			}
 		}
 		return value;
 	}
