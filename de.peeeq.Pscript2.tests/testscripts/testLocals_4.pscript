@@ -1,0 +1,17 @@
+package test
+	
+	native testFail(string msg)
+	
+	native testSuccess()
+
+	function runTest()
+		integer x? = null
+		if x == null
+			testSuccess()
+		else
+			testFail("defect in nullable variable")
+		endif
+	endfunction 
+	
+	
+endpackage

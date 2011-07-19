@@ -1,0 +1,16 @@
+package test
+	
+	native testFail(string msg)
+	
+	native testSuccess()
+
+	function runTest()
+		if 4 * 2 == 8
+			testSuccess()
+		else
+			testFail("defect in binary operation")
+		endif
+	endfunction 
+	
+	
+endpackage

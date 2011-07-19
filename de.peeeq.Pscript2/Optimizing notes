@@ -1,0 +1,7 @@
+Whitespace removal:
+parameter takes integer i,takes integer i2
+parameter parenthesis: (p1,p2)
+set: set x=y
+arrays: array[index]=v
+only 1 whitespace where needed
+remove tabs/intendentions

@@ -260,6 +260,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 				result  = new ILconstNum(l * r);
 			}
 		}else if ( s.getOp() == Iloperator.DIV_REAL ) {
+			System.out.println("DIV_REAL....");
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
 				ILconstInt r = (ILconstInt) rightValue;
@@ -271,6 +272,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 				result  = new ILconstNum( sum );
 			}
 		}else if ( s.getOp() == Iloperator.DIV_INT ) {
+			System.out.println("DIV_INT....");	
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
 				ILconstInt r = (ILconstInt) rightValue;
