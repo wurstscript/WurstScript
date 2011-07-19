@@ -27,16 +27,37 @@ import org.eclipse.emf.ecore.impl.ENotificationImpl;
  * <p>
  * The following features are implemented:
  * <ul>
+ *   <li>{@link de.peeeq.pscript.pscript.impl.StmtSetImpl#getLeftE <em>Left E</em>}</li>
+ *   <li>{@link de.peeeq.pscript.pscript.impl.StmtSetImpl#getRight <em>Right</em>}</li>
  *   <li>{@link de.peeeq.pscript.pscript.impl.StmtSetImpl#getLeft <em>Left</em>}</li>
  *   <li>{@link de.peeeq.pscript.pscript.impl.StmtSetImpl#getOpAssignment <em>Op Assignment</em>}</li>
- *   <li>{@link de.peeeq.pscript.pscript.impl.StmtSetImpl#getRight <em>Right</em>}</li>
  * </ul>
  * </p>
  *
  * @generated
  */
-public class StmtSetImpl extends StmtSetOrCallImpl implements StmtSet
+public class StmtSetImpl extends StatementImpl implements StmtSet
 {
+  /**
+   * The cached value of the '{@link #getLeftE() <em>Left E</em>}' containment reference.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see #getLeftE()
+   * @generated
+   * @ordered
+   */
+  protected Expr leftE;
+
+  /**
+   * The cached value of the '{@link #getRight() <em>Right</em>}' containment reference.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see #getRight()
+   * @generated
+   * @ordered
+   */
+  protected Expr right;
+
   /**
    * The cached value of the '{@link #getLeft() <em>Left</em>}' containment reference.
    * <!-- begin-user-doc -->
@@ -58,16 +79,6 @@ public class StmtSetImpl extends StmtSetOrCallImpl implements StmtSet
   protected OpAssignment opAssignment;
 
   /**
-   * The cached value of the '{@link #getRight() <em>Right</em>}' containment reference.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @see #getRight()
-   * @generated
-   * @ordered
-   */
-  protected Expr right;
-
-  /**
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
@@ -86,6 +97,102 @@ public class StmtSetImpl extends StmtSetOrCallImpl implements StmtSet
   protected EClass eStaticClass()
   {
     return PscriptPackage.Literals.STMT_SET;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public Expr getLeftE()
+  {
+    return leftE;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public NotificationChain basicSetLeftE(Expr newLeftE, NotificationChain msgs)
+  {
+    Expr oldLeftE = leftE;
+    leftE = newLeftE;
+    if (eNotificationRequired())
+    {
+      ENotificationImpl notification = new ENotificationImpl(this, Notification.SET, PscriptPackage.STMT_SET__LEFT_E, oldLeftE, newLeftE);
+      if (msgs == null) msgs = notification; else msgs.add(notification);
+    }
+    return msgs;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public void setLeftE(Expr newLeftE)
+  {
+    if (newLeftE != leftE)
+    {
+      NotificationChain msgs = null;
+      if (leftE != null)
+        msgs = ((InternalEObject)leftE).eInverseRemove(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.STMT_SET__LEFT_E, null, msgs);
+      if (newLeftE != null)
+        msgs = ((InternalEObject)newLeftE).eInverseAdd(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.STMT_SET__LEFT_E, null, msgs);
+      msgs = basicSetLeftE(newLeftE, msgs);
+      if (msgs != null) msgs.dispatch();
+    }
+    else if (eNotificationRequired())
+      eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.STMT_SET__LEFT_E, newLeftE, newLeftE));
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public Expr getRight()
+  {
+    return right;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public NotificationChain basicSetRight(Expr newRight, NotificationChain msgs)
+  {
+    Expr oldRight = right;
+    right = newRight;
+    if (eNotificationRequired())
+    {
+      ENotificationImpl notification = new ENotificationImpl(this, Notification.SET, PscriptPackage.STMT_SET__RIGHT, oldRight, newRight);
+      if (msgs == null) msgs = notification; else msgs.add(notification);
+    }
+    return msgs;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public void setRight(Expr newRight)
+  {
+    if (newRight != right)
+    {
+      NotificationChain msgs = null;
+      if (right != null)
+        msgs = ((InternalEObject)right).eInverseRemove(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.STMT_SET__RIGHT, null, msgs);
+      if (newRight != null)
+        msgs = ((InternalEObject)newRight).eInverseAdd(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.STMT_SET__RIGHT, null, msgs);
+      msgs = basicSetRight(newRight, msgs);
+      if (msgs != null) msgs.dispatch();
+    }
+    else if (eNotificationRequired())
+      eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.STMT_SET__RIGHT, newRight, newRight));
   }
 
   /**
@@ -189,65 +296,19 @@ public class StmtSetImpl extends StmtSetOrCallImpl implements StmtSet
    * <!-- end-user-doc -->
    * @generated
    */
-  public Expr getRight()
-  {
-    return right;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public NotificationChain basicSetRight(Expr newRight, NotificationChain msgs)
-  {
-    Expr oldRight = right;
-    right = newRight;
-    if (eNotificationRequired())
-    {
-      ENotificationImpl notification = new ENotificationImpl(this, Notification.SET, PscriptPackage.STMT_SET__RIGHT, oldRight, newRight);
-      if (msgs == null) msgs = notification; else msgs.add(notification);
-    }
-    return msgs;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public void setRight(Expr newRight)
-  {
-    if (newRight != right)
-    {
-      NotificationChain msgs = null;
-      if (right != null)
-        msgs = ((InternalEObject)right).eInverseRemove(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.STMT_SET__RIGHT, null, msgs);
-      if (newRight != null)
-        msgs = ((InternalEObject)newRight).eInverseAdd(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.STMT_SET__RIGHT, null, msgs);
-      msgs = basicSetRight(newRight, msgs);
-      if (msgs != null) msgs.dispatch();
-    }
-    else if (eNotificationRequired())
-      eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.STMT_SET__RIGHT, newRight, newRight));
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
   @Override
   public NotificationChain eInverseRemove(InternalEObject otherEnd, int featureID, NotificationChain msgs)
   {
     switch (featureID)
     {
+      case PscriptPackage.STMT_SET__LEFT_E:
+        return basicSetLeftE(null, msgs);
+      case PscriptPackage.STMT_SET__RIGHT:
+        return basicSetRight(null, msgs);
       case PscriptPackage.STMT_SET__LEFT:
         return basicSetLeft(null, msgs);
       case PscriptPackage.STMT_SET__OP_ASSIGNMENT:
         return basicSetOpAssignment(null, msgs);
-      case PscriptPackage.STMT_SET__RIGHT:
-        return basicSetRight(null, msgs);
     }
     return super.eInverseRemove(otherEnd, featureID, msgs);
   }
@@ -262,12 +323,14 @@ public class StmtSetImpl extends StmtSetOrCallImpl implements StmtSet
   {
     switch (featureID)
     {
+      case PscriptPackage.STMT_SET__LEFT_E:
+        return getLeftE();
+      case PscriptPackage.STMT_SET__RIGHT:
+        return getRight();
       case PscriptPackage.STMT_SET__LEFT:
         return getLeft();
       case PscriptPackage.STMT_SET__OP_ASSIGNMENT:
         return getOpAssignment();
-      case PscriptPackage.STMT_SET__RIGHT:
-        return getRight();
     }
     return super.eGet(featureID, resolve, coreType);
   }
@@ -282,14 +345,17 @@ public class StmtSetImpl extends StmtSetOrCallImpl implements StmtSet
   {
     switch (featureID)
     {
+      case PscriptPackage.STMT_SET__LEFT_E:
+        setLeftE((Expr)newValue);
+        return;
+      case PscriptPackage.STMT_SET__RIGHT:
+        setRight((Expr)newValue);
+        return;
       case PscriptPackage.STMT_SET__LEFT:
         setLeft((StmtCall)newValue);
         return;
       case PscriptPackage.STMT_SET__OP_ASSIGNMENT:
         setOpAssignment((OpAssignment)newValue);
-        return;
-      case PscriptPackage.STMT_SET__RIGHT:
-        setRight((Expr)newValue);
         return;
     }
     super.eSet(featureID, newValue);
@@ -305,14 +371,17 @@ public class StmtSetImpl extends StmtSetOrCallImpl implements StmtSet
   {
     switch (featureID)
     {
+      case PscriptPackage.STMT_SET__LEFT_E:
+        setLeftE((Expr)null);
+        return;
+      case PscriptPackage.STMT_SET__RIGHT:
+        setRight((Expr)null);
+        return;
       case PscriptPackage.STMT_SET__LEFT:
         setLeft((StmtCall)null);
         return;
       case PscriptPackage.STMT_SET__OP_ASSIGNMENT:
         setOpAssignment((OpAssignment)null);
-        return;
-      case PscriptPackage.STMT_SET__RIGHT:
-        setRight((Expr)null);
         return;
     }
     super.eUnset(featureID);
@@ -328,12 +397,14 @@ public class StmtSetImpl extends StmtSetOrCallImpl implements StmtSet
   {
     switch (featureID)
     {
+      case PscriptPackage.STMT_SET__LEFT_E:
+        return leftE != null;
+      case PscriptPackage.STMT_SET__RIGHT:
+        return right != null;
       case PscriptPackage.STMT_SET__LEFT:
         return left != null;
       case PscriptPackage.STMT_SET__OP_ASSIGNMENT:
         return opAssignment != null;
-      case PscriptPackage.STMT_SET__RIGHT:
-        return right != null;
     }
     return super.eIsSet(featureID);
   }

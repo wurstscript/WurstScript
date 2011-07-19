@@ -6,11 +6,13 @@ import de.peeeq.immutablecollections.ImmutableMap;
 import de.peeeq.pscript.pscript.FuncDef;
 import de.peeeq.pscript.pscript.Statement;
 import de.peeeq.pscript.pscript.Statements;
+import de.peeeq.pscript.pscript.StmtCall;
 import de.peeeq.pscript.pscript.StmtExitwhen;
 import de.peeeq.pscript.pscript.StmtIf;
 import de.peeeq.pscript.pscript.StmtLoop;
 import de.peeeq.pscript.pscript.StmtReturn;
-import de.peeeq.pscript.pscript.StmtSetOrCall;
+import de.peeeq.pscript.pscript.StmtSet;
+import de.peeeq.pscript.pscript.StmtSetOrCallOrVarDef;
 import de.peeeq.pscript.pscript.StmtWhile;
 import de.peeeq.pscript.pscript.VarDef;
 import de.peeeq.pscript.pscript.util.StatementSwitch;
@@ -78,7 +80,7 @@ public class FunctionChecker {
 
 
 			@Override
-			public CheckResult caseStmtSetOrCall(StmtSetOrCall stmtSetOrCall) {
+			public CheckResult caseStmtSetOrCallOrVarDef(StmtSetOrCallOrVarDef stmtSetOrCall) {
 				// TODO Auto-generated method stub
 				return null;
 			}
@@ -93,6 +95,20 @@ public class FunctionChecker {
 
 			@Override
 			public CheckResult caseStmtExitwhen(StmtExitwhen stmtExitwhen) {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+
+			@Override
+			public CheckResult caseStmtSet(StmtSet stmtSet) {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+
+			@Override
+			public CheckResult caseStmtCall(StmtCall stmtCall) {
 				// TODO Auto-generated method stub
 				return null;
 			}

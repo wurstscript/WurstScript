@@ -8,6 +8,9 @@ import org.eclipse.xtext.ui.label.DefaultEObjectLabelProvider;
 
 import com.google.inject.Inject;
 
+import de.peeeq.pscript.pscript.FuncDef;
+import de.peeeq.pscript.pscript.Program;
+
 /**
  * Provides labels for a EObjects.
  * 
@@ -20,6 +23,16 @@ public class PscriptLabelProvider extends DefaultEObjectLabelProvider {
 		super(delegate);
 	}
 
+	String text(Program p) {
+		return "Pscript program";
+	}
+	
+	
+	String image(FuncDef f) {
+		return "function.gif";
+	}
+	
+	
 /*
 	//Labels and icons can be computed like this:
 	

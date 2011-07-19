@@ -21,7 +21,7 @@ import java.util.ArrayList;
 @SuppressWarnings("all")
 public class InternalPscriptParser extends AbstractInternalAntlrParser {
     public static final String[] tokenNames = new String[] {
-        "<invalid>", "<EOR>", "<DOWN>", "<UP>", "RULE_NL", "RULE_ID", "RULE_INT", "RULE_STRING", "RULE_ML_COMMENT", "RULE_SL_COMMENT", "RULE_WS", "RULE_ANY_OTHER", "'package'", "'endpackage'", "'import'", "'.'", "'*'", "'init'", "'endinit'", "'constant'", "'native'", "'('", "','", "')'", "'takes'", "'nothing'", "'returns'", "'type'", "'extends'", "'class'", "'endclass'", "'val'", "'='", "'glob'", "'integer'", "'real'", "'string'", "'boolean'", "'handle'", "'code'", "'function'", "'endfunction'", "'local'", "'exitwhen'", "'loop'", "'endloop'", "'return'", "'if'", "'then'", "'elseif'", "'else'", "'endif'", "'while'", "'endwhile'", "'call'", "'set'", "'+='", "'-='", "'or'", "'and'", "'=='", "'!='", "'<='", "'<'", "'>='", "'>'", "'+'", "'-'", "'/'", "'%'", "'mod'", "'div'", "'not'", "'true'", "'false'"
+        "<invalid>", "<EOR>", "<DOWN>", "<UP>", "RULE_NL", "RULE_ID", "RULE_INT", "RULE_STRING", "RULE_ML_COMMENT", "RULE_SL_COMMENT", "RULE_WS", "RULE_ANY_OTHER", "'package'", "'endpackage'", "'import'", "'.'", "'*'", "'init'", "'endinit'", "'constant'", "'native'", "'('", "','", "')'", "'takes'", "'nothing'", "'returns'", "'type'", "'extends'", "'class'", "'endclass'", "'val'", "'='", "'glob'", "'integer'", "'real'", "'string'", "'boolean'", "'handle'", "'code'", "'function'", "'endfunction'", "'exitwhen'", "'loop'", "'endloop'", "'return'", "'if'", "'then'", "'elseif'", "'else'", "'endif'", "'while'", "'endwhile'", "'set'", "'call'", "'local'", "'+='", "'-='", "'or'", "'and'", "'=='", "'!='", "'<='", "'<'", "'>='", "'>'", "'+'", "'-'", "'/'", "'%'", "'mod'", "'div'", "'not'", "'true'", "'false'"
     };
     public static final int T__68=68;
     public static final int T__69=69;
@@ -3424,11 +3424,11 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
             else if ( (LA32_0==24) ) {
                 int LA32_2 = input.LA(2);
 
-                if ( (LA32_2==RULE_ID||(LA32_2>=34 && LA32_2<=39)) ) {
-                    alt32=3;
-                }
-                else if ( (LA32_2==25) ) {
+                if ( (LA32_2==25) ) {
                     alt32=2;
+                }
+                else if ( (LA32_2==RULE_ID||(LA32_2>=34 && LA32_2<=39)) ) {
+                    alt32=3;
                 }
                 else {
                     NoViableAltException nvae =
@@ -4086,7 +4086,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                 if ( (LA35_0==RULE_NL) ) {
                     alt35=1;
                 }
-                else if ( ((LA35_0>=RULE_ID && LA35_0<=RULE_STRING)||LA35_0==21||LA35_0==31||LA35_0==40||(LA35_0>=42 && LA35_0<=44)||(LA35_0>=46 && LA35_0<=47)||LA35_0==52||(LA35_0>=54 && LA35_0<=55)||(LA35_0>=66 && LA35_0<=67)||(LA35_0>=72 && LA35_0<=74)) ) {
+                else if ( ((LA35_0>=RULE_ID && LA35_0<=RULE_STRING)||LA35_0==21||LA35_0==31||(LA35_0>=34 && LA35_0<=40)||(LA35_0>=42 && LA35_0<=43)||(LA35_0>=45 && LA35_0<=46)||LA35_0==51||(LA35_0>=53 && LA35_0<=55)||(LA35_0>=66 && LA35_0<=67)||(LA35_0>=72 && LA35_0<=74)) ) {
                     alt35=2;
                 }
 
@@ -4202,7 +4202,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleStatement"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1561:1: ruleStatement returns [EObject current=null] : (this_StmtIf_0= ruleStmtIf | this_StmtWhile_1= ruleStmtWhile | this_LocalVarDef_2= ruleLocalVarDef | this_StmtSetOrCall_3= ruleStmtSetOrCall | this_StmtReturn_4= ruleStmtReturn | this_StmtLoop_5= ruleStmtLoop | this_StmtExitwhen_6= ruleStmtExitwhen ) ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1561:1: ruleStatement returns [EObject current=null] : (this_StmtIf_0= ruleStmtIf | this_StmtWhile_1= ruleStmtWhile | this_LocalVarDef_2= ruleLocalVarDef | this_StmtSetOrCallOrVarDef_3= ruleStmtSetOrCallOrVarDef | this_StmtCall_4= ruleStmtCall | this_StmtSet_5= ruleStmtSet | this_StmtReturn_6= ruleStmtReturn | this_StmtLoop_7= ruleStmtLoop | this_StmtExitwhen_8= ruleStmtExitwhen ) ;
     public final EObject ruleStatement() throws RecognitionException {
         EObject current = null;
 
@@ -4212,36 +4212,40 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
         EObject this_LocalVarDef_2 = null;
 
-        EObject this_StmtSetOrCall_3 = null;
+        EObject this_StmtSetOrCallOrVarDef_3 = null;
 
-        EObject this_StmtReturn_4 = null;
+        EObject this_StmtCall_4 = null;
 
-        EObject this_StmtLoop_5 = null;
+        EObject this_StmtSet_5 = null;
 
-        EObject this_StmtExitwhen_6 = null;
+        EObject this_StmtReturn_6 = null;
+
+        EObject this_StmtLoop_7 = null;
+
+        EObject this_StmtExitwhen_8 = null;
 
 
          enterRule(); 
             
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1564:28: ( (this_StmtIf_0= ruleStmtIf | this_StmtWhile_1= ruleStmtWhile | this_LocalVarDef_2= ruleLocalVarDef | this_StmtSetOrCall_3= ruleStmtSetOrCall | this_StmtReturn_4= ruleStmtReturn | this_StmtLoop_5= ruleStmtLoop | this_StmtExitwhen_6= ruleStmtExitwhen ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1565:1: (this_StmtIf_0= ruleStmtIf | this_StmtWhile_1= ruleStmtWhile | this_LocalVarDef_2= ruleLocalVarDef | this_StmtSetOrCall_3= ruleStmtSetOrCall | this_StmtReturn_4= ruleStmtReturn | this_StmtLoop_5= ruleStmtLoop | this_StmtExitwhen_6= ruleStmtExitwhen )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1564:28: ( (this_StmtIf_0= ruleStmtIf | this_StmtWhile_1= ruleStmtWhile | this_LocalVarDef_2= ruleLocalVarDef | this_StmtSetOrCallOrVarDef_3= ruleStmtSetOrCallOrVarDef | this_StmtCall_4= ruleStmtCall | this_StmtSet_5= ruleStmtSet | this_StmtReturn_6= ruleStmtReturn | this_StmtLoop_7= ruleStmtLoop | this_StmtExitwhen_8= ruleStmtExitwhen ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1565:1: (this_StmtIf_0= ruleStmtIf | this_StmtWhile_1= ruleStmtWhile | this_LocalVarDef_2= ruleLocalVarDef | this_StmtSetOrCallOrVarDef_3= ruleStmtSetOrCallOrVarDef | this_StmtCall_4= ruleStmtCall | this_StmtSet_5= ruleStmtSet | this_StmtReturn_6= ruleStmtReturn | this_StmtLoop_7= ruleStmtLoop | this_StmtExitwhen_8= ruleStmtExitwhen )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1565:1: (this_StmtIf_0= ruleStmtIf | this_StmtWhile_1= ruleStmtWhile | this_LocalVarDef_2= ruleLocalVarDef | this_StmtSetOrCall_3= ruleStmtSetOrCall | this_StmtReturn_4= ruleStmtReturn | this_StmtLoop_5= ruleStmtLoop | this_StmtExitwhen_6= ruleStmtExitwhen )
-            int alt36=7;
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1565:1: (this_StmtIf_0= ruleStmtIf | this_StmtWhile_1= ruleStmtWhile | this_LocalVarDef_2= ruleLocalVarDef | this_StmtSetOrCallOrVarDef_3= ruleStmtSetOrCallOrVarDef | this_StmtCall_4= ruleStmtCall | this_StmtSet_5= ruleStmtSet | this_StmtReturn_6= ruleStmtReturn | this_StmtLoop_7= ruleStmtLoop | this_StmtExitwhen_8= ruleStmtExitwhen )
+            int alt36=9;
             switch ( input.LA(1) ) {
-            case 47:
+            case 46:
                 {
                 alt36=1;
                 }
                 break;
-            case 52:
+            case 51:
                 {
                 alt36=2;
                 }
                 break;
             case 31:
-            case 42:
+            case 55:
                 {
                 alt36=3;
                 }
@@ -4250,9 +4254,13 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
             case RULE_INT:
             case RULE_STRING:
             case 21:
+            case 34:
+            case 35:
+            case 36:
+            case 37:
+            case 38:
+            case 39:
             case 40:
-            case 54:
-            case 55:
             case 66:
             case 67:
             case 72:
@@ -4262,19 +4270,29 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                 alt36=4;
                 }
                 break;
-            case 46:
+            case 54:
                 {
                 alt36=5;
                 }
                 break;
-            case 44:
+            case 53:
                 {
                 alt36=6;
                 }
                 break;
-            case 43:
+            case 45:
                 {
                 alt36=7;
+                }
+                break;
+            case 43:
+                {
+                alt36=8;
+                }
+                break;
+            case 42:
+                {
+                alt36=9;
                 }
                 break;
             default:
@@ -4340,72 +4358,108 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 4 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1596:5: this_StmtSetOrCall_3= ruleStmtSetOrCall
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1596:5: this_StmtSetOrCallOrVarDef_3= ruleStmtSetOrCallOrVarDef
                     {
                      
-                            newCompositeNode(grammarAccess.getStatementAccess().getStmtSetOrCallParserRuleCall_3()); 
+                            newCompositeNode(grammarAccess.getStatementAccess().getStmtSetOrCallOrVarDefParserRuleCall_3()); 
                         
-                    pushFollow(FOLLOW_ruleStmtSetOrCall_in_ruleStatement3523);
-                    this_StmtSetOrCall_3=ruleStmtSetOrCall();
+                    pushFollow(FOLLOW_ruleStmtSetOrCallOrVarDef_in_ruleStatement3523);
+                    this_StmtSetOrCallOrVarDef_3=ruleStmtSetOrCallOrVarDef();
 
                     state._fsp--;
 
                      
-                            current = this_StmtSetOrCall_3; 
+                            current = this_StmtSetOrCallOrVarDef_3; 
                             afterParserOrEnumRuleCall();
                         
 
                     }
                     break;
                 case 5 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1606:5: this_StmtReturn_4= ruleStmtReturn
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1606:5: this_StmtCall_4= ruleStmtCall
                     {
                      
-                            newCompositeNode(grammarAccess.getStatementAccess().getStmtReturnParserRuleCall_4()); 
+                            newCompositeNode(grammarAccess.getStatementAccess().getStmtCallParserRuleCall_4()); 
                         
-                    pushFollow(FOLLOW_ruleStmtReturn_in_ruleStatement3550);
-                    this_StmtReturn_4=ruleStmtReturn();
+                    pushFollow(FOLLOW_ruleStmtCall_in_ruleStatement3550);
+                    this_StmtCall_4=ruleStmtCall();
 
                     state._fsp--;
 
                      
-                            current = this_StmtReturn_4; 
+                            current = this_StmtCall_4; 
                             afterParserOrEnumRuleCall();
                         
 
                     }
                     break;
                 case 6 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1616:5: this_StmtLoop_5= ruleStmtLoop
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1616:5: this_StmtSet_5= ruleStmtSet
                     {
                      
-                            newCompositeNode(grammarAccess.getStatementAccess().getStmtLoopParserRuleCall_5()); 
+                            newCompositeNode(grammarAccess.getStatementAccess().getStmtSetParserRuleCall_5()); 
                         
-                    pushFollow(FOLLOW_ruleStmtLoop_in_ruleStatement3577);
-                    this_StmtLoop_5=ruleStmtLoop();
+                    pushFollow(FOLLOW_ruleStmtSet_in_ruleStatement3577);
+                    this_StmtSet_5=ruleStmtSet();
 
                     state._fsp--;
 
                      
-                            current = this_StmtLoop_5; 
+                            current = this_StmtSet_5; 
                             afterParserOrEnumRuleCall();
                         
 
                     }
                     break;
                 case 7 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1626:5: this_StmtExitwhen_6= ruleStmtExitwhen
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1626:5: this_StmtReturn_6= ruleStmtReturn
                     {
                      
-                            newCompositeNode(grammarAccess.getStatementAccess().getStmtExitwhenParserRuleCall_6()); 
+                            newCompositeNode(grammarAccess.getStatementAccess().getStmtReturnParserRuleCall_6()); 
                         
-                    pushFollow(FOLLOW_ruleStmtExitwhen_in_ruleStatement3604);
-                    this_StmtExitwhen_6=ruleStmtExitwhen();
+                    pushFollow(FOLLOW_ruleStmtReturn_in_ruleStatement3604);
+                    this_StmtReturn_6=ruleStmtReturn();
 
                     state._fsp--;
 
                      
-                            current = this_StmtExitwhen_6; 
+                            current = this_StmtReturn_6; 
+                            afterParserOrEnumRuleCall();
+                        
+
+                    }
+                    break;
+                case 8 :
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1636:5: this_StmtLoop_7= ruleStmtLoop
+                    {
+                     
+                            newCompositeNode(grammarAccess.getStatementAccess().getStmtLoopParserRuleCall_7()); 
+                        
+                    pushFollow(FOLLOW_ruleStmtLoop_in_ruleStatement3631);
+                    this_StmtLoop_7=ruleStmtLoop();
+
+                    state._fsp--;
+
+                     
+                            current = this_StmtLoop_7; 
+                            afterParserOrEnumRuleCall();
+                        
+
+                    }
+                    break;
+                case 9 :
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1646:5: this_StmtExitwhen_8= ruleStmtExitwhen
+                    {
+                     
+                            newCompositeNode(grammarAccess.getStatementAccess().getStmtExitwhenParserRuleCall_8()); 
+                        
+                    pushFollow(FOLLOW_ruleStmtExitwhen_in_ruleStatement3658);
+                    this_StmtExitwhen_8=ruleStmtExitwhen();
+
+                    state._fsp--;
+
+                     
+                            current = this_StmtExitwhen_8; 
                             afterParserOrEnumRuleCall();
                         
 
@@ -4431,288 +4485,8 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
     // $ANTLR end "ruleStatement"
 
 
-    // $ANTLR start "entryRuleLocalVarDef"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1642:1: entryRuleLocalVarDef returns [EObject current=null] : iv_ruleLocalVarDef= ruleLocalVarDef EOF ;
-    public final EObject entryRuleLocalVarDef() throws RecognitionException {
-        EObject current = null;
-
-        EObject iv_ruleLocalVarDef = null;
-
-
-        try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1643:2: (iv_ruleLocalVarDef= ruleLocalVarDef EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1644:2: iv_ruleLocalVarDef= ruleLocalVarDef EOF
-            {
-             newCompositeNode(grammarAccess.getLocalVarDefRule()); 
-            pushFollow(FOLLOW_ruleLocalVarDef_in_entryRuleLocalVarDef3639);
-            iv_ruleLocalVarDef=ruleLocalVarDef();
-
-            state._fsp--;
-
-             current =iv_ruleLocalVarDef; 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleLocalVarDef3649); 
-
-            }
-
-        }
-         
-            catch (RecognitionException re) { 
-                recover(input,re); 
-                appendSkippedTokens();
-            } 
-        finally {
-        }
-        return current;
-    }
-    // $ANTLR end "entryRuleLocalVarDef"
-
-
-    // $ANTLR start "ruleLocalVarDef"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1651:1: ruleLocalVarDef returns [EObject current=null] : ( () (otherlv_1= 'local' | ( (lv_constant_2_0= 'val' ) ) ) ( (lv_type_3_0= ruleTypeExpr ) )? ( (lv_name_4_0= RULE_ID ) ) (otherlv_5= '=' ( (lv_e_6_0= ruleExpr ) ) )? this_NL_7= RULE_NL ) ;
-    public final EObject ruleLocalVarDef() throws RecognitionException {
-        EObject current = null;
-
-        Token otherlv_1=null;
-        Token lv_constant_2_0=null;
-        Token lv_name_4_0=null;
-        Token otherlv_5=null;
-        Token this_NL_7=null;
-        EObject lv_type_3_0 = null;
-
-        EObject lv_e_6_0 = null;
-
-
-         enterRule(); 
-            
-        try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1654:28: ( ( () (otherlv_1= 'local' | ( (lv_constant_2_0= 'val' ) ) ) ( (lv_type_3_0= ruleTypeExpr ) )? ( (lv_name_4_0= RULE_ID ) ) (otherlv_5= '=' ( (lv_e_6_0= ruleExpr ) ) )? this_NL_7= RULE_NL ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1655:1: ( () (otherlv_1= 'local' | ( (lv_constant_2_0= 'val' ) ) ) ( (lv_type_3_0= ruleTypeExpr ) )? ( (lv_name_4_0= RULE_ID ) ) (otherlv_5= '=' ( (lv_e_6_0= ruleExpr ) ) )? this_NL_7= RULE_NL )
-            {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1655:1: ( () (otherlv_1= 'local' | ( (lv_constant_2_0= 'val' ) ) ) ( (lv_type_3_0= ruleTypeExpr ) )? ( (lv_name_4_0= RULE_ID ) ) (otherlv_5= '=' ( (lv_e_6_0= ruleExpr ) ) )? this_NL_7= RULE_NL )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1655:2: () (otherlv_1= 'local' | ( (lv_constant_2_0= 'val' ) ) ) ( (lv_type_3_0= ruleTypeExpr ) )? ( (lv_name_4_0= RULE_ID ) ) (otherlv_5= '=' ( (lv_e_6_0= ruleExpr ) ) )? this_NL_7= RULE_NL
-            {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1655:2: ()
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1656:5: 
-            {
-
-                    current = forceCreateModelElement(
-                        grammarAccess.getLocalVarDefAccess().getVarDefAction_0(),
-                        current);
-                
-
-            }
-
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1661:2: (otherlv_1= 'local' | ( (lv_constant_2_0= 'val' ) ) )
-            int alt37=2;
-            int LA37_0 = input.LA(1);
-
-            if ( (LA37_0==42) ) {
-                alt37=1;
-            }
-            else if ( (LA37_0==31) ) {
-                alt37=2;
-            }
-            else {
-                NoViableAltException nvae =
-                    new NoViableAltException("", 37, 0, input);
-
-                throw nvae;
-            }
-            switch (alt37) {
-                case 1 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1661:4: otherlv_1= 'local'
-                    {
-                    otherlv_1=(Token)match(input,42,FOLLOW_42_in_ruleLocalVarDef3696); 
-
-                        	newLeafNode(otherlv_1, grammarAccess.getLocalVarDefAccess().getLocalKeyword_1_0());
-                        
-
-                    }
-                    break;
-                case 2 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1666:6: ( (lv_constant_2_0= 'val' ) )
-                    {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1666:6: ( (lv_constant_2_0= 'val' ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1667:1: (lv_constant_2_0= 'val' )
-                    {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1667:1: (lv_constant_2_0= 'val' )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1668:3: lv_constant_2_0= 'val'
-                    {
-                    lv_constant_2_0=(Token)match(input,31,FOLLOW_31_in_ruleLocalVarDef3720); 
-
-                            newLeafNode(lv_constant_2_0, grammarAccess.getLocalVarDefAccess().getConstantValKeyword_1_1_0());
-                        
-
-                    	        if (current==null) {
-                    	            current = createModelElement(grammarAccess.getLocalVarDefRule());
-                    	        }
-                           		setWithLastConsumed(current, "constant", true, "val");
-                    	    
-
-                    }
-
-
-                    }
-
-
-                    }
-                    break;
-
-            }
-
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1681:3: ( (lv_type_3_0= ruleTypeExpr ) )?
-            int alt38=2;
-            int LA38_0 = input.LA(1);
-
-            if ( (LA38_0==RULE_ID) ) {
-                int LA38_1 = input.LA(2);
-
-                if ( (LA38_1==RULE_ID) ) {
-                    alt38=1;
-                }
-            }
-            else if ( ((LA38_0>=34 && LA38_0<=39)) ) {
-                alt38=1;
-            }
-            switch (alt38) {
-                case 1 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1682:1: (lv_type_3_0= ruleTypeExpr )
-                    {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1682:1: (lv_type_3_0= ruleTypeExpr )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1683:3: lv_type_3_0= ruleTypeExpr
-                    {
-                     
-                    	        newCompositeNode(grammarAccess.getLocalVarDefAccess().getTypeTypeExprParserRuleCall_2_0()); 
-                    	    
-                    pushFollow(FOLLOW_ruleTypeExpr_in_ruleLocalVarDef3755);
-                    lv_type_3_0=ruleTypeExpr();
-
-                    state._fsp--;
-
-
-                    	        if (current==null) {
-                    	            current = createModelElementForParent(grammarAccess.getLocalVarDefRule());
-                    	        }
-                           		set(
-                           			current, 
-                           			"type",
-                            		lv_type_3_0, 
-                            		"TypeExpr");
-                    	        afterParserOrEnumRuleCall();
-                    	    
-
-                    }
-
-
-                    }
-                    break;
-
-            }
-
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1699:3: ( (lv_name_4_0= RULE_ID ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1700:1: (lv_name_4_0= RULE_ID )
-            {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1700:1: (lv_name_4_0= RULE_ID )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1701:3: lv_name_4_0= RULE_ID
-            {
-            lv_name_4_0=(Token)match(input,RULE_ID,FOLLOW_RULE_ID_in_ruleLocalVarDef3773); 
-
-            			newLeafNode(lv_name_4_0, grammarAccess.getLocalVarDefAccess().getNameIDTerminalRuleCall_3_0()); 
-            		
-
-            	        if (current==null) {
-            	            current = createModelElement(grammarAccess.getLocalVarDefRule());
-            	        }
-                   		setWithLastConsumed(
-                   			current, 
-                   			"name",
-                    		lv_name_4_0, 
-                    		"ID");
-            	    
-
-            }
-
-
-            }
-
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1717:2: (otherlv_5= '=' ( (lv_e_6_0= ruleExpr ) ) )?
-            int alt39=2;
-            int LA39_0 = input.LA(1);
-
-            if ( (LA39_0==32) ) {
-                alt39=1;
-            }
-            switch (alt39) {
-                case 1 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1717:4: otherlv_5= '=' ( (lv_e_6_0= ruleExpr ) )
-                    {
-                    otherlv_5=(Token)match(input,32,FOLLOW_32_in_ruleLocalVarDef3791); 
-
-                        	newLeafNode(otherlv_5, grammarAccess.getLocalVarDefAccess().getEqualsSignKeyword_4_0());
-                        
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1721:1: ( (lv_e_6_0= ruleExpr ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1722:1: (lv_e_6_0= ruleExpr )
-                    {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1722:1: (lv_e_6_0= ruleExpr )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1723:3: lv_e_6_0= ruleExpr
-                    {
-                     
-                    	        newCompositeNode(grammarAccess.getLocalVarDefAccess().getEExprParserRuleCall_4_1_0()); 
-                    	    
-                    pushFollow(FOLLOW_ruleExpr_in_ruleLocalVarDef3812);
-                    lv_e_6_0=ruleExpr();
-
-                    state._fsp--;
-
-
-                    	        if (current==null) {
-                    	            current = createModelElementForParent(grammarAccess.getLocalVarDefRule());
-                    	        }
-                           		set(
-                           			current, 
-                           			"e",
-                            		lv_e_6_0, 
-                            		"Expr");
-                    	        afterParserOrEnumRuleCall();
-                    	    
-
-                    }
-
-
-                    }
-
-
-                    }
-                    break;
-
-            }
-
-            this_NL_7=(Token)match(input,RULE_NL,FOLLOW_RULE_NL_in_ruleLocalVarDef3825); 
-             
-                newLeafNode(this_NL_7, grammarAccess.getLocalVarDefAccess().getNLTerminalRuleCall_5()); 
-                
-
-            }
-
-
-            }
-
-             leaveRule(); 
-        }
-         
-            catch (RecognitionException re) { 
-                recover(input,re); 
-                appendSkippedTokens();
-            } 
-        finally {
-        }
-        return current;
-    }
-    // $ANTLR end "ruleLocalVarDef"
-
-
     // $ANTLR start "entryRuleStmtExitwhen"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1751:1: entryRuleStmtExitwhen returns [EObject current=null] : iv_ruleStmtExitwhen= ruleStmtExitwhen EOF ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1662:1: entryRuleStmtExitwhen returns [EObject current=null] : iv_ruleStmtExitwhen= ruleStmtExitwhen EOF ;
     public final EObject entryRuleStmtExitwhen() throws RecognitionException {
         EObject current = null;
 
@@ -4720,17 +4494,17 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1752:2: (iv_ruleStmtExitwhen= ruleStmtExitwhen EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1753:2: iv_ruleStmtExitwhen= ruleStmtExitwhen EOF
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1663:2: (iv_ruleStmtExitwhen= ruleStmtExitwhen EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1664:2: iv_ruleStmtExitwhen= ruleStmtExitwhen EOF
             {
              newCompositeNode(grammarAccess.getStmtExitwhenRule()); 
-            pushFollow(FOLLOW_ruleStmtExitwhen_in_entryRuleStmtExitwhen3860);
+            pushFollow(FOLLOW_ruleStmtExitwhen_in_entryRuleStmtExitwhen3693);
             iv_ruleStmtExitwhen=ruleStmtExitwhen();
 
             state._fsp--;
 
              current =iv_ruleStmtExitwhen; 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleStmtExitwhen3870); 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleStmtExitwhen3703); 
 
             }
 
@@ -4748,7 +4522,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleStmtExitwhen"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1760:1: ruleStmtExitwhen returns [EObject current=null] : (otherlv_0= 'exitwhen' ( (lv_e_1_0= ruleExpr ) ) this_NL_2= RULE_NL ) ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1671:1: ruleStmtExitwhen returns [EObject current=null] : (otherlv_0= 'exitwhen' ( (lv_e_1_0= ruleExpr ) ) this_NL_2= RULE_NL ) ;
     public final EObject ruleStmtExitwhen() throws RecognitionException {
         EObject current = null;
 
@@ -4760,26 +4534,26 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
          enterRule(); 
             
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1763:28: ( (otherlv_0= 'exitwhen' ( (lv_e_1_0= ruleExpr ) ) this_NL_2= RULE_NL ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1764:1: (otherlv_0= 'exitwhen' ( (lv_e_1_0= ruleExpr ) ) this_NL_2= RULE_NL )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1674:28: ( (otherlv_0= 'exitwhen' ( (lv_e_1_0= ruleExpr ) ) this_NL_2= RULE_NL ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1675:1: (otherlv_0= 'exitwhen' ( (lv_e_1_0= ruleExpr ) ) this_NL_2= RULE_NL )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1764:1: (otherlv_0= 'exitwhen' ( (lv_e_1_0= ruleExpr ) ) this_NL_2= RULE_NL )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1764:3: otherlv_0= 'exitwhen' ( (lv_e_1_0= ruleExpr ) ) this_NL_2= RULE_NL
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1675:1: (otherlv_0= 'exitwhen' ( (lv_e_1_0= ruleExpr ) ) this_NL_2= RULE_NL )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1675:3: otherlv_0= 'exitwhen' ( (lv_e_1_0= ruleExpr ) ) this_NL_2= RULE_NL
             {
-            otherlv_0=(Token)match(input,43,FOLLOW_43_in_ruleStmtExitwhen3907); 
+            otherlv_0=(Token)match(input,42,FOLLOW_42_in_ruleStmtExitwhen3740); 
 
                 	newLeafNode(otherlv_0, grammarAccess.getStmtExitwhenAccess().getExitwhenKeyword_0());
                 
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1768:1: ( (lv_e_1_0= ruleExpr ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1769:1: (lv_e_1_0= ruleExpr )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1679:1: ( (lv_e_1_0= ruleExpr ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1680:1: (lv_e_1_0= ruleExpr )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1769:1: (lv_e_1_0= ruleExpr )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1770:3: lv_e_1_0= ruleExpr
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1680:1: (lv_e_1_0= ruleExpr )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1681:3: lv_e_1_0= ruleExpr
             {
              
             	        newCompositeNode(grammarAccess.getStmtExitwhenAccess().getEExprParserRuleCall_1_0()); 
             	    
-            pushFollow(FOLLOW_ruleExpr_in_ruleStmtExitwhen3928);
+            pushFollow(FOLLOW_ruleExpr_in_ruleStmtExitwhen3761);
             lv_e_1_0=ruleExpr();
 
             state._fsp--;
@@ -4801,7 +4575,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
             }
 
-            this_NL_2=(Token)match(input,RULE_NL,FOLLOW_RULE_NL_in_ruleStmtExitwhen3939); 
+            this_NL_2=(Token)match(input,RULE_NL,FOLLOW_RULE_NL_in_ruleStmtExitwhen3772); 
              
                 newLeafNode(this_NL_2, grammarAccess.getStmtExitwhenAccess().getNLTerminalRuleCall_2()); 
                 
@@ -4826,7 +4600,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "entryRuleStmtLoop"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1798:1: entryRuleStmtLoop returns [EObject current=null] : iv_ruleStmtLoop= ruleStmtLoop EOF ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1709:1: entryRuleStmtLoop returns [EObject current=null] : iv_ruleStmtLoop= ruleStmtLoop EOF ;
     public final EObject entryRuleStmtLoop() throws RecognitionException {
         EObject current = null;
 
@@ -4834,17 +4608,17 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1799:2: (iv_ruleStmtLoop= ruleStmtLoop EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1800:2: iv_ruleStmtLoop= ruleStmtLoop EOF
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1710:2: (iv_ruleStmtLoop= ruleStmtLoop EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1711:2: iv_ruleStmtLoop= ruleStmtLoop EOF
             {
              newCompositeNode(grammarAccess.getStmtLoopRule()); 
-            pushFollow(FOLLOW_ruleStmtLoop_in_entryRuleStmtLoop3974);
+            pushFollow(FOLLOW_ruleStmtLoop_in_entryRuleStmtLoop3807);
             iv_ruleStmtLoop=ruleStmtLoop();
 
             state._fsp--;
 
              current =iv_ruleStmtLoop; 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleStmtLoop3984); 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleStmtLoop3817); 
 
             }
 
@@ -4862,7 +4636,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleStmtLoop"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1807:1: ruleStmtLoop returns [EObject current=null] : (otherlv_0= 'loop' this_NL_1= RULE_NL ( (lv_body_2_0= ruleStatements ) ) otherlv_3= 'endloop' this_NL_4= RULE_NL ) ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1718:1: ruleStmtLoop returns [EObject current=null] : (otherlv_0= 'loop' this_NL_1= RULE_NL ( (lv_body_2_0= ruleStatements ) ) otherlv_3= 'endloop' this_NL_4= RULE_NL ) ;
     public final EObject ruleStmtLoop() throws RecognitionException {
         EObject current = null;
 
@@ -4876,30 +4650,30 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
          enterRule(); 
             
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1810:28: ( (otherlv_0= 'loop' this_NL_1= RULE_NL ( (lv_body_2_0= ruleStatements ) ) otherlv_3= 'endloop' this_NL_4= RULE_NL ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1811:1: (otherlv_0= 'loop' this_NL_1= RULE_NL ( (lv_body_2_0= ruleStatements ) ) otherlv_3= 'endloop' this_NL_4= RULE_NL )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1721:28: ( (otherlv_0= 'loop' this_NL_1= RULE_NL ( (lv_body_2_0= ruleStatements ) ) otherlv_3= 'endloop' this_NL_4= RULE_NL ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1722:1: (otherlv_0= 'loop' this_NL_1= RULE_NL ( (lv_body_2_0= ruleStatements ) ) otherlv_3= 'endloop' this_NL_4= RULE_NL )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1811:1: (otherlv_0= 'loop' this_NL_1= RULE_NL ( (lv_body_2_0= ruleStatements ) ) otherlv_3= 'endloop' this_NL_4= RULE_NL )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1811:3: otherlv_0= 'loop' this_NL_1= RULE_NL ( (lv_body_2_0= ruleStatements ) ) otherlv_3= 'endloop' this_NL_4= RULE_NL
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1722:1: (otherlv_0= 'loop' this_NL_1= RULE_NL ( (lv_body_2_0= ruleStatements ) ) otherlv_3= 'endloop' this_NL_4= RULE_NL )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1722:3: otherlv_0= 'loop' this_NL_1= RULE_NL ( (lv_body_2_0= ruleStatements ) ) otherlv_3= 'endloop' this_NL_4= RULE_NL
             {
-            otherlv_0=(Token)match(input,44,FOLLOW_44_in_ruleStmtLoop4021); 
+            otherlv_0=(Token)match(input,43,FOLLOW_43_in_ruleStmtLoop3854); 
 
                 	newLeafNode(otherlv_0, grammarAccess.getStmtLoopAccess().getLoopKeyword_0());
                 
-            this_NL_1=(Token)match(input,RULE_NL,FOLLOW_RULE_NL_in_ruleStmtLoop4032); 
+            this_NL_1=(Token)match(input,RULE_NL,FOLLOW_RULE_NL_in_ruleStmtLoop3865); 
              
                 newLeafNode(this_NL_1, grammarAccess.getStmtLoopAccess().getNLTerminalRuleCall_1()); 
                 
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1819:1: ( (lv_body_2_0= ruleStatements ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1820:1: (lv_body_2_0= ruleStatements )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1730:1: ( (lv_body_2_0= ruleStatements ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1731:1: (lv_body_2_0= ruleStatements )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1820:1: (lv_body_2_0= ruleStatements )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1821:3: lv_body_2_0= ruleStatements
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1731:1: (lv_body_2_0= ruleStatements )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1732:3: lv_body_2_0= ruleStatements
             {
              
             	        newCompositeNode(grammarAccess.getStmtLoopAccess().getBodyStatementsParserRuleCall_2_0()); 
             	    
-            pushFollow(FOLLOW_ruleStatements_in_ruleStmtLoop4052);
+            pushFollow(FOLLOW_ruleStatements_in_ruleStmtLoop3885);
             lv_body_2_0=ruleStatements();
 
             state._fsp--;
@@ -4921,11 +4695,11 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
             }
 
-            otherlv_3=(Token)match(input,45,FOLLOW_45_in_ruleStmtLoop4064); 
+            otherlv_3=(Token)match(input,44,FOLLOW_44_in_ruleStmtLoop3897); 
 
                 	newLeafNode(otherlv_3, grammarAccess.getStmtLoopAccess().getEndloopKeyword_3());
                 
-            this_NL_4=(Token)match(input,RULE_NL,FOLLOW_RULE_NL_in_ruleStmtLoop4075); 
+            this_NL_4=(Token)match(input,RULE_NL,FOLLOW_RULE_NL_in_ruleStmtLoop3908); 
              
                 newLeafNode(this_NL_4, grammarAccess.getStmtLoopAccess().getNLTerminalRuleCall_4()); 
                 
@@ -4950,7 +4724,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "entryRuleStmtReturn"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1853:1: entryRuleStmtReturn returns [EObject current=null] : iv_ruleStmtReturn= ruleStmtReturn EOF ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1764:1: entryRuleStmtReturn returns [EObject current=null] : iv_ruleStmtReturn= ruleStmtReturn EOF ;
     public final EObject entryRuleStmtReturn() throws RecognitionException {
         EObject current = null;
 
@@ -4958,17 +4732,17 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1854:2: (iv_ruleStmtReturn= ruleStmtReturn EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1855:2: iv_ruleStmtReturn= ruleStmtReturn EOF
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1765:2: (iv_ruleStmtReturn= ruleStmtReturn EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1766:2: iv_ruleStmtReturn= ruleStmtReturn EOF
             {
              newCompositeNode(grammarAccess.getStmtReturnRule()); 
-            pushFollow(FOLLOW_ruleStmtReturn_in_entryRuleStmtReturn4110);
+            pushFollow(FOLLOW_ruleStmtReturn_in_entryRuleStmtReturn3943);
             iv_ruleStmtReturn=ruleStmtReturn();
 
             state._fsp--;
 
              current =iv_ruleStmtReturn; 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleStmtReturn4120); 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleStmtReturn3953); 
 
             }
 
@@ -4986,7 +4760,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleStmtReturn"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1862:1: ruleStmtReturn returns [EObject current=null] : ( () otherlv_1= 'return' ( (lv_e_2_0= ruleExpr ) )? this_NL_3= RULE_NL ) ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1773:1: ruleStmtReturn returns [EObject current=null] : ( () otherlv_1= 'return' ( (lv_e_2_0= ruleExpr ) )? this_NL_3= RULE_NL ) ;
     public final EObject ruleStmtReturn() throws RecognitionException {
         EObject current = null;
 
@@ -4998,14 +4772,14 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
          enterRule(); 
             
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1865:28: ( ( () otherlv_1= 'return' ( (lv_e_2_0= ruleExpr ) )? this_NL_3= RULE_NL ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1866:1: ( () otherlv_1= 'return' ( (lv_e_2_0= ruleExpr ) )? this_NL_3= RULE_NL )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1776:28: ( ( () otherlv_1= 'return' ( (lv_e_2_0= ruleExpr ) )? this_NL_3= RULE_NL ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1777:1: ( () otherlv_1= 'return' ( (lv_e_2_0= ruleExpr ) )? this_NL_3= RULE_NL )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1866:1: ( () otherlv_1= 'return' ( (lv_e_2_0= ruleExpr ) )? this_NL_3= RULE_NL )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1866:2: () otherlv_1= 'return' ( (lv_e_2_0= ruleExpr ) )? this_NL_3= RULE_NL
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1777:1: ( () otherlv_1= 'return' ( (lv_e_2_0= ruleExpr ) )? this_NL_3= RULE_NL )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1777:2: () otherlv_1= 'return' ( (lv_e_2_0= ruleExpr ) )? this_NL_3= RULE_NL
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1866:2: ()
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1867:5: 
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1777:2: ()
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1778:5: 
             {
 
                     current = forceCreateModelElement(
@@ -5015,28 +4789,28 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
             }
 
-            otherlv_1=(Token)match(input,46,FOLLOW_46_in_ruleStmtReturn4166); 
+            otherlv_1=(Token)match(input,45,FOLLOW_45_in_ruleStmtReturn3999); 
 
                 	newLeafNode(otherlv_1, grammarAccess.getStmtReturnAccess().getReturnKeyword_1());
                 
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1876:1: ( (lv_e_2_0= ruleExpr ) )?
-            int alt40=2;
-            int LA40_0 = input.LA(1);
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1787:1: ( (lv_e_2_0= ruleExpr ) )?
+            int alt37=2;
+            int LA37_0 = input.LA(1);
 
-            if ( ((LA40_0>=RULE_ID && LA40_0<=RULE_STRING)||LA40_0==21||LA40_0==40||(LA40_0>=66 && LA40_0<=67)||(LA40_0>=72 && LA40_0<=74)) ) {
-                alt40=1;
+            if ( ((LA37_0>=RULE_ID && LA37_0<=RULE_STRING)||LA37_0==21||LA37_0==40||(LA37_0>=66 && LA37_0<=67)||(LA37_0>=72 && LA37_0<=74)) ) {
+                alt37=1;
             }
-            switch (alt40) {
+            switch (alt37) {
                 case 1 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1877:1: (lv_e_2_0= ruleExpr )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1788:1: (lv_e_2_0= ruleExpr )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1877:1: (lv_e_2_0= ruleExpr )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1878:3: lv_e_2_0= ruleExpr
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1788:1: (lv_e_2_0= ruleExpr )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1789:3: lv_e_2_0= ruleExpr
                     {
                      
                     	        newCompositeNode(grammarAccess.getStmtReturnAccess().getEExprParserRuleCall_2_0()); 
                     	    
-                    pushFollow(FOLLOW_ruleExpr_in_ruleStmtReturn4187);
+                    pushFollow(FOLLOW_ruleExpr_in_ruleStmtReturn4020);
                     lv_e_2_0=ruleExpr();
 
                     state._fsp--;
@@ -5061,7 +4835,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
             }
 
-            this_NL_3=(Token)match(input,RULE_NL,FOLLOW_RULE_NL_in_ruleStmtReturn4199); 
+            this_NL_3=(Token)match(input,RULE_NL,FOLLOW_RULE_NL_in_ruleStmtReturn4032); 
              
                 newLeafNode(this_NL_3, grammarAccess.getStmtReturnAccess().getNLTerminalRuleCall_3()); 
                 
@@ -5086,7 +4860,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "entryRuleStmtIf"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1906:1: entryRuleStmtIf returns [EObject current=null] : iv_ruleStmtIf= ruleStmtIf EOF ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1817:1: entryRuleStmtIf returns [EObject current=null] : iv_ruleStmtIf= ruleStmtIf EOF ;
     public final EObject entryRuleStmtIf() throws RecognitionException {
         EObject current = null;
 
@@ -5094,17 +4868,17 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1907:2: (iv_ruleStmtIf= ruleStmtIf EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1908:2: iv_ruleStmtIf= ruleStmtIf EOF
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1818:2: (iv_ruleStmtIf= ruleStmtIf EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1819:2: iv_ruleStmtIf= ruleStmtIf EOF
             {
              newCompositeNode(grammarAccess.getStmtIfRule()); 
-            pushFollow(FOLLOW_ruleStmtIf_in_entryRuleStmtIf4234);
+            pushFollow(FOLLOW_ruleStmtIf_in_entryRuleStmtIf4067);
             iv_ruleStmtIf=ruleStmtIf();
 
             state._fsp--;
 
              current =iv_ruleStmtIf; 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleStmtIf4244); 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleStmtIf4077); 
 
             }
 
@@ -5122,7 +4896,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleStmtIf"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1915:1: ruleStmtIf returns [EObject current=null] : (otherlv_0= 'if' ( (lv_cond_1_0= ruleExpr ) ) (otherlv_2= 'then' )? this_NL_3= RULE_NL ( (lv_thenBlock_4_0= ruleStatements ) ) (otherlv_5= 'elseif' ( (lv_elseIfConds_6_0= ruleExpr ) ) (otherlv_7= 'then' )? this_NL_8= RULE_NL ( (lv_elseIfBlocks_9_0= ruleStatements ) ) )* (otherlv_10= 'else' this_NL_11= RULE_NL ( (lv_elseBlock_12_0= ruleStatements ) ) )? otherlv_13= 'endif' this_NL_14= RULE_NL ) ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1826:1: ruleStmtIf returns [EObject current=null] : (otherlv_0= 'if' ( (lv_cond_1_0= ruleExpr ) ) (otherlv_2= 'then' )? this_NL_3= RULE_NL ( (lv_thenBlock_4_0= ruleStatements ) ) (otherlv_5= 'elseif' ( (lv_elseIfConds_6_0= ruleExpr ) ) (otherlv_7= 'then' )? this_NL_8= RULE_NL ( (lv_elseIfBlocks_9_0= ruleStatements ) ) )* (otherlv_10= 'else' this_NL_11= RULE_NL ( (lv_elseBlock_12_0= ruleStatements ) ) )? otherlv_13= 'endif' this_NL_14= RULE_NL ) ;
     public final EObject ruleStmtIf() throws RecognitionException {
         EObject current = null;
 
@@ -5150,26 +4924,26 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
          enterRule(); 
             
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1918:28: ( (otherlv_0= 'if' ( (lv_cond_1_0= ruleExpr ) ) (otherlv_2= 'then' )? this_NL_3= RULE_NL ( (lv_thenBlock_4_0= ruleStatements ) ) (otherlv_5= 'elseif' ( (lv_elseIfConds_6_0= ruleExpr ) ) (otherlv_7= 'then' )? this_NL_8= RULE_NL ( (lv_elseIfBlocks_9_0= ruleStatements ) ) )* (otherlv_10= 'else' this_NL_11= RULE_NL ( (lv_elseBlock_12_0= ruleStatements ) ) )? otherlv_13= 'endif' this_NL_14= RULE_NL ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1919:1: (otherlv_0= 'if' ( (lv_cond_1_0= ruleExpr ) ) (otherlv_2= 'then' )? this_NL_3= RULE_NL ( (lv_thenBlock_4_0= ruleStatements ) ) (otherlv_5= 'elseif' ( (lv_elseIfConds_6_0= ruleExpr ) ) (otherlv_7= 'then' )? this_NL_8= RULE_NL ( (lv_elseIfBlocks_9_0= ruleStatements ) ) )* (otherlv_10= 'else' this_NL_11= RULE_NL ( (lv_elseBlock_12_0= ruleStatements ) ) )? otherlv_13= 'endif' this_NL_14= RULE_NL )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1829:28: ( (otherlv_0= 'if' ( (lv_cond_1_0= ruleExpr ) ) (otherlv_2= 'then' )? this_NL_3= RULE_NL ( (lv_thenBlock_4_0= ruleStatements ) ) (otherlv_5= 'elseif' ( (lv_elseIfConds_6_0= ruleExpr ) ) (otherlv_7= 'then' )? this_NL_8= RULE_NL ( (lv_elseIfBlocks_9_0= ruleStatements ) ) )* (otherlv_10= 'else' this_NL_11= RULE_NL ( (lv_elseBlock_12_0= ruleStatements ) ) )? otherlv_13= 'endif' this_NL_14= RULE_NL ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1830:1: (otherlv_0= 'if' ( (lv_cond_1_0= ruleExpr ) ) (otherlv_2= 'then' )? this_NL_3= RULE_NL ( (lv_thenBlock_4_0= ruleStatements ) ) (otherlv_5= 'elseif' ( (lv_elseIfConds_6_0= ruleExpr ) ) (otherlv_7= 'then' )? this_NL_8= RULE_NL ( (lv_elseIfBlocks_9_0= ruleStatements ) ) )* (otherlv_10= 'else' this_NL_11= RULE_NL ( (lv_elseBlock_12_0= ruleStatements ) ) )? otherlv_13= 'endif' this_NL_14= RULE_NL )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1919:1: (otherlv_0= 'if' ( (lv_cond_1_0= ruleExpr ) ) (otherlv_2= 'then' )? this_NL_3= RULE_NL ( (lv_thenBlock_4_0= ruleStatements ) ) (otherlv_5= 'elseif' ( (lv_elseIfConds_6_0= ruleExpr ) ) (otherlv_7= 'then' )? this_NL_8= RULE_NL ( (lv_elseIfBlocks_9_0= ruleStatements ) ) )* (otherlv_10= 'else' this_NL_11= RULE_NL ( (lv_elseBlock_12_0= ruleStatements ) ) )? otherlv_13= 'endif' this_NL_14= RULE_NL )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1919:3: otherlv_0= 'if' ( (lv_cond_1_0= ruleExpr ) ) (otherlv_2= 'then' )? this_NL_3= RULE_NL ( (lv_thenBlock_4_0= ruleStatements ) ) (otherlv_5= 'elseif' ( (lv_elseIfConds_6_0= ruleExpr ) ) (otherlv_7= 'then' )? this_NL_8= RULE_NL ( (lv_elseIfBlocks_9_0= ruleStatements ) ) )* (otherlv_10= 'else' this_NL_11= RULE_NL ( (lv_elseBlock_12_0= ruleStatements ) ) )? otherlv_13= 'endif' this_NL_14= RULE_NL
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1830:1: (otherlv_0= 'if' ( (lv_cond_1_0= ruleExpr ) ) (otherlv_2= 'then' )? this_NL_3= RULE_NL ( (lv_thenBlock_4_0= ruleStatements ) ) (otherlv_5= 'elseif' ( (lv_elseIfConds_6_0= ruleExpr ) ) (otherlv_7= 'then' )? this_NL_8= RULE_NL ( (lv_elseIfBlocks_9_0= ruleStatements ) ) )* (otherlv_10= 'else' this_NL_11= RULE_NL ( (lv_elseBlock_12_0= ruleStatements ) ) )? otherlv_13= 'endif' this_NL_14= RULE_NL )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1830:3: otherlv_0= 'if' ( (lv_cond_1_0= ruleExpr ) ) (otherlv_2= 'then' )? this_NL_3= RULE_NL ( (lv_thenBlock_4_0= ruleStatements ) ) (otherlv_5= 'elseif' ( (lv_elseIfConds_6_0= ruleExpr ) ) (otherlv_7= 'then' )? this_NL_8= RULE_NL ( (lv_elseIfBlocks_9_0= ruleStatements ) ) )* (otherlv_10= 'else' this_NL_11= RULE_NL ( (lv_elseBlock_12_0= ruleStatements ) ) )? otherlv_13= 'endif' this_NL_14= RULE_NL
             {
-            otherlv_0=(Token)match(input,47,FOLLOW_47_in_ruleStmtIf4281); 
+            otherlv_0=(Token)match(input,46,FOLLOW_46_in_ruleStmtIf4114); 
 
                 	newLeafNode(otherlv_0, grammarAccess.getStmtIfAccess().getIfKeyword_0());
                 
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1923:1: ( (lv_cond_1_0= ruleExpr ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1924:1: (lv_cond_1_0= ruleExpr )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1834:1: ( (lv_cond_1_0= ruleExpr ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1835:1: (lv_cond_1_0= ruleExpr )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1924:1: (lv_cond_1_0= ruleExpr )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1925:3: lv_cond_1_0= ruleExpr
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1835:1: (lv_cond_1_0= ruleExpr )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1836:3: lv_cond_1_0= ruleExpr
             {
              
             	        newCompositeNode(grammarAccess.getStmtIfAccess().getCondExprParserRuleCall_1_0()); 
             	    
-            pushFollow(FOLLOW_ruleExpr_in_ruleStmtIf4302);
+            pushFollow(FOLLOW_ruleExpr_in_ruleStmtIf4135);
             lv_cond_1_0=ruleExpr();
 
             state._fsp--;
@@ -5191,18 +4965,18 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
             }
 
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1941:2: (otherlv_2= 'then' )?
-            int alt41=2;
-            int LA41_0 = input.LA(1);
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1852:2: (otherlv_2= 'then' )?
+            int alt38=2;
+            int LA38_0 = input.LA(1);
 
-            if ( (LA41_0==48) ) {
-                alt41=1;
+            if ( (LA38_0==47) ) {
+                alt38=1;
             }
-            switch (alt41) {
+            switch (alt38) {
                 case 1 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1941:4: otherlv_2= 'then'
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1852:4: otherlv_2= 'then'
                     {
-                    otherlv_2=(Token)match(input,48,FOLLOW_48_in_ruleStmtIf4315); 
+                    otherlv_2=(Token)match(input,47,FOLLOW_47_in_ruleStmtIf4148); 
 
                         	newLeafNode(otherlv_2, grammarAccess.getStmtIfAccess().getThenKeyword_2());
                         
@@ -5212,20 +4986,20 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
             }
 
-            this_NL_3=(Token)match(input,RULE_NL,FOLLOW_RULE_NL_in_ruleStmtIf4328); 
+            this_NL_3=(Token)match(input,RULE_NL,FOLLOW_RULE_NL_in_ruleStmtIf4161); 
              
                 newLeafNode(this_NL_3, grammarAccess.getStmtIfAccess().getNLTerminalRuleCall_3()); 
                 
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1949:1: ( (lv_thenBlock_4_0= ruleStatements ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1950:1: (lv_thenBlock_4_0= ruleStatements )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1860:1: ( (lv_thenBlock_4_0= ruleStatements ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1861:1: (lv_thenBlock_4_0= ruleStatements )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1950:1: (lv_thenBlock_4_0= ruleStatements )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1951:3: lv_thenBlock_4_0= ruleStatements
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1861:1: (lv_thenBlock_4_0= ruleStatements )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1862:3: lv_thenBlock_4_0= ruleStatements
             {
              
             	        newCompositeNode(grammarAccess.getStmtIfAccess().getThenBlockStatementsParserRuleCall_4_0()); 
             	    
-            pushFollow(FOLLOW_ruleStatements_in_ruleStmtIf4348);
+            pushFollow(FOLLOW_ruleStatements_in_ruleStmtIf4181);
             lv_thenBlock_4_0=ruleStatements();
 
             state._fsp--;
@@ -5247,35 +5021,35 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
             }
 
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1967:2: (otherlv_5= 'elseif' ( (lv_elseIfConds_6_0= ruleExpr ) ) (otherlv_7= 'then' )? this_NL_8= RULE_NL ( (lv_elseIfBlocks_9_0= ruleStatements ) ) )*
-            loop43:
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1878:2: (otherlv_5= 'elseif' ( (lv_elseIfConds_6_0= ruleExpr ) ) (otherlv_7= 'then' )? this_NL_8= RULE_NL ( (lv_elseIfBlocks_9_0= ruleStatements ) ) )*
+            loop40:
             do {
-                int alt43=2;
-                int LA43_0 = input.LA(1);
+                int alt40=2;
+                int LA40_0 = input.LA(1);
 
-                if ( (LA43_0==49) ) {
-                    alt43=1;
+                if ( (LA40_0==48) ) {
+                    alt40=1;
                 }
 
 
-                switch (alt43) {
+                switch (alt40) {
             	case 1 :
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1967:4: otherlv_5= 'elseif' ( (lv_elseIfConds_6_0= ruleExpr ) ) (otherlv_7= 'then' )? this_NL_8= RULE_NL ( (lv_elseIfBlocks_9_0= ruleStatements ) )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1878:4: otherlv_5= 'elseif' ( (lv_elseIfConds_6_0= ruleExpr ) ) (otherlv_7= 'then' )? this_NL_8= RULE_NL ( (lv_elseIfBlocks_9_0= ruleStatements ) )
             	    {
-            	    otherlv_5=(Token)match(input,49,FOLLOW_49_in_ruleStmtIf4361); 
+            	    otherlv_5=(Token)match(input,48,FOLLOW_48_in_ruleStmtIf4194); 
 
             	        	newLeafNode(otherlv_5, grammarAccess.getStmtIfAccess().getElseifKeyword_5_0());
             	        
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1971:1: ( (lv_elseIfConds_6_0= ruleExpr ) )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1972:1: (lv_elseIfConds_6_0= ruleExpr )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1882:1: ( (lv_elseIfConds_6_0= ruleExpr ) )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1883:1: (lv_elseIfConds_6_0= ruleExpr )
             	    {
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1972:1: (lv_elseIfConds_6_0= ruleExpr )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1973:3: lv_elseIfConds_6_0= ruleExpr
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1883:1: (lv_elseIfConds_6_0= ruleExpr )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1884:3: lv_elseIfConds_6_0= ruleExpr
             	    {
             	     
             	    	        newCompositeNode(grammarAccess.getStmtIfAccess().getElseIfCondsExprParserRuleCall_5_1_0()); 
             	    	    
-            	    pushFollow(FOLLOW_ruleExpr_in_ruleStmtIf4382);
+            	    pushFollow(FOLLOW_ruleExpr_in_ruleStmtIf4215);
             	    lv_elseIfConds_6_0=ruleExpr();
 
             	    state._fsp--;
@@ -5297,18 +5071,18 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
             	    }
 
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1989:2: (otherlv_7= 'then' )?
-            	    int alt42=2;
-            	    int LA42_0 = input.LA(1);
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1900:2: (otherlv_7= 'then' )?
+            	    int alt39=2;
+            	    int LA39_0 = input.LA(1);
 
-            	    if ( (LA42_0==48) ) {
-            	        alt42=1;
+            	    if ( (LA39_0==47) ) {
+            	        alt39=1;
             	    }
-            	    switch (alt42) {
+            	    switch (alt39) {
             	        case 1 :
-            	            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1989:4: otherlv_7= 'then'
+            	            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1900:4: otherlv_7= 'then'
             	            {
-            	            otherlv_7=(Token)match(input,48,FOLLOW_48_in_ruleStmtIf4395); 
+            	            otherlv_7=(Token)match(input,47,FOLLOW_47_in_ruleStmtIf4228); 
 
             	                	newLeafNode(otherlv_7, grammarAccess.getStmtIfAccess().getThenKeyword_5_2());
             	                
@@ -5318,20 +5092,20 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
             	    }
 
-            	    this_NL_8=(Token)match(input,RULE_NL,FOLLOW_RULE_NL_in_ruleStmtIf4408); 
+            	    this_NL_8=(Token)match(input,RULE_NL,FOLLOW_RULE_NL_in_ruleStmtIf4241); 
             	     
             	        newLeafNode(this_NL_8, grammarAccess.getStmtIfAccess().getNLTerminalRuleCall_5_3()); 
             	        
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1997:1: ( (lv_elseIfBlocks_9_0= ruleStatements ) )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1998:1: (lv_elseIfBlocks_9_0= ruleStatements )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1908:1: ( (lv_elseIfBlocks_9_0= ruleStatements ) )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1909:1: (lv_elseIfBlocks_9_0= ruleStatements )
             	    {
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1998:1: (lv_elseIfBlocks_9_0= ruleStatements )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1999:3: lv_elseIfBlocks_9_0= ruleStatements
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1909:1: (lv_elseIfBlocks_9_0= ruleStatements )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1910:3: lv_elseIfBlocks_9_0= ruleStatements
             	    {
             	     
             	    	        newCompositeNode(grammarAccess.getStmtIfAccess().getElseIfBlocksStatementsParserRuleCall_5_4_0()); 
             	    	    
-            	    pushFollow(FOLLOW_ruleStatements_in_ruleStmtIf4428);
+            	    pushFollow(FOLLOW_ruleStatements_in_ruleStmtIf4261);
             	    lv_elseIfBlocks_9_0=ruleStatements();
 
             	    state._fsp--;
@@ -5358,39 +5132,39 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
             	    break;
 
             	default :
-            	    break loop43;
+            	    break loop40;
                 }
             } while (true);
 
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2015:4: (otherlv_10= 'else' this_NL_11= RULE_NL ( (lv_elseBlock_12_0= ruleStatements ) ) )?
-            int alt44=2;
-            int LA44_0 = input.LA(1);
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1926:4: (otherlv_10= 'else' this_NL_11= RULE_NL ( (lv_elseBlock_12_0= ruleStatements ) ) )?
+            int alt41=2;
+            int LA41_0 = input.LA(1);
 
-            if ( (LA44_0==50) ) {
-                alt44=1;
+            if ( (LA41_0==49) ) {
+                alt41=1;
             }
-            switch (alt44) {
+            switch (alt41) {
                 case 1 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2015:6: otherlv_10= 'else' this_NL_11= RULE_NL ( (lv_elseBlock_12_0= ruleStatements ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1926:6: otherlv_10= 'else' this_NL_11= RULE_NL ( (lv_elseBlock_12_0= ruleStatements ) )
                     {
-                    otherlv_10=(Token)match(input,50,FOLLOW_50_in_ruleStmtIf4443); 
+                    otherlv_10=(Token)match(input,49,FOLLOW_49_in_ruleStmtIf4276); 
 
                         	newLeafNode(otherlv_10, grammarAccess.getStmtIfAccess().getElseKeyword_6_0());
                         
-                    this_NL_11=(Token)match(input,RULE_NL,FOLLOW_RULE_NL_in_ruleStmtIf4454); 
+                    this_NL_11=(Token)match(input,RULE_NL,FOLLOW_RULE_NL_in_ruleStmtIf4287); 
                      
                         newLeafNode(this_NL_11, grammarAccess.getStmtIfAccess().getNLTerminalRuleCall_6_1()); 
                         
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2023:1: ( (lv_elseBlock_12_0= ruleStatements ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2024:1: (lv_elseBlock_12_0= ruleStatements )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1934:1: ( (lv_elseBlock_12_0= ruleStatements ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1935:1: (lv_elseBlock_12_0= ruleStatements )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2024:1: (lv_elseBlock_12_0= ruleStatements )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2025:3: lv_elseBlock_12_0= ruleStatements
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1935:1: (lv_elseBlock_12_0= ruleStatements )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1936:3: lv_elseBlock_12_0= ruleStatements
                     {
                      
                     	        newCompositeNode(grammarAccess.getStmtIfAccess().getElseBlockStatementsParserRuleCall_6_2_0()); 
                     	    
-                    pushFollow(FOLLOW_ruleStatements_in_ruleStmtIf4474);
+                    pushFollow(FOLLOW_ruleStatements_in_ruleStmtIf4307);
                     lv_elseBlock_12_0=ruleStatements();
 
                     state._fsp--;
@@ -5418,11 +5192,11 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
             }
 
-            otherlv_13=(Token)match(input,51,FOLLOW_51_in_ruleStmtIf4488); 
+            otherlv_13=(Token)match(input,50,FOLLOW_50_in_ruleStmtIf4321); 
 
                 	newLeafNode(otherlv_13, grammarAccess.getStmtIfAccess().getEndifKeyword_7());
                 
-            this_NL_14=(Token)match(input,RULE_NL,FOLLOW_RULE_NL_in_ruleStmtIf4499); 
+            this_NL_14=(Token)match(input,RULE_NL,FOLLOW_RULE_NL_in_ruleStmtIf4332); 
              
                 newLeafNode(this_NL_14, grammarAccess.getStmtIfAccess().getNLTerminalRuleCall_8()); 
                 
@@ -5447,7 +5221,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "entryRuleStmtWhile"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2057:1: entryRuleStmtWhile returns [EObject current=null] : iv_ruleStmtWhile= ruleStmtWhile EOF ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1968:1: entryRuleStmtWhile returns [EObject current=null] : iv_ruleStmtWhile= ruleStmtWhile EOF ;
     public final EObject entryRuleStmtWhile() throws RecognitionException {
         EObject current = null;
 
@@ -5455,17 +5229,17 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2058:2: (iv_ruleStmtWhile= ruleStmtWhile EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2059:2: iv_ruleStmtWhile= ruleStmtWhile EOF
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1969:2: (iv_ruleStmtWhile= ruleStmtWhile EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1970:2: iv_ruleStmtWhile= ruleStmtWhile EOF
             {
              newCompositeNode(grammarAccess.getStmtWhileRule()); 
-            pushFollow(FOLLOW_ruleStmtWhile_in_entryRuleStmtWhile4534);
+            pushFollow(FOLLOW_ruleStmtWhile_in_entryRuleStmtWhile4367);
             iv_ruleStmtWhile=ruleStmtWhile();
 
             state._fsp--;
 
              current =iv_ruleStmtWhile; 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleStmtWhile4544); 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleStmtWhile4377); 
 
             }
 
@@ -5483,7 +5257,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleStmtWhile"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2066:1: ruleStmtWhile returns [EObject current=null] : (otherlv_0= 'while' ( (lv_cond_1_0= ruleExpr ) ) this_NL_2= RULE_NL ( (lv_body_3_0= ruleStatements ) ) otherlv_4= 'endwhile' this_NL_5= RULE_NL ) ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1977:1: ruleStmtWhile returns [EObject current=null] : (otherlv_0= 'while' ( (lv_cond_1_0= ruleExpr ) ) this_NL_2= RULE_NL ( (lv_body_3_0= ruleStatements ) ) otherlv_4= 'endwhile' this_NL_5= RULE_NL ) ;
     public final EObject ruleStmtWhile() throws RecognitionException {
         EObject current = null;
 
@@ -5499,26 +5273,26 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
          enterRule(); 
             
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2069:28: ( (otherlv_0= 'while' ( (lv_cond_1_0= ruleExpr ) ) this_NL_2= RULE_NL ( (lv_body_3_0= ruleStatements ) ) otherlv_4= 'endwhile' this_NL_5= RULE_NL ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2070:1: (otherlv_0= 'while' ( (lv_cond_1_0= ruleExpr ) ) this_NL_2= RULE_NL ( (lv_body_3_0= ruleStatements ) ) otherlv_4= 'endwhile' this_NL_5= RULE_NL )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1980:28: ( (otherlv_0= 'while' ( (lv_cond_1_0= ruleExpr ) ) this_NL_2= RULE_NL ( (lv_body_3_0= ruleStatements ) ) otherlv_4= 'endwhile' this_NL_5= RULE_NL ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1981:1: (otherlv_0= 'while' ( (lv_cond_1_0= ruleExpr ) ) this_NL_2= RULE_NL ( (lv_body_3_0= ruleStatements ) ) otherlv_4= 'endwhile' this_NL_5= RULE_NL )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2070:1: (otherlv_0= 'while' ( (lv_cond_1_0= ruleExpr ) ) this_NL_2= RULE_NL ( (lv_body_3_0= ruleStatements ) ) otherlv_4= 'endwhile' this_NL_5= RULE_NL )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2070:3: otherlv_0= 'while' ( (lv_cond_1_0= ruleExpr ) ) this_NL_2= RULE_NL ( (lv_body_3_0= ruleStatements ) ) otherlv_4= 'endwhile' this_NL_5= RULE_NL
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1981:1: (otherlv_0= 'while' ( (lv_cond_1_0= ruleExpr ) ) this_NL_2= RULE_NL ( (lv_body_3_0= ruleStatements ) ) otherlv_4= 'endwhile' this_NL_5= RULE_NL )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1981:3: otherlv_0= 'while' ( (lv_cond_1_0= ruleExpr ) ) this_NL_2= RULE_NL ( (lv_body_3_0= ruleStatements ) ) otherlv_4= 'endwhile' this_NL_5= RULE_NL
             {
-            otherlv_0=(Token)match(input,52,FOLLOW_52_in_ruleStmtWhile4581); 
+            otherlv_0=(Token)match(input,51,FOLLOW_51_in_ruleStmtWhile4414); 
 
                 	newLeafNode(otherlv_0, grammarAccess.getStmtWhileAccess().getWhileKeyword_0());
                 
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2074:1: ( (lv_cond_1_0= ruleExpr ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2075:1: (lv_cond_1_0= ruleExpr )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1985:1: ( (lv_cond_1_0= ruleExpr ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1986:1: (lv_cond_1_0= ruleExpr )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2075:1: (lv_cond_1_0= ruleExpr )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2076:3: lv_cond_1_0= ruleExpr
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1986:1: (lv_cond_1_0= ruleExpr )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:1987:3: lv_cond_1_0= ruleExpr
             {
              
             	        newCompositeNode(grammarAccess.getStmtWhileAccess().getCondExprParserRuleCall_1_0()); 
             	    
-            pushFollow(FOLLOW_ruleExpr_in_ruleStmtWhile4602);
+            pushFollow(FOLLOW_ruleExpr_in_ruleStmtWhile4435);
             lv_cond_1_0=ruleExpr();
 
             state._fsp--;
@@ -5540,20 +5314,20 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
             }
 
-            this_NL_2=(Token)match(input,RULE_NL,FOLLOW_RULE_NL_in_ruleStmtWhile4613); 
+            this_NL_2=(Token)match(input,RULE_NL,FOLLOW_RULE_NL_in_ruleStmtWhile4446); 
              
                 newLeafNode(this_NL_2, grammarAccess.getStmtWhileAccess().getNLTerminalRuleCall_2()); 
                 
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2096:1: ( (lv_body_3_0= ruleStatements ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2097:1: (lv_body_3_0= ruleStatements )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2007:1: ( (lv_body_3_0= ruleStatements ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2008:1: (lv_body_3_0= ruleStatements )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2097:1: (lv_body_3_0= ruleStatements )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2098:3: lv_body_3_0= ruleStatements
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2008:1: (lv_body_3_0= ruleStatements )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2009:3: lv_body_3_0= ruleStatements
             {
              
             	        newCompositeNode(grammarAccess.getStmtWhileAccess().getBodyStatementsParserRuleCall_3_0()); 
             	    
-            pushFollow(FOLLOW_ruleStatements_in_ruleStmtWhile4633);
+            pushFollow(FOLLOW_ruleStatements_in_ruleStmtWhile4466);
             lv_body_3_0=ruleStatements();
 
             state._fsp--;
@@ -5575,11 +5349,11 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
             }
 
-            otherlv_4=(Token)match(input,53,FOLLOW_53_in_ruleStmtWhile4645); 
+            otherlv_4=(Token)match(input,52,FOLLOW_52_in_ruleStmtWhile4478); 
 
                 	newLeafNode(otherlv_4, grammarAccess.getStmtWhileAccess().getEndwhileKeyword_4());
                 
-            this_NL_5=(Token)match(input,RULE_NL,FOLLOW_RULE_NL_in_ruleStmtWhile4656); 
+            this_NL_5=(Token)match(input,RULE_NL,FOLLOW_RULE_NL_in_ruleStmtWhile4489); 
              
                 newLeafNode(this_NL_5, grammarAccess.getStmtWhileAccess().getNLTerminalRuleCall_5()); 
                 
@@ -5603,26 +5377,26 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
     // $ANTLR end "ruleStmtWhile"
 
 
-    // $ANTLR start "entryRuleStmtSetOrCall"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2130:1: entryRuleStmtSetOrCall returns [EObject current=null] : iv_ruleStmtSetOrCall= ruleStmtSetOrCall EOF ;
-    public final EObject entryRuleStmtSetOrCall() throws RecognitionException {
+    // $ANTLR start "entryRuleStmtSet"
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2041:1: entryRuleStmtSet returns [EObject current=null] : iv_ruleStmtSet= ruleStmtSet EOF ;
+    public final EObject entryRuleStmtSet() throws RecognitionException {
         EObject current = null;
 
-        EObject iv_ruleStmtSetOrCall = null;
+        EObject iv_ruleStmtSet = null;
 
 
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2131:2: (iv_ruleStmtSetOrCall= ruleStmtSetOrCall EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2132:2: iv_ruleStmtSetOrCall= ruleStmtSetOrCall EOF
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2042:2: (iv_ruleStmtSet= ruleStmtSet EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2043:2: iv_ruleStmtSet= ruleStmtSet EOF
             {
-             newCompositeNode(grammarAccess.getStmtSetOrCallRule()); 
-            pushFollow(FOLLOW_ruleStmtSetOrCall_in_entryRuleStmtSetOrCall4691);
-            iv_ruleStmtSetOrCall=ruleStmtSetOrCall();
+             newCompositeNode(grammarAccess.getStmtSetRule()); 
+            pushFollow(FOLLOW_ruleStmtSet_in_entryRuleStmtSet4524);
+            iv_ruleStmtSet=ruleStmtSet();
 
             state._fsp--;
 
-             current =iv_ruleStmtSetOrCall; 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleStmtSetOrCall4701); 
+             current =iv_ruleStmtSet; 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleStmtSet4534); 
 
             }
 
@@ -5636,100 +5410,57 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
         }
         return current;
     }
-    // $ANTLR end "entryRuleStmtSetOrCall"
+    // $ANTLR end "entryRuleStmtSet"
 
 
-    // $ANTLR start "ruleStmtSetOrCall"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2139:1: ruleStmtSetOrCall returns [EObject current=null] : ( () (otherlv_1= 'call' | otherlv_2= 'set' )? ( (lv_e_3_0= ruleExpr ) ) ( () ( (lv_opAssignment_5_0= ruleOpAssignment ) ) ( (lv_right_6_0= ruleExpr ) ) )? this_NL_7= RULE_NL ) ;
-    public final EObject ruleStmtSetOrCall() throws RecognitionException {
+    // $ANTLR start "ruleStmtSet"
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2050:1: ruleStmtSet returns [EObject current=null] : (otherlv_0= 'set' ( (lv_leftE_1_0= ruleExpr ) ) otherlv_2= '=' ( (lv_right_3_0= ruleExpr ) ) this_NL_4= RULE_NL ) ;
+    public final EObject ruleStmtSet() throws RecognitionException {
         EObject current = null;
 
-        Token otherlv_1=null;
+        Token otherlv_0=null;
         Token otherlv_2=null;
-        Token this_NL_7=null;
-        EObject lv_e_3_0 = null;
+        Token this_NL_4=null;
+        EObject lv_leftE_1_0 = null;
 
-        EObject lv_opAssignment_5_0 = null;
-
-        EObject lv_right_6_0 = null;
+        EObject lv_right_3_0 = null;
 
 
          enterRule(); 
             
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2142:28: ( ( () (otherlv_1= 'call' | otherlv_2= 'set' )? ( (lv_e_3_0= ruleExpr ) ) ( () ( (lv_opAssignment_5_0= ruleOpAssignment ) ) ( (lv_right_6_0= ruleExpr ) ) )? this_NL_7= RULE_NL ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2143:1: ( () (otherlv_1= 'call' | otherlv_2= 'set' )? ( (lv_e_3_0= ruleExpr ) ) ( () ( (lv_opAssignment_5_0= ruleOpAssignment ) ) ( (lv_right_6_0= ruleExpr ) ) )? this_NL_7= RULE_NL )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2053:28: ( (otherlv_0= 'set' ( (lv_leftE_1_0= ruleExpr ) ) otherlv_2= '=' ( (lv_right_3_0= ruleExpr ) ) this_NL_4= RULE_NL ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2054:1: (otherlv_0= 'set' ( (lv_leftE_1_0= ruleExpr ) ) otherlv_2= '=' ( (lv_right_3_0= ruleExpr ) ) this_NL_4= RULE_NL )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2143:1: ( () (otherlv_1= 'call' | otherlv_2= 'set' )? ( (lv_e_3_0= ruleExpr ) ) ( () ( (lv_opAssignment_5_0= ruleOpAssignment ) ) ( (lv_right_6_0= ruleExpr ) ) )? this_NL_7= RULE_NL )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2143:2: () (otherlv_1= 'call' | otherlv_2= 'set' )? ( (lv_e_3_0= ruleExpr ) ) ( () ( (lv_opAssignment_5_0= ruleOpAssignment ) ) ( (lv_right_6_0= ruleExpr ) ) )? this_NL_7= RULE_NL
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2054:1: (otherlv_0= 'set' ( (lv_leftE_1_0= ruleExpr ) ) otherlv_2= '=' ( (lv_right_3_0= ruleExpr ) ) this_NL_4= RULE_NL )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2054:3: otherlv_0= 'set' ( (lv_leftE_1_0= ruleExpr ) ) otherlv_2= '=' ( (lv_right_3_0= ruleExpr ) ) this_NL_4= RULE_NL
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2143:2: ()
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2144:5: 
-            {
+            otherlv_0=(Token)match(input,53,FOLLOW_53_in_ruleStmtSet4571); 
 
-                    current = forceCreateModelElement(
-                        grammarAccess.getStmtSetOrCallAccess().getStmtCallAction_0(),
-                        current);
+                	newLeafNode(otherlv_0, grammarAccess.getStmtSetAccess().getSetKeyword_0());
                 
-
-            }
-
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2149:2: (otherlv_1= 'call' | otherlv_2= 'set' )?
-            int alt45=3;
-            int LA45_0 = input.LA(1);
-
-            if ( (LA45_0==54) ) {
-                alt45=1;
-            }
-            else if ( (LA45_0==55) ) {
-                alt45=2;
-            }
-            switch (alt45) {
-                case 1 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2149:4: otherlv_1= 'call'
-                    {
-                    otherlv_1=(Token)match(input,54,FOLLOW_54_in_ruleStmtSetOrCall4748); 
-
-                        	newLeafNode(otherlv_1, grammarAccess.getStmtSetOrCallAccess().getCallKeyword_1_0());
-                        
-
-                    }
-                    break;
-                case 2 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2154:7: otherlv_2= 'set'
-                    {
-                    otherlv_2=(Token)match(input,55,FOLLOW_55_in_ruleStmtSetOrCall4766); 
-
-                        	newLeafNode(otherlv_2, grammarAccess.getStmtSetOrCallAccess().getSetKeyword_1_1());
-                        
-
-                    }
-                    break;
-
-            }
-
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2158:3: ( (lv_e_3_0= ruleExpr ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2159:1: (lv_e_3_0= ruleExpr )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2058:1: ( (lv_leftE_1_0= ruleExpr ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2059:1: (lv_leftE_1_0= ruleExpr )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2159:1: (lv_e_3_0= ruleExpr )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2160:3: lv_e_3_0= ruleExpr
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2059:1: (lv_leftE_1_0= ruleExpr )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2060:3: lv_leftE_1_0= ruleExpr
             {
              
-            	        newCompositeNode(grammarAccess.getStmtSetOrCallAccess().getEExprParserRuleCall_2_0()); 
+            	        newCompositeNode(grammarAccess.getStmtSetAccess().getLeftEExprParserRuleCall_1_0()); 
             	    
-            pushFollow(FOLLOW_ruleExpr_in_ruleStmtSetOrCall4789);
-            lv_e_3_0=ruleExpr();
+            pushFollow(FOLLOW_ruleExpr_in_ruleStmtSet4592);
+            lv_leftE_1_0=ruleExpr();
 
             state._fsp--;
 
 
             	        if (current==null) {
-            	            current = createModelElementForParent(grammarAccess.getStmtSetOrCallRule());
+            	            current = createModelElementForParent(grammarAccess.getStmtSetRule());
             	        }
                    		set(
                    			current, 
-                   			"e",
-                    		lv_e_3_0, 
+                   			"leftE",
+                    		lv_leftE_1_0, 
                     		"Expr");
             	        afterParserOrEnumRuleCall();
             	    
@@ -5739,99 +5470,44 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
             }
 
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2176:2: ( () ( (lv_opAssignment_5_0= ruleOpAssignment ) ) ( (lv_right_6_0= ruleExpr ) ) )?
-            int alt46=2;
-            int LA46_0 = input.LA(1);
+            otherlv_2=(Token)match(input,32,FOLLOW_32_in_ruleStmtSet4604); 
 
-            if ( (LA46_0==32||(LA46_0>=56 && LA46_0<=57)) ) {
-                alt46=1;
-            }
-            switch (alt46) {
-                case 1 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2176:3: () ( (lv_opAssignment_5_0= ruleOpAssignment ) ) ( (lv_right_6_0= ruleExpr ) )
-                    {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2176:3: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2177:5: 
-                    {
-
-                            current = forceCreateModelElementAndSet(
-                                grammarAccess.getStmtSetOrCallAccess().getStmtSetLeftAction_3_0(),
-                                current);
-                        
-
-                    }
-
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2182:2: ( (lv_opAssignment_5_0= ruleOpAssignment ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2183:1: (lv_opAssignment_5_0= ruleOpAssignment )
-                    {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2183:1: (lv_opAssignment_5_0= ruleOpAssignment )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2184:3: lv_opAssignment_5_0= ruleOpAssignment
-                    {
-                     
-                    	        newCompositeNode(grammarAccess.getStmtSetOrCallAccess().getOpAssignmentOpAssignmentParserRuleCall_3_1_0()); 
-                    	    
-                    pushFollow(FOLLOW_ruleOpAssignment_in_ruleStmtSetOrCall4820);
-                    lv_opAssignment_5_0=ruleOpAssignment();
-
-                    state._fsp--;
-
-
-                    	        if (current==null) {
-                    	            current = createModelElementForParent(grammarAccess.getStmtSetOrCallRule());
-                    	        }
-                           		set(
-                           			current, 
-                           			"opAssignment",
-                            		lv_opAssignment_5_0, 
-                            		"OpAssignment");
-                    	        afterParserOrEnumRuleCall();
-                    	    
-
-                    }
-
-
-                    }
-
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2200:2: ( (lv_right_6_0= ruleExpr ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2201:1: (lv_right_6_0= ruleExpr )
-                    {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2201:1: (lv_right_6_0= ruleExpr )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2202:3: lv_right_6_0= ruleExpr
-                    {
-                     
-                    	        newCompositeNode(grammarAccess.getStmtSetOrCallAccess().getRightExprParserRuleCall_3_2_0()); 
-                    	    
-                    pushFollow(FOLLOW_ruleExpr_in_ruleStmtSetOrCall4841);
-                    lv_right_6_0=ruleExpr();
-
-                    state._fsp--;
-
-
-                    	        if (current==null) {
-                    	            current = createModelElementForParent(grammarAccess.getStmtSetOrCallRule());
-                    	        }
-                           		set(
-                           			current, 
-                           			"right",
-                            		lv_right_6_0, 
-                            		"Expr");
-                    	        afterParserOrEnumRuleCall();
-                    	    
-
-                    }
-
-
-                    }
-
-
-                    }
-                    break;
-
-            }
-
-            this_NL_7=(Token)match(input,RULE_NL,FOLLOW_RULE_NL_in_ruleStmtSetOrCall4854); 
+                	newLeafNode(otherlv_2, grammarAccess.getStmtSetAccess().getEqualsSignKeyword_2());
+                
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2080:1: ( (lv_right_3_0= ruleExpr ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2081:1: (lv_right_3_0= ruleExpr )
+            {
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2081:1: (lv_right_3_0= ruleExpr )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2082:3: lv_right_3_0= ruleExpr
+            {
              
-                newLeafNode(this_NL_7, grammarAccess.getStmtSetOrCallAccess().getNLTerminalRuleCall_4()); 
+            	        newCompositeNode(grammarAccess.getStmtSetAccess().getRightExprParserRuleCall_3_0()); 
+            	    
+            pushFollow(FOLLOW_ruleExpr_in_ruleStmtSet4625);
+            lv_right_3_0=ruleExpr();
+
+            state._fsp--;
+
+
+            	        if (current==null) {
+            	            current = createModelElementForParent(grammarAccess.getStmtSetRule());
+            	        }
+                   		set(
+                   			current, 
+                   			"right",
+                    		lv_right_3_0, 
+                    		"Expr");
+            	        afterParserOrEnumRuleCall();
+            	    
+
+            }
+
+
+            }
+
+            this_NL_4=(Token)match(input,RULE_NL,FOLLOW_RULE_NL_in_ruleStmtSet4636); 
+             
+                newLeafNode(this_NL_4, grammarAccess.getStmtSetAccess().getNLTerminalRuleCall_4()); 
                 
 
             }
@@ -5850,11 +5526,824 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
         }
         return current;
     }
-    // $ANTLR end "ruleStmtSetOrCall"
+    // $ANTLR end "ruleStmtSet"
+
+
+    // $ANTLR start "entryRuleStmtCall"
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2110:1: entryRuleStmtCall returns [EObject current=null] : iv_ruleStmtCall= ruleStmtCall EOF ;
+    public final EObject entryRuleStmtCall() throws RecognitionException {
+        EObject current = null;
+
+        EObject iv_ruleStmtCall = null;
+
+
+        try {
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2111:2: (iv_ruleStmtCall= ruleStmtCall EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2112:2: iv_ruleStmtCall= ruleStmtCall EOF
+            {
+             newCompositeNode(grammarAccess.getStmtCallRule()); 
+            pushFollow(FOLLOW_ruleStmtCall_in_entryRuleStmtCall4671);
+            iv_ruleStmtCall=ruleStmtCall();
+
+            state._fsp--;
+
+             current =iv_ruleStmtCall; 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleStmtCall4681); 
+
+            }
+
+        }
+         
+            catch (RecognitionException re) { 
+                recover(input,re); 
+                appendSkippedTokens();
+            } 
+        finally {
+        }
+        return current;
+    }
+    // $ANTLR end "entryRuleStmtCall"
+
+
+    // $ANTLR start "ruleStmtCall"
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2119:1: ruleStmtCall returns [EObject current=null] : (otherlv_0= 'call' ( (lv_e_1_0= ruleExpr ) ) this_NL_2= RULE_NL ) ;
+    public final EObject ruleStmtCall() throws RecognitionException {
+        EObject current = null;
+
+        Token otherlv_0=null;
+        Token this_NL_2=null;
+        EObject lv_e_1_0 = null;
+
+
+         enterRule(); 
+            
+        try {
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2122:28: ( (otherlv_0= 'call' ( (lv_e_1_0= ruleExpr ) ) this_NL_2= RULE_NL ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2123:1: (otherlv_0= 'call' ( (lv_e_1_0= ruleExpr ) ) this_NL_2= RULE_NL )
+            {
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2123:1: (otherlv_0= 'call' ( (lv_e_1_0= ruleExpr ) ) this_NL_2= RULE_NL )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2123:3: otherlv_0= 'call' ( (lv_e_1_0= ruleExpr ) ) this_NL_2= RULE_NL
+            {
+            otherlv_0=(Token)match(input,54,FOLLOW_54_in_ruleStmtCall4718); 
+
+                	newLeafNode(otherlv_0, grammarAccess.getStmtCallAccess().getCallKeyword_0());
+                
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2127:1: ( (lv_e_1_0= ruleExpr ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2128:1: (lv_e_1_0= ruleExpr )
+            {
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2128:1: (lv_e_1_0= ruleExpr )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2129:3: lv_e_1_0= ruleExpr
+            {
+             
+            	        newCompositeNode(grammarAccess.getStmtCallAccess().getEExprParserRuleCall_1_0()); 
+            	    
+            pushFollow(FOLLOW_ruleExpr_in_ruleStmtCall4739);
+            lv_e_1_0=ruleExpr();
+
+            state._fsp--;
+
+
+            	        if (current==null) {
+            	            current = createModelElementForParent(grammarAccess.getStmtCallRule());
+            	        }
+                   		set(
+                   			current, 
+                   			"e",
+                    		lv_e_1_0, 
+                    		"Expr");
+            	        afterParserOrEnumRuleCall();
+            	    
+
+            }
+
+
+            }
+
+            this_NL_2=(Token)match(input,RULE_NL,FOLLOW_RULE_NL_in_ruleStmtCall4750); 
+             
+                newLeafNode(this_NL_2, grammarAccess.getStmtCallAccess().getNLTerminalRuleCall_2()); 
+                
+
+            }
+
+
+            }
+
+             leaveRule(); 
+        }
+         
+            catch (RecognitionException re) { 
+                recover(input,re); 
+                appendSkippedTokens();
+            } 
+        finally {
+        }
+        return current;
+    }
+    // $ANTLR end "ruleStmtCall"
+
+
+    // $ANTLR start "entryRuleLocalVarDef"
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2157:1: entryRuleLocalVarDef returns [EObject current=null] : iv_ruleLocalVarDef= ruleLocalVarDef EOF ;
+    public final EObject entryRuleLocalVarDef() throws RecognitionException {
+        EObject current = null;
+
+        EObject iv_ruleLocalVarDef = null;
+
+
+        try {
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2158:2: (iv_ruleLocalVarDef= ruleLocalVarDef EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2159:2: iv_ruleLocalVarDef= ruleLocalVarDef EOF
+            {
+             newCompositeNode(grammarAccess.getLocalVarDefRule()); 
+            pushFollow(FOLLOW_ruleLocalVarDef_in_entryRuleLocalVarDef4785);
+            iv_ruleLocalVarDef=ruleLocalVarDef();
+
+            state._fsp--;
+
+             current =iv_ruleLocalVarDef; 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleLocalVarDef4795); 
+
+            }
+
+        }
+         
+            catch (RecognitionException re) { 
+                recover(input,re); 
+                appendSkippedTokens();
+            } 
+        finally {
+        }
+        return current;
+    }
+    // $ANTLR end "entryRuleLocalVarDef"
+
+
+    // $ANTLR start "ruleLocalVarDef"
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2166:1: ruleLocalVarDef returns [EObject current=null] : ( () (otherlv_1= 'local' | ( (lv_constant_2_0= 'val' ) ) ) ( (lv_type_3_0= ruleTypeExpr ) )? ( (lv_name_4_0= RULE_ID ) ) (otherlv_5= '=' ( (lv_e_6_0= ruleExpr ) ) )? this_NL_7= RULE_NL ) ;
+    public final EObject ruleLocalVarDef() throws RecognitionException {
+        EObject current = null;
+
+        Token otherlv_1=null;
+        Token lv_constant_2_0=null;
+        Token lv_name_4_0=null;
+        Token otherlv_5=null;
+        Token this_NL_7=null;
+        EObject lv_type_3_0 = null;
+
+        EObject lv_e_6_0 = null;
+
+
+         enterRule(); 
+            
+        try {
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2169:28: ( ( () (otherlv_1= 'local' | ( (lv_constant_2_0= 'val' ) ) ) ( (lv_type_3_0= ruleTypeExpr ) )? ( (lv_name_4_0= RULE_ID ) ) (otherlv_5= '=' ( (lv_e_6_0= ruleExpr ) ) )? this_NL_7= RULE_NL ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2170:1: ( () (otherlv_1= 'local' | ( (lv_constant_2_0= 'val' ) ) ) ( (lv_type_3_0= ruleTypeExpr ) )? ( (lv_name_4_0= RULE_ID ) ) (otherlv_5= '=' ( (lv_e_6_0= ruleExpr ) ) )? this_NL_7= RULE_NL )
+            {
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2170:1: ( () (otherlv_1= 'local' | ( (lv_constant_2_0= 'val' ) ) ) ( (lv_type_3_0= ruleTypeExpr ) )? ( (lv_name_4_0= RULE_ID ) ) (otherlv_5= '=' ( (lv_e_6_0= ruleExpr ) ) )? this_NL_7= RULE_NL )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2170:2: () (otherlv_1= 'local' | ( (lv_constant_2_0= 'val' ) ) ) ( (lv_type_3_0= ruleTypeExpr ) )? ( (lv_name_4_0= RULE_ID ) ) (otherlv_5= '=' ( (lv_e_6_0= ruleExpr ) ) )? this_NL_7= RULE_NL
+            {
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2170:2: ()
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2171:5: 
+            {
+
+                    current = forceCreateModelElement(
+                        grammarAccess.getLocalVarDefAccess().getVarDefAction_0(),
+                        current);
+                
+
+            }
+
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2176:2: (otherlv_1= 'local' | ( (lv_constant_2_0= 'val' ) ) )
+            int alt42=2;
+            int LA42_0 = input.LA(1);
+
+            if ( (LA42_0==55) ) {
+                alt42=1;
+            }
+            else if ( (LA42_0==31) ) {
+                alt42=2;
+            }
+            else {
+                NoViableAltException nvae =
+                    new NoViableAltException("", 42, 0, input);
+
+                throw nvae;
+            }
+            switch (alt42) {
+                case 1 :
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2176:4: otherlv_1= 'local'
+                    {
+                    otherlv_1=(Token)match(input,55,FOLLOW_55_in_ruleLocalVarDef4842); 
+
+                        	newLeafNode(otherlv_1, grammarAccess.getLocalVarDefAccess().getLocalKeyword_1_0());
+                        
+
+                    }
+                    break;
+                case 2 :
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2181:6: ( (lv_constant_2_0= 'val' ) )
+                    {
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2181:6: ( (lv_constant_2_0= 'val' ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2182:1: (lv_constant_2_0= 'val' )
+                    {
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2182:1: (lv_constant_2_0= 'val' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2183:3: lv_constant_2_0= 'val'
+                    {
+                    lv_constant_2_0=(Token)match(input,31,FOLLOW_31_in_ruleLocalVarDef4866); 
+
+                            newLeafNode(lv_constant_2_0, grammarAccess.getLocalVarDefAccess().getConstantValKeyword_1_1_0());
+                        
+
+                    	        if (current==null) {
+                    	            current = createModelElement(grammarAccess.getLocalVarDefRule());
+                    	        }
+                           		setWithLastConsumed(current, "constant", true, "val");
+                    	    
+
+                    }
+
+
+                    }
+
+
+                    }
+                    break;
+
+            }
+
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2196:3: ( (lv_type_3_0= ruleTypeExpr ) )?
+            int alt43=2;
+            int LA43_0 = input.LA(1);
+
+            if ( (LA43_0==RULE_ID) ) {
+                int LA43_1 = input.LA(2);
+
+                if ( (LA43_1==RULE_ID) ) {
+                    alt43=1;
+                }
+            }
+            else if ( ((LA43_0>=34 && LA43_0<=39)) ) {
+                alt43=1;
+            }
+            switch (alt43) {
+                case 1 :
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2197:1: (lv_type_3_0= ruleTypeExpr )
+                    {
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2197:1: (lv_type_3_0= ruleTypeExpr )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2198:3: lv_type_3_0= ruleTypeExpr
+                    {
+                     
+                    	        newCompositeNode(grammarAccess.getLocalVarDefAccess().getTypeTypeExprParserRuleCall_2_0()); 
+                    	    
+                    pushFollow(FOLLOW_ruleTypeExpr_in_ruleLocalVarDef4901);
+                    lv_type_3_0=ruleTypeExpr();
+
+                    state._fsp--;
+
+
+                    	        if (current==null) {
+                    	            current = createModelElementForParent(grammarAccess.getLocalVarDefRule());
+                    	        }
+                           		set(
+                           			current, 
+                           			"type",
+                            		lv_type_3_0, 
+                            		"TypeExpr");
+                    	        afterParserOrEnumRuleCall();
+                    	    
+
+                    }
+
+
+                    }
+                    break;
+
+            }
+
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2214:3: ( (lv_name_4_0= RULE_ID ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2215:1: (lv_name_4_0= RULE_ID )
+            {
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2215:1: (lv_name_4_0= RULE_ID )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2216:3: lv_name_4_0= RULE_ID
+            {
+            lv_name_4_0=(Token)match(input,RULE_ID,FOLLOW_RULE_ID_in_ruleLocalVarDef4919); 
+
+            			newLeafNode(lv_name_4_0, grammarAccess.getLocalVarDefAccess().getNameIDTerminalRuleCall_3_0()); 
+            		
+
+            	        if (current==null) {
+            	            current = createModelElement(grammarAccess.getLocalVarDefRule());
+            	        }
+                   		setWithLastConsumed(
+                   			current, 
+                   			"name",
+                    		lv_name_4_0, 
+                    		"ID");
+            	    
+
+            }
+
+
+            }
+
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2232:2: (otherlv_5= '=' ( (lv_e_6_0= ruleExpr ) ) )?
+            int alt44=2;
+            int LA44_0 = input.LA(1);
+
+            if ( (LA44_0==32) ) {
+                alt44=1;
+            }
+            switch (alt44) {
+                case 1 :
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2232:4: otherlv_5= '=' ( (lv_e_6_0= ruleExpr ) )
+                    {
+                    otherlv_5=(Token)match(input,32,FOLLOW_32_in_ruleLocalVarDef4937); 
+
+                        	newLeafNode(otherlv_5, grammarAccess.getLocalVarDefAccess().getEqualsSignKeyword_4_0());
+                        
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2236:1: ( (lv_e_6_0= ruleExpr ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2237:1: (lv_e_6_0= ruleExpr )
+                    {
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2237:1: (lv_e_6_0= ruleExpr )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2238:3: lv_e_6_0= ruleExpr
+                    {
+                     
+                    	        newCompositeNode(grammarAccess.getLocalVarDefAccess().getEExprParserRuleCall_4_1_0()); 
+                    	    
+                    pushFollow(FOLLOW_ruleExpr_in_ruleLocalVarDef4958);
+                    lv_e_6_0=ruleExpr();
+
+                    state._fsp--;
+
+
+                    	        if (current==null) {
+                    	            current = createModelElementForParent(grammarAccess.getLocalVarDefRule());
+                    	        }
+                           		set(
+                           			current, 
+                           			"e",
+                            		lv_e_6_0, 
+                            		"Expr");
+                    	        afterParserOrEnumRuleCall();
+                    	    
+
+                    }
+
+
+                    }
+
+
+                    }
+                    break;
+
+            }
+
+            this_NL_7=(Token)match(input,RULE_NL,FOLLOW_RULE_NL_in_ruleLocalVarDef4971); 
+             
+                newLeafNode(this_NL_7, grammarAccess.getLocalVarDefAccess().getNLTerminalRuleCall_5()); 
+                
+
+            }
+
+
+            }
+
+             leaveRule(); 
+        }
+         
+            catch (RecognitionException re) { 
+                recover(input,re); 
+                appendSkippedTokens();
+            } 
+        finally {
+        }
+        return current;
+    }
+    // $ANTLR end "ruleLocalVarDef"
+
+
+    // $ANTLR start "entryRuleStmtSetOrCallOrVarDef"
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2266:1: entryRuleStmtSetOrCallOrVarDef returns [EObject current=null] : iv_ruleStmtSetOrCallOrVarDef= ruleStmtSetOrCallOrVarDef EOF ;
+    public final EObject entryRuleStmtSetOrCallOrVarDef() throws RecognitionException {
+        EObject current = null;
+
+        EObject iv_ruleStmtSetOrCallOrVarDef = null;
+
+
+        try {
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2267:2: (iv_ruleStmtSetOrCallOrVarDef= ruleStmtSetOrCallOrVarDef EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2268:2: iv_ruleStmtSetOrCallOrVarDef= ruleStmtSetOrCallOrVarDef EOF
+            {
+             newCompositeNode(grammarAccess.getStmtSetOrCallOrVarDefRule()); 
+            pushFollow(FOLLOW_ruleStmtSetOrCallOrVarDef_in_entryRuleStmtSetOrCallOrVarDef5006);
+            iv_ruleStmtSetOrCallOrVarDef=ruleStmtSetOrCallOrVarDef();
+
+            state._fsp--;
+
+             current =iv_ruleStmtSetOrCallOrVarDef; 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleStmtSetOrCallOrVarDef5016); 
+
+            }
+
+        }
+         
+            catch (RecognitionException re) { 
+                recover(input,re); 
+                appendSkippedTokens();
+            } 
+        finally {
+        }
+        return current;
+    }
+    // $ANTLR end "entryRuleStmtSetOrCallOrVarDef"
+
+
+    // $ANTLR start "ruleStmtSetOrCallOrVarDef"
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2275:1: ruleStmtSetOrCallOrVarDef returns [EObject current=null] : ( ( ( () ( (lv_type_1_0= ruleTypeExpr ) ) ( (lv_name_2_0= RULE_ID ) ) (otherlv_3= '=' ( (lv_e_4_0= ruleExpr ) ) )? ) | ( () ( (lv_e_6_0= ruleExpr ) ) ( () ( (lv_opAssignment_8_0= ruleOpAssignment ) ) ( (lv_right_9_0= ruleExpr ) ) )? ) ) this_NL_10= RULE_NL ) ;
+    public final EObject ruleStmtSetOrCallOrVarDef() throws RecognitionException {
+        EObject current = null;
+
+        Token lv_name_2_0=null;
+        Token otherlv_3=null;
+        Token this_NL_10=null;
+        EObject lv_type_1_0 = null;
+
+        EObject lv_e_4_0 = null;
+
+        EObject lv_e_6_0 = null;
+
+        EObject lv_opAssignment_8_0 = null;
+
+        EObject lv_right_9_0 = null;
+
+
+         enterRule(); 
+            
+        try {
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2278:28: ( ( ( ( () ( (lv_type_1_0= ruleTypeExpr ) ) ( (lv_name_2_0= RULE_ID ) ) (otherlv_3= '=' ( (lv_e_4_0= ruleExpr ) ) )? ) | ( () ( (lv_e_6_0= ruleExpr ) ) ( () ( (lv_opAssignment_8_0= ruleOpAssignment ) ) ( (lv_right_9_0= ruleExpr ) ) )? ) ) this_NL_10= RULE_NL ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2279:1: ( ( ( () ( (lv_type_1_0= ruleTypeExpr ) ) ( (lv_name_2_0= RULE_ID ) ) (otherlv_3= '=' ( (lv_e_4_0= ruleExpr ) ) )? ) | ( () ( (lv_e_6_0= ruleExpr ) ) ( () ( (lv_opAssignment_8_0= ruleOpAssignment ) ) ( (lv_right_9_0= ruleExpr ) ) )? ) ) this_NL_10= RULE_NL )
+            {
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2279:1: ( ( ( () ( (lv_type_1_0= ruleTypeExpr ) ) ( (lv_name_2_0= RULE_ID ) ) (otherlv_3= '=' ( (lv_e_4_0= ruleExpr ) ) )? ) | ( () ( (lv_e_6_0= ruleExpr ) ) ( () ( (lv_opAssignment_8_0= ruleOpAssignment ) ) ( (lv_right_9_0= ruleExpr ) ) )? ) ) this_NL_10= RULE_NL )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2279:2: ( ( () ( (lv_type_1_0= ruleTypeExpr ) ) ( (lv_name_2_0= RULE_ID ) ) (otherlv_3= '=' ( (lv_e_4_0= ruleExpr ) ) )? ) | ( () ( (lv_e_6_0= ruleExpr ) ) ( () ( (lv_opAssignment_8_0= ruleOpAssignment ) ) ( (lv_right_9_0= ruleExpr ) ) )? ) ) this_NL_10= RULE_NL
+            {
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2279:2: ( ( () ( (lv_type_1_0= ruleTypeExpr ) ) ( (lv_name_2_0= RULE_ID ) ) (otherlv_3= '=' ( (lv_e_4_0= ruleExpr ) ) )? ) | ( () ( (lv_e_6_0= ruleExpr ) ) ( () ( (lv_opAssignment_8_0= ruleOpAssignment ) ) ( (lv_right_9_0= ruleExpr ) ) )? ) )
+            int alt47=2;
+            switch ( input.LA(1) ) {
+            case RULE_ID:
+                {
+                int LA47_1 = input.LA(2);
+
+                if ( (LA47_1==RULE_NL||(LA47_1>=15 && LA47_1<=16)||LA47_1==21||LA47_1==32||(LA47_1>=56 && LA47_1<=71)) ) {
+                    alt47=2;
+                }
+                else if ( (LA47_1==RULE_ID) ) {
+                    alt47=1;
+                }
+                else {
+                    NoViableAltException nvae =
+                        new NoViableAltException("", 47, 1, input);
+
+                    throw nvae;
+                }
+                }
+                break;
+            case 34:
+            case 35:
+            case 36:
+            case 37:
+            case 38:
+            case 39:
+                {
+                alt47=1;
+                }
+                break;
+            case RULE_INT:
+            case RULE_STRING:
+            case 21:
+            case 40:
+            case 66:
+            case 67:
+            case 72:
+            case 73:
+            case 74:
+                {
+                alt47=2;
+                }
+                break;
+            default:
+                NoViableAltException nvae =
+                    new NoViableAltException("", 47, 0, input);
+
+                throw nvae;
+            }
+
+            switch (alt47) {
+                case 1 :
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2279:3: ( () ( (lv_type_1_0= ruleTypeExpr ) ) ( (lv_name_2_0= RULE_ID ) ) (otherlv_3= '=' ( (lv_e_4_0= ruleExpr ) ) )? )
+                    {
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2279:3: ( () ( (lv_type_1_0= ruleTypeExpr ) ) ( (lv_name_2_0= RULE_ID ) ) (otherlv_3= '=' ( (lv_e_4_0= ruleExpr ) ) )? )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2279:4: () ( (lv_type_1_0= ruleTypeExpr ) ) ( (lv_name_2_0= RULE_ID ) ) (otherlv_3= '=' ( (lv_e_4_0= ruleExpr ) ) )?
+                    {
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2279:4: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2280:5: 
+                    {
+
+                            current = forceCreateModelElement(
+                                grammarAccess.getStmtSetOrCallOrVarDefAccess().getVarDefAction_0_0_0(),
+                                current);
+                        
+
+                    }
+
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2285:2: ( (lv_type_1_0= ruleTypeExpr ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2286:1: (lv_type_1_0= ruleTypeExpr )
+                    {
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2286:1: (lv_type_1_0= ruleTypeExpr )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2287:3: lv_type_1_0= ruleTypeExpr
+                    {
+                     
+                    	        newCompositeNode(grammarAccess.getStmtSetOrCallOrVarDefAccess().getTypeTypeExprParserRuleCall_0_0_1_0()); 
+                    	    
+                    pushFollow(FOLLOW_ruleTypeExpr_in_ruleStmtSetOrCallOrVarDef5073);
+                    lv_type_1_0=ruleTypeExpr();
+
+                    state._fsp--;
+
+
+                    	        if (current==null) {
+                    	            current = createModelElementForParent(grammarAccess.getStmtSetOrCallOrVarDefRule());
+                    	        }
+                           		set(
+                           			current, 
+                           			"type",
+                            		lv_type_1_0, 
+                            		"TypeExpr");
+                    	        afterParserOrEnumRuleCall();
+                    	    
+
+                    }
+
+
+                    }
+
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2303:2: ( (lv_name_2_0= RULE_ID ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2304:1: (lv_name_2_0= RULE_ID )
+                    {
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2304:1: (lv_name_2_0= RULE_ID )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2305:3: lv_name_2_0= RULE_ID
+                    {
+                    lv_name_2_0=(Token)match(input,RULE_ID,FOLLOW_RULE_ID_in_ruleStmtSetOrCallOrVarDef5090); 
+
+                    			newLeafNode(lv_name_2_0, grammarAccess.getStmtSetOrCallOrVarDefAccess().getNameIDTerminalRuleCall_0_0_2_0()); 
+                    		
+
+                    	        if (current==null) {
+                    	            current = createModelElement(grammarAccess.getStmtSetOrCallOrVarDefRule());
+                    	        }
+                           		setWithLastConsumed(
+                           			current, 
+                           			"name",
+                            		lv_name_2_0, 
+                            		"ID");
+                    	    
+
+                    }
+
+
+                    }
+
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2321:2: (otherlv_3= '=' ( (lv_e_4_0= ruleExpr ) ) )?
+                    int alt45=2;
+                    int LA45_0 = input.LA(1);
+
+                    if ( (LA45_0==32) ) {
+                        alt45=1;
+                    }
+                    switch (alt45) {
+                        case 1 :
+                            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2321:4: otherlv_3= '=' ( (lv_e_4_0= ruleExpr ) )
+                            {
+                            otherlv_3=(Token)match(input,32,FOLLOW_32_in_ruleStmtSetOrCallOrVarDef5108); 
+
+                                	newLeafNode(otherlv_3, grammarAccess.getStmtSetOrCallOrVarDefAccess().getEqualsSignKeyword_0_0_3_0());
+                                
+                            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2325:1: ( (lv_e_4_0= ruleExpr ) )
+                            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2326:1: (lv_e_4_0= ruleExpr )
+                            {
+                            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2326:1: (lv_e_4_0= ruleExpr )
+                            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2327:3: lv_e_4_0= ruleExpr
+                            {
+                             
+                            	        newCompositeNode(grammarAccess.getStmtSetOrCallOrVarDefAccess().getEExprParserRuleCall_0_0_3_1_0()); 
+                            	    
+                            pushFollow(FOLLOW_ruleExpr_in_ruleStmtSetOrCallOrVarDef5129);
+                            lv_e_4_0=ruleExpr();
+
+                            state._fsp--;
+
+
+                            	        if (current==null) {
+                            	            current = createModelElementForParent(grammarAccess.getStmtSetOrCallOrVarDefRule());
+                            	        }
+                                   		set(
+                                   			current, 
+                                   			"e",
+                                    		lv_e_4_0, 
+                                    		"Expr");
+                            	        afterParserOrEnumRuleCall();
+                            	    
+
+                            }
+
+
+                            }
+
+
+                            }
+                            break;
+
+                    }
+
+
+                    }
+
+
+                    }
+                    break;
+                case 2 :
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2344:6: ( () ( (lv_e_6_0= ruleExpr ) ) ( () ( (lv_opAssignment_8_0= ruleOpAssignment ) ) ( (lv_right_9_0= ruleExpr ) ) )? )
+                    {
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2344:6: ( () ( (lv_e_6_0= ruleExpr ) ) ( () ( (lv_opAssignment_8_0= ruleOpAssignment ) ) ( (lv_right_9_0= ruleExpr ) ) )? )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2344:7: () ( (lv_e_6_0= ruleExpr ) ) ( () ( (lv_opAssignment_8_0= ruleOpAssignment ) ) ( (lv_right_9_0= ruleExpr ) ) )?
+                    {
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2344:7: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2345:5: 
+                    {
+
+                            current = forceCreateModelElement(
+                                grammarAccess.getStmtSetOrCallOrVarDefAccess().getStmtCallAction_0_1_0(),
+                                current);
+                        
+
+                    }
+
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2350:2: ( (lv_e_6_0= ruleExpr ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2351:1: (lv_e_6_0= ruleExpr )
+                    {
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2351:1: (lv_e_6_0= ruleExpr )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2352:3: lv_e_6_0= ruleExpr
+                    {
+                     
+                    	        newCompositeNode(grammarAccess.getStmtSetOrCallOrVarDefAccess().getEExprParserRuleCall_0_1_1_0()); 
+                    	    
+                    pushFollow(FOLLOW_ruleExpr_in_ruleStmtSetOrCallOrVarDef5169);
+                    lv_e_6_0=ruleExpr();
+
+                    state._fsp--;
+
+
+                    	        if (current==null) {
+                    	            current = createModelElementForParent(grammarAccess.getStmtSetOrCallOrVarDefRule());
+                    	        }
+                           		set(
+                           			current, 
+                           			"e",
+                            		lv_e_6_0, 
+                            		"Expr");
+                    	        afterParserOrEnumRuleCall();
+                    	    
+
+                    }
+
+
+                    }
+
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2368:2: ( () ( (lv_opAssignment_8_0= ruleOpAssignment ) ) ( (lv_right_9_0= ruleExpr ) ) )?
+                    int alt46=2;
+                    int LA46_0 = input.LA(1);
+
+                    if ( (LA46_0==32||(LA46_0>=56 && LA46_0<=57)) ) {
+                        alt46=1;
+                    }
+                    switch (alt46) {
+                        case 1 :
+                            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2368:3: () ( (lv_opAssignment_8_0= ruleOpAssignment ) ) ( (lv_right_9_0= ruleExpr ) )
+                            {
+                            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2368:3: ()
+                            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2369:5: 
+                            {
+
+                                    current = forceCreateModelElementAndSet(
+                                        grammarAccess.getStmtSetOrCallOrVarDefAccess().getStmtSetLeftAction_0_1_2_0(),
+                                        current);
+                                
+
+                            }
+
+                            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2374:2: ( (lv_opAssignment_8_0= ruleOpAssignment ) )
+                            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2375:1: (lv_opAssignment_8_0= ruleOpAssignment )
+                            {
+                            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2375:1: (lv_opAssignment_8_0= ruleOpAssignment )
+                            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2376:3: lv_opAssignment_8_0= ruleOpAssignment
+                            {
+                             
+                            	        newCompositeNode(grammarAccess.getStmtSetOrCallOrVarDefAccess().getOpAssignmentOpAssignmentParserRuleCall_0_1_2_1_0()); 
+                            	    
+                            pushFollow(FOLLOW_ruleOpAssignment_in_ruleStmtSetOrCallOrVarDef5200);
+                            lv_opAssignment_8_0=ruleOpAssignment();
+
+                            state._fsp--;
+
+
+                            	        if (current==null) {
+                            	            current = createModelElementForParent(grammarAccess.getStmtSetOrCallOrVarDefRule());
+                            	        }
+                                   		set(
+                                   			current, 
+                                   			"opAssignment",
+                                    		lv_opAssignment_8_0, 
+                                    		"OpAssignment");
+                            	        afterParserOrEnumRuleCall();
+                            	    
+
+                            }
+
+
+                            }
+
+                            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2392:2: ( (lv_right_9_0= ruleExpr ) )
+                            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2393:1: (lv_right_9_0= ruleExpr )
+                            {
+                            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2393:1: (lv_right_9_0= ruleExpr )
+                            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2394:3: lv_right_9_0= ruleExpr
+                            {
+                             
+                            	        newCompositeNode(grammarAccess.getStmtSetOrCallOrVarDefAccess().getRightExprParserRuleCall_0_1_2_2_0()); 
+                            	    
+                            pushFollow(FOLLOW_ruleExpr_in_ruleStmtSetOrCallOrVarDef5221);
+                            lv_right_9_0=ruleExpr();
+
+                            state._fsp--;
+
+
+                            	        if (current==null) {
+                            	            current = createModelElementForParent(grammarAccess.getStmtSetOrCallOrVarDefRule());
+                            	        }
+                                   		set(
+                                   			current, 
+                                   			"right",
+                                    		lv_right_9_0, 
+                                    		"Expr");
+                            	        afterParserOrEnumRuleCall();
+                            	    
+
+                            }
+
+
+                            }
+
+
+                            }
+                            break;
+
+                    }
+
+
+                    }
+
+
+                    }
+                    break;
+
+            }
+
+            this_NL_10=(Token)match(input,RULE_NL,FOLLOW_RULE_NL_in_ruleStmtSetOrCallOrVarDef5236); 
+             
+                newLeafNode(this_NL_10, grammarAccess.getStmtSetOrCallOrVarDefAccess().getNLTerminalRuleCall_1()); 
+                
+
+            }
+
+
+            }
+
+             leaveRule(); 
+        }
+         
+            catch (RecognitionException re) { 
+                recover(input,re); 
+                appendSkippedTokens();
+            } 
+        finally {
+        }
+        return current;
+    }
+    // $ANTLR end "ruleStmtSetOrCallOrVarDef"
 
 
     // $ANTLR start "entryRuleOpAssignment"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2230:1: entryRuleOpAssignment returns [EObject current=null] : iv_ruleOpAssignment= ruleOpAssignment EOF ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2422:1: entryRuleOpAssignment returns [EObject current=null] : iv_ruleOpAssignment= ruleOpAssignment EOF ;
     public final EObject entryRuleOpAssignment() throws RecognitionException {
         EObject current = null;
 
@@ -5862,17 +6351,17 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2231:2: (iv_ruleOpAssignment= ruleOpAssignment EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2232:2: iv_ruleOpAssignment= ruleOpAssignment EOF
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2423:2: (iv_ruleOpAssignment= ruleOpAssignment EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2424:2: iv_ruleOpAssignment= ruleOpAssignment EOF
             {
              newCompositeNode(grammarAccess.getOpAssignmentRule()); 
-            pushFollow(FOLLOW_ruleOpAssignment_in_entryRuleOpAssignment4889);
+            pushFollow(FOLLOW_ruleOpAssignment_in_entryRuleOpAssignment5271);
             iv_ruleOpAssignment=ruleOpAssignment();
 
             state._fsp--;
 
              current =iv_ruleOpAssignment; 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleOpAssignment4899); 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleOpAssignment5281); 
 
             }
 
@@ -5890,7 +6379,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleOpAssignment"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2239:1: ruleOpAssignment returns [EObject current=null] : ( ( () otherlv_1= '=' ) | ( () otherlv_3= '+=' ) | ( () otherlv_5= '-=' ) ) ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2431:1: ruleOpAssignment returns [EObject current=null] : ( ( () otherlv_1= '=' ) | ( () otherlv_3= '+=' ) | ( () otherlv_5= '-=' ) ) ;
     public final EObject ruleOpAssignment() throws RecognitionException {
         EObject current = null;
 
@@ -5901,43 +6390,43 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
          enterRule(); 
             
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2242:28: ( ( ( () otherlv_1= '=' ) | ( () otherlv_3= '+=' ) | ( () otherlv_5= '-=' ) ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2243:1: ( ( () otherlv_1= '=' ) | ( () otherlv_3= '+=' ) | ( () otherlv_5= '-=' ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2434:28: ( ( ( () otherlv_1= '=' ) | ( () otherlv_3= '+=' ) | ( () otherlv_5= '-=' ) ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2435:1: ( ( () otherlv_1= '=' ) | ( () otherlv_3= '+=' ) | ( () otherlv_5= '-=' ) )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2243:1: ( ( () otherlv_1= '=' ) | ( () otherlv_3= '+=' ) | ( () otherlv_5= '-=' ) )
-            int alt47=3;
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2435:1: ( ( () otherlv_1= '=' ) | ( () otherlv_3= '+=' ) | ( () otherlv_5= '-=' ) )
+            int alt48=3;
             switch ( input.LA(1) ) {
             case 32:
                 {
-                alt47=1;
+                alt48=1;
                 }
                 break;
             case 56:
                 {
-                alt47=2;
+                alt48=2;
                 }
                 break;
             case 57:
                 {
-                alt47=3;
+                alt48=3;
                 }
                 break;
             default:
                 NoViableAltException nvae =
-                    new NoViableAltException("", 47, 0, input);
+                    new NoViableAltException("", 48, 0, input);
 
                 throw nvae;
             }
 
-            switch (alt47) {
+            switch (alt48) {
                 case 1 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2243:2: ( () otherlv_1= '=' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2435:2: ( () otherlv_1= '=' )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2243:2: ( () otherlv_1= '=' )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2243:3: () otherlv_1= '='
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2435:2: ( () otherlv_1= '=' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2435:3: () otherlv_1= '='
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2243:3: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2244:5: 
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2435:3: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2436:5: 
                     {
 
                             current = forceCreateModelElement(
@@ -5947,7 +6436,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    otherlv_1=(Token)match(input,32,FOLLOW_32_in_ruleOpAssignment4946); 
+                    otherlv_1=(Token)match(input,32,FOLLOW_32_in_ruleOpAssignment5328); 
 
                         	newLeafNode(otherlv_1, grammarAccess.getOpAssignmentAccess().getEqualsSignKeyword_0_1());
                         
@@ -5958,13 +6447,13 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 2 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2254:6: ( () otherlv_3= '+=' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2446:6: ( () otherlv_3= '+=' )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2254:6: ( () otherlv_3= '+=' )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2254:7: () otherlv_3= '+='
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2446:6: ( () otherlv_3= '+=' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2446:7: () otherlv_3= '+='
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2254:7: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2255:5: 
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2446:7: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2447:5: 
                     {
 
                             current = forceCreateModelElement(
@@ -5974,7 +6463,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    otherlv_3=(Token)match(input,56,FOLLOW_56_in_ruleOpAssignment4975); 
+                    otherlv_3=(Token)match(input,56,FOLLOW_56_in_ruleOpAssignment5357); 
 
                         	newLeafNode(otherlv_3, grammarAccess.getOpAssignmentAccess().getPlusSignEqualsSignKeyword_1_1());
                         
@@ -5985,13 +6474,13 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 3 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2265:6: ( () otherlv_5= '-=' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2457:6: ( () otherlv_5= '-=' )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2265:6: ( () otherlv_5= '-=' )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2265:7: () otherlv_5= '-='
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2457:6: ( () otherlv_5= '-=' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2457:7: () otherlv_5= '-='
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2265:7: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2266:5: 
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2457:7: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2458:5: 
                     {
 
                             current = forceCreateModelElement(
@@ -6001,7 +6490,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    otherlv_5=(Token)match(input,57,FOLLOW_57_in_ruleOpAssignment5004); 
+                    otherlv_5=(Token)match(input,57,FOLLOW_57_in_ruleOpAssignment5386); 
 
                         	newLeafNode(otherlv_5, grammarAccess.getOpAssignmentAccess().getHyphenMinusEqualsSignKeyword_2_1());
                         
@@ -6032,7 +6521,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "entryRuleExpr"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2283:1: entryRuleExpr returns [EObject current=null] : iv_ruleExpr= ruleExpr EOF ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2475:1: entryRuleExpr returns [EObject current=null] : iv_ruleExpr= ruleExpr EOF ;
     public final EObject entryRuleExpr() throws RecognitionException {
         EObject current = null;
 
@@ -6040,17 +6529,17 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2284:2: (iv_ruleExpr= ruleExpr EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2285:2: iv_ruleExpr= ruleExpr EOF
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2476:2: (iv_ruleExpr= ruleExpr EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2477:2: iv_ruleExpr= ruleExpr EOF
             {
              newCompositeNode(grammarAccess.getExprRule()); 
-            pushFollow(FOLLOW_ruleExpr_in_entryRuleExpr5041);
+            pushFollow(FOLLOW_ruleExpr_in_entryRuleExpr5423);
             iv_ruleExpr=ruleExpr();
 
             state._fsp--;
 
              current =iv_ruleExpr; 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleExpr5051); 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleExpr5433); 
 
             }
 
@@ -6068,7 +6557,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleExpr"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2292:1: ruleExpr returns [EObject current=null] : this_ExprOr_0= ruleExprOr ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2484:1: ruleExpr returns [EObject current=null] : this_ExprOr_0= ruleExprOr ;
     public final EObject ruleExpr() throws RecognitionException {
         EObject current = null;
 
@@ -6078,13 +6567,13 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
          enterRule(); 
             
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2295:28: (this_ExprOr_0= ruleExprOr )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2297:5: this_ExprOr_0= ruleExprOr
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2487:28: (this_ExprOr_0= ruleExprOr )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2489:5: this_ExprOr_0= ruleExprOr
             {
              
                     newCompositeNode(grammarAccess.getExprAccess().getExprOrParserRuleCall()); 
                 
-            pushFollow(FOLLOW_ruleExprOr_in_ruleExpr5097);
+            pushFollow(FOLLOW_ruleExprOr_in_ruleExpr5479);
             this_ExprOr_0=ruleExprOr();
 
             state._fsp--;
@@ -6111,7 +6600,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "entryRuleExprOr"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2313:1: entryRuleExprOr returns [EObject current=null] : iv_ruleExprOr= ruleExprOr EOF ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2505:1: entryRuleExprOr returns [EObject current=null] : iv_ruleExprOr= ruleExprOr EOF ;
     public final EObject entryRuleExprOr() throws RecognitionException {
         EObject current = null;
 
@@ -6119,17 +6608,17 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2314:2: (iv_ruleExprOr= ruleExprOr EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2315:2: iv_ruleExprOr= ruleExprOr EOF
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2506:2: (iv_ruleExprOr= ruleExprOr EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2507:2: iv_ruleExprOr= ruleExprOr EOF
             {
              newCompositeNode(grammarAccess.getExprOrRule()); 
-            pushFollow(FOLLOW_ruleExprOr_in_entryRuleExprOr5131);
+            pushFollow(FOLLOW_ruleExprOr_in_entryRuleExprOr5513);
             iv_ruleExprOr=ruleExprOr();
 
             state._fsp--;
 
              current =iv_ruleExprOr; 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleExprOr5141); 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleExprOr5523); 
 
             }
 
@@ -6147,7 +6636,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleExprOr"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2322:1: ruleExprOr returns [EObject current=null] : (this_ExprAnd_0= ruleExprAnd ( () ( (lv_op_2_0= 'or' ) ) ( (lv_right_3_0= ruleExprAnd ) ) )* ) ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2514:1: ruleExprOr returns [EObject current=null] : (this_ExprAnd_0= ruleExprAnd ( () ( (lv_op_2_0= 'or' ) ) ( (lv_right_3_0= ruleExprAnd ) ) )* ) ;
     public final EObject ruleExprOr() throws RecognitionException {
         EObject current = null;
 
@@ -6160,16 +6649,16 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
          enterRule(); 
             
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2325:28: ( (this_ExprAnd_0= ruleExprAnd ( () ( (lv_op_2_0= 'or' ) ) ( (lv_right_3_0= ruleExprAnd ) ) )* ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2326:1: (this_ExprAnd_0= ruleExprAnd ( () ( (lv_op_2_0= 'or' ) ) ( (lv_right_3_0= ruleExprAnd ) ) )* )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2517:28: ( (this_ExprAnd_0= ruleExprAnd ( () ( (lv_op_2_0= 'or' ) ) ( (lv_right_3_0= ruleExprAnd ) ) )* ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2518:1: (this_ExprAnd_0= ruleExprAnd ( () ( (lv_op_2_0= 'or' ) ) ( (lv_right_3_0= ruleExprAnd ) ) )* )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2326:1: (this_ExprAnd_0= ruleExprAnd ( () ( (lv_op_2_0= 'or' ) ) ( (lv_right_3_0= ruleExprAnd ) ) )* )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2327:5: this_ExprAnd_0= ruleExprAnd ( () ( (lv_op_2_0= 'or' ) ) ( (lv_right_3_0= ruleExprAnd ) ) )*
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2518:1: (this_ExprAnd_0= ruleExprAnd ( () ( (lv_op_2_0= 'or' ) ) ( (lv_right_3_0= ruleExprAnd ) ) )* )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2519:5: this_ExprAnd_0= ruleExprAnd ( () ( (lv_op_2_0= 'or' ) ) ( (lv_right_3_0= ruleExprAnd ) ) )*
             {
              
                     newCompositeNode(grammarAccess.getExprOrAccess().getExprAndParserRuleCall_0()); 
                 
-            pushFollow(FOLLOW_ruleExprAnd_in_ruleExprOr5188);
+            pushFollow(FOLLOW_ruleExprAnd_in_ruleExprOr5570);
             this_ExprAnd_0=ruleExprAnd();
 
             state._fsp--;
@@ -6178,23 +6667,23 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     current = this_ExprAnd_0; 
                     afterParserOrEnumRuleCall();
                 
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2335:1: ( () ( (lv_op_2_0= 'or' ) ) ( (lv_right_3_0= ruleExprAnd ) ) )*
-            loop48:
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2527:1: ( () ( (lv_op_2_0= 'or' ) ) ( (lv_right_3_0= ruleExprAnd ) ) )*
+            loop49:
             do {
-                int alt48=2;
-                int LA48_0 = input.LA(1);
+                int alt49=2;
+                int LA49_0 = input.LA(1);
 
-                if ( (LA48_0==58) ) {
-                    alt48=1;
+                if ( (LA49_0==58) ) {
+                    alt49=1;
                 }
 
 
-                switch (alt48) {
+                switch (alt49) {
             	case 1 :
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2335:2: () ( (lv_op_2_0= 'or' ) ) ( (lv_right_3_0= ruleExprAnd ) )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2527:2: () ( (lv_op_2_0= 'or' ) ) ( (lv_right_3_0= ruleExprAnd ) )
             	    {
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2335:2: ()
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2336:5: 
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2527:2: ()
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2528:5: 
             	    {
 
             	            current = forceCreateModelElementAndSet(
@@ -6204,13 +6693,13 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
             	    }
 
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2341:2: ( (lv_op_2_0= 'or' ) )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2342:1: (lv_op_2_0= 'or' )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2533:2: ( (lv_op_2_0= 'or' ) )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2534:1: (lv_op_2_0= 'or' )
             	    {
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2342:1: (lv_op_2_0= 'or' )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2343:3: lv_op_2_0= 'or'
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2534:1: (lv_op_2_0= 'or' )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2535:3: lv_op_2_0= 'or'
             	    {
-            	    lv_op_2_0=(Token)match(input,58,FOLLOW_58_in_ruleExprOr5215); 
+            	    lv_op_2_0=(Token)match(input,58,FOLLOW_58_in_ruleExprOr5597); 
 
             	            newLeafNode(lv_op_2_0, grammarAccess.getExprOrAccess().getOpOrKeyword_1_1_0());
             	        
@@ -6226,16 +6715,16 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
             	    }
 
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2356:2: ( (lv_right_3_0= ruleExprAnd ) )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2357:1: (lv_right_3_0= ruleExprAnd )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2548:2: ( (lv_right_3_0= ruleExprAnd ) )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2549:1: (lv_right_3_0= ruleExprAnd )
             	    {
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2357:1: (lv_right_3_0= ruleExprAnd )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2358:3: lv_right_3_0= ruleExprAnd
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2549:1: (lv_right_3_0= ruleExprAnd )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2550:3: lv_right_3_0= ruleExprAnd
             	    {
             	     
             	    	        newCompositeNode(grammarAccess.getExprOrAccess().getRightExprAndParserRuleCall_1_2_0()); 
             	    	    
-            	    pushFollow(FOLLOW_ruleExprAnd_in_ruleExprOr5249);
+            	    pushFollow(FOLLOW_ruleExprAnd_in_ruleExprOr5631);
             	    lv_right_3_0=ruleExprAnd();
 
             	    state._fsp--;
@@ -6249,182 +6738,6 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
             	           			"right",
             	            		lv_right_3_0, 
             	            		"ExprAnd");
-            	    	        afterParserOrEnumRuleCall();
-            	    	    
-
-            	    }
-
-
-            	    }
-
-
-            	    }
-            	    break;
-
-            	default :
-            	    break loop48;
-                }
-            } while (true);
-
-
-            }
-
-
-            }
-
-             leaveRule(); 
-        }
-         
-            catch (RecognitionException re) { 
-                recover(input,re); 
-                appendSkippedTokens();
-            } 
-        finally {
-        }
-        return current;
-    }
-    // $ANTLR end "ruleExprOr"
-
-
-    // $ANTLR start "entryRuleExprAnd"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2382:1: entryRuleExprAnd returns [EObject current=null] : iv_ruleExprAnd= ruleExprAnd EOF ;
-    public final EObject entryRuleExprAnd() throws RecognitionException {
-        EObject current = null;
-
-        EObject iv_ruleExprAnd = null;
-
-
-        try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2383:2: (iv_ruleExprAnd= ruleExprAnd EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2384:2: iv_ruleExprAnd= ruleExprAnd EOF
-            {
-             newCompositeNode(grammarAccess.getExprAndRule()); 
-            pushFollow(FOLLOW_ruleExprAnd_in_entryRuleExprAnd5287);
-            iv_ruleExprAnd=ruleExprAnd();
-
-            state._fsp--;
-
-             current =iv_ruleExprAnd; 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleExprAnd5297); 
-
-            }
-
-        }
-         
-            catch (RecognitionException re) { 
-                recover(input,re); 
-                appendSkippedTokens();
-            } 
-        finally {
-        }
-        return current;
-    }
-    // $ANTLR end "entryRuleExprAnd"
-
-
-    // $ANTLR start "ruleExprAnd"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2391:1: ruleExprAnd returns [EObject current=null] : (this_ExprEquality_0= ruleExprEquality ( () ( (lv_op_2_0= 'and' ) ) ( (lv_right_3_0= ruleExprEquality ) ) )* ) ;
-    public final EObject ruleExprAnd() throws RecognitionException {
-        EObject current = null;
-
-        Token lv_op_2_0=null;
-        EObject this_ExprEquality_0 = null;
-
-        EObject lv_right_3_0 = null;
-
-
-         enterRule(); 
-            
-        try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2394:28: ( (this_ExprEquality_0= ruleExprEquality ( () ( (lv_op_2_0= 'and' ) ) ( (lv_right_3_0= ruleExprEquality ) ) )* ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2395:1: (this_ExprEquality_0= ruleExprEquality ( () ( (lv_op_2_0= 'and' ) ) ( (lv_right_3_0= ruleExprEquality ) ) )* )
-            {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2395:1: (this_ExprEquality_0= ruleExprEquality ( () ( (lv_op_2_0= 'and' ) ) ( (lv_right_3_0= ruleExprEquality ) ) )* )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2396:5: this_ExprEquality_0= ruleExprEquality ( () ( (lv_op_2_0= 'and' ) ) ( (lv_right_3_0= ruleExprEquality ) ) )*
-            {
-             
-                    newCompositeNode(grammarAccess.getExprAndAccess().getExprEqualityParserRuleCall_0()); 
-                
-            pushFollow(FOLLOW_ruleExprEquality_in_ruleExprAnd5344);
-            this_ExprEquality_0=ruleExprEquality();
-
-            state._fsp--;
-
-             
-                    current = this_ExprEquality_0; 
-                    afterParserOrEnumRuleCall();
-                
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2404:1: ( () ( (lv_op_2_0= 'and' ) ) ( (lv_right_3_0= ruleExprEquality ) ) )*
-            loop49:
-            do {
-                int alt49=2;
-                int LA49_0 = input.LA(1);
-
-                if ( (LA49_0==59) ) {
-                    alt49=1;
-                }
-
-
-                switch (alt49) {
-            	case 1 :
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2404:2: () ( (lv_op_2_0= 'and' ) ) ( (lv_right_3_0= ruleExprEquality ) )
-            	    {
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2404:2: ()
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2405:5: 
-            	    {
-
-            	            current = forceCreateModelElementAndSet(
-            	                grammarAccess.getExprAndAccess().getExprAndLeftAction_1_0(),
-            	                current);
-            	        
-
-            	    }
-
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2410:2: ( (lv_op_2_0= 'and' ) )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2411:1: (lv_op_2_0= 'and' )
-            	    {
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2411:1: (lv_op_2_0= 'and' )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2412:3: lv_op_2_0= 'and'
-            	    {
-            	    lv_op_2_0=(Token)match(input,59,FOLLOW_59_in_ruleExprAnd5371); 
-
-            	            newLeafNode(lv_op_2_0, grammarAccess.getExprAndAccess().getOpAndKeyword_1_1_0());
-            	        
-
-            	    	        if (current==null) {
-            	    	            current = createModelElement(grammarAccess.getExprAndRule());
-            	    	        }
-            	           		setWithLastConsumed(current, "op", lv_op_2_0, "and");
-            	    	    
-
-            	    }
-
-
-            	    }
-
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2425:2: ( (lv_right_3_0= ruleExprEquality ) )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2426:1: (lv_right_3_0= ruleExprEquality )
-            	    {
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2426:1: (lv_right_3_0= ruleExprEquality )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2427:3: lv_right_3_0= ruleExprEquality
-            	    {
-            	     
-            	    	        newCompositeNode(grammarAccess.getExprAndAccess().getRightExprEqualityParserRuleCall_1_2_0()); 
-            	    	    
-            	    pushFollow(FOLLOW_ruleExprEquality_in_ruleExprAnd5405);
-            	    lv_right_3_0=ruleExprEquality();
-
-            	    state._fsp--;
-
-
-            	    	        if (current==null) {
-            	    	            current = createModelElementForParent(grammarAccess.getExprAndRule());
-            	    	        }
-            	           		set(
-            	           			current, 
-            	           			"right",
-            	            		lv_right_3_0, 
-            	            		"ExprEquality");
             	    	        afterParserOrEnumRuleCall();
             	    	    
 
@@ -6459,29 +6772,29 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
         }
         return current;
     }
-    // $ANTLR end "ruleExprAnd"
+    // $ANTLR end "ruleExprOr"
 
 
-    // $ANTLR start "entryRuleExprEquality"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2451:1: entryRuleExprEquality returns [EObject current=null] : iv_ruleExprEquality= ruleExprEquality EOF ;
-    public final EObject entryRuleExprEquality() throws RecognitionException {
+    // $ANTLR start "entryRuleExprAnd"
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2574:1: entryRuleExprAnd returns [EObject current=null] : iv_ruleExprAnd= ruleExprAnd EOF ;
+    public final EObject entryRuleExprAnd() throws RecognitionException {
         EObject current = null;
 
-        EObject iv_ruleExprEquality = null;
+        EObject iv_ruleExprAnd = null;
 
 
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2452:2: (iv_ruleExprEquality= ruleExprEquality EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2453:2: iv_ruleExprEquality= ruleExprEquality EOF
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2575:2: (iv_ruleExprAnd= ruleExprAnd EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2576:2: iv_ruleExprAnd= ruleExprAnd EOF
             {
-             newCompositeNode(grammarAccess.getExprEqualityRule()); 
-            pushFollow(FOLLOW_ruleExprEquality_in_entryRuleExprEquality5443);
-            iv_ruleExprEquality=ruleExprEquality();
+             newCompositeNode(grammarAccess.getExprAndRule()); 
+            pushFollow(FOLLOW_ruleExprAnd_in_entryRuleExprAnd5669);
+            iv_ruleExprAnd=ruleExprAnd();
 
             state._fsp--;
 
-             current =iv_ruleExprEquality; 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleExprEquality5453); 
+             current =iv_ruleExprAnd; 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleExprAnd5679); 
 
             }
 
@@ -6495,17 +6808,16 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
         }
         return current;
     }
-    // $ANTLR end "entryRuleExprEquality"
+    // $ANTLR end "entryRuleExprAnd"
 
 
-    // $ANTLR start "ruleExprEquality"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2460:1: ruleExprEquality returns [EObject current=null] : (this_ExprComparison_0= ruleExprComparison ( () ( (lv_op_2_0= ruleOpEquality ) ) ( (lv_right_3_0= ruleExprComparison ) ) )* ) ;
-    public final EObject ruleExprEquality() throws RecognitionException {
+    // $ANTLR start "ruleExprAnd"
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2583:1: ruleExprAnd returns [EObject current=null] : (this_ExprEquality_0= ruleExprEquality ( () ( (lv_op_2_0= 'and' ) ) ( (lv_right_3_0= ruleExprEquality ) ) )* ) ;
+    public final EObject ruleExprAnd() throws RecognitionException {
         EObject current = null;
 
-        EObject this_ExprComparison_0 = null;
-
-        EObject lv_op_2_0 = null;
+        Token lv_op_2_0=null;
+        EObject this_ExprEquality_0 = null;
 
         EObject lv_right_3_0 = null;
 
@@ -6513,74 +6825,65 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
          enterRule(); 
             
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2463:28: ( (this_ExprComparison_0= ruleExprComparison ( () ( (lv_op_2_0= ruleOpEquality ) ) ( (lv_right_3_0= ruleExprComparison ) ) )* ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2464:1: (this_ExprComparison_0= ruleExprComparison ( () ( (lv_op_2_0= ruleOpEquality ) ) ( (lv_right_3_0= ruleExprComparison ) ) )* )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2586:28: ( (this_ExprEquality_0= ruleExprEquality ( () ( (lv_op_2_0= 'and' ) ) ( (lv_right_3_0= ruleExprEquality ) ) )* ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2587:1: (this_ExprEquality_0= ruleExprEquality ( () ( (lv_op_2_0= 'and' ) ) ( (lv_right_3_0= ruleExprEquality ) ) )* )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2464:1: (this_ExprComparison_0= ruleExprComparison ( () ( (lv_op_2_0= ruleOpEquality ) ) ( (lv_right_3_0= ruleExprComparison ) ) )* )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2465:5: this_ExprComparison_0= ruleExprComparison ( () ( (lv_op_2_0= ruleOpEquality ) ) ( (lv_right_3_0= ruleExprComparison ) ) )*
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2587:1: (this_ExprEquality_0= ruleExprEquality ( () ( (lv_op_2_0= 'and' ) ) ( (lv_right_3_0= ruleExprEquality ) ) )* )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2588:5: this_ExprEquality_0= ruleExprEquality ( () ( (lv_op_2_0= 'and' ) ) ( (lv_right_3_0= ruleExprEquality ) ) )*
             {
              
-                    newCompositeNode(grammarAccess.getExprEqualityAccess().getExprComparisonParserRuleCall_0()); 
+                    newCompositeNode(grammarAccess.getExprAndAccess().getExprEqualityParserRuleCall_0()); 
                 
-            pushFollow(FOLLOW_ruleExprComparison_in_ruleExprEquality5500);
-            this_ExprComparison_0=ruleExprComparison();
+            pushFollow(FOLLOW_ruleExprEquality_in_ruleExprAnd5726);
+            this_ExprEquality_0=ruleExprEquality();
 
             state._fsp--;
 
              
-                    current = this_ExprComparison_0; 
+                    current = this_ExprEquality_0; 
                     afterParserOrEnumRuleCall();
                 
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2473:1: ( () ( (lv_op_2_0= ruleOpEquality ) ) ( (lv_right_3_0= ruleExprComparison ) ) )*
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2596:1: ( () ( (lv_op_2_0= 'and' ) ) ( (lv_right_3_0= ruleExprEquality ) ) )*
             loop50:
             do {
                 int alt50=2;
                 int LA50_0 = input.LA(1);
 
-                if ( ((LA50_0>=60 && LA50_0<=61)) ) {
+                if ( (LA50_0==59) ) {
                     alt50=1;
                 }
 
 
                 switch (alt50) {
             	case 1 :
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2473:2: () ( (lv_op_2_0= ruleOpEquality ) ) ( (lv_right_3_0= ruleExprComparison ) )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2596:2: () ( (lv_op_2_0= 'and' ) ) ( (lv_right_3_0= ruleExprEquality ) )
             	    {
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2473:2: ()
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2474:5: 
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2596:2: ()
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2597:5: 
             	    {
 
             	            current = forceCreateModelElementAndSet(
-            	                grammarAccess.getExprEqualityAccess().getExprEqualityLeftAction_1_0(),
+            	                grammarAccess.getExprAndAccess().getExprAndLeftAction_1_0(),
             	                current);
             	        
 
             	    }
 
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2479:2: ( (lv_op_2_0= ruleOpEquality ) )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2480:1: (lv_op_2_0= ruleOpEquality )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2602:2: ( (lv_op_2_0= 'and' ) )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2603:1: (lv_op_2_0= 'and' )
             	    {
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2480:1: (lv_op_2_0= ruleOpEquality )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2481:3: lv_op_2_0= ruleOpEquality
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2603:1: (lv_op_2_0= 'and' )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2604:3: lv_op_2_0= 'and'
             	    {
-            	     
-            	    	        newCompositeNode(grammarAccess.getExprEqualityAccess().getOpOpEqualityParserRuleCall_1_1_0()); 
-            	    	    
-            	    pushFollow(FOLLOW_ruleOpEquality_in_ruleExprEquality5530);
-            	    lv_op_2_0=ruleOpEquality();
+            	    lv_op_2_0=(Token)match(input,59,FOLLOW_59_in_ruleExprAnd5753); 
 
-            	    state._fsp--;
-
+            	            newLeafNode(lv_op_2_0, grammarAccess.getExprAndAccess().getOpAndKeyword_1_1_0());
+            	        
 
             	    	        if (current==null) {
-            	    	            current = createModelElementForParent(grammarAccess.getExprEqualityRule());
+            	    	            current = createModelElement(grammarAccess.getExprAndRule());
             	    	        }
-            	           		set(
-            	           			current, 
-            	           			"op",
-            	            		lv_op_2_0, 
-            	            		"OpEquality");
-            	    	        afterParserOrEnumRuleCall();
+            	           		setWithLastConsumed(current, "op", lv_op_2_0, "and");
             	    	    
 
             	    }
@@ -6588,29 +6891,29 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
             	    }
 
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2497:2: ( (lv_right_3_0= ruleExprComparison ) )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2498:1: (lv_right_3_0= ruleExprComparison )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2617:2: ( (lv_right_3_0= ruleExprEquality ) )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2618:1: (lv_right_3_0= ruleExprEquality )
             	    {
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2498:1: (lv_right_3_0= ruleExprComparison )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2499:3: lv_right_3_0= ruleExprComparison
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2618:1: (lv_right_3_0= ruleExprEquality )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2619:3: lv_right_3_0= ruleExprEquality
             	    {
             	     
-            	    	        newCompositeNode(grammarAccess.getExprEqualityAccess().getRightExprComparisonParserRuleCall_1_2_0()); 
+            	    	        newCompositeNode(grammarAccess.getExprAndAccess().getRightExprEqualityParserRuleCall_1_2_0()); 
             	    	    
-            	    pushFollow(FOLLOW_ruleExprComparison_in_ruleExprEquality5551);
-            	    lv_right_3_0=ruleExprComparison();
+            	    pushFollow(FOLLOW_ruleExprEquality_in_ruleExprAnd5787);
+            	    lv_right_3_0=ruleExprEquality();
 
             	    state._fsp--;
 
 
             	    	        if (current==null) {
-            	    	            current = createModelElementForParent(grammarAccess.getExprEqualityRule());
+            	    	            current = createModelElementForParent(grammarAccess.getExprAndRule());
             	    	        }
             	           		set(
             	           			current, 
             	           			"right",
             	            		lv_right_3_0, 
-            	            		"ExprComparison");
+            	            		"ExprEquality");
             	    	        afterParserOrEnumRuleCall();
             	    	    
 
@@ -6645,11 +6948,197 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
         }
         return current;
     }
+    // $ANTLR end "ruleExprAnd"
+
+
+    // $ANTLR start "entryRuleExprEquality"
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2643:1: entryRuleExprEquality returns [EObject current=null] : iv_ruleExprEquality= ruleExprEquality EOF ;
+    public final EObject entryRuleExprEquality() throws RecognitionException {
+        EObject current = null;
+
+        EObject iv_ruleExprEquality = null;
+
+
+        try {
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2644:2: (iv_ruleExprEquality= ruleExprEquality EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2645:2: iv_ruleExprEquality= ruleExprEquality EOF
+            {
+             newCompositeNode(grammarAccess.getExprEqualityRule()); 
+            pushFollow(FOLLOW_ruleExprEquality_in_entryRuleExprEquality5825);
+            iv_ruleExprEquality=ruleExprEquality();
+
+            state._fsp--;
+
+             current =iv_ruleExprEquality; 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleExprEquality5835); 
+
+            }
+
+        }
+         
+            catch (RecognitionException re) { 
+                recover(input,re); 
+                appendSkippedTokens();
+            } 
+        finally {
+        }
+        return current;
+    }
+    // $ANTLR end "entryRuleExprEquality"
+
+
+    // $ANTLR start "ruleExprEquality"
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2652:1: ruleExprEquality returns [EObject current=null] : (this_ExprComparison_0= ruleExprComparison ( () ( (lv_op_2_0= ruleOpEquality ) ) ( (lv_right_3_0= ruleExprComparison ) ) )* ) ;
+    public final EObject ruleExprEquality() throws RecognitionException {
+        EObject current = null;
+
+        EObject this_ExprComparison_0 = null;
+
+        EObject lv_op_2_0 = null;
+
+        EObject lv_right_3_0 = null;
+
+
+         enterRule(); 
+            
+        try {
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2655:28: ( (this_ExprComparison_0= ruleExprComparison ( () ( (lv_op_2_0= ruleOpEquality ) ) ( (lv_right_3_0= ruleExprComparison ) ) )* ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2656:1: (this_ExprComparison_0= ruleExprComparison ( () ( (lv_op_2_0= ruleOpEquality ) ) ( (lv_right_3_0= ruleExprComparison ) ) )* )
+            {
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2656:1: (this_ExprComparison_0= ruleExprComparison ( () ( (lv_op_2_0= ruleOpEquality ) ) ( (lv_right_3_0= ruleExprComparison ) ) )* )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2657:5: this_ExprComparison_0= ruleExprComparison ( () ( (lv_op_2_0= ruleOpEquality ) ) ( (lv_right_3_0= ruleExprComparison ) ) )*
+            {
+             
+                    newCompositeNode(grammarAccess.getExprEqualityAccess().getExprComparisonParserRuleCall_0()); 
+                
+            pushFollow(FOLLOW_ruleExprComparison_in_ruleExprEquality5882);
+            this_ExprComparison_0=ruleExprComparison();
+
+            state._fsp--;
+
+             
+                    current = this_ExprComparison_0; 
+                    afterParserOrEnumRuleCall();
+                
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2665:1: ( () ( (lv_op_2_0= ruleOpEquality ) ) ( (lv_right_3_0= ruleExprComparison ) ) )*
+            loop51:
+            do {
+                int alt51=2;
+                int LA51_0 = input.LA(1);
+
+                if ( ((LA51_0>=60 && LA51_0<=61)) ) {
+                    alt51=1;
+                }
+
+
+                switch (alt51) {
+            	case 1 :
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2665:2: () ( (lv_op_2_0= ruleOpEquality ) ) ( (lv_right_3_0= ruleExprComparison ) )
+            	    {
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2665:2: ()
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2666:5: 
+            	    {
+
+            	            current = forceCreateModelElementAndSet(
+            	                grammarAccess.getExprEqualityAccess().getExprEqualityLeftAction_1_0(),
+            	                current);
+            	        
+
+            	    }
+
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2671:2: ( (lv_op_2_0= ruleOpEquality ) )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2672:1: (lv_op_2_0= ruleOpEquality )
+            	    {
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2672:1: (lv_op_2_0= ruleOpEquality )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2673:3: lv_op_2_0= ruleOpEquality
+            	    {
+            	     
+            	    	        newCompositeNode(grammarAccess.getExprEqualityAccess().getOpOpEqualityParserRuleCall_1_1_0()); 
+            	    	    
+            	    pushFollow(FOLLOW_ruleOpEquality_in_ruleExprEquality5912);
+            	    lv_op_2_0=ruleOpEquality();
+
+            	    state._fsp--;
+
+
+            	    	        if (current==null) {
+            	    	            current = createModelElementForParent(grammarAccess.getExprEqualityRule());
+            	    	        }
+            	           		set(
+            	           			current, 
+            	           			"op",
+            	            		lv_op_2_0, 
+            	            		"OpEquality");
+            	    	        afterParserOrEnumRuleCall();
+            	    	    
+
+            	    }
+
+
+            	    }
+
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2689:2: ( (lv_right_3_0= ruleExprComparison ) )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2690:1: (lv_right_3_0= ruleExprComparison )
+            	    {
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2690:1: (lv_right_3_0= ruleExprComparison )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2691:3: lv_right_3_0= ruleExprComparison
+            	    {
+            	     
+            	    	        newCompositeNode(grammarAccess.getExprEqualityAccess().getRightExprComparisonParserRuleCall_1_2_0()); 
+            	    	    
+            	    pushFollow(FOLLOW_ruleExprComparison_in_ruleExprEquality5933);
+            	    lv_right_3_0=ruleExprComparison();
+
+            	    state._fsp--;
+
+
+            	    	        if (current==null) {
+            	    	            current = createModelElementForParent(grammarAccess.getExprEqualityRule());
+            	    	        }
+            	           		set(
+            	           			current, 
+            	           			"right",
+            	            		lv_right_3_0, 
+            	            		"ExprComparison");
+            	    	        afterParserOrEnumRuleCall();
+            	    	    
+
+            	    }
+
+
+            	    }
+
+
+            	    }
+            	    break;
+
+            	default :
+            	    break loop51;
+                }
+            } while (true);
+
+
+            }
+
+
+            }
+
+             leaveRule(); 
+        }
+         
+            catch (RecognitionException re) { 
+                recover(input,re); 
+                appendSkippedTokens();
+            } 
+        finally {
+        }
+        return current;
+    }
     // $ANTLR end "ruleExprEquality"
 
 
     // $ANTLR start "entryRuleOpEquality"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2523:1: entryRuleOpEquality returns [EObject current=null] : iv_ruleOpEquality= ruleOpEquality EOF ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2715:1: entryRuleOpEquality returns [EObject current=null] : iv_ruleOpEquality= ruleOpEquality EOF ;
     public final EObject entryRuleOpEquality() throws RecognitionException {
         EObject current = null;
 
@@ -6657,17 +7146,17 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2524:2: (iv_ruleOpEquality= ruleOpEquality EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2525:2: iv_ruleOpEquality= ruleOpEquality EOF
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2716:2: (iv_ruleOpEquality= ruleOpEquality EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2717:2: iv_ruleOpEquality= ruleOpEquality EOF
             {
              newCompositeNode(grammarAccess.getOpEqualityRule()); 
-            pushFollow(FOLLOW_ruleOpEquality_in_entryRuleOpEquality5589);
+            pushFollow(FOLLOW_ruleOpEquality_in_entryRuleOpEquality5971);
             iv_ruleOpEquality=ruleOpEquality();
 
             state._fsp--;
 
              current =iv_ruleOpEquality; 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleOpEquality5599); 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleOpEquality5981); 
 
             }
 
@@ -6685,7 +7174,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleOpEquality"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2532:1: ruleOpEquality returns [EObject current=null] : ( ( () otherlv_1= '==' ) | ( () otherlv_3= '!=' ) ) ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2724:1: ruleOpEquality returns [EObject current=null] : ( ( () otherlv_1= '==' ) | ( () otherlv_3= '!=' ) ) ;
     public final EObject ruleOpEquality() throws RecognitionException {
         EObject current = null;
 
@@ -6695,34 +7184,34 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
          enterRule(); 
             
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2535:28: ( ( ( () otherlv_1= '==' ) | ( () otherlv_3= '!=' ) ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2536:1: ( ( () otherlv_1= '==' ) | ( () otherlv_3= '!=' ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2727:28: ( ( ( () otherlv_1= '==' ) | ( () otherlv_3= '!=' ) ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2728:1: ( ( () otherlv_1= '==' ) | ( () otherlv_3= '!=' ) )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2536:1: ( ( () otherlv_1= '==' ) | ( () otherlv_3= '!=' ) )
-            int alt51=2;
-            int LA51_0 = input.LA(1);
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2728:1: ( ( () otherlv_1= '==' ) | ( () otherlv_3= '!=' ) )
+            int alt52=2;
+            int LA52_0 = input.LA(1);
 
-            if ( (LA51_0==60) ) {
-                alt51=1;
+            if ( (LA52_0==60) ) {
+                alt52=1;
             }
-            else if ( (LA51_0==61) ) {
-                alt51=2;
+            else if ( (LA52_0==61) ) {
+                alt52=2;
             }
             else {
                 NoViableAltException nvae =
-                    new NoViableAltException("", 51, 0, input);
+                    new NoViableAltException("", 52, 0, input);
 
                 throw nvae;
             }
-            switch (alt51) {
+            switch (alt52) {
                 case 1 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2536:2: ( () otherlv_1= '==' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2728:2: ( () otherlv_1= '==' )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2536:2: ( () otherlv_1= '==' )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2536:3: () otherlv_1= '=='
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2728:2: ( () otherlv_1= '==' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2728:3: () otherlv_1= '=='
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2536:3: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2537:5: 
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2728:3: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2729:5: 
                     {
 
                             current = forceCreateModelElement(
@@ -6732,7 +7221,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    otherlv_1=(Token)match(input,60,FOLLOW_60_in_ruleOpEquality5646); 
+                    otherlv_1=(Token)match(input,60,FOLLOW_60_in_ruleOpEquality6028); 
 
                         	newLeafNode(otherlv_1, grammarAccess.getOpEqualityAccess().getEqualsSignEqualsSignKeyword_0_1());
                         
@@ -6743,13 +7232,13 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 2 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2547:6: ( () otherlv_3= '!=' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2739:6: ( () otherlv_3= '!=' )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2547:6: ( () otherlv_3= '!=' )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2547:7: () otherlv_3= '!='
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2739:6: ( () otherlv_3= '!=' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2739:7: () otherlv_3= '!='
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2547:7: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2548:5: 
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2739:7: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2740:5: 
                     {
 
                             current = forceCreateModelElement(
@@ -6759,7 +7248,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    otherlv_3=(Token)match(input,61,FOLLOW_61_in_ruleOpEquality5675); 
+                    otherlv_3=(Token)match(input,61,FOLLOW_61_in_ruleOpEquality6057); 
 
                         	newLeafNode(otherlv_3, grammarAccess.getOpEqualityAccess().getExclamationMarkEqualsSignKeyword_1_1());
                         
@@ -6790,7 +7279,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "entryRuleExprComparison"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2565:1: entryRuleExprComparison returns [EObject current=null] : iv_ruleExprComparison= ruleExprComparison EOF ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2757:1: entryRuleExprComparison returns [EObject current=null] : iv_ruleExprComparison= ruleExprComparison EOF ;
     public final EObject entryRuleExprComparison() throws RecognitionException {
         EObject current = null;
 
@@ -6798,17 +7287,17 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2566:2: (iv_ruleExprComparison= ruleExprComparison EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2567:2: iv_ruleExprComparison= ruleExprComparison EOF
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2758:2: (iv_ruleExprComparison= ruleExprComparison EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2759:2: iv_ruleExprComparison= ruleExprComparison EOF
             {
              newCompositeNode(grammarAccess.getExprComparisonRule()); 
-            pushFollow(FOLLOW_ruleExprComparison_in_entryRuleExprComparison5712);
+            pushFollow(FOLLOW_ruleExprComparison_in_entryRuleExprComparison6094);
             iv_ruleExprComparison=ruleExprComparison();
 
             state._fsp--;
 
              current =iv_ruleExprComparison; 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleExprComparison5722); 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleExprComparison6104); 
 
             }
 
@@ -6826,7 +7315,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleExprComparison"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2574:1: ruleExprComparison returns [EObject current=null] : (this_ExprAdditive_0= ruleExprAdditive ( () ( (lv_op_2_0= ruleOpComparison ) ) ( (lv_right_3_0= ruleExprAdditive ) ) )* ) ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2766:1: ruleExprComparison returns [EObject current=null] : (this_ExprAdditive_0= ruleExprAdditive ( () ( (lv_op_2_0= ruleOpComparison ) ) ( (lv_right_3_0= ruleExprAdditive ) ) )* ) ;
     public final EObject ruleExprComparison() throws RecognitionException {
         EObject current = null;
 
@@ -6840,16 +7329,16 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
          enterRule(); 
             
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2577:28: ( (this_ExprAdditive_0= ruleExprAdditive ( () ( (lv_op_2_0= ruleOpComparison ) ) ( (lv_right_3_0= ruleExprAdditive ) ) )* ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2578:1: (this_ExprAdditive_0= ruleExprAdditive ( () ( (lv_op_2_0= ruleOpComparison ) ) ( (lv_right_3_0= ruleExprAdditive ) ) )* )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2769:28: ( (this_ExprAdditive_0= ruleExprAdditive ( () ( (lv_op_2_0= ruleOpComparison ) ) ( (lv_right_3_0= ruleExprAdditive ) ) )* ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2770:1: (this_ExprAdditive_0= ruleExprAdditive ( () ( (lv_op_2_0= ruleOpComparison ) ) ( (lv_right_3_0= ruleExprAdditive ) ) )* )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2578:1: (this_ExprAdditive_0= ruleExprAdditive ( () ( (lv_op_2_0= ruleOpComparison ) ) ( (lv_right_3_0= ruleExprAdditive ) ) )* )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2579:5: this_ExprAdditive_0= ruleExprAdditive ( () ( (lv_op_2_0= ruleOpComparison ) ) ( (lv_right_3_0= ruleExprAdditive ) ) )*
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2770:1: (this_ExprAdditive_0= ruleExprAdditive ( () ( (lv_op_2_0= ruleOpComparison ) ) ( (lv_right_3_0= ruleExprAdditive ) ) )* )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2771:5: this_ExprAdditive_0= ruleExprAdditive ( () ( (lv_op_2_0= ruleOpComparison ) ) ( (lv_right_3_0= ruleExprAdditive ) ) )*
             {
              
                     newCompositeNode(grammarAccess.getExprComparisonAccess().getExprAdditiveParserRuleCall_0()); 
                 
-            pushFollow(FOLLOW_ruleExprAdditive_in_ruleExprComparison5769);
+            pushFollow(FOLLOW_ruleExprAdditive_in_ruleExprComparison6151);
             this_ExprAdditive_0=ruleExprAdditive();
 
             state._fsp--;
@@ -6858,23 +7347,23 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     current = this_ExprAdditive_0; 
                     afterParserOrEnumRuleCall();
                 
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2587:1: ( () ( (lv_op_2_0= ruleOpComparison ) ) ( (lv_right_3_0= ruleExprAdditive ) ) )*
-            loop52:
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2779:1: ( () ( (lv_op_2_0= ruleOpComparison ) ) ( (lv_right_3_0= ruleExprAdditive ) ) )*
+            loop53:
             do {
-                int alt52=2;
-                int LA52_0 = input.LA(1);
+                int alt53=2;
+                int LA53_0 = input.LA(1);
 
-                if ( ((LA52_0>=62 && LA52_0<=65)) ) {
-                    alt52=1;
+                if ( ((LA53_0>=62 && LA53_0<=65)) ) {
+                    alt53=1;
                 }
 
 
-                switch (alt52) {
+                switch (alt53) {
             	case 1 :
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2587:2: () ( (lv_op_2_0= ruleOpComparison ) ) ( (lv_right_3_0= ruleExprAdditive ) )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2779:2: () ( (lv_op_2_0= ruleOpComparison ) ) ( (lv_right_3_0= ruleExprAdditive ) )
             	    {
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2587:2: ()
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2588:5: 
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2779:2: ()
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2780:5: 
             	    {
 
             	            current = forceCreateModelElementAndSet(
@@ -6884,16 +7373,16 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
             	    }
 
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2593:2: ( (lv_op_2_0= ruleOpComparison ) )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2594:1: (lv_op_2_0= ruleOpComparison )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2785:2: ( (lv_op_2_0= ruleOpComparison ) )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2786:1: (lv_op_2_0= ruleOpComparison )
             	    {
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2594:1: (lv_op_2_0= ruleOpComparison )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2595:3: lv_op_2_0= ruleOpComparison
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2786:1: (lv_op_2_0= ruleOpComparison )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2787:3: lv_op_2_0= ruleOpComparison
             	    {
             	     
             	    	        newCompositeNode(grammarAccess.getExprComparisonAccess().getOpOpComparisonParserRuleCall_1_1_0()); 
             	    	    
-            	    pushFollow(FOLLOW_ruleOpComparison_in_ruleExprComparison5799);
+            	    pushFollow(FOLLOW_ruleOpComparison_in_ruleExprComparison6181);
             	    lv_op_2_0=ruleOpComparison();
 
             	    state._fsp--;
@@ -6915,16 +7404,16 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
             	    }
 
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2611:2: ( (lv_right_3_0= ruleExprAdditive ) )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2612:1: (lv_right_3_0= ruleExprAdditive )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2803:2: ( (lv_right_3_0= ruleExprAdditive ) )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2804:1: (lv_right_3_0= ruleExprAdditive )
             	    {
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2612:1: (lv_right_3_0= ruleExprAdditive )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2613:3: lv_right_3_0= ruleExprAdditive
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2804:1: (lv_right_3_0= ruleExprAdditive )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2805:3: lv_right_3_0= ruleExprAdditive
             	    {
             	     
             	    	        newCompositeNode(grammarAccess.getExprComparisonAccess().getRightExprAdditiveParserRuleCall_1_2_0()); 
             	    	    
-            	    pushFollow(FOLLOW_ruleExprAdditive_in_ruleExprComparison5820);
+            	    pushFollow(FOLLOW_ruleExprAdditive_in_ruleExprComparison6202);
             	    lv_right_3_0=ruleExprAdditive();
 
             	    state._fsp--;
@@ -6951,7 +7440,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
             	    break;
 
             	default :
-            	    break loop52;
+            	    break loop53;
                 }
             } while (true);
 
@@ -6976,7 +7465,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "entryRuleOpComparison"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2637:1: entryRuleOpComparison returns [EObject current=null] : iv_ruleOpComparison= ruleOpComparison EOF ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2829:1: entryRuleOpComparison returns [EObject current=null] : iv_ruleOpComparison= ruleOpComparison EOF ;
     public final EObject entryRuleOpComparison() throws RecognitionException {
         EObject current = null;
 
@@ -6984,17 +7473,17 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2638:2: (iv_ruleOpComparison= ruleOpComparison EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2639:2: iv_ruleOpComparison= ruleOpComparison EOF
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2830:2: (iv_ruleOpComparison= ruleOpComparison EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2831:2: iv_ruleOpComparison= ruleOpComparison EOF
             {
              newCompositeNode(grammarAccess.getOpComparisonRule()); 
-            pushFollow(FOLLOW_ruleOpComparison_in_entryRuleOpComparison5858);
+            pushFollow(FOLLOW_ruleOpComparison_in_entryRuleOpComparison6240);
             iv_ruleOpComparison=ruleOpComparison();
 
             state._fsp--;
 
              current =iv_ruleOpComparison; 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleOpComparison5868); 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleOpComparison6250); 
 
             }
 
@@ -7012,7 +7501,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleOpComparison"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2646:1: ruleOpComparison returns [EObject current=null] : ( ( () otherlv_1= '<=' ) | ( () otherlv_3= '<' ) | ( () otherlv_5= '>=' ) | ( () otherlv_7= '>' ) ) ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2838:1: ruleOpComparison returns [EObject current=null] : ( ( () otherlv_1= '<=' ) | ( () otherlv_3= '<' ) | ( () otherlv_5= '>=' ) | ( () otherlv_7= '>' ) ) ;
     public final EObject ruleOpComparison() throws RecognitionException {
         EObject current = null;
 
@@ -7024,48 +7513,48 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
          enterRule(); 
             
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2649:28: ( ( ( () otherlv_1= '<=' ) | ( () otherlv_3= '<' ) | ( () otherlv_5= '>=' ) | ( () otherlv_7= '>' ) ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2650:1: ( ( () otherlv_1= '<=' ) | ( () otherlv_3= '<' ) | ( () otherlv_5= '>=' ) | ( () otherlv_7= '>' ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2841:28: ( ( ( () otherlv_1= '<=' ) | ( () otherlv_3= '<' ) | ( () otherlv_5= '>=' ) | ( () otherlv_7= '>' ) ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2842:1: ( ( () otherlv_1= '<=' ) | ( () otherlv_3= '<' ) | ( () otherlv_5= '>=' ) | ( () otherlv_7= '>' ) )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2650:1: ( ( () otherlv_1= '<=' ) | ( () otherlv_3= '<' ) | ( () otherlv_5= '>=' ) | ( () otherlv_7= '>' ) )
-            int alt53=4;
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2842:1: ( ( () otherlv_1= '<=' ) | ( () otherlv_3= '<' ) | ( () otherlv_5= '>=' ) | ( () otherlv_7= '>' ) )
+            int alt54=4;
             switch ( input.LA(1) ) {
             case 62:
                 {
-                alt53=1;
+                alt54=1;
                 }
                 break;
             case 63:
                 {
-                alt53=2;
+                alt54=2;
                 }
                 break;
             case 64:
                 {
-                alt53=3;
+                alt54=3;
                 }
                 break;
             case 65:
                 {
-                alt53=4;
+                alt54=4;
                 }
                 break;
             default:
                 NoViableAltException nvae =
-                    new NoViableAltException("", 53, 0, input);
+                    new NoViableAltException("", 54, 0, input);
 
                 throw nvae;
             }
 
-            switch (alt53) {
+            switch (alt54) {
                 case 1 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2650:2: ( () otherlv_1= '<=' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2842:2: ( () otherlv_1= '<=' )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2650:2: ( () otherlv_1= '<=' )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2650:3: () otherlv_1= '<='
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2842:2: ( () otherlv_1= '<=' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2842:3: () otherlv_1= '<='
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2650:3: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2651:5: 
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2842:3: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2843:5: 
                     {
 
                             current = forceCreateModelElement(
@@ -7075,7 +7564,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    otherlv_1=(Token)match(input,62,FOLLOW_62_in_ruleOpComparison5915); 
+                    otherlv_1=(Token)match(input,62,FOLLOW_62_in_ruleOpComparison6297); 
 
                         	newLeafNode(otherlv_1, grammarAccess.getOpComparisonAccess().getLessThanSignEqualsSignKeyword_0_1());
                         
@@ -7086,13 +7575,13 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 2 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2661:6: ( () otherlv_3= '<' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2853:6: ( () otherlv_3= '<' )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2661:6: ( () otherlv_3= '<' )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2661:7: () otherlv_3= '<'
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2853:6: ( () otherlv_3= '<' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2853:7: () otherlv_3= '<'
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2661:7: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2662:5: 
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2853:7: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2854:5: 
                     {
 
                             current = forceCreateModelElement(
@@ -7102,7 +7591,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    otherlv_3=(Token)match(input,63,FOLLOW_63_in_ruleOpComparison5944); 
+                    otherlv_3=(Token)match(input,63,FOLLOW_63_in_ruleOpComparison6326); 
 
                         	newLeafNode(otherlv_3, grammarAccess.getOpComparisonAccess().getLessThanSignKeyword_1_1());
                         
@@ -7113,13 +7602,13 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 3 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2672:6: ( () otherlv_5= '>=' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2864:6: ( () otherlv_5= '>=' )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2672:6: ( () otherlv_5= '>=' )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2672:7: () otherlv_5= '>='
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2864:6: ( () otherlv_5= '>=' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2864:7: () otherlv_5= '>='
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2672:7: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2673:5: 
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2864:7: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2865:5: 
                     {
 
                             current = forceCreateModelElement(
@@ -7129,7 +7618,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    otherlv_5=(Token)match(input,64,FOLLOW_64_in_ruleOpComparison5973); 
+                    otherlv_5=(Token)match(input,64,FOLLOW_64_in_ruleOpComparison6355); 
 
                         	newLeafNode(otherlv_5, grammarAccess.getOpComparisonAccess().getGreaterThanSignEqualsSignKeyword_2_1());
                         
@@ -7140,13 +7629,13 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 4 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2683:6: ( () otherlv_7= '>' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2875:6: ( () otherlv_7= '>' )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2683:6: ( () otherlv_7= '>' )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2683:7: () otherlv_7= '>'
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2875:6: ( () otherlv_7= '>' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2875:7: () otherlv_7= '>'
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2683:7: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2684:5: 
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2875:7: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2876:5: 
                     {
 
                             current = forceCreateModelElement(
@@ -7156,7 +7645,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    otherlv_7=(Token)match(input,65,FOLLOW_65_in_ruleOpComparison6002); 
+                    otherlv_7=(Token)match(input,65,FOLLOW_65_in_ruleOpComparison6384); 
 
                         	newLeafNode(otherlv_7, grammarAccess.getOpComparisonAccess().getGreaterThanSignKeyword_3_1());
                         
@@ -7187,7 +7676,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "entryRuleExprAdditive"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2701:1: entryRuleExprAdditive returns [EObject current=null] : iv_ruleExprAdditive= ruleExprAdditive EOF ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2893:1: entryRuleExprAdditive returns [EObject current=null] : iv_ruleExprAdditive= ruleExprAdditive EOF ;
     public final EObject entryRuleExprAdditive() throws RecognitionException {
         EObject current = null;
 
@@ -7195,17 +7684,17 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2702:2: (iv_ruleExprAdditive= ruleExprAdditive EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2703:2: iv_ruleExprAdditive= ruleExprAdditive EOF
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2894:2: (iv_ruleExprAdditive= ruleExprAdditive EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2895:2: iv_ruleExprAdditive= ruleExprAdditive EOF
             {
              newCompositeNode(grammarAccess.getExprAdditiveRule()); 
-            pushFollow(FOLLOW_ruleExprAdditive_in_entryRuleExprAdditive6039);
+            pushFollow(FOLLOW_ruleExprAdditive_in_entryRuleExprAdditive6421);
             iv_ruleExprAdditive=ruleExprAdditive();
 
             state._fsp--;
 
              current =iv_ruleExprAdditive; 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleExprAdditive6049); 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleExprAdditive6431); 
 
             }
 
@@ -7223,7 +7712,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleExprAdditive"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2710:1: ruleExprAdditive returns [EObject current=null] : (this_ExprMult_0= ruleExprMult ( () ( (lv_op_2_0= ruleOpAdditive ) ) ( (lv_right_3_0= ruleExprMult ) ) )* ) ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2902:1: ruleExprAdditive returns [EObject current=null] : (this_ExprMult_0= ruleExprMult ( () ( (lv_op_2_0= ruleOpAdditive ) ) ( (lv_right_3_0= ruleExprMult ) ) )* ) ;
     public final EObject ruleExprAdditive() throws RecognitionException {
         EObject current = null;
 
@@ -7237,16 +7726,16 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
          enterRule(); 
             
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2713:28: ( (this_ExprMult_0= ruleExprMult ( () ( (lv_op_2_0= ruleOpAdditive ) ) ( (lv_right_3_0= ruleExprMult ) ) )* ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2714:1: (this_ExprMult_0= ruleExprMult ( () ( (lv_op_2_0= ruleOpAdditive ) ) ( (lv_right_3_0= ruleExprMult ) ) )* )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2905:28: ( (this_ExprMult_0= ruleExprMult ( () ( (lv_op_2_0= ruleOpAdditive ) ) ( (lv_right_3_0= ruleExprMult ) ) )* ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2906:1: (this_ExprMult_0= ruleExprMult ( () ( (lv_op_2_0= ruleOpAdditive ) ) ( (lv_right_3_0= ruleExprMult ) ) )* )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2714:1: (this_ExprMult_0= ruleExprMult ( () ( (lv_op_2_0= ruleOpAdditive ) ) ( (lv_right_3_0= ruleExprMult ) ) )* )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2715:5: this_ExprMult_0= ruleExprMult ( () ( (lv_op_2_0= ruleOpAdditive ) ) ( (lv_right_3_0= ruleExprMult ) ) )*
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2906:1: (this_ExprMult_0= ruleExprMult ( () ( (lv_op_2_0= ruleOpAdditive ) ) ( (lv_right_3_0= ruleExprMult ) ) )* )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2907:5: this_ExprMult_0= ruleExprMult ( () ( (lv_op_2_0= ruleOpAdditive ) ) ( (lv_right_3_0= ruleExprMult ) ) )*
             {
              
                     newCompositeNode(grammarAccess.getExprAdditiveAccess().getExprMultParserRuleCall_0()); 
                 
-            pushFollow(FOLLOW_ruleExprMult_in_ruleExprAdditive6096);
+            pushFollow(FOLLOW_ruleExprMult_in_ruleExprAdditive6478);
             this_ExprMult_0=ruleExprMult();
 
             state._fsp--;
@@ -7255,23 +7744,23 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     current = this_ExprMult_0; 
                     afterParserOrEnumRuleCall();
                 
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2723:1: ( () ( (lv_op_2_0= ruleOpAdditive ) ) ( (lv_right_3_0= ruleExprMult ) ) )*
-            loop54:
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2915:1: ( () ( (lv_op_2_0= ruleOpAdditive ) ) ( (lv_right_3_0= ruleExprMult ) ) )*
+            loop55:
             do {
-                int alt54=2;
-                int LA54_0 = input.LA(1);
+                int alt55=2;
+                int LA55_0 = input.LA(1);
 
-                if ( ((LA54_0>=66 && LA54_0<=67)) ) {
-                    alt54=1;
+                if ( ((LA55_0>=66 && LA55_0<=67)) ) {
+                    alt55=1;
                 }
 
 
-                switch (alt54) {
+                switch (alt55) {
             	case 1 :
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2723:2: () ( (lv_op_2_0= ruleOpAdditive ) ) ( (lv_right_3_0= ruleExprMult ) )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2915:2: () ( (lv_op_2_0= ruleOpAdditive ) ) ( (lv_right_3_0= ruleExprMult ) )
             	    {
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2723:2: ()
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2724:5: 
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2915:2: ()
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2916:5: 
             	    {
 
             	            current = forceCreateModelElementAndSet(
@@ -7281,16 +7770,16 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
             	    }
 
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2729:2: ( (lv_op_2_0= ruleOpAdditive ) )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2730:1: (lv_op_2_0= ruleOpAdditive )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2921:2: ( (lv_op_2_0= ruleOpAdditive ) )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2922:1: (lv_op_2_0= ruleOpAdditive )
             	    {
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2730:1: (lv_op_2_0= ruleOpAdditive )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2731:3: lv_op_2_0= ruleOpAdditive
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2922:1: (lv_op_2_0= ruleOpAdditive )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2923:3: lv_op_2_0= ruleOpAdditive
             	    {
             	     
             	    	        newCompositeNode(grammarAccess.getExprAdditiveAccess().getOpOpAdditiveParserRuleCall_1_1_0()); 
             	    	    
-            	    pushFollow(FOLLOW_ruleOpAdditive_in_ruleExprAdditive6126);
+            	    pushFollow(FOLLOW_ruleOpAdditive_in_ruleExprAdditive6508);
             	    lv_op_2_0=ruleOpAdditive();
 
             	    state._fsp--;
@@ -7312,16 +7801,16 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
             	    }
 
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2747:2: ( (lv_right_3_0= ruleExprMult ) )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2748:1: (lv_right_3_0= ruleExprMult )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2939:2: ( (lv_right_3_0= ruleExprMult ) )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2940:1: (lv_right_3_0= ruleExprMult )
             	    {
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2748:1: (lv_right_3_0= ruleExprMult )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2749:3: lv_right_3_0= ruleExprMult
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2940:1: (lv_right_3_0= ruleExprMult )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2941:3: lv_right_3_0= ruleExprMult
             	    {
             	     
             	    	        newCompositeNode(grammarAccess.getExprAdditiveAccess().getRightExprMultParserRuleCall_1_2_0()); 
             	    	    
-            	    pushFollow(FOLLOW_ruleExprMult_in_ruleExprAdditive6147);
+            	    pushFollow(FOLLOW_ruleExprMult_in_ruleExprAdditive6529);
             	    lv_right_3_0=ruleExprMult();
 
             	    state._fsp--;
@@ -7348,7 +7837,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
             	    break;
 
             	default :
-            	    break loop54;
+            	    break loop55;
                 }
             } while (true);
 
@@ -7373,7 +7862,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "entryRuleOpAdditive"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2773:1: entryRuleOpAdditive returns [EObject current=null] : iv_ruleOpAdditive= ruleOpAdditive EOF ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2965:1: entryRuleOpAdditive returns [EObject current=null] : iv_ruleOpAdditive= ruleOpAdditive EOF ;
     public final EObject entryRuleOpAdditive() throws RecognitionException {
         EObject current = null;
 
@@ -7381,17 +7870,17 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2774:2: (iv_ruleOpAdditive= ruleOpAdditive EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2775:2: iv_ruleOpAdditive= ruleOpAdditive EOF
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2966:2: (iv_ruleOpAdditive= ruleOpAdditive EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2967:2: iv_ruleOpAdditive= ruleOpAdditive EOF
             {
              newCompositeNode(grammarAccess.getOpAdditiveRule()); 
-            pushFollow(FOLLOW_ruleOpAdditive_in_entryRuleOpAdditive6185);
+            pushFollow(FOLLOW_ruleOpAdditive_in_entryRuleOpAdditive6567);
             iv_ruleOpAdditive=ruleOpAdditive();
 
             state._fsp--;
 
              current =iv_ruleOpAdditive; 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleOpAdditive6195); 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleOpAdditive6577); 
 
             }
 
@@ -7409,7 +7898,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleOpAdditive"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2782:1: ruleOpAdditive returns [EObject current=null] : ( ( () otherlv_1= '+' ) | ( () otherlv_3= '-' ) ) ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2974:1: ruleOpAdditive returns [EObject current=null] : ( ( () otherlv_1= '+' ) | ( () otherlv_3= '-' ) ) ;
     public final EObject ruleOpAdditive() throws RecognitionException {
         EObject current = null;
 
@@ -7419,34 +7908,34 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
          enterRule(); 
             
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2785:28: ( ( ( () otherlv_1= '+' ) | ( () otherlv_3= '-' ) ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2786:1: ( ( () otherlv_1= '+' ) | ( () otherlv_3= '-' ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2977:28: ( ( ( () otherlv_1= '+' ) | ( () otherlv_3= '-' ) ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2978:1: ( ( () otherlv_1= '+' ) | ( () otherlv_3= '-' ) )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2786:1: ( ( () otherlv_1= '+' ) | ( () otherlv_3= '-' ) )
-            int alt55=2;
-            int LA55_0 = input.LA(1);
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2978:1: ( ( () otherlv_1= '+' ) | ( () otherlv_3= '-' ) )
+            int alt56=2;
+            int LA56_0 = input.LA(1);
 
-            if ( (LA55_0==66) ) {
-                alt55=1;
+            if ( (LA56_0==66) ) {
+                alt56=1;
             }
-            else if ( (LA55_0==67) ) {
-                alt55=2;
+            else if ( (LA56_0==67) ) {
+                alt56=2;
             }
             else {
                 NoViableAltException nvae =
-                    new NoViableAltException("", 55, 0, input);
+                    new NoViableAltException("", 56, 0, input);
 
                 throw nvae;
             }
-            switch (alt55) {
+            switch (alt56) {
                 case 1 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2786:2: ( () otherlv_1= '+' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2978:2: ( () otherlv_1= '+' )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2786:2: ( () otherlv_1= '+' )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2786:3: () otherlv_1= '+'
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2978:2: ( () otherlv_1= '+' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2978:3: () otherlv_1= '+'
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2786:3: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2787:5: 
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2978:3: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2979:5: 
                     {
 
                             current = forceCreateModelElement(
@@ -7456,7 +7945,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    otherlv_1=(Token)match(input,66,FOLLOW_66_in_ruleOpAdditive6242); 
+                    otherlv_1=(Token)match(input,66,FOLLOW_66_in_ruleOpAdditive6624); 
 
                         	newLeafNode(otherlv_1, grammarAccess.getOpAdditiveAccess().getPlusSignKeyword_0_1());
                         
@@ -7467,13 +7956,13 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 2 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2797:6: ( () otherlv_3= '-' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2989:6: ( () otherlv_3= '-' )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2797:6: ( () otherlv_3= '-' )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2797:7: () otherlv_3= '-'
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2989:6: ( () otherlv_3= '-' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2989:7: () otherlv_3= '-'
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2797:7: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2798:5: 
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2989:7: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2990:5: 
                     {
 
                             current = forceCreateModelElement(
@@ -7483,7 +7972,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    otherlv_3=(Token)match(input,67,FOLLOW_67_in_ruleOpAdditive6271); 
+                    otherlv_3=(Token)match(input,67,FOLLOW_67_in_ruleOpAdditive6653); 
 
                         	newLeafNode(otherlv_3, grammarAccess.getOpAdditiveAccess().getHyphenMinusKeyword_1_1());
                         
@@ -7514,7 +8003,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "entryRuleExprMult"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2815:1: entryRuleExprMult returns [EObject current=null] : iv_ruleExprMult= ruleExprMult EOF ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3007:1: entryRuleExprMult returns [EObject current=null] : iv_ruleExprMult= ruleExprMult EOF ;
     public final EObject entryRuleExprMult() throws RecognitionException {
         EObject current = null;
 
@@ -7522,17 +8011,17 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2816:2: (iv_ruleExprMult= ruleExprMult EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2817:2: iv_ruleExprMult= ruleExprMult EOF
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3008:2: (iv_ruleExprMult= ruleExprMult EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3009:2: iv_ruleExprMult= ruleExprMult EOF
             {
              newCompositeNode(grammarAccess.getExprMultRule()); 
-            pushFollow(FOLLOW_ruleExprMult_in_entryRuleExprMult6308);
+            pushFollow(FOLLOW_ruleExprMult_in_entryRuleExprMult6690);
             iv_ruleExprMult=ruleExprMult();
 
             state._fsp--;
 
              current =iv_ruleExprMult; 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleExprMult6318); 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleExprMult6700); 
 
             }
 
@@ -7550,7 +8039,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleExprMult"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2824:1: ruleExprMult returns [EObject current=null] : (this_ExprSign_0= ruleExprSign ( () ( (lv_op_2_0= ruleOpMultiplicative ) ) ( (lv_right_3_0= ruleExprSign ) ) )* ) ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3016:1: ruleExprMult returns [EObject current=null] : (this_ExprSign_0= ruleExprSign ( () ( (lv_op_2_0= ruleOpMultiplicative ) ) ( (lv_right_3_0= ruleExprSign ) ) )* ) ;
     public final EObject ruleExprMult() throws RecognitionException {
         EObject current = null;
 
@@ -7564,16 +8053,16 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
          enterRule(); 
             
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2827:28: ( (this_ExprSign_0= ruleExprSign ( () ( (lv_op_2_0= ruleOpMultiplicative ) ) ( (lv_right_3_0= ruleExprSign ) ) )* ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2828:1: (this_ExprSign_0= ruleExprSign ( () ( (lv_op_2_0= ruleOpMultiplicative ) ) ( (lv_right_3_0= ruleExprSign ) ) )* )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3019:28: ( (this_ExprSign_0= ruleExprSign ( () ( (lv_op_2_0= ruleOpMultiplicative ) ) ( (lv_right_3_0= ruleExprSign ) ) )* ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3020:1: (this_ExprSign_0= ruleExprSign ( () ( (lv_op_2_0= ruleOpMultiplicative ) ) ( (lv_right_3_0= ruleExprSign ) ) )* )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2828:1: (this_ExprSign_0= ruleExprSign ( () ( (lv_op_2_0= ruleOpMultiplicative ) ) ( (lv_right_3_0= ruleExprSign ) ) )* )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2829:5: this_ExprSign_0= ruleExprSign ( () ( (lv_op_2_0= ruleOpMultiplicative ) ) ( (lv_right_3_0= ruleExprSign ) ) )*
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3020:1: (this_ExprSign_0= ruleExprSign ( () ( (lv_op_2_0= ruleOpMultiplicative ) ) ( (lv_right_3_0= ruleExprSign ) ) )* )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3021:5: this_ExprSign_0= ruleExprSign ( () ( (lv_op_2_0= ruleOpMultiplicative ) ) ( (lv_right_3_0= ruleExprSign ) ) )*
             {
              
                     newCompositeNode(grammarAccess.getExprMultAccess().getExprSignParserRuleCall_0()); 
                 
-            pushFollow(FOLLOW_ruleExprSign_in_ruleExprMult6365);
+            pushFollow(FOLLOW_ruleExprSign_in_ruleExprMult6747);
             this_ExprSign_0=ruleExprSign();
 
             state._fsp--;
@@ -7582,23 +8071,23 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     current = this_ExprSign_0; 
                     afterParserOrEnumRuleCall();
                 
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2837:1: ( () ( (lv_op_2_0= ruleOpMultiplicative ) ) ( (lv_right_3_0= ruleExprSign ) ) )*
-            loop56:
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3029:1: ( () ( (lv_op_2_0= ruleOpMultiplicative ) ) ( (lv_right_3_0= ruleExprSign ) ) )*
+            loop57:
             do {
-                int alt56=2;
-                int LA56_0 = input.LA(1);
+                int alt57=2;
+                int LA57_0 = input.LA(1);
 
-                if ( (LA56_0==16||(LA56_0>=68 && LA56_0<=71)) ) {
-                    alt56=1;
+                if ( (LA57_0==16||(LA57_0>=68 && LA57_0<=71)) ) {
+                    alt57=1;
                 }
 
 
-                switch (alt56) {
+                switch (alt57) {
             	case 1 :
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2837:2: () ( (lv_op_2_0= ruleOpMultiplicative ) ) ( (lv_right_3_0= ruleExprSign ) )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3029:2: () ( (lv_op_2_0= ruleOpMultiplicative ) ) ( (lv_right_3_0= ruleExprSign ) )
             	    {
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2837:2: ()
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2838:5: 
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3029:2: ()
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3030:5: 
             	    {
 
             	            current = forceCreateModelElementAndSet(
@@ -7608,16 +8097,16 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
             	    }
 
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2843:2: ( (lv_op_2_0= ruleOpMultiplicative ) )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2844:1: (lv_op_2_0= ruleOpMultiplicative )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3035:2: ( (lv_op_2_0= ruleOpMultiplicative ) )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3036:1: (lv_op_2_0= ruleOpMultiplicative )
             	    {
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2844:1: (lv_op_2_0= ruleOpMultiplicative )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2845:3: lv_op_2_0= ruleOpMultiplicative
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3036:1: (lv_op_2_0= ruleOpMultiplicative )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3037:3: lv_op_2_0= ruleOpMultiplicative
             	    {
             	     
             	    	        newCompositeNode(grammarAccess.getExprMultAccess().getOpOpMultiplicativeParserRuleCall_1_1_0()); 
             	    	    
-            	    pushFollow(FOLLOW_ruleOpMultiplicative_in_ruleExprMult6395);
+            	    pushFollow(FOLLOW_ruleOpMultiplicative_in_ruleExprMult6777);
             	    lv_op_2_0=ruleOpMultiplicative();
 
             	    state._fsp--;
@@ -7639,16 +8128,16 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
             	    }
 
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2861:2: ( (lv_right_3_0= ruleExprSign ) )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2862:1: (lv_right_3_0= ruleExprSign )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3053:2: ( (lv_right_3_0= ruleExprSign ) )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3054:1: (lv_right_3_0= ruleExprSign )
             	    {
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2862:1: (lv_right_3_0= ruleExprSign )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2863:3: lv_right_3_0= ruleExprSign
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3054:1: (lv_right_3_0= ruleExprSign )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3055:3: lv_right_3_0= ruleExprSign
             	    {
             	     
             	    	        newCompositeNode(grammarAccess.getExprMultAccess().getRightExprSignParserRuleCall_1_2_0()); 
             	    	    
-            	    pushFollow(FOLLOW_ruleExprSign_in_ruleExprMult6416);
+            	    pushFollow(FOLLOW_ruleExprSign_in_ruleExprMult6798);
             	    lv_right_3_0=ruleExprSign();
 
             	    state._fsp--;
@@ -7675,7 +8164,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
             	    break;
 
             	default :
-            	    break loop56;
+            	    break loop57;
                 }
             } while (true);
 
@@ -7700,7 +8189,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "entryRuleOpMultiplicative"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2887:1: entryRuleOpMultiplicative returns [EObject current=null] : iv_ruleOpMultiplicative= ruleOpMultiplicative EOF ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3079:1: entryRuleOpMultiplicative returns [EObject current=null] : iv_ruleOpMultiplicative= ruleOpMultiplicative EOF ;
     public final EObject entryRuleOpMultiplicative() throws RecognitionException {
         EObject current = null;
 
@@ -7708,17 +8197,17 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2888:2: (iv_ruleOpMultiplicative= ruleOpMultiplicative EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2889:2: iv_ruleOpMultiplicative= ruleOpMultiplicative EOF
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3080:2: (iv_ruleOpMultiplicative= ruleOpMultiplicative EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3081:2: iv_ruleOpMultiplicative= ruleOpMultiplicative EOF
             {
              newCompositeNode(grammarAccess.getOpMultiplicativeRule()); 
-            pushFollow(FOLLOW_ruleOpMultiplicative_in_entryRuleOpMultiplicative6454);
+            pushFollow(FOLLOW_ruleOpMultiplicative_in_entryRuleOpMultiplicative6836);
             iv_ruleOpMultiplicative=ruleOpMultiplicative();
 
             state._fsp--;
 
              current =iv_ruleOpMultiplicative; 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleOpMultiplicative6464); 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleOpMultiplicative6846); 
 
             }
 
@@ -7736,7 +8225,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleOpMultiplicative"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2896:1: ruleOpMultiplicative returns [EObject current=null] : ( ( () otherlv_1= '*' ) | ( () otherlv_3= '/' ) | ( () otherlv_5= '%' ) | ( () otherlv_7= 'mod' ) | ( () otherlv_9= 'div' ) ) ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3088:1: ruleOpMultiplicative returns [EObject current=null] : ( ( () otherlv_1= '*' ) | ( () otherlv_3= '/' ) | ( () otherlv_5= '%' ) | ( () otherlv_7= 'mod' ) | ( () otherlv_9= 'div' ) ) ;
     public final EObject ruleOpMultiplicative() throws RecognitionException {
         EObject current = null;
 
@@ -7749,53 +8238,53 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
          enterRule(); 
             
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2899:28: ( ( ( () otherlv_1= '*' ) | ( () otherlv_3= '/' ) | ( () otherlv_5= '%' ) | ( () otherlv_7= 'mod' ) | ( () otherlv_9= 'div' ) ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2900:1: ( ( () otherlv_1= '*' ) | ( () otherlv_3= '/' ) | ( () otherlv_5= '%' ) | ( () otherlv_7= 'mod' ) | ( () otherlv_9= 'div' ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3091:28: ( ( ( () otherlv_1= '*' ) | ( () otherlv_3= '/' ) | ( () otherlv_5= '%' ) | ( () otherlv_7= 'mod' ) | ( () otherlv_9= 'div' ) ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3092:1: ( ( () otherlv_1= '*' ) | ( () otherlv_3= '/' ) | ( () otherlv_5= '%' ) | ( () otherlv_7= 'mod' ) | ( () otherlv_9= 'div' ) )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2900:1: ( ( () otherlv_1= '*' ) | ( () otherlv_3= '/' ) | ( () otherlv_5= '%' ) | ( () otherlv_7= 'mod' ) | ( () otherlv_9= 'div' ) )
-            int alt57=5;
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3092:1: ( ( () otherlv_1= '*' ) | ( () otherlv_3= '/' ) | ( () otherlv_5= '%' ) | ( () otherlv_7= 'mod' ) | ( () otherlv_9= 'div' ) )
+            int alt58=5;
             switch ( input.LA(1) ) {
             case 16:
                 {
-                alt57=1;
+                alt58=1;
                 }
                 break;
             case 68:
                 {
-                alt57=2;
+                alt58=2;
                 }
                 break;
             case 69:
                 {
-                alt57=3;
+                alt58=3;
                 }
                 break;
             case 70:
                 {
-                alt57=4;
+                alt58=4;
                 }
                 break;
             case 71:
                 {
-                alt57=5;
+                alt58=5;
                 }
                 break;
             default:
                 NoViableAltException nvae =
-                    new NoViableAltException("", 57, 0, input);
+                    new NoViableAltException("", 58, 0, input);
 
                 throw nvae;
             }
 
-            switch (alt57) {
+            switch (alt58) {
                 case 1 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2900:2: ( () otherlv_1= '*' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3092:2: ( () otherlv_1= '*' )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2900:2: ( () otherlv_1= '*' )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2900:3: () otherlv_1= '*'
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3092:2: ( () otherlv_1= '*' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3092:3: () otherlv_1= '*'
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2900:3: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2901:5: 
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3092:3: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3093:5: 
                     {
 
                             current = forceCreateModelElement(
@@ -7805,7 +8294,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    otherlv_1=(Token)match(input,16,FOLLOW_16_in_ruleOpMultiplicative6511); 
+                    otherlv_1=(Token)match(input,16,FOLLOW_16_in_ruleOpMultiplicative6893); 
 
                         	newLeafNode(otherlv_1, grammarAccess.getOpMultiplicativeAccess().getAsteriskKeyword_0_1());
                         
@@ -7816,13 +8305,13 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 2 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2911:6: ( () otherlv_3= '/' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3103:6: ( () otherlv_3= '/' )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2911:6: ( () otherlv_3= '/' )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2911:7: () otherlv_3= '/'
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3103:6: ( () otherlv_3= '/' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3103:7: () otherlv_3= '/'
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2911:7: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2912:5: 
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3103:7: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3104:5: 
                     {
 
                             current = forceCreateModelElement(
@@ -7832,7 +8321,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    otherlv_3=(Token)match(input,68,FOLLOW_68_in_ruleOpMultiplicative6540); 
+                    otherlv_3=(Token)match(input,68,FOLLOW_68_in_ruleOpMultiplicative6922); 
 
                         	newLeafNode(otherlv_3, grammarAccess.getOpMultiplicativeAccess().getSolidusKeyword_1_1());
                         
@@ -7843,13 +8332,13 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 3 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2922:6: ( () otherlv_5= '%' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3114:6: ( () otherlv_5= '%' )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2922:6: ( () otherlv_5= '%' )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2922:7: () otherlv_5= '%'
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3114:6: ( () otherlv_5= '%' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3114:7: () otherlv_5= '%'
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2922:7: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2923:5: 
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3114:7: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3115:5: 
                     {
 
                             current = forceCreateModelElement(
@@ -7859,7 +8348,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    otherlv_5=(Token)match(input,69,FOLLOW_69_in_ruleOpMultiplicative6569); 
+                    otherlv_5=(Token)match(input,69,FOLLOW_69_in_ruleOpMultiplicative6951); 
 
                         	newLeafNode(otherlv_5, grammarAccess.getOpMultiplicativeAccess().getPercentSignKeyword_2_1());
                         
@@ -7870,13 +8359,13 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 4 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2933:6: ( () otherlv_7= 'mod' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3125:6: ( () otherlv_7= 'mod' )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2933:6: ( () otherlv_7= 'mod' )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2933:7: () otherlv_7= 'mod'
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3125:6: ( () otherlv_7= 'mod' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3125:7: () otherlv_7= 'mod'
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2933:7: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2934:5: 
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3125:7: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3126:5: 
                     {
 
                             current = forceCreateModelElement(
@@ -7886,7 +8375,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    otherlv_7=(Token)match(input,70,FOLLOW_70_in_ruleOpMultiplicative6598); 
+                    otherlv_7=(Token)match(input,70,FOLLOW_70_in_ruleOpMultiplicative6980); 
 
                         	newLeafNode(otherlv_7, grammarAccess.getOpMultiplicativeAccess().getModKeyword_3_1());
                         
@@ -7897,13 +8386,13 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 5 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2944:6: ( () otherlv_9= 'div' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3136:6: ( () otherlv_9= 'div' )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2944:6: ( () otherlv_9= 'div' )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2944:7: () otherlv_9= 'div'
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3136:6: ( () otherlv_9= 'div' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3136:7: () otherlv_9= 'div'
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2944:7: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2945:5: 
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3136:7: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3137:5: 
                     {
 
                             current = forceCreateModelElement(
@@ -7913,7 +8402,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    otherlv_9=(Token)match(input,71,FOLLOW_71_in_ruleOpMultiplicative6627); 
+                    otherlv_9=(Token)match(input,71,FOLLOW_71_in_ruleOpMultiplicative7009); 
 
                         	newLeafNode(otherlv_9, grammarAccess.getOpMultiplicativeAccess().getDivKeyword_4_1());
                         
@@ -7944,7 +8433,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "entryRuleExprSign"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2962:1: entryRuleExprSign returns [EObject current=null] : iv_ruleExprSign= ruleExprSign EOF ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3154:1: entryRuleExprSign returns [EObject current=null] : iv_ruleExprSign= ruleExprSign EOF ;
     public final EObject entryRuleExprSign() throws RecognitionException {
         EObject current = null;
 
@@ -7952,17 +8441,17 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2963:2: (iv_ruleExprSign= ruleExprSign EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2964:2: iv_ruleExprSign= ruleExprSign EOF
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3155:2: (iv_ruleExprSign= ruleExprSign EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3156:2: iv_ruleExprSign= ruleExprSign EOF
             {
              newCompositeNode(grammarAccess.getExprSignRule()); 
-            pushFollow(FOLLOW_ruleExprSign_in_entryRuleExprSign6664);
+            pushFollow(FOLLOW_ruleExprSign_in_entryRuleExprSign7046);
             iv_ruleExprSign=ruleExprSign();
 
             state._fsp--;
 
              current =iv_ruleExprSign; 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleExprSign6674); 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleExprSign7056); 
 
             }
 
@@ -7980,7 +8469,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleExprSign"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2971:1: ruleExprSign returns [EObject current=null] : ( ( () ( (lv_op_1_0= ruleOpAdditive ) ) ( (lv_right_2_0= ruleExprNot ) ) ) | this_ExprNot_3= ruleExprNot ) ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3163:1: ruleExprSign returns [EObject current=null] : ( ( () ( (lv_op_1_0= ruleOpAdditive ) ) ( (lv_right_2_0= ruleExprNot ) ) ) | this_ExprNot_3= ruleExprNot ) ;
     public final EObject ruleExprSign() throws RecognitionException {
         EObject current = null;
 
@@ -7994,34 +8483,34 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
          enterRule(); 
             
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2974:28: ( ( ( () ( (lv_op_1_0= ruleOpAdditive ) ) ( (lv_right_2_0= ruleExprNot ) ) ) | this_ExprNot_3= ruleExprNot ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2975:1: ( ( () ( (lv_op_1_0= ruleOpAdditive ) ) ( (lv_right_2_0= ruleExprNot ) ) ) | this_ExprNot_3= ruleExprNot )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3166:28: ( ( ( () ( (lv_op_1_0= ruleOpAdditive ) ) ( (lv_right_2_0= ruleExprNot ) ) ) | this_ExprNot_3= ruleExprNot ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3167:1: ( ( () ( (lv_op_1_0= ruleOpAdditive ) ) ( (lv_right_2_0= ruleExprNot ) ) ) | this_ExprNot_3= ruleExprNot )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2975:1: ( ( () ( (lv_op_1_0= ruleOpAdditive ) ) ( (lv_right_2_0= ruleExprNot ) ) ) | this_ExprNot_3= ruleExprNot )
-            int alt58=2;
-            int LA58_0 = input.LA(1);
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3167:1: ( ( () ( (lv_op_1_0= ruleOpAdditive ) ) ( (lv_right_2_0= ruleExprNot ) ) ) | this_ExprNot_3= ruleExprNot )
+            int alt59=2;
+            int LA59_0 = input.LA(1);
 
-            if ( ((LA58_0>=66 && LA58_0<=67)) ) {
-                alt58=1;
+            if ( ((LA59_0>=66 && LA59_0<=67)) ) {
+                alt59=1;
             }
-            else if ( ((LA58_0>=RULE_ID && LA58_0<=RULE_STRING)||LA58_0==21||LA58_0==40||(LA58_0>=72 && LA58_0<=74)) ) {
-                alt58=2;
+            else if ( ((LA59_0>=RULE_ID && LA59_0<=RULE_STRING)||LA59_0==21||LA59_0==40||(LA59_0>=72 && LA59_0<=74)) ) {
+                alt59=2;
             }
             else {
                 NoViableAltException nvae =
-                    new NoViableAltException("", 58, 0, input);
+                    new NoViableAltException("", 59, 0, input);
 
                 throw nvae;
             }
-            switch (alt58) {
+            switch (alt59) {
                 case 1 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2975:2: ( () ( (lv_op_1_0= ruleOpAdditive ) ) ( (lv_right_2_0= ruleExprNot ) ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3167:2: ( () ( (lv_op_1_0= ruleOpAdditive ) ) ( (lv_right_2_0= ruleExprNot ) ) )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2975:2: ( () ( (lv_op_1_0= ruleOpAdditive ) ) ( (lv_right_2_0= ruleExprNot ) ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2975:3: () ( (lv_op_1_0= ruleOpAdditive ) ) ( (lv_right_2_0= ruleExprNot ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3167:2: ( () ( (lv_op_1_0= ruleOpAdditive ) ) ( (lv_right_2_0= ruleExprNot ) ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3167:3: () ( (lv_op_1_0= ruleOpAdditive ) ) ( (lv_right_2_0= ruleExprNot ) )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2975:3: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2976:5: 
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3167:3: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3168:5: 
                     {
 
                             current = forceCreateModelElement(
@@ -8031,16 +8520,16 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2981:2: ( (lv_op_1_0= ruleOpAdditive ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2982:1: (lv_op_1_0= ruleOpAdditive )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3173:2: ( (lv_op_1_0= ruleOpAdditive ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3174:1: (lv_op_1_0= ruleOpAdditive )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2982:1: (lv_op_1_0= ruleOpAdditive )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2983:3: lv_op_1_0= ruleOpAdditive
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3174:1: (lv_op_1_0= ruleOpAdditive )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3175:3: lv_op_1_0= ruleOpAdditive
                     {
                      
                     	        newCompositeNode(grammarAccess.getExprSignAccess().getOpOpAdditiveParserRuleCall_0_1_0()); 
                     	    
-                    pushFollow(FOLLOW_ruleOpAdditive_in_ruleExprSign6730);
+                    pushFollow(FOLLOW_ruleOpAdditive_in_ruleExprSign7112);
                     lv_op_1_0=ruleOpAdditive();
 
                     state._fsp--;
@@ -8062,16 +8551,16 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:2999:2: ( (lv_right_2_0= ruleExprNot ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3000:1: (lv_right_2_0= ruleExprNot )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3191:2: ( (lv_right_2_0= ruleExprNot ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3192:1: (lv_right_2_0= ruleExprNot )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3000:1: (lv_right_2_0= ruleExprNot )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3001:3: lv_right_2_0= ruleExprNot
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3192:1: (lv_right_2_0= ruleExprNot )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3193:3: lv_right_2_0= ruleExprNot
                     {
                      
                     	        newCompositeNode(grammarAccess.getExprSignAccess().getRightExprNotParserRuleCall_0_2_0()); 
                     	    
-                    pushFollow(FOLLOW_ruleExprNot_in_ruleExprSign6751);
+                    pushFollow(FOLLOW_ruleExprNot_in_ruleExprSign7133);
                     lv_right_2_0=ruleExprNot();
 
                     state._fsp--;
@@ -8100,12 +8589,12 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 2 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3019:5: this_ExprNot_3= ruleExprNot
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3211:5: this_ExprNot_3= ruleExprNot
                     {
                      
                             newCompositeNode(grammarAccess.getExprSignAccess().getExprNotParserRuleCall_1()); 
                         
-                    pushFollow(FOLLOW_ruleExprNot_in_ruleExprSign6780);
+                    pushFollow(FOLLOW_ruleExprNot_in_ruleExprSign7162);
                     this_ExprNot_3=ruleExprNot();
 
                     state._fsp--;
@@ -8138,7 +8627,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "entryRuleExprNot"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3035:1: entryRuleExprNot returns [EObject current=null] : iv_ruleExprNot= ruleExprNot EOF ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3227:1: entryRuleExprNot returns [EObject current=null] : iv_ruleExprNot= ruleExprNot EOF ;
     public final EObject entryRuleExprNot() throws RecognitionException {
         EObject current = null;
 
@@ -8146,17 +8635,17 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3036:2: (iv_ruleExprNot= ruleExprNot EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3037:2: iv_ruleExprNot= ruleExprNot EOF
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3228:2: (iv_ruleExprNot= ruleExprNot EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3229:2: iv_ruleExprNot= ruleExprNot EOF
             {
              newCompositeNode(grammarAccess.getExprNotRule()); 
-            pushFollow(FOLLOW_ruleExprNot_in_entryRuleExprNot6815);
+            pushFollow(FOLLOW_ruleExprNot_in_entryRuleExprNot7197);
             iv_ruleExprNot=ruleExprNot();
 
             state._fsp--;
 
              current =iv_ruleExprNot; 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleExprNot6825); 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleExprNot7207); 
 
             }
 
@@ -8174,7 +8663,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleExprNot"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3044:1: ruleExprNot returns [EObject current=null] : ( ( () otherlv_1= 'not' ( (lv_right_2_0= ruleExprMember ) ) ) | this_ExprMember_3= ruleExprMember ) ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3236:1: ruleExprNot returns [EObject current=null] : ( ( () otherlv_1= 'not' ( (lv_right_2_0= ruleExprMember ) ) ) | this_ExprMember_3= ruleExprMember ) ;
     public final EObject ruleExprNot() throws RecognitionException {
         EObject current = null;
 
@@ -8187,34 +8676,34 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
          enterRule(); 
             
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3047:28: ( ( ( () otherlv_1= 'not' ( (lv_right_2_0= ruleExprMember ) ) ) | this_ExprMember_3= ruleExprMember ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3048:1: ( ( () otherlv_1= 'not' ( (lv_right_2_0= ruleExprMember ) ) ) | this_ExprMember_3= ruleExprMember )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3239:28: ( ( ( () otherlv_1= 'not' ( (lv_right_2_0= ruleExprMember ) ) ) | this_ExprMember_3= ruleExprMember ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3240:1: ( ( () otherlv_1= 'not' ( (lv_right_2_0= ruleExprMember ) ) ) | this_ExprMember_3= ruleExprMember )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3048:1: ( ( () otherlv_1= 'not' ( (lv_right_2_0= ruleExprMember ) ) ) | this_ExprMember_3= ruleExprMember )
-            int alt59=2;
-            int LA59_0 = input.LA(1);
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3240:1: ( ( () otherlv_1= 'not' ( (lv_right_2_0= ruleExprMember ) ) ) | this_ExprMember_3= ruleExprMember )
+            int alt60=2;
+            int LA60_0 = input.LA(1);
 
-            if ( (LA59_0==72) ) {
-                alt59=1;
+            if ( (LA60_0==72) ) {
+                alt60=1;
             }
-            else if ( ((LA59_0>=RULE_ID && LA59_0<=RULE_STRING)||LA59_0==21||LA59_0==40||(LA59_0>=73 && LA59_0<=74)) ) {
-                alt59=2;
+            else if ( ((LA60_0>=RULE_ID && LA60_0<=RULE_STRING)||LA60_0==21||LA60_0==40||(LA60_0>=73 && LA60_0<=74)) ) {
+                alt60=2;
             }
             else {
                 NoViableAltException nvae =
-                    new NoViableAltException("", 59, 0, input);
+                    new NoViableAltException("", 60, 0, input);
 
                 throw nvae;
             }
-            switch (alt59) {
+            switch (alt60) {
                 case 1 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3048:2: ( () otherlv_1= 'not' ( (lv_right_2_0= ruleExprMember ) ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3240:2: ( () otherlv_1= 'not' ( (lv_right_2_0= ruleExprMember ) ) )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3048:2: ( () otherlv_1= 'not' ( (lv_right_2_0= ruleExprMember ) ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3048:3: () otherlv_1= 'not' ( (lv_right_2_0= ruleExprMember ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3240:2: ( () otherlv_1= 'not' ( (lv_right_2_0= ruleExprMember ) ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3240:3: () otherlv_1= 'not' ( (lv_right_2_0= ruleExprMember ) )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3048:3: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3049:5: 
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3240:3: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3241:5: 
                     {
 
                             current = forceCreateModelElement(
@@ -8224,20 +8713,20 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    otherlv_1=(Token)match(input,72,FOLLOW_72_in_ruleExprNot6872); 
+                    otherlv_1=(Token)match(input,72,FOLLOW_72_in_ruleExprNot7254); 
 
                         	newLeafNode(otherlv_1, grammarAccess.getExprNotAccess().getNotKeyword_0_1());
                         
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3058:1: ( (lv_right_2_0= ruleExprMember ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3059:1: (lv_right_2_0= ruleExprMember )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3250:1: ( (lv_right_2_0= ruleExprMember ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3251:1: (lv_right_2_0= ruleExprMember )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3059:1: (lv_right_2_0= ruleExprMember )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3060:3: lv_right_2_0= ruleExprMember
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3251:1: (lv_right_2_0= ruleExprMember )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3252:3: lv_right_2_0= ruleExprMember
                     {
                      
                     	        newCompositeNode(grammarAccess.getExprNotAccess().getRightExprMemberParserRuleCall_0_2_0()); 
                     	    
-                    pushFollow(FOLLOW_ruleExprMember_in_ruleExprNot6893);
+                    pushFollow(FOLLOW_ruleExprMember_in_ruleExprNot7275);
                     lv_right_2_0=ruleExprMember();
 
                     state._fsp--;
@@ -8266,12 +8755,12 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 2 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3078:5: this_ExprMember_3= ruleExprMember
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3270:5: this_ExprMember_3= ruleExprMember
                     {
                      
                             newCompositeNode(grammarAccess.getExprNotAccess().getExprMemberParserRuleCall_1()); 
                         
-                    pushFollow(FOLLOW_ruleExprMember_in_ruleExprNot6922);
+                    pushFollow(FOLLOW_ruleExprMember_in_ruleExprNot7304);
                     this_ExprMember_3=ruleExprMember();
 
                     state._fsp--;
@@ -8304,7 +8793,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "entryRuleExprMember"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3094:1: entryRuleExprMember returns [EObject current=null] : iv_ruleExprMember= ruleExprMember EOF ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3286:1: entryRuleExprMember returns [EObject current=null] : iv_ruleExprMember= ruleExprMember EOF ;
     public final EObject entryRuleExprMember() throws RecognitionException {
         EObject current = null;
 
@@ -8312,17 +8801,17 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3095:2: (iv_ruleExprMember= ruleExprMember EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3096:2: iv_ruleExprMember= ruleExprMember EOF
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3287:2: (iv_ruleExprMember= ruleExprMember EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3288:2: iv_ruleExprMember= ruleExprMember EOF
             {
              newCompositeNode(grammarAccess.getExprMemberRule()); 
-            pushFollow(FOLLOW_ruleExprMember_in_entryRuleExprMember6957);
+            pushFollow(FOLLOW_ruleExprMember_in_entryRuleExprMember7339);
             iv_ruleExprMember=ruleExprMember();
 
             state._fsp--;
 
              current =iv_ruleExprMember; 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleExprMember6967); 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleExprMember7349); 
 
             }
 
@@ -8340,7 +8829,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleExprMember"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3103:1: ruleExprMember returns [EObject current=null] : (this_ExprSingle_0= ruleExprSingle ( () otherlv_2= '.' ( (lv_right_3_0= ruleExprAtomic ) ) )* ) ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3295:1: ruleExprMember returns [EObject current=null] : (this_ExprSingle_0= ruleExprSingle ( () otherlv_2= '.' ( (lv_right_3_0= ruleExprAtomic ) ) )* ) ;
     public final EObject ruleExprMember() throws RecognitionException {
         EObject current = null;
 
@@ -8353,16 +8842,16 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
          enterRule(); 
             
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3106:28: ( (this_ExprSingle_0= ruleExprSingle ( () otherlv_2= '.' ( (lv_right_3_0= ruleExprAtomic ) ) )* ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3107:1: (this_ExprSingle_0= ruleExprSingle ( () otherlv_2= '.' ( (lv_right_3_0= ruleExprAtomic ) ) )* )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3298:28: ( (this_ExprSingle_0= ruleExprSingle ( () otherlv_2= '.' ( (lv_right_3_0= ruleExprAtomic ) ) )* ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3299:1: (this_ExprSingle_0= ruleExprSingle ( () otherlv_2= '.' ( (lv_right_3_0= ruleExprAtomic ) ) )* )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3107:1: (this_ExprSingle_0= ruleExprSingle ( () otherlv_2= '.' ( (lv_right_3_0= ruleExprAtomic ) ) )* )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3108:5: this_ExprSingle_0= ruleExprSingle ( () otherlv_2= '.' ( (lv_right_3_0= ruleExprAtomic ) ) )*
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3299:1: (this_ExprSingle_0= ruleExprSingle ( () otherlv_2= '.' ( (lv_right_3_0= ruleExprAtomic ) ) )* )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3300:5: this_ExprSingle_0= ruleExprSingle ( () otherlv_2= '.' ( (lv_right_3_0= ruleExprAtomic ) ) )*
             {
              
                     newCompositeNode(grammarAccess.getExprMemberAccess().getExprSingleParserRuleCall_0()); 
                 
-            pushFollow(FOLLOW_ruleExprSingle_in_ruleExprMember7014);
+            pushFollow(FOLLOW_ruleExprSingle_in_ruleExprMember7396);
             this_ExprSingle_0=ruleExprSingle();
 
             state._fsp--;
@@ -8371,23 +8860,23 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     current = this_ExprSingle_0; 
                     afterParserOrEnumRuleCall();
                 
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3116:1: ( () otherlv_2= '.' ( (lv_right_3_0= ruleExprAtomic ) ) )*
-            loop60:
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3308:1: ( () otherlv_2= '.' ( (lv_right_3_0= ruleExprAtomic ) ) )*
+            loop61:
             do {
-                int alt60=2;
-                int LA60_0 = input.LA(1);
+                int alt61=2;
+                int LA61_0 = input.LA(1);
 
-                if ( (LA60_0==15) ) {
-                    alt60=1;
+                if ( (LA61_0==15) ) {
+                    alt61=1;
                 }
 
 
-                switch (alt60) {
+                switch (alt61) {
             	case 1 :
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3116:2: () otherlv_2= '.' ( (lv_right_3_0= ruleExprAtomic ) )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3308:2: () otherlv_2= '.' ( (lv_right_3_0= ruleExprAtomic ) )
             	    {
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3116:2: ()
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3117:5: 
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3308:2: ()
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3309:5: 
             	    {
 
             	            current = forceCreateModelElementAndSet(
@@ -8397,20 +8886,20 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
             	    }
 
-            	    otherlv_2=(Token)match(input,15,FOLLOW_15_in_ruleExprMember7035); 
+            	    otherlv_2=(Token)match(input,15,FOLLOW_15_in_ruleExprMember7417); 
 
             	        	newLeafNode(otherlv_2, grammarAccess.getExprMemberAccess().getFullStopKeyword_1_1());
             	        
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3126:1: ( (lv_right_3_0= ruleExprAtomic ) )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3127:1: (lv_right_3_0= ruleExprAtomic )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3318:1: ( (lv_right_3_0= ruleExprAtomic ) )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3319:1: (lv_right_3_0= ruleExprAtomic )
             	    {
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3127:1: (lv_right_3_0= ruleExprAtomic )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3128:3: lv_right_3_0= ruleExprAtomic
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3319:1: (lv_right_3_0= ruleExprAtomic )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3320:3: lv_right_3_0= ruleExprAtomic
             	    {
             	     
             	    	        newCompositeNode(grammarAccess.getExprMemberAccess().getRightExprAtomicParserRuleCall_1_2_0()); 
             	    	    
-            	    pushFollow(FOLLOW_ruleExprAtomic_in_ruleExprMember7056);
+            	    pushFollow(FOLLOW_ruleExprAtomic_in_ruleExprMember7438);
             	    lv_right_3_0=ruleExprAtomic();
 
             	    state._fsp--;
@@ -8437,7 +8926,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
             	    break;
 
             	default :
-            	    break loop60;
+            	    break loop61;
                 }
             } while (true);
 
@@ -8462,7 +8951,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "entryRuleExprSingle"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3152:1: entryRuleExprSingle returns [EObject current=null] : iv_ruleExprSingle= ruleExprSingle EOF ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3344:1: entryRuleExprSingle returns [EObject current=null] : iv_ruleExprSingle= ruleExprSingle EOF ;
     public final EObject entryRuleExprSingle() throws RecognitionException {
         EObject current = null;
 
@@ -8470,17 +8959,17 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3153:2: (iv_ruleExprSingle= ruleExprSingle EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3154:2: iv_ruleExprSingle= ruleExprSingle EOF
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3345:2: (iv_ruleExprSingle= ruleExprSingle EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3346:2: iv_ruleExprSingle= ruleExprSingle EOF
             {
              newCompositeNode(grammarAccess.getExprSingleRule()); 
-            pushFollow(FOLLOW_ruleExprSingle_in_entryRuleExprSingle7094);
+            pushFollow(FOLLOW_ruleExprSingle_in_entryRuleExprSingle7476);
             iv_ruleExprSingle=ruleExprSingle();
 
             state._fsp--;
 
              current =iv_ruleExprSingle; 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleExprSingle7104); 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleExprSingle7486); 
 
             }
 
@@ -8498,7 +8987,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleExprSingle"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3161:1: ruleExprSingle returns [EObject current=null] : (this_ExprAtomic_0= ruleExprAtomic | (otherlv_1= '(' this_Expr_2= ruleExpr otherlv_3= ')' ) | ( () ( (lv_intVal_5_0= RULE_INT ) ) ) | ( () ( (lv_numVal_7_0= ruleNumber ) ) ) | ( () ( (lv_strVal_9_0= RULE_STRING ) ) ) | ( () ( ( (lv_boolVal_11_1= 'true' | lv_boolVal_11_2= 'false' ) ) ) ) ) ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3353:1: ruleExprSingle returns [EObject current=null] : (this_ExprAtomic_0= ruleExprAtomic | (otherlv_1= '(' this_Expr_2= ruleExpr otherlv_3= ')' ) | ( () ( (lv_intVal_5_0= RULE_INT ) ) ) | ( () ( (lv_numVal_7_0= ruleNumber ) ) ) | ( () ( (lv_strVal_9_0= RULE_STRING ) ) ) | ( () ( ( (lv_boolVal_11_1= 'true' | lv_boolVal_11_2= 'false' ) ) ) ) ) ;
     public final EObject ruleExprSingle() throws RecognitionException {
         EObject current = null;
 
@@ -8518,49 +9007,49 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
          enterRule(); 
             
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3164:28: ( (this_ExprAtomic_0= ruleExprAtomic | (otherlv_1= '(' this_Expr_2= ruleExpr otherlv_3= ')' ) | ( () ( (lv_intVal_5_0= RULE_INT ) ) ) | ( () ( (lv_numVal_7_0= ruleNumber ) ) ) | ( () ( (lv_strVal_9_0= RULE_STRING ) ) ) | ( () ( ( (lv_boolVal_11_1= 'true' | lv_boolVal_11_2= 'false' ) ) ) ) ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3165:1: (this_ExprAtomic_0= ruleExprAtomic | (otherlv_1= '(' this_Expr_2= ruleExpr otherlv_3= ')' ) | ( () ( (lv_intVal_5_0= RULE_INT ) ) ) | ( () ( (lv_numVal_7_0= ruleNumber ) ) ) | ( () ( (lv_strVal_9_0= RULE_STRING ) ) ) | ( () ( ( (lv_boolVal_11_1= 'true' | lv_boolVal_11_2= 'false' ) ) ) ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3356:28: ( (this_ExprAtomic_0= ruleExprAtomic | (otherlv_1= '(' this_Expr_2= ruleExpr otherlv_3= ')' ) | ( () ( (lv_intVal_5_0= RULE_INT ) ) ) | ( () ( (lv_numVal_7_0= ruleNumber ) ) ) | ( () ( (lv_strVal_9_0= RULE_STRING ) ) ) | ( () ( ( (lv_boolVal_11_1= 'true' | lv_boolVal_11_2= 'false' ) ) ) ) ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3357:1: (this_ExprAtomic_0= ruleExprAtomic | (otherlv_1= '(' this_Expr_2= ruleExpr otherlv_3= ')' ) | ( () ( (lv_intVal_5_0= RULE_INT ) ) ) | ( () ( (lv_numVal_7_0= ruleNumber ) ) ) | ( () ( (lv_strVal_9_0= RULE_STRING ) ) ) | ( () ( ( (lv_boolVal_11_1= 'true' | lv_boolVal_11_2= 'false' ) ) ) ) )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3165:1: (this_ExprAtomic_0= ruleExprAtomic | (otherlv_1= '(' this_Expr_2= ruleExpr otherlv_3= ')' ) | ( () ( (lv_intVal_5_0= RULE_INT ) ) ) | ( () ( (lv_numVal_7_0= ruleNumber ) ) ) | ( () ( (lv_strVal_9_0= RULE_STRING ) ) ) | ( () ( ( (lv_boolVal_11_1= 'true' | lv_boolVal_11_2= 'false' ) ) ) ) )
-            int alt62=6;
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3357:1: (this_ExprAtomic_0= ruleExprAtomic | (otherlv_1= '(' this_Expr_2= ruleExpr otherlv_3= ')' ) | ( () ( (lv_intVal_5_0= RULE_INT ) ) ) | ( () ( (lv_numVal_7_0= ruleNumber ) ) ) | ( () ( (lv_strVal_9_0= RULE_STRING ) ) ) | ( () ( ( (lv_boolVal_11_1= 'true' | lv_boolVal_11_2= 'false' ) ) ) ) )
+            int alt63=6;
             switch ( input.LA(1) ) {
             case RULE_ID:
             case 40:
                 {
-                alt62=1;
+                alt63=1;
                 }
                 break;
             case 21:
                 {
-                alt62=2;
+                alt63=2;
                 }
                 break;
             case RULE_INT:
                 {
-                int LA62_3 = input.LA(2);
+                int LA63_3 = input.LA(2);
 
-                if ( (LA62_3==15) ) {
-                    int LA62_6 = input.LA(3);
+                if ( (LA63_3==15) ) {
+                    int LA63_6 = input.LA(3);
 
-                    if ( (LA62_6==RULE_INT) ) {
-                        alt62=4;
+                    if ( (LA63_6==RULE_ID||LA63_6==40) ) {
+                        alt63=3;
                     }
-                    else if ( (LA62_6==RULE_ID||LA62_6==40) ) {
-                        alt62=3;
+                    else if ( (LA63_6==RULE_INT) ) {
+                        alt63=4;
                     }
                     else {
                         NoViableAltException nvae =
-                            new NoViableAltException("", 62, 6, input);
+                            new NoViableAltException("", 63, 6, input);
 
                         throw nvae;
                     }
                 }
-                else if ( (LA62_3==EOF||LA62_3==RULE_NL||LA62_3==16||(LA62_3>=22 && LA62_3<=23)||LA62_3==32||LA62_3==48||(LA62_3>=56 && LA62_3<=71)) ) {
-                    alt62=3;
+                else if ( (LA63_3==EOF||LA63_3==RULE_NL||LA63_3==16||(LA63_3>=22 && LA63_3<=23)||LA63_3==32||LA63_3==47||(LA63_3>=56 && LA63_3<=71)) ) {
+                    alt63=3;
                 }
                 else {
                     NoViableAltException nvae =
-                        new NoViableAltException("", 62, 3, input);
+                        new NoViableAltException("", 63, 3, input);
 
                     throw nvae;
                 }
@@ -8568,30 +9057,30 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                 break;
             case RULE_STRING:
                 {
-                alt62=5;
+                alt63=5;
                 }
                 break;
             case 73:
             case 74:
                 {
-                alt62=6;
+                alt63=6;
                 }
                 break;
             default:
                 NoViableAltException nvae =
-                    new NoViableAltException("", 62, 0, input);
+                    new NoViableAltException("", 63, 0, input);
 
                 throw nvae;
             }
 
-            switch (alt62) {
+            switch (alt63) {
                 case 1 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3166:5: this_ExprAtomic_0= ruleExprAtomic
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3358:5: this_ExprAtomic_0= ruleExprAtomic
                     {
                      
                             newCompositeNode(grammarAccess.getExprSingleAccess().getExprAtomicParserRuleCall_0()); 
                         
-                    pushFollow(FOLLOW_ruleExprAtomic_in_ruleExprSingle7151);
+                    pushFollow(FOLLOW_ruleExprAtomic_in_ruleExprSingle7533);
                     this_ExprAtomic_0=ruleExprAtomic();
 
                     state._fsp--;
@@ -8604,19 +9093,19 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 2 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3175:6: (otherlv_1= '(' this_Expr_2= ruleExpr otherlv_3= ')' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3367:6: (otherlv_1= '(' this_Expr_2= ruleExpr otherlv_3= ')' )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3175:6: (otherlv_1= '(' this_Expr_2= ruleExpr otherlv_3= ')' )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3175:8: otherlv_1= '(' this_Expr_2= ruleExpr otherlv_3= ')'
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3367:6: (otherlv_1= '(' this_Expr_2= ruleExpr otherlv_3= ')' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3367:8: otherlv_1= '(' this_Expr_2= ruleExpr otherlv_3= ')'
                     {
-                    otherlv_1=(Token)match(input,21,FOLLOW_21_in_ruleExprSingle7169); 
+                    otherlv_1=(Token)match(input,21,FOLLOW_21_in_ruleExprSingle7551); 
 
                         	newLeafNode(otherlv_1, grammarAccess.getExprSingleAccess().getLeftParenthesisKeyword_1_0());
                         
                      
                             newCompositeNode(grammarAccess.getExprSingleAccess().getExprParserRuleCall_1_1()); 
                         
-                    pushFollow(FOLLOW_ruleExpr_in_ruleExprSingle7191);
+                    pushFollow(FOLLOW_ruleExpr_in_ruleExprSingle7573);
                     this_Expr_2=ruleExpr();
 
                     state._fsp--;
@@ -8625,7 +9114,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                             current = this_Expr_2; 
                             afterParserOrEnumRuleCall();
                         
-                    otherlv_3=(Token)match(input,23,FOLLOW_23_in_ruleExprSingle7202); 
+                    otherlv_3=(Token)match(input,23,FOLLOW_23_in_ruleExprSingle7584); 
 
                         	newLeafNode(otherlv_3, grammarAccess.getExprSingleAccess().getRightParenthesisKeyword_1_2());
                         
@@ -8636,13 +9125,13 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 3 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3193:6: ( () ( (lv_intVal_5_0= RULE_INT ) ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3385:6: ( () ( (lv_intVal_5_0= RULE_INT ) ) )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3193:6: ( () ( (lv_intVal_5_0= RULE_INT ) ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3193:7: () ( (lv_intVal_5_0= RULE_INT ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3385:6: ( () ( (lv_intVal_5_0= RULE_INT ) ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3385:7: () ( (lv_intVal_5_0= RULE_INT ) )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3193:7: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3194:5: 
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3385:7: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3386:5: 
                     {
 
                             current = forceCreateModelElement(
@@ -8652,13 +9141,13 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3199:2: ( (lv_intVal_5_0= RULE_INT ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3200:1: (lv_intVal_5_0= RULE_INT )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3391:2: ( (lv_intVal_5_0= RULE_INT ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3392:1: (lv_intVal_5_0= RULE_INT )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3200:1: (lv_intVal_5_0= RULE_INT )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3201:3: lv_intVal_5_0= RULE_INT
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3392:1: (lv_intVal_5_0= RULE_INT )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3393:3: lv_intVal_5_0= RULE_INT
                     {
-                    lv_intVal_5_0=(Token)match(input,RULE_INT,FOLLOW_RULE_INT_in_ruleExprSingle7236); 
+                    lv_intVal_5_0=(Token)match(input,RULE_INT,FOLLOW_RULE_INT_in_ruleExprSingle7618); 
 
                     			newLeafNode(lv_intVal_5_0, grammarAccess.getExprSingleAccess().getIntValINTTerminalRuleCall_2_1_0()); 
                     		
@@ -8685,13 +9174,13 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 4 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3218:6: ( () ( (lv_numVal_7_0= ruleNumber ) ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3410:6: ( () ( (lv_numVal_7_0= ruleNumber ) ) )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3218:6: ( () ( (lv_numVal_7_0= ruleNumber ) ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3218:7: () ( (lv_numVal_7_0= ruleNumber ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3410:6: ( () ( (lv_numVal_7_0= ruleNumber ) ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3410:7: () ( (lv_numVal_7_0= ruleNumber ) )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3218:7: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3219:5: 
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3410:7: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3411:5: 
                     {
 
                             current = forceCreateModelElement(
@@ -8701,16 +9190,16 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3224:2: ( (lv_numVal_7_0= ruleNumber ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3225:1: (lv_numVal_7_0= ruleNumber )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3416:2: ( (lv_numVal_7_0= ruleNumber ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3417:1: (lv_numVal_7_0= ruleNumber )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3225:1: (lv_numVal_7_0= ruleNumber )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3226:3: lv_numVal_7_0= ruleNumber
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3417:1: (lv_numVal_7_0= ruleNumber )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3418:3: lv_numVal_7_0= ruleNumber
                     {
                      
                     	        newCompositeNode(grammarAccess.getExprSingleAccess().getNumValNumberParserRuleCall_3_1_0()); 
                     	    
-                    pushFollow(FOLLOW_ruleNumber_in_ruleExprSingle7279);
+                    pushFollow(FOLLOW_ruleNumber_in_ruleExprSingle7661);
                     lv_numVal_7_0=ruleNumber();
 
                     state._fsp--;
@@ -8739,13 +9228,13 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 5 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3243:6: ( () ( (lv_strVal_9_0= RULE_STRING ) ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3435:6: ( () ( (lv_strVal_9_0= RULE_STRING ) ) )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3243:6: ( () ( (lv_strVal_9_0= RULE_STRING ) ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3243:7: () ( (lv_strVal_9_0= RULE_STRING ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3435:6: ( () ( (lv_strVal_9_0= RULE_STRING ) ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3435:7: () ( (lv_strVal_9_0= RULE_STRING ) )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3243:7: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3244:5: 
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3435:7: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3436:5: 
                     {
 
                             current = forceCreateModelElement(
@@ -8755,13 +9244,13 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3249:2: ( (lv_strVal_9_0= RULE_STRING ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3250:1: (lv_strVal_9_0= RULE_STRING )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3441:2: ( (lv_strVal_9_0= RULE_STRING ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3442:1: (lv_strVal_9_0= RULE_STRING )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3250:1: (lv_strVal_9_0= RULE_STRING )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3251:3: lv_strVal_9_0= RULE_STRING
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3442:1: (lv_strVal_9_0= RULE_STRING )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3443:3: lv_strVal_9_0= RULE_STRING
                     {
-                    lv_strVal_9_0=(Token)match(input,RULE_STRING,FOLLOW_RULE_STRING_in_ruleExprSingle7313); 
+                    lv_strVal_9_0=(Token)match(input,RULE_STRING,FOLLOW_RULE_STRING_in_ruleExprSingle7695); 
 
                     			newLeafNode(lv_strVal_9_0, grammarAccess.getExprSingleAccess().getStrValSTRINGTerminalRuleCall_4_1_0()); 
                     		
@@ -8788,13 +9277,13 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 6 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3268:6: ( () ( ( (lv_boolVal_11_1= 'true' | lv_boolVal_11_2= 'false' ) ) ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3460:6: ( () ( ( (lv_boolVal_11_1= 'true' | lv_boolVal_11_2= 'false' ) ) ) )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3268:6: ( () ( ( (lv_boolVal_11_1= 'true' | lv_boolVal_11_2= 'false' ) ) ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3268:7: () ( ( (lv_boolVal_11_1= 'true' | lv_boolVal_11_2= 'false' ) ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3460:6: ( () ( ( (lv_boolVal_11_1= 'true' | lv_boolVal_11_2= 'false' ) ) ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3460:7: () ( ( (lv_boolVal_11_1= 'true' | lv_boolVal_11_2= 'false' ) ) )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3268:7: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3269:5: 
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3460:7: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3461:5: 
                     {
 
                             current = forceCreateModelElement(
@@ -8804,33 +9293,33 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3274:2: ( ( (lv_boolVal_11_1= 'true' | lv_boolVal_11_2= 'false' ) ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3275:1: ( (lv_boolVal_11_1= 'true' | lv_boolVal_11_2= 'false' ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3466:2: ( ( (lv_boolVal_11_1= 'true' | lv_boolVal_11_2= 'false' ) ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3467:1: ( (lv_boolVal_11_1= 'true' | lv_boolVal_11_2= 'false' ) )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3275:1: ( (lv_boolVal_11_1= 'true' | lv_boolVal_11_2= 'false' ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3276:1: (lv_boolVal_11_1= 'true' | lv_boolVal_11_2= 'false' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3467:1: ( (lv_boolVal_11_1= 'true' | lv_boolVal_11_2= 'false' ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3468:1: (lv_boolVal_11_1= 'true' | lv_boolVal_11_2= 'false' )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3276:1: (lv_boolVal_11_1= 'true' | lv_boolVal_11_2= 'false' )
-                    int alt61=2;
-                    int LA61_0 = input.LA(1);
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3468:1: (lv_boolVal_11_1= 'true' | lv_boolVal_11_2= 'false' )
+                    int alt62=2;
+                    int LA62_0 = input.LA(1);
 
-                    if ( (LA61_0==73) ) {
-                        alt61=1;
+                    if ( (LA62_0==73) ) {
+                        alt62=1;
                     }
-                    else if ( (LA61_0==74) ) {
-                        alt61=2;
+                    else if ( (LA62_0==74) ) {
+                        alt62=2;
                     }
                     else {
                         NoViableAltException nvae =
-                            new NoViableAltException("", 61, 0, input);
+                            new NoViableAltException("", 62, 0, input);
 
                         throw nvae;
                     }
-                    switch (alt61) {
+                    switch (alt62) {
                         case 1 :
-                            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3277:3: lv_boolVal_11_1= 'true'
+                            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3469:3: lv_boolVal_11_1= 'true'
                             {
-                            lv_boolVal_11_1=(Token)match(input,73,FOLLOW_73_in_ruleExprSingle7355); 
+                            lv_boolVal_11_1=(Token)match(input,73,FOLLOW_73_in_ruleExprSingle7737); 
 
                                     newLeafNode(lv_boolVal_11_1, grammarAccess.getExprSingleAccess().getBoolValTrueKeyword_5_1_0_0());
                                 
@@ -8844,9 +9333,9 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                             }
                             break;
                         case 2 :
-                            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3289:8: lv_boolVal_11_2= 'false'
+                            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3481:8: lv_boolVal_11_2= 'false'
                             {
-                            lv_boolVal_11_2=(Token)match(input,74,FOLLOW_74_in_ruleExprSingle7384); 
+                            lv_boolVal_11_2=(Token)match(input,74,FOLLOW_74_in_ruleExprSingle7766); 
 
                                     newLeafNode(lv_boolVal_11_2, grammarAccess.getExprSingleAccess().getBoolValFalseKeyword_5_1_0_1());
                                 
@@ -8895,7 +9384,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "entryRuleNumber"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3312:1: entryRuleNumber returns [String current=null] : iv_ruleNumber= ruleNumber EOF ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3504:1: entryRuleNumber returns [String current=null] : iv_ruleNumber= ruleNumber EOF ;
     public final String entryRuleNumber() throws RecognitionException {
         String current = null;
 
@@ -8903,17 +9392,17 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3313:2: (iv_ruleNumber= ruleNumber EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3314:2: iv_ruleNumber= ruleNumber EOF
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3505:2: (iv_ruleNumber= ruleNumber EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3506:2: iv_ruleNumber= ruleNumber EOF
             {
              newCompositeNode(grammarAccess.getNumberRule()); 
-            pushFollow(FOLLOW_ruleNumber_in_entryRuleNumber7438);
+            pushFollow(FOLLOW_ruleNumber_in_entryRuleNumber7820);
             iv_ruleNumber=ruleNumber();
 
             state._fsp--;
 
              current =iv_ruleNumber.getText(); 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleNumber7449); 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleNumber7831); 
 
             }
 
@@ -8931,7 +9420,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleNumber"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3321:1: ruleNumber returns [AntlrDatatypeRuleToken current=new AntlrDatatypeRuleToken()] : (this_INT_0= RULE_INT kw= '.' this_INT_2= RULE_INT ) ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3513:1: ruleNumber returns [AntlrDatatypeRuleToken current=new AntlrDatatypeRuleToken()] : (this_INT_0= RULE_INT kw= '.' this_INT_2= RULE_INT ) ;
     public final AntlrDatatypeRuleToken ruleNumber() throws RecognitionException {
         AntlrDatatypeRuleToken current = new AntlrDatatypeRuleToken();
 
@@ -8942,25 +9431,25 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
          enterRule(); 
             
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3324:28: ( (this_INT_0= RULE_INT kw= '.' this_INT_2= RULE_INT ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3325:1: (this_INT_0= RULE_INT kw= '.' this_INT_2= RULE_INT )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3516:28: ( (this_INT_0= RULE_INT kw= '.' this_INT_2= RULE_INT ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3517:1: (this_INT_0= RULE_INT kw= '.' this_INT_2= RULE_INT )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3325:1: (this_INT_0= RULE_INT kw= '.' this_INT_2= RULE_INT )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3325:6: this_INT_0= RULE_INT kw= '.' this_INT_2= RULE_INT
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3517:1: (this_INT_0= RULE_INT kw= '.' this_INT_2= RULE_INT )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3517:6: this_INT_0= RULE_INT kw= '.' this_INT_2= RULE_INT
             {
-            this_INT_0=(Token)match(input,RULE_INT,FOLLOW_RULE_INT_in_ruleNumber7489); 
+            this_INT_0=(Token)match(input,RULE_INT,FOLLOW_RULE_INT_in_ruleNumber7871); 
 
             		current.merge(this_INT_0);
                 
              
                 newLeafNode(this_INT_0, grammarAccess.getNumberAccess().getINTTerminalRuleCall_0()); 
                 
-            kw=(Token)match(input,15,FOLLOW_15_in_ruleNumber7507); 
+            kw=(Token)match(input,15,FOLLOW_15_in_ruleNumber7889); 
 
                     current.merge(kw);
                     newLeafNode(kw, grammarAccess.getNumberAccess().getFullStopKeyword_1()); 
                 
-            this_INT_2=(Token)match(input,RULE_INT,FOLLOW_RULE_INT_in_ruleNumber7522); 
+            this_INT_2=(Token)match(input,RULE_INT,FOLLOW_RULE_INT_in_ruleNumber7904); 
 
             		current.merge(this_INT_2);
                 
@@ -8988,7 +9477,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "entryRuleExprAtomic"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3353:1: entryRuleExprAtomic returns [EObject current=null] : iv_ruleExprAtomic= ruleExprAtomic EOF ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3545:1: entryRuleExprAtomic returns [EObject current=null] : iv_ruleExprAtomic= ruleExprAtomic EOF ;
     public final EObject entryRuleExprAtomic() throws RecognitionException {
         EObject current = null;
 
@@ -8996,17 +9485,17 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3354:2: (iv_ruleExprAtomic= ruleExprAtomic EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3355:2: iv_ruleExprAtomic= ruleExprAtomic EOF
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3546:2: (iv_ruleExprAtomic= ruleExprAtomic EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3547:2: iv_ruleExprAtomic= ruleExprAtomic EOF
             {
              newCompositeNode(grammarAccess.getExprAtomicRule()); 
-            pushFollow(FOLLOW_ruleExprAtomic_in_entryRuleExprAtomic7567);
+            pushFollow(FOLLOW_ruleExprAtomic_in_entryRuleExprAtomic7949);
             iv_ruleExprAtomic=ruleExprAtomic();
 
             state._fsp--;
 
              current =iv_ruleExprAtomic; 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleExprAtomic7577); 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleExprAtomic7959); 
 
             }
 
@@ -9024,7 +9513,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleExprAtomic"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3362:1: ruleExprAtomic returns [EObject current=null] : (this_ExprFunctionCall_0= ruleExprFunctionCall | ( () otherlv_2= 'function' ( (otherlv_3= RULE_ID ) ) ) | ( () ( (otherlv_5= RULE_ID ) ) ) ) ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3554:1: ruleExprAtomic returns [EObject current=null] : (this_ExprFunctionCall_0= ruleExprFunctionCall | ( () otherlv_2= 'function' ( (otherlv_3= RULE_ID ) ) ) | ( () ( (otherlv_5= RULE_ID ) ) ) ) ;
     public final EObject ruleExprAtomic() throws RecognitionException {
         EObject current = null;
 
@@ -9037,46 +9526,46 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
          enterRule(); 
             
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3365:28: ( (this_ExprFunctionCall_0= ruleExprFunctionCall | ( () otherlv_2= 'function' ( (otherlv_3= RULE_ID ) ) ) | ( () ( (otherlv_5= RULE_ID ) ) ) ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3366:1: (this_ExprFunctionCall_0= ruleExprFunctionCall | ( () otherlv_2= 'function' ( (otherlv_3= RULE_ID ) ) ) | ( () ( (otherlv_5= RULE_ID ) ) ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3557:28: ( (this_ExprFunctionCall_0= ruleExprFunctionCall | ( () otherlv_2= 'function' ( (otherlv_3= RULE_ID ) ) ) | ( () ( (otherlv_5= RULE_ID ) ) ) ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3558:1: (this_ExprFunctionCall_0= ruleExprFunctionCall | ( () otherlv_2= 'function' ( (otherlv_3= RULE_ID ) ) ) | ( () ( (otherlv_5= RULE_ID ) ) ) )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3366:1: (this_ExprFunctionCall_0= ruleExprFunctionCall | ( () otherlv_2= 'function' ( (otherlv_3= RULE_ID ) ) ) | ( () ( (otherlv_5= RULE_ID ) ) ) )
-            int alt63=3;
-            int LA63_0 = input.LA(1);
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3558:1: (this_ExprFunctionCall_0= ruleExprFunctionCall | ( () otherlv_2= 'function' ( (otherlv_3= RULE_ID ) ) ) | ( () ( (otherlv_5= RULE_ID ) ) ) )
+            int alt64=3;
+            int LA64_0 = input.LA(1);
 
-            if ( (LA63_0==RULE_ID) ) {
-                int LA63_1 = input.LA(2);
+            if ( (LA64_0==RULE_ID) ) {
+                int LA64_1 = input.LA(2);
 
-                if ( (LA63_1==21) ) {
-                    alt63=1;
+                if ( (LA64_1==EOF||LA64_1==RULE_NL||(LA64_1>=15 && LA64_1<=16)||(LA64_1>=22 && LA64_1<=23)||LA64_1==32||LA64_1==47||(LA64_1>=56 && LA64_1<=71)) ) {
+                    alt64=3;
                 }
-                else if ( (LA63_1==EOF||LA63_1==RULE_NL||(LA63_1>=15 && LA63_1<=16)||(LA63_1>=22 && LA63_1<=23)||LA63_1==32||LA63_1==48||(LA63_1>=56 && LA63_1<=71)) ) {
-                    alt63=3;
+                else if ( (LA64_1==21) ) {
+                    alt64=1;
                 }
                 else {
                     NoViableAltException nvae =
-                        new NoViableAltException("", 63, 1, input);
+                        new NoViableAltException("", 64, 1, input);
 
                     throw nvae;
                 }
             }
-            else if ( (LA63_0==40) ) {
-                alt63=2;
+            else if ( (LA64_0==40) ) {
+                alt64=2;
             }
             else {
                 NoViableAltException nvae =
-                    new NoViableAltException("", 63, 0, input);
+                    new NoViableAltException("", 64, 0, input);
 
                 throw nvae;
             }
-            switch (alt63) {
+            switch (alt64) {
                 case 1 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3367:5: this_ExprFunctionCall_0= ruleExprFunctionCall
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3559:5: this_ExprFunctionCall_0= ruleExprFunctionCall
                     {
                      
                             newCompositeNode(grammarAccess.getExprAtomicAccess().getExprFunctionCallParserRuleCall_0()); 
                         
-                    pushFollow(FOLLOW_ruleExprFunctionCall_in_ruleExprAtomic7624);
+                    pushFollow(FOLLOW_ruleExprFunctionCall_in_ruleExprAtomic8006);
                     this_ExprFunctionCall_0=ruleExprFunctionCall();
 
                     state._fsp--;
@@ -9089,13 +9578,13 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 2 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3376:6: ( () otherlv_2= 'function' ( (otherlv_3= RULE_ID ) ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3568:6: ( () otherlv_2= 'function' ( (otherlv_3= RULE_ID ) ) )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3376:6: ( () otherlv_2= 'function' ( (otherlv_3= RULE_ID ) ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3376:7: () otherlv_2= 'function' ( (otherlv_3= RULE_ID ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3568:6: ( () otherlv_2= 'function' ( (otherlv_3= RULE_ID ) ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3568:7: () otherlv_2= 'function' ( (otherlv_3= RULE_ID ) )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3376:7: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3377:5: 
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3568:7: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3569:5: 
                     {
 
                             current = forceCreateModelElement(
@@ -9105,22 +9594,22 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    otherlv_2=(Token)match(input,40,FOLLOW_40_in_ruleExprAtomic7651); 
+                    otherlv_2=(Token)match(input,40,FOLLOW_40_in_ruleExprAtomic8033); 
 
                         	newLeafNode(otherlv_2, grammarAccess.getExprAtomicAccess().getFunctionKeyword_1_1());
                         
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3386:1: ( (otherlv_3= RULE_ID ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3387:1: (otherlv_3= RULE_ID )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3578:1: ( (otherlv_3= RULE_ID ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3579:1: (otherlv_3= RULE_ID )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3387:1: (otherlv_3= RULE_ID )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3388:3: otherlv_3= RULE_ID
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3579:1: (otherlv_3= RULE_ID )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3580:3: otherlv_3= RULE_ID
                     {
 
                     			if (current==null) {
                     	            current = createModelElement(grammarAccess.getExprAtomicRule());
                     	        }
                             
-                    otherlv_3=(Token)match(input,RULE_ID,FOLLOW_RULE_ID_in_ruleExprAtomic7671); 
+                    otherlv_3=(Token)match(input,RULE_ID,FOLLOW_RULE_ID_in_ruleExprAtomic8053); 
 
                     		newLeafNode(otherlv_3, grammarAccess.getExprAtomicAccess().getNameValFuncDefCrossReference_1_2_0()); 
                     	
@@ -9137,13 +9626,13 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 3 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3400:6: ( () ( (otherlv_5= RULE_ID ) ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3592:6: ( () ( (otherlv_5= RULE_ID ) ) )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3400:6: ( () ( (otherlv_5= RULE_ID ) ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3400:7: () ( (otherlv_5= RULE_ID ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3592:6: ( () ( (otherlv_5= RULE_ID ) ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3592:7: () ( (otherlv_5= RULE_ID ) )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3400:7: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3401:5: 
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3592:7: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3593:5: 
                     {
 
                             current = forceCreateModelElement(
@@ -9153,18 +9642,18 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3406:2: ( (otherlv_5= RULE_ID ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3407:1: (otherlv_5= RULE_ID )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3598:2: ( (otherlv_5= RULE_ID ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3599:1: (otherlv_5= RULE_ID )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3407:1: (otherlv_5= RULE_ID )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3408:3: otherlv_5= RULE_ID
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3599:1: (otherlv_5= RULE_ID )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3600:3: otherlv_5= RULE_ID
                     {
 
                     			if (current==null) {
                     	            current = createModelElement(grammarAccess.getExprAtomicRule());
                     	        }
                             
-                    otherlv_5=(Token)match(input,RULE_ID,FOLLOW_RULE_ID_in_ruleExprAtomic7708); 
+                    otherlv_5=(Token)match(input,RULE_ID,FOLLOW_RULE_ID_in_ruleExprAtomic8090); 
 
                     		newLeafNode(otherlv_5, grammarAccess.getExprAtomicAccess().getNameValVarDefCrossReference_2_1_0()); 
                     	
@@ -9201,7 +9690,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "entryRuleExprFunctionCall"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3427:1: entryRuleExprFunctionCall returns [EObject current=null] : iv_ruleExprFunctionCall= ruleExprFunctionCall EOF ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3619:1: entryRuleExprFunctionCall returns [EObject current=null] : iv_ruleExprFunctionCall= ruleExprFunctionCall EOF ;
     public final EObject entryRuleExprFunctionCall() throws RecognitionException {
         EObject current = null;
 
@@ -9209,17 +9698,17 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3428:2: (iv_ruleExprFunctionCall= ruleExprFunctionCall EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3429:2: iv_ruleExprFunctionCall= ruleExprFunctionCall EOF
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3620:2: (iv_ruleExprFunctionCall= ruleExprFunctionCall EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3621:2: iv_ruleExprFunctionCall= ruleExprFunctionCall EOF
             {
              newCompositeNode(grammarAccess.getExprFunctionCallRule()); 
-            pushFollow(FOLLOW_ruleExprFunctionCall_in_entryRuleExprFunctionCall7745);
+            pushFollow(FOLLOW_ruleExprFunctionCall_in_entryRuleExprFunctionCall8127);
             iv_ruleExprFunctionCall=ruleExprFunctionCall();
 
             state._fsp--;
 
              current =iv_ruleExprFunctionCall; 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleExprFunctionCall7755); 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleExprFunctionCall8137); 
 
             }
 
@@ -9237,7 +9726,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleExprFunctionCall"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3436:1: ruleExprFunctionCall returns [EObject current=null] : ( ( () ( (otherlv_1= RULE_ID ) ) ( (lv_parameters_2_0= ruleExprList ) ) ) | ( () ( (otherlv_4= RULE_ID ) ) otherlv_5= '(' otherlv_6= ')' ) ) ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3628:1: ruleExprFunctionCall returns [EObject current=null] : ( ( () ( (otherlv_1= RULE_ID ) ) ( (lv_parameters_2_0= ruleExprList ) ) ) | ( () ( (otherlv_4= RULE_ID ) ) otherlv_5= '(' otherlv_6= ')' ) ) ;
     public final EObject ruleExprFunctionCall() throws RecognitionException {
         EObject current = null;
 
@@ -9251,54 +9740,54 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
          enterRule(); 
             
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3439:28: ( ( ( () ( (otherlv_1= RULE_ID ) ) ( (lv_parameters_2_0= ruleExprList ) ) ) | ( () ( (otherlv_4= RULE_ID ) ) otherlv_5= '(' otherlv_6= ')' ) ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3440:1: ( ( () ( (otherlv_1= RULE_ID ) ) ( (lv_parameters_2_0= ruleExprList ) ) ) | ( () ( (otherlv_4= RULE_ID ) ) otherlv_5= '(' otherlv_6= ')' ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3631:28: ( ( ( () ( (otherlv_1= RULE_ID ) ) ( (lv_parameters_2_0= ruleExprList ) ) ) | ( () ( (otherlv_4= RULE_ID ) ) otherlv_5= '(' otherlv_6= ')' ) ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3632:1: ( ( () ( (otherlv_1= RULE_ID ) ) ( (lv_parameters_2_0= ruleExprList ) ) ) | ( () ( (otherlv_4= RULE_ID ) ) otherlv_5= '(' otherlv_6= ')' ) )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3440:1: ( ( () ( (otherlv_1= RULE_ID ) ) ( (lv_parameters_2_0= ruleExprList ) ) ) | ( () ( (otherlv_4= RULE_ID ) ) otherlv_5= '(' otherlv_6= ')' ) )
-            int alt64=2;
-            int LA64_0 = input.LA(1);
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3632:1: ( ( () ( (otherlv_1= RULE_ID ) ) ( (lv_parameters_2_0= ruleExprList ) ) ) | ( () ( (otherlv_4= RULE_ID ) ) otherlv_5= '(' otherlv_6= ')' ) )
+            int alt65=2;
+            int LA65_0 = input.LA(1);
 
-            if ( (LA64_0==RULE_ID) ) {
-                int LA64_1 = input.LA(2);
+            if ( (LA65_0==RULE_ID) ) {
+                int LA65_1 = input.LA(2);
 
-                if ( (LA64_1==21) ) {
-                    int LA64_2 = input.LA(3);
+                if ( (LA65_1==21) ) {
+                    int LA65_2 = input.LA(3);
 
-                    if ( ((LA64_2>=RULE_ID && LA64_2<=RULE_STRING)||LA64_2==21||LA64_2==40||(LA64_2>=66 && LA64_2<=67)||(LA64_2>=72 && LA64_2<=74)) ) {
-                        alt64=1;
+                    if ( (LA65_2==23) ) {
+                        alt65=2;
                     }
-                    else if ( (LA64_2==23) ) {
-                        alt64=2;
+                    else if ( ((LA65_2>=RULE_ID && LA65_2<=RULE_STRING)||LA65_2==21||LA65_2==40||(LA65_2>=66 && LA65_2<=67)||(LA65_2>=72 && LA65_2<=74)) ) {
+                        alt65=1;
                     }
                     else {
                         NoViableAltException nvae =
-                            new NoViableAltException("", 64, 2, input);
+                            new NoViableAltException("", 65, 2, input);
 
                         throw nvae;
                     }
                 }
                 else {
                     NoViableAltException nvae =
-                        new NoViableAltException("", 64, 1, input);
+                        new NoViableAltException("", 65, 1, input);
 
                     throw nvae;
                 }
             }
             else {
                 NoViableAltException nvae =
-                    new NoViableAltException("", 64, 0, input);
+                    new NoViableAltException("", 65, 0, input);
 
                 throw nvae;
             }
-            switch (alt64) {
+            switch (alt65) {
                 case 1 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3440:2: ( () ( (otherlv_1= RULE_ID ) ) ( (lv_parameters_2_0= ruleExprList ) ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3632:2: ( () ( (otherlv_1= RULE_ID ) ) ( (lv_parameters_2_0= ruleExprList ) ) )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3440:2: ( () ( (otherlv_1= RULE_ID ) ) ( (lv_parameters_2_0= ruleExprList ) ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3440:3: () ( (otherlv_1= RULE_ID ) ) ( (lv_parameters_2_0= ruleExprList ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3632:2: ( () ( (otherlv_1= RULE_ID ) ) ( (lv_parameters_2_0= ruleExprList ) ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3632:3: () ( (otherlv_1= RULE_ID ) ) ( (lv_parameters_2_0= ruleExprList ) )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3440:3: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3441:5: 
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3632:3: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3633:5: 
                     {
 
                             current = forceCreateModelElement(
@@ -9308,18 +9797,18 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3446:2: ( (otherlv_1= RULE_ID ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3447:1: (otherlv_1= RULE_ID )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3638:2: ( (otherlv_1= RULE_ID ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3639:1: (otherlv_1= RULE_ID )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3447:1: (otherlv_1= RULE_ID )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3448:3: otherlv_1= RULE_ID
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3639:1: (otherlv_1= RULE_ID )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3640:3: otherlv_1= RULE_ID
                     {
 
                     			if (current==null) {
                     	            current = createModelElement(grammarAccess.getExprFunctionCallRule());
                     	        }
                             
-                    otherlv_1=(Token)match(input,RULE_ID,FOLLOW_RULE_ID_in_ruleExprFunctionCall7810); 
+                    otherlv_1=(Token)match(input,RULE_ID,FOLLOW_RULE_ID_in_ruleExprFunctionCall8192); 
 
                     		newLeafNode(otherlv_1, grammarAccess.getExprFunctionCallAccess().getNameValFuncDefCrossReference_0_1_0()); 
                     	
@@ -9329,16 +9818,16 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3459:2: ( (lv_parameters_2_0= ruleExprList ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3460:1: (lv_parameters_2_0= ruleExprList )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3651:2: ( (lv_parameters_2_0= ruleExprList ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3652:1: (lv_parameters_2_0= ruleExprList )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3460:1: (lv_parameters_2_0= ruleExprList )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3461:3: lv_parameters_2_0= ruleExprList
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3652:1: (lv_parameters_2_0= ruleExprList )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3653:3: lv_parameters_2_0= ruleExprList
                     {
                      
                     	        newCompositeNode(grammarAccess.getExprFunctionCallAccess().getParametersExprListParserRuleCall_0_2_0()); 
                     	    
-                    pushFollow(FOLLOW_ruleExprList_in_ruleExprFunctionCall7831);
+                    pushFollow(FOLLOW_ruleExprList_in_ruleExprFunctionCall8213);
                     lv_parameters_2_0=ruleExprList();
 
                     state._fsp--;
@@ -9367,13 +9856,13 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 2 :
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3478:6: ( () ( (otherlv_4= RULE_ID ) ) otherlv_5= '(' otherlv_6= ')' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3670:6: ( () ( (otherlv_4= RULE_ID ) ) otherlv_5= '(' otherlv_6= ')' )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3478:6: ( () ( (otherlv_4= RULE_ID ) ) otherlv_5= '(' otherlv_6= ')' )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3478:7: () ( (otherlv_4= RULE_ID ) ) otherlv_5= '(' otherlv_6= ')'
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3670:6: ( () ( (otherlv_4= RULE_ID ) ) otherlv_5= '(' otherlv_6= ')' )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3670:7: () ( (otherlv_4= RULE_ID ) ) otherlv_5= '(' otherlv_6= ')'
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3478:7: ()
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3479:5: 
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3670:7: ()
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3671:5: 
                     {
 
                             current = forceCreateModelElement(
@@ -9383,18 +9872,18 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3484:2: ( (otherlv_4= RULE_ID ) )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3485:1: (otherlv_4= RULE_ID )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3676:2: ( (otherlv_4= RULE_ID ) )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3677:1: (otherlv_4= RULE_ID )
                     {
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3485:1: (otherlv_4= RULE_ID )
-                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3486:3: otherlv_4= RULE_ID
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3677:1: (otherlv_4= RULE_ID )
+                    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3678:3: otherlv_4= RULE_ID
                     {
 
                     			if (current==null) {
                     	            current = createModelElement(grammarAccess.getExprFunctionCallRule());
                     	        }
                             
-                    otherlv_4=(Token)match(input,RULE_ID,FOLLOW_RULE_ID_in_ruleExprFunctionCall7868); 
+                    otherlv_4=(Token)match(input,RULE_ID,FOLLOW_RULE_ID_in_ruleExprFunctionCall8250); 
 
                     		newLeafNode(otherlv_4, grammarAccess.getExprFunctionCallAccess().getNameValFuncDefCrossReference_1_1_0()); 
                     	
@@ -9404,11 +9893,11 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
                     }
 
-                    otherlv_5=(Token)match(input,21,FOLLOW_21_in_ruleExprFunctionCall7880); 
+                    otherlv_5=(Token)match(input,21,FOLLOW_21_in_ruleExprFunctionCall8262); 
 
                         	newLeafNode(otherlv_5, grammarAccess.getExprFunctionCallAccess().getLeftParenthesisKeyword_1_2());
                         
-                    otherlv_6=(Token)match(input,23,FOLLOW_23_in_ruleExprFunctionCall7892); 
+                    otherlv_6=(Token)match(input,23,FOLLOW_23_in_ruleExprFunctionCall8274); 
 
                         	newLeafNode(otherlv_6, grammarAccess.getExprFunctionCallAccess().getRightParenthesisKeyword_1_3());
                         
@@ -9439,7 +9928,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "entryRuleExprList"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3513:1: entryRuleExprList returns [EObject current=null] : iv_ruleExprList= ruleExprList EOF ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3705:1: entryRuleExprList returns [EObject current=null] : iv_ruleExprList= ruleExprList EOF ;
     public final EObject entryRuleExprList() throws RecognitionException {
         EObject current = null;
 
@@ -9447,17 +9936,17 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3514:2: (iv_ruleExprList= ruleExprList EOF )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3515:2: iv_ruleExprList= ruleExprList EOF
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3706:2: (iv_ruleExprList= ruleExprList EOF )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3707:2: iv_ruleExprList= ruleExprList EOF
             {
              newCompositeNode(grammarAccess.getExprListRule()); 
-            pushFollow(FOLLOW_ruleExprList_in_entryRuleExprList7929);
+            pushFollow(FOLLOW_ruleExprList_in_entryRuleExprList8311);
             iv_ruleExprList=ruleExprList();
 
             state._fsp--;
 
              current =iv_ruleExprList; 
-            match(input,EOF,FOLLOW_EOF_in_entryRuleExprList7939); 
+            match(input,EOF,FOLLOW_EOF_in_entryRuleExprList8321); 
 
             }
 
@@ -9475,7 +9964,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleExprList"
-    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3522:1: ruleExprList returns [EObject current=null] : (otherlv_0= '(' ( (lv_params_1_0= ruleExpr ) ) (otherlv_2= ',' ( (lv_params_3_0= ruleExpr ) ) )* otherlv_4= ')' ) ;
+    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3714:1: ruleExprList returns [EObject current=null] : (otherlv_0= '(' ( (lv_params_1_0= ruleExpr ) ) (otherlv_2= ',' ( (lv_params_3_0= ruleExpr ) ) )* otherlv_4= ')' ) ;
     public final EObject ruleExprList() throws RecognitionException {
         EObject current = null;
 
@@ -9490,26 +9979,26 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
          enterRule(); 
             
         try {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3525:28: ( (otherlv_0= '(' ( (lv_params_1_0= ruleExpr ) ) (otherlv_2= ',' ( (lv_params_3_0= ruleExpr ) ) )* otherlv_4= ')' ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3526:1: (otherlv_0= '(' ( (lv_params_1_0= ruleExpr ) ) (otherlv_2= ',' ( (lv_params_3_0= ruleExpr ) ) )* otherlv_4= ')' )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3717:28: ( (otherlv_0= '(' ( (lv_params_1_0= ruleExpr ) ) (otherlv_2= ',' ( (lv_params_3_0= ruleExpr ) ) )* otherlv_4= ')' ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3718:1: (otherlv_0= '(' ( (lv_params_1_0= ruleExpr ) ) (otherlv_2= ',' ( (lv_params_3_0= ruleExpr ) ) )* otherlv_4= ')' )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3526:1: (otherlv_0= '(' ( (lv_params_1_0= ruleExpr ) ) (otherlv_2= ',' ( (lv_params_3_0= ruleExpr ) ) )* otherlv_4= ')' )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3526:3: otherlv_0= '(' ( (lv_params_1_0= ruleExpr ) ) (otherlv_2= ',' ( (lv_params_3_0= ruleExpr ) ) )* otherlv_4= ')'
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3718:1: (otherlv_0= '(' ( (lv_params_1_0= ruleExpr ) ) (otherlv_2= ',' ( (lv_params_3_0= ruleExpr ) ) )* otherlv_4= ')' )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3718:3: otherlv_0= '(' ( (lv_params_1_0= ruleExpr ) ) (otherlv_2= ',' ( (lv_params_3_0= ruleExpr ) ) )* otherlv_4= ')'
             {
-            otherlv_0=(Token)match(input,21,FOLLOW_21_in_ruleExprList7976); 
+            otherlv_0=(Token)match(input,21,FOLLOW_21_in_ruleExprList8358); 
 
                 	newLeafNode(otherlv_0, grammarAccess.getExprListAccess().getLeftParenthesisKeyword_0());
                 
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3530:1: ( (lv_params_1_0= ruleExpr ) )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3531:1: (lv_params_1_0= ruleExpr )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3722:1: ( (lv_params_1_0= ruleExpr ) )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3723:1: (lv_params_1_0= ruleExpr )
             {
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3531:1: (lv_params_1_0= ruleExpr )
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3532:3: lv_params_1_0= ruleExpr
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3723:1: (lv_params_1_0= ruleExpr )
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3724:3: lv_params_1_0= ruleExpr
             {
              
             	        newCompositeNode(grammarAccess.getExprListAccess().getParamsExprParserRuleCall_1_0()); 
             	    
-            pushFollow(FOLLOW_ruleExpr_in_ruleExprList7997);
+            pushFollow(FOLLOW_ruleExpr_in_ruleExprList8379);
             lv_params_1_0=ruleExpr();
 
             state._fsp--;
@@ -9531,35 +10020,35 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
 
             }
 
-            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3548:2: (otherlv_2= ',' ( (lv_params_3_0= ruleExpr ) ) )*
-            loop65:
+            // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3740:2: (otherlv_2= ',' ( (lv_params_3_0= ruleExpr ) ) )*
+            loop66:
             do {
-                int alt65=2;
-                int LA65_0 = input.LA(1);
+                int alt66=2;
+                int LA66_0 = input.LA(1);
 
-                if ( (LA65_0==22) ) {
-                    alt65=1;
+                if ( (LA66_0==22) ) {
+                    alt66=1;
                 }
 
 
-                switch (alt65) {
+                switch (alt66) {
             	case 1 :
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3548:4: otherlv_2= ',' ( (lv_params_3_0= ruleExpr ) )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3740:4: otherlv_2= ',' ( (lv_params_3_0= ruleExpr ) )
             	    {
-            	    otherlv_2=(Token)match(input,22,FOLLOW_22_in_ruleExprList8010); 
+            	    otherlv_2=(Token)match(input,22,FOLLOW_22_in_ruleExprList8392); 
 
             	        	newLeafNode(otherlv_2, grammarAccess.getExprListAccess().getCommaKeyword_2_0());
             	        
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3552:1: ( (lv_params_3_0= ruleExpr ) )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3553:1: (lv_params_3_0= ruleExpr )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3744:1: ( (lv_params_3_0= ruleExpr ) )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3745:1: (lv_params_3_0= ruleExpr )
             	    {
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3553:1: (lv_params_3_0= ruleExpr )
-            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3554:3: lv_params_3_0= ruleExpr
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3745:1: (lv_params_3_0= ruleExpr )
+            	    // ../de.peeeq.Pscript2/src-gen/de/peeeq/pscript/parser/antlr/internal/InternalPscript.g:3746:3: lv_params_3_0= ruleExpr
             	    {
             	     
             	    	        newCompositeNode(grammarAccess.getExprListAccess().getParamsExprParserRuleCall_2_1_0()); 
             	    	    
-            	    pushFollow(FOLLOW_ruleExpr_in_ruleExprList8031);
+            	    pushFollow(FOLLOW_ruleExpr_in_ruleExprList8413);
             	    lv_params_3_0=ruleExpr();
 
             	    state._fsp--;
@@ -9586,11 +10075,11 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
             	    break;
 
             	default :
-            	    break loop65;
+            	    break loop66;
                 }
             } while (true);
 
-            otherlv_4=(Token)match(input,23,FOLLOW_23_in_ruleExprList8045); 
+            otherlv_4=(Token)match(input,23,FOLLOW_23_in_ruleExprList8427); 
 
                 	newLeafNode(otherlv_4, grammarAccess.getExprListAccess().getRightParenthesisKeyword_3());
                 
@@ -9710,7 +10199,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
     public static final BitSet FOLLOW_ruleNativeFunc_in_ruleEntity871 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_ruleInitBlock_in_entryRuleInitBlock906 = new BitSet(new long[]{0x0000000000000000L});
     public static final BitSet FOLLOW_EOF_in_entryRuleInitBlock916 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_17_in_ruleInitBlock959 = new BitSet(new long[]{0x00D0DD00802400F0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_17_in_ruleInitBlock959 = new BitSet(new long[]{0x00E86DFC802C00F0L,0x000000000000070CL});
     public static final BitSet FOLLOW_ruleStatements_in_ruleInitBlock993 = new BitSet(new long[]{0x0000000000040000L});
     public static final BitSet FOLLOW_18_in_ruleInitBlock1005 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_ruleTypeDef_in_entryRuleTypeDef1041 = new BitSet(new long[]{0x0000000000000000L});
@@ -9763,16 +10252,16 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
     public static final BitSet FOLLOW_31_in_ruleVarDef2095 = new BitSet(new long[]{0x000000FC00080020L});
     public static final BitSet FOLLOW_ruleTypeExpr_in_ruleVarDef2129 = new BitSet(new long[]{0x0000000000000020L});
     public static final BitSet FOLLOW_RULE_ID_in_ruleVarDef2147 = new BitSet(new long[]{0x0000000100000000L});
-    public static final BitSet FOLLOW_32_in_ruleVarDef2164 = new BitSet(new long[]{0x00C00100002000E0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_32_in_ruleVarDef2164 = new BitSet(new long[]{0x000001FC002800E0L,0x000000000000070CL});
     public static final BitSet FOLLOW_ruleExpr_in_ruleVarDef2185 = new BitSet(new long[]{0x0000000000000010L});
     public static final BitSet FOLLOW_19_in_ruleVarDef2211 = new BitSet(new long[]{0x000000FC00080020L});
     public static final BitSet FOLLOW_ruleTypeExpr_in_ruleVarDef2246 = new BitSet(new long[]{0x0000000000000020L});
     public static final BitSet FOLLOW_RULE_ID_in_ruleVarDef2263 = new BitSet(new long[]{0x0000000100000010L});
-    public static final BitSet FOLLOW_32_in_ruleVarDef2281 = new BitSet(new long[]{0x00C00100002000E0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_32_in_ruleVarDef2281 = new BitSet(new long[]{0x000001FC002800E0L,0x000000000000070CL});
     public static final BitSet FOLLOW_ruleExpr_in_ruleVarDef2302 = new BitSet(new long[]{0x0000000000000010L});
     public static final BitSet FOLLOW_33_in_ruleVarDef2324 = new BitSet(new long[]{0x0000000000000020L});
     public static final BitSet FOLLOW_RULE_ID_in_ruleVarDef2341 = new BitSet(new long[]{0x0000000100000000L});
-    public static final BitSet FOLLOW_32_in_ruleVarDef2358 = new BitSet(new long[]{0x00C00100002000E0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_32_in_ruleVarDef2358 = new BitSet(new long[]{0x000001FC002800E0L,0x000000000000070CL});
     public static final BitSet FOLLOW_ruleExpr_in_ruleVarDef2379 = new BitSet(new long[]{0x0000000000000010L});
     public static final BitSet FOLLOW_RULE_NL_in_ruleVarDef2392 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_ruleTypeExpr_in_entryRuleTypeExpr2427 = new BitSet(new long[]{0x0000000000000000L});
@@ -9803,7 +10292,7 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
     public static final BitSet FOLLOW_ruleTypeExpr_in_ruleFuncDef3028 = new BitSet(new long[]{0x0000000000000010L});
     public static final BitSet FOLLOW_26_in_ruleFuncDef3048 = new BitSet(new long[]{0x0000000002000000L});
     public static final BitSet FOLLOW_25_in_ruleFuncDef3060 = new BitSet(new long[]{0x0000000000000010L});
-    public static final BitSet FOLLOW_RULE_NL_in_ruleFuncDef3074 = new BitSet(new long[]{0x00D0DF00802000F0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_RULE_NL_in_ruleFuncDef3074 = new BitSet(new long[]{0x00E86FFC802800F0L,0x000000000000070CL});
     public static final BitSet FOLLOW_ruleStatements_in_ruleFuncDef3094 = new BitSet(new long[]{0x0000020000000000L});
     public static final BitSet FOLLOW_41_in_ruleFuncDef3106 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_ruleParameterDef_in_entryRuleParameterDef3142 = new BitSet(new long[]{0x0000000000000000L});
@@ -9812,185 +10301,201 @@ public class InternalPscriptParser extends AbstractInternalAntlrParser {
     public static final BitSet FOLLOW_RULE_ID_in_ruleParameterDef3224 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_ruleStatements_in_entryRuleStatements3265 = new BitSet(new long[]{0x0000000000000000L});
     public static final BitSet FOLLOW_EOF_in_entryRuleStatements3275 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_RULE_NL_in_ruleStatements3321 = new BitSet(new long[]{0x00D0DD00802000F2L,0x000000000000070CL});
-    public static final BitSet FOLLOW_ruleStatement_in_ruleStatements3347 = new BitSet(new long[]{0x00D0DD00802000F2L,0x000000000000070CL});
+    public static final BitSet FOLLOW_RULE_NL_in_ruleStatements3321 = new BitSet(new long[]{0x00E86DFC802800F2L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleStatement_in_ruleStatements3347 = new BitSet(new long[]{0x00E86DFC802800F2L,0x000000000000070CL});
     public static final BitSet FOLLOW_ruleStatement_in_entryRuleStatement3385 = new BitSet(new long[]{0x0000000000000000L});
     public static final BitSet FOLLOW_EOF_in_entryRuleStatement3395 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_ruleStmtIf_in_ruleStatement3442 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_ruleStmtWhile_in_ruleStatement3469 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_ruleLocalVarDef_in_ruleStatement3496 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleStmtSetOrCall_in_ruleStatement3523 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleStmtReturn_in_ruleStatement3550 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleStmtLoop_in_ruleStatement3577 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleStmtExitwhen_in_ruleStatement3604 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleLocalVarDef_in_entryRuleLocalVarDef3639 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleLocalVarDef3649 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_42_in_ruleLocalVarDef3696 = new BitSet(new long[]{0x000000FC00080020L});
-    public static final BitSet FOLLOW_31_in_ruleLocalVarDef3720 = new BitSet(new long[]{0x000000FC00080020L});
-    public static final BitSet FOLLOW_ruleTypeExpr_in_ruleLocalVarDef3755 = new BitSet(new long[]{0x0000000000000020L});
-    public static final BitSet FOLLOW_RULE_ID_in_ruleLocalVarDef3773 = new BitSet(new long[]{0x0000000100000010L});
-    public static final BitSet FOLLOW_32_in_ruleLocalVarDef3791 = new BitSet(new long[]{0x00C00100002000E0L,0x000000000000070CL});
-    public static final BitSet FOLLOW_ruleExpr_in_ruleLocalVarDef3812 = new BitSet(new long[]{0x0000000000000010L});
-    public static final BitSet FOLLOW_RULE_NL_in_ruleLocalVarDef3825 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleStmtExitwhen_in_entryRuleStmtExitwhen3860 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleStmtExitwhen3870 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_43_in_ruleStmtExitwhen3907 = new BitSet(new long[]{0x00C00100002000E0L,0x000000000000070CL});
-    public static final BitSet FOLLOW_ruleExpr_in_ruleStmtExitwhen3928 = new BitSet(new long[]{0x0000000000000010L});
-    public static final BitSet FOLLOW_RULE_NL_in_ruleStmtExitwhen3939 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleStmtLoop_in_entryRuleStmtLoop3974 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleStmtLoop3984 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_44_in_ruleStmtLoop4021 = new BitSet(new long[]{0x0000000000000010L});
-    public static final BitSet FOLLOW_RULE_NL_in_ruleStmtLoop4032 = new BitSet(new long[]{0x00D0FD00802000F0L,0x000000000000070CL});
-    public static final BitSet FOLLOW_ruleStatements_in_ruleStmtLoop4052 = new BitSet(new long[]{0x0000200000000000L});
-    public static final BitSet FOLLOW_45_in_ruleStmtLoop4064 = new BitSet(new long[]{0x0000000000000010L});
-    public static final BitSet FOLLOW_RULE_NL_in_ruleStmtLoop4075 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleStmtReturn_in_entryRuleStmtReturn4110 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleStmtReturn4120 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_46_in_ruleStmtReturn4166 = new BitSet(new long[]{0x00C00100002000F0L,0x000000000000070CL});
-    public static final BitSet FOLLOW_ruleExpr_in_ruleStmtReturn4187 = new BitSet(new long[]{0x0000000000000010L});
-    public static final BitSet FOLLOW_RULE_NL_in_ruleStmtReturn4199 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleStmtIf_in_entryRuleStmtIf4234 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleStmtIf4244 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_47_in_ruleStmtIf4281 = new BitSet(new long[]{0x00C00100002000E0L,0x000000000000070CL});
-    public static final BitSet FOLLOW_ruleExpr_in_ruleStmtIf4302 = new BitSet(new long[]{0x0001000000000010L});
-    public static final BitSet FOLLOW_48_in_ruleStmtIf4315 = new BitSet(new long[]{0x0000000000000010L});
-    public static final BitSet FOLLOW_RULE_NL_in_ruleStmtIf4328 = new BitSet(new long[]{0x00DEDD00802000F0L,0x000000000000070CL});
-    public static final BitSet FOLLOW_ruleStatements_in_ruleStmtIf4348 = new BitSet(new long[]{0x000E000000000000L});
-    public static final BitSet FOLLOW_49_in_ruleStmtIf4361 = new BitSet(new long[]{0x00C00100002000E0L,0x000000000000070CL});
-    public static final BitSet FOLLOW_ruleExpr_in_ruleStmtIf4382 = new BitSet(new long[]{0x0001000000000010L});
-    public static final BitSet FOLLOW_48_in_ruleStmtIf4395 = new BitSet(new long[]{0x0000000000000010L});
-    public static final BitSet FOLLOW_RULE_NL_in_ruleStmtIf4408 = new BitSet(new long[]{0x00DEDD00802000F0L,0x000000000000070CL});
-    public static final BitSet FOLLOW_ruleStatements_in_ruleStmtIf4428 = new BitSet(new long[]{0x000E000000000000L});
-    public static final BitSet FOLLOW_50_in_ruleStmtIf4443 = new BitSet(new long[]{0x0000000000000010L});
-    public static final BitSet FOLLOW_RULE_NL_in_ruleStmtIf4454 = new BitSet(new long[]{0x00D8DD00802000F0L,0x000000000000070CL});
-    public static final BitSet FOLLOW_ruleStatements_in_ruleStmtIf4474 = new BitSet(new long[]{0x0008000000000000L});
-    public static final BitSet FOLLOW_51_in_ruleStmtIf4488 = new BitSet(new long[]{0x0000000000000010L});
-    public static final BitSet FOLLOW_RULE_NL_in_ruleStmtIf4499 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleStmtWhile_in_entryRuleStmtWhile4534 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleStmtWhile4544 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_52_in_ruleStmtWhile4581 = new BitSet(new long[]{0x00C00100002000E0L,0x000000000000070CL});
-    public static final BitSet FOLLOW_ruleExpr_in_ruleStmtWhile4602 = new BitSet(new long[]{0x0000000000000010L});
-    public static final BitSet FOLLOW_RULE_NL_in_ruleStmtWhile4613 = new BitSet(new long[]{0x00F0DD00802000F0L,0x000000000000070CL});
-    public static final BitSet FOLLOW_ruleStatements_in_ruleStmtWhile4633 = new BitSet(new long[]{0x0020000000000000L});
-    public static final BitSet FOLLOW_53_in_ruleStmtWhile4645 = new BitSet(new long[]{0x0000000000000010L});
-    public static final BitSet FOLLOW_RULE_NL_in_ruleStmtWhile4656 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleStmtSetOrCall_in_entryRuleStmtSetOrCall4691 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleStmtSetOrCall4701 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_54_in_ruleStmtSetOrCall4748 = new BitSet(new long[]{0x00C00100002000E0L,0x000000000000070CL});
-    public static final BitSet FOLLOW_55_in_ruleStmtSetOrCall4766 = new BitSet(new long[]{0x00C00100002000E0L,0x000000000000070CL});
-    public static final BitSet FOLLOW_ruleExpr_in_ruleStmtSetOrCall4789 = new BitSet(new long[]{0x0300000100000010L});
-    public static final BitSet FOLLOW_ruleOpAssignment_in_ruleStmtSetOrCall4820 = new BitSet(new long[]{0x00C00100002000E0L,0x000000000000070CL});
-    public static final BitSet FOLLOW_ruleExpr_in_ruleStmtSetOrCall4841 = new BitSet(new long[]{0x0000000000000010L});
-    public static final BitSet FOLLOW_RULE_NL_in_ruleStmtSetOrCall4854 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleOpAssignment_in_entryRuleOpAssignment4889 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleOpAssignment4899 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_32_in_ruleOpAssignment4946 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_56_in_ruleOpAssignment4975 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_57_in_ruleOpAssignment5004 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleExpr_in_entryRuleExpr5041 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleExpr5051 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleExprOr_in_ruleExpr5097 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleExprOr_in_entryRuleExprOr5131 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleExprOr5141 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleExprAnd_in_ruleExprOr5188 = new BitSet(new long[]{0x0400000000000002L});
-    public static final BitSet FOLLOW_58_in_ruleExprOr5215 = new BitSet(new long[]{0x00C00100002000E0L,0x000000000000070CL});
-    public static final BitSet FOLLOW_ruleExprAnd_in_ruleExprOr5249 = new BitSet(new long[]{0x0400000000000002L});
-    public static final BitSet FOLLOW_ruleExprAnd_in_entryRuleExprAnd5287 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleExprAnd5297 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleExprEquality_in_ruleExprAnd5344 = new BitSet(new long[]{0x0800000000000002L});
-    public static final BitSet FOLLOW_59_in_ruleExprAnd5371 = new BitSet(new long[]{0x00C00100002000E0L,0x000000000000070CL});
-    public static final BitSet FOLLOW_ruleExprEquality_in_ruleExprAnd5405 = new BitSet(new long[]{0x0800000000000002L});
-    public static final BitSet FOLLOW_ruleExprEquality_in_entryRuleExprEquality5443 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleExprEquality5453 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleExprComparison_in_ruleExprEquality5500 = new BitSet(new long[]{0x3000000000000002L});
-    public static final BitSet FOLLOW_ruleOpEquality_in_ruleExprEquality5530 = new BitSet(new long[]{0x00C00100002000E0L,0x000000000000070CL});
-    public static final BitSet FOLLOW_ruleExprComparison_in_ruleExprEquality5551 = new BitSet(new long[]{0x3000000000000002L});
-    public static final BitSet FOLLOW_ruleOpEquality_in_entryRuleOpEquality5589 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleOpEquality5599 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_60_in_ruleOpEquality5646 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_61_in_ruleOpEquality5675 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleExprComparison_in_entryRuleExprComparison5712 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleExprComparison5722 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleExprAdditive_in_ruleExprComparison5769 = new BitSet(new long[]{0xC000000000000002L,0x0000000000000003L});
-    public static final BitSet FOLLOW_ruleOpComparison_in_ruleExprComparison5799 = new BitSet(new long[]{0x00C00100002000E0L,0x000000000000070CL});
-    public static final BitSet FOLLOW_ruleExprAdditive_in_ruleExprComparison5820 = new BitSet(new long[]{0xC000000000000002L,0x0000000000000003L});
-    public static final BitSet FOLLOW_ruleOpComparison_in_entryRuleOpComparison5858 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleOpComparison5868 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_62_in_ruleOpComparison5915 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_63_in_ruleOpComparison5944 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_64_in_ruleOpComparison5973 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_65_in_ruleOpComparison6002 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleExprAdditive_in_entryRuleExprAdditive6039 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleExprAdditive6049 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleExprMult_in_ruleExprAdditive6096 = new BitSet(new long[]{0x0000000000000002L,0x000000000000000CL});
-    public static final BitSet FOLLOW_ruleOpAdditive_in_ruleExprAdditive6126 = new BitSet(new long[]{0x00C00100002000E0L,0x000000000000070CL});
-    public static final BitSet FOLLOW_ruleExprMult_in_ruleExprAdditive6147 = new BitSet(new long[]{0x0000000000000002L,0x000000000000000CL});
-    public static final BitSet FOLLOW_ruleOpAdditive_in_entryRuleOpAdditive6185 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleOpAdditive6195 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_66_in_ruleOpAdditive6242 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_67_in_ruleOpAdditive6271 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleExprMult_in_entryRuleExprMult6308 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleExprMult6318 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleExprSign_in_ruleExprMult6365 = new BitSet(new long[]{0x0000000000010002L,0x00000000000000F0L});
-    public static final BitSet FOLLOW_ruleOpMultiplicative_in_ruleExprMult6395 = new BitSet(new long[]{0x00C00100002000E0L,0x000000000000070CL});
-    public static final BitSet FOLLOW_ruleExprSign_in_ruleExprMult6416 = new BitSet(new long[]{0x0000000000010002L,0x00000000000000F0L});
-    public static final BitSet FOLLOW_ruleOpMultiplicative_in_entryRuleOpMultiplicative6454 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleOpMultiplicative6464 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_16_in_ruleOpMultiplicative6511 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_68_in_ruleOpMultiplicative6540 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_69_in_ruleOpMultiplicative6569 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_70_in_ruleOpMultiplicative6598 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_71_in_ruleOpMultiplicative6627 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleExprSign_in_entryRuleExprSign6664 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleExprSign6674 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleOpAdditive_in_ruleExprSign6730 = new BitSet(new long[]{0x00C00100002000E0L,0x000000000000070CL});
-    public static final BitSet FOLLOW_ruleExprNot_in_ruleExprSign6751 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleExprNot_in_ruleExprSign6780 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleExprNot_in_entryRuleExprNot6815 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleExprNot6825 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_72_in_ruleExprNot6872 = new BitSet(new long[]{0x00C00100002000E0L,0x000000000000070CL});
-    public static final BitSet FOLLOW_ruleExprMember_in_ruleExprNot6893 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleExprMember_in_ruleExprNot6922 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleExprMember_in_entryRuleExprMember6957 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleExprMember6967 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleExprSingle_in_ruleExprMember7014 = new BitSet(new long[]{0x0000000000008002L});
-    public static final BitSet FOLLOW_15_in_ruleExprMember7035 = new BitSet(new long[]{0x0000010000000020L});
-    public static final BitSet FOLLOW_ruleExprAtomic_in_ruleExprMember7056 = new BitSet(new long[]{0x0000000000008002L});
-    public static final BitSet FOLLOW_ruleExprSingle_in_entryRuleExprSingle7094 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleExprSingle7104 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleExprAtomic_in_ruleExprSingle7151 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_21_in_ruleExprSingle7169 = new BitSet(new long[]{0x00C00100002000E0L,0x000000000000070CL});
-    public static final BitSet FOLLOW_ruleExpr_in_ruleExprSingle7191 = new BitSet(new long[]{0x0000000000800000L});
-    public static final BitSet FOLLOW_23_in_ruleExprSingle7202 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_RULE_INT_in_ruleExprSingle7236 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleNumber_in_ruleExprSingle7279 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_RULE_STRING_in_ruleExprSingle7313 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_73_in_ruleExprSingle7355 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_74_in_ruleExprSingle7384 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleNumber_in_entryRuleNumber7438 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleNumber7449 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_RULE_INT_in_ruleNumber7489 = new BitSet(new long[]{0x0000000000008000L});
-    public static final BitSet FOLLOW_15_in_ruleNumber7507 = new BitSet(new long[]{0x0000000000000040L});
-    public static final BitSet FOLLOW_RULE_INT_in_ruleNumber7522 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleExprAtomic_in_entryRuleExprAtomic7567 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleExprAtomic7577 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleExprFunctionCall_in_ruleExprAtomic7624 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_40_in_ruleExprAtomic7651 = new BitSet(new long[]{0x0000000000000020L});
-    public static final BitSet FOLLOW_RULE_ID_in_ruleExprAtomic7671 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_RULE_ID_in_ruleExprAtomic7708 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleExprFunctionCall_in_entryRuleExprFunctionCall7745 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleExprFunctionCall7755 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_RULE_ID_in_ruleExprFunctionCall7810 = new BitSet(new long[]{0x0000000000200000L});
-    public static final BitSet FOLLOW_ruleExprList_in_ruleExprFunctionCall7831 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_RULE_ID_in_ruleExprFunctionCall7868 = new BitSet(new long[]{0x0000000000200000L});
-    public static final BitSet FOLLOW_21_in_ruleExprFunctionCall7880 = new BitSet(new long[]{0x0000000000800000L});
-    public static final BitSet FOLLOW_23_in_ruleExprFunctionCall7892 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ruleExprList_in_entryRuleExprList7929 = new BitSet(new long[]{0x0000000000000000L});
-    public static final BitSet FOLLOW_EOF_in_entryRuleExprList7939 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_21_in_ruleExprList7976 = new BitSet(new long[]{0x00C00100002000E0L,0x000000000000070CL});
-    public static final BitSet FOLLOW_ruleExpr_in_ruleExprList7997 = new BitSet(new long[]{0x0000000000C00000L});
-    public static final BitSet FOLLOW_22_in_ruleExprList8010 = new BitSet(new long[]{0x00C00100002000E0L,0x000000000000070CL});
-    public static final BitSet FOLLOW_ruleExpr_in_ruleExprList8031 = new BitSet(new long[]{0x0000000000C00000L});
-    public static final BitSet FOLLOW_23_in_ruleExprList8045 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleStmtSetOrCallOrVarDef_in_ruleStatement3523 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleStmtCall_in_ruleStatement3550 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleStmtSet_in_ruleStatement3577 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleStmtReturn_in_ruleStatement3604 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleStmtLoop_in_ruleStatement3631 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleStmtExitwhen_in_ruleStatement3658 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleStmtExitwhen_in_entryRuleStmtExitwhen3693 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleStmtExitwhen3703 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_42_in_ruleStmtExitwhen3740 = new BitSet(new long[]{0x000001FC002800E0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleExpr_in_ruleStmtExitwhen3761 = new BitSet(new long[]{0x0000000000000010L});
+    public static final BitSet FOLLOW_RULE_NL_in_ruleStmtExitwhen3772 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleStmtLoop_in_entryRuleStmtLoop3807 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleStmtLoop3817 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_43_in_ruleStmtLoop3854 = new BitSet(new long[]{0x0000000000000010L});
+    public static final BitSet FOLLOW_RULE_NL_in_ruleStmtLoop3865 = new BitSet(new long[]{0x00E87DFC802800F0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleStatements_in_ruleStmtLoop3885 = new BitSet(new long[]{0x0000100000000000L});
+    public static final BitSet FOLLOW_44_in_ruleStmtLoop3897 = new BitSet(new long[]{0x0000000000000010L});
+    public static final BitSet FOLLOW_RULE_NL_in_ruleStmtLoop3908 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleStmtReturn_in_entryRuleStmtReturn3943 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleStmtReturn3953 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_45_in_ruleStmtReturn3999 = new BitSet(new long[]{0x000001FC002800F0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleExpr_in_ruleStmtReturn4020 = new BitSet(new long[]{0x0000000000000010L});
+    public static final BitSet FOLLOW_RULE_NL_in_ruleStmtReturn4032 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleStmtIf_in_entryRuleStmtIf4067 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleStmtIf4077 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_46_in_ruleStmtIf4114 = new BitSet(new long[]{0x000001FC002800E0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleExpr_in_ruleStmtIf4135 = new BitSet(new long[]{0x0000800000000010L});
+    public static final BitSet FOLLOW_47_in_ruleStmtIf4148 = new BitSet(new long[]{0x0000000000000010L});
+    public static final BitSet FOLLOW_RULE_NL_in_ruleStmtIf4161 = new BitSet(new long[]{0x00EF6DFC802800F0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleStatements_in_ruleStmtIf4181 = new BitSet(new long[]{0x0007000000000000L});
+    public static final BitSet FOLLOW_48_in_ruleStmtIf4194 = new BitSet(new long[]{0x000001FC002800E0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleExpr_in_ruleStmtIf4215 = new BitSet(new long[]{0x0000800000000010L});
+    public static final BitSet FOLLOW_47_in_ruleStmtIf4228 = new BitSet(new long[]{0x0000000000000010L});
+    public static final BitSet FOLLOW_RULE_NL_in_ruleStmtIf4241 = new BitSet(new long[]{0x00EF6DFC802800F0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleStatements_in_ruleStmtIf4261 = new BitSet(new long[]{0x0007000000000000L});
+    public static final BitSet FOLLOW_49_in_ruleStmtIf4276 = new BitSet(new long[]{0x0000000000000010L});
+    public static final BitSet FOLLOW_RULE_NL_in_ruleStmtIf4287 = new BitSet(new long[]{0x00EC6DFC802800F0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleStatements_in_ruleStmtIf4307 = new BitSet(new long[]{0x0004000000000000L});
+    public static final BitSet FOLLOW_50_in_ruleStmtIf4321 = new BitSet(new long[]{0x0000000000000010L});
+    public static final BitSet FOLLOW_RULE_NL_in_ruleStmtIf4332 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleStmtWhile_in_entryRuleStmtWhile4367 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleStmtWhile4377 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_51_in_ruleStmtWhile4414 = new BitSet(new long[]{0x000001FC002800E0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleExpr_in_ruleStmtWhile4435 = new BitSet(new long[]{0x0000000000000010L});
+    public static final BitSet FOLLOW_RULE_NL_in_ruleStmtWhile4446 = new BitSet(new long[]{0x00F86DFC802800F0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleStatements_in_ruleStmtWhile4466 = new BitSet(new long[]{0x0010000000000000L});
+    public static final BitSet FOLLOW_52_in_ruleStmtWhile4478 = new BitSet(new long[]{0x0000000000000010L});
+    public static final BitSet FOLLOW_RULE_NL_in_ruleStmtWhile4489 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleStmtSet_in_entryRuleStmtSet4524 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleStmtSet4534 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_53_in_ruleStmtSet4571 = new BitSet(new long[]{0x000001FC002800E0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleExpr_in_ruleStmtSet4592 = new BitSet(new long[]{0x0000000100000000L});
+    public static final BitSet FOLLOW_32_in_ruleStmtSet4604 = new BitSet(new long[]{0x000001FC002800E0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleExpr_in_ruleStmtSet4625 = new BitSet(new long[]{0x0000000000000010L});
+    public static final BitSet FOLLOW_RULE_NL_in_ruleStmtSet4636 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleStmtCall_in_entryRuleStmtCall4671 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleStmtCall4681 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_54_in_ruleStmtCall4718 = new BitSet(new long[]{0x000001FC002800E0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleExpr_in_ruleStmtCall4739 = new BitSet(new long[]{0x0000000000000010L});
+    public static final BitSet FOLLOW_RULE_NL_in_ruleStmtCall4750 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleLocalVarDef_in_entryRuleLocalVarDef4785 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleLocalVarDef4795 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_55_in_ruleLocalVarDef4842 = new BitSet(new long[]{0x000000FC00080020L});
+    public static final BitSet FOLLOW_31_in_ruleLocalVarDef4866 = new BitSet(new long[]{0x000000FC00080020L});
+    public static final BitSet FOLLOW_ruleTypeExpr_in_ruleLocalVarDef4901 = new BitSet(new long[]{0x0000000000000020L});
+    public static final BitSet FOLLOW_RULE_ID_in_ruleLocalVarDef4919 = new BitSet(new long[]{0x0000000100000010L});
+    public static final BitSet FOLLOW_32_in_ruleLocalVarDef4937 = new BitSet(new long[]{0x000001FC002800E0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleExpr_in_ruleLocalVarDef4958 = new BitSet(new long[]{0x0000000000000010L});
+    public static final BitSet FOLLOW_RULE_NL_in_ruleLocalVarDef4971 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleStmtSetOrCallOrVarDef_in_entryRuleStmtSetOrCallOrVarDef5006 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleStmtSetOrCallOrVarDef5016 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleTypeExpr_in_ruleStmtSetOrCallOrVarDef5073 = new BitSet(new long[]{0x0000000000000020L});
+    public static final BitSet FOLLOW_RULE_ID_in_ruleStmtSetOrCallOrVarDef5090 = new BitSet(new long[]{0x0000000100000010L});
+    public static final BitSet FOLLOW_32_in_ruleStmtSetOrCallOrVarDef5108 = new BitSet(new long[]{0x000001FC002800E0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleExpr_in_ruleStmtSetOrCallOrVarDef5129 = new BitSet(new long[]{0x0000000000000010L});
+    public static final BitSet FOLLOW_ruleExpr_in_ruleStmtSetOrCallOrVarDef5169 = new BitSet(new long[]{0x0300000100000010L});
+    public static final BitSet FOLLOW_ruleOpAssignment_in_ruleStmtSetOrCallOrVarDef5200 = new BitSet(new long[]{0x000001FC002800E0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleExpr_in_ruleStmtSetOrCallOrVarDef5221 = new BitSet(new long[]{0x0000000000000010L});
+    public static final BitSet FOLLOW_RULE_NL_in_ruleStmtSetOrCallOrVarDef5236 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleOpAssignment_in_entryRuleOpAssignment5271 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleOpAssignment5281 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_32_in_ruleOpAssignment5328 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_56_in_ruleOpAssignment5357 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_57_in_ruleOpAssignment5386 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleExpr_in_entryRuleExpr5423 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleExpr5433 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleExprOr_in_ruleExpr5479 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleExprOr_in_entryRuleExprOr5513 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleExprOr5523 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleExprAnd_in_ruleExprOr5570 = new BitSet(new long[]{0x0400000000000002L});
+    public static final BitSet FOLLOW_58_in_ruleExprOr5597 = new BitSet(new long[]{0x000001FC002800E0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleExprAnd_in_ruleExprOr5631 = new BitSet(new long[]{0x0400000000000002L});
+    public static final BitSet FOLLOW_ruleExprAnd_in_entryRuleExprAnd5669 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleExprAnd5679 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleExprEquality_in_ruleExprAnd5726 = new BitSet(new long[]{0x0800000000000002L});
+    public static final BitSet FOLLOW_59_in_ruleExprAnd5753 = new BitSet(new long[]{0x000001FC002800E0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleExprEquality_in_ruleExprAnd5787 = new BitSet(new long[]{0x0800000000000002L});
+    public static final BitSet FOLLOW_ruleExprEquality_in_entryRuleExprEquality5825 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleExprEquality5835 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleExprComparison_in_ruleExprEquality5882 = new BitSet(new long[]{0x3000000000000002L});
+    public static final BitSet FOLLOW_ruleOpEquality_in_ruleExprEquality5912 = new BitSet(new long[]{0x000001FC002800E0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleExprComparison_in_ruleExprEquality5933 = new BitSet(new long[]{0x3000000000000002L});
+    public static final BitSet FOLLOW_ruleOpEquality_in_entryRuleOpEquality5971 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleOpEquality5981 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_60_in_ruleOpEquality6028 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_61_in_ruleOpEquality6057 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleExprComparison_in_entryRuleExprComparison6094 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleExprComparison6104 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleExprAdditive_in_ruleExprComparison6151 = new BitSet(new long[]{0xC000000000000002L,0x0000000000000003L});
+    public static final BitSet FOLLOW_ruleOpComparison_in_ruleExprComparison6181 = new BitSet(new long[]{0x000001FC002800E0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleExprAdditive_in_ruleExprComparison6202 = new BitSet(new long[]{0xC000000000000002L,0x0000000000000003L});
+    public static final BitSet FOLLOW_ruleOpComparison_in_entryRuleOpComparison6240 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleOpComparison6250 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_62_in_ruleOpComparison6297 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_63_in_ruleOpComparison6326 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_64_in_ruleOpComparison6355 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_65_in_ruleOpComparison6384 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleExprAdditive_in_entryRuleExprAdditive6421 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleExprAdditive6431 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleExprMult_in_ruleExprAdditive6478 = new BitSet(new long[]{0x0000000000000002L,0x000000000000000CL});
+    public static final BitSet FOLLOW_ruleOpAdditive_in_ruleExprAdditive6508 = new BitSet(new long[]{0x000001FC002800E0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleExprMult_in_ruleExprAdditive6529 = new BitSet(new long[]{0x0000000000000002L,0x000000000000000CL});
+    public static final BitSet FOLLOW_ruleOpAdditive_in_entryRuleOpAdditive6567 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleOpAdditive6577 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_66_in_ruleOpAdditive6624 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_67_in_ruleOpAdditive6653 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleExprMult_in_entryRuleExprMult6690 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleExprMult6700 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleExprSign_in_ruleExprMult6747 = new BitSet(new long[]{0x0000000000010002L,0x00000000000000F0L});
+    public static final BitSet FOLLOW_ruleOpMultiplicative_in_ruleExprMult6777 = new BitSet(new long[]{0x000001FC002800E0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleExprSign_in_ruleExprMult6798 = new BitSet(new long[]{0x0000000000010002L,0x00000000000000F0L});
+    public static final BitSet FOLLOW_ruleOpMultiplicative_in_entryRuleOpMultiplicative6836 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleOpMultiplicative6846 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_16_in_ruleOpMultiplicative6893 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_68_in_ruleOpMultiplicative6922 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_69_in_ruleOpMultiplicative6951 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_70_in_ruleOpMultiplicative6980 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_71_in_ruleOpMultiplicative7009 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleExprSign_in_entryRuleExprSign7046 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleExprSign7056 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleOpAdditive_in_ruleExprSign7112 = new BitSet(new long[]{0x000001FC002800E0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleExprNot_in_ruleExprSign7133 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleExprNot_in_ruleExprSign7162 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleExprNot_in_entryRuleExprNot7197 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleExprNot7207 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_72_in_ruleExprNot7254 = new BitSet(new long[]{0x000001FC002800E0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleExprMember_in_ruleExprNot7275 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleExprMember_in_ruleExprNot7304 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleExprMember_in_entryRuleExprMember7339 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleExprMember7349 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleExprSingle_in_ruleExprMember7396 = new BitSet(new long[]{0x0000000000008002L});
+    public static final BitSet FOLLOW_15_in_ruleExprMember7417 = new BitSet(new long[]{0x0000010000000020L});
+    public static final BitSet FOLLOW_ruleExprAtomic_in_ruleExprMember7438 = new BitSet(new long[]{0x0000000000008002L});
+    public static final BitSet FOLLOW_ruleExprSingle_in_entryRuleExprSingle7476 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleExprSingle7486 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleExprAtomic_in_ruleExprSingle7533 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_21_in_ruleExprSingle7551 = new BitSet(new long[]{0x000001FC002800E0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleExpr_in_ruleExprSingle7573 = new BitSet(new long[]{0x0000000000800000L});
+    public static final BitSet FOLLOW_23_in_ruleExprSingle7584 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_RULE_INT_in_ruleExprSingle7618 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleNumber_in_ruleExprSingle7661 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_RULE_STRING_in_ruleExprSingle7695 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_73_in_ruleExprSingle7737 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_74_in_ruleExprSingle7766 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleNumber_in_entryRuleNumber7820 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleNumber7831 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_RULE_INT_in_ruleNumber7871 = new BitSet(new long[]{0x0000000000008000L});
+    public static final BitSet FOLLOW_15_in_ruleNumber7889 = new BitSet(new long[]{0x0000000000000040L});
+    public static final BitSet FOLLOW_RULE_INT_in_ruleNumber7904 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleExprAtomic_in_entryRuleExprAtomic7949 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleExprAtomic7959 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleExprFunctionCall_in_ruleExprAtomic8006 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_40_in_ruleExprAtomic8033 = new BitSet(new long[]{0x0000000000000020L});
+    public static final BitSet FOLLOW_RULE_ID_in_ruleExprAtomic8053 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_RULE_ID_in_ruleExprAtomic8090 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleExprFunctionCall_in_entryRuleExprFunctionCall8127 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleExprFunctionCall8137 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_RULE_ID_in_ruleExprFunctionCall8192 = new BitSet(new long[]{0x0000000000200000L});
+    public static final BitSet FOLLOW_ruleExprList_in_ruleExprFunctionCall8213 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_RULE_ID_in_ruleExprFunctionCall8250 = new BitSet(new long[]{0x0000000000200000L});
+    public static final BitSet FOLLOW_21_in_ruleExprFunctionCall8262 = new BitSet(new long[]{0x0000000000800000L});
+    public static final BitSet FOLLOW_23_in_ruleExprFunctionCall8274 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ruleExprList_in_entryRuleExprList8311 = new BitSet(new long[]{0x0000000000000000L});
+    public static final BitSet FOLLOW_EOF_in_entryRuleExprList8321 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_21_in_ruleExprList8358 = new BitSet(new long[]{0x000001FC002800E0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleExpr_in_ruleExprList8379 = new BitSet(new long[]{0x0000000000C00000L});
+    public static final BitSet FOLLOW_22_in_ruleExprList8392 = new BitSet(new long[]{0x000001FC002800E0L,0x000000000000070CL});
+    public static final BitSet FOLLOW_ruleExpr_in_ruleExprList8413 = new BitSet(new long[]{0x0000000000C00000L});
+    public static final BitSet FOLLOW_23_in_ruleExprList8427 = new BitSet(new long[]{0x0000000000000002L});
 
 }

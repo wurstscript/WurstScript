@@ -31,7 +31,7 @@ import org.eclipse.emf.ecore.impl.ENotificationImpl;
  *
  * @generated
  */
-public class StmtCallImpl extends StmtSetOrCallImpl implements StmtCall
+public class StmtCallImpl extends StatementImpl implements StmtCall
 {
   /**
    * The cached value of the '{@link #getE() <em>E</em>}' containment reference.

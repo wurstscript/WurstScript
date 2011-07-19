@@ -64,7 +64,7 @@ import de.peeeq.pscript.pscript.StmtIf;
 import de.peeeq.pscript.pscript.StmtLoop;
 import de.peeeq.pscript.pscript.StmtReturn;
 import de.peeeq.pscript.pscript.StmtSet;
-import de.peeeq.pscript.pscript.StmtSetOrCall;
+import de.peeeq.pscript.pscript.StmtSetOrCallOrVarDef;
 import de.peeeq.pscript.pscript.StmtWhile;
 import de.peeeq.pscript.pscript.TypeDef;
 import de.peeeq.pscript.pscript.VarDef;
@@ -75,7 +75,7 @@ import de.peeeq.pscript.pscript.util.OpComparisonSwitch;
 import de.peeeq.pscript.pscript.util.OpEqualitySwitch;
 import de.peeeq.pscript.pscript.util.OpMultiplicativeSwitch;
 import de.peeeq.pscript.pscript.util.StatementSwitch;
-import de.peeeq.pscript.pscript.util.StmtSetOrCallSwitchVoid;
+import de.peeeq.pscript.pscript.util.StmtSetOrCallOrVarDefSwitchVoid;
 import de.peeeq.pscript.pscript.util.TypeDefSwitchVoid;
 import de.peeeq.pscript.types.PScriptTypeBool;
 import de.peeeq.pscript.types.PScriptTypeVoid;
@@ -279,33 +279,33 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 
 			@Override
 			public List<ILStatement> caseVarDef(VarDef varDef) {
-				return translateAssignment(getLocalVar(varDef.getName(), locals), varDef.getE(), locals);
+				if (varDef.getE() == null) {
+					return new LinkedList<ILStatement>();
+				} else {
+					return translateAssignment(getLocalVar(varDef.getName(), locals), varDef.getE(), locals);
+				}
 			}
 
 			@Override
-			public List<ILStatement> caseStmtSetOrCall(	StmtSetOrCall stmtSetOrCall) {
-				new StmtSetOrCallSwitchVoid() {
+			public List<ILStatement> caseStmtSetOrCallOrVarDef(	StmtSetOrCallOrVarDef stmtSetOrCall) {
+				new StmtSetOrCallOrVarDefSwitchVoid() {
+					
 
 					@Override
 					public void caseStmtSet(StmtSet stmtSet) {
-						Expr left = stmtSet.getLeft().getE();
-						if (left instanceof ExprIdentifier) {
-							ExprIdentifier left2 = (ExprIdentifier) left;
-							
-							ILvar leftVar = getVar(left2.getNameVal(), locals);
-							result.addAll(translateExpr(stmtSet.getRight(), leftVar , locals));
-							
-						} else {
-							// TODO assignments to arrays, classmembers
-							throw new Error("not implemented Assignment to " + left);
-						}
+						translateStmtSet(stmtSet);
 						
 					}
 
 					@Override
 					public void caseStmtCall(StmtCall stmtCall) {
-						// TODO Auto-generated method stub
 						result.addAll(translateExpr(stmtCall.getE(), null , locals));
+					}
+
+					@Override
+					public void caseVarDef(VarDef varDef) {
+						translateStmtVarDef(varDef);
+						
 					}
 					
 				}.doSwitch(stmtSetOrCall);
@@ -326,6 +326,39 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 				result.add(new ILexitwhen(exitWhenVar));
 				return result;
 			}
+
+			@Override
+			public List<ILStatement> caseStmtSet(StmtSet stmtSet) {
+				translateStmtSet(stmtSet);
+				return result;
+			}
+
+			private void translateStmtSet(StmtSet stmtSet) {
+				Expr left = stmtSet.getLeft().getE();
+				if (left instanceof ExprIdentifier) {
+					ExprIdentifier left2 = (ExprIdentifier) left;
+					
+					ILvar leftVar = getVar(left2.getNameVal(), locals);
+					result.addAll(translateExpr(stmtSet.getRight(), leftVar , locals));
+					
+				} else {
+					// TODO assignments to arrays, classmembers
+					throw new Error("not implemented Assignment to " + left);
+				}
+			}
+			
+			private void translateStmtVarDef(VarDef v) {
+				ILvar leftVar = getVar(v, locals);
+				result.addAll(translateExpr(v.getE(), leftVar , locals));
+			}
+			
+
+			@Override
+			public List<ILStatement> caseStmtCall(StmtCall stmtCall) {
+				result.addAll(translateExpr(stmtCall.getE(), null , locals));
+				return result;
+			}
+
 			
 		}.doSwitch(s);
 	}
@@ -386,6 +419,8 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 	}
 
 	protected List<ILStatement> translateExpr(final Expr e, final ILvar resultVar, final List<ILvar> locals) {
+		if (e == null) throw new IllegalArgumentException("e must not be null");
+		
 		final List<ILStatement> result = new NotNullList<ILStatement>();
 		return new ExprSwitch<List<ILStatement>>() {
 

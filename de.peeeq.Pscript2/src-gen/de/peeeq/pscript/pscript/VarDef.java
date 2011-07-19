@@ -25,7 +25,7 @@ package de.peeeq.pscript.pscript;
  * @model
  * @generated
  */
-public interface VarDef extends Entity, ClassMember, Statement
+public interface VarDef extends Entity, ClassMember, Statement, StmtSetOrCallOrVarDef
 {
   /**
    * Returns the value of the '<em><b>Constant</b></em>' attribute.

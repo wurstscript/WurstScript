@@ -633,10 +633,17 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 				}
 				else break;
 			case PscriptPackage.STMT_CALL:
-				if(context == grammarAccess.getStatementRule() ||
-				   context == grammarAccess.getStmtSetOrCallRule() ||
-				   context == grammarAccess.getStmtSetOrCallAccess().getStmtSetLeftAction_3_0()) {
-					sequence_StmtSetOrCall_StmtCall(context, (StmtCall) semanticObject); 
+				if(context == grammarAccess.getStmtSetOrCallOrVarDefRule() ||
+				   context == grammarAccess.getStmtSetOrCallOrVarDefAccess().getStmtSetLeftAction_0_1_2_0()) {
+					sequence_StmtSetOrCallOrVarDef_StmtCall(context, (StmtCall) semanticObject); 
+					return; 
+				}
+				else if(context == grammarAccess.getStmtCallRule()) {
+					sequence_StmtCall_StmtCall(context, (StmtCall) semanticObject); 
+					return; 
+				}
+				else if(context == grammarAccess.getStatementRule()) {
+					sequence_Statement_StmtCall(context, (StmtCall) semanticObject); 
 					return; 
 				}
 				else break;
@@ -669,9 +676,16 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 				}
 				else break;
 			case PscriptPackage.STMT_SET:
-				if(context == grammarAccess.getStatementRule() ||
-				   context == grammarAccess.getStmtSetOrCallRule()) {
-					sequence_StmtSetOrCall_StmtSet(context, (StmtSet) semanticObject); 
+				if(context == grammarAccess.getStatementRule()) {
+					sequence_Statement_StmtSet(context, (StmtSet) semanticObject); 
+					return; 
+				}
+				else if(context == grammarAccess.getStmtSetOrCallOrVarDefRule()) {
+					sequence_StmtSetOrCallOrVarDef_StmtSet(context, (StmtSet) semanticObject); 
+					return; 
+				}
+				else if(context == grammarAccess.getStmtSetRule()) {
+					sequence_StmtSet_StmtSet(context, (StmtSet) semanticObject); 
 					return; 
 				}
 				else break;
@@ -695,15 +709,22 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 				}
 				else break;
 			case PscriptPackage.VAR_DEF:
-				if(context == grammarAccess.getStatementRule() ||
-				   context == grammarAccess.getLocalVarDefRule()) {
-					sequence_LocalVarDef_VarDef(context, (VarDef) semanticObject); 
-					return; 
-				}
-				else if(context == grammarAccess.getEntityRule() ||
+				if(context == grammarAccess.getEntityRule() ||
 				   context == grammarAccess.getClassMemberRule() ||
 				   context == grammarAccess.getVarDefRule()) {
 					sequence_VarDef_VarDef(context, (VarDef) semanticObject); 
+					return; 
+				}
+				else if(context == grammarAccess.getStatementRule()) {
+					sequence_Statement_VarDef(context, (VarDef) semanticObject); 
+					return; 
+				}
+				else if(context == grammarAccess.getStmtSetOrCallOrVarDefRule()) {
+					sequence_StmtSetOrCallOrVarDef_VarDef(context, (VarDef) semanticObject); 
+					return; 
+				}
+				else if(context == grammarAccess.getLocalVarDefRule()) {
+					sequence_LocalVarDef_VarDef(context, (VarDef) semanticObject); 
 					return; 
 				}
 				else break;
@@ -1396,6 +1417,69 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 	
 	/**
 	 * Constraint:
+	 *     (e=Expr | e=Expr)
+	 *
+	 * Features:
+	 *    e[0, 2]
+	 */
+	protected void sequence_Statement_StmtCall(EObject context, StmtCall semanticObject) {
+		genericSequencer.createSequence(context, semanticObject);
+	}
+	
+	
+	/**
+	 * Constraint:
+	 *     ((left=StmtSetOrCallOrVarDef_StmtSet_0_1_2_0 opAssignment=OpAssignment right=Expr) | (leftE=Expr right=Expr))
+	 *
+	 * Features:
+	 *    leftE[1, 1]
+	 *         EXCLUDE_IF_UNSET right
+	 *         MANDATORY_IF_SET right
+	 *         EXCLUDE_IF_SET left
+	 *         EXCLUDE_IF_SET opAssignment
+	 *         EXCLUDE_IF_SET right
+	 *    right[2, 2]
+	 *    left[1, 1]
+	 *         EXCLUDE_IF_UNSET opAssignment
+	 *         MANDATORY_IF_SET opAssignment
+	 *         EXCLUDE_IF_UNSET right
+	 *         MANDATORY_IF_SET right
+	 *         EXCLUDE_IF_SET leftE
+	 *         EXCLUDE_IF_SET right
+	 *    opAssignment[1, 1]
+	 *         EXCLUDE_IF_UNSET left
+	 *         MANDATORY_IF_SET left
+	 *         EXCLUDE_IF_UNSET right
+	 *         MANDATORY_IF_SET right
+	 *         EXCLUDE_IF_SET leftE
+	 *         EXCLUDE_IF_SET right
+	 */
+	protected void sequence_Statement_StmtSet(EObject context, StmtSet semanticObject) {
+		genericSequencer.createSequence(context, semanticObject);
+	}
+	
+	
+	/**
+	 * Constraint:
+	 *     ((constant?='val'? type=TypeExpr? name=ID e=Expr?) | (type=TypeExpr name=ID e=Expr?))
+	 *
+	 * Features:
+	 *    name[2, 2]
+	 *    constant[0, 1]
+	 *         EXCLUDE_IF_UNSET name
+	 *         EXCLUDE_IF_SET type
+	 *         EXCLUDE_IF_SET name
+	 *         EXCLUDE_IF_SET e
+	 *    type[1, 2]
+	 *    e[0, 2]
+	 */
+	protected void sequence_Statement_VarDef(EObject context, VarDef semanticObject) {
+		genericSequencer.createSequence(context, semanticObject);
+	}
+	
+	
+	/**
+	 * Constraint:
 	 *     (statements+=Statement*)
 	 *
 	 * Features:
@@ -1403,6 +1487,25 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 	 */
 	protected void sequence_Statements_Statements(EObject context, Statements semanticObject) {
 		genericSequencer.createSequence(context, semanticObject);
+	}
+	
+	
+	/**
+	 * Constraint:
+	 *     e=Expr
+	 *
+	 * Features:
+	 *    e[1, 1]
+	 */
+	protected void sequence_StmtCall_StmtCall(EObject context, StmtCall semanticObject) {
+		if(errorAcceptor != null) {
+			if(transientValues.isValueTransient(semanticObject, PscriptPackage.Literals.STMT_CALL__E) == ValueTransient.YES)
+				errorAcceptor.accept(diagnosticProvider.createFeatureValueMissing(semanticObject, PscriptPackage.Literals.STMT_CALL__E));
+		}
+		INodesForEObjectProvider nodes = createNodeProvider(semanticObject);
+		SequenceFeeder feeder = createSequencerFeeder(semanticObject, nodes);
+		feeder.accept(grammarAccess.getStmtCallAccess().getEExprParserRuleCall_1_0(), semanticObject.getE());
+		feeder.finish();
 	}
 	
 	
@@ -1481,42 +1584,56 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 	 * Features:
 	 *    e[1, 1]
 	 */
-	protected void sequence_StmtSetOrCall_StmtCall(EObject context, StmtCall semanticObject) {
+	protected void sequence_StmtSetOrCallOrVarDef_StmtCall(EObject context, StmtCall semanticObject) {
 		if(errorAcceptor != null) {
 			if(transientValues.isValueTransient(semanticObject, PscriptPackage.Literals.STMT_CALL__E) == ValueTransient.YES)
 				errorAcceptor.accept(diagnosticProvider.createFeatureValueMissing(semanticObject, PscriptPackage.Literals.STMT_CALL__E));
 		}
 		INodesForEObjectProvider nodes = createNodeProvider(semanticObject);
 		SequenceFeeder feeder = createSequencerFeeder(semanticObject, nodes);
-		feeder.accept(grammarAccess.getStmtSetOrCallAccess().getEExprParserRuleCall_2_0(), semanticObject.getE());
+		feeder.accept(grammarAccess.getStmtSetOrCallOrVarDefAccess().getEExprParserRuleCall_0_1_1_0(), semanticObject.getE());
 		feeder.finish();
 	}
 	
 	
 	/**
 	 * Constraint:
-	 *     (left=StmtSetOrCall_StmtSet_3_0 opAssignment=OpAssignment right=Expr)
+	 *     (left=StmtSetOrCallOrVarDef_StmtSet_0_1_2_0 opAssignment=OpAssignment right=Expr)
 	 *
 	 * Features:
+	 *    right[1, 1]
 	 *    left[1, 1]
 	 *    opAssignment[1, 1]
+	 */
+	protected void sequence_StmtSetOrCallOrVarDef_StmtSet(EObject context, StmtSet semanticObject) {
+		genericSequencer.createSequence(context, semanticObject);
+	}
+	
+	
+	/**
+	 * Constraint:
+	 *     (type=TypeExpr name=ID e=Expr?)
+	 *
+	 * Features:
+	 *    name[1, 1]
+	 *    type[1, 1]
+	 *    e[0, 1]
+	 */
+	protected void sequence_StmtSetOrCallOrVarDef_VarDef(EObject context, VarDef semanticObject) {
+		genericSequencer.createSequence(context, semanticObject);
+	}
+	
+	
+	/**
+	 * Constraint:
+	 *     (leftE=Expr right=Expr)
+	 *
+	 * Features:
+	 *    leftE[1, 1]
 	 *    right[1, 1]
 	 */
-	protected void sequence_StmtSetOrCall_StmtSet(EObject context, StmtSet semanticObject) {
-		if(errorAcceptor != null) {
-			if(transientValues.isValueTransient(semanticObject, PscriptPackage.Literals.STMT_SET__LEFT) == ValueTransient.YES)
-				errorAcceptor.accept(diagnosticProvider.createFeatureValueMissing(semanticObject, PscriptPackage.Literals.STMT_SET__LEFT));
-			if(transientValues.isValueTransient(semanticObject, PscriptPackage.Literals.STMT_SET__OP_ASSIGNMENT) == ValueTransient.YES)
-				errorAcceptor.accept(diagnosticProvider.createFeatureValueMissing(semanticObject, PscriptPackage.Literals.STMT_SET__OP_ASSIGNMENT));
-			if(transientValues.isValueTransient(semanticObject, PscriptPackage.Literals.STMT_SET__RIGHT) == ValueTransient.YES)
-				errorAcceptor.accept(diagnosticProvider.createFeatureValueMissing(semanticObject, PscriptPackage.Literals.STMT_SET__RIGHT));
-		}
-		INodesForEObjectProvider nodes = createNodeProvider(semanticObject);
-		SequenceFeeder feeder = createSequencerFeeder(semanticObject, nodes);
-		feeder.accept(grammarAccess.getStmtSetOrCallAccess().getStmtSetLeftAction_3_0(), semanticObject.getLeft());
-		feeder.accept(grammarAccess.getStmtSetOrCallAccess().getOpAssignmentOpAssignmentParserRuleCall_3_1_0(), semanticObject.getOpAssignment());
-		feeder.accept(grammarAccess.getStmtSetOrCallAccess().getRightExprParserRuleCall_3_2_0(), semanticObject.getRight());
-		feeder.finish();
+	protected void sequence_StmtSet_StmtSet(EObject context, StmtSet semanticObject) {
+		genericSequencer.createSequence(context, semanticObject);
 	}
 	
 	

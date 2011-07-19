@@ -636,23 +636,106 @@ public interface PscriptPackage extends EPackage
   int STMT_WHILE_FEATURE_COUNT = STATEMENT_FEATURE_COUNT + 2;
 
   /**
-   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.StmtSetOrCallImpl <em>Stmt Set Or Call</em>}' class.
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.StmtSetImpl <em>Stmt Set</em>}' class.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @see de.peeeq.pscript.pscript.impl.StmtSetOrCallImpl
-   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getStmtSetOrCall()
+   * @see de.peeeq.pscript.pscript.impl.StmtSetImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getStmtSet()
    * @generated
    */
-  int STMT_SET_OR_CALL = 17;
+  int STMT_SET = 17;
 
   /**
-   * The number of structural features of the '<em>Stmt Set Or Call</em>' class.
+   * The feature id for the '<em><b>Left E</b></em>' containment reference.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
    * @ordered
    */
-  int STMT_SET_OR_CALL_FEATURE_COUNT = STATEMENT_FEATURE_COUNT + 0;
+  int STMT_SET__LEFT_E = STATEMENT_FEATURE_COUNT + 0;
+
+  /**
+   * The feature id for the '<em><b>Right</b></em>' containment reference.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int STMT_SET__RIGHT = STATEMENT_FEATURE_COUNT + 1;
+
+  /**
+   * The feature id for the '<em><b>Left</b></em>' containment reference.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int STMT_SET__LEFT = STATEMENT_FEATURE_COUNT + 2;
+
+  /**
+   * The feature id for the '<em><b>Op Assignment</b></em>' containment reference.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int STMT_SET__OP_ASSIGNMENT = STATEMENT_FEATURE_COUNT + 3;
+
+  /**
+   * The number of structural features of the '<em>Stmt Set</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int STMT_SET_FEATURE_COUNT = STATEMENT_FEATURE_COUNT + 4;
+
+  /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.StmtCallImpl <em>Stmt Call</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.StmtCallImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getStmtCall()
+   * @generated
+   */
+  int STMT_CALL = 18;
+
+  /**
+   * The feature id for the '<em><b>E</b></em>' containment reference.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int STMT_CALL__E = STATEMENT_FEATURE_COUNT + 0;
+
+  /**
+   * The number of structural features of the '<em>Stmt Call</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int STMT_CALL_FEATURE_COUNT = STATEMENT_FEATURE_COUNT + 1;
+
+  /**
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.StmtSetOrCallOrVarDefImpl <em>Stmt Set Or Call Or Var Def</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see de.peeeq.pscript.pscript.impl.StmtSetOrCallOrVarDefImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getStmtSetOrCallOrVarDef()
+   * @generated
+   */
+  int STMT_SET_OR_CALL_OR_VAR_DEF = 19;
+
+  /**
+   * The number of structural features of the '<em>Stmt Set Or Call Or Var Def</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int STMT_SET_OR_CALL_OR_VAR_DEF_FEATURE_COUNT = STATEMENT_FEATURE_COUNT + 0;
 
   /**
    * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.OpAssignmentImpl <em>Op Assignment</em>}' class.
@@ -662,7 +745,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpAssignment()
    * @generated
    */
-  int OP_ASSIGNMENT = 18;
+  int OP_ASSIGNMENT = 20;
 
   /**
    * The number of structural features of the '<em>Op Assignment</em>' class.
@@ -681,7 +764,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExpr()
    * @generated
    */
-  int EXPR = 19;
+  int EXPR = 21;
 
   /**
    * The number of structural features of the '<em>Expr</em>' class.
@@ -700,7 +783,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpEquality()
    * @generated
    */
-  int OP_EQUALITY = 20;
+  int OP_EQUALITY = 22;
 
   /**
    * The number of structural features of the '<em>Op Equality</em>' class.
@@ -719,7 +802,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpComparison()
    * @generated
    */
-  int OP_COMPARISON = 21;
+  int OP_COMPARISON = 23;
 
   /**
    * The number of structural features of the '<em>Op Comparison</em>' class.
@@ -738,7 +821,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpAdditive()
    * @generated
    */
-  int OP_ADDITIVE = 22;
+  int OP_ADDITIVE = 24;
 
   /**
    * The number of structural features of the '<em>Op Additive</em>' class.
@@ -757,7 +840,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getOpMultiplicative()
    * @generated
    */
-  int OP_MULTIPLICATIVE = 23;
+  int OP_MULTIPLICATIVE = 25;
 
   /**
    * The number of structural features of the '<em>Op Multiplicative</em>' class.
@@ -776,7 +859,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprList()
    * @generated
    */
-  int EXPR_LIST = 24;
+  int EXPR_LIST = 26;
 
   /**
    * The feature id for the '<em><b>Params</b></em>' containment reference list.
@@ -804,7 +887,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getNativeFunc()
    * @generated
    */
-  int NATIVE_FUNC = 25;
+  int NATIVE_FUNC = 27;
 
   /**
    * The feature id for the '<em><b>Name</b></em>' attribute.
@@ -859,7 +942,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getNativeType()
    * @generated
    */
-  int NATIVE_TYPE = 26;
+  int NATIVE_TYPE = 28;
 
   /**
    * The feature id for the '<em><b>Name</b></em>' attribute.
@@ -896,7 +979,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getClassDef()
    * @generated
    */
-  int CLASS_DEF = 27;
+  int CLASS_DEF = 29;
 
   /**
    * The feature id for the '<em><b>Name</b></em>' attribute.
@@ -933,7 +1016,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getTypeExprRef()
    * @generated
    */
-  int TYPE_EXPR_REF = 28;
+  int TYPE_EXPR_REF = 30;
 
   /**
    * The feature id for the '<em><b>Name</b></em>' reference.
@@ -961,7 +1044,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getTypeExprBuildin()
    * @generated
    */
-  int TYPE_EXPR_BUILDIN = 29;
+  int TYPE_EXPR_BUILDIN = 31;
 
   /**
    * The feature id for the '<em><b>Name</b></em>' attribute.
@@ -989,7 +1072,7 @@ public interface PscriptPackage extends EPackage
    * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getParameterDef()
    * @generated
    */
-  int PARAMETER_DEF = 30;
+  int PARAMETER_DEF = 32;
 
   /**
    * The feature id for the '<em><b>Name</b></em>' attribute.
@@ -1035,80 +1118,6 @@ public interface PscriptPackage extends EPackage
    * @ordered
    */
   int PARAMETER_DEF_FEATURE_COUNT = VAR_DEF_FEATURE_COUNT + 0;
-
-  /**
-   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.StmtCallImpl <em>Stmt Call</em>}' class.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @see de.peeeq.pscript.pscript.impl.StmtCallImpl
-   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getStmtCall()
-   * @generated
-   */
-  int STMT_CALL = 31;
-
-  /**
-   * The feature id for the '<em><b>E</b></em>' containment reference.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int STMT_CALL__E = STMT_SET_OR_CALL_FEATURE_COUNT + 0;
-
-  /**
-   * The number of structural features of the '<em>Stmt Call</em>' class.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int STMT_CALL_FEATURE_COUNT = STMT_SET_OR_CALL_FEATURE_COUNT + 1;
-
-  /**
-   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.StmtSetImpl <em>Stmt Set</em>}' class.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @see de.peeeq.pscript.pscript.impl.StmtSetImpl
-   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getStmtSet()
-   * @generated
-   */
-  int STMT_SET = 32;
-
-  /**
-   * The feature id for the '<em><b>Left</b></em>' containment reference.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int STMT_SET__LEFT = STMT_SET_OR_CALL_FEATURE_COUNT + 0;
-
-  /**
-   * The feature id for the '<em><b>Op Assignment</b></em>' containment reference.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int STMT_SET__OP_ASSIGNMENT = STMT_SET_OR_CALL_FEATURE_COUNT + 1;
-
-  /**
-   * The feature id for the '<em><b>Right</b></em>' containment reference.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int STMT_SET__RIGHT = STMT_SET_OR_CALL_FEATURE_COUNT + 2;
-
-  /**
-   * The number of structural features of the '<em>Stmt Set</em>' class.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int STMT_SET_FEATURE_COUNT = STMT_SET_OR_CALL_FEATURE_COUNT + 3;
 
   /**
    * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.OpAssignImpl <em>Op Assign</em>}' class.
@@ -2414,14 +2423,89 @@ public interface PscriptPackage extends EPackage
   EReference getStmtWhile_Body();
 
   /**
-   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.StmtSetOrCall <em>Stmt Set Or Call</em>}'.
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.StmtSet <em>Stmt Set</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return the meta object for class '<em>Stmt Set Or Call</em>'.
-   * @see de.peeeq.pscript.pscript.StmtSetOrCall
+   * @return the meta object for class '<em>Stmt Set</em>'.
+   * @see de.peeeq.pscript.pscript.StmtSet
    * @generated
    */
-  EClass getStmtSetOrCall();
+  EClass getStmtSet();
+
+  /**
+   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.StmtSet#getLeftE <em>Left E</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the containment reference '<em>Left E</em>'.
+   * @see de.peeeq.pscript.pscript.StmtSet#getLeftE()
+   * @see #getStmtSet()
+   * @generated
+   */
+  EReference getStmtSet_LeftE();
+
+  /**
+   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.StmtSet#getRight <em>Right</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the containment reference '<em>Right</em>'.
+   * @see de.peeeq.pscript.pscript.StmtSet#getRight()
+   * @see #getStmtSet()
+   * @generated
+   */
+  EReference getStmtSet_Right();
+
+  /**
+   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.StmtSet#getLeft <em>Left</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the containment reference '<em>Left</em>'.
+   * @see de.peeeq.pscript.pscript.StmtSet#getLeft()
+   * @see #getStmtSet()
+   * @generated
+   */
+  EReference getStmtSet_Left();
+
+  /**
+   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.StmtSet#getOpAssignment <em>Op Assignment</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the containment reference '<em>Op Assignment</em>'.
+   * @see de.peeeq.pscript.pscript.StmtSet#getOpAssignment()
+   * @see #getStmtSet()
+   * @generated
+   */
+  EReference getStmtSet_OpAssignment();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.StmtCall <em>Stmt Call</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Stmt Call</em>'.
+   * @see de.peeeq.pscript.pscript.StmtCall
+   * @generated
+   */
+  EClass getStmtCall();
+
+  /**
+   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.StmtCall#getE <em>E</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the containment reference '<em>E</em>'.
+   * @see de.peeeq.pscript.pscript.StmtCall#getE()
+   * @see #getStmtCall()
+   * @generated
+   */
+  EReference getStmtCall_E();
+
+  /**
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.StmtSetOrCallOrVarDef <em>Stmt Set Or Call Or Var Def</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Stmt Set Or Call Or Var Def</em>'.
+   * @see de.peeeq.pscript.pscript.StmtSetOrCallOrVarDef
+   * @generated
+   */
+  EClass getStmtSetOrCallOrVarDef();
 
   /**
    * Returns the meta object for class '{@link de.peeeq.pscript.pscript.OpAssignment <em>Op Assignment</em>}'.
@@ -2607,70 +2691,6 @@ public interface PscriptPackage extends EPackage
    * @generated
    */
   EClass getParameterDef();
-
-  /**
-   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.StmtCall <em>Stmt Call</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for class '<em>Stmt Call</em>'.
-   * @see de.peeeq.pscript.pscript.StmtCall
-   * @generated
-   */
-  EClass getStmtCall();
-
-  /**
-   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.StmtCall#getE <em>E</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the containment reference '<em>E</em>'.
-   * @see de.peeeq.pscript.pscript.StmtCall#getE()
-   * @see #getStmtCall()
-   * @generated
-   */
-  EReference getStmtCall_E();
-
-  /**
-   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.StmtSet <em>Stmt Set</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for class '<em>Stmt Set</em>'.
-   * @see de.peeeq.pscript.pscript.StmtSet
-   * @generated
-   */
-  EClass getStmtSet();
-
-  /**
-   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.StmtSet#getLeft <em>Left</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the containment reference '<em>Left</em>'.
-   * @see de.peeeq.pscript.pscript.StmtSet#getLeft()
-   * @see #getStmtSet()
-   * @generated
-   */
-  EReference getStmtSet_Left();
-
-  /**
-   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.StmtSet#getOpAssignment <em>Op Assignment</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the containment reference '<em>Op Assignment</em>'.
-   * @see de.peeeq.pscript.pscript.StmtSet#getOpAssignment()
-   * @see #getStmtSet()
-   * @generated
-   */
-  EReference getStmtSet_OpAssignment();
-
-  /**
-   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.StmtSet#getRight <em>Right</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the containment reference '<em>Right</em>'.
-   * @see de.peeeq.pscript.pscript.StmtSet#getRight()
-   * @see #getStmtSet()
-   * @generated
-   */
-  EReference getStmtSet_Right();
 
   /**
    * Returns the meta object for class '{@link de.peeeq.pscript.pscript.OpAssign <em>Op Assign</em>}'.
@@ -3709,14 +3729,74 @@ public interface PscriptPackage extends EPackage
     EReference STMT_WHILE__BODY = eINSTANCE.getStmtWhile_Body();
 
     /**
-     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.StmtSetOrCallImpl <em>Stmt Set Or Call</em>}' class.
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.StmtSetImpl <em>Stmt Set</em>}' class.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
-     * @see de.peeeq.pscript.pscript.impl.StmtSetOrCallImpl
-     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getStmtSetOrCall()
+     * @see de.peeeq.pscript.pscript.impl.StmtSetImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getStmtSet()
      * @generated
      */
-    EClass STMT_SET_OR_CALL = eINSTANCE.getStmtSetOrCall();
+    EClass STMT_SET = eINSTANCE.getStmtSet();
+
+    /**
+     * The meta object literal for the '<em><b>Left E</b></em>' containment reference feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EReference STMT_SET__LEFT_E = eINSTANCE.getStmtSet_LeftE();
+
+    /**
+     * The meta object literal for the '<em><b>Right</b></em>' containment reference feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EReference STMT_SET__RIGHT = eINSTANCE.getStmtSet_Right();
+
+    /**
+     * The meta object literal for the '<em><b>Left</b></em>' containment reference feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EReference STMT_SET__LEFT = eINSTANCE.getStmtSet_Left();
+
+    /**
+     * The meta object literal for the '<em><b>Op Assignment</b></em>' containment reference feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EReference STMT_SET__OP_ASSIGNMENT = eINSTANCE.getStmtSet_OpAssignment();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.StmtCallImpl <em>Stmt Call</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.StmtCallImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getStmtCall()
+     * @generated
+     */
+    EClass STMT_CALL = eINSTANCE.getStmtCall();
+
+    /**
+     * The meta object literal for the '<em><b>E</b></em>' containment reference feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EReference STMT_CALL__E = eINSTANCE.getStmtCall_E();
+
+    /**
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.StmtSetOrCallOrVarDefImpl <em>Stmt Set Or Call Or Var Def</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see de.peeeq.pscript.pscript.impl.StmtSetOrCallOrVarDefImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getStmtSetOrCallOrVarDef()
+     * @generated
+     */
+    EClass STMT_SET_OR_CALL_OR_VAR_DEF = eINSTANCE.getStmtSetOrCallOrVarDef();
 
     /**
      * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.OpAssignmentImpl <em>Op Assignment</em>}' class.
@@ -3887,58 +3967,6 @@ public interface PscriptPackage extends EPackage
      * @generated
      */
     EClass PARAMETER_DEF = eINSTANCE.getParameterDef();
-
-    /**
-     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.StmtCallImpl <em>Stmt Call</em>}' class.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @see de.peeeq.pscript.pscript.impl.StmtCallImpl
-     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getStmtCall()
-     * @generated
-     */
-    EClass STMT_CALL = eINSTANCE.getStmtCall();
-
-    /**
-     * The meta object literal for the '<em><b>E</b></em>' containment reference feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference STMT_CALL__E = eINSTANCE.getStmtCall_E();
-
-    /**
-     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.StmtSetImpl <em>Stmt Set</em>}' class.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @see de.peeeq.pscript.pscript.impl.StmtSetImpl
-     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getStmtSet()
-     * @generated
-     */
-    EClass STMT_SET = eINSTANCE.getStmtSet();
-
-    /**
-     * The meta object literal for the '<em><b>Left</b></em>' containment reference feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference STMT_SET__LEFT = eINSTANCE.getStmtSet_Left();
-
-    /**
-     * The meta object literal for the '<em><b>Op Assignment</b></em>' containment reference feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference STMT_SET__OP_ASSIGNMENT = eINSTANCE.getStmtSet_OpAssignment();
-
-    /**
-     * The meta object literal for the '<em><b>Right</b></em>' containment reference feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference STMT_SET__RIGHT = eINSTANCE.getStmtSet_Right();
 
     /**
      * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.OpAssignImpl <em>Op Assign</em>}' class.

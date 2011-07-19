@@ -180,13 +180,31 @@ public interface PscriptFactory extends EFactory
   StmtWhile createStmtWhile();
 
   /**
-   * Returns a new object of class '<em>Stmt Set Or Call</em>'.
+   * Returns a new object of class '<em>Stmt Set</em>'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return a new object of class '<em>Stmt Set Or Call</em>'.
+   * @return a new object of class '<em>Stmt Set</em>'.
    * @generated
    */
-  StmtSetOrCall createStmtSetOrCall();
+  StmtSet createStmtSet();
+
+  /**
+   * Returns a new object of class '<em>Stmt Call</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Stmt Call</em>'.
+   * @generated
+   */
+  StmtCall createStmtCall();
+
+  /**
+   * Returns a new object of class '<em>Stmt Set Or Call Or Var Def</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Stmt Set Or Call Or Var Def</em>'.
+   * @generated
+   */
+  StmtSetOrCallOrVarDef createStmtSetOrCallOrVarDef();
 
   /**
    * Returns a new object of class '<em>Op Assignment</em>'.
@@ -304,24 +322,6 @@ public interface PscriptFactory extends EFactory
    * @generated
    */
   ParameterDef createParameterDef();
-
-  /**
-   * Returns a new object of class '<em>Stmt Call</em>'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return a new object of class '<em>Stmt Call</em>'.
-   * @generated
-   */
-  StmtCall createStmtCall();
-
-  /**
-   * Returns a new object of class '<em>Stmt Set</em>'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return a new object of class '<em>Stmt Set</em>'.
-   * @generated
-   */
-  StmtSet createStmtSet();
 
   /**
    * Returns a new object of class '<em>Op Assign</em>'.

@@ -15,9 +15,10 @@ package de.peeeq.pscript.pscript;
  * <p>
  * The following features are supported:
  * <ul>
+ *   <li>{@link de.peeeq.pscript.pscript.StmtSet#getLeftE <em>Left E</em>}</li>
+ *   <li>{@link de.peeeq.pscript.pscript.StmtSet#getRight <em>Right</em>}</li>
  *   <li>{@link de.peeeq.pscript.pscript.StmtSet#getLeft <em>Left</em>}</li>
  *   <li>{@link de.peeeq.pscript.pscript.StmtSet#getOpAssignment <em>Op Assignment</em>}</li>
- *   <li>{@link de.peeeq.pscript.pscript.StmtSet#getRight <em>Right</em>}</li>
  * </ul>
  * </p>
  *
@@ -25,8 +26,60 @@ package de.peeeq.pscript.pscript;
  * @model
  * @generated
  */
-public interface StmtSet extends StmtSetOrCall
+public interface StmtSet extends Statement, StmtSetOrCallOrVarDef
 {
+  /**
+   * Returns the value of the '<em><b>Left E</b></em>' containment reference.
+   * <!-- begin-user-doc -->
+   * <p>
+   * If the meaning of the '<em>Left E</em>' containment reference isn't clear,
+   * there really should be more of a description here...
+   * </p>
+   * <!-- end-user-doc -->
+   * @return the value of the '<em>Left E</em>' containment reference.
+   * @see #setLeftE(Expr)
+   * @see de.peeeq.pscript.pscript.PscriptPackage#getStmtSet_LeftE()
+   * @model containment="true"
+   * @generated
+   */
+  Expr getLeftE();
+
+  /**
+   * Sets the value of the '{@link de.peeeq.pscript.pscript.StmtSet#getLeftE <em>Left E</em>}' containment reference.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @param value the new value of the '<em>Left E</em>' containment reference.
+   * @see #getLeftE()
+   * @generated
+   */
+  void setLeftE(Expr value);
+
+  /**
+   * Returns the value of the '<em><b>Right</b></em>' containment reference.
+   * <!-- begin-user-doc -->
+   * <p>
+   * If the meaning of the '<em>Right</em>' containment reference isn't clear,
+   * there really should be more of a description here...
+   * </p>
+   * <!-- end-user-doc -->
+   * @return the value of the '<em>Right</em>' containment reference.
+   * @see #setRight(Expr)
+   * @see de.peeeq.pscript.pscript.PscriptPackage#getStmtSet_Right()
+   * @model containment="true"
+   * @generated
+   */
+  Expr getRight();
+
+  /**
+   * Sets the value of the '{@link de.peeeq.pscript.pscript.StmtSet#getRight <em>Right</em>}' containment reference.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @param value the new value of the '<em>Right</em>' containment reference.
+   * @see #getRight()
+   * @generated
+   */
+  void setRight(Expr value);
+
   /**
    * Returns the value of the '<em><b>Left</b></em>' containment reference.
    * <!-- begin-user-doc -->
@@ -78,31 +131,5 @@ public interface StmtSet extends StmtSetOrCall
    * @generated
    */
   void setOpAssignment(OpAssignment value);
-
-  /**
-   * Returns the value of the '<em><b>Right</b></em>' containment reference.
-   * <!-- begin-user-doc -->
-   * <p>
-   * If the meaning of the '<em>Right</em>' containment reference isn't clear,
-   * there really should be more of a description here...
-   * </p>
-   * <!-- end-user-doc -->
-   * @return the value of the '<em>Right</em>' containment reference.
-   * @see #setRight(Expr)
-   * @see de.peeeq.pscript.pscript.PscriptPackage#getStmtSet_Right()
-   * @model containment="true"
-   * @generated
-   */
-  Expr getRight();
-
-  /**
-   * Sets the value of the '{@link de.peeeq.pscript.pscript.StmtSet#getRight <em>Right</em>}' containment reference.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @param value the new value of the '<em>Right</em>' containment reference.
-   * @see #getRight()
-   * @generated
-   */
-  void setRight(Expr value);
 
 } // StmtSet

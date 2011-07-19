@@ -164,9 +164,19 @@ public class PscriptAdapterFactory extends AdapterFactoryImpl
         return createStmtWhileAdapter();
       }
       @Override
-      public Adapter caseStmtSetOrCall(StmtSetOrCall object)
+      public Adapter caseStmtSet(StmtSet object)
       {
-        return createStmtSetOrCallAdapter();
+        return createStmtSetAdapter();
+      }
+      @Override
+      public Adapter caseStmtCall(StmtCall object)
+      {
+        return createStmtCallAdapter();
+      }
+      @Override
+      public Adapter caseStmtSetOrCallOrVarDef(StmtSetOrCallOrVarDef object)
+      {
+        return createStmtSetOrCallOrVarDefAdapter();
       }
       @Override
       public Adapter caseOpAssignment(OpAssignment object)
@@ -232,16 +242,6 @@ public class PscriptAdapterFactory extends AdapterFactoryImpl
       public Adapter caseParameterDef(ParameterDef object)
       {
         return createParameterDefAdapter();
-      }
-      @Override
-      public Adapter caseStmtCall(StmtCall object)
-      {
-        return createStmtCallAdapter();
-      }
-      @Override
-      public Adapter caseStmtSet(StmtSet object)
-      {
-        return createStmtSetAdapter();
       }
       @Override
       public Adapter caseOpAssign(OpAssign object)
@@ -676,16 +676,46 @@ public class PscriptAdapterFactory extends AdapterFactoryImpl
   }
 
   /**
-   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.StmtSetOrCall <em>Stmt Set Or Call</em>}'.
+   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.StmtSet <em>Stmt Set</em>}'.
    * <!-- begin-user-doc -->
    * This default implementation returns null so that we can easily ignore cases;
    * it's useful to ignore a case when inheritance will catch all the cases anyway.
    * <!-- end-user-doc -->
    * @return the new adapter.
-   * @see de.peeeq.pscript.pscript.StmtSetOrCall
+   * @see de.peeeq.pscript.pscript.StmtSet
    * @generated
    */
-  public Adapter createStmtSetOrCallAdapter()
+  public Adapter createStmtSetAdapter()
+  {
+    return null;
+  }
+
+  /**
+   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.StmtCall <em>Stmt Call</em>}'.
+   * <!-- begin-user-doc -->
+   * This default implementation returns null so that we can easily ignore cases;
+   * it's useful to ignore a case when inheritance will catch all the cases anyway.
+   * <!-- end-user-doc -->
+   * @return the new adapter.
+   * @see de.peeeq.pscript.pscript.StmtCall
+   * @generated
+   */
+  public Adapter createStmtCallAdapter()
+  {
+    return null;
+  }
+
+  /**
+   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.StmtSetOrCallOrVarDef <em>Stmt Set Or Call Or Var Def</em>}'.
+   * <!-- begin-user-doc -->
+   * This default implementation returns null so that we can easily ignore cases;
+   * it's useful to ignore a case when inheritance will catch all the cases anyway.
+   * <!-- end-user-doc -->
+   * @return the new adapter.
+   * @see de.peeeq.pscript.pscript.StmtSetOrCallOrVarDef
+   * @generated
+   */
+  public Adapter createStmtSetOrCallOrVarDefAdapter()
   {
     return null;
   }
@@ -881,36 +911,6 @@ public class PscriptAdapterFactory extends AdapterFactoryImpl
    * @generated
    */
   public Adapter createParameterDefAdapter()
-  {
-    return null;
-  }
-
-  /**
-   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.StmtCall <em>Stmt Call</em>}'.
-   * <!-- begin-user-doc -->
-   * This default implementation returns null so that we can easily ignore cases;
-   * it's useful to ignore a case when inheritance will catch all the cases anyway.
-   * <!-- end-user-doc -->
-   * @return the new adapter.
-   * @see de.peeeq.pscript.pscript.StmtCall
-   * @generated
-   */
-  public Adapter createStmtCallAdapter()
-  {
-    return null;
-  }
-
-  /**
-   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.StmtSet <em>Stmt Set</em>}'.
-   * <!-- begin-user-doc -->
-   * This default implementation returns null so that we can easily ignore cases;
-   * it's useful to ignore a case when inheritance will catch all the cases anyway.
-   * <!-- end-user-doc -->
-   * @return the new adapter.
-   * @see de.peeeq.pscript.pscript.StmtSet
-   * @generated
-   */
-  public Adapter createStmtSetAdapter()
   {
     return null;
   }

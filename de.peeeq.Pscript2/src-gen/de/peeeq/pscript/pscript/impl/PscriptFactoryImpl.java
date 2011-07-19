@@ -85,7 +85,9 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
       case PscriptPackage.STMT_RETURN: return createStmtReturn();
       case PscriptPackage.STMT_IF: return createStmtIf();
       case PscriptPackage.STMT_WHILE: return createStmtWhile();
-      case PscriptPackage.STMT_SET_OR_CALL: return createStmtSetOrCall();
+      case PscriptPackage.STMT_SET: return createStmtSet();
+      case PscriptPackage.STMT_CALL: return createStmtCall();
+      case PscriptPackage.STMT_SET_OR_CALL_OR_VAR_DEF: return createStmtSetOrCallOrVarDef();
       case PscriptPackage.OP_ASSIGNMENT: return createOpAssignment();
       case PscriptPackage.EXPR: return createExpr();
       case PscriptPackage.OP_EQUALITY: return createOpEquality();
@@ -99,8 +101,6 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
       case PscriptPackage.TYPE_EXPR_REF: return createTypeExprRef();
       case PscriptPackage.TYPE_EXPR_BUILDIN: return createTypeExprBuildin();
       case PscriptPackage.PARAMETER_DEF: return createParameterDef();
-      case PscriptPackage.STMT_CALL: return createStmtCall();
-      case PscriptPackage.STMT_SET: return createStmtSet();
       case PscriptPackage.OP_ASSIGN: return createOpAssign();
       case PscriptPackage.OP_PLUS_ASSIGN: return createOpPlusAssign();
       case PscriptPackage.OP_MINUS_ASSIGN: return createOpMinusAssign();
@@ -329,10 +329,32 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
    * <!-- end-user-doc -->
    * @generated
    */
-  public StmtSetOrCall createStmtSetOrCall()
+  public StmtSet createStmtSet()
   {
-    StmtSetOrCallImpl stmtSetOrCall = new StmtSetOrCallImpl();
-    return stmtSetOrCall;
+    StmtSetImpl stmtSet = new StmtSetImpl();
+    return stmtSet;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public StmtCall createStmtCall()
+  {
+    StmtCallImpl stmtCall = new StmtCallImpl();
+    return stmtCall;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public StmtSetOrCallOrVarDef createStmtSetOrCallOrVarDef()
+  {
+    StmtSetOrCallOrVarDefImpl stmtSetOrCallOrVarDef = new StmtSetOrCallOrVarDefImpl();
+    return stmtSetOrCallOrVarDef;
   }
 
   /**
@@ -476,28 +498,6 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
   {
     ParameterDefImpl parameterDef = new ParameterDefImpl();
     return parameterDef;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public StmtCall createStmtCall()
-  {
-    StmtCallImpl stmtCall = new StmtCallImpl();
-    return stmtCall;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public StmtSet createStmtSet()
-  {
-    StmtSetImpl stmtSet = new StmtSetImpl();
-    return stmtSet;
   }
 
   /**

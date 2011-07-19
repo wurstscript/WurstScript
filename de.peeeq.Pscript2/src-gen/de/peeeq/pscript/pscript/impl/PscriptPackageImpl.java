@@ -65,7 +65,7 @@ import de.peeeq.pscript.pscript.StmtIf;
 import de.peeeq.pscript.pscript.StmtLoop;
 import de.peeeq.pscript.pscript.StmtReturn;
 import de.peeeq.pscript.pscript.StmtSet;
-import de.peeeq.pscript.pscript.StmtSetOrCall;
+import de.peeeq.pscript.pscript.StmtSetOrCallOrVarDef;
 import de.peeeq.pscript.pscript.StmtWhile;
 import de.peeeq.pscript.pscript.TypeDef;
 import de.peeeq.pscript.pscript.TypeExpr;
@@ -212,7 +212,21 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
-  private EClass stmtSetOrCallEClass = null;
+  private EClass stmtSetEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass stmtCallEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass stmtSetOrCallOrVarDefEClass = null;
 
   /**
    * <!-- begin-user-doc -->
@@ -304,20 +318,6 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * @generated
    */
   private EClass parameterDefEClass = null;
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  private EClass stmtCallEClass = null;
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  private EClass stmtSetEClass = null;
 
   /**
    * <!-- begin-user-doc -->
@@ -1014,9 +1014,79 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
-  public EClass getStmtSetOrCall()
+  public EClass getStmtSet()
   {
-    return stmtSetOrCallEClass;
+    return stmtSetEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EReference getStmtSet_LeftE()
+  {
+    return (EReference)stmtSetEClass.getEStructuralFeatures().get(0);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EReference getStmtSet_Right()
+  {
+    return (EReference)stmtSetEClass.getEStructuralFeatures().get(1);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EReference getStmtSet_Left()
+  {
+    return (EReference)stmtSetEClass.getEStructuralFeatures().get(2);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EReference getStmtSet_OpAssignment()
+  {
+    return (EReference)stmtSetEClass.getEStructuralFeatures().get(3);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getStmtCall()
+  {
+    return stmtCallEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EReference getStmtCall_E()
+  {
+    return (EReference)stmtCallEClass.getEStructuralFeatures().get(0);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getStmtSetOrCallOrVarDef()
+  {
+    return stmtSetOrCallOrVarDefEClass;
   }
 
   /**
@@ -1197,66 +1267,6 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
   public EClass getParameterDef()
   {
     return parameterDefEClass;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public EClass getStmtCall()
-  {
-    return stmtCallEClass;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public EReference getStmtCall_E()
-  {
-    return (EReference)stmtCallEClass.getEStructuralFeatures().get(0);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public EClass getStmtSet()
-  {
-    return stmtSetEClass;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public EReference getStmtSet_Left()
-  {
-    return (EReference)stmtSetEClass.getEStructuralFeatures().get(0);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public EReference getStmtSet_OpAssignment()
-  {
-    return (EReference)stmtSetEClass.getEStructuralFeatures().get(1);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public EReference getStmtSet_Right()
-  {
-    return (EReference)stmtSetEClass.getEStructuralFeatures().get(2);
   }
 
   /**
@@ -1967,7 +1977,16 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
     createEReference(stmtWhileEClass, STMT_WHILE__COND);
     createEReference(stmtWhileEClass, STMT_WHILE__BODY);
 
-    stmtSetOrCallEClass = createEClass(STMT_SET_OR_CALL);
+    stmtSetEClass = createEClass(STMT_SET);
+    createEReference(stmtSetEClass, STMT_SET__LEFT_E);
+    createEReference(stmtSetEClass, STMT_SET__RIGHT);
+    createEReference(stmtSetEClass, STMT_SET__LEFT);
+    createEReference(stmtSetEClass, STMT_SET__OP_ASSIGNMENT);
+
+    stmtCallEClass = createEClass(STMT_CALL);
+    createEReference(stmtCallEClass, STMT_CALL__E);
+
+    stmtSetOrCallOrVarDefEClass = createEClass(STMT_SET_OR_CALL_OR_VAR_DEF);
 
     opAssignmentEClass = createEClass(OP_ASSIGNMENT);
 
@@ -1999,14 +2018,6 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
     createEAttribute(typeExprBuildinEClass, TYPE_EXPR_BUILDIN__NAME);
 
     parameterDefEClass = createEClass(PARAMETER_DEF);
-
-    stmtCallEClass = createEClass(STMT_CALL);
-    createEReference(stmtCallEClass, STMT_CALL__E);
-
-    stmtSetEClass = createEClass(STMT_SET);
-    createEReference(stmtSetEClass, STMT_SET__LEFT);
-    createEReference(stmtSetEClass, STMT_SET__OP_ASSIGNMENT);
-    createEReference(stmtSetEClass, STMT_SET__RIGHT);
 
     opAssignEClass = createEClass(OP_ASSIGN);
 
@@ -2138,20 +2149,23 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
     varDefEClass.getESuperTypes().add(this.getEntity());
     varDefEClass.getESuperTypes().add(this.getClassMember());
     varDefEClass.getESuperTypes().add(this.getStatement());
+    varDefEClass.getESuperTypes().add(this.getStmtSetOrCallOrVarDef());
     stmtExitwhenEClass.getESuperTypes().add(this.getStatement());
     stmtLoopEClass.getESuperTypes().add(this.getStatement());
     stmtReturnEClass.getESuperTypes().add(this.getStatement());
     stmtIfEClass.getESuperTypes().add(this.getStatement());
     stmtWhileEClass.getESuperTypes().add(this.getStatement());
-    stmtSetOrCallEClass.getESuperTypes().add(this.getStatement());
+    stmtSetEClass.getESuperTypes().add(this.getStatement());
+    stmtSetEClass.getESuperTypes().add(this.getStmtSetOrCallOrVarDef());
+    stmtCallEClass.getESuperTypes().add(this.getStatement());
+    stmtCallEClass.getESuperTypes().add(this.getStmtSetOrCallOrVarDef());
+    stmtSetOrCallOrVarDefEClass.getESuperTypes().add(this.getStatement());
     nativeFuncEClass.getESuperTypes().add(this.getFuncDef());
     nativeTypeEClass.getESuperTypes().add(this.getTypeDef());
     classDefEClass.getESuperTypes().add(this.getTypeDef());
     typeExprRefEClass.getESuperTypes().add(this.getTypeExpr());
     typeExprBuildinEClass.getESuperTypes().add(this.getTypeExpr());
     parameterDefEClass.getESuperTypes().add(this.getVarDef());
-    stmtCallEClass.getESuperTypes().add(this.getStmtSetOrCall());
-    stmtSetEClass.getESuperTypes().add(this.getStmtSetOrCall());
     opAssignEClass.getESuperTypes().add(this.getOpAssignment());
     opPlusAssignEClass.getESuperTypes().add(this.getOpAssignment());
     opMinusAssignEClass.getESuperTypes().add(this.getOpAssignment());
@@ -2243,7 +2257,16 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
     initEReference(getStmtWhile_Cond(), this.getExpr(), null, "cond", null, 0, 1, StmtWhile.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
     initEReference(getStmtWhile_Body(), this.getStatements(), null, "body", null, 0, 1, StmtWhile.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
-    initEClass(stmtSetOrCallEClass, StmtSetOrCall.class, "StmtSetOrCall", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+    initEClass(stmtSetEClass, StmtSet.class, "StmtSet", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+    initEReference(getStmtSet_LeftE(), this.getExpr(), null, "leftE", null, 0, 1, StmtSet.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getStmtSet_Right(), this.getExpr(), null, "right", null, 0, 1, StmtSet.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getStmtSet_Left(), this.getStmtCall(), null, "left", null, 0, 1, StmtSet.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getStmtSet_OpAssignment(), this.getOpAssignment(), null, "opAssignment", null, 0, 1, StmtSet.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
+    initEClass(stmtCallEClass, StmtCall.class, "StmtCall", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+    initEReference(getStmtCall_E(), this.getExpr(), null, "e", null, 0, 1, StmtCall.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
+    initEClass(stmtSetOrCallOrVarDefEClass, StmtSetOrCallOrVarDef.class, "StmtSetOrCallOrVarDef", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 
     initEClass(opAssignmentEClass, OpAssignment.class, "OpAssignment", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 
@@ -2275,14 +2298,6 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
     initEAttribute(getTypeExprBuildin_Name(), ecorePackage.getEString(), "name", null, 0, 1, TypeExprBuildin.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(parameterDefEClass, ParameterDef.class, "ParameterDef", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
-
-    initEClass(stmtCallEClass, StmtCall.class, "StmtCall", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
-    initEReference(getStmtCall_E(), this.getExpr(), null, "e", null, 0, 1, StmtCall.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-
-    initEClass(stmtSetEClass, StmtSet.class, "StmtSet", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
-    initEReference(getStmtSet_Left(), this.getStmtCall(), null, "left", null, 0, 1, StmtSet.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getStmtSet_OpAssignment(), this.getOpAssignment(), null, "opAssignment", null, 0, 1, StmtSet.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getStmtSet_Right(), this.getExpr(), null, "right", null, 0, 1, StmtSet.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(opAssignEClass, OpAssign.class, "OpAssign", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 
