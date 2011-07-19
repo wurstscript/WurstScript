@@ -16,6 +16,7 @@ import de.peeeq.pscript.attributes.AttrTypeExprType;
 import de.peeeq.pscript.attributes.AttrVarDefType;
 import de.peeeq.pscript.attributes.infrastructure.AttributeManager;
 import de.peeeq.pscript.pscript.ClassDef;
+import de.peeeq.pscript.pscript.ClassMember;
 import de.peeeq.pscript.pscript.Entity;
 import de.peeeq.pscript.pscript.Expr;
 import de.peeeq.pscript.pscript.ExprAdditive;
@@ -27,7 +28,6 @@ import de.peeeq.pscript.pscript.ExprFuncRef;
 import de.peeeq.pscript.pscript.ExprFunctioncall;
 import de.peeeq.pscript.pscript.ExprIdentifier;
 import de.peeeq.pscript.pscript.ExprIntVal;
-import de.peeeq.pscript.pscript.ExprList;
 import de.peeeq.pscript.pscript.ExprMember;
 import de.peeeq.pscript.pscript.ExprMult;
 import de.peeeq.pscript.pscript.ExprNot;
@@ -68,6 +68,7 @@ import de.peeeq.pscript.pscript.StmtSetOrCallOrVarDef;
 import de.peeeq.pscript.pscript.StmtWhile;
 import de.peeeq.pscript.pscript.TypeDef;
 import de.peeeq.pscript.pscript.VarDef;
+import de.peeeq.pscript.pscript.util.ClassMemberSwitch;
 import de.peeeq.pscript.pscript.util.EntitySwitchVoid;
 import de.peeeq.pscript.pscript.util.ExprSwitch;
 import de.peeeq.pscript.pscript.util.OpAdditiveSwitch;
@@ -349,7 +350,9 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 			
 			private void translateStmtVarDef(VarDef v) {
 				ILvar leftVar = getVar(v, locals);
-				result.addAll(translateExpr(v.getE(), leftVar , locals));
+				if (v.getE() != null) {
+					result.addAll(translateExpr(v.getE(), leftVar , locals));
+				}
 			}
 			
 
@@ -506,23 +509,45 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 			
 
 			@Override
-			public List<ILStatement> caseExprMember(ExprMember exprMember) {
-				// this is either a function call or a class variable access
-				if (exprMember.getRight() instanceof ExprFunctioncall) {
-					ExprFunctioncall fc = (ExprFunctioncall) exprMember.getRight();
-					ExprList argList = fc.getParameters();
-					List<Expr> args = new NotNullList<Expr>();
-					args.add(exprMember.getLeft());
-					if (argList != null && argList.getParams() != null) {
-						args.addAll(argList.getParams());
+			public List<ILStatement> caseExprMember(final ExprMember exprMember) {
+				ClassMember classMember = exprMember.getMessage().getNameVal();
+				return new ClassMemberSwitch<List<ILStatement>>() {
+
+					@Override
+					public List<ILStatement> caseVarDef(VarDef varDef) {
+						// TODO class members
+						throw new Error("Not implemented");
 					}
-					return translateFunctionCall(resultVar, fc.getNameVal(), args, locals);
-				}
-				if (exprMember.getRight() instanceof ExprIdentifier) {
-					// TODO class variable access
-					throw new Error("not implemented");
-				}
-				throw new Error("no other case possible? / not implemented");
+
+					@Override
+					public List<ILStatement> caseFuncDef(FuncDef funcDef) {
+						EList<Expr> argList = exprMember.getMessage().getParams();
+						
+						List<Expr> args = new NotNullList<Expr>();
+						args.add(exprMember.getLeft());
+						if (argList != null) {
+							args.addAll(argList);
+						}
+						return translateFunctionCall(resultVar, funcDef, args, locals);
+					}
+				}.doSwitch(classMember);
+				
+//				// this is either a function call or a class variable access
+//				if (exprMember.getRight() instanceof ExprFunctioncall) {
+//					ExprFunctioncall fc = (ExprFunctioncall) exprMember.getRight();
+//					ExprList argList = fc.getParameters();
+//					List<Expr> args = new NotNullList<Expr>();
+//					args.add(exprMember.getLeft());
+//					if (argList != null && argList.getParams() != null) {
+//						args.addAll(argList.getParams());
+//					}
+//					return translateFunctionCall(resultVar, fc.getNameVal(), args, locals);
+//				}
+//				if (exprMember.getRight() instanceof ExprIdentifier) {
+//					// TODO class variable access
+//					throw new Error("not implemented");
+//				}
+//				throw new Error("no other case possible? / not implemented");
 			}
 
 			@Override
@@ -621,8 +646,8 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 			@Override
 			public List<ILStatement> caseExprFunctioncall(ExprFunctioncall exprFunctioncall) {
 				List<Expr> args = new NotNullList<Expr>();
-				if (exprFunctioncall.getParameters() != null) {
-					args = exprFunctioncall.getParameters().getParams();
+				if (exprFunctioncall.getParams() != null) {
+					args = exprFunctioncall.getParams();
 				}
 				return translateFunctionCall(resultVar, exprFunctioncall.getNameVal(), args , locals);
 			}

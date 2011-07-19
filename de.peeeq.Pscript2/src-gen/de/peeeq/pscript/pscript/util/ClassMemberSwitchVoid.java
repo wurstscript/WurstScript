@@ -1,12 +1,13 @@
 package de.peeeq.pscript.pscript.util;
 import de.peeeq.pscript.pscript.*;
 public abstract class ClassMemberSwitchVoid {
-	abstract public void caseVarDef(VarDef varDef);
 	abstract public void caseFuncDef(FuncDef funcDef);
+	abstract public void caseVarDef(VarDef varDef);
 	public void doSwitch(ClassMember classMember) {
-		if (classMember instanceof VarDef) { caseVarDef((VarDef)classMember); return; }
+if ( classMember == null) throw new IllegalArgumentException("Switch element must not be null.");
 		if (classMember instanceof FuncDef) { caseFuncDef((FuncDef)classMember); return; }
-		throw new Error("Switch did not match any case.");
+		if (classMember instanceof VarDef) { caseVarDef((VarDef)classMember); return; }
+		throw new Error("Switch did not match any case: " + classMember);
 	}
 }
 

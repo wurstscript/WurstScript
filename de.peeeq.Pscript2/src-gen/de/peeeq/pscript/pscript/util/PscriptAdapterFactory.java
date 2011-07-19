@@ -209,9 +209,9 @@ public class PscriptAdapterFactory extends AdapterFactoryImpl
         return createOpMultiplicativeAdapter();
       }
       @Override
-      public Adapter caseExprList(ExprList object)
+      public Adapter caseExprMemberRight(ExprMemberRight object)
       {
-        return createExprListAdapter();
+        return createExprMemberRightAdapter();
       }
       @Override
       public Adapter caseNativeFunc(NativeFunc object)
@@ -811,16 +811,16 @@ public class PscriptAdapterFactory extends AdapterFactoryImpl
   }
 
   /**
-   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.ExprList <em>Expr List</em>}'.
+   * Creates a new adapter for an object of class '{@link de.peeeq.pscript.pscript.ExprMemberRight <em>Expr Member Right</em>}'.
    * <!-- begin-user-doc -->
    * This default implementation returns null so that we can easily ignore cases;
    * it's useful to ignore a case when inheritance will catch all the cases anyway.
    * <!-- end-user-doc -->
    * @return the new adapter.
-   * @see de.peeeq.pscript.pscript.ExprList
+   * @see de.peeeq.pscript.pscript.ExprMemberRight
    * @generated
    */
-  public Adapter createExprListAdapter()
+  public Adapter createExprMemberRightAdapter()
   {
     return null;
   }

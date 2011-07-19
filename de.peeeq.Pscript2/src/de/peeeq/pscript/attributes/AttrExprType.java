@@ -3,6 +3,7 @@ package de.peeeq.pscript.attributes;
 import de.peeeq.pscript.attributes.infrastructure.AbstractAttribute;
 import de.peeeq.pscript.attributes.infrastructure.AttributeDependencies;
 import de.peeeq.pscript.attributes.infrastructure.AttributeManager;
+import de.peeeq.pscript.pscript.ClassMember;
 import de.peeeq.pscript.pscript.Expr;
 import de.peeeq.pscript.pscript.ExprAdditive;
 import de.peeeq.pscript.pscript.ExprAnd;
@@ -14,6 +15,7 @@ import de.peeeq.pscript.pscript.ExprFunctioncall;
 import de.peeeq.pscript.pscript.ExprIdentifier;
 import de.peeeq.pscript.pscript.ExprIntVal;
 import de.peeeq.pscript.pscript.ExprMember;
+import de.peeeq.pscript.pscript.ExprMemberRight;
 import de.peeeq.pscript.pscript.ExprMult;
 import de.peeeq.pscript.pscript.ExprNot;
 import de.peeeq.pscript.pscript.ExprNumVal;
@@ -29,6 +31,7 @@ import de.peeeq.pscript.pscript.OpMultiplicative;
 import de.peeeq.pscript.pscript.PackageDeclaration;
 import de.peeeq.pscript.pscript.ParameterDef;
 import de.peeeq.pscript.pscript.VarDef;
+import de.peeeq.pscript.pscript.util.ClassMemberSwitch;
 import de.peeeq.pscript.pscript.util.ExprSwitch;
 import de.peeeq.pscript.types.PScriptTypeBool;
 import de.peeeq.pscript.types.PScriptTypeCode;
@@ -185,11 +188,32 @@ public class AttrExprType extends AbstractAttribute<Expr, PscriptType> {
 			@Override
 			public PscriptType caseExprMember(ExprMember e) {
 				// the type of the overall expression equals the type of the right expression
-				if (e.getRight() == null) {
+				if (e.getMessage() == null) {
 					return new PscriptTypeError("right side is null");
 				}
 				
-				return attributeManager.getAttValue(AttrExprType.class, e.getRight());				
+				ClassMember classMember = e.getMessage().getNameVal();
+				
+				if (classMember == null) {
+					return new PscriptTypeError("right side (2) is null");
+				}
+				
+				return new ClassMemberSwitch<PscriptType>() {
+
+					@Override
+					public PscriptType caseVarDef(VarDef varDef) {
+						return attributeManager.getAttValue(AttrVarDefType.class, varDef);
+					}
+
+					@Override
+					public PscriptType caseFuncDef(FuncDef funcDef) {
+						if (funcDef.getType() == null) {
+							return PScriptTypeVoid.instance();
+						}						
+						return attributeManager.getAttValue(AttrTypeExprType.class, funcDef.getType());
+					}
+					
+				}.doSwitch(classMember);
 			}
 			
 			

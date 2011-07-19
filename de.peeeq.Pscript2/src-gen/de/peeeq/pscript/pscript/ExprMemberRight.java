@@ -8,24 +8,26 @@ package de.peeeq.pscript.pscript;
 
 import org.eclipse.emf.common.util.EList;
 
+import org.eclipse.emf.ecore.EObject;
+
 /**
  * <!-- begin-user-doc -->
- * A representation of the model object '<em><b>Expr Functioncall</b></em>'.
+ * A representation of the model object '<em><b>Expr Member Right</b></em>'.
  * <!-- end-user-doc -->
  *
  * <p>
  * The following features are supported:
  * <ul>
- *   <li>{@link de.peeeq.pscript.pscript.ExprFunctioncall#getNameVal <em>Name Val</em>}</li>
- *   <li>{@link de.peeeq.pscript.pscript.ExprFunctioncall#getParams <em>Params</em>}</li>
+ *   <li>{@link de.peeeq.pscript.pscript.ExprMemberRight#getNameVal <em>Name Val</em>}</li>
+ *   <li>{@link de.peeeq.pscript.pscript.ExprMemberRight#getParams <em>Params</em>}</li>
  * </ul>
  * </p>
  *
- * @see de.peeeq.pscript.pscript.PscriptPackage#getExprFunctioncall()
+ * @see de.peeeq.pscript.pscript.PscriptPackage#getExprMemberRight()
  * @model
  * @generated
  */
-public interface ExprFunctioncall extends Expr
+public interface ExprMemberRight extends EObject
 {
   /**
    * Returns the value of the '<em><b>Name Val</b></em>' reference.
@@ -36,22 +38,22 @@ public interface ExprFunctioncall extends Expr
    * </p>
    * <!-- end-user-doc -->
    * @return the value of the '<em>Name Val</em>' reference.
-   * @see #setNameVal(FuncDef)
-   * @see de.peeeq.pscript.pscript.PscriptPackage#getExprFunctioncall_NameVal()
+   * @see #setNameVal(ClassMember)
+   * @see de.peeeq.pscript.pscript.PscriptPackage#getExprMemberRight_NameVal()
    * @model
    * @generated
    */
-  FuncDef getNameVal();
+  ClassMember getNameVal();
 
   /**
-   * Sets the value of the '{@link de.peeeq.pscript.pscript.ExprFunctioncall#getNameVal <em>Name Val</em>}' reference.
+   * Sets the value of the '{@link de.peeeq.pscript.pscript.ExprMemberRight#getNameVal <em>Name Val</em>}' reference.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @param value the new value of the '<em>Name Val</em>' reference.
    * @see #getNameVal()
    * @generated
    */
-  void setNameVal(FuncDef value);
+  void setNameVal(ClassMember value);
 
   /**
    * Returns the value of the '<em><b>Params</b></em>' containment reference list.
@@ -63,10 +65,10 @@ public interface ExprFunctioncall extends Expr
    * </p>
    * <!-- end-user-doc -->
    * @return the value of the '<em>Params</em>' containment reference list.
-   * @see de.peeeq.pscript.pscript.PscriptPackage#getExprFunctioncall_Params()
+   * @see de.peeeq.pscript.pscript.PscriptPackage#getExprMemberRight_Params()
    * @model containment="true"
    * @generated
    */
   EList<Expr> getParams();
 
-} // ExprFunctioncall
+} // ExprMemberRight

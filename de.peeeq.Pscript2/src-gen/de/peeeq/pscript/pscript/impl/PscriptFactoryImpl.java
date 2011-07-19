@@ -94,7 +94,7 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
       case PscriptPackage.OP_COMPARISON: return createOpComparison();
       case PscriptPackage.OP_ADDITIVE: return createOpAdditive();
       case PscriptPackage.OP_MULTIPLICATIVE: return createOpMultiplicative();
-      case PscriptPackage.EXPR_LIST: return createExprList();
+      case PscriptPackage.EXPR_MEMBER_RIGHT: return createExprMemberRight();
       case PscriptPackage.NATIVE_FUNC: return createNativeFunc();
       case PscriptPackage.NATIVE_TYPE: return createNativeType();
       case PscriptPackage.CLASS_DEF: return createClassDef();
@@ -428,10 +428,10 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
    * <!-- end-user-doc -->
    * @generated
    */
-  public ExprList createExprList()
+  public ExprMemberRight createExprMemberRight()
   {
-    ExprListImpl exprList = new ExprListImpl();
-    return exprList;
+    ExprMemberRightImpl exprMemberRight = new ExprMemberRightImpl();
+    return exprMemberRight;
   }
 
   /**

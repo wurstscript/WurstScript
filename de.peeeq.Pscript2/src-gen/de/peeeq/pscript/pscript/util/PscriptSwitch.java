@@ -276,10 +276,10 @@ public class PscriptSwitch<T> extends Switch<T>
         if (result == null) result = defaultCase(theEObject);
         return result;
       }
-      case PscriptPackage.EXPR_LIST:
+      case PscriptPackage.EXPR_MEMBER_RIGHT:
       {
-        ExprList exprList = (ExprList)theEObject;
-        T result = caseExprList(exprList);
+        ExprMemberRight exprMemberRight = (ExprMemberRight)theEObject;
+        T result = caseExprMemberRight(exprMemberRight);
         if (result == null) result = defaultCase(theEObject);
         return result;
       }
@@ -1008,17 +1008,17 @@ public class PscriptSwitch<T> extends Switch<T>
   }
 
   /**
-   * Returns the result of interpreting the object as an instance of '<em>Expr List</em>'.
+   * Returns the result of interpreting the object as an instance of '<em>Expr Member Right</em>'.
    * <!-- begin-user-doc -->
    * This implementation returns null;
    * returning a non-null result will terminate the switch.
    * <!-- end-user-doc -->
    * @param object the target of the switch.
-   * @return the result of interpreting the object as an instance of '<em>Expr List</em>'.
+   * @return the result of interpreting the object as an instance of '<em>Expr Member Right</em>'.
    * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
    * @generated
    */
-  public T caseExprList(ExprList object)
+  public T caseExprMemberRight(ExprMemberRight object)
   {
     return null;
   }

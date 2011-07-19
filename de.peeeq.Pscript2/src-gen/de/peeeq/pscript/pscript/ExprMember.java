@@ -16,7 +16,7 @@ package de.peeeq.pscript.pscript;
  * The following features are supported:
  * <ul>
  *   <li>{@link de.peeeq.pscript.pscript.ExprMember#getLeft <em>Left</em>}</li>
- *   <li>{@link de.peeeq.pscript.pscript.ExprMember#getRight <em>Right</em>}</li>
+ *   <li>{@link de.peeeq.pscript.pscript.ExprMember#getMessage <em>Message</em>}</li>
  * </ul>
  * </p>
  *
@@ -53,29 +53,29 @@ public interface ExprMember extends Expr
   void setLeft(Expr value);
 
   /**
-   * Returns the value of the '<em><b>Right</b></em>' containment reference.
+   * Returns the value of the '<em><b>Message</b></em>' containment reference.
    * <!-- begin-user-doc -->
    * <p>
-   * If the meaning of the '<em>Right</em>' containment reference isn't clear,
+   * If the meaning of the '<em>Message</em>' containment reference isn't clear,
    * there really should be more of a description here...
    * </p>
    * <!-- end-user-doc -->
-   * @return the value of the '<em>Right</em>' containment reference.
-   * @see #setRight(Expr)
-   * @see de.peeeq.pscript.pscript.PscriptPackage#getExprMember_Right()
+   * @return the value of the '<em>Message</em>' containment reference.
+   * @see #setMessage(ExprMemberRight)
+   * @see de.peeeq.pscript.pscript.PscriptPackage#getExprMember_Message()
    * @model containment="true"
    * @generated
    */
-  Expr getRight();
+  ExprMemberRight getMessage();
 
   /**
-   * Sets the value of the '{@link de.peeeq.pscript.pscript.ExprMember#getRight <em>Right</em>}' containment reference.
+   * Sets the value of the '{@link de.peeeq.pscript.pscript.ExprMember#getMessage <em>Message</em>}' containment reference.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @param value the new value of the '<em>Right</em>' containment reference.
-   * @see #getRight()
+   * @param value the new value of the '<em>Message</em>' containment reference.
+   * @see #getMessage()
    * @generated
    */
-  void setRight(Expr value);
+  void setMessage(ExprMemberRight value);
 
 } // ExprMember

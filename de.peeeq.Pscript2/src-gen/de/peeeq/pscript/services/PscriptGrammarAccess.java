@@ -2139,8 +2139,8 @@ public class PscriptGrammarAccess extends AbstractGrammarElementFinder {
 		private final Group cGroup_1 = (Group)cGroup.eContents().get(1);
 		private final Action cExprMemberLeftAction_1_0 = (Action)cGroup_1.eContents().get(0);
 		private final Keyword cFullStopKeyword_1_1 = (Keyword)cGroup_1.eContents().get(1);
-		private final Assignment cRightAssignment_1_2 = (Assignment)cGroup_1.eContents().get(2);
-		private final RuleCall cRightExprAtomicParserRuleCall_1_2_0 = (RuleCall)cRightAssignment_1_2.eContents().get(0);
+		private final Assignment cMessageAssignment_1_2 = (Assignment)cGroup_1.eContents().get(2);
+		private final RuleCall cMessageExprMemberRightParserRuleCall_1_2_0 = (RuleCall)cMessageAssignment_1_2.eContents().get(0);
 		
 		////ExprCustomOperator returns Expr:
 		//
@@ -2149,16 +2149,16 @@ public class PscriptGrammarAccess extends AbstractGrammarElementFinder {
 		////; 
 		//
 		//ExprMember returns Expr:
-		//	ExprSingle ({ExprMember.left=current} "." right=ExprAtomic)*;
+		//	ExprSingle ({ExprMember.left=current} "." message=ExprMemberRight)*;
 		public ParserRule getRule() { return rule; }
 
-		//ExprSingle ({ExprMember.left=current} "." right=ExprAtomic)*
+		//ExprSingle ({ExprMember.left=current} "." message=ExprMemberRight)*
 		public Group getGroup() { return cGroup; }
 
 		//ExprSingle
 		public RuleCall getExprSingleParserRuleCall_0() { return cExprSingleParserRuleCall_0; }
 
-		//({ExprMember.left=current} "." right=ExprAtomic)*
+		//({ExprMember.left=current} "." message=ExprMemberRight)*
 		public Group getGroup_1() { return cGroup_1; }
 
 		//{ExprMember.left=current}
@@ -2167,11 +2167,79 @@ public class PscriptGrammarAccess extends AbstractGrammarElementFinder {
 		//"."
 		public Keyword getFullStopKeyword_1_1() { return cFullStopKeyword_1_1; }
 
-		//right=ExprAtomic
-		public Assignment getRightAssignment_1_2() { return cRightAssignment_1_2; }
+		//message=ExprMemberRight
+		public Assignment getMessageAssignment_1_2() { return cMessageAssignment_1_2; }
 
-		//ExprAtomic
-		public RuleCall getRightExprAtomicParserRuleCall_1_2_0() { return cRightExprAtomicParserRuleCall_1_2_0; }
+		//ExprMemberRight
+		public RuleCall getMessageExprMemberRightParserRuleCall_1_2_0() { return cMessageExprMemberRightParserRuleCall_1_2_0; }
+	}
+
+	public class ExprMemberRightElements extends AbstractParserRuleElementFinder {
+		private final ParserRule rule = (ParserRule) GrammarUtil.findRuleForName(getGrammar(), "ExprMemberRight");
+		private final Group cGroup = (Group)rule.eContents().get(1);
+		private final Assignment cNameValAssignment_0 = (Assignment)cGroup.eContents().get(0);
+		private final CrossReference cNameValClassMemberCrossReference_0_0 = (CrossReference)cNameValAssignment_0.eContents().get(0);
+		private final RuleCall cNameValClassMemberIDTerminalRuleCall_0_0_1 = (RuleCall)cNameValClassMemberCrossReference_0_0.eContents().get(1);
+		private final Group cGroup_1 = (Group)cGroup.eContents().get(1);
+		private final Keyword cLeftParenthesisKeyword_1_0 = (Keyword)cGroup_1.eContents().get(0);
+		private final Group cGroup_1_1 = (Group)cGroup_1.eContents().get(1);
+		private final Assignment cParamsAssignment_1_1_0 = (Assignment)cGroup_1_1.eContents().get(0);
+		private final RuleCall cParamsExprParserRuleCall_1_1_0_0 = (RuleCall)cParamsAssignment_1_1_0.eContents().get(0);
+		private final Group cGroup_1_1_1 = (Group)cGroup_1_1.eContents().get(1);
+		private final Keyword cCommaKeyword_1_1_1_0 = (Keyword)cGroup_1_1_1.eContents().get(0);
+		private final Assignment cParamsAssignment_1_1_1_1 = (Assignment)cGroup_1_1_1.eContents().get(1);
+		private final RuleCall cParamsExprParserRuleCall_1_1_1_1_0 = (RuleCall)cParamsAssignment_1_1_1_1.eContents().get(0);
+		private final Keyword cRightParenthesisKeyword_1_2 = (Keyword)cGroup_1.eContents().get(2);
+		
+		////	  {ExprMemberVar}   nameVal=[VarDef]
+		////	| {ExprMemberMethod} nameVal=[FuncDef] parameters=ExprList
+		//
+		////	| {ExprMemberMethod} nameVal=[FuncDef] '(' ')'
+		//ExprMemberRight:
+		//	nameVal=[ClassMember] ("(" (params+=Expr ("," params+=Expr)*)? ")")?;
+		public ParserRule getRule() { return rule; }
+
+		//nameVal=[ClassMember] ("(" (params+=Expr ("," params+=Expr)*)? ")")?
+		public Group getGroup() { return cGroup; }
+
+		//nameVal=[ClassMember]
+		public Assignment getNameValAssignment_0() { return cNameValAssignment_0; }
+
+		//[ClassMember]
+		public CrossReference getNameValClassMemberCrossReference_0_0() { return cNameValClassMemberCrossReference_0_0; }
+
+		//ID
+		public RuleCall getNameValClassMemberIDTerminalRuleCall_0_0_1() { return cNameValClassMemberIDTerminalRuleCall_0_0_1; }
+
+		//("(" (params+=Expr ("," params+=Expr)*)? ")")?
+		public Group getGroup_1() { return cGroup_1; }
+
+		//"("
+		public Keyword getLeftParenthesisKeyword_1_0() { return cLeftParenthesisKeyword_1_0; }
+
+		//(params+=Expr ("," params+=Expr)*)?
+		public Group getGroup_1_1() { return cGroup_1_1; }
+
+		//params+=Expr
+		public Assignment getParamsAssignment_1_1_0() { return cParamsAssignment_1_1_0; }
+
+		//Expr
+		public RuleCall getParamsExprParserRuleCall_1_1_0_0() { return cParamsExprParserRuleCall_1_1_0_0; }
+
+		//("," params+=Expr)*
+		public Group getGroup_1_1_1() { return cGroup_1_1_1; }
+
+		//","
+		public Keyword getCommaKeyword_1_1_1_0() { return cCommaKeyword_1_1_1_0; }
+
+		//params+=Expr
+		public Assignment getParamsAssignment_1_1_1_1() { return cParamsAssignment_1_1_1_1; }
+
+		//Expr
+		public RuleCall getParamsExprParserRuleCall_1_1_1_1_0() { return cParamsExprParserRuleCall_1_1_1_1_0; }
+
+		//")"
+		public Keyword getRightParenthesisKeyword_1_2() { return cRightParenthesisKeyword_1_2; }
 	}
 
 	public class ExprSingleElements extends AbstractParserRuleElementFinder {
@@ -2200,6 +2268,12 @@ public class PscriptGrammarAccess extends AbstractGrammarElementFinder {
 		private final Alternatives cBoolValAlternatives_5_1_0 = (Alternatives)cBoolValAssignment_5_1.eContents().get(0);
 		private final Keyword cBoolValTrueKeyword_5_1_0_0 = (Keyword)cBoolValAlternatives_5_1_0.eContents().get(0);
 		private final Keyword cBoolValFalseKeyword_5_1_0_1 = (Keyword)cBoolValAlternatives_5_1_0.eContents().get(1);
+		private final Group cGroup_6 = (Group)cAlternatives.eContents().get(6);
+		private final Action cExprFuncRefAction_6_0 = (Action)cGroup_6.eContents().get(0);
+		private final Keyword cFunctionKeyword_6_1 = (Keyword)cGroup_6.eContents().get(1);
+		private final Assignment cNameValAssignment_6_2 = (Assignment)cGroup_6.eContents().get(2);
+		private final CrossReference cNameValFuncDefCrossReference_6_2_0 = (CrossReference)cNameValAssignment_6_2.eContents().get(0);
+		private final RuleCall cNameValFuncDefIDTerminalRuleCall_6_2_0_1 = (RuleCall)cNameValFuncDefCrossReference_6_2_0.eContents().get(1);
 		
 		////	| {ExprBuildinFunction} 'buildin' name=ID (parameters=ExprList | '(' ')')
 		//
@@ -2213,11 +2287,11 @@ public class PscriptGrammarAccess extends AbstractGrammarElementFinder {
 		//
 		//ExprSingle returns Expr:
 		//	ExprAtomic | "(" Expr ")" | {ExprIntVal} intVal=INT | {ExprNumVal} numVal=Number | {ExprStrval} strVal=STRING |
-		//	{ExprBoolVal} boolVal=("true" | "false");
+		//	{ExprBoolVal} boolVal=("true" | "false") | {ExprFuncRef} "function" nameVal=[FuncDef];
 		public ParserRule getRule() { return rule; }
 
 		//ExprAtomic | "(" Expr ")" | {ExprIntVal} intVal=INT | {ExprNumVal} numVal=Number | {ExprStrval} strVal=STRING |
-		//{ExprBoolVal} boolVal=("true" | "false")
+		//{ExprBoolVal} boolVal=("true" | "false") | {ExprFuncRef} "function" nameVal=[FuncDef]
 		public Alternatives getAlternatives() { return cAlternatives; }
 
 		//ExprAtomic
@@ -2288,6 +2362,24 @@ public class PscriptGrammarAccess extends AbstractGrammarElementFinder {
 
 		//"false"
 		public Keyword getBoolValFalseKeyword_5_1_0_1() { return cBoolValFalseKeyword_5_1_0_1; }
+
+		//{ExprFuncRef} "function" nameVal=[FuncDef]
+		public Group getGroup_6() { return cGroup_6; }
+
+		//{ExprFuncRef}
+		public Action getExprFuncRefAction_6_0() { return cExprFuncRefAction_6_0; }
+
+		//"function"
+		public Keyword getFunctionKeyword_6_1() { return cFunctionKeyword_6_1; }
+
+		//nameVal=[FuncDef]
+		public Assignment getNameValAssignment_6_2() { return cNameValAssignment_6_2; }
+
+		//[FuncDef]
+		public CrossReference getNameValFuncDefCrossReference_6_2_0() { return cNameValFuncDefCrossReference_6_2_0; }
+
+		//ID
+		public RuleCall getNameValFuncDefIDTerminalRuleCall_6_2_0_1() { return cNameValFuncDefIDTerminalRuleCall_6_2_0_1; }
 	}
 
 	public class NumberElements extends AbstractParserRuleElementFinder {
@@ -2319,171 +2411,99 @@ public class PscriptGrammarAccess extends AbstractGrammarElementFinder {
 		private final Alternatives cAlternatives = (Alternatives)rule.eContents().get(1);
 		private final RuleCall cExprFunctionCallParserRuleCall_0 = (RuleCall)cAlternatives.eContents().get(0);
 		private final Group cGroup_1 = (Group)cAlternatives.eContents().get(1);
-		private final Action cExprFuncRefAction_1_0 = (Action)cGroup_1.eContents().get(0);
-		private final Keyword cFunctionKeyword_1_1 = (Keyword)cGroup_1.eContents().get(1);
-		private final Assignment cNameValAssignment_1_2 = (Assignment)cGroup_1.eContents().get(2);
-		private final CrossReference cNameValFuncDefCrossReference_1_2_0 = (CrossReference)cNameValAssignment_1_2.eContents().get(0);
-		private final RuleCall cNameValFuncDefIDTerminalRuleCall_1_2_0_1 = (RuleCall)cNameValFuncDefCrossReference_1_2_0.eContents().get(1);
-		private final Group cGroup_2 = (Group)cAlternatives.eContents().get(2);
-		private final Action cExprIdentifierAction_2_0 = (Action)cGroup_2.eContents().get(0);
-		private final Assignment cNameValAssignment_2_1 = (Assignment)cGroup_2.eContents().get(1);
-		private final CrossReference cNameValVarDefCrossReference_2_1_0 = (CrossReference)cNameValAssignment_2_1.eContents().get(0);
-		private final RuleCall cNameValVarDefIDTerminalRuleCall_2_1_0_1 = (RuleCall)cNameValVarDefCrossReference_2_1_0.eContents().get(1);
+		private final Action cExprIdentifierAction_1_0 = (Action)cGroup_1.eContents().get(0);
+		private final Assignment cNameValAssignment_1_1 = (Assignment)cGroup_1.eContents().get(1);
+		private final CrossReference cNameValVarDefCrossReference_1_1_0 = (CrossReference)cNameValAssignment_1_1.eContents().get(0);
+		private final RuleCall cNameValVarDefIDTerminalRuleCall_1_1_0_1 = (RuleCall)cNameValVarDefCrossReference_1_1_0.eContents().get(1);
 		
 		//ExprAtomic returns Expr:
-		//	ExprFunctionCall | {ExprFuncRef} "function" nameVal=[FuncDef] | {ExprIdentifier} nameVal=[VarDef];
+		//	ExprFunctionCall | {ExprIdentifier} nameVal=[VarDef];
 		public ParserRule getRule() { return rule; }
 
-		//ExprFunctionCall | {ExprFuncRef} "function" nameVal=[FuncDef] | {ExprIdentifier} nameVal=[VarDef]
+		//ExprFunctionCall | {ExprIdentifier} nameVal=[VarDef]
 		public Alternatives getAlternatives() { return cAlternatives; }
 
 		//ExprFunctionCall
 		public RuleCall getExprFunctionCallParserRuleCall_0() { return cExprFunctionCallParserRuleCall_0; }
 
-		//{ExprFuncRef} "function" nameVal=[FuncDef]
+		//{ExprIdentifier} nameVal=[VarDef]
 		public Group getGroup_1() { return cGroup_1; }
 
-		//{ExprFuncRef}
-		public Action getExprFuncRefAction_1_0() { return cExprFuncRefAction_1_0; }
-
-		//"function"
-		public Keyword getFunctionKeyword_1_1() { return cFunctionKeyword_1_1; }
-
-		//nameVal=[FuncDef]
-		public Assignment getNameValAssignment_1_2() { return cNameValAssignment_1_2; }
-
-		//[FuncDef]
-		public CrossReference getNameValFuncDefCrossReference_1_2_0() { return cNameValFuncDefCrossReference_1_2_0; }
-
-		//ID
-		public RuleCall getNameValFuncDefIDTerminalRuleCall_1_2_0_1() { return cNameValFuncDefIDTerminalRuleCall_1_2_0_1; }
-
-		//{ExprIdentifier} nameVal=[VarDef]
-		public Group getGroup_2() { return cGroup_2; }
-
 		//{ExprIdentifier}
-		public Action getExprIdentifierAction_2_0() { return cExprIdentifierAction_2_0; }
+		public Action getExprIdentifierAction_1_0() { return cExprIdentifierAction_1_0; }
 
 		//nameVal=[VarDef]
-		public Assignment getNameValAssignment_2_1() { return cNameValAssignment_2_1; }
+		public Assignment getNameValAssignment_1_1() { return cNameValAssignment_1_1; }
 
 		//[VarDef]
-		public CrossReference getNameValVarDefCrossReference_2_1_0() { return cNameValVarDefCrossReference_2_1_0; }
+		public CrossReference getNameValVarDefCrossReference_1_1_0() { return cNameValVarDefCrossReference_1_1_0; }
 
 		//ID
-		public RuleCall getNameValVarDefIDTerminalRuleCall_2_1_0_1() { return cNameValVarDefIDTerminalRuleCall_2_1_0_1; }
+		public RuleCall getNameValVarDefIDTerminalRuleCall_1_1_0_1() { return cNameValVarDefIDTerminalRuleCall_1_1_0_1; }
 	}
 
 	public class ExprFunctionCallElements extends AbstractParserRuleElementFinder {
 		private final ParserRule rule = (ParserRule) GrammarUtil.findRuleForName(getGrammar(), "ExprFunctionCall");
-		private final Alternatives cAlternatives = (Alternatives)rule.eContents().get(1);
-		private final Group cGroup_0 = (Group)cAlternatives.eContents().get(0);
-		private final Action cExprFunctioncallAction_0_0 = (Action)cGroup_0.eContents().get(0);
-		private final Assignment cNameValAssignment_0_1 = (Assignment)cGroup_0.eContents().get(1);
-		private final CrossReference cNameValFuncDefCrossReference_0_1_0 = (CrossReference)cNameValAssignment_0_1.eContents().get(0);
-		private final RuleCall cNameValFuncDefIDTerminalRuleCall_0_1_0_1 = (RuleCall)cNameValFuncDefCrossReference_0_1_0.eContents().get(1);
-		private final Assignment cParametersAssignment_0_2 = (Assignment)cGroup_0.eContents().get(2);
-		private final RuleCall cParametersExprListParserRuleCall_0_2_0 = (RuleCall)cParametersAssignment_0_2.eContents().get(0);
-		private final Group cGroup_1 = (Group)cAlternatives.eContents().get(1);
-		private final Action cExprFunctioncallAction_1_0 = (Action)cGroup_1.eContents().get(0);
-		private final Assignment cNameValAssignment_1_1 = (Assignment)cGroup_1.eContents().get(1);
-		private final CrossReference cNameValFuncDefCrossReference_1_1_0 = (CrossReference)cNameValAssignment_1_1.eContents().get(0);
-		private final RuleCall cNameValFuncDefIDTerminalRuleCall_1_1_0_1 = (RuleCall)cNameValFuncDefCrossReference_1_1_0.eContents().get(1);
-		private final Keyword cLeftParenthesisKeyword_1_2 = (Keyword)cGroup_1.eContents().get(2);
-		private final Keyword cRightParenthesisKeyword_1_3 = (Keyword)cGroup_1.eContents().get(3);
+		private final Group cGroup = (Group)rule.eContents().get(1);
+		private final Action cExprFunctioncallAction_0 = (Action)cGroup.eContents().get(0);
+		private final Assignment cNameValAssignment_1 = (Assignment)cGroup.eContents().get(1);
+		private final CrossReference cNameValFuncDefCrossReference_1_0 = (CrossReference)cNameValAssignment_1.eContents().get(0);
+		private final RuleCall cNameValFuncDefIDTerminalRuleCall_1_0_1 = (RuleCall)cNameValFuncDefCrossReference_1_0.eContents().get(1);
+		private final Keyword cLeftParenthesisKeyword_2 = (Keyword)cGroup.eContents().get(2);
+		private final Group cGroup_3 = (Group)cGroup.eContents().get(3);
+		private final Assignment cParamsAssignment_3_0 = (Assignment)cGroup_3.eContents().get(0);
+		private final RuleCall cParamsExprParserRuleCall_3_0_0 = (RuleCall)cParamsAssignment_3_0.eContents().get(0);
+		private final Group cGroup_3_1 = (Group)cGroup_3.eContents().get(1);
+		private final Keyword cCommaKeyword_3_1_0 = (Keyword)cGroup_3_1.eContents().get(0);
+		private final Assignment cParamsAssignment_3_1_1 = (Assignment)cGroup_3_1.eContents().get(1);
+		private final RuleCall cParamsExprParserRuleCall_3_1_1_0 = (RuleCall)cParamsAssignment_3_1_1.eContents().get(0);
+		private final Keyword cRightParenthesisKeyword_4 = (Keyword)cGroup.eContents().get(4);
 		
 		//ExprFunctionCall returns Expr:
-		//	{ExprFunctioncall} nameVal=[FuncDef] parameters=ExprList | {ExprFunctioncall} nameVal=[FuncDef] "(" ")";
+		//	{ExprFunctioncall} nameVal=[FuncDef] "(" (params+=Expr ("," params+=Expr)*)? ")";
 		public ParserRule getRule() { return rule; }
 
-		//{ExprFunctioncall} nameVal=[FuncDef] parameters=ExprList | {ExprFunctioncall} nameVal=[FuncDef] "(" ")"
-		public Alternatives getAlternatives() { return cAlternatives; }
-
-		//{ExprFunctioncall} nameVal=[FuncDef] parameters=ExprList
-		public Group getGroup_0() { return cGroup_0; }
-
-		//{ExprFunctioncall}
-		public Action getExprFunctioncallAction_0_0() { return cExprFunctioncallAction_0_0; }
-
-		//nameVal=[FuncDef]
-		public Assignment getNameValAssignment_0_1() { return cNameValAssignment_0_1; }
-
-		//[FuncDef]
-		public CrossReference getNameValFuncDefCrossReference_0_1_0() { return cNameValFuncDefCrossReference_0_1_0; }
-
-		//ID
-		public RuleCall getNameValFuncDefIDTerminalRuleCall_0_1_0_1() { return cNameValFuncDefIDTerminalRuleCall_0_1_0_1; }
-
-		//parameters=ExprList
-		public Assignment getParametersAssignment_0_2() { return cParametersAssignment_0_2; }
-
-		//ExprList
-		public RuleCall getParametersExprListParserRuleCall_0_2_0() { return cParametersExprListParserRuleCall_0_2_0; }
-
-		//{ExprFunctioncall} nameVal=[FuncDef] "(" ")"
-		public Group getGroup_1() { return cGroup_1; }
-
-		//{ExprFunctioncall}
-		public Action getExprFunctioncallAction_1_0() { return cExprFunctioncallAction_1_0; }
-
-		//nameVal=[FuncDef]
-		public Assignment getNameValAssignment_1_1() { return cNameValAssignment_1_1; }
-
-		//[FuncDef]
-		public CrossReference getNameValFuncDefCrossReference_1_1_0() { return cNameValFuncDefCrossReference_1_1_0; }
-
-		//ID
-		public RuleCall getNameValFuncDefIDTerminalRuleCall_1_1_0_1() { return cNameValFuncDefIDTerminalRuleCall_1_1_0_1; }
-
-		//"("
-		public Keyword getLeftParenthesisKeyword_1_2() { return cLeftParenthesisKeyword_1_2; }
-
-		//")"
-		public Keyword getRightParenthesisKeyword_1_3() { return cRightParenthesisKeyword_1_3; }
-	}
-
-	public class ExprListElements extends AbstractParserRuleElementFinder {
-		private final ParserRule rule = (ParserRule) GrammarUtil.findRuleForName(getGrammar(), "ExprList");
-		private final Group cGroup = (Group)rule.eContents().get(1);
-		private final Keyword cLeftParenthesisKeyword_0 = (Keyword)cGroup.eContents().get(0);
-		private final Assignment cParamsAssignment_1 = (Assignment)cGroup.eContents().get(1);
-		private final RuleCall cParamsExprParserRuleCall_1_0 = (RuleCall)cParamsAssignment_1.eContents().get(0);
-		private final Group cGroup_2 = (Group)cGroup.eContents().get(2);
-		private final Keyword cCommaKeyword_2_0 = (Keyword)cGroup_2.eContents().get(0);
-		private final Assignment cParamsAssignment_2_1 = (Assignment)cGroup_2.eContents().get(1);
-		private final RuleCall cParamsExprParserRuleCall_2_1_0 = (RuleCall)cParamsAssignment_2_1.eContents().get(0);
-		private final Keyword cRightParenthesisKeyword_3 = (Keyword)cGroup.eContents().get(3);
-		
-		//ExprList:
-		//	"(" params+=Expr ("," params+=Expr)* ")";
-		public ParserRule getRule() { return rule; }
-
-		//"(" params+=Expr ("," params+=Expr)* ")"
+		//{ExprFunctioncall} nameVal=[FuncDef] "(" (params+=Expr ("," params+=Expr)*)? ")"
 		public Group getGroup() { return cGroup; }
 
+		//{ExprFunctioncall}
+		public Action getExprFunctioncallAction_0() { return cExprFunctioncallAction_0; }
+
+		//nameVal=[FuncDef]
+		public Assignment getNameValAssignment_1() { return cNameValAssignment_1; }
+
+		//[FuncDef]
+		public CrossReference getNameValFuncDefCrossReference_1_0() { return cNameValFuncDefCrossReference_1_0; }
+
+		//ID
+		public RuleCall getNameValFuncDefIDTerminalRuleCall_1_0_1() { return cNameValFuncDefIDTerminalRuleCall_1_0_1; }
+
 		//"("
-		public Keyword getLeftParenthesisKeyword_0() { return cLeftParenthesisKeyword_0; }
+		public Keyword getLeftParenthesisKeyword_2() { return cLeftParenthesisKeyword_2; }
+
+		//(params+=Expr ("," params+=Expr)*)?
+		public Group getGroup_3() { return cGroup_3; }
 
 		//params+=Expr
-		public Assignment getParamsAssignment_1() { return cParamsAssignment_1; }
+		public Assignment getParamsAssignment_3_0() { return cParamsAssignment_3_0; }
 
 		//Expr
-		public RuleCall getParamsExprParserRuleCall_1_0() { return cParamsExprParserRuleCall_1_0; }
+		public RuleCall getParamsExprParserRuleCall_3_0_0() { return cParamsExprParserRuleCall_3_0_0; }
 
 		//("," params+=Expr)*
-		public Group getGroup_2() { return cGroup_2; }
+		public Group getGroup_3_1() { return cGroup_3_1; }
 
 		//","
-		public Keyword getCommaKeyword_2_0() { return cCommaKeyword_2_0; }
+		public Keyword getCommaKeyword_3_1_0() { return cCommaKeyword_3_1_0; }
 
 		//params+=Expr
-		public Assignment getParamsAssignment_2_1() { return cParamsAssignment_2_1; }
+		public Assignment getParamsAssignment_3_1_1() { return cParamsAssignment_3_1_1; }
 
 		//Expr
-		public RuleCall getParamsExprParserRuleCall_2_1_0() { return cParamsExprParserRuleCall_2_1_0; }
+		public RuleCall getParamsExprParserRuleCall_3_1_1_0() { return cParamsExprParserRuleCall_3_1_1_0; }
 
 		//")"
-		public Keyword getRightParenthesisKeyword_3() { return cRightParenthesisKeyword_3; }
+		public Keyword getRightParenthesisKeyword_4() { return cRightParenthesisKeyword_4; }
 	}
 	
 	
@@ -2528,11 +2548,11 @@ public class PscriptGrammarAccess extends AbstractGrammarElementFinder {
 	private ExprSignElements pExprSign;
 	private ExprNotElements pExprNot;
 	private ExprMemberElements pExprMember;
+	private ExprMemberRightElements pExprMemberRight;
 	private ExprSingleElements pExprSingle;
 	private NumberElements pNumber;
 	private ExprAtomicElements pExprAtomic;
 	private ExprFunctionCallElements pExprFunctionCall;
-	private ExprListElements pExprList;
 	private TerminalRule tID;
 	private TerminalRule tINT;
 	private TerminalRule tSTRING;
@@ -2999,13 +3019,27 @@ public class PscriptGrammarAccess extends AbstractGrammarElementFinder {
 	////; 
 	//
 	//ExprMember returns Expr:
-	//	ExprSingle ({ExprMember.left=current} "." right=ExprAtomic)*;
+	//	ExprSingle ({ExprMember.left=current} "." message=ExprMemberRight)*;
 	public ExprMemberElements getExprMemberAccess() {
 		return (pExprMember != null) ? pExprMember : (pExprMember = new ExprMemberElements());
 	}
 	
 	public ParserRule getExprMemberRule() {
 		return getExprMemberAccess().getRule();
+	}
+
+	////	  {ExprMemberVar}   nameVal=[VarDef]
+	////	| {ExprMemberMethod} nameVal=[FuncDef] parameters=ExprList
+	//
+	////	| {ExprMemberMethod} nameVal=[FuncDef] '(' ')'
+	//ExprMemberRight:
+	//	nameVal=[ClassMember] ("(" (params+=Expr ("," params+=Expr)*)? ")")?;
+	public ExprMemberRightElements getExprMemberRightAccess() {
+		return (pExprMemberRight != null) ? pExprMemberRight : (pExprMemberRight = new ExprMemberRightElements());
+	}
+	
+	public ParserRule getExprMemberRightRule() {
+		return getExprMemberRightAccess().getRule();
 	}
 
 	////	| {ExprBuildinFunction} 'buildin' name=ID (parameters=ExprList | '(' ')')
@@ -3020,7 +3054,7 @@ public class PscriptGrammarAccess extends AbstractGrammarElementFinder {
 	//
 	//ExprSingle returns Expr:
 	//	ExprAtomic | "(" Expr ")" | {ExprIntVal} intVal=INT | {ExprNumVal} numVal=Number | {ExprStrval} strVal=STRING |
-	//	{ExprBoolVal} boolVal=("true" | "false");
+	//	{ExprBoolVal} boolVal=("true" | "false") | {ExprFuncRef} "function" nameVal=[FuncDef];
 	public ExprSingleElements getExprSingleAccess() {
 		return (pExprSingle != null) ? pExprSingle : (pExprSingle = new ExprSingleElements());
 	}
@@ -3040,7 +3074,7 @@ public class PscriptGrammarAccess extends AbstractGrammarElementFinder {
 	}
 
 	//ExprAtomic returns Expr:
-	//	ExprFunctionCall | {ExprFuncRef} "function" nameVal=[FuncDef] | {ExprIdentifier} nameVal=[VarDef];
+	//	ExprFunctionCall | {ExprIdentifier} nameVal=[VarDef];
 	public ExprAtomicElements getExprAtomicAccess() {
 		return (pExprAtomic != null) ? pExprAtomic : (pExprAtomic = new ExprAtomicElements());
 	}
@@ -3050,23 +3084,13 @@ public class PscriptGrammarAccess extends AbstractGrammarElementFinder {
 	}
 
 	//ExprFunctionCall returns Expr:
-	//	{ExprFunctioncall} nameVal=[FuncDef] parameters=ExprList | {ExprFunctioncall} nameVal=[FuncDef] "(" ")";
+	//	{ExprFunctioncall} nameVal=[FuncDef] "(" (params+=Expr ("," params+=Expr)*)? ")";
 	public ExprFunctionCallElements getExprFunctionCallAccess() {
 		return (pExprFunctionCall != null) ? pExprFunctionCall : (pExprFunctionCall = new ExprFunctionCallElements());
 	}
 	
 	public ParserRule getExprFunctionCallRule() {
 		return getExprFunctionCallAccess().getRule();
-	}
-
-	//ExprList:
-	//	"(" params+=Expr ("," params+=Expr)* ")";
-	public ExprListElements getExprListAccess() {
-		return (pExprList != null) ? pExprList : (pExprList = new ExprListElements());
-	}
-	
-	public ParserRule getExprListRule() {
-		return getExprListAccess().getRule();
 	}
 
 	//// Pseudo rules to add common super types:

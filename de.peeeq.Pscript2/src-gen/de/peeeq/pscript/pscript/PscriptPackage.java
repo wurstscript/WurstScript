@@ -852,14 +852,23 @@ public interface PscriptPackage extends EPackage
   int OP_MULTIPLICATIVE_FEATURE_COUNT = 0;
 
   /**
-   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.ExprListImpl <em>Expr List</em>}' class.
+   * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.ExprMemberRightImpl <em>Expr Member Right</em>}' class.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @see de.peeeq.pscript.pscript.impl.ExprListImpl
-   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprList()
+   * @see de.peeeq.pscript.pscript.impl.ExprMemberRightImpl
+   * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprMemberRight()
    * @generated
    */
-  int EXPR_LIST = 26;
+  int EXPR_MEMBER_RIGHT = 26;
+
+  /**
+   * The feature id for the '<em><b>Name Val</b></em>' reference.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int EXPR_MEMBER_RIGHT__NAME_VAL = 0;
 
   /**
    * The feature id for the '<em><b>Params</b></em>' containment reference list.
@@ -868,16 +877,16 @@ public interface PscriptPackage extends EPackage
    * @generated
    * @ordered
    */
-  int EXPR_LIST__PARAMS = 0;
+  int EXPR_MEMBER_RIGHT__PARAMS = 1;
 
   /**
-   * The number of structural features of the '<em>Expr List</em>' class.
+   * The number of structural features of the '<em>Expr Member Right</em>' class.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
    * @ordered
    */
-  int EXPR_LIST_FEATURE_COUNT = 1;
+  int EXPR_MEMBER_RIGHT_FEATURE_COUNT = 2;
 
   /**
    * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.NativeFuncImpl <em>Native Func</em>}' class.
@@ -1765,13 +1774,13 @@ public interface PscriptPackage extends EPackage
   int EXPR_MEMBER__LEFT = EXPR_FEATURE_COUNT + 0;
 
   /**
-   * The feature id for the '<em><b>Right</b></em>' containment reference.
+   * The feature id for the '<em><b>Message</b></em>' containment reference.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
    * @ordered
    */
-  int EXPR_MEMBER__RIGHT = EXPR_FEATURE_COUNT + 1;
+  int EXPR_MEMBER__MESSAGE = EXPR_FEATURE_COUNT + 1;
 
   /**
    * The number of structural features of the '<em>Expr Member</em>' class.
@@ -1970,13 +1979,13 @@ public interface PscriptPackage extends EPackage
   int EXPR_FUNCTIONCALL__NAME_VAL = EXPR_FEATURE_COUNT + 0;
 
   /**
-   * The feature id for the '<em><b>Parameters</b></em>' containment reference.
+   * The feature id for the '<em><b>Params</b></em>' containment reference list.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
    * @ordered
    */
-  int EXPR_FUNCTIONCALL__PARAMETERS = EXPR_FEATURE_COUNT + 1;
+  int EXPR_FUNCTIONCALL__PARAMS = EXPR_FEATURE_COUNT + 1;
 
   /**
    * The number of structural features of the '<em>Expr Functioncall</em>' class.
@@ -2568,25 +2577,36 @@ public interface PscriptPackage extends EPackage
   EClass getOpMultiplicative();
 
   /**
-   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.ExprList <em>Expr List</em>}'.
+   * Returns the meta object for class '{@link de.peeeq.pscript.pscript.ExprMemberRight <em>Expr Member Right</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return the meta object for class '<em>Expr List</em>'.
-   * @see de.peeeq.pscript.pscript.ExprList
+   * @return the meta object for class '<em>Expr Member Right</em>'.
+   * @see de.peeeq.pscript.pscript.ExprMemberRight
    * @generated
    */
-  EClass getExprList();
+  EClass getExprMemberRight();
 
   /**
-   * Returns the meta object for the containment reference list '{@link de.peeeq.pscript.pscript.ExprList#getParams <em>Params</em>}'.
+   * Returns the meta object for the reference '{@link de.peeeq.pscript.pscript.ExprMemberRight#getNameVal <em>Name Val</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the reference '<em>Name Val</em>'.
+   * @see de.peeeq.pscript.pscript.ExprMemberRight#getNameVal()
+   * @see #getExprMemberRight()
+   * @generated
+   */
+  EReference getExprMemberRight_NameVal();
+
+  /**
+   * Returns the meta object for the containment reference list '{@link de.peeeq.pscript.pscript.ExprMemberRight#getParams <em>Params</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @return the meta object for the containment reference list '<em>Params</em>'.
-   * @see de.peeeq.pscript.pscript.ExprList#getParams()
-   * @see #getExprList()
+   * @see de.peeeq.pscript.pscript.ExprMemberRight#getParams()
+   * @see #getExprMemberRight()
    * @generated
    */
-  EReference getExprList_Params();
+  EReference getExprMemberRight_Params();
 
   /**
    * Returns the meta object for class '{@link de.peeeq.pscript.pscript.NativeFunc <em>Native Func</em>}'.
@@ -3175,15 +3195,15 @@ public interface PscriptPackage extends EPackage
   EReference getExprMember_Left();
 
   /**
-   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.ExprMember#getRight <em>Right</em>}'.
+   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.ExprMember#getMessage <em>Message</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return the meta object for the containment reference '<em>Right</em>'.
-   * @see de.peeeq.pscript.pscript.ExprMember#getRight()
+   * @return the meta object for the containment reference '<em>Message</em>'.
+   * @see de.peeeq.pscript.pscript.ExprMember#getMessage()
    * @see #getExprMember()
    * @generated
    */
-  EReference getExprMember_Right();
+  EReference getExprMember_Message();
 
   /**
    * Returns the meta object for class '{@link de.peeeq.pscript.pscript.ExprIntVal <em>Expr Int Val</em>}'.
@@ -3333,15 +3353,15 @@ public interface PscriptPackage extends EPackage
   EReference getExprFunctioncall_NameVal();
 
   /**
-   * Returns the meta object for the containment reference '{@link de.peeeq.pscript.pscript.ExprFunctioncall#getParameters <em>Parameters</em>}'.
+   * Returns the meta object for the containment reference list '{@link de.peeeq.pscript.pscript.ExprFunctioncall#getParams <em>Params</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return the meta object for the containment reference '<em>Parameters</em>'.
-   * @see de.peeeq.pscript.pscript.ExprFunctioncall#getParameters()
+   * @return the meta object for the containment reference list '<em>Params</em>'.
+   * @see de.peeeq.pscript.pscript.ExprFunctioncall#getParams()
    * @see #getExprFunctioncall()
    * @generated
    */
-  EReference getExprFunctioncall_Parameters();
+  EReference getExprFunctioncall_Params();
 
   /**
    * Returns the factory that creates the instances of the model.
@@ -3859,14 +3879,22 @@ public interface PscriptPackage extends EPackage
     EClass OP_MULTIPLICATIVE = eINSTANCE.getOpMultiplicative();
 
     /**
-     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.ExprListImpl <em>Expr List</em>}' class.
+     * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.ExprMemberRightImpl <em>Expr Member Right</em>}' class.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
-     * @see de.peeeq.pscript.pscript.impl.ExprListImpl
-     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprList()
+     * @see de.peeeq.pscript.pscript.impl.ExprMemberRightImpl
+     * @see de.peeeq.pscript.pscript.impl.PscriptPackageImpl#getExprMemberRight()
      * @generated
      */
-    EClass EXPR_LIST = eINSTANCE.getExprList();
+    EClass EXPR_MEMBER_RIGHT = eINSTANCE.getExprMemberRight();
+
+    /**
+     * The meta object literal for the '<em><b>Name Val</b></em>' reference feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EReference EXPR_MEMBER_RIGHT__NAME_VAL = eINSTANCE.getExprMemberRight_NameVal();
 
     /**
      * The meta object literal for the '<em><b>Params</b></em>' containment reference list feature.
@@ -3874,7 +3902,7 @@ public interface PscriptPackage extends EPackage
      * <!-- end-user-doc -->
      * @generated
      */
-    EReference EXPR_LIST__PARAMS = eINSTANCE.getExprList_Params();
+    EReference EXPR_MEMBER_RIGHT__PARAMS = eINSTANCE.getExprMemberRight_Params();
 
     /**
      * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.NativeFuncImpl <em>Native Func</em>}' class.
@@ -4385,12 +4413,12 @@ public interface PscriptPackage extends EPackage
     EReference EXPR_MEMBER__LEFT = eINSTANCE.getExprMember_Left();
 
     /**
-     * The meta object literal for the '<em><b>Right</b></em>' containment reference feature.
+     * The meta object literal for the '<em><b>Message</b></em>' containment reference feature.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
      * @generated
      */
-    EReference EXPR_MEMBER__RIGHT = eINSTANCE.getExprMember_Right();
+    EReference EXPR_MEMBER__MESSAGE = eINSTANCE.getExprMember_Message();
 
     /**
      * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.ExprIntValImpl <em>Expr Int Val</em>}' class.
@@ -4519,12 +4547,12 @@ public interface PscriptPackage extends EPackage
     EReference EXPR_FUNCTIONCALL__NAME_VAL = eINSTANCE.getExprFunctioncall_NameVal();
 
     /**
-     * The meta object literal for the '<em><b>Parameters</b></em>' containment reference feature.
+     * The meta object literal for the '<em><b>Params</b></em>' containment reference list feature.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
      * @generated
      */
-    EReference EXPR_FUNCTIONCALL__PARAMETERS = eINSTANCE.getExprFunctioncall_Parameters();
+    EReference EXPR_FUNCTIONCALL__PARAMS = eINSTANCE.getExprFunctioncall_Params();
 
   }
 

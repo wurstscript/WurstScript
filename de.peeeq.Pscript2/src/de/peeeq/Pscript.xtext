@@ -306,8 +306,17 @@ ExprNot returns Expr:
 
 ExprMember returns Expr:
 	ExprSingle ({ExprMember.left=current} 
-    '.' right=ExprAtomic)*
+    '.' message=ExprMemberRight)*
 ;
+
+ExprMemberRight:
+	nameVal=[ClassMember] ('(' (params+=Expr (',' params+=Expr)*)? ')' )?
+	
+//	  {ExprMemberVar}   nameVal=[VarDef]
+//	| {ExprMemberMethod} nameVal=[FuncDef] parameters=ExprList
+//	| {ExprMemberMethod} nameVal=[FuncDef] '(' ')'
+;
+
 
 
 
@@ -320,6 +329,7 @@ ExprSingle returns Expr:
 	| {ExprNumVal} numVal=Number 
 	| {ExprStrval} strVal=STRING
 	| {ExprBoolVal} boolVal=('true'|'false')
+	| {ExprFuncRef} 'function' nameVal=[FuncDef]
 //	| {ExprBuildinFunction} 'buildin' name=ID (parameters=ExprList | '(' ')')
 //	| {ExprBuildinOperator} 'buildin' '(' left=Expr op=OPERATOR right=Expr ')'	
 	
@@ -335,20 +345,15 @@ Number:
 
 ExprAtomic returns Expr:
 	ExprFunctionCall 
-	| {ExprFuncRef} 'function' nameVal=[FuncDef]
 	| {ExprIdentifier} nameVal=[VarDef]
 ;
 
 
 ExprFunctionCall returns Expr:
-	  {ExprFunctioncall} nameVal=[FuncDef] parameters=ExprList
-	| {ExprFunctioncall} nameVal=[FuncDef] '(' ')'
+	{ExprFunctioncall} nameVal=[FuncDef] '(' (params+=Expr (',' params+=Expr)*)? ')'
 ;
 
 
-ExprList:
-	'(' params+=Expr (',' params+=Expr)* ')'
-;	
 
 
 // Pseudo rules to add common super types:

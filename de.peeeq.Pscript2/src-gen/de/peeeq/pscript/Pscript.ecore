@@ -105,7 +105,8 @@
   <eClassifiers xsi:type="ecore:EClass" name="OpComparison"/>
   <eClassifiers xsi:type="ecore:EClass" name="OpAdditive"/>
   <eClassifiers xsi:type="ecore:EClass" name="OpMultiplicative"/>
-  <eClassifiers xsi:type="ecore:EClass" name="ExprList">
+  <eClassifiers xsi:type="ecore:EClass" name="ExprMemberRight">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="nameVal" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//ClassMember"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="params" upperBound="-1"
         eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Expr"
         containment="true"/>
@@ -201,7 +202,7 @@
   <eClassifiers xsi:type="ecore:EClass" name="ExprMember" eSuperTypes="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Expr">
     <eStructuralFeatures xsi:type="ecore:EReference" name="left" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Expr"
         containment="true"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="right" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Expr"
+    <eStructuralFeatures xsi:type="ecore:EReference" name="message" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprMemberRight"
         containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="ExprIntVal" eSuperTypes="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Expr">
@@ -224,7 +225,8 @@
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="ExprFunctioncall" eSuperTypes="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Expr">
     <eStructuralFeatures xsi:type="ecore:EReference" name="nameVal" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//FuncDef"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="parameters" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprList"
+    <eStructuralFeatures xsi:type="ecore:EReference" name="params" upperBound="-1"
+        eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Expr"
         containment="true"/>
   </eClassifiers>
 </ecore:EPackage>

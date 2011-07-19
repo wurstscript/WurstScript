@@ -261,13 +261,13 @@ public interface PscriptFactory extends EFactory
   OpMultiplicative createOpMultiplicative();
 
   /**
-   * Returns a new object of class '<em>Expr List</em>'.
+   * Returns a new object of class '<em>Expr Member Right</em>'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return a new object of class '<em>Expr List</em>'.
+   * @return a new object of class '<em>Expr Member Right</em>'.
    * @generated
    */
-  ExprList createExprList();
+  ExprMemberRight createExprMemberRight();
 
   /**
    * Returns a new object of class '<em>Native Func</em>'.

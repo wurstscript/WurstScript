@@ -8,6 +8,7 @@ package de.peeeq.pscript.pscript.impl;
 
 import de.peeeq.pscript.pscript.Expr;
 import de.peeeq.pscript.pscript.ExprMember;
+import de.peeeq.pscript.pscript.ExprMemberRight;
 import de.peeeq.pscript.pscript.PscriptPackage;
 
 import org.eclipse.emf.common.notify.Notification;
@@ -26,7 +27,7 @@ import org.eclipse.emf.ecore.impl.ENotificationImpl;
  * The following features are implemented:
  * <ul>
  *   <li>{@link de.peeeq.pscript.pscript.impl.ExprMemberImpl#getLeft <em>Left</em>}</li>
- *   <li>{@link de.peeeq.pscript.pscript.impl.ExprMemberImpl#getRight <em>Right</em>}</li>
+ *   <li>{@link de.peeeq.pscript.pscript.impl.ExprMemberImpl#getMessage <em>Message</em>}</li>
  * </ul>
  * </p>
  *
@@ -45,14 +46,14 @@ public class ExprMemberImpl extends ExprImpl implements ExprMember
   protected Expr left;
 
   /**
-   * The cached value of the '{@link #getRight() <em>Right</em>}' containment reference.
+   * The cached value of the '{@link #getMessage() <em>Message</em>}' containment reference.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @see #getRight()
+   * @see #getMessage()
    * @generated
    * @ordered
    */
-  protected Expr right;
+  protected ExprMemberRight message;
 
   /**
    * <!-- begin-user-doc -->
@@ -128,9 +129,9 @@ public class ExprMemberImpl extends ExprImpl implements ExprMember
    * <!-- end-user-doc -->
    * @generated
    */
-  public Expr getRight()
+  public ExprMemberRight getMessage()
   {
-    return right;
+    return message;
   }
 
   /**
@@ -138,13 +139,13 @@ public class ExprMemberImpl extends ExprImpl implements ExprMember
    * <!-- end-user-doc -->
    * @generated
    */
-  public NotificationChain basicSetRight(Expr newRight, NotificationChain msgs)
+  public NotificationChain basicSetMessage(ExprMemberRight newMessage, NotificationChain msgs)
   {
-    Expr oldRight = right;
-    right = newRight;
+    ExprMemberRight oldMessage = message;
+    message = newMessage;
     if (eNotificationRequired())
     {
-      ENotificationImpl notification = new ENotificationImpl(this, Notification.SET, PscriptPackage.EXPR_MEMBER__RIGHT, oldRight, newRight);
+      ENotificationImpl notification = new ENotificationImpl(this, Notification.SET, PscriptPackage.EXPR_MEMBER__MESSAGE, oldMessage, newMessage);
       if (msgs == null) msgs = notification; else msgs.add(notification);
     }
     return msgs;
@@ -155,20 +156,20 @@ public class ExprMemberImpl extends ExprImpl implements ExprMember
    * <!-- end-user-doc -->
    * @generated
    */
-  public void setRight(Expr newRight)
+  public void setMessage(ExprMemberRight newMessage)
   {
-    if (newRight != right)
+    if (newMessage != message)
     {
       NotificationChain msgs = null;
-      if (right != null)
-        msgs = ((InternalEObject)right).eInverseRemove(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.EXPR_MEMBER__RIGHT, null, msgs);
-      if (newRight != null)
-        msgs = ((InternalEObject)newRight).eInverseAdd(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.EXPR_MEMBER__RIGHT, null, msgs);
-      msgs = basicSetRight(newRight, msgs);
+      if (message != null)
+        msgs = ((InternalEObject)message).eInverseRemove(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.EXPR_MEMBER__MESSAGE, null, msgs);
+      if (newMessage != null)
+        msgs = ((InternalEObject)newMessage).eInverseAdd(this, EOPPOSITE_FEATURE_BASE - PscriptPackage.EXPR_MEMBER__MESSAGE, null, msgs);
+      msgs = basicSetMessage(newMessage, msgs);
       if (msgs != null) msgs.dispatch();
     }
     else if (eNotificationRequired())
-      eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.EXPR_MEMBER__RIGHT, newRight, newRight));
+      eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.EXPR_MEMBER__MESSAGE, newMessage, newMessage));
   }
 
   /**
@@ -183,8 +184,8 @@ public class ExprMemberImpl extends ExprImpl implements ExprMember
     {
       case PscriptPackage.EXPR_MEMBER__LEFT:
         return basicSetLeft(null, msgs);
-      case PscriptPackage.EXPR_MEMBER__RIGHT:
-        return basicSetRight(null, msgs);
+      case PscriptPackage.EXPR_MEMBER__MESSAGE:
+        return basicSetMessage(null, msgs);
     }
     return super.eInverseRemove(otherEnd, featureID, msgs);
   }
@@ -201,8 +202,8 @@ public class ExprMemberImpl extends ExprImpl implements ExprMember
     {
       case PscriptPackage.EXPR_MEMBER__LEFT:
         return getLeft();
-      case PscriptPackage.EXPR_MEMBER__RIGHT:
-        return getRight();
+      case PscriptPackage.EXPR_MEMBER__MESSAGE:
+        return getMessage();
     }
     return super.eGet(featureID, resolve, coreType);
   }
@@ -220,8 +221,8 @@ public class ExprMemberImpl extends ExprImpl implements ExprMember
       case PscriptPackage.EXPR_MEMBER__LEFT:
         setLeft((Expr)newValue);
         return;
-      case PscriptPackage.EXPR_MEMBER__RIGHT:
-        setRight((Expr)newValue);
+      case PscriptPackage.EXPR_MEMBER__MESSAGE:
+        setMessage((ExprMemberRight)newValue);
         return;
     }
     super.eSet(featureID, newValue);
@@ -240,8 +241,8 @@ public class ExprMemberImpl extends ExprImpl implements ExprMember
       case PscriptPackage.EXPR_MEMBER__LEFT:
         setLeft((Expr)null);
         return;
-      case PscriptPackage.EXPR_MEMBER__RIGHT:
-        setRight((Expr)null);
+      case PscriptPackage.EXPR_MEMBER__MESSAGE:
+        setMessage((ExprMemberRight)null);
         return;
     }
     super.eUnset(featureID);
@@ -259,8 +260,8 @@ public class ExprMemberImpl extends ExprImpl implements ExprMember
     {
       case PscriptPackage.EXPR_MEMBER__LEFT:
         return left != null;
-      case PscriptPackage.EXPR_MEMBER__RIGHT:
-        return right != null;
+      case PscriptPackage.EXPR_MEMBER__MESSAGE:
+        return message != null;
     }
     return super.eIsSet(featureID);
   }
