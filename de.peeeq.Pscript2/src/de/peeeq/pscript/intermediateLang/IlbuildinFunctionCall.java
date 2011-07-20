@@ -4,20 +4,15 @@ import java.util.List;
 
 import de.peeeq.pscript.utils.Utils;
 
-public class IlbuildinFunctionCall extends ILStatement {
+public class IlbuildinFunctionCall extends ILStatementSet {
 
-	private ILvar resultVar;
 	private String funcName;
 	private ILvar[] args;
 
 	public IlbuildinFunctionCall(ILvar resultVar, String funcName, ILvar[] args) {
-		this.resultVar = resultVar;
+		super(resultVar);
 		this.funcName = funcName;
 		this.args = args;
-	}
-
-	public ILvar getResultVar() {
-		return resultVar;
 	}
 
 	public String getFuncName() {

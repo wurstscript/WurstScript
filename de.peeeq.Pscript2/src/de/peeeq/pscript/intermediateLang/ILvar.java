@@ -2,7 +2,7 @@ package de.peeeq.pscript.intermediateLang;
 
 import de.peeeq.pscript.types.PscriptType;
 
-public class ILvar {
+public class ILvar implements ILexpr {
 	private String name;
 	private PscriptType type;
 	

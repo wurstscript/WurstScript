@@ -1,13 +1,13 @@
 package de.peeeq.pscript.intermediateLang;
 
-public class Ilbinary extends ILStatement {
+public class ILexprBinary extends ILStatement {
 
 	private ILvar resultVar;
 	private Iloperator op;
 	private ILvar left;
 	private ILvar right;
 
-	public Ilbinary(ILvar resultVar, ILvar left, Iloperator op, ILvar right) {
+	public ILexprBinary(ILvar resultVar, ILvar left, Iloperator op, ILvar right) {
 		this.resultVar = resultVar;
 		this.op = op;
 		this.left = left;

@@ -1,6 +1,6 @@
 package de.peeeq.pscript.intermediateLang;
 
-public abstract class ILconst {
+public abstract class ILconst implements ILexpr {
 
 	public abstract String print();
 

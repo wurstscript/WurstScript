@@ -10,7 +10,7 @@ import de.peeeq.pscript.intermediateLang.ILconstBool;
 import de.peeeq.pscript.intermediateLang.ILconstInt;
 import de.peeeq.pscript.intermediateLang.ILconstNum;
 import de.peeeq.pscript.intermediateLang.ILconstString;
-import de.peeeq.pscript.intermediateLang.ILcopy;
+import de.peeeq.pscript.intermediateLang.ILsetVar;
 import de.peeeq.pscript.intermediateLang.ILexitwhen;
 import de.peeeq.pscript.intermediateLang.ILfunction;
 import de.peeeq.pscript.intermediateLang.ILfunctionCall;
@@ -19,11 +19,11 @@ import de.peeeq.pscript.intermediateLang.ILloop;
 import de.peeeq.pscript.intermediateLang.ILprog;
 import de.peeeq.pscript.intermediateLang.ILreturn;
 import de.peeeq.pscript.intermediateLang.ILvar;
-import de.peeeq.pscript.intermediateLang.Ilbinary;
+import de.peeeq.pscript.intermediateLang.ILsetBinary;
 import de.peeeq.pscript.intermediateLang.IlbuildinFunctionCall;
 import de.peeeq.pscript.intermediateLang.Iloperator;
 import de.peeeq.pscript.intermediateLang.IlsetConst;
-import de.peeeq.pscript.intermediateLang.Ilunary;
+import de.peeeq.pscript.intermediateLang.IlsetUnary;
 import de.peeeq.pscript.types.PScriptTypeBool;
 import de.peeeq.pscript.types.PScriptTypeInt;
 import de.peeeq.pscript.types.PScriptTypeReal;
@@ -116,14 +116,14 @@ public class ILInterpreterImpl implements ILInterpreter {
 	private void executeStatement(Map<String, ILconst> localVarMap, ILStatement s) {
 		if (s instanceof ILif) {
 			translateStatementIf(localVarMap, (ILif)s);
-		} else if (s instanceof ILcopy) {
-			translateIlcopy( localVarMap, (ILcopy)s);
+		} else if (s instanceof ILsetVar) {
+			translateIlcopy( localVarMap, (ILsetVar)s);
 		} else if (s instanceof IlsetConst) {
 			translateIlsetConst( localVarMap, (IlsetConst)s);
-		} else if (s instanceof Ilbinary) {
-			translateIlbinary( localVarMap, (Ilbinary)s);
-		} else if (s instanceof Ilunary) {
-			translateIlunary(localVarMap, (Ilunary) s);
+		} else if (s instanceof ILsetBinary) {
+			translateIlbinary( localVarMap, (ILsetBinary)s);
+		} else if (s instanceof IlsetUnary) {
+			translateIlunary(localVarMap, (IlsetUnary) s);
 		} else if (s instanceof ILreturn) {
 			translateReturn(localVarMap, (ILreturn) s);
 		} else if (s instanceof ILloop) {
@@ -141,7 +141,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 	}
 
 	private void translateIlunary(Map<String, ILconst> localVarMap,
-			Ilunary s) {
+			IlsetUnary s) {
 		ILconst rightValue = lookupVarValue(localVarMap, s.getRight());
 		ILconst result = null;
 		if (s.getOp() == Iloperator.MINUS) {
@@ -220,7 +220,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 		
 	}
 
-	private void translateIlbinary(Map<String, ILconst> localVarMap, Ilbinary s) {
+	private void translateIlbinary(Map<String, ILconst> localVarMap, ILsetBinary s) {
 		ILconst leftValue = lookupVarValue(localVarMap, s.getLeft());
 		ILconst rightValue = lookupVarValue(localVarMap, s.getRight());
 		ILconst result = null;
@@ -391,7 +391,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 		
 	}
 
-	private void translateIlcopy(Map<String, ILconst> localVarMap, ILcopy s) {
+	private void translateIlcopy(Map<String, ILconst> localVarMap, ILsetVar s) {
 		ILconst value = lookupVarValue(localVarMap, s.getVar());
 
 		addVarToProperMap(localVarMap,s.getResultVar(), value);	

@@ -2,11 +2,11 @@ package de.peeeq.pscript.intermediateLang;
 
 public interface ILStatementSwitchVoid {
 
-	void match(Ilbinary ilbinary);
+	void match(ILsetBinary ilbinary);
 
 	void match(IlbuildinFunctionCall ilbuildinFunctionCall);
 
-	void match(ILcopy iLcopy);
+	void match(ILsetVar iLcopy);
 
 	void match(ILexitwhen iLexitwhen);
 
@@ -20,7 +20,7 @@ public interface ILStatementSwitchVoid {
 
 	void match(IlsetConst ilsetConst);
 
-	void match(Ilunary ilunary);
+	void match(IlsetUnary ilunary);
 
 
 }

@@ -5,7 +5,6 @@ import com.google.inject.Injector;
 import de.peeeq.pscript.PscriptRuntimeModule;
 import de.peeeq.pscript.intermediateLang.ILStatement;
 import de.peeeq.pscript.intermediateLang.ILconst;
-import de.peeeq.pscript.intermediateLang.ILcopy;
 import de.peeeq.pscript.intermediateLang.ILexitwhen;
 import de.peeeq.pscript.intermediateLang.ILfunction;
 import de.peeeq.pscript.intermediateLang.ILfunctionCall;
@@ -13,12 +12,13 @@ import de.peeeq.pscript.intermediateLang.ILif;
 import de.peeeq.pscript.intermediateLang.ILloop;
 import de.peeeq.pscript.intermediateLang.ILprog;
 import de.peeeq.pscript.intermediateLang.ILreturn;
+import de.peeeq.pscript.intermediateLang.ILsetBinary;
+import de.peeeq.pscript.intermediateLang.ILsetVar;
 import de.peeeq.pscript.intermediateLang.ILvar;
-import de.peeeq.pscript.intermediateLang.Ilbinary;
 import de.peeeq.pscript.intermediateLang.IlbuildinFunctionCall;
 import de.peeeq.pscript.intermediateLang.Iloperator;
 import de.peeeq.pscript.intermediateLang.IlsetConst;
-import de.peeeq.pscript.intermediateLang.Ilunary;
+import de.peeeq.pscript.intermediateLang.IlsetUnary;
 import de.peeeq.pscript.intermediateLang.IntermediateCodeGenerator;
 import de.peeeq.pscript.types.PscriptType;
 import java.util.List;
@@ -214,7 +214,7 @@ public class PscriptGenerator implements IGenerator {
     return _builder;
   }
   
-  protected StringConcatenation _printStatement(final Ilbinary s, final ILprog prog) {
+  protected StringConcatenation _printStatement(final ILsetBinary s, final ILprog prog) {
     StringConcatenation _builder = new StringConcatenation();
     _builder.append("set ");
     ILvar _resultVar = s.getResultVar();
@@ -289,7 +289,7 @@ public class PscriptGenerator implements IGenerator {
     return _builder;
   }
   
-  protected StringConcatenation _printStatement(final ILcopy s, final ILprog prog) {
+  protected StringConcatenation _printStatement(final ILsetVar s, final ILprog prog) {
     StringConcatenation _builder = new StringConcatenation();
     _builder.append("set ");
     ILvar _resultVar = s.getResultVar();
@@ -423,7 +423,7 @@ public class PscriptGenerator implements IGenerator {
     return _print;
   }
   
-  protected StringConcatenation _printStatement(final Ilunary s, final ILprog prog) {
+  protected StringConcatenation _printStatement(final IlsetUnary s, final ILprog prog) {
     StringConcatenation _builder = new StringConcatenation();
     _builder.append("set ");
     ILvar _resultVar = s.getResultVar();
@@ -591,15 +591,27 @@ public class PscriptGenerator implements IGenerator {
   }
   
   public StringConcatenation printStatement(final ILStatement s, final ILprog prog) {
-    if ((s instanceof ILcopy)
+    if ((s instanceof ILfunctionCall)
          && (prog instanceof ILprog)) {
-      return _printStatement((ILcopy)s, (ILprog)prog);
+      return _printStatement((ILfunctionCall)s, (ILprog)prog);
+    } else if ((s instanceof ILsetBinary)
+         && (prog instanceof ILprog)) {
+      return _printStatement((ILsetBinary)s, (ILprog)prog);
+    } else if ((s instanceof ILsetVar)
+         && (prog instanceof ILprog)) {
+      return _printStatement((ILsetVar)s, (ILprog)prog);
+    } else if ((s instanceof IlbuildinFunctionCall)
+         && (prog instanceof ILprog)) {
+      return _printStatement((IlbuildinFunctionCall)s, (ILprog)prog);
+    } else if ((s instanceof IlsetConst)
+         && (prog instanceof ILprog)) {
+      return _printStatement((IlsetConst)s, (ILprog)prog);
+    } else if ((s instanceof IlsetUnary)
+         && (prog instanceof ILprog)) {
+      return _printStatement((IlsetUnary)s, (ILprog)prog);
     } else if ((s instanceof ILexitwhen)
          && (prog instanceof ILprog)) {
       return _printStatement((ILexitwhen)s, (ILprog)prog);
-    } else if ((s instanceof ILfunctionCall)
-         && (prog instanceof ILprog)) {
-      return _printStatement((ILfunctionCall)s, (ILprog)prog);
     } else if ((s instanceof ILif)
          && (prog instanceof ILprog)) {
       return _printStatement((ILif)s, (ILprog)prog);
@@ -609,18 +621,6 @@ public class PscriptGenerator implements IGenerator {
     } else if ((s instanceof ILreturn)
          && (prog instanceof ILprog)) {
       return _printStatement((ILreturn)s, (ILprog)prog);
-    } else if ((s instanceof Ilbinary)
-         && (prog instanceof ILprog)) {
-      return _printStatement((Ilbinary)s, (ILprog)prog);
-    } else if ((s instanceof IlbuildinFunctionCall)
-         && (prog instanceof ILprog)) {
-      return _printStatement((IlbuildinFunctionCall)s, (ILprog)prog);
-    } else if ((s instanceof IlsetConst)
-         && (prog instanceof ILprog)) {
-      return _printStatement((IlsetConst)s, (ILprog)prog);
-    } else if ((s instanceof Ilunary)
-         && (prog instanceof ILprog)) {
-      return _printStatement((Ilunary)s, (ILprog)prog);
     } else if ((s instanceof ILStatement)
          && (prog instanceof ILprog)) {
       return _printStatement((ILStatement)s, (ILprog)prog);

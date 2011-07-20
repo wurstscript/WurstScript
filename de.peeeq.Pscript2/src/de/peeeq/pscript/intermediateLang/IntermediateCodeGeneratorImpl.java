@@ -249,7 +249,7 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 				
 				List<ILStatement> loopBody = new NotNullList<ILStatement>();
 				loopBody.addAll(cond);
-				loopBody.add(new Ilunary(var_condNot, Iloperator.NOT, var_cond));
+				loopBody.add(new IlsetUnary(var_condNot, Iloperator.NOT, var_cond));
 				loopBody.add(new ILexitwhen(var_condNot));
 				loopBody.addAll(whileBody);
 				result.add(new ILloop(loopBody));	
@@ -435,7 +435,7 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 				ILvar rightResult = getNewLocalVar("tempR", rightType, locals);
 				result.addAll(translateExpr(left, leftResult, locals));
 				result.addAll(translateExpr(right, rightResult, locals));
-				result.add(new Ilbinary(resultVar, leftResult, op, rightResult));
+				result.add(new ILsetBinary(resultVar, leftResult, op, rightResult));
 				return result;
 			}
 			
@@ -444,7 +444,7 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 				PscriptType rightType = attrManager.getAttValue(AttrExprType.class, right);
 				ILvar rightResult = getNewLocalVar("tempU", rightType , locals);
 				result.addAll(translateExpr(right, rightResult, locals));
-				result.add(new Ilunary(resultVar, op, rightResult));
+				result.add(new IlsetUnary(resultVar, op, rightResult));
 				return result;
 			}
 			
@@ -472,7 +472,7 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 			public List<ILStatement> caseExprIdentifier(ExprIdentifier exprIdentifier) {
 				VarDef decl = exprIdentifier.getNameVal();
 				ILvar var = getVar(decl, locals);
-				result.add(new ILcopy(resultVar, var));
+				result.add(new ILsetVar(resultVar, var));
 				return result;
 			}
 

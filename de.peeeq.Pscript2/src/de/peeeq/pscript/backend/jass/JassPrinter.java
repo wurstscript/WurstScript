@@ -110,7 +110,7 @@ public class JassPrinter extends PrintHelper {
 			}
 
 			@Override
-			public void match(Ilbinary s) {
+			public void match(ILsetBinary s) {
 				print("set ");
 				print(s.getResultVar().getName());
 				print(" = ");
@@ -145,7 +145,7 @@ public class JassPrinter extends PrintHelper {
 			}
 
 			@Override
-			public void match(ILcopy s) {
+			public void match(ILsetVar s) {
 				print("set ");
 				print(s.getResultVar().getName());
 				print(" = ");
@@ -197,7 +197,7 @@ public class JassPrinter extends PrintHelper {
 			}
 
 			@Override
-			public void match(Ilunary s) {
+			public void match(IlsetUnary s) {
 				print("set ");
 				print(s.getResultVar().getName());
 				print(" = ");

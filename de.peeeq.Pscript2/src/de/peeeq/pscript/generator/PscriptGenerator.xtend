@@ -110,8 +110,8 @@ class PscriptGenerator implements IGenerator {
 		// not implemented: «s»
 	'''
 	
-	def dispatch printStatement(Ilbinary s, ILprog prog) '''
-		set «s.resultVar.name» = «s.left.name» «s.op.printOp» «s.right.name»
+	def dispatch printStatement(de.peeeq.pscript.intermediateLang.ILsetBinary s, ILprog prog) '''
+		set «s.getResultVar.name» = «s.getLeft.name» «s.getOp.printOp» «s.getRight.name»
 	'''
 	
 	def dispatch printStatement(IlbuildinFunctionCall s, ILprog prog) { 
@@ -126,8 +126,8 @@ class PscriptGenerator implements IGenerator {
 	def printArguments(List<ILvar> args, ILprog prog) 
 		'''«FOR a:args SEPARATOR ', '»«a.name»«ENDFOR»'''
 	
-	def dispatch printStatement(ILcopy s, ILprog prog) '''
-		set «s.resultVar.name» = «s.^var.name»
+	def dispatch printStatement(de.peeeq.pscript.intermediateLang.ILsetVar s, ILprog prog) '''
+		set «s.getResultVar.name» = «s.getVar.name»
 	'''
 	def dispatch printStatement(ILexitwhen s, ILprog prog) '''
 		exitwhen «s.^var.name»
@@ -166,8 +166,8 @@ class PscriptGenerator implements IGenerator {
 	}
 	
 	
-	def dispatch printStatement(Ilunary s, ILprog prog) '''
-		set «s.resultVar.name» = «s.op.printOp»  «s.right.name»
+	def dispatch printStatement(de.peeeq.pscript.intermediateLang.IlsetUnary s, ILprog prog) '''
+		set «s.getResultVar.name» = «s.getOp.printOp»  «s.getRight.name»
 	'''
 	
 	def printOp(Iloperator op) {

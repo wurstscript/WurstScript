@@ -1,20 +1,16 @@
 package de.peeeq.pscript.intermediateLang;
 
-public class Ilunary extends ILStatement {
+public class IlsetUnary extends ILStatementSet {
 
-	private ILvar resultVar;
 	private Iloperator op;
 	private ILvar right;
 
-	public Ilunary(ILvar resultVar, Iloperator op, ILvar right) {
-		this.resultVar = resultVar;
+	public IlsetUnary(ILvar resultVar, Iloperator op, ILvar right) {
+		super(resultVar);
 		this.op = op;
 		this.right = right;
 	}
 
-	public ILvar getResultVar() {
-		return resultVar;
-	}
 
 	public Iloperator getOp() {
 		return op;

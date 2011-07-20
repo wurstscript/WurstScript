@@ -4,6 +4,8 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.resource.ResourceSet;
+import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.naming.QualifiedName;
 import org.eclipse.xtext.resource.IEObjectDescription;
 import org.eclipse.xtext.scoping.IScope;
@@ -147,8 +149,18 @@ public class ClassMemberScope implements IScope {
 		LinkedList<IEObjectDescription> result = new NotNullList<IEObjectDescription>();
 		for (IEObjectDescription o : elements) {
 			EObject obj = o.getEObjectOrProxy();
+			
+			System.out.println("object = " + obj);
+			
 			if (obj instanceof FuncDef) {
 				FuncDef f  = (FuncDef) obj;
+				System.out.println("function = " + f.getName());
+				if (f.getParameters() != null) {
+					System.out.println("params: " + f.getParameters().size());
+					for (VarDef p : f.getParameters()) {
+						System.out.println("	param: " + p.getType() + p.getName());
+					}
+				}
 				if (f.getParameters().size() >= argumentTypes.length) {
 					if (!complete || f.getParameters().size() == argumentTypes.length) {
 						boolean parametersMatch = true;
@@ -161,6 +173,7 @@ public class ClassMemberScope implements IScope {
 							}
 						}
 						if (parametersMatch) {
+							System.out.println("  ok");
 							result.add(o);
 						}
 					}
@@ -188,7 +201,16 @@ public class ClassMemberScope implements IScope {
 			Iterable<IEObjectDescription> elements) {
 		LinkedList<IEObjectDescription> result = new NotNullList<IEObjectDescription>();
 		for (IEObjectDescription o : elements) {
-			if (o.getEObjectOrProxy() instanceof FuncDef || o.getEObjectOrProxy() instanceof VarDef) {
+			EObject obj = o.getEObjectOrProxy();
+			// TODO enrich object descriptions with user data
+			System.out.println("obj = " + obj);
+			if (obj.eIsProxy()) {
+				ResourceSet res = null;
+				obj = EcoreUtil.resolve(obj, res);
+				System.out.println("resolved -> obj = " + obj);
+			}
+			
+			if (obj instanceof FuncDef || obj instanceof VarDef) {
 				result.add(o);
 			}
 		}
