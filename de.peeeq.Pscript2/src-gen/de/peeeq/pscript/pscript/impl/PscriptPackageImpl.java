@@ -834,6 +834,26 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
+  public EAttribute getTypeExpr_Array()
+  {
+    return (EAttribute)typeExprEClass.getEStructuralFeatures().get(0);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EAttribute getTypeExpr_Sizes()
+  {
+    return (EAttribute)typeExprEClass.getEStructuralFeatures().get(1);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
   public EClass getStatements()
   {
     return statementsEClass;
@@ -1874,6 +1894,16 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
+  public EReference getExprIdentifier_ArrayIndizes()
+  {
+    return (EReference)exprIdentifierEClass.getEStructuralFeatures().get(1);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
   public EClass getExprFunctioncall()
   {
     return exprFunctioncallEClass;
@@ -1961,6 +1991,8 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
     createEReference(varDefEClass, VAR_DEF__E);
 
     typeExprEClass = createEClass(TYPE_EXPR);
+    createEAttribute(typeExprEClass, TYPE_EXPR__ARRAY);
+    createEAttribute(typeExprEClass, TYPE_EXPR__SIZES);
 
     statementsEClass = createEClass(STATEMENTS);
     createEReference(statementsEClass, STATEMENTS__STATEMENTS);
@@ -2118,6 +2150,7 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
 
     exprIdentifierEClass = createEClass(EXPR_IDENTIFIER);
     createEReference(exprIdentifierEClass, EXPR_IDENTIFIER__NAME_VAL);
+    createEReference(exprIdentifierEClass, EXPR_IDENTIFIER__ARRAY_INDIZES);
 
     exprFunctioncallEClass = createEClass(EXPR_FUNCTIONCALL);
     createEReference(exprFunctioncallEClass, EXPR_FUNCTIONCALL__NAME_VAL);
@@ -2242,6 +2275,8 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
     initEReference(getVarDef_E(), this.getExpr(), null, "e", null, 0, 1, VarDef.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(typeExprEClass, TypeExpr.class, "TypeExpr", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+    initEAttribute(getTypeExpr_Array(), ecorePackage.getEBoolean(), "array", null, 0, 1, TypeExpr.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEAttribute(getTypeExpr_Sizes(), ecorePackage.getEInt(), "sizes", null, 0, -1, TypeExpr.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, !IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(statementsEClass, Statements.class, "Statements", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEReference(getStatements_Statements(), this.getStatement(), null, "statements", null, 0, -1, Statements.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
@@ -2399,6 +2434,7 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
 
     initEClass(exprIdentifierEClass, ExprIdentifier.class, "ExprIdentifier", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEReference(getExprIdentifier_NameVal(), this.getVarDef(), null, "nameVal", null, 0, 1, ExprIdentifier.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getExprIdentifier_ArrayIndizes(), this.getExpr(), null, "arrayIndizes", null, 0, -1, ExprIdentifier.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(exprFunctioncallEClass, ExprFunctioncall.class, "ExprFunctioncall", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEReference(getExprFunctioncall_NameVal(), this.getFuncDef(), null, "nameVal", null, 0, 1, ExprFunctioncall.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);

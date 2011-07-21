@@ -24,8 +24,12 @@ public class AbstractPscriptSyntacticSequencer extends AbstractSyntacticSequence
 	protected AbstractElementAlias match_FuncDef___LeftParenthesisKeyword_2_0_0_RightParenthesisKeyword_2_0_2___or___TakesKeyword_2_1_0_NothingKeyword_2_1_1__;
 	protected AbstractElementAlias match_NativeFunc_ConstantKeyword_1_q;
 	protected AbstractElementAlias match_NativeFunc___LeftParenthesisKeyword_4_0_0_RightParenthesisKeyword_4_0_2___or___TakesKeyword_4_1_0_NothingKeyword_4_1_1__;
-	protected AbstractElementAlias match_PackageDeclaration_NLTerminalRuleCall_4_a_EndpackageKeyword_6_NLTerminalRuleCall_7_p;
-	protected AbstractElementAlias match_PackageDeclaration_NLTerminalRuleCall_5_1_a_EndpackageKeyword_6_NLTerminalRuleCall_7_p;
+	protected AbstractElementAlias match_PackageDeclaration_NLTerminalRuleCall_5_a;
+	protected AbstractElementAlias match_PackageDeclaration_NLTerminalRuleCall_5_p;
+	protected AbstractElementAlias match_PackageDeclaration_NLTerminalRuleCall_6_1_a;
+	protected AbstractElementAlias match_Program_NLTerminalRuleCall_0_p;
+	protected AbstractElementAlias match_Program_NLTerminalRuleCall_3_p;
+	protected AbstractElementAlias match_Statements_NLTerminalRuleCall_1_0_p;
 	protected AbstractElementAlias match_StmtIf_ThenKeyword_2_q;
 	protected AbstractElementAlias match_StmtIf_ThenKeyword_5_2_q;
 	
@@ -39,8 +43,12 @@ public class AbstractPscriptSyntacticSequencer extends AbstractSyntacticSequence
 		match_FuncDef___LeftParenthesisKeyword_2_0_0_RightParenthesisKeyword_2_0_2___or___TakesKeyword_2_1_0_NothingKeyword_2_1_1__ = new AlternativeAlias(false, false, new GroupAlias(false, false, new TokenAlias(false, false, grammarAccess.getFuncDefAccess().getLeftParenthesisKeyword_2_0_0()), new TokenAlias(false, false, grammarAccess.getFuncDefAccess().getRightParenthesisKeyword_2_0_2())), new GroupAlias(false, false, new TokenAlias(false, false, grammarAccess.getFuncDefAccess().getTakesKeyword_2_1_0()), new TokenAlias(false, false, grammarAccess.getFuncDefAccess().getNothingKeyword_2_1_1())));
 		match_NativeFunc_ConstantKeyword_1_q = new TokenAlias(true, false, grammarAccess.getNativeFuncAccess().getConstantKeyword_1());
 		match_NativeFunc___LeftParenthesisKeyword_4_0_0_RightParenthesisKeyword_4_0_2___or___TakesKeyword_4_1_0_NothingKeyword_4_1_1__ = new AlternativeAlias(false, false, new GroupAlias(false, false, new TokenAlias(false, false, grammarAccess.getNativeFuncAccess().getLeftParenthesisKeyword_4_0_0()), new TokenAlias(false, false, grammarAccess.getNativeFuncAccess().getRightParenthesisKeyword_4_0_2())), new GroupAlias(false, false, new TokenAlias(false, false, grammarAccess.getNativeFuncAccess().getTakesKeyword_4_1_0()), new TokenAlias(false, false, grammarAccess.getNativeFuncAccess().getNothingKeyword_4_1_1())));
-		match_PackageDeclaration_NLTerminalRuleCall_4_a_EndpackageKeyword_6_NLTerminalRuleCall_7_p = new GroupAlias(false, false, new TokenAlias(true, true, grammarAccess.getPackageDeclarationAccess().getNLTerminalRuleCall_4()), new TokenAlias(false, false, grammarAccess.getPackageDeclarationAccess().getEndpackageKeyword_6()), new TokenAlias(false, true, grammarAccess.getPackageDeclarationAccess().getNLTerminalRuleCall_7()));
-		match_PackageDeclaration_NLTerminalRuleCall_5_1_a_EndpackageKeyword_6_NLTerminalRuleCall_7_p = new GroupAlias(false, false, new TokenAlias(true, true, grammarAccess.getPackageDeclarationAccess().getNLTerminalRuleCall_5_1()), new TokenAlias(false, false, grammarAccess.getPackageDeclarationAccess().getEndpackageKeyword_6()), new TokenAlias(false, true, grammarAccess.getPackageDeclarationAccess().getNLTerminalRuleCall_7()));
+		match_PackageDeclaration_NLTerminalRuleCall_5_a = new TokenAlias(true, true, grammarAccess.getPackageDeclarationAccess().getNLTerminalRuleCall_5());
+		match_PackageDeclaration_NLTerminalRuleCall_5_p = new TokenAlias(false, true, grammarAccess.getPackageDeclarationAccess().getNLTerminalRuleCall_5());
+		match_PackageDeclaration_NLTerminalRuleCall_6_1_a = new TokenAlias(true, true, grammarAccess.getPackageDeclarationAccess().getNLTerminalRuleCall_6_1());
+		match_Program_NLTerminalRuleCall_0_p = new TokenAlias(false, true, grammarAccess.getProgramAccess().getNLTerminalRuleCall_0());
+		match_Program_NLTerminalRuleCall_3_p = new TokenAlias(false, true, grammarAccess.getProgramAccess().getNLTerminalRuleCall_3());
+		match_Statements_NLTerminalRuleCall_1_0_p = new TokenAlias(false, true, grammarAccess.getStatementsAccess().getNLTerminalRuleCall_1_0());
 		match_StmtIf_ThenKeyword_2_q = new TokenAlias(true, false, grammarAccess.getStmtIfAccess().getThenKeyword_2());
 		match_StmtIf_ThenKeyword_5_2_q = new TokenAlias(true, false, grammarAccess.getStmtIfAccess().getThenKeyword_5_2());
 	}
@@ -76,10 +84,18 @@ public class AbstractPscriptSyntacticSequencer extends AbstractSyntacticSequence
 			emit_NativeFunc_ConstantKeyword_1_q(semanticObject, transition, fromNode, toNode);
 		else if(match_NativeFunc___LeftParenthesisKeyword_4_0_0_RightParenthesisKeyword_4_0_2___or___TakesKeyword_4_1_0_NothingKeyword_4_1_1__.equals(transition.getAmbiguousSyntax()))
 			emit_NativeFunc___LeftParenthesisKeyword_4_0_0_RightParenthesisKeyword_4_0_2___or___TakesKeyword_4_1_0_NothingKeyword_4_1_1__(semanticObject, transition, fromNode, toNode);
-		else if(match_PackageDeclaration_NLTerminalRuleCall_4_a_EndpackageKeyword_6_NLTerminalRuleCall_7_p.equals(transition.getAmbiguousSyntax()))
-			emit_PackageDeclaration_NLTerminalRuleCall_4_a_EndpackageKeyword_6_NLTerminalRuleCall_7_p(semanticObject, transition, fromNode, toNode);
-		else if(match_PackageDeclaration_NLTerminalRuleCall_5_1_a_EndpackageKeyword_6_NLTerminalRuleCall_7_p.equals(transition.getAmbiguousSyntax()))
-			emit_PackageDeclaration_NLTerminalRuleCall_5_1_a_EndpackageKeyword_6_NLTerminalRuleCall_7_p(semanticObject, transition, fromNode, toNode);
+		else if(match_PackageDeclaration_NLTerminalRuleCall_5_a.equals(transition.getAmbiguousSyntax()))
+			emit_PackageDeclaration_NLTerminalRuleCall_5_a(semanticObject, transition, fromNode, toNode);
+		else if(match_PackageDeclaration_NLTerminalRuleCall_5_p.equals(transition.getAmbiguousSyntax()))
+			emit_PackageDeclaration_NLTerminalRuleCall_5_p(semanticObject, transition, fromNode, toNode);
+		else if(match_PackageDeclaration_NLTerminalRuleCall_6_1_a.equals(transition.getAmbiguousSyntax()))
+			emit_PackageDeclaration_NLTerminalRuleCall_6_1_a(semanticObject, transition, fromNode, toNode);
+		else if(match_Program_NLTerminalRuleCall_0_p.equals(transition.getAmbiguousSyntax()))
+			emit_Program_NLTerminalRuleCall_0_p(semanticObject, transition, fromNode, toNode);
+		else if(match_Program_NLTerminalRuleCall_3_p.equals(transition.getAmbiguousSyntax()))
+			emit_Program_NLTerminalRuleCall_3_p(semanticObject, transition, fromNode, toNode);
+		else if(match_Statements_NLTerminalRuleCall_1_0_p.equals(transition.getAmbiguousSyntax()))
+			emit_Statements_NLTerminalRuleCall_1_0_p(semanticObject, transition, fromNode, toNode);
 		else if(match_StmtIf_ThenKeyword_2_q.equals(transition.getAmbiguousSyntax()))
 			emit_StmtIf_ThenKeyword_2_q(semanticObject, transition, fromNode, toNode);
 		else if(match_StmtIf_ThenKeyword_5_2_q.equals(transition.getAmbiguousSyntax()))
@@ -121,7 +137,7 @@ public class AbstractPscriptSyntacticSequencer extends AbstractSyntacticSequence
 	
 	/**
 	 * Syntax:
-	 *     ('(' ')') | ('takes' 'nothing')
+	 *     ('takes' 'nothing') | ('(' ')')
 	 */
 	protected void emit_FuncDef___LeftParenthesisKeyword_2_0_0_RightParenthesisKeyword_2_0_2___or___TakesKeyword_2_1_0_NothingKeyword_2_1_1__(EObject semanticObject, ISynTransition transition, INode fromNode, INode toNode) {
 		acceptNodes(transition, fromNode, toNode);
@@ -137,7 +153,7 @@ public class AbstractPscriptSyntacticSequencer extends AbstractSyntacticSequence
 	
 	/**
 	 * Syntax:
-	 *     ('(' ')') | ('takes' 'nothing')
+	 *     ('takes' 'nothing') | ('(' ')')
 	 */
 	protected void emit_NativeFunc___LeftParenthesisKeyword_4_0_0_RightParenthesisKeyword_4_0_2___or___TakesKeyword_4_1_0_NothingKeyword_4_1_1__(EObject semanticObject, ISynTransition transition, INode fromNode, INode toNode) {
 		acceptNodes(transition, fromNode, toNode);
@@ -145,17 +161,49 @@ public class AbstractPscriptSyntacticSequencer extends AbstractSyntacticSequence
 	
 	/**
 	 * Syntax:
-	 *     NL* 'endpackage' NL+
+	 *     NL*
 	 */
-	protected void emit_PackageDeclaration_NLTerminalRuleCall_4_a_EndpackageKeyword_6_NLTerminalRuleCall_7_p(EObject semanticObject, ISynTransition transition, INode fromNode, INode toNode) {
+	protected void emit_PackageDeclaration_NLTerminalRuleCall_5_a(EObject semanticObject, ISynTransition transition, INode fromNode, INode toNode) {
 		acceptNodes(transition, fromNode, toNode);
 	}
 	
 	/**
 	 * Syntax:
-	 *     NL* 'endpackage' NL+
+	 *     NL+
 	 */
-	protected void emit_PackageDeclaration_NLTerminalRuleCall_5_1_a_EndpackageKeyword_6_NLTerminalRuleCall_7_p(EObject semanticObject, ISynTransition transition, INode fromNode, INode toNode) {
+	protected void emit_PackageDeclaration_NLTerminalRuleCall_5_p(EObject semanticObject, ISynTransition transition, INode fromNode, INode toNode) {
+		acceptNodes(transition, fromNode, toNode);
+	}
+	
+	/**
+	 * Syntax:
+	 *     NL*
+	 */
+	protected void emit_PackageDeclaration_NLTerminalRuleCall_6_1_a(EObject semanticObject, ISynTransition transition, INode fromNode, INode toNode) {
+		acceptNodes(transition, fromNode, toNode);
+	}
+	
+	/**
+	 * Syntax:
+	 *     NL+
+	 */
+	protected void emit_Program_NLTerminalRuleCall_0_p(EObject semanticObject, ISynTransition transition, INode fromNode, INode toNode) {
+		acceptNodes(transition, fromNode, toNode);
+	}
+	
+	/**
+	 * Syntax:
+	 *     NL+
+	 */
+	protected void emit_Program_NLTerminalRuleCall_3_p(EObject semanticObject, ISynTransition transition, INode fromNode, INode toNode) {
+		acceptNodes(transition, fromNode, toNode);
+	}
+	
+	/**
+	 * Syntax:
+	 *     NL+
+	 */
+	protected void emit_Statements_NLTerminalRuleCall_1_0_p(EObject semanticObject, ISynTransition transition, INode fromNode, INode toNode) {
 		acceptNodes(transition, fromNode, toNode);
 	}
 	

@@ -6,6 +6,7 @@
  */
 package de.peeeq.pscript.pscript;
 
+import org.eclipse.emf.common.util.EList;
 
 /**
  * <!-- begin-user-doc -->
@@ -16,6 +17,7 @@ package de.peeeq.pscript.pscript;
  * The following features are supported:
  * <ul>
  *   <li>{@link de.peeeq.pscript.pscript.ExprIdentifier#getNameVal <em>Name Val</em>}</li>
+ *   <li>{@link de.peeeq.pscript.pscript.ExprIdentifier#getArrayIndizes <em>Array Indizes</em>}</li>
  * </ul>
  * </p>
  *
@@ -50,5 +52,21 @@ public interface ExprIdentifier extends Expr
    * @generated
    */
   void setNameVal(VarDef value);
+
+  /**
+   * Returns the value of the '<em><b>Array Indizes</b></em>' containment reference list.
+   * The list contents are of type {@link de.peeeq.pscript.pscript.Expr}.
+   * <!-- begin-user-doc -->
+   * <p>
+   * If the meaning of the '<em>Array Indizes</em>' containment reference list isn't clear,
+   * there really should be more of a description here...
+   * </p>
+   * <!-- end-user-doc -->
+   * @return the value of the '<em>Array Indizes</em>' containment reference list.
+   * @see de.peeeq.pscript.pscript.PscriptPackage#getExprIdentifier_ArrayIndizes()
+   * @model containment="true"
+   * @generated
+   */
+  EList<Expr> getArrayIndizes();
 
 } // ExprIdentifier

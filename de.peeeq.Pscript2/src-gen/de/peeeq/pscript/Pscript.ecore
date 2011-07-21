@@ -45,7 +45,11 @@
     <eStructuralFeatures xsi:type="ecore:EReference" name="e" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Expr"
         containment="true"/>
   </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="TypeExpr"/>
+  <eClassifiers xsi:type="ecore:EClass" name="TypeExpr">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="array" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="sizes" unique="false" upperBound="-1"
+        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+  </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Statements">
     <eStructuralFeatures xsi:type="ecore:EReference" name="statements" upperBound="-1"
         eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Statement"
@@ -222,6 +226,9 @@
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="ExprIdentifier" eSuperTypes="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Expr">
     <eStructuralFeatures xsi:type="ecore:EReference" name="nameVal" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//VarDef"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="arrayIndizes" upperBound="-1"
+        eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Expr"
+        containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="ExprFunctioncall" eSuperTypes="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Expr">
     <eStructuralFeatures xsi:type="ecore:EReference" name="nameVal" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//FuncDef"/>

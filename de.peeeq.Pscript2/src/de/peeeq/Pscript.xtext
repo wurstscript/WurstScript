@@ -14,10 +14,10 @@ Program:
 
 	
 PackageDeclaration:
-  {PackageDeclaration} 'package' name=ID 
+  {PackageDeclaration} 'package' name=ID NL
   	(NL* imports+=Import)*  NL*
     (elements+=Entity NL*)*
-  'endpackage' NL*
+  'endpackage' NL
 ;	
 
 Import:
@@ -79,22 +79,25 @@ VarDef:
 	{VarDef} (
 		  constant?='val' (type=TypeExpr)? name=ID '=' e=Expr
 		| (constant?='constant')?  type=TypeExpr name = ID ('=' e=Expr)?
-		| 'glob' name=ID '=' e=Expr  
 	) 
 	 NL
-;	
+;
+
+	
 
 TypeExpr:
-	{TypeExprRef} name=[TypeDef]
-	| {TypeExprBuildin} 
-		name=(
-			  'integer' 
-			| 'real' 
-			| 'string'
-			| 'boolean'
-			| 'handle'
-			| 'code'
-		)
+	(
+		{TypeExprRef} name=[TypeDef]
+		| {TypeExprBuildin} 
+			name=(
+				  'integer' 
+				| 'real' 
+				| 'string'
+				| 'boolean'
+				| 'handle'
+				| 'code'
+			)
+	) (array?='array' ('['sizes+=INT']')*)?
 ;
 
 
@@ -345,7 +348,7 @@ Number:
 
 ExprAtomic returns Expr:
 	ExprFunctionCall 
-	| {ExprIdentifier} nameVal=[VarDef]
+	| {ExprIdentifier} nameVal=[VarDef] ('[' arrayIndizes+=Expr ']' )*
 ;
 
 

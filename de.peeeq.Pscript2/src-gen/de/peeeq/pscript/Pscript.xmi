@@ -35,6 +35,7 @@
       <elements xsi:type="xtext:Assignment" feature="name" operator="=">
         <terminal xsi:type="xtext:RuleCall" rule="//@rules.46"/>
       </elements>
+      <elements xsi:type="xtext:RuleCall" rule="//@rules.52"/>
       <elements xsi:type="xtext:Group" cardinality="*">
         <elements xsi:type="xtext:RuleCall" cardinality="*" rule="//@rules.52"/>
         <elements xsi:type="xtext:Assignment" feature="imports" operator="+=">
@@ -49,7 +50,7 @@
         <elements xsi:type="xtext:RuleCall" cardinality="*" rule="//@rules.52"/>
       </elements>
       <elements xsi:type="xtext:Keyword" value="endpackage"/>
-      <elements xsi:type="xtext:RuleCall" cardinality="*" rule="//@rules.52"/>
+      <elements xsi:type="xtext:RuleCall" rule="//@rules.52"/>
     </alternatives>
   </rules>
   <rules xsi:type="xtext:ParserRule" name="Import">
@@ -275,16 +276,6 @@
             </elements>
           </elements>
         </elements>
-        <elements xsi:type="xtext:Group">
-          <elements xsi:type="xtext:Keyword" value="glob"/>
-          <elements xsi:type="xtext:Assignment" feature="name" operator="=">
-            <terminal xsi:type="xtext:RuleCall" rule="//@rules.46"/>
-          </elements>
-          <elements xsi:type="xtext:Keyword" value="="/>
-          <elements xsi:type="xtext:Assignment" feature="e" operator="=">
-            <terminal xsi:type="xtext:RuleCall" rule="//@rules.27"/>
-          </elements>
-        </elements>
       </elements>
       <elements xsi:type="xtext:RuleCall" rule="//@rules.52"/>
     </alternatives>
@@ -293,37 +284,51 @@
     <type metamodel="//@metamodelDeclarations.1">
       <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//TypeExpr"/>
     </type>
-    <alternatives xsi:type="xtext:Alternatives">
-      <elements xsi:type="xtext:Group">
-        <elements xsi:type="xtext:Action">
-          <type metamodel="//@metamodelDeclarations.1">
-            <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//TypeExprRef"/>
-          </type>
-        </elements>
-        <elements xsi:type="xtext:Assignment" feature="name" operator="=">
-          <terminal xsi:type="xtext:CrossReference">
+    <alternatives xsi:type="xtext:Group">
+      <elements xsi:type="xtext:Alternatives">
+        <elements xsi:type="xtext:Group">
+          <elements xsi:type="xtext:Action">
             <type metamodel="//@metamodelDeclarations.1">
-              <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//TypeDef"/>
+              <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//TypeExprRef"/>
             </type>
-            <terminal xsi:type="xtext:RuleCall" rule="//@rules.46"/>
-          </terminal>
+          </elements>
+          <elements xsi:type="xtext:Assignment" feature="name" operator="=">
+            <terminal xsi:type="xtext:CrossReference">
+              <type metamodel="//@metamodelDeclarations.1">
+                <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//TypeDef"/>
+              </type>
+              <terminal xsi:type="xtext:RuleCall" rule="//@rules.46"/>
+            </terminal>
+          </elements>
+        </elements>
+        <elements xsi:type="xtext:Group">
+          <elements xsi:type="xtext:Action">
+            <type metamodel="//@metamodelDeclarations.1">
+              <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//TypeExprBuildin"/>
+            </type>
+          </elements>
+          <elements xsi:type="xtext:Assignment" feature="name" operator="=">
+            <terminal xsi:type="xtext:Alternatives">
+              <elements xsi:type="xtext:Keyword" value="integer"/>
+              <elements xsi:type="xtext:Keyword" value="real"/>
+              <elements xsi:type="xtext:Keyword" value="string"/>
+              <elements xsi:type="xtext:Keyword" value="boolean"/>
+              <elements xsi:type="xtext:Keyword" value="handle"/>
+              <elements xsi:type="xtext:Keyword" value="code"/>
+            </terminal>
+          </elements>
         </elements>
       </elements>
-      <elements xsi:type="xtext:Group">
-        <elements xsi:type="xtext:Action">
-          <type metamodel="//@metamodelDeclarations.1">
-            <classifier xsi:type="ecore:EClass" href="http://www.peeeq.de/pscript/Pscript#//TypeExprBuildin"/>
-          </type>
+      <elements xsi:type="xtext:Group" cardinality="?">
+        <elements xsi:type="xtext:Assignment" feature="array" operator="?=">
+          <terminal xsi:type="xtext:Keyword" value="array"/>
         </elements>
-        <elements xsi:type="xtext:Assignment" feature="name" operator="=">
-          <terminal xsi:type="xtext:Alternatives">
-            <elements xsi:type="xtext:Keyword" value="integer"/>
-            <elements xsi:type="xtext:Keyword" value="real"/>
-            <elements xsi:type="xtext:Keyword" value="string"/>
-            <elements xsi:type="xtext:Keyword" value="boolean"/>
-            <elements xsi:type="xtext:Keyword" value="handle"/>
-            <elements xsi:type="xtext:Keyword" value="code"/>
-          </terminal>
+        <elements xsi:type="xtext:Group" cardinality="*">
+          <elements xsi:type="xtext:Keyword" value="["/>
+          <elements xsi:type="xtext:Assignment" feature="sizes" operator="+=">
+            <terminal xsi:type="xtext:RuleCall" rule="//@rules.47"/>
+          </elements>
+          <elements xsi:type="xtext:Keyword" value="]"/>
         </elements>
       </elements>
     </alternatives>
@@ -1133,6 +1138,13 @@
             </type>
             <terminal xsi:type="xtext:RuleCall" rule="//@rules.46"/>
           </terminal>
+        </elements>
+        <elements xsi:type="xtext:Group" cardinality="*">
+          <elements xsi:type="xtext:Keyword" value="["/>
+          <elements xsi:type="xtext:Assignment" feature="arrayIndizes" operator="+=">
+            <terminal xsi:type="xtext:RuleCall" rule="//@rules.27"/>
+          </elements>
+          <elements xsi:type="xtext:Keyword" value="]"/>
         </elements>
       </elements>
     </alternatives>

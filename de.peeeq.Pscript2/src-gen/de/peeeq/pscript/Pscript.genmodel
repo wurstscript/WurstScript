@@ -37,7 +37,10 @@
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//VarDef/type"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//VarDef/e"/>
     </genClasses>
-    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//TypeExpr"/>
+    <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//TypeExpr">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//TypeExpr/array"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//TypeExpr/sizes"/>
+    </genClasses>
     <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Statements">
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Statements/statements"/>
     </genClasses>
@@ -169,6 +172,7 @@
     </genClasses>
     <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprIdentifier">
       <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprIdentifier/nameVal"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprIdentifier/arrayIndizes"/>
     </genClasses>
     <genClasses ecoreClass="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprFunctioncall">
       <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//ExprFunctioncall/nameVal"/>

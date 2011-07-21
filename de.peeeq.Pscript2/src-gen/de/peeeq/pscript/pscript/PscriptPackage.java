@@ -395,13 +395,31 @@ public interface PscriptPackage extends EPackage
   int TYPE_EXPR = 9;
 
   /**
+   * The feature id for the '<em><b>Array</b></em>' attribute.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int TYPE_EXPR__ARRAY = 0;
+
+  /**
+   * The feature id for the '<em><b>Sizes</b></em>' attribute list.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int TYPE_EXPR__SIZES = 1;
+
+  /**
    * The number of structural features of the '<em>Type Expr</em>' class.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
    * @ordered
    */
-  int TYPE_EXPR_FEATURE_COUNT = 0;
+  int TYPE_EXPR_FEATURE_COUNT = 2;
 
   /**
    * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.StatementsImpl <em>Statements</em>}' class.
@@ -1028,6 +1046,24 @@ public interface PscriptPackage extends EPackage
   int TYPE_EXPR_REF = 30;
 
   /**
+   * The feature id for the '<em><b>Array</b></em>' attribute.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int TYPE_EXPR_REF__ARRAY = TYPE_EXPR__ARRAY;
+
+  /**
+   * The feature id for the '<em><b>Sizes</b></em>' attribute list.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int TYPE_EXPR_REF__SIZES = TYPE_EXPR__SIZES;
+
+  /**
    * The feature id for the '<em><b>Name</b></em>' reference.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -1054,6 +1090,24 @@ public interface PscriptPackage extends EPackage
    * @generated
    */
   int TYPE_EXPR_BUILDIN = 31;
+
+  /**
+   * The feature id for the '<em><b>Array</b></em>' attribute.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int TYPE_EXPR_BUILDIN__ARRAY = TYPE_EXPR__ARRAY;
+
+  /**
+   * The feature id for the '<em><b>Sizes</b></em>' attribute list.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int TYPE_EXPR_BUILDIN__SIZES = TYPE_EXPR__SIZES;
 
   /**
    * The feature id for the '<em><b>Name</b></em>' attribute.
@@ -1951,13 +2005,22 @@ public interface PscriptPackage extends EPackage
   int EXPR_IDENTIFIER__NAME_VAL = EXPR_FEATURE_COUNT + 0;
 
   /**
+   * The feature id for the '<em><b>Array Indizes</b></em>' containment reference list.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int EXPR_IDENTIFIER__ARRAY_INDIZES = EXPR_FEATURE_COUNT + 1;
+
+  /**
    * The number of structural features of the '<em>Expr Identifier</em>' class.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
    * @ordered
    */
-  int EXPR_IDENTIFIER_FEATURE_COUNT = EXPR_FEATURE_COUNT + 1;
+  int EXPR_IDENTIFIER_FEATURE_COUNT = EXPR_FEATURE_COUNT + 2;
 
   /**
    * The meta object id for the '{@link de.peeeq.pscript.pscript.impl.ExprFunctioncallImpl <em>Expr Functioncall</em>}' class.
@@ -2239,6 +2302,28 @@ public interface PscriptPackage extends EPackage
    * @generated
    */
   EClass getTypeExpr();
+
+  /**
+   * Returns the meta object for the attribute '{@link de.peeeq.pscript.pscript.TypeExpr#isArray <em>Array</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the attribute '<em>Array</em>'.
+   * @see de.peeeq.pscript.pscript.TypeExpr#isArray()
+   * @see #getTypeExpr()
+   * @generated
+   */
+  EAttribute getTypeExpr_Array();
+
+  /**
+   * Returns the meta object for the attribute list '{@link de.peeeq.pscript.pscript.TypeExpr#getSizes <em>Sizes</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the attribute list '<em>Sizes</em>'.
+   * @see de.peeeq.pscript.pscript.TypeExpr#getSizes()
+   * @see #getTypeExpr()
+   * @generated
+   */
+  EAttribute getTypeExpr_Sizes();
 
   /**
    * Returns the meta object for class '{@link de.peeeq.pscript.pscript.Statements <em>Statements</em>}'.
@@ -3332,6 +3417,17 @@ public interface PscriptPackage extends EPackage
   EReference getExprIdentifier_NameVal();
 
   /**
+   * Returns the meta object for the containment reference list '{@link de.peeeq.pscript.pscript.ExprIdentifier#getArrayIndizes <em>Array Indizes</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the containment reference list '<em>Array Indizes</em>'.
+   * @see de.peeeq.pscript.pscript.ExprIdentifier#getArrayIndizes()
+   * @see #getExprIdentifier()
+   * @generated
+   */
+  EReference getExprIdentifier_ArrayIndizes();
+
+  /**
    * Returns the meta object for class '{@link de.peeeq.pscript.pscript.ExprFunctioncall <em>Expr Functioncall</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -3589,6 +3685,22 @@ public interface PscriptPackage extends EPackage
      * @generated
      */
     EClass TYPE_EXPR = eINSTANCE.getTypeExpr();
+
+    /**
+     * The meta object literal for the '<em><b>Array</b></em>' attribute feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EAttribute TYPE_EXPR__ARRAY = eINSTANCE.getTypeExpr_Array();
+
+    /**
+     * The meta object literal for the '<em><b>Sizes</b></em>' attribute list feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EAttribute TYPE_EXPR__SIZES = eINSTANCE.getTypeExpr_Sizes();
 
     /**
      * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.StatementsImpl <em>Statements</em>}' class.
@@ -4527,6 +4639,14 @@ public interface PscriptPackage extends EPackage
      * @generated
      */
     EReference EXPR_IDENTIFIER__NAME_VAL = eINSTANCE.getExprIdentifier_NameVal();
+
+    /**
+     * The meta object literal for the '<em><b>Array Indizes</b></em>' containment reference list feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EReference EXPR_IDENTIFIER__ARRAY_INDIZES = eINSTANCE.getExprIdentifier_ArrayIndizes();
 
     /**
      * The meta object literal for the '{@link de.peeeq.pscript.pscript.impl.ExprFunctioncallImpl <em>Expr Functioncall</em>}' class.

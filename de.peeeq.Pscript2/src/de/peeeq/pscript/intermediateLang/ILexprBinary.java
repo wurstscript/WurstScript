@@ -1,32 +1,30 @@
 package de.peeeq.pscript.intermediateLang;
 
-public class ILexprBinary extends ILStatement {
+/**
+ * a binary expression like A + B where A and B are arbitrary expressions 
+ */
+public class ILexprBinary implements ILexpr {
 
-	private ILvar resultVar;
 	private Iloperator op;
-	private ILvar left;
-	private ILvar right;
+	private ILexpr left;
+	private ILexpr right;
 
-	public ILexprBinary(ILvar resultVar, ILvar left, Iloperator op, ILvar right) {
-		this.resultVar = resultVar;
+	public ILexprBinary( ILexpr left, Iloperator op, ILexpr right) {
 		this.op = op;
 		this.left = left;
 		this.right = right;
 	}
 
-	public ILvar getResultVar() {
-		return resultVar;
-	}
 
 	public Iloperator getOp() {
 		return op;
 	}
 
-	public ILvar getLeft() {
+	public ILexpr getLeft() {
 		return left;
 	}
 
-	public ILvar getRight() {
+	public ILexpr getRight() {
 		return right;
 	}
 	

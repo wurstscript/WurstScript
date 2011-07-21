@@ -632,12 +632,12 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 				}
 				else break;
 			case PscriptPackage.STMT_CALL:
-				if(context == grammarAccess.getStmtCallRule()) {
-					sequence_StmtCall_StmtCall(context, (StmtCall) semanticObject); 
+				if(context == grammarAccess.getStatementRule()) {
+					sequence_Statement_StmtCall(context, (StmtCall) semanticObject); 
 					return; 
 				}
-				else if(context == grammarAccess.getStatementRule()) {
-					sequence_Statement_StmtCall(context, (StmtCall) semanticObject); 
+				else if(context == grammarAccess.getStmtCallRule()) {
+					sequence_StmtCall_StmtCall(context, (StmtCall) semanticObject); 
 					return; 
 				}
 				else if(context == grammarAccess.getStmtSetOrCallOrVarDefRule() ||
@@ -675,12 +675,12 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 				}
 				else break;
 			case PscriptPackage.STMT_SET:
-				if(context == grammarAccess.getStatementRule()) {
-					sequence_Statement_StmtSet(context, (StmtSet) semanticObject); 
+				if(context == grammarAccess.getStmtSetRule()) {
+					sequence_StmtSet_StmtSet(context, (StmtSet) semanticObject); 
 					return; 
 				}
-				else if(context == grammarAccess.getStmtSetRule()) {
-					sequence_StmtSet_StmtSet(context, (StmtSet) semanticObject); 
+				else if(context == grammarAccess.getStatementRule()) {
+					sequence_Statement_StmtSet(context, (StmtSet) semanticObject); 
 					return; 
 				}
 				else if(context == grammarAccess.getStmtSetOrCallOrVarDefRule()) {
@@ -708,22 +708,22 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 				}
 				else break;
 			case PscriptPackage.VAR_DEF:
-				if(context == grammarAccess.getEntityRule() ||
+				if(context == grammarAccess.getStatementRule()) {
+					sequence_Statement_VarDef(context, (VarDef) semanticObject); 
+					return; 
+				}
+				else if(context == grammarAccess.getEntityRule() ||
 				   context == grammarAccess.getClassMemberRule() ||
 				   context == grammarAccess.getVarDefRule()) {
 					sequence_VarDef_VarDef(context, (VarDef) semanticObject); 
 					return; 
 				}
-				else if(context == grammarAccess.getStmtSetOrCallOrVarDefRule()) {
-					sequence_StmtSetOrCallOrVarDef_VarDef(context, (VarDef) semanticObject); 
-					return; 
-				}
-				else if(context == grammarAccess.getStatementRule()) {
-					sequence_Statement_VarDef(context, (VarDef) semanticObject); 
-					return; 
-				}
 				else if(context == grammarAccess.getLocalVarDefRule()) {
 					sequence_LocalVarDef_VarDef(context, (VarDef) semanticObject); 
+					return; 
+				}
+				else if(context == grammarAccess.getStmtSetOrCallOrVarDefRule()) {
+					sequence_StmtSetOrCallOrVarDef_VarDef(context, (VarDef) semanticObject); 
 					return; 
 				}
 				else break;
@@ -800,20 +800,14 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 	
 	/**
 	 * Constraint:
-	 *     nameVal=[VarDef|ID]
+	 *     (nameVal=[VarDef|ID] arrayIndizes+=Expr*)
 	 *
 	 * Features:
 	 *    nameVal[1, 1]
+	 *    arrayIndizes[0, *]
 	 */
 	protected void sequence_ExprAtomic_ExprIdentifier(EObject context, ExprIdentifier semanticObject) {
-		if(errorAcceptor != null) {
-			if(transientValues.isValueTransient(semanticObject, PscriptPackage.Literals.EXPR_IDENTIFIER__NAME_VAL) == ValueTransient.YES)
-				errorAcceptor.accept(diagnosticProvider.createFeatureValueMissing(semanticObject, PscriptPackage.Literals.EXPR_IDENTIFIER__NAME_VAL));
-		}
-		INodesForEObjectProvider nodes = createNodeProvider(semanticObject);
-		SequenceFeeder feeder = createSequencerFeeder(semanticObject, nodes);
-		feeder.accept(grammarAccess.getExprAtomicAccess().getNameValVarDefIDTerminalRuleCall_1_1_0_1(), semanticObject.getNameVal());
-		feeder.finish();
+		genericSequencer.createSequence(context, semanticObject);
 	}
 	
 	
@@ -1660,15 +1654,22 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 	/**
 	 * Constraint:
 	 *     (
-	 *         name='integer' | 
-	 *         name='real' | 
-	 *         name='string' | 
-	 *         name='boolean' | 
-	 *         name='handle' | 
-	 *         name='code'
+	 *         (
+	 *             name='integer' | 
+	 *             name='real' | 
+	 *             name='string' | 
+	 *             name='boolean' | 
+	 *             name='handle' | 
+	 *             name='code'
+	 *         ) 
+	 *         (array?='array' sizes+=INT*)?
 	 *     )
 	 *
 	 * Features:
+	 *    array[0, 1]
+	 *         MANDATORY_IF_SET sizes
+	 *    sizes[0, *]
+	 *         EXCLUDE_IF_UNSET array
 	 *    name[0, 6]
 	 */
 	protected void sequence_TypeExpr_TypeExprBuildin(EObject context, TypeExprBuildin semanticObject) {
@@ -1678,36 +1679,29 @@ public class AbstractPscriptSemanticSequencer extends AbstractSemanticSequencer 
 	
 	/**
 	 * Constraint:
-	 *     name=[TypeDef|ID]
+	 *     (name=[TypeDef|ID] (array?='array' sizes+=INT*)?)
 	 *
 	 * Features:
+	 *    array[0, 1]
+	 *         MANDATORY_IF_SET sizes
+	 *    sizes[0, *]
+	 *         EXCLUDE_IF_UNSET array
 	 *    name[1, 1]
 	 */
 	protected void sequence_TypeExpr_TypeExprRef(EObject context, TypeExprRef semanticObject) {
-		if(errorAcceptor != null) {
-			if(transientValues.isValueTransient(semanticObject, PscriptPackage.Literals.TYPE_EXPR_REF__NAME) == ValueTransient.YES)
-				errorAcceptor.accept(diagnosticProvider.createFeatureValueMissing(semanticObject, PscriptPackage.Literals.TYPE_EXPR_REF__NAME));
-		}
-		INodesForEObjectProvider nodes = createNodeProvider(semanticObject);
-		SequenceFeeder feeder = createSequencerFeeder(semanticObject, nodes);
-		feeder.accept(grammarAccess.getTypeExprAccess().getNameTypeDefIDTerminalRuleCall_0_1_0_1(), semanticObject.getName());
-		feeder.finish();
+		genericSequencer.createSequence(context, semanticObject);
 	}
 	
 	
 	/**
 	 * Constraint:
-	 *     ((constant?='val' type=TypeExpr? name=ID e=Expr) | (constant?='constant'? type=TypeExpr name=ID e=Expr?) | (name=ID e=Expr))
+	 *     ((constant?='val' type=TypeExpr? name=ID e=Expr) | (constant?='constant'? type=TypeExpr name=ID e=Expr?))
 	 *
 	 * Features:
-	 *    name[3, 3]
+	 *    name[2, 2]
 	 *    constant[1, 2]
-	 *         EXCLUDE_IF_SET name
-	 *         EXCLUDE_IF_SET e
 	 *    type[1, 2]
-	 *         EXCLUDE_IF_SET name
-	 *         EXCLUDE_IF_SET e
-	 *    e[2, 3]
+	 *    e[1, 2]
 	 */
 	protected void sequence_VarDef_VarDef(EObject context, VarDef semanticObject) {
 		genericSequencer.createSequence(context, semanticObject);
