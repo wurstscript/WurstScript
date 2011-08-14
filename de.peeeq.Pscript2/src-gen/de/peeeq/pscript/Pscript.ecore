@@ -38,7 +38,7 @@
         containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="ClassMember"/>
-  <eClassifiers xsi:type="ecore:EClass" name="VarDef" eSuperTypes="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Entity platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//ClassMember platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Statement platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//StmtSetOrCallOrVarDef">
+  <eClassifiers xsi:type="ecore:EClass" name="VarDef" eSuperTypes="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Entity platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//ClassMember platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Statement">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="constant" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="type" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//TypeExpr"
         containment="true"/>
@@ -46,6 +46,7 @@
         containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="TypeExpr">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="name" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//TypeDef"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="array" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="sizes" unique="false" upperBound="-1"
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
@@ -56,14 +57,6 @@
         containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Statement"/>
-  <eClassifiers xsi:type="ecore:EClass" name="StmtExitwhen" eSuperTypes="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Statement">
-    <eStructuralFeatures xsi:type="ecore:EReference" name="e" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Expr"
-        containment="true"/>
-  </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="StmtLoop" eSuperTypes="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Statement">
-    <eStructuralFeatures xsi:type="ecore:EReference" name="body" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Statements"
-        containment="true"/>
-  </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="StmtReturn" eSuperTypes="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Statement">
     <eStructuralFeatures xsi:type="ecore:EReference" name="e" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Expr"
         containment="true"/>
@@ -73,12 +66,6 @@
         containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="thenBlock" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Statements"
         containment="true"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="elseIfConds" upperBound="-1"
-        eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Expr"
-        containment="true"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="elseIfBlocks" upperBound="-1"
-        eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Statements"
-        containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="elseBlock" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Statements"
         containment="true"/>
   </eClassifiers>
@@ -86,20 +73,6 @@
     <eStructuralFeatures xsi:type="ecore:EReference" name="cond" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Expr"
         containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="body" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Statements"
-        containment="true"/>
-  </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="StmtSet" eSuperTypes="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Statement platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//StmtSetOrCallOrVarDef">
-    <eStructuralFeatures xsi:type="ecore:EReference" name="leftE" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Expr"
-        containment="true"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="right" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Expr"
-        containment="true"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="left" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//StmtCall"
-        containment="true"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="opAssignment" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//OpAssignment"
-        containment="true"/>
-  </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="StmtCall" eSuperTypes="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Statement platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//StmtSetOrCallOrVarDef">
-    <eStructuralFeatures xsi:type="ecore:EReference" name="e" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Expr"
         containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="StmtSetOrCallOrVarDef" eSuperTypes="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Statement"/>
@@ -125,13 +98,19 @@
         eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//ClassMember"
         containment="true"/>
   </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="TypeExprRef" eSuperTypes="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//TypeExpr">
-    <eStructuralFeatures xsi:type="ecore:EReference" name="name" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//TypeDef"/>
-  </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="TypeExprBuildin" eSuperTypes="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//TypeExpr">
-    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-  </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="ParameterDef" eSuperTypes="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//VarDef"/>
+  <eClassifiers xsi:type="ecore:EClass" name="StmtCall" eSuperTypes="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//StmtSetOrCallOrVarDef">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="e" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Expr"
+        containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="StmtSet" eSuperTypes="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//StmtSetOrCallOrVarDef">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="left" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//StmtCall"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="opAssignment" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//OpAssignment"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="right" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Expr"
+        containment="true"/>
+  </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="OpAssign" eSuperTypes="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//OpAssignment"/>
   <eClassifiers xsi:type="ecore:EClass" name="OpPlusAssign" eSuperTypes="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//OpAssignment"/>
   <eClassifiers xsi:type="ecore:EClass" name="OpMinusAssign" eSuperTypes="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//OpAssignment"/>
@@ -193,6 +172,7 @@
   <eClassifiers xsi:type="ecore:EClass" name="OpDivReal" eSuperTypes="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//OpMultiplicative"/>
   <eClassifiers xsi:type="ecore:EClass" name="OpModReal" eSuperTypes="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//OpMultiplicative"/>
   <eClassifiers xsi:type="ecore:EClass" name="OpModInt" eSuperTypes="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//OpMultiplicative"/>
+  <eClassifiers xsi:type="ecore:EClass" name="OpDivInt" eSuperTypes="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//OpMultiplicative"/>
   <eClassifiers xsi:type="ecore:EClass" name="ExprSign" eSuperTypes="platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//Expr">
     <eStructuralFeatures xsi:type="ecore:EReference" name="op" eType="ecore:EClass platform:/resource/de.peeeq.Pscript2/src-gen/de/peeeq/pscript/Pscript.ecore#//OpAdditive"
         containment="true"/>

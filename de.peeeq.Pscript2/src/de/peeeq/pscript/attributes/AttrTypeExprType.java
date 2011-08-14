@@ -8,11 +8,9 @@ import de.peeeq.pscript.pscript.ClassDef;
 import de.peeeq.pscript.pscript.NativeType;
 import de.peeeq.pscript.pscript.TypeDef;
 import de.peeeq.pscript.pscript.TypeExpr;
-import de.peeeq.pscript.pscript.TypeExprBuildin;
-import de.peeeq.pscript.pscript.TypeExprRef;
 import de.peeeq.pscript.pscript.impl.TypeDefImpl;
 import de.peeeq.pscript.pscript.util.TypeDefSwitch;
-import de.peeeq.pscript.pscript.util.TypeExprSwitch;
+import de.peeeq.pscript.types.PScriptTypeArray;
 import de.peeeq.pscript.types.PScriptTypeBool;
 import de.peeeq.pscript.types.PScriptTypeCode;
 import de.peeeq.pscript.types.PScriptTypeHandle;
@@ -37,43 +35,31 @@ public class AttrTypeExprType extends AbstractAttribute<TypeExpr, PscriptType> {
 	public
 	PscriptType calculate(final AttributeManager attributeManager,
 			AttributeDependencies dependencies, TypeExpr node) {
-		return new TypeExprSwitch<PscriptType>() {
-
-			@Override
-			public PscriptType caseTypeExprBuildin(
-					TypeExprBuildin typeExprBuildin) {
-				String name = typeExprBuildin.getName();
-				if (name.equals("integer")) {
-					return PScriptTypeInt.instance();
-				}
-				if (name.equals("real")) {
-					return PScriptTypeReal.instance();
-				}
-				if (name.equals("string")) {
-					return PScriptTypeString.instance();
-				}
-				if (name.equals("boolean")) {
-					return PScriptTypeBool.instance();
-				}
-				if (name.equals("handle")) {
-					return PScriptTypeHandle.instance();
-				}
-				if (name.equals("code")) {
-					return PScriptTypeCode.instance();
-				}				
-				throw new Error("Unknown buildin type: " + name);
+		if (node.isArray()) { // Array type
+			int[] sizes = new int[node.getSizes().size()];
+			for (int i=0; i<node.getSizes().size(); i++) {
+				sizes[i] = node.getSizes().get(i);
 			}
-
-			@Override
-			public PscriptType caseTypeExprRef(TypeExprRef typeExprRef) {
-				TypeDef typeDef = typeExprRef.getName();
-				if (typeDef == null || typeDef.getClass().equals(TypeDefImpl.class)) {
-					return new PscriptTypeError("Unknown type");
-				}
-				PscriptType result = getType(attributeManager, typeDef);	
-				return result;
+			if (sizes.length == 0) {
+				// no size given -> default is 1 dimension with max size
+				sizes = new int[1];
+				sizes[0] = 8191;
 			}
-		}.doSwitch(node);
+			return new PScriptTypeArray(getBaseType(attributeManager, node), sizes);
+		} else {
+			return getBaseType(attributeManager, node);
+		}
+	}
+
+	private PscriptType getBaseType(final AttributeManager attributeManager, TypeExpr node) {
+		TypeDef typeDef = node.getName();
+		String name = typeDef.getName();		
+		if (typeDef == null || typeDef.getClass().equals(TypeDefImpl.class)) {
+			return new PscriptTypeError("Unknown type");
+		}
+		PscriptType result = getType(attributeManager, typeDef);	
+		return result;
+			
 	}
 
 	private PscriptType getType(final AttributeManager attributeManager,final TypeDef typeDef) {

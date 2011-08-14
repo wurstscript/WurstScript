@@ -34,6 +34,7 @@ import de.peeeq.pscript.intermediateLang.Ilunary
 import de.peeeq.pscript.intermediateLang.Iloperator
 import de.peeeq.pscript.intermediateLang.ILconst
 import de.peeeq.pscript.types.PScriptTypeVoid
+import de.peeeq.pscript.types.PScriptTypeArray
 
 class PscriptGenerator implements IGenerator {
 	
@@ -73,14 +74,16 @@ class PscriptGenerator implements IGenerator {
 		«g.type.printType(prog)» «g.name»	
 	'''
 	
-	def printType(PscriptType type, ILprog prog)  {
+	def dispatch printType(PscriptType type, ILprog prog)  {
 		if (type == null)
-			'''nothing'''
-		else if (type instanceof PScriptTypeVoid)
 			'''nothing'''
 		else
 			'''«prog.lookupNativeTranslation(type)»'''
 	}
+	
+	def dispatch printType(PScriptTypeVoid type, ILprog prog)  '''nothing'''
+	def dispatch printType(PScriptTypeArray type, ILprog prog)  '''«type.baseType.printType(prog)» array'''
+	
 	
 	def printFunction(ILfunction f, ILprog prog) '''
 		function «f.name» takes «printParams(f, prog)» returns «f.returnType.printType(prog)»

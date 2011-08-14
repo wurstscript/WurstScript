@@ -7,9 +7,7 @@ import de.peeeq.pscript.pscript.FuncDef;
 import de.peeeq.pscript.pscript.Statement;
 import de.peeeq.pscript.pscript.Statements;
 import de.peeeq.pscript.pscript.StmtCall;
-import de.peeeq.pscript.pscript.StmtExitwhen;
 import de.peeeq.pscript.pscript.StmtIf;
-import de.peeeq.pscript.pscript.StmtLoop;
 import de.peeeq.pscript.pscript.StmtReturn;
 import de.peeeq.pscript.pscript.StmtSet;
 import de.peeeq.pscript.pscript.StmtSetOrCallOrVarDef;
@@ -86,33 +84,6 @@ public class FunctionChecker {
 			}
 
 
-			@Override
-			public CheckResult caseStmtLoop(StmtLoop stmtLoop) {
-				// TODO Auto-generated method stub
-				return null;
-			}
-
-
-			@Override
-			public CheckResult caseStmtExitwhen(StmtExitwhen stmtExitwhen) {
-				// TODO Auto-generated method stub
-				return null;
-			}
-
-
-			@Override
-			public CheckResult caseStmtSet(StmtSet stmtSet) {
-				// TODO Auto-generated method stub
-				return null;
-			}
-
-
-			@Override
-			public CheckResult caseStmtCall(StmtCall stmtCall) {
-				// TODO Auto-generated method stub
-				return null;
-			}
-			
 		}.doSwitch(s);
 		
 	}

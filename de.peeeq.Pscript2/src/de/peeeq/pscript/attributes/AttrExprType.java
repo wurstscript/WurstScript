@@ -23,6 +23,7 @@ import de.peeeq.pscript.pscript.ExprOr;
 import de.peeeq.pscript.pscript.ExprSign;
 import de.peeeq.pscript.pscript.ExprStrval;
 import de.peeeq.pscript.pscript.FuncDef;
+import de.peeeq.pscript.pscript.OpDivInt;
 import de.peeeq.pscript.pscript.OpDivReal;
 import de.peeeq.pscript.pscript.OpModInt;
 import de.peeeq.pscript.pscript.OpModReal;
@@ -33,6 +34,7 @@ import de.peeeq.pscript.pscript.ParameterDef;
 import de.peeeq.pscript.pscript.VarDef;
 import de.peeeq.pscript.pscript.util.ClassMemberSwitch;
 import de.peeeq.pscript.pscript.util.ExprSwitch;
+import de.peeeq.pscript.types.PScriptTypeArray;
 import de.peeeq.pscript.types.PScriptTypeBool;
 import de.peeeq.pscript.types.PScriptTypeCode;
 import de.peeeq.pscript.types.PScriptTypeInt;
@@ -96,9 +98,9 @@ public class AttrExprType extends AbstractAttribute<Expr, PscriptType> {
 				if (leftType.isSubtypeOf(PScriptTypeInt.instance())
 						&& rightType.isSubtypeOf(PScriptTypeInt.instance())) {
 					// int , int
-					if (op instanceof OpMult || op instanceof OpModInt || op instanceof OpModReal) {
+					if (op instanceof OpMult || op instanceof OpModInt || op instanceof OpDivInt) {
 						return PScriptTypeInt.instance();
-					} else if (op instanceof OpDivReal) {
+					} else if (op instanceof OpDivReal || op instanceof OpModReal) {
 						return PScriptTypeReal.instance();
 					} else {
 						return new PscriptTypeError("Operator " + op + " not applicable for ints.");
@@ -221,6 +223,18 @@ public class AttrExprType extends AbstractAttribute<Expr, PscriptType> {
 			public PscriptType caseExprIdentifier(ExprIdentifier e) {
 				VarDef decl = e.getNameVal();
 				
+				
+				// VarDef
+				if (decl instanceof VarDef) {
+					VarDef v = (VarDef) decl;
+					PscriptType varDefType = attributeManager.getAttValue(AttrVarDefType.class, (VarDef)decl);
+					if (varDefType instanceof PScriptTypeArray) {
+						return ((PScriptTypeArray)varDefType).getBaseType();
+					} else {
+						return varDefType;
+					}
+				}
+				
 				// PackageDeclaration
 				if (decl instanceof PackageDeclaration) {
 					return PScriptTypePackage.instance(decl.getName());
@@ -231,10 +245,7 @@ public class AttrExprType extends AbstractAttribute<Expr, PscriptType> {
 					return attributeManager.getAttValue(AttrTypeExprType.class, pd.getType());
 				}
 				
-				// VarDef
-				if (decl instanceof VarDef) {
-					return attributeManager.getAttValue(AttrVarDefType.class, (VarDef)decl);
-				}
+				
 				// FuncDef
 				if (decl instanceof FuncDef) {
 					FuncDef f = (FuncDef) decl;

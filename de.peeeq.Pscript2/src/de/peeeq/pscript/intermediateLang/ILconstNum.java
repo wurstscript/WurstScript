@@ -10,7 +10,7 @@ public class ILconstNum extends ILconst {
 		this.val = new BigDecimal(numVal);
 	}
 
-	public ILconstNum(float numVal) {
+	public ILconstNum(double numVal) {
 		this.val = new BigDecimal(numVal);
 	}
 	

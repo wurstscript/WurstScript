@@ -15,6 +15,7 @@ import de.peeeq.pscript.attributes.infrastructure.AttributeManager;
 import de.peeeq.pscript.pscript.ClassDef;
 import de.peeeq.pscript.pscript.Expr;
 import de.peeeq.pscript.pscript.ExprFunctioncall;
+import de.peeeq.pscript.pscript.ExprIdentifier;
 import de.peeeq.pscript.pscript.ExprMember;
 import de.peeeq.pscript.pscript.FuncDef;
 import de.peeeq.pscript.pscript.ParameterDef;
@@ -23,6 +24,8 @@ import de.peeeq.pscript.pscript.PscriptPackage;
 import de.peeeq.pscript.pscript.StmtSet;
 import de.peeeq.pscript.pscript.VarDef;
 import de.peeeq.pscript.pscript.util.ClassMemberSwitchVoid;
+import de.peeeq.pscript.types.PScriptTypeArray;
+import de.peeeq.pscript.types.PScriptTypeInt;
 import de.peeeq.pscript.types.PscriptType;
 import de.peeeq.pscript.types.PscriptTypeError;
 import de.peeeq.pscript.utils.NotNullList;
@@ -37,6 +40,8 @@ public class PscriptJavaValidator extends AbstractPscriptJavaValidator {
 	private static final String TOO_MANY_PARAMETERS = "TOO_MANY_PARAMETERS";
 	private static final String WRONG_PARAMETER_TYPE = "WRONG_PARAMETER_TYPE";
 	private static final String FUNC_NOT_FOUND = "FUNC_NOT_FOUND";
+	private static final String WRONG_TYPE = "WRONG_TYPE";
+	private static final String CANNOT_ASSIGN_TO_CONSTANT = "CANNOT_ASSIGN_TO_CONSTANT";
 
 	@Inject
 	private AttributeManager attrManager;
@@ -92,17 +97,68 @@ public class PscriptJavaValidator extends AbstractPscriptJavaValidator {
 
 	@Check
 	public void checkAssignments(StmtSet e) {
-		PscriptType leftType = attrManager.getAttValue(AttrExprType.class, e
-				.getLeft().getE());
-		PscriptType rightType = attrManager.getAttValue(AttrExprType.class,
-				e.getRight());
-		// TODO check if left side is variable and not constant
-		if (!leftType.isSupertypeOf(rightType)) {
-			error("Cannot assign value of type " + rightType
-					+ " to variable of type " + leftType + ".",
-					PscriptPackage.Literals.STMT_SET__OP_ASSIGNMENT,
-					NO_CATEGORY);
-			return;
+		Expr leftExpr = e.getLeft().getE();
+		
+		PscriptType leftType = attrManager.getAttValue(AttrExprType.class, leftExpr);
+		PscriptType rightType = attrManager.getAttValue(AttrExprType.class,	e.getRight());
+		
+		if (leftExpr instanceof ExprIdentifier) {
+			ExprIdentifier leftIdentifier = (ExprIdentifier) leftExpr;
+			VarDef varDef = leftIdentifier.getNameVal();
+			PscriptType varDefType = attrManager.getAttValue(AttrVarDefType.class, varDef);
+			
+			if (leftIdentifier.getArrayIndizes().size() > 0 ) { // array access		
+				
+				
+				if (!(varDefType instanceof PScriptTypeArray)) {
+					error("Not an array.", leftIdentifier, null, WRONG_TYPE);
+					return;
+				}
+				// check if the right number of indizes was chosen:
+				PScriptTypeArray varDefTypeA = (PScriptTypeArray) varDefType;
+				if (varDefTypeA.getDimensions() < leftIdentifier.getArrayIndizes().size()) {
+					error("Too many indizes.", leftIdentifier, null, WRONG_TYPE);
+					return;
+				}
+				if (varDefTypeA.getDimensions() > leftIdentifier.getArrayIndizes().size()) {
+					error("Missing indizes.", leftIdentifier, null, WRONG_TYPE);
+					return;
+				}
+				
+				
+				// check if indexes are ints
+				for (Expr index : leftIdentifier.getArrayIndizes()) {
+					PscriptType indexType = attrManager.getAttValue(AttrExprType.class, index);
+					if (!(indexType instanceof PScriptTypeInt)) {
+						error("Array indized must be of type integer. " + indexType + " is not allowed.", index, null, WRONG_TYPE);
+						return;
+					}
+				}
+				
+				if (!varDefTypeA.getBaseType().isSupertypeOf(rightType)) {
+					error("Cannot assign value of type " + rightType
+							+ " to variable of type " + leftType + ".",
+							PscriptPackage.Literals.STMT_SET__OP_ASSIGNMENT,
+							NO_CATEGORY);
+					return;
+				}
+				
+				
+			} else { // no array access
+				if (varDef.isConstant()) {
+					error("Cannot assign to a constant variable.", leftIdentifier, null, CANNOT_ASSIGN_TO_CONSTANT);
+					return;
+				}
+				if (!leftType.isSupertypeOf(rightType)) {
+					error("Cannot assign value of type " + rightType
+							+ " to variable of type " + leftType + ".",
+							PscriptPackage.Literals.STMT_SET__OP_ASSIGNMENT,
+							NO_CATEGORY);
+					return;
+				}
+			}
+		} else {
+			throw new Error("Not implemented: Assignment to " + leftExpr);
 		}
 
 	}

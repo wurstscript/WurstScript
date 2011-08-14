@@ -7,6 +7,7 @@
 package de.peeeq.pscript.pscript.impl;
 
 import de.peeeq.pscript.pscript.PscriptPackage;
+import de.peeeq.pscript.pscript.TypeDef;
 import de.peeeq.pscript.pscript.TypeExpr;
 
 import java.util.Collection;
@@ -16,6 +17,7 @@ import org.eclipse.emf.common.notify.Notification;
 import org.eclipse.emf.common.util.EList;
 
 import org.eclipse.emf.ecore.EClass;
+import org.eclipse.emf.ecore.InternalEObject;
 
 import org.eclipse.emf.ecore.impl.ENotificationImpl;
 import org.eclipse.emf.ecore.impl.MinimalEObjectImpl;
@@ -29,6 +31,7 @@ import org.eclipse.emf.ecore.util.EDataTypeEList;
  * <p>
  * The following features are implemented:
  * <ul>
+ *   <li>{@link de.peeeq.pscript.pscript.impl.TypeExprImpl#getName <em>Name</em>}</li>
  *   <li>{@link de.peeeq.pscript.pscript.impl.TypeExprImpl#isArray <em>Array</em>}</li>
  *   <li>{@link de.peeeq.pscript.pscript.impl.TypeExprImpl#getSizes <em>Sizes</em>}</li>
  * </ul>
@@ -38,6 +41,16 @@ import org.eclipse.emf.ecore.util.EDataTypeEList;
  */
 public class TypeExprImpl extends MinimalEObjectImpl.Container implements TypeExpr
 {
+  /**
+   * The cached value of the '{@link #getName() <em>Name</em>}' reference.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see #getName()
+   * @generated
+   * @ordered
+   */
+  protected TypeDef name;
+
   /**
    * The default value of the '{@link #isArray() <em>Array</em>}' attribute.
    * <!-- begin-user-doc -->
@@ -94,6 +107,49 @@ public class TypeExprImpl extends MinimalEObjectImpl.Container implements TypeEx
    * <!-- end-user-doc -->
    * @generated
    */
+  public TypeDef getName()
+  {
+    if (name != null && name.eIsProxy())
+    {
+      InternalEObject oldName = (InternalEObject)name;
+      name = (TypeDef)eResolveProxy(oldName);
+      if (name != oldName)
+      {
+        if (eNotificationRequired())
+          eNotify(new ENotificationImpl(this, Notification.RESOLVE, PscriptPackage.TYPE_EXPR__NAME, oldName, name));
+      }
+    }
+    return name;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public TypeDef basicGetName()
+  {
+    return name;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public void setName(TypeDef newName)
+  {
+    TypeDef oldName = name;
+    name = newName;
+    if (eNotificationRequired())
+      eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.TYPE_EXPR__NAME, oldName, name));
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
   public boolean isArray()
   {
     return array;
@@ -136,6 +192,9 @@ public class TypeExprImpl extends MinimalEObjectImpl.Container implements TypeEx
   {
     switch (featureID)
     {
+      case PscriptPackage.TYPE_EXPR__NAME:
+        if (resolve) return getName();
+        return basicGetName();
       case PscriptPackage.TYPE_EXPR__ARRAY:
         return isArray();
       case PscriptPackage.TYPE_EXPR__SIZES:
@@ -155,6 +214,9 @@ public class TypeExprImpl extends MinimalEObjectImpl.Container implements TypeEx
   {
     switch (featureID)
     {
+      case PscriptPackage.TYPE_EXPR__NAME:
+        setName((TypeDef)newValue);
+        return;
       case PscriptPackage.TYPE_EXPR__ARRAY:
         setArray((Boolean)newValue);
         return;
@@ -176,6 +238,9 @@ public class TypeExprImpl extends MinimalEObjectImpl.Container implements TypeEx
   {
     switch (featureID)
     {
+      case PscriptPackage.TYPE_EXPR__NAME:
+        setName((TypeDef)null);
+        return;
       case PscriptPackage.TYPE_EXPR__ARRAY:
         setArray(ARRAY_EDEFAULT);
         return;
@@ -196,6 +261,8 @@ public class TypeExprImpl extends MinimalEObjectImpl.Container implements TypeEx
   {
     switch (featureID)
     {
+      case PscriptPackage.TYPE_EXPR__NAME:
+        return name != null;
       case PscriptPackage.TYPE_EXPR__ARRAY:
         return array != ARRAY_EDEFAULT;
       case PscriptPackage.TYPE_EXPR__SIZES:

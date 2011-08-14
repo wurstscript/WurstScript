@@ -142,7 +142,6 @@ public class PscriptSwitch<T> extends Switch<T>
         T result = caseVarDef(varDef);
         if (result == null) result = caseEntity(varDef);
         if (result == null) result = caseClassMember(varDef);
-        if (result == null) result = caseStmtSetOrCallOrVarDef(varDef);
         if (result == null) result = caseStatement(varDef);
         if (result == null) result = defaultCase(theEObject);
         return result;
@@ -168,22 +167,6 @@ public class PscriptSwitch<T> extends Switch<T>
         if (result == null) result = defaultCase(theEObject);
         return result;
       }
-      case PscriptPackage.STMT_EXITWHEN:
-      {
-        StmtExitwhen stmtExitwhen = (StmtExitwhen)theEObject;
-        T result = caseStmtExitwhen(stmtExitwhen);
-        if (result == null) result = caseStatement(stmtExitwhen);
-        if (result == null) result = defaultCase(theEObject);
-        return result;
-      }
-      case PscriptPackage.STMT_LOOP:
-      {
-        StmtLoop stmtLoop = (StmtLoop)theEObject;
-        T result = caseStmtLoop(stmtLoop);
-        if (result == null) result = caseStatement(stmtLoop);
-        if (result == null) result = defaultCase(theEObject);
-        return result;
-      }
       case PscriptPackage.STMT_RETURN:
       {
         StmtReturn stmtReturn = (StmtReturn)theEObject;
@@ -205,24 +188,6 @@ public class PscriptSwitch<T> extends Switch<T>
         StmtWhile stmtWhile = (StmtWhile)theEObject;
         T result = caseStmtWhile(stmtWhile);
         if (result == null) result = caseStatement(stmtWhile);
-        if (result == null) result = defaultCase(theEObject);
-        return result;
-      }
-      case PscriptPackage.STMT_SET:
-      {
-        StmtSet stmtSet = (StmtSet)theEObject;
-        T result = caseStmtSet(stmtSet);
-        if (result == null) result = caseStmtSetOrCallOrVarDef(stmtSet);
-        if (result == null) result = caseStatement(stmtSet);
-        if (result == null) result = defaultCase(theEObject);
-        return result;
-      }
-      case PscriptPackage.STMT_CALL:
-      {
-        StmtCall stmtCall = (StmtCall)theEObject;
-        T result = caseStmtCall(stmtCall);
-        if (result == null) result = caseStmtSetOrCallOrVarDef(stmtCall);
-        if (result == null) result = caseStatement(stmtCall);
         if (result == null) result = defaultCase(theEObject);
         return result;
       }
@@ -311,22 +276,6 @@ public class PscriptSwitch<T> extends Switch<T>
         if (result == null) result = defaultCase(theEObject);
         return result;
       }
-      case PscriptPackage.TYPE_EXPR_REF:
-      {
-        TypeExprRef typeExprRef = (TypeExprRef)theEObject;
-        T result = caseTypeExprRef(typeExprRef);
-        if (result == null) result = caseTypeExpr(typeExprRef);
-        if (result == null) result = defaultCase(theEObject);
-        return result;
-      }
-      case PscriptPackage.TYPE_EXPR_BUILDIN:
-      {
-        TypeExprBuildin typeExprBuildin = (TypeExprBuildin)theEObject;
-        T result = caseTypeExprBuildin(typeExprBuildin);
-        if (result == null) result = caseTypeExpr(typeExprBuildin);
-        if (result == null) result = defaultCase(theEObject);
-        return result;
-      }
       case PscriptPackage.PARAMETER_DEF:
       {
         ParameterDef parameterDef = (ParameterDef)theEObject;
@@ -334,8 +283,25 @@ public class PscriptSwitch<T> extends Switch<T>
         if (result == null) result = caseVarDef(parameterDef);
         if (result == null) result = caseEntity(parameterDef);
         if (result == null) result = caseClassMember(parameterDef);
-        if (result == null) result = caseStmtSetOrCallOrVarDef(parameterDef);
         if (result == null) result = caseStatement(parameterDef);
+        if (result == null) result = defaultCase(theEObject);
+        return result;
+      }
+      case PscriptPackage.STMT_CALL:
+      {
+        StmtCall stmtCall = (StmtCall)theEObject;
+        T result = caseStmtCall(stmtCall);
+        if (result == null) result = caseStmtSetOrCallOrVarDef(stmtCall);
+        if (result == null) result = caseStatement(stmtCall);
+        if (result == null) result = defaultCase(theEObject);
+        return result;
+      }
+      case PscriptPackage.STMT_SET:
+      {
+        StmtSet stmtSet = (StmtSet)theEObject;
+        T result = caseStmtSet(stmtSet);
+        if (result == null) result = caseStmtSetOrCallOrVarDef(stmtSet);
+        if (result == null) result = caseStatement(stmtSet);
         if (result == null) result = defaultCase(theEObject);
         return result;
       }
@@ -504,6 +470,14 @@ public class PscriptSwitch<T> extends Switch<T>
         OpModInt opModInt = (OpModInt)theEObject;
         T result = caseOpModInt(opModInt);
         if (result == null) result = caseOpMultiplicative(opModInt);
+        if (result == null) result = defaultCase(theEObject);
+        return result;
+      }
+      case PscriptPackage.OP_DIV_INT:
+      {
+        OpDivInt opDivInt = (OpDivInt)theEObject;
+        T result = caseOpDivInt(opDivInt);
+        if (result == null) result = caseOpMultiplicative(opDivInt);
         if (result == null) result = defaultCase(theEObject);
         return result;
       }
@@ -784,38 +758,6 @@ public class PscriptSwitch<T> extends Switch<T>
   }
 
   /**
-   * Returns the result of interpreting the object as an instance of '<em>Stmt Exitwhen</em>'.
-   * <!-- begin-user-doc -->
-   * This implementation returns null;
-   * returning a non-null result will terminate the switch.
-   * <!-- end-user-doc -->
-   * @param object the target of the switch.
-   * @return the result of interpreting the object as an instance of '<em>Stmt Exitwhen</em>'.
-   * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
-   * @generated
-   */
-  public T caseStmtExitwhen(StmtExitwhen object)
-  {
-    return null;
-  }
-
-  /**
-   * Returns the result of interpreting the object as an instance of '<em>Stmt Loop</em>'.
-   * <!-- begin-user-doc -->
-   * This implementation returns null;
-   * returning a non-null result will terminate the switch.
-   * <!-- end-user-doc -->
-   * @param object the target of the switch.
-   * @return the result of interpreting the object as an instance of '<em>Stmt Loop</em>'.
-   * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
-   * @generated
-   */
-  public T caseStmtLoop(StmtLoop object)
-  {
-    return null;
-  }
-
-  /**
    * Returns the result of interpreting the object as an instance of '<em>Stmt Return</em>'.
    * <!-- begin-user-doc -->
    * This implementation returns null;
@@ -859,38 +801,6 @@ public class PscriptSwitch<T> extends Switch<T>
    * @generated
    */
   public T caseStmtWhile(StmtWhile object)
-  {
-    return null;
-  }
-
-  /**
-   * Returns the result of interpreting the object as an instance of '<em>Stmt Set</em>'.
-   * <!-- begin-user-doc -->
-   * This implementation returns null;
-   * returning a non-null result will terminate the switch.
-   * <!-- end-user-doc -->
-   * @param object the target of the switch.
-   * @return the result of interpreting the object as an instance of '<em>Stmt Set</em>'.
-   * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
-   * @generated
-   */
-  public T caseStmtSet(StmtSet object)
-  {
-    return null;
-  }
-
-  /**
-   * Returns the result of interpreting the object as an instance of '<em>Stmt Call</em>'.
-   * <!-- begin-user-doc -->
-   * This implementation returns null;
-   * returning a non-null result will terminate the switch.
-   * <!-- end-user-doc -->
-   * @param object the target of the switch.
-   * @return the result of interpreting the object as an instance of '<em>Stmt Call</em>'.
-   * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
-   * @generated
-   */
-  public T caseStmtCall(StmtCall object)
   {
     return null;
   }
@@ -1072,38 +982,6 @@ public class PscriptSwitch<T> extends Switch<T>
   }
 
   /**
-   * Returns the result of interpreting the object as an instance of '<em>Type Expr Ref</em>'.
-   * <!-- begin-user-doc -->
-   * This implementation returns null;
-   * returning a non-null result will terminate the switch.
-   * <!-- end-user-doc -->
-   * @param object the target of the switch.
-   * @return the result of interpreting the object as an instance of '<em>Type Expr Ref</em>'.
-   * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
-   * @generated
-   */
-  public T caseTypeExprRef(TypeExprRef object)
-  {
-    return null;
-  }
-
-  /**
-   * Returns the result of interpreting the object as an instance of '<em>Type Expr Buildin</em>'.
-   * <!-- begin-user-doc -->
-   * This implementation returns null;
-   * returning a non-null result will terminate the switch.
-   * <!-- end-user-doc -->
-   * @param object the target of the switch.
-   * @return the result of interpreting the object as an instance of '<em>Type Expr Buildin</em>'.
-   * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
-   * @generated
-   */
-  public T caseTypeExprBuildin(TypeExprBuildin object)
-  {
-    return null;
-  }
-
-  /**
    * Returns the result of interpreting the object as an instance of '<em>Parameter Def</em>'.
    * <!-- begin-user-doc -->
    * This implementation returns null;
@@ -1115,6 +993,38 @@ public class PscriptSwitch<T> extends Switch<T>
    * @generated
    */
   public T caseParameterDef(ParameterDef object)
+  {
+    return null;
+  }
+
+  /**
+   * Returns the result of interpreting the object as an instance of '<em>Stmt Call</em>'.
+   * <!-- begin-user-doc -->
+   * This implementation returns null;
+   * returning a non-null result will terminate the switch.
+   * <!-- end-user-doc -->
+   * @param object the target of the switch.
+   * @return the result of interpreting the object as an instance of '<em>Stmt Call</em>'.
+   * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
+   * @generated
+   */
+  public T caseStmtCall(StmtCall object)
+  {
+    return null;
+  }
+
+  /**
+   * Returns the result of interpreting the object as an instance of '<em>Stmt Set</em>'.
+   * <!-- begin-user-doc -->
+   * This implementation returns null;
+   * returning a non-null result will terminate the switch.
+   * <!-- end-user-doc -->
+   * @param object the target of the switch.
+   * @return the result of interpreting the object as an instance of '<em>Stmt Set</em>'.
+   * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
+   * @generated
+   */
+  public T caseStmtSet(StmtSet object)
   {
     return null;
   }
@@ -1451,6 +1361,22 @@ public class PscriptSwitch<T> extends Switch<T>
    * @generated
    */
   public T caseOpModInt(OpModInt object)
+  {
+    return null;
+  }
+
+  /**
+   * Returns the result of interpreting the object as an instance of '<em>Op Div Int</em>'.
+   * <!-- begin-user-doc -->
+   * This implementation returns null;
+   * returning a non-null result will terminate the switch.
+   * <!-- end-user-doc -->
+   * @param object the target of the switch.
+   * @return the result of interpreting the object as an instance of '<em>Op Div Int</em>'.
+   * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
+   * @generated
+   */
+  public T caseOpDivInt(OpDivInt object)
   {
     return null;
   }

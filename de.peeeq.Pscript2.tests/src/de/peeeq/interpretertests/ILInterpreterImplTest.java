@@ -86,6 +86,7 @@ public class ILInterpreterImplTest {
 			} catch (TestSuccessException e) {
 				System.out.println("Ok");
 			} catch (Throwable e) {
+				testsFailed++;
 				System.err.println(file + " failed with exception.");
 				e.printStackTrace();
 			}

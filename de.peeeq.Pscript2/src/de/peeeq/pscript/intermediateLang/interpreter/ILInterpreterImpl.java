@@ -5,11 +5,14 @@ import java.util.List;
 import java.util.Map;
 
 import de.peeeq.pscript.intermediateLang.ILStatement;
+import de.peeeq.pscript.intermediateLang.ILarraySetVar;
 import de.peeeq.pscript.intermediateLang.ILconst;
 import de.peeeq.pscript.intermediateLang.ILconstBool;
 import de.peeeq.pscript.intermediateLang.ILconstInt;
 import de.peeeq.pscript.intermediateLang.ILconstNum;
 import de.peeeq.pscript.intermediateLang.ILconstString;
+import de.peeeq.pscript.intermediateLang.ILsetBinaryCL;
+import de.peeeq.pscript.intermediateLang.ILsetBinaryCR;
 import de.peeeq.pscript.intermediateLang.ILsetVar;
 import de.peeeq.pscript.intermediateLang.ILexitwhen;
 import de.peeeq.pscript.intermediateLang.ILfunction;
@@ -18,12 +21,14 @@ import de.peeeq.pscript.intermediateLang.ILif;
 import de.peeeq.pscript.intermediateLang.ILloop;
 import de.peeeq.pscript.intermediateLang.ILprog;
 import de.peeeq.pscript.intermediateLang.ILreturn;
+import de.peeeq.pscript.intermediateLang.ILsetVarArray;
 import de.peeeq.pscript.intermediateLang.ILvar;
 import de.peeeq.pscript.intermediateLang.ILsetBinary;
 import de.peeeq.pscript.intermediateLang.IlbuildinFunctionCall;
 import de.peeeq.pscript.intermediateLang.Iloperator;
 import de.peeeq.pscript.intermediateLang.IlsetConst;
 import de.peeeq.pscript.intermediateLang.IlsetUnary;
+import de.peeeq.pscript.types.PScriptTypeArray;
 import de.peeeq.pscript.types.PScriptTypeBool;
 import de.peeeq.pscript.types.PScriptTypeInt;
 import de.peeeq.pscript.types.PScriptTypeReal;
@@ -39,7 +44,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 	public void LoadProgram(ILprog prog) {
 		this.prog = prog;
 		globalVarMap = new HashMap<String, ILconst>();
-		
+
 		List<ILvar> globals = prog.getGlobals();
 		// TODO globals initialisieren
 		for (ILvar v : globals) {
@@ -52,9 +57,12 @@ public class ILInterpreterImpl implements ILInterpreter {
 				value  = new ILconstNum(0.0f);
 			}else if (v.getType() instanceof PScriptTypeString) {
 				value  = new ILconstString("");
+			} else if (v.getType() instanceof PScriptTypeArray) {
+				PScriptTypeArray arType = (PScriptTypeArray) v.getType();
+				value = new ILarray(arType.getBaseType());
 			}else {
 				// TODO Andere Types
-				throw new Error("not implemented " + value);
+				throw new Error("not implemented: initialisation of " + v);
 			}
 			globalVarMap.put(v.getName(), value );
 		}
@@ -63,16 +71,16 @@ public class ILInterpreterImpl implements ILInterpreter {
 
 	@Override
 	public ILconst executeFunction(String name, ILconst... arguments) {
-		
-		
-		
-		
+
+
+
+
 		ILfunction func = searchFunction(name);
 		List<ILvar> locals = func.getLocals();
-		
-		
+
+
 		List<ILStatement> body = func.getBody();
-		
+
 		Map<String, ILconst> localVarMap = new HashMap<String, ILconst>();
 		// TODO locals initialisieren
 		for (ILvar v : locals) {
@@ -90,7 +98,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 			}
 			localVarMap.put(v.getName(), value );
 		}
-		
+
 		int i = 0;
 		for (ILvar v : func.getParams()) {
 			localVarMap.put(v.getName(), arguments[i] );
@@ -101,8 +109,8 @@ public class ILInterpreterImpl implements ILInterpreter {
 		} catch (ReturnException e) {
 			return e.getVal();
 		}
-		
-		
+
+
 		return null; // TODO get return value
 	}
 
@@ -134,10 +142,39 @@ public class ILInterpreterImpl implements ILInterpreter {
 			translateFunctionCall(localVarMap, (ILfunctionCall) s);
 		} else if (s instanceof IlbuildinFunctionCall) {
 			translateBuildinFunction(localVarMap, (IlbuildinFunctionCall) s);
+		} else if (s instanceof ILsetBinaryCR) {
+			translateILsetBinaryCR(localVarMap, (ILsetBinaryCR) s);
+		} else if (s instanceof ILsetBinaryCL) {
+			translateILsetBinaryCL(localVarMap, (ILsetBinaryCL) s);
+		} else if (s instanceof ILarraySetVar) {
+			translateILarraySetVar(localVarMap, (ILarraySetVar) s);
+		} else if (s instanceof ILsetVarArray) {
+			translateILsetVarArray(localVarMap, (ILsetVarArray) s);
 		} else {
 
 			throw new Error("not implemented " + s);
 		}
+	}
+
+	
+
+	private void translateILsetVarArray(Map<String, ILconst> localVarMap,
+			ILsetVarArray s) {
+		ILarray ar = (ILarray) lookupVarValue(localVarMap, s.getVar());
+		ILconstInt indexValue = (ILconstInt) lookupVarValue(localVarMap, s.getIndex());
+		
+		addVarToProperMap(localVarMap, s.getResultVar(), ar.get(indexValue.getVal()));
+	}
+
+	private void translateILarraySetVar(Map<String, ILconst> localVarMap,
+			ILarraySetVar s) {
+		
+		ILconst rightValue = lookupVarValue(localVarMap, s.getVar());
+		ILconstInt indexValue = (ILconstInt) lookupVarValue(localVarMap, s.getIndex());
+		ILarray ar = (ILarray) lookupVarValue(localVarMap, s.getResultVar());
+		ar.set(indexValue.getVal(),	rightValue);
+		
+		
 	}
 
 	private void translateIlunary(Map<String, ILconst> localVarMap,
@@ -158,9 +195,9 @@ public class ILInterpreterImpl implements ILInterpreter {
 				result  = new ILconstBool(r.not());
 			}
 		}
-		
+
 		addVarToProperMap(localVarMap,s.getResultVar(), result);
-		
+
 	}
 
 	private void translateExitwhen(Map<String, ILconst> localVarMap,
@@ -170,20 +207,20 @@ public class ILInterpreterImpl implements ILInterpreter {
 		{
 			throw staticExitwhenException;
 		}
-		
+
 	}
 
 	private void translateLoop(Map<String, ILconst> localVarMap, ILloop s) {
 		try{
 			while (true) { executeStatements(localVarMap, s.getLoopBody() ); }
 		} catch (ExitwhenException e){}
-		
+
 	}
 
 	private void translateBuildinFunction(Map<String, ILconst> localVarMap,
 			IlbuildinFunctionCall s) {
 		String name = s.getFuncName();
-		
+
 		// native methods:
 		if (name.equals("print")) {
 			// Example: print method
@@ -194,14 +231,16 @@ public class ILInterpreterImpl implements ILInterpreter {
 			throw new TestFailException(msg.getVal());
 		} else if (name.equals("testSuccess")) {
 			throw TestSuccessException.instance;
-		}
-		else {
-		
+		} else if (name.equals("toString")) {
+			ILconstInt i = (ILconstInt) lookupVarValue(localVarMap, s.getArgs().get(0));
+			addVarToProperMap(localVarMap, s.getResultVar(), new ILconstString(""+i.getVal()));
+		} else {
+
 			throw new Error("Function " + name 
 					+ " not implemented.");
 			// TODO other methods
 		}
-		
+
 	}
 
 	private void translateFunctionCall(Map<String, ILconst> localVarMap,
@@ -215,17 +254,49 @@ public class ILInterpreterImpl implements ILInterpreter {
 
 	private void translateReturn(Map<String, ILconst> localVarMap, ILreturn s) {
 		ILconst value = lookupVarValue(localVarMap, s.getVar());
-		
+
 		throw new ReturnException(value);
+
+	}
+
+	
+	private void translateILsetBinaryCL(Map<String, ILconst> localVarMap,
+			ILsetBinaryCL s) {
+		ILconst leftValue = s.getLeft();
+		ILconst rightValue = lookupVarValue(localVarMap, s.getRight());
+		
+		
+		ILconst result = translateBinaryExpr(localVarMap, leftValue, s.getOp(), rightValue);
+		addVarToProperMap(localVarMap,s.getResultVar(), result );
 		
 	}
 
+	private void translateILsetBinaryCR(Map<String, ILconst> localVarMap,
+			ILsetBinaryCR s) {
+		ILconst leftValue = lookupVarValue(localVarMap, s.getLeft());
+		ILconst rightValue = s.getRight();
+		
+		
+		ILconst result = translateBinaryExpr(localVarMap, leftValue, s.getOp(), rightValue);
+		addVarToProperMap(localVarMap,s.getResultVar(), result );
+		
+	}
+	
 	private void translateIlbinary(Map<String, ILconst> localVarMap, ILsetBinary s) {
 		ILconst leftValue = lookupVarValue(localVarMap, s.getLeft());
 		ILconst rightValue = lookupVarValue(localVarMap, s.getRight());
+		
+		
+		ILconst result = translateBinaryExpr(localVarMap, leftValue, s.getOp(), rightValue);
+		addVarToProperMap(localVarMap,s.getResultVar(), result );
+
+	}
+	
+	private ILconst translateBinaryExpr(Map<String, ILconst> localVarMap, ILconst leftValue, Iloperator op, ILconst rightValue) {
 		ILconst result = null;
 
-		if (s.getOp() == Iloperator.PLUS) {
+
+		if (op == Iloperator.PLUS) {
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
 				ILconstInt r = (ILconstInt) rightValue;
@@ -239,7 +310,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 				String r = ((ILconstString) rightValue).getVal();
 				result  = new ILconstString(l + r);
 			}
-		}else if (s.getOp() == Iloperator.MINUS) {
+		}else if (op == Iloperator.MINUS) {
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
 				ILconstInt r = (ILconstInt) rightValue;
@@ -249,7 +320,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 				float r = ((ILconstNum) rightValue).getVal().floatValue();
 				result  = new ILconstNum(l - r);
 			}
-		}else if (s.getOp() == Iloperator.MULT) {
+		}else if (op == Iloperator.MULT) {
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
 				ILconstInt r = (ILconstInt) rightValue;
@@ -259,26 +330,24 @@ public class ILInterpreterImpl implements ILInterpreter {
 				float r = ((ILconstNum) rightValue).getVal().floatValue();
 				result  = new ILconstNum(l * r);
 			}
-		}else if ( s.getOp() == Iloperator.DIV_REAL ) {
-			System.out.println("DIV_REAL....");
+		}else if ( op == Iloperator.DIV_REAL ) {
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
 				ILconstInt r = (ILconstInt) rightValue;
-				result  = new ILconstInt(l.getVal() / r.getVal());
+				result  = new ILconstNum((1.0*l.getVal()) / r.getVal());
 			}else if(leftValue instanceof ILconstNum) {
-				float l = ((ILconstNum) leftValue).getVal().floatValue();
-				float r = ((ILconstNum) rightValue).getVal().floatValue();
-				float sum = l + r;
+				double l = ((ILconstNum) leftValue).getVal().floatValue();
+				double r = ((ILconstNum) rightValue).getVal().floatValue();
+				double sum = l + r;
 				result  = new ILconstNum( sum );
 			}
-		}else if ( s.getOp() == Iloperator.DIV_INT ) {
-			System.out.println("DIV_INT....");	
+		}else if ( op == Iloperator.DIV_INT ) {
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
 				ILconstInt r = (ILconstInt) rightValue;
 				result  = new ILconstInt(l.getVal() / r.getVal());
 			}
-		}else if (s.getOp() == Iloperator.LESS) { 
+		}else if (op == Iloperator.LESS) { 
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
 				ILconstInt r = (ILconstInt) rightValue;
@@ -288,7 +357,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 				float r = ((ILconstNum) rightValue).getVal().floatValue();
 				result  = new ILconstBool(l < r);
 			}
-		}else if (s.getOp() == Iloperator.LESS_EQ) { 
+		}else if (op == Iloperator.LESS_EQ) { 
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
 				ILconstInt r = (ILconstInt) rightValue;
@@ -298,7 +367,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 				float r = ((ILconstNum) rightValue).getVal().floatValue();
 				result  = new ILconstBool(l <= r);
 			}
-		}else if (s.getOp() == Iloperator.GREATER) {
+		}else if (op == Iloperator.GREATER) {
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
 				ILconstInt r = (ILconstInt) rightValue;
@@ -308,7 +377,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 				float r = ((ILconstNum) rightValue).getVal().floatValue();
 				result  = new ILconstBool(l > r);
 			}
-		}else if (s.getOp() == Iloperator.GREATER_EQ) {
+		}else if (op == Iloperator.GREATER_EQ) {
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
 				ILconstInt r = (ILconstInt) rightValue;
@@ -318,7 +387,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 				float r = ((ILconstNum) rightValue).getVal().floatValue();
 				result  = new ILconstBool(l >= r);
 			}
-		}else if (s.getOp() == Iloperator.EQUALITY) {
+		}else if (op == Iloperator.EQUALITY) {
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
 				ILconstInt r = (ILconstInt) rightValue;
@@ -336,7 +405,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 				String r = ((ILconstString) rightValue).getVal();
 				result  = new ILconstBool(l == r);
 			}
-		}else if (s.getOp() == Iloperator.UNEQUALITY) {
+		}else if (op == Iloperator.UNEQUALITY) {
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
 				ILconstInt r = (ILconstInt) rightValue;
@@ -354,19 +423,19 @@ public class ILInterpreterImpl implements ILInterpreter {
 				String r = ((ILconstString) rightValue).getVal();
 				result  = new ILconstBool(l != r);
 			}
-		}else if (s.getOp() == Iloperator.AND ) {
+		}else if (op == Iloperator.AND ) {
 			if (leftValue instanceof ILconstBool) {
 				boolean l = ((ILconstBool) leftValue).getVal();
 				boolean r = ((ILconstBool) rightValue).getVal();
 				result  = new ILconstBool(l && r);
 			}
-		}else if (s.getOp() == Iloperator.OR ) {
+		}else if (op == Iloperator.OR ) {
 			if (leftValue instanceof ILconstBool) {
 				boolean l = ((ILconstBool) leftValue).getVal();
 				boolean r = ((ILconstBool) rightValue).getVal();
 				result  = new ILconstBool(l || r);
 			}
-		}else if (s.getOp() == Iloperator.MOD_INT || s.getOp() == Iloperator.MOD_REAL) {
+		}else if (op == Iloperator.MOD_INT || op == Iloperator.MOD_REAL) {
 			if (leftValue instanceof ILconstInt) {
 				ILconstInt l = (ILconstInt) leftValue;
 				ILconstInt r = (ILconstInt) rightValue;
@@ -377,40 +446,38 @@ public class ILInterpreterImpl implements ILInterpreter {
 				result  = new ILconstNum(l % r);
 			}
 		}
-		
-
-		
-		addVarToProperMap(localVarMap,s.getResultVar(), result);
-		
+		return result;
 	}
+	
+
 
 	private void translateIlsetConst(Map<String, ILconst> localVarMap,
 			IlsetConst s) {
-		
+
 		addVarToProperMap(localVarMap,s.getResultVar(), s.getConstant());
-		
+
 	}
 
 	private void translateIlcopy(Map<String, ILconst> localVarMap, ILsetVar s) {
 		ILconst value = lookupVarValue(localVarMap, s.getVar());
 
 		addVarToProperMap(localVarMap,s.getResultVar(), value);	
-		
+
 	}
-	
+
 	private void translateStatementIf(Map<String, ILconst> localVarMap, ILif s) {
 		ILvar cond = s.getCond();	
 		ILconstBool condValue = (ILconstBool) lookupVarValue(localVarMap, cond);
-		
+
 		if (condValue.getVal()) {
 			executeStatements(localVarMap, s.getThenBlock());
 		} else {
 			executeStatements(localVarMap, s.getElseBlock());
 		}
-		
+
 	}
 
-	
+
 	private void addVarToProperMap(Map<String, ILconst> localVarMap, ILvar v, ILconst s ) {
 		if (isLocal(localVarMap, v)) {
 			localVarMap.put(v.getName(), s);
@@ -421,18 +488,18 @@ public class ILInterpreterImpl implements ILInterpreter {
 			throw new Error("var is neither local nor global?");
 		}
 	}
-	
-	
+
+
 	private boolean isLocal(Map<String, ILconst> localVarMap, ILvar resultVar) {
 		return localVarMap.containsKey(resultVar.getName());
 
 	}
-	
+
 	private boolean isGlobal( ILvar resultVar) {
 		return globalVarMap.containsKey(resultVar.getName());
 
 	}
-	
+
 	private ILconst lookupVarValue(Map<String, ILconst> localVarMap, ILvar var) {
 		ILconst value = localVarMap.get(var.getName());
 		if (value == null) {

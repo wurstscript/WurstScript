@@ -135,24 +135,6 @@ public interface PscriptFactory extends EFactory
   Statement createStatement();
 
   /**
-   * Returns a new object of class '<em>Stmt Exitwhen</em>'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return a new object of class '<em>Stmt Exitwhen</em>'.
-   * @generated
-   */
-  StmtExitwhen createStmtExitwhen();
-
-  /**
-   * Returns a new object of class '<em>Stmt Loop</em>'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return a new object of class '<em>Stmt Loop</em>'.
-   * @generated
-   */
-  StmtLoop createStmtLoop();
-
-  /**
    * Returns a new object of class '<em>Stmt Return</em>'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -178,24 +160,6 @@ public interface PscriptFactory extends EFactory
    * @generated
    */
   StmtWhile createStmtWhile();
-
-  /**
-   * Returns a new object of class '<em>Stmt Set</em>'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return a new object of class '<em>Stmt Set</em>'.
-   * @generated
-   */
-  StmtSet createStmtSet();
-
-  /**
-   * Returns a new object of class '<em>Stmt Call</em>'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return a new object of class '<em>Stmt Call</em>'.
-   * @generated
-   */
-  StmtCall createStmtCall();
 
   /**
    * Returns a new object of class '<em>Stmt Set Or Call Or Var Def</em>'.
@@ -297,24 +261,6 @@ public interface PscriptFactory extends EFactory
   ClassDef createClassDef();
 
   /**
-   * Returns a new object of class '<em>Type Expr Ref</em>'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return a new object of class '<em>Type Expr Ref</em>'.
-   * @generated
-   */
-  TypeExprRef createTypeExprRef();
-
-  /**
-   * Returns a new object of class '<em>Type Expr Buildin</em>'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return a new object of class '<em>Type Expr Buildin</em>'.
-   * @generated
-   */
-  TypeExprBuildin createTypeExprBuildin();
-
-  /**
    * Returns a new object of class '<em>Parameter Def</em>'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -322,6 +268,24 @@ public interface PscriptFactory extends EFactory
    * @generated
    */
   ParameterDef createParameterDef();
+
+  /**
+   * Returns a new object of class '<em>Stmt Call</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Stmt Call</em>'.
+   * @generated
+   */
+  StmtCall createStmtCall();
+
+  /**
+   * Returns a new object of class '<em>Stmt Set</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Stmt Set</em>'.
+   * @generated
+   */
+  StmtSet createStmtSet();
 
   /**
    * Returns a new object of class '<em>Op Assign</em>'.
@@ -511,6 +475,15 @@ public interface PscriptFactory extends EFactory
    * @generated
    */
   OpModInt createOpModInt();
+
+  /**
+   * Returns a new object of class '<em>Op Div Int</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Op Div Int</em>'.
+   * @generated
+   */
+  OpDivInt createOpDivInt();
 
   /**
    * Returns a new object of class '<em>Expr Sign</em>'.

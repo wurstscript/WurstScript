@@ -6,10 +6,7 @@ import de.peeeq.pscript.attributes.infrastructure.AttributeManager;
 import de.peeeq.pscript.pscript.FuncDef;
 import de.peeeq.pscript.pscript.ParameterDef;
 import de.peeeq.pscript.pscript.TypeExpr;
-import de.peeeq.pscript.pscript.TypeExprBuildin;
-import de.peeeq.pscript.pscript.TypeExprRef;
 import de.peeeq.pscript.pscript.VarDef;
-import de.peeeq.pscript.pscript.util.TypeExprSwitch;
 import de.peeeq.pscript.types.PscriptType;
 
 public class AttrUtil {
@@ -32,23 +29,11 @@ public class AttrUtil {
 	}
 	
 	private static String printTypeExpr(TypeExpr type) {
-		return new TypeExprSwitch<String>() {
-
-			@Override
-			public String caseTypeExprBuildin(TypeExprBuildin typeExprBuildin) {
-				return typeExprBuildin.getName();
-			}
-
-			@Override
-			public String caseTypeExprRef(TypeExprRef typeExprRef) {
-				try {
-					return typeExprRef.getName().getName();
-				} catch (Throwable t) {
-					return "Unknown";
-				}
-			}
-			
-		}.doSwitch(type);
+		try {
+			return type.getName().getName();
+		} catch (Throwable t) {
+			return "Unknown";
+		}
 	}
 
 	static String printParams(EList<VarDef> eList) {

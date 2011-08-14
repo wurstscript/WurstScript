@@ -1,16 +1,17 @@
-package test
+package test {
 	
-	native testFail(string msg)
+	nativetype String
+	nativetype Int
+	
+	native testFail(String msg)
 	
 	native testSuccess()
 
-	function runTest()
-		if not false
+	function runTest() {
+		if not false {
 			testSuccess()
-		else
+		} else {
 			testFail("defect in not if")
-		endif
-	endfunction
-	
-	
-endpackage
+		}
+	}
+}

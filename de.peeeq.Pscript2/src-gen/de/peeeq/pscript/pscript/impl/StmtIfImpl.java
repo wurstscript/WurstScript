@@ -11,20 +11,13 @@ import de.peeeq.pscript.pscript.PscriptPackage;
 import de.peeeq.pscript.pscript.Statements;
 import de.peeeq.pscript.pscript.StmtIf;
 
-import java.util.Collection;
-
 import org.eclipse.emf.common.notify.Notification;
 import org.eclipse.emf.common.notify.NotificationChain;
-
-import org.eclipse.emf.common.util.EList;
 
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.InternalEObject;
 
 import org.eclipse.emf.ecore.impl.ENotificationImpl;
-
-import org.eclipse.emf.ecore.util.EObjectContainmentEList;
-import org.eclipse.emf.ecore.util.InternalEList;
 
 /**
  * <!-- begin-user-doc -->
@@ -35,8 +28,6 @@ import org.eclipse.emf.ecore.util.InternalEList;
  * <ul>
  *   <li>{@link de.peeeq.pscript.pscript.impl.StmtIfImpl#getCond <em>Cond</em>}</li>
  *   <li>{@link de.peeeq.pscript.pscript.impl.StmtIfImpl#getThenBlock <em>Then Block</em>}</li>
- *   <li>{@link de.peeeq.pscript.pscript.impl.StmtIfImpl#getElseIfConds <em>Else If Conds</em>}</li>
- *   <li>{@link de.peeeq.pscript.pscript.impl.StmtIfImpl#getElseIfBlocks <em>Else If Blocks</em>}</li>
  *   <li>{@link de.peeeq.pscript.pscript.impl.StmtIfImpl#getElseBlock <em>Else Block</em>}</li>
  * </ul>
  * </p>
@@ -64,26 +55,6 @@ public class StmtIfImpl extends StatementImpl implements StmtIf
    * @ordered
    */
   protected Statements thenBlock;
-
-  /**
-   * The cached value of the '{@link #getElseIfConds() <em>Else If Conds</em>}' containment reference list.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @see #getElseIfConds()
-   * @generated
-   * @ordered
-   */
-  protected EList<Expr> elseIfConds;
-
-  /**
-   * The cached value of the '{@link #getElseIfBlocks() <em>Else If Blocks</em>}' containment reference list.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @see #getElseIfBlocks()
-   * @generated
-   * @ordered
-   */
-  protected EList<Statements> elseIfBlocks;
 
   /**
    * The cached value of the '{@link #getElseBlock() <em>Else Block</em>}' containment reference.
@@ -217,34 +188,6 @@ public class StmtIfImpl extends StatementImpl implements StmtIf
    * <!-- end-user-doc -->
    * @generated
    */
-  public EList<Expr> getElseIfConds()
-  {
-    if (elseIfConds == null)
-    {
-      elseIfConds = new EObjectContainmentEList<Expr>(Expr.class, this, PscriptPackage.STMT_IF__ELSE_IF_CONDS);
-    }
-    return elseIfConds;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public EList<Statements> getElseIfBlocks()
-  {
-    if (elseIfBlocks == null)
-    {
-      elseIfBlocks = new EObjectContainmentEList<Statements>(Statements.class, this, PscriptPackage.STMT_IF__ELSE_IF_BLOCKS);
-    }
-    return elseIfBlocks;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
   public Statements getElseBlock()
   {
     return elseBlock;
@@ -302,10 +245,6 @@ public class StmtIfImpl extends StatementImpl implements StmtIf
         return basicSetCond(null, msgs);
       case PscriptPackage.STMT_IF__THEN_BLOCK:
         return basicSetThenBlock(null, msgs);
-      case PscriptPackage.STMT_IF__ELSE_IF_CONDS:
-        return ((InternalEList<?>)getElseIfConds()).basicRemove(otherEnd, msgs);
-      case PscriptPackage.STMT_IF__ELSE_IF_BLOCKS:
-        return ((InternalEList<?>)getElseIfBlocks()).basicRemove(otherEnd, msgs);
       case PscriptPackage.STMT_IF__ELSE_BLOCK:
         return basicSetElseBlock(null, msgs);
     }
@@ -326,10 +265,6 @@ public class StmtIfImpl extends StatementImpl implements StmtIf
         return getCond();
       case PscriptPackage.STMT_IF__THEN_BLOCK:
         return getThenBlock();
-      case PscriptPackage.STMT_IF__ELSE_IF_CONDS:
-        return getElseIfConds();
-      case PscriptPackage.STMT_IF__ELSE_IF_BLOCKS:
-        return getElseIfBlocks();
       case PscriptPackage.STMT_IF__ELSE_BLOCK:
         return getElseBlock();
     }
@@ -341,7 +276,6 @@ public class StmtIfImpl extends StatementImpl implements StmtIf
    * <!-- end-user-doc -->
    * @generated
    */
-  @SuppressWarnings("unchecked")
   @Override
   public void eSet(int featureID, Object newValue)
   {
@@ -352,14 +286,6 @@ public class StmtIfImpl extends StatementImpl implements StmtIf
         return;
       case PscriptPackage.STMT_IF__THEN_BLOCK:
         setThenBlock((Statements)newValue);
-        return;
-      case PscriptPackage.STMT_IF__ELSE_IF_CONDS:
-        getElseIfConds().clear();
-        getElseIfConds().addAll((Collection<? extends Expr>)newValue);
-        return;
-      case PscriptPackage.STMT_IF__ELSE_IF_BLOCKS:
-        getElseIfBlocks().clear();
-        getElseIfBlocks().addAll((Collection<? extends Statements>)newValue);
         return;
       case PscriptPackage.STMT_IF__ELSE_BLOCK:
         setElseBlock((Statements)newValue);
@@ -384,12 +310,6 @@ public class StmtIfImpl extends StatementImpl implements StmtIf
       case PscriptPackage.STMT_IF__THEN_BLOCK:
         setThenBlock((Statements)null);
         return;
-      case PscriptPackage.STMT_IF__ELSE_IF_CONDS:
-        getElseIfConds().clear();
-        return;
-      case PscriptPackage.STMT_IF__ELSE_IF_BLOCKS:
-        getElseIfBlocks().clear();
-        return;
       case PscriptPackage.STMT_IF__ELSE_BLOCK:
         setElseBlock((Statements)null);
         return;
@@ -411,10 +331,6 @@ public class StmtIfImpl extends StatementImpl implements StmtIf
         return cond != null;
       case PscriptPackage.STMT_IF__THEN_BLOCK:
         return thenBlock != null;
-      case PscriptPackage.STMT_IF__ELSE_IF_CONDS:
-        return elseIfConds != null && !elseIfConds.isEmpty();
-      case PscriptPackage.STMT_IF__ELSE_IF_BLOCKS:
-        return elseIfBlocks != null && !elseIfBlocks.isEmpty();
       case PscriptPackage.STMT_IF__ELSE_BLOCK:
         return elseBlock != null;
     }

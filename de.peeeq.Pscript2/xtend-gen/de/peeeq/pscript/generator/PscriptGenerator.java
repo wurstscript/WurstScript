@@ -20,6 +20,8 @@ import de.peeeq.pscript.intermediateLang.Iloperator;
 import de.peeeq.pscript.intermediateLang.IlsetConst;
 import de.peeeq.pscript.intermediateLang.IlsetUnary;
 import de.peeeq.pscript.intermediateLang.IntermediateCodeGenerator;
+import de.peeeq.pscript.types.PScriptTypeArray;
+import de.peeeq.pscript.types.PScriptTypeVoid;
 import de.peeeq.pscript.types.PscriptType;
 import java.util.List;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -52,7 +54,7 @@ public class PscriptGenerator implements IGenerator {
     _builder.newLine();
     {
       List<ILvar> _globals = prog.getGlobals();
-      for(ILvar g : _globals) {
+      for(final ILvar g : _globals) {
         StringConcatenation _printGlobal = this.printGlobal(g, prog);
         _builder.append(_printGlobal, "");
         _builder.newLineIfNotEmpty();
@@ -63,7 +65,7 @@ public class PscriptGenerator implements IGenerator {
     _builder.newLine();
     {
       List<ILfunction> _functions = prog.getFunctions();
-      for(ILfunction f : _functions) {
+      for(final ILfunction f : _functions) {
         StringConcatenation _printFunction = this.printFunction(f, prog);
         _builder.append(_printFunction, "");
         _builder.newLineIfNotEmpty();
@@ -85,7 +87,7 @@ public class PscriptGenerator implements IGenerator {
     return _builder;
   }
   
-  public StringConcatenation printType(final PscriptType type, final ILprog prog) {
+  protected StringConcatenation _printType(final PscriptType type, final ILprog prog) {
     StringConcatenation _xifexpression = null;
     boolean _operator_equals = ObjectExtensions.operator_equals(type, null);
     if (_operator_equals) {
@@ -93,20 +95,27 @@ public class PscriptGenerator implements IGenerator {
       _builder.append("nothing");
       _xifexpression = _builder;
     } else {
-      StringConcatenation _xifexpression_1 = null;
-      if ((type instanceof de.peeeq.pscript.types.PScriptTypeVoid)) {
-        StringConcatenation _builder_1 = new StringConcatenation();
-        _builder_1.append("nothing");
-        _xifexpression_1 = _builder_1;
-      } else {
-        StringConcatenation _builder_2 = new StringConcatenation();
-        String _lookupNativeTranslation = prog.lookupNativeTranslation(type);
-        _builder_2.append(_lookupNativeTranslation, "");
-        _xifexpression_1 = _builder_2;
-      }
-      _xifexpression = _xifexpression_1;
+      StringConcatenation _builder_1 = new StringConcatenation();
+      String _lookupNativeTranslation = prog.lookupNativeTranslation(type);
+      _builder_1.append(_lookupNativeTranslation, "");
+      _xifexpression = _builder_1;
     }
     return _xifexpression;
+  }
+  
+  protected StringConcatenation _printType(final PScriptTypeVoid type, final ILprog prog) {
+    StringConcatenation _builder = new StringConcatenation();
+    _builder.append("nothing");
+    return _builder;
+  }
+  
+  protected StringConcatenation _printType(final PScriptTypeArray type, final ILprog prog) {
+    StringConcatenation _builder = new StringConcatenation();
+    PscriptType _baseType = type.getBaseType();
+    StringConcatenation _printType = this.printType(_baseType, prog);
+    _builder.append(_printType, "");
+    _builder.append(" array");
+    return _builder;
   }
   
   public StringConcatenation printFunction(final ILfunction f, final ILprog prog) {
@@ -124,7 +133,7 @@ public class PscriptGenerator implements IGenerator {
     _builder.newLineIfNotEmpty();
     {
       List<ILvar> _locals = f.getLocals();
-      for(ILvar l : _locals) {
+      for(final ILvar l : _locals) {
         _builder.append("\t");
         _builder.append("local ");
         PscriptType _type = l.getType();
@@ -176,7 +185,7 @@ public class PscriptGenerator implements IGenerator {
     _builder.append("\t");
     {
       boolean hasAnyElements = false;
-      for(ILvar p : params) {
+      for(final ILvar p : params) {
         if (!hasAnyElements) {
           hasAnyElements = true;
         } else {
@@ -197,7 +206,7 @@ public class PscriptGenerator implements IGenerator {
   public StringConcatenation printStatements(final List<ILStatement> statements, final ILprog prog) {
     StringConcatenation _builder = new StringConcatenation();
     {
-      for(ILStatement s : statements) {
+      for(final ILStatement s : statements) {
         StringConcatenation _printStatement = this.printStatement(s, prog);
         _builder.append(_printStatement, "");
         _builder.newLineIfNotEmpty();
@@ -276,7 +285,7 @@ public class PscriptGenerator implements IGenerator {
     StringConcatenation _builder = new StringConcatenation();
     {
       boolean hasAnyElements = false;
-      for(ILvar a : args) {
+      for(final ILvar a : args) {
         if (!hasAnyElements) {
           hasAnyElements = true;
         } else {
@@ -588,6 +597,22 @@ public class PscriptGenerator implements IGenerator {
       _xifexpression = _xifexpression_1;
     }
     return _xifexpression;
+  }
+  
+  public StringConcatenation printType(final PscriptType type, final ILprog prog) {
+    if ((type instanceof PScriptTypeArray)
+         && (prog instanceof ILprog)) {
+      return _printType((PScriptTypeArray)type, (ILprog)prog);
+    } else if ((type instanceof PScriptTypeVoid)
+         && (prog instanceof ILprog)) {
+      return _printType((PScriptTypeVoid)type, (ILprog)prog);
+    } else if ((type instanceof PscriptType)
+         && (prog instanceof ILprog)) {
+      return _printType((PscriptType)type, (ILprog)prog);
+    } else {
+      throw new IllegalArgumentException("Unhandled parameter types: " +
+        java.util.Arrays.<Object>asList(type, prog).toString());
+    }
   }
   
   public StringConcatenation printStatement(final ILStatement s, final ILprog prog) {

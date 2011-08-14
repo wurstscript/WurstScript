@@ -1,16 +1,17 @@
-package test
+package test {
 	
-	native testFail(string msg)
+	nativetype String
+	nativetype Int
+	
+	native testFail(String msg)
 	
 	native testSuccess()
 	
-	function runTest()
-		if 2 == 2
+	function runTest() {
+		if 2 == 2 {
 			testSuccess()
-		else
+		} else {
 			testFail("defect in equality if")
-		endif
-	endfunction
-	
-	
-endpackage
+		}
+	}
+}

@@ -1,16 +1,17 @@
-package test
+package test {
 	
-	native testFail(string msg)
+	nativetype String
+	nativetype Int
+	
+	native testFail(String msg)
 	
 	native testSuccess()
 	
-	function runTest()
-		if 5 < 10
+	function runTest() {
+		if 5 < 10 {
 			testSuccess()
-		else
+		} else {
 			testFail("defect in lesser then if")
-		endif
-	endfunction
-	
-	
-endpackage
+		}
+	}
+}

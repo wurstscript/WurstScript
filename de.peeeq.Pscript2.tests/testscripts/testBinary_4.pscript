@@ -1,16 +1,19 @@
-package test
+package test {
 	
-	native testFail(string msg)
+	nativetype String
+	nativetype Int
 	
+	native testFail(String msg)
+	native print(String msg)
+	native toString(Int i) returns String
 	native testSuccess()
 
-	function runTest()
-		if 10 / 5 == 2
+	function runTest() {
+		print(toString(10 div 5))
+		if 10 div 5 == 2 {
 			testSuccess()
-		else
+		} else {
 			testFail("defect in binary operation")
-		endif
-	endfunction 
-	
-	
-endpackage
+		}
+	}
+}

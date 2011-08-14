@@ -16,9 +16,9 @@ public class PscriptUiModule extends de.peeeq.pscript.ui.AbstractPscriptUiModule
 		super(plugin);
 	}
 	
-	public Class<? extends AbstractEditStrategyProvider> bindAbstractEditStrategyProvider() {
-		return PscriptAutoEditStrategyProvider.class;
-	}
+//	public Class<? extends AbstractEditStrategyProvider> bindAbstractEditStrategyProvider() {
+//		return PscriptAutoEditStrategyProvider.class;
+//	}
 	
 	
 }

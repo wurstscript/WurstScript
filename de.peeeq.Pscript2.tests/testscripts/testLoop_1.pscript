@@ -1,23 +1,24 @@
-package test
+package test {
 	
-	native testFail(string msg)
+	nativetype String
+	nativetype Int
+	
+	native testFail(String msg)
 	
 	native testSuccess()
 	
 	
-	function runTest()
-		local i = 0
-		while i < 10
+	function runTest() {
+		Int i = 0
+		while i < 10 {
 			i = i + 1
-		endwhile
-		if i == 10
+		}
+		if i == 10 {
 			testSuccess()
-		else
+		} else {
 			testFail("defect in whileLoop")
-		endif
-	endfunction
-	
-	
-endpackage
+		}
+	}
+}
 	
 	

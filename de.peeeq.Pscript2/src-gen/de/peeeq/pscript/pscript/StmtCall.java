@@ -23,7 +23,7 @@ package de.peeeq.pscript.pscript;
  * @model
  * @generated
  */
-public interface StmtCall extends Statement, StmtSetOrCallOrVarDef
+public interface StmtCall extends StmtSetOrCallOrVarDef
 {
   /**
    * Returns the value of the '<em><b>E</b></em>' containment reference.

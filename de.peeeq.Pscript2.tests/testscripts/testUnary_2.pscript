@@ -1,16 +1,17 @@
-package test
+package test {
 	
-	native testFail(string msg)
+	nativetype String
+	nativetype Int
+	
+	native testFail(String msg)
 	
 	native testSuccess()
 
-	function runTest()
-		if -3 + 5 == 2
+	function runTest() {
+		if -3 + 5 == 2 {
 			testSuccess()
-		else
+		} else {
 			testFail("defect in unary operation")
-		endif
-	endfunction 
-	
-	
-endpackage
+		}
+	}
+}

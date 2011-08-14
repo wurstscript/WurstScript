@@ -41,6 +41,7 @@ import de.peeeq.pscript.pscript.NativeFunc;
 import de.peeeq.pscript.pscript.NativeType;
 import de.peeeq.pscript.pscript.OpAdditive;
 import de.peeeq.pscript.pscript.OpComparison;
+import de.peeeq.pscript.pscript.OpDivInt;
 import de.peeeq.pscript.pscript.OpDivReal;
 import de.peeeq.pscript.pscript.OpEquals;
 import de.peeeq.pscript.pscript.OpGreater;
@@ -59,9 +60,7 @@ import de.peeeq.pscript.pscript.Program;
 import de.peeeq.pscript.pscript.Statement;
 import de.peeeq.pscript.pscript.Statements;
 import de.peeeq.pscript.pscript.StmtCall;
-import de.peeeq.pscript.pscript.StmtExitwhen;
 import de.peeeq.pscript.pscript.StmtIf;
-import de.peeeq.pscript.pscript.StmtLoop;
 import de.peeeq.pscript.pscript.StmtReturn;
 import de.peeeq.pscript.pscript.StmtSet;
 import de.peeeq.pscript.pscript.StmtSetOrCallOrVarDef;
@@ -78,7 +77,9 @@ import de.peeeq.pscript.pscript.util.OpMultiplicativeSwitch;
 import de.peeeq.pscript.pscript.util.StatementSwitch;
 import de.peeeq.pscript.pscript.util.StmtSetOrCallOrVarDefSwitchVoid;
 import de.peeeq.pscript.pscript.util.TypeDefSwitchVoid;
+import de.peeeq.pscript.types.PScriptTypeArray;
 import de.peeeq.pscript.types.PScriptTypeBool;
+import de.peeeq.pscript.types.PScriptTypeInt;
 import de.peeeq.pscript.types.PScriptTypeVoid;
 import de.peeeq.pscript.types.PscriptType;
 import de.peeeq.pscript.utils.NotNullList;
@@ -195,7 +196,7 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 				}
 
 				@Override
-				public void caseVarDef(VarDef varDef) {
+				public void caseVarDef(VarDef varDef) { // global variable
 					// TODO add init code
 				}
 
@@ -271,8 +272,9 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 				ILvar resultVar = getNewLocalVar("ifCond", PScriptTypeBool.instance(), locals);
 				List<ILStatement> cond = translateExpr(stmtIf.getCond(), resultVar, locals);
 				List<ILStatement> thenBlock = translateStatements(stmtIf.getThenBlock(), locals);
-				List<ILStatement> elseBlock = translateElseBlock(0, stmtIf.getElseIfConds(), stmtIf.getElseIfBlocks(), 
-						stmtIf.getElseBlock(), locals);
+				List<ILStatement> elseBlock = translateStatements(stmtIf.getElseBlock(), locals); 
+//						translateElseBlock(0, stmtIf.getElseIfConds(), stmtIf.getElseIfBlocks(), 
+//						stmtIf.getElseBlock(), locals);
 				result.addAll(cond);
 				result.add(new ILif(resultVar, thenBlock, elseBlock));
 				return result;
@@ -303,44 +305,58 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 						result.addAll(translateExpr(stmtCall.getE(), null , locals));
 					}
 
-					@Override
-					public void caseVarDef(VarDef varDef) {
-						translateStmtVarDef(varDef);
-						
-					}
+//					@Override
+//					public void caseVarDef(VarDef varDef) {
+//						translateStmtVarDef(varDef);
+//					}
 					
 				}.doSwitch(stmtSetOrCall);
 				return result;
 			}
 
-			@Override
-			public List<ILStatement> caseStmtLoop(StmtLoop stmtLoop) {
-				List<ILStatement> body = translateStatements(stmtLoop.getBody(), locals);
-				result.add(new ILloop(body));
-				return result;
-			}
+//			@Override
+//			public List<ILStatement> caseStmtLoop(StmtLoop stmtLoop) {
+//				List<ILStatement> body = translateStatements(stmtLoop.getBody(), locals);
+//				result.add(new ILloop(body));
+//				return result;
+//			}
 
-			@Override
-			public List<ILStatement> caseStmtExitwhen(StmtExitwhen stmtExitwhen) {
-				ILvar exitWhenVar = getNewLocalVar("exitwhenVar", PScriptTypeBool.instance(), locals);
-				result.addAll(translateExpr(stmtExitwhen.getE(), exitWhenVar, locals));
-				result.add(new ILexitwhen(exitWhenVar));
-				return result;
-			}
+//			@Override
+//			public List<ILStatement> caseStmtExitwhen(StmtExitwhen stmtExitwhen) {
+//				ILvar exitWhenVar = getNewLocalVar("exitwhenVar", PScriptTypeBool.instance(), locals);
+//				result.addAll(translateExpr(stmtExitwhen.getE(), exitWhenVar, locals));
+//				result.add(new ILexitwhen(exitWhenVar));
+//				return result;
+//			}
 
-			@Override
-			public List<ILStatement> caseStmtSet(StmtSet stmtSet) {
-				translateStmtSet(stmtSet);
-				return result;
-			}
+//			@Override
+//			public List<ILStatement> caseStmtSet(StmtSet stmtSet) {
+//				translateStmtSet(stmtSet);
+//				return result;
+//			}
 
 			private void translateStmtSet(StmtSet stmtSet) {
 				Expr left = stmtSet.getLeft().getE();
 				if (left instanceof ExprIdentifier) {
 					ExprIdentifier left2 = (ExprIdentifier) left;
-					
 					ILvar leftVar = getVar(left2.getNameVal(), locals);
-					result.addAll(translateExpr(stmtSet.getRight(), leftVar , locals));
+					
+					if (left2.getArrayIndizes().size() == 0) {
+						result.addAll(translateExpr(stmtSet.getRight(), leftVar , locals));
+					} else { // array access
+						EList<Expr> indizes = left2.getArrayIndizes();
+						PScriptTypeArray type = (PScriptTypeArray) attrManager.getAttValue(AttrVarDefType.class, left2.getNameVal());
+						
+						// TODO calculate index sum
+						ILvar indexSum = getNewLocalVar("index", PScriptTypeInt.instance(), locals);
+						result.addAll(calculateIndexes(type, indexSum, indizes, locals));
+						
+						
+						ILvar tempResult = getNewLocalVar("tempResult", type.getBaseType(), locals);
+						result.addAll(translateExpr(stmtSet.getRight(), tempResult, locals));
+						
+						result.add(new ILarraySetVar(leftVar, indexSum, tempResult));
+					}
 					
 				} else {
 					// TODO assignments to arrays, classmembers
@@ -356,11 +372,11 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 			}
 			
 
-			@Override
-			public List<ILStatement> caseStmtCall(StmtCall stmtCall) {
-				result.addAll(translateExpr(stmtCall.getE(), null , locals));
-				return result;
-			}
+//			@Override
+//			public List<ILStatement> caseStmtCall(StmtCall stmtCall) {
+//				result.addAll(translateExpr(stmtCall.getE(), null , locals));
+//				return result;
+//			}
 
 			
 		}.doSwitch(s);
@@ -472,8 +488,15 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 			public List<ILStatement> caseExprIdentifier(ExprIdentifier exprIdentifier) {
 				VarDef decl = exprIdentifier.getNameVal();
 				ILvar var = getVar(decl, locals);
-				result.add(new ILsetVar(resultVar, var));
-				return result;
+				if (exprIdentifier.getArrayIndizes().size() == 0) {
+					result.add(new ILsetVar(resultVar, var));
+					return result;
+				} else {
+					ILvar index = getNewLocalVar("index", PScriptTypeInt.instance(), locals);
+					result.addAll(calculateIndexes((PScriptTypeArray) var.getType(), index, exprIdentifier.getArrayIndizes(), locals));
+					result.add(new ILsetVarArray(resultVar, var, index));
+					return result;
+				}
 			}
 
 			@Override
@@ -667,6 +690,35 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 		}.doSwitch(e);
 	}
 
+	protected List<ILStatement> calculateIndexes( PScriptTypeArray type, ILvar indexResult, EList<Expr> indizes, List<ILvar> locals) {
+		LinkedList<ILStatement> result = new LinkedList<ILStatement>();
+		ILvar[] indexVar = new ILvar[indizes.size()];
+		ILvar[] indexVarM = new ILvar[indizes.size()];
+		
+		// calculate indizes
+		for (int i = 0; i < indizes.size(); i++) {
+			indexVar[i] = getNewLocalVar("index", PScriptTypeInt.instance(), locals);
+			indexVarM[i] = getNewLocalVar("indexM", PScriptTypeInt.instance(), locals);
+			
+			int rightSize = 1;
+			for (int j = i+1; j < indizes.size(); j++) {
+				rightSize *= type.getSize(j);
+			}
+			
+			result.addAll(translateExpr(indizes.get(i), indexVar[i], locals));
+			result.add(new ILsetBinaryCR(indexVarM[i], indexVar[i], Iloperator.MULT, new ILconstInt(rightSize)));
+		}
+		
+		
+		result.add(new ILsetVar(indexResult, indexVarM[0]));
+		
+		// calculate the sum of the indizes2:
+		for (int i=1; i < indizes.size(); i++) {
+			result.add(new ILsetBinary(indexResult, indexResult, Iloperator.PLUS, indexVarM[i]));
+		}
+		return result;
+	}
+
 	protected Iloperator translateOp(OpComparison op) {
 		return new OpComparisonSwitch<Iloperator>() {
 
@@ -714,6 +766,11 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 			@Override
 			public Iloperator caseOpModReal(OpModReal opModReal) {
 				return Iloperator.MOD_REAL;
+			}
+
+			@Override
+			public Iloperator caseOpDivInt(OpDivInt opDivInt) {
+				return Iloperator.DIV_INT;
 			}
 		}.doSwitch(op);
 	}

@@ -14,10 +14,10 @@ Program:
 
 	
 PackageDeclaration:
-  {PackageDeclaration} 'package' name=ID NL
+  {PackageDeclaration} 'package' name=ID '{' NL
   	(NL* imports+=Import)*  NL*
     (elements+=Entity NL*)*
-  'endpackage' NL
+  '}' NL
 ;	
 
 Import:
@@ -33,7 +33,9 @@ Entity:
 	(TypeDef|FuncDef|VarDef|InitBlock|NativeFunc);
 
 InitBlock:
-	name='init' body=Statements 'endinit'
+	name='init' '{' NL
+	 	body=Statements 
+	'}' NL
 ;
 	
 
@@ -46,29 +48,23 @@ TypeDef:
 ;
 
 NativeFunc returns FuncDef:
-	{NativeFunc} 'constant'? 'native' name=ID 
-			(
-				  '(' (parameters+=ParameterDef (',' parameters+=ParameterDef)*)? ')'
-				| 'takes' 'nothing'
-				| 'takes' parameters+=ParameterDef (',' parameters+=ParameterDef)*
-			)
-			(
-				'returns' type=TypeExpr
-				| ('returns' 'nothing')?
-			) NL
+	{NativeFunc} 'native' name=ID 
+				'(' (parameters+=ParameterDef (',' parameters+=ParameterDef)*)? ')'
+				('returns' type=TypeExpr)?
+				 NL
 ;
 
 
 NativeType returns TypeDef:
-	{NativeType} 'type' name=ID ('extends' superName=TypeExpr)? NL
+	{NativeType} 'nativetype' name=ID ('extends' superName=TypeExpr)? NL
 ;
 
 /* classes and their members */	
 
 ClassDef returns TypeDef:
-	{ClassDef} 'class' name=ID   NL
+	{ClassDef} 'class' name=ID '{'   NL
 		(NL | members+=ClassMember)*  
-	'endclass' NL;	
+	'}' NL;	
 
 	
 ClassMember:
@@ -78,7 +74,7 @@ ClassMember:
 VarDef:
 	{VarDef} (
 		  constant?='val' (type=TypeExpr)? name=ID '=' e=Expr
-		| (constant?='constant')?  type=TypeExpr name = ID ('=' e=Expr)?
+		| type=TypeExpr name = ID ('=' e=Expr)?
 	) 
 	 NL
 ;
@@ -86,9 +82,10 @@ VarDef:
 	
 
 TypeExpr:
-	(
-		{TypeExprRef} name=[TypeDef]
-		| {TypeExprBuildin} 
+		name=[TypeDef] (array?='array' ('['sizes+=INT']')*)?
+;
+/* buildin types are handled by nativetype defs in natives.pscript	
+   	| {TypeExprBuildin} 
 			name=(
 				  'integer' 
 				| 'real' 
@@ -97,25 +94,19 @@ TypeExpr:
 				| 'handle'
 				| 'code'
 			)
-	) (array?='array' ('['sizes+=INT']')*)?
-;
+ */
+
 
 
 /* functions */
 
 FuncDef:
 	'function' name=ID 
-			(
 				  '(' (parameters+=ParameterDef (',' parameters+=ParameterDef)*)? ')'
-				| 'takes' 'nothing'
-				| 'takes' parameters+=ParameterDef (',' parameters+=ParameterDef)*
-			)
-			(
-				'returns' type=TypeExpr
-				| ('returns' 'nothing')?
-			) NL
+			('returns' type=TypeExpr)?
+			'{' NL
 		body=Statements 
-	'endfunction'
+	'}'
 	 
 ; 
 
@@ -127,12 +118,14 @@ Statements:
 
 
 Statement:
-	StmtIf | StmtWhile | LocalVarDef | StmtSetOrCallOrVarDef | StmtCall | StmtSet | StmtReturn | StmtLoop | StmtExitwhen;
+	StmtIf | StmtWhile | LocalVarDef | StmtSetOrCallOrVarDef | StmtReturn 
+	//| StmtLoop | StmtExitwhen
+;
 
 
 
 
-
+/* maybe later:
 
 StmtExitwhen:
 	'exitwhen' e=Expr NL
@@ -144,7 +137,7 @@ StmtLoop:
 		body=Statements
 	'endloop' NL
 ;
-
+*/
 
 
 
@@ -155,49 +148,36 @@ StmtReturn:
 
 
 StmtIf:
-	'if' cond=Expr 'then'? NL 
+	'if' cond=Expr '{' NL 
 		thenBlock=Statements 
-	(	
-		'elseif' elseIfConds+=Expr 'then'? NL 
-			elseIfBlocks+=Statements		
-	)*		
+	'}'		
 	(
-		'else' NL 
+		'else' '{' NL 
 			elseBlock=Statements
+		'}' 
 	)?
-	'endif' NL
+	NL
 ;
 
 
   
 	
 StmtWhile:
-	'while' cond=Expr NL 
+	'while' cond=Expr '{' NL 
 		body=Statements 
-	'endwhile' NL
+	'}' NL
 ;  	
 
 
-StmtSet:
-	'set' leftE=Expr '=' right=Expr NL
-;
-
-
-StmtCall:
-	'call' e=Expr NL
-;
 
 LocalVarDef returns VarDef: // TODO requires backtracking
-	{VarDef} ('local' | constant?='val') (type=TypeExpr)? name=ID ( '=' e=Expr)?
-	 NL
+	{VarDef} constant?='val' (type=TypeExpr)? name=ID ( '=' e=Expr)? NL
+	| {VarDef} type=TypeExpr name=ID  ( '=' e=Expr)? NL
 ;
 
 
 StmtSetOrCallOrVarDef:
-	 ( 
-	 	  {VarDef} type=TypeExpr name=ID ('=' e=Expr)? 
-	 	| {StmtCall} e=Expr ({StmtSet.left=current} opAssignment=OpAssignment right=Expr)?
-	 )  NL
+	 {StmtCall} e=Expr ({StmtSet.left=current} opAssignment=OpAssignment right=Expr)?  NL
 ;
 
 
@@ -289,7 +269,7 @@ OpMultiplicative:
 	|	{OpDivReal} '/'
 	|	{OpModReal} '%'
 	|	{OpModInt} 'mod'
-	|	{OpModReal} 'div'
+	|	{OpDivInt} 'div'
 ;
   
 
@@ -374,10 +354,9 @@ terminal STRING	:
 // multiline comments changed to consume whitespace to make the javadoc work		
 terminal ML_COMMENT	: '/*' -> '*/' (' '|'\t'|'\n'|'\r')*;  
 terminal SL_COMMENT 	: ('//' !('\n'|'\r')* ('\r'? '\n')?) 
-		| 'globals' | 'endglobals'
 ;
 
-terminal WS			: (' '|'\t')+;
+terminal WS			: ('\\\n\r' | '\\\n' | '\\\r' | '\\\r\n'|' '|'\t')+;
 
 terminal NL			: ('\n\r' | '\n' | '\r' | '\r\n');
 

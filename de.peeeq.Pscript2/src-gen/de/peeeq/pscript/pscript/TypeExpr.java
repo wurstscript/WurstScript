@@ -18,6 +18,7 @@ import org.eclipse.emf.ecore.EObject;
  * <p>
  * The following features are supported:
  * <ul>
+ *   <li>{@link de.peeeq.pscript.pscript.TypeExpr#getName <em>Name</em>}</li>
  *   <li>{@link de.peeeq.pscript.pscript.TypeExpr#isArray <em>Array</em>}</li>
  *   <li>{@link de.peeeq.pscript.pscript.TypeExpr#getSizes <em>Sizes</em>}</li>
  * </ul>
@@ -29,6 +30,32 @@ import org.eclipse.emf.ecore.EObject;
  */
 public interface TypeExpr extends EObject
 {
+  /**
+   * Returns the value of the '<em><b>Name</b></em>' reference.
+   * <!-- begin-user-doc -->
+   * <p>
+   * If the meaning of the '<em>Name</em>' reference isn't clear,
+   * there really should be more of a description here...
+   * </p>
+   * <!-- end-user-doc -->
+   * @return the value of the '<em>Name</em>' reference.
+   * @see #setName(TypeDef)
+   * @see de.peeeq.pscript.pscript.PscriptPackage#getTypeExpr_Name()
+   * @model
+   * @generated
+   */
+  TypeDef getName();
+
+  /**
+   * Sets the value of the '{@link de.peeeq.pscript.pscript.TypeExpr#getName <em>Name</em>}' reference.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @param value the new value of the '<em>Name</em>' reference.
+   * @see #getName()
+   * @generated
+   */
+  void setName(TypeDef value);
+
   /**
    * Returns the value of the '<em><b>Array</b></em>' attribute.
    * <!-- begin-user-doc -->

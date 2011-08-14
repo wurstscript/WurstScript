@@ -1,17 +1,18 @@
-package test 
-
-	native testFail(string msg)
+package test  {
+	
+	nativetype String
+	nativetype Int
+	
+	native testFail(String msg)
 	
 	native testSuccess()
 	
-	function runTest()
-		integer x
-		if x == 0
+	function runTest() {
+		Int x = 0
+		if x == 0 {
 			testSuccess()
-		else
+		} else {
 			testFail("defect in testing uninitialised variable")
-		endif
-	endfunction
-	
-	
-endpackage
+		}
+	}
+}

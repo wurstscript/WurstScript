@@ -7,11 +7,16 @@ package test {
 	
 	native testSuccess()
 
+	Int array blub
+
 	function runTest() {
-		if 3 + 7 == 10 {
+		blub[5] = 3
+		if blub[5] == 3 {
 			testSuccess()
 		} else {
-			testFail("defect in binary operation")
+			testFail("Array Test 1 failed.")
 		}
-	}
+	} 
+	
+	
 }

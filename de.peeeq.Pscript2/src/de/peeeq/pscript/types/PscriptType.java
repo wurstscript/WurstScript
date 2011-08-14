@@ -27,6 +27,11 @@ public abstract class PscriptType {
 	 */
 	public abstract String getFullName();
 	
+	
+	public boolean equalsType(PscriptType otherType) {
+		return otherType.isSubtypeOf(this) && this.isSubtypeOf(otherType);
+	}
+	
 	@Override public String toString() {
 		return getName();
 	}
@@ -34,7 +39,7 @@ public abstract class PscriptType {
 	@Override public boolean equals(Object other) {
 		if (other instanceof PscriptType) {
 			PscriptType otherType = (PscriptType) other;
-			return otherType.isSubtypeOf(this) && this.isSubtypeOf(otherType);			
+			return equalsType(otherType);			
 		} else {
 			return false;
 		}
