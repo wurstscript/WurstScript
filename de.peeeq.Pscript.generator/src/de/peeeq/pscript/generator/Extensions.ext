@@ -1,5 +1,0 @@
-import de::peeeq::pscript::pscript;
-import de::peeeq::pscript::attributes;
-
-//sortedGreetings(Model this) :
-//	this.greetings.sortBy(g|g.name.toLowerCase());
