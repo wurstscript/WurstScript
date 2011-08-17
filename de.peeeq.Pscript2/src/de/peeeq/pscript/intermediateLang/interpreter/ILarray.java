@@ -3,6 +3,7 @@ package de.peeeq.pscript.intermediateLang.interpreter;
 import java.util.Vector;
 
 import de.peeeq.pscript.intermediateLang.ILconst;
+import de.peeeq.pscript.types.NativeTypes;
 import de.peeeq.pscript.types.PscriptType;
 
 public class ILarray extends ILconst {
@@ -36,6 +37,7 @@ public class ILarray extends ILconst {
 		} 
 		if (result == null) {
 			// TODO return default value for arraytype
+			return NativeTypes.getDefaultValue(type);
 		}		
 		return result;
 	}
@@ -48,9 +50,9 @@ public class ILarray extends ILconst {
 		for (ILconst c : values) {
 			if (!first) {
 				sb.append(", ");
-				first = false;
 			}
 			sb.append(c);
+			first = false;
 		}
 		return "array(" + sb + ")";
 	}

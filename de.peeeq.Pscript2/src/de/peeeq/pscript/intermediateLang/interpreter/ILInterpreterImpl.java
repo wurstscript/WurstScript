@@ -163,17 +163,21 @@ public class ILInterpreterImpl implements ILInterpreter {
 		ILarray ar = (ILarray) lookupVarValue(localVarMap, s.getVar());
 		ILconstInt indexValue = (ILconstInt) lookupVarValue(localVarMap, s.getIndex());
 		
-		addVarToProperMap(localVarMap, s.getResultVar(), ar.get(indexValue.getVal()));
+		
+		int index = indexValue.getVal();
+		ILconst value = ar.get(index );
+		System.out.println(s.getVar() + "[" + index + "] == " + value);
+		
+		addVarToProperMap(localVarMap, s.getResultVar(), value);
 	}
 
-	private void translateILarraySetVar(Map<String, ILconst> localVarMap,
-			ILarraySetVar s) {
+	private void translateILarraySetVar(Map<String, ILconst> localVarMap, ILarraySetVar s) {
 		
 		ILconst rightValue = lookupVarValue(localVarMap, s.getVar());
 		ILconstInt indexValue = (ILconstInt) lookupVarValue(localVarMap, s.getIndex());
 		ILarray ar = (ILarray) lookupVarValue(localVarMap, s.getResultVar());
 		ar.set(indexValue.getVal(),	rightValue);
-		
+		System.out.println(s.getResultVar() + "[" + indexValue.getVal() + "] = " + rightValue);
 		
 	}
 

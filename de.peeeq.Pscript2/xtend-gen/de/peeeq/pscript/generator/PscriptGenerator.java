@@ -4,6 +4,7 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import de.peeeq.pscript.PscriptRuntimeModule;
 import de.peeeq.pscript.intermediateLang.ILStatement;
+import de.peeeq.pscript.intermediateLang.ILarraySetVar;
 import de.peeeq.pscript.intermediateLang.ILconst;
 import de.peeeq.pscript.intermediateLang.ILexitwhen;
 import de.peeeq.pscript.intermediateLang.ILfunction;
@@ -13,7 +14,10 @@ import de.peeeq.pscript.intermediateLang.ILloop;
 import de.peeeq.pscript.intermediateLang.ILprog;
 import de.peeeq.pscript.intermediateLang.ILreturn;
 import de.peeeq.pscript.intermediateLang.ILsetBinary;
+import de.peeeq.pscript.intermediateLang.ILsetBinaryCL;
+import de.peeeq.pscript.intermediateLang.ILsetBinaryCR;
 import de.peeeq.pscript.intermediateLang.ILsetVar;
+import de.peeeq.pscript.intermediateLang.ILsetVarArray;
 import de.peeeq.pscript.intermediateLang.ILvar;
 import de.peeeq.pscript.intermediateLang.IlbuildinFunctionCall;
 import de.peeeq.pscript.intermediateLang.Iloperator;
@@ -33,6 +37,13 @@ import org.eclipse.xtext.xtend2.lib.StringConcatenation;
 
 @SuppressWarnings("all")
 public class PscriptGenerator implements IGenerator {
+  
+  private String outputFileName;
+  
+  public String setOutputFileName(final String name) {
+    String _outputFileName = this.outputFileName = name;
+    return _outputFileName;
+  }
   
   public void doGenerate(final Resource resource, final IFileSystemAccess fsa) {
     {
@@ -421,15 +432,96 @@ public class PscriptGenerator implements IGenerator {
     _builder.append(_name, "");
     _builder.append(" = ");
     ILconst _constant = s.getConstant();
-    String _translateConstant = this.translateConstant(_constant);
-    _builder.append(_translateConstant, "");
+    String _printConstant = this.printConstant(_constant);
+    _builder.append(_printConstant, "");
     _builder.newLineIfNotEmpty();
     return _builder;
   }
   
-  public String translateConstant(final ILconst c) {
+  public String printConstant(final ILconst c) {
     String _print = c.print();
     return _print;
+  }
+  
+  protected StringConcatenation _printStatement(final ILsetBinaryCL s, final ILprog prog) {
+    StringConcatenation _builder = new StringConcatenation();
+    _builder.append("set ");
+    ILvar _resultVar = s.getResultVar();
+    String _name = _resultVar.getName();
+    _builder.append(_name, "");
+    _builder.append(" = ");
+    ILconst _left = s.getLeft();
+    String _printConstant = this.printConstant(_left);
+    _builder.append(_printConstant, "");
+    _builder.append("  ");
+    Iloperator _op = s.getOp();
+    StringConcatenation _printOp = this.printOp(_op);
+    _builder.append(_printOp, "");
+    _builder.append(" ");
+    ILvar _right = s.getRight();
+    String _name_1 = _right.getName();
+    _builder.append(_name_1, "");
+    _builder.newLineIfNotEmpty();
+    return _builder;
+  }
+  
+  protected StringConcatenation _printStatement(final ILsetBinaryCR s, final ILprog prog) {
+    StringConcatenation _builder = new StringConcatenation();
+    _builder.append("set ");
+    ILvar _resultVar = s.getResultVar();
+    String _name = _resultVar.getName();
+    _builder.append(_name, "");
+    _builder.append(" = ");
+    ILvar _left = s.getLeft();
+    String _name_1 = _left.getName();
+    _builder.append(_name_1, "");
+    _builder.append("  ");
+    Iloperator _op = s.getOp();
+    StringConcatenation _printOp = this.printOp(_op);
+    _builder.append(_printOp, "");
+    _builder.append(" ");
+    ILconst _right = s.getRight();
+    String _printConstant = this.printConstant(_right);
+    _builder.append(_printConstant, "");
+    _builder.newLineIfNotEmpty();
+    return _builder;
+  }
+  
+  protected StringConcatenation _printStatement(final ILsetVarArray s, final ILprog prog) {
+    StringConcatenation _builder = new StringConcatenation();
+    _builder.append("set ");
+    ILvar _resultVar = s.getResultVar();
+    String _name = _resultVar.getName();
+    _builder.append(_name, "");
+    _builder.append(" = ");
+    ILvar _var = s.getVar();
+    String _name_1 = _var.getName();
+    _builder.append(_name_1, "");
+    _builder.append("[");
+    ILvar _index = s.getIndex();
+    String _name_2 = _index.getName();
+    _builder.append(_name_2, "");
+    _builder.append("]");
+    _builder.newLineIfNotEmpty();
+    return _builder;
+  }
+  
+  protected StringConcatenation _printStatement(final ILarraySetVar s, final ILprog prog) {
+    StringConcatenation _builder = new StringConcatenation();
+    _builder.append("set ");
+    ILvar _resultVar = s.getResultVar();
+    String _name = _resultVar.getName();
+    _builder.append(_name, "");
+    _builder.append("[");
+    ILvar _index = s.getIndex();
+    String _name_1 = _index.getName();
+    _builder.append(_name_1, "");
+    _builder.append("] = ");
+    ILvar _var = s.getVar();
+    String _name_2 = _var.getName();
+    _builder.append(_name_2, "");
+    _builder.newLineIfNotEmpty();
+    return _builder;
   }
   
   protected StringConcatenation _printStatement(final IlsetUnary s, final ILprog prog) {
@@ -616,15 +708,27 @@ public class PscriptGenerator implements IGenerator {
   }
   
   public StringConcatenation printStatement(final ILStatement s, final ILprog prog) {
-    if ((s instanceof ILfunctionCall)
+    if ((s instanceof ILarraySetVar)
+         && (prog instanceof ILprog)) {
+      return _printStatement((ILarraySetVar)s, (ILprog)prog);
+    } else if ((s instanceof ILfunctionCall)
          && (prog instanceof ILprog)) {
       return _printStatement((ILfunctionCall)s, (ILprog)prog);
     } else if ((s instanceof ILsetBinary)
          && (prog instanceof ILprog)) {
       return _printStatement((ILsetBinary)s, (ILprog)prog);
+    } else if ((s instanceof ILsetBinaryCL)
+         && (prog instanceof ILprog)) {
+      return _printStatement((ILsetBinaryCL)s, (ILprog)prog);
+    } else if ((s instanceof ILsetBinaryCR)
+         && (prog instanceof ILprog)) {
+      return _printStatement((ILsetBinaryCR)s, (ILprog)prog);
     } else if ((s instanceof ILsetVar)
          && (prog instanceof ILprog)) {
       return _printStatement((ILsetVar)s, (ILprog)prog);
+    } else if ((s instanceof ILsetVarArray)
+         && (prog instanceof ILprog)) {
+      return _printStatement((ILsetVarArray)s, (ILprog)prog);
     } else if ((s instanceof IlbuildinFunctionCall)
          && (prog instanceof ILprog)) {
       return _printStatement((IlbuildinFunctionCall)s, (ILprog)prog);

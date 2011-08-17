@@ -1,17 +1,19 @@
 package test {
 	
-	nativetype String
-	nativetype Int
+	nativetype string
+	nativetype int
 	
-	native testFail(String msg)
+	native testFail(string msg)
 	
 	native testSuccess()
 
-	Int array blub[5] // 0-4
+	int array[5] blub // 0-4
 
 	function runTest() {
 		blub[5] = 3 // Shouldnt even compile!
+		
 		if blub[5] == 0 { // or null?
+		
 			testSuccess()
 		} else {
 			testFail("Array Test 2 failed.")

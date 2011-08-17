@@ -1,9 +1,9 @@
 package test {
 	
-	nativetype String
-	nativetype Int
+	nativetype string
+	nativetype int
 	
-	native testFail(String msg)
+	native testFail(string msg)
 	
 	native testSuccess()
 

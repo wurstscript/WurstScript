@@ -1,14 +1,14 @@
 package test  {
 	
-	nativetype String
-	nativetype Int
+	nativetype string
+	nativetype int
 	
-	native testFail(String msg)
+	native testFail(string msg)
 	
 	native testSuccess()
 	
 	function runTest() {
-		Int x = 0
+		int x = 0
 		if x == 0 {
 			testSuccess()
 		} else {

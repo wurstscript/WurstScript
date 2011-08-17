@@ -3,10 +3,16 @@ package de.peeeq.interpretertests;
 import java.io.*;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.emf.ecore.resource.Resource.Diagnostic;
 import org.eclipse.emf.ecore.resource.ResourceSet;
+import org.eclipse.xtext.generator.IFileSystemAccess;
+import org.eclipse.xtext.generator.IGenerator;
+import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
@@ -34,6 +40,12 @@ public class ILInterpreterImplTest {
 	
 	@Inject
 	private IResourceValidator validator;
+	
+	@Inject
+	private IGenerator generator;
+	
+	@Inject 
+	private JavaIoFileSystemAccess fileAccess;
 	
 	private final static String PSCRIPT_ENDING = ".pscript"; 
 	
@@ -98,29 +110,50 @@ public class ILInterpreterImplTest {
 			System.out.println("Everything went better than expected :)");
 		}
 		
-		//t.runTest("platform:/resource/de.peeeq.Pscript2/src/de/peeeq/pscript/intermediateLang/interpreter/test.pscript");
-		
-		
 	}
 	
 	
 	private void runTest(String uri) {
 		new org.eclipse.emf.mwe.utils.StandaloneSetup().setPlatformUri("../");
 		
+		
+		System.out.println("parsing script ...");
 		ResourceSet set = resourceSetProvider.get();
 		Resource resource = set.getResource(URI.createURI(uri), true);
+		
+		if (resource.getErrors().size() > 0) {
+			for (Diagnostic d : resource.getErrors()) {
+				System.err.println(d);
+			}
+			throw new TestFailException("Found syntax errors.");
+		}
+		
+		System.out.println("validating script ...");
 		
 		// validate the resource
 		List<Issue> list = validator.validate(resource, CheckMode.ALL, CancelIndicator.NullImpl);
 		if (!list.isEmpty()) {
 			for (Issue issue : list) {
-				System.err.println(issue);
+				System.out.println(issue);
 			}
-			return;
+			throw new TestFailException("Script is not valid.");
 		}
 		
-		
+		System.out.println("translating script ...");
 		ILprog prog = iLconverter.translateProg(resource );
+		
+		
+		Pattern p = Pattern.compile("([a-zA-Z0-9_]+)\\.pscript$");
+		Matcher m = p.matcher(uri);
+		String filename = "unknown";
+		if (m.find()) {
+			filename = m.group(1);
+		}
+
+
+		// write to gen folder:
+		fileAccess.setOutputPath("./testscripts/gen/"+filename +"/");
+		generator.doGenerate(resource, fileAccess);
 		
 		
 		ILInterpreter interpreter = new ILInterpreterImpl();
@@ -128,40 +161,8 @@ public class ILInterpreterImplTest {
 		interpreter.LoadProgram(prog);
 		//execute function test.foo
 		ILconst result = interpreter.executeFunction("test_runTest");
-//
-//		System.out.println("result = " + result);
 		
 	}
 
-
-	// example function 
-//	private static ILfunction functionFoo() {
-
-//		
-//		List<ILvar> params = new LinkedList<ILvar>();
-//		// Parameter integer x
-//		params.add(new ILvar("x", PScriptTypeInt.instance()));
-//		// returns integer
-//		PscriptType returnType = PScriptTypeInt.instance();
-//		
-//		List<ILvar> localsWithParams = new LinkedList<ILvar>();
-//		localsWithParams.addAll(params);
-//		
-//		// local var integer y
-//		localsWithParams.add(new ILvar("y", PScriptTypeInt.instance()));
-//		// local var integer z
-//		localsWithParams.add(new ILvar("z", PScriptTypeInt.instance()));
-//		// local var boolean b
-//		localsWithParams.add(new ILvar("b", PScriptTypeBool.instance()));
-//		
-//		List<ILStatement> body = new LinkedList<ILStatement>();
-//		
-//		List<ILStatement> thenBlock = new LinkedList<ILStatement>();
-//		
-//		List<ILStatement> eleBlock = new LinkedList<ILStatement>();
-//		
-//		
-//		return new ILfunction("foo", params, returnType, localsWithParams, body);;
-//	}
 	
 }

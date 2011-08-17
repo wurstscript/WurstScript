@@ -1,13 +1,13 @@
 package test {
 	
-	nativetype String
-	nativetype Int
+	nativetype string
+	nativetype int
 	
-	native testFail(String msg)
+	native testFail(string msg)
 	
 	native testSuccess()
 
-	Int array blub
+	int array blub
 
 	function runTest() {
 		blub[5] = 3

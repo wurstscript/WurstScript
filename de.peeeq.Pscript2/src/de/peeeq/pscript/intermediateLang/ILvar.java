@@ -40,4 +40,8 @@ public class ILvar implements ILexpr {
 		return name.hashCode();
 	}
 	
+	@Override
+	public String toString() {
+		return "ILvar(" + type + " " + name + ")";
+	}
 }

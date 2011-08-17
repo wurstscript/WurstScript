@@ -35,10 +35,19 @@ import de.peeeq.pscript.intermediateLang.Iloperator
 import de.peeeq.pscript.intermediateLang.ILconst
 import de.peeeq.pscript.types.PScriptTypeVoid
 import de.peeeq.pscript.types.PScriptTypeArray
+import de.peeeq.pscript.intermediateLang.ILsetBinaryCL
+import de.peeeq.pscript.intermediateLang.ILsetBinaryCR
+import de.peeeq.pscript.intermediateLang.ILsetVarArray
+import de.peeeq.pscript.intermediateLang.ILarraySetVar
 
 class PscriptGenerator implements IGenerator {
 	
 	
+	String outputFileName
+	
+	def setOutputFileName(String name) {
+		this.outputFileName = name
+	}
 	
 	override void doGenerate(Resource resource, IFileSystemAccess fsa) {
 		
@@ -57,6 +66,8 @@ class PscriptGenerator implements IGenerator {
 		
 		
 	}
+	
+	
 	
 	def printProg(ILprog prog) '''
 		globals
@@ -161,13 +172,29 @@ class PscriptGenerator implements IGenerator {
 		return «if (s.^var != null) s.^var.name»
 	'''
 	def dispatch printStatement(IlsetConst s, ILprog prog) '''
-		set «s.resultVar.name» = «s.constant.translateConstant»
+		set «s.resultVar.name» = «s.constant.printConstant»
 	'''
 	
-	def translateConstant(ILconst c) { 
+	def printConstant(ILconst c) { 
 		c.print
 	}
 	
+	
+	def dispatch printStatement(ILsetBinaryCL s, ILprog prog) '''
+		set «s.resultVar.name» = «s.left.printConstant»  «s.getOp.printOp» «s.right.name»
+	'''
+	
+	def dispatch printStatement(ILsetBinaryCR s, ILprog prog) '''
+		set «s.resultVar.name» = «s.left.name»  «s.getOp.printOp» «s.right.printConstant»
+	'''
+	
+	def dispatch printStatement(ILsetVarArray s, ILprog prog) '''
+		set «s.resultVar.name» = «s.^var.name»[«s.index.name»]
+	'''
+	
+	def dispatch printStatement(ILarraySetVar s, ILprog prog) '''
+		set «s.resultVar.name»[«s.index.name»] = «s.^var.name»
+	'''
 	
 	def dispatch printStatement(de.peeeq.pscript.intermediateLang.IlsetUnary s, ILprog prog) '''
 		set «s.getResultVar.name» = «s.getOp.printOp»  «s.getRight.name»

@@ -1,15 +1,15 @@
 package test {
 	
-	nativetype String
-	nativetype Int
+	nativetype string
+	nativetype int
 	
-	native testFail(String msg)
+	native testFail(string msg)
 	
 	native testSuccess()
 	
 	
 	function runTest() {
-		Int i = 0
+		int i = 0
 		while i < 10 {
 			i = i + 1
 		}
