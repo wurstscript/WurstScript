@@ -68,7 +68,7 @@ public class JassToPscriptGenerator implements IGenerator {
     {
       EList<EObject> _contents = resource.getContents();
       Iterable<Prog> _filter = IterableExtensions.<Prog>filter(_contents, de.peeeq.jassToPscript.Prog.class);
-      for(Prog e : _filter) {
+      for(final Prog e : _filter) {
         StringConcatenation _compile = this.compile(e);
         _builder.append(_compile, "");
         _builder.newLineIfNotEmpty();
@@ -84,7 +84,7 @@ public class JassToPscriptGenerator implements IGenerator {
     StringConcatenation _builder = new StringConcatenation();
     {
       EList<Entity> _elems = prog.getElems();
-      for(Entity elem : _elems) {
+      for(final Entity elem : _elems) {
         StringConcatenation _compile = this.compile(elem);
         _builder.append(_compile, "");
         _builder.newLineIfNotEmpty();
@@ -143,7 +143,7 @@ public class JassToPscriptGenerator implements IGenerator {
     {
       EList<Expr> _parameters = e.getParameters();
       boolean hasAnyElements = false;
-      for(Expr p : _parameters) {
+      for(final Expr p : _parameters) {
         if (!hasAnyElements) {
           hasAnyElements = true;
         } else {
@@ -246,7 +246,7 @@ public class JassToPscriptGenerator implements IGenerator {
     {
       EList<FormalParameter> _parameters = f.getParameters();
       boolean hasAnyElements = false;
-      for(FormalParameter p : _parameters) {
+      for(final FormalParameter p : _parameters) {
         if (!hasAnyElements) {
           hasAnyElements = true;
         } else {
@@ -269,7 +269,7 @@ public class JassToPscriptGenerator implements IGenerator {
     {
       EList<FormalParameter> _parameters = f.getParameters();
       boolean hasAnyElements = false;
-      for(FormalParameter p : _parameters) {
+      for(final FormalParameter p : _parameters) {
         if (!hasAnyElements) {
           hasAnyElements = true;
         } else {
