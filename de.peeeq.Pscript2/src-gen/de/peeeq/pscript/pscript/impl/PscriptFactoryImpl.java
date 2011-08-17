@@ -75,11 +75,16 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
       case PscriptPackage.INIT_BLOCK: return createInitBlock();
       case PscriptPackage.TYPE_DEF: return createTypeDef();
       case PscriptPackage.FUNC_DEF: return createFuncDef();
+      case PscriptPackage.CLASS_SLOTS: return createClassSlots();
       case PscriptPackage.CLASS_MEMBER: return createClassMember();
       case PscriptPackage.VAR_DEF: return createVarDef();
       case PscriptPackage.TYPE_EXPR: return createTypeExpr();
+      case PscriptPackage.CONSTRUCTOR_DEF: return createConstructorDef();
+      case PscriptPackage.ON_DESTROY_DEF: return createOnDestroyDef();
       case PscriptPackage.STATEMENTS: return createStatements();
       case PscriptPackage.STATEMENT: return createStatement();
+      case PscriptPackage.STMT_CHANGE_REF_COUNT: return createStmtChangeRefCount();
+      case PscriptPackage.STMT_DESTROY: return createStmtDestroy();
       case PscriptPackage.STMT_RETURN: return createStmtReturn();
       case PscriptPackage.STMT_IF: return createStmtIf();
       case PscriptPackage.STMT_WHILE: return createStmtWhile();
@@ -128,6 +133,8 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
       case PscriptPackage.EXPR_BOOL_VAL: return createExprBoolVal();
       case PscriptPackage.EXPR_FUNC_REF: return createExprFuncRef();
       case PscriptPackage.EXPR_IDENTIFIER: return createExprIdentifier();
+      case PscriptPackage.EXPR_NEW_OBJECT: return createExprNewObject();
+      case PscriptPackage.EXPR_THIS: return createExprThis();
       case PscriptPackage.EXPR_FUNCTIONCALL: return createExprFunctioncall();
       default:
         throw new IllegalArgumentException("The class '" + eClass.getName() + "' is not a valid classifier");
@@ -216,6 +223,17 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
    * <!-- end-user-doc -->
    * @generated
    */
+  public ClassSlots createClassSlots()
+  {
+    ClassSlotsImpl classSlots = new ClassSlotsImpl();
+    return classSlots;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
   public ClassMember createClassMember()
   {
     ClassMemberImpl classMember = new ClassMemberImpl();
@@ -249,6 +267,28 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
    * <!-- end-user-doc -->
    * @generated
    */
+  public ConstructorDef createConstructorDef()
+  {
+    ConstructorDefImpl constructorDef = new ConstructorDefImpl();
+    return constructorDef;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public OnDestroyDef createOnDestroyDef()
+  {
+    OnDestroyDefImpl onDestroyDef = new OnDestroyDefImpl();
+    return onDestroyDef;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
   public Statements createStatements()
   {
     StatementsImpl statements = new StatementsImpl();
@@ -264,6 +304,28 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
   {
     StatementImpl statement = new StatementImpl();
     return statement;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public StmtChangeRefCount createStmtChangeRefCount()
+  {
+    StmtChangeRefCountImpl stmtChangeRefCount = new StmtChangeRefCountImpl();
+    return stmtChangeRefCount;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public StmtDestroy createStmtDestroy()
+  {
+    StmtDestroyImpl stmtDestroy = new StmtDestroyImpl();
+    return stmtDestroy;
   }
 
   /**
@@ -792,6 +854,28 @@ public class PscriptFactoryImpl extends EFactoryImpl implements PscriptFactory
   {
     ExprIdentifierImpl exprIdentifier = new ExprIdentifierImpl();
     return exprIdentifier;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public ExprNewObject createExprNewObject()
+  {
+    ExprNewObjectImpl exprNewObject = new ExprNewObjectImpl();
+    return exprNewObject;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public ExprThis createExprThis()
+  {
+    ExprThisImpl exprThis = new ExprThisImpl();
+    return exprThis;
   }
 
   /**

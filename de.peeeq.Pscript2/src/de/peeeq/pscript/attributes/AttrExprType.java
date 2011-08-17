@@ -3,7 +3,9 @@ package de.peeeq.pscript.attributes;
 import de.peeeq.pscript.attributes.infrastructure.AbstractAttribute;
 import de.peeeq.pscript.attributes.infrastructure.AttributeDependencies;
 import de.peeeq.pscript.attributes.infrastructure.AttributeManager;
+import de.peeeq.pscript.pscript.ClassDef;
 import de.peeeq.pscript.pscript.ClassMember;
+import de.peeeq.pscript.pscript.ConstructorDef;
 import de.peeeq.pscript.pscript.Expr;
 import de.peeeq.pscript.pscript.ExprAdditive;
 import de.peeeq.pscript.pscript.ExprAnd;
@@ -17,12 +19,15 @@ import de.peeeq.pscript.pscript.ExprIntVal;
 import de.peeeq.pscript.pscript.ExprMember;
 import de.peeeq.pscript.pscript.ExprMemberRight;
 import de.peeeq.pscript.pscript.ExprMult;
+import de.peeeq.pscript.pscript.ExprNewObject;
 import de.peeeq.pscript.pscript.ExprNot;
 import de.peeeq.pscript.pscript.ExprNumVal;
 import de.peeeq.pscript.pscript.ExprOr;
 import de.peeeq.pscript.pscript.ExprSign;
 import de.peeeq.pscript.pscript.ExprStrval;
+import de.peeeq.pscript.pscript.ExprThis;
 import de.peeeq.pscript.pscript.FuncDef;
+import de.peeeq.pscript.pscript.OnDestroyDef;
 import de.peeeq.pscript.pscript.OpDivInt;
 import de.peeeq.pscript.pscript.OpDivReal;
 import de.peeeq.pscript.pscript.OpModInt;
@@ -41,10 +46,13 @@ import de.peeeq.pscript.types.PScriptTypeInt;
 import de.peeeq.pscript.types.PScriptTypePackage;
 import de.peeeq.pscript.types.PScriptTypeReal;
 import de.peeeq.pscript.types.PScriptTypeString;
+import de.peeeq.pscript.types.PScriptTypeUnknown;
 import de.peeeq.pscript.types.PScriptTypeVoid;
 import de.peeeq.pscript.types.PsciptFuncType;
 import de.peeeq.pscript.types.PscriptType;
+import de.peeeq.pscript.types.PscriptTypeClass;
 import de.peeeq.pscript.types.PscriptTypeError;
+import de.peeeq.pscript.utils.Utils;
 
 public class AttrExprType extends AbstractAttribute<Expr, PscriptType> {
 
@@ -214,6 +222,7 @@ public class AttrExprType extends AbstractAttribute<Expr, PscriptType> {
 						}						
 						return attributeManager.getAttValue(AttrTypeExprType.class, funcDef.getType());
 					}
+
 					
 				}.doSwitch(classMember);
 			}
@@ -288,6 +297,24 @@ public class AttrExprType extends AbstractAttribute<Expr, PscriptType> {
 			@Override
 			public PscriptType caseExprFuncRef(ExprFuncRef exprFuncRef) {
 				return PScriptTypeCode.instance();
+			}
+
+			@Override
+			public PscriptType caseExprThis(ExprThis exprThis) {
+				ClassDef thisClass = Utils.getParent(exprThis, ClassDef.class);
+				if (thisClass == null) {
+					return new PscriptTypeError("Keyword 'this' can only be used inside classes.");
+				}
+				return new PscriptTypeClass(thisClass);
+			}
+
+			@Override
+			public PscriptType caseExprNewObject(ExprNewObject exprNewObject) {
+				ClassDef cla = exprNewObject.getClassDef();
+				if (cla == null) {
+					return new PScriptTypeUnknown("<unknown class>");
+				}
+				return new PscriptTypeClass(cla);
 			}
 			
 				

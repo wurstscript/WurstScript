@@ -1,0 +1,28 @@
+package test {
+	
+	nativetype String
+	nativetype Int
+	
+	native testFail(String msg)
+	
+	native testSuccess()
+
+	
+	class Pair {
+		Int a
+		Int b
+	}
+	
+
+	function runTest() {
+		Pair p = new Pair()
+		p.a = 4
+		if p.a == 4 {
+			testSuccess()
+		} else {
+			testFail("Array Test 1 failed.")
+		}
+	} 
+	
+	
+}

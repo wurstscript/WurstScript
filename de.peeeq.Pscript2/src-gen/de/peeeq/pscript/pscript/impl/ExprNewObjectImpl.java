@@ -7,7 +7,8 @@
 package de.peeeq.pscript.pscript.impl;
 
 import de.peeeq.pscript.pscript.ClassDef;
-import de.peeeq.pscript.pscript.ClassSlots;
+import de.peeeq.pscript.pscript.Expr;
+import de.peeeq.pscript.pscript.ExprNewObject;
 import de.peeeq.pscript.pscript.PscriptPackage;
 
 import java.util.Collection;
@@ -27,56 +28,46 @@ import org.eclipse.emf.ecore.util.InternalEList;
 
 /**
  * <!-- begin-user-doc -->
- * An implementation of the model object '<em><b>Class Def</b></em>'.
+ * An implementation of the model object '<em><b>Expr New Object</b></em>'.
  * <!-- end-user-doc -->
  * <p>
  * The following features are implemented:
  * <ul>
- *   <li>{@link de.peeeq.pscript.pscript.impl.ClassDefImpl#isUnmanaged <em>Unmanaged</em>}</li>
- *   <li>{@link de.peeeq.pscript.pscript.impl.ClassDefImpl#getMembers <em>Members</em>}</li>
+ *   <li>{@link de.peeeq.pscript.pscript.impl.ExprNewObjectImpl#getClassDef <em>Class Def</em>}</li>
+ *   <li>{@link de.peeeq.pscript.pscript.impl.ExprNewObjectImpl#getParams <em>Params</em>}</li>
  * </ul>
  * </p>
  *
  * @generated
  */
-public class ClassDefImpl extends TypeDefImpl implements ClassDef
+public class ExprNewObjectImpl extends ExprImpl implements ExprNewObject
 {
   /**
-   * The default value of the '{@link #isUnmanaged() <em>Unmanaged</em>}' attribute.
+   * The cached value of the '{@link #getClassDef() <em>Class Def</em>}' reference.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @see #isUnmanaged()
+   * @see #getClassDef()
    * @generated
    * @ordered
    */
-  protected static final boolean UNMANAGED_EDEFAULT = false;
+  protected ClassDef classDef;
 
   /**
-   * The cached value of the '{@link #isUnmanaged() <em>Unmanaged</em>}' attribute.
+   * The cached value of the '{@link #getParams() <em>Params</em>}' containment reference list.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @see #isUnmanaged()
+   * @see #getParams()
    * @generated
    * @ordered
    */
-  protected boolean unmanaged = UNMANAGED_EDEFAULT;
-
-  /**
-   * The cached value of the '{@link #getMembers() <em>Members</em>}' containment reference list.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @see #getMembers()
-   * @generated
-   * @ordered
-   */
-  protected EList<ClassSlots> members;
+  protected EList<Expr> params;
 
   /**
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
    */
-  protected ClassDefImpl()
+  protected ExprNewObjectImpl()
   {
     super();
   }
@@ -89,7 +80,7 @@ public class ClassDefImpl extends TypeDefImpl implements ClassDef
   @Override
   protected EClass eStaticClass()
   {
-    return PscriptPackage.Literals.CLASS_DEF;
+    return PscriptPackage.Literals.EXPR_NEW_OBJECT;
   }
 
   /**
@@ -97,36 +88,56 @@ public class ClassDefImpl extends TypeDefImpl implements ClassDef
    * <!-- end-user-doc -->
    * @generated
    */
-  public boolean isUnmanaged()
+  public ClassDef getClassDef()
   {
-    return unmanaged;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public void setUnmanaged(boolean newUnmanaged)
-  {
-    boolean oldUnmanaged = unmanaged;
-    unmanaged = newUnmanaged;
-    if (eNotificationRequired())
-      eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.CLASS_DEF__UNMANAGED, oldUnmanaged, unmanaged));
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public EList<ClassSlots> getMembers()
-  {
-    if (members == null)
+    if (classDef != null && classDef.eIsProxy())
     {
-      members = new EObjectContainmentEList<ClassSlots>(ClassSlots.class, this, PscriptPackage.CLASS_DEF__MEMBERS);
+      InternalEObject oldClassDef = (InternalEObject)classDef;
+      classDef = (ClassDef)eResolveProxy(oldClassDef);
+      if (classDef != oldClassDef)
+      {
+        if (eNotificationRequired())
+          eNotify(new ENotificationImpl(this, Notification.RESOLVE, PscriptPackage.EXPR_NEW_OBJECT__CLASS_DEF, oldClassDef, classDef));
+      }
     }
-    return members;
+    return classDef;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public ClassDef basicGetClassDef()
+  {
+    return classDef;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public void setClassDef(ClassDef newClassDef)
+  {
+    ClassDef oldClassDef = classDef;
+    classDef = newClassDef;
+    if (eNotificationRequired())
+      eNotify(new ENotificationImpl(this, Notification.SET, PscriptPackage.EXPR_NEW_OBJECT__CLASS_DEF, oldClassDef, classDef));
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EList<Expr> getParams()
+  {
+    if (params == null)
+    {
+      params = new EObjectContainmentEList<Expr>(Expr.class, this, PscriptPackage.EXPR_NEW_OBJECT__PARAMS);
+    }
+    return params;
   }
 
   /**
@@ -139,8 +150,8 @@ public class ClassDefImpl extends TypeDefImpl implements ClassDef
   {
     switch (featureID)
     {
-      case PscriptPackage.CLASS_DEF__MEMBERS:
-        return ((InternalEList<?>)getMembers()).basicRemove(otherEnd, msgs);
+      case PscriptPackage.EXPR_NEW_OBJECT__PARAMS:
+        return ((InternalEList<?>)getParams()).basicRemove(otherEnd, msgs);
     }
     return super.eInverseRemove(otherEnd, featureID, msgs);
   }
@@ -155,10 +166,11 @@ public class ClassDefImpl extends TypeDefImpl implements ClassDef
   {
     switch (featureID)
     {
-      case PscriptPackage.CLASS_DEF__UNMANAGED:
-        return isUnmanaged();
-      case PscriptPackage.CLASS_DEF__MEMBERS:
-        return getMembers();
+      case PscriptPackage.EXPR_NEW_OBJECT__CLASS_DEF:
+        if (resolve) return getClassDef();
+        return basicGetClassDef();
+      case PscriptPackage.EXPR_NEW_OBJECT__PARAMS:
+        return getParams();
     }
     return super.eGet(featureID, resolve, coreType);
   }
@@ -174,12 +186,12 @@ public class ClassDefImpl extends TypeDefImpl implements ClassDef
   {
     switch (featureID)
     {
-      case PscriptPackage.CLASS_DEF__UNMANAGED:
-        setUnmanaged((Boolean)newValue);
+      case PscriptPackage.EXPR_NEW_OBJECT__CLASS_DEF:
+        setClassDef((ClassDef)newValue);
         return;
-      case PscriptPackage.CLASS_DEF__MEMBERS:
-        getMembers().clear();
-        getMembers().addAll((Collection<? extends ClassSlots>)newValue);
+      case PscriptPackage.EXPR_NEW_OBJECT__PARAMS:
+        getParams().clear();
+        getParams().addAll((Collection<? extends Expr>)newValue);
         return;
     }
     super.eSet(featureID, newValue);
@@ -195,11 +207,11 @@ public class ClassDefImpl extends TypeDefImpl implements ClassDef
   {
     switch (featureID)
     {
-      case PscriptPackage.CLASS_DEF__UNMANAGED:
-        setUnmanaged(UNMANAGED_EDEFAULT);
+      case PscriptPackage.EXPR_NEW_OBJECT__CLASS_DEF:
+        setClassDef((ClassDef)null);
         return;
-      case PscriptPackage.CLASS_DEF__MEMBERS:
-        getMembers().clear();
+      case PscriptPackage.EXPR_NEW_OBJECT__PARAMS:
+        getParams().clear();
         return;
     }
     super.eUnset(featureID);
@@ -215,29 +227,12 @@ public class ClassDefImpl extends TypeDefImpl implements ClassDef
   {
     switch (featureID)
     {
-      case PscriptPackage.CLASS_DEF__UNMANAGED:
-        return unmanaged != UNMANAGED_EDEFAULT;
-      case PscriptPackage.CLASS_DEF__MEMBERS:
-        return members != null && !members.isEmpty();
+      case PscriptPackage.EXPR_NEW_OBJECT__CLASS_DEF:
+        return classDef != null;
+      case PscriptPackage.EXPR_NEW_OBJECT__PARAMS:
+        return params != null && !params.isEmpty();
     }
     return super.eIsSet(featureID);
   }
 
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  @Override
-  public String toString()
-  {
-    if (eIsProxy()) return super.toString();
-
-    StringBuffer result = new StringBuffer(super.toString());
-    result.append(" (unmanaged: ");
-    result.append(unmanaged);
-    result.append(')');
-    return result.toString();
-  }
-
-} //ClassDefImpl
+} //ExprNewObjectImpl

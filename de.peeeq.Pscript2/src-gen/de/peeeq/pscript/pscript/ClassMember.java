@@ -6,7 +6,6 @@
  */
 package de.peeeq.pscript.pscript;
 
-import org.eclipse.emf.ecore.EObject;
 
 /**
  * <!-- begin-user-doc -->
@@ -18,6 +17,6 @@ import org.eclipse.emf.ecore.EObject;
  * @model
  * @generated
  */
-public interface ClassMember extends EObject
+public interface ClassMember extends ClassSlots
 {
 } // ClassMember

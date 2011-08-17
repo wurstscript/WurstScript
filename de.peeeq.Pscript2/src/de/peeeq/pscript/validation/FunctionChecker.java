@@ -7,6 +7,8 @@ import de.peeeq.pscript.pscript.FuncDef;
 import de.peeeq.pscript.pscript.Statement;
 import de.peeeq.pscript.pscript.Statements;
 import de.peeeq.pscript.pscript.StmtCall;
+import de.peeeq.pscript.pscript.StmtChangeRefCount;
+import de.peeeq.pscript.pscript.StmtDestroy;
 import de.peeeq.pscript.pscript.StmtIf;
 import de.peeeq.pscript.pscript.StmtReturn;
 import de.peeeq.pscript.pscript.StmtSet;
@@ -79,6 +81,21 @@ public class FunctionChecker {
 
 			@Override
 			public CheckResult caseStmtSetOrCallOrVarDef(StmtSetOrCallOrVarDef stmtSetOrCall) {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+
+			@Override
+			public CheckResult caseStmtDestroy(StmtDestroy stmtDestroy) {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+
+			@Override
+			public CheckResult caseStmtChangeRefCount(
+					StmtChangeRefCount stmtChangeRefCount) {
 				// TODO Auto-generated method stub
 				return null;
 			}

@@ -62,13 +62,21 @@ NativeType returns TypeDef:
 /* classes and their members */	
 
 ClassDef returns TypeDef:
-	{ClassDef} 'class' name=ID '{'   NL
-		(NL | members+=ClassMember)*  
+	{ClassDef} (unmanaged?='unmanaged')? 'class' name=ID '{'   NL
+		(NL | members+=ClassSlots)*  
 	'}' NL;	
+
+
+ClassSlots:
+	ConstructorDef | OnDestroyDef | ClassMember
+;
 
 	
 ClassMember:
 	(VarDef | FuncDef);
+
+
+
 	
 
 VarDef:
@@ -100,13 +108,28 @@ TypeExpr:
 
 /* functions */
 
+ConstructorDef:
+	'construct' 
+				  '(' (parameters+=ParameterDef (',' parameters+=ParameterDef)*)? ')'
+			'{' NL
+		body=Statements 
+	'}' NL
+	 
+; 
+
+OnDestroyDef:
+	'onDestroy' '{' NL
+		body=Statements
+	'}' NL
+;
+
 FuncDef:
 	'function' name=ID 
 				  '(' (parameters+=ParameterDef (',' parameters+=ParameterDef)*)? ')'
 			('returns' type=TypeExpr)?
 			'{' NL
 		body=Statements 
-	'}'
+	'}' NL
 	 
 ; 
 
@@ -118,9 +141,21 @@ Statements:
 
 
 Statement:
-	StmtIf | StmtWhile | LocalVarDef | StmtSetOrCallOrVarDef | StmtReturn 
+	StmtIf | StmtWhile | LocalVarDef | StmtSetOrCallOrVarDef | StmtReturn | StmtDestroy | StmtChangeRefCount
 	//| StmtLoop | StmtExitwhen
 ;
+
+StmtChangeRefCount:
+	(increase?='incref'|decrease?='decref') obj=Expr NL
+;
+
+
+
+
+StmtDestroy:
+	'destroy' obj=Expr NL
+;
+
 
 
 
@@ -329,6 +364,8 @@ Number:
 ExprAtomic returns Expr:
 	ExprFunctionCall 
 	| {ExprIdentifier} nameVal=[VarDef] ('[' arrayIndizes+=Expr ']' )*
+	| {ExprNewObject} 'new' classDef=[ClassDef] '(' (params+=Expr (',' params+=Expr)*)? ')'
+	| {ExprThis} 'this'
 ;
 
 

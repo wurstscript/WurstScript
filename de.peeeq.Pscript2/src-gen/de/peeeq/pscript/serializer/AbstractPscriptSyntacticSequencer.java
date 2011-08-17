@@ -18,7 +18,7 @@ import org.eclipse.xtext.serializer.sequencer.AbstractSyntacticSequencer;
 public class AbstractPscriptSyntacticSequencer extends AbstractSyntacticSequencer {
 
 	protected PscriptGrammarAccess grammarAccess;
-	protected AbstractElementAlias match_ClassDef_NLTerminalRuleCall_5_0_a;
+	protected AbstractElementAlias match_ClassDef_NLTerminalRuleCall_6_0_a;
 	protected AbstractElementAlias match_ExprMemberRight___LeftParenthesisKeyword_1_0_RightParenthesisKeyword_1_2__q;
 	protected AbstractElementAlias match_ExprSingle_LeftParenthesisKeyword_1_0_a;
 	protected AbstractElementAlias match_ExprSingle_LeftParenthesisKeyword_1_0_p;
@@ -32,7 +32,7 @@ public class AbstractPscriptSyntacticSequencer extends AbstractSyntacticSequence
 	@Inject
 	protected void init(IGrammarAccess access) {
 		grammarAccess = (PscriptGrammarAccess) access;
-		match_ClassDef_NLTerminalRuleCall_5_0_a = new TokenAlias(true, true, grammarAccess.getClassDefAccess().getNLTerminalRuleCall_5_0());
+		match_ClassDef_NLTerminalRuleCall_6_0_a = new TokenAlias(true, true, grammarAccess.getClassDefAccess().getNLTerminalRuleCall_6_0());
 		match_ExprMemberRight___LeftParenthesisKeyword_1_0_RightParenthesisKeyword_1_2__q = new GroupAlias(true, false, new TokenAlias(false, false, grammarAccess.getExprMemberRightAccess().getLeftParenthesisKeyword_1_0()), new TokenAlias(false, false, grammarAccess.getExprMemberRightAccess().getRightParenthesisKeyword_1_2()));
 		match_ExprSingle_LeftParenthesisKeyword_1_0_a = new TokenAlias(true, true, grammarAccess.getExprSingleAccess().getLeftParenthesisKeyword_1_0());
 		match_ExprSingle_LeftParenthesisKeyword_1_0_p = new TokenAlias(false, true, grammarAccess.getExprSingleAccess().getLeftParenthesisKeyword_1_0());
@@ -63,8 +63,8 @@ public class AbstractPscriptSyntacticSequencer extends AbstractSyntacticSequence
 		List<INode> transitionNodes = collectNodes(fromNode, toNode);
 		for (AbstractElementAlias syntax : transition.getAmbiguousSyntaxes()) {
 			List<INode> syntaxNodes = getNodesFor(transitionNodes, syntax);
-			if(match_ClassDef_NLTerminalRuleCall_5_0_a.equals(syntax))
-				emit_ClassDef_NLTerminalRuleCall_5_0_a(semanticObject, getLastNavigableState(), syntaxNodes);
+			if(match_ClassDef_NLTerminalRuleCall_6_0_a.equals(syntax))
+				emit_ClassDef_NLTerminalRuleCall_6_0_a(semanticObject, getLastNavigableState(), syntaxNodes);
 			else if(match_ExprMemberRight___LeftParenthesisKeyword_1_0_RightParenthesisKeyword_1_2__q.equals(syntax))
 				emit_ExprMemberRight___LeftParenthesisKeyword_1_0_RightParenthesisKeyword_1_2__q(semanticObject, getLastNavigableState(), syntaxNodes);
 			else if(match_ExprSingle_LeftParenthesisKeyword_1_0_a.equals(syntax))
@@ -91,7 +91,7 @@ public class AbstractPscriptSyntacticSequencer extends AbstractSyntacticSequence
 	 * Syntax:
 	 *     NL*
 	 */
-	protected void emit_ClassDef_NLTerminalRuleCall_5_0_a(EObject semanticObject, ISynNavigable transition, List<INode> nodes) {
+	protected void emit_ClassDef_NLTerminalRuleCall_6_0_a(EObject semanticObject, ISynNavigable transition, List<INode> nodes) {
 		acceptNodes(transition, nodes);
 	}
 	

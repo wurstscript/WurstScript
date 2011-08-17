@@ -6,28 +6,30 @@
  */
 package de.peeeq.pscript.pscript.impl;
 
-import de.peeeq.pscript.pscript.ClassMember;
+import de.peeeq.pscript.pscript.ClassSlots;
 import de.peeeq.pscript.pscript.PscriptPackage;
 
 import org.eclipse.emf.ecore.EClass;
 
+import org.eclipse.emf.ecore.impl.MinimalEObjectImpl;
+
 /**
  * <!-- begin-user-doc -->
- * An implementation of the model object '<em><b>Class Member</b></em>'.
+ * An implementation of the model object '<em><b>Class Slots</b></em>'.
  * <!-- end-user-doc -->
  * <p>
  * </p>
  *
  * @generated
  */
-public class ClassMemberImpl extends ClassSlotsImpl implements ClassMember
+public class ClassSlotsImpl extends MinimalEObjectImpl.Container implements ClassSlots
 {
   /**
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
    */
-  protected ClassMemberImpl()
+  protected ClassSlotsImpl()
   {
     super();
   }
@@ -40,7 +42,7 @@ public class ClassMemberImpl extends ClassSlotsImpl implements ClassMember
   @Override
   protected EClass eStaticClass()
   {
-    return PscriptPackage.Literals.CLASS_MEMBER;
+    return PscriptPackage.Literals.CLASS_SLOTS;
   }
 
-} //ClassMemberImpl
+} //ClassSlotsImpl

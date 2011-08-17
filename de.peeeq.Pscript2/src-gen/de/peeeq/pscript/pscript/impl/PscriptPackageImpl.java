@@ -8,6 +8,8 @@ package de.peeeq.pscript.pscript.impl;
 
 import de.peeeq.pscript.pscript.ClassDef;
 import de.peeeq.pscript.pscript.ClassMember;
+import de.peeeq.pscript.pscript.ClassSlots;
+import de.peeeq.pscript.pscript.ConstructorDef;
 import de.peeeq.pscript.pscript.Entity;
 import de.peeeq.pscript.pscript.Expr;
 import de.peeeq.pscript.pscript.ExprAdditive;
@@ -22,16 +24,19 @@ import de.peeeq.pscript.pscript.ExprIntVal;
 import de.peeeq.pscript.pscript.ExprMember;
 import de.peeeq.pscript.pscript.ExprMemberRight;
 import de.peeeq.pscript.pscript.ExprMult;
+import de.peeeq.pscript.pscript.ExprNewObject;
 import de.peeeq.pscript.pscript.ExprNot;
 import de.peeeq.pscript.pscript.ExprNumVal;
 import de.peeeq.pscript.pscript.ExprOr;
 import de.peeeq.pscript.pscript.ExprSign;
 import de.peeeq.pscript.pscript.ExprStrval;
+import de.peeeq.pscript.pscript.ExprThis;
 import de.peeeq.pscript.pscript.FuncDef;
 import de.peeeq.pscript.pscript.Import;
 import de.peeeq.pscript.pscript.InitBlock;
 import de.peeeq.pscript.pscript.NativeFunc;
 import de.peeeq.pscript.pscript.NativeType;
+import de.peeeq.pscript.pscript.OnDestroyDef;
 import de.peeeq.pscript.pscript.OpAdditive;
 import de.peeeq.pscript.pscript.OpAssign;
 import de.peeeq.pscript.pscript.OpAssignment;
@@ -61,6 +66,8 @@ import de.peeeq.pscript.pscript.PscriptPackage;
 import de.peeeq.pscript.pscript.Statement;
 import de.peeeq.pscript.pscript.Statements;
 import de.peeeq.pscript.pscript.StmtCall;
+import de.peeeq.pscript.pscript.StmtChangeRefCount;
+import de.peeeq.pscript.pscript.StmtDestroy;
 import de.peeeq.pscript.pscript.StmtIf;
 import de.peeeq.pscript.pscript.StmtReturn;
 import de.peeeq.pscript.pscript.StmtSet;
@@ -139,6 +146,13 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
+  private EClass classSlotsEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
   private EClass classMemberEClass = null;
 
   /**
@@ -160,6 +174,20 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
+  private EClass constructorDefEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass onDestroyDefEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
   private EClass statementsEClass = null;
 
   /**
@@ -168,6 +196,20 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * @generated
    */
   private EClass statementEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass stmtChangeRefCountEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass stmtDestroyEClass = null;
 
   /**
    * <!-- begin-user-doc -->
@@ -510,6 +552,20 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
+  private EClass exprNewObjectEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass exprThisEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
   private EClass exprFunctioncallEClass = null;
 
   /**
@@ -750,6 +806,16 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
+  public EClass getClassSlots()
+  {
+    return classSlotsEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
   public EClass getClassMember()
   {
     return classMemberEClass;
@@ -840,6 +906,56 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
+  public EClass getConstructorDef()
+  {
+    return constructorDefEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EReference getConstructorDef_Parameters()
+  {
+    return (EReference)constructorDefEClass.getEStructuralFeatures().get(0);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EReference getConstructorDef_Body()
+  {
+    return (EReference)constructorDefEClass.getEStructuralFeatures().get(1);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getOnDestroyDef()
+  {
+    return onDestroyDefEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EReference getOnDestroyDef_Body()
+  {
+    return (EReference)onDestroyDefEClass.getEStructuralFeatures().get(0);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
   public EClass getStatements()
   {
     return statementsEClass;
@@ -863,6 +979,66 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
   public EClass getStatement()
   {
     return statementEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getStmtChangeRefCount()
+  {
+    return stmtChangeRefCountEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EAttribute getStmtChangeRefCount_Increase()
+  {
+    return (EAttribute)stmtChangeRefCountEClass.getEStructuralFeatures().get(0);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EAttribute getStmtChangeRefCount_Decrease()
+  {
+    return (EAttribute)stmtChangeRefCountEClass.getEStructuralFeatures().get(1);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EReference getStmtChangeRefCount_Obj()
+  {
+    return (EReference)stmtChangeRefCountEClass.getEStructuralFeatures().get(2);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getStmtDestroy()
+  {
+    return stmtDestroyEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EReference getStmtDestroy_Obj()
+  {
+    return (EReference)stmtDestroyEClass.getEStructuralFeatures().get(0);
   }
 
   /**
@@ -1100,9 +1276,19 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
+  public EAttribute getClassDef_Unmanaged()
+  {
+    return (EAttribute)classDefEClass.getEStructuralFeatures().get(0);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
   public EReference getClassDef_Members()
   {
-    return (EReference)classDefEClass.getEStructuralFeatures().get(0);
+    return (EReference)classDefEClass.getEStructuralFeatures().get(1);
   }
 
   /**
@@ -1790,6 +1976,46 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
    * <!-- end-user-doc -->
    * @generated
    */
+  public EClass getExprNewObject()
+  {
+    return exprNewObjectEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EReference getExprNewObject_ClassDef()
+  {
+    return (EReference)exprNewObjectEClass.getEStructuralFeatures().get(0);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EReference getExprNewObject_Params()
+  {
+    return (EReference)exprNewObjectEClass.getEStructuralFeatures().get(1);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public EClass getExprThis()
+  {
+    return exprThisEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
   public EClass getExprFunctioncall()
   {
     return exprFunctioncallEClass;
@@ -1869,6 +2095,8 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
     createEReference(funcDefEClass, FUNC_DEF__TYPE);
     createEReference(funcDefEClass, FUNC_DEF__BODY);
 
+    classSlotsEClass = createEClass(CLASS_SLOTS);
+
     classMemberEClass = createEClass(CLASS_MEMBER);
 
     varDefEClass = createEClass(VAR_DEF);
@@ -1881,10 +2109,25 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
     createEAttribute(typeExprEClass, TYPE_EXPR__ARRAY);
     createEAttribute(typeExprEClass, TYPE_EXPR__SIZES);
 
+    constructorDefEClass = createEClass(CONSTRUCTOR_DEF);
+    createEReference(constructorDefEClass, CONSTRUCTOR_DEF__PARAMETERS);
+    createEReference(constructorDefEClass, CONSTRUCTOR_DEF__BODY);
+
+    onDestroyDefEClass = createEClass(ON_DESTROY_DEF);
+    createEReference(onDestroyDefEClass, ON_DESTROY_DEF__BODY);
+
     statementsEClass = createEClass(STATEMENTS);
     createEReference(statementsEClass, STATEMENTS__STATEMENTS);
 
     statementEClass = createEClass(STATEMENT);
+
+    stmtChangeRefCountEClass = createEClass(STMT_CHANGE_REF_COUNT);
+    createEAttribute(stmtChangeRefCountEClass, STMT_CHANGE_REF_COUNT__INCREASE);
+    createEAttribute(stmtChangeRefCountEClass, STMT_CHANGE_REF_COUNT__DECREASE);
+    createEReference(stmtChangeRefCountEClass, STMT_CHANGE_REF_COUNT__OBJ);
+
+    stmtDestroyEClass = createEClass(STMT_DESTROY);
+    createEReference(stmtDestroyEClass, STMT_DESTROY__OBJ);
 
     stmtReturnEClass = createEClass(STMT_RETURN);
     createEReference(stmtReturnEClass, STMT_RETURN__E);
@@ -1922,6 +2165,7 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
     createEReference(nativeTypeEClass, NATIVE_TYPE__SUPER_NAME);
 
     classDefEClass = createEClass(CLASS_DEF);
+    createEAttribute(classDefEClass, CLASS_DEF__UNMANAGED);
     createEReference(classDefEClass, CLASS_DEF__MEMBERS);
 
     parameterDefEClass = createEClass(PARAMETER_DEF);
@@ -2026,6 +2270,12 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
     createEReference(exprIdentifierEClass, EXPR_IDENTIFIER__NAME_VAL);
     createEReference(exprIdentifierEClass, EXPR_IDENTIFIER__ARRAY_INDIZES);
 
+    exprNewObjectEClass = createEClass(EXPR_NEW_OBJECT);
+    createEReference(exprNewObjectEClass, EXPR_NEW_OBJECT__CLASS_DEF);
+    createEReference(exprNewObjectEClass, EXPR_NEW_OBJECT__PARAMS);
+
+    exprThisEClass = createEClass(EXPR_THIS);
+
     exprFunctioncallEClass = createEClass(EXPR_FUNCTIONCALL);
     createEReference(exprFunctioncallEClass, EXPR_FUNCTIONCALL__NAME_VAL);
     createEReference(exprFunctioncallEClass, EXPR_FUNCTIONCALL__PARAMS);
@@ -2064,9 +2314,14 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
     typeDefEClass.getESuperTypes().add(this.getEntity());
     funcDefEClass.getESuperTypes().add(this.getEntity());
     funcDefEClass.getESuperTypes().add(this.getClassMember());
+    classMemberEClass.getESuperTypes().add(this.getClassSlots());
     varDefEClass.getESuperTypes().add(this.getEntity());
     varDefEClass.getESuperTypes().add(this.getClassMember());
     varDefEClass.getESuperTypes().add(this.getStatement());
+    constructorDefEClass.getESuperTypes().add(this.getClassSlots());
+    onDestroyDefEClass.getESuperTypes().add(this.getClassSlots());
+    stmtChangeRefCountEClass.getESuperTypes().add(this.getStatement());
+    stmtDestroyEClass.getESuperTypes().add(this.getStatement());
     stmtReturnEClass.getESuperTypes().add(this.getStatement());
     stmtIfEClass.getESuperTypes().add(this.getStatement());
     stmtWhileEClass.getESuperTypes().add(this.getStatement());
@@ -2108,6 +2363,8 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
     exprBoolValEClass.getESuperTypes().add(this.getExpr());
     exprFuncRefEClass.getESuperTypes().add(this.getExpr());
     exprIdentifierEClass.getESuperTypes().add(this.getExpr());
+    exprNewObjectEClass.getESuperTypes().add(this.getExpr());
+    exprThisEClass.getESuperTypes().add(this.getExpr());
     exprFunctioncallEClass.getESuperTypes().add(this.getExpr());
 
     // Initialize classes and features; add operations and parameters
@@ -2135,6 +2392,8 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
     initEReference(getFuncDef_Type(), this.getTypeExpr(), null, "type", null, 0, 1, FuncDef.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
     initEReference(getFuncDef_Body(), this.getStatements(), null, "body", null, 0, 1, FuncDef.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
+    initEClass(classSlotsEClass, ClassSlots.class, "ClassSlots", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+
     initEClass(classMemberEClass, ClassMember.class, "ClassMember", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 
     initEClass(varDefEClass, VarDef.class, "VarDef", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
@@ -2147,10 +2406,25 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
     initEAttribute(getTypeExpr_Array(), ecorePackage.getEBoolean(), "array", null, 0, 1, TypeExpr.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
     initEAttribute(getTypeExpr_Sizes(), ecorePackage.getEInt(), "sizes", null, 0, -1, TypeExpr.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, !IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
+    initEClass(constructorDefEClass, ConstructorDef.class, "ConstructorDef", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+    initEReference(getConstructorDef_Parameters(), this.getVarDef(), null, "parameters", null, 0, -1, ConstructorDef.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getConstructorDef_Body(), this.getStatements(), null, "body", null, 0, 1, ConstructorDef.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
+    initEClass(onDestroyDefEClass, OnDestroyDef.class, "OnDestroyDef", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+    initEReference(getOnDestroyDef_Body(), this.getStatements(), null, "body", null, 0, 1, OnDestroyDef.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
     initEClass(statementsEClass, Statements.class, "Statements", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEReference(getStatements_Statements(), this.getStatement(), null, "statements", null, 0, -1, Statements.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(statementEClass, Statement.class, "Statement", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+
+    initEClass(stmtChangeRefCountEClass, StmtChangeRefCount.class, "StmtChangeRefCount", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+    initEAttribute(getStmtChangeRefCount_Increase(), ecorePackage.getEBoolean(), "increase", null, 0, 1, StmtChangeRefCount.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEAttribute(getStmtChangeRefCount_Decrease(), ecorePackage.getEBoolean(), "decrease", null, 0, 1, StmtChangeRefCount.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getStmtChangeRefCount_Obj(), this.getExpr(), null, "obj", null, 0, 1, StmtChangeRefCount.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
+    initEClass(stmtDestroyEClass, StmtDestroy.class, "StmtDestroy", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+    initEReference(getStmtDestroy_Obj(), this.getExpr(), null, "obj", null, 0, 1, StmtDestroy.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(stmtReturnEClass, StmtReturn.class, "StmtReturn", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEReference(getStmtReturn_E(), this.getExpr(), null, "e", null, 0, 1, StmtReturn.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
@@ -2188,7 +2462,8 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
     initEReference(getNativeType_SuperName(), this.getTypeExpr(), null, "superName", null, 0, 1, NativeType.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(classDefEClass, ClassDef.class, "ClassDef", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
-    initEReference(getClassDef_Members(), this.getClassMember(), null, "members", null, 0, -1, ClassDef.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEAttribute(getClassDef_Unmanaged(), ecorePackage.getEBoolean(), "unmanaged", null, 0, 1, ClassDef.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getClassDef_Members(), this.getClassSlots(), null, "members", null, 0, -1, ClassDef.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(parameterDefEClass, ParameterDef.class, "ParameterDef", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 
@@ -2291,6 +2566,12 @@ public class PscriptPackageImpl extends EPackageImpl implements PscriptPackage
     initEClass(exprIdentifierEClass, ExprIdentifier.class, "ExprIdentifier", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEReference(getExprIdentifier_NameVal(), this.getVarDef(), null, "nameVal", null, 0, 1, ExprIdentifier.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
     initEReference(getExprIdentifier_ArrayIndizes(), this.getExpr(), null, "arrayIndizes", null, 0, -1, ExprIdentifier.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
+    initEClass(exprNewObjectEClass, ExprNewObject.class, "ExprNewObject", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+    initEReference(getExprNewObject_ClassDef(), this.getClassDef(), null, "classDef", null, 0, 1, ExprNewObject.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getExprNewObject_Params(), this.getExpr(), null, "params", null, 0, -1, ExprNewObject.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
+    initEClass(exprThisEClass, ExprThis.class, "ExprThis", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 
     initEClass(exprFunctioncallEClass, ExprFunctioncall.class, "ExprFunctioncall", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEReference(getExprFunctioncall_NameVal(), this.getFuncDef(), null, "nameVal", null, 0, 1, ExprFunctioncall.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);

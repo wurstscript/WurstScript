@@ -10,6 +10,7 @@ import de.peeeq.pscript.pscript.TypeDef;
 import de.peeeq.pscript.pscript.TypeExpr;
 import de.peeeq.pscript.pscript.impl.TypeDefImpl;
 import de.peeeq.pscript.pscript.util.TypeDefSwitch;
+import de.peeeq.pscript.types.NativeTypes;
 import de.peeeq.pscript.types.PScriptTypeArray;
 import de.peeeq.pscript.types.PScriptTypeBool;
 import de.peeeq.pscript.types.PScriptTypeCode;
@@ -72,7 +73,7 @@ public class AttrTypeExprType extends AbstractAttribute<TypeExpr, PscriptType> {
 
 			@Override
 			public PscriptType caseNativeType(NativeType nativeType) {
-				return getType_NativeType(attributeManager, (NativeType) typeDef);
+				return NativeTypes.getType_NativeType(attributeManager, (NativeType) typeDef);
 			}
 
 		}.doSwitch(typeDef);
@@ -80,34 +81,7 @@ public class AttrTypeExprType extends AbstractAttribute<TypeExpr, PscriptType> {
 //		return new PscriptTypeError("unexpected typeDef type: " + typeDef.getName() + " ( " + typeDef + " )");
 	}
 
-	private PscriptType getType_NativeType(final AttributeManager attributeManager,NativeType typeDef) {
-		if (typeDef.getName().equals("Int")) {
-			return PScriptTypeInt.instance();
-		}
-		if (typeDef.getName().equals("Bool")) {
-			return PScriptTypeBool.instance();
-		}
-		if (typeDef.getName().equals("Real")) {
-			return PScriptTypeReal.instance();
-		}
-		if (typeDef.getName().equals("String")) {
-			return PScriptTypeString.instance();
-		}
-		if (typeDef.getName().equals("Code")) {
-			return PScriptTypeCode.instance();
-		}
-		if (typeDef.getName().equals("Handle")) {
-			return PScriptTypeHandle.instance();
-		}
-		
-		PscriptType superType;
-		if (typeDef.getSuperName() != null) {
-			superType = attributeManager.getAttValue(AttrTypeExprType.class, typeDef.getSuperName());
-		} else {
-			superType = PScriptTypeVoid.instance();
-		}
-		return PscriptNativeType.instance(typeDef.getName(), superType);
-	}
+	
 
 	private PscriptType getType_ClassDef(final AttributeManager attributeManager,ClassDef typeDef) {
 		// TODO class types

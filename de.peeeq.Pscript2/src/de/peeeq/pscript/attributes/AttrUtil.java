@@ -11,19 +11,6 @@ import de.peeeq.pscript.types.PscriptType;
 
 public class AttrUtil {
 	
-//	/**
-//	 * 
-//	 * @param typeName
-//	 * @return a type for the build in type or null if it is not a build in type
-//	 */
-//	public static PscriptType getBuildInType(String typeName) {
-//		if (typeName.equals("Int")) {
-//			return PScriptTypeInt.instance();
-//		}
-//		return null;
-//	}
-	
-
 	static String printFuncDef(FuncDef f) {
 		return f.getName() + "(" + AttrUtil.printParams(f.getParameters()) + "):" + printTypeExpr(f.getType());
 	}

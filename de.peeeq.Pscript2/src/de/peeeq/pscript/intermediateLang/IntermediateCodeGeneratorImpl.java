@@ -17,6 +17,8 @@ import de.peeeq.pscript.attributes.AttrVarDefType;
 import de.peeeq.pscript.attributes.infrastructure.AttributeManager;
 import de.peeeq.pscript.pscript.ClassDef;
 import de.peeeq.pscript.pscript.ClassMember;
+import de.peeeq.pscript.pscript.ClassSlots;
+import de.peeeq.pscript.pscript.ConstructorDef;
 import de.peeeq.pscript.pscript.Entity;
 import de.peeeq.pscript.pscript.Expr;
 import de.peeeq.pscript.pscript.ExprAdditive;
@@ -30,15 +32,18 @@ import de.peeeq.pscript.pscript.ExprIdentifier;
 import de.peeeq.pscript.pscript.ExprIntVal;
 import de.peeeq.pscript.pscript.ExprMember;
 import de.peeeq.pscript.pscript.ExprMult;
+import de.peeeq.pscript.pscript.ExprNewObject;
 import de.peeeq.pscript.pscript.ExprNot;
 import de.peeeq.pscript.pscript.ExprNumVal;
 import de.peeeq.pscript.pscript.ExprOr;
 import de.peeeq.pscript.pscript.ExprSign;
 import de.peeeq.pscript.pscript.ExprStrval;
+import de.peeeq.pscript.pscript.ExprThis;
 import de.peeeq.pscript.pscript.FuncDef;
 import de.peeeq.pscript.pscript.InitBlock;
 import de.peeeq.pscript.pscript.NativeFunc;
 import de.peeeq.pscript.pscript.NativeType;
+import de.peeeq.pscript.pscript.OnDestroyDef;
 import de.peeeq.pscript.pscript.OpAdditive;
 import de.peeeq.pscript.pscript.OpComparison;
 import de.peeeq.pscript.pscript.OpDivInt;
@@ -60,6 +65,8 @@ import de.peeeq.pscript.pscript.Program;
 import de.peeeq.pscript.pscript.Statement;
 import de.peeeq.pscript.pscript.Statements;
 import de.peeeq.pscript.pscript.StmtCall;
+import de.peeeq.pscript.pscript.StmtChangeRefCount;
+import de.peeeq.pscript.pscript.StmtDestroy;
 import de.peeeq.pscript.pscript.StmtIf;
 import de.peeeq.pscript.pscript.StmtReturn;
 import de.peeeq.pscript.pscript.StmtSet;
@@ -68,6 +75,8 @@ import de.peeeq.pscript.pscript.StmtWhile;
 import de.peeeq.pscript.pscript.TypeDef;
 import de.peeeq.pscript.pscript.VarDef;
 import de.peeeq.pscript.pscript.util.ClassMemberSwitch;
+import de.peeeq.pscript.pscript.util.ClassMemberSwitchVoid;
+import de.peeeq.pscript.pscript.util.ClassSlotsSwitchVoid;
 import de.peeeq.pscript.pscript.util.EntitySwitchVoid;
 import de.peeeq.pscript.pscript.util.ExprSwitch;
 import de.peeeq.pscript.pscript.util.OpAdditiveSwitch;
@@ -82,6 +91,7 @@ import de.peeeq.pscript.types.PScriptTypeBool;
 import de.peeeq.pscript.types.PScriptTypeInt;
 import de.peeeq.pscript.types.PScriptTypeVoid;
 import de.peeeq.pscript.types.PscriptType;
+import de.peeeq.pscript.types.PscriptTypeClass;
 import de.peeeq.pscript.utils.NotNullList;
 import de.peeeq.pscript.utils.Utils;
 
@@ -94,6 +104,8 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 	private ILprog prog;
 
 	private int localVarNumberOffset;
+	
+	private WurstNames wurstNames;
 
 	@Override
 	public ILprog translateProg(Resource resource) {
@@ -113,6 +125,7 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 
 	@Override
 	public ILprog translatePrograms(Iterable<? extends EObject> programs) {
+		wurstNames = new WurstNames();
 		prog = new ILprog(attrManager);
 		List<PackageDeclaration> packages = new NotNullList<PackageDeclaration>();
 		for (EObject p : programs) {
@@ -156,15 +169,59 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 						
 						@Override
 						public void caseNativeType(NativeType nativeType) {
-							// TODO not needed anymore, I think
-							prog.addNativeTranslation(nativeType.getName(), nativeType.getName());							
+							// native types are just here to help the compiler		
+							// so nothing to do here
 						}
-						
-						
 
 						@Override
 						public void caseClassDef(ClassDef classDef) {
-							// TODO translate classes
+							final List<OnDestroyDef> onDestroyDefs = new NotNullList<OnDestroyDef>();
+							final List<ConstructorDef> constructors = new NotNullList<ConstructorDef>();
+							final List<VarDef> fields = new NotNullList<VarDef>();
+							final List<FuncDef> methods = new NotNullList<FuncDef>();
+							for (ClassSlots elem : classDef.getMembers()) {
+								new ClassSlotsSwitchVoid() {
+									
+									@Override
+									public void caseOnDestroyDef(OnDestroyDef d) {
+										 onDestroyDefs.add(d);										
+									}
+									
+									@Override
+									public void caseConstructorDef(ConstructorDef constructorDef) {
+										constructors.add(constructorDef);
+									}
+									
+									@Override
+									public void caseClassMember(ClassMember classMember) {
+										new ClassMemberSwitchVoid() {
+											
+											@Override
+											public void caseVarDef(VarDef varDef) {
+												fields.add(varDef);
+											}
+											
+											@Override
+											public void caseFuncDef(FuncDef funcDef) {
+												methods.add(funcDef);
+											}
+										}.doSwitch(classMember);
+										
+									}
+								}.doSwitch(elem);
+							}
+							
+							// create an array for every field:
+									
+							
+							// translate methods:
+							
+							// generate/translate constructors:
+							
+							// generate/translate destructor:
+							
+							// generate incref/decref methods:						
+							
 						}
 					}.doSwitch(typeDef);
 					
@@ -364,11 +421,37 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 				}
 			}
 			
-			private void translateStmtVarDef(VarDef v) {
-				ILvar leftVar = getVar(v, locals);
-				if (v.getE() != null) {
-					result.addAll(translateExpr(v.getE(), leftVar , locals));
+//			private void translateStmtVarDef(VarDef v) {
+//				ILvar leftVar = getVar(v, locals);
+//				if (v.getE() != null) {
+//					result.addAll(translateExpr(v.getE(), leftVar , locals));
+//				}
+//			}
+
+			@Override
+			public List<ILStatement> caseStmtDestroy(StmtDestroy stmtDestroy) {
+				// get the type of class we want to destroy:
+				PscriptType objType = attrManager.getAttValue(AttrExprType.class, stmtDestroy.getObj());
+				if (objType instanceof PscriptTypeClass) {
+					// we know the exact class and can directly call the destructor:
+					PscriptTypeClass classType = (PscriptTypeClass) objType;
+					PscriptType[] argumentTypes = new PscriptType[0];
+					ILvar[] argumentVars = new ILvar[0];
+					// call the destroy method:
+					result.add(new ILfunctionCall(null, wurstNames.getDestructorFunctionName(classType.getClassDef()), argumentTypes, argumentVars));
+					
+				} else {
+					// TODO implement for destroying interfaces and such things
+					throw new Error("Destroying not implemented for type " + objType);
 				}
+				return result;
+			}
+
+			@Override
+			public List<ILStatement> caseStmtChangeRefCount(
+					StmtChangeRefCount stmtChangeRefCount) {
+				// TODO Statement chage Ref-Count
+				throw new Error("refcount not implemented");
 			}
 			
 
@@ -538,6 +621,10 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 
 					@Override
 					public List<ILStatement> caseVarDef(VarDef varDef) {
+						// TODO interfaces & getter/setter methods
+						
+						
+						
 						// TODO class members
 						throw new Error("Not implemented");
 					}
@@ -677,8 +764,22 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 
 			@Override
 			public List<ILStatement> caseExprFuncRef(ExprFuncRef exprFuncRef) {
-				// TODO Auto-generated method stub
+				// TODO translate function references
 				return null;
+			}
+
+			@Override
+			public List<ILStatement> caseExprThis(ExprThis exprThis) {
+				ILvar thisVar = getThis(locals);
+				result.add(new ILsetVar(resultVar, thisVar ));
+				return result;
+			}
+
+			@Override
+			public List<ILStatement> caseExprNewObject(
+					ExprNewObject exprNewObject) {
+				EList<Expr> args = exprNewObject.getParams();
+				return translateConstructorCall(resultVar, exprNewObject.getClassDef(), args , locals);
 			}
 
 			
@@ -688,6 +789,22 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 			
 
 		}.doSwitch(e);
+	}
+
+
+
+	/**
+	 * returns the variable which represents the if or creates one if it does not exist yet
+	 */
+	protected ILvar getThis(List<ILvar> locals) {
+		for (ILvar l : locals) {
+			if (l.getName().startsWith("w__this")) {
+				return l;
+			}
+		}
+		ILvar result = new ILvar("w__this", PScriptTypeInt.instance());
+		locals.add(result);
+		return result;
 	}
 
 	protected List<ILStatement> calculateIndexes( PScriptTypeArray type, ILvar indexResult, EList<Expr> indizes, List<ILvar> locals) {
@@ -814,6 +931,24 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 	}
 
 
+	protected List<ILStatement> translateConstructorCall(ILvar resultVar,
+			ClassDef classDef, EList<Expr> args, List<ILvar> locals) {
+		List<ILStatement> result = new NotNullList<ILStatement>();
+		ILvar[] argumentVars = new ILvar[args.size()];
+		PscriptType[] argumentTypes = new PscriptType[args.size()];
+		for (int i=0; i<argumentVars.length; i++) {
+			Expr arg = args.get(i);
+			argumentTypes[i] = attrManager.getAttValue(AttrExprType.class, arg);
+			argumentVars[i] = getNewLocalVar("construct_param" + i, argumentTypes[i], locals);
+			
+			result.addAll(translateExpr(arg, argumentVars[i], locals));
+		}
+		
+		// TODO search constructors, use right name		
+		result.add(new ILfunctionCall(resultVar, "w__" + classDef.getName() + "_constructer", argumentTypes, argumentVars));
+		return result;
+	}
+	
 	protected ILvar getVar(VarDef decl, List<ILvar> locals) {
 		for (ILvar v : locals) {
 			if (v.getName().equals(decl.getName())) {
@@ -838,5 +973,15 @@ public class IntermediateCodeGeneratorImpl implements IntermediateCodeGenerator 
 		});
 	}
 
+}
+
+/**
+ * this class gives you the names for generated elements 
+ */
+class WurstNames {
+
+	public String getDestructorFunctionName(ClassDef c) {
+		return "w__" + c.getName() + "_destroy";
+	}
 	
 }

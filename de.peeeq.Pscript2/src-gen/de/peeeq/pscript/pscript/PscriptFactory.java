@@ -90,6 +90,15 @@ public interface PscriptFactory extends EFactory
   FuncDef createFuncDef();
 
   /**
+   * Returns a new object of class '<em>Class Slots</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Class Slots</em>'.
+   * @generated
+   */
+  ClassSlots createClassSlots();
+
+  /**
    * Returns a new object of class '<em>Class Member</em>'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -117,6 +126,24 @@ public interface PscriptFactory extends EFactory
   TypeExpr createTypeExpr();
 
   /**
+   * Returns a new object of class '<em>Constructor Def</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Constructor Def</em>'.
+   * @generated
+   */
+  ConstructorDef createConstructorDef();
+
+  /**
+   * Returns a new object of class '<em>On Destroy Def</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>On Destroy Def</em>'.
+   * @generated
+   */
+  OnDestroyDef createOnDestroyDef();
+
+  /**
    * Returns a new object of class '<em>Statements</em>'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -133,6 +160,24 @@ public interface PscriptFactory extends EFactory
    * @generated
    */
   Statement createStatement();
+
+  /**
+   * Returns a new object of class '<em>Stmt Change Ref Count</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Stmt Change Ref Count</em>'.
+   * @generated
+   */
+  StmtChangeRefCount createStmtChangeRefCount();
+
+  /**
+   * Returns a new object of class '<em>Stmt Destroy</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Stmt Destroy</em>'.
+   * @generated
+   */
+  StmtDestroy createStmtDestroy();
 
   /**
    * Returns a new object of class '<em>Stmt Return</em>'.
@@ -565,6 +610,24 @@ public interface PscriptFactory extends EFactory
    * @generated
    */
   ExprIdentifier createExprIdentifier();
+
+  /**
+   * Returns a new object of class '<em>Expr New Object</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Expr New Object</em>'.
+   * @generated
+   */
+  ExprNewObject createExprNewObject();
+
+  /**
+   * Returns a new object of class '<em>Expr This</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Expr This</em>'.
+   * @generated
+   */
+  ExprThis createExprThis();
 
   /**
    * Returns a new object of class '<em>Expr Functioncall</em>'.

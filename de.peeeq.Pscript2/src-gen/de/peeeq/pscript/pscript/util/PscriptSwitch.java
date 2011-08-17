@@ -126,6 +126,14 @@ public class PscriptSwitch<T> extends Switch<T>
         T result = caseFuncDef(funcDef);
         if (result == null) result = caseEntity(funcDef);
         if (result == null) result = caseClassMember(funcDef);
+        if (result == null) result = caseClassSlots(funcDef);
+        if (result == null) result = defaultCase(theEObject);
+        return result;
+      }
+      case PscriptPackage.CLASS_SLOTS:
+      {
+        ClassSlots classSlots = (ClassSlots)theEObject;
+        T result = caseClassSlots(classSlots);
         if (result == null) result = defaultCase(theEObject);
         return result;
       }
@@ -133,6 +141,7 @@ public class PscriptSwitch<T> extends Switch<T>
       {
         ClassMember classMember = (ClassMember)theEObject;
         T result = caseClassMember(classMember);
+        if (result == null) result = caseClassSlots(classMember);
         if (result == null) result = defaultCase(theEObject);
         return result;
       }
@@ -143,6 +152,7 @@ public class PscriptSwitch<T> extends Switch<T>
         if (result == null) result = caseEntity(varDef);
         if (result == null) result = caseClassMember(varDef);
         if (result == null) result = caseStatement(varDef);
+        if (result == null) result = caseClassSlots(varDef);
         if (result == null) result = defaultCase(theEObject);
         return result;
       }
@@ -150,6 +160,22 @@ public class PscriptSwitch<T> extends Switch<T>
       {
         TypeExpr typeExpr = (TypeExpr)theEObject;
         T result = caseTypeExpr(typeExpr);
+        if (result == null) result = defaultCase(theEObject);
+        return result;
+      }
+      case PscriptPackage.CONSTRUCTOR_DEF:
+      {
+        ConstructorDef constructorDef = (ConstructorDef)theEObject;
+        T result = caseConstructorDef(constructorDef);
+        if (result == null) result = caseClassSlots(constructorDef);
+        if (result == null) result = defaultCase(theEObject);
+        return result;
+      }
+      case PscriptPackage.ON_DESTROY_DEF:
+      {
+        OnDestroyDef onDestroyDef = (OnDestroyDef)theEObject;
+        T result = caseOnDestroyDef(onDestroyDef);
+        if (result == null) result = caseClassSlots(onDestroyDef);
         if (result == null) result = defaultCase(theEObject);
         return result;
       }
@@ -164,6 +190,22 @@ public class PscriptSwitch<T> extends Switch<T>
       {
         Statement statement = (Statement)theEObject;
         T result = caseStatement(statement);
+        if (result == null) result = defaultCase(theEObject);
+        return result;
+      }
+      case PscriptPackage.STMT_CHANGE_REF_COUNT:
+      {
+        StmtChangeRefCount stmtChangeRefCount = (StmtChangeRefCount)theEObject;
+        T result = caseStmtChangeRefCount(stmtChangeRefCount);
+        if (result == null) result = caseStatement(stmtChangeRefCount);
+        if (result == null) result = defaultCase(theEObject);
+        return result;
+      }
+      case PscriptPackage.STMT_DESTROY:
+      {
+        StmtDestroy stmtDestroy = (StmtDestroy)theEObject;
+        T result = caseStmtDestroy(stmtDestroy);
+        if (result == null) result = caseStatement(stmtDestroy);
         if (result == null) result = defaultCase(theEObject);
         return result;
       }
@@ -255,6 +297,7 @@ public class PscriptSwitch<T> extends Switch<T>
         if (result == null) result = caseFuncDef(nativeFunc);
         if (result == null) result = caseEntity(nativeFunc);
         if (result == null) result = caseClassMember(nativeFunc);
+        if (result == null) result = caseClassSlots(nativeFunc);
         if (result == null) result = defaultCase(theEObject);
         return result;
       }
@@ -284,6 +327,7 @@ public class PscriptSwitch<T> extends Switch<T>
         if (result == null) result = caseEntity(parameterDef);
         if (result == null) result = caseClassMember(parameterDef);
         if (result == null) result = caseStatement(parameterDef);
+        if (result == null) result = caseClassSlots(parameterDef);
         if (result == null) result = defaultCase(theEObject);
         return result;
       }
@@ -553,6 +597,22 @@ public class PscriptSwitch<T> extends Switch<T>
         if (result == null) result = defaultCase(theEObject);
         return result;
       }
+      case PscriptPackage.EXPR_NEW_OBJECT:
+      {
+        ExprNewObject exprNewObject = (ExprNewObject)theEObject;
+        T result = caseExprNewObject(exprNewObject);
+        if (result == null) result = caseExpr(exprNewObject);
+        if (result == null) result = defaultCase(theEObject);
+        return result;
+      }
+      case PscriptPackage.EXPR_THIS:
+      {
+        ExprThis exprThis = (ExprThis)theEObject;
+        T result = caseExprThis(exprThis);
+        if (result == null) result = caseExpr(exprThis);
+        if (result == null) result = defaultCase(theEObject);
+        return result;
+      }
       case PscriptPackage.EXPR_FUNCTIONCALL:
       {
         ExprFunctioncall exprFunctioncall = (ExprFunctioncall)theEObject;
@@ -678,6 +738,22 @@ public class PscriptSwitch<T> extends Switch<T>
   }
 
   /**
+   * Returns the result of interpreting the object as an instance of '<em>Class Slots</em>'.
+   * <!-- begin-user-doc -->
+   * This implementation returns null;
+   * returning a non-null result will terminate the switch.
+   * <!-- end-user-doc -->
+   * @param object the target of the switch.
+   * @return the result of interpreting the object as an instance of '<em>Class Slots</em>'.
+   * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
+   * @generated
+   */
+  public T caseClassSlots(ClassSlots object)
+  {
+    return null;
+  }
+
+  /**
    * Returns the result of interpreting the object as an instance of '<em>Class Member</em>'.
    * <!-- begin-user-doc -->
    * This implementation returns null;
@@ -726,6 +802,38 @@ public class PscriptSwitch<T> extends Switch<T>
   }
 
   /**
+   * Returns the result of interpreting the object as an instance of '<em>Constructor Def</em>'.
+   * <!-- begin-user-doc -->
+   * This implementation returns null;
+   * returning a non-null result will terminate the switch.
+   * <!-- end-user-doc -->
+   * @param object the target of the switch.
+   * @return the result of interpreting the object as an instance of '<em>Constructor Def</em>'.
+   * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
+   * @generated
+   */
+  public T caseConstructorDef(ConstructorDef object)
+  {
+    return null;
+  }
+
+  /**
+   * Returns the result of interpreting the object as an instance of '<em>On Destroy Def</em>'.
+   * <!-- begin-user-doc -->
+   * This implementation returns null;
+   * returning a non-null result will terminate the switch.
+   * <!-- end-user-doc -->
+   * @param object the target of the switch.
+   * @return the result of interpreting the object as an instance of '<em>On Destroy Def</em>'.
+   * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
+   * @generated
+   */
+  public T caseOnDestroyDef(OnDestroyDef object)
+  {
+    return null;
+  }
+
+  /**
    * Returns the result of interpreting the object as an instance of '<em>Statements</em>'.
    * <!-- begin-user-doc -->
    * This implementation returns null;
@@ -753,6 +861,38 @@ public class PscriptSwitch<T> extends Switch<T>
    * @generated
    */
   public T caseStatement(Statement object)
+  {
+    return null;
+  }
+
+  /**
+   * Returns the result of interpreting the object as an instance of '<em>Stmt Change Ref Count</em>'.
+   * <!-- begin-user-doc -->
+   * This implementation returns null;
+   * returning a non-null result will terminate the switch.
+   * <!-- end-user-doc -->
+   * @param object the target of the switch.
+   * @return the result of interpreting the object as an instance of '<em>Stmt Change Ref Count</em>'.
+   * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
+   * @generated
+   */
+  public T caseStmtChangeRefCount(StmtChangeRefCount object)
+  {
+    return null;
+  }
+
+  /**
+   * Returns the result of interpreting the object as an instance of '<em>Stmt Destroy</em>'.
+   * <!-- begin-user-doc -->
+   * This implementation returns null;
+   * returning a non-null result will terminate the switch.
+   * <!-- end-user-doc -->
+   * @param object the target of the switch.
+   * @return the result of interpreting the object as an instance of '<em>Stmt Destroy</em>'.
+   * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
+   * @generated
+   */
+  public T caseStmtDestroy(StmtDestroy object)
   {
     return null;
   }
@@ -1521,6 +1661,38 @@ public class PscriptSwitch<T> extends Switch<T>
    * @generated
    */
   public T caseExprIdentifier(ExprIdentifier object)
+  {
+    return null;
+  }
+
+  /**
+   * Returns the result of interpreting the object as an instance of '<em>Expr New Object</em>'.
+   * <!-- begin-user-doc -->
+   * This implementation returns null;
+   * returning a non-null result will terminate the switch.
+   * <!-- end-user-doc -->
+   * @param object the target of the switch.
+   * @return the result of interpreting the object as an instance of '<em>Expr New Object</em>'.
+   * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
+   * @generated
+   */
+  public T caseExprNewObject(ExprNewObject object)
+  {
+    return null;
+  }
+
+  /**
+   * Returns the result of interpreting the object as an instance of '<em>Expr This</em>'.
+   * <!-- begin-user-doc -->
+   * This implementation returns null;
+   * returning a non-null result will terminate the switch.
+   * <!-- end-user-doc -->
+   * @param object the target of the switch.
+   * @return the result of interpreting the object as an instance of '<em>Expr This</em>'.
+   * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
+   * @generated
+   */
+  public T caseExprThis(ExprThis object)
   {
     return null;
   }
