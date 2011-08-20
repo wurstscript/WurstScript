@@ -16,6 +16,7 @@ import com.google.inject.Inject;
 import de.peeeq.pscript.PUtil.PUtil;
 import de.peeeq.pscript.attributes.AttrExprType;
 import de.peeeq.pscript.attributes.infrastructure.AttributeManager;
+import de.peeeq.pscript.pscript.ClassDef;
 import de.peeeq.pscript.pscript.Expr;
 import de.peeeq.pscript.pscript.ExprFunctioncall;
 import de.peeeq.pscript.pscript.ExprIdentifier;
@@ -26,6 +27,7 @@ import de.peeeq.pscript.pscript.impl.ExprMemberRightImpl;
 import de.peeeq.pscript.types.PScriptTypeVoid;
 import de.peeeq.pscript.types.PsciptFuncType;
 import de.peeeq.pscript.types.PscriptType;
+import de.peeeq.pscript.types.PscriptTypeClass;
 import de.peeeq.pscript.utils.NotNullList;
 
 /**
@@ -41,7 +43,7 @@ public class PscriptScopeProvider extends AbstractDeclarativeScopeProvider {
 	AttributeManager attributeManager;
 
 
-
+/*
 	public IScope scope_ClassMember(EObject context, EReference ref) {
 		System.out.println("scope_ClassMember");
 		System.out.println("context =  " + context);
@@ -71,7 +73,7 @@ public class PscriptScopeProvider extends AbstractDeclarativeScopeProvider {
 		Expr left = e.getLeft();
 		ExprMemberRight right = e.getMessage();
 		PscriptType leftType = attributeManager.getAttValue(AttrExprType.class, left);
-
+		
 		boolean complete = false;
 		PscriptType[] paramTypes = new PscriptType[1];
 		if (right != null) {
@@ -86,12 +88,44 @@ public class PscriptScopeProvider extends AbstractDeclarativeScopeProvider {
 			}
 		}
 		paramTypes[0] = leftType;
-
-		IScope result = new ClassMemberScope(attributeManager, scope, complete, paramTypes);
-		System.out.println("result = " + result);
-		return result;
-
+		
+		if (leftType instanceof PscriptTypeClass) {
+			PscriptTypeClass receiverClassType = (PscriptTypeClass) leftType;
+			ClassDef classDef = receiverClassType.getClassDef();
+			return new ClassMemberScope2(attributeManager, classDef, scope, complete, paramTypes);
+		}
+		
+		
+		// else return the default scope:
+		return scope;
 	}
+*/	
+	
+//	private IScope helper_exprMember(IScope scope, ExprMember e) {
+//		Expr left = e.getLeft();
+//		ExprMemberRight right = e.getMessage();
+//		PscriptType leftType = attributeManager.getAttValue(AttrExprType.class, left);
+//
+//		boolean complete = false;
+//		PscriptType[] paramTypes = new PscriptType[1];
+//		if (right != null) {
+//			if (right.getParams() != null) {
+//				paramTypes = new  PscriptType[right.getParams().size() + 1];
+//				int i = 1;
+//				for (Expr arg : right.getParams()) {
+//					PscriptType argType = attributeManager.getAttValue(AttrExprType.class, arg);
+//					paramTypes[i] = argType;
+//					i++;
+//				}
+//			}
+//		}
+//		paramTypes[0] = leftType;
+//
+//		IScope result = new ClassMemberScope(attributeManager, scope, complete, paramTypes);
+//		System.out.println("result = " + result);
+//		return result;
+//
+//	}
 
 
 	//	public IScope scope_FuncDef(EObject context, EReference ref) {

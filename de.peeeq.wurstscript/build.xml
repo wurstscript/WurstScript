@@ -1,0 +1,87 @@
+<project name="Compiler" default="compile" basedir=".">
+	<property name="root" location="." />
+	<property name="lib" location="./lib" />
+	<property name="src" location="./src" />
+	<property name="srcgen" location="./src-gen" />
+	<property name="build" location="./build" />
+	<property name="grammarspec" location="./parserspec/wurstscript.cup" />
+	<property name="scannerspec" location="./parserspec/wurstscript.flex" />
+	<property name="javacup" location="${lib}/java-cup.jar" />
+	<property name="jflex" location="${lib}/jflex.jar" />
+	<property name="katja" location="${lib}/katja.jar" />
+	<property name="katjaspec" location="./parserspec/wurstscript.katja" />
+
+	<path id="classpath">
+		<fileset dir="${lib}">
+			<include name="**/*.jar"/>
+		</fileset>
+	</path>
+
+	<target name="checkForChanges" >
+		<uptodate targetfile="${srcgen}/de/peeeq/wurstscript/parser/WurstScriptScanner.java" srcfile="${scannerspec}" property="jflexNotChanged"/>
+		<uptodate targetfile="${srcgen}/de/peeeq/wurstscript/parser/parser.java" srcfile="${grammarspec}" property="cupNotChanged"/>
+		<uptodate targetfile="${srcgen}/de/peeeq/wurstscript/ast/WPos.java" srcfile="${katjaspec}" property="katjaNotChanged"/>
+	</target>
+
+
+	<target name="cup" depends="checkForChanges" unless="cupNotChanged">
+		<java jar="${javacup}" fork="true" failonerror="true">
+			<!--<arg value="-expect" />
+			<arg value="2" />-->
+			<arg value="-destdir" />
+			<arg value="${srcgen}/de/peeeq/wurstscript/parser" />
+			<arg value="-symbols" />
+			<arg value="TokenType" />
+			<arg value="${grammarspec}" />
+		</java>
+		<!--<move file="TokenType.java" todir="${src}/minijava/parser/" />-->
+		
+	</target>
+
+	<target name="jflex" depends="cup, checkForChanges" unless="jflexNotChanged">
+		<java jar="${jflex}" fork="true" failonerror="true">
+			<arg value="-d" />
+			<arg value="${srcgen}/de/peeeq/wurstscript/parser" />
+			<arg value="${scannerspec}" />
+			<classpath refid="classpath" />
+		</java>
+		<!-- <move file="MiniJavaScanner.java" todir="${srcgen}/de/peeeq/wurstscript/parser/" /> -->
+		
+	</target>
+
+	<target name="katja" depends="checkForChanges" unless="katjaNotChanged">
+		<delete dir="${srcgen}/de/peeeq/wurstscript/ast/" />
+		<java jar="${katja}" fork="true" failonerror="true">
+			<arg value="-b" />
+			<arg value="java" />
+			<arg value="-o" />
+			<arg value="-S" />
+			<arg value="-d" />
+			<arg value="${srcgen}" />
+			<arg value="${katjaspec}" />
+			<classpath refid="classpath" />
+		</java>
+		<!--<move file="AST.jar" todir="${lib}" />-->
+	</target>
+
+
+	<target name="compile" depends="cup, jflex, katja">
+		<!--<mkdir dir="${build}" />
+		<javac srcdir="${src}" destdir="${build}" includeantruntime="false">
+			<classpath refid="classpath"/>
+		</javac>
+		-->
+	</target>
+	
+	<!--
+	<target name="clean">
+		
+		<delete dir="${build}" />
+		<delete file="${lib}/AST.jar" />
+		<delete file="${lib}/MIPS.jar" />
+		<delete file="${src}/MiniJavaScanner.java" />
+		<delete file="${src}/TokenType.java" />
+		<delete file="${src}/parser.java" />
+	</target>
+	-->
+</project>

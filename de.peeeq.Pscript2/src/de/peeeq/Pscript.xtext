@@ -390,7 +390,7 @@ terminal STRING	:
 		
 // multiline comments changed to consume whitespace to make the javadoc work		
 terminal ML_COMMENT	: '/*' -> '*/' (' '|'\t'|'\n'|'\r')*;  
-terminal SL_COMMENT 	: ('//' !('\n'|'\r')* ('\r'? '\n')?) 
+terminal SL_COMMENT 	: ('//' !('\n'|'\r')*) 
 ;
 
 terminal WS			: ('\\\n\r' | '\\\n' | '\\\r' | '\\\r\n'|' '|'\t')+;

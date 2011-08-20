@@ -58,6 +58,7 @@ class Entry<K,V> {
 
 class ImmutableMapEmpty<K,V> extends ImmutableMap<K, V> {
 
+	@SuppressWarnings("rawtypes")
 	static final ImmutableMapEmpty instance = new ImmutableMapEmpty();
 	
 	@Override
@@ -89,6 +90,7 @@ class ImmutableHashMap<K,V> extends ImmutableMap<K, V> {
 	
 	private ImmutableList<Entry<K,V>>[] table;
 	
+	@SuppressWarnings("unchecked")
 	public ImmutableHashMap(K key, V val,
 			ImmutableMap<K, V> map) {
 		

@@ -1,0 +1,449 @@
+package de.peeeq.wurstscript.parser;
+
+import java_cup.runtime.*;
+import de.peeeq.wurstscript.ast.*;
+
+
+action code {: 
+
+	private WPos pos(int left, int right) {
+		return AST.WPos(parser.filename, left, right);
+	}
+
+:};
+
+parser code {: 
+	protected String filename = "";
+
+:};
+
+terminal Integer INTEGER_LITERAL;
+terminal String IDENTIFIER;
+terminal String STRING_LITERAL;
+terminal Double REAL_LITERAL;
+terminal 
+	TRUE, FALSE, 
+	EQEQ, GTEQ, LTEQ, NOTEQ, GT, LT,
+	EQ,  
+	AND, OR, NOT,
+	PLUS, MINUS, UMINUS, 
+	MULT, DIV_REAL, DIV_INT, MOD_REAL, MOD_INT,
+	DOT, 
+	LPAR, RPAR, 
+	LSQUARE, RSQUARE,
+	LBRACK, RBRACK, 
+	COMMA,   
+	NL,
+	STATIC, PACKAGE, RETURNS,FUNCTION, VAL, PUBLIC, PRIVATE, IMPORT, NATIVETYPE, INIT, NATIVE, INTERFACE,
+	IMPLEMENTS, ARRAY, IF, ELSE, WHILE, RETURN, CLASS, NEW, NULL, EXTENDS, THIS, CONSTRUCT, ONDESTROY;
+
+non terminal Arguments Arguments;
+non terminal Arguments ArgumentRest;
+non terminal ArraySizes ArraySizes;
+non terminal ClassDef ClassDef;
+non terminal ClassMember ClassMember;
+non terminal ClassSlots ClassSlots;	
+non terminal ClassSlot ClassSlot;
+non terminal ConstructorDef ConstructorDef;
+non terminal CompilationUnit CompilationUnit;
+non terminal WEntity Entity;
+non terminal Expr Expr;
+non terminal Expr ExprAtomic;
+non terminal ExprBinary ExprBinary;
+non terminal ExprMemberMethod ExprMemberMethod;
+non terminal ExprMemberVar ExprMemberVar;
+non terminal ExprUnary ExprUnary;
+non terminal ExprFunctionCall ExprFunctionCall;
+non terminal ExprNewObject ExprNewObject;
+non terminal FuncDef FuncDef;
+non terminal FuncSignature FuncSignature;
+non terminal InitBlock InitBlock;
+non terminal Indexes Indexes;
+non terminal WImport Import;
+non terminal LocalVarDef LocalVarDef;
+non terminal MemberDef MemberDef;	
+non terminal NativeFunc NativeFunc;
+non terminal NativeType NativeType;
+non terminal Newlines;
+non terminal OnDestroyDef OnDestroyDef; 
+non terminal StmtCall StmtCall;
+non terminal StmtDecRefCount StmtDecRefCount;
+non terminal StmtDestroy StmtDestroy;
+non terminal StmtIf StmtIf;
+non terminal StmtIncRefCount StmtIncRefCount;
+non terminal StmtReturn StmtReturn;
+non terminal StmtSet StmtSet;
+non terminal StmtWhile StmtWhile;	
+non terminal TypeDef TypeDef;
+non terminal TypeExpr TypeExpr;
+non terminal GlobalVarDef VarDef;
+non terminal WEntities Entities;
+non terminal WEntitiy Entitiy;
+non terminal WImports Imports;
+non terminal WPackage PackageDeclaration;
+non terminal WParameter Parameter;
+non terminal WParameters Parameters;	
+non terminal WParameters OtherParameters;
+non terminal WStatement Statement;
+non terminal WStatements ElseStatements;
+non terminal WStatements Statements;	
+
+precedence left		OR;
+precedence left		AND;
+precedence left 	NOT;
+precedence left     PLUS,MINUS;
+precedence left     MULT, DIV_REAL, DIV_INT, MOD_REAL, MOD_INT;
+precedence left		UMINUS;
+precedence right    DOT;
+precedence nonassoc EQEQ, GTEQ, LTEQ, EQ, NOTEQ, GT, LT;
+precedence left 	NL;
+precedence right	NEW;
+
+start with CompilationUnit;
+
+// zero or more newlines
+Newlines ::= 
+	  NL Newlines 
+	| 
+;
+
+// one file = 1 or more packages
+CompilationUnit ::=
+	Newlines PackageDeclaration:p CompilationUnit:c
+		{: RESULT = c.appFront(p); :}
+	| Newlines
+		{: RESULT = AST.CompilationUnit(); :}
+;
+
+
+// a package
+PackageDeclaration ::=
+		PACKAGE:x IDENTIFIER:name LBRACK NL
+			Imports:imports
+			Entities:entities
+		RBRACK
+		{: RESULT = AST.WPackage(pos(xleft, xright), name, imports, entities); :}
+;		
+		
+// 0 or more imports		
+Imports ::=
+	  Newlines Import:i Imports:imports 
+	  	{: RESULT = imports.appFront(i); :} 		
+	| Newlines
+		{: RESULT = AST.WImports(); :}
+;
+
+Import ::=
+	IMPORT:x IDENTIFIER:i NL
+		{: RESULT = AST.WImport(pos(xleft, xright), i); :}
+;
+
+Entities ::=
+	  Newlines Entity:x Entities:xs
+	  	{: RESULT = xs.appFront(x); :}
+	| Newlines
+		{: RESULT = AST.WEntities(); :}
+;
+
+Entity ::=
+	NATIVETYPE:x IDENTIFIER:name EXTENDS TypeExpr:extendsName NL
+		{: RESULT = AST.NativeType(pos(xleft, xright), name, extendsName); :}
+	| NATIVETYPE:x IDENTIFIER:name NL
+		{: RESULT = AST.NativeType(pos(xleft, xright), name, AST.NoTypeExpr()); :}
+	| FuncDef:x
+		{: RESULT = x; :}
+	| VarDef:x
+		{: RESULT = x; :}
+	| INIT:x LBRACK NL Statements:body RBRACK NL
+		{: RESULT = AST.InitBlock(pos(xleft, xright), body); :}
+	| NATIVE:x FuncSignature:sig NL
+		{: RESULT = AST.NativeFunc(pos(xleft, xright), sig); :}
+	| ClassDef:x
+		{: RESULT = x; :}
+;		
+
+ClassDef ::=
+	CLASS:x IDENTIFIER:name LBRACK NL ClassSlots:slots RBRACK NL
+		{: RESULT = AST.ClassDef(pos(xleft, xright), name, false, slots); :}
+;
+
+ClassSlots ::=
+	ClassSlot:x ClassSlots:xs
+		{: RESULT = xs.appFront(x); :}
+	| 
+		{: RESULT = AST.ClassSlots(); :}
+;
+
+ClassSlot ::=
+	CONSTRUCT:x LPAR Parameters:params RPAR LBRACK NL Statements:body RBRACK NL
+		{: RESULT = AST.ConstructorDef(pos(xleft, xright), params, body); :}
+	| ONDESTROY:x LBRACK NL Statements:body RBRACK NL
+		{: RESULT = AST.OnDestroyDef(pos(xleft, xright), body); :}
+	| VarDef:x
+		{: RESULT = x; :}
+	| FuncDef:x
+		{: RESULT = x; :} 
+;
+
+FuncDef ::=
+	FUNCTION:x FuncSignature:sig LBRACK NL Statements:body RBRACK
+		{: RESULT = AST.FuncDef(pos(xleft, xright), sig, body); :}
+;
+
+FuncSignature ::=
+	IDENTIFIER:name LPAR Parameters:parameters RPAR RETURNS TypeExpr:typ
+		{: RESULT = AST.FuncSignature(pos(nameleft, nameright), name, parameters, typ); :}
+	| IDENTIFIER:name LPAR Parameters:parameters RPAR
+		{: RESULT = AST.FuncSignature(pos(nameleft, nameright), name, parameters, AST.NoTypeExpr()); :}
+;
+
+Parameters ::=
+	Parameter:x OtherParameters:xs 
+		{: RESULT = xs.appFront(x); :}
+	|
+		{: RESULT = AST.WParameters(); :}
+;
+
+OtherParameters ::=
+	COMMA Parameter:x OtherParameters:xs 
+		{: RESULT = xs.appFront(x); :}
+	|
+		{: RESULT = AST.WParameters(); :}
+;
+
+Parameter ::=
+	TypeExpr:typ IDENTIFIER:name
+		{: RESULT = AST.WParameter(pos(typleft, typright), typ, name); :}
+;
+
+TypeExpr ::=
+	IDENTIFIER:name
+		{: RESULT = AST.TypeExpr(pos(nameleft, nameright), name, false, AST.ArraySizes()); :}
+	| IDENTIFIER:name ARRAY ArraySizes:sizes
+		{: RESULT = AST.TypeExpr(pos(nameleft, nameright), name, true, sizes); :}
+;
+
+ArraySizes ::= 
+	LSQUARE Expr:x RSQUARE ArraySizes:xs
+		{: RESULT = xs.appFront(x); :}
+	|
+		{: RESULT = AST.ArraySizes(); :}
+;
+
+VarDef ::=
+	VAL:x IDENTIFIER:name EQ Expr:i NL
+		{: RESULT = AST.GlobalVarDef(pos(xleft, xright), true, AST.NoTypeExpr(), name, i); :}
+	| VAL:x TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
+		{: RESULT = AST.GlobalVarDef(pos(xleft, xright), true, typ, name, i); :}
+	| TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
+		{: RESULT = AST.GlobalVarDef(pos(typleft, typright), false, typ, name, i); :}
+	| TypeExpr:typ IDENTIFIER:name NL
+		{: RESULT = AST.GlobalVarDef(pos(typleft, typright), false, typ, name, AST.NoExpr()); :}
+;
+
+Statements ::=
+	Newlines Statement:x Statements:xs
+		{: RESULT = xs.appFront(x); :}
+	| Newlines
+		{: RESULT = AST.WStatements(); :}
+;
+
+Statement ::=
+	StmtIf:x 
+		{: RESULT = x; :}
+	| StmtWhile:x
+		{: RESULT = x; :} 
+	| LocalVarDef:x
+		{: RESULT = x; :} 
+	| StmtSet:x
+		{: RESULT = x; :}
+	| StmtCall:x
+		{: RESULT = x; :}
+	| StmtReturn:x
+		{: RESULT = x; :} 
+	| StmtDestroy:x
+		{: RESULT = x; :} 
+	| StmtIncRefCount:x
+		{: RESULT = x; :} 
+	| StmtDecRefCount:x
+		{: RESULT = x; :}
+	| error:x NL
+		{: RESULT = AST.StmtErr(pos(xleft, xright)); :}
+;
+
+StmtIf ::=
+	IF:x Expr:cond LBRACK NL Statements:thenStatements RBRACK NL
+		{: RESULT = AST.StmtIf(pos(xleft, xright), cond, thenStatements, AST.WStatements()); :}
+	| IF:x Expr:cond LBRACK NL Statements:thenStatements RBRACK ELSE ElseStatements:elseStatements
+		{: RESULT = AST.StmtIf(pos(xleft, xright), cond, thenStatements, elseStatements); :}
+;
+
+ElseStatements ::= 
+	StmtIf:x 
+		{: RESULT = AST.WStatements(x); :}
+	| LBRACK Statements:x RBRACK NL
+		{: RESULT = x; :}
+;
+
+StmtWhile ::=
+	WHILE:x Expr:cond LBRACK NL Statements:body RBRACK NL
+		{: RESULT = AST.StmtWhile(pos(xleft, xright), cond, body); :}
+;
+
+LocalVarDef ::=
+	VAL:x IDENTIFIER:name EQ Expr:i NL
+		{: RESULT = AST.LocalVarDef(pos(xleft, xright), true, AST.NoTypeExpr(), name, i); :}
+	| VAL:x TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
+		{: RESULT = AST.LocalVarDef(pos(xleft, xright), true, typ, name, i); :}
+	| TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
+		{: RESULT = AST.LocalVarDef(pos(typleft, typright), false, typ, name, i); :}
+	| TypeExpr:typ IDENTIFIER:name NL
+		{: RESULT = AST.LocalVarDef(pos(typleft, typright), false, typ, name, AST.NoExpr()); :}
+;
+
+StmtSet ::= 
+	Expr:left EQ Expr:right NL
+		{: RESULT = AST.StmtSet(left.source(), left, AST.OpAssign(),  right); :}
+;
+
+StmtCall ::=
+	ExprMemberMethod:x NL
+	  	{: RESULT = x; :} 
+	| ExprFunctionCall:x NL
+	  	{: RESULT = x; :} 
+	| ExprNewObject:x NL
+	  	{: RESULT = x; :}
+;
+
+
+
+Expr ::= 
+	  ExprBinary:x
+	  	{: RESULT = x; :}
+	| ExprUnary:x
+	  	{: RESULT = x; :}
+	| ExprMemberVar:x
+	  	{: RESULT = x; :}
+	| ExprMemberMethod:x
+	  	{: RESULT = x; :}
+	| ExprFunctionCall:x
+	  	{: RESULT = x; :}
+	| ExprNewObject:x
+	  	{: RESULT = x; :}
+	| ExprAtomic:x
+	  	{: RESULT = x; :}
+;
+	
+ExprMemberVar ::=
+	Expr:left DOT IDENTIFIER:name
+		{: RESULT = AST.ExprMemberVar(left.source(), left, name); :}	
+;
+
+ExprMemberArrayVar ::=
+	Expr:left DOT IDENTIFIER:name Indexes:indexes
+		{: RESULT = AST.ExprMemberArrayVar(left.source(), left, name, indexes); :}
+;
+
+ExprMemberMethod ::=
+	Expr:left DOT IDENTIFIER:name LPAR Arguments:args RPAR
+		{: RESULT = AST.ExprMemberMethod(left.source(), left, name, args); :}
+;
+
+
+ExprAtomic ::= 
+	  INTEGER_LITERAL:i
+		{: RESULT = AST.ExprIntVal(pos(ileft, iright), i); :}
+	| STRING_LITERAL:s
+		{: RESULT = AST.ExprStringVal(pos(sleft, sright), s); :}
+	|IDENTIFIER:name
+		{: RESULT = AST.ExprVarAccess(pos(nameleft, nameright), name); :}
+	| IDENTIFIER:name Indexes:Indexes
+		{: RESULT = AST.ExprVarArrayAccess(pos(nameleft, nameright), name, Indexes); :}
+	| LPAR Expr:e RPAR
+		{: RESULT = e; :}
+	| TRUE:x
+		{: RESULT = AST.ExprBoolVal(pos(xleft, xright), true); :} 
+	| FALSE:x
+		{: RESULT = AST.ExprBoolVal(pos(xleft, xright), false); :}
+	| THIS:x
+		{: RESULT = AST.ExprThis(pos(xleft, xright)); :}
+	| FUNCTION:x IDENTIFIER:name
+		{: RESULT = AST.ExprFuncRef(pos(xleft, xright), name); :}
+	| REAL_LITERAL:x
+		{: RESULT = AST.ExprRealVal(pos(xleft, xright), x); :}
+;	
+
+ExprNewObject ::=
+ 	NEW:x IDENTIFIER:name LPAR Arguments:args RPAR
+		{: RESULT = AST.ExprNewObject(pos(xleft, xright), name, args); :}
+;
+
+Indexes ::=
+	LSQUARE Expr:x RSQUARE Indexes:xs
+		{: RESULT = xs.appFront(x); :}
+	| LSQUARE Expr:x RSQUARE
+		{: RESULT = AST.Indexes(x); :}
+;
+
+
+
+Arguments ::=
+	Expr:x ArgumentRest:xs
+		{: RESULT = xs.appFront(x); :}
+	|
+		{: RESULT = AST.Arguments(); :}
+;
+
+ArgumentRest ::=
+	COMMA Expr:x ArgumentRest:xs
+		{: RESULT = xs.appFront(x); :}
+	|
+		{: RESULT = AST.Arguments(); :}
+;
+
+
+
+ExprBinary ::= 
+	  Expr:left OR Expr:right
+		{: RESULT = AST.ExprBinary(left.source(), left, AST.OpOr(), right); :}
+	| Expr:left AND Expr:right
+		{: RESULT = AST.ExprBinary(left.source(), left, AST.OpAnd(), right); :}
+	| Expr:left PLUS Expr:right
+		{: RESULT = AST.ExprBinary(left.source(), left, AST.OpPlus(), right); :}
+	| Expr:left MINUS Expr:right
+		{: RESULT = AST.ExprBinary(left.source(), left, AST.OpMinus(), right); :}
+	| Expr:left MULT Expr:right
+		{: RESULT = AST.ExprBinary(left.source(), left, AST.OpMult(), right); :}
+	| Expr:left DIV_REAL Expr:right
+		{: RESULT = AST.ExprBinary(left.source(), left, AST.OpDivReal(), right); :}
+	| Expr:left DIV_INT Expr:right
+		{: RESULT = AST.ExprBinary(left.source(), left, AST.OpDivInt(), right); :}
+	| Expr:left MOD_REAL Expr:right
+		{: RESULT = AST.ExprBinary(left.source(), left, AST.OpModReal(), right); :}
+	| Expr:left MOD_INT Expr:right
+		{: RESULT = AST.ExprBinary(left.source(), left, AST.OpModInt(), right); :}
+	| Expr:left EQEQ Expr:right
+		{: RESULT = AST.ExprBinary(left.source(), left, AST.OpEquals(), right); :}
+	| Expr:left GTEQ Expr:right
+		{: RESULT = AST.ExprBinary(left.source(), left, AST.OpGreaterEq(), right); :}
+	| Expr:left LTEQ Expr:right
+		{: RESULT = AST.ExprBinary(left.source(), left, AST.OpLessEq(), right); :}
+	| Expr:left LT Expr:right
+		{: RESULT = AST.ExprBinary(left.source(), left, AST.OpLess(), right); :}
+	| Expr:left GT Expr:right
+		{: RESULT = AST.ExprBinary(left.source(), left, AST.OpGreater(), right); :}
+	| Expr:left NOTEQ Expr:right
+		{: RESULT = AST.ExprBinary(left.source(), left, AST.OpUnequals(), right); :}
+;
+
+ExprUnary ::=
+	NOT:x Expr:right
+		{: RESULT = AST.ExprUnary(pos(xleft, xright), AST.OpNot(), right); :}
+	| MINUS:x Expr:right
+		{: RESULT = AST.ExprUnary(pos(xleft, xright), AST.OpMinus(), right); :}
+;
+
+ExprFunctionCall ::=
+	IDENTIFIER:name LPAR Arguments:args RPAR
+		{: RESULT = AST.ExprFunctionCall(pos(nameleft, nameright), name, args); :}
+;

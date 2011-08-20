@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.validation.Check;
+import org.eclipse.xtext.validation.CheckType;
 
 import com.google.inject.Inject;
 
@@ -46,7 +47,7 @@ public class PscriptJavaValidator extends AbstractPscriptJavaValidator {
 	@Inject
 	private AttributeManager attrManager;
 
-	@Check
+	@Check(CheckType.EXPENSIVE)
 	public void checkCompilationUnit(Program p) {
 		// if everything is checked we better reset the cache to caching
 		// problems

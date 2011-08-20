@@ -1,0 +1,161 @@
+
+specification AST
+
+backend java {
+    package de.peeeq.wurstscript.ast
+    import java.lang.String
+    import java.lang.Integer
+    import java.lang.Double
+	import java.lang.Boolean
+}
+
+external Integer
+external Double
+external String
+external Boolean
+
+root CompilationUnit Pos
+
+WPos ( String file, Integer line, Integer column ) // TODO use Wpos to track positions
+
+CompilationUnit * WPackage
+
+WPackage(WPos source, String name, WImports imports, WEntities elements)
+
+WImports * WImport
+WEntities * WEntity
+
+WImport(WPos source, String packagename)
+
+WEntity = 
+	 TypeDef
+	|FuncDef
+	|GlobalVarDef
+	|InitBlock (WPos source, WStatements body)
+	|NativeFunc(WPos source, FuncSignature signature)
+
+
+	
+	
+OptTypeExpr = NoTypeExpr() | TypeExpr
+OptExpr = NoExpr() | Expr
+	
+TypeDef = 
+	 NativeType(WPos source, String name, OptTypeExpr typ)
+	|ClassDef(WPos source, String name, Boolean unmanaged, ClassSlots slots)
+	
+ClassSlots * ClassSlot
+
+ClassSlot = 
+	  ConstructorDef(WPos source, WParameters params, WStatements body)
+	| OnDestroyDef(WPos source, WStatements body) 
+	| ClassMember
+	
+ClassMember = 
+	  GlobalVarDef
+	| FuncDef
+
+
+GlobalVarDef(WPos source, Boolean isConstant, OptTypeExpr typ, String name, OptExpr initialExpr)
+LocalVarDef(WPos source, Boolean constant, OptTypeExpr typ, String name, OptExpr initialExpr) 
+
+	
+FuncDef(WPos source, FuncSignature signature, WStatements body)
+	
+TypeExpr(WPos source, String typeName, Boolean isArray, ArraySizes sizes)
+
+ArraySizes * Expr
+	
+FuncSignature(WPos source, String name, WParameters parameters, OptTypeExpr typ)	
+
+WParameters * WParameter
+WParameter(WPos source, TypeExpr typ, String name)
+	
+WStatements * WStatement
+	
+WStatement	=
+	  StmtIf(WPos source, Expr cond, WStatements thenBlock, WStatements elseBlock)
+	| StmtWhile(WPos source, Expr cond, WStatements body)
+	| LocalVarDef
+	| StmtSet(WPos source, Expr left, OpAssignment op, Expr right)
+	| StmtCall
+	| StmtReturn(WPos source, Expr obj)
+	| StmtDestroy(WPos source, Expr obj)
+	| StmtIncRefCount(WPos source, Expr obj) 
+	| StmtDecRefCount(WPos source, Expr obj)
+	| StmtErr(WPos source)
+	
+
+OpAssignment = OpAssign() // TODO += -= *= /= ...
+
+StmtCall = ExprMemberMethod | ExprFunctionCall | ExprNewObject
+
+
+Expr = 
+	  ExprBinary(WPos source, Expr left, OpBinary op, Expr right)
+	| ExprUnary(WPos source, OpUnary op, Expr right)
+	| ExprMemberVar(WPos source, Expr left, String varName)
+	| ExprMemberArrayVar(WPos source, Expr left, String varName, Indexes indexes)
+	| ExprMemberMethod(WPos source, Expr left, String funcName, Arguments args)
+	| ExprFunctionCall(WPos source, String funcName, Arguments args)
+	| ExprNewObject(WPos source, String typeName, Arguments args)
+	| ExprAtomic
+	
+	
+ExprAtomic = 
+	  ExprIntVal(WPos source, Integer val)
+	| ExprRealVal(WPos source, Double val)
+	| ExprStringVal(WPos source, String val)
+	| ExprBoolVal(WPos source, Boolean val)
+	| ExprFuncRef(WPos source, String funcName)
+	| ExprVarAccess(WPos source, String varName)
+	| ExprVarArrayAccess(WPos source, String varName, Indexes indexes)
+	| ExprThis(WPos source)
+	
+Indexes * Expr
+Arguments * Expr
+	
+	
+OpBinary = 
+	  OpOr() 
+	| OpAnd()
+	| OpEquals()
+	| OpUnequals()
+	| OpLessEq()
+	| OpLess()
+	| OpGreaterEq()
+	| OpGreater()
+	| OpPlus()
+	| OpMinus()
+	| OpMult()
+	| OpDivReal()
+	| OpModReal()
+	| OpModInt()
+	| OpDivInt()
+	
+OpUnary = 
+	  OpNot()
+	| OpMinus
+	
+	
+// auxiliary types:
+
+// a reference to a variable, needs a varName:String attribute
+VarRef = ExprVarArrayAccess | ExprVarAccess | ExprMemberVar | ExprMemberArrayVar
+
+VarDef = 
+	GlobalVarDef
+	| LocalVarDef
+	| WParameter
+
+// has funcName:String attribute
+FuncRef = ExprFuncRef | ExprMemberMethod | ExprFunctionCall
+	
+FunctionDefinition = FuncDef | NativeFunc	
+	
+WScope = WPackage | ClassDef | FuncDef
+	
+TypeRef = TypeExpr | ExprNewObject
+
+	
+	

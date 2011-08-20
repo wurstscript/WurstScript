@@ -1,0 +1,17 @@
+package test {
+	
+	nativetype string
+	nativetype int
+	
+	native testFail(string msg)
+	
+	native testSuccess()
+
+	function runTest() {
+		if -3 < 0 {
+			testSuccess()
+		} else {
+			testFail("defect in unary operation")
+		}
+	}
+}		

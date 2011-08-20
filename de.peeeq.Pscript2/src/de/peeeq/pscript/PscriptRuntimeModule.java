@@ -26,6 +26,11 @@ public class PscriptRuntimeModule extends de.peeeq.pscript.AbstractPscriptRuntim
 		return PscriptQualifiedNameProvider.class;
 	}
 	
+	@Override
+	public Class<? extends org.eclipse.xtext.scoping.IScopeProvider> bindIScopeProvider() {
+		return de.peeeq.pscript.scoping.PscriptScopeProvider2.class;
+	}
+	
 	 @Override
 	    public void configure(Binder binder) {
 	        super.configure(binder);

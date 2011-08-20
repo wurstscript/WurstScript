@@ -12883,7 +12883,7 @@ RULE_STRING : '"' ('\\' ('b'|'t'|'n'|'f'|'r'|'"'|'\''|'\\')|~(('\\'|'"')))* '"';
 
 RULE_ML_COMMENT : '/*' ( options {greedy=false;} : . )*'*/' (' '|'\t'|'\n'|'\r')*;
 
-RULE_SL_COMMENT : '//' ~(('\n'|'\r'))* ('\r'? '\n')?;
+RULE_SL_COMMENT : '//' ~(('\n'|'\r'))*;
 
 RULE_WS : ('\\\n\r'|'\\\n'|'\\\r'|'\\\r\n'|' '|'\t')+;
 
