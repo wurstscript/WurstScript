@@ -4,17 +4,17 @@ function test_runTest takes nothing returns #unknown
 local boolean ifCondition
 local integer leftOperand
 local integer rightOperand
-local integer leftOperand8523
-local integer rightOperand3748
+local integer leftOperand7780
+local integer rightOperand1081
 local string testFail_param0
 set leftOperand = 10
 set rightOperand = 5
 set ifCondition = leftOperand == rightOperand
 if ifCondition then
 else
-set leftOperand8523 = 5
-set rightOperand3748 = 5
-set ifCondition = leftOperand8523 == rightOperand3748
+set leftOperand7780 = 5
+set rightOperand1081 = 5
+set ifCondition = leftOperand7780 == rightOperand1081
 endif
 if ifCondition then
 call testSuccess()

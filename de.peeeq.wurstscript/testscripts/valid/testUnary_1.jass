@@ -7,7 +7,7 @@ local integer temp
 local integer rightOperand
 local string testFail_param0
 set temp = 3
-set leftOperand =  minus temp
+set leftOperand =  - temp
 set rightOperand = 0
 set ifCondition = leftOperand < rightOperand
 if ifCondition then
