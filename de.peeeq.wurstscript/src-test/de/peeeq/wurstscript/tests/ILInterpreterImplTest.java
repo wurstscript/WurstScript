@@ -68,6 +68,7 @@ public class ILInterpreterImplTest {
 				e.printStackTrace();
 			}
 			System.out.println();
+			Process p = Runtime.getRuntime().exec("lib/pjass.exe common.j blizzard.j " + file.getPath());
 		}
 		
 		System.out.println(testsFailed + " of " + testCount + " Tests failed.");

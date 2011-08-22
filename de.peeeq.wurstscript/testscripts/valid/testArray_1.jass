@@ -3,25 +3,25 @@ integer array(dimensions = 0) test_blub
 endglobals
 function test_runTest takes nothing returns #unknown
 local integer index
-local integer index7111
+local integer index1184
 local integer indexM
 local integer temp
 local boolean ifCondition
 local integer leftOperand
-local integer index4700
-local integer index6080
-local integer indexM3111
+local integer index540
+local integer index5452
+local integer indexM2866
 local integer rightOperand
 local string testFail_param0
-set index7111 = 5
-set indexM = index7111 mult 1
+set index1184 = 5
+set indexM = index1184 * 1
 set index = indexM
 set temp = 3
 set blub[index] = temp
-set index6080 = 5
-set indexM3111 = index6080 mult 1
-set index4700 = indexM3111
-set leftOperand = blub[index4700]
+set index5452 = 5
+set indexM2866 = index5452 * 1
+set index540 = indexM2866
+set leftOperand = blub[index540]
 set rightOperand = 3
 set ifCondition = leftOperand == rightOperand
 if ifCondition then

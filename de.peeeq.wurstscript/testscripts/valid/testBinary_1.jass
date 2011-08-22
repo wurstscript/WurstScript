@@ -3,15 +3,15 @@ endglobals
 function test_runTest takes nothing returns #unknown
 local boolean ifCondition
 local integer leftOperand
-local integer leftOperand4264
+local integer leftOperand482
 local integer rightOperand
-local integer rightOperand9600
+local integer rightOperand912
 local string testFail_param0
-set leftOperand4264 = 3
+set leftOperand482 = 3
 set rightOperand = 7
-set leftOperand = leftOperand4264 plus rightOperand
-set rightOperand9600 = 10
-set ifCondition = leftOperand == rightOperand9600
+set leftOperand = leftOperand482 + rightOperand
+set rightOperand912 = 10
+set ifCondition = leftOperand == rightOperand912
 if ifCondition then
 call testSuccess()
 else
