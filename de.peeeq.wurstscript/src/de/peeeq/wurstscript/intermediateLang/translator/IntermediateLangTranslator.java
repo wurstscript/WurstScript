@@ -123,6 +123,7 @@ public class IntermediateLangTranslator {
 	private Attributes attr;
 	private Map<FunctionDefinitionPos, ILfunction> functions = new HashMap<FunctionDefinitionPos, ILfunction>();
 	private Map<VarDefPos, ILvar> vars = new HashMap<VarDefPos, ILvar>();
+	private long varUniqueNameCounter = 0;
 	
 	public IntermediateLangTranslator(CompilationUnitPos cu, Attributes attr) {
 		this.cu = cu;
@@ -290,8 +291,7 @@ public class IntermediateLangTranslator {
 
 			@Override
 			public List<ILStatement> CaseLocalVarDefPos(LocalVarDefPos term) throws NE {
-				PscriptType typ = attr.varDefType.get(term);
-				ILvar v = new ILvar(term.name().term(), typ);
+				ILvar v = getILvarForVarDef(term);
 				func.getLocals().add(v);
 
 				if (term.initialExpr() instanceof ExprPos) {
@@ -452,8 +452,8 @@ public class IntermediateLangTranslator {
 		String varName = name;
 		if (func.getLocalNames().contains(varName)) {
 			do {
-				long randomNumber = Math.round(Math.random() * 10000);
-				varName = name + randomNumber;
+				varUniqueNameCounter ++;
+				varName = name + varUniqueNameCounter;
 			} while (func.getLocalNames().contains(varName));
 		}
 		ILvar var = new ILvar(varName, type);
@@ -684,9 +684,7 @@ public class IntermediateLangTranslator {
 	}
 
 	protected void translateGlobalVarDef(WPackagePos p, GlobalVarDefPos term) {
-		String name = getNameFor(term, p.name().term() + "_" + term.name().term());
-		PscriptType typ = attr.varDefType.get(term);
-		ILvar v = new ILvar(name, typ);
+		ILvar v = getILvarForVarDef(term);
 		prog.addGlobalVar(v);
 		// TODO inital value + global dependencies
 	}
@@ -698,10 +696,10 @@ public class IntermediateLangTranslator {
 		String result = name;
 		if (usedNames.contains(name)) {
 			// try to find unique name by appending random numbers:
-			long i;
 			do {
-				i = Math.round(Math.random() * 10000);
-			} while (usedNames.contains(name + i));
+				varUniqueNameCounter++;
+				result = name + varUniqueNameCounter;
+			} while (usedNames.contains(result));
 		}
 		usedNames.add(result);
 		elementNames.put(term, result);

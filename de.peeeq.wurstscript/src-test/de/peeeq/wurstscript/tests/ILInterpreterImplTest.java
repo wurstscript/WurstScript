@@ -88,7 +88,7 @@ public class ILInterpreterImplTest {
 		ILprog prog = compiler.getILprog();
 		
 		
-		File outputFile = new File(filename.replaceAll(PSCRIPT_ENDING, ".jass"));
+		File outputFile = new File(filename.replaceAll(PSCRIPT_ENDING, ".j"));
 		StringBuilder sb = new StringBuilder();
 		prog.printJass(sb);
 		try {
