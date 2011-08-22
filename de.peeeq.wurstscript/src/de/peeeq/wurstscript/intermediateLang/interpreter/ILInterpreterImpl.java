@@ -93,8 +93,10 @@ public class ILInterpreterImpl implements ILInterpreter {
 				value  = new ILconstNum(0.0f);
 			}else if (v.getType() instanceof PScriptTypeString) {
 				value  = new ILconstString("");
+			} else if (v.getType() instanceof PScriptTypeArray) {
+				// arrays are not initialized...
 			}else {
-				throw new Error("not implemented " + value);
+				throw new Error("not implemented " + v.getType());
 			}
 			localVarMap.put(v.getName(), value );
 		}
@@ -489,7 +491,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 			globalVarMap.put(v.getName(), s);
 			System.out.println("global added: " + s);
 		} else {
-			throw new Error("var is neither local nor global?");
+			throw new Error("var " + v + " is neither local nor global?");
 		}
 	}
 

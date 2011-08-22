@@ -2,6 +2,8 @@ package de.peeeq.wurstscript.intermediateLang;
 
 import java.util.List;
 
+import com.google.common.base.Function;
+
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -30,6 +32,26 @@ public class ILfunctionCall extends ILStatementSet {
 		this.name = name;
 		this.argumentTypes = argumentTypes;
 		this.argumentVars = argumentVars;
+	}
+
+	@Override
+	public void printJass(StringBuilder sb) {
+		if (getResultVar() == null) {
+			sb.append("call ");
+		} else {
+			sb.append("set ");
+			sb.append(getResultVar().getName());
+			sb.append(" = ");
+		}
+		sb.append(name);
+		sb.append("(");
+		Utils.printSep(sb, ",", argumentVars, new Function<ILvar, String>() {
+			@Override
+			public String apply(ILvar v) {
+				return v.getName();
+			}
+		});
+		sb.append(")\n");
 	}
 
 }

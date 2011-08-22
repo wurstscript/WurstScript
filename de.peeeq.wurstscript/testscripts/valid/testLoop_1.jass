@@ -1,0 +1,35 @@
+globals
+endglobals
+function test_runTest takes nothing returns #unknown
+local integer i
+local boolean whileCondition
+local boolean exitwhenCondition
+local integer leftOperand
+local integer rightOperand
+local integer leftOperand9901
+local integer rightOperand76
+local boolean ifCondition
+local integer leftOperand4987
+local integer rightOperand1413
+local string testFail_param0
+set i = 0
+loop
+set leftOperand = i
+set rightOperand = 10
+set whileCondition = leftOperand < rightOperand
+set exitwhenCondition =  not whileCondition
+exitwhen exitwhenCondition
+set leftOperand9901 = i
+set rightOperand76 = 1
+set i = leftOperand9901 plus rightOperand76
+endloop
+set leftOperand4987 = i
+set rightOperand1413 = 10
+set ifCondition = leftOperand4987 == rightOperand1413
+if ifCondition then
+call testSuccess()
+else
+set testFail_param0 = "defect in whileLoop"
+call testFail(testFail_param0)
+endif
+endfunction

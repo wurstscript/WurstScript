@@ -7,8 +7,12 @@ import java.util.List;
 
 import de.peeeq.wurstscript.WurstCompiler;
 import de.peeeq.wurstscript.WurstCompilerImpl;
+import de.peeeq.wurstscript.intermediateLang.ILprog;
+import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreter;
+import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreterImpl;
 import de.peeeq.wurstscript.intermediateLang.interpreter.TestFailException;
 import de.peeeq.wurstscript.intermediateLang.interpreter.TestSuccessException;
+import java.io.FileWriter;
 
 public class ILInterpreterImplTest {
 	
@@ -35,7 +39,6 @@ public class ILInterpreterImplTest {
 				String name = f.getName().toLowerCase();
 				if (name.endsWith(PSCRIPT_ENDING)) {
 					pscriptFiles.add(f);
-					System.out.println("File: " + name + " added.");
 					files++;
 				}
 	
@@ -80,6 +83,27 @@ public class ILInterpreterImplTest {
 		WurstCompiler compiler = new WurstCompilerImpl();
 		compiler.loadFile(filename);
 		compiler.parseFile();		
+		
+		ILprog prog = compiler.getILprog();
+		
+		
+		File outputFile = new File(filename.replaceAll(PSCRIPT_ENDING, ".jass"));
+		StringBuilder sb = new StringBuilder();
+		prog.printJass(sb);
+		try {
+			FileWriter writer = new FileWriter(outputFile, false);
+			writer.append(sb.toString());
+			writer.close();
+		}
+		catch (IOException e) {
+			throw new Error(e);
+		}
+		
+		
+		
+		ILInterpreter interpreter = new ILInterpreterImpl();
+		interpreter.LoadProgram(prog);
+		interpreter.executeFunction("test_runTest");
 	}
 
 	

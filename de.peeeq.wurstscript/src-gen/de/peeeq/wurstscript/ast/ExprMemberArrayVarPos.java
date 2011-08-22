@@ -1,17 +1,15 @@
 package de.peeeq.wurstscript.ast;
 
-import java.io.IOException;
 import java.util.List;
+import katja.common.*;
+import java.io.IOException;
 
-import katja.common.KatjaNodePos;
-import katja.common.KatjaSort;
-import katja.common.KatjaTuplePosImpl;
-
-public interface ExprMemberArrayVarPos extends de.peeeq.wurstscript.ast.ExprPos, de.peeeq.wurstscript.ast.VarRefPos, de.peeeq.wurstscript.ast.AST.TuplePos<de.peeeq.wurstscript.ast.ExprMemberArrayVar> {
+public interface ExprMemberArrayVarPos extends de.peeeq.wurstscript.ast.ExprPos, de.peeeq.wurstscript.ast.ExprAssignablePos, de.peeeq.wurstscript.ast.VarRefPos, de.peeeq.wurstscript.ast.AST.TuplePos<de.peeeq.wurstscript.ast.ExprMemberArrayVar> {
 
     //----- methods of ExprMemberArrayVarPos -----
 
     public de.peeeq.wurstscript.ast.ExprMemberArrayVar termExpr();
+    public de.peeeq.wurstscript.ast.ExprMemberArrayVar termExprAssignable();
     public de.peeeq.wurstscript.ast.ExprMemberArrayVar termVarRef();
     public de.peeeq.wurstscript.ast.ExprMemberArrayVar termOptExpr();
     public de.peeeq.wurstscript.ast.ExprMemberArrayVar term();
@@ -35,6 +33,7 @@ public interface ExprMemberArrayVarPos extends de.peeeq.wurstscript.ast.ExprPos,
     public de.peeeq.wurstscript.ast.AST.SortPos postOrderStart();
     public de.peeeq.wurstscript.ast.AST.SortPos follow(List<Integer> path);
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.ExprPos.Switch<CT, E> switchClass) throws E;
+    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.ExprAssignablePos.Switch<CT, E> switchClass) throws E;
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.VarRefPos.Switch<CT, E> switchClass) throws E;
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.OptExprPos.Switch<CT, E> switchClass) throws E;
 
@@ -128,6 +127,10 @@ public interface ExprMemberArrayVarPos extends de.peeeq.wurstscript.ast.ExprPos,
         //----- methods of Impl -----
 
         public de.peeeq.wurstscript.ast.ExprMemberArrayVar termExpr() {
+            return term();
+        }
+
+        public de.peeeq.wurstscript.ast.ExprMemberArrayVar termExprAssignable() {
             return term();
         }
 
@@ -270,6 +273,10 @@ public interface ExprMemberArrayVarPos extends de.peeeq.wurstscript.ast.ExprPos,
         }
 
         public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.ExprPos.Switch<CT, E> switchClass) throws E {
+            return switchClass.CaseExprMemberArrayVarPos(this);
+        }
+
+        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.ExprAssignablePos.Switch<CT, E> switchClass) throws E {
             return switchClass.CaseExprMemberArrayVarPos(this);
         }
 

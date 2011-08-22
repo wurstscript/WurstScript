@@ -1,8 +1,8 @@
 package de.peeeq.wurstscript.ast;
 
-import katja.common.KatjaSort;
+import katja.common.*;
 
-public interface OpBinary extends KatjaSort {
+public interface OpBinary extends de.peeeq.wurstscript.ast.Op, KatjaSort {
 
     //----- methods of OpBinary -----
 

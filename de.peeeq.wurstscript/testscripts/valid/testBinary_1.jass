@@ -1,0 +1,21 @@
+globals
+endglobals
+function test_runTest takes nothing returns #unknown
+local boolean ifCondition
+local integer leftOperand
+local integer leftOperand4264
+local integer rightOperand
+local integer rightOperand9600
+local string testFail_param0
+set leftOperand4264 = 3
+set rightOperand = 7
+set leftOperand = leftOperand4264 plus rightOperand
+set rightOperand9600 = 10
+set ifCondition = leftOperand == rightOperand9600
+if ifCondition then
+call testSuccess()
+else
+set testFail_param0 = "defect in binary operation"
+call testFail(testFail_param0)
+endif
+endfunction

@@ -1,4 +1,6 @@
-package de.peeeq.wurstscript.intermediateLang;
+package de.peeeq.wurstscript.intermediateLang.translator;
+
+import de.peeeq.wurstscript.intermediateLang.ILprog;
 
 public interface IntermediateCodeCompressor {
 

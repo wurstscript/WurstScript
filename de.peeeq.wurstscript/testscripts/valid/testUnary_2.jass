@@ -1,0 +1,23 @@
+globals
+endglobals
+function test_runTest takes nothing returns #unknown
+local boolean ifCondition
+local integer leftOperand
+local integer leftOperand3479
+local integer temp
+local integer rightOperand
+local integer rightOperand6450
+local string testFail_param0
+set temp = 3
+set leftOperand3479 =  minus temp
+set rightOperand = 5
+set leftOperand = leftOperand3479 plus rightOperand
+set rightOperand6450 = 2
+set ifCondition = leftOperand == rightOperand6450
+if ifCondition then
+call testSuccess()
+else
+set testFail_param0 = "defect in unary operation"
+call testFail(testFail_param0)
+endif
+endfunction

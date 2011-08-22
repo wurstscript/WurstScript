@@ -44,4 +44,9 @@ public class ILvar implements ILexpr {
 	public String toString() {
 		return "ILvar(" + type + " " + name + ")";
 	}
+
+	@Override
+	public void printJass(StringBuilder sb) {
+		sb.append(type + " " + name);
+	}
 }

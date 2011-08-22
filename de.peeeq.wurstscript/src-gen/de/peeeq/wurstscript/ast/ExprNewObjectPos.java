@@ -1,11 +1,8 @@
 package de.peeeq.wurstscript.ast;
 
-import java.io.IOException;
 import java.util.List;
-
-import katja.common.KatjaNodePos;
-import katja.common.KatjaSort;
-import katja.common.KatjaTuplePosImpl;
+import katja.common.*;
+import java.io.IOException;
 
 public interface ExprNewObjectPos extends de.peeeq.wurstscript.ast.ExprPos, de.peeeq.wurstscript.ast.StmtCallPos, de.peeeq.wurstscript.ast.TypeRefPos, de.peeeq.wurstscript.ast.AST.TuplePos<de.peeeq.wurstscript.ast.ExprNewObject> {
 

@@ -1,11 +1,9 @@
 package de.peeeq.wurstscript.ast;
 
+import katja.common.*;
 import java.io.IOException;
 
-import katja.common.KatjaTuple;
-import katja.common.KatjaTupleImpl;
-
-public interface ExprMemberArrayVar extends de.peeeq.wurstscript.ast.Expr, de.peeeq.wurstscript.ast.VarRef, KatjaTuple {
+public interface ExprMemberArrayVar extends de.peeeq.wurstscript.ast.Expr, de.peeeq.wurstscript.ast.ExprAssignable, de.peeeq.wurstscript.ast.VarRef, KatjaTuple {
 
     //----- methods of ExprMemberArrayVar -----
 
@@ -21,6 +19,7 @@ public interface ExprMemberArrayVar extends de.peeeq.wurstscript.ast.Expr, de.pe
     public int size();
     public de.peeeq.wurstscript.ast.ExprMemberArrayVar replace(int pos, Object term);
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.Expr.Switch<CT, E> switchClass) throws E;
+    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.ExprAssignable.Switch<CT, E> switchClass) throws E;
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.VarRef.Switch<CT, E> switchClass) throws E;
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.OptExpr.Switch<CT, E> switchClass) throws E;
 
@@ -207,6 +206,10 @@ public interface ExprMemberArrayVar extends de.peeeq.wurstscript.ast.Expr, de.pe
         }
 
         public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.Expr.Switch<CT, E> switchClass) throws E {
+            return switchClass.CaseExprMemberArrayVar(this);
+        }
+
+        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.ExprAssignable.Switch<CT, E> switchClass) throws E {
             return switchClass.CaseExprMemberArrayVar(this);
         }
 

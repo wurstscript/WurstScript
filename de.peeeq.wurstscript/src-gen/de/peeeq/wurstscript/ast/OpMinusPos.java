@@ -1,12 +1,8 @@
 package de.peeeq.wurstscript.ast;
 
-import java.io.IOException;
+import katja.common.*;
 import java.util.List;
-
-import katja.common.KatjaNodePos;
-import katja.common.KatjaSort;
-import katja.common.KatjaSortPos;
-import katja.common.KatjaTuplePosImpl;
+import java.io.IOException;
 
 public interface OpMinusPos extends de.peeeq.wurstscript.ast.OpBinaryPos, de.peeeq.wurstscript.ast.OpUnaryPos, de.peeeq.wurstscript.ast.AST.TuplePos<de.peeeq.wurstscript.ast.OpMinus> {
 
@@ -14,6 +10,7 @@ public interface OpMinusPos extends de.peeeq.wurstscript.ast.OpBinaryPos, de.pee
 
     public de.peeeq.wurstscript.ast.OpMinus termOpBinary();
     public de.peeeq.wurstscript.ast.OpMinus termOpUnary();
+    public de.peeeq.wurstscript.ast.OpMinus termOp();
     public de.peeeq.wurstscript.ast.OpMinus term();
     public KatjaSortPos<de.peeeq.wurstscript.ast.CompilationUnitPos> get(int i);
     public int size();
@@ -28,6 +25,7 @@ public interface OpMinusPos extends de.peeeq.wurstscript.ast.OpBinaryPos, de.pee
     public de.peeeq.wurstscript.ast.AST.SortPos follow(List<Integer> path);
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.OpBinaryPos.Switch<CT, E> switchClass) throws E;
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.OpUnaryPos.Switch<CT, E> switchClass) throws E;
+    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.OpPos.Switch<CT, E> switchClass) throws E;
 
     //----- nested classes of OpMinusPos -----
 
@@ -50,6 +48,10 @@ public interface OpMinusPos extends de.peeeq.wurstscript.ast.OpBinaryPos, de.pee
         }
 
         public de.peeeq.wurstscript.ast.OpMinus termOpUnary() {
+            return term();
+        }
+
+        public de.peeeq.wurstscript.ast.OpMinus termOp() {
             return term();
         }
 
@@ -124,6 +126,10 @@ public interface OpMinusPos extends de.peeeq.wurstscript.ast.OpBinaryPos, de.pee
         }
 
         public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.OpUnaryPos.Switch<CT, E> switchClass) throws E {
+            return switchClass.CaseOpMinusPos(this);
+        }
+
+        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.OpPos.Switch<CT, E> switchClass) throws E {
             return switchClass.CaseOpMinusPos(this);
         }
 

@@ -14,6 +14,12 @@ public class ILsetVar extends ILStatementSet {
 	public ILvar getVar() {
 		return var;
 	}
+
+
+	@Override
+	public void printJass(StringBuilder sb) {
+		sb.append("set " + getResultVar().getName() + " = " + var.getName() + "\n");
+	}
 	
 	
 

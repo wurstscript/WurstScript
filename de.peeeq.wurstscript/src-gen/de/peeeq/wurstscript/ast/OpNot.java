@@ -1,9 +1,7 @@
 package de.peeeq.wurstscript.ast;
 
+import katja.common.*;
 import java.io.IOException;
-
-import katja.common.KatjaTuple;
-import katja.common.KatjaTupleImpl;
 
 public interface OpNot extends de.peeeq.wurstscript.ast.OpUnary, KatjaTuple {
 
@@ -13,6 +11,7 @@ public interface OpNot extends de.peeeq.wurstscript.ast.OpUnary, KatjaTuple {
     public int size();
     public de.peeeq.wurstscript.ast.OpNot replace(int pos, Object term);
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.OpUnary.Switch<CT, E> switchClass) throws E;
+    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.Op.Switch<CT, E> switchClass) throws E;
 
     //----- nested classes of OpNot -----
 
@@ -65,6 +64,10 @@ public interface OpNot extends de.peeeq.wurstscript.ast.OpUnary, KatjaTuple {
         }
 
         public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.OpUnary.Switch<CT, E> switchClass) throws E {
+            return switchClass.CaseOpNot(this);
+        }
+
+        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.Op.Switch<CT, E> switchClass) throws E {
             return switchClass.CaseOpNot(this);
         }
 

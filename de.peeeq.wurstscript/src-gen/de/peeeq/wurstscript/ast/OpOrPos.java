@@ -1,18 +1,15 @@
 package de.peeeq.wurstscript.ast;
 
-import java.io.IOException;
+import katja.common.*;
 import java.util.List;
-
-import katja.common.KatjaNodePos;
-import katja.common.KatjaSort;
-import katja.common.KatjaSortPos;
-import katja.common.KatjaTuplePosImpl;
+import java.io.IOException;
 
 public interface OpOrPos extends de.peeeq.wurstscript.ast.OpBinaryPos, de.peeeq.wurstscript.ast.AST.TuplePos<de.peeeq.wurstscript.ast.OpOr> {
 
     //----- methods of OpOrPos -----
 
     public de.peeeq.wurstscript.ast.OpOr termOpBinary();
+    public de.peeeq.wurstscript.ast.OpOr termOp();
     public de.peeeq.wurstscript.ast.OpOr term();
     public KatjaSortPos<de.peeeq.wurstscript.ast.CompilationUnitPos> get(int i);
     public int size();
@@ -26,6 +23,7 @@ public interface OpOrPos extends de.peeeq.wurstscript.ast.OpBinaryPos, de.peeeq.
     public de.peeeq.wurstscript.ast.AST.SortPos postOrderStart();
     public de.peeeq.wurstscript.ast.AST.SortPos follow(List<Integer> path);
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.OpBinaryPos.Switch<CT, E> switchClass) throws E;
+    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.OpPos.Switch<CT, E> switchClass) throws E;
 
     //----- nested classes of OpOrPos -----
 
@@ -44,6 +42,10 @@ public interface OpOrPos extends de.peeeq.wurstscript.ast.OpBinaryPos, de.peeeq.
         //----- methods of Impl -----
 
         public de.peeeq.wurstscript.ast.OpOr termOpBinary() {
+            return term();
+        }
+
+        public de.peeeq.wurstscript.ast.OpOr termOp() {
             return term();
         }
 
@@ -114,6 +116,10 @@ public interface OpOrPos extends de.peeeq.wurstscript.ast.OpBinaryPos, de.peeeq.
         }
 
         public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.OpBinaryPos.Switch<CT, E> switchClass) throws E {
+            return switchClass.CaseOpOrPos(this);
+        }
+
+        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.OpPos.Switch<CT, E> switchClass) throws E {
             return switchClass.CaseOpOrPos(this);
         }
 

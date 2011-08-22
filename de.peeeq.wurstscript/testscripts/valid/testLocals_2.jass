@@ -1,0 +1,19 @@
+globals
+endglobals
+function test_runTest takes nothing returns #unknown
+local integer x
+local boolean ifCondition
+local integer leftOperand
+local integer rightOperand
+local string testFail_param0
+set x = 1
+set leftOperand = x
+set rightOperand = 1
+set ifCondition = leftOperand == rightOperand
+if ifCondition then
+call testSuccess()
+else
+set testFail_param0 = "defect in initialising variable on declaration"
+call testFail(testFail_param0)
+endif
+endfunction

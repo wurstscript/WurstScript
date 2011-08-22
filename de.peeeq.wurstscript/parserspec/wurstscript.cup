@@ -49,6 +49,7 @@ non terminal CompilationUnit CompilationUnit;
 non terminal WEntity Entity;
 non terminal Expr Expr;
 non terminal Expr ExprAtomic;
+non terminal ExprAssignable ExprAssignable;
 non terminal ExprBinary ExprBinary;
 non terminal ExprMemberMethod ExprMemberMethod;
 non terminal ExprMemberVar ExprMemberVar;
@@ -62,6 +63,7 @@ non terminal Indexes Indexes;
 non terminal WImport Import;
 non terminal LocalVarDef LocalVarDef;
 non terminal MemberDef MemberDef;	
+non terminal ExprMemberArrayVar ExprMemberArrayVar;
 non terminal NativeFunc NativeFunc;
 non terminal NativeType NativeType;
 non terminal Newlines;
@@ -77,6 +79,8 @@ non terminal StmtWhile StmtWhile;
 non terminal TypeDef TypeDef;
 non terminal TypeExpr TypeExpr;
 non terminal GlobalVarDef VarDef;
+non terminal ExprVarAccess ExprVarAccess;
+non terminal ExprVarArrayAccess ExprVarArrayAccess;
 non terminal WEntities Entities;
 non terminal WEntitiy Entitiy;
 non terminal WImports Imports;
@@ -91,11 +95,11 @@ non terminal WStatements Statements;
 precedence left		OR;
 precedence left		AND;
 precedence left 	NOT;
+precedence nonassoc EQEQ, GTEQ, LTEQ, EQ, NOTEQ, GT, LT;
 precedence left     PLUS,MINUS;
 precedence left     MULT, DIV_REAL, DIV_INT, MOD_REAL, MOD_INT;
 precedence left		UMINUS;
 precedence right    DOT;
-precedence nonassoc EQEQ, GTEQ, LTEQ, EQ, NOTEQ, GT, LT;
 precedence left 	NL;
 precedence right	NEW;
 
@@ -302,9 +306,31 @@ LocalVarDef ::=
 ;
 
 StmtSet ::= 
-	Expr:left EQ Expr:right NL
+	ExprAssignable:left EQ Expr:right NL
 		{: RESULT = AST.StmtSet(left.source(), left, AST.OpAssign(),  right); :}
 ;
+
+ExprAssignable ::=
+	ExprMemberVar:x
+		{: RESULT = x; :} 
+	| ExprMemberArrayVar:x
+		{: RESULT = x; :}
+	| ExprVarAccess:x
+		{: RESULT = x; :} 
+	| ExprVarArrayAccess:x
+		{: RESULT = x; :}
+;
+
+ExprVarAccess ::=
+	IDENTIFIER:name
+		{: RESULT = AST.ExprVarAccess(pos(nameleft, nameright), name); :}
+;
+
+ExprVarArrayAccess ::=
+	IDENTIFIER:name Indexes:Indexes
+		{: RESULT = AST.ExprVarArrayAccess(pos(nameleft, nameright), name, Indexes); :}
+;
+
 
 StmtCall ::=
 	ExprMemberMethod:x NL
@@ -355,10 +381,6 @@ ExprAtomic ::=
 		{: RESULT = AST.ExprIntVal(pos(ileft, iright), i); :}
 	| STRING_LITERAL:s
 		{: RESULT = AST.ExprStringVal(pos(sleft, sright), s); :}
-	|IDENTIFIER:name
-		{: RESULT = AST.ExprVarAccess(pos(nameleft, nameright), name); :}
-	| IDENTIFIER:name Indexes:Indexes
-		{: RESULT = AST.ExprVarArrayAccess(pos(nameleft, nameright), name, Indexes); :}
 	| LPAR Expr:e RPAR
 		{: RESULT = e; :}
 	| TRUE:x
@@ -371,6 +393,10 @@ ExprAtomic ::=
 		{: RESULT = AST.ExprFuncRef(pos(xleft, xright), name); :}
 	| REAL_LITERAL:x
 		{: RESULT = AST.ExprRealVal(pos(xleft, xright), x); :}
+	| ExprVarAccess:x
+		{: RESULT = x; :} 
+	| ExprVarArrayAccess:x
+		{: RESULT = x; :}
 ;	
 
 ExprNewObject ::=

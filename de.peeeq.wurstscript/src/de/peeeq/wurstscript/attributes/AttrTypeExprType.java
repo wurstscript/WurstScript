@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.ast.NoTypeExprPos;
 import de.peeeq.wurstscript.ast.TypeDefPos;
 import de.peeeq.wurstscript.ast.TypeExprPos;
 import de.peeeq.wurstscript.types.NativeTypes;
+import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeUnknown;
 import de.peeeq.wurstscript.types.PscriptNativeType;
 import de.peeeq.wurstscript.types.PscriptType;
@@ -28,7 +29,7 @@ public class AttrTypeExprType extends Attribute<TypeExprPos, PscriptType> {
 	protected PscriptType calculate(TypeExprPos node) {
 		final String typename = node.typeName().term();
 		TypeDefPos t = attr.typeDef.get(node);
-		return t.Switch(new TypeDefPos.Switch<PscriptType, NE>() {
+		PscriptType typ = t.Switch(new TypeDefPos.Switch<PscriptType, NE>() {
 
 			@Override
 			public PscriptType CaseNativeTypePos(NativeTypePos term)
@@ -51,6 +52,16 @@ public class AttrTypeExprType extends Attribute<TypeExprPos, PscriptType> {
 				return new PscriptTypeClass(term);
 			}
 		});
+		
+		if (node.isArray().term()) {
+			int[] sizes = new int[node.sizes().size()];
+			for (int i=0; i<sizes.length; i++) {
+				sizes[i] = 0; // TODO sizes should store ILvariables which actually hold the sizes
+			}
+			typ = new PScriptTypeArray(typ, sizes );
+		}
+		
+		return typ;
 	}
 
 

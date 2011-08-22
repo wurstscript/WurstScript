@@ -1,11 +1,12 @@
 package de.peeeq.wurstscript.ast;
 
-import katja.common.KatjaSort;
+import katja.common.*;
 
-public interface OpUnaryPos extends de.peeeq.wurstscript.ast.AST.SortPos {
+public interface OpUnaryPos extends de.peeeq.wurstscript.ast.OpPos, de.peeeq.wurstscript.ast.AST.SortPos {
 
     //----- methods of OpUnaryPos -----
 
+    public de.peeeq.wurstscript.ast.OpUnary termOp();
     public KatjaSort term();
     public de.peeeq.wurstscript.ast.OpUnary termOpUnary();
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.OpUnaryPos.Switch<CT, E> switchClass) throws E;

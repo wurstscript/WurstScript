@@ -41,6 +41,7 @@ import de.peeeq.wurstscript.ast.OpUnaryPos;
 import de.peeeq.wurstscript.ast.OpUnequalsPos;
 import de.peeeq.wurstscript.ast.TypeExprPos;
 import de.peeeq.wurstscript.ast.VarDefPos;
+import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PScriptTypeCode;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
@@ -110,9 +111,16 @@ public class AttrExprType extends Attribute<ExprPos, PscriptType> {
 					ExprVarArrayAccessPos term) throws NE {
 				VarDefPos varDef = attr.varDef.get(term);
 				if (varDef == null) {
-					return PScriptTypeUnknown.instance();
+					
 				}
-				return attr.varDefType.get(varDef);
+				
+				PscriptType varDefType = attr.varDefType.get(varDef);
+				if (varDefType instanceof PScriptTypeArray) {
+					return ((PScriptTypeArray) varDefType).getBaseType();
+				} else {
+					attr.addError(term.source(), "Variable " + varDef.name() + " is no array variable.");
+				}
+				return PScriptTypeUnknown.instance();
 			}
 
 			@Override

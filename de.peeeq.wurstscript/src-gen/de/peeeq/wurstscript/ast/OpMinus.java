@@ -1,9 +1,7 @@
 package de.peeeq.wurstscript.ast;
 
+import katja.common.*;
 import java.io.IOException;
-
-import katja.common.KatjaTuple;
-import katja.common.KatjaTupleImpl;
 
 public interface OpMinus extends de.peeeq.wurstscript.ast.OpBinary, de.peeeq.wurstscript.ast.OpUnary, KatjaTuple {
 
@@ -14,6 +12,7 @@ public interface OpMinus extends de.peeeq.wurstscript.ast.OpBinary, de.peeeq.wur
     public de.peeeq.wurstscript.ast.OpMinus replace(int pos, Object term);
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.OpBinary.Switch<CT, E> switchClass) throws E;
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.OpUnary.Switch<CT, E> switchClass) throws E;
+    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.Op.Switch<CT, E> switchClass) throws E;
 
     //----- nested classes of OpMinus -----
 
@@ -70,6 +69,10 @@ public interface OpMinus extends de.peeeq.wurstscript.ast.OpBinary, de.peeeq.wur
         }
 
         public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.OpUnary.Switch<CT, E> switchClass) throws E {
+            return switchClass.CaseOpMinus(this);
+        }
+
+        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.Op.Switch<CT, E> switchClass) throws E {
             return switchClass.CaseOpMinus(this);
         }
 

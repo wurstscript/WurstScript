@@ -25,5 +25,22 @@ public class ILif extends ILStatement {
 	public List<ILStatement> getElseBlock() {
 		return elseBlock;
 	}
+
+	@Override
+	public void printJass(StringBuilder sb) {
+		sb.append("if " + cond.getName() + " then\n");
+		for (ILStatement s : thenBlock) {
+			s.printJass(sb);
+		}
+		if (elseBlock.size() > 0) {
+			sb.append("else\n");
+			for (ILStatement s : elseBlock) {
+				s.printJass(sb);
+			}
+		}
+		sb.append("endif\n");
+		
+		
+	}
 	
 }

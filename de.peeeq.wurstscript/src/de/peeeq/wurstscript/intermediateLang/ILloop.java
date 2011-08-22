@@ -14,4 +14,13 @@ public class ILloop extends ILStatement {
 		return loopBody;
 	}
 
+	@Override
+	public void printJass(StringBuilder sb) {
+		sb.append("loop\n");
+		for (ILStatement s : loopBody) {
+			s.printJass(sb);
+		}
+		sb.append("endloop\n");
+	}
+
 }

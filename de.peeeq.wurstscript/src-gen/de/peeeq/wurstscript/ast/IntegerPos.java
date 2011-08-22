@@ -1,11 +1,8 @@
 package de.peeeq.wurstscript.ast;
 
-import java.io.IOException;
 import java.util.List;
-
-import katja.common.KatjaLeafPosImpl;
-import katja.common.KatjaNodePos;
-import katja.common.KatjaSort;
+import katja.common.*;
+import java.io.IOException;
 
 public interface IntegerPos extends de.peeeq.wurstscript.ast.AST.LeafPos<java.lang.Integer> {
 

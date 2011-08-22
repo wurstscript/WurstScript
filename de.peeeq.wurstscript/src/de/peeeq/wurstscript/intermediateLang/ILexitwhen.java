@@ -13,4 +13,11 @@ public class ILexitwhen extends ILStatement {
 		return var;
 	}
 
+	@Override
+	public void printJass(StringBuilder sb) {
+		sb.append("exitwhen " + var.getName() + "\n");
+	}
+
+	
+	
 }

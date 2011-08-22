@@ -1,11 +1,12 @@
 package de.peeeq.wurstscript.ast;
 
-import katja.common.KatjaSort;
+import katja.common.*;
 
-public interface OpBinaryPos extends de.peeeq.wurstscript.ast.AST.SortPos {
+public interface OpBinaryPos extends de.peeeq.wurstscript.ast.OpPos, de.peeeq.wurstscript.ast.AST.SortPos {
 
     //----- methods of OpBinaryPos -----
 
+    public de.peeeq.wurstscript.ast.OpBinary termOp();
     public KatjaSort term();
     public de.peeeq.wurstscript.ast.OpBinary termOpBinary();
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.OpBinaryPos.Switch<CT, E> switchClass) throws E;

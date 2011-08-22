@@ -77,7 +77,7 @@ WStatement	=
 	  StmtIf(WPos source, Expr cond, WStatements thenBlock, WStatements elseBlock)
 	| StmtWhile(WPos source, Expr cond, WStatements body)
 	| LocalVarDef
-	| StmtSet(WPos source, Expr left, OpAssignment op, Expr right)
+	| StmtSet(WPos source, ExprAssignable left, OpAssignment op, Expr right)
 	| StmtCall
 	| StmtReturn(WPos source, Expr obj)
 	| StmtDestroy(WPos source, Expr obj)
@@ -90,6 +90,8 @@ OpAssignment = OpAssign() // TODO += -= *= /= ...
 
 StmtCall = ExprMemberMethod | ExprFunctionCall | ExprNewObject
 
+// an expression which you can assign a value to
+ExprAssignable = ExprMemberVar | ExprMemberArrayVar | ExprVarAccess | ExprVarArrayAccess
 
 Expr = 
 	  ExprBinary(WPos source, Expr left, OpBinary op, Expr right)
@@ -137,6 +139,7 @@ OpUnary =
 	  OpNot()
 	| OpMinus
 	
+Op = OpBinary | OpUnary	
 	
 // auxiliary types:
 

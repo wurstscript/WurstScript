@@ -1,12 +1,8 @@
 package de.peeeq.wurstscript.ast;
 
-import java.io.IOException;
+import katja.common.*;
 import java.util.List;
-
-import katja.common.KatjaNodePos;
-import katja.common.KatjaSort;
-import katja.common.KatjaSortPos;
-import katja.common.KatjaTuplePosImpl;
+import java.io.IOException;
 
 public interface OpAssignPos extends de.peeeq.wurstscript.ast.OpAssignmentPos, de.peeeq.wurstscript.ast.AST.TuplePos<de.peeeq.wurstscript.ast.OpAssign> {
 
@@ -18,7 +14,7 @@ public interface OpAssignPos extends de.peeeq.wurstscript.ast.OpAssignmentPos, d
     public int size();
     public de.peeeq.wurstscript.ast.OpAssignPos replace(de.peeeq.wurstscript.ast.OpAssign term);
     public de.peeeq.wurstscript.ast.StmtSetPos parent();
-    public de.peeeq.wurstscript.ast.ExprPos lsib();
+    public de.peeeq.wurstscript.ast.ExprAssignablePos lsib();
     public de.peeeq.wurstscript.ast.ExprPos rsib();
     public de.peeeq.wurstscript.ast.AST.SortPos preOrder();
     public de.peeeq.wurstscript.ast.AST.SortPos preOrderSkip();
@@ -85,8 +81,8 @@ public interface OpAssignPos extends de.peeeq.wurstscript.ast.OpAssignmentPos, d
             return (de.peeeq.wurstscript.ast.StmtSetPos) super.parent();
         }
 
-        public de.peeeq.wurstscript.ast.ExprPos lsib() {
-            return (de.peeeq.wurstscript.ast.ExprPos) super.lsib();
+        public de.peeeq.wurstscript.ast.ExprAssignablePos lsib() {
+            return (de.peeeq.wurstscript.ast.ExprAssignablePos) super.lsib();
         }
 
         public de.peeeq.wurstscript.ast.ExprPos rsib() {

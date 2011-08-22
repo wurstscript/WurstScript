@@ -1,18 +1,15 @@
 package de.peeeq.wurstscript.ast;
 
-import java.io.IOException;
+import katja.common.*;
 import java.util.List;
-
-import katja.common.KatjaNodePos;
-import katja.common.KatjaSort;
-import katja.common.KatjaSortPos;
-import katja.common.KatjaTuplePosImpl;
+import java.io.IOException;
 
 public interface OpNotPos extends de.peeeq.wurstscript.ast.OpUnaryPos, de.peeeq.wurstscript.ast.AST.TuplePos<de.peeeq.wurstscript.ast.OpNot> {
 
     //----- methods of OpNotPos -----
 
     public de.peeeq.wurstscript.ast.OpNot termOpUnary();
+    public de.peeeq.wurstscript.ast.OpNot termOp();
     public de.peeeq.wurstscript.ast.OpNot term();
     public KatjaSortPos<de.peeeq.wurstscript.ast.CompilationUnitPos> get(int i);
     public int size();
@@ -26,6 +23,7 @@ public interface OpNotPos extends de.peeeq.wurstscript.ast.OpUnaryPos, de.peeeq.
     public de.peeeq.wurstscript.ast.AST.SortPos postOrderStart();
     public de.peeeq.wurstscript.ast.AST.SortPos follow(List<Integer> path);
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.OpUnaryPos.Switch<CT, E> switchClass) throws E;
+    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.OpPos.Switch<CT, E> switchClass) throws E;
 
     //----- nested classes of OpNotPos -----
 
@@ -44,6 +42,10 @@ public interface OpNotPos extends de.peeeq.wurstscript.ast.OpUnaryPos, de.peeeq.
         //----- methods of Impl -----
 
         public de.peeeq.wurstscript.ast.OpNot termOpUnary() {
+            return term();
+        }
+
+        public de.peeeq.wurstscript.ast.OpNot termOp() {
             return term();
         }
 
@@ -114,6 +116,10 @@ public interface OpNotPos extends de.peeeq.wurstscript.ast.OpUnaryPos, de.peeeq.
         }
 
         public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.OpUnaryPos.Switch<CT, E> switchClass) throws E {
+            return switchClass.CaseOpNotPos(this);
+        }
+
+        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.OpPos.Switch<CT, E> switchClass) throws E {
             return switchClass.CaseOpNotPos(this);
         }
 

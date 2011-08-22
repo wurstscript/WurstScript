@@ -1,8 +1,8 @@
 package de.peeeq.wurstscript.ast;
 
-import katja.common.KatjaSort;
+import katja.common.*;
 
-public interface OpUnary extends KatjaSort {
+public interface OpUnary extends de.peeeq.wurstscript.ast.Op, KatjaSort {
 
     //----- methods of OpUnary -----
 

@@ -1,6 +1,6 @@
 package de.peeeq.wurstscript.ast;
 
-import katja.common.KatjaSort;
+import katja.common.*;
 
 public interface OptExprPos extends de.peeeq.wurstscript.ast.AST.SortPos {
 

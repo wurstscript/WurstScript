@@ -38,10 +38,10 @@ public class AttrVarDefType extends Attribute<VarDefPos, PscriptType> {
 				return typ.Switch(new OptTypeExprPos.Switch<PscriptType, NE>() {
 
 					@Override
-					public PscriptType CaseNoTypeExprPos(NoTypeExprPos term)
+					public PscriptType CaseNoTypeExprPos(NoTypeExprPos nt)
 							throws NE {
-						if (term instanceof ExprPos) {
-							return attr.exprType.get((ExprPos) term);
+						if (initialExpr instanceof ExprPos) {
+							return attr.exprType.get((ExprPos) initialExpr);
 						} else {
 							throw new Error("Vardef must either have a type or an initial value");
 						}

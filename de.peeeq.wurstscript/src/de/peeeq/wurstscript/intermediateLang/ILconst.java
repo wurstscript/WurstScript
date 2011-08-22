@@ -1,6 +1,6 @@
 package de.peeeq.wurstscript.intermediateLang;
 
-public abstract class ILconst implements ILexpr {
+public abstract class ILconst implements ILexpr, CodePrinting {
 
 	public abstract String print();
 

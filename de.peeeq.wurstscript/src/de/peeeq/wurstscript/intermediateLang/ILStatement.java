@@ -1,6 +1,6 @@
 package de.peeeq.wurstscript.intermediateLang;
 
-public abstract class ILStatement {
+public abstract class ILStatement implements CodePrinting {
 
 	public void doSwitchVoid(ILStatementSwitchVoid s) {
 		

@@ -1,16 +1,14 @@
 package de.peeeq.wurstscript.ast;
 
-import java.io.IOException;
 import java.util.List;
+import katja.common.*;
+import java.io.IOException;
 
-import katja.common.KatjaNodePos;
-import katja.common.KatjaSort;
-import katja.common.KatjaTuplePosImpl;
-
-public interface ExprVarArrayAccessPos extends de.peeeq.wurstscript.ast.ExprAtomicPos, de.peeeq.wurstscript.ast.VarRefPos, de.peeeq.wurstscript.ast.AST.TuplePos<de.peeeq.wurstscript.ast.ExprVarArrayAccess> {
+public interface ExprVarArrayAccessPos extends de.peeeq.wurstscript.ast.ExprAssignablePos, de.peeeq.wurstscript.ast.ExprAtomicPos, de.peeeq.wurstscript.ast.VarRefPos, de.peeeq.wurstscript.ast.AST.TuplePos<de.peeeq.wurstscript.ast.ExprVarArrayAccess> {
 
     //----- methods of ExprVarArrayAccessPos -----
 
+    public de.peeeq.wurstscript.ast.ExprVarArrayAccess termExprAssignable();
     public de.peeeq.wurstscript.ast.ExprVarArrayAccess termExprAtomic();
     public de.peeeq.wurstscript.ast.ExprVarArrayAccess termVarRef();
     public de.peeeq.wurstscript.ast.ExprVarArrayAccess termExpr();
@@ -33,6 +31,7 @@ public interface ExprVarArrayAccessPos extends de.peeeq.wurstscript.ast.ExprAtom
     public de.peeeq.wurstscript.ast.AST.SortPos postOrder();
     public de.peeeq.wurstscript.ast.AST.SortPos postOrderStart();
     public de.peeeq.wurstscript.ast.AST.SortPos follow(List<Integer> path);
+    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.ExprAssignablePos.Switch<CT, E> switchClass) throws E;
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.ExprAtomicPos.Switch<CT, E> switchClass) throws E;
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.VarRefPos.Switch<CT, E> switchClass) throws E;
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.ExprPos.Switch<CT, E> switchClass) throws E;
@@ -125,6 +124,10 @@ public interface ExprVarArrayAccessPos extends de.peeeq.wurstscript.ast.ExprAtom
         private de.peeeq.wurstscript.ast.IndexesPos _indexes = null;
 
         //----- methods of Impl -----
+
+        public de.peeeq.wurstscript.ast.ExprVarArrayAccess termExprAssignable() {
+            return term();
+        }
 
         public de.peeeq.wurstscript.ast.ExprVarArrayAccess termExprAtomic() {
             return term();
@@ -254,6 +257,10 @@ public interface ExprVarArrayAccessPos extends de.peeeq.wurstscript.ast.ExprAtom
 
         public de.peeeq.wurstscript.ast.AST.SortPos follow(List<Integer> path) {
             return (de.peeeq.wurstscript.ast.AST.SortPos) super.follow(path);
+        }
+
+        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.ExprAssignablePos.Switch<CT, E> switchClass) throws E {
+            return switchClass.CaseExprVarArrayAccessPos(this);
         }
 
         public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.ExprAtomicPos.Switch<CT, E> switchClass) throws E {

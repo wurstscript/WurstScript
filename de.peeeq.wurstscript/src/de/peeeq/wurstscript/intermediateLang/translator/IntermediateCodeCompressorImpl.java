@@ -1,8 +1,23 @@
-package de.peeeq.wurstscript.intermediateLang;
+package de.peeeq.wurstscript.intermediateLang.translator;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import de.peeeq.wurstscript.intermediateLang.ILStatement;
+import de.peeeq.wurstscript.intermediateLang.ILStatementSet;
+import de.peeeq.wurstscript.intermediateLang.ILexitwhen;
+import de.peeeq.wurstscript.intermediateLang.ILfunction;
+import de.peeeq.wurstscript.intermediateLang.ILfunctionCall;
+import de.peeeq.wurstscript.intermediateLang.ILif;
+import de.peeeq.wurstscript.intermediateLang.ILloop;
+import de.peeeq.wurstscript.intermediateLang.ILprog;
+import de.peeeq.wurstscript.intermediateLang.ILreturn;
+import de.peeeq.wurstscript.intermediateLang.ILsetBinary;
+import de.peeeq.wurstscript.intermediateLang.ILsetVar;
+import de.peeeq.wurstscript.intermediateLang.ILvar;
+import de.peeeq.wurstscript.intermediateLang.IlbuildinFunctionCall;
+import de.peeeq.wurstscript.intermediateLang.IlsetUnary;
 
 public class IntermediateCodeCompressorImpl implements
 		IntermediateCodeCompressor {

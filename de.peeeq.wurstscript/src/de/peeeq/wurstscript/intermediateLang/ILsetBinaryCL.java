@@ -32,6 +32,16 @@ public class ILsetBinaryCL extends ILStatementSet {
 	public ILvar getRight() {
 		return right;
 	}
+
+
+	@Override
+	public void printJass(StringBuilder sb) {
+		sb.append("set " + getResultVar().getName() 
+				 + " = " );
+		left.printJass(sb);
+		op.printJass(sb);
+		sb.append(right.getName() + "\n");
+	}
 	
 	
 

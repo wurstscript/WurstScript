@@ -32,4 +32,9 @@ public class ILconstBool extends ILconst {
 		return !val;
 	}
 
+	@Override
+	public void printJass(StringBuilder sb) {
+		sb.append(print());
+	}
+
 }

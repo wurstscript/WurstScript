@@ -1,9 +1,7 @@
 package de.peeeq.wurstscript.ast;
 
+import katja.common.*;
 import java.io.IOException;
-
-import katja.common.KatjaTuple;
-import katja.common.KatjaTupleImpl;
 
 public interface NativeFunc extends de.peeeq.wurstscript.ast.FunctionDefinition, de.peeeq.wurstscript.ast.WEntity, KatjaTuple {
 

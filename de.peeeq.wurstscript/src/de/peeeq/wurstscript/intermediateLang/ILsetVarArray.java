@@ -1,5 +1,8 @@
 package de.peeeq.wurstscript.intermediateLang;
 
+/**
+ * set resultVar = var[index] 
+ */
 public class ILsetVarArray extends ILStatementSet {
 
 	private ILvar var;
@@ -17,6 +20,11 @@ public class ILsetVarArray extends ILStatementSet {
 
 	public ILvar getIndex() {
 		return index;
+	}
+
+	@Override
+	public void printJass(StringBuilder sb) {
+		sb.append("set " + getResultVar().getName() + " = " + var.getName() + "[" + index.getName() + "]\n");
 	}
 
 }

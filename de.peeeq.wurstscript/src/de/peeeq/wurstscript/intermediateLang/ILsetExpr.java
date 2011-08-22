@@ -15,6 +15,13 @@ public class ILsetExpr extends ILStatementSet {
 	public ILexpr getExpr() {
 		return expr;
 	}
+
+
+	@Override
+	public void printJass(StringBuilder sb) {
+		// TODO Auto-generated method stub
+		throw new Error("Not implemented yet.");
+	}
 	
 	
 

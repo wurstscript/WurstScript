@@ -5,6 +5,7 @@ import java.util.List;
 import com.google.common.base.Function;
 
 import de.peeeq.wurstscript.ast.AST.SortPos;
+import de.peeeq.wurstscript.intermediateLang.ILvar;
 
 public class Utils {
 
@@ -54,6 +55,28 @@ public class Utils {
 		while (p != null) {
 			func.apply(p);
 			p = p.postOrder();
+		}
+	}
+
+
+	public static <T> void printSep(StringBuilder sb, String seperator, T[] args, Function<T, String> function) {
+		for (int i=0; i < args.length; i++) {
+			if (i > 0) {
+				sb.append(seperator);
+			}
+			sb.append(function.apply(args[i]));
+		}
+	}
+
+
+	public static <T> void printSep(StringBuilder sb, String seperator, Iterable<T> params, Function<T, String> function) {
+		boolean first = true;
+		for (T t : params) {
+			if (!first) {
+				sb.append(seperator);
+			}
+			sb.append(function.apply(t));
+			first = false;
 		}
 	}
 

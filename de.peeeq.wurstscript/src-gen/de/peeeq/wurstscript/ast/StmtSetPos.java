@@ -1,11 +1,8 @@
 package de.peeeq.wurstscript.ast;
 
-import java.io.IOException;
 import java.util.List;
-
-import katja.common.KatjaNodePos;
-import katja.common.KatjaSort;
-import katja.common.KatjaTuplePosImpl;
+import katja.common.*;
+import java.io.IOException;
 
 public interface StmtSetPos extends de.peeeq.wurstscript.ast.WStatementPos, de.peeeq.wurstscript.ast.AST.TuplePos<de.peeeq.wurstscript.ast.StmtSet> {
 
@@ -15,8 +12,8 @@ public interface StmtSetPos extends de.peeeq.wurstscript.ast.WStatementPos, de.p
     public de.peeeq.wurstscript.ast.StmtSet term();
     public de.peeeq.wurstscript.ast.WPosPos source();
     public de.peeeq.wurstscript.ast.StmtSetPos replaceSource(de.peeeq.wurstscript.ast.WPos source);
-    public de.peeeq.wurstscript.ast.ExprPos left();
-    public de.peeeq.wurstscript.ast.StmtSetPos replaceLeft(de.peeeq.wurstscript.ast.Expr left);
+    public de.peeeq.wurstscript.ast.ExprAssignablePos left();
+    public de.peeeq.wurstscript.ast.StmtSetPos replaceLeft(de.peeeq.wurstscript.ast.ExprAssignable left);
     public de.peeeq.wurstscript.ast.OpAssignmentPos op();
     public de.peeeq.wurstscript.ast.StmtSetPos replaceOp(de.peeeq.wurstscript.ast.OpAssignment op);
     public de.peeeq.wurstscript.ast.ExprPos right();
@@ -41,12 +38,16 @@ public interface StmtSetPos extends de.peeeq.wurstscript.ast.WStatementPos, de.p
         //----- methods of VisitorType<E extends Throwable> -----
 
         public void visit(de.peeeq.wurstscript.ast.WPosPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.ExprPos term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.ExprAssignablePos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OpAssignmentPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.ExprBinaryPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.ExprUnaryPos term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.ExprPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ExprMemberVarPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ExprMemberArrayVarPos term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.ExprVarAccessPos term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.ExprVarArrayAccessPos term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.OpAssignPos term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.ExprBinaryPos term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.ExprUnaryPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ExprMemberMethodPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ExprFunctionCallPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ExprNewObjectPos term) throws E;
@@ -56,15 +57,12 @@ public interface StmtSetPos extends de.peeeq.wurstscript.ast.WStatementPos, de.p
         public void visit(de.peeeq.wurstscript.ast.ExprStringValPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ExprBoolValPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ExprFuncRefPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.ExprVarAccessPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.ExprVarArrayAccessPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ExprThisPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.OpAssignPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.StringPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.IntegerPos term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.IndexesPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OpBinaryPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OpUnaryPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.IndexesPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ArgumentsPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.DoublePos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.BooleanPos term) throws E;
@@ -91,6 +89,7 @@ public interface StmtSetPos extends de.peeeq.wurstscript.ast.WStatementPos, de.p
 
         //----- attributes of Visitor<E extends Throwable> -----
 
+        private final de.peeeq.wurstscript.ast.ExprAssignablePos.Switch<Object, E> variantVisit$ExprAssignablePos = new de.peeeq.wurstscript.ast.ExprAssignablePos.Switch<Object, E>() { public final Object CaseExprMemberVarPos(de.peeeq.wurstscript.ast.ExprMemberVarPos term) throws E { visit(term); return null; } public final Object CaseExprMemberArrayVarPos(de.peeeq.wurstscript.ast.ExprMemberArrayVarPos term) throws E { visit(term); return null; } public final Object CaseExprVarAccessPos(de.peeeq.wurstscript.ast.ExprVarAccessPos term) throws E { visit(term); return null; } public final Object CaseExprVarArrayAccessPos(de.peeeq.wurstscript.ast.ExprVarArrayAccessPos term) throws E { visit(term); return null; } };
         private final de.peeeq.wurstscript.ast.ExprAtomicPos.Switch<Object, E> variantVisit$ExprAtomicPos = new de.peeeq.wurstscript.ast.ExprAtomicPos.Switch<Object, E>() { public final Object CaseExprIntValPos(de.peeeq.wurstscript.ast.ExprIntValPos term) throws E { visit(term); return null; } public final Object CaseExprRealValPos(de.peeeq.wurstscript.ast.ExprRealValPos term) throws E { visit(term); return null; } public final Object CaseExprStringValPos(de.peeeq.wurstscript.ast.ExprStringValPos term) throws E { visit(term); return null; } public final Object CaseExprBoolValPos(de.peeeq.wurstscript.ast.ExprBoolValPos term) throws E { visit(term); return null; } public final Object CaseExprFuncRefPos(de.peeeq.wurstscript.ast.ExprFuncRefPos term) throws E { visit(term); return null; } public final Object CaseExprVarAccessPos(de.peeeq.wurstscript.ast.ExprVarAccessPos term) throws E { visit(term); return null; } public final Object CaseExprVarArrayAccessPos(de.peeeq.wurstscript.ast.ExprVarArrayAccessPos term) throws E { visit(term); return null; } public final Object CaseExprThisPos(de.peeeq.wurstscript.ast.ExprThisPos term) throws E { visit(term); return null; } };
         private final de.peeeq.wurstscript.ast.ExprPos.Switch<Object, E> variantVisit$ExprPos = new de.peeeq.wurstscript.ast.ExprPos.Switch<Object, E>() { public final Object CaseExprBinaryPos(de.peeeq.wurstscript.ast.ExprBinaryPos term) throws E { visit(term); return null; } public final Object CaseExprUnaryPos(de.peeeq.wurstscript.ast.ExprUnaryPos term) throws E { visit(term); return null; } public final Object CaseExprMemberVarPos(de.peeeq.wurstscript.ast.ExprMemberVarPos term) throws E { visit(term); return null; } public final Object CaseExprMemberArrayVarPos(de.peeeq.wurstscript.ast.ExprMemberArrayVarPos term) throws E { visit(term); return null; } public final Object CaseExprMemberMethodPos(de.peeeq.wurstscript.ast.ExprMemberMethodPos term) throws E { visit(term); return null; } public final Object CaseExprFunctionCallPos(de.peeeq.wurstscript.ast.ExprFunctionCallPos term) throws E { visit(term); return null; } public final Object CaseExprNewObjectPos(de.peeeq.wurstscript.ast.ExprNewObjectPos term) throws E { visit(term); return null; } public final Object CaseExprIntValPos(de.peeeq.wurstscript.ast.ExprIntValPos term) throws E { visit(term); return null; } public final Object CaseExprRealValPos(de.peeeq.wurstscript.ast.ExprRealValPos term) throws E { visit(term); return null; } public final Object CaseExprStringValPos(de.peeeq.wurstscript.ast.ExprStringValPos term) throws E { visit(term); return null; } public final Object CaseExprBoolValPos(de.peeeq.wurstscript.ast.ExprBoolValPos term) throws E { visit(term); return null; } public final Object CaseExprFuncRefPos(de.peeeq.wurstscript.ast.ExprFuncRefPos term) throws E { visit(term); return null; } public final Object CaseExprVarAccessPos(de.peeeq.wurstscript.ast.ExprVarAccessPos term) throws E { visit(term); return null; } public final Object CaseExprVarArrayAccessPos(de.peeeq.wurstscript.ast.ExprVarArrayAccessPos term) throws E { visit(term); return null; } public final Object CaseExprThisPos(de.peeeq.wurstscript.ast.ExprThisPos term) throws E { visit(term); return null; } };
         private final de.peeeq.wurstscript.ast.OpAssignmentPos.Switch<Object, E> variantVisit$OpAssignmentPos = new de.peeeq.wurstscript.ast.OpAssignmentPos.Switch<Object, E>() { public final Object CaseOpAssignPos(de.peeeq.wurstscript.ast.OpAssignPos term) throws E { visit(term); return null; } };
@@ -98,6 +97,10 @@ public interface StmtSetPos extends de.peeeq.wurstscript.ast.WStatementPos, de.p
         private final de.peeeq.wurstscript.ast.OpUnaryPos.Switch<Object, E> variantVisit$OpUnaryPos = new de.peeeq.wurstscript.ast.OpUnaryPos.Switch<Object, E>() { public final Object CaseOpNotPos(de.peeeq.wurstscript.ast.OpNotPos term) throws E { visit(term); return null; } public final Object CaseOpMinusPos(de.peeeq.wurstscript.ast.OpMinusPos term) throws E { visit(term); return null; } };
 
         //----- methods of Visitor<E extends Throwable> -----
+
+        public final void visit(de.peeeq.wurstscript.ast.ExprAssignablePos term) throws E {
+            term.Switch(variantVisit$ExprAssignablePos);
+        }
 
         public final void visit(de.peeeq.wurstscript.ast.ExprAtomicPos term) throws E {
             term.Switch(variantVisit$ExprAtomicPos);
@@ -125,7 +128,7 @@ public interface StmtSetPos extends de.peeeq.wurstscript.ast.WStatementPos, de.p
         //----- attributes of Impl -----
 
         private de.peeeq.wurstscript.ast.WPosPos _source = null;
-        private de.peeeq.wurstscript.ast.ExprPos _left = null;
+        private de.peeeq.wurstscript.ast.ExprAssignablePos _left = null;
         private de.peeeq.wurstscript.ast.OpAssignmentPos _op = null;
         private de.peeeq.wurstscript.ast.ExprPos _right = null;
 
@@ -146,14 +149,14 @@ public interface StmtSetPos extends de.peeeq.wurstscript.ast.WStatementPos, de.p
             return replace(_term.replaceSource(source));
         }
 
-        public de.peeeq.wurstscript.ast.ExprPos left() {
+        public de.peeeq.wurstscript.ast.ExprAssignablePos left() {
             if(_left == null)
-                _left = de.peeeq.wurstscript.ast.AST.ExprPos(this, _term.left(), 1);
+                _left = de.peeeq.wurstscript.ast.AST.ExprAssignablePos(this, _term.left(), 1);
 
             return _left;
         }
 
-        public de.peeeq.wurstscript.ast.StmtSetPos replaceLeft(de.peeeq.wurstscript.ast.Expr left) {
+        public de.peeeq.wurstscript.ast.StmtSetPos replaceLeft(de.peeeq.wurstscript.ast.ExprAssignable left) {
             return replace(_term.replaceLeft(left));
         }
 
@@ -196,7 +199,7 @@ public interface StmtSetPos extends de.peeeq.wurstscript.ast.WStatementPos, de.p
                     return _source;
                 case 1:
                     if(_left == null)
-                        _left = AST.ExprPos(this, _term.left(), 1);
+                        _left = AST.ExprAssignablePos(this, _term.left(), 1);
                     
                     return _left;
                 case 2:

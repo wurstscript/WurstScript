@@ -27,6 +27,16 @@ public class ILexprBinary implements ILexpr {
 	public ILexpr getRight() {
 		return right;
 	}
+
+
+	@Override
+	public void printJass(StringBuilder sb) {
+		sb.append("(");
+		left.printJass(sb);
+		op.printJass(sb);
+		right.printJass(sb);
+		sb.append(")");
+	}
 	
 	
 

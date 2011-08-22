@@ -13,4 +13,11 @@ public class IlsetConst extends ILStatementSet {
 		return constant;
 	}
 
+	@Override
+	public void printJass(StringBuilder sb) {
+		sb.append("set " + getResultVar().getName() + " = ");
+		constant.printJass(sb);
+		sb.append("\n");
+	}
+
 }

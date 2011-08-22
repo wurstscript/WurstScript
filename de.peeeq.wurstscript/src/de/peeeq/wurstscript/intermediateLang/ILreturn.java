@@ -11,6 +11,11 @@ public class ILreturn extends ILStatement {
 	public ILvar getVar() {
 		return var;
 	}
+
+	@Override
+	public void printJass(StringBuilder sb) {
+		sb.append("return " + var.getName());
+	}
 	
 	
 

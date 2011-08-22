@@ -1,6 +1,6 @@
 package de.peeeq.wurstscript.intermediateLang;
 
-public class ILarraySetVar extends ILStatementSet {
+public class ILarraySetVar extends ILStatementSet implements CodePrinting {
 
 	private ILvar index;
 	private ILvar var;
@@ -17,6 +17,17 @@ public class ILarraySetVar extends ILStatementSet {
 
 	public ILvar getVar() {
 		return var;
+	}
+
+	@Override
+	public void printJass(StringBuilder sb) {
+		sb.append("set ");
+		sb.append(getResultVar().getName());
+		sb.append("[");
+		sb.append(index.getName());
+		sb.append("] = ");
+		sb.append(var.getName());
+		sb.append("\n");
 	}
 
 	

@@ -1,6 +1,6 @@
 package de.peeeq.wurstscript.intermediateLang;
 
-public class Iloperator {
+public class Iloperator implements CodePrinting {
 
 	public static final Iloperator OR = new Iloperator("or");
 	public static final Iloperator AND = new Iloperator("and");
@@ -30,6 +30,11 @@ public class Iloperator {
 	public String toString() {
 		// TODO Auto-generated method stub
 		return "Iloperator " + name; 
+	}
+
+	@Override
+	public void printJass(StringBuilder sb) {
+		sb.append(" " + name + " ");
 	}
 
 }

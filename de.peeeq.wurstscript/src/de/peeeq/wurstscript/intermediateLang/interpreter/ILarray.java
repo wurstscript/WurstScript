@@ -57,4 +57,11 @@ public class ILarray extends ILconst {
 		return "array(" + sb + ")";
 	}
 
+
+	@Override
+	public void printJass(StringBuilder sb) {
+		// TODO Auto-generated method stub
+		throw new Error("Not implemented yet.");
+	}
+
 }

@@ -1,6 +1,6 @@
 package de.peeeq.wurstscript.intermediateLang;
 
-public class ILStatementSet extends ILStatement {
+public abstract class ILStatementSet extends ILStatement {
 
 	private ILvar resultVar;
 	

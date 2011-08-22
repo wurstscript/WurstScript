@@ -1,0 +1,43 @@
+globals
+integer array(dimensions = 2) test_blub
+endglobals
+function test_runTest takes nothing returns #unknown
+local integer index
+local integer index8570
+local integer indexM
+local integer index5701
+local integer indexM5830
+local integer temp
+local boolean ifCondition
+local integer leftOperand
+local integer index3743
+local integer index771
+local integer indexM6684
+local integer index5859
+local integer indexM3384
+local integer rightOperand
+local string testFail_param0
+set index8570 = 3
+set indexM = index8570 mult 0
+set index5701 = 2
+set indexM5830 = index5701 mult 1
+set index = indexM
+set index = index plus indexM5830
+set temp = 3
+set blub[index] = temp
+set index771 = 1
+set indexM6684 = index771 mult 0
+set index5859 = 2
+set indexM3384 = index5859 mult 1
+set index3743 = indexM6684
+set index3743 = index3743 plus indexM3384
+set leftOperand = blub[index3743]
+set rightOperand = 0
+set ifCondition = leftOperand == rightOperand
+if ifCondition then
+call testSuccess()
+else
+set testFail_param0 = "Array Test 3 failed."
+call testFail(testFail_param0)
+endif
+endfunction

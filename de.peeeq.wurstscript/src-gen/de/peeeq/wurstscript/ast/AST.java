@@ -1,23 +1,12 @@
 package de.peeeq.wurstscript.ast;
 
-import java.io.IOException;
+import katja.common.*;
+import java.util.*;
+import java.lang.ref.*;
 import java.io.Reader;
-import java.lang.ref.WeakReference;
+import java.io.IOException;
 import java.util.List;
 import java.util.TreeMap;
-import java.util.WeakHashMap;
-
-import katja.common.KatjaElement;
-import katja.common.KatjaLeafPos;
-import katja.common.KatjaList;
-import katja.common.KatjaListPos;
-import katja.common.KatjaNodePos;
-import katja.common.KatjaSortPos;
-import katja.common.KatjaSpecification;
-import katja.common.KatjaTerm;
-import katja.common.KatjaTermPos;
-import katja.common.KatjaTuple;
-import katja.common.KatjaTuplePos;
 
 public class AST extends KatjaSpecification {
 
@@ -114,6 +103,10 @@ public class AST extends KatjaSpecification {
 
     static final de.peeeq.wurstscript.ast.DoublePos DoublePos(final KatjaNodePos<de.peeeq.wurstscript.ast.CompilationUnitPos, ?> parent, final java.lang.Double term, final int pos) {
         return new de.peeeq.wurstscript.ast.DoublePos.Impl(parent, term, pos);
+    }
+
+    static final de.peeeq.wurstscript.ast.ExprAssignablePos ExprAssignablePos(final KatjaNodePos<de.peeeq.wurstscript.ast.CompilationUnitPos, ?> parent, final de.peeeq.wurstscript.ast.ExprAssignable term, final int pos) {
+        return term.Switch(new de.peeeq.wurstscript.ast.ExprAssignable.Switch<de.peeeq.wurstscript.ast.ExprAssignablePos, RuntimeException>() { public final de.peeeq.wurstscript.ast.ExprAssignablePos CaseExprMemberVar(de.peeeq.wurstscript.ast.ExprMemberVar term) { return new de.peeeq.wurstscript.ast.ExprMemberVarPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.ExprAssignablePos CaseExprMemberArrayVar(de.peeeq.wurstscript.ast.ExprMemberArrayVar term) { return new de.peeeq.wurstscript.ast.ExprMemberArrayVarPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.ExprAssignablePos CaseExprVarAccess(de.peeeq.wurstscript.ast.ExprVarAccess term) { return new de.peeeq.wurstscript.ast.ExprVarAccessPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.ExprAssignablePos CaseExprVarArrayAccess(de.peeeq.wurstscript.ast.ExprVarArrayAccess term) { return new de.peeeq.wurstscript.ast.ExprVarArrayAccessPos.Impl(parent, term, pos); } });
     }
 
     static final de.peeeq.wurstscript.ast.ExprAtomicPos ExprAtomicPos(final KatjaNodePos<de.peeeq.wurstscript.ast.CompilationUnitPos, ?> parent, final de.peeeq.wurstscript.ast.ExprAtomic term, final int pos) {
@@ -520,6 +513,10 @@ public class AST extends KatjaSpecification {
         return new de.peeeq.wurstscript.ast.OpPlusPos.Impl(parent, term, pos);
     }
 
+    static final de.peeeq.wurstscript.ast.OpPos OpPos(final KatjaNodePos<de.peeeq.wurstscript.ast.CompilationUnitPos, ?> parent, final de.peeeq.wurstscript.ast.Op term, final int pos) {
+        return term.Switch(new de.peeeq.wurstscript.ast.Op.Switch<de.peeeq.wurstscript.ast.OpPos, RuntimeException>() { public final de.peeeq.wurstscript.ast.OpPos CaseOpOr(de.peeeq.wurstscript.ast.OpOr term) { return new de.peeeq.wurstscript.ast.OpOrPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.OpPos CaseOpAnd(de.peeeq.wurstscript.ast.OpAnd term) { return new de.peeeq.wurstscript.ast.OpAndPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.OpPos CaseOpEquals(de.peeeq.wurstscript.ast.OpEquals term) { return new de.peeeq.wurstscript.ast.OpEqualsPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.OpPos CaseOpUnequals(de.peeeq.wurstscript.ast.OpUnequals term) { return new de.peeeq.wurstscript.ast.OpUnequalsPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.OpPos CaseOpLessEq(de.peeeq.wurstscript.ast.OpLessEq term) { return new de.peeeq.wurstscript.ast.OpLessEqPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.OpPos CaseOpLess(de.peeeq.wurstscript.ast.OpLess term) { return new de.peeeq.wurstscript.ast.OpLessPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.OpPos CaseOpGreaterEq(de.peeeq.wurstscript.ast.OpGreaterEq term) { return new de.peeeq.wurstscript.ast.OpGreaterEqPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.OpPos CaseOpGreater(de.peeeq.wurstscript.ast.OpGreater term) { return new de.peeeq.wurstscript.ast.OpGreaterPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.OpPos CaseOpPlus(de.peeeq.wurstscript.ast.OpPlus term) { return new de.peeeq.wurstscript.ast.OpPlusPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.OpPos CaseOpMinus(de.peeeq.wurstscript.ast.OpMinus term) { return new de.peeeq.wurstscript.ast.OpMinusPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.OpPos CaseOpMult(de.peeeq.wurstscript.ast.OpMult term) { return new de.peeeq.wurstscript.ast.OpMultPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.OpPos CaseOpDivReal(de.peeeq.wurstscript.ast.OpDivReal term) { return new de.peeeq.wurstscript.ast.OpDivRealPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.OpPos CaseOpModReal(de.peeeq.wurstscript.ast.OpModReal term) { return new de.peeeq.wurstscript.ast.OpModRealPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.OpPos CaseOpModInt(de.peeeq.wurstscript.ast.OpModInt term) { return new de.peeeq.wurstscript.ast.OpModIntPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.OpPos CaseOpDivInt(de.peeeq.wurstscript.ast.OpDivInt term) { return new de.peeeq.wurstscript.ast.OpDivIntPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.OpPos CaseOpNot(de.peeeq.wurstscript.ast.OpNot term) { return new de.peeeq.wurstscript.ast.OpNotPos.Impl(parent, term, pos); } });
+    }
+
     static final de.peeeq.wurstscript.ast.OpUnaryPos OpUnaryPos(final KatjaNodePos<de.peeeq.wurstscript.ast.CompilationUnitPos, ?> parent, final de.peeeq.wurstscript.ast.OpUnary term, final int pos) {
         return term.Switch(new de.peeeq.wurstscript.ast.OpUnary.Switch<de.peeeq.wurstscript.ast.OpUnaryPos, RuntimeException>() { public final de.peeeq.wurstscript.ast.OpUnaryPos CaseOpNot(de.peeeq.wurstscript.ast.OpNot term) { return new de.peeeq.wurstscript.ast.OpNotPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.OpUnaryPos CaseOpMinus(de.peeeq.wurstscript.ast.OpMinus term) { return new de.peeeq.wurstscript.ast.OpMinusPos.Impl(parent, term, pos); } });
     }
@@ -597,7 +594,7 @@ public class AST extends KatjaSpecification {
         return new de.peeeq.wurstscript.ast.StmtReturnPos.Impl(parent, term, pos);
     }
 
-    public static final de.peeeq.wurstscript.ast.StmtSet StmtSet(de.peeeq.wurstscript.ast.WPos source, de.peeeq.wurstscript.ast.Expr left, de.peeeq.wurstscript.ast.OpAssignment op, de.peeeq.wurstscript.ast.Expr right) {
+    public static final de.peeeq.wurstscript.ast.StmtSet StmtSet(de.peeeq.wurstscript.ast.WPos source, de.peeeq.wurstscript.ast.ExprAssignable left, de.peeeq.wurstscript.ast.OpAssignment op, de.peeeq.wurstscript.ast.Expr right) {
         return _termcache.put(new de.peeeq.wurstscript.ast.StmtSet.Impl(source, left, op, right));
     }
 
@@ -1278,13 +1275,13 @@ public class AST extends KatjaSpecification {
 
                     if(!(parameters[0] instanceof de.peeeq.wurstscript.ast.WPos))
                         throw new IllegalArgumentException("wrong sort on stack as parameter 1 of StmtSet constructor, in line "+line);
-                    if(!(parameters[1] instanceof de.peeeq.wurstscript.ast.Expr))
+                    if(!(parameters[1] instanceof de.peeeq.wurstscript.ast.ExprAssignable))
                         throw new IllegalArgumentException("wrong sort on stack as parameter 2 of StmtSet constructor, in line "+line);
                     if(!(parameters[2] instanceof de.peeeq.wurstscript.ast.OpAssignment))
                         throw new IllegalArgumentException("wrong sort on stack as parameter 3 of StmtSet constructor, in line "+line);
                     if(!(parameters[3] instanceof de.peeeq.wurstscript.ast.Expr))
                         throw new IllegalArgumentException("wrong sort on stack as parameter 4 of StmtSet constructor, in line "+line);
-                    return de.peeeq.wurstscript.ast.AST.StmtSet((de.peeeq.wurstscript.ast.WPos) parameters[0], (de.peeeq.wurstscript.ast.Expr) parameters[1], (de.peeeq.wurstscript.ast.OpAssignment) parameters[2], (de.peeeq.wurstscript.ast.Expr) parameters[3]);
+                    return de.peeeq.wurstscript.ast.AST.StmtSet((de.peeeq.wurstscript.ast.WPos) parameters[0], (de.peeeq.wurstscript.ast.ExprAssignable) parameters[1], (de.peeeq.wurstscript.ast.OpAssignment) parameters[2], (de.peeeq.wurstscript.ast.Expr) parameters[3]);
                 case 51:
                     if(parameters.length != 3)
                         throw new IllegalArgumentException("wrong number of arguments given for sort StmtWhile, in line "+line);

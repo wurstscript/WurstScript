@@ -1,18 +1,15 @@
 package de.peeeq.wurstscript.ast;
 
-import java.io.IOException;
+import katja.common.*;
 import java.util.List;
-
-import katja.common.KatjaNodePos;
-import katja.common.KatjaSort;
-import katja.common.KatjaSortPos;
-import katja.common.KatjaTuplePosImpl;
+import java.io.IOException;
 
 public interface OpDivIntPos extends de.peeeq.wurstscript.ast.OpBinaryPos, de.peeeq.wurstscript.ast.AST.TuplePos<de.peeeq.wurstscript.ast.OpDivInt> {
 
     //----- methods of OpDivIntPos -----
 
     public de.peeeq.wurstscript.ast.OpDivInt termOpBinary();
+    public de.peeeq.wurstscript.ast.OpDivInt termOp();
     public de.peeeq.wurstscript.ast.OpDivInt term();
     public KatjaSortPos<de.peeeq.wurstscript.ast.CompilationUnitPos> get(int i);
     public int size();
@@ -26,6 +23,7 @@ public interface OpDivIntPos extends de.peeeq.wurstscript.ast.OpBinaryPos, de.pe
     public de.peeeq.wurstscript.ast.AST.SortPos postOrderStart();
     public de.peeeq.wurstscript.ast.AST.SortPos follow(List<Integer> path);
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.OpBinaryPos.Switch<CT, E> switchClass) throws E;
+    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.OpPos.Switch<CT, E> switchClass) throws E;
 
     //----- nested classes of OpDivIntPos -----
 
@@ -44,6 +42,10 @@ public interface OpDivIntPos extends de.peeeq.wurstscript.ast.OpBinaryPos, de.pe
         //----- methods of Impl -----
 
         public de.peeeq.wurstscript.ast.OpDivInt termOpBinary() {
+            return term();
+        }
+
+        public de.peeeq.wurstscript.ast.OpDivInt termOp() {
             return term();
         }
 
@@ -114,6 +116,10 @@ public interface OpDivIntPos extends de.peeeq.wurstscript.ast.OpBinaryPos, de.pe
         }
 
         public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.OpBinaryPos.Switch<CT, E> switchClass) throws E {
+            return switchClass.CaseOpDivIntPos(this);
+        }
+
+        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.OpPos.Switch<CT, E> switchClass) throws E {
             return switchClass.CaseOpDivIntPos(this);
         }
 
