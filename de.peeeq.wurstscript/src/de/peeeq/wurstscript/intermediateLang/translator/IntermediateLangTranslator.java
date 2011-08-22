@@ -122,7 +122,7 @@ public class IntermediateLangTranslator {
 	private Set<String> usedNames = new HashSet<String>();
 	private Attributes attr;
 	private Map<FunctionDefinitionPos, ILfunction> functions = new HashMap<FunctionDefinitionPos, ILfunction>();
-	
+	private Map<VarDefPos, ILvar> vars = new HashMap<VarDefPos, ILvar>();
 	
 	public IntermediateLangTranslator(CompilationUnitPos cu, Attributes attr) {
 		this.cu = cu;
@@ -433,8 +433,18 @@ public class IntermediateLangTranslator {
 	}
 
 	private ILvar getILvarForVarDef(VarDefPos varDef) {
+		if (vars.containsKey(varDef)) {
+			return vars.get(varDef);
+		}
 		PscriptType typ = attr.varDefType.get(varDef);
-		return new ILvar(varDef.name().term(), typ);
+		String name = varDef.name().term();
+		ILvar v = new ILvar(name, typ);
+		if (varDef instanceof GlobalVarDefPos) {
+			WPackagePos pack = attr.nearestPackage.get(varDef);
+			name = pack.name().term() + "_" + name;
+		}
+		vars.put(varDef, v);
+		return v;
 	}
 
 	protected ILvar getNewLocalVar(ILfunction func, PscriptType type, String name) {
