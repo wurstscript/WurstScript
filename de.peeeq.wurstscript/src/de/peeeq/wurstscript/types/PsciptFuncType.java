@@ -49,4 +49,10 @@ public class PsciptFuncType extends PscriptType {
 		return result ;
 	}
 
+	@Override
+	public String printJass() {
+		// TODO Auto-generated method stub
+		throw new Error("Not implemented yet.");
+	}
+
 }

@@ -35,7 +35,8 @@ public class ILfunctionCall extends ILStatementSet {
 	}
 
 	@Override
-	public void printJass(StringBuilder sb) {
+	public void printJass(StringBuilder sb, int indent) {
+		Utils.printIndent(sb, indent);
 		if (getResultVar() == null) {
 			sb.append("call ");
 		} else {

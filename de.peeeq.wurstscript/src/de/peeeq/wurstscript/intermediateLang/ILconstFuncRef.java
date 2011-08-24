@@ -18,7 +18,7 @@ public class ILconstFuncRef extends ILconst {
 	}
 	
 	@Override
-	public void printJass(StringBuilder sb) {
+	public void printJass(StringBuilder sb, int indent) {
 		sb.append(print());
 	}
 

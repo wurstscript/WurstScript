@@ -33,4 +33,9 @@ public class PscriptNativeType extends PscriptType {
 		return t;
 	}
 
+	@Override
+	public String printJass() {
+		return name;
+	}
+
 }

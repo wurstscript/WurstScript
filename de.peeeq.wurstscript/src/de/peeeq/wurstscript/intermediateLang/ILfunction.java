@@ -62,7 +62,7 @@ public class ILfunction implements CodePrinting {
 	}
 
 	@Override
-	public void printJass(StringBuilder sb) {
+	public void printJass(StringBuilder sb, int indent) {
 		sb.append("function " + name + " takes ");
 		if (params.size() == 0) {
 			sb.append("nothing");
@@ -70,7 +70,7 @@ public class ILfunction implements CodePrinting {
 			Utils.printSep(sb, ", ", params, new Function<ILvar, String>() {
 				@Override
 				public String apply(ILvar v) {
-					return v.getType() + " " + v.getName();
+					return v.getType().printJass() + " " + v.getName();
 				}
 			});
 		}
@@ -78,23 +78,27 @@ public class ILfunction implements CodePrinting {
 		if (returnType instanceof PScriptTypeVoid) {
 			sb.append("nothing");
 		} else {
-			sb.append(returnType);
+			sb.append(returnType.printJass());
 		}
 		sb.append("\n");
 		
 		// print locals
 		for (ILvar l : locals) {
 			sb.append("local ");
-			l.printJass(sb);
+			l.printJass(sb, 1);
 			sb.append("\n");
 		}
 		// print body:
 		for (ILStatement s : body) {
-			s.printJass(sb);
+			s.printJass(sb, 1);
 		}
 		
 		
 		sb.append("endfunction\n");
+	}
+
+	public void setReturnType(PscriptType typ) {
+		returnType = typ;
 	}
 
 }

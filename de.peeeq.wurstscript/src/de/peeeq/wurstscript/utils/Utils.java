@@ -9,6 +9,12 @@ import de.peeeq.wurstscript.intermediateLang.ILvar;
 
 public class Utils {
 
+	public static void printIndent(StringBuilder sb, int indent) {
+		for (int i=0; i<indent; i++) {
+			sb.append("\t");
+		}
+	}
+	
 	public static <T,R> List<R> map(Iterable<T> list, Function<T, R> function) {
 		List<R> result = new NotNullList<R>();
 		for (T t : list) {

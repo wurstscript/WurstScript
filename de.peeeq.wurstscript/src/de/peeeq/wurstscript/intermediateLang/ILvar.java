@@ -46,7 +46,7 @@ public class ILvar implements ILexpr {
 	}
 
 	@Override
-	public void printJass(StringBuilder sb) {
-		sb.append(type + " " + name);
+	public void printJass(StringBuilder sb, int indent) {
+		sb.append(type.printJass() + " " + name);
 	}
 }

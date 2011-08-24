@@ -26,7 +26,8 @@ public class IlbuildinFunctionCall extends ILStatementSet implements CodePrintin
 	}
 
 	@Override
-	public void printJass(StringBuilder sb) {
+	public void printJass(StringBuilder sb, int indent) {
+		Utils.printIndent(sb, indent);
 		if (getResultVar() == null) {
 			sb.append("call ");
 		} else {

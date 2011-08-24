@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.intermediateLang;
 
+import de.peeeq.wurstscript.utils.Utils;
+
 public class ILreturn extends ILStatement {
 
 	private ILvar var;
@@ -13,7 +15,8 @@ public class ILreturn extends ILStatement {
 	}
 
 	@Override
-	public void printJass(StringBuilder sb) {
+	public void printJass(StringBuilder sb, int indent) {
+		Utils.printIndent(sb, indent);
 		sb.append("return " + var.getName());
 	}
 	

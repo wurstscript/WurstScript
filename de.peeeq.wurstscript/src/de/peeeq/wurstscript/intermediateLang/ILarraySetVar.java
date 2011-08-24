@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.intermediateLang;
 
+import de.peeeq.wurstscript.utils.Utils;
+
 public class ILarraySetVar extends ILStatementSet implements CodePrinting {
 
 	private ILvar index;
@@ -20,7 +22,8 @@ public class ILarraySetVar extends ILStatementSet implements CodePrinting {
 	}
 
 	@Override
-	public void printJass(StringBuilder sb) {
+	public void printJass(StringBuilder sb, int indent) {
+		Utils.printIndent(sb, indent);
 		sb.append("set ");
 		sb.append(getResultVar().getName());
 		sb.append("[");

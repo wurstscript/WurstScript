@@ -28,4 +28,10 @@ public class PScriptTypePackage extends PscriptType {
 		return new PScriptTypePackage(name);
 	}
 
+	@Override
+	public String printJass() {
+		// TODO Auto-generated method stub
+		throw new Error("Not implemented yet.");
+	}
+
 }

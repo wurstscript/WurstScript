@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.intermediateLang;
 
+import de.peeeq.wurstscript.utils.Utils;
+
 /**
  * a binary expression like A + B where A and B are arbitrary expressions 
  */
@@ -30,11 +32,12 @@ public class ILexprBinary implements ILexpr {
 
 
 	@Override
-	public void printJass(StringBuilder sb) {
+	public void printJass(StringBuilder sb, int indent) {
+		Utils.printIndent(sb, indent);
 		sb.append("(");
-		left.printJass(sb);
-		op.printJass(sb);
-		right.printJass(sb);
+		left.printJass(sb, 0);
+		op.printJass(sb, 0);
+		right.printJass(sb, 0);
 		sb.append(")");
 	}
 	

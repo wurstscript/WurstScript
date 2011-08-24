@@ -33,7 +33,7 @@ public class ILconstBool extends ILconst {
 	}
 
 	@Override
-	public void printJass(StringBuilder sb) {
+	public void printJass(StringBuilder sb, int indent) {
 		sb.append(print());
 	}
 

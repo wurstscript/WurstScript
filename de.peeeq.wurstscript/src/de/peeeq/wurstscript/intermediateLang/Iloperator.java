@@ -33,7 +33,7 @@ public class Iloperator implements CodePrinting {
 	}
 
 	@Override
-	public void printJass(StringBuilder sb) {
+	public void printJass(StringBuilder sb, int indent) {
 		sb.append(" " + name + " ");
 	}
 

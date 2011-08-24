@@ -2,6 +2,8 @@ package de.peeeq.wurstscript.intermediateLang;
 
 import java.util.List;
 
+import de.peeeq.wurstscript.utils.Utils;
+
 public class ILif extends ILStatement {
 
 	private ILvar cond;
@@ -27,17 +29,20 @@ public class ILif extends ILStatement {
 	}
 
 	@Override
-	public void printJass(StringBuilder sb) {
+	public void printJass(StringBuilder sb, int indent) {
+		Utils.printIndent(sb, indent);
 		sb.append("if " + cond.getName() + " then\n");
 		for (ILStatement s : thenBlock) {
-			s.printJass(sb);
+			s.printJass(sb, indent+1);
 		}
 		if (elseBlock.size() > 0) {
+			Utils.printIndent(sb, indent);
 			sb.append("else\n");
 			for (ILStatement s : elseBlock) {
-				s.printJass(sb);
+				s.printJass(sb, indent+1);
 			}
 		}
+		Utils.printIndent(sb, indent);
 		sb.append("endif\n");
 		
 		

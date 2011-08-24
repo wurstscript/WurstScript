@@ -90,7 +90,7 @@ public class ILInterpreterImplTest {
 		
 		File outputFile = new File(filename.replaceAll(PSCRIPT_ENDING, ".j"));
 		StringBuilder sb = new StringBuilder();
-		prog.printJass(sb);
+		prog.printJass(sb, 0);
 		try {
 			FileWriter writer = new FileWriter(outputFile, false);
 			writer.append(sb.toString());

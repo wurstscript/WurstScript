@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.intermediateLang;
 
+import de.peeeq.wurstscript.utils.Utils;
+
 public class IlsetConst extends ILStatementSet {
 
 	private ILconst constant;
@@ -14,9 +16,10 @@ public class IlsetConst extends ILStatementSet {
 	}
 
 	@Override
-	public void printJass(StringBuilder sb) {
+	public void printJass(StringBuilder sb, int indent) {
+		Utils.printIndent(sb, indent);
 		sb.append("set " + getResultVar().getName() + " = ");
-		constant.printJass(sb);
+		constant.printJass(sb, 0);
 		sb.append("\n");
 	}
 

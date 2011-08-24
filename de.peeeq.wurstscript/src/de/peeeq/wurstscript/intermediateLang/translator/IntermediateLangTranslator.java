@@ -73,6 +73,7 @@ import de.peeeq.wurstscript.ast.StmtIncRefCountPos;
 import de.peeeq.wurstscript.ast.StmtReturnPos;
 import de.peeeq.wurstscript.ast.StmtSetPos;
 import de.peeeq.wurstscript.ast.StmtWhilePos;
+import de.peeeq.wurstscript.ast.TypeExprPos;
 import de.peeeq.wurstscript.ast.VarDefPos;
 import de.peeeq.wurstscript.ast.WEntityPos;
 import de.peeeq.wurstscript.ast.WPackagePos;
@@ -106,6 +107,7 @@ import de.peeeq.wurstscript.intermediateLang.IlsetUnary;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
 import de.peeeq.wurstscript.types.PScriptTypeUnknown;
+import de.peeeq.wurstscript.types.PScriptTypeVoid;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.utils.NotNullList;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
@@ -194,6 +196,12 @@ public class IntermediateLangTranslator {
 	protected void translateFuncDef(WPackagePos p, FuncDefPos term) {
 		ILfunction func = getFunction(term);
 		prog.addFunction(func);
+		if (term.signature().typ() instanceof TypeExprPos) {
+			func.setReturnType(attr.typeExprType.get((TypeExprPos) term.signature().typ()));
+		} else {
+			func.setReturnType(PScriptTypeVoid.instance());
+		}
+	
 		// TODO set parameters, returntype
 		translateFunctionBody(func, term.body());
 	}
@@ -398,6 +406,11 @@ public class IntermediateLangTranslator {
 	protected List<ILStatement> translateFunctionCall(ILfunction func, final ILvar resultVar, ExprFunctionCallPos term, ArgumentsPos args) {
 		final List<ILStatement> result = new NotNullList<ILStatement>();
 		final FunctionDefinitionPos calledFunc = attr.funcDef.get(term);
+		
+		// add call dependency
+		prog.addCallDependency(func, getFunction(calledFunc));
+		
+		
 		// translate Arguments:
 		int argCount = term.args().size();
 
@@ -711,35 +724,51 @@ public class IntermediateLangTranslator {
 		throw new Error("not implemented");
 	}
 	
-	
+	/**
+	 * calculate the index for an array
+	 * @param func current function
+	 * @param type type of the array (stores information about dimensions and about where arraysizes can be found)
+	 * @param indexResult the variable where to store the final one dimensional index to
+	 * @param indexesPos the indexes
+	 * @return
+	 */
 	protected List<ILStatement> calculateIndexes(ILfunction func, PScriptTypeArray type, ILvar indexResult, IndexesPos indexesPos) {
+		if (indexesPos.size() > 1) {
+			throw new Error("Multidimensional arrays are not supported yet.");
+		}
+		
 		LinkedList<ILStatement> result = new LinkedList<ILStatement>();
-		ILvar[] indexVar = new ILvar[indexesPos.size()];
-		ILvar[] indexVarM = new ILvar[indexesPos.size()];
-		
-		// calculate indizes
-		for (int i = 0; i < indexesPos.size(); i++) {
-			indexVar[i] = getNewLocalVar(func, PScriptTypeInt.instance(), "index");
-			indexVarM[i] = getNewLocalVar(func, PScriptTypeInt.instance(), "indexM");
-			
-			int rightSize = 1;
-			for (int j = i+1; j < indexesPos.size(); j++) {
-				rightSize *= type.getSize(j);
-			}
-			
-			//result.addAll(translateExpr(indizes.get(i), indexVar[i]));
-			result.addAll(translateExpr(func, indexVar[i], indexesPos.get(i)));
-			result.add(new ILsetBinaryCR(indexVarM[i], indexVar[i], Iloperator.MULT, new ILconstInt(rightSize)));
-		}
+		result.addAll(translateExpr(func, indexResult, indexesPos.first()));			
+		return result;	
 		
 		
-		result.add(new ILsetVar(indexResult, indexVarM[0]));
-		
-		// calculate the sum of the indizes2:
-		for (int i=1; i < indexesPos.size(); i++) {
-			result.add(new ILsetBinary(indexResult, indexResult, Iloperator.PLUS, indexVarM[i]));
-		}
-		return result;
+//		LinkedList<ILStatement> result = new LinkedList<ILStatement>();
+//		ILvar[] indexVar = new ILvar[indexesPos.size()];
+//		ILvar[] indexVarM = new ILvar[indexesPos.size()];
+//		
+//		// calculate indizes
+//		for (int i = 0; i < indexesPos.size(); i++) {
+//			indexVar[i] = getNewLocalVar(func, PScriptTypeInt.instance(), "index");
+//			indexVarM[i] = getNewLocalVar(func, PScriptTypeInt.instance(), "indexM");
+//			
+//			int rightSize = 1;
+//			for (int j = i+1; j < indexesPos.size(); j++) {
+//				rightSize *= type.getSize(j);
+//			}
+//			
+//			//result.addAll(translateExpr(indizes.get(i), indexVar[i]));
+//			result.addAll(translateExpr(func, indexVar[i], indexesPos.get(i)));
+//			result.add(new ILsetBinaryCR(indexVarM[i], indexVar[i], Iloperator.MULT, new ILconstInt(rightSize)));
+//		}
+//		
+//		
+//		result.add(new ILsetVar(indexResult, indexVarM[0]));
+//		
+//		// calculate the sum of the indizes2:
+//		for (int i=1; i < indexesPos.size(); i++) {
+//			result.add(new ILsetBinary(indexResult, indexResult, Iloperator.PLUS, indexVarM[i]));
+//		}
+//		return result;
 	}
 
 }

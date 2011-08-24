@@ -51,4 +51,11 @@ public class PScriptTypeArray extends PscriptType {
 		return sizes[i];
 	}
 
+
+
+	@Override
+	public String printJass() {
+		return baseType.getName() + " array";
+	}
+
 }

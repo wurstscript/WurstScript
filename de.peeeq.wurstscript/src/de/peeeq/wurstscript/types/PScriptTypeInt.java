@@ -27,5 +27,10 @@ public class PScriptTypeInt extends PscriptType {
 	public static PScriptTypeInt instance() {
 		return instance;
 	}
+	
+	@Override
+	public String printJass() {
+		return getName();
+	}
 
 }

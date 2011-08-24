@@ -28,4 +28,9 @@ public class PScriptTypeReal extends PscriptType {
 		return instance;
 	}
 
+	@Override
+	public String printJass() {
+		return getName();
+	}
+
 }
