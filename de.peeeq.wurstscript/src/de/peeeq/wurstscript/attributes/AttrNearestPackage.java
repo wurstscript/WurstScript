@@ -5,7 +5,7 @@ import de.peeeq.wurstscript.ast.WPackagePos;
 
 
 /**
- * this attribute gives you the type for a type expr
+ * this attribute gives you the nearest package for a given element
  *
  */
 public class AttrNearestPackage extends Attribute<SortPos, WPackagePos> {

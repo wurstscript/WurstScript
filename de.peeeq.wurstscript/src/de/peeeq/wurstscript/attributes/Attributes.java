@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.utils.NotNullList;
 
 public class Attributes {
 
+	public final AttrDoesReturn doesReturn = new AttrDoesReturn(this);
 	public final AttrTypeExprType typeExprType = new AttrTypeExprType(this);
 	public final AttrExprType exprType = new AttrExprType(this);
 	public final AttrFuncDef funcDef = new AttrFuncDef(this);
@@ -17,6 +18,7 @@ public class Attributes {
 	public final AttrVarDefType varDefType = new AttrVarDefType(this);
 	public final AttrPackageElements packageElements = new AttrPackageElements(this);
 	public final AttrNearestPackage nearestPackage = new AttrNearestPackage(this);
+	public final AttrNearestFuncDef nearestFuncDef = new AttrNearestFuncDef(this);
 	public final AttrTypeDef typeDef = new AttrTypeDef(this);
 	
 	private List<CompileError> errors = new NotNullList<CompileError>();

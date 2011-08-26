@@ -94,7 +94,8 @@ StmtCall = ExprMemberMethod | ExprFunctionCall | ExprNewObject
 ExprAssignable = ExprMemberVar | ExprMemberArrayVar | ExprVarAccess | ExprVarArrayAccess
 
 Expr = 
-	  ExprBinary(WPos source, Expr left, OpBinary op, Expr right)
+	ExprAssignable
+	| ExprBinary(WPos source, Expr left, OpBinary op, Expr right)
 	| ExprUnary(WPos source, OpUnary op, Expr right)
 	| ExprMemberVar(WPos source, Expr left, String varName)
 	| ExprMemberArrayVar(WPos source, Expr left, String varName, Indexes indexes)
