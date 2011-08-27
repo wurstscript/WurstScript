@@ -1,43 +1,50 @@
 package de.peeeq.wurstscript.ast;
 
 import katja.common.*;
+import java.io.IOException;
 
-public interface WStatement extends KatjaSort {
+public interface StmtLoop extends de.peeeq.wurstscript.ast.WStatement, KatjaTuple {
 
-    //----- methods of WStatement -----
+    //----- methods of StmtLoop -----
 
     public de.peeeq.wurstscript.ast.WPos source();
+    public de.peeeq.wurstscript.ast.StmtLoop replaceSource(de.peeeq.wurstscript.ast.WPos source);
+    public de.peeeq.wurstscript.ast.WStatements body();
+    public de.peeeq.wurstscript.ast.StmtLoop replaceBody(de.peeeq.wurstscript.ast.WStatements body);
+    public KatjaTerm get(int i);
+    public int size();
+    public de.peeeq.wurstscript.ast.StmtLoop replace(int pos, Object term);
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.WStatement.Switch<CT, E> switchClass) throws E;
 
-    //----- nested classes of WStatement -----
-
-    public static interface Switch<CT, E extends Throwable> extends de.peeeq.wurstscript.ast.StmtCall.Switch<CT, E> {
-
-        //----- methods of Switch<CT, E extends Throwable> -----
-
-        public CT CaseStmtIf(de.peeeq.wurstscript.ast.StmtIf term) throws E;
-        public CT CaseStmtWhile(de.peeeq.wurstscript.ast.StmtWhile term) throws E;
-        public CT CaseStmtLoop(de.peeeq.wurstscript.ast.StmtLoop term) throws E;
-        public CT CaseLocalVarDef(de.peeeq.wurstscript.ast.LocalVarDef term) throws E;
-        public CT CaseStmtSet(de.peeeq.wurstscript.ast.StmtSet term) throws E;
-        public CT CaseStmtReturn(de.peeeq.wurstscript.ast.StmtReturn term) throws E;
-        public CT CaseStmtDestroy(de.peeeq.wurstscript.ast.StmtDestroy term) throws E;
-        public CT CaseStmtIncRefCount(de.peeeq.wurstscript.ast.StmtIncRefCount term) throws E;
-        public CT CaseStmtDecRefCount(de.peeeq.wurstscript.ast.StmtDecRefCount term) throws E;
-        public CT CaseStmtErr(de.peeeq.wurstscript.ast.StmtErr term) throws E;
-        public CT CaseStmtExitwhen(de.peeeq.wurstscript.ast.StmtExitwhen term) throws E;
-    }
+    //----- nested classes of StmtLoop -----
 
     static interface VisitorType<E extends Throwable> {
 
         //----- methods of VisitorType<E extends Throwable> -----
 
         public void visit(de.peeeq.wurstscript.ast.WPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.Expr term) throws E;
         public void visit(de.peeeq.wurstscript.ast.WStatements term) throws E;
+        public void visit(java.lang.String term) throws E;
+        public void visit(java.lang.Integer term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.WStatement term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.StmtIf term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.StmtWhile term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.StmtLoop term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.LocalVarDef term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.StmtSet term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.StmtCall term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.StmtReturn term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.StmtDestroy term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.StmtIncRefCount term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.StmtDecRefCount term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.StmtErr term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.StmtExitwhen term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.ExprMemberMethod term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.ExprFunctionCall term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.ExprNewObject term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.Expr term) throws E;
         public void visit(java.lang.Boolean term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OptTypeExpr term) throws E;
-        public void visit(java.lang.String term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OptExpr term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ExprAssignable term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OpAssignment term) throws E;
@@ -46,9 +53,6 @@ public interface WStatement extends KatjaSort {
         public void visit(de.peeeq.wurstscript.ast.ExprUnary term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ExprMemberVar term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ExprMemberArrayVar term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.ExprMemberMethod term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.ExprFunctionCall term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.ExprNewObject term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ExprAtomic term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ExprVarAccess term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ExprVarArrayAccess term) throws E;
@@ -62,25 +66,11 @@ public interface WStatement extends KatjaSort {
         public void visit(de.peeeq.wurstscript.ast.TypeExpr term) throws E;
         public void visit(de.peeeq.wurstscript.ast.NoExpr term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OpAssign term) throws E;
-        public void visit(java.lang.Integer term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.WStatement term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OpBinary term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OpUnary term) throws E;
         public void visit(de.peeeq.wurstscript.ast.Indexes term) throws E;
         public void visit(java.lang.Double term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ArraySizes term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.StmtIf term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.StmtWhile term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.StmtLoop term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.LocalVarDef term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.StmtSet term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.StmtCall term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.StmtReturn term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.StmtDestroy term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.StmtIncRefCount term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.StmtDecRefCount term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.StmtErr term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.StmtExitwhen term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OpOr term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OpAnd term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OpEquals term) throws E;
@@ -99,7 +89,7 @@ public interface WStatement extends KatjaSort {
         public void visit(de.peeeq.wurstscript.ast.OpNot term) throws E;
     }
 
-    public static abstract class Visitor<E extends Throwable> implements de.peeeq.wurstscript.ast.WStatement.VisitorType<E> {
+    public static abstract class Visitor<E extends Throwable> implements de.peeeq.wurstscript.ast.StmtLoop.VisitorType<E> {
 
         //----- attributes of Visitor<E extends Throwable> -----
 
@@ -151,6 +141,110 @@ public interface WStatement extends KatjaSort {
 
         public final void visit(de.peeeq.wurstscript.ast.WStatement term) throws E {
             term.Switch(variantVisit$WStatement);
+        }
+    }
+
+    static class Impl extends KatjaTupleImpl implements de.peeeq.wurstscript.ast.StmtLoop {
+
+        //----- attributes of Impl -----
+
+        private de.peeeq.wurstscript.ast.WPos _source = null;
+        private de.peeeq.wurstscript.ast.WStatements _body = null;
+
+        //----- methods of Impl -----
+
+        public de.peeeq.wurstscript.ast.WPos source() {
+            return _source;
+        }
+
+        public de.peeeq.wurstscript.ast.StmtLoop replaceSource(de.peeeq.wurstscript.ast.WPos source) {
+            return replace(0, source);
+        }
+
+        public de.peeeq.wurstscript.ast.WStatements body() {
+            return _body;
+        }
+
+        public de.peeeq.wurstscript.ast.StmtLoop replaceBody(de.peeeq.wurstscript.ast.WStatements body) {
+            return replace(1, body);
+        }
+
+        Impl(de.peeeq.wurstscript.ast.WPos source, de.peeeq.wurstscript.ast.WStatements body) {
+            if(source == null)
+                throw new IllegalArgumentException("constructor of sort StmtLoop invoked with null parameter source");
+            if(body == null)
+                throw new IllegalArgumentException("constructor of sort StmtLoop invoked with null parameter body");
+
+            this._source = source;
+            this._body = body;
+        }
+
+        public KatjaTerm get(int i) {
+            int ith = i;
+
+            if(ith < 0) ith += 2;
+
+            switch(ith) {
+                case 0: return _source;
+                case 1: return _body;
+                default:
+                    if(ith < 0) {
+                        throw new IllegalArgumentException("get on sort StmtLoop invoked with negative parameter "+i);
+                    } else {
+                        throw new IllegalArgumentException("get on sort StmtLoop invoked with too large parameter "+i+", sort has only 2 components");
+                    }
+            }
+        }
+
+        public int size() {
+            return 2;
+        }
+
+        public de.peeeq.wurstscript.ast.StmtLoop replace(int pos, Object term) {
+            if(pos < 0)
+                throw new IllegalArgumentException("replace on sort StmtLoop invoked with negative parameter "+pos);
+            if(pos >= 2)
+                throw new IllegalArgumentException("replace on sort StmtLoop invoked with too large parameter "+pos+", sort has only 2 components");
+
+            if(pos == 0 && !(term instanceof de.peeeq.wurstscript.ast.WPos))
+                throw new IllegalArgumentException("replace on sort StmtLoop invoked with term of incorrect sort, WPos expected");
+            if(pos == 1 && !(term instanceof de.peeeq.wurstscript.ast.WStatements))
+                throw new IllegalArgumentException("replace on sort StmtLoop invoked with term of incorrect sort, WStatements expected");
+
+            return (de.peeeq.wurstscript.ast.StmtLoop) AST.unique(new de.peeeq.wurstscript.ast.StmtLoop.Impl(
+                pos == 0 ? (de.peeeq.wurstscript.ast.WPos) term : _source,
+                pos == 1 ? (de.peeeq.wurstscript.ast.WStatements) term : _body
+            ));
+        }
+
+        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.WStatement.Switch<CT, E> switchClass) throws E {
+            return switchClass.CaseStmtLoop(this);
+        }
+
+        public Appendable toJavaCode(Appendable builder) throws IOException {
+            builder.append("AST.StmtLoop");
+            builder.append("( ");
+            _source.toJavaCode(builder);
+            builder.append(", ");
+            _body.toJavaCode(builder);
+            builder.append(" )");
+
+            return builder;
+        }
+
+        public Appendable toString(Appendable builder) throws IOException {
+            builder.append("StmtLoop");
+            builder.append("( ");
+            _source.toString(builder);
+            builder.append(", ");
+            _body.toString(builder);
+            builder.append(" )");
+
+            return builder;
+        }
+
+        public final String sortName() {
+            return "StmtLoop";
         }
     }
 }

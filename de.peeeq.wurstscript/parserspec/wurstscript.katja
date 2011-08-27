@@ -18,7 +18,9 @@ root CompilationUnit Pos
 
 WPos ( String file, Integer line, Integer column ) // TODO use Wpos to track positions
 
-CompilationUnit * WPackage
+CompilationUnit * TopLevelDeclaration
+
+TopLevelDeclaration = WPackage | JassToplevelDeclaration
 
 WPackage(WPos source, String name, WImports imports, WEntities elements)
 
@@ -76,14 +78,16 @@ WStatements * WStatement
 WStatement	=
 	  StmtIf(WPos source, Expr cond, WStatements thenBlock, WStatements elseBlock)
 	| StmtWhile(WPos source, Expr cond, WStatements body)
+	| StmtLoop(WPos source, WStatements body)
 	| LocalVarDef
 	| StmtSet(WPos source, ExprAssignable left, OpAssignment op, Expr right)
 	| StmtCall
-	| StmtReturn(WPos source, Expr obj)
+	| StmtReturn(WPos source, OptExpr obj)
 	| StmtDestroy(WPos source, Expr obj)
 	| StmtIncRefCount(WPos source, Expr obj) 
 	| StmtDecRefCount(WPos source, Expr obj)
 	| StmtErr(WPos source)
+	| StmtExitwhen(WPos source, Expr cond)
 	
 
 OpAssignment = OpAssign() // TODO += -= *= /= ...
@@ -162,4 +166,14 @@ WScope = WPackage | ClassDef | FuncDef
 TypeRef = TypeExpr | ExprNewObject
 
 	
+	
+// Jass types:
+
+
+JassToplevelDeclaration = JassGlobalBlock | FunctionDefinition | NativeType
+
+JassGlobalBlock * GlobalVarDef
+
+
+
 	

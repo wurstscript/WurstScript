@@ -4,57 +4,61 @@ import katja.common.*;
 import java.util.List;
 import java.io.IOException;
 
-public interface WEntitiesPos extends de.peeeq.wurstscript.ast.AST.ListPos<de.peeeq.wurstscript.ast.WEntities, de.peeeq.wurstscript.ast.WEntityPos, de.peeeq.wurstscript.ast.WEntity> {
+public interface JassGlobalBlockPos extends de.peeeq.wurstscript.ast.JassToplevelDeclarationPos, de.peeeq.wurstscript.ast.AST.ListPos<de.peeeq.wurstscript.ast.JassGlobalBlock, de.peeeq.wurstscript.ast.GlobalVarDefPos, de.peeeq.wurstscript.ast.GlobalVarDef> {
 
-    //----- methods of WEntitiesPos -----
+    //----- methods of JassGlobalBlockPos -----
 
-    public de.peeeq.wurstscript.ast.WEntities term();
-    public de.peeeq.wurstscript.ast.WEntitiesPos add(de.peeeq.wurstscript.ast.WEntity element);
-    public de.peeeq.wurstscript.ast.WEntitiesPos addAll(KatjaList<? extends de.peeeq.wurstscript.ast.WEntity> list);
-    public de.peeeq.wurstscript.ast.WEntitiesPos remove(de.peeeq.wurstscript.ast.WEntity element);
-    public de.peeeq.wurstscript.ast.WEntitiesPos removeAll(KatjaList<? extends de.peeeq.wurstscript.ast.WEntity> list);
-    public de.peeeq.wurstscript.ast.WEntitiesPos appBack(de.peeeq.wurstscript.ast.WEntity element);
-    public de.peeeq.wurstscript.ast.WEntitiesPos appFront(de.peeeq.wurstscript.ast.WEntity element);
-    public de.peeeq.wurstscript.ast.WEntitiesPos conc(KatjaList<? extends de.peeeq.wurstscript.ast.WEntity> list);
-    public de.peeeq.wurstscript.ast.WEntitiesPos reverse();
-    public de.peeeq.wurstscript.ast.WEntitiesPos toSet();
-    public de.peeeq.wurstscript.ast.WEntitiesPos setAdd(de.peeeq.wurstscript.ast.WEntity element);
-    public de.peeeq.wurstscript.ast.WEntitiesPos setRemove(de.peeeq.wurstscript.ast.WEntity element);
-    public de.peeeq.wurstscript.ast.WEntitiesPos setUnion(KatjaList<? extends de.peeeq.wurstscript.ast.WEntity> list);
-    public de.peeeq.wurstscript.ast.WEntitiesPos setWithout(KatjaList<? extends de.peeeq.wurstscript.ast.WEntity> list);
-    public de.peeeq.wurstscript.ast.WEntitiesPos setIntersection(KatjaList<? extends de.peeeq.wurstscript.ast.WEntity> list);
-    public KatjaList<de.peeeq.wurstscript.ast.WEntityPos> toList();
-    public de.peeeq.wurstscript.ast.WEntitiesPos replace(de.peeeq.wurstscript.ast.WEntities term);
-    public de.peeeq.wurstscript.ast.WPackagePos parent();
-    public de.peeeq.wurstscript.ast.WImportsPos lsib();
-    public de.peeeq.wurstscript.ast.AST.SortPos rsib();
+    public de.peeeq.wurstscript.ast.JassGlobalBlock termJassToplevelDeclaration();
+    public de.peeeq.wurstscript.ast.JassGlobalBlock termTopLevelDeclaration();
+    public de.peeeq.wurstscript.ast.JassGlobalBlock term();
+    public de.peeeq.wurstscript.ast.JassGlobalBlockPos add(de.peeeq.wurstscript.ast.GlobalVarDef element);
+    public de.peeeq.wurstscript.ast.JassGlobalBlockPos addAll(KatjaList<? extends de.peeeq.wurstscript.ast.GlobalVarDef> list);
+    public de.peeeq.wurstscript.ast.JassGlobalBlockPos remove(de.peeeq.wurstscript.ast.GlobalVarDef element);
+    public de.peeeq.wurstscript.ast.JassGlobalBlockPos removeAll(KatjaList<? extends de.peeeq.wurstscript.ast.GlobalVarDef> list);
+    public de.peeeq.wurstscript.ast.JassGlobalBlockPos appBack(de.peeeq.wurstscript.ast.GlobalVarDef element);
+    public de.peeeq.wurstscript.ast.JassGlobalBlockPos appFront(de.peeeq.wurstscript.ast.GlobalVarDef element);
+    public de.peeeq.wurstscript.ast.JassGlobalBlockPos conc(KatjaList<? extends de.peeeq.wurstscript.ast.GlobalVarDef> list);
+    public de.peeeq.wurstscript.ast.JassGlobalBlockPos reverse();
+    public de.peeeq.wurstscript.ast.JassGlobalBlockPos toSet();
+    public de.peeeq.wurstscript.ast.JassGlobalBlockPos setAdd(de.peeeq.wurstscript.ast.GlobalVarDef element);
+    public de.peeeq.wurstscript.ast.JassGlobalBlockPos setRemove(de.peeeq.wurstscript.ast.GlobalVarDef element);
+    public de.peeeq.wurstscript.ast.JassGlobalBlockPos setUnion(KatjaList<? extends de.peeeq.wurstscript.ast.GlobalVarDef> list);
+    public de.peeeq.wurstscript.ast.JassGlobalBlockPos setWithout(KatjaList<? extends de.peeeq.wurstscript.ast.GlobalVarDef> list);
+    public de.peeeq.wurstscript.ast.JassGlobalBlockPos setIntersection(KatjaList<? extends de.peeeq.wurstscript.ast.GlobalVarDef> list);
+    public KatjaList<de.peeeq.wurstscript.ast.GlobalVarDefPos> toList();
+    public de.peeeq.wurstscript.ast.JassGlobalBlockPos replace(de.peeeq.wurstscript.ast.JassGlobalBlock term);
+    public de.peeeq.wurstscript.ast.CompilationUnitPos parent();
+    public de.peeeq.wurstscript.ast.TopLevelDeclarationPos lsib();
+    public de.peeeq.wurstscript.ast.TopLevelDeclarationPos rsib();
     public de.peeeq.wurstscript.ast.AST.SortPos preOrder();
     public de.peeeq.wurstscript.ast.AST.SortPos preOrderSkip();
     public de.peeeq.wurstscript.ast.AST.SortPos postOrder();
     public de.peeeq.wurstscript.ast.AST.SortPos postOrderStart();
     public de.peeeq.wurstscript.ast.AST.SortPos follow(List<Integer> path);
+    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.JassToplevelDeclarationPos.Switch<CT, E> switchClass) throws E;
+    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.TopLevelDeclarationPos.Switch<CT, E> switchClass) throws E;
 
-    //----- nested classes of WEntitiesPos -----
+    //----- nested classes of JassGlobalBlockPos -----
 
-    static class ListImpl extends KatjaListImpl<de.peeeq.wurstscript.ast.WEntityPos> implements KatjaList<de.peeeq.wurstscript.ast.WEntityPos> {
+    static class ListImpl extends KatjaListImpl<de.peeeq.wurstscript.ast.GlobalVarDefPos> implements KatjaList<de.peeeq.wurstscript.ast.GlobalVarDefPos> {
 
         //----- methods of ListImpl -----
 
-        ListImpl(de.peeeq.wurstscript.ast.WEntityPos... elements) {
+        ListImpl(de.peeeq.wurstscript.ast.GlobalVarDefPos... elements) {
             super(elements);
 
-            for(de.peeeq.wurstscript.ast.WEntityPos element : elements)
+            for(de.peeeq.wurstscript.ast.GlobalVarDefPos element : elements)
                 if(element == null)
-                    throw new IllegalArgumentException("constructor of katja list for position sort WEntityPos invoked with null element");
+                    throw new IllegalArgumentException("constructor of katja list for position sort GlobalVarDefPos invoked with null element");
         }
 
         private ListImpl() {
         }
 
-        protected KatjaList<de.peeeq.wurstscript.ast.WEntityPos> createInstance(de.peeeq.wurstscript.ast.WEntityPos[] elements, boolean isSet) {
-            for(de.peeeq.wurstscript.ast.WEntityPos element : elements)
+        protected KatjaList<de.peeeq.wurstscript.ast.GlobalVarDefPos> createInstance(de.peeeq.wurstscript.ast.GlobalVarDefPos[] elements, boolean isSet) {
+            for(de.peeeq.wurstscript.ast.GlobalVarDefPos element : elements)
                 if(element == null)
-                    throw new IllegalArgumentException("constructor of katja list for position sort WEntityPos invoked with null element");
+                    throw new IllegalArgumentException("constructor of katja list for position sort GlobalVarDefPos invoked with null element");
 
             ListImpl temp = new ListImpl();
             temp.values = elements;
@@ -64,15 +68,15 @@ public interface WEntitiesPos extends de.peeeq.wurstscript.ast.AST.ListPos<de.pe
             return temp;
         }
 
-        protected de.peeeq.wurstscript.ast.WEntityPos[] createArray(int size) {
-            return new de.peeeq.wurstscript.ast.WEntityPos[size];
+        protected de.peeeq.wurstscript.ast.GlobalVarDefPos[] createArray(int size) {
+            return new de.peeeq.wurstscript.ast.GlobalVarDefPos[size];
         }
 
         public Appendable toString(Appendable builder) throws IOException {
             boolean first = true;
 
             builder.append("KatjaList( ");
-            for(de.peeeq.wurstscript.ast.WEntityPos element : values) {
+            for(de.peeeq.wurstscript.ast.GlobalVarDefPos element : values) {
                 if(first) first = false;
                 else builder.append(", ");
                 element.toString(builder);
@@ -95,22 +99,12 @@ public interface WEntitiesPos extends de.peeeq.wurstscript.ast.AST.ListPos<de.pe
 
         //----- methods of VisitorType<E extends Throwable> -----
 
-        public void visit(de.peeeq.wurstscript.ast.WEntityPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.TypeDefPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.FuncDefPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.GlobalVarDefPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.InitBlockPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.NativeFuncPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.NativeTypePos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.ClassDefPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.WPosPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.FuncSignaturePos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.WStatementsPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.BooleanPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OptTypeExprPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.StringPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OptExprPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.ClassSlotsPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.NoTypeExprPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.TypeExprPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.NoExprPos term) throws E;
@@ -133,30 +127,12 @@ public interface WEntitiesPos extends de.peeeq.wurstscript.ast.AST.ListPos<de.pe
         public void visit(de.peeeq.wurstscript.ast.ExprFuncRefPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ExprThisPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.IntegerPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.WParametersPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.WStatementPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.ClassSlotPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ArraySizesPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OpBinaryPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OpUnaryPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.IndexesPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ArgumentsPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.DoublePos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.StmtIfPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.StmtWhilePos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.StmtLoopPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.LocalVarDefPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.StmtSetPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.StmtCallPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.StmtReturnPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.StmtDestroyPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.StmtIncRefCountPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.StmtDecRefCountPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.StmtErrPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.StmtExitwhenPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.ConstructorDefPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.OnDestroyDefPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.ClassMemberPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OpOrPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OpAndPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OpEqualsPos term) throws E;
@@ -173,40 +149,22 @@ public interface WEntitiesPos extends de.peeeq.wurstscript.ast.AST.ListPos<de.pe
         public void visit(de.peeeq.wurstscript.ast.OpModIntPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OpDivIntPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OpNotPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.WParameterPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.OpAssignmentPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.OpAssignPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.WEntitiesPos term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.JassGlobalBlockPos term) throws E;
     }
 
-    public static abstract class Visitor<E extends Throwable> implements de.peeeq.wurstscript.ast.WEntitiesPos.VisitorType<E> {
+    public static abstract class Visitor<E extends Throwable> implements de.peeeq.wurstscript.ast.JassGlobalBlockPos.VisitorType<E> {
 
         //----- attributes of Visitor<E extends Throwable> -----
 
-        private final de.peeeq.wurstscript.ast.ClassMemberPos.Switch<Object, E> variantVisit$ClassMemberPos = new de.peeeq.wurstscript.ast.ClassMemberPos.Switch<Object, E>() { public final Object CaseGlobalVarDefPos(de.peeeq.wurstscript.ast.GlobalVarDefPos term) throws E { visit(term); return null; } public final Object CaseFuncDefPos(de.peeeq.wurstscript.ast.FuncDefPos term) throws E { visit(term); return null; } };
-        private final de.peeeq.wurstscript.ast.ClassSlotPos.Switch<Object, E> variantVisit$ClassSlotPos = new de.peeeq.wurstscript.ast.ClassSlotPos.Switch<Object, E>() { public final Object CaseConstructorDefPos(de.peeeq.wurstscript.ast.ConstructorDefPos term) throws E { visit(term); return null; } public final Object CaseOnDestroyDefPos(de.peeeq.wurstscript.ast.OnDestroyDefPos term) throws E { visit(term); return null; } public final Object CaseGlobalVarDefPos(de.peeeq.wurstscript.ast.GlobalVarDefPos term) throws E { visit(term); return null; } public final Object CaseFuncDefPos(de.peeeq.wurstscript.ast.FuncDefPos term) throws E { visit(term); return null; } };
         private final de.peeeq.wurstscript.ast.ExprAssignablePos.Switch<Object, E> variantVisit$ExprAssignablePos = new de.peeeq.wurstscript.ast.ExprAssignablePos.Switch<Object, E>() { public final Object CaseExprMemberVarPos(de.peeeq.wurstscript.ast.ExprMemberVarPos term) throws E { visit(term); return null; } public final Object CaseExprMemberArrayVarPos(de.peeeq.wurstscript.ast.ExprMemberArrayVarPos term) throws E { visit(term); return null; } public final Object CaseExprVarAccessPos(de.peeeq.wurstscript.ast.ExprVarAccessPos term) throws E { visit(term); return null; } public final Object CaseExprVarArrayAccessPos(de.peeeq.wurstscript.ast.ExprVarArrayAccessPos term) throws E { visit(term); return null; } };
         private final de.peeeq.wurstscript.ast.ExprAtomicPos.Switch<Object, E> variantVisit$ExprAtomicPos = new de.peeeq.wurstscript.ast.ExprAtomicPos.Switch<Object, E>() { public final Object CaseExprIntValPos(de.peeeq.wurstscript.ast.ExprIntValPos term) throws E { visit(term); return null; } public final Object CaseExprRealValPos(de.peeeq.wurstscript.ast.ExprRealValPos term) throws E { visit(term); return null; } public final Object CaseExprStringValPos(de.peeeq.wurstscript.ast.ExprStringValPos term) throws E { visit(term); return null; } public final Object CaseExprBoolValPos(de.peeeq.wurstscript.ast.ExprBoolValPos term) throws E { visit(term); return null; } public final Object CaseExprFuncRefPos(de.peeeq.wurstscript.ast.ExprFuncRefPos term) throws E { visit(term); return null; } public final Object CaseExprVarAccessPos(de.peeeq.wurstscript.ast.ExprVarAccessPos term) throws E { visit(term); return null; } public final Object CaseExprVarArrayAccessPos(de.peeeq.wurstscript.ast.ExprVarArrayAccessPos term) throws E { visit(term); return null; } public final Object CaseExprThisPos(de.peeeq.wurstscript.ast.ExprThisPos term) throws E { visit(term); return null; } };
         private final de.peeeq.wurstscript.ast.ExprPos.Switch<Object, E> variantVisit$ExprPos = new de.peeeq.wurstscript.ast.ExprPos.Switch<Object, E>() { public final Object CaseExprBinaryPos(de.peeeq.wurstscript.ast.ExprBinaryPos term) throws E { visit(term); return null; } public final Object CaseExprUnaryPos(de.peeeq.wurstscript.ast.ExprUnaryPos term) throws E { visit(term); return null; } public final Object CaseExprMemberVarPos(de.peeeq.wurstscript.ast.ExprMemberVarPos term) throws E { visit(term); return null; } public final Object CaseExprMemberArrayVarPos(de.peeeq.wurstscript.ast.ExprMemberArrayVarPos term) throws E { visit(term); return null; } public final Object CaseExprMemberMethodPos(de.peeeq.wurstscript.ast.ExprMemberMethodPos term) throws E { visit(term); return null; } public final Object CaseExprFunctionCallPos(de.peeeq.wurstscript.ast.ExprFunctionCallPos term) throws E { visit(term); return null; } public final Object CaseExprNewObjectPos(de.peeeq.wurstscript.ast.ExprNewObjectPos term) throws E { visit(term); return null; } public final Object CaseExprVarAccessPos(de.peeeq.wurstscript.ast.ExprVarAccessPos term) throws E { visit(term); return null; } public final Object CaseExprVarArrayAccessPos(de.peeeq.wurstscript.ast.ExprVarArrayAccessPos term) throws E { visit(term); return null; } public final Object CaseExprIntValPos(de.peeeq.wurstscript.ast.ExprIntValPos term) throws E { visit(term); return null; } public final Object CaseExprRealValPos(de.peeeq.wurstscript.ast.ExprRealValPos term) throws E { visit(term); return null; } public final Object CaseExprStringValPos(de.peeeq.wurstscript.ast.ExprStringValPos term) throws E { visit(term); return null; } public final Object CaseExprBoolValPos(de.peeeq.wurstscript.ast.ExprBoolValPos term) throws E { visit(term); return null; } public final Object CaseExprFuncRefPos(de.peeeq.wurstscript.ast.ExprFuncRefPos term) throws E { visit(term); return null; } public final Object CaseExprThisPos(de.peeeq.wurstscript.ast.ExprThisPos term) throws E { visit(term); return null; } };
-        private final de.peeeq.wurstscript.ast.OpAssignmentPos.Switch<Object, E> variantVisit$OpAssignmentPos = new de.peeeq.wurstscript.ast.OpAssignmentPos.Switch<Object, E>() { public final Object CaseOpAssignPos(de.peeeq.wurstscript.ast.OpAssignPos term) throws E { visit(term); return null; } };
         private final de.peeeq.wurstscript.ast.OpBinaryPos.Switch<Object, E> variantVisit$OpBinaryPos = new de.peeeq.wurstscript.ast.OpBinaryPos.Switch<Object, E>() { public final Object CaseOpOrPos(de.peeeq.wurstscript.ast.OpOrPos term) throws E { visit(term); return null; } public final Object CaseOpAndPos(de.peeeq.wurstscript.ast.OpAndPos term) throws E { visit(term); return null; } public final Object CaseOpEqualsPos(de.peeeq.wurstscript.ast.OpEqualsPos term) throws E { visit(term); return null; } public final Object CaseOpUnequalsPos(de.peeeq.wurstscript.ast.OpUnequalsPos term) throws E { visit(term); return null; } public final Object CaseOpLessEqPos(de.peeeq.wurstscript.ast.OpLessEqPos term) throws E { visit(term); return null; } public final Object CaseOpLessPos(de.peeeq.wurstscript.ast.OpLessPos term) throws E { visit(term); return null; } public final Object CaseOpGreaterEqPos(de.peeeq.wurstscript.ast.OpGreaterEqPos term) throws E { visit(term); return null; } public final Object CaseOpGreaterPos(de.peeeq.wurstscript.ast.OpGreaterPos term) throws E { visit(term); return null; } public final Object CaseOpPlusPos(de.peeeq.wurstscript.ast.OpPlusPos term) throws E { visit(term); return null; } public final Object CaseOpMinusPos(de.peeeq.wurstscript.ast.OpMinusPos term) throws E { visit(term); return null; } public final Object CaseOpMultPos(de.peeeq.wurstscript.ast.OpMultPos term) throws E { visit(term); return null; } public final Object CaseOpDivRealPos(de.peeeq.wurstscript.ast.OpDivRealPos term) throws E { visit(term); return null; } public final Object CaseOpModRealPos(de.peeeq.wurstscript.ast.OpModRealPos term) throws E { visit(term); return null; } public final Object CaseOpModIntPos(de.peeeq.wurstscript.ast.OpModIntPos term) throws E { visit(term); return null; } public final Object CaseOpDivIntPos(de.peeeq.wurstscript.ast.OpDivIntPos term) throws E { visit(term); return null; } };
         private final de.peeeq.wurstscript.ast.OpUnaryPos.Switch<Object, E> variantVisit$OpUnaryPos = new de.peeeq.wurstscript.ast.OpUnaryPos.Switch<Object, E>() { public final Object CaseOpNotPos(de.peeeq.wurstscript.ast.OpNotPos term) throws E { visit(term); return null; } public final Object CaseOpMinusPos(de.peeeq.wurstscript.ast.OpMinusPos term) throws E { visit(term); return null; } };
         private final de.peeeq.wurstscript.ast.OptExprPos.Switch<Object, E> variantVisit$OptExprPos = new de.peeeq.wurstscript.ast.OptExprPos.Switch<Object, E>() { public final Object CaseNoExprPos(de.peeeq.wurstscript.ast.NoExprPos term) throws E { visit(term); return null; } public final Object CaseExprBinaryPos(de.peeeq.wurstscript.ast.ExprBinaryPos term) throws E { visit(term); return null; } public final Object CaseExprUnaryPos(de.peeeq.wurstscript.ast.ExprUnaryPos term) throws E { visit(term); return null; } public final Object CaseExprMemberVarPos(de.peeeq.wurstscript.ast.ExprMemberVarPos term) throws E { visit(term); return null; } public final Object CaseExprMemberArrayVarPos(de.peeeq.wurstscript.ast.ExprMemberArrayVarPos term) throws E { visit(term); return null; } public final Object CaseExprMemberMethodPos(de.peeeq.wurstscript.ast.ExprMemberMethodPos term) throws E { visit(term); return null; } public final Object CaseExprFunctionCallPos(de.peeeq.wurstscript.ast.ExprFunctionCallPos term) throws E { visit(term); return null; } public final Object CaseExprNewObjectPos(de.peeeq.wurstscript.ast.ExprNewObjectPos term) throws E { visit(term); return null; } public final Object CaseExprVarAccessPos(de.peeeq.wurstscript.ast.ExprVarAccessPos term) throws E { visit(term); return null; } public final Object CaseExprVarArrayAccessPos(de.peeeq.wurstscript.ast.ExprVarArrayAccessPos term) throws E { visit(term); return null; } public final Object CaseExprIntValPos(de.peeeq.wurstscript.ast.ExprIntValPos term) throws E { visit(term); return null; } public final Object CaseExprRealValPos(de.peeeq.wurstscript.ast.ExprRealValPos term) throws E { visit(term); return null; } public final Object CaseExprStringValPos(de.peeeq.wurstscript.ast.ExprStringValPos term) throws E { visit(term); return null; } public final Object CaseExprBoolValPos(de.peeeq.wurstscript.ast.ExprBoolValPos term) throws E { visit(term); return null; } public final Object CaseExprFuncRefPos(de.peeeq.wurstscript.ast.ExprFuncRefPos term) throws E { visit(term); return null; } public final Object CaseExprThisPos(de.peeeq.wurstscript.ast.ExprThisPos term) throws E { visit(term); return null; } };
         private final de.peeeq.wurstscript.ast.OptTypeExprPos.Switch<Object, E> variantVisit$OptTypeExprPos = new de.peeeq.wurstscript.ast.OptTypeExprPos.Switch<Object, E>() { public final Object CaseNoTypeExprPos(de.peeeq.wurstscript.ast.NoTypeExprPos term) throws E { visit(term); return null; } public final Object CaseTypeExprPos(de.peeeq.wurstscript.ast.TypeExprPos term) throws E { visit(term); return null; } };
-        private final de.peeeq.wurstscript.ast.StmtCallPos.Switch<Object, E> variantVisit$StmtCallPos = new de.peeeq.wurstscript.ast.StmtCallPos.Switch<Object, E>() { public final Object CaseExprMemberMethodPos(de.peeeq.wurstscript.ast.ExprMemberMethodPos term) throws E { visit(term); return null; } public final Object CaseExprFunctionCallPos(de.peeeq.wurstscript.ast.ExprFunctionCallPos term) throws E { visit(term); return null; } public final Object CaseExprNewObjectPos(de.peeeq.wurstscript.ast.ExprNewObjectPos term) throws E { visit(term); return null; } };
-        private final de.peeeq.wurstscript.ast.TypeDefPos.Switch<Object, E> variantVisit$TypeDefPos = new de.peeeq.wurstscript.ast.TypeDefPos.Switch<Object, E>() { public final Object CaseNativeTypePos(de.peeeq.wurstscript.ast.NativeTypePos term) throws E { visit(term); return null; } public final Object CaseClassDefPos(de.peeeq.wurstscript.ast.ClassDefPos term) throws E { visit(term); return null; } };
-        private final de.peeeq.wurstscript.ast.WEntityPos.Switch<Object, E> variantVisit$WEntityPos = new de.peeeq.wurstscript.ast.WEntityPos.Switch<Object, E>() { public final Object CaseFuncDefPos(de.peeeq.wurstscript.ast.FuncDefPos term) throws E { visit(term); return null; } public final Object CaseGlobalVarDefPos(de.peeeq.wurstscript.ast.GlobalVarDefPos term) throws E { visit(term); return null; } public final Object CaseInitBlockPos(de.peeeq.wurstscript.ast.InitBlockPos term) throws E { visit(term); return null; } public final Object CaseNativeFuncPos(de.peeeq.wurstscript.ast.NativeFuncPos term) throws E { visit(term); return null; } public final Object CaseNativeTypePos(de.peeeq.wurstscript.ast.NativeTypePos term) throws E { visit(term); return null; } public final Object CaseClassDefPos(de.peeeq.wurstscript.ast.ClassDefPos term) throws E { visit(term); return null; } };
-        private final de.peeeq.wurstscript.ast.WStatementPos.Switch<Object, E> variantVisit$WStatementPos = new de.peeeq.wurstscript.ast.WStatementPos.Switch<Object, E>() { public final Object CaseStmtIfPos(de.peeeq.wurstscript.ast.StmtIfPos term) throws E { visit(term); return null; } public final Object CaseStmtWhilePos(de.peeeq.wurstscript.ast.StmtWhilePos term) throws E { visit(term); return null; } public final Object CaseStmtLoopPos(de.peeeq.wurstscript.ast.StmtLoopPos term) throws E { visit(term); return null; } public final Object CaseLocalVarDefPos(de.peeeq.wurstscript.ast.LocalVarDefPos term) throws E { visit(term); return null; } public final Object CaseStmtSetPos(de.peeeq.wurstscript.ast.StmtSetPos term) throws E { visit(term); return null; } public final Object CaseStmtReturnPos(de.peeeq.wurstscript.ast.StmtReturnPos term) throws E { visit(term); return null; } public final Object CaseStmtDestroyPos(de.peeeq.wurstscript.ast.StmtDestroyPos term) throws E { visit(term); return null; } public final Object CaseStmtIncRefCountPos(de.peeeq.wurstscript.ast.StmtIncRefCountPos term) throws E { visit(term); return null; } public final Object CaseStmtDecRefCountPos(de.peeeq.wurstscript.ast.StmtDecRefCountPos term) throws E { visit(term); return null; } public final Object CaseStmtErrPos(de.peeeq.wurstscript.ast.StmtErrPos term) throws E { visit(term); return null; } public final Object CaseStmtExitwhenPos(de.peeeq.wurstscript.ast.StmtExitwhenPos term) throws E { visit(term); return null; } public final Object CaseExprMemberMethodPos(de.peeeq.wurstscript.ast.ExprMemberMethodPos term) throws E { visit(term); return null; } public final Object CaseExprFunctionCallPos(de.peeeq.wurstscript.ast.ExprFunctionCallPos term) throws E { visit(term); return null; } public final Object CaseExprNewObjectPos(de.peeeq.wurstscript.ast.ExprNewObjectPos term) throws E { visit(term); return null; } };
 
         //----- methods of Visitor<E extends Throwable> -----
-
-        public final void visit(de.peeeq.wurstscript.ast.ClassMemberPos term) throws E {
-            term.Switch(variantVisit$ClassMemberPos);
-        }
-
-        public final void visit(de.peeeq.wurstscript.ast.ClassSlotPos term) throws E {
-            term.Switch(variantVisit$ClassSlotPos);
-        }
 
         public final void visit(de.peeeq.wurstscript.ast.ExprAssignablePos term) throws E {
             term.Switch(variantVisit$ExprAssignablePos);
@@ -218,10 +176,6 @@ public interface WEntitiesPos extends de.peeeq.wurstscript.ast.AST.ListPos<de.pe
 
         public final void visit(de.peeeq.wurstscript.ast.ExprPos term) throws E {
             term.Switch(variantVisit$ExprPos);
-        }
-
-        public final void visit(de.peeeq.wurstscript.ast.OpAssignmentPos term) throws E {
-            term.Switch(variantVisit$OpAssignmentPos);
         }
 
         public final void visit(de.peeeq.wurstscript.ast.OpBinaryPos term) throws E {
@@ -239,103 +193,95 @@ public interface WEntitiesPos extends de.peeeq.wurstscript.ast.AST.ListPos<de.pe
         public final void visit(de.peeeq.wurstscript.ast.OptTypeExprPos term) throws E {
             term.Switch(variantVisit$OptTypeExprPos);
         }
-
-        public final void visit(de.peeeq.wurstscript.ast.StmtCallPos term) throws E {
-            term.Switch(variantVisit$StmtCallPos);
-        }
-
-        public final void visit(de.peeeq.wurstscript.ast.TypeDefPos term) throws E {
-            term.Switch(variantVisit$TypeDefPos);
-        }
-
-        public final void visit(de.peeeq.wurstscript.ast.WEntityPos term) throws E {
-            term.Switch(variantVisit$WEntityPos);
-        }
-
-        public final void visit(de.peeeq.wurstscript.ast.WStatementPos term) throws E {
-            term.Switch(variantVisit$WStatementPos);
-        }
     }
 
-    static class Impl extends KatjaListPosImpl<de.peeeq.wurstscript.ast.CompilationUnitPos, de.peeeq.wurstscript.ast.WEntities, de.peeeq.wurstscript.ast.WEntityPos, de.peeeq.wurstscript.ast.WEntity> implements de.peeeq.wurstscript.ast.WEntitiesPos {
+    static class Impl extends KatjaListPosImpl<de.peeeq.wurstscript.ast.CompilationUnitPos, de.peeeq.wurstscript.ast.JassGlobalBlock, de.peeeq.wurstscript.ast.GlobalVarDefPos, de.peeeq.wurstscript.ast.GlobalVarDef> implements de.peeeq.wurstscript.ast.JassGlobalBlockPos {
 
         //----- methods of Impl -----
 
-        Impl(KatjaNodePos<de.peeeq.wurstscript.ast.CompilationUnitPos, ?> parent, de.peeeq.wurstscript.ast.WEntities term, int pos) {
+        public de.peeeq.wurstscript.ast.JassGlobalBlock termJassToplevelDeclaration() {
+            return term();
+        }
+
+        public de.peeeq.wurstscript.ast.JassGlobalBlock termTopLevelDeclaration() {
+            return term();
+        }
+
+        Impl(KatjaNodePos<de.peeeq.wurstscript.ast.CompilationUnitPos, ?> parent, de.peeeq.wurstscript.ast.JassGlobalBlock term, int pos) {
             super(parent, term, pos);
         }
 
-        protected de.peeeq.wurstscript.ast.WEntityPos getElementInstance(int pos) {
-            return de.peeeq.wurstscript.ast.AST.WEntityPos(this, _term.get(pos), pos);
+        protected de.peeeq.wurstscript.ast.GlobalVarDefPos getElementInstance(int pos) {
+            return de.peeeq.wurstscript.ast.AST.GlobalVarDefPos(this, _term.get(pos), pos);
         }
 
-        protected de.peeeq.wurstscript.ast.WEntityPos[] createArray(int size) {
-            return new de.peeeq.wurstscript.ast.WEntityPos[size];
+        protected de.peeeq.wurstscript.ast.GlobalVarDefPos[] createArray(int size) {
+            return new de.peeeq.wurstscript.ast.GlobalVarDefPos[size];
         }
 
-        public de.peeeq.wurstscript.ast.WEntitiesPos add(de.peeeq.wurstscript.ast.WEntity element) {
+        public de.peeeq.wurstscript.ast.JassGlobalBlockPos add(de.peeeq.wurstscript.ast.GlobalVarDef element) {
             return replace(_term.add(element));
         }
 
-        public de.peeeq.wurstscript.ast.WEntitiesPos addAll(KatjaList<? extends de.peeeq.wurstscript.ast.WEntity> list) {
+        public de.peeeq.wurstscript.ast.JassGlobalBlockPos addAll(KatjaList<? extends de.peeeq.wurstscript.ast.GlobalVarDef> list) {
             return replace(_term.addAll(list));
         }
 
-        public de.peeeq.wurstscript.ast.WEntitiesPos remove(de.peeeq.wurstscript.ast.WEntity element) {
+        public de.peeeq.wurstscript.ast.JassGlobalBlockPos remove(de.peeeq.wurstscript.ast.GlobalVarDef element) {
             return replace(_term.remove(element));
         }
 
-        public de.peeeq.wurstscript.ast.WEntitiesPos removeAll(KatjaList<? extends de.peeeq.wurstscript.ast.WEntity> list) {
+        public de.peeeq.wurstscript.ast.JassGlobalBlockPos removeAll(KatjaList<? extends de.peeeq.wurstscript.ast.GlobalVarDef> list) {
             return replace(_term.removeAll(list));
         }
 
-        public de.peeeq.wurstscript.ast.WEntitiesPos appBack(de.peeeq.wurstscript.ast.WEntity element) {
+        public de.peeeq.wurstscript.ast.JassGlobalBlockPos appBack(de.peeeq.wurstscript.ast.GlobalVarDef element) {
             return replace(_term.appBack(element));
         }
 
-        public de.peeeq.wurstscript.ast.WEntitiesPos appFront(de.peeeq.wurstscript.ast.WEntity element) {
+        public de.peeeq.wurstscript.ast.JassGlobalBlockPos appFront(de.peeeq.wurstscript.ast.GlobalVarDef element) {
             return replace(_term.appFront(element));
         }
 
-        public de.peeeq.wurstscript.ast.WEntitiesPos conc(KatjaList<? extends de.peeeq.wurstscript.ast.WEntity> list) {
+        public de.peeeq.wurstscript.ast.JassGlobalBlockPos conc(KatjaList<? extends de.peeeq.wurstscript.ast.GlobalVarDef> list) {
             return replace(_term.conc(list));
         }
 
-        public de.peeeq.wurstscript.ast.WEntitiesPos reverse() {
+        public de.peeeq.wurstscript.ast.JassGlobalBlockPos reverse() {
             return replace(_term.reverse());
         }
 
-        public de.peeeq.wurstscript.ast.WEntitiesPos toSet() {
+        public de.peeeq.wurstscript.ast.JassGlobalBlockPos toSet() {
             return replace(_term.toSet());
         }
 
-        public de.peeeq.wurstscript.ast.WEntitiesPos setAdd(de.peeeq.wurstscript.ast.WEntity element) {
+        public de.peeeq.wurstscript.ast.JassGlobalBlockPos setAdd(de.peeeq.wurstscript.ast.GlobalVarDef element) {
             return replace(_term.setAdd(element));
         }
 
-        public de.peeeq.wurstscript.ast.WEntitiesPos setRemove(de.peeeq.wurstscript.ast.WEntity element) {
+        public de.peeeq.wurstscript.ast.JassGlobalBlockPos setRemove(de.peeeq.wurstscript.ast.GlobalVarDef element) {
             return replace(_term.setRemove(element));
         }
 
-        public de.peeeq.wurstscript.ast.WEntitiesPos setUnion(KatjaList<? extends de.peeeq.wurstscript.ast.WEntity> list) {
+        public de.peeeq.wurstscript.ast.JassGlobalBlockPos setUnion(KatjaList<? extends de.peeeq.wurstscript.ast.GlobalVarDef> list) {
             return replace(_term.setUnion(list));
         }
 
-        public de.peeeq.wurstscript.ast.WEntitiesPos setWithout(KatjaList<? extends de.peeeq.wurstscript.ast.WEntity> list) {
+        public de.peeeq.wurstscript.ast.JassGlobalBlockPos setWithout(KatjaList<? extends de.peeeq.wurstscript.ast.GlobalVarDef> list) {
             return replace(_term.setWithout(list));
         }
 
-        public de.peeeq.wurstscript.ast.WEntitiesPos setIntersection(KatjaList<? extends de.peeeq.wurstscript.ast.WEntity> list) {
+        public de.peeeq.wurstscript.ast.JassGlobalBlockPos setIntersection(KatjaList<? extends de.peeeq.wurstscript.ast.GlobalVarDef> list) {
             return replace(_term.setIntersection(list));
         }
 
-        public KatjaList<de.peeeq.wurstscript.ast.WEntityPos> toList() {
+        public KatjaList<de.peeeq.wurstscript.ast.GlobalVarDefPos> toList() {
             for(int i = 0; i < size(); i++) if(values[i] == null) values[i] = getElementInstance(i);
-            return new WEntitiesPos.ListImpl(values);
+            return new JassGlobalBlockPos.ListImpl(values);
         }
 
-        public de.peeeq.wurstscript.ast.WEntitiesPos replace(de.peeeq.wurstscript.ast.WEntities term) {
-            return (de.peeeq.wurstscript.ast.WEntitiesPos) super.replace(term);
+        public de.peeeq.wurstscript.ast.JassGlobalBlockPos replace(de.peeeq.wurstscript.ast.JassGlobalBlock term) {
+            return (de.peeeq.wurstscript.ast.JassGlobalBlockPos) super.replace(term);
         }
 
         protected de.peeeq.wurstscript.ast.CompilationUnitPos freshRootPosition(KatjaSort term) {
@@ -345,16 +291,16 @@ public interface WEntitiesPos extends de.peeeq.wurstscript.ast.AST.ListPos<de.pe
             return AST.CompilationUnitPos((CompilationUnit) term);
         }
 
-        public de.peeeq.wurstscript.ast.WPackagePos parent() {
-            return (de.peeeq.wurstscript.ast.WPackagePos) super.parent();
+        public de.peeeq.wurstscript.ast.CompilationUnitPos parent() {
+            return (de.peeeq.wurstscript.ast.CompilationUnitPos) super.parent();
         }
 
-        public de.peeeq.wurstscript.ast.WImportsPos lsib() {
-            return (de.peeeq.wurstscript.ast.WImportsPos) super.lsib();
+        public de.peeeq.wurstscript.ast.TopLevelDeclarationPos lsib() {
+            return (de.peeeq.wurstscript.ast.TopLevelDeclarationPos) super.lsib();
         }
 
-        public de.peeeq.wurstscript.ast.AST.SortPos rsib() {
-            return (de.peeeq.wurstscript.ast.AST.SortPos) super.rsib();
+        public de.peeeq.wurstscript.ast.TopLevelDeclarationPos rsib() {
+            return (de.peeeq.wurstscript.ast.TopLevelDeclarationPos) super.rsib();
         }
 
         public de.peeeq.wurstscript.ast.AST.SortPos preOrder() {
@@ -377,6 +323,14 @@ public interface WEntitiesPos extends de.peeeq.wurstscript.ast.AST.ListPos<de.pe
             return (de.peeeq.wurstscript.ast.AST.SortPos) super.follow(path);
         }
 
+        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.JassToplevelDeclarationPos.Switch<CT, E> switchClass) throws E {
+            return switchClass.CaseJassGlobalBlockPos(this);
+        }
+
+        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.TopLevelDeclarationPos.Switch<CT, E> switchClass) throws E {
+            return switchClass.CaseJassGlobalBlockPos(this);
+        }
+
         public Appendable toJavaCode(Appendable builder) throws IOException {
             builder.append("AST.CompilationUnitPos");
             builder.append("( ");
@@ -396,30 +350,30 @@ public interface WEntitiesPos extends de.peeeq.wurstscript.ast.AST.ListPos<de.pe
         }
 
         public final String sortName() {
-            return "WEntitiesPos";
+            return "JassGlobalBlockPos";
         }
 
         //----- nested classes of Impl -----
 
-        static class ListImpl extends KatjaListImpl<de.peeeq.wurstscript.ast.WEntityPos> implements KatjaList<de.peeeq.wurstscript.ast.WEntityPos> {
+        static class ListImpl extends KatjaListImpl<de.peeeq.wurstscript.ast.GlobalVarDefPos> implements KatjaList<de.peeeq.wurstscript.ast.GlobalVarDefPos> {
 
             //----- methods of ListImpl -----
 
-            ListImpl(de.peeeq.wurstscript.ast.WEntityPos... elements) {
+            ListImpl(de.peeeq.wurstscript.ast.GlobalVarDefPos... elements) {
                 super(elements);
 
-                for(de.peeeq.wurstscript.ast.WEntityPos element : elements)
+                for(de.peeeq.wurstscript.ast.GlobalVarDefPos element : elements)
                     if(element == null)
-                        throw new IllegalArgumentException("constructor of katja list for position sort WEntityPos invoked with null element");
+                        throw new IllegalArgumentException("constructor of katja list for position sort GlobalVarDefPos invoked with null element");
             }
 
             private ListImpl() {
             }
 
-            protected KatjaList<de.peeeq.wurstscript.ast.WEntityPos> createInstance(de.peeeq.wurstscript.ast.WEntityPos[] elements, boolean isSet) {
-                for(de.peeeq.wurstscript.ast.WEntityPos element : elements)
+            protected KatjaList<de.peeeq.wurstscript.ast.GlobalVarDefPos> createInstance(de.peeeq.wurstscript.ast.GlobalVarDefPos[] elements, boolean isSet) {
+                for(de.peeeq.wurstscript.ast.GlobalVarDefPos element : elements)
                     if(element == null)
-                        throw new IllegalArgumentException("constructor of katja list for position sort WEntityPos invoked with null element");
+                        throw new IllegalArgumentException("constructor of katja list for position sort GlobalVarDefPos invoked with null element");
 
                 ListImpl temp = new ListImpl();
                 temp.values = elements;
@@ -429,15 +383,15 @@ public interface WEntitiesPos extends de.peeeq.wurstscript.ast.AST.ListPos<de.pe
                 return temp;
             }
 
-            protected de.peeeq.wurstscript.ast.WEntityPos[] createArray(int size) {
-                return new de.peeeq.wurstscript.ast.WEntityPos[size];
+            protected de.peeeq.wurstscript.ast.GlobalVarDefPos[] createArray(int size) {
+                return new de.peeeq.wurstscript.ast.GlobalVarDefPos[size];
             }
 
             public Appendable toString(Appendable builder) throws IOException {
                 boolean first = true;
 
                 builder.append("KatjaList( ");
-                for(de.peeeq.wurstscript.ast.WEntityPos element : values) {
+                for(de.peeeq.wurstscript.ast.GlobalVarDefPos element : values) {
                     if(first) first = false;
                     else builder.append(", ");
                     element.toString(builder);

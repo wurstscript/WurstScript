@@ -3,7 +3,7 @@ package de.peeeq.wurstscript.ast;
 import katja.common.*;
 import java.io.IOException;
 
-public interface NativeType extends de.peeeq.wurstscript.ast.TypeDef, KatjaTuple {
+public interface NativeType extends de.peeeq.wurstscript.ast.JassToplevelDeclaration, de.peeeq.wurstscript.ast.TypeDef, KatjaTuple {
 
     //----- methods of NativeType -----
 
@@ -16,7 +16,9 @@ public interface NativeType extends de.peeeq.wurstscript.ast.TypeDef, KatjaTuple
     public Object get(int i);
     public int size();
     public de.peeeq.wurstscript.ast.NativeType replace(int pos, Object term);
+    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.JassToplevelDeclaration.Switch<CT, E> switchClass) throws E;
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.TypeDef.Switch<CT, E> switchClass) throws E;
+    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.TopLevelDeclaration.Switch<CT, E> switchClass) throws E;
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.WEntity.Switch<CT, E> switchClass) throws E;
 
     //----- nested classes of NativeType -----
@@ -200,7 +202,15 @@ public interface NativeType extends de.peeeq.wurstscript.ast.TypeDef, KatjaTuple
             ));
         }
 
+        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.JassToplevelDeclaration.Switch<CT, E> switchClass) throws E {
+            return switchClass.CaseNativeType(this);
+        }
+
         public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.TypeDef.Switch<CT, E> switchClass) throws E {
+            return switchClass.CaseNativeType(this);
+        }
+
+        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.TopLevelDeclaration.Switch<CT, E> switchClass) throws E {
             return switchClass.CaseNativeType(this);
         }
 

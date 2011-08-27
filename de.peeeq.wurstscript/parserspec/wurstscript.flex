@@ -68,6 +68,22 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"this"								{ return symbol(TokenType.THIS); }
 	"construct"							{ return symbol(TokenType.CONSTRUCT); }
 	"ondestroy"							{ return symbol(TokenType.ONDESTROY); }
+	"type"								{ return symbol(TokenType.TYPE); }
+	"globals"							{ return symbol(TokenType.GLOBALS); }
+	"endglobals"						{ return symbol(TokenType.ENDGLOBALS); }
+	"constant"							{ return symbol(TokenType.CONSTANT); }
+	"endfunction"						{ return symbol(TokenType.ENDFUNCTION); }
+	"nothing"							{ return symbol(TokenType.NOTHING); }
+	"takes"								{ return symbol(TokenType.TAKES); }
+	"local"								{ return symbol(TokenType.LOCAL); }
+	"loop"								{ return symbol(TokenType.LOOP); }
+	"endloop"							{ return symbol(TokenType.ENDLOOP); }
+	"exitwhen"							{ return symbol(TokenType.EXITWHEN); }
+	"set"								{ return symbol(TokenType.SET); }
+	"call"								{ return symbol(TokenType.CALL); }
+	"then"								{ return symbol(TokenType.THEN); }
+	"elseif"							{ return symbol(TokenType.ELSEIF); }
+	"endif"								{ return symbol(TokenType.ENDIF); }
 	"("                               { return symbol(TokenType.LPAR); }
 	")"                               { return symbol(TokenType.RPAR); }
 	","                               { return symbol(TokenType.COMMA); }

@@ -4,10 +4,11 @@ import java.util.List;
 import katja.common.*;
 import java.io.IOException;
 
-public interface WPackagePos extends de.peeeq.wurstscript.ast.WScopePos, de.peeeq.wurstscript.ast.AST.TuplePos<de.peeeq.wurstscript.ast.WPackage> {
+public interface WPackagePos extends de.peeeq.wurstscript.ast.TopLevelDeclarationPos, de.peeeq.wurstscript.ast.WScopePos, de.peeeq.wurstscript.ast.AST.TuplePos<de.peeeq.wurstscript.ast.WPackage> {
 
     //----- methods of WPackagePos -----
 
+    public de.peeeq.wurstscript.ast.WPackage termTopLevelDeclaration();
     public de.peeeq.wurstscript.ast.WPackage termWScope();
     public de.peeeq.wurstscript.ast.WPackage term();
     public de.peeeq.wurstscript.ast.WPosPos source();
@@ -22,13 +23,14 @@ public interface WPackagePos extends de.peeeq.wurstscript.ast.WScopePos, de.peee
     public int size();
     public de.peeeq.wurstscript.ast.WPackagePos replace(de.peeeq.wurstscript.ast.WPackage term);
     public de.peeeq.wurstscript.ast.CompilationUnitPos parent();
-    public de.peeeq.wurstscript.ast.WPackagePos lsib();
-    public de.peeeq.wurstscript.ast.WPackagePos rsib();
+    public de.peeeq.wurstscript.ast.TopLevelDeclarationPos lsib();
+    public de.peeeq.wurstscript.ast.TopLevelDeclarationPos rsib();
     public de.peeeq.wurstscript.ast.AST.SortPos preOrder();
     public de.peeeq.wurstscript.ast.AST.SortPos preOrderSkip();
     public de.peeeq.wurstscript.ast.AST.SortPos postOrder();
     public de.peeeq.wurstscript.ast.AST.SortPos postOrderStart();
     public de.peeeq.wurstscript.ast.AST.SortPos follow(List<Integer> path);
+    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.TopLevelDeclarationPos.Switch<CT, E> switchClass) throws E;
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.WScopePos.Switch<CT, E> switchClass) throws E;
 
     //----- nested classes of WPackagePos -----
@@ -89,6 +91,7 @@ public interface WPackagePos extends de.peeeq.wurstscript.ast.WScopePos, de.peee
         public void visit(de.peeeq.wurstscript.ast.DoublePos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.StmtIfPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.StmtWhilePos term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.StmtLoopPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.LocalVarDefPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.StmtSetPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.StmtCallPos term) throws E;
@@ -97,6 +100,7 @@ public interface WPackagePos extends de.peeeq.wurstscript.ast.WScopePos, de.peee
         public void visit(de.peeeq.wurstscript.ast.StmtIncRefCountPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.StmtDecRefCountPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.StmtErrPos term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.StmtExitwhenPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ConstructorDefPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OnDestroyDefPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ClassMemberPos term) throws E;
@@ -139,7 +143,7 @@ public interface WPackagePos extends de.peeeq.wurstscript.ast.WScopePos, de.peee
         private final de.peeeq.wurstscript.ast.StmtCallPos.Switch<Object, E> variantVisit$StmtCallPos = new de.peeeq.wurstscript.ast.StmtCallPos.Switch<Object, E>() { public final Object CaseExprMemberMethodPos(de.peeeq.wurstscript.ast.ExprMemberMethodPos term) throws E { visit(term); return null; } public final Object CaseExprFunctionCallPos(de.peeeq.wurstscript.ast.ExprFunctionCallPos term) throws E { visit(term); return null; } public final Object CaseExprNewObjectPos(de.peeeq.wurstscript.ast.ExprNewObjectPos term) throws E { visit(term); return null; } };
         private final de.peeeq.wurstscript.ast.TypeDefPos.Switch<Object, E> variantVisit$TypeDefPos = new de.peeeq.wurstscript.ast.TypeDefPos.Switch<Object, E>() { public final Object CaseNativeTypePos(de.peeeq.wurstscript.ast.NativeTypePos term) throws E { visit(term); return null; } public final Object CaseClassDefPos(de.peeeq.wurstscript.ast.ClassDefPos term) throws E { visit(term); return null; } };
         private final de.peeeq.wurstscript.ast.WEntityPos.Switch<Object, E> variantVisit$WEntityPos = new de.peeeq.wurstscript.ast.WEntityPos.Switch<Object, E>() { public final Object CaseFuncDefPos(de.peeeq.wurstscript.ast.FuncDefPos term) throws E { visit(term); return null; } public final Object CaseGlobalVarDefPos(de.peeeq.wurstscript.ast.GlobalVarDefPos term) throws E { visit(term); return null; } public final Object CaseInitBlockPos(de.peeeq.wurstscript.ast.InitBlockPos term) throws E { visit(term); return null; } public final Object CaseNativeFuncPos(de.peeeq.wurstscript.ast.NativeFuncPos term) throws E { visit(term); return null; } public final Object CaseNativeTypePos(de.peeeq.wurstscript.ast.NativeTypePos term) throws E { visit(term); return null; } public final Object CaseClassDefPos(de.peeeq.wurstscript.ast.ClassDefPos term) throws E { visit(term); return null; } };
-        private final de.peeeq.wurstscript.ast.WStatementPos.Switch<Object, E> variantVisit$WStatementPos = new de.peeeq.wurstscript.ast.WStatementPos.Switch<Object, E>() { public final Object CaseStmtIfPos(de.peeeq.wurstscript.ast.StmtIfPos term) throws E { visit(term); return null; } public final Object CaseStmtWhilePos(de.peeeq.wurstscript.ast.StmtWhilePos term) throws E { visit(term); return null; } public final Object CaseLocalVarDefPos(de.peeeq.wurstscript.ast.LocalVarDefPos term) throws E { visit(term); return null; } public final Object CaseStmtSetPos(de.peeeq.wurstscript.ast.StmtSetPos term) throws E { visit(term); return null; } public final Object CaseStmtReturnPos(de.peeeq.wurstscript.ast.StmtReturnPos term) throws E { visit(term); return null; } public final Object CaseStmtDestroyPos(de.peeeq.wurstscript.ast.StmtDestroyPos term) throws E { visit(term); return null; } public final Object CaseStmtIncRefCountPos(de.peeeq.wurstscript.ast.StmtIncRefCountPos term) throws E { visit(term); return null; } public final Object CaseStmtDecRefCountPos(de.peeeq.wurstscript.ast.StmtDecRefCountPos term) throws E { visit(term); return null; } public final Object CaseStmtErrPos(de.peeeq.wurstscript.ast.StmtErrPos term) throws E { visit(term); return null; } public final Object CaseExprMemberMethodPos(de.peeeq.wurstscript.ast.ExprMemberMethodPos term) throws E { visit(term); return null; } public final Object CaseExprFunctionCallPos(de.peeeq.wurstscript.ast.ExprFunctionCallPos term) throws E { visit(term); return null; } public final Object CaseExprNewObjectPos(de.peeeq.wurstscript.ast.ExprNewObjectPos term) throws E { visit(term); return null; } };
+        private final de.peeeq.wurstscript.ast.WStatementPos.Switch<Object, E> variantVisit$WStatementPos = new de.peeeq.wurstscript.ast.WStatementPos.Switch<Object, E>() { public final Object CaseStmtIfPos(de.peeeq.wurstscript.ast.StmtIfPos term) throws E { visit(term); return null; } public final Object CaseStmtWhilePos(de.peeeq.wurstscript.ast.StmtWhilePos term) throws E { visit(term); return null; } public final Object CaseStmtLoopPos(de.peeeq.wurstscript.ast.StmtLoopPos term) throws E { visit(term); return null; } public final Object CaseLocalVarDefPos(de.peeeq.wurstscript.ast.LocalVarDefPos term) throws E { visit(term); return null; } public final Object CaseStmtSetPos(de.peeeq.wurstscript.ast.StmtSetPos term) throws E { visit(term); return null; } public final Object CaseStmtReturnPos(de.peeeq.wurstscript.ast.StmtReturnPos term) throws E { visit(term); return null; } public final Object CaseStmtDestroyPos(de.peeeq.wurstscript.ast.StmtDestroyPos term) throws E { visit(term); return null; } public final Object CaseStmtIncRefCountPos(de.peeeq.wurstscript.ast.StmtIncRefCountPos term) throws E { visit(term); return null; } public final Object CaseStmtDecRefCountPos(de.peeeq.wurstscript.ast.StmtDecRefCountPos term) throws E { visit(term); return null; } public final Object CaseStmtErrPos(de.peeeq.wurstscript.ast.StmtErrPos term) throws E { visit(term); return null; } public final Object CaseStmtExitwhenPos(de.peeeq.wurstscript.ast.StmtExitwhenPos term) throws E { visit(term); return null; } public final Object CaseExprMemberMethodPos(de.peeeq.wurstscript.ast.ExprMemberMethodPos term) throws E { visit(term); return null; } public final Object CaseExprFunctionCallPos(de.peeeq.wurstscript.ast.ExprFunctionCallPos term) throws E { visit(term); return null; } public final Object CaseExprNewObjectPos(de.peeeq.wurstscript.ast.ExprNewObjectPos term) throws E { visit(term); return null; } };
 
         //----- methods of Visitor<E extends Throwable> -----
 
@@ -210,6 +214,10 @@ public interface WPackagePos extends de.peeeq.wurstscript.ast.WScopePos, de.peee
         private de.peeeq.wurstscript.ast.WEntitiesPos _elements = null;
 
         //----- methods of Impl -----
+
+        public de.peeeq.wurstscript.ast.WPackage termTopLevelDeclaration() {
+            return term();
+        }
 
         public de.peeeq.wurstscript.ast.WPackage termWScope() {
             return term();
@@ -317,12 +325,12 @@ public interface WPackagePos extends de.peeeq.wurstscript.ast.WScopePos, de.peee
             return (de.peeeq.wurstscript.ast.CompilationUnitPos) super.parent();
         }
 
-        public de.peeeq.wurstscript.ast.WPackagePos lsib() {
-            return (de.peeeq.wurstscript.ast.WPackagePos) super.lsib();
+        public de.peeeq.wurstscript.ast.TopLevelDeclarationPos lsib() {
+            return (de.peeeq.wurstscript.ast.TopLevelDeclarationPos) super.lsib();
         }
 
-        public de.peeeq.wurstscript.ast.WPackagePos rsib() {
-            return (de.peeeq.wurstscript.ast.WPackagePos) super.rsib();
+        public de.peeeq.wurstscript.ast.TopLevelDeclarationPos rsib() {
+            return (de.peeeq.wurstscript.ast.TopLevelDeclarationPos) super.rsib();
         }
 
         public de.peeeq.wurstscript.ast.AST.SortPos preOrder() {
@@ -343,6 +351,10 @@ public interface WPackagePos extends de.peeeq.wurstscript.ast.WScopePos, de.peee
 
         public de.peeeq.wurstscript.ast.AST.SortPos follow(List<Integer> path) {
             return (de.peeeq.wurstscript.ast.AST.SortPos) super.follow(path);
+        }
+
+        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.TopLevelDeclarationPos.Switch<CT, E> switchClass) throws E {
+            return switchClass.CaseWPackagePos(this);
         }
 
         public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.WScopePos.Switch<CT, E> switchClass) throws E {

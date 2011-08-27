@@ -13,8 +13,8 @@ public interface NoExprPos extends de.peeeq.wurstscript.ast.OptExprPos, de.peeeq
     public KatjaSortPos<de.peeeq.wurstscript.ast.CompilationUnitPos> get(int i);
     public int size();
     public de.peeeq.wurstscript.ast.NoExprPos replace(de.peeeq.wurstscript.ast.NoExpr term);
-    public de.peeeq.wurstscript.ast.VarDefPos parent();
-    public de.peeeq.wurstscript.ast.StringPos lsib();
+    public de.peeeq.wurstscript.ast.AST.TuplePos<?> parent();
+    public de.peeeq.wurstscript.ast.AST.TermPos<?> lsib();
     public de.peeeq.wurstscript.ast.AST.SortPos rsib();
     public de.peeeq.wurstscript.ast.AST.SortPos preOrder();
     public de.peeeq.wurstscript.ast.AST.SortPos preOrderSkip();
@@ -77,12 +77,12 @@ public interface NoExprPos extends de.peeeq.wurstscript.ast.OptExprPos, de.peeeq
             return AST.CompilationUnitPos((CompilationUnit) term);
         }
 
-        public de.peeeq.wurstscript.ast.VarDefPos parent() {
-            return (de.peeeq.wurstscript.ast.VarDefPos) super.parent();
+        public de.peeeq.wurstscript.ast.AST.TuplePos<?> parent() {
+            return (de.peeeq.wurstscript.ast.AST.TuplePos<?>) super.parent();
         }
 
-        public de.peeeq.wurstscript.ast.StringPos lsib() {
-            return (de.peeeq.wurstscript.ast.StringPos) super.lsib();
+        public de.peeeq.wurstscript.ast.AST.TermPos<?> lsib() {
+            return (de.peeeq.wurstscript.ast.AST.TermPos<?>) super.lsib();
         }
 
         public de.peeeq.wurstscript.ast.AST.SortPos rsib() {

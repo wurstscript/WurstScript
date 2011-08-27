@@ -28,6 +28,7 @@
 		<java jar="${javacup}" fork="true" failonerror="true">
 			<!--<arg value="-expect" />
 			<arg value="2" />-->
+			<!--<arg value="-dump" />-->
 			<arg value="-destdir" />
 			<arg value="${srcgen}/de/peeeq/wurstscript/parser" />
 			<arg value="-symbols" />

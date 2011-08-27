@@ -3,7 +3,7 @@ package de.peeeq.wurstscript.ast;
 import katja.common.*;
 import java.io.IOException;
 
-public interface WPackage extends de.peeeq.wurstscript.ast.WScope, KatjaTuple {
+public interface WPackage extends de.peeeq.wurstscript.ast.TopLevelDeclaration, de.peeeq.wurstscript.ast.WScope, KatjaTuple {
 
     //----- methods of WPackage -----
 
@@ -18,6 +18,7 @@ public interface WPackage extends de.peeeq.wurstscript.ast.WScope, KatjaTuple {
     public Object get(int i);
     public int size();
     public de.peeeq.wurstscript.ast.WPackage replace(int pos, Object term);
+    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.TopLevelDeclaration.Switch<CT, E> switchClass) throws E;
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.WScope.Switch<CT, E> switchClass) throws E;
 
     //----- nested classes of WPackage -----
@@ -78,6 +79,7 @@ public interface WPackage extends de.peeeq.wurstscript.ast.WScope, KatjaTuple {
         public void visit(java.lang.Double term) throws E;
         public void visit(de.peeeq.wurstscript.ast.StmtIf term) throws E;
         public void visit(de.peeeq.wurstscript.ast.StmtWhile term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.StmtLoop term) throws E;
         public void visit(de.peeeq.wurstscript.ast.LocalVarDef term) throws E;
         public void visit(de.peeeq.wurstscript.ast.StmtSet term) throws E;
         public void visit(de.peeeq.wurstscript.ast.StmtCall term) throws E;
@@ -86,6 +88,7 @@ public interface WPackage extends de.peeeq.wurstscript.ast.WScope, KatjaTuple {
         public void visit(de.peeeq.wurstscript.ast.StmtIncRefCount term) throws E;
         public void visit(de.peeeq.wurstscript.ast.StmtDecRefCount term) throws E;
         public void visit(de.peeeq.wurstscript.ast.StmtErr term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.StmtExitwhen term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ConstructorDef term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OnDestroyDef term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ClassMember term) throws E;
@@ -126,7 +129,7 @@ public interface WPackage extends de.peeeq.wurstscript.ast.WScope, KatjaTuple {
         private final de.peeeq.wurstscript.ast.StmtCall.Switch<Object, E> variantVisit$StmtCall = new de.peeeq.wurstscript.ast.StmtCall.Switch<Object, E>() { public final Object CaseExprMemberMethod(de.peeeq.wurstscript.ast.ExprMemberMethod term) throws E { visit(term); return null; } public final Object CaseExprFunctionCall(de.peeeq.wurstscript.ast.ExprFunctionCall term) throws E { visit(term); return null; } public final Object CaseExprNewObject(de.peeeq.wurstscript.ast.ExprNewObject term) throws E { visit(term); return null; } };
         private final de.peeeq.wurstscript.ast.TypeDef.Switch<Object, E> variantVisit$TypeDef = new de.peeeq.wurstscript.ast.TypeDef.Switch<Object, E>() { public final Object CaseNativeType(de.peeeq.wurstscript.ast.NativeType term) throws E { visit(term); return null; } public final Object CaseClassDef(de.peeeq.wurstscript.ast.ClassDef term) throws E { visit(term); return null; } };
         private final de.peeeq.wurstscript.ast.WEntity.Switch<Object, E> variantVisit$WEntity = new de.peeeq.wurstscript.ast.WEntity.Switch<Object, E>() { public final Object CaseFuncDef(de.peeeq.wurstscript.ast.FuncDef term) throws E { visit(term); return null; } public final Object CaseGlobalVarDef(de.peeeq.wurstscript.ast.GlobalVarDef term) throws E { visit(term); return null; } public final Object CaseInitBlock(de.peeeq.wurstscript.ast.InitBlock term) throws E { visit(term); return null; } public final Object CaseNativeFunc(de.peeeq.wurstscript.ast.NativeFunc term) throws E { visit(term); return null; } public final Object CaseNativeType(de.peeeq.wurstscript.ast.NativeType term) throws E { visit(term); return null; } public final Object CaseClassDef(de.peeeq.wurstscript.ast.ClassDef term) throws E { visit(term); return null; } };
-        private final de.peeeq.wurstscript.ast.WStatement.Switch<Object, E> variantVisit$WStatement = new de.peeeq.wurstscript.ast.WStatement.Switch<Object, E>() { public final Object CaseStmtIf(de.peeeq.wurstscript.ast.StmtIf term) throws E { visit(term); return null; } public final Object CaseStmtWhile(de.peeeq.wurstscript.ast.StmtWhile term) throws E { visit(term); return null; } public final Object CaseLocalVarDef(de.peeeq.wurstscript.ast.LocalVarDef term) throws E { visit(term); return null; } public final Object CaseStmtSet(de.peeeq.wurstscript.ast.StmtSet term) throws E { visit(term); return null; } public final Object CaseStmtReturn(de.peeeq.wurstscript.ast.StmtReturn term) throws E { visit(term); return null; } public final Object CaseStmtDestroy(de.peeeq.wurstscript.ast.StmtDestroy term) throws E { visit(term); return null; } public final Object CaseStmtIncRefCount(de.peeeq.wurstscript.ast.StmtIncRefCount term) throws E { visit(term); return null; } public final Object CaseStmtDecRefCount(de.peeeq.wurstscript.ast.StmtDecRefCount term) throws E { visit(term); return null; } public final Object CaseStmtErr(de.peeeq.wurstscript.ast.StmtErr term) throws E { visit(term); return null; } public final Object CaseExprMemberMethod(de.peeeq.wurstscript.ast.ExprMemberMethod term) throws E { visit(term); return null; } public final Object CaseExprFunctionCall(de.peeeq.wurstscript.ast.ExprFunctionCall term) throws E { visit(term); return null; } public final Object CaseExprNewObject(de.peeeq.wurstscript.ast.ExprNewObject term) throws E { visit(term); return null; } };
+        private final de.peeeq.wurstscript.ast.WStatement.Switch<Object, E> variantVisit$WStatement = new de.peeeq.wurstscript.ast.WStatement.Switch<Object, E>() { public final Object CaseStmtIf(de.peeeq.wurstscript.ast.StmtIf term) throws E { visit(term); return null; } public final Object CaseStmtWhile(de.peeeq.wurstscript.ast.StmtWhile term) throws E { visit(term); return null; } public final Object CaseStmtLoop(de.peeeq.wurstscript.ast.StmtLoop term) throws E { visit(term); return null; } public final Object CaseLocalVarDef(de.peeeq.wurstscript.ast.LocalVarDef term) throws E { visit(term); return null; } public final Object CaseStmtSet(de.peeeq.wurstscript.ast.StmtSet term) throws E { visit(term); return null; } public final Object CaseStmtReturn(de.peeeq.wurstscript.ast.StmtReturn term) throws E { visit(term); return null; } public final Object CaseStmtDestroy(de.peeeq.wurstscript.ast.StmtDestroy term) throws E { visit(term); return null; } public final Object CaseStmtIncRefCount(de.peeeq.wurstscript.ast.StmtIncRefCount term) throws E { visit(term); return null; } public final Object CaseStmtDecRefCount(de.peeeq.wurstscript.ast.StmtDecRefCount term) throws E { visit(term); return null; } public final Object CaseStmtErr(de.peeeq.wurstscript.ast.StmtErr term) throws E { visit(term); return null; } public final Object CaseStmtExitwhen(de.peeeq.wurstscript.ast.StmtExitwhen term) throws E { visit(term); return null; } public final Object CaseExprMemberMethod(de.peeeq.wurstscript.ast.ExprMemberMethod term) throws E { visit(term); return null; } public final Object CaseExprFunctionCall(de.peeeq.wurstscript.ast.ExprFunctionCall term) throws E { visit(term); return null; } public final Object CaseExprNewObject(de.peeeq.wurstscript.ast.ExprNewObject term) throws E { visit(term); return null; } };
 
         //----- methods of Visitor<E extends Throwable> -----
 
@@ -290,6 +293,10 @@ public interface WPackage extends de.peeeq.wurstscript.ast.WScope, KatjaTuple {
                 pos == 2 ? (de.peeeq.wurstscript.ast.WImports) term : _imports,
                 pos == 3 ? (de.peeeq.wurstscript.ast.WEntities) term : _elements
             ));
+        }
+
+        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.TopLevelDeclaration.Switch<CT, E> switchClass) throws E {
+            return switchClass.CaseWPackage(this);
         }
 
         public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.WScope.Switch<CT, E> switchClass) throws E {

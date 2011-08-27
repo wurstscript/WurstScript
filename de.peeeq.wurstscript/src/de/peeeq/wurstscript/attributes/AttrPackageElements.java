@@ -12,6 +12,7 @@ import de.peeeq.wurstscript.ast.GlobalVarDefPos;
 import de.peeeq.wurstscript.ast.InitBlockPos;
 import de.peeeq.wurstscript.ast.NativeFuncPos;
 import de.peeeq.wurstscript.ast.NativeTypePos;
+import de.peeeq.wurstscript.ast.TopLevelDeclarationPos;
 import de.peeeq.wurstscript.ast.WEntityPos;
 import de.peeeq.wurstscript.ast.WImportPos;
 import de.peeeq.wurstscript.ast.WPackagePos;
@@ -38,10 +39,13 @@ public class AttrPackageElements extends Attribute<WPackagePos, Multimap<String,
 		for (WImportPos imp : node.imports()) {
 			String packageName = imp.packagename().term();
 			WPackagePos importedPackage = null;
-			for (WPackagePos p : cu) {
-				if (p.name().term().equals(packageName)) {
-					importedPackage = p;
-					break;
+			for (TopLevelDeclarationPos tl : cu) {
+				if (tl instanceof WPackagePos) {
+					WPackagePos p = (WPackagePos) tl;
+					if (p.name().term().equals(packageName)) {
+						importedPackage = p;
+						break;
+					}
 				}
 			}
 			if (importedPackage == null) {

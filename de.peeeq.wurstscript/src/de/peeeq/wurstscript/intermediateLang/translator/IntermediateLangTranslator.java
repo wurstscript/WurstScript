@@ -12,6 +12,7 @@ import java.util.Set;
 
 import katja.common.NE;
 import de.peeeq.wurstscript.ast.AST.SortPos;
+import de.peeeq.wurstscript.ast.AST;
 import de.peeeq.wurstscript.ast.ArgumentsPos;
 import de.peeeq.wurstscript.ast.ClassDefPos;
 import de.peeeq.wurstscript.ast.CompilationUnitPos;
@@ -38,6 +39,7 @@ import de.peeeq.wurstscript.ast.FunctionDefinitionPos;
 import de.peeeq.wurstscript.ast.GlobalVarDefPos;
 import de.peeeq.wurstscript.ast.IndexesPos;
 import de.peeeq.wurstscript.ast.InitBlockPos;
+import de.peeeq.wurstscript.ast.JassGlobalBlockPos;
 import de.peeeq.wurstscript.ast.LocalVarDefPos;
 import de.peeeq.wurstscript.ast.NativeFuncPos;
 import de.peeeq.wurstscript.ast.NativeTypePos;
@@ -68,11 +70,14 @@ import de.peeeq.wurstscript.ast.OpUnequalsPos;
 import de.peeeq.wurstscript.ast.StmtDecRefCountPos;
 import de.peeeq.wurstscript.ast.StmtDestroyPos;
 import de.peeeq.wurstscript.ast.StmtErrPos;
+import de.peeeq.wurstscript.ast.StmtExitwhenPos;
 import de.peeeq.wurstscript.ast.StmtIfPos;
 import de.peeeq.wurstscript.ast.StmtIncRefCountPos;
+import de.peeeq.wurstscript.ast.StmtLoopPos;
 import de.peeeq.wurstscript.ast.StmtReturnPos;
 import de.peeeq.wurstscript.ast.StmtSetPos;
 import de.peeeq.wurstscript.ast.StmtWhilePos;
+import de.peeeq.wurstscript.ast.TopLevelDeclarationPos;
 import de.peeeq.wurstscript.ast.TypeExprPos;
 import de.peeeq.wurstscript.ast.VarDefPos;
 import de.peeeq.wurstscript.ast.WEntityPos;
@@ -95,6 +100,7 @@ import de.peeeq.wurstscript.intermediateLang.ILif;
 import de.peeeq.wurstscript.intermediateLang.ILloop;
 import de.peeeq.wurstscript.intermediateLang.ILprog;
 import de.peeeq.wurstscript.intermediateLang.ILreturn;
+import de.peeeq.wurstscript.intermediateLang.ILreturnVoid;
 import de.peeeq.wurstscript.intermediateLang.ILsetBinary;
 import de.peeeq.wurstscript.intermediateLang.ILsetBinaryCR;
 import de.peeeq.wurstscript.intermediateLang.ILsetVar;
@@ -127,6 +133,7 @@ public class IntermediateLangTranslator {
 	private Map<VarDefPos, ILvar> vars = new HashMap<VarDefPos, ILvar>();
 	private long varUniqueNameCounter = 0;
 	
+	
 	public IntermediateLangTranslator(CompilationUnitPos cu, Attributes attr) {
 		this.cu = cu;
 		this.attr = attr;
@@ -134,12 +141,47 @@ public class IntermediateLangTranslator {
 
 	public ILprog translate() {
 
-		for (WPackagePos p : cu) {
-			translatePackage(p);
+		for (TopLevelDeclarationPos tl : cu) {
+			tl.Switch(new TopLevelDeclarationPos.Switch<Void, NE>() {
+				@Override
+				public Void CaseJassGlobalBlockPos(JassGlobalBlockPos term) throws NE {
+					translateGlobalBlock(term);
+					return null;
+				}
+
+				@Override
+				public Void CaseFuncDefPos(FuncDefPos term) throws NE {
+					translateFuncDef(null, term);
+					return null;
+				}
+
+				@Override
+				public Void CaseNativeTypePos(NativeTypePos term) throws NE {
+					return null;
+				}
+
+
+				@Override
+				public Void CaseWPackagePos(WPackagePos term) throws NE {
+					translatePackage(term);
+					return null;
+				}
+
+				@Override
+				public Void CaseNativeFuncPos(NativeFuncPos term) throws NE {
+					return null;
+				}
+			});
+			
 		}
 
 		return prog;
 
+	}
+
+	protected void translateGlobalBlock(JassGlobalBlockPos term) {
+		// TODO Auto-generated method stub
+		throw new Error("Not implemented yet.");
 	}
 
 	private void translatePackage(final WPackagePos p) {
@@ -373,11 +415,18 @@ public class IntermediateLangTranslator {
 
 			@Override
 			public List<ILStatement> CaseStmtReturnPos(StmtReturnPos term) throws NE {
-				PscriptType type = attr.exprType.get(term.obj());
-				ILvar returnVar = getNewLocalVar(func, type, "tempReturn");
-				result.addAll(translateExpr(func, returnVar, term.obj()));
-				result.add(new ILreturn(returnVar));
+				if (term.obj() instanceof ExprPos) {
+					ExprPos returnValue = (ExprPos) term.obj();
+					PscriptType type = attr.exprType.get(returnValue);
+					ILvar returnVar = getNewLocalVar(func, type, "tempReturn");
+					result.addAll(translateExpr(func, returnVar, returnValue));
+					result.add(new ILreturn(returnVar));
+				} else {
+					// return void
+					result.add(new ILreturnVoid());
+				}
 				return result;
+				
 			}
 
 			@Override
@@ -399,6 +448,18 @@ public class IntermediateLangTranslator {
 			@Override
 			public List<ILStatement> CaseStmtErrPos(StmtErrPos term) throws NE {
 				throw new Error("not implemented");
+			}
+
+			@Override
+			public List<ILStatement> CaseStmtLoopPos(StmtLoopPos term) throws NE {
+				// TODO Auto-generated method stub
+				throw new Error("Not implemented yet.");
+			}
+
+			@Override
+			public List<ILStatement> CaseStmtExitwhenPos(StmtExitwhenPos term) throws NE {
+				// TODO Auto-generated method stub
+				throw new Error("Not implemented yet.");
 			}
 		});
 	}

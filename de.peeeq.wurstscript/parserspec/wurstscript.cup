@@ -35,7 +35,9 @@ terminal
 	COMMA,   
 	NL,
 	STATIC, PACKAGE, RETURNS,FUNCTION, VAL, PUBLIC, PRIVATE, IMPORT, NATIVETYPE, INIT, NATIVE, INTERFACE,
-	IMPLEMENTS, ARRAY, IF, ELSE, WHILE, RETURN, CLASS, NEW, NULL, EXTENDS, THIS, CONSTRUCT, ONDESTROY;
+	IMPLEMENTS, ARRAY, IF, ELSE, WHILE, RETURN, CLASS, NEW, NULL, EXTENDS, THIS, CONSTRUCT, ONDESTROY, 
+	TYPE, GLOBALS, ENDGLOBALS, CONSTANT, ENDFUNCTION, TAKES, NOTHING, LOCAL,
+	LOOP, ENDLOOP, EXITWHEN, SET, CALL, THEN, ELSEIF, ENDIF;
 
 non terminal Arguments Arguments;
 non terminal Arguments ArgumentRest;
@@ -58,6 +60,7 @@ non terminal ExprFunctionCall ExprFunctionCall;
 non terminal ExprNewObject ExprNewObject;
 non terminal FuncDef FuncDef;
 non terminal FuncSignature FuncSignature;
+non terminal FuncSignature JassFuncSignature; 
 non terminal InitBlock InitBlock;
 non terminal Indexes Indexes;
 non terminal WImport Import;
@@ -77,7 +80,9 @@ non terminal StmtReturn StmtReturn;
 non terminal StmtSet StmtSet;
 non terminal StmtWhile StmtWhile;	
 non terminal TypeDef TypeDef;
+non terminal NativeType JassTypeDecl;
 non terminal TypeExpr TypeExpr;
+non terminal TopLevelDeclaration TopLevelDeclaration;
 non terminal GlobalVarDef VarDef;
 non terminal ExprVarAccess ExprVarAccess;
 non terminal ExprVarArrayAccess ExprVarArrayAccess;
@@ -88,9 +93,23 @@ non terminal WPackage PackageDeclaration;
 non terminal WParameter Parameter;
 non terminal WParameters Parameters;	
 non terminal WParameters OtherParameters;
+non terminal WParameters JassParameters;
 non terminal WStatement Statement;
 non terminal WStatements ElseStatements;
 non terminal WStatements Statements;	
+non terminal JassGlobalBlock JassGlobalBlock;
+non terminal FuncDef JassFuncDef;
+non terminal JassGlobalBlock JassGlobalDecls;
+non terminal GlobalVarDef JassGlobalDecl;
+non terminal WStatements JassLocals;
+non terminal WStatements JassStatements;
+non terminal WStatement JassLocal;
+non terminal WStatement JassStatement; 
+non terminal WStatement JassStatementIf;
+non terminal WStatements JasselseIfs;
+non terminal NativeFunc JassNativeDecl;
+non terminal JassToplevelDeclaration JassToplevelDeclaration;
+
 
 precedence left		OR;
 precedence left		AND;
@@ -113,10 +132,18 @@ Newlines ::=
 
 // one file = 1 or more packages
 CompilationUnit ::=
-	Newlines PackageDeclaration:p CompilationUnit:c
+	Newlines TopLevelDeclaration:p CompilationUnit:c
 		{: RESULT = c.appFront(p); :}
 	| Newlines
 		{: RESULT = AST.CompilationUnit(); :}
+;
+
+
+TopLevelDeclaration ::=
+	  PackageDeclaration:x
+		{: RESULT = x; :}
+	| JassToplevelDeclaration:x
+		{: RESULT = x; :}
 ;
 
 
@@ -473,3 +500,134 @@ ExprFunctionCall ::=
 	IDENTIFIER:name LPAR Arguments:args RPAR
 		{: RESULT = AST.ExprFunctionCall(pos(nameleft, nameright), name, args); :}
 ;
+
+
+
+
+
+
+
+// ++++++++++++++++
+// Jass stuff:
+
+JassToplevelDeclaration ::=
+	  JassGlobalBlock:x 
+		{: RESULT = x; :}
+	| JassFuncDef:x
+		{: RESULT = x; :}
+	| JassTypeDecl:x
+		{: RESULT = x; :}
+	| JassNativeDecl:x
+		{: RESULT = x; :}
+;
+
+
+
+JassTypeDecl ::=
+	TYPE:x IDENTIFIER:name EXTENDS TypeExpr:extendsName NL
+		{: RESULT = AST.NativeType(pos(xleft, xright), name, extendsName); :}
+;
+
+
+JassGlobalBlock ::=
+	GLOBALS NL JassGlobalDecls:x ENDGLOBALS NL
+		{: RESULT = x; :}
+;
+
+JassGlobalDecls ::=
+	Newlines JassGlobalDecl:x JassGlobalDecls:xs
+		{: RESULT = xs.appFront(x); :}
+	| Newlines 
+		{: RESULT = AST.JassGlobalBlock(); :}
+;
+
+JassGlobalDecl ::=
+	CONSTANT:x TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
+		{: RESULT = AST.GlobalVarDef(pos(xleft, xright), true, typ, name, i); :}
+	| TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
+		{: RESULT = AST.GlobalVarDef(typ.source(), false, typ, name, i); :}
+	| TypeExpr:typ IDENTIFIER:name NL
+		{: RESULT = AST.GlobalVarDef(typ.source(), false, typ, name, AST.NoExpr()); :}
+;
+
+JassNativeDecl ::=
+	NATIVE:x JassFuncSignature:sig NL
+		{: RESULT = AST.NativeFunc(pos(xleft, xright), sig); :}
+	| CONSTANT:x NATIVE JassFuncSignature:sig NL
+		{: RESULT = AST.NativeFunc(pos(xleft, xright), sig); :}
+;
+
+JassFuncDef ::=
+	FUNCTION:x JassFuncSignature:sig NL JassLocals:body1 JassStatements:body2 ENDFUNCTION NL
+		{: RESULT = AST.FuncDef(pos(xleft, xright), sig, body1.addAll(body2)); :}
+;
+
+
+JassFuncSignature ::=
+	IDENTIFIER:name TAKES JassParameters:parameters RETURNS TypeExpr:typ
+		{: RESULT = AST.FuncSignature(pos(nameleft, nameright), name, parameters, typ); :}
+	| IDENTIFIER:name TAKES JassParameters:parameters RETURNS NOTHING
+		{: RESULT = AST.FuncSignature(pos(nameleft, nameright), name, parameters, AST.NoTypeExpr()); :}
+;
+
+JassParameters ::=
+	 NOTHING
+		{: RESULT = AST.WParameters(); :}
+	| Parameter:x OtherParameters:xs 
+		{: RESULT = xs.appFront(x); :}   
+;
+
+JassLocals ::=
+	  Newlines JassLocal:x JassLocals:xs
+		{: RESULT = xs.appFront(x); :}
+	| Newlines 
+		{: RESULT = AST.WStatements(); :}
+;
+
+JassLocal ::=
+	  LOCAL:x TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
+		{: RESULT = AST.LocalVarDef(pos(xleft, xright), false, typ, name, i); :}
+	| LOCAL:x TypeExpr:typ IDENTIFIER:name NL
+		{: RESULT = AST.LocalVarDef(pos(xleft, xright), false, typ, name, AST.NoExpr()); :}
+;
+
+JassStatements ::=
+	Newlines JassStatement:x JassStatements:xs
+		{: RESULT = xs.appFront(x); :}
+	| Newlines  
+		{: RESULT = AST.WStatements(); :}
+;
+
+JassStatement ::=
+	  JassStatementIf:x
+		{: RESULT = x; :}
+	| LOOP:x NL JassStatements:body ENDLOOP NL
+		{: RESULT = AST.StmtLoop(pos(xleft, xright), body); :}
+	| EXITWHEN:x Expr:e NL
+		{: RESULT = AST.StmtExitwhen(pos(xleft, xright), e); :}
+	| RETURN:x NL
+		{: RESULT = AST.StmtReturn(pos(xleft, xright), AST.NoExpr()); :}
+	| RETURN:x Expr:e NL
+		{: RESULT = AST.StmtReturn(pos(xleft, xright), e); :}
+	| SET:x ExprAssignable:left EQ Expr:right NL
+		{: RESULT = AST.StmtSet(pos(xleft, xright), left, AST.OpAssign(),  right); :}
+	| CALL:x ExprFunctionCall:call
+		{: RESULT = call; :}
+;  
+
+
+JassStatementIf ::=
+	IF:x Expr:cond THEN NL JassStatements:thenStatements JasselseIfs:elseStatements NL
+		{: RESULT = AST.StmtIf(pos(xleft, xright), cond, thenStatements, elseStatements); :}
+;
+
+JasselseIfs ::=
+	ELSEIF:x Expr:cond THEN NL JassStatements:thenStatements JasselseIfs:elseStatements NL
+		{: RESULT = AST.WStatements(AST.StmtIf(pos(xleft, xright), cond,  thenStatements, elseStatements)); :}
+	| ELSE NL JassStatements:s ENDIF NL 
+		{: RESULT = s; :}
+	| ENDIF NL
+		{: RESULT = AST.WStatements(); :}
+;
+
+

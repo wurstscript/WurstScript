@@ -70,7 +70,7 @@ public class AST extends KatjaSpecification {
         return new de.peeeq.wurstscript.ast.ClassSlotsPos.Impl(parent, term, pos);
     }
 
-    public static final de.peeeq.wurstscript.ast.CompilationUnit CompilationUnit(de.peeeq.wurstscript.ast.WPackage... elements) {
+    public static final de.peeeq.wurstscript.ast.CompilationUnit CompilationUnit(de.peeeq.wurstscript.ast.TopLevelDeclaration... elements) {
         return _termcache.put(new de.peeeq.wurstscript.ast.CompilationUnit.Impl(elements));
     }
 
@@ -324,6 +324,18 @@ public class AST extends KatjaSpecification {
         return new de.peeeq.wurstscript.ast.IntegerPos.Impl(parent, term, pos);
     }
 
+    public static final de.peeeq.wurstscript.ast.JassGlobalBlock JassGlobalBlock(de.peeeq.wurstscript.ast.GlobalVarDef... elements) {
+        return _termcache.put(new de.peeeq.wurstscript.ast.JassGlobalBlock.Impl(elements));
+    }
+
+    static final de.peeeq.wurstscript.ast.JassGlobalBlockPos JassGlobalBlockPos(final KatjaNodePos<de.peeeq.wurstscript.ast.CompilationUnitPos, ?> parent, final de.peeeq.wurstscript.ast.JassGlobalBlock term, final int pos) {
+        return new de.peeeq.wurstscript.ast.JassGlobalBlockPos.Impl(parent, term, pos);
+    }
+
+    static final de.peeeq.wurstscript.ast.JassToplevelDeclarationPos JassToplevelDeclarationPos(final KatjaNodePos<de.peeeq.wurstscript.ast.CompilationUnitPos, ?> parent, final de.peeeq.wurstscript.ast.JassToplevelDeclaration term, final int pos) {
+        return term.Switch(new de.peeeq.wurstscript.ast.JassToplevelDeclaration.Switch<de.peeeq.wurstscript.ast.JassToplevelDeclarationPos, RuntimeException>() { public final de.peeeq.wurstscript.ast.JassToplevelDeclarationPos CaseJassGlobalBlock(de.peeeq.wurstscript.ast.JassGlobalBlock term) { return new de.peeeq.wurstscript.ast.JassGlobalBlockPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.JassToplevelDeclarationPos CaseNativeType(de.peeeq.wurstscript.ast.NativeType term) { return new de.peeeq.wurstscript.ast.NativeTypePos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.JassToplevelDeclarationPos CaseFuncDef(de.peeeq.wurstscript.ast.FuncDef term) { return new de.peeeq.wurstscript.ast.FuncDefPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.JassToplevelDeclarationPos CaseNativeFunc(de.peeeq.wurstscript.ast.NativeFunc term) { return new de.peeeq.wurstscript.ast.NativeFuncPos.Impl(parent, term, pos); } });
+    }
+
     public static final de.peeeq.wurstscript.ast.LocalVarDef LocalVarDef(de.peeeq.wurstscript.ast.WPos source, java.lang.Boolean constant, de.peeeq.wurstscript.ast.OptTypeExpr typ, java.lang.String name, de.peeeq.wurstscript.ast.OptExpr initialExpr) {
         return _termcache.put(new de.peeeq.wurstscript.ast.LocalVarDef.Impl(source, constant, typ, name, initialExpr));
     }
@@ -565,6 +577,14 @@ public class AST extends KatjaSpecification {
         return new de.peeeq.wurstscript.ast.StmtErrPos.Impl(parent, term, pos);
     }
 
+    public static final de.peeeq.wurstscript.ast.StmtExitwhen StmtExitwhen(de.peeeq.wurstscript.ast.WPos source, de.peeeq.wurstscript.ast.Expr cond) {
+        return _termcache.put(new de.peeeq.wurstscript.ast.StmtExitwhen.Impl(source, cond));
+    }
+
+    static final de.peeeq.wurstscript.ast.StmtExitwhenPos StmtExitwhenPos(final KatjaNodePos<de.peeeq.wurstscript.ast.CompilationUnitPos, ?> parent, final de.peeeq.wurstscript.ast.StmtExitwhen term, final int pos) {
+        return new de.peeeq.wurstscript.ast.StmtExitwhenPos.Impl(parent, term, pos);
+    }
+
     public static final de.peeeq.wurstscript.ast.StmtIf StmtIf(de.peeeq.wurstscript.ast.WPos source, de.peeeq.wurstscript.ast.Expr cond, de.peeeq.wurstscript.ast.WStatements thenBlock, de.peeeq.wurstscript.ast.WStatements elseBlock) {
         return _termcache.put(new de.peeeq.wurstscript.ast.StmtIf.Impl(source, cond, thenBlock, elseBlock));
     }
@@ -586,7 +606,20 @@ public class AST extends KatjaSpecification {
         return new de.peeeq.wurstscript.ast.StmtIncRefCountPos.Impl(parent, term, pos);
     }
 
-    public static final de.peeeq.wurstscript.ast.StmtReturn StmtReturn(de.peeeq.wurstscript.ast.WPos source, de.peeeq.wurstscript.ast.Expr obj) {
+    public static final de.peeeq.wurstscript.ast.StmtLoop StmtLoop(de.peeeq.wurstscript.ast.WPos source, de.peeeq.wurstscript.ast.WStatements body) {
+        return _termcache.put(new de.peeeq.wurstscript.ast.StmtLoop.Impl(source, body));
+    }
+
+    public static final de.peeeq.wurstscript.ast.StmtLoop StmtLoop(de.peeeq.wurstscript.ast.WPos source, de.peeeq.wurstscript.ast.WStatement... body) {
+        de.peeeq.wurstscript.ast.WStatements _list = de.peeeq.wurstscript.ast.AST.WStatements(body);
+        return _termcache.put(new de.peeeq.wurstscript.ast.StmtLoop.Impl(source, _list));
+    }
+
+    static final de.peeeq.wurstscript.ast.StmtLoopPos StmtLoopPos(final KatjaNodePos<de.peeeq.wurstscript.ast.CompilationUnitPos, ?> parent, final de.peeeq.wurstscript.ast.StmtLoop term, final int pos) {
+        return new de.peeeq.wurstscript.ast.StmtLoopPos.Impl(parent, term, pos);
+    }
+
+    public static final de.peeeq.wurstscript.ast.StmtReturn StmtReturn(de.peeeq.wurstscript.ast.WPos source, de.peeeq.wurstscript.ast.OptExpr obj) {
         return _termcache.put(new de.peeeq.wurstscript.ast.StmtReturn.Impl(source, obj));
     }
 
@@ -617,6 +650,10 @@ public class AST extends KatjaSpecification {
 
     static final de.peeeq.wurstscript.ast.StringPos StringPos(final KatjaNodePos<de.peeeq.wurstscript.ast.CompilationUnitPos, ?> parent, final java.lang.String term, final int pos) {
         return new de.peeeq.wurstscript.ast.StringPos.Impl(parent, term, pos);
+    }
+
+    static final de.peeeq.wurstscript.ast.TopLevelDeclarationPos TopLevelDeclarationPos(final KatjaNodePos<de.peeeq.wurstscript.ast.CompilationUnitPos, ?> parent, final de.peeeq.wurstscript.ast.TopLevelDeclaration term, final int pos) {
+        return term.Switch(new de.peeeq.wurstscript.ast.TopLevelDeclaration.Switch<de.peeeq.wurstscript.ast.TopLevelDeclarationPos, RuntimeException>() { public final de.peeeq.wurstscript.ast.TopLevelDeclarationPos CaseWPackage(de.peeeq.wurstscript.ast.WPackage term) { return new de.peeeq.wurstscript.ast.WPackagePos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.TopLevelDeclarationPos CaseJassGlobalBlock(de.peeeq.wurstscript.ast.JassGlobalBlock term) { return new de.peeeq.wurstscript.ast.JassGlobalBlockPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.TopLevelDeclarationPos CaseNativeType(de.peeeq.wurstscript.ast.NativeType term) { return new de.peeeq.wurstscript.ast.NativeTypePos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.TopLevelDeclarationPos CaseFuncDef(de.peeeq.wurstscript.ast.FuncDef term) { return new de.peeeq.wurstscript.ast.FuncDefPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.TopLevelDeclarationPos CaseNativeFunc(de.peeeq.wurstscript.ast.NativeFunc term) { return new de.peeeq.wurstscript.ast.NativeFuncPos.Impl(parent, term, pos); } });
     }
 
     static final de.peeeq.wurstscript.ast.TypeDefPos TypeDefPos(final KatjaNodePos<de.peeeq.wurstscript.ast.CompilationUnitPos, ?> parent, final de.peeeq.wurstscript.ast.TypeDef term, final int pos) {
@@ -718,7 +755,7 @@ public class AST extends KatjaSpecification {
     }
 
     static final de.peeeq.wurstscript.ast.WStatementPos WStatementPos(final KatjaNodePos<de.peeeq.wurstscript.ast.CompilationUnitPos, ?> parent, final de.peeeq.wurstscript.ast.WStatement term, final int pos) {
-        return term.Switch(new de.peeeq.wurstscript.ast.WStatement.Switch<de.peeeq.wurstscript.ast.WStatementPos, RuntimeException>() { public final de.peeeq.wurstscript.ast.WStatementPos CaseStmtIf(de.peeeq.wurstscript.ast.StmtIf term) { return new de.peeeq.wurstscript.ast.StmtIfPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WStatementPos CaseStmtWhile(de.peeeq.wurstscript.ast.StmtWhile term) { return new de.peeeq.wurstscript.ast.StmtWhilePos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WStatementPos CaseLocalVarDef(de.peeeq.wurstscript.ast.LocalVarDef term) { return new de.peeeq.wurstscript.ast.LocalVarDefPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WStatementPos CaseStmtSet(de.peeeq.wurstscript.ast.StmtSet term) { return new de.peeeq.wurstscript.ast.StmtSetPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WStatementPos CaseStmtReturn(de.peeeq.wurstscript.ast.StmtReturn term) { return new de.peeeq.wurstscript.ast.StmtReturnPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WStatementPos CaseStmtDestroy(de.peeeq.wurstscript.ast.StmtDestroy term) { return new de.peeeq.wurstscript.ast.StmtDestroyPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WStatementPos CaseStmtIncRefCount(de.peeeq.wurstscript.ast.StmtIncRefCount term) { return new de.peeeq.wurstscript.ast.StmtIncRefCountPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WStatementPos CaseStmtDecRefCount(de.peeeq.wurstscript.ast.StmtDecRefCount term) { return new de.peeeq.wurstscript.ast.StmtDecRefCountPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WStatementPos CaseStmtErr(de.peeeq.wurstscript.ast.StmtErr term) { return new de.peeeq.wurstscript.ast.StmtErrPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WStatementPos CaseExprMemberMethod(de.peeeq.wurstscript.ast.ExprMemberMethod term) { return new de.peeeq.wurstscript.ast.ExprMemberMethodPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WStatementPos CaseExprFunctionCall(de.peeeq.wurstscript.ast.ExprFunctionCall term) { return new de.peeeq.wurstscript.ast.ExprFunctionCallPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WStatementPos CaseExprNewObject(de.peeeq.wurstscript.ast.ExprNewObject term) { return new de.peeeq.wurstscript.ast.ExprNewObjectPos.Impl(parent, term, pos); } });
+        return term.Switch(new de.peeeq.wurstscript.ast.WStatement.Switch<de.peeeq.wurstscript.ast.WStatementPos, RuntimeException>() { public final de.peeeq.wurstscript.ast.WStatementPos CaseStmtIf(de.peeeq.wurstscript.ast.StmtIf term) { return new de.peeeq.wurstscript.ast.StmtIfPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WStatementPos CaseStmtWhile(de.peeeq.wurstscript.ast.StmtWhile term) { return new de.peeeq.wurstscript.ast.StmtWhilePos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WStatementPos CaseStmtLoop(de.peeeq.wurstscript.ast.StmtLoop term) { return new de.peeeq.wurstscript.ast.StmtLoopPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WStatementPos CaseLocalVarDef(de.peeeq.wurstscript.ast.LocalVarDef term) { return new de.peeeq.wurstscript.ast.LocalVarDefPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WStatementPos CaseStmtSet(de.peeeq.wurstscript.ast.StmtSet term) { return new de.peeeq.wurstscript.ast.StmtSetPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WStatementPos CaseStmtReturn(de.peeeq.wurstscript.ast.StmtReturn term) { return new de.peeeq.wurstscript.ast.StmtReturnPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WStatementPos CaseStmtDestroy(de.peeeq.wurstscript.ast.StmtDestroy term) { return new de.peeeq.wurstscript.ast.StmtDestroyPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WStatementPos CaseStmtIncRefCount(de.peeeq.wurstscript.ast.StmtIncRefCount term) { return new de.peeeq.wurstscript.ast.StmtIncRefCountPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WStatementPos CaseStmtDecRefCount(de.peeeq.wurstscript.ast.StmtDecRefCount term) { return new de.peeeq.wurstscript.ast.StmtDecRefCountPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WStatementPos CaseStmtErr(de.peeeq.wurstscript.ast.StmtErr term) { return new de.peeeq.wurstscript.ast.StmtErrPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WStatementPos CaseStmtExitwhen(de.peeeq.wurstscript.ast.StmtExitwhen term) { return new de.peeeq.wurstscript.ast.StmtExitwhenPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WStatementPos CaseExprMemberMethod(de.peeeq.wurstscript.ast.ExprMemberMethod term) { return new de.peeeq.wurstscript.ast.ExprMemberMethodPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WStatementPos CaseExprFunctionCall(de.peeeq.wurstscript.ast.ExprFunctionCall term) { return new de.peeeq.wurstscript.ast.ExprFunctionCallPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WStatementPos CaseExprNewObject(de.peeeq.wurstscript.ast.ExprNewObject term) { return new de.peeeq.wurstscript.ast.ExprNewObjectPos.Impl(parent, term, pos); } });
     }
 
     public static final de.peeeq.wurstscript.ast.WStatements WStatements(de.peeeq.wurstscript.ast.WStatement... elements) {
@@ -820,26 +857,29 @@ public class AST extends KatjaSpecification {
             _sortnumber.put("StmtDecRefCount", 44);
             _sortnumber.put("StmtDestroy", 45);
             _sortnumber.put("StmtErr", 46);
-            _sortnumber.put("StmtIf", 47);
-            _sortnumber.put("StmtIncRefCount", 48);
-            _sortnumber.put("StmtReturn", 49);
-            _sortnumber.put("StmtSet", 50);
-            _sortnumber.put("StmtWhile", 51);
-            _sortnumber.put("TypeExpr", 52);
-            _sortnumber.put("WImport", 53);
-            _sortnumber.put("WPackage", 54);
-            _sortnumber.put("WParameter", 55);
-            _sortnumber.put("WPos", 56);
-            _sortnumber.put("Arguments", 57);
-            _sortnumber.put("ArraySizes", 58);
-            _sortnumber.put("ClassSlots", 59);
-            _sortnumber.put("CompilationUnit", 60);
-            _sortnumber.put("Indexes", 61);
-            _sortnumber.put("WEntities", 62);
-            _sortnumber.put("WImports", 63);
-            _sortnumber.put("WParameters", 64);
-            _sortnumber.put("WStatements", 65);
-            _sortnumber.put("CompilationUnitPos", 66);
+            _sortnumber.put("StmtExitwhen", 47);
+            _sortnumber.put("StmtIf", 48);
+            _sortnumber.put("StmtIncRefCount", 49);
+            _sortnumber.put("StmtLoop", 50);
+            _sortnumber.put("StmtReturn", 51);
+            _sortnumber.put("StmtSet", 52);
+            _sortnumber.put("StmtWhile", 53);
+            _sortnumber.put("TypeExpr", 54);
+            _sortnumber.put("WImport", 55);
+            _sortnumber.put("WPackage", 56);
+            _sortnumber.put("WParameter", 57);
+            _sortnumber.put("WPos", 58);
+            _sortnumber.put("Arguments", 59);
+            _sortnumber.put("ArraySizes", 60);
+            _sortnumber.put("ClassSlots", 61);
+            _sortnumber.put("CompilationUnit", 62);
+            _sortnumber.put("Indexes", 63);
+            _sortnumber.put("JassGlobalBlock", 64);
+            _sortnumber.put("WEntities", 65);
+            _sortnumber.put("WImports", 66);
+            _sortnumber.put("WParameters", 67);
+            _sortnumber.put("WStatements", 68);
+            _sortnumber.put("CompilationUnitPos", 69);
         }
 
         public final KatjaElement create(String name, Object[] parameters, int line) {
@@ -1239,6 +1279,15 @@ public class AST extends KatjaSpecification {
                         throw new IllegalArgumentException("wrong sort on stack as parameter 1 of StmtErr constructor, in line "+line);
                     return de.peeeq.wurstscript.ast.AST.StmtErr((de.peeeq.wurstscript.ast.WPos) parameters[0]);
                 case 47:
+                    if(parameters.length != 2)
+                        throw new IllegalArgumentException("wrong number of arguments given for sort StmtExitwhen, in line "+line);
+
+                    if(!(parameters[0] instanceof de.peeeq.wurstscript.ast.WPos))
+                        throw new IllegalArgumentException("wrong sort on stack as parameter 1 of StmtExitwhen constructor, in line "+line);
+                    if(!(parameters[1] instanceof de.peeeq.wurstscript.ast.Expr))
+                        throw new IllegalArgumentException("wrong sort on stack as parameter 2 of StmtExitwhen constructor, in line "+line);
+                    return de.peeeq.wurstscript.ast.AST.StmtExitwhen((de.peeeq.wurstscript.ast.WPos) parameters[0], (de.peeeq.wurstscript.ast.Expr) parameters[1]);
+                case 48:
                     if(parameters.length != 4)
                         throw new IllegalArgumentException("wrong number of arguments given for sort StmtIf, in line "+line);
 
@@ -1251,7 +1300,7 @@ public class AST extends KatjaSpecification {
                     if(!(parameters[3] instanceof de.peeeq.wurstscript.ast.WStatements))
                         throw new IllegalArgumentException("wrong sort on stack as parameter 4 of StmtIf constructor, in line "+line);
                     return de.peeeq.wurstscript.ast.AST.StmtIf((de.peeeq.wurstscript.ast.WPos) parameters[0], (de.peeeq.wurstscript.ast.Expr) parameters[1], (de.peeeq.wurstscript.ast.WStatements) parameters[2], (de.peeeq.wurstscript.ast.WStatements) parameters[3]);
-                case 48:
+                case 49:
                     if(parameters.length != 2)
                         throw new IllegalArgumentException("wrong number of arguments given for sort StmtIncRefCount, in line "+line);
 
@@ -1260,16 +1309,25 @@ public class AST extends KatjaSpecification {
                     if(!(parameters[1] instanceof de.peeeq.wurstscript.ast.Expr))
                         throw new IllegalArgumentException("wrong sort on stack as parameter 2 of StmtIncRefCount constructor, in line "+line);
                     return de.peeeq.wurstscript.ast.AST.StmtIncRefCount((de.peeeq.wurstscript.ast.WPos) parameters[0], (de.peeeq.wurstscript.ast.Expr) parameters[1]);
-                case 49:
+                case 50:
+                    if(parameters.length != 2)
+                        throw new IllegalArgumentException("wrong number of arguments given for sort StmtLoop, in line "+line);
+
+                    if(!(parameters[0] instanceof de.peeeq.wurstscript.ast.WPos))
+                        throw new IllegalArgumentException("wrong sort on stack as parameter 1 of StmtLoop constructor, in line "+line);
+                    if(!(parameters[1] instanceof de.peeeq.wurstscript.ast.WStatements))
+                        throw new IllegalArgumentException("wrong sort on stack as parameter 2 of StmtLoop constructor, in line "+line);
+                    return de.peeeq.wurstscript.ast.AST.StmtLoop((de.peeeq.wurstscript.ast.WPos) parameters[0], (de.peeeq.wurstscript.ast.WStatements) parameters[1]);
+                case 51:
                     if(parameters.length != 2)
                         throw new IllegalArgumentException("wrong number of arguments given for sort StmtReturn, in line "+line);
 
                     if(!(parameters[0] instanceof de.peeeq.wurstscript.ast.WPos))
                         throw new IllegalArgumentException("wrong sort on stack as parameter 1 of StmtReturn constructor, in line "+line);
-                    if(!(parameters[1] instanceof de.peeeq.wurstscript.ast.Expr))
+                    if(!(parameters[1] instanceof de.peeeq.wurstscript.ast.OptExpr))
                         throw new IllegalArgumentException("wrong sort on stack as parameter 2 of StmtReturn constructor, in line "+line);
-                    return de.peeeq.wurstscript.ast.AST.StmtReturn((de.peeeq.wurstscript.ast.WPos) parameters[0], (de.peeeq.wurstscript.ast.Expr) parameters[1]);
-                case 50:
+                    return de.peeeq.wurstscript.ast.AST.StmtReturn((de.peeeq.wurstscript.ast.WPos) parameters[0], (de.peeeq.wurstscript.ast.OptExpr) parameters[1]);
+                case 52:
                     if(parameters.length != 4)
                         throw new IllegalArgumentException("wrong number of arguments given for sort StmtSet, in line "+line);
 
@@ -1282,7 +1340,7 @@ public class AST extends KatjaSpecification {
                     if(!(parameters[3] instanceof de.peeeq.wurstscript.ast.Expr))
                         throw new IllegalArgumentException("wrong sort on stack as parameter 4 of StmtSet constructor, in line "+line);
                     return de.peeeq.wurstscript.ast.AST.StmtSet((de.peeeq.wurstscript.ast.WPos) parameters[0], (de.peeeq.wurstscript.ast.ExprAssignable) parameters[1], (de.peeeq.wurstscript.ast.OpAssignment) parameters[2], (de.peeeq.wurstscript.ast.Expr) parameters[3]);
-                case 51:
+                case 53:
                     if(parameters.length != 3)
                         throw new IllegalArgumentException("wrong number of arguments given for sort StmtWhile, in line "+line);
 
@@ -1293,7 +1351,7 @@ public class AST extends KatjaSpecification {
                     if(!(parameters[2] instanceof de.peeeq.wurstscript.ast.WStatements))
                         throw new IllegalArgumentException("wrong sort on stack as parameter 3 of StmtWhile constructor, in line "+line);
                     return de.peeeq.wurstscript.ast.AST.StmtWhile((de.peeeq.wurstscript.ast.WPos) parameters[0], (de.peeeq.wurstscript.ast.Expr) parameters[1], (de.peeeq.wurstscript.ast.WStatements) parameters[2]);
-                case 52:
+                case 54:
                     if(parameters.length != 4)
                         throw new IllegalArgumentException("wrong number of arguments given for sort TypeExpr, in line "+line);
 
@@ -1306,7 +1364,7 @@ public class AST extends KatjaSpecification {
                     if(!(parameters[3] instanceof de.peeeq.wurstscript.ast.ArraySizes))
                         throw new IllegalArgumentException("wrong sort on stack as parameter 4 of TypeExpr constructor, in line "+line);
                     return de.peeeq.wurstscript.ast.AST.TypeExpr((de.peeeq.wurstscript.ast.WPos) parameters[0], (java.lang.String) parameters[1], (java.lang.Boolean) parameters[2], (de.peeeq.wurstscript.ast.ArraySizes) parameters[3]);
-                case 53:
+                case 55:
                     if(parameters.length != 2)
                         throw new IllegalArgumentException("wrong number of arguments given for sort WImport, in line "+line);
 
@@ -1315,7 +1373,7 @@ public class AST extends KatjaSpecification {
                     if(!(parameters[1] instanceof java.lang.String))
                         throw new IllegalArgumentException("wrong sort on stack as parameter 2 of WImport constructor, in line "+line);
                     return de.peeeq.wurstscript.ast.AST.WImport((de.peeeq.wurstscript.ast.WPos) parameters[0], (java.lang.String) parameters[1]);
-                case 54:
+                case 56:
                     if(parameters.length != 4)
                         throw new IllegalArgumentException("wrong number of arguments given for sort WPackage, in line "+line);
 
@@ -1328,7 +1386,7 @@ public class AST extends KatjaSpecification {
                     if(!(parameters[3] instanceof de.peeeq.wurstscript.ast.WEntities))
                         throw new IllegalArgumentException("wrong sort on stack as parameter 4 of WPackage constructor, in line "+line);
                     return de.peeeq.wurstscript.ast.AST.WPackage((de.peeeq.wurstscript.ast.WPos) parameters[0], (java.lang.String) parameters[1], (de.peeeq.wurstscript.ast.WImports) parameters[2], (de.peeeq.wurstscript.ast.WEntities) parameters[3]);
-                case 55:
+                case 57:
                     if(parameters.length != 3)
                         throw new IllegalArgumentException("wrong number of arguments given for sort WParameter, in line "+line);
 
@@ -1339,7 +1397,7 @@ public class AST extends KatjaSpecification {
                     if(!(parameters[2] instanceof java.lang.String))
                         throw new IllegalArgumentException("wrong sort on stack as parameter 3 of WParameter constructor, in line "+line);
                     return de.peeeq.wurstscript.ast.AST.WParameter((de.peeeq.wurstscript.ast.WPos) parameters[0], (de.peeeq.wurstscript.ast.TypeExpr) parameters[1], (java.lang.String) parameters[2]);
-                case 56:
+                case 58:
                     if(parameters.length != 3)
                         throw new IllegalArgumentException("wrong number of arguments given for sort WPos, in line "+line);
 
@@ -1350,7 +1408,7 @@ public class AST extends KatjaSpecification {
                     if(!(parameters[2] instanceof java.lang.Integer))
                         throw new IllegalArgumentException("wrong sort on stack as parameter 3 of WPos constructor, in line "+line);
                     return de.peeeq.wurstscript.ast.AST.WPos((java.lang.String) parameters[0], (java.lang.Integer) parameters[1], (java.lang.Integer) parameters[2]);
-                case 57:
+                case 59:
                     de.peeeq.wurstscript.ast.Expr[] _Arguments$array = new de.peeeq.wurstscript.ast.Expr[parameters.length];
 
                     for(int i = 0; i < parameters.length; i++) {
@@ -1360,7 +1418,7 @@ public class AST extends KatjaSpecification {
                     }
 
                     return de.peeeq.wurstscript.ast.AST.Arguments(_Arguments$array);
-                case 58:
+                case 60:
                     de.peeeq.wurstscript.ast.Expr[] _ArraySizes$array = new de.peeeq.wurstscript.ast.Expr[parameters.length];
 
                     for(int i = 0; i < parameters.length; i++) {
@@ -1370,7 +1428,7 @@ public class AST extends KatjaSpecification {
                     }
 
                     return de.peeeq.wurstscript.ast.AST.ArraySizes(_ArraySizes$array);
-                case 59:
+                case 61:
                     de.peeeq.wurstscript.ast.ClassSlot[] _ClassSlots$array = new de.peeeq.wurstscript.ast.ClassSlot[parameters.length];
 
                     for(int i = 0; i < parameters.length; i++) {
@@ -1380,17 +1438,17 @@ public class AST extends KatjaSpecification {
                     }
 
                     return de.peeeq.wurstscript.ast.AST.ClassSlots(_ClassSlots$array);
-                case 60:
-                    de.peeeq.wurstscript.ast.WPackage[] _CompilationUnit$array = new de.peeeq.wurstscript.ast.WPackage[parameters.length];
+                case 62:
+                    de.peeeq.wurstscript.ast.TopLevelDeclaration[] _CompilationUnit$array = new de.peeeq.wurstscript.ast.TopLevelDeclaration[parameters.length];
 
                     for(int i = 0; i < parameters.length; i++) {
-                        if(!(parameters[i] instanceof de.peeeq.wurstscript.ast.WPackage))
+                        if(!(parameters[i] instanceof de.peeeq.wurstscript.ast.TopLevelDeclaration))
                             throw new IllegalArgumentException("wrong sort on stack as parameter "+i+" for CompilationUnit constructor, in line "+line);
-                        _CompilationUnit$array[i] = (de.peeeq.wurstscript.ast.WPackage) parameters[i];
+                        _CompilationUnit$array[i] = (de.peeeq.wurstscript.ast.TopLevelDeclaration) parameters[i];
                     }
 
                     return de.peeeq.wurstscript.ast.AST.CompilationUnit(_CompilationUnit$array);
-                case 61:
+                case 63:
                     de.peeeq.wurstscript.ast.Expr[] _Indexes$array = new de.peeeq.wurstscript.ast.Expr[parameters.length];
 
                     for(int i = 0; i < parameters.length; i++) {
@@ -1400,7 +1458,17 @@ public class AST extends KatjaSpecification {
                     }
 
                     return de.peeeq.wurstscript.ast.AST.Indexes(_Indexes$array);
-                case 62:
+                case 64:
+                    de.peeeq.wurstscript.ast.GlobalVarDef[] _JassGlobalBlock$array = new de.peeeq.wurstscript.ast.GlobalVarDef[parameters.length];
+
+                    for(int i = 0; i < parameters.length; i++) {
+                        if(!(parameters[i] instanceof de.peeeq.wurstscript.ast.GlobalVarDef))
+                            throw new IllegalArgumentException("wrong sort on stack as parameter "+i+" for JassGlobalBlock constructor, in line "+line);
+                        _JassGlobalBlock$array[i] = (de.peeeq.wurstscript.ast.GlobalVarDef) parameters[i];
+                    }
+
+                    return de.peeeq.wurstscript.ast.AST.JassGlobalBlock(_JassGlobalBlock$array);
+                case 65:
                     de.peeeq.wurstscript.ast.WEntity[] _WEntities$array = new de.peeeq.wurstscript.ast.WEntity[parameters.length];
 
                     for(int i = 0; i < parameters.length; i++) {
@@ -1410,7 +1478,7 @@ public class AST extends KatjaSpecification {
                     }
 
                     return de.peeeq.wurstscript.ast.AST.WEntities(_WEntities$array);
-                case 63:
+                case 66:
                     de.peeeq.wurstscript.ast.WImport[] _WImports$array = new de.peeeq.wurstscript.ast.WImport[parameters.length];
 
                     for(int i = 0; i < parameters.length; i++) {
@@ -1420,7 +1488,7 @@ public class AST extends KatjaSpecification {
                     }
 
                     return de.peeeq.wurstscript.ast.AST.WImports(_WImports$array);
-                case 64:
+                case 67:
                     de.peeeq.wurstscript.ast.WParameter[] _WParameters$array = new de.peeeq.wurstscript.ast.WParameter[parameters.length];
 
                     for(int i = 0; i < parameters.length; i++) {
@@ -1430,7 +1498,7 @@ public class AST extends KatjaSpecification {
                     }
 
                     return de.peeeq.wurstscript.ast.AST.WParameters(_WParameters$array);
-                case 65:
+                case 68:
                     de.peeeq.wurstscript.ast.WStatement[] _WStatements$array = new de.peeeq.wurstscript.ast.WStatement[parameters.length];
 
                     for(int i = 0; i < parameters.length; i++) {
@@ -1440,7 +1508,7 @@ public class AST extends KatjaSpecification {
                     }
 
                     return de.peeeq.wurstscript.ast.AST.WStatements(_WStatements$array);
-                case 66:
+                case 69:
                     if(parameters.length != 1)
                         throw new IllegalArgumentException("wrong number of arguments given root position CompilationUnitPos, in line "+line);
 

@@ -10,6 +10,8 @@ public interface NativeFuncPos extends de.peeeq.wurstscript.ast.FunctionDefiniti
 
     public de.peeeq.wurstscript.ast.NativeFunc termFunctionDefinition();
     public de.peeeq.wurstscript.ast.NativeFunc termWEntity();
+    public de.peeeq.wurstscript.ast.NativeFunc termJassToplevelDeclaration();
+    public de.peeeq.wurstscript.ast.NativeFunc termTopLevelDeclaration();
     public de.peeeq.wurstscript.ast.NativeFunc term();
     public de.peeeq.wurstscript.ast.WPosPos source();
     public de.peeeq.wurstscript.ast.NativeFuncPos replaceSource(de.peeeq.wurstscript.ast.WPos source);
@@ -18,9 +20,9 @@ public interface NativeFuncPos extends de.peeeq.wurstscript.ast.FunctionDefiniti
     public de.peeeq.wurstscript.ast.AST.TuplePos<?> get(int i);
     public int size();
     public de.peeeq.wurstscript.ast.NativeFuncPos replace(de.peeeq.wurstscript.ast.NativeFunc term);
-    public de.peeeq.wurstscript.ast.WEntitiesPos parent();
-    public de.peeeq.wurstscript.ast.WEntityPos lsib();
-    public de.peeeq.wurstscript.ast.WEntityPos rsib();
+    public de.peeeq.wurstscript.ast.AST.ListPos<?, ?, ?> parent();
+    public de.peeeq.wurstscript.ast.AST.SortPos lsib();
+    public de.peeeq.wurstscript.ast.AST.SortPos rsib();
     public de.peeeq.wurstscript.ast.AST.SortPos preOrder();
     public de.peeeq.wurstscript.ast.AST.SortPos preOrderSkip();
     public de.peeeq.wurstscript.ast.AST.SortPos postOrder();
@@ -28,6 +30,8 @@ public interface NativeFuncPos extends de.peeeq.wurstscript.ast.FunctionDefiniti
     public de.peeeq.wurstscript.ast.AST.SortPos follow(List<Integer> path);
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.FunctionDefinitionPos.Switch<CT, E> switchClass) throws E;
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.WEntityPos.Switch<CT, E> switchClass) throws E;
+    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.JassToplevelDeclarationPos.Switch<CT, E> switchClass) throws E;
+    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.TopLevelDeclarationPos.Switch<CT, E> switchClass) throws E;
 
     //----- nested classes of NativeFuncPos -----
 
@@ -143,6 +147,14 @@ public interface NativeFuncPos extends de.peeeq.wurstscript.ast.FunctionDefiniti
             return term();
         }
 
+        public de.peeeq.wurstscript.ast.NativeFunc termJassToplevelDeclaration() {
+            return term();
+        }
+
+        public de.peeeq.wurstscript.ast.NativeFunc termTopLevelDeclaration() {
+            return term();
+        }
+
         public de.peeeq.wurstscript.ast.WPosPos source() {
             if(_source == null)
                 _source = de.peeeq.wurstscript.ast.AST.WPosPos(this, _term.source(), 0);
@@ -209,16 +221,16 @@ public interface NativeFuncPos extends de.peeeq.wurstscript.ast.FunctionDefiniti
             return AST.CompilationUnitPos((CompilationUnit) term);
         }
 
-        public de.peeeq.wurstscript.ast.WEntitiesPos parent() {
-            return (de.peeeq.wurstscript.ast.WEntitiesPos) super.parent();
+        public de.peeeq.wurstscript.ast.AST.ListPos<?, ?, ?> parent() {
+            return (de.peeeq.wurstscript.ast.AST.ListPos<?, ?, ?>) super.parent();
         }
 
-        public de.peeeq.wurstscript.ast.WEntityPos lsib() {
-            return (de.peeeq.wurstscript.ast.WEntityPos) super.lsib();
+        public de.peeeq.wurstscript.ast.AST.SortPos lsib() {
+            return (de.peeeq.wurstscript.ast.AST.SortPos) super.lsib();
         }
 
-        public de.peeeq.wurstscript.ast.WEntityPos rsib() {
-            return (de.peeeq.wurstscript.ast.WEntityPos) super.rsib();
+        public de.peeeq.wurstscript.ast.AST.SortPos rsib() {
+            return (de.peeeq.wurstscript.ast.AST.SortPos) super.rsib();
         }
 
         public de.peeeq.wurstscript.ast.AST.SortPos preOrder() {
@@ -246,6 +258,14 @@ public interface NativeFuncPos extends de.peeeq.wurstscript.ast.FunctionDefiniti
         }
 
         public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.WEntityPos.Switch<CT, E> switchClass) throws E {
+            return switchClass.CaseNativeFuncPos(this);
+        }
+
+        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.JassToplevelDeclarationPos.Switch<CT, E> switchClass) throws E {
+            return switchClass.CaseNativeFuncPos(this);
+        }
+
+        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.TopLevelDeclarationPos.Switch<CT, E> switchClass) throws E {
             return switchClass.CaseNativeFuncPos(this);
         }
 

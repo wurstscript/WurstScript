@@ -4,11 +4,13 @@ import java.util.List;
 import katja.common.*;
 import java.io.IOException;
 
-public interface NativeTypePos extends de.peeeq.wurstscript.ast.TypeDefPos, de.peeeq.wurstscript.ast.AST.TuplePos<de.peeeq.wurstscript.ast.NativeType> {
+public interface NativeTypePos extends de.peeeq.wurstscript.ast.JassToplevelDeclarationPos, de.peeeq.wurstscript.ast.TypeDefPos, de.peeeq.wurstscript.ast.AST.TuplePos<de.peeeq.wurstscript.ast.NativeType> {
 
     //----- methods of NativeTypePos -----
 
+    public de.peeeq.wurstscript.ast.NativeType termJassToplevelDeclaration();
     public de.peeeq.wurstscript.ast.NativeType termTypeDef();
+    public de.peeeq.wurstscript.ast.NativeType termTopLevelDeclaration();
     public de.peeeq.wurstscript.ast.NativeType termWEntity();
     public de.peeeq.wurstscript.ast.NativeType term();
     public de.peeeq.wurstscript.ast.WPosPos source();
@@ -20,15 +22,17 @@ public interface NativeTypePos extends de.peeeq.wurstscript.ast.TypeDefPos, de.p
     public de.peeeq.wurstscript.ast.AST.SortPos get(int i);
     public int size();
     public de.peeeq.wurstscript.ast.NativeTypePos replace(de.peeeq.wurstscript.ast.NativeType term);
-    public de.peeeq.wurstscript.ast.WEntitiesPos parent();
-    public de.peeeq.wurstscript.ast.WEntityPos lsib();
-    public de.peeeq.wurstscript.ast.WEntityPos rsib();
+    public de.peeeq.wurstscript.ast.AST.ListPos<?, ?, ?> parent();
+    public de.peeeq.wurstscript.ast.AST.SortPos lsib();
+    public de.peeeq.wurstscript.ast.AST.SortPos rsib();
     public de.peeeq.wurstscript.ast.AST.SortPos preOrder();
     public de.peeeq.wurstscript.ast.AST.SortPos preOrderSkip();
     public de.peeeq.wurstscript.ast.AST.SortPos postOrder();
     public de.peeeq.wurstscript.ast.AST.SortPos postOrderStart();
     public de.peeeq.wurstscript.ast.AST.SortPos follow(List<Integer> path);
+    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.JassToplevelDeclarationPos.Switch<CT, E> switchClass) throws E;
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.TypeDefPos.Switch<CT, E> switchClass) throws E;
+    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.TopLevelDeclarationPos.Switch<CT, E> switchClass) throws E;
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.WEntityPos.Switch<CT, E> switchClass) throws E;
 
     //----- nested classes of NativeTypePos -----
@@ -135,7 +139,15 @@ public interface NativeTypePos extends de.peeeq.wurstscript.ast.TypeDefPos, de.p
 
         //----- methods of Impl -----
 
+        public de.peeeq.wurstscript.ast.NativeType termJassToplevelDeclaration() {
+            return term();
+        }
+
         public de.peeeq.wurstscript.ast.NativeType termTypeDef() {
+            return term();
+        }
+
+        public de.peeeq.wurstscript.ast.NativeType termTopLevelDeclaration() {
             return term();
         }
 
@@ -225,16 +237,16 @@ public interface NativeTypePos extends de.peeeq.wurstscript.ast.TypeDefPos, de.p
             return AST.CompilationUnitPos((CompilationUnit) term);
         }
 
-        public de.peeeq.wurstscript.ast.WEntitiesPos parent() {
-            return (de.peeeq.wurstscript.ast.WEntitiesPos) super.parent();
+        public de.peeeq.wurstscript.ast.AST.ListPos<?, ?, ?> parent() {
+            return (de.peeeq.wurstscript.ast.AST.ListPos<?, ?, ?>) super.parent();
         }
 
-        public de.peeeq.wurstscript.ast.WEntityPos lsib() {
-            return (de.peeeq.wurstscript.ast.WEntityPos) super.lsib();
+        public de.peeeq.wurstscript.ast.AST.SortPos lsib() {
+            return (de.peeeq.wurstscript.ast.AST.SortPos) super.lsib();
         }
 
-        public de.peeeq.wurstscript.ast.WEntityPos rsib() {
-            return (de.peeeq.wurstscript.ast.WEntityPos) super.rsib();
+        public de.peeeq.wurstscript.ast.AST.SortPos rsib() {
+            return (de.peeeq.wurstscript.ast.AST.SortPos) super.rsib();
         }
 
         public de.peeeq.wurstscript.ast.AST.SortPos preOrder() {
@@ -257,7 +269,15 @@ public interface NativeTypePos extends de.peeeq.wurstscript.ast.TypeDefPos, de.p
             return (de.peeeq.wurstscript.ast.AST.SortPos) super.follow(path);
         }
 
+        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.JassToplevelDeclarationPos.Switch<CT, E> switchClass) throws E {
+            return switchClass.CaseNativeTypePos(this);
+        }
+
         public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.TypeDefPos.Switch<CT, E> switchClass) throws E {
+            return switchClass.CaseNativeTypePos(this);
+        }
+
+        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.TopLevelDeclarationPos.Switch<CT, E> switchClass) throws E {
             return switchClass.CaseNativeTypePos(this);
         }
 

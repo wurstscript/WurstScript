@@ -4,59 +4,40 @@ import java.util.List;
 import katja.common.*;
 import java.io.IOException;
 
-public interface FuncDefPos extends de.peeeq.wurstscript.ast.ClassMemberPos, de.peeeq.wurstscript.ast.FunctionDefinitionPos, de.peeeq.wurstscript.ast.WEntityPos, de.peeeq.wurstscript.ast.WScopePos, de.peeeq.wurstscript.ast.AST.TuplePos<de.peeeq.wurstscript.ast.FuncDef> {
+public interface StmtLoopPos extends de.peeeq.wurstscript.ast.WStatementPos, de.peeeq.wurstscript.ast.AST.TuplePos<de.peeeq.wurstscript.ast.StmtLoop> {
 
-    //----- methods of FuncDefPos -----
+    //----- methods of StmtLoopPos -----
 
-    public de.peeeq.wurstscript.ast.FuncDef termClassMember();
-    public de.peeeq.wurstscript.ast.FuncDef termFunctionDefinition();
-    public de.peeeq.wurstscript.ast.FuncDef termWEntity();
-    public de.peeeq.wurstscript.ast.FuncDef termWScope();
-    public de.peeeq.wurstscript.ast.FuncDef termClassSlot();
-    public de.peeeq.wurstscript.ast.FuncDef termJassToplevelDeclaration();
-    public de.peeeq.wurstscript.ast.FuncDef termTopLevelDeclaration();
-    public de.peeeq.wurstscript.ast.FuncDef term();
+    public de.peeeq.wurstscript.ast.StmtLoop termWStatement();
+    public de.peeeq.wurstscript.ast.StmtLoop term();
     public de.peeeq.wurstscript.ast.WPosPos source();
-    public de.peeeq.wurstscript.ast.FuncDefPos replaceSource(de.peeeq.wurstscript.ast.WPos source);
-    public de.peeeq.wurstscript.ast.FuncSignaturePos signature();
-    public de.peeeq.wurstscript.ast.FuncDefPos replaceSignature(de.peeeq.wurstscript.ast.FuncSignature signature);
+    public de.peeeq.wurstscript.ast.StmtLoopPos replaceSource(de.peeeq.wurstscript.ast.WPos source);
     public de.peeeq.wurstscript.ast.WStatementsPos body();
-    public de.peeeq.wurstscript.ast.FuncDefPos replaceBody(de.peeeq.wurstscript.ast.WStatements body);
+    public de.peeeq.wurstscript.ast.StmtLoopPos replaceBody(de.peeeq.wurstscript.ast.WStatements body);
     public de.peeeq.wurstscript.ast.AST.NodePos<?> get(int i);
     public int size();
-    public de.peeeq.wurstscript.ast.FuncDefPos replace(de.peeeq.wurstscript.ast.FuncDef term);
-    public de.peeeq.wurstscript.ast.AST.ListPos<?, ?, ?> parent();
-    public de.peeeq.wurstscript.ast.AST.SortPos lsib();
-    public de.peeeq.wurstscript.ast.AST.SortPos rsib();
+    public de.peeeq.wurstscript.ast.StmtLoopPos replace(de.peeeq.wurstscript.ast.StmtLoop term);
+    public de.peeeq.wurstscript.ast.WStatementsPos parent();
+    public de.peeeq.wurstscript.ast.WStatementPos lsib();
+    public de.peeeq.wurstscript.ast.WStatementPos rsib();
     public de.peeeq.wurstscript.ast.AST.SortPos preOrder();
     public de.peeeq.wurstscript.ast.AST.SortPos preOrderSkip();
     public de.peeeq.wurstscript.ast.AST.SortPos postOrder();
     public de.peeeq.wurstscript.ast.AST.SortPos postOrderStart();
     public de.peeeq.wurstscript.ast.AST.SortPos follow(List<Integer> path);
-    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.ClassMemberPos.Switch<CT, E> switchClass) throws E;
-    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.FunctionDefinitionPos.Switch<CT, E> switchClass) throws E;
-    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.WEntityPos.Switch<CT, E> switchClass) throws E;
-    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.WScopePos.Switch<CT, E> switchClass) throws E;
-    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.ClassSlotPos.Switch<CT, E> switchClass) throws E;
-    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.JassToplevelDeclarationPos.Switch<CT, E> switchClass) throws E;
-    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.TopLevelDeclarationPos.Switch<CT, E> switchClass) throws E;
+    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.WStatementPos.Switch<CT, E> switchClass) throws E;
 
-    //----- nested classes of FuncDefPos -----
+    //----- nested classes of StmtLoopPos -----
 
     static interface VisitorType<E extends Throwable> {
 
         //----- methods of VisitorType<E extends Throwable> -----
 
         public void visit(de.peeeq.wurstscript.ast.WPosPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.FuncSignaturePos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.WStatementsPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.StringPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.IntegerPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.WParametersPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.OptTypeExprPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.WStatementPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.NoTypeExprPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.TypeExprPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.StmtIfPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.StmtWhilePos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.StmtLoopPos term) throws E;
@@ -72,10 +53,9 @@ public interface FuncDefPos extends de.peeeq.wurstscript.ast.ClassMemberPos, de.
         public void visit(de.peeeq.wurstscript.ast.ExprMemberMethodPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ExprFunctionCallPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ExprNewObjectPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.WParameterPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.BooleanPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.ArraySizesPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ExprPos term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.BooleanPos term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.OptTypeExprPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OptExprPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ExprAssignablePos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OpAssignmentPos term) throws E;
@@ -93,12 +73,15 @@ public interface FuncDefPos extends de.peeeq.wurstscript.ast.ClassMemberPos, de.
         public void visit(de.peeeq.wurstscript.ast.ExprBoolValPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ExprFuncRefPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.ExprThisPos term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.NoTypeExprPos term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.TypeExprPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.NoExprPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OpAssignPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OpBinaryPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OpUnaryPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.IndexesPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.DoublePos term) throws E;
+        public void visit(de.peeeq.wurstscript.ast.ArraySizesPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OpOrPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OpAndPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OpEqualsPos term) throws E;
@@ -115,10 +98,9 @@ public interface FuncDefPos extends de.peeeq.wurstscript.ast.ClassMemberPos, de.
         public void visit(de.peeeq.wurstscript.ast.OpModIntPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OpDivIntPos term) throws E;
         public void visit(de.peeeq.wurstscript.ast.OpNotPos term) throws E;
-        public void visit(de.peeeq.wurstscript.ast.FuncDefPos term) throws E;
     }
 
-    public static abstract class Visitor<E extends Throwable> implements de.peeeq.wurstscript.ast.FuncDefPos.VisitorType<E> {
+    public static abstract class Visitor<E extends Throwable> implements de.peeeq.wurstscript.ast.StmtLoopPos.VisitorType<E> {
 
         //----- attributes of Visitor<E extends Throwable> -----
 
@@ -175,41 +157,16 @@ public interface FuncDefPos extends de.peeeq.wurstscript.ast.ClassMemberPos, de.
         }
     }
 
-    static class Impl extends KatjaTuplePosImpl<de.peeeq.wurstscript.ast.CompilationUnitPos, de.peeeq.wurstscript.ast.FuncDef> implements de.peeeq.wurstscript.ast.FuncDefPos {
+    static class Impl extends KatjaTuplePosImpl<de.peeeq.wurstscript.ast.CompilationUnitPos, de.peeeq.wurstscript.ast.StmtLoop> implements de.peeeq.wurstscript.ast.StmtLoopPos {
 
         //----- attributes of Impl -----
 
         private de.peeeq.wurstscript.ast.WPosPos _source = null;
-        private de.peeeq.wurstscript.ast.FuncSignaturePos _signature = null;
         private de.peeeq.wurstscript.ast.WStatementsPos _body = null;
 
         //----- methods of Impl -----
 
-        public de.peeeq.wurstscript.ast.FuncDef termClassMember() {
-            return term();
-        }
-
-        public de.peeeq.wurstscript.ast.FuncDef termFunctionDefinition() {
-            return term();
-        }
-
-        public de.peeeq.wurstscript.ast.FuncDef termWEntity() {
-            return term();
-        }
-
-        public de.peeeq.wurstscript.ast.FuncDef termWScope() {
-            return term();
-        }
-
-        public de.peeeq.wurstscript.ast.FuncDef termClassSlot() {
-            return term();
-        }
-
-        public de.peeeq.wurstscript.ast.FuncDef termJassToplevelDeclaration() {
-            return term();
-        }
-
-        public de.peeeq.wurstscript.ast.FuncDef termTopLevelDeclaration() {
+        public de.peeeq.wurstscript.ast.StmtLoop termWStatement() {
             return term();
         }
 
@@ -220,40 +177,29 @@ public interface FuncDefPos extends de.peeeq.wurstscript.ast.ClassMemberPos, de.
             return _source;
         }
 
-        public de.peeeq.wurstscript.ast.FuncDefPos replaceSource(de.peeeq.wurstscript.ast.WPos source) {
+        public de.peeeq.wurstscript.ast.StmtLoopPos replaceSource(de.peeeq.wurstscript.ast.WPos source) {
             return replace(_term.replaceSource(source));
-        }
-
-        public de.peeeq.wurstscript.ast.FuncSignaturePos signature() {
-            if(_signature == null)
-                _signature = de.peeeq.wurstscript.ast.AST.FuncSignaturePos(this, _term.signature(), 1);
-
-            return _signature;
-        }
-
-        public de.peeeq.wurstscript.ast.FuncDefPos replaceSignature(de.peeeq.wurstscript.ast.FuncSignature signature) {
-            return replace(_term.replaceSignature(signature));
         }
 
         public de.peeeq.wurstscript.ast.WStatementsPos body() {
             if(_body == null)
-                _body = de.peeeq.wurstscript.ast.AST.WStatementsPos(this, _term.body(), 2);
+                _body = de.peeeq.wurstscript.ast.AST.WStatementsPos(this, _term.body(), 1);
 
             return _body;
         }
 
-        public de.peeeq.wurstscript.ast.FuncDefPos replaceBody(de.peeeq.wurstscript.ast.WStatements body) {
+        public de.peeeq.wurstscript.ast.StmtLoopPos replaceBody(de.peeeq.wurstscript.ast.WStatements body) {
             return replace(_term.replaceBody(body));
         }
 
-        Impl(KatjaNodePos<de.peeeq.wurstscript.ast.CompilationUnitPos, ?> parent, de.peeeq.wurstscript.ast.FuncDef term, int pos) {
+        Impl(KatjaNodePos<de.peeeq.wurstscript.ast.CompilationUnitPos, ?> parent, de.peeeq.wurstscript.ast.StmtLoop term, int pos) {
             super(parent, term, pos);
         }
 
         public de.peeeq.wurstscript.ast.AST.NodePos<?> get(int i) {
             int ith = i;
 
-            if(ith < 0) ith += 3;
+            if(ith < 0) ith += 2;
 
             switch(ith) {
                 case 0:
@@ -262,30 +208,25 @@ public interface FuncDefPos extends de.peeeq.wurstscript.ast.ClassMemberPos, de.
                     
                     return _source;
                 case 1:
-                    if(_signature == null)
-                        _signature = AST.FuncSignaturePos(this, _term.signature(), 1);
-                    
-                    return _signature;
-                case 2:
                     if(_body == null)
-                        _body = AST.WStatementsPos(this, _term.body(), 2);
+                        _body = AST.WStatementsPos(this, _term.body(), 1);
                     
                     return _body;
                 default:
                     if(ith < 0) {
-                        throw new IllegalArgumentException("get on sort FuncDefPos invoked with negative parameter "+i);
+                        throw new IllegalArgumentException("get on sort StmtLoopPos invoked with negative parameter "+i);
                     } else {
-                        throw new IllegalArgumentException("get on sort FuncDefPos invoked with too large parameter "+i+", sort has only 3 components");
+                        throw new IllegalArgumentException("get on sort StmtLoopPos invoked with too large parameter "+i+", sort has only 2 components");
                     }
             }
         }
 
         public int size() {
-            return 3;
+            return 2;
         }
 
-        public de.peeeq.wurstscript.ast.FuncDefPos replace(de.peeeq.wurstscript.ast.FuncDef term) {
-            return (de.peeeq.wurstscript.ast.FuncDefPos) super.replace(term);
+        public de.peeeq.wurstscript.ast.StmtLoopPos replace(de.peeeq.wurstscript.ast.StmtLoop term) {
+            return (de.peeeq.wurstscript.ast.StmtLoopPos) super.replace(term);
         }
 
         protected de.peeeq.wurstscript.ast.CompilationUnitPos freshRootPosition(KatjaSort term) {
@@ -295,16 +236,16 @@ public interface FuncDefPos extends de.peeeq.wurstscript.ast.ClassMemberPos, de.
             return AST.CompilationUnitPos((CompilationUnit) term);
         }
 
-        public de.peeeq.wurstscript.ast.AST.ListPos<?, ?, ?> parent() {
-            return (de.peeeq.wurstscript.ast.AST.ListPos<?, ?, ?>) super.parent();
+        public de.peeeq.wurstscript.ast.WStatementsPos parent() {
+            return (de.peeeq.wurstscript.ast.WStatementsPos) super.parent();
         }
 
-        public de.peeeq.wurstscript.ast.AST.SortPos lsib() {
-            return (de.peeeq.wurstscript.ast.AST.SortPos) super.lsib();
+        public de.peeeq.wurstscript.ast.WStatementPos lsib() {
+            return (de.peeeq.wurstscript.ast.WStatementPos) super.lsib();
         }
 
-        public de.peeeq.wurstscript.ast.AST.SortPos rsib() {
-            return (de.peeeq.wurstscript.ast.AST.SortPos) super.rsib();
+        public de.peeeq.wurstscript.ast.WStatementPos rsib() {
+            return (de.peeeq.wurstscript.ast.WStatementPos) super.rsib();
         }
 
         public de.peeeq.wurstscript.ast.AST.SortPos preOrder() {
@@ -327,32 +268,8 @@ public interface FuncDefPos extends de.peeeq.wurstscript.ast.ClassMemberPos, de.
             return (de.peeeq.wurstscript.ast.AST.SortPos) super.follow(path);
         }
 
-        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.ClassMemberPos.Switch<CT, E> switchClass) throws E {
-            return switchClass.CaseFuncDefPos(this);
-        }
-
-        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.FunctionDefinitionPos.Switch<CT, E> switchClass) throws E {
-            return switchClass.CaseFuncDefPos(this);
-        }
-
-        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.WEntityPos.Switch<CT, E> switchClass) throws E {
-            return switchClass.CaseFuncDefPos(this);
-        }
-
-        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.WScopePos.Switch<CT, E> switchClass) throws E {
-            return switchClass.CaseFuncDefPos(this);
-        }
-
-        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.ClassSlotPos.Switch<CT, E> switchClass) throws E {
-            return switchClass.CaseFuncDefPos(this);
-        }
-
-        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.JassToplevelDeclarationPos.Switch<CT, E> switchClass) throws E {
-            return switchClass.CaseFuncDefPos(this);
-        }
-
-        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.TopLevelDeclarationPos.Switch<CT, E> switchClass) throws E {
-            return switchClass.CaseFuncDefPos(this);
+        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.WStatementPos.Switch<CT, E> switchClass) throws E {
+            return switchClass.CaseStmtLoopPos(this);
         }
 
         public Appendable toJavaCode(Appendable builder) throws IOException {
@@ -374,7 +291,7 @@ public interface FuncDefPos extends de.peeeq.wurstscript.ast.ClassMemberPos, de.
         }
 
         public final String sortName() {
-            return "FuncDefPos";
+            return "StmtLoopPos";
         }
     }
 }
