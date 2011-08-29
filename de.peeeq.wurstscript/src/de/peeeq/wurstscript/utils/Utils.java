@@ -86,4 +86,33 @@ public class Utils {
 		}
 	}
 
+	public static int parseInt(String yytext) {
+		if (yytext.startsWith("0")) {
+			return Integer.parseInt(yytext, 8);
+		} else {
+			return Integer.parseInt(yytext);
+		}
+	}
+
+	public static int parseAsciiInt1(String yytext) {
+		return yytext.charAt(1);
+	}
+
+	/**
+	 * parse an integer like 'Hfoo'
+	 */
+	public static int parseAsciiInt4(String yytext) {
+		int result = 0;
+		int power = 1;
+		for (int i=4; i>0; i--) {
+			result += yytext.charAt(i)*power;
+			power*=256;
+		}
+		return result;		
+	}
+
+	public static int parseHexInt(String yytext) {
+		return Integer.parseInt(yytext.substring(2), 16);
+	}
+
 }

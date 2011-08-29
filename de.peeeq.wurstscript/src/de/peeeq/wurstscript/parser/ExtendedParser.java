@@ -17,6 +17,10 @@ public class ExtendedParser extends parser {
 	private List<ParserException> errors = new NotNullList<ParserException>();
 	
 	
+	public void setFilename(String filename) {
+		this.filename = filename;
+	}
+	
 	@Override
 	public Symbol parse() throws Exception {
 		Symbol sym = super.parse();
@@ -116,12 +120,19 @@ public class ExtendedParser extends parser {
 		}
 		ParserException err = new ParserException(msg);
 		errors.add(err);
-		throw err;
+//		throw err;
 	}
 	
 	
 	@Override
 	public void unrecovered_syntax_error(Symbol s) {
+		printErrors();
 		throw new ParserException("Could not continue to parse file ...");
+	}
+
+	private void printErrors() {
+		for (ParserException err : errors) {
+			System.out.println(err);
+		}
 	}
 }

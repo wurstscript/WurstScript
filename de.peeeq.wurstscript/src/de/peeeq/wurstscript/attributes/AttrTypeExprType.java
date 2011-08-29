@@ -27,8 +27,26 @@ public class AttrTypeExprType extends Attribute<TypeExprPos, PscriptType> {
 
 	@Override
 	protected PscriptType calculate(TypeExprPos node) {
+		PscriptType baseType = getBaseType(node);
+		if (node.isArray().term()) {
+			int[] sizes = new int[1];
+			return new PScriptTypeArray(baseType, sizes );
+		} else {
+			return baseType;
+		}
+	}
+	
+	private PscriptType getBaseType(TypeExprPos node) {	
 		final String typename = node.typeName().term();
 		TypeDefPos t = attr.typeDef.get(node);
+		if (t == null) {
+			PscriptType nativeType = NativeTypes.nativeType(typename);
+			if (nativeType != null) {
+				return nativeType;
+			}
+			attr.addError(node.source(), "Unknown type " + typename);
+			return new PScriptTypeUnknown(typename);
+		}
 		PscriptType typ = t.Switch(new TypeDefPos.Switch<PscriptType, NE>() {
 
 			@Override

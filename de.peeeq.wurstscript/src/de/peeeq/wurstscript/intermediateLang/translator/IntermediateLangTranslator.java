@@ -27,6 +27,7 @@ import de.peeeq.wurstscript.ast.ExprMemberArrayVarPos;
 import de.peeeq.wurstscript.ast.ExprMemberMethodPos;
 import de.peeeq.wurstscript.ast.ExprMemberVarPos;
 import de.peeeq.wurstscript.ast.ExprNewObjectPos;
+import de.peeeq.wurstscript.ast.ExprNullPos;
 import de.peeeq.wurstscript.ast.ExprPos;
 import de.peeeq.wurstscript.ast.ExprRealValPos;
 import de.peeeq.wurstscript.ast.ExprStringValPos;
@@ -67,6 +68,7 @@ import de.peeeq.wurstscript.ast.OpPos;
 import de.peeeq.wurstscript.ast.OpUnary;
 import de.peeeq.wurstscript.ast.OpUnaryPos;
 import de.peeeq.wurstscript.ast.OpUnequalsPos;
+import de.peeeq.wurstscript.ast.PackageOrGlobalPos;
 import de.peeeq.wurstscript.ast.StmtDecRefCountPos;
 import de.peeeq.wurstscript.ast.StmtDestroyPos;
 import de.peeeq.wurstscript.ast.StmtErrPos;
@@ -91,6 +93,7 @@ import de.peeeq.wurstscript.intermediateLang.ILarraySetVar;
 import de.peeeq.wurstscript.intermediateLang.ILconstBool;
 import de.peeeq.wurstscript.intermediateLang.ILconstFuncRef;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
+import de.peeeq.wurstscript.intermediateLang.ILconstNull;
 import de.peeeq.wurstscript.intermediateLang.ILconstNum;
 import de.peeeq.wurstscript.intermediateLang.ILconstString;
 import de.peeeq.wurstscript.intermediateLang.ILexitwhen;
@@ -179,9 +182,10 @@ public class IntermediateLangTranslator {
 
 	}
 
-	protected void translateGlobalBlock(JassGlobalBlockPos term) {
-		// TODO Auto-generated method stub
-		throw new Error("Not implemented yet.");
+	protected void translateGlobalBlock(JassGlobalBlockPos globalBlock) {
+		for (GlobalVarDefPos g : globalBlock) {
+			translateGlobalVarDef(null, g);
+		}
 	}
 
 	private void translatePackage(final WPackagePos p) {
@@ -256,13 +260,17 @@ public class IntermediateLangTranslator {
 			return functions.get(calledFunc);
 		}
 		
-		final WPackagePos p = attr.nearestPackage.get(calledFunc);
+		final PackageOrGlobalPos p = attr.nearestPackage.get(calledFunc);
 		
 		String funcName = calledFunc.Switch(new FunctionDefinitionPos.Switch<String, NE>() {
 
 			@Override
 			public String CaseFuncDefPos(FuncDefPos term) throws NE {
-				return getNameFor(calledFunc, p.name().term() + "_" + calledFunc.signature().name().term());
+				String name = calledFunc.signature().name().term();
+				if (p instanceof WPackagePos) {
+					name = ((WPackagePos) p).name().term() + "_" + name;
+				}
+				return getNameFor(calledFunc, name);
 			}
 
 			@Override
@@ -399,16 +407,22 @@ public class IntermediateLangTranslator {
 					@Override
 					public List<ILStatement> CaseExprVarArrayAccessPos(ExprVarArrayAccessPos arAccess) throws NE {
 						VarDefPos varDef = attr.varDef.get(arAccess);
-						PScriptTypeArray type = (PScriptTypeArray) attr.varDefType.get(varDef);
-						ILvar indexResult = getNewLocalVar(func, PScriptTypeInt.instance(), "index");
-						result.addAll(calculateIndexes(func, type, indexResult, arAccess.indexes()));
-						
-						ILvar tempResult = getNewLocalVar(func, type.getBaseType(), "temp");
-						result.addAll(translateExpr(func, tempResult, term.right()));
-						
-						ILvar arrayVar = getILvarForVarDef(varDef);
-						result.add(new ILarraySetVar(arrayVar , indexResult, tempResult));
-						return result;
+						PscriptType type = attr.varDefType.get(varDef);
+						if (type instanceof PScriptTypeArray) {
+							PScriptTypeArray typeA = (PScriptTypeArray) type;
+							ILvar indexResult = getNewLocalVar(func, PScriptTypeInt.instance(), "index");
+							result.addAll(calculateIndexes(func, typeA, indexResult, arAccess.indexes()));
+
+							ILvar tempResult = getNewLocalVar(func, typeA.getBaseType(), "temp");
+							result.addAll(translateExpr(func, tempResult, term.right()));
+
+							ILvar arrayVar = getILvarForVarDef(varDef);
+							result.add(new ILarraySetVar(arrayVar , indexResult, tempResult));
+							return result;
+						} else {
+							attr.addError(arAccess.source(), "Variable " + varDef.name().term() + " is not an array.");
+							return new NotNullList<ILStatement>();
+						}
 					}
 				});
 			}
@@ -452,14 +466,17 @@ public class IntermediateLangTranslator {
 
 			@Override
 			public List<ILStatement> CaseStmtLoopPos(StmtLoopPos term) throws NE {
-				// TODO Auto-generated method stub
-				throw new Error("Not implemented yet.");
+				List<ILStatement> loopBody = translateStatements(func, term.body());
+				result.add(new ILloop(loopBody));
+				return result;
 			}
 
 			@Override
 			public List<ILStatement> CaseStmtExitwhenPos(StmtExitwhenPos term) throws NE {
-				// TODO Auto-generated method stub
-				throw new Error("Not implemented yet.");
+				ILvar exitWhenVar = getNewLocalVar(func, PScriptTypeBool.instance(), "exitwhen_condition");
+				result.addAll(translateExpr(func, exitWhenVar, term.cond()));
+				result.add(new ILexitwhen(exitWhenVar ));
+				return result;
 			}
 		});
 	}
@@ -514,8 +531,10 @@ public class IntermediateLangTranslator {
 		String name = varDef.name().term();
 		ILvar v = new ILvar(name, typ);
 		if (varDef instanceof GlobalVarDefPos) {
-			WPackagePos pack = attr.nearestPackage.get(varDef);
-			name = pack.name().term() + "_" + name;
+			PackageOrGlobalPos pack = attr.nearestPackage.get(varDef);
+			if (pack instanceof WPackagePos) {
+				name = ((WPackagePos) pack).name().term() + "_" + name;
+			}
 		}
 		vars.put(varDef, v);
 		return v;
@@ -582,14 +601,20 @@ public class IntermediateLangTranslator {
 			@Override
 			public List<ILStatement> CaseExprVarArrayAccessPos(ExprVarArrayAccessPos arAccess) throws NE {
 				VarDefPos varDef = attr.varDef.get(arAccess);
-				PScriptTypeArray type = (PScriptTypeArray) attr.varDefType.get(varDef);
-				ILvar indexResult = getNewLocalVar(func, PScriptTypeInt.instance(), "index");
-				result.addAll(calculateIndexes(func, type, indexResult, arAccess.indexes()));
-				
-				
-				ILvar arVar = getILvarForVarDef(varDef);
-				result.add(new ILsetVarArray(resultVar, arVar, indexResult));
-				return result;
+				PscriptType type = attr.varDefType.get(varDef);
+				if (type instanceof PScriptTypeArray) {
+					PScriptTypeArray typeA = (PScriptTypeArray) type;
+					ILvar indexResult = getNewLocalVar(func, PScriptTypeInt.instance(), "index");
+					result.addAll(calculateIndexes(func, typeA, indexResult, arAccess.indexes()));
+					
+					
+					ILvar arVar = getILvarForVarDef(varDef);
+					result.add(new ILsetVarArray(resultVar, arVar, indexResult));
+					return result;
+				} else {
+					attr.addError(arAccess.source(), "Variable " + varDef.name().term() + " is not an array.");
+					return new NotNullList<ILStatement>();
+				}
 			}
 
 			@Override
@@ -663,6 +688,12 @@ public class IntermediateLangTranslator {
 			public List<ILStatement> CaseExprNewObjectPos(ExprNewObjectPos term) throws NE {
 				// TODO Auto-generated method stub
 				throw new Error("Not implemented yet.");
+			}
+
+			@Override
+			public List<ILStatement> CaseExprNullPos(ExprNullPos term) throws NE {
+				result.add(new IlsetConst(resultVar, new ILconstNull()));
+				return result;
 			}
 
 		});

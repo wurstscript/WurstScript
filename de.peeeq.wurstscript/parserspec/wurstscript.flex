@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.parser;
 
 import java_cup.runtime.*;
+import de.peeeq.wurstscript.utils.Utils;
 %%
 
 %class WurstScriptScanner
@@ -19,11 +20,11 @@ import java_cup.runtime.*;
 	  StringBuffer string = new StringBuffer();
 
   private Symbol symbol(int type) {
-    return new Symbol(type, yyline, yycolumn);
+    return new Symbol(type, yyline+1, yycolumn);
   }
     
   private Symbol symbol(int type, Object value) {
-    return new Symbol(type, yyline, yycolumn, value);
+    return new Symbol(type, yyline+1, yycolumn, value);
   }
 %}
 
@@ -106,7 +107,12 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"<"                              { return symbol(TokenType.LT); }
 	">"                              { return symbol(TokenType.GT); }
 	"="                               { return symbol(TokenType.EQ); }
-	{DIGIT}+                          { return symbol(TokenType.INTEGER_LITERAL, Integer.parseInt(yytext())); }
+	{DIGIT}+                          { return symbol(TokenType.INTEGER_LITERAL, Utils.parseInt(yytext())); }
+	"0x" [0-9a-fA-F]+                          { return symbol(TokenType.INTEGER_LITERAL, Utils.parseHexInt(yytext())); }
+	"'" . "'"						  { return symbol(TokenType.INTEGER_LITERAL, Utils.parseAsciiInt1(yytext())); }
+	"'" . . . . "'"					{ return symbol(TokenType.INTEGER_LITERAL, Utils.parseAsciiInt4(yytext())); }
+	{DIGIT}+ "." {DIGIT}*			  { return symbol(TokenType.REAL_LITERAL, Double.parseDouble(yytext())); }
+	"." {DIGIT}+					  { return symbol(TokenType.REAL_LITERAL, Double.parseDouble(yytext())); } 
 	"true"                            { return symbol(TokenType.TRUE); }
 	"false"                           { return symbol(TokenType.FALSE); }
 	{IDENT}                           { return symbol(TokenType.IDENTIFIER, yytext()); }

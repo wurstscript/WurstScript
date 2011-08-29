@@ -95,6 +95,7 @@ public class AttrFuncDef extends Attribute<FuncRefPos, FunctionDefinitionPos> {
 		for (FunctionDefinitionPos f : functions) {
 			return f;
 		}
+		attr.addError(funcCall.source(), "Unknown Function " + funcCall.funcName().term() );
 		return null;
 	}
 

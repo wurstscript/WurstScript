@@ -31,4 +31,11 @@ public class Attributes {
 		errors.add(new CompileError(pos, msg));
 	}
 	
+	public int getErrorCount() {
+		return errors.size();
+	}
+	
+	public List<CompileError> getErrors() {
+		return errors;
+	}
 }

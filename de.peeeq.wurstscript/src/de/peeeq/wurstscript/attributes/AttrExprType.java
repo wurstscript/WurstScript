@@ -12,6 +12,7 @@ import de.peeeq.wurstscript.ast.ExprMemberArrayVarPos;
 import de.peeeq.wurstscript.ast.ExprMemberMethodPos;
 import de.peeeq.wurstscript.ast.ExprMemberVarPos;
 import de.peeeq.wurstscript.ast.ExprNewObjectPos;
+import de.peeeq.wurstscript.ast.ExprNullPos;
 import de.peeeq.wurstscript.ast.ExprPos;
 import de.peeeq.wurstscript.ast.ExprRealValPos;
 import de.peeeq.wurstscript.ast.ExprStringValPos;
@@ -45,6 +46,7 @@ import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PScriptTypeCode;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
+import de.peeeq.wurstscript.types.PScriptTypeNull;
 import de.peeeq.wurstscript.types.PScriptTypeReal;
 import de.peeeq.wurstscript.types.PScriptTypeString;
 import de.peeeq.wurstscript.types.PScriptTypeUnknown;
@@ -111,7 +113,7 @@ public class AttrExprType extends Attribute<ExprPos, PscriptType> {
 					ExprVarArrayAccessPos term) throws NE {
 				VarDefPos varDef = attr.varDef.get(term);
 				if (varDef == null) {
-					
+					return PScriptTypeUnknown.instance();
 				}
 				
 				PscriptType varDefType = attr.varDefType.get(varDef);
@@ -133,6 +135,7 @@ public class AttrExprType extends Attribute<ExprPos, PscriptType> {
 					}
 					pos = pos.parent();
 				}
+				attr.addError(term.source(), "'this' can only be used inside methods");
 				return PScriptTypeUnknown.instance();
 			}
 
@@ -172,28 +175,44 @@ public class AttrExprType extends Attribute<ExprPos, PscriptType> {
 					@Override
 					public PscriptType CaseOpEqualsPos(OpEqualsPos op)
 							throws NE {
-						return caseCompare();
+						return caseEquality();
 						
 					}
-
-					private PscriptType caseCompare() {
-						if (!leftType.equals(rightType)) {
-							attr.addError(term.source(), "Cannot compare types " + leftType + " with " + rightType);
-						}
-						return PScriptTypeBool.instance();
-					}
-
+					
 					@Override
 					public PscriptType CaseOpUnequalsPos(OpUnequalsPos term)
 							throws NE {
-						return caseCompare();
+						return caseEquality();
 					}
+
+					private PscriptType caseEquality() {
+						
+						if (leftType.equals(rightType)) {
+							return PScriptTypeBool.instance();
+						}
+						
+						if (leftType.isSubtypeOf(rightType) || rightType.isSubtypeOf(leftType)) {
+							return  PScriptTypeBool.instance();
+						}
+						
+						// FIXME check if the intersection of the basetypes of lefttpye and righttype is
+						// not empty. Example:
+						// class A with B,C
+						// -> B and C should be comparable
+						attr.addError(term.source(), "Cannot compare types " + leftType + " with " + rightType);
+					
+						return PScriptTypeBool.instance();
+					}
+
+					
 
 					@Override
 					public PscriptType CaseOpLessEqPos(OpLessEqPos term)
 							throws NE {
 						return caseCompare();
 					}
+
+					
 
 					@Override
 					public PscriptType CaseOpLessPos(OpLessPos term) throws NE {
@@ -210,6 +229,18 @@ public class AttrExprType extends Attribute<ExprPos, PscriptType> {
 					public PscriptType CaseOpGreaterPos(OpGreaterPos term)
 							throws NE {
 						return caseCompare();
+					}
+					
+					private PscriptType caseCompare() {
+						if (!(leftType instanceof PScriptTypeInt
+								|| leftType instanceof PScriptTypeReal)) {
+							attr.addError(term.left().source(), "Can not compare with value of type " + leftType);
+						}
+						if (!(rightType instanceof PScriptTypeInt
+								|| rightType instanceof PScriptTypeReal)) {
+							attr.addError(term.right().source(), "Can not compare with value of type " + rightType);
+						}
+						return PScriptTypeBool.instance();
 					}
 
 					@Override
@@ -285,7 +316,7 @@ public class AttrExprType extends Attribute<ExprPos, PscriptType> {
 					@Override
 					public PscriptType CaseOpDivIntPos(OpDivIntPos op)
 							throws NE {
-						if (leftType instanceof PScriptTypeInt || rightType instanceof PScriptTypeInt) {
+						if (leftType instanceof PScriptTypeInt && rightType instanceof PScriptTypeInt) {
 							return PScriptTypeInt.instance();
 						}
 						attr.addError(term.source(), "Operator " + term.op().term() +" is not defined for " +
@@ -354,6 +385,7 @@ public class AttrExprType extends Attribute<ExprPos, PscriptType> {
 				if (f.signature().typ() instanceof NoTypeExprPos) {
 					return PScriptTypeVoid.instance();
 				}
+				// TODO check parameters?
 				return attr.typeExprType.get((TypeExprPos) f.signature().typ());
 			}
 
@@ -362,6 +394,11 @@ public class AttrExprType extends Attribute<ExprPos, PscriptType> {
 					throws NE {
 				// TODO new expression type
 				throw new Error("not implemented");
+			}
+
+			@Override
+			public PscriptType CaseExprNullPos(ExprNullPos term) throws NE {
+				return PScriptTypeNull.instance();
 			}
 		});
 	}

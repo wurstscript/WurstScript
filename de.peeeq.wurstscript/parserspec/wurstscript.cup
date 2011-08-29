@@ -406,6 +406,8 @@ ExprMemberMethod ::=
 ExprAtomic ::= 
 	  INTEGER_LITERAL:i
 		{: RESULT = AST.ExprIntVal(pos(ileft, iright), i); :}
+	| NULL:x
+		{: RESULT = AST.ExprNull(pos(xleft, xright)); :}
 	| STRING_LITERAL:s
 		{: RESULT = AST.ExprStringVal(pos(sleft, sright), s); :}
 	| LPAR Expr:e RPAR
@@ -617,12 +619,12 @@ JassStatement ::=
 
 
 JassStatementIf ::=
-	IF:x Expr:cond THEN NL JassStatements:thenStatements JasselseIfs:elseStatements NL
+	IF:x Expr:cond THEN NL JassStatements:thenStatements JasselseIfs:elseStatements
 		{: RESULT = AST.StmtIf(pos(xleft, xright), cond, thenStatements, elseStatements); :}
 ;
 
 JasselseIfs ::=
-	ELSEIF:x Expr:cond THEN NL JassStatements:thenStatements JasselseIfs:elseStatements NL
+	ELSEIF:x Expr:cond THEN NL JassStatements:thenStatements JasselseIfs:elseStatements
 		{: RESULT = AST.WStatements(AST.StmtIf(pos(xleft, xright), cond,  thenStatements, elseStatements)); :}
 	| ELSE NL JassStatements:s ENDIF NL 
 		{: RESULT = s; :}

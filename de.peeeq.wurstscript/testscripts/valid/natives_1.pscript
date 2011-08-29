@@ -4832,3 +4832,13 @@ native PreloadGenEnd    takes string filename returns nothing
 
 native Preloader        takes string filename returns nothing
 
+
+native testSuccess takes nothing returns nothing
+
+package test {
+	
+	function runTest() {
+		testSuccess()
+	}
+	
+}

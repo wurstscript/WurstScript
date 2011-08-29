@@ -2,12 +2,20 @@ package de.peeeq.wurstscript.validation;
 
 import katja.common.NE;
 import de.peeeq.wurstscript.ast.CompilationUnitPos;
+import de.peeeq.wurstscript.ast.ExprFunctionCallPos;
+import de.peeeq.wurstscript.ast.ExprMemberMethodPos;
+import de.peeeq.wurstscript.ast.ExprNewObjectPos;
+import de.peeeq.wurstscript.ast.ExprPos;
 import de.peeeq.wurstscript.ast.FuncDefPos;
+import de.peeeq.wurstscript.ast.GlobalVarDefPos;
+import de.peeeq.wurstscript.ast.LocalVarDefPos;
 import de.peeeq.wurstscript.ast.NoTypeExprPos;
+import de.peeeq.wurstscript.ast.StmtCallPos;
 import de.peeeq.wurstscript.ast.StmtIfPos;
 import de.peeeq.wurstscript.ast.StmtSetPos;
 import de.peeeq.wurstscript.ast.StmtWhilePos;
 import de.peeeq.wurstscript.ast.TypeExprPos;
+import de.peeeq.wurstscript.ast.VarDefPos;
 import de.peeeq.wurstscript.attributes.Attributes;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PscriptType;
@@ -46,9 +54,38 @@ public class WurstValidator extends CompilationUnitPos.DefaultVisitor<NE> {
 		PscriptType rightType = attr.exprType.get(s.right());
 		
 		if (!rightType.isSubtypeOf(leftType)) {
-			attr.addError(s.source(), "Cannot assign " + leftType + " to " + rightType);
+			attr.addError(s.source(), "Cannot assign " + rightType + " to " + leftType);
 		}
 	}
+	
+	@Override
+	public void visit(LocalVarDefPos s) {
+		super.visit(s);
+		if (s.initialExpr() instanceof ExprPos) {
+			ExprPos initial = (ExprPos) s.initialExpr();
+			PscriptType leftType = attr.varDefType.get(s);
+			PscriptType rightType = attr.exprType.get(initial);
+			if (!rightType.isSubtypeOf(leftType)) {
+				attr.addError(s.source(), "Cannot assign " +rightType + " to " + leftType);
+			}
+		}		
+	}
+	
+
+	@Override
+	public void visit(GlobalVarDefPos s) {
+		super.visit(s);
+		if (s.initialExpr() instanceof ExprPos) {
+			ExprPos initial = (ExprPos) s.initialExpr();
+			PscriptType leftType = attr.varDefType.get(s);
+			PscriptType rightType = attr.exprType.get(initial);
+		
+			if (!rightType.isSubtypeOf(leftType)) {
+				attr.addError(s.source(), "Cannot assign " + rightType + " to " + leftType);
+			}
+		}
+	}
+	
 	
 	@Override
 	public void visit(StmtIfPos stmtIf) {
@@ -72,11 +109,33 @@ public class WurstValidator extends CompilationUnitPos.DefaultVisitor<NE> {
 
 	
 	@Override public void visit(FuncDefPos func) {
+		super.visit(func);
+		
+		
 		if (func.signature().typ() instanceof TypeExprPos) {
 			if (!attr.doesReturn.get(func.body())) {
 				attr.addError(func.source(), "Function " + func.signature().name().term() + " is missing a return statement.");
 			}
 		}
 	}
+	
+	@Override public void visit(ExprFunctionCallPos stmtCall) {
+		super.visit(stmtCall);
+		// calculating the exprType should reveal all errors:
+		attr.exprType.get(stmtCall);
+	}
+	
+	@Override public void visit(ExprMemberMethodPos stmtCall) {
+		super.visit(stmtCall);
+		// calculating the exprType should reveal all errors:
+		attr.exprType.get(stmtCall);
+	}
+	
+	@Override public void visit(ExprNewObjectPos stmtCall) {
+		super.visit(stmtCall);
+		// calculating the exprType should reveal all errors:
+		attr.exprType.get(stmtCall);
+	}
+	
 	
 }

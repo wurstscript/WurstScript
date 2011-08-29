@@ -11,7 +11,11 @@ import de.peeeq.wurstscript.ast.AST;
 import de.peeeq.wurstscript.ast.AST.SortPos;
 import de.peeeq.wurstscript.ast.ClassDefPos;
 import de.peeeq.wurstscript.ast.ClassSlotPos;
+import de.peeeq.wurstscript.ast.CompilationUnitPos;
 import de.peeeq.wurstscript.ast.FuncDefPos;
+import de.peeeq.wurstscript.ast.GlobalVarDefPos;
+import de.peeeq.wurstscript.ast.JassGlobalBlockPos;
+import de.peeeq.wurstscript.ast.TopLevelDeclarationPos;
 import de.peeeq.wurstscript.ast.VarDefPos;
 import de.peeeq.wurstscript.ast.WEntityPos;
 import de.peeeq.wurstscript.ast.WPackagePos;
@@ -72,6 +76,23 @@ public class AttrVarScope extends Attribute<WScopePos, Map<String, VarDefPos>> {
 						return null;
 					}
 				});
+				return result;
+			}
+
+			@Override
+			public Map<String, VarDefPos> CaseCompilationUnitPos(CompilationUnitPos term) throws NE {
+				for (TopLevelDeclarationPos e : term) {
+					if (e instanceof JassGlobalBlockPos) {
+						JassGlobalBlockPos jassGlobalBlockPos = (JassGlobalBlockPos) e;
+						for (GlobalVarDefPos g : jassGlobalBlockPos) {
+							result.put(g.name().term(), g);
+						}
+					}
+					if (e instanceof VarDefPos) {
+						VarDefPos v = (VarDefPos) e;
+						result.put(v.name().term(), v);
+					}
+				}
 				return result;
 			}
 		});

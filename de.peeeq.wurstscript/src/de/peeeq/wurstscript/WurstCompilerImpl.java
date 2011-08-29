@@ -9,10 +9,12 @@ import de.peeeq.wurstscript.ast.AST;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.CompilationUnitPos;
 import de.peeeq.wurstscript.attributes.Attributes;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.intermediateLang.ILprog;
 import de.peeeq.wurstscript.intermediateLang.translator.IntermediateLangTranslator;
 import de.peeeq.wurstscript.parser.ExtendedParser;
 import de.peeeq.wurstscript.parser.WurstScriptScanner;
+import de.peeeq.wurstscript.validation.WurstValidator;
 
 public class WurstCompilerImpl implements WurstCompiler {
 
@@ -36,6 +38,7 @@ public class WurstCompilerImpl implements WurstCompiler {
 			// scanning
 			WurstScriptScanner scanner = new WurstScriptScanner(reader);
 			ExtendedParser parser = new ExtendedParser(scanner );
+			parser.setFilename(file.getName());
 			Symbol sym = parser.parse();
 			parseErrors = parser.getErrorCount();
 			if (parseErrors > 0) {
@@ -46,10 +49,30 @@ public class WurstCompilerImpl implements WurstCompiler {
 			
 			// create new attributes instance:
 			Attributes attr = new Attributes();
-
+			
+			// validate the resource:
+			WurstValidator validator = new WurstValidator(rootPos, attr);
+			validator.validate();
+			
+			if (attr.getErrorCount() > 0) {
+				for (CompileError err : attr.getErrors()) {
+					System.out.println(err);
+				}
+				return;
+			}
+			
+			
+			// translate to intermediate lang:
 			IntermediateLangTranslator translator = new IntermediateLangTranslator(rootPos, attr);
 			ilProg = translator.translate();
 			
+			if (attr.getErrorCount() > 0) {
+				for (CompileError err : attr.getErrors()) {
+					System.out.println(err);
+				}
+				ilProg = null;
+				return;
+			}
 			
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();

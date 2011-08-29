@@ -1,10 +1,15 @@
 package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.AST.SortPos;
+import de.peeeq.wurstscript.ast.CompilationUnitPos;
+import de.peeeq.wurstscript.ast.PackageOrGlobalPos;
+import de.peeeq.wurstscript.ast.TopLevelDeclarationPos;
 import de.peeeq.wurstscript.ast.TypeDefPos;
 import de.peeeq.wurstscript.ast.TypeRefPos;
 import de.peeeq.wurstscript.ast.WEntityPos;
 import de.peeeq.wurstscript.ast.WPackagePos;
+import de.peeeq.wurstscript.types.NativeTypes;
+import de.peeeq.wurstscript.types.PscriptType;
 
 
 /**
@@ -22,26 +27,30 @@ public class AttrTypeDef extends Attribute<TypeRefPos, TypeDefPos> {
 	protected TypeDefPos calculate(TypeRefPos node) {
 		String typeName = node.typeName().term();
 		
-		// find nearest packageDef
-		WPackagePos pack = findNearestPackage(node);
+		PscriptType nativeType = NativeTypes.nativeType(typeName);
+		if (nativeType != null) {
+			return null;
+		}
 		
-		for (WEntityPos elem : attr.packageElements.get(pack).get(typeName)) {
+		
+		// find nearest packageDef
+		PackageOrGlobalPos scope = attr.nearestPackage.get(node);
+		if (scope instanceof WPackagePos) {
+			WPackagePos pack = (WPackagePos) scope;
+			for (WEntityPos elem : attr.packageElements.get(pack).get(typeName)) {
+				if (elem instanceof TypeDefPos) {
+					return (TypeDefPos) elem;
+				}
+			}
+		}
+		// search global scope:
+		for (WEntityPos elem : attr.packageElements.get(node.root()).get(typeName)) {
 			if (elem instanceof TypeDefPos) {
 				return (TypeDefPos) elem;
 			}
 		}
+		attr.addError(node.source(), "Could not find TypeDef for " + typeName);		
 		return null;		
-	}
-
-	private WPackagePos findNearestPackage(SortPos node) {
-		while (node != null) {
-			if (node instanceof WPackagePos) {
-				return (WPackagePos) node;
-			}
-			node = node.parent();
-		}
-			
-		return null;
 	}
 
 

@@ -87,6 +87,9 @@ public class ILInterpreterImplTest {
 		
 		ILprog prog = compiler.getILprog();
 		
+		if (prog == null) {
+			throw new TestFailException("Compiler errors ...");
+		}
 		
 		File outputFile = new File(filename.replaceAll(PSCRIPT_ENDING, ".j"));
 		StringBuilder sb = new StringBuilder();

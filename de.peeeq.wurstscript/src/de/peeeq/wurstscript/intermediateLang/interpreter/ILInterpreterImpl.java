@@ -9,6 +9,7 @@ import de.peeeq.wurstscript.intermediateLang.ILarraySetVar;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstBool;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
+import de.peeeq.wurstscript.intermediateLang.ILconstNull;
 import de.peeeq.wurstscript.intermediateLang.ILconstNum;
 import de.peeeq.wurstscript.intermediateLang.ILconstString;
 import de.peeeq.wurstscript.intermediateLang.ILexitwhen;
@@ -30,6 +31,7 @@ import de.peeeq.wurstscript.intermediateLang.IlsetConst;
 import de.peeeq.wurstscript.intermediateLang.IlsetUnary;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
+import de.peeeq.wurstscript.types.PScriptTypeHandle;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
 import de.peeeq.wurstscript.types.PScriptTypeReal;
 import de.peeeq.wurstscript.types.PScriptTypeString;
@@ -60,6 +62,9 @@ public class ILInterpreterImpl implements ILInterpreter {
 			} else if (v.getType() instanceof PScriptTypeArray) {
 				PScriptTypeArray arType = (PScriptTypeArray) v.getType();
 				value = new ILarray(arType.getBaseType());
+			} else if (v.getType().isSubtypeOf(PScriptTypeHandle.instance())) {
+				// initialize handles with null
+				value = new ILconstNull();
 			}else {
 				// TODO Andere Types
 				throw new Error("not implemented: initialisation of " + v);

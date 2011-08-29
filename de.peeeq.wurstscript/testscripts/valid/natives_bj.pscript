@@ -4980,9 +4980,9 @@ globals
 
     constant integer   bj_MELEE_HERO_TYPE_LIMIT         = 1
 
-    constant real      bj_MELEE_MINE_SEARCH_RADIUS      = 2000
+    constant real      bj_MELEE_MINE_SEARCH_RADIUS      = 2000.
 
-    constant real      bj_MELEE_CLEAR_UNITS_RADIUS      = 1500
+    constant real      bj_MELEE_CLEAR_UNITS_RADIUS      = 1500.
 
     constant real      bj_MELEE_CRIPPLE_TIMEOUT         = 120.00
 
@@ -5002,9 +5002,9 @@ globals
 
     // Timing settings for Marketplace inventories.
 
-    constant real      bj_STOCK_RESTOCK_INITIAL_DELAY   = 120
+    constant real      bj_STOCK_RESTOCK_INITIAL_DELAY   = 120.
 
-    constant real      bj_STOCK_RESTOCK_INTERval1        = 30
+    constant real      bj_STOCK_RESTOCK_INTERval1        = 30.
 
     constant integer   bj_STOCK_MAX_ITERATIONS          = 20
 
@@ -5108,9 +5108,9 @@ globals
 
     // Smart pan settings
 
-    constant real      bj_SMARTPAN_TRESHOLD_PAN         = 500
+    constant real      bj_SMARTPAN_TRESHOLD_PAN         = 500.0
 
-    constant real      bj_SMARTPAN_TRESHOLD_SNAP        = 3500
+    constant real      bj_SMARTPAN_TRESHOLD_SNAP        = 3500.0
 
 
 
@@ -5890,15 +5890,15 @@ globals
 
     timer              bj_cineFadeContinueTimer    = null
 
-    real               bj_cineFadeContinueRed      = 0
+    real               bj_cineFadeContinueRed      = 0.
 
-    real               bj_cineFadeContinueGreen    = 0
+    real               bj_cineFadeContinueGreen    = 0.
 
-    real               bj_cineFadeContinueBlue     = 0
+    real               bj_cineFadeContinueBlue     = 0.
 
-    real               bj_cineFadeContinueTrans    = 0
+    real               bj_cineFadeContinueTrans    = 0.
 
-    real               bj_cineFadeContinueDuration = 0
+    real               bj_cineFadeContinueDuration = 0.
 
     string             bj_cineFadeContinueTex      = ""
 
@@ -5948,7 +5948,7 @@ globals
 
     integer            bj_randomSubGroupTotal      = 0
 
-    real               bj_randomSubGroupChance     = 0
+    real               bj_randomSubGroupChance     = 0.0
 
     integer            bj_destRandomConsidered     = 0
 
@@ -5974,7 +5974,7 @@ globals
 
     location           bj_enumDestructableCenter   = null
 
-    real               bj_enumDestructableRadius   = 0
+    real               bj_enumDestructableRadius   = 0.
 
     playercolor        bj_setPlayerTargetColor     = null
 
@@ -6054,7 +6054,7 @@ globals
 
     string             bj_lastPlayedMusic          = ""
 
-    real               bj_lastTransmissionDuration = 0
+    real               bj_lastTransmissionDuration = 0.
 
     gamecache          bj_lastCreatedGameCache     = null
 
@@ -6446,7 +6446,7 @@ endfunction
 
 function ModuloInteger takes integer dividend, integer divisor returns integer
 
-    local integer modulus = dividend - (dividend / divisor) * divisor
+    local integer modulus = dividend - (dividend div divisor) * divisor
 
 
 
@@ -25291,4 +25291,15 @@ function WidgetDropItem takes widget inWidget, integer inItemID returns item
     return CreateItem(inItemID, x, y)
 
 endfunction
+
+
+native testSuccess takes nothing returns nothing
+
+package test {
+	
+	function runTest() {
+		testSuccess()
+	}
+	
+}
 

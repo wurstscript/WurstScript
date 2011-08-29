@@ -11,10 +11,10 @@ public class NativeTypes {
 	 * returns the PscriptType for a given nativetype definition
 	 */
 	public static PscriptType nativeType(String typeName) {
-		if (typeName.equals("int")) {
+		if (typeName.equals("int") || typeName.equals("integer")) {
 			return PScriptTypeInt.instance();
 		}
-		if (typeName.equals("bool")) {
+		if (typeName.equals("bool") || typeName.equals("boolean")) {
 			return PScriptTypeBool.instance();
 		}
 		if (typeName.equals("real")) {

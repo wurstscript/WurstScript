@@ -10,8 +10,10 @@ import de.peeeq.wurstscript.ast.AST;
 import de.peeeq.wurstscript.ast.AST.SortPos;
 import de.peeeq.wurstscript.ast.ClassDefPos;
 import de.peeeq.wurstscript.ast.ClassSlotPos;
+import de.peeeq.wurstscript.ast.CompilationUnitPos;
 import de.peeeq.wurstscript.ast.FuncDefPos;
 import de.peeeq.wurstscript.ast.FunctionDefinitionPos;
+import de.peeeq.wurstscript.ast.TopLevelDeclarationPos;
 import de.peeeq.wurstscript.ast.WEntityPos;
 import de.peeeq.wurstscript.ast.WPackagePos;
 import de.peeeq.wurstscript.ast.WScopePos;
@@ -62,17 +64,18 @@ public class AttrFuncScope extends Attribute<WScopePos, Multimap<String, Functio
 			@Override
 			public Multimap<String, FunctionDefinitionPos> CaseFuncDefPos(FuncDefPos term)
 					throws NE {
-				Utils.visitPostOrder(term, new Function<AST.SortPos, Void>() {
-					
-					@Override
-					public Void apply(SortPos e) {
-						if (e instanceof FunctionDefinitionPos) {
-							FunctionDefinitionPos f = (FunctionDefinitionPos) e;
-							result.put(f.signature().name().term(), f);
-						}
-						return null;
+				// functions cannot include other functions (not yet?)
+				return result;
+			}
+
+			@Override
+			public Multimap<String, FunctionDefinitionPos> CaseCompilationUnitPos(CompilationUnitPos term) throws NE {
+				for (TopLevelDeclarationPos e : term) {
+					if (e instanceof FunctionDefinitionPos) {
+						FunctionDefinitionPos f = (FunctionDefinitionPos) e;
+						result.put(f.signature().name().term(), f);
 					}
-				});
+				}
 				return result;
 			}
 		});

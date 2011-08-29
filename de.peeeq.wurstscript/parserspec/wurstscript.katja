@@ -118,6 +118,8 @@ ExprAtomic =
 	| ExprVarAccess(WPos source, String varName)
 	| ExprVarArrayAccess(WPos source, String varName, Indexes indexes)
 	| ExprThis(WPos source)
+	| ExprNull(WPos source)
+	
 	
 Indexes * Expr
 Arguments * Expr
@@ -161,7 +163,9 @@ FuncRef = ExprFuncRef | ExprMemberMethod | ExprFunctionCall
 	
 FunctionDefinition = FuncDef | NativeFunc	
 	
-WScope = WPackage | ClassDef | FuncDef
+WScope = PackageOrGlobal | ClassDef | FuncDef
+
+PackageOrGlobal = WPackage | CompilationUnit	
 	
 TypeRef = TypeExpr | ExprNewObject
 
