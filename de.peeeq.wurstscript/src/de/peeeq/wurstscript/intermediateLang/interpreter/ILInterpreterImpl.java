@@ -173,7 +173,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 		
 		int index = indexValue.getVal();
 		ILconst value = ar.get(index );
-		System.out.println(s.getVar() + "[" + index + "] == " + value);
+//		System.out.println(s.getVar() + "[" + index + "] == " + value);
 		
 		addVarToProperMap(localVarMap, s.getResultVar(), value);
 	}
@@ -184,7 +184,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 		ILconstInt indexValue = (ILconstInt) lookupVarValue(localVarMap, s.getIndex());
 		ILarray ar = (ILarray) lookupVarValue(localVarMap, s.getResultVar());
 		ar.set(indexValue.getVal(),	rightValue);
-		System.out.println(s.getResultVar() + "[" + indexValue.getVal() + "] = " + rightValue);
+//		System.out.println(s.getResultVar() + "[" + indexValue.getVal() + "] = " + rightValue);
 		
 	}
 
@@ -494,7 +494,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 			localVarMap.put(v.getName(), s);
 		} else if (isGlobal( v )) {
 			globalVarMap.put(v.getName(), s);
-			System.out.println("global added: " + s);
+//			System.out.println("global added: " + s);
 		} else {
 			throw new Error("var " + v + " is neither local nor global?");
 		}
@@ -514,7 +514,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 	private ILconst lookupVarValue(Map<String, ILconst> localVarMap, ILvar var) {
 		ILconst value = localVarMap.get(var.getName());
 		if (value == null) {
-			System.out.println("var ist global");
+//			System.out.println("var ist global");
 			value = globalVarMap.get(var.getName());
 			if (value == null) {
 				throw new Error("Variable " + var.getName() + " not found.");

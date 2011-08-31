@@ -2,7 +2,6 @@ package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.AST.SortPos;
 import de.peeeq.wurstscript.ast.FuncDefPos;
-import de.peeeq.wurstscript.ast.WPackagePos;
 
 
 /**

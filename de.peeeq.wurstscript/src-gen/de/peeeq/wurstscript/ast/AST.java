@@ -1,12 +1,23 @@
 package de.peeeq.wurstscript.ast;
 
-import katja.common.*;
-import java.util.*;
-import java.lang.ref.*;
-import java.io.Reader;
 import java.io.IOException;
+import java.io.Reader;
+import java.lang.ref.WeakReference;
 import java.util.List;
 import java.util.TreeMap;
+import java.util.WeakHashMap;
+
+import katja.common.KatjaElement;
+import katja.common.KatjaLeafPos;
+import katja.common.KatjaList;
+import katja.common.KatjaListPos;
+import katja.common.KatjaNodePos;
+import katja.common.KatjaSortPos;
+import katja.common.KatjaSpecification;
+import katja.common.KatjaTerm;
+import katja.common.KatjaTermPos;
+import katja.common.KatjaTuple;
+import katja.common.KatjaTuplePos;
 
 public class AST extends KatjaSpecification {
 

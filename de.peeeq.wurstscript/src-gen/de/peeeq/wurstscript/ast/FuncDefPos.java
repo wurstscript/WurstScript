@@ -1,8 +1,11 @@
 package de.peeeq.wurstscript.ast;
 
-import java.util.List;
-import katja.common.*;
 import java.io.IOException;
+import java.util.List;
+
+import katja.common.KatjaNodePos;
+import katja.common.KatjaSort;
+import katja.common.KatjaTuplePosImpl;
 
 public interface FuncDefPos extends de.peeeq.wurstscript.ast.ClassMemberPos, de.peeeq.wurstscript.ast.FunctionDefinitionPos, de.peeeq.wurstscript.ast.WEntityPos, de.peeeq.wurstscript.ast.WScopePos, de.peeeq.wurstscript.ast.AST.TuplePos<de.peeeq.wurstscript.ast.FuncDef> {
 

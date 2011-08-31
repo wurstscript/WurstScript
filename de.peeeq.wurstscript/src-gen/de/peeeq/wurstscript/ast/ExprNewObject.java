@@ -1,7 +1,9 @@
 package de.peeeq.wurstscript.ast;
 
-import katja.common.*;
 import java.io.IOException;
+
+import katja.common.KatjaTuple;
+import katja.common.KatjaTupleImpl;
 
 public interface ExprNewObject extends de.peeeq.wurstscript.ast.Expr, de.peeeq.wurstscript.ast.StmtCall, de.peeeq.wurstscript.ast.TypeRef, KatjaTuple {
 

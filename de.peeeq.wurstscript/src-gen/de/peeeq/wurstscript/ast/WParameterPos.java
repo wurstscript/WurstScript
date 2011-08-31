@@ -1,8 +1,11 @@
 package de.peeeq.wurstscript.ast;
 
-import java.util.List;
-import katja.common.*;
 import java.io.IOException;
+import java.util.List;
+
+import katja.common.KatjaNodePos;
+import katja.common.KatjaSort;
+import katja.common.KatjaTuplePosImpl;
 
 public interface WParameterPos extends de.peeeq.wurstscript.ast.VarDefPos, de.peeeq.wurstscript.ast.AST.TuplePos<de.peeeq.wurstscript.ast.WParameter> {
 

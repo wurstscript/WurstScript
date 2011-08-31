@@ -1,8 +1,11 @@
 package de.peeeq.wurstscript.ast;
 
-import java.util.List;
-import katja.common.*;
 import java.io.IOException;
+import java.util.List;
+
+import katja.common.KatjaNodePos;
+import katja.common.KatjaSort;
+import katja.common.KatjaTuplePosImpl;
 
 public interface NativeTypePos extends de.peeeq.wurstscript.ast.JassToplevelDeclarationPos, de.peeeq.wurstscript.ast.TypeDefPos, de.peeeq.wurstscript.ast.AST.TuplePos<de.peeeq.wurstscript.ast.NativeType> {
 

@@ -1,18 +1,19 @@
 package de.peeeq.wurstscript.tests;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
 import de.peeeq.wurstscript.WurstCompiler;
 import de.peeeq.wurstscript.WurstCompilerImpl;
+import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.intermediateLang.ILprog;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreter;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreterImpl;
 import de.peeeq.wurstscript.intermediateLang.interpreter.TestFailException;
 import de.peeeq.wurstscript.intermediateLang.interpreter.TestSuccessException;
-import java.io.FileWriter;
 
 public class ILInterpreterImplTest {
 	
@@ -81,9 +82,9 @@ public class ILInterpreterImplTest {
 	
 	private static void runTest(String filename) {
 		System.out.println("parsing script ...");
-		WurstCompiler compiler = new WurstCompilerImpl();
-		compiler.loadFile(filename);
-		compiler.parseFile();		
+		WurstCompiler compiler = new WurstCompilerImpl(new WurstGuiCliImpl());
+		compiler.loadFiles(filename);
+		compiler.parseFiles();		
 		
 		ILprog prog = compiler.getILprog();
 		

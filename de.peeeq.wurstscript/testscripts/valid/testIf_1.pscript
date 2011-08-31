@@ -1,17 +1,52 @@
 package test {
-	
-	nativetype string
-	nativetype int
-	
-	native testFail(string msg)
-	
-	native testSuccess()
-	
-	function runTest() {
-		if 2 == 2 {
-			testSuccess()
-		} else {
-			testFail("defect in equality if")
-		}
-	}
+   
+   nativetype string
+   nativetype int
+   
+   native testFail(string msg)
+   
+   native testSuccess()
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   function runTest() {
+      if 2 == 2 {
+         testSuccess()
+      } else {
+         testFail("defect in equality if")
+      }
+   }
 }

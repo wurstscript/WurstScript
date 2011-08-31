@@ -2,10 +2,12 @@ package de.peeeq.wurstscript.utils;
 
 import java.util.List;
 
+import javax.xml.bind.helpers.DefaultValidationEventHandler;
+
 import com.google.common.base.Function;
 
+import de.peeeq.wurstscript.ast.CompilationUnitPos;
 import de.peeeq.wurstscript.ast.AST.SortPos;
-import de.peeeq.wurstscript.intermediateLang.ILvar;
 
 public class Utils {
 
@@ -56,14 +58,15 @@ public class Utils {
 		
 	}
 	
-	public static void visitPostOrder(SortPos p, Function<SortPos, Void> func) {
-		p = p.postOrderStart();
-		while (p != null) {
-			func.apply(p);
-			p = p.postOrder();
-		}
-	}
+//	public static void visitPostOrder(SortPos p, Function<SortPos, Void> func) {
+//		p = p.postOrderStart();
+//		while (p != null) {
+//			func.apply(p);
+//			p = p.postOrder();
+//		}
+//	}
 
+	
 
 	public static <T> void printSep(StringBuilder sb, String seperator, T[] args, Function<T, String> function) {
 		for (int i=0; i < args.length; i++) {
@@ -113,6 +116,13 @@ public class Utils {
 
 	public static int parseHexInt(String yytext) {
 		return Integer.parseInt(yytext.substring(2), 16);
+	}
+
+	public static void sleep(int i) {
+		try {
+			Thread.sleep(i);
+		} catch (InterruptedException e) {
+		}
 	}
 
 }

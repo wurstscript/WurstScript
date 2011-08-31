@@ -1,9 +1,6 @@
 package de.peeeq.wurstscript.attributes;
 
-import de.peeeq.wurstscript.ast.AST.SortPos;
-import de.peeeq.wurstscript.ast.CompilationUnitPos;
 import de.peeeq.wurstscript.ast.PackageOrGlobalPos;
-import de.peeeq.wurstscript.ast.TopLevelDeclarationPos;
 import de.peeeq.wurstscript.ast.TypeDefPos;
 import de.peeeq.wurstscript.ast.TypeRefPos;
 import de.peeeq.wurstscript.ast.WEntityPos;

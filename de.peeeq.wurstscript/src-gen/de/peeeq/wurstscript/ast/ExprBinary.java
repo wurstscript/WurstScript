@@ -1,7 +1,10 @@
 package de.peeeq.wurstscript.ast;
 
-import katja.common.*;
 import java.io.IOException;
+
+import katja.common.KatjaSort;
+import katja.common.KatjaTuple;
+import katja.common.KatjaTupleImpl;
 
 public interface ExprBinary extends de.peeeq.wurstscript.ast.Expr, KatjaTuple {
 

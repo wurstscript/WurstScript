@@ -1,6 +1,6 @@
 package de.peeeq.wurstscript.ast;
 
-import katja.common.*;
+import katja.common.KatjaSort;
 
 public interface PackageOrGlobalPos extends de.peeeq.wurstscript.ast.WScopePos, de.peeeq.wurstscript.ast.AST.SortPos {
 

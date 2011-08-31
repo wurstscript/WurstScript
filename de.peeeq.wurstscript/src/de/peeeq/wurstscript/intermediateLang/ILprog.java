@@ -1,18 +1,10 @@
 package de.peeeq.wurstscript.intermediateLang;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
-import com.sun.source.tree.NewArrayTree;
 
-import de.peeeq.wurstscript.ast.FunctionDefinitionPos;
-import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.utils.NotNullList;
 import de.peeeq.wurstscript.utils.Utils;
 

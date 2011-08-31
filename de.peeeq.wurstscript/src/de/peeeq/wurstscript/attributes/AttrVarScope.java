@@ -15,10 +15,13 @@ import de.peeeq.wurstscript.ast.CompilationUnitPos;
 import de.peeeq.wurstscript.ast.FuncDefPos;
 import de.peeeq.wurstscript.ast.GlobalVarDefPos;
 import de.peeeq.wurstscript.ast.JassGlobalBlockPos;
+import de.peeeq.wurstscript.ast.LocalVarDef;
+import de.peeeq.wurstscript.ast.LocalVarDefPos;
 import de.peeeq.wurstscript.ast.TopLevelDeclarationPos;
 import de.peeeq.wurstscript.ast.VarDefPos;
 import de.peeeq.wurstscript.ast.WEntityPos;
 import de.peeeq.wurstscript.ast.WPackagePos;
+import de.peeeq.wurstscript.ast.WParameterPos;
 import de.peeeq.wurstscript.ast.WScopePos;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -65,17 +68,28 @@ public class AttrVarScope extends Attribute<WScopePos, Map<String, VarDefPos>> {
 			@Override
 			public Map<String, VarDefPos> CaseFuncDefPos(FuncDefPos term)
 					throws NE {
-				Utils.visitPostOrder(term, new Function<AST.SortPos, Void>() {
+//				Utils.visitPostOrder(term, new Function<AST.SortPos, Void>() {
+//					
+//					@Override
+//					public Void apply(SortPos e) {
+//						if (e instanceof VarDefPos) {
+//							VarDefPos v = (VarDefPos) e;
+//							result.put(v.name().term(), v);
+//						}
+//						return null;
+//					}
+//				});
+				new  CompilationUnitPos.DefaultVisitor<NE>() {
+					@Override
+					public void visit(LocalVarDefPos v) {
+						result.put(v.name().term(), v);
+					}
 					
 					@Override
-					public Void apply(SortPos e) {
-						if (e instanceof VarDefPos) {
-							VarDefPos v = (VarDefPos) e;
-							result.put(v.name().term(), v);
-						}
-						return null;
+					public void visit(WParameterPos v) {
+						result.put(v.name().term(), v);
 					}
-				});
+				}.visit(term);
 				return result;
 			}
 

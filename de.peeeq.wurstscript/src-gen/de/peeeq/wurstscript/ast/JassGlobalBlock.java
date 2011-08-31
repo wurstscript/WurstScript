@@ -1,7 +1,9 @@
 package de.peeeq.wurstscript.ast;
 
-import katja.common.*;
 import java.io.IOException;
+
+import katja.common.KatjaList;
+import katja.common.KatjaListImpl;
 
 public interface JassGlobalBlock extends de.peeeq.wurstscript.ast.JassToplevelDeclaration, KatjaList<de.peeeq.wurstscript.ast.GlobalVarDef> {
 

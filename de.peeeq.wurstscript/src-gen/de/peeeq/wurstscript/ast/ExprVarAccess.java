@@ -1,7 +1,9 @@
 package de.peeeq.wurstscript.ast;
 
-import katja.common.*;
 import java.io.IOException;
+
+import katja.common.KatjaTuple;
+import katja.common.KatjaTupleImpl;
 
 public interface ExprVarAccess extends de.peeeq.wurstscript.ast.ExprAssignable, de.peeeq.wurstscript.ast.ExprAtomic, de.peeeq.wurstscript.ast.VarRef, KatjaTuple {
 

@@ -2,7 +2,7 @@
 
 package de.peeeq.wurstscript.parser;
 
-import java_cup.runtime.*;
+import java_cup.runtime.Symbol;
 import de.peeeq.wurstscript.utils.Utils;
 
 /**

@@ -1,8 +1,12 @@
 package de.peeeq.wurstscript.ast;
 
-import katja.common.*;
-import java.util.List;
 import java.io.IOException;
+import java.util.List;
+
+import katja.common.KatjaNodePos;
+import katja.common.KatjaSort;
+import katja.common.KatjaSortPos;
+import katja.common.KatjaTuplePosImpl;
 
 public interface OpModIntPos extends de.peeeq.wurstscript.ast.OpBinaryPos, de.peeeq.wurstscript.ast.AST.TuplePos<de.peeeq.wurstscript.ast.OpModInt> {
 

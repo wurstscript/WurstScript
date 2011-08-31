@@ -1,7 +1,10 @@
 package de.peeeq.wurstscript.ast;
 
-import katja.common.*;
 import java.io.IOException;
+
+import katja.common.KatjaTerm;
+import katja.common.KatjaTuple;
+import katja.common.KatjaTupleImpl;
 
 public interface OnDestroyDef extends de.peeeq.wurstscript.ast.ClassSlot, KatjaTuple {
 

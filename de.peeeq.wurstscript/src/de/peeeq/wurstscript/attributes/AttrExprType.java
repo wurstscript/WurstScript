@@ -382,6 +382,9 @@ public class AttrExprType extends Attribute<ExprPos, PscriptType> {
 			public PscriptType CaseExprFunctionCallPos(ExprFunctionCallPos term)
 					throws NE {
 				FunctionDefinitionPos f = attr.funcDef.get(term);
+				if (f == null) {
+					return PScriptTypeUnknown.instance();
+				}
 				if (f.signature().typ() instanceof NoTypeExprPos) {
 					return PScriptTypeVoid.instance();
 				}

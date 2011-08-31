@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Set;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.types.PScriptTypeUnknown;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;

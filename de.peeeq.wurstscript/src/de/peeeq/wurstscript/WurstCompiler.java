@@ -5,9 +5,9 @@ import de.peeeq.wurstscript.intermediateLang.ILprog;
 public interface WurstCompiler {
 	
 	
-	void loadFile(String filename);
+	void loadFiles(String ... filenames);
 	
-	void parseFile();
+	void parseFiles();
 	ILprog getILprog();
 	
 	

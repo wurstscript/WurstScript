@@ -1,7 +1,5 @@
 package de.peeeq.wurstscript.intermediateLang.translator;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -9,14 +7,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-
 import katja.common.NE;
 import de.peeeq.wurstscript.ast.AST.SortPos;
-import de.peeeq.wurstscript.ast.AST;
 import de.peeeq.wurstscript.ast.ArgumentsPos;
 import de.peeeq.wurstscript.ast.ClassDefPos;
 import de.peeeq.wurstscript.ast.CompilationUnitPos;
-import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprAssignablePos;
 import de.peeeq.wurstscript.ast.ExprBinaryPos;
 import de.peeeq.wurstscript.ast.ExprBoolValPos;
@@ -44,10 +39,7 @@ import de.peeeq.wurstscript.ast.JassGlobalBlockPos;
 import de.peeeq.wurstscript.ast.LocalVarDefPos;
 import de.peeeq.wurstscript.ast.NativeFuncPos;
 import de.peeeq.wurstscript.ast.NativeTypePos;
-import de.peeeq.wurstscript.ast.NoExpr;
-import de.peeeq.wurstscript.ast.NoExprPos;
 import de.peeeq.wurstscript.ast.OpAndPos;
-import de.peeeq.wurstscript.ast.OpBinaryPos;
 import de.peeeq.wurstscript.ast.OpDivIntPos;
 import de.peeeq.wurstscript.ast.OpDivRealPos;
 import de.peeeq.wurstscript.ast.OpEqualsPos;
@@ -55,18 +47,14 @@ import de.peeeq.wurstscript.ast.OpGreaterEqPos;
 import de.peeeq.wurstscript.ast.OpGreaterPos;
 import de.peeeq.wurstscript.ast.OpLessEqPos;
 import de.peeeq.wurstscript.ast.OpLessPos;
-import de.peeeq.wurstscript.ast.OpMinus;
 import de.peeeq.wurstscript.ast.OpMinusPos;
 import de.peeeq.wurstscript.ast.OpModIntPos;
 import de.peeeq.wurstscript.ast.OpModRealPos;
 import de.peeeq.wurstscript.ast.OpMultPos;
-import de.peeeq.wurstscript.ast.OpNot;
 import de.peeeq.wurstscript.ast.OpNotPos;
 import de.peeeq.wurstscript.ast.OpOrPos;
 import de.peeeq.wurstscript.ast.OpPlusPos;
 import de.peeeq.wurstscript.ast.OpPos;
-import de.peeeq.wurstscript.ast.OpUnary;
-import de.peeeq.wurstscript.ast.OpUnaryPos;
 import de.peeeq.wurstscript.ast.OpUnequalsPos;
 import de.peeeq.wurstscript.ast.PackageOrGlobalPos;
 import de.peeeq.wurstscript.ast.StmtDecRefCountPos;
@@ -105,7 +93,6 @@ import de.peeeq.wurstscript.intermediateLang.ILprog;
 import de.peeeq.wurstscript.intermediateLang.ILreturn;
 import de.peeeq.wurstscript.intermediateLang.ILreturnVoid;
 import de.peeeq.wurstscript.intermediateLang.ILsetBinary;
-import de.peeeq.wurstscript.intermediateLang.ILsetBinaryCR;
 import de.peeeq.wurstscript.intermediateLang.ILsetVar;
 import de.peeeq.wurstscript.intermediateLang.ILsetVarArray;
 import de.peeeq.wurstscript.intermediateLang.ILvar;
@@ -113,13 +100,12 @@ import de.peeeq.wurstscript.intermediateLang.IlbuildinFunctionCall;
 import de.peeeq.wurstscript.intermediateLang.Iloperator;
 import de.peeeq.wurstscript.intermediateLang.IlsetConst;
 import de.peeeq.wurstscript.intermediateLang.IlsetUnary;
+import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
-import de.peeeq.wurstscript.types.PScriptTypeUnknown;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.utils.NotNullList;
-import de.peeeq.wurstscript.types.PScriptTypeArray;
 /**
  * translates an AST into the intermediate language
  */

@@ -1,8 +1,13 @@
 package de.peeeq.wurstscript.ast;
 
-import katja.common.*;
-import java.util.List;
 import java.io.IOException;
+import java.util.List;
+
+import katja.common.KatjaList;
+import katja.common.KatjaListImpl;
+import katja.common.KatjaListPosImpl;
+import katja.common.KatjaNodePos;
+import katja.common.KatjaSort;
 
 public interface ArraySizesPos extends de.peeeq.wurstscript.ast.AST.ListPos<de.peeeq.wurstscript.ast.ArraySizes, de.peeeq.wurstscript.ast.ExprPos, de.peeeq.wurstscript.ast.Expr> {
 

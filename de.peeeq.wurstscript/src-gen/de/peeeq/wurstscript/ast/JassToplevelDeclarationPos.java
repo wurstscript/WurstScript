@@ -1,6 +1,6 @@
 package de.peeeq.wurstscript.ast;
 
-import katja.common.*;
+import katja.common.KatjaSort;
 
 public interface JassToplevelDeclarationPos extends de.peeeq.wurstscript.ast.TopLevelDeclarationPos, de.peeeq.wurstscript.ast.AST.SortPos {
 

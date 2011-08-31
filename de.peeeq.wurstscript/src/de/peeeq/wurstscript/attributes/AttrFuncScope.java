@@ -2,12 +2,9 @@ package de.peeeq.wurstscript.attributes;
 
 import katja.common.NE;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 
-import de.peeeq.wurstscript.ast.AST;
-import de.peeeq.wurstscript.ast.AST.SortPos;
 import de.peeeq.wurstscript.ast.ClassDefPos;
 import de.peeeq.wurstscript.ast.ClassSlotPos;
 import de.peeeq.wurstscript.ast.CompilationUnitPos;
@@ -17,7 +14,6 @@ import de.peeeq.wurstscript.ast.TopLevelDeclarationPos;
 import de.peeeq.wurstscript.ast.WEntityPos;
 import de.peeeq.wurstscript.ast.WPackagePos;
 import de.peeeq.wurstscript.ast.WScopePos;
-import de.peeeq.wurstscript.utils.Utils;
 
 
 /**

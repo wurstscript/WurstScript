@@ -6,8 +6,53 @@
 
 package de.peeeq.wurstscript.parser;
 
-import java_cup.runtime.*;
-import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.ast.AST;
+import de.peeeq.wurstscript.ast.Arguments;
+import de.peeeq.wurstscript.ast.ArraySizes;
+import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.ClassSlot;
+import de.peeeq.wurstscript.ast.ClassSlots;
+import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.Expr;
+import de.peeeq.wurstscript.ast.ExprAssignable;
+import de.peeeq.wurstscript.ast.ExprBinary;
+import de.peeeq.wurstscript.ast.ExprFunctionCall;
+import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
+import de.peeeq.wurstscript.ast.ExprMemberMethod;
+import de.peeeq.wurstscript.ast.ExprMemberVar;
+import de.peeeq.wurstscript.ast.ExprNewObject;
+import de.peeeq.wurstscript.ast.ExprUnary;
+import de.peeeq.wurstscript.ast.ExprVarAccess;
+import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
+import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.FuncSignature;
+import de.peeeq.wurstscript.ast.GlobalVarDef;
+import de.peeeq.wurstscript.ast.Indexes;
+import de.peeeq.wurstscript.ast.JassGlobalBlock;
+import de.peeeq.wurstscript.ast.JassToplevelDeclaration;
+import de.peeeq.wurstscript.ast.LocalVarDef;
+import de.peeeq.wurstscript.ast.NativeFunc;
+import de.peeeq.wurstscript.ast.NativeType;
+import de.peeeq.wurstscript.ast.StmtCall;
+import de.peeeq.wurstscript.ast.StmtDecRefCount;
+import de.peeeq.wurstscript.ast.StmtDestroy;
+import de.peeeq.wurstscript.ast.StmtIf;
+import de.peeeq.wurstscript.ast.StmtIncRefCount;
+import de.peeeq.wurstscript.ast.StmtReturn;
+import de.peeeq.wurstscript.ast.StmtSet;
+import de.peeeq.wurstscript.ast.StmtWhile;
+import de.peeeq.wurstscript.ast.TopLevelDeclaration;
+import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.ast.WEntities;
+import de.peeeq.wurstscript.ast.WEntity;
+import de.peeeq.wurstscript.ast.WImport;
+import de.peeeq.wurstscript.ast.WImports;
+import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.ast.WParameters;
+import de.peeeq.wurstscript.ast.WPos;
+import de.peeeq.wurstscript.ast.WStatement;
+import de.peeeq.wurstscript.ast.WStatements;
 
 /** CUP v0.11a beta 20060608 generated parser.
   * @version Mon Aug 29 20:15:36 CEST 2011

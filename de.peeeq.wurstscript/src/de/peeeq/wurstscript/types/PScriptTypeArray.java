@@ -7,6 +7,9 @@ public class PScriptTypeArray extends PscriptType {
 	private int[] sizes;
 	
 	public PScriptTypeArray(PscriptType baseType, int[] sizes) {
+		if (baseType instanceof PScriptTypeArray) {
+			throw new Error("cannot have array of arrays...");
+		}
 		this.baseType = baseType;
 		this.sizes = sizes;
 	}

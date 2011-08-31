@@ -71,13 +71,13 @@ public class AttrTypeExprType extends Attribute<TypeExprPos, PscriptType> {
 			}
 		});
 		
-		if (node.isArray().term()) {
-			int[] sizes = new int[node.sizes().size()];
-			for (int i=0; i<sizes.length; i++) {
-				sizes[i] = 0; // TODO sizes should store ILvariables which actually hold the sizes
-			}
-			typ = new PScriptTypeArray(typ, sizes );
-		}
+//		if (node.isArray().term()) {
+//			int[] sizes = new int[node.sizes().size()];
+//			for (int i=0; i<sizes.length; i++) {
+//				sizes[i] = 0; // TODO sizes should store ILvariables which actually hold the sizes
+//			}
+//			typ = new PScriptTypeArray(typ, sizes );
+//		}
 		
 		return typ;
 	}
