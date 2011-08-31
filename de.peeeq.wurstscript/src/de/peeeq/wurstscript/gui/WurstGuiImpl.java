@@ -32,6 +32,7 @@ import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -40,6 +41,7 @@ public class WurstGuiImpl implements WurstGui {
 	private Queue<CompileError> errors = new ConcurrentLinkedQueue<CompileError>();
 	private volatile double progress = 0.0;
 	private volatile boolean finished = false;
+	private String currentlyWorkingOn = "";
 
 	class TheGui extends JFrame implements Runnable {
 		private static final long serialVersionUID = 1501435979514614061L;
@@ -215,6 +217,7 @@ public class WurstGuiImpl implements WurstGui {
 
 							}
 							progressBar.setValue((int) (progress*100));
+							setTitle("WurstScript - " + currentlyWorkingOn);
 						}
 					});
 				} catch (Exception e) {
@@ -227,14 +230,16 @@ public class WurstGuiImpl implements WurstGui {
 					public void run() {
 						progressBar.setValue(100);
 						progressBar.setEnabled(false);
+						
+						if (errorListModel.size() == 0) {
+							// if we have no errors we can just quit
+							dispose();							
+						}
 					}
 				});
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (InvocationTargetException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			} catch (Exception e) {
+				WLogger.severe(e.toString());
+				throw new Error(e);
 			}
 		}
 
@@ -253,12 +258,19 @@ public class WurstGuiImpl implements WurstGui {
 	}
 
 	@Override
-	public void sendProgress(double percent) {
-		progress = percent;
+	public void sendProgress(String message, double percent) {
+		if (message != null) {
+			WLogger.info(message);
+			this.currentlyWorkingOn = message;
+		}
+		if (percent >= 0.0 && percent <= 1.0) {
+			progress = percent;
+		}
 	}
 
 	@Override
 	public void sendFinished() {
+		currentlyWorkingOn = "Finished";
 		progress = 1.0;
 		finished = true;
 	}

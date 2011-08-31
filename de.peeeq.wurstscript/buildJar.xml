@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="create_run_jar" name="Create Runnable Jar for Project de.peeeq.wurstscript with libraries in sub-folder">
+    <!--this file was created by Eclipse Runnable JAR Export Wizard-->
+    <!--ANT 1.7 is required                                        -->
+    <target name="create_run_jar">
+        <jar destfile="C:/pscript/de.peeeq.wurstscript/wurstscript.jar">
+            <manifest>
+                <attribute name="Main-Class" value="de.peeeq.wurstscript.Main"/>
+                <attribute name="Class-Path" value=". wurstscript_lib/java-cup-runtime.jar wurstscript_lib/katja.jar wurstscript_lib/guava-r09.jar wurstscript_lib/log4j-1.2.16.jar"/>
+            </manifest>
+            <fileset dir="C:/pscript/de.peeeq.wurstscript/bin"/>
+        </jar>
+        <delete dir="C:/pscript/de.peeeq.wurstscript/wurstscript_lib"/>
+        <mkdir dir="C:/pscript/de.peeeq.wurstscript/wurstscript_lib"/>
+        <copy file="C:/pscript/de.peeeq.wurstscript/lib/java-cup-runtime.jar" todir="C:/pscript/de.peeeq.wurstscript/wurstscript_lib"/>
+        <copy file="C:/pscript/de.peeeq.wurstscript/lib/katja.jar" todir="C:/pscript/de.peeeq.wurstscript/wurstscript_lib"/>
+        <copy file="C:/pscript/de.peeeq.wurstscript/lib/guava-r09.jar" todir="C:/pscript/de.peeeq.wurstscript/wurstscript_lib"/>
+        <copy file="C:/pscript/de.peeeq.wurstscript/lib/log4j-1.2.16.jar" todir="C:/pscript/de.peeeq.wurstscript/wurstscript_lib"/>
+    </target>
+</project>

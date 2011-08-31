@@ -13,7 +13,7 @@ public class WurstGuiCliImpl implements WurstGui {
 	}
 
 	@Override
-	public void sendProgress(double percent) {
+	public void sendProgress(String msg, double percent) {
 	}
 
 	@Override

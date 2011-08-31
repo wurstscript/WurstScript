@@ -46,4 +46,8 @@ public class Attributes {
 	public List<CompileError> getErrors() {
 		return errors;
 	}
+	
+	public void setProgress(String message, double percent) {
+		gui.sendProgress(message, percent);
+	}
 }

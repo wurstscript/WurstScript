@@ -12,8 +12,12 @@ import de.peeeq.wurstscript.ast.LocalVarDefPos;
 import de.peeeq.wurstscript.ast.StmtIfPos;
 import de.peeeq.wurstscript.ast.StmtSetPos;
 import de.peeeq.wurstscript.ast.StmtWhilePos;
+import de.peeeq.wurstscript.ast.TopLevelDeclarationPos;
 import de.peeeq.wurstscript.ast.TypeExprPos;
+import de.peeeq.wurstscript.ast.WEntityPos;
+import de.peeeq.wurstscript.ast.WPackagePos;
 import de.peeeq.wurstscript.attributes.Attributes;
+import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PscriptType;
 
@@ -32,6 +36,8 @@ public class WurstValidator extends CompilationUnitPos.DefaultVisitor<NE> {
 
 	private Attributes attr;
 	private CompilationUnitPos prog;
+	private int functionCount;
+	private int visitedFunctions;
 
 	public WurstValidator(CompilationUnitPos prog, Attributes attr) {
 		this.prog = prog;
@@ -39,7 +45,21 @@ public class WurstValidator extends CompilationUnitPos.DefaultVisitor<NE> {
 	}
 	
 	public void validate() {
+		functionCount = countFunctions();
+		visitedFunctions = 0;
+		
 		visit(prog);
+	}
+
+	private int countFunctions() {
+		final int functionCount[] = new int[1];
+		new CompilationUnitPos.DefaultVisitor<NE>() {
+			@Override
+			public void visit(FuncDefPos f) {
+				functionCount[0]++;
+			}
+		}.visit(prog);
+		return functionCount[0];
 	}
 	
 	@Override
@@ -107,6 +127,8 @@ public class WurstValidator extends CompilationUnitPos.DefaultVisitor<NE> {
 	
 	@Override public void visit(FuncDefPos func) {
 		super.visit(func);
+		visitedFunctions++;
+		attr.setProgress(null, ProgressHelper.getValidatorPercent(visitedFunctions, functionCount));
 		
 		
 		if (func.signature().typ() instanceof TypeExprPos) {

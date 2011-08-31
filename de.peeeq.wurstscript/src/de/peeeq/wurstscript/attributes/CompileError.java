@@ -5,7 +5,7 @@ import java.io.File;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WPosPos;
 
-public class CompileError {
+public class CompileError extends Error {
 	private WPos source;
 	private String message;
 	

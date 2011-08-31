@@ -77,6 +77,15 @@ public class Utils {
 		}
 	}
 
+	
+	public static <T> void printSep(StringBuilder sb, String seperator, T[] args) {
+		for (int i=0; i < args.length; i++) {
+			if (i > 0) {
+				sb.append(seperator);
+			}
+			sb.append(args[i].toString());
+		}
+	}
 
 	public static <T> void printSep(StringBuilder sb, String seperator, Iterable<T> params, Function<T, String> function) {
 		boolean first = true;
@@ -124,5 +133,12 @@ public class Utils {
 		} catch (InterruptedException e) {
 		}
 	}
+
+	public static String printSep(String sep, String[] args) {
+		StringBuilder sb = new StringBuilder();
+		printSep(sb , sep, args);
+		return sb.toString();		
+	}
+
 
 }

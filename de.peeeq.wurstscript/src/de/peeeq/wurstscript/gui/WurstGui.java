@@ -6,7 +6,7 @@ public interface WurstGui {
 	
 	void sendError(CompileError err);
 	
-	void sendProgress(double percent);
+	void sendProgress(String whatsRunningNow, double percent);
 	
 	void sendFinished();
 	

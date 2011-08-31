@@ -54,6 +54,7 @@ public class AttrTypeExprType extends Attribute<TypeExprPos, PscriptType> {
 					throws NE {
 				PscriptType typ = NativeTypes.nativeType(term.name().term());
 				if (typ != null) {
+					// native type
 					return typ;
 				}
 				if (term.typ() instanceof NoTypeExprPos) {
