@@ -53,6 +53,7 @@ import de.peeeq.wurstscript.types.PScriptTypeUnknown;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
+import de.peeeq.wurstscript.utils.Utils;
 
 
 /**
@@ -195,6 +196,14 @@ public class AttrExprType extends Attribute<ExprPos, PscriptType> {
 							return  PScriptTypeBool.instance();
 						}
 						
+						if (Utils.isJassCode(term)) {
+							if (leftType instanceof PScriptTypeReal || leftType instanceof PScriptTypeInt) {
+								if (rightType instanceof PScriptTypeReal || rightType instanceof PScriptTypeInt) {
+									return  PScriptTypeBool.instance();									
+								}
+							}
+						}
+						
 						// FIXME check if the intersection of the basetypes of lefttpye and righttype is
 						// not empty. Example:
 						// class A with B,C
@@ -252,7 +261,7 @@ public class AttrExprType extends Attribute<ExprPos, PscriptType> {
 					}
 
 					private PscriptType caseMathOperation() {
-						if (leftType instanceof PScriptTypeInt || rightType instanceof PScriptTypeInt) {
+						if (leftType instanceof PScriptTypeInt && rightType instanceof PScriptTypeInt) {
 							return PScriptTypeInt.instance();
 						}
 						if (leftType instanceof PScriptTypeReal || leftType instanceof PScriptTypeInt) {
@@ -279,14 +288,18 @@ public class AttrExprType extends Attribute<ExprPos, PscriptType> {
 					@Override
 					public PscriptType CaseOpDivRealPos(OpDivRealPos op)
 							throws NE {
-						if (leftType instanceof PScriptTypeReal || leftType instanceof PScriptTypeInt) {
-							if (rightType instanceof PScriptTypeReal || rightType instanceof PScriptTypeInt) {
-								return PScriptTypeReal.instance();
+						if (Utils.isJassCode(op)) {
+							return caseMathOperation();
+						} else {
+							if (leftType instanceof PScriptTypeReal || leftType instanceof PScriptTypeInt) {
+								if (rightType instanceof PScriptTypeReal || rightType instanceof PScriptTypeInt) {
+									return PScriptTypeReal.instance();
+								}
 							}
+							attr.addError(term.source(), "Operator " + term.op().term() +" is not defined for " +
+									"operands " + leftType + " and " + rightType);
+							return PScriptTypeUnknown.instance();
 						}
-						attr.addError(term.source(), "Operator " + term.op().term() +" is not defined for " +
-								"operands " + leftType + " and " + rightType);
-						return PScriptTypeUnknown.instance();
 					}
 
 					@Override

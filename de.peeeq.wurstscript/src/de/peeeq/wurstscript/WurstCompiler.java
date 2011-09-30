@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript;
 
+import java.io.File;
+
 import de.peeeq.wurstscript.intermediateLang.ILprog;
 
 public interface WurstCompiler {
@@ -9,6 +11,9 @@ public interface WurstCompiler {
 	
 	void parseFiles();
 	ILprog getILprog();
+
+
+	void loadFiles(File ... files);
 	
 	
 

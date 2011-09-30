@@ -56,6 +56,7 @@ import de.peeeq.wurstscript.ast.OpOrPos;
 import de.peeeq.wurstscript.ast.OpPlusPos;
 import de.peeeq.wurstscript.ast.OpPos;
 import de.peeeq.wurstscript.ast.OpUnequalsPos;
+import de.peeeq.wurstscript.ast.OptTypeExprPos;
 import de.peeeq.wurstscript.ast.PackageOrGlobalPos;
 import de.peeeq.wurstscript.ast.StmtDecRefCountPos;
 import de.peeeq.wurstscript.ast.StmtDestroyPos;
@@ -103,9 +104,11 @@ import de.peeeq.wurstscript.intermediateLang.IlsetUnary;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
+import de.peeeq.wurstscript.types.PScriptTypeReal;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.utils.NotNullList;
+import de.peeeq.wurstscript.utils.Utils;
 /**
  * translates an AST into the intermediate language
  */
@@ -233,8 +236,16 @@ public class IntermediateLangTranslator {
 		} else {
 			func.setReturnType(PScriptTypeVoid.instance());
 		}
-	
-		// TODO set parameters, returntype
+		for (WParameterPos param : term.signature().parameters()) {
+			func.addParam(new ILvar(param.name().term(), attr.typeExprType.get(param.typ())));
+		}
+		
+		OptTypeExprPos retTyp = term.signature().typ();
+		if (retTyp instanceof TypeExprPos) {
+			func.setReturnType(attr.typeExprType.get((TypeExprPos) retTyp));
+		} else {
+			func.setReturnType(PScriptTypeVoid.instance());
+		}
 		translateFunctionBody(func, term.body());
 	}
 
@@ -631,7 +642,14 @@ public class IntermediateLangTranslator {
 
 					result.addAll(leftExpr);
 					result.addAll(rightExpr);
-					result.add(new ILsetBinary(resultVar, leftVar, translateOp(term.op()), rightVar));
+					Iloperator op;
+					if (Utils.isJassCode(term)) {
+						op = translateOpJass(term.op(), leftType, rightType);
+					} else {
+						op = translateOp(term.op());
+					}
+					
+					result.add(new ILsetBinary(resultVar, leftVar, op, rightVar));
 				}
 				return result;
 			}
@@ -685,6 +703,16 @@ public class IntermediateLangTranslator {
 		});
 	}
 
+	
+	protected Iloperator translateOpJass(OpPos op, PscriptType leftType, PscriptType rightType) {
+		if (op instanceof OpDivRealPos) {
+			if (leftType instanceof PScriptTypeInt && rightType instanceof PScriptTypeInt) {
+				return Iloperator.DIV_INT;
+			}
+		}
+		return translateOp(op);
+	}
+	
 	protected Iloperator translateOp(OpPos op) {
 		return op.Switch(new OpPos.Switch<Iloperator, NE>() {
 

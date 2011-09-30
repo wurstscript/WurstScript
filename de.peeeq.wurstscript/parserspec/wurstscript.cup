@@ -302,6 +302,11 @@ Statement ::=
 		{: RESULT = AST.StmtErr(pos(xleft, xright)); :}
 ;
 
+StmtReturn ::=
+	RETURN:x Expr:result NL
+		{: RESULT = AST.StmtReturn(pos(xleft, xright), result); :}
+;
+
 StmtIf ::=
 	IF:x Expr:cond LBRACK NL Statements:thenStatements RBRACK NL
 		{: RESULT = AST.StmtIf(pos(xleft, xright), cond, thenStatements, AST.WStatements()); :}

@@ -8,6 +8,8 @@ import com.google.common.base.Function;
 
 import de.peeeq.wurstscript.ast.CompilationUnitPos;
 import de.peeeq.wurstscript.ast.AST.SortPos;
+import de.peeeq.wurstscript.ast.OpDivRealPos;
+import de.peeeq.wurstscript.ast.WPackagePos;
 
 public class Utils {
 
@@ -138,6 +140,19 @@ public class Utils {
 		StringBuilder sb = new StringBuilder();
 		printSep(sb , sep, args);
 		return sb.toString();		
+	}
+
+	/**
+	 *	is a piece of code jass code? 
+	 */
+	public static boolean isJassCode(SortPos pos) {
+		while (pos != null) {
+			if (pos instanceof WPackagePos) {
+				return false; // code is inside package -> pscript code 
+			}
+			pos = pos.parent();
+		}
+		return true; // no package found -> jass code
 	}
 
 

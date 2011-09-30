@@ -8,5 +8,7 @@
 	<classpathentry kind="lib" path="lib/katja.jar"/>
 	<classpathentry kind="lib" path="lib/guava-r09.jar" sourcepath="C:/kram/guava-r09/guava-src-r09"/>
 	<classpathentry kind="lib" path="lib/log4j-1.2.16.jar" sourcepath="C:/kram/apache-log4j-1.2.16/apache-log4j-1.2.16/src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
+	<classpathentry kind="con" path="org.testng.TESTNG_CONTAINER"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

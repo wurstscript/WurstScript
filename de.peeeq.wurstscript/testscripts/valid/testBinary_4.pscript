@@ -5,15 +5,15 @@ package test {
 	
 	native testFail(string msg)
 	native print(string msg)
-	native toString(int i) returns string
+	native I2S(int i) returns string
 	native testSuccess()
 
 	function runTest() {
-		print(toString(10 div 5))
-		if 10 div 5 == 2 {
+		val i = 11 div 5
+		if i == 2 {
 			testSuccess()
 		} else {
-			testFail("defect in binary operation")
+			testFail("defect in binary operation: " + I2S(i))
 		}
 	}
 }

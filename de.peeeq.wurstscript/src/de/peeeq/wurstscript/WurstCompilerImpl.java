@@ -39,7 +39,7 @@ public class WurstCompilerImpl implements WurstCompiler {
 	}
 
 	@Override
-	public void loadFiles(String[] filenames) {
+	public void loadFiles(String ... filenames) {
 		gui.sendProgress("Loading Files", 0.01);
 		files = new File[filenames.length];
 		int i = 0;
@@ -47,6 +47,23 @@ public class WurstCompilerImpl implements WurstCompiler {
 			files[i] = new File(filename);
 			if (!files[i].exists()) {
 				throw new Error("File " + filename + " does not exist.");
+			}
+			i++;
+		}
+	}
+	
+	@Override
+	public void loadFiles(File ... files) {
+		gui.sendProgress("Loading Files", 0.01);
+		this.files = new File[files.length];
+		int i = 0;
+		for (File file : files) {
+			if (file == null) {
+				throw new Error("File must not be null");
+			}
+			this.files[i] = file;
+			if (!this.files[i].exists()) {
+				throw new Error("File " + file + " does not exist.");
 			}
 			i++;
 		}
@@ -156,15 +173,16 @@ public class WurstCompilerImpl implements WurstCompiler {
 			Symbol sym = parser.parse();
 			parseErrors = parser.getErrorCount();
 			if (parseErrors > 0) {
-				return null;
+				return AST.CompilationUnit();
 			}	
 			CompilationUnit root = (CompilationUnit) sym.value;
 			return root;
 			
 		} catch (CompileError e) {
 			gui.sendError(e);
-			return null;
+			return AST.CompilationUnit();
 		} catch (Exception e) {
+			gui.sendError(new CompileError(AST.WPos(file.toString(), 0, 0), "This is a bug and should not have happened.\n" + e.getMessage()));
 			WLogger.severe(e);
 			throw new Error(e);
 		}
@@ -174,5 +192,7 @@ public class WurstCompilerImpl implements WurstCompiler {
 	public ILprog getILprog() {
 		return ilProg;
 	}
+
+	
 	
 }

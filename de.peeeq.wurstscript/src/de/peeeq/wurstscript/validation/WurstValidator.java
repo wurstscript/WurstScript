@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.validation;
 
 import katja.common.NE;
+import de.peeeq.wurstscript.ast.AST.SortPos;
 import de.peeeq.wurstscript.ast.CompilationUnitPos;
 import de.peeeq.wurstscript.ast.ExprFunctionCallPos;
 import de.peeeq.wurstscript.ast.ExprMemberMethodPos;
@@ -16,10 +17,15 @@ import de.peeeq.wurstscript.ast.TopLevelDeclarationPos;
 import de.peeeq.wurstscript.ast.TypeExprPos;
 import de.peeeq.wurstscript.ast.WEntityPos;
 import de.peeeq.wurstscript.ast.WPackagePos;
+import de.peeeq.wurstscript.ast.WPos;
+import de.peeeq.wurstscript.ast.WPosPos;
 import de.peeeq.wurstscript.attributes.Attributes;
 import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
+import de.peeeq.wurstscript.types.PScriptTypeInt;
+import de.peeeq.wurstscript.types.PScriptTypeReal;
 import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.utils.Utils;
 
 /**
  * this class validates a pscript program
@@ -70,11 +76,23 @@ public class WurstValidator extends CompilationUnitPos.DefaultVisitor<NE> {
 		PscriptType leftType = attr.exprType.get(s.left());
 		PscriptType rightType = attr.exprType.get(s.right());
 		
-		if (!rightType.isSubtypeOf(leftType)) {
-			attr.addError(s.source(), "Cannot assign " + rightType + " to " + leftType);
-		}
+		checkAssignment(Utils.isJassCode(s), s.source(), leftType, rightType);
+		
+		
 	}
 	
+	private void checkAssignment(boolean isJassCode, WPosPos pos, PscriptType leftType, PscriptType rightType) {
+		if (!rightType.isSubtypeOf(leftType)) {
+			if (isJassCode) {
+				if (leftType instanceof PScriptTypeReal && rightType instanceof PScriptTypeInt) {
+					// special case: jass allows to assign an integer to a real variable
+					return;
+				}
+			}
+			attr.addError(pos, "Cannot assign " + rightType + " to " + leftType);
+		}
+	}
+
 	@Override
 	public void visit(LocalVarDefPos s) {
 		super.visit(s);
@@ -82,9 +100,8 @@ public class WurstValidator extends CompilationUnitPos.DefaultVisitor<NE> {
 			ExprPos initial = (ExprPos) s.initialExpr();
 			PscriptType leftType = attr.varDefType.get(s);
 			PscriptType rightType = attr.exprType.get(initial);
-			if (!rightType.isSubtypeOf(leftType)) {
-				attr.addError(s.source(), "Cannot assign " +rightType + " to " + leftType);
-			}
+			
+			checkAssignment(Utils.isJassCode(s), s.source(), leftType, rightType);
 		}		
 	}
 	
@@ -96,10 +113,7 @@ public class WurstValidator extends CompilationUnitPos.DefaultVisitor<NE> {
 			ExprPos initial = (ExprPos) s.initialExpr();
 			PscriptType leftType = attr.varDefType.get(s);
 			PscriptType rightType = attr.exprType.get(initial);
-		
-			if (!rightType.isSubtypeOf(leftType)) {
-				attr.addError(s.source(), "Cannot assign " + rightType + " to " + leftType);
-			}
+			checkAssignment(Utils.isJassCode(s), s.source(), leftType, rightType);
 		}
 	}
 	

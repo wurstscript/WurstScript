@@ -87,7 +87,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 		List<ILStatement> body = func.getBody();
 
 		Map<String, ILconst> localVarMap = new HashMap<String, ILconst>();
-		// TODO locals initialisieren
+		// locals initialisieren
 		for (ILvar v : locals) {
 			ILconst value = null;
 			if (v.getType() instanceof PScriptTypeInt) {
@@ -106,11 +106,16 @@ public class ILInterpreterImpl implements ILInterpreter {
 			localVarMap.put(v.getName(), value );
 		}
 
+		
+		if (func.getParams().size() != arguments.length) {
+			throw new Error("Wrong number of parameters: " + func.getParams().size() + " != " + arguments.length);
+		}
 		int i = 0;
 		for (ILvar v : func.getParams()) {
 			localVarMap.put(v.getName(), arguments[i] );
 			i++;
 		}
+		
 		try {
 			this.executeStatements(localVarMap, body);
 		} catch (ReturnException e) {
@@ -240,7 +245,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 			throw new TestFailException(msg.getVal());
 		} else if (name.equals("testSuccess")) {
 			throw TestSuccessException.instance;
-		} else if (name.equals("toString")) {
+		} else if (name.equals("I2S")) {
 			ILconstInt i = (ILconstInt) lookupVarValue(localVarMap, s.getArgs().get(0));
 			addVarToProperMap(localVarMap, s.getResultVar(), new ILconstString(""+i.getVal()));
 		} else {
@@ -258,7 +263,8 @@ public class ILInterpreterImpl implements ILInterpreter {
 		for (int i=0; i< arguments.length; i++) {
 			arguments[i] = lookupVarValue(localVarMap, s.getArgs().get(i));
 		}
-		executeFunction(s.getName(), arguments );
+		ILconst result = executeFunction(s.getName(), arguments );
+		addVarToProperMap(localVarMap, s.getResultVar(), result);
 	}
 
 	private void translateReturn(Map<String, ILconst> localVarMap, ILreturn s) {
