@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.utils;
 
+import java.util.LinkedList;
 import java.util.List;
 
 import javax.xml.bind.helpers.DefaultValidationEventHandler;
@@ -8,8 +9,11 @@ import com.google.common.base.Function;
 
 import de.peeeq.wurstscript.ast.CompilationUnitPos;
 import de.peeeq.wurstscript.ast.AST.SortPos;
+import de.peeeq.wurstscript.ast.ExprPos;
+import de.peeeq.wurstscript.ast.ExprVarAccessPos;
 import de.peeeq.wurstscript.ast.OpDivRealPos;
 import de.peeeq.wurstscript.ast.WPackagePos;
+import de.peeeq.wurstscript.intermediateLang.ILvar;
 
 public class Utils {
 
@@ -153,6 +157,37 @@ public class Utils {
 			pos = pos.parent();
 		}
 		return true; // no package found -> jass code
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <T> List<T> collect(Class<T> t, SortPos pos) {
+		List<T> result = new LinkedList<T>();
+		SortPos p = pos.postOrderStart();
+		while (p != null) {
+			if (t.isInstance(p)) {
+				result.add((T) p);
+			}
+			p = p.postOrder();
+		}
+		
+		return result ;
+	}
+
+	public static <T>  T[] array(T ... ar) {
+		return ar;
+	}
+
+	public static String join(Iterable<String> hints, String seperator) {
+		StringBuilder result = new StringBuilder();
+		boolean first = true;
+		for (String s : hints) {
+			result.append(s);
+			if (!first) {
+				result.append(seperator);
+			}
+			first = false;
+		}
+		return result.toString();
 	}
 
 

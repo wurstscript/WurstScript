@@ -40,6 +40,7 @@ import de.peeeq.wurstscript.ast.OpOrPos;
 import de.peeeq.wurstscript.ast.OpPlusPos;
 import de.peeeq.wurstscript.ast.OpUnaryPos;
 import de.peeeq.wurstscript.ast.OpUnequalsPos;
+import de.peeeq.wurstscript.ast.TypeDefPos;
 import de.peeeq.wurstscript.ast.TypeExprPos;
 import de.peeeq.wurstscript.ast.VarDefPos;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
@@ -204,7 +205,7 @@ public class AttrExprType extends Attribute<ExprPos, PscriptType> {
 							}
 						}
 						
-						// FIXME check if the intersection of the basetypes of lefttpye and righttype is
+						// TODO if the intersection of the basetypes of lefttpye and righttype is
 						// not empty. Example:
 						// class A with B,C
 						// -> B and C should be comparable
@@ -408,8 +409,14 @@ public class AttrExprType extends Attribute<ExprPos, PscriptType> {
 			@Override
 			public PscriptType CaseExprNewObjectPos(ExprNewObjectPos term)
 					throws NE {
-				// TODO new expression type
-				throw new Error("not implemented");
+				
+				TypeDefPos typeDef = attr.typeDef.get(term);
+				if (typeDef instanceof ClassDefPos) {
+					return new PscriptTypeClass((ClassDefPos) typeDef);
+				} else {
+					attr.addError(term.source(), "Can only create instances of classes.");
+					return PScriptTypeUnknown.instance();
+				}
 			}
 
 			@Override

@@ -59,7 +59,7 @@ public class WurstGuiImpl implements WurstGui {
 				UIManager.setLookAndFeel(
 						UIManager.getSystemLookAndFeelClassName());
 			} catch (Exception e) {
-				// this is a good example of why checked exceptions are bad :D
+				// well, we can live with the ugly style if we cannot load the cool one
 			}
 
 			JPanel pane = new JPanel();
@@ -76,7 +76,7 @@ public class WurstGuiImpl implements WurstGui {
 
 
 			add(pane);
-			setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // FIXME maybe not a good idea
+			setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // CHECK maybe not a good idea
 			this.setSize(800, 600);
 			//			pack();
 			setVisible(true);

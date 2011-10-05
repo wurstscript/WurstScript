@@ -91,6 +91,7 @@ public class AttrFuncDef extends Attribute<FuncRefPos, FunctionDefinitionPos> {
 
 	protected FunctionDefinitionPos selectOverloadedFunction(
 			FuncRefPos funcCall, Collection<FunctionDefinitionPos> functions) {
+		OverloadingResolver.resolveFuncCall(attr, functions, funcCall);
 		// TODO overloading - select the right method
 		for (FunctionDefinitionPos f : functions) {
 			return f;

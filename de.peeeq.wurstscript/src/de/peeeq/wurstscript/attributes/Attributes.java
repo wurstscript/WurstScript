@@ -21,9 +21,12 @@ public class Attributes {
 	public final AttrNearestPackage nearestPackage = new AttrNearestPackage(this);
 	public final AttrNearestFuncDef nearestFuncDef = new AttrNearestFuncDef(this);
 	public final AttrTypeDef typeDef = new AttrTypeDef(this);
+	public final AttrNearestClassDef nearestClassDef = new AttrNearestClassDef(this);
+	public final AttrConstructorDef constrDef = new AttrConstructorDef(this);
 	
 	private List<CompileError> errors = new NotNullList<CompileError>();
 	private WurstGui gui;
+	
 	
 	public Attributes(WurstGui gui) {
 		this.gui = gui;
