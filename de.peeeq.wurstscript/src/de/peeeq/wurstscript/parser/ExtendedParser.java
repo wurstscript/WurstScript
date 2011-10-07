@@ -2,7 +2,6 @@ package de.peeeq.wurstscript.parser;
 
 import java.lang.reflect.Field;
 import java.util.List;
-import java.util.logging.Logger;
 
 import java_cup.runtime.Scanner;
 import java_cup.runtime.Symbol;

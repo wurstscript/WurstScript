@@ -9,10 +9,15 @@ import de.peeeq.wurstscript.intermediateLang.ILconstString;
 public class NativeTypes {
 	/**
 	 * returns the PscriptType for a given nativetype definition
+	 * @param b 
 	 */
-	public static PscriptType nativeType(String typeName) {
+	public static PscriptType nativeType(String typeName, boolean isJassCode) {
 		if (typeName.equals("int") || typeName.equals("integer")) {
-			return PScriptTypeInt.instance();
+			if (isJassCode) {
+				return PScriptTypeJassInt.instance();
+			} else {
+				return PScriptTypeInt.instance();
+			}
 		}
 		if (typeName.equals("bool") || typeName.equals("boolean")) {
 			return PScriptTypeBool.instance();

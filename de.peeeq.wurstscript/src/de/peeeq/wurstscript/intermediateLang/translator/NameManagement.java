@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Set;
 
 import katja.common.NE;
-
+import de.peeeq.wurstscript.ast.AST.SortPos;
 import de.peeeq.wurstscript.ast.ClassDefPos;
 import de.peeeq.wurstscript.ast.ConstructorDefPos;
 import de.peeeq.wurstscript.ast.FuncDefPos;
@@ -17,11 +17,13 @@ import de.peeeq.wurstscript.ast.NativeFuncPos;
 import de.peeeq.wurstscript.ast.PackageOrGlobalPos;
 import de.peeeq.wurstscript.ast.VarDefPos;
 import de.peeeq.wurstscript.ast.WPackagePos;
-import de.peeeq.wurstscript.ast.AST.SortPos;
 import de.peeeq.wurstscript.attributes.Attributes;
 import de.peeeq.wurstscript.intermediateLang.ILfunction;
 import de.peeeq.wurstscript.intermediateLang.ILvar;
+import de.peeeq.wurstscript.types.PScriptTypeArray;
+import de.peeeq.wurstscript.types.PScriptTypeInt;
 import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class NameManagement {
 
@@ -37,6 +39,7 @@ public class NameManagement {
 		private final Map<ClassDefPos, ILfunction> destroyFunctions = new HashMap<ClassDefPos, ILfunction>();
 		private final Map<VarDefPos, ILvar> vars = new HashMap<VarDefPos, ILvar>();
 		private long varUniqueNameCounter = 0;
+		private ILfunction globalInitFunction;
 		
 		public NameManagement(Attributes attr) {
 			this.attr = attr;
@@ -107,13 +110,28 @@ public class NameManagement {
 			}
 			PscriptType typ = attr.varDefType.get(varDef);
 			String name = varDef.name().term();
-			ILvar v = new ILvar(name, typ);
 			if (varDef instanceof GlobalVarDefPos) {
 				PackageOrGlobalPos pack = attr.nearestPackage.get(varDef);
 				if (pack instanceof WPackagePos) {
 					name = ((WPackagePos) pack).name().term() + "_" + name;
 				}
 			}
+			name = getNameFor(varDef, name);
+			ILvar v = new ILvar(name, typ);
+			vars.put(varDef, v);
+			return v;
+		}
+		
+		public ILvar getILvarForClassMemberDef(GlobalVarDefPos varDef) {
+			if (vars.containsKey(varDef)) {
+				return vars.get(varDef);
+			}
+			PscriptType typ = attr.varDefType.get(varDef);
+			typ = new PScriptTypeArray(typ, Utils.array(0)); // because this is a class we need an array of this type
+			WPackagePos pack = (WPackagePos) attr.nearestPackage.get(varDef);
+			ClassDefPos classDef = attr.nearestClassDef.get(varDef);
+			String name = getNameFor(varDef, pack.name().term() + "_" + classDef .name().term() + "_" + varDef.name().term());
+			ILvar v = new ILvar(name, typ);
 			vars.put(varDef, v);
 			return v;
 		}
@@ -172,4 +190,17 @@ public class NameManagement {
 			destroyFunctions.put(classDef, result);
 			return result;
 		}
+
+		public ILfunction getGlobalInitFunction() {
+			if (globalInitFunction == null) {
+				globalInitFunction = new ILfunction("wurst_init");
+			}
+			return globalInitFunction;
+		}
+
+		public ILvar getThis(FuncDefPos term) {
+			return new ILvar("this", PScriptTypeInt.instance());
+		}
+
+		
 }

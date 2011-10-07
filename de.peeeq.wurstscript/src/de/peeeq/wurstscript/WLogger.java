@@ -1,22 +1,11 @@
 package de.peeeq.wurstscript;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.util.logging.FileHandler;
-import java.util.logging.SimpleFormatter;
-
-import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
-import org.apache.log4j.Appender;
 import org.apache.log4j.DailyRollingFileAppender;
 import org.apache.log4j.Layout;
 import org.apache.log4j.Logger;
 import org.apache.log4j.SimpleLayout;
-
-import de.peeeq.wurstscript.utils.Utils;
 
 public class WLogger {
 

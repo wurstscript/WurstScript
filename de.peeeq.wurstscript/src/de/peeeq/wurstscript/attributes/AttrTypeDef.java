@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.ast.WEntityPos;
 import de.peeeq.wurstscript.ast.WPackagePos;
 import de.peeeq.wurstscript.types.NativeTypes;
 import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.utils.Utils;
 
 
 /**
@@ -24,9 +25,9 @@ public class AttrTypeDef extends Attribute<TypeRefPos, TypeDefPos> {
 	protected TypeDefPos calculate(TypeRefPos node) {
 		String typeName = node.typeName().term();
 		
-		PscriptType nativeType = NativeTypes.nativeType(typeName);
+		PscriptType nativeType = NativeTypes.nativeType(typeName, Utils.isJassCode(node));
 		if (nativeType != null) {
-			return null;
+			return null; // native types have no definitionPos
 		}
 		
 		

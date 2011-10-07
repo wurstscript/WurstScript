@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.validation;
 
 import katja.common.NE;
-import de.peeeq.wurstscript.ast.AST.SortPos;
 import de.peeeq.wurstscript.ast.CompilationUnitPos;
 import de.peeeq.wurstscript.ast.ExprFunctionCallPos;
 import de.peeeq.wurstscript.ast.ExprMemberMethodPos;
@@ -13,11 +12,7 @@ import de.peeeq.wurstscript.ast.LocalVarDefPos;
 import de.peeeq.wurstscript.ast.StmtIfPos;
 import de.peeeq.wurstscript.ast.StmtSetPos;
 import de.peeeq.wurstscript.ast.StmtWhilePos;
-import de.peeeq.wurstscript.ast.TopLevelDeclarationPos;
 import de.peeeq.wurstscript.ast.TypeExprPos;
-import de.peeeq.wurstscript.ast.WEntityPos;
-import de.peeeq.wurstscript.ast.WPackagePos;
-import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WPosPos;
 import de.peeeq.wurstscript.attributes.Attributes;
 import de.peeeq.wurstscript.gui.ProgressHelper;

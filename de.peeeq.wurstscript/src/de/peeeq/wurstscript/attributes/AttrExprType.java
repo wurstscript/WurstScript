@@ -47,6 +47,7 @@ import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PScriptTypeCode;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
+import de.peeeq.wurstscript.types.PScriptTypeJassInt;
 import de.peeeq.wurstscript.types.PScriptTypeNull;
 import de.peeeq.wurstscript.types.PScriptTypeReal;
 import de.peeeq.wurstscript.types.PScriptTypeString;
@@ -73,7 +74,11 @@ public class AttrExprType extends Attribute<ExprPos, PscriptType> {
 
 			@Override
 			public PscriptType CaseExprIntValPos(ExprIntValPos term) throws NE {
-				return PScriptTypeInt.instance();
+				if (Utils.isJassCode(term)) {
+					return PScriptTypeJassInt.instance();
+				} else {
+					return PScriptTypeInt.instance();
+				}
 			}
 
 			@Override
@@ -263,7 +268,7 @@ public class AttrExprType extends Attribute<ExprPos, PscriptType> {
 
 					private PscriptType caseMathOperation() {
 						if (leftType instanceof PScriptTypeInt && rightType instanceof PScriptTypeInt) {
-							return PScriptTypeInt.instance();
+							return leftType;
 						}
 						if (leftType instanceof PScriptTypeReal || leftType instanceof PScriptTypeInt) {
 							if (rightType instanceof PScriptTypeReal || rightType instanceof PScriptTypeInt) {
@@ -320,7 +325,7 @@ public class AttrExprType extends Attribute<ExprPos, PscriptType> {
 					public PscriptType CaseOpModIntPos(OpModIntPos op)
 							throws NE {
 						if (leftType instanceof PScriptTypeInt || rightType instanceof PScriptTypeInt) {
-							return PScriptTypeInt.instance();
+							return leftType;
 						}
 						attr.addError(term.source(), "Operator " + term.op().term() +" is not defined for " +
 								"operands " + leftType + " and " + rightType);
@@ -331,7 +336,7 @@ public class AttrExprType extends Attribute<ExprPos, PscriptType> {
 					public PscriptType CaseOpDivIntPos(OpDivIntPos op)
 							throws NE {
 						if (leftType instanceof PScriptTypeInt && rightType instanceof PScriptTypeInt) {
-							return PScriptTypeInt.instance();
+							return leftType;
 						}
 						attr.addError(term.source(), "Operator " + term.op().term() +" is not defined for " +
 								"operands " + leftType + " and " + rightType);
@@ -356,11 +361,8 @@ public class AttrExprType extends Attribute<ExprPos, PscriptType> {
 					@Override
 					public PscriptType CaseOpMinusPos(OpMinusPos op)
 							throws NE {
-						if (rightType instanceof PScriptTypeInt) { 
-							return PScriptTypeInt.instance();
-						}
-						if (rightType instanceof PScriptTypeReal) { 
-							return PScriptTypeReal.instance();
+						if (rightType instanceof PScriptTypeInt || rightType instanceof PScriptTypeReal) { 
+							return rightType;
 						}
 						attr.addError(term.source(), "Expected Int or Real after Minus but found " + rightType);
 						return PScriptTypeReal.instance();

@@ -1,16 +1,12 @@
 package de.peeeq.wurstscript.intermediateLang.translator;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import katja.common.NE;
-import de.peeeq.wurstscript.ast.AST.SortPos;
 import de.peeeq.wurstscript.ast.ArgumentsPos;
 import de.peeeq.wurstscript.ast.ClassDefPos;
+import de.peeeq.wurstscript.ast.ClassSlotPos;
 import de.peeeq.wurstscript.ast.CompilationUnitPos;
 import de.peeeq.wurstscript.ast.ConstructorDefPos;
 import de.peeeq.wurstscript.ast.ExprAssignablePos;
@@ -40,6 +36,7 @@ import de.peeeq.wurstscript.ast.JassGlobalBlockPos;
 import de.peeeq.wurstscript.ast.LocalVarDefPos;
 import de.peeeq.wurstscript.ast.NativeFuncPos;
 import de.peeeq.wurstscript.ast.NativeTypePos;
+import de.peeeq.wurstscript.ast.OnDestroyDefPos;
 import de.peeeq.wurstscript.ast.OpAndPos;
 import de.peeeq.wurstscript.ast.OpDivIntPos;
 import de.peeeq.wurstscript.ast.OpDivRealPos;
@@ -58,7 +55,6 @@ import de.peeeq.wurstscript.ast.OpPlusPos;
 import de.peeeq.wurstscript.ast.OpPos;
 import de.peeeq.wurstscript.ast.OpUnequalsPos;
 import de.peeeq.wurstscript.ast.OptTypeExprPos;
-import de.peeeq.wurstscript.ast.PackageOrGlobalPos;
 import de.peeeq.wurstscript.ast.StmtDecRefCountPos;
 import de.peeeq.wurstscript.ast.StmtDestroyPos;
 import de.peeeq.wurstscript.ast.StmtErrPos;
@@ -105,11 +101,11 @@ import de.peeeq.wurstscript.intermediateLang.IlsetUnary;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
-import de.peeeq.wurstscript.types.PScriptTypeReal;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.utils.NotNullList;
+import de.peeeq.wurstscript.utils.TopsortCycleException;
 import de.peeeq.wurstscript.utils.Utils;
 /**
  * translates an AST into the intermediate language
@@ -120,6 +116,7 @@ public class IntermediateLangTranslator {
 	private ILprog prog = new ILprog();
 	private Attributes attr;
 	private NameManagement names;
+	private GlobalInits globalInits = new GlobalInits();
 	
 	
 	public IntermediateLangTranslator(CompilationUnitPos cu, Attributes attr) {
@@ -164,8 +161,38 @@ public class IntermediateLangTranslator {
 			
 		}
 
+		
+		
+		createGlobalInitFunction();
+		
+		// TODO main function, call init function from main function
+		
+		
 		return prog;
 
+	}
+
+	private void createGlobalInitFunction() {
+		List<GlobalInit> inits;
+		try {
+			inits = globalInits.getSortedGlobalInits();
+		
+			ILfunction initFunc = names.getGlobalInitFunction();
+			initFunc.setReturnType(PScriptTypeVoid.instance());
+			initFunc.initParams();
+			List<ILStatement> body = new NotNullList<ILStatement>();
+			
+			for (GlobalInit g : inits) {
+				body.addAll(translateExpr(initFunc, g.v, g.init));
+			}
+					
+			initFunc.addBody(body);
+			prog.addFunction(initFunc);
+		} catch (TopsortCycleException e) {
+			@SuppressWarnings("unchecked")
+			List<GlobalInit> cycle = (List<GlobalInit>) e.activeItems;
+			attr.addError(cycle.get(0).init.source(), "Cycle in global dependencies: " + Utils.join(cycle, " -> "));
+		}
 	}
 
 	protected void translateGlobalBlock(JassGlobalBlockPos globalBlock) {
@@ -813,18 +840,71 @@ public class IntermediateLangTranslator {
 	
 
 	private void addGlobalInit(ILvar v, ExprPos initialExpr) {
-		// TODO Auto-generated method stub
-		throw new Error("Not implemented yet.");
+		globalInits.add(v, initialExpr);
 	}
 
 	private void addGlobalInitializationDependency(ILvar v, ILvar dependsOn) {
-		// TODO Auto-generated method stub
-		throw new Error("Not implemented yet.");
+		globalInits.addDependency(v, dependsOn);
 	}
 
-	protected void transltateClassDef(WPackagePos p, ClassDefPos term) {
-		// TODO Auto-generated method stub
-		throw new Error("not implemented");
+	protected void transltateClassDef(final WPackagePos pack, final ClassDefPos classDef) {
+		String packageName = pack.name().term();
+		String className = classDef.name().term();
+		
+		final List<GlobalVarDefPos> classVars = new NotNullList<GlobalVarDefPos>();
+		final List<ConstructorDefPos> constructors = new NotNullList<ConstructorDefPos>();
+		final ILfunction destroyFunc = names.getDestroyFunction(classDef);
+		
+		
+		for (ClassSlotPos elem : classDef.slots()) {
+			elem.Switch(new ClassSlotPos.Switch<Void, NE>() {
+
+				@Override
+				public Void CaseGlobalVarDefPos(GlobalVarDefPos varDef) throws NE {
+					ILvar v = names.getILvarForClassMemberDef(varDef);
+					prog.addGlobalVar(v);
+					classVars.add(varDef);
+					return null;
+				}
+
+				@Override
+				public Void CaseFuncDefPos(FuncDefPos term) throws NE {
+					ILfunction func = names.getFunction(term);
+					func.setReturnType(attr.typeExprType.get(term.signature().typ()));
+					func.initParams();
+					// add the implicit parameter "this"
+					func.addParam(names.getThis(term));
+					// translate other parameters:
+					for (WParameterPos p : term.signature().parameters()) {
+						func.addParam(new ILvar(p.name().term(), attr.typeExprType.get(p.typ())));
+					}
+					func.addBody(translateStatements(func, term.body()));
+					prog.addFunction(func);
+					return null;
+				}
+
+				@Override
+				public Void CaseConstructorDefPos(ConstructorDefPos term) throws NE {
+					constructors.add(term);
+					return null;
+				}
+
+				@Override
+				public Void CaseOnDestroyDefPos(OnDestroyDefPos term) throws NE {
+					destroyFunc.addBody(translateStatements(destroyFunc, term.body()));			
+					return null;
+				}
+			});
+		}
+		
+		// create global variables needed for management
+		
+		
+		// create constructors
+		
+		// finish destroy function
+		
+		// TODO finish class translation
 	}
 	
 	/**

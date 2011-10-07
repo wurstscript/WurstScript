@@ -1,19 +1,16 @@
 package de.peeeq.wurstscript.utils;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-
-import javax.xml.bind.helpers.DefaultValidationEventHandler;
+import java.util.Set;
 
 import com.google.common.base.Function;
 
-import de.peeeq.wurstscript.ast.CompilationUnitPos;
 import de.peeeq.wurstscript.ast.AST.SortPos;
-import de.peeeq.wurstscript.ast.ExprPos;
-import de.peeeq.wurstscript.ast.ExprVarAccessPos;
-import de.peeeq.wurstscript.ast.OpDivRealPos;
 import de.peeeq.wurstscript.ast.WPackagePos;
-import de.peeeq.wurstscript.intermediateLang.ILvar;
 
 public class Utils {
 
@@ -167,6 +164,10 @@ public class Utils {
 			if (t.isInstance(p)) {
 				result.add((T) p);
 			}
+			if (p == pos) {
+				// reached start again
+				break;
+			}
 			p = p.postOrder();
 		}
 		
@@ -176,11 +177,15 @@ public class Utils {
 	public static <T>  T[] array(T ... ar) {
 		return ar;
 	}
+	
+	public static int[] array(int ... ar) {
+		return ar;
+	}
 
-	public static String join(Iterable<String> hints, String seperator) {
+	public static <T> String join(Iterable<T> hints, String seperator) {
 		StringBuilder result = new StringBuilder();
 		boolean first = true;
-		for (String s : hints) {
+		for (T s : hints) {
 			result.append(s);
 			if (!first) {
 				result.append(seperator);
@@ -190,5 +195,45 @@ public class Utils {
 		return result.toString();
 	}
 
-
+	
+	/**
+	 * sorts a list with partitial ordering topologically.
+	 * If a > b then a will appear before b in the result list
+	 * @param items items to sort
+	 * @param biggerItems a function to get all the bigger items for a given item
+	 * @return a sorted list
+	 * @throws TopsortCycleException if there exist items a,b so that a > b and b > a 
+	 */
+	public static <T> List<T> topSort(Collection<T> items, Function<T, Collection<T>> biggerItems) throws TopsortCycleException {
+		Set<T> visitedItems = new HashSet<T>();
+		List<T> result = new ArrayList<T>(items.size());
+		LinkedList<T> activeItems = new LinkedList<T>();
+		for (T t : items) {
+			if (t == null) throw new IllegalArgumentException();
+			topSortHelper(result, visitedItems, activeItems, biggerItems, t);
+		}
+		return result;
+	}
+	
+	private static <T> void topSortHelper(List<T> result, Set<T> visitedItems, LinkedList<T> activeItems, Function<T, Collection<T>> biggerItems, T item) throws TopsortCycleException {
+		if (visitedItems.contains(item)) {
+			return;
+		}
+		if (activeItems.contains(item)) { // This is not constant time, could be more efficient
+			while (activeItems.get(0) != item) {
+				activeItems.remove(0);
+			}
+			throw new TopsortCycleException(activeItems);
+		}
+		activeItems.add(item);
+		visitedItems.add(item);
+		for (T t : biggerItems.apply(item)) {
+			if (t == null) throw new IllegalArgumentException();
+			topSortHelper(result, visitedItems, activeItems, biggerItems, t);
+		}
+		result.add(item);
+		activeItems.removeLast();
+	}
+	
+	
 }

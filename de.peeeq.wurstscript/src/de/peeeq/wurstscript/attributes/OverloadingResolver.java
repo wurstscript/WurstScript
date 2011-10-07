@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.List;
 
 import katja.common.NE;
-
 import de.peeeq.wurstscript.ast.ConstructorDefPos;
 import de.peeeq.wurstscript.ast.ExprFuncRefPos;
 import de.peeeq.wurstscript.ast.ExprFunctionCallPos;

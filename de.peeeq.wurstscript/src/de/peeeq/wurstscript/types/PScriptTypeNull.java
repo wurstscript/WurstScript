@@ -12,7 +12,8 @@ public class PScriptTypeNull extends PscriptType {
 	public boolean isSubtypeOf(PscriptType other) {
 		return other instanceof PScriptTypeNull
 				|| other.isSubtypeOf(PScriptTypeHandle.instance())
-				|| other instanceof PScriptTypeString;
+				|| other instanceof PScriptTypeString
+				|| other instanceof PScriptTypeCode;
 	}
 
 

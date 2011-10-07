@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.intermediateLang;
 
 import de.peeeq.wurstscript.types.PScriptTypeInt;
-import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class ILsetBinary extends ILStatementSet {

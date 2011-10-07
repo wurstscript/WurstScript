@@ -4,18 +4,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 import katja.common.NE;
-
-import com.google.common.base.Function;
-
-import de.peeeq.wurstscript.ast.AST;
-import de.peeeq.wurstscript.ast.AST.SortPos;
 import de.peeeq.wurstscript.ast.ClassDefPos;
 import de.peeeq.wurstscript.ast.ClassSlotPos;
 import de.peeeq.wurstscript.ast.CompilationUnitPos;
 import de.peeeq.wurstscript.ast.FuncDefPos;
 import de.peeeq.wurstscript.ast.GlobalVarDefPos;
 import de.peeeq.wurstscript.ast.JassGlobalBlockPos;
-import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.LocalVarDefPos;
 import de.peeeq.wurstscript.ast.TopLevelDeclarationPos;
 import de.peeeq.wurstscript.ast.VarDefPos;
@@ -23,7 +17,6 @@ import de.peeeq.wurstscript.ast.WEntityPos;
 import de.peeeq.wurstscript.ast.WPackagePos;
 import de.peeeq.wurstscript.ast.WParameterPos;
 import de.peeeq.wurstscript.ast.WScopePos;
-import de.peeeq.wurstscript.utils.Utils;
 
 
 /**

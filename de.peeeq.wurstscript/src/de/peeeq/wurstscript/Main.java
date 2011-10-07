@@ -1,19 +1,8 @@
 package de.peeeq.wurstscript;
 
-import java.awt.Component;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.io.PrintWriter;
-import java.io.Writer;
-
-import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
-import de.peeeq.wurstscript.ast.AST;
-import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGuiImpl;
-import de.peeeq.wurstscript.intermediateLang.ILprog;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class Main {

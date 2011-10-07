@@ -6,7 +6,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.StringReader;
 import java.util.List;
 
 import java_cup.runtime.Symbol;
@@ -20,7 +19,6 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediateLang.ILprog;
 import de.peeeq.wurstscript.intermediateLang.translator.IntermediateLangTranslator;
 import de.peeeq.wurstscript.parser.ExtendedParser;
-import de.peeeq.wurstscript.parser.ParserException;
 import de.peeeq.wurstscript.parser.WurstScriptScanner;
 import de.peeeq.wurstscript.utils.NotNullList;
 import de.peeeq.wurstscript.validation.WurstValidator;

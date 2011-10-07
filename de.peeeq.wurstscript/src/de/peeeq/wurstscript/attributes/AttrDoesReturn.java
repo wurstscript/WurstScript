@@ -30,7 +30,7 @@ public class AttrDoesReturn extends Attribute<WStatementsPos, Boolean> {
 			if (s instanceof StmtReturnPos) {
 				returns = true;
 			}
-			// TODO voidreturns, break & exitwhen?
+			// TODO AttrDoesReturn - voidreturns, break & exitwhen?
 			if (s instanceof StmtIfPos) {
 				StmtIfPos stmtIfPos = (StmtIfPos) s;
 				returns = get(stmtIfPos.thenBlock()) && get(stmtIfPos.elseBlock()); 
