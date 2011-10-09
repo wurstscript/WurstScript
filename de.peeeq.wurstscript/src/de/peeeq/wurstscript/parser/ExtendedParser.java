@@ -103,7 +103,7 @@ public class ExtendedParser extends parser {
 		
 		String msg;
 		if (s.sym == TokenType.error) {
-			msg = "Lexical error: unexpected symbol " + s.value;
+			msg = "Lexical error: unexpected symbol <" + s.value + "> ";
 		} else {
 			msg = "Grammatical error: unexpected " + symbolToString(s);
 		}

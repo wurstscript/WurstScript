@@ -1,9 +1,7 @@
 package de.peeeq.wurstscript.ast;
 
+import katja.common.*;
 import java.io.IOException;
-
-import katja.common.KatjaList;
-import katja.common.KatjaListImpl;
 
 public interface CompilationUnit extends de.peeeq.wurstscript.ast.PackageOrGlobal, KatjaList<de.peeeq.wurstscript.ast.TopLevelDeclaration> {
 

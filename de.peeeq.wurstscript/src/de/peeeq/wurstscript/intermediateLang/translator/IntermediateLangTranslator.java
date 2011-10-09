@@ -3,7 +3,10 @@ package de.peeeq.wurstscript.intermediateLang.translator;
 import java.util.LinkedList;
 import java.util.List;
 
+import static de.peeeq.wurstscript.ast.AST.*;
+
 import katja.common.NE;
+import de.peeeq.wurstscript.ast.AST;
 import de.peeeq.wurstscript.ast.ArgumentsPos;
 import de.peeeq.wurstscript.ast.ClassDefPos;
 import de.peeeq.wurstscript.ast.ClassSlotPos;
@@ -71,7 +74,9 @@ import de.peeeq.wurstscript.ast.VarDefPos;
 import de.peeeq.wurstscript.ast.WEntityPos;
 import de.peeeq.wurstscript.ast.WPackagePos;
 import de.peeeq.wurstscript.ast.WParameterPos;
+import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WStatementPos;
+import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.ast.WStatementsPos;
 import de.peeeq.wurstscript.attributes.Attributes;
 import de.peeeq.wurstscript.intermediateLang.ILStatement;
@@ -91,6 +96,7 @@ import de.peeeq.wurstscript.intermediateLang.ILprog;
 import de.peeeq.wurstscript.intermediateLang.ILreturn;
 import de.peeeq.wurstscript.intermediateLang.ILreturnVoid;
 import de.peeeq.wurstscript.intermediateLang.ILsetBinary;
+import de.peeeq.wurstscript.intermediateLang.ILsetBinaryCR;
 import de.peeeq.wurstscript.intermediateLang.ILsetVar;
 import de.peeeq.wurstscript.intermediateLang.ILsetVarArray;
 import de.peeeq.wurstscript.intermediateLang.ILvar;
@@ -98,9 +104,11 @@ import de.peeeq.wurstscript.intermediateLang.IlbuildinFunctionCall;
 import de.peeeq.wurstscript.intermediateLang.Iloperator;
 import de.peeeq.wurstscript.intermediateLang.IlsetConst;
 import de.peeeq.wurstscript.intermediateLang.IlsetUnary;
+import de.peeeq.wurstscript.types.NativeTypes;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
+import de.peeeq.wurstscript.types.PScriptTypeString;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
@@ -117,8 +125,8 @@ public class IntermediateLangTranslator {
 	private Attributes attr;
 	private NameManagement names;
 	private GlobalInits globalInits = new GlobalInits();
-	
-	
+
+
 	public IntermediateLangTranslator(CompilationUnitPos cu, Attributes attr) {
 		this.cu = cu;
 		this.attr = attr;
@@ -158,34 +166,79 @@ public class IntermediateLangTranslator {
 					return null;
 				}
 			});
-			
+
 		}
 
+
+
+		ILfunction globalInitFunction = createGlobalInitFunction();
+		ILfunction initalizerFunction = createPackageInitializerFunction();
 		
-		
-		createGlobalInitFunction();
+		ILfunction mainFunction = getMainFunction();
+		mainFunction.addBeforeBody(new ILfunctionCall(null, initalizerFunction.getName()));
+		prog.addCallDependency(mainFunction, initalizerFunction);
+		mainFunction.addBeforeBody(new ILfunctionCall(null, globalInitFunction.getName()));
+		prog.addCallDependency(mainFunction, globalInitFunction);
 		
 		// TODO main function, call init function from main function
-		
-		
+		try {
+			prog.sortFunctions();
+		} catch (TopsortCycleException e) {
+			List<ILfunction> cycle = (List<ILfunction>) e.activeItems;
+			attr.addError(cycle.get(0).source() , "There are mutually recursive calls between the following functions: " + 
+					Utils.join(cycle, ", "));
+		}
+
+
 		return prog;
 
 	}
 
-	private void createGlobalInitFunction() {
+	private ILfunction createPackageInitializerFunction() {
+		ILfunction initFunc = new ILfunction("wurst_packageinits", AST.WPos("generated", 0, 0));
+		prog.addFunction(initFunc);
+		initFunc.initParams();
+		initFunc.setReturnType(PScriptTypeVoid.instance());
+		List<ILStatement> statements = new NotNullList<ILStatement>();
+		for (ILfunction i : prog.getInitFunctions()) {
+			statements.add(new ILfunctionCall(null, i.getName()));
+			prog.addCallDependency(initFunc, i);
+		}
+		
+		initFunc.addBody(statements);
+		return initFunc ;
+	}
+
+	private ILfunction getMainFunction() {
+		for (ILfunction f : prog.getFunctions()) {
+			if (f.getName().equals("main")) {
+				return f;
+			}
+		}
+		// create main function if it does not exist
+		ILfunction mainFunction = new ILfunction("main", AST.WPos("generated", 0, 0));
+		prog.addFunction(mainFunction);
+		mainFunction.initParams();
+		mainFunction.setReturnType(PScriptTypeVoid.instance());
+		return mainFunction;
+	}
+
+	private ILfunction createGlobalInitFunction() {
 		List<GlobalInit> inits;
+		ILfunction initFunc = names.getGlobalInitFunction();
+		prog.addFunction(initFunc);
 		try {
 			inits = globalInits.getSortedGlobalInits();
-		
-			ILfunction initFunc = names.getGlobalInitFunction();
+
+			
 			initFunc.setReturnType(PScriptTypeVoid.instance());
 			initFunc.initParams();
 			List<ILStatement> body = new NotNullList<ILStatement>();
-			
+
 			for (GlobalInit g : inits) {
 				body.addAll(translateExpr(initFunc, g.v, g.init));
 			}
-					
+
 			initFunc.addBody(body);
 			prog.addFunction(initFunc);
 		} catch (TopsortCycleException e) {
@@ -193,6 +246,7 @@ public class IntermediateLangTranslator {
 			List<GlobalInit> cycle = (List<GlobalInit>) e.activeItems;
 			attr.addError(cycle.get(0).init.source(), "Cycle in global dependencies: " + Utils.join(cycle, " -> "));
 		}
+		return initFunc;
 	}
 
 	protected void translateGlobalBlock(JassGlobalBlockPos globalBlock) {
@@ -246,6 +300,8 @@ public class IntermediateLangTranslator {
 
 	protected void translateInitBlock(WPackagePos p, InitBlockPos term) {
 		ILfunction initFunc = names.getInitBlockFunction(p, term);
+		initFunc.initParams();
+		initFunc.setReturnType(PScriptTypeVoid.instance());
 		prog.addInitializer(initFunc);
 		translateFunctionBody(initFunc, term.body());
 
@@ -263,7 +319,7 @@ public class IntermediateLangTranslator {
 		for (WParameterPos param : term.signature().parameters()) {
 			func.addParam(new ILvar(param.name().term(), attr.typeExprType.get(param.typ())));
 		}
-		
+
 		OptTypeExprPos retTyp = term.signature().typ();
 		if (retTyp instanceof TypeExprPos) {
 			func.setReturnType(attr.typeExprType.get((TypeExprPos) retTyp));
@@ -273,11 +329,11 @@ public class IntermediateLangTranslator {
 		translateFunctionBody(func, term.body());
 	}
 
-	
-	
-	
-	
-	
+
+
+
+
+
 
 	private void translateFunctionBody(ILfunction func, WStatementsPos body) {
 		func.addBody(translateStatements(func, body));
@@ -290,6 +346,13 @@ public class IntermediateLangTranslator {
 			result.addAll(translateStatement(func, s));
 		}
 		return result;
+	}
+
+	private boolean isMemberVar(VarDefPos varDef) {
+		if (varDef.parent().parent() instanceof ClassDefPos) {
+			return true;
+		}
+		return false;
 	}
 
 	private List<ILStatement> translateStatement(final ILfunction func, WStatementPos s) {
@@ -309,8 +372,8 @@ public class IntermediateLangTranslator {
 			@Override
 			public List<ILStatement> CaseExprNewObjectPos(ExprNewObjectPos term) throws NE {
 				// get constructor for this
-				
-				
+
+
 				// TODO implement new expr
 				throw new Error("not implemented");
 			}
@@ -390,8 +453,22 @@ public class IntermediateLangTranslator {
 					public List<ILStatement> CaseExprVarAccessPos(ExprVarAccessPos left) throws NE {
 						VarDefPos varDef = attr.varDef.get(left);
 						ILvar v = names.getILvarForVarDef(varDef);
+						if (isMemberVar(varDef)) {
 
-						result.addAll(translateExpr(func, v, term.right()));
+
+							PscriptType typ = attr.exprType.get(term.right());
+							// evaluate right side
+							ILvar tempResult = names.getNewLocalVar(func, typ, "temp");
+							result.addAll(translateExpr(func, tempResult, term.right()));
+
+							ILvar thisVar = new ILvar("this", PScriptTypeInt.instance());
+							// v[this] = tempResult
+							result.add(new ILarraySetVar(v, thisVar , tempResult));
+							return result;
+						} else { // normal variable
+
+							result.addAll(translateExpr(func, v, term.right()));
+						}
 						return result;
 					}
 
@@ -431,7 +508,7 @@ public class IntermediateLangTranslator {
 					result.add(new ILreturnVoid());
 				}
 				return result;
-				
+
 			}
 
 			@Override
@@ -440,13 +517,13 @@ public class IntermediateLangTranslator {
 				if (type instanceof PscriptTypeClass) {
 					PscriptTypeClass classtype = (PscriptTypeClass) type;
 					ClassDefPos classDef = classtype.getClassDef();
-					
-					ILfunction func = names.getDestroyFunction(classDef);
-					
+
+					ILfunction destroyFunc = names.getDestroyFunction(classDef);
+
 					ILvar toDestroy = names.getNewLocalVar(func, classtype, "toDestroy");
 					result.addAll(translateExpr(func, toDestroy , term.obj()));
-					result.add(new ILfunctionCall(null, func.getName(), Utils.array(classtype), Utils.array(toDestroy)));
-					
+					result.add(new ILfunctionCall(null, destroyFunc.getName(), Utils.array(classtype), Utils.array(toDestroy)));
+
 				} else {
 					attr.addError(term.obj().source(), "Cannot destroy objects of type " + type);
 				}
@@ -490,12 +567,12 @@ public class IntermediateLangTranslator {
 		ExprPos left = term.left();
 		FunctionDefinitionPos calledFuncDef = attr.funcDef.get(term);
 		ILfunction calledFunc = names.getFunction(calledFuncDef);
-		
+
 		// translate left expr
 		ILvar tempLeft = names.getNewLocalVar(func, PScriptTypeInt.instance(), "receiver");
-		
+
 		result.addAll(translateExpr(func, tempLeft, left));
-		
+
 		PscriptType[] argumentTypes = calledFunc.getParamTypes();
 		ILvar[] argumentVars = new ILvar[argumentTypes.length];
 		argumentVars[0] = tempLeft; // first argument is the implicit parameter
@@ -510,18 +587,20 @@ public class IntermediateLangTranslator {
 	protected List<ILStatement> translateFunctionCall(ILfunction func, final ILvar resultVar, ExprFunctionCallPos term, ArgumentsPos args) {
 		final List<ILStatement> result = new NotNullList<ILStatement>();
 		final FunctionDefinitionPos calledFunc = attr.funcDef.get(term);
-		
+
 		// add call dependency
-		prog.addCallDependency(func, names.getFunction(calledFunc));
-		
-		
+		if (! (calledFunc instanceof NativeFuncPos)) {
+			prog.addCallDependency(func, names.getFunction(calledFunc));
+		}
+
+
 		// translate Arguments:
 		int argCount = term.args().size();
 
 		final PscriptType[] argumentTypes = new PscriptType[argCount];
 		final ILvar[] argumentVars = new ILvar[argCount];
 
-		
+
 		for (int i = 0; i < argCount; i++) {
 			ExprPos arg = term.args().get(i);
 			WParameterPos param = calledFunc.signature().parameters().get(i);
@@ -545,13 +624,13 @@ public class IntermediateLangTranslator {
 				return null;
 			}
 		});
-		
+
 		return result;
 	}
 
-	
 
-	
+
+
 
 	protected List<ILStatement> translateExpr(final ILfunction func, final ILvar resultVar, ExprPos expr) {
 		final List<ILStatement> result = new NotNullList<ILStatement>();
@@ -591,9 +670,15 @@ public class IntermediateLangTranslator {
 
 			@Override
 			public List<ILStatement> CaseExprVarAccessPos(ExprVarAccessPos term) throws NE {
+
 				VarDefPos varDef = attr.varDef.get(term);
 				ILvar var = names.getILvarForVarDef(varDef);
-				result.add(new ILsetVar(resultVar, var));
+				if (isMemberVar(varDef)) {
+					ILvar thisVar = new ILvar("this", PScriptTypeInt.instance());
+					result.add(new ILsetVarArray(resultVar, var, thisVar ));
+				} else { // normal var:
+					result.add(new ILsetVar(resultVar, var));
+				}
 				return result;
 			}
 
@@ -605,8 +690,8 @@ public class IntermediateLangTranslator {
 					PScriptTypeArray typeA = (PScriptTypeArray) type;
 					ILvar indexResult = names.getNewLocalVar(func, PScriptTypeInt.instance(), "index");
 					result.addAll(calculateIndexes(func, typeA, indexResult, arAccess.indexes()));
-					
-					
+
+
 					ILvar arVar = names.getILvarForVarDef(varDef);
 					result.add(new ILsetVarArray(resultVar, arVar, indexResult));
 					return result;
@@ -650,7 +735,7 @@ public class IntermediateLangTranslator {
 					} else {
 						op = translateOp(term.op());
 					}
-					
+
 					result.add(new ILsetBinary(resultVar, leftVar, op, rightVar));
 				}
 				return result;
@@ -667,14 +752,20 @@ public class IntermediateLangTranslator {
 
 			@Override
 			public List<ILStatement> CaseExprMemberVarPos(ExprMemberVarPos term) throws NE {
-				// TODO member var expr
-				throw new Error("Not implemented yet.");
+				VarDefPos varDef = attr.varDef.get(term);
+				ILvar varDefVar = names.getILvarForClassMemberDef((GlobalVarDefPos) varDef);
+
+				ILvar index = names.getNewLocalVar(func, PScriptTypeInt.instance(), "index");
+				result.addAll(translateExpr(func, index, term.left()));
+				result.add(new ILsetVarArray(resultVar, varDefVar, index));
+
+				return result;
 			}
 
 			@Override
 			public List<ILStatement> CaseExprMemberArrayVarPos(ExprMemberArrayVarPos term) throws NE {
 				// TODO member arrayvar expr
-				throw new Error("Not implemented yet.");
+				throw new Error("Array member vars not implemented yet.");
 			}
 
 			@Override
@@ -701,16 +792,16 @@ public class IntermediateLangTranslator {
 		});
 	}
 
-	
+
 	protected List<ILStatement> translateExprNewPos(ILfunction func, ILvar resultVar, ExprNewObjectPos term) {
 		List<ILStatement> result = new NotNullList<ILStatement>();
-		
+
 		ConstructorDefPos constr = attr.constrDef.get(term);
-		
+
 		ILfunction constrFunc = names.getConstructorFunction(constr);
-		
+
 		// translate arguments
-		
+
 		PscriptType[] argumentTypes = constrFunc.getParamTypes();
 		ILvar[] argumentVars = new ILvar[argumentTypes.length];
 		for (int i=0; i<argumentTypes.length; i++) {
@@ -729,7 +820,7 @@ public class IntermediateLangTranslator {
 		}
 		return translateOp(op);
 	}
-	
+
 	protected Iloperator translateOp(OpPos op) {
 		return op.Switch(new OpPos.Switch<Iloperator, NE>() {
 
@@ -825,19 +916,19 @@ public class IntermediateLangTranslator {
 		// TODO inital value + global dependencies
 		if (term.initialExpr() instanceof ExprPos) {
 			ExprPos initialExpr = (ExprPos) term.initialExpr();
-			
+
 			List<ExprVarAccessPos> varRefs = Utils.collect(ExprVarAccessPos.class, initialExpr);
 			for (ExprVarAccessPos varRef : varRefs) {
 				ILvar dependsOn = names.getILvarForVarDef(attr.varDef.get(varRef));
 				addGlobalInitializationDependency(v, dependsOn);
 			}
-			
-			
+
+
 			addGlobalInit(v, initialExpr);
 		}
 	}
 
-	
+
 
 	private void addGlobalInit(ILvar v, ExprPos initialExpr) {
 		globalInits.add(v, initialExpr);
@@ -850,12 +941,17 @@ public class IntermediateLangTranslator {
 	protected void transltateClassDef(final WPackagePos pack, final ClassDefPos classDef) {
 		String packageName = pack.name().term();
 		String className = classDef.name().term();
-		
+		String prefix = packageName + "_" + className + "_";
+
 		final List<GlobalVarDefPos> classVars = new NotNullList<GlobalVarDefPos>();
 		final List<ConstructorDefPos> constructors = new NotNullList<ConstructorDefPos>();
 		final ILfunction destroyFunc = names.getDestroyFunction(classDef);
-		
-		
+		prog.addFunction(destroyFunc);
+		destroyFunc.initParams();
+		destroyFunc.addParam(new ILvar("this", PScriptTypeInt.instance()));
+		destroyFunc.setReturnType(PScriptTypeVoid.instance());
+
+
 		for (ClassSlotPos elem : classDef.slots()) {
 			elem.Switch(new ClassSlotPos.Switch<Void, NE>() {
 
@@ -896,17 +992,112 @@ public class IntermediateLangTranslator {
 				}
 			});
 		}
-		
+
 		// create global variables needed for management
-		
-		
+		ILvar nextFree = new ILvar(names.getNewName(prefix + "nextFree"), new PScriptTypeArray(PScriptTypeInt.instance(), Utils.array(1)));
+		prog.addGlobalVar(nextFree);
+		ILvar firstFree = new ILvar(names.getNewName(prefix + "firstFree"), PScriptTypeInt.instance());
+		prog.addGlobalVar(firstFree);
+		ILvar maxIndex = new ILvar(names.getNewName(prefix + "maxIndex"), PScriptTypeInt.instance());
+		prog.addGlobalVar(maxIndex);
+
+
 		// create constructors
-		
+		for (ConstructorDefPos constr : constructors) {
+			translateConstructor(nextFree, firstFree, maxIndex, classVars, constr);
+		}
+
 		// finish destroy function
-		
-		// TODO finish class translation
+		finishDestroyFunc(nextFree, firstFree, maxIndex, destroyFunc);
+
 	}
-	
+
+	private void translateConstructor(ILvar nextFree, ILvar firstFree, ILvar maxIndex, List<GlobalVarDefPos> classVars, ConstructorDefPos constr) {
+		ILfunction func = names.getConstructorFunction(constr);
+		prog.addFunction(func);
+
+		func.initParams();
+		for (WParameterPos p : constr.params()) {
+			ILvar param = names.getILvarForVarDef(p);
+			func.addParam(param);
+		}
+		func.setReturnType(PScriptTypeInt.instance());
+		ILvar thisVar = new ILvar("this", PScriptTypeInt.instance());
+		func.addLocalVar(thisVar);
+
+
+		List<ILStatement> statements = new NotNullList<ILStatement>();
+		// if has free indexes (firstFree > 0)
+		ILvar hasFree = names.getNewLocalVar(func, PScriptTypeBool.instance(), "hasFree");
+		statements.add(new ILsetBinaryCR(hasFree, firstFree, Iloperator.GREATER, new ILconstInt(0)));
+		List<ILStatement> thenBlock = new NotNullList<ILStatement>();
+		// then
+		// 		this = firstFree 
+		thenBlock.add(new ILsetVar(thisVar, firstFree));
+		//		firstFree = nextFree[this]
+		thenBlock.add(new ILsetVarArray(firstFree, nextFree, thisVar));
+		// else
+		List<ILStatement> elseBlock = new NotNullList<ILStatement>();
+		// 		maxIndex = maxIndex + 1
+		elseBlock.add(new ILsetBinaryCR(maxIndex, maxIndex, Iloperator.PLUS, new ILconstInt(1)));
+		// 		this = maxIndex
+		elseBlock.add(new ILsetVar(thisVar, maxIndex));
+		statements.add(new ILif(hasFree, thenBlock, elseBlock));
+		// endif
+		// nextFree[this] = -1
+		ILvar minusOne = names.getNewLocalVar(func, PScriptTypeInt.instance(), "minusOne");
+		statements.add(new IlsetConst(minusOne , new ILconstInt(-1)));
+		statements.add(new ILarraySetVar(nextFree, thisVar, minusOne));
+
+		// initialize member vars
+		for (GlobalVarDefPos classVar : classVars) {
+			PscriptType varType = attr.varDefType.get(classVar);
+			ILvar tempVar = names.getNewLocalVar(func, varType, "temp");
+			if (classVar.initialExpr() instanceof ExprPos) {
+				ExprPos initial = (ExprPos) classVar.initialExpr();
+				statements.addAll(translateExpr(func, tempVar , initial));
+			} else {
+				statements.add(new IlsetConst(tempVar, NativeTypes.getDefaultValue(varType)));
+			}
+			statements.add(new ILarraySetVar(names.getILvarForClassMemberDef(classVar), thisVar, tempVar));
+		}
+		func.addBody(statements );
+
+		// translate body
+		func.addBody(translateStatements(func, constr.body()));
+		// return this
+		func.addBody(Utils.list(new ILreturn(thisVar)));
+	}
+
+	private void finishDestroyFunc(ILvar nextFree, ILvar firstFree, ILvar maxIndex, ILfunction destroyFunc) {
+
+		/* the following code would look like this in nice syntax:
+		 if (nextFree[this] < 0) {
+		  error
+		 } else {
+		 	nextFree[this] = firstFree
+		 	firstFree = this
+		 }
+		 */
+		List<ILStatement> statements = new NotNullList<ILStatement>();
+		ILvar varThis = new ILvar("this", PScriptTypeInt.instance());
+
+		ILvar doubleFree = names.getNewLocalVar(destroyFunc, PScriptTypeBool.instance(), "doubleFree");
+		ILvar left = names.getNewLocalVar(destroyFunc, PScriptTypeInt.instance(), "lef");
+		statements.add(new ILsetVarArray(left, nextFree, varThis));
+		statements.add(new ILsetBinaryCR(doubleFree, left, Iloperator.GREATER_EQ, new ILconstInt(0)));
+		List<ILStatement> thenBlock = new NotNullList<ILStatement>();
+		ILvar msg = names.getNewLocalVar(destroyFunc, PScriptTypeString.instance(), "msg");
+		thenBlock.add(new IlsetConst(msg, new ILconstString("double free")));
+		thenBlock.add(new ILerror(msg));		
+		List<ILStatement> elseBlock = new NotNullList<ILStatement>();
+		elseBlock.add(new ILarraySetVar(nextFree, varThis, firstFree));
+		elseBlock.add(new ILsetVar(firstFree, varThis));
+		statements.add(new ILif(doubleFree, thenBlock, elseBlock));
+
+		destroyFunc.addBody(statements);
+	}
+
 	/**
 	 * calculate the index for an array
 	 * @param func current function
@@ -919,39 +1110,39 @@ public class IntermediateLangTranslator {
 		if (indexesPos.size() > 1) {
 			throw new Error("Multidimensional arrays are not supported yet.");
 		}
-		
+
 		LinkedList<ILStatement> result = new LinkedList<ILStatement>();
 		result.addAll(translateExpr(func, indexResult, indexesPos.first()));			
 		return result;	
-		
-		
-//		LinkedList<ILStatement> result = new LinkedList<ILStatement>();
-//		ILvar[] indexVar = new ILvar[indexesPos.size()];
-//		ILvar[] indexVarM = new ILvar[indexesPos.size()];
-//		
-//		// calculate indizes
-//		for (int i = 0; i < indexesPos.size(); i++) {
-//			indexVar[i] = getNewLocalVar(func, PScriptTypeInt.instance(), "index");
-//			indexVarM[i] = getNewLocalVar(func, PScriptTypeInt.instance(), "indexM");
-//			
-//			int rightSize = 1;
-//			for (int j = i+1; j < indexesPos.size(); j++) {
-//				rightSize *= type.getSize(j);
-//			}
-//			
-//			//result.addAll(translateExpr(indizes.get(i), indexVar[i]));
-//			result.addAll(translateExpr(func, indexVar[i], indexesPos.get(i)));
-//			result.add(new ILsetBinaryCR(indexVarM[i], indexVar[i], Iloperator.MULT, new ILconstInt(rightSize)));
-//		}
-//		
-//		
-//		result.add(new ILsetVar(indexResult, indexVarM[0]));
-//		
-//		// calculate the sum of the indizes2:
-//		for (int i=1; i < indexesPos.size(); i++) {
-//			result.add(new ILsetBinary(indexResult, indexResult, Iloperator.PLUS, indexVarM[i]));
-//		}
-//		return result;
+
+
+		//		LinkedList<ILStatement> result = new LinkedList<ILStatement>();
+		//		ILvar[] indexVar = new ILvar[indexesPos.size()];
+		//		ILvar[] indexVarM = new ILvar[indexesPos.size()];
+		//		
+		//		// calculate indizes
+		//		for (int i = 0; i < indexesPos.size(); i++) {
+		//			indexVar[i] = getNewLocalVar(func, PScriptTypeInt.instance(), "index");
+		//			indexVarM[i] = getNewLocalVar(func, PScriptTypeInt.instance(), "indexM");
+		//			
+		//			int rightSize = 1;
+		//			for (int j = i+1; j < indexesPos.size(); j++) {
+		//				rightSize *= type.getSize(j);
+		//			}
+		//			
+		//			//result.addAll(translateExpr(indizes.get(i), indexVar[i]));
+		//			result.addAll(translateExpr(func, indexVar[i], indexesPos.get(i)));
+		//			result.add(new ILsetBinaryCR(indexVarM[i], indexVar[i], Iloperator.MULT, new ILconstInt(rightSize)));
+		//		}
+		//		
+		//		
+		//		result.add(new ILsetVar(indexResult, indexVarM[0]));
+		//		
+		//		// calculate the sum of the indizes2:
+		//		for (int i=1; i < indexesPos.size(); i++) {
+		//			result.add(new ILsetBinary(indexResult, indexResult, Iloperator.PLUS, indexVarM[i]));
+		//		}
+		//		return result;
 	}
 
 }

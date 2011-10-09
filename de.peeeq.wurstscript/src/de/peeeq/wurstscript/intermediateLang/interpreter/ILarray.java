@@ -64,4 +64,11 @@ public class ILarray extends ILconst {
 		throw new Error("Not implemented yet.");
 	}
 
+
+	@Override
+	public PscriptType getType() {
+		// TODO Auto-generated method stub
+		throw new Error("Not implemented yet.");
+	}
+
 }

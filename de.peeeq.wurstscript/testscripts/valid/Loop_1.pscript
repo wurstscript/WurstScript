@@ -7,11 +7,18 @@ package test {
 	
 	native testSuccess()
 	
-	function runTest() {
-		if 5 < 10 {
+	
+	init {
+		int i = 0
+		while i < 10 {
+			i = i + 1
+		}
+		if i == 10 {
 			testSuccess()
 		} else {
-			testFail("defect in lesser then if")
+			testFail("defect in whileLoop")
 		}
 	}
 }
+	
+	

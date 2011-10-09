@@ -1,11 +1,8 @@
 package de.peeeq.wurstscript.ast;
 
-import java.io.IOException;
 import java.util.List;
-
-import katja.common.KatjaNodePos;
-import katja.common.KatjaSort;
-import katja.common.KatjaTuplePosImpl;
+import katja.common.*;
+import java.io.IOException;
 
 public interface WPackagePos extends de.peeeq.wurstscript.ast.PackageOrGlobalPos, de.peeeq.wurstscript.ast.TopLevelDeclarationPos, de.peeeq.wurstscript.ast.AST.TuplePos<de.peeeq.wurstscript.ast.WPackage> {
 

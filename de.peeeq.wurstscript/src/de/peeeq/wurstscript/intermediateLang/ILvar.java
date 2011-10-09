@@ -1,6 +1,8 @@
 package de.peeeq.wurstscript.intermediateLang;
 
+import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.types.PscriptTypeClass;
 
 public class ILvar implements ILexpr {
 	private String name;
@@ -9,6 +11,15 @@ public class ILvar implements ILexpr {
 	
 	
 	public ILvar(String name, PscriptType type) {
+		if (type instanceof PScriptTypeArray) {
+			PScriptTypeArray arType = (PScriptTypeArray) type;
+			if (arType.getBaseType() instanceof PscriptTypeClass) {
+				throw new Error("Type error for variable " + name + " and " + type);
+			}
+		}
+		if (type instanceof PscriptTypeClass) {
+			throw new Error("Type error for variable " + name + " and " + type);
+		}
 		this.name = name;
 		this.type = type;
 	}
@@ -48,5 +59,10 @@ public class ILvar implements ILexpr {
 	@Override
 	public void printJass(StringBuilder sb, int indent) {
 		sb.append(type.printJass() + " " + name);
+	}
+
+	@Override
+	public void printJassExpr(StringBuilder sb, int indent) {
+		sb.append(name);
 	}
 }

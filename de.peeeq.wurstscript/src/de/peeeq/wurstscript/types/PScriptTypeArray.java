@@ -16,6 +16,13 @@ public class PScriptTypeArray extends PscriptType {
 	
 	
 	
+	public PScriptTypeArray(PscriptType baseType) {
+		this.baseType = baseType;
+		this.sizes = new int[1];
+	}
+
+
+
 	public PscriptType getBaseType() {
 		return baseType;
 	}

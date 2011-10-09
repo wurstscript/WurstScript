@@ -1,6 +1,6 @@
 
 
-function ModuloInteger takes integer dividend, integer divisor returns integer
+function ModuloInteger2 takes integer dividend, integer divisor returns integer
     local integer modulus = dividend - (dividend / divisor) * divisor
 
 
@@ -30,8 +30,8 @@ package test {
 	native I2S(integer i) returns string
 	
 	
-	function runTest() {
-		int i = ModuloInteger(10, 3)
+	init {
+		int i = ModuloInteger2(10, 3)
 		if (i == 1) {
 			testSuccess()
 		} else {

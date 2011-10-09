@@ -11,6 +11,8 @@ import com.google.common.base.Function;
 
 import de.peeeq.wurstscript.ast.AST.SortPos;
 import de.peeeq.wurstscript.ast.WPackagePos;
+import de.peeeq.wurstscript.intermediateLang.ILconst;
+import de.peeeq.wurstscript.intermediateLang.ILfunction;
 
 public class Utils {
 
@@ -19,7 +21,7 @@ public class Utils {
 			sb.append("\t");
 		}
 	}
-	
+
 	public static <T,R> List<R> map(Iterable<T> list, Function<T, R> function) {
 		List<R> result = new NotNullList<R>();
 		for (T t : list) {
@@ -28,7 +30,7 @@ public class Utils {
 		return result;
 	}
 
-	
+
 	public static <T> List<T> list(T ... args) {
 		List<T> result = new NotNullList<T>();
 		for (T t : args) {
@@ -58,18 +60,18 @@ public class Utils {
 			}
 		}
 		return result;
-		
-	}
-	
-//	public static void visitPostOrder(SortPos p, Function<SortPos, Void> func) {
-//		p = p.postOrderStart();
-//		while (p != null) {
-//			func.apply(p);
-//			p = p.postOrder();
-//		}
-//	}
 
-	
+	}
+
+	//	public static void visitPostOrder(SortPos p, Function<SortPos, Void> func) {
+	//		p = p.postOrderStart();
+	//		while (p != null) {
+	//			func.apply(p);
+	//			p = p.postOrder();
+	//		}
+	//	}
+
+
 
 	public static <T> void printSep(StringBuilder sb, String seperator, T[] args, Function<T, String> function) {
 		for (int i=0; i < args.length; i++) {
@@ -80,7 +82,7 @@ public class Utils {
 		}
 	}
 
-	
+
 	public static <T> void printSep(StringBuilder sb, String seperator, T[] args) {
 		for (int i=0; i < args.length; i++) {
 			if (i > 0) {
@@ -170,14 +172,14 @@ public class Utils {
 			}
 			p = p.postOrder();
 		}
-		
+
 		return result ;
 	}
 
 	public static <T>  T[] array(T ... ar) {
 		return ar;
 	}
-	
+
 	public static int[] array(int ... ar) {
 		return ar;
 	}
@@ -195,7 +197,20 @@ public class Utils {
 		return result.toString();
 	}
 
-	
+	public static <T> String join(T[] arguments, String seperator) {
+		StringBuilder result = new StringBuilder();
+		boolean first = true;
+		for (T s : arguments) {
+			result.append(s);
+			if (!first) {
+				result.append(seperator);
+			}
+			first = false;
+		}
+		return result.toString();
+	}
+
+
 	/**
 	 * sorts a list with partitial ordering topologically.
 	 * If a > b then a will appear before b in the result list
@@ -214,7 +229,7 @@ public class Utils {
 		}
 		return result;
 	}
-	
+
 	private static <T> void topSortHelper(List<T> result, Set<T> visitedItems, LinkedList<T> activeItems, Function<T, Collection<T>> biggerItems, T item) throws TopsortCycleException {
 		if (visitedItems.contains(item)) {
 			return;
@@ -227,13 +242,28 @@ public class Utils {
 		}
 		activeItems.add(item);
 		visitedItems.add(item);
+		System.out.println("visit " + item);
 		for (T t : biggerItems.apply(item)) {
+			System.out.println("	-> " + t);
 			if (t == null) throw new IllegalArgumentException();
 			topSortHelper(result, visitedItems, activeItems, biggerItems, t);
 		}
+		System.out.println("add " + item);
 		result.add(item);
 		activeItems.removeLast();
 	}
-	
-	
+
+	public static <T> boolean oneOf(T obj, T ... ts ) {
+		for (T t : ts) {
+			if (t.equals(obj)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+
+
+
+
 }

@@ -1,10 +1,7 @@
 package de.peeeq.wurstscript.ast;
 
+import katja.common.*;
 import java.io.IOException;
-
-import katja.common.KatjaTerm;
-import katja.common.KatjaTuple;
-import katja.common.KatjaTupleImpl;
 
 public interface FuncDef extends de.peeeq.wurstscript.ast.ClassMember, de.peeeq.wurstscript.ast.FunctionDefinition, de.peeeq.wurstscript.ast.WEntity, de.peeeq.wurstscript.ast.WScope, KatjaTuple {
 

@@ -4,14 +4,15 @@ package test {
 	nativetype int
 	
 	native testFail(string msg)
-	
 	native testSuccess()
-	
-	function runTest() {
-		if 5 <= 5 {
+
+	init {
+		int x
+		x = 1
+		if x == 1 {
 			testSuccess()
 		} else {
-			testFail("defect in lesser than or equal if")
+			testFail("defect in setting variable after declaration")
 		}
 	}
 }

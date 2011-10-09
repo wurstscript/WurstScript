@@ -6,12 +6,12 @@ package test {
 	native testFail(string msg)
 	
 	native testSuccess()
-
-	function runTest() {
-		if -3 < 0 {
+	
+	init {
+		if 5 <= 5 {
 			testSuccess()
 		} else {
-			testFail("defect in unary operation")
+			testFail("defect in lesser than or equal if")
 		}
 	}
-}		
+}

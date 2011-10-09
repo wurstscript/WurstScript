@@ -1,5 +1,8 @@
 package de.peeeq.wurstscript.intermediateLang;
 
+import de.peeeq.wurstscript.types.PScriptTypeInt;
+import de.peeeq.wurstscript.utils.Utils;
+
 
 @ILextended
 public class ILsetExpr extends ILStatementSet {
@@ -19,8 +22,11 @@ public class ILsetExpr extends ILStatementSet {
 
 	@Override
 	public void printJass(StringBuilder sb, int indent) {
-		// TODO Auto-generated method stub
-		throw new Error("Not implemented yet.");
+		Utils.printIndent(sb, indent);
+		sb.append("set " + getResultVar().getName() 
+				 + " = ");
+		expr.printJass(sb, indent);
+		sb.append("\n");
 	}
 	
 	

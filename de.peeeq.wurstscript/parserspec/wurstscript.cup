@@ -34,10 +34,10 @@ terminal
 	LBRACK, RBRACK, 
 	COMMA,   
 	NL,
-	STATIC, PACKAGE, RETURNS,FUNCTION, VAL, PUBLIC, PRIVATE, IMPORT, NATIVETYPE, INIT, NATIVE, INTERFACE,
+	STATIC, PACKAGE, RETURNS,FUNCTION, VAL, PUBLIC, PUBLICREAD, PRIVATE, IMPORT, NATIVETYPE, INIT, NATIVE, INTERFACE,
 	IMPLEMENTS, ARRAY, IF, ELSE, WHILE, RETURN, CLASS, NEW, NULL, EXTENDS, THIS, CONSTRUCT, ONDESTROY, 
 	TYPE, GLOBALS, ENDGLOBALS, CONSTANT, ENDFUNCTION, TAKES, NOTHING, LOCAL,
-	LOOP, ENDLOOP, EXITWHEN, SET, CALL, THEN, ELSEIF, ENDIF;
+	LOOP, ENDLOOP, EXITWHEN, SET, CALL, THEN, ELSEIF, ENDIF, DESTROY;
 
 non terminal Arguments Arguments;
 non terminal Arguments ArgumentRest;
@@ -199,9 +199,9 @@ ClassDef ::=
 ;
 
 ClassSlots ::=
-	ClassSlot:x ClassSlots:xs
+	Newlines ClassSlot:x ClassSlots:xs
 		{: RESULT = xs.appFront(x); :}
-	| 
+	| Newlines
 		{: RESULT = AST.ClassSlots(); :}
 ;
 
@@ -300,6 +300,11 @@ Statement ::=
 		{: RESULT = x; :}
 	| error:x NL
 		{: RESULT = AST.StmtErr(pos(xleft, xright)); :}
+;
+
+StmtDestroy ::=
+	DESTROY:x Expr:e NL
+		{: RESULT = AST.StmtDestroy(pos(xleft, xright), e); :}
 ;
 
 StmtReturn ::=

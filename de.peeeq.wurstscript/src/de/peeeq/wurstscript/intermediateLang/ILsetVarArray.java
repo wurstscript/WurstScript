@@ -10,6 +10,10 @@ public class ILsetVarArray extends ILStatementSet {
 	private ILvar var;
 	private ILvar index;
 
+
+	/**
+	 * set resultVar = var[index] 
+	 */
 	public ILsetVarArray(ILvar resultVar, ILvar var, ILvar index) {
 		super(resultVar);
 		this.var = var;

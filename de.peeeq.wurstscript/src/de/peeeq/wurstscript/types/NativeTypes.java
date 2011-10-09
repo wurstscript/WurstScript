@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.types;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstBool;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
+import de.peeeq.wurstscript.intermediateLang.ILconstNull;
 import de.peeeq.wurstscript.intermediateLang.ILconstNum;
 import de.peeeq.wurstscript.intermediateLang.ILconstString;
 
@@ -51,10 +52,13 @@ public class NativeTypes {
 			return new ILconstString(null);
 		}
 		if (type.isSubtypeOf(PScriptTypeCode.instance())) {
-			throw new Error("code has no default type");
+			return new ILconstNull();
 		}
 		if (type.isSubtypeOf(PScriptTypeHandle.instance())) {
-			// TODO 
+			return new ILconstNull();
+		}
+		if (type instanceof PscriptTypeClass) {
+			return new ILconstInt(0);
 		}
 		throw new Error("default value for type " + type + " not implemented");
 	}

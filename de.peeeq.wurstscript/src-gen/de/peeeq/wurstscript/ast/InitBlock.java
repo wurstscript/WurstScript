@@ -1,12 +1,9 @@
 package de.peeeq.wurstscript.ast;
 
+import katja.common.*;
 import java.io.IOException;
 
-import katja.common.KatjaTerm;
-import katja.common.KatjaTuple;
-import katja.common.KatjaTupleImpl;
-
-public interface InitBlock extends de.peeeq.wurstscript.ast.WEntity, KatjaTuple {
+public interface InitBlock extends de.peeeq.wurstscript.ast.WEntity, de.peeeq.wurstscript.ast.WScope, KatjaTuple {
 
     //----- methods of InitBlock -----
 
@@ -18,6 +15,7 @@ public interface InitBlock extends de.peeeq.wurstscript.ast.WEntity, KatjaTuple 
     public int size();
     public de.peeeq.wurstscript.ast.InitBlock replace(int pos, Object term);
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.WEntity.Switch<CT, E> switchClass) throws E;
+    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.WScope.Switch<CT, E> switchClass) throws E;
 
     //----- nested classes of InitBlock -----
 
@@ -223,6 +221,10 @@ public interface InitBlock extends de.peeeq.wurstscript.ast.WEntity, KatjaTuple 
         }
 
         public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.WEntity.Switch<CT, E> switchClass) throws E {
+            return switchClass.CaseInitBlock(this);
+        }
+
+        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.WScope.Switch<CT, E> switchClass) throws E {
             return switchClass.CaseInitBlock(this);
         }
 

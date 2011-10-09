@@ -7,11 +7,11 @@ package test {
 	
 	native testSuccess()
 
-	function runTest() {
-		if 1+2+3+4+5+6+7+8+9 == 45 {
+	init {
+		if not false {
 			testSuccess()
 		} else {
-			testFail("defect in long binary operation")
+			testFail("defect in not if")
 		}
 	}
 }

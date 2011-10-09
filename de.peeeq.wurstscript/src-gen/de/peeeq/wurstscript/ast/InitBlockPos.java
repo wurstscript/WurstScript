@@ -1,17 +1,15 @@
 package de.peeeq.wurstscript.ast;
 
-import java.io.IOException;
 import java.util.List;
+import katja.common.*;
+import java.io.IOException;
 
-import katja.common.KatjaNodePos;
-import katja.common.KatjaSort;
-import katja.common.KatjaTuplePosImpl;
-
-public interface InitBlockPos extends de.peeeq.wurstscript.ast.WEntityPos, de.peeeq.wurstscript.ast.AST.TuplePos<de.peeeq.wurstscript.ast.InitBlock> {
+public interface InitBlockPos extends de.peeeq.wurstscript.ast.WEntityPos, de.peeeq.wurstscript.ast.WScopePos, de.peeeq.wurstscript.ast.AST.TuplePos<de.peeeq.wurstscript.ast.InitBlock> {
 
     //----- methods of InitBlockPos -----
 
     public de.peeeq.wurstscript.ast.InitBlock termWEntity();
+    public de.peeeq.wurstscript.ast.InitBlock termWScope();
     public de.peeeq.wurstscript.ast.InitBlock term();
     public de.peeeq.wurstscript.ast.WPosPos source();
     public de.peeeq.wurstscript.ast.InitBlockPos replaceSource(de.peeeq.wurstscript.ast.WPos source);
@@ -29,6 +27,7 @@ public interface InitBlockPos extends de.peeeq.wurstscript.ast.WEntityPos, de.pe
     public de.peeeq.wurstscript.ast.AST.SortPos postOrderStart();
     public de.peeeq.wurstscript.ast.AST.SortPos follow(List<Integer> path);
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.WEntityPos.Switch<CT, E> switchClass) throws E;
+    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.WScopePos.Switch<CT, E> switchClass) throws E;
 
     //----- nested classes of InitBlockPos -----
 
@@ -175,6 +174,10 @@ public interface InitBlockPos extends de.peeeq.wurstscript.ast.WEntityPos, de.pe
             return term();
         }
 
+        public de.peeeq.wurstscript.ast.InitBlock termWScope() {
+            return term();
+        }
+
         public de.peeeq.wurstscript.ast.WPosPos source() {
             if(_source == null)
                 _source = de.peeeq.wurstscript.ast.AST.WPosPos(this, _term.source(), 0);
@@ -274,6 +277,10 @@ public interface InitBlockPos extends de.peeeq.wurstscript.ast.WEntityPos, de.pe
         }
 
         public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.WEntityPos.Switch<CT, E> switchClass) throws E {
+            return switchClass.CaseInitBlockPos(this);
+        }
+
+        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.WScopePos.Switch<CT, E> switchClass) throws E {
             return switchClass.CaseInitBlockPos(this);
         }
 

@@ -53,8 +53,9 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"package"							{ return symbol(TokenType.PACKAGE); }
 	"function"							{ return symbol(TokenType.FUNCTION); }
 	"returns"							{ return symbol(TokenType.RETURNS); }
-	"val"								{ return symbol(TokenType.VAL); }
+//	"val"								{ return symbol(TokenType.VAL); }
 	"public"							{ return symbol(TokenType.PUBLIC); }
+	"publicread"						{ return symbol(TokenType.PUBLICREAD); }
 	"private"							{ return symbol(TokenType.PRIVATE); }
 	"import"							{ return symbol(TokenType.IMPORT); }
 	"native"							{ return symbol(TokenType.NATIVE); }
@@ -69,6 +70,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"this"								{ return symbol(TokenType.THIS); }
 	"construct"							{ return symbol(TokenType.CONSTRUCT); }
 	"ondestroy"							{ return symbol(TokenType.ONDESTROY); }
+	"destroy"							{ return symbol(TokenType.DESTROY); }
 	"type"								{ return symbol(TokenType.TYPE); }
 	"globals"							{ return symbol(TokenType.GLOBALS); }
 	"endglobals"						{ return symbol(TokenType.ENDGLOBALS); }
@@ -85,6 +87,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"then"								{ return symbol(TokenType.THEN); }
 	"elseif"							{ return symbol(TokenType.ELSEIF); }
 	"endif"								{ return symbol(TokenType.ENDIF); }
+	"init"								{ return symbol(TokenType.INIT); }
 	"("                               { return symbol(TokenType.LPAR); }
 	")"                               { return symbol(TokenType.RPAR); }
 	","                               { return symbol(TokenType.COMMA); }

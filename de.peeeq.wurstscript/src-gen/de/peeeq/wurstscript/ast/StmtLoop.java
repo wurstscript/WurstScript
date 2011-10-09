@@ -1,10 +1,7 @@
 package de.peeeq.wurstscript.ast;
 
+import katja.common.*;
 import java.io.IOException;
-
-import katja.common.KatjaTerm;
-import katja.common.KatjaTuple;
-import katja.common.KatjaTupleImpl;
 
 public interface StmtLoop extends de.peeeq.wurstscript.ast.WStatement, KatjaTuple {
 

@@ -18,6 +18,8 @@ public interface ILInterpreter {
 	 * @return function return value
 	 */
 	ILconst executeFunction(String name, ILconst ... arguments);
+
+	void trace(boolean b);
 	
 
 }

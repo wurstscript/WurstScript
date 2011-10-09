@@ -4,15 +4,14 @@ package test {
 	nativetype int
 	
 	native testFail(string msg)
+	
 	native testSuccess()
 
-	function runTest() {
-		int x
-		x = 1
-		if x == 1 {
+	init {
+		if 4 * 2 == 8 {
 			testSuccess()
 		} else {
-			testFail("defect in setting variable after declaration")
+			testFail("defect in binary operation")
 		}
 	}
 }

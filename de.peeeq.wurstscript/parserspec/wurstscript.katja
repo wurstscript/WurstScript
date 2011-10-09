@@ -163,7 +163,7 @@ FuncRef = ExprFuncRef | ExprMemberMethod | ExprFunctionCall
 	
 FunctionDefinition = FuncDef | NativeFunc	
 	
-WScope = PackageOrGlobal | ClassDef | FuncDef
+WScope = PackageOrGlobal | ClassDef | FuncDef | ConstructorDef | OnDestroyDef | InitBlock
 
 PackageOrGlobal = WPackage | CompilationUnit	
 	

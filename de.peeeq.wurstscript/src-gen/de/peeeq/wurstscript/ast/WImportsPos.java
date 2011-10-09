@@ -1,13 +1,8 @@
 package de.peeeq.wurstscript.ast;
 
-import java.io.IOException;
+import katja.common.*;
 import java.util.List;
-
-import katja.common.KatjaList;
-import katja.common.KatjaListImpl;
-import katja.common.KatjaListPosImpl;
-import katja.common.KatjaNodePos;
-import katja.common.KatjaSort;
+import java.io.IOException;
 
 public interface WImportsPos extends de.peeeq.wurstscript.ast.AST.ListPos<de.peeeq.wurstscript.ast.WImports, de.peeeq.wurstscript.ast.WImportPos, de.peeeq.wurstscript.ast.WImport> {
 

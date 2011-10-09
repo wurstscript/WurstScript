@@ -6,6 +6,7 @@ import java.util.Set;
 
 import com.google.common.base.Function;
 
+import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.utils.NotNullList;
@@ -17,14 +18,16 @@ public class ILfunction implements CodePrinting {
 	private List<ILvar> params = null;
 	private PscriptType returnType = null;
 	private List<ILvar> locals = new NotNullList<ILvar>();
-	private List<ILStatement> body = null;
+	private NotNullList<ILStatement> body = null;
 	private Set<String> localNames = new HashSet<String>();
+	private WPos source;
 
-	
-	public ILfunction(String name) {
+
+	public ILfunction(String name, WPos source) {
 		this.name = name;
+		this.source = source;
 	}
-	
+
 	public void addParam(ILvar param) {
 		if (params == null) {
 			params = new NotNullList<ILvar>();
@@ -32,7 +35,7 @@ public class ILfunction implements CodePrinting {
 		params.add(param);
 		localNames.add(param.getName());
 	}
-	
+
 	public void addLocalVar(ILvar var) {
 		if (locals == null) {
 			locals = new NotNullList<ILvar>();
@@ -40,7 +43,7 @@ public class ILfunction implements CodePrinting {
 		locals.add(var);
 		localNames.add(var.getName());
 	}
-	
+
 	public List<ILvar> getParams() {
 		if (params == null) throw new Error("Params not initialized");
 		return params;
@@ -71,6 +74,8 @@ public class ILfunction implements CodePrinting {
 
 	@Override
 	public void printJass(StringBuilder sb, int indent) {
+		assertInitialized();
+		
 		sb.append("function " + name + " takes ");
 		if (params == null || params.size() == 0) {
 			sb.append("nothing");
@@ -89,7 +94,7 @@ public class ILfunction implements CodePrinting {
 			sb.append(returnType.printJass());
 		}
 		sb.append("\n");
-		
+
 		// print locals
 		for (ILvar l : locals) {
 			sb.append("local ");
@@ -100,9 +105,15 @@ public class ILfunction implements CodePrinting {
 		for (ILStatement s : body) {
 			s.printJass(sb, 1);
 		}
-		
-		
+
+
 		sb.append("endfunction\n");
+	}
+
+	private void assertInitialized() {
+		if (body == null) throw new Error(name + " not initialized.");
+		if (params == null) throw new Error(name + " not initialized.");
+		if (returnType == null) throw new Error(name + " not initialized.");
 	}
 
 	public void setReturnType(PscriptType typ) {
@@ -118,16 +129,31 @@ public class ILfunction implements CodePrinting {
 		return result ;
 	}
 
-	public void addBody(List<ILStatement> statements) {
+	public void addBody(List<? extends ILStatement> statements) {
 		if (body == null) {
-			body = statements;
-		} else {
-			body.addAll(statements);
+			body = new NotNullList<ILStatement>();
 		}
+		body.addAll(statements);
 	}
 
 	public void initParams() {
 		params = new NotNullList<ILvar>();
+	}
+
+	public WPos source() {
+		return source;
+	}
+
+	public void addBeforeBody(ILfunctionCall iLfunctionCall) {
+		if (body == null) {
+			body = new NotNullList<ILStatement>();
+		}
+		body.add(0, iLfunctionCall);
+	}
+	
+	@Override
+	public String toString() {
+		return "function " + name;
 	}
 
 }

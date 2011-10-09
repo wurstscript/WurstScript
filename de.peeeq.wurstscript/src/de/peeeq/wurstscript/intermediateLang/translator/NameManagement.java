@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 
 import katja.common.NE;
+import de.peeeq.wurstscript.ast.AST;
 import de.peeeq.wurstscript.ast.AST.SortPos;
 import de.peeeq.wurstscript.ast.ClassDefPos;
 import de.peeeq.wurstscript.ast.ConstructorDefPos;
@@ -23,6 +24,7 @@ import de.peeeq.wurstscript.intermediateLang.ILvar;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
 import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class NameManagement {
@@ -74,7 +76,7 @@ public class NameManagement {
 			
 			String name = getNameFor(calledFunc, funcName);
 			
-			ILfunction func = new ILfunction(name);
+			ILfunction func = new ILfunction(name, calledFunc.source().term());
 			functions.put(calledFunc, func);
 			return func;
 		}
@@ -91,14 +93,14 @@ public class NameManagement {
 			final PackageOrGlobalPos p = attr.nearestPackage.get(constr);
 			final ClassDefPos c = attr.nearestClassDef.get(constr);
 			
-			String name = c.name().term(); 
+			String name = c.name().term() + "_new"; 
 			if (p instanceof WPackagePos) {
 				name = ((WPackagePos) p).name().term() + "_" + name;
 			}
 			String funcName = getNameFor(constr, name);
 			
 			
-			ILfunction func = new ILfunction(funcName);
+			ILfunction func = new ILfunction(funcName, constr.source().term());
 			constructors.put(constr, func);
 			return func;
 		}
@@ -109,6 +111,7 @@ public class NameManagement {
 				return vars.get(varDef);
 			}
 			PscriptType typ = attr.varDefType.get(varDef);
+			typ = translateType(typ);
 			String name = varDef.name().term();
 			if (varDef instanceof GlobalVarDefPos) {
 				PackageOrGlobalPos pack = attr.nearestPackage.get(varDef);
@@ -122,6 +125,18 @@ public class NameManagement {
 			return v;
 		}
 		
+		private PscriptType translateType(PscriptType typ) {
+			if (typ instanceof PscriptTypeClass) {
+				typ = PScriptTypeInt.instance();
+			} else if (typ instanceof PScriptTypeArray) {
+				PScriptTypeArray pScriptTypeArray = (PScriptTypeArray) typ;
+				return new PScriptTypeArray(translateType(pScriptTypeArray.getBaseType()));
+			}
+				
+				
+			return typ;
+		}
+
 		public ILvar getILvarForClassMemberDef(GlobalVarDefPos varDef) {
 			if (vars.containsKey(varDef)) {
 				return vars.get(varDef);
@@ -145,6 +160,7 @@ public class NameManagement {
 					varName = name + varUniqueNameCounter;
 				} while (func.getLocalNames().contains(varName));
 			}
+			type = translateType(type);
 			ILvar var = new ILvar(varName, type);
 			func.addLocalVar(var);
 			return var;
@@ -154,6 +170,12 @@ public class NameManagement {
 			if (elementNames.containsKey(term)) {
 				return elementNames.get(term);
 			}
+			String result = getNewName(name);
+			elementNames.put(term, result);
+			return result;
+		}
+		
+		public String getNewName(String name) {
 			String result = name;
 			if (usedNames.contains(name)) {
 				// try to find unique name by appending random numbers:
@@ -163,7 +185,6 @@ public class NameManagement {
 				} while (usedNames.contains(result));
 			}
 			usedNames.add(result);
-			elementNames.put(term, result);
 			return result;
 		}
 
@@ -173,7 +194,7 @@ public class NameManagement {
 				return initBlockFunctions.get(term);
 			}
 			String name = getNameFor(term, p.name().term() + "_init");
-			ILfunction result = new ILfunction(name);
+			ILfunction result = new ILfunction(name, term.source().term());
 			initBlockFunctions.put(term, result);
 			return result;
 		}
@@ -186,14 +207,14 @@ public class NameManagement {
 			
 			WPackagePos pack = (WPackagePos) attr.nearestPackage.get(classDef);
 			String name = getNameFor(classDef, pack.name().term() + "_" + classDef.name().term() + "_destroy");
-			ILfunction result = new ILfunction(name);
+			ILfunction result = new ILfunction(name, classDef.source().term());
 			destroyFunctions.put(classDef, result);
 			return result;
 		}
 
 		public ILfunction getGlobalInitFunction() {
 			if (globalInitFunction == null) {
-				globalInitFunction = new ILfunction("wurst_init");
+				globalInitFunction = new ILfunction("wurst_globalsinit", AST.WPos("generated", 0, 0));
 			}
 			return globalInitFunction;
 		}
@@ -201,6 +222,8 @@ public class NameManagement {
 		public ILvar getThis(FuncDefPos term) {
 			return new ILvar("this", PScriptTypeInt.instance());
 		}
+
+		
 
 		
 }

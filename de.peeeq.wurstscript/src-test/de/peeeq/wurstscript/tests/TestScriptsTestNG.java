@@ -2,9 +2,12 @@ package de.peeeq.wurstscript.tests;
 
 
 import static org.testng.AssertJUnit.*;
+
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.List;
 
@@ -26,7 +29,7 @@ import de.peeeq.wurstscript.utils.NotNullList;
 public class TestScriptsTestNG {
 
 	private final static String PSCRIPT_ENDING = ".pscript";
-	
+
 	@DataProvider
 	public Object[][] getTestfiles() {
 		File dir = new File("./testscripts/valid");
@@ -61,7 +64,8 @@ public class TestScriptsTestNG {
 	}
 
 	@Test(dataProvider = "getTestfiles")
-	public void testScript(File file) {
+	public void testScript(File file) throws IOException, InterruptedException {
+		boolean success = false;
 		try {
 			System.out.println("file b = " + file);
 			String filename = file.getAbsolutePath();
@@ -76,7 +80,7 @@ public class TestScriptsTestNG {
 			if (prog == null) {
 				throw new TestFailException("Compiler errors:\n" + gui.getErrors());
 			}
-			
+
 			if (gui.getErrorCount() > 0) {
 				throw new TestFailException("Compiler Errors:\n" + gui.getErrors());
 			}
@@ -92,13 +96,39 @@ public class TestScriptsTestNG {
 				throw new Error(e);
 			}
 
+			// run pjass:
+			Process p = Runtime.getRuntime().exec("lib/pjass.exe lib/common.j lib/debugnatives.j lib/blizzard.j " + outputFile.getPath());
+			
+			BufferedReader input =
+					new BufferedReader
+					(new InputStreamReader(p.getInputStream()));
+			
+			StringBuilder output = new StringBuilder();
+			String line;
+			while ((line = input.readLine()) != null) {
+				System.out.println(line);
+				output.append(line + "\n");
+			}
+			input.close();
+
+			int exitValue = p.waitFor();
+			if (exitValue != 0) {
+				assertTrue("pjass errors: \n" + output.toString() , false);
+			}
+
+
+			// run the interpreter
 			ILInterpreter interpreter = new ILInterpreterImpl();
+			interpreter.trace(true);
 			interpreter.LoadProgram(prog);
-			interpreter.executeFunction("test_runTest");
+			interpreter.executeFunction("main");
 		} catch (TestFailException e) {
 			assertTrue("Failed: " + e.getVal(), false);
 		} catch (TestSuccessException e)  {
-			
+			success = true;
+		}
+		if (!success) {
+			assertTrue("Succeed function not called", false);
 		}
 	}
 

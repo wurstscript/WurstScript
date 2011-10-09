@@ -7,17 +7,11 @@ package test {
 	
 	native testSuccess()
 
-	
-	class Pair {
-		int a
-		int b
-	}
-	
+	int array blub
 
-	function runTest() {
-		Pair p = new Pair()
-		p.a = 4
-		if p.a == 4 {
+	init {
+		blub[5] = 3
+		if blub[5] == 3 {
 			testSuccess()
 		} else {
 			testFail("Array Test 1 failed.")

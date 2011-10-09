@@ -8,8 +8,11 @@ import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.ast.ClassDefPos;
 import de.peeeq.wurstscript.ast.ClassSlotPos;
 import de.peeeq.wurstscript.ast.CompilationUnitPos;
+import de.peeeq.wurstscript.ast.ConstructorDefPos;
 import de.peeeq.wurstscript.ast.FuncDefPos;
 import de.peeeq.wurstscript.ast.FunctionDefinitionPos;
+import de.peeeq.wurstscript.ast.InitBlockPos;
+import de.peeeq.wurstscript.ast.OnDestroyDefPos;
 import de.peeeq.wurstscript.ast.TopLevelDeclarationPos;
 import de.peeeq.wurstscript.ast.WEntityPos;
 import de.peeeq.wurstscript.ast.WPackagePos;
@@ -72,6 +75,23 @@ public class AttrFuncScope extends Attribute<WScopePos, Multimap<String, Functio
 						result.put(f.signature().name().term(), f);
 					}
 				}
+				return result;
+			}
+
+			@Override
+			public Multimap<String, FunctionDefinitionPos> CaseConstructorDefPos(ConstructorDefPos term) throws NE {
+				// constructors cannot include other functions
+				return result;
+			}
+
+			@Override
+			public Multimap<String, FunctionDefinitionPos> CaseOnDestroyDefPos(OnDestroyDefPos term) throws NE {
+				// onDestroy cannot include other functions
+				return result;
+			}
+
+			@Override
+			public Multimap<String, FunctionDefinitionPos> CaseInitBlockPos(InitBlockPos term) throws NE {
 				return result;
 			}
 		});

@@ -1,9 +1,7 @@
 package de.peeeq.wurstscript.ast;
 
+import katja.common.*;
 import java.io.IOException;
-
-import katja.common.KatjaList;
-import katja.common.KatjaListImpl;
 
 public interface WImports extends KatjaList<de.peeeq.wurstscript.ast.WImport> {
 

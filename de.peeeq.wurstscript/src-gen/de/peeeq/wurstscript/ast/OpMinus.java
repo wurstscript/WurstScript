@@ -1,9 +1,7 @@
 package de.peeeq.wurstscript.ast;
 
+import katja.common.*;
 import java.io.IOException;
-
-import katja.common.KatjaTuple;
-import katja.common.KatjaTupleImpl;
 
 public interface OpMinus extends de.peeeq.wurstscript.ast.OpBinary, de.peeeq.wurstscript.ast.OpUnary, KatjaTuple {
 

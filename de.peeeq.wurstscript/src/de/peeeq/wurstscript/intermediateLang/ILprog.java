@@ -1,11 +1,14 @@
 package de.peeeq.wurstscript.intermediateLang;
 
+import java.util.Collection;
 import java.util.List;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 
 import de.peeeq.wurstscript.utils.NotNullList;
+import de.peeeq.wurstscript.utils.TopsortCycleException;
 import de.peeeq.wurstscript.utils.Utils;
 
 /**
@@ -36,6 +39,7 @@ public class ILprog implements CodePrinting {
 
 
 	public void addFunction(ILfunction function) {
+		System.out.println("adding function " + function);
 		functions.add(function);
 	}
 
@@ -73,8 +77,34 @@ public class ILprog implements CodePrinting {
 
 
 	public void addCallDependency(ILfunction func, ILfunction calledFunc) {
-		function_calls.put(calledFunc, func);
-		function_calledBy.put(func, calledFunc);
+		function_calledBy.put(calledFunc, func);
+		function_calls.put(func, calledFunc);
+	}
+
+
+	public void sortFunctions() throws TopsortCycleException {
+		Collection<ILfunction> roots = Utils.filter(functions, new Function<ILfunction, Boolean>() {
+
+			@Override
+			public Boolean apply(ILfunction input) {
+				return input.getName().equals("main") 
+					|| input.getName().equals("config");
+			}
+			
+		});
+		functions = Utils.topSort(functions, new Function<ILfunction, Collection<ILfunction>>() {
+
+			@Override
+			public Collection<ILfunction> apply(ILfunction input) {
+				return function_calls.get(input);
+			}
+			
+		});
+	}
+
+
+	public List<ILfunction> getInitFunctions() {
+		return initFunctions;
 	}
 
 }

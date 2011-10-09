@@ -6,19 +6,12 @@ package test {
 	native testFail(string msg)
 	
 	native testSuccess()
-	
-	
-	function runTest() {
-		int i = 0
-		while i < 10 {
-			i = i + 1
-		}
-		if i == 10 {
+
+	init {
+		if 10 - 5 == 5 {
 			testSuccess()
 		} else {
-			testFail("defect in whileLoop")
+			testFail("defect in binary operation")
 		}
 	}
 }
-	
-	

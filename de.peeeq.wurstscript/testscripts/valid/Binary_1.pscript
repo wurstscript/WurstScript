@@ -7,8 +7,8 @@ package test {
 	
 	native testSuccess()
 
-	function runTest() {
-		if 10 - 5 == 5 {
+	init {
+		if 3 + 7 == 10 {
 			testSuccess()
 		} else {
 			testFail("defect in binary operation")

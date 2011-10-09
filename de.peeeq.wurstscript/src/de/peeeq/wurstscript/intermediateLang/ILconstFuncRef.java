@@ -1,5 +1,9 @@
 package de.peeeq.wurstscript.intermediateLang;
 
+import de.peeeq.wurstscript.types.PScriptTypeBool;
+import de.peeeq.wurstscript.types.PScriptTypeCode;
+import de.peeeq.wurstscript.types.PscriptType;
+
 public class ILconstFuncRef extends ILconst {
 
 	private ILfunction func;
@@ -22,4 +26,9 @@ public class ILconstFuncRef extends ILconst {
 		sb.append(print());
 	}
 
+	@Override
+	public PscriptType getType() {
+		return PScriptTypeCode.instance();
+	}
+	
 }

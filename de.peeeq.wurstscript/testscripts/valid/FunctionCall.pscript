@@ -1,14 +1,14 @@
 package test {
 	
 	function add(integer x, integer y) returns integer {
-		val z = x + y
+		int z = x + y
 		return x + y
 	}
 	
 	native testFail(string msg)
 	native testSuccess()
 	
-	function runTest() {
+	init {
 		if (add(3,4) == 7) {
 			testSuccess()
 		} else {

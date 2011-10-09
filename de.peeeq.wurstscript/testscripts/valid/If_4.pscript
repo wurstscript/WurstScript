@@ -1,4 +1,4 @@
-package test {
+package test  {
 	
 	nativetype string
 	nativetype int
@@ -6,12 +6,12 @@ package test {
 	native testFail(string msg)
 	
 	native testSuccess()
-
-	function runTest() {
-		if -3 + 5 == 2 {
+	
+	init {
+		if 10 >= 10 {
 			testSuccess()
 		} else {
-			testFail("defect in unary operation")
+			testFail("defect in greater than or equal if")
 		}
 	}
 }

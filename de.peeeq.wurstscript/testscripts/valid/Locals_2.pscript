@@ -7,11 +7,12 @@ package test {
 	
 	native testSuccess()
 
-	function runTest() {
-		if 10 > 5  {
+	init {
+		int x = 1
+		if x == 1 { 
 			testSuccess()
 		} else {
-			testFail("defect in greater than if")
+			testFail("defect in initialising variable on declaration")
 		}
 	}
 }

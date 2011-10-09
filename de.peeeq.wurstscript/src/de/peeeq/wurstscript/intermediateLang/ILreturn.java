@@ -17,7 +17,7 @@ public class ILreturn extends ILStatement {
 	@Override
 	public void printJass(StringBuilder sb, int indent) {
 		Utils.printIndent(sb, indent);
-		sb.append("return " + var.getName());
+		sb.append("return " + var.getName() + "\n");
 	}
 	
 	

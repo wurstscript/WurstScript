@@ -7,10 +7,13 @@ import katja.common.NE;
 import de.peeeq.wurstscript.ast.ClassDefPos;
 import de.peeeq.wurstscript.ast.ClassSlotPos;
 import de.peeeq.wurstscript.ast.CompilationUnitPos;
+import de.peeeq.wurstscript.ast.ConstructorDefPos;
 import de.peeeq.wurstscript.ast.FuncDefPos;
 import de.peeeq.wurstscript.ast.GlobalVarDefPos;
+import de.peeeq.wurstscript.ast.InitBlockPos;
 import de.peeeq.wurstscript.ast.JassGlobalBlockPos;
 import de.peeeq.wurstscript.ast.LocalVarDefPos;
+import de.peeeq.wurstscript.ast.OnDestroyDefPos;
 import de.peeeq.wurstscript.ast.TopLevelDeclarationPos;
 import de.peeeq.wurstscript.ast.VarDefPos;
 import de.peeeq.wurstscript.ast.WEntityPos;
@@ -100,6 +103,46 @@ public class AttrVarScope extends Attribute<WScopePos, Map<String, VarDefPos>> {
 						result.put(v.name().term(), v);
 					}
 				}
+				return result;
+			}
+
+			@Override
+			public Map<String, VarDefPos> CaseConstructorDefPos(ConstructorDefPos term) throws NE {
+				new  CompilationUnitPos.DefaultVisitor<NE>() {
+					@Override
+					public void visit(LocalVarDefPos v) {
+						result.put(v.name().term(), v);
+					}
+					
+					@Override
+					public void visit(WParameterPos v) {
+						result.put(v.name().term(), v);
+					}
+				}.visit(term);
+				return result;
+			}
+
+			@Override
+			public Map<String, VarDefPos> CaseOnDestroyDefPos(OnDestroyDefPos term) throws NE {
+				new  CompilationUnitPos.DefaultVisitor<NE>() {
+					@Override
+					public void visit(LocalVarDefPos v) {
+						result.put(v.name().term(), v);
+					}
+					
+				}.visit(term);
+				return result;
+			}
+
+			@Override
+			public Map<String, VarDefPos> CaseInitBlockPos(InitBlockPos term) throws NE {
+				new  CompilationUnitPos.DefaultVisitor<NE>() {
+					@Override
+					public void visit(LocalVarDefPos v) {
+						result.put(v.name().term(), v);
+					}
+					
+				}.visit(term);
 				return result;
 			}
 		});

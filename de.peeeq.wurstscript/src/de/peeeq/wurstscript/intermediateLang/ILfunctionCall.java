@@ -34,6 +34,10 @@ public class ILfunctionCall extends ILStatementSet {
 		this.argumentVars = argumentVars;
 	}
 
+	public ILfunctionCall(ILvar resultVar, String name) {
+		this(resultVar, name, Utils.<PscriptType>array(), Utils.<ILvar>array());
+	}
+
 	@Override
 	public void printJass(StringBuilder sb, int indent) {
 		Utils.printIndent(sb, indent);

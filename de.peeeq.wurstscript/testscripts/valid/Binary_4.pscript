@@ -8,8 +8,8 @@ package test {
 	native I2S(int i) returns string
 	native testSuccess()
 
-	function runTest() {
-		val i = 11 div 5
+	init {
+		int i = 11 div 5
 		if i == 2 {
 			testSuccess()
 		} else {

@@ -1,6 +1,6 @@
 package de.peeeq.wurstscript.ast;
 
-import katja.common.KatjaSort;
+import katja.common.*;
 
 public interface TypeDef extends de.peeeq.wurstscript.ast.WEntity, KatjaSort {
 

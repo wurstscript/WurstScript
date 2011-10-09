@@ -1,12 +1,9 @@
 package de.peeeq.wurstscript.ast;
 
+import katja.common.*;
 import java.io.IOException;
 
-import katja.common.KatjaTerm;
-import katja.common.KatjaTuple;
-import katja.common.KatjaTupleImpl;
-
-public interface OnDestroyDef extends de.peeeq.wurstscript.ast.ClassSlot, KatjaTuple {
+public interface OnDestroyDef extends de.peeeq.wurstscript.ast.ClassSlot, de.peeeq.wurstscript.ast.WScope, KatjaTuple {
 
     //----- methods of OnDestroyDef -----
 
@@ -18,6 +15,7 @@ public interface OnDestroyDef extends de.peeeq.wurstscript.ast.ClassSlot, KatjaT
     public int size();
     public de.peeeq.wurstscript.ast.OnDestroyDef replace(int pos, Object term);
     public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.ClassSlot.Switch<CT, E> switchClass) throws E;
+    public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.WScope.Switch<CT, E> switchClass) throws E;
 
     //----- nested classes of OnDestroyDef -----
 
@@ -223,6 +221,10 @@ public interface OnDestroyDef extends de.peeeq.wurstscript.ast.ClassSlot, KatjaT
         }
 
         public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.ClassSlot.Switch<CT, E> switchClass) throws E {
+            return switchClass.CaseOnDestroyDef(this);
+        }
+
+        public <CT, E extends Throwable> CT Switch(de.peeeq.wurstscript.ast.WScope.Switch<CT, E> switchClass) throws E {
             return switchClass.CaseOnDestroyDef(this);
         }
 

@@ -1,4 +1,4 @@
-package test  {
+package test {
 	
 	nativetype string
 	nativetype int
@@ -6,12 +6,13 @@ package test  {
 	native testFail(string msg)
 	
 	native testSuccess()
-	
-	function runTest() {
-		if 10 >= 10 {
+
+	init {
+		if (10 == 10 and 5 == 5) {
 			testSuccess()
 		} else {
-			testFail("defect in greater than or equal if")
+			testFail("defect in and if")
 		}
 	}
 }
+

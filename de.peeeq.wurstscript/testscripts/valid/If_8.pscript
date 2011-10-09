@@ -7,12 +7,11 @@ package test {
 	
 	native testSuccess()
 
-	function runTest() {
-		val x = 1
-		if x == 1 { 
+	init {
+		if 10 == 5 or 5 == 5 { 
 			testSuccess()
 		} else {
-			testFail("defect in initialising variable on declaration")
+			testFail("defect in or if 1")
 		}
 	}
 }

@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.utils;
 
 import static org.testng.AssertJUnit.*;
 
+import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.testng.annotations.Test;
@@ -65,6 +67,27 @@ public class UtilsTest {
 	assertEquals(2, list2.size());
 	assertArrayEquals(Utils.<Integer>array(3,6), list2.toArray());
   }
+  
+  @Test
+  public void topSort_1() throws TopsortCycleException {
+    List<Integer> toSort = Utils.list(2,1,3);
+    List<Integer> sorted = Utils.topSort(toSort, new Function<Integer,Collection<Integer>>() {
+
+		@Override
+		public Collection<Integer> apply(Integer input) {
+			Collection<Integer> result = new LinkedList<Integer>();
+			for (int i = 1; i<=3; i++) {
+				if (i > input) {
+					result.add(i);
+				}
+			}
+			return result ;
+		}
+    	
+    });
+    assertArrayEquals(Utils.<Object>array(3,2,1) , sorted.toArray());
+  }
+  
 /* TODO utils unit tests
   @Test
   public void isJassCode() {
@@ -141,14 +164,5 @@ public class UtilsTest {
     throw new RuntimeException("Test not implemented");
   }
 
-  @Test
-  public void topSort() {
-    throw new RuntimeException("Test not implemented");
-  }
-
-  @Test
-  public void topSortHelper() {
-    throw new RuntimeException("Test not implemented");
-  }
   */
 }

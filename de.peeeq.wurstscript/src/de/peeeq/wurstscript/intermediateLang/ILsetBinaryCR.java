@@ -37,12 +37,8 @@ public class ILsetBinaryCR extends ILStatementSet {
 
 	@Override
 	public void printJass(StringBuilder sb, int indent) {
-		Utils.printIndent(sb, indent);
-		sb.append("set " + getResultVar().getName() 
-				 + " = " + left.getName());
-		op.printJass(sb, 0);
-		right.printJass(sb, 0);
-		sb.append("\n");
+		ILsetExpr temp = new ILsetExpr(resultVar, new ILexprBinary(left, op, right));
+		temp.printJass(sb, indent);
 	}
 	
 	

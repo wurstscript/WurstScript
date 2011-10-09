@@ -11,38 +11,7 @@ package test {
    
    
    
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   function runTest() {
+   init {
       if 2 == 2 {
          testSuccess()
       } else {

@@ -1,11 +1,8 @@
 package de.peeeq.wurstscript.ast;
 
-import java.io.IOException;
 import java.util.List;
-
-import katja.common.KatjaNodePos;
-import katja.common.KatjaSort;
-import katja.common.KatjaTuplePosImpl;
+import katja.common.*;
+import java.io.IOException;
 
 public interface StmtDecRefCountPos extends de.peeeq.wurstscript.ast.WStatementPos, de.peeeq.wurstscript.ast.AST.TuplePos<de.peeeq.wurstscript.ast.StmtDecRefCount> {
 

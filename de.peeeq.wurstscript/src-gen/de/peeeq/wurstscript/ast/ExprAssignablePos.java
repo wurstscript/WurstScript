@@ -1,6 +1,6 @@
 package de.peeeq.wurstscript.ast;
 
-import katja.common.KatjaSort;
+import katja.common.*;
 
 public interface ExprAssignablePos extends de.peeeq.wurstscript.ast.ExprPos, de.peeeq.wurstscript.ast.AST.SortPos {
 

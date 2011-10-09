@@ -1,13 +1,8 @@
 package de.peeeq.wurstscript.ast;
 
-import java.io.IOException;
+import katja.common.*;
 import java.util.List;
-
-import katja.common.KatjaList;
-import katja.common.KatjaListImpl;
-import katja.common.KatjaListPosImpl;
-import katja.common.KatjaNodePos;
-import katja.common.KatjaSort;
+import java.io.IOException;
 
 public interface CompilationUnitPos extends de.peeeq.wurstscript.ast.PackageOrGlobalPos, de.peeeq.wurstscript.ast.AST.ListPos<de.peeeq.wurstscript.ast.CompilationUnit, de.peeeq.wurstscript.ast.TopLevelDeclarationPos, de.peeeq.wurstscript.ast.TopLevelDeclaration> {
 

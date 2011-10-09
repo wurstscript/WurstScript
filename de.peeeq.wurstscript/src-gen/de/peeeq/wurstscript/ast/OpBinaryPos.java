@@ -1,6 +1,6 @@
 package de.peeeq.wurstscript.ast;
 
-import katja.common.KatjaSort;
+import katja.common.*;
 
 public interface OpBinaryPos extends de.peeeq.wurstscript.ast.OpPos, de.peeeq.wurstscript.ast.AST.SortPos {
 

@@ -7,11 +7,11 @@ package test {
 	
 	native testSuccess()
 
-	function runTest() {
-		if 4 * 2 == 8 {
+	init {
+		if -3 < 0 {
 			testSuccess()
 		} else {
-			testFail("defect in binary operation")
+			testFail("defect in unary operation")
 		}
 	}
-}
+}		

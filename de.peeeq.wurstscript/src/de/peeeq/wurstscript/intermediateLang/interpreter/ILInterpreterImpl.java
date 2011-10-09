@@ -29,18 +29,22 @@ import de.peeeq.wurstscript.intermediateLang.IlbuildinFunctionCall;
 import de.peeeq.wurstscript.intermediateLang.Iloperator;
 import de.peeeq.wurstscript.intermediateLang.IlsetConst;
 import de.peeeq.wurstscript.intermediateLang.IlsetUnary;
+import de.peeeq.wurstscript.intermediateLang.translator.ILerror;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PScriptTypeHandle;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
 import de.peeeq.wurstscript.types.PScriptTypeReal;
 import de.peeeq.wurstscript.types.PScriptTypeString;
+import de.peeeq.wurstscript.types.PscriptTypeClass;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class ILInterpreterImpl implements ILInterpreter {
 
 	private ILprog prog;
 	private static ExitwhenException staticExitwhenException = new ExitwhenException();
 	private Map<String, ILconst> globalVarMap;
+	private boolean trace = false;
 
 	@Override
 	public void LoadProgram(ILprog prog) {
@@ -76,7 +80,9 @@ public class ILInterpreterImpl implements ILInterpreter {
 
 	@Override
 	public ILconst executeFunction(String name, ILconst... arguments) {
-
+		if (trace) {
+			System.out.println("#trace: " + name + "( "  + Utils.join(arguments, ", ") + ")");
+		}
 
 
 
@@ -100,6 +106,8 @@ public class ILInterpreterImpl implements ILInterpreter {
 				value  = new ILconstString("");
 			} else if (v.getType() instanceof PScriptTypeArray) {
 				// arrays are not initialized...
+			} else if (v.getType() instanceof PscriptTypeClass) {
+				value = new ILconstInt(0);
 			}else {
 				throw new Error("not implemented " + v.getType());
 			}
@@ -119,11 +127,16 @@ public class ILInterpreterImpl implements ILInterpreter {
 		try {
 			this.executeStatements(localVarMap, body);
 		} catch (ReturnException e) {
+			if (trace) {
+				System.out.println("#trace: end function " + name + " returns " + e.getVal());
+			}
 			return e.getVal();
 		}
 
-
-		return null; // TODO get return value
+		if (trace) {
+			System.out.println("#trace: end function " + name);
+		}
+		return null; 
 	}
 
 	private void executeStatements(Map<String, ILconst> localVarMap, List<ILStatement> body) {
@@ -162,6 +175,8 @@ public class ILInterpreterImpl implements ILInterpreter {
 			translateILarraySetVar(localVarMap, (ILarraySetVar) s);
 		} else if (s instanceof ILsetVarArray) {
 			translateILsetVarArray(localVarMap, (ILsetVarArray) s);
+		} else if (s instanceof ILerror) {
+			throw new Error("IL execution error: " + lookupVarValue(localVarMap, ((ILerror) s).msg));
 		} else {
 
 			throw new Error("not implemented " + s);
@@ -264,7 +279,9 @@ public class ILInterpreterImpl implements ILInterpreter {
 			arguments[i] = lookupVarValue(localVarMap, s.getArgs().get(i));
 		}
 		ILconst result = executeFunction(s.getName(), arguments );
-		addVarToProperMap(localVarMap, s.getResultVar(), result);
+		if (s.getResultVar() != null) {
+			addVarToProperMap(localVarMap, s.getResultVar(), result);
+		}
 	}
 
 	private void translateReturn(Map<String, ILconst> localVarMap, ILreturn s) {
@@ -418,7 +435,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 			} else if (leftValue instanceof ILconstString) {
 				String l = ((ILconstString) leftValue).getVal();
 				String r = ((ILconstString) rightValue).getVal();
-				result  = new ILconstBool(l == r);
+				result  = new ILconstBool(l.equals(r));
 			}
 		}else if (op == Iloperator.UNEQUALITY) {
 			if (leftValue instanceof ILconstInt) {
@@ -436,7 +453,7 @@ public class ILInterpreterImpl implements ILInterpreter {
 			} else if (leftValue instanceof ILconstString) {
 				String l = ((ILconstString) leftValue).getVal();
 				String r = ((ILconstString) rightValue).getVal();
-				result  = new ILconstBool(l != r);
+				result  = new ILconstBool(! l.equals(r));
 			}
 		}else if (op == Iloperator.AND ) {
 			if (leftValue instanceof ILconstBool) {
@@ -460,6 +477,11 @@ public class ILInterpreterImpl implements ILInterpreter {
 				float r = ((ILconstNum) rightValue).getVal().floatValue();
 				result  = new ILconstNum(l % r);
 			}
+		}
+		
+		
+		if (result == null) {
+			throw new Error("Unsupported binary operation " + leftValue.getClass() + " " + op + " " + rightValue.getClass());
 		}
 		return result;
 	}
@@ -532,6 +554,11 @@ public class ILInterpreterImpl implements ILInterpreter {
 			}
 		}
 		throw new Error("Function " + name + " not found.");
+	}
+
+	@Override
+	public void trace(boolean b) {
+		trace = b;
 	}
 
 }

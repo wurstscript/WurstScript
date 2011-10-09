@@ -7,11 +7,11 @@ package test {
 	
 	native testSuccess()
 
-	function runTest() {
-		if not false {
+	init {
+		if 10 != 5 {
 			testSuccess()
 		} else {
-			testFail("defect in not if")
+			testFail("defect in unequality if")
 		}
 	}
 }

@@ -19,7 +19,7 @@ package test {
 	
 	
 
-	function runTest() {
+	init {
 		foo()
 	} 
 	

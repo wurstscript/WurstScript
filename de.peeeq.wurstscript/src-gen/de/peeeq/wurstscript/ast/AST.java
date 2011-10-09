@@ -1,23 +1,12 @@
 package de.peeeq.wurstscript.ast;
 
-import java.io.IOException;
+import katja.common.*;
+import java.util.*;
+import java.lang.ref.*;
 import java.io.Reader;
-import java.lang.ref.WeakReference;
+import java.io.IOException;
 import java.util.List;
 import java.util.TreeMap;
-import java.util.WeakHashMap;
-
-import katja.common.KatjaElement;
-import katja.common.KatjaLeafPos;
-import katja.common.KatjaList;
-import katja.common.KatjaListPos;
-import katja.common.KatjaNodePos;
-import katja.common.KatjaSortPos;
-import katja.common.KatjaSpecification;
-import katja.common.KatjaTerm;
-import katja.common.KatjaTermPos;
-import katja.common.KatjaTuple;
-import katja.common.KatjaTuplePos;
 
 public class AST extends KatjaSpecification {
 
@@ -774,7 +763,7 @@ public class AST extends KatjaSpecification {
     }
 
     static final de.peeeq.wurstscript.ast.WScopePos WScopePos(final KatjaNodePos<de.peeeq.wurstscript.ast.CompilationUnitPos, ?> parent, final de.peeeq.wurstscript.ast.WScope term, final int pos) {
-        return term.Switch(new de.peeeq.wurstscript.ast.WScope.Switch<de.peeeq.wurstscript.ast.WScopePos, RuntimeException>() { public final de.peeeq.wurstscript.ast.WScopePos CaseClassDef(de.peeeq.wurstscript.ast.ClassDef term) { return new de.peeeq.wurstscript.ast.ClassDefPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WScopePos CaseFuncDef(de.peeeq.wurstscript.ast.FuncDef term) { return new de.peeeq.wurstscript.ast.FuncDefPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WScopePos CaseWPackage(de.peeeq.wurstscript.ast.WPackage term) { return new de.peeeq.wurstscript.ast.WPackagePos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WScopePos CaseCompilationUnit(de.peeeq.wurstscript.ast.CompilationUnit term) { return new de.peeeq.wurstscript.ast.CompilationUnitPos.Impl(parent, term, pos); } });
+        return term.Switch(new de.peeeq.wurstscript.ast.WScope.Switch<de.peeeq.wurstscript.ast.WScopePos, RuntimeException>() { public final de.peeeq.wurstscript.ast.WScopePos CaseClassDef(de.peeeq.wurstscript.ast.ClassDef term) { return new de.peeeq.wurstscript.ast.ClassDefPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WScopePos CaseFuncDef(de.peeeq.wurstscript.ast.FuncDef term) { return new de.peeeq.wurstscript.ast.FuncDefPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WScopePos CaseConstructorDef(de.peeeq.wurstscript.ast.ConstructorDef term) { return new de.peeeq.wurstscript.ast.ConstructorDefPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WScopePos CaseOnDestroyDef(de.peeeq.wurstscript.ast.OnDestroyDef term) { return new de.peeeq.wurstscript.ast.OnDestroyDefPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WScopePos CaseInitBlock(de.peeeq.wurstscript.ast.InitBlock term) { return new de.peeeq.wurstscript.ast.InitBlockPos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WScopePos CaseWPackage(de.peeeq.wurstscript.ast.WPackage term) { return new de.peeeq.wurstscript.ast.WPackagePos.Impl(parent, term, pos); } public final de.peeeq.wurstscript.ast.WScopePos CaseCompilationUnit(de.peeeq.wurstscript.ast.CompilationUnit term) { return new de.peeeq.wurstscript.ast.CompilationUnitPos.Impl(parent, term, pos); } });
     }
 
     static final de.peeeq.wurstscript.ast.WStatementPos WStatementPos(final KatjaNodePos<de.peeeq.wurstscript.ast.CompilationUnitPos, ?> parent, final de.peeeq.wurstscript.ast.WStatement term, final int pos) {
