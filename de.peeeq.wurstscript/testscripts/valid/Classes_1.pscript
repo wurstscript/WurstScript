@@ -1,0 +1,30 @@
+package test {
+	
+	nativetype string
+	nativetype int
+	
+	native testFail(string msg)
+	
+	native testSuccess()
+
+	
+	class Pair {
+		int a
+		int b
+		construct () {
+		}
+	}
+	
+
+	init {
+		Pair p = new Pair()
+		p.a = 4
+		if p.a == 4 {
+			testSuccess()
+		} else {
+			testFail("Array Test 1 failed.")
+		}
+	} 
+	
+	
+}

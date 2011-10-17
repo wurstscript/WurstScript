@@ -59,7 +59,14 @@ public class ILarray extends ILconst {
 
 
 	@Override
-	public void printJass(StringBuilder sb) {
+	public void printJass(StringBuilder sb, int indent) {
+		// TODO Auto-generated method stub
+		throw new Error("Not implemented yet.");
+	}
+
+
+	@Override
+	public PscriptType getType() {
 		// TODO Auto-generated method stub
 		throw new Error("Not implemented yet.");
 	}

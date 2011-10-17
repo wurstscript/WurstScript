@@ -1,0 +1,18 @@
+package test {
+	
+	function add(integer x, integer y) returns integer {
+		int z = x + y
+		return x + y
+	}
+	
+	native testFail(string msg)
+	native testSuccess()
+	
+	init {
+		if (add(3,4) == 7) {
+			testSuccess()
+		} else {
+			testFail("testFunctionCall")
+		}
+	}
+}

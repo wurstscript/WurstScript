@@ -2,6 +2,10 @@ package de.peeeq.wurstscript.intermediateLang;
 
 import java.math.BigDecimal;
 
+import de.peeeq.wurstscript.types.PScriptTypeBool;
+import de.peeeq.wurstscript.types.PScriptTypeReal;
+import de.peeeq.wurstscript.types.PscriptType;
+
 
 public class ILconstNum extends ILconst {
 
@@ -30,7 +34,12 @@ public class ILconstNum extends ILconst {
 
 	
 	@Override
-	public void printJass(StringBuilder sb) {
+	public void printJass(StringBuilder sb, int indent) {
 		sb.append(print());
+	}
+	
+	@Override
+	public PscriptType getType() {
+		return PScriptTypeReal.instance();
 	}
 }

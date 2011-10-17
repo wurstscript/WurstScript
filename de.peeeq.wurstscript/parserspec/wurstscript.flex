@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.parser;
 
 import java_cup.runtime.*;
+import de.peeeq.wurstscript.utils.Utils;
 %%
 
 %class WurstScriptScanner
@@ -19,11 +20,11 @@ import java_cup.runtime.*;
 	  StringBuffer string = new StringBuffer();
 
   private Symbol symbol(int type) {
-    return new Symbol(type, yyline, yycolumn);
+    return new Symbol(type, yyline+1, yycolumn);
   }
     
   private Symbol symbol(int type, Object value) {
-    return new Symbol(type, yyline, yycolumn, value);
+    return new Symbol(type, yyline+1, yycolumn, value);
   }
 %}
 
@@ -52,8 +53,9 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"package"							{ return symbol(TokenType.PACKAGE); }
 	"function"							{ return symbol(TokenType.FUNCTION); }
 	"returns"							{ return symbol(TokenType.RETURNS); }
-	"val"								{ return symbol(TokenType.VAL); }
+//	"val"								{ return symbol(TokenType.VAL); }
 	"public"							{ return symbol(TokenType.PUBLIC); }
+	"publicread"						{ return symbol(TokenType.PUBLICREAD); }
 	"private"							{ return symbol(TokenType.PRIVATE); }
 	"import"							{ return symbol(TokenType.IMPORT); }
 	"native"							{ return symbol(TokenType.NATIVE); }
@@ -68,6 +70,24 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"this"								{ return symbol(TokenType.THIS); }
 	"construct"							{ return symbol(TokenType.CONSTRUCT); }
 	"ondestroy"							{ return symbol(TokenType.ONDESTROY); }
+	"destroy"							{ return symbol(TokenType.DESTROY); }
+	"type"								{ return symbol(TokenType.TYPE); }
+	"globals"							{ return symbol(TokenType.GLOBALS); }
+	"endglobals"						{ return symbol(TokenType.ENDGLOBALS); }
+	"constant"							{ return symbol(TokenType.CONSTANT); }
+	"endfunction"						{ return symbol(TokenType.ENDFUNCTION); }
+	"nothing"							{ return symbol(TokenType.NOTHING); }
+	"takes"								{ return symbol(TokenType.TAKES); }
+	"local"								{ return symbol(TokenType.LOCAL); }
+	"loop"								{ return symbol(TokenType.LOOP); }
+	"endloop"							{ return symbol(TokenType.ENDLOOP); }
+	"exitwhen"							{ return symbol(TokenType.EXITWHEN); }
+	"set"								{ return symbol(TokenType.SET); }
+	"call"								{ return symbol(TokenType.CALL); }
+	"then"								{ return symbol(TokenType.THEN); }
+	"elseif"							{ return symbol(TokenType.ELSEIF); }
+	"endif"								{ return symbol(TokenType.ENDIF); }
+	"init"								{ return symbol(TokenType.INIT); }
 	"("                               { return symbol(TokenType.LPAR); }
 	")"                               { return symbol(TokenType.RPAR); }
 	","                               { return symbol(TokenType.COMMA); }
@@ -90,7 +110,12 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"<"                              { return symbol(TokenType.LT); }
 	">"                              { return symbol(TokenType.GT); }
 	"="                               { return symbol(TokenType.EQ); }
-	{DIGIT}+                          { return symbol(TokenType.INTEGER_LITERAL, Integer.parseInt(yytext())); }
+	{DIGIT}+                          { return symbol(TokenType.INTEGER_LITERAL, Utils.parseInt(yytext())); }
+	"0x" [0-9a-fA-F]+                          { return symbol(TokenType.INTEGER_LITERAL, Utils.parseHexInt(yytext())); }
+	"'" . "'"						  { return symbol(TokenType.INTEGER_LITERAL, Utils.parseAsciiInt1(yytext())); }
+	"'" . . . . "'"					{ return symbol(TokenType.INTEGER_LITERAL, Utils.parseAsciiInt4(yytext())); }
+	{DIGIT}+ "." {DIGIT}*			  { return symbol(TokenType.REAL_LITERAL, Double.parseDouble(yytext())); }
+	"." {DIGIT}+					  { return symbol(TokenType.REAL_LITERAL, Double.parseDouble(yytext())); } 
 	"true"                            { return symbol(TokenType.TRUE); }
 	"false"                           { return symbol(TokenType.FALSE); }
 	{IDENT}                           { return symbol(TokenType.IDENTIFIER, yytext()); }

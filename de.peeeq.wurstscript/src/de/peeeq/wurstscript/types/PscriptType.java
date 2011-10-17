@@ -49,4 +49,11 @@ public abstract class PscriptType {
 	@Override public int hashCode() {
 		throw new Error("Hash code not implemented for types, because it could conflict with the custom equals operation.");
 	}
+	
+	
+	public void printJass(StringBuilder sb) {
+		sb.append(printJass());
+	}
+	
+	public abstract String printJass();
 }

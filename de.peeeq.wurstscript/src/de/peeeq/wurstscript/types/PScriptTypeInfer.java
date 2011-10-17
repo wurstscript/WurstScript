@@ -29,4 +29,9 @@ public class PScriptTypeInfer extends PscriptType {
 		return instance ;
 	}
 
+	@Override
+	public String printJass() {
+		throw new Error("Unknown type.");
+	}
+
 }

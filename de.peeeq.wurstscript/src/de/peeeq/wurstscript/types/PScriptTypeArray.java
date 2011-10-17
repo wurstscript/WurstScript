@@ -7,12 +7,22 @@ public class PScriptTypeArray extends PscriptType {
 	private int[] sizes;
 	
 	public PScriptTypeArray(PscriptType baseType, int[] sizes) {
+		if (baseType instanceof PScriptTypeArray) {
+			throw new Error("cannot have array of arrays...");
+		}
 		this.baseType = baseType;
 		this.sizes = sizes;
 	}
 	
 	
 	
+	public PScriptTypeArray(PscriptType baseType) {
+		this.baseType = baseType;
+		this.sizes = new int[1];
+	}
+
+
+
 	public PscriptType getBaseType() {
 		return baseType;
 	}
@@ -49,6 +59,13 @@ public class PScriptTypeArray extends PscriptType {
 
 	public int getSize(int i) {
 		return sizes[i];
+	}
+
+
+
+	@Override
+	public String printJass() {
+		return baseType.getName() + " array";
 	}
 
 }

@@ -1,0 +1,43 @@
+
+
+function ModuloInteger2 takes integer dividend, integer divisor returns integer
+    local integer modulus = dividend - (dividend / divisor) * divisor
+
+
+
+    // If the dividend was negative, the above modulus calculation will
+
+    // be negative, but within (-divisor..0).  We can add (divisor) to
+
+    // shift this result into the desired range of (0..divisor).
+
+    if (modulus < 0) then
+
+        set modulus = modulus + divisor
+
+    endif
+
+
+
+    return modulus
+
+endfunction
+
+package test {
+	
+	native testFail(string msg)
+	native testSuccess()
+	native I2S(integer i) returns string
+	
+	
+	init {
+		int i = ModuloInteger2(10, 3)
+		if (i == 1) {
+			testSuccess()
+		} else {
+			testFail("modulo wrong:" + I2S(i))
+		}
+	}
+}
+
+

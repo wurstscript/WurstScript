@@ -6,7 +6,7 @@ public class PScriptTypeInt extends PscriptType {
 	private static final PScriptTypeInt instance = new PScriptTypeInt();
 
 	// make constructor private as we only need one instance
-	private PScriptTypeInt() {}
+	protected PScriptTypeInt() {}
 	
 	@Override
 	public boolean isSubtypeOf(PscriptType other) {
@@ -26,6 +26,11 @@ public class PScriptTypeInt extends PscriptType {
 
 	public static PScriptTypeInt instance() {
 		return instance;
+	}
+	
+	@Override
+	public String printJass() {
+		return getName();
 	}
 
 }

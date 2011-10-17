@@ -1,5 +1,8 @@
 package de.peeeq.wurstscript.intermediateLang;
 
+import de.peeeq.wurstscript.types.PScriptTypeInt;
+import de.peeeq.wurstscript.utils.Utils;
+
 public class ILsetBinary extends ILStatementSet {
 
 	private Iloperator op;
@@ -28,11 +31,12 @@ public class ILsetBinary extends ILStatementSet {
 
 
 	@Override
-	public void printJass(StringBuilder sb) {
-		sb.append("set " + getResultVar().getName() 
-				 + " = " + left.getName());
-		op.printJass(sb);
-		sb.append(right.getName() + "\n");
+	public void printJass(StringBuilder sb, int indent) {
+		ILsetExpr temp = new ILsetExpr(resultVar, new ILexprBinary(left, op, right));
+		temp.printJass(sb, indent);
+		
+		
+		
 	}
 	
 	

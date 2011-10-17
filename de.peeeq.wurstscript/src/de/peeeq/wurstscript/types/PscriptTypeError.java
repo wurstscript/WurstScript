@@ -24,4 +24,9 @@ public class PscriptTypeError extends PscriptType {
 		return getName();
 	}
 
+	@Override
+	public String printJass() {
+		return getName();
+	}
+
 }

@@ -1,0 +1,22 @@
+package test {
+	
+	nativetype string
+	nativetype int
+	
+	native testFail(string msg)
+	
+	native testSuccess()
+
+	int array blub
+
+	init {
+		blub[5] = 3
+		if blub[5] == 3 {
+			testSuccess()
+		} else {
+			testFail("Array Test 1 failed.")
+		}
+	} 
+	
+	
+}

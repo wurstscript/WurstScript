@@ -1,0 +1,55 @@
+package test {
+	
+	nativetype string
+	nativetype int
+	
+	native testFail(string msg)
+	
+	native testSuccess()
+	native I2S(integer i) returns string
+	
+	class Blub {
+		int x
+		construct (int x) {
+			this.x = x
+		}
+	}
+	
+	Blub array b
+
+	init {
+		
+		b[0] = new Blub(0)
+		b[1] = new Blub(1)
+		b[2] = new Blub(2)
+		b[3] = new Blub(3)
+		b[4] = new Blub(4)
+		b[5] = new Blub(5)
+		b[6] = new Blub(6)
+		b[7] = new Blub(7)
+		
+		destroy b[0]
+		destroy b[6]
+		destroy b[2]
+		destroy b[4]
+		
+	
+		
+		b[8] = new Blub(8)
+		b[9] = new Blub(9)
+		
+		integer i = 0
+		while (i < 10) {
+			if (i mod 2 == 1) and (b[i].x != i) {
+				testFail("fail " + I2S(i))
+			}
+			i = i + 1
+		}	
+			
+	
+		
+		testSuccess()
+	} 
+	
+	
+}

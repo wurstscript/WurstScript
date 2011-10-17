@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.intermediateLang;
 
+import de.peeeq.wurstscript.utils.Utils;
+
 public class IlsetUnary extends ILStatementSet {
 
 	private Iloperator op;
@@ -22,9 +24,10 @@ public class IlsetUnary extends ILStatementSet {
 
 
 	@Override
-	public void printJass(StringBuilder sb) {
+	public void printJass(StringBuilder sb, int indent) {
+		Utils.printIndent(sb, indent);
 		sb.append("set " + getResultVar().getName() + " = " );
-		op.printJass(sb);
+		op.printJass(sb, 0);
 		sb.append(right.getName() + "\n");
 	}
 	

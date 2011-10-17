@@ -1,9 +1,11 @@
 package de.peeeq.wurstscript.attributes;
 
+import java.io.File;
+
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WPosPos;
 
-public class CompileError {
+public class CompileError extends Error {
 	private WPos source;
 	private String message;
 	
@@ -25,7 +27,8 @@ public class CompileError {
 	}
 	@Override
 	public String toString() {
-		return "Error in File " + source.file() + " line " + source.line() + ":" + source.column() + ":\n" + 
+		File file = new File(source.file());
+		return "Error in File " + file.getName()+ " line " + source.line() + ":" + source.column() + ":\n" + 
 				message;
 	}
 }

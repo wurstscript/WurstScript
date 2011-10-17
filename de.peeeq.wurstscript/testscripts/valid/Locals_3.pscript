@@ -1,0 +1,18 @@
+package test {
+	
+	nativetype string
+	nativetype int
+	
+	native testFail(string msg)
+	native testSuccess()
+
+	init {
+		int x
+		x = 1
+		if x == 1 {
+			testSuccess()
+		} else {
+			testFail("defect in setting variable after declaration")
+		}
+	}
+}

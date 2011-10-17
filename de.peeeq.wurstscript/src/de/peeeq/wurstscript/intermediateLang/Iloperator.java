@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.intermediateLang;
 
+import de.peeeq.wurstscript.utils.Utils;
+
 public class Iloperator implements CodePrinting {
 
 	public static final Iloperator OR = new Iloperator("or");
@@ -33,8 +35,12 @@ public class Iloperator implements CodePrinting {
 	}
 
 	@Override
-	public void printJass(StringBuilder sb) {
+	public void printJass(StringBuilder sb, int indent) {
 		sb.append(" " + name + " ");
+	}
+	
+	public boolean isComparisonOp() {
+		return Utils.oneOf(this, EQUALITY, UNEQUALITY, LESS, LESS_EQ, GREATER, GREATER_EQ);
 	}
 
 }

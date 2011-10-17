@@ -5,6 +5,11 @@ import java.util.List;
 
 import java_cup.runtime.Scanner;
 import java_cup.runtime.Symbol;
+import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.ast.AST;
+import de.peeeq.wurstscript.ast.WPos;
+import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.utils.NotNullList;
 
 /**
@@ -14,8 +19,13 @@ import de.peeeq.wurstscript.utils.NotNullList;
  */
 public class ExtendedParser extends parser {
 
-	private List<ParserException> errors = new NotNullList<ParserException>();
+	private List<CompileError> errors = new NotNullList<CompileError>();
+	private WurstGui gui;
 	
+	
+	public void setFilename(String filename) {
+		this.filename = filename;
+	}
 	
 	@Override
 	public Symbol parse() throws Exception {
@@ -45,8 +55,9 @@ public class ExtendedParser extends parser {
 	}
 	
 	
-	public ExtendedParser(Scanner scanner) {
+	public ExtendedParser(Scanner scanner, WurstGui gui) {
 		super(scanner);
+		this.gui = gui;
 	}
 
 	public int getErrorCount() {
@@ -74,9 +85,9 @@ public class ExtendedParser extends parser {
 				}
 			}
 		} catch (Throwable e) {
-			e.printStackTrace();
+			WLogger.severe(e);
 		}
-		return null;
+		return "";
 	}
 	
 	private String symbolToString(Symbol s) {
@@ -92,11 +103,9 @@ public class ExtendedParser extends parser {
 		
 		String msg;
 		if (s.sym == TokenType.error) {
-			msg = "Lexical error in " + pos(s) + "\n" +
-					"	unexpected symbol " + s.value;
+			msg = "Lexical error: unexpected symbol <" + s.value + "> ";
 		} else {
-			msg = "Syntax error in " + pos(s) + "\n" + 
-					"	unexpected " + symbolToString(s);
+			msg = "Grammatical error: unexpected " + symbolToString(s);
 		}
 		
 		// get current parse state:
@@ -114,14 +123,18 @@ public class ExtendedParser extends parser {
 				msg += translateSym(possibleActions[j]);
 			}
 		}
-		ParserException err = new ParserException(msg);
+		WPos source = AST.WPos(filename, s.left, s.right);
+		CompileError err = new CompileError(source , msg);
 		errors.add(err);
-		throw err;
+		gui.sendError(err);
+//		throw err;
 	}
 	
 	
 	@Override
 	public void unrecovered_syntax_error(Symbol s) {
-		throw new ParserException("Could not continue to parse file ...");
+		WPos source = AST.WPos(filename, s.left, s.right);
+		throw new CompileError(source, "Could not continue to parse file ...");
 	}
+
 }

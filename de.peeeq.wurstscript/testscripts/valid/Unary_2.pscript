@@ -1,0 +1,17 @@
+package test {
+	
+	nativetype string
+	nativetype int
+	
+	native testFail(string msg)
+	
+	native testSuccess()
+
+	init {
+		if -3 + 5 == 2 {
+			testSuccess()
+		} else {
+			testFail("defect in unary operation")
+		}
+	}
+}

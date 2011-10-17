@@ -1,5 +1,9 @@
 package de.peeeq.wurstscript.intermediateLang;
 
+import de.peeeq.wurstscript.types.PScriptTypeBool;
+import de.peeeq.wurstscript.types.PScriptTypeString;
+import de.peeeq.wurstscript.types.PscriptType;
+
 public class ILconstString extends ILconst {
 
 	private String val; // including the quotes
@@ -18,8 +22,13 @@ public class ILconstString extends ILconst {
 	}
 
 	@Override
-	public void printJass(StringBuilder sb) {
+	public void printJass(StringBuilder sb, int indent) {
 		sb.append(print());
+	}
+	
+	@Override
+	public PscriptType getType() {
+		return PScriptTypeString.instance();
 	}
 	
 }

@@ -1,0 +1,17 @@
+package test {
+	
+	nativetype string
+	nativetype int
+	
+	native testFail(string msg)
+	
+	native testSuccess()
+
+	init {
+		if 10 != 5 {
+			testSuccess()
+		} else {
+			testFail("defect in unequality if")
+		}
+	}
+}

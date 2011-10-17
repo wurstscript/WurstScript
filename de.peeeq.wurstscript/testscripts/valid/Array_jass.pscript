@@ -1,0 +1,27 @@
+native testSuccess takes nothing returns nothing
+native testFail takes string s returns nothing
+
+globals
+	integer array blub
+endglobals
+
+
+function foo takes nothing returns nothing 
+	set blub[5] = 3
+	if blub[5] == 3 then
+		call testSuccess()
+	else
+		call testFail("Array Test 1 failed.")
+	endif
+endfunction
+
+package test {
+	
+	
+
+	init {
+		foo()
+	} 
+	
+	
+}

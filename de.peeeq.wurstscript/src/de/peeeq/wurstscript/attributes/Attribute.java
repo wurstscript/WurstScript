@@ -29,11 +29,14 @@ abstract class Attribute<N extends SortPos,R> {
 	 * get the value of the attribute 
 	 */
 	public R get(N node) {
-		R r = cache.get(node);
-		if (r == null) {
-			r = calculate(node);
-			cache.put(node, r);
+		if (node == null) {
+			throw new IllegalArgumentException("node must not be null (" + (this.getClass()) + " )");
 		}
+		if (cache.containsKey(node)) {
+			return cache.get(node); 
+		}
+		R r = calculate(node);
+		cache.put(node, r);
 		return r;
 	}
 

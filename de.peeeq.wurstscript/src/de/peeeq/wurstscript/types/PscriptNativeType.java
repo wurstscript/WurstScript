@@ -11,7 +11,8 @@ public class PscriptNativeType extends PscriptType {
 	@Override
 	public boolean isSubtypeOf(PscriptType other) {
 		if (other instanceof PscriptNativeType) {
-			return ((PscriptNativeType)other).name.equals(name);
+			return ((PscriptNativeType)other).name.equals(name)
+				|| superType.isSubtypeOf(other);
 		}
 		return superType.isSubtypeOf(other);
 	}
@@ -31,6 +32,11 @@ public class PscriptNativeType extends PscriptType {
 		t.name = name;
 		t.superType = superType;
 		return t;
+	}
+
+	@Override
+	public String printJass() {
+		return name;
 	}
 
 }

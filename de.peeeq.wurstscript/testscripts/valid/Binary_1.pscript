@@ -1,0 +1,17 @@
+package test {
+	
+	nativetype string
+	nativetype int
+	
+	native testFail(string msg)
+	
+	native testSuccess()
+
+	init {
+		if 3 + 7 == 10 {
+			testSuccess()
+		} else {
+			testFail("defect in binary operation")
+		}
+	}
+}

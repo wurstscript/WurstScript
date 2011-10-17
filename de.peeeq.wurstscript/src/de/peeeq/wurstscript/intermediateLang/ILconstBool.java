@@ -1,5 +1,9 @@
 package de.peeeq.wurstscript.intermediateLang;
 
+import de.peeeq.wurstscript.types.PScriptTypeBool;
+import de.peeeq.wurstscript.types.PScriptTypeInt;
+import de.peeeq.wurstscript.types.PscriptType;
+
 public class ILconstBool extends ILconst {
 
 	private boolean val;
@@ -33,8 +37,16 @@ public class ILconstBool extends ILconst {
 	}
 
 	@Override
-	public void printJass(StringBuilder sb) {
+	public void printJass(StringBuilder sb, int indent) {
 		sb.append(print());
 	}
+
+	@Override
+	public PscriptType getType() {
+		return PScriptTypeBool.instance();
+	}
+
+	
+	
 
 }

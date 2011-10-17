@@ -1,0 +1,19 @@
+package test {
+	
+	nativetype string
+	nativetype int
+	
+	native testFail(string msg)
+	native print(string msg)
+	native I2S(int i) returns string
+	native testSuccess()
+
+	init {
+		int i = 11 div 5
+		if i == 2 {
+			testSuccess()
+		} else {
+			testFail("defect in binary operation: " + I2S(i))
+		}
+	}
+}

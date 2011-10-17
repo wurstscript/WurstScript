@@ -1,0 +1,24 @@
+package test {
+	
+	nativetype string
+	nativetype int
+	
+	native testFail(string msg)
+	
+	native testSuccess()
+
+	int y = 1 + x
+	int x = 7
+	int z = y + 1
+
+	init {
+		
+		if z == 9 {
+			testSuccess()
+		} else {
+			testFail("Array Test 1 failed.")
+		}
+	} 
+	
+	
+}

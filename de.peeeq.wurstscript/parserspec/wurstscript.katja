@@ -18,7 +18,9 @@ root CompilationUnit Pos
 
 WPos ( String file, Integer line, Integer column ) // TODO use Wpos to track positions
 
-CompilationUnit * WPackage
+CompilationUnit * TopLevelDeclaration
+
+TopLevelDeclaration = WPackage | JassToplevelDeclaration
 
 WPackage(WPos source, String name, WImports imports, WEntities elements)
 
@@ -76,14 +78,16 @@ WStatements * WStatement
 WStatement	=
 	  StmtIf(WPos source, Expr cond, WStatements thenBlock, WStatements elseBlock)
 	| StmtWhile(WPos source, Expr cond, WStatements body)
+	| StmtLoop(WPos source, WStatements body)
 	| LocalVarDef
 	| StmtSet(WPos source, ExprAssignable left, OpAssignment op, Expr right)
 	| StmtCall
-	| StmtReturn(WPos source, Expr obj)
+	| StmtReturn(WPos source, OptExpr obj)
 	| StmtDestroy(WPos source, Expr obj)
 	| StmtIncRefCount(WPos source, Expr obj) 
 	| StmtDecRefCount(WPos source, Expr obj)
 	| StmtErr(WPos source)
+	| StmtExitwhen(WPos source, Expr cond)
 	
 
 OpAssignment = OpAssign() // TODO += -= *= /= ...
@@ -94,7 +98,8 @@ StmtCall = ExprMemberMethod | ExprFunctionCall | ExprNewObject
 ExprAssignable = ExprMemberVar | ExprMemberArrayVar | ExprVarAccess | ExprVarArrayAccess
 
 Expr = 
-	  ExprBinary(WPos source, Expr left, OpBinary op, Expr right)
+	ExprAssignable
+	| ExprBinary(WPos source, Expr left, OpBinary op, Expr right)
 	| ExprUnary(WPos source, OpUnary op, Expr right)
 	| ExprMemberVar(WPos source, Expr left, String varName)
 	| ExprMemberArrayVar(WPos source, Expr left, String varName, Indexes indexes)
@@ -113,6 +118,8 @@ ExprAtomic =
 	| ExprVarAccess(WPos source, String varName)
 	| ExprVarArrayAccess(WPos source, String varName, Indexes indexes)
 	| ExprThis(WPos source)
+	| ExprNull(WPos source)
+	
 	
 Indexes * Expr
 Arguments * Expr
@@ -156,9 +163,21 @@ FuncRef = ExprFuncRef | ExprMemberMethod | ExprFunctionCall
 	
 FunctionDefinition = FuncDef | NativeFunc	
 	
-WScope = WPackage | ClassDef | FuncDef
+WScope = PackageOrGlobal | ClassDef | FuncDef | ConstructorDef | OnDestroyDef | InitBlock
+
+PackageOrGlobal = WPackage | CompilationUnit	
 	
 TypeRef = TypeExpr | ExprNewObject
 
 	
+	
+// Jass types:
+
+
+JassToplevelDeclaration = JassGlobalBlock | FunctionDefinition | NativeType
+
+JassGlobalBlock * GlobalVarDef
+
+
+
 	

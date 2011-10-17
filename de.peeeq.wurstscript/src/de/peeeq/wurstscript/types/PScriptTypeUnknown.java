@@ -6,9 +6,16 @@ public class PScriptTypeUnknown extends PscriptType {
 	private static final PScriptTypeUnknown instance = new PScriptTypeUnknown("unknown");
 
 	private String name = "unknown";
+
+	private Error err;
 	
 	public PScriptTypeUnknown(String name) {
 		this.name = name;
+		try {
+			throw new Error("unknown type");
+		} catch (Error e) {
+			this.err = e; // store for later
+		}
 	}
 
 	@Override
@@ -29,6 +36,12 @@ public class PScriptTypeUnknown extends PscriptType {
 
 	public static PScriptTypeUnknown instance() {
 		return instance;
+	}
+
+	@Override
+	public String printJass() {
+		throw err;
+//		return "unknown<"+name+">";
 	}
 
 }

@@ -27,4 +27,9 @@ public class PScriptTypeVoid extends PscriptType {
 		return instance;
 	}
 
+	@Override
+	public String printJass() {
+		return "nothing";
+	}
+
 }

@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.intermediateLang;
 
+import de.peeeq.wurstscript.utils.Utils;
+
 /**
  * a binary expression with a constant on the right like
  * 
@@ -34,12 +36,9 @@ public class ILsetBinaryCR extends ILStatementSet {
 
 
 	@Override
-	public void printJass(StringBuilder sb) {
-		sb.append("set " + getResultVar().getName() 
-				 + " = " + left.getName());
-		op.printJass(sb);
-		right.printJass(sb);
-		sb.append("\n");
+	public void printJass(StringBuilder sb, int indent) {
+		ILsetExpr temp = new ILsetExpr(resultVar, new ILexprBinary(left, op, right));
+		temp.printJass(sb, indent);
 	}
 	
 	

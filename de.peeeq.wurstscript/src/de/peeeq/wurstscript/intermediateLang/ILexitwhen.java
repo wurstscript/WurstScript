@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.intermediateLang;
 
+import de.peeeq.wurstscript.utils.Utils;
+
 
 public class ILexitwhen extends ILStatement {
 
@@ -14,7 +16,8 @@ public class ILexitwhen extends ILStatement {
 	}
 
 	@Override
-	public void printJass(StringBuilder sb) {
+	public void printJass(StringBuilder sb, int indent) {
+		Utils.printIndent(sb, indent);
 		sb.append("exitwhen " + var.getName() + "\n");
 	}
 

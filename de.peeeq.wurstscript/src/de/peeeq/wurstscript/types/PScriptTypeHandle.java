@@ -28,4 +28,9 @@ public class PScriptTypeHandle extends PscriptType {
 		return instance;
 	}
 
+	
+	@Override
+	public String printJass() {
+		return getName();
+	}
 }

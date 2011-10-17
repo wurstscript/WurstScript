@@ -3,18 +3,24 @@ package de.peeeq.wurstscript.types;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstBool;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
+import de.peeeq.wurstscript.intermediateLang.ILconstNull;
 import de.peeeq.wurstscript.intermediateLang.ILconstNum;
 import de.peeeq.wurstscript.intermediateLang.ILconstString;
 
 public class NativeTypes {
 	/**
 	 * returns the PscriptType for a given nativetype definition
+	 * @param b 
 	 */
-	public static PscriptType nativeType(String typeName) {
-		if (typeName.equals("int")) {
-			return PScriptTypeInt.instance();
+	public static PscriptType nativeType(String typeName, boolean isJassCode) {
+		if (typeName.equals("int") || typeName.equals("integer")) {
+			if (isJassCode) {
+				return PScriptTypeJassInt.instance();
+			} else {
+				return PScriptTypeInt.instance();
+			}
 		}
-		if (typeName.equals("bool")) {
+		if (typeName.equals("bool") || typeName.equals("boolean")) {
 			return PScriptTypeBool.instance();
 		}
 		if (typeName.equals("real")) {
@@ -46,10 +52,13 @@ public class NativeTypes {
 			return new ILconstString(null);
 		}
 		if (type.isSubtypeOf(PScriptTypeCode.instance())) {
-			throw new Error("code has no default type");
+			return new ILconstNull();
 		}
 		if (type.isSubtypeOf(PScriptTypeHandle.instance())) {
-			// TODO 
+			return new ILconstNull();
+		}
+		if (type instanceof PscriptTypeClass) {
+			return new ILconstInt(0);
 		}
 		throw new Error("default value for type " + type + " not implemented");
 	}
