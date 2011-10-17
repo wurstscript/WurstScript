@@ -1,0 +1,25 @@
+
+package otherPackage {
+	public function foo() returns integer {
+		return 4
+	}
+	
+}
+
+package test {
+   
+   import otherPackage
+   
+   native testFail(string msg)
+   
+   native testSuccess()
+   
+   
+   init {
+      if foo() == 4 {
+         testSuccess()
+      } else {
+         testFail("defect in equality if")
+      }
+   }
+}

@@ -1,0 +1,19 @@
+<project name="Jflex" default="jflex" basedir=".">
+	<property name="root" location="." />
+	<property name="lib" location="./lib" />
+	<property name="src" location="./src" />
+	<property name="scannerspec" location="./src/de/peeeq/parseq/parseq.flex" />
+	<property name="output" location="./src/de/peeeq/parseq/parser" />
+	<property name="jflex" location="../de.peeeq.wurstscript/lib/jflex.jar" />
+
+	
+	<target name="jflex" >
+		<java jar="${jflex}" fork="true" failonerror="true">
+			<arg value="-d" />
+			<arg value="${output}" />
+			<arg value="${scannerspec}" />
+			<!-- <classpath refid="classpath" />-->
+		</java>
+	</target>
+
+</project>

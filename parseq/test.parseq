@@ -1,0 +1,12 @@
+package de.peeeq.parseq.ast
+
+
+abstract syntax:
+
+A = B | C | D
+
+D * B
+
+B(int x, int y)
+
+C(String y)
