@@ -34,10 +34,10 @@ terminal
 	LBRACK, RBRACK, 
 	COMMA,   
 	NL,
-	STATIC, PACKAGE, RETURNS,FUNCTION, VAL, PUBLIC, PUBLICREAD, PRIVATE, IMPORT, NATIVETYPE, INIT, NATIVE, INTERFACE,
+	STATIC, PACKAGE, RETURNS,FUNCTION, VAL, PUBLIC, PUBLICREAD, PRIVATE, PROTECTED, IMPORT, NATIVETYPE, INIT, NATIVE, INTERFACE,
 	IMPLEMENTS, ARRAY, IF, ELSE, WHILE, RETURN, CLASS, NEW, NULL, EXTENDS, THIS, CONSTRUCT, ONDESTROY, 
 	TYPE, GLOBALS, ENDGLOBALS, CONSTANT, ENDFUNCTION, TAKES, NOTHING, LOCAL,
-	LOOP, ENDLOOP, EXITWHEN, SET, CALL, THEN, ELSEIF, ENDIF, DESTROY;
+	LOOP, ENDLOOP, EXITWHEN, SET, CALL, THEN, ELSEIF, ENDIF, DESTROY, CASTTO;
 
 non terminal Arguments Arguments;
 non terminal Arguments ArgumentRest;
@@ -53,6 +53,7 @@ non terminal Expr Expr;
 non terminal Expr ExprAtomic;
 non terminal ExprAssignable ExprAssignable;
 non terminal ExprBinary ExprBinary;
+non terminal ExprCast ExprCast;
 non terminal ExprMemberMethod ExprMemberMethod;
 non terminal ExprMemberVar ExprMemberVar;
 non terminal ExprUnary ExprUnary;
@@ -109,6 +110,7 @@ non terminal WStatement JassStatementIf;
 non terminal WStatements JasselseIfs;
 non terminal NativeFunc JassNativeDecl;
 non terminal JassToplevelDeclaration JassToplevelDeclaration;
+non terminal VisibilityModifier VisibilityModifier;
 
 
 precedence left		OR;
@@ -121,6 +123,7 @@ precedence left		UMINUS;
 precedence right    DOT;
 precedence left 	NL;
 precedence right	NEW;
+precedence right	CASTTO;
 
 start with CompilationUnit;
 
@@ -144,6 +147,18 @@ TopLevelDeclaration ::=
 		{: RESULT = x; :}
 	| JassToplevelDeclaration:x
 		{: RESULT = x; :}
+;
+
+
+VisibilityModifier ::=
+	PUBLIC:x
+		{: RESULT = AST.VisibilityPublic(pos(xleft, xright)); :}
+	| PRIVATE:x
+		{: RESULT = AST.VisibilityPrivate(pos(xleft, xright)); :}
+	| PUBLICREAD:x
+		{: RESULT = AST.VisibilityPublicread(pos(xleft, xright)); :}
+	|
+		{: RESULT = AST.VisibilityDefault(); :}
 ;
 
 
@@ -177,10 +192,10 @@ Entities ::=
 ;
 
 Entity ::=
-	NATIVETYPE:x IDENTIFIER:name EXTENDS TypeExpr:extendsName NL
-		{: RESULT = AST.NativeType(pos(xleft, xright), name, extendsName); :}
-	| NATIVETYPE:x IDENTIFIER:name NL
-		{: RESULT = AST.NativeType(pos(xleft, xright), name, AST.NoTypeExpr()); :}
+	VisibilityModifier:vis NATIVETYPE:x IDENTIFIER:name EXTENDS TypeExpr:extendsName NL
+		{: RESULT = AST.NativeType(pos(xleft, xright), vis, name, extendsName); :}
+	| VisibilityModifier:vis NATIVETYPE:x IDENTIFIER:name NL
+		{: RESULT = AST.NativeType(pos(xleft, xright), vis, name, AST.NoTypeExpr()); :}
 	| FuncDef:x
 		{: RESULT = x; :}
 	| VarDef:x
@@ -194,8 +209,8 @@ Entity ::=
 ;		
 
 ClassDef ::=
-	CLASS:x IDENTIFIER:name LBRACK NL ClassSlots:slots RBRACK NL
-		{: RESULT = AST.ClassDef(pos(xleft, xright), name, false, slots); :}
+	VisibilityModifier:vis CLASS:x IDENTIFIER:name LBRACK NL ClassSlots:slots RBRACK NL
+		{: RESULT = AST.ClassDef(pos(xleft, xright), vis, name, false, slots); :}
 ;
 
 ClassSlots ::=
@@ -206,8 +221,8 @@ ClassSlots ::=
 ;
 
 ClassSlot ::=
-	CONSTRUCT:x LPAR Parameters:params RPAR LBRACK NL Statements:body RBRACK NL
-		{: RESULT = AST.ConstructorDef(pos(xleft, xright), params, body); :}
+	VisibilityModifier:vis CONSTRUCT:x LPAR Parameters:params RPAR LBRACK NL Statements:body RBRACK NL
+		{: RESULT = AST.ConstructorDef(pos(xleft, xright), vis, params, body); :}
 	| ONDESTROY:x LBRACK NL Statements:body RBRACK NL
 		{: RESULT = AST.OnDestroyDef(pos(xleft, xright), body); :}
 	| VarDef:x
@@ -217,8 +232,8 @@ ClassSlot ::=
 ;
 
 FuncDef ::=
-	FUNCTION:x FuncSignature:sig LBRACK NL Statements:body RBRACK
-		{: RESULT = AST.FuncDef(pos(xleft, xright), sig, body); :}
+	VisibilityModifier:vis FUNCTION:x FuncSignature:sig LBRACK NL Statements:body RBRACK
+		{: RESULT = AST.FuncDef(pos(xleft, xright), vis, sig, body); :}
 ;
 
 FuncSignature ::=
@@ -262,14 +277,14 @@ ArraySizes ::=
 ;
 
 VarDef ::=
-	VAL:x IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = AST.GlobalVarDef(pos(xleft, xright), true, AST.NoTypeExpr(), name, i); :}
-	| VAL:x TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = AST.GlobalVarDef(pos(xleft, xright), true, typ, name, i); :}
-	| TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = AST.GlobalVarDef(pos(typleft, typright), false, typ, name, i); :}
-	| TypeExpr:typ IDENTIFIER:name NL
-		{: RESULT = AST.GlobalVarDef(pos(typleft, typright), false, typ, name, AST.NoExpr()); :}
+	VisibilityModifier:vis VAL:x IDENTIFIER:name EQ Expr:i NL
+		{: RESULT = AST.GlobalVarDef(pos(xleft, xright), vis, true, AST.NoTypeExpr(), name, i); :}
+	| VisibilityModifier:vis VAL:x TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
+		{: RESULT = AST.GlobalVarDef(pos(xleft, xright), vis, true, typ, name, i); :}
+	| VisibilityModifier:vis TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
+		{: RESULT = AST.GlobalVarDef(pos(typleft, typright), vis, false, typ, name, i); :}
+	| VisibilityModifier:vis TypeExpr:typ IDENTIFIER:name NL
+		{: RESULT = AST.GlobalVarDef(pos(typleft, typright), vis, false, typ, name, AST.NoExpr()); :}
 ;
 
 Statements ::=
@@ -395,7 +410,15 @@ Expr ::=
 	  	{: RESULT = x; :}
 	| ExprAtomic:x
 	  	{: RESULT = x; :}
+	| ExprCast:x
+		{: RESULT = x; :}
 ;
+	
+	
+ExprCast ::= 
+	Expr:e CASTTO TypeExpr:t 
+		{: RESULT = AST.ExprCast(e.source(), t, e); :} 
+;	
 	
 ExprMemberVar ::=
 	Expr:left DOT IDENTIFIER:name
@@ -537,7 +560,7 @@ JassToplevelDeclaration ::=
 
 JassTypeDecl ::=
 	TYPE:x IDENTIFIER:name EXTENDS TypeExpr:extendsName NL
-		{: RESULT = AST.NativeType(pos(xleft, xright), name, extendsName); :}
+		{: RESULT = AST.NativeType(pos(xleft, xright), AST.VisibilityDefault(), name, extendsName); :}
 ;
 
 
@@ -555,11 +578,11 @@ JassGlobalDecls ::=
 
 JassGlobalDecl ::=
 	CONSTANT:x TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = AST.GlobalVarDef(pos(xleft, xright), true, typ, name, i); :}
+		{: RESULT = AST.GlobalVarDef(pos(xleft, xright), AST.VisibilityDefault(), true, typ, name, i); :}
 	| TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = AST.GlobalVarDef(typ.source(), false, typ, name, i); :}
+		{: RESULT = AST.GlobalVarDef(typ.source(), AST.VisibilityDefault(), false, typ, name, i); :}
 	| TypeExpr:typ IDENTIFIER:name NL
-		{: RESULT = AST.GlobalVarDef(typ.source(), false, typ, name, AST.NoExpr()); :}
+		{: RESULT = AST.GlobalVarDef(typ.source(), AST.VisibilityDefault(), false, typ, name, AST.NoExpr()); :}
 ;
 
 JassNativeDecl ::=
@@ -571,7 +594,7 @@ JassNativeDecl ::=
 
 JassFuncDef ::=
 	FUNCTION:x JassFuncSignature:sig NL JassLocals:body1 JassStatements:body2 ENDFUNCTION NL
-		{: RESULT = AST.FuncDef(pos(xleft, xright), sig, body1.addAll(body2)); :}
+		{: RESULT = AST.FuncDef(pos(xleft, xright), AST.VisibilityDefault(), sig, body1.addAll(body2)); :}
 ;
 
 

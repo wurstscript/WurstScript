@@ -1,7 +1,8 @@
 package de.peeeq.wurstscript.utils;
 
 
-import static org.testng.AssertJUnit.*;
+import static org.testng.AssertJUnit.assertEquals;
+import static org.testng.internal.junit.ArrayAsserts.assertArrayEquals;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -14,10 +15,7 @@ import com.google.common.base.Function;
 import de.peeeq.wurstscript.ast.AST;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.GlobalVarDefPos;
-import de.peeeq.wurstscript.ast.VarDefPos;
 import de.peeeq.wurstscript.ast.VarRefPos;
-import de.peeeq.wurstscript.ast.WEntity;
-import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WPackagePos;
 import de.peeeq.wurstscript.ast.WPos;
 
@@ -35,10 +33,10 @@ public class UtilsTest {
 	  WPos source = AST.WPos("", 0, 0);
 	CompilationUnit testProg = AST.CompilationUnit(
 			  AST.WPackage(source , "test", AST.WImports(), AST.WEntities(
-					  AST.GlobalVarDef(source, false, AST.NoTypeExpr(), "v1", AST.ExprIntVal(source, 5)),
-					  AST.GlobalVarDef(source, false, AST.NoTypeExpr(), "v2", AST.ExprVarAccess(source, "r1")),
-					  AST.GlobalVarDef(source, false, AST.NoTypeExpr(), "v3", AST.ExprBinary(source, AST.ExprIntVal(source, 3), AST.OpPlus(), AST.ExprVarAccess(source, "r2"))),
-					  AST.GlobalVarDef(source, false, AST.NoTypeExpr(), "v4", AST.ExprVarAccess(source, "r3"))
+					  AST.GlobalVarDef(source, AST.VisibilityDefault(), false, AST.NoTypeExpr(), "v1", AST.ExprIntVal(source, 5)),
+					  AST.GlobalVarDef(source, AST.VisibilityDefault(), false, AST.NoTypeExpr(), "v2", AST.ExprVarAccess(source, "r1")),
+					  AST.GlobalVarDef(source, AST.VisibilityDefault(), false, AST.NoTypeExpr(), "v3", AST.ExprBinary(source, AST.ExprIntVal(source, 3), AST.OpPlus(), AST.ExprVarAccess(source, "r2"))),
+					  AST.GlobalVarDef(source, AST.VisibilityDefault(), false, AST.NoTypeExpr(), "v4", AST.ExprVarAccess(source, "r3"))
 					  ))			  
 			  );
 	WPackagePos testPackage = AST.CompilationUnitPos(testProg).get(0).cast();

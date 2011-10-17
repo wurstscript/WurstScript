@@ -1,16 +1,12 @@
 package de.peeeq.wurstscript.attributes;
 
-import java.util.Collection;
 import java.util.List;
 
 import de.peeeq.wurstscript.ast.ClassDefPos;
 import de.peeeq.wurstscript.ast.ClassSlotPos;
 import de.peeeq.wurstscript.ast.ConstructorDefPos;
 import de.peeeq.wurstscript.ast.ExprNewObjectPos;
-import de.peeeq.wurstscript.ast.FuncRefPos;
-import de.peeeq.wurstscript.ast.FunctionDefinitionPos;
 import de.peeeq.wurstscript.ast.TypeDefPos;
-import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.utils.NotNullList;
 
 

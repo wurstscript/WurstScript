@@ -3,8 +3,6 @@ package de.peeeq.wurstscript.intermediateLang.translator;
 import java.util.LinkedList;
 import java.util.List;
 
-import static de.peeeq.wurstscript.ast.AST.*;
-
 import katja.common.NE;
 import de.peeeq.wurstscript.ast.AST;
 import de.peeeq.wurstscript.ast.ArgumentsPos;
@@ -15,6 +13,7 @@ import de.peeeq.wurstscript.ast.ConstructorDefPos;
 import de.peeeq.wurstscript.ast.ExprAssignablePos;
 import de.peeeq.wurstscript.ast.ExprBinaryPos;
 import de.peeeq.wurstscript.ast.ExprBoolValPos;
+import de.peeeq.wurstscript.ast.ExprCastPos;
 import de.peeeq.wurstscript.ast.ExprFuncRefPos;
 import de.peeeq.wurstscript.ast.ExprFunctionCallPos;
 import de.peeeq.wurstscript.ast.ExprIntValPos;
@@ -74,9 +73,7 @@ import de.peeeq.wurstscript.ast.VarDefPos;
 import de.peeeq.wurstscript.ast.WEntityPos;
 import de.peeeq.wurstscript.ast.WPackagePos;
 import de.peeeq.wurstscript.ast.WParameterPos;
-import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WStatementPos;
-import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.ast.WStatementsPos;
 import de.peeeq.wurstscript.attributes.Attributes;
 import de.peeeq.wurstscript.intermediateLang.ILStatement;
@@ -787,6 +784,12 @@ public class IntermediateLangTranslator {
 			public List<ILStatement> CaseExprNullPos(ExprNullPos term) throws NE {
 				result.add(new IlsetConst(resultVar, new ILconstNull()));
 				return result;
+			}
+
+			@Override
+			public List<ILStatement> CaseExprCastPos(ExprCastPos term) throws NE {
+				// a cast expression does not do anyting
+				return translateExpr(func, resultVar, term.expr());
 			}
 
 		});

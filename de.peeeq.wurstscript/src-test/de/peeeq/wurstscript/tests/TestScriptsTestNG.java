@@ -1,23 +1,20 @@
 package de.peeeq.wurstscript.tests;
 
 
-import static org.testng.AssertJUnit.*;
+import static org.testng.AssertJUnit.assertTrue;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.Arrays;
 import java.util.List;
 
-import org.testng.annotations.Test;
 import org.testng.annotations.DataProvider;
+import org.testng.annotations.Test;
 
 import de.peeeq.wurstscript.WurstCompiler;
 import de.peeeq.wurstscript.WurstCompilerImpl;
-import de.peeeq.wurstscript.gui.WurstGui;
-import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.intermediateLang.ILprog;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreter;

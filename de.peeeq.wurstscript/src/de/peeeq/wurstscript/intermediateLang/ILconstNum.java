@@ -2,7 +2,6 @@ package de.peeeq.wurstscript.intermediateLang;
 
 import java.math.BigDecimal;
 
-import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PScriptTypeReal;
 import de.peeeq.wurstscript.types.PscriptType;
 

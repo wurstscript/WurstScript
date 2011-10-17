@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.intermediateLang;
 
-import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
 import de.peeeq.wurstscript.types.PscriptType;
 

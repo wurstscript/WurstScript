@@ -57,6 +57,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"public"							{ return symbol(TokenType.PUBLIC); }
 	"publicread"						{ return symbol(TokenType.PUBLICREAD); }
 	"private"							{ return symbol(TokenType.PRIVATE); }
+	"protected"							{ return symbol(TokenType.PROTECTED); }
 	"import"							{ return symbol(TokenType.IMPORT); }
 	"native"							{ return symbol(TokenType.NATIVE); }
 	"nativetype"						{ return symbol(TokenType.NATIVETYPE); }
@@ -88,6 +89,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"elseif"							{ return symbol(TokenType.ELSEIF); }
 	"endif"								{ return symbol(TokenType.ENDIF); }
 	"init"								{ return symbol(TokenType.INIT); }
+	"castTo"							{ return symbol(TokenType.CASTTO); }
 	"("                               { return symbol(TokenType.LPAR); }
 	")"                               { return symbol(TokenType.RPAR); }
 	","                               { return symbol(TokenType.COMMA); }

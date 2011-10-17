@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.intermediateLang;
 
-import de.peeeq.wurstscript.utils.Utils;
 
 /**
  * a binary expression with a constant on the right like

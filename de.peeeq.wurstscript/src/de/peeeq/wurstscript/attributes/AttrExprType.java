@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.ast.AST.SortPos;
 import de.peeeq.wurstscript.ast.ClassDefPos;
 import de.peeeq.wurstscript.ast.ExprBinaryPos;
 import de.peeeq.wurstscript.ast.ExprBoolValPos;
+import de.peeeq.wurstscript.ast.ExprCastPos;
 import de.peeeq.wurstscript.ast.ExprFuncRefPos;
 import de.peeeq.wurstscript.ast.ExprFunctionCallPos;
 import de.peeeq.wurstscript.ast.ExprIntValPos;
@@ -210,9 +211,9 @@ public class AttrExprType extends Attribute<ExprPos, PscriptType> {
 							}
 						}
 						
-						// TODO if the intersection of the basetypes of lefttpye and righttype is
+						// TODO check if the intersection of the basetypes of lefttpye and righttype is
 						// not empty. Example:
-						// class A with B,C
+						// class A implements B,C
 						// -> B and C should be comparable
 						attr.addError(term.source(), "Cannot compare types " + leftType + " with " + rightType);
 					
@@ -404,7 +405,6 @@ public class AttrExprType extends Attribute<ExprPos, PscriptType> {
 				if (f.signature().typ() instanceof NoTypeExprPos) {
 					return PScriptTypeVoid.instance();
 				}
-				// TODO check parameters?
 				return attr.typeExprType.get((TypeExprPos) f.signature().typ());
 			}
 
@@ -424,6 +424,20 @@ public class AttrExprType extends Attribute<ExprPos, PscriptType> {
 			@Override
 			public PscriptType CaseExprNullPos(ExprNullPos term) throws NE {
 				return PScriptTypeNull.instance();
+			}
+
+			@Override
+			public PscriptType CaseExprCastPos(ExprCastPos term) throws NE {
+				PscriptType typ = attr.typeExprType.get(term.typ());
+				PscriptType exprTyp = attr.exprType.get(term.expr());
+				if (typ instanceof PScriptTypeInt && exprTyp instanceof PscriptTypeClass) {
+					// cast from classtype to int: OK
+				} else if (typ instanceof PscriptTypeClass && exprTyp instanceof PScriptTypeInt) {
+					// cast from int to classtype: OK
+				} else {
+					attr.addError(term.source(), "Cannot cast from " + exprTyp + " to " + typ + ".");
+				}
+				return typ;
 			}
 		});
 	}

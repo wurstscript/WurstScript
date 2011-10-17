@@ -4,7 +4,6 @@ import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
 import de.peeeq.wurstscript.types.PScriptTypeReal;
 import de.peeeq.wurstscript.types.PscriptType;
-import de.peeeq.wurstscript.utils.Utils;
 
 /**
  * a binary expression like A + B where A and B are arbitrary expressions 

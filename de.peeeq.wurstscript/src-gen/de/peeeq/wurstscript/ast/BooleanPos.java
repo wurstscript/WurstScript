@@ -1,8 +1,11 @@
 package de.peeeq.wurstscript.ast;
 
-import java.util.List;
-import katja.common.*;
 import java.io.IOException;
+import java.util.List;
+
+import katja.common.KatjaLeafPosImpl;
+import katja.common.KatjaNodePos;
+import katja.common.KatjaSort;
 
 public interface BooleanPos extends de.peeeq.wurstscript.ast.AST.LeafPos<java.lang.Boolean> {
 
@@ -10,7 +13,7 @@ public interface BooleanPos extends de.peeeq.wurstscript.ast.AST.LeafPos<java.la
 
     public java.lang.Boolean term();
     public de.peeeq.wurstscript.ast.AST.TuplePos<?> parent();
-    public de.peeeq.wurstscript.ast.AST.TermPos<?> lsib();
+    public de.peeeq.wurstscript.ast.AST.SortPos lsib();
     public de.peeeq.wurstscript.ast.AST.SortPos rsib();
     public de.peeeq.wurstscript.ast.AST.SortPos preOrder();
     public de.peeeq.wurstscript.ast.AST.SortPos preOrderSkip();
@@ -39,8 +42,8 @@ public interface BooleanPos extends de.peeeq.wurstscript.ast.AST.LeafPos<java.la
             return (de.peeeq.wurstscript.ast.AST.TuplePos<?>) super.parent();
         }
 
-        public de.peeeq.wurstscript.ast.AST.TermPos<?> lsib() {
-            return (de.peeeq.wurstscript.ast.AST.TermPos<?>) super.lsib();
+        public de.peeeq.wurstscript.ast.AST.SortPos lsib() {
+            return (de.peeeq.wurstscript.ast.AST.SortPos) super.lsib();
         }
 
         public de.peeeq.wurstscript.ast.AST.SortPos rsib() {

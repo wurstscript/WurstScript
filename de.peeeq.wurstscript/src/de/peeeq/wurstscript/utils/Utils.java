@@ -11,8 +11,6 @@ import com.google.common.base.Function;
 
 import de.peeeq.wurstscript.ast.AST.SortPos;
 import de.peeeq.wurstscript.ast.WPackagePos;
-import de.peeeq.wurstscript.intermediateLang.ILconst;
-import de.peeeq.wurstscript.intermediateLang.ILfunction;
 
 public class Utils {
 
