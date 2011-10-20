@@ -17,7 +17,7 @@ public class Main {
 		ParseqScanner scanner = new ParseqScanner(new FileInputStream("test.parseq"));
 		ParseqParser parser = new ParseqParser(scanner);
 		Program prog = parser.parse();
-		Generator gen = new Generator(prog);
+		Generator gen = new Generator(prog, "./src-gen/");
 		gen.generate();
 	}
 

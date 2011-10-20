@@ -17,13 +17,35 @@ public class ParseqParser {
 	// the current symbol:
 	private Symbol sym;
 
+	private boolean debug = true;
+	private int debug_indent = 0;
+	
+	
 	public ParseqParser(ParseqScanner scanner) {
 		this.scanner = scanner;
 		prog = new Program();
 	}
 	
 	
+	
+	private void debug(String s) {
+		if (debug) {
+			if (s.startsWith("end")) {
+				debug_indent--;
+			}
+			for (int i=0; i<=debug_indent; i++) {
+				System.out.print("   ");
+			}
+			System.out.println(s);
+			if (s.startsWith("start")) {
+				debug_indent++;
+			}
+		}
+	}
+	
+	
 	public Program parse() {
+		debug("parse");
 		consume(TokenType.PACKAGE);
 		parsePackageName();
 		
@@ -31,6 +53,7 @@ public class ParseqParser {
 			abort("Unexpected " + sym + ". Expected 'abstract syntax:'.");
 		}
 		
+		getNextToken();
 		parseAbstractSyntaxRules();
 		
 		if (!sym.typeEquals(TokenType.EOF)) {
@@ -42,6 +65,7 @@ public class ParseqParser {
 
 
 	private void parsePackageName() {
+		debug("start parsePackageName");
 		List<String> parts = new LinkedList<String>();
 		loop: while (true) {
 			consume(IDENTIFIER);
@@ -55,22 +79,25 @@ public class ParseqParser {
 			}
 		}
 		prog.setPackage(parts);
+		debug("end parsePackageName");
 	}
 
 
 	private void parseAbstractSyntaxRules() {
+		debug("start parseAbstractSyntaxRules");
 		while (true) {
-			getNextToken();
 			if (sym.typeEquals(TokenType.IDENTIFIER)) {
 				parseAbstractSyntaxRule();
 			} else {
 				break;
 			}
 		}
+		debug("end parseAbstractSyntaxRules");
 	}
 
 
 	private void parseAbstractSyntaxRule() {
+		debug("start parseAbstractSyntaxRule");
 		String left = sym.getString();
 		getNextToken();
 		switch (sym.getType()) {
@@ -87,21 +114,29 @@ public class ParseqParser {
 			default:
 				abort("Unexpected " + sym + ". Expected equal sign or opening paranthesis.");
 		}
+		debug("end parseAbstractSyntaxRule");
 	}
 
 
 	private void parseListDef(String left) {
+		debug("start parseListDef");
 		getNextToken();
 		if (sym.typeEquals(IDENTIFIER)) {
 			prog.addListDef(left, sym.getString());
 		}
+		getNextToken();
+		debug("end parseListDef");
 	}
 
 
 	private void parseAlternatives(String left) {
+		debug("start parseAlternatives");
 		List<Alternative> alternatives = new LinkedList<Alternative>();
 		Alternative a = parseAlternative();
+		alternatives.add(a);
+		int i=0;
 		while (true) {
+			debug("parseAlternatives " + ++i);
 			if (sym.typeEquals(PIPE)) {
 				getNextToken();
 				a = parseAlternative();
@@ -109,13 +144,15 @@ public class ParseqParser {
 			} else {
 				break;
 			}
-			getNextToken();
+//			getNextToken();
 		}
 		prog.addCaseDef(left, alternatives);
+		debug("end parseAlternatives");
 	}
 
 
 	private Alternative parseAlternative() {
+		debug("start parseAlternative");
 		if (!sym.typeEquals(IDENTIFIER)) {
 			abort("Expected identifier but found " + sym);
 		}
@@ -123,16 +160,19 @@ public class ParseqParser {
 		getNextToken();
 		if (sym.typeEquals(LPAR)) {
 			parseConstructor(name);
-			getNextToken();
+			
 		}
+		debug("end parseAlternative");
 		return new Alternative(name);
 	}
 
 
 	private void parseConstructor(String left) {
+		debug("start parseConstructor");
 		List<Parameter> parameters = new LinkedList<Parameter>();
+		
+		getNextToken(); //skip the left paranthesis
 		loop: while (true) {
-			getNextToken();
 			switch (sym.getType()) {
 				case RPAR:
 					break loop;
@@ -149,11 +189,14 @@ public class ParseqParser {
 				case RPAR:
 					break loop;
 				case COMMA:
+					// expected, read next attr.
 					break;
 				default:
 					abort("Unexpected " + sym + ". Expected comma or closing paranthesis.");					
 			}
+			getNextToken();
 		}
+		getNextToken();
 		prog.addConstructor(left, parameters);
 	}
 
@@ -169,6 +212,7 @@ public class ParseqParser {
 	private void getNextToken() {
 		try {
 			sym = scanner.yylex();
+			debug("sym = " + sym);
 		} catch (IOException e) {
 			abort("IO Error");
 		}
@@ -176,7 +220,7 @@ public class ParseqParser {
 
 
 	private void abort(String msg) {
-		System.err.println(msg);
+		System.out.println(msg);
 		System.exit(0);
 	}
 	

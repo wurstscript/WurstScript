@@ -26,7 +26,7 @@ public class Symbol {
 	
 	@Override
 	public String toString() {
-		return typ + " (line " + line + ":" + column + ")";
+		return typ + (data==null ? "" : " '" +data+"' ") +" (line " + line + ":" + column + ")";
 	}
 
 	public String getString() {

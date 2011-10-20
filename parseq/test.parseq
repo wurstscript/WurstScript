@@ -1,12 +1,173 @@
-package de.peeeq.parseq.ast
+package de.peeeq.parseq.test.ast
 
 
 abstract syntax:
 
-A = B | C | D
+WPos ( String file, Integer line, Integer column ) // TODO use Wpos to track positions
 
-D * B
+CompilationUnit * TopLevelDeclaration
 
-B(int x, int y)
+TopLevelDeclaration = WPackage | JassToplevelDeclaration
 
-C(String y)
+WPackage(WPos source, String name, WImports imports, WEntities elements)
+
+WImports * WImport
+WEntities * WEntity
+
+WImport(WPos source, String packagename)
+
+WEntity = 
+	 TypeDef
+	|FuncDef
+	|GlobalVarDef
+	|InitBlock (WPos source, WStatements body)
+	|NativeFunc(WPos source, FuncSignature signature)
+
+
+	
+	
+OptTypeExpr = NoTypeExpr() | TypeExpr
+OptExpr = NoExpr() | Expr
+	
+TypeDef = 
+	 NativeType(WPos source, VisibilityModifier visibility, String name, OptTypeExpr typ)
+	|ClassDef(WPos source, VisibilityModifier visibility, String name, Boolean unmanaged, ClassSlots slots)
+	
+ClassSlots * ClassSlot
+
+ClassSlot = 
+	  ConstructorDef(WPos source, VisibilityModifier visibility, WParameters params, WStatements body)
+	| OnDestroyDef(WPos source, WStatements body) 
+	| ClassMember
+	
+ClassMember = 
+	  GlobalVarDef
+	| FuncDef
+
+
+GlobalVarDef(WPos source, VisibilityModifier visibility, Boolean isConstant, OptTypeExpr typ, String name, OptExpr initialExpr)
+LocalVarDef(WPos source, Boolean constant, OptTypeExpr typ, String name, OptExpr initialExpr) 
+
+	
+FuncDef(WPos source, VisibilityModifier visibility, FuncSignature signature, WStatements body)
+	
+TypeExpr(WPos source, String typeName, Boolean isArray, ArraySizes sizes)
+
+ArraySizes * Expr
+	
+FuncSignature(WPos source, String name, WParameters parameters, OptTypeExpr typ)	
+
+WParameters * WParameter
+WParameter(WPos source, TypeExpr typ, String name)
+	
+WStatements * WStatement
+	
+WStatement	=
+	  StmtIf(WPos source, Expr cond, WStatements thenBlock, WStatements elseBlock)
+	| StmtWhile(WPos source, Expr cond, WStatements body)
+	| StmtLoop(WPos source, WStatements body)
+	| LocalVarDef
+	| StmtSet(WPos source, ExprAssignable left, OpAssignment op, Expr right)
+	| StmtCall
+	| StmtReturn(WPos source, OptExpr obj)
+	| StmtDestroy(WPos source, Expr obj)
+	| StmtIncRefCount(WPos source, Expr obj) 
+	| StmtDecRefCount(WPos source, Expr obj)
+	| StmtErr(WPos source)
+	| StmtExitwhen(WPos source, Expr cond)
+	
+
+OpAssignment = OpAssign() // TODO += -= *= /= ...
+
+StmtCall = ExprMemberMethod | ExprFunctionCall | ExprNewObject
+
+// an expression which you can assign a value to
+ExprAssignable = ExprMemberVar | ExprMemberArrayVar | ExprVarAccess | ExprVarArrayAccess
+
+Expr = 
+	ExprAssignable
+	| ExprBinary(WPos source, Expr left, OpBinary op, Expr right)
+	| ExprUnary(WPos source, OpUnary op, Expr right)
+	| ExprMemberVar(WPos source, Expr left, String varName)
+	| ExprMemberArrayVar(WPos source, Expr left, String varName, Indexes indexes)
+	| ExprMemberMethod(WPos source, Expr left, String funcName, Arguments args)
+	| ExprFunctionCall(WPos source, String funcName, Arguments args)
+	| ExprNewObject(WPos source, String typeName, Arguments args)
+	| ExprCast(WPos source, TypeExpr typ, Expr expr)
+	| ExprAtomic
+	
+	
+ExprAtomic = 
+	  ExprIntVal(WPos source, Integer val)
+	| ExprRealVal(WPos source, Double val)
+	| ExprStringVal(WPos source, String val)
+	| ExprBoolVal(WPos source, Boolean val)
+	| ExprFuncRef(WPos source, String funcName)
+	| ExprVarAccess(WPos source, String varName)
+	| ExprVarArrayAccess(WPos source, String varName, Indexes indexes)
+	| ExprThis(WPos source)
+	| ExprNull(WPos source)
+	
+	
+Indexes * Expr
+Arguments * Expr
+	
+	
+OpBinary = 
+	  OpOr() 
+	| OpAnd()
+	| OpEquals()
+	| OpUnequals()
+	| OpLessEq()
+	| OpLess()
+	| OpGreaterEq()
+	| OpGreater()
+	| OpPlus()
+	| OpMinus()
+	| OpMult()
+	| OpDivReal()
+	| OpModReal()
+	| OpModInt()
+	| OpDivInt()
+	
+OpUnary = 
+	  OpNot()
+	| OpMinus
+	
+Op = OpBinary | OpUnary	
+	
+// auxiliary types:
+
+// a reference to a variable, needs a varName:String attribute
+VarRef = ExprVarArrayAccess | ExprVarAccess | ExprMemberVar | ExprMemberArrayVar
+
+VarDef = 
+	GlobalVarDef
+	| LocalVarDef
+	| WParameter
+
+// has funcName:String attribute
+FuncRef = ExprFuncRef | ExprMemberMethod | ExprFunctionCall
+	
+FunctionDefinition = FuncDef | NativeFunc	
+	
+WScope = PackageOrGlobal | ClassDef | FuncDef | ConstructorDef | OnDestroyDef | InitBlock
+
+PackageOrGlobal = WPackage | CompilationUnit	
+	
+TypeRef = TypeExpr | ExprNewObject
+
+VisibilityModifier = 
+	  VisibilityPublic(WPos source) 
+	| VisibilityPrivate(WPos source) 
+	| VisibilityPublicread(WPos source) 
+	| VisibilityProtected(WPos source)
+	| VisibilityDefault()
+
+	
+// Jass types:
+
+
+JassToplevelDeclaration = JassGlobalBlock | FunctionDefinition | NativeType
+
+JassGlobalBlock * GlobalVarDef
