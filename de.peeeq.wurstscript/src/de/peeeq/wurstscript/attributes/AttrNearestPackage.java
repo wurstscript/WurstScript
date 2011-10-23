@@ -1,14 +1,15 @@
 package de.peeeq.wurstscript.attributes;
 
-import de.peeeq.wurstscript.ast.AST.SortPos;
-import de.peeeq.wurstscript.ast.PackageOrGlobalPos;
+import de.peeeq.wurstscript.ast.PackageOrGlobal;
+import de.peeeq.wurstscript.ast.SortPos;
+
 
 
 /**
  * this attribute gives you the nearest package for a given element
  *
  */
-public class AttrNearestPackage extends Attribute<SortPos, PackageOrGlobalPos> {
+public class AttrNearestPackage extends Attribute<SortPos, PackageOrGlobal> {
 
 	 
 	public AttrNearestPackage(Attributes attr) {
@@ -16,14 +17,14 @@ public class AttrNearestPackage extends Attribute<SortPos, PackageOrGlobalPos> {
 	}
 
 	@Override
-	protected PackageOrGlobalPos calculate(SortPos node) {
+	protected PackageOrGlobal calculate(SortPos node) {
 		if (node == null) {
 			return null;
 		}
-		if (node instanceof PackageOrGlobalPos) {
-			return (PackageOrGlobalPos) node;
+		if (node instanceof PackageOrGlobal) {
+			return (PackageOrGlobal) node;
 		}
-		return get(node.parent());
+		return get(node.getParent());
 	}
 
 

@@ -17,7 +17,7 @@ public class ParseqParser {
 	// the current symbol:
 	private Symbol sym;
 
-	private boolean debug = true;
+	private boolean debug = false;
 	private int debug_indent = 0;
 	
 	

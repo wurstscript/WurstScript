@@ -14,10 +14,17 @@ public class Main {
 	 * @throws FileNotFoundException 
 	 */
 	public static void main(String[] args) throws FileNotFoundException {
-		ParseqScanner scanner = new ParseqScanner(new FileInputStream("test.parseq"));
+		if (args.length != 2) {
+			System.out.println("2 parameters required.");
+			return;
+		}
+		String inputFile = args[0];
+		String outputFolder = args[1];
+		
+		ParseqScanner scanner = new ParseqScanner(new FileInputStream(inputFile));
 		ParseqParser parser = new ParseqParser(scanner);
 		Program prog = parser.parse();
-		Generator gen = new Generator(prog, "./src-gen/");
+		Generator gen = new Generator(prog, outputFolder);
 		gen.generate();
 	}
 

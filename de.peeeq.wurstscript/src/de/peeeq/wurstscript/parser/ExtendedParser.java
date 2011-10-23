@@ -6,7 +6,7 @@ import java.util.List;
 import java_cup.runtime.Scanner;
 import java_cup.runtime.Symbol;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.ast.AST;
+import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -123,7 +123,7 @@ public class ExtendedParser extends parser {
 				msg += translateSym(possibleActions[j]);
 			}
 		}
-		WPos source = AST.WPos(filename, s.left, s.right);
+		WPos source = Ast.WPos(filename, s.left, s.right);
 		CompileError err = new CompileError(source , msg);
 		errors.add(err);
 		gui.sendError(err);
@@ -133,7 +133,7 @@ public class ExtendedParser extends parser {
 	
 	@Override
 	public void unrecovered_syntax_error(Symbol s) {
-		WPos source = AST.WPos(filename, s.left, s.right);
+		WPos source = Ast.WPos(filename, s.left, s.right);
 		throw new CompileError(source, "Could not continue to parse file ...");
 	}
 

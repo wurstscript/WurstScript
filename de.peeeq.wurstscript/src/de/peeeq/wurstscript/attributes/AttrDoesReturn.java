@@ -1,9 +1,10 @@
 package de.peeeq.wurstscript.attributes;
 
-import de.peeeq.wurstscript.ast.StmtIfPos;
-import de.peeeq.wurstscript.ast.StmtReturnPos;
-import de.peeeq.wurstscript.ast.WStatementPos;
-import de.peeeq.wurstscript.ast.WStatementsPos;
+import de.peeeq.wurstscript.ast.StmtIf;
+import de.peeeq.wurstscript.ast.StmtReturn;
+import de.peeeq.wurstscript.ast.WStatement;
+import de.peeeq.wurstscript.ast.WStatements;
+
 
 
 /**
@@ -12,7 +13,7 @@ import de.peeeq.wurstscript.ast.WStatementsPos;
  * 
  *
  */
-public class AttrDoesReturn extends Attribute<WStatementsPos, Boolean> {
+public class AttrDoesReturn extends Attribute<WStatements, Boolean> {
 
 	 
 	public AttrDoesReturn(Attributes attr) {
@@ -20,20 +21,20 @@ public class AttrDoesReturn extends Attribute<WStatementsPos, Boolean> {
 	}
 
 	@Override
-	protected Boolean calculate(WStatementsPos statements) {
+	protected Boolean calculate(WStatements statements) {
 		boolean returns = false; 
-		for (WStatementPos s : statements) {
+		for (WStatement s : statements) {
 			if (returns) {
-				attr.addError(s.source(), "Unreachable code, function already returned");
+				attr.addError(s.getSource(), "Unreachable code, function already returned");
 				return true;
 			}
-			if (s instanceof StmtReturnPos) {
+			if (s instanceof StmtReturn) {
 				returns = true;
 			}
 			// TODO AttrDoesReturn - voidreturns, break & exitwhen?
-			if (s instanceof StmtIfPos) {
-				StmtIfPos stmtIfPos = (StmtIfPos) s;
-				returns = get(stmtIfPos.thenBlock()) && get(stmtIfPos.elseBlock()); 
+			if (s instanceof StmtIf) {
+				StmtIf StmtIf = (StmtIf) s;
+				returns = get(StmtIf.getThenBlock()) && get(StmtIf.getElseBlock()); 
 			}
 		}
 		return returns;

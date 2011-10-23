@@ -3,78 +3,75 @@ package de.peeeq.wurstscript.intermediateLang.translator;
 import java.util.LinkedList;
 import java.util.List;
 
-import katja.common.NE;
-import de.peeeq.wurstscript.ast.AST;
-import de.peeeq.wurstscript.ast.ArgumentsPos;
-import de.peeeq.wurstscript.ast.ClassDefPos;
-import de.peeeq.wurstscript.ast.ClassSlotPos;
-import de.peeeq.wurstscript.ast.CompilationUnitPos;
-import de.peeeq.wurstscript.ast.ConstructorDefPos;
-import de.peeeq.wurstscript.ast.ExprAssignablePos;
-import de.peeeq.wurstscript.ast.ExprBinaryPos;
-import de.peeeq.wurstscript.ast.ExprBoolValPos;
-import de.peeeq.wurstscript.ast.ExprCastPos;
-import de.peeeq.wurstscript.ast.ExprFuncRefPos;
-import de.peeeq.wurstscript.ast.ExprFunctionCallPos;
-import de.peeeq.wurstscript.ast.ExprIntValPos;
-import de.peeeq.wurstscript.ast.ExprMemberArrayVarPos;
-import de.peeeq.wurstscript.ast.ExprMemberMethodPos;
-import de.peeeq.wurstscript.ast.ExprMemberVarPos;
-import de.peeeq.wurstscript.ast.ExprNewObjectPos;
-import de.peeeq.wurstscript.ast.ExprNullPos;
-import de.peeeq.wurstscript.ast.ExprPos;
-import de.peeeq.wurstscript.ast.ExprRealValPos;
-import de.peeeq.wurstscript.ast.ExprStringValPos;
-import de.peeeq.wurstscript.ast.ExprThisPos;
-import de.peeeq.wurstscript.ast.ExprUnaryPos;
-import de.peeeq.wurstscript.ast.ExprVarAccessPos;
-import de.peeeq.wurstscript.ast.ExprVarArrayAccessPos;
-import de.peeeq.wurstscript.ast.FuncDefPos;
-import de.peeeq.wurstscript.ast.FunctionDefinitionPos;
-import de.peeeq.wurstscript.ast.GlobalVarDefPos;
-import de.peeeq.wurstscript.ast.IndexesPos;
-import de.peeeq.wurstscript.ast.InitBlockPos;
-import de.peeeq.wurstscript.ast.JassGlobalBlockPos;
-import de.peeeq.wurstscript.ast.LocalVarDefPos;
-import de.peeeq.wurstscript.ast.NativeFuncPos;
-import de.peeeq.wurstscript.ast.NativeTypePos;
-import de.peeeq.wurstscript.ast.OnDestroyDefPos;
-import de.peeeq.wurstscript.ast.OpAndPos;
-import de.peeeq.wurstscript.ast.OpDivIntPos;
-import de.peeeq.wurstscript.ast.OpDivRealPos;
-import de.peeeq.wurstscript.ast.OpEqualsPos;
-import de.peeeq.wurstscript.ast.OpGreaterEqPos;
-import de.peeeq.wurstscript.ast.OpGreaterPos;
-import de.peeeq.wurstscript.ast.OpLessEqPos;
-import de.peeeq.wurstscript.ast.OpLessPos;
-import de.peeeq.wurstscript.ast.OpMinusPos;
-import de.peeeq.wurstscript.ast.OpModIntPos;
-import de.peeeq.wurstscript.ast.OpModRealPos;
-import de.peeeq.wurstscript.ast.OpMultPos;
-import de.peeeq.wurstscript.ast.OpNotPos;
-import de.peeeq.wurstscript.ast.OpOrPos;
-import de.peeeq.wurstscript.ast.OpPlusPos;
-import de.peeeq.wurstscript.ast.OpPos;
-import de.peeeq.wurstscript.ast.OpUnequalsPos;
-import de.peeeq.wurstscript.ast.OptTypeExprPos;
-import de.peeeq.wurstscript.ast.StmtDecRefCountPos;
-import de.peeeq.wurstscript.ast.StmtDestroyPos;
-import de.peeeq.wurstscript.ast.StmtErrPos;
-import de.peeeq.wurstscript.ast.StmtExitwhenPos;
-import de.peeeq.wurstscript.ast.StmtIfPos;
-import de.peeeq.wurstscript.ast.StmtIncRefCountPos;
-import de.peeeq.wurstscript.ast.StmtLoopPos;
-import de.peeeq.wurstscript.ast.StmtReturnPos;
-import de.peeeq.wurstscript.ast.StmtSetPos;
-import de.peeeq.wurstscript.ast.StmtWhilePos;
-import de.peeeq.wurstscript.ast.TopLevelDeclarationPos;
-import de.peeeq.wurstscript.ast.TypeExprPos;
-import de.peeeq.wurstscript.ast.VarDefPos;
-import de.peeeq.wurstscript.ast.WEntityPos;
-import de.peeeq.wurstscript.ast.WPackagePos;
-import de.peeeq.wurstscript.ast.WParameterPos;
-import de.peeeq.wurstscript.ast.WStatementPos;
-import de.peeeq.wurstscript.ast.WStatementsPos;
+import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.ClassSlot;
+import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.Expr;
+import de.peeeq.wurstscript.ast.ExprAssignable;
+import de.peeeq.wurstscript.ast.ExprBinary;
+import de.peeeq.wurstscript.ast.ExprBoolVal;
+import de.peeeq.wurstscript.ast.ExprCast;
+import de.peeeq.wurstscript.ast.ExprFuncRef;
+import de.peeeq.wurstscript.ast.ExprFunctionCall;
+import de.peeeq.wurstscript.ast.ExprIntVal;
+import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
+import de.peeeq.wurstscript.ast.ExprMemberMethod;
+import de.peeeq.wurstscript.ast.ExprMemberVar;
+import de.peeeq.wurstscript.ast.ExprNewObject;
+import de.peeeq.wurstscript.ast.ExprNull;
+import de.peeeq.wurstscript.ast.ExprRealVal;
+import de.peeeq.wurstscript.ast.ExprStringVal;
+import de.peeeq.wurstscript.ast.ExprThis;
+import de.peeeq.wurstscript.ast.ExprUnary;
+import de.peeeq.wurstscript.ast.ExprVarAccess;
+import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
+import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.FunctionDefinition;
+import de.peeeq.wurstscript.ast.GlobalVarDef;
+import de.peeeq.wurstscript.ast.InitBlock;
+import de.peeeq.wurstscript.ast.JassGlobalBlock;
+import de.peeeq.wurstscript.ast.LocalVarDef;
+import de.peeeq.wurstscript.ast.NativeFunc;
+import de.peeeq.wurstscript.ast.NativeType;
+import de.peeeq.wurstscript.ast.OnDestroyDef;
+import de.peeeq.wurstscript.ast.Op;
+import de.peeeq.wurstscript.ast.OpAnd;
+import de.peeeq.wurstscript.ast.OpDivInt;
+import de.peeeq.wurstscript.ast.OpDivReal;
+import de.peeeq.wurstscript.ast.OpEquals;
+import de.peeeq.wurstscript.ast.OpGreater;
+import de.peeeq.wurstscript.ast.OpGreaterEq;
+import de.peeeq.wurstscript.ast.OpLess;
+import de.peeeq.wurstscript.ast.OpLessEq;
+import de.peeeq.wurstscript.ast.OpMinus;
+import de.peeeq.wurstscript.ast.OpModInt;
+import de.peeeq.wurstscript.ast.OpModReal;
+import de.peeeq.wurstscript.ast.OpMult;
+import de.peeeq.wurstscript.ast.OpNot;
+import de.peeeq.wurstscript.ast.OpOr;
+import de.peeeq.wurstscript.ast.OpPlus;
+import de.peeeq.wurstscript.ast.OpUnequals;
+import de.peeeq.wurstscript.ast.OptTypeExpr;
+import de.peeeq.wurstscript.ast.StmtDecRefCount;
+import de.peeeq.wurstscript.ast.StmtDestroy;
+import de.peeeq.wurstscript.ast.StmtErr;
+import de.peeeq.wurstscript.ast.StmtExitwhen;
+import de.peeeq.wurstscript.ast.StmtIf;
+import de.peeeq.wurstscript.ast.StmtIncRefCount;
+import de.peeeq.wurstscript.ast.StmtLoop;
+import de.peeeq.wurstscript.ast.StmtReturn;
+import de.peeeq.wurstscript.ast.StmtSet;
+import de.peeeq.wurstscript.ast.StmtWhile;
+import de.peeeq.wurstscript.ast.TopLevelDeclaration;
+import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.ast.VarDef;
+import de.peeeq.wurstscript.ast.WEntity;
+import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.ast.WStatement;
+import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.attributes.Attributes;
 import de.peeeq.wurstscript.intermediateLang.ILStatement;
 import de.peeeq.wurstscript.intermediateLang.ILarraySetVar;
@@ -117,14 +114,14 @@ import de.peeeq.wurstscript.utils.Utils;
  */
 public class IntermediateLangTranslator {
 
-	private CompilationUnitPos cu;
+	private CompilationUnit cu;
 	private ILprog prog = new ILprog();
 	private Attributes attr;
 	private NameManagement names;
 	private GlobalInits globalInits = new GlobalInits();
 
 
-	public IntermediateLangTranslator(CompilationUnitPos cu, Attributes attr) {
+	public IntermediateLangTranslator(CompilationUnit cu, Attributes attr) {
 		this.cu = cu;
 		this.attr = attr;
 		names = new NameManagement(attr);
@@ -132,35 +129,30 @@ public class IntermediateLangTranslator {
 
 	public ILprog translate() {
 
-		for (TopLevelDeclarationPos tl : cu) {
-			tl.Switch(new TopLevelDeclarationPos.Switch<Void, NE>() {
+		for (TopLevelDeclaration tl : cu) {
+			tl.match(new TopLevelDeclaration.MatcherVoid() {
 				@Override
-				public Void CaseJassGlobalBlockPos(JassGlobalBlockPos term) throws NE {
+				public void case_JassGlobalBlock(JassGlobalBlock term)  {
 					translateGlobalBlock(term);
-					return null;
 				}
 
 				@Override
-				public Void CaseFuncDefPos(FuncDefPos term) throws NE {
+				public void case_FuncDef(FuncDef term)  {
 					translateFuncDef(null, term);
-					return null;
 				}
 
 				@Override
-				public Void CaseNativeTypePos(NativeTypePos term) throws NE {
-					return null;
+				public void case_NativeType(NativeType term)  {
 				}
 
 
 				@Override
-				public Void CaseWPackagePos(WPackagePos term) throws NE {
+				public void case_WPackage(WPackage term)  {
 					translatePackage(term);
-					return null;
 				}
 
 				@Override
-				public Void CaseNativeFuncPos(NativeFuncPos term) throws NE {
-					return null;
+				public void case_NativeFunc(NativeFunc term)  {
 				}
 			});
 
@@ -182,7 +174,7 @@ public class IntermediateLangTranslator {
 			prog.sortFunctions();
 		} catch (TopsortCycleException e) {
 			List<ILfunction> cycle = (List<ILfunction>) e.activeItems;
-			attr.addError(cycle.get(0).source() , "There are mutually recursive calls between the following functions: " + 
+			attr.addError(cycle.get(0).getSource() , "There are mutually recursive calls between the following functions: " + 
 					Utils.join(cycle, ", "));
 		}
 
@@ -192,7 +184,7 @@ public class IntermediateLangTranslator {
 	}
 
 	private ILfunction createPackageInitializerFunction() {
-		ILfunction initFunc = new ILfunction("wurst_packageinits", AST.WPos("generated", 0, 0));
+		ILfunction initFunc = new ILfunction("wurst_packageinits", Ast.WPos("generated", 0, 0));
 		prog.addFunction(initFunc);
 		initFunc.initParams();
 		initFunc.setReturnType(PScriptTypeVoid.instance());
@@ -213,7 +205,7 @@ public class IntermediateLangTranslator {
 			}
 		}
 		// create main function if it does not exist
-		ILfunction mainFunction = new ILfunction("main", AST.WPos("generated", 0, 0));
+		ILfunction mainFunction = new ILfunction("main", Ast.WPos("generated", 0, 0));
 		prog.addFunction(mainFunction);
 		mainFunction.initParams();
 		mainFunction.setReturnType(PScriptTypeVoid.instance());
@@ -241,89 +233,83 @@ public class IntermediateLangTranslator {
 		} catch (TopsortCycleException e) {
 			@SuppressWarnings("unchecked")
 			List<GlobalInit> cycle = (List<GlobalInit>) e.activeItems;
-			attr.addError(cycle.get(0).init.source(), "Cycle in global dependencies: " + Utils.join(cycle, " -> "));
+			attr.addError(cycle.get(0).init.getSource(), "Cycle in global dependencies: " + Utils.join(cycle, " -> "));
 		}
 		return initFunc;
 	}
 
-	protected void translateGlobalBlock(JassGlobalBlockPos globalBlock) {
-		for (GlobalVarDefPos g : globalBlock) {
+	protected void translateGlobalBlock(JassGlobalBlock globalBlock) {
+		for (GlobalVarDef g : globalBlock) {
 			translateGlobalVarDef(null, g);
 		}
 	}
 
-	private void translatePackage(final WPackagePos p) {
-		for (WEntityPos e : p.elements()) {
-			e.Switch(new WEntityPos.Switch<Void, NE>() {
+	private void translatePackage(final WPackage p) {
+		for (WEntity e : p.getElements()) {
+			e.match(new WEntity.MatcherVoid() {
 
 				@Override
-				public Void CaseNativeTypePos(NativeTypePos term) throws NE {
+				public void case_NativeType(NativeType term)  {
 					// nothing to do here
-					return null;
 				}
 
 				@Override
-				public Void CaseClassDefPos(ClassDefPos term) throws NE {
+				public void case_ClassDef(ClassDef term)  {
 					transltateClassDef(p, term);
-					return null;
 				}
 
 				@Override
-				public Void CaseFuncDefPos(FuncDefPos term) throws NE {
+				public void case_FuncDef(FuncDef term)  {
 					translateFuncDef(p, term);
-					return null;
 				}
 
 				@Override
-				public Void CaseGlobalVarDefPos(GlobalVarDefPos term) throws NE {
+				public void case_GlobalVarDef(GlobalVarDef term)  {
 					translateGlobalVarDef(p, term);
-					return null;
 				}
 
 				@Override
-				public Void CaseInitBlockPos(InitBlockPos term) throws NE {
+				public void case_InitBlock(InitBlock term)  {
 					translateInitBlock(p, term);
-					return null;
 				}
 
 				@Override
-				public Void CaseNativeFuncPos(NativeFuncPos term) throws NE {
+				public void case_NativeFunc(NativeFunc term)  {
 					// nothing to do here
-					return null;
 				}
 			});
 		}
 	}
 
-	protected void translateInitBlock(WPackagePos p, InitBlockPos term) {
+	protected void translateInitBlock(WPackage p, InitBlock term) {
 		ILfunction initFunc = names.getInitBlockFunction(p, term);
 		initFunc.initParams();
 		initFunc.setReturnType(PScriptTypeVoid.instance());
 		prog.addInitializer(initFunc);
-		translateFunctionBody(initFunc, term.body());
+		translateFunctionBody(initFunc, term.getBody());
 
 	}
 
-	protected void translateFuncDef(WPackagePos p, FuncDefPos term) {
+	protected void translateFuncDef(WPackage p, FuncDef term) {
 		ILfunction func = names.getFunction(term);
 		prog.addFunction(func);
-		if (term.signature().typ() instanceof TypeExprPos) {
-			func.setReturnType(attr.typeExprType.get((TypeExprPos) term.signature().typ()));
+		if (term.getSignature().getTyp() instanceof TypeExpr) {
+			func.setReturnType(attr.typeExprType.get((TypeExpr) term.getSignature().getTyp()));
 		} else {
 			func.setReturnType(PScriptTypeVoid.instance());
 		}
 		func.initParams();
-		for (WParameterPos param : term.signature().parameters()) {
-			func.addParam(new ILvar(param.name().term(), attr.typeExprType.get(param.typ())));
+		for (WParameter param : term.getSignature().getParameters()) {
+			func.addParam(new ILvar(param.getName(), attr.typeExprType.get(param.getTyp())));
 		}
 
-		OptTypeExprPos retTyp = term.signature().typ();
-		if (retTyp instanceof TypeExprPos) {
-			func.setReturnType(attr.typeExprType.get((TypeExprPos) retTyp));
+		OptTypeExpr retTyp = term.getSignature().getTyp();
+		if (retTyp instanceof TypeExpr) {
+			func.setReturnType(attr.typeExprType.get((TypeExpr) retTyp));
 		} else {
 			func.setReturnType(PScriptTypeVoid.instance());
 		}
-		translateFunctionBody(func, term.body());
+		translateFunctionBody(func, term.getBody());
 	}
 
 
@@ -332,42 +318,42 @@ public class IntermediateLangTranslator {
 
 
 
-	private void translateFunctionBody(ILfunction func, WStatementsPos body) {
+	private void translateFunctionBody(ILfunction func, WStatements body) {
 		func.addBody(translateStatements(func, body));
 
 	}
 
-	private List<ILStatement> translateStatements(ILfunction func, WStatementsPos statements) {
+	private List<ILStatement> translateStatements(ILfunction func, WStatements statements) {
 		List<ILStatement> result = new NotNullList<ILStatement>();
-		for (WStatementPos s : statements) {
+		for (WStatement s : statements) {
 			result.addAll(translateStatement(func, s));
 		}
 		return result;
 	}
 
-	private boolean isMemberVar(VarDefPos varDef) {
-		if (varDef.parent().parent() instanceof ClassDefPos) {
+	private boolean isMemberVar(VarDef varDef) {
+		if (varDef.getParent().getParent() instanceof ClassDef) {
 			return true;
 		}
 		return false;
 	}
 
-	private List<ILStatement> translateStatement(final ILfunction func, WStatementPos s) {
+	private List<ILStatement> translateStatement(final ILfunction func, WStatement s) {
 		final List<ILStatement> result = new NotNullList<ILStatement>();
-		return s.Switch(new WStatementPos.Switch<List<ILStatement>, NE>() {
+		return s.match(new WStatement.Matcher<List<ILStatement>>() {
 
 			@Override
-			public List<ILStatement> CaseExprMemberMethodPos(ExprMemberMethodPos term) throws NE {
-				return translateExprMemberMethodPos(func, null, term);
+			public List<ILStatement> case_ExprMemberMethod(ExprMemberMethod term)  {
+				return translateExprMemberMethod(func, null, term);
 			}
 
 			@Override
-			public List<ILStatement> CaseExprFunctionCallPos(ExprFunctionCallPos term) throws NE {
-				return translateFunctionCall(func, null, term, term.args());				
+			public List<ILStatement> case_ExprFunctionCall(ExprFunctionCall term)  {
+				return translateFunctionCall(func, null, term, term.getArgs());				
 			}
 
 			@Override
-			public List<ILStatement> CaseExprNewObjectPos(ExprNewObjectPos term) throws NE {
+			public List<ILStatement> case_ExprNewObject(ExprNewObject term)  {
 				// get constructor for this
 
 
@@ -376,64 +362,64 @@ public class IntermediateLangTranslator {
 			}
 
 			@Override
-			public List<ILStatement> CaseStmtIfPos(StmtIfPos term) throws NE {
+			public List<ILStatement> case_StmtIf(StmtIf term)  {
 				ILvar cond = names.getNewLocalVar(func, PScriptTypeBool.instance(), "ifCondition");
 				// translate condition
-				result.addAll(translateExpr(func, cond, term.cond()));
-				List<ILStatement> thenBlock = translateStatements(func, term.thenBlock());
-				List<ILStatement> elseBlock = translateStatements(func, term.elseBlock());
+				result.addAll(translateExpr(func, cond, term.getCond()));
+				List<ILStatement> thenBlock = translateStatements(func, term.getThenBlock());
+				List<ILStatement> elseBlock = translateStatements(func, term.getElseBlock());
 				result.add(new ILif(cond, thenBlock, elseBlock));
 				return result;
 			}
 
 			@Override
-			public List<ILStatement> CaseStmtWhilePos(StmtWhilePos term) throws NE {
+			public List<ILStatement> case_StmtWhile(StmtWhile term)  {
 				ILvar whileCondition = names.getNewLocalVar(func, PScriptTypeBool.instance(), "whileCondition");
 				ILvar negatedWhileCondition = names.getNewLocalVar(func, PScriptTypeBool.instance(), "exitwhenCondition");
 
 				List<ILStatement> body = new NotNullList<ILStatement>();
 				// calculate while condition
-				body.addAll(translateExpr(func, whileCondition, term.cond()));
+				body.addAll(translateExpr(func, whileCondition, term.getCond()));
 				// exitwhen not whileCondition
 				body.add(new IlsetUnary(negatedWhileCondition, Iloperator.NOT, whileCondition));
 				body.add(new ILexitwhen(negatedWhileCondition));
-				body.addAll(translateStatements(func, term.body()));
+				body.addAll(translateStatements(func, term.getBody()));
 				result.add(new ILloop(body));
 				return result;
 			}
 
 			@Override
-			public List<ILStatement> CaseLocalVarDefPos(LocalVarDefPos term) throws NE {
+			public List<ILStatement> case_LocalVarDef(LocalVarDef term)  {
 				ILvar v = names.getILvarForVarDef(term);
 				func.getLocals().add(v);
 
-				if (term.initialExpr() instanceof ExprPos) {
+				if (term.getInitialExpr() instanceof Expr) {
 					// translate initial expr
-					result.addAll(translateExpr(func, v, (ExprPos) term.initialExpr()));
+					result.addAll(translateExpr(func, v, (Expr) term.getInitialExpr()));
 				}
 				return result;
 			}
 
 
 			@Override
-			public List<ILStatement> CaseStmtSetPos(final StmtSetPos term) throws NE {
+			public List<ILStatement> case_StmtSet(final StmtSet term)  {
 
-				return term.left().Switch(new ExprAssignablePos.Switch<List<ILStatement>, NE>() {
+				return term.getLeft().match(new ExprAssignable.Matcher<List<ILStatement>>() {
 
 					@Override
-					public List<ILStatement> CaseExprMemberVarPos(ExprMemberVarPos left) throws NE {
-						VarDefPos memberVar = attr.varDef.get(left);
+					public List<ILStatement> case_ExprMemberVar(ExprMemberVar left)  {
+						VarDef memberVar = attr.varDef.get(left);
 
 						ILvar arVar = names.getILvarForVarDef(memberVar);
 
 						// evaluate receiver object
 						ILvar receiver = names.getNewLocalVar(func, PScriptTypeInt.instance(), "receiver");
-						result.addAll(translateExpr(func, receiver, left.left()));
+						result.addAll(translateExpr(func, receiver, left.getLeft()));
 
-						PscriptType typ = attr.exprType.get(term.right());
+						PscriptType typ = attr.exprType.get(term.getRight());
 						// evaluate right side
 						ILvar tempResult = names.getNewLocalVar(func, typ, "temp");
-						result.addAll(translateExpr(func, tempResult, term.right()));
+						result.addAll(translateExpr(func, tempResult, term.getRight()));
 
 						// arVar[receiver] = tempResult
 						result.add(new ILarraySetVar(arVar, receiver, tempResult));
@@ -441,22 +427,22 @@ public class IntermediateLangTranslator {
 					}
 
 					@Override
-					public List<ILStatement> CaseExprMemberArrayVarPos(ExprMemberArrayVarPos term) throws NE {
+					public List<ILStatement> case_ExprMemberArrayVar(ExprMemberArrayVar term)  {
 						// TODO class array members
 						throw new Error("class array members not implemented");
 					}
 
 					@Override
-					public List<ILStatement> CaseExprVarAccessPos(ExprVarAccessPos left) throws NE {
-						VarDefPos varDef = attr.varDef.get(left);
+					public List<ILStatement> case_ExprVarAccess(ExprVarAccess left)  {
+						VarDef varDef = attr.varDef.get(left);
 						ILvar v = names.getILvarForVarDef(varDef);
 						if (isMemberVar(varDef)) {
 
 
-							PscriptType typ = attr.exprType.get(term.right());
+							PscriptType typ = attr.exprType.get(term.getRight());
 							// evaluate right side
 							ILvar tempResult = names.getNewLocalVar(func, typ, "temp");
-							result.addAll(translateExpr(func, tempResult, term.right()));
+							result.addAll(translateExpr(func, tempResult, term.getRight()));
 
 							ILvar thisVar = new ILvar("this", PScriptTypeInt.instance());
 							// v[this] = tempResult
@@ -464,28 +450,28 @@ public class IntermediateLangTranslator {
 							return result;
 						} else { // normal variable
 
-							result.addAll(translateExpr(func, v, term.right()));
+							result.addAll(translateExpr(func, v, term.getRight()));
 						}
 						return result;
 					}
 
 					@Override
-					public List<ILStatement> CaseExprVarArrayAccessPos(ExprVarArrayAccessPos arAccess) throws NE {
-						VarDefPos varDef = attr.varDef.get(arAccess);
+					public List<ILStatement> case_ExprVarArrayAccess(ExprVarArrayAccess arAccess)  {
+						VarDef varDef = attr.varDef.get(arAccess);
 						PscriptType type = attr.varDefType.get(varDef);
 						if (type instanceof PScriptTypeArray) {
 							PScriptTypeArray typeA = (PScriptTypeArray) type;
 							ILvar indexResult = names.getNewLocalVar(func, PScriptTypeInt.instance(), "index");
-							result.addAll(calculateIndexes(func, typeA, indexResult, arAccess.indexes()));
+							result.addAll(calculateIndexes(func, typeA, indexResult, arAccess.getIndexes()));
 
 							ILvar tempResult = names.getNewLocalVar(func, typeA.getBaseType(), "temp");
-							result.addAll(translateExpr(func, tempResult, term.right()));
+							result.addAll(translateExpr(func, tempResult, term.getRight()));
 
 							ILvar arrayVar = names.getILvarForVarDef(varDef);
 							result.add(new ILarraySetVar(arrayVar , indexResult, tempResult));
 							return result;
 						} else {
-							attr.addError(arAccess.source(), "Variable " + varDef.name().term() + " is not an array.");
+							attr.addError(arAccess.getSource(), "Variable " + varDef.getName() + " is not an array.");
 							return new NotNullList<ILStatement>();
 						}
 					}
@@ -493,9 +479,9 @@ public class IntermediateLangTranslator {
 			}
 
 			@Override
-			public List<ILStatement> CaseStmtReturnPos(StmtReturnPos term) throws NE {
-				if (term.obj() instanceof ExprPos) {
-					ExprPos returnValue = (ExprPos) term.obj();
+			public List<ILStatement> case_StmtReturn(StmtReturn term)  {
+				if (term.getObj() instanceof Expr) {
+					Expr returnValue = (Expr) term.getObj();
 					PscriptType type = attr.exprType.get(returnValue);
 					ILvar returnVar = names.getNewLocalVar(func, type, "tempReturn");
 					result.addAll(translateExpr(func, returnVar, returnValue));
@@ -509,60 +495,60 @@ public class IntermediateLangTranslator {
 			}
 
 			@Override
-			public List<ILStatement> CaseStmtDestroyPos(StmtDestroyPos term) throws NE {
-				PscriptType type = attr.exprType.get(term.obj());
+			public List<ILStatement> case_StmtDestroy(StmtDestroy term)  {
+				PscriptType type = attr.exprType.get(term.getObj());
 				if (type instanceof PscriptTypeClass) {
 					PscriptTypeClass classtype = (PscriptTypeClass) type;
-					ClassDefPos classDef = classtype.getClassDef();
+					ClassDef classDef = classtype.getClassDef();
 
 					ILfunction destroyFunc = names.getDestroyFunction(classDef);
 
 					ILvar toDestroy = names.getNewLocalVar(func, classtype, "toDestroy");
-					result.addAll(translateExpr(func, toDestroy , term.obj()));
+					result.addAll(translateExpr(func, toDestroy , term.getObj()));
 					result.add(new ILfunctionCall(null, destroyFunc.getName(), Utils.array(classtype), Utils.array(toDestroy)));
 
 				} else {
-					attr.addError(term.obj().source(), "Cannot destroy objects of type " + type);
+					attr.addError(term.getObj().getSource(), "Cannot destroy objects of type " + type);
 				}
 				return result;
 			}
 
 			@Override
-			public List<ILStatement> CaseStmtIncRefCountPos(StmtIncRefCountPos term) throws NE {
+			public List<ILStatement> case_StmtIncRefCount(StmtIncRefCount term)  {
 				throw new Error("ref counting not implemented");
 			}
 
 			@Override
-			public List<ILStatement> CaseStmtDecRefCountPos(StmtDecRefCountPos term) throws NE {
+			public List<ILStatement> case_StmtDecRefCount(StmtDecRefCount term)  {
 				throw new Error("ref counting not implemented");
 			}
 
 			@Override
-			public List<ILStatement> CaseStmtErrPos(StmtErrPos term) throws NE {
+			public List<ILStatement> case_StmtErr(StmtErr term)  {
 				throw new Error("not implemented");
 			}
 
 			@Override
-			public List<ILStatement> CaseStmtLoopPos(StmtLoopPos term) throws NE {
-				List<ILStatement> loopBody = translateStatements(func, term.body());
+			public List<ILStatement> case_StmtLoop(StmtLoop term)  {
+				List<ILStatement> loopBody = translateStatements(func, term.getBody());
 				result.add(new ILloop(loopBody));
 				return result;
 			}
 
 			@Override
-			public List<ILStatement> CaseStmtExitwhenPos(StmtExitwhenPos term) throws NE {
+			public List<ILStatement> case_StmtExitwhen(StmtExitwhen term)  {
 				ILvar exitWhenVar = names.getNewLocalVar(func, PScriptTypeBool.instance(), "exitwhen_condition");
-				result.addAll(translateExpr(func, exitWhenVar, term.cond()));
+				result.addAll(translateExpr(func, exitWhenVar, term.getCond()));
 				result.add(new ILexitwhen(exitWhenVar ));
 				return result;
 			}
 		});
 	}
 
-	protected List<ILStatement> translateExprMemberMethodPos(ILfunction func, ILvar resultVar, ExprMemberMethodPos term) {
+	protected List<ILStatement> translateExprMemberMethod(ILfunction func, ILvar resultVar, ExprMemberMethod term) {
 		List<ILStatement> result = new NotNullList<ILStatement>();
-		ExprPos left = term.left();
-		FunctionDefinitionPos calledFuncDef = attr.funcDef.get(term);
+		Expr left = term.getLeft();
+		FunctionDefinition calledFuncDef = attr.funcDef.get(term);
 		ILfunction calledFunc = names.getFunction(calledFuncDef);
 
 		// translate left expr
@@ -575,50 +561,50 @@ public class IntermediateLangTranslator {
 		argumentVars[0] = tempLeft; // first argument is the implicit parameter
 		for (int i=1; i<argumentVars.length; i++) {
 			argumentVars[i] = names.getNewLocalVar(func, argumentTypes[i], "param");
-			result.addAll(translateExpr(func, argumentVars[i], term.args().get(i-1)));
+			result.addAll(translateExpr(func, argumentVars[i], term.getArgs().get(i-1)));
 		}
 		result.add(new ILfunctionCall(resultVar, calledFunc.getName(), argumentTypes , argumentVars));
 		return result;
 	}
 
-	protected List<ILStatement> translateFunctionCall(ILfunction func, final ILvar resultVar, ExprFunctionCallPos term, ArgumentsPos args) {
+	protected List<ILStatement> translateFunctionCall(ILfunction func, final ILvar resultVar, ExprFunctionCall term, Arguments args) {
 		final List<ILStatement> result = new NotNullList<ILStatement>();
-		final FunctionDefinitionPos calledFunc = attr.funcDef.get(term);
+		final FunctionDefinition calledFunc = attr.funcDef.get(term);
 
 		// add call dependency
-		if (! (calledFunc instanceof NativeFuncPos)) {
+		if (! (calledFunc instanceof NativeFunc)) {
 			prog.addCallDependency(func, names.getFunction(calledFunc));
 		}
 
 
 		// translate Arguments:
-		int argCount = term.args().size();
+		int argCount = term.getArgs().size();
 
 		final PscriptType[] argumentTypes = new PscriptType[argCount];
 		final ILvar[] argumentVars = new ILvar[argCount];
 
 
 		for (int i = 0; i < argCount; i++) {
-			ExprPos arg = term.args().get(i);
-			WParameterPos param = calledFunc.signature().parameters().get(i);
+			Expr arg = term.getArgs().get(i);
+			WParameter param = calledFunc.getSignature().getParameters().get(i);
 			argumentTypes[i] = attr.varDefType.get(param);
 
-			argumentVars[i] = names.getNewLocalVar(func, argumentTypes[i], calledFunc.signature().name().term() + "_param" + i);
+			argumentVars[i] = names.getNewLocalVar(func, argumentTypes[i], calledFunc.getSignature().getName() + "_param" + i);
 			result.addAll(translateExpr(func, argumentVars[i], arg));
 		}
 		// make the call:
-		calledFunc.Switch(new FunctionDefinitionPos.Switch<Void, NE>() {
+		calledFunc.match(new FunctionDefinition.MatcherVoid() {
 
 			@Override
-			public Void CaseFuncDefPos(FuncDefPos term) throws NE {
+			public void case_FuncDef(FuncDef term)  {
 				result.add(new ILfunctionCall(resultVar, names.getFunction(calledFunc).getName(), argumentTypes, argumentVars));
-				return null;
+				
 			}
 
 			@Override
-			public Void CaseNativeFuncPos(NativeFuncPos term) throws NE {
-				result.add(new IlbuildinFunctionCall(resultVar, term.signature().name().term(), argumentVars));
-				return null;
+			public void case_NativeFunc(NativeFunc term)  {
+				result.add(new IlbuildinFunctionCall(resultVar, term.getSignature().getName(), argumentVars));
+				
 			}
 		});
 
@@ -629,46 +615,46 @@ public class IntermediateLangTranslator {
 
 
 
-	protected List<ILStatement> translateExpr(final ILfunction func, final ILvar resultVar, ExprPos expr) {
+	protected List<ILStatement> translateExpr(final ILfunction func, final ILvar resultVar, Expr expr) {
 		final List<ILStatement> result = new NotNullList<ILStatement>();
-		return expr.Switch(new ExprPos.Switch<List<ILStatement>, NE>() {
+		return expr.match(new Expr.Matcher<List<ILStatement>>() {
 
 			@Override
-			public List<ILStatement> CaseExprIntValPos(ExprIntValPos term) throws NE {
-				result.add(new IlsetConst(resultVar, new ILconstInt(term.val().term())));
+			public List<ILStatement> case_ExprIntVal(ExprIntVal term)  {
+				result.add(new IlsetConst(resultVar, new ILconstInt(term.getVal())));
 				return result;
 			}
 
 			@Override
-			public List<ILStatement> CaseExprRealValPos(ExprRealValPos term) throws NE {
-				result.add(new IlsetConst(resultVar, new ILconstNum(term.val().term())));
+			public List<ILStatement> case_ExprRealVal(ExprRealVal term)  {
+				result.add(new IlsetConst(resultVar, new ILconstNum(term.getVal())));
 				return result;
 			}
 
 			@Override
-			public List<ILStatement> CaseExprStringValPos(ExprStringValPos term) throws NE {
-				result.add(new IlsetConst(resultVar, new ILconstString(term.val().term())));
+			public List<ILStatement> case_ExprStringVal(ExprStringVal term)  {
+				result.add(new IlsetConst(resultVar, new ILconstString(term.getVal())));
 				return result;
 			}
 
 			@Override
-			public List<ILStatement> CaseExprBoolValPos(ExprBoolValPos term) throws NE {
-				result.add(new IlsetConst(resultVar, new ILconstBool(term.val().term())));
+			public List<ILStatement> case_ExprBoolVal(ExprBoolVal term)  {
+				result.add(new IlsetConst(resultVar, new ILconstBool(term.getVal())));
 				return result;
 			}
 
 			@Override
-			public List<ILStatement> CaseExprFuncRefPos(ExprFuncRefPos term) throws NE {
-				FunctionDefinitionPos f = attr.funcDef.get(term);
+			public List<ILStatement> case_ExprFuncRef(ExprFuncRef term)  {
+				FunctionDefinition f = attr.funcDef.get(term);
 				ILfunction ilfunc = names.getFunction(f);
 				result.add(new IlsetConst(resultVar, new ILconstFuncRef(ilfunc)));
 				return result;
 			}
 
 			@Override
-			public List<ILStatement> CaseExprVarAccessPos(ExprVarAccessPos term) throws NE {
+			public List<ILStatement> case_ExprVarAccess(ExprVarAccess term)  {
 
-				VarDefPos varDef = attr.varDef.get(term);
+				VarDef varDef = attr.varDef.get(term);
 				ILvar var = names.getILvarForVarDef(varDef);
 				if (isMemberVar(varDef)) {
 					ILvar thisVar = new ILvar("this", PScriptTypeInt.instance());
@@ -680,57 +666,57 @@ public class IntermediateLangTranslator {
 			}
 
 			@Override
-			public List<ILStatement> CaseExprVarArrayAccessPos(ExprVarArrayAccessPos arAccess) throws NE {
-				VarDefPos varDef = attr.varDef.get(arAccess);
+			public List<ILStatement> case_ExprVarArrayAccess(ExprVarArrayAccess arAccess)  {
+				VarDef varDef = attr.varDef.get(arAccess);
 				PscriptType type = attr.varDefType.get(varDef);
 				if (type instanceof PScriptTypeArray) {
 					PScriptTypeArray typeA = (PScriptTypeArray) type;
 					ILvar indexResult = names.getNewLocalVar(func, PScriptTypeInt.instance(), "index");
-					result.addAll(calculateIndexes(func, typeA, indexResult, arAccess.indexes()));
+					result.addAll(calculateIndexes(func, typeA, indexResult, arAccess.getIndexes()));
 
 
 					ILvar arVar = names.getILvarForVarDef(varDef);
 					result.add(new ILsetVarArray(resultVar, arVar, indexResult));
 					return result;
 				} else {
-					attr.addError(arAccess.source(), "Variable " + varDef.name().term() + " is not an array.");
+					attr.addError(arAccess.getSource(), "Variable " + varDef.getName() + " is not an array.");
 					return new NotNullList<ILStatement>();
 				}
 			}
 
 			@Override
-			public List<ILStatement> CaseExprThisPos(ExprThisPos term) throws NE {
+			public List<ILStatement> case_ExprThis(ExprThis term)  {
 				ILvar var = getThisVariableForMethod(func);
 				result.add(new ILsetVar(resultVar, var));
 				return result;
 			}
 
 			@Override
-			public List<ILStatement> CaseExprBinaryPos(ExprBinaryPos term) throws NE {
+			public List<ILStatement> case_ExprBinary(ExprBinary term)  {
 
-				if (term.op() instanceof OpAndPos) {
-					result.addAll(translateExpr(func, resultVar, term.left()));
-					result.add(new ILif(resultVar, translateExpr(func, resultVar, term.right()), new LinkedList<ILStatement>()));
-				} else if (term.op() instanceof OpOrPos) {
-					result.addAll(translateExpr(func, resultVar, term.left()));
-					result.add(new ILif(resultVar, new LinkedList<ILStatement>(), translateExpr(func, resultVar, term.right())));
+				if (term.getOp() instanceof OpAnd) {
+					result.addAll(translateExpr(func, resultVar, term.getLeft()));
+					result.add(new ILif(resultVar, translateExpr(func, resultVar, term.getRight()), new LinkedList<ILStatement>()));
+				} else if (term.getOp() instanceof OpOr) {
+					result.addAll(translateExpr(func, resultVar, term.getLeft()));
+					result.add(new ILif(resultVar, new LinkedList<ILStatement>(), translateExpr(func, resultVar, term.getRight())));
 				} else {
 					// evaluate left expr:
-					PscriptType leftType = attr.exprType.get(term.left());
+					PscriptType leftType = attr.exprType.get(term.getLeft());
 					ILvar leftVar = names.getNewLocalVar(func, leftType, "leftOperand");
-					List<ILStatement> leftExpr = translateExpr(func, leftVar, term.left());
+					List<ILStatement> leftExpr = translateExpr(func, leftVar, term.getLeft());
 					// evaluate right expr:
-					PscriptType rightType = attr.exprType.get(term.left());
+					PscriptType rightType = attr.exprType.get(term.getLeft());
 					ILvar rightVar = names.getNewLocalVar(func, rightType, "rightOperand");
-					List<ILStatement> rightExpr = translateExpr(func, rightVar, term.right());
+					List<ILStatement> rightExpr = translateExpr(func, rightVar, term.getRight());
 
 					result.addAll(leftExpr);
 					result.addAll(rightExpr);
 					Iloperator op;
 					if (Utils.isJassCode(term)) {
-						op = translateOpJass(term.op(), leftType, rightType);
+						op = translateOpJass(term.getOp(), leftType, rightType);
 					} else {
-						op = translateOp(term.op());
+						op = translateOp(term.getOp());
 					}
 
 					result.add(new ILsetBinary(resultVar, leftVar, op, rightVar));
@@ -739,67 +725,67 @@ public class IntermediateLangTranslator {
 			}
 
 			@Override
-			public List<ILStatement> CaseExprUnaryPos(final ExprUnaryPos term) throws NE {
-				PscriptType type = attr.exprType.get(term.right());
+			public List<ILStatement> case_ExprUnary(final ExprUnary term)  {
+				PscriptType type = attr.exprType.get(term.getRight());
 				ILvar tempVar = names.getNewLocalVar(func, type, "temp");
-				result.addAll(translateExpr(func, tempVar, term.right()));
-				result.add(new IlsetUnary(resultVar, translateOp(term.op()), tempVar));
+				result.addAll(translateExpr(func, tempVar, term.getRight()));
+				result.add(new IlsetUnary(resultVar, translateOp(term.getOp()), tempVar));
 				return result;
 			}
 
 			@Override
-			public List<ILStatement> CaseExprMemberVarPos(ExprMemberVarPos term) throws NE {
-				VarDefPos varDef = attr.varDef.get(term);
-				ILvar varDefVar = names.getILvarForClassMemberDef((GlobalVarDefPos) varDef);
+			public List<ILStatement> case_ExprMemberVar(ExprMemberVar term)  {
+				VarDef varDef = attr.varDef.get(term);
+				ILvar varDefVar = names.getILvarForClassMemberDef((GlobalVarDef) varDef);
 
 				ILvar index = names.getNewLocalVar(func, PScriptTypeInt.instance(), "index");
-				result.addAll(translateExpr(func, index, term.left()));
+				result.addAll(translateExpr(func, index, term.getLeft()));
 				result.add(new ILsetVarArray(resultVar, varDefVar, index));
 
 				return result;
 			}
 
 			@Override
-			public List<ILStatement> CaseExprMemberArrayVarPos(ExprMemberArrayVarPos term) throws NE {
+			public List<ILStatement> case_ExprMemberArrayVar(ExprMemberArrayVar term)  {
 				// TODO member arrayvar expr
 				throw new Error("Array member vars not implemented yet.");
 			}
 
 			@Override
-			public List<ILStatement> CaseExprMemberMethodPos(ExprMemberMethodPos term) throws NE {
-				return translateExprMemberMethodPos(func, resultVar, term);
+			public List<ILStatement> case_ExprMemberMethod(ExprMemberMethod term)  {
+				return translateExprMemberMethod(func, resultVar, term);
 			}
 
 			@Override
-			public List<ILStatement> CaseExprFunctionCallPos(ExprFunctionCallPos term) throws NE {
-				return translateFunctionCall(func, resultVar, term, term.args());
+			public List<ILStatement> case_ExprFunctionCall(ExprFunctionCall term)  {
+				return translateFunctionCall(func, resultVar, term, term.getArgs());
 			}
 
 			@Override
-			public List<ILStatement> CaseExprNewObjectPos(ExprNewObjectPos term) throws NE {
+			public List<ILStatement> case_ExprNewObject(ExprNewObject term)  {
 				return translateExprNewPos(func, resultVar, term);
 			}
 
 			@Override
-			public List<ILStatement> CaseExprNullPos(ExprNullPos term) throws NE {
+			public List<ILStatement> case_ExprNull(ExprNull term)  {
 				result.add(new IlsetConst(resultVar, new ILconstNull()));
 				return result;
 			}
 
 			@Override
-			public List<ILStatement> CaseExprCastPos(ExprCastPos term) throws NE {
+			public List<ILStatement> case_ExprCast(ExprCast term)  {
 				// a cast expression does not do anyting
-				return translateExpr(func, resultVar, term.expr());
+				return translateExpr(func, resultVar, term.getExpr());
 			}
 
 		});
 	}
 
 
-	protected List<ILStatement> translateExprNewPos(ILfunction func, ILvar resultVar, ExprNewObjectPos term) {
+	protected List<ILStatement> translateExprNewPos(ILfunction func, ILvar resultVar, ExprNewObject term) {
 		List<ILStatement> result = new NotNullList<ILStatement>();
 
-		ConstructorDefPos constr = attr.constrDef.get(term);
+		ConstructorDef constr = attr.constrDef.get(term);
 
 		ILfunction constrFunc = names.getConstructorFunction(constr);
 
@@ -809,14 +795,14 @@ public class IntermediateLangTranslator {
 		ILvar[] argumentVars = new ILvar[argumentTypes.length];
 		for (int i=0; i<argumentTypes.length; i++) {
 			argumentVars[i] = names.getNewLocalVar(func, argumentTypes[i], "contr_arg");
-			result.addAll(translateExpr(func, argumentVars[i], term.args().get(i)));
+			result.addAll(translateExpr(func, argumentVars[i], term.getArgs().get(i)));
 		}
 		result.add(new ILfunctionCall(resultVar, constrFunc.getName(), argumentTypes, argumentVars));
 		return result ;
 	}
 
-	protected Iloperator translateOpJass(OpPos op, PscriptType leftType, PscriptType rightType) {
-		if (op instanceof OpDivRealPos) {
+	protected Iloperator translateOpJass(Op op, PscriptType leftType, PscriptType rightType) {
+		if (op instanceof OpDivReal) {
 			if (leftType instanceof PScriptTypeInt && rightType instanceof PScriptTypeInt) {
 				return Iloperator.DIV_INT;
 			}
@@ -824,86 +810,86 @@ public class IntermediateLangTranslator {
 		return translateOp(op);
 	}
 
-	protected Iloperator translateOp(OpPos op) {
-		return op.Switch(new OpPos.Switch<Iloperator, NE>() {
+	protected Iloperator translateOp(Op op) {
+		return op.match(new Op.Matcher<Iloperator>() {
 
 			@Override
-			public Iloperator CaseOpOrPos(OpOrPos term) throws NE {
+			public Iloperator case_OpOr(OpOr term)  {
 				return Iloperator.OR;
 			}
 
 			@Override
-			public Iloperator CaseOpAndPos(OpAndPos term) throws NE {
+			public Iloperator case_OpAnd(OpAnd term)  {
 				return Iloperator.AND;
 			}
 
 			@Override
-			public Iloperator CaseOpEqualsPos(OpEqualsPos term) throws NE {
+			public Iloperator case_OpEquals(OpEquals term)  {
 				return Iloperator.EQUALITY;
 			}
 
 			@Override
-			public Iloperator CaseOpUnequalsPos(OpUnequalsPos term) throws NE {
+			public Iloperator case_OpUnequals(OpUnequals term)  {
 				return Iloperator.UNEQUALITY;
 			}
 
 			@Override
-			public Iloperator CaseOpLessEqPos(OpLessEqPos term) throws NE {
+			public Iloperator case_OpLessEq(OpLessEq term)  {
 				return Iloperator.LESS_EQ;
 			}
 
 			@Override
-			public Iloperator CaseOpLessPos(OpLessPos term) throws NE {
+			public Iloperator case_OpLess(OpLess term)  {
 				return Iloperator.LESS;
 			}
 
 			@Override
-			public Iloperator CaseOpGreaterEqPos(OpGreaterEqPos term) throws NE {
+			public Iloperator case_OpGreaterEq(OpGreaterEq term)  {
 				return Iloperator.GREATER_EQ;
 			}
 
 			@Override
-			public Iloperator CaseOpGreaterPos(OpGreaterPos term) throws NE {
+			public Iloperator case_OpGreater(OpGreater term)  {
 				return Iloperator.GREATER;
 			}
 
 			@Override
-			public Iloperator CaseOpPlusPos(OpPlusPos term) throws NE {
+			public Iloperator case_OpPlus(OpPlus term)  {
 				return Iloperator.PLUS;
 			}
 
 			@Override
-			public Iloperator CaseOpMinusPos(OpMinusPos term) throws NE {
+			public Iloperator case_OpMinus(OpMinus term)  {
 				return Iloperator.MINUS;
 			}
 
 			@Override
-			public Iloperator CaseOpMultPos(OpMultPos term) throws NE {
+			public Iloperator case_OpMult(OpMult term)  {
 				return Iloperator.MULT;
 			}
 
 			@Override
-			public Iloperator CaseOpDivRealPos(OpDivRealPos term) throws NE {
+			public Iloperator case_OpDivReal(OpDivReal term)  {
 				return Iloperator.DIV_REAL;
 			}
 
 			@Override
-			public Iloperator CaseOpModRealPos(OpModRealPos term) throws NE {
+			public Iloperator case_OpModReal(OpModReal term)  {
 				return Iloperator.MOD_REAL;
 			}
 
 			@Override
-			public Iloperator CaseOpModIntPos(OpModIntPos term) throws NE {
+			public Iloperator case_OpModInt(OpModInt term)  {
 				return Iloperator.MOD_INT;
 			}
 
 			@Override
-			public Iloperator CaseOpDivIntPos(OpDivIntPos term) throws NE {
+			public Iloperator case_OpDivInt(OpDivInt term)  {
 				return Iloperator.DIV_INT;
 			}
 
 			@Override
-			public Iloperator CaseOpNotPos(OpNotPos term) throws NE {
+			public Iloperator case_OpNot(OpNot term)  {
 				return Iloperator.NOT;
 			}
 		});
@@ -913,18 +899,21 @@ public class IntermediateLangTranslator {
 		return new ILvar("this", PScriptTypeInt.instance());
 	}
 
-	protected void translateGlobalVarDef(WPackagePos p, GlobalVarDefPos term) {
+	protected void translateGlobalVarDef(WPackage p, GlobalVarDef term) {
 		ILvar v = names.getILvarForVarDef(term);
 		prog.addGlobalVar(v);
 		// TODO inital value + global dependencies
-		if (term.initialExpr() instanceof ExprPos) {
-			ExprPos initialExpr = (ExprPos) term.initialExpr();
+		if (term.getInitialExpr() instanceof Expr) {
+			Expr initialExpr = (Expr) term.getInitialExpr();
 
-			List<ExprVarAccessPos> varRefs = Utils.collect(ExprVarAccessPos.class, initialExpr);
-			for (ExprVarAccessPos varRef : varRefs) {
-				ILvar dependsOn = names.getILvarForVarDef(attr.varDef.get(varRef));
-				addGlobalInitializationDependency(v, dependsOn);
-			}
+			
+			
+			// FIXME reimplement collect method
+//			List<ExprVarAccess> varRefs = Utils.collect(ExprVarAccess.class, initialExpr);
+//			for (ExprVarAccess varRef : varRefs) {
+//				ILvar dependsOn = names.getILvarForVarDef(attr.varDef.get(varRef));
+//				addGlobalInitializationDependency(v, dependsOn);
+//			}
 
 
 			addGlobalInit(v, initialExpr);
@@ -933,7 +922,7 @@ public class IntermediateLangTranslator {
 
 
 
-	private void addGlobalInit(ILvar v, ExprPos initialExpr) {
+	private void addGlobalInit(ILvar v, Expr initialExpr) {
 		globalInits.add(v, initialExpr);
 	}
 
@@ -941,13 +930,13 @@ public class IntermediateLangTranslator {
 		globalInits.addDependency(v, dependsOn);
 	}
 
-	protected void transltateClassDef(final WPackagePos pack, final ClassDefPos classDef) {
-		String packageName = pack.name().term();
-		String className = classDef.name().term();
+	protected void transltateClassDef(final WPackage pack, final ClassDef classDef) {
+		String packageName = pack.getName();
+		String className = classDef.getName();
 		String prefix = packageName + "_" + className + "_";
 
-		final List<GlobalVarDefPos> classVars = new NotNullList<GlobalVarDefPos>();
-		final List<ConstructorDefPos> constructors = new NotNullList<ConstructorDefPos>();
+		final List<GlobalVarDef> classVars = new NotNullList<GlobalVarDef>();
+		final List<ConstructorDef> constructors = new NotNullList<ConstructorDef>();
 		final ILfunction destroyFunc = names.getDestroyFunction(classDef);
 		prog.addFunction(destroyFunc);
 		destroyFunc.initParams();
@@ -955,43 +944,43 @@ public class IntermediateLangTranslator {
 		destroyFunc.setReturnType(PScriptTypeVoid.instance());
 
 
-		for (ClassSlotPos elem : classDef.slots()) {
-			elem.Switch(new ClassSlotPos.Switch<Void, NE>() {
+		for (ClassSlot elem : classDef.getSlots()) {
+			elem.match(new ClassSlot.MatcherVoid() {
 
 				@Override
-				public Void CaseGlobalVarDefPos(GlobalVarDefPos varDef) throws NE {
+				public void case_GlobalVarDef(GlobalVarDef varDef)  {
 					ILvar v = names.getILvarForClassMemberDef(varDef);
 					prog.addGlobalVar(v);
 					classVars.add(varDef);
-					return null;
+					
 				}
 
 				@Override
-				public Void CaseFuncDefPos(FuncDefPos term) throws NE {
+				public void case_FuncDef(FuncDef term)  {
 					ILfunction func = names.getFunction(term);
-					func.setReturnType(attr.typeExprType.get(term.signature().typ()));
+					func.setReturnType(attr.typeExprType.get(term.getSignature().getTyp()));
 					func.initParams();
 					// add the implicit parameter "this"
 					func.addParam(names.getThis(term));
 					// translate other parameters:
-					for (WParameterPos p : term.signature().parameters()) {
-						func.addParam(new ILvar(p.name().term(), attr.typeExprType.get(p.typ())));
+					for (WParameter p : term.getSignature().getParameters()) {
+						func.addParam(new ILvar(p.getName(), attr.typeExprType.get(p.getTyp())));
 					}
-					func.addBody(translateStatements(func, term.body()));
+					func.addBody(translateStatements(func, term.getBody()));
 					prog.addFunction(func);
-					return null;
+					
 				}
 
 				@Override
-				public Void CaseConstructorDefPos(ConstructorDefPos term) throws NE {
+				public void case_ConstructorDef(ConstructorDef term)  {
 					constructors.add(term);
-					return null;
+					
 				}
 
 				@Override
-				public Void CaseOnDestroyDefPos(OnDestroyDefPos term) throws NE {
-					destroyFunc.addBody(translateStatements(destroyFunc, term.body()));			
-					return null;
+				public void case_OnDestroyDef(OnDestroyDef term)  {
+					destroyFunc.addBody(translateStatements(destroyFunc, term.getBody()));			
+					
 				}
 			});
 		}
@@ -1006,7 +995,7 @@ public class IntermediateLangTranslator {
 
 
 		// create constructors
-		for (ConstructorDefPos constr : constructors) {
+		for (ConstructorDef constr : constructors) {
 			translateConstructor(nextFree, firstFree, maxIndex, classVars, constr);
 		}
 
@@ -1015,12 +1004,12 @@ public class IntermediateLangTranslator {
 
 	}
 
-	private void translateConstructor(ILvar nextFree, ILvar firstFree, ILvar maxIndex, List<GlobalVarDefPos> classVars, ConstructorDefPos constr) {
+	private void translateConstructor(ILvar nextFree, ILvar firstFree, ILvar maxIndex, List<GlobalVarDef> classVars, ConstructorDef constr) {
 		ILfunction func = names.getConstructorFunction(constr);
 		prog.addFunction(func);
 
 		func.initParams();
-		for (WParameterPos p : constr.params()) {
+		for (WParameter p : constr.getParams()) {
 			ILvar param = names.getILvarForVarDef(p);
 			func.addParam(param);
 		}
@@ -1053,11 +1042,11 @@ public class IntermediateLangTranslator {
 		statements.add(new ILarraySetVar(nextFree, thisVar, minusOne));
 
 		// initialize member vars
-		for (GlobalVarDefPos classVar : classVars) {
+		for (GlobalVarDef classVar : classVars) {
 			PscriptType varType = attr.varDefType.get(classVar);
 			ILvar tempVar = names.getNewLocalVar(func, varType, "temp");
-			if (classVar.initialExpr() instanceof ExprPos) {
-				ExprPos initial = (ExprPos) classVar.initialExpr();
+			if (classVar.getInitialExpr() instanceof Expr) {
+				Expr initial = (Expr) classVar.getInitialExpr();
 				statements.addAll(translateExpr(func, tempVar , initial));
 			} else {
 				statements.add(new IlsetConst(tempVar, NativeTypes.getDefaultValue(varType)));
@@ -1067,7 +1056,7 @@ public class IntermediateLangTranslator {
 		func.addBody(statements );
 
 		// translate body
-		func.addBody(translateStatements(func, constr.body()));
+		func.addBody(translateStatements(func, constr.getBody()));
 		// return this
 		func.addBody(Utils.list(new ILreturn(thisVar)));
 	}
@@ -1109,13 +1098,13 @@ public class IntermediateLangTranslator {
 	 * @param indexesPos the indexes
 	 * @return
 	 */
-	protected List<ILStatement> calculateIndexes(ILfunction func, PScriptTypeArray type, ILvar indexResult, IndexesPos indexesPos) {
+	protected List<ILStatement> calculateIndexes(ILfunction func, PScriptTypeArray type, ILvar indexResult, Indexes indexesPos) {
 		if (indexesPos.size() > 1) {
 			throw new Error("Multidimensional arrays are not supported yet.");
 		}
 
 		LinkedList<ILStatement> result = new LinkedList<ILStatement>();
-		result.addAll(translateExpr(func, indexResult, indexesPos.first()));			
+		result.addAll(translateExpr(func, indexResult, indexesPos.get(0)));			
 		return result;	
 
 

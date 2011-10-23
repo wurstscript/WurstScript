@@ -3,14 +3,13 @@ package de.peeeq.wurstscript.attributes;
 import java.util.Collection;
 import java.util.List;
 
-import katja.common.NE;
-import de.peeeq.wurstscript.ast.ConstructorDefPos;
-import de.peeeq.wurstscript.ast.ExprFuncRefPos;
-import de.peeeq.wurstscript.ast.ExprFunctionCallPos;
-import de.peeeq.wurstscript.ast.ExprMemberMethodPos;
-import de.peeeq.wurstscript.ast.ExprNewObjectPos;
-import de.peeeq.wurstscript.ast.FuncRefPos;
-import de.peeeq.wurstscript.ast.FunctionDefinitionPos;
+import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.ExprFuncRef;
+import de.peeeq.wurstscript.ast.ExprFunctionCall;
+import de.peeeq.wurstscript.ast.ExprMemberMethod;
+import de.peeeq.wurstscript.ast.ExprNewObject;
+import de.peeeq.wurstscript.ast.FuncRef;
+import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.types.PScriptTypeUnknown;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.utils.NotNullList;
@@ -62,94 +61,94 @@ public abstract class OverloadingResolver<F,C> {
 			return results.get(0);
 		}
 	}
-	public static ConstructorDefPos resolveExprNew(final Attributes attr, List<ConstructorDefPos> constructors, final ExprNewObjectPos node) {
-		return new OverloadingResolver<ConstructorDefPos, ExprNewObjectPos>() {
+	public static ConstructorDef resolveExprNew(final Attributes attr, List<ConstructorDef> constructors, final ExprNewObject node) {
+		return new OverloadingResolver<ConstructorDef, ExprNewObject>() {
 
 			@Override
-			int getParameterCount(ConstructorDefPos f) {
-				return f.params().size();
+			int getParameterCount(ConstructorDef f) {
+				return f.getParams().size();
 			}
 
 			@Override
-			PscriptType getParameterType(ConstructorDefPos f, int i) {
-				return attr.typeExprType.get(f.params().get(i).typ());
+			PscriptType getParameterType(ConstructorDef f, int i) {
+				return attr.typeExprType.get(f.getParams().get(i).getTyp());
 			}
 
 			@Override
-			int getArgumentCount(ExprNewObjectPos c) {
-				return c.args().size();
+			int getArgumentCount(ExprNewObject c) {
+				return c.getArgs().size();
 			}
 
 			@Override
-			PscriptType getArgumentType(ExprNewObjectPos c, int i) {
-				return attr.exprType.get(c.args().get(i));
+			PscriptType getArgumentType(ExprNewObject c, int i) {
+				return attr.exprType.get(c.getArgs().get(i));
 			}
 
 			@Override
 			void handleError(List<String> hints) {
-				attr.addError(node.source(), "No suitable constructor found. \n" + Utils.join(hints, ", \n"));
+				attr.addError(node.getSource(), "No suitable constructor found. \n" + Utils.join(hints, ", \n"));
 			}
 		}.resolve(constructors, node);
 	}
 	
-	public static FunctionDefinitionPos resolveFuncCall(final Attributes attr, final Collection<FunctionDefinitionPos> functions, final FuncRefPos funcCall) {
-		return new OverloadingResolver<FunctionDefinitionPos, FuncRefPos>() {
+	public static FunctionDefinition resolveFuncCall(final Attributes attr, final Collection<FunctionDefinition> functions, final FuncRef funcCall) {
+		return new OverloadingResolver<FunctionDefinition, FuncRef>() {
 
 			@Override
-			int getParameterCount(FunctionDefinitionPos f) {
-				return f.signature().parameters().size();
+			int getParameterCount(FunctionDefinition f) {
+				return f.getSignature().getParameters().size();
 			}
 
 			@Override
-			PscriptType getParameterType(FunctionDefinitionPos f, int i) {
-				return attr.typeExprType.get(f.signature().parameters().get(i).typ());
+			PscriptType getParameterType(FunctionDefinition f, int i) {
+				return attr.typeExprType.get(f.getSignature().getParameters().get(i).getTyp());
 			}
 
 			@Override
-			int getArgumentCount(FuncRefPos c) {
-				return c.Switch(new FuncRefPos.Switch<Integer, NE>() {
+			int getArgumentCount(FuncRef c) {
+				return c.match(new FuncRef.Matcher<Integer>() {
 
 					@Override
-					public Integer CaseExprFuncRefPos(ExprFuncRefPos term) throws NE {
+					public Integer case_ExprFuncRef(ExprFuncRef term)  {
 						return 0; // CHECK a funcref should be able to specify the parameter types and count
 					}
 
 					@Override
-					public Integer CaseExprMemberMethodPos(ExprMemberMethodPos term) throws NE {
-						return term.args().size(); // we do not count the implicit parameter here
+					public Integer case_ExprMemberMethod(ExprMemberMethod term)  {
+						return term.getArgs().size(); // we do not count the implicit parameter here
 					}
 
 					@Override
-					public Integer CaseExprFunctionCallPos(ExprFunctionCallPos term) throws NE {
-						return term.args().size();
+					public Integer case_ExprFunctionCall(ExprFunctionCall term)  {
+						return term.getArgs().size();
 					}
 				});
 			}
 
 			@Override
-			PscriptType getArgumentType(FuncRefPos c, final int i) {
-				return c.Switch(new FuncRefPos.Switch<PscriptType, NE>() {
+			PscriptType getArgumentType(FuncRef c, final int i) {
+				return c.match(new FuncRef.Matcher<PscriptType>() {
 
 					@Override
-					public PscriptType CaseExprFuncRefPos(ExprFuncRefPos term) throws NE {
+					public PscriptType case_ExprFuncRef(ExprFuncRef term)  {
 						return PScriptTypeUnknown.instance(); // CHECK a funcref should be able to specify the parameter types and count
 					}
 
 					@Override
-					public PscriptType CaseExprMemberMethodPos(ExprMemberMethodPos term) throws NE {
-						return attr.exprType.get(term.args().get(i)); // the implicit parameter is not necessary for overloading
+					public PscriptType case_ExprMemberMethod(ExprMemberMethod term)  {
+						return attr.exprType.get(term.getArgs().get(i)); // the implicit parameter is not necessary for overloading
 					}
 
 					@Override
-					public PscriptType CaseExprFunctionCallPos(ExprFunctionCallPos term) throws NE {
-						return attr.exprType.get(term.args().get(i));
+					public PscriptType case_ExprFunctionCall(ExprFunctionCall term)  {
+						return attr.exprType.get(term.getArgs().get(i));
 					}
 				});
 			}
 
 			@Override
 			void handleError(List<String> hints) {
-				attr.addError(funcCall.source(), "Could not find the right method to call: \n" + Utils.join(hints, ", \n"));
+				attr.addError(funcCall.getSource(), "Could not find the right method to call: \n" + Utils.join(hints, ", \n"));
 			}
 
 		}.resolve(functions, funcCall);

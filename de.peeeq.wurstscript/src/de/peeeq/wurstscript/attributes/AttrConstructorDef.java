@@ -2,11 +2,11 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.List;
 
-import de.peeeq.wurstscript.ast.ClassDefPos;
-import de.peeeq.wurstscript.ast.ClassSlotPos;
-import de.peeeq.wurstscript.ast.ConstructorDefPos;
-import de.peeeq.wurstscript.ast.ExprNewObjectPos;
-import de.peeeq.wurstscript.ast.TypeDefPos;
+import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.ClassSlot;
+import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.ExprNewObject;
+import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.utils.NotNullList;
 
 
@@ -14,7 +14,7 @@ import de.peeeq.wurstscript.utils.NotNullList;
  * find the constructor for a "new" call
  *
  */
-public class AttrConstructorDef extends Attribute<ExprNewObjectPos, ConstructorDefPos> {
+public class AttrConstructorDef extends Attribute<ExprNewObject, ConstructorDef> {
 
 	
 	public AttrConstructorDef(Attributes attr) {
@@ -22,27 +22,27 @@ public class AttrConstructorDef extends Attribute<ExprNewObjectPos, ConstructorD
 	}
 
 	@Override
-	protected ConstructorDefPos calculate(final ExprNewObjectPos node) {
+	protected ConstructorDef calculate(final ExprNewObject node) {
 		
-		TypeDefPos typeDef = attr.typeDef.get(node);
+		TypeDef typeDef = attr.typeDef.get(node);
 		
 		
 		
-		if (typeDef instanceof ClassDefPos) {
+		if (typeDef instanceof ClassDef) {
 			
-			ClassDefPos classDefPos = (ClassDefPos) typeDef;
+			ClassDef classDefPos = (ClassDef) typeDef;
 			
-			List<ConstructorDefPos> constructors = new NotNullList<ConstructorDefPos>(); 
-			for (ClassSlotPos elem : classDefPos.slots()) {
-				if (elem instanceof ConstructorDefPos) {
-					constructors.add((ConstructorDefPos) elem);
+			List<ConstructorDef> constructors = new NotNullList<ConstructorDef>(); 
+			for (ClassSlot elem : classDefPos.getSlots()) {
+				if (elem instanceof ConstructorDef) {
+					constructors.add((ConstructorDef) elem);
 				}
 			}
 			
 			return OverloadingResolver.resolveExprNew(attr, constructors, node);
 			
 		} else {
-			attr.addError(node.source(), "Can only create instances of classes.");
+			attr.addError(node.getSource(), "Can only create instances of classes.");
 		}
 		return null;
 	}

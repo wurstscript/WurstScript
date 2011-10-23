@@ -3,7 +3,6 @@ package de.peeeq.wurstscript.attributes;
 import java.io.File;
 
 import de.peeeq.wurstscript.ast.WPos;
-import de.peeeq.wurstscript.ast.WPosPos;
 
 public class CompileError extends Error {
 	private WPos source;
@@ -14,10 +13,6 @@ public class CompileError extends Error {
 		this.message = message;
 	}
 	
-	public CompileError(WPosPos source, String message) {
-		this.source = source.term();
-		this.message = message;
-	}
 	
 	public WPos getSource() {
 		return source;
@@ -27,8 +22,8 @@ public class CompileError extends Error {
 	}
 	@Override
 	public String toString() {
-		File file = new File(source.file());
-		return "Error in File " + file.getName()+ " line " + source.line() + ":" + source.column() + ":\n" + 
+		File file = new File(source.getFile());
+		return "Error in File " + file.getName()+ " line " + source.getLine() + ":" + source.getColumn() + ":\n" + 
 				message;
 	}
 }

@@ -138,9 +138,9 @@ public class WurstGuiImpl implements WurstGui {
 		private void viewErrorDetail(CompileError err) {
 			this.errorDetailsPanel.setText(err.getMessage());
 			
-			String fileName = err.getSource().file();
-			int lineNr = err.getSource().line();
-			int column = err.getSource().column();
+			String fileName = err.getSource().getFile();
+			int lineNr = err.getSource().getLine();
+			int column = err.getSource().getColumn();
 
 			try {
 				if (!currentFile.equals(fileName)) {

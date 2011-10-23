@@ -1,17 +1,18 @@
 package de.peeeq.wurstscript.attributes;
 
-import de.peeeq.wurstscript.ast.AST.SortPos;
-import de.peeeq.wurstscript.ast.WScopePos;
+import de.peeeq.wurstscript.ast.SortPos;
+import de.peeeq.wurstscript.ast.WScope;
+
 
 public class Scoping {
 
-	public static WScopePos getNearestScope(SortPos node) {
-		SortPos p = node.parent();
+	public static WScope getNearestScope(SortPos node) {
+		SortPos p = node.getParent();
 		while (p != null) {
-			if (p instanceof WScopePos) {
-				return (WScopePos) p;
+			if (p instanceof WScope) {
+				return (WScope) p;
 			}
-			p = p.parent();
+			p = p.getParent();
 		}
 		return null;
 	}

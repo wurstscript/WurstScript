@@ -10,7 +10,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
 
-import de.peeeq.wurstscript.ast.ExprPos;
+import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.intermediateLang.ILvar;
 import de.peeeq.wurstscript.utils.NotNullList;
 import de.peeeq.wurstscript.utils.TopsortCycleException;
@@ -30,7 +30,7 @@ public class GlobalInits {
 		dependsOn.put(v, dependsOn2);
 	}
 
-	public void add(ILvar v, ExprPos initialExpr) {
+	public void add(ILvar v, Expr initialExpr) {
 		GlobalInit g = new GlobalInit(v, initialExpr);
 		inits.add(g);
 		initsMap.put(v, g);

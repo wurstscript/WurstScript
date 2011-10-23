@@ -1,12 +1,13 @@
 package de.peeeq.wurstscript.types;
 
-import de.peeeq.wurstscript.ast.ClassDefPos;
+import de.peeeq.wurstscript.ast.ClassDef;
+
 
 public class PscriptTypeClass extends PscriptType {
 
-	private ClassDefPos classDef;
+	private ClassDef classDef;
 
-	public PscriptTypeClass(ClassDefPos classDef) {
+	public PscriptTypeClass(ClassDef classDef) {
 		this.classDef = classDef;
 	}
 
@@ -22,10 +23,10 @@ public class PscriptTypeClass extends PscriptType {
 
 	@Override
 	public String getName() {
-		return classDef.name().term();
+		return classDef.getName();
 	}
 
-	public ClassDefPos getClassDef() {
+	public ClassDef getClassDef() {
 		return classDef;
 	}
 	

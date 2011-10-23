@@ -3,26 +3,26 @@ package de.peeeq.wurstscript.attributes;
 import java.util.HashMap;
 import java.util.Map;
 
-import de.peeeq.wurstscript.ast.GlobalVarDefPos;
-import de.peeeq.wurstscript.ast.VarDefPos;
-import de.peeeq.wurstscript.ast.VisibilityPublicPos;
-import de.peeeq.wurstscript.ast.WEntityPos;
-import de.peeeq.wurstscript.ast.WPackagePos;
+import de.peeeq.wurstscript.ast.GlobalVarDef;
+import de.peeeq.wurstscript.ast.VarDef;
+import de.peeeq.wurstscript.ast.VisibilityPublic;
+import de.peeeq.wurstscript.ast.WEntity;
+import de.peeeq.wurstscript.ast.WPackage;
 
-public class AttrExportedVariables extends Attribute<WPackagePos, Map<String, VarDefPos>> {
+public class AttrExportedVariables extends Attribute<WPackage, Map<String, VarDef>> {
 
 	public AttrExportedVariables(Attributes attr) {
 		super(attr);
 	}
 
 	@Override
-	protected Map<String, VarDefPos> calculate(WPackagePos node) {
-		final Map<String, VarDefPos> result = new HashMap<String, VarDefPos>();
-		for (WEntityPos x : node.elements()) {
-			if (x instanceof GlobalVarDefPos) {
-				GlobalVarDefPos v = (GlobalVarDefPos) x;
-				if (v.visibility() instanceof VisibilityPublicPos) {
-					result.put(v.name().term(), v);
+	protected Map<String, VarDef> calculate(WPackage node) {
+		final Map<String, VarDef> result = new HashMap<String, VarDef>();
+		for (WEntity x : node.getElements()) {
+			if (x instanceof GlobalVarDef) {
+				GlobalVarDef v = (GlobalVarDef) x;
+				if (v.getVisibility() instanceof VisibilityPublic) {
+					result.put(v.getName(), v);
 				}
 				
 			}

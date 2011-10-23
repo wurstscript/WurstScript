@@ -140,7 +140,7 @@ public class ILfunction implements CodePrinting {
 		params = new NotNullList<ILvar>();
 	}
 
-	public WPos source() {
+	public WPos getSource() {
 		return source;
 	}
 

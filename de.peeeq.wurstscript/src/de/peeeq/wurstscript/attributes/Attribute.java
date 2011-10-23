@@ -3,7 +3,7 @@ package de.peeeq.wurstscript.attributes;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-import de.peeeq.wurstscript.ast.AST.SortPos;
+import de.peeeq.wurstscript.ast.SortPos;
 
 /**
  *

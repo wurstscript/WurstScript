@@ -1,23 +1,21 @@
 package de.peeeq.wurstscript.attributes;
 
-import katja.common.NE;
-
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 
-import de.peeeq.wurstscript.ast.ClassDefPos;
-import de.peeeq.wurstscript.ast.ClassSlotPos;
-import de.peeeq.wurstscript.ast.CompilationUnitPos;
-import de.peeeq.wurstscript.ast.ConstructorDefPos;
-import de.peeeq.wurstscript.ast.FuncDefPos;
-import de.peeeq.wurstscript.ast.FunctionDefinitionPos;
-import de.peeeq.wurstscript.ast.InitBlockPos;
-import de.peeeq.wurstscript.ast.OnDestroyDefPos;
-import de.peeeq.wurstscript.ast.TopLevelDeclarationPos;
-import de.peeeq.wurstscript.ast.WEntityPos;
-import de.peeeq.wurstscript.ast.WImportPos;
-import de.peeeq.wurstscript.ast.WPackagePos;
-import de.peeeq.wurstscript.ast.WScopePos;
+import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.ClassSlot;
+import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.FunctionDefinition;
+import de.peeeq.wurstscript.ast.InitBlock;
+import de.peeeq.wurstscript.ast.OnDestroyDef;
+import de.peeeq.wurstscript.ast.TopLevelDeclaration;
+import de.peeeq.wurstscript.ast.WEntity;
+import de.peeeq.wurstscript.ast.WImport;
+import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.ast.WScope;
 
 
 /**
@@ -25,7 +23,7 @@ import de.peeeq.wurstscript.ast.WScopePos;
  * 
  *  note that there can be more than one function of the same name inside one scope
  */
-public class AttrScopeFunctions extends Attribute<WScopePos, Multimap<String, FunctionDefinitionPos>> {
+public class AttrScopeFunctions extends Attribute<WScope, Multimap<String, FunctionDefinition>> {
 
 
 	public AttrScopeFunctions(Attributes attr) {
@@ -33,75 +31,75 @@ public class AttrScopeFunctions extends Attribute<WScopePos, Multimap<String, Fu
 	}
 
 	@Override
-	protected Multimap<String, FunctionDefinitionPos> calculate(WScopePos node) {
-		final Multimap<String, FunctionDefinitionPos> result = ArrayListMultimap.create();
-		return node.Switch(new WScopePos.Switch<Multimap<String, FunctionDefinitionPos>, NE>() {
+	protected Multimap<String, FunctionDefinition> calculate(WScope node) {
+		final Multimap<String, FunctionDefinition> result = ArrayListMultimap.create();
+		return node.match(new WScope.Matcher<Multimap<String, FunctionDefinition>>() {
 
 			@Override
-			public Multimap<String, FunctionDefinitionPos> CaseWPackagePos(WPackagePos term)
-					throws NE {
-				for (WImportPos i : term.imports()) {
-					WPackagePos importedPackage = attr.getImportedPackage(i);
+			public Multimap<String, FunctionDefinition> case_WPackage(WPackage term)
+					 {
+				for (WImport i : term.getImports()) {
+					WPackage importedPackage = attr.getImportedPackage(i);
 					if (importedPackage == null) {
 						continue;
 					}
-					Multimap<String, FunctionDefinitionPos> importedFunctions = attr.exportedFunctions.get(importedPackage);
+					Multimap<String, FunctionDefinition> importedFunctions = attr.exportedFunctions.get(importedPackage);
 					result.putAll(importedFunctions);
 				}
 				
-				for (WEntityPos e : term.elements()) {
-					if (e instanceof FunctionDefinitionPos) {
-						FunctionDefinitionPos f = (FunctionDefinitionPos) e;
-						result.put(f.signature().name().term(), f);
+				for (WEntity e : term.getElements()) {
+					if (e instanceof FunctionDefinition) {
+						FunctionDefinition f = (FunctionDefinition) e;
+						result.put(f.getSignature().getName(), f);
 					}
 				}
 				return result;
 			}
 
 			@Override
-			public Multimap<String, FunctionDefinitionPos> CaseClassDefPos(ClassDefPos term)
-					throws NE {
-				for (ClassSlotPos e : term.slots()) {
-					if (e instanceof FunctionDefinitionPos) {
-						FunctionDefinitionPos f = (FunctionDefinitionPos) e;
-						result.put(f.signature().name().term(), f);
+			public Multimap<String, FunctionDefinition> case_ClassDef(ClassDef term)
+					 {
+				for (ClassSlot e : term.getSlots()) {
+					if (e instanceof FunctionDefinition) {
+						FunctionDefinition f = (FunctionDefinition) e;
+						result.put(f.getSignature().getName(), f);
 					}
 				}
 				return result;
 			}
 
 			@Override
-			public Multimap<String, FunctionDefinitionPos> CaseFuncDefPos(FuncDefPos term)
-					throws NE {
+			public Multimap<String, FunctionDefinition> case_FuncDef(FuncDef term)
+					 {
 				// functions cannot include other functions (not yet?)
 				return result;
 			}
 
 			@Override
-			public Multimap<String, FunctionDefinitionPos> CaseCompilationUnitPos(CompilationUnitPos term) throws NE {
-				for (TopLevelDeclarationPos e : term) {
-					if (e instanceof FunctionDefinitionPos) {
-						FunctionDefinitionPos f = (FunctionDefinitionPos) e;
-						result.put(f.signature().name().term(), f);
+			public Multimap<String, FunctionDefinition> case_CompilationUnit(CompilationUnit term)  {
+				for (TopLevelDeclaration e : term) {
+					if (e instanceof FunctionDefinition) {
+						FunctionDefinition f = (FunctionDefinition) e;
+						result.put(f.getSignature().getName(), f);
 					}
 				}
 				return result;
 			}
 
 			@Override
-			public Multimap<String, FunctionDefinitionPos> CaseConstructorDefPos(ConstructorDefPos term) throws NE {
+			public Multimap<String, FunctionDefinition> case_ConstructorDef(ConstructorDef term)  {
 				// constructors cannot include other functions
 				return result;
 			}
 
 			@Override
-			public Multimap<String, FunctionDefinitionPos> CaseOnDestroyDefPos(OnDestroyDefPos term) throws NE {
+			public Multimap<String, FunctionDefinition> case_OnDestroyDef(OnDestroyDef term)  {
 				// onDestroy cannot include other functions
 				return result;
 			}
 
 			@Override
-			public Multimap<String, FunctionDefinitionPos> CaseInitBlockPos(InitBlockPos term) throws NE {
+			public Multimap<String, FunctionDefinition> case_InitBlock(InitBlock term)  {
 				return result;
 			}
 		});

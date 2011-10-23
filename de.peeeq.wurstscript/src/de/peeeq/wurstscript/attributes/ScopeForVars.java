@@ -3,43 +3,43 @@ package de.peeeq.wurstscript.attributes;
 import java.util.HashMap;
 import java.util.Map;
 
-import de.peeeq.wurstscript.ast.GlobalVarDefPos;
-import de.peeeq.wurstscript.ast.LocalVarDefPos;
-import de.peeeq.wurstscript.ast.VarDefPos;
-import de.peeeq.wurstscript.ast.VisibilityPrivatePos;
-import de.peeeq.wurstscript.ast.VisibilityPublicPos;
-import de.peeeq.wurstscript.ast.WParameterPos;
+import de.peeeq.wurstscript.ast.GlobalVarDef;
+import de.peeeq.wurstscript.ast.LocalVarDef;
+import de.peeeq.wurstscript.ast.VarDef;
+import de.peeeq.wurstscript.ast.VisibilityPrivate;
+import de.peeeq.wurstscript.ast.VisibilityPublic;
+import de.peeeq.wurstscript.ast.WParameter;
 
 public class ScopeForVars {
 	
-	private Map<String, VarDefPos> vars = new HashMap<String, VarDefPos>();
-	private Map<String, VarDefPos> publicVars = new HashMap<String, VarDefPos>();
-	private Map<String, VarDefPos> packageVars = new HashMap<String, VarDefPos>();
+	private Map<String, VarDef> vars = new HashMap<String, VarDef>();
+	private Map<String, VarDef> publicVars = new HashMap<String, VarDef>();
+	private Map<String, VarDef> packageVars = new HashMap<String, VarDef>();
 	
-	private void addVar(VarDefPos v) {
-		String name = v.name().term();
+	private void addVar(VarDef v) {
+		String name = v.getName();
 		if (vars.containsKey(name)) {
-			VarDefPos firstDefinition = vars.get(name);
+			VarDef firstDefinition = vars.get(name);
 		}
 		vars.put(name, v);
 	}
 	
 	
-	public void add(LocalVarDefPos v) {
+	public void add(LocalVarDef v) {
 		addVar(v);
 	}
 	
-	public void add(WParameterPos v) {
+	public void add(WParameter v) {
 		addVar(v);
 	}
 	
-	public void add(GlobalVarDefPos v) {
+	public void add(GlobalVarDef v) {
 		addVar(v);
-		if (v.visibility() instanceof VisibilityPublicPos) {
-			publicVars.put(v.name().term(), v);
+		if (v.getVisibility() instanceof VisibilityPublic) {
+			publicVars.put(v.getName(), v);
 		}
-		if (! (v.visibility() instanceof VisibilityPrivatePos)) {
-			packageVars.put(v.name().term(), v);
+		if (! (v.getVisibility() instanceof VisibilityPrivate)) {
+			packageVars.put(v.getName(), v);
 		}
 	}
 }

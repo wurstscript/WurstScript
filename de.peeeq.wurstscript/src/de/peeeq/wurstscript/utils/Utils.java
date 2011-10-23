@@ -9,8 +9,9 @@ import java.util.Set;
 
 import com.google.common.base.Function;
 
-import de.peeeq.wurstscript.ast.AST.SortPos;
-import de.peeeq.wurstscript.ast.WPackagePos;
+import de.peeeq.wurstscript.ast.SortPos;
+import de.peeeq.wurstscript.ast.WImport;
+import de.peeeq.wurstscript.ast.WPackage;
 
 public class Utils {
 
@@ -148,31 +149,31 @@ public class Utils {
 	 */
 	public static boolean isJassCode(SortPos pos) {
 		while (pos != null) {
-			if (pos instanceof WPackagePos) {
+			if (pos instanceof WPackage) {
 				return false; // code is inside package -> pscript code 
 			}
-			pos = pos.parent();
+			pos = pos.getParent();
 		}
 		return true; // no package found -> jass code
 	}
 
-	@SuppressWarnings("unchecked")
-	public static <T> List<T> collect(Class<T> t, SortPos pos) {
-		List<T> result = new LinkedList<T>();
-		SortPos p = pos.postOrderStart();
-		while (p != null) {
-			if (t.isInstance(p)) {
-				result.add((T) p);
-			}
-			if (p == pos) {
-				// reached start again
-				break;
-			}
-			p = p.postOrder();
-		}
-
-		return result ;
-	}
+//	@SuppressWarnings("unchecked")
+//	public static <T> List<T> collect(Class<T> t, SortPos pos) {
+//		List<T> result = new LinkedList<T>();
+//		SortPos p = pos.postOrderStart();
+//		while (p != null) {
+//			if (t.isInstance(p)) {
+//				result.add((T) p);
+//			}
+//			if (p == pos) {
+//				// reached start again
+//				break;
+//			}
+//			p = p.postOrder();
+//		}
+//
+//		return result ;
+//	}
 
 	public static <T>  T[] array(T ... ar) {
 		return ar;
@@ -258,6 +259,14 @@ public class Utils {
 			}
 		}
 		return false;
+	}
+
+	public static SortPos getRoot(SortPos i) {
+		SortPos s = i;
+		while (s.getParent() != null) {
+			s = s.getParent();
+		}
+		return s;
 	}
 
 

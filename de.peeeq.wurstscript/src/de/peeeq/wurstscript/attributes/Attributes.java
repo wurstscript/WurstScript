@@ -4,14 +4,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import de.peeeq.wurstscript.ast.CompilationUnitPos;
-import de.peeeq.wurstscript.ast.TopLevelDeclarationPos;
-import de.peeeq.wurstscript.ast.WImportPos;
-import de.peeeq.wurstscript.ast.WPackagePos;
+import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.TopLevelDeclaration;
+import de.peeeq.wurstscript.ast.WImport;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WPos;
-import de.peeeq.wurstscript.ast.WPosPos;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.utils.NotNullList;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class Attributes {
 
@@ -49,9 +49,6 @@ public class Attributes {
 		gui.sendError(c);
 	}
 	
-	public void addError(WPosPos pos, String msg) {
-		errors.add(new CompileError(pos, msg));
-	}
 	
 	public int getErrorCount() {
 		return errors.size();
@@ -66,7 +63,7 @@ public class Attributes {
 	}
 
 	
-	private Map<CompilationUnitPos, Map<String, WPackagePos>> packages = new HashMap<CompilationUnitPos, Map<String,WPackagePos>>();  
+	private Map<CompilationUnit, Map<String, WPackage>> packages = new HashMap<CompilationUnit, Map<String,WPackage>>();  
 	
 	/**
 	 * Get the package imported by an import statement
@@ -74,28 +71,28 @@ public class Attributes {
 	 * @param i
 	 * @return
 	 */
-	public WPackagePos getImportedPackage(WImportPos i) {
-		CompilationUnitPos root = i.root();
+	public WPackage getImportedPackage(WImport i) {
+		CompilationUnit root = (CompilationUnit) Utils.getRoot(i);
 		
-		String packageName = i.packagename().term();
-		Map<String, WPackagePos> p;
+		String packageName = i.getPackagename();
+		Map<String, WPackage> p;
 		if (!packages.containsKey(root)) {
-			p = new HashMap<String, WPackagePos>();
+			p = new HashMap<String, WPackage>();
 			packages.put(root, p);
 			
-			for (TopLevelDeclarationPos x : root) {
-				if (x instanceof WPackagePos) {
-					WPackagePos wPackagePos = (WPackagePos) x;
-					p.put(wPackagePos.name().term(), wPackagePos);
+			for (TopLevelDeclaration x : root) {
+				if (x instanceof WPackage) {
+					WPackage WPackage = (WPackage) x;
+					p.put(WPackage.getName(), WPackage);
 				}
 			}
 		} else {
 			p = packages.get(root);
 		}
 		
-		WPackagePos pack = p.get(packageName);
+		WPackage pack = p.get(packageName);
 		if (pack == null) {
-			addError(i.source(), "Imported package " + packageName + " could not be found.");
+			addError(i.getSource(), "Imported package " + packageName + " could not be found.");
 		}
 		return pack;
 		

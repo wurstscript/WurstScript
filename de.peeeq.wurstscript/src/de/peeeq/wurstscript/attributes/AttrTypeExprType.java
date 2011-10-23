@@ -1,12 +1,11 @@
 package de.peeeq.wurstscript.attributes;
 
-import katja.common.NE;
-import de.peeeq.wurstscript.ast.ClassDefPos;
-import de.peeeq.wurstscript.ast.NativeTypePos;
-import de.peeeq.wurstscript.ast.NoTypeExprPos;
-import de.peeeq.wurstscript.ast.OptTypeExprPos;
-import de.peeeq.wurstscript.ast.TypeDefPos;
-import de.peeeq.wurstscript.ast.TypeExprPos;
+import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.NativeType;
+import de.peeeq.wurstscript.ast.NoTypeExpr;
+import de.peeeq.wurstscript.ast.OptTypeExpr;
+import de.peeeq.wurstscript.ast.TypeDef;
+import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.types.NativeTypes;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeUnknown;
@@ -21,7 +20,7 @@ import de.peeeq.wurstscript.utils.Utils;
  * this attribute gives you the type for a type expr
  *
  */
-public class AttrTypeExprType extends Attribute<OptTypeExprPos, PscriptType> {
+public class AttrTypeExprType extends Attribute<OptTypeExpr, PscriptType> {
 
 
 	public AttrTypeExprType(Attributes attr) {
@@ -29,11 +28,11 @@ public class AttrTypeExprType extends Attribute<OptTypeExprPos, PscriptType> {
 	}
 
 	@Override
-	protected PscriptType calculate(OptTypeExprPos optType) {
-		if (optType instanceof TypeExprPos) {
-			TypeExprPos node = (TypeExprPos) optType;
+	protected PscriptType calculate(OptTypeExpr optType) {
+		if (optType instanceof TypeExpr) {
+			TypeExpr node = (TypeExpr) optType;
 			PscriptType baseType = getBaseType(node);
-			if (node.isArray().term()) {
+			if (node.getIsArray()) {
 				int[] sizes = new int[1];
 				return new PScriptTypeArray(baseType, sizes );
 			} else {
@@ -44,44 +43,44 @@ public class AttrTypeExprType extends Attribute<OptTypeExprPos, PscriptType> {
 		}
 	}
 	
-	private PscriptType getBaseType(TypeExprPos node) {	
-		final String typename = node.typeName().term();
+	private PscriptType getBaseType(TypeExpr node) {	
+		final String typename = node.getTypeName();
 		final boolean isJassCode = Utils.isJassCode(node);
-		TypeDefPos t = attr.typeDef.get(node);
+		TypeDef t = attr.typeDef.get(node);
 		if (t == null) {
 			PscriptType nativeType = NativeTypes.nativeType(typename, isJassCode);
 			if (nativeType != null) {
 				return nativeType;
 			}
-			attr.addError(node.source(), "Unknown type " + typename);
+			attr.addError(node.getSource(), "Unknown type " + typename);
 			return new PScriptTypeUnknown(typename);
 		}
-		PscriptType typ = t.Switch(new TypeDefPos.Switch<PscriptType, NE>() {
+		PscriptType typ = t.match(new TypeDef.Matcher<PscriptType>() {
 
 			@Override
-			public PscriptType CaseNativeTypePos(NativeTypePos term)
-					throws NE {
-				PscriptType typ = NativeTypes.nativeType(term.name().term(), isJassCode);
+			public PscriptType case_NativeType(NativeType term)
+					 {
+				PscriptType typ = NativeTypes.nativeType(term.getName(), isJassCode);
 				if (typ != null) {
 					// native type
 					return typ;
 				}
-				if (term.typ() instanceof NoTypeExprPos) {
-					attr.addError(term.source(), "Unknown base type: " + term.name().term());
+				if (term.getTyp() instanceof NoTypeExpr) {
+					attr.addError(term.getSource(), "Unknown base type: " + term.getName());
 					return PScriptTypeUnknown.instance();
 				}
-				PscriptType superType = get((TypeExprPos) term.typ());
+				PscriptType superType = get((TypeExpr) term.getTyp());
 				return PscriptNativeType.instance(typename, superType);
 			}
 
 			@Override
-			public PscriptType CaseClassDefPos(ClassDefPos term)
-					throws NE {
+			public PscriptType case_ClassDef(ClassDef term)
+					 {
 				return new PscriptTypeClass(term);
 			}
 		});
 		
-//		if (node.isArray().term()) {
+//		if (node.isArray()) {
 //			int[] sizes = new int[node.sizes().size()];
 //			for (int i=0; i<sizes.length; i++) {
 //				sizes[i] = 0; // TODO sizes should store ILvariables which actually hold the sizes

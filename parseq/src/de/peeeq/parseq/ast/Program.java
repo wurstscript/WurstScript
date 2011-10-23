@@ -73,5 +73,13 @@ public class Program {
 		
 		return sb.toString();
 	}
+
+	public String getLastPackagePart() {
+		return packageParts.get(packageParts.size()-1);
+	}
+
+	public boolean hasElement(String e) {
+		return definitions.containsKey(e);
+	}
 	
 }

@@ -3,25 +3,25 @@ package de.peeeq.wurstscript.attributes;
 import java.util.HashMap;
 import java.util.Map;
 
-import de.peeeq.wurstscript.ast.TypeDefPos;
-import de.peeeq.wurstscript.ast.VisibilityPublicPos;
-import de.peeeq.wurstscript.ast.WEntityPos;
-import de.peeeq.wurstscript.ast.WPackagePos;
+import de.peeeq.wurstscript.ast.TypeDef;
+import de.peeeq.wurstscript.ast.VisibilityPublic;
+import de.peeeq.wurstscript.ast.WEntity;
+import de.peeeq.wurstscript.ast.WPackage;
 
-public class AttrExportedTypes extends Attribute<WPackagePos, Map<String, TypeDefPos>> {
+public class AttrExportedTypes extends Attribute<WPackage, Map<String, TypeDef>> {
 
 	public AttrExportedTypes(Attributes attr) {
 		super(attr);
 	}
 
 	@Override
-	protected Map<String, TypeDefPos> calculate(WPackagePos node) {
-		final Map<String, TypeDefPos> result = new HashMap<String, TypeDefPos>();
-		for (WEntityPos x : node.elements()) {
-			if (x instanceof TypeDefPos) {
-				TypeDefPos v = (TypeDefPos) x;
-				if (v.visibility() instanceof VisibilityPublicPos) {
-					result.put(v.name().term(), v);
+	protected Map<String, TypeDef> calculate(WPackage node) {
+		final Map<String, TypeDef> result = new HashMap<String, TypeDef>();
+		for (WEntity x : node.getElements()) {
+			if (x instanceof TypeDef) {
+				TypeDef v = (TypeDef) x;
+				if (v.getVisibility() instanceof VisibilityPublic) {
+					result.put(v.getName(), v);
 				}
 				
 			}

@@ -9,9 +9,8 @@ import java.io.InputStreamReader;
 import java.util.List;
 
 import java_cup.runtime.Symbol;
-import de.peeeq.wurstscript.ast.AST;
+import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.CompilationUnitPos;
 import de.peeeq.wurstscript.ast.TopLevelDeclaration;
 import de.peeeq.wurstscript.attributes.Attributes;
 import de.peeeq.wurstscript.attributes.CompileError;
@@ -94,13 +93,12 @@ public class WurstCompilerImpl implements WurstCompiler {
 
 	private void checkAndTranslate(CompilationUnit root) {
 		gui.sendProgress("Checking Files", 0.2);
-		CompilationUnitPos rootPos = AST.CompilationUnitPos(root);
 		
 		// create new attributes instance:
 		Attributes attr = new Attributes(gui);
 		
 		// validate the resource:
-		WurstValidator validator = new WurstValidator(rootPos, attr);
+		WurstValidator validator = new WurstValidator(root, attr);
 		validator.validate();
 		
 		if (attr.getErrorCount() > 0) {
@@ -112,7 +110,7 @@ public class WurstCompilerImpl implements WurstCompiler {
 		
 		
 		// translate to intermediate lang:
-		IntermediateLangTranslator translator = new IntermediateLangTranslator(rootPos, attr);
+		IntermediateLangTranslator translator = new IntermediateLangTranslator(root, attr);
 		ilProg = translator.translate();
 		
 		if (attr.getErrorCount() > 0) {
@@ -132,7 +130,7 @@ public class WurstCompilerImpl implements WurstCompiler {
 				decls.add(tld);
 			}
 		}
-		return AST.CompilationUnit(decls.toArray(new TopLevelDeclaration[decls.size()]));
+		return Ast.CompilationUnit(decls.toArray(new TopLevelDeclaration[decls.size()]));
 	}
 
 	private CompilationUnit processMap(File file) {
@@ -171,16 +169,16 @@ public class WurstCompilerImpl implements WurstCompiler {
 			Symbol sym = parser.parse();
 			parseErrors = parser.getErrorCount();
 			if (parseErrors > 0) {
-				return AST.CompilationUnit();
+				return Ast.CompilationUnit();
 			}	
 			CompilationUnit root = (CompilationUnit) sym.value;
 			return root;
 			
 		} catch (CompileError e) {
 			gui.sendError(e);
-			return AST.CompilationUnit();
+			return Ast.CompilationUnit();
 		} catch (Exception e) {
-			gui.sendError(new CompileError(AST.WPos(file.toString(), 0, 0), "This is a bug and should not have happened.\n" + e.getMessage()));
+			gui.sendError(new CompileError(Ast.WPos(file.toString(), 0, 0), "This is a bug and should not have happened.\n" + e.getMessage()));
 			WLogger.severe(e);
 			throw new Error(e);
 		}
