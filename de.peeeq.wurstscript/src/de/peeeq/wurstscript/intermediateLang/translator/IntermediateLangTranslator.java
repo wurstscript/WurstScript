@@ -908,12 +908,11 @@ public class IntermediateLangTranslator {
 
 			
 			
-			// FIXME reimplement collect method
-//			List<ExprVarAccess> varRefs = Utils.collect(ExprVarAccess.class, initialExpr);
-//			for (ExprVarAccess varRef : varRefs) {
-//				ILvar dependsOn = names.getILvarForVarDef(attr.varDef.get(varRef));
-//				addGlobalInitializationDependency(v, dependsOn);
-//			}
+			List<ExprVarAccess> varRefs = Utils.collect(ExprVarAccess.class, initialExpr);
+			for (ExprVarAccess varRef : varRefs) {
+				ILvar dependsOn = names.getILvarForVarDef(attr.varDef.get(varRef));
+				addGlobalInitializationDependency(v, dependsOn);
+			}
 
 
 			addGlobalInit(v, initialExpr);

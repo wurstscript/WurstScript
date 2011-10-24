@@ -124,13 +124,20 @@ public class WurstCompilerImpl implements WurstCompiler {
 
 	private CompilationUnit mergeCompilationUnits(List<CompilationUnit> compilationUnits) {
 		gui.sendProgress("Merging Files", 0.2);
-		List<TopLevelDeclaration> decls = new NotNullList<TopLevelDeclaration>();
+//		List<TopLevelDeclaration> decls = new NotNullList<TopLevelDeclaration>();
+//		for (CompilationUnit compilationUnit : compilationUnits) {
+//			for (TopLevelDeclaration tld : compilationUnit) {
+//				decls.add(tld);
+//			}
+//		}
+		CompilationUnit result = Ast.CompilationUnit();
 		for (CompilationUnit compilationUnit : compilationUnits) {
-			for (TopLevelDeclaration tld : compilationUnit) {
-				decls.add(tld);
+			while (!compilationUnit.isEmpty()) {
+				TopLevelDeclaration x = compilationUnit.remove(0);
+				result.add(x);
 			}
 		}
-		return Ast.CompilationUnit(decls.toArray(new TopLevelDeclaration[decls.size()]));
+		return result; //Ast.CompilationUnit(decls.toArray(new TopLevelDeclaration[decls.size()]));
 	}
 
 	private CompilationUnit processMap(File file) {

@@ -1,0 +1,4 @@
+/bin/
+/test-output/
+\.metadata
+\.j$

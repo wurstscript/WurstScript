@@ -7,11 +7,12 @@ public interface WImport extends SortPos {
 	WPos getSource();
 	void setPackagename(String packagename);
 	String getPackagename();
-	public abstract void accept(WImport.Visitor v);
+	WImport copy();
 	public abstract void accept(WPackage.Visitor v);
+	public abstract void accept(CompilationUnit.Visitor v);
 	public abstract void accept(WScope.Visitor v);
 	public abstract void accept(TopLevelDeclaration.Visitor v);
-	public abstract void accept(CompilationUnit.Visitor v);
+	public abstract void accept(WImport.Visitor v);
 	public abstract void accept(WImports.Visitor v);
 	public abstract void accept(PackageOrGlobal.Visitor v);
 	public interface Visitor {
