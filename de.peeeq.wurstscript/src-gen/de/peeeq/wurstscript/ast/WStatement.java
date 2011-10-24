@@ -8,171 +8,170 @@ public interface WStatement extends SortPos{
 	<T> T match(Matcher<T> s);
 	void match(MatcherVoid s);
 	public interface Matcher<T> {
-		T case_ExprMemberMethod(ExprMemberMethod exprMemberMethod);
-		T case_StmtReturn(StmtReturn stmtReturn);
-		T case_StmtWhile(StmtWhile stmtWhile);
-		T case_ExprNewObject(ExprNewObject exprNewObject);
-		T case_StmtSet(StmtSet stmtSet);
-		T case_StmtExitwhen(StmtExitwhen stmtExitwhen);
-		T case_StmtDecRefCount(StmtDecRefCount stmtDecRefCount);
-		T case_StmtIncRefCount(StmtIncRefCount stmtIncRefCount);
-		T case_StmtDestroy(StmtDestroy stmtDestroy);
-		T case_StmtLoop(StmtLoop stmtLoop);
-		T case_StmtErr(StmtErr stmtErr);
 		T case_ExprFunctionCall(ExprFunctionCall exprFunctionCall);
-		T case_StmtIf(StmtIf stmtIf);
+		T case_StmtDecRefCount(StmtDecRefCount stmtDecRefCount);
 		T case_LocalVarDef(LocalVarDef localVarDef);
+		T case_StmtWhile(StmtWhile stmtWhile);
+		T case_ExprMemberMethod(ExprMemberMethod exprMemberMethod);
+		T case_StmtIncRefCount(StmtIncRefCount stmtIncRefCount);
+		T case_StmtIf(StmtIf stmtIf);
+		T case_StmtLoop(StmtLoop stmtLoop);
+		T case_StmtReturn(StmtReturn stmtReturn);
+		T case_StmtDestroy(StmtDestroy stmtDestroy);
+		T case_ExprNewObject(ExprNewObject exprNewObject);
+		T case_StmtErr(StmtErr stmtErr);
+		T case_StmtExitwhen(StmtExitwhen stmtExitwhen);
+		T case_StmtSet(StmtSet stmtSet);
 	}
 
 	public interface MatcherVoid {
-		void case_ExprMemberMethod(ExprMemberMethod exprMemberMethod);
-		void case_StmtReturn(StmtReturn stmtReturn);
-		void case_StmtWhile(StmtWhile stmtWhile);
-		void case_ExprNewObject(ExprNewObject exprNewObject);
-		void case_StmtSet(StmtSet stmtSet);
-		void case_StmtExitwhen(StmtExitwhen stmtExitwhen);
-		void case_StmtDecRefCount(StmtDecRefCount stmtDecRefCount);
-		void case_StmtIncRefCount(StmtIncRefCount stmtIncRefCount);
-		void case_StmtDestroy(StmtDestroy stmtDestroy);
-		void case_StmtLoop(StmtLoop stmtLoop);
-		void case_StmtErr(StmtErr stmtErr);
 		void case_ExprFunctionCall(ExprFunctionCall exprFunctionCall);
-		void case_StmtIf(StmtIf stmtIf);
+		void case_StmtDecRefCount(StmtDecRefCount stmtDecRefCount);
 		void case_LocalVarDef(LocalVarDef localVarDef);
+		void case_StmtWhile(StmtWhile stmtWhile);
+		void case_ExprMemberMethod(ExprMemberMethod exprMemberMethod);
+		void case_StmtIncRefCount(StmtIncRefCount stmtIncRefCount);
+		void case_StmtIf(StmtIf stmtIf);
+		void case_StmtLoop(StmtLoop stmtLoop);
+		void case_StmtReturn(StmtReturn stmtReturn);
+		void case_StmtDestroy(StmtDestroy stmtDestroy);
+		void case_ExprNewObject(ExprNewObject exprNewObject);
+		void case_StmtErr(StmtErr stmtErr);
+		void case_StmtExitwhen(StmtExitwhen stmtExitwhen);
+		void case_StmtSet(StmtSet stmtSet);
 	}
 
-	WStatement copy();
-	public abstract void accept(WEntities.Visitor v);
-	public abstract void accept(WPackage.Visitor v);
-	public abstract void accept(StmtIf.Visitor v);
-	public abstract void accept(WStatements.Visitor v);
-	public abstract void accept(StmtWhile.Visitor v);
-	public abstract void accept(ClassMember.Visitor v);
-	public abstract void accept(CompilationUnit.Visitor v);
-	public abstract void accept(InitBlock.Visitor v);
-	public abstract void accept(ClassDef.Visitor v);
-	public abstract void accept(WScope.Visitor v);
-	public abstract void accept(FunctionDefinition.Visitor v);
-	public abstract void accept(FuncDef.Visitor v);
-	public abstract void accept(TopLevelDeclaration.Visitor v);
-	public abstract void accept(WEntity.Visitor v);
-	public abstract void accept(ConstructorDef.Visitor v);
-	public abstract void accept(WStatement.Visitor v);
 	public abstract void accept(JassToplevelDeclaration.Visitor v);
+	public abstract void accept(StmtWhile.Visitor v);
+	public abstract void accept(WStatement.Visitor v);
+	public abstract void accept(WStatements.Visitor v);
+	public abstract void accept(StmtLoop.Visitor v);
+	public abstract void accept(ClassMember.Visitor v);
+	public abstract void accept(FunctionDefinition.Visitor v);
+	public abstract void accept(ClassSlot.Visitor v);
 	public abstract void accept(TypeDef.Visitor v);
 	public abstract void accept(OnDestroyDef.Visitor v);
+	public abstract void accept(StmtIf.Visitor v);
+	public abstract void accept(WEntity.Visitor v);
+	public abstract void accept(ConstructorDef.Visitor v);
+	public abstract void accept(FuncDef.Visitor v);
 	public abstract void accept(ClassSlots.Visitor v);
-	public abstract void accept(ClassSlot.Visitor v);
-	public abstract void accept(StmtLoop.Visitor v);
+	public abstract void accept(WPackage.Visitor v);
+	public abstract void accept(ClassDef.Visitor v);
+	public abstract void accept(WEntities.Visitor v);
+	public abstract void accept(WScope.Visitor v);
+	public abstract void accept(InitBlock.Visitor v);
+	public abstract void accept(TopLevelDeclaration.Visitor v);
+	public abstract void accept(CompilationUnit.Visitor v);
 	public abstract void accept(PackageOrGlobal.Visitor v);
 	public interface Visitor {
-		void visit(ExprMemberMethod exprMemberMethod);
-		void visit(ExprBoolVal exprBoolVal);
-		void visit(ExprNewObject exprNewObject);
-		void visit(OpModInt opModInt);
-		void visit(ExprVarAccess exprVarAccess);
-		void visit(StmtIncRefCount stmtIncRefCount);
-		void visit(ExprFuncRef exprFuncRef);
-		void visit(NoExpr noExpr);
-		void visit(ExprIntVal exprIntVal);
-		void visit(OpMinus opMinus);
-		void visit(OpEquals opEquals);
-		void visit(ExprBinary exprBinary);
-		void visit(StmtIf stmtIf);
-		void visit(WStatements wStatements);
-		void visit(StmtReturn stmtReturn);
-		void visit(StmtWhile stmtWhile);
-		void visit(OpMult opMult);
-		void visit(OpDivReal opDivReal);
-		void visit(OpLess opLess);
-		void visit(Arguments arguments);
-		void visit(NoTypeExpr noTypeExpr);
-		void visit(OpGreaterEq opGreaterEq);
-		void visit(StmtDestroy stmtDestroy);
-		void visit(StmtErr stmtErr);
 		void visit(ExprFunctionCall exprFunctionCall);
-		void visit(ExprVarArrayAccess exprVarArrayAccess);
-		void visit(ExprUnary exprUnary);
-		void visit(LocalVarDef localVarDef);
-		void visit(Indexes indexes);
-		void visit(OpLessEq opLessEq);
-		void visit(OpAssign opAssign);
-		void visit(StmtExitwhen stmtExitwhen);
-		void visit(StmtDecRefCount stmtDecRefCount);
+		void visit(OpModInt opModInt);
 		void visit(TypeExpr typeExpr);
-		void visit(OpModReal opModReal);
-		void visit(OpUnequals opUnequals);
-		void visit(ExprMemberArrayVar exprMemberArrayVar);
-		void visit(ExprMemberVar exprMemberVar);
-		void visit(OpPlus opPlus);
-		void visit(StmtSet stmtSet);
-		void visit(OpNot opNot);
-		void visit(ExprCast exprCast);
-		void visit(OpGreater opGreater);
-		void visit(ExprStringVal exprStringVal);
-		void visit(OpDivInt opDivInt);
-		void visit(ExprThis exprThis);
-		void visit(OpAnd opAnd);
-		void visit(StmtLoop stmtLoop);
-		void visit(ExprRealVal exprRealVal);
+		void visit(StmtWhile stmtWhile);
+		void visit(ExprMemberMethod exprMemberMethod);
 		void visit(ExprNull exprNull);
-		void visit(ArraySizes arraySizes);
-		void visit(OpOr opOr);
+		void visit(StmtIf stmtIf);
+		void visit(ExprStringVal exprStringVal);
+		void visit(ExprVarArrayAccess exprVarArrayAccess);
+		void visit(ExprThis exprThis);
+		void visit(OpMinus opMinus);
+		void visit(ExprBoolVal exprBoolVal);
+		void visit(OpNot opNot);
+		void visit(NoExpr noExpr);
+		void visit(StmtExitwhen stmtExitwhen);
+		void visit(ExprVarAccess exprVarAccess);
 		void visit(WPos wPos);
+		void visit(OpLessEq opLessEq);
+		void visit(ExprBinary exprBinary);
+		void visit(OpUnequals opUnequals);
+		void visit(ExprFuncRef exprFuncRef);
+		void visit(ArraySizes arraySizes);
+		void visit(Indexes indexes);
+		void visit(OpAnd opAnd);
+		void visit(OpDivReal opDivReal);
+		void visit(OpMult opMult);
+		void visit(StmtDestroy stmtDestroy);
+		void visit(OpOr opOr);
+		void visit(StmtErr stmtErr);
+		void visit(OpLess opLess);
+		void visit(WStatements wStatements);
+		void visit(StmtDecRefCount stmtDecRefCount);
+		void visit(ExprUnary exprUnary);
+		void visit(OpAssign opAssign);
+		void visit(ExprCast exprCast);
+		void visit(StmtIncRefCount stmtIncRefCount);
+		void visit(OpEquals opEquals);
+		void visit(OpModReal opModReal);
+		void visit(StmtLoop stmtLoop);
+		void visit(StmtSet stmtSet);
+		void visit(NoTypeExpr noTypeExpr);
+		void visit(Arguments arguments);
+		void visit(LocalVarDef localVarDef);
+		void visit(ExprIntVal exprIntVal);
+		void visit(ExprMemberVar exprMemberVar);
+		void visit(ExprRealVal exprRealVal);
+		void visit(ExprMemberArrayVar exprMemberArrayVar);
+		void visit(OpDivInt opDivInt);
+		void visit(StmtReturn stmtReturn);
+		void visit(OpGreaterEq opGreaterEq);
+		void visit(OpGreater opGreater);
+		void visit(ExprNewObject exprNewObject);
+		void visit(OpPlus opPlus);
 	}
 	public static abstract class DefaultVisitor implements Visitor {
-		@Override public void visit(ExprMemberMethod exprMemberMethod) {}
-		@Override public void visit(ExprBoolVal exprBoolVal) {}
-		@Override public void visit(ExprNewObject exprNewObject) {}
-		@Override public void visit(OpModInt opModInt) {}
-		@Override public void visit(ExprVarAccess exprVarAccess) {}
-		@Override public void visit(StmtIncRefCount stmtIncRefCount) {}
-		@Override public void visit(ExprFuncRef exprFuncRef) {}
-		@Override public void visit(NoExpr noExpr) {}
-		@Override public void visit(ExprIntVal exprIntVal) {}
-		@Override public void visit(OpMinus opMinus) {}
-		@Override public void visit(OpEquals opEquals) {}
-		@Override public void visit(ExprBinary exprBinary) {}
-		@Override public void visit(StmtIf stmtIf) {}
-		@Override public void visit(WStatements wStatements) {}
-		@Override public void visit(StmtReturn stmtReturn) {}
-		@Override public void visit(StmtWhile stmtWhile) {}
-		@Override public void visit(OpMult opMult) {}
-		@Override public void visit(OpDivReal opDivReal) {}
-		@Override public void visit(OpLess opLess) {}
-		@Override public void visit(Arguments arguments) {}
-		@Override public void visit(NoTypeExpr noTypeExpr) {}
-		@Override public void visit(OpGreaterEq opGreaterEq) {}
-		@Override public void visit(StmtDestroy stmtDestroy) {}
-		@Override public void visit(StmtErr stmtErr) {}
 		@Override public void visit(ExprFunctionCall exprFunctionCall) {}
-		@Override public void visit(ExprVarArrayAccess exprVarArrayAccess) {}
-		@Override public void visit(ExprUnary exprUnary) {}
-		@Override public void visit(LocalVarDef localVarDef) {}
-		@Override public void visit(Indexes indexes) {}
-		@Override public void visit(OpLessEq opLessEq) {}
-		@Override public void visit(OpAssign opAssign) {}
-		@Override public void visit(StmtExitwhen stmtExitwhen) {}
-		@Override public void visit(StmtDecRefCount stmtDecRefCount) {}
+		@Override public void visit(OpModInt opModInt) {}
 		@Override public void visit(TypeExpr typeExpr) {}
-		@Override public void visit(OpModReal opModReal) {}
-		@Override public void visit(OpUnequals opUnequals) {}
-		@Override public void visit(ExprMemberArrayVar exprMemberArrayVar) {}
-		@Override public void visit(ExprMemberVar exprMemberVar) {}
-		@Override public void visit(OpPlus opPlus) {}
-		@Override public void visit(StmtSet stmtSet) {}
-		@Override public void visit(OpNot opNot) {}
-		@Override public void visit(ExprCast exprCast) {}
-		@Override public void visit(OpGreater opGreater) {}
-		@Override public void visit(ExprStringVal exprStringVal) {}
-		@Override public void visit(OpDivInt opDivInt) {}
-		@Override public void visit(ExprThis exprThis) {}
-		@Override public void visit(OpAnd opAnd) {}
-		@Override public void visit(StmtLoop stmtLoop) {}
-		@Override public void visit(ExprRealVal exprRealVal) {}
+		@Override public void visit(StmtWhile stmtWhile) {}
+		@Override public void visit(ExprMemberMethod exprMemberMethod) {}
 		@Override public void visit(ExprNull exprNull) {}
-		@Override public void visit(ArraySizes arraySizes) {}
-		@Override public void visit(OpOr opOr) {}
+		@Override public void visit(StmtIf stmtIf) {}
+		@Override public void visit(ExprStringVal exprStringVal) {}
+		@Override public void visit(ExprVarArrayAccess exprVarArrayAccess) {}
+		@Override public void visit(ExprThis exprThis) {}
+		@Override public void visit(OpMinus opMinus) {}
+		@Override public void visit(ExprBoolVal exprBoolVal) {}
+		@Override public void visit(OpNot opNot) {}
+		@Override public void visit(NoExpr noExpr) {}
+		@Override public void visit(StmtExitwhen stmtExitwhen) {}
+		@Override public void visit(ExprVarAccess exprVarAccess) {}
 		@Override public void visit(WPos wPos) {}
+		@Override public void visit(OpLessEq opLessEq) {}
+		@Override public void visit(ExprBinary exprBinary) {}
+		@Override public void visit(OpUnequals opUnequals) {}
+		@Override public void visit(ExprFuncRef exprFuncRef) {}
+		@Override public void visit(ArraySizes arraySizes) {}
+		@Override public void visit(Indexes indexes) {}
+		@Override public void visit(OpAnd opAnd) {}
+		@Override public void visit(OpDivReal opDivReal) {}
+		@Override public void visit(OpMult opMult) {}
+		@Override public void visit(StmtDestroy stmtDestroy) {}
+		@Override public void visit(OpOr opOr) {}
+		@Override public void visit(StmtErr stmtErr) {}
+		@Override public void visit(OpLess opLess) {}
+		@Override public void visit(WStatements wStatements) {}
+		@Override public void visit(StmtDecRefCount stmtDecRefCount) {}
+		@Override public void visit(ExprUnary exprUnary) {}
+		@Override public void visit(OpAssign opAssign) {}
+		@Override public void visit(ExprCast exprCast) {}
+		@Override public void visit(StmtIncRefCount stmtIncRefCount) {}
+		@Override public void visit(OpEquals opEquals) {}
+		@Override public void visit(OpModReal opModReal) {}
+		@Override public void visit(StmtLoop stmtLoop) {}
+		@Override public void visit(StmtSet stmtSet) {}
+		@Override public void visit(NoTypeExpr noTypeExpr) {}
+		@Override public void visit(Arguments arguments) {}
+		@Override public void visit(LocalVarDef localVarDef) {}
+		@Override public void visit(ExprIntVal exprIntVal) {}
+		@Override public void visit(ExprMemberVar exprMemberVar) {}
+		@Override public void visit(ExprRealVal exprRealVal) {}
+		@Override public void visit(ExprMemberArrayVar exprMemberArrayVar) {}
+		@Override public void visit(OpDivInt opDivInt) {}
+		@Override public void visit(StmtReturn stmtReturn) {}
+		@Override public void visit(OpGreaterEq opGreaterEq) {}
+		@Override public void visit(OpGreater opGreater) {}
+		@Override public void visit(ExprNewObject exprNewObject) {}
+		@Override public void visit(OpPlus opPlus) {}
 	}
 }

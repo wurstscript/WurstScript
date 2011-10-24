@@ -16,7 +16,7 @@ class WParameterImpl implements WParameter, SortPosIntern {
 	private SortPos parent;
 	public SortPos getParent() { return parent; }
 	public void setParent(SortPos parent) {
-		if (parent != null && this.parent != null) { 			throw new Error("Parent of " + this + " already set: " + this.parent + "\ntried to change to " + parent); 		}
+		if (parent != null && this.parent != null) { throw new Error("Parent already set."); }
 		this.parent = parent;
 	}
 
@@ -45,30 +45,12 @@ class WParameterImpl implements WParameter, SortPosIntern {
 	} 
 	public String getName() { return name; }
 
-	public SortPos get(int i) {
-		switch (i) {
-			case 0: return source;
-			case 1: return typ;
-			default: throw new IllegalArgumentException("Index out of range: " + i);
-		}
-	}
-	public int size() {
-		return 2;
-	}
-	public WParameter copy() {
-		return new WParameterImpl(source.copy(), typ.copy(), name);
-	}
-	@Override public void accept(WEntities.Visitor v) {
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(NativeFunc.Visitor v) {
+	@Override public void accept(WParameters.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);
@@ -78,32 +60,22 @@ class WParameterImpl implements WParameter, SortPosIntern {
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassDef.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(FunctionDefinition.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FuncDef.Visitor v) {
+	@Override public void accept(VarDef.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(ClassSlot.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TypeDef.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);
@@ -118,22 +90,7 @@ class WParameterImpl implements WParameter, SortPosIntern {
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WParameters.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TypeDef.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(VarDef.Visitor v) {
+	@Override public void accept(FuncDef.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);
@@ -143,17 +100,47 @@ class WParameterImpl implements WParameter, SortPosIntern {
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WParameter.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(FuncSignature.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassSlot.Visitor v) {
+	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassDef.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(NativeFunc.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WParameter.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);

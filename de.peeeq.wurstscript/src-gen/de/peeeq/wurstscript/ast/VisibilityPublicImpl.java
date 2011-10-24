@@ -11,7 +11,7 @@ class VisibilityPublicImpl implements VisibilityPublic, SortPosIntern {
 	private SortPos parent;
 	public SortPos getParent() { return parent; }
 	public void setParent(SortPos parent) {
-		if (parent != null && this.parent != null) { 			throw new Error("Parent of " + this + " already set: " + this.parent + "\ntried to change to " + parent); 		}
+		if (parent != null && this.parent != null) { throw new Error("Parent already set."); }
 		this.parent = parent;
 	}
 
@@ -24,23 +24,11 @@ class VisibilityPublicImpl implements VisibilityPublic, SortPosIntern {
 	} 
 	public WPos getSource() { return source; }
 
-	public SortPos get(int i) {
-		switch (i) {
-			case 0: return source;
-			default: throw new IllegalArgumentException("Index out of range: " + i);
-		}
-	}
-	public int size() {
-		return 1;
-	}
-	public VisibilityPublic copy() {
-		return new VisibilityPublicImpl(source.copy());
-	}
-	@Override public void accept(WEntities.Visitor v) {
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WPackage.Visitor v) {
+	@Override public void accept(JassGlobalBlock.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -52,39 +40,19 @@ class VisibilityPublicImpl implements VisibilityPublic, SortPosIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(VisibilityModifier.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(GlobalVarDef.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassDef.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(FunctionDefinition.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassGlobalBlock.Visitor v) {
+	@Override public void accept(VarDef.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FuncDef.Visitor v) {
+	@Override public void accept(ClassSlot.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(TypeDef.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -96,19 +64,7 @@ class VisibilityPublicImpl implements VisibilityPublic, SortPosIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(VisibilityPublic.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TypeDef.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(VarDef.Visitor v) {
+	@Override public void accept(FuncDef.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -116,7 +72,39 @@ class VisibilityPublicImpl implements VisibilityPublic, SortPosIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassSlot.Visitor v) {
+	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(GlobalVarDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(VisibilityPublic.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(VisibilityModifier.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}

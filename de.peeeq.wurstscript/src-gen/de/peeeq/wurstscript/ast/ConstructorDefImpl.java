@@ -20,7 +20,7 @@ class ConstructorDefImpl implements ConstructorDef, SortPosIntern {
 	private SortPos parent;
 	public SortPos getParent() { return parent; }
 	public void setParent(SortPos parent) {
-		if (parent != null && this.parent != null) { 			throw new Error("Parent of " + this + " already set: " + this.parent + "\ntried to change to " + parent); 		}
+		if (parent != null && this.parent != null) { throw new Error("Parent already set."); }
 		this.parent = parent;
 	}
 
@@ -60,57 +60,14 @@ class ConstructorDefImpl implements ConstructorDef, SortPosIntern {
 	} 
 	public WStatements getBody() { return body; }
 
-	public SortPos get(int i) {
-		switch (i) {
-			case 0: return source;
-			case 1: return visibility;
-			case 2: return params;
-			case 3: return body;
-			default: throw new IllegalArgumentException("Index out of range: " + i);
-		}
-	}
-	public int size() {
-		return 4;
-	}
-	public ConstructorDef copy() {
-		return new ConstructorDefImpl(source.copy(), visibility.copy(), params.copy(), body.copy());
-	}
-	@Override public void accept(WEntities.Visitor v) {
+	@Override public void accept(ClassSlot.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
 		params.accept(v);
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		params.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		params.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassDef.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		params.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		params.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(TypeDef.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
 		params.accept(v);
@@ -131,13 +88,6 @@ class ConstructorDefImpl implements ConstructorDef, SortPosIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TypeDef.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		params.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(ClassSlots.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
@@ -145,7 +95,42 @@ class ConstructorDefImpl implements ConstructorDef, SortPosIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassSlot.Visitor v) {
+	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
+		visibility.accept(v);
+		params.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassDef.Visitor v) {
+		source.accept(v);
+		visibility.accept(v);
+		params.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		visibility.accept(v);
+		params.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		visibility.accept(v);
+		params.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		visibility.accept(v);
+		params.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
 		params.accept(v);

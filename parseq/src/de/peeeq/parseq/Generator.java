@@ -312,9 +312,7 @@ public class Generator {
 		sb.append("	private " + getCommonSupertypeType() + " parent;\n");
 		sb.append("	public " + getCommonSupertypeType() + " getParent() { return parent; }\n");
 		sb.append("	public void setParent(" + getCommonSupertypeType() + " parent) {\n" +
-				"		if (parent != null && this.parent != null) { " +
-				"			throw new Error(\"Parent of \" + this + \" already set: \" + this.parent + \"\\ntried to change to \" + parent); " +
-				"		}\n" +
+				"		if (parent != null && this.parent != null) { throw new Error(\"Parent already set.\"); }\n" +
 				"		this.parent = parent;\n" +	
 				"	}\n\n");
 
@@ -338,48 +336,6 @@ public class Generator {
 			// getter
 			sb.append("	public " + p.typ + " get" + toFirstUpper(p.name) + "() { return " + p.name + "; }\n\n");
 		}
-		
-		
-		
-		//get method
-		sb.append("	public SortPos get(int i) {\n");
-		sb.append("		switch (i) {\n");
-		int childCount = 0;
-		for (Parameter p : c.parameters) {
-			if (prog.hasElement(p.typ)) {
-				sb.append("			case "+childCount+": return "+p.name+";\n");
-				childCount++;
-			}
-		}
-		sb.append("			default: throw new IllegalArgumentException(\"Index out of range: \" + i);\n");
-		sb.append("		}\n");
-		sb.append("	}\n");
-		
-		//size method
-		sb.append("	public int size() {\n");
-		sb.append("		return " + childCount + ";\n");
-		sb.append("	}\n");
-		
-		//copy method
-		sb.append("	public " + c.name + " copy() {\n");
-		sb.append("		return new " + c.name + "Impl(");
-		first = true;
-		for (Parameter p : c.parameters) {
-			if (!first) {
-				sb.append(", ");
-			}
-			if (prog.hasElement(p.typ)) {
-				sb.append(p.name+".copy()");
-				childCount++;
-			} else {
-				sb.append(p.name);
-			}			
-			first = false;
-		}
-		sb.append(");\n");
-		sb.append("	}\n");
-		
-		
 		
 		// accept method for visitor
 //		sb.append("	public void accept(Visitor v) {\n");
@@ -433,8 +389,6 @@ public class Generator {
 			sb.append("	" + p.typ + " get" + toFirstUpper(p.name) + "();\n");
 		}
 		
-		// copy method
-		sb.append("	" + c.name + " copy();\n");
 		
 		generateVisitorInterface(c, sb);
 		
@@ -576,8 +530,6 @@ public class Generator {
 		}
 		sb.append("	}\n\n");
 		
-		// copy method
-		sb.append("	" + c.name + " copy();\n");
 
 		generateVisitorInterface(c, sb);
 		
@@ -606,13 +558,6 @@ public class Generator {
 		sb.append("{\n");
 
 		
-		// copy method
-		sb.append("	public " + l.name + " copy() {\n");
-		sb.append("		" + l.name + " result = new "+l.name+"Impl();\n");
-		sb.append("		result.addAll(this);\n");
-		sb.append("		return result;\n");
-		sb.append("	}\n");
-		
 		generateVisitorInterface(l, sb);
 		
 		
@@ -630,9 +575,7 @@ public class Generator {
 		sb.append("	private " + getCommonSupertypeType() + " parent;\n");
 		sb.append("	public " + getCommonSupertypeType() + " getParent() { return parent; }\n");
 		sb.append("	public void setParent(" + getCommonSupertypeType() + " parent) {\n" +
-				"		if (parent != null && this.parent != null) { " +
-				"			throw new Error(\"Parent of \" + this + \" already set: \" + this.parent + \"\\ntried to change to \" + parent); " +
-				"		}\n" +
+				"		if (parent != null && this.parent != null) { throw new Error(\"Parent already set.\"); }\n" +
 				"		this.parent = parent;\n" +	
 				"	}\n\n");
 		
@@ -686,9 +629,7 @@ public class Generator {
 		printProlog(sb);
 		
 		sb.append("public interface SortPos {\n" +
-				"	SortPos getParent();\n" +
-				"	int size();\n" +
-				"	SortPos get(int i);\n" +
+				"	SortPos getParent();" +
 				"}\n\n");
 		
 		sb.append("interface SortPosIntern {\n" +

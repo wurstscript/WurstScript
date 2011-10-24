@@ -19,7 +19,7 @@ class NativeTypeImpl implements NativeType, SortPosIntern {
 	private SortPos parent;
 	public SortPos getParent() { return parent; }
 	public void setParent(SortPos parent) {
-		if (parent != null && this.parent != null) { 			throw new Error("Parent of " + this + " already set: " + this.parent + "\ntried to change to " + parent); 		}
+		if (parent != null && this.parent != null) { throw new Error("Parent already set."); }
 		this.parent = parent;
 	}
 
@@ -57,27 +57,7 @@ class NativeTypeImpl implements NativeType, SortPosIntern {
 	} 
 	public OptTypeExpr getTyp() { return typ; }
 
-	public SortPos get(int i) {
-		switch (i) {
-			case 0: return source;
-			case 1: return visibility;
-			case 2: return typ;
-			default: throw new IllegalArgumentException("Index out of range: " + i);
-		}
-	}
-	public int size() {
-		return 3;
-	}
-	public NativeType copy() {
-		return new NativeTypeImpl(source.copy(), visibility.copy(), name, typ.copy());
-	}
-	@Override public void accept(WEntities.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WPackage.Visitor v) {
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
 		typ.accept(v);
@@ -89,7 +69,25 @@ class NativeTypeImpl implements NativeType, SortPosIntern {
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
+	@Override public void accept(TypeDef.Visitor v) {
+		source.accept(v);
+		visibility.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
+		source.accept(v);
+		visibility.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
+		visibility.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
 		typ.accept(v);
@@ -107,19 +105,7 @@ class NativeTypeImpl implements NativeType, SortPosIntern {
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WEntity.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TypeDef.Visitor v) {
+	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
 		typ.accept(v);
@@ -131,20 +117,6 @@ class NativeTypeImpl implements NativeType, SortPosIntern {
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public <T> T match(TopLevelDeclaration.Matcher<T> matcher) {
-		return matcher.case_NativeType(this);
-	}
-	@Override public void match(TopLevelDeclaration.MatcherVoid matcher) {
-		matcher.case_NativeType(this);
-	}
-
-	@Override public <T> T match(WEntity.Matcher<T> matcher) {
-		return matcher.case_NativeType(this);
-	}
-	@Override public void match(WEntity.MatcherVoid matcher) {
-		matcher.case_NativeType(this);
-	}
-
 	@Override public <T> T match(TypeDef.Matcher<T> matcher) {
 		return matcher.case_NativeType(this);
 	}
@@ -156,6 +128,20 @@ class NativeTypeImpl implements NativeType, SortPosIntern {
 		return matcher.case_NativeType(this);
 	}
 	@Override public void match(JassToplevelDeclaration.MatcherVoid matcher) {
+		matcher.case_NativeType(this);
+	}
+
+	@Override public <T> T match(WEntity.Matcher<T> matcher) {
+		return matcher.case_NativeType(this);
+	}
+	@Override public void match(WEntity.MatcherVoid matcher) {
+		matcher.case_NativeType(this);
+	}
+
+	@Override public <T> T match(TopLevelDeclaration.Matcher<T> matcher) {
+		return matcher.case_NativeType(this);
+	}
+	@Override public void match(TopLevelDeclaration.MatcherVoid matcher) {
 		matcher.case_NativeType(this);
 	}
 

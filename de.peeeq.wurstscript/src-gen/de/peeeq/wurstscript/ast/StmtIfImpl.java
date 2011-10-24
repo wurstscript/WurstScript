@@ -20,7 +20,7 @@ class StmtIfImpl implements StmtIf, SortPosIntern {
 	private SortPos parent;
 	public SortPos getParent() { return parent; }
 	public void setParent(SortPos parent) {
-		if (parent != null && this.parent != null) { 			throw new Error("Parent of " + this + " already set: " + this.parent + "\ntried to change to " + parent); 		}
+		if (parent != null && this.parent != null) { throw new Error("Parent already set."); }
 		this.parent = parent;
 	}
 
@@ -60,43 +60,7 @@ class StmtIfImpl implements StmtIf, SortPosIntern {
 	} 
 	public WStatements getElseBlock() { return elseBlock; }
 
-	public SortPos get(int i) {
-		switch (i) {
-			case 0: return source;
-			case 1: return cond;
-			case 2: return thenBlock;
-			case 3: return elseBlock;
-			default: throw new IllegalArgumentException("Index out of range: " + i);
-		}
-	}
-	public int size() {
-		return 4;
-	}
-	public StmtIf copy() {
-		return new StmtIfImpl(source.copy(), cond.copy(), thenBlock.copy(), elseBlock.copy());
-	}
-	@Override public void accept(WEntities.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		thenBlock.accept(v);
-		elseBlock.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		thenBlock.accept(v);
-		elseBlock.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtIf.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		thenBlock.accept(v);
-		elseBlock.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WStatements.Visitor v) {
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		thenBlock.accept(v);
@@ -110,35 +74,28 @@ class StmtIfImpl implements StmtIf, SortPosIntern {
 		elseBlock.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(WStatement.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		thenBlock.accept(v);
+		elseBlock.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WStatements.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		thenBlock.accept(v);
+		elseBlock.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(StmtLoop.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		thenBlock.accept(v);
+		elseBlock.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(ClassMember.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		thenBlock.accept(v);
-		elseBlock.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		thenBlock.accept(v);
-		elseBlock.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(InitBlock.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		thenBlock.accept(v);
-		elseBlock.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassDef.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		thenBlock.accept(v);
-		elseBlock.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		thenBlock.accept(v);
@@ -152,42 +109,7 @@ class StmtIfImpl implements StmtIf, SortPosIntern {
 		elseBlock.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FuncDef.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		thenBlock.accept(v);
-		elseBlock.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		thenBlock.accept(v);
-		elseBlock.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		thenBlock.accept(v);
-		elseBlock.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ConstructorDef.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		thenBlock.accept(v);
-		elseBlock.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WStatement.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		thenBlock.accept(v);
-		elseBlock.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+	@Override public void accept(ClassSlot.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		thenBlock.accept(v);
@@ -208,6 +130,34 @@ class StmtIfImpl implements StmtIf, SortPosIntern {
 		elseBlock.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(StmtIf.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		thenBlock.accept(v);
+		elseBlock.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		thenBlock.accept(v);
+		elseBlock.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ConstructorDef.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		thenBlock.accept(v);
+		elseBlock.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FuncDef.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		thenBlock.accept(v);
+		elseBlock.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(ClassSlots.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
@@ -215,14 +165,49 @@ class StmtIfImpl implements StmtIf, SortPosIntern {
 		elseBlock.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassSlot.Visitor v) {
+	@Override public void accept(WPackage.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		thenBlock.accept(v);
 		elseBlock.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(StmtLoop.Visitor v) {
+	@Override public void accept(ClassDef.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		thenBlock.accept(v);
+		elseBlock.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		thenBlock.accept(v);
+		elseBlock.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		thenBlock.accept(v);
+		elseBlock.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(InitBlock.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		thenBlock.accept(v);
+		elseBlock.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		thenBlock.accept(v);
+		elseBlock.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		thenBlock.accept(v);

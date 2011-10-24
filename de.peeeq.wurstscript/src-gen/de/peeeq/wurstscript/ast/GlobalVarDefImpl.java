@@ -24,7 +24,7 @@ class GlobalVarDefImpl implements GlobalVarDef, SortPosIntern {
 	private SortPos parent;
 	public SortPos getParent() { return parent; }
 	public void setParent(SortPos parent) {
-		if (parent != null && this.parent != null) { 			throw new Error("Parent of " + this + " already set: " + this.parent + "\ntried to change to " + parent); 		}
+		if (parent != null && this.parent != null) { throw new Error("Parent already set."); }
 		this.parent = parent;
 	}
 
@@ -78,64 +78,7 @@ class GlobalVarDefImpl implements GlobalVarDef, SortPosIntern {
 	} 
 	public OptExpr getInitialExpr() { return initialExpr; }
 
-	public SortPos get(int i) {
-		switch (i) {
-			case 0: return source;
-			case 1: return visibility;
-			case 2: return typ;
-			case 3: return initialExpr;
-			default: throw new IllegalArgumentException("Index out of range: " + i);
-		}
-	}
-	public int size() {
-		return 4;
-	}
-	public GlobalVarDef copy() {
-		return new GlobalVarDefImpl(source.copy(), visibility.copy(), isConstant, typ.copy(), name, initialExpr.copy());
-	}
-	@Override public void accept(WEntities.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassMember.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(GlobalVarDef.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassDef.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
 		typ.accept(v);
@@ -149,28 +92,7 @@ class GlobalVarDefImpl implements GlobalVarDef, SortPosIntern {
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TypeDef.Visitor v) {
+	@Override public void accept(ClassMember.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
 		typ.accept(v);
@@ -184,6 +106,27 @@ class GlobalVarDefImpl implements GlobalVarDef, SortPosIntern {
 		initialExpr.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(ClassSlot.Visitor v) {
+		source.accept(v);
+		visibility.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TypeDef.Visitor v) {
+		source.accept(v);
+		visibility.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
+		source.accept(v);
+		visibility.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(ClassSlots.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
@@ -191,7 +134,49 @@ class GlobalVarDefImpl implements GlobalVarDef, SortPosIntern {
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassSlot.Visitor v) {
+	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
+		visibility.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassDef.Visitor v) {
+		source.accept(v);
+		visibility.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		visibility.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(GlobalVarDef.Visitor v) {
+		source.accept(v);
+		visibility.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		visibility.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		visibility.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
 		typ.accept(v);
@@ -205,17 +190,17 @@ class GlobalVarDefImpl implements GlobalVarDef, SortPosIntern {
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public <T> T match(WEntity.Matcher<T> matcher) {
-		return matcher.case_GlobalVarDef(this);
-	}
-	@Override public void match(WEntity.MatcherVoid matcher) {
-		matcher.case_GlobalVarDef(this);
-	}
-
 	@Override public <T> T match(VarDef.Matcher<T> matcher) {
 		return matcher.case_GlobalVarDef(this);
 	}
 	@Override public void match(VarDef.MatcherVoid matcher) {
+		matcher.case_GlobalVarDef(this);
+	}
+
+	@Override public <T> T match(WEntity.Matcher<T> matcher) {
+		return matcher.case_GlobalVarDef(this);
+	}
+	@Override public void match(WEntity.MatcherVoid matcher) {
 		matcher.case_GlobalVarDef(this);
 	}
 

@@ -8,28 +8,17 @@ class VisibilityDefaultImpl implements VisibilityDefault, SortPosIntern {
 	private SortPos parent;
 	public SortPos getParent() { return parent; }
 	public void setParent(SortPos parent) {
-		if (parent != null && this.parent != null) { 			throw new Error("Parent of " + this + " already set: " + this.parent + "\ntried to change to " + parent); 		}
+		if (parent != null && this.parent != null) { throw new Error("Parent already set."); }
 		this.parent = parent;
 	}
 
-	public SortPos get(int i) {
-		switch (i) {
-			default: throw new IllegalArgumentException("Index out of range: " + i);
-		}
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+		v.visit(this);
 	}
-	public int size() {
-		return 0;
-	}
-	public VisibilityDefault copy() {
-		return new VisibilityDefaultImpl();
+	@Override public void accept(JassGlobalBlock.Visitor v) {
+		v.visit(this);
 	}
 	@Override public void accept(VisibilityDefault.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(WEntities.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(WPackage.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(NativeType.Visitor v) {
@@ -38,31 +27,16 @@ class VisibilityDefaultImpl implements VisibilityDefault, SortPosIntern {
 	@Override public void accept(ClassMember.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(VisibilityModifier.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(GlobalVarDef.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(ClassDef.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
-		v.visit(this);
-	}
 	@Override public void accept(FunctionDefinition.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(JassGlobalBlock.Visitor v) {
+	@Override public void accept(VarDef.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(FuncDef.Visitor v) {
+	@Override public void accept(ClassSlot.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(TypeDef.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(WEntity.Visitor v) {
@@ -71,19 +45,34 @@ class VisibilityDefaultImpl implements VisibilityDefault, SortPosIntern {
 	@Override public void accept(ConstructorDef.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(TypeDef.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(VarDef.Visitor v) {
+	@Override public void accept(FuncDef.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(ClassSlots.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(ClassSlot.Visitor v) {
+	@Override public void accept(WPackage.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(ClassDef.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(GlobalVarDef.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(VisibilityModifier.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(PackageOrGlobal.Visitor v) {

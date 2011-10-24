@@ -5,7 +5,7 @@ class ClassSlotsImpl extends ClassSlots implements SortPosIntern {
  	private SortPos parent;
 	public SortPos getParent() { return parent; }
 	public void setParent(SortPos parent) {
-		if (parent != null && this.parent != null) { 			throw new Error("Parent of " + this + " already set: " + this.parent + "\ntried to change to " + parent); 		}
+		if (parent != null && this.parent != null) { throw new Error("Parent already set."); }
 		this.parent = parent;
 	}
 
@@ -15,7 +15,19 @@ class ClassSlotsImpl extends ClassSlots implements SortPosIntern {
 	protected void other_clearParent(ClassSlot t) {
 		((SortPosIntern) t).setParent(null);
 	}
-	@Override public void accept(WEntities.Visitor v) {
+	@Override public void accept(TypeDef.Visitor v) {
+		for (ClassSlot i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
+		for (ClassSlot i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlots.Visitor v) {
 		for (ClassSlot i : this ) {
 			i.accept(v);
 		}
@@ -27,13 +39,13 @@ class ClassSlotsImpl extends ClassSlots implements SortPosIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
+	@Override public void accept(ClassDef.Visitor v) {
 		for (ClassSlot i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(ClassDef.Visitor v) {
+	@Override public void accept(WEntities.Visitor v) {
 		for (ClassSlot i : this ) {
 			i.accept(v);
 		}
@@ -51,19 +63,7 @@ class ClassSlotsImpl extends ClassSlots implements SortPosIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(WEntity.Visitor v) {
-		for (ClassSlot i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(TypeDef.Visitor v) {
-		for (ClassSlot i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlots.Visitor v) {
+	@Override public void accept(CompilationUnit.Visitor v) {
 		for (ClassSlot i : this ) {
 			i.accept(v);
 		}

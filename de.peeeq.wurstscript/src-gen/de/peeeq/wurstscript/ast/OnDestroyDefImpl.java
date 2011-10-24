@@ -14,7 +14,7 @@ class OnDestroyDefImpl implements OnDestroyDef, SortPosIntern {
 	private SortPos parent;
 	public SortPos getParent() { return parent; }
 	public void setParent(SortPos parent) {
-		if (parent != null && this.parent != null) { 			throw new Error("Parent of " + this + " already set: " + this.parent + "\ntried to change to " + parent); 		}
+		if (parent != null && this.parent != null) { throw new Error("Parent already set."); }
 		this.parent = parent;
 	}
 
@@ -36,50 +36,7 @@ class OnDestroyDefImpl implements OnDestroyDef, SortPosIntern {
 	} 
 	public WStatements getBody() { return body; }
 
-	public SortPos get(int i) {
-		switch (i) {
-			case 0: return source;
-			case 1: return body;
-			default: throw new IllegalArgumentException("Index out of range: " + i);
-		}
-	}
-	public int size() {
-		return 2;
-	}
-	public OnDestroyDef copy() {
-		return new OnDestroyDefImpl(source.copy(), body.copy());
-	}
-	@Override public void accept(WEntities.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassDef.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
+	@Override public void accept(ClassSlot.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);
@@ -94,12 +51,42 @@ class OnDestroyDefImpl implements OnDestroyDef, SortPosIntern {
 		body.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(WEntity.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(ClassSlots.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassSlot.Visitor v) {
+	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassDef.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);

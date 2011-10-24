@@ -19,7 +19,7 @@ class WPackageImpl implements WPackage, SortPosIntern {
 	private SortPos parent;
 	public SortPos getParent() { return parent; }
 	public void setParent(SortPos parent) {
-		if (parent != null && this.parent != null) { 			throw new Error("Parent of " + this + " already set: " + this.parent + "\ntried to change to " + parent); 		}
+		if (parent != null && this.parent != null) { throw new Error("Parent already set."); }
 		this.parent = parent;
 	}
 
@@ -57,27 +57,7 @@ class WPackageImpl implements WPackage, SortPosIntern {
 	} 
 	public WEntities getElements() { return elements; }
 
-	public SortPos get(int i) {
-		switch (i) {
-			case 0: return source;
-			case 1: return imports;
-			case 2: return elements;
-			default: throw new IllegalArgumentException("Index out of range: " + i);
-		}
-	}
-	public int size() {
-		return 3;
-	}
-	public WPackage copy() {
-		return new WPackageImpl(source.copy(), name, imports.copy(), elements.copy());
-	}
 	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		imports.accept(v);
-		elements.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		imports.accept(v);
 		elements.accept(v);
@@ -90,6 +70,12 @@ class WPackageImpl implements WPackage, SortPosIntern {
 		v.visit(this);
 	}
 	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		imports.accept(v);
+		elements.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		imports.accept(v);
 		elements.accept(v);

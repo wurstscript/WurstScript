@@ -11,7 +11,7 @@ class StmtErrImpl implements StmtErr, SortPosIntern {
 	private SortPos parent;
 	public SortPos getParent() { return parent; }
 	public void setParent(SortPos parent) {
-		if (parent != null && this.parent != null) { 			throw new Error("Parent of " + this + " already set: " + this.parent + "\ntried to change to " + parent); 		}
+		if (parent != null && this.parent != null) { throw new Error("Parent already set."); }
 		this.parent = parent;
 	}
 
@@ -24,31 +24,7 @@ class StmtErrImpl implements StmtErr, SortPosIntern {
 	} 
 	public WPos getSource() { return source; }
 
-	public SortPos get(int i) {
-		switch (i) {
-			case 0: return source;
-			default: throw new IllegalArgumentException("Index out of range: " + i);
-		}
-	}
-	public int size() {
-		return 1;
-	}
-	public StmtErr copy() {
-		return new StmtErrImpl(source.copy());
-	}
-	@Override public void accept(WEntities.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtIf.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WStatements.Visitor v) {
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -56,43 +32,7 @@ class StmtErrImpl implements StmtErr, SortPosIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassMember.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(InitBlock.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassDef.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(FuncDef.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ConstructorDef.Visitor v) {
+	@Override public void accept(WStatement.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -100,11 +40,23 @@ class StmtErrImpl implements StmtErr, SortPosIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WStatement.Visitor v) {
+	@Override public void accept(WStatements.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+	@Override public void accept(StmtLoop.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassMember.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FunctionDefinition.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlot.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -116,15 +68,51 @@ class StmtErrImpl implements StmtErr, SortPosIntern {
 		source.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(StmtIf.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ConstructorDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FuncDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(ClassSlots.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassSlot.Visitor v) {
+	@Override public void accept(WPackage.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(StmtLoop.Visitor v) {
+	@Override public void accept(ClassDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(InitBlock.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}

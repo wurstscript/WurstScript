@@ -94,29 +94,25 @@ public class TestScriptsTestNG {
 			}
 
 			// run pjass:
-			try {
-				Process p = Runtime.getRuntime().exec("lib/pjass.exe lib/common.j lib/debugnatives.j lib/blizzard.j " + outputFile.getPath());
-				
-				BufferedReader input =
-						new BufferedReader
-						(new InputStreamReader(p.getInputStream()));
-				
-				StringBuilder output = new StringBuilder();
-				String line;
-				while ((line = input.readLine()) != null) {
-					System.out.println(line);
-					output.append(line + "\n");
-				}
-				input.close();
-	
-				int exitValue = p.waitFor();
-				if (exitValue != 0) {
-					assertTrue("pjass errors: \n" + output.toString() , false);
-				}
-			} catch (IOException e) {
-				System.err.println("Could not run pjass:");
-				e.printStackTrace();
+			Process p = Runtime.getRuntime().exec("lib/pjass.exe lib/common.j lib/debugnatives.j lib/blizzard.j " + outputFile.getPath());
+			
+			BufferedReader input =
+					new BufferedReader
+					(new InputStreamReader(p.getInputStream()));
+			
+			StringBuilder output = new StringBuilder();
+			String line;
+			while ((line = input.readLine()) != null) {
+				System.out.println(line);
+				output.append(line + "\n");
 			}
+			input.close();
+
+			int exitValue = p.waitFor();
+			if (exitValue != 0) {
+				assertTrue("pjass errors: \n" + output.toString() , false);
+			}
+
 
 			// run the interpreter
 			ILInterpreter interpreter = new ILInterpreterImpl();

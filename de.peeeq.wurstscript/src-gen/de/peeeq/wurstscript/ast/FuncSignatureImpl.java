@@ -19,7 +19,7 @@ class FuncSignatureImpl implements FuncSignature, SortPosIntern {
 	private SortPos parent;
 	public SortPos getParent() { return parent; }
 	public void setParent(SortPos parent) {
-		if (parent != null && this.parent != null) { 			throw new Error("Parent of " + this + " already set: " + this.parent + "\ntried to change to " + parent); 		}
+		if (parent != null && this.parent != null) { throw new Error("Parent already set."); }
 		this.parent = parent;
 	}
 
@@ -57,33 +57,7 @@ class FuncSignatureImpl implements FuncSignature, SortPosIntern {
 	} 
 	public OptTypeExpr getTyp() { return typ; }
 
-	public SortPos get(int i) {
-		switch (i) {
-			case 0: return source;
-			case 1: return parameters;
-			case 2: return typ;
-			default: throw new IllegalArgumentException("Index out of range: " + i);
-		}
-	}
-	public int size() {
-		return 3;
-	}
-	public FuncSignature copy() {
-		return new FuncSignatureImpl(source.copy(), name, parameters.copy(), typ.copy());
-	}
-	@Override public void accept(WEntities.Visitor v) {
-		source.accept(v);
-		parameters.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		parameters.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(NativeFunc.Visitor v) {
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
 		source.accept(v);
 		parameters.accept(v);
 		typ.accept(v);
@@ -95,37 +69,19 @@ class FuncSignatureImpl implements FuncSignature, SortPosIntern {
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		source.accept(v);
-		parameters.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassDef.Visitor v) {
-		source.accept(v);
-		parameters.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
-		source.accept(v);
-		parameters.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(FunctionDefinition.Visitor v) {
 		source.accept(v);
 		parameters.accept(v);
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FuncDef.Visitor v) {
+	@Override public void accept(ClassSlot.Visitor v) {
 		source.accept(v);
 		parameters.accept(v);
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(TypeDef.Visitor v) {
 		source.accept(v);
 		parameters.accept(v);
 		typ.accept(v);
@@ -137,13 +93,7 @@ class FuncSignatureImpl implements FuncSignature, SortPosIntern {
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
-		source.accept(v);
-		parameters.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TypeDef.Visitor v) {
+	@Override public void accept(FuncDef.Visitor v) {
 		source.accept(v);
 		parameters.accept(v);
 		typ.accept(v);
@@ -161,7 +111,43 @@ class FuncSignatureImpl implements FuncSignature, SortPosIntern {
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassSlot.Visitor v) {
+	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
+		parameters.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassDef.Visitor v) {
+		source.accept(v);
+		parameters.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(NativeFunc.Visitor v) {
+		source.accept(v);
+		parameters.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		parameters.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		parameters.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		parameters.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		parameters.accept(v);
 		typ.accept(v);

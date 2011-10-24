@@ -5,7 +5,7 @@ class WEntitiesImpl extends WEntities implements SortPosIntern {
  	private SortPos parent;
 	public SortPos getParent() { return parent; }
 	public void setParent(SortPos parent) {
-		if (parent != null && this.parent != null) { 			throw new Error("Parent of " + this + " already set: " + this.parent + "\ntried to change to " + parent); 		}
+		if (parent != null && this.parent != null) { throw new Error("Parent already set."); }
 		this.parent = parent;
 	}
 
@@ -15,19 +15,13 @@ class WEntitiesImpl extends WEntities implements SortPosIntern {
 	protected void other_clearParent(WEntity t) {
 		((SortPosIntern) t).setParent(null);
 	}
-	@Override public void accept(WEntities.Visitor v) {
-		for (WEntity i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
 	@Override public void accept(WPackage.Visitor v) {
 		for (WEntity i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
+	@Override public void accept(WEntities.Visitor v) {
 		for (WEntity i : this ) {
 			i.accept(v);
 		}
@@ -40,6 +34,12 @@ class WEntitiesImpl extends WEntities implements SortPosIntern {
 		v.visit(this);
 	}
 	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		for (WEntity i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
 		for (WEntity i : this ) {
 			i.accept(v);
 		}

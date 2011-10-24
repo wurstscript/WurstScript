@@ -13,7 +13,7 @@ class WImportImpl implements WImport, SortPosIntern {
 	private SortPos parent;
 	public SortPos getParent() { return parent; }
 	public void setParent(SortPos parent) {
-		if (parent != null && this.parent != null) { 			throw new Error("Parent of " + this + " already set: " + this.parent + "\ntried to change to " + parent); 		}
+		if (parent != null && this.parent != null) { throw new Error("Parent already set."); }
 		this.parent = parent;
 	}
 
@@ -33,23 +33,11 @@ class WImportImpl implements WImport, SortPosIntern {
 	} 
 	public String getPackagename() { return packagename; }
 
-	public SortPos get(int i) {
-		switch (i) {
-			case 0: return source;
-			default: throw new IllegalArgumentException("Index out of range: " + i);
-		}
-	}
-	public int size() {
-		return 1;
-	}
-	public WImport copy() {
-		return new WImportImpl(source.copy(), packagename);
-	}
-	@Override public void accept(WPackage.Visitor v) {
+	@Override public void accept(WImport.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
+	@Override public void accept(WPackage.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -61,7 +49,7 @@ class WImportImpl implements WImport, SortPosIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WImport.Visitor v) {
+	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}

@@ -14,12 +14,14 @@ abstract class ParseqList<T> implements List<T> {
 	abstract protected void other_setParentToThis(T t);
 	abstract protected void other_clearParent(T t);
 	
+	public boolean addFront(T t) {
+		return add(t);
+	}
 	public boolean add(T t) {
 		other_setParentToThis(t);
 		return list.add(t);
 	}
 
-	public void addFront(T t) { add(0, t); }
 	@Override
 	public void add(int index, T elem) {
 		other_setParentToThis(elem);

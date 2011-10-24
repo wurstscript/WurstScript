@@ -157,22 +157,23 @@ public class Utils {
 		return true; // no package found -> jass code
 	}
 
-	
-	public static <T extends SortPos> List<T> collect(Class<T> t, SortPos pos) {
-		List<T> result = new LinkedList<T>();
-		collectRec(t, pos, result);
-		return result ;
-	}
-	
-	@SuppressWarnings("unchecked")
-	static <T extends SortPos> void collectRec(Class<T> t, SortPos pos, List<T> result) {
-		if (t.isInstance(pos)) {
-			result.add((T) pos);
-		}
-		for (int i = 0; i < pos.size(); i++) {
-			collectRec(t, pos.get(i), result);
-		}
-	}
+//	@SuppressWarnings("unchecked")
+//	public static <T> List<T> collect(Class<T> t, SortPos pos) {
+//		List<T> result = new LinkedList<T>();
+//		SortPos p = pos.postOrderStart();
+//		while (p != null) {
+//			if (t.isInstance(p)) {
+//				result.add((T) p);
+//			}
+//			if (p == pos) {
+//				// reached start again
+//				break;
+//			}
+//			p = p.postOrder();
+//		}
+//
+//		return result ;
+//	}
 
 	public static <T>  T[] array(T ... ar) {
 		return ar;

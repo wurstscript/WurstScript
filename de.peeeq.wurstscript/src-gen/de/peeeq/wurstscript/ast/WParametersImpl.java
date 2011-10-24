@@ -5,7 +5,7 @@ class WParametersImpl extends WParameters implements SortPosIntern {
  	private SortPos parent;
 	public SortPos getParent() { return parent; }
 	public void setParent(SortPos parent) {
-		if (parent != null && this.parent != null) { 			throw new Error("Parent of " + this + " already set: " + this.parent + "\ntried to change to " + parent); 		}
+		if (parent != null && this.parent != null) { throw new Error("Parent already set."); }
 		this.parent = parent;
 	}
 
@@ -15,19 +15,13 @@ class WParametersImpl extends WParameters implements SortPosIntern {
 	protected void other_clearParent(WParameter t) {
 		((SortPosIntern) t).setParent(null);
 	}
-	@Override public void accept(WEntities.Visitor v) {
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
 		for (WParameter i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(WPackage.Visitor v) {
-		for (WParameter i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(NativeFunc.Visitor v) {
+	@Override public void accept(WParameters.Visitor v) {
 		for (WParameter i : this ) {
 			i.accept(v);
 		}
@@ -39,37 +33,19 @@ class WParametersImpl extends WParameters implements SortPosIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		for (WParameter i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ClassDef.Visitor v) {
-		for (WParameter i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
-		for (WParameter i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
 	@Override public void accept(FunctionDefinition.Visitor v) {
 		for (WParameter i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(FuncDef.Visitor v) {
+	@Override public void accept(ClassSlot.Visitor v) {
 		for (WParameter i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(TypeDef.Visitor v) {
 		for (WParameter i : this ) {
 			i.accept(v);
 		}
@@ -87,19 +63,7 @@ class WParametersImpl extends WParameters implements SortPosIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(WParameters.Visitor v) {
-		for (WParameter i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
-		for (WParameter i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(TypeDef.Visitor v) {
+	@Override public void accept(FuncDef.Visitor v) {
 		for (WParameter i : this ) {
 			i.accept(v);
 		}
@@ -117,7 +81,43 @@ class WParametersImpl extends WParameters implements SortPosIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(ClassSlot.Visitor v) {
+	@Override public void accept(WPackage.Visitor v) {
+		for (WParameter i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(ClassDef.Visitor v) {
+		for (WParameter i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(NativeFunc.Visitor v) {
+		for (WParameter i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
+		for (WParameter i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		for (WParameter i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		for (WParameter i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
 		for (WParameter i : this ) {
 			i.accept(v);
 		}

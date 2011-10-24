@@ -14,7 +14,7 @@ class NativeFuncImpl implements NativeFunc, SortPosIntern {
 	private SortPos parent;
 	public SortPos getParent() { return parent; }
 	public void setParent(SortPos parent) {
-		if (parent != null && this.parent != null) { 			throw new Error("Parent of " + this + " already set: " + this.parent + "\ntried to change to " + parent); 		}
+		if (parent != null && this.parent != null) { throw new Error("Parent already set."); }
 		this.parent = parent;
 	}
 
@@ -36,20 +36,17 @@ class NativeFuncImpl implements NativeFunc, SortPosIntern {
 	} 
 	public FuncSignature getSignature() { return signature; }
 
-	public SortPos get(int i) {
-		switch (i) {
-			case 0: return source;
-			case 1: return signature;
-			default: throw new IllegalArgumentException("Index out of range: " + i);
-		}
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+		source.accept(v);
+		signature.accept(v);
+		v.visit(this);
 	}
-	public int size() {
-		return 2;
+	@Override public void accept(FunctionDefinition.Visitor v) {
+		source.accept(v);
+		signature.accept(v);
+		v.visit(this);
 	}
-	public NativeFunc copy() {
-		return new NativeFuncImpl(source.copy(), signature.copy());
-	}
-	@Override public void accept(WEntities.Visitor v) {
+	@Override public void accept(WEntity.Visitor v) {
 		source.accept(v);
 		signature.accept(v);
 		v.visit(this);
@@ -64,7 +61,7 @@ class NativeFuncImpl implements NativeFunc, SortPosIntern {
 		signature.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
+	@Override public void accept(WEntities.Visitor v) {
 		source.accept(v);
 		signature.accept(v);
 		v.visit(this);
@@ -74,22 +71,12 @@ class NativeFuncImpl implements NativeFunc, SortPosIntern {
 		signature.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
-		source.accept(v);
-		signature.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		signature.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WEntity.Visitor v) {
-		source.accept(v);
-		signature.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		signature.accept(v);
 		v.visit(this);
@@ -99,6 +86,20 @@ class NativeFuncImpl implements NativeFunc, SortPosIntern {
 		signature.accept(v);
 		v.visit(this);
 	}
+	@Override public <T> T match(JassToplevelDeclaration.Matcher<T> matcher) {
+		return matcher.case_NativeFunc(this);
+	}
+	@Override public void match(JassToplevelDeclaration.MatcherVoid matcher) {
+		matcher.case_NativeFunc(this);
+	}
+
+	@Override public <T> T match(WEntity.Matcher<T> matcher) {
+		return matcher.case_NativeFunc(this);
+	}
+	@Override public void match(WEntity.MatcherVoid matcher) {
+		matcher.case_NativeFunc(this);
+	}
+
 	@Override public <T> T match(TopLevelDeclaration.Matcher<T> matcher) {
 		return matcher.case_NativeFunc(this);
 	}
@@ -110,20 +111,6 @@ class NativeFuncImpl implements NativeFunc, SortPosIntern {
 		return matcher.case_NativeFunc(this);
 	}
 	@Override public void match(FunctionDefinition.MatcherVoid matcher) {
-		matcher.case_NativeFunc(this);
-	}
-
-	@Override public <T> T match(WEntity.Matcher<T> matcher) {
-		return matcher.case_NativeFunc(this);
-	}
-	@Override public void match(WEntity.MatcherVoid matcher) {
-		matcher.case_NativeFunc(this);
-	}
-
-	@Override public <T> T match(JassToplevelDeclaration.Matcher<T> matcher) {
-		return matcher.case_NativeFunc(this);
-	}
-	@Override public void match(JassToplevelDeclaration.MatcherVoid matcher) {
 		matcher.case_NativeFunc(this);
 	}
 
