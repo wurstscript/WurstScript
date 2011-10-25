@@ -20,15 +20,9 @@ import de.peeeq.wurstscript.utils.Utils;
  * this attribute gives you the type for a type expr
  *
  */
-public class AttrTypeExprType extends Attribute<OptTypeExpr, PscriptType> {
-
-
-	public AttrTypeExprType(Attributes attr) {
-		super(attr);
-	}
-
-	@Override
-	protected PscriptType calculate(OptTypeExpr optType) {
+public class AttrTypeExprType {
+	
+	public static  PscriptType calculate(OptTypeExpr optType) {
 		if (optType instanceof TypeExpr) {
 			TypeExpr node = (TypeExpr) optType;
 			PscriptType baseType = getBaseType(node);
@@ -43,10 +37,10 @@ public class AttrTypeExprType extends Attribute<OptTypeExpr, PscriptType> {
 		}
 	}
 	
-	private PscriptType getBaseType(TypeExpr node) {	
+	private static PscriptType getBaseType(TypeExpr node) {	
 		final String typename = node.getTypeName();
 		final boolean isJassCode = Utils.isJassCode(node);
-		TypeDef t = attr.typeDef.get(node);
+		TypeDef t = node.attrTypeDef();
 		if (t == null) {
 			PscriptType nativeType = NativeTypes.nativeType(typename, isJassCode);
 			if (nativeType != null) {
@@ -69,7 +63,7 @@ public class AttrTypeExprType extends Attribute<OptTypeExpr, PscriptType> {
 					attr.addError(term.getSource(), "Unknown base type: " + term.getName());
 					return PScriptTypeUnknown.instance();
 				}
-				PscriptType superType = get((TypeExpr) term.getTyp());
+				PscriptType superType = ((TypeExpr) term.getTyp()).attrTyp();
 				return PscriptNativeType.instance(typename, superType);
 			}
 

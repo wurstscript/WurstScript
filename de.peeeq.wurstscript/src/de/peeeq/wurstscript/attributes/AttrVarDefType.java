@@ -16,14 +16,9 @@ import de.peeeq.wurstscript.types.PscriptType;
  * this attribute can give you the type of a variable definition
  *
  */
-public class AttrVarDefType extends Attribute<VarDef, PscriptType> {
-
-	public AttrVarDefType(Attributes attr) {
-		super(attr);
-	}
-
-	@Override
-	protected PscriptType calculate(VarDef node) {
+public class AttrVarDefType {
+	
+	public static  PscriptType calculate(VarDef node) {
 		return node.match(new VarDef.Matcher<PscriptType>() {
 
 			@Override
@@ -40,7 +35,7 @@ public class AttrVarDefType extends Attribute<VarDef, PscriptType> {
 					public PscriptType case_NoTypeExpr(NoTypeExpr nt)
 							 {
 						if (initialExpr instanceof Expr) {
-							return attr.exprType.get((Expr) initialExpr);
+							return ((Expr) initialExpr).attrTyp();
 						} else {
 							throw new Error("Vardef must either have a type or an initial value");
 						}
@@ -49,7 +44,7 @@ public class AttrVarDefType extends Attribute<VarDef, PscriptType> {
 					@Override
 					public PscriptType case_TypeExpr(TypeExpr term)
 							 {
-						return attr.typeExprType.get(term);
+						return term.attrTyp();
 					}
 				});
 			}
@@ -62,7 +57,7 @@ public class AttrVarDefType extends Attribute<VarDef, PscriptType> {
 
 			@Override
 			public PscriptType case_WParameter(WParameter term)  {
-				return attr.typeExprType.get(term.getTyp());
+				return term.getTyp().attrTyp();
 			}
 		});
 	}

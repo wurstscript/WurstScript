@@ -61,7 +61,7 @@ public abstract class OverloadingResolver<F,C> {
 			return results.get(0);
 		}
 	}
-	public static ConstructorDef resolveExprNew(final Attributes attr, List<ConstructorDef> constructors, final ExprNewObject node) {
+	public static ConstructorDef resolveExprNew(List<ConstructorDef> constructors, final ExprNewObject node) {
 		return new OverloadingResolver<ConstructorDef, ExprNewObject>() {
 
 			@Override
@@ -71,7 +71,7 @@ public abstract class OverloadingResolver<F,C> {
 
 			@Override
 			PscriptType getParameterType(ConstructorDef f, int i) {
-				return attr.typeExprType.get(f.getParams().get(i).getTyp());
+				return f.getParams().get(i).getTyp().attrTyp();
 			}
 
 			@Override
@@ -81,7 +81,7 @@ public abstract class OverloadingResolver<F,C> {
 
 			@Override
 			PscriptType getArgumentType(ExprNewObject c, int i) {
-				return attr.exprType.get(c.getArgs().get(i));
+				return c.getArgs().get(i).attrTyp();
 			}
 
 			@Override
@@ -91,7 +91,7 @@ public abstract class OverloadingResolver<F,C> {
 		}.resolve(constructors, node);
 	}
 	
-	public static FunctionDefinition resolveFuncCall(final Attributes attr, final Collection<FunctionDefinition> functions, final FuncRef funcCall) {
+	public static FunctionDefinition resolveFuncCall(final Collection<FunctionDefinition> functions, final FuncRef funcCall) {
 		return new OverloadingResolver<FunctionDefinition, FuncRef>() {
 
 			@Override
@@ -101,7 +101,7 @@ public abstract class OverloadingResolver<F,C> {
 
 			@Override
 			PscriptType getParameterType(FunctionDefinition f, int i) {
-				return attr.typeExprType.get(f.getSignature().getParameters().get(i).getTyp());
+				return f.getSignature().getParameters().get(i).getTyp().attrTyp();
 			}
 
 			@Override
@@ -136,12 +136,12 @@ public abstract class OverloadingResolver<F,C> {
 
 					@Override
 					public PscriptType case_ExprMemberMethod(ExprMemberMethod term)  {
-						return attr.exprType.get(term.getArgs().get(i)); // the implicit parameter is not necessary for overloading
+						return term.getArgs().get(i).attrTyp(); // the implicit parameter is not necessary for overloading
 					}
 
 					@Override
 					public PscriptType case_ExprFunctionCall(ExprFunctionCall term)  {
-						return attr.exprType.get(term.getArgs().get(i));
+						return term.getArgs().get(i).attrTyp();
 					}
 				});
 			}

@@ -12,15 +12,9 @@ import de.peeeq.wurstscript.utils.DefinitionMap;
 /**
  * this attribute calculates the available types for a given WPackage 
  */
-public class AttrScopeType extends Attribute<WPackage, Map<String, TypeDef>> {
-
-
-	public AttrScopeType(Attributes attr) {
-		super(attr);
-	}
-
-	@Override
-	protected Map<String, TypeDef> calculate(WPackage node) {
+public class AttrScopeType {
+	
+	public static  Map<String, TypeDef> calculate(WPackage node) {
 		final Map<String, TypeDef> result = new DefinitionMap<String, TypeDef>() {
 
 			@Override
@@ -33,7 +27,7 @@ public class AttrScopeType extends Attribute<WPackage, Map<String, TypeDef>> {
 			if (importedPackage == null) {
 				continue;
 			}
-			result.putAll(attr.exportedTypes.get(importedPackage));
+			result.putAll(importedPackage.attrExportedTypes());
 		}
 		for (WEntity e : node.getElements()) {
 			if (e instanceof TypeDef) {

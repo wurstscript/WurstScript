@@ -5,7 +5,7 @@ class ArraySizesImpl extends ArraySizes implements SortPosIntern {
  	private SortPos parent;
 	public SortPos getParent() { return parent; }
 	public void setParent(SortPos parent) {
-		if (parent != null && this.parent != null) { throw new Error("Parent already set."); }
+		if (parent != null && this.parent != null) { 			throw new Error("Parent of " + this + " already set: " + this.parent + "\ntried to change to " + parent); 		}
 		this.parent = parent;
 	}
 
@@ -15,13 +15,25 @@ class ArraySizesImpl extends ArraySizes implements SortPosIntern {
 	protected void other_clearParent(Expr t) {
 		((SortPosIntern) t).setParent(null);
 	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+	@Override public void accept(WPackage.Visitor v) {
 		for (Expr i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(StmtWhile.Visitor v) {
+	@Override public void accept(NativeFunc.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(StmtIf.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
 		for (Expr i : this ) {
 			i.accept(v);
 		}
@@ -33,25 +45,7 @@ class ArraySizesImpl extends ArraySizes implements SortPosIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(OptTypeExpr.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(TypeRef.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ExprVarArrayAccess.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ExprAtomic.Visitor v) {
+	@Override public void accept(ExprCast.Visitor v) {
 		for (Expr i : this ) {
 			i.accept(v);
 		}
@@ -63,85 +57,7 @@ class ArraySizesImpl extends ArraySizes implements SortPosIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(ArraySizes.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(WStatement.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(WParameters.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(StmtDestroy.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
 	@Override public void accept(OptExpr.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(WStatements.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(StmtDecRefCount.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(Expr.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ExprCast.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(StmtIncRefCount.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(NativeType.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(StmtLoop.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ClassMember.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ExprMemberVar.Visitor v) {
 		for (Expr i : this ) {
 			i.accept(v);
 		}
@@ -153,49 +69,31 @@ class ArraySizesImpl extends ArraySizes implements SortPosIntern {
 		}
 		v.visit(this);
 	}
+	@Override public void accept(WParameters.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(ClassMember.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlots.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
 	@Override public void accept(StmtReturn.Visitor v) {
 		for (Expr i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(VarRef.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(VarDef.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ExprAssignable.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlot.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ExprFunctionCall.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(TypeDef.Visitor v) {
+	@Override public void accept(StmtDecRefCount.Visitor v) {
 		for (Expr i : this ) {
 			i.accept(v);
 		}
@@ -207,7 +105,49 @@ class ArraySizesImpl extends ArraySizes implements SortPosIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(ExprMemberMethod.Visitor v) {
+	@Override public void accept(StmtIncRefCount.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(ExprUnary.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(StmtDestroy.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(Expr.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(StmtWhile.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(ExprAtomic.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
 		for (Expr i : this ) {
 			i.accept(v);
 		}
@@ -219,7 +159,49 @@ class ArraySizesImpl extends ArraySizes implements SortPosIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(StmtIf.Visitor v) {
+	@Override public void accept(ExprAssignable.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(ExprMemberVar.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(StmtCall.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(FuncRef.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(ExprNewObject.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(VarRef.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(ClassDef.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(ExprMemberMethod.Visitor v) {
 		for (Expr i : this ) {
 			i.accept(v);
 		}
@@ -237,61 +219,19 @@ class ArraySizesImpl extends ArraySizes implements SortPosIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(FuncRef.Visitor v) {
+	@Override public void accept(WStatement.Visitor v) {
 		for (Expr i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(FuncDef.Visitor v) {
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
 		for (Expr i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(ExprBinary.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlots.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(Indexes.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(FuncSignature.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(WPackage.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ClassDef.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(NativeFunc.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ExprUnary.Visitor v) {
+	@Override public void accept(ClassSlot.Visitor v) {
 		for (Expr i : this ) {
 			i.accept(v);
 		}
@@ -303,37 +243,37 @@ class ArraySizesImpl extends ArraySizes implements SortPosIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(WEntities.Visitor v) {
+	@Override public void accept(TypeDef.Visitor v) {
 		for (Expr i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(GlobalVarDef.Visitor v) {
+	@Override public void accept(ExprVarArrayAccess.Visitor v) {
 		for (Expr i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(FuncSignature.Visitor v) {
 		for (Expr i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(StmtSet.Visitor v) {
+	@Override public void accept(ArraySizes.Visitor v) {
 		for (Expr i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(Arguments.Visitor v) {
+	@Override public void accept(WStatements.Visitor v) {
 		for (Expr i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(LocalVarDef.Visitor v) {
+	@Override public void accept(NativeType.Visitor v) {
 		for (Expr i : this ) {
 			i.accept(v);
 		}
@@ -345,25 +285,73 @@ class ArraySizesImpl extends ArraySizes implements SortPosIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(StmtCall.Visitor v) {
+	@Override public void accept(ExprBinary.Visitor v) {
 		for (Expr i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(Arguments.Visitor v) {
 		for (Expr i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
+	@Override public void accept(VarDef.Visitor v) {
 		for (Expr i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(ExprNewObject.Visitor v) {
+	@Override public void accept(FuncDef.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(FunctionDefinition.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(LocalVarDef.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(OptTypeExpr.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(Indexes.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(StmtLoop.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(GlobalVarDef.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(StmtSet.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(TypeRef.Visitor v) {
 		for (Expr i : this ) {
 			i.accept(v);
 		}
@@ -374,5 +362,44 @@ class ArraySizesImpl extends ArraySizes implements SortPosIntern {
 			i.accept(v);
 		}
 		v.visit(this);
+	}
+	@Override public void accept(ExprFunctionCall.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	private boolean attr_attrNearestPackage_isCached = false;
+	private PackageOrGlobal attr_attrNearestPackage_cache;
+	public PackageOrGlobal attrNearestPackage() {
+		if (!attr_attrNearestPackage_isCached) {
+			attr_attrNearestPackage_cache = de.peeeq.wurstscript.attributes.AttrNearestPackage.calculate(this);
+			attr_attrNearestPackage_isCached = true;
+		}
+		return attr_attrNearestPackage_cache;
+	}
+	private boolean attr_attrNearestFuncDef_isCached = false;
+	private FuncDef attr_attrNearestFuncDef_cache;
+	public FuncDef attrNearestFuncDef() {
+		if (!attr_attrNearestFuncDef_isCached) {
+			attr_attrNearestFuncDef_cache = de.peeeq.wurstscript.attributes.AttrNearestFuncDef.calculate(this);
+			attr_attrNearestFuncDef_isCached = true;
+		}
+		return attr_attrNearestFuncDef_cache;
+	}
+	private boolean attr_attrNearestClassDef_isCached = false;
+	private ClassDef attr_attrNearestClassDef_cache;
+	public ClassDef attrNearestClassDef() {
+		if (!attr_attrNearestClassDef_isCached) {
+			attr_attrNearestClassDef_cache = de.peeeq.wurstscript.attributes.AttrNearestClassDef.calculate(this);
+			attr_attrNearestClassDef_isCached = true;
+		}
+		return attr_attrNearestClassDef_cache;
 	}
 }

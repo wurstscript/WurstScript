@@ -19,7 +19,7 @@ class WPackageImpl implements WPackage, SortPosIntern {
 	private SortPos parent;
 	public SortPos getParent() { return parent; }
 	public void setParent(SortPos parent) {
-		if (parent != null && this.parent != null) { throw new Error("Parent already set."); }
+		if (parent != null && this.parent != null) { 			throw new Error("Parent of " + this + " already set: " + this.parent + "\ntried to change to " + parent); 		}
 		this.parent = parent;
 	}
 
@@ -57,19 +57,21 @@ class WPackageImpl implements WPackage, SortPosIntern {
 	} 
 	public WEntities getElements() { return elements; }
 
+	public SortPos get(int i) {
+		switch (i) {
+			case 0: return source;
+			case 1: return imports;
+			case 2: return elements;
+			default: throw new IllegalArgumentException("Index out of range: " + i);
+		}
+	}
+	public int size() {
+		return 3;
+	}
+	public WPackage copy() {
+		return new WPackageImpl(source.copy(), name, imports.copy(), elements.copy());
+	}
 	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		imports.accept(v);
-		elements.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
-		source.accept(v);
-		imports.accept(v);
-		elements.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		imports.accept(v);
 		elements.accept(v);
@@ -81,12 +83,31 @@ class WPackageImpl implements WPackage, SortPosIntern {
 		elements.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		imports.accept(v);
+		elements.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
 		imports.accept(v);
 		elements.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		imports.accept(v);
+		elements.accept(v);
+		v.visit(this);
+	}
+	@Override public <T> T match(PackageOrGlobal.Matcher<T> matcher) {
+		return matcher.case_WPackage(this);
+	}
+	@Override public void match(PackageOrGlobal.MatcherVoid matcher) {
+		matcher.case_WPackage(this);
+	}
+
 	@Override public <T> T match(TopLevelDeclaration.Matcher<T> matcher) {
 		return matcher.case_WPackage(this);
 	}
@@ -101,11 +122,88 @@ class WPackageImpl implements WPackage, SortPosIntern {
 		matcher.case_WPackage(this);
 	}
 
-	@Override public <T> T match(PackageOrGlobal.Matcher<T> matcher) {
-		return matcher.case_WPackage(this);
+	@Override public String toString() {
+		return "WPackage(" + source + ", " +name + ", " +imports + ", " +elements+")";
 	}
-	@Override public void match(PackageOrGlobal.MatcherVoid matcher) {
-		matcher.case_WPackage(this);
+	private boolean attr_attrExportedFunctions_isCached = false;
+	private com.google.common.collect.Multimap<String, FunctionDefinition> attr_attrExportedFunctions_cache;
+	public com.google.common.collect.Multimap<String, FunctionDefinition> attrExportedFunctions() {
+		if (!attr_attrExportedFunctions_isCached) {
+			attr_attrExportedFunctions_cache = de.peeeq.wurstscript.attributes.AttrExportedFunctions.calculate(this);
+			attr_attrExportedFunctions_isCached = true;
+		}
+		return attr_attrExportedFunctions_cache;
 	}
-
+	private boolean attr_attrScopeVariables_isCached = false;
+	private java.util.Map<String, VarDef> attr_attrScopeVariables_cache;
+	public java.util.Map<String, VarDef> attrScopeVariables() {
+		if (!attr_attrScopeVariables_isCached) {
+			attr_attrScopeVariables_cache = de.peeeq.wurstscript.attributes.AttrScopeVariables.calculate(this);
+			attr_attrScopeVariables_isCached = true;
+		}
+		return attr_attrScopeVariables_cache;
+	}
+	private boolean attr_attrScopeFunctions_isCached = false;
+	private com.google.common.collect.Multimap<String, FunctionDefinition> attr_attrScopeFunctions_cache;
+	public com.google.common.collect.Multimap<String, FunctionDefinition> attrScopeFunctions() {
+		if (!attr_attrScopeFunctions_isCached) {
+			attr_attrScopeFunctions_cache = de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculate(this);
+			attr_attrScopeFunctions_isCached = true;
+		}
+		return attr_attrScopeFunctions_cache;
+	}
+	private boolean attr_attrPackageElements_isCached = false;
+	private com.google.common.collect.Multimap<String, WEntity> attr_attrPackageElements_cache;
+	public com.google.common.collect.Multimap<String, WEntity> attrPackageElements() {
+		if (!attr_attrPackageElements_isCached) {
+			attr_attrPackageElements_cache = de.peeeq.wurstscript.attributes.AttrPackageElements.calculate(this);
+			attr_attrPackageElements_isCached = true;
+		}
+		return attr_attrPackageElements_cache;
+	}
+	private boolean attr_attrNearestPackage_isCached = false;
+	private PackageOrGlobal attr_attrNearestPackage_cache;
+	public PackageOrGlobal attrNearestPackage() {
+		if (!attr_attrNearestPackage_isCached) {
+			attr_attrNearestPackage_cache = de.peeeq.wurstscript.attributes.AttrNearestPackage.calculate(this);
+			attr_attrNearestPackage_isCached = true;
+		}
+		return attr_attrNearestPackage_cache;
+	}
+	private boolean attr_attrNearestFuncDef_isCached = false;
+	private FuncDef attr_attrNearestFuncDef_cache;
+	public FuncDef attrNearestFuncDef() {
+		if (!attr_attrNearestFuncDef_isCached) {
+			attr_attrNearestFuncDef_cache = de.peeeq.wurstscript.attributes.AttrNearestFuncDef.calculate(this);
+			attr_attrNearestFuncDef_isCached = true;
+		}
+		return attr_attrNearestFuncDef_cache;
+	}
+	private boolean attr_attrNearestClassDef_isCached = false;
+	private ClassDef attr_attrNearestClassDef_cache;
+	public ClassDef attrNearestClassDef() {
+		if (!attr_attrNearestClassDef_isCached) {
+			attr_attrNearestClassDef_cache = de.peeeq.wurstscript.attributes.AttrNearestClassDef.calculate(this);
+			attr_attrNearestClassDef_isCached = true;
+		}
+		return attr_attrNearestClassDef_cache;
+	}
+	private boolean attr_attrExportedVariables_isCached = false;
+	private java.util.Map<String, VarDef> attr_attrExportedVariables_cache;
+	public java.util.Map<String, VarDef> attrExportedVariables() {
+		if (!attr_attrExportedVariables_isCached) {
+			attr_attrExportedVariables_cache = de.peeeq.wurstscript.attributes.AttrExportedVariables.calculate(this);
+			attr_attrExportedVariables_isCached = true;
+		}
+		return attr_attrExportedVariables_cache;
+	}
+	private boolean attr_attrExportedTypes_isCached = false;
+	private java.util.Map<String, TypeDef> attr_attrExportedTypes_cache;
+	public java.util.Map<String, TypeDef> attrExportedTypes() {
+		if (!attr_attrExportedTypes_isCached) {
+			attr_attrExportedTypes_cache = de.peeeq.wurstscript.attributes.AttrExportedTypes.calculate(this);
+			attr_attrExportedTypes_isCached = true;
+		}
+		return attr_attrExportedTypes_cache;
+	}
 }

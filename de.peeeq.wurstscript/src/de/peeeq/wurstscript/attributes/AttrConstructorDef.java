@@ -14,17 +14,11 @@ import de.peeeq.wurstscript.utils.NotNullList;
  * find the constructor for a "new" call
  *
  */
-public class AttrConstructorDef extends Attribute<ExprNewObject, ConstructorDef> {
-
+public class AttrConstructorDef {
 	
-	public AttrConstructorDef(Attributes attr) {
-		super(attr);
-	}
-
-	@Override
-	protected ConstructorDef calculate(final ExprNewObject node) {
+	public static ConstructorDef calculate(final ExprNewObject node) {
 		
-		TypeDef typeDef = attr.typeDef.get(node);
+		TypeDef typeDef = node.attrTypeDef();
 		
 		
 		
@@ -39,7 +33,7 @@ public class AttrConstructorDef extends Attribute<ExprNewObject, ConstructorDef>
 				}
 			}
 			
-			return OverloadingResolver.resolveExprNew(attr, constructors, node);
+			return OverloadingResolver.resolveExprNew(constructors, node);
 			
 		} else {
 			attr.addError(node.getSource(), "Can only create instances of classes.");

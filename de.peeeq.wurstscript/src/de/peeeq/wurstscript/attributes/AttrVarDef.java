@@ -19,20 +19,15 @@ import de.peeeq.wurstscript.types.PscriptTypeClass;
  * this attribute find the variable definition for every variable reference 
  *
  */
-public class AttrVarDef extends Attribute<VarRef, VarDef> {
-
-	public AttrVarDef(Attributes attr) {
-		super(attr);
-	}
-
-	@Override
-	protected VarDef calculate(final VarRef node) {
+public class AttrVarDef {
+	
+	public static  VarDef calculate(final VarRef node) {
 		final String varName = node.getVarName();
 		VarDef result = node.match(new VarRef.Matcher<VarDef>() {
 			private VarDef defaultCase() {
 				WScope scope = Scoping.getNearestScope(node);
 				while (scope != null) {
-					Map<String, VarDef> vars = attr.varScope.get(scope);
+					Map<String, VarDef> vars = scope.attrScopeVariables();
 					if (vars.containsKey(varName)) {
 						return vars.get(varName);
 					}
@@ -42,11 +37,11 @@ public class AttrVarDef extends Attribute<VarRef, VarDef> {
 			}
 			
 			private VarDef memberVarCase(Expr left) {
-				PscriptType leftType = attr.exprType.get(left);
+				PscriptType leftType = left.attrTyp();
 				if (leftType instanceof PscriptTypeClass) {
 					PscriptTypeClass leftTypeC = (PscriptTypeClass) leftType;
 					ClassDef classDef = leftTypeC.getClassDef();
-					Map<String, VarDef> classDefScope = attr.varScope.get(classDef);
+					Map<String, VarDef> classDefScope = classDef.attrScopeVariables();
 					return classDefScope.get(varName);
 				} else {
 					attr.addError(node.getSource(), "Cannot acces attribute " + varName + " because " + leftType + " is not a class-type.");

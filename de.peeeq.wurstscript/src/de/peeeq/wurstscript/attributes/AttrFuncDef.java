@@ -20,22 +20,16 @@ import de.peeeq.wurstscript.types.PscriptTypeClass;
  * this attribute find the variable definition for every variable reference 
  *
  */
-public class AttrFuncDef extends Attribute<FuncRef, FunctionDefinition> {
-
+public class AttrFuncDef {
 	
-	public AttrFuncDef(Attributes attr) {
-		super(attr);
-	}
-
-	@Override
-	protected FunctionDefinition calculate(final FuncRef node) {
+	public static  FunctionDefinition calculate(final FuncRef node) {
 		final String funcName = node.getFuncName();
 		FunctionDefinition result = node.match(new FuncRef.Matcher<FunctionDefinition>() {
 
 			private FunctionDefinition defaultCase() {
 				WScope scope = Scoping.getNearestScope(node);
 				while (scope != null) {
-					Multimap<String, FunctionDefinition> functions = attr.funcScope.get(scope);
+					Multimap<String, FunctionDefinition> functions = scope.attrScopeFunctions();
 					if (functions.containsKey(funcName)) {
 						return selectOverloadedFunction(node, functions.get(funcName));
 					}
@@ -46,11 +40,11 @@ public class AttrFuncDef extends Attribute<FuncRef, FunctionDefinition> {
 			
 			
 			private FunctionDefinition memberCase(Expr left) {
-				PscriptType leftType = attr.exprType.get(left);
+				PscriptType leftType = left.attrTyp();
 				if (leftType instanceof PscriptTypeClass) {
 					PscriptTypeClass leftTypeC = (PscriptTypeClass) leftType;
 					ClassDef classDef = leftTypeC.getClassDef();
-					Multimap<String, FunctionDefinition> functions = attr.funcScope.get(classDef);
+					Multimap<String, FunctionDefinition> functions = classDef.attrScopeFunctions();
 					if (functions.containsKey(funcName)) {
 						return selectOverloadedFunction(node, functions.get(funcName));
 					}
@@ -87,9 +81,9 @@ public class AttrFuncDef extends Attribute<FuncRef, FunctionDefinition> {
 		return result;
 	}
 
-	protected FunctionDefinition selectOverloadedFunction(
+	protected static FunctionDefinition selectOverloadedFunction(
 			FuncRef funcCall, Collection<FunctionDefinition> functions) {
-		OverloadingResolver.resolveFuncCall(attr, functions, funcCall);
+		OverloadingResolver.resolveFuncCall(functions, funcCall);
 		// TODO overloading - select the right method
 		for (FunctionDefinition f : functions) {
 			return f;

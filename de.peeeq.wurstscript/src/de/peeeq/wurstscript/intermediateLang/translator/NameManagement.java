@@ -54,7 +54,7 @@ public class NameManagement {
 				return functions.get(calledFunc);
 			}
 			
-			final PackageOrGlobal p = attr.nearestPackage.get(calledFunc);
+			final PackageOrGlobal p = calledFunc.attrNearestPackage();
 			
 			String funcName = calledFunc.match(new FunctionDefinition.Matcher<String>() {
 
@@ -89,8 +89,8 @@ public class NameManagement {
 				return constructors.get(constr);
 			}
 			
-			final PackageOrGlobal p = attr.nearestPackage.get(constr);
-			final ClassDef c = attr.nearestClassDef.get(constr);
+			final PackageOrGlobal p = constr.attrNearestPackage();
+			final ClassDef c = constr.attrNearestClassDef();
 			
 			String name = c.getName() + "_new"; 
 			if (p instanceof WPackage) {
@@ -109,11 +109,11 @@ public class NameManagement {
 			if (vars.containsKey(varDef)) {
 				return vars.get(varDef);
 			}
-			PscriptType typ = attr.varDefType.get(varDef);
+			PscriptType typ = varDef.attrTyp();
 			typ = translateType(typ);
 			String name = varDef.getName();
 			if (varDef instanceof GlobalVarDef) {
-				PackageOrGlobal pack = attr.nearestPackage.get(varDef);
+				PackageOrGlobal pack = varDef.attrNearestPackage();
 				if (pack instanceof WPackage) {
 					name = ((WPackage) pack).getName() + "_" + name;
 				}
@@ -140,10 +140,10 @@ public class NameManagement {
 			if (vars.containsKey(varDef)) {
 				return vars.get(varDef);
 			}
-			PscriptType typ = attr.varDefType.get(varDef);
+			PscriptType typ = varDef.attrTyp();
 			typ = new PScriptTypeArray(typ, Utils.array(0)); // because this is a class we need an array of this type
-			WPackage pack = (WPackage) attr.nearestPackage.get(varDef);
-			ClassDef classDef = attr.nearestClassDef.get(varDef);
+			WPackage pack = (WPackage) varDef.attrNearestPackage();
+			ClassDef classDef = varDef.attrNearestClassDef();
 			String name = getNameFor(varDef, pack.getName() + "_" + classDef .getName() + "_" + varDef.getName());
 			ILvar v = new ILvar(name, typ);
 			vars.put(varDef, v);
@@ -204,7 +204,7 @@ public class NameManagement {
 				return destroyFunctions.get(classDef);
 			}
 			
-			WPackage pack = (WPackage) attr.nearestPackage.get(classDef);
+			WPackage pack = (WPackage) classDef.attrNearestPackage();
 			String name = getNameFor(classDef, pack.getName() + "_" + classDef.getName() + "_destroy");
 			ILfunction result = new ILfunction(name, classDef.getSource());
 			destroyFunctions.put(classDef, result);

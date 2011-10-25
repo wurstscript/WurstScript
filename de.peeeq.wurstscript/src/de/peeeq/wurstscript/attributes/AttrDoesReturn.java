@@ -13,15 +13,9 @@ import de.peeeq.wurstscript.ast.WStatements;
  * 
  *
  */
-public class AttrDoesReturn extends Attribute<WStatements, Boolean> {
-
-	 
-	public AttrDoesReturn(Attributes attr) {
-		super(attr);
-	}
-
-	@Override
-	protected Boolean calculate(WStatements statements) {
+public class AttrDoesReturn {
+	
+	public static Boolean calculate(WStatements statements) {
 		boolean returns = false; 
 		for (WStatement s : statements) {
 			if (returns) {
@@ -33,8 +27,8 @@ public class AttrDoesReturn extends Attribute<WStatements, Boolean> {
 			}
 			// TODO AttrDoesReturn - voidreturns, break & exitwhen?
 			if (s instanceof StmtIf) {
-				StmtIf StmtIf = (StmtIf) s;
-				returns = get(StmtIf.getThenBlock()) && get(StmtIf.getElseBlock()); 
+				StmtIf stmtIf = (StmtIf) s;
+				returns = stmtIf.getThenBlock().attrDoesReturn() && stmtIf.getElseBlock().attrDoesReturn(); 
 			}
 		}
 		return returns;

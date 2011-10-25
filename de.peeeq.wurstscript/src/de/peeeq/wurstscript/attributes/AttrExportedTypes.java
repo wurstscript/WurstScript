@@ -8,14 +8,9 @@ import de.peeeq.wurstscript.ast.VisibilityPublic;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WPackage;
 
-public class AttrExportedTypes extends Attribute<WPackage, Map<String, TypeDef>> {
+public class AttrExportedTypes {
 
-	public AttrExportedTypes(Attributes attr) {
-		super(attr);
-	}
-
-	@Override
-	protected Map<String, TypeDef> calculate(WPackage node) {
+	public static Map<String, TypeDef> calculate(WPackage node) {
 		final Map<String, TypeDef> result = new HashMap<String, TypeDef>();
 		for (WEntity x : node.getElements()) {
 			if (x instanceof TypeDef) {

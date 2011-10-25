@@ -293,22 +293,14 @@ public class IntermediateLangTranslator {
 	protected void translateFuncDef(WPackage p, FuncDef term) {
 		ILfunction func = names.getFunction(term);
 		prog.addFunction(func);
-		if (term.getSignature().getTyp() instanceof TypeExpr) {
-			func.setReturnType(attr.typeExprType.get((TypeExpr) term.getSignature().getTyp()));
-		} else {
-			func.setReturnType(PScriptTypeVoid.instance());
-		}
+			func.setReturnType(term.getSignature().getTyp().attrTyp());
 		func.initParams();
 		for (WParameter param : term.getSignature().getParameters()) {
-			func.addParam(new ILvar(param.getName(), attr.typeExprType.get(param.getTyp())));
+			func.addParam(new ILvar(param.getName(), param.getTyp().attrTyp()));
 		}
 
 		OptTypeExpr retTyp = term.getSignature().getTyp();
-		if (retTyp instanceof TypeExpr) {
-			func.setReturnType(attr.typeExprType.get((TypeExpr) retTyp));
-		} else {
-			func.setReturnType(PScriptTypeVoid.instance());
-		}
+		func.setReturnType(retTyp.attrTyp());
 		translateFunctionBody(func, term.getBody());
 	}
 
@@ -408,7 +400,7 @@ public class IntermediateLangTranslator {
 
 					@Override
 					public List<ILStatement> case_ExprMemberVar(ExprMemberVar left)  {
-						VarDef memberVar = attr.varDef.get(left);
+						VarDef memberVar = left.attrVarDef();
 
 						ILvar arVar = names.getILvarForVarDef(memberVar);
 
@@ -416,7 +408,7 @@ public class IntermediateLangTranslator {
 						ILvar receiver = names.getNewLocalVar(func, PScriptTypeInt.instance(), "receiver");
 						result.addAll(translateExpr(func, receiver, left.getLeft()));
 
-						PscriptType typ = attr.exprType.get(term.getRight());
+						PscriptType typ = term.getRight().attrTyp();
 						// evaluate right side
 						ILvar tempResult = names.getNewLocalVar(func, typ, "temp");
 						result.addAll(translateExpr(func, tempResult, term.getRight()));
@@ -434,12 +426,12 @@ public class IntermediateLangTranslator {
 
 					@Override
 					public List<ILStatement> case_ExprVarAccess(ExprVarAccess left)  {
-						VarDef varDef = attr.varDef.get(left);
+						VarDef varDef = left.attrVarDef();
 						ILvar v = names.getILvarForVarDef(varDef);
 						if (isMemberVar(varDef)) {
 
 
-							PscriptType typ = attr.exprType.get(term.getRight());
+							PscriptType typ = term.getRight().attrTyp();
 							// evaluate right side
 							ILvar tempResult = names.getNewLocalVar(func, typ, "temp");
 							result.addAll(translateExpr(func, tempResult, term.getRight()));
@@ -457,8 +449,8 @@ public class IntermediateLangTranslator {
 
 					@Override
 					public List<ILStatement> case_ExprVarArrayAccess(ExprVarArrayAccess arAccess)  {
-						VarDef varDef = attr.varDef.get(arAccess);
-						PscriptType type = attr.varDefType.get(varDef);
+						VarDef varDef = arAccess.attrVarDef();
+						PscriptType type = varDef.attrTyp();
 						if (type instanceof PScriptTypeArray) {
 							PScriptTypeArray typeA = (PScriptTypeArray) type;
 							ILvar indexResult = names.getNewLocalVar(func, PScriptTypeInt.instance(), "index");
@@ -482,7 +474,7 @@ public class IntermediateLangTranslator {
 			public List<ILStatement> case_StmtReturn(StmtReturn term)  {
 				if (term.getObj() instanceof Expr) {
 					Expr returnValue = (Expr) term.getObj();
-					PscriptType type = attr.exprType.get(returnValue);
+					PscriptType type = returnValue.attrTyp();
 					ILvar returnVar = names.getNewLocalVar(func, type, "tempReturn");
 					result.addAll(translateExpr(func, returnVar, returnValue));
 					result.add(new ILreturn(returnVar));
@@ -496,7 +488,7 @@ public class IntermediateLangTranslator {
 
 			@Override
 			public List<ILStatement> case_StmtDestroy(StmtDestroy term)  {
-				PscriptType type = attr.exprType.get(term.getObj());
+				PscriptType type = term.getObj().attrTyp();
 				if (type instanceof PscriptTypeClass) {
 					PscriptTypeClass classtype = (PscriptTypeClass) type;
 					ClassDef classDef = classtype.getClassDef();
@@ -548,7 +540,7 @@ public class IntermediateLangTranslator {
 	protected List<ILStatement> translateExprMemberMethod(ILfunction func, ILvar resultVar, ExprMemberMethod term) {
 		List<ILStatement> result = new NotNullList<ILStatement>();
 		Expr left = term.getLeft();
-		FunctionDefinition calledFuncDef = attr.funcDef.get(term);
+		FunctionDefinition calledFuncDef = term.attrFuncDef();
 		ILfunction calledFunc = names.getFunction(calledFuncDef);
 
 		// translate left expr
@@ -569,7 +561,7 @@ public class IntermediateLangTranslator {
 
 	protected List<ILStatement> translateFunctionCall(ILfunction func, final ILvar resultVar, ExprFunctionCall term, Arguments args) {
 		final List<ILStatement> result = new NotNullList<ILStatement>();
-		final FunctionDefinition calledFunc = attr.funcDef.get(term);
+		final FunctionDefinition calledFunc = term.attrFuncDef();
 
 		// add call dependency
 		if (! (calledFunc instanceof NativeFunc)) {
@@ -587,7 +579,7 @@ public class IntermediateLangTranslator {
 		for (int i = 0; i < argCount; i++) {
 			Expr arg = term.getArgs().get(i);
 			WParameter param = calledFunc.getSignature().getParameters().get(i);
-			argumentTypes[i] = attr.varDefType.get(param);
+			argumentTypes[i] = param.attrTyp();
 
 			argumentVars[i] = names.getNewLocalVar(func, argumentTypes[i], calledFunc.getSignature().getName() + "_param" + i);
 			result.addAll(translateExpr(func, argumentVars[i], arg));
@@ -645,7 +637,7 @@ public class IntermediateLangTranslator {
 
 			@Override
 			public List<ILStatement> case_ExprFuncRef(ExprFuncRef term)  {
-				FunctionDefinition f = attr.funcDef.get(term);
+				FunctionDefinition f = term.attrFuncDef();
 				ILfunction ilfunc = names.getFunction(f);
 				result.add(new IlsetConst(resultVar, new ILconstFuncRef(ilfunc)));
 				return result;
@@ -654,7 +646,7 @@ public class IntermediateLangTranslator {
 			@Override
 			public List<ILStatement> case_ExprVarAccess(ExprVarAccess term)  {
 
-				VarDef varDef = attr.varDef.get(term);
+				VarDef varDef = term.attrVarDef();
 				ILvar var = names.getILvarForVarDef(varDef);
 				if (isMemberVar(varDef)) {
 					ILvar thisVar = new ILvar("this", PScriptTypeInt.instance());
@@ -667,8 +659,8 @@ public class IntermediateLangTranslator {
 
 			@Override
 			public List<ILStatement> case_ExprVarArrayAccess(ExprVarArrayAccess arAccess)  {
-				VarDef varDef = attr.varDef.get(arAccess);
-				PscriptType type = attr.varDefType.get(varDef);
+				VarDef varDef = arAccess.attrVarDef();
+				PscriptType type = varDef.attrTyp();
 				if (type instanceof PScriptTypeArray) {
 					PScriptTypeArray typeA = (PScriptTypeArray) type;
 					ILvar indexResult = names.getNewLocalVar(func, PScriptTypeInt.instance(), "index");
@@ -702,11 +694,11 @@ public class IntermediateLangTranslator {
 					result.add(new ILif(resultVar, new LinkedList<ILStatement>(), translateExpr(func, resultVar, term.getRight())));
 				} else {
 					// evaluate left expr:
-					PscriptType leftType = attr.exprType.get(term.getLeft());
+					PscriptType leftType = term.getLeft().attrTyp();
 					ILvar leftVar = names.getNewLocalVar(func, leftType, "leftOperand");
 					List<ILStatement> leftExpr = translateExpr(func, leftVar, term.getLeft());
 					// evaluate right expr:
-					PscriptType rightType = attr.exprType.get(term.getLeft());
+					PscriptType rightType = term.getLeft().attrTyp();
 					ILvar rightVar = names.getNewLocalVar(func, rightType, "rightOperand");
 					List<ILStatement> rightExpr = translateExpr(func, rightVar, term.getRight());
 
@@ -726,7 +718,7 @@ public class IntermediateLangTranslator {
 
 			@Override
 			public List<ILStatement> case_ExprUnary(final ExprUnary term)  {
-				PscriptType type = attr.exprType.get(term.getRight());
+				PscriptType type = term.getRight().attrTyp();
 				ILvar tempVar = names.getNewLocalVar(func, type, "temp");
 				result.addAll(translateExpr(func, tempVar, term.getRight()));
 				result.add(new IlsetUnary(resultVar, translateOp(term.getOp()), tempVar));
@@ -735,7 +727,7 @@ public class IntermediateLangTranslator {
 
 			@Override
 			public List<ILStatement> case_ExprMemberVar(ExprMemberVar term)  {
-				VarDef varDef = attr.varDef.get(term);
+				VarDef varDef = term.attrVarDef();
 				ILvar varDefVar = names.getILvarForClassMemberDef((GlobalVarDef) varDef);
 
 				ILvar index = names.getNewLocalVar(func, PScriptTypeInt.instance(), "index");
@@ -785,7 +777,7 @@ public class IntermediateLangTranslator {
 	protected List<ILStatement> translateExprNewPos(ILfunction func, ILvar resultVar, ExprNewObject term) {
 		List<ILStatement> result = new NotNullList<ILStatement>();
 
-		ConstructorDef constr = attr.constrDef.get(term);
+		ConstructorDef constr = term.attrConstructorDef();
 
 		ILfunction constrFunc = names.getConstructorFunction(constr);
 
@@ -908,12 +900,11 @@ public class IntermediateLangTranslator {
 
 			
 			
-			// FIXME reimplement collect method
-//			List<ExprVarAccess> varRefs = Utils.collect(ExprVarAccess.class, initialExpr);
-//			for (ExprVarAccess varRef : varRefs) {
-//				ILvar dependsOn = names.getILvarForVarDef(attr.varDef.get(varRef));
-//				addGlobalInitializationDependency(v, dependsOn);
-//			}
+			List<ExprVarAccess> varRefs = Utils.collect(ExprVarAccess.class, initialExpr);
+			for (ExprVarAccess varRef : varRefs) {
+				ILvar dependsOn = names.getILvarForVarDef(varRef.attrVarDef());
+				addGlobalInitializationDependency(v, dependsOn);
+			}
 
 
 			addGlobalInit(v, initialExpr);
@@ -958,13 +949,13 @@ public class IntermediateLangTranslator {
 				@Override
 				public void case_FuncDef(FuncDef term)  {
 					ILfunction func = names.getFunction(term);
-					func.setReturnType(attr.typeExprType.get(term.getSignature().getTyp()));
+					func.setReturnType(term.getSignature().getTyp().attrTyp());
 					func.initParams();
 					// add the implicit parameter "this"
 					func.addParam(names.getThis(term));
 					// translate other parameters:
 					for (WParameter p : term.getSignature().getParameters()) {
-						func.addParam(new ILvar(p.getName(), attr.typeExprType.get(p.getTyp())));
+						func.addParam(new ILvar(p.getName(), p.getTyp().attrTyp()));
 					}
 					func.addBody(translateStatements(func, term.getBody()));
 					prog.addFunction(func);
@@ -1043,7 +1034,7 @@ public class IntermediateLangTranslator {
 
 		// initialize member vars
 		for (GlobalVarDef classVar : classVars) {
-			PscriptType varType = attr.varDefType.get(classVar);
+			PscriptType varType = classVar.attrTyp();
 			ILvar tempVar = names.getNewLocalVar(func, varType, "temp");
 			if (classVar.getInitialExpr() instanceof Expr) {
 				Expr initial = (Expr) classVar.getInitialExpr();

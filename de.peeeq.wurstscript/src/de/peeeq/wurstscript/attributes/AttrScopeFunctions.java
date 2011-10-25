@@ -23,15 +23,9 @@ import de.peeeq.wurstscript.ast.WScope;
  * 
  *  note that there can be more than one function of the same name inside one scope
  */
-public class AttrScopeFunctions extends Attribute<WScope, Multimap<String, FunctionDefinition>> {
-
-
-	public AttrScopeFunctions(Attributes attr) {
-		super(attr);
-	}
-
-	@Override
-	protected Multimap<String, FunctionDefinition> calculate(WScope node) {
+public class AttrScopeFunctions {
+	
+	public static  Multimap<String, FunctionDefinition> calculate(WScope node) {
 		final Multimap<String, FunctionDefinition> result = ArrayListMultimap.create();
 		return node.match(new WScope.Matcher<Multimap<String, FunctionDefinition>>() {
 
@@ -43,7 +37,7 @@ public class AttrScopeFunctions extends Attribute<WScope, Multimap<String, Funct
 					if (importedPackage == null) {
 						continue;
 					}
-					Multimap<String, FunctionDefinition> importedFunctions = attr.exportedFunctions.get(importedPackage);
+					Multimap<String, FunctionDefinition> importedFunctions = importedPackage.attrExportedFunctions();
 					result.putAll(importedFunctions);
 				}
 				

@@ -41,8 +41,13 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"//" [^\r\n]* 			           { }
 	"/*" ~"*/"                        { }
 	"abstract syntax:"                	{ return symbol(TokenType.ABSTRACT_SYNTAX); }
+	"attributes:"                	{ return symbol(TokenType.ATTRIBUTES); }
+	"implemented by"                	{ return symbol(TokenType.IMPLEMENTED_BY); }
+	"returns"							{ return symbol(TokenType.RETURNS); }
 	"package"							{ return symbol(TokenType.PACKAGE); }
 	"."									{ return symbol(TokenType.DOT); }
+	"<"                               { return symbol(TokenType.LT); }
+	">"                               { return symbol(TokenType.GT); }
 	"("                               { return symbol(TokenType.LPAR); }
 	")"                               { return symbol(TokenType.RPAR); }
 	"="                               { return symbol(TokenType.EQ); }

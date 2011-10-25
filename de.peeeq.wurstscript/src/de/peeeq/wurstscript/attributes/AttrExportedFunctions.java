@@ -9,14 +9,9 @@ import de.peeeq.wurstscript.ast.VisibilityPublic;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WPackage;
 
-public class AttrExportedFunctions extends Attribute<WPackage, Multimap<String, FunctionDefinition>> {
+public class AttrExportedFunctions {
 
-	public AttrExportedFunctions(Attributes attr) {
-		super(attr);
-	}
-
-	@Override
-	protected Multimap<String, FunctionDefinition> calculate(WPackage node) {
+	public static Multimap<String, FunctionDefinition> calculate(WPackage node) {
 		final Multimap<String, FunctionDefinition> result = ArrayListMultimap.create();
 		for (WEntity x : node.getElements()) {
 			if (x instanceof FuncDef) {

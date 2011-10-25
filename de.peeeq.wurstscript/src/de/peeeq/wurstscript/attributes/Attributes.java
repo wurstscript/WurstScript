@@ -15,24 +15,24 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class Attributes {
 
-	// breaking the law of demeter :P
-	public final AttrDoesReturn doesReturn = new AttrDoesReturn(this);
-	public final AttrTypeExprType typeExprType = new AttrTypeExprType(this);
-	public final AttrExprType exprType = new AttrExprType(this);
-	public final AttrFuncDef funcDef = new AttrFuncDef(this);
-	public final AttrVarDef varDef = new AttrVarDef(this);
-	public final AttrScopeVariables varScope = new AttrScopeVariables(this);
-	public final AttrScopeFunctions funcScope = new AttrScopeFunctions(this);
-	public final AttrVarDefType varDefType = new AttrVarDefType(this);
-	public final AttrPackageElements packageElements = new AttrPackageElements(this);
-	public final AttrNearestPackage nearestPackage = new AttrNearestPackage(this);
-	public final AttrNearestFuncDef nearestFuncDef = new AttrNearestFuncDef(this);
-	public final AttrTypeDef typeDef = new AttrTypeDef(this);
-	public final AttrNearestClassDef nearestClassDef = new AttrNearestClassDef(this);
-	public final AttrConstructorDef constrDef = new AttrConstructorDef(this);
-	public final AttrExportedFunctions exportedFunctions = new AttrExportedFunctions(this);
-	public final AttrExportedVariables exportedVariables = new AttrExportedVariables(this);
-	public final AttrExportedTypes exportedTypes = new AttrExportedTypes(this);
+//	// breaking the law of demeter :P
+//	public final AttrDoesReturn doesReturn = new AttrDoesReturn(this);
+//	public final AttrTypeExprType typeExprType = new AttrTypeExprType(this);
+//	public final AttrExprType exprType = new AttrExprType(this);
+//	public final AttrFuncDef funcDef = new AttrFuncDef(this);
+//	public final AttrVarDef varDef = new AttrVarDef(this);
+//	public final AttrScopeVariables varScope = new AttrScopeVariables(this);
+//	public final AttrScopeFunctions funcScope = new AttrScopeFunctions(this);
+//	public final AttrVarDefType varDefType = new AttrVarDefType(this);
+//	public final AttrPackageElements packageElements = new AttrPackageElements(this);
+//	public final AttrNearestPackage nearestPackage = new AttrNearestPackage(this);
+//	public final AttrNearestFuncDef nearestFuncDef = new AttrNearestFuncDef(this);
+//	public final AttrTypeDef typeDef = new AttrTypeDef(this);
+//	public final AttrNearestClassDef nearestClassDef = new AttrNearestClassDef(this);
+//	public final AttrConstructorDef constrDef = new AttrConstructorDef(this);
+//	public final AttrExportedFunctions exportedFunctions = new AttrExportedFunctions(this);
+//	public final AttrExportedVariables exportedVariables = new AttrExportedVariables(this);
+//	public final AttrExportedTypes exportedTypes = new AttrExportedTypes(this);
 	
 	
 	private List<CompileError> errors = new NotNullList<CompileError>();

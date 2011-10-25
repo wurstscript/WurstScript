@@ -171,3 +171,11 @@ VisibilityModifier =
 JassToplevelDeclaration = JassGlobalBlock | FunctionDefinition | NativeType
 
 JassGlobalBlock * GlobalVarDef
+
+
+
+attributes:
+
+Expr.typ returns java.util.List<Integer> implemented by de.peeeq.wurstscript.attributes.AttrExprType.calculate
+
+

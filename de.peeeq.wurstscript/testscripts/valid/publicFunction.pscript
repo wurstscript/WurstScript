@@ -1,0 +1,17 @@
+package bla {
+
+	native testSuccess()
+
+	public function foo() {
+		testSuccess()
+	}
+}
+
+
+package test {
+	import bla
+
+	init {
+		foo() // error, foo is not public	
+	}
+}

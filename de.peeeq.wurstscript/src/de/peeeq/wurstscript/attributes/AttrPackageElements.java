@@ -22,15 +22,9 @@ import de.peeeq.wurstscript.utils.Utils;
 /**
  * this attribute calculates all named elements available inside in a package (including imports)
  */
-public class AttrPackageElements extends Attribute<PackageOrGlobal, Multimap<String, WEntity>> {
-
-
-	public AttrPackageElements(Attributes attr) {
-		super(attr);
-	}
-
-	@Override
-	protected Multimap<String, WEntity> calculate(PackageOrGlobal node) {
+public class AttrPackageElements {
+	
+	public static  Multimap<String, WEntity> calculate(PackageOrGlobal node) {
 		final Multimap<String, WEntity> result = ArrayListMultimap.create();
 
 		CompilationUnit cu = (CompilationUnit) Utils.getRoot(node);
@@ -60,7 +54,7 @@ public class AttrPackageElements extends Attribute<PackageOrGlobal, Multimap<Str
 		return result;
 	}
 
-	private void addPackage(final Multimap<String, WEntity> result, 	PackageOrGlobal node) {
+	private static void addPackage(final Multimap<String, WEntity> result, 	PackageOrGlobal node) {
 		node.match(new PackageOrGlobal.MatcherVoid() {
 
 			@Override

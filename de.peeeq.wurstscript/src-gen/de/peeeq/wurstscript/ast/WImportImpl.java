@@ -13,7 +13,7 @@ class WImportImpl implements WImport, SortPosIntern {
 	private SortPos parent;
 	public SortPos getParent() { return parent; }
 	public void setParent(SortPos parent) {
-		if (parent != null && this.parent != null) { throw new Error("Parent already set."); }
+		if (parent != null && this.parent != null) { 			throw new Error("Parent of " + this + " already set: " + this.parent + "\ntried to change to " + parent); 		}
 		this.parent = parent;
 	}
 
@@ -33,23 +33,31 @@ class WImportImpl implements WImport, SortPosIntern {
 	} 
 	public String getPackagename() { return packagename; }
 
-	@Override public void accept(WImport.Visitor v) {
-		source.accept(v);
-		v.visit(this);
+	public SortPos get(int i) {
+		switch (i) {
+			case 0: return source;
+			default: throw new IllegalArgumentException("Index out of range: " + i);
+		}
+	}
+	public int size() {
+		return 1;
+	}
+	public WImport copy() {
+		return new WImportImpl(source.copy(), packagename);
 	}
 	@Override public void accept(WPackage.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(CompilationUnit.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WImport.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -60,5 +68,39 @@ class WImportImpl implements WImport, SortPosIntern {
 	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
 		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public String toString() {
+		return "WImport(" + source + ", " +packagename+")";
+	}
+	private boolean attr_attrNearestPackage_isCached = false;
+	private PackageOrGlobal attr_attrNearestPackage_cache;
+	public PackageOrGlobal attrNearestPackage() {
+		if (!attr_attrNearestPackage_isCached) {
+			attr_attrNearestPackage_cache = de.peeeq.wurstscript.attributes.AttrNearestPackage.calculate(this);
+			attr_attrNearestPackage_isCached = true;
+		}
+		return attr_attrNearestPackage_cache;
+	}
+	private boolean attr_attrNearestFuncDef_isCached = false;
+	private FuncDef attr_attrNearestFuncDef_cache;
+	public FuncDef attrNearestFuncDef() {
+		if (!attr_attrNearestFuncDef_isCached) {
+			attr_attrNearestFuncDef_cache = de.peeeq.wurstscript.attributes.AttrNearestFuncDef.calculate(this);
+			attr_attrNearestFuncDef_isCached = true;
+		}
+		return attr_attrNearestFuncDef_cache;
+	}
+	private boolean attr_attrNearestClassDef_isCached = false;
+	private ClassDef attr_attrNearestClassDef_cache;
+	public ClassDef attrNearestClassDef() {
+		if (!attr_attrNearestClassDef_isCached) {
+			attr_attrNearestClassDef_cache = de.peeeq.wurstscript.attributes.AttrNearestClassDef.calculate(this);
+			attr_attrNearestClassDef_isCached = true;
+		}
+		return attr_attrNearestClassDef_cache;
 	}
 }

@@ -2,7 +2,13 @@
 package de.peeeq.wurstscript.ast;
 
 public interface SortPos {
-	SortPos getParent();}
+	SortPos getParent();
+	int size();
+	SortPos get(int i);
+	PackageOrGlobal attrNearestPackage();
+	FuncDef attrNearestFuncDef();
+	ClassDef attrNearestClassDef();
+}
 
 interface SortPosIntern {
 	void setParent(SortPos pos);

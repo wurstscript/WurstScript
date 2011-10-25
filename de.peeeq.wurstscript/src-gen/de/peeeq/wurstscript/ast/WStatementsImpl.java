@@ -5,7 +5,7 @@ class WStatementsImpl extends WStatements implements SortPosIntern {
  	private SortPos parent;
 	public SortPos getParent() { return parent; }
 	public void setParent(SortPos parent) {
-		if (parent != null && this.parent != null) { throw new Error("Parent already set."); }
+		if (parent != null && this.parent != null) { 			throw new Error("Parent of " + this + " already set: " + this.parent + "\ntried to change to " + parent); 		}
 		this.parent = parent;
 	}
 
@@ -15,31 +15,19 @@ class WStatementsImpl extends WStatements implements SortPosIntern {
 	protected void other_clearParent(WStatement t) {
 		((SortPosIntern) t).setParent(null);
 	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+	@Override public void accept(WPackage.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(StmtWhile.Visitor v) {
+	@Override public void accept(StmtIf.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(WStatement.Visitor v) {
-		for (WStatement i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(WStatements.Visitor v) {
-		for (WStatement i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(StmtLoop.Visitor v) {
+	@Override public void accept(CompilationUnit.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
@@ -51,19 +39,25 @@ class WStatementsImpl extends WStatements implements SortPosIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
+	@Override public void accept(ClassSlots.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(ClassSlot.Visitor v) {
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(TypeDef.Visitor v) {
+	@Override public void accept(StmtWhile.Visitor v) {
+		for (WStatement i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
@@ -75,7 +69,7 @@ class WStatementsImpl extends WStatements implements SortPosIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(StmtIf.Visitor v) {
+	@Override public void accept(ClassDef.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
@@ -93,37 +87,31 @@ class WStatementsImpl extends WStatements implements SortPosIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(FuncDef.Visitor v) {
+	@Override public void accept(WStatement.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(ClassSlots.Visitor v) {
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(WPackage.Visitor v) {
+	@Override public void accept(ClassSlot.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(ClassDef.Visitor v) {
+	@Override public void accept(TypeDef.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(WEntities.Visitor v) {
-		for (WStatement i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(WStatements.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
@@ -135,13 +123,19 @@ class WStatementsImpl extends WStatements implements SortPosIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(FuncDef.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
+	@Override public void accept(FunctionDefinition.Visitor v) {
+		for (WStatement i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(StmtLoop.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
@@ -152,5 +146,47 @@ class WStatementsImpl extends WStatements implements SortPosIntern {
 			i.accept(v);
 		}
 		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		for (WStatement i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	private boolean attr_attrDoesReturn_isCached = false;
+	private boolean attr_attrDoesReturn_cache;
+	public boolean attrDoesReturn() {
+		if (!attr_attrDoesReturn_isCached) {
+			attr_attrDoesReturn_cache = de.peeeq.wurstscript.attributes.AttrDoesReturn.calculate(this);
+			attr_attrDoesReturn_isCached = true;
+		}
+		return attr_attrDoesReturn_cache;
+	}
+	private boolean attr_attrNearestPackage_isCached = false;
+	private PackageOrGlobal attr_attrNearestPackage_cache;
+	public PackageOrGlobal attrNearestPackage() {
+		if (!attr_attrNearestPackage_isCached) {
+			attr_attrNearestPackage_cache = de.peeeq.wurstscript.attributes.AttrNearestPackage.calculate(this);
+			attr_attrNearestPackage_isCached = true;
+		}
+		return attr_attrNearestPackage_cache;
+	}
+	private boolean attr_attrNearestFuncDef_isCached = false;
+	private FuncDef attr_attrNearestFuncDef_cache;
+	public FuncDef attrNearestFuncDef() {
+		if (!attr_attrNearestFuncDef_isCached) {
+			attr_attrNearestFuncDef_cache = de.peeeq.wurstscript.attributes.AttrNearestFuncDef.calculate(this);
+			attr_attrNearestFuncDef_isCached = true;
+		}
+		return attr_attrNearestFuncDef_cache;
+	}
+	private boolean attr_attrNearestClassDef_isCached = false;
+	private ClassDef attr_attrNearestClassDef_cache;
+	public ClassDef attrNearestClassDef() {
+		if (!attr_attrNearestClassDef_isCached) {
+			attr_attrNearestClassDef_cache = de.peeeq.wurstscript.attributes.AttrNearestClassDef.calculate(this);
+			attr_attrNearestClassDef_isCached = true;
+		}
+		return attr_attrNearestClassDef_cache;
 	}
 }

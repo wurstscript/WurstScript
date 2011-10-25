@@ -14,15 +14,9 @@ import de.peeeq.wurstscript.utils.Utils;
  * this attribute finds the type definition for every tpye-reference
  *
  */
-public class AttrTypeDef extends Attribute<TypeRef, TypeDef> {
-
-	 
-	public AttrTypeDef(Attributes attr) {
-		super(attr);
-	}
-
-	@Override
-	protected TypeDef calculate(TypeRef node) {
+public class AttrTypeDef {
+	
+	public static  TypeDef calculate(TypeRef node) {
 		String typeName = node.getTypeName();
 		
 		PscriptType nativeType = NativeTypes.nativeType(typeName, Utils.isJassCode(node));
@@ -32,17 +26,17 @@ public class AttrTypeDef extends Attribute<TypeRef, TypeDef> {
 		
 		
 		// find nearest packageDef
-		PackageOrGlobal scope = attr.nearestPackage.get(node);
+		PackageOrGlobal scope =  node.attrNearestPackage();
 		if (scope instanceof WPackage) {
 			WPackage pack = (WPackage) scope;
-			for (WEntity elem : attr.packageElements.get(pack).get(typeName)) {
+			for (WEntity elem : pack.attrPackageElements().get(typeName)) {
 				if (elem instanceof TypeDef) {
 					return (TypeDef) elem;
 				}
 			}
 		}
 		// search global scope:
-		for (WEntity elem : attr.packageElements.get((PackageOrGlobal) Utils.getRoot(node)).get(typeName)) {
+		for (WEntity elem : ((PackageOrGlobal) Utils.getRoot(node)).attrPackageElements().get(typeName)) {
 			if (elem instanceof TypeDef) {
 				return (TypeDef) elem;
 			}

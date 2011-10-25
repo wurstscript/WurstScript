@@ -18,10 +18,11 @@ public abstract class DefinitionMap<K,V> extends HashMap<K, V> {
 		for (java.util.Map.Entry<? extends K, ? extends V> k : m.entrySet()) {
 			put(k.getKey(), k.getValue());
 		}
-		super.putAll(m);
+//		super.putAll(m);
 	}
 	
 	public V put(K key, V value) {
+		System.out.println("adding " + key + " -> "  + value);
 		if (containsKey(key)) {
 			onElementRedefined(get(key), value, key);
 		}

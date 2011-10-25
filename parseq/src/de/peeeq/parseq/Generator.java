@@ -17,6 +17,7 @@ import com.google.common.io.Files;
 import de.peeeq.parseq.ast.Alternative;
 import de.peeeq.parseq.ast.AstBaseTypeDefinition;
 import de.peeeq.parseq.ast.AstEntityDefinition;
+import de.peeeq.parseq.ast.AttributeDef;
 import de.peeeq.parseq.ast.CaseDef;
 import de.peeeq.parseq.ast.ConstructorDef;
 import de.peeeq.parseq.ast.ListDef;
@@ -283,6 +284,61 @@ public class Generator {
 		sb.append(c.name +  ", " + getCommonSupertypeType() + "Intern {\n");
 
 		// create constructor
+		createConstructor(c, sb);
+
+		// get/set parent method:
+		createGetSetParentMethods(sb);
+
+		// create getters and setters for parameters:
+		createGetterAndSetterMethods(c, sb);
+		
+		//get method
+		int childCount = createGetMethod(c, sb);
+		
+		//size method
+		createSizeMethod(sb, childCount);
+		
+		//copy method
+		createCopyMethod(c, sb, childCount);
+		
+		// accept method for visitor
+		createAcceptMethods(c, sb);
+		
+		// match methods for switch
+		createMatchMethods(c, sb);
+		
+		// toString method
+		createToString(c, sb);
+		
+		createAttributeImpl(c, sb);		
+		
+		sb.append("}\n");
+		createFile(c.name + "Impl", sb);
+	}
+
+	private void createAttributeImpl(AstBaseTypeDefinition c, StringBuilder sb) {
+		for (AttributeDef attr : prog.attrDefs) {
+			boolean hasAttribute = attr.typ.equals(c.getName());
+			for (AstEntityDefinition sup : transientSuperTypes.get(c)) {
+				hasAttribute |= attr.typ.equals(sup.getName());
+			}
+			hasAttribute |= attr.typ.equals(getCommonSupertypeType());
+			
+			if (hasAttribute) {
+				sb.append("	private boolean attr_" + attr.attr + "_isCached = false;\n");
+				sb.append("	private " + attr.returns + " attr_" + attr.attr + "_cache;\n");
+				sb.append("	public " + attr.returns + " " + attr.attr + "() {\n");
+				sb.append("		if (!attr_" + attr.attr + "_isCached) {\n");
+				sb.append("			attr_" + attr.attr +"_cache = "+attr.implementedBy+"(this);\n");
+				sb.append("			attr_" + attr.attr +"_isCached = true;\n");
+				sb.append("		}\n");
+				sb.append("		return attr_" + attr.attr +"_cache;\n");
+				sb.append("	}\n");
+			}
+		}
+	}
+
+	private void createConstructor(ConstructorDef c, StringBuilder sb) {
 		sb.append("	" + c.name + "Impl(");
 		boolean first = true;
 		for (Parameter p : c.parameters) {
@@ -306,17 +362,20 @@ public class Generator {
 			sb.append("		this." + p.name + " = " + p.name + ";\n");
 		}
 		sb.append("	}\n\n");
-		
+	}
 
-		// get/set parent method:
+	private void createGetSetParentMethods(StringBuilder sb) {
 		sb.append("	private " + getCommonSupertypeType() + " parent;\n");
 		sb.append("	public " + getCommonSupertypeType() + " getParent() { return parent; }\n");
 		sb.append("	public void setParent(" + getCommonSupertypeType() + " parent) {\n" +
-				"		if (parent != null && this.parent != null) { throw new Error(\"Parent already set.\"); }\n" +
+				"		if (parent != null && this.parent != null) { " +
+				"			throw new Error(\"Parent of \" + this + \" already set: \" + this.parent + \"\\ntried to change to \" + parent); " +
+				"		}\n" +
 				"		this.parent = parent;\n" +	
 				"	}\n\n");
+	}
 
-		// create getters and setters for parameters:
+	private void createGetterAndSetterMethods(ConstructorDef c, StringBuilder sb) {
 		for (Parameter p : c.parameters) {
 			sb.append("	private " + p.typ + " " + p.name + ";\n");
 			// setter:
@@ -336,15 +395,52 @@ public class Generator {
 			// getter
 			sb.append("	public " + p.typ + " get" + toFirstUpper(p.name) + "() { return " + p.name + "; }\n\n");
 		}
-		
-		// accept method for visitor
-//		sb.append("	public void accept(Visitor v) {\n");
-//		for (Parameter p : c.parameters) {
-//			sb.append("		" + c.name + ".accept(v);\n");
-//		}
-//		sb.append("		v.visit(this);\n");
-//		sb.append("	}\n");
-		
+	}
+
+	private int createGetMethod(ConstructorDef c, StringBuilder sb) {
+		sb.append("	public SortPos get(int i) {\n");
+		sb.append("		switch (i) {\n");
+		int childCount = 0;
+		for (Parameter p : c.parameters) {
+			if (prog.hasElement(p.typ)) {
+				sb.append("			case "+childCount+": return "+p.name+";\n");
+				childCount++;
+			}
+		}
+		sb.append("			default: throw new IllegalArgumentException(\"Index out of range: \" + i);\n");
+		sb.append("		}\n");
+		sb.append("	}\n");
+		return childCount;
+	}
+
+	private void createSizeMethod(StringBuilder sb, int childCount) {
+		sb.append("	public int size() {\n");
+		sb.append("		return " + childCount + ";\n");
+		sb.append("	}\n");
+	}
+
+	private void createCopyMethod(ConstructorDef c, StringBuilder sb, int childCount) {
+		boolean first;
+		sb.append("	public " + c.name + " copy() {\n");
+		sb.append("		return new " + c.name + "Impl(");
+		first = true;
+		for (Parameter p : c.parameters) {
+			if (!first) {
+				sb.append(", ");
+			}
+			if (prog.hasElement(p.typ)) {
+				sb.append(p.name+".copy()");
+				childCount++;
+			} else {
+				sb.append(p.name);
+			}			
+			first = false;
+		}
+		sb.append(");\n");
+		sb.append("	}\n");
+	}
+
+	private void createAcceptMethods(ConstructorDef c, StringBuilder sb) {
 		for (AstEntityDefinition parent : transientChildTypes.keySet()) {
 			if (transientChildTypes.get(parent).contains(c)) {
 				sb.append("	@Override public void accept(" + parent.getName()+".Visitor v) {\n");
@@ -357,15 +453,28 @@ public class Generator {
 				sb.append("	}\n");
 			}
 		}
-		
-		
-		
-		// match methods for switch
-		createMatchMethods(c, sb);
-		
+	}
 
-		sb.append("}\n");
-		createFile(c.name + "Impl", sb);
+	private void createToString(ConstructorDef c, StringBuilder sb) {
+		boolean first;
+		sb.append("	@Override public String toString() {\n");
+		sb.append("		return \"" + c.name);
+		if (c.parameters.size() > 0) {
+			sb.append("(\" + ");
+			first = true;
+			for (Parameter p : c.parameters) {
+				if (!first) {
+					sb.append(" + \", \" +");
+				}
+				sb.append(p.name);
+				first = false;
+			}
+			sb.append("+\")\"");
+		} else {
+			sb.append("\"");
+		}
+		sb.append(";\n");
+		sb.append("	}\n");
 	}
 
 	private void generateBaseClass_Interface(ConstructorDef c) {
@@ -389,10 +498,14 @@ public class Generator {
 			sb.append("	" + p.typ + " get" + toFirstUpper(p.name) + "();\n");
 		}
 		
+		// copy method
+		sb.append("	" + c.name + " copy();\n");
 		
 		generateVisitorInterface(c, sb);
 		
 
+		createAttributeStubs(c, sb);
+		
 		sb.append("}\n");
 		createFile(c.name, sb);
 	}
@@ -530,8 +643,12 @@ public class Generator {
 		}
 		sb.append("	}\n\n");
 		
+		// copy method
+		sb.append("	" + c.name + " copy();\n");
 
 		generateVisitorInterface(c, sb);
+		
+		createAttributeStubs(c, sb);
 		
 		
 		sb.append("}\n");
@@ -540,6 +657,27 @@ public class Generator {
 
 	
 
+	private void createAttributeStubs(AstEntityDefinition c, StringBuilder sb) {
+		for (AttributeDef attr : prog.attrDefs) {
+			if (attr.typ.equals(c.getName())) {
+				sb.append("	public abstract " + attr.returns + " " + attr.attr + "();\n");
+			}
+		}
+	}
+
+	public static String join(List<String> list, String sep) {
+		StringBuilder sb = new StringBuilder();
+		boolean first = true;
+		for (String s: list) {
+			if (!first) {
+				sb.append(sep);
+			}
+			sb.append(s);
+			first = false;
+		}
+		return sb.toString();
+	}
+
 	private void generateInterfaceTypes() {
 		for (CaseDef caseDef : prog.caseDefs) {
 			generateInterfaceType(caseDef);
@@ -547,37 +685,17 @@ public class Generator {
 	}
 
 	private void generateList(ListDef l) {
-		StringBuilder sb = new StringBuilder();
-		printProlog(sb);
-		sb.append("public abstract class " + l.name + " extends ParseqList<"+l.itemType+"> implements ");
-		sb.append(getCommonSupertypeType());
-		for (AstEntityDefinition supertype : directSuperTypes.get(l)) {
-			sb.append(", ");
-			sb.append(supertype.getName());
-		}
-		sb.append("{\n");
+		generateList_interface(l);
+		generateList_impl(l);
+	}
 
-		
-		generateVisitorInterface(l, sb);
-		
-		
-		
-		
-		sb.append("}\n");
-		createFile(l.name, sb);
-		
-		// create Impl class:
+	private void generateList_impl(ListDef l) {
+		StringBuilder sb;
 		sb = new StringBuilder();
 		printProlog(sb);
 		sb.append("class " + l.name + "Impl extends "+l.name+" implements SortPosIntern {\n ");
 		
-		// get/set parent method:
-		sb.append("	private " + getCommonSupertypeType() + " parent;\n");
-		sb.append("	public " + getCommonSupertypeType() + " getParent() { return parent; }\n");
-		sb.append("	public void setParent(" + getCommonSupertypeType() + " parent) {\n" +
-				"		if (parent != null && this.parent != null) { throw new Error(\"Parent already set.\"); }\n" +
-				"		this.parent = parent;\n" +	
-				"	}\n\n");
+		createGetSetParentMethods(sb);
 		
 		sb.append("	protected void other_setParentToThis("+l.itemType+" t) {\n");
 		if (JavaTypes.primitiveTypes.contains(l.itemType) || JavaTypes.otherTypes.contains(l.itemType)) {
@@ -612,10 +730,39 @@ public class Generator {
 			}
 		}
 		
+		createAttributeImpl(l, sb);
 		
 		
 		sb.append("}\n");
 		createFile(l.name + "Impl", sb);
+	}
+
+	private void generateList_interface(ListDef l) {
+		StringBuilder sb = new StringBuilder();
+		printProlog(sb);
+		sb.append("public abstract class " + l.name + " extends ParseqList<"+l.itemType+"> implements ");
+		sb.append(getCommonSupertypeType());
+		for (AstEntityDefinition supertype : directSuperTypes.get(l)) {
+			sb.append(", ");
+			sb.append(supertype.getName());
+		}
+		sb.append("{\n");
+
+		
+		// copy method
+		sb.append("	public " + l.name + " copy() {\n");
+		sb.append("		" + l.name + " result = new "+l.name+"Impl();\n");
+		sb.append("		result.addAll(this);\n");
+		sb.append("		return result;\n");
+		sb.append("	}\n");
+		
+		generateVisitorInterface(l, sb);
+		
+		createAttributeStubs(l, sb);
+		
+		
+		sb.append("}\n");
+		createFile(l.name, sb);
 	}
 
 	private void generateLists() {
@@ -629,8 +776,15 @@ public class Generator {
 		printProlog(sb);
 		
 		sb.append("public interface SortPos {\n" +
-				"	SortPos getParent();" +
-				"}\n\n");
+				"	SortPos getParent();\n" +
+				"	int size();\n" +
+				"	SortPos get(int i);\n");
+		for (AttributeDef attr : prog.attrDefs) {
+			if (attr.typ.equals(getCommonSupertypeType())) {
+				sb.append("	"  +attr.returns + " " + attr.attr + "();\n");
+			}
+		}
+		sb.append("}\n\n");
 		
 		sb.append("interface SortPosIntern {\n" +
 				"	void setParent(SortPos pos);\n" +

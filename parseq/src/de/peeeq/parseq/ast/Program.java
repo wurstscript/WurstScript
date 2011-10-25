@@ -13,6 +13,7 @@ public class Program {
 	public final List<ListDef> listDefs = new LinkedList<ListDef>();
 	public final List<CaseDef> caseDefs = new LinkedList<CaseDef>();
 	public final List<ConstructorDef> constructorDefs = new LinkedList<ConstructorDef>();
+	public final List<AttributeDef> attrDefs = new LinkedList<AttributeDef>();
 	public final Map<String, AstEntityDefinition> definitions = new HashMap<String, AstEntityDefinition>(); 
 	private List<String> packageParts;
 	
@@ -80,6 +81,11 @@ public class Program {
 
 	public boolean hasElement(String e) {
 		return definitions.containsKey(e);
+	}
+
+	public void addAttribute(String typ, String attr, String returns, String implementedBy) {
+		AttributeDef attrDef = new AttributeDef(typ, attr, returns, implementedBy);
+		attrDefs.add(attrDef);
 	}
 	
 }

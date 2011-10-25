@@ -171,3 +171,105 @@ VisibilityModifier =
 JassToplevelDeclaration = JassGlobalBlock | FunctionDefinition | NativeType
 
 JassGlobalBlock * GlobalVarDef
+
+
+
+attributes:
+
+ExprNewObject.attrConstructorDef 
+	returns ConstructorDef 
+	implemented by de.peeeq.wurstscript.attributes.AttrConstructorDef.calculate
+
+
+WStatements.attrDoesReturn
+	returns boolean 
+	implemented by de.peeeq.wurstscript.attributes.AttrDoesReturn.calculate
+
+WPackage.attrExportedFunctions
+	returns com.google.common.collect.Multimap<String, FunctionDefinition>
+	implemented by de.peeeq.wurstscript.attributes.AttrExportedFunctions.calculate
+
+OptTypeExpr.attrTyp
+	returns de.peeeq.wurstscript.types.PscriptType
+	implemented by de.peeeq.wurstscript.attributes.AttrTypeExprType.calculate
+
+
+Expr.attrTyp
+	returns de.peeeq.wurstscript.types.PscriptType 
+	implemented by de.peeeq.wurstscript.attributes.AttrExprType.calculate
+
+
+FuncRef.attrFuncDef
+	returns FunctionDefinition
+	implemented by de.peeeq.wurstscript.attributes.AttrFuncDef.calculate
+
+
+
+VarRef.attrVarDef
+	returns VarDef
+	implemented by de.peeeq.wurstscript.attributes.AttrVarDef.calculate
+
+WScope.attrScopeVariables
+	returns java.util.Map<String, VarDef>
+	implemented by de.peeeq.wurstscript.attributes.AttrScopeVariables.calculate
+
+
+WScope.attrScopeFunctions
+	returns com.google.common.collect.Multimap<String, FunctionDefinition>
+	implemented by de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculate
+
+VarDef.attrTyp
+	returns de.peeeq.wurstscript.types.PscriptType 
+	implemented by de.peeeq.wurstscript.attributes.AttrVarDefType.calculate
+
+
+
+PackageOrGlobal.attrPackageElements
+	returns com.google.common.collect.Multimap<String, WEntity>
+	implemented by de.peeeq.wurstscript.attributes.AttrPackageElements.calculate
+	
+	
+
+SortPos.attrNearestPackage
+	returns PackageOrGlobal
+	implemented by de.peeeq.wurstscript.attributes.AttrNearestPackage.calculate
+
+
+SortPos.attrNearestFuncDef
+	returns FuncDef
+	implemented by de.peeeq.wurstscript.attributes.AttrNearestFuncDef.calculate
+
+
+TypeRef.attrTypeDef
+	returns TypeDef
+	implemented by de.peeeq.wurstscript.attributes.AttrTypeDef.calculate
+
+SortPos.attrNearestClassDef
+	returns ClassDef
+	implemented by de.peeeq.wurstscript.attributes.AttrNearestClassDef.calculate
+
+
+WPackage.attrExportedVariables
+	returns java.util.Map<String, VarDef>
+	implemented by de.peeeq.wurstscript.attributes.AttrExportedVariables.calculate
+	
+	
+WPackage.attrExportedTypes
+	returns java.util.Map<String, TypeDef>
+	implemented by de.peeeq.wurstscript.attributes.AttrExportedTypes.calculate
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

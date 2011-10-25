@@ -1,0 +1,15 @@
+package bla {
+	public int magic = 7
+}
+
+
+package test {
+	import bla
+
+	native testSuccess()
+
+	init {
+		int x = magic
+		testSuccess()
+	}
+}

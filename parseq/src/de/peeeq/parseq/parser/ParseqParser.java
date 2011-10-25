@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
+import de.peeeq.parseq.Generator;
 import de.peeeq.parseq.Symbol;
 import de.peeeq.parseq.TokenType;
 import de.peeeq.parseq.ast.Alternative;
@@ -47,6 +48,7 @@ public class ParseqParser {
 	public Program parse() {
 		debug("parse");
 		consume(TokenType.PACKAGE);
+		getNextToken();
 		parsePackageName();
 		
 		if (!(sym.typeEquals(TokenType.ABSTRACT_SYNTAX))) {
@@ -56,6 +58,16 @@ public class ParseqParser {
 		getNextToken();
 		parseAbstractSyntaxRules();
 		
+		
+		if (!(sym.typeEquals(TokenType.ATTRIBUTES))) {
+			abort("Unexpected " + sym + ". Expected 'attributes:'.");
+		}
+		
+		getNextToken();
+		parseAttributes();
+		
+		
+		
 		if (!sym.typeEquals(TokenType.EOF)) {
 			abort("Unexpected token " + sym + ". Expected end of file.");
 		}
@@ -64,20 +76,106 @@ public class ParseqParser {
 	}
 
 
-	private void parsePackageName() {
-		debug("start parsePackageName");
+	private void parseAttributes() {
+		while (sym.getType() == TokenType.IDENTIFIER) {
+			parseAttribute();
+		}		
+	}
+
+
+
+	private void parseAttribute() {
+		debug("start parseAttribute");
+		String typ = sym.getString();
+		consume(DOT);
+		consume(IDENTIFIER);
+		String attr = sym.getString();
+		consume(RETURNS);
+		getNextToken();
+		String returns = join(parseQualifiedIdentifier(), ".");
+		if (sym.typeEquals(LT)) {
+			getNextToken();
+			returns += "<" + join(parseCommaSeperatedIdentifiers(), ", ") + ">";
+			if (!sym.typeEquals(GT)) {
+				abort("Unexpected " + sym + ". Expected `>`");
+			}
+			getNextToken();
+		}		
+		if (!sym.typeEquals(IMPLEMENTED_BY)) {
+			abort("Unexpected " + sym + ". Expected `implemented by`");
+		}
+		getNextToken();
+		String implementedBy = join(parseQualifiedIdentifier(), ".");
+		prog.addAttribute(typ, attr, returns, implementedBy);
+		debug("end parseAttribute");
+	}
+
+
+
+	private String join(List<String> list, String sep) {
+		return Generator.join(list, sep);
+	}
+
+	
+	private List<String> parseCommaSeperatedIdentifiers() {
+		debug("start parseQualifiedIdentifier");
 		List<String> parts = new LinkedList<String>();
 		loop: while (true) {
-			consume(IDENTIFIER);
+			if (!sym.typeEquals(IDENTIFIER)) {
+				abort("Error at token " + sym + ". Expected identifier.");
+			}
 			parts.add(sym.getString());
 			getNextToken();
 			switch (sym.getType()) {
-				case DOT:
+				case COMMA:
+					getNextToken();
 					break;
 				default:
 					break loop;
 			}
 		}
+		debug("end parseQualifiedIdentifier");
+		return parts;
+	}
+
+
+	private List<String> parseQualifiedIdentifier() {
+		debug("start parseQualifiedIdentifier");
+		List<String> parts = new LinkedList<String>();
+		loop: while (true) {
+			if (!sym.typeEquals(IDENTIFIER)) {
+				abort("Error at token " + sym + ". Expected identifier.");
+			}
+			parts.add(sym.getString());
+			getNextToken();
+			switch (sym.getType()) {
+				case DOT:
+					getNextToken();
+					break;
+				default:
+					break loop;
+			}
+		}
+		debug("end parseQualifiedIdentifier");
+		return parts;
+	}
+
+
+
+	private void parsePackageName() {
+		debug("start parsePackageName");
+		List<String> parts = parseQualifiedIdentifier();
+//		loop: while (true) {
+//			consume(IDENTIFIER);
+//			parts.add(sym.getString());
+//			getNextToken();
+//			switch (sym.getType()) {
+//				case DOT:
+//					break;
+//				default:
+//					break loop;
+//			}
+//		}
 		prog.setPackage(parts);
 		debug("end parsePackageName");
 	}
@@ -221,6 +319,13 @@ public class ParseqParser {
 
 	private void abort(String msg) {
 		System.out.println(msg);
+		if (debug) {
+			try {
+				throw new Error();
+			} catch (Error e) {
+				e.printStackTrace();
+			}
+		}
 		System.exit(0);
 	}
 	

@@ -67,8 +67,8 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 	void visit(StmtSet s) {
 		super.visit(s);
 		
-		PscriptType leftType = attr.exprType.get(s.getLeft());
-		PscriptType rightType = attr.exprType.get(s.getRight());
+		PscriptType leftType = s.getLeft().attrTyp();
+		PscriptType rightType = s.getRight().attrTyp();
 		
 		checkAssignment(Utils.isJassCode(s), s.getSource(), leftType, rightType);
 		
@@ -92,8 +92,8 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		super.visit(s);
 		if (s.getInitialExpr() instanceof Expr) {
 			Expr initial = (Expr) s.getInitialExpr();
-			PscriptType leftType = attr.varDefType.get(s);
-			PscriptType rightType = attr.exprType.get(initial);
+			PscriptType leftType = s.attrTyp();
+			PscriptType rightType = initial.attrTyp();
 			
 			checkAssignment(Utils.isJassCode(s), s.getSource(), leftType, rightType);
 		}		
@@ -105,8 +105,8 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		super.visit(s);
 		if (s.getInitialExpr() instanceof Expr) {
 			Expr initial = (Expr) s.getInitialExpr();
-			PscriptType leftType = attr.varDefType.get(s);
-			PscriptType rightType = attr.exprType.get(initial);
+			PscriptType leftType =s.attrTyp();
+			PscriptType rightType = initial.attrTyp();
 			checkAssignment(Utils.isJassCode(s), s.getSource(), leftType, rightType);
 		}
 	}
@@ -115,7 +115,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 	@Override
 	public void visit(StmtIf stmtIf) {
 		super.visit(stmtIf);
-		PscriptType condType = attr.exprType.get(stmtIf.getCond()); 
+		PscriptType condType = stmtIf.getCond().attrTyp(); 
 		if (!(condType instanceof PScriptTypeBool)) {
 			attr.addError(stmtIf.getCond().getSource(), "If condition must be a boolean but found " + condType);
 		}
@@ -125,7 +125,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 	@Override
 	public void visit(StmtWhile stmtWhile) {
 		super.visit(stmtWhile);
-		PscriptType condType = attr.exprType.get(stmtWhile.getCond()); 
+		PscriptType condType = stmtWhile.getCond().attrTyp(); 
 		if (!(condType instanceof PScriptTypeBool)) {
 			attr.addError(stmtWhile.getCond().getSource(), "While condition must be a boolean but found " + condType);
 		}
@@ -140,7 +140,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		
 		
 		if (func.getSignature().getTyp() instanceof TypeExpr) {
-			if (!attr.doesReturn.get(func.getBody())) {
+			if (!func.getBody().attrDoesReturn()) {
 				attr.addError(func.getSource(), "Function " + func.getSignature().getName() + " is missing a return statement.");
 			}
 		}
@@ -149,19 +149,19 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 	@Override public void visit(ExprFunctionCall stmtCall) {
 		super.visit(stmtCall);
 		// calculating the exprType should reveal all errors:
-		attr.exprType.get(stmtCall);
+		stmtCall.attrTyp();
 	}
 	
 	@Override public void visit(ExprMemberMethod stmtCall) {
 		super.visit(stmtCall);
 		// calculating the exprType should reveal all errors:
-		attr.exprType.get(stmtCall);
+		stmtCall.attrTyp();
 	}
 	
 	@Override public void visit(ExprNewObject stmtCall) {
 		super.visit(stmtCall);
 		// calculating the exprType should reveal all errors:
-		attr.exprType.get(stmtCall);
+		stmtCall.attrTyp();
 	}
 	
 	

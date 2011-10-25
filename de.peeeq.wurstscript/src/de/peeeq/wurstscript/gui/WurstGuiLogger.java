@@ -11,6 +11,7 @@ public class WurstGuiLogger implements WurstGui {
 	
 	@Override
 	public void sendError(CompileError err) {
+		System.out.println(err); // TODO remove output again
 		errors.add(err);
 	}
 

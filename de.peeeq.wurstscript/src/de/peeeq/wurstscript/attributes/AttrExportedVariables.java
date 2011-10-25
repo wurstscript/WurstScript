@@ -9,14 +9,9 @@ import de.peeeq.wurstscript.ast.VisibilityPublic;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WPackage;
 
-public class AttrExportedVariables extends Attribute<WPackage, Map<String, VarDef>> {
-
-	public AttrExportedVariables(Attributes attr) {
-		super(attr);
-	}
-
-	@Override
-	protected Map<String, VarDef> calculate(WPackage node) {
+public class AttrExportedVariables {
+	
+	public static  Map<String, VarDef> calculate(WPackage node) {
 		final Map<String, VarDef> result = new HashMap<String, VarDef>();
 		for (WEntity x : node.getElements()) {
 			if (x instanceof GlobalVarDef) {

@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
 import java.util.Map;
+import java.util.Map.Entry;
 
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassSlot;
@@ -25,15 +26,9 @@ import de.peeeq.wurstscript.utils.DefinitionMap;
 /**
  * this attribute calculates the available variables for a given VariableScope 
  */
-public class AttrScopeVariables extends Attribute<WScope, Map<String, VarDef>> {
-
-
-	public AttrScopeVariables(Attributes attr) {
-		super(attr);
-	}
-
-	@Override
-	protected Map<String, VarDef> calculate(WScope node) {
+public class AttrScopeVariables {
+	
+	public static  Map<String, VarDef> calculate(WScope node) {
 		final Map<String, VarDef> result = new DefinitionMap<String, VarDef>(){
 
 			@Override
@@ -47,14 +42,18 @@ public class AttrScopeVariables extends Attribute<WScope, Map<String, VarDef>> {
 			@Override
 			public Map<String, VarDef> case_WPackage(WPackage term)
 					 {
+				System.out.println("WPackage: " + term);
 				for (WImport i : term.getImports()) {
 					WPackage importedPackage = attr.getImportedPackage(i);
 					if (importedPackage == null) {
 						continue;
 					}
-					result.putAll(attr.exportedVariables.get(importedPackage));
+					System.out.println("Adding imports for: " + importedPackage.getName());
+					result.putAll(importedPackage.attrExportedVariables());
+					System.out.println("Added imports for: " + importedPackage.getName());
 				}
 				for (WEntity e : term.getElements()) {
+					System.out.println("	WEntity: " + e);
 					if (e instanceof VarDef) {
 						VarDef v = (VarDef) e;
 						result.put(v.getName(), v);

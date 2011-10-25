@@ -62,14 +62,9 @@ import de.peeeq.wurstscript.utils.Utils;
  * this attribute find the variable definition for every variable reference 
  *
  */
-public class AttrExprType extends Attribute<Expr, PscriptType> {
-
-	public AttrExprType(Attributes attr) {
-		super(attr);
-	}
-
-	@Override
-	protected PscriptType calculate(Expr node) {
+public class AttrExprType {
+	
+	public static  PscriptType calculate(Expr node) {
 		return node.match(new Expr.Matcher<PscriptType>() {
 
 			@Override
@@ -108,22 +103,22 @@ public class AttrExprType extends Attribute<Expr, PscriptType> {
 			@Override
 			public PscriptType case_ExprVarAccess(ExprVarAccess term)
 					 {
-				VarDef varDef = attr.varDef.get(term);
+				VarDef varDef = term.attrVarDef();
 				if (varDef == null) {
 					return PScriptTypeUnknown.instance();
 				}
-				return attr.varDefType.get(varDef);
+				return varDef.attrTyp();
 			}
 
 			@Override
 			public PscriptType case_ExprVarArrayAccess(
 					ExprVarArrayAccess term)  {
-				VarDef varDef = attr.varDef.get(term);
+				VarDef varDef = term.attrVarDef();
 				if (varDef == null) {
 					return PScriptTypeUnknown.instance();
 				}
 				
-				PscriptType varDefType = attr.varDefType.get(varDef);
+				PscriptType varDefType = varDef.attrTyp();
 				if (varDefType instanceof PScriptTypeArray) {
 					return ((PScriptTypeArray) varDefType).getBaseType();
 				} else {
@@ -148,8 +143,8 @@ public class AttrExprType extends Attribute<Expr, PscriptType> {
 
 			@Override
 			public PscriptType case_ExprBinary(final ExprBinary term)  {
-				final PscriptType  leftType = attr.exprType.get(term.getLeft());
-				final PscriptType  rightType = attr.exprType.get(term.getRight());
+				final PscriptType  leftType = term.getLeft().attrTyp();
+				final PscriptType  rightType = term.getRight().attrTyp();
 				return term.getOp().match(new OpBinary.Matcher<PscriptType>() {
 
 					
@@ -347,7 +342,7 @@ public class AttrExprType extends Attribute<Expr, PscriptType> {
 
 			@Override
 			public PscriptType case_ExprUnary(final ExprUnary term)  {
-				final PscriptType rightType = get(term.getRight());
+				final PscriptType rightType = term.getRight().attrTyp();
 				return term.getOp().match(new OpUnary.Matcher<PscriptType>() {
 
 					@Override
@@ -373,45 +368,45 @@ public class AttrExprType extends Attribute<Expr, PscriptType> {
 			@Override
 			public PscriptType case_ExprMemberVar(ExprMemberVar term)
 					 {
-				VarDef varDef = attr.varDef.get(term);
-				return attr.varDefType.get(varDef );
+				VarDef varDef = term.attrVarDef();
+				return varDef.attrTyp();
 			}
 
 			@Override
 			public PscriptType case_ExprMemberArrayVar(
 					ExprMemberArrayVar term)  {
-				VarDef varDef = attr.varDef.get(term);
-				return attr.varDefType.get(varDef );
+				VarDef varDef = term.attrVarDef();
+				return varDef.attrTyp();
 			}
 
 			@Override
 			public PscriptType case_ExprMemberMethod(ExprMemberMethod term)
 					 {
-				FunctionDefinition f = attr.funcDef.get(term);
+				FunctionDefinition f = term.attrFuncDef();
 				if (f.getSignature().getTyp() instanceof NoTypeExpr) {
 					return PScriptTypeVoid.instance();
 				}
-				return attr.typeExprType.get((TypeExpr) f.getSignature().getTyp());
+				return f.getSignature().getTyp().attrTyp();
 			}
 
 			@Override
 			public PscriptType case_ExprFunctionCall(ExprFunctionCall term)
 					 {
-				FunctionDefinition f = attr.funcDef.get(term);
+				FunctionDefinition f = term.attrFuncDef();
 				if (f == null) {
 					return PScriptTypeUnknown.instance();
 				}
 				if (f.getSignature().getTyp() instanceof NoTypeExpr) {
 					return PScriptTypeVoid.instance();
 				}
-				return attr.typeExprType.get((TypeExpr) f.getSignature().getTyp());
+				return f.getSignature().getTyp().attrTyp();
 			}
 
 			@Override
 			public PscriptType case_ExprNewObject(ExprNewObject term)
 					 {
 				
-				TypeDef typeDef = attr.typeDef.get(term);
+				TypeDef typeDef = term.attrTypeDef();
 				if (typeDef instanceof ClassDef) {
 					return new PscriptTypeClass((ClassDef) typeDef);
 				} else {
@@ -427,8 +422,8 @@ public class AttrExprType extends Attribute<Expr, PscriptType> {
 
 			@Override
 			public PscriptType case_ExprCast(ExprCast term)  {
-				PscriptType typ = attr.typeExprType.get(term.getTyp());
-				PscriptType exprTyp = attr.exprType.get(term.getExpr());
+				PscriptType typ = term.getTyp().attrTyp();
+				PscriptType exprTyp = term.getExpr().attrTyp();
 				if (typ instanceof PScriptTypeInt && exprTyp instanceof PscriptTypeClass) {
 					// cast from classtype to int: OK
 				} else if (typ instanceof PscriptTypeClass && exprTyp instanceof PScriptTypeInt) {

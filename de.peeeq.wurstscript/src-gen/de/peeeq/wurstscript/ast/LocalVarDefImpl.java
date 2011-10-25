@@ -21,7 +21,7 @@ class LocalVarDefImpl implements LocalVarDef, SortPosIntern {
 	private SortPos parent;
 	public SortPos getParent() { return parent; }
 	public void setParent(SortPos parent) {
-		if (parent != null && this.parent != null) { throw new Error("Parent already set."); }
+		if (parent != null && this.parent != null) { 			throw new Error("Parent of " + this + " already set: " + this.parent + "\ntried to change to " + parent); 		}
 		this.parent = parent;
 	}
 
@@ -66,31 +66,33 @@ class LocalVarDefImpl implements LocalVarDef, SortPosIntern {
 	} 
 	public OptExpr getInitialExpr() { return initialExpr; }
 
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+	public SortPos get(int i) {
+		switch (i) {
+			case 0: return source;
+			case 1: return typ;
+			case 2: return initialExpr;
+			default: throw new IllegalArgumentException("Index out of range: " + i);
+		}
+	}
+	public int size() {
+		return 3;
+	}
+	public LocalVarDef copy() {
+		return new LocalVarDefImpl(source.copy(), constant, typ.copy(), name, initialExpr.copy());
+	}
+	@Override public void accept(WPackage.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(StmtWhile.Visitor v) {
+	@Override public void accept(StmtIf.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WStatement.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WStatements.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtLoop.Visitor v) {
+	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
@@ -102,25 +104,25 @@ class LocalVarDefImpl implements LocalVarDef, SortPosIntern {
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
+	@Override public void accept(ClassSlots.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(VarDef.Visitor v) {
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassSlot.Visitor v) {
+	@Override public void accept(StmtWhile.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TypeDef.Visitor v) {
+	@Override public void accept(WEntities.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
@@ -132,7 +134,7 @@ class LocalVarDefImpl implements LocalVarDef, SortPosIntern {
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(StmtIf.Visitor v) {
+	@Override public void accept(ClassDef.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
@@ -150,43 +152,31 @@ class LocalVarDefImpl implements LocalVarDef, SortPosIntern {
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FuncDef.Visitor v) {
+	@Override public void accept(WStatement.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassSlots.Visitor v) {
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WPackage.Visitor v) {
+	@Override public void accept(ClassSlot.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassDef.Visitor v) {
+	@Override public void accept(TypeDef.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WEntities.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(LocalVarDef.Visitor v) {
+	@Override public void accept(WStatements.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
@@ -198,19 +188,43 @@ class LocalVarDefImpl implements LocalVarDef, SortPosIntern {
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(VarDef.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
+	@Override public void accept(FuncDef.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FunctionDefinition.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(LocalVarDef.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(StmtLoop.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(PackageOrGlobal.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
@@ -230,4 +244,43 @@ class LocalVarDefImpl implements LocalVarDef, SortPosIntern {
 		matcher.case_LocalVarDef(this);
 	}
 
+	@Override public String toString() {
+		return "LocalVarDef(" + source + ", " +constant + ", " +typ + ", " +name + ", " +initialExpr+")";
+	}
+	private boolean attr_attrTyp_isCached = false;
+	private de.peeeq.wurstscript.types.PscriptType attr_attrTyp_cache;
+	public de.peeeq.wurstscript.types.PscriptType attrTyp() {
+		if (!attr_attrTyp_isCached) {
+			attr_attrTyp_cache = de.peeeq.wurstscript.attributes.AttrVarDefType.calculate(this);
+			attr_attrTyp_isCached = true;
+		}
+		return attr_attrTyp_cache;
+	}
+	private boolean attr_attrNearestPackage_isCached = false;
+	private PackageOrGlobal attr_attrNearestPackage_cache;
+	public PackageOrGlobal attrNearestPackage() {
+		if (!attr_attrNearestPackage_isCached) {
+			attr_attrNearestPackage_cache = de.peeeq.wurstscript.attributes.AttrNearestPackage.calculate(this);
+			attr_attrNearestPackage_isCached = true;
+		}
+		return attr_attrNearestPackage_cache;
+	}
+	private boolean attr_attrNearestFuncDef_isCached = false;
+	private FuncDef attr_attrNearestFuncDef_cache;
+	public FuncDef attrNearestFuncDef() {
+		if (!attr_attrNearestFuncDef_isCached) {
+			attr_attrNearestFuncDef_cache = de.peeeq.wurstscript.attributes.AttrNearestFuncDef.calculate(this);
+			attr_attrNearestFuncDef_isCached = true;
+		}
+		return attr_attrNearestFuncDef_cache;
+	}
+	private boolean attr_attrNearestClassDef_isCached = false;
+	private ClassDef attr_attrNearestClassDef_cache;
+	public ClassDef attrNearestClassDef() {
+		if (!attr_attrNearestClassDef_isCached) {
+			attr_attrNearestClassDef_cache = de.peeeq.wurstscript.attributes.AttrNearestClassDef.calculate(this);
+			attr_attrNearestClassDef_isCached = true;
+		}
+		return attr_attrNearestClassDef_cache;
+	}
 }
