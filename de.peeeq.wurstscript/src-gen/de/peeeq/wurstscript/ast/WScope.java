@@ -184,5 +184,10 @@ public interface WScope extends SortPos{
 		@Override public void visit(ExprFunctionCall exprFunctionCall) {}
 	}
 	public abstract java.util.Map<String, VarDef> attrScopeVariables();
+	public abstract java.util.Map<String, VarDef> attrScopePackageVariables();
+	public abstract java.util.Map<String, VarDef> attrScopePublicVariables();
+	public abstract java.util.Map<String, VarDef> attrScopePublicReadVariables();
 	public abstract com.google.common.collect.Multimap<String, FunctionDefinition> attrScopeFunctions();
+	public abstract com.google.common.collect.Multimap<String, FunctionDefinition> attrScopePackageFunctions();
+	public abstract com.google.common.collect.Multimap<String, FunctionDefinition> attrScopePublicFunctions();
 }

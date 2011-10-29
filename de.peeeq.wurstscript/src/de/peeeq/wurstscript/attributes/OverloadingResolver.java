@@ -54,6 +54,7 @@ public abstract class OverloadingResolver<F,C> {
 			for (F f : alternativeFunctions) {
 				return f;
 			}
+			handleError(Utils.list("No constructor found."));
 			return null;
 		} else {
 			handleError(Utils.list("call is ambigious"));

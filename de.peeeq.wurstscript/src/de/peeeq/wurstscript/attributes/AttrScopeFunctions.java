@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 import de.peeeq.wurstscript.ast.ClassDef;
@@ -12,6 +13,10 @@ import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.TopLevelDeclaration;
+import de.peeeq.wurstscript.ast.VisibilityDefault;
+import de.peeeq.wurstscript.ast.VisibilityModifier;
+import de.peeeq.wurstscript.ast.VisibilityProtected;
+import de.peeeq.wurstscript.ast.VisibilityPublic;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
@@ -99,5 +104,31 @@ public class AttrScopeFunctions {
 		});
 	}
 
+	public static Multimap<String, FunctionDefinition> calculatePackage(WScope scope) {
+		Multimap<String, FunctionDefinition> result = HashMultimap.create();
+		for (FunctionDefinition f : scope.attrScopeFunctions().values()) {
+			if (f instanceof FuncDef) {
+				FuncDef funcDef = (FuncDef) f;
+				if (funcDef.getVisibility() instanceof VisibilityDefault
+						|| funcDef.getVisibility() instanceof VisibilityProtected
+						|| funcDef.getVisibility() instanceof VisibilityPublic) {
+					result.put(funcDef.getSignature().getName(), funcDef);
+				}
+			}
+		}
+		return result;
+	}
 
+	public static Multimap<String, FunctionDefinition> calculatePublic(WScope scope) {
+		Multimap<String, FunctionDefinition> result = HashMultimap.create();
+		for (FunctionDefinition f : scope.attrScopeFunctions().values()) {
+			if (f instanceof FuncDef) {
+				FuncDef funcDef = (FuncDef) f;
+				if (funcDef.getVisibility() instanceof VisibilityPublic) {
+					result.put(funcDef.getSignature().getName(), funcDef);
+				}
+			}
+		}
+		return result;
+	}
 }

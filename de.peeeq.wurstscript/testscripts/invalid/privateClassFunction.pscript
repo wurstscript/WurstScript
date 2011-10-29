@@ -1,0 +1,20 @@
+package bla {
+	public class A {
+		public construct() {
+		
+		}
+	 
+		function foo() returns int {
+			return 1
+		}
+	}
+}
+
+
+package test {
+	import bla
+
+	init {
+		int j = (new A()).foo()	
+	}
+}

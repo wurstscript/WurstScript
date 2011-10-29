@@ -17,7 +17,6 @@ import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.SortPos;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.attributes.Attributes;
 import de.peeeq.wurstscript.intermediateLang.ILfunction;
 import de.peeeq.wurstscript.intermediateLang.ILvar;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
@@ -33,7 +32,6 @@ public class NameManagement {
 	// stores the name for every element
 		private final Map<SortPos, String> elementNames = new HashMap<SortPos, String>();
 		private final Set<String> usedNames = new HashSet<String>();
-		private final Attributes attr;
 		private final Map<FunctionDefinition, ILfunction> functions = new HashMap<FunctionDefinition, ILfunction>();
 		private final Map<ConstructorDef, ILfunction> constructors = new HashMap<ConstructorDef, ILfunction>();
 		private final Map<InitBlock, ILfunction> initBlockFunctions = new HashMap<InitBlock, ILfunction>();
@@ -42,8 +40,7 @@ public class NameManagement {
 		private long varUniqueNameCounter = 0;
 		private ILfunction globalInitFunction;
 		
-		public NameManagement(Attributes attr) {
-			this.attr = attr;
+		public NameManagement() {
 		}
 		
 		/**
@@ -85,6 +82,7 @@ public class NameManagement {
 		 * get the ILfunction for a given constructor
 		 */
 		ILfunction getConstructorFunction(final ConstructorDef constr) {
+			if (constr == null) throw new IllegalArgumentException("constr must not be null");
 			if (constructors.containsKey(constr)) {
 				return constructors.get(constr);
 			}

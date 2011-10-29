@@ -56,6 +56,33 @@ class CompilationUnitImpl extends CompilationUnit implements SortPosIntern {
 		}
 		return attr_attrScopeVariables_cache;
 	}
+	private boolean attr_attrScopePackageVariables_isCached = false;
+	private java.util.Map<String, VarDef> attr_attrScopePackageVariables_cache;
+	public java.util.Map<String, VarDef> attrScopePackageVariables() {
+		if (!attr_attrScopePackageVariables_isCached) {
+			attr_attrScopePackageVariables_cache = de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePackage(this);
+			attr_attrScopePackageVariables_isCached = true;
+		}
+		return attr_attrScopePackageVariables_cache;
+	}
+	private boolean attr_attrScopePublicVariables_isCached = false;
+	private java.util.Map<String, VarDef> attr_attrScopePublicVariables_cache;
+	public java.util.Map<String, VarDef> attrScopePublicVariables() {
+		if (!attr_attrScopePublicVariables_isCached) {
+			attr_attrScopePublicVariables_cache = de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePublic(this);
+			attr_attrScopePublicVariables_isCached = true;
+		}
+		return attr_attrScopePublicVariables_cache;
+	}
+	private boolean attr_attrScopePublicReadVariables_isCached = false;
+	private java.util.Map<String, VarDef> attr_attrScopePublicReadVariables_cache;
+	public java.util.Map<String, VarDef> attrScopePublicReadVariables() {
+		if (!attr_attrScopePublicReadVariables_isCached) {
+			attr_attrScopePublicReadVariables_cache = de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePublicRead(this);
+			attr_attrScopePublicReadVariables_isCached = true;
+		}
+		return attr_attrScopePublicReadVariables_cache;
+	}
 	private boolean attr_attrScopeFunctions_isCached = false;
 	private com.google.common.collect.Multimap<String, FunctionDefinition> attr_attrScopeFunctions_cache;
 	public com.google.common.collect.Multimap<String, FunctionDefinition> attrScopeFunctions() {
@@ -64,6 +91,24 @@ class CompilationUnitImpl extends CompilationUnit implements SortPosIntern {
 			attr_attrScopeFunctions_isCached = true;
 		}
 		return attr_attrScopeFunctions_cache;
+	}
+	private boolean attr_attrScopePackageFunctions_isCached = false;
+	private com.google.common.collect.Multimap<String, FunctionDefinition> attr_attrScopePackageFunctions_cache;
+	public com.google.common.collect.Multimap<String, FunctionDefinition> attrScopePackageFunctions() {
+		if (!attr_attrScopePackageFunctions_isCached) {
+			attr_attrScopePackageFunctions_cache = de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculatePackage(this);
+			attr_attrScopePackageFunctions_isCached = true;
+		}
+		return attr_attrScopePackageFunctions_cache;
+	}
+	private boolean attr_attrScopePublicFunctions_isCached = false;
+	private com.google.common.collect.Multimap<String, FunctionDefinition> attr_attrScopePublicFunctions_cache;
+	public com.google.common.collect.Multimap<String, FunctionDefinition> attrScopePublicFunctions() {
+		if (!attr_attrScopePublicFunctions_isCached) {
+			attr_attrScopePublicFunctions_cache = de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculatePublic(this);
+			attr_attrScopePublicFunctions_isCached = true;
+		}
+		return attr_attrScopePublicFunctions_cache;
 	}
 	private boolean attr_attrPackageElements_isCached = false;
 	private com.google.common.collect.Multimap<String, WEntity> attr_attrPackageElements_cache;

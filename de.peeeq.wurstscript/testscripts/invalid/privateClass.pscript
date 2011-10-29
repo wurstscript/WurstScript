@@ -1,7 +1,9 @@
 package bla {
 
-	function foo() {
+	class A {
+	
 	}
+	
 }
 
 
@@ -9,6 +11,6 @@ package test {
 	import bla
 
 	init {
-		foo() // error, foo is not public	
+		new A() // error, A is not public	
 	}
 }

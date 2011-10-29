@@ -41,7 +41,6 @@ import de.peeeq.wurstscript.ast.OpUnary;
 import de.peeeq.wurstscript.ast.OpUnequals;
 import de.peeeq.wurstscript.ast.SortPos;
 import de.peeeq.wurstscript.ast.TypeDef;
-import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
@@ -369,6 +368,9 @@ public class AttrExprType {
 			public PscriptType case_ExprMemberVar(ExprMemberVar term)
 					 {
 				VarDef varDef = term.attrVarDef();
+				if (varDef == null) {
+					return PScriptTypeUnknown.instance();
+				}
 				return varDef.attrTyp();
 			}
 
@@ -383,6 +385,9 @@ public class AttrExprType {
 			public PscriptType case_ExprMemberMethod(ExprMemberMethod term)
 					 {
 				FunctionDefinition f = term.attrFuncDef();
+				if (f == null) {
+					return PScriptTypeUnknown.instance();
+				}
 				if (f.getSignature().getTyp() instanceof NoTypeExpr) {
 					return PScriptTypeVoid.instance();
 				}

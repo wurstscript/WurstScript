@@ -13,7 +13,7 @@ import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.WPos;
-import de.peeeq.wurstscript.attributes.Attributes;
+import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
@@ -34,14 +34,12 @@ import de.peeeq.wurstscript.utils.Utils;
  */
 public class WurstValidator extends CompilationUnit.DefaultVisitor {
 
-	private Attributes attr;
 	private CompilationUnit prog;
 	private int functionCount;
 	private int visitedFunctions;
 
-	public WurstValidator(CompilationUnit prog, Attributes attr) {
+	public WurstValidator(CompilationUnit prog) {
 		this.prog = prog;
-		this.attr = attr;
 	}
 	
 	public void validate() {
@@ -160,8 +158,8 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 	
 	@Override public void visit(ExprNewObject stmtCall) {
 		super.visit(stmtCall);
-		// calculating the exprType should reveal all errors:
 		stmtCall.attrTyp();
+		stmtCall.attrConstructorDef();
 	}
 	
 	

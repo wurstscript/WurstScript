@@ -12,8 +12,8 @@ import java_cup.runtime.Symbol;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.TopLevelDeclaration;
-import de.peeeq.wurstscript.attributes.Attributes;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediateLang.ILprog;
 import de.peeeq.wurstscript.intermediateLang.translator.IntermediateLangTranslator;
@@ -95,10 +95,10 @@ public class WurstCompilerImpl implements WurstCompiler {
 		gui.sendProgress("Checking Files", 0.2);
 		
 		// create new attributes instance:
-		Attributes attr = new Attributes(gui);
+		attr.init(gui);
 		
 		// validate the resource:
-		WurstValidator validator = new WurstValidator(root, attr);
+		WurstValidator validator = new WurstValidator(root);
 		validator.validate();
 		
 		if (attr.getErrorCount() > 0) {
@@ -110,7 +110,7 @@ public class WurstCompilerImpl implements WurstCompiler {
 		
 		
 		// translate to intermediate lang:
-		IntermediateLangTranslator translator = new IntermediateLangTranslator(root, attr);
+		IntermediateLangTranslator translator = new IntermediateLangTranslator(root);
 		ilProg = translator.translate();
 		
 		if (attr.getErrorCount() > 0) {

@@ -3,7 +3,8 @@ package de.peeeq.wurstscript.intermediateLang.translator;
 import java.util.LinkedList;
 import java.util.List;
 
-import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.ast.Arguments;
+import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -30,6 +31,7 @@ import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
+import de.peeeq.wurstscript.ast.Indexes;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.JassGlobalBlock;
 import de.peeeq.wurstscript.ast.LocalVarDef;
@@ -65,14 +67,13 @@ import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.TopLevelDeclaration;
-import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
-import de.peeeq.wurstscript.attributes.Attributes;
+import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.intermediateLang.ILStatement;
 import de.peeeq.wurstscript.intermediateLang.ILarraySetVar;
 import de.peeeq.wurstscript.intermediateLang.ILconstBool;
@@ -116,15 +117,13 @@ public class IntermediateLangTranslator {
 
 	private CompilationUnit cu;
 	private ILprog prog = new ILprog();
-	private Attributes attr;
 	private NameManagement names;
 	private GlobalInits globalInits = new GlobalInits();
 
 
-	public IntermediateLangTranslator(CompilationUnit cu, Attributes attr) {
+	public IntermediateLangTranslator(CompilationUnit cu) {
 		this.cu = cu;
-		this.attr = attr;
-		names = new NameManagement(attr);
+		names = new NameManagement();
 	}
 
 	public ILprog translate() {
@@ -346,11 +345,7 @@ public class IntermediateLangTranslator {
 
 			@Override
 			public List<ILStatement> case_ExprNewObject(ExprNewObject term)  {
-				// get constructor for this
-
-
-				// TODO implement new expr
-				throw new Error("not implemented");
+				return translateExprNewPos(func, null, term);
 			}
 
 			@Override
@@ -778,7 +773,8 @@ public class IntermediateLangTranslator {
 		List<ILStatement> result = new NotNullList<ILStatement>();
 
 		ConstructorDef constr = term.attrConstructorDef();
-
+		
+		
 		ILfunction constrFunc = names.getConstructorFunction(constr);
 
 		// translate arguments

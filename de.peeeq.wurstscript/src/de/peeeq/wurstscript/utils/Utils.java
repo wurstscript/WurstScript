@@ -10,7 +10,6 @@ import java.util.Set;
 import com.google.common.base.Function;
 
 import de.peeeq.wurstscript.ast.SortPos;
-import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 
 public class Utils {

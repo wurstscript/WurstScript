@@ -37,8 +37,9 @@ public class AttrConstructorDef {
 			
 		} else {
 			attr.addError(node.getSource(), "Can only create instances of classes.");
+			return null;
 		}
-		return null;
+		
 	}
 
 

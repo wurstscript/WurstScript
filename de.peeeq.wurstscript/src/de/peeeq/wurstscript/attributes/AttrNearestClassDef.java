@@ -18,6 +18,9 @@ public class AttrNearestClassDef {
 		if (node instanceof ClassDef) {
 			return (ClassDef) node;
 		}
+		if (node.getParent() == null) {
+			return null;
+		}
 		return node.getParent().attrNearestClassDef();
 	}
 

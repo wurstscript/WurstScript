@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.FuncRef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
+import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
@@ -44,7 +45,18 @@ public class AttrFuncDef {
 				if (leftType instanceof PscriptTypeClass) {
 					PscriptTypeClass leftTypeC = (PscriptTypeClass) leftType;
 					ClassDef classDef = leftTypeC.getClassDef();
-					Multimap<String, FunctionDefinition> functions = classDef.attrScopeFunctions();
+					
+					Multimap<String, FunctionDefinition> functions;
+					if (classDef == left.attrNearestClassDef()) {
+						// same class
+						functions = classDef.attrScopeFunctions();
+					} else if (classDef.attrNearestPackage() == left.attrNearestPackage()) {
+						// same package
+						functions = classDef.attrScopePackageFunctions();
+					} else {
+						// different package
+						functions = classDef.attrScopePublicFunctions();
+					}
 					if (functions.containsKey(funcName)) {
 						return selectOverloadedFunction(node, functions.get(funcName));
 					}

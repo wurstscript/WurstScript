@@ -213,10 +213,32 @@ WScope.attrScopeVariables
 	returns java.util.Map<String, VarDef>
 	implemented by de.peeeq.wurstscript.attributes.AttrScopeVariables.calculate
 
+WScope.attrScopePackageVariables
+	returns java.util.Map<String, VarDef>
+	implemented by de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePackage
+	
+WScope.attrScopePublicVariables
+	returns java.util.Map<String, VarDef>
+	implemented by de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePublic
+
+WScope.attrScopePublicReadVariables
+	returns java.util.Map<String, VarDef>
+	implemented by de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePublicRead
+
 
 WScope.attrScopeFunctions
 	returns com.google.common.collect.Multimap<String, FunctionDefinition>
 	implemented by de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculate
+
+WScope.attrScopePackageFunctions
+	returns com.google.common.collect.Multimap<String, FunctionDefinition>
+	implemented by de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculatePackage
+
+WScope.attrScopePublicFunctions
+	returns com.google.common.collect.Multimap<String, FunctionDefinition>
+	implemented by de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculatePublic
+
+
 
 VarDef.attrTyp
 	returns de.peeeq.wurstscript.types.PscriptType 

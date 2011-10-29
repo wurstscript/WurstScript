@@ -1,0 +1,18 @@
+package bla {
+	public class A {
+		public construct() {
+		
+		}
+	 
+		int i = 1
+	}
+}
+
+
+package test {
+	import bla
+
+	init {
+		int j = (new A()).i	
+	}
+}

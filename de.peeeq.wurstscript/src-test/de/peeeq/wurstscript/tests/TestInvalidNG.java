@@ -3,11 +3,9 @@ package de.peeeq.wurstscript.tests;
 
 import static org.testng.AssertJUnit.assertTrue;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.List;
 
 import org.testng.annotations.DataProvider;
@@ -20,10 +18,6 @@ import de.peeeq.wurstscript.WurstCompiler;
 import de.peeeq.wurstscript.WurstCompilerImpl;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.intermediateLang.ILprog;
-import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreter;
-import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreterImpl;
-import de.peeeq.wurstscript.intermediateLang.interpreter.TestFailException;
-import de.peeeq.wurstscript.intermediateLang.interpreter.TestSuccessException;
 import de.peeeq.wurstscript.utils.NotNullList;
 
 public class TestInvalidNG {

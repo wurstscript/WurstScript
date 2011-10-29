@@ -1,13 +1,17 @@
 package de.peeeq.wurstscript.attributes;
 
 import java.util.Map;
-import java.util.Map.Entry;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.JassGlobalBlock;
@@ -15,6 +19,10 @@ import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.TopLevelDeclaration;
 import de.peeeq.wurstscript.ast.VarDef;
+import de.peeeq.wurstscript.ast.VisibilityDefault;
+import de.peeeq.wurstscript.ast.VisibilityProtected;
+import de.peeeq.wurstscript.ast.VisibilityPublic;
+import de.peeeq.wurstscript.ast.VisibilityPublicread;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
@@ -161,5 +169,47 @@ public class AttrScopeVariables {
 		});
 	}
 
+	
+	public static Map<String, VarDef> calculatePackage(WScope scope) {
+		Map<String, VarDef> result = Maps.newHashMap();
+		for (VarDef f : scope.attrScopeVariables().values()) {
+			if (f instanceof GlobalVarDef) {
+				GlobalVarDef g = (GlobalVarDef) f;
+				if (g.getVisibility() instanceof VisibilityDefault
+						|| g.getVisibility() instanceof VisibilityProtected
+						|| g.getVisibility() instanceof VisibilityPublic) {
+					result.put(g.getName(), g);
+				}
+			}
+		}
+		return result;
+	}
+
+	public static Map<String, VarDef> calculatePublic(WScope scope) {
+		Map<String, VarDef> result = Maps.newHashMap();
+		for (VarDef f : scope.attrScopeVariables().values()) {
+			if (f instanceof GlobalVarDef) {
+				GlobalVarDef g = (GlobalVarDef) f;
+				if (g.getVisibility() instanceof VisibilityPublic) {
+					result.put(g.getName(), g);
+				}
+			}
+		}
+		return result;
+	}
+	
+	public static Map<String, VarDef> calculatePublicRead(WScope scope) {
+		Map<String, VarDef> result = Maps.newHashMap();
+		for (VarDef f : scope.attrScopeVariables().values()) {
+			if (f instanceof GlobalVarDef) {
+				GlobalVarDef g = (GlobalVarDef) f;
+				if (g.getVisibility() instanceof VisibilityPublic
+						|| g.getVisibility() instanceof VisibilityPublicread) {
+					result.put(g.getName(), g);
+				}
+			}
+		}
+		return result;
+	}
 
 }

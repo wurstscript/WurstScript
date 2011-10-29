@@ -12,7 +12,12 @@ import org.testng.annotations.Test;
 
 import com.google.common.base.Function;
 
-import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.ast.Ast;
+import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.GlobalVarDef;
+import de.peeeq.wurstscript.ast.VarRef;
+import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.ast.WPos;
 
 public class UtilsTest {
 
