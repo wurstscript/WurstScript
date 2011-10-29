@@ -1,0 +1,13 @@
+package bla {
+
+	int i = 1
+}
+
+
+package test {
+	import bla
+
+	init {
+		int j = i // error, i is not public	
+	}
+}
