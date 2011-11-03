@@ -1,5 +1,5 @@
 Errors in validation phase:
-Error in File missingEndCurlyBracket.pscript line 7:0:
+Error in File missingEndBrace.pscript line 8:0:
 Grammatical error: unexpected EOF	expected: IDENTIFIER, RBRACK, FUNCTION, VAL, PUBLIC, PUBLICREAD, PRIVATE, NATIVETYPE, INIT, NATIVE, CLASS
-Error in File missingEndCurlyBracket.pscript line 7:0:
+Error in File missingEndBrace.pscript line 8:0:
 Could not continue to parse file ...

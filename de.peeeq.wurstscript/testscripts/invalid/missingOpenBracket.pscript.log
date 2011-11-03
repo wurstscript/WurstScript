@@ -1,5 +1,3 @@
 Errors in validation phase:
-Error in File missingOpenBracket.pscript line 2:14:
-Grammatical error: unexpected RPAR	expected: LPAR
-Error in File missingOpenBracket.pscript line 2:14:
-Could not continue to parse file ...
+Error in File missingOpenBracket.pscript line 4:4:
+Grammatical error: unexpected INTEGER_LITERAL 1	expected: IDENTIFIER, EQEQ, GTEQ, LTEQ, NOTEQ, GT, LT, EQ, AND, OR, PLUS, MINUS, MULT, DIV_REAL, DIV_INT, MOD_REAL, MOD_INT, DOT, LPAR, LSQUARE, ARRAY, CASTTO

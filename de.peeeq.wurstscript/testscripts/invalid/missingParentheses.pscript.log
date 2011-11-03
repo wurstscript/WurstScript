@@ -1,5 +1,5 @@
 Errors in validation phase:
-Error in File missingBrackets.pscript line 2:15:
+Error in File missingParentheses.pscript line 2:15:
 Grammatical error: unexpected LBRACK	expected: LPAR
-Error in File missingBrackets.pscript line 2:15:
+Error in File missingParentheses.pscript line 2:15:
 Could not continue to parse file ...

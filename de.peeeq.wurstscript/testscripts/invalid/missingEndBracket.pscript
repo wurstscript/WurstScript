@@ -1,4 +1,7 @@
 package one {
-	function blub( {
+	function blub() {
+		int array a
+		a[1 = 1
 	}
+
 }
