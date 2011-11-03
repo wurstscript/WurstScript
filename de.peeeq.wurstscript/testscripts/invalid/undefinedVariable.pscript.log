@@ -1,0 +1,13 @@
+Prog was null.
+Error in File undefinedVariable.pscript line 3:14:
+Could not resolve reference to variable j
+Error in File undefinedVariable.pscript line 3:10:
+Operator OpPlus is not defined for operands integer and #unknown
+Error in File undefinedVariable.pscript line 3:2:
+Cannot assign #unknown to integer
+Error in File undefinedVariable.pscript line 3:14:
+Could not resolve reference to variable j
+Error in File undefinedVariable.pscript line 3:10:
+Operator OpPlus is not defined for operands integer and #unknown
+Error in File undefinedVariable.pscript line 3:2:
+Cannot assign #unknown to integer

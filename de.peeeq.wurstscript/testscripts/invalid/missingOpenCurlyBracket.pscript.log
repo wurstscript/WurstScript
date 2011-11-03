@@ -1,0 +1,5 @@
+Errors in validation phase:
+Error in File missingOpenCurlyBracket.pscript line 2:17:
+Grammatical error: unexpected NL	expected: LBRACK
+Error in File missingOpenCurlyBracket.pscript line 2:17:
+Could not continue to parse file ...

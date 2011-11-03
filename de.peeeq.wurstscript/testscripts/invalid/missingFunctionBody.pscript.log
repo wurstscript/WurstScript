@@ -1,0 +1,5 @@
+Errors in validation phase:
+Error in File missingFunctionBody.pscript line 2:16:
+Grammatical error: unexpected NL	expected: LBRACK
+Error in File missingFunctionBody.pscript line 2:16:
+Could not continue to parse file ...
