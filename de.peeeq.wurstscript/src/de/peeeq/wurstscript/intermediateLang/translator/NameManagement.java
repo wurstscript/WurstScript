@@ -14,7 +14,7 @@ import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
-import de.peeeq.wurstscript.ast.SortPos;
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.intermediateLang.ILfunction;
@@ -30,7 +30,7 @@ public class NameManagement {
 	
 	
 	// stores the name for every element
-		private final Map<SortPos, String> elementNames = new HashMap<SortPos, String>();
+		private final Map<AstElement, String> elementNames = new HashMap<AstElement, String>();
 		private final Set<String> usedNames = new HashSet<String>();
 		private final Map<FunctionDefinition, ILfunction> functions = new HashMap<FunctionDefinition, ILfunction>();
 		private final Map<ConstructorDef, ILfunction> constructors = new HashMap<ConstructorDef, ILfunction>();
@@ -163,7 +163,7 @@ public class NameManagement {
 			return var;
 		}
 		
-		private String getNameFor(SortPos term, String name) {
+		private String getNameFor(AstElement term, String name) {
 			if (elementNames.containsKey(term)) {
 				return elementNames.get(term);
 			}

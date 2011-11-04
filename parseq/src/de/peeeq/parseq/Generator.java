@@ -356,7 +356,7 @@ public class Generator {
 				if (!JavaTypes.otherTypes.contains(p.typ)) {
 					// we have a generated type. 
 					// the new element has a new parent:
-					sb.append("		((SortPosIntern)" + p.name + ").setParent(this);\n");
+					sb.append("		(("+getCommonSupertypeType()+"Intern)" + p.name + ").setParent(this);\n");
 				}
 			}
 			sb.append("		this." + p.name + " = " + p.name + ";\n");
@@ -386,9 +386,9 @@ public class Generator {
 				if (!JavaTypes.otherTypes.contains(p.typ)) {
 					// we have a generated type. 
 					// the removed type looses its parent:
-					sb.append("		((SortPosIntern)this." + p.name + ").setParent(null);\n");
+					sb.append("		(("+getCommonSupertypeType()+"Intern)this." + p.name + ").setParent(null);\n");
 					// the new element has a new parent:
-					sb.append("		((SortPosIntern)" + p.name + ").setParent(this);\n");
+					sb.append("		(("+getCommonSupertypeType()+"Intern)" + p.name + ").setParent(this);\n");
 				}
 			}
 			sb.append("		this." + p.name + " = " + p.name + ";\n" + "	} \n");
@@ -398,7 +398,7 @@ public class Generator {
 	}
 
 	private int createGetMethod(ConstructorDef c, StringBuilder sb) {
-		sb.append("	public SortPos get(int i) {\n");
+		sb.append("	public "+getCommonSupertypeType()+" get(int i) {\n");
 		sb.append("		switch (i) {\n");
 		int childCount = 0;
 		for (Parameter p : c.parameters) {
@@ -693,7 +693,7 @@ public class Generator {
 		StringBuilder sb;
 		sb = new StringBuilder();
 		printProlog(sb);
-		sb.append("class " + l.name + "Impl extends "+l.name+" implements SortPosIntern {\n ");
+		sb.append("class " + l.name + "Impl extends "+l.name+" implements "+getCommonSupertypeType()+"Intern {\n ");
 		
 		createGetSetParentMethods(sb);
 		
@@ -701,7 +701,7 @@ public class Generator {
 		if (JavaTypes.primitiveTypes.contains(l.itemType) || JavaTypes.otherTypes.contains(l.itemType)) {
 			
 		} else {
-			sb.append("		((SortPosIntern) t).setParent(this);\n");
+			sb.append("		(("+getCommonSupertypeType()+"Intern) t).setParent(this);\n");
 		}
 		sb.append("	}\n");
 		
@@ -709,7 +709,7 @@ public class Generator {
 		if (JavaTypes.primitiveTypes.contains(l.itemType) || JavaTypes.otherTypes.contains(l.itemType)) {
 			
 		} else {
-			sb.append("		((SortPosIntern) t).setParent(null);\n");
+			sb.append("		(("+getCommonSupertypeType()+"Intern) t).setParent(null);\n");
 		}
 		sb.append("	}\n");
 		
@@ -775,10 +775,10 @@ public class Generator {
 		StringBuilder sb = new StringBuilder();
 		printProlog(sb);
 		
-		sb.append("public interface SortPos {\n" +
-				"	SortPos getParent();\n" +
+		sb.append("public interface "+getCommonSupertypeType()+" {\n" +
+				"	"+getCommonSupertypeType()+" getParent();\n" +
 				"	int size();\n" +
-				"	SortPos get(int i);\n");
+				"	"+getCommonSupertypeType()+" get(int i);\n");
 		for (AttributeDef attr : prog.attrDefs) {
 			if (attr.typ.equals(getCommonSupertypeType())) {
 				sb.append("	"  +attr.returns + " " + attr.attr + "();\n");
@@ -786,11 +786,11 @@ public class Generator {
 		}
 		sb.append("}\n\n");
 		
-		sb.append("interface SortPosIntern {\n" +
-				"	void setParent(SortPos pos);\n" +
+		sb.append("interface "+getCommonSupertypeType()+"Intern {\n" +
+				"	void setParent("+getCommonSupertypeType()+" pos);\n" +
 				"}\n\n");
 		
-		createFile("SortPos", sb);
+		createFile(getCommonSupertypeType(), sb);
 		
 		
 		
@@ -810,7 +810,7 @@ public class Generator {
 	}
 
 	private String getCommonSupertypeType() {
-		return "SortPos"; // TODO
+		return  toFirstUpper(mainName) + "Element";
 	}
 
 	private void printProlog(StringBuilder sb) {

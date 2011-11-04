@@ -1,5 +1,6 @@
 Errors in validation phase:
 Error in File excessiveEndBrace.pscript line 7:0:
-Grammatical error: unexpected RBRACK	expected: EOF, PACKAGE, FUNCTION, NATIVE, TYPE, GLOBALS, CONSTANT
+Grammatical error: unexpected '}'	expected: 0 end of file, 36 'package', 38 'function', 47 'native', 62 'type', 63 'globals', 65 'constant'
+state = 3
 Error in File excessiveEndBrace.pscript line 7:0:
 Could not continue to parse file ...
