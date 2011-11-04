@@ -1,3 +1,0 @@
-Errors in validation phase:
-Error in File excessiveEndBracket.pscript line 4:7:
-Grammatical error: unexpected RSQUARE	expected: EQEQ, GTEQ, LTEQ, NOTEQ, GT, LT, EQ, AND, OR, PLUS, MINUS, MULT, DIV_REAL, DIV_INT, MOD_REAL, MOD_INT, DOT, CASTTO

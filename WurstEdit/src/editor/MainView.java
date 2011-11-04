@@ -113,11 +113,21 @@ public class MainView extends JFrame {
 	private void createPackagePanel() {
 		packageTree = new JTree();
 		packageScrollPane = new JScrollPane(packageTree);
+		packageScrollPane.setSize(150, 600);
 	}
 	
 	private void createErrorPanel() {
-		errorTable = new JTable(1,5);
+		String[] columnNames = {"Description",
+                "Resource",
+                "Path",
+                "Location",
+                "Type"};
+		Object[][] data = {
+			    {"", "",
+			     "", "", ""}};
+		errorTable = new JTable(data, columnNames);
 		errorScrollPane = new JScrollPane(errorTable);
+		errorScrollPane.setSize(650, 150);
 	}
 	
 	private void createTextAreaPanel() {
