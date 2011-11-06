@@ -49,7 +49,7 @@ class JassExprFunctionCallImpl implements JassExprFunctionCall, JassAstElementIn
 		arguments.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(StmtExitwhen.Visitor v) {
+	@Override public void accept(JassStmtExitwhen.Visitor v) {
 		arguments.accept(v);
 		v.visit(this);
 	}

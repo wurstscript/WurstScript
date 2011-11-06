@@ -2,11 +2,10 @@
 package de.peeeq.wurstscript.ast;
 
 class LocalVarDefImpl implements LocalVarDef, AstElementIntern {
-	LocalVarDefImpl(WPos source, Boolean constant, OptTypeExpr typ, String name, OptExpr initialExpr) {
+	LocalVarDefImpl(WPos source, boolean constant, OptTypeExpr typ, String name, OptExpr initialExpr) {
 		if (source == null) throw new IllegalArgumentException();
 		((AstElementIntern)source).setParent(this);
 		this.source = source;
-		if (constant == null) throw new IllegalArgumentException();
 		this.constant = constant;
 		if (typ == null) throw new IllegalArgumentException();
 		((AstElementIntern)typ).setParent(this);
@@ -34,12 +33,11 @@ class LocalVarDefImpl implements LocalVarDef, AstElementIntern {
 	} 
 	public WPos getSource() { return source; }
 
-	private Boolean constant;
-	public void setConstant(Boolean constant) {
-		if (constant == null) throw new IllegalArgumentException();
+	private boolean constant;
+	public void setConstant(boolean constant) {
 		this.constant = constant;
 	} 
-	public Boolean getConstant() { return constant; }
+	public boolean getConstant() { return constant; }
 
 	private OptTypeExpr typ;
 	public void setTyp(OptTypeExpr typ) {
@@ -255,6 +253,15 @@ class LocalVarDefImpl implements LocalVarDef, AstElementIntern {
 			attr_attrTyp_isCached = true;
 		}
 		return attr_attrTyp_cache;
+	}
+	private boolean attr_attrIsClassMember_isCached = false;
+	private boolean attr_attrIsClassMember_cache;
+	public boolean attrIsClassMember() {
+		if (!attr_attrIsClassMember_isCached) {
+			attr_attrIsClassMember_cache = de.peeeq.wurstscript.attributes.AttrIsClassMember.calculate(this);
+			attr_attrIsClassMember_isCached = true;
+		}
+		return attr_attrIsClassMember_cache;
 	}
 	private boolean attr_attrNearestPackage_isCached = false;
 	private PackageOrGlobal attr_attrNearestPackage_cache;

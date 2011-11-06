@@ -2,11 +2,10 @@
 package de.peeeq.wurstscript.ast;
 
 class ExprRealValImpl implements ExprRealVal, AstElementIntern {
-	ExprRealValImpl(WPos source, Double val) {
+	ExprRealValImpl(WPos source, double val) {
 		if (source == null) throw new IllegalArgumentException();
 		((AstElementIntern)source).setParent(this);
 		this.source = source;
-		if (val == null) throw new IllegalArgumentException();
 		this.val = val;
 	}
 
@@ -26,12 +25,11 @@ class ExprRealValImpl implements ExprRealVal, AstElementIntern {
 	} 
 	public WPos getSource() { return source; }
 
-	private Double val;
-	public void setVal(Double val) {
-		if (val == null) throw new IllegalArgumentException();
+	private double val;
+	public void setVal(double val) {
 		this.val = val;
 	} 
-	public Double getVal() { return val; }
+	public double getVal() { return val; }
 
 	public AstElement get(int i) {
 		switch (i) {

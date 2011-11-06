@@ -15,7 +15,7 @@ public abstract class JassFunctions extends ParseqList<JassFunction> implements 
 		void visit(JassStmtIf jassStmtIf);
 		void visit(JassOpLess jassOpLess);
 		void visit(JassArrayVar jassArrayVar);
-		void visit(StmtExitwhen stmtExitwhen);
+		void visit(JassStmtExitwhen jassStmtExitwhen);
 		void visit(JassStmtReturn jassStmtReturn);
 		void visit(JassExprVarArrayAccess jassExprVarArrayAccess);
 		void visit(JassExprUnary jassExprUnary);
@@ -57,7 +57,7 @@ public abstract class JassFunctions extends ParseqList<JassFunction> implements 
 		@Override public void visit(JassStmtIf jassStmtIf) {}
 		@Override public void visit(JassOpLess jassOpLess) {}
 		@Override public void visit(JassArrayVar jassArrayVar) {}
-		@Override public void visit(StmtExitwhen stmtExitwhen) {}
+		@Override public void visit(JassStmtExitwhen jassStmtExitwhen) {}
 		@Override public void visit(JassStmtReturn jassStmtReturn) {}
 		@Override public void visit(JassExprVarArrayAccess jassExprVarArrayAccess) {}
 		@Override public void visit(JassExprUnary jassExprUnary) {}

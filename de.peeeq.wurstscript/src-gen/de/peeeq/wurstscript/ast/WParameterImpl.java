@@ -182,6 +182,15 @@ class WParameterImpl implements WParameter, AstElementIntern {
 		}
 		return attr_attrTyp_cache;
 	}
+	private boolean attr_attrIsClassMember_isCached = false;
+	private boolean attr_attrIsClassMember_cache;
+	public boolean attrIsClassMember() {
+		if (!attr_attrIsClassMember_isCached) {
+			attr_attrIsClassMember_cache = de.peeeq.wurstscript.attributes.AttrIsClassMember.calculate(this);
+			attr_attrIsClassMember_isCached = true;
+		}
+		return attr_attrIsClassMember_cache;
+	}
 	private boolean attr_attrNearestPackage_isCached = false;
 	private PackageOrGlobal attr_attrNearestPackage_cache;
 	public PackageOrGlobal attrNearestPackage() {

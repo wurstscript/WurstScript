@@ -9,7 +9,7 @@ public interface JassStatement extends JassAstElement{
 		T case_JassStmtIf(JassStmtIf jassStmtIf);
 		T case_JassStmtCall(JassStmtCall jassStmtCall);
 		T case_JassStmtSetArray(JassStmtSetArray jassStmtSetArray);
-		T case_StmtExitwhen(StmtExitwhen stmtExitwhen);
+		T case_JassStmtExitwhen(JassStmtExitwhen jassStmtExitwhen);
 		T case_JassStmtReturn(JassStmtReturn jassStmtReturn);
 		T case_JassStmtSet(JassStmtSet jassStmtSet);
 		T case_JassStmtLoop(JassStmtLoop jassStmtLoop);
@@ -20,7 +20,7 @@ public interface JassStatement extends JassAstElement{
 		void case_JassStmtIf(JassStmtIf jassStmtIf);
 		void case_JassStmtCall(JassStmtCall jassStmtCall);
 		void case_JassStmtSetArray(JassStmtSetArray jassStmtSetArray);
-		void case_StmtExitwhen(StmtExitwhen stmtExitwhen);
+		void case_JassStmtExitwhen(JassStmtExitwhen jassStmtExitwhen);
 		void case_JassStmtReturn(JassStmtReturn jassStmtReturn);
 		void case_JassStmtSet(JassStmtSet jassStmtSet);
 		void case_JassStmtLoop(JassStmtLoop jassStmtLoop);
@@ -40,7 +40,7 @@ public interface JassStatement extends JassAstElement{
 		void visit(JassOpLess jassOpLess);
 		void visit(JassStmtCall jassStmtCall);
 		void visit(JassStmtIf jassStmtIf);
-		void visit(StmtExitwhen stmtExitwhen);
+		void visit(JassStmtExitwhen jassStmtExitwhen);
 		void visit(JassStmtReturn jassStmtReturn);
 		void visit(JassExprVarArrayAccess jassExprVarArrayAccess);
 		void visit(JassOpMult jassOpMult);
@@ -76,7 +76,7 @@ public interface JassStatement extends JassAstElement{
 		@Override public void visit(JassOpLess jassOpLess) {}
 		@Override public void visit(JassStmtCall jassStmtCall) {}
 		@Override public void visit(JassStmtIf jassStmtIf) {}
-		@Override public void visit(StmtExitwhen stmtExitwhen) {}
+		@Override public void visit(JassStmtExitwhen jassStmtExitwhen) {}
 		@Override public void visit(JassStmtReturn jassStmtReturn) {}
 		@Override public void visit(JassExprVarArrayAccess jassExprVarArrayAccess) {}
 		@Override public void visit(JassOpMult jassOpMult) {}

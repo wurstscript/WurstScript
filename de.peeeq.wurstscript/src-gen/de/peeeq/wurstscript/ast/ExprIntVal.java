@@ -5,8 +5,8 @@ public interface ExprIntVal extends AstElement, ExprAtomic {
 	AstElement getParent();
 	void setSource(WPos source);
 	WPos getSource();
-	void setVal(Integer val);
-	Integer getVal();
+	void setVal(int val);
+	int getVal();
 	ExprIntVal copy();
 	public abstract void accept(WPackage.Visitor v);
 	public abstract void accept(NativeFunc.Visitor v);

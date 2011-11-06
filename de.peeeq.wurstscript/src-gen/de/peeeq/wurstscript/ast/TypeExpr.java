@@ -7,8 +7,8 @@ public interface TypeExpr extends AstElement, TypeRef, OptTypeExpr {
 	WPos getSource();
 	void setTypeName(String typeName);
 	String getTypeName();
-	void setIsArray(Boolean isArray);
-	Boolean getIsArray();
+	void setIsArray(boolean isArray);
+	boolean getIsArray();
 	void setSizes(ArraySizes sizes);
 	ArraySizes getSizes();
 	TypeExpr copy();

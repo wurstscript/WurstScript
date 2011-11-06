@@ -21,7 +21,7 @@ class JassExprlistImpl extends JassExprlist implements JassAstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(StmtExitwhen.Visitor v) {
+	@Override public void accept(JassStmtExitwhen.Visitor v) {
 		for (JassExpr i : this ) {
 			i.accept(v);
 		}

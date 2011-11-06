@@ -33,7 +33,7 @@ class JassExprIntValImpl implements JassExprIntVal, JassAstElementIntern {
 	@Override public void accept(JassStmtIf.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(StmtExitwhen.Visitor v) {
+	@Override public void accept(JassStmtExitwhen.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(JassStmtReturn.Visitor v) {

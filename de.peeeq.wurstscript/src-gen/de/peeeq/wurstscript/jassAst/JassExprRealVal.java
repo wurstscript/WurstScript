@@ -7,7 +7,7 @@ public interface JassExprRealVal extends JassAstElement, JassExprAtomic {
 	double getVal();
 	JassExprRealVal copy();
 	public abstract void accept(JassStmtIf.Visitor v);
-	public abstract void accept(StmtExitwhen.Visitor v);
+	public abstract void accept(JassStmtExitwhen.Visitor v);
 	public abstract void accept(JassStmtReturn.Visitor v);
 	public abstract void accept(JassExprVarArrayAccess.Visitor v);
 	public abstract void accept(JassProg.Visitor v);

@@ -68,7 +68,7 @@ class JassExprBinaryImpl implements JassExprBinary, JassAstElementIntern {
 		right.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(StmtExitwhen.Visitor v) {
+	@Override public void accept(JassStmtExitwhen.Visitor v) {
 		left.accept(v);
 		op.accept(v);
 		right.accept(v);

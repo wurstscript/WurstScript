@@ -5,8 +5,8 @@ public interface ExprRealVal extends AstElement, ExprAtomic {
 	AstElement getParent();
 	void setSource(WPos source);
 	WPos getSource();
-	void setVal(Double val);
-	Double getVal();
+	void setVal(double val);
+	double getVal();
 	ExprRealVal copy();
 	public abstract void accept(WPackage.Visitor v);
 	public abstract void accept(NativeFunc.Visitor v);

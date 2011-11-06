@@ -7,8 +7,8 @@ public interface GlobalVarDef extends AstElement, WEntity, ClassMember, VarDef {
 	WPos getSource();
 	void setVisibility(VisibilityModifier visibility);
 	VisibilityModifier getVisibility();
-	void setIsConstant(Boolean isConstant);
-	Boolean getIsConstant();
+	void setIsConstant(boolean isConstant);
+	boolean getIsConstant();
 	void setTyp(OptTypeExpr typ);
 	OptTypeExpr getTyp();
 	void setName(String name);

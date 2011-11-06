@@ -49,7 +49,7 @@ class JassExprVarArrayAccessImpl implements JassExprVarArrayAccess, JassAstEleme
 		index.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(StmtExitwhen.Visitor v) {
+	@Override public void accept(JassStmtExitwhen.Visitor v) {
 		index.accept(v);
 		v.visit(this);
 	}

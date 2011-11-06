@@ -15,7 +15,7 @@ public interface JassProg extends JassAstElement {
 		void visit(JassStmtIf jassStmtIf);
 		void visit(JassStmtCall jassStmtCall);
 		void visit(JassArrayVar jassArrayVar);
-		void visit(StmtExitwhen stmtExitwhen);
+		void visit(JassStmtExitwhen jassStmtExitwhen);
 		void visit(JassStmtReturn jassStmtReturn);
 		void visit(JassExprVarArrayAccess jassExprVarArrayAccess);
 		void visit(JassOpMult jassOpMult);
@@ -58,7 +58,7 @@ public interface JassProg extends JassAstElement {
 		@Override public void visit(JassStmtIf jassStmtIf) {}
 		@Override public void visit(JassStmtCall jassStmtCall) {}
 		@Override public void visit(JassArrayVar jassArrayVar) {}
-		@Override public void visit(StmtExitwhen stmtExitwhen) {}
+		@Override public void visit(JassStmtExitwhen jassStmtExitwhen) {}
 		@Override public void visit(JassStmtReturn jassStmtReturn) {}
 		@Override public void visit(JassExprVarArrayAccess jassExprVarArrayAccess) {}
 		@Override public void visit(JassOpMult jassOpMult) {}

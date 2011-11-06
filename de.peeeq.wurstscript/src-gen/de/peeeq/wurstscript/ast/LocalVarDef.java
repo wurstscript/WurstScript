@@ -5,8 +5,8 @@ public interface LocalVarDef extends AstElement, WStatement, VarDef {
 	AstElement getParent();
 	void setSource(WPos source);
 	WPos getSource();
-	void setConstant(Boolean constant);
-	Boolean getConstant();
+	void setConstant(boolean constant);
+	boolean getConstant();
 	void setTyp(OptTypeExpr typ);
 	OptTypeExpr getTyp();
 	void setName(String name);

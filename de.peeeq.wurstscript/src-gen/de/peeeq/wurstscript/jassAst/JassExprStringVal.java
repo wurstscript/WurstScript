@@ -7,7 +7,7 @@ public interface JassExprStringVal extends JassAstElement, JassExprAtomic {
 	String getVal();
 	JassExprStringVal copy();
 	public abstract void accept(JassStmtIf.Visitor v);
-	public abstract void accept(StmtExitwhen.Visitor v);
+	public abstract void accept(JassStmtExitwhen.Visitor v);
 	public abstract void accept(JassStmtReturn.Visitor v);
 	public abstract void accept(JassExprVarArrayAccess.Visitor v);
 	public abstract void accept(JassExprStringVal.Visitor v);

@@ -2,14 +2,13 @@
 package de.peeeq.wurstscript.ast;
 
 class GlobalVarDefImpl implements GlobalVarDef, AstElementIntern {
-	GlobalVarDefImpl(WPos source, VisibilityModifier visibility, Boolean isConstant, OptTypeExpr typ, String name, OptExpr initialExpr) {
+	GlobalVarDefImpl(WPos source, VisibilityModifier visibility, boolean isConstant, OptTypeExpr typ, String name, OptExpr initialExpr) {
 		if (source == null) throw new IllegalArgumentException();
 		((AstElementIntern)source).setParent(this);
 		this.source = source;
 		if (visibility == null) throw new IllegalArgumentException();
 		((AstElementIntern)visibility).setParent(this);
 		this.visibility = visibility;
-		if (isConstant == null) throw new IllegalArgumentException();
 		this.isConstant = isConstant;
 		if (typ == null) throw new IllegalArgumentException();
 		((AstElementIntern)typ).setParent(this);
@@ -46,12 +45,11 @@ class GlobalVarDefImpl implements GlobalVarDef, AstElementIntern {
 	} 
 	public VisibilityModifier getVisibility() { return visibility; }
 
-	private Boolean isConstant;
-	public void setIsConstant(Boolean isConstant) {
-		if (isConstant == null) throw new IllegalArgumentException();
+	private boolean isConstant;
+	public void setIsConstant(boolean isConstant) {
 		this.isConstant = isConstant;
 	} 
-	public Boolean getIsConstant() { return isConstant; }
+	public boolean getIsConstant() { return isConstant; }
 
 	private OptTypeExpr typ;
 	public void setTyp(OptTypeExpr typ) {
@@ -244,6 +242,15 @@ class GlobalVarDefImpl implements GlobalVarDef, AstElementIntern {
 			attr_attrTyp_isCached = true;
 		}
 		return attr_attrTyp_cache;
+	}
+	private boolean attr_attrIsClassMember_isCached = false;
+	private boolean attr_attrIsClassMember_cache;
+	public boolean attrIsClassMember() {
+		if (!attr_attrIsClassMember_isCached) {
+			attr_attrIsClassMember_cache = de.peeeq.wurstscript.attributes.AttrIsClassMember.calculate(this);
+			attr_attrIsClassMember_isCached = true;
+		}
+		return attr_attrIsClassMember_cache;
 	}
 	private boolean attr_attrNearestPackage_isCached = false;
 	private PackageOrGlobal attr_attrNearestPackage_cache;

@@ -2,11 +2,10 @@
 package de.peeeq.wurstscript.ast;
 
 class ExprBoolValImpl implements ExprBoolVal, AstElementIntern {
-	ExprBoolValImpl(WPos source, Boolean val) {
+	ExprBoolValImpl(WPos source, boolean val) {
 		if (source == null) throw new IllegalArgumentException();
 		((AstElementIntern)source).setParent(this);
 		this.source = source;
-		if (val == null) throw new IllegalArgumentException();
 		this.val = val;
 	}
 
@@ -26,12 +25,11 @@ class ExprBoolValImpl implements ExprBoolVal, AstElementIntern {
 	} 
 	public WPos getSource() { return source; }
 
-	private Boolean val;
-	public void setVal(Boolean val) {
-		if (val == null) throw new IllegalArgumentException();
+	private boolean val;
+	public void setVal(boolean val) {
 		this.val = val;
 	} 
-	public Boolean getVal() { return val; }
+	public boolean getVal() { return val; }
 
 	public AstElement get(int i) {
 		switch (i) {

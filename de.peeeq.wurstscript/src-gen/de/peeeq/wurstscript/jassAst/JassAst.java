@@ -35,8 +35,8 @@ public class JassAst {
 	public static JassStmtReturnVoid JassStmtReturnVoid() {
 		return new JassStmtReturnVoidImpl();
 	}
-	public static StmtExitwhen StmtExitwhen(JassExpr cond) {
-		return new StmtExitwhenImpl(cond);
+	public static JassStmtExitwhen JassStmtExitwhen(JassExpr cond) {
+		return new JassStmtExitwhenImpl(cond);
 	}
 	public static JassExprBinary JassExprBinary(JassExpr left, JassOpBinary op, JassExpr right) {
 		return new JassExprBinaryImpl(left, op, right);

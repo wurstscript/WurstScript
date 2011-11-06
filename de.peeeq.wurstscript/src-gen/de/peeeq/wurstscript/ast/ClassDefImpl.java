@@ -2,7 +2,7 @@
 package de.peeeq.wurstscript.ast;
 
 class ClassDefImpl implements ClassDef, AstElementIntern {
-	ClassDefImpl(WPos source, VisibilityModifier visibility, String name, Boolean unmanaged, ClassSlots slots) {
+	ClassDefImpl(WPos source, VisibilityModifier visibility, String name, boolean unmanaged, ClassSlots slots) {
 		if (source == null) throw new IllegalArgumentException();
 		((AstElementIntern)source).setParent(this);
 		this.source = source;
@@ -11,7 +11,6 @@ class ClassDefImpl implements ClassDef, AstElementIntern {
 		this.visibility = visibility;
 		if (name == null) throw new IllegalArgumentException();
 		this.name = name;
-		if (unmanaged == null) throw new IllegalArgumentException();
 		this.unmanaged = unmanaged;
 		if (slots == null) throw new IllegalArgumentException();
 		((AstElementIntern)slots).setParent(this);
@@ -50,12 +49,11 @@ class ClassDefImpl implements ClassDef, AstElementIntern {
 	} 
 	public String getName() { return name; }
 
-	private Boolean unmanaged;
-	public void setUnmanaged(Boolean unmanaged) {
-		if (unmanaged == null) throw new IllegalArgumentException();
+	private boolean unmanaged;
+	public void setUnmanaged(boolean unmanaged) {
 		this.unmanaged = unmanaged;
 	} 
-	public Boolean getUnmanaged() { return unmanaged; }
+	public boolean getUnmanaged() { return unmanaged; }
 
 	private ClassSlots slots;
 	public void setSlots(ClassSlots slots) {

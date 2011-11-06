@@ -18,7 +18,7 @@ public interface JassStmtLoop extends JassAstElement, JassStatement {
 		void visit(JassStmtCall jassStmtCall);
 		void visit(JassStmtIf jassStmtIf);
 		void visit(JassOpLess jassOpLess);
-		void visit(StmtExitwhen stmtExitwhen);
+		void visit(JassStmtExitwhen jassStmtExitwhen);
 		void visit(JassStmtReturn jassStmtReturn);
 		void visit(JassExprVarArrayAccess jassExprVarArrayAccess);
 		void visit(JassOpMinus jassOpMinus);
@@ -54,7 +54,7 @@ public interface JassStmtLoop extends JassAstElement, JassStatement {
 		@Override public void visit(JassStmtCall jassStmtCall) {}
 		@Override public void visit(JassStmtIf jassStmtIf) {}
 		@Override public void visit(JassOpLess jassOpLess) {}
-		@Override public void visit(StmtExitwhen stmtExitwhen) {}
+		@Override public void visit(JassStmtExitwhen jassStmtExitwhen) {}
 		@Override public void visit(JassStmtReturn jassStmtReturn) {}
 		@Override public void visit(JassExprVarArrayAccess jassExprVarArrayAccess) {}
 		@Override public void visit(JassOpMinus jassOpMinus) {}

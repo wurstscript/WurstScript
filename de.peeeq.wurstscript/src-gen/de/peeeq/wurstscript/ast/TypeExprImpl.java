@@ -2,13 +2,12 @@
 package de.peeeq.wurstscript.ast;
 
 class TypeExprImpl implements TypeExpr, AstElementIntern {
-	TypeExprImpl(WPos source, String typeName, Boolean isArray, ArraySizes sizes) {
+	TypeExprImpl(WPos source, String typeName, boolean isArray, ArraySizes sizes) {
 		if (source == null) throw new IllegalArgumentException();
 		((AstElementIntern)source).setParent(this);
 		this.source = source;
 		if (typeName == null) throw new IllegalArgumentException();
 		this.typeName = typeName;
-		if (isArray == null) throw new IllegalArgumentException();
 		this.isArray = isArray;
 		if (sizes == null) throw new IllegalArgumentException();
 		((AstElementIntern)sizes).setParent(this);
@@ -38,12 +37,11 @@ class TypeExprImpl implements TypeExpr, AstElementIntern {
 	} 
 	public String getTypeName() { return typeName; }
 
-	private Boolean isArray;
-	public void setIsArray(Boolean isArray) {
-		if (isArray == null) throw new IllegalArgumentException();
+	private boolean isArray;
+	public void setIsArray(boolean isArray) {
 		this.isArray = isArray;
 	} 
-	public Boolean getIsArray() { return isArray; }
+	public boolean getIsArray() { return isArray; }
 
 	private ArraySizes sizes;
 	public void setSizes(ArraySizes sizes) {

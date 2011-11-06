@@ -19,7 +19,7 @@ public abstract class JassStatements extends ParseqList<JassStatement> implement
 		void visit(JassOpLess jassOpLess);
 		void visit(JassStmtIf jassStmtIf);
 		void visit(JassStmtCall jassStmtCall);
-		void visit(StmtExitwhen stmtExitwhen);
+		void visit(JassStmtExitwhen jassStmtExitwhen);
 		void visit(JassExprVarArrayAccess jassExprVarArrayAccess);
 		void visit(JassStmtReturn jassStmtReturn);
 		void visit(JassOpMult jassOpMult);
@@ -55,7 +55,7 @@ public abstract class JassStatements extends ParseqList<JassStatement> implement
 		@Override public void visit(JassOpLess jassOpLess) {}
 		@Override public void visit(JassStmtIf jassStmtIf) {}
 		@Override public void visit(JassStmtCall jassStmtCall) {}
-		@Override public void visit(StmtExitwhen stmtExitwhen) {}
+		@Override public void visit(JassStmtExitwhen jassStmtExitwhen) {}
 		@Override public void visit(JassExprVarArrayAccess jassExprVarArrayAccess) {}
 		@Override public void visit(JassStmtReturn jassStmtReturn) {}
 		@Override public void visit(JassOpMult jassOpMult) {}

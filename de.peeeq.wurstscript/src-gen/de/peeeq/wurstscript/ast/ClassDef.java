@@ -9,8 +9,8 @@ public interface ClassDef extends AstElement, TypeDef, WScope {
 	VisibilityModifier getVisibility();
 	void setName(String name);
 	String getName();
-	void setUnmanaged(Boolean unmanaged);
-	Boolean getUnmanaged();
+	void setUnmanaged(boolean unmanaged);
+	boolean getUnmanaged();
 	void setSlots(ClassSlots slots);
 	ClassSlots getSlots();
 	ClassDef copy();

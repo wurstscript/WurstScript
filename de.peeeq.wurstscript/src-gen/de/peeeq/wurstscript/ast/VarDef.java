@@ -124,4 +124,5 @@ public interface VarDef extends AstElement{
 		@Override public void visit(OpMinus opMinus) {}
 	}
 	public abstract de.peeeq.wurstscript.types.PscriptType attrTyp();
+	public abstract boolean attrIsClassMember();
 }

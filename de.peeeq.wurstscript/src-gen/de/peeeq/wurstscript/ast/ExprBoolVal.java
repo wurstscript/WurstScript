@@ -5,8 +5,8 @@ public interface ExprBoolVal extends AstElement, ExprAtomic {
 	AstElement getParent();
 	void setSource(WPos source);
 	WPos getSource();
-	void setVal(Boolean val);
-	Boolean getVal();
+	void setVal(boolean val);
+	boolean getVal();
 	ExprBoolVal copy();
 	public abstract void accept(WPackage.Visitor v);
 	public abstract void accept(NativeFunc.Visitor v);

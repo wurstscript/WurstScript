@@ -26,7 +26,7 @@ JassStatement	=
 	| JassStmtCall(String functionName, JassExprlist arguments)
 	| JassStmtReturn(JassExpr returnValue)
 	| JassStmtReturnVoid()
-	| StmtExitwhen(JassExpr cond)
+	| JassStmtExitwhen(JassExpr cond)
 	
 
 JassExprlist * JassExpr

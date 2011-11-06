@@ -26,7 +26,7 @@ public class Ast {
 	public static NativeType NativeType(WPos source, VisibilityModifier visibility, String name, OptTypeExpr typ) {
 		return new NativeTypeImpl(source, visibility, name, typ);
 	}
-	public static ClassDef ClassDef(WPos source, VisibilityModifier visibility, String name, Boolean unmanaged, ClassSlots slots) {
+	public static ClassDef ClassDef(WPos source, VisibilityModifier visibility, String name, boolean unmanaged, ClassSlots slots) {
 		return new ClassDefImpl(source, visibility, name, unmanaged, slots);
 	}
 	public static ConstructorDef ConstructorDef(WPos source, VisibilityModifier visibility, WParameters params, WStatements body) {
@@ -35,16 +35,16 @@ public class Ast {
 	public static OnDestroyDef OnDestroyDef(WPos source, WStatements body) {
 		return new OnDestroyDefImpl(source, body);
 	}
-	public static GlobalVarDef GlobalVarDef(WPos source, VisibilityModifier visibility, Boolean isConstant, OptTypeExpr typ, String name, OptExpr initialExpr) {
+	public static GlobalVarDef GlobalVarDef(WPos source, VisibilityModifier visibility, boolean isConstant, OptTypeExpr typ, String name, OptExpr initialExpr) {
 		return new GlobalVarDefImpl(source, visibility, isConstant, typ, name, initialExpr);
 	}
-	public static LocalVarDef LocalVarDef(WPos source, Boolean constant, OptTypeExpr typ, String name, OptExpr initialExpr) {
+	public static LocalVarDef LocalVarDef(WPos source, boolean constant, OptTypeExpr typ, String name, OptExpr initialExpr) {
 		return new LocalVarDefImpl(source, constant, typ, name, initialExpr);
 	}
 	public static FuncDef FuncDef(WPos source, VisibilityModifier visibility, FuncSignature signature, WStatements body) {
 		return new FuncDefImpl(source, visibility, signature, body);
 	}
-	public static TypeExpr TypeExpr(WPos source, String typeName, Boolean isArray, ArraySizes sizes) {
+	public static TypeExpr TypeExpr(WPos source, String typeName, boolean isArray, ArraySizes sizes) {
 		return new TypeExprImpl(source, typeName, isArray, sizes);
 	}
 	public static FuncSignature FuncSignature(WPos source, String name, WParameters parameters, OptTypeExpr typ) {
@@ -104,16 +104,16 @@ public class Ast {
 	public static ExprCast ExprCast(WPos source, TypeExpr typ, Expr expr) {
 		return new ExprCastImpl(source, typ, expr);
 	}
-	public static ExprIntVal ExprIntVal(WPos source, Integer val) {
+	public static ExprIntVal ExprIntVal(WPos source, int val) {
 		return new ExprIntValImpl(source, val);
 	}
-	public static ExprRealVal ExprRealVal(WPos source, Double val) {
+	public static ExprRealVal ExprRealVal(WPos source, double val) {
 		return new ExprRealValImpl(source, val);
 	}
 	public static ExprStringVal ExprStringVal(WPos source, String val) {
 		return new ExprStringValImpl(source, val);
 	}
-	public static ExprBoolVal ExprBoolVal(WPos source, Boolean val) {
+	public static ExprBoolVal ExprBoolVal(WPos source, boolean val) {
 		return new ExprBoolValImpl(source, val);
 	}
 	public static ExprFuncRef ExprFuncRef(WPos source, String funcName) {
