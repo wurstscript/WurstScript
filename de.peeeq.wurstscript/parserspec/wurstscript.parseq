@@ -71,8 +71,8 @@ WStatement	=
 	| StmtCall
 	| StmtReturn(WPos source, OptExpr obj)
 	| StmtDestroy(WPos source, Expr obj)
-	| StmtIncRefCount(WPos source, Expr obj) 
-	| StmtDecRefCount(WPos source, Expr obj)
+//	| StmtIncRefCount(WPos source, Expr obj) 
+//	| StmtDecRefCount(WPos source, Expr obj)
 	| StmtErr(WPos source)
 	| StmtExitwhen(WPos source, Expr cond)
 	
@@ -252,12 +252,12 @@ PackageOrGlobal.attrPackageElements
 	
 	
 
-SortPos.attrNearestPackage
+AstElement.attrNearestPackage
 	returns PackageOrGlobal
 	implemented by de.peeeq.wurstscript.attributes.AttrNearestPackage.calculate
 
 
-SortPos.attrNearestFuncDef
+AstElement.attrNearestFuncDef
 	returns FuncDef
 	implemented by de.peeeq.wurstscript.attributes.AttrNearestFuncDef.calculate
 
@@ -266,7 +266,7 @@ TypeRef.attrTypeDef
 	returns TypeDef
 	implemented by de.peeeq.wurstscript.attributes.AttrTypeDef.calculate
 
-SortPos.attrNearestClassDef
+AstElement.attrNearestClassDef
 	returns ClassDef
 	implemented by de.peeeq.wurstscript.attributes.AttrNearestClassDef.calculate
 

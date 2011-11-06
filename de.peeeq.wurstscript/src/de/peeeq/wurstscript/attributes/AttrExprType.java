@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.attributes;
 
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
@@ -39,7 +40,6 @@ import de.peeeq.wurstscript.ast.OpOr;
 import de.peeeq.wurstscript.ast.OpPlus;
 import de.peeeq.wurstscript.ast.OpUnary;
 import de.peeeq.wurstscript.ast.OpUnequals;
-import de.peeeq.wurstscript.ast.SortPos;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
@@ -129,7 +129,7 @@ public class AttrExprType {
 			@Override
 			public PscriptType case_ExprThis(ExprThis term)  {
 				// find nearest class definition
-				SortPos pos = term;
+				AstElement pos = term;
 				while (pos != null) {
 					if (pos instanceof ClassDef) {
 						return new PscriptTypeClass((ClassDef) pos);

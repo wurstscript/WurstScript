@@ -1,0 +1,81 @@
+package de.peeeq.wurstscript.jassAst
+
+
+abstract syntax:
+
+JassProg(JassVars globals, JassFunctions functions)
+
+JassVars * JassVar
+JassSimpleVars * JassSimpleVar
+JassFunctions * JassFunction
+
+
+JassVar = 
+	  JassSimpleVar(String type, String name)
+	| JassArrayVar(String type, String name)
+
+JassFunction(String name, JassSimpleVars params, String returnType, JassVars locals, JassStatements body)
+
+JassStatements * JassStatement  
+
+JassStatement	=
+	  JassStmtIf(JassExpr cond, JassStatements thenBlock, JassStatements elseBlock)
+	| JassStmtLoop(JassStatements body)
+	| JassStmtSet(String left, JassExpr right)
+	| JassStmtSetArray(String left, JassExpr index, JassExpr right)
+	| JassStmtCall(String functionName, JassExprlist arguments)
+	| JassStmtReturn(JassExpr returnValue)
+	| JassStmtReturnVoid()
+	| StmtExitwhen(JassExpr cond)
+	
+
+JassExprlist * JassExpr
+
+JassExpr = 
+	  JassExprBinary(JassExpr left, JassOpBinary op, JassExpr right)
+	| JassExprUnary(JassOpUnary op, JassExpr right)
+	| JassExprFunctionCall(String funcName, JassExprlist arguments)
+	| JassExprAtomic
+	
+	
+JassExprAtomic = 
+	  JassExprIntVal(int val)
+	| JassExprRealVal(double val)
+	| JassExprStringVal(String val)
+	| JassExprBoolVal(boolean val)
+	| JassExprFuncRef(String funcName)
+	| JassExprVarAccess(String varName)
+	| JassExprVarArrayAccess(String varName, JassExpr index)
+	| JassExprNull()
+	
+JassOpBinary = 
+	  JassOpOr() 
+	| JassOpAnd()
+	| JassOpEquals()
+	| JassOpUnequals()
+	| JassOpLessEq()
+	| JassOpLess()
+	| JassOpGreaterEq()
+	| JassOpGreater()
+	| JassOpPlus()
+	| JassOpMinus()
+	| JassOpMult()
+	| JassOpDiv()
+	
+JassOpUnary = 
+	  JassOpNot()
+	| JassOpMinus
+	
+Op = OpBinary | OpUnary	
+	
+attributes:
+
+
+
+
+
+
+
+
+
+

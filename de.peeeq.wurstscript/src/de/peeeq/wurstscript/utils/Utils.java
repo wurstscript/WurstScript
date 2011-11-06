@@ -9,7 +9,7 @@ import java.util.Set;
 
 import com.google.common.base.Function;
 
-import de.peeeq.wurstscript.ast.SortPos;
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.WPackage;
 
 public class Utils {
@@ -146,7 +146,7 @@ public class Utils {
 	/**
 	 *	is a piece of code jass code? 
 	 */
-	public static boolean isJassCode(SortPos pos) {
+	public static boolean isJassCode(AstElement pos) {
 		while (pos != null) {
 			if (pos instanceof WPackage) {
 				return false; // code is inside package -> pscript code 
@@ -157,14 +157,14 @@ public class Utils {
 	}
 
 	
-	public static <T extends SortPos> List<T> collect(Class<T> t, SortPos pos) {
+	public static <T extends AstElement> List<T> collect(Class<T> t, AstElement pos) {
 		List<T> result = new LinkedList<T>();
 		collectRec(t, pos, result);
 		return result ;
 	}
 	
 	@SuppressWarnings("unchecked")
-	static <T extends SortPos> void collectRec(Class<T> t, SortPos pos, List<T> result) {
+	static <T extends AstElement> void collectRec(Class<T> t, AstElement pos, List<T> result) {
 		if (t.isInstance(pos)) {
 			result.add((T) pos);
 		}
@@ -185,10 +185,10 @@ public class Utils {
 		StringBuilder result = new StringBuilder();
 		boolean first = true;
 		for (T s : hints) {
-			result.append(s);
 			if (!first) {
 				result.append(seperator);
 			}
+			result.append(s);
 			first = false;
 		}
 		return result.toString();
@@ -259,8 +259,8 @@ public class Utils {
 		return false;
 	}
 
-	public static SortPos getRoot(SortPos i) {
-		SortPos s = i;
+	public static AstElement getRoot(AstElement i) {
+		AstElement s = i;
 		while (s.getParent() != null) {
 			s = s.getParent();
 		}

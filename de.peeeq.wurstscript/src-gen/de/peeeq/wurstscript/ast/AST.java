@@ -71,12 +71,6 @@ public class Ast {
 	public static StmtDestroy StmtDestroy(WPos source, Expr obj) {
 		return new StmtDestroyImpl(source, obj);
 	}
-	public static StmtIncRefCount StmtIncRefCount(WPos source, Expr obj) {
-		return new StmtIncRefCountImpl(source, obj);
-	}
-	public static StmtDecRefCount StmtDecRefCount(WPos source, Expr obj) {
-		return new StmtDecRefCountImpl(source, obj);
-	}
 	public static StmtErr StmtErr(WPos source) {
 		return new StmtErrImpl(source);
 	}
