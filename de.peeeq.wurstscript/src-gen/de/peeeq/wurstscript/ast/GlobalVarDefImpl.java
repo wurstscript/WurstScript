@@ -100,7 +100,7 @@ class GlobalVarDefImpl implements GlobalVarDef, AstElementIntern {
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
+	@Override public void accept(ClassMember.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
 		typ.accept(v);
@@ -114,20 +114,6 @@ class GlobalVarDefImpl implements GlobalVarDef, AstElementIntern {
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassMember.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlots.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
@@ -135,7 +121,14 @@ class GlobalVarDefImpl implements GlobalVarDef, AstElementIntern {
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WEntities.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		visibility.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(VarDef.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
 		typ.accept(v);
@@ -177,14 +170,7 @@ class GlobalVarDefImpl implements GlobalVarDef, AstElementIntern {
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(VarDef.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(GlobalVarDef.Visitor v) {
+	@Override public void accept(ClassSlots.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
 		typ.accept(v);
@@ -198,7 +184,21 @@ class GlobalVarDefImpl implements GlobalVarDef, AstElementIntern {
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(GlobalVarDef.Visitor v) {
+		source.accept(v);
+		visibility.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		visibility.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
 		typ.accept(v);

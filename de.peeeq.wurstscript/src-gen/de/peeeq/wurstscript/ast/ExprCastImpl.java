@@ -80,25 +80,7 @@ class ExprCastImpl implements ExprCast, AstElementIntern {
 		expr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		expr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassGlobalBlock.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		expr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ExprCast.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		expr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtExitwhen.Visitor v) {
+	@Override public void accept(ExprBinary.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);
@@ -110,13 +92,19 @@ class ExprCastImpl implements ExprCast, AstElementIntern {
 		expr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ExprMemberArrayVar.Visitor v) {
+	@Override public void accept(ExprVarArrayAccess.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WParameters.Visitor v) {
+	@Override public void accept(VarRef.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		expr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(Indexes.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);
@@ -128,7 +116,7 @@ class ExprCastImpl implements ExprCast, AstElementIntern {
 		expr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassSlots.Visitor v) {
+	@Override public void accept(ArraySizes.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);
@@ -140,7 +128,7 @@ class ExprCastImpl implements ExprCast, AstElementIntern {
 		expr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(StmtDecRefCount.Visitor v) {
+	@Override public void accept(StmtExitwhen.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);
@@ -152,7 +140,13 @@ class ExprCastImpl implements ExprCast, AstElementIntern {
 		expr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(StmtIncRefCount.Visitor v) {
+	@Override public void accept(FuncSignature.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		expr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassGlobalBlock.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);
@@ -164,7 +158,13 @@ class ExprCastImpl implements ExprCast, AstElementIntern {
 		expr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ExprUnary.Visitor v) {
+	@Override public void accept(ExprMemberMethod.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		expr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ExprAtomic.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);
@@ -188,13 +188,7 @@ class ExprCastImpl implements ExprCast, AstElementIntern {
 		expr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ExprAtomic.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		expr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntities.Visitor v) {
+	@Override public void accept(WStatements.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);
@@ -206,13 +200,7 @@ class ExprCastImpl implements ExprCast, AstElementIntern {
 		expr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ExprAssignable.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		expr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ExprMemberVar.Visitor v) {
+	@Override public void accept(ExprMemberArrayVar.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);
@@ -224,19 +212,25 @@ class ExprCastImpl implements ExprCast, AstElementIntern {
 		expr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FuncRef.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ExprNewObject.Visitor v) {
+	@Override public void accept(VarDef.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(VarRef.Visitor v) {
+	@Override public void accept(ExprMemberVar.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		expr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WParameter.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);
@@ -248,13 +242,19 @@ class ExprCastImpl implements ExprCast, AstElementIntern {
 		expr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ExprMemberMethod.Visitor v) {
+	@Override public void accept(ExprNewObject.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(WEntity.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		expr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ExprFunctionCall.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);
@@ -284,7 +284,7 @@ class ExprCastImpl implements ExprCast, AstElementIntern {
 		expr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WParameter.Visitor v) {
+	@Override public void accept(FunctionDefinition.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);
@@ -296,25 +296,25 @@ class ExprCastImpl implements ExprCast, AstElementIntern {
 		expr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ExprVarArrayAccess.Visitor v) {
+	@Override public void accept(ExprUnary.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FuncSignature.Visitor v) {
+	@Override public void accept(WParameters.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ArraySizes.Visitor v) {
+	@Override public void accept(Arguments.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WStatements.Visitor v) {
+	@Override public void accept(ClassSlots.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);
@@ -332,19 +332,13 @@ class ExprCastImpl implements ExprCast, AstElementIntern {
 		expr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ExprBinary.Visitor v) {
+	@Override public void accept(ExprCast.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(Arguments.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		expr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(VarDef.Visitor v) {
+	@Override public void accept(FuncRef.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);
@@ -356,7 +350,7 @@ class ExprCastImpl implements ExprCast, AstElementIntern {
 		expr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
+	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);
@@ -369,12 +363,6 @@ class ExprCastImpl implements ExprCast, AstElementIntern {
 		v.visit(this);
 	}
 	@Override public void accept(OptTypeExpr.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		expr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(Indexes.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);
@@ -404,19 +392,19 @@ class ExprCastImpl implements ExprCast, AstElementIntern {
 		expr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
+	@Override public void accept(WEntities.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ExprFunctionCall.Visitor v) {
+	@Override public void accept(ExprAssignable.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);

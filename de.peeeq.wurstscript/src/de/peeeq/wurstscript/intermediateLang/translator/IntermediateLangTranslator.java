@@ -56,12 +56,10 @@ import de.peeeq.wurstscript.ast.OpOr;
 import de.peeeq.wurstscript.ast.OpPlus;
 import de.peeeq.wurstscript.ast.OpUnequals;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
-import de.peeeq.wurstscript.ast.StmtDecRefCount;
 import de.peeeq.wurstscript.ast.StmtDestroy;
 import de.peeeq.wurstscript.ast.StmtErr;
 import de.peeeq.wurstscript.ast.StmtExitwhen;
 import de.peeeq.wurstscript.ast.StmtIf;
-import de.peeeq.wurstscript.ast.StmtIncRefCount;
 import de.peeeq.wurstscript.ast.StmtLoop;
 import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StmtSet;
@@ -500,15 +498,6 @@ public class IntermediateLangTranslator {
 				return result;
 			}
 
-			@Override
-			public List<ILStatement> case_StmtIncRefCount(StmtIncRefCount term)  {
-				throw new Error("ref counting not implemented");
-			}
-
-			@Override
-			public List<ILStatement> case_StmtDecRefCount(StmtDecRefCount term)  {
-				throw new Error("ref counting not implemented");
-			}
 
 			@Override
 			public List<ILStatement> case_StmtErr(StmtErr term)  {

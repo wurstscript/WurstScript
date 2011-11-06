@@ -71,8 +71,8 @@ WStatement	=
 	| StmtCall
 	| StmtReturn(WPos source, OptExpr obj)
 	| StmtDestroy(WPos source, Expr obj)
-	| StmtIncRefCount(WPos source, Expr obj) 
-	| StmtDecRefCount(WPos source, Expr obj)
+//	| StmtIncRefCount(WPos source, Expr obj) 
+//	| StmtDecRefCount(WPos source, Expr obj)
 	| StmtErr(WPos source)
 	| StmtExitwhen(WPos source, Expr cond)
 	

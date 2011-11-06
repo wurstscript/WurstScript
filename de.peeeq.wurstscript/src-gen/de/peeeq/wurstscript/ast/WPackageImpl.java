@@ -77,19 +77,7 @@ class WPackageImpl implements WPackage, AstElementIntern {
 		elements.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		source.accept(v);
-		imports.accept(v);
-		elements.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		source.accept(v);
-		imports.accept(v);
-		elements.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
 		imports.accept(v);
 		elements.accept(v);
@@ -101,17 +89,29 @@ class WPackageImpl implements WPackage, AstElementIntern {
 		elements.accept(v);
 		v.visit(this);
 	}
-	@Override public <T> T match(PackageOrGlobal.Matcher<T> matcher) {
-		return matcher.case_WPackage(this);
+	@Override public void accept(PackageOrGlobal.Visitor v) {
+		source.accept(v);
+		imports.accept(v);
+		elements.accept(v);
+		v.visit(this);
 	}
-	@Override public void match(PackageOrGlobal.MatcherVoid matcher) {
-		matcher.case_WPackage(this);
+	@Override public void accept(CompilationUnit.Visitor v) {
+		source.accept(v);
+		imports.accept(v);
+		elements.accept(v);
+		v.visit(this);
 	}
-
 	@Override public <T> T match(TopLevelDeclaration.Matcher<T> matcher) {
 		return matcher.case_WPackage(this);
 	}
 	@Override public void match(TopLevelDeclaration.MatcherVoid matcher) {
+		matcher.case_WPackage(this);
+	}
+
+	@Override public <T> T match(PackageOrGlobal.Matcher<T> matcher) {
+		return matcher.case_WPackage(this);
+	}
+	@Override public void match(PackageOrGlobal.MatcherVoid matcher) {
 		matcher.case_WPackage(this);
 	}
 

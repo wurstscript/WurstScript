@@ -40,11 +40,7 @@ class VisibilityPrivateImpl implements VisibilityPrivate, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassGlobalBlock.Visitor v) {
+	@Override public void accept(VisibilityModifier.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -52,7 +48,7 @@ class VisibilityPrivateImpl implements VisibilityPrivate, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassSlots.Visitor v) {
+	@Override public void accept(JassGlobalBlock.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -60,7 +56,11 @@ class VisibilityPrivateImpl implements VisibilityPrivate, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WEntities.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(VarDef.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -84,7 +84,15 @@ class VisibilityPrivateImpl implements VisibilityPrivate, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(FunctionDefinition.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(TypeDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlots.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -92,27 +100,7 @@ class VisibilityPrivateImpl implements VisibilityPrivate, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(VarDef.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(FuncDef.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(GlobalVarDef.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(VisibilityModifier.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(VisibilityPrivate.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -120,7 +108,19 @@ class VisibilityPrivateImpl implements VisibilityPrivate, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(GlobalVarDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(VisibilityPrivate.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}

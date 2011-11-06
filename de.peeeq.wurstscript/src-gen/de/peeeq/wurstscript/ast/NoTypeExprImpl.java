@@ -32,16 +32,13 @@ class NoTypeExprImpl implements NoTypeExpr, AstElementIntern {
 	@Override public void accept(StmtIf.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(JassGlobalBlock.Visitor v) {
-		v.visit(this);
-	}
 	@Override public void accept(ClassMember.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(ClassSlots.Visitor v) {
+	@Override public void accept(FuncSignature.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(JassGlobalBlock.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(TopLevelDeclaration.Visitor v) {
@@ -50,10 +47,16 @@ class NoTypeExprImpl implements NoTypeExpr, AstElementIntern {
 	@Override public void accept(StmtWhile.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(WEntities.Visitor v) {
+	@Override public void accept(WStatements.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(OnDestroyDef.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(VarDef.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(ClassDef.Visitor v) {
@@ -77,13 +80,13 @@ class NoTypeExprImpl implements NoTypeExpr, AstElementIntern {
 	@Override public void accept(ClassSlot.Visitor v) {
 		v.visit(this);
 	}
+	@Override public void accept(FunctionDefinition.Visitor v) {
+		v.visit(this);
+	}
 	@Override public void accept(TypeDef.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(FuncSignature.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(WStatements.Visitor v) {
+	@Override public void accept(ClassSlots.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(NativeType.Visitor v) {
@@ -92,13 +95,10 @@ class NoTypeExprImpl implements NoTypeExpr, AstElementIntern {
 	@Override public void accept(InitBlock.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(VarDef.Visitor v) {
-		v.visit(this);
-	}
 	@Override public void accept(FuncDef.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
+	@Override public void accept(PackageOrGlobal.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(LocalVarDef.Visitor v) {
@@ -113,10 +113,10 @@ class NoTypeExprImpl implements NoTypeExpr, AstElementIntern {
 	@Override public void accept(GlobalVarDef.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
+	@Override public void accept(WEntities.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(CompilationUnit.Visitor v) {
 		v.visit(this);
 	}
 	@Override public <T> T match(OptTypeExpr.Matcher<T> matcher) {

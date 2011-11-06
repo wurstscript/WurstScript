@@ -27,19 +27,7 @@ class WStatementsImpl extends WStatements implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		for (WStatement i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
 	@Override public void accept(ClassMember.Visitor v) {
-		for (WStatement i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlots.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
@@ -57,13 +45,19 @@ class WStatementsImpl extends WStatements implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(WEntities.Visitor v) {
+	@Override public void accept(WStatements.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
 	@Override public void accept(OnDestroyDef.Visitor v) {
+		for (WStatement i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
@@ -105,13 +99,19 @@ class WStatementsImpl extends WStatements implements AstElementIntern {
 		}
 		v.visit(this);
 	}
+	@Override public void accept(FunctionDefinition.Visitor v) {
+		for (WStatement i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
 	@Override public void accept(TypeDef.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(WStatements.Visitor v) {
+	@Override public void accept(ClassSlots.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
@@ -129,7 +129,7 @@ class WStatementsImpl extends WStatements implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
+	@Override public void accept(PackageOrGlobal.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
@@ -141,13 +141,13 @@ class WStatementsImpl extends WStatements implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
+	@Override public void accept(WEntities.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(CompilationUnit.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}

@@ -82,21 +82,7 @@ class FuncDefImpl implements FuncDef, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		signature.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(ClassMember.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		signature.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlots.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
 		signature.accept(v);
@@ -110,7 +96,7 @@ class FuncDefImpl implements FuncDef, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WEntities.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
 		signature.accept(v);
@@ -145,7 +131,21 @@ class FuncDefImpl implements FuncDef, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(FunctionDefinition.Visitor v) {
+		source.accept(v);
+		visibility.accept(v);
+		signature.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(TypeDef.Visitor v) {
+		source.accept(v);
+		visibility.accept(v);
+		signature.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlots.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
 		signature.accept(v);
@@ -159,13 +159,6 @@ class FuncDefImpl implements FuncDef, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		signature.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
@@ -173,7 +166,14 @@ class FuncDefImpl implements FuncDef, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		visibility.accept(v);
+		signature.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
 		signature.accept(v);
@@ -208,17 +208,17 @@ class FuncDefImpl implements FuncDef, AstElementIntern {
 		matcher.case_FuncDef(this);
 	}
 
-	@Override public <T> T match(ClassMember.Matcher<T> matcher) {
-		return matcher.case_FuncDef(this);
-	}
-	@Override public void match(ClassMember.MatcherVoid matcher) {
-		matcher.case_FuncDef(this);
-	}
-
 	@Override public <T> T match(FunctionDefinition.Matcher<T> matcher) {
 		return matcher.case_FuncDef(this);
 	}
 	@Override public void match(FunctionDefinition.MatcherVoid matcher) {
+		matcher.case_FuncDef(this);
+	}
+
+	@Override public <T> T match(ClassMember.Matcher<T> matcher) {
+		return matcher.case_FuncDef(this);
+	}
+	@Override public void match(ClassMember.MatcherVoid matcher) {
 		matcher.case_FuncDef(this);
 	}
 

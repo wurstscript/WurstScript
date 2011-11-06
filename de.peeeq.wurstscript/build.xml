@@ -18,8 +18,8 @@
 			<include name="**/*.jar"/>
 		</fileset>
 	</path>
-	
-	
+
+
 
 	<target name="checkForChanges" >
 		<uptodate targetfile="${srcgen}/de/peeeq/wurstscript/parser/WurstScriptScanner.java" srcfile="${scannerspec}" property="jflexNotChanged"/>
@@ -40,7 +40,7 @@
 			<arg value="${grammarspec}" />
 		</java>
 		<!--<move file="TokenType.java" todir="${src}/minijava/parser/" />-->
-		
+
 	</target>
 
 	<target name="jflex" depends="cup, checkForChanges" unless="jflexNotChanged">
@@ -51,7 +51,7 @@
 			<classpath refid="classpath" />
 		</java>
 		<!-- <move file="MiniJavaScanner.java" todir="${srcgen}/de/peeeq/wurstscript/parser/" /> -->
-		
+
 	</target>
 
 	<!--
@@ -71,14 +71,20 @@
 	-->
 
 	<target name="parseq">
-			<java classpath="${parseq}" classname="de.peeeq.parseq.Main" fork="true" failonerror="true">
-				<arg value="${parseqspec}" />
-				<arg value="${srcgen}" />
-				<classpath refid="classpath" />
-			</java>
-		</target>
-	
-	
+		<java classpath="${parseq}" classname="de.peeeq.parseq.Main" fork="true" failonerror="true">
+			<arg value="${parseqspec}" />
+			<arg value="${srcgen}" />
+			<classpath refid="classpath" />
+		</java>
+	</target>
+
+	<target name="parseq_jass">
+		<java classpath="${parseq}" classname="de.peeeq.parseq.Main" fork="true" failonerror="true">
+			<arg value="./parserspec/jass.parseq" />
+			<arg value="${srcgen}" />
+			<classpath refid="classpath" />
+		</java>
+	</target>
 
 	<target name="compile" depends="cup, jflex, parseq">
 		<!--<mkdir dir="${build}" />
@@ -87,7 +93,7 @@
 		</javac>
 		-->
 	</target>
-	
+
 	<!--
 	<target name="clean">
 		

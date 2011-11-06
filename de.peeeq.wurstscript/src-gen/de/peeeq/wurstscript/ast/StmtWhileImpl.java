@@ -74,19 +74,7 @@ class StmtWhileImpl implements StmtWhile, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(ClassMember.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlots.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		body.accept(v);
@@ -104,13 +92,19 @@ class StmtWhileImpl implements StmtWhile, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WEntities.Visitor v) {
+	@Override public void accept(WStatements.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		body.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(OnDestroyDef.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		body.accept(v);
@@ -152,13 +146,19 @@ class StmtWhileImpl implements StmtWhile, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(FunctionDefinition.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(TypeDef.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WStatements.Visitor v) {
+	@Override public void accept(ClassSlots.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		body.accept(v);
@@ -176,7 +176,7 @@ class StmtWhileImpl implements StmtWhile, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
+	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		body.accept(v);
@@ -188,13 +188,13 @@ class StmtWhileImpl implements StmtWhile, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
+	@Override public void accept(WEntities.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		body.accept(v);

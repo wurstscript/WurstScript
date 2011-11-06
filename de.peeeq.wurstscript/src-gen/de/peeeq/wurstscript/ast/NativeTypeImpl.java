@@ -77,19 +77,13 @@ class NativeTypeImpl implements NativeType, AstElementIntern {
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WEntities.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
 		typ.accept(v);
@@ -125,7 +119,13 @@ class NativeTypeImpl implements NativeType, AstElementIntern {
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		visibility.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
 		typ.accept(v);

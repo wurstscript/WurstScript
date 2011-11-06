@@ -54,27 +54,17 @@ class OnDestroyDefImpl implements OnDestroyDef, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlots.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WEntities.Visitor v) {
+	@Override public void accept(OnDestroyDef.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(OnDestroyDef.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);
@@ -99,12 +89,22 @@ class OnDestroyDefImpl implements OnDestroyDef, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(ClassSlots.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);

@@ -9,12 +9,12 @@ public interface WImport extends AstElement {
 	String getPackagename();
 	WImport copy();
 	public abstract void accept(WPackage.Visitor v);
-	public abstract void accept(CompilationUnit.Visitor v);
-	public abstract void accept(WImport.Visitor v);
-	public abstract void accept(TopLevelDeclaration.Visitor v);
 	public abstract void accept(WImports.Visitor v);
-	public abstract void accept(PackageOrGlobal.Visitor v);
+	public abstract void accept(TopLevelDeclaration.Visitor v);
 	public abstract void accept(WScope.Visitor v);
+	public abstract void accept(WImport.Visitor v);
+	public abstract void accept(PackageOrGlobal.Visitor v);
+	public abstract void accept(CompilationUnit.Visitor v);
 	public interface Visitor {
 		void visit(WPos wPos);
 		void visit(WImport wImport);
