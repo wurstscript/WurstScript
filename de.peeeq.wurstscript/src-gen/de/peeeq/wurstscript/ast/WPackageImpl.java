@@ -71,13 +71,13 @@ class WPackageImpl implements WPackage, AstElementIntern {
 	public WPackage copy() {
 		return new WPackageImpl(source.copy(), name, imports.copy(), elements.copy());
 	}
-	@Override public void accept(WPackage.Visitor v) {
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		imports.accept(v);
 		elements.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(WPackage.Visitor v) {
 		source.accept(v);
 		imports.accept(v);
 		elements.accept(v);
@@ -89,22 +89,22 @@ class WPackageImpl implements WPackage, AstElementIntern {
 		elements.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
-		source.accept(v);
-		imports.accept(v);
-		elements.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		imports.accept(v);
 		elements.accept(v);
 		v.visit(this);
 	}
-	@Override public <T> T match(TopLevelDeclaration.Matcher<T> matcher) {
+	@Override public void accept(PackageOrGlobal.Visitor v) {
+		source.accept(v);
+		imports.accept(v);
+		elements.accept(v);
+		v.visit(this);
+	}
+	@Override public <T> T match(WScope.Matcher<T> matcher) {
 		return matcher.case_WPackage(this);
 	}
-	@Override public void match(TopLevelDeclaration.MatcherVoid matcher) {
+	@Override public void match(WScope.MatcherVoid matcher) {
 		matcher.case_WPackage(this);
 	}
 
@@ -115,10 +115,10 @@ class WPackageImpl implements WPackage, AstElementIntern {
 		matcher.case_WPackage(this);
 	}
 
-	@Override public <T> T match(WScope.Matcher<T> matcher) {
+	@Override public <T> T match(TopLevelDeclaration.Matcher<T> matcher) {
 		return matcher.case_WPackage(this);
 	}
-	@Override public void match(WScope.MatcherVoid matcher) {
+	@Override public void match(TopLevelDeclaration.MatcherVoid matcher) {
 		matcher.case_WPackage(this);
 	}
 

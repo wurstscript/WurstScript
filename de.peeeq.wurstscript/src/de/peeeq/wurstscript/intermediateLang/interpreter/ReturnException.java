@@ -13,4 +13,9 @@ public class ReturnException extends Error {
 	ILconst getVal() {
 		return val;
 	}
+	
+	ReturnException setVal(ILconst val) {
+		this.val = val;
+		return this;
+	}
 }

@@ -752,7 +752,9 @@ public class Generator {
 		// copy method
 		sb.append("	public " + l.name + " copy() {\n");
 		sb.append("		" + l.name + " result = new "+l.name+"Impl();\n");
-		sb.append("		result.addAll(this);\n");
+		sb.append("		for ("+ l.itemType +" elem : this) {\n");
+		sb.append("			result.add(elem.copy());\n");
+		sb.append("		}\n");
 		sb.append("		return result;\n");
 		sb.append("	}\n");
 		

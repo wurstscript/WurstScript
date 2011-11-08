@@ -146,6 +146,14 @@ public class JassTranslator {
 			translateTopLevelDeclaration(t);
 		}
 		
+		// TODO create main function
+		
+		// TODO init globals
+		
+		// TODO call initializers
+		
+		// TODO sort functions
+		
 		return prog;
 	}
 
@@ -982,7 +990,7 @@ public class JassTranslator {
 					name = globalVarDef.attrNearestClassDef().getName() + "_" + name;
 				}
 				if (globalVarDef.attrNearestPackage() instanceof WPackage) {
-					name = ((ClassDef) globalVarDef.attrNearestPackage()).getName() + "_" + name;
+					name = ((WPackage) globalVarDef.attrNearestPackage()).getName() + "_" + name;
 				}	
 				name = manager.getUniqueName(globalVarDef, name);
 				if (globalVarDef.attrIsClassMember()) {

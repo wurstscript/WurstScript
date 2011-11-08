@@ -4,7 +4,9 @@ package de.peeeq.wurstscript.jassAst;
 public abstract class JassFunctions extends ParseqList<JassFunction> implements JassAstElement{
 	public JassFunctions copy() {
 		JassFunctions result = new JassFunctionsImpl();
-		result.addAll(this);
+		for (JassFunction elem : this) {
+			result.add(elem.copy());
+		}
 		return result;
 	}
 	public abstract void accept(JassProg.Visitor v);

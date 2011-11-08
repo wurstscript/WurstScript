@@ -36,18 +36,6 @@ class VisibilityPublicreadImpl implements VisibilityPublicread, AstElementIntern
 	public VisibilityPublicread copy() {
 		return new VisibilityPublicreadImpl(source.copy());
 	}
-	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(VisibilityModifier.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassMember.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(JassGlobalBlock.Visitor v) {
 		source.accept(v);
 		v.visit(this);
@@ -56,7 +44,11 @@ class VisibilityPublicreadImpl implements VisibilityPublicread, AstElementIntern
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(ConstructorDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FunctionDefinition.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -64,19 +56,7 @@ class VisibilityPublicreadImpl implements VisibilityPublicread, AstElementIntern
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(VisibilityPublicread.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassDef.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ConstructorDef.Visitor v) {
+	@Override public void accept(NativeType.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -88,27 +68,23 @@ class VisibilityPublicreadImpl implements VisibilityPublicread, AstElementIntern
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
+	@Override public void accept(ClassMember.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TypeDef.Visitor v) {
+	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(ClassSlots.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(NativeType.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(FuncDef.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -120,7 +96,31 @@ class VisibilityPublicreadImpl implements VisibilityPublicread, AstElementIntern
 		source.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(TypeDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FuncDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(VisibilityPublicread.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(VisibilityModifier.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(CompilationUnit.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}

@@ -78,19 +78,13 @@ class ClassDefImpl implements ClassDef, AstElementIntern {
 	public ClassDef copy() {
 		return new ClassDefImpl(source.copy(), visibility.copy(), name, unmanaged, slots.copy());
 	}
-	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		slots.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
 		slots.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(WPackage.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
 		slots.accept(v);
@@ -108,19 +102,19 @@ class ClassDefImpl implements ClassDef, AstElementIntern {
 		slots.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		visibility.accept(v);
+		slots.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(TypeDef.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
 		slots.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		slots.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntities.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
 		source.accept(v);
 		visibility.accept(v);
 		slots.accept(v);
@@ -132,13 +126,12 @@ class ClassDefImpl implements ClassDef, AstElementIntern {
 		slots.accept(v);
 		v.visit(this);
 	}
-	@Override public <T> T match(WEntity.Matcher<T> matcher) {
-		return matcher.case_ClassDef(this);
+	@Override public void accept(PackageOrGlobal.Visitor v) {
+		source.accept(v);
+		visibility.accept(v);
+		slots.accept(v);
+		v.visit(this);
 	}
-	@Override public void match(WEntity.MatcherVoid matcher) {
-		matcher.case_ClassDef(this);
-	}
-
 	@Override public <T> T match(TypeDef.Matcher<T> matcher) {
 		return matcher.case_ClassDef(this);
 	}
@@ -150,6 +143,13 @@ class ClassDefImpl implements ClassDef, AstElementIntern {
 		return matcher.case_ClassDef(this);
 	}
 	@Override public void match(WScope.MatcherVoid matcher) {
+		matcher.case_ClassDef(this);
+	}
+
+	@Override public <T> T match(WEntity.Matcher<T> matcher) {
+		return matcher.case_ClassDef(this);
+	}
+	@Override public void match(WEntity.MatcherVoid matcher) {
 		matcher.case_ClassDef(this);
 	}
 

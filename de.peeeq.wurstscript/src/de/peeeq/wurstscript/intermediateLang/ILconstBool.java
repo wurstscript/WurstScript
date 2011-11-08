@@ -3,22 +3,18 @@ package de.peeeq.wurstscript.intermediateLang;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PscriptType;
 
-public class ILconstBool extends ILconst {
+public class ILconstBool extends ILconstAbstract {
 
 	private boolean val;
 
-	public ILconstBool(String boolVal) {
-		if (boolVal.equals("true")) {
-			this.val = true;
-		} else if (boolVal.equals("false")) {
-			this.val = false;
-		} else {
-			throw new Error("unsupported boolean constant");
-		}
-		
+	public final static ILconstBool FALSE = new ILconstBool(false);
+	public final static ILconstBool TRUE = new ILconstBool(true);
+	
+	public static ILconstBool instance(boolean value) {
+		return value ? TRUE : FALSE;
 	}
 	
-	public ILconstBool(boolean b) {
+	private ILconstBool(boolean b) {
 		val = b;
 	}
 
@@ -43,6 +39,15 @@ public class ILconstBool extends ILconst {
 	@Override
 	public PscriptType getType() {
 		return PScriptTypeBool.instance();
+	}
+
+	public ILconst negate() {
+		return val ? FALSE : TRUE;
+	}
+
+	@Override
+	public boolean isEqualTo(ILconst other) {
+		return other == this;
 	}
 
 	

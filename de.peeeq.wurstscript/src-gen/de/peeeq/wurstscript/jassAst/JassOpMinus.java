@@ -24,6 +24,7 @@ public interface JassOpMinus extends JassAstElement, JassOpBinary, JassOpUnary {
 	public abstract void accept(JassFunctions.Visitor v);
 	public abstract void accept(JassOpBinary.Visitor v);
 	public abstract void accept(JassStmtSetArray.Visitor v);
+	public abstract void accept(JassOp.Visitor v);
 	public abstract void accept(JassFunction.Visitor v);
 	public abstract void accept(JassOpUnary.Visitor v);
 	public interface Visitor {

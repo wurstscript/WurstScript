@@ -3,10 +3,11 @@ package de.peeeq.wurstscript.intermediateLang.interpreter;
 import java.util.Vector;
 
 import de.peeeq.wurstscript.intermediateLang.ILconst;
+import de.peeeq.wurstscript.intermediateLang.ILconstAbstract;
 import de.peeeq.wurstscript.types.NativeTypes;
 import de.peeeq.wurstscript.types.PscriptType;
 
-public class ILarray extends ILconst {
+public class ILarray extends ILconstAbstract {
 
 	private static final int maxsize = 8191;
 	Vector<ILconst> values = new Vector<ILconst>(16);
@@ -17,6 +18,7 @@ public class ILarray extends ILconst {
 	}
 	
 	
+
 	public void set(int index, ILconst value) {
 		if (index < 0 || index >= maxsize) {
 			throw new Error("Array index out of bounds: " + index);
@@ -69,6 +71,13 @@ public class ILarray extends ILconst {
 	public PscriptType getType() {
 		// TODO Auto-generated method stub
 		throw new Error("Not implemented yet.");
+	}
+
+
+
+	@Override
+	public boolean isEqualTo(ILconst other) {
+		throw new Error("Cannot compare arrays.");
 	}
 
 }

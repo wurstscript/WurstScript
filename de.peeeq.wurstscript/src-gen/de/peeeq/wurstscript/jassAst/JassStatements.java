@@ -4,7 +4,9 @@ package de.peeeq.wurstscript.jassAst;
 public abstract class JassStatements extends ParseqList<JassStatement> implements JassAstElement{
 	public JassStatements copy() {
 		JassStatements result = new JassStatementsImpl();
-		result.addAll(this);
+		for (JassStatement elem : this) {
+			result.add(elem.copy());
+		}
 		return result;
 	}
 	public abstract void accept(JassStmtIf.Visitor v);

@@ -15,17 +15,17 @@ class CompilationUnitImpl extends CompilationUnit implements AstElementIntern {
 	protected void other_clearParent(TopLevelDeclaration t) {
 		((AstElementIntern) t).setParent(null);
 	}
-	@Override public <T> T match(PackageOrGlobal.Matcher<T> matcher) {
-		return matcher.case_CompilationUnit(this);
-	}
-	@Override public void match(PackageOrGlobal.MatcherVoid matcher) {
-		matcher.case_CompilationUnit(this);
-	}
-
 	@Override public <T> T match(WScope.Matcher<T> matcher) {
 		return matcher.case_CompilationUnit(this);
 	}
 	@Override public void match(WScope.MatcherVoid matcher) {
+		matcher.case_CompilationUnit(this);
+	}
+
+	@Override public <T> T match(PackageOrGlobal.Matcher<T> matcher) {
+		return matcher.case_CompilationUnit(this);
+	}
+	@Override public void match(PackageOrGlobal.MatcherVoid matcher) {
 		matcher.case_CompilationUnit(this);
 	}
 
@@ -35,13 +35,13 @@ class CompilationUnitImpl extends CompilationUnit implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
+	@Override public void accept(CompilationUnit.Visitor v) {
 		for (TopLevelDeclaration i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
+	@Override public void accept(PackageOrGlobal.Visitor v) {
 		for (TopLevelDeclaration i : this ) {
 			i.accept(v);
 		}

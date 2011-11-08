@@ -49,37 +49,12 @@ class StmtReturnImpl implements StmtReturn, AstElementIntern {
 	public StmtReturn copy() {
 		return new StmtReturnImpl(source.copy(), obj.copy());
 	}
-	@Override public void accept(WPackage.Visitor v) {
+	@Override public void accept(InitBlock.Visitor v) {
 		source.accept(v);
 		obj.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(StmtIf.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassMember.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtReturn.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtWhile.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WStatements.Visitor v) {
+	@Override public void accept(WStatement.Visitor v) {
 		source.accept(v);
 		obj.accept(v);
 		v.visit(this);
@@ -89,17 +64,22 @@ class StmtReturnImpl implements StmtReturn, AstElementIntern {
 		obj.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(WStatements.Visitor v) {
 		source.accept(v);
 		obj.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassDef.Visitor v) {
+	@Override public void accept(StmtReturn.Visitor v) {
 		source.accept(v);
 		obj.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WEntity.Visitor v) {
+	@Override public void accept(StmtIf.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		obj.accept(v);
 		v.visit(this);
@@ -109,7 +89,7 @@ class StmtReturnImpl implements StmtReturn, AstElementIntern {
 		obj.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WStatement.Visitor v) {
+	@Override public void accept(FunctionDefinition.Visitor v) {
 		source.accept(v);
 		obj.accept(v);
 		v.visit(this);
@@ -124,12 +104,22 @@ class StmtReturnImpl implements StmtReturn, AstElementIntern {
 		obj.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
+	@Override public void accept(ClassMember.Visitor v) {
 		source.accept(v);
 		obj.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TypeDef.Visitor v) {
+	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassDef.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
 		source.accept(v);
 		obj.accept(v);
 		v.visit(this);
@@ -139,17 +129,17 @@ class StmtReturnImpl implements StmtReturn, AstElementIntern {
 		obj.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(InitBlock.Visitor v) {
+	@Override public void accept(WEntities.Visitor v) {
 		source.accept(v);
 		obj.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FuncDef.Visitor v) {
+	@Override public void accept(TypeDef.Visitor v) {
 		source.accept(v);
 		obj.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
 		source.accept(v);
 		obj.accept(v);
 		v.visit(this);
@@ -159,12 +149,22 @@ class StmtReturnImpl implements StmtReturn, AstElementIntern {
 		obj.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WEntities.Visitor v) {
+	@Override public void accept(StmtWhile.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FuncDef.Visitor v) {
 		source.accept(v);
 		obj.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(CompilationUnit.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
 		obj.accept(v);
 		v.visit(this);

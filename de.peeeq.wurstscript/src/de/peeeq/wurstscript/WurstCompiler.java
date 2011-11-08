@@ -10,7 +10,6 @@ public interface WurstCompiler {
 	void loadFiles(String ... filenames);
 	
 	void parseFiles();
-	ILprog getILprog();
 
 
 	void loadFiles(File ... files);

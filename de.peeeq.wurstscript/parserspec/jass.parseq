@@ -66,7 +66,7 @@ JassOpUnary =
 	  JassOpNot()
 	| JassOpMinus
 	
-Op = OpBinary | OpUnary	
+JassOp = JassOpBinary | JassOpUnary	
 	
 attributes:
 

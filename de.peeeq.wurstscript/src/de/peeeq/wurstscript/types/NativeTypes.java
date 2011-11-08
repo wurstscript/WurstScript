@@ -4,7 +4,7 @@ import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstBool;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
 import de.peeeq.wurstscript.intermediateLang.ILconstNull;
-import de.peeeq.wurstscript.intermediateLang.ILconstNum;
+import de.peeeq.wurstscript.intermediateLang.ILconstReal;
 import de.peeeq.wurstscript.intermediateLang.ILconstString;
 
 public class NativeTypes {
@@ -43,10 +43,10 @@ public class NativeTypes {
 			return new ILconstInt(0);
 		}
 		if (type.isSubtypeOf(PScriptTypeBool.instance())) {
-			return new ILconstBool(false);
+			return ILconstBool.FALSE;
 		}
 		if (type.isSubtypeOf(PScriptTypeReal.instance())) {
-			return new ILconstNum(0.0);
+			return new ILconstReal(0.0);
 		}
 		if (type.isSubtypeOf(PScriptTypeString.instance())) {
 			return new ILconstString(null);

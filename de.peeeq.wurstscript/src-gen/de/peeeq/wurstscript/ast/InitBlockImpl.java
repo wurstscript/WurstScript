@@ -49,7 +49,7 @@ class InitBlockImpl implements InitBlock, AstElementIntern {
 	public InitBlock copy() {
 		return new InitBlockImpl(source.copy(), body.copy());
 	}
-	@Override public void accept(WPackage.Visitor v) {
+	@Override public void accept(InitBlock.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);
@@ -59,7 +59,7 @@ class InitBlockImpl implements InitBlock, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(WPackage.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);
@@ -69,17 +69,12 @@ class InitBlockImpl implements InitBlock, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(InitBlock.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);
@@ -89,17 +84,22 @@ class InitBlockImpl implements InitBlock, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public <T> T match(WEntity.Matcher<T> matcher) {
-		return matcher.case_InitBlock(this);
+	@Override public void accept(PackageOrGlobal.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
 	}
-	@Override public void match(WEntity.MatcherVoid matcher) {
-		matcher.case_InitBlock(this);
-	}
-
 	@Override public <T> T match(WScope.Matcher<T> matcher) {
 		return matcher.case_InitBlock(this);
 	}
 	@Override public void match(WScope.MatcherVoid matcher) {
+		matcher.case_InitBlock(this);
+	}
+
+	@Override public <T> T match(WEntity.Matcher<T> matcher) {
+		return matcher.case_InitBlock(this);
+	}
+	@Override public void match(WEntity.MatcherVoid matcher) {
 		matcher.case_InitBlock(this);
 	}
 

@@ -83,6 +83,9 @@ class JassOpUnequalsImpl implements JassOpUnequals, JassAstElementIntern {
 	@Override public void accept(JassStmtSetArray.Visitor v) {
 		v.visit(this);
 	}
+	@Override public void accept(JassOp.Visitor v) {
+		v.visit(this);
+	}
 	@Override public void accept(JassFunction.Visitor v) {
 		v.visit(this);
 	}
@@ -90,6 +93,13 @@ class JassOpUnequalsImpl implements JassOpUnequals, JassAstElementIntern {
 		return matcher.case_JassOpUnequals(this);
 	}
 	@Override public void match(JassOpBinary.MatcherVoid matcher) {
+		matcher.case_JassOpUnequals(this);
+	}
+
+	@Override public <T> T match(JassOp.Matcher<T> matcher) {
+		return matcher.case_JassOpUnequals(this);
+	}
+	@Override public void match(JassOp.MatcherVoid matcher) {
 		matcher.case_JassOpUnequals(this);
 	}
 

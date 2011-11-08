@@ -4,23 +4,25 @@ package de.peeeq.wurstscript.ast;
 public abstract class WImports extends ParseqList<WImport> implements AstElement{
 	public WImports copy() {
 		WImports result = new WImportsImpl();
-		result.addAll(this);
+		for (WImport elem : this) {
+			result.add(elem.copy());
+		}
 		return result;
 	}
-	public abstract void accept(WPackage.Visitor v);
-	public abstract void accept(WImports.Visitor v);
 	public abstract void accept(TopLevelDeclaration.Visitor v);
+	public abstract void accept(WPackage.Visitor v);
 	public abstract void accept(WScope.Visitor v);
-	public abstract void accept(PackageOrGlobal.Visitor v);
 	public abstract void accept(CompilationUnit.Visitor v);
+	public abstract void accept(WImports.Visitor v);
+	public abstract void accept(PackageOrGlobal.Visitor v);
 	public interface Visitor {
-		void visit(WPos wPos);
 		void visit(WImports wImports);
 		void visit(WImport wImport);
+		void visit(WPos wPos);
 	}
 	public static abstract class DefaultVisitor implements Visitor {
-		@Override public void visit(WPos wPos) {}
 		@Override public void visit(WImports wImports) {}
 		@Override public void visit(WImport wImport) {}
+		@Override public void visit(WPos wPos) {}
 	}
 }

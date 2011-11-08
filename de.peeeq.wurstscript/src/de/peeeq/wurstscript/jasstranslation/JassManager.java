@@ -15,6 +15,7 @@ import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.VarDef;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassSimpleVar;
@@ -41,6 +42,8 @@ public class JassManager {
 	
 	
 	public String getUniqueName(AstElement element, String baseName) {
+		if (baseName.contains("(")) throw new Error();
+		
 		String name = names.get(element);
 		if (name != null) {
 			return name;
@@ -72,10 +75,10 @@ public class JassManager {
 		}
 		String name = f.getSignature().getName();
 		if (f.attrNearestClassDef() != null) {
-			name = f.attrNearestClassDef() + "_" + name;
+			name = f.attrNearestClassDef().getName() + "_" + name;
 		}
-		if (f.attrNearestPackage() != null) {
-			name = f.attrNearestPackage() + "_" + name;
+		if (f.attrNearestPackage() instanceof WPackage) {
+			name = ((WPackage) f.attrNearestPackage()).getName() + "_" + name;
 		}
 		name = getUniqueName(f, name);
 		JassFunction func = JassAst.JassFunction(name, JassAst.JassSimpleVars(), "", JassAst.JassVars(), JassAst.JassStatements());
@@ -89,10 +92,10 @@ public class JassManager {
 		}
 		String name = v.getName();
 		if (v.attrNearestClassDef() != null) {
-			name = v.attrNearestClassDef() + "_" + name;
+			name = v.attrNearestClassDef().getName() + "_" + name;
 		}
-		if (v.attrNearestPackage() != null) {
-			name = v.attrNearestPackage() + "_" + name;
+		if (v.attrNearestPackage() instanceof WPackage) {
+			name = ((WPackage) v.attrNearestPackage()).getName() + "_" + name;
 		}
 		name = getUniqueName(v, name);
 		JassVar var = jassTranslator.translateVarDef(v);
@@ -108,8 +111,8 @@ public class JassManager {
 			return destroyFunctions.get(c);
 		}
 		String name = c.getName() + "_destroy";
-		if (c.attrNearestPackage() != null) {
-			name = c.attrNearestPackage() + "_" + name;
+		if (c.attrNearestPackage() instanceof WPackage) {
+			name = ((ClassDef) c.attrNearestPackage()).getName() + "_" + name;
 		}
 		name = getUniqueName(c, name);
 		JassFunction func = JassAst.JassFunction(name, JassAst.JassSimpleVars(), "", JassAst.JassVars(), JassAst.JassStatements());
@@ -123,10 +126,10 @@ public class JassManager {
 		}
 		String name = "construct";
 		if (f.attrNearestClassDef() != null) {
-			name = f.attrNearestClassDef() + "_" + name;
+			name = f.attrNearestClassDef().getName() + "_" + name;
 		}
-		if (f.attrNearestPackage() != null) {
-			name = f.attrNearestPackage() + "_" + name;
+		if (f.attrNearestPackage() instanceof WPackage) {
+			name = ((WPackage) f.attrNearestPackage()).getName() + "_" + name;
 		}
 		name = getUniqueName(f, name);
 		JassFunction func = JassAst.JassFunction(name, JassAst.JassSimpleVars(), "", JassAst.JassVars(), JassAst.JassStatements());
@@ -139,8 +142,8 @@ public class JassManager {
 			return initFunctions.get(f);
 		}
 		String name = "init";
-		if (f.attrNearestPackage() != null) {
-			name = f.attrNearestPackage() + "_" + name;
+		if (f.attrNearestPackage() instanceof WPackage) {
+			name = ((WPackage) f.attrNearestPackage()).getName() + "_" + name;
 		}
 		name = getUniqueName(f, name);
 		JassFunction func = JassAst.JassFunction(name, JassAst.JassSimpleVars(), "", JassAst.JassVars(), JassAst.JassStatements());

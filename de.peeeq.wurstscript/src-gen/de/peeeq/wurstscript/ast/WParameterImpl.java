@@ -58,22 +58,7 @@ class WParameterImpl implements WParameter, AstElementIntern {
 	public WParameter copy() {
 		return new WParameterImpl(source.copy(), typ.copy(), name);
 	}
-	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(NativeFunc.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassMember.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(FuncSignature.Visitor v) {
+	@Override public void accept(WParameters.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);
@@ -83,32 +68,17 @@ class WParameterImpl implements WParameter, AstElementIntern {
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(ConstructorDef.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FunctionDefinition.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(VarDef.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WParameter.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassDef.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ConstructorDef.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);
@@ -123,17 +93,22 @@ class WParameterImpl implements WParameter, AstElementIntern {
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
+	@Override public void accept(ClassMember.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TypeDef.Visitor v) {
+	@Override public void accept(WPackage.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WParameters.Visitor v) {
+	@Override public void accept(ClassDef.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);
@@ -143,12 +118,12 @@ class WParameterImpl implements WParameter, AstElementIntern {
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FuncDef.Visitor v) {
+	@Override public void accept(FuncSignature.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
+	@Override public void accept(WParameter.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);
@@ -158,7 +133,32 @@ class WParameterImpl implements WParameter, AstElementIntern {
 		typ.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(TypeDef.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(NativeFunc.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FuncDef.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(CompilationUnit.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);

@@ -15,17 +15,17 @@ class JassGlobalBlockImpl extends JassGlobalBlock implements AstElementIntern {
 	protected void other_clearParent(GlobalVarDef t) {
 		((AstElementIntern) t).setParent(null);
 	}
-	@Override public <T> T match(TopLevelDeclaration.Matcher<T> matcher) {
-		return matcher.case_JassGlobalBlock(this);
-	}
-	@Override public void match(TopLevelDeclaration.MatcherVoid matcher) {
-		matcher.case_JassGlobalBlock(this);
-	}
-
 	@Override public <T> T match(JassToplevelDeclaration.Matcher<T> matcher) {
 		return matcher.case_JassGlobalBlock(this);
 	}
 	@Override public void match(JassToplevelDeclaration.MatcherVoid matcher) {
+		matcher.case_JassGlobalBlock(this);
+	}
+
+	@Override public <T> T match(TopLevelDeclaration.Matcher<T> matcher) {
+		return matcher.case_JassGlobalBlock(this);
+	}
+	@Override public void match(TopLevelDeclaration.MatcherVoid matcher) {
 		matcher.case_JassGlobalBlock(this);
 	}
 
@@ -41,25 +41,25 @@ class JassGlobalBlockImpl extends JassGlobalBlock implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
-		for (GlobalVarDef i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
 	@Override public void accept(JassToplevelDeclaration.Visitor v) {
 		for (GlobalVarDef i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
 		for (GlobalVarDef i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
 	@Override public void accept(CompilationUnit.Visitor v) {
+		for (GlobalVarDef i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(PackageOrGlobal.Visitor v) {
 		for (GlobalVarDef i : this ) {
 			i.accept(v);
 		}

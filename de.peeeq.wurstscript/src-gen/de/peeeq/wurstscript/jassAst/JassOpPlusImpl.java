@@ -83,6 +83,9 @@ class JassOpPlusImpl implements JassOpPlus, JassAstElementIntern {
 	@Override public void accept(JassStmtSetArray.Visitor v) {
 		v.visit(this);
 	}
+	@Override public void accept(JassOp.Visitor v) {
+		v.visit(this);
+	}
 	@Override public void accept(JassFunction.Visitor v) {
 		v.visit(this);
 	}
@@ -90,6 +93,13 @@ class JassOpPlusImpl implements JassOpPlus, JassAstElementIntern {
 		return matcher.case_JassOpPlus(this);
 	}
 	@Override public void match(JassOpBinary.MatcherVoid matcher) {
+		matcher.case_JassOpPlus(this);
+	}
+
+	@Override public <T> T match(JassOp.Matcher<T> matcher) {
+		return matcher.case_JassOpPlus(this);
+	}
+	@Override public void match(JassOp.MatcherVoid matcher) {
 		matcher.case_JassOpPlus(this);
 	}
 

@@ -71,49 +71,13 @@ class FuncSignatureImpl implements FuncSignature, AstElementIntern {
 	public FuncSignature copy() {
 		return new FuncSignatureImpl(source.copy(), name, parameters.copy(), typ.copy());
 	}
-	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		parameters.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(NativeFunc.Visitor v) {
-		source.accept(v);
-		parameters.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassMember.Visitor v) {
-		source.accept(v);
-		parameters.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(FuncSignature.Visitor v) {
-		source.accept(v);
-		parameters.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		parameters.accept(v);
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
-		source.accept(v);
-		parameters.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassDef.Visitor v) {
-		source.accept(v);
-		parameters.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
+	@Override public void accept(FunctionDefinition.Visitor v) {
 		source.accept(v);
 		parameters.accept(v);
 		typ.accept(v);
@@ -131,13 +95,25 @@ class FuncSignatureImpl implements FuncSignature, AstElementIntern {
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
+	@Override public void accept(ClassMember.Visitor v) {
 		source.accept(v);
 		parameters.accept(v);
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TypeDef.Visitor v) {
+	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
+		parameters.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassDef.Visitor v) {
+		source.accept(v);
+		parameters.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
 		source.accept(v);
 		parameters.accept(v);
 		typ.accept(v);
@@ -149,13 +125,7 @@ class FuncSignatureImpl implements FuncSignature, AstElementIntern {
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FuncDef.Visitor v) {
-		source.accept(v);
-		parameters.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
+	@Override public void accept(FuncSignature.Visitor v) {
 		source.accept(v);
 		parameters.accept(v);
 		typ.accept(v);
@@ -167,7 +137,37 @@ class FuncSignatureImpl implements FuncSignature, AstElementIntern {
 		typ.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(TypeDef.Visitor v) {
+		source.accept(v);
+		parameters.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		parameters.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(NativeFunc.Visitor v) {
+		source.accept(v);
+		parameters.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FuncDef.Visitor v) {
+		source.accept(v);
+		parameters.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(CompilationUnit.Visitor v) {
+		source.accept(v);
+		parameters.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
 		parameters.accept(v);
 		typ.accept(v);

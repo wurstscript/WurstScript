@@ -24,6 +24,7 @@ public interface JassOpAnd extends JassAstElement, JassOpBinary {
 	public abstract void accept(JassOpBinary.Visitor v);
 	public abstract void accept(JassStmtSetArray.Visitor v);
 	public abstract void accept(JassOpAnd.Visitor v);
+	public abstract void accept(JassOp.Visitor v);
 	public abstract void accept(JassFunction.Visitor v);
 	public interface Visitor {
 		void visit(JassOpAnd jassOpAnd);

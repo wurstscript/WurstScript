@@ -49,7 +49,7 @@ class OnDestroyDefImpl implements OnDestroyDef, AstElementIntern {
 	public OnDestroyDef copy() {
 		return new OnDestroyDefImpl(source.copy(), body.copy());
 	}
-	@Override public void accept(WPackage.Visitor v) {
+	@Override public void accept(OnDestroyDef.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);
@@ -59,12 +59,12 @@ class OnDestroyDefImpl implements OnDestroyDef, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(OnDestroyDef.Visitor v) {
+	@Override public void accept(ClassSlot.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(WPackage.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);
@@ -79,22 +79,7 @@ class OnDestroyDefImpl implements OnDestroyDef, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassSlot.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TypeDef.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(ClassSlots.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);
@@ -104,22 +89,37 @@ class OnDestroyDefImpl implements OnDestroyDef, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(TypeDef.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public <T> T match(ClassSlot.Matcher<T> matcher) {
-		return matcher.case_OnDestroyDef(this);
+	@Override public void accept(PackageOrGlobal.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
 	}
-	@Override public void match(ClassSlot.MatcherVoid matcher) {
-		matcher.case_OnDestroyDef(this);
-	}
-
 	@Override public <T> T match(WScope.Matcher<T> matcher) {
 		return matcher.case_OnDestroyDef(this);
 	}
 	@Override public void match(WScope.MatcherVoid matcher) {
+		matcher.case_OnDestroyDef(this);
+	}
+
+	@Override public <T> T match(ClassSlot.Matcher<T> matcher) {
+		return matcher.case_OnDestroyDef(this);
+	}
+	@Override public void match(ClassSlot.MatcherVoid matcher) {
 		matcher.case_OnDestroyDef(this);
 	}
 

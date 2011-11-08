@@ -1,17 +1,14 @@
 package de.peeeq.wurstscript.intermediateLang;
 
-public abstract class ILconst implements ILexpr, CodePrinting {
+public interface ILconst extends ILexpr, CodePrinting {
 
 	public abstract String print();
 
+	boolean isEqualTo(ILconst other);
 	
 	@Override
-	public String toString() {
-		return print();
-	}
+	public String toString();
 	
 	@Override
-	public void printJassExpr(StringBuilder sb, int indent) {
-		printJass(sb, indent);
-	}
+	public void printJassExpr(StringBuilder sb, int indent);
 }
