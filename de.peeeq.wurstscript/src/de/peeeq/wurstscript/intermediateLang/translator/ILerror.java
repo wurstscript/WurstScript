@@ -15,7 +15,7 @@ public class ILerror extends ILStatement {
 	@Override
 	public void printJass(StringBuilder sb, int indent) {
 		Utils.printIndent(sb, indent);
-		sb.append("call BJDebugMsg(\"Error!  \" + " + msg.getName() + " )\n");
+		sb.append("call BJDebugMsg(\"Wurst-Error!  \" + " + msg.getName() + " )\n");
 //		sb.append("call I2S(100 / 0) // divition by zero to crash thread.\n");
 	}
 

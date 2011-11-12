@@ -33,7 +33,7 @@ public class Main {
 			
 			WLogger.severe(t);
 			JOptionPane.showMessageDialog(null , "An severe error has occured\n"+
-			"Please report this bug by sending us the file wurst.log in your jngp directory.");
+			"Please report this bug by sending us the file wurst.log in your Wurstpack/wurstscript directory.");
 			System.exit(1);
 			
 			

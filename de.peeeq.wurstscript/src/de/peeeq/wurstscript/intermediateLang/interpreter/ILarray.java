@@ -8,7 +8,7 @@ import de.peeeq.wurstscript.types.PscriptType;
 
 public class ILarray extends ILconst {
 
-	private static final int maxsize = 8191;
+	private static final int maxsize = 8191; //max size of jass-arrays
 	Vector<ILconst> values = new Vector<ILconst>(16);
 	PscriptType type;
 	

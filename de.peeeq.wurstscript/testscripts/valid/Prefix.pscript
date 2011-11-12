@@ -1,0 +1,16 @@
+package test {
+
+	native testFail(string msg)
+	
+	native testSuccess()
+
+	init {
+		int i = 1
+		++i
+		if i == 2 {
+			testSuccess()
+		} else {
+			testFail("defect in unary operation")
+		}
+	}
+}
