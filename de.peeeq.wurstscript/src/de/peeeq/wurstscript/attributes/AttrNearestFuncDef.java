@@ -1,7 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.FuncDef;
-import de.peeeq.wurstscript.ast.SortPos;
+import de.peeeq.wurstscript.ast.AstElement;
 
 
 
@@ -11,7 +11,7 @@ import de.peeeq.wurstscript.ast.SortPos;
  */
 public class AttrNearestFuncDef {
 	
-	public static  FuncDef calculate(SortPos node) {
+	public static  FuncDef calculate(AstElement node) {
 		if (node == null) {
 			return null;
 		}

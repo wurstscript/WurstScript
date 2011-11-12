@@ -73,10 +73,8 @@ non terminal NativeType NativeType;
 non terminal Newlines;
 non terminal OnDestroyDef OnDestroyDef; 
 non terminal StmtCall StmtCall;
-non terminal StmtDecRefCount StmtDecRefCount;
 non terminal StmtDestroy StmtDestroy;
 non terminal StmtIf StmtIf;
-non terminal StmtIncRefCount StmtIncRefCount;
 non terminal StmtReturn StmtReturn;
 non terminal StmtSet StmtSet;
 non terminal StmtWhile StmtWhile;	
@@ -309,10 +307,6 @@ Statement ::=
 		{: RESULT = x; :} 
 	| StmtDestroy:x
 		{: RESULT = x; :} 
-	| StmtIncRefCount:x
-		{: RESULT = x; :} 
-	| StmtDecRefCount:x
-		{: RESULT = x; :}
 	| error:x NL
 		{: RESULT = Ast.StmtErr(pos(xleft, xright)); :}
 ;

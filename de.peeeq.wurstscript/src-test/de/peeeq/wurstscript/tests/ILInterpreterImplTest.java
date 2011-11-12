@@ -8,12 +8,15 @@ import java.util.List;
 
 import de.peeeq.wurstscript.WurstCompiler;
 import de.peeeq.wurstscript.WurstCompilerImpl;
+import de.peeeq.wurstscript.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.intermediateLang.ILprog;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreter;
-import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreterImpl;
+import de.peeeq.wurstscript.intermediateLang.interpreter.JassInterpreter;
 import de.peeeq.wurstscript.intermediateLang.interpreter.TestFailException;
 import de.peeeq.wurstscript.intermediateLang.interpreter.TestSuccessException;
+import de.peeeq.wurstscript.jassAst.JassProg;
+import de.peeeq.wurstscript.jassprinter.JassPrinter;
 
 public class ILInterpreterImplTest {
 	
@@ -82,11 +85,11 @@ public class ILInterpreterImplTest {
 	
 	private static void runTest(String filename) {
 		System.out.println("parsing script ...");
-		WurstCompiler compiler = new WurstCompilerImpl(new WurstGuiCliImpl());
+		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(new WurstGuiCliImpl());
 		compiler.loadFiles(filename);
 		compiler.parseFiles();		
 		
-		ILprog prog = compiler.getILprog();
+		JassProg prog = compiler.getProg();
 		
 		if (prog == null) {
 			throw new TestFailException("Compiler errors ...");
@@ -94,7 +97,8 @@ public class ILInterpreterImplTest {
 		
 		File outputFile = new File(filename.replaceAll(PSCRIPT_ENDING, ".j"));
 		StringBuilder sb = new StringBuilder();
-		prog.printJass(sb, 0);
+		new JassPrinter();
+		JassPrinter.printProg(sb, prog);
 		try {
 			FileWriter writer = new FileWriter(outputFile, false);
 			writer.append(sb.toString());
@@ -106,7 +110,7 @@ public class ILInterpreterImplTest {
 		
 		
 		
-		ILInterpreter interpreter = new ILInterpreterImpl();
+		JassInterpreter interpreter = new JassInterpreter();
 		interpreter.LoadProgram(prog);
 		interpreter.executeFunction("test_runTest");
 	}

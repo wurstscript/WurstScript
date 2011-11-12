@@ -56,12 +56,10 @@ import de.peeeq.wurstscript.ast.OpOr;
 import de.peeeq.wurstscript.ast.OpPlus;
 import de.peeeq.wurstscript.ast.OpUnequals;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
-import de.peeeq.wurstscript.ast.StmtDecRefCount;
 import de.peeeq.wurstscript.ast.StmtDestroy;
 import de.peeeq.wurstscript.ast.StmtErr;
 import de.peeeq.wurstscript.ast.StmtExitwhen;
 import de.peeeq.wurstscript.ast.StmtIf;
-import de.peeeq.wurstscript.ast.StmtIncRefCount;
 import de.peeeq.wurstscript.ast.StmtLoop;
 import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StmtSet;
@@ -80,7 +78,7 @@ import de.peeeq.wurstscript.intermediateLang.ILconstBool;
 import de.peeeq.wurstscript.intermediateLang.ILconstFuncRef;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
 import de.peeeq.wurstscript.intermediateLang.ILconstNull;
-import de.peeeq.wurstscript.intermediateLang.ILconstNum;
+import de.peeeq.wurstscript.intermediateLang.ILconstReal;
 import de.peeeq.wurstscript.intermediateLang.ILconstString;
 import de.peeeq.wurstscript.intermediateLang.ILexitwhen;
 import de.peeeq.wurstscript.intermediateLang.ILfunction;
@@ -500,15 +498,6 @@ public class IntermediateLangTranslator {
 				return result;
 			}
 
-			@Override
-			public List<ILStatement> case_StmtIncRefCount(StmtIncRefCount term)  {
-				throw new Error("ref counting not implemented");
-			}
-
-			@Override
-			public List<ILStatement> case_StmtDecRefCount(StmtDecRefCount term)  {
-				throw new Error("ref counting not implemented");
-			}
 
 			@Override
 			public List<ILStatement> case_StmtErr(StmtErr term)  {
@@ -614,7 +603,7 @@ public class IntermediateLangTranslator {
 
 			@Override
 			public List<ILStatement> case_ExprRealVal(ExprRealVal term)  {
-				result.add(new IlsetConst(resultVar, new ILconstNum(term.getVal())));
+				result.add(new IlsetConst(resultVar, new ILconstReal(term.getVal())));
 				return result;
 			}
 
@@ -626,7 +615,7 @@ public class IntermediateLangTranslator {
 
 			@Override
 			public List<ILStatement> case_ExprBoolVal(ExprBoolVal term)  {
-				result.add(new IlsetConst(resultVar, new ILconstBool(term.getVal())));
+				result.add(new IlsetConst(resultVar, ILconstBool.instance(term.getVal())));
 				return result;
 			}
 
@@ -634,7 +623,7 @@ public class IntermediateLangTranslator {
 			public List<ILStatement> case_ExprFuncRef(ExprFuncRef term)  {
 				FunctionDefinition f = term.attrFuncDef();
 				ILfunction ilfunc = names.getFunction(f);
-				result.add(new IlsetConst(resultVar, new ILconstFuncRef(ilfunc)));
+				result.add(new IlsetConst(resultVar, new ILconstFuncRef(ilfunc.getName())));
 				return result;
 			}
 

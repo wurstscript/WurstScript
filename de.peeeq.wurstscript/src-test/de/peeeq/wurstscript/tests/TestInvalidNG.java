@@ -64,7 +64,7 @@ public class TestInvalidNG {
 		String filename = file.getAbsolutePath();
 		System.out.println("parsing script ...");
 		WurstGuiLogger gui = new WurstGuiLogger();
-		WurstCompiler compiler = new WurstCompilerImpl(gui);
+		WurstCompilerImpl compiler = new WurstCompilerImpl(gui);
 		compiler.loadFiles(file);
 		compiler.parseFiles();
 

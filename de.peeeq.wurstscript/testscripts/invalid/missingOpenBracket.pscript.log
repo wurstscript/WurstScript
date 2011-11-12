@@ -1,3 +1,4 @@
 Errors in validation phase:
 Error in File missingOpenBracket.pscript line 4:4:
-Grammatical error: unexpected INTEGER_LITERAL 1	expected: IDENTIFIER, EQEQ, GTEQ, LTEQ, NOTEQ, GT, LT, EQ, AND, OR, PLUS, MINUS, MULT, DIV_REAL, DIV_INT, MOD_REAL, MOD_INT, DOT, LPAR, LSQUARE, ARRAY, CASTTO
+Grammatical error: unexpected integer number 1	expected: 3 name, 8 '==', 9 '>=', 10 '<=', 11 '!=', 12 '>', 13 '<', 14 '=', 15 'and', 16 'or', 18 '+', 19 '-', 21 '*', 22 '/', 23 'div', 24 '%', 25 'mod', 26 '.', 27 '(', 29 '[', 50 'array', 79 'cast_to'
+state = 258

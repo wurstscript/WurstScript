@@ -1,20 +1,20 @@
 package de.peeeq.wurstscript.types;
 
 
-public class PsciptFuncType extends PscriptType {
+public class PsrciptFuncType extends PscriptType {
 
 
 	private PscriptType returnType;
 	private PscriptType[] paramTypes;
 
-	public PsciptFuncType(PscriptType returnType, PscriptType ... paramTypes ) {
+	public PsrciptFuncType(PscriptType returnType, PscriptType ... paramTypes ) {
 		this.returnType = returnType;
 		this.paramTypes = paramTypes;
 	}
 
 	@Override
 	public boolean isSubtypeOf(PscriptType other) {
-		if (! (other instanceof PsciptFuncType)) {
+		if (! (other instanceof PsrciptFuncType)) {
 			return false;
 		}
 //		PsciptFuncType f = (PsciptFuncType) other;

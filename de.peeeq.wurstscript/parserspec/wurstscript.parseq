@@ -31,7 +31,7 @@ OptExpr = NoExpr() | Expr
 	
 TypeDef = 
 	 NativeType(WPos source, VisibilityModifier visibility, String name, OptTypeExpr typ)
-	|ClassDef(WPos source, VisibilityModifier visibility, String name, Boolean unmanaged, ClassSlots slots)
+	|ClassDef(WPos source, VisibilityModifier visibility, String name, boolean unmanaged, ClassSlots slots)
 	
 ClassSlots * ClassSlot
 
@@ -45,13 +45,13 @@ ClassMember =
 	| FuncDef
 
 
-GlobalVarDef(WPos source, VisibilityModifier visibility, Boolean isConstant, OptTypeExpr typ, String name, OptExpr initialExpr)
-LocalVarDef(WPos source, Boolean constant, OptTypeExpr typ, String name, OptExpr initialExpr) 
+GlobalVarDef(WPos source, VisibilityModifier visibility, boolean isConstant, OptTypeExpr typ, String name, OptExpr initialExpr)
+LocalVarDef(WPos source, boolean constant, OptTypeExpr typ, String name, OptExpr initialExpr) 
 
 	
 FuncDef(WPos source, VisibilityModifier visibility, FuncSignature signature, WStatements body)
 	
-TypeExpr(WPos source, String typeName, Boolean isArray, ArraySizes sizes)
+TypeExpr(WPos source, String typeName, boolean isArray, ArraySizes sizes)
 
 ArraySizes * Expr
 	
@@ -71,8 +71,8 @@ WStatement	=
 	| StmtCall
 	| StmtReturn(WPos source, OptExpr obj)
 	| StmtDestroy(WPos source, Expr obj)
-	| StmtIncRefCount(WPos source, Expr obj) 
-	| StmtDecRefCount(WPos source, Expr obj)
+//	| StmtIncRefCount(WPos source, Expr obj) 
+//	| StmtDecRefCount(WPos source, Expr obj)
 	| StmtErr(WPos source)
 	| StmtExitwhen(WPos source, Expr cond)
 	
@@ -98,10 +98,10 @@ Expr =
 	
 	
 ExprAtomic = 
-	  ExprIntVal(WPos source, Integer val)
-	| ExprRealVal(WPos source, Double val)
+	  ExprIntVal(WPos source, int val)
+	| ExprRealVal(WPos source, double val)
 	| ExprStringVal(WPos source, String val)
-	| ExprBoolVal(WPos source, Boolean val)
+	| ExprBoolVal(WPos source, boolean val)
 	| ExprFuncRef(WPos source, String funcName)
 	| ExprVarAccess(WPos source, String varName)
 	| ExprVarArrayAccess(WPos source, String varName, Indexes indexes)
@@ -245,6 +245,9 @@ VarDef.attrTyp
 	implemented by de.peeeq.wurstscript.attributes.AttrVarDefType.calculate
 
 
+VarDef.attrIsClassMember
+	returns boolean
+	implemented by de.peeeq.wurstscript.attributes.AttrIsClassMember.calculate
 
 PackageOrGlobal.attrPackageElements
 	returns com.google.common.collect.Multimap<String, WEntity>
@@ -252,12 +255,12 @@ PackageOrGlobal.attrPackageElements
 	
 	
 
-SortPos.attrNearestPackage
+AstElement.attrNearestPackage
 	returns PackageOrGlobal
 	implemented by de.peeeq.wurstscript.attributes.AttrNearestPackage.calculate
 
 
-SortPos.attrNearestFuncDef
+AstElement.attrNearestFuncDef
 	returns FuncDef
 	implemented by de.peeeq.wurstscript.attributes.AttrNearestFuncDef.calculate
 
@@ -266,7 +269,7 @@ TypeRef.attrTypeDef
 	returns TypeDef
 	implemented by de.peeeq.wurstscript.attributes.AttrTypeDef.calculate
 
-SortPos.attrNearestClassDef
+AstElement.attrNearestClassDef
 	returns ClassDef
 	implemented by de.peeeq.wurstscript.attributes.AttrNearestClassDef.calculate
 

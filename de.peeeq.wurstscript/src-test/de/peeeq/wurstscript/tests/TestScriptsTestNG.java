@@ -15,12 +15,15 @@ import org.testng.annotations.Test;
 
 import de.peeeq.wurstscript.WurstCompiler;
 import de.peeeq.wurstscript.WurstCompilerImpl;
+import de.peeeq.wurstscript.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.intermediateLang.ILprog;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreter;
-import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreterImpl;
+import de.peeeq.wurstscript.intermediateLang.interpreter.JassInterpreter;
 import de.peeeq.wurstscript.intermediateLang.interpreter.TestFailException;
 import de.peeeq.wurstscript.intermediateLang.interpreter.TestSuccessException;
+import de.peeeq.wurstscript.jassAst.JassProg;
+import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.utils.NotNullList;
 
 public class TestScriptsTestNG {
@@ -68,11 +71,11 @@ public class TestScriptsTestNG {
 			String filename = file.getAbsolutePath();
 			System.out.println("parsing script ...");
 			WurstGuiLogger gui = new WurstGuiLogger();
-			WurstCompiler compiler = new WurstCompilerImpl(gui);
+			WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui);
 			compiler.loadFiles(file);
 			compiler.parseFiles();
 
-			ILprog prog = compiler.getILprog();
+			JassProg prog = compiler.getProg();
 
 			if (prog == null) {
 				throw new TestFailException("Compiler errors:\n" + gui.getErrors());
@@ -84,7 +87,7 @@ public class TestScriptsTestNG {
 
 			File outputFile = new File(filename.replaceAll("\\"+PSCRIPT_ENDING, ".j"));
 			StringBuilder sb = new StringBuilder();
-			prog.printJass(sb, 0);
+			JassPrinter.printProg(sb, prog);
 			try {
 				FileWriter writer = new FileWriter(outputFile, false);
 				writer.append(sb.toString());
@@ -119,7 +122,7 @@ public class TestScriptsTestNG {
 			}
 
 			// run the interpreter
-			ILInterpreter interpreter = new ILInterpreterImpl();
+			JassInterpreter interpreter = new JassInterpreter();
 			interpreter.trace(true);
 			interpreter.LoadProgram(prog);
 			interpreter.executeFunction("main");
