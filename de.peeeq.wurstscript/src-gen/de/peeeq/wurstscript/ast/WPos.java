@@ -32,11 +32,11 @@ public interface WPos extends AstElement {
 	public abstract void accept(StmtErr.Visitor v);
 	public abstract void accept(WStatements.Visitor v);
 	public abstract void accept(StmtDestroy.Visitor v);
+	public abstract void accept(TopLevelDeclaration.Visitor v);
 	public abstract void accept(OptExpr.Visitor v);
 	public abstract void accept(ExprCast.Visitor v);
 	public abstract void accept(StmtReturn.Visitor v);
 	public abstract void accept(StmtIf.Visitor v);
-	public abstract void accept(TopLevelDeclaration.Visitor v);
 	public abstract void accept(ExprIntVal.Visitor v);
 	public abstract void accept(WImport.Visitor v);
 	public abstract void accept(ConstructorDef.Visitor v);

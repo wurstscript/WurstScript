@@ -56,11 +56,11 @@ class StmtErrImpl implements StmtErr, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(StmtIf.Visitor v) {
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(StmtIf.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}

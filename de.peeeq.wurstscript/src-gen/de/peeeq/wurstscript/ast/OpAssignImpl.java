@@ -38,13 +38,13 @@ class OpAssignImpl implements OpAssign, AstElementIntern {
 	@Override public void accept(WStatements.Visitor v) {
 		v.visit(this);
 	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		v.visit(this);
+	}
 	@Override public void accept(OpAssign.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(StmtIf.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(ConstructorDef.Visitor v) {

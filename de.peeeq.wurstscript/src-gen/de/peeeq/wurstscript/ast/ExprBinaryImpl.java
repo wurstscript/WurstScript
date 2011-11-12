@@ -173,6 +173,13 @@ class ExprBinaryImpl implements ExprBinary, AstElementIntern {
 		right.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		op.accept(v);
+		right.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(OptExpr.Visitor v) {
 		source.accept(v);
 		left.accept(v);
@@ -195,13 +202,6 @@ class ExprBinaryImpl implements ExprBinary, AstElementIntern {
 		v.visit(this);
 	}
 	@Override public void accept(StmtIf.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		op.accept(v);
-		right.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		op.accept(v);

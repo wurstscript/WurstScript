@@ -39,13 +39,13 @@ class WStatementsImpl extends WStatements implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(StmtIf.Visitor v) {
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(StmtIf.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}

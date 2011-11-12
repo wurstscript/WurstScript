@@ -146,6 +146,12 @@ class ExprCastImpl implements ExprCast, AstElementIntern {
 		expr.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		expr.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(OptExpr.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
@@ -165,12 +171,6 @@ class ExprCastImpl implements ExprCast, AstElementIntern {
 		v.visit(this);
 	}
 	@Override public void accept(StmtIf.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		expr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		expr.accept(v);

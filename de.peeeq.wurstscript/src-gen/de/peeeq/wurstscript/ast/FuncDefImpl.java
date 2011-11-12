@@ -187,6 +187,13 @@ class FuncDefImpl implements FuncDef, AstElementIntern {
 		matcher.case_FuncDef(this);
 	}
 
+	@Override public <T> T match(TopLevelDeclaration.Matcher<T> matcher) {
+		return matcher.case_FuncDef(this);
+	}
+	@Override public void match(TopLevelDeclaration.MatcherVoid matcher) {
+		matcher.case_FuncDef(this);
+	}
+
 	@Override public <T> T match(WScope.Matcher<T> matcher) {
 		return matcher.case_FuncDef(this);
 	}
@@ -219,13 +226,6 @@ class FuncDefImpl implements FuncDef, AstElementIntern {
 		return matcher.case_FuncDef(this);
 	}
 	@Override public void match(FunctionDefinition.MatcherVoid matcher) {
-		matcher.case_FuncDef(this);
-	}
-
-	@Override public <T> T match(TopLevelDeclaration.Matcher<T> matcher) {
-		return matcher.case_FuncDef(this);
-	}
-	@Override public void match(TopLevelDeclaration.MatcherVoid matcher) {
 		matcher.case_FuncDef(this);
 	}
 

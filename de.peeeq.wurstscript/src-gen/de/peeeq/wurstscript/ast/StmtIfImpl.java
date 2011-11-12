@@ -103,14 +103,14 @@ class StmtIfImpl implements StmtIf, AstElementIntern {
 		elseBlock.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(StmtIf.Visitor v) {
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		thenBlock.accept(v);
 		elseBlock.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(StmtIf.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		thenBlock.accept(v);

@@ -12,8 +12,8 @@ public interface StmtLoop extends AstElement, WStatement {
 	public abstract void accept(WStatement.Visitor v);
 	public abstract void accept(OnDestroyDef.Visitor v);
 	public abstract void accept(WStatements.Visitor v);
-	public abstract void accept(StmtIf.Visitor v);
 	public abstract void accept(TopLevelDeclaration.Visitor v);
+	public abstract void accept(StmtIf.Visitor v);
 	public abstract void accept(ConstructorDef.Visitor v);
 	public abstract void accept(FunctionDefinition.Visitor v);
 	public abstract void accept(JassToplevelDeclaration.Visitor v);

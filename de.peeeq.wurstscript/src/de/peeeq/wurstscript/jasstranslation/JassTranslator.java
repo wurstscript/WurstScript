@@ -3,15 +3,22 @@ package de.peeeq.wurstscript.jasstranslation;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static de.peeeq.wurstscript.jassAst.JassAst.*;
 
 
 import org.testng.collections.Maps;
 
+import com.google.common.base.Function;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
+import com.google.common.collect.SetMultimap;
 
 import de.peeeq.wurstscript.ast.Arguments;
+import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -81,6 +88,7 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
+import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.intermediateLang.ILStatement;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
 import de.peeeq.wurstscript.intermediateLang.ILif;
@@ -121,9 +129,12 @@ import de.peeeq.wurstscript.types.PscriptTypeError;
 import de.peeeq.wurstscript.types.PsrciptFuncType;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.utils.NotNullList;
+import de.peeeq.wurstscript.utils.TopsortCycleException;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class JassTranslator {
 
+	private static final boolean debug = true;
 	private JassManager manager;
 	private CompilationUnit wurstProg;
 	private JassProg prog;
@@ -131,33 +142,76 @@ public class JassTranslator {
 	private JassFunctions functions;
 	private List<GlobalInit> globalInitializers = Lists.newLinkedList();
 	private Map<WPackage, JassFunction> initFunctions = Maps.newHashMap();
-
+	private SetMultimap<JassFunction, JassFunction> calledFunctions = HashMultimap.create();
+	
+	
 	public JassTranslator(CompilationUnit wurstProgram) {
 		this.manager = new JassManager(this);
 		this.wurstProg = wurstProgram;
 	}
 	
 	public JassProg translate() {
+		trace("translate " + wurstProg);
 		globals = JassVars();
 		functions = JassFunctions();
 		prog = JassProg(globals, functions);
 		
 		for (TopLevelDeclaration t : wurstProg) {
+			trace("translate tld " + t);
 			translateTopLevelDeclaration(t);
 		}
 		
-		// TODO create main function
+		createMainMethod();
 		
-		// TODO init globals
+		initGlobals();
 		
-		// TODO call initializers
-		
-		// TODO sort functions
+		sortFunctions();
 		
 		return prog;
 	}
 
+	/**
+	 * sort the functions so that each functions only calls functions above it
+	 */
+	private void sortFunctions() {
+		try {
+			List<JassFunction> sortedFunctions = Utils.topSort(prog.getFunctions(), new Function<JassFunction, Set<JassFunction>>() {
+
+				@Override
+				public Set<JassFunction> apply(JassFunction input) {
+					return calledFunctions.get(input);
+				}
+			});
+			
+			// remove old functions and add sorted ones:
+			prog.getFunctions().removeAll();
+			prog.getFunctions().addAll(sortedFunctions);
+			
+		} catch (TopsortCycleException e) {
+			@SuppressWarnings("unchecked")
+			List<JassFunction> items = (List<JassFunction>) e.activeItems;
+			String msg = Utils.join(Utils.map(items, new Function<JassFunction, String>() {
+
+				@Override
+				public String apply(JassFunction input) {
+					return input.getName();
+				}
+				
+			}), ", ");
+			attr.addError(Ast.WPos("", 0, 0), "Cannot generate code because of a cyclic dependency between the following functions: \n" + msg);
+		}
+	}
+
+	private void initGlobals() {
+		// TODO init globals
+	}
+
+	private void createMainMethod() {
+		// TODO create main method
+	}
+
 	private void translateTopLevelDeclaration(TopLevelDeclaration t) {
+		trace("translate " + t);
 		t.match(new TopLevelDeclaration.MatcherVoid() {
 			
 			@Override
@@ -198,6 +252,7 @@ public class JassTranslator {
 			f.getParams().add(translateParam(param));
 		}
 		f.setBody(translateStatements(f, funcDef.getBody()));
+		prog.getFunctions().add(f);
 	}
 
 	private JassStatements translateStatements(JassFunction f, WStatements statements) {
@@ -840,10 +895,19 @@ public class JassTranslator {
 	}
 
 	protected void translateInitBlock(InitBlock initBlock) {
+		trace("translate init block: " + initBlock);
 		JassFunction jassFunction = manager.getJassInitFunctionFor(initBlock);
 		jassFunction.setBody(translateStatements(jassFunction, initBlock.getBody()));
 		
 		initFunctions.put((WPackage) initBlock.attrNearestPackage(), jassFunction);
+		
+		prog.getFunctions().add(jassFunction);
+	}
+
+	private void trace(String string) {
+		if (debug) {
+			System.out.println(string);
+		}
 	}
 
 	protected void translateClassDef(final ClassDef classDef) {

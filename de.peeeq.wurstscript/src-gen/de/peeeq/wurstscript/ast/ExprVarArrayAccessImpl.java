@@ -128,6 +128,11 @@ class ExprVarArrayAccessImpl implements ExprVarArrayAccess, AstElementIntern {
 		indexes.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		indexes.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(OptExpr.Visitor v) {
 		source.accept(v);
 		indexes.accept(v);
@@ -144,11 +149,6 @@ class ExprVarArrayAccessImpl implements ExprVarArrayAccess, AstElementIntern {
 		v.visit(this);
 	}
 	@Override public void accept(StmtIf.Visitor v) {
-		source.accept(v);
-		indexes.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		indexes.accept(v);
 		v.visit(this);

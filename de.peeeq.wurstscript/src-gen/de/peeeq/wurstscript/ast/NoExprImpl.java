@@ -38,6 +38,9 @@ class NoExprImpl implements NoExpr, AstElementIntern {
 	@Override public void accept(WStatements.Visitor v) {
 		v.visit(this);
 	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		v.visit(this);
+	}
 	@Override public void accept(OptExpr.Visitor v) {
 		v.visit(this);
 	}
@@ -48,9 +51,6 @@ class NoExprImpl implements NoExpr, AstElementIntern {
 		v.visit(this);
 	}
 	@Override public void accept(StmtIf.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(ConstructorDef.Visitor v) {

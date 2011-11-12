@@ -86,13 +86,13 @@ class StmtWhileImpl implements StmtWhile, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(StmtIf.Visitor v) {
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(StmtIf.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		body.accept(v);

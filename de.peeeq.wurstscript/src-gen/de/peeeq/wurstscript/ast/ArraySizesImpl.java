@@ -99,6 +99,12 @@ class ArraySizesImpl extends ArraySizes implements AstElementIntern {
 		}
 		v.visit(this);
 	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		for (Expr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
 	@Override public void accept(OptExpr.Visitor v) {
 		for (Expr i : this ) {
 			i.accept(v);
@@ -118,12 +124,6 @@ class ArraySizesImpl extends ArraySizes implements AstElementIntern {
 		v.visit(this);
 	}
 	@Override public void accept(StmtIf.Visitor v) {
-		for (Expr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		for (Expr i : this ) {
 			i.accept(v);
 		}

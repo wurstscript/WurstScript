@@ -155,6 +155,12 @@ class ExprMemberArrayVarImpl implements ExprMemberArrayVar, AstElementIntern {
 		indexes.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		indexes.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(OptExpr.Visitor v) {
 		source.accept(v);
 		left.accept(v);
@@ -174,12 +180,6 @@ class ExprMemberArrayVarImpl implements ExprMemberArrayVar, AstElementIntern {
 		v.visit(this);
 	}
 	@Override public void accept(StmtIf.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		indexes.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		indexes.accept(v);

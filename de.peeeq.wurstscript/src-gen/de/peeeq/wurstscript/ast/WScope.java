@@ -30,8 +30,8 @@ public interface WScope extends AstElement{
 	public interface Visitor {
 		void visit(ExprFunctionCall exprFunctionCall);
 		void visit(OpModInt opModInt);
-		void visit(InitBlock initBlock);
 		void visit(JassGlobalBlock jassGlobalBlock);
+		void visit(InitBlock initBlock);
 		void visit(ExprMemberMethod exprMemberMethod);
 		void visit(ExprNull exprNull);
 		void visit(ExprStringVal exprStringVal);
@@ -85,8 +85,8 @@ public interface WScope extends AstElement{
 		void visit(FuncDef funcDef);
 		void visit(LocalVarDef localVarDef);
 		void visit(WImport wImport);
-		void visit(ConstructorDef constructorDef);
 		void visit(VisibilityPublic visibilityPublic);
+		void visit(ConstructorDef constructorDef);
 		void visit(ExprMemberVar exprMemberVar);
 		void visit(ExprRealVal exprRealVal);
 		void visit(ExprMemberArrayVar exprMemberArrayVar);
@@ -106,8 +106,8 @@ public interface WScope extends AstElement{
 	public static abstract class DefaultVisitor implements Visitor {
 		@Override public void visit(ExprFunctionCall exprFunctionCall) {}
 		@Override public void visit(OpModInt opModInt) {}
-		@Override public void visit(InitBlock initBlock) {}
 		@Override public void visit(JassGlobalBlock jassGlobalBlock) {}
+		@Override public void visit(InitBlock initBlock) {}
 		@Override public void visit(ExprMemberMethod exprMemberMethod) {}
 		@Override public void visit(ExprNull exprNull) {}
 		@Override public void visit(ExprStringVal exprStringVal) {}
@@ -161,8 +161,8 @@ public interface WScope extends AstElement{
 		@Override public void visit(FuncDef funcDef) {}
 		@Override public void visit(LocalVarDef localVarDef) {}
 		@Override public void visit(WImport wImport) {}
-		@Override public void visit(ConstructorDef constructorDef) {}
 		@Override public void visit(VisibilityPublic visibilityPublic) {}
+		@Override public void visit(ConstructorDef constructorDef) {}
 		@Override public void visit(ExprMemberVar exprMemberVar) {}
 		@Override public void visit(ExprRealVal exprRealVal) {}
 		@Override public void visit(ExprMemberArrayVar exprMemberArrayVar) {}

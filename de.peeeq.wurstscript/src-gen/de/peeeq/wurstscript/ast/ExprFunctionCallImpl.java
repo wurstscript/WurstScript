@@ -128,6 +128,11 @@ class ExprFunctionCallImpl implements ExprFunctionCall, AstElementIntern {
 		args.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(OptExpr.Visitor v) {
 		source.accept(v);
 		args.accept(v);
@@ -144,11 +149,6 @@ class ExprFunctionCallImpl implements ExprFunctionCall, AstElementIntern {
 		v.visit(this);
 	}
 	@Override public void accept(StmtIf.Visitor v) {
-		source.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		args.accept(v);
 		v.visit(this);

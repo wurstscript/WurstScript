@@ -68,6 +68,9 @@ class OpModIntImpl implements OpModInt, AstElementIntern {
 	@Override public void accept(StmtDestroy.Visitor v) {
 		v.visit(this);
 	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		v.visit(this);
+	}
 	@Override public void accept(OptExpr.Visitor v) {
 		v.visit(this);
 	}
@@ -78,9 +81,6 @@ class OpModIntImpl implements OpModInt, AstElementIntern {
 		v.visit(this);
 	}
 	@Override public void accept(StmtIf.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(ConstructorDef.Visitor v) {

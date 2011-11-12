@@ -41,10 +41,10 @@ class NoTypeExprImpl implements NoTypeExpr, AstElementIntern {
 	@Override public void accept(WStatements.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(StmtIf.Visitor v) {
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(StmtIf.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(ConstructorDef.Visitor v) {

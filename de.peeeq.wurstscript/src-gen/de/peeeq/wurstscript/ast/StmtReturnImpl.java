@@ -69,17 +69,17 @@ class StmtReturnImpl implements StmtReturn, AstElementIntern {
 		obj.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(StmtReturn.Visitor v) {
 		source.accept(v);
 		obj.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(StmtIf.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		obj.accept(v);
 		v.visit(this);

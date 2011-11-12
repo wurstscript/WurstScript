@@ -105,6 +105,10 @@ class ExprStringValImpl implements ExprStringVal, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(OptExpr.Visitor v) {
 		source.accept(v);
 		v.visit(this);
@@ -118,10 +122,6 @@ class ExprStringValImpl implements ExprStringVal, AstElementIntern {
 		v.visit(this);
 	}
 	@Override public void accept(StmtIf.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}

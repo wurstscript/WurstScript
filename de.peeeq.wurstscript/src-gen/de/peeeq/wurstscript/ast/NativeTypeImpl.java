@@ -138,6 +138,13 @@ class NativeTypeImpl implements NativeType, AstElementIntern {
 		matcher.case_NativeType(this);
 	}
 
+	@Override public <T> T match(TopLevelDeclaration.Matcher<T> matcher) {
+		return matcher.case_NativeType(this);
+	}
+	@Override public void match(TopLevelDeclaration.MatcherVoid matcher) {
+		matcher.case_NativeType(this);
+	}
+
 	@Override public <T> T match(TypeDef.Matcher<T> matcher) {
 		return matcher.case_NativeType(this);
 	}
@@ -149,13 +156,6 @@ class NativeTypeImpl implements NativeType, AstElementIntern {
 		return matcher.case_NativeType(this);
 	}
 	@Override public void match(WEntity.MatcherVoid matcher) {
-		matcher.case_NativeType(this);
-	}
-
-	@Override public <T> T match(TopLevelDeclaration.Matcher<T> matcher) {
-		return matcher.case_NativeType(this);
-	}
-	@Override public void match(TopLevelDeclaration.MatcherVoid matcher) {
 		matcher.case_NativeType(this);
 	}
 

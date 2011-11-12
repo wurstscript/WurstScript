@@ -7,10 +7,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.testng.collections.Lists;
+
 import com.google.common.base.Function;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.jassAst.JassFunction;
 
 public class Utils {
 
@@ -206,7 +209,15 @@ public class Utils {
 		}
 		return result.toString();
 	}
-
+	
+	
+	public static <S, T> List<T> map(List<S> items, Function<S, T> function) {
+		List<T> result = Lists.newArrayList(items.size());
+		for (S s : items) {
+			result.add(function.apply(s));
+		}
+		return result;
+	}
 
 	/**
 	 * sorts a list with partitial ordering topologically.
@@ -216,7 +227,7 @@ public class Utils {
 	 * @return a sorted list
 	 * @throws TopsortCycleException if there exist items a,b so that a > b and b > a 
 	 */
-	public static <T> List<T> topSort(Collection<T> items, Function<T, Collection<T>> biggerItems) throws TopsortCycleException {
+	public static <T> List<T> topSort(Collection<T> items, Function<T, ? extends Collection<T>> biggerItems) throws TopsortCycleException {
 		Set<T> visitedItems = new HashSet<T>();
 		List<T> result = new ArrayList<T>(items.size());
 		LinkedList<T> activeItems = new LinkedList<T>();
@@ -227,7 +238,7 @@ public class Utils {
 		return result;
 	}
 
-	private static <T> void topSortHelper(List<T> result, Set<T> visitedItems, LinkedList<T> activeItems, Function<T, Collection<T>> biggerItems, T item) throws TopsortCycleException {
+	private static <T> void topSortHelper(List<T> result, Set<T> visitedItems, LinkedList<T> activeItems, Function<T, ? extends Collection<T>> biggerItems, T item) throws TopsortCycleException {
 		if (visitedItems.contains(item)) {
 			return;
 		}
@@ -266,6 +277,8 @@ public class Utils {
 		}
 		return s;
 	}
+
+	
 
 
 

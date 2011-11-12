@@ -103,14 +103,14 @@ class StmtSetImpl implements StmtSet, AstElementIntern {
 		right.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(StmtIf.Visitor v) {
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		op.accept(v);
 		right.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(StmtIf.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		op.accept(v);

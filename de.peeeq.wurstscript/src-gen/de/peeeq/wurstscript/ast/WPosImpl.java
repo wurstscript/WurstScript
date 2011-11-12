@@ -116,6 +116,9 @@ class WPosImpl implements WPos, AstElementIntern {
 	@Override public void accept(StmtDestroy.Visitor v) {
 		v.visit(this);
 	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		v.visit(this);
+	}
 	@Override public void accept(OptExpr.Visitor v) {
 		v.visit(this);
 	}
@@ -126,9 +129,6 @@ class WPosImpl implements WPos, AstElementIntern {
 		v.visit(this);
 	}
 	@Override public void accept(StmtIf.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(ExprIntVal.Visitor v) {

@@ -23,11 +23,11 @@ public interface ExprVarAccess extends AstElement, ExprAssignable, ExprAtomic, V
 	public abstract void accept(StmtCall.Visitor v);
 	public abstract void accept(WStatements.Visitor v);
 	public abstract void accept(StmtDestroy.Visitor v);
+	public abstract void accept(TopLevelDeclaration.Visitor v);
 	public abstract void accept(OptExpr.Visitor v);
 	public abstract void accept(ExprCast.Visitor v);
 	public abstract void accept(StmtReturn.Visitor v);
 	public abstract void accept(StmtIf.Visitor v);
-	public abstract void accept(TopLevelDeclaration.Visitor v);
 	public abstract void accept(ConstructorDef.Visitor v);
 	public abstract void accept(ExprMemberVar.Visitor v);
 	public abstract void accept(ExprMemberArrayVar.Visitor v);

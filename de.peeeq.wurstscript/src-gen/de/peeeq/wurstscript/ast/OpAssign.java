@@ -9,9 +9,9 @@ public interface OpAssign extends AstElement, OpAssignment {
 	public abstract void accept(OpAssignment.Visitor v);
 	public abstract void accept(OnDestroyDef.Visitor v);
 	public abstract void accept(WStatements.Visitor v);
+	public abstract void accept(TopLevelDeclaration.Visitor v);
 	public abstract void accept(OpAssign.Visitor v);
 	public abstract void accept(StmtIf.Visitor v);
-	public abstract void accept(TopLevelDeclaration.Visitor v);
 	public abstract void accept(ConstructorDef.Visitor v);
 	public abstract void accept(StmtSet.Visitor v);
 	public abstract void accept(FunctionDefinition.Visitor v);

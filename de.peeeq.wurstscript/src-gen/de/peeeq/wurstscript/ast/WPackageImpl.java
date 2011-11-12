@@ -101,6 +101,13 @@ class WPackageImpl implements WPackage, AstElementIntern {
 		elements.accept(v);
 		v.visit(this);
 	}
+	@Override public <T> T match(TopLevelDeclaration.Matcher<T> matcher) {
+		return matcher.case_WPackage(this);
+	}
+	@Override public void match(TopLevelDeclaration.MatcherVoid matcher) {
+		matcher.case_WPackage(this);
+	}
+
 	@Override public <T> T match(WScope.Matcher<T> matcher) {
 		return matcher.case_WPackage(this);
 	}
@@ -112,13 +119,6 @@ class WPackageImpl implements WPackage, AstElementIntern {
 		return matcher.case_WPackage(this);
 	}
 	@Override public void match(PackageOrGlobal.MatcherVoid matcher) {
-		matcher.case_WPackage(this);
-	}
-
-	@Override public <T> T match(TopLevelDeclaration.Matcher<T> matcher) {
-		return matcher.case_WPackage(this);
-	}
-	@Override public void match(TopLevelDeclaration.MatcherVoid matcher) {
 		matcher.case_WPackage(this);
 	}
 

@@ -146,6 +146,12 @@ class ExprUnaryImpl implements ExprUnary, AstElementIntern {
 		right.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		op.accept(v);
+		right.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(OptExpr.Visitor v) {
 		source.accept(v);
 		op.accept(v);
@@ -165,12 +171,6 @@ class ExprUnaryImpl implements ExprUnary, AstElementIntern {
 		v.visit(this);
 	}
 	@Override public void accept(StmtIf.Visitor v) {
-		source.accept(v);
-		op.accept(v);
-		right.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		op.accept(v);
 		right.accept(v);

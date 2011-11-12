@@ -155,6 +155,12 @@ class ExprMemberMethodImpl implements ExprMemberMethod, AstElementIntern {
 		args.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(OptExpr.Visitor v) {
 		source.accept(v);
 		left.accept(v);
@@ -174,12 +180,6 @@ class ExprMemberMethodImpl implements ExprMemberMethod, AstElementIntern {
 		v.visit(this);
 	}
 	@Override public void accept(StmtIf.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		args.accept(v);

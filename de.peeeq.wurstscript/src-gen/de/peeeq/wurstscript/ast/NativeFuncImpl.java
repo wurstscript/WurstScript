@@ -106,6 +106,13 @@ class NativeFuncImpl implements NativeFunc, AstElementIntern {
 		matcher.case_NativeFunc(this);
 	}
 
+	@Override public <T> T match(TopLevelDeclaration.Matcher<T> matcher) {
+		return matcher.case_NativeFunc(this);
+	}
+	@Override public void match(TopLevelDeclaration.MatcherVoid matcher) {
+		matcher.case_NativeFunc(this);
+	}
+
 	@Override public <T> T match(WEntity.Matcher<T> matcher) {
 		return matcher.case_NativeFunc(this);
 	}
@@ -117,13 +124,6 @@ class NativeFuncImpl implements NativeFunc, AstElementIntern {
 		return matcher.case_NativeFunc(this);
 	}
 	@Override public void match(FunctionDefinition.MatcherVoid matcher) {
-		matcher.case_NativeFunc(this);
-	}
-
-	@Override public <T> T match(TopLevelDeclaration.Matcher<T> matcher) {
-		return matcher.case_NativeFunc(this);
-	}
-	@Override public void match(TopLevelDeclaration.MatcherVoid matcher) {
 		matcher.case_NativeFunc(this);
 	}
 
