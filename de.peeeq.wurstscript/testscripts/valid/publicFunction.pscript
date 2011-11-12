@@ -12,6 +12,6 @@ package test {
 	import bla
 
 	init {
-		foo() // error, foo is not public	
+		foo()
 	}
 }

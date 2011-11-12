@@ -7,14 +7,15 @@ test {
 	
 	native testSuccess()
 
-	int array blub
+	int array blub [10][10] //size
 
 	init {
-		blub[5] = 3
-		if blub[5] == 3 {
+		blub[2][4] = 3
+		blub[4][2] = blub[2][4]
+		if blub[4][2] == 3 {
 			testSuccess()
 		} else {
-			testFail("Array Test 1 failed.")
+			testFail("Array Test 4 failed.")
 		}
 	} 
 	
