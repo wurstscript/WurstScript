@@ -139,6 +139,7 @@ public class MainView extends JFrame {
 	}
 	
 	private void addWurstSyntax() { 		
+		//Defines the codehighlighting for RsyntaxPane
 		AbstractTokenMakerFactory atmf = (AbstractTokenMakerFactory) TokenMakerFactory.getDefaultInstance();
 		atmf.putMapping("wurstscript", "editor.WurstTokenMaker");
 		TokenMakerFactory.setDefaultInstance(atmf);
