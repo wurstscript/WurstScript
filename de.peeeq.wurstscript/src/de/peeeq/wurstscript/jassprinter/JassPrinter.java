@@ -478,5 +478,12 @@ public class JassPrinter {
 			}
 		});
 	}
+
+
+	public CharSequence printProg(JassProg prog) {
+		StringBuilder sb = new StringBuilder();
+		printProg(sb, prog);
+		return sb.toString();
+	}
 	
 }
