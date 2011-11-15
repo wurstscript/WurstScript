@@ -1,0 +1,4 @@
+3
+3
+1
+startinject1: C:\Games\Warcraft III\\worldedit121.exe worldedit.exe  bin\weload.dll

@@ -1,0 +1,5 @@
+injecting bin\wehack.dll
+injecting bin\japi.dll
+injecting bin\nativepack.dll
+injecting bin\loadmpq.dll
+injecting tesh\tesh.dll

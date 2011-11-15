@@ -1,0 +1,118 @@
+INFO - Started compiler with args wurstscript\natives_bj.pscript, C:\Spiele\Warcraft III\Maps\wursttest1.w3m
+INFO - Loading Files
+INFO - Parsing Files
+INFO - Parsing File natives_bj.pscript
+INFO - Processing Map wursttest1.w3m
+ERROR - Error
+java.lang.Error: java.io.IOException: Cannot run program "MpqCL.exe": CreateProcess error=2, Das System kann die angegebene Datei nicht finden
+	at de.peeeq.wurstscript.WurstCompilerImpl.processMap(WurstCompilerImpl.java:142)
+	at de.peeeq.wurstscript.WurstCompilerImpl.parseFiles(WurstCompilerImpl.java:62)
+	at de.peeeq.wurstscript.Main.main(Main.java:33)
+Caused by: java.io.IOException: Cannot run program "MpqCL.exe": CreateProcess error=2, Das System kann die angegebene Datei nicht finden
+	at java.lang.ProcessBuilder.start(Unknown Source)
+	at java.lang.Runtime.exec(Unknown Source)
+	at java.lang.Runtime.exec(Unknown Source)
+	at de.peeeq.wurstscript.WurstCompilerImpl.processMap(WurstCompilerImpl.java:131)
+	... 2 more
+Caused by: java.io.IOException: CreateProcess error=2, Das System kann die angegebene Datei nicht finden
+	at java.lang.ProcessImpl.create(Native Method)
+	at java.lang.ProcessImpl.<init>(Unknown Source)
+	at java.lang.ProcessImpl.start(Unknown Source)
+	... 6 more
+INFO - Started compiler with args wurstscript\natives_bj.pscript, C:\Spiele\Warcraft III\Maps\wursttest1.w3m
+INFO - Loading Files
+INFO - Parsing Files
+INFO - Parsing File natives_bj.pscript
+INFO - Processing Map wursttest1.w3m
+ERROR - Error
+java.lang.Error: java.io.IOException: Cannot run program "MpqCL.exe": CreateProcess error=2, Das System kann die angegebene Datei nicht finden
+	at de.peeeq.wurstscript.WurstCompilerImpl.processMap(WurstCompilerImpl.java:142)
+	at de.peeeq.wurstscript.WurstCompilerImpl.parseFiles(WurstCompilerImpl.java:62)
+	at de.peeeq.wurstscript.Main.main(Main.java:33)
+Caused by: java.io.IOException: Cannot run program "MpqCL.exe": CreateProcess error=2, Das System kann die angegebene Datei nicht finden
+	at java.lang.ProcessBuilder.start(Unknown Source)
+	at java.lang.Runtime.exec(Unknown Source)
+	at java.lang.Runtime.exec(Unknown Source)
+	at de.peeeq.wurstscript.WurstCompilerImpl.processMap(WurstCompilerImpl.java:131)
+	... 2 more
+Caused by: java.io.IOException: CreateProcess error=2, Das System kann die angegebene Datei nicht finden
+	at java.lang.ProcessImpl.create(Native Method)
+	at java.lang.ProcessImpl.<init>(Unknown Source)
+	at java.lang.ProcessImpl.start(Unknown Source)
+	... 6 more
+INFO - Started compiler with args wurstscript\natives_bj.pscript, C:\Spiele\Warcraft III\Maps\wursttest1.w3m
+INFO - Loading Files
+INFO - Parsing Files
+INFO - Parsing File natives_bj.pscript
+INFO - Processing Map wursttest1.w3m
+INFO - Parsing File temp_war3map.j
+INFO - Merging Files
+INFO - Checking Files
+INFO - Started compiler with args wurstscript\natives_bj.pscript, C:\Spiele\Warcraft III\Maps\wursttest1.w3m
+INFO - Loading Files
+INFO - Parsing Files
+INFO - Parsing File natives_bj.pscript
+INFO - Processing Map wursttest1.w3m
+INFO - Parsing File temp_war3map.j
+INFO - Merging Files
+INFO - Checking Files
+INFO - Started compiler with args wurstscript\natives_bj.pscript, C:\Spiele\Warcraft III\Maps\wursttest1.w3m
+INFO - Loading Files
+INFO - Parsing Files
+INFO - Parsing File natives_bj.pscript
+INFO - Processing Map wursttest1.w3m
+INFO - Parsing File temp_war3map.j
+INFO - Merging Files
+INFO - Checking Files
+INFO - Started compiler with args wurstscript\natives_bj.pscript, C:\Spiele\Warcraft III\Maps\wursttest1.w3m
+INFO - Loading Files
+INFO - Parsing Files
+INFO - Parsing File natives_bj.pscript
+INFO - Processing Map wursttest1.w3m
+INFO - Parsing File temp_war3map.j
+INFO - Merging Files
+INFO - Checking Files
+INFO - Started compiler with args wurstscript\natives_bj.pscript, C:\Spiele\Warcraft III\Maps\wursttest1.w3m
+INFO - Loading Files
+INFO - Parsing Files
+INFO - Parsing File natives_bj.pscript
+INFO - Processing Map wursttest1.w3m
+INFO - Parsing File temp_war3map.j
+INFO - Merging Files
+INFO - Checking Files
+INFO - Started compiler with args wurstscript\natives_bj.pscript, C:\Spiele\Warcraft III\Maps\wursttest1.w3m
+INFO - Loading Files
+INFO - Parsing Files
+INFO - Parsing File natives_bj.pscript
+INFO - Processing Map wursttest1.w3m
+INFO - Parsing File temp_war3map.j
+INFO - Merging Files
+INFO - Checking Files
+INFO - Started compiler with args wurstscript\natives_bj.pscript, C:\Spiele\Warcraft III\Maps\wursttest1.w3m
+INFO - Loading Files
+INFO - Parsing Files
+INFO - Parsing File natives_bj.pscript
+INFO - Processing Map wursttest1.w3m
+INFO - Parsing File temp_war3map.j
+INFO - Merging Files
+INFO - Checking Files
+INFO - Started compiler with args wurstscript\natives_bj.pscript, C:\Spiele\Warcraft III\Maps\wursttest1.w3m
+INFO - Loading Files
+INFO - Parsing Files
+INFO - Parsing File natives_bj.pscript
+INFO - Processing Map wursttest1.w3m
+INFO - Parsing File temp_war3map.j
+INFO - Merging Files
+INFO - Checking Files
+INFO - Started compiler with args --about
+INFO - Loading Files
+ERROR - Error
+java.lang.Error: File --about does not exist.
+	at de.peeeq.wurstscript.WurstCompilerImpl.loadFiles(WurstCompilerImpl.java:49)
+	at de.peeeq.wurstscript.Main.main(Main.java:32)
+INFO - Started compiler with args --showerrors
+INFO - Loading Files
+ERROR - Error
+java.lang.Error: File --showerrors does not exist.
+	at de.peeeq.wurstscript.WurstCompilerImpl.loadFiles(WurstCompilerImpl.java:49)
+	at de.peeeq.wurstscript.Main.main(Main.java:32)

@@ -1,0 +1,51 @@
+INFO - Started compiler with args .\natives_bj.pscript
+INFO - Loading Files
+INFO - Parsing Files
+INFO - Parsing File natives_bj.pscript
+INFO - Merging Files
+INFO - Checking Files
+INFO - Started compiler with args .\natives_bj.pscript
+INFO - Loading Files
+INFO - Parsing Files
+INFO - Parsing File natives_bj.pscript
+ERROR - Error
+java.lang.NoSuchMethodError: de.peeeq.wurstscript.parser.parser.getSymbolFactory()Ljava_cup/runtime/SymbolFactory;
+	at de.peeeq.wurstscript.parser.CUP$parser$actions.CUP$parser$do_action(parser.java:3209)
+	at de.peeeq.wurstscript.parser.parser.do_action(parser.java:1013)
+	at java_cup.runtime.lr_parser.parse(lr_parser.java:569)
+	at de.peeeq.wurstscript.parser.ExtendedParser.parse(ExtendedParser.java:33)
+	at de.peeeq.wurstscript.WurstCompilerImpl.parseFile(WurstCompilerImpl.java:156)
+	at de.peeeq.wurstscript.WurstCompilerImpl.parseFiles(WurstCompilerImpl.java:69)
+	at de.peeeq.wurstscript.Main.main(Main.java:33)
+INFO - Started compiler with args .\natives_bj.pscript
+INFO - Loading Files
+INFO - Parsing Files
+INFO - Parsing File natives_bj.pscript
+ERROR - Error
+java.lang.NoSuchMethodError: de.peeeq.wurstscript.parser.parser.getSymbolFactory()Ljava_cup/runtime/SymbolFactory;
+	at de.peeeq.wurstscript.parser.CUP$parser$actions.CUP$parser$do_action(parser.java:3209)
+	at de.peeeq.wurstscript.parser.parser.do_action(parser.java:1013)
+	at java_cup.runtime.lr_parser.parse(lr_parser.java:569)
+	at de.peeeq.wurstscript.parser.ExtendedParser.parse(ExtendedParser.java:33)
+	at de.peeeq.wurstscript.WurstCompilerImpl.parseFile(WurstCompilerImpl.java:156)
+	at de.peeeq.wurstscript.WurstCompilerImpl.parseFiles(WurstCompilerImpl.java:69)
+	at de.peeeq.wurstscript.Main.main(Main.java:33)
+INFO - Started compiler with args .\natives_bj.pscript
+INFO - Loading Files
+INFO - Parsing Files
+INFO - Parsing File natives_bj.pscript
+ERROR - Error
+java.lang.NoSuchMethodError: de.peeeq.wurstscript.parser.parser.getSymbolFactory()Ljava_cup/runtime/SymbolFactory;
+	at de.peeeq.wurstscript.parser.CUP$parser$actions.CUP$parser$do_action(parser.java:3209)
+	at de.peeeq.wurstscript.parser.parser.do_action(parser.java:1013)
+	at java_cup.runtime.lr_parser.parse(lr_parser.java:569)
+	at de.peeeq.wurstscript.parser.ExtendedParser.parse(ExtendedParser.java:33)
+	at de.peeeq.wurstscript.WurstCompilerImpl.parseFile(WurstCompilerImpl.java:156)
+	at de.peeeq.wurstscript.WurstCompilerImpl.parseFiles(WurstCompilerImpl.java:69)
+	at de.peeeq.wurstscript.Main.main(Main.java:33)
+INFO - Started compiler with args .\natives_bj.pscript
+INFO - Loading Files
+INFO - Parsing Files
+INFO - Parsing File natives_bj.pscript
+INFO - Merging Files
+INFO - Checking Files

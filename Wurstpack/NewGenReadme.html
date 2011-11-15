@@ -1,0 +1,201 @@
+<html>
+<head>
+<title>JassNewGen Readme</title>
+<meta name="Generator" content="Vim/7.0">
+<meta http-equiv="content-type" content="text/html; charset=iso-8859-1">
+<style type='text/css'>
+    pre { padding-left: 20px; }
+</style>
+</head>
+<body bgcolor="#ffffff" text="#000000">
+<h1>The JassNewGen pack 1.5c</h1>
+<p>This distribution includes grimoire (1.5), the jasshelper compiler (0.9.I.2), PJass (1.0k) and PitzerMike&apos;s Grim Extension pack 1.0b, TESH 0.7.0.3 (Unofficial update by Van Damm and Zoxc), Risc's Colorizer FINAL and Reinventing the Craft (0.20) all ready to run.</p>
+
+<p>The final result is a world editor that compiles vJass code, uses PJass to check for errors, highlights jass code, has a proper testing environment, supports visual preview of colored tooltips and can use grim extension pack as well. Not to mention that jasshelper also saves backups of whatever you save so it is also safer.</p>
+
+<h1>Usage</h1>
+
+<p>Make sure you computer has access to your war3 CD and that you are using the latest patch and that your worldedit.exe is not a cracked version.
+After extracting the zip to some folder, execute &apos;NewGen WE.exe&apos; or &apos;we.bat&apos;
+The first time you run, Grimoire might ask you for the location of Warcraft III.
+Once world editor enters there should be three new menus in the main world editor window: Extensions, Grimoire and Compiler.
+You can configure various hacks for the WE at the Grimoire menu.</p>
+
+<h2>Grimoire menu commands</h2>
+<ul>
+<li><b>Start war3 with: </b> These are options for testmap, you may disable grimoire for war3 so it stops loading war3err during test map, war3err is good for finding your errors but it may be an obstacle when testing performance. If you're using Warcraft versions above 1.21b Grimoire, war3err and japi options won't be available any more in this menu.</li>
+<li><b>Enable object editor hack: </b> This allows you to enter custom rawcodes for objects created in the object editor.</li>
+<li><b>Enable no limits: </b> If checked removes World Editor limits (doodad/neutral building/etc)</li>
+<li><b>Syntax checker options:</b> It is better to keep these options checked for optimal jasshelper compatibility, else world editor&apos;s syntax may cause you issues or even crashes when enabled.</li>
+<li><b>Mute editor sounds:</b> Turns off the startup sound, the undo/redo sound, and the sound that it makes when placing/deleting.</li>
+<li><b>Enable war3err:</b> You may eventually want to enable grimoire for test map but not war3err, this is the option for you to disable.</li>
+<li><b>Enable warmachine:</b> If you wanna use Grimoire's faster Jass VM, this is the option to enable it. When enabled this will disable war3err and vice versa because they do not work together.</li>
+<li><b>Disable first save warning:</b> When a map is saved for the first time or a Grimex tool is used on unsaved maps, a popup will tell you to save your map again. This popup will be disabled with this option.</li>
+<li><b>Attach debugger:</b> This option is only available when the optional w3jdebug component has been downloaded and extracted into the JassNewGen directory. It will start the debugger and try to attach it to the game, which will only work if the game has reached a breakpoint.</li>
+</ul>
+
+<p>A more detailed description can be found in the <a href="grimoiremanual.pdf">Grimoire documentation</a>.</p>
+
+<h2>JassHelper menu commands</h2>
+<ul>
+<li><b>Enable JassHelper:</b> If checked jasshelper should be called when you save the map/click testmap</li>
+<li><b>Debug Mode:</b> Sets debug mode, check jasshelper&apos;s readme for more information.</li>
+<li><b>Disable vJass syntax:</b> You may find that the vJass syntax compiling might take some time from you when editing maps that do not use it, you can disable it so jasshelper just calls Pjass to compile the map.</li>
+<li><b>Disable script optimization:</b> Disables jasshelper's script optimization if checked.
+<li><b>Show previous errors:</b> It could happen that you got syntax errors and you closed the error window, if you want to check them back without compiling the map again, use this option.</li>
+</ul>
+
+<p>More details on the vJASS standard can be found in the <a href="jasshelper\jasshelpermanual.html">JassHelper manual</a>.</p>
+
+<h2>Extensions menu commands</h2>
+
+<p>Now it is possible to use some of PitzerMike&apos;s extensions from this menu interface instead of from the map script.
+One pretty useful thing here are the shell extensions which make it so a double click on a map opens it in the NewGen editor and not the normal editor, and adds context menu items to run them in Warcraft.
+A detailed explanation can be found in the separate <a href="grimext\GrimexManual.html">Grimex documentation</a></p>
+
+<h2>TESH integration</h2>
+
+<p>In this version SFilip's Trigger Editor syntax highlighting plugin is already included.
+This will highlight your JASS-code in the trigger editor and assist you while typing your code.</p>
+
+<h2>UMSWE 5 integration</h2>
+
+<p>UMSWE 5 combines the best of UMSWE 4, WE Unlimited and some smaller spin-off projects.
+In the UMSWE menu you'll find several menu items that can be used to configure UMSWE.
+More details on how to use UMSWE and its features can be found in the <a href="umswe\UMSWEManual.html">UMSWE manual</a>.</p>
+	
+<h2>WE Unlimited support</h2>
+
+<p>If it finds WEU installed on your computer, Grimoire will add a menu item to the Grimoire menu. If for some reason you need to use WE Unlimited but still want the extensions this pack offers, simply enable that option in the menu and restart the editor.
+Never enable UMSWE 5 and WE Unlimited at the same time.	I strongly encourage you to use the recently added UMSWE 5 instead of WEU, because WEU has long been discontinued.</p>
+
+<h1>Documentation files</h1>
+<br /><b>Grimex Manual:</b> <a href="grimext\GrimexManual.html">grimext\grimexmanual.html</a>
+<br /><b>UMSWE Manual:</b> <a href="umswe\UMSWEManual.html">umswe\umswemanual.html</a>
+<br /><b>JassHelper Manual:</b> <a href="jasshelper\jasshelpermanual.html">jasshelper\jasshelpermanual.html</a>
+<br /><b>JassHelper Demos:</b> <a href="jasshelper\jasshelpermanual.html">jasshelper\demos\</a>
+<br /><b>Grimoire Manual:</b> <a href="grimoiremanual.pdf">grimoiremanual.pdf</a>
+
+<h2>Interactive Debugger</h2>
+
+<p>To use Grimoire's interactive debugger you need to download the optional component w3jdebug and extract it into the JassNewGen directory. A menu command will then show up in the Grimoire menu which will allow you to start the debugger. This can only work when the following coniditons are met:</p>
+<ul><li>you have put a breakpoint into your code (<i>call Cheat("war3err_Break")</i>)</li>
+<li>you have started the game with war3err enabled and in windowed mode (to be able to tab out when the game freezes)</li>
+<li>the game has reached your breakpoint and is now frozen</li></ul>
+<p>Then you can attach the debugger and look at variables, single step through the operations etc. Press the Resume button to detatch the debugger and have the game resume.</p>
+
+
+<h1>Notes</h1>
+<ul><li>This is an unzip and run pack for those who don&apos;t want to mess with single file preparation and stuff.</li>
+<li>To update and use Grimoire it would be better to just keep using its distributions and just add the single mapcompiler.exe and pjass.exe to it</li>
+<li>Grimoire&apos;s readme and all the tools are available</li>
+<li>To update PJass simply replace the jasshelper\pjass.exe</li>
+<li>To update JassHelper simply replace the jasshelper\jasshelper.exe with a newer version</li>
+<li>To update Grim Extension pack simply replace the contents of the grimext folder</li>
+<li>The plan is to update this package whenever one of its parts is updated.</li>
+<li>To uninstall just remove the files.</li>
+<li>NewGen WE.exe and NewGen Warcraft.exe can be given usual worldedit.exe/war3.exe arguments and  and pass them (you can make a file associations for w3x/w3m etc use this custom editor)</li>
+<li>By default, WE will use Grimoire with war3err for testmap, it is really useful to find mistakes that would otherwise cause silent bugs or crashes, and to monitor memory leaks.</li>
+<li>In this release, Grimoire&apos;s war3err has bytecode trace turned off and nopause turned on, you have to edit war3err.conf to enable/disable them along with other options.</li>
+<li>In case something goes wrong, jasshelper automatically saves last 26 input maps in the backups folder. So you can restore a backup (it should be useful to sort the contents by date)</li>
+<li>In the pyw3jdebug subfolder there's a debugger written in python that can be used in conjunction with war3err to debug jass code. This requires Python 2.5, PythonCard 0.8.2, and wxPython 2.8 installed on your system. A standalone version that doesn't require python installed is available on demand though.</li>
+</ul>
+
+
+<h1>Troubleshooting</h1>
+
+<p>
+<b><i>My antivirus software reports viruses, is this package infected?</i></b><br>
+<b>No</b>, some antivirus tools just think it is due to the nature of this tool, that works by injecting its own code into the process of the WE. Most tools allow to setup an exception for such cases, some have to be turned off though (like Kaspersky, see below).
+Here's a list of tools that have been reported to cause trouble with NewGen:
+<ul>
+	<li><b>Avira Antivir</b> detects several of the files as trojans, you can choose ignore for the reports and whitelist those files later to fix the problem.</li>
+	<li><b>Kaspersky Antivirus</b> also gives false alarm and it's not possible to effectively whitelist NewGen. You need to turn Kaspersky off to use NewGen (see several questions below).</li>
+	<li><b>EZ Antivirus</b> silently quarantines some files breaking the editor completely. You need to turn it off before even downloading the pack, but then you should be able to whitelist NewGen, once it's installed.</li>
+	<li><b>Avast Antivirus</b> reports false viruses. It is possible to whitelist NewGen in its configuration though.</li>
+	<li><b>AVG</b> reports false viruses and may silently delete required files. I don't know if you can set an exception in AVG.</li>
+	<li><b>F-secure</b> reports several false viruses but you can make it ignore the NewGen files.</li>
+</ul>
+Check the forums if you have trouble with your antivirus software and NewGen.
+<br><br>
+<b><i>Can I use war3err and japi with the latest Warcraft III version?</i></b><br>
+No, the last version that Grimoire supports is 1.21b. All editor features will still work with later versions, but the ingame features like war3err, japi and the debugger wont.
+A dual installation of Warcraft III is suggested to be able to the powerful features of Grimoire still. For a dual installtion you need to follow these steps:
+<ol>
+	<li>Uninstall previous Warcraft III installations from your computer.</li>
+	<li>Make a fresh installation of Warcraft III.</li>
+	<li>Patch the new installation to 1.21b with the standalone patch that can be obtained from the Blizzard site</li>
+	<li>Copy the complete Warcraft III folder to a different directory, so you have a second installation.</li>
+	<li>Patch the first installation to the latest version through battle.net or the standalone patch.</li>
+	<li>Fire up regedit and change the values of "HKEY_CURRENT_USER\Software\Blizzard Entertainment\Warcraft III\InstallPath", "HKEY_CURRENT_USER\\Software\Blizzard Entertainment\Warcraft III\InstallPathX" and "Software\Grimoire\War3InstallPath" to the directory of the copy you made in step 4.</li>
+	<li>Now you're set up to use the first installation for regular battle.net play and the second installation for mapmaking.</li>
+</ol>
+<br><br>
+<b><i>I don't know how and where this must be installed and how to run it?</i></b><br>
+Just extract all files from the downloaded archive to a directory of your choice. Preferably don't install it directly into the Warcraft III directory.
+To use it, simply start <i>NewGen WE.exe</i> and <i>NewGen Warcraft.exe</i>.
+<br><br>
+<b><i>Which operating systems are supported?</i></b><br>
+This pack works on Windows 2000 and XP testedly, Windows Vista also seems to work according to user reports. Older versions and Unix systems or Macintosh are not supported, however parts of this pack can work on other systems if used from the command line.
+<br><br>
+<b><i>When I use the test map button, Warcraft III will start but return to the main menu instead of loading a map?</i></b><br>
+This can happen when your map uses vJASS code and you hit the test map button when the map is unsaved (*-symbol is shown in the title bar) or the map has been saved-as directly before testing the map.
+Simply save your map before every test-run, so that it's fully compiled.
+<br><br>
+<b><i>Windowed, OpenGL and War3err mode work fine with the test map button, but why is the test ai button not affected?</i></b><br>
+You can work around it with the menu command <i>Grimoire\Test map configuration</i>. It offers the same settings as the test ai configuration but works with the normal test map button.
+<br><br>
+<b><i>A popup keeps telling me that i should save my map again, especially when working in the campaign editor, how to deal with it?</i></b><br>
+For the first time a map is saved this is normal, because the path of the map isn't known until then.
+When you're editing maps from a campaign, however the path cannot be found because those maps are stored inside the campaign.
+A workaround is saving a local copy of that map in the maps folder and working with that copy, then when the map is finished re-import it into the campaign.
+You can also turn off the popup via the <i>Grimoire\Disable first save warning</i> menu item, in case you want to make basic edits to maps that don't use vJASS features.
+Another possible reason are non-standard-ansi characters in the path of your map. On Windows systems of other languages like Russian or Chinese this can be the problem. Copy the map to a directory that contains only standard ansi characters to fix it.
+<br><br>
+<b><i>Whenever i start the NewGen WE I'm told that it can't find my Warcraft directory or I need to select it in a browser dialog everytime. What's wrong?</i></b><br>
+The browse for directory dialog is normal if it's the frist time you are starting the NewGen pack.
+If the browser pops up every time, one possible reason could be the lack of admin privileges on the machine.
+Another possible reason for this is non-standard-ansi characters in your Warcraft installation path, like already described in the previous paragraph.
+If all fails you can hardcode the path into findpath.lua by removing the -- from the line <i>--path = "C:\\Warcraft III"</i> and changing the path there.
+<br><br>
+<b><i>Whenever i start the NewGen WE I'm told that an instance is already running, I need to insert the CD or to turn off Kaspersky. What's wrong?</i></b><br>
+Well, as the message already suggests, an instance of the editor may already be running.
+If this is not the case another cause for this popup may be that you're using a patch prior to version 1.21b and do not have the Warcraft CD in your CD drive.
+Some antivirus tools like Kaspersky antivirus also cause this popup. You need to disable those tools before running NewGen.
+If you have Kaspersky Antivirus installed, follow these steps to get it working:<br>
+<ol>
+	<li>Remove your current NewGen installation.</li>
+	<li>Redownload the NewGen pack and extract it to a directory of your choice.</li>
+	<li>Reboot your computer.</li>
+	<li>Turn off Kaspersky (right-click in systemtray -> Exit) before running NewGen.</li>
+	<li>Start the NewGen WE.</li>
+</ol>
+Make sure you never try to run NewGen when Kaspersky is on, because it will permanently block it until you restart your computer.
+<br><br>
+<b><i>When i start the NewGen WE, the Grimoire menus never appear, or only appear the first time that i start NewGen. The WE acts like a completely unmodded, normal WE, what's wrong?</i></b><br>
+Make sure you have patched your Warcraft installation to version 1.21.
+Make sure you're not using a cracked WE. Mount the TFT mini image in daemon tools instead of using a crack if you must. Although some people have successfully used NewGen with a cracked WE it is not recommended.
+If you're using Vista, try it under Windows XP, maybe it's a Vista problem.
+A virus might be the root of the problem too, make sure your computer is clean.
+Finally anti-virus, anti-spyware and firewall software can be causing the problem by blocking the changes that Grimoire makes to the WE. Try disabling such software temporarily.
+<br><br>
+<b><i>The trigger editor gets random crashes or I get a message about an invalid pointer or similar in tesh.dll?</i></b><br>
+The syntax highlighter has problems with Window Blinds and maybe other window mods. Set an exception for the WE in Window Blinds or disable the tool while you're using NewGen.
+<br><br>
+<b><i>Whenever I save any map, no matter what code it contains I get an unrecognized pjass error?</i></b><br>
+This problem isn't solved yet, any clues and hints are welcome and can be posted at <a href="http://www.wc3campaigns.net/showthread.php?t=90999">www.wc3campaigns.net</a>.
+</p>
+
+<h1>Credits</h1>
+<ul><li><b>Grimoire:</b> Bryan Steinbach aka PipeDream</li>
+<li><b>JassHelper:</b> Vexorian</li>
+<li><b>UMSWE:</b> the UMSWE team</li>
+<li><b>PJASS:</b> Rudi Cilibrasi (first versions) and PitzerMike (updates)</li>
+<li><b>GrimEx:</b> Pitzermike</li>
+<li><b>TESH:</b> SFilip</li>
+<li><b>Colorizer:</b> Risc</li>
+<li><b>Reinventing the Craft:</b> MindWorX and SFilip</li>
+<li><b>Icon:</b> Mc!</li></ul>
+
+</body>
+</html>

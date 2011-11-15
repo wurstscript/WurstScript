@@ -1,0 +1,5 @@
+logs\currentmapscript.j
+pjass.exe
+Line 5:  Code arrays are not allowed
+Line 75:  Index missing for array variable foo
+2
