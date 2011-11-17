@@ -1,6 +1,5 @@
 Errors in validation phase:
 Error in File missingEndBrace.pscript line 8:0:
-Grammatical error: unexpected end of file	expected: 3 name, 32 '}', 38 'function', 39 'val', 40 'public', 41 'publicread', 42 'private', 45 'nativetype', 46 'init', 47 'native', 55 'class'
-state = 218
+Grammatical error: unexpected end of file	expected: name, '}', 'abstract', 'static', 'function', 'public', 'publicread', 'private', 'nativetype', 'init', 'native', 'class'
 Error in File missingEndBrace.pscript line 8:0:
 Could not continue to parse file ...

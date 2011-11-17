@@ -5,7 +5,6 @@ import java.util.List;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.jassAst.JassExpr;
-import de.peeeq.wurstscript.jassAst.JassExprRealVal;
 import de.peeeq.wurstscript.jassAst.JassStatement;
 
 /**

@@ -62,31 +62,7 @@ class StmtWhileImpl implements StmtWhile, AstElementIntern {
 	public StmtWhile copy() {
 		return new StmtWhileImpl(source.copy(), cond.copy(), body.copy());
 	}
-	@Override public void accept(InitBlock.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WStatement.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(OnDestroyDef.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WStatements.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(WPackage.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		body.accept(v);
@@ -98,25 +74,7 @@ class StmtWhileImpl implements StmtWhile, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ConstructorDef.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlot.Visitor v) {
+	@Override public void accept(NameDef.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		body.accept(v);
@@ -128,7 +86,37 @@ class StmtWhileImpl implements StmtWhile, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WPackage.Visitor v) {
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(StmtWhile.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(OnDestroyDef.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlots.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		body.accept(v);
@@ -146,13 +134,31 @@ class StmtWhileImpl implements StmtWhile, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassSlots.Visitor v) {
+	@Override public void accept(ConstructorDef.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WEntities.Visitor v) {
+	@Override public void accept(WStatement.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlot.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FunctionDefinition.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		body.accept(v);
@@ -164,19 +170,13 @@ class StmtWhileImpl implements StmtWhile, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(WStatements.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(StmtLoop.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtWhile.Visitor v) {
+	@Override public void accept(InitBlock.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		body.accept(v);
@@ -188,13 +188,25 @@ class StmtWhileImpl implements StmtWhile, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
+	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
+	@Override public void accept(AstElementWithModifier.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(StmtLoop.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		body.accept(v);

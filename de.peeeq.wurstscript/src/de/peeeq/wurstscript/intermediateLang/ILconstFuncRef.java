@@ -18,12 +18,7 @@ public class ILconstFuncRef extends ILconstAbstract {
 		return "function " + funcName;
 	}
 	
-	@Override
-	public void printJass(StringBuilder sb, int indent) {
-		sb.append(print());
-	}
 
-	@Override
 	public PscriptType getType() {
 		return PScriptTypeCode.instance();
 	}

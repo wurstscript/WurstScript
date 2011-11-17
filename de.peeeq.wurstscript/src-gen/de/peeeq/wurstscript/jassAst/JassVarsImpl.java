@@ -39,4 +39,16 @@ class JassVarsImpl extends JassVars implements JassAstElementIntern {
 		}
 		v.visit(this);
 	}
+	@Override public String toString() {
+		String result =  "JassVars(";
+		boolean first = true;
+		for (JassVar i : this ) {
+			if (!first) { result +=", "; }
+			if (result.length() > 1000) { result +="..."; break; }
+			result += i;
+			first = false;
+		}
+		result +=  ")";
+		return result;
+	}
 }

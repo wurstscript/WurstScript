@@ -2,13 +2,13 @@
 package de.peeeq.wurstscript.ast;
 
 class ClassDefImpl implements ClassDef, AstElementIntern {
-	ClassDefImpl(WPos source, VisibilityModifier visibility, String name, boolean unmanaged, ClassSlots slots) {
+	ClassDefImpl(WPos source, Modifiers modifiers, String name, boolean unmanaged, ClassSlots slots) {
 		if (source == null) throw new IllegalArgumentException();
 		((AstElementIntern)source).setParent(this);
 		this.source = source;
-		if (visibility == null) throw new IllegalArgumentException();
-		((AstElementIntern)visibility).setParent(this);
-		this.visibility = visibility;
+		if (modifiers == null) throw new IllegalArgumentException();
+		((AstElementIntern)modifiers).setParent(this);
+		this.modifiers = modifiers;
 		if (name == null) throw new IllegalArgumentException();
 		this.name = name;
 		this.unmanaged = unmanaged;
@@ -33,14 +33,14 @@ class ClassDefImpl implements ClassDef, AstElementIntern {
 	} 
 	public WPos getSource() { return source; }
 
-	private VisibilityModifier visibility;
-	public void setVisibility(VisibilityModifier visibility) {
-		if (visibility == null) throw new IllegalArgumentException();
-		((AstElementIntern)this.visibility).setParent(null);
-		((AstElementIntern)visibility).setParent(this);
-		this.visibility = visibility;
+	private Modifiers modifiers;
+	public void setModifiers(Modifiers modifiers) {
+		if (modifiers == null) throw new IllegalArgumentException();
+		((AstElementIntern)this.modifiers).setParent(null);
+		((AstElementIntern)modifiers).setParent(this);
+		this.modifiers = modifiers;
 	} 
-	public VisibilityModifier getVisibility() { return visibility; }
+	public Modifiers getModifiers() { return modifiers; }
 
 	private String name;
 	public void setName(String name) {
@@ -67,7 +67,7 @@ class ClassDefImpl implements ClassDef, AstElementIntern {
 	public AstElement get(int i) {
 		switch (i) {
 			case 0: return source;
-			case 1: return visibility;
+			case 1: return modifiers;
 			case 2: return slots;
 			default: throw new IllegalArgumentException("Index out of range: " + i);
 		}
@@ -76,66 +76,99 @@ class ClassDefImpl implements ClassDef, AstElementIntern {
 		return 3;
 	}
 	public ClassDef copy() {
-		return new ClassDefImpl(source.copy(), visibility.copy(), name, unmanaged, slots.copy());
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		slots.accept(v);
-		v.visit(this);
+		return new ClassDefImpl(source.copy(), modifiers.copy(), name, unmanaged, slots.copy());
 	}
 	@Override public void accept(WPackage.Visitor v) {
 		source.accept(v);
-		visibility.accept(v);
+		modifiers.accept(v);
 		slots.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassDef.Visitor v) {
+	@Override public void accept(NameDef.Visitor v) {
 		source.accept(v);
-		visibility.accept(v);
-		slots.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
+		modifiers.accept(v);
 		slots.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(WEntities.Visitor v) {
 		source.accept(v);
-		visibility.accept(v);
+		modifiers.accept(v);
 		slots.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TypeDef.Visitor v) {
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
-		visibility.accept(v);
+		modifiers.accept(v);
 		slots.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(WScope.Visitor v) {
 		source.accept(v);
-		visibility.accept(v);
+		modifiers.accept(v);
 		slots.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
+	@Override public void accept(ClassDef.Visitor v) {
 		source.accept(v);
-		visibility.accept(v);
+		modifiers.accept(v);
+		slots.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		slots.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TypeDef.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
 		slots.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
-		visibility.accept(v);
+		modifiers.accept(v);
 		slots.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(AstElementWithModifier.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		slots.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		slots.accept(v);
+		v.visit(this);
+	}
+	@Override public <T> T match(WEntity.Matcher<T> matcher) {
+		return matcher.case_ClassDef(this);
+	}
+	@Override public void match(WEntity.MatcherVoid matcher) {
+		matcher.case_ClassDef(this);
+	}
+
+	@Override public <T> T match(NameDef.Matcher<T> matcher) {
+		return matcher.case_ClassDef(this);
+	}
+	@Override public void match(NameDef.MatcherVoid matcher) {
+		matcher.case_ClassDef(this);
+	}
+
 	@Override public <T> T match(TypeDef.Matcher<T> matcher) {
 		return matcher.case_ClassDef(this);
 	}
 	@Override public void match(TypeDef.MatcherVoid matcher) {
+		matcher.case_ClassDef(this);
+	}
+
+	@Override public <T> T match(AstElementWithModifier.Matcher<T> matcher) {
+		return matcher.case_ClassDef(this);
+	}
+	@Override public void match(AstElementWithModifier.MatcherVoid matcher) {
 		matcher.case_ClassDef(this);
 	}
 
@@ -146,51 +179,44 @@ class ClassDefImpl implements ClassDef, AstElementIntern {
 		matcher.case_ClassDef(this);
 	}
 
-	@Override public <T> T match(WEntity.Matcher<T> matcher) {
-		return matcher.case_ClassDef(this);
-	}
-	@Override public void match(WEntity.MatcherVoid matcher) {
-		matcher.case_ClassDef(this);
-	}
-
 	@Override public String toString() {
-		return "ClassDef(" + source + ", " +visibility + ", " +name + ", " +unmanaged + ", " +slots+")";
+		return "ClassDef(" + source + ", " +modifiers + ", " +name + ", " +unmanaged + ", " +slots+")";
 	}
-	private boolean attr_attrScopeVariables_isCached = false;
-	private java.util.Map<String, VarDef> attr_attrScopeVariables_cache;
-	public java.util.Map<String, VarDef> attrScopeVariables() {
-		if (!attr_attrScopeVariables_isCached) {
-			attr_attrScopeVariables_cache = de.peeeq.wurstscript.attributes.AttrScopeVariables.calculate(this);
-			attr_attrScopeVariables_isCached = true;
+	private boolean attr_attrScopeNames_isCached = false;
+	private java.util.Map<String, NameDef> attr_attrScopeNames_cache;
+	public java.util.Map<String, NameDef> attrScopeNames() {
+		if (!attr_attrScopeNames_isCached) {
+			attr_attrScopeNames_cache = de.peeeq.wurstscript.attributes.AttrScopeVariables.calculate(this);
+			attr_attrScopeNames_isCached = true;
 		}
-		return attr_attrScopeVariables_cache;
+		return attr_attrScopeNames_cache;
 	}
-	private boolean attr_attrScopePackageVariables_isCached = false;
-	private java.util.Map<String, VarDef> attr_attrScopePackageVariables_cache;
-	public java.util.Map<String, VarDef> attrScopePackageVariables() {
-		if (!attr_attrScopePackageVariables_isCached) {
-			attr_attrScopePackageVariables_cache = de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePackage(this);
-			attr_attrScopePackageVariables_isCached = true;
+	private boolean attr_attrScopePackageNames_isCached = false;
+	private java.util.Map<String, NameDef> attr_attrScopePackageNames_cache;
+	public java.util.Map<String, NameDef> attrScopePackageNames() {
+		if (!attr_attrScopePackageNames_isCached) {
+			attr_attrScopePackageNames_cache = de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePackage(this);
+			attr_attrScopePackageNames_isCached = true;
 		}
-		return attr_attrScopePackageVariables_cache;
+		return attr_attrScopePackageNames_cache;
 	}
-	private boolean attr_attrScopePublicVariables_isCached = false;
-	private java.util.Map<String, VarDef> attr_attrScopePublicVariables_cache;
-	public java.util.Map<String, VarDef> attrScopePublicVariables() {
-		if (!attr_attrScopePublicVariables_isCached) {
-			attr_attrScopePublicVariables_cache = de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePublic(this);
-			attr_attrScopePublicVariables_isCached = true;
+	private boolean attr_attrScopePublicNames_isCached = false;
+	private java.util.Map<String, NameDef> attr_attrScopePublicNames_cache;
+	public java.util.Map<String, NameDef> attrScopePublicNames() {
+		if (!attr_attrScopePublicNames_isCached) {
+			attr_attrScopePublicNames_cache = de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePublic(this);
+			attr_attrScopePublicNames_isCached = true;
 		}
-		return attr_attrScopePublicVariables_cache;
+		return attr_attrScopePublicNames_cache;
 	}
-	private boolean attr_attrScopePublicReadVariables_isCached = false;
-	private java.util.Map<String, VarDef> attr_attrScopePublicReadVariables_cache;
-	public java.util.Map<String, VarDef> attrScopePublicReadVariables() {
-		if (!attr_attrScopePublicReadVariables_isCached) {
-			attr_attrScopePublicReadVariables_cache = de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePublicRead(this);
-			attr_attrScopePublicReadVariables_isCached = true;
+	private boolean attr_attrScopePublicReadNamess_isCached = false;
+	private java.util.Map<String, NameDef> attr_attrScopePublicReadNamess_cache;
+	public java.util.Map<String, NameDef> attrScopePublicReadNamess() {
+		if (!attr_attrScopePublicReadNamess_isCached) {
+			attr_attrScopePublicReadNamess_cache = de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePublicRead(this);
+			attr_attrScopePublicReadNamess_isCached = true;
 		}
-		return attr_attrScopePublicReadVariables_cache;
+		return attr_attrScopePublicReadNamess_cache;
 	}
 	private boolean attr_attrScopeFunctions_isCached = false;
 	private com.google.common.collect.Multimap<String, FunctionDefinition> attr_attrScopeFunctions_cache;
@@ -219,6 +245,15 @@ class ClassDefImpl implements ClassDef, AstElementIntern {
 		}
 		return attr_attrScopePublicFunctions_cache;
 	}
+	private boolean attr_attrTyp_isCached = false;
+	private de.peeeq.wurstscript.types.PscriptType attr_attrTyp_cache;
+	public de.peeeq.wurstscript.types.PscriptType attrTyp() {
+		if (!attr_attrTyp_isCached) {
+			attr_attrTyp_cache = de.peeeq.wurstscript.attributes.AttrVarDefType.calculate(this);
+			attr_attrTyp_isCached = true;
+		}
+		return attr_attrTyp_cache;
+	}
 	private boolean attr_attrNearestPackage_isCached = false;
 	private PackageOrGlobal attr_attrNearestPackage_cache;
 	public PackageOrGlobal attrNearestPackage() {
@@ -245,5 +280,41 @@ class ClassDefImpl implements ClassDef, AstElementIntern {
 			attr_attrNearestClassDef_isCached = true;
 		}
 		return attr_attrNearestClassDef_cache;
+	}
+	private boolean attr_attrIsPublic_isCached = false;
+	private boolean attr_attrIsPublic_cache;
+	public boolean attrIsPublic() {
+		if (!attr_attrIsPublic_isCached) {
+			attr_attrIsPublic_cache = de.peeeq.wurstscript.attributes.Modifiers.isPublic(this);
+			attr_attrIsPublic_isCached = true;
+		}
+		return attr_attrIsPublic_cache;
+	}
+	private boolean attr_attrIsPublicRead_isCached = false;
+	private boolean attr_attrIsPublicRead_cache;
+	public boolean attrIsPublicRead() {
+		if (!attr_attrIsPublicRead_isCached) {
+			attr_attrIsPublicRead_cache = de.peeeq.wurstscript.attributes.Modifiers.isPublicRead(this);
+			attr_attrIsPublicRead_isCached = true;
+		}
+		return attr_attrIsPublicRead_cache;
+	}
+	private boolean attr_attrIsPrivate_isCached = false;
+	private boolean attr_attrIsPrivate_cache;
+	public boolean attrIsPrivate() {
+		if (!attr_attrIsPrivate_isCached) {
+			attr_attrIsPrivate_cache = de.peeeq.wurstscript.attributes.Modifiers.isPrivate(this);
+			attr_attrIsPrivate_isCached = true;
+		}
+		return attr_attrIsPrivate_cache;
+	}
+	private boolean attr_attrIsStatic_isCached = false;
+	private boolean attr_attrIsStatic_cache;
+	public boolean attrIsStatic() {
+		if (!attr_attrIsStatic_isCached) {
+			attr_attrIsStatic_cache = de.peeeq.wurstscript.attributes.Modifiers.isStatic(this);
+			attr_attrIsStatic_isCached = true;
+		}
+		return attr_attrIsStatic_cache;
 	}
 }

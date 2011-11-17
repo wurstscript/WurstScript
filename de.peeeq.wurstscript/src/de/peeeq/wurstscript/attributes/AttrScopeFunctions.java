@@ -13,10 +13,6 @@ import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.TopLevelDeclaration;
-import de.peeeq.wurstscript.ast.VisibilityDefault;
-import de.peeeq.wurstscript.ast.VisibilityModifier;
-import de.peeeq.wurstscript.ast.VisibilityProtected;
-import de.peeeq.wurstscript.ast.VisibilityPublic;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
@@ -109,9 +105,7 @@ public class AttrScopeFunctions {
 		for (FunctionDefinition f : scope.attrScopeFunctions().values()) {
 			if (f instanceof FuncDef) {
 				FuncDef funcDef = (FuncDef) f;
-				if (funcDef.getVisibility() instanceof VisibilityDefault
-						|| funcDef.getVisibility() instanceof VisibilityProtected
-						|| funcDef.getVisibility() instanceof VisibilityPublic) {
+				if (!funcDef.attrIsPrivate()) {
 					result.put(funcDef.getSignature().getName(), funcDef);
 				}
 			}
@@ -124,7 +118,7 @@ public class AttrScopeFunctions {
 		for (FunctionDefinition f : scope.attrScopeFunctions().values()) {
 			if (f instanceof FuncDef) {
 				FuncDef funcDef = (FuncDef) f;
-				if (funcDef.getVisibility() instanceof VisibilityPublic) {
+				if (funcDef.attrIsPublic()) {
 					result.put(funcDef.getSignature().getName(), funcDef);
 				}
 			}

@@ -17,12 +17,6 @@ public class ILconstInt extends ILconstAbstract implements ILconstNum {
 		return val+"";
 	}
 	
-	@Override
-	public void printJass(StringBuilder sb, int indent) {
-		sb.append(print());
-	}
-	
-	@Override
 	public PscriptType getType() {
 		return PScriptTypeInt.instance();
 	}

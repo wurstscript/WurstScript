@@ -58,252 +58,7 @@ class ExprMemberVarImpl implements ExprMemberVar, AstElementIntern {
 	public ExprMemberVar copy() {
 		return new ExprMemberVarImpl(source.copy(), left.copy(), varName);
 	}
-	@Override public void accept(InitBlock.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassGlobalBlock.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WStatement.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TypeRef.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ExprVarArrayAccess.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ExprAtomic.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TypeExpr.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtExitwhen.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(OnDestroyDef.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ArraySizes.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WParameters.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtCall.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WStatements.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtDestroy.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(OptExpr.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ExprCast.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtReturn.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtIf.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ConstructorDef.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ExprMemberVar.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ExprMemberArrayVar.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtSet.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(VarRef.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(VarDef.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ExprAssignable.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(NativeType.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ExprFunctionCall.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(OptTypeExpr.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ExprMemberMethod.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlot.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassMember.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassDef.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(FuncRef.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ExprBinary.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlots.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(Indexes.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(FuncSignature.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(Expr.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(GlobalVarDef.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ExprUnary.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WParameter.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntities.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TypeDef.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtLoop.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		v.visit(this);
@@ -313,7 +68,97 @@ class ExprMemberVarImpl implements ExprMemberVar, AstElementIntern {
 		left.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(Arguments.Visitor v) {
+	@Override public void accept(StmtIf.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(NameDef.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ExprBinary.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(OptExpr.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ExprVarArrayAccess.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(NameRef.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassMember.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(StmtReturn.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(StmtExitwhen.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TypeExpr.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassGlobalBlock.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ExprMemberMethod.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ExprAtomic.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(Indexes.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(StmtDestroy.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ArraySizes.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(Expr.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		v.visit(this);
@@ -323,17 +168,47 @@ class ExprMemberVarImpl implements ExprMemberVar, AstElementIntern {
 		left.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FuncDef.Visitor v) {
+	@Override public void accept(OnDestroyDef.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(LocalVarDef.Visitor v) {
+	@Override public void accept(ExprMemberArrayVar.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
+	@Override public void accept(StmtCall.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(VarDef.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WParameter.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ExprMemberVar.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlots.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassDef.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		v.visit(this);
@@ -343,11 +218,153 @@ class ExprMemberVarImpl implements ExprMemberVar, AstElementIntern {
 		left.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(WEntity.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ExprFunctionCall.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ConstructorDef.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WParameters.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WStatement.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlot.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FunctionDefinition.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TypeDef.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ExprUnary.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WStatements.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(NativeType.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(InitBlock.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ExprCast.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FuncRef.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FuncDef.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(LocalVarDef.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(OptTypeExpr.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(AstElementWithModifier.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FuncSignature.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(StmtLoop.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(GlobalVarDef.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(StmtSet.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(Arguments.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TypeRef.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ExprAssignable.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		v.visit(this);
+	}
+	@Override public <T> T match(NameRef.Matcher<T> matcher) {
+		return matcher.case_ExprMemberVar(this);
+	}
+	@Override public void match(NameRef.MatcherVoid matcher) {
+		matcher.case_ExprMemberVar(this);
+	}
+
 	@Override public <T> T match(ExprAssignable.Matcher<T> matcher) {
 		return matcher.case_ExprMemberVar(this);
 	}
@@ -369,13 +386,6 @@ class ExprMemberVarImpl implements ExprMemberVar, AstElementIntern {
 		matcher.case_ExprMemberVar(this);
 	}
 
-	@Override public <T> T match(VarRef.Matcher<T> matcher) {
-		return matcher.case_ExprMemberVar(this);
-	}
-	@Override public void match(VarRef.MatcherVoid matcher) {
-		matcher.case_ExprMemberVar(this);
-	}
-
 	@Override public String toString() {
 		return "ExprMemberVar(" + source + ", " +left + ", " +varName+")";
 	}
@@ -388,14 +398,14 @@ class ExprMemberVarImpl implements ExprMemberVar, AstElementIntern {
 		}
 		return attr_attrTyp_cache;
 	}
-	private boolean attr_attrVarDef_isCached = false;
-	private VarDef attr_attrVarDef_cache;
-	public VarDef attrVarDef() {
-		if (!attr_attrVarDef_isCached) {
-			attr_attrVarDef_cache = de.peeeq.wurstscript.attributes.AttrVarDef.calculate(this);
-			attr_attrVarDef_isCached = true;
+	private boolean attr_attrNameDef_isCached = false;
+	private NameDef attr_attrNameDef_cache;
+	public NameDef attrNameDef() {
+		if (!attr_attrNameDef_isCached) {
+			attr_attrNameDef_cache = de.peeeq.wurstscript.attributes.AttrVarDef.calculate(this);
+			attr_attrNameDef_isCached = true;
 		}
-		return attr_attrVarDef_cache;
+		return attr_attrNameDef_cache;
 	}
 	private boolean attr_attrNearestPackage_isCached = false;
 	private PackageOrGlobal attr_attrNearestPackage_cache;

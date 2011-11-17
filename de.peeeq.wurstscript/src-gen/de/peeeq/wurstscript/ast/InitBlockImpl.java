@@ -49,22 +49,7 @@ class InitBlockImpl implements InitBlock, AstElementIntern {
 	public InitBlock copy() {
 		return new InitBlockImpl(source.copy(), body.copy());
 	}
-	@Override public void accept(InitBlock.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);
@@ -74,12 +59,22 @@ class InitBlockImpl implements InitBlock, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(WScope.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
+	@Override public void accept(WEntity.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(InitBlock.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);
@@ -89,13 +84,11 @@ class InitBlockImpl implements InitBlock, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public <T> T match(WScope.Matcher<T> matcher) {
-		return matcher.case_InitBlock(this);
+	@Override public void accept(CompilationUnit.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
 	}
-	@Override public void match(WScope.MatcherVoid matcher) {
-		matcher.case_InitBlock(this);
-	}
-
 	@Override public <T> T match(WEntity.Matcher<T> matcher) {
 		return matcher.case_InitBlock(this);
 	}
@@ -103,44 +96,51 @@ class InitBlockImpl implements InitBlock, AstElementIntern {
 		matcher.case_InitBlock(this);
 	}
 
+	@Override public <T> T match(WScope.Matcher<T> matcher) {
+		return matcher.case_InitBlock(this);
+	}
+	@Override public void match(WScope.MatcherVoid matcher) {
+		matcher.case_InitBlock(this);
+	}
+
 	@Override public String toString() {
 		return "InitBlock(" + source + ", " +body+")";
 	}
-	private boolean attr_attrScopeVariables_isCached = false;
-	private java.util.Map<String, VarDef> attr_attrScopeVariables_cache;
-	public java.util.Map<String, VarDef> attrScopeVariables() {
-		if (!attr_attrScopeVariables_isCached) {
-			attr_attrScopeVariables_cache = de.peeeq.wurstscript.attributes.AttrScopeVariables.calculate(this);
-			attr_attrScopeVariables_isCached = true;
+	private boolean attr_attrScopeNames_isCached = false;
+	private java.util.Map<String, NameDef> attr_attrScopeNames_cache;
+	public java.util.Map<String, NameDef> attrScopeNames() {
+		if (!attr_attrScopeNames_isCached) {
+			attr_attrScopeNames_cache = de.peeeq.wurstscript.attributes.AttrScopeVariables.calculate(this);
+			attr_attrScopeNames_isCached = true;
 		}
-		return attr_attrScopeVariables_cache;
+		return attr_attrScopeNames_cache;
 	}
-	private boolean attr_attrScopePackageVariables_isCached = false;
-	private java.util.Map<String, VarDef> attr_attrScopePackageVariables_cache;
-	public java.util.Map<String, VarDef> attrScopePackageVariables() {
-		if (!attr_attrScopePackageVariables_isCached) {
-			attr_attrScopePackageVariables_cache = de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePackage(this);
-			attr_attrScopePackageVariables_isCached = true;
+	private boolean attr_attrScopePackageNames_isCached = false;
+	private java.util.Map<String, NameDef> attr_attrScopePackageNames_cache;
+	public java.util.Map<String, NameDef> attrScopePackageNames() {
+		if (!attr_attrScopePackageNames_isCached) {
+			attr_attrScopePackageNames_cache = de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePackage(this);
+			attr_attrScopePackageNames_isCached = true;
 		}
-		return attr_attrScopePackageVariables_cache;
+		return attr_attrScopePackageNames_cache;
 	}
-	private boolean attr_attrScopePublicVariables_isCached = false;
-	private java.util.Map<String, VarDef> attr_attrScopePublicVariables_cache;
-	public java.util.Map<String, VarDef> attrScopePublicVariables() {
-		if (!attr_attrScopePublicVariables_isCached) {
-			attr_attrScopePublicVariables_cache = de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePublic(this);
-			attr_attrScopePublicVariables_isCached = true;
+	private boolean attr_attrScopePublicNames_isCached = false;
+	private java.util.Map<String, NameDef> attr_attrScopePublicNames_cache;
+	public java.util.Map<String, NameDef> attrScopePublicNames() {
+		if (!attr_attrScopePublicNames_isCached) {
+			attr_attrScopePublicNames_cache = de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePublic(this);
+			attr_attrScopePublicNames_isCached = true;
 		}
-		return attr_attrScopePublicVariables_cache;
+		return attr_attrScopePublicNames_cache;
 	}
-	private boolean attr_attrScopePublicReadVariables_isCached = false;
-	private java.util.Map<String, VarDef> attr_attrScopePublicReadVariables_cache;
-	public java.util.Map<String, VarDef> attrScopePublicReadVariables() {
-		if (!attr_attrScopePublicReadVariables_isCached) {
-			attr_attrScopePublicReadVariables_cache = de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePublicRead(this);
-			attr_attrScopePublicReadVariables_isCached = true;
+	private boolean attr_attrScopePublicReadNamess_isCached = false;
+	private java.util.Map<String, NameDef> attr_attrScopePublicReadNamess_cache;
+	public java.util.Map<String, NameDef> attrScopePublicReadNamess() {
+		if (!attr_attrScopePublicReadNamess_isCached) {
+			attr_attrScopePublicReadNamess_cache = de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePublicRead(this);
+			attr_attrScopePublicReadNamess_isCached = true;
 		}
-		return attr_attrScopePublicReadVariables_cache;
+		return attr_attrScopePublicReadNamess_cache;
 	}
 	private boolean attr_attrScopeFunctions_isCached = false;
 	private com.google.common.collect.Multimap<String, FunctionDefinition> attr_attrScopeFunctions_cache;

@@ -2,8 +2,6 @@ package de.peeeq.wurstscript;
 
 import java.io.File;
 
-import de.peeeq.wurstscript.intermediateLang.ILprog;
-
 public interface WurstCompiler {
 	
 	

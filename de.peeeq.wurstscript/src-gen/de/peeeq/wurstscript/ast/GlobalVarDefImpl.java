@@ -2,13 +2,13 @@
 package de.peeeq.wurstscript.ast;
 
 class GlobalVarDefImpl implements GlobalVarDef, AstElementIntern {
-	GlobalVarDefImpl(WPos source, VisibilityModifier visibility, boolean isConstant, OptTypeExpr typ, String name, OptExpr initialExpr) {
+	GlobalVarDefImpl(WPos source, Modifiers modifiers, boolean isConstant, OptTypeExpr typ, String name, OptExpr initialExpr) {
 		if (source == null) throw new IllegalArgumentException();
 		((AstElementIntern)source).setParent(this);
 		this.source = source;
-		if (visibility == null) throw new IllegalArgumentException();
-		((AstElementIntern)visibility).setParent(this);
-		this.visibility = visibility;
+		if (modifiers == null) throw new IllegalArgumentException();
+		((AstElementIntern)modifiers).setParent(this);
+		this.modifiers = modifiers;
 		this.isConstant = isConstant;
 		if (typ == null) throw new IllegalArgumentException();
 		((AstElementIntern)typ).setParent(this);
@@ -36,14 +36,14 @@ class GlobalVarDefImpl implements GlobalVarDef, AstElementIntern {
 	} 
 	public WPos getSource() { return source; }
 
-	private VisibilityModifier visibility;
-	public void setVisibility(VisibilityModifier visibility) {
-		if (visibility == null) throw new IllegalArgumentException();
-		((AstElementIntern)this.visibility).setParent(null);
-		((AstElementIntern)visibility).setParent(this);
-		this.visibility = visibility;
+	private Modifiers modifiers;
+	public void setModifiers(Modifiers modifiers) {
+		if (modifiers == null) throw new IllegalArgumentException();
+		((AstElementIntern)this.modifiers).setParent(null);
+		((AstElementIntern)modifiers).setParent(this);
+		this.modifiers = modifiers;
 	} 
-	public VisibilityModifier getVisibility() { return visibility; }
+	public Modifiers getModifiers() { return modifiers; }
 
 	private boolean isConstant;
 	public void setIsConstant(boolean isConstant) {
@@ -79,7 +79,7 @@ class GlobalVarDefImpl implements GlobalVarDef, AstElementIntern {
 	public AstElement get(int i) {
 		switch (i) {
 			case 0: return source;
-			case 1: return visibility;
+			case 1: return modifiers;
 			case 2: return typ;
 			case 3: return initialExpr;
 			default: throw new IllegalArgumentException("Index out of range: " + i);
@@ -89,124 +89,138 @@ class GlobalVarDefImpl implements GlobalVarDef, AstElementIntern {
 		return 4;
 	}
 	public GlobalVarDef copy() {
-		return new GlobalVarDefImpl(source.copy(), visibility.copy(), isConstant, typ.copy(), name, initialExpr.copy());
+		return new GlobalVarDefImpl(source.copy(), modifiers.copy(), isConstant, typ.copy(), name, initialExpr.copy());
 	}
-	@Override public void accept(JassGlobalBlock.Visitor v) {
+	@Override public void accept(WPackage.Visitor v) {
 		source.accept(v);
-		visibility.accept(v);
+		modifiers.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(NameDef.Visitor v) {
 		source.accept(v);
-		visibility.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(VarDef.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlot.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
+		modifiers.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(ClassMember.Visitor v) {
 		source.accept(v);
-		visibility.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassDef.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlots.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(GlobalVarDef.Visitor v) {
-		source.accept(v);
-		visibility.accept(v);
+		modifiers.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(WEntities.Visitor v) {
 		source.accept(v);
-		visibility.accept(v);
+		modifiers.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TypeDef.Visitor v) {
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
-		visibility.accept(v);
+		modifiers.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassGlobalBlock.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(WScope.Visitor v) {
 		source.accept(v);
-		visibility.accept(v);
+		modifiers.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
+	@Override public void accept(VarDef.Visitor v) {
 		source.accept(v);
-		visibility.accept(v);
+		modifiers.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlots.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassDef.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlot.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TypeDef.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
-		visibility.accept(v);
+		modifiers.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public <T> T match(VarDef.Matcher<T> matcher) {
+	@Override public void accept(AstElementWithModifier.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(GlobalVarDef.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public <T> T match(WEntity.Matcher<T> matcher) {
 		return matcher.case_GlobalVarDef(this);
 	}
-	@Override public void match(VarDef.MatcherVoid matcher) {
+	@Override public void match(WEntity.MatcherVoid matcher) {
 		matcher.case_GlobalVarDef(this);
 	}
 
@@ -224,15 +238,29 @@ class GlobalVarDefImpl implements GlobalVarDef, AstElementIntern {
 		matcher.case_GlobalVarDef(this);
 	}
 
-	@Override public <T> T match(WEntity.Matcher<T> matcher) {
+	@Override public <T> T match(NameDef.Matcher<T> matcher) {
 		return matcher.case_GlobalVarDef(this);
 	}
-	@Override public void match(WEntity.MatcherVoid matcher) {
+	@Override public void match(NameDef.MatcherVoid matcher) {
+		matcher.case_GlobalVarDef(this);
+	}
+
+	@Override public <T> T match(AstElementWithModifier.Matcher<T> matcher) {
+		return matcher.case_GlobalVarDef(this);
+	}
+	@Override public void match(AstElementWithModifier.MatcherVoid matcher) {
+		matcher.case_GlobalVarDef(this);
+	}
+
+	@Override public <T> T match(VarDef.Matcher<T> matcher) {
+		return matcher.case_GlobalVarDef(this);
+	}
+	@Override public void match(VarDef.MatcherVoid matcher) {
 		matcher.case_GlobalVarDef(this);
 	}
 
 	@Override public String toString() {
-		return "GlobalVarDef(" + source + ", " +visibility + ", " +isConstant + ", " +typ + ", " +name + ", " +initialExpr+")";
+		return "GlobalVarDef(" + source + ", " +modifiers + ", " +isConstant + ", " +typ + ", " +name + ", " +initialExpr+")";
 	}
 	private boolean attr_attrTyp_isCached = false;
 	private de.peeeq.wurstscript.types.PscriptType attr_attrTyp_cache;
@@ -278,5 +306,41 @@ class GlobalVarDefImpl implements GlobalVarDef, AstElementIntern {
 			attr_attrNearestClassDef_isCached = true;
 		}
 		return attr_attrNearestClassDef_cache;
+	}
+	private boolean attr_attrIsPublic_isCached = false;
+	private boolean attr_attrIsPublic_cache;
+	public boolean attrIsPublic() {
+		if (!attr_attrIsPublic_isCached) {
+			attr_attrIsPublic_cache = de.peeeq.wurstscript.attributes.Modifiers.isPublic(this);
+			attr_attrIsPublic_isCached = true;
+		}
+		return attr_attrIsPublic_cache;
+	}
+	private boolean attr_attrIsPublicRead_isCached = false;
+	private boolean attr_attrIsPublicRead_cache;
+	public boolean attrIsPublicRead() {
+		if (!attr_attrIsPublicRead_isCached) {
+			attr_attrIsPublicRead_cache = de.peeeq.wurstscript.attributes.Modifiers.isPublicRead(this);
+			attr_attrIsPublicRead_isCached = true;
+		}
+		return attr_attrIsPublicRead_cache;
+	}
+	private boolean attr_attrIsPrivate_isCached = false;
+	private boolean attr_attrIsPrivate_cache;
+	public boolean attrIsPrivate() {
+		if (!attr_attrIsPrivate_isCached) {
+			attr_attrIsPrivate_cache = de.peeeq.wurstscript.attributes.Modifiers.isPrivate(this);
+			attr_attrIsPrivate_isCached = true;
+		}
+		return attr_attrIsPrivate_cache;
+	}
+	private boolean attr_attrIsStatic_isCached = false;
+	private boolean attr_attrIsStatic_cache;
+	public boolean attrIsStatic() {
+		if (!attr_attrIsStatic_isCached) {
+			attr_attrIsStatic_cache = de.peeeq.wurstscript.attributes.Modifiers.isStatic(this);
+			attr_attrIsStatic_isCached = true;
+		}
+		return attr_attrIsStatic_cache;
 	}
 }

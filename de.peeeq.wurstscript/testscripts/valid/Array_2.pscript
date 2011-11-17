@@ -1,4 +1,4 @@
-test {
+package test {
 	
 	nativetype string
 	nativetype int
@@ -7,7 +7,7 @@ test {
 	
 	native testSuccess()
 
-	int array blub [10] //size
+	int array blub
 
 	init {
 		blub[2] = 3

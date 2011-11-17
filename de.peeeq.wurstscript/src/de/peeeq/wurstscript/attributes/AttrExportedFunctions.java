@@ -5,7 +5,6 @@ import com.google.common.collect.Multimap;
 
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
-import de.peeeq.wurstscript.ast.VisibilityPublic;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WPackage;
 
@@ -16,7 +15,7 @@ public class AttrExportedFunctions {
 		for (WEntity x : node.getElements()) {
 			if (x instanceof FuncDef) {
 				FuncDef f = (FuncDef) x;
-				if (f.getVisibility() instanceof VisibilityPublic) {
+				if (f.attrIsPublic()) {
 					result.put(f.getSignature().getName(), f);
 				}
 				

@@ -2,7 +2,10 @@
 package de.peeeq.wurstscript.ast;
 
 class VisibilityDefaultImpl implements VisibilityDefault, AstElementIntern {
-	VisibilityDefaultImpl() {
+	VisibilityDefaultImpl(WPos source) {
+		if (source == null) throw new IllegalArgumentException();
+		((AstElementIntern)source).setParent(this);
+		this.source = source;
 	}
 
 	private AstElement parent;
@@ -12,81 +15,129 @@ class VisibilityDefaultImpl implements VisibilityDefault, AstElementIntern {
 		this.parent = parent;
 	}
 
+	private WPos source;
+	public void setSource(WPos source) {
+		if (source == null) throw new IllegalArgumentException();
+		((AstElementIntern)this.source).setParent(null);
+		((AstElementIntern)source).setParent(this);
+		this.source = source;
+	} 
+	public WPos getSource() { return source; }
+
 	public AstElement get(int i) {
 		switch (i) {
+			case 0: return source;
 			default: throw new IllegalArgumentException("Index out of range: " + i);
 		}
 	}
 	public int size() {
-		return 0;
+		return 1;
 	}
 	public VisibilityDefault copy() {
-		return new VisibilityDefaultImpl();
+		return new VisibilityDefaultImpl(source.copy());
 	}
-	@Override public void accept(JassGlobalBlock.Visitor v) {
+	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(VisibilityDefault.Visitor v) {
+	@Override public void accept(Modifier.Visitor v) {
+		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(ConstructorDef.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(VarDef.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(NativeType.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlot.Visitor v) {
+	@Override public void accept(NameDef.Visitor v) {
+		source.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(ClassMember.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(WPackage.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(ClassDef.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlots.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(GlobalVarDef.Visitor v) {
+		source.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TypeDef.Visitor v) {
+	@Override public void accept(VisibilityDefault.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassGlobalBlock.Visitor v) {
+		source.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(VarDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlots.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ConstructorDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlot.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FunctionDefinition.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TypeDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(NativeType.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(Modifiers.Visitor v) {
+		source.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(FuncDef.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(VisibilityModifier.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(CompilationUnit.Visitor v) {
+		source.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(PackageOrGlobal.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(AstElementWithModifier.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(GlobalVarDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(VisibilityModifier.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
+		source.accept(v);
 		v.visit(this);
 	}
 	@Override public <T> T match(VisibilityModifier.Matcher<T> matcher) {
@@ -96,8 +147,15 @@ class VisibilityDefaultImpl implements VisibilityDefault, AstElementIntern {
 		matcher.case_VisibilityDefault(this);
 	}
 
+	@Override public <T> T match(Modifier.Matcher<T> matcher) {
+		return matcher.case_VisibilityDefault(this);
+	}
+	@Override public void match(Modifier.MatcherVoid matcher) {
+		matcher.case_VisibilityDefault(this);
+	}
+
 	@Override public String toString() {
-		return "VisibilityDefault";
+		return "VisibilityDefault(" + source+")";
 	}
 	private boolean attr_attrNearestPackage_isCached = false;
 	private PackageOrGlobal attr_attrNearestPackage_cache;

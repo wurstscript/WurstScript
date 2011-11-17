@@ -20,12 +20,6 @@ public class ILconstString extends ILconstAbstract implements ILconstAddable {
 		return "\"" + val + "\"";
 	}
 
-	@Override
-	public void printJass(StringBuilder sb, int indent) {
-		sb.append(print());
-	}
-	
-	@Override
 	public PscriptType getType() {
 		return PScriptTypeString.instance();
 	}

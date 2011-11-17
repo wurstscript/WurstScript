@@ -1,6 +1,6 @@
 package de.peeeq.wurstscript.intermediateLang;
 
-public interface ILconst extends ILexpr, CodePrinting {
+public interface ILconst {
 
 	public abstract String print();
 
@@ -9,6 +9,4 @@ public interface ILconst extends ILexpr, CodePrinting {
 	@Override
 	public String toString();
 	
-	@Override
-	public void printJassExpr(StringBuilder sb, int indent);
 }

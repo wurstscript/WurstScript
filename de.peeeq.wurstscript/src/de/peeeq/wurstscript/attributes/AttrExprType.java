@@ -21,6 +21,7 @@ import de.peeeq.wurstscript.ast.ExprUnary;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
+import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.OpAnd;
 import de.peeeq.wurstscript.ast.OpBinary;
@@ -41,7 +42,6 @@ import de.peeeq.wurstscript.ast.OpPlus;
 import de.peeeq.wurstscript.ast.OpUnary;
 import de.peeeq.wurstscript.ast.OpUnequals;
 import de.peeeq.wurstscript.ast.TypeDef;
-import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PScriptTypeCode;
@@ -102,7 +102,7 @@ public class AttrExprType {
 			@Override
 			public PscriptType case_ExprVarAccess(ExprVarAccess term)
 					 {
-				VarDef varDef = term.attrVarDef();
+				NameDef varDef = term.attrNameDef();
 				if (varDef == null) {
 					return PScriptTypeUnknown.instance();
 				}
@@ -112,7 +112,7 @@ public class AttrExprType {
 			@Override
 			public PscriptType case_ExprVarArrayAccess(
 					ExprVarArrayAccess term)  {
-				VarDef varDef = term.attrVarDef();
+				NameDef varDef = term.attrNameDef();
 				if (varDef == null) {
 					return PScriptTypeUnknown.instance();
 				}
@@ -367,7 +367,7 @@ public class AttrExprType {
 			@Override
 			public PscriptType case_ExprMemberVar(ExprMemberVar term)
 					 {
-				VarDef varDef = term.attrVarDef();
+				NameDef varDef = term.attrNameDef();
 				if (varDef == null) {
 					return PScriptTypeUnknown.instance();
 				}
@@ -377,7 +377,7 @@ public class AttrExprType {
 			@Override
 			public PscriptType case_ExprMemberArrayVar(
 					ExprMemberArrayVar term)  {
-				VarDef varDef = term.attrVarDef();
+				NameDef varDef = term.attrNameDef();
 				return varDef.attrTyp();
 			}
 

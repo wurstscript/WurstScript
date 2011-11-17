@@ -27,4 +27,16 @@ class JassFunctionsImpl extends JassFunctions implements JassAstElementIntern {
 		}
 		v.visit(this);
 	}
+	@Override public String toString() {
+		String result =  "JassFunctions(";
+		boolean first = true;
+		for (JassFunction i : this ) {
+			if (!first) { result +=", "; }
+			if (result.length() > 1000) { result +="..."; break; }
+			result += i;
+			first = false;
+		}
+		result +=  ")";
+		return result;
+	}
 }

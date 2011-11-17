@@ -39,4 +39,16 @@ class JassSimpleVarsImpl extends JassSimpleVars implements JassAstElementIntern 
 		}
 		v.visit(this);
 	}
+	@Override public String toString() {
+		String result =  "JassSimpleVars(";
+		boolean first = true;
+		for (JassSimpleVar i : this ) {
+			if (!first) { result +=", "; }
+			if (result.length() > 1000) { result +="..."; break; }
+			result += i;
+			first = false;
+		}
+		result +=  ")";
+		return result;
+	}
 }

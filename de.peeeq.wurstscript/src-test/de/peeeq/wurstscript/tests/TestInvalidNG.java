@@ -14,10 +14,10 @@ import org.testng.annotations.Test;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
-import de.peeeq.wurstscript.WurstCompiler;
 import de.peeeq.wurstscript.WurstCompilerImpl;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
-import de.peeeq.wurstscript.intermediateLang.ILprog;
+import de.peeeq.wurstscript.jassAst.JassProg;
+import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.utils.NotNullList;
 
 public class TestInvalidNG {
@@ -68,7 +68,7 @@ public class TestInvalidNG {
 		compiler.loadFiles(file);
 		compiler.parseFiles();
 
-		ILprog prog = compiler.getILprog();
+		JassProg prog = compiler.getILprog();
 
 		File logfile = new File(file.getAbsoluteFile() + ".log");
 		if (prog == null) {
@@ -82,7 +82,7 @@ public class TestInvalidNG {
 			// failure
 			File outputFile = new File(filename.replaceAll("\\"+PSCRIPT_ENDING, ".j"));
 			StringBuilder sb = new StringBuilder();
-			prog.printJass(sb, 0);
+			JassPrinter.printProg(sb, prog);
 			try {
 				FileWriter writer = new FileWriter(outputFile, false);
 				writer.append(sb.toString());

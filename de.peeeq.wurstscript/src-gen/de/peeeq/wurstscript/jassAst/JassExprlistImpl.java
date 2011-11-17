@@ -129,4 +129,16 @@ class JassExprlistImpl extends JassExprlist implements JassAstElementIntern {
 		}
 		v.visit(this);
 	}
+	@Override public String toString() {
+		String result =  "JassExprlist(";
+		boolean first = true;
+		for (JassExpr i : this ) {
+			if (!first) { result +=", "; }
+			if (result.length() > 1000) { result +="..."; break; }
+			result += i;
+			first = false;
+		}
+		result +=  ")";
+		return result;
+	}
 }

@@ -10,10 +10,10 @@ import java.util.Set;
 import org.testng.collections.Lists;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Multimap;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.jassAst.JassFunction;
 
 public class Utils {
 
@@ -237,6 +237,26 @@ public class Utils {
 		}
 		return result;
 	}
+	
+	/**
+	 * sorts a list with partitial ordering topologically.
+	 * If a > b then a will appear before b in the result list
+	 * @param items items to sort
+	 * @param biggerItems a multimap to get all the bigger items for a given item
+	 * @return a sorted list
+	 * @throws TopsortCycleException if there exist items a,b so that a > b and b > a 
+	 */
+	public static <T> List<T> topSort(Collection<T> items, final Multimap<T, T> biggerItems) throws TopsortCycleException {
+		return topSort(items, new Function<T, Collection<T>>() {
+
+			@Override
+			public Collection<T> apply(T input) {
+				return biggerItems.get(input);
+			}
+			
+		});
+	}
+	
 
 	private static <T> void topSortHelper(List<T> result, Set<T> visitedItems, LinkedList<T> activeItems, Function<T, ? extends Collection<T>> biggerItems, T item) throws TopsortCycleException {
 		if (visitedItems.contains(item)) {
