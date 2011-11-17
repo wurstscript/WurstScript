@@ -1,4 +1,4 @@
-test {
+package test {
 	
 	nativetype string
 	nativetype int

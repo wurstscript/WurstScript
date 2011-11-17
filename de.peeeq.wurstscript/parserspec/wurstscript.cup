@@ -34,6 +34,7 @@ terminal
 	LBRACK, RBRACK, 
 	COMMA,   
 	NL,
+	MODULE, USE, ABSTRACT, IN, FOR, THISTYPE, 
 	STATIC, PACKAGE, RETURNS,FUNCTION, VAL, PUBLIC, PUBLICREAD, PRIVATE, PROTECTED, IMPORT, NATIVETYPE, INIT, NATIVE, INTERFACE,
 	IMPLEMENTS, ARRAY, IF, ELSE, WHILE, RETURN, CLASS, NEW, NULL, EXTENDS, THIS, CONSTRUCT, ONDESTROY, 
 	TYPE, GLOBALS, ENDGLOBALS, CONSTANT, ENDFUNCTION, TAKES, NOTHING, LOCAL,
@@ -108,8 +109,8 @@ non terminal WStatement JassStatementIf;
 non terminal WStatements JasselseIfs;
 non terminal NativeFunc JassNativeDecl;
 non terminal JassToplevelDeclaration JassToplevelDeclaration;
-non terminal VisibilityModifier VisibilityModifier;
-
+non terminal Modifier Modifier;
+non terminal Modifiers Modifiers;
 
 precedence left		OR;
 precedence left		AND;
@@ -148,16 +149,7 @@ TopLevelDeclaration ::=
 ;
 
 
-VisibilityModifier ::=
-	PUBLIC:x
-		{: RESULT = Ast.VisibilityPublic(pos(xleft, xright)); :}
-	| PRIVATE:x
-		{: RESULT = Ast.VisibilityPrivate(pos(xleft, xright)); :}
-	| PUBLICREAD:x
-		{: RESULT = Ast.VisibilityPublicread(pos(xleft, xright)); :}
-	|
-		{: RESULT = Ast.VisibilityDefault(); :}
-;
+
 
 
 // a package
@@ -190,10 +182,10 @@ Entities ::=
 ;
 
 Entity ::=
-	VisibilityModifier:vis NATIVETYPE:x IDENTIFIER:name EXTENDS TypeExpr:extendsName NL
-		{: RESULT = Ast.NativeType(pos(xleft, xright), vis, name, extendsName); :}
-	| VisibilityModifier:vis NATIVETYPE:x IDENTIFIER:name NL
-		{: RESULT = Ast.NativeType(pos(xleft, xright), vis, name, Ast.NoTypeExpr()); :}
+	Modifiers:mod NATIVETYPE:x IDENTIFIER:name EXTENDS TypeExpr:extendsName NL
+		{: RESULT = Ast.NativeType(pos(xleft, xright), mod, name, extendsName); :}
+	| Modifiers:mod NATIVETYPE:x IDENTIFIER:name NL
+		{: RESULT = Ast.NativeType(pos(xleft, xright), mod, name, Ast.NoTypeExpr()); :}
 	| FuncDef:x
 		{: RESULT = x; :}
 	| VarDef:x
@@ -207,8 +199,8 @@ Entity ::=
 ;		
 
 ClassDef ::=
-	VisibilityModifier:vis CLASS:x IDENTIFIER:name LBRACK NL ClassSlots:slots RBRACK NL
-		{: RESULT = Ast.ClassDef(pos(xleft, xright), vis, name, false, slots); :}
+	Modifiers:mod CLASS:x IDENTIFIER:name LBRACK NL ClassSlots:slots RBRACK NL
+		{: RESULT = Ast.ClassDef(pos(xleft, xright), mod, name, false, slots); :}
 ;
 
 ClassSlots ::=
@@ -219,8 +211,8 @@ ClassSlots ::=
 ;
 
 ClassSlot ::=
-	VisibilityModifier:vis CONSTRUCT:x LPAR Parameters:params RPAR LBRACK NL Statements:body RBRACK NL
-		{: RESULT = Ast.ConstructorDef(pos(xleft, xright), vis, params, body); :}
+	Modifiers:mod CONSTRUCT:x LPAR Parameters:params RPAR LBRACK NL Statements:body RBRACK NL
+		{: RESULT = Ast.ConstructorDef(pos(xleft, xright), mod, params, body); :}
 	| ONDESTROY:x LBRACK NL Statements:body RBRACK NL
 		{: RESULT = Ast.OnDestroyDef(pos(xleft, xright), body); :}
 	| VarDef:x
@@ -230,8 +222,26 @@ ClassSlot ::=
 ;
 
 FuncDef ::=
-	VisibilityModifier:vis FUNCTION:x FuncSignature:sig LBRACK NL Statements:body RBRACK
-		{: RESULT = Ast.FuncDef(pos(xleft, xright), vis, sig, body); :}
+	  Modifiers:mod FUNCTION:x FuncSignature:sig LBRACK NL Statements:body RBRACK
+		{: RESULT = Ast.FuncDef(pos(xleft, xright), mod, sig, body); :}
+;
+
+Modifiers ::=
+	  Modifier:x Modifiers:xs
+	  	{: xs.addFront(x); RESULT = xs; :}
+	| 
+		{: RESULT = Ast.Modifiers(); :} 
+;
+
+Modifier ::=
+	PUBLIC:x
+		{: RESULT = Ast.VisibilityPublic(pos(xleft, xright)); :}
+	| PRIVATE:x
+		{: RESULT = Ast.VisibilityPrivate(pos(xleft, xright)); :}
+	| PUBLICREAD:x
+		{: RESULT = Ast.VisibilityPublicread(pos(xleft, xright)); :}
+	| STATIC:x
+		{: RESULT = Ast.ModStatic(pos(xleft, xright)); :}
 ;
 
 FuncSignature ::=
@@ -275,14 +285,10 @@ ArraySizes ::=
 ;
 
 VarDef ::=
-	VisibilityModifier:vis VAL:x IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = Ast.GlobalVarDef(pos(xleft, xright), vis, true, Ast.NoTypeExpr(), name, i); :}
-	| VisibilityModifier:vis VAL:x TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = Ast.GlobalVarDef(pos(xleft, xright), vis, true, typ, name, i); :}
-	| VisibilityModifier:vis TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = Ast.GlobalVarDef(pos(typleft, typright), vis, false, typ, name, i); :}
-	| VisibilityModifier:vis TypeExpr:typ IDENTIFIER:name NL
-		{: RESULT = Ast.GlobalVarDef(pos(typleft, typright), vis, false, typ, name, Ast.NoExpr()); :}
+	  Modifiers:mod TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
+		{: RESULT = Ast.GlobalVarDef(pos(typleft, typright), mod, false, typ, name, i); :}
+	| Modifiers:mod TypeExpr:typ IDENTIFIER:name NL
+		{: RESULT = Ast.GlobalVarDef(pos(typleft, typright), mod, false, typ, name, Ast.NoExpr()); :}
 ;
 
 Statements ::=
@@ -554,7 +560,7 @@ JassToplevelDeclaration ::=
 
 JassTypeDecl ::=
 	TYPE:x IDENTIFIER:name EXTENDS TypeExpr:extendsName NL
-		{: RESULT = Ast.NativeType(pos(xleft, xright), Ast.VisibilityDefault(), name, extendsName); :}
+		{: RESULT = Ast.NativeType(pos(xleft, xright), Ast.Modifiers(), name, extendsName); :}
 ;
 
 
@@ -572,11 +578,11 @@ JassGlobalDecls ::=
 
 JassGlobalDecl ::=
 	CONSTANT:x TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = Ast.GlobalVarDef(pos(xleft, xright), Ast.VisibilityDefault(), true, typ, name, i); :}
+		{: RESULT = Ast.GlobalVarDef(pos(xleft, xright), Ast.Modifiers(), true, typ, name, i); :}
 	| TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = Ast.GlobalVarDef(typ.getSource().copy(), Ast.VisibilityDefault(), false, typ, name, i); :}
+		{: RESULT = Ast.GlobalVarDef(typ.getSource().copy(), Ast.Modifiers(), false, typ, name, i); :}
 	| TypeExpr:typ IDENTIFIER:name NL
-		{: RESULT = Ast.GlobalVarDef(typ.getSource().copy(), Ast.VisibilityDefault(), false, typ, name, Ast.NoExpr()); :}
+		{: RESULT = Ast.GlobalVarDef(typ.getSource().copy(), Ast.Modifiers(), false, typ, name, Ast.NoExpr()); :}
 ;
 
 JassNativeDecl ::=
@@ -590,7 +596,7 @@ JassFuncDef ::=
 	FUNCTION:x JassFuncSignature:sig NL JassLocals:body1 JassStatements:body2 ENDFUNCTION NL
 		{: 
 			body1.addAll(body2.removeAll());
-			RESULT = Ast.FuncDef(pos(xleft, xright), Ast.VisibilityDefault(), sig, body1); 
+			RESULT = Ast.FuncDef(pos(xleft, xright), Ast.Modifiers(), sig, body1); 
 		:}
 ;
 

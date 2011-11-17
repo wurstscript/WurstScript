@@ -1,6 +1,5 @@
 Errors in validation phase:
 Error in File missingEndParenthesis.pscript line 2:16:
-Grammatical error: unexpected '{'	expected: 3 name, 28 ')'
-state = 311
+Grammatical error: unexpected '{'	expected: name, ')'
 Error in File missingEndParenthesis.pscript line 2:16:
 Could not continue to parse file ...

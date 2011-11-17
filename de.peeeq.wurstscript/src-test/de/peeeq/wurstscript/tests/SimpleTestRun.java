@@ -7,23 +7,14 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.List;
 
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
-
-import de.peeeq.wurstscript.WurstCompiler;
-import de.peeeq.wurstscript.WurstCompilerImpl;
 import de.peeeq.wurstscript.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
-import de.peeeq.wurstscript.intermediateLang.ILprog;
-import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreter;
-import de.peeeq.wurstscript.intermediateLang.interpreter.JassInterpreter;
-import de.peeeq.wurstscript.intermediateLang.interpreter.TestFailException;
-import de.peeeq.wurstscript.intermediateLang.interpreter.TestSuccessException;
 import de.peeeq.wurstscript.jassAst.JassProg;
+import de.peeeq.wurstscript.jassinterpreter.JassInterpreter;
+import de.peeeq.wurstscript.jassinterpreter.TestFailException;
+import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
-import de.peeeq.wurstscript.utils.NotNullList;
 
 public class SimpleTestRun {
 
@@ -31,7 +22,7 @@ public class SimpleTestRun {
 	private static final String PSCRIPT_ENDING = ".pscript";
 
 	public static void main(String ... args) throws IOException, InterruptedException {
-		String testFile = "./testscripts/valid/If_1.pscript";
+		String testFile = "./testscripts/valid/StaticFunctionCall.pscript";
 		if (args.length == 1) {
 			testFile = args[0];
 		}

@@ -6,8 +6,6 @@ import java.util.Map;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.VarDef;
-import de.peeeq.wurstscript.ast.VisibilityPrivate;
-import de.peeeq.wurstscript.ast.VisibilityPublic;
 import de.peeeq.wurstscript.ast.WParameter;
 
 public class ScopeForVars {
@@ -35,10 +33,10 @@ public class ScopeForVars {
 	
 	public void add(GlobalVarDef v) {
 		addVar(v);
-		if (v.getVisibility() instanceof VisibilityPublic) {
+		if (v.attrIsPublic()) {
 			publicVars.put(v.getName(), v);
 		}
-		if (! (v.getVisibility() instanceof VisibilityPrivate)) {
+		if (! (v.attrIsPrivate())) {
 			packageVars.put(v.getName(), v);
 		}
 	}

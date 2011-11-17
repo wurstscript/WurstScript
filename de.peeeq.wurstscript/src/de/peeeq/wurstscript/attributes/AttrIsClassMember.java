@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.attributes;
 
-import de.peeeq.wurstscript.ast.ClassDef;
-import de.peeeq.wurstscript.ast.ClassSlot;
+import de.peeeq.wurstscript.ast.ClassSlots;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.WParameter;
@@ -16,7 +15,7 @@ public class AttrIsClassMember {
 	}
 
 	public static boolean calculate(GlobalVarDef v) {
-		if (v.getParent() instanceof ClassSlot) {
+		if (v.getParent() instanceof ClassSlots) {
 			// TODO static members?
 			return true;
 		}

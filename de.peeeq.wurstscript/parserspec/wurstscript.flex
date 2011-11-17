@@ -42,12 +42,14 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	{WHITESPACE}*                     { }
 	"//" [^\r\n]* 			           { }
 	"/*" ~"*/"                        { }
-	{NEWLINE}							{ return symbol(TokenType.NL); }
+	{NEWLINE}							{ return symbol(TokenType.NL); }	
 	"class"                           	{ return symbol(TokenType.CLASS); }
 	"return"                          	{ return symbol(TokenType.RETURN); }
 	"if"                              	{ return symbol(TokenType.IF); }
 	"else"                            	{ return symbol(TokenType.ELSE); }
 	"while"                           	{ return symbol(TokenType.WHILE); }
+	"for"                           	{ return symbol(TokenType.FOR); }
+	"in"                           		{ return symbol(TokenType.IN); }
 	"new"                             	{ return symbol(TokenType.NEW); }
 	"null"                            	{ return symbol(TokenType.NULL); }
 	"package"							{ return symbol(TokenType.PACKAGE); }
@@ -64,6 +66,13 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"extends"							{ return symbol(TokenType.EXTENDS); }
 	"interface"							{ return symbol(TokenType.INTERFACE); }
 	"implements"						{ return symbol(TokenType.IMPLEMENTS); }
+	
+	"module"							{ return symbol(TokenType.MODULE); }
+	"use"								{ return symbol(TokenType.USE); }
+	"abstract"							{ return symbol(TokenType.ABSTRACT); }
+	"static"							{ return symbol(TokenType.STATIC); }
+	"thistype"							{ return symbol(TokenType.THISTYPE); }
+	
 	"array"								{ return symbol(TokenType.ARRAY); }
 	"and"								{ return symbol(TokenType.AND); }
 	"or"								{ return symbol(TokenType.OR); }

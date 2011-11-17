@@ -23,26 +23,26 @@ public class Ast {
 	public static NoExpr NoExpr() {
 		return new NoExprImpl();
 	}
-	public static NativeType NativeType(WPos source, VisibilityModifier visibility, String name, OptTypeExpr typ) {
-		return new NativeTypeImpl(source, visibility, name, typ);
+	public static NativeType NativeType(WPos source, Modifiers modifiers, String name, OptTypeExpr typ) {
+		return new NativeTypeImpl(source, modifiers, name, typ);
 	}
-	public static ClassDef ClassDef(WPos source, VisibilityModifier visibility, String name, boolean unmanaged, ClassSlots slots) {
-		return new ClassDefImpl(source, visibility, name, unmanaged, slots);
+	public static ClassDef ClassDef(WPos source, Modifiers modifiers, String name, boolean unmanaged, ClassSlots slots) {
+		return new ClassDefImpl(source, modifiers, name, unmanaged, slots);
 	}
-	public static ConstructorDef ConstructorDef(WPos source, VisibilityModifier visibility, WParameters params, WStatements body) {
-		return new ConstructorDefImpl(source, visibility, params, body);
+	public static ConstructorDef ConstructorDef(WPos source, Modifiers modifiers, WParameters params, WStatements body) {
+		return new ConstructorDefImpl(source, modifiers, params, body);
 	}
 	public static OnDestroyDef OnDestroyDef(WPos source, WStatements body) {
 		return new OnDestroyDefImpl(source, body);
 	}
-	public static GlobalVarDef GlobalVarDef(WPos source, VisibilityModifier visibility, boolean isConstant, OptTypeExpr typ, String name, OptExpr initialExpr) {
-		return new GlobalVarDefImpl(source, visibility, isConstant, typ, name, initialExpr);
+	public static GlobalVarDef GlobalVarDef(WPos source, Modifiers modifiers, boolean isConstant, OptTypeExpr typ, String name, OptExpr initialExpr) {
+		return new GlobalVarDefImpl(source, modifiers, isConstant, typ, name, initialExpr);
 	}
 	public static LocalVarDef LocalVarDef(WPos source, boolean constant, OptTypeExpr typ, String name, OptExpr initialExpr) {
 		return new LocalVarDefImpl(source, constant, typ, name, initialExpr);
 	}
-	public static FuncDef FuncDef(WPos source, VisibilityModifier visibility, FuncSignature signature, WStatements body) {
-		return new FuncDefImpl(source, visibility, signature, body);
+	public static FuncDef FuncDef(WPos source, Modifiers modifiers, FuncSignature signature, WStatements body) {
+		return new FuncDefImpl(source, modifiers, signature, body);
 	}
 	public static TypeExpr TypeExpr(WPos source, String typeName, boolean isArray, ArraySizes sizes) {
 		return new TypeExprImpl(source, typeName, isArray, sizes);
@@ -191,10 +191,18 @@ public class Ast {
 	public static VisibilityProtected VisibilityProtected(WPos source) {
 		return new VisibilityProtectedImpl(source);
 	}
-	public static VisibilityDefault VisibilityDefault() {
-		return new VisibilityDefaultImpl();
+	public static VisibilityDefault VisibilityDefault(WPos source) {
+		return new VisibilityDefaultImpl(source);
+	}
+	public static ModStatic ModStatic(WPos source) {
+		return new ModStaticImpl(source);
 	}
 	public static CompilationUnit CompilationUnit(TopLevelDeclaration ... elements ) {
+		CompilationUnit l = new CompilationUnitImpl();
+		for (TopLevelDeclaration e : elements) { l.add(e); }
+		return l;
+	}
+	public static CompilationUnit CompilationUnit(Iterable<TopLevelDeclaration> elements ) {
 		CompilationUnit l = new CompilationUnitImpl();
 		for (TopLevelDeclaration e : elements) { l.add(e); }
 		return l;
@@ -204,7 +212,17 @@ public class Ast {
 		for (WImport e : elements) { l.add(e); }
 		return l;
 	}
+	public static WImports WImports(Iterable<WImport> elements ) {
+		WImports l = new WImportsImpl();
+		for (WImport e : elements) { l.add(e); }
+		return l;
+	}
 	public static WEntities WEntities(WEntity ... elements ) {
+		WEntities l = new WEntitiesImpl();
+		for (WEntity e : elements) { l.add(e); }
+		return l;
+	}
+	public static WEntities WEntities(Iterable<WEntity> elements ) {
 		WEntities l = new WEntitiesImpl();
 		for (WEntity e : elements) { l.add(e); }
 		return l;
@@ -214,7 +232,17 @@ public class Ast {
 		for (ClassSlot e : elements) { l.add(e); }
 		return l;
 	}
+	public static ClassSlots ClassSlots(Iterable<ClassSlot> elements ) {
+		ClassSlots l = new ClassSlotsImpl();
+		for (ClassSlot e : elements) { l.add(e); }
+		return l;
+	}
 	public static ArraySizes ArraySizes(Expr ... elements ) {
+		ArraySizes l = new ArraySizesImpl();
+		for (Expr e : elements) { l.add(e); }
+		return l;
+	}
+	public static ArraySizes ArraySizes(Iterable<Expr> elements ) {
 		ArraySizes l = new ArraySizesImpl();
 		for (Expr e : elements) { l.add(e); }
 		return l;
@@ -224,7 +252,17 @@ public class Ast {
 		for (WParameter e : elements) { l.add(e); }
 		return l;
 	}
+	public static WParameters WParameters(Iterable<WParameter> elements ) {
+		WParameters l = new WParametersImpl();
+		for (WParameter e : elements) { l.add(e); }
+		return l;
+	}
 	public static WStatements WStatements(WStatement ... elements ) {
+		WStatements l = new WStatementsImpl();
+		for (WStatement e : elements) { l.add(e); }
+		return l;
+	}
+	public static WStatements WStatements(Iterable<WStatement> elements ) {
 		WStatements l = new WStatementsImpl();
 		for (WStatement e : elements) { l.add(e); }
 		return l;
@@ -234,12 +272,37 @@ public class Ast {
 		for (Expr e : elements) { l.add(e); }
 		return l;
 	}
+	public static Indexes Indexes(Iterable<Expr> elements ) {
+		Indexes l = new IndexesImpl();
+		for (Expr e : elements) { l.add(e); }
+		return l;
+	}
 	public static Arguments Arguments(Expr ... elements ) {
 		Arguments l = new ArgumentsImpl();
 		for (Expr e : elements) { l.add(e); }
 		return l;
 	}
+	public static Arguments Arguments(Iterable<Expr> elements ) {
+		Arguments l = new ArgumentsImpl();
+		for (Expr e : elements) { l.add(e); }
+		return l;
+	}
+	public static Modifiers Modifiers(Modifier ... elements ) {
+		Modifiers l = new ModifiersImpl();
+		for (Modifier e : elements) { l.add(e); }
+		return l;
+	}
+	public static Modifiers Modifiers(Iterable<Modifier> elements ) {
+		Modifiers l = new ModifiersImpl();
+		for (Modifier e : elements) { l.add(e); }
+		return l;
+	}
 	public static JassGlobalBlock JassGlobalBlock(GlobalVarDef ... elements ) {
+		JassGlobalBlock l = new JassGlobalBlockImpl();
+		for (GlobalVarDef e : elements) { l.add(e); }
+		return l;
+	}
+	public static JassGlobalBlock JassGlobalBlock(Iterable<GlobalVarDef> elements ) {
 		JassGlobalBlock l = new JassGlobalBlockImpl();
 		for (GlobalVarDef e : elements) { l.add(e); }
 		return l;

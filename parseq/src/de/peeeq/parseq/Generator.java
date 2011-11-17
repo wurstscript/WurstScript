@@ -594,6 +594,12 @@ public class Generator {
 			sb.append("		return l;\n");
 			sb.append("	}\n");
 			
+			
+			sb.append("	public static " + l.name + " " + l.name + "(Iterable<" + l.itemType + "> elements ) {\n");
+			sb.append("		" + l.name + " l = new " + l.name + "Impl();\n");
+			sb.append("		for (" + l.itemType + " e : elements) { l.add(e); }\n");
+			sb.append("		return l;\n");
+			sb.append("	}\n");
 		}
 		
 		
@@ -732,6 +738,19 @@ public class Generator {
 		
 		createAttributeImpl(l, sb);
 		
+		// toString method
+		sb.append("	@Override public String toString() {\n");
+		sb.append("		String result =  \""+l.getName()+"(\";\n");
+		sb.append("		boolean first = true;\n");
+		sb.append("		for (" +l.itemType+ " i : this ) {\n");
+		sb.append("			if (!first) { result +=\", \"; }\n");
+		sb.append("			if (result.length() > 1000) { result +=\"...\"; break; }\n");
+		sb.append("			result += i;\n");
+		sb.append("			first = false;\n");
+		sb.append("		}\n");
+		sb.append("		result +=  \")\";\n");
+		sb.append("		return result;\n");
+		sb.append("	}\n");
 		
 		sb.append("}\n");
 		createFile(l.name + "Impl", sb);

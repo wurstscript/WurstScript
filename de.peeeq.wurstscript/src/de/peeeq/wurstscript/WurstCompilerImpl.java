@@ -15,8 +15,8 @@ import de.peeeq.wurstscript.ast.TopLevelDeclaration;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.gui.WurstGui;
-import de.peeeq.wurstscript.intermediateLang.ILprog;
-import de.peeeq.wurstscript.intermediateLang.translator.IntermediateLangTranslator;
+import de.peeeq.wurstscript.jassAst.JassProg;
+import de.peeeq.wurstscript.jasstranslation.JassTranslator;
 import de.peeeq.wurstscript.parser.ExtendedParser;
 import de.peeeq.wurstscript.parser.WurstScriptScanner;
 import de.peeeq.wurstscript.utils.NotNullList;
@@ -26,7 +26,7 @@ public class WurstCompilerImpl implements WurstCompiler {
 
 	private File[] files;
 	private int parseErrors;
-	private ILprog ilProg;
+	private JassProg ilProg;
 	private File outputMapFile;
 	private WurstGui gui;
 
@@ -110,7 +110,7 @@ public class WurstCompilerImpl implements WurstCompiler {
 		
 		
 		// translate to intermediate lang:
-		IntermediateLangTranslator translator = new IntermediateLangTranslator(root);
+		JassTranslator translator = new JassTranslator(root);
 		ilProg = translator.translate();
 		
 		if (attr.getErrorCount() > 0) {
@@ -192,7 +192,7 @@ public class WurstCompilerImpl implements WurstCompiler {
 	}
 
 	
-	public ILprog getILprog() {
+	public JassProg getILprog() {
 		return ilProg;
 	}
 

@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.attributes;
 
+import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
@@ -7,8 +8,9 @@ import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.OptExpr;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.TypeExpr;
-import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.types.PScriptTypeClassDefinition;
+import de.peeeq.wurstscript.types.PScriptTypePackage;
 import de.peeeq.wurstscript.types.PscriptType;
 
 
@@ -18,48 +20,44 @@ import de.peeeq.wurstscript.types.PscriptType;
  */
 public class AttrVarDefType {
 	
-	public static  PscriptType calculate(VarDef node) {
-		return node.match(new VarDef.Matcher<PscriptType>() {
+	public static  PscriptType calculate(GlobalVarDef node) {
+		return defaultCase(node.getTyp(), node.getInitialExpr());
+	}
+	
+	public static  PscriptType calculate(LocalVarDef node) {
+		return defaultCase(node.getTyp(), node.getInitialExpr());
+	}
+	
+	public static  PscriptType calculate(WParameter node) {
+		return node.getTyp().attrTyp();
+	}
+	
+	public static PscriptType calculate(ClassDef c) {
+		return PScriptTypeClassDefinition.instance(c);
+	}
+	
+	private static PscriptType defaultCase(OptTypeExpr typ,
+			final OptExpr initialExpr) {
+		return typ.match(new OptTypeExpr.Matcher<PscriptType>() {
 
 			@Override
-			public PscriptType case_GlobalVarDef(GlobalVarDef term)
+			public PscriptType case_NoTypeExpr(NoTypeExpr nt)
 					 {
-				return defaultCase(term.getTyp(), term.getInitialExpr());
-			}
-
-			private PscriptType defaultCase(OptTypeExpr typ,
-					final OptExpr initialExpr) {
-				return typ.match(new OptTypeExpr.Matcher<PscriptType>() {
-
-					@Override
-					public PscriptType case_NoTypeExpr(NoTypeExpr nt)
-							 {
-						if (initialExpr instanceof Expr) {
-							return ((Expr) initialExpr).attrTyp();
-						} else {
-							throw new Error("Vardef must either have a type or an initial value");
-						}
-					}
-
-					@Override
-					public PscriptType case_TypeExpr(TypeExpr term)
-							 {
-						return term.attrTyp();
-					}
-				});
+				if (initialExpr instanceof Expr) {
+					return ((Expr) initialExpr).attrTyp();
+				} else {
+					throw new Error("Vardef must either have a type or an initial value");
+				}
 			}
 
 			@Override
-			public PscriptType case_LocalVarDef(LocalVarDef term)
+			public PscriptType case_TypeExpr(TypeExpr term)
 					 {
-				return defaultCase(term.getTyp(), term.getInitialExpr());
-			}
-
-			@Override
-			public PscriptType case_WParameter(WParameter term)  {
-				return term.getTyp().attrTyp();
+				return term.attrTyp();
 			}
 		});
 	}
+	
+	
 
 }

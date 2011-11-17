@@ -15,25 +15,19 @@ class WImportsImpl extends WImports implements AstElementIntern {
 	protected void other_clearParent(WImport t) {
 		((AstElementIntern) t).setParent(null);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		for (WImport i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
 	@Override public void accept(WPackage.Visitor v) {
 		for (WImport i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		for (WImport i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
 		for (WImport i : this ) {
 			i.accept(v);
 		}
@@ -46,6 +40,12 @@ class WImportsImpl extends WImports implements AstElementIntern {
 		v.visit(this);
 	}
 	@Override public void accept(PackageOrGlobal.Visitor v) {
+		for (WImport i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
 		for (WImport i : this ) {
 			i.accept(v);
 		}
@@ -77,5 +77,17 @@ class WImportsImpl extends WImports implements AstElementIntern {
 			attr_attrNearestClassDef_isCached = true;
 		}
 		return attr_attrNearestClassDef_cache;
+	}
+	@Override public String toString() {
+		String result =  "WImports(";
+		boolean first = true;
+		for (WImport i : this ) {
+			if (!first) { result +=", "; }
+			if (result.length() > 1000) { result +="..."; break; }
+			result += i;
+			first = false;
+		}
+		result +=  ")";
+		return result;
 	}
 }

@@ -15,7 +15,7 @@ import com.google.common.base.Function;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
-import de.peeeq.wurstscript.ast.VarRef;
+import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WPos;
 
@@ -33,16 +33,16 @@ public class UtilsTest {
 	  WPos source = Ast.WPos("", 0, 0);
 	CompilationUnit testProg = Ast.CompilationUnit(
 			  Ast.WPackage(source.copy() , "test", Ast.WImports(), Ast.WEntities(
-					  Ast.GlobalVarDef(source.copy(), Ast.VisibilityDefault(), false, Ast.NoTypeExpr(), "v1", Ast.ExprIntVal(source.copy(), 5)),
-					  Ast.GlobalVarDef(source.copy(), Ast.VisibilityDefault(), false, Ast.NoTypeExpr(), "v2", Ast.ExprVarAccess(source.copy(), "r1")),
-					  Ast.GlobalVarDef(source.copy(), Ast.VisibilityDefault(), false, Ast.NoTypeExpr(), "v3", Ast.ExprBinary(source.copy(), Ast.ExprIntVal(source.copy(), 3), Ast.OpPlus(), Ast.ExprVarAccess(source.copy(), "r2"))),
-					  Ast.GlobalVarDef(source.copy(), Ast.VisibilityDefault(), false, Ast.NoTypeExpr(), "v4", Ast.ExprVarAccess(source.copy(), "r3"))
+					  Ast.GlobalVarDef(source.copy(), Ast.Modifiers(), false, Ast.NoTypeExpr(), "v1", Ast.ExprIntVal(source.copy(), 5)),
+					  Ast.GlobalVarDef(source.copy(), Ast.Modifiers(), false, Ast.NoTypeExpr(), "v2", Ast.ExprVarAccess(source.copy(), "r1")),
+					  Ast.GlobalVarDef(source.copy(), Ast.Modifiers(), false, Ast.NoTypeExpr(), "v3", Ast.ExprBinary(source.copy(), Ast.ExprIntVal(source.copy(), 3), Ast.OpPlus(), Ast.ExprVarAccess(source.copy(), "r2"))),
+					  Ast.GlobalVarDef(source.copy(), Ast.Modifiers(), false, Ast.NoTypeExpr(), "v4", Ast.ExprVarAccess(source.copy(), "r3"))
 					  ))			  
 			  );
 	WPackage testPackage = (WPackage) testProg.get(0);
 	GlobalVarDef testVarDef = (GlobalVarDef) testPackage.getElements().get(2);
 	
-    List<VarRef> varRefs = Utils.collect(VarRef.class, testVarDef.getInitialExpr());
+    List<NameRef> varRefs = Utils.collect(NameRef.class, testVarDef.getInitialExpr());
     System.out.println(Utils.join(varRefs, ", "));
     assertEquals("v3", testVarDef.getName());
     assertEquals(1, varRefs.size());

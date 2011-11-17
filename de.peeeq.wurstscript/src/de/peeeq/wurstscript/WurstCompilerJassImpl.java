@@ -102,9 +102,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		validator.validate();
 		
 		if (attr.getErrorCount() > 0) {
-			for (CompileError err : attr.getErrors()) {
-				gui.sendError(err);
-			}
+//			for (CompileError err : attr.getErrors()) {
+//				gui.sendError(err);
+//			}
 			return;
 		}
 		
@@ -114,9 +114,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		prog = translator.translate();
 		
 		if (attr.getErrorCount() > 0) {
-			for (CompileError err : attr.getErrors()) {
-				gui.sendError(err);
-			}
+//			for (CompileError err : attr.getErrors()) {
+//				gui.sendError(err);
+//			}
 			prog = null;
 			return;
 		}

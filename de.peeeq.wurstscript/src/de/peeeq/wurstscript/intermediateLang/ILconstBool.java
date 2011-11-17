@@ -31,12 +31,7 @@ public class ILconstBool extends ILconstAbstract {
 		return !val;
 	}
 
-	@Override
-	public void printJass(StringBuilder sb, int indent) {
-		sb.append(print());
-	}
 
-	@Override
 	public PscriptType getType() {
 		return PScriptTypeBool.instance();
 	}

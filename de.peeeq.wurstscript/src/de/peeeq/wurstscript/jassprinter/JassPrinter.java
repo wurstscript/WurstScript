@@ -19,7 +19,6 @@ import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassFunctions;
 import de.peeeq.wurstscript.jassAst.JassOp;
 import de.peeeq.wurstscript.jassAst.JassOpAnd;
-import de.peeeq.wurstscript.jassAst.JassOpBinary;
 import de.peeeq.wurstscript.jassAst.JassOpDiv;
 import de.peeeq.wurstscript.jassAst.JassOpEquals;
 import de.peeeq.wurstscript.jassAst.JassOpGreater;
@@ -31,7 +30,6 @@ import de.peeeq.wurstscript.jassAst.JassOpMult;
 import de.peeeq.wurstscript.jassAst.JassOpNot;
 import de.peeeq.wurstscript.jassAst.JassOpOr;
 import de.peeeq.wurstscript.jassAst.JassOpPlus;
-import de.peeeq.wurstscript.jassAst.JassOpUnary;
 import de.peeeq.wurstscript.jassAst.JassOpUnequals;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassAst.JassSimpleVar;
@@ -90,6 +88,7 @@ public class JassPrinter {
 
 
 	private static void printFunction(StringBuilder sb, JassFunction f) {
+		System.out.println("print: " + f);
 		sb.append("function ");
 		sb.append(f.getName());
 		sb.append(" takes ");
@@ -169,7 +168,7 @@ public class JassPrinter {
 				sb.append("loop\n");
 				printStatements(sb, indent+1, s.getBody());
 				Utils.printIndent(sb, indent);
-				sb.append("endlooploop");
+				sb.append("endloop");
 			}
 			
 			@Override

@@ -1,6 +1,6 @@
 package de.peeeq.wurstscript.intermediateLang;
 
-public abstract class ILconstAbstract implements ILconst, ILexpr, CodePrinting {
+public abstract class ILconstAbstract implements ILconst {
 
 	public abstract String print();
 
@@ -10,10 +10,6 @@ public abstract class ILconstAbstract implements ILconst, ILexpr, CodePrinting {
 		return print();
 	}
 	
-	@Override
-	public void printJassExpr(StringBuilder sb, int indent) {
-		printJass(sb, indent);
-	}
 	
 	@Override
 	public boolean equals(Object other) {

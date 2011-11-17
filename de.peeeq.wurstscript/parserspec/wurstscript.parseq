@@ -30,13 +30,13 @@ OptTypeExpr = NoTypeExpr() | TypeExpr
 OptExpr = NoExpr() | Expr
 	
 TypeDef = 
-	 NativeType(WPos source, VisibilityModifier visibility, String name, OptTypeExpr typ)
-	|ClassDef(WPos source, VisibilityModifier visibility, String name, boolean unmanaged, ClassSlots slots)
+	 NativeType(WPos source, Modifiers modifiers, String name, OptTypeExpr typ)
+	|ClassDef(WPos source, Modifiers modifiers, String name, boolean unmanaged, ClassSlots slots)
 	
 ClassSlots * ClassSlot
 
 ClassSlot = 
-	  ConstructorDef(WPos source, VisibilityModifier visibility, WParameters params, WStatements body)
+	  ConstructorDef(WPos source, Modifiers modifiers, WParameters params, WStatements body)
 	| OnDestroyDef(WPos source, WStatements body) 
 	| ClassMember
 	
@@ -45,11 +45,11 @@ ClassMember =
 	| FuncDef
 
 
-GlobalVarDef(WPos source, VisibilityModifier visibility, boolean isConstant, OptTypeExpr typ, String name, OptExpr initialExpr)
+GlobalVarDef(WPos source, Modifiers modifiers, boolean isConstant, OptTypeExpr typ, String name, OptExpr initialExpr)
 LocalVarDef(WPos source, boolean constant, OptTypeExpr typ, String name, OptExpr initialExpr) 
 
 	
-FuncDef(WPos source, VisibilityModifier visibility, FuncSignature signature, WStatements body)
+FuncDef(WPos source, Modifiers modifiers, FuncSignature signature, WStatements body)
 	
 TypeExpr(WPos source, String typeName, boolean isArray, ArraySizes sizes)
 
@@ -139,7 +139,7 @@ Op = OpBinary | OpUnary
 // auxiliary types:
 
 // a reference to a variable, needs a varName:String attribute
-VarRef = ExprVarArrayAccess | ExprVarAccess | ExprMemberVar | ExprMemberArrayVar
+NameRef = ExprVarArrayAccess | ExprVarAccess | ExprMemberVar | ExprMemberArrayVar
 
 VarDef = 
 	GlobalVarDef
@@ -157,13 +157,23 @@ PackageOrGlobal = WPackage | CompilationUnit
 	
 TypeRef = TypeExpr | ExprNewObject
 
+NameDef = VarDef | ClassDef
+
 VisibilityModifier = 
 	  VisibilityPublic(WPos source) 
 	| VisibilityPrivate(WPos source) 
 	| VisibilityPublicread(WPos source) 
 	| VisibilityProtected(WPos source)
-	| VisibilityDefault()
+	| VisibilityDefault(WPos source)
 
+Modifiers * Modifier
+
+Modifier = 
+	  VisibilityModifier
+	| ModStatic(WPos source)	
+	
+
+AstElementWithModifier = TypeDef | ConstructorDef | GlobalVarDef | FuncDef
 	
 // Jass types:
 
@@ -205,24 +215,24 @@ FuncRef.attrFuncDef
 
 
 
-VarRef.attrVarDef
-	returns VarDef
+NameRef.attrNameDef
+	returns NameDef
 	implemented by de.peeeq.wurstscript.attributes.AttrVarDef.calculate
 
-WScope.attrScopeVariables
-	returns java.util.Map<String, VarDef>
+WScope.attrScopeNames
+	returns java.util.Map<String, NameDef>
 	implemented by de.peeeq.wurstscript.attributes.AttrScopeVariables.calculate
 
-WScope.attrScopePackageVariables
-	returns java.util.Map<String, VarDef>
+WScope.attrScopePackageNames
+	returns java.util.Map<String, NameDef>
 	implemented by de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePackage
 	
-WScope.attrScopePublicVariables
-	returns java.util.Map<String, VarDef>
+WScope.attrScopePublicNames
+	returns java.util.Map<String, NameDef>
 	implemented by de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePublic
 
-WScope.attrScopePublicReadVariables
-	returns java.util.Map<String, VarDef>
+WScope.attrScopePublicReadNamess
+	returns java.util.Map<String, NameDef>
 	implemented by de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePublicRead
 
 
@@ -240,7 +250,7 @@ WScope.attrScopePublicFunctions
 
 
 
-VarDef.attrTyp
+NameDef.attrTyp
 	returns de.peeeq.wurstscript.types.PscriptType 
 	implemented by de.peeeq.wurstscript.attributes.AttrVarDefType.calculate
 
@@ -283,12 +293,21 @@ WPackage.attrExportedTypes
 	returns java.util.Map<String, TypeDef>
 	implemented by de.peeeq.wurstscript.attributes.AttrExportedTypes.calculate
 
+AstElementWithModifier.attrIsPublic
+	returns boolean
+	implemented by de.peeeq.wurstscript.attributes.Modifiers.isPublic
 
+AstElementWithModifier.attrIsPublicRead
+	returns boolean
+	implemented by de.peeeq.wurstscript.attributes.Modifiers.isPublicRead
 
+AstElementWithModifier.attrIsPrivate
+	returns boolean
+	implemented by de.peeeq.wurstscript.attributes.Modifiers.isPrivate
 
-
-
-
+AstElementWithModifier.attrIsStatic
+	returns boolean
+	implemented by de.peeeq.wurstscript.attributes.Modifiers.isStatic
 
 
 

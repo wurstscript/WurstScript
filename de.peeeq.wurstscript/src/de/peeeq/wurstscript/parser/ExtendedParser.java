@@ -5,12 +5,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import java_cup.runtime.Scanner;
+import java_cup.runtime.Symbol;
+
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import java_cup.runtime.Scanner;
-import java_cup.runtime.Symbol;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.WPos;

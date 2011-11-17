@@ -8,11 +8,10 @@ import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
+import de.peeeq.wurstscript.ast.NameDef;
+import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.StmtSet;
-import de.peeeq.wurstscript.ast.VarDef;
-import de.peeeq.wurstscript.ast.VarRef;
 import de.peeeq.wurstscript.ast.WScope;
-import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
 
@@ -23,7 +22,7 @@ import de.peeeq.wurstscript.types.PscriptTypeClass;
  */
 public class AttrVarDef {
 	
-	public static VarDef calculate(final VarRef node) {
+	public static NameDef calculate(final NameRef node) {
 		final String varName = node.getVarName();
 		
 		// check if this a read access:
@@ -36,11 +35,11 @@ public class AttrVarDef {
 		}
 		final boolean writeAccess = writeAccess1;
 		
-		VarDef result = node.match(new VarRef.Matcher<VarDef>() {
-			private VarDef defaultCase() {
+		NameDef result = node.match(new NameRef.Matcher<NameDef>() {
+			private NameDef defaultCase() {
 				WScope scope = Scoping.getNearestScope(node);
 				while (scope != null) {
-					Map<String, VarDef> vars = scope.attrScopeVariables();
+					Map<String, NameDef> vars = scope.attrScopeNames();
 					if (vars.containsKey(varName)) {
 						return vars.get(varName);
 					}
@@ -49,24 +48,24 @@ public class AttrVarDef {
 				return null;
 			}
 			
-			private VarDef memberVarCase(Expr left) {
+			private NameDef memberVarCase(Expr left) {
 				PscriptType leftType = left.attrTyp();
 				if (leftType instanceof PscriptTypeClass) {
 					PscriptTypeClass leftTypeC = (PscriptTypeClass) leftType;
 					ClassDef classDef = leftTypeC.getClassDef();
-					Map<String, VarDef> classDefScope;
+					Map<String, NameDef> classDefScope;
 					if (classDef == left.attrNearestClassDef()) {
 						// same class
-						classDefScope = classDef.attrScopeVariables();
+						classDefScope = classDef.attrScopeNames();
 					} else if (classDef.attrNearestPackage() == left.attrNearestPackage()) {
 						// same package
-						classDefScope = classDef.attrScopePackageVariables();
+						classDefScope = classDef.attrScopePackageNames();
 					} else {
 						// different package
 						if (writeAccess) {
-							classDefScope = classDef.attrScopePublicVariables();
+							classDefScope = classDef.attrScopePublicNames();
 						} else {
-							classDefScope = classDef.attrScopePublicReadVariables();
+							classDefScope = classDef.attrScopePublicReadNamess();
 						}
 					}
 					return classDefScope.get(varName);
@@ -77,19 +76,19 @@ public class AttrVarDef {
 			}
 
 			@Override
-			public VarDef case_ExprVarArrayAccess(
+			public NameDef case_ExprVarArrayAccess(
 					ExprVarArrayAccess term)  {
 				return defaultCase();
 			}
 
 			@Override
-			public VarDef case_ExprVarAccess(ExprVarAccess term)
+			public NameDef case_ExprVarAccess(ExprVarAccess term)
 					 {
 				return defaultCase();
 			}
 
 			@Override
-			public VarDef case_ExprMemberVar(ExprMemberVar term)
+			public NameDef case_ExprMemberVar(ExprMemberVar term)
 					 {
 				return memberVarCase(term.getLeft());
 			}
@@ -97,7 +96,7 @@ public class AttrVarDef {
 			
 
 			@Override
-			public VarDef case_ExprMemberArrayVar(
+			public NameDef case_ExprMemberArrayVar(
 					ExprMemberArrayVar term)  {
 				return memberVarCase(term.getLeft());
 			}

@@ -6,16 +6,12 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
-import de.peeeq.wurstscript.WurstCompiler;
-import de.peeeq.wurstscript.WurstCompilerImpl;
 import de.peeeq.wurstscript.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
-import de.peeeq.wurstscript.intermediateLang.ILprog;
-import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreter;
-import de.peeeq.wurstscript.intermediateLang.interpreter.JassInterpreter;
-import de.peeeq.wurstscript.intermediateLang.interpreter.TestFailException;
-import de.peeeq.wurstscript.intermediateLang.interpreter.TestSuccessException;
 import de.peeeq.wurstscript.jassAst.JassProg;
+import de.peeeq.wurstscript.jassinterpreter.JassInterpreter;
+import de.peeeq.wurstscript.jassinterpreter.TestFailException;
+import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 
 public class ILInterpreterImplTest {

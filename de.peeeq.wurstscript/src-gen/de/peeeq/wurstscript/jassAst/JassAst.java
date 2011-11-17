@@ -115,7 +115,17 @@ public class JassAst {
 		for (JassVar e : elements) { l.add(e); }
 		return l;
 	}
+	public static JassVars JassVars(Iterable<JassVar> elements ) {
+		JassVars l = new JassVarsImpl();
+		for (JassVar e : elements) { l.add(e); }
+		return l;
+	}
 	public static JassSimpleVars JassSimpleVars(JassSimpleVar ... elements ) {
+		JassSimpleVars l = new JassSimpleVarsImpl();
+		for (JassSimpleVar e : elements) { l.add(e); }
+		return l;
+	}
+	public static JassSimpleVars JassSimpleVars(Iterable<JassSimpleVar> elements ) {
 		JassSimpleVars l = new JassSimpleVarsImpl();
 		for (JassSimpleVar e : elements) { l.add(e); }
 		return l;
@@ -125,12 +135,27 @@ public class JassAst {
 		for (JassFunction e : elements) { l.add(e); }
 		return l;
 	}
+	public static JassFunctions JassFunctions(Iterable<JassFunction> elements ) {
+		JassFunctions l = new JassFunctionsImpl();
+		for (JassFunction e : elements) { l.add(e); }
+		return l;
+	}
 	public static JassStatements JassStatements(JassStatement ... elements ) {
 		JassStatements l = new JassStatementsImpl();
 		for (JassStatement e : elements) { l.add(e); }
 		return l;
 	}
+	public static JassStatements JassStatements(Iterable<JassStatement> elements ) {
+		JassStatements l = new JassStatementsImpl();
+		for (JassStatement e : elements) { l.add(e); }
+		return l;
+	}
 	public static JassExprlist JassExprlist(JassExpr ... elements ) {
+		JassExprlist l = new JassExprlistImpl();
+		for (JassExpr e : elements) { l.add(e); }
+		return l;
+	}
+	public static JassExprlist JassExprlist(Iterable<JassExpr> elements ) {
 		JassExprlist l = new JassExprlistImpl();
 		for (JassExpr e : elements) { l.add(e); }
 		return l;

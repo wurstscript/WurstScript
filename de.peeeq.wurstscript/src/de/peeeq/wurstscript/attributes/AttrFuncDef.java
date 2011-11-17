@@ -11,8 +11,8 @@ import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.FuncRef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
-import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.WScope;
+import de.peeeq.wurstscript.types.PScriptTypeClassDefinition;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
 
@@ -43,6 +43,8 @@ public class AttrFuncDef {
 			private FunctionDefinition memberCase(Expr left) {
 				PscriptType leftType = left.attrTyp();
 				if (leftType instanceof PscriptTypeClass) {
+					// receiver has a class type
+					
 					PscriptTypeClass leftTypeC = (PscriptTypeClass) leftType;
 					ClassDef classDef = leftTypeC.getClassDef();
 					
@@ -60,8 +62,29 @@ public class AttrFuncDef {
 					if (functions.containsKey(funcName)) {
 						return selectOverloadedFunction(node, functions.get(funcName));
 					}
+				} else if (leftType instanceof PScriptTypeClassDefinition) {
+					PScriptTypeClassDefinition leftTypeC = (PScriptTypeClassDefinition) leftType;
+					// receiver is a classDefinition. this means we have a static method call
+					ClassDef classDef = leftTypeC.getClassDef(); 
+					Multimap<String, FunctionDefinition> functions;
+					if (classDef == left.attrNearestClassDef()) {
+						// same class
+						functions = classDef.attrScopeFunctions();
+					} else if (classDef.attrNearestPackage() == left.attrNearestPackage()) {
+						// same package
+						functions = classDef.attrScopePackageFunctions();
+					} else {
+						// different package
+						functions = classDef.attrScopePublicFunctions();
+					}
+					if (functions.containsKey(funcName)) {
+						return selectOverloadedFunction(node, functions.get(funcName));
+					}
+					
 				}
 				// TODO check extension functions
+				
+				attr.addError(left.getSource(), "Cannot use the dot operator on receiver of type " + leftType.getClass() + " " + leftType);
 				return null;
 			}
 			

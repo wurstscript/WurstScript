@@ -8,10 +8,14 @@ import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
+import de.peeeq.wurstscript.ast.ModStatic;
+import de.peeeq.wurstscript.ast.Modifier;
+import de.peeeq.wurstscript.ast.Modifiers;
 import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.ast.VisibilityModifier;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.gui.ProgressHelper;
@@ -160,6 +164,25 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		super.visit(stmtCall);
 		stmtCall.attrTyp();
 		stmtCall.attrConstructorDef();
+	}
+	
+	@Override
+	public void visit(Modifiers modifiers) {
+		boolean hasVis = false;
+		boolean isStatic = false;
+		for (Modifier m : modifiers) {
+			if (m instanceof VisibilityModifier) {
+				if (hasVis) {
+					attr.addError(m.getSource(), "Each element can only have one visibility modfifier (public, private, ...)");
+				}
+				hasVis = true;
+			} else if (m instanceof ModStatic) {
+				if (isStatic) {
+					attr.addError(m.getSource(), "double static? - what r u trying to do?");
+				}
+				isStatic = true;
+			}
+		}
 	}
 	
 	

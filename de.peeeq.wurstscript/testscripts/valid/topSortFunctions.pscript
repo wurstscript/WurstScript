@@ -1,0 +1,29 @@
+package test {
+	
+	native testFail(string msg)
+	native testSuccess()
+
+
+	function a() {
+		b()
+	}
+
+	function c() {
+		d()
+	}
+	
+	function b() {
+		c()
+	}
+
+	function d() {
+		testSuccess()
+	}
+
+
+	init {
+		a()
+	} 
+	
+	
+}

@@ -57,4 +57,16 @@ class JassStatementsImpl extends JassStatements implements JassAstElementIntern 
 		}
 		v.visit(this);
 	}
+	@Override public String toString() {
+		String result =  "JassStatements(";
+		boolean first = true;
+		for (JassStatement i : this ) {
+			if (!first) { result +=", "; }
+			if (result.length() > 1000) { result +="..."; break; }
+			result += i;
+			first = false;
+		}
+		result +=  ")";
+		return result;
+	}
 }
