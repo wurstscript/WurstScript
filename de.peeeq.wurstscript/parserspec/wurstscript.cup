@@ -32,9 +32,9 @@ terminal
 	LPAR, RPAR, 
 	LSQUARE, RSQUARE,
 	LBRACK, RBRACK, 
-	COMMA,   
+	COMMA, SEMICOLON,   
 	NL,
-	MODULE, USE, ABSTRACT, IN, FOR, THISTYPE, 
+	MODULE, USE, ABSTRACT, IN, FOR, THISTYPE, ARROW, IT, IMMUTABLE, OVERRIDE,
 	STATIC, PACKAGE, RETURNS,FUNCTION, VAL, PUBLIC, PUBLICREAD, PRIVATE, PROTECTED, IMPORT, NATIVETYPE, INIT, NATIVE, INTERFACE,
 	IMPLEMENTS, ARRAY, IF, ELSE, WHILE, RETURN, CLASS, NEW, NULL, EXTENDS, THIS, CONSTRUCT, ONDESTROY, 
 	TYPE, GLOBALS, ENDGLOBALS, CONSTANT, ENDFUNCTION, TAKES, NOTHING, LOCAL,
@@ -111,6 +111,7 @@ non terminal NativeFunc JassNativeDecl;
 non terminal JassToplevelDeclaration JassToplevelDeclaration;
 non terminal Modifier Modifier;
 non terminal Modifiers Modifiers;
+non terminal ModuleDef ModuleDef;
 
 precedence left		OR;
 precedence left		AND;
@@ -196,11 +197,18 @@ Entity ::=
 		{: RESULT = Ast.NativeFunc(pos(xleft, xright), sig); :}
 	| ClassDef:x
 		{: RESULT = x; :}
+	| ModuleDef:x
+		{: RESULT = x; :}
 ;		
 
 ClassDef ::=
 	Modifiers:mod CLASS:x IDENTIFIER:name LBRACK NL ClassSlots:slots RBRACK NL
 		{: RESULT = Ast.ClassDef(pos(xleft, xright), mod, name, false, slots); :}
+;
+
+ModuleDef ::=
+	Modifiers:mod MODULE:x IDENTIFIER:name LBRACK NL ClassSlots:slots RBRACK NL
+		{: RESULT = Ast.ModuleDef(pos(xleft, xright), mod, name, slots); :}
 ;
 
 ClassSlots ::=
@@ -213,6 +221,8 @@ ClassSlots ::=
 ClassSlot ::=
 	Modifiers:mod CONSTRUCT:x LPAR Parameters:params RPAR LBRACK NL Statements:body RBRACK NL
 		{: RESULT = Ast.ConstructorDef(pos(xleft, xright), mod, params, body); :}
+	| Modifiers:mod USE:x IDENTIFIER:m NL
+		{: RESULT = Ast.ModuleUse(pos(xleft, xright), m); :} 
 	| ONDESTROY:x LBRACK NL Statements:body RBRACK NL
 		{: RESULT = Ast.OnDestroyDef(pos(xleft, xright), body); :}
 	| VarDef:x

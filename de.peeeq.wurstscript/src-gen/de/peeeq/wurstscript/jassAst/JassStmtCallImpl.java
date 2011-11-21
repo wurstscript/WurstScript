@@ -45,15 +45,19 @@ class JassStmtCallImpl implements JassStmtCall, JassAstElementIntern {
 	public JassStmtCall copy() {
 		return new JassStmtCallImpl(functionName, arguments.copy());
 	}
-	@Override public void accept(JassStmtIf.Visitor v) {
-		arguments.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassProg.Visitor v) {
-		arguments.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(JassStatement.Visitor v) {
+		arguments.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtCall.Visitor v) {
+		arguments.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassFunction.Visitor v) {
+		arguments.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtIf.Visitor v) {
 		arguments.accept(v);
 		v.visit(this);
 	}
@@ -65,15 +69,11 @@ class JassStmtCallImpl implements JassStmtCall, JassAstElementIntern {
 		arguments.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassStmtCall.Visitor v) {
+	@Override public void accept(JassProg.Visitor v) {
 		arguments.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(JassFunctions.Visitor v) {
-		arguments.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassFunction.Visitor v) {
 		arguments.accept(v);
 		v.visit(this);
 	}

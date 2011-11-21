@@ -21,8 +21,10 @@ public class SimpleTestRun {
 
 	private static final String PSCRIPT_ENDING = ".pscript";
 
+	
 	public static void main(String ... args) throws IOException, InterruptedException {
-		String testFile = "./testscripts/valid/StaticFunctionCall.pscript";
+		//String testFile = "./testscripts/valid/modules_1.pscript";
+		String testFile = "./testscripts/valid/Classes_construct.pscript";
 		if (args.length == 1) {
 			testFile = args[0];
 		}
@@ -40,7 +42,6 @@ public class SimpleTestRun {
 			WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui);
 			compiler.loadFiles(file);
 			compiler.parseFiles();
-
 			JassProg prog = compiler.getProg();
 
 			if (prog == null) {

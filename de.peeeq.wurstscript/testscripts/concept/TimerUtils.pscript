@@ -29,8 +29,8 @@ package TimerUtils {
 	}
 	
 	
-	public trait Timed {
-		function onTimer()
+	public module Timed {
+		abstract function onTimer()
 		
 		private static function timerEnd() {
 			timer t = GetElapsedTimer()
@@ -46,11 +46,11 @@ package TimerUtils {
 		}
 	}
 	
-	public trait Periodic {
+	public module Periodic {
 	
 		private timer t
 	
-		function periodic()
+		abstract function periodic()
 		
 		function stopPeriodic() {
 			t.release()

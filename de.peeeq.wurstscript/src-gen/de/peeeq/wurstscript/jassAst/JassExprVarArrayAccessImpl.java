@@ -45,39 +45,15 @@ class JassExprVarArrayAccessImpl implements JassExprVarArrayAccess, JassAstEleme
 	public JassExprVarArrayAccess copy() {
 		return new JassExprVarArrayAccessImpl(varName, index.copy());
 	}
-	@Override public void accept(JassStmtIf.Visitor v) {
-		index.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtExitwhen.Visitor v) {
-		index.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtReturn.Visitor v) {
-		index.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassExprVarArrayAccess.Visitor v) {
-		index.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassProg.Visitor v) {
-		index.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(JassStatement.Visitor v) {
 		index.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassStatements.Visitor v) {
+	@Override public void accept(JassStmtCall.Visitor v) {
 		index.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassExprBinary.Visitor v) {
-		index.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtLoop.Visitor v) {
+	@Override public void accept(JassFunction.Visitor v) {
 		index.accept(v);
 		v.visit(this);
 	}
@@ -89,11 +65,27 @@ class JassExprVarArrayAccessImpl implements JassExprVarArrayAccess, JassAstEleme
 		index.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassExprAtomic.Visitor v) {
+	@Override public void accept(JassStmtIf.Visitor v) {
 		index.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassStmtCall.Visitor v) {
+	@Override public void accept(JassStatements.Visitor v) {
+		index.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtExitwhen.Visitor v) {
+		index.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassExprFunctionCall.Visitor v) {
+		index.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtSetArray.Visitor v) {
+		index.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassExprBinary.Visitor v) {
 		index.accept(v);
 		v.visit(this);
 	}
@@ -101,7 +93,19 @@ class JassExprVarArrayAccessImpl implements JassExprVarArrayAccess, JassAstEleme
 		index.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassExprFunctionCall.Visitor v) {
+	@Override public void accept(JassExprVarArrayAccess.Visitor v) {
+		index.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtLoop.Visitor v) {
+		index.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtReturn.Visitor v) {
+		index.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassProg.Visitor v) {
 		index.accept(v);
 		v.visit(this);
 	}
@@ -113,11 +117,7 @@ class JassExprVarArrayAccessImpl implements JassExprVarArrayAccess, JassAstEleme
 		index.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassStmtSetArray.Visitor v) {
-		index.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassFunction.Visitor v) {
+	@Override public void accept(JassExprAtomic.Visitor v) {
 		index.accept(v);
 		v.visit(this);
 	}

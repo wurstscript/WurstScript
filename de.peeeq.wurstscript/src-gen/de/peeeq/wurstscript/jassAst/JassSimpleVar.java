@@ -8,13 +8,13 @@ public interface JassSimpleVar extends JassAstElement, JassVar {
 	void setName(String name);
 	String getName();
 	JassSimpleVar copy();
-	public abstract void accept(JassSimpleVars.Visitor v);
-	public abstract void accept(JassProg.Visitor v);
 	public abstract void accept(JassSimpleVar.Visitor v);
-	public abstract void accept(JassVars.Visitor v);
-	public abstract void accept(JassFunctions.Visitor v);
-	public abstract void accept(JassVar.Visitor v);
 	public abstract void accept(JassFunction.Visitor v);
+	public abstract void accept(JassVars.Visitor v);
+	public abstract void accept(JassSimpleVars.Visitor v);
+	public abstract void accept(JassVar.Visitor v);
+	public abstract void accept(JassProg.Visitor v);
+	public abstract void accept(JassFunctions.Visitor v);
 	public interface Visitor {
 		void visit(JassSimpleVar jassSimpleVar);
 	}

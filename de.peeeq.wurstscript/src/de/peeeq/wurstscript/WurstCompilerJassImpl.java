@@ -7,11 +7,24 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.List;
+import java.util.ListIterator;
+
+import org.testng.collections.Lists;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 import java_cup.runtime.Symbol;
 import de.peeeq.wurstscript.ast.Ast;
+import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.ModuleDef;
+import de.peeeq.wurstscript.ast.ModuleUse;
 import de.peeeq.wurstscript.ast.TopLevelDeclaration;
+import de.peeeq.wurstscript.ast.WEntity;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -20,6 +33,8 @@ import de.peeeq.wurstscript.jasstranslation.JassTranslator;
 import de.peeeq.wurstscript.parser.ExtendedParser;
 import de.peeeq.wurstscript.parser.WurstScriptScanner;
 import de.peeeq.wurstscript.utils.NotNullList;
+import de.peeeq.wurstscript.utils.TopsortCycleException;
+import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.WurstValidator;
 
 public class WurstCompilerJassImpl implements WurstCompiler {
@@ -97,14 +112,24 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		// create new attributes instance:
 		attr.init(gui);
 		
+		// handle syntactic sugar
+		removeSyntacticSugar(root);
+		
+//		expandModules(root);
+		
 		// validate the resource:
 		WurstValidator validator = new WurstValidator(root);
 		validator.validate();
 		
 		if (attr.getErrorCount() > 0) {
-//			for (CompileError err : attr.getErrors()) {
-//				gui.sendError(err);
-//			}
+			return;
+		}
+		
+		
+		
+		
+		
+		if (attr.getErrorCount() > 0) {
 			return;
 		}
 		
@@ -114,22 +139,109 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		prog = translator.translate();
 		
 		if (attr.getErrorCount() > 0) {
-//			for (CompileError err : attr.getErrors()) {
-//				gui.sendError(err);
-//			}
 			prog = null;
 			return;
 		}
 	}
 
-	private CompilationUnit mergeCompilationUnits(List<CompilationUnit> compilationUnits) {
-		gui.sendProgress("Merging Files", 0.2);
-//		List<TopLevelDeclaration> decls = new NotNullList<TopLevelDeclaration>();
-//		for (CompilationUnit compilationUnit : compilationUnits) {
-//			for (TopLevelDeclaration tld : compilationUnit) {
-//				decls.add(tld);
+	private void removeSyntacticSugar(CompilationUnit root) {
+		addDefaultConstructors(root);
+	}
+
+	/**
+	 * add a empty default constructor to every class without any constructor 
+	 */
+	private void addDefaultConstructors(CompilationUnit root) {
+		outerLoop: for (ClassDef c : getAllClasses(root)) {
+			for (ClassSlot s : c.getSlots()) {
+				if (s instanceof ConstructorDef) {
+					continue outerLoop;
+				}
+			}
+			c.getSlots().add(Ast.ConstructorDef(
+					c.getSource().copy(), 
+					Ast.Modifiers(Ast.VisibilityPublic(c.getSource().copy())), 
+					Ast.WParameters(), 
+					Ast.WStatements()));
+		}
+	}
+
+	/**
+	 * return all classes occuring in a compilation unit 
+	 */
+	private List<ClassDef> getAllClasses(CompilationUnit root) {
+		List<ClassDef> result = Lists.newArrayList();
+		for (TopLevelDeclaration t : root) {
+			if (t instanceof WPackage) {
+				WPackage p = (WPackage) t;
+				for (WEntity e : p.getElements()) {
+					if (e instanceof ClassDef) {
+						result.add((ClassDef) e);
+					}
+				}
+			}
+		}
+		return result;
+	}
+
+	
+	private List<ModuleDef> getAllModules(CompilationUnit root) {
+		List<ModuleDef> result = Lists.newArrayList();
+		for (TopLevelDeclaration t : root) {
+			if (t instanceof WPackage) {
+				WPackage p = (WPackage) t;
+				for (WEntity e : p.getElements()) {
+					if (e instanceof ModuleDef) {
+						result.add((ModuleDef) e);
+					}
+				}
+			}
+		}
+		return result;
+	}
+	
+//	private void expandModules(CompilationUnit root) {
+//		List<ModuleDef> allModules = getAllModules(root);
+//		
+//		// collect usages
+//		Multimap<ModuleDef, ModuleDef> usedModules = HashMultimap.create();
+//		for (ModuleDef moduleDef : allModules) {
+//			for (ClassSlot e : moduleDef.getSlots()) {
+//				if (e instanceof ModuleUse) {
+//					ModuleUse moduleUse = (ModuleUse) e;
+//					usedModules.put(moduleDef, moduleUse.attrModuleDef());
+//				}
 //			}
 //		}
+//		
+//		// sort the modules:
+//		try {
+//			allModules = Utils.topSort(allModules, usedModules);
+//		} catch (TopsortCycleException e) {
+//			@SuppressWarnings("unchecked")
+//			List<ModuleDef> conflicts = (List<ModuleDef>) e.activeItems;
+//			attr.addError(conflicts.get(0).getSource(), "Cyclic use between modules: " + Utils.join(conflicts, ", "));
+//		}
+//		
+//		// inline modules into modules:
+//		for (ModuleDef moduleDef : allModules) {
+//			ListIterator<ClassSlot> it = moduleDef.getSlots().listIterator();
+//			while (it.hasNext()) {
+//				ClassSlot slot = it.next();
+//				if (slot instanceof ModuleUse) {
+//					ModuleUse moduleUse = (ModuleUse) slot;
+//					ModuleDef usedModule = moduleUse.attrModuleDef();
+//					
+//				}
+//			}
+//			// TODO clear attributes
+//		}
+//		
+//		
+//	}
+
+	private CompilationUnit mergeCompilationUnits(List<CompilationUnit> compilationUnits) {
+		gui.sendProgress("Merging Files", 0.2);
 		CompilationUnit result = Ast.CompilationUnit();
 		for (CompilationUnit compilationUnit : compilationUnits) {
 			while (!compilationUnit.isEmpty()) {
@@ -137,7 +249,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 				result.add(x);
 			}
 		}
-		return result; //Ast.CompilationUnit(decls.toArray(new TopLevelDeclaration[decls.size()]));
+		return result;
 	}
 
 	private CompilationUnit processMap(File file) {

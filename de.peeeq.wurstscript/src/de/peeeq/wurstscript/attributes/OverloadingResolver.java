@@ -92,17 +92,17 @@ public abstract class OverloadingResolver<F,C> {
 		}.resolve(constructors, node);
 	}
 	
-	public static FunctionDefinition resolveFuncCall(final Collection<FunctionDefinition> functions, final FuncRef funcCall) {
-		return new OverloadingResolver<FunctionDefinition, FuncRef>() {
+	public static FuncDefInstance resolveFuncCall(final Collection<FuncDefInstance> collection, final FuncRef funcCall) {
+		return new OverloadingResolver<FuncDefInstance, FuncRef>() {
 
 			@Override
-			int getParameterCount(FunctionDefinition f) {
-				return f.getSignature().getParameters().size();
+			int getParameterCount(FuncDefInstance f) {
+				return f.getDef().getSignature().getParameters().size();
 			}
 
 			@Override
-			PscriptType getParameterType(FunctionDefinition f, int i) {
-				return f.getSignature().getParameters().get(i).getTyp().attrTyp();
+			PscriptType getParameterType(FuncDefInstance f, int i) {
+				return f.getDef().getSignature().getParameters().get(i).getTyp().attrTyp();
 			}
 
 			@Override
@@ -152,7 +152,7 @@ public abstract class OverloadingResolver<F,C> {
 				attr.addError(funcCall.getSource(), "Could not find the right method to call: \n" + Utils.join(hints, ", \n"));
 			}
 
-		}.resolve(functions, funcCall);
+		}.resolve(collection, funcCall);
 	}
 	
 }

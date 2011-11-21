@@ -9,6 +9,7 @@ import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.JassGlobalBlock;
+import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
@@ -89,6 +90,11 @@ public class AttrPackageElements {
 						@Override
 						public void case_NativeFunc(NativeFunc term)  {
 							result.put(term.getSignature().getName(), term);
+						}
+
+						@Override
+						public void case_ModuleDef(ModuleDef term) {
+							result.put(term.getName(), term);
 						}
 					});
 				}

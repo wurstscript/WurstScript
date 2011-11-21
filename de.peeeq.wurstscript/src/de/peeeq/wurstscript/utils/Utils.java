@@ -13,6 +13,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Multimap;
 
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.WPackage;
 
 public class Utils {
@@ -270,13 +271,10 @@ public class Utils {
 		}
 		activeItems.add(item);
 		visitedItems.add(item);
-		System.out.println("visit " + item);
 		for (T t : biggerItems.apply(item)) {
-			System.out.println("	-> " + t);
 			if (t == null) throw new IllegalArgumentException();
 			topSortHelper(result, visitedItems, activeItems, biggerItems, t);
 		}
-		System.out.println("add " + item);
 		result.add(item);
 		activeItems.removeLast();
 	}
@@ -297,6 +295,8 @@ public class Utils {
 		}
 		return s;
 	}
+
+	
 
 	
 

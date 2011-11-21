@@ -23,34 +23,13 @@ class JassOpDivImpl implements JassOpDiv, JassAstElementIntern {
 	public JassOpDiv copy() {
 		return new JassOpDivImpl();
 	}
-	@Override public void accept(JassOpDiv.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtIf.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtExitwhen.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtReturn.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(JassExprVarArrayAccess.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(JassProg.Visitor v) {
-		v.visit(this);
-	}
 	@Override public void accept(JassStatement.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(JassStatements.Visitor v) {
+	@Override public void accept(JassStmtCall.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(JassExprBinary.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtLoop.Visitor v) {
+	@Override public void accept(JassFunction.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(JassExprlist.Visitor v) {
@@ -59,16 +38,40 @@ class JassOpDivImpl implements JassOpDiv, JassAstElementIntern {
 	@Override public void accept(JassExpr.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(JassExprAtomic.Visitor v) {
+	@Override public void accept(JassStmtIf.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(JassStmtCall.Visitor v) {
+	@Override public void accept(JassStatements.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtExitwhen.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(JassExprFunctionCall.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtSetArray.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(JassExprBinary.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(JassExprUnary.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(JassExprFunctionCall.Visitor v) {
+	@Override public void accept(JassExprVarArrayAccess.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtLoop.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(JassOpBinary.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtReturn.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(JassProg.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(JassStmtSet.Visitor v) {
@@ -77,29 +80,26 @@ class JassOpDivImpl implements JassOpDiv, JassAstElementIntern {
 	@Override public void accept(JassFunctions.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(JassOpBinary.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtSetArray.Visitor v) {
-		v.visit(this);
-	}
 	@Override public void accept(JassOp.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(JassFunction.Visitor v) {
+	@Override public void accept(JassOpDiv.Visitor v) {
 		v.visit(this);
 	}
-	@Override public <T> T match(JassOpBinary.Matcher<T> matcher) {
-		return matcher.case_JassOpDiv(this);
+	@Override public void accept(JassExprAtomic.Visitor v) {
+		v.visit(this);
 	}
-	@Override public void match(JassOpBinary.MatcherVoid matcher) {
-		matcher.case_JassOpDiv(this);
-	}
-
 	@Override public <T> T match(JassOp.Matcher<T> matcher) {
 		return matcher.case_JassOpDiv(this);
 	}
 	@Override public void match(JassOp.MatcherVoid matcher) {
+		matcher.case_JassOpDiv(this);
+	}
+
+	@Override public <T> T match(JassOpBinary.Matcher<T> matcher) {
+		return matcher.case_JassOpDiv(this);
+	}
+	@Override public void match(JassOpBinary.MatcherVoid matcher) {
 		matcher.case_JassOpDiv(this);
 	}
 

@@ -40,19 +40,11 @@ class StmtErrImpl implements StmtErr, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(StmtIf.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(NameDef.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(ClassMember.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WEntities.Visitor v) {
+	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -60,19 +52,11 @@ class StmtErrImpl implements StmtErr, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtWhile.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(OnDestroyDef.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -80,11 +64,7 @@ class StmtErrImpl implements StmtErr, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassDef.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
+	@Override public void accept(WStatement.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -92,11 +72,11 @@ class StmtErrImpl implements StmtErr, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WStatement.Visitor v) {
+	@Override public void accept(WStatements.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+	@Override public void accept(WEntity.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -104,15 +84,15 @@ class StmtErrImpl implements StmtErr, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassDef.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(TypeDef.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WStatements.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -124,11 +104,23 @@ class StmtErrImpl implements StmtErr, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
+	@Override public void accept(FunctionDefinition.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(AstElementWithModifier.Visitor v) {
+	@Override public void accept(StmtWhile.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ModuleDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(StmtIf.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -136,7 +128,23 @@ class StmtErrImpl implements StmtErr, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
+	@Override public void accept(AstElementWithModifier.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(NameDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(PackageOrGlobal.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassOrModule.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}

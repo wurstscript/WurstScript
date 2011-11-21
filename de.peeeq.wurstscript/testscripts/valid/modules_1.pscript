@@ -1,0 +1,37 @@
+package test {
+		
+	native testFail(string msg)
+	native testSuccess()
+
+
+	module Counter {
+		int count = 0
+		
+		public function incCounter() {
+			count = count + 1
+		}
+		
+		public function getCounter() returns int {
+			return count
+		}
+	}
+	
+	
+	class CounterImpl {
+		use Counter
+	}		
+	
+	
+	
+	init {
+		CounterImpl c = new CounterImpl()
+		c.incCounter()
+		c.incCounter()
+		
+		if c.getCounter() == 2 {
+			testSuccess()
+		} else {
+			testFail("defect in equality if")
+		}
+	}
+}

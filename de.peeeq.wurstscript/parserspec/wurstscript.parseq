@@ -17,11 +17,12 @@ WEntities * WEntity
 WImport(WPos source, String packagename)
 
 WEntity = 
-	 TypeDef
-	|FuncDef
-	|GlobalVarDef
-	|InitBlock (WPos source, WStatements body)
-	|NativeFunc(WPos source, FuncSignature signature)
+	  TypeDef
+	| FuncDef
+	| GlobalVarDef
+	| InitBlock (WPos source, WStatements body)
+	| NativeFunc(WPos source, FuncSignature signature)
+	| ModuleDef(WPos source, Modifiers modifiers, String name, ClassSlots slots)
 
 
 	
@@ -37,7 +38,8 @@ ClassSlots * ClassSlot
 
 ClassSlot = 
 	  ConstructorDef(WPos source, Modifiers modifiers, WParameters params, WStatements body)
-	| OnDestroyDef(WPos source, WStatements body) 
+	| OnDestroyDef(WPos source, WStatements body)
+	| ModuleUse(WPos source, String moduleName) 
 	| ClassMember
 	
 ClassMember = 
@@ -151,13 +153,13 @@ FuncRef = ExprFuncRef | ExprMemberMethod | ExprFunctionCall
 	
 FunctionDefinition = FuncDef | NativeFunc	
 	
-WScope = PackageOrGlobal | ClassDef | FuncDef | ConstructorDef | OnDestroyDef | InitBlock
+WScope = PackageOrGlobal | ClassDef | ModuleDef | FuncDef | ConstructorDef | OnDestroyDef | InitBlock
 
 PackageOrGlobal = WPackage | CompilationUnit	
 	
 TypeRef = TypeExpr | ExprNewObject
 
-NameDef = VarDef | ClassDef
+NameDef = VarDef | ClassDef | ModuleDef
 
 VisibilityModifier = 
 	  VisibilityPublic(WPos source) 
@@ -174,6 +176,8 @@ Modifier =
 	
 
 AstElementWithModifier = TypeDef | ConstructorDef | GlobalVarDef | FuncDef
+	
+ClassOrModule = ClassDef | ModuleDef	
 	
 // Jass types:
 
@@ -210,42 +214,42 @@ Expr.attrTyp
 
 
 FuncRef.attrFuncDef
-	returns FunctionDefinition
+	returns de.peeeq.wurstscript.attributes.FuncDefInstance
 	implemented by de.peeeq.wurstscript.attributes.AttrFuncDef.calculate
 
 
 
 NameRef.attrNameDef
 	returns NameDef
-	implemented by de.peeeq.wurstscript.attributes.AttrVarDef.calculate
+	implemented by de.peeeq.wurstscript.attributes.AttrNameDef.calculate
 
 WScope.attrScopeNames
 	returns java.util.Map<String, NameDef>
-	implemented by de.peeeq.wurstscript.attributes.AttrScopeVariables.calculate
+	implemented by de.peeeq.wurstscript.attributes.AttrScopeNames.calculate
 
 WScope.attrScopePackageNames
 	returns java.util.Map<String, NameDef>
-	implemented by de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePackage
+	implemented by de.peeeq.wurstscript.attributes.AttrScopeNames.calculatePackage
 	
 WScope.attrScopePublicNames
 	returns java.util.Map<String, NameDef>
-	implemented by de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePublic
+	implemented by de.peeeq.wurstscript.attributes.AttrScopeNames.calculatePublic
 
 WScope.attrScopePublicReadNamess
 	returns java.util.Map<String, NameDef>
-	implemented by de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePublicRead
+	implemented by de.peeeq.wurstscript.attributes.AttrScopeNames.calculatePublicRead
 
 
 WScope.attrScopeFunctions
-	returns com.google.common.collect.Multimap<String, FunctionDefinition>
+	returns com.google.common.collect.Multimap<String, de.peeeq.wurstscript.attributes.FuncDefInstance>
 	implemented by de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculate
 
 WScope.attrScopePackageFunctions
-	returns com.google.common.collect.Multimap<String, FunctionDefinition>
+	returns com.google.common.collect.Multimap<String, de.peeeq.wurstscript.attributes.FuncDefInstance>
 	implemented by de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculatePackage
 
 WScope.attrScopePublicFunctions
-	returns com.google.common.collect.Multimap<String, FunctionDefinition>
+	returns com.google.common.collect.Multimap<String, de.peeeq.wurstscript.attributes.FuncDefInstance>
 	implemented by de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculatePublic
 
 
@@ -274,6 +278,9 @@ AstElement.attrNearestFuncDef
 	returns FuncDef
 	implemented by de.peeeq.wurstscript.attributes.AttrNearestFuncDef.calculate
 
+ModuleUse.attrModuleDef
+	returns ModuleDef
+	implemented by de.peeeq.wurstscript.attributes.AttrModuleDef.calculate
 
 TypeRef.attrTypeDef
 	returns TypeDef

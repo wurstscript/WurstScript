@@ -17,6 +17,9 @@ public class Ast {
 	public static NativeFunc NativeFunc(WPos source, FuncSignature signature) {
 		return new NativeFuncImpl(source, signature);
 	}
+	public static ModuleDef ModuleDef(WPos source, Modifiers modifiers, String name, ClassSlots slots) {
+		return new ModuleDefImpl(source, modifiers, name, slots);
+	}
 	public static NoTypeExpr NoTypeExpr() {
 		return new NoTypeExprImpl();
 	}
@@ -34,6 +37,9 @@ public class Ast {
 	}
 	public static OnDestroyDef OnDestroyDef(WPos source, WStatements body) {
 		return new OnDestroyDefImpl(source, body);
+	}
+	public static ModuleUse ModuleUse(WPos source, String moduleName) {
+		return new ModuleUseImpl(source, moduleName);
 	}
 	public static GlobalVarDef GlobalVarDef(WPos source, Modifiers modifiers, boolean isConstant, OptTypeExpr typ, String name, OptExpr initialExpr) {
 		return new GlobalVarDefImpl(source, modifiers, isConstant, typ, name, initialExpr);

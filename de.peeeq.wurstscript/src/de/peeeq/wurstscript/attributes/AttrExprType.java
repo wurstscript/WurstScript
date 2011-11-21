@@ -384,20 +384,20 @@ public class AttrExprType {
 			@Override
 			public PscriptType case_ExprMemberMethod(ExprMemberMethod term)
 					 {
-				FunctionDefinition f = term.attrFuncDef();
+				FuncDefInstance f = term.attrFuncDef();
 				if (f == null) {
 					return PScriptTypeUnknown.instance();
 				}
-				if (f.getSignature().getTyp() instanceof NoTypeExpr) {
+				if (f.getDef().getSignature().getTyp() instanceof NoTypeExpr) {
 					return PScriptTypeVoid.instance();
 				}
-				return f.getSignature().getTyp().attrTyp();
+				return f.getDef().getSignature().getTyp().attrTyp();
 			}
 
 			@Override
 			public PscriptType case_ExprFunctionCall(ExprFunctionCall term)
 					 {
-				FunctionDefinition f = term.attrFuncDef();
+				FunctionDefinition f = term.attrFuncDef().getDef();
 				if (f == null) {
 					return PScriptTypeUnknown.instance();
 				}

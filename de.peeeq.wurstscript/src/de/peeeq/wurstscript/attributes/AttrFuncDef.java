@@ -1,14 +1,17 @@
 package de.peeeq.wurstscript.attributes;
 
 import java.util.Collection;
+import java.util.Map.Entry;
 
 import com.google.common.collect.Multimap;
 
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
+import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FuncRef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.WScope;
@@ -23,14 +26,14 @@ import de.peeeq.wurstscript.types.PscriptTypeClass;
  */
 public class AttrFuncDef {
 	
-	public static  FunctionDefinition calculate(final FuncRef node) {
+	public static  FuncDefInstance calculate(final FuncRef node) {
 		final String funcName = node.getFuncName();
-		FunctionDefinition result = node.match(new FuncRef.Matcher<FunctionDefinition>() {
+		FuncDefInstance result = node.match(new FuncRef.Matcher<FuncDefInstance>() {
 
-			private FunctionDefinition defaultCase() {
+			private FuncDefInstance defaultCase() {
 				WScope scope = Scoping.getNearestScope(node);
 				while (scope != null) {
-					Multimap<String, FunctionDefinition> functions = scope.attrScopeFunctions();
+					Multimap<String, FuncDefInstance> functions = scope.attrScopeFunctions();
 					if (functions.containsKey(funcName)) {
 						return selectOverloadedFunction(node, functions.get(funcName));
 					}
@@ -40,7 +43,8 @@ public class AttrFuncDef {
 			}
 			
 			
-			private FunctionDefinition memberCase(Expr left) {
+			private FuncDefInstance memberCase(Expr left) {
+				FunctionDefinition r = null;
 				PscriptType leftType = left.attrTyp();
 				if (leftType instanceof PscriptTypeClass) {
 					// receiver has a class type
@@ -48,55 +52,75 @@ public class AttrFuncDef {
 					PscriptTypeClass leftTypeC = (PscriptTypeClass) leftType;
 					ClassDef classDef = leftTypeC.getClassDef();
 					
-					Multimap<String, FunctionDefinition> functions;
-					if (classDef == left.attrNearestClassDef()) {
-						// same class
-						functions = classDef.attrScopeFunctions();
-					} else if (classDef.attrNearestPackage() == left.attrNearestPackage()) {
-						// same package
-						functions = classDef.attrScopePackageFunctions();
-					} else {
-						// different package
-						functions = classDef.attrScopePublicFunctions();
-					}
+					Multimap<String, FuncDefInstance> functions = getVisibleClassFunctions(left, classDef);
+					
+					
 					if (functions.containsKey(funcName)) {
-						return selectOverloadedFunction(node, functions.get(funcName));
-					}
+						FuncDefInstance f = selectOverloadedFunction(node, functions.get(funcName));
+						if (((FuncDef) f.getDef()).attrIsStatic()) {
+							attr.addError(left.getSource(), "Cannot call static function " + funcName + " in dynamic context.");
+						}
+						return f;
+					} 
+					
+					
+					
 				} else if (leftType instanceof PScriptTypeClassDefinition) {
 					PScriptTypeClassDefinition leftTypeC = (PScriptTypeClassDefinition) leftType;
 					// receiver is a classDefinition. this means we have a static method call
 					ClassDef classDef = leftTypeC.getClassDef(); 
-					Multimap<String, FunctionDefinition> functions;
-					if (classDef == left.attrNearestClassDef()) {
-						// same class
-						functions = classDef.attrScopeFunctions();
-					} else if (classDef.attrNearestPackage() == left.attrNearestPackage()) {
-						// same package
-						functions = classDef.attrScopePackageFunctions();
-					} else {
-						// different package
-						functions = classDef.attrScopePublicFunctions();
-					}
+					Multimap<String, FuncDefInstance> functions = getVisibleClassFunctions(left, classDef);
 					if (functions.containsKey(funcName)) {
-						return selectOverloadedFunction(node, functions.get(funcName));
+						FuncDefInstance f = selectOverloadedFunction(node, functions.get(funcName));
+						if (! ((FuncDef) f.getDef()).attrIsStatic()) {
+							attr.addError(left.getSource(), "Cannot call dynamic function " + funcName + " in static context.");
+						}
+						return f;
 					}
 					
+				} else {
+					// only valid as long as there are no extension functions 
+					attr.addError(left.getSource(), "Cannot use the dot operator on receiver of type " + leftType.getClass() + " " + leftType);
 				}
-				// TODO check extension functions
 				
-				attr.addError(left.getSource(), "Cannot use the dot operator on receiver of type " + leftType.getClass() + " " + leftType);
+				
+				// TODO check extension functions
+				attr.addError(left.getSource(), "The method " + funcName + " is undefined for receiver of type " + leftType);
+				
 				return null;
+			}
+
+
+			/**
+			 * get a list of visible functions of a class for a given context
+			 * @param context
+			 * @param classDef
+			 * @return
+			 */
+			private Multimap<String, FuncDefInstance> getVisibleClassFunctions(AstElement context, ClassDef classDef) {
+				Multimap<String, FuncDefInstance> functions;
+				if (classDef == context.attrNearestClassDef()) {
+					// same class
+					functions = classDef.attrScopeFunctions();
+				} else if (classDef.attrNearestPackage() == context.attrNearestPackage()) {
+					// same package
+					functions = classDef.attrScopePackageFunctions();
+				} else {
+					// different package
+					functions = classDef.attrScopePublicFunctions();
+				}
+				return functions;
 			}
 			
 			@Override
-			public FunctionDefinition case_ExprFuncRef(ExprFuncRef term)  {
+			public FuncDefInstance case_ExprFuncRef(ExprFuncRef term)  {
 				return defaultCase();
 			}
 
 			
 
 			@Override
-			public FunctionDefinition case_ExprMemberMethod(ExprMemberMethod term)
+			public FuncDefInstance case_ExprMemberMethod(ExprMemberMethod term)
 					 {
 				return memberCase(term.getLeft());
 			}
@@ -104,7 +128,7 @@ public class AttrFuncDef {
 			
 
 			@Override
-			public FunctionDefinition case_ExprFunctionCall(ExprFunctionCall term)
+			public FuncDefInstance case_ExprFunctionCall(ExprFunctionCall term)
 					 {
 				return defaultCase();
 			}
@@ -116,11 +140,15 @@ public class AttrFuncDef {
 		return result;
 	}
 
-	protected static FunctionDefinition selectOverloadedFunction(
-			FuncRef funcCall, Collection<FunctionDefinition> functions) {
-		OverloadingResolver.resolveFuncCall(functions, funcCall);
-		// TODO overloading - select the right method
-		for (FunctionDefinition f : functions) {
+	protected static FuncDefInstance selectOverloadedFunction(
+			FuncRef funcCall, Collection<FuncDefInstance> collection) {
+		FuncDefInstance funcDef = OverloadingResolver.resolveFuncCall(collection, funcCall);
+		if (funcDef != null) {
+			return funcDef;
+		}
+		// if no method matches exactly, just choose the first method
+		for (FuncDefInstance f : collection) {
+			if (f == null) throw new Error();
 			return f;
 		}
 		attr.addError(funcCall.getSource(), "Unknown Function " + funcCall.getFuncName());

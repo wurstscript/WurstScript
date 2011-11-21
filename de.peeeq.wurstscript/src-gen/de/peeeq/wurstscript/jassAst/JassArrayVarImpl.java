@@ -41,22 +41,22 @@ class JassArrayVarImpl implements JassArrayVar, JassAstElementIntern {
 	public JassArrayVar copy() {
 		return new JassArrayVarImpl(type, name);
 	}
-	@Override public void accept(JassArrayVar.Visitor v) {
+	@Override public void accept(JassFunction.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(JassProg.Visitor v) {
+	@Override public void accept(JassArrayVar.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(JassVars.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(JassFunctions.Visitor v) {
-		v.visit(this);
-	}
 	@Override public void accept(JassVar.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(JassFunction.Visitor v) {
+	@Override public void accept(JassProg.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(JassFunctions.Visitor v) {
 		v.visit(this);
 	}
 	@Override public <T> T match(JassVar.Matcher<T> matcher) {

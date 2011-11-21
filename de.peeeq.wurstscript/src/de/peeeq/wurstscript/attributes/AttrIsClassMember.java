@@ -16,8 +16,7 @@ public class AttrIsClassMember {
 
 	public static boolean calculate(GlobalVarDef v) {
 		if (v.getParent() instanceof ClassSlots) {
-			// TODO static members?
-			return true;
+			return !v.attrIsStatic();
 		}
 		return false;
 	}

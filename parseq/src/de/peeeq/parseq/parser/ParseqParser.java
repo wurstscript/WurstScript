@@ -35,7 +35,7 @@ public class ParseqParser {
 				debug_indent--;
 			}
 			for (int i=0; i<=debug_indent; i++) {
-				System.out.print("   ");
+				System.out.print("  ");
 			}
 			System.out.println(s);
 			if (s.startsWith("start")) {
@@ -95,7 +95,7 @@ public class ParseqParser {
 		String returns = join(parseQualifiedIdentifier(), ".");
 		if (sym.typeEquals(LT)) {
 			getNextToken();
-			returns += "<" + join(parseCommaSeperatedIdentifiers(), ", ") + ">";
+			returns += "<" + join(parseCommaSeperatedQualifiedIdentifiers(), ", ") + ">";
 			if (!sym.typeEquals(GT)) {
 				abort("Unexpected " + sym + ". Expected `>`");
 			}
@@ -112,13 +112,34 @@ public class ParseqParser {
 
 
 
+	private List<String> parseCommaSeperatedQualifiedIdentifiers() {
+		debug("start parseCommaSeperatedQualifiedIdentifiers");
+		List<String> parts = new LinkedList<String>();
+		loop: while (true) {
+			List<String> ident = parseQualifiedIdentifier();
+			parts.add(join(ident, "."));
+//			getNextToken();
+			switch (sym.getType()) {
+				case COMMA:
+					getNextToken();
+					break;
+				default:
+					break loop;
+			}
+		}
+		debug("end parseCommaSeperatedQualifiedIdentifiers");
+		return parts;
+	}
+
+
+
 	private String join(List<String> list, String sep) {
 		return Generator.join(list, sep);
 	}
 
 	
 	private List<String> parseCommaSeperatedIdentifiers() {
-		debug("start parseQualifiedIdentifier");
+		debug("start parseCommaSeperatedIdentifiers");
 		List<String> parts = new LinkedList<String>();
 		loop: while (true) {
 			if (!sym.typeEquals(IDENTIFIER)) {
@@ -134,7 +155,7 @@ public class ParseqParser {
 					break loop;
 			}
 		}
-		debug("end parseQualifiedIdentifier");
+		debug("end parseCommaSeperatedIdentifiers");
 		return parts;
 	}
 

@@ -1,11 +1,19 @@
 package de.peeeq.immutablecollections;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+import com.google.common.base.Objects;
+
+import de.peeeq.wurstscript.ast.ClassOrModule;
+import de.peeeq.wurstscript.ast.ModuleDef;
+
 public abstract class ImmutableList<T> implements Iterable<T> {
 	
+	private int hashCode;
+
 	/**
 	 * adds an element to the front of the list 
 	 */
@@ -76,6 +84,43 @@ public abstract class ImmutableList<T> implements Iterable<T> {
 		return sb.toString();
 	}
 
+	@Override
+	public int hashCode() {
+		if (hashCode == 0) {
+			Object[] elements = new Object[size()];
+			int i = 0;
+			for (T t : this) {
+				elements[i] = t;
+				i++;
+			}
+			hashCode = Arrays.hashCode(elements);
+		}
+		return hashCode;
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if (obj instanceof ImmutableList) {
+			ImmutableList<?> other = (ImmutableList<?>) obj;
+			if (other.size() != size() || other.hashCode() != hashCode()) {
+				return false;
+			}
+			if (size() == 0) {
+				return true;
+			}
+			if (!other.head().equals(head())) {
+				return false;
+			}
+			if (size() > 1) {
+				return other.tail().equals(tail());
+			}
+		}
+		return false;
+	}
+
+	public ImmutableList<T> appBack(T elem) {
+		return this.cons(ImmutableList.<T>emptyList().appFront(elem));
+	}
 }
 
 

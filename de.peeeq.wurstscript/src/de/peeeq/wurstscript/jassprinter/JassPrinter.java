@@ -88,7 +88,6 @@ public class JassPrinter {
 
 
 	private static void printFunction(StringBuilder sb, JassFunction f) {
-		System.out.println("print: " + f);
 		sb.append("function ");
 		sb.append(f.getName());
 		sb.append(" takes ");

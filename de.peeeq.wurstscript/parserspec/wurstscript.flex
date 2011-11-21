@@ -43,6 +43,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"//" [^\r\n]* 			           { }
 	"/*" ~"*/"                        { }
 	{NEWLINE}							{ return symbol(TokenType.NL); }	
+	";"									{ return symbol(TokenType.SEMICOLON); }
 	"class"                           	{ return symbol(TokenType.CLASS); }
 	"return"                          	{ return symbol(TokenType.RETURN); }
 	"if"                              	{ return symbol(TokenType.IF); }
@@ -72,6 +73,9 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"abstract"							{ return symbol(TokenType.ABSTRACT); }
 	"static"							{ return symbol(TokenType.STATIC); }
 	"thistype"							{ return symbol(TokenType.THISTYPE); }
+	"override"							{ return symbol(TokenType.OVERRIDE); }
+	"immutable"							{ return symbol(TokenType.IMMUTABLE); }
+	"it"								{ return symbol(TokenType.IT); }
 	
 	"array"								{ return symbol(TokenType.ARRAY); }
 	"and"								{ return symbol(TokenType.AND); }
@@ -121,6 +125,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"<"                              { return symbol(TokenType.LT); }
 	">"                              { return symbol(TokenType.GT); }
 	"="                               { return symbol(TokenType.EQ); }
+	"-->"                              { return symbol(TokenType.ARROW); }
 	{DIGIT}+                          { return symbol(TokenType.INTEGER_LITERAL, Utils.parseInt(yytext())); }
 	"0x" [0-9a-fA-F]+                          { return symbol(TokenType.INTEGER_LITERAL, Utils.parseHexInt(yytext())); }
 	"'" . "'"						  { return symbol(TokenType.INTEGER_LITERAL, Utils.parseAsciiInt1(yytext())); }

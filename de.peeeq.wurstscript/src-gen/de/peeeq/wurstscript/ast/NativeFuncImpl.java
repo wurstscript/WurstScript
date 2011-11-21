@@ -59,17 +59,12 @@ class NativeFuncImpl implements NativeFunc, AstElementIntern {
 		signature.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WEntities.Visitor v) {
+	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		signature.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		source.accept(v);
-		signature.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
 		source.accept(v);
 		signature.accept(v);
 		v.visit(this);
@@ -89,12 +84,17 @@ class NativeFuncImpl implements NativeFunc, AstElementIntern {
 		signature.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		signature.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
 		signature.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
 		source.accept(v);
 		signature.accept(v);
 		v.visit(this);

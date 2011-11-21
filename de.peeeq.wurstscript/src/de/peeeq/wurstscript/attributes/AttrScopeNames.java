@@ -13,6 +13,7 @@ import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.JassGlobalBlock;
 import de.peeeq.wurstscript.ast.LocalVarDef;
+import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.TopLevelDeclaration;
@@ -27,7 +28,7 @@ import de.peeeq.wurstscript.utils.DefinitionMap;
 /**
  * this attribute calculates the available variables for a given VariableScope
  */
-public class AttrScopeVariables {
+public class AttrScopeNames {
 
 	public static Map<String, NameDef> calculate(WScope node) {
 		final Map<String, NameDef> result = new DefinitionMap<String, NameDef>() {
@@ -51,13 +52,15 @@ public class AttrScopeVariables {
 					result.putAll(importedPackage.attrExportedVariables());
 				}
 				for (WEntity e : term.getElements()) {
-					System.out.println("	WEntity: " + e);
 					if (e instanceof VarDef) {
 						VarDef v = (VarDef) e;
 						result.put(v.getName(), v);
 					} else if (e instanceof ClassDef) {
 						ClassDef classDef = (ClassDef) e;
 						result.put(classDef.getName(), classDef);						
+					} else if (e instanceof ModuleDef) {
+						ModuleDef moduleDef = (ModuleDef) e;
+						result.put(moduleDef.getName(), moduleDef);
 					}
 				}
 				return result;
@@ -147,6 +150,17 @@ public class AttrScopeVariables {
 					}
 
 				});
+				return result;
+			}
+
+			@Override
+			public Map<String, NameDef> case_ModuleDef(ModuleDef moduleDef) {
+				for (ClassSlot e : moduleDef.getSlots()) {
+					if (e instanceof VarDef) {
+						VarDef v = (VarDef) e;
+						result.put(v.getName(), v);
+					}
+				}
 				return result;
 			}
 		});

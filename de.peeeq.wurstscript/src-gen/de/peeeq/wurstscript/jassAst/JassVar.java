@@ -10,27 +10,27 @@ public interface JassVar extends JassAstElement{
 	<T> T match(Matcher<T> s);
 	void match(MatcherVoid s);
 	public interface Matcher<T> {
-		T case_JassArrayVar(JassArrayVar jassArrayVar);
 		T case_JassSimpleVar(JassSimpleVar jassSimpleVar);
+		T case_JassArrayVar(JassArrayVar jassArrayVar);
 	}
 
 	public interface MatcherVoid {
-		void case_JassArrayVar(JassArrayVar jassArrayVar);
 		void case_JassSimpleVar(JassSimpleVar jassSimpleVar);
+		void case_JassArrayVar(JassArrayVar jassArrayVar);
 	}
 
 	JassVar copy();
-	public abstract void accept(JassProg.Visitor v);
-	public abstract void accept(JassVars.Visitor v);
-	public abstract void accept(JassFunctions.Visitor v);
-	public abstract void accept(JassVar.Visitor v);
 	public abstract void accept(JassFunction.Visitor v);
+	public abstract void accept(JassVars.Visitor v);
+	public abstract void accept(JassVar.Visitor v);
+	public abstract void accept(JassProg.Visitor v);
+	public abstract void accept(JassFunctions.Visitor v);
 	public interface Visitor {
-		void visit(JassArrayVar jassArrayVar);
 		void visit(JassSimpleVar jassSimpleVar);
+		void visit(JassArrayVar jassArrayVar);
 	}
 	public static abstract class DefaultVisitor implements Visitor {
-		@Override public void visit(JassArrayVar jassArrayVar) {}
 		@Override public void visit(JassSimpleVar jassSimpleVar) {}
+		@Override public void visit(JassArrayVar jassArrayVar) {}
 	}
 }

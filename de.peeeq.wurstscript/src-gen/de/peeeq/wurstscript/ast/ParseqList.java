@@ -93,13 +93,78 @@ abstract class ParseqList<T> implements List<T> {
 	}
 
 	@Override
-	public ListIterator<T> listIterator() {
-		return list.listIterator();
-	}
-
-	@Override
 	public ListIterator<T> listIterator(int index) {
-		return list.listIterator(index);
+		return new ParseqListIterator(list.listIterator(index));
+	}
+	@Override
+	public ListIterator<T> listIterator() {
+		return new ParseqListIterator(list.listIterator());
+	}
+	
+	class ParseqListIterator implements ListIterator<T> {
+
+		private ListIterator<T> it;
+		private T lastElement;
+
+		public ParseqListIterator(ListIterator<T> listIterator) {
+			this.it = listIterator;
+		}
+
+		@Override
+		public void add(T e) {
+			other_setParentToThis(e);
+			it.add(e);
+		}
+
+		@Override
+		public boolean hasNext() {
+			return it.hasNext();
+		}
+
+		@Override
+		public boolean hasPrevious() {
+			return it.hasPrevious();
+		}
+
+		@Override
+		public T next() {
+			lastElement = it.next();
+			return lastElement;
+		}
+
+		@Override
+		public int nextIndex() {
+			return it.nextIndex();
+		}
+
+		@Override
+		public T previous() {
+			lastElement = it.previous();
+			return lastElement;
+		}
+
+		@Override
+		public int previousIndex() {
+			return it.previousIndex();
+		}
+
+		@Override
+		public void remove() {
+			if (lastElement == null) throw new Error();
+			other_clearParent(lastElement);
+			lastElement = null;
+			it.remove();
+		}
+
+		@Override
+		public void set(T e) {
+			if (lastElement == null) throw new Error();
+			other_clearParent(lastElement);
+			lastElement = null;
+			other_setParentToThis(e);
+			it.set(e);
+		}
+		
 	}
 
 	@Override

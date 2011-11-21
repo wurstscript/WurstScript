@@ -20,7 +20,7 @@ import de.peeeq.wurstscript.types.PscriptTypeClass;
  * this attribute find the variable definition for every variable reference 
  *
  */
-public class AttrVarDef {
+public class AttrNameDef {
 	
 	public static NameDef calculate(final NameRef node) {
 		final String varName = node.getVarName();

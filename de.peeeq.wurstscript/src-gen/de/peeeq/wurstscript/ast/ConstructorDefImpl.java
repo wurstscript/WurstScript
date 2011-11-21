@@ -82,14 +82,7 @@ class ConstructorDefImpl implements ConstructorDef, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(NameDef.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		params.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntities.Visitor v) {
+	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		params.accept(v);
@@ -103,28 +96,7 @@ class ConstructorDefImpl implements ConstructorDef, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		params.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(ClassSlots.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		params.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassDef.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		params.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		params.accept(v);
@@ -138,7 +110,21 @@ class ConstructorDefImpl implements ConstructorDef, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(WEntity.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		params.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(ClassSlot.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		params.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassDef.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		params.accept(v);
@@ -152,7 +138,14 @@ class ConstructorDefImpl implements ConstructorDef, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
+	@Override public void accept(ModuleDef.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		params.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		params.accept(v);
@@ -166,20 +159,34 @@ class ConstructorDefImpl implements ConstructorDef, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
+	@Override public void accept(NameDef.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		params.accept(v);
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public <T> T match(ClassSlot.Matcher<T> matcher) {
-		return matcher.case_ConstructorDef(this);
+	@Override public void accept(PackageOrGlobal.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		params.accept(v);
+		body.accept(v);
+		v.visit(this);
 	}
-	@Override public void match(ClassSlot.MatcherVoid matcher) {
-		matcher.case_ConstructorDef(this);
+	@Override public void accept(ClassOrModule.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		params.accept(v);
+		body.accept(v);
+		v.visit(this);
 	}
-
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		params.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
 	@Override public <T> T match(AstElementWithModifier.Matcher<T> matcher) {
 		return matcher.case_ConstructorDef(this);
 	}
@@ -194,6 +201,13 @@ class ConstructorDefImpl implements ConstructorDef, AstElementIntern {
 		matcher.case_ConstructorDef(this);
 	}
 
+	@Override public <T> T match(ClassSlot.Matcher<T> matcher) {
+		return matcher.case_ConstructorDef(this);
+	}
+	@Override public void match(ClassSlot.MatcherVoid matcher) {
+		matcher.case_ConstructorDef(this);
+	}
+
 	@Override public String toString() {
 		return "ConstructorDef(" + source + ", " +modifiers + ", " +params + ", " +body+")";
 	}
@@ -201,7 +215,7 @@ class ConstructorDefImpl implements ConstructorDef, AstElementIntern {
 	private java.util.Map<String, NameDef> attr_attrScopeNames_cache;
 	public java.util.Map<String, NameDef> attrScopeNames() {
 		if (!attr_attrScopeNames_isCached) {
-			attr_attrScopeNames_cache = de.peeeq.wurstscript.attributes.AttrScopeVariables.calculate(this);
+			attr_attrScopeNames_cache = de.peeeq.wurstscript.attributes.AttrScopeNames.calculate(this);
 			attr_attrScopeNames_isCached = true;
 		}
 		return attr_attrScopeNames_cache;
@@ -210,7 +224,7 @@ class ConstructorDefImpl implements ConstructorDef, AstElementIntern {
 	private java.util.Map<String, NameDef> attr_attrScopePackageNames_cache;
 	public java.util.Map<String, NameDef> attrScopePackageNames() {
 		if (!attr_attrScopePackageNames_isCached) {
-			attr_attrScopePackageNames_cache = de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePackage(this);
+			attr_attrScopePackageNames_cache = de.peeeq.wurstscript.attributes.AttrScopeNames.calculatePackage(this);
 			attr_attrScopePackageNames_isCached = true;
 		}
 		return attr_attrScopePackageNames_cache;
@@ -219,7 +233,7 @@ class ConstructorDefImpl implements ConstructorDef, AstElementIntern {
 	private java.util.Map<String, NameDef> attr_attrScopePublicNames_cache;
 	public java.util.Map<String, NameDef> attrScopePublicNames() {
 		if (!attr_attrScopePublicNames_isCached) {
-			attr_attrScopePublicNames_cache = de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePublic(this);
+			attr_attrScopePublicNames_cache = de.peeeq.wurstscript.attributes.AttrScopeNames.calculatePublic(this);
 			attr_attrScopePublicNames_isCached = true;
 		}
 		return attr_attrScopePublicNames_cache;
@@ -228,14 +242,14 @@ class ConstructorDefImpl implements ConstructorDef, AstElementIntern {
 	private java.util.Map<String, NameDef> attr_attrScopePublicReadNamess_cache;
 	public java.util.Map<String, NameDef> attrScopePublicReadNamess() {
 		if (!attr_attrScopePublicReadNamess_isCached) {
-			attr_attrScopePublicReadNamess_cache = de.peeeq.wurstscript.attributes.AttrScopeVariables.calculatePublicRead(this);
+			attr_attrScopePublicReadNamess_cache = de.peeeq.wurstscript.attributes.AttrScopeNames.calculatePublicRead(this);
 			attr_attrScopePublicReadNamess_isCached = true;
 		}
 		return attr_attrScopePublicReadNamess_cache;
 	}
 	private boolean attr_attrScopeFunctions_isCached = false;
-	private com.google.common.collect.Multimap<String, FunctionDefinition> attr_attrScopeFunctions_cache;
-	public com.google.common.collect.Multimap<String, FunctionDefinition> attrScopeFunctions() {
+	private com.google.common.collect.Multimap<String, de.peeeq.wurstscript.attributes.FuncDefInstance> attr_attrScopeFunctions_cache;
+	public com.google.common.collect.Multimap<String, de.peeeq.wurstscript.attributes.FuncDefInstance> attrScopeFunctions() {
 		if (!attr_attrScopeFunctions_isCached) {
 			attr_attrScopeFunctions_cache = de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculate(this);
 			attr_attrScopeFunctions_isCached = true;
@@ -243,8 +257,8 @@ class ConstructorDefImpl implements ConstructorDef, AstElementIntern {
 		return attr_attrScopeFunctions_cache;
 	}
 	private boolean attr_attrScopePackageFunctions_isCached = false;
-	private com.google.common.collect.Multimap<String, FunctionDefinition> attr_attrScopePackageFunctions_cache;
-	public com.google.common.collect.Multimap<String, FunctionDefinition> attrScopePackageFunctions() {
+	private com.google.common.collect.Multimap<String, de.peeeq.wurstscript.attributes.FuncDefInstance> attr_attrScopePackageFunctions_cache;
+	public com.google.common.collect.Multimap<String, de.peeeq.wurstscript.attributes.FuncDefInstance> attrScopePackageFunctions() {
 		if (!attr_attrScopePackageFunctions_isCached) {
 			attr_attrScopePackageFunctions_cache = de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculatePackage(this);
 			attr_attrScopePackageFunctions_isCached = true;
@@ -252,8 +266,8 @@ class ConstructorDefImpl implements ConstructorDef, AstElementIntern {
 		return attr_attrScopePackageFunctions_cache;
 	}
 	private boolean attr_attrScopePublicFunctions_isCached = false;
-	private com.google.common.collect.Multimap<String, FunctionDefinition> attr_attrScopePublicFunctions_cache;
-	public com.google.common.collect.Multimap<String, FunctionDefinition> attrScopePublicFunctions() {
+	private com.google.common.collect.Multimap<String, de.peeeq.wurstscript.attributes.FuncDefInstance> attr_attrScopePublicFunctions_cache;
+	public com.google.common.collect.Multimap<String, de.peeeq.wurstscript.attributes.FuncDefInstance> attrScopePublicFunctions() {
 		if (!attr_attrScopePublicFunctions_isCached) {
 			attr_attrScopePublicFunctions_cache = de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculatePublic(this);
 			attr_attrScopePublicFunctions_isCached = true;

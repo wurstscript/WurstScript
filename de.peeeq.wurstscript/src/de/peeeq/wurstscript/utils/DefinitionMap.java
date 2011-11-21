@@ -22,7 +22,6 @@ public abstract class DefinitionMap<K,V> extends HashMap<K, V> {
 	}
 	
 	public V put(K key, V value) {
-		System.out.println("adding " + key + " -> "  + value);
 		if (containsKey(key)) {
 			onElementRedefined(get(key), value, key);
 		}

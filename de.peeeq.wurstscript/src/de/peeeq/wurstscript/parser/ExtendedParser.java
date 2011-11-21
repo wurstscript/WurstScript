@@ -106,6 +106,7 @@ public class ExtendedParser extends parser {
 		translations.put("DIV_INT", "'div'");
 		translations.put("RBRACK", "'}'");
 		translations.put("COMMA", "','");
+		translations.put("SEMICOLON", "';'");
 		translations.put("LBRACK", "'{'");
 		translations.put("LT", "'<'");
 		translations.put("DIV_REAL", "'/'");
