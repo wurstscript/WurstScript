@@ -75,7 +75,7 @@ class FuncDefImpl implements FuncDef, AstElementIntern {
 	public FuncDef copy() {
 		return new FuncDefImpl(source.copy(), modifiers.copy(), signature.copy(), body.copy());
 	}
-	@Override public void accept(WPackage.Visitor v) {
+	@Override public void accept(WEntity.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		signature.accept(v);
@@ -89,84 +89,7 @@ class FuncDefImpl implements FuncDef, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		signature.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		signature.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlots.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		signature.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		signature.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlot.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		signature.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		signature.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(ClassDef.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		signature.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TypeDef.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		signature.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(FuncDef.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		signature.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		signature.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ModuleDef.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		signature.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntities.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		signature.accept(v);
@@ -180,7 +103,21 @@ class FuncDefImpl implements FuncDef, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(NameDef.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		signature.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ModuleDef.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		signature.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WPackage.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		signature.accept(v);
@@ -201,13 +138,90 @@ class FuncDefImpl implements FuncDef, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(ClassSlot.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		signature.accept(v);
 		body.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		signature.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(NameDef.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		signature.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FuncDef.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		signature.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		signature.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		signature.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlots.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		signature.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TypeDef.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		signature.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		signature.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FunctionDefinition.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		signature.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public <T> T match(ClassSlot.Matcher<T> matcher) {
+		return matcher.case_FuncDef(this);
+	}
+	@Override public void match(ClassSlot.MatcherVoid matcher) {
+		matcher.case_FuncDef(this);
+	}
+
+	@Override public <T> T match(TopLevelDeclaration.Matcher<T> matcher) {
+		return matcher.case_FuncDef(this);
+	}
+	@Override public void match(TopLevelDeclaration.MatcherVoid matcher) {
+		matcher.case_FuncDef(this);
+	}
+
 	@Override public <T> T match(WEntity.Matcher<T> matcher) {
 		return matcher.case_FuncDef(this);
 	}
@@ -222,31 +236,10 @@ class FuncDefImpl implements FuncDef, AstElementIntern {
 		matcher.case_FuncDef(this);
 	}
 
-	@Override public <T> T match(TopLevelDeclaration.Matcher<T> matcher) {
-		return matcher.case_FuncDef(this);
-	}
-	@Override public void match(TopLevelDeclaration.MatcherVoid matcher) {
-		matcher.case_FuncDef(this);
-	}
-
-	@Override public <T> T match(JassToplevelDeclaration.Matcher<T> matcher) {
-		return matcher.case_FuncDef(this);
-	}
-	@Override public void match(JassToplevelDeclaration.MatcherVoid matcher) {
-		matcher.case_FuncDef(this);
-	}
-
 	@Override public <T> T match(ClassMember.Matcher<T> matcher) {
 		return matcher.case_FuncDef(this);
 	}
 	@Override public void match(ClassMember.MatcherVoid matcher) {
-		matcher.case_FuncDef(this);
-	}
-
-	@Override public <T> T match(FunctionDefinition.Matcher<T> matcher) {
-		return matcher.case_FuncDef(this);
-	}
-	@Override public void match(FunctionDefinition.MatcherVoid matcher) {
 		matcher.case_FuncDef(this);
 	}
 
@@ -257,10 +250,17 @@ class FuncDefImpl implements FuncDef, AstElementIntern {
 		matcher.case_FuncDef(this);
 	}
 
-	@Override public <T> T match(ClassSlot.Matcher<T> matcher) {
+	@Override public <T> T match(JassToplevelDeclaration.Matcher<T> matcher) {
 		return matcher.case_FuncDef(this);
 	}
-	@Override public void match(ClassSlot.MatcherVoid matcher) {
+	@Override public void match(JassToplevelDeclaration.MatcherVoid matcher) {
+		matcher.case_FuncDef(this);
+	}
+
+	@Override public <T> T match(FunctionDefinition.Matcher<T> matcher) {
+		return matcher.case_FuncDef(this);
+	}
+	@Override public void match(FunctionDefinition.MatcherVoid matcher) {
 		matcher.case_FuncDef(this);
 	}
 

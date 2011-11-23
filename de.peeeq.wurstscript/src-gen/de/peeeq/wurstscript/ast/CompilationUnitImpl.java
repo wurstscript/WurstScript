@@ -29,7 +29,7 @@ class CompilationUnitImpl extends CompilationUnit implements AstElementIntern {
 		matcher.case_CompilationUnit(this);
 	}
 
-	@Override public void accept(CompilationUnit.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
 		for (TopLevelDeclaration i : this ) {
 			i.accept(v);
 		}
@@ -41,7 +41,7 @@ class CompilationUnitImpl extends CompilationUnit implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(CompilationUnit.Visitor v) {
 		for (TopLevelDeclaration i : this ) {
 			i.accept(v);
 		}

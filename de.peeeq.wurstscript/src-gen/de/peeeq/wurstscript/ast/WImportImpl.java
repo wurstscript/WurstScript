@@ -45,7 +45,19 @@ class WImportImpl implements WImport, AstElementIntern {
 	public WImport copy() {
 		return new WImportImpl(source.copy(), packagename);
 	}
+	@Override public void accept(WImport.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -58,18 +70,6 @@ class WImportImpl implements WImport, AstElementIntern {
 		v.visit(this);
 	}
 	@Override public void accept(WImports.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WImport.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}

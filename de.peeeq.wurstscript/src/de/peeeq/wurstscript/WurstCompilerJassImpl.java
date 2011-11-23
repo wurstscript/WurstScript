@@ -9,9 +9,9 @@ import java.io.InputStreamReader;
 import java.util.List;
 import java.util.ListIterator;
 
-import org.testng.collections.Lists;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 import java_cup.runtime.Symbol;

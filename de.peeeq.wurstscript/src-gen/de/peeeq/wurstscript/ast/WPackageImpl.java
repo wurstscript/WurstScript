@@ -71,7 +71,19 @@ class WPackageImpl implements WPackage, AstElementIntern {
 	public WPackage copy() {
 		return new WPackageImpl(source.copy(), name, imports.copy(), elements.copy());
 	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		imports.accept(v);
+		elements.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
+		imports.accept(v);
+		elements.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
 		imports.accept(v);
 		elements.accept(v);
@@ -84,18 +96,6 @@ class WPackageImpl implements WPackage, AstElementIntern {
 		v.visit(this);
 	}
 	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		source.accept(v);
-		imports.accept(v);
-		elements.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
-		source.accept(v);
-		imports.accept(v);
-		elements.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
 		source.accept(v);
 		imports.accept(v);
 		elements.accept(v);

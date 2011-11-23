@@ -15,85 +15,7 @@ class WStatementsImpl extends WStatements implements AstElementIntern {
 	protected void other_clearParent(WStatement t) {
 		((AstElementIntern) t).setParent(null);
 	}
-	@Override public void accept(WPackage.Visitor v) {
-		for (WStatement i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ClassMember.Visitor v) {
-		for (WStatement i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		for (WStatement i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(OnDestroyDef.Visitor v) {
-		for (WStatement i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		for (WStatement i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlots.Visitor v) {
-		for (WStatement i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(WStatement.Visitor v) {
-		for (WStatement i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
 	@Override public void accept(ConstructorDef.Visitor v) {
-		for (WStatement i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(WStatements.Visitor v) {
-		for (WStatement i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
-		for (WStatement i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlot.Visitor v) {
-		for (WStatement i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
-		for (WStatement i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ClassDef.Visitor v) {
-		for (WStatement i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(TypeDef.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
@@ -105,37 +27,13 @@ class WStatementsImpl extends WStatements implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(FuncDef.Visitor v) {
+	@Override public void accept(WEntity.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
-		for (WStatement i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(StmtWhile.Visitor v) {
-		for (WStatement i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ModuleDef.Visitor v) {
-		for (WStatement i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(WEntities.Visitor v) {
-		for (WStatement i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(StmtIf.Visitor v) {
+	@Override public void accept(OnDestroyDef.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
@@ -147,13 +45,43 @@ class WStatementsImpl extends WStatements implements AstElementIntern {
 		}
 		v.visit(this);
 	}
+	@Override public void accept(ClassMember.Visitor v) {
+		for (WStatement i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(ClassDef.Visitor v) {
+		for (WStatement i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
 	@Override public void accept(AstElementWithModifier.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(NameDef.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
+		for (WStatement i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(ModuleDef.Visitor v) {
+		for (WStatement i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(WPackage.Visitor v) {
+		for (WStatement i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(WStatements.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}
@@ -171,7 +99,79 @@ class WStatementsImpl extends WStatements implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(ClassSlot.Visitor v) {
+		for (WStatement i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(StmtIf.Visitor v) {
+		for (WStatement i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
+		for (WStatement i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(NameDef.Visitor v) {
+		for (WStatement i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(FuncDef.Visitor v) {
+		for (WStatement i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+		for (WStatement i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(StmtWhile.Visitor v) {
+		for (WStatement i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
+		for (WStatement i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlots.Visitor v) {
+		for (WStatement i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(TypeDef.Visitor v) {
+		for (WStatement i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		for (WStatement i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(FunctionDefinition.Visitor v) {
+		for (WStatement i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(WStatement.Visitor v) {
 		for (WStatement i : this ) {
 			i.accept(v);
 		}

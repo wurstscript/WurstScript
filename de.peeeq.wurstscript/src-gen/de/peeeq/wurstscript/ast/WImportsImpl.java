@@ -15,7 +15,19 @@ class WImportsImpl extends WImports implements AstElementIntern {
 	protected void other_clearParent(WImport t) {
 		((AstElementIntern) t).setParent(null);
 	}
+	@Override public void accept(WScope.Visitor v) {
+		for (WImport i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
 	@Override public void accept(WPackage.Visitor v) {
+		for (WImport i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(PackageOrGlobal.Visitor v) {
 		for (WImport i : this ) {
 			i.accept(v);
 		}
@@ -34,18 +46,6 @@ class WImportsImpl extends WImports implements AstElementIntern {
 		v.visit(this);
 	}
 	@Override public void accept(WImports.Visitor v) {
-		for (WImport i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
-		for (WImport i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
 		for (WImport i : this ) {
 			i.accept(v);
 		}

@@ -49,77 +49,7 @@ class StmtExitwhenImpl implements StmtExitwhen, AstElementIntern {
 	public StmtExitwhen copy() {
 		return new StmtExitwhenImpl(source.copy(), cond.copy());
 	}
-	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassMember.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtExitwhen.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(OnDestroyDef.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlots.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WStatement.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(ConstructorDef.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WStatements.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlot.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassDef.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TypeDef.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		v.visit(this);
@@ -129,32 +59,12 @@ class StmtExitwhenImpl implements StmtExitwhen, AstElementIntern {
 		cond.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FuncDef.Visitor v) {
+	@Override public void accept(WEntity.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtWhile.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ModuleDef.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntities.Visitor v) {
-		source.accept(v);
-		cond.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtIf.Visitor v) {
+	@Override public void accept(OnDestroyDef.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		v.visit(this);
@@ -164,12 +74,37 @@ class StmtExitwhenImpl implements StmtExitwhen, AstElementIntern {
 		cond.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(ClassMember.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassDef.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(AstElementWithModifier.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(NameDef.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ModuleDef.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WStatements.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		v.visit(this);
@@ -184,7 +119,72 @@ class StmtExitwhenImpl implements StmtExitwhen, AstElementIntern {
 		cond.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(ClassSlot.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(StmtIf.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(NameDef.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FuncDef.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(StmtWhile.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlots.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TypeDef.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FunctionDefinition.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WStatement.Visitor v) {
+		source.accept(v);
+		cond.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(StmtExitwhen.Visitor v) {
 		source.accept(v);
 		cond.accept(v);
 		v.visit(this);

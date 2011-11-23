@@ -29,25 +29,13 @@ class JassGlobalBlockImpl extends JassGlobalBlock implements AstElementIntern {
 		matcher.case_JassGlobalBlock(this);
 	}
 
-	@Override public void accept(CompilationUnit.Visitor v) {
-		for (GlobalVarDef i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
 	@Override public void accept(JassGlobalBlock.Visitor v) {
 		for (GlobalVarDef i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		for (GlobalVarDef i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
 		for (GlobalVarDef i : this ) {
 			i.accept(v);
 		}
@@ -59,7 +47,19 @@ class JassGlobalBlockImpl extends JassGlobalBlock implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+		for (GlobalVarDef i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
+		for (GlobalVarDef i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		for (GlobalVarDef i : this ) {
 			i.accept(v);
 		}
