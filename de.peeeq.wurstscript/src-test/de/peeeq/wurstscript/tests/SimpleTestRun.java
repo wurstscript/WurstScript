@@ -8,6 +8,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
+import de.peeeq.wurstscript.Pjass;
+import de.peeeq.wurstscript.Pjass.Result;
 import de.peeeq.wurstscript.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.jassAst.JassProg;
@@ -24,7 +26,7 @@ public class SimpleTestRun {
 	
 	public static void main(String ... args) throws IOException, InterruptedException {
 		//String testFile = "./testscripts/valid/modules_1.pscript";
-		String testFile = "./testscripts/valid/Classes_construct.pscript";
+		String testFile = "./testscripts/valid/Classes_1.pscript";
 		if (args.length == 1) {
 			testFile = args[0];
 		}
@@ -64,28 +66,10 @@ public class SimpleTestRun {
 			}
 
 			// run pjass:
-			try {
-				Process p = Runtime.getRuntime().exec("lib/pjass.exe lib/common.j lib/debugnatives.j lib/blizzard.j " + outputFile.getPath());
-				
-				BufferedReader input =
-						new BufferedReader
-						(new InputStreamReader(p.getInputStream()));
-				
-				StringBuilder output = new StringBuilder();
-				String line;
-				while ((line = input.readLine()) != null) {
-					System.out.println(line);
-					output.append(line + "\n");
-				}
-				input.close();
-	
-				int exitValue = p.waitFor();
-				if (exitValue != 0) {
-					assertTrue("pjass errors: \n" + output.toString() , false);
-				}
-			} catch (IOException e) {
-				System.err.println("Could not run pjass:");
-				e.printStackTrace();
+			Result pJassResult = Pjass.runPjass(outputFile);
+			System.out.println(pJassResult.getMessage());
+			if (!pJassResult.isOk()) {
+				throw new TestFailException(pJassResult.getMessage());
 			}
 
 			// run the interpreter

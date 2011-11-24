@@ -22,6 +22,7 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.attributes.FuncDefInstance;
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassFunction;
+import de.peeeq.wurstscript.jassAst.JassSimpleVar;
 import de.peeeq.wurstscript.jassAst.JassVar;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
@@ -37,6 +38,7 @@ public class JassManager {
 	private Map<ClassDef, JassFunction> destroyFunctions = Maps.newHashMap();
 	private Map<ConstructorDef, JassFunction> constructorFunctions = Maps.newHashMap();
 	private Map<Pair<ImmutableList<ClassOrModule>, VarDef>, JassVar> variables = Maps.newHashMap();
+	private Map<Pair<ImmutableList<ClassOrModule>, VarDef>, String> variableNames = Maps.newHashMap();
 	private Map<AstElement, String> names = Maps.newHashMap();
 	private Set<String> givenNames = Sets.newHashSet();
 	private JassTranslator jassTranslator;
@@ -103,24 +105,75 @@ public class JassManager {
 		return func;
 	}
 	
-	public JassVar getJassVarFor(ImmutableList<ClassOrModule> context, VarDef v) { // TODO add parameters for type, array, etc..
+	public JassVar getJassVarFor(ImmutableList<ClassOrModule> context, VarDef v, String type, boolean isArray) {
+		return getJassVarFor(context, v, type, isArray, false);
+	}
+	
+	public JassVar getJassVarFor(ImmutableList<ClassOrModule> context, VarDef v, String type, boolean isArray, boolean isLocal) {
 		Pair<ImmutableList<ClassOrModule>, VarDef> key = Pair.create(context, v);
 		if (variables.containsKey(key)) {
-			return variables.get(key);
+			JassVar result = variables.get(key);
+			if (result instanceof JassSimpleVar == isArray) {
+				throw new Error("inconsistent isArray");
+			}
+			if (!result.getType().equals(type)) {
+				throw new Error("inconsistent type");
+			}
+			return result;
 		}
-		String name = v.getName();
-		if (context.size() > 0) {
-			name = contextToString(context) + "_" + name;
+		String name = getJassVarNameFor(context, v, isLocal);
+		JassVar var;
+		if (isArray) {
+			var = JassAst.JassArrayVar(type, name);
+		} else {
+			var = JassAst.JassSimpleVar(type, name);
 		}
-		if (v.attrNearestPackage() instanceof WPackage) {
-			name = ((WPackage) v.attrNearestPackage()).getName() + "_" + name;
-		}
-		name = getUniqueName(v, name);
-		JassVar var = jassTranslator.translateVarDef(v); // FIXME do not call jass translator
 		variables.put(key, var);
 		return var;
 	}
 	
+	public JassVar getJassVarForTranslatedVar(
+			ImmutableList<ClassOrModule> context, VarDef varDef) {
+		return getJassVarForTranslatedVar(context, varDef, false);
+	}
+	
+	public JassVar getJassVarForTranslatedVar(
+			ImmutableList<ClassOrModule> context, VarDef varDef, boolean isLocal) {
+		Pair<ImmutableList<ClassOrModule>, VarDef> key = Pair.create(context, varDef);
+		if (variables.containsKey(key)) {
+			return variables.get(key);
+		} else {
+			throw new Error("Variable " + getJassVarNameFor(context, varDef, isLocal) + " has not been translated.");
+		}
+	}
+	
+	public String getJassVarNameFor(ImmutableList<ClassOrModule> context, VarDef v) {
+		return getJassVarNameFor(context, v, false);
+	}
+	
+	public String getJassVarNameFor(ImmutableList<ClassOrModule> context, VarDef v, boolean isLocal) {
+		Pair<ImmutableList<ClassOrModule>, VarDef> key = Pair.create(context, v);
+		String name;
+		if (variableNames.containsKey(key)) {
+			name = variableNames.get(key);
+		} else {
+			name = v.getName();
+			if (!isLocal) {
+				// non local variables get some name extensions
+				if (context.size() > 0) {
+					name = contextToString(context) + "_" + name;
+				}
+				if (v.attrNearestPackage() instanceof WPackage) {
+					name = ((WPackage) v.attrNearestPackage()).getName() + "_" + name;
+				}
+				name = getUniqueName(name);
+			}
+			variableNames.put(key, name);
+		}
+		return name;
+	}
+	
+
 
 	
 
@@ -195,6 +248,9 @@ public class JassManager {
 		ImmutableList<ClassOrModule> consContext = context.cons(calledFunc.getContext());
 		return getJassFunctionFor(consContext, calledFunc.getDef());
 	}
+
+
+	
 
 
 	

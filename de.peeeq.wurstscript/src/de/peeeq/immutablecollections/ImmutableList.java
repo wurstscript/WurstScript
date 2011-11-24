@@ -12,7 +12,7 @@ import de.peeeq.wurstscript.ast.ModuleDef;
 
 public abstract class ImmutableList<T> implements Iterable<T> {
 	
-	private int hashCode;
+	private int hashCode = 0;
 
 	/**
 	 * adds an element to the front of the list 
@@ -22,7 +22,7 @@ public abstract class ImmutableList<T> implements Iterable<T> {
 	/**
 	 * adds an other ImmutableList to the end 
 	 */
-	abstract public ImmutableList<T> cons(ImmutableList<T> other);
+	abstract public ImmutableList<T> cons(ImmutableList<? extends T> other);
 	
 	abstract public T head();
 	abstract public ImmutableList<T> tail();
@@ -113,6 +113,8 @@ public abstract class ImmutableList<T> implements Iterable<T> {
 			}
 			if (size() > 1) {
 				return other.tail().equals(tail());
+			} else {
+				return true;
 			}
 		}
 		return false;
@@ -128,7 +130,7 @@ public abstract class ImmutableList<T> implements Iterable<T> {
 
 class ImmutableListEmpty<T> extends ImmutableList<T> {
 
-	private static ImmutableList<Object> instance = new ImmutableListEmpty<Object>();
+	private final static ImmutableList<Object> instance = new ImmutableListEmpty<Object>();
 
 	@SuppressWarnings("unchecked")
 	static <T> ImmutableList<T> instance() {
@@ -176,18 +178,21 @@ class ImmutableListEmpty<T> extends ImmutableList<T> {
 
 	@Override
 	public T head() {
-		return null;
+		throw new Error("Tried to get head of empty list");
 	}
 
 	@Override
 	public ImmutableList<T> tail() {
-		return null;
+		throw new Error("Tried to get tail of empty list");
 	}
 
+	
 	@Override
-	public ImmutableList<T> cons(ImmutableList<T> other) {
+	public ImmutableList<T> cons(ImmutableList<? extends T> other) {
 		// just return other since this list is empty
-		return other;
+		@SuppressWarnings("unchecked") // this is safe because the list is immutable
+		ImmutableList<T> result = (ImmutableList<T>) other;
+		return result;
 	}
 
 }
@@ -203,14 +208,19 @@ class ImmutableListIterator<T> implements Iterator<T> {
 	@Override
 	public boolean hasNext() {
 		
-		return pos != null; // && pos.size() > 0;
+		return pos != null && !pos.isEmpty();
 	}
 
 	@Override
 	public T next() {
-		T res = pos.head();
-		pos = pos.tail();
-		return res;
+		if (pos.isEmpty()) {
+			pos = null;
+			return null;
+		} else {
+			T res = pos.head();
+			pos = pos.tail();
+			return res;
+		}
 	}
 
 	@Override
@@ -224,13 +234,13 @@ class ImmutableListImpl<T> extends ImmutableList<T> {
 
 	
 
-	private T head;
-	private ImmutableList<T> tail;
-	private int size;
+	private final T head;
+	private final ImmutableList<T> tail;
+	private final int size;
 
 	ImmutableListImpl(T elem) {
 		this.head = elem;
-		this.tail = null;
+		this.tail = ImmutableList.emptyList();
 		this.size = 1;
 	}
 
@@ -268,7 +278,7 @@ class ImmutableListImpl<T> extends ImmutableList<T> {
 	}
 
 	@Override
-	public ImmutableList<T> cons(ImmutableList<T> other) {
+	public ImmutableList<T> cons(ImmutableList<? extends T> other) {
 		if (other.isEmpty()) {
 			return this;
 		} else {
@@ -284,14 +294,16 @@ class ImmutableListImplCons<T> extends ImmutableList<T> {
 	
 	// invariant: size(left) > 0 && size(right) > 0
 	
-	private ImmutableList<T> left;
-	private ImmutableList<T> right;
+	private final ImmutableList<? extends T> left;
+	private final ImmutableList<? extends T> right;
+	private final int size;
 
-	ImmutableListImplCons(ImmutableList<T> left, ImmutableList<T> right) {
+	ImmutableListImplCons(ImmutableList<? extends T> left, ImmutableList<? extends T> right) {
 		if (left.size() == 0) throw new IllegalArgumentException("left list is empty");
 		if (right.size() == 0) throw new IllegalArgumentException("right list is empty");
 		this.left = left;
 		this.right = right;
+		this.size = left.size() + right.size();
 	}
 
 	@Override
@@ -306,7 +318,7 @@ class ImmutableListImplCons<T> extends ImmutableList<T> {
 	}
 
 	@Override
-	public ImmutableList<T> cons(ImmutableList<T> other) {
+	public ImmutableList<T> cons(ImmutableList<? extends T> other) {
 		if (other.isEmpty()) {
 			return this;
 		} else {
@@ -319,18 +331,19 @@ class ImmutableListImplCons<T> extends ImmutableList<T> {
 		return left.head();
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public ImmutableList<T> tail() {
-		ImmutableList<T> leftTail = left.tail();
-		if (leftTail == null || leftTail.isEmpty()) {
-			return right;
+		ImmutableList<T> leftTail = (ImmutableList<T>) left.tail();
+		if (leftTail.isEmpty()) {
+			return (ImmutableList<T>) right;
 		}
 		return new ImmutableListImplCons<T>(leftTail, right);
 	}
 
 	@Override
 	public int size() {
-		return left.size() + right.size();
+		return size;
 	}
 	
 }
