@@ -1,0 +1,14 @@
+package test {
+		
+	function foo() {
+	
+	}
+	
+	function blub() {
+		foo()
+	}
+	
+	function bar() { 
+	}
+	
+}
