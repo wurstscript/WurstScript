@@ -1,0 +1,9 @@
+Prog was null.
+Error in File privateClassFunction.pscript line 18:11:
+Could not resolve reference to function foo
+Error in File privateClassFunction.pscript line 18:2:
+Cannot assign #unknown to integer
+Error in File privateClassFunction.pscript line 18:11:
+Could not resolve reference to function foo
+Error in File privateClassFunction.pscript line 18:2:
+Cannot assign #unknown to integer
