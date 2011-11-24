@@ -1,0 +1,7 @@
+package one {
+	function blub() {
+		int i
+		 = 2
+	}
+
+}
