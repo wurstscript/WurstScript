@@ -101,12 +101,15 @@ public class JassOptimizerImpl implements JassOptimizer {
 			@Override
 			public void visit(JassStmtCall jassCall) {
 				String funcname = jassCall.getFunctionName();
-				if ( funcname.equals("ExecuteFunc") ) {
+				System.out.println("name: " + funcname);
+				if ( funcname.equals("test_ExecuteFunc") ) {
+					System.out.println("equals");
 					JassExprlist list = jassCall.getArguments();
 					JassExpr argument = list.get(0);
 					if ( argument instanceof JassExprStringVal ){
 						String stringName = ((JassExprStringVal) argument).getVal();
 						usedFunctions.add(stringName);
+						System.out.println(stringName);
 					}					
 				}else if ( funcname.equals( "TriggerRegisterVariableEvent")){
 					JassExprlist list = jassCall.getArguments();
@@ -120,6 +123,31 @@ public class JassOptimizerImpl implements JassOptimizer {
 			
 		});
 		return usedFunctions;
+	}
+	
+	public void replaceEFTRVE(JassProg prg, final HashMap<String, String> replacements) {
+		prg.accept(new JassProg.DefaultVisitor() {			
+			@Override
+			public void visit(JassStmtCall jassCall) {
+				String funcname = jassCall.getFunctionName();
+				if ( funcname.equals("test_ExecuteFunc") ) {
+					JassExprlist list = jassCall.getArguments();
+					JassExpr argument = list.get(0);
+					if ( argument instanceof JassExprStringVal ){
+						String stringName = ((JassExprStringVal) argument).getVal();
+						((JassExprStringVal) argument).setVal(replacements.get(stringName));
+					}					
+				}else if ( funcname.equals( "TriggerRegisterVariableEvent")){
+					JassExprlist list = jassCall.getArguments();
+					JassExpr argument = list.get(1);
+					if ( argument instanceof JassExprStringVal ){
+						String stringName = ((JassExprStringVal) argument).getVal();
+						((JassExprStringVal) argument).setVal(replacements.get(stringName));
+					}
+				}
+			}
+			
+		});
 	}
 	
 	@Override
@@ -153,6 +181,8 @@ public class JassOptimizerImpl implements JassOptimizer {
 		// Create a set of functions that are used in EF or TRVE
 		final Set<String> usedInEFTRVE = getEverythingInEForTRVE(prog);
 		
+		
+		
 		// visit all function declarations and create a fitting replacement and put that
 		// into the Hashmap
 		prog.accept(new JassProg.DefaultVisitor() {
@@ -162,9 +192,12 @@ public class JassOptimizerImpl implements JassOptimizer {
 				try {
 					String name = jassFunction.getName();
 					if ( !isStandard(name)){
-						if ( usedInEFTRVE.contains(name)) {							
+						System.out.println(name);
+						if ( usedInEFTRVE.contains(name)) {	
+							System.out.println("used");
 							replacements.put(name, ng.getTEToken());							
-						}else {							
+						}else {		
+							System.out.println("not");
 							replacements.put(name, ng.getUniqueToken());
 						}
 					}
@@ -175,6 +208,8 @@ public class JassOptimizerImpl implements JassOptimizer {
 			}
 			
 		});
+		
+		replaceEFTRVE( prog, replacements);
 		
 		// Replace all function declaration names with the shorter ones
 		// from the replacements Hashmap

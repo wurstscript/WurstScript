@@ -9,6 +9,11 @@ package test {
 	}
 	
 	function bar() { 
+		ExecuteFunc("test_blub")
+	}
+	
+	function ExecuteFunc(string s) {
+	
 	}
 	
 }
