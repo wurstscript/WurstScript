@@ -50,9 +50,9 @@ import de.peeeq.wurstscript.utils.Utils;
 public class JassPrinter {
 
 	
-	static public void printProg(StringBuilder sb, JassProg prog) {
+	static public void printProg(StringBuilder sb, JassProg prog, boolean clean) {
 		printGlobals(sb, prog.getGlobals());
-		printFunctions(sb, prog.getFunctions());
+		printFunctions(sb, prog.getFunctions(), clean);
 	}
 
 
@@ -80,33 +80,45 @@ public class JassPrinter {
 	}
 	
 
-	private static void printFunctions(StringBuilder sb, JassFunctions functions) {
+	private static void printFunctions(StringBuilder sb, JassFunctions functions, boolean clean) {
 		for (JassFunction f : functions) {
-			printFunction(sb, f);
+			printFunction(sb, f, clean);
 		}
 	}
 
 
-	private static void printFunction(StringBuilder sb, JassFunction f) {
+	private static void printFunction(StringBuilder sb, JassFunction f, boolean clean) {
 		sb.append("function ");
 		sb.append(f.getName());
 		sb.append(" takes ");
 		if (f.getParams().size() == 0) {
 			sb.append("nothing");
 		} else {
-			Utils.printSep(sb, ", ", f.getParams(), new Function<JassSimpleVar, String>() {
+			if (clean) {
+				Utils.printSep(sb, ",", f.getParams(), new Function<JassSimpleVar, String>() {
 
-				@Override
-				public String apply(JassSimpleVar input) {
-					return input.getType() + " " + input.getName();
+					@Override
+					public String apply(JassSimpleVar input) {
+						return input.getType() + " " + input.getName();
+					}
+				});				
+			}else {
+					Utils.printSep(sb, ", ", f.getParams(), new Function<JassSimpleVar, String>() {
+
+						@Override
+						public String apply(JassSimpleVar input) {
+							return input.getType() + " " + input.getName();
+						}
+					});				
 				}
-			});
 		}
 		sb.append(" returns ");
 		sb.append(f.getReturnType());
 		sb.append("\n");
 		for (JassVar v : f.getLocals()) {
-			Utils.printIndent(sb, 1);
+			if (!clean) {
+				Utils.printIndent(sb, 1);
+			}
 			sb.append("local ");
 			sb.append(v.getType());
 			if (v instanceof JassArrayVar) {
@@ -116,20 +128,26 @@ public class JassPrinter {
 			sb.append(v.getName());
 			sb.append("\n");
 		}
-		printStatements(sb, 1, f.getBody());
-		sb.append("endfunction\n\n");
-	}
-
-
-	private static void printStatements(StringBuilder sb, int indent, JassStatements statements) {
-		for (JassStatement s : statements) {
-			printStatement(sb, indent, s);
+		printStatements(sb, 1, f.getBody(), clean);
+		if (clean) {
+			sb.append("endfunction\n");
+		}else {
+			sb.append("endfunction\n\n");
 		}
 	}
 
 
-	private static void printStatement(final StringBuilder sb, final int indent, JassStatement s) {
-		Utils.printIndent(sb, indent);
+	private static void printStatements(StringBuilder sb, int indent, JassStatements statements, boolean clean) {
+		for (JassStatement s : statements) {
+			printStatement(sb, indent, s, clean);
+		}
+	}
+
+
+	private static void printStatement(final StringBuilder sb, final int indent, JassStatement s, final boolean clean) {
+		if (!clean) {
+			Utils.printIndent(sb, 1);
+		}
 		s.match(new JassStatement.MatcherVoid() {
 			
 			@Override
@@ -137,18 +155,27 @@ public class JassPrinter {
 				sb.append("set ");
 				sb.append(s.getLeft());
 				sb.append("[");
-				printExpr(sb, s.getIndex());
+				printExpr(sb, s.getIndex(), clean);
 				sb.append("]");
-				sb.append(" = ");
-				printExpr(sb, s.getRight());
+				if (clean) {
+					sb.append("=");
+				}else {
+					sb.append(" = ");
+				}
+				
+				printExpr(sb, s.getRight(), clean);
 			}
 			
 			@Override
 			public void case_JassStmtSet(JassStmtSet s) {
 				sb.append("set ");
 				sb.append(s.getLeft());
-				sb.append(" = ");
-				printExpr(sb, s.getRight());
+				if (clean) {
+					sb.append("=");
+				}else {
+					sb.append(" = ");
+				}
+				printExpr(sb, s.getRight(), clean);
 			}
 			
 			@Override
@@ -159,36 +186,42 @@ public class JassPrinter {
 			@Override
 			public void case_JassStmtReturn(JassStmtReturn s) {
 				sb.append("return ");
-				printExpr(sb, s.getReturnValue());
+				printExpr(sb, s.getReturnValue(), clean);
 			}
 			
 			@Override
 			public void case_JassStmtLoop(JassStmtLoop s) {
 				sb.append("loop\n");
-				printStatements(sb, indent+1, s.getBody());
-				Utils.printIndent(sb, indent);
+				printStatements(sb, indent+1, s.getBody(),clean);
+				if (!clean) {
+					Utils.printIndent(sb, 1);
+				}
 				sb.append("endloop");
 			}
 			
 			@Override
 			public void case_JassStmtIf(JassStmtIf s) {
 				sb.append("if ");
-				printExpr(sb, s.getCond());
+				printExpr(sb, s.getCond(), clean);
 				sb.append(" then\n");
-				printStatements(sb, indent+1, s.getThenBlock());
+				printStatements(sb, indent+1, s.getThenBlock(),clean);
 				if (s.getElseBlock().size() > 0) {
-					Utils.printIndent(sb, indent);
+					if (!clean) {
+						Utils.printIndent(sb, 1);
+					}
 					sb.append("else\n");
-					printStatements(sb, indent+1, s.getElseBlock());
+					printStatements(sb, indent+1, s.getElseBlock(),clean);
 				}
-				Utils.printIndent(sb, indent);
+				if (!clean) {
+					Utils.printIndent(sb, 1);
+				}
 				sb.append("endif");
 			}
 			
 			@Override
 			public void case_JassStmtExitwhen(JassStmtExitwhen s) {
 				sb.append("exitwhen ");
-				printExpr(sb, s.getCond());
+				printExpr(sb, s.getCond(), clean);
 			}
 			
 			@Override
@@ -199,9 +232,13 @@ public class JassPrinter {
 				boolean first = true;
 				for (JassExpr e : s.getArguments()) {
 					if (!first) {
-						sb.append(", ");
+						if (clean) {
+							sb.append(",");
+						}else {
+							sb.append(", ");
+						}
 					}
-					printExpr(sb, e);
+					printExpr(sb, e, clean);
 					first = false;
 				}
 				sb.append(")");
@@ -211,14 +248,14 @@ public class JassPrinter {
 	}
 
 
-	protected static void printExpr(final StringBuilder sb, JassExpr expr) {
+	protected static void printExpr(final StringBuilder sb, JassExpr expr, final boolean clean) {
 		expr.match(new JassExpr.MatcherVoid() {
 			
 			@Override
 			public void case_JassExprVarArrayAccess(JassExprVarArrayAccess e) {
 				sb.append(e.getVarName());
 				sb.append("[");
-				printExpr(sb, e.getIndex());
+				printExpr(sb, e.getIndex(), clean);
 				sb.append("]");
 			}
 			
@@ -230,10 +267,12 @@ public class JassPrinter {
 			@Override
 			public void case_JassExprUnary(JassExprUnary e) {
 				printOp(sb, e.getOp());
-				sb.append(" ");
+				if (!clean) {
+					sb.append(" ");
+				}
 				boolean useParantheses = e.getRight() instanceof JassExprBinary;
 				sb.append(useParantheses ? "(" : "");
-				printExpr(sb, e.getRight());
+				printExpr(sb, e.getRight(), clean);
 				sb.append(useParantheses ? ")" : "");
 			}
 			
@@ -266,9 +305,13 @@ public class JassPrinter {
 				boolean first = true;
 				for (JassExpr a : e.getArguments()) {
 					if (!first) {
-						sb.append(", ");
+						if (clean) {
+							sb.append(",");
+						}else {
+							sb.append(", ");
+						}
 					}
-					printExpr(sb, a);
+					printExpr(sb, a, clean);
 					first = false;
 				}
 				sb.append(")");
@@ -319,11 +362,19 @@ public class JassPrinter {
 					}
 				}
 				sb.append(useParanthesesLeft ? "(" : "");
-				printExpr(sb, e.getLeft());
-				sb.append(useParanthesesLeft ? ")" : " ");
-				printOp(sb, e.getOp());				
-				sb.append(useParanthesesRight ? "(" : " ");
-				printExpr(sb, e.getRight());
+				printExpr(sb, e.getLeft(), clean);
+				if (clean) {
+					sb.append(useParanthesesLeft ? ")" : "");
+				}else {
+					sb.append(useParanthesesLeft ? ")" : " ");
+				}				
+				printOp(sb, e.getOp());		
+				if (clean) {
+					sb.append(useParanthesesRight ? "(" : "");
+				}else {
+					sb.append(useParanthesesRight ? "(" : " ");
+				}				
+				printExpr(sb, e.getRight(), clean);
 				sb.append(useParanthesesRight ? ")" : "");
 			}
 		});
@@ -478,9 +529,9 @@ public class JassPrinter {
 	}
 
 
-	public CharSequence printProg(JassProg prog) {
+	public CharSequence printProg(JassProg prog, boolean clean) {
 		StringBuilder sb = new StringBuilder();
-		printProg(sb, prog);
+		printProg(sb, prog, clean);
 		return sb.toString();
 	}
 	

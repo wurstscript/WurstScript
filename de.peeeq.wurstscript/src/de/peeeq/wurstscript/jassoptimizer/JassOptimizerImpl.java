@@ -18,6 +18,7 @@ import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.gui.WurstGuiImpl;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.jassAst.JassExpr;
+import de.peeeq.wurstscript.jassAst.JassExprFuncRef;
 import de.peeeq.wurstscript.jassAst.JassExprStringVal;
 import de.peeeq.wurstscript.jassAst.JassExprlist;
 import de.peeeq.wurstscript.jassAst.JassFunction;
@@ -49,13 +50,13 @@ public class JassOptimizerImpl implements JassOptimizer {
 
 		// no we have a jass program
 		// print original
-		Files.write(new JassPrinter().printProg(prog), new File(testFile+".original.j"), Charsets.UTF_8);
+		Files.write(new JassPrinter().printProg(prog, false), new File(testFile+".original.j"), Charsets.UTF_8);
 		
 		// optimize it:
 		new JassOptimizerImpl().optimize(prog);
 		
 		// print the optimized version
-		Files.write(new JassPrinter().printProg(prog), new File(testFile+".optimized.j"), Charsets.UTF_8);
+		Files.write(new JassPrinter().printProg(prog, true), new File(testFile+".optimized.j"), Charsets.UTF_8);
 	}
 	
 	/**
@@ -153,19 +154,6 @@ public class JassOptimizerImpl implements JassOptimizer {
 	@Override
 	public void optimize(final JassProg prog) throws FileNotFoundException {
 		
-		// here is a small example in which we rename every function to frotty:
-		
-//		prog.accept(new JassProg.DefaultVisitor() {
-//			
-//			@Override
-//			public void visit(JassFunction jassFunction) {
-//				jassFunction.setName("frotty");
-//			}
-//			
-//			// look at the JassProg.DefaultVisitor to find other elements which you can visit
-//			
-//		});
-		
 		// Visit all functions and variables and save their name and their 
 		// replacement into a hashmap
 		
@@ -225,6 +213,7 @@ public class JassOptimizerImpl implements JassOptimizer {
 			
 		});
 		
+		// Replace all function statement calls names with the shorter ones
 		prog.accept(new JassProg.DefaultVisitor() {
 			
 			@Override
@@ -236,6 +225,21 @@ public class JassOptimizerImpl implements JassOptimizer {
 			}			
 			
 		});
+		
+		// Replace all function expression names with the shorter ones
+		prog.accept(new JassProg.DefaultVisitor() {
+			
+			@Override
+			public void visit(JassExprFuncRef funcExpr ) {
+				String name = funcExpr.getFuncName();
+				if ( replacements.containsKey(name)){
+					funcExpr.setFuncName(replacements.get(name));
+				}
+			}			
+			
+		});
+		
+		
 		
 	}
 

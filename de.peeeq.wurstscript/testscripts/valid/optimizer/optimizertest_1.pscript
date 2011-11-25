@@ -1,11 +1,12 @@
 package test {
 		
 	function foo() {
-	
+		int i = 0
 	}
 	
 	function blub() {
 		foo()
+		real r = 2.0 + 1.0
 	}
 	
 	function bar() { 
