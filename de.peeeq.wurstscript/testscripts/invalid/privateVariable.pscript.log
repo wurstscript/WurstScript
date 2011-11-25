@@ -1,0 +1,9 @@
+Prog was null.
+Error in File privateVariable.pscript line 11:10:
+Could not resolve reference to variable i
+Error in File privateVariable.pscript line 11:2:
+Cannot assign #unknown to integer
+Error in File privateVariable.pscript line 11:10:
+Could not resolve reference to variable i
+Error in File privateVariable.pscript line 11:2:
+Cannot assign #unknown to integer
