@@ -1,0 +1,5 @@
+InitGlobals
+InitCustomPlayerSlots
+InitCustomTeams
+main
+config
