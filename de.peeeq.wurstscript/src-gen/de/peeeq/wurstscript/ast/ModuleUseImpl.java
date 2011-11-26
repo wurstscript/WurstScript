@@ -45,7 +45,7 @@ class ModuleUseImpl implements ModuleUse, AstElementIntern {
 	public ModuleUse copy() {
 		return new ModuleUseImpl(source.copy(), moduleName);
 	}
-	@Override public void accept(WEntity.Visitor v) {
+	@Override public void accept(TypeDef.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -53,23 +53,19 @@ class ModuleUseImpl implements ModuleUse, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(ClassDef.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(AstElementWithModifier.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ModuleDef.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlot.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -81,7 +77,7 @@ class ModuleUseImpl implements ModuleUse, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassSlot.Visitor v) {
+	@Override public void accept(AstElementWithModifier.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -93,6 +89,14 @@ class ModuleUseImpl implements ModuleUse, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(ModuleDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		v.visit(this);
@@ -101,11 +105,7 @@ class ModuleUseImpl implements ModuleUse, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TypeDef.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -154,5 +154,14 @@ class ModuleUseImpl implements ModuleUse, AstElementIntern {
 			attr_attrNearestClassDef_isCached = true;
 		}
 		return attr_attrNearestClassDef_cache;
+	}
+	private boolean attr_attrNearestClassOrModule_isCached = false;
+	private ClassOrModule attr_attrNearestClassOrModule_cache;
+	public ClassOrModule attrNearestClassOrModule() {
+		if (!attr_attrNearestClassOrModule_isCached) {
+			attr_attrNearestClassOrModule_cache = de.peeeq.wurstscript.attributes.AttrNearestClassDef.nearestClassOrModule(this);
+			attr_attrNearestClassOrModule_isCached = true;
+		}
+		return attr_attrNearestClassOrModule_cache;
 	}
 }

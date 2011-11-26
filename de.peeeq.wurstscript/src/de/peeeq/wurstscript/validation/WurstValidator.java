@@ -12,6 +12,7 @@ import de.peeeq.wurstscript.ast.ModStatic;
 import de.peeeq.wurstscript.ast.Modifier;
 import de.peeeq.wurstscript.ast.Modifiers;
 import de.peeeq.wurstscript.ast.StmtIf;
+import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.TypeExpr;
@@ -22,6 +23,7 @@ import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
 import de.peeeq.wurstscript.types.PScriptTypeReal;
+import de.peeeq.wurstscript.types.PScriptTypeVoid;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -181,6 +183,27 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 					attr.addError(m.getSource(), "double static? - what r u trying to do?");
 				}
 				isStatic = true;
+			}
+		}
+	}
+	
+	@Override
+	public void visit(StmtReturn s) {
+		FuncDef func = s.attrNearestFuncDef();
+		PscriptType returnType = func.getSignature().getTyp().attrTyp();
+		if (s.getObj() instanceof Expr) {
+			Expr returned = (Expr) s.getObj();
+			if (returnType.isSubtypeOf(PScriptTypeVoid.instance())) {
+				attr.addError(s.getSource(), "Cannot return a value from a function which returns nothing");
+			} else {
+				PscriptType returnedType = returned.attrTyp();
+				if (! returnedType.isSubtypeOf(returnType)) {
+					attr.addError(s.getSource(), "Cannot return " + returnedType + ", expected expression of type " + returnType);
+				}
+			}
+		} else { // empty return
+			if (!returnType.isSubtypeOf(PScriptTypeVoid.instance())) {
+				attr.addError(s.getSource(), "Missing return value");
 			}
 		}
 	}

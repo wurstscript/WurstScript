@@ -48,22 +48,22 @@ public class JassManager {
 	}
 	
 	
-	public String getUniqueName(AstElement element, String baseName) {
-		if (baseName.contains("(")) throw new Error();
-		
-		String name = names.get(element);
-		if (name != null) {
-			return name;
-		}
-		name = baseName;
-		int i = 0;
-		while (givenNames.contains(name)) {
-			name = baseName + ++i;
-		}
-		givenNames.add(name);
-		names.put(element, name);
-		return name;
-	}
+//	public String getUniqueName(AstElement element, String baseName) {
+//		if (baseName.contains("(")) throw new Error();
+//		
+//		String name = names.get(element);
+//		if (name != null) {
+//			return name;
+//		}
+//		name = baseName;
+//		int i = 0;
+//		while (givenNames.contains(name)) {
+//			name = baseName + ++i;
+//		}
+//		givenNames.add(name);
+//		names.put(element, name);
+//		return name;
+//	}
 	
 	private void markNameAsUsed(String name) {
 		givenNames.add(name);
@@ -83,8 +83,10 @@ public class JassManager {
 	public JassFunction getJassFunctionFor(ImmutableList<ClassOrModule> context, FunctionDefinition f) {
 		Pair<ImmutableList<ClassOrModule>, FunctionDefinition> key = Pair.create(context, f);
 		if (functions.containsKey(key)) {
+			System.out.println("@@ function exists");
 			return functions.get(key);
 		}
+		System.out.println("@@ get new function");
 		String name = f.getSignature().getName();
 		if (f instanceof NativeFunc) {
 			// do not change name
@@ -97,7 +99,7 @@ public class JassManager {
 			if (f.attrNearestPackage() instanceof WPackage) {
 				name = ((WPackage) f.attrNearestPackage()).getName() + "_" + name;
 			}
-			name = getUniqueName(f, name);
+			name = getUniqueName(name);
 		}
 		JassFunction func = JassAst.JassFunction(name, JassAst.JassSimpleVars(), "nothing", JassAst.JassVars(), JassAst.JassStatements());
 		functions.put(key, func);
@@ -196,7 +198,7 @@ public class JassManager {
 		if (c.attrNearestPackage() instanceof WPackage) {
 			name = ((WPackage) c.attrNearestPackage()).getName() + "_" + name;
 		}
-		name = getUniqueName(c, name);
+		name = getUniqueName(name);
 		JassFunction func = JassAst.JassFunction(name, JassAst.JassSimpleVars(JassAst.JassSimpleVar("integer", "this")), "nothing", JassAst.JassVars(), JassAst.JassStatements());
 		destroyFunctions.put(c, func);
 		functionSources.put(func, c);
@@ -214,7 +216,7 @@ public class JassManager {
 		if (f.attrNearestPackage() instanceof WPackage) {
 			name = ((WPackage) f.attrNearestPackage()).getName() + "_" + name;
 		}
-		name = getUniqueName(f, name);
+		name = getUniqueName(name);
 		JassFunction func = JassAst.JassFunction(name, JassAst.JassSimpleVars(), "nothing", JassAst.JassVars(), JassAst.JassStatements());
 		constructorFunctions.put(f, func);
 		functionSources.put(func, f);
@@ -229,7 +231,7 @@ public class JassManager {
 		if (f.attrNearestPackage() instanceof WPackage) {
 			name = ((WPackage) f.attrNearestPackage()).getName() + "_" + name;
 		}
-		name = getUniqueName(f, name);
+		name = getUniqueName(name);
 		JassFunction func = JassAst.JassFunction(name, JassAst.JassSimpleVars(), "nothing", JassAst.JassVars(), JassAst.JassStatements());
 		initFunctions.put(f, func);
 		functionSources.put(func, f);
@@ -242,12 +244,31 @@ public class JassManager {
 	}
 
 
+	
+
+	public JassFunction getJassFunctionFor(FuncDefInstance calledFunc) {
+		return getJassFunctionFor(calledFunc.getContext(), calledFunc.getDef());
+	}
+	
+	@Deprecated
 	public JassFunction getJassFunctionFor(ImmutableList<ClassOrModule> context, FuncDefInstance calledFunc) {
 		Preconditions.checkNotNull(context);
 		// calculate the complete path:
-		ImmutableList<ClassOrModule> consContext = context.cons(calledFunc.getContext());
+		ImmutableList<ClassOrModule> consContext = mergeContexts(context, calledFunc.getContext());
 		return getJassFunctionFor(consContext, calledFunc.getDef());
 	}
+	
+	private ImmutableList<ClassOrModule> mergeContexts(ImmutableList<ClassOrModule> c1, ImmutableList<ClassOrModule> c2) {
+		// merge the two contexts in such a way that each element occurs only once		
+		ImmutableList<ClassOrModule> part2 = c2;
+		while (!part2.isEmpty() && c1.contains(part2.head())) {
+			part2 = part2.tail();
+		}
+		return c1.cons(part2);
+	}
+
+
+	
 
 
 	

@@ -21,25 +21,19 @@ class ModifiersImpl extends Modifiers implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(VarDef.Visitor v) {
+	@Override public void accept(NativeFunc.Visitor v) {
 		for (Modifier i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(ConstructorDef.Visitor v) {
+	@Override public void accept(TypeDef.Visitor v) {
 		for (Modifier i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(WEntity.Visitor v) {
-		for (Modifier i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(NativeType.Visitor v) {
+	@Override public void accept(Modifiers.Visitor v) {
 		for (Modifier i : this ) {
 			i.accept(v);
 		}
@@ -51,25 +45,13 @@ class ModifiersImpl extends Modifiers implements AstElementIntern {
 		}
 		v.visit(this);
 	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		for (Modifier i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
 	@Override public void accept(ClassDef.Visitor v) {
-		for (Modifier i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(AstElementWithModifier.Visitor v) {
-		for (Modifier i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
-		for (Modifier i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ModuleDef.Visitor v) {
 		for (Modifier i : this ) {
 			i.accept(v);
 		}
@@ -81,7 +63,31 @@ class ModifiersImpl extends Modifiers implements AstElementIntern {
 		}
 		v.visit(this);
 	}
+	@Override public void accept(ClassSlot.Visitor v) {
+		for (Modifier i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(VarDef.Visitor v) {
+		for (Modifier i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
 	@Override public void accept(PackageOrGlobal.Visitor v) {
+		for (Modifier i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(NativeType.Visitor v) {
+		for (Modifier i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
 		for (Modifier i : this ) {
 			i.accept(v);
 		}
@@ -93,7 +99,19 @@ class ModifiersImpl extends Modifiers implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(ClassSlot.Visitor v) {
+	@Override public void accept(FunctionDefinition.Visitor v) {
+		for (Modifier i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(AstElementWithModifier.Visitor v) {
+		for (Modifier i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(ConstructorDef.Visitor v) {
 		for (Modifier i : this ) {
 			i.accept(v);
 		}
@@ -111,19 +129,19 @@ class ModifiersImpl extends Modifiers implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(FuncDef.Visitor v) {
-		for (Modifier i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
-		for (Modifier i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
 	@Override public void accept(GlobalVarDef.Visitor v) {
+		for (Modifier i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(ModuleDef.Visitor v) {
+		for (Modifier i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
 		for (Modifier i : this ) {
 			i.accept(v);
 		}
@@ -141,25 +159,13 @@ class ModifiersImpl extends Modifiers implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(TypeDef.Visitor v) {
+	@Override public void accept(FuncDef.Visitor v) {
 		for (Modifier i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		for (Modifier i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
-		for (Modifier i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(Modifiers.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
 		for (Modifier i : this ) {
 			i.accept(v);
 		}
@@ -191,6 +197,15 @@ class ModifiersImpl extends Modifiers implements AstElementIntern {
 			attr_attrNearestClassDef_isCached = true;
 		}
 		return attr_attrNearestClassDef_cache;
+	}
+	private boolean attr_attrNearestClassOrModule_isCached = false;
+	private ClassOrModule attr_attrNearestClassOrModule_cache;
+	public ClassOrModule attrNearestClassOrModule() {
+		if (!attr_attrNearestClassOrModule_isCached) {
+			attr_attrNearestClassOrModule_cache = de.peeeq.wurstscript.attributes.AttrNearestClassDef.nearestClassOrModule(this);
+			attr_attrNearestClassOrModule_isCached = true;
+		}
+		return attr_attrNearestClassOrModule_cache;
 	}
 	@Override public String toString() {
 		String result =  "Modifiers(";

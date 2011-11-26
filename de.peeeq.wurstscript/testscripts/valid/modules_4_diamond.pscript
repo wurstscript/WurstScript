@@ -11,7 +11,7 @@ package test {
 			this.x = x
 		}
 		
-		public function getX(int x) {
+		public function getX() returns int {
 			return x
 		}
 	}
@@ -25,12 +25,18 @@ package test {
 	}
 	
 	
-	class C {
-		use A
+	class D {
 		use B
+		use C
 		
-		override public function foo() returns int {
-			return 4
+		override function setX(int x) {
+			// we have two places where we could store x, so just split it ;)
+			B.setX(x div 2)
+			C.setX(x - B.getX())
+		}
+		
+		override function getX() returns int {
+			return B.getX() + C.getX()
 		}
 		
 	}		
@@ -38,11 +44,11 @@ package test {
 	
 	
 	init {
-		C c = new C()
+		D d = new D()
 		
+		d.setX(5)
 		
-		
-		if c.foo() != 4 {
+		if d.getX() != 5 {
 			testFail("foo fail")
 		} 
 			

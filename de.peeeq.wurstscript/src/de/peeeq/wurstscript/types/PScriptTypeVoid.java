@@ -10,7 +10,7 @@ public class PScriptTypeVoid extends PscriptType {
 	
 	@Override
 	public boolean isSubtypeOf(PscriptType other) {
-		return false;
+		return other instanceof PScriptTypeVoid;
 	}
 
 	@Override

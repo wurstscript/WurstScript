@@ -2,10 +2,13 @@
 package de.peeeq.wurstscript.ast;
 
 class NativeFuncImpl implements NativeFunc, AstElementIntern {
-	NativeFuncImpl(WPos source, FuncSignature signature) {
+	NativeFuncImpl(WPos source, Modifiers modifiers, FuncSignature signature) {
 		if (source == null) throw new IllegalArgumentException();
 		((AstElementIntern)source).setParent(this);
 		this.source = source;
+		if (modifiers == null) throw new IllegalArgumentException();
+		((AstElementIntern)modifiers).setParent(this);
+		this.modifiers = modifiers;
 		if (signature == null) throw new IllegalArgumentException();
 		((AstElementIntern)signature).setParent(this);
 		this.signature = signature;
@@ -27,6 +30,15 @@ class NativeFuncImpl implements NativeFunc, AstElementIntern {
 	} 
 	public WPos getSource() { return source; }
 
+	private Modifiers modifiers;
+	public void setModifiers(Modifiers modifiers) {
+		if (modifiers == null) throw new IllegalArgumentException();
+		((AstElementIntern)this.modifiers).setParent(null);
+		((AstElementIntern)modifiers).setParent(this);
+		this.modifiers = modifiers;
+	} 
+	public Modifiers getModifiers() { return modifiers; }
+
 	private FuncSignature signature;
 	public void setSignature(FuncSignature signature) {
 		if (signature == null) throw new IllegalArgumentException();
@@ -39,66 +51,104 @@ class NativeFuncImpl implements NativeFunc, AstElementIntern {
 	public AstElement get(int i) {
 		switch (i) {
 			case 0: return source;
-			case 1: return signature;
+			case 1: return modifiers;
+			case 2: return signature;
 			default: throw new IllegalArgumentException("Index out of range: " + i);
 		}
 	}
 	public int size() {
-		return 2;
+		return 3;
 	}
 	public NativeFunc copy() {
-		return new NativeFuncImpl(source.copy(), signature.copy());
-	}
-	@Override public void accept(WEntity.Visitor v) {
-		source.accept(v);
-		signature.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
-		source.accept(v);
-		signature.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		signature.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
-		source.accept(v);
-		signature.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntities.Visitor v) {
-		source.accept(v);
-		signature.accept(v);
-		v.visit(this);
+		return new NativeFuncImpl(source.copy(), modifiers.copy(), signature.copy());
 	}
 	@Override public void accept(NativeFunc.Visitor v) {
 		source.accept(v);
-		signature.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
-		source.accept(v);
-		signature.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		source.accept(v);
+		modifiers.accept(v);
 		signature.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
+		modifiers.accept(v);
+		signature.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		signature.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(PackageOrGlobal.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		signature.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
 		signature.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(FunctionDefinition.Visitor v) {
 		source.accept(v);
+		modifiers.accept(v);
 		signature.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(AstElementWithModifier.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		signature.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		signature.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		signature.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		signature.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		signature.accept(v);
+		v.visit(this);
+	}
+	@Override public <T> T match(FunctionDefinition.Matcher<T> matcher) {
+		return matcher.case_NativeFunc(this);
+	}
+	@Override public void match(FunctionDefinition.MatcherVoid matcher) {
+		matcher.case_NativeFunc(this);
+	}
+
+	@Override public <T> T match(AstElementWithModifier.Matcher<T> matcher) {
+		return matcher.case_NativeFunc(this);
+	}
+	@Override public void match(AstElementWithModifier.MatcherVoid matcher) {
+		matcher.case_NativeFunc(this);
+	}
+
+	@Override public <T> T match(JassToplevelDeclaration.Matcher<T> matcher) {
+		return matcher.case_NativeFunc(this);
+	}
+	@Override public void match(JassToplevelDeclaration.MatcherVoid matcher) {
+		matcher.case_NativeFunc(this);
+	}
+
 	@Override public <T> T match(TopLevelDeclaration.Matcher<T> matcher) {
 		return matcher.case_NativeFunc(this);
 	}
@@ -113,22 +163,8 @@ class NativeFuncImpl implements NativeFunc, AstElementIntern {
 		matcher.case_NativeFunc(this);
 	}
 
-	@Override public <T> T match(JassToplevelDeclaration.Matcher<T> matcher) {
-		return matcher.case_NativeFunc(this);
-	}
-	@Override public void match(JassToplevelDeclaration.MatcherVoid matcher) {
-		matcher.case_NativeFunc(this);
-	}
-
-	@Override public <T> T match(FunctionDefinition.Matcher<T> matcher) {
-		return matcher.case_NativeFunc(this);
-	}
-	@Override public void match(FunctionDefinition.MatcherVoid matcher) {
-		matcher.case_NativeFunc(this);
-	}
-
 	@Override public String toString() {
-		return "NativeFunc(" + source + ", " +signature+")";
+		return "NativeFunc(" + source + ", " +modifiers + ", " +signature+")";
 	}
 	private boolean attr_attrNearestPackage_isCached = false;
 	private PackageOrGlobal attr_attrNearestPackage_cache;
@@ -156,5 +192,68 @@ class NativeFuncImpl implements NativeFunc, AstElementIntern {
 			attr_attrNearestClassDef_isCached = true;
 		}
 		return attr_attrNearestClassDef_cache;
+	}
+	private boolean attr_attrNearestClassOrModule_isCached = false;
+	private ClassOrModule attr_attrNearestClassOrModule_cache;
+	public ClassOrModule attrNearestClassOrModule() {
+		if (!attr_attrNearestClassOrModule_isCached) {
+			attr_attrNearestClassOrModule_cache = de.peeeq.wurstscript.attributes.AttrNearestClassDef.nearestClassOrModule(this);
+			attr_attrNearestClassOrModule_isCached = true;
+		}
+		return attr_attrNearestClassOrModule_cache;
+	}
+	private boolean attr_attrIsPublic_isCached = false;
+	private boolean attr_attrIsPublic_cache;
+	public boolean attrIsPublic() {
+		if (!attr_attrIsPublic_isCached) {
+			attr_attrIsPublic_cache = de.peeeq.wurstscript.attributes.ModifiersHelper.isPublic(this);
+			attr_attrIsPublic_isCached = true;
+		}
+		return attr_attrIsPublic_cache;
+	}
+	private boolean attr_attrIsPublicRead_isCached = false;
+	private boolean attr_attrIsPublicRead_cache;
+	public boolean attrIsPublicRead() {
+		if (!attr_attrIsPublicRead_isCached) {
+			attr_attrIsPublicRead_cache = de.peeeq.wurstscript.attributes.ModifiersHelper.isPublicRead(this);
+			attr_attrIsPublicRead_isCached = true;
+		}
+		return attr_attrIsPublicRead_cache;
+	}
+	private boolean attr_attrIsPrivate_isCached = false;
+	private boolean attr_attrIsPrivate_cache;
+	public boolean attrIsPrivate() {
+		if (!attr_attrIsPrivate_isCached) {
+			attr_attrIsPrivate_cache = de.peeeq.wurstscript.attributes.ModifiersHelper.isPrivate(this);
+			attr_attrIsPrivate_isCached = true;
+		}
+		return attr_attrIsPrivate_cache;
+	}
+	private boolean attr_attrIsStatic_isCached = false;
+	private boolean attr_attrIsStatic_cache;
+	public boolean attrIsStatic() {
+		if (!attr_attrIsStatic_isCached) {
+			attr_attrIsStatic_cache = de.peeeq.wurstscript.attributes.ModifiersHelper.isStatic(this);
+			attr_attrIsStatic_isCached = true;
+		}
+		return attr_attrIsStatic_cache;
+	}
+	private boolean attr_attrIsOverride_isCached = false;
+	private boolean attr_attrIsOverride_cache;
+	public boolean attrIsOverride() {
+		if (!attr_attrIsOverride_isCached) {
+			attr_attrIsOverride_cache = de.peeeq.wurstscript.attributes.ModifiersHelper.isOverride(this);
+			attr_attrIsOverride_isCached = true;
+		}
+		return attr_attrIsOverride_cache;
+	}
+	private boolean attr_attrOverriddenFunctions_isCached = false;
+	private java.util.Collection<de.peeeq.wurstscript.attributes.FuncDefInstance> attr_attrOverriddenFunctions_cache;
+	public java.util.Collection<de.peeeq.wurstscript.attributes.FuncDefInstance> attrOverriddenFunctions() {
+		if (!attr_attrOverriddenFunctions_isCached) {
+			attr_attrOverriddenFunctions_cache = de.peeeq.wurstscript.attributes.OverriddenFunctions.calculate(this);
+			attr_attrOverriddenFunctions_isCached = true;
+		}
+		return attr_attrOverriddenFunctions_cache;
 	}
 }

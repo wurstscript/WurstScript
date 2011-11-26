@@ -15,19 +15,13 @@ class WParametersImpl extends WParameters implements AstElementIntern {
 	protected void other_clearParent(WParameter t) {
 		((AstElementIntern) t).setParent(null);
 	}
-	@Override public void accept(ConstructorDef.Visitor v) {
+	@Override public void accept(NativeFunc.Visitor v) {
 		for (WParameter i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(WEntity.Visitor v) {
-		for (WParameter i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(FuncSignature.Visitor v) {
+	@Override public void accept(TypeDef.Visitor v) {
 		for (WParameter i : this ) {
 			i.accept(v);
 		}
@@ -39,25 +33,13 @@ class WParametersImpl extends WParameters implements AstElementIntern {
 		}
 		v.visit(this);
 	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		for (WParameter i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
 	@Override public void accept(ClassDef.Visitor v) {
-		for (WParameter i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(AstElementWithModifier.Visitor v) {
-		for (WParameter i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
-		for (WParameter i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ModuleDef.Visitor v) {
 		for (WParameter i : this ) {
 			i.accept(v);
 		}
@@ -69,7 +51,19 @@ class WParametersImpl extends WParameters implements AstElementIntern {
 		}
 		v.visit(this);
 	}
+	@Override public void accept(ClassSlot.Visitor v) {
+		for (WParameter i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
 	@Override public void accept(PackageOrGlobal.Visitor v) {
+		for (WParameter i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
 		for (WParameter i : this ) {
 			i.accept(v);
 		}
@@ -81,7 +75,19 @@ class WParametersImpl extends WParameters implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(ClassSlot.Visitor v) {
+	@Override public void accept(FunctionDefinition.Visitor v) {
+		for (WParameter i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(AstElementWithModifier.Visitor v) {
+		for (WParameter i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(ConstructorDef.Visitor v) {
 		for (WParameter i : this ) {
 			i.accept(v);
 		}
@@ -105,19 +111,13 @@ class WParametersImpl extends WParameters implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(FuncDef.Visitor v) {
+	@Override public void accept(ModuleDef.Visitor v) {
 		for (WParameter i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(NativeFunc.Visitor v) {
-		for (WParameter i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+	@Override public void accept(WEntity.Visitor v) {
 		for (WParameter i : this ) {
 			i.accept(v);
 		}
@@ -135,19 +135,19 @@ class WParametersImpl extends WParameters implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(TypeDef.Visitor v) {
+	@Override public void accept(FuncDef.Visitor v) {
 		for (WParameter i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
 		for (WParameter i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
+	@Override public void accept(FuncSignature.Visitor v) {
 		for (WParameter i : this ) {
 			i.accept(v);
 		}
@@ -179,6 +179,15 @@ class WParametersImpl extends WParameters implements AstElementIntern {
 			attr_attrNearestClassDef_isCached = true;
 		}
 		return attr_attrNearestClassDef_cache;
+	}
+	private boolean attr_attrNearestClassOrModule_isCached = false;
+	private ClassOrModule attr_attrNearestClassOrModule_cache;
+	public ClassOrModule attrNearestClassOrModule() {
+		if (!attr_attrNearestClassOrModule_isCached) {
+			attr_attrNearestClassOrModule_cache = de.peeeq.wurstscript.attributes.AttrNearestClassDef.nearestClassOrModule(this);
+			attr_attrNearestClassOrModule_isCached = true;
+		}
+		return attr_attrNearestClassOrModule_cache;
 	}
 	@Override public String toString() {
 		String result =  "WParameters(";

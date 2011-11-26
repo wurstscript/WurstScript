@@ -21,7 +21,7 @@ WEntity =
 	| FuncDef
 	| GlobalVarDef
 	| InitBlock (WPos source, WStatements body)
-	| NativeFunc(WPos source, FuncSignature signature)
+	| NativeFunc(WPos source, Modifiers modifiers, FuncSignature signature)
 	| ModuleDef(WPos source, Modifiers modifiers, String name, ClassSlots slots)
 
 
@@ -153,7 +153,7 @@ FuncRef = ExprFuncRef | ExprMemberMethod | ExprFunctionCall
 	
 FunctionDefinition = FuncDef | NativeFunc	
 	
-WScope = PackageOrGlobal | ClassDef | ModuleDef | FuncDef | ConstructorDef | OnDestroyDef | InitBlock
+WScope = PackageOrGlobal |  ClassOrModule | FuncDef | ConstructorDef | OnDestroyDef | InitBlock
 
 PackageOrGlobal = WPackage | CompilationUnit	
 	
@@ -172,10 +172,11 @@ Modifiers * Modifier
 
 Modifier = 
 	  VisibilityModifier
-	| ModStatic(WPos source)	
+	| ModStatic(WPos source)
+	| ModOverride(WPos source)
 	
 
-AstElementWithModifier = TypeDef | ConstructorDef | GlobalVarDef | FuncDef
+AstElementWithModifier = TypeDef | ConstructorDef | GlobalVarDef | FuncDef | FunctionDefinition
 	
 ClassOrModule = ClassDef | ModuleDef	
 	
@@ -290,6 +291,11 @@ AstElement.attrNearestClassDef
 	returns ClassDef
 	implemented by de.peeeq.wurstscript.attributes.AttrNearestClassDef.calculate
 
+AstElement.attrNearestClassOrModule
+	returns ClassOrModule
+	implemented by de.peeeq.wurstscript.attributes.AttrNearestClassDef.nearestClassOrModule
+
+
 
 WPackage.attrExportedVariables
 	returns java.util.Map<String, VarDef>
@@ -302,20 +308,32 @@ WPackage.attrExportedTypes
 
 AstElementWithModifier.attrIsPublic
 	returns boolean
-	implemented by de.peeeq.wurstscript.attributes.Modifiers.isPublic
+	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isPublic
 
 AstElementWithModifier.attrIsPublicRead
 	returns boolean
-	implemented by de.peeeq.wurstscript.attributes.Modifiers.isPublicRead
+	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isPublicRead
 
 AstElementWithModifier.attrIsPrivate
 	returns boolean
-	implemented by de.peeeq.wurstscript.attributes.Modifiers.isPrivate
+	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isPrivate
 
 AstElementWithModifier.attrIsStatic
 	returns boolean
-	implemented by de.peeeq.wurstscript.attributes.Modifiers.isStatic
+	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isStatic
 
+AstElementWithModifier.attrIsOverride
+	returns boolean
+	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isOverride
+
+
+FunctionDefinition.attrOverriddenFunctions
+	returns java.util.Collection<de.peeeq.wurstscript.attributes.FuncDefInstance>
+	implemented by de.peeeq.wurstscript.attributes.OverriddenFunctions.calculate
+
+ClassOrModule.attrAllFunctions
+	returns com.google.common.collect.Multimap<String, de.peeeq.wurstscript.attributes.FuncDefInstance>
+	implemented by de.peeeq.wurstscript.attributes.AttrAllFunctions.calculate
 
 
 

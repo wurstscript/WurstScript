@@ -9,11 +9,11 @@ public abstract class WImports extends ParseqList<WImport> implements AstElement
 		}
 		return result;
 	}
-	public abstract void accept(WScope.Visitor v);
+	public abstract void accept(TopLevelDeclaration.Visitor v);
 	public abstract void accept(WPackage.Visitor v);
 	public abstract void accept(PackageOrGlobal.Visitor v);
 	public abstract void accept(CompilationUnit.Visitor v);
-	public abstract void accept(TopLevelDeclaration.Visitor v);
+	public abstract void accept(WScope.Visitor v);
 	public abstract void accept(WImports.Visitor v);
 	public interface Visitor {
 		void visit(WPos wPos);

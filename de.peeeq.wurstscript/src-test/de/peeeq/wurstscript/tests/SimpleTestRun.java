@@ -26,7 +26,7 @@ public class SimpleTestRun {
 	
 	public static void main(String ... args) throws IOException, InterruptedException {
 		//String testFile = "./testscripts/valid/modules_1.pscript";
-		String testFile = "./testscripts/valid/Classes_1.pscript";
+		String testFile = "./testscripts/valid/modules_5_override2.pscript";
 		if (args.length == 1) {
 			testFile = args[0];
 		}

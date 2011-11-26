@@ -1,12 +1,12 @@
 package de.peeeq.wurstscript.attributes;
 
 import java.util.Collection;
-import java.util.Map.Entry;
 
 import com.google.common.collect.Multimap;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
@@ -14,8 +14,10 @@ import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FuncRef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
+import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.types.PScriptTypeClassDefinition;
+import de.peeeq.wurstscript.types.PScriptTypeModuleDefinition;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
 
@@ -77,7 +79,14 @@ public class AttrFuncDef {
 						}
 						return f;
 					}
-					
+				} else if (leftType instanceof PScriptTypeModuleDefinition) {
+					PScriptTypeModuleDefinition leftTypeM = (PScriptTypeModuleDefinition) leftType;
+					ModuleDef moduleDef = leftTypeM.getModuleDef();
+					Multimap<String, FuncDefInstance> functions = getVisibleClassFunctions(left, moduleDef);
+					if (functions.containsKey(funcName)) {
+						FuncDefInstance f = selectOverloadedFunction(node, functions.get(funcName));
+						return f;
+					}
 				} else {
 					// only valid as long as there are no extension functions 
 					attr.addError(left.getSource(), "Cannot use the dot operator on receiver of type " + leftType.getClass() + " " + leftType);
@@ -97,7 +106,7 @@ public class AttrFuncDef {
 			 * @param classDef
 			 * @return
 			 */
-			private Multimap<String, FuncDefInstance> getVisibleClassFunctions(AstElement context, ClassDef classDef) {
+			private Multimap<String, FuncDefInstance> getVisibleClassFunctions(AstElement context, ClassOrModule classDef) {
 				Multimap<String, FuncDefInstance> functions;
 				if (classDef == context.attrNearestClassDef()) {
 					// same class

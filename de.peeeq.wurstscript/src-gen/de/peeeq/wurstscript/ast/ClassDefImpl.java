@@ -78,25 +78,19 @@ class ClassDefImpl implements ClassDef, AstElementIntern {
 	public ClassDef copy() {
 		return new ClassDefImpl(source.copy(), modifiers.copy(), name, unmanaged, slots.copy());
 	}
-	@Override public void accept(WEntity.Visitor v) {
+	@Override public void accept(TypeDef.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		slots.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		slots.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(ClassDef.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		slots.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(AstElementWithModifier.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		slots.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		slots.accept(v);
@@ -120,6 +114,12 @@ class ClassDefImpl implements ClassDef, AstElementIntern {
 		slots.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(AstElementWithModifier.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		slots.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(WEntities.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
@@ -132,42 +132,28 @@ class ClassDefImpl implements ClassDef, AstElementIntern {
 		slots.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(WEntity.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		slots.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		slots.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TypeDef.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		slots.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		slots.accept(v);
-		v.visit(this);
-	}
-	@Override public <T> T match(TypeDef.Matcher<T> matcher) {
-		return matcher.case_ClassDef(this);
-	}
-	@Override public void match(TypeDef.MatcherVoid matcher) {
-		matcher.case_ClassDef(this);
-	}
-
 	@Override public <T> T match(ClassOrModule.Matcher<T> matcher) {
 		return matcher.case_ClassDef(this);
 	}
 	@Override public void match(ClassOrModule.MatcherVoid matcher) {
-		matcher.case_ClassDef(this);
-	}
-
-	@Override public <T> T match(WEntity.Matcher<T> matcher) {
-		return matcher.case_ClassDef(this);
-	}
-	@Override public void match(WEntity.MatcherVoid matcher) {
 		matcher.case_ClassDef(this);
 	}
 
@@ -178,10 +164,24 @@ class ClassDefImpl implements ClassDef, AstElementIntern {
 		matcher.case_ClassDef(this);
 	}
 
+	@Override public <T> T match(TypeDef.Matcher<T> matcher) {
+		return matcher.case_ClassDef(this);
+	}
+	@Override public void match(TypeDef.MatcherVoid matcher) {
+		matcher.case_ClassDef(this);
+	}
+
 	@Override public <T> T match(WScope.Matcher<T> matcher) {
 		return matcher.case_ClassDef(this);
 	}
 	@Override public void match(WScope.MatcherVoid matcher) {
+		matcher.case_ClassDef(this);
+	}
+
+	@Override public <T> T match(WEntity.Matcher<T> matcher) {
+		return matcher.case_ClassDef(this);
+	}
+	@Override public void match(WEntity.MatcherVoid matcher) {
 		matcher.case_ClassDef(this);
 	}
 
@@ -294,11 +294,20 @@ class ClassDefImpl implements ClassDef, AstElementIntern {
 		}
 		return attr_attrNearestClassDef_cache;
 	}
+	private boolean attr_attrNearestClassOrModule_isCached = false;
+	private ClassOrModule attr_attrNearestClassOrModule_cache;
+	public ClassOrModule attrNearestClassOrModule() {
+		if (!attr_attrNearestClassOrModule_isCached) {
+			attr_attrNearestClassOrModule_cache = de.peeeq.wurstscript.attributes.AttrNearestClassDef.nearestClassOrModule(this);
+			attr_attrNearestClassOrModule_isCached = true;
+		}
+		return attr_attrNearestClassOrModule_cache;
+	}
 	private boolean attr_attrIsPublic_isCached = false;
 	private boolean attr_attrIsPublic_cache;
 	public boolean attrIsPublic() {
 		if (!attr_attrIsPublic_isCached) {
-			attr_attrIsPublic_cache = de.peeeq.wurstscript.attributes.Modifiers.isPublic(this);
+			attr_attrIsPublic_cache = de.peeeq.wurstscript.attributes.ModifiersHelper.isPublic(this);
 			attr_attrIsPublic_isCached = true;
 		}
 		return attr_attrIsPublic_cache;
@@ -307,7 +316,7 @@ class ClassDefImpl implements ClassDef, AstElementIntern {
 	private boolean attr_attrIsPublicRead_cache;
 	public boolean attrIsPublicRead() {
 		if (!attr_attrIsPublicRead_isCached) {
-			attr_attrIsPublicRead_cache = de.peeeq.wurstscript.attributes.Modifiers.isPublicRead(this);
+			attr_attrIsPublicRead_cache = de.peeeq.wurstscript.attributes.ModifiersHelper.isPublicRead(this);
 			attr_attrIsPublicRead_isCached = true;
 		}
 		return attr_attrIsPublicRead_cache;
@@ -316,7 +325,7 @@ class ClassDefImpl implements ClassDef, AstElementIntern {
 	private boolean attr_attrIsPrivate_cache;
 	public boolean attrIsPrivate() {
 		if (!attr_attrIsPrivate_isCached) {
-			attr_attrIsPrivate_cache = de.peeeq.wurstscript.attributes.Modifiers.isPrivate(this);
+			attr_attrIsPrivate_cache = de.peeeq.wurstscript.attributes.ModifiersHelper.isPrivate(this);
 			attr_attrIsPrivate_isCached = true;
 		}
 		return attr_attrIsPrivate_cache;
@@ -325,9 +334,27 @@ class ClassDefImpl implements ClassDef, AstElementIntern {
 	private boolean attr_attrIsStatic_cache;
 	public boolean attrIsStatic() {
 		if (!attr_attrIsStatic_isCached) {
-			attr_attrIsStatic_cache = de.peeeq.wurstscript.attributes.Modifiers.isStatic(this);
+			attr_attrIsStatic_cache = de.peeeq.wurstscript.attributes.ModifiersHelper.isStatic(this);
 			attr_attrIsStatic_isCached = true;
 		}
 		return attr_attrIsStatic_cache;
+	}
+	private boolean attr_attrIsOverride_isCached = false;
+	private boolean attr_attrIsOverride_cache;
+	public boolean attrIsOverride() {
+		if (!attr_attrIsOverride_isCached) {
+			attr_attrIsOverride_cache = de.peeeq.wurstscript.attributes.ModifiersHelper.isOverride(this);
+			attr_attrIsOverride_isCached = true;
+		}
+		return attr_attrIsOverride_cache;
+	}
+	private boolean attr_attrAllFunctions_isCached = false;
+	private com.google.common.collect.Multimap<String, de.peeeq.wurstscript.attributes.FuncDefInstance> attr_attrAllFunctions_cache;
+	public com.google.common.collect.Multimap<String, de.peeeq.wurstscript.attributes.FuncDefInstance> attrAllFunctions() {
+		if (!attr_attrAllFunctions_isCached) {
+			attr_attrAllFunctions_cache = de.peeeq.wurstscript.attributes.AttrAllFunctions.calculate(this);
+			attr_attrAllFunctions_isCached = true;
+		}
+		return attr_attrAllFunctions_cache;
 	}
 }
