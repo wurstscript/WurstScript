@@ -17,13 +17,16 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.gui.WurstGuiImpl;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
+import de.peeeq.wurstscript.jassAst.JassAstElement;
 import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassExprFuncRef;
 import de.peeeq.wurstscript.jassAst.JassExprStringVal;
 import de.peeeq.wurstscript.jassAst.JassExprlist;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassProg;
+import de.peeeq.wurstscript.jassAst.JassStatements;
 import de.peeeq.wurstscript.jassAst.JassStmtCall;
+import de.peeeq.wurstscript.jassAst.JassVar;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -189,6 +192,9 @@ public class JassOptimizerImpl implements JassOptimizer {
 							replacements.put(name, ng.getUniqueToken());
 						}
 					}
+					JassStatements body = jassFunction.getBody();
+					JassAstElement ast = body.get(0);
+					if (ast instanceof JassVar)
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
