@@ -56,7 +56,7 @@ public class SimpleTestRun {
 
 			File outputFile = new File(filename.replaceAll("\\"+PSCRIPT_ENDING, ".j"));
 			StringBuilder sb = new StringBuilder();
-			JassPrinter.printProg(sb, prog);
+			JassPrinter.printProg(sb, prog, true);
 			try {
 				FileWriter writer = new FileWriter(outputFile, false);
 				writer.append(sb.toString());

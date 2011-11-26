@@ -194,7 +194,6 @@ public class JassOptimizerImpl implements JassOptimizer {
 					}
 					JassStatements body = jassFunction.getBody();
 					JassAstElement ast = body.get(0);
-					if (ast instanceof JassVar)
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
