@@ -71,7 +71,7 @@ class WPackageImpl implements WPackage, AstElementIntern {
 	public WPackage copy() {
 		return new WPackageImpl(source.copy(), name, imports.copy(), elements.copy());
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		imports.accept(v);
 		elements.accept(v);
@@ -95,23 +95,23 @@ class WPackageImpl implements WPackage, AstElementIntern {
 		elements.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
 		source.accept(v);
 		imports.accept(v);
 		elements.accept(v);
 		v.visit(this);
 	}
-	@Override public <T> T match(PackageOrGlobal.Matcher<T> matcher) {
-		return matcher.case_WPackage(this);
-	}
-	@Override public void match(PackageOrGlobal.MatcherVoid matcher) {
-		matcher.case_WPackage(this);
-	}
-
 	@Override public <T> T match(TopLevelDeclaration.Matcher<T> matcher) {
 		return matcher.case_WPackage(this);
 	}
 	@Override public void match(TopLevelDeclaration.MatcherVoid matcher) {
+		matcher.case_WPackage(this);
+	}
+
+	@Override public <T> T match(PackageOrGlobal.Matcher<T> matcher) {
+		return matcher.case_WPackage(this);
+	}
+	@Override public void match(PackageOrGlobal.MatcherVoid matcher) {
 		matcher.case_WPackage(this);
 	}
 
@@ -232,6 +232,15 @@ class WPackageImpl implements WPackage, AstElementIntern {
 			attr_attrNearestClassDef_isCached = true;
 		}
 		return attr_attrNearestClassDef_cache;
+	}
+	private boolean attr_attrNearestClassOrModule_isCached = false;
+	private ClassOrModule attr_attrNearestClassOrModule_cache;
+	public ClassOrModule attrNearestClassOrModule() {
+		if (!attr_attrNearestClassOrModule_isCached) {
+			attr_attrNearestClassOrModule_cache = de.peeeq.wurstscript.attributes.AttrNearestClassDef.nearestClassOrModule(this);
+			attr_attrNearestClassOrModule_isCached = true;
+		}
+		return attr_attrNearestClassOrModule_cache;
 	}
 	private boolean attr_attrExportedVariables_isCached = false;
 	private java.util.Map<String, VarDef> attr_attrExportedVariables_cache;

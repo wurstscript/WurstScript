@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.attributes;
 import java.util.Map;
 
 import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
@@ -14,6 +15,7 @@ import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
+import de.peeeq.wurstscript.types.PscriptTypeModule;
 
 
 /**
@@ -50,29 +52,33 @@ public class AttrNameDef {
 			
 			private NameDef memberVarCase(Expr left) {
 				PscriptType leftType = left.attrTyp();
+				ClassOrModule classDef;
 				if (leftType instanceof PscriptTypeClass) {
 					PscriptTypeClass leftTypeC = (PscriptTypeClass) leftType;
-					ClassDef classDef = leftTypeC.getClassDef();
-					Map<String, NameDef> classDefScope;
-					if (classDef == left.attrNearestClassDef()) {
-						// same class
-						classDefScope = classDef.attrScopeNames();
-					} else if (classDef.attrNearestPackage() == left.attrNearestPackage()) {
-						// same package
-						classDefScope = classDef.attrScopePackageNames();
-					} else {
-						// different package
-						if (writeAccess) {
-							classDefScope = classDef.attrScopePublicNames();
-						} else {
-							classDefScope = classDef.attrScopePublicReadNamess();
-						}
-					}
-					return classDefScope.get(varName);
+					classDef = leftTypeC.getClassDef();
+				} else if (leftType instanceof PscriptTypeModule) {
+					PscriptTypeModule leftTypeM = (PscriptTypeModule) leftType;
+					classDef = leftTypeM.getModuleDef();
 				} else {
 					attr.addError(node.getSource(), "Cannot acces attribute " + varName + " because " + leftType + " is not a class-type.");
+					return null;
 				}
-				return null;
+				Map<String, NameDef> classDefScope;
+				if (classDef == left.attrNearestClassDef()) {
+					// same class
+					classDefScope = classDef.attrScopeNames();
+				} else if (classDef.attrNearestPackage() == left.attrNearestPackage()) {
+					// same package
+					classDefScope = classDef.attrScopePackageNames();
+				} else {
+					// different package
+					if (writeAccess) {
+						classDefScope = classDef.attrScopePublicNames();
+					} else {
+						classDefScope = classDef.attrScopePublicReadNamess();
+					}
+				}
+				return classDefScope.get(varName);
 			}
 
 			@Override

@@ -40,19 +40,15 @@ class VisibilityPublicImpl implements VisibilityPublic, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(VarDef.Visitor v) {
+	@Override public void accept(NativeFunc.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ConstructorDef.Visitor v) {
+	@Override public void accept(TypeDef.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WEntity.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(NativeType.Visitor v) {
+	@Override public void accept(Modifiers.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -60,7 +56,7 @@ class VisibilityPublicImpl implements VisibilityPublic, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(VisibilityPublic.Visitor v) {
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -68,23 +64,23 @@ class VisibilityPublicImpl implements VisibilityPublic, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(VisibilityModifier.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(AstElementWithModifier.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ModuleDef.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(VisibilityPublic.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlot.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(VarDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(VisibilityModifier.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -92,11 +88,27 @@ class VisibilityPublicImpl implements VisibilityPublic, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(NativeType.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(ClassOrModule.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassSlot.Visitor v) {
+	@Override public void accept(FunctionDefinition.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(AstElementWithModifier.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ConstructorDef.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -108,19 +120,19 @@ class VisibilityPublicImpl implements VisibilityPublic, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FuncDef.Visitor v) {
+	@Override public void accept(GlobalVarDef.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+	@Override public void accept(ModuleDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(Modifier.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(GlobalVarDef.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -132,19 +144,11 @@ class VisibilityPublicImpl implements VisibilityPublic, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TypeDef.Visitor v) {
+	@Override public void accept(FuncDef.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(Modifiers.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -191,5 +195,14 @@ class VisibilityPublicImpl implements VisibilityPublic, AstElementIntern {
 			attr_attrNearestClassDef_isCached = true;
 		}
 		return attr_attrNearestClassDef_cache;
+	}
+	private boolean attr_attrNearestClassOrModule_isCached = false;
+	private ClassOrModule attr_attrNearestClassOrModule_cache;
+	public ClassOrModule attrNearestClassOrModule() {
+		if (!attr_attrNearestClassOrModule_isCached) {
+			attr_attrNearestClassOrModule_cache = de.peeeq.wurstscript.attributes.AttrNearestClassDef.nearestClassOrModule(this);
+			attr_attrNearestClassOrModule_isCached = true;
+		}
+		return attr_attrNearestClassOrModule_cache;
 	}
 }

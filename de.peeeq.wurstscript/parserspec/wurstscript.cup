@@ -194,7 +194,7 @@ Entity ::=
 	| INIT:x LBRACK NL Statements:body RBRACK NL
 		{: RESULT = Ast.InitBlock(pos(xleft, xright), body); :}
 	| NATIVE:x FuncSignature:sig NL
-		{: RESULT = Ast.NativeFunc(pos(xleft, xright), sig); :}
+		{: RESULT = Ast.NativeFunc(pos(xleft, xright), Ast.Modifiers(), sig); :}
 	| ClassDef:x
 		{: RESULT = x; :}
 	| ModuleDef:x
@@ -252,6 +252,8 @@ Modifier ::=
 		{: RESULT = Ast.VisibilityPublicread(pos(xleft, xright)); :}
 	| STATIC:x
 		{: RESULT = Ast.ModStatic(pos(xleft, xright)); :}
+	| OVERRIDE:x
+		{: RESULT = Ast.ModOverride(pos(xleft, xright)); :}
 ;
 
 FuncSignature ::=
@@ -597,9 +599,9 @@ JassGlobalDecl ::=
 
 JassNativeDecl ::=
 	NATIVE:x JassFuncSignature:sig NL
-		{: RESULT = Ast.NativeFunc(pos(xleft, xright), sig); :}
+		{: RESULT = Ast.NativeFunc(pos(xleft, xright), Ast.Modifiers(), sig); :}
 	| CONSTANT:x NATIVE JassFuncSignature:sig NL
-		{: RESULT = Ast.NativeFunc(pos(xleft, xright), sig); :}
+		{: RESULT = Ast.NativeFunc(pos(xleft, xright), Ast.Modifiers(), sig); :}
 ;
 
 JassFuncDef ::=

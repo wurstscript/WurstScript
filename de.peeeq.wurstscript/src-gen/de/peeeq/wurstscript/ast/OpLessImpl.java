@@ -23,127 +23,130 @@ class OpLessImpl implements OpLess, AstElementIntern {
 	public OpLess copy() {
 		return new OpLessImpl();
 	}
-	@Override public void accept(JassGlobalBlock.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(VarDef.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(ConstructorDef.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(InitBlock.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(StmtSet.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(FuncSignature.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(OnDestroyDef.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(StmtCall.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(StmtLoop.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(TypeExpr.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(Op.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(NativeType.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(OptExpr.Visitor v) {
-		v.visit(this);
-	}
 	@Override public void accept(ExprVarArrayAccess.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(ExprMemberVar.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(ClassMember.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(StmtDestroy.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(Indexes.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(ExprMemberArrayVar.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(OpLess.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(ClassDef.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(NameRef.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(ExprAtomic.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(ExprUnary.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(AstElementWithModifier.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(JassGlobalBlock.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(WParameter.Visitor v) {
 		v.visit(this);
 	}
+	@Override public void accept(OnDestroyDef.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(NativeFunc.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(OpBinary.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(TypeDef.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(StmtCall.Visitor v) {
+		v.visit(this);
+	}
 	@Override public void accept(Expr.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(ModuleDef.Visitor v) {
+	@Override public void accept(ClassMember.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(ExprBinary.Visitor v) {
+	@Override public void accept(StmtReturn.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(WPackage.Visitor v) {
+	@Override public void accept(LocalVarDef.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(WStatements.Visitor v) {
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
+	@Override public void accept(NameRef.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(OptExpr.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(ClassDef.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(ExprMemberMethod.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(FuncRef.Visitor v) {
+	@Override public void accept(WPackage.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(ClassOrModule.Visitor v) {
+	@Override public void accept(ExprBinary.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(Arguments.Visitor v) {
+	@Override public void accept(ExprMemberArrayVar.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(WStatement.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(Indexes.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(ClassSlot.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(StmtIf.Visitor v) {
+	@Override public void accept(VarDef.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(ExprNewObject.Visitor v) {
+	@Override public void accept(ExprCast.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(TypeExpr.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(PackageOrGlobal.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(FuncRef.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(NativeType.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(OptTypeExpr.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(ExprUnary.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(WStatements.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(ClassOrModule.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(ExprFunctionCall.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(FunctionDefinition.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(AstElementWithModifier.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(Op.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(Arguments.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(ConstructorDef.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(StmtWhile.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(ExprAssignable.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(WParameters.Visitor v) {
@@ -155,34 +158,31 @@ class OpLessImpl implements OpLess, AstElementIntern {
 	@Override public void accept(NameDef.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(FuncDef.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(LocalVarDef.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(NativeFunc.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(ExprAssignable.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(ExprFunctionCall.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(OptTypeExpr.Visitor v) {
-		v.visit(this);
-	}
 	@Override public void accept(GlobalVarDef.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(StmtWhile.Visitor v) {
+	@Override public void accept(StmtSet.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(ExprCast.Visitor v) {
+	@Override public void accept(ModuleDef.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(ExprMemberVar.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(ExprNewObject.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(InitBlock.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(StmtLoop.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(ExprAtomic.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(CompilationUnit.Visitor v) {
@@ -191,31 +191,31 @@ class OpLessImpl implements OpLess, AstElementIntern {
 	@Override public void accept(ClassSlots.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(TypeDef.Visitor v) {
+	@Override public void accept(FuncDef.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(StmtExitwhen.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(TypeRef.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(WStatement.Visitor v) {
+	@Override public void accept(FuncSignature.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(StmtReturn.Visitor v) {
+	@Override public void accept(StmtIf.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(OpBinary.Visitor v) {
+	@Override public void accept(StmtDestroy.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(OpLess.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(ArraySizes.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(StmtExitwhen.Visitor v) {
 		v.visit(this);
 	}
 	@Override public <T> T match(OpBinary.Matcher<T> matcher) {
@@ -261,5 +261,14 @@ class OpLessImpl implements OpLess, AstElementIntern {
 			attr_attrNearestClassDef_isCached = true;
 		}
 		return attr_attrNearestClassDef_cache;
+	}
+	private boolean attr_attrNearestClassOrModule_isCached = false;
+	private ClassOrModule attr_attrNearestClassOrModule_cache;
+	public ClassOrModule attrNearestClassOrModule() {
+		if (!attr_attrNearestClassOrModule_isCached) {
+			attr_attrNearestClassOrModule_cache = de.peeeq.wurstscript.attributes.AttrNearestClassDef.nearestClassOrModule(this);
+			attr_attrNearestClassOrModule_isCached = true;
+		}
+		return attr_attrNearestClassOrModule_cache;
 	}
 }

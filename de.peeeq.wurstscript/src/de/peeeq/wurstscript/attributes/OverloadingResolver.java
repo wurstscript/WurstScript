@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.attributes;
 import java.util.Collection;
 import java.util.List;
 
+import com.google.common.base.Function;
+
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
@@ -30,7 +32,7 @@ public abstract class OverloadingResolver<F,C> {
 			if (getParameterCount(f) < getArgumentCount(caller)) {
 				hints.add("Expected " + (getParameterCount(f) - getArgumentCount(caller)) + " more argument(s).");
 			} else if (getParameterCount(f) > getArgumentCount(caller)) {
-				hints.add("Expected " + (getArgumentCount(caller) - getParameterCount(f)) + " less argument(s).");
+				hints.add("Expected " + (- getArgumentCount(caller) + getParameterCount(f)) + " less argument(s).");
 			} else { // parameter count matches argument count:
 				boolean match = true;
 				for (int i=0; i<getArgumentCount(caller); i++) {
@@ -57,7 +59,22 @@ public abstract class OverloadingResolver<F,C> {
 			handleError(Utils.list("No constructor found."));
 			return null;
 		} else {
-			handleError(Utils.list("call is ambigious"));
+			String alts = Utils.join(Utils.map(results, new Function<F, String>() {
+
+				@Override
+				public String apply(F f) {
+					if (f instanceof FuncDefInstance) {
+						FuncDefInstance funcDefInstance = (FuncDefInstance) f;
+						FunctionDefinition func = funcDefInstance.getDef();
+						return "function " + func.getSignature().getName() + " defined in " + 
+							Utils.printContext(funcDefInstance.getContext()) +
+							"  line " + func.getSource().getLine();
+					}
+					return f.toString();
+				}
+			
+			}), "\n * ");
+			handleError(Utils.list("call is ambigious, there are several alternatives: \n * " + alts));
 			// call is ambigious but we just choose the first method and continue:
 			return results.get(0);
 		}

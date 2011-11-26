@@ -24,6 +24,7 @@ import de.peeeq.wurstscript.ast.TopLevelDeclaration;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WScope;
 
 
@@ -67,27 +68,10 @@ public class AttrScopeFunctions {
 			}
 
 			private Multimap<String, FuncDefInstance> case_ClassOrModule(ClassOrModule term) {
-				for (ClassSlot e : term.getSlots()) {
-					if (e instanceof FunctionDefinition) {
-						FunctionDefinition f = (FunctionDefinition) e;
-						ImmutableList<ClassOrModule> usePath = ImmutableList.of(term);
-						result.put(f.getSignature().getName(), FuncDefInstance.create(f, usePath));
-					} else if (e instanceof ModuleUse) {
-						ModuleUse moduleUse = (ModuleUse) e;
-						ModuleDef usedModule = moduleUse.attrModuleDef();
-						if (usedModule == null) {
-							continue;
-						}
-						// add functions from module:
-						Multimap<String, FuncDefInstance> functionsInModule = usedModule.attrScopePublicFunctions();
-						for (Entry<String, FuncDefInstance> f : functionsInModule.entries()) {
-							result.put(f.getKey(), FuncDefInstance.create(f.getValue().getDef(), f.getValue().getContext().appFront(term)));
-						}
-					}
-				}
-				// TODO handle overriding and the like
-				return result;
+				return term.attrAllFunctions();
 			}
+
+			
 
 			@Override
 			public Multimap<String, FuncDefInstance> case_FuncDef(FuncDef term)
@@ -131,6 +115,7 @@ public class AttrScopeFunctions {
 		});
 	}
 
+	
 	public static Multimap<String, FuncDefInstance> calculatePackage(WScope scope) {
 		Multimap<String, FuncDefInstance> result = HashMultimap.create();
 		for (FuncDefInstance f : scope.attrScopeFunctions().values()) {
