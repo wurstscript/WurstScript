@@ -23,40 +23,40 @@ class OpAssignImpl implements OpAssign, AstElementIntern {
 	public OpAssign copy() {
 		return new OpAssignImpl();
 	}
-	@Override public void accept(OnDestroyDef.Visitor v) {
+	@Override public void accept(WStatements.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(TypeDef.Visitor v) {
+	@Override public void accept(ModuleDef.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(ClassMember.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(OpAssign.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(ClassDef.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(WPackage.Visitor v) {
+	@Override public void accept(FuncDef.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(WStatement.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(ClassSlot.Visitor v) {
+	@Override public void accept(ClassMember.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
+	@Override public void accept(StmtSet.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlot.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(JassToplevelDeclaration.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(WStatements.Visitor v) {
+	@Override public void accept(StmtIf.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(ConstructorDef.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(AstElementWithModifier.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(ClassOrModule.Visitor v) {
@@ -65,52 +65,52 @@ class OpAssignImpl implements OpAssign, AstElementIntern {
 	@Override public void accept(FunctionDefinition.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(AstElementWithModifier.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(ConstructorDef.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(StmtWhile.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(WEntities.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(NameDef.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(StmtSet.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(ModuleDef.Visitor v) {
+	@Override public void accept(ClassDef.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(WEntity.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(InitBlock.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(StmtLoop.Visitor v) {
-		v.visit(this);
-	}
 	@Override public void accept(CompilationUnit.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlots.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(FuncDef.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(WScope.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(StmtIf.Visitor v) {
+	@Override public void accept(OnDestroyDef.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(StmtLoop.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(WPackage.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(InitBlock.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(TypeDef.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(NameDef.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(OpAssignment.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(PackageOrGlobal.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlots.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(StmtWhile.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(OpAssign.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
 		v.visit(this);
 	}
 	@Override public <T> T match(OpAssignment.Matcher<T> matcher) {

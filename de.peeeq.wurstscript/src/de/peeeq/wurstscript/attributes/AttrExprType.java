@@ -402,6 +402,10 @@ public class AttrExprType {
 			@Override
 			public PscriptType case_ExprFunctionCall(ExprFunctionCall term)
 					 {
+				if (term.attrFuncDef() == null) {
+					return PScriptTypeUnknown.instance();
+				}
+				
 				FunctionDefinition f = term.attrFuncDef().getDef();
 				if (f == null) {
 					return PScriptTypeUnknown.instance();

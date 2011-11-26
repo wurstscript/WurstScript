@@ -45,11 +45,11 @@ class ModuleUseImpl implements ModuleUse, AstElementIntern {
 	public ModuleUse copy() {
 		return new ModuleUseImpl(source.copy(), moduleName);
 	}
-	@Override public void accept(TypeDef.Visitor v) {
+	@Override public void accept(ModuleUse.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ModuleUse.Visitor v) {
+	@Override public void accept(ModuleDef.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -57,23 +57,7 @@ class ModuleUseImpl implements ModuleUse, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassDef.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(ClassSlot.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassOrModule.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -81,15 +65,11 @@ class ModuleUseImpl implements ModuleUse, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WEntities.Visitor v) {
+	@Override public void accept(ClassOrModule.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(NameDef.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ModuleDef.Visitor v) {
+	@Override public void accept(ClassDef.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -101,11 +81,31 @@ class ModuleUseImpl implements ModuleUse, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TypeDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(NameDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(PackageOrGlobal.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(ClassSlots.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(WEntities.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}

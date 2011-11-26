@@ -247,6 +247,9 @@ public class JassTranslator {
 		}
 	}
 
+	/**
+	 * generate the method which initializes global variables
+	 */
 	private void initGlobals() {
 		String name = manager.getUniqueName("wurst__init_globals");
 		JassStatements body = JassStatements();
@@ -301,6 +304,10 @@ public class JassTranslator {
 		
 	}
 
+	/**
+	 * create the main function if it does not exist already
+	 * and executes all initializers from the main function  
+	 */
 	private void createMainMethod() {
 		Preconditions.checkNotNull(initGlobalsFunc, "The initGlobals function has to be executed first.");
 		
@@ -436,7 +443,7 @@ public class JassTranslator {
 					@Override
 					public void case_ExprVarAccess(ExprVarAccess exprVarAccess) {
 						VarDef leftVar = (VarDef) exprVarAccess.attrNameDef();
-						String leftJassVar = manager.getJassVarNameFor(context, leftVar);
+						String leftJassVar = getJassVarNameFor(context, leftVar);
 						result.addAll(right.getStatements());
 						if (leftVar.attrIsClassMember()) {
 							result.add(JassStmtSetArray(leftJassVar, JassExprVarAccess("this"), right.getExpr()));
@@ -444,6 +451,10 @@ public class JassTranslator {
 							result.add(JassStmtSet(leftJassVar, right.getExpr()));
 						}
 					}
+
+
+
+					
 
 					@Override
 					public void case_ExprVarArrayAccess(ExprVarArrayAccess exprVarArrayAccess) {
@@ -555,7 +566,7 @@ public class JassTranslator {
 			@Override
 			public void case_LocalVarDef(LocalVarDef localVarDef) {
 				String type = translateType(localVarDef.attrTyp());
-				JassVar v = manager.getJassVarFor(ROOT_CONTEXT, localVarDef, type , isArray(localVarDef), true); 
+				JassVar v = manager.getJassVarFor(context, localVarDef, type , isArray(localVarDef), true); 
 						//getLocalVar(f, localVarDef.getName(), localVarDef.attrTyp());
 				f.getLocals().add(v);
 				if (localVarDef.getInitialExpr() instanceof Expr) {
@@ -571,6 +582,20 @@ public class JassTranslator {
 		return result;
 	}
 
+	/**
+	 * get the jass var name for the variable v, when accessed from a given context
+	 * @param context
+	 * @param v
+	 * @return
+	 */
+	private String getJassVarNameFor(final ImmutableList<ClassOrModule> context, VarDef v) {
+		if (v.attrNearestClassOrModule() == null) {
+			return manager.getJassVarNameFor(ROOT_CONTEXT, v);
+		} else {
+			return manager.getJassVarNameFor(context, v);
+		}
+	}
+	
 	private ImmutableList<ClassOrModule> getVarContext(	ImmutableList<ClassOrModule> currentContext, PscriptType leftType) {
 		System.out.println("getting var context of "+ leftType);		
 		ClassDef c = null;
@@ -694,7 +719,7 @@ public class JassTranslator {
 			@Override
 			public ExprTranslationResult case_ExprMemberArrayVar(ExprMemberArrayVar exprMemberArrayVar) {
 				VarDef varDef = (VarDef) exprMemberArrayVar.attrNameDef();
-				String varName = manager.getJassVarNameFor(context, varDef);
+				String varName = getJassVarNameFor(context, varDef);
 				
 				ExprTranslationResult left = translateExpr(context, f, exprMemberArrayVar.getLeft());
 				return new ExprTranslationResult(left.getStatements(), JassExprVarArrayAccess(varName, left.getExpr()));
@@ -708,7 +733,7 @@ public class JassTranslator {
 			@Override
 			public ExprTranslationResult case_ExprVarAccess(ExprVarAccess exprVarAccess) {
 				VarDef varDef = (VarDef) exprVarAccess.attrNameDef();
-				String varName = manager.getJassVarNameFor(context, varDef);
+				String varName = getJassVarNameFor(context, varDef);
 				if (varDef.attrIsClassMember()) {
 					// access to a field
 					JassExpr index = JassExprVarAccess("this");
@@ -1287,6 +1312,7 @@ public class JassTranslator {
 					JassFunction f = manager.getJassDestroyFunctionFor(classDef);
 					// destroy method is added in finish method
 					f.getBody().addAll(translateStatements(context, f, onDestroyDef.getBody()));
+					f.getBody().addAll(translateOnDestroyForUsedModules(classDef, context, f));
 				}
 				
 				@Override
@@ -1326,6 +1352,33 @@ public class JassTranslator {
 
 	
 
+	protected Collection<JassStatement> translateOnDestroyForUsedModules(ClassOrModule c,
+			ImmutableList<ClassOrModule> context, JassFunction f) {
+		Collection<JassStatement> result = Lists.newLinkedList();
+		for (ModuleDef m : c.attrUsedModules()) {
+			result.addAll(translateOnDestroyForModule(m, context, f));
+		}
+		return result;
+	}
+
+	private Collection<JassStatement> translateOnDestroyForModule(ModuleDef m, ImmutableList<ClassOrModule> context, JassFunction f) {
+		Collection<JassStatement> result = Lists.newLinkedList();
+		context = context.appBack(m);
+		OnDestroyDef onDestroy = null;
+		for (ClassSlot s : m.getSlots()) {
+			if (s instanceof OnDestroyDef) {
+				onDestroy = (OnDestroyDef) s;
+			}
+		}
+		
+		if (onDestroy != null) {
+			result.addAll(translateStatements(context, f, onDestroy.getBody()));
+		}
+		
+		result.addAll(translateOnDestroyForUsedModules(m, context, f));
+		return result;
+	}
+
 	protected void translateModuleUse(ImmutableList<ClassOrModule> parent_context, ModuleUse moduleUse) {
 		trace("transslate module use " + Utils.printContext(parent_context) + " _ " + moduleUse.getModuleName());
 		ModuleDef usedModule = moduleUse.attrModuleDef();
@@ -1359,11 +1412,11 @@ public class JassTranslator {
 		prog.getFunctions().add(f);
 
 		f.getBody().add(
-		//	if nextFree[this] < 0
+		//	if nextFree[this] >= 0
 			JassStmtIf(
 				JassExprBinary(
 						JassExprVarArrayAccess(nextFree.getName(), JassExprVarAccess("this")), 
-						JassOpLess(),
+						JassOpGreaterEq(),
 						JassExprIntVal(0)),
 		// then
 				JassStatements(
@@ -1418,6 +1471,8 @@ public class JassTranslator {
 		f.getBody().add(JassStmtSetArray(nextFree.getName(), JassExprVarAccess("this"), JassExprIntVal(-1)));
 		
 		// TODO call module constructors if feasible, compile error otherwise
+		f.getBody().addAll(translateModuleUseConstructors(classDef, context, f));
+		
 		
 		// init members:
 		for (ClassSlot member : classDef.getSlots()) {
@@ -1440,6 +1495,46 @@ public class JassTranslator {
 		
 		// return this:
 		f.getBody().add(JassStmtReturn(JassExprVarAccess("this")));
+	}
+
+	private Collection<JassStatement> translateModuleUseConstructors(ClassOrModule c,
+			ImmutableList<ClassOrModule> context, JassFunction f) {
+		Collection<JassStatement> result = Lists.newLinkedList();
+		for (ModuleDef m : c.attrUsedModules()) {
+			result.addAll(translateModuleConstructor(m, context, f));
+		}
+		return result;
+	}
+
+	private Collection<JassStatement> translateModuleConstructor(ModuleDef m, ImmutableList<ClassOrModule> context,	JassFunction f) {
+		Collection<JassStatement> result = Lists.newLinkedList();
+		context = context.appBack(m);
+		// add used modules
+		result.addAll(translateModuleUseConstructors(m, context, f));
+		
+		ConstructorDef constructor = null;
+		// initialize module variables:
+		for (ClassSlot s : m.getSlots()) {
+			if (s instanceof GlobalVarDef) {
+				GlobalVarDef v = (GlobalVarDef) s;
+				if (!v.attrIsStatic() && v.getInitialExpr() instanceof Expr) {
+					Expr expr = (Expr) v.getInitialExpr();
+					ExprTranslationResult er = translateExpr(context, f, expr);
+					result.addAll(er.getStatements());
+					String varName = getJassVarNameFor(context, v);
+					result.add(JassStmtSet(varName, er.getExpr()));
+				}
+			} else if (s instanceof ConstructorDef) {
+				constructor  = (ConstructorDef) s;
+			}
+		}
+		
+		// custom code
+		if (constructor != null) {
+			result.addAll(translateStatements(context, f, constructor.getBody()));
+		}
+		
+		return result;
 	}
 
 	

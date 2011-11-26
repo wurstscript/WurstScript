@@ -6,79 +6,79 @@ public interface Op extends AstElement{
 	<T> T match(Matcher<T> s);
 	void match(MatcherVoid s);
 	public interface Matcher<T> {
-		T case_OpDivReal(OpDivReal opDivReal);
-		T case_OpEquals(OpEquals opEquals);
 		T case_OpModReal(OpModReal opModReal);
-		T case_OpGreaterEq(OpGreaterEq opGreaterEq);
-		T case_OpDivInt(OpDivInt opDivInt);
-		T case_OpModInt(OpModInt opModInt);
-		T case_OpAnd(OpAnd opAnd);
 		T case_OpUnequals(OpUnequals opUnequals);
-		T case_OpLessEq(OpLessEq opLessEq);
-		T case_OpPlus(OpPlus opPlus);
-		T case_OpMult(OpMult opMult);
 		T case_OpNot(OpNot opNot);
-		T case_OpOr(OpOr opOr);
-		T case_OpMinus(OpMinus opMinus);
-		T case_OpLess(OpLess opLess);
+		T case_OpModInt(OpModInt opModInt);
 		T case_OpGreater(OpGreater opGreater);
+		T case_OpDivInt(OpDivInt opDivInt);
+		T case_OpEquals(OpEquals opEquals);
+		T case_OpLessEq(OpLessEq opLessEq);
+		T case_OpLess(OpLess opLess);
+		T case_OpMinus(OpMinus opMinus);
+		T case_OpOr(OpOr opOr);
+		T case_OpDivReal(OpDivReal opDivReal);
+		T case_OpMult(OpMult opMult);
+		T case_OpAnd(OpAnd opAnd);
+		T case_OpGreaterEq(OpGreaterEq opGreaterEq);
+		T case_OpPlus(OpPlus opPlus);
 	}
 
 	public interface MatcherVoid {
-		void case_OpDivReal(OpDivReal opDivReal);
-		void case_OpEquals(OpEquals opEquals);
 		void case_OpModReal(OpModReal opModReal);
-		void case_OpGreaterEq(OpGreaterEq opGreaterEq);
-		void case_OpDivInt(OpDivInt opDivInt);
-		void case_OpModInt(OpModInt opModInt);
-		void case_OpAnd(OpAnd opAnd);
 		void case_OpUnequals(OpUnequals opUnequals);
-		void case_OpLessEq(OpLessEq opLessEq);
-		void case_OpPlus(OpPlus opPlus);
-		void case_OpMult(OpMult opMult);
 		void case_OpNot(OpNot opNot);
-		void case_OpOr(OpOr opOr);
-		void case_OpMinus(OpMinus opMinus);
-		void case_OpLess(OpLess opLess);
+		void case_OpModInt(OpModInt opModInt);
 		void case_OpGreater(OpGreater opGreater);
+		void case_OpDivInt(OpDivInt opDivInt);
+		void case_OpEquals(OpEquals opEquals);
+		void case_OpLessEq(OpLessEq opLessEq);
+		void case_OpLess(OpLess opLess);
+		void case_OpMinus(OpMinus opMinus);
+		void case_OpOr(OpOr opOr);
+		void case_OpDivReal(OpDivReal opDivReal);
+		void case_OpMult(OpMult opMult);
+		void case_OpAnd(OpAnd opAnd);
+		void case_OpGreaterEq(OpGreaterEq opGreaterEq);
+		void case_OpPlus(OpPlus opPlus);
 	}
 
 	Op copy();
 	public abstract void accept(Op.Visitor v);
 	public interface Visitor {
-		void visit(OpDivReal opDivReal);
-		void visit(OpEquals opEquals);
 		void visit(OpModReal opModReal);
-		void visit(OpGreaterEq opGreaterEq);
-		void visit(OpDivInt opDivInt);
-		void visit(OpModInt opModInt);
-		void visit(OpAnd opAnd);
 		void visit(OpUnequals opUnequals);
-		void visit(OpLessEq opLessEq);
-		void visit(OpPlus opPlus);
-		void visit(OpMult opMult);
-		void visit(OpOr opOr);
-		void visit(OpMinus opMinus);
 		void visit(OpNot opNot);
-		void visit(OpLess opLess);
+		void visit(OpModInt opModInt);
 		void visit(OpGreater opGreater);
+		void visit(OpDivInt opDivInt);
+		void visit(OpEquals opEquals);
+		void visit(OpLessEq opLessEq);
+		void visit(OpLess opLess);
+		void visit(OpMinus opMinus);
+		void visit(OpOr opOr);
+		void visit(OpDivReal opDivReal);
+		void visit(OpAnd opAnd);
+		void visit(OpMult opMult);
+		void visit(OpGreaterEq opGreaterEq);
+		void visit(OpPlus opPlus);
 	}
 	public static abstract class DefaultVisitor implements Visitor {
-		@Override public void visit(OpDivReal opDivReal) {}
-		@Override public void visit(OpEquals opEquals) {}
 		@Override public void visit(OpModReal opModReal) {}
-		@Override public void visit(OpGreaterEq opGreaterEq) {}
-		@Override public void visit(OpDivInt opDivInt) {}
-		@Override public void visit(OpModInt opModInt) {}
-		@Override public void visit(OpAnd opAnd) {}
 		@Override public void visit(OpUnequals opUnequals) {}
-		@Override public void visit(OpLessEq opLessEq) {}
-		@Override public void visit(OpPlus opPlus) {}
-		@Override public void visit(OpMult opMult) {}
-		@Override public void visit(OpOr opOr) {}
-		@Override public void visit(OpMinus opMinus) {}
 		@Override public void visit(OpNot opNot) {}
-		@Override public void visit(OpLess opLess) {}
+		@Override public void visit(OpModInt opModInt) {}
 		@Override public void visit(OpGreater opGreater) {}
+		@Override public void visit(OpDivInt opDivInt) {}
+		@Override public void visit(OpEquals opEquals) {}
+		@Override public void visit(OpLessEq opLessEq) {}
+		@Override public void visit(OpLess opLess) {}
+		@Override public void visit(OpMinus opMinus) {}
+		@Override public void visit(OpOr opOr) {}
+		@Override public void visit(OpDivReal opDivReal) {}
+		@Override public void visit(OpAnd opAnd) {}
+		@Override public void visit(OpMult opMult) {}
+		@Override public void visit(OpGreaterEq opGreaterEq) {}
+		@Override public void visit(OpPlus opPlus) {}
 	}
 }

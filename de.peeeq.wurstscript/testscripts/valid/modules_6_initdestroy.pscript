@@ -3,13 +3,13 @@ package test {
 	native testFail(string msg)
 	native testSuccess()
 
-
 	string s = ""
 
 	module A {
 		
 		construct() {
-			s = s + "A" 
+			string x = "A"
+			s = s + x
 		}
 		
 		ondestroy {
@@ -22,7 +22,8 @@ package test {
 		use A
 		
 		construct() {
-			s = s + "B"
+			string x = "B"
+			s = s + x
 		}
 		
 		ondestroy {
@@ -52,8 +53,9 @@ package test {
 		
 		destroy c
 		
+		
 		if s != "ABCcba" {
-			testFail("fail")
+			testFail("fail, result = " + s)
 		} 
 			
 		testSuccess()

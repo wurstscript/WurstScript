@@ -336,6 +336,10 @@ ClassOrModule.attrAllFunctions
 	implemented by de.peeeq.wurstscript.attributes.AttrAllFunctions.calculate
 
 
+ClassOrModule.attrUsedModules
+	returns java.util.Collection<ModuleDef>
+	implemented by de.peeeq.wurstscript.attributes.AttrUsedModules.calculate
+
 
 
 

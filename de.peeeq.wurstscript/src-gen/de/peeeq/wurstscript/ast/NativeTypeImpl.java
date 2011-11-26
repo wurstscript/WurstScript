@@ -71,31 +71,13 @@ class NativeTypeImpl implements NativeType, AstElementIntern {
 	public NativeType copy() {
 		return new NativeTypeImpl(source.copy(), modifiers.copy(), name, typ.copy());
 	}
-	@Override public void accept(TypeDef.Visitor v) {
+	@Override public void accept(NativeType.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		typ.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(NativeType.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		typ.accept(v);
@@ -108,12 +90,6 @@ class NativeTypeImpl implements NativeType, AstElementIntern {
 		v.visit(this);
 	}
 	@Override public void accept(AstElementWithModifier.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntities.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		typ.accept(v);
@@ -137,6 +113,37 @@ class NativeTypeImpl implements NativeType, AstElementIntern {
 		typ.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TypeDef.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(PackageOrGlobal.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public <T> T match(TopLevelDeclaration.Matcher<T> matcher) {
+		return matcher.case_NativeType(this);
+	}
+	@Override public void match(TopLevelDeclaration.MatcherVoid matcher) {
+		matcher.case_NativeType(this);
+	}
+
 	@Override public <T> T match(AstElementWithModifier.Matcher<T> matcher) {
 		return matcher.case_NativeType(this);
 	}
@@ -144,10 +151,10 @@ class NativeTypeImpl implements NativeType, AstElementIntern {
 		matcher.case_NativeType(this);
 	}
 
-	@Override public <T> T match(TypeDef.Matcher<T> matcher) {
+	@Override public <T> T match(WEntity.Matcher<T> matcher) {
 		return matcher.case_NativeType(this);
 	}
-	@Override public void match(TypeDef.MatcherVoid matcher) {
+	@Override public void match(WEntity.MatcherVoid matcher) {
 		matcher.case_NativeType(this);
 	}
 
@@ -158,17 +165,10 @@ class NativeTypeImpl implements NativeType, AstElementIntern {
 		matcher.case_NativeType(this);
 	}
 
-	@Override public <T> T match(TopLevelDeclaration.Matcher<T> matcher) {
+	@Override public <T> T match(TypeDef.Matcher<T> matcher) {
 		return matcher.case_NativeType(this);
 	}
-	@Override public void match(TopLevelDeclaration.MatcherVoid matcher) {
-		matcher.case_NativeType(this);
-	}
-
-	@Override public <T> T match(WEntity.Matcher<T> matcher) {
-		return matcher.case_NativeType(this);
-	}
-	@Override public void match(WEntity.MatcherVoid matcher) {
+	@Override public void match(TypeDef.MatcherVoid matcher) {
 		matcher.case_NativeType(this);
 	}
 

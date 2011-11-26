@@ -15,7 +15,7 @@ class ClassSlotsImpl extends ClassSlots implements AstElementIntern {
 	protected void other_clearParent(ClassSlot t) {
 		((AstElementIntern) t).setParent(null);
 	}
-	@Override public void accept(TypeDef.Visitor v) {
+	@Override public void accept(ModuleDef.Visitor v) {
 		for (ClassSlot i : this ) {
 			i.accept(v);
 		}
@@ -27,19 +27,7 @@ class ClassSlotsImpl extends ClassSlots implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(ClassDef.Visitor v) {
-		for (ClassSlot i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(WPackage.Visitor v) {
-		for (ClassSlot i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
+	@Override public void accept(AstElementWithModifier.Visitor v) {
 		for (ClassSlot i : this ) {
 			i.accept(v);
 		}
@@ -51,25 +39,7 @@ class ClassSlotsImpl extends ClassSlots implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(AstElementWithModifier.Visitor v) {
-		for (ClassSlot i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(WEntities.Visitor v) {
-		for (ClassSlot i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(NameDef.Visitor v) {
-		for (ClassSlot i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ModuleDef.Visitor v) {
+	@Override public void accept(ClassDef.Visitor v) {
 		for (ClassSlot i : this ) {
 			i.accept(v);
 		}
@@ -87,13 +57,43 @@ class ClassSlotsImpl extends ClassSlots implements AstElementIntern {
 		}
 		v.visit(this);
 	}
+	@Override public void accept(WScope.Visitor v) {
+		for (ClassSlot i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(WPackage.Visitor v) {
+		for (ClassSlot i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(TypeDef.Visitor v) {
+		for (ClassSlot i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(NameDef.Visitor v) {
+		for (ClassSlot i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(PackageOrGlobal.Visitor v) {
+		for (ClassSlot i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
 	@Override public void accept(ClassSlots.Visitor v) {
 		for (ClassSlot i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(WEntities.Visitor v) {
 		for (ClassSlot i : this ) {
 			i.accept(v);
 		}

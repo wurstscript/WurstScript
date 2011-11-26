@@ -71,6 +71,7 @@ public class JassManager {
 	
 	
 	public String getUniqueName(String baseName) {
+		// OPTIMIZE performance
 		String name = baseName;
 		int i = 0;
 		while (givenNames.contains(name)) {
@@ -168,6 +169,9 @@ public class JassManager {
 				if (v.attrNearestPackage() instanceof WPackage) {
 					name = ((WPackage) v.attrNearestPackage()).getName() + "_" + name;
 				}
+				name = getUniqueName(name);
+			} else {
+				// TODO local variables do not need a globally unique name
 				name = getUniqueName(name);
 			}
 			variableNames.put(key, name);

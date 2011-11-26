@@ -71,43 +71,19 @@ class ModuleDefImpl implements ModuleDef, AstElementIntern {
 	public ModuleDef copy() {
 		return new ModuleDefImpl(source.copy(), modifiers.copy(), name, slots.copy());
 	}
+	@Override public void accept(ModuleDef.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		slots.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		slots.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		slots.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		slots.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(ClassOrModule.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		slots.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntities.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		slots.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(NameDef.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		slots.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ModuleDef.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		slots.accept(v);
@@ -131,17 +107,41 @@ class ModuleDefImpl implements ModuleDef, AstElementIntern {
 		slots.accept(v);
 		v.visit(this);
 	}
-	@Override public <T> T match(ClassOrModule.Matcher<T> matcher) {
-		return matcher.case_ModuleDef(this);
+	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		slots.accept(v);
+		v.visit(this);
 	}
-	@Override public void match(ClassOrModule.MatcherVoid matcher) {
-		matcher.case_ModuleDef(this);
+	@Override public void accept(NameDef.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		slots.accept(v);
+		v.visit(this);
 	}
-
+	@Override public void accept(PackageOrGlobal.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		slots.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		slots.accept(v);
+		v.visit(this);
+	}
 	@Override public <T> T match(WScope.Matcher<T> matcher) {
 		return matcher.case_ModuleDef(this);
 	}
 	@Override public void match(WScope.MatcherVoid matcher) {
+		matcher.case_ModuleDef(this);
+	}
+
+	@Override public <T> T match(NameDef.Matcher<T> matcher) {
+		return matcher.case_ModuleDef(this);
+	}
+	@Override public void match(NameDef.MatcherVoid matcher) {
 		matcher.case_ModuleDef(this);
 	}
 
@@ -152,10 +152,10 @@ class ModuleDefImpl implements ModuleDef, AstElementIntern {
 		matcher.case_ModuleDef(this);
 	}
 
-	@Override public <T> T match(NameDef.Matcher<T> matcher) {
+	@Override public <T> T match(ClassOrModule.Matcher<T> matcher) {
 		return matcher.case_ModuleDef(this);
 	}
-	@Override public void match(NameDef.MatcherVoid matcher) {
+	@Override public void match(ClassOrModule.MatcherVoid matcher) {
 		matcher.case_ModuleDef(this);
 	}
 
@@ -278,5 +278,14 @@ class ModuleDefImpl implements ModuleDef, AstElementIntern {
 			attr_attrAllFunctions_isCached = true;
 		}
 		return attr_attrAllFunctions_cache;
+	}
+	private boolean attr_attrUsedModules_isCached = false;
+	private java.util.Collection<ModuleDef> attr_attrUsedModules_cache;
+	public java.util.Collection<ModuleDef> attrUsedModules() {
+		if (!attr_attrUsedModules_isCached) {
+			attr_attrUsedModules_cache = de.peeeq.wurstscript.attributes.AttrUsedModules.calculate(this);
+			attr_attrUsedModules_isCached = true;
+		}
+		return attr_attrUsedModules_cache;
 	}
 }
