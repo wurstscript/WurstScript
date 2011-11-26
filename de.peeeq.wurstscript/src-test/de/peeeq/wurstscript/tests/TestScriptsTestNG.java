@@ -85,7 +85,7 @@ public class TestScriptsTestNG {
 
 			File outputFile = new File(filename.replaceAll("\\"+PSCRIPT_ENDING, ".j"));
 			StringBuilder sb = new StringBuilder();
-			JassPrinter.printProg(sb, prog, true);
+			new JassPrinter(true).printProg(sb, prog);
 			try {
 				FileWriter writer = new FileWriter(outputFile, false);
 				writer.append(sb.toString());

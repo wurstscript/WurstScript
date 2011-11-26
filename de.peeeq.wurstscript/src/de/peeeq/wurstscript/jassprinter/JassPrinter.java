@@ -49,14 +49,38 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class JassPrinter {
 
+	private boolean withSpace;
+
+
+	public JassPrinter(boolean withSpace) {
+		this.withSpace = withSpace;
+	}
 	
-	static public void printProg(StringBuilder sb, JassProg prog, boolean clean) {
+	public void printProg(StringBuilder sb, JassProg prog) {
 		printGlobals(sb, prog.getGlobals());
-		printFunctions(sb, prog.getFunctions(), clean);
+		printFunctions(sb, prog.getFunctions());
+	}
+	
+	private String additionalNewline() {
+		return withSpace ? "\n" : "";
+	}
+
+	private void printIndent(StringBuilder sb, int i) {
+		if (withSpace) {
+			Utils.printIndent(sb, i);
+		}
+	}
+
+	private String comma() {
+		return withSpace ? ", " : ",";
+	}
+	
+	private Object assign() {
+		return withSpace ? " = " : "=";
 	}
 
 
-	private static void printGlobals(StringBuilder sb, JassVars globals) {
+	private void printGlobals(StringBuilder sb, JassVars globals) {
 		sb.append("globals\n");
 		for (JassVar g : globals) {
 			printJassGlobalVar(sb, g);
@@ -64,7 +88,7 @@ public class JassPrinter {
 		sb.append("endglobals\n");
 	}
 
-	private static void printJassGlobalVar(final StringBuilder sb, JassVar g) {
+	private void printJassGlobalVar(final StringBuilder sb, JassVar g) {
 		g.match(new JassVar.MatcherVoid() {
 			
 			@Override
@@ -80,45 +104,33 @@ public class JassPrinter {
 	}
 	
 
-	private static void printFunctions(StringBuilder sb, JassFunctions functions, boolean clean) {
+	private void printFunctions(StringBuilder sb, JassFunctions functions) {
 		for (JassFunction f : functions) {
-			printFunction(sb, f, clean);
+			printFunction(sb, f);
 		}
 	}
 
 
-	private static void printFunction(StringBuilder sb, JassFunction f, boolean clean) {
+	private void printFunction(StringBuilder sb, JassFunction f) {
 		sb.append("function ");
 		sb.append(f.getName());
 		sb.append(" takes ");
 		if (f.getParams().size() == 0) {
 			sb.append("nothing");
 		} else {
-			if (clean) {
-				Utils.printSep(sb, ",", f.getParams(), new Function<JassSimpleVar, String>() {
+				Utils.printSep(sb, comma(), f.getParams(), new Function<JassSimpleVar, String>() {
 
 					@Override
 					public String apply(JassSimpleVar input) {
 						return input.getType() + " " + input.getName();
 					}
 				});				
-			}else {
-					Utils.printSep(sb, ", ", f.getParams(), new Function<JassSimpleVar, String>() {
-
-						@Override
-						public String apply(JassSimpleVar input) {
-							return input.getType() + " " + input.getName();
-						}
-					});				
-				}
 		}
 		sb.append(" returns ");
 		sb.append(f.getReturnType());
 		sb.append("\n");
 		for (JassVar v : f.getLocals()) {
-			if (!clean) {
-				Utils.printIndent(sb, 1);
-			}
+			printIndent(sb, 1);
 			sb.append("local ");
 			sb.append(v.getType());
 			if (v instanceof JassArrayVar) {
@@ -128,26 +140,22 @@ public class JassPrinter {
 			sb.append(v.getName());
 			sb.append("\n");
 		}
-		printStatements(sb, 1, f.getBody(), clean);
-		if (clean) {
-			sb.append("endfunction\n");
-		}else {
-			sb.append("endfunction\n\n");
-		}
+		printStatements(sb, 1, f.getBody());
+		sb.append("endfunction\n" + additionalNewline());
 	}
 
 
-	private static void printStatements(StringBuilder sb, int indent, JassStatements statements, boolean clean) {
+	
+
+	private void printStatements(StringBuilder sb, int indent, JassStatements statements) {
 		for (JassStatement s : statements) {
-			printStatement(sb, indent, s, clean);
+			printStatement(sb, indent, s);
 		}
 	}
 
 
-	private static void printStatement(final StringBuilder sb, final int indent, JassStatement s, final boolean clean) {
-		if (!clean) {
-			Utils.printIndent(sb, 1);
-		}
+	private void printStatement(final StringBuilder sb, final int indent, JassStatement s) {
+		printIndent(sb, indent);
 		s.match(new JassStatement.MatcherVoid() {
 			
 			@Override
@@ -155,27 +163,21 @@ public class JassPrinter {
 				sb.append("set ");
 				sb.append(s.getLeft());
 				sb.append("[");
-				printExpr(sb, s.getIndex(), clean);
+				printExpr(sb, s.getIndex());
 				sb.append("]");
-				if (clean) {
-					sb.append("=");
-				}else {
-					sb.append(" = ");
-				}
+				sb.append(assign());
 				
-				printExpr(sb, s.getRight(), clean);
+				printExpr(sb, s.getRight());
 			}
 			
+			
+
 			@Override
 			public void case_JassStmtSet(JassStmtSet s) {
 				sb.append("set ");
 				sb.append(s.getLeft());
-				if (clean) {
-					sb.append("=");
-				}else {
-					sb.append(" = ");
-				}
-				printExpr(sb, s.getRight(), clean);
+				sb.append(assign());
+				printExpr(sb, s.getRight());
 			}
 			
 			@Override
@@ -186,42 +188,36 @@ public class JassPrinter {
 			@Override
 			public void case_JassStmtReturn(JassStmtReturn s) {
 				sb.append("return ");
-				printExpr(sb, s.getReturnValue(), clean);
+				printExpr(sb, s.getReturnValue());
 			}
 			
 			@Override
 			public void case_JassStmtLoop(JassStmtLoop s) {
 				sb.append("loop\n");
-				printStatements(sb, indent+1, s.getBody(),clean);
-				if (!clean) {
-					Utils.printIndent(sb, 1);
-				}
+				printStatements(sb, indent+1, s.getBody());
+				printIndent(sb, indent);
 				sb.append("endloop");
 			}
 			
 			@Override
 			public void case_JassStmtIf(JassStmtIf s) {
 				sb.append("if ");
-				printExpr(sb, s.getCond(), clean);
+				printExpr(sb, s.getCond());
 				sb.append(" then\n");
-				printStatements(sb, indent+1, s.getThenBlock(),clean);
+				printStatements(sb, indent+1, s.getThenBlock());
 				if (s.getElseBlock().size() > 0) {
-					if (!clean) {
-						Utils.printIndent(sb, 1);
-					}
+					printIndent(sb, indent);
 					sb.append("else\n");
-					printStatements(sb, indent+1, s.getElseBlock(),clean);
+					printStatements(sb, indent+1, s.getElseBlock());
 				}
-				if (!clean) {
-					Utils.printIndent(sb, 1);
-				}
+				printIndent(sb, indent);
 				sb.append("endif");
 			}
 			
 			@Override
 			public void case_JassStmtExitwhen(JassStmtExitwhen s) {
 				sb.append("exitwhen ");
-				printExpr(sb, s.getCond(), clean);
+				printExpr(sb, s.getCond());
 			}
 			
 			@Override
@@ -232,13 +228,9 @@ public class JassPrinter {
 				boolean first = true;
 				for (JassExpr e : s.getArguments()) {
 					if (!first) {
-						if (clean) {
-							sb.append(",");
-						}else {
-							sb.append(", ");
-						}
+						sb.append(comma());
 					}
-					printExpr(sb, e, clean);
+					printExpr(sb, e);
 					first = false;
 				}
 				sb.append(")");
@@ -248,14 +240,14 @@ public class JassPrinter {
 	}
 
 
-	protected static void printExpr(final StringBuilder sb, JassExpr expr, final boolean clean) {
+	protected void printExpr(final StringBuilder sb, JassExpr expr) {
 		expr.match(new JassExpr.MatcherVoid() {
 			
 			@Override
 			public void case_JassExprVarArrayAccess(JassExprVarArrayAccess e) {
 				sb.append(e.getVarName());
 				sb.append("[");
-				printExpr(sb, e.getIndex(), clean);
+				printExpr(sb, e.getIndex());
 				sb.append("]");
 			}
 			
@@ -266,13 +258,10 @@ public class JassPrinter {
 			
 			@Override
 			public void case_JassExprUnary(JassExprUnary e) {
-				printOp(sb, e.getOp());
-				if (!clean) {
-					sb.append(" ");
-				}
 				boolean useParantheses = e.getRight() instanceof JassExprBinary;
+				printOp(sb, e.getOp(), false, useParantheses);
 				sb.append(useParantheses ? "(" : "");
-				printExpr(sb, e.getRight(), clean);
+				printExpr(sb, e.getRight());
 				sb.append(useParantheses ? ")" : "");
 			}
 			
@@ -305,13 +294,9 @@ public class JassPrinter {
 				boolean first = true;
 				for (JassExpr a : e.getArguments()) {
 					if (!first) {
-						if (clean) {
-							sb.append(",");
-						}else {
-							sb.append(", ");
-						}
+						sb.append(comma());
 					}
-					printExpr(sb, a, clean);
+					printExpr(sb, a);
 					first = false;
 				}
 				sb.append(")");
@@ -362,19 +347,11 @@ public class JassPrinter {
 					}
 				}
 				sb.append(useParanthesesLeft ? "(" : "");
-				printExpr(sb, e.getLeft(), clean);
-				if (clean) {
-					sb.append(useParanthesesLeft ? ")" : "");
-				}else {
-					sb.append(useParanthesesLeft ? ")" : " ");
-				}				
-				printOp(sb, e.getOp());		
-				if (clean) {
-					sb.append(useParanthesesRight ? "(" : "");
-				}else {
-					sb.append(useParanthesesRight ? "(" : " ");
-				}				
-				printExpr(sb, e.getRight(), clean);
+				printExpr(sb, e.getLeft());
+				sb.append(useParanthesesLeft ? ")" : "");
+				printOp(sb, e.getOp(),useParanthesesLeft, useParanthesesRight);		
+				sb.append(useParanthesesRight ? "(" : "");
+				printExpr(sb, e.getRight());
 				sb.append(useParanthesesRight ? ")" : "");
 			}
 		});
@@ -458,80 +435,89 @@ public class JassPrinter {
 	}
 
 
-	protected static void printOp(final StringBuilder sb, JassOp op) {
-		op.match(new JassOp.MatcherVoid() {
-			
+	protected void printOp(final StringBuilder sb, JassOp op, boolean parLeft, boolean parRight) {
+		String opString = op.match(new JassOp.Matcher<String>() {
+
 			@Override
-			public void case_JassOpUnequals(JassOpUnequals jassOpUnequals) {
-				sb.append("!=");
+			public String case_JassOpUnequals(JassOpUnequals jassOpUnequals) {
+				return "!=";
 			}
 			
 			@Override
-			public void case_JassOpPlus(JassOpPlus jassOpPlus) {
-				sb.append("+");
+			public String case_JassOpPlus(JassOpPlus jassOpPlus) {
+				return "+";
 			}
 			
 			@Override
-			public void case_JassOpOr(JassOpOr jassOpOr) {
-				sb.append("or");
+			public String case_JassOpOr(JassOpOr jassOpOr) {
+				return "or";
 			}
 			
 			@Override
-			public void case_JassOpNot(JassOpNot jassOpNot) {
-				sb.append("not");
+			public String case_JassOpNot(JassOpNot jassOpNot) {
+				return "not";
 			}
 			
 			@Override
-			public void case_JassOpMult(JassOpMult jassOpMult) {
-				sb.append("*");
+			public String case_JassOpMult(JassOpMult jassOpMult) {
+				return "*";
 			}
 			
 			@Override
-			public void case_JassOpMinus(JassOpMinus jassOpMinus) {
-				sb.append("-");
+			public String case_JassOpMinus(JassOpMinus jassOpMinus) {
+				return "-";
 			}
 			
 			@Override
-			public void case_JassOpLessEq(JassOpLessEq jassOpLessEq) {
-				sb.append("<=");
+			public String case_JassOpLessEq(JassOpLessEq jassOpLessEq) {
+				return "<=";
 			}
 			
 			@Override
-			public void case_JassOpLess(JassOpLess jassOpLess) {
-				sb.append("<");
+			public String case_JassOpLess(JassOpLess jassOpLess) {
+				return "<";
 			}
 			
 			@Override
-			public void case_JassOpGreaterEq(JassOpGreaterEq jassOpGreaterEq) {
-				sb.append(">=");
+			public String case_JassOpGreaterEq(JassOpGreaterEq jassOpGreaterEq) {
+				return ">=";
 			}
 			
 			@Override
-			public void case_JassOpGreater(JassOpGreater jassOpGreater) {
-				sb.append(">");
+			public String case_JassOpGreater(JassOpGreater jassOpGreater) {
+				return ">";
 			}
 			
 			@Override
-			public void case_JassOpEquals(JassOpEquals jassOpEquals) {
-				sb.append("==");
+			public String case_JassOpEquals(JassOpEquals jassOpEquals) {
+				return "==";
 			}
 			
 			@Override
-			public void case_JassOpDiv(JassOpDiv jassOpDiv) {
-				sb.append("/");
+			public String case_JassOpDiv(JassOpDiv jassOpDiv) {
+				return "/";
 			}
 			
 			@Override
-			public void case_JassOpAnd(JassOpAnd jassOpAnd) {
-				sb.append("and");
+			public String case_JassOpAnd(JassOpAnd jassOpAnd) {
+				return "and";
 			}
 		});
+		if (withSpace || !parLeft && Character.isLetter(opString.charAt(0))) {
+			// if we have no parantheses on the left and an operator like and/or we need a space:
+			sb.append(" ");
+		}
+		sb.append(opString);
+		if (withSpace || !parRight && Character.isLetter(opString.charAt(0))) {
+			// if we have no parantheses on the right and an operator like and/or we need a space:
+			sb.append(" ");
+		}
 	}
 
 
-	public CharSequence printProg(JassProg prog, boolean clean) {
+	public CharSequence printProg(JassProg prog) {
 		StringBuilder sb = new StringBuilder();
-		printProg(sb, prog, clean);
+		printProg(sb, prog);
 		return sb.toString();
 	}
 	

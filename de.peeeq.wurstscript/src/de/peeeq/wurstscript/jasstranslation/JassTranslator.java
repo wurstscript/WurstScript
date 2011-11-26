@@ -873,6 +873,12 @@ public class JassTranslator {
 				&& !def.attrIsStatic();
 	}
 
+	/**
+	 * get the real called function, where the funcDefInstance is measured from the root context
+	 * @param context the context of the call
+	 * @param relative the funcDefInstance with relative context
+	 * @return funcDefInstance with absolute context
+	 */
 	protected FuncDefInstance getRealCalledFunction(ImmutableList<ClassOrModule> context, FuncDefInstance relative) {
 		if (context.isEmpty()) {
 			return relative;

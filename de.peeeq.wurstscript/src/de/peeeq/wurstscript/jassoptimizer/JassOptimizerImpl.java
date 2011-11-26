@@ -53,13 +53,13 @@ public class JassOptimizerImpl implements JassOptimizer {
 
 		// no we have a jass program
 		// print original
-		Files.write(new JassPrinter().printProg(prog, false), new File(testFile+".original.j"), Charsets.UTF_8);
+		Files.write(new JassPrinter(true).printProg(prog), new File(testFile+".original.j"), Charsets.UTF_8);
 		
 		// optimize it:
 		new JassOptimizerImpl().optimize(prog);
 		
 		// print the optimized version
-		Files.write(new JassPrinter().printProg(prog, true), new File(testFile+".optimized.j"), Charsets.UTF_8);
+		Files.write(new JassPrinter(false).printProg(prog), new File(testFile+".optimized.j"), Charsets.UTF_8);
 	}
 	
 	/**
