@@ -8,6 +8,7 @@ public interface AstElement {
 	PackageOrGlobal attrNearestPackage();
 	FuncDef attrNearestFuncDef();
 	ClassDef attrNearestClassDef();
+	ClassOrModule attrNearestClassOrModule();
 }
 
 interface AstElementIntern {

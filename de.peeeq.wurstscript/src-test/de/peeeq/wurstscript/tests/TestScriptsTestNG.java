@@ -13,7 +13,9 @@ import java.util.List;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import de.peeeq.wurstscript.Pjass;
 import de.peeeq.wurstscript.WurstCompilerJassImpl;
+import de.peeeq.wurstscript.Pjass.Result;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassinterpreter.JassInterpreter;
@@ -83,7 +85,7 @@ public class TestScriptsTestNG {
 
 			File outputFile = new File(filename.replaceAll("\\"+PSCRIPT_ENDING, ".j"));
 			StringBuilder sb = new StringBuilder();
-			JassPrinter.printProg(sb, prog, false);
+			new JassPrinter(true).printProg(sb, prog);
 			try {
 				FileWriter writer = new FileWriter(outputFile, false);
 				writer.append(sb.toString());
@@ -93,28 +95,10 @@ public class TestScriptsTestNG {
 			}
 
 			// run pjass:
-			try {
-				Process p = Runtime.getRuntime().exec("lib/pjass.exe lib/common.j lib/debugnatives.j lib/blizzard.j " + outputFile.getPath());
-				
-				BufferedReader input =
-						new BufferedReader
-						(new InputStreamReader(p.getInputStream()));
-				
-				StringBuilder output = new StringBuilder();
-				String line;
-				while ((line = input.readLine()) != null) {
-					System.out.println(line);
-					output.append(line + "\n");
-				}
-				input.close();
-	
-				int exitValue = p.waitFor();
-				if (exitValue != 0) {
-					assertTrue("pjass errors: \n" + output.toString() , false);
-				}
-			} catch (IOException e) {
-				System.err.println("Could not run pjass:");
-				e.printStackTrace();
+			Result pJassResult = Pjass.runPjass(outputFile);
+			System.out.println(pJassResult.getMessage());
+			if (!pJassResult.isOk()) {
+				throw new TestFailException(pJassResult.getMessage());
 			}
 
 			// run the interpreter

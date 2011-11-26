@@ -58,22 +58,17 @@ class WParameterImpl implements WParameter, AstElementIntern {
 	public WParameter copy() {
 		return new WParameterImpl(source.copy(), typ.copy(), name);
 	}
-	@Override public void accept(VarDef.Visitor v) {
+	@Override public void accept(WParameter.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ConstructorDef.Visitor v) {
+	@Override public void accept(NativeFunc.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WEntity.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(FuncSignature.Visitor v) {
+	@Override public void accept(TypeDef.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);
@@ -83,27 +78,12 @@ class WParameterImpl implements WParameter, AstElementIntern {
 		typ.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(ClassDef.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(AstElementWithModifier.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WParameter.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ModuleDef.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);
@@ -113,7 +93,22 @@ class WParameterImpl implements WParameter, AstElementIntern {
 		typ.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(ClassSlot.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(VarDef.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(PackageOrGlobal.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);
@@ -123,7 +118,17 @@ class WParameterImpl implements WParameter, AstElementIntern {
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassSlot.Visitor v) {
+	@Override public void accept(FunctionDefinition.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(AstElementWithModifier.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ConstructorDef.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);
@@ -143,17 +148,12 @@ class WParameterImpl implements WParameter, AstElementIntern {
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FuncDef.Visitor v) {
+	@Override public void accept(ModuleDef.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(NativeFunc.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+	@Override public void accept(WEntity.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);
@@ -168,17 +168,17 @@ class WParameterImpl implements WParameter, AstElementIntern {
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TypeDef.Visitor v) {
+	@Override public void accept(FuncDef.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
+	@Override public void accept(FuncSignature.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		v.visit(this);
@@ -244,5 +244,14 @@ class WParameterImpl implements WParameter, AstElementIntern {
 			attr_attrNearestClassDef_isCached = true;
 		}
 		return attr_attrNearestClassDef_cache;
+	}
+	private boolean attr_attrNearestClassOrModule_isCached = false;
+	private ClassOrModule attr_attrNearestClassOrModule_cache;
+	public ClassOrModule attrNearestClassOrModule() {
+		if (!attr_attrNearestClassOrModule_isCached) {
+			attr_attrNearestClassOrModule_cache = de.peeeq.wurstscript.attributes.AttrNearestClassDef.nearestClassOrModule(this);
+			attr_attrNearestClassOrModule_isCached = true;
+		}
+		return attr_attrNearestClassOrModule_cache;
 	}
 }

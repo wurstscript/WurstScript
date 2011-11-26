@@ -49,17 +49,7 @@ class InitBlockImpl implements InitBlock, AstElementIntern {
 	public InitBlock copy() {
 		return new InitBlockImpl(source.copy(), body.copy());
 	}
-	@Override public void accept(InitBlock.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);
@@ -79,27 +69,37 @@ class InitBlockImpl implements InitBlock, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(WEntity.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(InitBlock.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public <T> T match(WEntity.Matcher<T> matcher) {
-		return matcher.case_InitBlock(this);
-	}
-	@Override public void match(WEntity.MatcherVoid matcher) {
-		matcher.case_InitBlock(this);
-	}
-
 	@Override public <T> T match(WScope.Matcher<T> matcher) {
 		return matcher.case_InitBlock(this);
 	}
 	@Override public void match(WScope.MatcherVoid matcher) {
+		matcher.case_InitBlock(this);
+	}
+
+	@Override public <T> T match(WEntity.Matcher<T> matcher) {
+		return matcher.case_InitBlock(this);
+	}
+	@Override public void match(WEntity.MatcherVoid matcher) {
 		matcher.case_InitBlock(this);
 	}
 
@@ -195,5 +195,14 @@ class InitBlockImpl implements InitBlock, AstElementIntern {
 			attr_attrNearestClassDef_isCached = true;
 		}
 		return attr_attrNearestClassDef_cache;
+	}
+	private boolean attr_attrNearestClassOrModule_isCached = false;
+	private ClassOrModule attr_attrNearestClassOrModule_cache;
+	public ClassOrModule attrNearestClassOrModule() {
+		if (!attr_attrNearestClassOrModule_isCached) {
+			attr_attrNearestClassOrModule_cache = de.peeeq.wurstscript.attributes.AttrNearestClassDef.nearestClassOrModule(this);
+			attr_attrNearestClassOrModule_isCached = true;
+		}
+		return attr_attrNearestClassOrModule_cache;
 	}
 }

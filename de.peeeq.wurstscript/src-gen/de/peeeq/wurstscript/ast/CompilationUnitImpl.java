@@ -29,12 +29,6 @@ class CompilationUnitImpl extends CompilationUnit implements AstElementIntern {
 		matcher.case_CompilationUnit(this);
 	}
 
-	@Override public void accept(WScope.Visitor v) {
-		for (TopLevelDeclaration i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
 	@Override public void accept(PackageOrGlobal.Visitor v) {
 		for (TopLevelDeclaration i : this ) {
 			i.accept(v);
@@ -42,6 +36,12 @@ class CompilationUnitImpl extends CompilationUnit implements AstElementIntern {
 		v.visit(this);
 	}
 	@Override public void accept(CompilationUnit.Visitor v) {
+		for (TopLevelDeclaration i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
 		for (TopLevelDeclaration i : this ) {
 			i.accept(v);
 		}
@@ -145,6 +145,15 @@ class CompilationUnitImpl extends CompilationUnit implements AstElementIntern {
 			attr_attrNearestClassDef_isCached = true;
 		}
 		return attr_attrNearestClassDef_cache;
+	}
+	private boolean attr_attrNearestClassOrModule_isCached = false;
+	private ClassOrModule attr_attrNearestClassOrModule_cache;
+	public ClassOrModule attrNearestClassOrModule() {
+		if (!attr_attrNearestClassOrModule_isCached) {
+			attr_attrNearestClassOrModule_cache = de.peeeq.wurstscript.attributes.AttrNearestClassDef.nearestClassOrModule(this);
+			attr_attrNearestClassOrModule_isCached = true;
+		}
+		return attr_attrNearestClassOrModule_cache;
 	}
 	@Override public String toString() {
 		String result =  "CompilationUnit(";

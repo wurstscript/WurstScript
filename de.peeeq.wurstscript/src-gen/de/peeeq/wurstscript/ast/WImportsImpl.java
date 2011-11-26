@@ -15,7 +15,7 @@ class WImportsImpl extends WImports implements AstElementIntern {
 	protected void other_clearParent(WImport t) {
 		((AstElementIntern) t).setParent(null);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		for (WImport i : this ) {
 			i.accept(v);
 		}
@@ -39,7 +39,7 @@ class WImportsImpl extends WImports implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
 		for (WImport i : this ) {
 			i.accept(v);
 		}
@@ -77,6 +77,15 @@ class WImportsImpl extends WImports implements AstElementIntern {
 			attr_attrNearestClassDef_isCached = true;
 		}
 		return attr_attrNearestClassDef_cache;
+	}
+	private boolean attr_attrNearestClassOrModule_isCached = false;
+	private ClassOrModule attr_attrNearestClassOrModule_cache;
+	public ClassOrModule attrNearestClassOrModule() {
+		if (!attr_attrNearestClassOrModule_isCached) {
+			attr_attrNearestClassOrModule_cache = de.peeeq.wurstscript.attributes.AttrNearestClassDef.nearestClassOrModule(this);
+			attr_attrNearestClassOrModule_isCached = true;
+		}
+		return attr_attrNearestClassOrModule_cache;
 	}
 	@Override public String toString() {
 		String result =  "WImports(";

@@ -15,31 +15,19 @@ class ClassSlotsImpl extends ClassSlots implements AstElementIntern {
 	protected void other_clearParent(ClassSlot t) {
 		((AstElementIntern) t).setParent(null);
 	}
-	@Override public void accept(WEntity.Visitor v) {
+	@Override public void accept(TypeDef.Visitor v) {
+		for (ClassSlot i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		for (ClassSlot i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
 	@Override public void accept(ClassDef.Visitor v) {
-		for (ClassSlot i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(AstElementWithModifier.Visitor v) {
-		for (ClassSlot i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
-		for (ClassSlot i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ModuleDef.Visitor v) {
 		for (ClassSlot i : this ) {
 			i.accept(v);
 		}
@@ -63,6 +51,12 @@ class ClassSlotsImpl extends ClassSlots implements AstElementIntern {
 		}
 		v.visit(this);
 	}
+	@Override public void accept(AstElementWithModifier.Visitor v) {
+		for (ClassSlot i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
 	@Override public void accept(WEntities.Visitor v) {
 		for (ClassSlot i : this ) {
 			i.accept(v);
@@ -70,6 +64,18 @@ class ClassSlotsImpl extends ClassSlots implements AstElementIntern {
 		v.visit(this);
 	}
 	@Override public void accept(NameDef.Visitor v) {
+		for (ClassSlot i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(ModuleDef.Visitor v) {
+		for (ClassSlot i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
 		for (ClassSlot i : this ) {
 			i.accept(v);
 		}
@@ -87,13 +93,7 @@ class ClassSlotsImpl extends ClassSlots implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(TypeDef.Visitor v) {
-		for (ClassSlot i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
 		for (ClassSlot i : this ) {
 			i.accept(v);
 		}
@@ -125,6 +125,15 @@ class ClassSlotsImpl extends ClassSlots implements AstElementIntern {
 			attr_attrNearestClassDef_isCached = true;
 		}
 		return attr_attrNearestClassDef_cache;
+	}
+	private boolean attr_attrNearestClassOrModule_isCached = false;
+	private ClassOrModule attr_attrNearestClassOrModule_cache;
+	public ClassOrModule attrNearestClassOrModule() {
+		if (!attr_attrNearestClassOrModule_isCached) {
+			attr_attrNearestClassOrModule_cache = de.peeeq.wurstscript.attributes.AttrNearestClassDef.nearestClassOrModule(this);
+			attr_attrNearestClassOrModule_isCached = true;
+		}
+		return attr_attrNearestClassOrModule_cache;
 	}
 	@Override public String toString() {
 		String result =  "ClassSlots(";

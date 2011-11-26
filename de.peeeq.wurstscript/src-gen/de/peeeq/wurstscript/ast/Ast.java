@@ -14,8 +14,8 @@ public class Ast {
 	public static InitBlock InitBlock(WPos source, WStatements body) {
 		return new InitBlockImpl(source, body);
 	}
-	public static NativeFunc NativeFunc(WPos source, FuncSignature signature) {
-		return new NativeFuncImpl(source, signature);
+	public static NativeFunc NativeFunc(WPos source, Modifiers modifiers, FuncSignature signature) {
+		return new NativeFuncImpl(source, modifiers, signature);
 	}
 	public static ModuleDef ModuleDef(WPos source, Modifiers modifiers, String name, ClassSlots slots) {
 		return new ModuleDefImpl(source, modifiers, name, slots);
@@ -202,6 +202,9 @@ public class Ast {
 	}
 	public static ModStatic ModStatic(WPos source) {
 		return new ModStaticImpl(source);
+	}
+	public static ModOverride ModOverride(WPos source) {
+		return new ModOverrideImpl(source);
 	}
 	public static CompilationUnit CompilationUnit(TopLevelDeclaration ... elements ) {
 		CompilationUnit l = new CompilationUnitImpl();

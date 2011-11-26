@@ -15,17 +15,17 @@ class JassGlobalBlockImpl extends JassGlobalBlock implements AstElementIntern {
 	protected void other_clearParent(GlobalVarDef t) {
 		((AstElementIntern) t).setParent(null);
 	}
-	@Override public <T> T match(TopLevelDeclaration.Matcher<T> matcher) {
-		return matcher.case_JassGlobalBlock(this);
-	}
-	@Override public void match(TopLevelDeclaration.MatcherVoid matcher) {
-		matcher.case_JassGlobalBlock(this);
-	}
-
 	@Override public <T> T match(JassToplevelDeclaration.Matcher<T> matcher) {
 		return matcher.case_JassGlobalBlock(this);
 	}
 	@Override public void match(JassToplevelDeclaration.MatcherVoid matcher) {
+		matcher.case_JassGlobalBlock(this);
+	}
+
+	@Override public <T> T match(TopLevelDeclaration.Matcher<T> matcher) {
+		return matcher.case_JassGlobalBlock(this);
+	}
+	@Override public void match(TopLevelDeclaration.MatcherVoid matcher) {
 		matcher.case_JassGlobalBlock(this);
 	}
 
@@ -35,7 +35,7 @@ class JassGlobalBlockImpl extends JassGlobalBlock implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		for (GlobalVarDef i : this ) {
 			i.accept(v);
 		}
@@ -59,7 +59,7 @@ class JassGlobalBlockImpl extends JassGlobalBlock implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
+	@Override public void accept(WScope.Visitor v) {
 		for (GlobalVarDef i : this ) {
 			i.accept(v);
 		}
@@ -91,6 +91,15 @@ class JassGlobalBlockImpl extends JassGlobalBlock implements AstElementIntern {
 			attr_attrNearestClassDef_isCached = true;
 		}
 		return attr_attrNearestClassDef_cache;
+	}
+	private boolean attr_attrNearestClassOrModule_isCached = false;
+	private ClassOrModule attr_attrNearestClassOrModule_cache;
+	public ClassOrModule attrNearestClassOrModule() {
+		if (!attr_attrNearestClassOrModule_isCached) {
+			attr_attrNearestClassOrModule_cache = de.peeeq.wurstscript.attributes.AttrNearestClassDef.nearestClassOrModule(this);
+			attr_attrNearestClassOrModule_isCached = true;
+		}
+		return attr_attrNearestClassOrModule_cache;
 	}
 	@Override public String toString() {
 		String result =  "JassGlobalBlock(";

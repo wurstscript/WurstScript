@@ -21,6 +21,7 @@ import de.peeeq.wurstscript.ast.ExprUnary;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
+import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.OpAnd;
@@ -54,6 +55,7 @@ import de.peeeq.wurstscript.types.PScriptTypeUnknown;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
+import de.peeeq.wurstscript.types.PscriptTypeModule;
 import de.peeeq.wurstscript.utils.Utils;
 
 
@@ -133,6 +135,9 @@ public class AttrExprType {
 				while (pos != null) {
 					if (pos instanceof ClassDef) {
 						return new PscriptTypeClass((ClassDef) pos);
+					}
+					if (pos instanceof ModuleDef) {
+						return new PscriptTypeModule((ModuleDef) pos);
 					}
 					pos = pos.getParent();
 				}

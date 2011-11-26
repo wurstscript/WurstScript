@@ -42,6 +42,7 @@ import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtSet;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtSetArray;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassVars;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -65,6 +66,7 @@ import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassMember;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.ClassSlot;
+import de.peeeq.wurstscript.ast.ClassSlots;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
@@ -156,6 +158,7 @@ import de.peeeq.wurstscript.types.PScriptTypeClassDefinition;
 import de.peeeq.wurstscript.types.PScriptTypeCode;
 import de.peeeq.wurstscript.types.PScriptTypeHandle;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
+import de.peeeq.wurstscript.types.PScriptTypeModuleDefinition;
 import de.peeeq.wurstscript.types.PScriptTypeReal;
 import de.peeeq.wurstscript.types.PScriptTypeString;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;
@@ -163,6 +166,7 @@ import de.peeeq.wurstscript.types.PscriptNativeType;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeError;
+import de.peeeq.wurstscript.types.PscriptTypeModule;
 import de.peeeq.wurstscript.utils.TopsortCycleException;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -362,6 +366,7 @@ public class JassTranslator {
 	}
 
 	protected void translateFuncDef(ImmutableList<ClassOrModule> context, FuncDef funcDef, boolean isMethod) {
+		trace("translateFuncDef " + Utils.printContext(context) + " -> " + funcDef.getSignature().getName());
 		JassFunction f = manager.getJassFunctionFor(context, funcDef);
 		f.setReturnType(translateType(funcDef.getSignature().getTyp()));
 		if (isMethod && !funcDef.attrIsStatic()) {
@@ -648,14 +653,19 @@ public class JassTranslator {
 
 			@Override
 			public ExprTranslationResult case_ExprFunctionCall(ExprFunctionCall exprFunctionCall) {
-				FuncDefInstance calledFunc = exprFunctionCall.attrFuncDef();
-				JassFunction calledJassFunc = manager.getJassFunctionFor(context, calledFunc);
+				FuncDefInstance calledFunc = getRealCalledFunction(context, exprFunctionCall.attrFuncDef());
+				JassFunction calledJassFunc = manager.getJassFunctionFor(calledFunc);
 				String functionName = calledJassFunc.getName();
 				
 				calledFunctions.put(f, calledJassFunc);
 				
-				ExprListTranslationResult args = translateArguments(context, f, exprFunctionCall.getArgs());
 				JassExprlist arguments = JassExprlist();
+
+				if (isDynamicFunction(calledFunc.getDef())) {
+					arguments.add(JassExprVarAccess("this"));
+				}
+				
+				ExprListTranslationResult args = translateArguments(context, f, exprFunctionCall.getArgs());
 				arguments.addAll(args.getExprs());
 				return new ExprTranslationResult(
 						args.getStatements(),
@@ -670,7 +680,10 @@ public class JassTranslator {
 					return translateDynamicFunctionCall(context, f, exprMemberMethod);
 				} else if (leftType instanceof PScriptTypeClassDefinition) {
 					return translateStaticFunctionCall(context, f, exprMemberMethod);
-					
+				} else if (leftType instanceof PscriptTypeModule) {
+					return translateModuleFunctionCall(context, f, exprMemberMethod);
+				} else if (leftType instanceof PScriptTypeModuleDefinition) {
+					return translateModuleFunctionCall(context, f, exprMemberMethod);
 				} else {
 					throw new Error("not implemented for left side " + leftType);
 				}
@@ -826,6 +839,101 @@ public class JassTranslator {
 		});
 	}
 
+
+//	/**
+//	 * get the real func def instance, where the context is measured from the root
+//	 * @param context the context of the call
+//	 * @param relative the relative func def instance
+//	 * @return
+//	 */
+//	protected FuncDefInstance getRealCalledFunction(ImmutableList<ClassOrModule> context, FuncDefInstance relative) {
+//		ImmutableList<ClassOrModule> overallContext = mergeContexts(context, relative.getContext());
+//		FunctionDefinition funcDef = relative.getDef();
+//		String funcName = funcDef.getSignature().getName();
+//		
+//		for (ClassOrModule cm : overallContext) {
+//			Collection<FuncDefInstance> funcs = cm.attrScopeFunctions().get(funcName);
+//			for (FuncDefInstance fi : funcs) {
+//				for (FuncDefInstance overriddenFunction : fi.getDef().attrOverriddenFunctions()) {
+//					if (overriddenFunction.getDef() == funcDef) {
+//						
+//						
+//						return overriddenFunction.inContext();
+//					}
+//				}
+//			}
+//		}
+//		
+//		return FuncDefInstance.create(funcDef, overallContext);
+//	}
+
+
+	protected boolean isDynamicFunction(FunctionDefinition def) {
+		return def.getParent() instanceof ClassSlots 
+				&& !def.attrIsStatic();
+	}
+
+	/**
+	 * get the real called function, where the funcDefInstance is measured from the root context
+	 * @param context the context of the call
+	 * @param relative the funcDefInstance with relative context
+	 * @return funcDefInstance with absolute context
+	 */
+	protected FuncDefInstance getRealCalledFunction(ImmutableList<ClassOrModule> context, FuncDefInstance relative) {
+		if (context.isEmpty()) {
+			return relative;
+		}
+		ImmutableList<ClassOrModule> overallContext = mergeContexts(context, relative.getContext());
+		FunctionDefinition funcDef = relative.getDef();
+		String funcName = funcDef.getSignature().getName();
+		Collection<FuncDefInstance> possibleFunctions = context.head().attrAllFunctions().get(funcName);
+		// search the function with the longest common prefix
+		int longestCommonPrefixLength = -1;
+		FuncDefInstance result = null; 
+		for (FuncDefInstance funcInstance : possibleFunctions) {
+			int commonPrefixLength = Utils.getCommonPrefixLength(overallContext, funcInstance.getContext());
+			if (commonPrefixLength > longestCommonPrefixLength) {
+				result = funcInstance;
+				longestCommonPrefixLength = commonPrefixLength;
+			}
+		}
+		if (result == null) throw new Error();
+		return result;
+	}
+
+	private ImmutableList<ClassOrModule> mergeContexts(ImmutableList<ClassOrModule> c1, ImmutableList<ClassOrModule> c2) {
+		// merge the two contexts in such a way that each element occurs only once		
+		ImmutableList<ClassOrModule> part2 = c2;
+		while (!part2.isEmpty() && c1.contains(part2.head())) {
+			part2 = part2.tail();
+		}
+		return c1.cons(part2);
+	}
+	
+	protected ExprTranslationResult translateModuleFunctionCall(ImmutableList<ClassOrModule> context, JassFunction f,
+								ExprMemberMethod exprMemberMethod) {
+		FuncDefInstance calledFunc = exprMemberMethod.attrFuncDef();
+		
+		JassFunction calledJassFunc = manager.getJassFunctionFor(context, calledFunc); // FIXME use right context
+		String functionName = calledJassFunc.getName();
+		JassExprlist arguments = JassExprlist();
+		
+		if (!calledFunc.getDef().attrIsStatic()) {
+			// not static
+			// translate this:
+			arguments.addFront(JassAst.JassExprVarAccess("this"));
+		}
+		
+		// translate arguments:			
+		List<JassStatement> statements = Lists.newLinkedList();
+		ExprListTranslationResult args = translateArguments(context, f, exprMemberMethod.getArgs());
+		statements.addAll(args.getStatements());
+		arguments.addAll(args.getExprs());
+		
+		
+		JassExprFunctionCall ex = JassExprFunctionCall(functionName, arguments);
+		return new ExprTranslationResult(statements, ex);
+	}
 
 	/**
 	 * a call like Math.sqrt(5)
@@ -1219,6 +1327,7 @@ public class JassTranslator {
 	
 
 	protected void translateModuleUse(ImmutableList<ClassOrModule> parent_context, ModuleUse moduleUse) {
+		trace("transslate module use " + Utils.printContext(parent_context) + " _ " + moduleUse.getModuleName());
 		ModuleDef usedModule = moduleUse.attrModuleDef();
 		ImmutableList<ClassOrModule> context =  parent_context.appBack(usedModule);
 		for (ClassSlot slot : usedModule.getSlots()) {

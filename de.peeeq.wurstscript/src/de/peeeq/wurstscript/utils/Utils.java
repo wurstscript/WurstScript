@@ -12,9 +12,13 @@ import org.testng.collections.Lists;
 import com.google.common.base.Function;
 import com.google.common.collect.Multimap;
 
+import de.peeeq.immutablecollections.ImmutableList;
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.attributes.FuncDefInstance;
 
 public class Utils {
 
@@ -294,6 +298,35 @@ public class Utils {
 			s = s.getParent();
 		}
 		return s;
+	}
+
+	public static String printContext(ImmutableList<ClassOrModule> context) {
+		return join(map(context, new Function<ClassOrModule, String>() {
+
+			@Override
+			public String apply(ClassOrModule c) {
+				return c.getName();
+			}
+			
+		}), "->");
+	}
+
+	public static <T> T getFirst(Iterable<T> ts) {
+		for (T t : ts) {
+			return t;
+		}
+		throw new Error("collection has no first element");
+	}
+
+	public static int getCommonPrefixLength(ImmutableList<?> list1, ImmutableList<?> list2) {
+		if (list1.isEmpty() || list2.isEmpty()) {
+			return 0;
+		}
+		if (list1.head().equals(list2.head())) {
+			return 1 + getCommonPrefixLength(list1.tail(), list2.tail());
+		} else {
+			return 0;
+		}
 	}
 
 	
