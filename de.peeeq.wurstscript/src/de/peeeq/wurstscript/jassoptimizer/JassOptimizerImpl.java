@@ -24,9 +24,12 @@ import de.peeeq.wurstscript.jassAst.JassExprStringVal;
 import de.peeeq.wurstscript.jassAst.JassExprlist;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassProg;
+import de.peeeq.wurstscript.jassAst.JassSimpleVar;
+import de.peeeq.wurstscript.jassAst.JassSimpleVars;
 import de.peeeq.wurstscript.jassAst.JassStatements;
 import de.peeeq.wurstscript.jassAst.JassStmtCall;
 import de.peeeq.wurstscript.jassAst.JassVar;
+import de.peeeq.wurstscript.jassAst.JassVars;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -192,9 +195,19 @@ public class JassOptimizerImpl implements JassOptimizer {
 							replacements.put(name, ng.getUniqueToken());
 						}
 					}
-					JassStatements body = jassFunction.getBody();
-					JassAstElement ast = body.get(0);
-					if (ast instanceof JassVar)
+					HashMap<String, String> localReplacements = new HashMap<String, String>();
+					JassSimpleVars params = jassFunction.getParams();
+					for (JassSimpleVar param : params ) {
+						localReplacements.put(param.getName(), ng.getUniqueToken());
+					}
+					JassVars locals = jassFunction.getLocals();
+					for (JassVar local : locals ) {
+						localReplacements.put(local.getName(), ng.getUniqueToken());
+					}
+					
+					
+					
+					
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
