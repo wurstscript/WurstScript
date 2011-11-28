@@ -421,7 +421,7 @@ public class Generator {
 
 	private void createCopyMethod(ConstructorDef c, StringBuilder sb, int childCount) {
 		boolean first;
-		sb.append("	public " + c.name + " copy() {\n");
+		sb.append("	@Override public " + c.name + " copy() {\n");
 		sb.append("		return new " + c.name + "Impl(");
 		first = true;
 		for (Parameter p : c.parameters) {
@@ -429,7 +429,7 @@ public class Generator {
 				sb.append(", ");
 			}
 			if (prog.hasElement(p.typ)) {
-				sb.append(p.name+".copy()");
+				sb.append("(" + p.typ + ") " + p.name+".copy()");
 				childCount++;
 			} else {
 				sb.append(p.name);
@@ -650,7 +650,7 @@ public class Generator {
 		sb.append("	}\n\n");
 		
 		// copy method
-		sb.append("	" + c.name + " copy();\n");
+		sb.append("	" + getCommonSupertypeType() + " copy();\n");
 
 		generateVisitorInterface(c, sb);
 		
@@ -772,7 +772,7 @@ public class Generator {
 		sb.append("	public " + l.name + " copy() {\n");
 		sb.append("		" + l.name + " result = new "+l.name+"Impl();\n");
 		sb.append("		for ("+ l.itemType +" elem : this) {\n");
-		sb.append("			result.add(elem.copy());\n");
+		sb.append("			result.add(("+l.itemType+") elem.copy());\n");
 		sb.append("		}\n");
 		sb.append("		return result;\n");
 		sb.append("	}\n");
