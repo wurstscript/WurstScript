@@ -1,12 +1,8 @@
 package de.peeeq.wurstscript.attributes;
 
-import com.google.common.base.Preconditions;
-
 import de.peeeq.immutablecollections.ImmutableList;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
-import de.peeeq.wurstscript.ast.Modifiers;
-import de.peeeq.wurstscript.ast.VisibilityModifier;
 
 public class FuncDefInstance {
 

@@ -15,24 +15,6 @@ class WEntitiesImpl extends WEntities implements AstElementIntern {
 	protected void other_clearParent(WEntity t) {
 		((AstElementIntern) t).setParent(null);
 	}
-	@Override public void accept(WScope.Visitor v) {
-		for (WEntity i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(WEntities.Visitor v) {
-		for (WEntity i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		for (WEntity i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
 	@Override public void accept(CompilationUnit.Visitor v) {
 		for (WEntity i : this ) {
 			i.accept(v);
@@ -46,6 +28,24 @@ class WEntitiesImpl extends WEntities implements AstElementIntern {
 		v.visit(this);
 	}
 	@Override public void accept(WPackage.Visitor v) {
+		for (WEntity i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		for (WEntity i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		for (WEntity i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
 		for (WEntity i : this ) {
 			i.accept(v);
 		}

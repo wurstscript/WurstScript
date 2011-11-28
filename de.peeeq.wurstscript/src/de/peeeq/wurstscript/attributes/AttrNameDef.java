@@ -2,7 +2,6 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.Map;
 
-import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVar;

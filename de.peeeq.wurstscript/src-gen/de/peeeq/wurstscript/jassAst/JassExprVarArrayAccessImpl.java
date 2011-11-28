@@ -45,6 +45,34 @@ class JassExprVarArrayAccessImpl implements JassExprVarArrayAccess, JassAstEleme
 	public JassExprVarArrayAccess copy() {
 		return new JassExprVarArrayAccessImpl(varName, index.copy());
 	}
+	@Override public void accept(JassStmtIf.Visitor v) {
+		index.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassExprVarArrayAccess.Visitor v) {
+		index.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassExprlist.Visitor v) {
+		index.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassExprFunctionCall.Visitor v) {
+		index.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtReturn.Visitor v) {
+		index.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtExitwhen.Visitor v) {
+		index.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassExpr.Visitor v) {
+		index.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(JassStmtLoop.Visitor v) {
 		index.accept(v);
 		v.visit(this);
@@ -53,27 +81,7 @@ class JassExprVarArrayAccessImpl implements JassExprVarArrayAccess, JassAstEleme
 		index.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassExprAtomic.Visitor v) {
-		index.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassExpr.Visitor v) {
-		index.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(JassExprBinary.Visitor v) {
-		index.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtSet.Visitor v) {
-		index.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassExprFunctionCall.Visitor v) {
-		index.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassProg.Visitor v) {
 		index.accept(v);
 		v.visit(this);
 	}
@@ -81,7 +89,11 @@ class JassExprVarArrayAccessImpl implements JassExprVarArrayAccess, JassAstEleme
 		index.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassExprlist.Visitor v) {
+	@Override public void accept(JassFunctions.Visitor v) {
+		index.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtSet.Visitor v) {
 		index.accept(v);
 		v.visit(this);
 	}
@@ -89,31 +101,11 @@ class JassExprVarArrayAccessImpl implements JassExprVarArrayAccess, JassAstEleme
 		index.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassStmtSetArray.Visitor v) {
+	@Override public void accept(JassExprAtomic.Visitor v) {
 		index.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassExprVarArrayAccess.Visitor v) {
-		index.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassStatement.Visitor v) {
-		index.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassFunctions.Visitor v) {
-		index.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtReturn.Visitor v) {
-		index.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtIf.Visitor v) {
-		index.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtExitwhen.Visitor v) {
+	@Override public void accept(JassProg.Visitor v) {
 		index.accept(v);
 		v.visit(this);
 	}
@@ -121,17 +113,25 @@ class JassExprVarArrayAccessImpl implements JassExprVarArrayAccess, JassAstEleme
 		index.accept(v);
 		v.visit(this);
 	}
-	@Override public <T> T match(JassExprAtomic.Matcher<T> matcher) {
-		return matcher.case_JassExprVarArrayAccess(this);
+	@Override public void accept(JassStatement.Visitor v) {
+		index.accept(v);
+		v.visit(this);
 	}
-	@Override public void match(JassExprAtomic.MatcherVoid matcher) {
-		matcher.case_JassExprVarArrayAccess(this);
+	@Override public void accept(JassStmtSetArray.Visitor v) {
+		index.accept(v);
+		v.visit(this);
 	}
-
 	@Override public <T> T match(JassExpr.Matcher<T> matcher) {
 		return matcher.case_JassExprVarArrayAccess(this);
 	}
 	@Override public void match(JassExpr.MatcherVoid matcher) {
+		matcher.case_JassExprVarArrayAccess(this);
+	}
+
+	@Override public <T> T match(JassExprAtomic.Matcher<T> matcher) {
+		return matcher.case_JassExprVarArrayAccess(this);
+	}
+	@Override public void match(JassExprAtomic.MatcherVoid matcher) {
 		matcher.case_JassExprVarArrayAccess(this);
 	}
 

@@ -2,7 +2,7 @@ package de.peeeq.wurstscript.jassinterpreter;
 
 import java.util.Map;
 
-import org.testng.collections.Maps;
+import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstAbstract;

@@ -9,16 +9,16 @@ public abstract class JassSimpleVars extends ParseqList<JassSimpleVar> implement
 		}
 		return result;
 	}
-	public abstract void accept(JassProg.Visitor v);
-	public abstract void accept(JassFunction.Visitor v);
 	public abstract void accept(JassSimpleVars.Visitor v);
 	public abstract void accept(JassFunctions.Visitor v);
+	public abstract void accept(JassFunction.Visitor v);
+	public abstract void accept(JassProg.Visitor v);
 	public interface Visitor {
-		void visit(JassSimpleVar jassSimpleVar);
 		void visit(JassSimpleVars jassSimpleVars);
+		void visit(JassSimpleVar jassSimpleVar);
 	}
 	public static abstract class DefaultVisitor implements Visitor {
-		@Override public void visit(JassSimpleVar jassSimpleVar) {}
 		@Override public void visit(JassSimpleVars jassSimpleVars) {}
+		@Override public void visit(JassSimpleVar jassSimpleVar) {}
 	}
 }

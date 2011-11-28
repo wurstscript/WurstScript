@@ -78,30 +78,6 @@ class ClassDefImpl implements ClassDef, AstElementIntern {
 	public ClassDef copy() {
 		return new ClassDefImpl(source.copy(), modifiers.copy(), name, unmanaged, slots.copy());
 	}
-	@Override public void accept(WScope.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		slots.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntities.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		slots.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassOrModule.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		slots.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		slots.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
@@ -114,19 +90,7 @@ class ClassDefImpl implements ClassDef, AstElementIntern {
 		slots.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(NameDef.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		slots.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassDef.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		slots.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
+	@Override public void accept(AstElementWithModifier.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		slots.accept(v);
@@ -144,19 +108,48 @@ class ClassDefImpl implements ClassDef, AstElementIntern {
 		slots.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(AstElementWithModifier.Visitor v) {
+	@Override public void accept(ClassOrModule.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		slots.accept(v);
 		v.visit(this);
 	}
-	@Override public <T> T match(TypeDef.Matcher<T> matcher) {
-		return matcher.case_ClassDef(this);
+	@Override public void accept(WEntity.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		slots.accept(v);
+		v.visit(this);
 	}
-	@Override public void match(TypeDef.MatcherVoid matcher) {
-		matcher.case_ClassDef(this);
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		slots.accept(v);
+		v.visit(this);
 	}
-
+	@Override public void accept(NameDef.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		slots.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		slots.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		slots.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassDef.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		slots.accept(v);
+		v.visit(this);
+	}
 	@Override public <T> T match(NameDef.Matcher<T> matcher) {
 		return matcher.case_ClassDef(this);
 	}
@@ -171,10 +164,10 @@ class ClassDefImpl implements ClassDef, AstElementIntern {
 		matcher.case_ClassDef(this);
 	}
 
-	@Override public <T> T match(WScope.Matcher<T> matcher) {
+	@Override public <T> T match(AstElementWithModifier.Matcher<T> matcher) {
 		return matcher.case_ClassDef(this);
 	}
-	@Override public void match(WScope.MatcherVoid matcher) {
+	@Override public void match(AstElementWithModifier.MatcherVoid matcher) {
 		matcher.case_ClassDef(this);
 	}
 
@@ -185,10 +178,17 @@ class ClassDefImpl implements ClassDef, AstElementIntern {
 		matcher.case_ClassDef(this);
 	}
 
-	@Override public <T> T match(AstElementWithModifier.Matcher<T> matcher) {
+	@Override public <T> T match(WScope.Matcher<T> matcher) {
 		return matcher.case_ClassDef(this);
 	}
-	@Override public void match(AstElementWithModifier.MatcherVoid matcher) {
+	@Override public void match(WScope.MatcherVoid matcher) {
+		matcher.case_ClassDef(this);
+	}
+
+	@Override public <T> T match(TypeDef.Matcher<T> matcher) {
+		return matcher.case_ClassDef(this);
+	}
+	@Override public void match(TypeDef.MatcherVoid matcher) {
 		matcher.case_ClassDef(this);
 	}
 

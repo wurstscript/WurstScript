@@ -78,6 +78,36 @@ class LocalVarDefImpl implements LocalVarDef, AstElementIntern {
 	public LocalVarDef copy() {
 		return new LocalVarDefImpl(source.copy(), constant, typ.copy(), name, initialExpr.copy());
 	}
+	@Override public void accept(CompilationUnit.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(StmtLoop.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FunctionDefinition.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TypeDef.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FuncDef.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(ClassSlots.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
@@ -90,79 +120,7 @@ class LocalVarDefImpl implements LocalVarDef, AstElementIntern {
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(FuncDef.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassMember.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntities.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(OnDestroyDef.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassOrModule.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(VarDef.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtIf.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtWhile.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TypeDef.Visitor v) {
+	@Override public void accept(AstElementWithModifier.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
@@ -174,13 +132,7 @@ class LocalVarDefImpl implements LocalVarDef, AstElementIntern {
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(NameDef.Visitor v) {
+	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
@@ -192,31 +144,13 @@ class LocalVarDefImpl implements LocalVarDef, AstElementIntern {
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassDef.Visitor v) {
+	@Override public void accept(VarDef.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ModuleDef.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
-		source.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtLoop.Visitor v) {
+	@Override public void accept(OnDestroyDef.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
@@ -228,7 +162,25 @@ class LocalVarDefImpl implements LocalVarDef, AstElementIntern {
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WStatements.Visitor v) {
+	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(StmtIf.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassOrModule.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
@@ -240,18 +192,73 @@ class LocalVarDefImpl implements LocalVarDef, AstElementIntern {
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WPackage.Visitor v) {
+	@Override public void accept(ClassMember.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(AstElementWithModifier.Visitor v) {
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(NameDef.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(StmtWhile.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WStatements.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ModuleDef.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassDef.Visitor v) {
+		source.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public <T> T match(VarDef.Matcher<T> matcher) {
+		return matcher.case_LocalVarDef(this);
+	}
+	@Override public void match(VarDef.MatcherVoid matcher) {
+		matcher.case_LocalVarDef(this);
+	}
+
 	@Override public <T> T match(NameDef.Matcher<T> matcher) {
 		return matcher.case_LocalVarDef(this);
 	}
@@ -263,13 +270,6 @@ class LocalVarDefImpl implements LocalVarDef, AstElementIntern {
 		return matcher.case_LocalVarDef(this);
 	}
 	@Override public void match(WStatement.MatcherVoid matcher) {
-		matcher.case_LocalVarDef(this);
-	}
-
-	@Override public <T> T match(VarDef.Matcher<T> matcher) {
-		return matcher.case_LocalVarDef(this);
-	}
-	@Override public void match(VarDef.MatcherVoid matcher) {
 		matcher.case_LocalVarDef(this);
 	}
 

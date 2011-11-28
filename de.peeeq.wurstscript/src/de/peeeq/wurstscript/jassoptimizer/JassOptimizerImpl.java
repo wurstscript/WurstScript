@@ -4,23 +4,18 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 
-import com.beust.jcommander.internal.Sets;
 import com.google.common.base.Charsets;
+import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 
 import de.peeeq.wurstscript.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.gui.WurstGui;
-import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.gui.WurstGuiImpl;
-import de.peeeq.wurstscript.gui.WurstGuiLogger;
-import de.peeeq.wurstscript.jassAst.JassAstElement;
 import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassExprFuncRef;
-import de.peeeq.wurstscript.jassAst.JassExprIntVal;
 import de.peeeq.wurstscript.jassAst.JassExprRealVal;
 import de.peeeq.wurstscript.jassAst.JassExprStringVal;
 import de.peeeq.wurstscript.jassAst.JassExprVarAccess;
@@ -30,14 +25,12 @@ import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassAst.JassSimpleVar;
 import de.peeeq.wurstscript.jassAst.JassSimpleVars;
-import de.peeeq.wurstscript.jassAst.JassStatements;
 import de.peeeq.wurstscript.jassAst.JassStmtCall;
 import de.peeeq.wurstscript.jassAst.JassStmtSet;
 import de.peeeq.wurstscript.jassAst.JassStmtSetArray;
 import de.peeeq.wurstscript.jassAst.JassVar;
 import de.peeeq.wurstscript.jassAst.JassVars;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
-import de.peeeq.wurstscript.utils.Utils;
 
 public class JassOptimizerImpl implements JassOptimizer {
 	String[] standards;

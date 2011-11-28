@@ -80,7 +80,7 @@ class JassFunctionImpl implements JassFunction, JassAstElementIntern {
 	public JassFunction copy() {
 		return new JassFunctionImpl(name, params.copy(), returnType, locals.copy(), body.copy());
 	}
-	@Override public void accept(JassProg.Visitor v) {
+	@Override public void accept(JassFunctions.Visitor v) {
 		params.accept(v);
 		locals.accept(v);
 		body.accept(v);
@@ -92,7 +92,7 @@ class JassFunctionImpl implements JassFunction, JassAstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassFunctions.Visitor v) {
+	@Override public void accept(JassProg.Visitor v) {
 		params.accept(v);
 		locals.accept(v);
 		body.accept(v);

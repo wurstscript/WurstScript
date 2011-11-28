@@ -49,112 +49,7 @@ class StmtReturnImpl implements StmtReturn, AstElementIntern {
 	public StmtReturn copy() {
 		return new StmtReturnImpl(source.copy(), obj.copy());
 	}
-	@Override public void accept(ClassSlots.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(FuncDef.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassMember.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntities.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(OnDestroyDef.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassOrModule.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtIf.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtReturn.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtWhile.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(CompilationUnit.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TypeDef.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ConstructorDef.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(NameDef.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WStatement.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassDef.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ModuleDef.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
 		obj.accept(v);
 		v.visit(this);
@@ -164,17 +59,52 @@ class StmtReturnImpl implements StmtReturn, AstElementIntern {
 		obj.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(FunctionDefinition.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TypeDef.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FuncDef.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlots.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(AstElementWithModifier.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ConstructorDef.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(PackageOrGlobal.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WStatement.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(OnDestroyDef.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(InitBlock.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WStatements.Visitor v) {
-		source.accept(v);
-		obj.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlot.Visitor v) {
 		source.accept(v);
 		obj.accept(v);
 		v.visit(this);
@@ -184,7 +114,77 @@ class StmtReturnImpl implements StmtReturn, AstElementIntern {
 		obj.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(AstElementWithModifier.Visitor v) {
+	@Override public void accept(StmtIf.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassOrModule.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlot.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassMember.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(NameDef.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(StmtWhile.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WStatements.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ModuleDef.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassDef.Visitor v) {
+		source.accept(v);
+		obj.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(StmtReturn.Visitor v) {
 		source.accept(v);
 		obj.accept(v);
 		v.visit(this);

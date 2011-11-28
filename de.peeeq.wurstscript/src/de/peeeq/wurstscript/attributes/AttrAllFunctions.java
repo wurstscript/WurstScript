@@ -11,13 +11,9 @@ import com.google.common.collect.Multimap;
 import de.peeeq.immutablecollections.ImmutableList;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.ClassSlot;
-import de.peeeq.wurstscript.ast.ConstructorDef;
-import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
-import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleUse;
-import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.utils.Utils;
 

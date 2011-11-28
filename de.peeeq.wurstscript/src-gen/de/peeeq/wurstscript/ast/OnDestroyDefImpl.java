@@ -49,7 +49,62 @@ class OnDestroyDefImpl implements OnDestroyDef, AstElementIntern {
 	public OnDestroyDef copy() {
 		return new OnDestroyDefImpl(source.copy(), body.copy());
 	}
+	@Override public void accept(CompilationUnit.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TypeDef.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(ClassSlots.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(AstElementWithModifier.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(PackageOrGlobal.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(OnDestroyDef.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassOrModule.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlot.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(NameDef.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);
@@ -64,67 +119,12 @@ class OnDestroyDefImpl implements OnDestroyDef, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(OnDestroyDef.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassOrModule.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TypeDef.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(NameDef.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassDef.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(ModuleDef.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WEntity.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlot.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(AstElementWithModifier.Visitor v) {
+	@Override public void accept(ClassDef.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);

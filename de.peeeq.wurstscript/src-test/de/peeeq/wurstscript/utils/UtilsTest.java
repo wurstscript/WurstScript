@@ -1,14 +1,14 @@
 package de.peeeq.wurstscript.utils;
 
 
-import static org.testng.AssertJUnit.assertEquals;
-import static org.testng.internal.junit.ArrayAsserts.assertArrayEquals;
 
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.testng.annotations.Test;
+import org.junit.Assert;
+import org.junit.Test;
+
 
 import com.google.common.base.Function;
 
@@ -25,7 +25,7 @@ public class UtilsTest {
   public void array() {
     Integer[] ar1 = Utils.<Integer>array(1, 2, 3);
     Integer[] ar2 = {1,2,3};
-    assertArrayEquals(ar2, ar1);
+    Assert.assertArrayEquals(ar2, ar1);
   }
 
   @Test
@@ -44,9 +44,9 @@ public class UtilsTest {
 	
     List<NameRef> varRefs = Utils.collect(NameRef.class, testVarDef.getInitialExpr());
     System.out.println(Utils.join(varRefs, ", "));
-    assertEquals("v3", testVarDef.getName());
-    assertEquals(1, varRefs.size());
-    assertEquals("r2", varRefs.get(0).getVarName());
+    Assert.assertEquals("v3", testVarDef.getName());
+    Assert.assertEquals(1, varRefs.size());
+    Assert.assertEquals("r2", varRefs.get(0).getVarName());
   }
 
   @Test
@@ -61,9 +61,9 @@ public class UtilsTest {
 		}
     	
     });
-	assertEquals(8, list.size());
-	assertEquals(2, list2.size());
-	assertArrayEquals(Utils.<Integer>array(3,6), list2.toArray());
+	Assert.assertEquals(8, list.size());
+	Assert.assertEquals(2, list2.size());
+	Assert.assertArrayEquals(Utils.<Integer>array(3,6), list2.toArray());
   }
   
   @Test
@@ -83,7 +83,7 @@ public class UtilsTest {
 		}
     	
     });
-    assertArrayEquals(Utils.<Object>array(3,2,1) , sorted.toArray());
+    Assert.assertArrayEquals(Utils.<Object>array(3,2,1) , sorted.toArray());
   }
   
 /* TODO utils unit tests

@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.types;
 
-import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ModuleDef;
 
 

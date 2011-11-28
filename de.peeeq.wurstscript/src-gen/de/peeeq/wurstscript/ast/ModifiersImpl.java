@@ -15,13 +15,25 @@ class ModifiersImpl extends Modifiers implements AstElementIntern {
 	protected void other_clearParent(Modifier t) {
 		((AstElementIntern) t).setParent(null);
 	}
-	@Override public void accept(ClassSlots.Visitor v) {
+	@Override public void accept(CompilationUnit.Visitor v) {
 		for (Modifier i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(Modifiers.Visitor v) {
+		for (Modifier i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(FunctionDefinition.Visitor v) {
+		for (Modifier i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(TypeDef.Visitor v) {
 		for (Modifier i : this ) {
 			i.accept(v);
 		}
@@ -33,19 +45,31 @@ class ModifiersImpl extends Modifiers implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(GlobalVarDef.Visitor v) {
+	@Override public void accept(ClassSlots.Visitor v) {
 		for (Modifier i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(ClassMember.Visitor v) {
+	@Override public void accept(AstElementWithModifier.Visitor v) {
 		for (Modifier i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(WEntities.Visitor v) {
+	@Override public void accept(ConstructorDef.Visitor v) {
+		for (Modifier i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(PackageOrGlobal.Visitor v) {
+		for (Modifier i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(VarDef.Visitor v) {
 		for (Modifier i : this ) {
 			i.accept(v);
 		}
@@ -57,13 +81,37 @@ class ModifiersImpl extends Modifiers implements AstElementIntern {
 		}
 		v.visit(this);
 	}
+	@Override public void accept(WPackage.Visitor v) {
+		for (Modifier i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
 	@Override public void accept(ClassOrModule.Visitor v) {
 		for (Modifier i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(VarDef.Visitor v) {
+	@Override public void accept(WEntity.Visitor v) {
+		for (Modifier i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlot.Visitor v) {
+		for (Modifier i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(ClassMember.Visitor v) {
+		for (Modifier i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(NativeType.Visitor v) {
 		for (Modifier i : this ) {
 			i.accept(v);
 		}
@@ -81,43 +129,31 @@ class ModifiersImpl extends Modifiers implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
-		for (Modifier i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		for (Modifier i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(TypeDef.Visitor v) {
-		for (Modifier i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ConstructorDef.Visitor v) {
-		for (Modifier i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
-		for (Modifier i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
 	@Override public void accept(NameDef.Visitor v) {
 		for (Modifier i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(ClassDef.Visitor v) {
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+		for (Modifier i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		for (Modifier i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(GlobalVarDef.Visitor v) {
+		for (Modifier i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
 		for (Modifier i : this ) {
 			i.accept(v);
 		}
@@ -129,43 +165,7 @@ class ModifiersImpl extends Modifiers implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(WEntity.Visitor v) {
-		for (Modifier i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
-		for (Modifier i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(NativeType.Visitor v) {
-		for (Modifier i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlot.Visitor v) {
-		for (Modifier i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(WPackage.Visitor v) {
-		for (Modifier i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(AstElementWithModifier.Visitor v) {
-		for (Modifier i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(Modifiers.Visitor v) {
+	@Override public void accept(ClassDef.Visitor v) {
 		for (Modifier i : this ) {
 			i.accept(v);
 		}

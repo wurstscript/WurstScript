@@ -7,18 +7,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.testng.collections.Lists;
-
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 import de.peeeq.immutablecollections.ImmutableList;
 import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
-import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.attributes.FuncDefInstance;
 
 public class Utils {
 
@@ -217,7 +213,7 @@ public class Utils {
 	
 	
 	public static <S, T> List<T> map(List<S> items, Function<S, T> function) {
-		List<T> result = Lists.newArrayList(items.size());
+		List<T> result = new ArrayList<T>(items.size());
 		for (S s : items) {
 			result.add(function.apply(s));
 		}

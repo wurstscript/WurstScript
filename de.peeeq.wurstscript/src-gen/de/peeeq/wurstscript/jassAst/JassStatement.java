@@ -6,105 +6,105 @@ public interface JassStatement extends JassAstElement{
 	<T> T match(Matcher<T> s);
 	void match(MatcherVoid s);
 	public interface Matcher<T> {
-		T case_JassStmtLoop(JassStmtLoop jassStmtLoop);
-		T case_JassStmtExitwhen(JassStmtExitwhen jassStmtExitwhen);
-		T case_JassStmtReturnVoid(JassStmtReturnVoid jassStmtReturnVoid);
-		T case_JassStmtSet(JassStmtSet jassStmtSet);
-		T case_JassStmtReturn(JassStmtReturn jassStmtReturn);
-		T case_JassStmtCall(JassStmtCall jassStmtCall);
 		T case_JassStmtIf(JassStmtIf jassStmtIf);
+		T case_JassStmtReturnVoid(JassStmtReturnVoid jassStmtReturnVoid);
+		T case_JassStmtReturn(JassStmtReturn jassStmtReturn);
+		T case_JassStmtLoop(JassStmtLoop jassStmtLoop);
+		T case_JassStmtCall(JassStmtCall jassStmtCall);
 		T case_JassStmtSetArray(JassStmtSetArray jassStmtSetArray);
+		T case_JassStmtSet(JassStmtSet jassStmtSet);
+		T case_JassStmtExitwhen(JassStmtExitwhen jassStmtExitwhen);
 	}
 
 	public interface MatcherVoid {
-		void case_JassStmtLoop(JassStmtLoop jassStmtLoop);
-		void case_JassStmtExitwhen(JassStmtExitwhen jassStmtExitwhen);
-		void case_JassStmtReturnVoid(JassStmtReturnVoid jassStmtReturnVoid);
-		void case_JassStmtSet(JassStmtSet jassStmtSet);
-		void case_JassStmtReturn(JassStmtReturn jassStmtReturn);
-		void case_JassStmtCall(JassStmtCall jassStmtCall);
 		void case_JassStmtIf(JassStmtIf jassStmtIf);
+		void case_JassStmtReturnVoid(JassStmtReturnVoid jassStmtReturnVoid);
+		void case_JassStmtReturn(JassStmtReturn jassStmtReturn);
+		void case_JassStmtLoop(JassStmtLoop jassStmtLoop);
+		void case_JassStmtCall(JassStmtCall jassStmtCall);
 		void case_JassStmtSetArray(JassStmtSetArray jassStmtSetArray);
+		void case_JassStmtSet(JassStmtSet jassStmtSet);
+		void case_JassStmtExitwhen(JassStmtExitwhen jassStmtExitwhen);
 	}
 
 	JassStatement copy();
+	public abstract void accept(JassStmtIf.Visitor v);
 	public abstract void accept(JassStmtLoop.Visitor v);
 	public abstract void accept(JassStatements.Visitor v);
-	public abstract void accept(JassProg.Visitor v);
-	public abstract void accept(JassFunction.Visitor v);
-	public abstract void accept(JassStatement.Visitor v);
 	public abstract void accept(JassFunctions.Visitor v);
-	public abstract void accept(JassStmtIf.Visitor v);
+	public abstract void accept(JassFunction.Visitor v);
+	public abstract void accept(JassProg.Visitor v);
+	public abstract void accept(JassStatement.Visitor v);
 	public interface Visitor {
-		void visit(JassStmtLoop jassStmtLoop);
-		void visit(JassExprNull jassExprNull);
-		void visit(JassStatements jassStatements);
-		void visit(JassExprBoolVal jassExprBoolVal);
-		void visit(JassStmtSetArray jassStmtSetArray);
+		void visit(JassStmtIf jassStmtIf);
 		void visit(JassExprVarArrayAccess jassExprVarArrayAccess);
+		void visit(JassExprStringVal jassExprStringVal);
+		void visit(JassExprlist jassExprlist);
+		void visit(JassExprFunctionCall jassExprFunctionCall);
+		void visit(JassStmtSet jassStmtSet);
+		void visit(JassExprVarAccess jassExprVarAccess);
+		void visit(JassOpGreater jassOpGreater);
+		void visit(JassStmtReturn jassStmtReturn);
+		void visit(JassExprFuncRef jassExprFuncRef);
+		void visit(JassOpLess jassOpLess);
+		void visit(JassStmtCall jassStmtCall);
+		void visit(JassExprNull jassExprNull);
 		void visit(JassExprIntVal jassExprIntVal);
+		void visit(JassExprBoolVal jassExprBoolVal);
+		void visit(JassStmtExitwhen jassStmtExitwhen);
+		void visit(JassOpEquals jassOpEquals);
+		void visit(JassOpNot jassOpNot);
+		void visit(JassOpMinus jassOpMinus);
 		void visit(JassOpPlus jassOpPlus);
 		void visit(JassStmtReturnVoid jassStmtReturnVoid);
-		void visit(JassExprVarAccess jassExprVarAccess);
-		void visit(JassOpGreaterEq jassOpGreaterEq);
-		void visit(JassStmtReturn jassStmtReturn);
 		void visit(JassExprRealVal jassExprRealVal);
-		void visit(JassExprFuncRef jassExprFuncRef);
-		void visit(JassStmtIf jassStmtIf);
+		void visit(JassStmtSetArray jassStmtSetArray);
+		void visit(JassOpOr jassOpOr);
+		void visit(JassOpLessEq jassOpLessEq);
+		void visit(JassOpGreaterEq jassOpGreaterEq);
+		void visit(JassOpDiv jassOpDiv);
+		void visit(JassOpAnd jassOpAnd);
+		void visit(JassStmtLoop jassStmtLoop);
 		void visit(JassOpUnequals jassOpUnequals);
 		void visit(JassExprBinary jassExprBinary);
-		void visit(JassOpMult jassOpMult);
-		void visit(JassOpMinus jassOpMinus);
-		void visit(JassStmtExitwhen jassStmtExitwhen);
-		void visit(JassExprStringVal jassExprStringVal);
-		void visit(JassStmtCall jassStmtCall);
-		void visit(JassOpOr jassOpOr);
-		void visit(JassOpAnd jassOpAnd);
-		void visit(JassOpLess jassOpLess);
-		void visit(JassOpGreater jassOpGreater);
-		void visit(JassOpNot jassOpNot);
-		void visit(JassOpEquals jassOpEquals);
-		void visit(JassStmtSet jassStmtSet);
-		void visit(JassOpLessEq jassOpLessEq);
 		void visit(JassExprUnary jassExprUnary);
-		void visit(JassExprFunctionCall jassExprFunctionCall);
-		void visit(JassExprlist jassExprlist);
-		void visit(JassOpDiv jassOpDiv);
+		void visit(JassStatements jassStatements);
+		void visit(JassOpMult jassOpMult);
 	}
 	public static abstract class DefaultVisitor implements Visitor {
-		@Override public void visit(JassStmtLoop jassStmtLoop) {}
-		@Override public void visit(JassExprNull jassExprNull) {}
-		@Override public void visit(JassStatements jassStatements) {}
-		@Override public void visit(JassExprBoolVal jassExprBoolVal) {}
-		@Override public void visit(JassStmtSetArray jassStmtSetArray) {}
+		@Override public void visit(JassStmtIf jassStmtIf) {}
 		@Override public void visit(JassExprVarArrayAccess jassExprVarArrayAccess) {}
+		@Override public void visit(JassExprStringVal jassExprStringVal) {}
+		@Override public void visit(JassExprlist jassExprlist) {}
+		@Override public void visit(JassExprFunctionCall jassExprFunctionCall) {}
+		@Override public void visit(JassStmtSet jassStmtSet) {}
+		@Override public void visit(JassExprVarAccess jassExprVarAccess) {}
+		@Override public void visit(JassOpGreater jassOpGreater) {}
+		@Override public void visit(JassStmtReturn jassStmtReturn) {}
+		@Override public void visit(JassExprFuncRef jassExprFuncRef) {}
+		@Override public void visit(JassOpLess jassOpLess) {}
+		@Override public void visit(JassStmtCall jassStmtCall) {}
+		@Override public void visit(JassExprNull jassExprNull) {}
 		@Override public void visit(JassExprIntVal jassExprIntVal) {}
+		@Override public void visit(JassExprBoolVal jassExprBoolVal) {}
+		@Override public void visit(JassStmtExitwhen jassStmtExitwhen) {}
+		@Override public void visit(JassOpEquals jassOpEquals) {}
+		@Override public void visit(JassOpNot jassOpNot) {}
+		@Override public void visit(JassOpMinus jassOpMinus) {}
 		@Override public void visit(JassOpPlus jassOpPlus) {}
 		@Override public void visit(JassStmtReturnVoid jassStmtReturnVoid) {}
-		@Override public void visit(JassExprVarAccess jassExprVarAccess) {}
-		@Override public void visit(JassOpGreaterEq jassOpGreaterEq) {}
-		@Override public void visit(JassStmtReturn jassStmtReturn) {}
 		@Override public void visit(JassExprRealVal jassExprRealVal) {}
-		@Override public void visit(JassExprFuncRef jassExprFuncRef) {}
-		@Override public void visit(JassStmtIf jassStmtIf) {}
+		@Override public void visit(JassStmtSetArray jassStmtSetArray) {}
+		@Override public void visit(JassOpOr jassOpOr) {}
+		@Override public void visit(JassOpLessEq jassOpLessEq) {}
+		@Override public void visit(JassOpGreaterEq jassOpGreaterEq) {}
+		@Override public void visit(JassOpDiv jassOpDiv) {}
+		@Override public void visit(JassOpAnd jassOpAnd) {}
+		@Override public void visit(JassStmtLoop jassStmtLoop) {}
 		@Override public void visit(JassOpUnequals jassOpUnequals) {}
 		@Override public void visit(JassExprBinary jassExprBinary) {}
-		@Override public void visit(JassOpMult jassOpMult) {}
-		@Override public void visit(JassOpMinus jassOpMinus) {}
-		@Override public void visit(JassStmtExitwhen jassStmtExitwhen) {}
-		@Override public void visit(JassExprStringVal jassExprStringVal) {}
-		@Override public void visit(JassStmtCall jassStmtCall) {}
-		@Override public void visit(JassOpOr jassOpOr) {}
-		@Override public void visit(JassOpAnd jassOpAnd) {}
-		@Override public void visit(JassOpLess jassOpLess) {}
-		@Override public void visit(JassOpGreater jassOpGreater) {}
-		@Override public void visit(JassOpNot jassOpNot) {}
-		@Override public void visit(JassOpEquals jassOpEquals) {}
-		@Override public void visit(JassStmtSet jassStmtSet) {}
-		@Override public void visit(JassOpLessEq jassOpLessEq) {}
 		@Override public void visit(JassExprUnary jassExprUnary) {}
-		@Override public void visit(JassExprFunctionCall jassExprFunctionCall) {}
-		@Override public void visit(JassExprlist jassExprlist) {}
-		@Override public void visit(JassOpDiv jassOpDiv) {}
+		@Override public void visit(JassStatements jassStatements) {}
+		@Override public void visit(JassOpMult jassOpMult) {}
 	}
 }

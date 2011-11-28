@@ -58,6 +58,11 @@ class JassStmtSetArrayImpl implements JassStmtSetArray, JassAstElementIntern {
 	public JassStmtSetArray copy() {
 		return new JassStmtSetArrayImpl(left, index.copy(), right.copy());
 	}
+	@Override public void accept(JassStmtIf.Visitor v) {
+		index.accept(v);
+		right.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(JassStmtLoop.Visitor v) {
 		index.accept(v);
 		right.accept(v);
@@ -68,7 +73,7 @@ class JassStmtSetArrayImpl implements JassStmtSetArray, JassAstElementIntern {
 		right.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassProg.Visitor v) {
+	@Override public void accept(JassFunctions.Visitor v) {
 		index.accept(v);
 		right.accept(v);
 		v.visit(this);
@@ -78,7 +83,7 @@ class JassStmtSetArrayImpl implements JassStmtSetArray, JassAstElementIntern {
 		right.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassStmtSetArray.Visitor v) {
+	@Override public void accept(JassProg.Visitor v) {
 		index.accept(v);
 		right.accept(v);
 		v.visit(this);
@@ -88,12 +93,7 @@ class JassStmtSetArrayImpl implements JassStmtSetArray, JassAstElementIntern {
 		right.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassFunctions.Visitor v) {
-		index.accept(v);
-		right.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtIf.Visitor v) {
+	@Override public void accept(JassStmtSetArray.Visitor v) {
 		index.accept(v);
 		right.accept(v);
 		v.visit(this);

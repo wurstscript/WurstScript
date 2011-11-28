@@ -12,7 +12,6 @@ import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.types.PScriptTypeClassDefinition;
 import de.peeeq.wurstscript.types.PScriptTypeModuleDefinition;
-import de.peeeq.wurstscript.types.PScriptTypePackage;
 import de.peeeq.wurstscript.types.PscriptType;
 
 

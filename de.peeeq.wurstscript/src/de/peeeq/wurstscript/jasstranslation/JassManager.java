@@ -3,10 +3,9 @@ package de.peeeq.wurstscript.jasstranslation;
 import java.util.Map;
 import java.util.Set;
 
-import org.testng.collections.Maps;
-
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import de.peeeq.immutablecollections.ImmutableList;
