@@ -72,78 +72,8 @@ class ConstructorDefImpl implements ConstructorDef, AstElementIntern {
 	public int size() {
 		return 4;
 	}
-	public ConstructorDef copy() {
-		return new ConstructorDefImpl(source.copy(), modifiers.copy(), params.copy(), body.copy());
-	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		params.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TypeDef.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		params.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlots.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		params.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(AstElementWithModifier.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		params.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ConstructorDef.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		params.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		params.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		params.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassOrModule.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		params.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		params.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlot.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		params.accept(v);
-		body.accept(v);
-		v.visit(this);
+	@Override public ConstructorDef copy() {
+		return new ConstructorDefImpl((WPos) source.copy(), (Modifiers) modifiers.copy(), (WParameters) params.copy(), (WStatements) body.copy());
 	}
 	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
@@ -159,7 +89,14 @@ class ConstructorDefImpl implements ConstructorDef, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(ClassSlots.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		params.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		params.accept(v);
@@ -173,6 +110,13 @@ class ConstructorDefImpl implements ConstructorDef, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(CompilationUnit.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		params.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(ModuleDef.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
@@ -180,7 +124,63 @@ class ConstructorDefImpl implements ConstructorDef, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(AstElementWithModifier.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		params.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		params.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		params.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		params.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlot.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		params.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TypeDef.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		params.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassOrModule.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		params.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(ClassDef.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		params.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ConstructorDef.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		params.accept(v);

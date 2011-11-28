@@ -33,84 +33,8 @@ class ModOverrideImpl implements ModOverride, AstElementIntern {
 	public int size() {
 		return 1;
 	}
-	public ModOverride copy() {
-		return new ModOverrideImpl(source.copy());
-	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(Modifiers.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TypeDef.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(FuncDef.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlots.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(AstElementWithModifier.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ConstructorDef.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(VarDef.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassGlobalBlock.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassOrModule.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(Modifier.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlot.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassMember.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(NativeType.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(NativeFunc.Visitor v) {
-		source.accept(v);
-		v.visit(this);
+	@Override public ModOverride copy() {
+		return new ModOverrideImpl((WPos) source.copy());
 	}
 	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
@@ -120,11 +44,15 @@ class ModOverrideImpl implements ModOverride, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+	@Override public void accept(ClassSlots.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(NativeType.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -136,7 +64,63 @@ class ModOverrideImpl implements ModOverride, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(CompilationUnit.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassMember.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(ModuleDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(AstElementWithModifier.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(VarDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ModOverride.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FuncDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FunctionDefinition.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlot.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TypeDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassOrModule.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(NativeFunc.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -144,7 +128,23 @@ class ModOverrideImpl implements ModOverride, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ModOverride.Visitor v) {
+	@Override public void accept(ConstructorDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(Modifier.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassGlobalBlock.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(Modifiers.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}

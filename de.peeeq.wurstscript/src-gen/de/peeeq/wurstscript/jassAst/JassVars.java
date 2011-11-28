@@ -5,14 +5,14 @@ public abstract class JassVars extends ParseqList<JassVar> implements JassAstEle
 	public JassVars copy() {
 		JassVars result = new JassVarsImpl();
 		for (JassVar elem : this) {
-			result.add(elem.copy());
+			result.add((JassVar) elem.copy());
 		}
 		return result;
 	}
-	public abstract void accept(JassVars.Visitor v);
-	public abstract void accept(JassFunctions.Visitor v);
-	public abstract void accept(JassFunction.Visitor v);
 	public abstract void accept(JassProg.Visitor v);
+	public abstract void accept(JassFunction.Visitor v);
+	public abstract void accept(JassFunctions.Visitor v);
+	public abstract void accept(JassVars.Visitor v);
 	public interface Visitor {
 		void visit(JassVars jassVars);
 		void visit(JassSimpleVar jassSimpleVar);

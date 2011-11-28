@@ -23,87 +23,87 @@ public interface NameRef extends AstElement{
 		void case_ExprMemberVar(ExprMemberVar exprMemberVar);
 	}
 
-	NameRef copy();
+	AstElement copy();
 	public abstract void accept(NameRef.Visitor v);
 	public interface Visitor {
-		void visit(ExprRealVal exprRealVal);
-		void visit(OpPlus opPlus);
-		void visit(TypeExpr typeExpr);
 		void visit(ExprBoolVal exprBoolVal);
-		void visit(ExprIntVal exprIntVal);
-		void visit(OpModReal opModReal);
-		void visit(ExprCast exprCast);
-		void visit(OpMinus opMinus);
-		void visit(ExprBinary exprBinary);
-		void visit(ExprVarArrayAccess exprVarArrayAccess);
-		void visit(OpLess opLess);
-		void visit(OpNot opNot);
-		void visit(OpAnd opAnd);
-		void visit(ExprNull exprNull);
-		void visit(ExprFuncRef exprFuncRef);
-		void visit(ExprThis exprThis);
-		void visit(ArraySizes arraySizes);
-		void visit(ExprMemberMethod exprMemberMethod);
-		void visit(ExprMemberArrayVar exprMemberArrayVar);
-		void visit(WPos wPos);
-		void visit(OpUnequals opUnequals);
-		void visit(OpGreater opGreater);
 		void visit(OpMult opMult);
-		void visit(OpDivInt opDivInt);
-		void visit(ExprVarAccess exprVarAccess);
-		void visit(ExprFunctionCall exprFunctionCall);
-		void visit(OpGreaterEq opGreaterEq);
+		void visit(ExprThis exprThis);
 		void visit(ExprStringVal exprStringVal);
-		void visit(ExprUnary exprUnary);
+		void visit(ExprMemberMethod exprMemberMethod);
+		void visit(OpDivInt opDivInt);
+		void visit(OpAnd opAnd);
+		void visit(ExprIntVal exprIntVal);
 		void visit(OpDivReal opDivReal);
+		void visit(ExprUnary exprUnary);
+		void visit(ExprCast exprCast);
+		void visit(OpGreater opGreater);
+		void visit(TypeExpr typeExpr);
 		void visit(OpOr opOr);
-		void visit(OpLessEq opLessEq);
-		void visit(OpEquals opEquals);
+		void visit(OpUnequals opUnequals);
+		void visit(ExprFunctionCall exprFunctionCall);
+		void visit(ExprNull exprNull);
+		void visit(ArraySizes arraySizes);
 		void visit(Arguments arguments);
-		void visit(OpModInt opModInt);
-		void visit(ExprMemberVar exprMemberVar);
 		void visit(ExprNewObject exprNewObject);
+		void visit(ExprVarArrayAccess exprVarArrayAccess);
+		void visit(ExprMemberArrayVar exprMemberArrayVar);
+		void visit(OpLess opLess);
+		void visit(WPos wPos);
+		void visit(OpMinus opMinus);
 		void visit(Indexes indexes);
+		void visit(OpModReal opModReal);
+		void visit(OpNot opNot);
+		void visit(ExprBinary exprBinary);
+		void visit(OpPlus opPlus);
+		void visit(ExprFuncRef exprFuncRef);
+		void visit(OpEquals opEquals);
+		void visit(OpGreaterEq opGreaterEq);
+		void visit(OpModInt opModInt);
+		void visit(OpLessEq opLessEq);
+		void visit(ExprRealVal exprRealVal);
+		void visit(ExprVarAccess exprVarAccess);
+		void visit(ExprMemberVar exprMemberVar);
 	}
 	public static abstract class DefaultVisitor implements Visitor {
-		@Override public void visit(ExprRealVal exprRealVal) {}
-		@Override public void visit(OpPlus opPlus) {}
-		@Override public void visit(TypeExpr typeExpr) {}
 		@Override public void visit(ExprBoolVal exprBoolVal) {}
-		@Override public void visit(ExprIntVal exprIntVal) {}
-		@Override public void visit(OpModReal opModReal) {}
-		@Override public void visit(ExprCast exprCast) {}
-		@Override public void visit(OpMinus opMinus) {}
-		@Override public void visit(ExprBinary exprBinary) {}
-		@Override public void visit(ExprVarArrayAccess exprVarArrayAccess) {}
-		@Override public void visit(OpLess opLess) {}
-		@Override public void visit(OpNot opNot) {}
-		@Override public void visit(OpAnd opAnd) {}
-		@Override public void visit(ExprNull exprNull) {}
-		@Override public void visit(ExprFuncRef exprFuncRef) {}
-		@Override public void visit(ExprThis exprThis) {}
-		@Override public void visit(ArraySizes arraySizes) {}
-		@Override public void visit(ExprMemberMethod exprMemberMethod) {}
-		@Override public void visit(ExprMemberArrayVar exprMemberArrayVar) {}
-		@Override public void visit(WPos wPos) {}
-		@Override public void visit(OpUnequals opUnequals) {}
-		@Override public void visit(OpGreater opGreater) {}
 		@Override public void visit(OpMult opMult) {}
-		@Override public void visit(OpDivInt opDivInt) {}
-		@Override public void visit(ExprVarAccess exprVarAccess) {}
-		@Override public void visit(ExprFunctionCall exprFunctionCall) {}
-		@Override public void visit(OpGreaterEq opGreaterEq) {}
+		@Override public void visit(ExprThis exprThis) {}
 		@Override public void visit(ExprStringVal exprStringVal) {}
-		@Override public void visit(ExprUnary exprUnary) {}
+		@Override public void visit(ExprMemberMethod exprMemberMethod) {}
+		@Override public void visit(OpDivInt opDivInt) {}
+		@Override public void visit(OpAnd opAnd) {}
+		@Override public void visit(ExprIntVal exprIntVal) {}
 		@Override public void visit(OpDivReal opDivReal) {}
+		@Override public void visit(ExprUnary exprUnary) {}
+		@Override public void visit(ExprCast exprCast) {}
+		@Override public void visit(OpGreater opGreater) {}
+		@Override public void visit(TypeExpr typeExpr) {}
 		@Override public void visit(OpOr opOr) {}
-		@Override public void visit(OpLessEq opLessEq) {}
-		@Override public void visit(OpEquals opEquals) {}
+		@Override public void visit(OpUnequals opUnequals) {}
+		@Override public void visit(ExprFunctionCall exprFunctionCall) {}
+		@Override public void visit(ExprNull exprNull) {}
+		@Override public void visit(ArraySizes arraySizes) {}
 		@Override public void visit(Arguments arguments) {}
-		@Override public void visit(OpModInt opModInt) {}
-		@Override public void visit(ExprMemberVar exprMemberVar) {}
 		@Override public void visit(ExprNewObject exprNewObject) {}
+		@Override public void visit(ExprVarArrayAccess exprVarArrayAccess) {}
+		@Override public void visit(ExprMemberArrayVar exprMemberArrayVar) {}
+		@Override public void visit(OpLess opLess) {}
+		@Override public void visit(WPos wPos) {}
+		@Override public void visit(OpMinus opMinus) {}
 		@Override public void visit(Indexes indexes) {}
+		@Override public void visit(OpModReal opModReal) {}
+		@Override public void visit(OpNot opNot) {}
+		@Override public void visit(ExprBinary exprBinary) {}
+		@Override public void visit(OpPlus opPlus) {}
+		@Override public void visit(ExprFuncRef exprFuncRef) {}
+		@Override public void visit(OpEquals opEquals) {}
+		@Override public void visit(OpGreaterEq opGreaterEq) {}
+		@Override public void visit(OpModInt opModInt) {}
+		@Override public void visit(OpLessEq opLessEq) {}
+		@Override public void visit(ExprRealVal exprRealVal) {}
+		@Override public void visit(ExprVarAccess exprVarAccess) {}
+		@Override public void visit(ExprMemberVar exprMemberVar) {}
 	}
 	public abstract NameDef attrNameDef();
 }

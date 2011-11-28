@@ -46,8 +46,8 @@ class JassProgImpl implements JassProg, JassAstElementIntern {
 	public int size() {
 		return 2;
 	}
-	public JassProg copy() {
-		return new JassProgImpl(globals.copy(), functions.copy());
+	@Override public JassProg copy() {
+		return new JassProgImpl((JassVars) globals.copy(), (JassFunctions) functions.copy());
 	}
 	@Override public void accept(JassProg.Visitor v) {
 		globals.accept(v);

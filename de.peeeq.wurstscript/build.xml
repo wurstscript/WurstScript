@@ -102,6 +102,15 @@
 			<classpath refid="classpath"/>
 		</javac>
 	</target>
+	
+	<target name="just_compile" >
+		<delete dir="${build}"></delete>
+			<mkdir dir="${build}" />
+			<javac srcdir="${src}" destdir="${build}" includeantruntime="false">
+				<src path="${srcgen}"></src>
+				<classpath refid="classpath"/>
+			</javac>
+		</target>
 
 	<target name="clean">
 		<delete dir="${build}" />

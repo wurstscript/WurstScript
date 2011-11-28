@@ -5,118 +5,118 @@ public abstract class JassGlobalBlock extends ParseqList<GlobalVarDef> implement
 	public JassGlobalBlock copy() {
 		JassGlobalBlock result = new JassGlobalBlockImpl();
 		for (GlobalVarDef elem : this) {
-			result.add(elem.copy());
+			result.add((GlobalVarDef) elem.copy());
 		}
 		return result;
 	}
-	public abstract void accept(CompilationUnit.Visitor v);
-	public abstract void accept(PackageOrGlobal.Visitor v);
-	public abstract void accept(JassGlobalBlock.Visitor v);
 	public abstract void accept(TopLevelDeclaration.Visitor v);
-	public abstract void accept(JassToplevelDeclaration.Visitor v);
+	public abstract void accept(PackageOrGlobal.Visitor v);
+	public abstract void accept(CompilationUnit.Visitor v);
 	public abstract void accept(WScope.Visitor v);
+	public abstract void accept(JassToplevelDeclaration.Visitor v);
+	public abstract void accept(JassGlobalBlock.Visitor v);
 	public interface Visitor {
-		void visit(ExprRealVal exprRealVal);
-		void visit(OpPlus opPlus);
 		void visit(ExprBoolVal exprBoolVal);
-		void visit(Modifiers modifiers);
-		void visit(VisibilityPrivate visibilityPrivate);
-		void visit(ExprVarArrayAccess exprVarArrayAccess);
-		void visit(OpMinus opMinus);
-		void visit(NoExpr noExpr);
-		void visit(OpLess opLess);
-		void visit(OpAnd opAnd);
-		void visit(ExprMemberMethod exprMemberMethod);
-		void visit(ExprMemberArrayVar exprMemberArrayVar);
-		void visit(WPos wPos);
-		void visit(ExprVarAccess exprVarAccess);
-		void visit(GlobalVarDef globalVarDef);
-		void visit(ExprUnary exprUnary);
-		void visit(ExprStringVal exprStringVal);
-		void visit(OpLessEq opLessEq);
-		void visit(OpOr opOr);
-		void visit(OpEquals opEquals);
-		void visit(Indexes indexes);
-		void visit(ExprNewObject exprNewObject);
-		void visit(VisibilityDefault visibilityDefault);
-		void visit(ModStatic modStatic);
-		void visit(TypeExpr typeExpr);
-		void visit(ExprIntVal exprIntVal);
-		void visit(JassGlobalBlock jassGlobalBlock);
-		void visit(OpModReal opModReal);
-		void visit(ExprCast exprCast);
-		void visit(ExprBinary exprBinary);
-		void visit(OpNot opNot);
-		void visit(ExprNull exprNull);
-		void visit(ExprFuncRef exprFuncRef);
-		void visit(ExprThis exprThis);
-		void visit(VisibilityPublicread visibilityPublicread);
-		void visit(ArraySizes arraySizes);
-		void visit(NoTypeExpr noTypeExpr);
-		void visit(VisibilityProtected visibilityProtected);
-		void visit(VisibilityPublic visibilityPublic);
-		void visit(OpUnequals opUnequals);
-		void visit(OpGreater opGreater);
 		void visit(OpMult opMult);
-		void visit(OpDivInt opDivInt);
-		void visit(ExprFunctionCall exprFunctionCall);
-		void visit(OpGreaterEq opGreaterEq);
+		void visit(ExprThis exprThis);
+		void visit(VisibilityProtected visibilityProtected);
+		void visit(OpAnd opAnd);
+		void visit(ExprUnary exprUnary);
 		void visit(OpDivReal opDivReal);
-		void visit(ModOverride modOverride);
-		void visit(Arguments arguments);
-		void visit(OpModInt opModInt);
+		void visit(VisibilityPublic visibilityPublic);
+		void visit(TypeExpr typeExpr);
+		void visit(OpGreater opGreater);
+		void visit(OpUnequals opUnequals);
+		void visit(ExprFunctionCall exprFunctionCall);
+		void visit(GlobalVarDef globalVarDef);
+		void visit(ArraySizes arraySizes);
+		void visit(ExprNewObject exprNewObject);
+		void visit(ExprVarArrayAccess exprVarArrayAccess);
+		void visit(ExprBinary exprBinary);
+		void visit(ExprFuncRef exprFuncRef);
+		void visit(OpEquals opEquals);
+		void visit(OpGreaterEq opGreaterEq);
+		void visit(ExprRealVal exprRealVal);
+		void visit(OpLessEq opLessEq);
 		void visit(ExprMemberVar exprMemberVar);
+		void visit(ModStatic modStatic);
+		void visit(NoExpr noExpr);
+		void visit(ExprMemberMethod exprMemberMethod);
+		void visit(ExprStringVal exprStringVal);
+		void visit(OpDivInt opDivInt);
+		void visit(NoTypeExpr noTypeExpr);
+		void visit(ExprIntVal exprIntVal);
+		void visit(ExprCast exprCast);
+		void visit(OpOr opOr);
+		void visit(ExprNull exprNull);
+		void visit(ModOverride modOverride);
+		void visit(VisibilityDefault visibilityDefault);
+		void visit(Arguments arguments);
+		void visit(ExprMemberArrayVar exprMemberArrayVar);
+		void visit(VisibilityPublicread visibilityPublicread);
+		void visit(VisibilityPrivate visibilityPrivate);
+		void visit(OpLess opLess);
+		void visit(WPos wPos);
+		void visit(OpMinus opMinus);
+		void visit(Indexes indexes);
+		void visit(OpModReal opModReal);
+		void visit(OpNot opNot);
+		void visit(OpPlus opPlus);
+		void visit(OpModInt opModInt);
+		void visit(JassGlobalBlock jassGlobalBlock);
+		void visit(ExprVarAccess exprVarAccess);
+		void visit(Modifiers modifiers);
 	}
 	public static abstract class DefaultVisitor implements Visitor {
-		@Override public void visit(ExprRealVal exprRealVal) {}
-		@Override public void visit(OpPlus opPlus) {}
 		@Override public void visit(ExprBoolVal exprBoolVal) {}
-		@Override public void visit(Modifiers modifiers) {}
-		@Override public void visit(VisibilityPrivate visibilityPrivate) {}
-		@Override public void visit(ExprVarArrayAccess exprVarArrayAccess) {}
-		@Override public void visit(OpMinus opMinus) {}
-		@Override public void visit(NoExpr noExpr) {}
-		@Override public void visit(OpLess opLess) {}
-		@Override public void visit(OpAnd opAnd) {}
-		@Override public void visit(ExprMemberMethod exprMemberMethod) {}
-		@Override public void visit(ExprMemberArrayVar exprMemberArrayVar) {}
-		@Override public void visit(WPos wPos) {}
-		@Override public void visit(ExprVarAccess exprVarAccess) {}
-		@Override public void visit(GlobalVarDef globalVarDef) {}
-		@Override public void visit(ExprUnary exprUnary) {}
-		@Override public void visit(ExprStringVal exprStringVal) {}
-		@Override public void visit(OpLessEq opLessEq) {}
-		@Override public void visit(OpOr opOr) {}
-		@Override public void visit(OpEquals opEquals) {}
-		@Override public void visit(Indexes indexes) {}
-		@Override public void visit(ExprNewObject exprNewObject) {}
-		@Override public void visit(VisibilityDefault visibilityDefault) {}
-		@Override public void visit(ModStatic modStatic) {}
-		@Override public void visit(TypeExpr typeExpr) {}
-		@Override public void visit(ExprIntVal exprIntVal) {}
-		@Override public void visit(JassGlobalBlock jassGlobalBlock) {}
-		@Override public void visit(OpModReal opModReal) {}
-		@Override public void visit(ExprCast exprCast) {}
-		@Override public void visit(ExprBinary exprBinary) {}
-		@Override public void visit(OpNot opNot) {}
-		@Override public void visit(ExprNull exprNull) {}
-		@Override public void visit(ExprFuncRef exprFuncRef) {}
-		@Override public void visit(ExprThis exprThis) {}
-		@Override public void visit(VisibilityPublicread visibilityPublicread) {}
-		@Override public void visit(ArraySizes arraySizes) {}
-		@Override public void visit(NoTypeExpr noTypeExpr) {}
-		@Override public void visit(VisibilityProtected visibilityProtected) {}
-		@Override public void visit(VisibilityPublic visibilityPublic) {}
-		@Override public void visit(OpUnequals opUnequals) {}
-		@Override public void visit(OpGreater opGreater) {}
 		@Override public void visit(OpMult opMult) {}
-		@Override public void visit(OpDivInt opDivInt) {}
-		@Override public void visit(ExprFunctionCall exprFunctionCall) {}
-		@Override public void visit(OpGreaterEq opGreaterEq) {}
+		@Override public void visit(ExprThis exprThis) {}
+		@Override public void visit(VisibilityProtected visibilityProtected) {}
+		@Override public void visit(OpAnd opAnd) {}
+		@Override public void visit(ExprUnary exprUnary) {}
 		@Override public void visit(OpDivReal opDivReal) {}
-		@Override public void visit(ModOverride modOverride) {}
-		@Override public void visit(Arguments arguments) {}
-		@Override public void visit(OpModInt opModInt) {}
+		@Override public void visit(VisibilityPublic visibilityPublic) {}
+		@Override public void visit(TypeExpr typeExpr) {}
+		@Override public void visit(OpGreater opGreater) {}
+		@Override public void visit(OpUnequals opUnequals) {}
+		@Override public void visit(ExprFunctionCall exprFunctionCall) {}
+		@Override public void visit(GlobalVarDef globalVarDef) {}
+		@Override public void visit(ArraySizes arraySizes) {}
+		@Override public void visit(ExprNewObject exprNewObject) {}
+		@Override public void visit(ExprVarArrayAccess exprVarArrayAccess) {}
+		@Override public void visit(ExprBinary exprBinary) {}
+		@Override public void visit(ExprFuncRef exprFuncRef) {}
+		@Override public void visit(OpEquals opEquals) {}
+		@Override public void visit(OpGreaterEq opGreaterEq) {}
+		@Override public void visit(ExprRealVal exprRealVal) {}
+		@Override public void visit(OpLessEq opLessEq) {}
 		@Override public void visit(ExprMemberVar exprMemberVar) {}
+		@Override public void visit(ModStatic modStatic) {}
+		@Override public void visit(NoExpr noExpr) {}
+		@Override public void visit(ExprMemberMethod exprMemberMethod) {}
+		@Override public void visit(ExprStringVal exprStringVal) {}
+		@Override public void visit(OpDivInt opDivInt) {}
+		@Override public void visit(NoTypeExpr noTypeExpr) {}
+		@Override public void visit(ExprIntVal exprIntVal) {}
+		@Override public void visit(ExprCast exprCast) {}
+		@Override public void visit(OpOr opOr) {}
+		@Override public void visit(ExprNull exprNull) {}
+		@Override public void visit(ModOverride modOverride) {}
+		@Override public void visit(VisibilityDefault visibilityDefault) {}
+		@Override public void visit(Arguments arguments) {}
+		@Override public void visit(ExprMemberArrayVar exprMemberArrayVar) {}
+		@Override public void visit(VisibilityPublicread visibilityPublicread) {}
+		@Override public void visit(VisibilityPrivate visibilityPrivate) {}
+		@Override public void visit(OpLess opLess) {}
+		@Override public void visit(WPos wPos) {}
+		@Override public void visit(OpMinus opMinus) {}
+		@Override public void visit(Indexes indexes) {}
+		@Override public void visit(OpModReal opModReal) {}
+		@Override public void visit(OpNot opNot) {}
+		@Override public void visit(OpPlus opPlus) {}
+		@Override public void visit(OpModInt opModInt) {}
+		@Override public void visit(JassGlobalBlock jassGlobalBlock) {}
+		@Override public void visit(ExprVarAccess exprVarAccess) {}
+		@Override public void visit(Modifiers modifiers) {}
 	}
 }

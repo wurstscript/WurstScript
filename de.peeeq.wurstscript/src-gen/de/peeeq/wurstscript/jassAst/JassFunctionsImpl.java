@@ -15,13 +15,13 @@ class JassFunctionsImpl extends JassFunctions implements JassAstElementIntern {
 	protected void other_clearParent(JassFunction t) {
 		((JassAstElementIntern) t).setParent(null);
 	}
-	@Override public void accept(JassFunctions.Visitor v) {
+	@Override public void accept(JassProg.Visitor v) {
 		for (JassFunction i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(JassProg.Visitor v) {
+	@Override public void accept(JassFunctions.Visitor v) {
 		for (JassFunction i : this ) {
 			i.accept(v);
 		}

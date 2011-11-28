@@ -46,43 +46,8 @@ class JassExprUnaryImpl implements JassExprUnary, JassAstElementIntern {
 	public int size() {
 		return 2;
 	}
-	public JassExprUnary copy() {
-		return new JassExprUnaryImpl(op.copy(), right.copy());
-	}
-	@Override public void accept(JassStmtIf.Visitor v) {
-		op.accept(v);
-		right.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassExprVarArrayAccess.Visitor v) {
-		op.accept(v);
-		right.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassExprlist.Visitor v) {
-		op.accept(v);
-		right.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassExprFunctionCall.Visitor v) {
-		op.accept(v);
-		right.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtReturn.Visitor v) {
-		op.accept(v);
-		right.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtExitwhen.Visitor v) {
-		op.accept(v);
-		right.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassExpr.Visitor v) {
-		op.accept(v);
-		right.accept(v);
-		v.visit(this);
+	@Override public JassExprUnary copy() {
+		return new JassExprUnaryImpl((JassOpUnary) op.copy(), (JassExpr) right.copy());
 	}
 	@Override public void accept(JassStmtLoop.Visitor v) {
 		op.accept(v);
@@ -94,17 +59,17 @@ class JassExprUnaryImpl implements JassExprUnary, JassAstElementIntern {
 		right.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(JassExprAtomic.Visitor v) {
+		op.accept(v);
+		right.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassExpr.Visitor v) {
+		op.accept(v);
+		right.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(JassExprBinary.Visitor v) {
-		op.accept(v);
-		right.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassExprUnary.Visitor v) {
-		op.accept(v);
-		right.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassFunctions.Visitor v) {
 		op.accept(v);
 		right.accept(v);
 		v.visit(this);
@@ -114,12 +79,7 @@ class JassExprUnaryImpl implements JassExprUnary, JassAstElementIntern {
 		right.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassFunction.Visitor v) {
-		op.accept(v);
-		right.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassExprAtomic.Visitor v) {
+	@Override public void accept(JassExprFunctionCall.Visitor v) {
 		op.accept(v);
 		right.accept(v);
 		v.visit(this);
@@ -129,7 +89,27 @@ class JassExprUnaryImpl implements JassExprUnary, JassAstElementIntern {
 		right.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassStmtCall.Visitor v) {
+	@Override public void accept(JassExprUnary.Visitor v) {
+		op.accept(v);
+		right.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassExprlist.Visitor v) {
+		op.accept(v);
+		right.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassFunction.Visitor v) {
+		op.accept(v);
+		right.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtSetArray.Visitor v) {
+		op.accept(v);
+		right.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassExprVarArrayAccess.Visitor v) {
 		op.accept(v);
 		right.accept(v);
 		v.visit(this);
@@ -139,7 +119,27 @@ class JassExprUnaryImpl implements JassExprUnary, JassAstElementIntern {
 		right.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassStmtSetArray.Visitor v) {
+	@Override public void accept(JassFunctions.Visitor v) {
+		op.accept(v);
+		right.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtReturn.Visitor v) {
+		op.accept(v);
+		right.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtIf.Visitor v) {
+		op.accept(v);
+		right.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtExitwhen.Visitor v) {
+		op.accept(v);
+		right.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtCall.Visitor v) {
 		op.accept(v);
 		right.accept(v);
 		v.visit(this);

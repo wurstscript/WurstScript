@@ -42,12 +42,8 @@ class JassStmtCallImpl implements JassStmtCall, JassAstElementIntern {
 	public int size() {
 		return 1;
 	}
-	public JassStmtCall copy() {
-		return new JassStmtCallImpl(functionName, arguments.copy());
-	}
-	@Override public void accept(JassStmtIf.Visitor v) {
-		arguments.accept(v);
-		v.visit(this);
+	@Override public JassStmtCall copy() {
+		return new JassStmtCallImpl(functionName, (JassExprlist) arguments.copy());
 	}
 	@Override public void accept(JassStmtLoop.Visitor v) {
 		arguments.accept(v);
@@ -57,7 +53,7 @@ class JassStmtCallImpl implements JassStmtCall, JassAstElementIntern {
 		arguments.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassFunctions.Visitor v) {
+	@Override public void accept(JassProg.Visitor v) {
 		arguments.accept(v);
 		v.visit(this);
 	}
@@ -65,15 +61,19 @@ class JassStmtCallImpl implements JassStmtCall, JassAstElementIntern {
 		arguments.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassProg.Visitor v) {
+	@Override public void accept(JassStatement.Visitor v) {
+		arguments.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassFunctions.Visitor v) {
+		arguments.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtIf.Visitor v) {
 		arguments.accept(v);
 		v.visit(this);
 	}
 	@Override public void accept(JassStmtCall.Visitor v) {
-		arguments.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassStatement.Visitor v) {
 		arguments.accept(v);
 		v.visit(this);
 	}

@@ -33,12 +33,8 @@ class JassStmtLoopImpl implements JassStmtLoop, JassAstElementIntern {
 	public int size() {
 		return 1;
 	}
-	public JassStmtLoop copy() {
-		return new JassStmtLoopImpl(body.copy());
-	}
-	@Override public void accept(JassStmtIf.Visitor v) {
-		body.accept(v);
-		v.visit(this);
+	@Override public JassStmtLoop copy() {
+		return new JassStmtLoopImpl((JassStatements) body.copy());
 	}
 	@Override public void accept(JassStmtLoop.Visitor v) {
 		body.accept(v);
@@ -48,7 +44,7 @@ class JassStmtLoopImpl implements JassStmtLoop, JassAstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassFunctions.Visitor v) {
+	@Override public void accept(JassProg.Visitor v) {
 		body.accept(v);
 		v.visit(this);
 	}
@@ -56,11 +52,15 @@ class JassStmtLoopImpl implements JassStmtLoop, JassAstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassProg.Visitor v) {
+	@Override public void accept(JassStatement.Visitor v) {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassStatement.Visitor v) {
+	@Override public void accept(JassFunctions.Visitor v) {
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtIf.Visitor v) {
 		body.accept(v);
 		v.visit(this);
 	}

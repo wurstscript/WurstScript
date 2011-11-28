@@ -33,16 +33,8 @@ class JassStmtExitwhenImpl implements JassStmtExitwhen, JassAstElementIntern {
 	public int size() {
 		return 1;
 	}
-	public JassStmtExitwhen copy() {
-		return new JassStmtExitwhenImpl(cond.copy());
-	}
-	@Override public void accept(JassStmtIf.Visitor v) {
-		cond.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtExitwhen.Visitor v) {
-		cond.accept(v);
-		v.visit(this);
+	@Override public JassStmtExitwhen copy() {
+		return new JassStmtExitwhenImpl((JassExpr) cond.copy());
 	}
 	@Override public void accept(JassStmtLoop.Visitor v) {
 		cond.accept(v);
@@ -52,7 +44,7 @@ class JassStmtExitwhenImpl implements JassStmtExitwhen, JassAstElementIntern {
 		cond.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassFunctions.Visitor v) {
+	@Override public void accept(JassProg.Visitor v) {
 		cond.accept(v);
 		v.visit(this);
 	}
@@ -60,11 +52,19 @@ class JassStmtExitwhenImpl implements JassStmtExitwhen, JassAstElementIntern {
 		cond.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassProg.Visitor v) {
+	@Override public void accept(JassStatement.Visitor v) {
 		cond.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassStatement.Visitor v) {
+	@Override public void accept(JassFunctions.Visitor v) {
+		cond.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtIf.Visitor v) {
+		cond.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtExitwhen.Visitor v) {
 		cond.accept(v);
 		v.visit(this);
 	}

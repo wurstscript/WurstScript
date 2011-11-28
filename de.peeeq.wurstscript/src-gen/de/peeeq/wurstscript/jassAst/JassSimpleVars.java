@@ -5,20 +5,20 @@ public abstract class JassSimpleVars extends ParseqList<JassSimpleVar> implement
 	public JassSimpleVars copy() {
 		JassSimpleVars result = new JassSimpleVarsImpl();
 		for (JassSimpleVar elem : this) {
-			result.add(elem.copy());
+			result.add((JassSimpleVar) elem.copy());
 		}
 		return result;
 	}
+	public abstract void accept(JassProg.Visitor v);
+	public abstract void accept(JassFunction.Visitor v);
 	public abstract void accept(JassSimpleVars.Visitor v);
 	public abstract void accept(JassFunctions.Visitor v);
-	public abstract void accept(JassFunction.Visitor v);
-	public abstract void accept(JassProg.Visitor v);
 	public interface Visitor {
-		void visit(JassSimpleVars jassSimpleVars);
 		void visit(JassSimpleVar jassSimpleVar);
+		void visit(JassSimpleVars jassSimpleVars);
 	}
 	public static abstract class DefaultVisitor implements Visitor {
-		@Override public void visit(JassSimpleVars jassSimpleVars) {}
 		@Override public void visit(JassSimpleVar jassSimpleVar) {}
+		@Override public void visit(JassSimpleVars jassSimpleVars) {}
 	}
 }

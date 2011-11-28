@@ -88,92 +88,8 @@ class GlobalVarDefImpl implements GlobalVarDef, AstElementIntern {
 	public int size() {
 		return 4;
 	}
-	public GlobalVarDef copy() {
-		return new GlobalVarDefImpl(source.copy(), modifiers.copy(), isConstant, typ.copy(), name, initialExpr.copy());
-	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TypeDef.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlots.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(AstElementWithModifier.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(VarDef.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassGlobalBlock.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassOrModule.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlot.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassMember.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		typ.accept(v);
-		initialExpr.accept(v);
-		v.visit(this);
+	@Override public GlobalVarDef copy() {
+		return new GlobalVarDefImpl((WPos) source.copy(), (Modifiers) modifiers.copy(), isConstant, (OptTypeExpr) typ.copy(), name, (OptExpr) initialExpr.copy());
 	}
 	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
@@ -189,14 +105,14 @@ class GlobalVarDefImpl implements GlobalVarDef, AstElementIntern {
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+	@Override public void accept(ClassSlots.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		typ.accept(v);
 		initialExpr.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		typ.accept(v);
@@ -217,7 +133,77 @@ class GlobalVarDefImpl implements GlobalVarDef, AstElementIntern {
 		initialExpr.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(CompilationUnit.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassMember.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(ModuleDef.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(AstElementWithModifier.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(VarDef.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlot.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TypeDef.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassOrModule.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		typ.accept(v);
@@ -231,6 +217,27 @@ class GlobalVarDefImpl implements GlobalVarDef, AstElementIntern {
 		initialExpr.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassGlobalBlock.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		typ.accept(v);
+		initialExpr.accept(v);
+		v.visit(this);
+	}
+	@Override public <T> T match(AstElementWithModifier.Matcher<T> matcher) {
+		return matcher.case_GlobalVarDef(this);
+	}
+	@Override public void match(AstElementWithModifier.MatcherVoid matcher) {
+		matcher.case_GlobalVarDef(this);
+	}
+
 	@Override public <T> T match(VarDef.Matcher<T> matcher) {
 		return matcher.case_GlobalVarDef(this);
 	}
@@ -238,24 +245,10 @@ class GlobalVarDefImpl implements GlobalVarDef, AstElementIntern {
 		matcher.case_GlobalVarDef(this);
 	}
 
-	@Override public <T> T match(NameDef.Matcher<T> matcher) {
+	@Override public <T> T match(ClassSlot.Matcher<T> matcher) {
 		return matcher.case_GlobalVarDef(this);
 	}
-	@Override public void match(NameDef.MatcherVoid matcher) {
-		matcher.case_GlobalVarDef(this);
-	}
-
-	@Override public <T> T match(WEntity.Matcher<T> matcher) {
-		return matcher.case_GlobalVarDef(this);
-	}
-	@Override public void match(WEntity.MatcherVoid matcher) {
-		matcher.case_GlobalVarDef(this);
-	}
-
-	@Override public <T> T match(AstElementWithModifier.Matcher<T> matcher) {
-		return matcher.case_GlobalVarDef(this);
-	}
-	@Override public void match(AstElementWithModifier.MatcherVoid matcher) {
+	@Override public void match(ClassSlot.MatcherVoid matcher) {
 		matcher.case_GlobalVarDef(this);
 	}
 
@@ -266,10 +259,17 @@ class GlobalVarDefImpl implements GlobalVarDef, AstElementIntern {
 		matcher.case_GlobalVarDef(this);
 	}
 
-	@Override public <T> T match(ClassSlot.Matcher<T> matcher) {
+	@Override public <T> T match(WEntity.Matcher<T> matcher) {
 		return matcher.case_GlobalVarDef(this);
 	}
-	@Override public void match(ClassSlot.MatcherVoid matcher) {
+	@Override public void match(WEntity.MatcherVoid matcher) {
+		matcher.case_GlobalVarDef(this);
+	}
+
+	@Override public <T> T match(NameDef.Matcher<T> matcher) {
+		return matcher.case_GlobalVarDef(this);
+	}
+	@Override public void match(NameDef.MatcherVoid matcher) {
 		matcher.case_GlobalVarDef(this);
 	}
 

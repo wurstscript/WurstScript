@@ -33,90 +33,10 @@ class VisibilityPrivateImpl implements VisibilityPrivate, AstElementIntern {
 	public int size() {
 		return 1;
 	}
-	public VisibilityPrivate copy() {
-		return new VisibilityPrivateImpl(source.copy());
-	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(Modifiers.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TypeDef.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(FuncDef.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlots.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(AstElementWithModifier.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ConstructorDef.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(VarDef.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassGlobalBlock.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassOrModule.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(Modifier.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlot.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassMember.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(NativeType.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(NativeFunc.Visitor v) {
-		source.accept(v);
-		v.visit(this);
+	@Override public VisibilityPrivate copy() {
+		return new VisibilityPrivateImpl((WPos) source.copy());
 	}
 	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		source.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(VisibilityPrivate.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -124,11 +44,15 @@ class VisibilityPrivateImpl implements VisibilityPrivate, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+	@Override public void accept(ClassSlots.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(NativeType.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -140,11 +64,43 @@ class VisibilityPrivateImpl implements VisibilityPrivate, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(CompilationUnit.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassMember.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(ModuleDef.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassDef.Visitor v) {
+	@Override public void accept(AstElementWithModifier.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(VarDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FuncDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FunctionDefinition.Visitor v) {
 		source.accept(v);
 		v.visit(this);
 	}
@@ -152,17 +108,61 @@ class VisibilityPrivateImpl implements VisibilityPrivate, AstElementIntern {
 		source.accept(v);
 		v.visit(this);
 	}
-	@Override public <T> T match(Modifier.Matcher<T> matcher) {
-		return matcher.case_VisibilityPrivate(this);
+	@Override public void accept(ClassSlot.Visitor v) {
+		source.accept(v);
+		v.visit(this);
 	}
-	@Override public void match(Modifier.MatcherVoid matcher) {
-		matcher.case_VisibilityPrivate(this);
+	@Override public void accept(TypeDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
 	}
-
+	@Override public void accept(ClassOrModule.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(NativeFunc.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ConstructorDef.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(Modifier.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(VisibilityPrivate.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassGlobalBlock.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(Modifiers.Visitor v) {
+		source.accept(v);
+		v.visit(this);
+	}
 	@Override public <T> T match(VisibilityModifier.Matcher<T> matcher) {
 		return matcher.case_VisibilityPrivate(this);
 	}
 	@Override public void match(VisibilityModifier.MatcherVoid matcher) {
+		matcher.case_VisibilityPrivate(this);
+	}
+
+	@Override public <T> T match(Modifier.Matcher<T> matcher) {
+		return matcher.case_VisibilityPrivate(this);
+	}
+	@Override public void match(Modifier.MatcherVoid matcher) {
 		matcher.case_VisibilityPrivate(this);
 	}
 

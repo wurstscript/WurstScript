@@ -8,19 +8,19 @@ public interface WImport extends AstElement {
 	void setPackagename(String packagename);
 	String getPackagename();
 	WImport copy();
-	public abstract void accept(CompilationUnit.Visitor v);
-	public abstract void accept(PackageOrGlobal.Visitor v);
-	public abstract void accept(WPackage.Visitor v);
 	public abstract void accept(TopLevelDeclaration.Visitor v);
+	public abstract void accept(PackageOrGlobal.Visitor v);
+	public abstract void accept(CompilationUnit.Visitor v);
+	public abstract void accept(WPackage.Visitor v);
 	public abstract void accept(WScope.Visitor v);
 	public abstract void accept(WImports.Visitor v);
 	public abstract void accept(WImport.Visitor v);
 	public interface Visitor {
-		void visit(WPos wPos);
 		void visit(WImport wImport);
+		void visit(WPos wPos);
 	}
 	public static abstract class DefaultVisitor implements Visitor {
-		@Override public void visit(WPos wPos) {}
 		@Override public void visit(WImport wImport) {}
+		@Override public void visit(WPos wPos) {}
 	}
 }

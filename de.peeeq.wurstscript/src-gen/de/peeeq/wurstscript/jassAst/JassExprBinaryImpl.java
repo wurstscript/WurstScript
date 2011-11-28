@@ -59,50 +59,8 @@ class JassExprBinaryImpl implements JassExprBinary, JassAstElementIntern {
 	public int size() {
 		return 3;
 	}
-	public JassExprBinary copy() {
-		return new JassExprBinaryImpl(left.copy(), op.copy(), right.copy());
-	}
-	@Override public void accept(JassStmtIf.Visitor v) {
-		left.accept(v);
-		op.accept(v);
-		right.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassExprVarArrayAccess.Visitor v) {
-		left.accept(v);
-		op.accept(v);
-		right.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassExprlist.Visitor v) {
-		left.accept(v);
-		op.accept(v);
-		right.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassExprFunctionCall.Visitor v) {
-		left.accept(v);
-		op.accept(v);
-		right.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtReturn.Visitor v) {
-		left.accept(v);
-		op.accept(v);
-		right.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtExitwhen.Visitor v) {
-		left.accept(v);
-		op.accept(v);
-		right.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassExpr.Visitor v) {
-		left.accept(v);
-		op.accept(v);
-		right.accept(v);
-		v.visit(this);
+	@Override public JassExprBinary copy() {
+		return new JassExprBinaryImpl((JassExpr) left.copy(), (JassOpBinary) op.copy(), (JassExpr) right.copy());
 	}
 	@Override public void accept(JassStmtLoop.Visitor v) {
 		left.accept(v);
@@ -116,19 +74,19 @@ class JassExprBinaryImpl implements JassExprBinary, JassAstElementIntern {
 		right.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(JassExprAtomic.Visitor v) {
+		left.accept(v);
+		op.accept(v);
+		right.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassExpr.Visitor v) {
+		left.accept(v);
+		op.accept(v);
+		right.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(JassExprBinary.Visitor v) {
-		left.accept(v);
-		op.accept(v);
-		right.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassExprUnary.Visitor v) {
-		left.accept(v);
-		op.accept(v);
-		right.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassFunctions.Visitor v) {
 		left.accept(v);
 		op.accept(v);
 		right.accept(v);
@@ -140,13 +98,7 @@ class JassExprBinaryImpl implements JassExprBinary, JassAstElementIntern {
 		right.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassFunction.Visitor v) {
-		left.accept(v);
-		op.accept(v);
-		right.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassExprAtomic.Visitor v) {
+	@Override public void accept(JassExprFunctionCall.Visitor v) {
 		left.accept(v);
 		op.accept(v);
 		right.accept(v);
@@ -158,7 +110,31 @@ class JassExprBinaryImpl implements JassExprBinary, JassAstElementIntern {
 		right.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassStmtCall.Visitor v) {
+	@Override public void accept(JassExprUnary.Visitor v) {
+		left.accept(v);
+		op.accept(v);
+		right.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassExprlist.Visitor v) {
+		left.accept(v);
+		op.accept(v);
+		right.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassFunction.Visitor v) {
+		left.accept(v);
+		op.accept(v);
+		right.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtSetArray.Visitor v) {
+		left.accept(v);
+		op.accept(v);
+		right.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassExprVarArrayAccess.Visitor v) {
 		left.accept(v);
 		op.accept(v);
 		right.accept(v);
@@ -170,7 +146,31 @@ class JassExprBinaryImpl implements JassExprBinary, JassAstElementIntern {
 		right.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassStmtSetArray.Visitor v) {
+	@Override public void accept(JassFunctions.Visitor v) {
+		left.accept(v);
+		op.accept(v);
+		right.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtReturn.Visitor v) {
+		left.accept(v);
+		op.accept(v);
+		right.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtIf.Visitor v) {
+		left.accept(v);
+		op.accept(v);
+		right.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtExitwhen.Visitor v) {
+		left.accept(v);
+		op.accept(v);
+		right.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtCall.Visitor v) {
 		left.accept(v);
 		op.accept(v);
 		right.accept(v);

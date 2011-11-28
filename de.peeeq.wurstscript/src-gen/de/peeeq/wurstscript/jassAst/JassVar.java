@@ -19,12 +19,12 @@ public interface JassVar extends JassAstElement{
 		void case_JassArrayVar(JassArrayVar jassArrayVar);
 	}
 
-	JassVar copy();
-	public abstract void accept(JassVar.Visitor v);
-	public abstract void accept(JassVars.Visitor v);
-	public abstract void accept(JassFunctions.Visitor v);
-	public abstract void accept(JassFunction.Visitor v);
+	JassAstElement copy();
 	public abstract void accept(JassProg.Visitor v);
+	public abstract void accept(JassFunction.Visitor v);
+	public abstract void accept(JassVar.Visitor v);
+	public abstract void accept(JassFunctions.Visitor v);
+	public abstract void accept(JassVars.Visitor v);
 	public interface Visitor {
 		void visit(JassSimpleVar jassSimpleVar);
 		void visit(JassArrayVar jassArrayVar);

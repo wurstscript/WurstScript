@@ -15,12 +15,6 @@ class JassStatementsImpl extends JassStatements implements JassAstElementIntern 
 	protected void other_clearParent(JassStatement t) {
 		((JassAstElementIntern) t).setParent(null);
 	}
-	@Override public void accept(JassStmtIf.Visitor v) {
-		for (JassStatement i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
 	@Override public void accept(JassStmtLoop.Visitor v) {
 		for (JassStatement i : this ) {
 			i.accept(v);
@@ -33,7 +27,7 @@ class JassStatementsImpl extends JassStatements implements JassAstElementIntern 
 		}
 		v.visit(this);
 	}
-	@Override public void accept(JassFunctions.Visitor v) {
+	@Override public void accept(JassProg.Visitor v) {
 		for (JassStatement i : this ) {
 			i.accept(v);
 		}
@@ -45,13 +39,19 @@ class JassStatementsImpl extends JassStatements implements JassAstElementIntern 
 		}
 		v.visit(this);
 	}
-	@Override public void accept(JassProg.Visitor v) {
+	@Override public void accept(JassStatement.Visitor v) {
 		for (JassStatement i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(JassStatement.Visitor v) {
+	@Override public void accept(JassFunctions.Visitor v) {
+		for (JassStatement i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtIf.Visitor v) {
 		for (JassStatement i : this ) {
 			i.accept(v);
 		}

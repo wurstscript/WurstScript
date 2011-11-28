@@ -46,10 +46,10 @@ class InitBlockImpl implements InitBlock, AstElementIntern {
 	public int size() {
 		return 2;
 	}
-	public InitBlock copy() {
-		return new InitBlockImpl(source.copy(), body.copy());
+	@Override public InitBlock copy() {
+		return new InitBlockImpl((WPos) source.copy(), (WStatements) body.copy());
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);
@@ -64,6 +64,16 @@ class InitBlockImpl implements InitBlock, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
+		source.accept(v);
+		body.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(WPackage.Visitor v) {
 		source.accept(v);
 		body.accept(v);
@@ -74,17 +84,7 @@ class InitBlockImpl implements InitBlock, AstElementIntern {
 		body.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(WScope.Visitor v) {
-		source.accept(v);
-		body.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntities.Visitor v) {
 		source.accept(v);
 		body.accept(v);
 		v.visit(this);

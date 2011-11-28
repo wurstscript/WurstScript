@@ -68,40 +68,16 @@ class ExprMemberMethodImpl implements ExprMemberMethod, AstElementIntern {
 	public int size() {
 		return 3;
 	}
-	public ExprMemberMethod copy() {
-		return new ExprMemberMethodImpl(source.copy(), left.copy(), funcName, args.copy());
+	@Override public ExprMemberMethod copy() {
+		return new ExprMemberMethodImpl((WPos) source.copy(), (Expr) left.copy(), funcName, (Arguments) args.copy());
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		args.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(StmtLoop.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(OptTypeExpr.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TypeDef.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(FuncDef.Visitor v) {
+	@Override public void accept(NameDef.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		args.accept(v);
@@ -119,37 +95,13 @@ class ExprMemberMethodImpl implements ExprMemberMethod, AstElementIntern {
 		args.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(LocalVarDef.Visitor v) {
+	@Override public void accept(NativeType.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		args.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ExprMemberArrayVar.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ExprMemberMethod.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtExitwhen.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(AstElementWithModifier.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ConstructorDef.Visitor v) {
+	@Override public void accept(TypeExpr.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		args.accept(v);
@@ -161,25 +113,13 @@ class ExprMemberMethodImpl implements ExprMemberMethod, AstElementIntern {
 		args.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(NameRef.Visitor v) {
+	@Override public void accept(ExprFunctionCall.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		args.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(WStatement.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(VarDef.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(OnDestroyDef.Visitor v) {
+	@Override public void accept(GlobalVarDef.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		args.accept(v);
@@ -191,7 +131,19 @@ class ExprMemberMethodImpl implements ExprMemberMethod, AstElementIntern {
 		args.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ExprAtomic.Visitor v) {
+	@Override public void accept(WStatement.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ArraySizes.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(StmtReturn.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		args.accept(v);
@@ -209,151 +161,7 @@ class ExprMemberMethodImpl implements ExprMemberMethod, AstElementIntern {
 		args.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassGlobalBlock.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WPackage.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtIf.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassOrModule.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlot.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(FuncRef.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WParameter.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TypeRef.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ClassMember.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(NativeType.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(NativeFunc.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(FuncSignature.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(ExprVarArrayAccess.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(NameDef.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtWhile.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(StmtDestroy.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(ExprUnary.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(GlobalVarDef.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(Indexes.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WStatements.Visitor v) {
-		source.accept(v);
-		left.accept(v);
-		args.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(TypeExpr.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		args.accept(v);
@@ -365,19 +173,31 @@ class ExprMemberMethodImpl implements ExprMemberMethod, AstElementIntern {
 		args.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(Expr.Visitor v) {
+	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		args.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ModuleDef.Visitor v) {
+	@Override public void accept(WParameter.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		args.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ExprCast.Visitor v) {
+	@Override public void accept(StmtWhile.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FuncRef.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassMember.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		args.accept(v);
@@ -389,25 +209,103 @@ class ExprMemberMethodImpl implements ExprMemberMethod, AstElementIntern {
 		args.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ClassDef.Visitor v) {
+	@Override public void accept(ModuleDef.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		args.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(OptExpr.Visitor v) {
+	@Override public void accept(StmtDestroy.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		args.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ArraySizes.Visitor v) {
+	@Override public void accept(ExprMemberVar.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		args.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ExprAssignable.Visitor v) {
+	@Override public void accept(AstElementWithModifier.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(VarDef.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WPackage.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(StmtLoop.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(TypeRef.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(NameRef.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FuncDef.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(OnDestroyDef.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FunctionDefinition.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(StmtIf.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassSlot.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(OptTypeExpr.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		args.accept(v);
@@ -419,13 +317,85 @@ class ExprMemberMethodImpl implements ExprMemberMethod, AstElementIntern {
 		args.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(StmtReturn.Visitor v) {
+	@Override public void accept(ExprUnary.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		args.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ExprFunctionCall.Visitor v) {
+	@Override public void accept(TypeDef.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassOrModule.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(LocalVarDef.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(StmtExitwhen.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(NativeFunc.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ExprAtomic.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(FuncSignature.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WStatements.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ExprMemberMethod.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ClassDef.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ExprCast.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ConstructorDef.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(Expr.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		args.accept(v);
@@ -437,7 +407,37 @@ class ExprMemberMethodImpl implements ExprMemberMethod, AstElementIntern {
 		args.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(ExprMemberVar.Visitor v) {
+	@Override public void accept(OptExpr.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ExprMemberArrayVar.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(Indexes.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(ExprAssignable.Visitor v) {
+		source.accept(v);
+		left.accept(v);
+		args.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassGlobalBlock.Visitor v) {
 		source.accept(v);
 		left.accept(v);
 		args.accept(v);
@@ -457,13 +457,6 @@ class ExprMemberMethodImpl implements ExprMemberMethod, AstElementIntern {
 		matcher.case_ExprMemberMethod(this);
 	}
 
-	@Override public <T> T match(StmtCall.Matcher<T> matcher) {
-		return matcher.case_ExprMemberMethod(this);
-	}
-	@Override public void match(StmtCall.MatcherVoid matcher) {
-		matcher.case_ExprMemberMethod(this);
-	}
-
 	@Override public <T> T match(Expr.Matcher<T> matcher) {
 		return matcher.case_ExprMemberMethod(this);
 	}
@@ -475,6 +468,13 @@ class ExprMemberMethodImpl implements ExprMemberMethod, AstElementIntern {
 		return matcher.case_ExprMemberMethod(this);
 	}
 	@Override public void match(WStatement.MatcherVoid matcher) {
+		matcher.case_ExprMemberMethod(this);
+	}
+
+	@Override public <T> T match(StmtCall.Matcher<T> matcher) {
+		return matcher.case_ExprMemberMethod(this);
+	}
+	@Override public void match(StmtCall.MatcherVoid matcher) {
 		matcher.case_ExprMemberMethod(this);
 	}
 
