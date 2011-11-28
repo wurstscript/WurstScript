@@ -45,27 +45,7 @@ class JassExprFunctionCallImpl implements JassExprFunctionCall, JassAstElementIn
 	public JassExprFunctionCall copy() {
 		return new JassExprFunctionCallImpl(funcName, arguments.copy());
 	}
-	@Override public void accept(JassStatement.Visitor v) {
-		arguments.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtCall.Visitor v) {
-		arguments.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassFunction.Visitor v) {
-		arguments.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassExprlist.Visitor v) {
-		arguments.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassExpr.Visitor v) {
-		arguments.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtIf.Visitor v) {
+	@Override public void accept(JassStmtLoop.Visitor v) {
 		arguments.accept(v);
 		v.visit(this);
 	}
@@ -73,15 +53,11 @@ class JassExprFunctionCallImpl implements JassExprFunctionCall, JassAstElementIn
 		arguments.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassStmtExitwhen.Visitor v) {
+	@Override public void accept(JassExprAtomic.Visitor v) {
 		arguments.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassExprFunctionCall.Visitor v) {
-		arguments.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtSetArray.Visitor v) {
+	@Override public void accept(JassExpr.Visitor v) {
 		arguments.accept(v);
 		v.visit(this);
 	}
@@ -89,19 +65,11 @@ class JassExprFunctionCallImpl implements JassExprFunctionCall, JassAstElementIn
 		arguments.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassExprUnary.Visitor v) {
+	@Override public void accept(JassStmtSet.Visitor v) {
 		arguments.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassExprVarArrayAccess.Visitor v) {
-		arguments.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtLoop.Visitor v) {
-		arguments.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtReturn.Visitor v) {
+	@Override public void accept(JassExprFunctionCall.Visitor v) {
 		arguments.accept(v);
 		v.visit(this);
 	}
@@ -109,7 +77,27 @@ class JassExprFunctionCallImpl implements JassExprFunctionCall, JassAstElementIn
 		arguments.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassStmtSet.Visitor v) {
+	@Override public void accept(JassExprUnary.Visitor v) {
+		arguments.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassExprlist.Visitor v) {
+		arguments.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassFunction.Visitor v) {
+		arguments.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtSetArray.Visitor v) {
+		arguments.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassExprVarArrayAccess.Visitor v) {
+		arguments.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStatement.Visitor v) {
 		arguments.accept(v);
 		v.visit(this);
 	}
@@ -117,7 +105,19 @@ class JassExprFunctionCallImpl implements JassExprFunctionCall, JassAstElementIn
 		arguments.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassExprAtomic.Visitor v) {
+	@Override public void accept(JassStmtReturn.Visitor v) {
+		arguments.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtIf.Visitor v) {
+		arguments.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtExitwhen.Visitor v) {
+		arguments.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtCall.Visitor v) {
 		arguments.accept(v);
 		v.visit(this);
 	}

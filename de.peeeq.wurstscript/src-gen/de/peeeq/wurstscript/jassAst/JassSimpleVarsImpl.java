@@ -15,6 +15,12 @@ class JassSimpleVarsImpl extends JassSimpleVars implements JassAstElementIntern 
 	protected void other_clearParent(JassSimpleVar t) {
 		((JassAstElementIntern) t).setParent(null);
 	}
+	@Override public void accept(JassProg.Visitor v) {
+		for (JassSimpleVar i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
 	@Override public void accept(JassFunction.Visitor v) {
 		for (JassSimpleVar i : this ) {
 			i.accept(v);
@@ -22,12 +28,6 @@ class JassSimpleVarsImpl extends JassSimpleVars implements JassAstElementIntern 
 		v.visit(this);
 	}
 	@Override public void accept(JassSimpleVars.Visitor v) {
-		for (JassSimpleVar i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(JassProg.Visitor v) {
 		for (JassSimpleVar i : this ) {
 			i.accept(v);
 		}

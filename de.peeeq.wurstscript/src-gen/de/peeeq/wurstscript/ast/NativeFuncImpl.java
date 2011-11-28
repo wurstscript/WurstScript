@@ -62,6 +62,24 @@ class NativeFuncImpl implements NativeFunc, AstElementIntern {
 	public NativeFunc copy() {
 		return new NativeFuncImpl(source.copy(), modifiers.copy(), signature.copy());
 	}
+	@Override public void accept(WScope.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		signature.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		signature.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(NativeFunc.Visitor v) {
+		source.accept(v);
+		modifiers.accept(v);
+		signature.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(TopLevelDeclaration.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
@@ -74,7 +92,7 @@ class NativeFuncImpl implements NativeFunc, AstElementIntern {
 		signature.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(AstElementWithModifier.Visitor v) {
+	@Override public void accept(CompilationUnit.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		signature.accept(v);
@@ -92,13 +110,7 @@ class NativeFuncImpl implements NativeFunc, AstElementIntern {
 		signature.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(CompilationUnit.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		signature.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WScope.Visitor v) {
+	@Override public void accept(PackageOrGlobal.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		signature.accept(v);
@@ -110,42 +122,16 @@ class NativeFuncImpl implements NativeFunc, AstElementIntern {
 		signature.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(NativeFunc.Visitor v) {
+	@Override public void accept(AstElementWithModifier.Visitor v) {
 		source.accept(v);
 		modifiers.accept(v);
 		signature.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(PackageOrGlobal.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		signature.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(WEntities.Visitor v) {
-		source.accept(v);
-		modifiers.accept(v);
-		signature.accept(v);
-		v.visit(this);
-	}
-	@Override public <T> T match(FunctionDefinition.Matcher<T> matcher) {
-		return matcher.case_NativeFunc(this);
-	}
-	@Override public void match(FunctionDefinition.MatcherVoid matcher) {
-		matcher.case_NativeFunc(this);
-	}
-
 	@Override public <T> T match(TopLevelDeclaration.Matcher<T> matcher) {
 		return matcher.case_NativeFunc(this);
 	}
 	@Override public void match(TopLevelDeclaration.MatcherVoid matcher) {
-		matcher.case_NativeFunc(this);
-	}
-
-	@Override public <T> T match(AstElementWithModifier.Matcher<T> matcher) {
-		return matcher.case_NativeFunc(this);
-	}
-	@Override public void match(AstElementWithModifier.MatcherVoid matcher) {
 		matcher.case_NativeFunc(this);
 	}
 
@@ -160,6 +146,20 @@ class NativeFuncImpl implements NativeFunc, AstElementIntern {
 		return matcher.case_NativeFunc(this);
 	}
 	@Override public void match(JassToplevelDeclaration.MatcherVoid matcher) {
+		matcher.case_NativeFunc(this);
+	}
+
+	@Override public <T> T match(FunctionDefinition.Matcher<T> matcher) {
+		return matcher.case_NativeFunc(this);
+	}
+	@Override public void match(FunctionDefinition.MatcherVoid matcher) {
+		matcher.case_NativeFunc(this);
+	}
+
+	@Override public <T> T match(AstElementWithModifier.Matcher<T> matcher) {
+		return matcher.case_NativeFunc(this);
+	}
+	@Override public void match(AstElementWithModifier.MatcherVoid matcher) {
 		matcher.case_NativeFunc(this);
 	}
 

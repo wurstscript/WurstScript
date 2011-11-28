@@ -3,7 +3,7 @@
 	<property name="lib" location="./lib" />
 	<property name="src" location="./src" />
 	<property name="srcgen" location="./src-gen" />
-	<property name="build" location="./build" />
+	<property name="build" location="./bin" />
 	<property name="grammarspec" location="./parserspec/wurstscript.cup" />
 	<property name="scannerspec" location="./parserspec/wurstscript.flex" />
 	<property name="javacup" location="${lib}/java-cup.jar" />
@@ -29,6 +29,7 @@
 
 
 	<target name="cup" depends="checkForChanges" unless="cupNotChanged">
+		<mkdir dir="${srcgen}/de/peeeq/wurstscript/parser"/>
 		<java jar="${javacup}" fork="true" failonerror="true">
 			<!--<arg value="-expect" />
 			<arg value="2" />-->
@@ -86,23 +87,16 @@
 		</java>
 	</target>
 
-	<target name="compile" depends="cup, jflex, parseq">
-		<!--<mkdir dir="${build}" />
+	<target name="compile" depends="cup, jflex, parseq, parseq_jass">
+		<mkdir dir="${build}" />
 		<javac srcdir="${src}" destdir="${build}" includeantruntime="false">
+			<src path="${srcgen}"></src>
 			<classpath refid="classpath"/>
 		</javac>
-		-->
 	</target>
 
-	<!--
 	<target name="clean">
-		
 		<delete dir="${build}" />
-		<delete file="${lib}/AST.jar" />
-		<delete file="${lib}/MIPS.jar" />
-		<delete file="${src}/MiniJavaScanner.java" />
-		<delete file="${src}/TokenType.java" />
-		<delete file="${src}/parser.java" />
+		<delete dir="${srcgen}" />
 	</target>
-	-->
 </project>

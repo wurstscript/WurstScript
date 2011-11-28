@@ -216,6 +216,7 @@ public class JassOptimizerImpl implements JassOptimizer {
 					}
 					
 					System.out.println("nachLocals");
+					System.out.println("body = " + jassFunction.getBody());
 					
 					jassFunction.getBody().accept(new JassFunction.DefaultVisitor() {
 						
@@ -267,7 +268,7 @@ public class JassOptimizerImpl implements JassOptimizer {
 							}
 						}	
 					});
-					
+					System.out.println("ende##");
 					
 					
 				} catch (IOException e) {

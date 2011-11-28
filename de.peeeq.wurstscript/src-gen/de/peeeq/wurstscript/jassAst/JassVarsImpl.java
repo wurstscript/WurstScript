@@ -15,25 +15,25 @@ class JassVarsImpl extends JassVars implements JassAstElementIntern {
 	protected void other_clearParent(JassVar t) {
 		((JassAstElementIntern) t).setParent(null);
 	}
-	@Override public void accept(JassFunction.Visitor v) {
-		for (JassVar i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(JassVars.Visitor v) {
-		for (JassVar i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
 	@Override public void accept(JassProg.Visitor v) {
 		for (JassVar i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
+	@Override public void accept(JassFunction.Visitor v) {
+		for (JassVar i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
 	@Override public void accept(JassFunctions.Visitor v) {
+		for (JassVar i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(JassVars.Visitor v) {
 		for (JassVar i : this ) {
 			i.accept(v);
 		}

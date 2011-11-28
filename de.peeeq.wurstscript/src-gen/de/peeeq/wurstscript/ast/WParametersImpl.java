@@ -15,85 +15,7 @@ class WParametersImpl extends WParameters implements AstElementIntern {
 	protected void other_clearParent(WParameter t) {
 		((AstElementIntern) t).setParent(null);
 	}
-	@Override public void accept(ModuleDef.Visitor v) {
-		for (WParameter i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(FuncDef.Visitor v) {
-		for (WParameter i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(FuncSignature.Visitor v) {
-		for (WParameter i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ClassMember.Visitor v) {
-		for (WParameter i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(TopLevelDeclaration.Visitor v) {
-		for (WParameter i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ClassSlot.Visitor v) {
-		for (WParameter i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(JassToplevelDeclaration.Visitor v) {
-		for (WParameter i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ConstructorDef.Visitor v) {
-		for (WParameter i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(AstElementWithModifier.Visitor v) {
-		for (WParameter i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ClassOrModule.Visitor v) {
-		for (WParameter i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(FunctionDefinition.Visitor v) {
-		for (WParameter i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(ClassDef.Visitor v) {
-		for (WParameter i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(WEntity.Visitor v) {
-		for (WParameter i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(CompilationUnit.Visitor v) {
+	@Override public void accept(ClassSlots.Visitor v) {
 		for (WParameter i : this ) {
 			i.accept(v);
 		}
@@ -105,13 +27,25 @@ class WParametersImpl extends WParameters implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(WPackage.Visitor v) {
+	@Override public void accept(FuncDef.Visitor v) {
 		for (WParameter i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(TypeDef.Visitor v) {
+	@Override public void accept(ClassMember.Visitor v) {
+		for (WParameter i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(WEntities.Visitor v) {
+		for (WParameter i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(ClassOrModule.Visitor v) {
 		for (WParameter i : this ) {
 			i.accept(v);
 		}
@@ -123,7 +57,37 @@ class WParametersImpl extends WParameters implements AstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(WParameters.Visitor v) {
+	@Override public void accept(TopLevelDeclaration.Visitor v) {
+		for (WParameter i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(JassToplevelDeclaration.Visitor v) {
+		for (WParameter i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(CompilationUnit.Visitor v) {
+		for (WParameter i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(TypeDef.Visitor v) {
+		for (WParameter i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(ConstructorDef.Visitor v) {
+		for (WParameter i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(FunctionDefinition.Visitor v) {
 		for (WParameter i : this ) {
 			i.accept(v);
 		}
@@ -135,19 +99,55 @@ class WParametersImpl extends WParameters implements AstElementIntern {
 		}
 		v.visit(this);
 	}
+	@Override public void accept(ClassDef.Visitor v) {
+		for (WParameter i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(ModuleDef.Visitor v) {
+		for (WParameter i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(WParameters.Visitor v) {
+		for (WParameter i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(WEntity.Visitor v) {
+		for (WParameter i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
 	@Override public void accept(PackageOrGlobal.Visitor v) {
 		for (WParameter i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(ClassSlots.Visitor v) {
+	@Override public void accept(FuncSignature.Visitor v) {
 		for (WParameter i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(WEntities.Visitor v) {
+	@Override public void accept(ClassSlot.Visitor v) {
+		for (WParameter i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(WPackage.Visitor v) {
+		for (WParameter i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(AstElementWithModifier.Visitor v) {
 		for (WParameter i : this ) {
 			i.accept(v);
 		}

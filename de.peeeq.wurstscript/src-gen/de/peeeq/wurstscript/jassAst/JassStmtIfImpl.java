@@ -62,19 +62,7 @@ class JassStmtIfImpl implements JassStmtIf, JassAstElementIntern {
 	public JassStmtIf copy() {
 		return new JassStmtIfImpl(cond.copy(), thenBlock.copy(), elseBlock.copy());
 	}
-	@Override public void accept(JassStatement.Visitor v) {
-		cond.accept(v);
-		thenBlock.accept(v);
-		elseBlock.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassFunction.Visitor v) {
-		cond.accept(v);
-		thenBlock.accept(v);
-		elseBlock.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtIf.Visitor v) {
+	@Override public void accept(JassStmtLoop.Visitor v) {
 		cond.accept(v);
 		thenBlock.accept(v);
 		elseBlock.accept(v);
@@ -86,19 +74,31 @@ class JassStmtIfImpl implements JassStmtIf, JassAstElementIntern {
 		elseBlock.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassStmtLoop.Visitor v) {
-		cond.accept(v);
-		thenBlock.accept(v);
-		elseBlock.accept(v);
-		v.visit(this);
-	}
 	@Override public void accept(JassProg.Visitor v) {
 		cond.accept(v);
 		thenBlock.accept(v);
 		elseBlock.accept(v);
 		v.visit(this);
 	}
+	@Override public void accept(JassFunction.Visitor v) {
+		cond.accept(v);
+		thenBlock.accept(v);
+		elseBlock.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStatement.Visitor v) {
+		cond.accept(v);
+		thenBlock.accept(v);
+		elseBlock.accept(v);
+		v.visit(this);
+	}
 	@Override public void accept(JassFunctions.Visitor v) {
+		cond.accept(v);
+		thenBlock.accept(v);
+		elseBlock.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtIf.Visitor v) {
 		cond.accept(v);
 		thenBlock.accept(v);
 		elseBlock.accept(v);

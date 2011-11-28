@@ -36,15 +36,7 @@ class JassStmtReturnImpl implements JassStmtReturn, JassAstElementIntern {
 	public JassStmtReturn copy() {
 		return new JassStmtReturnImpl(returnValue.copy());
 	}
-	@Override public void accept(JassStatement.Visitor v) {
-		returnValue.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassFunction.Visitor v) {
-		returnValue.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtIf.Visitor v) {
+	@Override public void accept(JassStmtLoop.Visitor v) {
 		returnValue.accept(v);
 		v.visit(this);
 	}
@@ -52,7 +44,19 @@ class JassStmtReturnImpl implements JassStmtReturn, JassAstElementIntern {
 		returnValue.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassStmtLoop.Visitor v) {
+	@Override public void accept(JassProg.Visitor v) {
+		returnValue.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassFunction.Visitor v) {
+		returnValue.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassStatement.Visitor v) {
+		returnValue.accept(v);
+		v.visit(this);
+	}
+	@Override public void accept(JassFunctions.Visitor v) {
 		returnValue.accept(v);
 		v.visit(this);
 	}
@@ -60,11 +64,7 @@ class JassStmtReturnImpl implements JassStmtReturn, JassAstElementIntern {
 		returnValue.accept(v);
 		v.visit(this);
 	}
-	@Override public void accept(JassProg.Visitor v) {
-		returnValue.accept(v);
-		v.visit(this);
-	}
-	@Override public void accept(JassFunctions.Visitor v) {
+	@Override public void accept(JassStmtIf.Visitor v) {
 		returnValue.accept(v);
 		v.visit(this);
 	}

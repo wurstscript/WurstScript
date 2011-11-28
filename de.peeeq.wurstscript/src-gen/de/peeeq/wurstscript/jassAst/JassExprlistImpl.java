@@ -15,37 +15,7 @@ class JassExprlistImpl extends JassExprlist implements JassAstElementIntern {
 	protected void other_clearParent(JassExpr t) {
 		((JassAstElementIntern) t).setParent(null);
 	}
-	@Override public void accept(JassStatement.Visitor v) {
-		for (JassExpr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtCall.Visitor v) {
-		for (JassExpr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(JassFunction.Visitor v) {
-		for (JassExpr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(JassExprlist.Visitor v) {
-		for (JassExpr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(JassExpr.Visitor v) {
-		for (JassExpr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtIf.Visitor v) {
+	@Override public void accept(JassStmtLoop.Visitor v) {
 		for (JassExpr i : this ) {
 			i.accept(v);
 		}
@@ -57,19 +27,13 @@ class JassExprlistImpl extends JassExprlist implements JassAstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(JassStmtExitwhen.Visitor v) {
+	@Override public void accept(JassExprAtomic.Visitor v) {
 		for (JassExpr i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(JassExprFunctionCall.Visitor v) {
-		for (JassExpr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtSetArray.Visitor v) {
+	@Override public void accept(JassExpr.Visitor v) {
 		for (JassExpr i : this ) {
 			i.accept(v);
 		}
@@ -81,25 +45,13 @@ class JassExprlistImpl extends JassExprlist implements JassAstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(JassExprUnary.Visitor v) {
+	@Override public void accept(JassStmtSet.Visitor v) {
 		for (JassExpr i : this ) {
 			i.accept(v);
 		}
 		v.visit(this);
 	}
-	@Override public void accept(JassExprVarArrayAccess.Visitor v) {
-		for (JassExpr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtLoop.Visitor v) {
-		for (JassExpr i : this ) {
-			i.accept(v);
-		}
-		v.visit(this);
-	}
-	@Override public void accept(JassStmtReturn.Visitor v) {
+	@Override public void accept(JassExprFunctionCall.Visitor v) {
 		for (JassExpr i : this ) {
 			i.accept(v);
 		}
@@ -111,7 +63,37 @@ class JassExprlistImpl extends JassExprlist implements JassAstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(JassStmtSet.Visitor v) {
+	@Override public void accept(JassExprUnary.Visitor v) {
+		for (JassExpr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(JassExprlist.Visitor v) {
+		for (JassExpr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(JassFunction.Visitor v) {
+		for (JassExpr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtSetArray.Visitor v) {
+		for (JassExpr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(JassExprVarArrayAccess.Visitor v) {
+		for (JassExpr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(JassStatement.Visitor v) {
 		for (JassExpr i : this ) {
 			i.accept(v);
 		}
@@ -123,7 +105,25 @@ class JassExprlistImpl extends JassExprlist implements JassAstElementIntern {
 		}
 		v.visit(this);
 	}
-	@Override public void accept(JassExprAtomic.Visitor v) {
+	@Override public void accept(JassStmtReturn.Visitor v) {
+		for (JassExpr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtIf.Visitor v) {
+		for (JassExpr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtExitwhen.Visitor v) {
+		for (JassExpr i : this ) {
+			i.accept(v);
+		}
+		v.visit(this);
+	}
+	@Override public void accept(JassStmtCall.Visitor v) {
 		for (JassExpr i : this ) {
 			i.accept(v);
 		}

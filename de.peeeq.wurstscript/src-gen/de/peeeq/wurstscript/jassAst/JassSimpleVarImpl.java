@@ -41,13 +41,10 @@ class JassSimpleVarImpl implements JassSimpleVar, JassAstElementIntern {
 	public JassSimpleVar copy() {
 		return new JassSimpleVarImpl(type, name);
 	}
-	@Override public void accept(JassSimpleVar.Visitor v) {
+	@Override public void accept(JassProg.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(JassFunction.Visitor v) {
-		v.visit(this);
-	}
-	@Override public void accept(JassVars.Visitor v) {
 		v.visit(this);
 	}
 	@Override public void accept(JassSimpleVars.Visitor v) {
@@ -56,10 +53,13 @@ class JassSimpleVarImpl implements JassSimpleVar, JassAstElementIntern {
 	@Override public void accept(JassVar.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(JassProg.Visitor v) {
+	@Override public void accept(JassFunctions.Visitor v) {
 		v.visit(this);
 	}
-	@Override public void accept(JassFunctions.Visitor v) {
+	@Override public void accept(JassVars.Visitor v) {
+		v.visit(this);
+	}
+	@Override public void accept(JassSimpleVar.Visitor v) {
 		v.visit(this);
 	}
 	@Override public <T> T match(JassVar.Matcher<T> matcher) {

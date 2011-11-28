@@ -6,67 +6,67 @@ public interface JassOp extends JassAstElement{
 	<T> T match(Matcher<T> s);
 	void match(MatcherVoid s);
 	public interface Matcher<T> {
-		T case_JassOpMult(JassOpMult jassOpMult);
-		T case_JassOpLessEq(JassOpLessEq jassOpLessEq);
 		T case_JassOpOr(JassOpOr jassOpOr);
-		T case_JassOpMinus(JassOpMinus jassOpMinus);
-		T case_JassOpPlus(JassOpPlus jassOpPlus);
-		T case_JassOpNot(JassOpNot jassOpNot);
-		T case_JassOpUnequals(JassOpUnequals jassOpUnequals);
 		T case_JassOpAnd(JassOpAnd jassOpAnd);
-		T case_JassOpEquals(JassOpEquals jassOpEquals);
 		T case_JassOpLess(JassOpLess jassOpLess);
-		T case_JassOpDiv(JassOpDiv jassOpDiv);
-		T case_JassOpGreaterEq(JassOpGreaterEq jassOpGreaterEq);
 		T case_JassOpGreater(JassOpGreater jassOpGreater);
+		T case_JassOpNot(JassOpNot jassOpNot);
+		T case_JassOpPlus(JassOpPlus jassOpPlus);
+		T case_JassOpEquals(JassOpEquals jassOpEquals);
+		T case_JassOpGreaterEq(JassOpGreaterEq jassOpGreaterEq);
+		T case_JassOpLessEq(JassOpLessEq jassOpLessEq);
+		T case_JassOpDiv(JassOpDiv jassOpDiv);
+		T case_JassOpUnequals(JassOpUnequals jassOpUnequals);
+		T case_JassOpMult(JassOpMult jassOpMult);
+		T case_JassOpMinus(JassOpMinus jassOpMinus);
 	}
 
 	public interface MatcherVoid {
-		void case_JassOpMult(JassOpMult jassOpMult);
-		void case_JassOpLessEq(JassOpLessEq jassOpLessEq);
 		void case_JassOpOr(JassOpOr jassOpOr);
-		void case_JassOpMinus(JassOpMinus jassOpMinus);
-		void case_JassOpPlus(JassOpPlus jassOpPlus);
-		void case_JassOpNot(JassOpNot jassOpNot);
-		void case_JassOpUnequals(JassOpUnequals jassOpUnequals);
 		void case_JassOpAnd(JassOpAnd jassOpAnd);
-		void case_JassOpEquals(JassOpEquals jassOpEquals);
 		void case_JassOpLess(JassOpLess jassOpLess);
-		void case_JassOpDiv(JassOpDiv jassOpDiv);
-		void case_JassOpGreaterEq(JassOpGreaterEq jassOpGreaterEq);
 		void case_JassOpGreater(JassOpGreater jassOpGreater);
+		void case_JassOpNot(JassOpNot jassOpNot);
+		void case_JassOpPlus(JassOpPlus jassOpPlus);
+		void case_JassOpEquals(JassOpEquals jassOpEquals);
+		void case_JassOpGreaterEq(JassOpGreaterEq jassOpGreaterEq);
+		void case_JassOpLessEq(JassOpLessEq jassOpLessEq);
+		void case_JassOpDiv(JassOpDiv jassOpDiv);
+		void case_JassOpUnequals(JassOpUnequals jassOpUnequals);
+		void case_JassOpMult(JassOpMult jassOpMult);
+		void case_JassOpMinus(JassOpMinus jassOpMinus);
 	}
 
 	JassOp copy();
 	public abstract void accept(JassOp.Visitor v);
 	public interface Visitor {
-		void visit(JassOpMult jassOpMult);
-		void visit(JassOpLessEq jassOpLessEq);
 		void visit(JassOpOr jassOpOr);
-		void visit(JassOpMinus jassOpMinus);
+		void visit(JassOpAnd jassOpAnd);
+		void visit(JassOpLess jassOpLess);
+		void visit(JassOpGreater jassOpGreater);
 		void visit(JassOpPlus jassOpPlus);
 		void visit(JassOpNot jassOpNot);
-		void visit(JassOpUnequals jassOpUnequals);
-		void visit(JassOpAnd jassOpAnd);
 		void visit(JassOpEquals jassOpEquals);
-		void visit(JassOpDiv jassOpDiv);
-		void visit(JassOpLess jassOpLess);
 		void visit(JassOpGreaterEq jassOpGreaterEq);
-		void visit(JassOpGreater jassOpGreater);
+		void visit(JassOpLessEq jassOpLessEq);
+		void visit(JassOpDiv jassOpDiv);
+		void visit(JassOpUnequals jassOpUnequals);
+		void visit(JassOpMult jassOpMult);
+		void visit(JassOpMinus jassOpMinus);
 	}
 	public static abstract class DefaultVisitor implements Visitor {
-		@Override public void visit(JassOpMult jassOpMult) {}
-		@Override public void visit(JassOpLessEq jassOpLessEq) {}
 		@Override public void visit(JassOpOr jassOpOr) {}
-		@Override public void visit(JassOpMinus jassOpMinus) {}
+		@Override public void visit(JassOpAnd jassOpAnd) {}
+		@Override public void visit(JassOpLess jassOpLess) {}
+		@Override public void visit(JassOpGreater jassOpGreater) {}
 		@Override public void visit(JassOpPlus jassOpPlus) {}
 		@Override public void visit(JassOpNot jassOpNot) {}
-		@Override public void visit(JassOpUnequals jassOpUnequals) {}
-		@Override public void visit(JassOpAnd jassOpAnd) {}
 		@Override public void visit(JassOpEquals jassOpEquals) {}
-		@Override public void visit(JassOpDiv jassOpDiv) {}
-		@Override public void visit(JassOpLess jassOpLess) {}
 		@Override public void visit(JassOpGreaterEq jassOpGreaterEq) {}
-		@Override public void visit(JassOpGreater jassOpGreater) {}
+		@Override public void visit(JassOpLessEq jassOpLessEq) {}
+		@Override public void visit(JassOpDiv jassOpDiv) {}
+		@Override public void visit(JassOpUnequals jassOpUnequals) {}
+		@Override public void visit(JassOpMult jassOpMult) {}
+		@Override public void visit(JassOpMinus jassOpMinus) {}
 	}
 }

@@ -7,6 +7,8 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
 
+import junit.framework.Assert;
+
 import de.peeeq.wurstscript.Pjass;
 import de.peeeq.wurstscript.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.Pjass.Result;
@@ -21,11 +23,18 @@ public class PscriptTest {
 
 	private static final String TEST_OUTPUT_PATH = "./test-output/";
 
-	public void assertOk(String name, String prog) {
-		testScript(new StringReader(prog), this.getClass().getSimpleName() + "_" + name);
+	public void testAssertOk(String name, boolean executeProg, String prog) {
+		String errors = testScript(new StringReader(prog), this.getClass().getSimpleName() + "_" + name, executeProg);
+		Assert.assertEquals("", errors);
+	}
+	
+	public void testAssertErrors(String name, boolean executeProg, String prog, String errorMessage) {
+		String errors = testScript(new StringReader(prog), this.getClass().getSimpleName() + "_" + name, executeProg);
+		Assert.assertTrue(errors.length() > 0);
+		Assert.assertTrue(errors, errors.contains(errorMessage));
 	}
 
-	private void testScript(Reader input, String name) {
+	protected String testScript(Reader input, String name, boolean executeProg) {
 		boolean success = false;
 		try {
 			WurstGuiLogger gui = new WurstGuiLogger();
@@ -35,7 +44,7 @@ public class PscriptTest {
 			JassProg prog = compiler.getProg();
 
 			if (prog == null || gui.getErrorCount() > 0) {
-				throw new TestFailException("Compiler errors:\n" + gui.getErrors());
+				return gui.getErrors();
 			}
 
 			File outputFile = new File(TEST_OUTPUT_PATH + name + ".j");
@@ -46,14 +55,14 @@ public class PscriptTest {
 				writer.append(sb.toString());
 				writer.close();
 			} catch (IOException e) {
-				throw new Error(e);
+				return gui.getErrors();
 			}
 
 			// run pjass:
 			Result pJassResult = Pjass.runPjass(outputFile);
 			System.out.println(pJassResult.getMessage());
 			if (!pJassResult.isOk()) {
-				throw new TestFailException(pJassResult.getMessage());
+				return pJassResult.getMessage();
 			}
 
 			// run the interpreter
@@ -62,14 +71,14 @@ public class PscriptTest {
 			interpreter.LoadProgram(prog);
 			interpreter.executeFunction("main");
 		} catch (TestFailException e) {
-//			assertTrue("Failed: " + e.getVal(), false);
+			return e.getVal();
 		} catch (TestSuccessException e)  {
 			success = true;
 		}
-		if (!success) {
-//			assertTrue("Succeed function not called", false);
-			// TODO
+		if (executeProg && !success) {
+			return "Succeed function not called";
 		}
+		return "";
 	}
 	
 }
