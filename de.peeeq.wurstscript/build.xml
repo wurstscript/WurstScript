@@ -75,6 +75,7 @@
 	<target name="parseq">
 			<mkdir dir="${parseq}" />
 			<javac srcdir="${parseq_src}" destdir="${parseq}" includeantruntime="false">
+				<classpath refid="classpath"/>
 			</javac>
 		</target>
 	
