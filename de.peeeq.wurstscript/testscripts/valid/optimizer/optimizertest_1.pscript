@@ -1,12 +1,16 @@
 package test {
 		
 	function foo() {
-		int i = 0
+		real i = 0.1
+		i = 0.321
 	}
 	
 	function blub() {
 		foo()
-		real r = 2.0 + 1.0
+		real rer = 2.0 + 1.0
+		if rer > 1.0 or rer < 10. {
+		
+		}
 	}
 	
 	function bar() { 

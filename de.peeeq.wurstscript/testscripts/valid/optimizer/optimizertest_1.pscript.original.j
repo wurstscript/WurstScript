@@ -1,14 +1,17 @@
 globals
 endglobals
 function test_foo takes nothing returns nothing
-	local integer i
-	set i = 0
+	local real i
+	set i = 0.1
+	set i = 0.321
 endfunction
 
 function test_blub takes nothing returns nothing
-	local real r
+	local real rer
 	call test_foo()
-	set r = 2.0 + 1.0
+	set rer = 2.0 + 1.0
+	if rer > 1.0 or rer < 10.0 then
+	endif
 endfunction
 
 function test_ExecuteFunc takes string s returns nothing

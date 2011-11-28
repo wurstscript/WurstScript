@@ -20,7 +20,11 @@ import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.jassAst.JassAstElement;
 import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassExprFuncRef;
+import de.peeeq.wurstscript.jassAst.JassExprIntVal;
+import de.peeeq.wurstscript.jassAst.JassExprRealVal;
 import de.peeeq.wurstscript.jassAst.JassExprStringVal;
+import de.peeeq.wurstscript.jassAst.JassExprVarAccess;
+import de.peeeq.wurstscript.jassAst.JassExprVarArrayAccess;
 import de.peeeq.wurstscript.jassAst.JassExprlist;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassProg;
@@ -28,6 +32,8 @@ import de.peeeq.wurstscript.jassAst.JassSimpleVar;
 import de.peeeq.wurstscript.jassAst.JassSimpleVars;
 import de.peeeq.wurstscript.jassAst.JassStatements;
 import de.peeeq.wurstscript.jassAst.JassStmtCall;
+import de.peeeq.wurstscript.jassAst.JassStmtSet;
+import de.peeeq.wurstscript.jassAst.JassStmtSetArray;
 import de.peeeq.wurstscript.jassAst.JassVar;
 import de.peeeq.wurstscript.jassAst.JassVars;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
@@ -41,7 +47,7 @@ public class JassOptimizerImpl implements JassOptimizer {
 	 * @throws IOException 
 	 */
 	public static void main(String ... args) throws IOException {
-		String testFile = "./testscripts/valid/optimizertest_1.pscript";
+		String testFile = "./testscripts/valid/optimizer/optimizertest_1.pscript";
 		if (args.length == 1) {
 			testFile = args[0];
 		}
@@ -195,16 +201,72 @@ public class JassOptimizerImpl implements JassOptimizer {
 							replacements.put(name, ng.getUniqueToken());
 						}
 					}
-					HashMap<String, String> localReplacements = new HashMap<String, String>();
+					final HashMap<String, String> localReplacements = new HashMap<String, String>();
 					JassSimpleVars params = jassFunction.getParams();
+					System.out.println("params");
 					for (JassSimpleVar param : params ) {
+						System.out.println(param.getName());
 						localReplacements.put(param.getName(), ng.getUniqueToken());
 					}
 					JassVars locals = jassFunction.getLocals();
+					System.out.println("locals");
 					for (JassVar local : locals ) {
+						System.out.println(local.getName());
 						localReplacements.put(local.getName(), ng.getUniqueToken());
 					}
 					
+					System.out.println("nachLocals");
+					
+					jassFunction.getBody().accept(new JassFunction.DefaultVisitor() {
+						
+						@Override
+						public void visit(JassStmtSet setStmt ) {
+							System.out.println("2.visitor");
+							String name = setStmt.getLeft();
+							if ( localReplacements.containsKey(name)){
+								setStmt.setLeft(localReplacements.get(name));
+							}
+							JassExpr expr = setStmt.getRight();
+							System.out.println("gotRight");
+							if ( expr instanceof JassExprRealVal) {
+								System.out.println("isReal");
+								JassExprRealVal real = (JassExprRealVal) expr;
+								String val = String.valueOf(real.getVal());
+								System.out.println(val.substring(0, 2));
+								if (val.substring(0, 2).equals("0.")){
+									System.out.println("yea");
+									double result = Double.parseDouble(val.substring(1, val.length()));
+									((JassExprRealVal) expr).setVal(result);
+									setStmt.setRight(real);
+								}
+							}
+							
+						}												
+						
+						@Override
+						public void visit(JassStmtSetArray setArrayStmt ) {
+							String name = setArrayStmt.getLeft();
+							if ( localReplacements.containsKey(name)){
+								setArrayStmt.setLeft(localReplacements.get(name));
+							}
+						}	
+						
+						@Override
+						public void visit(JassExprVarAccess setExpr ) {
+							String name = setExpr.getVarName();
+							if ( localReplacements.containsKey(name)){
+								setExpr.setVarName(localReplacements.get(name));
+							}
+						}	
+						
+						@Override
+						public void visit(JassExprVarArrayAccess setArrayExpr ) {
+							String name = setArrayExpr.getVarName();
+							if ( localReplacements.containsKey(name)){
+								setArrayExpr.setVarName(localReplacements.get(name));
+							}
+						}	
+					});
 					
 					
 					

@@ -1,2 +1,0 @@
-Loaded windows.mpq
-Loaded nosound.mpq

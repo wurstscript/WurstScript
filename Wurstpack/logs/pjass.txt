@@ -1,6 +1,0 @@
-Parse successful:     2418 lines: jasshelper\common.j
-Parse successful:    10230 lines: jasshelper\blizzard.j
-logs\currentmapscript.j:5: Code arrays are not allowed
-logs\currentmapscript.j:75: Index missing for array variable foo
-logs\currentmapscript.j failed with 2 errors
-Parse failed: 2 errors total

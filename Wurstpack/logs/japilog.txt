@@ -1,4 +1,0 @@
-Executable name: C:\Games\Warcraft III\worldedit121.exe
-Detected worldedit.exe
-game.dll: 400000
-JassBindNative found at 0x6A5990
