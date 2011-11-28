@@ -12,6 +12,7 @@
 	<property name="katjaspec" location="./parserspec/wurstscript.katja" />
 	<property name="parseqspec" location="./parserspec/wurstscript.parseq" />
 	<property name="parseq" location="../parseq/bin/" />
+	<property name="parseq_src" location="../parseq/src/" />
 
 	<path id="classpath">
 		<fileset dir="${lib}">
@@ -72,6 +73,12 @@
 	-->
 
 	<target name="parseq">
+			<mkdir dir="${parseq}" />
+			<javac srcdir="${parseq_src}" destdir="${parseq}" includeantruntime="false">
+			</javac>
+		</target>
+	
+	<target name="parseq_ast" depends="parseq">
 		<java classpath="${parseq}" classname="de.peeeq.parseq.Main" fork="true" failonerror="true">
 			<arg value="${parseqspec}" />
 			<arg value="${srcgen}" />
@@ -79,7 +86,7 @@
 		</java>
 	</target>
 
-	<target name="parseq_jass">
+	<target name="parseq_jassAst" depends="parseq">
 		<java classpath="${parseq}" classname="de.peeeq.parseq.Main" fork="true" failonerror="true">
 			<arg value="./parserspec/jass.parseq" />
 			<arg value="${srcgen}" />
@@ -87,7 +94,7 @@
 		</java>
 	</target>
 
-	<target name="compile" depends="cup, jflex, parseq, parseq_jass">
+	<target name="compile" depends="cup, jflex, parseq_ast, parseq_jassAst">
 		<mkdir dir="${build}" />
 		<javac srcdir="${src}" destdir="${build}" includeantruntime="false">
 			<src path="${srcgen}"></src>
