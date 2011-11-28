@@ -2,26 +2,23 @@ package de.peeeq.wurstscript;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Reader;
 import java.util.List;
-import java.util.ListIterator;
-
-
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
 
 import java_cup.runtime.Symbol;
+
+import com.google.common.collect.Lists;
+
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
-import de.peeeq.wurstscript.ast.ModuleDef;
-import de.peeeq.wurstscript.ast.ModuleUse;
 import de.peeeq.wurstscript.ast.TopLevelDeclaration;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WPackage;
@@ -33,13 +30,12 @@ import de.peeeq.wurstscript.jasstranslation.JassTranslator;
 import de.peeeq.wurstscript.parser.ExtendedParser;
 import de.peeeq.wurstscript.parser.WurstScriptScanner;
 import de.peeeq.wurstscript.utils.NotNullList;
-import de.peeeq.wurstscript.utils.TopsortCycleException;
-import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.WurstValidator;
 
 public class WurstCompilerJassImpl implements WurstCompiler {
 
-	private File[] files;
+	private List<File> files = Lists.newLinkedList();
+	private List<Reader> otherInputs = Lists.newLinkedList();
 	private int parseErrors;
 	private JassProg prog;
 	private File outputMapFile;
@@ -53,31 +49,26 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	@Override
 	public void loadFiles(String ... filenames) {
 		gui.sendProgress("Loading Files", 0.01);
-		files = new File[filenames.length];
-		int i = 0;
 		for (String filename : filenames) {
-			files[i] = new File(filename);
-			if (!files[i].exists()) {
+			File file = new File(filename);
+			if (!file.exists()) {
 				throw new Error("File " + filename + " does not exist.");
 			}
-			i++;
+			files.add(file);
 		}
 	}
 	
 	@Override
 	public void loadFiles(File ... files) {
 		gui.sendProgress("Loading Files", 0.01);
-		this.files = new File[files.length];
-		int i = 0;
 		for (File file : files) {
 			if (file == null) {
 				throw new Error("File must not be null");
 			}
-			this.files[i] = file;
-			if (!this.files[i].exists()) {
+			if (!file.exists()) {
 				throw new Error("File " + file + " does not exist.");
 			}
-			i++;
+			this.files.add(file);
 		}
 	}
 	
@@ -98,6 +89,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 				compilationUnits.add(parseFile(file));
 			}
 		}
+		for (Reader in : otherInputs) {
+			compilationUnits.add(parse(in, "unknown"));
+			
+		}
+		
 		
 		// merge the compilationUnits:
 		CompilationUnit merged = mergeCompilationUnits(compilationUnits);
@@ -185,61 +181,21 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	}
 
 	
-	private List<ModuleDef> getAllModules(CompilationUnit root) {
-		List<ModuleDef> result = Lists.newArrayList();
-		for (TopLevelDeclaration t : root) {
-			if (t instanceof WPackage) {
-				WPackage p = (WPackage) t;
-				for (WEntity e : p.getElements()) {
-					if (e instanceof ModuleDef) {
-						result.add((ModuleDef) e);
-					}
-				}
-			}
-		}
-		return result;
-	}
-	
-//	private void expandModules(CompilationUnit root) {
-//		List<ModuleDef> allModules = getAllModules(root);
-//		
-//		// collect usages
-//		Multimap<ModuleDef, ModuleDef> usedModules = HashMultimap.create();
-//		for (ModuleDef moduleDef : allModules) {
-//			for (ClassSlot e : moduleDef.getSlots()) {
-//				if (e instanceof ModuleUse) {
-//					ModuleUse moduleUse = (ModuleUse) e;
-//					usedModules.put(moduleDef, moduleUse.attrModuleDef());
+//	private List<ModuleDef> getAllModules(CompilationUnit root) {
+//		List<ModuleDef> result = Lists.newArrayList();
+//		for (TopLevelDeclaration t : root) {
+//			if (t instanceof WPackage) {
+//				WPackage p = (WPackage) t;
+//				for (WEntity e : p.getElements()) {
+//					if (e instanceof ModuleDef) {
+//						result.add((ModuleDef) e);
+//					}
 //				}
 //			}
 //		}
-//		
-//		// sort the modules:
-//		try {
-//			allModules = Utils.topSort(allModules, usedModules);
-//		} catch (TopsortCycleException e) {
-//			@SuppressWarnings("unchecked")
-//			List<ModuleDef> conflicts = (List<ModuleDef>) e.activeItems;
-//			attr.addError(conflicts.get(0).getSource(), "Cyclic use between modules: " + Utils.join(conflicts, ", "));
-//		}
-//		
-//		// inline modules into modules:
-//		for (ModuleDef moduleDef : allModules) {
-//			ListIterator<ClassSlot> it = moduleDef.getSlots().listIterator();
-//			while (it.hasNext()) {
-//				ClassSlot slot = it.next();
-//				if (slot instanceof ModuleUse) {
-//					ModuleUse moduleUse = (ModuleUse) slot;
-//					ModuleDef usedModule = moduleUse.attrModuleDef();
-//					
-//				}
-//			}
-//			// TODO clear attributes
-//		}
-//		
-//		
+//		return result;
 //	}
-
+	
 	private CompilationUnit mergeCompilationUnits(List<CompilationUnit> compilationUnits) {
 		gui.sendProgress("Merging Files", 0.2);
 		CompilationUnit result = Ast.CompilationUnit();
@@ -278,13 +234,34 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	}
 
 	private CompilationUnit parseFile(File file) {
-		gui.sendProgress("Parsing File " + file.getName(), 0.05);	
+		gui.sendProgress("Parsing File " + file.getName(), 0.05);
+		String source = file.getAbsolutePath();
+		FileReader reader = null;
 		try {
-			FileReader reader = new FileReader(file);
+			reader = new FileReader(file);
+			
 			// scanning
+			return parse(reader, source);
+			
+		} catch (CompileError e) {
+			gui.sendError(e);
+			return Ast.CompilationUnit();
+		} catch (FileNotFoundException e) {
+			gui.sendError(new CompileError(Ast.WPos(source, 0, 0), "File not found."));
+			return Ast.CompilationUnit();
+		} finally {
+			try {
+				reader.close();
+			} catch (IOException e) {
+			}
+		}
+	}
+
+	private CompilationUnit parse(Reader reader, String source) {
+		try {
 			WurstScriptScanner scanner = new WurstScriptScanner(reader);
 			ExtendedParser parser = new ExtendedParser(scanner, gui );
-			parser.setFilename(file.getAbsolutePath());
+			parser.setFilename(source);
 			Symbol sym = parser.parse();
 			parseErrors = parser.getErrorCount();
 			if (parseErrors > 0) {
@@ -292,12 +269,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			}	
 			CompilationUnit root = (CompilationUnit) sym.value;
 			return root;
-			
 		} catch (CompileError e) {
 			gui.sendError(e);
 			return Ast.CompilationUnit();
 		} catch (Exception e) {
-			gui.sendError(new CompileError(Ast.WPos(file.toString(), 0, 0), "This is a bug and should not have happened.\n" + e.getMessage()));
+			gui.sendError(new CompileError(Ast.WPos(source, 0, 0), "This is a bug and should not have happened.\n" + e.getMessage()));
 			WLogger.severe(e);
 			throw new Error(e);
 		}
@@ -306,6 +282,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	
 	public JassProg getProg() {
 		return prog;
+	}
+
+	public void loadStreams(Reader input) {
+		otherInputs.add(input);
 	}
 
 	
