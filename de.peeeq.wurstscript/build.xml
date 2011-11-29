@@ -103,7 +103,7 @@
 
 	<target name="just_compile">
 		<mkdir dir="${build}" />
-		<javac srcdir="${src}" destdir="${build}" includeantruntime="false">
+		<javac srcdir="${src}" destdir="${build}" includeantruntime="false" debug="true" debuglevel="vars,lines,source">
 			<src path="${srcgen}" />
 			<src path="${srctest}" />
 			<classpath refid="classpath" />
