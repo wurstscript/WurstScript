@@ -3,6 +3,7 @@
 	<property name="lib" location="./lib" />
 	<property name="src" location="./src" />
 	<property name="srcgen" location="./src-gen" />
+	<property name="srctest" location="./src-test" />
 	<property name="build" location="./bin" />
 	<property name="grammarspec" location="./parserspec/wurstscript.cup" />
 	<property name="scannerspec" location="./parserspec/wurstscript.flex" />
@@ -109,6 +110,7 @@
 			<mkdir dir="${build}" />
 			<javac srcdir="${src}" destdir="${build}" includeantruntime="false">
 				<src path="${srcgen}"></src>
+				<src path="${srctest}"></src>
 				<classpath refid="classpath"/>
 			</javac>
 		</target>
