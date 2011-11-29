@@ -8,7 +8,12 @@ import de.peeeq.immutablecollections.ImmutableListTest;
 import de.peeeq.wurstscript.utils.UtilsTest;
 
 @RunWith(Suite.class)
-@SuiteClasses({ SimpleStatementTests.class, ImmutableListTest.class, UtilsTest.class })
+@SuiteClasses({ 
+	SimpleStatementTests.class, 
+	ImmutableListTest.class, 
+	UtilsTest.class,
+	ArrayTests.class,
+	ExpressionTests.class})
 public class AllTests {
 
 }

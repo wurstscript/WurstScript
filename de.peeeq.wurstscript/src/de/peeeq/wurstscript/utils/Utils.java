@@ -202,10 +202,10 @@ public class Utils {
 		StringBuilder result = new StringBuilder();
 		boolean first = true;
 		for (T s : arguments) {
-			result.append(s);
 			if (!first) {
 				result.append(seperator);
 			}
+			result.append(s);
 			first = false;
 		}
 		return result.toString();

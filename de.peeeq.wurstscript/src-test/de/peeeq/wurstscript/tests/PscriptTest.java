@@ -1,6 +1,8 @@
 package de.peeeq.wurstscript.tests;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,6 +27,13 @@ public class PscriptTest {
 
 	public void testAssertOk(String name, boolean executeProg, String prog) {
 		String errors = testScript(new StringReader(prog), this.getClass().getSimpleName() + "_" + name, executeProg);
+		Assert.assertEquals("", errors);
+	}
+	
+	public void testAssertOkFile(File file, boolean executeProg) throws IOException {
+		Reader reader= new FileReader(file);
+		String errors = testScript(reader, file.getName(), executeProg);
+		reader.close();
 		Assert.assertEquals("", errors);
 	}
 	
@@ -80,5 +89,7 @@ public class PscriptTest {
 		}
 		return "";
 	}
+
+	
 	
 }
