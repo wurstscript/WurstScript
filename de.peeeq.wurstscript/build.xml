@@ -152,6 +152,9 @@
 		<mkdir dir="${junitTestResults}" />
 		<junit printsummary="on">
 
+			<sysproperty key="net.sourceforge.cobertura.datafile"
+					file="${junitTestResults}/cobertura.ser" />
+			
 			<classpath location="${instrumented.dir}" />
 			<classpath refid="classpath.test">
 			</classpath>
@@ -162,7 +165,7 @@
 		</junit>
 
 
-		<cobertura-report format="xml" destdir="${junitTestResults}" srcdir="${build}}" />
+		<cobertura-report format="xml" destdir="${junitTestResults}" srcdir="${build}" />
 
 	</target>
 
