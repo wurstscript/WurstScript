@@ -23,8 +23,8 @@ public class UtilsTest {
 
   @Test
   public void array() {
-    Integer[] ar1 = Utils.<Integer>array(1, 2, 3);
-    Integer[] ar2 = {1,2,3};
+    int[] ar1 = Utils.array(1, 2, 3);
+    int[] ar2 = {1,2,3};
     Assert.assertArrayEquals(ar2, ar1);
   }
 
@@ -63,7 +63,8 @@ public class UtilsTest {
     });
 	Assert.assertEquals(8, list.size());
 	Assert.assertEquals(2, list2.size());
-	Assert.assertArrayEquals(Utils.<Integer>array(3,6), list2.toArray());
+	Object[] ar = {3, 6};
+	Assert.assertArrayEquals(ar, list2.toArray());
   }
   
   @Test
@@ -83,7 +84,9 @@ public class UtilsTest {
 		}
     	
     });
-    Assert.assertArrayEquals(Utils.<Object>array(3,2,1) , sorted.toArray());
+    
+    Object[] ar = {3, 2, 1};
+	Assert.assertArrayEquals(ar , sorted.toArray());
   }
   
 /* TODO utils unit tests
