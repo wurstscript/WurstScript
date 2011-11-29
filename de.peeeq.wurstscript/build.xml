@@ -13,7 +13,8 @@
 	<property name="parseqspec" location="./parserspec/wurstscript.parseq" />
 	<property name="parseq" location="../parseq/bin/" />
 	<property name="parseq_src" location="../parseq/src/" />
-
+	<property name="junitTestResults" location="./junitTestResults/" />
+	
 	<path id="classpath">
 		<fileset dir="${lib}">
 			<include name="**/*.jar"/>
@@ -116,4 +117,19 @@
 		<delete dir="${build}" />
 		<delete dir="${srcgen}" />
 	</target>
+	
+	<path id="classpath.test">
+	    <pathelement location="${build}" />
+	    <path refid="classpath" />
+	  </path>
+	
+	<target name="junit_allTests">
+		<mkdir dir="${junitTestResults}"/>
+		<junit printsummary="on">
+			<classpath refid="classpath.test"></classpath>
+			<test name="de.peeeq.wurstscript.tests.AllTests" todir="${junitTestResults}"></test>
+			<formatter type="xml"/>
+		</junit>
+	</target>
+	
 </project>
