@@ -5,6 +5,7 @@
 	<property name="srcgen" location="./src-gen" />
 	<property name="srctest" location="./src-test" />
 	<property name="build" location="./bin" />
+	<property name="instrumented.dir" location="./bin_instrumented" />
 	<property name="grammarspec" location="./parserspec/wurstscript.cup" />
 	<property name="scannerspec" location="./parserspec/wurstscript.flex" />
 	<property name="javacup" location="${lib}/java-cup.jar" />
@@ -15,24 +16,24 @@
 	<property name="parseq" location="../parseq/bin/" />
 	<property name="parseq_src" location="../parseq/src/" />
 	<property name="junitTestResults" location="./junitTestResults/" />
-	
+
 	<path id="classpath">
 		<fileset dir="${lib}">
-			<include name="**/*.jar"/>
+			<include name="**/*.jar" />
 		</fileset>
 	</path>
 
 
 
-	<target name="checkForChanges" >
-		<uptodate targetfile="${srcgen}/de/peeeq/wurstscript/parser/WurstScriptScanner.java" srcfile="${scannerspec}" property="jflexNotChanged"/>
-		<uptodate targetfile="${srcgen}/de/peeeq/wurstscript/parser/parser.java" srcfile="${grammarspec}" property="cupNotChanged"/>
-		<uptodate targetfile="${srcgen}/de/peeeq/wurstscript/ast/WPos.java" srcfile="${katjaspec}" property="katjaNotChanged"/>
+	<target name="checkForChanges">
+		<uptodate targetfile="${srcgen}/de/peeeq/wurstscript/parser/WurstScriptScanner.java" srcfile="${scannerspec}" property="jflexNotChanged" />
+		<uptodate targetfile="${srcgen}/de/peeeq/wurstscript/parser/parser.java" srcfile="${grammarspec}" property="cupNotChanged" />
+		<uptodate targetfile="${srcgen}/de/peeeq/wurstscript/ast/WPos.java" srcfile="${katjaspec}" property="katjaNotChanged" />
 	</target>
 
 
 	<target name="cup" depends="checkForChanges" unless="cupNotChanged">
-		<mkdir dir="${srcgen}/de/peeeq/wurstscript/parser"/>
+		<mkdir dir="${srcgen}/de/peeeq/wurstscript/parser" />
 		<java jar="${javacup}" fork="true" failonerror="true">
 			<!--<arg value="-expect" />
 			<arg value="2" />-->
@@ -75,12 +76,12 @@
 	-->
 
 	<target name="parseq">
-			<mkdir dir="${parseq}" />
-			<javac srcdir="${parseq_src}" destdir="${parseq}" includeantruntime="false">
-				<classpath refid="classpath"/>
-			</javac>
-		</target>
-	
+		<mkdir dir="${parseq}" />
+		<javac srcdir="${parseq_src}" destdir="${parseq}" includeantruntime="false">
+			<classpath refid="classpath" />
+		</javac>
+	</target>
+
 	<target name="parseq_ast" depends="parseq">
 		<java classpath="${parseq}" classname="de.peeeq.parseq.Main" fork="true" failonerror="true">
 			<arg value="${parseqspec}" />
@@ -99,33 +100,70 @@
 
 	<target name="compile" depends="cup, jflex, parseq_ast, parseq_jassAst, just_compile">
 	</target>
-	
-	<target name="just_compile" >
-			<mkdir dir="${build}" />
-			<javac srcdir="${src}" destdir="${build}" includeantruntime="false">
-				<src path="${srcgen}"></src>
-				<src path="${srctest}"></src>
-				<classpath refid="classpath"/>
-			</javac>
-		</target>
+
+	<target name="just_compile">
+		<mkdir dir="${build}" />
+		<javac srcdir="${src}" destdir="${build}" includeantruntime="false">
+			<src path="${srcgen}" />
+			<src path="${srctest}" />
+			<classpath refid="classpath" />
+		</javac>
+	</target>
 
 	<target name="clean">
 		<delete dir="${build}" />
 		<delete dir="${srcgen}" />
 	</target>
-	
+
 	<path id="classpath.test">
-	    <pathelement location="${build}" />
-	    <path refid="classpath" />
-	  </path>
-	
+		<pathelement location="${build}" />
+		<pathelement location="${build_tests}" />
+		<path refid="classpath" />
+	</path>
+
+
+	<property name="cobertura.dir" value="./lib/cobertura/" />
+
+	<path id="cobertura.classpath">
+		<fileset dir="${cobertura.dir}">
+			<include name="cobertura.jar" />
+			<include name="lib/**/*.jar" />
+		</fileset>
+	</path>
+
+	<taskdef classpathref="cobertura.classpath" resource="tasks.properties" />
+
+
+
+
 	<target name="junit_allTests">
-		<mkdir dir="${junitTestResults}"/>
+
+		<cobertura-instrument todir="${instrumented.dir}">
+			<ignore regex="org.apache.log4j.*" />
+			<fileset dir="${build}">
+				<include name="**/*.class" />
+				<exclude name="**/*Test.class" />
+				<exclude name="**/*Tests.class" />
+				<exclude name="**/ast/*.class" />
+				<exclude name="**/jassAst/*.class" />
+			</fileset>
+		</cobertura-instrument>
+
+		<mkdir dir="${junitTestResults}" />
 		<junit printsummary="on">
-			<classpath refid="classpath.test"></classpath>
-			<test name="de.peeeq.wurstscript.tests.AllTests" todir="${junitTestResults}"></test>
-			<formatter type="xml"/>
+
+			<classpath location="${instrumented.dir}" />
+			<classpath refid="classpath.test">
+			</classpath>
+			<classpath refid="cobertura.classpath" />
+			<test name="de.peeeq.wurstscript.tests.AllTests" todir="${junitTestResults}">
+			</test>
+			<formatter type="xml" />
 		</junit>
+
+
+		<cobertura-report format="xml" destdir="${junitTestResults}" srcdir="${build}}" />
+
 	</target>
-	
+
 </project>
