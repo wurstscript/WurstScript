@@ -97,16 +97,10 @@
 		</java>
 	</target>
 
-	<target name="compile" depends="cup, jflex, parseq_ast, parseq_jassAst">
-		<mkdir dir="${build}" />
-		<javac srcdir="${src}" destdir="${build}" includeantruntime="false">
-			<src path="${srcgen}"></src>
-			<classpath refid="classpath"/>
-		</javac>
+	<target name="compile" depends="cup, jflex, parseq_ast, parseq_jassAst, just_compile">
 	</target>
 	
 	<target name="just_compile" >
-		<delete dir="${build}"></delete>
 			<mkdir dir="${build}" />
 			<javac srcdir="${src}" destdir="${build}" includeantruntime="false">
 				<src path="${srcgen}"></src>
