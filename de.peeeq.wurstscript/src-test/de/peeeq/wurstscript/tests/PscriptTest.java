@@ -66,9 +66,11 @@ public class PscriptTest {
 		}
 
 		File outputFile = new File(TEST_OUTPUT_PATH + name + ".j");
+		new File(TEST_OUTPUT_PATH).mkdirs();
 		try {
 			StringBuilder sb = new StringBuilder();
 			new JassPrinter(true).printProg(sb, prog);
+			
 			Files.write(sb.toString(), outputFile, Charsets.UTF_8);
 		} catch (IOException e) {
 			return "IOException, could not write jass file "+ outputFile + "\n"  + gui.getErrors();
