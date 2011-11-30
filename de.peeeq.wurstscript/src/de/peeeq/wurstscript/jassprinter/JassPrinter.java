@@ -274,7 +274,19 @@ public class JassPrinter {
 			
 			@Override
 			public void case_JassExprRealVal(JassExprRealVal e) {
-				sb.append(e.getVal());
+				String val = String.valueOf(e.getVal());
+				if(!withSpace) {
+					if( val.substring(0,2).equals("0.")) {
+						sb.append(val.substring(1,val.length()));
+					}else if( val.substring(val.length()-2,val.length()).equals(".0")) {
+						sb.append(val.substring(0,val.length()-1));
+					}else{
+						sb.append(val);
+					}
+				}else{
+					sb.append(val);
+				}
+				
 			}
 			
 			@Override

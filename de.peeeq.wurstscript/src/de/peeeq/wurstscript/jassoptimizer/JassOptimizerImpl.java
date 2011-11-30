@@ -71,34 +71,7 @@ public class JassOptimizerImpl implements JassOptimizer {
 	private void setHashmapPredefines(HashMap<String, String> map) {
 		map.put("Condition", "Filter");
 	}
-	
-	private void setStandards() {
-		standards  = new String[20];
-		try {
-			Scanner sc = new Scanner(new File("lib/restrictedStandardFunctions.txt"));
-			int i = 0;
-			while(sc.hasNext()){
-				String s = sc.next();
-				standards[i] = s;
-				i++;
-			}
-			standardsAmount = i;
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	
-	}
-	
-	public boolean isStandard(String name) {
-		for( int i = 0; i <= standardsAmount; i++){
-			if ( name == standards[i] ){
-				return true;
-			}
-		}
-		return false;
-	}
-	
+			
 	
 	public Set<String> getEverythingInEForTRVE(JassProg prg) {
 		final Set<String> usedFunctions = Sets.newHashSet(); 
@@ -165,10 +138,9 @@ public class JassOptimizerImpl implements JassOptimizer {
 		// The replacement map
 		final HashMap<String, String> replacements = new HashMap<String, String>();
 		// The Namegenerator used for creating the shortened names
-		final NameGenerator ng = new NameGenerator(new File("lib/restrictedCompressedNames.txt"));
+		final NameGenerator ng = new NameGenerator();
 		
 		// Some settings
-		setStandards();
 		setHashmapPredefines(replacements);
 		
 		// Create a set of functions that are used in EF or TRVE
@@ -182,92 +154,85 @@ public class JassOptimizerImpl implements JassOptimizer {
 			
 			@Override
 			public void visit(JassFunction jassFunction) {
-				try {
-					String name = jassFunction.getName();
-					if ( !isStandard(name)){
-						System.out.println(name);
-						if ( usedInEFTRVE.contains(name)) {	
-							System.out.println("used");
-							replacements.put(name, ng.getTEToken());							
-						}else {		
-							System.out.println("not");
-							replacements.put(name, ng.getUniqueToken());
-						}
+
+				// Visit and generate short function names,
+				// checking for EF/TRVE appearance
+				String name = jassFunction.getName();
+				if ( !RestrictedStandardNames.contains(name)){
+					System.out.println(name);
+					if ( usedInEFTRVE.contains(name)) {	
+						System.out.println("used");
+						replacements.put(name, ng.getTEToken());							
+					}else {		
+						System.out.println("not");
+						replacements.put(name, ng.getUniqueToken());
 					}
-					final HashMap<String, String> localReplacements = new HashMap<String, String>();
-					JassSimpleVars params = jassFunction.getParams();
-					System.out.println("params");
-					for (JassSimpleVar param : params ) {
-						System.out.println(param.getName());
-						localReplacements.put(param.getName(), ng.getUniqueToken());
-					}
-					JassVars locals = jassFunction.getLocals();
-					System.out.println("locals");
-					for (JassVar local : locals ) {
-						System.out.println(local.getName());
-						localReplacements.put(local.getName(), ng.getUniqueToken());
-					}
-					
-					System.out.println("nachLocals");
-					System.out.println("body = " + jassFunction.getBody());
-					
-					jassFunction.getBody().accept(new JassFunction.DefaultVisitor() {
-						
-						@Override
-						public void visit(JassStmtSet setStmt ) {
-							System.out.println("2.visitor");
-							String name = setStmt.getLeft();
-							if ( localReplacements.containsKey(name)){
-								setStmt.setLeft(localReplacements.get(name));
-							}
-							JassExpr expr = setStmt.getRight();
-							System.out.println("gotRight");
-							if ( expr instanceof JassExprRealVal) {
-								System.out.println("isReal");
-								JassExprRealVal real = (JassExprRealVal) expr;
-								String val = String.valueOf(real.getVal());
-								System.out.println(val.substring(0, 2));
-								if (val.substring(0, 2).equals("0.")){
-									System.out.println("yea");
-									double result = Double.parseDouble(val.substring(1, val.length()));
-									((JassExprRealVal) expr).setVal(result);
-									setStmt.setRight(real);
-								}
-							}
-							
-						}												
-						
-						@Override
-						public void visit(JassStmtSetArray setArrayStmt ) {
-							String name = setArrayStmt.getLeft();
-							if ( localReplacements.containsKey(name)){
-								setArrayStmt.setLeft(localReplacements.get(name));
-							}
-						}	
-						
-						@Override
-						public void visit(JassExprVarAccess setExpr ) {
-							String name = setExpr.getVarName();
-							if ( localReplacements.containsKey(name)){
-								setExpr.setVarName(localReplacements.get(name));
-							}
-						}	
-						
-						@Override
-						public void visit(JassExprVarArrayAccess setArrayExpr ) {
-							String name = setArrayExpr.getVarName();
-							if ( localReplacements.containsKey(name)){
-								setArrayExpr.setVarName(localReplacements.get(name));
-							}
-						}	
-					});
-					System.out.println("ende##");
-					
-					
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
 				}
+				
+				// Create small replacements for parameters and locals
+				final HashMap<String, String> localReplacements = new HashMap<String, String>();
+				JassSimpleVars params = jassFunction.getParams();
+				System.out.println("params");
+				// params
+				for (JassSimpleVar param : params ) {
+					String name1 = param.getName();
+					System.out.println(name1);
+					localReplacements.put(name1, ng.getUniqueToken());
+					param.setName(localReplacements.get(name1));
+				}
+				JassVars locals = jassFunction.getLocals();
+				System.out.println("locals");
+				// locals
+				for (JassVar local : locals ) {
+					String name1 = local.getName();
+					System.out.println(name1);
+					localReplacements.put(name1, ng.getUniqueToken());
+					local.setName(localReplacements.get(name1));
+				}
+				
+				System.out.println("nachLocals");
+				System.out.println("body = " + jassFunction.getBody());
+				
+				// Replace everything in the function body
+				jassFunction.getBody().accept(new JassFunction.DefaultVisitor() {
+					
+					@Override
+					public void visit(JassStmtSet setStmt ) {
+						System.out.println("2.visitor");
+						String name = setStmt.getLeft();
+						System.out.println("Left Statement: " + name );
+						if ( localReplacements.containsKey(name)){
+							System.out.println("Replaced with " + localReplacements.get(name));
+							setStmt.setLeft(localReplacements.get(name));
+						}						
+					}												
+					
+					@Override
+					public void visit(JassStmtSetArray setArrayStmt ) {
+						String name = setArrayStmt.getLeft();
+						if ( localReplacements.containsKey(name)){
+							setArrayStmt.setLeft(localReplacements.get(name));
+						}
+					}	
+					
+					@Override
+					public void visit(JassExprVarAccess setExpr ) {
+						String name = setExpr.getVarName();
+						if ( localReplacements.containsKey(name)){
+							setExpr.setVarName(localReplacements.get(name));
+						}
+					}	
+					
+					@Override
+					public void visit(JassExprVarArrayAccess setArrayExpr ) {
+						String name = setArrayExpr.getVarName();
+						if ( localReplacements.containsKey(name)){
+							setArrayExpr.setVarName(localReplacements.get(name));
+						}
+					}	
+					
+				});					
+					
 			}
 			
 		});

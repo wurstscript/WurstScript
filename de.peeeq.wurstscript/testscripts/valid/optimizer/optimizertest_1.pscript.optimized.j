@@ -1,24 +1,26 @@
 globals
 endglobals
-function w takes nothing returns nothing
-local real i
-set u=0.1
-set u=0.321
+function w takes integer u returns nothing
+local real r
+local integer array s
+set r=.1
+set r=.321
+set s[12]=353
 endfunction
 function zw takes nothing returns nothing
-local real rer
-call w()
-set r=2.0+1.0
-if r>1.0 or r<10.0 then
+local real t
+call w(3)
+set t=2.+1.
+if t>1. or t<10. then
 endif
 endfunction
-function s takes string s returns nothing
-endfunction
-function q takes nothing returns nothing
-call s("zw")
-endfunction
-function e takes nothing returns nothing
+function q takes string e returns nothing
 endfunction
 function i takes nothing returns nothing
-call e()
+call q("zw")
+endfunction
+function o takes nothing returns nothing
+endfunction
+function main takes nothing returns nothing
+call o()
 endfunction

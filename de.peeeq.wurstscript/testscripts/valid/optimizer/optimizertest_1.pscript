@@ -1,12 +1,14 @@
 package test {
 		
-	function foo() {
+	function foo(int xjhgfjh) {
 		real i = 0.1
+		int array blub
 		i = 0.321
+		blub[12] = 353
 	}
 	
 	function blub() {
-		foo()
+		foo(3)
 		real rer = 2.0 + 1.0
 		if rer > 1.0 or rer < 10. {
 		

@@ -16,9 +16,6 @@ public class NameGenerator {
     /** The given charmap */
     private String charmap = "wurstqeiopadfghjklyxcvbnmQWERTZUIOPASDFGHJKLYXCVBNM";
     private String TEcharmap = "wurstqeiopadfghjklyxcvbnm";
-    /** NameRestrictions */
-    private String[] restrictions;
-    private int	restrictAmount;
     /** A counter */
     private int currentId = 0;
     private int TEId = 0;
@@ -33,19 +30,8 @@ public class NameGenerator {
      * @param charmap The Charmap to use to generate names
      * @throws FileNotFoundException 
      */
-    public NameGenerator(File restricted) throws FileNotFoundException{
-        length          = charmap.length();
-        restrictions = new String[100];
-        
-        Scanner sc = new Scanner(restricted);
-        int i = 0;
-        while ( sc.hasNext() ){        	
-        	String s = sc.next();
-        	restrictions[i] = s;
-        	i++;
-        }
-        
-        
+    public NameGenerator(){
+        length          = charmap.length();     
     }
     
     /**
@@ -65,17 +51,13 @@ public class NameGenerator {
     /**
      * Get a token that is cross checked with the Restricted names
      * @return A checked, unique token
-     * @throws IOException 
      */
-    public String getUniqueToken() throws IOException {
+    public String getUniqueToken() {
         String s = getToken();
-        for(int i = 0; i<restrictAmount; i++){
-            if (restrictions[i].equals(s)){
-                // Wishful thinking, but normally this should work
-                // there are only a handful of restricted names anyway.
-                s = getToken();
-                break;
-            }
+        if (RestrictedCompressedNames.contains(s)){
+            // Wishful thinking, but normally this should work
+            // there are only a handful of restricted names anyway.
+            s = getToken();
         }
 
         return s;
@@ -86,9 +68,8 @@ public class NameGenerator {
      * its only lowercase.
      * To be unique these start with "z"
      * @return A checked, unique token, lowercase, starting with z
-     * @throws IOException 
      */
-    public String getTEToken() throws IOException {
+    public String getTEToken() {
         int id = TEId++;
         StringBuilder b = new StringBuilder("z");
         do {
