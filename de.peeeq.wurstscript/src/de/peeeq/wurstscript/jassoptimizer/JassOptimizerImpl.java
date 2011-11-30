@@ -32,6 +32,7 @@ import de.peeeq.wurstscript.jassAst.JassVar;
 import de.peeeq.wurstscript.jassAst.JassVars;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 
+// The fabulous Froptimizer!
 public class JassOptimizerImpl implements JassOptimizer {
 	String[] standards;
 	int standardsAmount = 0;
