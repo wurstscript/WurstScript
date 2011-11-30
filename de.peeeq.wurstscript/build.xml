@@ -8,13 +8,11 @@
 	<property name="instrumented.dir" location="./bin_instrumented" />
 	<property name="grammarspec" location="./parserspec/wurstscript.cup" />
 	<property name="scannerspec" location="./parserspec/wurstscript.flex" />
-	<property name="javacup" location="${lib}/java-cup.jar" />
-	<property name="jflex" location="${lib}/jflex.jar" />
-	<property name="katja" location="${lib}/katja.jar" />
+	<property name="javacup" location="./tools/java-cup.jar" />
+	<property name="jflex" location="./tools/jflex.jar" />
 	<property name="katjaspec" location="./parserspec/wurstscript.katja" />
 	<property name="parseqspec" location="./parserspec/wurstscript.parseq" />
-	<property name="parseq" location="../parseq/bin/" />
-	<property name="parseq_src" location="../parseq/src/" />
+	<property name="parseq" location="./tools/parseq.jar" />
 	<property name="junitTestResults" location="./junitTestResults/" />
 
 	<path id="classpath">
@@ -59,46 +57,26 @@
 
 	</target>
 
-	<!--
-	<target name="katja" depends="checkForChanges" unless="katjaNotChanged">
-		<delete dir="${srcgen}/de/peeeq/wurstscript/ast/" />
-		<java jar="${katja}" fork="true" failonerror="true">
-			<arg value="-b" />
-			<arg value="java" />
-			<arg value="-o" />
-			<arg value="-S" />
-			<arg value="-d" />
-			<arg value="${srcgen}" />
-			<arg value="${katjaspec}" />
-			<classpath refid="classpath" />
-		</java>
-	</target>
-	-->
-
-	<target name="parseq">
-		<mkdir dir="${parseq}" />
-		<javac srcdir="${parseq_src}" destdir="${parseq}" includeantruntime="false">
-			<classpath refid="classpath" />
-		</javac>
-	</target>
-
-	<target name="parseq_ast" depends="parseq">
-		<java classpath="${parseq}" classname="de.peeeq.parseq.Main" fork="true" failonerror="true">
+	<target name="parseq_ast">
+		<java jar="${parseq}" fork="true" failonerror="true">
 			<arg value="${parseqspec}" />
 			<arg value="${srcgen}" />
 			<classpath refid="classpath" />
 		</java>
 	</target>
 
-	<target name="parseq_jassAst" depends="parseq">
-		<java classpath="${parseq}" classname="de.peeeq.parseq.Main" fork="true" failonerror="true">
+	<target name="parseq_jassAst">
+		<java jar="${parseq}" fork="true" failonerror="true">
 			<arg value="./parserspec/jass.parseq" />
 			<arg value="${srcgen}" />
 			<classpath refid="classpath" />
 		</java>
 	</target>
 
-	<target name="compile" depends="cup, jflex, parseq_ast, parseq_jassAst, just_compile">
+	<target name="gen" depends="cup, jflex, parseq_ast, parseq_jassAst" >
+	</target>
+	
+	<target name="compile" depends="gen, just_compile">
 	</target>
 
 	<target name="just_compile">
