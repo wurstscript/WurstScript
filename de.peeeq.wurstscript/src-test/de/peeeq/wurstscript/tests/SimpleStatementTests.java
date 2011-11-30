@@ -4,74 +4,76 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
+import de.peeeq.wurstscript.utils.Utils;
+
 public class SimpleStatementTests extends PscriptTest {
 
 	@Test
 	public void testIf1() {
-		assertOk("testIf1", true, 
-				"if 2 == 2 { \n" +
+		assertOk(true, 
+				"if 2 == 2 ",
 				"	testSuccess()\n" +	
-				"} \n");
+				"");
 	}
 	
 	@Test
 	public void testIf2() {
-		assertOk("testIf1", true, 
-				"if 10 > 5 { \n" +
+		assertOk(true, 
+				"if 10 > 5 ",
 				"	testSuccess()\n" +	
-				"} \n");
+				"");
 	}
 	
 	@Test
 	public void testIf3() {
-		assertOk("testIf1", true, 
-				"if not 10 > 5 or not 5 > 10 { \n" +
+		assertOk(true, 
+				"if not 10 > 5 or not 5 > 10 ",
 				"	testSuccess()\n" +	
-				"} \n");
+				"");
 	}
 	
 	@Test
 	public void testIf4() {
-		assertOk("testIf1", true, 
-				"if 10 >= 10 { \n" +
+		assertOk(true, 
+				"if 10 >= 10 ",
 				"	testSuccess()\n" +	
-				"} \n");
+				"");
 	}
 	
 	@Test
 	public void testIf5() {
-		assertOk("testIf1", true, 
-				"if -4 <= -4 { \n" +
+		assertOk(true, 
+				"if -4 <= -4 ",
 				"	testSuccess()\n" +	
-				"} \n");
+				"");
 	}
 	
 	@Test
 	public void testIf6() {
-		assertOk("testIf1", true, 
-				"if 3 != 2 { \n" +
-				"	testSuccess()\n" +	
-				"} \n");
+		assertOk(true, 
+				"if 3 != 2 ",
+				"	testSuccess()",	
+				"");
 	}
 	
 	@Test
 	public void testIf7() {
-		assertOk("testIf1", true, 
-				"if (10 == 10 and 5 == 5) { \n" +
-				"	testSuccess()\n" +	
-				"} \n");
+		assertOk(true, 
+				"if (10 == 10 and 5 == 5)",
+				"	testSuccess()",
+				"");
 	}
 	
 
-	public void assertOk(String name, boolean executeProg, String body) {
-		String prog = "package test {\n" +
-				"native testFail(string msg)\n" +
-				"native testSuccess()\n" +
-				"init {\n" +
-				body +
-				"}\n" +
-				"}\n";
-		testAssertOk(name, executeProg, prog);
+	public void assertOk( boolean executeProg, String ... body) {
+		String prog = "package test\n" +
+				"	native testFail(string msg)\n" +
+				"	native testSuccess()\n" +
+				"	init \n" +
+				"		" + Utils.join(body, "\n		") +
+				"\n" +
+				"\n";
+		testAssertOk(Utils.getMethodName(1), executeProg, prog);
 	}
 
 }

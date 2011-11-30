@@ -1,63 +1,63 @@
-package test {
+package test
 		
 	native testFail(string msg)
 	native testSuccess()
 
 	string s = ""
 
-	module A {
+	module A 
 		
-		construct() {
+		construct() 
 			string x = "A"
 			s = s + x
-		}
 		
-		ondestroy {
+		
+		ondestroy 
 			s = s + "a"
-		}
 		
-	}
+		
 	
-	module B {
+	
+	module B 
 		use A
 		
-		construct() {
+		construct() 
 			string x = "B"
 			s = s + x
-		}
 		
-		ondestroy {
+		
+		ondestroy 
 			s = s + "b"
-		}
 		
-	}
+		
 	
-	class C {
+	
+	class C 
 		use B
 		
-		construct() {
+		construct() 
 			s = s + "C"
-		}
 		
-		ondestroy {
+		
+		ondestroy 
 			s = s + "c"
-		}
 		
 		
-	}		
+		
+			
 	
 	
 	
-	init {
+	init 
 		C c = new C()
 		
 		destroy c
 		
 		
-		if s != "ABCcba" {
+		if s != "ABCcba" 
 			testFail("fail, result = " + s)
-		} 
+		 
 			
 		testSuccess()
-	}
-}
+	
+

@@ -2,12 +2,14 @@ package de.peeeq.wurstscript.parser;
 
 import java_cup.runtime.*;
 import de.peeeq.wurstscript.utils.Utils;
+
+import java.util.Stack;
 %%
 
-%class WurstScriptScanner
+%class WurstScriptScannerIntern
 %unicode
 %line
-%public
+//%public
 %column
 %eofval{
   return symbol(TokenType.EOF);
@@ -17,15 +19,68 @@ import de.peeeq.wurstscript.utils.Utils;
 
 
 %{
-	  StringBuffer string = new StringBuffer();
+	StringBuffer string = new StringBuffer();
 
-  private Symbol symbol(int type) {
-    return new Symbol(type, yyline+1, yycolumn);
-  }
-    
-  private Symbol symbol(int type, Object value) {
-    return new Symbol(type, yyline+1, yycolumn, value);
-  }
+	// a stack of indentation levels
+	Stack<Integer> indentationLevels = new Stack<Integer>();
+	Stack<Symbol> returnStack = new Stack<Symbol>();
+	
+	int currentLineWhiteSpace = 0;
+	boolean isStart = true; // are we at the start of a line before the text begins
+	int mode = 0; // 0: unknown mode, 1: space mode, 2: tab mode
+	boolean inPackage = false; // are we inside a package? -> wurstmode on
+	
+	int numberOfParantheses = 0;
+
+	{
+		indentationLevels.push(0);
+	}
+	
+	
+	private Symbol symbol(int type) {
+		return symbol(type, null);
+	}
+
+	private Symbol symbol(int type, Object value) {
+		Symbol s = new Symbol(type, yyline+1, yycolumn, value);
+		if (inPackage) {
+			
+			if (type == TokenType.LPAR) {
+				numberOfParantheses++;
+			} else if (type == TokenType.RPAR) {
+				numberOfParantheses--;
+			} else if (type == TokenType.NL) {
+				isStart = true;
+				currentLineWhiteSpace = 0;
+			} else if (isStart) {
+				isStart = false;
+				if (indentationLevels.peek() > currentLineWhiteSpace) {
+					returnStack.push(s);
+					while (indentationLevels.peek() > currentLineWhiteSpace) {
+						indentationLevels.pop();
+						returnStack.push(new Symbol(TokenType.UNINDENT, yyline+1, yycolumn));
+					}
+					
+					if (indentationLevels.peek() == 0) {
+						inPackage = false;
+					}
+					
+					return returnStack.pop();
+				} else if (indentationLevels.peek() < currentLineWhiteSpace) {
+					returnStack.push(s);
+					if (currentLineWhiteSpace - indentationLevels.peek() < 2) {
+						// indent with at least two spaces
+						return new Symbol(TokenType.CUSTOM_ERROR, yyline+1, yycolumn, "Indentation difference too small.");
+					}
+					
+					indentationLevels.push(currentLineWhiteSpace);
+					
+					return new Symbol(TokenType.INDENT, yyline+1, yycolumn);
+				}
+			}
+		}
+		return s;
+	}
 %}
 
 DIGIT = [0-9]
@@ -39,10 +94,43 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 %%
 
 <YYINITIAL> {
-	{WHITESPACE}*                     { }
+	[\t]                    { 
+								if (inPackage && isStart) {
+									currentLineWhiteSpace += 4;
+									if (mode == 2) {
+										returnStack.push(new Symbol(TokenType.CUSTOM_ERROR, yyline+1, yycolumn, "Mixing tabs and spaces is not allowed."));
+									}
+									mode = 1;
+								}
+							}
+	[ ]						{ 
+								if (inPackage && isStart) {	
+									currentLineWhiteSpace += 1; 
+									if (mode == 1) {
+										returnStack.push(new Symbol(TokenType.CUSTOM_ERROR, yyline+1, yycolumn, "Mixing spaces and tabs is not allowed."));
+									}
+									mode = 2;
+								}
+							}
+	{NEWLINE}							
+					{ 
+						if (inPackage) {
+							if (numberOfParantheses <= 0) {
+								numberOfParantheses = 0;
+								currentLineWhiteSpace = 0;
+								if (!isStart) {
+									isStart = true;
+									return new Symbol(TokenType.NL, yyline+1, yycolumn);
+								} else {
+									return null;
+								}
+							} // else: ignore newlines inside parantheses
+						} else {
+							return new Symbol(TokenType.NL, yyline+1, yycolumn);
+						}
+					}	
 	"//" [^\r\n]* 			           { }
 	"/*" ~"*/"                        { }
-	{NEWLINE}							{ return symbol(TokenType.NL); }	
 	";"									{ return symbol(TokenType.SEMICOLON); }
 	"class"                           	{ return symbol(TokenType.CLASS); }
 	"return"                          	{ return symbol(TokenType.RETURN); }
@@ -53,7 +141,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"in"                           		{ return symbol(TokenType.IN); }
 	"new"                             	{ return symbol(TokenType.NEW); }
 	"null"                            	{ return symbol(TokenType.NULL); }
-	"package"							{ return symbol(TokenType.PACKAGE); }
+	"package"							{ inPackage = true; return symbol(TokenType.PACKAGE); }
 	"function"							{ return symbol(TokenType.FUNCTION); }
 	"returns"							{ return symbol(TokenType.RETURNS); }
 //	"val"								{ return symbol(TokenType.VAL); }
@@ -135,22 +223,24 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"true"                            { return symbol(TokenType.TRUE); }
 	"false"                           { return symbol(TokenType.FALSE); }
 	{IDENT}                           { return symbol(TokenType.IDENTIFIER, yytext()); }
-	\"                             		{ string.setLength(0); yybegin(STRING); }
+	[\"]                             		{ string.setLength(0); yybegin(STRING); }
+	// error fallback:
+	.                              { return symbol(TokenType.error, yytext()); }
 }
 
 
 <STRING> {
-  \"                             { yybegin(YYINITIAL); 
-                                   return symbol(TokenType.STRING_LITERAL, 
-                                   string.toString()); }
+  [\"]                             { yybegin(YYINITIAL); 
+                                   return symbol(TokenType.STRING_LITERAL, string.toString()); }
+	{NEWLINE}			{ yybegin(YYINITIAL); 
+								return symbol(TokenType.CUSTOM_ERROR, "unterminated String"); }
   [^\n\r\"\\]+                   { string.append( yytext() ); }
-  \\t                            { string.append('\t'); }
-  \\n                            { string.append('\n'); }
 
   \\r                            { string.append('\r'); }
   \\\"                           { string.append('\"'); }
   \\                             { string.append('\\'); }
+  
 }
 
-// error fallback:
+//error fallback:
 .                                 { return symbol(TokenType.error, yytext()); }

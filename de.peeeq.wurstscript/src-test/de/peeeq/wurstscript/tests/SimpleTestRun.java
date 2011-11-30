@@ -11,6 +11,9 @@ import java.io.InputStreamReader;
 import de.peeeq.wurstscript.Pjass;
 import de.peeeq.wurstscript.Pjass.Result;
 import de.peeeq.wurstscript.WurstCompilerJassImpl;
+import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
+import de.peeeq.wurstscript.gui.WurstGuiImpl;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassinterpreter.JassInterpreter;
@@ -25,7 +28,7 @@ public class SimpleTestRun {
 
 	
 	public static void main(String ... args) throws IOException, InterruptedException {
-		String testFile = "./testscripts/valid/modules_6_initdestroy.pscript";
+		String testFile = "./testscripts/valid/indent_test.pscript";
 		if (args.length == 1) {
 			testFile = args[0];
 		}
@@ -39,7 +42,7 @@ public class SimpleTestRun {
 			System.out.println("file b = " + file);
 			String filename = file.getAbsolutePath();
 			System.out.println("parsing script ...");
-			WurstGuiLogger gui = new WurstGuiLogger();
+			WurstGui gui = new WurstGuiCliImpl();
 			WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui);
 			compiler.loadFiles(file);
 			compiler.parseFiles();
@@ -76,6 +79,8 @@ public class SimpleTestRun {
 			interpreter.trace(true);
 			interpreter.LoadProgram(prog);
 			interpreter.executeFunction("main");
+			
+			gui.sendFinished();
 		} catch (TestFailException e) {
 			assertTrue("Failed: " + e.getVal(), false);
 		} catch (TestSuccessException e)  {
@@ -84,6 +89,7 @@ public class SimpleTestRun {
 		if (!success) {
 			assertTrue("Succeed function not called", false);
 		}
+		
 	}
 
 	private static void assertTrue(String string, boolean b) {
