@@ -15,13 +15,13 @@ public class ArrayTests extends PscriptTest {
 	@Test
 	public void testArray1() {
 		assertOk(true, 
-				"int array blub",
-				"init {",
-				"	blub[5] = 3",
-				"	if blub[5] == 3 {",
-				"		testSuccess()",	
-				"	}",
-				"}");
+				"	int array blub",
+				"	init",
+				"		blub[5] = 3",
+				"		if blub[5] == 3",
+				"			testSuccess()",	
+				"",
+				"");
 	}
 	
 	@Test
@@ -41,13 +41,9 @@ public class ArrayTests extends PscriptTest {
 				"	endif",
 				"endfunction",
 				
-				"package test {",
-				"	init {",
+				"package test",
+				"	init",
 				"		foo()",
-				"	} ",
-				"	",
-				"	",
-				"}",
 				""
 		};
 		testAssertOk("", true, Utils.join(lines, "\n"));
@@ -56,11 +52,11 @@ public class ArrayTests extends PscriptTest {
 	
 
 	public void assertOk(boolean executeProg, String ... input) {
-		String prog = "package test {\n" +
-				"native testFail(string msg)\n" +
-				"native testSuccess()\n" +
+		String prog = "package test\n" +
+				"	native testFail(string msg)\n" +
+				"	native testSuccess()\n" +
 				Utils.join(input, "\n") + "\n" +
-				"}\n";
+				"\n";
 		System.out.println(prog);
 		testAssertOk(Utils.getMethodName(1), executeProg, prog);
 	}

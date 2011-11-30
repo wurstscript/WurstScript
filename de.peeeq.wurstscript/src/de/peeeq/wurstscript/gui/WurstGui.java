@@ -9,6 +9,10 @@ public interface WurstGui {
 	void sendProgress(String whatsRunningNow, double percent);
 	
 	void sendFinished();
+
+	int getErrorCount();
+
+	String getErrors();
 	
 
 }

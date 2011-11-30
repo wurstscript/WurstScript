@@ -42,6 +42,17 @@ public class WurstGuiImpl implements WurstGui {
 	private volatile boolean finished = false;
 	private String currentlyWorkingOn = "";
 
+	
+	@Override
+	public int getErrorCount() {
+		return errors.size();
+	}
+
+	@Override
+	public String getErrors() {
+		return Utils.join(errors, "\n");
+	}
+	
 	class TheGui extends JFrame implements Runnable {
 		private static final long serialVersionUID = 1501435979514614061L;
 		private DefaultListModel errorListModel;
@@ -229,9 +240,11 @@ public class WurstGuiImpl implements WurstGui {
 					public void run() {
 						progressBar.setValue(100);
 						progressBar.setEnabled(false);
+						setTitle("closing ... ");
 						
 						if (errorListModel.size() == 0) {
 							// if we have no errors we can just quit
+							System.out.println("closing .. ");
 							dispose();							
 						}
 					}
@@ -269,6 +282,7 @@ public class WurstGuiImpl implements WurstGui {
 
 	@Override
 	public void sendFinished() {
+		System.out.println("FIFNSIS");
 		currentlyWorkingOn = "Finished";
 		progress = 1.0;
 		finished = true;

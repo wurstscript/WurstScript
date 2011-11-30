@@ -131,6 +131,8 @@ public class ExtendedParser extends parser {
 		translations.put("MOD_INT", "'mod'");
 		translations.put("NL", "newline");
 		translations.put("UMINUS", "'-'");
+		translations.put("INDENT", "increase of indentation");
+		translations.put("UNINDENT", "decrease of indentation");
 		if (translations.containsKey(name)) {
 			return translations.get(name);
 		} else {
@@ -148,31 +150,47 @@ public class ExtendedParser extends parser {
 	 */
 	@Override
 	public void syntax_error(Symbol s) {
-
+		boolean showExpected = true;
 		String msg;
 		if (s.sym == TokenType.error) {
-			msg = "Lexical error: unexpected symbol <" + s.value + "> ";
+			String sym = s.value.toString();
+			if (sym.equals("\n")) {
+				sym = "newline";
+			} else if (sym.equals("\r")) {
+				sym = "newline";
+			} else if (sym.length() == 1){
+				sym = "<" + sym + ">";
+			}
+			if (sym.equals("unterminated String")) {
+				msg = "Unterminated String.";
+			} else {
+				msg = "Lexical error: unexpected symbol " + sym + " ";
+			}
+			showExpected = false;
+		} else if (s.sym == TokenType.CUSTOM_ERROR) {
+			msg = s.value.toString();
+			showExpected = false;
 		} else {
 			msg = "Grammatical error: unexpected " + symbolToString(s);
 		}
+		if (showExpected) {
+			// get current parse state:
+			int parseState = ((Symbol) stack.peek()).parse_state;
 
-		// get current parse state:
-		int parseState = ((Symbol) stack.peek()).parse_state;
-
-		msg += "	expected: ";
-		// get possible actions from action table and print them
-		short[] possibleActions = this.action_table()[parseState];
-		List<String> expectedSymbols = Lists.newLinkedList();
-		for (int j = 0; j < possibleActions.length; j += 2) {
-			if (possibleActions[j] >= 0) {
-				expectedSymbols.add(translateSym(possibleActions[j]));
+			msg += "	expected: ";
+			// get possible actions from action table and print them
+			short[] possibleActions = this.action_table()[parseState];
+			List<String> expectedSymbols = Lists.newLinkedList();
+			for (int j = 0; j < possibleActions.length; j += 2) {
+				if (possibleActions[j] >= 0) {
+					expectedSymbols.add(translateSym(possibleActions[j]));
+				}
 			}
+			groupEntries(expectedSymbols);		
+			msg += Utils.join(expectedSymbols, ", ");  
+			//msg += "\nstate = " + parseState;
 		}
-		groupEntries(expectedSymbols);		
-		msg += Utils.join(expectedSymbols, ", ");  
-		//msg += "\nstate = " + parseState;
-		
-		
+
 		WPos source = Ast.WPos(filename, s.left, s.right);
 		CompileError err = new CompileError(source, msg);
 		errors.add(err);
@@ -200,7 +218,7 @@ public class ExtendedParser extends parser {
 				translateSym(TokenType.NULL),
 				translateSym(TokenType.THIS)
 				));
-		
+
 		Set<String> matchingGroups = Sets.newHashSet();
 		for (String groupName : groups.keySet()) {
 			Set<String> group = groups.get(groupName);
@@ -208,12 +226,12 @@ public class ExtendedParser extends parser {
 				matchingGroups.add(groupName);
 			}
 		}
-		
+
 		for (String groupName : matchingGroups) {
 			expectedSymbols.removeAll(groups.get(groupName));
 			expectedSymbols.add(0, groupName);
 		}
-		
+
 	}
 
 	@Override

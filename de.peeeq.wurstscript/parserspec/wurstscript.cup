@@ -22,6 +22,7 @@ terminal String IDENTIFIER;
 terminal String STRING_LITERAL;
 terminal Double REAL_LITERAL;
 terminal 
+	CUSTOM_ERROR,
 	TRUE, FALSE, 
 	EQEQ, GTEQ, LTEQ, NOTEQ, GT, LT,
 	EQ,  
@@ -31,6 +32,7 @@ terminal
 	DOT, 
 	LPAR, RPAR, 
 	LSQUARE, RSQUARE,
+	INDENT, UNINDENT,
 	LBRACK, RBRACK, 
 	COMMA, SEMICOLON,   
 	NL,
@@ -155,10 +157,10 @@ TopLevelDeclaration ::=
 
 // a package
 PackageDeclaration ::=
-		PACKAGE:x IDENTIFIER:name LBRACK NL
+		PACKAGE:x IDENTIFIER:name NL INDENT
 			Imports:imports
 			Entities:entities
-		RBRACK
+		UNINDENT
 		{: RESULT = Ast.WPackage(pos(xleft, xright), name, imports, entities); :}
 ;		
 		
@@ -191,7 +193,7 @@ Entity ::=
 		{: RESULT = x; :}
 	| VarDef:x
 		{: RESULT = x; :}
-	| INIT:x LBRACK NL Statements:body RBRACK NL
+	| INIT:x NL INDENT Statements:body UNINDENT
 		{: RESULT = Ast.InitBlock(pos(xleft, xright), body); :}
 	| NATIVE:x FuncSignature:sig NL
 		{: RESULT = Ast.NativeFunc(pos(xleft, xright), Ast.Modifiers(), sig); :}
@@ -202,12 +204,12 @@ Entity ::=
 ;		
 
 ClassDef ::=
-	Modifiers:mod CLASS:x IDENTIFIER:name LBRACK NL ClassSlots:slots RBRACK NL
+	Modifiers:mod CLASS:x IDENTIFIER:name NL INDENT ClassSlots:slots UNINDENT
 		{: RESULT = Ast.ClassDef(pos(xleft, xright), mod, name, false, slots); :}
 ;
 
 ModuleDef ::=
-	Modifiers:mod MODULE:x IDENTIFIER:name LBRACK NL ClassSlots:slots RBRACK NL
+	Modifiers:mod MODULE:x IDENTIFIER:name NL INDENT ClassSlots:slots UNINDENT
 		{: RESULT = Ast.ModuleDef(pos(xleft, xright), mod, name, slots); :}
 ;
 
@@ -219,11 +221,11 @@ ClassSlots ::=
 ;
 
 ClassSlot ::=
-	Modifiers:mod CONSTRUCT:x LPAR Parameters:params RPAR LBRACK NL Statements:body RBRACK NL
+	Modifiers:mod CONSTRUCT:x LPAR Parameters:params RPAR NL INDENT Statements:body UNINDENT
 		{: RESULT = Ast.ConstructorDef(pos(xleft, xright), mod, params, body); :}
 	| Modifiers:mod USE:x IDENTIFIER:m NL
 		{: RESULT = Ast.ModuleUse(pos(xleft, xright), m); :} 
-	| ONDESTROY:x LBRACK NL Statements:body RBRACK NL
+	| ONDESTROY:x NL INDENT Statements:body UNINDENT
 		{: RESULT = Ast.OnDestroyDef(pos(xleft, xright), body); :}
 	| VarDef:x
 		{: RESULT = x; :}
@@ -232,7 +234,7 @@ ClassSlot ::=
 ;
 
 FuncDef ::=
-	  Modifiers:mod FUNCTION:x FuncSignature:sig LBRACK NL Statements:body RBRACK
+	  Modifiers:mod FUNCTION:x FuncSignature:sig NL INDENT Statements:body UNINDENT
 		{: RESULT = Ast.FuncDef(pos(xleft, xright), mod, sig, body); :}
 ;
 
@@ -340,21 +342,21 @@ StmtReturn ::=
 ;
 
 StmtIf ::=
-	IF:x Expr:cond LBRACK NL Statements:thenStatements RBRACK NL
+	IF:x Expr:cond NL INDENT Statements:thenStatements UNINDENT
 		{: RESULT = Ast.StmtIf(pos(xleft, xright), cond, thenStatements, Ast.WStatements()); :}
-	| IF:x Expr:cond LBRACK NL Statements:thenStatements RBRACK ELSE ElseStatements:elseStatements
+	| IF:x Expr:cond NL INDENT Statements:thenStatements UNINDENT ELSE ElseStatements:elseStatements
 		{: RESULT = Ast.StmtIf(pos(xleft, xright), cond, thenStatements, elseStatements); :}
 ;
 
 ElseStatements ::= 
 	StmtIf:x 
 		{: RESULT = Ast.WStatements(x); :}
-	| LBRACK Statements:x RBRACK NL
+	| NL INDENT Statements:x UNINDENT
 		{: RESULT = x; :}
 ;
 
 StmtWhile ::=
-	WHILE:x Expr:cond LBRACK NL Statements:body RBRACK NL
+	WHILE:x Expr:cond NL INDENT Statements:body UNINDENT
 		{: RESULT = Ast.StmtWhile(pos(xleft, xright), cond, body); :}
 ;
 

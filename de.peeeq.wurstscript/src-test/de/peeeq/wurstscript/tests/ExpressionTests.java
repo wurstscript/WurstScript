@@ -49,20 +49,19 @@ public class ExpressionTests extends PscriptTest {
 	}
 	
 	private String makeProg(String booleanExpr) {
-		String prog = "package test {\n" +
-				"native testFail(string msg)\n" +
-				"native testSuccess()\n" +
-				"init {\n" +
-				"int x = 3\n" +
-				"int y = 4\n" +
-				"int z = 5\n" +
-				"string a = \"bla\"\n" +
-				"string b = \"blub\"\n" +
-				"if " + booleanExpr + " {\n" +
-				"testSuccess()\n" +
-				"}\n" +
-				"}\n" +
-				"}\n";
+		String prog = "package test \n" +
+				"	native testFail(string msg)\n" +
+				"	native testSuccess()\n" +
+				"	init \n" +
+				"		int x = 3\n" +
+				"		int y = 4\n" +
+				"		int z = 5\n" +
+				"		string a = \"bla\"\n" +
+				"		string b = \"blub\"\n" +
+				"		if " + booleanExpr + "\n" +
+				"			testSuccess()\n" +
+				"" +
+				"";
 		return prog;
 	}
 	

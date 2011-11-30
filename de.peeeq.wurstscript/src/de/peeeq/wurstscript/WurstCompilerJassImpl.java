@@ -99,6 +99,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		CompilationUnit merged = mergeCompilationUnits(compilationUnits);
 		
 		checkAndTranslate(merged);
+		gui.sendProgress("finished parsing", .9);
 	}
 	
 
