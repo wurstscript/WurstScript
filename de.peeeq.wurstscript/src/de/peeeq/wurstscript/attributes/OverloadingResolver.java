@@ -29,10 +29,10 @@ public abstract class OverloadingResolver<F,C> {
 		List<String> hints = new NotNullList<String>();
 		List<F> results = new NotNullList<F>();
 		for (F f : alternativeFunctions) {
-			if (getParameterCount(f) < getArgumentCount(caller)) {
+			if (getParameterCount(f) > getArgumentCount(caller)) {
 				hints.add("Expected " + (getParameterCount(f) - getArgumentCount(caller)) + " more argument(s).");
-			} else if (getParameterCount(f) > getArgumentCount(caller)) {
-				hints.add("Expected " + (- getArgumentCount(caller) + getParameterCount(f)) + " less argument(s).");
+			} else if (getParameterCount(f) < getArgumentCount(caller)) {
+				hints.add("Expected " + (getArgumentCount(caller) - getParameterCount(f)) + " less argument(s).");
 			} else { // parameter count matches argument count:
 				boolean match = true;
 				for (int i=0; i<getArgumentCount(caller); i++) {
