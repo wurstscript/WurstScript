@@ -12,6 +12,7 @@ import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 
 import de.peeeq.wurstscript.WurstCompilerJassImpl;
+import de.peeeq.wurstscript.ast.JassGlobalBlock;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiImpl;
 import de.peeeq.wurstscript.jassAst.JassExpr;
@@ -130,6 +131,23 @@ public class JassOptimizerImpl implements JassOptimizer {
 		});
 	}
 	
+	public void generateGlobalReplacements(JassProg prg, final HashMap<String, String> replacements, final NameGenerator ng) {
+		prg.accept(new JassProg.DefaultVisitor() {			
+			@Override
+			public void visit(JassProg prog) {
+				JassVars globals = prog.getGlobals();
+				
+				for (JassVar global : globals ) {
+					String name = global.getName();
+					System.out.println(name);
+					replacements.put(name, ng.getUniqueToken());
+					global.setName(replacements.get(name));
+				}
+			}
+			
+		});
+	}
+	
 	@Override
 	public void optimize(final JassProg prog) throws FileNotFoundException {
 		
@@ -147,11 +165,12 @@ public class JassOptimizerImpl implements JassOptimizer {
 		// Create a set of functions that are used in EF or TRVE
 		final Set<String> usedInEFTRVE = getEverythingInEForTRVE(prog);
 		
-		
+		generateGlobalReplacements(prog, replacements, ng);
 		
 		// visit all function declarations and create a fitting replacement and put that
 		// into the Hashmap
 		prog.accept(new JassProg.DefaultVisitor() {
+			
 			
 			@Override
 			public void visit(JassFunction jassFunction) {
@@ -205,7 +224,9 @@ public class JassOptimizerImpl implements JassOptimizer {
 						if ( localReplacements.containsKey(name)){
 							System.out.println("Replaced with " + localReplacements.get(name));
 							setStmt.setLeft(localReplacements.get(name));
-						}						
+						}else if ( replacements.containsKey(name)){
+							setStmt.setLeft(replacements.get(name));
+						}
 					}												
 					
 					@Override
@@ -213,6 +234,8 @@ public class JassOptimizerImpl implements JassOptimizer {
 						String name = setArrayStmt.getLeft();
 						if ( localReplacements.containsKey(name)){
 							setArrayStmt.setLeft(localReplacements.get(name));
+						}else if ( replacements.containsKey(name)){
+							setArrayStmt.setLeft(replacements.get(name));
 						}
 					}	
 					
@@ -221,6 +244,10 @@ public class JassOptimizerImpl implements JassOptimizer {
 						String name = setExpr.getVarName();
 						if ( localReplacements.containsKey(name)){
 							setExpr.setVarName(localReplacements.get(name));
+						}else if ( replacements.containsKey(name)){
+							setExpr.setVarName(replacements.get(name));
+						}else if (NullableConstants.contains(name)) {
+							setExpr.setVarName("null");
 						}
 					}	
 					
@@ -229,6 +256,8 @@ public class JassOptimizerImpl implements JassOptimizer {
 						String name = setArrayExpr.getVarName();
 						if ( localReplacements.containsKey(name)){
 							setArrayExpr.setVarName(localReplacements.get(name));
+						}else if ( replacements.containsKey(name)){
+							setArrayExpr.setVarName(replacements.get(name));
 						}
 					}	
 					

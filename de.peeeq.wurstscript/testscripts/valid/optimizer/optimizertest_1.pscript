@@ -1,26 +1,27 @@
-package test {
+package test
 		
-	function foo(int xjhgfjh) {
-		real i = 0.1
+	int xy
+	int sdfsdf
+	real aasf = 0.1
+	int asdas
+	real aaa
+	int PLAYER_COLOR_RED
+	string blub = "kjgh"
+	
+	function foo(int xjhgfjh)
+		real i = aasf
 		int array blub
 		i = 0.321
 		blub[12] = 353
-	}
-	
-	function blub() {
+		int aa = PLAYER_COLOR_RED
+	function blub()
 		foo(3)
 		real rer = 2.0 + 1.0
-		if rer > 1.0 or rer < 10. {
+		if rer > 1.0 or rer < 10.
+			asdas = 2
 		
-		}
-	}
 	
-	function bar() { 
-		ExecuteFunc("test_blub")
-	}
 	
-	function ExecuteFunc(string s) {
+
 	
-	}
 	
-}
