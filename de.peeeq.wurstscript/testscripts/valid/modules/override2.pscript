@@ -1,0 +1,38 @@
+package test 
+		
+	native testFail(string msg)
+	native testSuccess()
+
+
+	module A 
+		public function getFoo() returns int 
+			return 5
+		
+		
+		public function getBar() returns int 
+			return getFoo() + 1
+		
+	
+	
+	class C 
+		use A
+		
+		override function getFoo() returns int 
+			return 2
+		
+		
+		
+			
+	
+	
+	
+	init 
+		C c = new C()
+		
+		if c.getBar() != 3 
+			testFail("fail")
+		
+			
+		testSuccess()
+	
+endpackage

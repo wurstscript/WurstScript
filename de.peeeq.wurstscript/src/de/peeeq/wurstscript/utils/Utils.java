@@ -336,7 +336,7 @@ public class Utils {
 	    StackTraceElement[] ste = Thread.currentThread().getStackTrace();
 	    int i = 0;
 	    for (StackTraceElement s : ste) {
-	    	System.out.println("Trace " +i+++ " = " + s.getMethodName());
+//	    	System.out.println("Trace " +i+++ " = " + s.getMethodName());
 	    }
 	    
 	    return ste[depth+2].getMethodName(); 

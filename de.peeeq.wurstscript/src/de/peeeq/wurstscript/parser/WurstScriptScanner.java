@@ -15,15 +15,16 @@ public class WurstScriptScanner extends WurstScriptScannerIntern {
 	
 	@Override
 	public java_cup.runtime.Symbol next_token() throws java.io.IOException {
+		Symbol token;
 		if (!returnStack.isEmpty()) {
-			return returnStack.pop();
+			token = returnStack.pop();
 		} else {
-			Symbol token;
 			do {
 				 token = super.next_token();
 			} while (token == null);
-			return token;
 		}
+		System.out.println("TOKEN = " + ExtendedParser.symbolToString(token));
+		return token;
 	}
 
 }
