@@ -44,7 +44,10 @@ import java.util.Stack;
 	private Symbol symbol(int type, Object value) {
 		Symbol s = new Symbol(type, yyline+1, yycolumn, value);
 		if (inPackage) {
-			
+			System.out.println("sym = " +	ExtendedParser.symbolToString(s));
+			System.out.println("	" +	(isStart ? "start" : "notstart"));
+			System.out.println("	space = " + currentLineWhiteSpace);
+			System.out.println("	stack = " + indentationLevels.peek());
 			if (type == TokenType.LPAR) {
 				numberOfParantheses++;
 			} else if (type == TokenType.RPAR) {
@@ -52,7 +55,11 @@ import java.util.Stack;
 			} else if (type == TokenType.NL) {
 				isStart = true;
 				currentLineWhiteSpace = 0;
-			} else if (isStart) {
+			} else if (type == TokenType.ENDPACKAGE) {
+				inPackage = false; 
+				mode = 0; 
+			} 
+			if (isStart) {
 				isStart = false;
 				if (indentationLevels.peek() > currentLineWhiteSpace) {
 					returnStack.push(s);
@@ -61,9 +68,10 @@ import java.util.Stack;
 						returnStack.push(new Symbol(TokenType.UNINDENT, yyline+1, yycolumn));
 					}
 					
-					if (indentationLevels.peek() == 0) {
-						inPackage = false;
+					if (indentationLevels.peek() < currentLineWhiteSpace) {
+						returnStack.push(new Symbol(TokenType.CUSTOM_ERROR, yyline+1, yycolumn, "Level of indentation does not align with previous lines."));
 					}
+					
 					
 					return returnStack.pop();
 				} else if (indentationLevels.peek() < currentLineWhiteSpace) {
@@ -142,6 +150,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"new"                             	{ return symbol(TokenType.NEW); }
 	"null"                            	{ return symbol(TokenType.NULL); }
 	"package"							{ inPackage = true; return symbol(TokenType.PACKAGE); }
+	"endpackage"						{ return symbol(TokenType.ENDPACKAGE); }
 	"function"							{ return symbol(TokenType.FUNCTION); }
 	"returns"							{ return symbol(TokenType.RETURNS); }
 //	"val"								{ return symbol(TokenType.VAL); }

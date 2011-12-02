@@ -60,8 +60,7 @@ public class ExpressionTests extends PscriptTest {
 				"		string b = \"blub\"\n" +
 				"		if " + booleanExpr + "\n" +
 				"			testSuccess()\n" +
-				"" +
-				"";
+				"endpackage";
 		return prog;
 	}
 	

@@ -31,6 +31,10 @@ public class PscriptTest {
 
 	private static final String TEST_OUTPUT_PATH = "./test-output/";
 
+	protected boolean testOptimizer() {
+		return true;
+	}
+	
 	public void testAssertOk(String name, boolean executeProg, String prog) {
 		if (name.length() == 0) {
 			name = Utils.getMethodName(1);
@@ -99,47 +103,48 @@ public class PscriptTest {
 		}
 
 		// run the optimizer:
-		JassOptimizer optimizer = new JassOptimizerImpl();
-		try {
-			optimizer.optimize(prog);
-		} catch (FileNotFoundException e) {
-			return "Optimizer Exception " + e;
+		if (testOptimizer()) {
+			JassOptimizer optimizer = new JassOptimizerImpl();
+			try {
+				optimizer.optimize(prog);
+			} catch (FileNotFoundException e) {
+				return "Optimizer Exception " + e;
+			}
+			
+			
+			
+	
+			// write optimized file:
+			try {
+				outputFile = new File(TEST_OUTPUT_PATH + name + "_opt.j");
+				StringBuilder sb = new StringBuilder();
+				new JassPrinter(false).printProg(sb, prog);
+				Files.write(sb.toString(), outputFile, Charsets.UTF_8);
+			} catch (IOException e) {
+				return "IOException, could not write optimized file "+ outputFile + "\n"  + gui.getErrors();
+			}
+	
+			// test optimized file with pjass:
+			pJassResult = Pjass.runPjass(outputFile);
+			System.out.println(pJassResult.getMessage());
+			if (!pJassResult.isOk()) {
+				return "Errors in optimized version: " + pJassResult.getMessage();
+			}
+		
+		
+			try {
+				success = false;
+				// run the interpreter with the optimized program
+				JassInterpreter interpreter = new JassInterpreter();
+				interpreter.trace(true);
+				interpreter.LoadProgram(prog);
+				interpreter.executeFunction("main");
+			} catch (TestFailException e) {
+				return e.getVal();
+			} catch (TestSuccessException e)  {
+				success = true;
+			}
 		}
-		
-		
-		
-
-		// write optimized file:
-		try {
-			outputFile = new File(TEST_OUTPUT_PATH + name + "_opt.j");
-			StringBuilder sb = new StringBuilder();
-			new JassPrinter(false).printProg(sb, prog);
-			Files.write(sb.toString(), outputFile, Charsets.UTF_8);
-		} catch (IOException e) {
-			return "IOException, could not write optimized file "+ outputFile + "\n"  + gui.getErrors();
-		}
-
-		// test optimized file with pjass:
-		pJassResult = Pjass.runPjass(outputFile);
-		System.out.println(pJassResult.getMessage());
-		if (!pJassResult.isOk()) {
-			return "Errors in optimized version: " + pJassResult.getMessage();
-		}
-
-		
-		try {
-			success = false;
-			// run the interpreter with the optimized program
-			JassInterpreter interpreter = new JassInterpreter();
-			interpreter.trace(true);
-			interpreter.LoadProgram(prog);
-			interpreter.executeFunction("main");
-		} catch (TestFailException e) {
-			return e.getVal();
-		} catch (TestSuccessException e)  {
-			success = true;
-		}
-		
 		
 		if (executeProg && !success) {
 			return "Succeed function not called";

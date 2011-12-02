@@ -1516,7 +1516,7 @@ public class JassTranslator {
 					ExprTranslationResult er = translateExpr(context, f, expr);
 					result.addAll(er.getStatements());
 					String varName = getJassVarNameFor(context, v);
-					result.add(JassStmtSet(varName, er.getExpr()));
+					result.add(JassStmtSetArray(varName,JassExprVarAccess("this"), er.getExpr()));
 				}
 			} else if (s instanceof ConstructorDef) {
 				constructor  = (ConstructorDef) s;
