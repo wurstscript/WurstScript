@@ -64,6 +64,8 @@ public class JassOptimizerImpl implements JassOptimizer {
 		
 		// print the optimized version
 		Files.write(new JassPrinter(false).printProg(prog), new File(testFile+".optimized.j"), Charsets.UTF_8);
+		
+		gui.sendFinished();
 	}
 	
 	/**

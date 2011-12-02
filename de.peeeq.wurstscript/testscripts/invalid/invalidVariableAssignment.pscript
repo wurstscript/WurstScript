@@ -1,8 +1,8 @@
-package test {
+package test 
 	
 
-	init {
+	init 
 		string s = "Hi"
 		integer i = s
-	}
-}
+	
+
