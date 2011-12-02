@@ -797,6 +797,11 @@ public class JassTranslator {
 					e = JassExprFunctionCall("ModuloInteger", JassExprlist(leftExpr, rightExpr));
 				} else if (exprBinary.getOp() instanceof OpModReal) {
 					e = JassExprFunctionCall("ModuloReal", JassExprlist(leftExpr, rightExpr));
+				} else if (exprBinary.getOp() instanceof OpDivReal 
+						&& exprBinary.getLeft().attrTyp() instanceof PScriptTypeInt
+						&& exprBinary.getRight().attrTyp() instanceof PScriptTypeInt) {
+					// multiply the left expression by 1.0 to convert it to real
+					e = JassExprBinary(JassExprBinary(leftExpr, JassOpMult(), JassExprRealVal(1.0)), JassOpDiv(), rightExpr);
 				} else {
 					e = JassExprBinary(leftExpr, translateOp(exprBinary.getOp()), rightExpr);
 				}

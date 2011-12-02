@@ -13,7 +13,10 @@ import de.peeeq.wurstscript.utils.UtilsTest;
 	ImmutableListTest.class, 
 	UtilsTest.class,
 	ArrayTests.class,
-	ExpressionTests.class})
+	ExpressionTests.class,
+	ClassesTests.class
+	
+})
 public class AllTests {
 
 }
