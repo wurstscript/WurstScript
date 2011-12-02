@@ -17,6 +17,7 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiImpl;
 import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassExprFuncRef;
+import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
 import de.peeeq.wurstscript.jassAst.JassExprRealVal;
 import de.peeeq.wurstscript.jassAst.JassExprStringVal;
 import de.peeeq.wurstscript.jassAst.JassExprVarAccess;
@@ -260,6 +261,22 @@ public class JassOptimizerImpl implements JassOptimizer {
 							setArrayExpr.setVarName(localReplacements.get(name));
 						}else if ( replacements.containsKey(name)){
 							setArrayExpr.setVarName(replacements.get(name));
+						}
+					}	
+					
+					@Override
+					public void visit(JassExprFuncRef funcRef ) {
+						String name = funcRef.getFuncName();
+						if ( replacements.containsKey(name)){
+							funcRef.setFuncName(replacements.get(name));
+						}
+					}	
+					
+					@Override
+					public void visit(JassExprFunctionCall funcCall ) {
+						String name = funcCall.getFuncName();
+						if ( replacements.containsKey(name)){
+							funcCall.setFuncName(replacements.get(name));
 						}
 					}	
 					

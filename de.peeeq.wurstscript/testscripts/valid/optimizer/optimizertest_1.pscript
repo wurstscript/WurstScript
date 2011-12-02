@@ -1,5 +1,64 @@
 package test
 		
 	int xy
+	int sdfsdf
+	real aasf = 0.1
+	int asdas
+	real aaa
+	int PLAYER_COLOR_RED
+	string blub = "kjgh"
+	
+	function foo(int xjhgfjh)
+	
+		real i = aasf
+		int array blub
+		i = 0.321
+		blub[12] = 353
+		int aa = PLAYER_COLOR_RED
+		int bb = returnfive()
+		
+	function returnfive() returns int
+		return 5
+		
+	function blub()
+	
+		foo(3)
+		real rer = 2.0 + 1.0
+		if rer > 1.0 or rer < 10.
+			asdas = 2
+		
+	module A 
+	
+		public function foo() returns int 
+
+			return 2
 
 
+	module B 
+
+		public function foo() returns int 
+
+			return 3
+
+	
+
+	class C 
+
+		use A
+
+		use B
+
+
+		override public function foo() returns int 
+
+			return 4
+
+	
+
+	init 
+
+		C c = new C()		
+
+	
+
+endpackage
