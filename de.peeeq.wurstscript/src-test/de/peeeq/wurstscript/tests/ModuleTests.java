@@ -9,9 +9,6 @@ public class ModuleTests extends PscriptTest {
 	
 	private static final String TEST_DIR = "./testscripts/valid/modules/";
 
-	@Override protected boolean testOptimizer() {
-		return false;
-	}
 	
 	@Test
 	public void simple() throws IOException {
