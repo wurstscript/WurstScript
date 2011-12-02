@@ -44,7 +44,7 @@ public class ArrayTests extends PscriptTest {
 				"package test",
 				"	init",
 				"		foo()",
-				""
+				"endpackage"
 		};
 		testAssertOk("", true, Utils.join(lines, "\n"));
 	}
@@ -56,7 +56,7 @@ public class ArrayTests extends PscriptTest {
 				"	native testFail(string msg)\n" +
 				"	native testSuccess()\n" +
 				Utils.join(input, "\n") + "\n" +
-				"\n";
+				"endpackage\n";
 		System.out.println(prog);
 		testAssertOk(Utils.getMethodName(1), executeProg, prog);
 	}

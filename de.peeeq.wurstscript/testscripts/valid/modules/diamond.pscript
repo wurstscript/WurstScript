@@ -1,57 +1,57 @@
-package test {
+package test 
 		
 	native testFail(string msg)
 	native testSuccess()
 
 
-	module A {
+	module A 
 		int x
 	
-		public function setX(int x) {
+		public function setX(int x) 
 			this.x = x
-		}
 		
-		public function getX() returns int {
+		
+		public function getX() returns int 
 			return x
-		}
-	}
+		
 	
-	module B {
+	
+	module B 
 		use A
-	}
 	
-	module C {
+	
+	module C 
 		use A
-	}
 	
 	
-	class D {
+	
+	class D 
 		use B
 		use C
 		
-		override function setX(int x) {
+		override function setX(int x) 
 			// we have two places where we could store x, so just split it ;)
 			B.setX(x div 2)
 			C.setX(x - B.getX())
-		}
 		
-		override function getX() returns int {
+		
+		override function getX() returns int 
 			return B.getX() + C.getX()
-		}
 		
-	}		
+		
+			
 	
 	
 	
-	init {
+	init 
 		D d = new D()
 		
 		d.setX(5)
 		
-		if d.getX() != 5 {
+		if d.getX() != 5 
 			testFail("foo fail")
-		} 
+		
 			
 		testSuccess()
-	}
-}
+	
+endpackage

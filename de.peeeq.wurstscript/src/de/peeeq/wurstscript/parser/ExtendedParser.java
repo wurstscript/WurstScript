@@ -83,7 +83,7 @@ public class ExtendedParser extends parser {
 	/**
 	 * uses reflection to get the name of a Symbol
 	 */
-	private String translateSym(int index) {
+	public static String translateSym(int index) {
 		try {
 			Class<TokenType> symbolClass = TokenType.class;
 
@@ -98,7 +98,7 @@ public class ExtendedParser extends parser {
 		return "Symbol#" + index;
 	}
 
-	private String translateSymbolName(String name) {
+	private static String translateSymbolName(String name) {
 		Map<String, String> translations = Maps.newHashMap();
 		translations.put("IDENTIFIER", "name");
 		translations.put("GT", "'>'");
@@ -141,7 +141,7 @@ public class ExtendedParser extends parser {
 		}
 	}
 
-	private String symbolToString(Symbol s) {
+	public static String symbolToString(Symbol s) {
 		return translateSym(s.sym) + (s.value != null ? " " + s.value : "");
 	}
 

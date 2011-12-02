@@ -72,7 +72,7 @@ public class SimpleStatementTests extends PscriptTest {
 				"	init \n" +
 				"		" + Utils.join(body, "\n		") +
 				"\n" +
-				"\n";
+				"endpackage\n";
 		testAssertOk(Utils.getMethodName(1), executeProg, prog);
 	}
 

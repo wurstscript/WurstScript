@@ -1,0 +1,41 @@
+package test 
+		
+	native testFail(string msg)
+	native testSuccess()
+
+
+	module A 
+		public function foo() returns int 
+			return 2
+		
+	
+	
+	module B 
+		public function foo() returns int 
+			return 3
+	
+	
+	
+	class C 
+		use A
+		use B
+		
+		override public function foo() returns int 
+			return 4
+		
+		
+			
+	
+	
+	
+	init 
+		C c = new C()
+		
+		
+		
+		if c.foo() != 4 
+			testFail("foo fail")
+			
+		testSuccess()
+	
+endpackage
