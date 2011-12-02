@@ -1,39 +1,39 @@
-package test {
+package test 
 	
 	native testFail(string msg)
 	native testSuccess()
 
 	
-	class Person {
+	class Person 
 		string name
 		
-		function setName(string n) {
+		function setName(string n) 
 			this.name = n
-		}
 		
-		function getName() returns string {
+		
+		function getName() returns string 
 			return this.name
-		}
 		
-		construct (string n) {
+		
+		construct (string n) 
 			this.name = n
-		}
-	}
+		
+	
 	
 
-	init {
+	init 
 		Person p = new Person("peq")
-		if (p.getName() != "peq") {
+		if (p.getName() != "peq") 
 			testFail("name != peq")
-		} else {
+		else 
 			p.setName("Frotty")
-			if p.getName() == "Frotty" {
+			if p.getName() == "Frotty" 
 				testSuccess()
-			} else {
+			else 
 				testFail("name != Frotty.")
-			}
-		}
-	} 
+			
+endpackage		
+	 
 	
 	
-}
+

@@ -1,4 +1,4 @@
-package test {
+package test
 	
 	nativetype string
 	nativetype int
@@ -8,23 +8,19 @@ package test {
 	native testSuccess()
 
 	
-	class Pair {
+	class Pair
 		int a
-		int b
-		construct () {
-		}
-	}
+		int b		
 	
 
-	init {
+	init 
 		Pair p = new Pair()
 		p.a = 4
-		if p.a == 4 {
+		if p.a == 4
 			testSuccess()
-		} else {
+		else
 			testFail("Array Test 1 failed.")
-		}
-	} 
+		
 	
 	
-}
+endpackage

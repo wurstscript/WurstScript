@@ -1,4 +1,4 @@
-package test {
+package test 
 	
 	nativetype string
 	nativetype int
@@ -8,16 +8,16 @@ package test {
 	native testSuccess()
 	native I2S(integer i) returns string
 	
-	class Blub {
+	class Blub 
 		int x
-		construct (int x) {
+		construct (int x) 
 			this.x = x
-		}
-	}
+		
+	
 	
 	Blub array b
 
-	init {
+	init 
 		
 		b[0] = new Blub(0)
 		b[1] = new Blub(1)
@@ -39,17 +39,17 @@ package test {
 		b[9] = new Blub(9)
 		
 		integer i = 0
-		while (i < 10) {
-			if (i mod 2 == 1) and (b[i].x != i) {
+		while (i < 10) 
+			if (i mod 2 == 1) and (b[i].x != i) 
 				testFail("fail " + I2S(i))
-			}
+			
 			i = i + 1
-		}	
+			
 			
 	
 		
 		testSuccess()
-	} 
+
+endpackage
 	
-	
-}
+
