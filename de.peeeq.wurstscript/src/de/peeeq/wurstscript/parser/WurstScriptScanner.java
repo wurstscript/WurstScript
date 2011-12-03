@@ -23,7 +23,6 @@ public class WurstScriptScanner extends WurstScriptScannerIntern {
 				 token = super.next_token();
 			} while (token == null);
 		}
-		System.out.println("TOKEN = " + ExtendedParser.symbolToString(token));
 		return token;
 	}
 
