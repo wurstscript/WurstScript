@@ -49,9 +49,7 @@ public class JassOptimizerImpl implements JassOptimizer {
 	 */
 	public static void main(String ... args) throws IOException {
 
-		// compile the testFile to jass (note that this is not complete yet, but might be enough for testing the optimizer a bit)
-		WurstGui gui = new WurstGuiImpl();
-		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui);
+		
 		
 		File dir = new File("./testscripts/valid/optimizer/");
 		
@@ -65,13 +63,11 @@ public class JassOptimizerImpl implements JassOptimizer {
 		File[] fileList = dir.listFiles();
 		List<File> pscriptFiles = new LinkedList<File>();
 		
-		int files = 0;
 		if ( fileList != null ) {
 			for(File f : fileList) {
 				String name = f.getName().toLowerCase();
 				if (name.endsWith(PSCRIPT_ENDING)) {
 					pscriptFiles.add(f);
-					files++;
 				}
 	
 			}
@@ -81,6 +77,10 @@ public class JassOptimizerImpl implements JassOptimizer {
 			
 			System.out.println( "----------------------------------------------");
 			System.out.println( "Optimizing file: " + file );
+			
+			// compile the testFile to jass (note that this is not complete yet, but might be enough for testing the optimizer a bit)
+			WurstGui gui = new WurstGuiImpl();
+			WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui);
 			
 			compiler.loadFiles(file);
 			compiler.parseFiles();
@@ -97,12 +97,14 @@ public class JassOptimizerImpl implements JassOptimizer {
 			// print the optimized version
 			Files.write(new JassPrinter(false).printProg(prog), new File(file+".optimized.j"), Charsets.UTF_8);
 			
+			// Close the gui
+			gui.sendFinished();
+			
 		}
 		
 		
 		
-		// Close the gui
-		gui.sendFinished();
+		
 		
 		
 	}
@@ -124,7 +126,7 @@ public class JassOptimizerImpl implements JassOptimizer {
 			public void visit(JassStmtCall jassCall) {
 				String funcname = jassCall.getFunctionName();
 				System.out.println("name: " + funcname);
-				if ( funcname.equals("test_ExecuteFunc") ) {
+				if ( funcname.equals("ExecuteFunction") ) {
 					System.out.println("equals");
 					JassExprlist list = jassCall.getArguments();
 					JassExpr argument = list.get(0);
@@ -152,7 +154,7 @@ public class JassOptimizerImpl implements JassOptimizer {
 			@Override
 			public void visit(JassStmtCall jassCall) {
 				String funcname = jassCall.getFunctionName();
-				if ( funcname.equals("test_ExecuteFunc") ) {
+				if ( funcname.equals("ExecuteFunction") ) {
 					JassExprlist list = jassCall.getArguments();
 					JassExpr argument = list.get(0);
 					if ( argument instanceof JassExprStringVal ){
@@ -222,10 +224,9 @@ public class JassOptimizerImpl implements JassOptimizer {
 				if ( !RestrictedStandardNames.contains(name)){
 					System.out.println(name);
 					if ( usedInEFTRVE.contains(name)) {	
-						System.out.println("used");
+						System.out.println(name + " is used in EF or TRVE");
 						replacements.put(name, ng.getTEToken());							
 					}else {		
-						System.out.println("not");
 						replacements.put(name, ng.getUniqueToken());
 					}
 				}
@@ -233,7 +234,7 @@ public class JassOptimizerImpl implements JassOptimizer {
 				// Create small replacements for parameters and locals
 				final HashMap<String, String> localReplacements = new HashMap<String, String>();
 				JassSimpleVars params = jassFunction.getParams();
-				System.out.println("params");
+				System.out.println("Parameters:");
 				// params
 				for (JassSimpleVar param : params ) {
 					String name1 = param.getName();
@@ -242,7 +243,7 @@ public class JassOptimizerImpl implements JassOptimizer {
 					param.setName(localReplacements.get(name1));
 				}
 				JassVars locals = jassFunction.getLocals();
-				System.out.println("locals");
+				System.out.println("Locals:");
 				// locals
 				for (JassVar local : locals ) {
 					String name1 = local.getName();
@@ -251,17 +252,15 @@ public class JassOptimizerImpl implements JassOptimizer {
 					local.setName(localReplacements.get(name1));
 				}
 				
-				System.out.println("nachLocals");
-				System.out.println("body = " + jassFunction.getBody());
+				System.out.println("Body: " + jassFunction.getBody());
 				
 				// Replace everything in the function body
 				jassFunction.getBody().accept(new JassFunction.DefaultVisitor() {
 					
 					@Override
 					public void visit(JassStmtSet setStmt ) {
-						System.out.println("2.visitor");
 						String name = setStmt.getLeft();
-						System.out.println("Left Statement: " + name );
+						//System.out.println("Left Statement: " + name );
 						if ( localReplacements.containsKey(name)){
 							System.out.println("Replaced with " + localReplacements.get(name));
 							setStmt.setLeft(localReplacements.get(name));

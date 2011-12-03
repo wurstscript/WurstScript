@@ -1,0 +1,13 @@
+package testpackage
+		
+		function testFunction()
+			int i = 1212
+			int i2 = 54363
+		
+			if 10   > 289
+				if i !=     i2
+					i = i2
+			
+			
+endpackage
+
