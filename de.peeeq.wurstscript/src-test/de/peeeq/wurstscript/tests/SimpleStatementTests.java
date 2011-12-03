@@ -64,7 +64,103 @@ public class SimpleStatementTests extends PscriptTest {
 				"");
 	}
 	
+	@Test
+	public void testWhile1() {
+		assertOk(true,
+				"int x = 10",
+				"while x > 2",
+				"	x = x - 1",
+				"if x == 2",
+				"	testSuccess()",
+				"");
+	}
+	
+	@Test
+	public void testWhileBreak() {
+		assertOk(true,
+				"int x = 10",
+				"while true",
+				"	x = x - 1",
+				"	if x <= 2",
+				"		break",
+				"if x == 2",
+				"	testSuccess()",
+				"");
+	}
+	
+	@Test
+	public void testFor1() {
+		assertOk(true,
+				"int x = 0",
+				"for int i in 1 ... 10",
+				"	x = x + 1",
+				"if x == 10",
+				"	testSuccess()",
+				"");
+	}
+	
+	@Test
+	public void testFor2() {
+		assertOk(true,
+				"int x = 0",
+				"for int i in 1 ... 10",
+				"	x = x + i",
+				"if x == 55",
+				"	testSuccess()",
+				"");
+	}
+	
+	@Test
+	public void test_inc() {
+		assertOk(true,
+				"int x = 5",
+				"x++",
+				"if x == 6",
+				"	testSuccess()",
+				"");
+	}
+	
+	@Test
+	public void test_dec() {
+		assertOk(true,
+				"int x = 5",
+				"x--",
+				"if x == 4",
+				"	testSuccess()",
+				"");
+	}
 
+	@Test
+	public void test_pluseq() {
+		assertOk(true,
+				"int x = 5",
+				"x += 2",
+				"if x == 7",
+				"	testSuccess()",
+				"");
+	}
+
+	@Test
+	public void test_multeq() {
+		assertOk(true,
+				"int x = 5",
+				"x *= 2",
+				"if x == 10",
+				"	testSuccess()",
+				"");
+	}
+	
+	@Test
+	public void test_minuseq() {
+		assertOk(true,
+				"int x = 5",
+				"x -= 2",
+				"if x == 3",
+				"	testSuccess()",
+				"");
+	}
+	
+	
 	public void assertOk( boolean executeProg, String ... body) {
 		String prog = "package test\n" +
 				"	native testFail(string msg)\n" +
