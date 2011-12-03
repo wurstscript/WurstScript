@@ -20,7 +20,7 @@ public class ILInterpreterImplTest {
 	
 	static public void main(String ... args) throws IOException {
 		
-		File dir = new File("./testscripts/valid");
+		File dir = new File("./testscripts/valid/other");
 		
 		boolean exists = dir.exists();
 		if (exists) {
