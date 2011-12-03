@@ -81,6 +81,7 @@ WStatement	=
 //	| StmtDecRefCount(WPos source, Expr obj)
 	| StmtErr(WPos source)
 	| StmtExitwhen(WPos source, Expr cond)
+	| StmtForRange(WPos source, LocalVarDef loopVar, Expr from, Expr to, WStatements body)
 	
 
 OpAssignment = OpAssign() // TODO += -= *= /= ...

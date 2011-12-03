@@ -118,6 +118,7 @@ import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.StmtDestroy;
 import de.peeeq.wurstscript.ast.StmtErr;
 import de.peeeq.wurstscript.ast.StmtExitwhen;
+import de.peeeq.wurstscript.ast.StmtForRange;
 import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtLoop;
 import de.peeeq.wurstscript.ast.StmtReturn;
@@ -136,6 +137,7 @@ import de.peeeq.wurstscript.jassAst.JassArrayVar;
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
+import de.peeeq.wurstscript.jassAst.JassExprIntVal;
 import de.peeeq.wurstscript.jassAst.JassExprlist;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassFunctions;
@@ -592,6 +594,33 @@ public class JassTranslator {
 					result.addAll(e.getStatements());
 					result.add(JassStmtSet(v.getName(), e.getExpr()));
 				}
+			}
+
+
+			@Override
+			public void case_StmtForRange(StmtForRange stmtForRange) {
+				JassVar loopVar = manager.getJassVarFor(context, stmtForRange.getLoopVar(), translateType(stmtForRange.getLoopVar().getTyp()), false);
+				f.getLocals().add(loopVar);
+				
+				ExprTranslationResult fromExpr = translateExpr(context, f, stmtForRange.getFrom());
+				ExprTranslationResult toExpr = translateExpr(context, f, stmtForRange.getTo());
+				result.addAll(fromExpr.getStatements());
+				JassExpr toExpr2;
+				if (toExpr.getStatements().size() == 0 && toExpr.getExpr() instanceof JassExprIntVal) {
+					toExpr2 = toExpr.getExpr(); 
+				} else {
+					JassVar loopEndVar = getNewTempVar(f, "integer");
+					result.addAll(toExpr.getStatements());
+					result.add(JassStmtSet(loopEndVar.getName(), toExpr.getExpr()));
+					toExpr2 = JassExprVarAccess(loopEndVar.getName());
+				}
+				result.add(JassStmtSet(loopVar.getName(), fromExpr.getExpr()));
+				JassStatements body = JassStatements();
+				body.add(JassStmtExitwhen(JassExprBinary(JassExprVarAccess(loopVar.getName()), JassOpGreater(), toExpr2)));
+				body.addAll(translateStatements(context, f, stmtForRange.getBody()));
+				body.add(JassStmtSet(loopVar.getName(), JassExprBinary(JassExprVarAccess(loopVar.getName()), JassOpPlus(), JassExprIntVal(1))));
+				result.add(JassStmtLoop(body));
+				
 			}
 
 		
@@ -1116,7 +1145,9 @@ public class JassTranslator {
 
 	protected JassVar getNewTempVar(JassFunction f, String type) {
 		String name = manager.getUniqueName("temp");
-		return JassSimpleVar(type, name);
+		JassSimpleVar v = JassSimpleVar(type, name);
+		f.getLocals().add(v);
+		return v;
 	}
 
 	protected JassOpUnary translateOpUnary(OpUnary op) {

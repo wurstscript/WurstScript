@@ -143,6 +143,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"while"                           	{ return symbol(TokenType.WHILE); }
 	"for"                           	{ return symbol(TokenType.FOR); }
 	"in"                           		{ return symbol(TokenType.IN); }
+	"break"                        		{ return symbol(TokenType.BREAK); }
 	"new"                             	{ return symbol(TokenType.NEW); }
 	"null"                            	{ return symbol(TokenType.NULL); }
 	"package"							{ inPackage = true; return symbol(TokenType.PACKAGE); }

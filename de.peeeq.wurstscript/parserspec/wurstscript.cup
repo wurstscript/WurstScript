@@ -36,7 +36,7 @@ terminal
 	LBRACK, RBRACK, 
 	COMMA, SEMICOLON,   
 	NL,
-	MODULE, USE, ABSTRACT, IN, FOR, THISTYPE, ARROW, IT, IMMUTABLE, OVERRIDE,
+	MODULE, USE, ABSTRACT, IN, FOR, BREAK, THISTYPE, ARROW, IT, IMMUTABLE, OVERRIDE,
 	STATIC, PACKAGE, ENDPACKAGE, RETURNS,FUNCTION, VAL, PUBLIC, PUBLICREAD, PRIVATE, PROTECTED, IMPORT, NATIVETYPE, INIT, NATIVE, INTERFACE,
 	IMPLEMENTS, ARRAY, IF, ELSE, WHILE, RETURN, CLASS, NEW, NULL, EXTENDS, THIS, CONSTRUCT, ONDESTROY, 
 	TYPE, GLOBALS, ENDGLOBALS, CONSTANT, ENDFUNCTION, TAKES, NOTHING, LOCAL,
@@ -69,6 +69,7 @@ non terminal InitBlock InitBlock;
 non terminal Indexes Indexes;
 non terminal WImport Import;
 non terminal LocalVarDef LocalVarDef;
+non terminal LocalVarDef LocalVarDefInline;
 non terminal MemberDef MemberDef;	
 non terminal ExprMemberArrayVar ExprMemberArrayVar;
 non terminal NativeFunc NativeFunc;
@@ -335,6 +336,10 @@ Statement ::=
 		{: RESULT = x; :} 
 	| StmtDestroy:x
 		{: RESULT = x; :} 
+	| FOR:x LocalVarDefInline:loopVar IN Expr:from DOT DOT DOT Expr:to NL INDENT Statements:body UNINDENT
+		{: RESULT = Ast.StmtForRange(pos(xleft, xright), loopVar, from, to, body); :}
+	| BREAK:x NL
+		{: RESULT = Ast.StmtExitwhen(pos(xleft, xright), Ast.ExprBoolVal(pos(xleft, xright), true)); :}
 	| error:x NL
 		{: RESULT = Ast.StmtErr(pos(xleft, xright)); :}
 ;
@@ -376,6 +381,11 @@ LocalVarDef ::=
 	| TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
 		{: RESULT = Ast.LocalVarDef(pos(typleft, typright), false, typ, name, i); :}
 	| TypeExpr:typ IDENTIFIER:name NL
+		{: RESULT = Ast.LocalVarDef(pos(typleft, typright), false, typ, name, Ast.NoExpr()); :}
+;
+
+LocalVarDefInline ::=
+	TypeExpr:typ IDENTIFIER:name
 		{: RESULT = Ast.LocalVarDef(pos(typleft, typright), false, typ, name, Ast.NoExpr()); :}
 ;
 
