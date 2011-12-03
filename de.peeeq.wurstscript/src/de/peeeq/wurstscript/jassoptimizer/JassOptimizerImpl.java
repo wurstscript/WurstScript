@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
 
@@ -32,41 +34,77 @@ import de.peeeq.wurstscript.jassAst.JassStmtSet;
 import de.peeeq.wurstscript.jassAst.JassStmtSetArray;
 import de.peeeq.wurstscript.jassAst.JassVar;
 import de.peeeq.wurstscript.jassAst.JassVars;
+import de.peeeq.wurstscript.jassinterpreter.TestFailException;
+import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 
 // The fabulous Froptimizer!
 public class JassOptimizerImpl implements JassOptimizer {
 	String[] standards;
 	int standardsAmount = 0;
+	private final static String PSCRIPT_ENDING = ".pscript";
 	/**
 	 * a main method to simply test the optimizer 
 	 * @throws IOException 
 	 */
 	public static void main(String ... args) throws IOException {
-		String testFile = "./testscripts/valid/optimizer/optimizertest_1.pscript";
-		if (args.length == 1) {
-			testFile = args[0];
-		}
-		
+
 		// compile the testFile to jass (note that this is not complete yet, but might be enough for testing the optimizer a bit)
 		WurstGui gui = new WurstGuiImpl();
 		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui);
-		compiler.loadFiles(new File(testFile));
-		compiler.parseFiles();
+		
+		File dir = new File("./testscripts/valid/optimizer/");
+		
+		boolean exists = dir.exists();
+		if (exists) {
+			System.out.println("Directory " + dir + " exists!");
+		} else {
+			System.out.println("Directory " + dir + " could not be found!");	
+		}
+		
+		File[] fileList = dir.listFiles();
+		List<File> pscriptFiles = new LinkedList<File>();
+		
+		int files = 0;
+		if ( fileList != null ) {
+			for(File f : fileList) {
+				String name = f.getName().toLowerCase();
+				if (name.endsWith(PSCRIPT_ENDING)) {
+					pscriptFiles.add(f);
+					files++;
+				}
+	
+			}
+		}
+		
+		for ( File file : pscriptFiles) {
+			
+			System.out.println( "----------------------------------------------");
+			System.out.println( "Optimizing file: " + file );
+			
+			compiler.loadFiles(file);
+			compiler.parseFiles();
 
-		JassProg prog = compiler.getProg();
+			JassProg prog = compiler.getProg();
 
-		// no we have a jass program
-		// print original
-		Files.write(new JassPrinter(true).printProg(prog), new File(testFile+".original.j"), Charsets.UTF_8);
+			// no we have a jass program
+			// print original
+			Files.write(new JassPrinter(true).printProg(prog), new File(file+".original.j"), Charsets.UTF_8);
+			
+			// optimize it:
+			new JassOptimizerImpl().optimize(prog);
+			
+			// print the optimized version
+			Files.write(new JassPrinter(false).printProg(prog), new File(file+".optimized.j"), Charsets.UTF_8);
+			
+		}
 		
-		// optimize it:
-		new JassOptimizerImpl().optimize(prog);
 		
-		// print the optimized version
-		Files.write(new JassPrinter(false).printProg(prog), new File(testFile+".optimized.j"), Charsets.UTF_8);
 		
+		// Close the gui
 		gui.sendFinished();
+		
+		
 	}
 	
 	/**
