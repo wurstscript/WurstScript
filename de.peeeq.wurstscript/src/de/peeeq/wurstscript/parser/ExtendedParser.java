@@ -177,7 +177,7 @@ public class ExtendedParser extends parser {
 			// get current parse state:
 			int parseState = ((Symbol) stack.peek()).parse_state;
 
-			msg += "	expected: ";
+			msg += " expected: ";
 			// get possible actions from action table and print them
 			short[] possibleActions = this.action_table()[parseState];
 			List<String> expectedSymbols = Lists.newLinkedList();

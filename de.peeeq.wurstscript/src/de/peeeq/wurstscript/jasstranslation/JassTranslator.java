@@ -84,6 +84,7 @@ import de.peeeq.wurstscript.ast.ExprThis;
 import de.peeeq.wurstscript.ast.ExprUnary;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
+import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
@@ -363,10 +364,32 @@ public class JassTranslator {
 			public void case_FuncDef(FuncDef funcDef) {
 				translateFuncDef(ROOT_CONTEXT, funcDef, false);
 			}
+
+			@Override
+			public void case_ExtensionFuncDef(ExtensionFuncDef funcDef) {
+				translateExtensionFuncDef(ROOT_CONTEXT, funcDef);
+			}
 		});
 	}
 
+	protected void translateExtensionFuncDef(ImmutableList<ClassOrModule> context, ExtensionFuncDef funcDef) {
+		JassFunction f = manager.getJassFunctionFor(context, funcDef);
+		f.setReturnType(translateType(funcDef.getSignature().getTyp()));
+		
+		f.getParams().add(jassThisVar());
+		
+		for (WParameter param : funcDef.getSignature().getParameters()) {
+			f.getParams().add(translateParam(context, param));
+		}
+		f.getBody().addAll(translateStatements(context, f, funcDef.getBody()));
+		prog.getFunctions().add(f);
+	}
+	
 	protected void translateFuncDef(ImmutableList<ClassOrModule> context, FuncDef funcDef, boolean isMethod) {
+		if (funcDef.attrIsAbstract()) {
+			// do not translate abstract methods, they no hav body, u no?
+			return;
+		}
 		trace("translateFuncDef " + Utils.printContext(context) + " -> " + funcDef.getSignature().getName());
 		JassFunction f = manager.getJassFunctionFor(context, funcDef);
 		f.setReturnType(translateType(funcDef.getSignature().getTyp()));
@@ -1192,8 +1215,10 @@ public class JassTranslator {
 			return "string";
 		} else if (t instanceof PScriptTypeVoid) {
 			return "nothing";
-		}		
-		throw new Error("Cannot translate type: " + t);
+		} else if (t instanceof PscriptTypeModule) {
+			return "integer";
+		}
+		throw new Error("Cannot translate type: " + t + " // " + t.getClass());
 	}
 
 	protected void translateJassGlobalsBlock(JassGlobalBlock jassGlobalBlock) {
@@ -1264,6 +1289,11 @@ public class JassTranslator {
 				@Override
 				public void case_ModuleDef(ModuleDef moduleDef) {
 					// nothing to do, modules are translated only where they are used...
+				}
+
+				@Override
+				public void case_ExtensionFuncDef(ExtensionFuncDef extensionFuncDef) {
+					translateExtensionFuncDef(ROOT_CONTEXT, extensionFuncDef);
 				}
 			});
 		}

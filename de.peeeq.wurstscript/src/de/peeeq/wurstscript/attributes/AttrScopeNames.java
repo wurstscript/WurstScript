@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.InitBlock;
@@ -81,19 +82,7 @@ public class AttrScopeNames {
 
 			@Override
 			public Map<String, NameDef> case_FuncDef(FuncDef term) {
-
-				term.accept(new CompilationUnit.DefaultVisitor() {
-					@Override
-					public void visit(LocalVarDef v) {
-						result.put(v.getName(), v);
-					}
-
-					@Override
-					public void visit(WParameter v) {
-						result.put(v.getName(), v);
-					}
-				});
-				return result;
+				return namesInFunction(term);
 			}
 
 			@Override
@@ -115,42 +104,17 @@ public class AttrScopeNames {
 
 			@Override
 			public Map<String, NameDef> case_ConstructorDef(ConstructorDef term) {
-				term.accept(new ConstructorDef.DefaultVisitor() {
-					@Override
-					public void visit(LocalVarDef v) {
-						result.put(v.getName(), v);
-					}
-
-					@Override
-					public void visit(WParameter v) {
-						result.put(v.getName(), v);
-					}
-				});
-				return result;
+				return namesInFunction(term);
 			}
 
 			@Override
 			public Map<String, NameDef> case_OnDestroyDef(OnDestroyDef term) {
-				term.accept(new OnDestroyDef.DefaultVisitor() {
-					@Override
-					public void visit(LocalVarDef v) {
-						result.put(v.getName(), v);
-					}
-
-				});
-				return result;
+				return namesInFunction(term);
 			}
 
 			@Override
 			public Map<String, NameDef> case_InitBlock(InitBlock term) {
-				term.accept(new InitBlock.DefaultVisitor() {
-					@Override
-					public void visit(LocalVarDef v) {
-						result.put(v.getName(), v);
-					}
-
-				});
-				return result;
+				return namesInFunction(term);
 			}
 
 			@Override
@@ -161,6 +125,26 @@ public class AttrScopeNames {
 						result.put(v.getName(), v);
 					}
 				}
+				return result;
+			}
+
+			@Override
+			public Map<String, NameDef> case_ExtensionFuncDef(ExtensionFuncDef term) {
+				return namesInFunction(term);
+			}
+
+			private Map<String, NameDef> namesInFunction(WScope term) {
+				term.accept(new WScope.DefaultVisitor() {
+					@Override
+					public void visit(LocalVarDef v) {
+						result.put(v.getName(), v);
+					}
+
+					@Override
+					public void visit(WParameter v) {
+						result.put(v.getName(), v);
+					}
+				});
 				return result;
 			}
 		});

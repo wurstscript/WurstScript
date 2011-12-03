@@ -5,6 +5,7 @@ import com.google.common.collect.Multimap;
 
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.InitBlock;
@@ -96,6 +97,11 @@ public class AttrPackageElements {
 						public void case_ModuleDef(ModuleDef term) {
 							result.put(term.getName(), term);
 						}
+
+						@Override
+						public void case_ExtensionFuncDef(ExtensionFuncDef term) {
+							result.put(term.getSignature().getName(), term);
+						}
 					});
 				}
 			}
@@ -129,6 +135,11 @@ public class AttrPackageElements {
 
 						@Override
 						public void case_WPackage(WPackage term)  {
+						}
+
+						@Override
+						public void case_ExtensionFuncDef(ExtensionFuncDef term) {
+							result.put(term.getSignature().getName(), term);
 						}
 
 					});

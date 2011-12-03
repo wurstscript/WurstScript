@@ -1,16 +1,21 @@
 package de.peeeq.wurstscript.validation;
 
+import com.google.common.collect.Multimap;
+
+import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.ModStatic;
 import de.peeeq.wurstscript.ast.Modifier;
 import de.peeeq.wurstscript.ast.Modifiers;
+import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StmtSet;
@@ -18,6 +23,7 @@ import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.VisibilityModifier;
 import de.peeeq.wurstscript.ast.WPos;
+import de.peeeq.wurstscript.attributes.FuncDefInstance;
 import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
@@ -47,11 +53,11 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 	public WurstValidator(CompilationUnit prog) {
 		this.prog = prog;
 	}
-	
+
 	public void validate() {
 		functionCount = countFunctions();
 		visitedFunctions = 0;
-		
+
 		prog.accept(this);
 	}
 
@@ -65,20 +71,20 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		});
 		return functionCount[0];
 	}
-	
+
 	@Override
 	public
 	void visit(StmtSet s) {
 		super.visit(s);
-		
+
 		PscriptType leftType = s.getLeft().attrTyp();
 		PscriptType rightType = s.getRight().attrTyp();
-		
+
 		checkAssignment(Utils.isJassCode(s), s.getSource(), leftType, rightType);
-		
-		
+
+
 	}
-	
+
 	private void checkAssignment(boolean isJassCode, WPos pos, PscriptType leftType, PscriptType rightType) {
 		if (!rightType.isSubtypeOf(leftType)) {
 			if (isJassCode) {
@@ -98,11 +104,11 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 			Expr initial = (Expr) s.getInitialExpr();
 			PscriptType leftType = s.attrTyp();
 			PscriptType rightType = initial.attrTyp();
-			
+
 			checkAssignment(Utils.isJassCode(s), s.getSource(), leftType, rightType);
 		}		
 	}
-	
+
 
 	@Override
 	public void visit(GlobalVarDef s) {
@@ -114,8 +120,8 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 			checkAssignment(Utils.isJassCode(s), s.getSource(), leftType, rightType);
 		}
 	}
-	
-	
+
+
 	@Override
 	public void visit(StmtIf stmtIf) {
 		super.visit(stmtIf);
@@ -125,7 +131,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		}
 	}
 
-	
+
 	@Override
 	public void visit(StmtWhile stmtWhile) {
 		super.visit(stmtWhile);
@@ -134,40 +140,53 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 			attr.addError(stmtWhile.getCond().getSource(), "While condition must be a boolean but found " + condType);
 		}
 	}
-	
 
-	
+
+
 	@Override public void visit(FuncDef func) {
 		super.visit(func);
 		visitedFunctions++;
 		attr.setProgress(null, ProgressHelper.getValidatorPercent(visitedFunctions, functionCount));
-		
-		
-		if (func.getSignature().getTyp() instanceof TypeExpr) {
-			if (!func.getBody().attrDoesReturn()) {
-				attr.addError(func.getSource(), "Function " + func.getSignature().getName() + " is missing a return statement.");
+
+		String functionName = func.getSignature().getName();
+		if (func.attrIsAbstract()) {
+			if (func.getBody().size() > 0) {
+				attr.addError(func.getBody().get(0).getSource(), "The abstract function " + functionName + " must not have any statements.");
+			}
+		} else { // not abstract
+			if (func.getSignature().getTyp() instanceof TypeExpr) {
+				if (!func.getBody().attrDoesReturn()) {
+					attr.addError(func.getSource(), "Function " + functionName + " is missing a return statement.");
+				}
 			}
 		}
+
+
+		if (func.attrNearestClassOrModule() instanceof ModuleDef) {
+			// function is in module -> must be private or public
+			if (!func.attrIsPrivate() && !func.attrIsPublic()) {
+				attr.addError(func.getSource(), "Function " + functionName + " must be declared " +
+						"public or private.\n");
+			}
+		}
+
 	}
-	
+
 	@Override public void visit(ExprFunctionCall stmtCall) {
-		super.visit(stmtCall);
 		// calculating the exprType should reveal all errors:
 		stmtCall.attrTyp();
 	}
-	
+
 	@Override public void visit(ExprMemberMethod stmtCall) {
-		super.visit(stmtCall);
 		// calculating the exprType should reveal all errors:
 		stmtCall.attrTyp();
 	}
-	
+
 	@Override public void visit(ExprNewObject stmtCall) {
-		super.visit(stmtCall);
 		stmtCall.attrTyp();
 		stmtCall.attrConstructorDef();
 	}
-	
+
 	@Override
 	public void visit(Modifiers modifiers) {
 		boolean hasVis = false;
@@ -186,7 +205,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 			}
 		}
 	}
-	
+
 	@Override
 	public void visit(StmtReturn s) {
 		FuncDef func = s.attrNearestFuncDef();
@@ -207,6 +226,24 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 			}
 		}
 	}
-	
-	
+
+	@Override
+	public void visit(ClassDef classDef) {
+		// calculate all functions to find possible errors
+		Multimap<String, FuncDefInstance> functions = classDef.attrAllFunctions();
+		for (FuncDefInstance f : functions.values()) {
+			FunctionDefinition funcDef = f.getDef();
+			if (funcDef.attrIsAbstract()) {
+				attr.addError(classDef.getSource(), "The abstract method " + funcDef.getSignature().getName() +
+						" must be implemented in class "+ classDef.getName() + ".");
+			}
+		}
+	}
+
+	@Override
+	public void visit(ModuleDef moduleDef) {
+		// calculate all functions to find possible errors
+		moduleDef.attrAllFunctions();
+	}
+
 }

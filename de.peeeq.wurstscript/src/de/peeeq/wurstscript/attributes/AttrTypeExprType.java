@@ -1,18 +1,24 @@
 package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.ClassOrModule;
+import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.ast.TypeExprSimple;
+import de.peeeq.wurstscript.ast.TypeExprThis;
 import de.peeeq.wurstscript.types.NativeTypes;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
+import de.peeeq.wurstscript.types.PScriptTypeThis;
 import de.peeeq.wurstscript.types.PScriptTypeUnknown;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;
 import de.peeeq.wurstscript.types.PscriptNativeType;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
+import de.peeeq.wurstscript.types.PscriptTypeModule;
 import de.peeeq.wurstscript.utils.Utils;
 
 
@@ -23,21 +29,45 @@ import de.peeeq.wurstscript.utils.Utils;
 public class AttrTypeExprType {
 	
 	public static  PscriptType calculate(OptTypeExpr optType) {
-		if (optType instanceof TypeExpr) {
-			TypeExpr node = (TypeExpr) optType;
-			PscriptType baseType = getBaseType(node);
-			if (node.getIsArray()) {
-				int[] sizes = new int[1];
-				return new PScriptTypeArray(baseType, sizes );
-			} else {
-				return baseType;
+		return optType.match(new OptTypeExpr.Matcher<PscriptType>() {
+
+			@Override
+			public PscriptType case_TypeExprSimple(TypeExprSimple node) {
+				PscriptType baseType = getBaseType(node);
+				if (node.getIsArray()) {
+					int[] sizes = new int[1];
+					return new PScriptTypeArray(baseType, sizes );
+				} else {
+					return baseType;
+				}
 			}
-		} else {
-			return PScriptTypeVoid.instance();
-		}
+
+			@Override
+			public PscriptType case_TypeExprThis(final TypeExprThis node) {
+				ClassOrModule classOrModule = node.attrNearestClassOrModule();
+				return node.attrNearestClassOrModule().match(new ClassOrModule.Matcher<PscriptType>() {
+
+					@Override
+					public PscriptType case_ClassDef(ClassDef classDef) {
+						attr.addError(node.getSource(), "The type 'thistype' can only be used inside modules.");
+						return new PscriptTypeClass(classDef);
+					}
+
+					@Override
+					public PscriptType case_ModuleDef(ModuleDef moduleDef) {
+						return new PscriptTypeModule(moduleDef);
+					}
+				});
+			}
+
+			@Override
+			public PscriptType case_NoTypeExpr(NoTypeExpr node) {
+				return PScriptTypeVoid.instance();
+			}
+		});
 	}
 	
-	private static PscriptType getBaseType(TypeExpr node) {	
+	private static PscriptType getBaseType(TypeExprSimple node) {	
 		final String typename = node.getTypeName();
 		final boolean isJassCode = Utils.isJassCode(node);
 		TypeDef t = node.attrTypeDef();

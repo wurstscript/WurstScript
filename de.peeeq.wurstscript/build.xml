@@ -10,7 +10,6 @@
 	<property name="scannerspec" location="./parserspec/wurstscript.flex" />
 	<property name="javacup" location="./tools/java-cup.jar" />
 	<property name="jflex" location="./tools/jflex.jar" />
-	<property name="katjaspec" location="./parserspec/wurstscript.katja" />
 	<property name="parseqspec" location="./parserspec/wurstscript.parseq" />
 	<property name="parseq" location="./tools/parseq.jar" />
 	<property name="junitTestResults" location="./junitTestResults/" />
@@ -26,7 +25,6 @@
 	<target name="checkForChanges">
 		<uptodate targetfile="${srcgen}/de/peeeq/wurstscript/parser/WurstScriptScanner.java" srcfile="${scannerspec}" property="jflexNotChanged" />
 		<uptodate targetfile="${srcgen}/de/peeeq/wurstscript/parser/parser.java" srcfile="${grammarspec}" property="cupNotChanged" />
-		<uptodate targetfile="${srcgen}/de/peeeq/wurstscript/ast/WPos.java" srcfile="${katjaspec}" property="katjaNotChanged" />
 	</target>
 
 

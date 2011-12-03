@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.InitBlock;
@@ -105,6 +106,12 @@ public class AttrScopeFunctions {
 			@Override
 			public Multimap<String, FuncDefInstance> case_ModuleDef(ModuleDef term) {
 				return case_ClassOrModule(term);
+			}
+
+			@Override
+			public Multimap<String, FuncDefInstance> case_ExtensionFuncDef(ExtensionFuncDef extensionFuncDef) {
+				// functions cannot include other functions (not yet?)
+				return result;
 			}
 		});
 	}

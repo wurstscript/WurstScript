@@ -35,6 +35,17 @@ public class PscriptTest {
 		return true;
 	}
 	
+	
+	public void testAssertOkLines(boolean executeProg, String ... input) {
+		String prog = Utils.join(input, "\n") + "\n";
+		testAssertOk(Utils.getMethodName(1), executeProg, prog);
+	}
+	
+	public void testAssertErrorsLines(boolean executeProg, String errorMessage, String ... input) {
+		String prog = Utils.join(input, "\n") + "\n";
+		testAssertErrors(Utils.getMethodName(1), executeProg, prog, errorMessage);
+	}
+	
 	public void testAssertOk(String name, boolean executeProg, String prog) {
 		if (name.length() == 0) {
 			name = Utils.getMethodName(1);
@@ -53,7 +64,7 @@ public class PscriptTest {
 	public void testAssertErrors(String name, boolean executeProg, String prog, String errorMessage) {
 		name = Utils.getMethodName(2);
 		String errors = testScript(new StringReader(prog), this.getClass().getSimpleName() + "_" + name, executeProg);
-		Assert.assertTrue(errors.length() > 0);
+		Assert.assertTrue("No errors were discovered", errors.length() > 0);
 		Assert.assertTrue(errors, errors.contains(errorMessage));
 	}
 

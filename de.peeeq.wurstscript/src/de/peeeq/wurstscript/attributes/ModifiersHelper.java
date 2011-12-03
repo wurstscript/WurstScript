@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.AstElementWithModifier;
+import de.peeeq.wurstscript.ast.ModAbstract;
 import de.peeeq.wurstscript.ast.ModOverride;
 import de.peeeq.wurstscript.ast.ModStatic;
 import de.peeeq.wurstscript.ast.Modifier;
@@ -33,7 +34,11 @@ public class ModifiersHelper {
 		return containsType(e.getModifiers(), ModOverride.class);
 	}
 	
-	
+	public static boolean isAbstract(AstElementWithModifier e) {
+		return containsType(e.getModifiers(), ModAbstract.class);
+	}
+
+
 	
 	static boolean containsType(de.peeeq.wurstscript.ast.Modifiers modifiers, Class<? extends Modifier> class1) {
 		for (Modifier m : modifiers) {
@@ -45,4 +50,6 @@ public class ModifiersHelper {
 	}
 
 
+
+	
 }

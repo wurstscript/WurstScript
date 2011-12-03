@@ -20,11 +20,15 @@ WEntity =
 	  TypeDef
 	| FuncDef
 	| GlobalVarDef
+	| ExtensionFuncDef(WPos source, Modifiers modifiers, TypeExpr extendedType, FuncSignature signature, WStatements body)
 	| InitBlock (WPos source, WStatements body)
 	| NativeFunc(WPos source, Modifiers modifiers, FuncSignature signature)
 	| ModuleDef(WPos source, Modifiers modifiers, String name, ClassSlots slots)
 
 
+TypeExpr = 
+	TypeExprSimple(WPos source, String typeName, boolean isArray, ArraySizes sizes)
+	| TypeExprThis(WPos source)
 	
 	
 OptTypeExpr = NoTypeExpr() | TypeExpr
@@ -53,7 +57,7 @@ LocalVarDef(WPos source, boolean constant, OptTypeExpr typ, String name, OptExpr
 	
 FuncDef(WPos source, Modifiers modifiers, FuncSignature signature, WStatements body)
 	
-TypeExpr(WPos source, String typeName, boolean isArray, ArraySizes sizes)
+
 
 ArraySizes * Expr
 	
@@ -151,9 +155,11 @@ VarDef =
 // has funcName:String attribute
 FuncRef = ExprFuncRef | ExprMemberMethod | ExprFunctionCall
 	
-FunctionDefinition = FuncDef | NativeFunc	
+FunctionDefinition = NativeFunc | FuncDef | ExtensionFuncDef	
 	
-WScope = PackageOrGlobal |  ClassOrModule | FuncDef | ConstructorDef | OnDestroyDef | InitBlock
+FunctionImplementation = FuncDef | ExtensionFuncDef
+
+WScope = PackageOrGlobal |  ClassOrModule | FuncDef | ExtensionFuncDef | ConstructorDef | OnDestroyDef | InitBlock
 
 PackageOrGlobal = WPackage | CompilationUnit	
 	
@@ -174,6 +180,7 @@ Modifier =
 	  VisibilityModifier
 	| ModStatic(WPos source)
 	| ModOverride(WPos source)
+	| ModAbstract(WPos source)
 	
 
 AstElementWithModifier = TypeDef | ConstructorDef | GlobalVarDef | FuncDef | FunctionDefinition
@@ -326,7 +333,12 @@ AstElementWithModifier.attrIsOverride
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isOverride
 
+	AstElementWithModifier.attrIsAbstract
+	returns boolean
+	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isAbstract
 
+	
+	
 FunctionDefinition.attrOverriddenFunctions
 	returns java.util.Collection<de.peeeq.wurstscript.attributes.FuncDefInstance>
 	implemented by de.peeeq.wurstscript.attributes.OverriddenFunctions.calculate

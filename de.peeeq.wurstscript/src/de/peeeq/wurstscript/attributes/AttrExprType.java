@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprBoolVal;
@@ -56,6 +57,7 @@ import de.peeeq.wurstscript.types.PScriptTypeVoid;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
+import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
 
 
@@ -396,7 +398,23 @@ public class AttrExprType {
 				if (f.getDef().getSignature().getTyp() instanceof NoTypeExpr) {
 					return PScriptTypeVoid.instance();
 				}
-				return f.getDef().getSignature().getTyp().attrTyp();
+				PscriptType typ = f.getDef().getSignature().getTyp().attrTyp();
+				if (typ instanceof PscriptTypeModule) {
+					// example:
+					// module A 
+					//    function foo() returns thistype
+					// class C
+					//    use A
+					// ...
+					// C c = new C()
+					// c.foo() // this should return type c  
+					PscriptType leftType = term.getLeft().attrTyp();
+					if (leftType instanceof PscriptTypeClass ||
+							leftType instanceof PscriptTypeModule) {
+						typ = leftType;
+					}
+				}
+				return typ;
 			}
 
 			@Override
@@ -413,7 +431,14 @@ public class AttrExprType {
 				if (f.getSignature().getTyp() instanceof NoTypeExpr) {
 					return PScriptTypeVoid.instance();
 				}
-				return f.getSignature().getTyp().attrTyp();
+				PscriptType typ = f.getSignature().getTyp().attrTyp();
+				if (typ instanceof PscriptTypeModule) {
+					ClassOrModule classOrModule = term.attrNearestClassOrModule();
+					if (classOrModule != null) {
+						typ = TypesHelper.typeOf(classOrModule);
+					}
+				}
+				return typ;
 			}
 
 			@Override

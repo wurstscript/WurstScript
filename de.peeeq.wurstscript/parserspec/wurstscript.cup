@@ -201,6 +201,8 @@ Entity ::=
 		{: RESULT = x; :}
 	| ModuleDef:x
 		{: RESULT = x; :}
+	| Modifiers:mod TypeExpr:t DOT FUNCTION:x FuncSignature:sig NL INDENT Statements:body UNINDENT
+		{: RESULT = Ast.ExtensionFuncDef(pos(xleft, xright), mod, t, sig, body); :}
 ;		
 
 ClassDef ::=
@@ -236,6 +238,8 @@ ClassSlot ::=
 FuncDef ::=
 	  Modifiers:mod FUNCTION:x FuncSignature:sig NL INDENT Statements:body UNINDENT
 		{: RESULT = Ast.FuncDef(pos(xleft, xright), mod, sig, body); :}
+	| Modifiers:mod FUNCTION:x FuncSignature:sig NL
+		{: RESULT = Ast.FuncDef(pos(xleft, xright), mod, sig, Ast.WStatements()); :}
 ;
 
 Modifiers ::=
@@ -256,6 +260,8 @@ Modifier ::=
 		{: RESULT = Ast.ModStatic(pos(xleft, xright)); :}
 	| OVERRIDE:x
 		{: RESULT = Ast.ModOverride(pos(xleft, xright)); :}
+	| ABSTRACT:x
+		{: RESULT = Ast.ModAbstract(pos(xleft, xright)); :}
 ;
 
 FuncSignature ::=
@@ -286,9 +292,11 @@ Parameter ::=
 
 TypeExpr ::=
 	IDENTIFIER:name
-		{: RESULT = Ast.TypeExpr(pos(nameleft, nameright), name, false, Ast.ArraySizes()); :}
+		{: RESULT = Ast.TypeExprSimple(pos(nameleft, nameright), name, false, Ast.ArraySizes()); :}
 	| IDENTIFIER:name ARRAY ArraySizes:sizes
-		{: RESULT = Ast.TypeExpr(pos(nameleft, nameright), name, true, sizes); :}
+		{: RESULT = Ast.TypeExprSimple(pos(nameleft, nameright), name, true, sizes); :}
+	| THISTYPE:x
+		{: RESULT = Ast.TypeExprThis(pos(xleft, xright)); :}
 ;
 
 ArraySizes ::= 
