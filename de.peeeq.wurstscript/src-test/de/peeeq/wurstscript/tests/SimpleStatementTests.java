@@ -110,6 +110,56 @@ public class SimpleStatementTests extends PscriptTest {
 				"");
 	}
 	
+	@Test
+	public void test_inc() {
+		assertOk(true,
+				"int x = 5",
+				"x++",
+				"if x == 6",
+				"	testSuccess()",
+				"");
+	}
+	
+	@Test
+	public void test_dec() {
+		assertOk(true,
+				"int x = 5",
+				"x--",
+				"if x == 4",
+				"	testSuccess()",
+				"");
+	}
+
+	@Test
+	public void test_pluseq() {
+		assertOk(true,
+				"int x = 5",
+				"x += 2",
+				"if x == 7",
+				"	testSuccess()",
+				"");
+	}
+
+	@Test
+	public void test_multeq() {
+		assertOk(true,
+				"int x = 5",
+				"x *= 2",
+				"if x == 10",
+				"	testSuccess()",
+				"");
+	}
+	
+	@Test
+	public void test_minuseq() {
+		assertOk(true,
+				"int x = 5",
+				"x -= 2",
+				"if x == 3",
+				"	testSuccess()",
+				"");
+	}
+	
 	
 	public void assertOk( boolean executeProg, String ... body) {
 		String prog = "package test\n" +

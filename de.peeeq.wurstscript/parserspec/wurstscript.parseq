@@ -85,6 +85,12 @@ WStatement	=
 	
 
 OpAssignment = OpAssign() // TODO += -= *= /= ...
+	| OpUpdateAssign
+
+OpUpdateAssign =
+	  OpPlusAssign()
+	| OpMultAssign()
+	| OpMinusAssign()
 
 StmtCall = ExprMemberMethod | ExprFunctionCall | ExprNewObject
 

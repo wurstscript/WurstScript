@@ -88,6 +88,7 @@ import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
+import de.peeeq.wurstscript.ast.Indexes;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.JassGlobalBlock;
 import de.peeeq.wurstscript.ast.LocalVarDef;
@@ -97,6 +98,8 @@ import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.OpAnd;
+import de.peeeq.wurstscript.ast.OpAssign;
+import de.peeeq.wurstscript.ast.OpAssignment;
 import de.peeeq.wurstscript.ast.OpBinary;
 import de.peeeq.wurstscript.ast.OpDivInt;
 import de.peeeq.wurstscript.ast.OpDivReal;
@@ -106,14 +109,18 @@ import de.peeeq.wurstscript.ast.OpGreaterEq;
 import de.peeeq.wurstscript.ast.OpLess;
 import de.peeeq.wurstscript.ast.OpLessEq;
 import de.peeeq.wurstscript.ast.OpMinus;
+import de.peeeq.wurstscript.ast.OpMinusAssign;
 import de.peeeq.wurstscript.ast.OpModInt;
 import de.peeeq.wurstscript.ast.OpModReal;
 import de.peeeq.wurstscript.ast.OpMult;
+import de.peeeq.wurstscript.ast.OpMultAssign;
 import de.peeeq.wurstscript.ast.OpNot;
 import de.peeeq.wurstscript.ast.OpOr;
 import de.peeeq.wurstscript.ast.OpPlus;
+import de.peeeq.wurstscript.ast.OpPlusAssign;
 import de.peeeq.wurstscript.ast.OpUnary;
 import de.peeeq.wurstscript.ast.OpUnequals;
+import de.peeeq.wurstscript.ast.OpUpdateAssign;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.StmtDestroy;
 import de.peeeq.wurstscript.ast.StmtErr;
@@ -138,6 +145,7 @@ import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
 import de.peeeq.wurstscript.jassAst.JassExprIntVal;
+import de.peeeq.wurstscript.jassAst.JassExprVarAccess;
 import de.peeeq.wurstscript.jassAst.JassExprlist;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassFunctions;
@@ -439,20 +447,73 @@ public class JassTranslator {
 			@Override
 			public void case_StmtSet(StmtSet stmtSet) {
 				final ExprTranslationResult right = translateExpr(context, f, stmtSet.getRight());
-				stmtSet.getLeft().match(new ExprAssignable.MatcherVoid() {
+				final JassOpBinary binaryOp = stmtSet.getOp().match(new OpAssignment.Matcher<JassOpBinary>() {
 
+					@Override
+					public JassOpBinary case_OpMinusAssign(OpMinusAssign opMinusAssign) {
+						return JassOpMinus();
+					}
+
+					@Override
+					public JassOpBinary case_OpPlusAssign(OpPlusAssign opPlusAssign) {
+						return JassOpPlus();
+					}
+
+					@Override
+					public JassOpBinary case_OpMultAssign(OpMultAssign opMultAssign) {
+						return JassOpMult();
+					}
+
+					@Override
+					public JassOpBinary case_OpAssign(OpAssign opAssign) {
+						return null;
+					}
+				});
+				
+				
+				stmtSet.getLeft().match(new ExprAssignable.MatcherVoid() {
+					
 					@Override
 					public void case_ExprMemberVar(ExprMemberVar exprMemberVar) {
 						VarDef leftVar = (VarDef) exprMemberVar.attrNameDef();
 						String leftJassVar = manager.getJassVarNameFor(getVarContext(context, exprMemberVar.getLeft().attrTyp()), leftVar);
 						ExprTranslationResult index = translateExpr(context, f, exprMemberVar.getLeft());
 						
-						result.addAll(index.getStatements());
-						result.addAll(right.getStatements());						
-						result.add(JassStmtSetArray(leftJassVar, index.getExpr(), right.getExpr()));
+						withIndex(leftJassVar, index);
 					}
 
+					private void withIndex(String leftJassVar, ExprTranslationResult index) {
+						result.addAll(index.getStatements());
+						result.addAll(right.getStatements());
+						JassExpr indexExpr;
+						
+						if (binaryOp == null) {
+							result.add(JassStmtSetArray(leftJassVar, index.getExpr(), right.getExpr())); 
+						} else {
+							
+							if (index.getExpr() instanceof ExprIntVal 
+									|| index.getExpr() instanceof ExprVarAccess) {
+								indexExpr = index.getExpr();
+							} else {
+								JassVar tempIndex = getNewTempVar(f, "integer");
+								result.add(JassStmtSet(tempIndex.getName(), index.getExpr()));
+								indexExpr = JassExprVarAccess(tempIndex.getName());
+							}
+							
+							result.add(JassStmtSetArray(leftJassVar, indexExpr, 
+								JassExprBinary(JassExprVarArrayAccess(leftJassVar, indexExpr), binaryOp, right.getExpr())));
+						}
+					}
 					
+					private void withoutIndex(String leftJassVar) {
+						result.addAll(right.getStatements());
+						if (binaryOp == null) {
+							result.add(JassStmtSet(leftJassVar, right.getExpr())); 
+						} else {
+							result.add(JassStmtSet(leftJassVar, 
+									JassExprBinary(JassExprVarAccess(leftJassVar), binaryOp, right.getExpr())));
+						}
+					}
 
 					@Override
 					public void case_ExprMemberArrayVar(ExprMemberArrayVar exprMemberArrayVar) {
@@ -465,13 +526,11 @@ public class JassTranslator {
 						String leftJassVar = getJassVarNameFor(context, leftVar);
 						result.addAll(right.getStatements());
 						if (leftVar.attrIsClassMember()) {
-							result.add(JassStmtSetArray(leftJassVar, JassExprVarAccess("this"), right.getExpr()));
+							withIndex(leftJassVar, new ExprTranslationResult(JassExprVarAccess("this")));
 						} else {
-							result.add(JassStmtSet(leftJassVar, right.getExpr()));
+							withoutIndex(leftJassVar);
 						}
 					}
-
-
 
 					
 
@@ -485,11 +544,10 @@ public class JassTranslator {
 						} else {
 							throw new Error("multiple indexes not supported yet");
 						}
-						result.addAll(index.getStatements());
-						result.addAll(right.getStatements());
-						result.add(JassStmtSetArray(leftJassVar, index.getExpr(), right.getExpr()));
+						withIndex(leftJassVar, index);
 					}
 				});
+				
 				
 				
 			}

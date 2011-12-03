@@ -219,6 +219,11 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"<"                              { return symbol(TokenType.LT); }
 	">"                              { return symbol(TokenType.GT); }
 	"="                               { return symbol(TokenType.EQ); }
+	"+="                               { return symbol(TokenType.PLUS_EQ); }
+	"-="                               { return symbol(TokenType.MINUS_EQ); }
+	"*="                               { return symbol(TokenType.MULT_EQ); }
+	"++"                               { return symbol(TokenType.PLUS_PLUS); }
+	"--"                               { return symbol(TokenType.MINUS_MINUS); }
 	"-->"                              { return symbol(TokenType.ARROW); }
 	{DIGIT}+                          { return symbol(TokenType.INTEGER_LITERAL, Utils.parseInt(yytext())); }
 	"0x" [0-9a-fA-F]+                          { return symbol(TokenType.INTEGER_LITERAL, Utils.parseHexInt(yytext())); }
