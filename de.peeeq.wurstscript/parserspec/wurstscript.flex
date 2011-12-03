@@ -44,10 +44,6 @@ import java.util.Stack;
 	private Symbol symbol(int type, Object value) {
 		Symbol s = new Symbol(type, yyline+1, yycolumn, value);
 		if (inPackage) {
-			System.out.println("sym = " +	ExtendedParser.symbolToString(s));
-			System.out.println("	" +	(isStart ? "start" : "notstart"));
-			System.out.println("	space = " + currentLineWhiteSpace);
-			System.out.println("	stack = " + indentationLevels.peek());
 			if (type == TokenType.LPAR) {
 				numberOfParantheses++;
 			} else if (type == TokenType.RPAR) {
