@@ -1,0 +1,14 @@
+package testpackage
+		
+		function abc() returns string
+			return "blub"
+			
+		function foo()
+			string s = abc()
+			bar(abc())
+			
+		function bar(string st)
+			int i = 0
+			
+endpackage
+
