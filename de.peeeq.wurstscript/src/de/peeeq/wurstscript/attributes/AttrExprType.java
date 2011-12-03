@@ -21,7 +21,9 @@ import de.peeeq.wurstscript.ast.ExprThis;
 import de.peeeq.wurstscript.ast.ExprUnary;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
+import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
+import de.peeeq.wurstscript.ast.FunctionImplementation;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NoTypeExpr;
@@ -133,17 +135,23 @@ public class AttrExprType {
 			@Override
 			public PscriptType case_ExprThis(ExprThis term)  {
 				// find nearest class definition
-				AstElement pos = term;
-				while (pos != null) {
+				ClassOrModule pos = term.attrNearestClassOrModule();
+				if (pos != null) {
 					if (pos instanceof ClassDef) {
 						return new PscriptTypeClass((ClassDef) pos);
 					}
 					if (pos instanceof ModuleDef) {
 						return new PscriptTypeModule((ModuleDef) pos);
 					}
-					pos = pos.getParent();
+				} else {
+					FunctionImplementation func = term.attrNearestFuncDef();
+					if (func instanceof ExtensionFuncDef) {
+						ExtensionFuncDef extensionFuncDef = (ExtensionFuncDef) func;
+						return extensionFuncDef.getExtendedType().attrTyp();
+					}
 				}
-				attr.addError(term.getSource(), "'this' can only be used inside methods");
+				
+				attr.addError(term.getSource(), "The keyword 'this' can only be used inside methods.");
 				return PScriptTypeUnknown.instance();
 			}
 

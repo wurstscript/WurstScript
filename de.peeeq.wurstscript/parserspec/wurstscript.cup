@@ -201,7 +201,7 @@ Entity ::=
 		{: RESULT = x; :}
 	| ModuleDef:x
 		{: RESULT = x; :}
-	| Modifiers:mod TypeExpr:t DOT FUNCTION:x FuncSignature:sig NL INDENT Statements:body UNINDENT
+	| Modifiers:mod FUNCTION:x TypeExpr:t DOT FuncSignature:sig NL INDENT Statements:body UNINDENT
 		{: RESULT = Ast.ExtensionFuncDef(pos(xleft, xright), mod, t, sig, body); :}
 ;		
 

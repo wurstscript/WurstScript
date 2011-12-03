@@ -283,7 +283,7 @@ AstElement.attrNearestPackage
 
 
 AstElement.attrNearestFuncDef
-	returns FuncDef
+	returns FunctionImplementation
 	implemented by de.peeeq.wurstscript.attributes.AttrNearestFuncDef.calculate
 
 ModuleUse.attrModuleDef

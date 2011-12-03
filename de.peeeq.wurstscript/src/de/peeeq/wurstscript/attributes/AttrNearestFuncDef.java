@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.FunctionImplementation;
 
 
 
@@ -11,12 +12,15 @@ import de.peeeq.wurstscript.ast.FuncDef;
  */
 public class AttrNearestFuncDef {
 	
-	public static  FuncDef calculate(AstElement node) {
+	public static  FunctionImplementation calculate(AstElement node) {
 		if (node == null) {
 			return null;
 		}
-		if (node instanceof FuncDef) {
-			return (FuncDef) node;
+		if (node instanceof FunctionImplementation) {
+			return (FunctionImplementation) node;
+		}
+		if (node.getParent() == null) {
+			return null;
 		}
 		return node.getParent().attrNearestFuncDef();
 	}

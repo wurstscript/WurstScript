@@ -727,7 +727,7 @@ public class JassTranslator {
 				} else if (leftType instanceof PScriptTypeModuleDefinition) {
 					return translateModuleFunctionCall(context, f, exprMemberMethod);
 				} else {
-					throw new Error("not implemented for left side " + leftType);
+					return translateDynamicFunctionCall(context, f, exprMemberMethod);
 				}
 			}
 

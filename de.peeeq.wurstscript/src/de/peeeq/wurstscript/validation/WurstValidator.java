@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
+import de.peeeq.wurstscript.ast.FunctionImplementation;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.ModStatic;
@@ -208,7 +209,11 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 
 	@Override
 	public void visit(StmtReturn s) {
-		FuncDef func = s.attrNearestFuncDef();
+		FunctionImplementation func = s.attrNearestFuncDef();
+		if (func == null) {
+			attr.addError(s.getSource(), "return statements can only be used inside functions");
+			return;
+		}
 		PscriptType returnType = func.getSignature().getTyp().attrTyp();
 		if (s.getObj() instanceof Expr) {
 			Expr returned = (Expr) s.getObj();

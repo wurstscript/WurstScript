@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
+import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FuncRef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
@@ -18,6 +19,7 @@ import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.types.PScriptTypeClassDefinition;
 import de.peeeq.wurstscript.types.PScriptTypeModuleDefinition;
+import de.peeeq.wurstscript.types.PScriptTypeUnknown;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
 
@@ -87,10 +89,22 @@ public class AttrFuncDef {
 						FuncDefInstance f = selectOverloadedFunction(node, functions.get(funcName));
 						return f;
 					}
-				} else {
-					// only valid as long as there are no extension functions 
-					attr.addError(left.getSource(), "Cannot use the dot operator on receiver of type " + leftType.getClass() + " " + leftType);
+				} 
+//				else {
+//					// only valid as long as there are no extension functions 
+//					attr.addError(left.getSource(), "Cannot use the dot operator on receiver of type " + leftType.getClass() + " " + leftType);
+//				}
+				
+				// check extension methods:
+				WScope scope = Scoping.getNearestScope(node);
+				while (scope != null) {
+					Multimap<String, FuncDefInstance> functions = scope.attrScopeFunctions();
+					if (functions.containsKey(funcName)) {
+						return selectExtensionFunction(left.attrTyp(), functions.get(funcName));
+					}
+					scope = Scoping.getNearestScope(scope);
 				}
+				
 				
 				
 				// TODO check extension functions
@@ -145,6 +159,32 @@ public class AttrFuncDef {
 		
 		if (result == null) {
 			attr.addError(node.getSource(), "Could not resolve reference to function " + funcName);
+		}
+		return result;
+	}
+
+	protected static FuncDefInstance selectExtensionFunction(PscriptType receiverTyp, Collection<FuncDefInstance> functions) {
+		FuncDefInstance result = null;
+		PscriptType resultType = null;
+		for (FuncDefInstance f : functions) {
+			if (f.getDef() instanceof ExtensionFuncDef) {
+				ExtensionFuncDef extensionFuncDef = (ExtensionFuncDef) f.getDef();
+				PscriptType fTyp = extensionFuncDef.getExtendedType().attrTyp();
+				if (receiverTyp.isSubtypeOf(fTyp)) {
+					// function is suitable
+					if (result == null) {
+						result = f;
+						resultType = fTyp;
+					} else {
+						// we have already found an other function, check if this one is more specific:
+						if (fTyp.isSubtypeOf(resultType)) {
+							// -> this function is more specific
+							result = f;
+							resultType = fTyp;
+						}
+					}
+				}
+			}
 		}
 		return result;
 	}
