@@ -84,10 +84,7 @@ public class AttrAllFunctions {
 				// remove all the functions which are already defined
 				Collection<FuncDefInstance> removed =  Lists.newLinkedList();// result.removeAll(funcName); // TODO check if this function really removes everything
 				for (FuncDefInstance o_f : result.get(funcName)) {
-					System.out.println("o_f = " + Utils.printContext(o_f.getContext()) + " " + o_f.getDef().getSignature().getName());
-					System.out.println("	" + o_f.getVisibility());
 					if (!o_f.isPrivate()) {
-						System.out.println("	remove");
 						removed.add(o_f);
 						
 					}

@@ -6,8 +6,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
-public class MpqCl {
-	public static void extractFile(File mpqArchive, String fileToExtract, File tempFile) throws IOException, InterruptedException {
+public class MpqCl implements MpqEditor {
+	@Override
+	public void extractFile(File mpqArchive, String fileToExtract, File tempFile) throws IOException, InterruptedException {
 		Runtime rt = Runtime.getRuntime();
 		String[] commands = {"MpqCL.exe", "extract", mpqArchive.getAbsolutePath(), fileToExtract, tempFile.getAbsolutePath()};
 		Process proc = rt.exec(commands);
@@ -19,8 +20,8 @@ public class MpqCl {
 			WLogger.info(line);
 		}
 	}
-	
-	public static void insertFile(File mpqArchive, String filenameInMpq, File tempFile) throws IOException, InterruptedException {
+	@Override
+	public void insertFile(File mpqArchive, String filenameInMpq, File tempFile) throws IOException, InterruptedException {
 		Runtime rt = Runtime.getRuntime();
 		String[] commands = {"MpqCL.exe", "inject", mpqArchive.getAbsolutePath(), filenameInMpq, tempFile.getAbsolutePath()};
 		Process proc = rt.exec(commands);
@@ -31,5 +32,11 @@ public class MpqCl {
 		while ((line = procOutReader.readLine()) != null) {
 			WLogger.info(line);
 		}
+	}
+	@Override
+	public void deleteFile(File mpqArchive, String filenameInMpq)
+			throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		throw new Error("not implemented");
 	}
 }

@@ -58,6 +58,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 
 import de.peeeq.immutablecollections.ImmutableList;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
@@ -182,7 +183,7 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class JassTranslator {
 
-	private static final boolean debug = true;
+	private static final boolean debug = false;
 	protected static final ImmutableList<ClassOrModule> ROOT_CONTEXT = ImmutableList.<ClassOrModule>emptyList();
 	private JassManager manager;
 	private CompilationUnit wurstProg;
@@ -328,7 +329,7 @@ public class JassTranslator {
 		
 		JassFunction mainFunction = null;
 		for (JassFunction f : prog.getFunctions()) {
-			if (f.getName().equals("main") && f.getParent() instanceof CompilationUnit) {
+			if (f.getName().equals("main")) {
 				mainFunction = f;
 			}
 		}
@@ -343,7 +344,8 @@ public class JassTranslator {
 		JassStatements body = mainFunction.getBody();
 		
 		// call the initGlobals function
-		body.add(JassStmtCall(initGlobalsFunc.getName(), JassExprlist()));
+		body.add(0, JassStmtCall(initGlobalsFunc.getName(), JassExprlist()));
+		calledFunctions.put(mainFunction, initGlobalsFunc);
 		
 
 		// sort init functions according to import hierarchy
@@ -722,16 +724,11 @@ public class JassTranslator {
 	}
 	
 	private ImmutableList<ClassOrModule> getVarContext(	ImmutableList<ClassOrModule> currentContext, PscriptType leftType) {
-		System.out.println("getting var context of "+ leftType);		
 		ClassDef c = null;
 		if (leftType instanceof PscriptTypeClass) {
-			System.out.println("	-> class member");
 			c = ((PscriptTypeClass) leftType).getClassDef();
 		} else if (leftType instanceof PScriptTypeClassDefinition) {
-			System.out.println("	-> static class member");
 			c = ((PscriptTypeClass) leftType).getClassDef();
-		} else {
-			System.out.println("	-> typ = " + leftType);
 		}
 		if (c != null) {
 			// class variables are always in the class-context: 
@@ -1361,8 +1358,8 @@ protected List<String> getParameterTypes(WParameters params) {
 	 * returns if a position is in common.j or blizzard.j
 	 */
 	private boolean isCommonOrBlizzard(WPos source) {
-		return source.getFile().endsWith("common.j")
-				|| source.getFile().endsWith("blizzard.j");
+		return source.getFile().toLowerCase().endsWith("common.j")
+				|| source.getFile().toLowerCase().endsWith("blizzard.j");
 	}
 
 	private boolean isArray(VarDef v) {
@@ -1447,7 +1444,7 @@ protected List<String> getParameterTypes(WParameters params) {
 
 	private void trace(String string) {
 		if (debug) {
-			System.out.println(string);
+			WLogger.info(string);
 		}
 	}
 

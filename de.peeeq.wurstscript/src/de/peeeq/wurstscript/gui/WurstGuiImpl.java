@@ -246,7 +246,6 @@ public class WurstGuiImpl implements WurstGui {
 						
 						if (errorListModel.size() == 0) {
 							// if we have no errors we can just quit
-							System.out.println("closing .. ");
 							dispose();							
 						}
 					}
@@ -284,7 +283,6 @@ public class WurstGuiImpl implements WurstGui {
 
 	@Override
 	public void sendFinished() {
-		System.out.println("FIFNSIS");
 		currentlyWorkingOn = "Finished";
 		progress = 1.0;
 		finished = true;

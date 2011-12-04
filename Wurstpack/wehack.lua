@@ -399,16 +399,17 @@ grim.log("running tool on save: "..cmdargs)
 	end
 	if havewurst and wurst_enable.checked then
 		cmdline = "wurstscript\\wurstscript.exe"
+		cmdline = cmdline .. " -gui"
 		if wurst_debug.checked then
 			--cmdline = cmdline .. " --debug"
 		end
-		if wurst_disable.checked then
+		--if wurst_disable.checked then
 			--cmdline = cmdline .. " --nopreprocessor"
+		--end
+		if wurst_optenable.checked then
+			cmdline = cmdline .. " -opt"
 		end
-		if wurst_disableopt.checked then
-			--cmdline = cmdline .. " --nooptimize"
-		end
-		cmdline = cmdline .. " wurstscript\\natives_bj.pscript \"" .. mappath .."\""
+		cmdline = cmdline .. " wurstscript\\common.j wurstscript\\Blizzard.j \"" .. mappath .."\""
 		toolresult = 0
 --		if wurst_fast ~= nil and wurst_fast.checked then
 --			toolresult = wehack.runjasshelper(wurst_debug.checked, wurst_disable.checked, "jasshelper\\common.j", "jasshelper\\blizzard.j", mappath, "")
