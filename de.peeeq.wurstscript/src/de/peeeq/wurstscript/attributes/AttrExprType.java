@@ -471,9 +471,9 @@ public class AttrExprType {
 			public PscriptType case_ExprCast(ExprCast term)  {
 				PscriptType typ = term.getTyp().attrTyp();
 				PscriptType exprTyp = term.getExpr().attrTyp();
-				if (typ instanceof PScriptTypeInt && exprTyp instanceof PscriptTypeClass) {
+				if (typ instanceof PScriptTypeInt && isClassOrModule(exprTyp)) {
 					// cast from classtype to int: OK
-				} else if (typ instanceof PscriptTypeClass && exprTyp instanceof PScriptTypeInt) {
+				} else if (isClassOrModule(typ) && exprTyp instanceof PScriptTypeInt) {
 					// cast from int to classtype: OK
 				} else {
 					attr.addError(term.getSource(), "Cannot cast from " + exprTyp + " to " + typ + ".");
@@ -481,6 +481,11 @@ public class AttrExprType {
 				return typ;
 			}
 		});
+	}
+
+	protected static boolean isClassOrModule(PscriptType typ) {
+		return typ instanceof PscriptTypeClass 
+				|| typ instanceof PscriptTypeModule;
 	}
 
 }

@@ -50,28 +50,38 @@ public class PscriptTest {
 		if (name.length() == 0) {
 			name = Utils.getMethodName(1);
 		}
-		String errors = testScript(new StringReader(prog), this.getClass().getSimpleName() + "_" + name, executeProg);
+		String errors = testScript(new StringReader(prog), this.getClass().getSimpleName() + "_" + name, executeProg, false);
 		Assert.assertEquals("", errors);
 	}
 
 	public void testAssertOkFile(File file, boolean executeProg) throws IOException {
 		Reader reader= new FileReader(file);
-		String errors = testScript(reader, file.getName(), executeProg);
+		String errors = testScript(reader, file.getName(), executeProg, false);
+		reader.close();
+		Assert.assertEquals("", errors);
+	}
+	
+	public void testAssertOkFileWithStdLib(File file, boolean executeProg) throws IOException {
+		Reader reader= new FileReader(file);
+		String errors = testScript(reader, file.getName(), executeProg, true);
 		reader.close();
 		Assert.assertEquals("", errors);
 	}
 
 	public void testAssertErrors(String name, boolean executeProg, String prog, String errorMessage) {
 		name = Utils.getMethodName(2);
-		String errors = testScript(new StringReader(prog), this.getClass().getSimpleName() + "_" + name, executeProg);
+		String errors = testScript(new StringReader(prog), this.getClass().getSimpleName() + "_" + name, executeProg, false);
 		Assert.assertTrue("No errors were discovered", errors.length() > 0);
 		Assert.assertTrue(errors, errors.contains(errorMessage));
 	}
 
-	protected String testScript(Reader input, String name, boolean executeProg) {
+	protected String testScript(Reader input, String name, boolean executeProg, boolean withStdLib) {
 		boolean success = false;
 		WurstGuiLogger gui = new WurstGuiLogger();
 		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui);
+		if (withStdLib) {
+			compiler.loadFiles(new File("./lib/common.j"), new File("./lib/blizzard.j"));
+		}
 		compiler.loadStreams(input);
 		compiler.parseFiles();
 		JassProg prog = compiler.getProg();
@@ -162,6 +172,9 @@ public class PscriptTest {
 		}
 		return "";
 	}
+
+
+	
 
 
 

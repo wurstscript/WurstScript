@@ -14,8 +14,8 @@ import de.peeeq.wurstscript.utils.UtilsTest;
 	UtilsTest.class,
 	ArrayTests.class,
 	ExpressionTests.class,
-	ClassesTests.class
-	
+	ClassesTests.class,
+	RealWorldExamples.class
 })
 public class AllTests {
 

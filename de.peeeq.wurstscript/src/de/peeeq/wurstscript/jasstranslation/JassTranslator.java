@@ -49,6 +49,8 @@ import java.util.Map;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -134,8 +136,10 @@ import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.TopLevelDeclaration;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WEntity;
+import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.ast.WParameters;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.attributes.FuncDefInstance;
@@ -185,9 +189,11 @@ public class JassTranslator {
 	private JassVars globals;
 	private JassFunctions functions;
 	private List<GlobalInit> globalInitializers = Lists.newLinkedList();
-	private Map<WPackage, JassFunction> initFunctions = Maps.newHashMap();
-	private SetMultimap<JassFunction, JassFunction> calledFunctions = HashMultimap.create();
+	private BiMap<WPackage, JassFunction> initFunctions = HashBiMap.create();
+	private Multimap<JassFunction, JassFunction> calledFunctions = HashMultimap.create();
+	private Multimap<WPackage, WPackage> importedPackages = HashMultimap.create();
 	private JassFunction initGlobalsFunc;
+	private Collection<WPackage> packages = Lists.newLinkedList();
 	
 	
 	public JassTranslator(CompilationUnit wurstProgram) {
@@ -332,14 +338,20 @@ public class JassTranslator {
 		// finish main function:
 		
 		JassStatements body = mainFunction.getBody();
-	
+		
 		// call the initGlobals function
 		body.add(JassStmtCall(initGlobalsFunc.getName(), JassExprlist()));
 		
+
+		// sort init functions according to import hierarchy
+		List<WPackage> packagesSorted = Utils.topSortIgnoreCycles(packages , importedPackages);
+		
 		// call all initializers:
-		// TODO sort init functions according to import hierarchy
-		for (JassFunction f : initFunctions.values()) {
-			body.add(JassStmtCall(f.getName(), JassExprlist()));
+		for (WPackage p : packagesSorted) {
+			JassFunction f = initFunctions.get(p);
+			if (f != null) {
+				body.add(JassStmtCall(f.getName(), JassExprlist()));
+			}
 		}
 		
 	
@@ -748,7 +760,7 @@ public class JassTranslator {
 				JassFunction constructorJassFunc = manager.getJassConstructorFor(constructorFunc);
 				
 				JassExprlist arguments = JassExprlist(); 
-				ExprListTranslationResult args = translateArguments(context, f, exprNewObject.getArgs());
+				ExprListTranslationResult args = translateArguments(context, f, exprNewObject.getArgs(), getParameterTypes(constructorFunc.getParams()));
 				List<JassStatement> statements = Lists.newLinkedList();
 				statements.addAll(args.getStatements());
 				arguments.addAll(args.getExprs());
@@ -794,7 +806,7 @@ public class JassTranslator {
 					arguments.add(JassExprVarAccess("this"));
 				}
 				
-				ExprListTranslationResult args = translateArguments(context, f, exprFunctionCall.getArgs());
+				ExprListTranslationResult args = translateArguments(context, f, exprFunctionCall.getArgs(), getParameterTypes(calledFunc.getDef().getSignature().getParameters()));
 				arguments.addAll(args.getExprs());
 				return new ExprTranslationResult(
 						args.getStatements(),
@@ -974,6 +986,14 @@ public class JassTranslator {
 	}
 
 
+protected List<String> getParameterTypes(WParameters params) {
+	List<String> result = Lists.newArrayListWithCapacity(params.size());
+	for (WParameter p : params) {
+		result.add(translateType(p.getTyp()));
+	}
+	return result;
+}
+
 //	/**
 //	 * get the real func def instance, where the context is measured from the root
 //	 * @param context the context of the call
@@ -1060,7 +1080,7 @@ public class JassTranslator {
 		
 		// translate arguments:			
 		List<JassStatement> statements = Lists.newLinkedList();
-		ExprListTranslationResult args = translateArguments(context, f, exprMemberMethod.getArgs());
+		ExprListTranslationResult args = translateArguments(context, f, exprMemberMethod.getArgs(), getParameterTypes(calledFunc.getDef().getSignature().getParameters()));
 		statements.addAll(args.getStatements());
 		arguments.addAll(args.getExprs());
 		
@@ -1083,7 +1103,7 @@ public class JassTranslator {
 		List<JassStatement> statements = Lists.newLinkedList();
 		
 		// translate arguments:			
-		ExprListTranslationResult args = translateArguments(context, f, exprMemberMethod.getArgs());
+		ExprListTranslationResult args = translateArguments(context, f, exprMemberMethod.getArgs(), getParameterTypes(calledFunc.getDef().getSignature().getParameters()));
 		statements.addAll(args.getStatements());
 		arguments.addAll(args.getExprs());
 		
@@ -1111,7 +1131,7 @@ public class JassTranslator {
 		arguments.addFront(e.getExpr());
 		
 		// translate arguments:			
-		ExprListTranslationResult args = translateArguments(context, f, exprMemberMethod.getArgs());
+		ExprListTranslationResult args = translateArguments(context, f, exprMemberMethod.getArgs(), getParameterTypes(calledFunc.getDef().getSignature().getParameters()));
 		statements.addAll(args.getStatements());
 		arguments.addAll(args.getExprs());
 		
@@ -1229,13 +1249,11 @@ public class JassTranslator {
 	 * will use statements too
 	 * @param f 
 	 */
-	protected ExprListTranslationResult translateArguments(ImmutableList<ClassOrModule> context, JassFunction f, Arguments args) {
+	protected ExprListTranslationResult translateArguments(ImmutableList<ClassOrModule> context, JassFunction f, Arguments args, List<String> types) {
 		List<ExprTranslationResult> translations = Lists.newLinkedList();
-		List<String> types = Lists.newLinkedList();
 		int lastTranslationWithStatements = 0;
 		int i = 0;
 		for (Expr arg : args) {
-			types.add(translateType(arg.attrTyp()));
 			ExprTranslationResult translation = translateExpr(context, f, arg);
 			if (translation.getStatements().size() > 0) {
 				lastTranslationWithStatements = i;
@@ -1342,6 +1360,12 @@ public class JassTranslator {
 	}
 
 	protected void translatePackage(WPackage wPackage) {
+		packages.add(wPackage);
+		for (WImport imp : wPackage.getImports()) {
+			WPackage importedPackage = attr.getImportedPackage(imp);
+			importedPackages.put(wPackage, importedPackage);
+		}
+		
 		for (WEntity elem : wPackage.getElements()) {
 			elem.match(new WEntity.MatcherVoid() {
 				
