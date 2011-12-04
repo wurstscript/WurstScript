@@ -1,5 +1,11 @@
 package de.peeeq.wurstscript.utils;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -8,13 +14,14 @@ import java.util.List;
 import java.util.Set;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 import de.peeeq.immutablecollections.ImmutableList;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.attributes.CompileError;
 
 public class Utils {
 
@@ -377,6 +384,37 @@ public class Utils {
 		result.add(item);
 	}
 
+	public static void saveToFile(Object object, String filename) {
+		FileOutputStream fos = null;
+		ObjectOutputStream out = null;
+		try {
+			fos = new FileOutputStream(filename);
+			out = new ObjectOutputStream(fos);
+			out.writeObject(object);
+			out.close();
+		} catch (IOException e) {
+			WLogger.info(e);
+		}
+
+	}
+
+	
+	public static Object loadFromFile(String filename) {
+		FileInputStream fos = null;
+		ObjectInputStream out = null;
+		Object obj = null;
+		try {
+			fos = new FileInputStream(filename);
+			out = new ObjectInputStream(fos);
+			obj = out.readObject();
+			out.close();
+		} catch (IOException e) {
+			WLogger.info(e);
+		} catch (ClassNotFoundException e) {
+			WLogger.info(e);
+		}
+		return obj;
+	}
 
 
 }

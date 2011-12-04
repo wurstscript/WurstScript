@@ -1,7 +1,9 @@
 package de.peeeq.wurstscript.gui;
 
+import java.util.Collections;
 import java.util.List;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.attributes.CompileError;
@@ -37,6 +39,11 @@ public class WurstGuiCliImpl implements WurstGui {
 	@Override
 	public String getErrors() {
 		return Utils.join(errors, "\n");
+	}
+
+	@Override
+	public List<CompileError> getErrorList() {
+		return Lists.newLinkedList(errors);
 	}
 
 }

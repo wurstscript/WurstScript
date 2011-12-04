@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript;
 
+import java.io.IOException;
+
 import javax.swing.JOptionPane;
 
 import org.apache.log4j.DailyRollingFileAppender;
@@ -43,6 +45,11 @@ public class WLogger {
 
 	public static void severe(Throwable t) {
 		logger.error("Error", t);
+	}
+
+	public static void info(Throwable e) {
+		logger.info(e);
+		
 	}
 	
 }

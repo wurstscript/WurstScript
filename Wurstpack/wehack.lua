@@ -104,7 +104,7 @@ if havewurst then
 	  	wehack.execprocess("wurstscript\\wurstscript.exe --about")
 	end
 	
-  wurstshowerrm = MenuEntry:New(wurstmenu,"Show previous errors",wurstshowerr)
+  -- TODO wurstshowerrm = MenuEntry:New(wurstmenu,"Show previous errors",wurstshowerr)
   wurstaboutm = MenuEntry:New(wurstmenu,"About WurstScript ...",wurstabout)
 end
 -- ##EndWurstScript##

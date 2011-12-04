@@ -11,18 +11,25 @@ public class RunArgs {
 	private boolean gui = false;
 	private String mapFile = null;
 	private String outFile = null;
+	private boolean showAbout = false;
+	private boolean showLastErrors = false;
 	
 	public RunArgs(String[] args) {
 		for (int i=0; i<args.length; i++) {
 			String a = args[i];
 			if (a.startsWith("-")) {
-				if (a.equals("-optimize")) {
+				if (a.equals("-opt")) {
 					this.optimize = true;
 				} else if (a.equals("-gui")) {
 					this.gui = true;
 				} else if (a.equals("-out")) {
 					i++;
 					this.outFile = args[i];
+				} else if (a.equals("--about")) {
+					this.showAbout = true;			
+				} else if (a.equals("--showerrors")) {
+					this.showLastErrors = true;
+					
 				} else {
 					throw new Error("Unknown option: " + a);
 				}
@@ -55,6 +62,13 @@ public class RunArgs {
 		return outFile;
 	}
 
+	public boolean showAbout() {
+		return showAbout;
+	}
+
+	public boolean showLastErrors() {
+		return showLastErrors;
+	}
 
 
 }

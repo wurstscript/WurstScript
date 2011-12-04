@@ -5,10 +5,14 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Image;
 import java.awt.Toolkit;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -18,6 +22,7 @@ import javax.swing.BoxLayout;
 import javax.swing.DefaultListModel;
 import javax.swing.JFrame;
 import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
@@ -33,16 +38,19 @@ import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 
+import com.google.common.collect.Lists;
+
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class WurstGuiImpl implements WurstGui {
 
-	private Queue<CompileError> errors = new ConcurrentLinkedQueue<CompileError>();
+	private volatile Queue<CompileError> errorQueue = new ConcurrentLinkedQueue<CompileError>();
+	private List<CompileError> errors = Lists.newLinkedList(); // this is not concurrent, because we only use this list from the main thread
 	private volatile double progress = 0.0;
 	private volatile boolean finished = false;
-	private String currentlyWorkingOn = "";
+	private volatile String currentlyWorkingOn = "";
 
 	
 	@Override
@@ -56,6 +64,7 @@ public class WurstGuiImpl implements WurstGui {
 	}
 	
 	class TheGui extends JFrame implements Runnable {
+		private boolean errors = false; // shadow the errors variable, so we do not use it by accident
 		private static final long serialVersionUID = 1501435979514614061L;
 		private DefaultListModel errorListModel;
 		private JProgressBar progressBar;
@@ -88,12 +97,13 @@ public class WurstGuiImpl implements WurstGui {
 			
 
 			add(pane);
-			setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE); // CHECK maybe not a good idea
+			setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 			this.setSize(800, 600);
 			//			pack();
 			setVisible(true);
 		}
 
+		
 		private Component errorDetailsPanel() {
 			errorDetailsPanel = new JTextArea();
 			errorDetailsPanel.setLineWrap(true);
@@ -213,7 +223,7 @@ public class WurstGuiImpl implements WurstGui {
 
 		@Override
 		public void run() {
-			while (!finished || !errors.isEmpty()) {
+			while (!finished || !errorQueue.isEmpty()) {
 				Utils.sleep(500);
 
 				try {
@@ -221,7 +231,7 @@ public class WurstGuiImpl implements WurstGui {
 					SwingUtilities.invokeAndWait(new Runnable() {
 						@Override
 						public void run() {
-							for (CompileError elem = errors.poll() ;elem != null; elem = errors.poll()) {
+							for (CompileError elem = errorQueue.poll() ;elem != null; elem = errorQueue.poll()) {
 								if (errorListModel.isEmpty()) {
 									viewErrorDetail(elem);
 								}
@@ -242,7 +252,7 @@ public class WurstGuiImpl implements WurstGui {
 					public void run() {
 						progressBar.setValue(100);
 						progressBar.setEnabled(false);
-						setTitle("closing ... ");
+						setTitle("Compilation finished.");
 						
 						if (errorListModel.size() == 0) {
 							// if we have no errors we can just quit
@@ -267,6 +277,7 @@ public class WurstGuiImpl implements WurstGui {
 
 	@Override
 	public void sendError(CompileError err) {
+		errorQueue.add(err);
 		errors.add(err);
 	}
 
@@ -288,4 +299,8 @@ public class WurstGuiImpl implements WurstGui {
 		finished = true;
 	}
 
+	@Override
+	public List<CompileError> getErrorList() {
+		return Lists.newLinkedList(errors);
+	}
 }

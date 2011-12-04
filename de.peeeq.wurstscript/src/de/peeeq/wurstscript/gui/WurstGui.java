@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.gui;
 
+import java.util.List;
+
 import de.peeeq.wurstscript.attributes.CompileError;
 
 public interface WurstGui {
@@ -13,6 +15,8 @@ public interface WurstGui {
 	int getErrorCount();
 
 	String getErrors();
+
+	List<CompileError> getErrorList();
 	
 
 }

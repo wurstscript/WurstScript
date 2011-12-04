@@ -1,6 +1,9 @@
 package de.peeeq.wurstscript.gui;
 
+import java.util.Collections;
 import java.util.List;
+
+import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.utils.NotNullList;
@@ -34,6 +37,11 @@ public class WurstGuiLogger implements WurstGui {
 
 	public int getErrorCount() {
 		return errors.size();
+	}
+	
+	@Override
+	public List<CompileError> getErrorList() {
+		return Lists.newLinkedList(errors);
 	}
 
 }

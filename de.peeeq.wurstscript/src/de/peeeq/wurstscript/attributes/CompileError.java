@@ -1,10 +1,13 @@
 package de.peeeq.wurstscript.attributes;
 
 import java.io.File;
+import java.io.Serializable;
 
 import de.peeeq.wurstscript.ast.WPos;
 
-public class CompileError extends Error {
+public class CompileError extends Error implements Serializable {
+	private static final long serialVersionUID = 5589441532198109034L;
+	
 	private WPos source;
 	private String message;
 	
