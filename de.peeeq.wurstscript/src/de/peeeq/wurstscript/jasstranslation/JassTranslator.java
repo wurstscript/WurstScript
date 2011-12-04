@@ -140,6 +140,7 @@ import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WParameters;
+import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.attributes.FuncDefInstance;
@@ -308,9 +309,11 @@ public class JassTranslator {
 		}
 		
 		for (GlobalInit gi : globalInitializers) {
-			ExprTranslationResult e = translateExpr(gi.context, initGlobalsFunc, gi.initialExpr);
-			body.addAll(e.getStatements());
-			body.add(JassStmtSet(gi.v.getName(), e.getExpr()));
+			if (! prog.attrIgnoredVariables().contains(gi.v)) {
+				ExprTranslationResult e = translateExpr(gi.context, initGlobalsFunc, gi.initialExpr);
+				body.addAll(e.getStatements());
+				body.add(JassStmtSet(gi.v.getName(), e.getExpr()));
+			}
 		}
 		
 	}
@@ -398,7 +401,8 @@ public class JassTranslator {
 		JassFunction f = manager.getJassFunctionFor(context, funcDef);
 		f.setReturnType(translateType(funcDef.getSignature().getTyp()));
 		
-		f.getParams().add(jassThisVar());
+		// add implicit parameter 'this'
+		f.getParams().add(JassAst.JassSimpleVar(translateType(funcDef.getExtendedType().attrTyp()), "this"));
 		
 		for (WParameter param : funcDef.getSignature().getParameters()) {
 			f.getParams().add(translateParam(context, param));
@@ -414,6 +418,11 @@ public class JassTranslator {
 		}
 		trace("translateFuncDef " + Utils.printContext(context) + " -> " + funcDef.getSignature().getName());
 		JassFunction f = manager.getJassFunctionFor(context, funcDef);
+		
+		if (isCommonOrBlizzard(funcDef.getSource())) {
+			prog.attrIgnoredFunctions().add(f);
+		}
+		
 		f.setReturnType(translateType(funcDef.getSignature().getTyp()));
 		if (isMethod && !funcDef.attrIsStatic()) {
 			// methods have an additional implicit parameter
@@ -1337,10 +1346,23 @@ protected List<String> getParameterTypes(WParameters params) {
 	private void translateGlobalVariable(ImmutableList<ClassOrModule> context, GlobalVarDef v) {
 		JassVar jassVar = manager.getJassVarFor(context, v, translateType(v.attrTyp()), isArray(v));
 		prog.getGlobals().add(jassVar);
+		
+		if (isCommonOrBlizzard(v.getSource())) {
+			prog.attrIgnoredVariables().add(jassVar);
+		}
+		
 		if (v.getInitialExpr() instanceof Expr) {
 			Expr expr = (Expr) v.getInitialExpr();
 			globalInitializers.add(new GlobalInit(context, jassVar, expr));
 		}
+	}
+
+	/**
+	 * returns if a position is in common.j or blizzard.j
+	 */
+	private boolean isCommonOrBlizzard(WPos source) {
+		return source.getFile().endsWith("common.j")
+				|| source.getFile().endsWith("blizzard.j");
 	}
 
 	private boolean isArray(VarDef v) {

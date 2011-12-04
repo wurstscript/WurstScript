@@ -17,7 +17,7 @@ package TimerUtils
 		
 	
 	function timer.getData() returns integer
-		LoadInteger(ht, 0, GetHandleId(this))
+		return LoadInteger(ht, 0, GetHandleId(this))
 	
 	
 	function timer.release()

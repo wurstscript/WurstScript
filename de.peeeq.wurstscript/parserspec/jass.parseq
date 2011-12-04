@@ -70,9 +70,13 @@ JassOp = JassOpBinary | JassOpUnary
 	
 attributes:
 
+JassProg.attrIgnoredVariables
+	returns java.util.Set<JassVar>
+	implemented by de.peeeq.wurstscript.attributes.JassAttributes.attrIgnoredVariables
 
-
-
+JassProg.attrIgnoredFunctions
+	returns java.util.Set<JassFunction>
+	implemented by de.peeeq.wurstscript.attributes.JassAttributes.attrIgnoredFunctions
 
 
 
