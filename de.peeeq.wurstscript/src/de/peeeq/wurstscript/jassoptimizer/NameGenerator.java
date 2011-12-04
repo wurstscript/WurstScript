@@ -55,6 +55,7 @@ public class NameGenerator {
     public String getUniqueToken() {
         String s = getToken();
         if (RestrictedCompressedNames.contains(s)){
+        	System.out.println("is restricted");
             // Wishful thinking, but normally this should work
             // there are only a handful of restricted names anyway.
             s = getToken();

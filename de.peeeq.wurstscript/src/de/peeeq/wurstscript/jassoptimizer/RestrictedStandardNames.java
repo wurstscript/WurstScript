@@ -9,7 +9,7 @@ public class RestrictedStandardNames {
 	
 	public static boolean contains(String s) {
 		for (int i = 0; i <= 4; i++) {
-			if ( names[i] == s) {
+			if ( names[i].equals(s)) {
 				return true;
 			}
 		}

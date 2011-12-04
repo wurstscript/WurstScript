@@ -1,8 +1,12 @@
 package de.peeeq.wurstscript.jassoptimizer;
 
+import java.io.BufferedOutputStream;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -49,7 +53,19 @@ public class JassOptimizerImpl implements JassOptimizer {
 	 */
 	public static void main(String ... args) throws IOException {
 
-		
+//		File fe = new File("./testscripts/valid/optimizer/optimizertest_5.pscript");
+//		
+//		BufferedWriter output = new BufferedWriter(new FileWriter(fe));
+//		output.write("package test");
+//		output.newLine();
+//
+//		for( int i = 0; i < 5000; i++) {
+//			output.write("    int var" + String.valueOf(i) );
+//			output.newLine();
+//		}
+//		
+//		output.write("endpackage");
+//		output.close();
 		
 		File dir = new File("./testscripts/valid/optimizer/");
 		
