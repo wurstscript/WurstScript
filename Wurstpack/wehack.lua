@@ -88,7 +88,7 @@ havewurst = grim.exists("wurstscript\\wurstscript.exe")
 if havewurst then
 	wurstmenu = wehack.addmenu("WurstScript")
 	wurst_enable = TogMenuEntry:New(wurstmenu,"Enable WurstScript",nil,true)
-	wurst_optenable = TogMenuEntry:New(wurstmenu,"Enable WurstOptimizer",nil,false)
+	wurst_optenable = TogMenuEntry:New(wurstmenu,"Enable Froptimizer",nil,false)
 	
 	wehack.addmenuseparator(wurstmenu)
 	

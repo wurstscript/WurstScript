@@ -1,0 +1,19 @@
+package test
+
+	native TriggerRegisterVariableEvent(int whichTrigger, string varName, int opcode, real limitval)
+
+	
+	function foo() 
+		int iii = 0
+		
+	function bar3() 
+		int iii = 0
+		
+	function ff() returns string
+		return "yes"
+		
+	init
+		TriggerRegisterVariableEvent( 1, "test_foo", 1, 100.0 )
+		TriggerRegisterVariableEvent( 1, "test_bar" + ff(), 1, 100.0 )
+		
+endpackage

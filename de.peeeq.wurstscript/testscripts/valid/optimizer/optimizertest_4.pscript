@@ -1,12 +1,17 @@
 package testpackage
 		
 		native ExecuteFunction(string func)
+		native I2S(int i) returns string
 		
 		function funcA()
 			ExecuteFunction("testpackage_funcB" + abc())
 			ExecuteFunction("testpackage_abc")
+			ExecuteFunction("testpackage_foo" + I2S(1289))
 			
 		function funcBblub() 
+			int i = 0
+			
+		function foobar() 
 			int i = 0
 			
 		function abc() returns string

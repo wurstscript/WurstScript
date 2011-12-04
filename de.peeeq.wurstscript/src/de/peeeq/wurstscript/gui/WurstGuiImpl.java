@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.gui;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Image;
+import java.awt.Toolkit;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
@@ -83,10 +85,10 @@ public class WurstGuiImpl implements WurstGui {
 			pane.add(errorDetailsPanel() );
 			pane.add(Box.createRigidArea(new Dimension(0,5)));
 			pane.add(sourceView());
-
+			
 
 			add(pane);
-			setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // CHECK maybe not a good idea
+			setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE); // CHECK maybe not a good idea
 			this.setSize(800, 600);
 			//			pack();
 			setVisible(true);

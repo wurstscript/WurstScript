@@ -59,7 +59,7 @@ public class JassOptimizerImpl implements JassOptimizer {
 //		output.write("package test");
 //		output.newLine();
 //
-//		for( int i = 0; i < 5000; i++) {
+//		for( int i = 0; i < 4000; i++) { // Got also tested with 132651
 //			output.write("    int var" + String.valueOf(i) );
 //			output.newLine();
 //		}
@@ -157,7 +157,7 @@ public class JassOptimizerImpl implements JassOptimizer {
 					usedFunctions.add(new StringExpressionPattern(argument));
 					if ( argument instanceof JassExprStringVal ){
 						String stringName = ((JassExprStringVal) argument).getVal();						
-						System.out.println(stringName + " used in TRVE");
+						System.out.println(stringName + " is USED IN TRVE <<<<<<<<<<<<<<<<");
 					}
 				}
 			}
@@ -183,6 +183,7 @@ public class JassOptimizerImpl implements JassOptimizer {
 					JassExpr argument = list.get(1);
 					if ( argument instanceof JassExprStringVal ){
 						String stringName = ((JassExprStringVal) argument).getVal();
+						
 						((JassExprStringVal) argument).setVal(replacements.get(stringName));
 					}
 				}
