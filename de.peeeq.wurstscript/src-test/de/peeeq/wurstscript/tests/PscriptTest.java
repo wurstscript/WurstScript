@@ -109,18 +109,19 @@ public class PscriptTest {
 			return pJassResult.getMessage();
 		}
 
-
-		try {
-			// run the interpreter
-			success = false;
-			JassInterpreter interpreter = new JassInterpreter();
-			interpreter.trace(true);
-			interpreter.LoadProgram(prog);
-			interpreter.executeFunction("main");
-		} catch (TestFailException e) {
-			return e.getVal();
-		} catch (TestSuccessException e)  {
-			success = true;
+		if (executeProg) {
+			try {
+				// run the interpreter
+				success = false;
+				JassInterpreter interpreter = new JassInterpreter();
+				interpreter.trace(true);
+				interpreter.LoadProgram(prog);
+				interpreter.executeFunction("main");
+			} catch (TestFailException e) {
+				return e.getVal();
+			} catch (TestSuccessException e)  {
+				success = true;
+			}
 		}
 
 		// run the optimizer:
@@ -152,18 +153,19 @@ public class PscriptTest {
 				return "Errors in optimized version: " + pJassResult.getMessage();
 			}
 		
-		
-			try {
-				success = false;
-				// run the interpreter with the optimized program
-				JassInterpreter interpreter = new JassInterpreter();
-				interpreter.trace(true);
-				interpreter.LoadProgram(prog);
-				interpreter.executeFunction("main");
-			} catch (TestFailException e) {
-				return e.getVal();
-			} catch (TestSuccessException e)  {
-				success = true;
+			if (executeProg) {
+				try {
+					success = false;
+					// run the interpreter with the optimized program
+					JassInterpreter interpreter = new JassInterpreter();
+					interpreter.trace(true);
+					interpreter.LoadProgram(prog);
+					interpreter.executeFunction("main");
+				} catch (TestFailException e) {
+					return e.getVal();
+				} catch (TestSuccessException e)  {
+					success = true;
+				}
 			}
 		}
 		

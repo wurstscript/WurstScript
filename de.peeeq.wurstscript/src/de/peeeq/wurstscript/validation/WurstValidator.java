@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExprNewObject;
+import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.FunctionImplementation;
@@ -143,6 +144,22 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 	}
 
 
+	@Override public void visit(ExtensionFuncDef func) {
+		
+		
+		checkReturn(func);
+		
+		
+	}
+
+	private void checkReturn(FunctionImplementation func) {
+		String functionName = func.getSignature().getName();
+		if (func.getSignature().getTyp() instanceof TypeExpr) {
+			if (!func.getBody().attrDoesReturn()) {
+				attr.addError(func.getSource(), "Function " + functionName + " is missing a return statement.");
+			}
+		}
+	}
 
 	@Override public void visit(FuncDef func) {
 		super.visit(func);
@@ -155,11 +172,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 				attr.addError(func.getBody().get(0).getSource(), "The abstract function " + functionName + " must not have any statements.");
 			}
 		} else { // not abstract
-			if (func.getSignature().getTyp() instanceof TypeExpr) {
-				if (!func.getBody().attrDoesReturn()) {
-					attr.addError(func.getSource(), "Function " + functionName + " is missing a return statement.");
-				}
-			}
+			checkReturn(func);
 		}
 
 

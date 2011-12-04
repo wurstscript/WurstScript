@@ -50,6 +50,7 @@ import de.peeeq.wurstscript.utils.Utils;
 public class JassPrinter {
 
 	private boolean withSpace;
+	private JassProg prog;
 
 
 	public JassPrinter(boolean withSpace) {
@@ -57,6 +58,7 @@ public class JassPrinter {
 	}
 	
 	public void printProg(StringBuilder sb, JassProg prog) {
+		this.prog = prog;
 		printGlobals(sb, prog.getGlobals());
 		printFunctions(sb, prog.getFunctions());
 	}
@@ -89,6 +91,9 @@ public class JassPrinter {
 	}
 
 	private void printJassGlobalVar(final StringBuilder sb, JassVar g) {
+		if (prog.attrIgnoredVariables().contains(g)) {
+			return;
+		}
 		g.match(new JassVar.MatcherVoid() {
 			
 			@Override
@@ -112,6 +117,9 @@ public class JassPrinter {
 
 
 	private void printFunction(StringBuilder sb, JassFunction f) {
+		if (prog.attrIgnoredFunctions().contains(f)) {
+			return;
+		}
 		sb.append("function ");
 		sb.append(f.getName());
 		sb.append(" takes ");
