@@ -22,6 +22,15 @@ public class StringExpressionPattern {
 		return name.matches(regexp);
 	}
 
+	/**
+	 * check if the pattern is constant
+	 * @param name the name to check
+	 * @return true, if the name matches this pattern
+	 */
+	public boolean isConst() {
+		return regexp.matches("[a-zA-Z0-9_]+");
+	}
+	
 	private String buildRegexp(JassExpr e) {
 		if (e instanceof JassExprStringVal) {
 			JassExprStringVal jassExprStringVal = (JassExprStringVal) e;

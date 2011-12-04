@@ -1,0 +1,16 @@
+package testpackage
+		
+		native ExecuteFunction(string func)
+		
+		function funcA()
+			ExecuteFunction("testpackage_funcB" + abc())
+			ExecuteFunction("testpackage_abc")
+			
+		function funcBblub() 
+			int i = 0
+			
+		function abc() returns string
+			return "hans"
+			
+endpackage
+

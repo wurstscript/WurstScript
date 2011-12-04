@@ -118,8 +118,8 @@ public class JassOptimizerImpl implements JassOptimizer {
 	}
 			
 	
-	public Set<String> getEverythingInEForTRVE(JassProg prg) {
-		final Set<String> usedFunctions = Sets.newHashSet(); 
+	public Set<StringExpressionPattern> getEverythingInEForTRVE(JassProg prg) {
+		final Set<StringExpressionPattern> usedFunctions = Sets.newHashSet(); 
 		prg.accept(new JassProg.DefaultVisitor() {
 			
 			@Override
@@ -130,17 +130,18 @@ public class JassOptimizerImpl implements JassOptimizer {
 					System.out.println("equals");
 					JassExprlist list = jassCall.getArguments();
 					JassExpr argument = list.get(0);
+					usedFunctions.add(new StringExpressionPattern(argument));
 					if ( argument instanceof JassExprStringVal ){
-						String stringName = ((JassExprStringVal) argument).getVal();
-						usedFunctions.add(stringName);
-						System.out.println(stringName);
+						String stringName = ((JassExprStringVal) argument).getVal();						
+						System.out.println(stringName + " used in EF");
 					}					
 				}else if ( funcname.equals( "TriggerRegisterVariableEvent")){
 					JassExprlist list = jassCall.getArguments();
 					JassExpr argument = list.get(1);
+					usedFunctions.add(new StringExpressionPattern(argument));
 					if ( argument instanceof JassExprStringVal ){
-						String stringName = ((JassExprStringVal) argument).getVal();
-						usedFunctions.add(stringName);
+						String stringName = ((JassExprStringVal) argument).getVal();						
+						System.out.println(stringName + " used in TRVE");
 					}
 				}
 			}
@@ -206,7 +207,7 @@ public class JassOptimizerImpl implements JassOptimizer {
 		setHashmapPredefines(replacements);
 		
 		// Create a set of functions that are used in EF or TRVE
-		final Set<String> usedInEFTRVE = getEverythingInEForTRVE(prog);
+		final Set<StringExpressionPattern> usedInEFTRVE = getEverythingInEForTRVE(prog);
 		
 		generateGlobalReplacements(prog, replacements, ng);
 		
@@ -221,15 +222,25 @@ public class JassOptimizerImpl implements JassOptimizer {
 				// Visit and generate short function names,
 				// checking for EF/TRVE appearance
 				String name = jassFunction.getName();
-				if ( !RestrictedStandardNames.contains(name)){
-					System.out.println(name);
-					if ( usedInEFTRVE.contains(name)) {	
-						System.out.println(name + " is used in EF or TRVE");
-						replacements.put(name, ng.getTEToken());							
-					}else {		
-						replacements.put(name, ng.getUniqueToken());
+				System.out.println("Function:" + name);
+				if ( !RestrictedStandardNames.contains(name) ){
+					System.out.println("Function:" + name + " is not restricted.");
+					boolean used = false;
+					for( StringExpressionPattern sex : usedInEFTRVE) {
+						if( sex.check(name)) {
+							System.out.println(name + " is used in EF or TRVE");
+							if(sex.isConst()) {
+								System.out.println("Pattern is a constant String");
+								replacements.put(name, ng.getTEToken());	
+							}
+							used = true;
+							break;
+						}
 					}
+	
+					if (!used) {replacements.put(name, ng.getUniqueToken());}
 				}
+				
 				
 				// Create small replacements for parameters and locals
 				final HashMap<String, String> localReplacements = new HashMap<String, String>();
