@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="create_run_jar" name="Create Runnable Jar for Project de.peeeq.wurstscript">
+    <!--this file was created by Eclipse Runnable JAR Export Wizard-->
+    <!--ANT 1.7 is required                                        -->
+    <target name="create_run_jar">
+        <jar destfile="/home/peter/workspace/pscript-lang/de.peeeq.wurstscript/wurstscript.jar" filesetmanifest="mergewithoutmain">
+            <manifest>
+                <attribute name="Main-Class" value="de.peeeq.wurstscript.Main"/>
+                <attribute name="Class-Path" value="."/>
+            </manifest>
+            <fileset dir="/home/peter/workspace/pscript-lang/de.peeeq.wurstscript/bin"/>
+            <zipfileset excludes="META-INF/*.SF" src="/home/peter/workspace/pscript-lang/de.peeeq.wurstscript/lib/java-cup-runtime.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/home/peter/workspace/pscript-lang/de.peeeq.wurstscript/lib/log4j-1.2.16.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/home/peter/workspace/pscript-lang/de.peeeq.wurstscript/lib/guava-10.0.1.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/home/peter/workspace/pscript-lang/de.peeeq.wurstscript/lib/junit-4.10.jar"/>
+        </jar>
+    </target>
+</project>

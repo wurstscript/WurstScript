@@ -146,16 +146,7 @@ public class WurstCompilerImpl implements WurstCompiler {
         	File tempFile = new File("temp_war3map.j");
         	
         	// extract mapscript:
-        	Runtime rt = Runtime.getRuntime();
-			String[] commands = {"MpqCL.exe", "extract", file.getAbsolutePath(), "war3map.j", tempFile.getAbsolutePath()};
-			Process proc = rt.exec(commands);
-			InputStream procOut = proc.getInputStream();
-			BufferedReader procOutReader = new BufferedReader(new InputStreamReader(procOut));
-			proc.waitFor();
-			String line;
-			while ((line = procOutReader.readLine()) != null) {
-				WLogger.info(line);
-			}
+        	MpqCl.extractFile(file, "war3map.j", tempFile);
 			
 			return parseFile(tempFile);
 		} catch (IOException e) {
@@ -164,6 +155,8 @@ public class WurstCompilerImpl implements WurstCompiler {
 			throw new Error(e);
 		}
 	}
+
+	
 
 	private CompilationUnit parseFile(File file) {
 		gui.sendProgress("Parsing File " + file.getName(), 0.05);	
