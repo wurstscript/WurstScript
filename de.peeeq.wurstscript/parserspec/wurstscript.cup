@@ -25,7 +25,7 @@ terminal
 	CUSTOM_ERROR,
 	TRUE, FALSE, 
 	EQEQ, GTEQ, LTEQ, NOTEQ, GT, LT,
-	EQ,  
+	EQ, PLUS_EQ, MINUS_EQ, MULT_EQ, PLUS_PLUS, MINUS_MINUS,
 	AND, OR, NOT,
 	PLUS, MINUS, UMINUS, 
 	MULT, DIV_REAL, DIV_INT, MOD_REAL, MOD_INT,
@@ -36,7 +36,7 @@ terminal
 	LBRACK, RBRACK, 
 	COMMA, SEMICOLON,   
 	NL,
-	MODULE, USE, ABSTRACT, IN, FOR, THISTYPE, ARROW, IT, IMMUTABLE, OVERRIDE,
+	MODULE, USE, ABSTRACT, IN, FOR, BREAK, THISTYPE, ARROW, IT, IMMUTABLE, OVERRIDE,
 	STATIC, PACKAGE, ENDPACKAGE, RETURNS,FUNCTION, VAL, PUBLIC, PUBLICREAD, PRIVATE, PROTECTED, IMPORT, NATIVETYPE, INIT, NATIVE, INTERFACE,
 	IMPLEMENTS, ARRAY, IF, ELSE, WHILE, RETURN, CLASS, NEW, NULL, EXTENDS, THIS, CONSTRUCT, ONDESTROY, 
 	TYPE, GLOBALS, ENDGLOBALS, CONSTANT, ENDFUNCTION, TAKES, NOTHING, LOCAL,
@@ -69,6 +69,7 @@ non terminal InitBlock InitBlock;
 non terminal Indexes Indexes;
 non terminal WImport Import;
 non terminal LocalVarDef LocalVarDef;
+non terminal LocalVarDef LocalVarDefInline;
 non terminal MemberDef MemberDef;	
 non terminal ExprMemberArrayVar ExprMemberArrayVar;
 non terminal NativeFunc NativeFunc;
@@ -335,6 +336,10 @@ Statement ::=
 		{: RESULT = x; :} 
 	| StmtDestroy:x
 		{: RESULT = x; :} 
+	| FOR:x LocalVarDefInline:loopVar IN Expr:from DOT DOT DOT Expr:to NL INDENT Statements:body UNINDENT
+		{: RESULT = Ast.StmtForRange(pos(xleft, xright), loopVar, from, to, body); :}
+	| BREAK:x NL
+		{: RESULT = Ast.StmtExitwhen(pos(xleft, xright), Ast.ExprBoolVal(pos(xleft, xright), true)); :}
 	| error:x NL
 		{: RESULT = Ast.StmtErr(pos(xleft, xright)); :}
 ;
@@ -379,10 +384,37 @@ LocalVarDef ::=
 		{: RESULT = Ast.LocalVarDef(pos(typleft, typright), false, typ, name, Ast.NoExpr()); :}
 ;
 
-StmtSet ::= 
-	ExprAssignable:left EQ Expr:right NL
-		{: RESULT = Ast.StmtSet(left.getSource().copy(), left, Ast.OpAssign(),  right); :}
+LocalVarDefInline ::=
+	TypeExpr:typ IDENTIFIER:name
+		{: RESULT = Ast.LocalVarDef(pos(typleft, typright), false, typ, name, Ast.NoExpr()); :}
 ;
+
+StmtSet ::= 
+	  ExprAssignable:left EQ Expr:right NL
+		{: RESULT = Ast.StmtSet(left.getSource().copy(), left, Ast.OpAssign(),  right); :}
+	| ExprAssignable:left PLUS_EQ Expr:right NL
+		{: RESULT = Ast.StmtSet(left.getSource().copy(), left, Ast.OpPlusAssign(),  right); :}
+	| ExprAssignable:left MINUS_EQ Expr:right NL
+		{: RESULT = Ast.StmtSet(left.getSource().copy(), left, Ast.OpMinusAssign(),  right); :}
+	| ExprAssignable:left MULT_EQ Expr:right NL
+		{: RESULT = Ast.StmtSet(left.getSource().copy(), left, Ast.OpMultAssign(),  right); :}
+	| ExprAssignable:left PLUS_PLUS:x
+		{: RESULT = Ast.StmtSet(left.getSource().copy(), left, Ast.OpPlusAssign(), Ast.ExprIntVal(pos(xleft, xright), 1)); :}
+	| ExprAssignable:left MINUS_MINUS:x
+		{: RESULT = Ast.StmtSet(left.getSource().copy(), left, Ast.OpMinusAssign(), Ast.ExprIntVal(pos(xleft, xright), 1)); :}
+;
+
+OpAssign ::=
+	  EQ
+		{: RESULT = ; :}
+	| PLUS EQ
+		{: RESULT = Ast.OpPlusAssign(); :}
+	| MINUS EQ
+		{: RESULT = Ast.OpMinusAssign(); :}
+	| MULT EQ
+		{: RESULT = Ast.OpMultAssign(); :}
+;
+
 
 ExprAssignable ::=
 	ExprMemberVar:x

@@ -49,6 +49,8 @@ import java.util.Map;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -88,6 +90,7 @@ import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
+import de.peeeq.wurstscript.ast.Indexes;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.JassGlobalBlock;
 import de.peeeq.wurstscript.ast.LocalVarDef;
@@ -97,6 +100,8 @@ import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.OpAnd;
+import de.peeeq.wurstscript.ast.OpAssign;
+import de.peeeq.wurstscript.ast.OpAssignment;
 import de.peeeq.wurstscript.ast.OpBinary;
 import de.peeeq.wurstscript.ast.OpDivInt;
 import de.peeeq.wurstscript.ast.OpDivReal;
@@ -106,18 +111,23 @@ import de.peeeq.wurstscript.ast.OpGreaterEq;
 import de.peeeq.wurstscript.ast.OpLess;
 import de.peeeq.wurstscript.ast.OpLessEq;
 import de.peeeq.wurstscript.ast.OpMinus;
+import de.peeeq.wurstscript.ast.OpMinusAssign;
 import de.peeeq.wurstscript.ast.OpModInt;
 import de.peeeq.wurstscript.ast.OpModReal;
 import de.peeeq.wurstscript.ast.OpMult;
+import de.peeeq.wurstscript.ast.OpMultAssign;
 import de.peeeq.wurstscript.ast.OpNot;
 import de.peeeq.wurstscript.ast.OpOr;
 import de.peeeq.wurstscript.ast.OpPlus;
+import de.peeeq.wurstscript.ast.OpPlusAssign;
 import de.peeeq.wurstscript.ast.OpUnary;
 import de.peeeq.wurstscript.ast.OpUnequals;
+import de.peeeq.wurstscript.ast.OpUpdateAssign;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.StmtDestroy;
 import de.peeeq.wurstscript.ast.StmtErr;
 import de.peeeq.wurstscript.ast.StmtExitwhen;
+import de.peeeq.wurstscript.ast.StmtForRange;
 import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtLoop;
 import de.peeeq.wurstscript.ast.StmtReturn;
@@ -126,8 +136,10 @@ import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.TopLevelDeclaration;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WEntity;
+import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.ast.WParameters;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.attributes.FuncDefInstance;
@@ -136,6 +148,8 @@ import de.peeeq.wurstscript.jassAst.JassArrayVar;
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
+import de.peeeq.wurstscript.jassAst.JassExprIntVal;
+import de.peeeq.wurstscript.jassAst.JassExprVarAccess;
 import de.peeeq.wurstscript.jassAst.JassExprlist;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassFunctions;
@@ -175,9 +189,11 @@ public class JassTranslator {
 	private JassVars globals;
 	private JassFunctions functions;
 	private List<GlobalInit> globalInitializers = Lists.newLinkedList();
-	private Map<WPackage, JassFunction> initFunctions = Maps.newHashMap();
-	private SetMultimap<JassFunction, JassFunction> calledFunctions = HashMultimap.create();
+	private BiMap<WPackage, JassFunction> initFunctions = HashBiMap.create();
+	private Multimap<JassFunction, JassFunction> calledFunctions = HashMultimap.create();
+	private Multimap<WPackage, WPackage> importedPackages = HashMultimap.create();
 	private JassFunction initGlobalsFunc;
+	private Collection<WPackage> packages = Lists.newLinkedList();
 	
 	
 	public JassTranslator(CompilationUnit wurstProgram) {
@@ -322,14 +338,20 @@ public class JassTranslator {
 		// finish main function:
 		
 		JassStatements body = mainFunction.getBody();
-	
+		
 		// call the initGlobals function
 		body.add(JassStmtCall(initGlobalsFunc.getName(), JassExprlist()));
 		
+
+		// sort init functions according to import hierarchy
+		List<WPackage> packagesSorted = Utils.topSortIgnoreCycles(packages , importedPackages);
+		
 		// call all initializers:
-		// TODO sort init functions according to import hierarchy
-		for (JassFunction f : initFunctions.values()) {
-			body.add(JassStmtCall(f.getName(), JassExprlist()));
+		for (WPackage p : packagesSorted) {
+			JassFunction f = initFunctions.get(p);
+			if (f != null) {
+				body.add(JassStmtCall(f.getName(), JassExprlist()));
+			}
 		}
 		
 	
@@ -437,20 +459,73 @@ public class JassTranslator {
 			@Override
 			public void case_StmtSet(StmtSet stmtSet) {
 				final ExprTranslationResult right = translateExpr(context, f, stmtSet.getRight());
-				stmtSet.getLeft().match(new ExprAssignable.MatcherVoid() {
+				final JassOpBinary binaryOp = stmtSet.getOp().match(new OpAssignment.Matcher<JassOpBinary>() {
 
+					@Override
+					public JassOpBinary case_OpMinusAssign(OpMinusAssign opMinusAssign) {
+						return JassOpMinus();
+					}
+
+					@Override
+					public JassOpBinary case_OpPlusAssign(OpPlusAssign opPlusAssign) {
+						return JassOpPlus();
+					}
+
+					@Override
+					public JassOpBinary case_OpMultAssign(OpMultAssign opMultAssign) {
+						return JassOpMult();
+					}
+
+					@Override
+					public JassOpBinary case_OpAssign(OpAssign opAssign) {
+						return null;
+					}
+				});
+				
+				
+				stmtSet.getLeft().match(new ExprAssignable.MatcherVoid() {
+					
 					@Override
 					public void case_ExprMemberVar(ExprMemberVar exprMemberVar) {
 						VarDef leftVar = (VarDef) exprMemberVar.attrNameDef();
 						String leftJassVar = manager.getJassVarNameFor(getVarContext(context, exprMemberVar.getLeft().attrTyp()), leftVar);
 						ExprTranslationResult index = translateExpr(context, f, exprMemberVar.getLeft());
 						
-						result.addAll(index.getStatements());
-						result.addAll(right.getStatements());						
-						result.add(JassStmtSetArray(leftJassVar, index.getExpr(), right.getExpr()));
+						withIndex(leftJassVar, index);
 					}
 
+					private void withIndex(String leftJassVar, ExprTranslationResult index) {
+						result.addAll(index.getStatements());
+						result.addAll(right.getStatements());
+						JassExpr indexExpr;
+						
+						if (binaryOp == null) {
+							result.add(JassStmtSetArray(leftJassVar, index.getExpr(), right.getExpr())); 
+						} else {
+							
+							if (index.getExpr() instanceof ExprIntVal 
+									|| index.getExpr() instanceof ExprVarAccess) {
+								indexExpr = index.getExpr();
+							} else {
+								JassVar tempIndex = getNewTempVar(f, "integer");
+								result.add(JassStmtSet(tempIndex.getName(), index.getExpr()));
+								indexExpr = JassExprVarAccess(tempIndex.getName());
+							}
+							
+							result.add(JassStmtSetArray(leftJassVar, indexExpr, 
+								JassExprBinary(JassExprVarArrayAccess(leftJassVar, indexExpr), binaryOp, right.getExpr())));
+						}
+					}
 					
+					private void withoutIndex(String leftJassVar) {
+						result.addAll(right.getStatements());
+						if (binaryOp == null) {
+							result.add(JassStmtSet(leftJassVar, right.getExpr())); 
+						} else {
+							result.add(JassStmtSet(leftJassVar, 
+									JassExprBinary(JassExprVarAccess(leftJassVar), binaryOp, right.getExpr())));
+						}
+					}
 
 					@Override
 					public void case_ExprMemberArrayVar(ExprMemberArrayVar exprMemberArrayVar) {
@@ -463,13 +538,11 @@ public class JassTranslator {
 						String leftJassVar = getJassVarNameFor(context, leftVar);
 						result.addAll(right.getStatements());
 						if (leftVar.attrIsClassMember()) {
-							result.add(JassStmtSetArray(leftJassVar, JassExprVarAccess("this"), right.getExpr()));
+							withIndex(leftJassVar, new ExprTranslationResult(JassExprVarAccess("this")));
 						} else {
-							result.add(JassStmtSet(leftJassVar, right.getExpr()));
+							withoutIndex(leftJassVar);
 						}
 					}
-
-
 
 					
 
@@ -483,11 +556,10 @@ public class JassTranslator {
 						} else {
 							throw new Error("multiple indexes not supported yet");
 						}
-						result.addAll(index.getStatements());
-						result.addAll(right.getStatements());
-						result.add(JassStmtSetArray(leftJassVar, index.getExpr(), right.getExpr()));
+						withIndex(leftJassVar, index);
 					}
 				});
+				
 				
 				
 			}
@@ -594,6 +666,33 @@ public class JassTranslator {
 				}
 			}
 
+
+			@Override
+			public void case_StmtForRange(StmtForRange stmtForRange) {
+				JassVar loopVar = manager.getJassVarFor(context, stmtForRange.getLoopVar(), translateType(stmtForRange.getLoopVar().getTyp()), false);
+				f.getLocals().add(loopVar);
+				
+				ExprTranslationResult fromExpr = translateExpr(context, f, stmtForRange.getFrom());
+				ExprTranslationResult toExpr = translateExpr(context, f, stmtForRange.getTo());
+				result.addAll(fromExpr.getStatements());
+				JassExpr toExpr2;
+				if (toExpr.getStatements().size() == 0 && toExpr.getExpr() instanceof JassExprIntVal) {
+					toExpr2 = toExpr.getExpr(); 
+				} else {
+					JassVar loopEndVar = getNewTempVar(f, "integer");
+					result.addAll(toExpr.getStatements());
+					result.add(JassStmtSet(loopEndVar.getName(), toExpr.getExpr()));
+					toExpr2 = JassExprVarAccess(loopEndVar.getName());
+				}
+				result.add(JassStmtSet(loopVar.getName(), fromExpr.getExpr()));
+				JassStatements body = JassStatements();
+				body.add(JassStmtExitwhen(JassExprBinary(JassExprVarAccess(loopVar.getName()), JassOpGreater(), toExpr2)));
+				body.addAll(translateStatements(context, f, stmtForRange.getBody()));
+				body.add(JassStmtSet(loopVar.getName(), JassExprBinary(JassExprVarAccess(loopVar.getName()), JassOpPlus(), JassExprIntVal(1))));
+				result.add(JassStmtLoop(body));
+				
+			}
+
 		
 		});
 		return result;
@@ -661,7 +760,7 @@ public class JassTranslator {
 				JassFunction constructorJassFunc = manager.getJassConstructorFor(constructorFunc);
 				
 				JassExprlist arguments = JassExprlist(); 
-				ExprListTranslationResult args = translateArguments(context, f, exprNewObject.getArgs());
+				ExprListTranslationResult args = translateArguments(context, f, exprNewObject.getArgs(), getParameterTypes(constructorFunc.getParams()));
 				List<JassStatement> statements = Lists.newLinkedList();
 				statements.addAll(args.getStatements());
 				arguments.addAll(args.getExprs());
@@ -707,7 +806,7 @@ public class JassTranslator {
 					arguments.add(JassExprVarAccess("this"));
 				}
 				
-				ExprListTranslationResult args = translateArguments(context, f, exprFunctionCall.getArgs());
+				ExprListTranslationResult args = translateArguments(context, f, exprFunctionCall.getArgs(), getParameterTypes(calledFunc.getDef().getSignature().getParameters()));
 				arguments.addAll(args.getExprs());
 				return new ExprTranslationResult(
 						args.getStatements(),
@@ -887,6 +986,14 @@ public class JassTranslator {
 	}
 
 
+protected List<String> getParameterTypes(WParameters params) {
+	List<String> result = Lists.newArrayListWithCapacity(params.size());
+	for (WParameter p : params) {
+		result.add(translateType(p.getTyp()));
+	}
+	return result;
+}
+
 //	/**
 //	 * get the real func def instance, where the context is measured from the root
 //	 * @param context the context of the call
@@ -973,7 +1080,7 @@ public class JassTranslator {
 		
 		// translate arguments:			
 		List<JassStatement> statements = Lists.newLinkedList();
-		ExprListTranslationResult args = translateArguments(context, f, exprMemberMethod.getArgs());
+		ExprListTranslationResult args = translateArguments(context, f, exprMemberMethod.getArgs(), getParameterTypes(calledFunc.getDef().getSignature().getParameters()));
 		statements.addAll(args.getStatements());
 		arguments.addAll(args.getExprs());
 		
@@ -996,7 +1103,7 @@ public class JassTranslator {
 		List<JassStatement> statements = Lists.newLinkedList();
 		
 		// translate arguments:			
-		ExprListTranslationResult args = translateArguments(context, f, exprMemberMethod.getArgs());
+		ExprListTranslationResult args = translateArguments(context, f, exprMemberMethod.getArgs(), getParameterTypes(calledFunc.getDef().getSignature().getParameters()));
 		statements.addAll(args.getStatements());
 		arguments.addAll(args.getExprs());
 		
@@ -1024,7 +1131,7 @@ public class JassTranslator {
 		arguments.addFront(e.getExpr());
 		
 		// translate arguments:			
-		ExprListTranslationResult args = translateArguments(context, f, exprMemberMethod.getArgs());
+		ExprListTranslationResult args = translateArguments(context, f, exprMemberMethod.getArgs(), getParameterTypes(calledFunc.getDef().getSignature().getParameters()));
 		statements.addAll(args.getStatements());
 		arguments.addAll(args.getExprs());
 		
@@ -1116,7 +1223,9 @@ public class JassTranslator {
 
 	protected JassVar getNewTempVar(JassFunction f, String type) {
 		String name = manager.getUniqueName("temp");
-		return JassSimpleVar(type, name);
+		JassSimpleVar v = JassSimpleVar(type, name);
+		f.getLocals().add(v);
+		return v;
 	}
 
 	protected JassOpUnary translateOpUnary(OpUnary op) {
@@ -1140,13 +1249,11 @@ public class JassTranslator {
 	 * will use statements too
 	 * @param f 
 	 */
-	protected ExprListTranslationResult translateArguments(ImmutableList<ClassOrModule> context, JassFunction f, Arguments args) {
+	protected ExprListTranslationResult translateArguments(ImmutableList<ClassOrModule> context, JassFunction f, Arguments args, List<String> types) {
 		List<ExprTranslationResult> translations = Lists.newLinkedList();
-		List<String> types = Lists.newLinkedList();
 		int lastTranslationWithStatements = 0;
 		int i = 0;
 		for (Expr arg : args) {
-			types.add(translateType(arg.attrTyp()));
 			ExprTranslationResult translation = translateExpr(context, f, arg);
 			if (translation.getStatements().size() > 0) {
 				lastTranslationWithStatements = i;
@@ -1253,6 +1360,12 @@ public class JassTranslator {
 	}
 
 	protected void translatePackage(WPackage wPackage) {
+		packages.add(wPackage);
+		for (WImport imp : wPackage.getImports()) {
+			WPackage importedPackage = attr.getImportedPackage(imp);
+			importedPackages.put(wPackage, importedPackage);
+		}
+		
 		for (WEntity elem : wPackage.getElements()) {
 			elem.match(new WEntity.MatcherVoid() {
 				

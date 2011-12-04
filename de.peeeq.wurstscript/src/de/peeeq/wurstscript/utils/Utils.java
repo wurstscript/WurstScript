@@ -342,10 +342,40 @@ public class Utils {
 	    return ste[depth+2].getMethodName(); 
 	  }
 
+	public static <T> List<T> topSortIgnoreCycles(Collection<T> input,
+			final Multimap<T, T> biggerItems) {
+		return topSortIgnoreCycles(input, new Function<T, Collection<T>>() {
 
+			@Override
+			public Collection<T> apply(T t) {
+				return biggerItems.get(t);
+			}
+		});
+	}
+
+	public static <T> List<T> topSortIgnoreCycles(Collection<T> items,
+			Function<T, Collection<T>> biggerItems) {
+		Set<T> visitedItems = new HashSet<T>();
+		List<T> result = new ArrayList<T>(items.size());
+		for (T t : items) {
+			if (t == null) throw new IllegalArgumentException();
+			topSortHelperIgnoreCycles(result, visitedItems, biggerItems, t);
+		}
+		return result;
+	}
 	
 
-
+	private static <T> void topSortHelperIgnoreCycles(List<T> result, Set<T> visitedItems, Function<T, ? extends Collection<T>> biggerItems, T item) {
+		if (visitedItems.contains(item)) {
+			return;
+		}
+		visitedItems.add(item);
+		for (T t : biggerItems.apply(item)) {
+			if (t == null) throw new IllegalArgumentException();
+			topSortHelperIgnoreCycles(result, visitedItems, biggerItems, t);
+		}
+		result.add(item);
+	}
 
 
 

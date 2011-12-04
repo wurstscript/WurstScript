@@ -22,6 +22,7 @@ import de.peeeq.wurstscript.types.PScriptTypeModuleDefinition;
 import de.peeeq.wurstscript.types.PScriptTypeUnknown;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
+import de.peeeq.wurstscript.types.PscriptTypeModule;
 
 
 /**
@@ -66,7 +67,22 @@ public class AttrFuncDef {
 						}
 						return f;
 					} 
+				} else if (leftType instanceof PscriptTypeModule) {
+					// receiver has a class type
 					
+					PscriptTypeModule leftTypeM = (PscriptTypeModule) leftType;
+					ModuleDef moduleDef = leftTypeM.getModuleDef();
+					
+					Multimap<String, FuncDefInstance> functions = getVisibleClassFunctions(left, moduleDef);
+					
+					
+					if (functions.containsKey(funcName)) {
+						FuncDefInstance f = selectOverloadedFunction(node, functions.get(funcName));
+						if (((FuncDef) f.getDef()).attrIsStatic()) {
+							attr.addError(left.getSource(), "Cannot call static function " + funcName + " in dynamic context.");
+						}
+						return f;
+					} 	
 					
 					
 				} else if (leftType instanceof PScriptTypeClassDefinition) {

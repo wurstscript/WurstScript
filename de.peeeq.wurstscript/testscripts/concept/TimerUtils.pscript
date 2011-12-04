@@ -5,8 +5,8 @@ package TimerUtils
 	integer freeTimersCount = 0
 	hashtable ht = InitHashtable()
 	
-	function getTimer() 
-		if freeTimersCount > 0 {
+	function getTimer() returns timer
+		if freeTimersCount > 0
 			freeTimersCount -= 1
 			return freeTimers[freeTimersCount]
 		else
@@ -27,35 +27,39 @@ package TimerUtils
 	
 	
 	public module Timed
-		abstract function onTimer()
+		abstract public function onTimer()
 		
-		private static function timerEnd()
-			timer t = GetElapsedTimer()
-			thistype c = t.getData() cast_to thistype
+		private static function timerCallback()
+			timer t = GetExpiredTimer()
+			thistype c = t.getData() castTo thistype
 			c.onTimer()
 			t.release()
 		
-		function startTimer(real time)
+		public function startTimer(real time)
 			timer t = getTimer()
-			t.setData(this cast_to integer)
-			TimerStart(this, time, false, function timerEnd)
+			t.setData(this castTo integer)
+			TimerStart(t, time, false, function timerCallback)
 	
 	public module Periodic
 	
 		private timer t
 	
-		abstract function periodic()
+		abstract public function periodic()
 		
-		function stopPeriodic()
+		public function stopPeriodic()
 			t.release()
 			t = null
 		
-		private static function timerEnd()
-			t = GetElapsedTimer()
-			thistype c = t.getData() cast_to thistype
+		private static function timerCallback()
+			t = GetExpiredTimer()
+			thistype c = t.getData() castTo thistype
 			c.periodic()
 		
-		function startPeriodic(real time)
+		public function startPeriodic(real time)
 			timer t = getTimer()
-			t.setData(this cast_to integer)
-			TimerStart(this, time, true, function timerEnd)
+			t.setData(this castTo integer)
+			TimerStart(t, time, true, function timerCallback)
+
+endpackage
+
+
