@@ -37,12 +37,12 @@ public class Pjass {
 	public static Result runPjass(File outputFile) {
 		try {
 			Process p;
-			System.out.println("Starting pjass");
-			if (System.getProperty("os.name").contains("windows")) {
+			WLogger.info("Starting pjass");
+			if (System.getProperty("os.name").toLowerCase().contains("windows")) {
 				p = Runtime.getRuntime().exec("lib/pjass.exe lib/common.j lib/debugnatives.j lib/blizzard.j " + outputFile.getPath());
 			} else {
-				System.out.println("Operation system " + System.getProperty("os.name") + " detected.");
-				System.out.println("Trying to run with wine ...");
+				WLogger.info("Operation system " + System.getProperty("os.name") + " detected.");
+				WLogger.info("Trying to run with wine ...");
 				// try to run with wine
 				p = Runtime.getRuntime().exec("wine lib/pjass.exe lib/common.j lib/debugnatives.j lib/blizzard.j " + outputFile.getPath());
 			}
@@ -53,7 +53,7 @@ public class Pjass {
 			StringBuilder output = new StringBuilder();
 			String line;
 			while ((line = input.readLine()) != null) {
-				System.out.println(line);
+				WLogger.info(line);
 				output.append(line + "\n");
 			}
 			input.close();
@@ -65,8 +65,8 @@ public class Pjass {
 				return new Result(true, output.toString());
 			}
 		} catch (IOException e) {
-			System.err.println("Could not run pjass:");
-			e.printStackTrace();
+			WLogger.severe("Could not run pjass:");
+			WLogger.severe(e);
 			return new Result(false, "IO Exception");
 		} catch (InterruptedException e) {
 			return new Result(false, "Interrupted");

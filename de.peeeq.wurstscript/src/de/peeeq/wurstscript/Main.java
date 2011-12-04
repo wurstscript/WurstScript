@@ -7,6 +7,9 @@ import javax.swing.JOptionPane;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
+import de.peeeq.wurstscript.Pjass.Result;
+import de.peeeq.wurstscript.ast.Ast;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.gui.WurstGuiImpl;
@@ -36,11 +39,21 @@ public class Main {
 			} else {
 				gui = new WurstGuiCliImpl();
 			}
-			WurstCompilerImpl compiler = new WurstCompilerImpl(gui);
-			compiler.loadFiles(args);
+			WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui);
+			for (String file: runArgs.getFiles()) {
+				compiler.loadFiles(file);
+			}
 			compiler.parseFiles();
 			
-			JassProg jassProg = compiler.getILprog();
+			if (gui.getErrorCount() > 0) {
+				return;
+			}
+			
+			JassProg jassProg = compiler.getProg();
+			
+			if (jassProg == null || gui.getErrorCount() > 0) {
+				return;
+			}
 			
 			boolean withSpace;
 			if (runArgs.isOptimize()) {
@@ -57,16 +70,47 @@ public class Main {
 			CharSequence mapScript = printer.printProg(jassProg);
 
 			
-			if (runArgs.getOutFile() != null) { // output to file
-				gui.sendProgress("Writing output file", 0.98);
-				File outputFile = new File(runArgs.getOutFile());
-				outputFile.mkdirs();
-				Files.write(mapScript, outputFile, Charsets.UTF_8);
+			
+			
+			
+			// output to file
+			gui.sendProgress("Writing output file", 0.98);
+			File outputMapscript; 
+			if (runArgs.getOutFile() != null) {
+				outputMapscript = new File(runArgs.getOutFile());
+			} else {
+				//outputMapscript = File.createTempFile("outputMapscript", ".j");
+				outputMapscript = new File("./temp/output.j");
 			}
+			Files.write(mapScript, outputMapscript, Charsets.US_ASCII); // use ascii here, wc3 no understand utf8, you know?
+			
+			Result pJassResult = Pjass.runPjass(outputMapscript);
+			System.out.println(pJassResult.getMessage());
+			if (!pJassResult.isOk()) {
+				for (String error : pJassResult.getMessage().split("(\n|\r)+")) {
+					WLogger.info("Error = " + error);
+					int pos = error.indexOf(".j:") + 3;
+					if (pos < 0) {
+						continue;
+					}
+					String line = "";
+					while (Character.isDigit(error.charAt(pos))) {
+						line+=error.charAt(pos);
+						pos++;
+					}
+					if (line == "") line = "0";
+					gui.sendError(new CompileError(Ast.WPos(outputMapscript.getAbsolutePath(), Integer.parseInt(line), 0), error.substring(pos)));
+				}
+				return;
+			}
+			
 			if (runArgs.getMapFile() != null) { // output to map
 				gui.sendProgress("Writing to map", 0.99);
 				File mapFile = new File(runArgs.getMapFile());
-				File tempFile = new File(runArgs.getMapFile() + ".temp.j");
+				
+				MpqEditor mpqEditor = new WinMpq();
+				mpqEditor.deleteFile(mapFile, "war3map.j");
+				mpqEditor.insertFile(mapFile, "war3map.j", outputMapscript);
 			}
 			
 			

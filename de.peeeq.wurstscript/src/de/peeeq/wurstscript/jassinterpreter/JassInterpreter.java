@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstAddable;
 import de.peeeq.wurstscript.intermediateLang.ILconstBool;
@@ -97,7 +98,7 @@ public class JassInterpreter {
 	
 	public ILconst executeFunction(String name, ILconst... arguments) {
 		if (trace) {
-			System.out.println("#trace: " + name + "( "  + Utils.join(arguments, ", ") + ")");
+			WLogger.info("#trace: " + name + "( "  + Utils.join(arguments, ", ") + ")");
 		}
 
 		ExecutableJassFunction func = searchFunction(name);
@@ -135,13 +136,13 @@ public class JassInterpreter {
 			this.executeStatements(localVarMap, body);
 		} catch (ReturnException e) {
 			if (trace) {
-				System.out.println("#trace: end function " + func.getName() + " returns " + e.getVal());
+				WLogger.info("#trace: end function " + func.getName() + " returns " + e.getVal());
 			}
 			return e.getVal();
 		}
 
 		if (trace) {
-			System.out.println("#trace: end function " + func.getName());
+			WLogger.info("#trace: end function " + func.getName());
 		}
 		return null; 
 	}

@@ -1,0 +1,315 @@
+{\rtf1\ansi\ansicpg1252\deff0\deflang1033{\fonttbl{\f0\fswiss\fprq2 Arial;}{\f1\fswiss\fprq2\fcharset0 Arial;}{\f2\fmodern\fprq1 Courier New;}{\f3\fnil\fcharset2 Symbol;}}
+{\colortbl ;\red0\green0\blue0;}
+{\*\generator Msftedit 5.41.21.2509;}\viewkind4\uc1\pard\b\f0\fs36 WinMPQ v1.\f1 66\b0\f0\fs20\par
+\par
+\pard\li360 This program is an mpq archiver I \f1 started\f0  as an example of a program using the Mpq Control\f1 , but it now uses SFmpq directly\f0 .  It currently has many features and is one of the best mpq archivers around.\par
+\pard\par
+\ul\b\fs24 Required Files (all may be downloaded from my page)\ulnone\b0\fs20\par
+\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720 Visual Basic 4 runtime libraries\par
+{\pntext\f3\'B7\tab}Microsoft Windows Common Controls\par
+\f1{\pntext\f3\'B7\tab}SFmpq (included)\f0\par
+\pard\par
+\ul\b\fs24 Mo'PaQ 2000 parameters and scripts in WinMPQ\ulnone\b0\fs20\par
+\pard\li360 WinMPQ has support for running Mo'PaQ 2000 (MPQ2k) parameters and scripts; it almost has full support for every parameter MPQ2k uses and has commands and additional features MPQ2k doesn't have.  Also, the name of the MPQ archive only needs to be specified when opening files and using command-line parameters.  (parts of this section are taken from the Mo'PaQ 2000 manual)\par
+\par
+\pard\ul General syntax:\ulnone\par
+\pard\li720 Filenames containing spaces must be enclosed in quotation marks like this:\par
+\par
+\f2 "filename with spaces"\f0\par
+\pard\par
+\ul Adding Files - the \b\i Add\b0\i0  Command\par
+\ulnone\tab The syntax for adding files is:\par
+\ul\par
+\pard\li720\ulnone\f2 a[dd] <MPQFile> <SourceFile> [DestinationFile] [/c] [/wav] [/auto] [/r]\f0\par
+\pard\par
+\pard\li720\cf1 Parameters in <> are required, ones in [] are optional.  MPQFile is the MoPaQ to add the file(s) to.  SourceFile is the file(s) to add to the MoPaQ.  If there is only a single file being added (no wildcards are used), DestinationFile is the name that the file will be stored as in the MoPaQ.  But, if there are multiple files to add (wildcards are used), DestinationFile is the \i directory\i0  to put the files in.  /c tells WinMPQ to compress the file(s).  /wav tells WinMPQ to add the file with WAV compression, which is recommended for .WAV files (if both /c and /wav are used, /c will be ignored and /wav used).  /auto tells WinMPQ to automatically select the appropriate compression option for each file (if any other compression options are used, they will override this).  /r tells WinMPQ to recurse through subdirectories when searching for files to add.  If no DestinationFile is given, the file will be added with the same name as SourceFile.\par
+\par
+Wildcard characters (* and ?) are used by many command-line programs to represent multiple files.  WinMPQ uses them currently only for the \b\i Add\b0\i0  command.  Wildcards represent one or more unknown characters.  The ? wildcard stands for a single unknown character, while * wildcards stand for any number of unknown characters.\cf0\par
+\pard\par
+\ul Extracting Files - the \b\i Extract\b0\i0  Command\par
+\pard\li720\cf1\ulnone The syntax for the extract command is:\par
+\par
+\f2 e[xtract] <MPQFile> <SourceFile> [DestinationDirectory] [/fp]\cf0\f0\par
+\pard\par
+\pard\li720\cf1 The parameters in <> are required, ones in [] are optional.  SourceFile is the FULL name of the file(s) to be extracted from the MoPaQ, and DestinationDirectory is the directory in which to put the extracted file(s).  If DestinationDirectory is absent, the file will be placed in the current directory.  Wildcards may be used in SourceFile.  The /r parameter MPQ2K uses currently isn't supported by WinMPQ.  The /fp parameter specifies that WinMPQ should extract the files with the full path.\par
+\pard\cf0\par
+\ul Renaming Files - the \b\i Rename\b0\i0  Command\ulnone\par
+\pard\li720 The syntax for the rename command is:\par
+\pard\par
+\pard\li720\cf1\f2 r[ename] <MPQFile> <OldFileName> <NewFileName>\cf0\f0\par
+\pard\par
+\pard\li720\cf1 All parameters are required.  OldFileName is the full filename of the file to be renamed, and NewFileName is the new name for the file.  If wildcards are used with the rename command, they must be used for both OldFileName and NewFileName.\par
+\pard\cf0\par
+\ul Moving Files - the \b\i Move\b0\i0  Command\ulnone\par
+\pard\li720\cf1 The move command moves one or more files from one virtual directory (technically MoPaQs don't have directories like hard drives do) to another virtual directory. The syntax is as shown:\par
+\pard\cf0\par
+\pard\li720\cf1\f2 m[ove] <MPQFile> <SourceFile> <DestinationDirectory>\cf0\f0\par
+\pard\par
+\pard\li720\cf1 All parameters are required.  SourceFile is the file(s) to be moved (wildcards allowed), DestinationDirectory is the virtual directory the file(s) to be moved will be placed in.\par
+\pard\cf0\par
+\ul Deleting Files - the \b\i Delete\b0\i0  Command\ulnone\par
+\pard\li720 The syntax for the delete file command is:\par
+\pard\par
+\pard\li720\cf1\f2 d[elete] <MPQFile> <FileToDelete>\cf0\f0\par
+\pard\par
+\pard\li720\cf1 All parameters are required.  FileToDelete is just that, the file(s) to delete.  Wildcards may be used in FileToDelete.  /r can't be used with this command in WinMPQ.\par
+The first time you use the delete command, you might be rather surprised to find that a deleted file rarely takes up less space in a MoPaQ than a file that hasn't been deleted!  This is due to the fact that the delete command only marks a file as deleted; it doesn't actually remove the file from the archive (to preempt the next question, no, you can't undelete a deleted file).  To actually remove the file from the MoPaQ, you must use the flush command.\par
+\pard\cf0\par
+\ul Flushing Out an Archive - the \b\i Flush\b0\i0  Command\ulnone\par
+\pard\li720 The syntax for the flush command is:\par
+\pard\par
+\pard\li720\cf1\f2 f[lush] <MPQFile>\cf0\f0\par
+\pard\par
+\pard\li720\cf1 MPQFile is the file to flush.\par
+The flush command searches through a MoPaQ and purges the space deleted files occupy, shrinking the MoPaQ's size if there are any deleted files in it.\par
+\pard\cf0\par
+\ul Listing the Files in an Archive - the \b\i List\b0\i0  Command\ulnone\par
+\pard\li720 The syntax for the list files command is:\par
+\pard\par
+\pard\li720\cf1\f2 l[ist] <MPQFile> [Filter] <Out_File>\cf0\f0\par
+\pard\par
+\pard\li720\cf1 The parameters in <> are required, ones in [] are optional.  This will list all the files in the MoPaQ to a text file.  The [Filter] parameter is a wildcard filter that specifies what files to list.  The <Out_File> parameter tells WinMPQ the file to write the listing to.\par
+\pard\cf0\par
+\ul Running Scripts - the \b\i Script\b0\i0  Command\ulnone\par
+\pard\li720 To run a script:\par
+\pard\par
+\pard\li720\cf1\f2 s[cript] <ScriptFile>\f0\par
+\pard\cf0\par
+\ul\b\fs24 Writing Scripts\ulnone\b0\fs20\par
+\pard\li360\cf1 A script is basically a file that contains a lot of command lines for WinMPQ to process.  This allows you to compile one or more entire MoPaQs in a single process.\par
+\pard\li1440\par
+\pard\ul Differences Between the Command Line and Scripts\ulnone\par
+\pard\li720 For simplicity's sake, the command-line and script-line syntax are almost identical.  There are a couple major points of difference, though.\par
+\par
+1.\tab MoPaQs must be explicitly opened in scripts.\par
+2.\tab Because of this, you don't need to specify which MoPaQ you are working with on every single line, as you did on the command-line.\par
+\pard\li1440\par
+\pard\ul Opening Archives - the \b\i Open\b0\i0  Command\ulnone\par
+\pard\li720 The very first thing you must do in scripts is to open the MoPaQ you want to work with.  The general syntax for the 'open archive' command is:\par
+\pard\li1440\par
+\pard\li720\f2 o[pen] <MPQFile> [FileLimit]\par
+\pard\li1440\f0\par
+\pard\li720 Parameters in <> are required, ones in [] are optional. MPQFile is the file to open.  FileLimit only takes affect when the archive is being created from scratch.  It is the maximum number of files that this archive can hold, and is 1024 by default.  If the MoPaQ already exists, FileLimit will have no effect, but no warning will be indicated.  The FileLimit parameter has a minimum value of 16, and a maximum value of 262144.\par
+NOTE: Each file that a MoPaQ can hold (the FileLimit) takes up 16 bytes in the MoPaQ, regardless of whether or not it is used.  This can add up.  For example, an empty MoPaQ with a file limit of 262144 would be 4 MB large!\par
+\pard\li1440\par
+\pard\ul New Archives - the \b\i New\b0\i0  Command\ulnone\par
+\pard\li720 The general syntax for the 'new archive' command is:\par
+\pard\li1440\par
+\pard\li720\f2 n[ew] <MPQFile> [FileLimit]\par
+\pard\li1440\f0\par
+\pard\li720 Parameters in <> are required, ones in [] are optional.  MPQFile is the file to open.  This command will force WinMPQ to overwrite the archive and create a new one.\par
+\pard\li1440\par
+\pard\ul Closing Archives - the \b\i Close\b0\i0  Command\ulnone\par
+\pard\li720 MPQ2k requires this, but using it in WinMPQ isn't required.  It is very simple to use the close command, as shown on the following line:\par
+\pard\li1440\par
+\pard\li720\f2 c[lose]\f0\par
+\pard\li1440\par
+\pard\ul Script Comments - the Semicolon \b\i ;\ulnone\b0\i0\par
+\pard\li720 On some occasions you may want to put comments in a script file for one reason or another.  To do this, simply put a semicolon(;) as the first character on a line, and the line will be ignored, and no error will be signaled.\par
+\pard\cf0\par
+\cf1\ul Changing the Current Directory - the \b\i CD\b0\i0  or \b\i CHDIR\b0\i0  Command\ulnone\par
+\pard\li720 The syntax for this command is:\par
+\pard\li1440\par
+\pard\li720\f2 cd <NewDirectory>\par
+\pard\li1440\f0\par
+\pard\li720 Parameters in <> are required.  NewDirectory is the directory the command will go to.  Use "\f2 ..\f0 " to go to the parent directory.\par
+\par
+\pard\ul Changing the Current Drive - the \i X\b :\b0\i0  Command\ulnone\par
+\pard\li720 The syntax for this command is:\par
+\pard\li1440\par
+\pard\li720\f2 <DriveLetter>:\par
+\pard\li1440\f0\par
+\pard\li720 Parameters in <> are required.  DriveLetter is the letter of the drive you want to switch to.\par
+\par
+\pard\ul Closing WinMPQ - the \b\i Exit\b0\i0  or \b\i Quit\b0\i0  Command\ulnone\par
+\pard\li720 The syntax for this command is:\par
+\pard\li1440\par
+\pard\li720\f2 x\par
+\pard\li360\f0 or\f2\par
+\pard\li720 exit\par
+\pard\li360\f0 or\f2\par
+\pard\li720 quit\par
+\pard\li1440\f0\par
+\pard\li720 This command closes WinMPQ.\par
+\par
+\pard\cf0\ul\b\fs24 The MPQ2k Command Box\ulnone\b0\fs20\par
+\pard\li360\cf1 This is a text box where you can type in different commands.  The commands are the same as they are in the script files, but there are a few differences.  The \b\i Open\b0\i0  command can be used to open an archive into the main listing in addition to using the open menu command.  It can also be used by itself to reload an archive.  Just like with scripts, you don't need to specify the name of the archive for commands other than the open command.  All commands typed into the box affect the archive open in the main listing.\par
+\par
+\pard\cf0\ul\b\fs24 Locale ID\ulnone\b0\fs20\par
+\pard\li360 The locale ID determines what language\f1  version of the software\f0  a file is\f1  intended for\f0 .  Here is a list of some of the ID numbers you can use \f1 for\f0  files.\par
+\pard\par
+\pard\li720\tx3600 0\tab Language Neutral/English\par
+1031 (407 in hex)\tab German\par
+1033 (409 in hex)\tab English (neutral is usually used instead of this)\par
+1034 (40A in hex)\tab Spanish\par
+1036 (40C in hex)\tab French\par
+1040 (410 in hex)\tab Italian\par
+1046 (416 in hex)\tab Portuguese\par
+\pard\par
+\ul\b\fs24 Version notes\ulnone\b0\fs20\par
+\pard\li360 The menu option for running Mo'PaQ 2000 scripts has support for almost everything.  The /r switch may only be used with Add, and the /lf and /p switches are not used with the List command because WinMPQ does not display the list to the screen.  Scripts can be run within each other in WinMPQ.  Use the /auto parameter with the Add command to use compression auto-selection.\par
+\pard\par
+\ul\b\fs24 Version history\ulnone\b0\fs20\par
+\par
+\ul\b 1.\f1 66\f0 _________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0\f1 Fixed bug that prevented 2 - 4 GB archives from being recognized.\f0\par
+\f1{\pntext\f3\'B7\tab}Supports bzip2 compression option.\f0\par
+\f1{\pntext\f3\'B7\tab}Changed hotkeys to allow Ctrl+A to select all.\f0\par
+\f1{\pntext\f3\'B7\tab}Fixed no listing bug on archives having a one entry hash table.\f0\par
+\pard\par
+\ul\b 1.\f1 65\f0 _________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0\f1 Added a CWad to MPQ converter, usable by opening a CWad archive.\f0\par
+\f1{\pntext\f3\'B7\tab}Added .w3x files to open MPQ dialog filter.\f0\par
+\f1{\pntext\f3\'B7\tab}Fixed file extension filter box for file listing of the open archive so that it is positioned properly and only shows extensions from the current archive.\f0\par
+\pard\par
+\ul\b 1.\f1 64\f0 _________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0\f1 Fixed a bug that caused an overflow error message when opening an archive containing files with totals that were too large to fit in the data type that I originally chose.  This has been changed to handle larger sizes.\f0\par
+\pard\par
+\ul\b 1.\f1 63\f0 __________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0\f1 Fixed a bug that caused an overflow error message when opening an archive containing certain numbers of files; especially on Chinese, Japanese, and Korean Windows versions.\f0\par
+\f1{\pntext\f3\'B7\tab}Added an option to set the block size for new archives.\f0\par
+\pard\par
+\ul\b 1.\f1 62\f0 __________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0\f1 Fixed a bug that prevented extracting empty files.\f0\par
+\f1{\pntext\f3\'B7\tab}Added an option that would allow one to have WinMPQ search a specified folder and all of its subfolders for file lists with names similar to the open archive.\f0\par
+\f1{\pntext\f3\'B7\tab}When you add a file, you are prompted for what path to add to the beginning of the filenames, and click cancel, WinMPQ no longer adds the files with no path added but instead it cancels adding the files.\f0\par
+\pard\par
+\ul\b 1.\f1 61\f0 __________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0\f1 WinMPQ was not closing the archive handle properly after adding files that have been modified after being opened from WinMPQ.  This was causing WinMPQ to be unable to open the archive to add files, extract files, etc.  This bug has been fixed in this version.\f0\par
+\f1{\pntext\f3\'B7\tab}Fixed a bug that caused WinMPQ to be unable to update a file in the archive that has been modified.\f0\par
+\f1{\pntext\f3\'B7\tab}Mpq Embedder is now included with WinMPQ.  Access it from the "Tools" menu.\f0\par
+\f1{\pntext\f3\'B7\tab}All options that were available by right-clicking a file are now also available from the "Mpq" menu.\f0\par
+\f1{\pntext\f3\'B7\tab}The "Tools" menu is now also shown on the right-click context menu shown when right-clicking on a file.\f0\par
+\f1{\pntext\f3\'B7\tab}The default compression type can be changed now, and the compression level for deflate compression can set.\f0\par
+\f1{\pntext\f3\'B7\tab}Added a menu command to add a file to the listing if it is not listed and you know the name of the file.\f0\par
+\f1{\pntext\f3\'B7\tab}Added a menu command to change the locale ID of an existing file.\f0\par
+\pard\par
+\ul\b 1.\f1 60\f0 __________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0\f1 Switched to using SFmpq instead of Mpq Control.\f0\par
+\f1{\pntext\f3\'B7\tab}Added support for adding files with Warcraft III's new compression method.\f0\par
+\f1{\pntext\f3\'B7\tab}File encryption can now be enabled or disabled through the "Mpq" menu.\f0\par
+\pard\par
+\ul\b 1.\f1 54\f0 __________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0\f1 Added an option to only use found file lists when using the option to automatically find file lists.\f0\par
+\f1{\pntext\f3\'B7\tab}Implemented a workaround for the icon color limitation in Visual Basic 4 programs.  Now the icon shown when the program is running is 256 colors as it should be.\f0\par
+\pard\par
+\ul\b 1.\f1 53\f0 __________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0\f1 No longer requires common dialog control.\f0\par
+\pard\par
+\ul\b 1.\f1 52\f0 __________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0\f1 Fixed a bug that would sometimes prevent adding a file if only one was dragged to WinMPQ or only one file was in the folder when using "Add Folder"\f0\par
+\pard\par
+\ul\b 1.\f1 51\f0 __________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0\f1 Files are no longer added twice when dragging them to WinMPQ.\f0\par
+\f1{\pntext\f3\'B7\tab}Changed compact confirmation message.\f0\par
+\pard\par
+\ul\b 1.\f1 50\f0 __________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0\f1 Fixed an error that would cause WinMPQ to crash if an archive was opened, a file was opened from the archive, and the archive was deleted.\f0\par
+\pard\par
+\ul\b 1.4\f1 9\f0 __________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0\f1 Added an option to automatically use file lists with filenames similar to the open mpq archive.\f0\par
+\pard\par
+\ul\b 1.48__________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0 Fixed a bug which caused WinMPQ to reload the archive when adding files.\par
+{\pntext\f3\'B7\tab}The mpq archive listing will now be reloaded if a script is run which modifies the currently open archive.\par
+{\pntext\f3\'B7\tab}Added Warcraft III maps to open dialog filter.\par
+\pard\par
+\ul\b 1.47__________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0 Adding a large number of files to an archive will no longer corrupt the file list in the archive.\par
+{\pntext\f3\'B7\tab}Script output will now start displaying immediately, rather than after a few lines have executed.\par
+\pard\par
+\ul\b 1.46__________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0 Mpq archive loading progress is shown in the status bar now.\par
+{\pntext\f3\'B7\tab}Mpq archives load quicker.\par
+\pard\par
+\ul\b 1.45__________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0 Combined all the options under the options menu into one dialog box with tabs.\par
+{\pntext\f3\'B7\tab}You may now load multiple file lists through the options menu.\par
+{\pntext\f3\'B7\tab}When dragging only one file from WinMPQ, the exact filename will always be given to the program you drag the file to, instead of using wildcards.\par
+{\pntext\f3\'B7\tab}The filenames in the archive listing are now updated when using the rename or delete commands through the mpq2k command box.\par
+{\pntext\f3\'B7\tab}Added extra names of existing commands.\par
+{\pntext\f3\'B7\tab}Almost has full support for Mpq2k scripts.\par
+\pard\par
+\ul\b 1.42__________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0 Fixed a bug that caused WinMPQ to be unable to create or enumerate registry keys on Windows NT4, 2000, or XP.\par
+{\pntext\f3\'B7\tab}Fixed some bugs with the popup menu that appears when right-clicking files.\par
+{\pntext\f3\'B7\tab}WinMPQ now notifies Windows when it associates itself with files, so Windows will update the icon for MPQ archives.\par
+{\pntext\f3\'B7\tab}Added more checks for whether files exist.  This was done to prevent crashes in some instances.\par
+\pard\par
+\ul\b 1.40__________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0 Fixed a division by zero error that would occur when displaying the compression ratio of zero byte files.\par
+\pard\par
+\ul\b 1.39__________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0 WinMPQ no longer does checks on open files while the options window is open.  Previously, this caused a message saying "This file is not an MPQ archive." to show when the options window is opened after you've opened files in the MPQ archive.\par
+\pard\par
+\ul\b 1.38__________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0 Fixed a bug that caused a "File not found" message when WinMPQ would check the day and time a file was last modified.  This caused WinMPQ to be unable to create new mpq archives.\par
+\pard\par
+\ul\b 1.37__________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0 Added a file filter box for making WinMPQ display files with a certain file extension (separate filters with a semicolon ; for multiple filters).\par
+{\pntext\f3\'B7\tab}Added "Tools" menu for using the open mpq archive or the selected files in a program other than what they are associated with (example:  a hex editor).\par
+{\pntext\f3\'B7\tab}Made some improvements with the way files are handled when opening a file in an MPQ archive or dragging files from an MPQ archive.\par
+{\pntext\f3\'B7\tab}Command prompt commands may be typed into the Mpq2k Command box at the bottom of the window.\par
+\pard\par
+\ul\b 1.35__________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0 Added a popup-menu that allows you to open a file with a program other than the default.\par
+{\pntext\f3\'B7\tab}WinMPQ can now be set to open a program other than the default when opening a file from an MPQ archive.\par
+{\pntext\f3\'B7\tab}When you open a file from an MPQ archive and modify it, WinMPQ will display a prompt asking if you want to add the modified file.\par
+{\pntext\f3\'B7\tab}Added option to disable loading extra file information.  This can be used to make MPQ archives load faster.\par
+\pard\par
+\ul\b 1.33__________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0 Fixed a bug in the code that gets the names of files in a folder and its subfolders.\par
+\pard\par
+\ul\b 1.32__________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0 MPQ2k commands can be typed in at a box at the bottom of the WinMPQ window.\par
+{\pntext\f3\'B7\tab}WinMPQ now uses the startup parameters MPQ2k uses.\par
+{\pntext\f3\'B7\tab}Added recent file list to file menu.\par
+\pard\par
+\ul\b 1.30__________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0 Files can be dragged to WinMPQ to add files and from WinMPQ to extract files.\par
+{\pntext\f3\'B7\tab}Added compression auto-selection option.\par
+{\pntext\f3\'B7\tab}Added menu option that adds all the files in a folder and its subfolders.\par
+{\pntext\f3\'B7\tab}Added menu option to create a file list with the listed filenames in the MPQ archive.\par
+{\pntext\f3\'B7\tab}Added option to set the folder WinMPQ starts up at.\par
+{\pntext\f3\'B7\tab}Added option to associate MPQ archives with WinMPQ.\par
+{\pntext\f3\'B7\tab}The Delete menu option no longer asks if you want to delete a file when none is selected.\par
+{\pntext\f3\'B7\tab}The Extract menu option will now prompt you for the folder it will extract files to and will also extract all the listed files when none are selected.\par
+{\pntext\f3\'B7\tab}Added option to suppress prompts.\par
+{\pntext\f3\'B7\tab}Filenames are shown on the title bar.\par
+{\pntext\f3\'B7\tab}Added a toolbar.\par
+\pard\tab\par
+\ul\b 1.20__________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0 Optional parameters in Mo'PaQ 2000 scripts are now optional as they should be.\par
+{\pntext\f3\'B7\tab}Wildcards and the /r switch work when using the A command in scripts.\par
+{\pntext\f3\'B7\tab}Scripts are now run in the folder they are located instead of the program's folder.\par
+\pard\par
+\ul\b 1.15__________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0 Fixed a bug that prevented WinMPQ from recognizing that audio compression is selected.  Audio compression should work properly now.\par
+{\pntext\f3\'B7\tab}Added a way to assign a path to files you add without needing to rename them.\par
+\pard\par
+\ul\b 1.12__________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0 Fixed a bug that caused embedded mpq archives to be improperly located, causing an overflow when finding the total number of files.\par
+\pard\par
+\ul\b 1.11__________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0 Fixed another renaming bug.  It should work properly now.\par
+\pard\par
+\ul\b 1.10__________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0 Fixed a bug that prevented the dialog box for adding files to show up on some systems.\par
+\pard\par
+\ul\b 1.01__________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0 Fixed a file renaming bug.\par
+{\pntext\f3\'B7\tab}The method for finding embedded mpq archives is more reliable.\par
+\pard\par
+\ul\b 1.00__________\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent720{\pntxtb\'B7}}\fi-720\li720\ulnone\b0 Initial release.\par
+\pard\par
+\ul\b\fs24 Bug Reports\ulnone\b0\fs20\par
+\par
+\pard\li360 If you find a bug, please send me an e-mail with a description of the error and step-by-step instuctions on how you made it happen.\par
+\pard\par
+-ShadowFlare\par
+\pard\li360 email:\tab blakflare@hotmail.com\par
+web page:\tab http://\f1 sfsrealm.hopto.org\f0 /\par
+}
+ 

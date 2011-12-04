@@ -83,10 +83,8 @@ public class JassManager {
 	public JassFunction getJassFunctionFor(ImmutableList<ClassOrModule> context, FunctionDefinition f) {
 		Pair<ImmutableList<ClassOrModule>, FunctionDefinition> key = Pair.create(context, f);
 		if (functions.containsKey(key)) {
-			System.out.println("@@ function exists");
 			return functions.get(key);
 		}
-		System.out.println("@@ get new function");
 		String name = f.getSignature().getName();
 		if (f instanceof NativeFunc) {
 			// do not change name
