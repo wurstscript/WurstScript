@@ -12,6 +12,8 @@ package de.peeeq.wurstscript.gui;
 
 import java.awt.Color;
 import java.awt.Desktop;
+import java.awt.Dimension;
+import java.awt.Toolkit;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -34,6 +36,17 @@ public class About extends javax.swing.JDialog {
         initComponents();
         uri = new URI(homepage);
         getContentPane().setBackground(Color.WHITE); 
+        // Get the size of the screen
+        Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
+         
+        // Determine the new location of the window
+        int w = getSize().width;
+        int h = getSize().height;
+        int x = (dim.width-w)/2;
+        int y = (dim.height-h)/2;
+         
+        // Move the window
+        setLocation(x, y);
 
     }
 
