@@ -35,7 +35,7 @@ public class WLogger {
 	}
 	
 	public static void severe(String msg) {
-		dialogBox(msg);
+//		dialogBox(msg);
 		logger.error(msg);
 	}
 

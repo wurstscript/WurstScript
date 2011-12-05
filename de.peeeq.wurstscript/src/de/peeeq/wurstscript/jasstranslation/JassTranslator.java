@@ -1075,6 +1075,9 @@ protected List<String> getParameterTypes(WParameters params) {
 		FuncDefInstance calledFunc = exprMemberMethod.attrFuncDef();
 		
 		JassFunction calledJassFunc = manager.getJassFunctionFor(context, calledFunc); // FIXME use right context
+		
+		calledFunctions.put(f, calledJassFunc);
+		
 		String functionName = calledJassFunc.getName();
 		JassExprlist arguments = JassExprlist();
 		
@@ -1104,6 +1107,9 @@ protected List<String> getParameterTypes(WParameters params) {
 	private ExprTranslationResult translateStaticFunctionCall(ImmutableList<ClassOrModule> context, JassFunction f, ExprMemberMethod exprMemberMethod) {
 		FuncDefInstance calledFunc = exprMemberMethod.attrFuncDef();
 		JassFunction calledJassFunc = manager.getJassFunctionFor(context, calledFunc);
+		
+		calledFunctions.put(f, calledJassFunc);
+		
 		String functionName = calledJassFunc.getName();
 		JassExprlist arguments = JassExprlist();
 		List<JassStatement> statements = Lists.newLinkedList();
@@ -1128,6 +1134,9 @@ protected List<String> getParameterTypes(WParameters params) {
 		Preconditions.checkNotNull(context);
 		FuncDefInstance calledFunc = exprMemberMethod.attrFuncDef();
 		JassFunction calledJassFunc = manager.getJassFunctionFor(context, calledFunc); // FIXME use right context
+		
+		calledFunctions.put(f, calledJassFunc);
+		
 		String functionName = calledJassFunc.getName();
 		JassExprlist arguments = JassExprlist();
 		// translate right:
