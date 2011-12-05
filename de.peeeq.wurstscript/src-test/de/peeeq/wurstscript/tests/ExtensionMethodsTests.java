@@ -27,6 +27,26 @@ public class ExtensionMethodsTests extends PscriptTest {
 	}
 	
 	@Test
+	public void extensionFunction_chain() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	function int.add(int x) returns int",
+				"		return this + x",
+				"",
+				"	init",
+				"		int a = 3",
+				"			.add(4)",
+				"			.add(5)",
+				"			.add(6)",
+				"		if a == 18",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	
+	@Test
 	public void extensionFunction_int_order() {
 		testAssertOkLines(true, 
 				"package test",
