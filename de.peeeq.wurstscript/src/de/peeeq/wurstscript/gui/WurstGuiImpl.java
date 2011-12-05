@@ -82,6 +82,17 @@ public class WurstGuiImpl implements WurstGui {
 			} catch (Exception e) {
 				// well, we can live with the ugly style if we cannot load the cool one
 			}
+			this.setSize(800, 600);
+			Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
+         
+	        // Determine the new location of the window
+	        int w = getSize().width;
+	        int h = getSize().height;
+	        int x = (dim.width-w)/2;
+	        int y = (dim.height-h)/2;
+	         
+	        // Move the window
+	        setLocation(x, y);
 
 			JPanel pane = new JPanel();
 			pane.setLayout(new BoxLayout(pane, BoxLayout.PAGE_AXIS));
@@ -98,7 +109,7 @@ public class WurstGuiImpl implements WurstGui {
 
 			add(pane);
 			setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-			this.setSize(800, 600);
+			
 			//			pack();
 			setVisible(true);
 		}

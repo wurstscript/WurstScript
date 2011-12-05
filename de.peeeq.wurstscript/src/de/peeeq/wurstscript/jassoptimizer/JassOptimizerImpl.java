@@ -212,8 +212,11 @@ public class JassOptimizerImpl implements JassOptimizer {
 	@Override
 	public void optimize(final JassProg prog) throws FileNotFoundException {
 		
+		prog.getGlobals().removeAll(prog.attrIgnoredVariables());
+		prog.getFunctions().removeAll(prog.attrIgnoredFunctions());
 		// Visit all functions and variables and save their name and their 
 		// replacement into a hashmap
+		
 		
 		// The replacement map
 		final HashMap<String, String> replacements = new HashMap<String, String>();
