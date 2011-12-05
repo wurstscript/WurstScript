@@ -79,6 +79,33 @@ int mpqInjectFile(char* mpqArchive, char* name, char* injectedFilePath) {
 	return 0;
 }
 
+int mpqDeleteFile(char* mpqArchive, char* name) {
+	int maxFiles = 1337;
+	// open the map archive:
+	MPQHANDLE mpq = MpqOpenArchiveForUpdate(mpqArchive, MOAU_OPEN_EXISTING, 0);
+	
+	if (mpq == NULL) {
+		std::cout << "Could not open file.\n";
+	} else {
+		// remove the file
+		bool ok = MpqDeleteFile(mpq, name);
+		if (!ok) {
+			std::cout << "could not remove file";
+		}
+		// compact & close
+		ok = MpqCompactArchive(mpq);
+		if (!ok) {
+			std::cout << "could not compact archive";
+		}
+		ok = MpqCloseUpdatedArchive(mpq, NULL);
+		if (!ok) {
+			std::cout << "could not close archive";
+		}
+	}
+	return 0;
+}
+
+
 int main(int argc, char* argv[]) // fuck unicode support, thats too high for me (I really tried it though)
 {
 	if (argc > 1) {
@@ -92,6 +119,9 @@ int main(int argc, char* argv[]) // fuck unicode support, thats too high for me 
 		}
 		if (argc == 5 && strcmp(command, "inject") == 0) {
 			return mpqInjectFile(argv[2], argv[3], argv[4]);
+		}
+		if (argc == 4 && strcmp(command, "delete") == 0) {
+			return mpqDeleteFile(argv[2], argv[3]);
 		}
 	}
 

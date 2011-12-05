@@ -22,6 +22,9 @@ import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassoptimizer.JassOptimizer;
 import de.peeeq.wurstscript.jassoptimizer.JassOptimizerImpl;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
+import de.peeeq.wurstscript.mpq.MpqEditor;
+import de.peeeq.wurstscript.mpq.MpqEditorFactory;
+import de.peeeq.wurstscript.mpq.WinMpq;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class Main {
@@ -137,7 +140,7 @@ public class Main {
 					gui.sendProgress("Writing to map", 0.99);
 					File mapFile = new File(runArgs.getMapFile());
 
-					MpqEditor mpqEditor = new WinMpq();
+					MpqEditor mpqEditor = MpqEditorFactory.getEditor();
 					mpqEditor.deleteFile(mapFile, "war3map.j");
 					mpqEditor.insertFile(mapFile, "war3map.j", outputMapscript);
 				}
