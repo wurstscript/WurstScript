@@ -1,4 +1,4 @@
-package de.peeeq.wurstscript;
+package de.peeeq.wurstscript.mpq;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -6,8 +6,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
+import de.peeeq.wurstscript.WLogger;
+
 public class WinMpq implements MpqEditor {
 
+	WinMpq() {
+	}
+	
 	@Override
 	public void extractFile(File mpqArchive, String fileToExtract, File tempFile)
 			throws IOException, InterruptedException {

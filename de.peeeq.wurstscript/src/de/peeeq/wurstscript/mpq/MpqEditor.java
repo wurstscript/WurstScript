@@ -1,4 +1,4 @@
-package de.peeeq.wurstscript;
+package de.peeeq.wurstscript.mpq;
 
 import java.io.File;
 import java.io.IOException;

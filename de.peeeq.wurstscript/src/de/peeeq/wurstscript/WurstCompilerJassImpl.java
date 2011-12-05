@@ -27,6 +27,9 @@ import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jasstranslation.JassTranslator;
+import de.peeeq.wurstscript.mpq.MpqEditor;
+import de.peeeq.wurstscript.mpq.MpqEditorFactory;
+import de.peeeq.wurstscript.mpq.WinMpq;
 import de.peeeq.wurstscript.parser.ExtendedParser;
 import de.peeeq.wurstscript.parser.WurstScriptScanner;
 import de.peeeq.wurstscript.utils.NotNullList;
@@ -215,7 +218,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         	File tempFile = new File("temp_war3map.j");
         	
         	// extract mapscript:
-        	MpqEditor mpqEditor = new WinMpq();
+        	MpqEditor mpqEditor = MpqEditorFactory.getEditor();
         	mpqEditor.extractFile(file, "war3map.j", tempFile);
 //        	Runtime rt = Runtime.getRuntime();
 //			String[] commands = {"MpqCL.exe", "extract", file.getAbsolutePath(), "war3map.j", tempFile.getAbsolutePath()};
