@@ -5,22 +5,22 @@ package TimerUtils
 	integer freeTimersCount = 0
 	hashtable ht = InitHashtable()
 	
-	function getTimer() returns timer
+	public function getTimer() returns timer
 		if freeTimersCount > 0
 			freeTimersCount -= 1
 			return freeTimers[freeTimersCount]
 		else
 			return CreateTimer()
 	
-	function timer.setData(integer data)
+	public function timer.setData(integer data)
 		SaveInteger(ht, 0, GetHandleId(this), data)
 		
 	
-	function timer.getData() returns integer
+	public function timer.getData() returns integer
 		return LoadInteger(ht, 0, GetHandleId(this))
 	
 	
-	function timer.release()
+	public function timer.release()
 		PauseTimer(this)
 		freeTimers[freeTimersCount] = this
 		freeTimersCount += 1
