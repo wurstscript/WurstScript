@@ -174,7 +174,13 @@ public class AttrFuncDef {
 		});
 		
 		if (result == null) {
-			attr.addError(node.getSource(), "Could not resolve reference to function " + funcName);
+			if (funcName.startsWith("InitTrig_") 
+					&& node.attrNearestFuncDef() != null
+					&& node.attrNearestFuncDef().getSignature().getName().equals("InitCustomTriggers")) {
+				// ignore missing InitTrig functions
+			} else {
+				attr.addError(node.getSource(), "Could not resolve reference to function " + funcName);
+			}
 		}
 		return result;
 	}

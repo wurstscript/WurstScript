@@ -10,6 +10,12 @@ public class RealWorldExamples extends PscriptTest {
 	private static final String TEST_DIR = "./testscripts/concept/";
 
 	
+	@Override 
+	protected boolean testOptimizer() {
+		return false;
+	}
+	
+	
 	@Test
 	public void simple() throws IOException {
 		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "TimerUtils.pscript"), false);

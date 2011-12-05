@@ -75,9 +75,6 @@ package Test
         BJDebugMsg("Hello World.")
 
 endpackage
-
-function InitTrig_test takes nothing returns nothing
-endfunction
 //===========================================================================
 function InitCustomTriggers takes nothing returns nothing
     call InitTrig_test(  )

@@ -204,7 +204,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"}"                               { return symbol(TokenType.RBRACK); }
 	"["                               { return symbol(TokenType.LSQUARE); }
 	"]"                               { return symbol(TokenType.RSQUARE); }
-	"."                               { return symbol(TokenType.DOT); }
+	[ \t\n\r]* "."                    { return symbol(TokenType.DOT); }
 	"+"                               { return symbol(TokenType.PLUS); }
 	"-"                               { return symbol(TokenType.MINUS); }
 	"*"                               { return symbol(TokenType.MULT); }

@@ -801,6 +801,9 @@ public class JassTranslator {
 			@Override
 			public ExprTranslationResult case_ExprFunctionCall(ExprFunctionCall exprFunctionCall) {
 				FuncDefInstance calledFunc = getRealCalledFunction(context, exprFunctionCall.attrFuncDef());
+				if (calledFunc == null) {
+					return new ExprTranslationResult(JassExprFunctionCall("DoNothing", JassExprlist()));
+				}
 				JassFunction calledJassFunc = manager.getJassFunctionFor(calledFunc);
 				String functionName = calledJassFunc.getName();
 				
