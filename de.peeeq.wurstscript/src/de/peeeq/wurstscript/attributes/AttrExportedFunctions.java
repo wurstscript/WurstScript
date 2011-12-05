@@ -13,8 +13,8 @@ public class AttrExportedFunctions {
 	public static Multimap<String, FunctionDefinition> calculate(WPackage node) {
 		final Multimap<String, FunctionDefinition> result = ArrayListMultimap.create();
 		for (WEntity x : node.getElements()) {
-			if (x instanceof FuncDef) {
-				FuncDef f = (FuncDef) x;
+			if (x instanceof FunctionDefinition) {
+				FunctionDefinition f = (FunctionDefinition) x;
 				if (f.attrIsPublic()) {
 					result.put(f.getSignature().getName(), f);
 				}

@@ -1,8 +1,5 @@
 package de.peeeq.wurstscript.tests;
 
-import java.io.File;
-import java.io.IOException;
-
 import org.junit.Test;
 
 public class ExtensionMethodsTests extends PscriptTest {
@@ -40,6 +37,25 @@ public class ExtensionMethodsTests extends PscriptTest {
 				"		if a.add(4) == 7",
 				"			testSuccess()",
 				"	function int.add(int x) returns int",
+				"		return this + x",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void extensionFunction_int_across_packages() {
+		testAssertOkLines(true, 
+				"package test",
+				"	import Blub",
+				"	native testSuccess()",
+				"",
+				"	init",
+				"		int a = 3",
+				"		if a.add(4) == 7",
+				"			testSuccess()",
+				"endpackage",
+				"package Blub",
+				"	public function int.add(int x) returns int",
 				"		return this + x",
 				"endpackage"
 			);
