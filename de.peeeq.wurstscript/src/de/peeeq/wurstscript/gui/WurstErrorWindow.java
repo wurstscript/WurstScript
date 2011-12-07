@@ -75,6 +75,12 @@ public class WurstErrorWindow extends javax.swing.JFrame {
         setIconImage(image);
         
         try {
+			ab = new About(this, true);
+		} catch (URISyntaxException e) {
+			java.util.logging.Logger.getLogger(WurstStatusWindow.class.getName()).log(java.util.logging.Level.SEVERE, null, e);
+		}
+        
+        try {
         	UIManager.setLookAndFeel(
 					UIManager.getSystemLookAndFeelClassName());
         } catch (ClassNotFoundException ex) {
