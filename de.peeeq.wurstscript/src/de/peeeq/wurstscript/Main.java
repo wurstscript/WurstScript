@@ -146,6 +146,7 @@ public class Main {
 				}
 
 			} while (false);
+			gui.sendProgress("Finished!", 1);
 			
 //			List<CompileError> errors = gui.getErrorList();
 //			Utils.saveToFile(errors, "lastErrors.data");
