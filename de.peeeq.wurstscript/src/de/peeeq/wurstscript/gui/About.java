@@ -20,6 +20,8 @@ import java.net.URISyntaxException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import de.peeeq.wurstscript.utils.Utils;
+
 /**
  *
  * @author Frotty
@@ -39,14 +41,7 @@ public class About extends javax.swing.JDialog {
         // Get the size of the screen
         Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
          
-        // Determine the new location of the window
-        int w = getSize().width;
-        int h = getSize().height;
-        int x = (dim.width-w)/2;
-        int y = (dim.height-h)/2;
-         
-        // Move the window
-        setLocation(x, y);
+        Utils.setWindowToCenterOfScreen(this);
 
     }
 

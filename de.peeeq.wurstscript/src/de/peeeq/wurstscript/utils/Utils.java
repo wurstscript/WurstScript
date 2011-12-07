@@ -1,12 +1,7 @@
 package de.peeeq.wurstscript.utils;
 
-import java.awt.Dimension;
-import java.awt.GraphicsConfiguration;
-import java.awt.GraphicsDevice;
-import java.awt.GraphicsEnvironment;
-import java.awt.Insets;
 import java.awt.Rectangle;
-import java.awt.Toolkit;
+import java.awt.Window;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -18,8 +13,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-
-import javax.swing.JFrame;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Multimap;
@@ -423,7 +416,7 @@ public class Utils {
 		return obj;
 	}
 
-	public static void setWindowToCenterOfScreen(JFrame frm) {
+	public static void setWindowToCenterOfScreen(Window frm) {
         Rectangle screenBounds = frm.getGraphicsConfiguration().getBounds();
         
         int center_x = screenBounds.x + screenBounds.width / 2;
