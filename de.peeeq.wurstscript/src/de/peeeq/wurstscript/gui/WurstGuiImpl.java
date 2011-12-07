@@ -16,9 +16,9 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class WurstGuiImpl implements WurstGui {
 
-	
+
 	private List<CompileError> errors = Lists.newLinkedList(); // this is not concurrent, because we only use this list from the main thread
-	
+
 	private volatile Queue<CompileError> errorQueue = new ConcurrentLinkedQueue<CompileError>();
 	private volatile double progress = 0.0;
 	private volatile boolean finished = false;
@@ -40,8 +40,8 @@ public class WurstGuiImpl implements WurstGui {
 	class GuiUpdater extends Thread {
 		private WurstStatusWindow statusWindow = null;
 		private WurstErrorWindow errorWindow = null;
-		
-		
+
+
 		public GuiUpdater() {
 		}
 
@@ -49,13 +49,21 @@ public class WurstGuiImpl implements WurstGui {
 
 		@Override
 		public void run() {
-			statusWindow = new WurstStatusWindow();
-			errorWindow = new WurstErrorWindow();
-			
-			while (!finished || !errorQueue.isEmpty()) {
-				Utils.sleep(300);
+			try {
+				// init the windows:
+				SwingUtilities.invokeAndWait(new Runnable() {
+					@Override
+					public void run() {
+						statusWindow = new WurstStatusWindow();
+						errorWindow = new WurstErrorWindow();
+					}
+				});
 
-				try {
+				// main loop: wait until finished and send the errors in the queue to the actual gui
+				while (!finished || !errorQueue.isEmpty()) {
+					Utils.sleep(300);
+
+
 					// Update the UI:
 					SwingUtilities.invokeAndWait(new Runnable() {
 						@Override
@@ -66,11 +74,7 @@ public class WurstGuiImpl implements WurstGui {
 							statusWindow.sendProgress(currentlyWorkingOn, progress);
 						}
 					});
-				} catch (Exception e) {
-					throw new Error(e);
 				}
-			}
-			try {
 				SwingUtilities.invokeAndWait(new Runnable() {
 					@Override
 					public void run() {
