@@ -26,7 +26,7 @@ public class SimpleTestRun {
 
 	private static final String PSCRIPT_ENDING = ".pscript";
 
-	
+
 	public static void main(String ... args) throws IOException, InterruptedException {
 		String testFile = "./testscripts/valid/indent_test.pscript";
 		if (args.length == 1) {
@@ -34,15 +34,16 @@ public class SimpleTestRun {
 		}
 		testScript(new File(testFile));
 	}
-	
-	
+
+
 	public static void testScript(File file) throws IOException, InterruptedException {
 		boolean success = false;
-		try {
+		WurstGui gui = null;
+		try{
 			System.out.println("file b = " + file);
 			String filename = file.getAbsolutePath();
 			System.out.println("parsing script ...");
-			WurstGui gui = new WurstGuiImpl();
+			gui = new WurstGuiImpl();
 			WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui);
 			compiler.loadFiles(file);
 			compiler.parseFiles();
@@ -75,21 +76,27 @@ public class SimpleTestRun {
 			}
 
 			// run the interpreter
+
 			JassInterpreter interpreter = new JassInterpreter();
 			interpreter.trace(true);
 			interpreter.LoadProgram(prog);
 			interpreter.executeFunction("main");
-			
-			gui.sendFinished();
+
+
 		} catch (TestFailException e) {
 			assertTrue("Failed: " + e.getVal(), false);
 		} catch (TestSuccessException e)  {
 			success = true;
+		} finally {
+			if (gui != null) {
+				gui.sendFinished();
+			}
 		}
+
 		if (!success) {
 			assertTrue("Succeed function not called", false);
 		}
-		
+
 	}
 
 	private static void assertTrue(String string, boolean b) {

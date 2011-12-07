@@ -136,7 +136,8 @@ public class WurstStatusWindow extends javax.swing.JFrame {
 	}
 
 //	@Override
-	public void sendFinished() {		
+	public void sendFinished() {
+		System.out.println("CLOSE");
 		dispose();
 	}
 }

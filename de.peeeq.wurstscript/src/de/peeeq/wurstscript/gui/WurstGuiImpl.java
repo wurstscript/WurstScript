@@ -50,6 +50,7 @@ public class WurstGuiImpl implements WurstGui {
 		@Override
 		public void run() {
 			try {
+				
 				// init the windows:
 				SwingUtilities.invokeAndWait(new Runnable() {
 					@Override
@@ -58,11 +59,10 @@ public class WurstGuiImpl implements WurstGui {
 						errorWindow = new WurstErrorWindow();
 					}
 				});
-
+				
+				
 				// main loop: wait until finished and send the errors in the queue to the actual gui
 				while (!finished || !errorQueue.isEmpty()) {
-					Utils.sleep(300);
-
 
 					// Update the UI:
 					SwingUtilities.invokeAndWait(new Runnable() {
@@ -74,6 +74,8 @@ public class WurstGuiImpl implements WurstGui {
 							statusWindow.sendProgress(currentlyWorkingOn, progress);
 						}
 					});
+					
+					Utils.sleep(300);
 				}
 				SwingUtilities.invokeAndWait(new Runnable() {
 					@Override
@@ -87,7 +89,6 @@ public class WurstGuiImpl implements WurstGui {
 				throw new Error(e);
 			}
 		}
-
 
 	}
 
@@ -107,7 +108,7 @@ public class WurstGuiImpl implements WurstGui {
 
 
 	@Override
-	public void sendFinished() {		
+	public void sendFinished() {
 		finished = true;
 	}
 

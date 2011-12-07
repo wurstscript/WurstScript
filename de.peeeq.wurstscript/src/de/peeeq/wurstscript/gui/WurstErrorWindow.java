@@ -296,7 +296,7 @@ public class WurstErrorWindow extends javax.swing.JFrame {
 	}
 
 	public void sendFinished() {
-		if (!errorListModel.isEmpty()) {
+		if (errorListModel.isEmpty()) {
 			dispose();
 		}
 	}

@@ -68,7 +68,7 @@ public class Main {
 				return;
 			}
 
-			do {
+			compilation : do {
 
 
 				WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui);
@@ -78,13 +78,13 @@ public class Main {
 				compiler.parseFiles();
 
 				if (gui.getErrorCount() > 0) {
-					break;
+					break compilation;
 				}
 
 				JassProg jassProg = compiler.getProg();
 
 				if (jassProg == null || gui.getErrorCount() > 0) {
-					break;
+					break compilation;
 				}
 
 				boolean withSpace;
@@ -133,7 +133,7 @@ public class Main {
 						if (line == "") line = "0";
 						gui.sendError(new CompileError(Ast.WPos(outputMapscript.getAbsolutePath(), Integer.parseInt(line), 0), error.substring(pos)));
 					}
-					return;
+					break compilation;
 				}
 
 				if (runArgs.getMapFile() != null) { // output to map
@@ -145,7 +145,7 @@ public class Main {
 					mpqEditor.insertFile(mapFile, "war3map.j", outputMapscript);
 				}
 
-			} while (false);
+			} while (false); // dummy loop to allow "break compilation"
 			gui.sendProgress("Finished!", 1);
 			
 //			List<CompileError> errors = gui.getErrorList();
