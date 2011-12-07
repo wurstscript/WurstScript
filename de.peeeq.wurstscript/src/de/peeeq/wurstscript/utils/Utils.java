@@ -1,17 +1,25 @@
 package de.peeeq.wurstscript.utils;
 
+import java.awt.Dimension;
+import java.awt.GraphicsConfiguration;
+import java.awt.GraphicsDevice;
+import java.awt.GraphicsEnvironment;
+import java.awt.Insets;
+import java.awt.Rectangle;
+import java.awt.Toolkit;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+
+import javax.swing.JFrame;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Multimap;
@@ -21,7 +29,6 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.attributes.CompileError;
 
 public class Utils {
 
@@ -414,6 +421,15 @@ public class Utils {
 			WLogger.info(e);
 		}
 		return obj;
+	}
+
+	public static void setWindowToCenterOfScreen(JFrame frm) {
+        Rectangle screenBounds = frm.getGraphicsConfiguration().getBounds();
+        
+        int center_x = screenBounds.x + screenBounds.width / 2;
+        int center_y = screenBounds.y + screenBounds.height / 2;
+        
+        frm.setLocation(center_x - frm.getWidth()/2, center_y - frm.getHeight()/2);
 	}
 
 

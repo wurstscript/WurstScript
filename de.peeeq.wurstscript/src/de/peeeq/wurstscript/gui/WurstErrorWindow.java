@@ -11,6 +11,7 @@
 package de.peeeq.wurstscript.gui;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Toolkit;
 import java.awt.image.BufferedImage;
@@ -37,12 +38,13 @@ import javax.swing.text.StyledDocument;
 
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.utils.Utils;
 
 /**
  *
  * @author Frotty
  */
-public class WurstErrorWindow extends javax.swing.JFrame implements WurstGui {
+public class WurstErrorWindow extends javax.swing.JFrame {
 	// Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton closeButton;
     private javax.swing.JTextPane codeArea;
@@ -88,17 +90,8 @@ public class WurstErrorWindow extends javax.swing.JFrame implements WurstGui {
 
         initComponents();
         this.setSize(800,650);
-        Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
-        
-        // Determine the new location of the window
-        int w = getSize().width;
-        int h = getSize().height;
-        int x = (dim.width-w)/2;
-        int y = (dim.height-h)/2;
-         
-        // Move the window
-        setLocation(x, y);
-        //setVisible(true);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        Utils.setWindowToCenterOfScreen(this);
     }
 
     /** This method is called from within the constructor to
@@ -220,6 +213,7 @@ public class WurstErrorWindow extends javax.swing.JFrame implements WurstGui {
     }
     
     private void viewErrorDetail(CompileError err) {
+    	setVisible(true);
 		this.errorDetailsPanel.setText(err.getMessage());
 		
 		String fileName = err.getSource().getFile();
@@ -251,19 +245,30 @@ public class WurstErrorWindow extends javax.swing.JFrame implements WurstGui {
 			// reset highlighting
 			codeArea.getStyledDocument().setCharacterAttributes(0, text.length()-1, attrs , true);
 
-			int ignoredChars = lineNr - 2; // fix for newlines
-			int selectionStart = currentFileLineList.get(lineNr) + column;
+			int selectionStart = currentFileLineList.get(lineNr) + column + 1;
 			// select at least one character:
 			int selectionEnd = Math.min(text.length()-1, selectionStart + 1);
 			// try to select an identifier or something:
-			while (selectionEnd < text.length()) {
+			while (selectionEnd < text.length()-1) {
 				selectionEnd++;
 				if (!Character.isJavaIdentifierPart(text.charAt(selectionEnd))) {
 					break;
 				}
 			}
 			
-			// correct ignored chars:
+			if (selectionStart == selectionEnd && selectionStart > 0) {
+				// select at least one char
+				selectionStart --;
+			}
+			
+			// correct ignored chars (fix for newlines with carriage return):
+			int ignoredChars = 0; 
+			for (int i=0; i< selectionStart; i++) {
+				if (text.charAt(i) == '\r') {
+					ignoredChars++;
+				}
+			}
+						
 			selectionStart -= ignoredChars;
 			selectionEnd -= ignoredChars;
 
@@ -282,7 +287,7 @@ public class WurstErrorWindow extends javax.swing.JFrame implements WurstGui {
 		}
 	}
     
-	@Override
+//	@Override
 	public void sendError(CompileError elem) {
 		if (errorListModel.isEmpty()) {
 			viewErrorDetail(elem);
@@ -290,39 +295,13 @@ public class WurstErrorWindow extends javax.swing.JFrame implements WurstGui {
 		errorListModel.addElement(elem);		
 	}
 
-	@Override
-	public void sendProgress(String whatsRunningNow, double percent) {
-		if (whatsRunningNow != null && whatsRunningNow.length() > 1) {
-			WLogger.info(whatsRunningNow);
-			
-			currentStatus.setText("Status - stopped at " + whatsRunningNow);
-		}
-		
-	}
-
-	@Override
 	public void sendFinished() {
-		// TODO Auto-generated method stub
-		
+		if (!errorListModel.isEmpty()) {
+			dispose();
+		}
 	}
 
-	@Override
-	public int getErrorCount() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public String getErrors() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List<CompileError> getErrorList() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+	
 
     
 }

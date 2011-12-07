@@ -11,7 +11,9 @@
 package de.peeeq.wurstscript.gui;
 
 import java.awt.Dimension;
+import java.awt.GraphicsEnvironment;
 import java.awt.Image;
+import java.awt.Point;
 import java.awt.Toolkit;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -22,15 +24,13 @@ import javax.swing.UIManager;
 
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.gui.CopyOfWurstGuiImpl.TheGui;
+import de.peeeq.wurstscript.utils.Utils;
 
 /**
  *
  * @author Frotty
  */
-public class WurstStatusWindow extends javax.swing.JFrame implements WurstGui {
-	public de.peeeq.wurstscript.gui.WurstGuiImpl.TheGui mainGui;
-	public WurstErrorWindow errorWindow;
+public class WurstStatusWindow extends javax.swing.JFrame {
 	
 	private javax.swing.JLabel currentStatus;
     private javax.swing.JProgressBar progressBar;
@@ -59,13 +59,8 @@ public class WurstStatusWindow extends javax.swing.JFrame implements WurstGui {
 
         initComponents();
         
-        Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();        
-        // Center Window        
-        int w = getSize().width;
-        int h = getSize().height;
-        int x = (dim.width-w)/2;
-        int y = (dim.height-h)/2;         
-        setLocation(x, y);
+        Utils.setWindowToCenterOfScreen(this);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
         
         setVisible(true);
     }
@@ -117,17 +112,17 @@ public class WurstStatusWindow extends javax.swing.JFrame implements WurstGui {
     
     
 
-	@Override
-	public void sendError(CompileError err) {
-		errorWindow.setVisible(true);
-		mainGui.gui = errorWindow;
-		mainGui.gui.sendError(err);
-		errorWindow.requestFocus();
-		dispose();
-		
-	}
+//	@Override
+//	public void sendError(CompileError err) {
+//		errorWindow.setVisible(true);
+//		mainGui.gui = errorWindow;
+//		mainGui.gui.sendError(err);
+//		errorWindow.requestFocus();
+//		dispose();
+//		
+//	}
 
-	@Override
+//	@Override
 	public void sendProgress(String whatsRunningNow, double percent) {
 		if (whatsRunningNow != null && whatsRunningNow.length() > 1) {
 			WLogger.info(whatsRunningNow);
@@ -140,29 +135,8 @@ public class WurstStatusWindow extends javax.swing.JFrame implements WurstGui {
 		
 	}
 
-	@Override
+//	@Override
 	public void sendFinished() {		
-		errorWindow.ab.dispose();
-		errorWindow.dispose();
 		dispose();
-		
-	}
-
-	@Override
-	public int getErrorCount() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public String getErrors() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List<CompileError> getErrorList() {
-		// TODO Auto-generated method stub
-		return null;
 	}
 }

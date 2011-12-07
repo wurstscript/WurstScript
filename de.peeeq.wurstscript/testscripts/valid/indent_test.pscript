@@ -1,0 +1,30 @@
+package test
+
+    native BJDebugMsg(string msg)
+    native testSuccess()
+
+    function foo()
+        int x = (3 +
+   2)
+        int y = 4
+        if x == 3
+            if y == 4
+                BJDebugMsg("blub")
+        BJDebugMsg("blab")
+
+    function bar()
+        int x = 3
+        int y = 4
+        if x == 4
+            if y == 4 then
+                BJDebugMsg("blub")
+        else
+            BJDebugMsg("blob")
+        BJDebugMsg("blab")
+
+    init
+        foo()
+        bar()
+        testSuccess()
+endpackage
+

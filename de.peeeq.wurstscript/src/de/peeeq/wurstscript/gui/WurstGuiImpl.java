@@ -16,38 +16,42 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class WurstGuiImpl implements WurstGui {
 
-	private volatile Queue<CompileError> errorQueue = new ConcurrentLinkedQueue<CompileError>();
+	
 	private List<CompileError> errors = Lists.newLinkedList(); // this is not concurrent, because we only use this list from the main thread
+	
+	private volatile Queue<CompileError> errorQueue = new ConcurrentLinkedQueue<CompileError>();
 	private volatile double progress = 0.0;
 	private volatile boolean finished = false;
 	private volatile String currentlyWorkingOn = "";
-	private TheGui guiAccsess;
+	private GuiUpdater guiUpdater;
 
 	public WurstGuiImpl() {
-		WurstStatusWindow wstatus = new WurstStatusWindow();
-		WurstErrorWindow werror = new WurstErrorWindow();
-		wstatus.errorWindow = werror;
-		try {
-			werror.ab = new About(werror,true);
-			werror.ab.setVisible(false);
-		} catch (URISyntaxException e) {
-			e.printStackTrace();
-		}
-		guiAccsess = new TheGui(wstatus);
-		wstatus.mainGui = guiAccsess;
-		new Thread(guiAccsess).start();
+		// this constructor is called from the main thread, so we should not create the gui
+		// here. This would block the main compiler thread until the gui is created.
+		guiUpdater = new GuiUpdater();
+		guiUpdater.start();
 	}
 
-	
-	class TheGui implements Runnable {
-		public WurstGui gui;
+	/**
+	 * this is a thread which creates and updates the status window and the error window
+	 * 
+	 * this is all done asynchronously, so the main compiler thread is not blocked
+	 */
+	class GuiUpdater extends Thread {
+		private WurstStatusWindow statusWindow = null;
+		private WurstErrorWindow errorWindow = null;
 		
-		public TheGui(WurstGui ui) {
-			gui = ui;			
-		}	
 		
+		public GuiUpdater() {
+		}
+
+
+
 		@Override
 		public void run() {
+			statusWindow = new WurstStatusWindow();
+			errorWindow = new WurstErrorWindow();
+			
 			while (!finished || !errorQueue.isEmpty()) {
 				Utils.sleep(300);
 
@@ -57,9 +61,9 @@ public class WurstGuiImpl implements WurstGui {
 						@Override
 						public void run() {
 							for (CompileError elem = errorQueue.poll() ;elem != null; elem = errorQueue.poll()) {
-								gui.sendError(elem);
+								errorWindow.sendError(elem);
 							}
-							gui.sendProgress(currentlyWorkingOn, progress);
+							statusWindow.sendProgress(currentlyWorkingOn, progress);
 						}
 					});
 				} catch (Exception e) {
@@ -70,7 +74,8 @@ public class WurstGuiImpl implements WurstGui {
 				SwingUtilities.invokeAndWait(new Runnable() {
 					@Override
 					public void run() {
-						gui.sendFinished();
+						errorWindow.sendFinished();
+						statusWindow.sendFinished();
 					}
 				});
 			} catch (Exception e) {
@@ -85,15 +90,15 @@ public class WurstGuiImpl implements WurstGui {
 
 	@Override
 	public void sendError(CompileError err) {
-		guiAccsess.gui.sendError(err);
-		
+		errorQueue.add(err);
+		errors.add(err);
 	}
 
 
 	@Override
 	public void sendProgress(String whatsRunningNow, double percent) {
-		guiAccsess.gui.sendProgress(whatsRunningNow, percent);
-		
+		progress = percent;
+		this.currentlyWorkingOn = whatsRunningNow;
 	}
 
 
@@ -105,19 +110,19 @@ public class WurstGuiImpl implements WurstGui {
 
 	@Override
 	public int getErrorCount() {
-		return guiAccsess.gui.getErrorCount();
+		return errors.size();
 	}
 
 
 	@Override
 	public String getErrors() {
-		return guiAccsess.gui.getErrors();
+		return Utils.join(errors, "\n");
 	}
 
 
 	@Override
 	public List<CompileError> getErrorList() {
-		return guiAccsess.gui.getErrorList();
+		return Lists.newLinkedList(errors);
 	}
 
 

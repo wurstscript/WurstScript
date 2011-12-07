@@ -42,7 +42,7 @@ public class SimpleTestRun {
 			System.out.println("file b = " + file);
 			String filename = file.getAbsolutePath();
 			System.out.println("parsing script ...");
-			WurstGui gui = new WurstGuiCliImpl();
+			WurstGui gui = new WurstGuiImpl();
 			WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui);
 			compiler.loadFiles(file);
 			compiler.parseFiles();
