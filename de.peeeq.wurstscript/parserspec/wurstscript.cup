@@ -263,6 +263,8 @@ Modifier ::=
 		{: RESULT = Ast.ModOverride(pos(xleft, xright)); :}
 	| ABSTRACT:x
 		{: RESULT = Ast.ModAbstract(pos(xleft, xright)); :}
+	| CONSTANT:x
+		{: RESULT = Ast.ModConstant(pos(xleft, xright)); :}
 ;
 
 FuncSignature ::=
@@ -632,7 +634,7 @@ JassGlobalDecls ::=
 
 JassGlobalDecl ::=
 	CONSTANT:x TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = Ast.GlobalVarDef(pos(xleft, xright), Ast.Modifiers(), true, typ, name, i); :}
+		{: RESULT = Ast.GlobalVarDef(pos(xleft, xright), Ast.Modifiers(Ast.ModConstant(pos(xleft, xright))), true, typ, name, i); :}
 	| TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
 		{: RESULT = Ast.GlobalVarDef(typ.getSource().copy(), Ast.Modifiers(), false, typ, name, i); :}
 	| TypeExpr:typ IDENTIFIER:name NL

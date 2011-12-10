@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.jassoptimizer;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.ListIterator;
 
 import com.google.common.collect.Lists;
 
@@ -10,6 +11,7 @@ import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
 import de.peeeq.wurstscript.jassAst.JassExprlist;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassStatement;
+import de.peeeq.wurstscript.jassAst.JassStatements;
 import de.peeeq.wurstscript.jassAst.JassStmtCall;
 import de.peeeq.wurstscript.jassAst.JassStmtExitwhen;
 import de.peeeq.wurstscript.jassAst.JassStmtIf;
@@ -67,8 +69,20 @@ public class FunctionInliner {
 	}
 
 	private void replaceStatement(JassStmtCall orig, List<JassStatement> newStatements) {
-		// TODO Auto-generated method stub
-		throw new Error();
+		JassStatements statements = (JassStatements) orig.getParent();
+		ListIterator<JassStatement> it = statements.listIterator();
+		while (it.hasNext()) {
+			JassStatement s = it.next();
+			if (s == orig) {
+				// replace this
+				it.remove();
+				for (JassStatement newS : newStatements) {
+					it.add(newS);
+				}
+				return;
+			}
+		}
+		throw new Error("Statement not attached to its parent.");
 	}
 
 	private ExprTranslationResult inlineFunctionCall(JassFunction f, JassFunction attrFuncDef, JassExprlist arguments) {

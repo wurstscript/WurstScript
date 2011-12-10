@@ -160,6 +160,29 @@ public class SimpleStatementTests extends PscriptTest {
 				"");
 	}
 	
+	@Test
+	public void test_unitialized() {
+		assertError(false, "not initialized",
+				"int x",
+				"int y = 2",
+				"if y == 3",
+				"	x = 2",
+				"x++");
+	}
+	
+	@Test
+	public void test_unitialized2() {
+		assertOk(false,
+				"int x",
+				"int y = 2",
+				"if y == 3",
+				"	x = 2",
+				"else",
+				"	x = 4",
+				"x++");
+	}
+	
+	
 	
 	public void assertOk( boolean executeProg, String ... body) {
 		String prog = "package test\n" +
@@ -170,6 +193,17 @@ public class SimpleStatementTests extends PscriptTest {
 				"\n" +
 				"endpackage\n";
 		testAssertOk(Utils.getMethodName(1), executeProg, prog);
+	}
+	
+	public void assertError( boolean executeProg, String expected, String ... body) {
+		String prog = "package test\n" +
+				"	native testFail(string msg)\n" +
+				"	native testSuccess()\n" +
+				"	init \n" +
+				"		" + Utils.join(body, "\n		") +
+				"\n" +
+				"endpackage\n";
+		testAssertErrors(Utils.getMethodName(1), executeProg, prog, expected);
 	}
 
 }

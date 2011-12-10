@@ -166,7 +166,7 @@ FunctionDefinition = NativeFunc | FuncDef | ExtensionFuncDef
 	
 FunctionImplementation = FuncDef | ExtensionFuncDef
 
-WScope = PackageOrGlobal |  ClassOrModule | FuncDef | ExtensionFuncDef | ConstructorDef | OnDestroyDef | InitBlock
+WScope = PackageOrGlobal |  ClassOrModule | FunctionImplementation | ConstructorDef | OnDestroyDef | InitBlock
 
 PackageOrGlobal = WPackage | CompilationUnit	
 	
@@ -188,6 +188,7 @@ Modifier =
 	| ModStatic(WPos source)
 	| ModOverride(WPos source)
 	| ModAbstract(WPos source)
+	| ModConstant(WPos source)
 	
 
 AstElementWithModifier = TypeDef | ConstructorDef | GlobalVarDef | FuncDef | FunctionDefinition
@@ -214,6 +215,8 @@ WStatements.attrDoesReturn
 	returns boolean 
 	implemented by de.peeeq.wurstscript.attributes.AttrDoesReturn.calculate
 
+
+	
 WPackage.attrExportedFunctions
 	returns com.google.common.collect.Multimap<String, FunctionDefinition>
 	implemented by de.peeeq.wurstscript.attributes.AttrExportedFunctions.calculate
@@ -340,10 +343,13 @@ AstElementWithModifier.attrIsOverride
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isOverride
 
-	AstElementWithModifier.attrIsAbstract
+AstElementWithModifier.attrIsAbstract
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isAbstract
 
+AstElementWithModifier.attrIsConstant
+	returns boolean
+	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isConstant
 	
 	
 FunctionDefinition.attrOverriddenFunctions

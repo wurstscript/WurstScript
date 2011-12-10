@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.AstElementWithModifier;
 import de.peeeq.wurstscript.ast.ModAbstract;
+import de.peeeq.wurstscript.ast.ModConstant;
 import de.peeeq.wurstscript.ast.ModOverride;
 import de.peeeq.wurstscript.ast.ModStatic;
 import de.peeeq.wurstscript.ast.Modifier;
@@ -38,6 +39,9 @@ public class ModifiersHelper {
 		return containsType(e.getModifiers(), ModAbstract.class);
 	}
 
+	public static boolean isConstant(AstElementWithModifier e) {
+		return containsType(e.getModifiers(), ModConstant.class);
+	}
 
 	
 	static boolean containsType(de.peeeq.wurstscript.ast.Modifiers modifiers, Class<? extends Modifier> class1) {
