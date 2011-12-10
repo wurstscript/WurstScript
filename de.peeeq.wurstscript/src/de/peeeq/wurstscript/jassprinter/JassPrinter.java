@@ -231,7 +231,7 @@ public class JassPrinter {
 			@Override
 			public void case_JassStmtCall(JassStmtCall s) {
 				sb.append("call ");
-				sb.append(s.getFunctionName());
+				sb.append(s.getFuncName());
 				sb.append("(");
 				boolean first = true;
 				for (JassExpr e : s.getArguments()) {

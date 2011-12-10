@@ -219,7 +219,7 @@ public class JassInterpreter {
 					args[i] = executeExpr(localVarMap, arg);
 					i++;
 				}
-				executeFunction(jassStmtCall.getFunctionName(), args);
+				executeFunction(jassStmtCall.getFuncName(), args);
 			}
 		});
 		
