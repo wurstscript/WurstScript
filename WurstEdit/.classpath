@@ -4,5 +4,11 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="lib/autocomplete.jar" sourcepath="lib/autocomplete_1.4_javadoc.zip"/>
 	<classpathentry kind="lib" path="lib/rsyntaxtextarea.jar" sourcepath="lib/rsyntaxtextarea_1.4_javadoc.zip"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/de.peeeq.wurstscript">
+		<accessrules>
+			<accessrule kind="accessible" pattern="**"/>
+		</accessrules>
+	</classpathentry>
+	<classpathentry kind="lib" path="/de.peeeq.wurstscript/lib/guava-10.0.1.jar" sourcepath="/de.peeeq.wurstscript/lib/guava-10.0.1-sources.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

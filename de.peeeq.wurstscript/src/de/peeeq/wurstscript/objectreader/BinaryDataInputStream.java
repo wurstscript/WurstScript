@@ -17,10 +17,16 @@ public class BinaryDataInputStream {
 	private boolean littleEndian;
 
 	public BinaryDataInputStream(File file, boolean littleEndian) throws FileNotFoundException {
-		in = new BufferedInputStream(new FileInputStream(file));
-		this.littleEndian = littleEndian;
+		this(new FileInputStream(file), littleEndian);
+		
 	}
 	
+	
+	public BinaryDataInputStream(InputStream in, boolean littleEndian) {
+		this.in = new BufferedInputStream(in);
+		this.littleEndian = littleEndian;
+	}
+
 	int readInt() throws IOException {
 		byte[] data = readBytes(4);
 		int result = 0;

@@ -2,11 +2,14 @@ package editor;
 
 import java.awt.BorderLayout;
 import java.awt.Font;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
@@ -37,6 +40,8 @@ public class MainView extends JFrame {
 	private JToolBar		toolBar;
 	private JMenuBar		menuBar;
 	private JMenu			fileMenu;
+	
+	private WurstController controller = new WurstController(this);
 	
 	public MainView(String title) {
 		// Main JPanel
@@ -85,10 +90,7 @@ public class MainView extends JFrame {
 	}
 	
 	private void createMenu() {
-		menuBar = new JMenuBar();
-		fileMenu = new JMenu("File");
-		menuBar.add(fileMenu);
-		setJMenuBar(menuBar);
+		setJMenuBar(new WurstMenuBar(controller));
 	}
 
 	private void createToolbar() {
@@ -111,7 +113,7 @@ public class MainView extends JFrame {
 	}
 
 	private void createPackagePanel() {
-		packageTree = new JTree();
+		packageTree = new PackageTree();
 		packageScrollPane = new JScrollPane(packageTree);
 		packageScrollPane.setSize(150, 600);
 	}

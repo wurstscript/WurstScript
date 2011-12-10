@@ -140,7 +140,7 @@ public class JassOptimizerImpl implements JassOptimizer {
 			
 			@Override
 			public void visit(JassStmtCall jassCall) {
-				String funcname = jassCall.getFunctionName();
+				String funcname = jassCall.getFuncName();
 				System.out.println("name: " + funcname);
 				if ( funcname.equals("ExecuteFunction") ) {
 					System.out.println("equals");
@@ -170,7 +170,7 @@ public class JassOptimizerImpl implements JassOptimizer {
 		prg.accept(new JassProg.DefaultVisitor() {			
 			@Override
 			public void visit(JassStmtCall jassCall) {
-				String funcname = jassCall.getFunctionName();
+				String funcname = jassCall.getFuncName();
 				if ( funcname.equals("ExecuteFunction") ) {
 					JassExprlist list = jassCall.getArguments();
 					JassExpr argument = list.get(0);
@@ -375,9 +375,9 @@ public class JassOptimizerImpl implements JassOptimizer {
 			
 			@Override
 			public void visit(JassStmtCall funcCall ) {
-				String name = funcCall.getFunctionName();
+				String name = funcCall.getFuncName();
 				if ( replacements.containsKey(name)){
-					funcCall.setFunctionName(replacements.get(name));
+					funcCall.setFuncName(replacements.get(name));
 				}
 			}			
 			

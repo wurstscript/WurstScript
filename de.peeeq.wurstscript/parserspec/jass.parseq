@@ -23,7 +23,7 @@ JassStatement	=
 	| JassStmtLoop(JassStatements body)
 	| JassStmtSet(String left, JassExpr right)
 	| JassStmtSetArray(String left, JassExpr index, JassExpr right)
-	| JassStmtCall(String functionName, JassExprlist arguments)
+	| JassStmtCall(String funcName, JassExprlist arguments)
 	| JassStmtReturn(JassExpr returnValue)
 	| JassStmtReturnVoid()
 	| JassStmtExitwhen(JassExpr cond)
@@ -68,6 +68,9 @@ JassOpUnary =
 	
 JassOp = JassOpBinary | JassOpUnary	
 	
+JassFuncRef = JassExprFuncRef | JassExprFunctionCall | JassStmtCall
+	
+
 attributes:
 
 JassProg.attrIgnoredVariables
@@ -77,6 +80,10 @@ JassProg.attrIgnoredVariables
 JassProg.attrIgnoredFunctions
 	returns java.util.Set<JassFunction>
 	implemented by de.peeeq.wurstscript.attributes.JassAttributes.attrIgnoredFunctions
+	
+JassFuncRef.attrFuncDef
+	returns JassFunction
+	implemented by de.peeeq.wurstscript.attributes.JassAttributes.attrFuncDef
 
 
 
