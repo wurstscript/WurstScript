@@ -12,15 +12,20 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 import de.peeeq.immutablecollections.ImmutableList;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassOrModule;
+import de.peeeq.wurstscript.ast.NameDef;
+import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.WPackage;
 
 public class Utils {
@@ -423,6 +428,17 @@ public class Utils {
         int center_y = screenBounds.y + screenBounds.height / 2;
         
         frm.setLocation(center_x - frm.getWidth()/2, center_y - frm.getHeight()/2);
+	}
+
+	public static<K,V> Map<V, K> filterByType(
+			Class<? extends K> type, Map<V, ?> map) {
+		Map<V, K> result = Maps.newHashMap();
+		for (Entry<V, ?> e : map.entrySet()) {
+			if (type.isInstance(e.getValue())) {
+				result.put(e.getKey(), (K) e.getValue());
+			}
+		}
+		return result;
 	}
 
 

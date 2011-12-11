@@ -1,0 +1,17 @@
+package TriggerUtils
+	
+	public function trigger.addCondition(boolexpr cond) returns trigger
+		TriggerAddCondition(this, cond)
+		return this
+	
+	public function trigger.addAction(code func) returns trigger
+		TriggerAddAction(this, func)
+		return this
+	
+	public function trigger.registerAnyUnitEvent(playerunitevent whichEvent) returns trigger
+		TriggerRegisterAnyUnitEventBJ(this, whichEvent)
+		return this
+	
+	// TODO add other events and useful trigger stuff 
+	
+endpackage

@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.utils.DefinitionMap;
+import de.peeeq.wurstscript.utils.Utils;
 
 
 /**
@@ -27,7 +28,7 @@ public class AttrScopeType {
 			if (importedPackage == null) {
 				continue;
 			}
-			result.putAll(importedPackage.attrExportedTypes());
+			result.putAll(Utils.filterByType(TypeDef.class, importedPackage.attrExportedNames()));
 		}
 		for (WEntity e : node.getElements()) {
 			if (e instanceof TypeDef) {

@@ -27,7 +27,8 @@ WEntity =
 
 
 TypeExpr = 
-	TypeExprSimple(WPos source, String typeName, boolean isArray, ArraySizes sizes)
+	  TypeExprSimple(WPos source, String typeName)
+	| TypeExprArray(WPos source, TypeExpr base)
 	| TypeExprThis(WPos source)
 	
 	
@@ -191,7 +192,7 @@ Modifier =
 	| ModConstant(WPos source)
 	
 
-AstElementWithModifier = TypeDef | ConstructorDef | GlobalVarDef | FuncDef | FunctionDefinition
+AstElementWithModifier = TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FuncDef | FunctionDefinition
 	
 ClassOrModule = ClassDef | ModuleDef	
 	
@@ -314,14 +315,10 @@ AstElement.attrNearestClassOrModule
 
 
 
-WPackage.attrExportedVariables
-	returns java.util.Map<String, VarDef>
-	implemented by de.peeeq.wurstscript.attributes.AttrExportedVariables.calculate
+WPackage.attrExportedNames
+	returns java.util.Map<String, NameDef>
+	implemented by de.peeeq.wurstscript.attributes.AttrExportedNames.calculate
 	
-	
-WPackage.attrExportedTypes
-	returns java.util.Map<String, TypeDef>
-	implemented by de.peeeq.wurstscript.attributes.AttrExportedTypes.calculate
 
 AstElementWithModifier.attrIsPublic
 	returns boolean

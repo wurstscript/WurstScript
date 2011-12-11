@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
 import de.peeeq.wurstscript.types.NativeTypes;
@@ -34,12 +35,7 @@ public class AttrTypeExprType {
 			@Override
 			public PscriptType case_TypeExprSimple(TypeExprSimple node) {
 				PscriptType baseType = getBaseType(node);
-				if (node.getIsArray()) {
-					int[] sizes = new int[1];
-					return new PScriptTypeArray(baseType, sizes );
-				} else {
-					return baseType;
-				}
+				return baseType;
 			}
 
 			@Override
@@ -63,6 +59,11 @@ public class AttrTypeExprType {
 			@Override
 			public PscriptType case_NoTypeExpr(NoTypeExpr node) {
 				return PScriptTypeVoid.instance();
+			}
+
+			@Override
+			public PscriptType case_TypeExprArray(TypeExprArray typeExprArray) {
+				return new PScriptTypeArray(typeExprArray.getBase().attrTyp());
 			}
 		});
 	}

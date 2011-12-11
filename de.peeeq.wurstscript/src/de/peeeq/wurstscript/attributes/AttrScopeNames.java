@@ -50,7 +50,7 @@ public class AttrScopeNames {
 					if (importedPackage == null) {
 						continue;
 					}
-					result.putAll(importedPackage.attrExportedVariables());
+					result.putAll(importedPackage.attrExportedNames());
 				}
 				for (WEntity e : term.getElements()) {
 					if (e instanceof VarDef) {

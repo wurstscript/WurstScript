@@ -295,20 +295,21 @@ Parameter ::=
 
 TypeExpr ::=
 	IDENTIFIER:name
-		{: RESULT = Ast.TypeExprSimple(pos(nameleft, nameright), name, false, Ast.ArraySizes()); :}
-	| IDENTIFIER:name ARRAY ArraySizes:sizes
-		{: RESULT = Ast.TypeExprSimple(pos(nameleft, nameright), name, true, sizes); :}
+		{: RESULT = Ast.TypeExprSimple(pos(nameleft, nameright), name); :}
+	| TypeExpr:e ARRAY
+		{: RESULT = Ast.TypeExprArray(e.getSource().copy(), e); :}
 	| THISTYPE:x
 		{: RESULT = Ast.TypeExprThis(pos(xleft, xright)); :}
 ;
 
+/*
 ArraySizes ::= 
 	LSQUARE Expr:x RSQUARE ArraySizes:xs
 		{: xs.addFront(x); RESULT = xs; :}
 	|
 		{: RESULT = Ast.ArraySizes(); :}
 ;
-
+*/
 VarDef ::=
 	  Modifiers:mod TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
 		{: RESULT = Ast.GlobalVarDef(pos(typleft, typright), mod, false, typ, name, i); :}

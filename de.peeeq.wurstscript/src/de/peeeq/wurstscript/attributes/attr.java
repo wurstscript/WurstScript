@@ -64,6 +64,7 @@ public class attr {
 				}
 			}
 		}
+		attr.addError(i.getSource(), "Import " + packageName + " could not be resolved.");
 		return null;
 	}
 	

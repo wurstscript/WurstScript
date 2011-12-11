@@ -9,6 +9,7 @@ import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.OptExpr;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
 import de.peeeq.wurstscript.ast.WParameter;
@@ -62,6 +63,11 @@ public class AttrVarDefType {
 			@Override
 			public PscriptType case_TypeExprThis(TypeExprThis term)
 					 {
+				return term.attrTyp();
+			}
+
+			@Override
+			public PscriptType case_TypeExprArray(TypeExprArray term) {
 				return term.attrTyp();
 			}
 		});

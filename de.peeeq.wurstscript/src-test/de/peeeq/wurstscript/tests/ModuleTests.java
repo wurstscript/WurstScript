@@ -97,6 +97,28 @@ public class ModuleTests extends PscriptTest {
 	
 	
 	@Test
+	public void modules_import() {
+		// each function in a module should be either private or public
+		testAssertOkLines(true,
+				"package Blub",
+				"	public module BlubModule",
+				"		public function foo() returns int",
+				"			return 3",
+				"endpackage",
+				"package test",
+				"	import Blub",
+				"	native testSuccess()",
+				"	class C",
+				"		use BlubModule",
+				"	init",
+				"		C c = new C()",
+				"		if c.foo() == 3",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
 	public void modules_abstract() {
 		testAssertOkLines(true, 
 				"package test",

@@ -2,14 +2,18 @@ package de.peeeq.wurstscript;
 
 import java.awt.TrayIcon.MessageType;
 import java.io.File;
+import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.net.URISyntaxException;
+import java.util.Calendar;
 import java.util.List;
 
 import javax.swing.JOptionPane;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
+import com.google.common.io.OutputSupplier;
 
 import de.peeeq.wurstscript.Pjass.Result;
 import de.peeeq.wurstscript.ast.Ast;
@@ -66,6 +70,10 @@ public class Main {
 //				gui.sendFinished();
 				JOptionPane.showMessageDialog(null, "not implemented");
 				return;
+			}
+			
+			if (runArgs.getMapFile() != null) {
+				makeBackup(runArgs.getMapFile());
 			}
 
 			compilation : do {
@@ -161,11 +169,26 @@ public class Main {
 
 			WLogger.severe(t);
 			JOptionPane.showMessageDialog(null , "An severe error has occured\n"+
-					"Please report this bug by sending us the file wurst.log in your Wurstpack/wurstscript directory.");
+					"Please report this bug by sending us the file wurst.log in your Wurstpack/wurstscript directory.\n\n" + t.getMessage());
 			System.exit(1);
 
 
 		}
+	}
+	
+	
+	/**
+	 * create a backup of the mapfile
+	 */
+	private static void makeBackup(String mapFileName) throws Error, IOException {
+		File mapFile = new File(mapFileName);
+		if (!mapFile.exists()) {
+			throw new Error("Mapfile " + mapFile + " does not exist.");
+		}
+		String theTime = "" + System.currentTimeMillis();
+		new File("./backups/").mkdirs();
+		File backupFile = new File("./backups/" + theTime + mapFile.getName());
+		Files.copy(mapFile, backupFile);
 	}
 
 }

@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.attributes;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.TypeDef;
+import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
 import de.peeeq.wurstscript.ast.TypeRef;
@@ -34,6 +35,11 @@ public class AttrTypeDef {
 
 			@Override
 			public String case_TypeExprThis(TypeExprThis typeExprThis) {
+				return null;
+			}
+
+			@Override
+			public String case_TypeExprArray(TypeExprArray typeExprArray) {
 				return null;
 			}
 		});
