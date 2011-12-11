@@ -1,0 +1,16 @@
+package NullTests
+	
+	
+	unit glob_u
+	location glob_l
+	
+	function foo() returns unit
+		unit a = glob_u
+		unit b = glob_u
+		unit c = glob_u
+		return b
+	
+
+endpackage
+
+
