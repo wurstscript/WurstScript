@@ -46,6 +46,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Set;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -55,7 +56,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 
 import de.peeeq.immutablecollections.ImmutableList;
 import de.peeeq.wurstscript.WLogger;
@@ -91,12 +92,12 @@ import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
-import de.peeeq.wurstscript.ast.Indexes;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.JassGlobalBlock;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleUse;
+import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
@@ -123,7 +124,6 @@ import de.peeeq.wurstscript.ast.OpPlus;
 import de.peeeq.wurstscript.ast.OpPlusAssign;
 import de.peeeq.wurstscript.ast.OpUnary;
 import de.peeeq.wurstscript.ast.OpUnequals;
-import de.peeeq.wurstscript.ast.OpUpdateAssign;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.StmtDestroy;
 import de.peeeq.wurstscript.ast.StmtErr;
@@ -151,7 +151,6 @@ import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
 import de.peeeq.wurstscript.jassAst.JassExprIntVal;
-import de.peeeq.wurstscript.jassAst.JassExprVarAccess;
 import de.peeeq.wurstscript.jassAst.JassExprlist;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassFunctions;
@@ -161,6 +160,7 @@ import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassAst.JassSimpleVar;
 import de.peeeq.wurstscript.jassAst.JassStatement;
 import de.peeeq.wurstscript.jassAst.JassStatements;
+import de.peeeq.wurstscript.jassAst.JassStmtSet;
 import de.peeeq.wurstscript.jassAst.JassVar;
 import de.peeeq.wurstscript.jassAst.JassVars;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
@@ -196,6 +196,7 @@ public class JassTranslator {
 	private Multimap<WPackage, WPackage> importedPackages = HashMultimap.create();
 	private JassFunction initGlobalsFunc;
 	private Collection<WPackage> packages = Lists.newLinkedList();
+	private Set<String> handleSubTypes = Sets.newHashSet("handle");
 	
 	
 	public JassTranslator(CompilationUnit wurstProgram) {
@@ -639,8 +640,47 @@ public class JassTranslator {
 					Expr expr = (Expr) stmtReturn.getObj();
 					ExprTranslationResult e = translateExpr(context, f, expr);
 					result.addAll(e.getStatements());
-					result.add(JassStmtReturn(e.getExpr()));
+					
+					
+					
+					Set<LocalVarDef> usedLocalVars = getUsedLocalVarsInExpr(expr);
+					List<JassVar> usedLocalJassVars = Utils.map(usedLocalVars, new Function<LocalVarDef, JassVar>() {
+
+						@Override
+						public JassVar apply(LocalVarDef input) {
+							return manager.getJassVarFor(context, input, translateType(input.attrTyp()), false);
+						}
+					});
+					List<JassStatement> nullSetters = Lists.newLinkedList(); 
+					boolean useTempVar = false;
+					for (JassVar l : f.getLocals()) {
+						if (handleSubTypes.contains(l.getType())) {
+							// this is a handle type -> null it
+							nullSetters.add(JassStmtSet(l.getName(), JassExprNull()));
+							
+							// check if this var is used in the return statement...
+							if (usedLocalJassVars.contains(l)) {
+								useTempVar = true;
+							}
+						}
+					}
+					if (useTempVar) {
+						String returnTyp = translateType(expr.attrTyp());
+						JassVar tempVar = manager.getTempReturnVar(returnTyp, prog);
+						result.add(JassStmtSet(tempVar.getName(), e.getExpr()));
+						result.addAll(nullSetters);
+						result.add(JassStmtReturn(JassExprVarAccess(tempVar.getName())));
+					} else {
+						result.addAll(nullSetters);
+						result.add(JassStmtReturn(e.getExpr()));
+					}
 				} else {
+					// set handle variables to null
+					for (JassVar l : f.getLocals()) {
+						if (handleSubTypes.contains(l.getType())) {
+							result.add(JassStmtSet(l.getName(), JassExprNull()));
+						}
+					}
 					result.add(JassStmtReturnVoid());
 				}
 			}
@@ -705,6 +745,21 @@ public class JassTranslator {
 			}
 
 		
+		});
+		return result;
+	}
+
+
+	protected Set<LocalVarDef> getUsedLocalVarsInExpr(Expr expr) {
+		final Set<LocalVarDef> result = Sets.newHashSet();
+		expr.accept(new Expr.DefaultVisitor() {
+			@Override
+			public void visit(ExprVarAccess exprVarAccess) {
+				NameDef varDef = exprVarAccess.attrNameDef();
+				if (varDef instanceof LocalVarDef) {
+					result.add((LocalVarDef) varDef);
+				}
+			}
 		});
 		return result;
 	}
@@ -1400,6 +1455,10 @@ protected List<String> getParameterTypes(WParameters params) {
 
 	protected void translateNativeType(NativeType nativeType) {
 		// nothing to translate
+		PscriptType superTyp = nativeType.getTyp().attrTyp();
+		if (superTyp.isSubtypeOf(PScriptTypeHandle.instance())) {
+			handleSubTypes.add(nativeType.getName());
+		}
 	}
 
 	protected void translatePackage(WPackage wPackage) {

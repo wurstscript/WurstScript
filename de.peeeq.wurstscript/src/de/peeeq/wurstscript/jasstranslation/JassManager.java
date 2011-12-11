@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.jasstranslation;
 import java.util.Map;
 import java.util.Set;
 
+import javax.swing.plaf.ProgressBarUI;
+
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
@@ -21,6 +23,7 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.attributes.FuncDefInstance;
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassFunction;
+import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassAst.JassSimpleVar;
 import de.peeeq.wurstscript.jassAst.JassVar;
 import de.peeeq.wurstscript.utils.Pair;
@@ -266,6 +269,20 @@ public class JassManager {
 			part2 = part2.tail();
 		}
 		return c1.cons(part2);
+	}
+
+
+	private Map<String, JassVar> returnVars = Maps.newHashMap();
+	
+	public JassVar getTempReturnVar(String returnTyp, JassProg prog) {
+		if (returnVars.containsKey(returnTyp)) {
+			return returnVars.get(returnTyp);
+		}
+		String name = getUniqueName("temp_" + returnTyp);
+		JassVar v = JassAst.JassSimpleVar(returnTyp, name);
+		prog.getGlobals().add(v);
+		returnVars.put(returnTyp, v);
+		return v;
 	}
 
 

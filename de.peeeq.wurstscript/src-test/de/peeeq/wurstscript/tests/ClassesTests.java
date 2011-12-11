@@ -49,5 +49,18 @@ public class ClassesTests extends PscriptTest {
 	}
 
 	
+	@Test
+	public void constantVars() {
+		testAssertErrorsLines(false, "constant variable", 
+				"package test",
+				"	class C",
+				"		constant int i",
+				"		function foo() returns int",
+				"			i++",
+				"			return i",
+				"endpackage"
+			);
+	}
+	
 	
 }

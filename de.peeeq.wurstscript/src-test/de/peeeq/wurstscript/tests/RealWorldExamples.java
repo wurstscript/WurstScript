@@ -22,6 +22,11 @@ public class RealWorldExamples extends PscriptTest {
 	}
 	
 	@Test
+	public void setNullTests() throws IOException {
+		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "SetNullTests.pscript"), false);
+	}
+	
+	@Test
 	public void test_war3map() throws IOException {
 		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "test_war3map.j"), false);
 	}
