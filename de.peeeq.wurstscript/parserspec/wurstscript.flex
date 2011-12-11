@@ -197,6 +197,10 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"endif"								{ return symbol(TokenType.ENDIF); }
 	"init"								{ return symbol(TokenType.INIT); }
 	"castTo"							{ return symbol(TokenType.CASTTO); }
+	"true"                            { return symbol(TokenType.TRUE); }
+	"false"                           { return symbol(TokenType.FALSE); }
+	"div"                               { return symbol(TokenType.DIV_INT); }
+	"mod"                               { return symbol(TokenType.MOD_INT); } 
 	"("                               { return symbol(TokenType.LPAR); }
 	")"                               { return symbol(TokenType.RPAR); }
 	","                               { return symbol(TokenType.COMMA); }
@@ -204,14 +208,11 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"}"                               { return symbol(TokenType.RBRACK); }
 	"["                               { return symbol(TokenType.LSQUARE); }
 	"]"                               { return symbol(TokenType.RSQUARE); }
-	[ \t\n\r]* "."                    { return symbol(TokenType.DOT); }
 	"+"                               { return symbol(TokenType.PLUS); }
 	"-"                               { return symbol(TokenType.MINUS); }
 	"*"                               { return symbol(TokenType.MULT); }
 	"/"                               { return symbol(TokenType.DIV_REAL); }
-	"div"                               { return symbol(TokenType.DIV_INT); }
 	"%"                               { return symbol(TokenType.MOD_REAL); }
-	"mod"                               { return symbol(TokenType.MOD_INT); }
 	"=="                              { return symbol(TokenType.EQEQ); }
 	"!="                              { return symbol(TokenType.NOTEQ); }
 	">="                              { return symbol(TokenType.GTEQ); }
@@ -230,9 +231,8 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"'" . "'"						  { return symbol(TokenType.INTEGER_LITERAL, Utils.parseAsciiInt1(yytext())); }
 	"'" . . . . "'"					{ return symbol(TokenType.INTEGER_LITERAL, Utils.parseAsciiInt4(yytext())); }
 	{DIGIT}+ "." {DIGIT}*			  { return symbol(TokenType.REAL_LITERAL, Double.parseDouble(yytext())); }
-	"." {DIGIT}+					  { return symbol(TokenType.REAL_LITERAL, Double.parseDouble(yytext())); } 
-	"true"                            { return symbol(TokenType.TRUE); }
-	"false"                           { return symbol(TokenType.FALSE); }
+	[ \t\n\r]* "." {DIGIT}+			 { return symbol(TokenType.REAL_LITERAL, Double.parseDouble(yytext())); }
+	[ \t\n\r]* "."                    { return symbol(TokenType.DOT); } 
 	{IDENT}                           { return symbol(TokenType.IDENTIFIER, yytext()); }
 	[\"]                             		{ string.setLength(0); yybegin(STRING); }
 	// error fallback:
