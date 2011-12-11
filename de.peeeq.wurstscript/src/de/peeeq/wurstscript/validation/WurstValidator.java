@@ -118,7 +118,45 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		PscriptType rightType = s.getRight().attrTyp();
 
 		checkAssignment(Utils.isJassCode(s), s.getSource(), leftType, rightType);
+		
+		checkIfAssigningToConstant(s.getLeft());
+		
+		
 
+	}
+
+	private void checkIfAssigningToConstant(final ExprAssignable left) {
+		left.match(new ExprAssignable.MatcherVoid() {
+			
+			@Override
+			public void case_ExprVarArrayAccess(ExprVarArrayAccess e) {
+				
+			}
+			
+			@Override
+			public void case_ExprVarAccess(ExprVarAccess e) {
+				checkVar(e.attrNameDef());
+			}
+			
+			private void checkVar(NameDef var) {
+				if (var instanceof GlobalVarDef) {
+					GlobalVarDef g = (GlobalVarDef) var;
+					if (g.attrIsConstant()) {
+						attr.addError(left.getSource(), "Cannot assign a new value to constant variable " + g.getName());
+					}
+				}
+			}
+
+			@Override
+			public void case_ExprMemberVar(ExprMemberVar e) {
+				checkVar(e.attrNameDef());
+			}
+			
+			@Override
+			public void case_ExprMemberArrayVar(ExprMemberArrayVar e) {
+				
+			}
+		});
 	}
 
 	private void checkAssignment(boolean isJassCode, WPos pos, PscriptType leftType, PscriptType rightType) {

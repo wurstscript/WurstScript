@@ -18,7 +18,7 @@ public class WurstConfig {
 	private WurstConfig() {
 		File config1 = new File("./wurstscript/wurst.config");
 		File config2 = new File("./wurst.config");
-		
+		 
 		readDefaults();
 		
 		if (config1.exists()) {
