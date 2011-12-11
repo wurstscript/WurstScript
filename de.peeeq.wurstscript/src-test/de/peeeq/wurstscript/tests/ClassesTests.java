@@ -34,6 +34,19 @@ public class ClassesTests extends PscriptTest {
 	public void classes_method() throws IOException {
 		testAssertOkFile(new File(TEST_DIR + "Classes_method.pscript"), true);
 	}
+	
+	@Test
+	public void modules_abstract_err() {
+		testAssertErrorsLines(false, "static", 
+				"package test",
+				"	class C",
+				"		function foo() returns int",
+				"			return 3",
+				"		static function bar()",
+				"			foo()",
+				"endpackage"
+			);
+	}
 
 	
 	

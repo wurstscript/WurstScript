@@ -14,6 +14,13 @@ public class CheckHelper {
 	public static void checkIfIsRefinement(FunctionDefinition f,
 			FunctionDefinition of) {
 		String funcName = f.getSignature().getName();
+		// check static-ness
+		if (f.attrIsStatic() && !of.attrIsStatic()) {
+			attr.addError(f.getSource(), "Function " + funcName + " must not be static.");
+		}
+		if (!f.attrIsStatic() && of.attrIsStatic()) {
+			attr.addError(f.getSource(), "Function " + funcName + " must be static.");
+		}
 		// check returntype
 		PscriptType f_type = f.getSignature().getTyp().attrTyp();
 		PscriptType of_type = of.getSignature().getTyp().attrTyp();

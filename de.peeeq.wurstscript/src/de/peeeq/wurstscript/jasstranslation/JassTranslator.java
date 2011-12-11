@@ -1043,9 +1043,16 @@ protected List<String> getParameterTypes(WParameters params) {
 	 * @return funcDefInstance with absolute context
 	 */
 	protected FuncDefInstance getRealCalledFunction(ImmutableList<ClassOrModule> context, FuncDefInstance relative) {
+		WLogger.info("getRealCalledFunction  for " + relative + " in context " + Utils.printContext(context));
 		if (context.isEmpty()) {
+			// call from global scope
 			return relative;
 		}
+		if (relative.getContext().isEmpty()) {
+			// call of function in global scope
+			return relative;
+		}
+		
 		ImmutableList<ClassOrModule> overallContext = mergeContexts(context, relative.getContext());
 		FunctionDefinition funcDef = relative.getDef();
 		String funcName = funcDef.getSignature().getName();
@@ -1060,17 +1067,21 @@ protected List<String> getParameterTypes(WParameters params) {
 				longestCommonPrefixLength = commonPrefixLength;
 			}
 		}
-		if (result == null) throw new Error();
+		if (result == null) throw new Error("could not find real function for " + relative + " in context " + Utils.printContext(context));
+		WLogger.info("getRealCalledFunction  = " + result);
 		return result;
 	}
 
 	private ImmutableList<ClassOrModule> mergeContexts(ImmutableList<ClassOrModule> c1, ImmutableList<ClassOrModule> c2) {
+		WLogger.info("merging " + Utils.printContext(c1) + " AND " + Utils.printContext(c2));
 		// merge the two contexts in such a way that each element occurs only once		
 		ImmutableList<ClassOrModule> part2 = c2;
 		while (!part2.isEmpty() && c1.contains(part2.head())) {
 			part2 = part2.tail();
 		}
-		return c1.cons(part2);
+		ImmutableList<ClassOrModule> result = c1.cons(part2);
+		WLogger.info("	result = " + Utils.printContext(result));
+		return result;
 	}
 	
 	protected ExprTranslationResult translateModuleFunctionCall(ImmutableList<ClassOrModule> context, JassFunction f,
@@ -1135,8 +1146,9 @@ protected List<String> getParameterTypes(WParameters params) {
 	 */
 	private ExprTranslationResult translateDynamicFunctionCall(ImmutableList<ClassOrModule> context, final JassFunction f, ExprMemberMethod exprMemberMethod) {
 		Preconditions.checkNotNull(context);
-		FuncDefInstance calledFunc = exprMemberMethod.attrFuncDef();
-		JassFunction calledJassFunc = manager.getJassFunctionFor(context, calledFunc); // FIXME use right context
+		FuncDefInstance calledFunc_relative = exprMemberMethod.attrFuncDef();
+		FuncDefInstance calledFunc = getRealCalledFunction(context, calledFunc_relative);
+		JassFunction calledJassFunc = manager.getJassFunctionFor(calledFunc);
 		
 		calledFunctions.put(f, calledJassFunc);
 		

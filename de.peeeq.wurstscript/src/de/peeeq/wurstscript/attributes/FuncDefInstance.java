@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.attributes;
 import de.peeeq.immutablecollections.ImmutableList;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class FuncDefInstance {
 
@@ -50,5 +51,9 @@ public class FuncDefInstance {
 		return visibility;
 	}
 	
+	@Override
+	public String toString() {
+		return def.getSignature().getName() + "@" + Utils.printContext(context);
+	}
 
 }

@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprAssignable;
+import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
@@ -38,6 +39,7 @@ import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.OpAssignment;
 import de.peeeq.wurstscript.ast.OpUpdateAssign;
 import de.peeeq.wurstscript.ast.OptExpr;
+import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.StmtDestroy;
 import de.peeeq.wurstscript.ast.StmtErr;
 import de.peeeq.wurstscript.ast.StmtExitwhen;
@@ -392,8 +394,44 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 
 	@Override
 	public void visit(ExprFunctionCall stmtCall) {
-		// calculating the exprType should reveal all errors:
+		String funcName = stmtCall.getFuncName();
+		// calculating the exprType should reveal most errors:
 		stmtCall.attrTyp();
+		
+		FunctionImplementation nearestFunc = stmtCall.attrNearestFuncDef();
+		if (stmtCall.attrFuncDef() != null) {
+			FunctionDefinition calledFunc = stmtCall.attrFuncDef().getDef();
+			if (calledFunc.attrNearestClassOrModule() != null) {
+				if (!calledFunc.attrIsStatic()) {
+					if (nearestFunc instanceof FuncDef) {
+						FuncDef funcDef = (FuncDef) nearestFunc;
+						if (funcDef.attrIsStatic()) {
+							attr.addError(stmtCall.getSource(), "Cannot call dynamic function " + funcName  +
+									" from static function " + nearestFunc.getSignature().getName());
+						}
+						
+					}
+				}
+			}
+		}
+		
+		// special check for filter & condition:
+		if (Utils.oneOf(funcName, "Condition", "Filter")) {
+			Expr firstArg = stmtCall.getArgs().get(0);
+			if (firstArg instanceof ExprFuncRef) {
+				ExprFuncRef exprFuncRef = (ExprFuncRef) firstArg;
+				FuncDefInstance f = exprFuncRef.attrFuncDef();
+				if (f != null) {
+					FunctionDefinition def = f.getDef();
+					if (def.getSignature().getParameters().size() > 0) {
+						attr.addError(firstArg.getSource(), "Functions passed to Filter or Condition must have no parameters.");
+					}
+					if (!(def.getSignature().getTyp().attrTyp() instanceof PScriptTypeBool)) {
+						attr.addError(firstArg.getSource(), "Functions passed to Filter or Condition must return boolean.");
+					}
+				}
+			}
+		}
 	}
 
 	@Override

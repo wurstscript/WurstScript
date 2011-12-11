@@ -5,10 +5,11 @@ package OnCast
 	public module OnPointCast
 		static trigger t = null
 		
-		public abstract function onPointCast(unit caster, real targetX, real targetY)
+		public abstract static function onPointCast(unit caster, real targetX, real targetY)
 	
-		private static function actions()
+		private static function actions() returns boolean
 			onPointCast(GetSpellAbilityUnit(), GetSpellTargetX(), GetSpellTargetY())
+			return false
 	
 		public static function registerSpellEvent(int spellId)
 			CreateTrigger()
