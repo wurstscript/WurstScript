@@ -18,7 +18,7 @@ public class WurstConfig {
 	private WurstConfig() {
 		File config1 = new File("./wurstscript/wurst.config");
 		File config2 = new File("./wurst.config");
-		
+		 
 		readDefaults();
 		
 		if (config1.exists()) {
@@ -35,7 +35,6 @@ public class WurstConfig {
 		settings.put("mpq.extract", "./winmpq/WinMPQ.exe extract %map %nameInMpq %folder");
 		settings.put("mpq.add", "./winmpq/WinMPQ.exe add %map %file %nameInMpq");
 		settings.put("mpq.delete", "./winmpq/WinMPQ.exe delete %map %nameInMpq");
-		settings.put("lib", "./wurstscript/lib/");
 		
 	}
 
