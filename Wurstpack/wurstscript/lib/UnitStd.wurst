@@ -1,0 +1,29 @@
+package UnitStd
+	
+	public function unit.getX() returns real
+		return GetUnitX(this)
+		
+	public function unit.getY() returns real
+		return GetUnitY(this)
+		
+	public function unit.setX(real x) returns unit
+		SetUnitX(this, x)
+		return this
+		
+	public function unit.setY(real y) returns unit
+		SetUnitY(this, y)
+		return this
+		
+	public function unit.setPos(real x, real y) returns unit
+		SetUnitX(this, x)
+		SetUnitY(this, y)
+		return this
+		
+	public function unit.kill() returns unit
+		KillUnit(this)
+		return this
+	
+	
+	// TODO more unit public functions
+
+endpackage

@@ -91,7 +91,7 @@ package TimerUtils
 			timedLoopTimer.pause()
 	
 	
-	module TimedLoop
+	public module TimedLoop
 		static thistype array instances		// The array
 		static integer instanceCount = 0	// The count
 		static triggercondition triggerCond = null // the triggerCondition for this

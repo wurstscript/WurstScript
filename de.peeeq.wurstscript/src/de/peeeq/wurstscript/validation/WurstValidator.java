@@ -9,6 +9,7 @@ import org.apache.log4j.net.SMTPAppender;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
@@ -35,6 +36,7 @@ import de.peeeq.wurstscript.ast.Modifier;
 import de.peeeq.wurstscript.ast.Modifiers;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.NameDef;
+import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.OpAssignment;
 import de.peeeq.wurstscript.ast.OpUpdateAssign;
@@ -68,6 +70,8 @@ import de.peeeq.wurstscript.types.PScriptTypeInt;
 import de.peeeq.wurstscript.types.PScriptTypeReal;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;
 import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.types.PscriptTypeClass;
+import de.peeeq.wurstscript.types.PscriptTypeModule;
 import de.peeeq.wurstscript.utils.Utils;
 
 /**
@@ -201,7 +205,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		
 		
 		checkReturn(func);
-		checkUnitializedVariablesFunc(func.attrScopeNames().values(), func.getBody());
+		UninitializedVars.checkFunc(func.attrScopeNames().values(), func.getBody());
 	}
 
 	private void checkFunctionName(FuncSignature signature) {
@@ -212,134 +216,11 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		}
 	}
 
-	private void checkUnitializedVariablesFunc(Collection<NameDef> locals, WStatements statements) {
-		if (Utils.isJassCode(statements)) {
-			// JassCode needs no safety -> use wurst
-			return;
-		}
-		Set<LocalVarDef> uninitializedVars = Sets.newHashSet();
-		for (NameDef n : locals) {
-			if (n instanceof LocalVarDef) {
-				LocalVarDef localVarDef = (LocalVarDef) n;
-				if (localVarDef.attrTyp() instanceof PScriptTypeArray) {
-					
-				} else {
-					uninitializedVars.add((LocalVarDef) n);
-				}
-			}
-		}
+	
 
-		uninitializedVars = checkUnitializedVariables(statements, uninitializedVars);
-	}
+	
 
-	private Set<LocalVarDef> checkUnitializedVariables(WStatements statements, final Set<LocalVarDef> p_uninitializedVars) {
-		final Set<LocalVarDef> uninitializedVars = Sets.newHashSet();
-		uninitializedVars.addAll(p_uninitializedVars);
-		for (WStatement s : statements) {
-			s.match(new WStatement.MatcherVoid() {
-
-				@Override
-				public void case_StmtWhile(StmtWhile stmtWhile) {
-					checkUnitializedVariablesExpr(stmtWhile.getCond(), uninitializedVars);
-					checkUnitializedVariables(stmtWhile.getBody(), uninitializedVars);
-				}
-
-				@Override
-				public void case_StmtSet(StmtSet stmtSet) {
-					ExprAssignable left = stmtSet.getLeft();
-					checkUnitializedVariablesExpr(stmtSet.getRight(), uninitializedVars);
-					if (left instanceof ExprVarAccess) {
-						ExprVarAccess exprVarAccess = (ExprVarAccess) left;
-						if (stmtSet.getOp() instanceof OpUpdateAssign) {
-							checkUnitializedVariablesExpr(left, uninitializedVars);
-						}
-						uninitializedVars.remove(exprVarAccess.attrNameDef());
-					} else {
-						checkUnitializedVariablesExpr(left, uninitializedVars);
-					}
-				}
-
-				@Override
-				public void case_StmtReturn(StmtReturn stmtReturn) {
-					checkUnitializedVariablesExpr(stmtReturn.getObj(), uninitializedVars);
-				}
-
-				@Override
-				public void case_StmtLoop(StmtLoop stmtLoop) {
-					Set<LocalVarDef> unLoop = checkUnitializedVariables(stmtLoop.getBody(), uninitializedVars);
-					// TODO add parameter to only return things before exitwhen
-				}
-
-				@Override
-				public void case_StmtIf(StmtIf stmtIf) {
-					checkUnitializedVariablesExpr(stmtIf.getCond(), uninitializedVars);
-					
-					Set<LocalVarDef> unThen = checkUnitializedVariables(stmtIf.getThenBlock(), uninitializedVars);
-					Set<LocalVarDef> unElse = checkUnitializedVariables(stmtIf.getElseBlock(), uninitializedVars);
-					// the uninitialized vars after the if is the union of both uninitialized vars (then + else)
-					uninitializedVars.clear();
-					uninitializedVars.addAll(unThen);
-					uninitializedVars.addAll(unElse);
-				}
-
-				@Override
-				public void case_StmtForRange(StmtForRange stmtForRange) {
-					uninitializedVars.remove(stmtForRange.getLoopVar());
-					checkUnitializedVariables(stmtForRange.getBody(), uninitializedVars);
-				}
-
-				@Override
-				public void case_StmtExitwhen(StmtExitwhen stmtExitwhen) {
-					checkUnitializedVariablesExpr(stmtExitwhen.getCond(), uninitializedVars);
-				}
-
-				@Override
-				public void case_StmtErr(StmtErr stmtErr) {
-				}
-
-				@Override
-				public void case_StmtDestroy(StmtDestroy stmtDestroy) {
-					checkUnitializedVariablesExpr(stmtDestroy.getObj(), uninitializedVars);
-				}
-
-				@Override
-				public void case_LocalVarDef(LocalVarDef localVarDef) {
-					if (localVarDef.getInitialExpr() instanceof Expr) {
-						uninitializedVars.remove(localVarDef);
-						checkUnitializedVariablesExpr(localVarDef.getInitialExpr(), uninitializedVars);
-					}
-				}
-
-				@Override
-				public void case_ExprNewObject(ExprNewObject exprNewObject) {
-					checkUnitializedVariablesExpr(exprNewObject, uninitializedVars);
-				}
-
-				@Override
-				public void case_ExprMemberMethod(ExprMemberMethod exprMemberMethod) {
-					checkUnitializedVariablesExpr(exprMemberMethod, uninitializedVars);
-				}
-
-				@Override
-				public void case_ExprFunctionCall(ExprFunctionCall exprFunctionCall) {
-					checkUnitializedVariablesExpr(exprFunctionCall, uninitializedVars);
-				}
-			});
-		}
-		return uninitializedVars;
-	}
-
-	protected void checkUnitializedVariablesExpr(OptExpr optExpr, final Set<LocalVarDef> uninitializedVars) {
-		optExpr.accept(new OptExpr.DefaultVisitor() {
-			@Override
-			public void visit(ExprVarAccess exprVarAccess) {
-				if (uninitializedVars.contains(exprVarAccess.attrNameDef())) {
-					attr.addError(exprVarAccess.getSource(), "Variable " + exprVarAccess.getVarName() + 
-							" is not initialized.");
-				}
-			}
-		});
-	}
+	
 
 	private void checkReturn(FunctionImplementation func) {
 		String functionName = func.getSignature().getName();
@@ -365,7 +246,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 			}
 		} else { // not abstract
 			checkReturn(func);
-			checkUnitializedVariablesFunc(func.attrScopeNames().values(), func.getBody());
+			UninitializedVars.checkFunc(func.attrScopeNames().values(), func.getBody());
 		}
 
 		if (func.attrNearestClassOrModule() instanceof ModuleDef) {
@@ -379,17 +260,17 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 	
 	@Override
 	public void visit(InitBlock initBlock) {
-		checkUnitializedVariablesFunc(initBlock.attrScopeNames().values(), initBlock.getBody());
+		UninitializedVars.checkFunc(initBlock.attrScopeNames().values(), initBlock.getBody());
 	}
 	
 	@Override
 	public void visit(OnDestroyDef onDestroyDef) {
-		checkUnitializedVariablesFunc(onDestroyDef.attrScopeNames().values(), onDestroyDef.getBody());
+		UninitializedVars.checkFunc(onDestroyDef.attrScopeNames().values(), onDestroyDef.getBody());
 	}
 	
 	@Override
 	public void visit(ConstructorDef constructorDef) {
-		checkUnitializedVariablesFunc(constructorDef.attrScopeNames().values(), constructorDef.getBody());
+		UninitializedVars.checkFunc(constructorDef.attrScopeNames().values(), constructorDef.getBody());
 	}
 
 	@Override
@@ -520,4 +401,52 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 	}
 	
 
+	@Override
+	public void visit(StmtDestroy stmtDestroy) {
+		PscriptType typ = stmtDestroy.getObj().attrTyp();
+		if (!(typ instanceof PscriptTypeModule || typ instanceof PscriptTypeClass)) {
+			attr.addError(stmtDestroy.getSource(), "Cannot destroy objects of type " + typ);
+		}
+	}
+	
+	@Override 
+	public void visit(ExprVarAccess e) {
+		checkVarRef(e, isDynamicContext(e));
+	}
+
+	private boolean isDynamicContext(ExprVarAccess e) {
+		AstElement elem = e;
+		while (elem != null) {
+			if (elem instanceof FuncDef) {
+				FuncDef funcDef = (FuncDef) elem;
+				return funcDef.attrIsDynamicClassMember();
+			} else if (elem instanceof ConstructorDef) {
+				return true;
+			} else if (elem instanceof OnDestroyDef) {
+				return true;
+			} else if (elem instanceof GlobalVarDef) {
+				GlobalVarDef g = (GlobalVarDef) elem;
+				return g.attrIsDynamicClassMember();
+			}
+			
+			elem = elem.getParent();
+		}
+		return false;
+	}
+
+	/**
+	 * check if the nameRef e is accessed correctly
+	 * i.e. not using a dynamic variable from a static context
+	 * @param e
+	 * @param dynamicContext
+	 */
+	private void checkVarRef(NameRef e, boolean dynamicContext) {
+		NameDef def = e.attrNameDef();
+		if (def instanceof GlobalVarDef) {
+			GlobalVarDef g = (GlobalVarDef) def;
+			if (g.attrIsDynamicClassMember() && !dynamicContext) {
+				attr.addError(e.getSource(), "Cannot reference dynamic variable " +e.getVarName() + " from static context.");
+			}
+		}
+	}
 }
