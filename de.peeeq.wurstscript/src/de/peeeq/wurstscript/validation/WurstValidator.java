@@ -281,17 +281,12 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		
 		FunctionImplementation nearestFunc = stmtCall.attrNearestFuncDef();
 		if (stmtCall.attrFuncDef() != null) {
+			
 			FunctionDefinition calledFunc = stmtCall.attrFuncDef().getDef();
-			if (calledFunc.attrNearestClassOrModule() != null) {
-				if (!calledFunc.attrIsStatic()) {
-					if (nearestFunc instanceof FuncDef) {
-						FuncDef funcDef = (FuncDef) nearestFunc;
-						if (funcDef.attrIsStatic()) {
+			if (calledFunc.attrIsDynamicClassMember()) {
+				if (!stmtCall.attrIsDynamicContext()) {
 							attr.addError(stmtCall.getSource(), "Cannot call dynamic function " + funcName  +
 									" from static function " + nearestFunc.getSignature().getName());
-						}
-						
-					}
 				}
 			}
 		}
@@ -411,28 +406,10 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 	
 	@Override 
 	public void visit(ExprVarAccess e) {
-		checkVarRef(e, isDynamicContext(e));
+		checkVarRef(e, e.attrIsDynamicContext());
 	}
 
-	private boolean isDynamicContext(ExprVarAccess e) {
-		AstElement elem = e;
-		while (elem != null) {
-			if (elem instanceof FuncDef) {
-				FuncDef funcDef = (FuncDef) elem;
-				return funcDef.attrIsDynamicClassMember();
-			} else if (elem instanceof ConstructorDef) {
-				return true;
-			} else if (elem instanceof OnDestroyDef) {
-				return true;
-			} else if (elem instanceof GlobalVarDef) {
-				GlobalVarDef g = (GlobalVarDef) elem;
-				return g.attrIsDynamicClassMember();
-			}
-			
-			elem = elem.getParent();
-		}
-		return false;
-	}
+	
 
 	/**
 	 * check if the nameRef e is accessed correctly

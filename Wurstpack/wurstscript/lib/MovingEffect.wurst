@@ -1,0 +1,133 @@
+package MovingEffect
+/*
+This is mostly a copy of xefx, credits for that go to Vexorian
+*/
+	import Dummy
+	import ExtensionFunctions
+	
+	constant player DUMMY_PLAYER = Player(15)
+	
+	public class MovingEffect
+		private unit dummy
+		private effect fx = null
+		private real zang  = 0.
+		private integer red = 255
+		private integer green = 255
+		private integer blue = 255
+		private integer alpha = 255
+		
+		// needed?
+		private integer abil=0
+		
+		construct(real x, real y, real facing)
+			dummy = CreateUnit(DUMMY_PLAYER, DUMMY_UNIT_ID, x, y, facing*bj_RADTODEG)
+				.addAbility('Amrf')
+				.removeAbility('Amrf')
+				.addAbility('Aloc')
+				.setPos(x,y)
+				
+		public function getOwner() returns player
+			return dummy.getOwner()
+			
+		public function setOwner(player p) returns MovingEffect
+			dummy.setOwner(p, false)
+			return this
+			
+		public function setTeamcolor(playercolor c) returns MovingEffect
+			SetUnitColor(dummy, c)
+			return this
+		
+		public function setScale(real value) returns MovingEffect
+			dummy.setScale(value)
+			return this
+
+		public function getGreen() returns int
+			return green
+		
+		public function getBlue() returns int
+			return blue
+		
+		public function getRed() returns int
+			return red
+		
+		public function getAlpha() returns int
+			return alpha
+		
+		
+		public function recolor(int r, int g, int b, int a) returns MovingEffect
+			red = r
+			green = g
+			blue = b
+			alpha = a
+			dummy.setVertexColor(r, g, b, a)
+			return this
+
+
+		public function flash(string fx) returns MovingEffect
+			dummy.addEffect(fx, "origin").destr()
+			return this
+
+		public function getXYAngle() returns real
+			return dummy.getFacing()*bj_DEGTORAD
+
+		public function setXYAngle(real value) returns MovingEffect
+			dummy.setFacing(value*bj_RADTODEG)
+			return this
+
+		public function getZAngle() returns real
+			return zang
+			
+		public function setZAngle(real value) returns MovingEffect
+			int i = R2I(value*bj_RADTODEG + 90.5)
+			zang = value
+			if i >= 180
+				i = 179
+			else if i < 0
+				i = 0
+			SetUnitAnimationByIndex(dummy, i)
+			return this
+		
+		public function getX() returns real
+			return dummy.getX()
+			
+		public function getY() returns real
+			return dummy.getY()
+		
+		public function getZ() returns real
+			return dummy.getFlyHeight()
+		
+		public function setX(real x) returns MovingEffect
+			dummy.setX(x)
+			return this
+			
+		public function setY(real y) returns MovingEffect
+			dummy.setX(y)
+			return this
+			
+		public function setPos(real x, real y) returns MovingEffect
+			dummy.setPos(x, y)
+			return this
+		
+		public function setZ(real z) returns MovingEffect
+			dummy.setFlyHeight(z, 0)
+			return this
+		
+		public function setFx(string newpath) returns MovingEffect
+			if fx != null
+				fx.destr()
+			if newpath == ""
+				fx = null
+			else
+				fx = dummy.addEffect(newpath, "origin")
+			return this
+				
+		ondestroy
+			if fx != null
+				fx.destr()
+			ExplodeUnitBJ(dummy)
+		
+		public function hiddenDestroy()
+			dummy.hide()
+			destroy this
+			
+endpackage

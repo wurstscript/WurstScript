@@ -601,6 +601,7 @@ public class JassTranslator {
 
 			private void callDestroyFunc(ClassDef classDef, Expr e) {
 				JassFunction destroyMethod = manager.getJassDestroyFunctionFor(classDef); 
+				calledFunctions.put(f, destroyMethod);
 				ExprTranslationResult toDestroy = translateExpr(context, f, e);
 				result.addAll(toDestroy.getStatements());
 				result.add(JassStmtCall(destroyMethod.getName(), JassExprlist(toDestroy.getExpr())));

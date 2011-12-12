@@ -282,7 +282,7 @@ VarDef.attrIsDynamicClassMember
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.AttrIsClassMember.calculate
 
-FuncDef.attrIsDynamicClassMember
+FunctionDefinition.attrIsDynamicClassMember
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.AttrIsClassMember.calculate
 
@@ -290,7 +290,10 @@ PackageOrGlobal.attrPackageElements
 	returns com.google.common.collect.Multimap<String, WEntity>
 	implemented by de.peeeq.wurstscript.attributes.AttrPackageElements.calculate
 	
-	
+
+AstElement.attrIsDynamicContext
+	returns boolean
+	implemented by de.peeeq.wurstscript.attributes.IsDynamicContext.calculate	
 
 AstElement.attrNearestPackage
 	returns PackageOrGlobal

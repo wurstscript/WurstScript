@@ -66,12 +66,12 @@ package TimerUtils
 			t = null
 		
 		private static function timerCallback()
-			t = GetExpiredTimer()
+			timer t = GetExpiredTimer()
 			thistype c = t.getData() castTo thistype
 			c.periodic()
 		
 		public function startPeriodic(real time)
-			timer t = getTimer()
+			t = getTimer()
 			t.setData(this castTo integer)
 			TimerStart(t, time, true, function timerCallback)
 	

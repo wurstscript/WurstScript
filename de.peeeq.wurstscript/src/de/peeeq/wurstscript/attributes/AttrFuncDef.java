@@ -30,9 +30,10 @@ import de.peeeq.wurstscript.types.PscriptTypeModule;
  *
  */
 public class AttrFuncDef {
-	
+
 	public static  FuncDefInstance calculate(final FuncRef node) {
 		final String funcName = node.getFuncName();
+		final Expr[] receiverType = new Expr[1];
 		FuncDefInstance result = node.match(new FuncRef.Matcher<FuncDefInstance>() {
 
 			private FuncDefInstance defaultCase() {
@@ -46,45 +47,46 @@ public class AttrFuncDef {
 				}
 				return null;
 			}
-			
-			
+
+
 			private FuncDefInstance memberCase(Expr left) {
-				FunctionDefinition r = null;
+				receiverType[0] = left;
+				FuncDefInstance r = null;
 				PscriptType leftType = left.attrTyp();
 				if (leftType instanceof PscriptTypeClass) {
 					// receiver has a class type
-					
+
 					PscriptTypeClass leftTypeC = (PscriptTypeClass) leftType;
 					ClassDef classDef = leftTypeC.getClassDef();
-					
+
 					Multimap<String, FuncDefInstance> functions = getVisibleClassFunctions(left, classDef);
-					
-					
+
+
 					if (functions.containsKey(funcName)) {
 						FuncDefInstance f = selectOverloadedFunction(node, functions.get(funcName));
 						if (((FuncDef) f.getDef()).attrIsStatic()) {
 							attr.addError(left.getSource(), "Cannot call static function " + funcName + " in dynamic context.");
 						}
-						return f;
+						r = f;
 					} 
 				} else if (leftType instanceof PscriptTypeModule) {
 					// receiver has a class type
-					
+
 					PscriptTypeModule leftTypeM = (PscriptTypeModule) leftType;
 					ModuleDef moduleDef = leftTypeM.getModuleDef();
-					
+
 					Multimap<String, FuncDefInstance> functions = getVisibleClassFunctions(left, moduleDef);
-					
-					
+
+
 					if (functions.containsKey(funcName)) {
 						FuncDefInstance f = selectOverloadedFunction(node, functions.get(funcName));
 						if (((FuncDef) f.getDef()).attrIsStatic()) {
 							attr.addError(left.getSource(), "Cannot call static function " + funcName + " in dynamic context.");
 						}
-						return f;
+						r = f;
 					} 	
-					
-					
+
+
 				} else if (leftType instanceof PScriptTypeClassDefinition) {
 					PScriptTypeClassDefinition leftTypeC = (PScriptTypeClassDefinition) leftType;
 					// receiver is a classDefinition. this means we have a static method call
@@ -95,7 +97,7 @@ public class AttrFuncDef {
 						if (! ((FuncDef) f.getDef()).attrIsStatic()) {
 							attr.addError(left.getSource(), "Cannot call dynamic function " + funcName + " in static context.");
 						}
-						return f;
+						r = f;
 					}
 				} else if (leftType instanceof PScriptTypeModuleDefinition) {
 					PScriptTypeModuleDefinition leftTypeM = (PScriptTypeModuleDefinition) leftType;
@@ -103,30 +105,28 @@ public class AttrFuncDef {
 					Multimap<String, FuncDefInstance> functions = getVisibleClassFunctions(left, moduleDef);
 					if (functions.containsKey(funcName)) {
 						FuncDefInstance f = selectOverloadedFunction(node, functions.get(funcName));
-						return f;
+						r = f;
 					}
 				} 
-//				else {
-//					// only valid as long as there are no extension functions 
-//					attr.addError(left.getSource(), "Cannot use the dot operator on receiver of type " + leftType.getClass() + " " + leftType);
-//				}
 				
+				//				else {
+				//					// only valid as long as there are no extension functions 
+				//					attr.addError(left.getSource(), "Cannot use the dot operator on receiver of type " + leftType.getClass() + " " + leftType);
+				//				}
+
 				// check extension methods:
 				WScope scope = Scoping.getNearestScope(node);
-				while (scope != null) {
+				while (r == null && scope != null) {
 					Multimap<String, FuncDefInstance> functions = scope.attrScopeFunctions();
 					if (functions.containsKey(funcName)) {
-						return selectExtensionFunction(left.attrTyp(), functions.get(funcName));
+						r = selectExtensionFunction(left.attrTyp(), functions.get(funcName));
 					}
 					scope = Scoping.getNearestScope(scope);
 				}
-				
-				
-				
-				// TODO check extension functions
-				attr.addError(left.getSource(), "The method " + funcName + " is undefined for receiver of type " + leftType);
-				
-				return null;
+				if (r == null) {
+					attr.addError(node.getSource(), "The method " + funcName + " is undefined for receiver of type " + leftType);
+				}
+				return r;
 			}
 
 
@@ -150,36 +150,41 @@ public class AttrFuncDef {
 				}
 				return functions;
 			}
-			
+
 			@Override
 			public FuncDefInstance case_ExprFuncRef(ExprFuncRef term)  {
 				return defaultCase();
 			}
 
-			
+
 
 			@Override
 			public FuncDefInstance case_ExprMemberMethod(ExprMemberMethod term)
-					 {
+			{
 				return memberCase(term.getLeft());
 			}
 
-			
+
 
 			@Override
 			public FuncDefInstance case_ExprFunctionCall(ExprFunctionCall term)
-					 {
+			{
 				return defaultCase();
 			}
 		});
-		
+
 		if (result == null) {
 			if (funcName.startsWith("InitTrig_") 
 					&& node.attrNearestFuncDef() != null
 					&& node.attrNearestFuncDef().getSignature().getName().equals("InitCustomTriggers")) {
 				// ignore missing InitTrig functions
 			} else {
-				attr.addError(node.getSource(), "Could not resolve reference to function " + funcName);
+				if (receiverType[0] == null) {
+					attr.addError(node.getSource(), "Could not resolve reference to function " + funcName);
+				} else {
+					attr.addError(node.getSource(), "Could not resolve reference to function " + funcName + " for receiver " + receiverType[0] + 
+							" of type "+ receiverType[0].attrTyp());
+				}
 			}
 		}
 		return result;
