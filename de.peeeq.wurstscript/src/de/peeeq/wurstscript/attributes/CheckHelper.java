@@ -36,6 +36,7 @@ public class CheckHelper {
 		if (f_count != of_count) {
 			attr.addError(f.getSource(), "Cannot override function " + funcName + ": The number of parameters of function " + funcName + " must be equal to " + of_count + 
 					", as defined by the overriden function.");
+			return;
 		}
 		int i = 0;
 		for (WParameter f_p : f.getSignature().getParameters()) {

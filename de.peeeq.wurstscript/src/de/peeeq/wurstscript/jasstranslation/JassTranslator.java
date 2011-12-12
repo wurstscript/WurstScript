@@ -549,7 +549,7 @@ public class JassTranslator {
 						VarDef leftVar = (VarDef) exprVarAccess.attrNameDef();
 						String leftJassVar = getJassVarNameFor(context, leftVar);
 						result.addAll(right.getStatements());
-						if (leftVar.attrIsClassMember()) {
+						if (leftVar.attrIsDynamicClassMember()) {
 							withIndex(leftJassVar, new ExprTranslationResult(JassExprVarAccess("this")));
 						} else {
 							withoutIndex(leftJassVar);
@@ -591,15 +591,23 @@ public class JassTranslator {
 				if (typ instanceof PscriptTypeClass) {
 					PscriptTypeClass classType = (PscriptTypeClass) typ;
 					ClassDef classDef = classType.getClassDef();
-					JassFunction destroyMethod = manager.getJassDestroyFunctionFor(classDef); 
-					ExprTranslationResult toDestroy = translateExpr(context, f, stmtDestroy.getObj());
-					result.addAll(toDestroy.getStatements());
-					result.add(JassStmtCall(destroyMethod.getName(), JassExprlist(toDestroy.getExpr())));
-					
+					callDestroyFunc(classDef, stmtDestroy.getObj());
+				} else if (typ instanceof PscriptTypeModule) {
+					ClassDef classDef = (ClassDef) context.head();
+					callDestroyFunc(classDef, stmtDestroy.getObj());
 				} else {
 					throw new Error("cannot destroy object of type " + typ);
 				}
 			}
+
+			private void callDestroyFunc(ClassDef classDef, Expr e) {
+				JassFunction destroyMethod = manager.getJassDestroyFunctionFor(classDef); 
+				calledFunctions.put(f, destroyMethod);
+				ExprTranslationResult toDestroy = translateExpr(context, f, e);
+				result.addAll(toDestroy.getStatements());
+				result.add(JassStmtCall(destroyMethod.getName(), JassExprlist(toDestroy.getExpr())));
+			}
+
 
 			@Override
 			public void case_StmtWhile(StmtWhile stmtWhile) {
@@ -914,7 +922,7 @@ public class JassTranslator {
 			public ExprTranslationResult case_ExprVarAccess(ExprVarAccess exprVarAccess) {
 				VarDef varDef = (VarDef) exprVarAccess.attrNameDef();
 				String varName = getJassVarNameFor(context, varDef);
-				if (varDef.attrIsClassMember()) {
+				if (varDef.attrIsDynamicClassMember()) {
 					// access to a field
 					JassExpr index = JassExprVarAccess("this");
 					return new ExprTranslationResult(JassExprVarArrayAccess(varName, index));
@@ -1098,7 +1106,6 @@ protected List<String> getParameterTypes(WParameters params) {
 	 * @return funcDefInstance with absolute context
 	 */
 	protected FuncDefInstance getRealCalledFunction(ImmutableList<ClassOrModule> context, FuncDefInstance relative) {
-		WLogger.info("getRealCalledFunction  for " + relative + " in context " + Utils.printContext(context));
 		if (context.isEmpty()) {
 			// call from global scope
 			return relative;
@@ -1722,7 +1729,7 @@ protected List<String> getParameterTypes(WParameters params) {
 		for (ClassSlot member : classDef.getSlots()) {
 			if (member instanceof GlobalVarDef) {
 				GlobalVarDef var = (GlobalVarDef) member;
-				if (var.attrIsClassMember() && var.getInitialExpr() instanceof Expr) {
+				if (var.attrIsDynamicClassMember() && var.getInitialExpr() instanceof Expr) {
 					Expr initial = (Expr) var.getInitialExpr();
 					ExprTranslationResult e = translateExpr(context, f, initial);
 					f.getBody().addAll(e.getStatements());

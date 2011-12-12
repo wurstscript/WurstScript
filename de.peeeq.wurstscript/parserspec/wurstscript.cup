@@ -479,17 +479,17 @@ ExprCast ::=
 	
 ExprMemberVar ::=
 	Expr:left DOT IDENTIFIER:name
-		{: RESULT = Ast.ExprMemberVar(left.getSource().copy(), left, name); :}	
+		{: RESULT = Ast.ExprMemberVar(pos(nameleft,nameright), left, name); :}	
 ;
 
 ExprMemberArrayVar ::=
 	Expr:left DOT IDENTIFIER:name Indexes:indexes
-		{: RESULT = Ast.ExprMemberArrayVar(left.getSource().copy(), left, name, indexes); :}
+		{: RESULT = Ast.ExprMemberArrayVar(pos(nameleft,nameright), left, name, indexes); :}
 ;
 
 ExprMemberMethod ::=
 	Expr:left DOT IDENTIFIER:name LPAR Arguments:args RPAR
-		{: RESULT = Ast.ExprMemberMethod(left.getSource().copy(), left, name, args); :}
+		{: RESULT = Ast.ExprMemberMethod(pos(nameleft,nameright), left, name, args); :}
 ;
 
 

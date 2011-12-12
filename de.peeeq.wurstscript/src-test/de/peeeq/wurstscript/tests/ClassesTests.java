@@ -36,7 +36,7 @@ public class ClassesTests extends PscriptTest {
 	}
 	
 	@Test
-	public void modules_abstract_err() {
+	public void classes_static_func() {
 		testAssertErrorsLines(false, "static", 
 				"package test",
 				"	class C",
@@ -48,8 +48,20 @@ public class ClassesTests extends PscriptTest {
 			);
 	}
 
-	
+
 	@Test
+	public void classes_static_var_get() {
+		testAssertErrorsLines(false, "static", 
+				"package test",
+				"	class C",
+				"		int i = 3",
+				"		static function foo() returns int",
+				"			return i",
+				"endpackage"
+			);
+	}
+	
+		@Test
 	public void constantVars() {
 		testAssertErrorsLines(false, "constant variable", 
 				"package test",
@@ -63,4 +75,27 @@ public class ClassesTests extends PscriptTest {
 	}
 	
 	
+	@Test
+	public void classes_static_var_set() {
+		testAssertErrorsLines(false, "static", 
+				"package test",
+				"	class C",
+				"		int i = 3",
+				"		static function foo(int j)",
+				"			i = j",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void classes_static_var_set2() {
+		testAssertErrorsLines(false, "static", 
+				"package test",
+				"	class C",
+				"		int i = 3",
+				"		static function foo(int j)",
+				"			this.i = j",
+				"endpackage"
+			);
+	}
 }
