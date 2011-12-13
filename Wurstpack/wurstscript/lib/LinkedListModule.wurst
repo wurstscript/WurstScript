@@ -1,0 +1,55 @@
+/*
+
+iterate over all elements with:
+
+	C c = getFirsT()
+	while c != null
+		// do something with c
+		c = c.getNext()
+
+
+*/
+
+package LinkedListModule
+
+	module LinkedListModule
+		static thistype first = null
+		static thistype last = null
+		static int count = 0
+		thistype prev
+		thistype next
+
+		construct()
+			count++
+			if count == 1
+				first = this
+				prev = null	
+			else
+				prev = last
+				last.next = this
+				first.prev = this
+			next = null
+			last = this
+		
+		ondestroy
+			count--
+			if this != first
+				prev.next = next
+			if this != last
+				next.prev = prev	
+			if this == last
+				last = prev
+			if this == first
+				first = next
+
+		public static function getFirst() returns thistype
+			return first
+
+		public function getNext() returns thistype
+			return next
+
+		public function getPrev() returns thistype
+			return prev
+
+
+endpackage
