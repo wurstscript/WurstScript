@@ -34,4 +34,9 @@ public class NativeFunctions {
 	static public ILconstReal ModuloReal(ILconstReal a, ILconstReal b) {
 		return new ILconstReal(a.getVal() % b.getVal());
 	}
+	
+	@Native
+	static public ILconstString I2S(ILconstInt i) {
+		return new ILconstString("" + i.getVal());
+	}
 }

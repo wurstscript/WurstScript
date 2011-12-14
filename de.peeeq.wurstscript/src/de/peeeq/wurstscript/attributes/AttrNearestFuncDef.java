@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionImplementation;
 
 

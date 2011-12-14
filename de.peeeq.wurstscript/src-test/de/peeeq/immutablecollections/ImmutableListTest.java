@@ -1,14 +1,12 @@
 package de.peeeq.immutablecollections;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.Random;
 
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import com.google.common.collect.Lists;
 

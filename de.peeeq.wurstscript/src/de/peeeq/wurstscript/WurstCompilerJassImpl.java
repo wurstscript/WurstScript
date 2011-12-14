@@ -194,7 +194,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		// handle syntactic sugar
 		removeSyntacticSugar(root);
 		
-//		expandModules(root);
+		new ModuleExpander().expandModules(root);
 		
 		// validate the resource:
 		WurstValidator validator = new WurstValidator(root);
@@ -222,6 +222,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			return;
 		}
 	}
+
+	
 
 	private void removeSyntacticSugar(CompilationUnit root) {
 		addDefaultConstructors(root);

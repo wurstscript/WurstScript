@@ -3,20 +3,18 @@ package de.peeeq.wurstscript.tests;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
+
+import junit.framework.Assert;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
-import junit.framework.Assert;
-
 import de.peeeq.wurstscript.Pjass;
-import de.peeeq.wurstscript.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.Pjass.Result;
+import de.peeeq.wurstscript.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassinterpreter.JassInterpreter;

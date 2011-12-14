@@ -1,7 +1,5 @@
 package de.peeeq.wurstscript.tests;
 
-import static org.junit.Assert.*;
-
 import org.junit.Test;
 
 import de.peeeq.wurstscript.utils.Utils;

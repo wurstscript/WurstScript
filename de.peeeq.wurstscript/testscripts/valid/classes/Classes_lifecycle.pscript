@@ -41,7 +41,7 @@ package test
 		integer i = 0
 		while (i < 10) 
 			if (i mod 2 == 1) and (b[i].x != i) 
-				testFail("fail " + I2S(i))
+				testFail("fail " + I2S(i) + ", " + I2S(b[i].x))
 			
 			i = i + 1
 			

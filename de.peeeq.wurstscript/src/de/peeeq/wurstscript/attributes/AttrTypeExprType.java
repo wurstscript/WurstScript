@@ -13,7 +13,6 @@ import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
 import de.peeeq.wurstscript.types.NativeTypes;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
-import de.peeeq.wurstscript.types.PScriptTypeThis;
 import de.peeeq.wurstscript.types.PScriptTypeUnknown;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;
 import de.peeeq.wurstscript.types.PscriptNativeType;
@@ -41,11 +40,10 @@ public class AttrTypeExprType {
 			@Override
 			public PscriptType case_TypeExprThis(final TypeExprThis node) {
 				ClassOrModule classOrModule = node.attrNearestClassOrModule();
-				return node.attrNearestClassOrModule().match(new ClassOrModule.Matcher<PscriptType>() {
+				return classOrModule.match(new ClassOrModule.Matcher<PscriptType>() {
 
 					@Override
 					public PscriptType case_ClassDef(ClassDef classDef) {
-						attr.addError(node.getSource(), "The type 'thistype' can only be used inside modules.");
 						return new PscriptTypeClass(classDef);
 					}
 

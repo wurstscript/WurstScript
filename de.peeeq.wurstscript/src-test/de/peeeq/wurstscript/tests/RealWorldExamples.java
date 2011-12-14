@@ -17,7 +17,7 @@ public class RealWorldExamples extends PscriptTest {
 	
 	
 	@Test
-	public void simple() throws IOException {
+	public void timerUtils() throws IOException {
 		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "TimerUtils.pscript"), false);
 	}
 	

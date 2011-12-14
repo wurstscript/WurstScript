@@ -137,11 +137,6 @@ public class AttrPackageElements {
 						public void case_WPackage(WPackage term)  {
 						}
 
-						@Override
-						public void case_ExtensionFuncDef(ExtensionFuncDef term) {
-							result.put(term.getSignature().getName(), term);
-						}
-
 					});
 				}
 			}

@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript;
 
 import java.io.File;
-import java.io.IOException;
 
 import javax.swing.JOptionPane;
 
@@ -9,7 +8,6 @@ import org.apache.log4j.DailyRollingFileAppender;
 import org.apache.log4j.Layout;
 import org.apache.log4j.Logger;
 import org.apache.log4j.SimpleLayout;
-import org.apache.log4j.lf5.util.LogFileParser;
 
 public class WLogger {
 

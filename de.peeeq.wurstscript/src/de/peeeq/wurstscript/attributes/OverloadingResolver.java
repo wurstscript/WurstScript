@@ -63,11 +63,10 @@ public abstract class OverloadingResolver<F,C> {
 
 				@Override
 				public String apply(F f) {
-					if (f instanceof FuncDefInstance) {
-						FuncDefInstance funcDefInstance = (FuncDefInstance) f;
-						FunctionDefinition func = funcDefInstance.getDef();
+					if (f instanceof FunctionDefinition) {
+						FunctionDefinition functionDefinition = (FunctionDefinition) f;
+						FunctionDefinition func = functionDefinition;
 						return "function " + func.getSignature().getName() + " defined in " + 
-							Utils.printContext(funcDefInstance.getContext()) +
 							"  line " + func.getSource().getLine();
 					}
 					return f.toString();
@@ -109,17 +108,17 @@ public abstract class OverloadingResolver<F,C> {
 		}.resolve(constructors, node);
 	}
 	
-	public static FuncDefInstance resolveFuncCall(final Collection<FuncDefInstance> collection, final FuncRef funcCall) {
-		return new OverloadingResolver<FuncDefInstance, FuncRef>() {
+	public static FunctionDefinition resolveFuncCall(final Collection<FunctionDefinition> collection, final FuncRef funcCall) {
+		return new OverloadingResolver<FunctionDefinition, FuncRef>() {
 
 			@Override
-			int getParameterCount(FuncDefInstance f) {
-				return f.getDef().getSignature().getParameters().size();
+			int getParameterCount(FunctionDefinition f) {
+				return f.getSignature().getParameters().size();
 			}
 
 			@Override
-			PscriptType getParameterType(FuncDefInstance f, int i) {
-				return f.getDef().getSignature().getParameters().get(i).getTyp().attrTyp();
+			PscriptType getParameterType(FunctionDefinition f, int i) {
+				return f.getSignature().getParameters().get(i).getTyp().attrTyp();
 			}
 
 			@Override

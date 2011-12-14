@@ -6,6 +6,7 @@ import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassSlot;
+import de.peeeq.wurstscript.ast.ClassSlots;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
@@ -15,6 +16,7 @@ import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.JassGlobalBlock;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.ModuleDef;
+import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.TopLevelDeclaration;
@@ -53,15 +55,9 @@ public class AttrScopeNames {
 					result.putAll(importedPackage.attrExportedNames());
 				}
 				for (WEntity e : term.getElements()) {
-					if (e instanceof VarDef) {
-						VarDef v = (VarDef) e;
-						result.put(v.getName(), v);
-					} else if (e instanceof ClassDef) {
-						ClassDef classDef = (ClassDef) e;
-						result.put(classDef.getName(), classDef);						
-					} else if (e instanceof ModuleDef) {
-						ModuleDef moduleDef = (ModuleDef) e;
-						result.put(moduleDef.getName(), moduleDef);
+					if (e instanceof NameDef) {
+						NameDef n = (NameDef) e;
+						result.put(n.getName(), n);
 					}
 				}
 				return result;
@@ -69,14 +65,7 @@ public class AttrScopeNames {
 
 			@Override
 			public Map<String, NameDef> case_ClassDef(ClassDef c) {
-				
-				
-				for (ClassSlot e : c.getSlots()) {
-					if (e instanceof VarDef) {
-						VarDef v = (VarDef) e;
-						result.put(v.getName(), v);
-					}
-				}
+				addForClassSlots(c.getSlots());
 				return result;
 			}
 
@@ -119,12 +108,7 @@ public class AttrScopeNames {
 
 			@Override
 			public Map<String, NameDef> case_ModuleDef(ModuleDef moduleDef) {
-				for (ClassSlot e : moduleDef.getSlots()) {
-					if (e instanceof VarDef) {
-						VarDef v = (VarDef) e;
-						result.put(v.getName(), v);
-					}
-				}
+				addForClassSlots(moduleDef.getSlots());
 				return result;
 			}
 
@@ -146,6 +130,25 @@ public class AttrScopeNames {
 					}
 				});
 				return result;
+			}
+
+			@Override
+			public Map<String, NameDef> case_ModuleInstanciation(ModuleInstanciation m) {
+				addForClassSlots(m.getSlots());
+				return result;
+			}
+
+			private void addForClassSlots(ClassSlots slots) {
+				for (ClassSlot e :slots) {
+					if (e instanceof NameDef) {
+						NameDef n = (NameDef) e;
+						result.put(n.getName(), n);
+					}
+					if (e instanceof ModuleInstanciation) {
+						ModuleInstanciation m = (ModuleInstanciation) e;
+						result.putAll(m.attrScopePublicNames());
+					}
+				}
 			}
 		});
 	}

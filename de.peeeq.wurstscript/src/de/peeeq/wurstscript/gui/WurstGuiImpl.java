@@ -1,15 +1,13 @@
 package de.peeeq.wurstscript.gui;
 
-import java.awt.Image;
-import java.awt.Toolkit;
-import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
+
 import com.google.common.collect.Lists;
+
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.utils.Utils;
