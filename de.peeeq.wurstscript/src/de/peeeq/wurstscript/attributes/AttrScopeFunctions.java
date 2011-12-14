@@ -1,13 +1,18 @@
 package de.peeeq.wurstscript.attributes;
 
+import java.util.Map;
 import java.util.Map.Entry;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
+import de.peeeq.wurstscript.ast.ClassOrModuleOrModuleInstanciation;
+import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
@@ -15,12 +20,15 @@ import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.ModuleDef;
+import de.peeeq.wurstscript.ast.ModuleInstanciation;
+import de.peeeq.wurstscript.ast.NotExtensionFunction;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.TopLevelDeclaration;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WScope;
+import de.peeeq.wurstscript.utils.Utils;
 
 
 /**
@@ -30,114 +38,152 @@ import de.peeeq.wurstscript.ast.WScope;
  */
 public class AttrScopeFunctions {
 	
-	public static  Multimap<String, FuncDefInstance> calculate(WScope node) {
-		final Multimap<String, FuncDefInstance> result = ArrayListMultimap.create();
-		return node.match(new WScope.Matcher<Multimap<String, FuncDefInstance>>() {
+	public static  Map<String, NotExtensionFunction> calculate(WScope node) {
+		final Map<String, NotExtensionFunction> result = Maps.newHashMap();
+		return node.match(new WScope.Matcher<Map<String, NotExtensionFunction>>() {
 
 			@Override
-			public Multimap<String, FuncDefInstance> case_WPackage(WPackage term)
-					 {
+			public Map<String, NotExtensionFunction> case_WPackage(WPackage term) {
+				// add imported Names
 				for (WImport i : term.getImports()) {
 					WPackage importedPackage = attr.getImportedPackage(i);
 					if (importedPackage == null) {
 						continue;
 					}
-					Multimap<String, FunctionDefinition> importedFunctions = importedPackage.attrExportedFunctions();
-					for (Entry<String, FunctionDefinition> f : importedFunctions.entries()) {
-						result.put(f.getKey(), FuncDefInstance.create(f.getValue()));
-					}
+					Map<String, NotExtensionFunction> importedFunctions = importedPackage.attrExportedFunctions();
+					result.putAll(importedFunctions);
 				}
 				
+				// add names in package
 				for (WEntity e : term.getElements()) {
-					if (e instanceof FunctionDefinition) {
-						FunctionDefinition f = (FunctionDefinition) e;
-						result.put(f.getSignature().getName(), FuncDefInstance.create(f));
+					if (e instanceof NotExtensionFunction) {
+						NotExtensionFunction f = (NotExtensionFunction) e;
+						result.put(f.getSignature().getName(), f);
 					}
 				}
 				return result;
 			}
 
 			@Override
-			public Multimap<String, FuncDefInstance> case_ClassDef(ClassDef term) {
+			public Map<String, NotExtensionFunction> case_ClassDef(ClassDef term) {
 				return case_ClassOrModule(term);
 			}
 
-			private Multimap<String, FuncDefInstance> case_ClassOrModule(ClassOrModule term) {
-				return term.attrAllFunctions();
+			private Map<String, NotExtensionFunction> case_ClassOrModule(ClassOrModule term) {
+				result.putAll(term.attrAllFunctions());
+				return result;
 			}
 
 			
 
 			@Override
-			public Multimap<String, FuncDefInstance> case_FuncDef(FuncDef term)
+			public Map<String, NotExtensionFunction> case_FuncDef(FuncDef term)
 					 {
 				// functions cannot include other functions (not yet?)
 				return result;
 			}
 
 			@Override
-			public Multimap<String, FuncDefInstance> case_CompilationUnit(CompilationUnit term)  {
+			public Map<String, NotExtensionFunction> case_CompilationUnit(CompilationUnit term)  {
 				for (TopLevelDeclaration e : term) {
-					if (e instanceof FunctionDefinition) {
-						FunctionDefinition f = (FunctionDefinition) e;
-						result.put(f.getSignature().getName(), FuncDefInstance.create(f));
+					if (e instanceof NotExtensionFunction) {
+						NotExtensionFunction f = (NotExtensionFunction) e;
+						result.put(f.getSignature().getName(), f);
 					}
 				}
 				return result;
 			}
 
 			@Override
-			public Multimap<String, FuncDefInstance> case_ConstructorDef(ConstructorDef term)  {
+			public Map<String, NotExtensionFunction> case_ConstructorDef(ConstructorDef term)  {
 				// constructors cannot include other functions
 				return result;
 			}
 
 			@Override
-			public Multimap<String, FuncDefInstance> case_OnDestroyDef(OnDestroyDef term)  {
+			public Map<String, NotExtensionFunction> case_OnDestroyDef(OnDestroyDef term)  {
 				// onDestroy cannot include other functions
 				return result;
 			}
 
 			@Override
-			public Multimap<String, FuncDefInstance> case_InitBlock(InitBlock term)  {
+			public Map<String, NotExtensionFunction> case_InitBlock(InitBlock term)  {
 				return result;
 			}
 
 			@Override
-			public Multimap<String, FuncDefInstance> case_ModuleDef(ModuleDef term) {
+			public Map<String, NotExtensionFunction> case_ModuleDef(ModuleDef term) {
 				return case_ClassOrModule(term);
 			}
 
 			@Override
-			public Multimap<String, FuncDefInstance> case_ExtensionFuncDef(ExtensionFuncDef extensionFuncDef) {
+			public Map<String, NotExtensionFunction> case_ExtensionFuncDef(ExtensionFuncDef extensionFuncDef) {
 				// functions cannot include other functions (not yet?)
+				return result;
+			}
+
+			@Override
+			public Map<String, NotExtensionFunction> case_ModuleInstanciation(ModuleInstanciation m) {
+				// add all functions in this scope:
+				result.putAll(m.attrAllFunctions());
+				
+				// check for functions in lower scope if they override a function here
+				WScope parent = (WScope) m.getParent().getParent();
+				Map<String, NotExtensionFunction> parentFunctions = parent.attrScopeFunctions();
+				for (String functionName : parentFunctions.keySet()) {
+					if (result.containsKey(functionName)) {
+						result.put(functionName, parentFunctions.get(functionName));
+					}
+				}
 				return result;
 			}
 		});
 	}
 
-	
-	public static Multimap<String, FuncDefInstance> calculatePackage(WScope scope) {
-		Multimap<String, FuncDefInstance> result = HashMultimap.create();
-		for (FuncDefInstance f : scope.attrScopeFunctions().values()) {
-			if (f.getDef() instanceof FuncDef) {
-				FuncDef funcDef = (FuncDef) f.getDef();
+	/**
+	 * functions visible on package level 
+	 */
+	public static Map<String, NotExtensionFunction> calculatePackage(WScope scope) {
+		Map<String, NotExtensionFunction> result = Maps.newHashMap();
+		for (FunctionDefinition f : scope.attrScopeFunctions().values()) {
+			if (f instanceof FuncDef) {
+				FuncDef funcDef = (FuncDef) f;
 				if (!funcDef.attrIsPrivate()) {
-					result.put(funcDef.getSignature().getName(), f);
+					result.put(funcDef.getSignature().getName(), funcDef);
 				}
 			}
 		}
 		return result;
 	}
 
-	public static Multimap<String, FuncDefInstance> calculatePublic(WScope scope) {
-		Multimap<String, FuncDefInstance> result = HashMultimap.create();
-		for (FuncDefInstance f : scope.attrScopeFunctions().values()) {
-			if (f.getDef() instanceof FuncDef) {
-				FuncDef funcDef = (FuncDef) f.getDef();
+	/**
+	 * functions visible everywhere
+	 */
+	public static Map<String, NotExtensionFunction> calculatePublic(WScope scope) {
+		Map<String, NotExtensionFunction> result = Maps.newHashMap();
+		for (FunctionDefinition f : scope.attrScopeFunctions().values()) {
+			if (f instanceof FuncDef) {
+				FuncDef funcDef = (FuncDef) f;
 				if (funcDef.attrIsPublic()) {
-					result.put(funcDef.getSignature().getName(), f);
+					result.put(funcDef.getSignature().getName(), funcDef);
 				}
+			}
+		}
+		return result;
+	}
+
+
+	public static Multimap<String, ExtensionFuncDef> calculateExtensionFunctions(WPackage pack) {
+		Multimap<String, ExtensionFuncDef> result = HashMultimap.create();
+		// add imports
+		for (WImport i : pack.getImports()) {
+			WPackage imported = attr.getImportedPackage(i);
+			result.putAll(imported.attrExportedExtensionFunctions());
+		}
+		for (WEntity e : pack.getElements()) {
+			if (e instanceof ExtensionFuncDef) {
+				ExtensionFuncDef extensionFuncDef = (ExtensionFuncDef) e;
+				result.put(extensionFuncDef.getSignature().getName(), extensionFuncDef);
 			}
 		}
 		return result;

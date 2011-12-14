@@ -79,7 +79,7 @@ package TimerUtils
 	// TimedLoop
 	// originally created by Vexorian
 	// augmented by some ideas from "Constant Timer Loop 32" by Nestharus
-	public constant real	PERIOD = 0.025
+	
 	
 	timer timedLoopTimer = CreateTimer()
 	trigger timedLoopTrig
@@ -92,6 +92,7 @@ package TimerUtils
 	
 	
 	public module TimedLoop
+		public constant real PERIOD = 0.025
 		static thistype array instances		// The array
 		static integer instanceCount = 0	// The count
 		static triggercondition triggerCond = null // the triggerCondition for this

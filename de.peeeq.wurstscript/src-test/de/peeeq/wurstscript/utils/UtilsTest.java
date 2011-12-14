@@ -9,7 +9,6 @@ import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
 
-
 import com.google.common.base.Function;
 
 import de.peeeq.wurstscript.ast.Ast;

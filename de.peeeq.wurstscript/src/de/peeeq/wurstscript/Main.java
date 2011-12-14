@@ -1,19 +1,12 @@
 package de.peeeq.wurstscript;
 
-import java.awt.TrayIcon.MessageType;
 import java.io.File;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
-import java.net.URISyntaxException;
-import java.util.Calendar;
-import java.util.List;
 
 import javax.swing.JOptionPane;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
-import com.google.common.io.OutputSupplier;
 
 import de.peeeq.wurstscript.Pjass.Result;
 import de.peeeq.wurstscript.ast.Ast;
@@ -28,7 +21,6 @@ import de.peeeq.wurstscript.jassoptimizer.JassOptimizerImpl;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.mpq.MpqEditor;
 import de.peeeq.wurstscript.mpq.MpqEditorFactory;
-import de.peeeq.wurstscript.mpq.WinMpq;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class Main {

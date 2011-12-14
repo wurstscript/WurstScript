@@ -23,9 +23,10 @@ import com.google.common.collect.Multimap;
 import de.peeeq.immutablecollections.ImmutableList;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
-import de.peeeq.wurstscript.ast.NameDef;
-import de.peeeq.wurstscript.ast.TypeDef;
+import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.WPackage;
 
 public class Utils {
@@ -439,6 +440,17 @@ public class Utils {
 			}
 		}
 		return result;
+	}
+
+
+	public static <T extends AstElement> T findParentOfType(Class<T> class1, AstElement node) {
+		while (node != null) {
+			if (class1.isInstance(node)) {
+				return (T) node;
+			}
+			node = node.getParent();
+		}
+		return null;
 	}
 
 

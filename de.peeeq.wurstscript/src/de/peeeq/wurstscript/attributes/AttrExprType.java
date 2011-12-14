@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.attributes;
 
-import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.Expr;
@@ -399,14 +398,14 @@ public class AttrExprType {
 			@Override
 			public PscriptType case_ExprMemberMethod(ExprMemberMethod term)
 					 {
-				FuncDefInstance f = term.attrFuncDef();
+				FunctionDefinition f = term.attrFuncDef();
 				if (f == null) {
 					return PScriptTypeUnknown.instance();
 				}
-				if (f.getDef().getSignature().getTyp() instanceof NoTypeExpr) {
+				if (f.getSignature().getTyp() instanceof NoTypeExpr) {
 					return PScriptTypeVoid.instance();
 				}
-				PscriptType typ = f.getDef().getSignature().getTyp().attrTyp();
+				PscriptType typ = f.getSignature().getTyp().attrTyp();
 				if (typ instanceof PscriptTypeModule) {
 					// example:
 					// module A 
@@ -432,7 +431,7 @@ public class AttrExprType {
 					return PScriptTypeUnknown.instance();
 				}
 				
-				FunctionDefinition f = term.attrFuncDef().getDef();
+				FunctionDefinition f = term.attrFuncDef();
 				if (f == null) {
 					return PScriptTypeUnknown.instance();
 				}

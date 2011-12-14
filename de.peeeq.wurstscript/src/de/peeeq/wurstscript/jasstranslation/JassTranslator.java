@@ -96,6 +96,7 @@ import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.JassGlobalBlock;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.ModuleDef;
+import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.ModuleUse;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NativeFunc;
@@ -144,7 +145,6 @@ import de.peeeq.wurstscript.ast.WParameters;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
-import de.peeeq.wurstscript.attributes.FuncDefInstance;
 import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.jassAst.JassArrayVar;
 import de.peeeq.wurstscript.jassAst.JassAst;
@@ -160,7 +160,6 @@ import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassAst.JassSimpleVar;
 import de.peeeq.wurstscript.jassAst.JassStatement;
 import de.peeeq.wurstscript.jassAst.JassStatements;
-import de.peeeq.wurstscript.jassAst.JassStmtSet;
 import de.peeeq.wurstscript.jassAst.JassVar;
 import de.peeeq.wurstscript.jassAst.JassVars;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
@@ -178,6 +177,7 @@ import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeError;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
+import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
 import de.peeeq.wurstscript.utils.TopsortCycleException;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -284,7 +284,7 @@ public class JassTranslator {
 				@Override
 				public void visit(ExprVarAccess exprVarAccess) {
 					VarDef varDef = (VarDef) exprVarAccess.attrNameDef();
-					JassVar jassVar = manager.getJassVarForTranslatedVar(gi.context, varDef);
+					JassVar jassVar = manager.getJassVarForTranslatedVar(varDef);
 					GlobalInit v = varToInit.get(jassVar);
 					if (v != null) {
 						initDependsOn.put(gi, v);
@@ -312,7 +312,7 @@ public class JassTranslator {
 		
 		for (GlobalInit gi : globalInitializers) {
 			if (! prog.attrIgnoredVariables().contains(gi.v)) {
-				ExprTranslationResult e = translateExpr(gi.context, initGlobalsFunc, gi.initialExpr);
+				ExprTranslationResult e = translateExpr(initGlobalsFunc, gi.initialExpr);
 				body.addAll(e.getStatements());
 				body.add(JassStmtSet(gi.v.getName(), e.getExpr()));
 			}
@@ -390,37 +390,32 @@ public class JassTranslator {
 			
 			@Override
 			public void case_FuncDef(FuncDef funcDef) {
-				translateFuncDef(ROOT_CONTEXT, funcDef, false);
+				translateFuncDef(funcDef, false);
 			}
 
-			@Override
-			public void case_ExtensionFuncDef(ExtensionFuncDef funcDef) {
-				translateExtensionFuncDef(ROOT_CONTEXT, funcDef);
-			}
 		});
 	}
 
-	protected void translateExtensionFuncDef(ImmutableList<ClassOrModule> context, ExtensionFuncDef funcDef) {
-		JassFunction f = manager.getJassFunctionFor(context, funcDef);
+	protected void translateExtensionFuncDef(ExtensionFuncDef funcDef) {
+		JassFunction f = manager.getJassFunctionFor(funcDef);
 		f.setReturnType(translateType(funcDef.getSignature().getTyp()));
 		
 		// add implicit parameter 'this'
 		f.getParams().add(JassAst.JassSimpleVar(translateType(funcDef.getExtendedType().attrTyp()), "this"));
 		
 		for (WParameter param : funcDef.getSignature().getParameters()) {
-			f.getParams().add(translateParam(context, param));
+			f.getParams().add(translateParam(param));
 		}
-		f.getBody().addAll(translateStatements(context, f, funcDef.getBody()));
+		f.getBody().addAll(translateStatements(f, funcDef.getBody()));
 		prog.getFunctions().add(f);
 	}
 	
-	protected void translateFuncDef(ImmutableList<ClassOrModule> context, FuncDef funcDef, boolean isMethod) {
+	protected void translateFuncDef(FuncDef funcDef, boolean isMethod) {
 		if (funcDef.attrIsAbstract()) {
 			// do not translate abstract methods, they no hav body, u no?
 			return;
 		}
-		trace("translateFuncDef " + Utils.printContext(context) + " -> " + funcDef.getSignature().getName());
-		JassFunction f = manager.getJassFunctionFor(context, funcDef);
+		JassFunction f = manager.getJassFunctionFor(funcDef);
 		
 		if (isCommonOrBlizzard(funcDef.getSource())) {
 			prog.attrIgnoredFunctions().add(f);
@@ -432,9 +427,9 @@ public class JassTranslator {
 			f.getParams().add(jassThisVar());
 		}
 		for (WParameter param : funcDef.getSignature().getParameters()) {
-			f.getParams().add(translateParam(context, param));
+			f.getParams().add(translateParam(param));
 		}
-		f.getBody().addAll(translateStatements(context, f, funcDef.getBody()));
+		f.getBody().addAll(translateStatements(f, funcDef.getBody()));
 		prog.getFunctions().add(f);
 	}
 
@@ -442,16 +437,15 @@ public class JassTranslator {
 		return JassAst.JassSimpleVar("integer", "this");
 	}
 
-	private List<JassStatement> translateStatements(ImmutableList<ClassOrModule> context, JassFunction f, WStatements statements) {
+	private List<JassStatement> translateStatements(JassFunction f, WStatements statements) {
 		List<JassStatement> result = Lists.newLinkedList();
 		for (WStatement s : statements) {
-			result.addAll(translateStatement(context, f, s));
+			result.addAll(translateStatement(f, s));
 		}
 		return result;
 	}
 
-	private List<JassStatement> translateStatement(final ImmutableList<ClassOrModule> context, final JassFunction f, final WStatement s) {
-		Preconditions.checkNotNull(context);
+	private List<JassStatement> translateStatement(final JassFunction f, final WStatement s) {
 		final List<JassStatement> result = Lists.newLinkedList();
 		s.match(new WStatement.MatcherVoid() {
 
@@ -464,13 +458,13 @@ public class JassTranslator {
 
 			@Override
 			public void case_StmtLoop(StmtLoop stmtLoop) {
-				List<JassStatement> body = translateStatements(context, f, stmtLoop.getBody());
+				List<JassStatement> body = translateStatements(f, stmtLoop.getBody());
 				result.add(JassStmtLoop(JassStatements(body)));
 			}
 
 			@Override
 			public void case_StmtSet(StmtSet stmtSet) {
-				final ExprTranslationResult right = translateExpr(context, f, stmtSet.getRight());
+				final ExprTranslationResult right = translateExpr(f, stmtSet.getRight());
 				final JassOpBinary binaryOp = stmtSet.getOp().match(new OpAssignment.Matcher<JassOpBinary>() {
 
 					@Override
@@ -500,8 +494,8 @@ public class JassTranslator {
 					@Override
 					public void case_ExprMemberVar(ExprMemberVar exprMemberVar) {
 						VarDef leftVar = (VarDef) exprMemberVar.attrNameDef();
-						String leftJassVar = manager.getJassVarNameFor(getVarContext(context, exprMemberVar.getLeft().attrTyp()), leftVar);
-						ExprTranslationResult index = translateExpr(context, f, exprMemberVar.getLeft());
+						String leftJassVar = manager.getJassVarNameFor(leftVar);
+						ExprTranslationResult index = translateExpr(f, exprMemberVar.getLeft());
 						
 						withIndex(leftJassVar, index);
 					}
@@ -547,7 +541,7 @@ public class JassTranslator {
 					@Override
 					public void case_ExprVarAccess(ExprVarAccess exprVarAccess) {
 						VarDef leftVar = (VarDef) exprVarAccess.attrNameDef();
-						String leftJassVar = getJassVarNameFor(context, leftVar);
+						String leftJassVar = manager.getJassVarNameFor(leftVar);
 						result.addAll(right.getStatements());
 						if (leftVar.attrIsDynamicClassMember()) {
 							withIndex(leftJassVar, new ExprTranslationResult(JassExprVarAccess("this")));
@@ -561,10 +555,10 @@ public class JassTranslator {
 					@Override
 					public void case_ExprVarArrayAccess(ExprVarArrayAccess exprVarArrayAccess) {
 						VarDef leftVar = (VarDef) exprVarArrayAccess.attrNameDef(); // TODO cast not always possible
-						String leftJassVar = manager.getJassVarNameFor(context, leftVar);
+						String leftJassVar = manager.getJassVarNameFor(leftVar);
 						ExprTranslationResult index;
 						if (exprVarArrayAccess.getIndexes().size() == 1) {
-							index = translateExpr(context, f, exprVarArrayAccess.getIndexes().get(0));
+							index = translateExpr(f, exprVarArrayAccess.getIndexes().get(0));
 						} else {
 							throw new Error("multiple indexes not supported yet");
 						}
@@ -578,9 +572,9 @@ public class JassTranslator {
 
 			@Override
 			public void case_StmtIf(StmtIf stmtIf) {
-				ExprTranslationResult cond = translateExpr(context, f, stmtIf.getCond());
-				List<JassStatement> thenBlock = translateStatements(context, f, stmtIf.getThenBlock());
-				List<JassStatement> elseBlock = translateStatements(context, f, stmtIf.getElseBlock());
+				ExprTranslationResult cond = translateExpr(f, stmtIf.getCond());
+				List<JassStatement> thenBlock = translateStatements(f, stmtIf.getThenBlock());
+				List<JassStatement> elseBlock = translateStatements(f, stmtIf.getElseBlock());
 				result.addAll(cond.getStatements());
 				result.add(JassStmtIf(cond.getExpr(), JassStatements(thenBlock), JassStatements(elseBlock)));
 			}
@@ -592,8 +586,8 @@ public class JassTranslator {
 					PscriptTypeClass classType = (PscriptTypeClass) typ;
 					ClassDef classDef = classType.getClassDef();
 					callDestroyFunc(classDef, stmtDestroy.getObj());
-				} else if (typ instanceof PscriptTypeModule) {
-					ClassDef classDef = (ClassDef) context.head();
+				} else if (typ instanceof PscriptTypeModuleInstanciation) {
+					ClassDef classDef = getClassDef((PscriptTypeModuleInstanciation) typ);
 					callDestroyFunc(classDef, stmtDestroy.getObj());
 				} else {
 					throw new Error("cannot destroy object of type " + typ);
@@ -603,7 +597,7 @@ public class JassTranslator {
 			private void callDestroyFunc(ClassDef classDef, Expr e) {
 				JassFunction destroyMethod = manager.getJassDestroyFunctionFor(classDef); 
 				calledFunctions.put(f, destroyMethod);
-				ExprTranslationResult toDestroy = translateExpr(context, f, e);
+				ExprTranslationResult toDestroy = translateExpr(f, e);
 				result.addAll(toDestroy.getStatements());
 				result.add(JassStmtCall(destroyMethod.getName(), JassExprlist(toDestroy.getExpr())));
 			}
@@ -611,14 +605,14 @@ public class JassTranslator {
 
 			@Override
 			public void case_StmtWhile(StmtWhile stmtWhile) {
-				ExprTranslationResult cond = translateExpr(context, f, stmtWhile.getCond());
+				ExprTranslationResult cond = translateExpr(f, stmtWhile.getCond());
 				
 				JassStatements body = JassStatements();
 				// ==> exitwhen not cond
 				body.addAll(cond.getStatements());
 				body.add(JassStmtExitwhen(JassExprUnary(JassOpNot(), cond.getExpr())));
 				
-				body.addAll(translateStatements(context, f, stmtWhile.getBody()));
+				body.addAll(translateStatements(f, stmtWhile.getBody()));
 				
 				
 				
@@ -631,7 +625,7 @@ public class JassTranslator {
 			}
 
 			private void case_Expr(Expr expr) {
-				ExprTranslationResult e = translateExpr(context, f, expr);
+				ExprTranslationResult e = translateExpr(f, expr);
 				result.addAll(e.getStatements());
 				if (e.getExpr() instanceof JassExprFunctionCall) {
 					JassExprFunctionCall call = (JassExprFunctionCall) e.getExpr();
@@ -646,7 +640,7 @@ public class JassTranslator {
 			public void case_StmtReturn(StmtReturn stmtReturn) {
 				if (stmtReturn.getObj() instanceof Expr) {
 					Expr expr = (Expr) stmtReturn.getObj();
-					ExprTranslationResult e = translateExpr(context, f, expr);
+					ExprTranslationResult e = translateExpr(f, expr);
 					result.addAll(e.getStatements());
 					
 					
@@ -656,7 +650,7 @@ public class JassTranslator {
 
 						@Override
 						public JassVar apply(LocalVarDef input) {
-							return manager.getJassVarFor(context, input, translateType(input.attrTyp()), false);
+							return manager.getJassVarFor(input, translateType(input.attrTyp()), false);
 						}
 					});
 					List<JassStatement> nullSetters = Lists.newLinkedList(); 
@@ -701,7 +695,7 @@ public class JassTranslator {
 
 			@Override
 			public void case_StmtExitwhen(StmtExitwhen stmtExitwhen) {
-				ExprTranslationResult e = translateExpr(context, f, stmtExitwhen.getCond());
+				ExprTranslationResult e = translateExpr(f, stmtExitwhen.getCond());
 				result.addAll(e.getStatements());
 				result.add(JassStmtExitwhen(e.getExpr()));
 			}
@@ -714,12 +708,12 @@ public class JassTranslator {
 			@Override
 			public void case_LocalVarDef(LocalVarDef localVarDef) {
 				String type = translateType(localVarDef.attrTyp());
-				JassVar v = manager.getJassVarFor(context, localVarDef, type , isArray(localVarDef), true); 
+				JassVar v = manager.getJassVarFor(localVarDef, type , isArray(localVarDef), true); 
 						//getLocalVar(f, localVarDef.getName(), localVarDef.attrTyp());
 				f.getLocals().add(v);
 				if (localVarDef.getInitialExpr() instanceof Expr) {
 					Expr expr = (Expr) localVarDef.getInitialExpr();
-					ExprTranslationResult e = translateExpr(context, f, expr);
+					ExprTranslationResult e = translateExpr(f, expr);
 					result.addAll(e.getStatements());
 					result.add(JassStmtSet(v.getName(), e.getExpr()));
 				}
@@ -728,11 +722,11 @@ public class JassTranslator {
 
 			@Override
 			public void case_StmtForRange(StmtForRange stmtForRange) {
-				JassVar loopVar = manager.getJassVarFor(context, stmtForRange.getLoopVar(), translateType(stmtForRange.getLoopVar().getTyp()), false);
+				JassVar loopVar = manager.getJassVarFor(stmtForRange.getLoopVar(), translateType(stmtForRange.getLoopVar().getTyp()), false);
 				f.getLocals().add(loopVar);
 				
-				ExprTranslationResult fromExpr = translateExpr(context, f, stmtForRange.getFrom());
-				ExprTranslationResult toExpr = translateExpr(context, f, stmtForRange.getTo());
+				ExprTranslationResult fromExpr = translateExpr(f, stmtForRange.getFrom());
+				ExprTranslationResult toExpr = translateExpr(f, stmtForRange.getTo());
 				result.addAll(fromExpr.getStatements());
 				JassExpr toExpr2;
 				if (toExpr.getStatements().size() == 0 && toExpr.getExpr() instanceof JassExprIntVal) {
@@ -746,7 +740,7 @@ public class JassTranslator {
 				result.add(JassStmtSet(loopVar.getName(), fromExpr.getExpr()));
 				JassStatements body = JassStatements();
 				body.add(JassStmtExitwhen(JassExprBinary(JassExprVarAccess(loopVar.getName()), JassOpGreater(), toExpr2)));
-				body.addAll(translateStatements(context, f, stmtForRange.getBody()));
+				body.addAll(translateStatements(f, stmtForRange.getBody()));
 				body.add(JassStmtSet(loopVar.getName(), JassExprBinary(JassExprVarAccess(loopVar.getName()), JassOpPlus(), JassExprIntVal(1))));
 				result.add(JassStmtLoop(body));
 				
@@ -757,6 +751,13 @@ public class JassTranslator {
 		return result;
 	}
 
+
+	protected ClassDef getClassDef(PscriptTypeModuleInstanciation typ) {
+		AstElement node = typ.getModuleDef();
+		return Utils.findParentOfType(ClassDef.class, node);
+		
+		
+	}
 
 	protected Set<LocalVarDef> getUsedLocalVarsInExpr(Expr expr) {
 		final Set<LocalVarDef> result = Sets.newHashSet();
@@ -772,20 +773,6 @@ public class JassTranslator {
 		return result;
 	}
 
-	/**
-	 * get the jass var name for the variable v, when accessed from a given context
-	 * @param context
-	 * @param v
-	 * @return
-	 */
-	private String getJassVarNameFor(final ImmutableList<ClassOrModule> context, VarDef v) {
-		if (v.attrNearestClassOrModule() == null) {
-			return manager.getJassVarNameFor(ROOT_CONTEXT, v);
-		} else {
-			return manager.getJassVarNameFor(context, v);
-		}
-	}
-	
 	private ImmutableList<ClassOrModule> getVarContext(	ImmutableList<ClassOrModule> currentContext, PscriptType leftType) {
 		ClassDef c = null;
 		if (leftType instanceof PscriptTypeClass) {
@@ -819,8 +806,7 @@ public class JassTranslator {
 //		return v;
 //	}
 
-	protected ExprTranslationResult translateExpr(final ImmutableList<ClassOrModule> context, final JassFunction f, Expr expr) {
-		Preconditions.checkNotNull(context);
+	protected ExprTranslationResult translateExpr(final JassFunction f, Expr expr) {
 		return expr.match(new Expr.Matcher<ExprTranslationResult>() {
 
 			@Override
@@ -829,7 +815,7 @@ public class JassTranslator {
 				JassFunction constructorJassFunc = manager.getJassConstructorFor(constructorFunc);
 				
 				JassExprlist arguments = JassExprlist(); 
-				ExprListTranslationResult args = translateArguments(context, f, exprNewObject.getArgs(), getParameterTypes(constructorFunc.getParams()));
+				ExprListTranslationResult args = translateArguments(f, exprNewObject.getArgs(), getParameterTypes(constructorFunc.getParams()));
 				List<JassStatement> statements = Lists.newLinkedList();
 				statements.addAll(args.getStatements());
 				arguments.addAll(args.getExprs());
@@ -844,7 +830,7 @@ public class JassTranslator {
 
 			@Override
 			public ExprTranslationResult case_ExprUnary(ExprUnary exprUnary) {
-				ExprTranslationResult right = translateExpr(context, f, exprUnary.getRight());
+				ExprTranslationResult right = translateExpr(f, exprUnary.getRight());
 				return new ExprTranslationResult(
 						right.getStatements(), 
 						JassExprUnary(translateOpUnary(exprUnary.getOp()), right.getExpr()));
@@ -858,12 +844,12 @@ public class JassTranslator {
 			@Override
 			public ExprTranslationResult case_ExprCast(ExprCast exprCast) {
 				// a cast has no effect:
-				return translateExpr(context, f, exprCast.getExpr());
+				return translateExpr(f, exprCast.getExpr());
 			}
 
 			@Override
 			public ExprTranslationResult case_ExprFunctionCall(ExprFunctionCall exprFunctionCall) {
-				FuncDefInstance calledFunc = getRealCalledFunction(context, exprFunctionCall.attrFuncDef());
+				FunctionDefinition calledFunc = exprFunctionCall.attrFuncDef();
 				if (calledFunc == null) {
 					return new ExprTranslationResult(JassExprFunctionCall("DoNothing", JassExprlist()));
 				}
@@ -874,11 +860,11 @@ public class JassTranslator {
 				
 				JassExprlist arguments = JassExprlist();
 
-				if (isDynamicFunction(calledFunc.getDef())) {
+				if (isDynamicFunction(calledFunc)) {
 					arguments.add(JassExprVarAccess("this"));
 				}
 				
-				ExprListTranslationResult args = translateArguments(context, f, exprFunctionCall.getArgs(), getParameterTypes(calledFunc.getDef().getSignature().getParameters()));
+				ExprListTranslationResult args = translateArguments(f, exprFunctionCall.getArgs(), getParameterTypes(calledFunc.getSignature().getParameters()));
 				arguments.addAll(args.getExprs());
 				return new ExprTranslationResult(
 						args.getStatements(),
@@ -890,15 +876,15 @@ public class JassTranslator {
 			public ExprTranslationResult case_ExprMemberMethod(ExprMemberMethod exprMemberMethod) {
 				PscriptType leftType = exprMemberMethod.getLeft().attrTyp();
 				if (leftType instanceof PscriptTypeClass) {
-					return translateDynamicFunctionCall(context, f, exprMemberMethod);
+					return translateDynamicFunctionCall(f, exprMemberMethod);
 				} else if (leftType instanceof PScriptTypeClassDefinition) {
-					return translateStaticFunctionCall(context, f, exprMemberMethod);
+					return translateStaticFunctionCall(f, exprMemberMethod);
 				} else if (leftType instanceof PscriptTypeModule) {
-					return translateModuleFunctionCall(context, f, exprMemberMethod);
+					return translateModuleFunctionCall(f, exprMemberMethod);
 				} else if (leftType instanceof PScriptTypeModuleDefinition) {
-					return translateModuleFunctionCall(context, f, exprMemberMethod);
+					return translateModuleFunctionCall(f, exprMemberMethod);
 				} else {
-					return translateDynamicFunctionCall(context, f, exprMemberMethod);
+					return translateDynamicFunctionCall(f, exprMemberMethod);
 				}
 			}
 
@@ -907,9 +893,9 @@ public class JassTranslator {
 			@Override
 			public ExprTranslationResult case_ExprMemberArrayVar(ExprMemberArrayVar exprMemberArrayVar) {
 				VarDef varDef = (VarDef) exprMemberArrayVar.attrNameDef();
-				String varName = getJassVarNameFor(context, varDef);
+				String varName = manager.getJassVarNameFor(varDef);
 				
-				ExprTranslationResult left = translateExpr(context, f, exprMemberArrayVar.getLeft());
+				ExprTranslationResult left = translateExpr(f, exprMemberArrayVar.getLeft());
 				return new ExprTranslationResult(left.getStatements(), JassExprVarArrayAccess(varName, left.getExpr()));
 			}
 
@@ -921,7 +907,7 @@ public class JassTranslator {
 			@Override
 			public ExprTranslationResult case_ExprVarAccess(ExprVarAccess exprVarAccess) {
 				VarDef varDef = (VarDef) exprVarAccess.attrNameDef();
-				String varName = getJassVarNameFor(context, varDef);
+				String varName = manager.getJassVarNameFor(varDef);
 				if (varDef.attrIsDynamicClassMember()) {
 					// access to a field
 					JassExpr index = JassExprVarAccess("this");
@@ -934,8 +920,8 @@ public class JassTranslator {
 
 			@Override
 			public ExprTranslationResult case_ExprBinary(ExprBinary exprBinary) {
-				ExprTranslationResult left = translateExpr(context, f, exprBinary.getLeft());
-				ExprTranslationResult right = translateExpr(context, f, exprBinary.getRight());
+				ExprTranslationResult left = translateExpr(f, exprBinary.getLeft());
+				ExprTranslationResult right = translateExpr(f, exprBinary.getRight());
 				
 				JassExpr leftExpr;
 				JassExpr rightExpr;
@@ -1010,9 +996,9 @@ public class JassTranslator {
 			@Override
 			public ExprTranslationResult case_ExprMemberVar(ExprMemberVar exprMemberVar) {
 				VarDef varDef = (VarDef) exprMemberVar.attrNameDef(); // TODO cast not always possible
-				String varName = manager.getJassVarNameFor(getVarContext(context, exprMemberVar.getLeft().attrTyp()), varDef);
+				String varName = manager.getJassVarNameFor(varDef);
 
-				ExprTranslationResult left = translateExpr(context, f, exprMemberVar.getLeft());
+				ExprTranslationResult left = translateExpr(f, exprMemberVar.getLeft());
 				
 				JassExpr e = JassExprVarArrayAccess(varName, left.getExpr());
 				return new ExprTranslationResult(left.getStatements(), e);
@@ -1030,8 +1016,8 @@ public class JassTranslator {
 
 			@Override
 			public ExprTranslationResult case_ExprFuncRef(ExprFuncRef exprFuncRef) {
-				FuncDefInstance funcDef = exprFuncRef.attrFuncDef();
-				JassFunction jassFunc = manager.getJassFunctionFor(context, funcDef);
+				FunctionDefinition funcDef = exprFuncRef.attrFuncDef();
+				JassFunction jassFunc = manager.getJassFunctionFor(funcDef);
 				
 				// f calls jassfunc
 				calledFunctions.put(f, jassFunc);
@@ -1043,11 +1029,11 @@ public class JassTranslator {
 			@Override
 			public ExprTranslationResult case_ExprVarArrayAccess(ExprVarArrayAccess exprVarArrayAccess) {
 				VarDef varDef = (VarDef) exprVarArrayAccess.attrNameDef();
-				String varName = manager.getJassVarNameFor(context, varDef);
+				String varName = manager.getJassVarNameFor(varDef);
 
 				ExprTranslationResult left;
 				if (exprVarArrayAccess.getIndexes().size() == 1) {
-					left = translateExpr(context, f, exprVarArrayAccess.getIndexes().get(0)); 
+					left = translateExpr(f, exprVarArrayAccess.getIndexes().get(0)); 
 				} else {
 					throw new Error("only one array index is supported currently");
 				}
@@ -1072,15 +1058,15 @@ protected List<String> getParameterTypes(WParameters params) {
 //	 * @param relative the relative func def instance
 //	 * @return
 //	 */
-//	protected FuncDefInstance getRealCalledFunction(ImmutableList<ClassOrModule> context, FuncDefInstance relative) {
-//		ImmutableList<ClassOrModule> overallContext = mergeContexts(context, relative.getContext());
+//	protected FunctionDefinition getRealCalledFunction(FunctionDefinition relative) {
+//		ImmutableList<ClassOrModule> overallContext = mergeContexts(relative.getContext());
 //		FunctionDefinition funcDef = relative.getDef();
 //		String funcName = funcDef.getSignature().getName();
 //		
 //		for (ClassOrModule cm : overallContext) {
-//			Collection<FuncDefInstance> funcs = cm.attrScopeFunctions().get(funcName);
-//			for (FuncDefInstance fi : funcs) {
-//				for (FuncDefInstance overriddenFunction : fi.getDef().attrOverriddenFunctions()) {
+//			Collection<FunctionDefinition> funcs = cm.attrScopeFunctions().get(funcName);
+//			for (FunctionDefinition fi : funcs) {
+//				for (FunctionDefinition overriddenFunction : fi.getDef().attrOverriddenFunctions()) {
 //					if (overriddenFunction.getDef() == funcDef) {
 //						
 //						
@@ -1090,7 +1076,7 @@ protected List<String> getParameterTypes(WParameters params) {
 //			}
 //		}
 //		
-//		return FuncDefInstance.create(funcDef, overallContext);
+//		return FunctionDefinition.create(funcDef, overallContext);
 //	}
 
 
@@ -1099,65 +1085,19 @@ protected List<String> getParameterTypes(WParameters params) {
 				&& !def.attrIsStatic();
 	}
 
-	/**
-	 * get the real called function, where the funcDefInstance is measured from the root context
-	 * @param context the context of the call
-	 * @param relative the funcDefInstance with relative context
-	 * @return funcDefInstance with absolute context
-	 */
-	protected FuncDefInstance getRealCalledFunction(ImmutableList<ClassOrModule> context, FuncDefInstance relative) {
-		if (context.isEmpty()) {
-			// call from global scope
-			return relative;
-		}
-		if (relative.getContext().isEmpty()) {
-			// call of function in global scope
-			return relative;
-		}
-		
-		ImmutableList<ClassOrModule> overallContext = mergeContexts(context, relative.getContext());
-		FunctionDefinition funcDef = relative.getDef();
-		String funcName = funcDef.getSignature().getName();
-		Collection<FuncDefInstance> possibleFunctions = context.head().attrAllFunctions().get(funcName);
-		// search the function with the longest common prefix
-		int longestCommonPrefixLength = -1;
-		FuncDefInstance result = null; 
-		for (FuncDefInstance funcInstance : possibleFunctions) {
-			int commonPrefixLength = Utils.getCommonPrefixLength(overallContext, funcInstance.getContext());
-			if (commonPrefixLength > longestCommonPrefixLength) {
-				result = funcInstance;
-				longestCommonPrefixLength = commonPrefixLength;
-			}
-		}
-		if (result == null) throw new Error("could not find real function for " + relative + " in context " + Utils.printContext(context));
-		WLogger.info("getRealCalledFunction  = " + result);
-		return result;
-	}
-
-	private ImmutableList<ClassOrModule> mergeContexts(ImmutableList<ClassOrModule> c1, ImmutableList<ClassOrModule> c2) {
-		WLogger.info("merging " + Utils.printContext(c1) + " AND " + Utils.printContext(c2));
-		// merge the two contexts in such a way that each element occurs only once		
-		ImmutableList<ClassOrModule> part2 = c2;
-		while (!part2.isEmpty() && c1.contains(part2.head())) {
-			part2 = part2.tail();
-		}
-		ImmutableList<ClassOrModule> result = c1.cons(part2);
-		WLogger.info("	result = " + Utils.printContext(result));
-		return result;
-	}
 	
-	protected ExprTranslationResult translateModuleFunctionCall(ImmutableList<ClassOrModule> context, JassFunction f,
-								ExprMemberMethod exprMemberMethod) {
-		FuncDefInstance calledFunc = exprMemberMethod.attrFuncDef();
+	
+	protected ExprTranslationResult translateModuleFunctionCall(JassFunction f, ExprMemberMethod exprMemberMethod) {
+		FunctionDefinition calledFunc = exprMemberMethod.attrFuncDef();
 		
-		JassFunction calledJassFunc = manager.getJassFunctionFor(context, calledFunc); // FIXME use right context
+		JassFunction calledJassFunc = manager.getJassFunctionFor(calledFunc); // FIXME use right context
 		
 		calledFunctions.put(f, calledJassFunc);
 		
 		String functionName = calledJassFunc.getName();
 		JassExprlist arguments = JassExprlist();
 		
-		if (!calledFunc.getDef().attrIsStatic()) {
+		if (!calledFunc.attrIsStatic()) {
 			// not static
 			// translate this:
 			arguments.addFront(JassAst.JassExprVarAccess("this"));
@@ -1165,7 +1105,7 @@ protected List<String> getParameterTypes(WParameters params) {
 		
 		// translate arguments:			
 		List<JassStatement> statements = Lists.newLinkedList();
-		ExprListTranslationResult args = translateArguments(context, f, exprMemberMethod.getArgs(), getParameterTypes(calledFunc.getDef().getSignature().getParameters()));
+		ExprListTranslationResult args = translateArguments(f, exprMemberMethod.getArgs(), getParameterTypes(calledFunc.getSignature().getParameters()));
 		statements.addAll(args.getStatements());
 		arguments.addAll(args.getExprs());
 		
@@ -1180,9 +1120,9 @@ protected List<String> getParameterTypes(WParameters params) {
 	 * @param exprMemberMethod
 	 * @return
 	 */
-	private ExprTranslationResult translateStaticFunctionCall(ImmutableList<ClassOrModule> context, JassFunction f, ExprMemberMethod exprMemberMethod) {
-		FuncDefInstance calledFunc = exprMemberMethod.attrFuncDef();
-		JassFunction calledJassFunc = manager.getJassFunctionFor(context, calledFunc);
+	private ExprTranslationResult translateStaticFunctionCall(JassFunction f, ExprMemberMethod exprMemberMethod) {
+		FunctionDefinition calledFunc = exprMemberMethod.attrFuncDef();
+		JassFunction calledJassFunc = manager.getJassFunctionFor(calledFunc);
 		
 		calledFunctions.put(f, calledJassFunc);
 		
@@ -1191,7 +1131,7 @@ protected List<String> getParameterTypes(WParameters params) {
 		List<JassStatement> statements = Lists.newLinkedList();
 		
 		// translate arguments:			
-		ExprListTranslationResult args = translateArguments(context, f, exprMemberMethod.getArgs(), getParameterTypes(calledFunc.getDef().getSignature().getParameters()));
+		ExprListTranslationResult args = translateArguments(f, exprMemberMethod.getArgs(), getParameterTypes(calledFunc.getSignature().getParameters()));
 		statements.addAll(args.getStatements());
 		arguments.addAll(args.getExprs());
 		
@@ -1206,10 +1146,9 @@ protected List<String> getParameterTypes(WParameters params) {
 	 * @param exprMemberMethod
 	 * @return
 	 */
-	private ExprTranslationResult translateDynamicFunctionCall(ImmutableList<ClassOrModule> context, final JassFunction f, ExprMemberMethod exprMemberMethod) {
-		Preconditions.checkNotNull(context);
-		FuncDefInstance calledFunc_relative = exprMemberMethod.attrFuncDef();
-		FuncDefInstance calledFunc = getRealCalledFunction(context, calledFunc_relative);
+	private ExprTranslationResult translateDynamicFunctionCall(final JassFunction f, ExprMemberMethod exprMemberMethod) {
+		FunctionDefinition calledFunc_relative = exprMemberMethod.attrFuncDef();
+		FunctionDefinition calledFunc = calledFunc_relative;
 		JassFunction calledJassFunc = manager.getJassFunctionFor(calledFunc);
 		
 		calledFunctions.put(f, calledJassFunc);
@@ -1217,13 +1156,13 @@ protected List<String> getParameterTypes(WParameters params) {
 		String functionName = calledJassFunc.getName();
 		JassExprlist arguments = JassExprlist();
 		// translate right:
-		ExprTranslationResult e = translateExpr(context, f, exprMemberMethod.getLeft());
+		ExprTranslationResult e = translateExpr(f, exprMemberMethod.getLeft());
 		List<JassStatement> statements = Lists.newLinkedList();
 		statements .addAll(e.getStatements());
 		arguments.addFront(e.getExpr());
 		
 		// translate arguments:			
-		ExprListTranslationResult args = translateArguments(context, f, exprMemberMethod.getArgs(), getParameterTypes(calledFunc.getDef().getSignature().getParameters()));
+		ExprListTranslationResult args = translateArguments(f, exprMemberMethod.getArgs(), getParameterTypes(calledFunc.getSignature().getParameters()));
 		statements.addAll(args.getStatements());
 		arguments.addAll(args.getExprs());
 		
@@ -1341,12 +1280,12 @@ protected List<String> getParameterTypes(WParameters params) {
 	 * will use statements too
 	 * @param f 
 	 */
-	protected ExprListTranslationResult translateArguments(ImmutableList<ClassOrModule> context, JassFunction f, Arguments args, List<String> types) {
+	protected ExprListTranslationResult translateArguments(JassFunction f, Arguments args, List<String> types) {
 		List<ExprTranslationResult> translations = Lists.newLinkedList();
 		int lastTranslationWithStatements = 0;
 		int i = 0;
 		for (Expr arg : args) {
-			ExprTranslationResult translation = translateExpr(context, f, arg);
+			ExprTranslationResult translation = translateExpr(f, arg);
 			if (translation.getStatements().size() > 0) {
 				lastTranslationWithStatements = i;
 			}
@@ -1373,9 +1312,9 @@ protected List<String> getParameterTypes(WParameters params) {
 		return new ExprListTranslationResult(statements, exprs);
 	}
 
-	private JassSimpleVar translateParam(ImmutableList<ClassOrModule> context, WParameter param) {
+	private JassSimpleVar translateParam(WParameter param) {
 		String type = translateType(param.getTyp());
-		JassVar v = manager.getJassVarFor(context, param, type, false, true);
+		JassVar v = manager.getJassVarFor(param, type, false, true);
 		return (JassSimpleVar) v; // can be cast, becaue its no array
 	}
 
@@ -1422,12 +1361,12 @@ protected List<String> getParameterTypes(WParameters params) {
 
 	protected void translateJassGlobalsBlock(JassGlobalBlock jassGlobalBlock) {
 		for (GlobalVarDef v : jassGlobalBlock) {
-			translateGlobalVariable(ROOT_CONTEXT, v);			
+			translateGlobalVariable(v);			
 		}
 	}
 
-	private void translateGlobalVariable(ImmutableList<ClassOrModule> context, GlobalVarDef v) {
-		JassVar jassVar = manager.getJassVarFor(context, v, translateType(v.attrTyp()), isArray(v));
+	private void translateGlobalVariable(GlobalVarDef v) {
+		JassVar jassVar = manager.getJassVarFor(v, translateType(v.attrTyp()), isArray(v));
 		prog.getGlobals().add(jassVar);
 		
 		if (isCommonOrBlizzard(v.getSource())) {
@@ -1436,7 +1375,7 @@ protected List<String> getParameterTypes(WParameters params) {
 		
 		if (v.getInitialExpr() instanceof Expr) {
 			Expr expr = (Expr) v.getInitialExpr();
-			globalInitializers.add(new GlobalInit(context, jassVar, expr));
+			globalInitializers.add(new GlobalInit(jassVar, expr));
 		}
 	}
 
@@ -1490,17 +1429,17 @@ protected List<String> getParameterTypes(WParameters params) {
 				
 				@Override
 				public void case_InitBlock(InitBlock initBlock) {
-					translateInitBlock(ROOT_CONTEXT, initBlock);
+					translateInitBlock(initBlock);
 				}
 				
 				@Override
 				public void case_GlobalVarDef(GlobalVarDef globalVarDef) {
-					translateGlobalVariable(ROOT_CONTEXT, globalVarDef);
+					translateGlobalVariable(globalVarDef);
 				}
 				
 				@Override
 				public void case_FuncDef(FuncDef funcDef) {
-					translateFuncDef(ROOT_CONTEXT, funcDef, false);
+					translateFuncDef(funcDef, false);
 				}
 				
 				@Override
@@ -1515,17 +1454,17 @@ protected List<String> getParameterTypes(WParameters params) {
 
 				@Override
 				public void case_ExtensionFuncDef(ExtensionFuncDef extensionFuncDef) {
-					translateExtensionFuncDef(ROOT_CONTEXT, extensionFuncDef);
+					translateExtensionFuncDef(extensionFuncDef);
 				}
 			});
 		}
 	}
 
-	protected void translateInitBlock(ImmutableList<ClassOrModule> context, InitBlock initBlock) {
+	protected void translateInitBlock(InitBlock initBlock) {
 		trace("translate init block: " + initBlock);
 		JassFunction jassFunction = manager.getJassInitFunctionFor(initBlock);
 		jassFunction.setReturnType("nothing");
-		jassFunction.getBody().addAll(translateStatements(context, jassFunction, initBlock.getBody()));
+		jassFunction.getBody().addAll(translateStatements(jassFunction, initBlock.getBody()));
 		
 		initFunctions.put((WPackage) initBlock.attrNearestPackage(), jassFunction);
 		
@@ -1553,7 +1492,16 @@ protected List<String> getParameterTypes(WParameters params) {
 		
 		
 		
-		for (ClassSlot member : classDef.getSlots()) {
+		translateClassSlots(classDef, classDef.getSlots(), nextFree, firstFree, maxIndex);
+		
+		finishDestroyMethod(classDef, nextFree, firstFree, maxIndex);
+	}
+
+	
+	private void translateClassSlots(final ClassDef classDef,	ClassSlots slots, final JassArrayVar nextFree
+			, final JassSimpleVar firstFree, final JassSimpleVar maxIndex) {
+		
+		for (ClassSlot member : slots) {
 			trace("translate member " + member.getClass());
 			final ImmutableList<ClassOrModule> context = ImmutableList.<ClassOrModule>of(classDef);
 			member.match(new ClassSlot.MatcherVoid() {
@@ -1562,8 +1510,8 @@ protected List<String> getParameterTypes(WParameters params) {
 				public void case_OnDestroyDef(OnDestroyDef onDestroyDef) {
 					JassFunction f = manager.getJassDestroyFunctionFor(classDef);
 					// destroy method is added in finish method
-					f.getBody().addAll(translateStatements(context, f, onDestroyDef.getBody()));
-					f.getBody().addAll(translateOnDestroyForUsedModules(classDef, context, f));
+					f.getBody().addAll(translateStatements(f, onDestroyDef.getBody()));
+					f.getBody().addAll(translateOnDestroyForUsedModules(classDef, f));
 				}
 				
 				@Override
@@ -1571,19 +1519,19 @@ protected List<String> getParameterTypes(WParameters params) {
 					trace("translate global var " + globalVarDef.getName());
 					boolean isArray = !globalVarDef.attrIsStatic();
 					String type = translateType(globalVarDef.attrTyp());
-					JassVar v = manager.getJassVarFor(context, globalVarDef, type, isArray);
+					JassVar v = manager.getJassVarFor(globalVarDef, type, isArray);
 					trace("	translated to " + v);
 					prog.getGlobals().add(v);
 					// add initializer for static variables:
 					if (globalVarDef.attrIsStatic() && globalVarDef.getInitialExpr() instanceof Expr) {
 						Expr expr = (Expr) globalVarDef.getInitialExpr();
-						globalInitializers.add(new GlobalInit(context, v, expr));
+						globalInitializers.add(new GlobalInit(v, expr));
 					}
 				}
 				
 				@Override
 				public void case_FuncDef(FuncDef funcDef) {
-					translateFuncDef(context, funcDef, true);
+					translateFuncDef(funcDef, true);
 				}
 				
 				@Override
@@ -1593,28 +1541,32 @@ protected List<String> getParameterTypes(WParameters params) {
 
 				@Override
 				public void case_ModuleUse(ModuleUse moduleUse) {
-					translateModuleUse(context, moduleUse);
+					
 				}
+
+				@Override
+				public void case_ModuleInstanciation(ModuleInstanciation moduleInstanciation) {
+					translateClassSlots(classDef, moduleInstanciation.getSlots(), nextFree, maxIndex, maxIndex);
+				}
+
+				
 			});
 		}
 		
-		finishDestroyMethod(classDef, nextFree, firstFree, maxIndex);
 	}
-
 	
 
 	protected Collection<JassStatement> translateOnDestroyForUsedModules(ClassOrModule c,
-			ImmutableList<ClassOrModule> context, JassFunction f) {
+			JassFunction f) {
 		Collection<JassStatement> result = Lists.newLinkedList();
 		for (ModuleDef m : c.attrUsedModules()) {
-			result.addAll(translateOnDestroyForModule(m, context, f));
+			result.addAll(translateOnDestroyForModule(m, f));
 		}
 		return result;
 	}
 
-	private Collection<JassStatement> translateOnDestroyForModule(ModuleDef m, ImmutableList<ClassOrModule> context, JassFunction f) {
+	private Collection<JassStatement> translateOnDestroyForModule(ModuleDef m, JassFunction f) {
 		Collection<JassStatement> result = Lists.newLinkedList();
-		context = context.appBack(m);
 		OnDestroyDef onDestroy = null;
 		for (ClassSlot s : m.getSlots()) {
 			if (s instanceof OnDestroyDef) {
@@ -1623,40 +1575,13 @@ protected List<String> getParameterTypes(WParameters params) {
 		}
 		
 		if (onDestroy != null) {
-			result.addAll(translateStatements(context, f, onDestroy.getBody()));
+			result.addAll(translateStatements(f, onDestroy.getBody()));
 		}
 		
-		result.addAll(translateOnDestroyForUsedModules(m, context, f));
+		result.addAll(translateOnDestroyForUsedModules(m, f));
 		return result;
 	}
 
-	protected void translateModuleUse(ImmutableList<ClassOrModule> parent_context, ModuleUse moduleUse) {
-		trace("transslate module use " + Utils.printContext(parent_context) + " _ " + moduleUse.getModuleName());
-		ModuleDef usedModule = moduleUse.attrModuleDef();
-		ImmutableList<ClassOrModule> context =  parent_context.appBack(usedModule);
-		for (ClassSlot slot : usedModule.getSlots()) {
-			if (slot instanceof FuncDef) {
-				FuncDef funcDef = (FuncDef) slot;
-				boolean isMethod = ! funcDef.attrIsStatic();
-				translateFuncDef(context, funcDef, isMethod);
-			} else if (slot instanceof GlobalVarDef) {
-				GlobalVarDef globalVarDef = (GlobalVarDef) slot;
-				boolean isArray = !globalVarDef.attrIsStatic();
-				String type = translateType(globalVarDef.attrTyp());
-				JassVar v = manager.getJassVarFor(context, globalVarDef, type, isArray);
-				prog.getGlobals().add(v);
-				// init var:
-				if (globalVarDef.attrIsStatic() && globalVarDef.getInitialExpr() instanceof Expr) {
-					Expr expr = (Expr) globalVarDef.getInitialExpr();
-					globalInitializers.add(new GlobalInit(context, v, expr));
-				}
-			} else if (slot instanceof ModuleUse) {
-				ModuleUse moduleUse2 = (ModuleUse) slot;
-				translateModuleUse(context, moduleUse2);
-			}
-		}
-		
-	}
 
 	private void finishDestroyMethod(ClassDef classDef, JassArrayVar nextFree, JassSimpleVar firstFree, JassSimpleVar maxIndex) {
 		JassFunction f = manager.getJassDestroyFunctionFor(classDef);
@@ -1685,15 +1610,14 @@ protected List<String> getParameterTypes(WParameters params) {
 	}
 
 	protected void translateConstructorDef(ClassDef classDef, ConstructorDef constructorDef, JassArrayVar nextFree, JassSimpleVar firstFree, JassSimpleVar maxIndex) {
-		ImmutableList<ClassOrModule> context = ImmutableList.of((ClassOrModule)classDef);
-		
+		System.out.println("translating constr fro " + classDef.getName() + " -> " + constructorDef);
 		JassFunction f = manager.getJassConstructorFor(constructorDef);
 		prog.getFunctions().add(f);
 		
 		f.setReturnType("integer");
 		
 		for (WParameter param : constructorDef.getParams()) {
-			f.getParams().add(translateParam(context, param));
+			f.getParams().add(translateParam(param));
 		}
 		
 		f.getLocals().add(jassThisVar());
@@ -1722,7 +1646,7 @@ protected List<String> getParameterTypes(WParameters params) {
 		f.getBody().add(JassStmtSetArray(nextFree.getName(), JassExprVarAccess("this"), JassExprIntVal(-1)));
 		
 		// TODO call module constructors if feasible, compile error otherwise
-		f.getBody().addAll(translateModuleUseConstructors(classDef, context, f));
+		f.getBody().addAll(translateModuleUseConstructors(classDef, f));
 		
 		
 		// init members:
@@ -1731,9 +1655,9 @@ protected List<String> getParameterTypes(WParameters params) {
 				GlobalVarDef var = (GlobalVarDef) member;
 				if (var.attrIsDynamicClassMember() && var.getInitialExpr() instanceof Expr) {
 					Expr initial = (Expr) var.getInitialExpr();
-					ExprTranslationResult e = translateExpr(context, f, initial);
+					ExprTranslationResult e = translateExpr(f, initial);
 					f.getBody().addAll(e.getStatements());
-					String jassVar = manager.getJassVarNameFor(context, var);
+					String jassVar = manager.getJassVarNameFor(var);
 					f.getBody().add(JassStmtSetArray(jassVar, JassExprVarAccess("this"), e.getExpr()));
 				}
 			}
@@ -1742,26 +1666,25 @@ protected List<String> getParameterTypes(WParameters params) {
 		
 		
 		// custom code:
-		f.getBody().addAll(translateStatements(context, f, constructorDef.getBody()));
+		f.getBody().addAll(translateStatements(f, constructorDef.getBody()));
 		
 		// return this:
 		f.getBody().add(JassStmtReturn(JassExprVarAccess("this")));
 	}
 
 	private Collection<JassStatement> translateModuleUseConstructors(ClassOrModule c,
-			ImmutableList<ClassOrModule> context, JassFunction f) {
+			JassFunction f) {
 		Collection<JassStatement> result = Lists.newLinkedList();
 		for (ModuleDef m : c.attrUsedModules()) {
-			result.addAll(translateModuleConstructor(m, context, f));
+			result.addAll(translateModuleConstructor(m, f));
 		}
 		return result;
 	}
 
-	private Collection<JassStatement> translateModuleConstructor(ModuleDef m, ImmutableList<ClassOrModule> context,	JassFunction f) {
+	private Collection<JassStatement> translateModuleConstructor(ModuleDef m, JassFunction f) {
 		Collection<JassStatement> result = Lists.newLinkedList();
-		context = context.appBack(m);
 		// add used modules
-		result.addAll(translateModuleUseConstructors(m, context, f));
+		result.addAll(translateModuleUseConstructors(m, f));
 		
 		ConstructorDef constructor = null;
 		// initialize module variables:
@@ -1770,9 +1693,9 @@ protected List<String> getParameterTypes(WParameters params) {
 				GlobalVarDef v = (GlobalVarDef) s;
 				if (!v.attrIsStatic() && v.getInitialExpr() instanceof Expr) {
 					Expr expr = (Expr) v.getInitialExpr();
-					ExprTranslationResult er = translateExpr(context, f, expr);
+					ExprTranslationResult er = translateExpr(f, expr);
 					result.addAll(er.getStatements());
-					String varName = getJassVarNameFor(context, v);
+					String varName = manager.getJassVarNameFor(v);
 					result.add(JassStmtSetArray(varName,JassExprVarAccess("this"), er.getExpr()));
 				}
 			} else if (s instanceof ConstructorDef) {
@@ -1782,7 +1705,7 @@ protected List<String> getParameterTypes(WParameters params) {
 		
 		// custom code
 		if (constructor != null) {
-			result.addAll(translateStatements(context, f, constructor.getBody()));
+			result.addAll(translateStatements(f, constructor.getBody()));
 		}
 		
 		return result;

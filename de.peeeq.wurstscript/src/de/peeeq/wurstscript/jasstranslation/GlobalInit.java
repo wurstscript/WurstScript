@@ -8,13 +8,11 @@ import de.peeeq.wurstscript.jassAst.JassVar;
 public class GlobalInit {
 	public final JassVar v;
 	public final Expr initialExpr;
-	public final ImmutableList<ClassOrModule> context;
 	
 	
-	public GlobalInit(ImmutableList<ClassOrModule> context, JassVar v, Expr initialExpr) {
+	public GlobalInit(JassVar v, Expr initialExpr) {
 		this.v = v;
 		this.initialExpr = initialExpr;
-		this.context = context;
 	}
 	
 	

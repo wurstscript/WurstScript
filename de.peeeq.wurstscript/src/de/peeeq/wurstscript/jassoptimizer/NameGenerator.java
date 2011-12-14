@@ -1,9 +1,6 @@
 package de.peeeq.wurstscript.jassoptimizer;
 
-import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.Scanner;
 
 /**
  * This will be used to generate unique Strings which aren't named like the ones

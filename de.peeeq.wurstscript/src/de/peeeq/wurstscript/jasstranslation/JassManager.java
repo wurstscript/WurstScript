@@ -3,8 +3,6 @@ package de.peeeq.wurstscript.jasstranslation;
 import java.util.Map;
 import java.util.Set;
 
-import javax.swing.plaf.ProgressBarUI;
-
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
@@ -17,10 +15,10 @@ import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.InitBlock;
+import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.attributes.FuncDefInstance;
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassProg;
@@ -34,13 +32,13 @@ import de.peeeq.wurstscript.utils.Utils;
  *
  */
 public class JassManager {
-	private Map<Pair<ImmutableList<ClassOrModule>, FunctionDefinition>, JassFunction> functions = Maps.newHashMap();
+	private Map<FunctionDefinition, JassFunction> functions = Maps.newHashMap();
 	private Map<JassFunction, AstElement> functionSources = Maps.newHashMap(); 
 	private Map<InitBlock, JassFunction> initFunctions = Maps.newHashMap();
 	private Map<ClassDef, JassFunction> destroyFunctions = Maps.newHashMap();
 	private Map<ConstructorDef, JassFunction> constructorFunctions = Maps.newHashMap();
-	private Map<Pair<ImmutableList<ClassOrModule>, VarDef>, JassVar> variables = Maps.newHashMap();
-	private Map<Pair<ImmutableList<ClassOrModule>, VarDef>, String> variableNames = Maps.newHashMap();
+	private Map<VarDef, JassVar> variables = Maps.newHashMap();
+	private Map<VarDef, String> variableNames = Maps.newHashMap();
 	private Map<AstElement, String> names = Maps.newHashMap();
 	private Set<String> givenNames = Sets.newHashSet();
 	private JassTranslator jassTranslator;
@@ -83,10 +81,9 @@ public class JassManager {
 		return name;
 	}
 	
-	public JassFunction getJassFunctionFor(ImmutableList<ClassOrModule> context, FunctionDefinition f) {
-		Pair<ImmutableList<ClassOrModule>, FunctionDefinition> key = Pair.create(context, f);
-		if (functions.containsKey(key)) {
-			return functions.get(key);
+	public JassFunction getJassFunctionFor(FunctionDefinition f) {
+		if (functions.containsKey(f)) {
+			return functions.get(f);
 		}
 		String name = f.getSignature().getName();
 		if (f instanceof NativeFunc) {
@@ -94,28 +91,35 @@ public class JassManager {
 			markNameAsUsed(name);
 		} else {
 			// for normal functions change the name according to class and package
-			if (context.size() > 0) {
-				name = contextToString(context) + "_" + name;
-			}
-			if (f.attrNearestPackage() instanceof WPackage) {
-				name = ((WPackage) f.attrNearestPackage()).getName() + "_" + name;
-			}
+			name = addContext(f, name);
 			name = getUniqueName(name);
 		}
 		JassFunction func = JassAst.JassFunction(name, JassAst.JassSimpleVars(), "nothing", JassAst.JassVars(), JassAst.JassStatements());
-		functions.put(key, func);
+		functions.put(f, func);
 		functionSources.put(func, f);
 		return func;
 	}
 	
-	public JassVar getJassVarFor(ImmutableList<ClassOrModule> context, VarDef v, String type, boolean isArray) {
-		return getJassVarFor(context, v, type, isArray, false);
+	private String addContext(AstElement node, String name) {
+		node = node.getParent();
+		while (node != null) {
+			if (node instanceof NameDef) {
+				NameDef n = (NameDef) node;
+				name = n.getName() + "_" + name;
+			}
+			node = node.getParent();
+		}
+		return name;
+	}
+
+
+	public JassVar getJassVarFor(VarDef v, String type, boolean isArray) {
+		return getJassVarFor(v, type, isArray, false);
 	}
 	
-	public JassVar getJassVarFor(ImmutableList<ClassOrModule> context, VarDef v, String type, boolean isArray, boolean isLocal) {
-		Pair<ImmutableList<ClassOrModule>, VarDef> key = Pair.create(context, v);
-		if (variables.containsKey(key)) {
-			JassVar result = variables.get(key);
+	public JassVar getJassVarFor(VarDef v, String type, boolean isArray, boolean isLocal) {
+		if (variables.containsKey(v)) {
+			JassVar result = variables.get(v);
 			if (result instanceof JassSimpleVar == isArray) {
 				throw new Error("inconsistent isArray");
 			}
@@ -124,74 +128,52 @@ public class JassManager {
 			}
 			return result;
 		}
-		String name = getJassVarNameFor(context, v, isLocal);
+		String name = getJassVarNameFor(v, isLocal);
 		JassVar var;
 		if (isArray) {
 			var = JassAst.JassArrayVar(type, name);
 		} else {
 			var = JassAst.JassSimpleVar(type, name);
 		}
-		variables.put(key, var);
+		variables.put(v, var);
 		return var;
 	}
 	
-	public JassVar getJassVarForTranslatedVar(
-			ImmutableList<ClassOrModule> context, VarDef varDef) {
-		return getJassVarForTranslatedVar(context, varDef, false);
+	public JassVar getJassVarForTranslatedVar(VarDef varDef) {
+		return getJassVarForTranslatedVar(varDef, false);
 	}
 	
-	public JassVar getJassVarForTranslatedVar(
-			ImmutableList<ClassOrModule> context, VarDef varDef, boolean isLocal) {
-		Pair<ImmutableList<ClassOrModule>, VarDef> key = Pair.create(context, varDef);
-		if (variables.containsKey(key)) {
-			return variables.get(key);
+	public JassVar getJassVarForTranslatedVar(VarDef varDef, boolean isLocal) {
+		if (variables.containsKey(varDef)) {
+			return variables.get(varDef);
 		} else {
-			throw new Error("Variable " + getJassVarNameFor(context, varDef, isLocal) + " has not been translated.");
+			throw new Error("Variable " + getJassVarNameFor(varDef, isLocal) + " has not been translated.");
 		}
 	}
 	
-	public String getJassVarNameFor(ImmutableList<ClassOrModule> context, VarDef v) {
-		return getJassVarNameFor(context, v, false);
+	public String getJassVarNameFor(VarDef v) {
+		return getJassVarNameFor(v, false);
 	}
 	
-	public String getJassVarNameFor(ImmutableList<ClassOrModule> context, VarDef v, boolean isLocal) {
-		Pair<ImmutableList<ClassOrModule>, VarDef> key = Pair.create(context, v);
+	public String getJassVarNameFor(VarDef v, boolean isLocal) {
 		String name;
-		if (variableNames.containsKey(key)) {
-			name = variableNames.get(key);
+		if (variableNames.containsKey(v)) {
+			name = variableNames.get(v);
 		} else {
 			name = v.getName();
 			if (!isLocal) {
 				// non local variables get some name extensions
-				if (context.size() > 0) {
-					name = contextToString(context) + "_" + name;
-				}
-				if (v.attrNearestPackage() instanceof WPackage) {
-					name = ((WPackage) v.attrNearestPackage()).getName() + "_" + name;
-				}
+				name = addContext(v, name);
 				name = getUniqueName(name);
 			} else {
 				// TODO local variables do not need a globally unique name
 				name = getUniqueName(name);
 			}
-			variableNames.put(key, name);
+			variableNames.put(v, name);
 		}
 		return name;
 	}
 	
-
-
-	
-
-	private String contextToString(ImmutableList<ClassOrModule> context) {
-		return Utils.join(Utils.map(context, new Function<ClassOrModule, String>() {
-
-			@Override
-			public String apply(ClassOrModule input) {
-				return input.getName();
-			}
-		}), "_");
-	}
 
 
 	public JassFunction getJassDestroyFunctionFor(ClassDef c) {
@@ -250,28 +232,6 @@ public class JassManager {
 
 	
 
-	public JassFunction getJassFunctionFor(FuncDefInstance calledFunc) {
-		return getJassFunctionFor(calledFunc.getContext(), calledFunc.getDef());
-	}
-	
-	@Deprecated
-	public JassFunction getJassFunctionFor(ImmutableList<ClassOrModule> context, FuncDefInstance calledFunc) {
-		Preconditions.checkNotNull(context);
-		// calculate the complete path:
-		ImmutableList<ClassOrModule> consContext = mergeContexts(context, calledFunc.getContext());
-		return getJassFunctionFor(consContext, calledFunc.getDef());
-	}
-	
-	private ImmutableList<ClassOrModule> mergeContexts(ImmutableList<ClassOrModule> c1, ImmutableList<ClassOrModule> c2) {
-		// merge the two contexts in such a way that each element occurs only once		
-		ImmutableList<ClassOrModule> part2 = c2;
-		while (!part2.isEmpty() && c1.contains(part2.head())) {
-			part2 = part2.tail();
-		}
-		return c1.cons(part2);
-	}
-
-
 	private Map<String, JassVar> returnVars = Maps.newHashMap();
 	
 	public JassVar getTempReturnVar(String returnTyp, JassProg prog) {
@@ -287,14 +247,4 @@ public class JassManager {
 
 
 	
-
-
-	
-
-
-	
-
-
-	
-
 }

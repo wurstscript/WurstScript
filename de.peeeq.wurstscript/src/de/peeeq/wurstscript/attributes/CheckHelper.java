@@ -1,5 +1,8 @@
 package de.peeeq.wurstscript.attributes;
 
+import java.util.Collection;
+
+import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.types.PscriptType;
@@ -11,8 +14,7 @@ public class CheckHelper {
 	 * @param f
 	 * @param of
 	 */
-	public static void checkIfIsRefinement(FunctionDefinition f,
-			FunctionDefinition of) {
+	public static void checkIfIsRefinement(FunctionDefinition f, FunctionDefinition of) {
 		String funcName = f.getSignature().getName();
 		// check static-ness
 		if (f.attrIsStatic() && !of.attrIsStatic()) {
@@ -49,6 +51,18 @@ public class CheckHelper {
 			}
 			i++;
 		}
+	}
+
+	/**
+	 * checks if overridingFunc is a refinement of all the overriddenFuntions
+	 * @param overridingFunc
+	 * @param overriddenFuntions
+	 */
+	public static void checkIfIsRefinement(FuncDef overridingFunc,	Collection<FuncDef> overriddenFuntions) {
+		for (FuncDef f: overriddenFuntions) {
+			checkIfIsRefinement(overridingFunc, f);
+		}
+		
 	}
 
 }

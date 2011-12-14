@@ -48,7 +48,7 @@ public class ModuleTests extends PscriptTest {
 	
 	@Test
 	public void modules_conflict() {
-		testAssertErrorsLines(true, "defined multiple times", 
+		testAssertErrorsLines(true, "two or more", 
 				"package test",
 				"	module A",
 				"		public function foo() returns int",

@@ -5,7 +5,6 @@ import java.util.Map;
 import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.ast.AstElementWithModifier;
-import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WPackage;

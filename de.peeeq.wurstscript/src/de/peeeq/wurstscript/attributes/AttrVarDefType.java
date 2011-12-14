@@ -5,10 +5,10 @@ import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.ModuleDef;
+import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.OptExpr;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
-import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
@@ -16,6 +16,7 @@ import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.types.PScriptTypeClassDefinition;
 import de.peeeq.wurstscript.types.PScriptTypeModuleDefinition;
 import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
 
 
 /**
@@ -75,6 +76,10 @@ public class AttrVarDefType {
 
 	public static PscriptType calculate(ModuleDef moduleDef) {
 		return PScriptTypeModuleDefinition.instance(moduleDef);
+	}
+
+	public static PscriptType calculate(ModuleInstanciation m) {
+		return new PscriptTypeModuleInstanciation(m);
 	}
 	
 	

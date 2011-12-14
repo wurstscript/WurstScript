@@ -878,7 +878,7 @@ public class Generator {
 			}
 			changed = result.putAll(changes);
 			
-		} while (!changed);
+		} while (changed);
 		
 		return result;
 	}

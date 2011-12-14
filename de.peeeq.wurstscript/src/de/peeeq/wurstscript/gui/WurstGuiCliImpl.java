@@ -1,9 +1,7 @@
 package de.peeeq.wurstscript.gui;
 
-import java.util.Collections;
 import java.util.List;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.attributes.CompileError;

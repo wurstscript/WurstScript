@@ -44,7 +44,8 @@ ClassSlots * ClassSlot
 ClassSlot = 
 	  ConstructorDef(WPos source, Modifiers modifiers, WParameters params, WStatements body)
 	| OnDestroyDef(WPos source, WStatements body)
-	| ModuleUse(WPos source, String moduleName) 
+	| ModuleUse(WPos source, String moduleName)
+	| ModuleInstanciation(WPos source, String name, ClassSlots slots) 
 	| ClassMember
 	
 ClassMember = 
@@ -163,17 +164,20 @@ VarDef =
 // has funcName:String attribute
 FuncRef = ExprFuncRef | ExprMemberMethod | ExprFunctionCall
 	
-FunctionDefinition = NativeFunc | FuncDef | ExtensionFuncDef	
+	
+NotExtensionFunction = NativeFunc | FuncDef
+
+FunctionDefinition = NotExtensionFunction | ExtensionFuncDef
 	
 FunctionImplementation = FuncDef | ExtensionFuncDef
 
-WScope = PackageOrGlobal |  ClassOrModule | FunctionImplementation | ConstructorDef | OnDestroyDef | InitBlock
+WScope = PackageOrGlobal |  ClassOrModule | FunctionImplementation | ConstructorDef | OnDestroyDef | InitBlock | ModuleInstanciation
 
 PackageOrGlobal = WPackage | CompilationUnit	
 	
 TypeRef = TypeExpr | ExprNewObject
 
-NameDef = VarDef | ClassDef | ModuleDef
+NameDef = VarDef | ClassDef | ModuleDef | ModuleInstanciation
 
 VisibilityModifier = 
 	  VisibilityPublic(WPos source) 
@@ -192,14 +196,16 @@ Modifier =
 	| ModConstant(WPos source)
 	
 
-AstElementWithModifier = TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FuncDef | FunctionDefinition
+AstElementWithModifier = TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition
 	
 ClassOrModule = ClassDef | ModuleDef	
-	
+
+ClassOrModuleOrModuleInstanciation = ClassOrModule | ModuleInstanciation
+
 // Jass types:
 
 
-JassToplevelDeclaration = JassGlobalBlock | FunctionDefinition | NativeType
+JassToplevelDeclaration = JassGlobalBlock | NotExtensionFunction | NativeType
 
 JassGlobalBlock * GlobalVarDef
 
@@ -219,8 +225,13 @@ WStatements.attrDoesReturn
 
 	
 WPackage.attrExportedFunctions
-	returns com.google.common.collect.Multimap<String, FunctionDefinition>
+	returns java.util.Map<String, NotExtensionFunction>
 	implemented by de.peeeq.wurstscript.attributes.AttrExportedFunctions.calculate
+
+WPackage.attrExportedExtensionFunctions
+	returns com.google.common.collect.Multimap<String, ExtensionFuncDef>
+	implemented by de.peeeq.wurstscript.attributes.AttrExportedFunctions.calculateExportedExtensionFunctions
+
 
 OptTypeExpr.attrTyp
 	returns de.peeeq.wurstscript.types.PscriptType
@@ -233,7 +244,7 @@ Expr.attrTyp
 
 
 FuncRef.attrFuncDef
-	returns de.peeeq.wurstscript.attributes.FuncDefInstance
+	returns FunctionDefinition
 	implemented by de.peeeq.wurstscript.attributes.AttrFuncDef.calculate
 
 
@@ -260,17 +271,21 @@ WScope.attrScopePublicReadNamess
 
 
 WScope.attrScopeFunctions
-	returns com.google.common.collect.Multimap<String, de.peeeq.wurstscript.attributes.FuncDefInstance>
+	returns java.util.Map<String, NotExtensionFunction>
 	implemented by de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculate
 
 WScope.attrScopePackageFunctions
-	returns com.google.common.collect.Multimap<String, de.peeeq.wurstscript.attributes.FuncDefInstance>
+	returns java.util.Map<String, NotExtensionFunction>
 	implemented by de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculatePackage
 
 WScope.attrScopePublicFunctions
-	returns com.google.common.collect.Multimap<String, de.peeeq.wurstscript.attributes.FuncDefInstance>
+	returns java.util.Map<String, NotExtensionFunction>
 	implemented by de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculatePublic
 
+
+WPackage.attrScopeExtensionFunctions
+	returns com.google.common.collect.Multimap<String, ExtensionFuncDef>
+	implemented by de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculateExtensionFunctions
 
 
 NameDef.attrTyp
@@ -357,11 +372,11 @@ AstElementWithModifier.attrIsConstant
 	
 	
 FunctionDefinition.attrOverriddenFunctions
-	returns java.util.Collection<de.peeeq.wurstscript.attributes.FuncDefInstance>
+	returns java.util.Collection<FunctionDefinition>
 	implemented by de.peeeq.wurstscript.attributes.OverriddenFunctions.calculate
 
-ClassOrModule.attrAllFunctions
-	returns com.google.common.collect.Multimap<String, de.peeeq.wurstscript.attributes.FuncDefInstance>
+ClassOrModuleOrModuleInstanciation.attrAllFunctions
+	returns java.util.Map<String, FuncDef>
 	implemented by de.peeeq.wurstscript.attributes.AttrAllFunctions.calculate
 
 

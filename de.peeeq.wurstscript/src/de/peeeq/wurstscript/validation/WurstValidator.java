@@ -1,15 +1,9 @@
 package de.peeeq.wurstscript.validation;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-
-import org.apache.log4j.net.SMTPAppender;
+import java.util.Map;
 
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 
-import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
@@ -38,33 +32,18 @@ import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
-import de.peeeq.wurstscript.ast.OpAssignment;
-import de.peeeq.wurstscript.ast.OpUpdateAssign;
-import de.peeeq.wurstscript.ast.OptExpr;
-import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.StmtDestroy;
-import de.peeeq.wurstscript.ast.StmtErr;
-import de.peeeq.wurstscript.ast.StmtExitwhen;
-import de.peeeq.wurstscript.ast.StmtForRange;
 import de.peeeq.wurstscript.ast.StmtIf;
-import de.peeeq.wurstscript.ast.StmtLoop;
 import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.TypeExpr;
-import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.VisibilityModifier;
-import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WPos;
-import de.peeeq.wurstscript.ast.WScope;
-import de.peeeq.wurstscript.ast.WStatement;
-import de.peeeq.wurstscript.ast.WStatements;
-import de.peeeq.wurstscript.attributes.FuncDefInstance;
 import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.gui.ProgressHelper;
-import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
 import de.peeeq.wurstscript.types.PScriptTypeReal;
@@ -320,7 +299,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		FunctionImplementation nearestFunc = stmtCall.attrNearestFuncDef();
 		if (stmtCall.attrFuncDef() != null) {
 			
-			FunctionDefinition calledFunc = stmtCall.attrFuncDef().getDef();
+			FunctionDefinition calledFunc = stmtCall.attrFuncDef();
 			if (calledFunc.attrIsDynamicClassMember()) {
 				if (!stmtCall.attrIsDynamicContext()) {
 							attr.addError(stmtCall.getSource(), "Cannot call dynamic function " + funcName  +
@@ -334,13 +313,12 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 			Expr firstArg = stmtCall.getArgs().get(0);
 			if (firstArg instanceof ExprFuncRef) {
 				ExprFuncRef exprFuncRef = (ExprFuncRef) firstArg;
-				FuncDefInstance f = exprFuncRef.attrFuncDef();
+				FunctionDefinition f = exprFuncRef.attrFuncDef();
 				if (f != null) {
-					FunctionDefinition def = f.getDef();
-					if (def.getSignature().getParameters().size() > 0) {
+					if (f.getSignature().getParameters().size() > 0) {
 						attr.addError(firstArg.getSource(), "Functions passed to Filter or Condition must have no parameters.");
 					}
-					if (!(def.getSignature().getTyp().attrTyp() instanceof PScriptTypeBool)) {
+					if (!(f.getSignature().getTyp().attrTyp() instanceof PScriptTypeBool)) {
 						attr.addError(firstArg.getSource(), "Functions passed to Filter or Condition must return boolean.");
 					}
 				}
@@ -410,11 +388,12 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		checkTypeName(classDef.getSource(), classDef.getName());
 		
 		// calculate all functions to find possible errors
-		Multimap<String, FuncDefInstance> functions = classDef.attrAllFunctions();
-		for (FuncDefInstance f : functions.values()) {
-			FunctionDefinition funcDef = f.getDef();
-			if (funcDef.attrIsAbstract()) {
-				attr.addError(classDef.getSource(), "The abstract method " + funcDef.getSignature().getName()
+		Map<String, FuncDef> functions = classDef.attrAllFunctions();
+		
+		// check that there are no abstract functions in a class
+		for (FunctionDefinition f : functions.values()) {
+			if (f.attrIsAbstract()) {
+				attr.addError(classDef.getSource(), "The abstract method " + f.getSignature().getName()
 						+ " must be implemented in class " + classDef.getName() + ".");
 			}
 		}
