@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
+import de.peeeq.wurstscript.ast.ClassOrModuleOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprBoolVal;
@@ -24,6 +25,7 @@ import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.FunctionImplementation;
 import de.peeeq.wurstscript.ast.ModuleDef;
+import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.OpAnd;
@@ -58,6 +60,7 @@ import de.peeeq.wurstscript.types.PScriptTypeVoid;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
+import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -134,13 +137,16 @@ public class AttrExprType {
 			@Override
 			public PscriptType case_ExprThis(ExprThis term)  {
 				// find nearest class definition
-				ClassOrModule pos = term.attrNearestClassOrModule();
+				ClassOrModuleOrModuleInstanciation pos = Utils.findParentOfType(ClassOrModuleOrModuleInstanciation.class, term);
 				if (pos != null) {
 					if (pos instanceof ClassDef) {
-						return new PscriptTypeClass((ClassDef) pos);
+						return new PscriptTypeClass((ClassDef) pos, false);
 					}
 					if (pos instanceof ModuleDef) {
-						return new PscriptTypeModule((ModuleDef) pos);
+						return new PscriptTypeModule((ModuleDef) pos, false);
+					}
+					if (pos instanceof ModuleInstanciation) {
+						return new PscriptTypeModuleInstanciation((ModuleInstanciation) pos, false);
 					}
 				} else {
 					FunctionImplementation func = term.attrNearestFuncDef();
@@ -442,7 +448,7 @@ public class AttrExprType {
 				if (typ instanceof PscriptTypeModule) {
 					ClassOrModule classOrModule = term.attrNearestClassOrModule();
 					if (classOrModule != null) {
-						typ = TypesHelper.typeOf(classOrModule);
+						typ = TypesHelper.typeOf(classOrModule, false);
 					}
 				}
 				return typ;
@@ -454,7 +460,7 @@ public class AttrExprType {
 				
 				TypeDef typeDef = term.attrTypeDef();
 				if (typeDef instanceof ClassDef) {
-					return new PscriptTypeClass((ClassDef) typeDef);
+					return new PscriptTypeClass((ClassDef) typeDef, false);
 				} else {
 					attr.addError(term.getSource(), "Can only create instances of classes.");
 					return PScriptTypeUnknown.instance();

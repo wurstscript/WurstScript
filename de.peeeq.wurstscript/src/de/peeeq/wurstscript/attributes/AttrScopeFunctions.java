@@ -1,18 +1,13 @@
 package de.peeeq.wurstscript.attributes;
 
 import java.util.Map;
-import java.util.Map.Entry;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
-import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
-import de.peeeq.wurstscript.ast.ClassOrModuleOrModuleInstanciation;
-import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
@@ -21,6 +16,7 @@ import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
+import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.NotExtensionFunction;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.TopLevelDeclaration;
@@ -28,7 +24,6 @@ import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WScope;
-import de.peeeq.wurstscript.utils.Utils;
 
 
 /**
@@ -127,8 +122,8 @@ public class AttrScopeFunctions {
 				// add all functions in this scope:
 				result.putAll(m.attrAllFunctions());
 				
-				// check for functions in lower scope if they override a function here
-				WScope parent = (WScope) m.getParent().getParent();
+				// check for functions in lower scope which override a function in this scope
+				NamedScope parent = m.getParent().attrNearestNamedScope();
 				Map<String, NotExtensionFunction> parentFunctions = parent.attrScopeFunctions();
 				for (String functionName : parentFunctions.keySet()) {
 					if (result.containsKey(functionName)) {
@@ -140,37 +135,37 @@ public class AttrScopeFunctions {
 		});
 	}
 
-	/**
-	 * functions visible on package level 
-	 */
-	public static Map<String, NotExtensionFunction> calculatePackage(WScope scope) {
-		Map<String, NotExtensionFunction> result = Maps.newHashMap();
-		for (FunctionDefinition f : scope.attrScopeFunctions().values()) {
-			if (f instanceof FuncDef) {
-				FuncDef funcDef = (FuncDef) f;
-				if (!funcDef.attrIsPrivate()) {
-					result.put(funcDef.getSignature().getName(), funcDef);
-				}
-			}
-		}
-		return result;
-	}
-
-	/**
-	 * functions visible everywhere
-	 */
-	public static Map<String, NotExtensionFunction> calculatePublic(WScope scope) {
-		Map<String, NotExtensionFunction> result = Maps.newHashMap();
-		for (FunctionDefinition f : scope.attrScopeFunctions().values()) {
-			if (f instanceof FuncDef) {
-				FuncDef funcDef = (FuncDef) f;
-				if (funcDef.attrIsPublic()) {
-					result.put(funcDef.getSignature().getName(), funcDef);
-				}
-			}
-		}
-		return result;
-	}
+//	/**
+//	 * functions visible on package level 
+//	 */
+//	public static Map<String, NotExtensionFunction> calculatePackage(WScope scope) {
+//		Map<String, NotExtensionFunction> result = Maps.newHashMap();
+//		for (FunctionDefinition f : scope.attrScopeFunctions().values()) {
+//			if (f instanceof FuncDef) {
+//				FuncDef funcDef = (FuncDef) f;
+//				if (!funcDef.attrIsPrivate()) {
+//					result.put(funcDef.getSignature().getName(), funcDef);
+//				}
+//			}
+//		}
+//		return result;
+//	}
+//
+//	/**
+//	 * functions visible everywhere
+//	 */
+//	public static Map<String, NotExtensionFunction> calculatePublic(WScope scope) {
+//		Map<String, NotExtensionFunction> result = Maps.newHashMap();
+//		for (FunctionDefinition f : scope.attrScopeFunctions().values()) {
+//			if (f instanceof FuncDef) {
+//				FuncDef funcDef = (FuncDef) f;
+//				if (funcDef.attrIsPublic()) {
+//					result.put(funcDef.getSignature().getName(), funcDef);
+//				}
+//			}
+//		}
+//		return result;
+//	}
 
 
 	public static Multimap<String, ExtensionFuncDef> calculateExtensionFunctions(WPackage pack) {
@@ -184,6 +179,25 @@ public class AttrScopeFunctions {
 			if (e instanceof ExtensionFuncDef) {
 				ExtensionFuncDef extensionFuncDef = (ExtensionFuncDef) e;
 				result.put(extensionFuncDef.getSignature().getName(), extensionFuncDef);
+			}
+		}
+		return result;
+	}
+
+	public static Map<String, NotExtensionFunction> calculatePackage(NamedScope c) {
+		return VisibilityHelper.filterScopePackageLevel(c.attrScopeFunctions());
+	}
+
+	public static Map<String, NotExtensionFunction> calculatePublic(NamedScope c) {
+		return VisibilityHelper.filterScopePublic(c.attrScopeFunctions());
+	}
+
+	public static Map<String, NotExtensionFunction> calculateForRoot(CompilationUnit c) {
+		Map<String, NotExtensionFunction> result = Maps.newHashMap();
+		for (TopLevelDeclaration t : c) {
+			if (t instanceof NotExtensionFunction) {
+				NotExtensionFunction f = (NotExtensionFunction) t;
+				result.put(f.getSignature().getName(), f);
 			}
 		}
 		return result;

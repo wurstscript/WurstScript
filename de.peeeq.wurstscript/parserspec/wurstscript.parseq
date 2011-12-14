@@ -171,7 +171,13 @@ FunctionDefinition = NotExtensionFunction | ExtensionFuncDef
 	
 FunctionImplementation = FuncDef | ExtensionFuncDef
 
-WScope = PackageOrGlobal |  ClassOrModule | FunctionImplementation | ConstructorDef | OnDestroyDef | InitBlock | ModuleInstanciation
+WScope = 
+	  NamedScope 
+	| PackageOrGlobal 
+	| FunctionImplementation 
+	| ConstructorDef 
+	| OnDestroyDef 
+	| InitBlock
 
 PackageOrGlobal = WPackage | CompilationUnit	
 	
@@ -201,6 +207,8 @@ AstElementWithModifier = TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | F
 ClassOrModule = ClassDef | ModuleDef	
 
 ClassOrModuleOrModuleInstanciation = ClassOrModule | ModuleInstanciation
+
+NamedScope = WPackage | ClassDef | ModuleDef | ModuleInstanciation
 
 // Jass types:
 
@@ -257,28 +265,32 @@ WScope.attrScopeNames
 	returns java.util.Map<String, NameDef>
 	implemented by de.peeeq.wurstscript.attributes.AttrScopeNames.calculate
 
-WScope.attrScopePackageNames
+NamedScope.attrScopePackageNames
 	returns java.util.Map<String, NameDef>
 	implemented by de.peeeq.wurstscript.attributes.AttrScopeNames.calculatePackage
 	
-WScope.attrScopePublicNames
+NamedScope.attrScopePublicNames
 	returns java.util.Map<String, NameDef>
 	implemented by de.peeeq.wurstscript.attributes.AttrScopeNames.calculatePublic
 
-WScope.attrScopePublicReadNamess
+NamedScope.attrScopePublicReadNamess
 	returns java.util.Map<String, NameDef>
 	implemented by de.peeeq.wurstscript.attributes.AttrScopeNames.calculatePublicRead
 
 
-WScope.attrScopeFunctions
+NamedScope.attrScopeFunctions
 	returns java.util.Map<String, NotExtensionFunction>
 	implemented by de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculate
+	
+CompilationUnit.attrScopeFunctions
+	returns java.util.Map<String, NotExtensionFunction>
+	implemented by de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculateForRoot
 
-WScope.attrScopePackageFunctions
+NamedScope.attrScopePackageFunctions
 	returns java.util.Map<String, NotExtensionFunction>
 	implemented by de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculatePackage
 
-WScope.attrScopePublicFunctions
+NamedScope.attrScopePublicFunctions
 	returns java.util.Map<String, NotExtensionFunction>
 	implemented by de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculatePublic
 
@@ -312,12 +324,24 @@ AstElement.attrIsDynamicContext
 
 AstElement.attrNearestPackage
 	returns PackageOrGlobal
-	implemented by de.peeeq.wurstscript.attributes.AttrNearestPackage.calculate
+	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestPackage
 
+AstElement.attrNearestNamedScope
+	returns NamedScope
+	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestNamedScope
+	
+	
+AstElement.attrNearestClassDef
+	returns ClassDef
+	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestClassDef
 
+AstElement.attrNearestClassOrModule
+	returns ClassOrModule
+	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestClassOrModule	
+	
 AstElement.attrNearestFuncDef
 	returns FunctionImplementation
-	implemented by de.peeeq.wurstscript.attributes.AttrNearestFuncDef.calculate
+	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestFuncDef
 
 ModuleUse.attrModuleDef
 	returns ModuleDef
@@ -327,13 +351,7 @@ TypeRef.attrTypeDef
 	returns TypeDef
 	implemented by de.peeeq.wurstscript.attributes.AttrTypeDef.calculate
 
-AstElement.attrNearestClassDef
-	returns ClassDef
-	implemented by de.peeeq.wurstscript.attributes.AttrNearestClassDef.calculate
 
-AstElement.attrNearestClassOrModule
-	returns ClassOrModule
-	implemented by de.peeeq.wurstscript.attributes.AttrNearestClassDef.nearestClassOrModule
 
 
 
@@ -354,6 +372,10 @@ AstElementWithModifier.attrIsPrivate
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isPrivate
 
+AstElementWithModifier.attrIsProtected
+	returns boolean
+	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isProtected
+	
 AstElementWithModifier.attrIsStatic
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isStatic

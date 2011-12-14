@@ -1,8 +1,9 @@
 package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.ClassDef;
-import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.ModuleDef;
+import de.peeeq.wurstscript.ast.ModuleInstanciation;
+import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
@@ -11,6 +12,7 @@ import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.types.NativeTypes;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeUnknown;
@@ -19,16 +21,16 @@ import de.peeeq.wurstscript.types.PscriptNativeType;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
+import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
 import de.peeeq.wurstscript.utils.Utils;
-
 
 /**
  * this attribute gives you the type for a type expr
- *
+ * 
  */
 public class AttrTypeExprType {
-	
-	public static  PscriptType calculate(OptTypeExpr optType) {
+
+	public static PscriptType calculate(OptTypeExpr optType) {
 		return optType.match(new OptTypeExpr.Matcher<PscriptType>() {
 
 			@Override
@@ -39,17 +41,27 @@ public class AttrTypeExprType {
 
 			@Override
 			public PscriptType case_TypeExprThis(final TypeExprThis node) {
-				ClassOrModule classOrModule = node.attrNearestClassOrModule();
-				return classOrModule.match(new ClassOrModule.Matcher<PscriptType>() {
+				NamedScope n = node.attrNearestNamedScope();
+				return n.match(new NamedScope.Matcher<PscriptType>() {
 
 					@Override
 					public PscriptType case_ClassDef(ClassDef classDef) {
-						return new PscriptTypeClass(classDef);
+						return new PscriptTypeClass(classDef, true);
 					}
 
 					@Override
 					public PscriptType case_ModuleDef(ModuleDef moduleDef) {
-						return new PscriptTypeModule(moduleDef);
+						return new PscriptTypeModule(moduleDef, true);
+					}
+
+					@Override
+					public PscriptType case_WPackage(WPackage wPackage) {
+						return PScriptTypeUnknown.instance();
+					}
+
+					@Override
+					public PscriptType case_ModuleInstanciation(ModuleInstanciation moduleInstanciation) {
+						return new PscriptTypeModuleInstanciation(moduleInstanciation, true);
 					}
 				});
 			}
@@ -65,8 +77,8 @@ public class AttrTypeExprType {
 			}
 		});
 	}
-	
-	private static PscriptType getBaseType(TypeExprSimple node) {	
+
+	private static PscriptType getBaseType(TypeExprSimple node) {
 		final String typename = node.getTypeName();
 		final boolean isJassCode = Utils.isJassCode(node);
 		TypeDef t = node.attrTypeDef();
@@ -81,8 +93,7 @@ public class AttrTypeExprType {
 		PscriptType typ = t.match(new TypeDef.Matcher<PscriptType>() {
 
 			@Override
-			public PscriptType case_NativeType(NativeType term)
-					 {
+			public PscriptType case_NativeType(NativeType term) {
 				PscriptType typ = NativeTypes.nativeType(term.getName(), isJassCode);
 				if (typ != null) {
 					// native type
@@ -97,25 +108,21 @@ public class AttrTypeExprType {
 			}
 
 			@Override
-			public PscriptType case_ClassDef(ClassDef term)
-					 {
-				return new PscriptTypeClass(term);
+			public PscriptType case_ClassDef(ClassDef term) {
+				return new PscriptTypeClass(term, false);
 			}
 		});
-		
-//		if (node.isArray()) {
-//			int[] sizes = new int[node.sizes().size()];
-//			for (int i=0; i<sizes.length; i++) {
-//				sizes[i] = 0; // TODO sizes should store ILvariables which actually hold the sizes
-//			}
-//			typ = new PScriptTypeArray(typ, sizes );
-//		}
-		
+
+		// if (node.isArray()) {
+		// int[] sizes = new int[node.sizes().size()];
+		// for (int i=0; i<sizes.length; i++) {
+		// sizes[i] = 0; // TODO sizes should store ILvariables which actually
+		// hold the sizes
+		// }
+		// typ = new PScriptTypeArray(typ, sizes );
+		// }
+
 		return typ;
 	}
 
-
-
-
 }
-

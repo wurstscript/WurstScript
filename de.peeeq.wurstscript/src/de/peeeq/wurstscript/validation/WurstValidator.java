@@ -2,8 +2,6 @@ package de.peeeq.wurstscript.validation;
 
 import java.util.Map;
 
-import com.google.common.collect.Multimap;
-
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;

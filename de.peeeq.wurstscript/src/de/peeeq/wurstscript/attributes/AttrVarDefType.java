@@ -13,9 +13,9 @@ import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
 import de.peeeq.wurstscript.ast.WParameter;
-import de.peeeq.wurstscript.types.PScriptTypeClassDefinition;
-import de.peeeq.wurstscript.types.PScriptTypeModuleDefinition;
 import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.types.PscriptTypeClass;
+import de.peeeq.wurstscript.types.PscriptTypeModule;
 import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
 
 
@@ -38,7 +38,7 @@ public class AttrVarDefType {
 	}
 	
 	public static PscriptType calculate(ClassDef c) {
-		return PScriptTypeClassDefinition.instance(c);
+		return new PscriptTypeClass(c, true);
 	}
 	
 	private static PscriptType defaultCase(OptTypeExpr typ,
@@ -75,11 +75,11 @@ public class AttrVarDefType {
 	}
 
 	public static PscriptType calculate(ModuleDef moduleDef) {
-		return PScriptTypeModuleDefinition.instance(moduleDef);
+		return new PscriptTypeModule(moduleDef, true);
 	}
 
 	public static PscriptType calculate(ModuleInstanciation m) {
-		return new PscriptTypeModuleInstanciation(m);
+		return new PscriptTypeModuleInstanciation(m, true);
 	}
 	
 	

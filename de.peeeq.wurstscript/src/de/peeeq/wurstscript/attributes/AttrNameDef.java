@@ -8,13 +8,17 @@ import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
+import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
+import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
+import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
+import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
 
 
 /**
@@ -27,14 +31,7 @@ public class AttrNameDef {
 		final String varName = node.getVarName();
 		
 		// check if this a read access:
-		boolean writeAccess1 = false;
-		if (node.getParent() instanceof StmtSet) {
-			StmtSet stmtSet = (StmtSet) node.getParent();
-			if (stmtSet.getLeft() == node) {
-				writeAccess1 = true;
-			}
-		}
-		final boolean writeAccess = writeAccess1;
+		final boolean writeAccess = isWriteAccess(node);
 		
 		NameDef result = node.match(new NameRef.Matcher<NameDef>() {
 			private NameDef defaultCase() {
@@ -51,30 +48,37 @@ public class AttrNameDef {
 			
 			private NameDef memberVarCase(Expr left) {
 				PscriptType leftType = left.attrTyp();
-				ClassOrModule classDef;
 				if (leftType instanceof PscriptTypeClass) {
-					PscriptTypeClass leftTypeC = (PscriptTypeClass) leftType;
-					classDef = leftTypeC.getClassDef();
+					PscriptTypeNamedScope leftTypeC = (PscriptTypeNamedScope) leftType;
+					return getNameInNamedScope(left, leftTypeC.getDef(), varName, writeAccess);
 				} else if (leftType instanceof PscriptTypeModule) {
 					PscriptTypeModule leftTypeM = (PscriptTypeModule) leftType;
-					classDef = leftTypeM.getModuleDef();
+					return getNameInNamedScope(left, leftTypeM.getDef(), varName, writeAccess);
+				} else if (leftType instanceof PscriptTypeModuleInstanciation) {
+					PscriptTypeModuleInstanciation leftTypeM = (PscriptTypeModuleInstanciation) leftType;
+					NamedScope m = leftTypeM.getDef();
+					return m.attrScopeNames().get(varName);
 				} else {
 					attr.addError(node.getSource(), "Cannot acces attribute " + varName + " because " + leftType + " is not a class-type.");
 					return null;
 				}
+				
+			}
+
+			private NameDef getNameInNamedScope(Expr access, NamedScope scope, final String varName, final boolean writeAccess) {
 				Map<String, NameDef> classDefScope;
-				if (classDef == left.attrNearestClassDef()) {
+				if (scope == access.attrNearestClassDef()) {
 					// same class
-					classDefScope = classDef.attrScopeNames();
-				} else if (classDef.attrNearestPackage() == left.attrNearestPackage()) {
+					classDefScope = scope.attrScopeNames();
+				} else if (scope.attrNearestPackage() == access.attrNearestPackage()) {
 					// same package
-					classDefScope = classDef.attrScopePackageNames();
+					classDefScope = scope.attrScopePackageNames();
 				} else {
 					// different package
 					if (writeAccess) {
-						classDefScope = classDef.attrScopePublicNames();
+						classDefScope = scope.attrScopePublicNames();
 					} else {
-						classDefScope = classDef.attrScopePublicReadNamess();
+						classDefScope = scope.attrScopePublicReadNamess();
 					}
 				}
 				return classDefScope.get(varName);
@@ -112,6 +116,18 @@ public class AttrNameDef {
 			attr.addError(node.getSource(), "Could not resolve reference to variable " + varName);
 		}
 		return result;
+	}
+
+	private static boolean isWriteAccess(final NameRef node) {
+		boolean writeAccess1 = false;
+		if (node.getParent() instanceof StmtSet) {
+			StmtSet stmtSet = (StmtSet) node.getParent();
+			if (stmtSet.getLeft() == node) {
+				writeAccess1 = true;
+			}
+		}
+		final boolean writeAccess = writeAccess1;
+		return writeAccess;
 	}
 
 }

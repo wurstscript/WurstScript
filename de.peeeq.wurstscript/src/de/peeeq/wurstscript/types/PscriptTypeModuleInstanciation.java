@@ -1,46 +1,21 @@
 package de.peeeq.wurstscript.types;
 
-import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
+import de.peeeq.wurstscript.ast.NamedScope;
 
 
-public class PscriptTypeModuleInstanciation extends PscriptType {
+public class PscriptTypeModuleInstanciation extends PscriptTypeNamedScope {
 
-	private ModuleInstanciation moduleDef;
+	private ModuleInstanciation moduleInst;
 
-	public PscriptTypeModuleInstanciation(ModuleInstanciation moduleDef) {
-		this.moduleDef = moduleDef;
+	public PscriptTypeModuleInstanciation(ModuleInstanciation moduleInst, boolean isStaticRef) {
+		super(isStaticRef);
+		this.moduleInst = moduleInst;
 	}
 
 	@Override
-	public boolean isSubtypeOf(PscriptType other) {
-		if (other instanceof PscriptTypeModuleInstanciation) {
-			PscriptTypeModuleInstanciation otherClassType = (PscriptTypeModuleInstanciation) other;
-			return otherClassType.moduleDef.equals(moduleDef);
-		}
-		// TODO implement subtyping
-		return false;
+	public NamedScope getDef() {
+		return moduleInst;
 	}
 
-	@Override
-	public String getName() {
-		return moduleDef.getName();
-	}
-
-	public ModuleInstanciation getModuleDef() {
-		return moduleDef;
-	}
-	
-	@Override
-	public String getFullName() {
-		// TODO fully qualified name
-		return getName();
-	}
-
-	
-	@Override
-	public String printJass() {
-		// classes are just translated to integers:
-		return "integer";
-	}
 }

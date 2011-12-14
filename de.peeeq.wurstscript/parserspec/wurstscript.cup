@@ -255,6 +255,8 @@ Modifier ::=
 		{: RESULT = Ast.VisibilityPublic(pos(xleft, xright)); :}
 	| PRIVATE:x
 		{: RESULT = Ast.VisibilityPrivate(pos(xleft, xright)); :}
+	| PROTECTED:x
+		{: RESULT = Ast.VisibilityProtected(pos(xleft, xright)); :}
 	| PUBLICREAD:x
 		{: RESULT = Ast.VisibilityPublicread(pos(xleft, xright)); :}
 	| STATIC:x

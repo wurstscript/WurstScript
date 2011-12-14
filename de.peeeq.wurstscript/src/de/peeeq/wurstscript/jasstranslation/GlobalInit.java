@@ -1,7 +1,5 @@
 package de.peeeq.wurstscript.jasstranslation;
 
-import de.peeeq.immutablecollections.ImmutableList;
-import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.jassAst.JassVar;
 

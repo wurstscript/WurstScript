@@ -164,11 +164,9 @@ import de.peeeq.wurstscript.jassAst.JassVar;
 import de.peeeq.wurstscript.jassAst.JassVars;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
-import de.peeeq.wurstscript.types.PScriptTypeClassDefinition;
 import de.peeeq.wurstscript.types.PScriptTypeCode;
 import de.peeeq.wurstscript.types.PScriptTypeHandle;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
-import de.peeeq.wurstscript.types.PScriptTypeModuleDefinition;
 import de.peeeq.wurstscript.types.PScriptTypeReal;
 import de.peeeq.wurstscript.types.PScriptTypeString;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;
@@ -178,6 +176,7 @@ import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeError;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
 import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
+import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
 import de.peeeq.wurstscript.utils.TopsortCycleException;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -753,7 +752,7 @@ public class JassTranslator {
 
 
 	protected ClassDef getClassDef(PscriptTypeModuleInstanciation typ) {
-		AstElement node = typ.getModuleDef();
+		AstElement node = typ.getDef();
 		return Utils.findParentOfType(ClassDef.class, node);
 		
 		
@@ -773,22 +772,7 @@ public class JassTranslator {
 		return result;
 	}
 
-	private ImmutableList<ClassOrModule> getVarContext(	ImmutableList<ClassOrModule> currentContext, PscriptType leftType) {
-		ClassDef c = null;
-		if (leftType instanceof PscriptTypeClass) {
-			c = ((PscriptTypeClass) leftType).getClassDef();
-		} else if (leftType instanceof PScriptTypeClassDefinition) {
-			c = ((PscriptTypeClass) leftType).getClassDef();
-		}
-		if (c != null) {
-			// class variables are always in the class-context: 
-			return ROOT_CONTEXT.appFront(c);
-		} 
-		// all other variables are always private and can only be accessed from the current context.
-		// so we can just return the current context:
-		return currentContext;
-	
-	}
+
 	
 //	/**
 //	 * gets the local var for a given name in the source function
@@ -874,17 +858,10 @@ public class JassTranslator {
 
 			@Override
 			public ExprTranslationResult case_ExprMemberMethod(ExprMemberMethod exprMemberMethod) {
-				PscriptType leftType = exprMemberMethod.getLeft().attrTyp();
-				if (leftType instanceof PscriptTypeClass) {
+				if (exprMemberMethod.attrFuncDef().attrIsDynamicClassMember()) {
 					return translateDynamicFunctionCall(f, exprMemberMethod);
-				} else if (leftType instanceof PScriptTypeClassDefinition) {
-					return translateStaticFunctionCall(f, exprMemberMethod);
-				} else if (leftType instanceof PscriptTypeModule) {
-					return translateModuleFunctionCall(f, exprMemberMethod);
-				} else if (leftType instanceof PScriptTypeModuleDefinition) {
-					return translateModuleFunctionCall(f, exprMemberMethod);
 				} else {
-					return translateDynamicFunctionCall(f, exprMemberMethod);
+					return translateStaticFunctionCall(f, exprMemberMethod);
 				}
 			}
 
@@ -906,15 +883,20 @@ public class JassTranslator {
 
 			@Override
 			public ExprTranslationResult case_ExprVarAccess(ExprVarAccess exprVarAccess) {
-				VarDef varDef = (VarDef) exprVarAccess.attrNameDef();
-				String varName = manager.getJassVarNameFor(varDef);
-				if (varDef.attrIsDynamicClassMember()) {
-					// access to a field
-					JassExpr index = JassExprVarAccess("this");
-					return new ExprTranslationResult(JassExprVarArrayAccess(varName, index));
+				NameDef nameDef = exprVarAccess.attrNameDef();
+				if (nameDef instanceof VarDef) {
+					VarDef varDef = (VarDef) nameDef;
+					String varName = manager.getJassVarNameFor(varDef);
+					if (varDef.attrIsDynamicClassMember()) {
+						// access to a field
+						JassExpr index = JassExprVarAccess("this");
+						return new ExprTranslationResult(JassExprVarArrayAccess(varName, index));
+					} else {
+						// access to a normal variable
+						return new ExprTranslationResult(JassExprVarAccess(varName));
+					}
 				} else {
-					// access to a normal variable
-					return new ExprTranslationResult(JassExprVarAccess(varName));
+					throw new Error("cannot translate var access to " + nameDef.getClass());
 				}
 			}
 
@@ -1155,8 +1137,15 @@ protected List<String> getParameterTypes(WParameters params) {
 		
 		String functionName = calledJassFunc.getName();
 		JassExprlist arguments = JassExprlist();
-		// translate right:
-		ExprTranslationResult e = translateExpr(f, exprMemberMethod.getLeft());
+		// translate left or use this:
+		PscriptType leftType = exprMemberMethod.getLeft().attrTyp();
+		ExprTranslationResult e;
+		if ((leftType instanceof PscriptTypeNamedScope)
+				&& (((PscriptTypeNamedScope) leftType).isStaticRef())){
+			e = new ExprTranslationResult(JassExprVarAccess("this"));
+		} else {
+			e = translateExpr(f, exprMemberMethod.getLeft());
+		}
 		List<JassStatement> statements = Lists.newLinkedList();
 		statements .addAll(e.getStatements());
 		arguments.addFront(e.getExpr());

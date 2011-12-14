@@ -6,26 +6,21 @@ import java.util.Map;
 import com.google.common.collect.Multimap;
 
 import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.ClassDef;
-import de.peeeq.wurstscript.ast.ClassOrModule;
+import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
-import de.peeeq.wurstscript.ast.FuncDef;
-import de.peeeq.wurstscript.ast.FuncRef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
-import de.peeeq.wurstscript.ast.ModuleDef;
+import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.NotExtensionFunction;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WScope;
-import de.peeeq.wurstscript.types.PScriptTypeClassDefinition;
-import de.peeeq.wurstscript.types.PScriptTypeModuleDefinition;
 import de.peeeq.wurstscript.types.PscriptType;
-import de.peeeq.wurstscript.types.PscriptTypeClass;
-import de.peeeq.wurstscript.types.PscriptTypeModule;
+import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
+import de.peeeq.wurstscript.utils.Utils;
 
 
 /**
@@ -61,15 +56,24 @@ public class AttrFuncDef {
 
 
 	private static FunctionDefinition searchFunction(String funcName, AstElement node) {
-		WScope scope = Scoping.getNearestScope(node);
-		while (scope != null) {
-			Map<String, NotExtensionFunction> functions = scope.attrScopeFunctions();
-			if (functions.containsKey(funcName)) {
-				return functions.get(funcName);
-			}
-			scope = Scoping.getNearestScope(scope);
+		if (node == null) {
+			return null;
 		}
-		return null;
+		NamedScope scope = node.attrNearestNamedScope();
+		if (scope == null) {
+			return searchGlobalScope(funcName, node);
+		}
+		Map<String, NotExtensionFunction> functions = scope.attrScopeFunctions();
+		if (functions.containsKey(funcName)) {
+			return functions.get(funcName);
+		}
+		// not found yet? -> search in parent scope
+		return searchFunction(funcName, scope.getParent());
+	}
+
+	private static FunctionDefinition searchGlobalScope(String funcName, AstElement node) {
+		CompilationUnit root = (CompilationUnit) Utils.getRoot(node);
+		return root.attrScopeFunctions().get(funcName);
 	}
 
 	public static  FunctionDefinition calculate(final ExprMemberMethod node) {
@@ -77,27 +81,10 @@ public class AttrFuncDef {
 		Expr left = node.getLeft();
 		PscriptType leftType = left.attrTyp();
 		String funcName = node.getFuncName();
-		if (leftType instanceof PscriptTypeClass) {
-			PscriptTypeClass leftTypeC = (PscriptTypeClass) leftType;
-			ClassDef classDef = leftTypeC.getClassDef();
-
-			result = getFunctionFromClassOrModule(left, funcName, classDef, true);
-
-		} else if (leftType instanceof PscriptTypeModule) {
-			PscriptTypeModule leftTypeM = (PscriptTypeModule) leftType;
-			ModuleDef moduleDef = leftTypeM.getModuleDef();
-
-			result = getFunctionFromClassOrModule(left, funcName, moduleDef, true);
-		} else if (leftType instanceof PScriptTypeClassDefinition) {
-			PScriptTypeClassDefinition leftTypeC = (PScriptTypeClassDefinition) leftType;
-			// receiver is a classDefinition. this means we have a static method call
-			ClassDef classDef = leftTypeC.getClassDef(); 
-			result = getFunctionFromClassOrModule(left, funcName, classDef, false);
-		} else if (leftType instanceof PScriptTypeModuleDefinition) {
-			PScriptTypeModuleDefinition leftTypeM = (PScriptTypeModuleDefinition) leftType;
-			ModuleDef moduleDef = leftTypeM.getModuleDef();
-			result = getFunctionFromClassOrModule(left, funcName, moduleDef, false);
-		} 
+		if (leftType instanceof PscriptTypeNamedScope) {
+			PscriptTypeNamedScope sr = (PscriptTypeNamedScope) leftType;
+			result = getFunctionFromNamedScopeRef(left, funcName, sr);
+		}
 
 		// check extension methods:
 		if (result == null) {
@@ -116,37 +103,39 @@ public class AttrFuncDef {
 		return result;
 	}
 
-	private static FunctionDefinition getFunctionFromClassOrModule(Expr left,	String funcName, ClassOrModule classDef, boolean isDynamicContext) {
-		Map<String, NotExtensionFunction> functions = getVisibleClassFunctions(left, classDef);
+	private static FunctionDefinition getFunctionFromNamedScopeRef(Expr left, String funcName, PscriptTypeNamedScope sr) {
+		Map<String, NotExtensionFunction> functions = getVisibleClassFunctions(left, sr);
 		FunctionDefinition result = functions.get(funcName);
 		if (result != null) {
-			if (result.attrIsStatic() && isDynamicContext) {
-				attr.addError(left.getSource(), "Cannot call static function " + funcName + " in dynamic context.");
-			} else if (!result.attrIsStatic() && !isDynamicContext) {
-				attr.addError(left.getSource(), "Cannot call dynamic function " + funcName + " in static context.");
-			}
+//			if (result.attrIsStatic() && !sr.isStaticRef()) {
+//				attr.addError(left.getSource(), "Cannot call static function " + funcName + " in dynamic context.");
+//			} else if (!result.attrIsStatic() && sr.isStaticRef()) {
+//				attr.addError(left.getSource(), "Cannot call dynamic function " + funcName + " in static context.");
+//			}
+//			TODO check this somewhere ...
 		}
 		return result;
 	}
 
+	
 
 	/**
 	 * get a list of visible functions of a class for a given context
 	 * @param context
-	 * @param classDef
+	 * @param sr
 	 * @return
 	 */
-	private static Map<String, NotExtensionFunction> getVisibleClassFunctions(AstElement context, ClassOrModule classDef) {
+	private static Map<String, NotExtensionFunction> getVisibleClassFunctions(AstElement context, PscriptTypeNamedScope sr) {
 		Map<String, NotExtensionFunction> functions;
-		if (classDef == context.attrNearestClassDef()) {
+		if (sr.getDef() == context.attrNearestNamedScope()) {
 			// same class
-			functions = classDef.attrScopeFunctions();
-		} else if (classDef.attrNearestPackage() == context.attrNearestPackage()) {
+			functions = sr.getDef().attrScopeFunctions();
+		} else if (sr.getDef().attrNearestPackage() == context.attrNearestPackage()) {
 			// same package
-			functions = classDef.attrScopePackageFunctions();
+			functions = sr.getDef().attrScopePackageFunctions();
 		} else {
 			// different package
-			functions = classDef.attrScopePublicFunctions();
+			functions = sr.getDef().attrScopePublicFunctions();
 		}
 		return functions;
 	}

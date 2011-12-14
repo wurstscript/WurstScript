@@ -1,37 +1,26 @@
 package de.peeeq.wurstscript.types;
 
+import de.peeeq.wurstscript.ast.NamedScope;
+import de.peeeq.wurstscript.ast.WPackage;
 
-public class PScriptTypePackage extends PscriptType {
 
-	private String name;
+public class PScriptTypePackage extends PscriptTypeNamedScope {
+
+	
+
+	private WPackage pack;
 
 	// make constructor private as we only need one instance
-	private PScriptTypePackage(String name) {
-		this.name = name;
+	private PScriptTypePackage(WPackage pack) {
+		super(true);
+		this.pack = pack;
+	}
+
+	@Override
+	public NamedScope getDef() {
+		return pack;
 	}
 	
-	@Override
-	public boolean isSubtypeOf(PscriptType other) {
-		return (other instanceof PScriptTypePackage && other.getFullName().equals(getFullName()));	}
-
-	@Override
-	public String getName() {
-		return name;
-	}
-
-	@Override
-	public String getFullName() {
-		return name;
-	}
-
-	public static PScriptTypePackage instance(String name) {
-		return new PScriptTypePackage(name);
-	}
-
-	@Override
-	public String printJass() {
-		// TODO Auto-generated method stub
-		throw new Error("Not implemented yet.");
-	}
+	
 
 }
