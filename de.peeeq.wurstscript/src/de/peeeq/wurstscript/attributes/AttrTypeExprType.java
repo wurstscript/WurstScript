@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NamedScope;
@@ -41,8 +42,11 @@ public class AttrTypeExprType {
 
 			@Override
 			public PscriptType case_TypeExprThis(final TypeExprThis node) {
-				NamedScope n = node.attrNearestNamedScope();
-				return n.match(new NamedScope.Matcher<PscriptType>() {
+				ClassOrModule n = node.attrNearestClassOrModule();
+				if (n == null) {
+					return PScriptTypeUnknown.instance();
+				}
+				return n.match(new ClassOrModule.Matcher<PscriptType>() {
 
 					@Override
 					public PscriptType case_ClassDef(ClassDef classDef) {
@@ -54,15 +58,6 @@ public class AttrTypeExprType {
 						return new PscriptTypeModule(moduleDef, true);
 					}
 
-					@Override
-					public PscriptType case_WPackage(WPackage wPackage) {
-						return PScriptTypeUnknown.instance();
-					}
-
-					@Override
-					public PscriptType case_ModuleInstanciation(ModuleInstanciation moduleInstanciation) {
-						return new PscriptTypeModuleInstanciation(moduleInstanciation, true);
-					}
 				});
 			}
 

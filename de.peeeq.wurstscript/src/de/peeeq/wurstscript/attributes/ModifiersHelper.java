@@ -1,13 +1,5 @@
 package de.peeeq.wurstscript.attributes;
 
-import java.util.Collection;
-import java.util.Map;
-
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.SetMultimap;
-
 import de.peeeq.wurstscript.ast.AstElementWithModifier;
 import de.peeeq.wurstscript.ast.ModAbstract;
 import de.peeeq.wurstscript.ast.ModConstant;

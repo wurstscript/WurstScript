@@ -27,6 +27,7 @@ import de.peeeq.wurstscript.ast.FunctionImplementation;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
+import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.OpAnd;
 import de.peeeq.wurstscript.ast.OpBinary;
@@ -47,6 +48,7 @@ import de.peeeq.wurstscript.ast.OpPlus;
 import de.peeeq.wurstscript.ast.OpUnary;
 import de.peeeq.wurstscript.ast.OpUnequals;
 import de.peeeq.wurstscript.ast.TypeDef;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PScriptTypeCode;
@@ -136,28 +138,44 @@ public class AttrExprType {
 
 			@Override
 			public PscriptType case_ExprThis(ExprThis term)  {
-				// find nearest class definition
-				ClassOrModuleOrModuleInstanciation pos = Utils.findParentOfType(ClassOrModuleOrModuleInstanciation.class, term);
-				if (pos != null) {
-					if (pos instanceof ClassDef) {
-						return new PscriptTypeClass((ClassDef) pos, false);
-					}
-					if (pos instanceof ModuleDef) {
-						return new PscriptTypeModule((ModuleDef) pos, false);
-					}
-					if (pos instanceof ModuleInstanciation) {
-						return new PscriptTypeModuleInstanciation((ModuleInstanciation) pos, false);
-					}
-				} else {
-					FunctionImplementation func = term.attrNearestFuncDef();
-					if (func instanceof ExtensionFuncDef) {
-						ExtensionFuncDef extensionFuncDef = (ExtensionFuncDef) func;
-						return extensionFuncDef.getExtendedType().attrTyp();
-					}
+				// check if we are in an extension function
+				FunctionImplementation func = term.attrNearestFuncDef();
+				if (func instanceof ExtensionFuncDef) {
+					ExtensionFuncDef extensionFuncDef = (ExtensionFuncDef) func;
+					return extensionFuncDef.getExtendedType().attrTyp();
 				}
 				
-				attr.addError(term.getSource(), "The keyword 'this' can only be used inside methods.");
-				return PScriptTypeUnknown.instance();
+				// find nearest class-like thing
+				NamedScope c = term.attrNearestNamedScope();
+				if (c != null) {
+					return c.match(new NamedScope.Matcher<PscriptType>() {
+
+						@Override
+						public PscriptType case_ModuleDef(ModuleDef moduleDef) {
+							return new PscriptTypeModule(moduleDef, false);
+						}
+
+						@Override
+						public PscriptType case_ClassDef(ClassDef classDef) {
+							return new PscriptTypeClass(classDef, false);
+						}
+
+						@Override
+						public PscriptType case_ModuleInstanciation(ModuleInstanciation moduleInstanciation) {
+							return new PscriptTypeModuleInstanciation(moduleInstanciation, false);
+						}
+
+						@Override
+						public PscriptType case_WPackage(WPackage wPackage) {
+							// 'this' cannot be used on package level
+							return PScriptTypeUnknown.instance();
+						}
+						
+					});
+				} else {
+					attr.addError(term.getSource(), "The keyword 'this' can only be used inside methods.");
+					return PScriptTypeUnknown.instance();
+				}
 			}
 
 			@Override

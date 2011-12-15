@@ -3,21 +3,23 @@ package de.peeeq.wurstscript.attributes;
 import java.util.Collection;
 import java.util.Map;
 
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.ClassOrModuleOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
+import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.NotExtensionFunction;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
 import de.peeeq.wurstscript.utils.Utils;
@@ -61,6 +63,7 @@ public class AttrFuncDef {
 		}
 		NamedScope scope = node.attrNearestNamedScope();
 		if (scope == null) {
+			// no more named scope exists -> search in global scope
 			return searchGlobalScope(funcName, node);
 		}
 		Map<String, NotExtensionFunction> functions = scope.attrScopeFunctions();
@@ -103,41 +106,46 @@ public class AttrFuncDef {
 		return result;
 	}
 
-	private static FunctionDefinition getFunctionFromNamedScopeRef(Expr left, String funcName, PscriptTypeNamedScope sr) {
-		Map<String, NotExtensionFunction> functions = getVisibleClassFunctions(left, sr);
-		FunctionDefinition result = functions.get(funcName);
-		if (result != null) {
-//			if (result.attrIsStatic() && !sr.isStaticRef()) {
-//				attr.addError(left.getSource(), "Cannot call static function " + funcName + " in dynamic context.");
-//			} else if (!result.attrIsStatic() && sr.isStaticRef()) {
-//				attr.addError(left.getSource(), "Cannot call dynamic function " + funcName + " in static context.");
-//			}
-//			TODO check this somewhere ...
+	private static FunctionDefinition getFunctionFromNamedScopeRef(Expr context, String funcName, PscriptTypeNamedScope sr) {
+		if (sr.isStaticRef() && (sr.getDef() instanceof ClassOrModuleOrModuleInstanciation)) {
+			// if we have a static reference to a class, module etc. we have to ignore
+			// the overriding functions and thus cannot use the normal scope attributes...
+			ClassOrModuleOrModuleInstanciation c = (ClassOrModuleOrModuleInstanciation) sr.getDef();
+			FuncDef func = c.attrAllFunctions().get(funcName);
+			if (isSameClass(context, sr)) {
+				// no problem
+			} else if (isSamePackage(context, sr)) {
+				if (func.attrIsPrivate()) {
+					attr.addError(context.getSource(), "Function " + funcName + " is private.");
+				}
+			} else {
+				if (func.attrIsPrivate() || func.attrIsProtected()) {
+					attr.addError(context.getSource(), "Function " + funcName + " is protected. It cannot be accessed from other packages.");
+				}
+			}
+			return func;
+		} else { // dynamic ref
+			Map<String, NotExtensionFunction> functions;
+			if (isSameClass(context, sr)) {
+				functions = sr.getDef().attrScopeFunctions();
+			} else if (isSamePackage(context, sr)) {
+				functions = sr.getDef().attrScopePackageFunctions();
+			} else {
+				// different package
+				functions = sr.getDef().attrScopePublicFunctions();
+			}
+			return functions.get(funcName);
 		}
-		return result;
 	}
 
 	
 
-	/**
-	 * get a list of visible functions of a class for a given context
-	 * @param context
-	 * @param sr
-	 * @return
-	 */
-	private static Map<String, NotExtensionFunction> getVisibleClassFunctions(AstElement context, PscriptTypeNamedScope sr) {
-		Map<String, NotExtensionFunction> functions;
-		if (sr.getDef() == context.attrNearestNamedScope()) {
-			// same class
-			functions = sr.getDef().attrScopeFunctions();
-		} else if (sr.getDef().attrNearestPackage() == context.attrNearestPackage()) {
-			// same package
-			functions = sr.getDef().attrScopePackageFunctions();
-		} else {
-			// different package
-			functions = sr.getDef().attrScopePublicFunctions();
-		}
-		return functions;
+	private static boolean isSamePackage(AstElement context, PscriptTypeNamedScope sr) {
+		return sr.getDef().attrNearestPackage() == context.attrNearestPackage();
+	}
+
+	private static boolean isSameClass(AstElement context, PscriptTypeNamedScope sr) {
+		return sr.getDef() == context.attrNearestNamedScope();
 	}
 
 

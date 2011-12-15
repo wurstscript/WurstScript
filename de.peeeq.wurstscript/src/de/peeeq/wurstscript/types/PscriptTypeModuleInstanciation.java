@@ -14,8 +14,41 @@ public class PscriptTypeModuleInstanciation extends PscriptTypeNamedScope {
 	}
 
 	@Override
+	public boolean isSubtypeOf(PscriptType obj) {
+		if (super.isSubtypeOf(obj)) {
+			return true;
+		}
+		if (obj instanceof PscriptTypeNamedScope) {
+			PscriptTypeNamedScope n = (PscriptTypeNamedScope) obj;
+			return isParent(n);
+		}
+		return false;
+	}
+
+	/**
+	 * check if n is a parent of this
+	 */
+	private boolean isParent(PscriptTypeNamedScope n) {
+		NamedScope ns = this.getDef();
+		while (true) {
+			ns = ns.getParent().attrNearestNamedScope();
+			if (ns == null) {
+				return false;
+			}
+			if (ns == n.getDef()) {
+				return true;
+			}
+		}
+	}
+	
+	@Override
 	public NamedScope getDef() {
-		return moduleInst;
+		return moduleInst; 
+	}
+	
+	@Override
+	public String getName() {
+		return getDef().getName() + " (module instanciation)";
 	}
 
 }

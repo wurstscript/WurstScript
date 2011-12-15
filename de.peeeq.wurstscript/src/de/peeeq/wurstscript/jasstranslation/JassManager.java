@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.jasstranslation;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -76,6 +77,7 @@ public class JassManager {
 	}
 	
 	public JassFunction getJassFunctionFor(FunctionDefinition f) {
+		Preconditions.checkNotNull(f);
 		if (functions.containsKey(f)) {
 			return functions.get(f);
 		}

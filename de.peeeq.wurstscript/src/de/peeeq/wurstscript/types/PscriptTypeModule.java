@@ -17,5 +17,10 @@ public class PscriptTypeModule extends PscriptTypeNamedScope {
 	public NamedScope getDef() {
 		return moduleDef;
 	}
+	
+	@Override
+	public String getName() {
+		return getDef().getName() + " (module)";
+	}
 
 }

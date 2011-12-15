@@ -21,4 +21,9 @@ public class PscriptTypeClass extends PscriptTypeNamedScope {
 	public ClassDef getClassDef() {
 		return classDef;
 	}
+	
+	@Override
+	public String getName() {
+		return getDef().getName() + " (class)";
+	}
 }

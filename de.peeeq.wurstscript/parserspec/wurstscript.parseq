@@ -162,7 +162,10 @@ VarDef =
 	| WParameter
 
 // has funcName:String attribute
-FuncRef = ExprFuncRef | ExprMemberMethod | ExprFunctionCall
+
+FunctionCall = ExprMemberMethod | ExprFunctionCall
+
+FuncRef = ExprFuncRef | FunctionCall
 	
 	
 NotExtensionFunction = NativeFunc | FuncDef
@@ -255,6 +258,9 @@ FuncRef.attrFuncDef
 	returns FunctionDefinition
 	implemented by de.peeeq.wurstscript.attributes.AttrFuncDef.calculate
 
+FunctionCall.attrImplicitParameter
+	returns OptExpr
+	implemented by de.peeeq.wurstscript.attributes.AttrImplicitParameter.getImplicitParameter
 
 
 NameRef.attrNameDef
@@ -401,6 +407,14 @@ ClassOrModuleOrModuleInstanciation.attrAllFunctions
 	returns java.util.Map<String, FuncDef>
 	implemented by de.peeeq.wurstscript.attributes.AttrAllFunctions.calculate
 
+ClassOrModuleOrModuleInstanciation.attrModuleInstanciations
+	returns java.util.List<ModuleInstanciation>
+	implemented by de.peeeq.wurstscript.attributes.MemberAttributes.getModuleInstanciations
+
+
+ClassOrModuleOrModuleInstanciation.attrConstructors
+	returns java.util.List<ConstructorDef>
+	implemented by de.peeeq.wurstscript.attributes.MemberAttributes.getConstructors
 
 ClassOrModule.attrUsedModules
 	returns java.util.Collection<ModuleDef>

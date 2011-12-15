@@ -36,8 +36,7 @@ public abstract class PscriptTypeNamedScope extends PscriptType {
 	public boolean isSubtypeOf(PscriptType obj) {
 		if (obj instanceof PscriptTypeNamedScope) {
 			PscriptTypeNamedScope other = (PscriptTypeNamedScope) obj;
-			return other.isStaticRef() == this.isStaticRef() 
-					&& other.getDef().equals(this.getDef()); 
+			return other.getDef().equals(this.getDef()); 
 		}
 		return false;
 	}

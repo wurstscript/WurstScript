@@ -21,6 +21,9 @@ public class PScriptTypePackage extends PscriptTypeNamedScope {
 		return pack;
 	}
 	
-	
+	@Override
+	public String getName() {
+		return getDef().getName() + " (package)";
+	}
 
 }

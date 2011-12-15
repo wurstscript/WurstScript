@@ -24,14 +24,9 @@ public class AttrConstructorDef {
 		
 		if (typeDef instanceof ClassDef) {
 			
-			ClassDef classDefPos = (ClassDef) typeDef;
+			ClassDef classDef = (ClassDef) typeDef;
 			
-			List<ConstructorDef> constructors = new NotNullList<ConstructorDef>(); 
-			for (ClassSlot elem : classDefPos.getSlots()) {
-				if (elem instanceof ConstructorDef) {
-					constructors.add((ConstructorDef) elem);
-				}
-			}
+			List<ConstructorDef> constructors = classDef.attrConstructors();
 			
 			return OverloadingResolver.resolveExprNew(constructors, node);
 			
