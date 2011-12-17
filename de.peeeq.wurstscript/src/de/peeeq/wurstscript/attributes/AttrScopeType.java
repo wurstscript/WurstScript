@@ -24,7 +24,7 @@ public class AttrScopeType {
 			}
 		};
 		for (WImport i : node.getImports()) {
-			WPackage importedPackage = attr.getImportedPackage(i);
+			WPackage importedPackage = i.attrImportedPackage();
 			if (importedPackage == null) {
 				continue;
 			}

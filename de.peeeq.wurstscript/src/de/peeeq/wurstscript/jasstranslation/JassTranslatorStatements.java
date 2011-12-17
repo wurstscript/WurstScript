@@ -163,7 +163,7 @@ public class JassTranslatorStatements {
 							}
 
 							result.add(JassStmtSetArray(leftJassVar, indexExpr, 
-									JassExprBinary(JassExprVarArrayAccess(leftJassVar, indexExpr), binaryOp, right.getExpr())));
+									JassExprBinary(JassExprVarArrayAccess(leftJassVar, (JassExpr) indexExpr.copy()), binaryOp, right.getExpr())));
 						}
 					}
 

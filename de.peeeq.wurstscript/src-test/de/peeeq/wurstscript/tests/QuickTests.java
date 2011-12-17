@@ -9,9 +9,16 @@ import de.peeeq.wurstscript.utils.UtilsTest;
 
 @RunWith(Suite.class)
 @SuiteClasses({ 
-	QuickTests.class,
-	RealWorldExamples.class
+	SimpleStatementTests.class, 
+	SimpleFunctionTests.class,
+	ImmutableListTest.class, 
+	UtilsTest.class,
+	ArrayTests.class,
+	ExpressionTests.class,
+	ClassesTests.class,
+	ModuleTests.class,
+	PackageTests.class
 })
-public class AllTests {
+public class QuickTests {
 
 }

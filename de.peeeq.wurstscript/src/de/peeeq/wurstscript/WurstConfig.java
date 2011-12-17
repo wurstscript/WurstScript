@@ -35,7 +35,7 @@ public class WurstConfig {
 		settings.put("mpq.extract", "./winmpq/WinMPQ.exe extract %map %nameInMpq %folder");
 		settings.put("mpq.add", "./winmpq/WinMPQ.exe add %map %file %nameInMpq");
 		settings.put("mpq.delete", "./winmpq/WinMPQ.exe delete %map %nameInMpq");
-		
+		settings.put("lib", "./wurstscript/lib/");
 	}
 
 	public static WurstConfig get() {

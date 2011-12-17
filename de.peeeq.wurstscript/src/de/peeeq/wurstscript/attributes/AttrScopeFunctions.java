@@ -40,7 +40,7 @@ public class AttrScopeFunctions {
 			public Map<String, NotExtensionFunction> case_WPackage(WPackage term) {
 				// add imported Names
 				for (WImport i : term.getImports()) {
-					WPackage importedPackage = attr.getImportedPackage(i);
+					WPackage importedPackage = i.attrImportedPackage();
 					if (importedPackage == null) {
 						continue;
 					}
@@ -171,7 +171,7 @@ public class AttrScopeFunctions {
 		Multimap<String, ExtensionFuncDef> result = HashMultimap.create();
 		// add imports
 		for (WImport i : pack.getImports()) {
-			WPackage imported = attr.getImportedPackage(i);
+			WPackage imported = i.attrImportedPackage();
 			result.putAll(imported.attrExportedExtensionFunctions());
 		}
 		for (WEntity e : pack.getElements()) {

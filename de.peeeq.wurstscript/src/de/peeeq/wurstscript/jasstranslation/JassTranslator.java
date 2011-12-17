@@ -501,7 +501,7 @@ public class JassTranslator {
 	private void translatePackage(WPackage wPackage) {
 		packages.add(wPackage);
 		for (WImport imp : wPackage.getImports()) {
-			WPackage importedPackage = attr.getImportedPackage(imp);
+			WPackage importedPackage = imp.attrImportedPackage();
 			importedPackages.put(wPackage, importedPackage);
 		}
 

@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
+import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.OptExpr;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
@@ -13,6 +14,8 @@ import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
 import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.types.PScriptTypeHandle;
+import de.peeeq.wurstscript.types.PscriptNativeType;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
@@ -80,6 +83,10 @@ public class AttrVarDefType {
 
 	public static PscriptType calculate(ModuleInstanciation m) {
 		return new PscriptTypeModuleInstanciation(m, true);
+	}
+
+	public static PscriptType calculate(NativeType n) {
+		return PscriptNativeType.instance(n.getName(), n.getTyp().attrTyp());
 	}
 	
 	

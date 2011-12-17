@@ -172,4 +172,18 @@ public class ModuleTests extends PscriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void modules_missing_override() {
+		testAssertErrorsLines(false, "override", 
+				"package test",
+				"	module A",
+				"		public abstract function foo() returns int",
+				"	class C",
+				"		use A",
+				"		function foo() returns int",
+				"			return 3",
+				"endpackage"
+			);
+	}
 }

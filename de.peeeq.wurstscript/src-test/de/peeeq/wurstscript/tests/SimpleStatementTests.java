@@ -180,6 +180,15 @@ public class SimpleStatementTests extends PscriptTest {
 				"x++");
 	}
 	
+	@Test
+	public void test_arrayUpdate() {
+		assertOk(false,
+				"int array x",
+				"x[5] = 2",
+				"x[5] += 3"
+				);
+	}
+	
 	
 	
 	public void assertOk( boolean executeProg, String ... body) {

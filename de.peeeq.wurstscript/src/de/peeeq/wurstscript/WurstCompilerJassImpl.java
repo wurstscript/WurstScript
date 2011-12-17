@@ -171,18 +171,26 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			String[] libFolders = WurstConfig.get().getSetting("lib").split(";");
 			for (String libDirName : libFolders) {
 				File libDir = new File(libDirName);
-				if (!libDir.exists() || !libDir.isDirectory()) {
-					throw new Error("Library folder " + libDir + " does not exist.");
-				}
-				for (File f : libDir.listFiles()) {
-					if (f.getName().endsWith(".wurst")) {
-						String libName = f.getName().replaceAll("\\.wurst$", "");
-						libCache.put(libName, f);
-					}
-				}
+				addLibDir(libDir);
 			}
 		}
 		return libCache;
+	}
+
+	private void addLibDir(File libDir) throws Error {
+		if (!libDir.exists() || !libDir.isDirectory()) {
+			throw new Error("Library folder " + libDir + " does not exist.");
+		}
+		for (File f : libDir.listFiles()) {
+			if (f.isDirectory()) {
+				// recursively scan directory
+				addLibDir(f);
+			}
+			if (f.getName().endsWith(".wurst")) {
+				String libName = f.getName().replaceAll("\\.wurst$", "");
+				libCache.put(libName, f);
+			}
+		}
 	}
 
 	private void checkAndTranslate(CompilationUnit root) {
