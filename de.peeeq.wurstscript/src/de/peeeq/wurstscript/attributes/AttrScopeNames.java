@@ -48,7 +48,7 @@ public class AttrScopeNames {
 			public Map<String, NameDef> case_WPackage(WPackage term) {
 
 				for (WImport i : term.getImports()) {
-					WPackage importedPackage = attr.getImportedPackage(i);
+					WPackage importedPackage = i.attrImportedPackage();
 					if (importedPackage == null) {
 						continue;
 					}

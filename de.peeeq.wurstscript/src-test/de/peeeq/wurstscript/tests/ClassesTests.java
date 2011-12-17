@@ -98,4 +98,18 @@ public class ClassesTests extends PscriptTest {
 				"endpackage"
 			);
 	}
+	
+
+	@Test
+	public void classes_double_defined() {
+		testAssertErrorsLines(false, "already defined", 
+				"package test",
+				"	class C",
+				"		function foo() returns int",
+				"			return 3",
+				"		static function foo() returns int",
+				"			return 4",
+				"endpackage"
+			);
+	}
 }

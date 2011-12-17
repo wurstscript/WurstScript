@@ -1,6 +1,8 @@
 package de.peeeq.wurstscript.attributes;
 
+import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ExprNewObject;
+import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeExprArray;
@@ -19,7 +21,7 @@ import de.peeeq.wurstscript.utils.Utils;
  *
  */
 public class AttrTypeDef {
-	
+
 	public static  TypeDef calculate(TypeRef node) {
 		String typeName = node.match(new TypeRef.Matcher<String>() {
 
@@ -43,33 +45,32 @@ public class AttrTypeDef {
 				return null;
 			}
 		});
-		
+
 		if (typeName == null) {
 			// thistype has no typedef
 			return null;
 		}
-				
+
 		PscriptType nativeType = NativeTypes.nativeType(typeName, Utils.isJassCode(node));
 		if (nativeType != null) {
 			return null; // native types have no definitionPos
 		}
-		
-		
+
+
 		// find nearest packageDef
 		PackageOrGlobal scope =  node.attrNearestPackage();
 		if (scope instanceof WPackage) {
 			WPackage pack = (WPackage) scope;
-			for (WEntity elem : pack.attrPackageElements().get(typeName)) {
-				if (elem instanceof TypeDef) {
-					return (TypeDef) elem;
-				}
-			}
-		}
-		// search global scope:
-		for (WEntity elem : ((PackageOrGlobal) Utils.getRoot(node)).attrPackageElements().get(typeName)) {
+			NameDef elem = pack.attrScopeNames().get(typeName);
 			if (elem instanceof TypeDef) {
 				return (TypeDef) elem;
 			}
+		}
+		// search global scope:
+		CompilationUnit cu = (CompilationUnit) Utils.getRoot(node);
+		NameDef elem = cu.attrScopeNames().get(typeName); 
+		if (elem instanceof TypeDef) {
+			return (TypeDef) elem;
 		}
 		attr.addError(node.getSource(), "Could not find TypeDef for " + typeName);		
 		return null;		
