@@ -4,6 +4,7 @@ import java.util.Map;
 
 import com.google.common.collect.Maps;
 
+import de.peeeq.wurstscript.ast.AstElementWithModifier;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.ClassSlots;
@@ -83,8 +84,8 @@ public class AttrScopeNames {
 							result.put(g.getName(), g);
 						}
 					}
-					if (e instanceof VarDef) {
-						VarDef v = (VarDef) e;
+					if (e instanceof NameDef) {
+						NameDef v = (NameDef) e;
 						result.put(v.getName(), v);
 					}
 				}
@@ -156,10 +157,10 @@ public class AttrScopeNames {
 	public static Map<String, NameDef> calculatePackage(WScope scope) {
 		Map<String, NameDef> result = Maps.newHashMap();
 		for (NameDef f : scope.attrScopeNames().values()) {
-			if (f instanceof GlobalVarDef) {
-				GlobalVarDef g = (GlobalVarDef) f;
+			if (f instanceof AstElementWithModifier) {
+				AstElementWithModifier g = (AstElementWithModifier) f;
 				if (!g.attrIsPrivate()) {
-					result.put(g.getName(), g);
+					result.put(f.getName(), f);
 				}
 			}
 		}
@@ -169,10 +170,10 @@ public class AttrScopeNames {
 	public static Map<String, NameDef> calculatePublic(WScope scope) {
 		Map<String, NameDef> result = Maps.newHashMap();
 		for (NameDef f : scope.attrScopeNames().values()) {
-			if (f instanceof GlobalVarDef) {
-				GlobalVarDef g = (GlobalVarDef) f;
+			if (f instanceof AstElementWithModifier) {
+				AstElementWithModifier g = (AstElementWithModifier) f;
 				if (g.attrIsPublic()) {
-					result.put(g.getName(), g);
+					result.put(f.getName(), f);
 				}
 			}
 		}
@@ -182,10 +183,10 @@ public class AttrScopeNames {
 	public static Map<String, NameDef> calculatePublicRead(WScope scope) {
 		Map<String, NameDef> result = Maps.newHashMap();
 		for (NameDef f : scope.attrScopeNames().values()) {
-			if (f instanceof GlobalVarDef) {
-				GlobalVarDef g = (GlobalVarDef) f;
+			if (f instanceof AstElementWithModifier) {
+				AstElementWithModifier g = (AstElementWithModifier) f;
 				if (g.attrIsPublic() || g.attrIsPublicRead()) {
-					result.put(g.getName(), g);
+					result.put(f.getName(), f);
 				}
 			}
 		}

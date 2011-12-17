@@ -186,7 +186,7 @@ PackageOrGlobal = WPackage | CompilationUnit
 	
 TypeRef = TypeExpr | ExprNewObject
 
-NameDef = VarDef | ClassDef | ModuleDef | ModuleInstanciation
+NameDef = VarDef | ClassDef | ModuleDef | ModuleInstanciation | NativeType
 
 VisibilityModifier = 
 	  VisibilityPublic(WPos source) 

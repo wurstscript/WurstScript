@@ -150,6 +150,27 @@ public class PackageTests extends PscriptTest {
 				"endpackage");
 	}
 	
+	@Test
+	public void test_global_var() {
+		assertOk(false, 
+				"globals",
+				"	integer x = 4",
+				"endglobals",
+				"package B",
+				"	init",
+				"		int y = x + 1",
+				"endpackage");
+	}
+	
+	@Test
+	public void test_global_type() {
+		assertOk(false, 
+				"type unit extends handle",
+				"package B",
+				"	init",
+				"		unit u = null",
+				"endpackage");
+	}
 	
 	
 	
