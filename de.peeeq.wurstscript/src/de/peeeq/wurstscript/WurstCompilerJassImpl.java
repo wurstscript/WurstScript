@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import java_cup.runtime.Symbol;
@@ -40,7 +41,7 @@ import de.peeeq.wurstscript.validation.WurstValidator;
 public class WurstCompilerJassImpl implements WurstCompiler {
 
 	private List<File> files = Lists.newLinkedList();
-	private List<Reader> otherInputs = Lists.newLinkedList();
+	private Map<String, Reader> otherInputs = Maps.newHashMap();
 	private int parseErrors;
 	private JassProg prog;
 	private File outputMapFile;
@@ -49,6 +50,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	
 	public WurstCompilerJassImpl(WurstGui gui) {
 		this.gui = gui;
+		attr.init(gui);
 	}
 
 	@Override
@@ -94,8 +96,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 				compilationUnits.add(parseFile(file));
 			}
 		}
-		for (Reader in : otherInputs) {
-			compilationUnits.add(parse(in, "unknown"));
+		for (Entry<String, Reader> in : otherInputs.entrySet()) {
+			compilationUnits.add(parse(in.getValue(), in.getKey()));
 			
 		}
 		
@@ -106,9 +108,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			return;
 		}
 		
+		if (attr.getErrorCount() > 0) return;
 		
 		// merge the compilationUnits:
 		CompilationUnit merged = mergeCompilationUnits(compilationUnits);
+		
+		
 		
 		checkAndTranslate(merged);
 		gui.sendProgress("finished parsing", .9);
@@ -165,7 +170,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
 	private Map<String, File> libCache = null;
 	
-	private Map<String, File> getLibs() {
+	public Map<String, File> getLibs() {
 		if (libCache == null) {
 			libCache = Maps.newHashMap();
 			String[] libFolders = WurstConfig.get().getSetting("lib").split(";");
@@ -196,21 +201,22 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	private void checkAndTranslate(CompilationUnit root) {
 		gui.sendProgress("Checking Files", 0.2);
 		
-		// create new attributes instance:
-		attr.init(gui);
+		if (attr.getErrorCount() > 0) return;
 		
 		// handle syntactic sugar
 		removeSyntacticSugar(root);
 		
+		if (attr.getErrorCount() > 0) return;
+		
 		new ModuleExpander().expandModules(root);
+		
+		if (attr.getErrorCount() > 0) return;
 		
 		// validate the resource:
 		WurstValidator validator = new WurstValidator(root);
 		validator.validate();
 		
-		if (attr.getErrorCount() > 0) {
-			return;
-		}
+		if (attr.getErrorCount() > 0) return;
 		
 		
 		
@@ -379,8 +385,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		return prog;
 	}
 
-	public void loadStreams(Reader input) {
-		otherInputs.add(input);
+	public void loadReader(String name, Reader input) {
+		otherInputs.put(name, input);
 	}
 
 	

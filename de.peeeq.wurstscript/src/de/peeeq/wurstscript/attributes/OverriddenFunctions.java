@@ -19,7 +19,7 @@ public class OverriddenFunctions {
 		if (!f.attrIsOverride()) {
 			return Collections.emptyList();
 		}
-		String funcName = f.getSignature().getName();
+		String funcName = f.getName();
 		Collection<FunctionDefinition> result = Lists.newLinkedList();
 
 		ClassOrModule c = f.attrNearestClassOrModule();

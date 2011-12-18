@@ -327,6 +327,7 @@ public class Generator {
 			if (hasAttribute) {
 				sb.append("	private boolean attr_" + attr.attr + "_isCached = false;\n");
 				sb.append("	private " + attr.returns + " attr_" + attr.attr + "_cache;\n");
+				sb.append("/** " + attr.comment + "*/\n");
 				sb.append("	public " + attr.returns + " " + attr.attr + "() {\n");
 				sb.append("		if (!attr_" + attr.attr + "_isCached) {\n");
 				sb.append("			attr_" + attr.attr +"_cache = "+attr.implementedBy+"(this);\n");
@@ -662,10 +663,10 @@ public class Generator {
 	}
 
 	
-
 	private void createAttributeStubs(AstEntityDefinition c, StringBuilder sb) {
 		for (AttributeDef attr : prog.attrDefs) {
 			if (attr.typ.equals(c.getName())) {
+				sb.append("/** " + attr.comment + "*/\n");
 				sb.append("	public abstract " + attr.returns + " " + attr.attr + "();\n");
 			}
 		}

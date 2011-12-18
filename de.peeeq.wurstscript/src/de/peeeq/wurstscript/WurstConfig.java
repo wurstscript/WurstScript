@@ -91,11 +91,20 @@ public class WurstConfig {
 	}
 
 	
-	String getSetting(String key) {
+	public String getSetting(String key) {
 		if (!settings.containsKey(key)) {
 			throw new Error("Unknown setting: " + key);
 		}
 		return settings.get(key);
 	}
+	
+	public String setSetting(String key, String value) {
+		if (!settings.containsKey(key)) {
+			throw new Error("Unknown setting: " + key);
+		}
+		return settings.put(key, value);
+	}
+	
+	
 	
 }

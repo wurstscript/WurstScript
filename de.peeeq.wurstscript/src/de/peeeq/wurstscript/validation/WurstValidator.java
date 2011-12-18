@@ -38,6 +38,7 @@ import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.VisibilityModifier;
+import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.attributes.attr;
@@ -216,7 +217,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 
 	@Override
 	public void visit(ExtensionFuncDef func) {
-		checkFunctionName(func.getSignature());
+		checkFunctionName(func);
 		
 		
 		checkReturn(func);
@@ -238,8 +239,8 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 	
 
 	private void checkReturn(FunctionImplementation func) {
-		String functionName = func.getSignature().getName();
-		if (func.getSignature().getTyp() instanceof TypeExpr) {
+		String functionName = func.getName();
+		if (func.getTyp() instanceof TypeExpr) {
 			if (!func.getBody().attrDoesReturn()) {
 				attr.addError(func.getSource(), "Function " + functionName + " is missing a return statement.");
 			}
@@ -251,9 +252,9 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		visitedFunctions++;
 		attr.setProgress(null, ProgressHelper.getValidatorPercent(visitedFunctions, functionCount));
 
-		checkFunctionName(func.getSignature());
+		checkFunctionName(func);
 		
-		String functionName = func.getSignature().getName();
+		String functionName = func.getName();
 		if (func.attrIsAbstract()) {
 			if (func.getBody().size() > 0) {
 				attr.addError(func.getBody().get(0).getSource(), "The abstract function " + functionName
@@ -301,7 +302,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 			if (calledFunc.attrIsDynamicClassMember()) {
 				if (!stmtCall.attrIsDynamicContext()) {
 							attr.addError(stmtCall.getSource(), "Cannot call dynamic function " + funcName  +
-									" from static function " + nearestFunc.getSignature().getName());
+									" from static function " + nearestFunc.getName());
 				}
 			}
 		}
@@ -313,10 +314,10 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 				ExprFuncRef exprFuncRef = (ExprFuncRef) firstArg;
 				FunctionDefinition f = exprFuncRef.attrFuncDef();
 				if (f != null) {
-					if (f.getSignature().getParameters().size() > 0) {
+					if (f.getParameters().size() > 0) {
 						attr.addError(firstArg.getSource(), "Functions passed to Filter or Condition must have no parameters.");
 					}
-					if (!(f.getSignature().getTyp().attrTyp() instanceof PScriptTypeBool)) {
+					if (!(f.getTyp().attrTyp() instanceof PScriptTypeBool)) {
 						attr.addError(firstArg.getSource(), "Functions passed to Filter or Condition must return boolean.");
 					}
 				}
@@ -362,7 +363,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 			attr.addError(s.getSource(), "return statements can only be used inside functions");
 			return;
 		}
-		PscriptType returnType = func.getSignature().getTyp().attrTyp();
+		PscriptType returnType = func.getTyp().attrTyp();
 		if (s.getObj() instanceof Expr) {
 			Expr returned = (Expr) s.getObj();
 			if (returnType.isSubtypeOf(PScriptTypeVoid.instance())) {
@@ -391,7 +392,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		// check that there are no abstract functions in a class
 		for (FunctionDefinition f : functions.values()) {
 			if (f.attrIsAbstract()) {
-				attr.addError(classDef.getSource(), "The abstract method " + f.getSignature().getName()
+				attr.addError(classDef.getSource(), "The abstract method " + f.getName()
 						+ " must be implemented in class " + classDef.getName() + ".");
 			}
 		}
@@ -425,6 +426,13 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 	}
 
 	
+	
+	@Override
+	public void visit(WImport wImport) {
+		if (wImport.attrImportedPackage() == null) {
+			attr.addError(wImport.getSource(), "Could not find imported package " + wImport.getPackagename());
+		}
+	}
 
 	/**
 	 * check if the nameRef e is accessed correctly

@@ -426,10 +426,10 @@ public class AttrExprType {
 				if (f == null) {
 					return PScriptTypeUnknown.instance();
 				}
-				if (f.getSignature().getTyp() instanceof NoTypeExpr) {
+				if (f.getReturnTyp() instanceof NoTypeExpr) {
 					return PScriptTypeVoid.instance();
 				}
-				PscriptType typ = f.getSignature().getTyp().attrTyp();
+				PscriptType typ = f.getReturnTyp().attrTyp();
 				if (typ instanceof PscriptTypeModule) {
 					// example:
 					// module A 
@@ -459,10 +459,10 @@ public class AttrExprType {
 				if (f == null) {
 					return PScriptTypeUnknown.instance();
 				}
-				if (f.getSignature().getTyp() instanceof NoTypeExpr) {
+				if (f.getReturnTyp() instanceof NoTypeExpr) {
 					return PScriptTypeVoid.instance();
 				}
-				PscriptType typ = f.getSignature().getTyp().attrTyp();
+				PscriptType typ = f.getReturnTyp().attrTyp();
 				if (typ instanceof PscriptTypeModule) {
 					ClassOrModule classOrModule = term.attrNearestClassOrModule();
 					if (classOrModule != null) {

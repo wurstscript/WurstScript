@@ -52,7 +52,7 @@ public class AttrScopeFunctions {
 				for (WEntity e : term.getElements()) {
 					if (e instanceof NotExtensionFunction) {
 						NotExtensionFunction f = (NotExtensionFunction) e;
-						result.put(f.getSignature().getName(), f);
+						result.put(f.getName(), f);
 					}
 				}
 				return result;
@@ -82,7 +82,7 @@ public class AttrScopeFunctions {
 				for (TopLevelDeclaration e : term) {
 					if (e instanceof NotExtensionFunction) {
 						NotExtensionFunction f = (NotExtensionFunction) e;
-						result.put(f.getSignature().getName(), f);
+						result.put(f.getName(), f);
 					}
 				}
 				return result;
@@ -143,7 +143,7 @@ public class AttrScopeFunctions {
 //			if (f instanceof FuncDef) {
 //				FuncDef funcDef = (FuncDef) f;
 //				if (!funcDef.attrIsPrivate()) {
-//					result.put(funcDef.getSignature().getName(), funcDef);
+//					result.put(funcDef.getName(), funcDef);
 //				}
 //			}
 //		}
@@ -159,7 +159,7 @@ public class AttrScopeFunctions {
 //			if (f instanceof FuncDef) {
 //				FuncDef funcDef = (FuncDef) f;
 //				if (funcDef.attrIsPublic()) {
-//					result.put(funcDef.getSignature().getName(), funcDef);
+//					result.put(funcDef.getName(), funcDef);
 //				}
 //			}
 //		}
@@ -177,7 +177,7 @@ public class AttrScopeFunctions {
 		for (WEntity e : pack.getElements()) {
 			if (e instanceof ExtensionFuncDef) {
 				ExtensionFuncDef extensionFuncDef = (ExtensionFuncDef) e;
-				result.put(extensionFuncDef.getSignature().getName(), extensionFuncDef);
+				result.put(extensionFuncDef.getName(), extensionFuncDef);
 			}
 		}
 		return result;
@@ -196,7 +196,7 @@ public class AttrScopeFunctions {
 		for (TopLevelDeclaration t : c) {
 			if (t instanceof NotExtensionFunction) {
 				NotExtensionFunction f = (NotExtensionFunction) t;
-				result.put(f.getSignature().getName(), f);
+				result.put(f.getName(), f);
 			}
 		}
 		return result;

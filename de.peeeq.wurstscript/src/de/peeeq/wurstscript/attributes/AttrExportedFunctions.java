@@ -19,7 +19,7 @@ public class AttrExportedFunctions {
 			if (x instanceof NotExtensionFunction) {
 				NotExtensionFunction f = (NotExtensionFunction) x;
 				if (f.attrIsPublic()) {
-					result.put(f.getSignature().getName(), f);
+					result.put(f.getName(), f);
 				}
 				
 			}
@@ -33,7 +33,7 @@ public class AttrExportedFunctions {
 			if (e instanceof ExtensionFuncDef) {
 				ExtensionFuncDef ext = (ExtensionFuncDef) e;
 				if (ext.attrIsPublic()) {
-					result.put(ext.getSignature().getName(), ext);
+					result.put(ext.getName(), ext);
 				}
 			}
 		}

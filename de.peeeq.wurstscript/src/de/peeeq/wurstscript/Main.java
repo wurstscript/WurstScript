@@ -31,7 +31,8 @@ public class Main {
 	public static void main(String[] args) {
 		//		JOptionPane.showMessageDialog(null , "time to connect profiler ^^");
 		WLogger.info("Started compiler with args " + Utils.printSep(", ", args));
-
+		
+		WurstGui gui = null;
 		try {
 			RunArgs runArgs = new RunArgs(args);
 
@@ -41,7 +42,7 @@ public class Main {
 				return;
 			}
 
-			WurstGui gui;
+			
 			if (runArgs.isGui()) {
 				gui = new WurstGuiImpl();
 			} else {
@@ -151,7 +152,7 @@ public class Main {
 //			List<CompileError> errors = gui.getErrorList();
 //			Utils.saveToFile(errors, "lastErrors.data");
 
-			gui.sendFinished();
+			
 
 
 
@@ -165,6 +166,10 @@ public class Main {
 			System.exit(1);
 
 
+		} finally {
+			if (gui != null) {
+				gui.sendFinished();
+			}
 		}
 	}
 	

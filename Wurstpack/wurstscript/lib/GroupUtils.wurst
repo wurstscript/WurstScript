@@ -1,0 +1,6 @@
+package GroupUtils
+
+	public class Groups
+		static group TEMP_GROUP = CreateGroup()
+
+endpackage

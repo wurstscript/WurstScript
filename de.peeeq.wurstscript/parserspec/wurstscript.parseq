@@ -20,9 +20,9 @@ WEntity =
 	  TypeDef
 	| FuncDef
 	| GlobalVarDef
-	| ExtensionFuncDef(WPos source, Modifiers modifiers, TypeExpr extendedType, FuncSignature signature, WStatements body)
+	| ExtensionFuncDef(WPos source, Modifiers modifiers, TypeExpr extendedType, String name, WParameters parameters, OptTypeExpr returnTyp, WStatements body)
 	| InitBlock (WPos source, WStatements body)
-	| NativeFunc(WPos source, Modifiers modifiers, FuncSignature signature)
+	| NativeFunc(WPos source, Modifiers modifiers, String name, WParameters parameters, OptTypeExpr returnTyp)
 	| ModuleDef(WPos source, Modifiers modifiers, String name, ClassSlots slots)
 
 
@@ -57,13 +57,13 @@ GlobalVarDef(WPos source, Modifiers modifiers, boolean isConstant, OptTypeExpr t
 LocalVarDef(WPos source, boolean constant, OptTypeExpr typ, String name, OptExpr initialExpr) 
 
 	
-FuncDef(WPos source, Modifiers modifiers, FuncSignature signature, WStatements body)
+FuncDef(WPos source, Modifiers modifiers, String name, WParameters parameters, OptTypeExpr returnTyp, WStatements body)
 	
 
 
 ArraySizes * Expr
 	
-FuncSignature(WPos source, String name, WParameters parameters, OptTypeExpr typ)	
+FuncSignature(WPos source, String name, WParameters parameters, OptTypeExpr returnTyp)	
 
 WParameters * WParameter
 WParameter(WPos source, TypeExpr typ, String name)
@@ -186,7 +186,7 @@ PackageOrGlobal = WPackage | CompilationUnit
 	
 TypeRef = TypeExpr | ExprNewObject
 
-NameDef = VarDef | ClassDef | ModuleDef | ModuleInstanciation | NativeType
+NameDef = VarDef | TypeDef | ModuleDef | ModuleInstanciation | FunctionDefinition
 
 VisibilityModifier = 
 	  VisibilityPublic(WPos source) 
@@ -205,7 +205,7 @@ Modifier =
 	| ModConstant(WPos source)
 	
 
-AstElementWithModifier = TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition
+AstElementWithModifier = NameDef | TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition
 	
 ClassOrModule = ClassDef | ModuleDef	
 
@@ -234,16 +234,6 @@ WStatements.attrDoesReturn
 	implemented by de.peeeq.wurstscript.attributes.AttrDoesReturn.calculate
 
 
-	
-WPackage.attrExportedFunctions
-	returns java.util.Map<String, NotExtensionFunction>
-	implemented by de.peeeq.wurstscript.attributes.AttrExportedFunctions.calculate
-
-WPackage.attrExportedExtensionFunctions
-	returns com.google.common.collect.Multimap<String, ExtensionFuncDef>
-	implemented by de.peeeq.wurstscript.attributes.AttrExportedFunctions.calculateExportedExtensionFunctions
-
-
 OptTypeExpr.attrTyp
 	returns de.peeeq.wurstscript.types.PscriptType
 	implemented by de.peeeq.wurstscript.attributes.AttrTypeExprType.calculate
@@ -262,49 +252,29 @@ FunctionCall.attrImplicitParameter
 	returns OptExpr
 	implemented by de.peeeq.wurstscript.attributes.AttrImplicitParameter.getImplicitParameter
 
-
 NameRef.attrNameDef
 	returns NameDef
 	implemented by de.peeeq.wurstscript.attributes.AttrNameDef.calculate
 
-WScope.attrScopeNames
-	returns java.util.Map<String, NameDef>
-	implemented by de.peeeq.wurstscript.attributes.AttrScopeNames.calculate
+WPackage.attrExportedNames "get the exported names of a package"
+	returns  com.google.common.collect.Multimap<String, NameDef>
+	implemented by de.peeeq.wurstscript.attributes.Scopes.getExportedNames
 
-NamedScope.attrScopePackageNames
-	returns java.util.Map<String, NameDef>
-	implemented by de.peeeq.wurstscript.attributes.AttrScopeNames.calculatePackage
-	
-NamedScope.attrScopePublicNames
-	returns java.util.Map<String, NameDef>
-	implemented by de.peeeq.wurstscript.attributes.AttrScopeNames.calculatePublic
+WScope.attrDefinedNames "get the names defined in this scope"
+	returns com.google.common.collect.Multimap<String, NameDef>
+	implemented by de.peeeq.wurstscript.attributes.Scopes.getDefinedNames
 
-NamedScope.attrScopePublicReadNamess
-	returns java.util.Map<String, NameDef>
-	implemented by de.peeeq.wurstscript.attributes.AttrScopeNames.calculatePublicRead
+WScope.attrVisibleNamesPrivate ""
+	returns com.google.common.collect.Multimap<String, NameDef>
+	implemented by de.peeeq.wurstscript.attributes.Scopes.getVisibleNamesPrivate
 
+WScope.attrVisibleNamesProtected
+	returns com.google.common.collect.Multimap<String, NameDef>
+	implemented by de.peeeq.wurstscript.attributes.Scopes.getVisibleNamesProtected
 
-NamedScope.attrScopeFunctions
-	returns java.util.Map<String, NotExtensionFunction>
-	implemented by de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculate
-	
-CompilationUnit.attrScopeFunctions
-	returns java.util.Map<String, NotExtensionFunction>
-	implemented by de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculateForRoot
-
-NamedScope.attrScopePackageFunctions
-	returns java.util.Map<String, NotExtensionFunction>
-	implemented by de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculatePackage
-
-NamedScope.attrScopePublicFunctions
-	returns java.util.Map<String, NotExtensionFunction>
-	implemented by de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculatePublic
-
-
-WPackage.attrScopeExtensionFunctions
-	returns com.google.common.collect.Multimap<String, ExtensionFuncDef>
-	implemented by de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculateExtensionFunctions
-
+WScope.attrVisibleNamesPublic
+	returns com.google.common.collect.Multimap<String, NameDef>
+	implemented by de.peeeq.wurstscript.attributes.Scopes.getVisibleNamesPublic
 
 NameDef.attrTyp
 	returns de.peeeq.wurstscript.types.PscriptType 
@@ -332,6 +302,15 @@ AstElement.attrNearestNamedScope
 	returns NamedScope
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestNamedScope
 	
+AstElement.attrNearestScope
+	returns WScope
+	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestScope
+
+WScope.attrNextScope "returns the scope surrounding this scope"
+	returns WScope
+	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nextScope
+
+
 	
 AstElement.attrNearestClassDef
 	returns ClassDef
@@ -357,9 +336,7 @@ TypeRef.attrTypeDef
 
 
 
-WPackage.attrExportedNames
-	returns java.util.Map<String, NameDef>
-	implemented by de.peeeq.wurstscript.attributes.AttrExportedNames.calculate
+
 	
 
 AstElementWithModifier.attrIsPublic
@@ -424,7 +401,6 @@ CompilationUnit.attrPackages
 	returns java.util.Map<String, WPackage>
 	implemented by de.peeeq.wurstscript.attributes.AttrImportedPackage.getPackages
 	
-
-
-
-
+ModuleInstanciation.attrModuleOrigin
+	returns ModuleDef
+	implemented by de.peeeq.wurstscript.attributes.AttrModuleInstanciations.getModuleOrigin

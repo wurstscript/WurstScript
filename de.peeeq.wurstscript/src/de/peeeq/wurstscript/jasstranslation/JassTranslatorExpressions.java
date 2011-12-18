@@ -513,7 +513,7 @@ public class JassTranslatorExpressions {
 
 		});
 		// add normal parameters
-		for (WParameter p : call.getSignature().getParameters()) {
+		for (WParameter p : call.getParameters()) {
 			result.add(translator.translateType(p.attrTyp()));
 		}
 		return result;

@@ -1,8 +1,11 @@
 package de.peeeq.wurstscript.attributes;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
@@ -15,7 +18,9 @@ import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.FuncRef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
+import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.NotExtensionFunction;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
@@ -46,7 +51,7 @@ public class AttrFuncDef {
 			String funcName = node.getFuncName();
 			if (funcName.startsWith("InitTrig_") 
 					&& node.attrNearestFuncDef() != null
-					&& node.attrNearestFuncDef().getSignature().getName().equals("InitCustomTriggers")) {
+					&& node.attrNearestFuncDef().getName().equals("InitCustomTriggers")) {
 				// ignore missing InitTrig functions
 			} else {
 				attr.addError(node.getSource(), "Could not resolve reference to function " + funcName);
@@ -57,27 +62,20 @@ public class AttrFuncDef {
 
 
 
-	private static FunctionDefinition searchFunction(String funcName, AstElement node) {
+	private static FunctionDefinition searchFunction(String funcName, FuncRef node) {
 		if (node == null) {
 			return null;
 		}
-		NamedScope scope = node.attrNearestNamedScope();
-		if (scope == null) {
-			// no more named scope exists -> search in global scope
-			return searchGlobalScope(funcName, node);
+		
+		List<NotExtensionFunction> functions = NameResolution.searchTypedName(NotExtensionFunction.class, funcName, node);
+		if (functions.size() > 0) {
+			// TODO ambiguous function 
+			return functions.get(0);
+		} else {
+			return null;
 		}
-		Map<String, NotExtensionFunction> functions = scope.attrScopeFunctions();
-		if (functions.containsKey(funcName)) {
-			return functions.get(funcName);
-		}
-		// not found yet? -> search in parent scope
-		return searchFunction(funcName, scope.getParent());
 	}
 
-	private static FunctionDefinition searchGlobalScope(String funcName, AstElement node) {
-		CompilationUnit root = (CompilationUnit) Utils.getRoot(node);
-		return root.attrScopeFunctions().get(funcName);
-	}
 
 	public static  FunctionDefinition calculate(final ExprMemberMethod node) {
 		FunctionDefinition result = null;
@@ -94,13 +92,12 @@ public class AttrFuncDef {
 			PackageOrGlobal scope = node.attrNearestPackage();
 			if (scope instanceof WPackage) {
 				WPackage pack = (WPackage) scope;
-				Multimap<String, ExtensionFuncDef> functions = pack.attrScopeExtensionFunctions();
-				if (functions.containsKey(funcName)) {
-					result = selectExtensionFunction(left.attrTyp(), functions.get(funcName));
-				}
+				Collection<ExtensionFuncDef> functions = NameResolution.searchTypedNameInScope(ExtensionFuncDef.class, funcName, pack);
+				result = selectExtensionFunction(left.attrTyp(), functions);
 			}
 		}
 		if (result == null) {
+			System.out.println("not found");
 			attr.addError(node.getSource(), "The method " + funcName + " is undefined for receiver of type " + leftType);
 		}
 		return result;
