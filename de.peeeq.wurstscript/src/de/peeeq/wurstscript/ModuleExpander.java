@@ -61,7 +61,7 @@ public class ModuleExpander {
 				
 				toDelete.add(moduleUse);
 				// TODO rename?
-				ins.add(Ast.ModuleInstanciation(moduleUse.getSource().copy(), moduleUse.getModuleName(), usedModule.getSlots().copy()));
+				ins.add(Ast.ModuleInstanciation(moduleUse.getSource().copy(), Ast.Modifiers(), moduleUse.getModuleName(), usedModule.getSlots().copy()));
 			}
 		}
 		

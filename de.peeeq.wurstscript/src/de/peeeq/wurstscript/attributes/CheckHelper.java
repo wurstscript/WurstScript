@@ -24,8 +24,8 @@ public class CheckHelper {
 			attr.addError(f.getSource(), "Function " + funcName + " must be static.");
 		}
 		// check returntype
-		PscriptType f_type = f.getTyp().attrTyp();
-		PscriptType of_type = of.getTyp().attrTyp();
+		PscriptType f_type = f.getReturnTyp().attrTyp();
+		PscriptType of_type = of.getReturnTyp().attrTyp();
 		if (! f_type.isSubtypeOf(of_type)) { 
 			attr.addError(f.getSource(), "Cannot override function " + funcName + ": The return type is " + f_type + 
 					" but it should be " + of_type + ".");

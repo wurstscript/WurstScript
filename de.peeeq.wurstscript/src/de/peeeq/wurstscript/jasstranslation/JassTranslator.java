@@ -319,7 +319,7 @@ public class JassTranslator {
 
 	private void translateExtensionFuncDef(ExtensionFuncDef funcDef) {
 		JassFunction f = manager.getJassFunctionFor(funcDef);
-		f.setReturnType(translateType(funcDef.getTyp()));
+		f.setReturnType(translateType(funcDef.getReturnTyp()));
 
 		// add implicit parameter 'this'
 		f.getParams().add(JassAst.JassSimpleVar(translateType(funcDef.getExtendedType().attrTyp()), "this"));
@@ -342,7 +342,7 @@ public class JassTranslator {
 			prog.attrIgnoredFunctions().add(f);
 		}
 
-		f.setReturnType(translateType(funcDef.getTyp()));
+		f.setReturnType(translateType(funcDef.getReturnTyp()));
 		if (isMethod && !funcDef.attrIsStatic()) {
 			// methods have an additional implicit parameter
 			f.getParams().add(jassThisVar());

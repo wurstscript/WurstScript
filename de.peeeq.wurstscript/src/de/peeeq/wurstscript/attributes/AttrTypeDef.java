@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
+import java.util.List;
+
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.NameDef;
@@ -56,24 +58,15 @@ public class AttrTypeDef {
 			return null; // native types have no definitionPos
 		}
 
-
-		// find nearest packageDef
-		PackageOrGlobal scope =  node.attrNearestPackage();
-		if (scope instanceof WPackage) {
-			WPackage pack = (WPackage) scope;
-			NameDef elem = pack.attrScopeNames().get(typeName);
-			if (elem instanceof TypeDef) {
-				return (TypeDef) elem;
-			}
+		List<TypeDef> typeDefs = NameResolution.searchTypedName(TypeDef.class, typeName, node);
+		if (typeDefs.size() == 0) {
+			attr.addError(node.getSource(), "Could not find TypeDef for " + typeName);
+			return null;
+		} else {
+			return typeDefs.get(0);
 		}
-		// search global scope:
-		CompilationUnit cu = (CompilationUnit) Utils.getRoot(node);
-		NameDef elem = cu.attrScopeNames().get(typeName); 
-		if (elem instanceof TypeDef) {
-			return (TypeDef) elem;
-		}
-		attr.addError(node.getSource(), "Could not find TypeDef for " + typeName);		
-		return null;		
+		// TODO ambiguous type decls
+				
 	}
 
 

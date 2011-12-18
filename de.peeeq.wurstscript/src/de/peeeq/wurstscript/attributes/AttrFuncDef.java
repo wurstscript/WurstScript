@@ -45,6 +45,7 @@ public class AttrFuncDef {
 	}
 
 	public static  FunctionDefinition calculate(final ExprFunctionCall node) {
+		System.out.println("calculate " + node.getFuncName());
 		FunctionDefinition result = searchFunction(node.getFuncName(), node);
 
 		if (result == null) {
@@ -84,7 +85,8 @@ public class AttrFuncDef {
 		String funcName = node.getFuncName();
 		if (leftType instanceof PscriptTypeNamedScope) {
 			PscriptTypeNamedScope sr = (PscriptTypeNamedScope) leftType;
-			result = getFunctionFromNamedScopeRef(left, funcName, sr);
+			result = NameResolution.getTypedNameFromNamedScope(FunctionDefinition.class, left, funcName, sr);
+			// TODO get real implementation funcDef (wrt override)
 		}
 
 		// check extension methods:
@@ -92,7 +94,7 @@ public class AttrFuncDef {
 			PackageOrGlobal scope = node.attrNearestPackage();
 			if (scope instanceof WPackage) {
 				WPackage pack = (WPackage) scope;
-				Collection<ExtensionFuncDef> functions = NameResolution.searchTypedNameInScope(ExtensionFuncDef.class, funcName, pack);
+				Collection<ExtensionFuncDef> functions = NameResolution.searchTypedName(ExtensionFuncDef.class, funcName, pack);
 				result = selectExtensionFunction(left.attrTyp(), functions);
 			}
 		}
@@ -102,49 +104,6 @@ public class AttrFuncDef {
 		}
 		return result;
 	}
-
-	private static FunctionDefinition getFunctionFromNamedScopeRef(Expr context, String funcName, PscriptTypeNamedScope sr) {
-		if (sr.isStaticRef() && (sr.getDef() instanceof ClassOrModuleOrModuleInstanciation)) {
-			// if we have a static reference to a class, module etc. we have to ignore
-			// the overriding functions and thus cannot use the normal scope attributes...
-			ClassOrModuleOrModuleInstanciation c = (ClassOrModuleOrModuleInstanciation) sr.getDef();
-			FuncDef func = c.attrAllFunctions().get(funcName);
-			if (isSameClass(context, sr)) {
-				// no problem
-			} else if (isSamePackage(context, sr)) {
-				if (func.attrIsPrivate()) {
-					attr.addError(context.getSource(), "Function " + funcName + " is private.");
-				}
-			} else {
-				if (func.attrIsPrivate() || func.attrIsProtected()) {
-					attr.addError(context.getSource(), "Function " + funcName + " is protected. It cannot be accessed from other packages.");
-				}
-			}
-			return func;
-		} else { // dynamic ref
-			Map<String, NotExtensionFunction> functions;
-			if (isSameClass(context, sr)) {
-				functions = sr.getDef().attrScopeFunctions();
-			} else if (isSamePackage(context, sr)) {
-				functions = sr.getDef().attrScopePackageFunctions();
-			} else {
-				// different package
-				functions = sr.getDef().attrScopePublicFunctions();
-			}
-			return functions.get(funcName);
-		}
-	}
-
-	
-
-	private static boolean isSamePackage(AstElement context, PscriptTypeNamedScope sr) {
-		return sr.getDef().attrNearestPackage() == context.attrNearestPackage();
-	}
-
-	private static boolean isSameClass(AstElement context, PscriptTypeNamedScope sr) {
-		return sr.getDef() == context.attrNearestNamedScope();
-	}
-
 
 	protected static FunctionDefinition selectExtensionFunction(PscriptType receiverTyp, Collection<ExtensionFuncDef> collection) {
 		FunctionDefinition result = null;

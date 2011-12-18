@@ -221,13 +221,13 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		
 		
 		checkReturn(func);
-		UninitializedVars.checkFunc(func.attrScopeNames().values(), func.getBody());
+		UninitializedVars.checkFunc(func.attrDefinedNames().values(), func.getBody());
 	}
 
-	private void checkFunctionName(FuncSignature signature) {
-		if (!Utils.isJassCode(signature)) {
-			if (Character.isUpperCase(signature.getName().charAt(0))) {
-				attr.addError(signature.getSource(), "Function names must start with an lower case character.");
+	private void checkFunctionName(FunctionDefinition f) {
+		if (!Utils.isJassCode(f)) {
+			if (Character.isUpperCase(f.getName().charAt(0))) {
+				attr.addError(f.getSource(), "Function names must start with an lower case character.");
 			}
 		}
 	}
@@ -240,7 +240,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 
 	private void checkReturn(FunctionImplementation func) {
 		String functionName = func.getName();
-		if (func.getTyp() instanceof TypeExpr) {
+		if (func.getReturnTyp() instanceof TypeExpr) {
 			if (!func.getBody().attrDoesReturn()) {
 				attr.addError(func.getSource(), "Function " + functionName + " is missing a return statement.");
 			}
@@ -262,7 +262,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 			}
 		} else { // not abstract
 			checkReturn(func);
-			UninitializedVars.checkFunc(func.attrScopeNames().values(), func.getBody());
+			UninitializedVars.checkFunc(func.attrDefinedNames().values(), func.getBody());
 		}
 
 		if (func.attrNearestClassOrModule() instanceof ModuleDef) {
@@ -276,17 +276,17 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 	
 	@Override
 	public void visit(InitBlock initBlock) {
-		UninitializedVars.checkFunc(initBlock.attrScopeNames().values(), initBlock.getBody());
+		UninitializedVars.checkFunc(initBlock.attrDefinedNames().values(), initBlock.getBody());
 	}
 	
 	@Override
 	public void visit(OnDestroyDef onDestroyDef) {
-		UninitializedVars.checkFunc(onDestroyDef.attrScopeNames().values(), onDestroyDef.getBody());
+		UninitializedVars.checkFunc(onDestroyDef.attrDefinedNames().values(), onDestroyDef.getBody());
 	}
 	
 	@Override
 	public void visit(ConstructorDef constructorDef) {
-		UninitializedVars.checkFunc(constructorDef.attrScopeNames().values(), constructorDef.getBody());
+		UninitializedVars.checkFunc(constructorDef.attrDefinedNames().values(), constructorDef.getBody());
 	}
 
 	@Override
@@ -317,7 +317,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 					if (f.getParameters().size() > 0) {
 						attr.addError(firstArg.getSource(), "Functions passed to Filter or Condition must have no parameters.");
 					}
-					if (!(f.getTyp().attrTyp() instanceof PScriptTypeBool)) {
+					if (!(f.getReturnTyp().attrTyp() instanceof PScriptTypeBool)) {
 						attr.addError(firstArg.getSource(), "Functions passed to Filter or Condition must return boolean.");
 					}
 				}
@@ -363,7 +363,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 			attr.addError(s.getSource(), "return statements can only be used inside functions");
 			return;
 		}
-		PscriptType returnType = func.getTyp().attrTyp();
+		PscriptType returnType = func.getReturnTyp().attrTyp();
 		if (s.getObj() instanceof Expr) {
 			Expr returned = (Expr) s.getObj();
 			if (returnType.isSubtypeOf(PScriptTypeVoid.instance())) {

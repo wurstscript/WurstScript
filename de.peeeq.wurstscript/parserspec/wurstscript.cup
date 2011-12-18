@@ -197,13 +197,13 @@ Entity ::=
 	| INIT:x NL INDENT Statements:body UNINDENT
 		{: RESULT = Ast.InitBlock(pos(xleft, xright), body); :}
 	| NATIVE:x FuncSignature:sig NL
-		{: RESULT = Ast.NativeFunc(pos(xleft, xright), Ast.Modifiers(), sig); :}
+		{: RESULT = Ast.NativeFunc(pos(xleft, xright), Ast.Modifiers(), sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy()); :}
 	| ClassDef:x
 		{: RESULT = x; :}
 	| ModuleDef:x
 		{: RESULT = x; :}
 	| Modifiers:mod FUNCTION:x TypeExpr:t DOT FuncSignature:sig NL INDENT Statements:body UNINDENT
-		{: RESULT = Ast.ExtensionFuncDef(pos(xleft, xright), mod, t, sig, body); :}
+		{: RESULT = Ast.ExtensionFuncDef(pos(xleft, xright), mod, t, sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body); :}
 ;		
 
 ClassDef ::=
@@ -238,9 +238,9 @@ ClassSlot ::=
 
 FuncDef ::=
 	  Modifiers:mod FUNCTION:x FuncSignature:sig NL INDENT Statements:body UNINDENT
-		{: RESULT = Ast.FuncDef(pos(xleft, xright), mod, sig, body); :}
+		{: RESULT = Ast.FuncDef(pos(xleft, xright), mod, sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body); :}
 	| Modifiers:mod FUNCTION:x FuncSignature:sig NL
-		{: RESULT = Ast.FuncDef(pos(xleft, xright), mod, sig, Ast.WStatements()); :}
+		{: RESULT = Ast.FuncDef(pos(xleft, xright), mod, sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), Ast.WStatements()); :}
 ;
 
 Modifiers ::=
@@ -292,7 +292,7 @@ OtherParameters ::=
 
 Parameter ::=
 	TypeExpr:typ IDENTIFIER:name
-		{: RESULT = Ast.WParameter(pos(typleft, typright), typ, name); :}
+		{: RESULT = Ast.WParameter(pos(typleft, typright), Ast.Modifiers(), typ, name); :}
 ;
 
 TypeExpr ::=
@@ -314,9 +314,9 @@ ArraySizes ::=
 */
 VarDef ::=
 	  Modifiers:mod TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = Ast.GlobalVarDef(pos(typleft, typright), mod, false, typ, name, i); :}
+		{: RESULT = Ast.GlobalVarDef(pos(typleft, typright), mod, typ, name, i); :}
 	| Modifiers:mod TypeExpr:typ IDENTIFIER:name NL
-		{: RESULT = Ast.GlobalVarDef(pos(typleft, typright), mod, false, typ, name, Ast.NoExpr()); :}
+		{: RESULT = Ast.GlobalVarDef(pos(typleft, typright), mod, typ, name, Ast.NoExpr()); :}
 ;
 
 Statements ::=
@@ -380,18 +380,18 @@ StmtWhile ::=
 
 LocalVarDef ::=
 	VAL:x IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = Ast.LocalVarDef(pos(xleft, xright), true, Ast.NoTypeExpr(), name, i); :}
+		{: RESULT = Ast.LocalVarDef(pos(xleft, xright), Ast.Modifiers(Ast.ModConstant(pos(xleft, xright))), Ast.NoTypeExpr(), name, i); :}
 	| VAL:x TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = Ast.LocalVarDef(pos(xleft, xright), true, typ, name, i); :}
+		{: RESULT = Ast.LocalVarDef(pos(xleft, xright), Ast.Modifiers(Ast.ModConstant(pos(xleft, xright))), typ, name, i); :}
 	| TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = Ast.LocalVarDef(pos(typleft, typright), false, typ, name, i); :}
+		{: RESULT = Ast.LocalVarDef(pos(typleft, typright), Ast.Modifiers(), typ, name, i); :}
 	| TypeExpr:typ IDENTIFIER:name NL
-		{: RESULT = Ast.LocalVarDef(pos(typleft, typright), false, typ, name, Ast.NoExpr()); :}
+		{: RESULT = Ast.LocalVarDef(pos(typleft, typright), Ast.Modifiers(), typ, name, Ast.NoExpr()); :}
 ;
 
 LocalVarDefInline ::=
 	TypeExpr:typ IDENTIFIER:name
-		{: RESULT = Ast.LocalVarDef(pos(typleft, typright), false, typ, name, Ast.NoExpr()); :}
+		{: RESULT = Ast.LocalVarDef(pos(typleft, typright), Ast.Modifiers(), typ, name, Ast.NoExpr()); :}
 ;
 
 StmtSet ::= 
@@ -637,25 +637,25 @@ JassGlobalDecls ::=
 
 JassGlobalDecl ::=
 	CONSTANT:x TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = Ast.GlobalVarDef(pos(xleft, xright), Ast.Modifiers(Ast.ModConstant(pos(xleft, xright))), true, typ, name, i); :}
+		{: RESULT = Ast.GlobalVarDef(pos(xleft, xright), Ast.Modifiers(Ast.ModConstant(pos(xleft, xright))), typ, name, i); :}
 	| TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = Ast.GlobalVarDef(typ.getSource().copy(), Ast.Modifiers(), false, typ, name, i); :}
+		{: RESULT = Ast.GlobalVarDef(typ.getSource().copy(), Ast.Modifiers(), typ, name, i); :}
 	| TypeExpr:typ IDENTIFIER:name NL
-		{: RESULT = Ast.GlobalVarDef(typ.getSource().copy(), Ast.Modifiers(), false, typ, name, Ast.NoExpr()); :}
+		{: RESULT = Ast.GlobalVarDef(typ.getSource().copy(), Ast.Modifiers(), typ, name, Ast.NoExpr()); :}
 ;
 
 JassNativeDecl ::=
 	NATIVE:x JassFuncSignature:sig NL
-		{: RESULT = Ast.NativeFunc(pos(xleft, xright), Ast.Modifiers(), sig); :}
+		{: RESULT = Ast.NativeFunc(pos(xleft, xright), Ast.Modifiers(), sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy()); :}
 	| CONSTANT:x NATIVE JassFuncSignature:sig NL
-		{: RESULT = Ast.NativeFunc(pos(xleft, xright), Ast.Modifiers(), sig); :}
+		{: RESULT = Ast.NativeFunc(pos(xleft, xright), Ast.Modifiers(), sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy()); :}
 ;
 
 JassFuncDef ::=
 	FUNCTION:x JassFuncSignature:sig NL JassLocals:body1 JassStatements:body2 ENDFUNCTION NL
 		{: 
 			body1.addAll(body2.removeAll());
-			RESULT = Ast.FuncDef(pos(xleft, xright), Ast.Modifiers(), sig, body1); 
+			RESULT = Ast.FuncDef(pos(xleft, xright), Ast.Modifiers(), sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body1); 
 		:}
 ;
 
@@ -683,9 +683,9 @@ JassLocals ::=
 
 JassLocal ::=
 	  LOCAL:x TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = Ast.LocalVarDef(pos(xleft, xright), false, typ, name, i); :}
+		{: RESULT = Ast.LocalVarDef(pos(xleft, xright), Ast.Modifiers(), typ, name, i); :}
 	| LOCAL:x TypeExpr:typ IDENTIFIER:name NL
-		{: RESULT = Ast.LocalVarDef(pos(xleft, xright), false, typ, name, Ast.NoExpr()); :}
+		{: RESULT = Ast.LocalVarDef(pos(xleft, xright), Ast.Modifiers(), typ, name, Ast.NoExpr()); :}
 ;
 
 JassStatements ::=

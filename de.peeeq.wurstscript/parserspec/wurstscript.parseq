@@ -45,7 +45,7 @@ ClassSlot =
 	  ConstructorDef(WPos source, Modifiers modifiers, WParameters params, WStatements body)
 	| OnDestroyDef(WPos source, WStatements body)
 	| ModuleUse(WPos source, String moduleName)
-	| ModuleInstanciation(WPos source, String name, ClassSlots slots) 
+	| ModuleInstanciation(WPos source, Modifiers modifiers, String name, ClassSlots slots) 
 	| ClassMember
 	
 ClassMember = 
@@ -53,8 +53,8 @@ ClassMember =
 	| FuncDef
 
 
-GlobalVarDef(WPos source, Modifiers modifiers, boolean isConstant, OptTypeExpr typ, String name, OptExpr initialExpr)
-LocalVarDef(WPos source, boolean constant, OptTypeExpr typ, String name, OptExpr initialExpr) 
+GlobalVarDef(WPos source, Modifiers modifiers, OptTypeExpr typ, String name, OptExpr initialExpr)
+LocalVarDef(WPos source, Modifiers modifiers, OptTypeExpr typ, String name, OptExpr initialExpr) 
 
 	
 FuncDef(WPos source, Modifiers modifiers, String name, WParameters parameters, OptTypeExpr returnTyp, WStatements body)
@@ -66,7 +66,7 @@ ArraySizes * Expr
 FuncSignature(WPos source, String name, WParameters parameters, OptTypeExpr returnTyp)	
 
 WParameters * WParameter
-WParameter(WPos source, TypeExpr typ, String name)
+WParameter(WPos source, Modifiers modifiers, TypeExpr typ, String name)
 	
 WStatements * WStatement
 	
@@ -173,6 +173,8 @@ NotExtensionFunction = NativeFunc | FuncDef
 FunctionDefinition = NotExtensionFunction | ExtensionFuncDef
 	
 FunctionImplementation = FuncDef | ExtensionFuncDef
+
+AstElementWithBody = FunctionImplementation | InitBlock | ConstructorDef | OnDestroyDef
 
 WScope = 
 	  NamedScope 
@@ -404,3 +406,8 @@ CompilationUnit.attrPackages
 ModuleInstanciation.attrModuleOrigin
 	returns ModuleDef
 	implemented by de.peeeq.wurstscript.attributes.AttrModuleInstanciations.getModuleOrigin
+	
+	
+AstElement.attrSource
+	returns WPos
+	implemented by de.peeeq.wurstscript.attributes.AttrPos.getPos

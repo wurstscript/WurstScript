@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.attributes;
 
+import java.util.List;
 import java.util.Map;
 
 import de.peeeq.wurstscript.ast.AstElement;
@@ -60,6 +61,10 @@ public class AttrNameDef {
 		return result;
 	}
 
+	protected static NameDef searchNameInScope(String varName, NameRef node) {
+		return NameResolution.searchTypedNameGetOne(NameDef.class, varName, node);
+	}
+
 	private static boolean isWriteAccess(final NameRef node) {
 		boolean writeAccess1 = false;
 		if (node.getParent() instanceof StmtSet) {
@@ -72,24 +77,18 @@ public class AttrNameDef {
 		return writeAccess;
 	}
 
-	private static NameDef searchNameInScope(String name, AstElement node) {
-		WScope scope = Scoping.getNearestScope(node);
-		while (scope != null) {
-			Map<String, NameDef> vars = scope.attrScopeNames();
-			if (vars.containsKey(name)) {
-				return vars.get(name);
-			}
-			scope = Scoping.getNearestScope(scope);
-		}
-		return null;
-	}
-
 	private static NameDef memberVarCase(Expr left, String varName, boolean writeAccess, Expr node) {
 		
 		PscriptType leftType = left.attrTyp();
 		if (leftType instanceof PscriptTypeNamedScope) {
 			PscriptTypeNamedScope ns = (PscriptTypeNamedScope) leftType;
-			return getNameInNamedScope(left, ns.getDef(), varName, writeAccess);
+			List<NameDef> names = NameResolution.searchTypedName(NameDef.class, varName, ns.getDef());
+			if (names.size() == 0) {
+				attr.addError(node.getSource(), "Variable " + varName + " not found.");
+				return null;
+			} else {
+				return names.get(0);
+			}
 		} else {
 			attr.addError(node.getSource(), "Cannot acces attribute " + varName + " because " + leftType
 					+ " is not a class-type.");
@@ -98,22 +97,5 @@ public class AttrNameDef {
 
 	}
 
-	private static NameDef getNameInNamedScope(Expr access, NamedScope scope, final String varName, final boolean writeAccess) {
-		Map<String, NameDef> classDefScope;
-		if (scope == access.attrNearestClassDef()) {
-			// same class
-			classDefScope = scope.attrScopeNames();
-		} else if (scope.attrNearestPackage() == access.attrNearestPackage()) {
-			// same package
-			classDefScope = scope.attrScopePackageNames();
-		} else {
-			// different package
-			if (writeAccess) {
-				classDefScope = scope.attrScopePublicNames();
-			} else {
-				classDefScope = scope.attrScopePublicReadNamess();
-			}
-		}
-		return classDefScope.get(varName);
-	}
+	
 }
