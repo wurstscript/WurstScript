@@ -98,12 +98,12 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 	public void visit(StmtSet s) {
 		super.visit(s);
 
-		PscriptType leftType = s.getLeft().attrTyp();
+		PscriptType leftType = s.getUpdatedExpr().attrTyp();
 		PscriptType rightType = s.getRight().attrTyp();
 
 		checkAssignment(Utils.isJassCode(s), s.getSource(), leftType, rightType);
 		
-		checkIfAssigningToConstant(s.getLeft());
+		checkIfAssigningToConstant(s.getUpdatedExpr());
 		
 		
 
@@ -364,8 +364,8 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 			return;
 		}
 		PscriptType returnType = func.getReturnTyp().attrTyp();
-		if (s.getObj() instanceof Expr) {
-			Expr returned = (Expr) s.getObj();
+		if (s.getReturnedObj() instanceof Expr) {
+			Expr returned = (Expr) s.getReturnedObj();
 			if (returnType.isSubtypeOf(PScriptTypeVoid.instance())) {
 				attr.addError(s.getSource(), "Cannot return a value from a function which returns nothing");
 			} else {
@@ -414,7 +414,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 
 	@Override
 	public void visit(StmtDestroy stmtDestroy) {
-		PscriptType typ = stmtDestroy.getObj().attrTyp();
+		PscriptType typ = stmtDestroy.getDestroyedObj().attrTyp();
 		if (!(typ instanceof PscriptTypeModule || typ instanceof PscriptTypeClass)) {
 			attr.addError(stmtDestroy.getSource(), "Cannot destroy objects of type " + typ);
 		}

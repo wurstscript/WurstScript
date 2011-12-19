@@ -492,7 +492,7 @@ public class JassTranslator {
 
 	private void translateNativeType(NativeType nativeType) {
 		// nothing to translate
-		PscriptType superTyp = nativeType.getTyp().attrTyp();
+		PscriptType superTyp = nativeType.getOptTyp().attrTyp();
 		if (superTyp.isSubtypeOf(PScriptTypeHandle.instance())) {
 			handleSubTypes.add(nativeType.getName());
 		}
@@ -709,7 +709,7 @@ public class JassTranslator {
 
 		f.setReturnType("integer");
 
-		for (WParameter param : constructorDef.getParams()) {
+		for (WParameter param : constructorDef.getParameters()) {
 			f.getParams().add(translateParam(param));
 		}
 

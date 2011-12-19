@@ -78,11 +78,11 @@ public class UninitializedVars {
 
 				@Override
 				public void case_StmtSet(StmtSet stmtSet) {
-					ExprAssignable left = stmtSet.getLeft();
+					ExprAssignable left = stmtSet.getUpdatedExpr();
 					checkExpr(stmtSet.getRight(), uninitializedVars);
 					if (left instanceof ExprVarAccess) {
 						ExprVarAccess exprVarAccess = (ExprVarAccess) left;
-						if (stmtSet.getOp() instanceof OpUpdateAssign) {
+						if (stmtSet.getOpAssign() instanceof OpUpdateAssign) {
 							checkExpr(left, uninitializedVars);
 						}
 						uninitializedVars.remove(exprVarAccess.attrNameDef());
@@ -93,7 +93,7 @@ public class UninitializedVars {
 
 				@Override
 				public void case_StmtReturn(StmtReturn stmtReturn) {
-					checkExpr(stmtReturn.getObj(), uninitializedVars);
+					checkExpr(stmtReturn.getReturnedObj(), uninitializedVars);
 				}
 
 				@Override
@@ -131,7 +131,7 @@ public class UninitializedVars {
 
 				@Override
 				public void case_StmtDestroy(StmtDestroy stmtDestroy) {
-					checkExpr(stmtDestroy.getObj(), uninitializedVars);
+					checkExpr(stmtDestroy.getDestroyedObj(), uninitializedVars);
 				}
 
 				@Override

@@ -109,7 +109,7 @@ public class JassTranslatorStatements {
 			@Override
 			public void case_StmtSet(StmtSet stmtSet) {
 				final ExprTranslationResult right = translator.translateExpr(f, stmtSet.getRight());
-				final JassOpBinary binaryOp = stmtSet.getOp().match(new OpAssignment.Matcher<JassOpBinary>() {
+				final JassOpBinary binaryOp = stmtSet.getOpAssign().match(new OpAssignment.Matcher<JassOpBinary>() {
 
 					@Override
 					public JassOpBinary case_OpMinusAssign(OpMinusAssign opMinusAssign) {
@@ -133,7 +133,7 @@ public class JassTranslatorStatements {
 				});
 
 
-				stmtSet.getLeft().match(new ExprAssignable.MatcherVoid() {
+				stmtSet.getUpdatedExpr().match(new ExprAssignable.MatcherVoid() {
 
 					@Override
 					public void case_ExprMemberVar(ExprMemberVar exprMemberVar) {
@@ -225,14 +225,14 @@ public class JassTranslatorStatements {
 
 			@Override
 			public void case_StmtDestroy(StmtDestroy stmtDestroy) {
-				PscriptType typ = stmtDestroy.getObj().attrTyp();
+				PscriptType typ = stmtDestroy.getDestroyedObj().attrTyp();
 				if (typ instanceof PscriptTypeClass) {
 					PscriptTypeClass classType = (PscriptTypeClass) typ;
 					ClassDef classDef = classType.getClassDef();
-					callDestroyFunc(classDef, stmtDestroy.getObj());
+					callDestroyFunc(classDef, stmtDestroy.getDestroyedObj());
 				} else if (typ instanceof PscriptTypeModuleInstanciation) {
 					ClassDef classDef = translator.getClassDef((PscriptTypeModuleInstanciation) typ);
-					callDestroyFunc(classDef, stmtDestroy.getObj());
+					callDestroyFunc(classDef, stmtDestroy.getDestroyedObj());
 				} else {
 					throw new Error("cannot destroy object of type " + typ);
 				}
@@ -282,8 +282,8 @@ public class JassTranslatorStatements {
 
 			@Override
 			public void case_StmtReturn(StmtReturn stmtReturn) {
-				if (stmtReturn.getObj() instanceof Expr) {
-					Expr expr = (Expr) stmtReturn.getObj();
+				if (stmtReturn.getReturnedObj() instanceof Expr) {
+					Expr expr = (Expr) stmtReturn.getReturnedObj();
 					ExprTranslationResult e = translator.translateExpr(f, expr);
 					result.addAll(e.getStatements());
 
@@ -366,7 +366,7 @@ public class JassTranslatorStatements {
 
 			@Override
 			public void case_StmtForRange(StmtForRange stmtForRange) {
-				JassVar loopVar = manager.getJassVarFor(stmtForRange.getLoopVar(), translator.translateType(stmtForRange.getLoopVar().getTyp()), false);
+				JassVar loopVar = manager.getJassVarFor(stmtForRange.getLoopVar(), translator.translateType(stmtForRange.getLoopVar().getOptTyp()), false);
 				f.getLocals().add(loopVar);
 
 				ExprTranslationResult fromExpr = translator.translateExpr(f, stmtForRange.getFrom());

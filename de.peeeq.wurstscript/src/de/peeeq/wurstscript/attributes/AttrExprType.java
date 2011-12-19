@@ -380,7 +380,7 @@ public class AttrExprType {
 			@Override
 			public PscriptType case_ExprUnary(final ExprUnary term)  {
 				final PscriptType rightType = term.getRight().attrTyp();
-				return term.getOp().match(new OpUnary.Matcher<PscriptType>() {
+				return term.getOpU().match(new OpUnary.Matcher<PscriptType>() {
 
 					@Override
 					public PscriptType case_OpNot(OpNot op)  {

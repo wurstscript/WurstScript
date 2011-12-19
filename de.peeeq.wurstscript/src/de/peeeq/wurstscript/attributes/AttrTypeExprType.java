@@ -94,11 +94,11 @@ public class AttrTypeExprType {
 					// native type
 					return typ;
 				}
-				if (term.getTyp() instanceof NoTypeExpr) {
+				if (term.getOptTyp() instanceof NoTypeExpr) {
 					attr.addError(term.getSource(), "Unknown base type: " + term.getName());
 					return PScriptTypeUnknown.instance();
 				}
-				PscriptType superType = ((TypeExpr) term.getTyp()).attrTyp();
+				PscriptType superType = ((TypeExpr) term.getOptTyp()).attrTyp();
 				return PscriptNativeType.instance(typename, superType);
 			}
 

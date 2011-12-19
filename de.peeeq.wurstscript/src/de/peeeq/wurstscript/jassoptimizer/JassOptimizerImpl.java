@@ -139,7 +139,7 @@ public class JassOptimizerImpl implements JassOptimizer {
 					JassExpr argument = list.get(0);
 					usedFunctions.add(new StringExpressionPattern(argument));
 					if ( argument instanceof JassExprStringVal ){
-						String stringName = ((JassExprStringVal) argument).getVal();						
+						String stringName = ((JassExprStringVal) argument).getValS();						
 						System.out.println(stringName + " used in EF");
 					}					
 				}else if ( funcname.equals( "TriggerRegisterVariableEvent")){
@@ -147,7 +147,7 @@ public class JassOptimizerImpl implements JassOptimizer {
 					JassExpr argument = list.get(1);
 					usedFunctions.add(new StringExpressionPattern(argument));
 					if ( argument instanceof JassExprStringVal ){
-						String stringName = ((JassExprStringVal) argument).getVal();						
+						String stringName = ((JassExprStringVal) argument).getValS();						
 						System.out.println(stringName + " is USED IN TRVE <<<<<<<<<<<<<<<<");
 					}
 				}
@@ -166,16 +166,16 @@ public class JassOptimizerImpl implements JassOptimizer {
 					JassExprlist list = jassCall.getArguments();
 					JassExpr argument = list.get(0);
 					if ( argument instanceof JassExprStringVal ){
-						String stringName = ((JassExprStringVal) argument).getVal();
-						((JassExprStringVal) argument).setVal(replacements.get(stringName));
+						String stringName = ((JassExprStringVal) argument).getValS();
+						((JassExprStringVal) argument).setValS(replacements.get(stringName));
 					}					
 				}else if ( funcname.equals( "TriggerRegisterVariableEvent")){
 					JassExprlist list = jassCall.getArguments();
 					JassExpr argument = list.get(1);
 					if ( argument instanceof JassExprStringVal ){
-						String stringName = ((JassExprStringVal) argument).getVal();
+						String stringName = ((JassExprStringVal) argument).getValS();
 						
-						((JassExprStringVal) argument).setVal(replacements.get(stringName));
+						((JassExprStringVal) argument).setValS(replacements.get(stringName));
 					}
 				}
 			}

@@ -267,7 +267,7 @@ public class JassPrinter {
 			@Override
 			public void case_JassExprUnary(JassExprUnary e) {
 				boolean useParantheses = e.getRight() instanceof JassExprBinary;
-				printOp(sb, e.getOp(), false, useParantheses);
+				printOp(sb, e.getOpU(), false, useParantheses);
 				sb.append(useParantheses ? "(" : "");
 				printExpr(sb, e.getRight());
 				sb.append(useParantheses ? ")" : "");
@@ -276,13 +276,13 @@ public class JassPrinter {
 			@Override
 			public void case_JassExprStringVal(JassExprStringVal e) {
 				sb.append("\"");
-				sb.append(e.getVal());
+				sb.append(e.getValS());
 				sb.append("\"");
 			}
 			
 			@Override
 			public void case_JassExprRealVal(JassExprRealVal e) {
-				String val = String.valueOf(e.getVal());
+				String val = String.valueOf(e.getValR());
 				if(!withSpace) {
 					if( val.substring(0,2).equals("0.")) {
 						sb.append(val.substring(1,val.length()));
@@ -304,7 +304,7 @@ public class JassPrinter {
 			
 			@Override
 			public void case_JassExprIntVal(JassExprIntVal e) {
-				sb.append(e.getVal());
+				sb.append(e.getValI());
 			}
 			
 			@Override
@@ -330,15 +330,15 @@ public class JassPrinter {
 			
 			@Override
 			public void case_JassExprBoolVal(JassExprBoolVal e) {
-				sb.append(e.getVal() ? "true" : "false");
+				sb.append(e.getValB() ? "true" : "false");
 			}
 			
 			@Override
 			public void case_JassExprBinary(JassExprBinary e) {
 				boolean useParanthesesLeft = false;
 				boolean useParanthesesRight = false;
-				if (e.getLeft() instanceof JassExprBinary) {
-					JassExprBinary left = (JassExprBinary) e.getLeft();
+				if (e.getLeftExpr() instanceof JassExprBinary) {
+					JassExprBinary left = (JassExprBinary) e.getLeftExpr();
 					if (precedence(left.getOp()) < precedence(e.getOp())) {
 						// if the precedence level on the left is _smaller_ we have to use parentheses
 						useParanthesesLeft = true;
@@ -367,7 +367,7 @@ public class JassPrinter {
 					}
 				}
 				sb.append(useParanthesesLeft ? "(" : "");
-				printExpr(sb, e.getLeft());
+				printExpr(sb, e.getLeftExpr());
 				sb.append(useParanthesesLeft ? ")" : "");
 				printOp(sb, e.getOp(),useParanthesesLeft, useParanthesesRight);		
 				sb.append(useParanthesesRight ? "(" : "");

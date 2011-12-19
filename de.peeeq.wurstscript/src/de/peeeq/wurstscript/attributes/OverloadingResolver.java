@@ -83,12 +83,12 @@ public abstract class OverloadingResolver<F,C> {
 
 			@Override
 			int getParameterCount(ConstructorDef f) {
-				return f.getParams().size();
+				return f.getParameters().size();
 			}
 
 			@Override
 			PscriptType getParameterType(ConstructorDef f, int i) {
-				return f.getParams().get(i).getTyp().attrTyp();
+				return f.getParameters().get(i).getTyp().attrTyp();
 			}
 
 			@Override

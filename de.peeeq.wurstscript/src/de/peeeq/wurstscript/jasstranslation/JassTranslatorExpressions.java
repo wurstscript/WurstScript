@@ -109,7 +109,7 @@ public class JassTranslatorExpressions {
 				JassFunction constructorJassFunc = manager.getJassConstructorFor(constructorFunc);
 
 				JassExprlist arguments = JassExprlist(); 
-				ExprListTranslationResult args = translateArguments(f, exprNewObject.getArgs(), getParameterTypes(constructorFunc.getParams()));
+				ExprListTranslationResult args = translateArguments(f, exprNewObject.getArgs(), getParameterTypes(constructorFunc.getParameters()));
 				List<JassStatement> statements = Lists.newLinkedList();
 				statements.addAll(args.getStatements());
 				arguments.addAll(args.getExprs());
@@ -119,7 +119,7 @@ public class JassTranslatorExpressions {
 
 			@Override
 			public ExprTranslationResult case_ExprRealVal(ExprRealVal exprRealVal) {
-				return new ExprTranslationResult(JassExprRealVal(exprRealVal.getVal()));
+				return new ExprTranslationResult(JassExprRealVal(exprRealVal.getValR()));
 			}
 
 			@Override
@@ -127,7 +127,7 @@ public class JassTranslatorExpressions {
 				ExprTranslationResult right = translateExpr(f, exprUnary.getRight());
 				return new ExprTranslationResult(
 						right.getStatements(), 
-						JassExprUnary(translateOpUnary(exprUnary.getOp()), right.getExpr()));
+						JassExprUnary(translateOpUnary(exprUnary.getOpU()), right.getExpr()));
 			}
 
 			@Override
@@ -163,7 +163,7 @@ public class JassTranslatorExpressions {
 
 			@Override
 			public ExprTranslationResult case_ExprStringVal(ExprStringVal exprStringVal) {
-				return new ExprTranslationResult(JassExprStringVal(exprStringVal.getVal()));
+				return new ExprTranslationResult(JassExprStringVal(exprStringVal.getValS()));
 			}
 
 			@Override
@@ -257,7 +257,7 @@ public class JassTranslatorExpressions {
 
 			@Override
 			public ExprTranslationResult case_ExprBoolVal(ExprBoolVal exprBoolVal) {
-				return new ExprTranslationResult(JassExprBoolVal(exprBoolVal.getVal()));
+				return new ExprTranslationResult(JassExprBoolVal(exprBoolVal.getValB()));
 			}
 
 			@Override
@@ -278,7 +278,7 @@ public class JassTranslatorExpressions {
 
 			@Override
 			public ExprTranslationResult case_ExprIntVal(ExprIntVal exprIntVal) {
-				return new ExprTranslationResult(JassExprIntVal(exprIntVal.getVal()));
+				return new ExprTranslationResult(JassExprIntVal(exprIntVal.getValI()));
 			}
 
 			@Override

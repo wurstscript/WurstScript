@@ -69,7 +69,7 @@ public class AttrNameDef {
 		boolean writeAccess1 = false;
 		if (node.getParent() instanceof StmtSet) {
 			StmtSet stmtSet = (StmtSet) node.getParent();
-			if (stmtSet.getLeft() == node) {
+			if (stmtSet.getUpdatedExpr() == node) {
 				writeAccess1 = true;
 			}
 		}

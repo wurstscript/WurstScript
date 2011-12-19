@@ -1,6 +1,6 @@
 package de.peeeq.wurstscript.attributes;
 
-import de.peeeq.wurstscript.ast.AstElementWithModifier;
+import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.ModAbstract;
 import de.peeeq.wurstscript.ast.ModConstant;
 import de.peeeq.wurstscript.ast.ModOverride;
@@ -13,35 +13,35 @@ import de.peeeq.wurstscript.ast.VisibilityPublicread;
 
 public class ModifiersHelper {
 
-	public static boolean isPublic(AstElementWithModifier e) {
+	public static boolean isPublic(HasModifier e) {
 		return containsType(e.getModifiers(), VisibilityPublic.class);
 	}
 
-	public static boolean isProtected(AstElementWithModifier e) {
+	public static boolean isProtected(HasModifier e) {
 		return containsType(e.getModifiers(), VisibilityProtected.class);
 	}
 
-	public static boolean isPublicRead(AstElementWithModifier e) {
+	public static boolean isPublicRead(HasModifier e) {
 		return containsType(e.getModifiers(), VisibilityPublicread.class);
 	}
 
-	public static boolean isPrivate(AstElementWithModifier e) {
+	public static boolean isPrivate(HasModifier e) {
 		return containsType(e.getModifiers(), VisibilityPrivate.class);
 	}
 
-	public static boolean isStatic(AstElementWithModifier e) {
+	public static boolean isStatic(HasModifier e) {
 		return containsType(e.getModifiers(), ModStatic.class);
 	}
 
-	public static boolean isOverride(AstElementWithModifier e) {
+	public static boolean isOverride(HasModifier e) {
 		return containsType(e.getModifiers(), ModOverride.class);
 	}
 
-	public static boolean isAbstract(AstElementWithModifier e) {
+	public static boolean isAbstract(HasModifier e) {
 		return containsType(e.getModifiers(), ModAbstract.class);
 	}
 
-	public static boolean isConstant(AstElementWithModifier e) {
+	public static boolean isConstant(HasModifier e) {
 		return containsType(e.getModifiers(), ModConstant.class);
 	}
 
@@ -55,7 +55,7 @@ public class ModifiersHelper {
 	}
 
 
-	static void checkAllowedModifiers(AstElementWithModifier e) {
+	static void checkAllowedModifiers(HasModifier e) {
 		// TODO check allowed modifiers and call this method from checker
 	}
 

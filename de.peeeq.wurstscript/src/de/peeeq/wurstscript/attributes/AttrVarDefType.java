@@ -31,11 +31,11 @@ import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
 public class AttrVarDefType {
 	
 	public static  PscriptType calculate(GlobalVarDef node) {
-		return defaultCase(node.getTyp(), node.getInitialExpr());
+		return defaultCase(node.getOptTyp(), node.getInitialExpr());
 	}
 	
 	public static  PscriptType calculate(LocalVarDef node) {
-		return defaultCase(node.getTyp(), node.getInitialExpr());
+		return defaultCase(node.getOptTyp(), node.getInitialExpr());
 	}
 	
 	public static  PscriptType calculate(WParameter node) {
@@ -88,7 +88,7 @@ public class AttrVarDefType {
 	}
 
 	public static PscriptType calculate(NativeType n) {
-		return PscriptNativeType.instance(n.getName(), n.getTyp().attrTyp());
+		return PscriptNativeType.instance(n.getName(), n.getOptTyp().attrTyp());
 	}
 
 	public static PscriptType calculate(FunctionDefinition f) {
