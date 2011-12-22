@@ -3,6 +3,7 @@ package de.peeeq.wurstscript;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -16,6 +17,7 @@ import de.peeeq.wurstscript.ast.ModuleUse;
 import de.peeeq.wurstscript.ast.TopLevelDeclaration;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.attributes.attr;
 
 public class ModuleExpander {
 
@@ -38,6 +40,7 @@ public class ModuleExpander {
 	}
 
 	private void expandModules(ClassOrModule m) {
+		Preconditions.checkNotNull(m);
 		if (done.contains(m)) {
 			return;
 		}
@@ -49,12 +52,16 @@ public class ModuleExpander {
 			if (s instanceof ModuleUse) {
 				ModuleUse moduleUse = (ModuleUse) s;
 				ModuleDef usedModule = moduleUse.attrModuleDef();
+				if (usedModule == null) {
+					attr.addError(moduleUse.getSource(), "not found");
+					continue;
+				}
 				expandModules(usedModule);
 				
 				
 				toDelete.add(moduleUse);
 				// TODO rename?
-				ins.add(Ast.ModuleInstanciation(moduleUse.getSource().copy(), moduleUse.getModuleName(), usedModule.getSlots().copy()));
+				ins.add(Ast.ModuleInstanciation(moduleUse.getSource().copy(), Ast.Modifiers(), moduleUse.getModuleName(), usedModule.getSlots().copy()));
 			}
 		}
 		

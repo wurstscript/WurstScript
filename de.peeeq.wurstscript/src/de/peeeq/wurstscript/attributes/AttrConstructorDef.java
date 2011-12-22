@@ -3,11 +3,9 @@ package de.peeeq.wurstscript.attributes;
 import java.util.List;
 
 import de.peeeq.wurstscript.ast.ClassDef;
-import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.TypeDef;
-import de.peeeq.wurstscript.utils.NotNullList;
 
 
 /**

@@ -5,7 +5,7 @@ import java.util.Map.Entry;
 
 import com.google.common.collect.Maps;
 
-import de.peeeq.wurstscript.ast.AstElementWithModifier;
+import de.peeeq.wurstscript.ast.HasModifier;
 
 public class VisibilityHelper {
 
@@ -15,7 +15,7 @@ public class VisibilityHelper {
 	 * @param map
 	 * @return
 	 */
-	public static <T extends AstElementWithModifier> Map<String, T> filterScopePackageLevel(Map<String, T> map) {
+	public static <T extends HasModifier> Map<String, T> filterScopePackageLevel(Map<String, T> map) {
 		Map<String, T> result = Maps.newHashMap();
 		for (Entry<String, T> e : map.entrySet()) {
 			if (!e.getValue().attrIsPrivate()) {
@@ -31,7 +31,7 @@ public class VisibilityHelper {
 	 * @param map
 	 * @return
 	 */
-	public static <T extends AstElementWithModifier> Map<String, T> filterScopePublic(Map<String, T> map) {
+	public static <T extends HasModifier> Map<String, T> filterScopePublic(Map<String, T> map) {
 		Map<String, T> result = Maps.newHashMap();
 		for (Entry<String, T> e : map.entrySet()) {
 			if (!e.getValue().attrIsPrivate()

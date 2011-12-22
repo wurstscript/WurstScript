@@ -6,7 +6,6 @@ import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
-import de.peeeq.wurstscript.ast.ExprAssignable;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
@@ -17,7 +16,6 @@ import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
-import de.peeeq.wurstscript.ast.FuncSignature;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.FunctionImplementation;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
@@ -38,6 +36,7 @@ import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.VisibilityModifier;
+import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.attributes.attr;
@@ -97,19 +96,19 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 	public void visit(StmtSet s) {
 		super.visit(s);
 
-		PscriptType leftType = s.getLeft().attrTyp();
+		PscriptType leftType = s.getUpdatedExpr().attrTyp();
 		PscriptType rightType = s.getRight().attrTyp();
 
 		checkAssignment(Utils.isJassCode(s), s.getSource(), leftType, rightType);
 		
-		checkIfAssigningToConstant(s.getLeft());
+		checkIfAssigningToConstant(s.getUpdatedExpr());
 		
 		
 
 	}
 
-	private void checkIfAssigningToConstant(final ExprAssignable left) {
-		left.match(new ExprAssignable.MatcherVoid() {
+	private void checkIfAssigningToConstant(final NameRef left) {
+		left.match(new NameRef.MatcherVoid() {
 			
 			@Override
 			public void case_ExprVarArrayAccess(ExprVarArrayAccess e) {
@@ -216,17 +215,17 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 
 	@Override
 	public void visit(ExtensionFuncDef func) {
-		checkFunctionName(func.getSignature());
+		checkFunctionName(func);
 		
 		
 		checkReturn(func);
-		UninitializedVars.checkFunc(func.attrScopeNames().values(), func.getBody());
+		UninitializedVars.checkFunc(func.attrDefinedNames().values(), func.getBody());
 	}
 
-	private void checkFunctionName(FuncSignature signature) {
-		if (!Utils.isJassCode(signature)) {
-			if (Character.isUpperCase(signature.getName().charAt(0))) {
-				attr.addError(signature.getSource(), "Function names must start with an lower case character.");
+	private void checkFunctionName(FunctionDefinition f) {
+		if (!Utils.isJassCode(f)) {
+			if (Character.isUpperCase(f.getName().charAt(0))) {
+				attr.addError(f.getSource(), "Function names must start with an lower case character.");
 			}
 		}
 	}
@@ -238,8 +237,8 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 	
 
 	private void checkReturn(FunctionImplementation func) {
-		String functionName = func.getSignature().getName();
-		if (func.getSignature().getTyp() instanceof TypeExpr) {
+		String functionName = func.getName();
+		if (func.getReturnTyp() instanceof TypeExpr) {
 			if (!func.getBody().attrDoesReturn()) {
 				attr.addError(func.getSource(), "Function " + functionName + " is missing a return statement.");
 			}
@@ -251,9 +250,9 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		visitedFunctions++;
 		attr.setProgress(null, ProgressHelper.getValidatorPercent(visitedFunctions, functionCount));
 
-		checkFunctionName(func.getSignature());
+		checkFunctionName(func);
 		
-		String functionName = func.getSignature().getName();
+		String functionName = func.getName();
 		if (func.attrIsAbstract()) {
 			if (func.getBody().size() > 0) {
 				attr.addError(func.getBody().get(0).getSource(), "The abstract function " + functionName
@@ -261,7 +260,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 			}
 		} else { // not abstract
 			checkReturn(func);
-			UninitializedVars.checkFunc(func.attrScopeNames().values(), func.getBody());
+			UninitializedVars.checkFunc(func.attrDefinedNames().values(), func.getBody());
 		}
 
 		if (func.attrNearestClassOrModule() instanceof ModuleDef) {
@@ -275,17 +274,17 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 	
 	@Override
 	public void visit(InitBlock initBlock) {
-		UninitializedVars.checkFunc(initBlock.attrScopeNames().values(), initBlock.getBody());
+		UninitializedVars.checkFunc(initBlock.attrDefinedNames().values(), initBlock.getBody());
 	}
 	
 	@Override
 	public void visit(OnDestroyDef onDestroyDef) {
-		UninitializedVars.checkFunc(onDestroyDef.attrScopeNames().values(), onDestroyDef.getBody());
+		UninitializedVars.checkFunc(onDestroyDef.attrDefinedNames().values(), onDestroyDef.getBody());
 	}
 	
 	@Override
 	public void visit(ConstructorDef constructorDef) {
-		UninitializedVars.checkFunc(constructorDef.attrScopeNames().values(), constructorDef.getBody());
+		UninitializedVars.checkFunc(constructorDef.attrDefinedNames().values(), constructorDef.getBody());
 	}
 
 	@Override
@@ -301,7 +300,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 			if (calledFunc.attrIsDynamicClassMember()) {
 				if (!stmtCall.attrIsDynamicContext()) {
 							attr.addError(stmtCall.getSource(), "Cannot call dynamic function " + funcName  +
-									" from static function " + nearestFunc.getSignature().getName());
+									" from static function " + nearestFunc.getName());
 				}
 			}
 		}
@@ -313,10 +312,10 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 				ExprFuncRef exprFuncRef = (ExprFuncRef) firstArg;
 				FunctionDefinition f = exprFuncRef.attrFuncDef();
 				if (f != null) {
-					if (f.getSignature().getParameters().size() > 0) {
+					if (f.getParameters().size() > 0) {
 						attr.addError(firstArg.getSource(), "Functions passed to Filter or Condition must have no parameters.");
 					}
-					if (!(f.getSignature().getTyp().attrTyp() instanceof PScriptTypeBool)) {
+					if (!(f.getReturnTyp().attrTyp() instanceof PScriptTypeBool)) {
 						attr.addError(firstArg.getSource(), "Functions passed to Filter or Condition must return boolean.");
 					}
 				}
@@ -362,9 +361,9 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 			attr.addError(s.getSource(), "return statements can only be used inside functions");
 			return;
 		}
-		PscriptType returnType = func.getSignature().getTyp().attrTyp();
-		if (s.getObj() instanceof Expr) {
-			Expr returned = (Expr) s.getObj();
+		PscriptType returnType = func.getReturnTyp().attrTyp();
+		if (s.getReturnedObj() instanceof Expr) {
+			Expr returned = (Expr) s.getReturnedObj();
 			if (returnType.isSubtypeOf(PScriptTypeVoid.instance())) {
 				attr.addError(s.getSource(), "Cannot return a value from a function which returns nothing");
 			} else {
@@ -391,7 +390,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		// check that there are no abstract functions in a class
 		for (FunctionDefinition f : functions.values()) {
 			if (f.attrIsAbstract()) {
-				attr.addError(classDef.getSource(), "The abstract method " + f.getSignature().getName()
+				attr.addError(classDef.getSource(), "The abstract method " + f.getName()
 						+ " must be implemented in class " + classDef.getName() + ".");
 			}
 		}
@@ -413,7 +412,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 
 	@Override
 	public void visit(StmtDestroy stmtDestroy) {
-		PscriptType typ = stmtDestroy.getObj().attrTyp();
+		PscriptType typ = stmtDestroy.getDestroyedObj().attrTyp();
 		if (!(typ instanceof PscriptTypeModule || typ instanceof PscriptTypeClass)) {
 			attr.addError(stmtDestroy.getSource(), "Cannot destroy objects of type " + typ);
 		}
@@ -425,6 +424,13 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 	}
 
 	
+	
+	@Override
+	public void visit(WImport wImport) {
+		if (wImport.attrImportedPackage() == null) {
+			attr.addError(wImport.getSource(), "Could not find imported package " + wImport.getPackagename());
+		}
+	}
 
 	/**
 	 * check if the nameRef e is accessed correctly

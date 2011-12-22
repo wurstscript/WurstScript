@@ -20,9 +20,9 @@ WEntity =
 	  TypeDef
 	| FuncDef
 	| GlobalVarDef
-	| ExtensionFuncDef(WPos source, Modifiers modifiers, TypeExpr extendedType, FuncSignature signature, WStatements body)
+	| ExtensionFuncDef(WPos source, Modifiers modifiers, TypeExpr extendedType, String name, WParameters parameters, OptTypeExpr returnTyp, WStatements body)
 	| InitBlock (WPos source, WStatements body)
-	| NativeFunc(WPos source, Modifiers modifiers, FuncSignature signature)
+	| NativeFunc(WPos source, Modifiers modifiers, String name, WParameters parameters, OptTypeExpr returnTyp)
 	| ModuleDef(WPos source, Modifiers modifiers, String name, ClassSlots slots)
 
 
@@ -36,16 +36,16 @@ OptTypeExpr = NoTypeExpr() | TypeExpr
 OptExpr = NoExpr() | Expr
 	
 TypeDef = 
-	 NativeType(WPos source, Modifiers modifiers, String name, OptTypeExpr typ)
+	 NativeType(WPos source, Modifiers modifiers, String name, OptTypeExpr optTyp)
 	|ClassDef(WPos source, Modifiers modifiers, String name, boolean unmanaged, ClassSlots slots)
 	
 ClassSlots * ClassSlot
 
 ClassSlot = 
-	  ConstructorDef(WPos source, Modifiers modifiers, WParameters params, WStatements body)
+	  ConstructorDef(WPos source, Modifiers modifiers, WParameters parameters, WStatements body)
 	| OnDestroyDef(WPos source, WStatements body)
 	| ModuleUse(WPos source, String moduleName)
-	| ModuleInstanciation(WPos source, String name, ClassSlots slots) 
+	| ModuleInstanciation(WPos source, Modifiers modifiers, String name, ClassSlots slots) 
 	| ClassMember
 	
 ClassMember = 
@@ -53,20 +53,20 @@ ClassMember =
 	| FuncDef
 
 
-GlobalVarDef(WPos source, Modifiers modifiers, boolean isConstant, OptTypeExpr typ, String name, OptExpr initialExpr)
-LocalVarDef(WPos source, boolean constant, OptTypeExpr typ, String name, OptExpr initialExpr) 
+GlobalVarDef(WPos source, Modifiers modifiers, OptTypeExpr optTyp, String name, OptExpr initialExpr)
+LocalVarDef(WPos source, Modifiers modifiers, OptTypeExpr optTyp, String name, OptExpr initialExpr) 
 
 	
-FuncDef(WPos source, Modifiers modifiers, FuncSignature signature, WStatements body)
+FuncDef(WPos source, Modifiers modifiers, String name, WParameters parameters, OptTypeExpr returnTyp, WStatements body)
 	
 
 
 ArraySizes * Expr
 	
-FuncSignature(WPos source, String name, WParameters parameters, OptTypeExpr typ)	
+FuncSignature(WPos source, String name, WParameters parameters, OptTypeExpr returnTyp)	
 
 WParameters * WParameter
-WParameter(WPos source, TypeExpr typ, String name)
+WParameter(WPos source, Modifiers modifiers, TypeExpr typ, String name)
 	
 WStatements * WStatement
 	
@@ -75,12 +75,10 @@ WStatement	=
 	| StmtWhile(WPos source, Expr cond, WStatements body)
 	| StmtLoop(WPos source, WStatements body)
 	| LocalVarDef
-	| StmtSet(WPos source, ExprAssignable left, OpAssignment op, Expr right)
+	| StmtSet(WPos source, NameRef updatedExpr, OpAssignment opAssign, Expr right)
 	| StmtCall
-	| StmtReturn(WPos source, OptExpr obj)
-	| StmtDestroy(WPos source, Expr obj)
-//	| StmtIncRefCount(WPos source, Expr obj) 
-//	| StmtDecRefCount(WPos source, Expr obj)
+	| StmtReturn(WPos source, OptExpr returnedObj)
+	| StmtDestroy(WPos source, Expr destroyedObj)
 	| StmtErr(WPos source)
 	| StmtExitwhen(WPos source, Expr cond)
 	| StmtForRange(WPos source, LocalVarDef loopVar, Expr from, Expr to, WStatements body)
@@ -96,13 +94,11 @@ OpUpdateAssign =
 
 StmtCall = ExprMemberMethod | ExprFunctionCall | ExprNewObject
 
-// an expression which you can assign a value to
-ExprAssignable = ExprMemberVar | ExprMemberArrayVar | ExprVarAccess | ExprVarArrayAccess
 
-Expr = 
-	ExprAssignable
+Expr =
+	  NameRef
 	| ExprBinary(WPos source, Expr left, OpBinary op, Expr right)
-	| ExprUnary(WPos source, OpUnary op, Expr right)
+	| ExprUnary(WPos source, OpUnary opU, Expr right)
 	| ExprMemberVar(WPos source, Expr left, String varName)
 	| ExprMemberArrayVar(WPos source, Expr left, String varName, Indexes indexes)
 	| ExprMemberMethod(WPos source, Expr left, String funcName, Arguments args)
@@ -113,10 +109,10 @@ Expr =
 	
 	
 ExprAtomic = 
-	  ExprIntVal(WPos source, int val)
-	| ExprRealVal(WPos source, double val)
-	| ExprStringVal(WPos source, String val)
-	| ExprBoolVal(WPos source, boolean val)
+	  ExprIntVal(WPos source, int valI)
+	| ExprRealVal(WPos source, double valR)
+	| ExprStringVal(WPos source, String valS)
+	| ExprBoolVal(WPos source, boolean valB)
 	| ExprFuncRef(WPos source, String funcName)
 	| ExprVarAccess(WPos source, String varName)
 	| ExprVarArrayAccess(WPos source, String varName, Indexes indexes)
@@ -174,6 +170,8 @@ FunctionDefinition = NotExtensionFunction | ExtensionFuncDef
 	
 FunctionImplementation = FuncDef | ExtensionFuncDef
 
+
+
 WScope = 
 	  NamedScope 
 	| PackageOrGlobal 
@@ -186,7 +184,7 @@ PackageOrGlobal = WPackage | CompilationUnit
 	
 TypeRef = TypeExpr | ExprNewObject
 
-NameDef = VarDef | ClassDef | ModuleDef | ModuleInstanciation | NativeType
+NameDef = VarDef | TypeDef | ModuleDef | ModuleInstanciation | FunctionDefinition
 
 VisibilityModifier = 
 	  VisibilityPublic(WPos source) 
@@ -204,14 +202,15 @@ Modifier =
 	| ModAbstract(WPos source)
 	| ModConstant(WPos source)
 	
-
-AstElementWithModifier = TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition
+// AstElementWithBody = FunctionImplementation | InitBlock | ConstructorDef | OnDestroyDef
+//AstElementWithModifier = NameDef | TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition
+HasModifier = NameDef | TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition
 	
 ClassOrModule = ClassDef | ModuleDef	
 
 ClassOrModuleOrModuleInstanciation = ClassOrModule | ModuleInstanciation
 
-NamedScope = WPackage | ClassDef | ModuleDef | ModuleInstanciation
+NamedScope = WPackage | ClassOrModuleOrModuleInstanciation
 
 // Jass types:
 
@@ -234,16 +233,6 @@ WStatements.attrDoesReturn
 	implemented by de.peeeq.wurstscript.attributes.AttrDoesReturn.calculate
 
 
-	
-WPackage.attrExportedFunctions
-	returns java.util.Map<String, NotExtensionFunction>
-	implemented by de.peeeq.wurstscript.attributes.AttrExportedFunctions.calculate
-
-WPackage.attrExportedExtensionFunctions
-	returns com.google.common.collect.Multimap<String, ExtensionFuncDef>
-	implemented by de.peeeq.wurstscript.attributes.AttrExportedFunctions.calculateExportedExtensionFunctions
-
-
 OptTypeExpr.attrTyp
 	returns de.peeeq.wurstscript.types.PscriptType
 	implemented by de.peeeq.wurstscript.attributes.AttrTypeExprType.calculate
@@ -262,49 +251,34 @@ FunctionCall.attrImplicitParameter
 	returns OptExpr
 	implemented by de.peeeq.wurstscript.attributes.AttrImplicitParameter.getImplicitParameter
 
+NameRef.attrImplicitParameter
+	returns OptExpr
+	implemented by de.peeeq.wurstscript.attributes.AttrImplicitParameter.getImplicitParameter
 
+	
 NameRef.attrNameDef
 	returns NameDef
 	implemented by de.peeeq.wurstscript.attributes.AttrNameDef.calculate
 
-WScope.attrScopeNames
-	returns java.util.Map<String, NameDef>
-	implemented by de.peeeq.wurstscript.attributes.AttrScopeNames.calculate
+WPackage.attrExportedNames "get the exported names of a package"
+	returns  com.google.common.collect.Multimap<String, NameDef>
+	implemented by de.peeeq.wurstscript.attributes.Scopes.getExportedNames
 
-NamedScope.attrScopePackageNames
-	returns java.util.Map<String, NameDef>
-	implemented by de.peeeq.wurstscript.attributes.AttrScopeNames.calculatePackage
-	
-NamedScope.attrScopePublicNames
-	returns java.util.Map<String, NameDef>
-	implemented by de.peeeq.wurstscript.attributes.AttrScopeNames.calculatePublic
+WScope.attrDefinedNames "get the names defined in this scope"
+	returns com.google.common.collect.Multimap<String, NameDef>
+	implemented by de.peeeq.wurstscript.attributes.Scopes.getDefinedNames
 
-NamedScope.attrScopePublicReadNamess
-	returns java.util.Map<String, NameDef>
-	implemented by de.peeeq.wurstscript.attributes.AttrScopeNames.calculatePublicRead
+WScope.attrVisibleNamesPrivate ""
+	returns com.google.common.collect.Multimap<String, NameDef>
+	implemented by de.peeeq.wurstscript.attributes.Scopes.getVisibleNamesPrivate
 
+WScope.attrVisibleNamesProtected
+	returns com.google.common.collect.Multimap<String, NameDef>
+	implemented by de.peeeq.wurstscript.attributes.Scopes.getVisibleNamesProtected
 
-NamedScope.attrScopeFunctions
-	returns java.util.Map<String, NotExtensionFunction>
-	implemented by de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculate
-	
-CompilationUnit.attrScopeFunctions
-	returns java.util.Map<String, NotExtensionFunction>
-	implemented by de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculateForRoot
-
-NamedScope.attrScopePackageFunctions
-	returns java.util.Map<String, NotExtensionFunction>
-	implemented by de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculatePackage
-
-NamedScope.attrScopePublicFunctions
-	returns java.util.Map<String, NotExtensionFunction>
-	implemented by de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculatePublic
-
-
-WPackage.attrScopeExtensionFunctions
-	returns com.google.common.collect.Multimap<String, ExtensionFuncDef>
-	implemented by de.peeeq.wurstscript.attributes.AttrScopeFunctions.calculateExtensionFunctions
-
+WScope.attrVisibleNamesPublic
+	returns com.google.common.collect.Multimap<String, NameDef>
+	implemented by de.peeeq.wurstscript.attributes.Scopes.getVisibleNamesPublic
 
 NameDef.attrTyp
 	returns de.peeeq.wurstscript.types.PscriptType 
@@ -332,6 +306,15 @@ AstElement.attrNearestNamedScope
 	returns NamedScope
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestNamedScope
 	
+AstElement.attrNearestScope
+	returns WScope
+	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestScope
+
+WScope.attrNextScope "returns the scope surrounding this scope"
+	returns WScope
+	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nextScope
+
+
 	
 AstElement.attrNearestClassDef
 	returns ClassDef
@@ -357,40 +340,38 @@ TypeRef.attrTypeDef
 
 
 
-WPackage.attrExportedNames
-	returns java.util.Map<String, NameDef>
-	implemented by de.peeeq.wurstscript.attributes.AttrExportedNames.calculate
+
 	
 
-AstElementWithModifier.attrIsPublic
+HasModifier.attrIsPublic
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isPublic
 
-AstElementWithModifier.attrIsPublicRead
+HasModifier.attrIsPublicRead
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isPublicRead
 
-AstElementWithModifier.attrIsPrivate
+HasModifier.attrIsPrivate
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isPrivate
 
-AstElementWithModifier.attrIsProtected
+HasModifier.attrIsProtected
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isProtected
 	
-AstElementWithModifier.attrIsStatic
+HasModifier.attrIsStatic
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isStatic
 
-AstElementWithModifier.attrIsOverride
+HasModifier.attrIsOverride
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isOverride
 
-AstElementWithModifier.attrIsAbstract
+HasModifier.attrIsAbstract
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isAbstract
 
-AstElementWithModifier.attrIsConstant
+HasModifier.attrIsConstant
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isConstant
 	
@@ -424,7 +405,11 @@ CompilationUnit.attrPackages
 	returns java.util.Map<String, WPackage>
 	implemented by de.peeeq.wurstscript.attributes.AttrImportedPackage.getPackages
 	
-
-
-
-
+ModuleInstanciation.attrModuleOrigin
+	returns ModuleDef
+	implemented by de.peeeq.wurstscript.attributes.AttrModuleInstanciations.getModuleOrigin
+	
+	
+AstElement.attrSource
+	returns WPos
+	implemented by de.peeeq.wurstscript.attributes.AttrPos.getPos

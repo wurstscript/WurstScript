@@ -6,15 +6,23 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import junit.framework.Assert;
 
 import com.google.common.base.Charsets;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.io.Files;
 
 import de.peeeq.wurstscript.Pjass;
 import de.peeeq.wurstscript.Pjass.Result;
 import de.peeeq.wurstscript.WurstCompilerJassImpl;
+import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassinterpreter.JassInterpreter;
@@ -48,39 +56,57 @@ public class PscriptTest {
 		if (name.length() == 0) {
 			name = Utils.getMethodName(1);
 		}
-		String errors = testScript(new StringReader(prog), this.getClass().getSimpleName() + "_" + name, executeProg, false);
+		String errors = testScript(name, new StringReader(prog), this.getClass().getSimpleName() + "_" + name, executeProg, false);
 		Assert.assertEquals("", errors);
 	}
 
 	public void testAssertOkFile(File file, boolean executeProg) throws IOException {
 		Reader reader= new FileReader(file);
-		String errors = testScript(reader, file.getName(), executeProg, false);
+		String errors = testScript(Collections.singleton(file), null, file.getName(), executeProg, false);
 		reader.close();
 		Assert.assertEquals("", errors);
 	}
 	
 	public void testAssertOkFileWithStdLib(File file, boolean executeProg) throws IOException {
 		Reader reader= new FileReader(file);
-		String errors = testScript(reader, file.getName(), executeProg, true);
+		String errors = testScript(file.getAbsolutePath(), reader, file.getName(), executeProg, true);
 		reader.close();
 		Assert.assertEquals("", errors);
 	}
 
 	public void testAssertErrors(String name, boolean executeProg, String prog, String errorMessage) {
 		name = Utils.getMethodName(2);
-		String errors = testScript(new StringReader(prog), this.getClass().getSimpleName() + "_" + name, executeProg, false);
+		String errors = testScript(name, new StringReader(prog), this.getClass().getSimpleName() + "_" + name, executeProg, false);
 		Assert.assertTrue("No errors were discovered", errors.length() > 0);
 		Assert.assertTrue(errors, errors.contains(errorMessage));
 	}
 
-	protected String testScript(Reader input, String name, boolean executeProg, boolean withStdLib) {
+	protected String testScript(String inputName, Reader input, String name, boolean executeProg, boolean withStdLib) {
+		Map<String, Reader> inputs = Maps.newHashMap();
+		inputs.put(inputName, input);
+		return testScript(null, inputs, name, executeProg, withStdLib);
+	}
+	
+	protected String testScript(Iterable<File> inputFiles, Map<String, Reader> inputs, String name, boolean executeProg, boolean withStdLib) {
+		if (inputFiles == null) {
+			inputFiles = Collections.emptyList();
+		}
+		if (inputs == null) {
+			inputs = Collections.emptyMap();
+		}
+		
 		boolean success = false;
-		WurstGuiLogger gui = new WurstGuiLogger();
+		WurstGui gui = new WurstGuiCliImpl();
 		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui);
 		if (withStdLib) {
 			compiler.loadFiles(new File("./lib/common.j"), new File("./lib/blizzard.j"));
 		}
-		compiler.loadStreams(input);
+		for (File input : inputFiles) {
+			compiler.loadFiles(input);
+		}
+		for (Entry<String, Reader> input : inputs.entrySet()) {
+			compiler.loadReader(input.getKey(), input.getValue());
+		}
 		compiler.parseFiles();
 		JassProg prog = compiler.getProg();
 

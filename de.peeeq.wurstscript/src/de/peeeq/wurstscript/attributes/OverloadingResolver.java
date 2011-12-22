@@ -66,7 +66,7 @@ public abstract class OverloadingResolver<F,C> {
 					if (f instanceof FunctionDefinition) {
 						FunctionDefinition functionDefinition = (FunctionDefinition) f;
 						FunctionDefinition func = functionDefinition;
-						return "function " + func.getSignature().getName() + " defined in " + 
+						return "function " + func.getName() + " defined in " + 
 							"  line " + func.getSource().getLine();
 					}
 					return f.toString();
@@ -83,12 +83,12 @@ public abstract class OverloadingResolver<F,C> {
 
 			@Override
 			int getParameterCount(ConstructorDef f) {
-				return f.getParams().size();
+				return f.getParameters().size();
 			}
 
 			@Override
 			PscriptType getParameterType(ConstructorDef f, int i) {
-				return f.getParams().get(i).getTyp().attrTyp();
+				return f.getParameters().get(i).getTyp().attrTyp();
 			}
 
 			@Override
@@ -113,12 +113,12 @@ public abstract class OverloadingResolver<F,C> {
 
 			@Override
 			int getParameterCount(FunctionDefinition f) {
-				return f.getSignature().getParameters().size();
+				return f.getParameters().size();
 			}
 
 			@Override
 			PscriptType getParameterType(FunctionDefinition f, int i) {
-				return f.getSignature().getParameters().get(i).getTyp().attrTyp();
+				return f.getParameters().get(i).getTyp().attrTyp();
 			}
 
 			@Override

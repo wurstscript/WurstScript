@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.attributes;
 
 import java.util.Map;
-import org.apache.log4j.helpers.CyclicBuffer;
 
 import com.google.common.collect.Maps;
 

@@ -31,9 +31,9 @@ import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtSet;
 
 import java.util.List;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import de.peeeq.wurstscript.ast.AstElementWithIndexes;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
@@ -58,6 +58,7 @@ import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionCall;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.NameDef;
+import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.OpAnd;
 import de.peeeq.wurstscript.ast.OpBinary;
@@ -80,6 +81,7 @@ import de.peeeq.wurstscript.ast.OpUnequals;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WParameters;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
 import de.peeeq.wurstscript.jassAst.JassExprlist;
@@ -109,7 +111,7 @@ public class JassTranslatorExpressions {
 				JassFunction constructorJassFunc = manager.getJassConstructorFor(constructorFunc);
 
 				JassExprlist arguments = JassExprlist(); 
-				ExprListTranslationResult args = translateArguments(f, exprNewObject.getArgs(), getParameterTypes(constructorFunc.getParams()));
+				ExprListTranslationResult args = translateArguments(f, exprNewObject.getArgs(), getParameterTypes(constructorFunc.getParameters()));
 				List<JassStatement> statements = Lists.newLinkedList();
 				statements.addAll(args.getStatements());
 				arguments.addAll(args.getExprs());
@@ -119,7 +121,7 @@ public class JassTranslatorExpressions {
 
 			@Override
 			public ExprTranslationResult case_ExprRealVal(ExprRealVal exprRealVal) {
-				return new ExprTranslationResult(JassExprRealVal(exprRealVal.getVal()));
+				return new ExprTranslationResult(JassExprRealVal(exprRealVal.getValR()));
 			}
 
 			@Override
@@ -127,7 +129,7 @@ public class JassTranslatorExpressions {
 				ExprTranslationResult right = translateExpr(f, exprUnary.getRight());
 				return new ExprTranslationResult(
 						right.getStatements(), 
-						JassExprUnary(translateOpUnary(exprUnary.getOp()), right.getExpr()));
+						JassExprUnary(translateOpUnary(exprUnary.getOpU()), right.getExpr()));
 			}
 
 			@Override
@@ -153,36 +155,18 @@ public class JassTranslatorExpressions {
 
 
 			@Override
-			public ExprTranslationResult case_ExprMemberArrayVar(ExprMemberArrayVar exprMemberArrayVar) {
-				VarDef varDef = (VarDef) exprMemberArrayVar.attrNameDef();
-				String varName = manager.getJassVarNameFor(varDef);
-
-				ExprTranslationResult left = translateExpr(f, exprMemberArrayVar.getLeft());
-				return new ExprTranslationResult(left.getStatements(), JassExprVarArrayAccess(varName, left.getExpr()));
+			public ExprTranslationResult case_ExprMemberArrayVar(ExprMemberArrayVar e) {
+				return translateVarAccess(f, e);
 			}
 
 			@Override
 			public ExprTranslationResult case_ExprStringVal(ExprStringVal exprStringVal) {
-				return new ExprTranslationResult(JassExprStringVal(exprStringVal.getVal()));
+				return new ExprTranslationResult(JassExprStringVal(exprStringVal.getValS()));
 			}
 
 			@Override
-			public ExprTranslationResult case_ExprVarAccess(ExprVarAccess exprVarAccess) {
-				NameDef nameDef = exprVarAccess.attrNameDef();
-				if (nameDef instanceof VarDef) {
-					VarDef varDef = (VarDef) nameDef;
-					String varName = manager.getJassVarNameFor(varDef);
-					if (varDef.attrIsDynamicClassMember()) {
-						// access to a field
-						JassExpr index = JassExprVarAccess("this");
-						return new ExprTranslationResult(JassExprVarArrayAccess(varName, index));
-					} else {
-						// access to a normal variable
-						return new ExprTranslationResult(JassExprVarAccess(varName));
-					}
-				} else {
-					throw new Error("cannot translate var access to " + nameDef.getClass());
-				}
+			public ExprTranslationResult case_ExprVarAccess(ExprVarAccess e) {
+				return translateVarAccess(f, e);
 			}
 
 			@Override
@@ -257,18 +241,12 @@ public class JassTranslatorExpressions {
 
 			@Override
 			public ExprTranslationResult case_ExprBoolVal(ExprBoolVal exprBoolVal) {
-				return new ExprTranslationResult(JassExprBoolVal(exprBoolVal.getVal()));
+				return new ExprTranslationResult(JassExprBoolVal(exprBoolVal.getValB()));
 			}
 
 			@Override
-			public ExprTranslationResult case_ExprMemberVar(ExprMemberVar exprMemberVar) {
-				VarDef varDef = (VarDef) exprMemberVar.attrNameDef(); // TODO cast not always possible
-				String varName = manager.getJassVarNameFor(varDef);
-
-				ExprTranslationResult left = translateExpr(f, exprMemberVar.getLeft());
-
-				JassExpr e = JassExprVarArrayAccess(varName, left.getExpr());
-				return new ExprTranslationResult(left.getStatements(), e);
+			public ExprTranslationResult case_ExprMemberVar(ExprMemberVar e) {
+				return translateVarAccess(f, e);
 			}
 
 			@Override
@@ -278,7 +256,7 @@ public class JassTranslatorExpressions {
 
 			@Override
 			public ExprTranslationResult case_ExprIntVal(ExprIntVal exprIntVal) {
-				return new ExprTranslationResult(JassExprIntVal(exprIntVal.getVal()));
+				return new ExprTranslationResult(JassExprIntVal(exprIntVal.getValI()));
 			}
 
 			@Override
@@ -294,22 +272,53 @@ public class JassTranslatorExpressions {
 			}
 
 			@Override
-			public ExprTranslationResult case_ExprVarArrayAccess(ExprVarArrayAccess exprVarArrayAccess) {
-				VarDef varDef = (VarDef) exprVarArrayAccess.attrNameDef();
-				String varName = manager.getJassVarNameFor(varDef);
-
-				ExprTranslationResult left;
-				if (exprVarArrayAccess.getIndexes().size() == 1) {
-					left = translateExpr(f, exprVarArrayAccess.getIndexes().get(0)); 
-				} else {
-					throw new Error("only one array index is supported currently");
-				}
-				JassExpr e = JassExprVarArrayAccess(varName, left.getExpr());
-				return new ExprTranslationResult(left.getStatements(), e);
+			public ExprTranslationResult case_ExprVarArrayAccess(ExprVarArrayAccess e) {
+				return translateVarAccess(f, e);
 			}
 		});
 	}
 	
+	protected ExprTranslationResult translateVarAccess(JassFunction f, NameRef e) {
+		NameDef decl = e.attrNameDef();
+		if (decl instanceof VarDef) {
+			VarDef varDef = (VarDef) decl;
+			
+			String jassVarName = manager.getJassVarNameFor(varDef);
+			
+			if (e.attrImplicitParameter() instanceof Expr) {
+				// we have implicit parameter
+				// e.g. "someObject.someField"
+				if (e instanceof AstElementWithIndexes) {
+					throw new CompileError(e.getSource(), "Member array variables are not supported.");
+				} else {
+					ExprTranslationResult index1 = translateExpr(f, (Expr) e.attrImplicitParameter());
+					return new ExprTranslationResult(
+							index1.getStatements(), 
+							JassExprVarArrayAccess(jassVarName, index1.getExpr()));
+				}
+				
+			} else {
+				// direct var access
+				if (e instanceof AstElementWithIndexes) { 
+					// direct access array var
+					AstElementWithIndexes withIndexes = (AstElementWithIndexes) e;
+					if (withIndexes.getIndexes().size() > 1) {
+						throw new CompileError(e.getSource(), "More than one index is not supported.");
+					}
+					ExprTranslationResult index1 = translateExpr(f, withIndexes.getIndexes().get(0));
+					return new ExprTranslationResult(
+							index1.getStatements(), 
+							JassExprVarArrayAccess(jassVarName, index1.getExpr()));
+				} else {
+					// not an array var
+					return new ExprTranslationResult(JassExprVarAccess(jassVarName));
+				}
+			}
+		} else {
+			throw new CompileError(e.getSource(), "Cannot translate reference to " + decl.getClass().getName());
+		}
+	}
+
 	/**
 	 * translate a list of expressions, makes sure that the arguments are evaluated in correct order
 	 * so if we hava a list of expressions (a,b,c) and c requires additional statements then a and b
@@ -513,7 +522,7 @@ public class JassTranslatorExpressions {
 
 		});
 		// add normal parameters
-		for (WParameter p : call.getSignature().getParameters()) {
+		for (WParameter p : call.getParameters()) {
 			result.add(translator.translateType(p.attrTyp()));
 		}
 		return result;

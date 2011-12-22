@@ -74,6 +74,8 @@ public class ClassesTests extends PscriptTest {
 			);
 	}
 	
+		
+		
 	
 	@Test
 	public void classes_static_var_set() {
@@ -109,6 +111,39 @@ public class ClassesTests extends PscriptTest {
 				"			return 3",
 				"		static function foo() returns int",
 				"			return 4",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void static_field() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	class C",
+				"		static int i = 3",
+				"	init",
+				"			C.i++",
+				"			if C.i == 4",
+				"				testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void static_field_other_package() {
+		testAssertOkLines(true,
+				"package Blub",
+				"	public class C",
+				"		public static int i = 3",
+				"endpackage",
+				"package test",
+				"	import Blub",
+				"	native testSuccess()",
+				"	init",
+				"		C.i++",
+				"		if C.i == 4",
+				"			testSuccess()",
 				"endpackage"
 			);
 	}

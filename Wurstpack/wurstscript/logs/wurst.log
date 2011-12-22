@@ -1,51 +1,13 @@
-INFO - Started compiler with args .\natives_bj.pscript
-INFO - Loading Files
-INFO - Parsing Files
-INFO - Parsing File natives_bj.pscript
-INFO - Merging Files
-INFO - Checking Files
-INFO - Started compiler with args .\natives_bj.pscript
-INFO - Loading Files
-INFO - Parsing Files
-INFO - Parsing File natives_bj.pscript
+INFO - Started compiler with args 
 ERROR - Error
-java.lang.NoSuchMethodError: de.peeeq.wurstscript.parser.parser.getSymbolFactory()Ljava_cup/runtime/SymbolFactory;
-	at de.peeeq.wurstscript.parser.CUP$parser$actions.CUP$parser$do_action(parser.java:3209)
-	at de.peeeq.wurstscript.parser.parser.do_action(parser.java:1013)
-	at java_cup.runtime.lr_parser.parse(lr_parser.java:569)
-	at de.peeeq.wurstscript.parser.ExtendedParser.parse(ExtendedParser.java:33)
-	at de.peeeq.wurstscript.WurstCompilerImpl.parseFile(WurstCompilerImpl.java:156)
-	at de.peeeq.wurstscript.WurstCompilerImpl.parseFiles(WurstCompilerImpl.java:69)
-	at de.peeeq.wurstscript.Main.main(Main.java:33)
-INFO - Started compiler with args .\natives_bj.pscript
-INFO - Loading Files
-INFO - Parsing Files
-INFO - Parsing File natives_bj.pscript
-ERROR - Error
-java.lang.NoSuchMethodError: de.peeeq.wurstscript.parser.parser.getSymbolFactory()Ljava_cup/runtime/SymbolFactory;
-	at de.peeeq.wurstscript.parser.CUP$parser$actions.CUP$parser$do_action(parser.java:3209)
-	at de.peeeq.wurstscript.parser.parser.do_action(parser.java:1013)
-	at java_cup.runtime.lr_parser.parse(lr_parser.java:569)
-	at de.peeeq.wurstscript.parser.ExtendedParser.parse(ExtendedParser.java:33)
-	at de.peeeq.wurstscript.WurstCompilerImpl.parseFile(WurstCompilerImpl.java:156)
-	at de.peeeq.wurstscript.WurstCompilerImpl.parseFiles(WurstCompilerImpl.java:69)
-	at de.peeeq.wurstscript.Main.main(Main.java:33)
-INFO - Started compiler with args .\natives_bj.pscript
-INFO - Loading Files
-INFO - Parsing Files
-INFO - Parsing File natives_bj.pscript
-ERROR - Error
-java.lang.NoSuchMethodError: de.peeeq.wurstscript.parser.parser.getSymbolFactory()Ljava_cup/runtime/SymbolFactory;
-	at de.peeeq.wurstscript.parser.CUP$parser$actions.CUP$parser$do_action(parser.java:3209)
-	at de.peeeq.wurstscript.parser.parser.do_action(parser.java:1013)
-	at java_cup.runtime.lr_parser.parse(lr_parser.java:569)
-	at de.peeeq.wurstscript.parser.ExtendedParser.parse(ExtendedParser.java:33)
-	at de.peeeq.wurstscript.WurstCompilerImpl.parseFile(WurstCompilerImpl.java:156)
-	at de.peeeq.wurstscript.WurstCompilerImpl.parseFiles(WurstCompilerImpl.java:69)
-	at de.peeeq.wurstscript.Main.main(Main.java:33)
-INFO - Started compiler with args .\natives_bj.pscript
-INFO - Loading Files
-INFO - Parsing Files
-INFO - Parsing File natives_bj.pscript
-INFO - Merging Files
-INFO - Checking Files
+java.io.FileNotFoundException: .\temp\output.j (Das System kann den angegebenen Pfad nicht finden)
+	at java.io.FileOutputStream.open(Native Method)
+	at java.io.FileOutputStream.<init>(Unknown Source)
+	at com.google.common.io.Files$2.getOutput(Files.java:132)
+	at com.google.common.io.Files$2.getOutput(Files.java:129)
+	at com.google.common.io.CharStreams$3.getOutput(CharStreams.java:111)
+	at com.google.common.io.CharStreams$3.getOutput(CharStreams.java:108)
+	at com.google.common.io.CharStreams.write(CharStreams.java:128)
+	at com.google.common.io.Files.write(Files.java:335)
+	at com.google.common.io.Files.write(Files.java:306)
+	at de.peeeq.wurstscript.Main.main(Main.java:118)

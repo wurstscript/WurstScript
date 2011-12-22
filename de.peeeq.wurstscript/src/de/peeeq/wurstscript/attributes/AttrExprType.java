@@ -2,7 +2,6 @@ package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
-import de.peeeq.wurstscript.ast.ClassOrModuleOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprBoolVal;
@@ -380,7 +379,7 @@ public class AttrExprType {
 			@Override
 			public PscriptType case_ExprUnary(final ExprUnary term)  {
 				final PscriptType rightType = term.getRight().attrTyp();
-				return term.getOp().match(new OpUnary.Matcher<PscriptType>() {
+				return term.getOpU().match(new OpUnary.Matcher<PscriptType>() {
 
 					@Override
 					public PscriptType case_OpNot(OpNot op)  {
@@ -426,10 +425,10 @@ public class AttrExprType {
 				if (f == null) {
 					return PScriptTypeUnknown.instance();
 				}
-				if (f.getSignature().getTyp() instanceof NoTypeExpr) {
+				if (f.getReturnTyp() instanceof NoTypeExpr) {
 					return PScriptTypeVoid.instance();
 				}
-				PscriptType typ = f.getSignature().getTyp().attrTyp();
+				PscriptType typ = f.getReturnTyp().attrTyp();
 				if (typ instanceof PscriptTypeModule) {
 					// example:
 					// module A 
@@ -459,10 +458,10 @@ public class AttrExprType {
 				if (f == null) {
 					return PScriptTypeUnknown.instance();
 				}
-				if (f.getSignature().getTyp() instanceof NoTypeExpr) {
+				if (f.getReturnTyp() instanceof NoTypeExpr) {
 					return PScriptTypeVoid.instance();
 				}
-				PscriptType typ = f.getSignature().getTyp().attrTyp();
+				PscriptType typ = f.getReturnTyp().attrTyp();
 				if (typ instanceof PscriptTypeModule) {
 					ClassOrModule classOrModule = term.attrNearestClassOrModule();
 					if (classOrModule != null) {

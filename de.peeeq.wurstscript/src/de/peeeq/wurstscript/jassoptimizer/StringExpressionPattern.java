@@ -35,7 +35,7 @@ public class StringExpressionPattern {
 		if (e instanceof JassExprStringVal) {
 			JassExprStringVal jassExprStringVal = (JassExprStringVal) e;
 			// constant string-> match the string
-			return jassExprStringVal.getVal();
+			return jassExprStringVal.getValS();
 		} else if (e instanceof JassExprFunctionCall) {
 			JassExprFunctionCall call = (JassExprFunctionCall) e;
 			if (call.getFuncName().equals("I2S")) {
@@ -45,7 +45,7 @@ public class StringExpressionPattern {
 		} else if (e instanceof JassExprBinary) {
 			// if we have a combination of two strings, then combine the regexps
 			JassExprBinary jassExprBinary = (JassExprBinary) e;
-			return buildRegexp(((JassExprBinary) e).getLeft()) + buildRegexp(((JassExprBinary) e).getRight());			
+			return buildRegexp(((JassExprBinary) e).getLeftExpr()) + buildRegexp(((JassExprBinary) e).getRight());			
 		}
 		// in all other cases ignore everything:
 		return ".*";

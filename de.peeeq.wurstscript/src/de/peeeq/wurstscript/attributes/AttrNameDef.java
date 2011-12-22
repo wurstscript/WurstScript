@@ -1,8 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
-import java.util.Map;
+import java.util.List;
 
-import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
@@ -10,13 +9,8 @@ import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
-import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.StmtSet;
-import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.types.PscriptType;
-import de.peeeq.wurstscript.types.PscriptTypeClass;
-import de.peeeq.wurstscript.types.PscriptTypeModule;
-import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
 import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
 
 /**
@@ -60,11 +54,15 @@ public class AttrNameDef {
 		return result;
 	}
 
+	protected static NameDef searchNameInScope(String varName, NameRef node) {
+		return NameResolution.searchTypedNameGetOne(NameDef.class, varName, node);
+	}
+
 	private static boolean isWriteAccess(final NameRef node) {
 		boolean writeAccess1 = false;
 		if (node.getParent() instanceof StmtSet) {
 			StmtSet stmtSet = (StmtSet) node.getParent();
-			if (stmtSet.getLeft() == node) {
+			if (stmtSet.getUpdatedExpr() == node) {
 				writeAccess1 = true;
 			}
 		}
@@ -72,24 +70,18 @@ public class AttrNameDef {
 		return writeAccess;
 	}
 
-	private static NameDef searchNameInScope(String name, AstElement node) {
-		WScope scope = Scoping.getNearestScope(node);
-		while (scope != null) {
-			Map<String, NameDef> vars = scope.attrScopeNames();
-			if (vars.containsKey(name)) {
-				return vars.get(name);
-			}
-			scope = Scoping.getNearestScope(scope);
-		}
-		return null;
-	}
-
 	private static NameDef memberVarCase(Expr left, String varName, boolean writeAccess, Expr node) {
 		
 		PscriptType leftType = left.attrTyp();
 		if (leftType instanceof PscriptTypeNamedScope) {
 			PscriptTypeNamedScope ns = (PscriptTypeNamedScope) leftType;
-			return getNameInNamedScope(left, ns.getDef(), varName, writeAccess);
+			List<NameDef> names = NameResolution.searchTypedName(NameDef.class, varName, ns.getDef());
+			if (names.size() == 0) {
+				attr.addError(node.getSource(), "Variable " + varName + " not found.");
+				return null;
+			} else {
+				return names.get(0);
+			}
 		} else {
 			attr.addError(node.getSource(), "Cannot acces attribute " + varName + " because " + leftType
 					+ " is not a class-type.");
@@ -98,22 +90,5 @@ public class AttrNameDef {
 
 	}
 
-	private static NameDef getNameInNamedScope(Expr access, NamedScope scope, final String varName, final boolean writeAccess) {
-		Map<String, NameDef> classDefScope;
-		if (scope == access.attrNearestClassDef()) {
-			// same class
-			classDefScope = scope.attrScopeNames();
-		} else if (scope.attrNearestPackage() == access.attrNearestPackage()) {
-			// same package
-			classDefScope = scope.attrScopePackageNames();
-		} else {
-			// different package
-			if (writeAccess) {
-				classDefScope = scope.attrScopePublicNames();
-			} else {
-				classDefScope = scope.attrScopePublicReadNamess();
-			}
-		}
-		return classDefScope.get(varName);
-	}
+	
 }

@@ -82,8 +82,8 @@ public class WurstGuiImpl implements WurstGui {
 						statusWindow.sendFinished();
 					}
 				});
-			} catch (Exception e) {
-				WLogger.severe(e.toString());
+			} catch (Throwable e) {
+				WLogger.severe(e);
 				throw new Error(e);
 			}
 		}

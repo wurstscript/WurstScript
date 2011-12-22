@@ -83,8 +83,8 @@ public class Program {
 		return definitions.containsKey(e);
 	}
 
-	public void addAttribute(String typ, String attr, String returns, String implementedBy) {
-		AttributeDef attrDef = new AttributeDef(typ, attr, returns, implementedBy);
+	public void addAttribute(String typ, String attr, String comment, String returns, String implementedBy) {
+		AttributeDef attrDef = new AttributeDef(typ, attr, comment, returns, implementedBy);
 		attrDefs.add(attrDef);
 	}
 	

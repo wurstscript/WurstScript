@@ -36,9 +36,9 @@ public class AttrAllFunctions {
 		for (ClassSlot s : slots) {
 			if (s instanceof FuncDef) {
 				FuncDef f = (FuncDef) s;
-				FuncDef prevDefined = sameLevelFunctions.put(f.getSignature().getName(), f);
+				FuncDef prevDefined = sameLevelFunctions.put(f.getName(), f);
 				if (prevDefined != null) {
-					attr.addError(f.getSource(), "The function " + f.getSignature().getName() + " is already defined.");
+					attr.addError(f.getSource(), "The function " + f.getName() + " is already defined.");
 				}
 			} else if (s instanceof ModuleInstanciation) {
 				addNonPrivateMethodsFromModule(moduleFunctions, (ModuleInstanciation) s, mainSource);

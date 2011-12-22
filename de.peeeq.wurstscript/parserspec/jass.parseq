@@ -32,17 +32,17 @@ JassStatement	=
 JassExprlist * JassExpr
 
 JassExpr = 
-	  JassExprBinary(JassExpr left, JassOpBinary op, JassExpr right)
-	| JassExprUnary(JassOpUnary op, JassExpr right)
+	  JassExprBinary(JassExpr leftExpr, JassOpBinary op, JassExpr right)
+	| JassExprUnary(JassOpUnary opU, JassExpr right)
 	| JassExprFunctionCall(String funcName, JassExprlist arguments)
 	| JassExprAtomic
 	
 	
 JassExprAtomic = 
-	  JassExprIntVal(int val)
-	| JassExprRealVal(double val)
-	| JassExprStringVal(String val)
-	| JassExprBoolVal(boolean val)
+	  JassExprIntVal(int valI)
+	| JassExprRealVal(double valR)
+	| JassExprStringVal(String valS)
+	| JassExprBoolVal(boolean valB)
 	| JassExprFuncRef(String funcName)
 	| JassExprVarAccess(String varName)
 	| JassExprVarArrayAccess(String varName, JassExpr index)

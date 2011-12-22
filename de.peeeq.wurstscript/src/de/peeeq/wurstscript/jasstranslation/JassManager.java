@@ -81,7 +81,7 @@ public class JassManager {
 		if (functions.containsKey(f)) {
 			return functions.get(f);
 		}
-		String name = f.getSignature().getName();
+		String name = f.getName();
 		if (f instanceof NativeFunc) {
 			// do not change name
 			markNameAsUsed(name);

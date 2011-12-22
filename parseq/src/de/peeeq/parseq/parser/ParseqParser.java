@@ -90,7 +90,16 @@ public class ParseqParser {
 		consume(DOT);
 		consume(IDENTIFIER);
 		String attr = sym.getString();
-		consume(RETURNS);
+		getNextToken();
+		String comment = ""; 
+		if (sym.typeEquals(STRING_LITERAL)) {
+			comment = sym.getString();
+			consume(RETURNS);
+		} else if (sym.typeEquals(RETURNS)) {
+			
+		} else {
+			abort("Error at token " + sym + ". Expected String literal or 'returns'.");
+		}
 		getNextToken();
 		String returns = join(parseQualifiedIdentifier(), ".");
 		if (sym.typeEquals(LT)) {
@@ -106,7 +115,7 @@ public class ParseqParser {
 		}
 		getNextToken();
 		String implementedBy = join(parseQualifiedIdentifier(), ".");
-		prog.addAttribute(typ, attr, returns, implementedBy);
+		prog.addAttribute(typ, attr, comment, returns, implementedBy);
 		debug("end parseAttribute");
 	}
 

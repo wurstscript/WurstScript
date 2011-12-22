@@ -45,7 +45,6 @@ import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
-import de.peeeq.wurstscript.ast.ClassOrModuleOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.ClassSlots;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -319,12 +318,12 @@ public class JassTranslator {
 
 	private void translateExtensionFuncDef(ExtensionFuncDef funcDef) {
 		JassFunction f = manager.getJassFunctionFor(funcDef);
-		f.setReturnType(translateType(funcDef.getSignature().getTyp()));
+		f.setReturnType(translateType(funcDef.getReturnTyp()));
 
 		// add implicit parameter 'this'
 		f.getParams().add(JassAst.JassSimpleVar(translateType(funcDef.getExtendedType().attrTyp()), "this"));
 
-		for (WParameter param : funcDef.getSignature().getParameters()) {
+		for (WParameter param : funcDef.getParameters()) {
 			f.getParams().add(translateParam(param));
 		}
 		f.getBody().addAll(translateStatements(f, funcDef.getBody()));
@@ -342,12 +341,12 @@ public class JassTranslator {
 			prog.attrIgnoredFunctions().add(f);
 		}
 
-		f.setReturnType(translateType(funcDef.getSignature().getTyp()));
+		f.setReturnType(translateType(funcDef.getReturnTyp()));
 		if (isMethod && !funcDef.attrIsStatic()) {
 			// methods have an additional implicit parameter
 			f.getParams().add(jassThisVar());
 		}
-		for (WParameter param : funcDef.getSignature().getParameters()) {
+		for (WParameter param : funcDef.getParameters()) {
 			f.getParams().add(translateParam(param));
 		}
 		f.getBody().addAll(translateStatements(f, funcDef.getBody()));
@@ -492,7 +491,7 @@ public class JassTranslator {
 
 	private void translateNativeType(NativeType nativeType) {
 		// nothing to translate
-		PscriptType superTyp = nativeType.getTyp().attrTyp();
+		PscriptType superTyp = nativeType.getOptTyp().attrTyp();
 		if (superTyp.isSubtypeOf(PScriptTypeHandle.instance())) {
 			handleSubTypes.add(nativeType.getName());
 		}
@@ -709,7 +708,7 @@ public class JassTranslator {
 
 		f.setReturnType("integer");
 
-		for (WParameter param : constructorDef.getParams()) {
+		for (WParameter param : constructorDef.getParameters()) {
 			f.getParams().add(translateParam(param));
 		}
 

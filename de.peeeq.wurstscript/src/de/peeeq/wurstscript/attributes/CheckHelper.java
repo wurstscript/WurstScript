@@ -15,7 +15,7 @@ public class CheckHelper {
 	 * @param of
 	 */
 	public static void checkIfIsRefinement(FunctionDefinition f, FunctionDefinition of) {
-		String funcName = f.getSignature().getName();
+		String funcName = f.getName();
 		// check static-ness
 		if (f.attrIsStatic() && !of.attrIsStatic()) {
 			attr.addError(f.getSource(), "Function " + funcName + " must not be static.");
@@ -24,16 +24,16 @@ public class CheckHelper {
 			attr.addError(f.getSource(), "Function " + funcName + " must be static.");
 		}
 		// check returntype
-		PscriptType f_type = f.getSignature().getTyp().attrTyp();
-		PscriptType of_type = of.getSignature().getTyp().attrTyp();
+		PscriptType f_type = f.getReturnTyp().attrTyp();
+		PscriptType of_type = of.getReturnTyp().attrTyp();
 		if (! f_type.isSubtypeOf(of_type)) { 
 			attr.addError(f.getSource(), "Cannot override function " + funcName + ": The return type is " + f_type + 
 					" but it should be " + of_type + ".");
 		}
 		
 		// check parameter count
-		int f_count = f.getSignature().getParameters().size();
-		int of_count = of.getSignature().getParameters().size(); 
+		int f_count = f.getParameters().size();
+		int of_count = of.getParameters().size(); 
 		// check parameters
 		if (f_count != of_count) {
 			attr.addError(f.getSource(), "Cannot override function " + funcName + ": The number of parameters of function " + funcName + " must be equal to " + of_count + 
@@ -41,8 +41,8 @@ public class CheckHelper {
 			return;
 		}
 		int i = 0;
-		for (WParameter f_p : f.getSignature().getParameters()) {
-			WParameter of_p = of.getSignature().getParameters().get(i);
+		for (WParameter f_p : f.getParameters()) {
+			WParameter of_p = of.getParameters().get(i);
 			PscriptType f_p_type = f_p.attrTyp();
 			PscriptType of_p_type = of_p.attrTyp();
 			if (! f_p_type.isSupertypeOf(of_p_type)) {

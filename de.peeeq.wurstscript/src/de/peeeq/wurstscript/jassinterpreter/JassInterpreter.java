@@ -274,13 +274,13 @@ public class JassInterpreter {
 
 			@Override
 			public ILconst case_JassExprRealVal(JassExprRealVal e) {
-				return new ILconstReal(e.getVal());
+				return new ILconstReal(e.getValR());
 			}
 
 			@Override
 			public ILconst case_JassExprUnary(JassExprUnary e) {
 				final ILconst right = executeExpr(localVarMap, e.getRight());
-				return e.getOp().match(new JassOpUnary.Matcher<ILconst>() {
+				return e.getOpU().match(new JassOpUnary.Matcher<ILconst>() {
 
 					@Override
 					public ILconst case_JassOpNot(JassOpNot jassOpNot) {
@@ -303,7 +303,7 @@ public class JassInterpreter {
 
 			@Override
 			public ILconst case_JassExprBoolVal(JassExprBoolVal e) {
-				return ILconstBool.instance(e.getVal());
+				return ILconstBool.instance(e.getValB());
 			}
 
 			@Override
@@ -311,7 +311,7 @@ public class JassInterpreter {
 				return e.getOp().match(new JassOpBinary.Matcher<ILconst>() {
 
 					ILconst getLeft() {
-						return  executeExpr(localVarMap, e.getLeft());
+						return  executeExpr(localVarMap, e.getLeftExpr());
 					}
 					
 					ILconstNum getLeftNum() {
@@ -417,12 +417,12 @@ public class JassInterpreter {
 
 			@Override
 			public ILconst case_JassExprStringVal(JassExprStringVal e) {
-				return new ILconstString(e.getVal());
+				return new ILconstString(e.getValS());
 			}
 
 			@Override
 			public ILconst case_JassExprIntVal(JassExprIntVal e) {
-				return ILconstInt.create(e.getVal());
+				return ILconstInt.create(e.getValI());
 			}
 
 			@Override

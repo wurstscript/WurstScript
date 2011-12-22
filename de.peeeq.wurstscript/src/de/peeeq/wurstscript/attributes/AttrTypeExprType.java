@@ -3,8 +3,6 @@ package de.peeeq.wurstscript.attributes;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.ModuleDef;
-import de.peeeq.wurstscript.ast.ModuleInstanciation;
-import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
@@ -13,7 +11,6 @@ import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
-import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.types.NativeTypes;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeUnknown;
@@ -22,7 +19,6 @@ import de.peeeq.wurstscript.types.PscriptNativeType;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
-import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
 import de.peeeq.wurstscript.utils.Utils;
 
 /**
@@ -94,11 +90,11 @@ public class AttrTypeExprType {
 					// native type
 					return typ;
 				}
-				if (term.getTyp() instanceof NoTypeExpr) {
+				if (term.getOptTyp() instanceof NoTypeExpr) {
 					attr.addError(term.getSource(), "Unknown base type: " + term.getName());
 					return PScriptTypeUnknown.instance();
 				}
-				PscriptType superType = ((TypeExpr) term.getTyp()).attrTyp();
+				PscriptType superType = ((TypeExpr) term.getOptTyp()).attrTyp();
 				return PscriptNativeType.instance(typename, superType);
 			}
 
