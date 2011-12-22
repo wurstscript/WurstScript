@@ -54,7 +54,7 @@ non terminal CompilationUnit CompilationUnit;
 non terminal WEntity Entity;
 non terminal Expr Expr;
 non terminal Expr ExprAtomic;
-non terminal ExprAssignable ExprAssignable;
+non terminal NameRef ExprAssignable;
 non terminal ExprBinary ExprBinary;
 non terminal ExprCast ExprCast;
 non terminal ExprMemberMethod ExprMemberMethod;

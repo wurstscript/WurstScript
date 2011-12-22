@@ -2,19 +2,13 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.ClassOrModuleOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.Expr;
-import de.peeeq.wurstscript.ast.ExprFuncRef;
-import de.peeeq.wurstscript.ast.FuncDef;
-import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.NameDef;
-import de.peeeq.wurstscript.ast.NotExtensionFunction;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
 

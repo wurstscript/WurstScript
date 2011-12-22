@@ -6,7 +6,6 @@ import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
-import de.peeeq.wurstscript.ast.ExprAssignable;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
@@ -17,7 +16,6 @@ import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
-import de.peeeq.wurstscript.ast.FuncSignature;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.FunctionImplementation;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
@@ -109,8 +107,8 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 
 	}
 
-	private void checkIfAssigningToConstant(final ExprAssignable left) {
-		left.match(new ExprAssignable.MatcherVoid() {
+	private void checkIfAssigningToConstant(final NameRef left) {
+		left.match(new NameRef.MatcherVoid() {
 			
 			@Override
 			public void case_ExprVarArrayAccess(ExprVarArrayAccess e) {

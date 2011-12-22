@@ -5,13 +5,10 @@ import java.util.List;
 import java.util.Map;
 
 import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.TopLevelDeclaration;
-import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.utils.NotNullList;
-import de.peeeq.wurstscript.utils.Utils;
 
 public class attr {
 	

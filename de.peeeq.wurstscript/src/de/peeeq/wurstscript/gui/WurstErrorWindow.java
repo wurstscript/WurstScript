@@ -12,7 +12,6 @@ package de.peeeq.wurstscript.gui;
 
 import java.awt.Color;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
@@ -30,9 +29,6 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
-
-import com.google.common.base.Charsets;
-import com.google.common.io.Files;
 
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.utils.Utils;

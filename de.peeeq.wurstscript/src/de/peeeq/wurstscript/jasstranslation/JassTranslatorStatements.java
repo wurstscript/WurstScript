@@ -28,9 +28,9 @@ import java.util.Set;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
+import de.peeeq.wurstscript.ast.AstElementWithIndexes;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.Expr;
-import de.peeeq.wurstscript.ast.ExprAssignable;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprIntVal;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
@@ -40,6 +40,8 @@ import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
 import de.peeeq.wurstscript.ast.LocalVarDef;
+import de.peeeq.wurstscript.ast.NameRef;
+import de.peeeq.wurstscript.ast.NoExpr;
 import de.peeeq.wurstscript.ast.OpAssign;
 import de.peeeq.wurstscript.ast.OpAssignment;
 import de.peeeq.wurstscript.ast.OpMinusAssign;
@@ -57,6 +59,7 @@ import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
 import de.peeeq.wurstscript.jassAst.JassExprIntVal;
@@ -133,82 +136,140 @@ public class JassTranslatorStatements {
 				});
 
 
-				stmtSet.getUpdatedExpr().match(new ExprAssignable.MatcherVoid() {
-
-					@Override
-					public void case_ExprMemberVar(ExprMemberVar exprMemberVar) {
-						VarDef leftVar = (VarDef) exprMemberVar.attrNameDef();
-						String leftJassVar = translator.manager.getJassVarNameFor(leftVar);
-						ExprTranslationResult index = translator.translateExpr(f, exprMemberVar.getLeft());
-
-						withIndex(leftJassVar, index);
+				NameRef updatedExpr = stmtSet.getUpdatedExpr();
+				
+				
+				
+				// calculate the index
+				boolean hasIndex = false;
+				ExprTranslationResult index = null;
+				// @invariant hasIndex iff (index != null)
+				
+				
+				if (updatedExpr.attrImplicitParameter() instanceof Expr) {
+					if (updatedExpr instanceof AstElementWithIndexes) {
+						throw new CompileError(updatedExpr.getSource(), "Not supported: array members");
+					} else {
+						hasIndex = true;
+						index = translator.translateExpr(f, (Expr) updatedExpr.attrImplicitParameter());
 					}
-
-					private void withIndex(String leftJassVar, ExprTranslationResult index) {
-						result.addAll(index.getStatements());
-						result.addAll(right.getStatements());
+				} else { // no implicit parameter
+					if (updatedExpr instanceof AstElementWithIndexes) {
+						AstElementWithIndexes withIndexes = (AstElementWithIndexes) updatedExpr;
+						hasIndex = true;
+						index = translator.translateExpr(f, withIndexes.getIndexes().get(0));
+					}
+				}
+				
+				VarDef varDef = (VarDef) updatedExpr.attrNameDef(); // TODO check always safe?
+				String leftJassVar = manager.getJassVarNameFor(varDef);
+				if (hasIndex) {
+					result.addAll(index.getStatements());
+					result.addAll(right.getStatements());
+					if (binaryOp == null) {
+						// simple assignment, just translate:
+						result.add(JassStmtSetArray(leftJassVar, index.getExpr(), right.getExpr()));
+					} else {
 						JassExpr indexExpr;
-
-						if (binaryOp == null) {
-							result.add(JassStmtSetArray(leftJassVar, index.getExpr(), right.getExpr())); 
+						if (index.getExpr() instanceof ExprIntVal || index.getExpr() instanceof ExprVarAccess) {
+							// in case of simple var-access or contant int we can just use this index
+							indexExpr = index.getExpr();
 						} else {
-
-							if (index.getExpr() instanceof ExprIntVal 
-									|| index.getExpr() instanceof ExprVarAccess) {
-								indexExpr = index.getExpr();
-							} else {
-								JassVar tempIndex = translator.getNewTempVar(f, "integer");
-								result.add(JassStmtSet(tempIndex.getName(), index.getExpr()));
-								indexExpr = JassExprVarAccess(tempIndex.getName());
-							}
-
-							result.add(JassStmtSetArray(leftJassVar, indexExpr, 
-									JassExprBinary(JassExprVarArrayAccess(leftJassVar, (JassExpr) indexExpr.copy()), binaryOp, right.getExpr())));
+							// in other cases we save the index into a temporary variable, so we are sure that
+							// the index expr is not evaluated twice
+							JassVar tempIndex = translator.getNewTempVar(f, "integer");
+							result.add(JassStmtSet(tempIndex.getName(), index.getExpr()));
+							indexExpr = JassExprVarAccess(tempIndex.getName());
 						}
+						result.add(JassStmtSetArray(leftJassVar, indexExpr, 
+						JassExprBinary(JassExprVarArrayAccess(leftJassVar, (JassExpr) indexExpr.copy()), binaryOp, right.getExpr())));
 					}
-
-					private void withoutIndex(String leftJassVar) {
-						result.addAll(right.getStatements());
-						if (binaryOp == null) {
-							result.add(JassStmtSet(leftJassVar, right.getExpr())); 
-						} else {
-							result.add(JassStmtSet(leftJassVar, 
-									JassExprBinary(JassExprVarAccess(leftJassVar), binaryOp, right.getExpr())));
-						}
+				} else { // we have no index
+					result.addAll(right.getStatements());
+					if (binaryOp == null) {
+						result.add(JassStmtSet(leftJassVar, right.getExpr()));
+					} else {
+						result.add(JassStmtSet(leftJassVar, 
+								JassExprBinary(JassExprVarAccess(leftJassVar), binaryOp, right.getExpr())));
 					}
-
-					@Override
-					public void case_ExprMemberArrayVar(ExprMemberArrayVar exprMemberArrayVar) {
-						throw new Error("Array member vars not supported yet.");
-					}
-
-					@Override
-					public void case_ExprVarAccess(ExprVarAccess exprVarAccess) {
-						VarDef leftVar = (VarDef) exprVarAccess.attrNameDef();
-						String leftJassVar = manager.getJassVarNameFor(leftVar);
-						result.addAll(right.getStatements());
-						if (leftVar.attrIsDynamicClassMember()) {
-							withIndex(leftJassVar, new ExprTranslationResult(JassExprVarAccess("this")));
-						} else {
-							withoutIndex(leftJassVar);
-						}
-					}
-
-
-
-					@Override
-					public void case_ExprVarArrayAccess(ExprVarArrayAccess exprVarArrayAccess) {
-						VarDef leftVar = (VarDef) exprVarArrayAccess.attrNameDef(); // TODO cast not always possible
-						String leftJassVar = manager.getJassVarNameFor(leftVar);
-						ExprTranslationResult index;
-						if (exprVarArrayAccess.getIndexes().size() == 1) {
-							index = translator.translateExpr(f, exprVarArrayAccess.getIndexes().get(0));
-						} else {
-							throw new Error("multiple indexes not supported yet");
-						}
-						withIndex(leftJassVar, index);
-					}
-				});
+				}
+				
+//				stmtSet.getUpdatedExpr().match(new ExprAssignable.MatcherVoid() {
+//
+//					@Override
+//					public void case_ExprMemberVar(ExprMemberVar exprMemberVar) {
+//						VarDef leftVar = (VarDef) exprMemberVar.attrNameDef();
+//						String leftJassVar = translator.manager.getJassVarNameFor(leftVar);
+//						ExprTranslationResult index = translator.translateExpr(f, exprMemberVar.getLeft());
+//
+//						withIndex(leftJassVar, index);
+//					}
+//
+//					private void withIndex(String leftJassVar, ExprTranslationResult index) {
+//						result.addAll(index.getStatements());
+//						result.addAll(right.getStatements());
+//						JassExpr indexExpr;
+//
+//						if (binaryOp == null) {
+//							result.add(JassStmtSetArray(leftJassVar, index.getExpr(), right.getExpr())); 
+//						} else {
+//
+//							if (index.getExpr() instanceof ExprIntVal 
+//									|| index.getExpr() instanceof ExprVarAccess) {
+//								indexExpr = index.getExpr();
+//							} else {
+//								JassVar tempIndex = translator.getNewTempVar(f, "integer");
+//								result.add(JassStmtSet(tempIndex.getName(), index.getExpr()));
+//								indexExpr = JassExprVarAccess(tempIndex.getName());
+//							}
+//
+//							result.add(JassStmtSetArray(leftJassVar, indexExpr, 
+//									JassExprBinary(JassExprVarArrayAccess(leftJassVar, (JassExpr) indexExpr.copy()), binaryOp, right.getExpr())));
+//						}
+//					}
+//
+//					private void withoutIndex(String leftJassVar) {
+//						result.addAll(right.getStatements());
+//						if (binaryOp == null) {
+//							result.add(JassStmtSet(leftJassVar, right.getExpr())); 
+//						} else {
+//							result.add(JassStmtSet(leftJassVar, 
+//									JassExprBinary(JassExprVarAccess(leftJassVar), binaryOp, right.getExpr())));
+//						}
+//					}
+//
+//					@Override
+//					public void case_ExprMemberArrayVar(ExprMemberArrayVar exprMemberArrayVar) {
+//						throw new Error("Array member vars not supported yet.");
+//					}
+//
+//					@Override
+//					public void case_ExprVarAccess(ExprVarAccess exprVarAccess) {
+//						VarDef leftVar = (VarDef) exprVarAccess.attrNameDef();
+//						String leftJassVar = manager.getJassVarNameFor(leftVar);
+//						result.addAll(right.getStatements());
+//						if (leftVar.attrIsDynamicClassMember()) {
+//							withIndex(leftJassVar, new ExprTranslationResult(JassExprVarAccess("this")));
+//						} else {
+//							withoutIndex(leftJassVar);
+//						}
+//					}
+//
+//
+//
+//					@Override
+//					public void case_ExprVarArrayAccess(ExprVarArrayAccess exprVarArrayAccess) {
+//						VarDef leftVar = (VarDef) exprVarArrayAccess.attrNameDef(); // TODO cast not always possible
+//						String leftJassVar = manager.getJassVarNameFor(leftVar);
+//						ExprTranslationResult index;
+//						if (exprVarArrayAccess.getIndexes().size() == 1) {
+//							index = translator.translateExpr(f, exprVarArrayAccess.getIndexes().get(0));
+//						} else {
+//							throw new Error("multiple indexes not supported yet");
+//						}
+//						withIndex(leftJassVar, index);
+//					}
+//				});
 
 
 

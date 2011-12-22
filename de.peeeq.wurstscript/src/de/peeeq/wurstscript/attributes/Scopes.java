@@ -7,18 +7,21 @@ import com.google.common.collect.Multimap;
 
 import de.peeeq.wurstscript.ast.AstElementWithBody;
 import de.peeeq.wurstscript.ast.AstElementWithParameters;
+import de.peeeq.wurstscript.ast.AstElementWithSlots;
+import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModuleOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.ClassSlots;
 import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.ConstructorDef;
-import de.peeeq.wurstscript.ast.FunctionImplementation;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.JassGlobalBlock;
 import de.peeeq.wurstscript.ast.LocalVarDef;
+import de.peeeq.wurstscript.ast.ModuleDef;
+import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.TopLevelDeclaration;
 import de.peeeq.wurstscript.ast.WEntity;
+import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WScope;
@@ -101,6 +104,34 @@ public class Scopes {
 	public static Multimap<String, NameDef> getVisibleNamesPrivate(WScope s) {
 		return s.attrDefinedNames();
 	}
+	
+	public static Multimap<String, NameDef> getVisibleNamesPrivate(WPackage p) {
+		Multimap<String, NameDef> result = HashMultimap.create();
+		
+		// add imported names
+		for (WImport i : p.getImports()) {
+			WPackage importedPackage = i.attrImportedPackage();
+			result.putAll(importedPackage.attrExportedNames());
+		}
+		
+		// add all defined names
+		result.putAll(p.attrDefinedNames());
+		return result;
+	}
+	
+	public static Multimap<String, NameDef> getVisibleNamesPrivate(ClassOrModuleOrModuleInstanciation c) {
+		Multimap<String, NameDef> result = HashMultimap.create();
+		
+		// add protected names from used module instanciations
+		for (ModuleInstanciation m : c.attrModuleInstanciations()) {
+			result.putAll(m.attrVisibleNamesProtected());
+		}
+		
+		// add all defined names
+		result.putAll(c.attrDefinedNames());
+		return result;
+	}
+	
 	
 	// TODO getVisibleNamesPrivate for special scopes
 	

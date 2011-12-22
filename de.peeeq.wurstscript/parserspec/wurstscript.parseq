@@ -75,7 +75,7 @@ WStatement	=
 	| StmtWhile(WPos source, Expr cond, WStatements body)
 	| StmtLoop(WPos source, WStatements body)
 	| LocalVarDef
-	| StmtSet(WPos source, ExprAssignable updatedExpr, OpAssignment opAssign, Expr right)
+	| StmtSet(WPos source, NameRef updatedExpr, OpAssignment opAssign, Expr right)
 	| StmtCall
 	| StmtReturn(WPos source, OptExpr returnedObj)
 	| StmtDestroy(WPos source, Expr destroyedObj)
@@ -94,11 +94,9 @@ OpUpdateAssign =
 
 StmtCall = ExprMemberMethod | ExprFunctionCall | ExprNewObject
 
-// an expression which you can assign a value to
-ExprAssignable = ExprMemberVar | ExprMemberArrayVar | ExprVarAccess | ExprVarArrayAccess
 
-Expr = 
-	ExprAssignable
+Expr =
+	  NameRef
 	| ExprBinary(WPos source, Expr left, OpBinary op, Expr right)
 	| ExprUnary(WPos source, OpUnary opU, Expr right)
 	| ExprMemberVar(WPos source, Expr left, String varName)
@@ -212,7 +210,7 @@ ClassOrModule = ClassDef | ModuleDef
 
 ClassOrModuleOrModuleInstanciation = ClassOrModule | ModuleInstanciation
 
-NamedScope = WPackage | ClassDef | ModuleDef | ModuleInstanciation
+NamedScope = WPackage | ClassOrModuleOrModuleInstanciation
 
 // Jass types:
 
@@ -253,6 +251,11 @@ FunctionCall.attrImplicitParameter
 	returns OptExpr
 	implemented by de.peeeq.wurstscript.attributes.AttrImplicitParameter.getImplicitParameter
 
+NameRef.attrImplicitParameter
+	returns OptExpr
+	implemented by de.peeeq.wurstscript.attributes.AttrImplicitParameter.getImplicitParameter
+
+	
 NameRef.attrNameDef
 	returns NameDef
 	implemented by de.peeeq.wurstscript.attributes.AttrNameDef.calculate

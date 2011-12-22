@@ -1,9 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
 import java.util.List;
-import java.util.Map;
 
-import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
@@ -11,13 +9,8 @@ import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
-import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.StmtSet;
-import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.types.PscriptType;
-import de.peeeq.wurstscript.types.PscriptTypeClass;
-import de.peeeq.wurstscript.types.PscriptTypeModule;
-import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
 import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
 
 /**

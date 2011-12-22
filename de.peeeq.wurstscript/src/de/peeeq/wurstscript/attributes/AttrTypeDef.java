@@ -2,17 +2,12 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.List;
 
-import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ExprNewObject;
-import de.peeeq.wurstscript.ast.NameDef;
-import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
 import de.peeeq.wurstscript.ast.TypeRef;
-import de.peeeq.wurstscript.ast.WEntity;
-import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.types.NativeTypes;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.utils.Utils;

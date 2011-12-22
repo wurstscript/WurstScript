@@ -6,13 +6,13 @@ import java.util.Set;
 import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.ast.Expr;
-import de.peeeq.wurstscript.ast.ExprAssignable;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.NameDef;
+import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.OpUpdateAssign;
 import de.peeeq.wurstscript.ast.OptExpr;
 import de.peeeq.wurstscript.ast.StmtDestroy;
@@ -78,7 +78,7 @@ public class UninitializedVars {
 
 				@Override
 				public void case_StmtSet(StmtSet stmtSet) {
-					ExprAssignable left = stmtSet.getUpdatedExpr();
+					NameRef left = stmtSet.getUpdatedExpr();
 					checkExpr(stmtSet.getRight(), uninitializedVars);
 					if (left instanceof ExprVarAccess) {
 						ExprVarAccess exprVarAccess = (ExprVarAccess) left;

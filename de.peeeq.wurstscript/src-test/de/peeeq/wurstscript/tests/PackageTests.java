@@ -139,7 +139,7 @@ public class PackageTests extends PscriptTest {
 	
 	@Test
 	public void test_import_var_fail() {
-		assertError(false, "variable x",
+		assertError(false, "Could not resolve",
 				"package A",
 				"	int x = 4",
 				"endpackage",

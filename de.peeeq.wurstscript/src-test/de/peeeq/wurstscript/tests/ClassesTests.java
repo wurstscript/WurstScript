@@ -141,9 +141,9 @@ public class ClassesTests extends PscriptTest {
 				"	import Blub",
 				"	native testSuccess()",
 				"	init",
-				"			C.i++",
-				"			if C.i == 4",
-				"				testSuccess()",
+				"		C.i++",
+				"		if C.i == 4",
+				"			testSuccess()",
 				"endpackage"
 			);
 	}
