@@ -23,8 +23,10 @@ import com.google.common.collect.Multimap;
 import de.peeeq.immutablecollections.ImmutableList;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.AstElementWithName;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.ast.WScope;
 
 public class Utils {
 
@@ -450,5 +452,15 @@ public class Utils {
 		return null;
 	}
 
+	public static String printScope(WScope scope) {
+		if (scope == null) {
+			return "null-scope";
+		} else if (scope instanceof AstElementWithName) {
+			AstElementWithName wn = (AstElementWithName) scope;
+			return wn.getName() + " (" + scope.getClass().getName() +")";
+		} else {
+			return "scope (" + scope.getClass().getName() +")";
+		}
+	}
 
 }

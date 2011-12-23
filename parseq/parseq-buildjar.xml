@@ -3,13 +3,13 @@
     <!--this file was created by Eclipse Runnable JAR Export Wizard-->
     <!--ANT 1.7 is required                                        -->
     <target name="create_run_jar">
-        <jar destfile="C:/pscript/de.peeeq.wurstscript/tools/parseq.jar" filesetmanifest="mergewithoutmain">
+        <jar destfile="../de.peeeq.wurstscript/tools/parseq.jar" filesetmanifest="mergewithoutmain">
             <manifest>
                 <attribute name="Main-Class" value="de.peeeq.parseq.Main"/>
                 <attribute name="Class-Path" value="."/>
             </manifest>
-            <fileset dir="C:/pscript/parseq/bin"/>
-            <zipfileset excludes="META-INF/*.SF" src="C:/pscript/parseq/lib/guava-r09.jar"/>
+            <fileset dir="./bin"/>
+            <zipfileset excludes="META-INF/*.SF" src="./lib/guava-r09.jar"/>
         </jar>
     </target>
 </project>

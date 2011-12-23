@@ -109,10 +109,19 @@
 
 	<taskdef classpathref="cobertura.classpath" resource="tasks.properties" />
 
-
-
-
 	<target name="junit_allTests">
+		<junit printsummary="on">
+			<classpath location="${build}" />
+			<classpath refid="classpath.test">
+			</classpath>
+			<test name="de.peeeq.wurstscript.tests.AllTests" todir="${junitTestResults}">
+						</test>
+						<formatter type="xml" />
+		</junit>
+	</target>
+
+
+	<target name="junit_allTests_withCobertura">
 
 		<cobertura-instrument todir="${instrumented.dir}">
 			<ignore regex="org.apache.log4j.*" />

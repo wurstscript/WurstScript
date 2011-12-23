@@ -1,9 +1,12 @@
 package de.peeeq.wurstscript.attributes;
 
+import java.util.Collection;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.ast.AstElementWithBody;
 import de.peeeq.wurstscript.ast.AstElementWithParameters;
@@ -13,6 +16,8 @@ import de.peeeq.wurstscript.ast.ClassOrModuleOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.ClassSlots;
 import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.JassGlobalBlock;
 import de.peeeq.wurstscript.ast.LocalVarDef;
@@ -128,12 +133,40 @@ public class Scopes {
 		}
 		
 		// add all defined names
-		result.putAll(c.attrDefinedNames());
+		for (Entry<String, NameDef> e : c.attrDefinedNames().entries()) {
+			String name = e.getKey();
+			NameDef def = e.getValue();
+			if (def instanceof FuncDef) {
+				// remove the overridden functions
+				FuncDef funcDef = (FuncDef) def;
+				if (result.containsKey(name)) {
+					Collection<NameDef> names = result.get(name);
+					Set<NameDef> toRemove = Sets.newHashSet();
+					for (NameDef n : names) {
+						if (n instanceof FuncDef) {
+							FuncDef overriddenFunc = (FuncDef) n;
+							funcDef.attrOverriddenFunctions().addAll(overriddenFunc.attrOverriddenFunctions());
+							funcDef.attrOverriddenFunctions().add(overriddenFunc);
+							
+							toRemove.add(overriddenFunc);
+						}
+					}
+					// remove overridden functions
+					names.removeAll(toRemove);
+					
+					if (!funcDef.attrIsOverride()) {
+						attr.addError(funcDef.attrSource(), "Function " + name + " needs the 'override' modifier.");
+					}
+				} else {
+					if (funcDef.attrIsOverride()) {
+						attr.addError(funcDef.attrSource(), "Nothing to override for function " + name + ".");
+					}
+				}
+			}
+			result.put(name, def);
+		}
 		return result;
 	}
-	
-	
-	// TODO getVisibleNamesPrivate for special scopes
 	
 	public static Multimap<String, NameDef> getVisibleNamesPublic(WScope s) {
 		Multimap<String, NameDef> result = HashMultimap.create();

@@ -5,11 +5,14 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
@@ -43,6 +46,7 @@ public class Generator {
 	private Multimap<AstEntityDefinition, AstEntityDefinition> transientSubTypes;
 	private Multimap<AstEntityDefinition, AstEntityDefinition> transientSuperTypes;
 	
+	private Map<String, Parameter> parameters = Maps.newHashMap();
 
 	public Generator(Program prog, String p_outputFolder) {
 		System.out.println(prog);
@@ -253,6 +257,7 @@ public class Generator {
 
 	void generate() {
 		System.out.println("calculating types ... ");
+		calculateProperties();
 		calculateSubTypes();
 		calculateContainments();
 		
@@ -260,6 +265,8 @@ public class Generator {
 		generateStandardList();
 		
 		
+		System.out.println("generating property interfaces ... ");
+		generatePropertyInterfaces();
 		
 		System.out.println("generating interfaces ... ");
 		generateInterfaceTypes();
@@ -275,6 +282,37 @@ public class Generator {
 		
 		removeOldFiles();
 		System.out.println("Done.");
+	}
+
+	private void generatePropertyInterfaces() {
+		for (Parameter p : parameters.values()) {
+			String interfaceName = getPropertyInterfaceName(p);
+			StringBuilder sb = new StringBuilder();
+			printProlog(sb);
+			sb.append("public interface ");
+			sb.append(interfaceName);
+			sb.append(" { ");
+			sb.append("	void set" + toFirstUpper(p.name) + "(" + p.typ + " " + p.name + ");\n");
+			sb.append("	" + p.typ + " get" + toFirstUpper(p.name) + "();\n");
+			sb.append("}\n");
+			createFile(interfaceName, sb);
+		}
+	}
+
+	/**
+	 * calculate which properties exist
+	 */
+	private void calculateProperties() {
+		for (ConstructorDef c : prog.constructorDefs) {
+			for (Parameter  p : c.parameters) {
+				Parameter oldP = parameters.put(p.name, p);
+				if (oldP != null) {
+					if (!oldP.typ.equals(p.typ)) {
+						throw new Error("The property " + p.name + " has not the same type for each element.");
+					}
+				}
+			}
+		}
 	}
 
 	private void generateBaseClass_Impl(ConstructorDef c) {
@@ -325,15 +363,18 @@ public class Generator {
 			hasAttribute |= attr.typ.equals(getCommonSupertypeType());
 			
 			if (hasAttribute) {
-				sb.append("	private boolean attr_" + attr.attr + "_isCached = false;\n");
-				sb.append("	private " + attr.returns + " attr_" + attr.attr + "_cache;\n");
+				sb.append("	private int zzattr_" + attr.attr + "_state = 0;\n");
+				sb.append("	private " + attr.returns + " zzattr_" + attr.attr + "_cache;\n");
 				sb.append("/** " + attr.comment + "*/\n");
 				sb.append("	public " + attr.returns + " " + attr.attr + "() {\n");
-				sb.append("		if (!attr_" + attr.attr + "_isCached) {\n");
-				sb.append("			attr_" + attr.attr +"_cache = "+attr.implementedBy+"(this);\n");
-				sb.append("			attr_" + attr.attr +"_isCached = true;\n");
+				sb.append("		if (zzattr_" + attr.attr + "_state == 0) {\n");
+				sb.append("			zzattr_" + attr.attr +"_state = 1;\n");
+				sb.append("			zzattr_" + attr.attr +"_cache = "+attr.implementedBy+"(this);\n");
+				sb.append("			zzattr_" + attr.attr +"_state = 2;\n");
+				sb.append("		} else if (zzattr_" + attr.attr + "_state == 1) {\n");
+				sb.append("			throw new Error(\"Cyclic dependencies between types\");\n");
 				sb.append("		}\n");
-				sb.append("		return attr_" + attr.attr +"_cache;\n");
+				sb.append("		return zzattr_" + attr.attr +"_cache;\n");
 				sb.append("	}\n");
 			}
 		}
@@ -487,17 +528,22 @@ public class Generator {
 			sb.append(", ");
 			sb.append(supertype.getName());
 		}
+		// create getters and setters for parameters:
+//		for (Parameter p : c.parameters) {
+//			sb.append("	void set" + toFirstUpper(p.name) + "(" + p.typ + " " + p.name + ");\n");
+//			sb.append("	" + p.typ + " get" + toFirstUpper(p.name) + "();\n");
+//		}
+		for(Parameter p: c.parameters) {
+			sb.append(", ");
+			sb.append(getPropertyInterfaceName(p));
+		}
 		
 		sb.append(" {\n");
 
 		// getParent method:
 		sb.append("	" + getCommonSupertypeType() + " getParent();\n");
 
-		// create getters and setters for parameters:
-		for (Parameter p : c.parameters) {
-			sb.append("	void set" + toFirstUpper(p.name) + "(" + p.typ + " " + p.name + ");\n");
-			sb.append("	" + p.typ + " get" + toFirstUpper(p.name) + "();\n");
-		}
+		
 		
 		// copy method
 		sb.append("	" + c.name + " copy();\n");
@@ -509,6 +555,10 @@ public class Generator {
 		
 		sb.append("}\n");
 		createFile(c.name, sb);
+	}
+
+	private String getPropertyInterfaceName(Parameter p) {
+		return getCommonSupertypeType()+"With"+ toFirstUpper(p.name);
 	}
 	
 	private void generateVisitorInterface(AstEntityDefinition d, StringBuilder sb) {
@@ -617,20 +667,24 @@ public class Generator {
 			sb.append(", ");
 			sb.append(supertype.getName());
 		}
+		// calculate common attributes:
+		Set<Parameter> attributes = calculateAttributes(c);
 		
+		// create getters and setters for parameters:
+//		for (Parameter p : attributes) {
+//			sb.append("	void set" + toFirstUpper(p.name) + "(" + p.typ + " " + p.name + ");\n");
+//			sb.append("	" + p.typ + " get" + toFirstUpper(p.name) + "();\n");
+//		} 
+		for (Parameter p : attributes) {
+			sb.append(", ");
+			sb.append(getPropertyInterfaceName(p));
+		}
 		sb.append("{\n");
 
 		// getParent method:
 		sb.append("	" + getCommonSupertypeType() + " getParent();\n");
 		
-		// calculate common attributes:
-		Set<Parameter> attributes = calculateAttributes(c);
 		
-		// create getters and setters for parameters:
-		for (Parameter p : attributes) {
-			sb.append("	void set" + toFirstUpper(p.name) + "(" + p.typ + " " + p.name + ");\n");
-			sb.append("	" + p.typ + " get" + toFirstUpper(p.name) + "();\n");
-		}
 		
 		// create match methods:		
 		sb.append("	<T> T match(Matcher<T> s);\n");

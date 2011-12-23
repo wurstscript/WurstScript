@@ -32,7 +32,6 @@ public class AttrFuncDef {
 	}
 
 	public static  FunctionDefinition calculate(final ExprFunctionCall node) {
-		System.out.println("calculate " + node.getFuncName());
 		FunctionDefinition result = searchFunction(node.getFuncName(), node);
 
 		if (result == null) {
@@ -58,7 +57,7 @@ public class AttrFuncDef {
 		List<NotExtensionFunction> functions = NameResolution.searchTypedName(NotExtensionFunction.class, funcName, node);
 		if (functions.size() > 0) {
 			// TODO ambiguous function 
-			return functions.get(0);
+			return functions.get(0).attrRealFuncDef();
 		} else {
 			return null;
 		}
@@ -73,7 +72,10 @@ public class AttrFuncDef {
 		if (leftType instanceof PscriptTypeNamedScope) {
 			PscriptTypeNamedScope sr = (PscriptTypeNamedScope) leftType;
 			result = NameResolution.getTypedNameFromNamedScope(FunctionDefinition.class, left, funcName, sr);
-			// TODO get real implementation funcDef (wrt override)
+			// get real implementation funcDef (wrt override)
+			if (result != null && !sr.isStaticRef()) {
+				result = result.attrRealFuncDef();
+			}
 		}
 
 		// check extension methods:
@@ -86,7 +88,6 @@ public class AttrFuncDef {
 			}
 		}
 		if (result == null) {
-			System.out.println("not found");
 			attr.addError(node.getSource(), "The method " + funcName + " is undefined for receiver of type " + leftType);
 		}
 		return result;

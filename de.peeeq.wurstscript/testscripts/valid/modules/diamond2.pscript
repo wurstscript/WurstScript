@@ -26,14 +26,14 @@ package test
 	
 	
 	class D 
-		use A
 		use B
+		use C
 
 		override public function setX(int x)
-			A.setX(x)
+			B.setX(x)
 		
 		override public function getX() returns int 
-			return A.getX()
+			return B.getX()
 		
 		
 			

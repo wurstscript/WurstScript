@@ -39,6 +39,7 @@ import de.peeeq.wurstscript.ast.VisibilityModifier;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WPos;
+import de.peeeq.wurstscript.attributes.CheckHelper;
 import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
@@ -268,6 +269,11 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 			if (!func.attrIsPrivate() && !func.attrIsPublic()) {
 				attr.addError(func.getSource(), "Function " + functionName + " must be declared " + "public or private.\n");
 			}
+		}
+		
+		// check is override is correct:
+		for (FunctionDefinition overriddenFunc : func.attrOverriddenFunctions()) {
+			CheckHelper.checkIfIsRefinement(func, overriddenFunc);
 		}
 
 	}
