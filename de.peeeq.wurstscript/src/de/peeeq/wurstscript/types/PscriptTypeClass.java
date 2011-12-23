@@ -26,4 +26,13 @@ public class PscriptTypeClass extends PscriptTypeNamedScope {
 	public String getName() {
 		return getDef().getName() + " (class)";
 	}
+	
+	@Override
+	public PscriptType dynamic() {
+		if (isStaticRef()) {
+			return new PscriptTypeClass(getClassDef(), false);
+		}
+		return this;
+	}
+	
 }

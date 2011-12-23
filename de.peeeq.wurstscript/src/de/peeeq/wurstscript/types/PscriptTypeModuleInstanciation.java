@@ -50,5 +50,13 @@ public class PscriptTypeModuleInstanciation extends PscriptTypeNamedScope {
 	public String getName() {
 		return getDef().getName() + " (module instanciation)";
 	}
+	
+	@Override
+	public PscriptType dynamic() {
+		if (isStaticRef()) {
+			return new PscriptTypeModuleInstanciation(moduleInst, false);
+		}
+		return this;
+	}
 
 }

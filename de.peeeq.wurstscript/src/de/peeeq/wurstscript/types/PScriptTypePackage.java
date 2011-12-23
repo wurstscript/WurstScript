@@ -25,5 +25,10 @@ public class PScriptTypePackage extends PscriptTypeNamedScope {
 	public String getName() {
 		return getDef().getName() + " (package)";
 	}
+	
+	@Override
+	public PscriptType dynamic() {
+		throw new Error("Package references cannot be dynamic.");
+	}
 
 }

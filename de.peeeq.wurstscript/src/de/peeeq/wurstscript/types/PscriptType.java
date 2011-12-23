@@ -56,4 +56,9 @@ public abstract class PscriptType {
 	}
 	
 	public abstract String printJass();
+
+
+	public PscriptType dynamic() {
+		return this;
+	}
 }

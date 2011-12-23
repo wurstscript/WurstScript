@@ -62,6 +62,7 @@ import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
 import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
+import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -115,7 +116,7 @@ public class AttrExprType {
 				if (varDef == null) {
 					return PScriptTypeUnknown.instance();
 				}
-				return varDef.attrTyp();
+				return varDef.attrTyp().dynamic();
 			}
 
 			@Override
@@ -126,7 +127,7 @@ public class AttrExprType {
 					return PScriptTypeUnknown.instance();
 				}
 				
-				PscriptType varDefType = varDef.attrTyp();
+				PscriptType varDefType = varDef.attrTyp().dynamic();
 				if (varDefType instanceof PScriptTypeArray) {
 					return ((PScriptTypeArray) varDefType).getBaseType();
 				} else {
@@ -141,7 +142,7 @@ public class AttrExprType {
 				FunctionImplementation func = term.attrNearestFuncDef();
 				if (func instanceof ExtensionFuncDef) {
 					ExtensionFuncDef extensionFuncDef = (ExtensionFuncDef) func;
-					return extensionFuncDef.getExtendedType().attrTyp();
+					return extensionFuncDef.getExtendedType().attrTyp().dynamic();
 				}
 				
 				// find nearest class-like thing
@@ -408,14 +409,14 @@ public class AttrExprType {
 				if (varDef == null) {
 					return PScriptTypeUnknown.instance();
 				}
-				return varDef.attrTyp();
+				return varDef.attrTyp().dynamic();
 			}
 
 			@Override
 			public PscriptType case_ExprMemberArrayVar(
 					ExprMemberArrayVar term)  {
 				NameDef varDef = term.attrNameDef();
-				return varDef.attrTyp();
+				return varDef.attrTyp().dynamic();
 			}
 
 			@Override
@@ -428,7 +429,7 @@ public class AttrExprType {
 				if (f.getReturnTyp() instanceof NoTypeExpr) {
 					return PScriptTypeVoid.instance();
 				}
-				PscriptType typ = f.getReturnTyp().attrTyp();
+				PscriptType typ = f.getReturnTyp().attrTyp().dynamic();
 				if (typ instanceof PscriptTypeModule) {
 					// example:
 					// module A 
@@ -461,7 +462,7 @@ public class AttrExprType {
 				if (f.getReturnTyp() instanceof NoTypeExpr) {
 					return PScriptTypeVoid.instance();
 				}
-				PscriptType typ = f.getReturnTyp().attrTyp();
+				PscriptType typ = f.getReturnTyp().attrTyp().dynamic();
 				if (typ instanceof PscriptTypeModule) {
 					ClassOrModule classOrModule = term.attrNearestClassOrModule();
 					if (classOrModule != null) {
@@ -491,7 +492,7 @@ public class AttrExprType {
 
 			@Override
 			public PscriptType case_ExprCast(ExprCast term)  {
-				PscriptType typ = term.getTyp().attrTyp();
+				PscriptType typ = term.getTyp().attrTyp().dynamic();
 				PscriptType exprTyp = term.getExpr().attrTyp();
 				if (typ instanceof PScriptTypeInt && isClassOrModule(exprTyp)) {
 					// cast from classtype to int: OK
@@ -504,6 +505,7 @@ public class AttrExprType {
 			}
 		});
 	}
+
 
 	protected static boolean isClassOrModule(PscriptType typ) {
 		return typ instanceof PscriptTypeClass 
