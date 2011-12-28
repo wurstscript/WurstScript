@@ -101,7 +101,7 @@ This is mostly a copy of xefx, credits for that go to Vexorian
 			return this
 			
 		public function setY(real y) returns MovingEffect
-			dummy.setX(y)
+			dummy.setY(y)
 			return this
 			
 		public function setPos(real x, real y) returns MovingEffect
@@ -109,7 +109,7 @@ This is mostly a copy of xefx, credits for that go to Vexorian
 			return this
 		
 		public function setZ(real z) returns MovingEffect
-			dummy.setFlyHeight(z, 0)
+			dummy.setFlyHeight(z, 0.)
 			return this
 		
 		public function setFx(string newpath) returns MovingEffect

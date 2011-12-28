@@ -147,4 +147,28 @@ public class ClassesTests extends PscriptTest {
 				"endpackage"
 			);
 	}
+	
+	
+	@Test
+	public void static_static_array_field() {
+		testAssertOkLines(true,
+				"package Blub",
+				"	public class C",
+				"		public static int array xs",
+				"		public static function setX(int i, int x)",
+				"			xs[i] = x",
+				"		public static function getX(int i) returns int",
+				"			return xs[i]",
+				"endpackage",
+				"package test",
+				"	import Blub",
+				"	native testSuccess()",
+				"	init",
+				"		C.setX(7, 4)",
+				"		if C.getX(7) == 4",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
 }

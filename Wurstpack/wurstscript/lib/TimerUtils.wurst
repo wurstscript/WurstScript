@@ -82,10 +82,11 @@ package TimerUtils
 	
 	
 	timer timedLoopTimer = CreateTimer()
-	trigger timedLoopTrig
+	trigger timedLoopTrig = CreateTrigger()
 	int conditionCount
 	
 	function evaluateTimedLoopTrig()
+		BJDebugMsg("timedLoop - evaluate")
 		TriggerEvaluate(timedLoopTrig)
 		if conditionCount == 0
 			timedLoopTimer.pause()
@@ -98,13 +99,16 @@ package TimerUtils
 		static triggercondition triggerCond = null // the triggerCondition for this
 		static conditionfunc cond = Condition(function onExpire)
 	
-		public abstract function onTimedLoop() returns boolean
+		public boolean stopped = false
+	
+		public abstract function onTimedLoop()
 	
 		private static function onExpire() returns boolean
 			int i = instanceCount - 1
 			while i >= 0
 				thistype t = instances[i]
-				if not (t.onTimedLoop())
+				t.onTimedLoop()
+				if (t.stopped)
 					instanceCount--
 					instances[i] = instances[instanceCount]
 					destroy t
@@ -115,15 +119,25 @@ package TimerUtils
 				conditionCount--
 			return false
 	
+		public function stopTimedLoop()
+			stopped = true
+	
 		public function startTimedLoop()
+			BJDebugMsg("timedLoop - 1")
 			instances[instanceCount] = this
 			instanceCount++
+			BJDebugMsg("timedLoop - 2")
 			if instanceCount == 1
+				BJDebugMsg("timedLoop - 3")
 				if triggerCond == null
+					BJDebugMsg("timedLoop - 4")
 					triggerCond = TriggerAddCondition(timedLoopTrig, cond)
 					conditionCount++
+					BJDebugMsg("timedLoop - 5")
 					if conditionCount == 1
+						BJDebugMsg("timedLoop - 6")
 						timedLoopTimer.startPeriodic(PERIOD, function evaluateTimedLoopTrig)	 
+						BJDebugMsg("timedLoop - 7")
 
 endpackage
 

@@ -116,7 +116,9 @@ public class Scopes {
 		// add imported names
 		for (WImport i : p.getImports()) {
 			WPackage importedPackage = i.attrImportedPackage();
-			result.putAll(importedPackage.attrExportedNames());
+			if (importedPackage != null) {
+				result.putAll(importedPackage.attrExportedNames());
+			}
 		}
 		
 		// add all defined names

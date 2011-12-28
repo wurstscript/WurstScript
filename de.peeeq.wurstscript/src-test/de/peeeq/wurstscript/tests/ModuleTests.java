@@ -186,4 +186,58 @@ public class ModuleTests extends PscriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void modules_wrong_param_count1() {
+		testAssertErrorsLines(false, "parameter", 
+				"package test",
+				"	module A",
+				"		public function foo()",
+				"			bar(3)",
+				"		public function bar()",
+				"",
+				"	class C",
+				"		use A",
+				"		function xyz()",
+				"			foo()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void modules_wrong_param_count2() {
+		testAssertErrorsLines(false, "parameter", 
+				"package test",
+				"	module A",
+				"		public function foo()",
+				"			bar(3)",
+				"		public function bar(int x, int y)",
+				"",
+				"	class C",
+				"		use A",
+				"		function xyz()",
+				"			foo()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void modules_call_indirect() {
+		testAssertOkLines(false, 
+				"package test",
+				"	native testSuccess()",
+				"	module A",
+				"		public function foo()",
+				"			bar()",
+				"		public function bar()",
+				"			testSuccess()",
+				"	class C",
+				"		use A",
+				"		construct()",
+				"			foo()",
+				"	init",
+				"		new C()",
+				"endpackage"
+			);
+	}
 }

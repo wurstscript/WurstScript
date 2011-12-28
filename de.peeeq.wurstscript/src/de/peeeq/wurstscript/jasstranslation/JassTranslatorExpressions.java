@@ -109,6 +109,7 @@ public class JassTranslatorExpressions {
 			public ExprTranslationResult case_ExprNewObject(ExprNewObject exprNewObject) {
 				ConstructorDef constructorFunc = exprNewObject.attrConstructorDef();
 				JassFunction constructorJassFunc = manager.getJassConstructorFor(constructorFunc);
+				translator.calledFunctions.put(f, constructorJassFunc);
 
 				JassExprlist arguments = JassExprlist(); 
 				ExprListTranslationResult args = translateArguments(f, exprNewObject.getArgs(), getParameterTypes(constructorFunc.getParameters()));
@@ -327,6 +328,9 @@ public class JassTranslatorExpressions {
 	 */
 	private ExprListTranslationResult translateArguments(JassFunction f, List<Expr> args, List<String> types) {
 		if (args.size() != types.size()) {
+			for (Expr arg : args) {
+				System.out.println("arg = " + arg);
+			}
 			throw new IllegalArgumentException("argsize = " + args.size() + " but typessize = " + types.size() + " // " + f.getName());
 		}
 		

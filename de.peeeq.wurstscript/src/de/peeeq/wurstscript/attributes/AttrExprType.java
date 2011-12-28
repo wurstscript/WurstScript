@@ -21,6 +21,7 @@ import de.peeeq.wurstscript.ast.ExprUnary;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
+import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.FunctionImplementation;
 import de.peeeq.wurstscript.ast.ModuleDef;
@@ -47,10 +48,12 @@ import de.peeeq.wurstscript.ast.OpPlus;
 import de.peeeq.wurstscript.ast.OpUnary;
 import de.peeeq.wurstscript.ast.OpUnequals;
 import de.peeeq.wurstscript.ast.TypeDef;
+import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PScriptTypeCode;
+import de.peeeq.wurstscript.types.PScriptTypeInfer;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
 import de.peeeq.wurstscript.types.PScriptTypeJassInt;
 import de.peeeq.wurstscript.types.PScriptTypeNull;
@@ -116,7 +119,11 @@ public class AttrExprType {
 				if (varDef == null) {
 					return PScriptTypeUnknown.instance();
 				}
-				return varDef.attrTyp().dynamic();
+				if (varDef instanceof VarDef) {
+					return varDef.attrTyp().dynamic();
+				} else {
+					return varDef.attrTyp();
+				}
 			}
 
 			@Override
@@ -138,11 +145,20 @@ public class AttrExprType {
 
 			@Override
 			public PscriptType case_ExprThis(ExprThis term)  {
+				if (term.getParent() == null) {
+					// not attached to the tree -> generated
+					return PScriptTypeInfer.instance();
+				}
+				
 				// check if we are in an extension function
 				FunctionImplementation func = term.attrNearestFuncDef();
 				if (func instanceof ExtensionFuncDef) {
 					ExtensionFuncDef extensionFuncDef = (ExtensionFuncDef) func;
 					return extensionFuncDef.getExtendedType().attrTyp().dynamic();
+				}
+				if (!term.attrIsDynamicContext()) {
+					attr.addError(term.getSource(), "Cannot use 'this' in static methods.");
+					return PScriptTypeUnknown.instance();
 				}
 				
 				// find nearest class-like thing
@@ -409,7 +425,11 @@ public class AttrExprType {
 				if (varDef == null) {
 					return PScriptTypeUnknown.instance();
 				}
-				return varDef.attrTyp().dynamic();
+				if (varDef instanceof VarDef) {
+					return varDef.attrTyp().dynamic();
+				} else {
+					return varDef.attrTyp();
+				}
 			}
 
 			@Override

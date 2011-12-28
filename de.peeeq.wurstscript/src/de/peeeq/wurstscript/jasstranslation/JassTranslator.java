@@ -76,6 +76,8 @@ import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.jassAst.JassArrayVar;
 import de.peeeq.wurstscript.jassAst.JassAst;
+import de.peeeq.wurstscript.jassAst.JassExpr;
+import de.peeeq.wurstscript.jassAst.JassExprRealVal;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassFunctions;
 import de.peeeq.wurstscript.jassAst.JassProg;
@@ -230,14 +232,38 @@ public class JassTranslator {
 			attr.addError(Ast.WPos("", 0, 0), "Cannot generate code because of a cyclic dependency between the following variables: \n" + msg);
 		}
 
+		Set<JassVar> initializedVars = Sets.newHashSet();
 		for (GlobalInit gi : globalInitializers) {
 			if (! prog.attrIgnoredVariables().contains(gi.v)) {
 				ExprTranslationResult e = translateExpr(initGlobalsFunc, gi.initialExpr);
 				body.addAll(e.getStatements());
 				body.add(JassStmtSet(gi.v.getName(), e.getExpr()));
+				initializedVars.add(gi.v);
 			}
 		}
 
+		// add default initialization for all vars which are not initialized yet
+		for (JassVar globalVar : prog.getGlobals()) {
+			if (globalVar instanceof JassSimpleVar) {
+				if (!initializedVars.contains(globalVar)) {
+					if (!prog.attrIgnoredVariables().contains(globalVar)) {
+						body.add(JassStmtSet(globalVar.getName(), getDefaultValueForJassType(globalVar.getType())));
+					}
+				}
+			}
+		}
+	}
+
+	private JassExpr getDefaultValueForJassType(String type) {
+		if (type.equals("integer")) {
+			return JassExprIntVal(0);
+		} else if (type.equals("real")) {
+			return JassAst.JassExprRealVal(0.);
+		} else if (type.equals("boolean")) {
+			return JassAst.JassExprBoolVal(false);
+		} else {
+			return JassAst.JassExprNull();
+		}
 	}
 
 	/**
@@ -277,6 +303,7 @@ public class JassTranslator {
 			JassFunction f = initFunctions.get(p);
 			if (f != null) {
 				body.add(JassStmtCall(f.getName(), JassExprlist()));
+				calledFunctions.put(mainFunction, f);
 			}
 		}
 
@@ -607,7 +634,7 @@ public class JassTranslator {
 				@Override
 				public void case_GlobalVarDef(GlobalVarDef globalVarDef) {
 					trace("translate global var " + globalVarDef.getName());
-					boolean isArray = !globalVarDef.attrIsStatic();
+					boolean isArray = !globalVarDef.attrIsStatic() || (globalVarDef.attrTyp() instanceof PScriptTypeArray);
 					String type = translateType(globalVarDef.attrTyp());
 					JassVar v = manager.getJassVarFor(globalVarDef, type, isArray);
 					trace("	translated to " + v);
@@ -754,7 +781,7 @@ public class JassTranslator {
 					f.getBody().addAll(e.getStatements());
 					String jassVar = manager.getJassVarNameFor(var);
 					f.getBody().add(JassStmtSetArray(jassVar, JassExprVarAccess("this"), e.getExpr()));
-				}
+				} // TODO default value?
 			}
 		}
 

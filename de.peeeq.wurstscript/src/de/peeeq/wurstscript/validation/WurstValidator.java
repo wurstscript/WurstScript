@@ -1,7 +1,12 @@
 package de.peeeq.wurstscript.validation;
 
+import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.Lists;
+
+import de.peeeq.wurstscript.ast.Arguments;
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
@@ -38,6 +43,7 @@ import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.VisibilityModifier;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.ast.WParameters;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.attributes.CheckHelper;
 import de.peeeq.wurstscript.attributes.attr;
@@ -299,6 +305,13 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		// calculating the exprType should reveal most errors:
 		stmtCall.attrTyp();
 		
+		List<Expr> args = Lists.newArrayList();
+		if (stmtCall.attrImplicitParameter() instanceof Expr) {
+			args.add((Expr) stmtCall.attrImplicitParameter());
+		}
+		args.addAll(stmtCall.getArgs());
+		checkParams(stmtCall, args, stmtCall.attrFuncDef());
+		
 		FunctionImplementation nearestFunc = stmtCall.attrNearestFuncDef();
 		if (stmtCall.attrFuncDef() != null) {
 			
@@ -329,10 +342,39 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		}
 	}
 
+	private void checkParams(AstElement where, List<Expr> args, FunctionDefinition calledFunc) {
+		if (calledFunc == null) {
+			return;
+		}
+		List<PscriptType> parameterTypes = calledFunc.attrParameterTypes();
+		if (args.size() > parameterTypes.size()) {
+			attr.addError(where.attrSource(), "Too many parameters.");
+			
+		} else if (args.size() < parameterTypes.size()) {
+			attr.addError(where.attrSource(), "Missing parameters.");
+		} else {
+			for (int i=0; i<args.size(); i++) {
+				PscriptType actual = args.get(i).attrTyp();
+				PscriptType expected = parameterTypes.get(i);
+				if (!actual.isSubtypeOf(expected)) {
+					attr.addError(args.get(i).getSource(), "Expected " + expected + " as parameter " + i + " but found " + actual);
+				}
+			}
+		}
+		
+	}
+
 	@Override
 	public void visit(ExprMemberMethod stmtCall) {
 		// calculating the exprType should reveal all errors:
 		stmtCall.attrTyp();
+		
+		List<Expr> args = Lists.newLinkedList();
+		if (stmtCall.attrImplicitParameter() instanceof Expr) {
+			args.add((Expr) stmtCall.attrImplicitParameter());
+		}
+		args.addAll(stmtCall.getArgs());
+		checkParams(stmtCall, args, stmtCall.attrFuncDef());
 	}
 
 	@Override
