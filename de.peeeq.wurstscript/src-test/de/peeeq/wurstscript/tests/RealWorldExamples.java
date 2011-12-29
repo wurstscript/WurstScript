@@ -36,6 +36,11 @@ public class RealWorldExamples extends PscriptTest {
 	}
 	
 	@Test
+	public void setFrottyBugKnockbackNull() throws IOException {
+		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "knockback.wurst"), false);
+	}
+	
+	@Test
 	public void test_war3map() throws IOException {
 		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "test_war3map.j"), false);
 	}

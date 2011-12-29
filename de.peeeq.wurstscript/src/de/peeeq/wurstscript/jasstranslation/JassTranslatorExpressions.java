@@ -252,7 +252,12 @@ public class JassTranslatorExpressions {
 
 			@Override
 			public ExprTranslationResult case_ExprNull(ExprNull exprNull) {
-				return new ExprTranslationResult(JassExprNull());
+				// FIXME null oder 0 ?
+				if (exprNull.attrIsClassNull()) {
+					return new ExprTranslationResult(JassExprIntVal(0));
+				} else {
+					return new ExprTranslationResult(JassExprNull());
+				}
 			}
 
 			@Override

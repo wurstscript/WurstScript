@@ -416,7 +416,13 @@ ModuleInstanciation.attrModuleOrigin
 	returns ModuleDef
 	implemented by de.peeeq.wurstscript.attributes.AttrModuleInstanciations.getModuleOrigin
 	
+ExprNull.attrIsClassNull
+	returns boolean
+	implemented by de.peeeq.wurstscript.attributes.AttrIsClassNull.calculate
 	
 AstElement.attrSource
 	returns WPos
 	implemented by de.peeeq.wurstscript.attributes.AttrPos.getPos
+	
+	
+	
