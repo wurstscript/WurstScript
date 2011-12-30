@@ -136,7 +136,8 @@ public class MainView extends JFrame {
 		textArea = new RSyntaxTextArea(20, 60);
 		addWurstSyntax();
 		textArea.setSyntaxEditingStyle("wurstscript");
-	    textArea.setFont(new Font("Consolas", Font.PLAIN, 12));	
+	    textArea.setFont(new Font("Consolas", Font.PLAIN, 13));	
+//		textArea.setFont(new Font("Monospace", Font.PLAIN, 12));
 	    textArea.setAntiAliasingEnabled(true);
 	}
 	
