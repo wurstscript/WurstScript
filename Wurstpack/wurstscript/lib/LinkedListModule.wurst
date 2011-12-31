@@ -12,7 +12,7 @@ iterate over all elements with:
 
 package LinkedListModule
 
-	module LinkedListModule
+	public module LinkedListModule
 		static thistype first = null
 		static thistype last = null
 		static int count = 0
