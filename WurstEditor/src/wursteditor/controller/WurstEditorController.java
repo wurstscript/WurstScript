@@ -7,6 +7,7 @@ import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.util.List;
 
 import javax.swing.JFileChooser;
 import javax.swing.UIManager;
@@ -17,6 +18,8 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import com.google.common.io.PatternFilenameFilter;
 
+import de.peeeq.wurstscript.attributes.CompileError;
+
 import wursteditor.WurstEditFileView;
 import wursteditor.WurstEditorView;
 
@@ -26,7 +29,14 @@ import wursteditor.WurstEditorView;
 public class WurstEditorController {
 	private WurstEditorView view;
 
+	private static WurstEditorController instance = null;
+	
+	public static WurstEditorController getInstance() {
+		return instance;
+	}
+	
 	public WurstEditorController(final WurstEditorView v) {
+		instance = this;
 		v.getOpenProjectButton().addActionListener(onClick_openProject());
 		v.getSaveFileButton().addActionListener(onClick_saveFile());
 		v.getUndoButton().addActionListener(onclick_undo(v));
@@ -122,6 +132,11 @@ public class WurstEditorController {
 				}
 			}
 		};
+	}
+
+	@SuppressWarnings("unchecked")
+	public void setErrors(List<CompileError> errorList) {
+		view.getjList1().setListData(errorList.toArray());
 	}
 
 }
