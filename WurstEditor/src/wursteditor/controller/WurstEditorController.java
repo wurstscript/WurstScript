@@ -87,11 +87,11 @@ public class WurstEditorController {
 			throw new Error("File " +file.getAbsolutePath() + " does not exist.");
 		}
 		// check if already opened:
-		for (int i = 0; i < view.getjTabbedPane2().getTabCount(); i++) {
-			if (view.getjTabbedPane2().getTabComponentAt(i) instanceof WurstEditFileView) {
-				WurstEditFileView we = (WurstEditFileView) view.getjTabbedPane2().getTabComponentAt(i);
+		for (int i = 0; i < view.getRSTASplitPane().getTabCount(); i++) {
+			if (view.getRSTASplitPane().getTabComponentAt(i) instanceof WurstEditFileView) {
+				WurstEditFileView we = (WurstEditFileView) view.getRSTASplitPane().getTabComponentAt(i);
 				if (we.getFileName().equals(file.getAbsolutePath())) {
-					view.getjTabbedPane2().setSelectedIndex(i);
+					view.getRSTASplitPane().setSelectedIndex(i);
 					return;
 				}
 			}
@@ -106,8 +106,8 @@ public class WurstEditorController {
 			e.printStackTrace();
 		}
 		fileView.getSyntaxCodeArea().setText(text);
-		view.getjTabbedPane2().addTab(file.getName(), fileView);
-		view.getjTabbedPane2().setSelectedComponent(fileView);
+		view.getRSTASplitPane().addTab(file.getName(), fileView);
+		view.getRSTASplitPane().setSelectedComponent(fileView);
 	}
 	
 	private ActionListener onClick_saveFile() {
@@ -115,7 +115,7 @@ public class WurstEditorController {
 			
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				Component current = view.getjTabbedPane2().getSelectedComponent();
+				Component current = view.getRSTASplitPane().getSelectedComponent();
 				if (current instanceof WurstEditFileView) {
 					WurstEditFileView we = (WurstEditFileView) current;
 					String text = we.getSyntaxCodeArea().getText();
@@ -136,7 +136,7 @@ public class WurstEditorController {
 
 	@SuppressWarnings("unchecked")
 	public void setErrors(List<CompileError> errorList) {
-		view.getjList1().setListData(errorList.toArray());
+		view.getErrorList().setListData(errorList.toArray());
 	}
 
 }

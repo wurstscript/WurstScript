@@ -641,8 +641,8 @@ public class WurstEditorView extends FrameView {
     /**
      * @return the syntaxCodeArea
      */
-    public javax.swing.JTextArea getSyntaxCodeArea() {
-        return syntaxCodeArea;
+    public RSyntaxTextArea getSyntaxCodeArea() {
+        return (RSyntaxTextArea) syntaxCodeArea;
     }
 
     /**
