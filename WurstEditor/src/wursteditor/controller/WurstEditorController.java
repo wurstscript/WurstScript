@@ -7,6 +7,7 @@ import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.util.List;
 
 import javax.swing.JFileChooser;
 import javax.swing.UIManager;
@@ -17,7 +18,8 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import com.google.common.io.PatternFilenameFilter;
 
-import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
+import de.peeeq.wurstscript.attributes.CompileError;
+
 import wursteditor.WurstEditFileView;
 import wursteditor.WurstEditorView;
 
@@ -27,7 +29,14 @@ import wursteditor.WurstEditorView;
 public class WurstEditorController {
 	private WurstEditorView view;
 
+	private static WurstEditorController instance = null;
+	
+	public static WurstEditorController getInstance() {
+		return instance;
+	}
+	
 	public WurstEditorController(final WurstEditorView v) {
+		instance = this;
 		v.getOpenProjectButton().addActionListener(onClick_openProject());
 		v.getSaveFileButton().addActionListener(onClick_saveFile());
 		v.getUndoButton().addActionListener(onclick_undo(v));
@@ -41,7 +50,7 @@ public class WurstEditorController {
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				((RSyntaxTextArea)v.getSyntaxCodeArea()).redoLastAction();
+				v.getSyntaxCodeArea().redoLastAction();
 			}
 		};
 	}
@@ -51,7 +60,7 @@ public class WurstEditorController {
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				((RSyntaxTextArea)v.getSyntaxCodeArea()).undoLastAction();
+				v.getSyntaxCodeArea().undoLastAction();
 			}
 		};
 	}
@@ -78,11 +87,11 @@ public class WurstEditorController {
 			throw new Error("File " +file.getAbsolutePath() + " does not exist.");
 		}
 		// check if already opened:
-		for (int i = 0; i < view.getRSTASplitPane().getTabCount(); i++) {
-			if (view.getRSTASplitPane().getTabComponentAt(i) instanceof WurstEditFileView) {
-				WurstEditFileView we = (WurstEditFileView) view.getRSTASplitPane().getTabComponentAt(i);
+		for (int i = 0; i < view.getjTabbedPane2().getTabCount(); i++) {
+			if (view.getjTabbedPane2().getTabComponentAt(i) instanceof WurstEditFileView) {
+				WurstEditFileView we = (WurstEditFileView) view.getjTabbedPane2().getTabComponentAt(i);
 				if (we.getFileName().equals(file.getAbsolutePath())) {
-					view.getRSTASplitPane().setSelectedIndex(i);
+					view.getjTabbedPane2().setSelectedIndex(i);
 					return;
 				}
 			}
@@ -97,8 +106,8 @@ public class WurstEditorController {
 			e.printStackTrace();
 		}
 		fileView.getSyntaxCodeArea().setText(text);
-		view.getRSTASplitPane().addTab(file.getName(), fileView);
-		view.getRSTASplitPane().setSelectedComponent(fileView);
+		view.getjTabbedPane2().addTab(file.getName(), fileView);
+		view.getjTabbedPane2().setSelectedComponent(fileView);
 	}
 	
 	private ActionListener onClick_saveFile() {
@@ -106,7 +115,7 @@ public class WurstEditorController {
 			
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				Component current = view.getRSTASplitPane().getSelectedComponent();
+				Component current = view.getjTabbedPane2().getSelectedComponent();
 				if (current instanceof WurstEditFileView) {
 					WurstEditFileView we = (WurstEditFileView) current;
 					String text = we.getSyntaxCodeArea().getText();
@@ -123,6 +132,11 @@ public class WurstEditorController {
 				}
 			}
 		};
+	}
+
+	@SuppressWarnings("unchecked")
+	public void setErrors(List<CompileError> errorList) {
+		view.getjList1().setListData(errorList.toArray());
 	}
 
 }

@@ -15,6 +15,7 @@ import org.fife.ui.rtextarea.RTextScrollPane;
 import wursteditor.rsyntax.IndentationFoldParser;
 import wursteditor.rsyntax.WurstCompletionProvider;
 import wursteditor.rsyntax.WurstDocument;
+import wursteditor.rsyntax.WurstParser;
 import wursteditor.rsyntax.WurstTokenMaker;
 
 public class WurstEditFileView extends RTextScrollPane {
@@ -59,10 +60,9 @@ public class WurstEditFileView extends RTextScrollPane {
         syntaxCodeArea.setSyntaxEditingStyle("wurstscript");
         syntaxCodeArea.setFont(new Font("Consolas", Font.PLAIN, 14));	
         syntaxCodeArea.setAntiAliasingEnabled(true);
-        syntaxCodeArea.setCodeFoldingEnabled(false); // this seems bugged
+        syntaxCodeArea.setCodeFoldingEnabled(true); // this seems bugged
         syntaxCodeArea.setAutoIndentEnabled(true);
-        syntaxCodeArea.setPaintTabLines(true);
-        syntaxCodeArea.setClearWhitespaceLinesEnabled(false);
+        syntaxCodeArea.addParser(new WurstParser());
         
         this.setViewportView(syntaxCodeArea);
 
