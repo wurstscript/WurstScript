@@ -486,7 +486,7 @@ public class JassTranslatorExpressions {
 		if (calledFunc == null) {
 			// this must be an ignored function
 			System.out.println("ignoring function " + call.getFuncName());
-			return new ExprTranslationResult(JassExprFunctionCall("DoNothing", JassExprlist()));			
+			return new ExprTranslationResult(JassExprNull());			
 		}
 		JassFunction calledJassFunc = manager.getJassFunctionFor(calledFunc);
 		
