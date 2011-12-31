@@ -11,37 +11,35 @@
         <DimensionLayout dim="0">
           <Group type="103" groupAlignment="0" attributes="0">
               <Group type="102" alignment="0" attributes="0">
-                  <Component id="jToolBar1" min="-2" max="-2" attributes="0"/>
+                  <Component id="fileManagementToolbar" min="-2" max="-2" attributes="0"/>
                   <EmptySpace max="-2" attributes="0"/>
-                  <Component id="jToolBar2" min="-2" max="-2" attributes="0"/>
+                  <Component id="undoRedoToolbar" min="-2" max="-2" attributes="0"/>
                   <EmptySpace max="-2" attributes="0"/>
-                  <Component id="jToolBar3" min="-2" pref="100" max="-2" attributes="0"/>
+                  <Component id="checkCompileToolbar" min="-2" pref="100" max="-2" attributes="0"/>
                   <EmptySpace pref="516" max="32767" attributes="0"/>
               </Group>
-              <Component id="jSplitPane1" alignment="0" pref="871" max="32767" attributes="0"/>
+              <Component id="leftRightSplitPane" alignment="0" pref="871" max="32767" attributes="0"/>
           </Group>
         </DimensionLayout>
         <DimensionLayout dim="1">
           <Group type="103" groupAlignment="0" attributes="0">
               <Group type="102" alignment="0" attributes="0">
-                  <Group type="103" groupAlignment="0" attributes="0">
-                      <Group type="103" groupAlignment="1" max="-2" attributes="0">
-                          <Component id="jToolBar2" alignment="0" min="0" pref="0" max="32767" attributes="1"/>
-                          <Component id="jToolBar1" alignment="0" pref="32" max="32767" attributes="1"/>
-                      </Group>
-                      <Component id="jToolBar3" min="-2" max="-2" attributes="1"/>
+                  <Group type="103" groupAlignment="0" max="-2" attributes="0">
+                      <Component id="fileManagementToolbar" max="32767" attributes="1"/>
+                      <Component id="checkCompileToolbar" alignment="0" max="32767" attributes="1"/>
+                      <Component id="undoRedoToolbar" alignment="0" max="32767" attributes="1"/>
                   </Group>
                   <EmptySpace max="-2" attributes="0"/>
-                  <Component id="jSplitPane1" pref="568" max="32767" attributes="0"/>
+                  <Component id="leftRightSplitPane" pref="568" max="32767" attributes="0"/>
               </Group>
           </Group>
         </DimensionLayout>
       </Layout>
       <SubComponents>
-        <Container class="javax.swing.JToolBar" name="jToolBar1">
+        <Container class="javax.swing.JToolBar" name="fileManagementToolbar">
           <Properties>
             <Property name="rollover" type="boolean" value="true"/>
-            <Property name="name" type="java.lang.String" value="jToolBar1" noResource="true"/>
+            <Property name="name" type="java.lang.String" value="fileManagementToolbar" noResource="true"/>
           </Properties>
 
           <Layout class="org.netbeans.modules.form.compat2.layouts.DesignBoxLayout"/>
@@ -75,9 +73,6 @@
                 <Property name="name" type="java.lang.String" value="openProjectButton" noResource="true"/>
                 <Property name="verticalTextPosition" type="int" value="3"/>
               </Properties>
-              <Events>
-                <EventHandler event="mouseClicked" listener="java.awt.event.MouseListener" parameters="java.awt.event.MouseEvent" handler="openProjectButtonMouseClicked"/>
-              </Events>
             </Component>
             <Component class="javax.swing.JButton" name="saveFileButton">
               <Properties>
@@ -101,10 +96,10 @@
             </Component>
           </SubComponents>
         </Container>
-        <Container class="javax.swing.JToolBar" name="jToolBar2">
+        <Container class="javax.swing.JToolBar" name="undoRedoToolbar">
           <Properties>
             <Property name="rollover" type="boolean" value="true"/>
-            <Property name="name" type="java.lang.String" value="jToolBar2" noResource="true"/>
+            <Property name="name" type="java.lang.String" value="undoRedoToolbar" noResource="true"/>
           </Properties>
 
           <Layout class="org.netbeans.modules.form.compat2.layouts.DesignBoxLayout"/>
@@ -118,9 +113,6 @@
                 <Property name="name" type="java.lang.String" value="undoButton" noResource="true"/>
                 <Property name="verticalTextPosition" type="int" value="3"/>
               </Properties>
-              <Events>
-                <EventHandler event="mouseClicked" listener="java.awt.event.MouseListener" parameters="java.awt.event.MouseEvent" handler="undoButtonMouseClicked"/>
-              </Events>
             </Component>
             <Component class="javax.swing.JButton" name="redoButton">
               <Properties>
@@ -131,16 +123,13 @@
                 <Property name="name" type="java.lang.String" value="redoButton" noResource="true"/>
                 <Property name="verticalTextPosition" type="int" value="3"/>
               </Properties>
-              <Events>
-                <EventHandler event="mouseClicked" listener="java.awt.event.MouseListener" parameters="java.awt.event.MouseEvent" handler="redoButtonMouseClicked"/>
-              </Events>
             </Component>
           </SubComponents>
         </Container>
-        <Container class="javax.swing.JToolBar" name="jToolBar3">
+        <Container class="javax.swing.JToolBar" name="checkCompileToolbar">
           <Properties>
             <Property name="rollover" type="boolean" value="true"/>
-            <Property name="name" type="java.lang.String" value="jToolBar3" noResource="true"/>
+            <Property name="name" type="java.lang.String" value="checkCompileToolbar" noResource="true"/>
           </Properties>
 
           <Layout class="org.netbeans.modules.form.compat2.layouts.DesignBoxLayout"/>
@@ -157,16 +146,16 @@
             </Component>
           </SubComponents>
         </Container>
-        <Container class="javax.swing.JSplitPane" name="jSplitPane1">
+        <Container class="javax.swing.JSplitPane" name="leftRightSplitPane">
           <Properties>
-            <Property name="name" type="java.lang.String" value="jSplitPane1" noResource="true"/>
+            <Property name="name" type="java.lang.String" value="leftRightSplitPane" noResource="true"/>
           </Properties>
 
           <Layout class="org.netbeans.modules.form.compat2.layouts.support.JSplitPaneSupportLayout"/>
           <SubComponents>
-            <Container class="javax.swing.JTabbedPane" name="jTabbedPane1">
+            <Container class="javax.swing.JTabbedPane" name="tabbedFilePane">
               <Properties>
-                <Property name="name" type="java.lang.String" value="jTabbedPane1" noResource="true"/>
+                <Property name="name" type="java.lang.String" value="tabbedFilePane" noResource="true"/>
               </Properties>
               <Constraints>
                 <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.support.JSplitPaneSupportLayout" value="org.netbeans.modules.form.compat2.layouts.support.JSplitPaneSupportLayout$JSplitPaneConstraintsDescription">
@@ -176,16 +165,15 @@
 
               <Layout class="org.netbeans.modules.form.compat2.layouts.support.JTabbedPaneSupportLayout"/>
               <SubComponents>
-                <Container class="javax.swing.JPanel" name="jPanel1">
+                <Container class="javax.swing.JPanel" name="treePanel">
                   <Properties>
-                    <Property name="name" type="java.lang.String" value="jPanel1" noResource="true"/>
+                    <Property name="name" type="java.lang.String" value="treePanel" noResource="true"/>
                   </Properties>
                   <Constraints>
                     <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.support.JTabbedPaneSupportLayout" value="org.netbeans.modules.form.compat2.layouts.support.JTabbedPaneSupportLayout$JTabbedPaneConstraintsDescription">
-                      <JTabbedPaneConstraints tabName="Packages" toolTip="View the Packagemanager">
-                        <Property name="tabTitle" type="java.lang.String" resourceKey="jPanel1.TabConstraints.tabTitle"/>
-                        <Property name="tabIcon" type="javax.swing.Icon" resourceKey="jPanel1.TabConstraints.tabIcon"/>
-                        <Property name="tabToolTip" type="java.lang.String" resourceKey="jPanel1.TabConstraints.tabToolTip"/>
+                      <JTabbedPaneConstraints tabName="Files">
+                        <Property name="tabTitle" type="java.lang.String" resourceKey="treePanel.TabConstraints.tabTitle"/>
+                        <Property name="tabIcon" type="javax.swing.Icon" resourceKey="treePanel.TabConstraints.tabIcon"/>
                       </JTabbedPaneConstraints>
                     </Constraint>
                   </Constraints>
@@ -193,22 +181,22 @@
                   <Layout>
                     <DimensionLayout dim="0">
                       <Group type="103" groupAlignment="0" attributes="0">
-                          <Component id="jScrollPane3" alignment="0" pref="192" max="32767" attributes="0"/>
+                          <Component id="treeScrollPane" alignment="0" pref="192" max="32767" attributes="0"/>
                       </Group>
                     </DimensionLayout>
                     <DimensionLayout dim="1">
                       <Group type="103" groupAlignment="0" attributes="0">
-                          <Component id="jScrollPane3" alignment="1" pref="536" max="32767" attributes="0"/>
+                          <Component id="treeScrollPane" alignment="1" pref="536" max="32767" attributes="0"/>
                       </Group>
                     </DimensionLayout>
                   </Layout>
                   <SubComponents>
-                    <Container class="javax.swing.JScrollPane" name="jScrollPane3">
+                    <Container class="javax.swing.JScrollPane" name="treeScrollPane">
                       <Properties>
                         <Property name="border" type="javax.swing.border.Border" editor="org.netbeans.modules.form.editors2.BorderEditor">
                           <Border info="null"/>
                         </Property>
-                        <Property name="name" type="java.lang.String" value="jScrollPane3" noResource="true"/>
+                        <Property name="name" type="java.lang.String" value="treeScrollPane" noResource="true"/>
                       </Properties>
                       <AuxValues>
                         <AuxValue name="autoScrollPane" type="java.lang.Boolean" value="true"/>
@@ -216,51 +204,26 @@
 
                       <Layout class="org.netbeans.modules.form.compat2.layouts.support.JScrollPaneSupportLayout"/>
                       <SubComponents>
-                        <Component class="javax.swing.JTree" name="jTree1">
+                        <Component class="javax.swing.JTree" name="fileTree">
                           <Properties>
                             <Property name="model" type="javax.swing.tree.TreeModel" editor="org.netbeans.modules.form.editors2.TreeModelEditor">
                               <TreeModel code="Packages&#xa; Util&#xa;  Blub&#xa; Math&#xa;  Vector&#xa;"/>
                             </Property>
-                            <Property name="name" type="java.lang.String" value="jTree1" noResource="true"/>
+                            <Property name="name" type="java.lang.String" value="fileTree" noResource="true"/>
                           </Properties>
                         </Component>
                       </SubComponents>
                     </Container>
                   </SubComponents>
                 </Container>
-                <Container class="javax.swing.JPanel" name="jPanel2">
-                  <Properties>
-                    <Property name="name" type="java.lang.String" value="jPanel2" noResource="true"/>
-                  </Properties>
-                  <Constraints>
-                    <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.support.JTabbedPaneSupportLayout" value="org.netbeans.modules.form.compat2.layouts.support.JTabbedPaneSupportLayout$JTabbedPaneConstraintsDescription">
-                      <JTabbedPaneConstraints tabName="Files">
-                        <Property name="tabTitle" type="java.lang.String" resourceKey="jPanel2.TabConstraints.tabTitle"/>
-                        <Property name="tabIcon" type="javax.swing.Icon" resourceKey="jPanel2.TabConstraints.tabIcon"/>
-                      </JTabbedPaneConstraints>
-                    </Constraint>
-                  </Constraints>
-
-                  <Layout>
-                    <DimensionLayout dim="0">
-                      <Group type="103" groupAlignment="0" attributes="0">
-                          <EmptySpace min="0" pref="192" max="32767" attributes="0"/>
-                      </Group>
-                    </DimensionLayout>
-                    <DimensionLayout dim="1">
-                      <Group type="103" groupAlignment="0" attributes="0">
-                          <EmptySpace min="0" pref="536" max="32767" attributes="0"/>
-                      </Group>
-                    </DimensionLayout>
-                  </Layout>
-                </Container>
               </SubComponents>
             </Container>
-            <Container class="javax.swing.JSplitPane" name="jSplitPane2">
+            <Container class="javax.swing.JSplitPane" name="syntaxErrorSplitpane">
               <Properties>
                 <Property name="dividerLocation" type="int" value="430"/>
                 <Property name="orientation" type="int" value="0"/>
-                <Property name="name" type="java.lang.String" value="jSplitPane2" noResource="true"/>
+                <Property name="resizeWeight" type="double" value="1.0"/>
+                <Property name="name" type="java.lang.String" value="syntaxErrorSplitpane" noResource="true"/>
               </Properties>
               <Constraints>
                 <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.support.JSplitPaneSupportLayout" value="org.netbeans.modules.form.compat2.layouts.support.JSplitPaneSupportLayout$JSplitPaneConstraintsDescription">
@@ -270,13 +233,13 @@
 
               <Layout class="org.netbeans.modules.form.compat2.layouts.support.JSplitPaneSupportLayout"/>
               <SubComponents>
-                <Container class="javax.swing.JTabbedPane" name="jTabbedPane2">
+                <Container class="javax.swing.JTabbedPane" name="RSTASplitPane">
                   <Properties>
-                    <Property name="name" type="java.lang.String" value="jTabbedPane2" noResource="true"/>
+                    <Property name="name" type="java.lang.String" value="RSTASplitPane" noResource="true"/>
                   </Properties>
                   <AccessibilityProperties>
                     <Property name="AccessibleContext.accessibleParent" type="javax.accessibility.Accessible" editor="org.netbeans.modules.form.RADVisualComponent$AccessibleParentEditor">
-                      <ComponentRef name="jSplitPane2"/>
+                      <ComponentRef name="syntaxErrorSplitpane"/>
                     </Property>
                   </AccessibilityProperties>
                   <Constraints>
@@ -287,18 +250,18 @@
 
                   <Layout class="org.netbeans.modules.form.compat2.layouts.support.JTabbedPaneSupportLayout"/>
                   <SubComponents>
-                    <Container class="javax.swing.JScrollPane" name="jScrollPane2">
+                    <Container class="javax.swing.JScrollPane" name="rSyntaxScrollPane">
                       <Properties>
-                        <Property name="name" type="java.lang.String" value="jScrollPane2" noResource="true"/>
+                        <Property name="name" type="java.lang.String" value="rSyntaxScrollPane" noResource="true"/>
                       </Properties>
                       <AuxValues>
-                        <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String" value="new RTextScrollPane(syntaxCodeArea)"/>
+                        <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String" value="new RTextScrollPane((RSyntaxTextArea)syntaxCodeArea)"/>
                         <AuxValue name="autoScrollPane" type="java.lang.Boolean" value="true"/>
                       </AuxValues>
                       <Constraints>
                         <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.support.JTabbedPaneSupportLayout" value="org.netbeans.modules.form.compat2.layouts.support.JTabbedPaneSupportLayout$JTabbedPaneConstraintsDescription">
                           <JTabbedPaneConstraints tabName="SomeScript.wurst">
-                            <Property name="tabTitle" type="java.lang.String" resourceKey="jScrollPane2.TabConstraints.tabTitle"/>
+                            <Property name="tabTitle" type="java.lang.String" resourceKey="rSyntaxScrollPane.TabConstraints.tabTitle"/>
                           </JTabbedPaneConstraints>
                         </Constraint>
                       </Constraints>
@@ -321,14 +284,14 @@
                     </Container>
                   </SubComponents>
                 </Container>
-                <Container class="javax.swing.JScrollPane" name="jScrollPane1">
+                <Container class="javax.swing.JScrollPane" name="ErrorListScrollPane">
                   <Properties>
                     <Property name="border" type="javax.swing.border.Border" editor="org.netbeans.modules.form.editors2.BorderEditor">
                       <Border info="org.netbeans.modules.form.compat2.border.EtchedBorderInfo">
                         <EtchetBorder bevelType="0"/>
                       </Border>
                     </Property>
-                    <Property name="name" type="java.lang.String" value="jScrollPane1" noResource="true"/>
+                    <Property name="name" type="java.lang.String" value="ErrorListScrollPane" noResource="true"/>
                   </Properties>
                   <AuxValues>
                     <AuxValue name="autoScrollPane" type="java.lang.Boolean" value="true"/>
@@ -341,7 +304,7 @@
 
                   <Layout class="org.netbeans.modules.form.compat2.layouts.support.JScrollPaneSupportLayout"/>
                   <SubComponents>
-                    <Component class="javax.swing.JList" name="jList1">
+                    <Component class="javax.swing.JList" name="errorList">
                       <Properties>
                         <Property name="model" type="javax.swing.ListModel" editor="org.netbeans.modules.form.editors2.ListModelEditor">
                           <StringArray count="5">
@@ -355,7 +318,7 @@
                         <Property name="cellRenderer" type="javax.swing.ListCellRenderer" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
                           <Connection code="new ErrorListCellRenderer()" type="code"/>
                         </Property>
-                        <Property name="name" type="java.lang.String" value="jList1" noResource="true"/>
+                        <Property name="name" type="java.lang.String" value="errorList" noResource="true"/>
                       </Properties>
                     </Component>
                   </SubComponents>

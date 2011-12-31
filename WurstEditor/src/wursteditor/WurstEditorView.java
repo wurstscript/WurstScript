@@ -4,27 +4,17 @@
 
 package wursteditor;
 
-import java.awt.Font;
-import java.awt.Image;
 import org.jdesktop.application.Action;
 import org.jdesktop.application.ResourceMap;
 import org.jdesktop.application.SingleFrameApplication;
 import org.jdesktop.application.FrameView;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import javax.imageio.ImageIO;
-import javax.swing.Timer;
-import javax.swing.Icon;
-import javax.swing.ImageIcon;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
-import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
-import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
-import org.fife.ui.rtextarea.RTextArea;
 import org.fife.ui.rtextarea.RTextScrollPane;
 import org.jdesktop.application.Application;
 
@@ -38,7 +28,7 @@ public class WurstEditorView extends FrameView {
 
         initComponents();
         
-        getjTabbedPane2().removeAll();
+        getRSTASplitPane().removeAll();
         
         ResourceMap resourceMap = Application.getInstance(wursteditor.WurstEditorApp.class).getContext().getResourceMap(WurstEditorView.class);
         
@@ -58,12 +48,12 @@ public class WurstEditorView extends FrameView {
 
     @Action
     public void showAboutBox() {
-        if (aboutBox == null) {
+        if (getAboutBox() == null) {
             JFrame mainFrame = WurstEditorApp.getApplication().getMainFrame();
             aboutBox = new WurstEditorAboutBox(mainFrame);
-            aboutBox.setLocationRelativeTo(mainFrame);
+            getAboutBox().setLocationRelativeTo(mainFrame);
         }
-        WurstEditorApp.getApplication().show(aboutBox);
+        WurstEditorApp.getApplication().show(getAboutBox());
     }
 
     /** This method is called from within the constructor to
@@ -76,29 +66,28 @@ public class WurstEditorView extends FrameView {
     private void initComponents() {
 
         mainPanel = new javax.swing.JPanel();
-        jToolBar1 = new javax.swing.JToolBar();
+        fileManagementToolbar = new javax.swing.JToolBar();
         newFileButton = new javax.swing.JButton();
         newProjectButton = new javax.swing.JButton();
         openProjectButton = new javax.swing.JButton();
         saveFileButton = new javax.swing.JButton();
         saveAllButton = new javax.swing.JButton();
-        jToolBar2 = new javax.swing.JToolBar();
+        undoRedoToolbar = new javax.swing.JToolBar();
         undoButton = new javax.swing.JButton();
         redoButton = new javax.swing.JButton();
-        jToolBar3 = new javax.swing.JToolBar();
+        checkCompileToolbar = new javax.swing.JToolBar();
         compileButton = new javax.swing.JButton();
-        jSplitPane1 = new javax.swing.JSplitPane();
-        jTabbedPane1 = new javax.swing.JTabbedPane();
-        jPanel1 = new javax.swing.JPanel();
-        jScrollPane3 = new javax.swing.JScrollPane();
-        jTree1 = new javax.swing.JTree();
-        jPanel2 = new javax.swing.JPanel();
-        jSplitPane2 = new javax.swing.JSplitPane();
-        jTabbedPane2 = new javax.swing.JTabbedPane();
-        jScrollPane2 = new RTextScrollPane((RTextArea) syntaxCodeArea);
+        leftRightSplitPane = new javax.swing.JSplitPane();
+        tabbedFilePane = new javax.swing.JTabbedPane();
+        treePanel = new javax.swing.JPanel();
+        treeScrollPane = new javax.swing.JScrollPane();
+        fileTree = new javax.swing.JTree();
+        syntaxErrorSplitpane = new javax.swing.JSplitPane();
+        RSTASplitPane = new javax.swing.JTabbedPane();
+        rSyntaxScrollPane = new RTextScrollPane((RSyntaxTextArea)syntaxCodeArea);
         syntaxCodeArea = new RSyntaxTextArea();
-        jScrollPane1 = new javax.swing.JScrollPane();
-        jList1 = new javax.swing.JList();
+        ErrorListScrollPane = new javax.swing.JScrollPane();
+        errorList = new javax.swing.JList();
         menuBar = new javax.swing.JMenuBar();
         javax.swing.JMenu fileMenu = new javax.swing.JMenu();
         jMenuItem1 = new javax.swing.JMenuItem();
@@ -122,8 +111,8 @@ public class WurstEditorView extends FrameView {
 
         mainPanel.setName("mainPanel"); // NOI18N
 
-        jToolBar1.setRollover(true);
-        jToolBar1.setName("jToolBar1"); // NOI18N
+        fileManagementToolbar.setRollover(true);
+        fileManagementToolbar.setName("fileManagementToolbar"); // NOI18N
 
         org.jdesktop.application.ResourceMap resourceMap = org.jdesktop.application.Application.getInstance(wursteditor.WurstEditorApp.class).getContext().getResourceMap(WurstEditorView.class);
         newFileButton.setIcon(resourceMap.getIcon("newFileButton.icon")); // NOI18N
@@ -132,7 +121,7 @@ public class WurstEditorView extends FrameView {
         newFileButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         newFileButton.setName("newFileButton"); // NOI18N
         newFileButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-        jToolBar1.add(newFileButton);
+        fileManagementToolbar.add(newFileButton);
 
         newProjectButton.setIcon(resourceMap.getIcon("newProjectButton.icon")); // NOI18N
         newProjectButton.setText(resourceMap.getString("newProjectButton.text")); // NOI18N
@@ -140,7 +129,7 @@ public class WurstEditorView extends FrameView {
         newProjectButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         newProjectButton.setName("newProjectButton"); // NOI18N
         newProjectButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-        jToolBar1.add(newProjectButton);
+        fileManagementToolbar.add(newProjectButton);
 
         openProjectButton.setIcon(resourceMap.getIcon("openProjectButton.icon")); // NOI18N
         openProjectButton.setText(resourceMap.getString("openProjectButton.text")); // NOI18N
@@ -148,12 +137,7 @@ public class WurstEditorView extends FrameView {
         openProjectButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         openProjectButton.setName("openProjectButton"); // NOI18N
         openProjectButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-        openProjectButton.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
-                openProjectButtonMouseClicked(evt);
-            }
-        });
-        jToolBar1.add(openProjectButton);
+        fileManagementToolbar.add(openProjectButton);
 
         saveFileButton.setIcon(resourceMap.getIcon("saveFileButton.icon")); // NOI18N
         saveFileButton.setText(resourceMap.getString("saveFileButton.text")); // NOI18N
@@ -161,7 +145,7 @@ public class WurstEditorView extends FrameView {
         saveFileButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         saveFileButton.setName("saveFileButton"); // NOI18N
         saveFileButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-        jToolBar1.add(saveFileButton);
+        fileManagementToolbar.add(saveFileButton);
 
         saveAllButton.setIcon(resourceMap.getIcon("saveAllButton.icon")); // NOI18N
         saveAllButton.setText(resourceMap.getString("saveAllButton.text")); // NOI18N
@@ -169,10 +153,10 @@ public class WurstEditorView extends FrameView {
         saveAllButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         saveAllButton.setName("saveAllButton"); // NOI18N
         saveAllButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-        jToolBar1.add(saveAllButton);
+        fileManagementToolbar.add(saveAllButton);
 
-        jToolBar2.setRollover(true);
-        jToolBar2.setName("jToolBar2"); // NOI18N
+        undoRedoToolbar.setRollover(true);
+        undoRedoToolbar.setName("undoRedoToolbar"); // NOI18N
 
         undoButton.setIcon(resourceMap.getIcon("undoButton.icon")); // NOI18N
         undoButton.setText(resourceMap.getString("undoButton.text")); // NOI18N
@@ -180,12 +164,7 @@ public class WurstEditorView extends FrameView {
         undoButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         undoButton.setName("undoButton"); // NOI18N
         undoButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-        undoButton.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
-                undoButtonMouseClicked(evt);
-            }
-        });
-        jToolBar2.add(undoButton);
+        undoRedoToolbar.add(undoButton);
 
         redoButton.setIcon(resourceMap.getIcon("redoButton.icon")); // NOI18N
         redoButton.setText(resourceMap.getString("redoButton.text")); // NOI18N
@@ -193,15 +172,10 @@ public class WurstEditorView extends FrameView {
         redoButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         redoButton.setName("redoButton"); // NOI18N
         redoButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-        redoButton.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
-                redoButtonMouseClicked(evt);
-            }
-        });
-        jToolBar2.add(redoButton);
+        undoRedoToolbar.add(redoButton);
 
-        jToolBar3.setRollover(true);
-        jToolBar3.setName("jToolBar3"); // NOI18N
+        checkCompileToolbar.setRollover(true);
+        checkCompileToolbar.setName("checkCompileToolbar"); // NOI18N
 
         compileButton.setIcon(resourceMap.getIcon("compileButton.icon")); // NOI18N
         compileButton.setText(resourceMap.getString("compileButton.text")); // NOI18N
@@ -209,16 +183,16 @@ public class WurstEditorView extends FrameView {
         compileButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         compileButton.setName("compileButton"); // NOI18N
         compileButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-        jToolBar3.add(compileButton);
+        checkCompileToolbar.add(compileButton);
 
-        jSplitPane1.setName("jSplitPane1"); // NOI18N
+        leftRightSplitPane.setName("leftRightSplitPane"); // NOI18N
 
-        jTabbedPane1.setName("jTabbedPane1"); // NOI18N
+        tabbedFilePane.setName("tabbedFilePane"); // NOI18N
 
-        jPanel1.setName("jPanel1"); // NOI18N
+        treePanel.setName("treePanel"); // NOI18N
 
-        jScrollPane3.setBorder(null);
-        jScrollPane3.setName("jScrollPane3"); // NOI18N
+        treeScrollPane.setBorder(null);
+        treeScrollPane.setName("treeScrollPane"); // NOI18N
 
         javax.swing.tree.DefaultMutableTreeNode treeNode1 = new javax.swing.tree.DefaultMutableTreeNode("Packages");
         javax.swing.tree.DefaultMutableTreeNode treeNode2 = new javax.swing.tree.DefaultMutableTreeNode("Util");
@@ -229,97 +203,82 @@ public class WurstEditorView extends FrameView {
         treeNode3 = new javax.swing.tree.DefaultMutableTreeNode("Vector");
         treeNode2.add(treeNode3);
         treeNode1.add(treeNode2);
-        jTree1.setModel(new javax.swing.tree.DefaultTreeModel(treeNode1));
-        jTree1.setName("jTree1"); // NOI18N
-        jScrollPane3.setViewportView(jTree1);
+        fileTree.setModel(new javax.swing.tree.DefaultTreeModel(treeNode1));
+        fileTree.setName("fileTree"); // NOI18N
+        treeScrollPane.setViewportView(fileTree);
 
-        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
-        jPanel1.setLayout(jPanel1Layout);
-        jPanel1Layout.setHorizontalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 192, Short.MAX_VALUE)
+        javax.swing.GroupLayout treePanelLayout = new javax.swing.GroupLayout(treePanel);
+        treePanel.setLayout(treePanelLayout);
+        treePanelLayout.setHorizontalGroup(
+            treePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(treeScrollPane, javax.swing.GroupLayout.DEFAULT_SIZE, 192, Short.MAX_VALUE)
         );
-        jPanel1Layout.setVerticalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jScrollPane3, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 536, Short.MAX_VALUE)
-        );
-
-        jTabbedPane1.addTab(resourceMap.getString("jPanel1.TabConstraints.tabTitle"), resourceMap.getIcon("jPanel1.TabConstraints.tabIcon"), jPanel1, resourceMap.getString("jPanel1.TabConstraints.tabToolTip")); // NOI18N
-
-        jPanel2.setName("jPanel2"); // NOI18N
-
-        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
-        jPanel2.setLayout(jPanel2Layout);
-        jPanel2Layout.setHorizontalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 192, Short.MAX_VALUE)
-        );
-        jPanel2Layout.setVerticalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 536, Short.MAX_VALUE)
+        treePanelLayout.setVerticalGroup(
+            treePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(treeScrollPane, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 536, Short.MAX_VALUE)
         );
 
-        jTabbedPane1.addTab(resourceMap.getString("jPanel2.TabConstraints.tabTitle"), resourceMap.getIcon("jPanel2.TabConstraints.tabIcon"), jPanel2); // NOI18N
+        tabbedFilePane.addTab(resourceMap.getString("treePanel.TabConstraints.tabTitle"), resourceMap.getIcon("treePanel.TabConstraints.tabIcon"), treePanel); // NOI18N
 
-        jSplitPane1.setLeftComponent(jTabbedPane1);
+        leftRightSplitPane.setLeftComponent(tabbedFilePane);
 
-        jSplitPane2.setDividerLocation(430);
-        jSplitPane2.setOrientation(javax.swing.JSplitPane.VERTICAL_SPLIT);
-        jSplitPane2.setName("jSplitPane2"); // NOI18N
+        syntaxErrorSplitpane.setDividerLocation(430);
+        syntaxErrorSplitpane.setOrientation(javax.swing.JSplitPane.VERTICAL_SPLIT);
+        syntaxErrorSplitpane.setResizeWeight(1.0);
+        syntaxErrorSplitpane.setName("syntaxErrorSplitpane"); // NOI18N
 
-        jTabbedPane2.setName("jTabbedPane2"); // NOI18N
+        RSTASplitPane.setName("RSTASplitPane"); // NOI18N
 
-        jScrollPane2.setName("jScrollPane2"); // NOI18N
+        rSyntaxScrollPane.setName("rSyntaxScrollPane"); // NOI18N
 
         syntaxCodeArea.setColumns(20);
         syntaxCodeArea.setRows(60);
         syntaxCodeArea.setName("syntaxCodeArea"); // NOI18N
-        jScrollPane2.setViewportView(syntaxCodeArea);
+        rSyntaxScrollPane.setViewportView(syntaxCodeArea);
 
-        jTabbedPane2.addTab(resourceMap.getString("jScrollPane2.TabConstraints.tabTitle"), jScrollPane2); // NOI18N
+        RSTASplitPane.addTab(resourceMap.getString("rSyntaxScrollPane.TabConstraints.tabTitle"), rSyntaxScrollPane); // NOI18N
 
-        jSplitPane2.setLeftComponent(jTabbedPane2);
-        jTabbedPane2.getAccessibleContext().setAccessibleParent(jSplitPane2);
+        syntaxErrorSplitpane.setLeftComponent(RSTASplitPane);
+        RSTASplitPane.getAccessibleContext().setAccessibleParent(syntaxErrorSplitpane);
 
-        jScrollPane1.setBorder(javax.swing.BorderFactory.createEtchedBorder(javax.swing.border.EtchedBorder.RAISED));
-        jScrollPane1.setName("jScrollPane1"); // NOI18N
+        ErrorListScrollPane.setBorder(javax.swing.BorderFactory.createEtchedBorder(javax.swing.border.EtchedBorder.RAISED));
+        ErrorListScrollPane.setName("ErrorListScrollPane"); // NOI18N
 
-        jList1.setModel(new javax.swing.AbstractListModel() {
+        errorList.setModel(new javax.swing.AbstractListModel() {
             String[] strings = { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
             public int getSize() { return strings.length; }
             public Object getElementAt(int i) { return strings[i]; }
         });
-        jList1.setCellRenderer(new ErrorListCellRenderer());
-        jList1.setName("jList1"); // NOI18N
-        jScrollPane1.setViewportView(jList1);
+        errorList.setCellRenderer(new ErrorListCellRenderer());
+        errorList.setName("errorList"); // NOI18N
+        ErrorListScrollPane.setViewportView(errorList);
 
-        jSplitPane2.setRightComponent(jScrollPane1);
+        syntaxErrorSplitpane.setRightComponent(ErrorListScrollPane);
 
-        jSplitPane1.setRightComponent(jSplitPane2);
+        leftRightSplitPane.setRightComponent(syntaxErrorSplitpane);
 
         javax.swing.GroupLayout mainPanelLayout = new javax.swing.GroupLayout(mainPanel);
         mainPanel.setLayout(mainPanelLayout);
         mainPanelLayout.setHorizontalGroup(
             mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(mainPanelLayout.createSequentialGroup()
-                .addComponent(jToolBar1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(fileManagementToolbar, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jToolBar2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(undoRedoToolbar, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jToolBar3, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(checkCompileToolbar, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(516, Short.MAX_VALUE))
-            .addComponent(jSplitPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 871, Short.MAX_VALUE)
+            .addComponent(leftRightSplitPane, javax.swing.GroupLayout.DEFAULT_SIZE, 871, Short.MAX_VALUE)
         );
         mainPanelLayout.setVerticalGroup(
             mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(mainPanelLayout.createSequentialGroup()
-                .addGroup(mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                        .addComponent(jToolBar2, javax.swing.GroupLayout.Alignment.LEADING, 0, 0, Short.MAX_VALUE)
-                        .addComponent(jToolBar1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 32, Short.MAX_VALUE))
-                    .addComponent(jToolBar3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGroup(mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(fileManagementToolbar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(checkCompileToolbar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(undoRedoToolbar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jSplitPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 568, Short.MAX_VALUE))
+                .addComponent(leftRightSplitPane, javax.swing.GroupLayout.DEFAULT_SIZE, 568, Short.MAX_VALUE))
         );
 
         menuBar.setName("menuBar"); // NOI18N
@@ -410,21 +369,15 @@ public class WurstEditorView extends FrameView {
         setMenuBar(menuBar);
     }// </editor-fold>//GEN-END:initComponents
 
-    private void openProjectButtonMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_openProjectButtonMouseClicked
-    }//GEN-LAST:event_openProjectButtonMouseClicked
-
-    private void undoButtonMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_undoButtonMouseClicked
-
-           }//GEN-LAST:event_undoButtonMouseClicked
-
-    private void redoButtonMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_redoButtonMouseClicked
-
-            }//GEN-LAST:event_redoButtonMouseClicked
-
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JScrollPane ErrorListScrollPane;
+    private javax.swing.JTabbedPane RSTASplitPane;
+    private javax.swing.JToolBar checkCompileToolbar;
     private javax.swing.JButton compileButton;
+    private javax.swing.JList errorList;
+    private javax.swing.JToolBar fileManagementToolbar;
+    private javax.swing.JTree fileTree;
     private javax.swing.JCheckBoxMenuItem jCheckBoxMenuItem1;
-    private javax.swing.JList jList1;
     private javax.swing.JMenu jMenu1;
     private javax.swing.JMenu jMenu2;
     private javax.swing.JMenu jMenu3;
@@ -439,196 +392,308 @@ public class WurstEditorView extends FrameView {
     private javax.swing.JMenuItem jMenuItem7;
     private javax.swing.JMenuItem jMenuItem8;
     private javax.swing.JMenuItem jMenuItem9;
-    private javax.swing.JPanel jPanel1;
-    private javax.swing.JPanel jPanel2;
-    private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JScrollPane jScrollPane2;
-    private javax.swing.JScrollPane jScrollPane3;
-    private javax.swing.JSplitPane jSplitPane1;
-    private javax.swing.JSplitPane jSplitPane2;
-    private javax.swing.JTabbedPane jTabbedPane1;
-    private javax.swing.JTabbedPane jTabbedPane2;
-    private javax.swing.JToolBar jToolBar1;
-    private javax.swing.JToolBar jToolBar2;
-    private javax.swing.JToolBar jToolBar3;
-    private javax.swing.JTree jTree1;
+    private javax.swing.JSplitPane leftRightSplitPane;
     private javax.swing.JPanel mainPanel;
     private javax.swing.JMenuBar menuBar;
     private javax.swing.JButton newFileButton;
     private javax.swing.JButton newProjectButton;
     private javax.swing.JButton openProjectButton;
+    private javax.swing.JScrollPane rSyntaxScrollPane;
     private javax.swing.JButton redoButton;
     private javax.swing.JButton saveAllButton;
     private javax.swing.JButton saveFileButton;
     private javax.swing.JTextArea syntaxCodeArea;
+    private javax.swing.JSplitPane syntaxErrorSplitpane;
+    private javax.swing.JTabbedPane tabbedFilePane;
+    private javax.swing.JPanel treePanel;
+    private javax.swing.JScrollPane treeScrollPane;
     private javax.swing.JButton undoButton;
+    private javax.swing.JToolBar undoRedoToolbar;
     // End of variables declaration//GEN-END:variables
     
 
     private JDialog aboutBox;
 
+    /**
+     * @return the ErrorListScrollPane
+     */
+    public javax.swing.JScrollPane getErrorListScrollPane() {
+        return ErrorListScrollPane;
+    }
 
-	public javax.swing.JButton getCompileButton() {
-		return compileButton;
-	}
+    /**
+     * @return the checkCompileToolbar
+     */
+    public javax.swing.JToolBar getCheckCompileToolbar() {
+        return checkCompileToolbar;
+    }
 
-	public javax.swing.JCheckBoxMenuItem getjCheckBoxMenuItem1() {
-		return jCheckBoxMenuItem1;
-	}
+    /**
+     * @return the compileButton
+     */
+    public javax.swing.JButton getCompileButton() {
+        return compileButton;
+    }
 
-	public javax.swing.JList getjList1() {
-		return jList1;
-	}
+    /**
+     * @return the errorList
+     */
+    public javax.swing.JList getErrorList() {
+        return errorList;
+    }
 
-	public javax.swing.JMenu getjMenu1() {
-		return jMenu1;
-	}
+    /**
+     * @return the fileManagementToolbar
+     */
+    public javax.swing.JToolBar getFileManagementToolbar() {
+        return fileManagementToolbar;
+    }
 
-	public javax.swing.JMenu getjMenu2() {
-		return jMenu2;
-	}
+    /**
+     * @return the fileTree
+     */
+    public javax.swing.JTree getFileTree() {
+        return fileTree;
+    }
 
-	public javax.swing.JMenu getjMenu3() {
-		return jMenu3;
-	}
+    /**
+     * @return the jCheckBoxMenuItem1
+     */
+    public javax.swing.JCheckBoxMenuItem getjCheckBoxMenuItem1() {
+        return jCheckBoxMenuItem1;
+    }
 
-	public javax.swing.JMenuItem getjMenuItem1() {
-		return jMenuItem1;
-	}
+    /**
+     * @return the jMenu1
+     */
+    public javax.swing.JMenu getjMenu1() {
+        return jMenu1;
+    }
 
-	public javax.swing.JMenuItem getjMenuItem10() {
-		return jMenuItem10;
-	}
+    /**
+     * @return the jMenu2
+     */
+    public javax.swing.JMenu getjMenu2() {
+        return jMenu2;
+    }
 
-	public javax.swing.JMenuItem getjMenuItem11() {
-		return jMenuItem11;
-	}
+    /**
+     * @return the jMenu3
+     */
+    public javax.swing.JMenu getjMenu3() {
+        return jMenu3;
+    }
 
-	public javax.swing.JMenuItem getjMenuItem2() {
-		return jMenuItem2;
-	}
+    /**
+     * @return the jMenuItem1
+     */
+    public javax.swing.JMenuItem getjMenuItem1() {
+        return jMenuItem1;
+    }
 
-	public javax.swing.JMenuItem getjMenuItem3() {
-		return jMenuItem3;
-	}
+    /**
+     * @return the jMenuItem10
+     */
+    public javax.swing.JMenuItem getjMenuItem10() {
+        return jMenuItem10;
+    }
 
-	public javax.swing.JMenuItem getjMenuItem4() {
-		return jMenuItem4;
-	}
+    /**
+     * @return the jMenuItem11
+     */
+    public javax.swing.JMenuItem getjMenuItem11() {
+        return jMenuItem11;
+    }
 
-	public javax.swing.JMenuItem getjMenuItem5() {
-		return jMenuItem5;
-	}
+    /**
+     * @return the jMenuItem2
+     */
+    public javax.swing.JMenuItem getjMenuItem2() {
+        return jMenuItem2;
+    }
 
-	public javax.swing.JMenuItem getjMenuItem6() {
-		return jMenuItem6;
-	}
+    /**
+     * @return the jMenuItem3
+     */
+    public javax.swing.JMenuItem getjMenuItem3() {
+        return jMenuItem3;
+    }
 
-	public javax.swing.JMenuItem getjMenuItem7() {
-		return jMenuItem7;
-	}
+    /**
+     * @return the jMenuItem4
+     */
+    public javax.swing.JMenuItem getjMenuItem4() {
+        return jMenuItem4;
+    }
 
-	public javax.swing.JMenuItem getjMenuItem8() {
-		return jMenuItem8;
-	}
+    /**
+     * @return the jMenuItem5
+     */
+    public javax.swing.JMenuItem getjMenuItem5() {
+        return jMenuItem5;
+    }
 
-	public javax.swing.JMenuItem getjMenuItem9() {
-		return jMenuItem9;
-	}
+    /**
+     * @return the jMenuItem6
+     */
+    public javax.swing.JMenuItem getjMenuItem6() {
+        return jMenuItem6;
+    }
 
-	public javax.swing.JPanel getjPanel1() {
-		return jPanel1;
-	}
+    /**
+     * @return the jMenuItem7
+     */
+    public javax.swing.JMenuItem getjMenuItem7() {
+        return jMenuItem7;
+    }
 
-	public javax.swing.JPanel getjPanel2() {
-		return jPanel2;
-	}
+    /**
+     * @return the jMenuItem8
+     */
+    public javax.swing.JMenuItem getjMenuItem8() {
+        return jMenuItem8;
+    }
 
-	public javax.swing.JScrollPane getjScrollPane1() {
-		return jScrollPane1;
-	}
+    /**
+     * @return the jMenuItem9
+     */
+    public javax.swing.JMenuItem getjMenuItem9() {
+        return jMenuItem9;
+    }
 
-	public javax.swing.JScrollPane getjScrollPane2() {
-		return jScrollPane2;
-	}
+    /**
+     * @return the leftRightSplitPane
+     */
+    public javax.swing.JSplitPane getLeftRightSplitPane() {
+        return leftRightSplitPane;
+    }
 
-	public javax.swing.JScrollPane getjScrollPane3() {
-		return jScrollPane3;
-	}
+    /**
+     * @return the mainPanel
+     */
+    public javax.swing.JPanel getMainPanel() {
+        return mainPanel;
+    }
 
-	public javax.swing.JSplitPane getjSplitPane1() {
-		return jSplitPane1;
-	}
+    /**
+     * @return the menuBar
+     */
+    public javax.swing.JMenuBar getMenuBar() {
+        return menuBar;
+    }
 
-	public javax.swing.JSplitPane getjSplitPane2() {
-		return jSplitPane2;
-	}
+    /**
+     * @return the newFileButton
+     */
+    public javax.swing.JButton getNewFileButton() {
+        return newFileButton;
+    }
 
-	public javax.swing.JTabbedPane getjTabbedPane1() {
-		return jTabbedPane1;
-	}
+    /**
+     * @return the newProjectButton
+     */
+    public javax.swing.JButton getNewProjectButton() {
+        return newProjectButton;
+    }
 
-	public javax.swing.JTabbedPane getjTabbedPane2() {
-		return jTabbedPane2;
-	}
+    /**
+     * @return the openProjectButton
+     */
+    public javax.swing.JButton getOpenProjectButton() {
+        return openProjectButton;
+    }
 
-	public javax.swing.JToolBar getjToolBar1() {
-		return jToolBar1;
-	}
+    /**
+     * @return the rSTASplitPane
+     */
+    public javax.swing.JTabbedPane getRSTASplitPane() {
+        return RSTASplitPane;
+    }
 
-	public javax.swing.JToolBar getjToolBar2() {
-		return jToolBar2;
-	}
+    /**
+     * @return the rSyntaxScrollPane
+     */
+    public javax.swing.JScrollPane getrSyntaxScrollPane() {
+        return rSyntaxScrollPane;
+    }
 
-	public javax.swing.JToolBar getjToolBar3() {
-		return jToolBar3;
-	}
+    /**
+     * @return the redoButton
+     */
+    public javax.swing.JButton getRedoButton() {
+        return redoButton;
+    }
 
-	public javax.swing.JTree getjTree1() {
-		return jTree1;
-	}
+    /**
+     * @return the saveAllButton
+     */
+    public javax.swing.JButton getSaveAllButton() {
+        return saveAllButton;
+    }
 
-	public javax.swing.JPanel getMainPanel() {
-		return mainPanel;
-	}
+    /**
+     * @return the saveFileButton
+     */
+    public javax.swing.JButton getSaveFileButton() {
+        return saveFileButton;
+    }
 
-	public javax.swing.JMenuBar getMenuBar() {
-		return menuBar;
-	}
+    /**
+     * @return the syntaxCodeArea
+     */
+    public javax.swing.JTextArea getSyntaxCodeArea() {
+        return syntaxCodeArea;
+    }
 
-	public javax.swing.JButton getNewFileButton() {
-		return newFileButton;
-	}
+    /**
+     * @return the syntaxErrorSplitpane
+     */
+    public javax.swing.JSplitPane getSyntaxErrorSplitpane() {
+        return syntaxErrorSplitpane;
+    }
 
-	public javax.swing.JButton getNewProjectButton() {
-		return newProjectButton;
-	}
+    /**
+     * @return the tabbedFilePane
+     */
+    public javax.swing.JTabbedPane getTabbedFilePane() {
+        return tabbedFilePane;
+    }
 
-	public javax.swing.JButton getOpenProjectButton() {
-		return openProjectButton;
-	}
+    /**
+     * @return the treePanel
+     */
+    public javax.swing.JPanel getTreePanel() {
+        return treePanel;
+    }
 
-	public javax.swing.JButton getRedoButton() {
-		return redoButton;
-	}
+    /**
+     * @return the treeScrollPane
+     */
+    public javax.swing.JScrollPane getTreeScrollPane() {
+        return treeScrollPane;
+    }
 
-	public javax.swing.JButton getSaveAllButton() {
-		return saveAllButton;
-	}
+    /**
+     * @return the undoButton
+     */
+    public javax.swing.JButton getUndoButton() {
+        return undoButton;
+    }
 
-	public javax.swing.JButton getSaveFileButton() {
-		return saveFileButton;
-	}
+    /**
+     * @return the undoRedoToolbar
+     */
+    public javax.swing.JToolBar getUndoRedoToolbar() {
+        return undoRedoToolbar;
+    }
 
-	public RSyntaxTextArea getSyntaxCodeArea() {
-		return (RSyntaxTextArea) syntaxCodeArea;
-	}
+    /**
+     * @return the aboutBox
+     */
+    public JDialog getAboutBox() {
+        return aboutBox;
+    }
 
-	public javax.swing.JButton getUndoButton() {
-		return undoButton;
-	}
 
-	public JDialog getAboutBox() {
-		return aboutBox;
-	}
+	
 }

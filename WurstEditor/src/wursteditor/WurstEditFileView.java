@@ -61,6 +61,8 @@ public class WurstEditFileView extends RTextScrollPane {
         syntaxCodeArea.setAntiAliasingEnabled(true);
         syntaxCodeArea.setCodeFoldingEnabled(false); // this seems bugged
         syntaxCodeArea.setAutoIndentEnabled(true);
+        syntaxCodeArea.setPaintTabLines(true);
+        syntaxCodeArea.setClearWhitespaceLinesEnabled(false);
         
         this.setViewportView(syntaxCodeArea);
 
