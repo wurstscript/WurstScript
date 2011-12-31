@@ -24,6 +24,7 @@ import javax.swing.JFrame;
 import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
+import org.fife.ui.rtextarea.RTextArea;
 import org.fife.ui.rtextarea.RTextScrollPane;
 import org.jdesktop.application.Application;
 
@@ -37,14 +38,14 @@ public class WurstEditorView extends FrameView {
 
         initComponents();
         
-        adjustCodeArea();
+        getjTabbedPane2().removeAll();
         
         ResourceMap resourceMap = Application.getInstance(wursteditor.WurstEditorApp.class).getContext().getResourceMap(WurstEditorView.class);
         
         BufferedImage image = null;
         try {
             image = ImageIO.read(
-                new File("C:\\Users\\Frotty\\Dropbox\\NetBeans\\WurstEditor\\src\\wursteditor\\resources\\WEditIcon.png"));
+                new File("./src/wursteditor/resources/WEditIcon.png"));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -53,19 +54,7 @@ public class WurstEditorView extends FrameView {
         
     }
     
-    private void addWurstSyntax() { 		
-        //Defines the codehighlighting for RsyntaxPane
-        AbstractTokenMakerFactory atmf = (AbstractTokenMakerFactory) TokenMakerFactory.getDefaultInstance();
-        atmf.putMapping("wurstscript", "wursteditor.WurstTokenMaker");
-        TokenMakerFactory.setDefaultInstance(atmf);
-    }
     
-    private void adjustCodeArea() {
-        addWurstSyntax();
-        ((RSyntaxTextArea)syntaxCodeArea).setSyntaxEditingStyle("wurstscript");
-        ((RSyntaxTextArea)syntaxCodeArea).setFont(new Font("Consolas", Font.PLAIN, 14));	
-        ((RSyntaxTextArea)syntaxCodeArea).setAntiAliasingEnabled(true);
-    }
 
     @Action
     public void showAboutBox() {
@@ -106,7 +95,7 @@ public class WurstEditorView extends FrameView {
         jPanel2 = new javax.swing.JPanel();
         jSplitPane2 = new javax.swing.JSplitPane();
         jTabbedPane2 = new javax.swing.JTabbedPane();
-        jScrollPane2 = new RTextScrollPane(syntaxCodeArea);
+        jScrollPane2 = new RTextScrollPane((RTextArea) syntaxCodeArea);
         syntaxCodeArea = new RSyntaxTextArea();
         jScrollPane1 = new javax.swing.JScrollPane();
         jList1 = new javax.swing.JList();
@@ -422,16 +411,15 @@ public class WurstEditorView extends FrameView {
     }// </editor-fold>//GEN-END:initComponents
 
     private void openProjectButtonMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_openProjectButtonMouseClicked
-        ProjectFileChooser projectFileChooser = new ProjectFileChooser(this.getFrame(), true);
     }//GEN-LAST:event_openProjectButtonMouseClicked
 
     private void undoButtonMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_undoButtonMouseClicked
 
-        ((RSyntaxTextArea) syntaxCodeArea).undoLastAction();     }//GEN-LAST:event_undoButtonMouseClicked
+           }//GEN-LAST:event_undoButtonMouseClicked
 
     private void redoButtonMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_redoButtonMouseClicked
 
-        ((RSyntaxTextArea) syntaxCodeArea).redoLastAction();     }//GEN-LAST:event_redoButtonMouseClicked
+            }//GEN-LAST:event_redoButtonMouseClicked
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton compileButton;
@@ -475,7 +463,172 @@ public class WurstEditorView extends FrameView {
     private javax.swing.JTextArea syntaxCodeArea;
     private javax.swing.JButton undoButton;
     // End of variables declaration//GEN-END:variables
-
+    
 
     private JDialog aboutBox;
+
+
+	public javax.swing.JButton getCompileButton() {
+		return compileButton;
+	}
+
+	public javax.swing.JCheckBoxMenuItem getjCheckBoxMenuItem1() {
+		return jCheckBoxMenuItem1;
+	}
+
+	public javax.swing.JList getjList1() {
+		return jList1;
+	}
+
+	public javax.swing.JMenu getjMenu1() {
+		return jMenu1;
+	}
+
+	public javax.swing.JMenu getjMenu2() {
+		return jMenu2;
+	}
+
+	public javax.swing.JMenu getjMenu3() {
+		return jMenu3;
+	}
+
+	public javax.swing.JMenuItem getjMenuItem1() {
+		return jMenuItem1;
+	}
+
+	public javax.swing.JMenuItem getjMenuItem10() {
+		return jMenuItem10;
+	}
+
+	public javax.swing.JMenuItem getjMenuItem11() {
+		return jMenuItem11;
+	}
+
+	public javax.swing.JMenuItem getjMenuItem2() {
+		return jMenuItem2;
+	}
+
+	public javax.swing.JMenuItem getjMenuItem3() {
+		return jMenuItem3;
+	}
+
+	public javax.swing.JMenuItem getjMenuItem4() {
+		return jMenuItem4;
+	}
+
+	public javax.swing.JMenuItem getjMenuItem5() {
+		return jMenuItem5;
+	}
+
+	public javax.swing.JMenuItem getjMenuItem6() {
+		return jMenuItem6;
+	}
+
+	public javax.swing.JMenuItem getjMenuItem7() {
+		return jMenuItem7;
+	}
+
+	public javax.swing.JMenuItem getjMenuItem8() {
+		return jMenuItem8;
+	}
+
+	public javax.swing.JMenuItem getjMenuItem9() {
+		return jMenuItem9;
+	}
+
+	public javax.swing.JPanel getjPanel1() {
+		return jPanel1;
+	}
+
+	public javax.swing.JPanel getjPanel2() {
+		return jPanel2;
+	}
+
+	public javax.swing.JScrollPane getjScrollPane1() {
+		return jScrollPane1;
+	}
+
+	public javax.swing.JScrollPane getjScrollPane2() {
+		return jScrollPane2;
+	}
+
+	public javax.swing.JScrollPane getjScrollPane3() {
+		return jScrollPane3;
+	}
+
+	public javax.swing.JSplitPane getjSplitPane1() {
+		return jSplitPane1;
+	}
+
+	public javax.swing.JSplitPane getjSplitPane2() {
+		return jSplitPane2;
+	}
+
+	public javax.swing.JTabbedPane getjTabbedPane1() {
+		return jTabbedPane1;
+	}
+
+	public javax.swing.JTabbedPane getjTabbedPane2() {
+		return jTabbedPane2;
+	}
+
+	public javax.swing.JToolBar getjToolBar1() {
+		return jToolBar1;
+	}
+
+	public javax.swing.JToolBar getjToolBar2() {
+		return jToolBar2;
+	}
+
+	public javax.swing.JToolBar getjToolBar3() {
+		return jToolBar3;
+	}
+
+	public javax.swing.JTree getjTree1() {
+		return jTree1;
+	}
+
+	public javax.swing.JPanel getMainPanel() {
+		return mainPanel;
+	}
+
+	public javax.swing.JMenuBar getMenuBar() {
+		return menuBar;
+	}
+
+	public javax.swing.JButton getNewFileButton() {
+		return newFileButton;
+	}
+
+	public javax.swing.JButton getNewProjectButton() {
+		return newProjectButton;
+	}
+
+	public javax.swing.JButton getOpenProjectButton() {
+		return openProjectButton;
+	}
+
+	public javax.swing.JButton getRedoButton() {
+		return redoButton;
+	}
+
+	public javax.swing.JButton getSaveAllButton() {
+		return saveAllButton;
+	}
+
+	public javax.swing.JButton getSaveFileButton() {
+		return saveFileButton;
+	}
+
+	public RSyntaxTextArea getSyntaxCodeArea() {
+		return (RSyntaxTextArea) syntaxCodeArea;
+	}
+
+	public javax.swing.JButton getUndoButton() {
+		return undoButton;
+	}
+
+	public JDialog getAboutBox() {
+		return aboutBox;
+	}
 }

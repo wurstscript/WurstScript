@@ -7,6 +7,8 @@ package wursteditor;
 import org.jdesktop.application.Application;
 import org.jdesktop.application.SingleFrameApplication;
 
+import wursteditor.controller.WurstEditorController;
+
 /**
  * The main class of the application.
  */
@@ -16,7 +18,9 @@ public class WurstEditorApp extends SingleFrameApplication {
      * At startup create and show the main frame of the application.
      */
     @Override protected void startup() {
-        show(new WurstEditorView(this));
+        WurstEditorView wurstEditorView = new WurstEditorView(this);
+        new WurstEditorController(wurstEditorView);
+		show(wurstEditorView);
     }
 
     /**

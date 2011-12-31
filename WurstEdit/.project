@@ -3,6 +3,7 @@
 	<name>WurstEditor</name>
 	<comment></comment>
 	<projects>
+		<project>de.peeeq.wurstscript</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
