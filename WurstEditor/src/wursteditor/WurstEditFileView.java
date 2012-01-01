@@ -55,6 +55,8 @@ public class WurstEditFileView extends RTextScrollPane {
         syntaxCodeArea.setFont(new Font("Consolas", Font.PLAIN, 14));	
         syntaxCodeArea.setAntiAliasingEnabled(true);
         
+        syntaxCodeArea.setAnimateBracketMatching(false);
+        
         this.setViewportView(syntaxCodeArea);
 
 	}

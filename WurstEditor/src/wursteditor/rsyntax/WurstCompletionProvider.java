@@ -70,7 +70,7 @@ public class WurstCompletionProvider extends LanguageAwareCompletionProvider {
 			if (controller != null) {
 				CompilationUnit ast = controller.getNewAst();
 				
-				AstElement elem = getAstElementAtPos(ast, comp.getCaretPosition());
+				AstElement elem = AstHelper.getAstElementAtPos(ast, comp.getCaretPosition());
 				WScope scope = elem.attrNearestScope();
 				while (scope != null) {
 					Multimap<String, NameDef> visibleNames = scope.attrVisibleNamesPrivate();
@@ -112,29 +112,7 @@ public class WurstCompletionProvider extends LanguageAwareCompletionProvider {
 	
 	
 	
-	private AstElement getAstElementAtPos(AstElement elem, int caretPosition) {
-		System.out.println("searching in " + elem.getClass().getName());
-		AstElement result = elem;
-		for (int i=0; i < elem.size(); i++) {
-			AstElement e = elem.get(i);
-			System.out.println("	child " + e.getClass().getName());
-			if (elementContainsPos(e, caretPosition)) {
-				System.out.println("	check, ");
-				result = e;
-			}
-		}
-		if (result == elem) {
-			return result;
-		} else {
-			return getAstElementAtPos(result, caretPosition);
-		}
-	}
-
-
-	private boolean elementContainsPos(AstElement e, int pos) {
-		System.out.println("		" + e.getClass().getName() + " " +  e.attrSource().getLeftPos() + " <= " + pos + " <=" + e.attrSource().getRightPos());
-		return e.attrSource().getLeftPos() <= pos && e.attrSource().getRightPos() >= pos;
-	}
+	
 
 
 	/**
