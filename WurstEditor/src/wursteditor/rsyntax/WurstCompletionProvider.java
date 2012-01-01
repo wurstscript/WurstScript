@@ -2,6 +2,7 @@ package wursteditor.rsyntax;
 
 import java.awt.Point;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -11,8 +12,23 @@ import org.fife.ui.autocomplete.BasicCompletion;
 import org.fife.ui.autocomplete.Completion;
 import org.fife.ui.autocomplete.CompletionProvider;
 import org.fife.ui.autocomplete.DefaultCompletionProvider;
+import org.fife.ui.autocomplete.FunctionCompletion;
 import org.fife.ui.autocomplete.LanguageAwareCompletionProvider;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Multimap;
+
+import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.FunctionDefinition;
+import de.peeeq.wurstscript.ast.NameDef;
+import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.ast.WScope;
+import de.peeeq.wurstscript.utils.Utils;
+
+import wursteditor.controller.SyntaxCodeAreaController;
 
 public class WurstCompletionProvider extends LanguageAwareCompletionProvider {
 
@@ -44,13 +60,50 @@ public class WurstCompletionProvider extends LanguageAwareCompletionProvider {
 
 	@Override
 	protected List<Completion> getCompletionsImpl(JTextComponent comp) {
+		
+		String alreadyEntered = getAlreadyEnteredText(comp);
+		
 		@SuppressWarnings("unchecked")
 		List<Completion> completions = super.getCompletionsImpl(comp);
+		if (comp instanceof RSyntaxTextArea) {
+			SyntaxCodeAreaController controller = SyntaxCodeAreaController.getFor((RSyntaxTextArea)comp);
+			if (controller != null) {
+				CompilationUnit ast = controller.getNewAst();
+				
+				AstElement elem = getAstElementAtPos(ast, comp.getCaretPosition());
+				WScope scope = elem.attrNearestScope();
+				while (scope != null) {
+					Multimap<String, NameDef> visibleNames = scope.attrVisibleNamesPrivate();
+					for (Entry<String, NameDef> e : visibleNames.entries()) {
+						if (!e.getKey().startsWith(alreadyEntered)) {
+							continue;
+						}
+						if (e.getValue() instanceof FunctionDefinition) {
+							FunctionDefinition f = (FunctionDefinition) e.getValue();
+							FunctionCompletion completion = new FunctionCompletion(this, f.getName(), f.getName() + "()");
+							List<String> params = Utils.map(f.getParameters(), new Function<WParameter, String>() {
 
-
-		
-		completions.add(new BasicCompletion(this, "caret@ " + comp.getCaretPosition()));
-		
+								@Override
+								public String apply(WParameter arg0) {
+									return arg0.getName();
+								}
+								
+							});
+							completion.setParams(params);
+							completion.setReturnValueDescription(f.getReturnTyp().attrTyp().toString());
+							completions.add(completion);
+						} else {
+							completions.add(new BasicCompletion(this, e.getKey()));
+						}
+						
+					}
+					scope = scope.attrNextScope();
+				}
+				
+				System.out.println("We are in " + elem);
+				
+			}
+		}
 		
 
 		return completions;
@@ -59,6 +112,31 @@ public class WurstCompletionProvider extends LanguageAwareCompletionProvider {
 	
 	
 	
+	private AstElement getAstElementAtPos(AstElement elem, int caretPosition) {
+		System.out.println("searching in " + elem.getClass().getName());
+		AstElement result = elem;
+		for (int i=0; i < elem.size(); i++) {
+			AstElement e = elem.get(i);
+			System.out.println("	child " + e.getClass().getName());
+			if (elementContainsPos(e, caretPosition)) {
+				System.out.println("	check, ");
+				result = e;
+			}
+		}
+		if (result == elem) {
+			return result;
+		} else {
+			return getAstElementAtPos(result, caretPosition);
+		}
+	}
+
+
+	private boolean elementContainsPos(AstElement e, int pos) {
+		System.out.println("		" + e.getClass().getName() + " " +  e.attrSource().getLeftPos() + " <= " + pos + " <=" + e.attrSource().getRightPos());
+		return e.attrSource().getLeftPos() <= pos && e.attrSource().getRightPos() >= pos;
+	}
+
+
 	/**
 	 * Adds shorthand completions to the code completion provider.
 	 *
@@ -79,13 +157,7 @@ public class WurstCompletionProvider extends LanguageAwareCompletionProvider {
 	 * @see #addShorthandCompletions(DefaultCompletionProvider)
 	 */
 	protected CompletionProvider createCodeCompletionProvider() {
-		DefaultCompletionProvider cp = new DefaultCompletionProvider() {
-			@Override
-			public List getCompletionsAt(JTextComponent tc, Point p) {
-				System.out.println("get completions at " + p.x + " : " + p.y);
-				return super.getCompletionsAt(tc, p);
-			}
-		};
+		DefaultCompletionProvider cp = new DefaultCompletionProvider();
 		addDefaultKeywordComletions(cp);
 		addShorthandCompletions(cp);
 		return cp;

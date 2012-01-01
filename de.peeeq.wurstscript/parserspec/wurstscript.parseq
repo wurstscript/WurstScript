@@ -3,7 +3,7 @@ package de.peeeq.wurstscript.ast
 
 abstract syntax:
 
-WPos ( String file, Integer line, Integer column ) // TODO use Wpos to track positions
+WPos ( String file, Object lineOffsets, int leftPos, int rightPos )
 
 CompilationUnit * TopLevelDeclaration
 
@@ -424,5 +424,11 @@ AstElement.attrSource
 	returns WPos
 	implemented by de.peeeq.wurstscript.attributes.AttrPos.getPos
 	
+WPos.getColumn
+	returns int
+	implemented by de.peeeq.wurstscript.attributes.AttrPos.getColumn
 	
+WPos.getLine
+	returns int
+	implemented by de.peeeq.wurstscript.attributes.AttrPos.getLine
 	

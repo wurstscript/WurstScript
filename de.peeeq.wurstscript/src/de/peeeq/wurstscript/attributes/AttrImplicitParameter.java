@@ -17,6 +17,7 @@ import de.peeeq.wurstscript.ast.OptExpr;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
+import de.peeeq.wurstscript.utils.LineOffsets;
 
 public class AttrImplicitParameter {
 
@@ -84,7 +85,7 @@ public class AttrImplicitParameter {
 			// dynamic function call
 			if (e.attrIsDynamicContext()) {		
 				// dynamic context means we have a 'this':
-				return Ast.ExprThis(Ast.WPos("{generated}", 0, 0));
+				return Ast.ExprThis(Ast.WPos("{generated}", LineOffsets.dummy, 0, 0));
 			} else {
 				attr.addError(e.getSource(), "Cannot call dynamic function " + e.getFuncName() + " from static context." );
 				return Ast.NoExpr();
@@ -103,7 +104,7 @@ public class AttrImplicitParameter {
 				// dynamic var access
 				if (e.attrIsDynamicContext()) {		
 					// dynamic context means we have a 'this':
-					return Ast.ExprThis(Ast.WPos("{generated}", 0, 0));
+					return Ast.ExprThis(Ast.WPos("{generated}", LineOffsets.dummy, 0, 0));
 				} else {
 					attr.addError(e.getSource(), "Cannot access dynamic variabe " + varDef.getName() + " from static context." );
 					return Ast.NoExpr();

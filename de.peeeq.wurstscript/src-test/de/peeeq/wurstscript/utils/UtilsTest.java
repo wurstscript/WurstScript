@@ -29,7 +29,7 @@ public class UtilsTest {
 
   @Test
   public void collect() {
-	  WPos source = Ast.WPos("", 0, 0);
+	  WPos source = Ast.WPos("", LineOffsets.dummy, 0, 0);
 	CompilationUnit testProg = Ast.CompilationUnit(
 			  Ast.WPackage(source.copy() , "test", Ast.WImports(), Ast.WEntities(
 					  Ast.GlobalVarDef(source.copy(), Ast.Modifiers(), Ast.NoTypeExpr(), "v1", Ast.ExprIntVal(source.copy(), 5)),

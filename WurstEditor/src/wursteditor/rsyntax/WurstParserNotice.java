@@ -29,7 +29,7 @@ public class WurstParserNotice implements ParserNotice {
 
 	@Override
 	public boolean containsPosition(int i) {
-		return i >getOffset2() && i < getOffset2() + getLength();
+		return i >= err.getSource().getLeftPos() && i <= err.getSource().getRightPos();
 	}
 
 	@Override
@@ -39,7 +39,7 @@ public class WurstParserNotice implements ParserNotice {
 
 	@Override
 	public int getLength() {
-		return 5;
+		return err.getSource().getRightPos() - err.getSource().getLeftPos();
 	}
 
 	@Override
@@ -59,13 +59,7 @@ public class WurstParserNotice implements ParserNotice {
 
 	@Override
 	public int getOffset() {
-		return -1;
-	}
-	private int getOffset2() {
-		RSyntaxDocument doc = parser.getDoc();
-		Preconditions.checkNotNull(doc);
-		Token firstToken = doc.getTokenListForLine(err.getSource().getLine());
-		return firstToken.offset + err.getSource().getColumn();
+		return err.getSource().getLeftPos();
 	}
 
 	@Override

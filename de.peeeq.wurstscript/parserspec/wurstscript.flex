@@ -1,9 +1,13 @@
 package de.peeeq.wurstscript.parser;
 
-import java_cup.runtime.*;
+import java.util.Stack;
+
+import java_cup.runtime.Symbol;
+import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
 
-import java.util.Stack;
+
+
 %%
 
 %class WurstScriptScannerIntern
@@ -11,6 +15,7 @@ import java.util.Stack;
 %line
 //%public
 %column
+%char
 %eofval{
   return symbol(TokenType.EOF);
 %eofval}
@@ -30,6 +35,9 @@ import java.util.Stack;
 	int mode = 0; // 0: unknown mode, 1: space mode, 2: tab mode
 	boolean inPackage = false; // are we inside a package? -> wurstmode on
 	
+	LineOffsets lineStartOffsets = new LineOffsets(); 
+	int currentLine = -1;
+	
 	int numberOfParantheses = 0;
 
 	{
@@ -42,7 +50,11 @@ import java.util.Stack;
 	}
 
 	private Symbol symbol(int type, Object value) {
-		Symbol s = new Symbol(type, yyline+1, yycolumn, value);
+		if (yyline > currentLine) {
+			lineStartOffsets.set(yyline, yychar);
+			currentLine = yyline;
+		}
+		Symbol s = new Symbol(type, yychar, yychar+yylength(), value);
 		if (inPackage) {
 			if (type == TokenType.LPAR) {
 				numberOfParantheses++;
@@ -61,11 +73,11 @@ import java.util.Stack;
 					returnStack.push(s);
 					while (indentationLevels.peek() > currentLineWhiteSpace) {
 						indentationLevels.pop();
-						returnStack.push(new Symbol(TokenType.UNINDENT, yyline+1, yycolumn));
+						returnStack.push(new Symbol(TokenType.UNINDENT, yychar-1, yychar));
 					}
 					
 					if (indentationLevels.peek() < currentLineWhiteSpace) {
-						returnStack.push(new Symbol(TokenType.CUSTOM_ERROR, yyline+1, yycolumn, "Level of indentation does not align with previous lines."));
+						returnStack.push(new Symbol(TokenType.CUSTOM_ERROR, yychar-1, yychar, "Level of indentation does not align with previous lines."));
 					}
 					
 					
@@ -74,12 +86,12 @@ import java.util.Stack;
 					returnStack.push(s);
 					if (currentLineWhiteSpace - indentationLevels.peek() < 2) {
 						// indent with at least two spaces
-						return new Symbol(TokenType.CUSTOM_ERROR, yyline+1, yycolumn, "Indentation difference too small.");
+						return new Symbol(TokenType.CUSTOM_ERROR, yychar-1, yychar, "Indentation difference too small.");
 					}
 					
 					indentationLevels.push(currentLineWhiteSpace);
 					
-					return new Symbol(TokenType.INDENT, yyline+1, yycolumn);
+					return new Symbol(TokenType.INDENT, yychar-1, yychar);
 				}
 			}
 		}
@@ -102,7 +114,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 								if (inPackage && isStart) {
 									currentLineWhiteSpace += 4;
 									if (mode == 2) {
-										returnStack.push(new Symbol(TokenType.CUSTOM_ERROR, yyline+1, yycolumn, "Mixing tabs and spaces is not allowed."));
+										returnStack.push(new Symbol(TokenType.CUSTOM_ERROR, yychar-1, yychar, "Mixing tabs and spaces is not allowed."));
 									}
 									mode = 1;
 								}
@@ -111,7 +123,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 								if (inPackage && isStart) {	
 									currentLineWhiteSpace += 1; 
 									if (mode == 1) {
-										returnStack.push(new Symbol(TokenType.CUSTOM_ERROR, yyline+1, yycolumn, "Mixing spaces and tabs is not allowed."));
+										returnStack.push(new Symbol(TokenType.CUSTOM_ERROR, yychar-1, yychar, "Mixing spaces and tabs is not allowed."));
 									}
 									mode = 2;
 								}
@@ -124,13 +136,13 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 								currentLineWhiteSpace = 0;
 								if (!isStart) {
 									isStart = true;
-									return new Symbol(TokenType.NL, yyline+1, yycolumn);
+									return new Symbol(TokenType.NL, yychar-1, yychar);
 								} else {
 									return null;
 								}
 							} // else: ignore newlines inside parantheses
 						} else {
-							return new Symbol(TokenType.NL, yyline+1, yycolumn);
+							return new Symbol(TokenType.NL, yychar-1, yychar);
 						}
 					}	
 	"//" [^\r\n]* 			           { }

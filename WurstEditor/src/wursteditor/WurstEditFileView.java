@@ -1,7 +1,12 @@
 package wursteditor;
 
 import java.awt.Font;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionListener;
 import java.io.File;
+
+import javax.swing.JList;
+import javax.swing.text.Document;
 
 import org.fife.ui.autocomplete.AutoCompletion;
 import org.fife.ui.autocomplete.CompletionProvider;
@@ -12,6 +17,7 @@ import org.fife.ui.rsyntaxtextarea.folding.FoldManager;
 import org.fife.ui.rsyntaxtextarea.folding.FoldParserManager;
 import org.fife.ui.rtextarea.RTextScrollPane;
 
+import wursteditor.controller.SyntaxCodeAreaController;
 import wursteditor.rsyntax.IndentationFoldParser;
 import wursteditor.rsyntax.WurstCompletionProvider;
 import wursteditor.rsyntax.WurstDocument;
@@ -30,9 +36,12 @@ public class WurstEditFileView extends RTextScrollPane {
 		return syntaxCodeArea;
 	}
 
-	public WurstEditFileView(String fileName) {
+	public WurstEditFileView(String fileName, JList errorList) {
 		this.fileName = fileName;
 		syntaxCodeArea = new RSyntaxTextArea();
+		
+		new SyntaxCodeAreaController(syntaxCodeArea, errorList);
+		
 		syntaxCodeArea.setDocument(new WurstDocument("wurstscript"));
 		
 		this.setName("jScrollPane2"); // NOI18N
@@ -42,27 +51,9 @@ public class WurstEditFileView extends RTextScrollPane {
         syntaxCodeArea.setName("syntaxCodeArea"); // NOI18N
         
         
-        AbstractTokenMakerFactory atmf = (AbstractTokenMakerFactory) TokenMakerFactory.getDefaultInstance();
-        atmf.putMapping("wurstscript", WurstTokenMaker.class.getCanonicalName());
-        TokenMakerFactory.setDefaultInstance(atmf);
         
-        CompletionProvider wurstAutoCompletion = new WurstCompletionProvider();
-		AutoCompletion ac = new AutoCompletion(wurstAutoCompletion);
-		ac.install(syntaxCodeArea);
-        
-        FoldParserManager.get().addFoldParserMapping("wurstscript", new IndentationFoldParser());
-        
-        FoldManager foldManager = new FoldManager(syntaxCodeArea);
-        foldManager.setCodeFoldingEnabled(true);
-        
-        
-        
-        syntaxCodeArea.setSyntaxEditingStyle("wurstscript");
         syntaxCodeArea.setFont(new Font("Consolas", Font.PLAIN, 14));	
         syntaxCodeArea.setAntiAliasingEnabled(true);
-        syntaxCodeArea.setCodeFoldingEnabled(true); // this seems bugged
-        syntaxCodeArea.setAutoIndentEnabled(true);
-        syntaxCodeArea.addParser(new WurstParser());
         
         this.setViewportView(syntaxCodeArea);
 

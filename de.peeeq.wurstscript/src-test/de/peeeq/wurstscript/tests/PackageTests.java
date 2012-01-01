@@ -111,7 +111,7 @@ public class PackageTests extends PscriptTest {
 	
 	@Test
 	public void test_import_class_fail() {
-		assertError(false, "undefined",
+		assertError(false, "Blub",
 				"package A",
 				"	class Blub",
 				"		function foo()",

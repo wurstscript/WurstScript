@@ -24,7 +24,7 @@ public class attr {
 	public static void addError(WPos pos, String msg) {
 		for (CompileError err : errors) {
 			if (err.getSource().getFile().equals(pos.getFile())
-					&& err.getSource().getLine().equals(pos.getLine())) {
+					&& err.getSource().getLine() == pos.getLine()) {
 				// return only one error per line
 				return;
 			}

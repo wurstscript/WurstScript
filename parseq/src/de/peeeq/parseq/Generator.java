@@ -395,7 +395,7 @@ public class Generator {
 			if (!JavaTypes.primitiveTypes.contains(p.typ)) { 
 				// add null checks for non primitive types:
 				sb.append("		if (" + p.name	+ " == null) throw new IllegalArgumentException();\n");
-				if (!JavaTypes.otherTypes.contains(p.typ)) {
+				if (isGeneratedTyp(p.typ)) {
 					// we have a generated type. 
 					// the new element has a new parent:
 					sb.append("		(("+getCommonSupertypeType()+"Intern)" + p.name + ").setParent(this);\n");
@@ -404,6 +404,25 @@ public class Generator {
 			sb.append("		this." + p.name + " = " + p.name + ";\n");
 		}
 		sb.append("	}\n\n");
+	}
+
+	private boolean isGeneratedTyp(String typ) {
+		for (CaseDef c : prog.caseDefs) {
+			if (c.getName().equals(typ)) {
+				return true;
+			}
+		}
+		for (ConstructorDef c : prog.constructorDefs) {
+			if (c.getName().equals(typ)) {
+				return true;
+			}
+		}
+		for (ListDef c : prog.listDefs) {
+			if (c.getName().equals(typ)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private void createGetSetParentMethods(StringBuilder sb) {
@@ -425,7 +444,7 @@ public class Generator {
 			if (!JavaTypes.primitiveTypes.contains(p.typ)) { 
 				// add null checks for non primitive types:
 				sb.append("		if (" + p.name	+ " == null) throw new IllegalArgumentException();\n");
-				if (!JavaTypes.otherTypes.contains(p.typ)) {
+				if (isGeneratedTyp(p.typ)) {
 					// we have a generated type. 
 					// the removed type looses its parent:
 					sb.append("		(("+getCommonSupertypeType()+"Intern)this." + p.name + ").setParent(null);\n");
@@ -759,17 +778,13 @@ public class Generator {
 		createGetSetParentMethods(sb);
 		
 		sb.append("	protected void other_setParentToThis("+l.itemType+" t) {\n");
-		if (JavaTypes.primitiveTypes.contains(l.itemType) || JavaTypes.otherTypes.contains(l.itemType)) {
-			
-		} else {
+		if (isGeneratedTyp(l.itemType)) {
 			sb.append("		(("+getCommonSupertypeType()+"Intern) t).setParent(this);\n");
 		}
 		sb.append("	}\n");
 		
 		sb.append("	protected void other_clearParent("+l.itemType+" t) {\n");
-		if (JavaTypes.primitiveTypes.contains(l.itemType) || JavaTypes.otherTypes.contains(l.itemType)) {
-			
-		} else {
+		if (isGeneratedTyp(l.itemType)) {
 			sb.append("		(("+getCommonSupertypeType()+"Intern) t).setParent(null);\n");
 		}
 		sb.append("	}\n");

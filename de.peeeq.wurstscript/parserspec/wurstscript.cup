@@ -7,14 +7,38 @@ import de.peeeq.wurstscript.ast.*;
 action code {: 
 
 	private WPos pos(int left, int right) {
-		return Ast.WPos(parser.filename, left, right);
+		return Ast.WPos(parser.filename, parser.scanner.lineStartOffsets, left, right);
+	}
+	
+	private WPos pos(WPos left, WPos right) {
+		return Ast.WPos(left.getFile(), left.getLineOffsets(), left.getLeftPos(), right.getRightPos());
+	}
+	
+	private WPos pos(int left, WPos right) {
+		return Ast.WPos(right.getFile(), right.getLineOffsets(), left, right.getRightPos());
+	}
+	
+	private WPos pos(WPos left, int right) {
+		return Ast.WPos(left.getFile(), left.getLineOffsets(), left.getLeftPos(), right);
+	}
+	
+	private WPos pos(AstElementWithSource left, int right) {
+		return pos(left.getSource(), right);
+	}
+	
+	private WPos pos(AstElementWithSource left, AstElementWithSource right) {
+		return pos(left.getSource(), right.getSource());
+	}
+	
+	private WPos pos(int left, AstElementWithSource right) {
+		return pos(left, right.getSource());
 	}
 
 :};
 
 parser code {: 
 	protected String filename = "";
-
+	protected WurstScriptScanner scanner;
 :};
 
 terminal Integer INTEGER_LITERAL;
@@ -161,8 +185,8 @@ PackageDeclaration ::=
 		PACKAGE:x IDENTIFIER:name NL INDENT
 			Imports:imports
 			Entities:entities
-		UNINDENT ENDPACKAGE
-		{: RESULT = Ast.WPackage(pos(xleft, xright), name, imports, entities); :}
+		UNINDENT ENDPACKAGE:y
+		{: RESULT = Ast.WPackage(pos(xleft, yright), name, imports, entities); :}
 ;		
 		
 // 0 or more imports		
@@ -175,7 +199,7 @@ Imports ::=
 
 Import ::=
 	IMPORT:x IDENTIFIER:i NL
-		{: RESULT = Ast.WImport(pos(xleft, xright), i); :}
+		{: RESULT = Ast.WImport(pos(xleft, iright), i); :}
 ;
 
 Entities ::=
@@ -187,33 +211,33 @@ Entities ::=
 
 Entity ::=
 	Modifiers:mod NATIVETYPE:x IDENTIFIER:name EXTENDS TypeExpr:extendsName NL
-		{: RESULT = Ast.NativeType(pos(xleft, xright), mod, name, extendsName); :}
+		{: RESULT = Ast.NativeType(pos(xleft, extendsName), mod, name, extendsName); :}
 	| Modifiers:mod NATIVETYPE:x IDENTIFIER:name NL
-		{: RESULT = Ast.NativeType(pos(xleft, xright), mod, name, Ast.NoTypeExpr()); :}
+		{: RESULT = Ast.NativeType(pos(xleft, nameright), mod, name, Ast.NoTypeExpr()); :}
 	| FuncDef:x
 		{: RESULT = x; :}
 	| VarDef:x
 		{: RESULT = x; :}
-	| INIT:x NL INDENT Statements:body UNINDENT
-		{: RESULT = Ast.InitBlock(pos(xleft, xright), body); :}
+	| INIT:x NL INDENT Statements:body UNINDENT:y
+		{: RESULT = Ast.InitBlock(pos(xleft, yright), body); :}
 	| NATIVE:x FuncSignature:sig NL
-		{: RESULT = Ast.NativeFunc(pos(xleft, xright), Ast.Modifiers(), sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy()); :}
+		{: RESULT = Ast.NativeFunc(pos(xleft, sig), Ast.Modifiers(), sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy()); :}
 	| ClassDef:x
 		{: RESULT = x; :}
 	| ModuleDef:x
 		{: RESULT = x; :}
-	| Modifiers:mod FUNCTION:x TypeExpr:t DOT FuncSignature:sig NL INDENT Statements:body UNINDENT
-		{: RESULT = Ast.ExtensionFuncDef(pos(xleft, xright), mod, t, sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body); :}
+	| Modifiers:mod FUNCTION:x TypeExpr:t DOT FuncSignature:sig NL INDENT Statements:body UNINDENT:y
+		{: RESULT = Ast.ExtensionFuncDef(pos(xleft, yright), mod, t, sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body); :}
 ;		
 
 ClassDef ::=
-	Modifiers:mod CLASS:x IDENTIFIER:name NL INDENT ClassSlots:slots UNINDENT
-		{: RESULT = Ast.ClassDef(pos(xleft, xright), mod, name, false, slots); :}
+	Modifiers:mod CLASS:x IDENTIFIER:name NL INDENT ClassSlots:slots UNINDENT:y
+		{: RESULT = Ast.ClassDef(pos(xleft, yright), mod, name, false, slots); :}
 ;
 
 ModuleDef ::=
-	Modifiers:mod MODULE:x IDENTIFIER:name NL INDENT ClassSlots:slots UNINDENT
-		{: RESULT = Ast.ModuleDef(pos(xleft, xright), mod, name, slots); :}
+	Modifiers:mod MODULE:x IDENTIFIER:name NL INDENT ClassSlots:slots UNINDENT:y
+		{: RESULT = Ast.ModuleDef(pos(xleft, yright), mod, name, slots); :}
 ;
 
 ClassSlots ::=
@@ -224,12 +248,12 @@ ClassSlots ::=
 ;
 
 ClassSlot ::=
-	Modifiers:mod CONSTRUCT:x LPAR Parameters:params RPAR NL INDENT Statements:body UNINDENT
-		{: RESULT = Ast.ConstructorDef(pos(xleft, xright), mod, params, body); :}
+	Modifiers:mod CONSTRUCT:x LPAR Parameters:params RPAR NL INDENT Statements:body UNINDENT:y
+		{: RESULT = Ast.ConstructorDef(pos(xleft, yright), mod, params, body); :}
 	| Modifiers:mod USE:x IDENTIFIER:m NL
-		{: RESULT = Ast.ModuleUse(pos(xleft, xright), m); :} 
-	| ONDESTROY:x NL INDENT Statements:body UNINDENT
-		{: RESULT = Ast.OnDestroyDef(pos(xleft, xright), body); :}
+		{: RESULT = Ast.ModuleUse(pos(xleft, mright), m); :} 
+	| ONDESTROY:x NL INDENT Statements:body UNINDENT:y
+		{: RESULT = Ast.OnDestroyDef(pos(xleft, yright), body); :}
 	| VarDef:x
 		{: RESULT = x; :}
 	| FuncDef:x
@@ -237,10 +261,10 @@ ClassSlot ::=
 ;
 
 FuncDef ::=
-	  Modifiers:mod FUNCTION:x FuncSignature:sig NL INDENT Statements:body UNINDENT
-		{: RESULT = Ast.FuncDef(pos(xleft, xright), mod, sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body); :}
+	  Modifiers:mod FUNCTION:x FuncSignature:sig NL INDENT Statements:body UNINDENT:y
+		{: RESULT = Ast.FuncDef(pos(xleft, yright), mod, sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body); :}
 	| Modifiers:mod FUNCTION:x FuncSignature:sig NL
-		{: RESULT = Ast.FuncDef(pos(xleft, xright), mod, sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), Ast.WStatements()); :}
+		{: RESULT = Ast.FuncDef(pos(xleft, sig), mod, sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), Ast.WStatements()); :}
 ;
 
 Modifiers ::=
@@ -271,9 +295,9 @@ Modifier ::=
 
 FuncSignature ::=
 	IDENTIFIER:name LPAR Parameters:parameters RPAR RETURNS TypeExpr:typ
-		{: RESULT = Ast.FuncSignature(pos(nameleft, nameright), name, parameters, typ); :}
-	| IDENTIFIER:name LPAR Parameters:parameters RPAR
-		{: RESULT = Ast.FuncSignature(pos(nameleft, nameright), name, parameters, Ast.NoTypeExpr()); :}
+		{: RESULT = Ast.FuncSignature(pos(nameleft, typ), name, parameters, typ); :}
+	| IDENTIFIER:name LPAR Parameters:parameters RPAR:y
+		{: RESULT = Ast.FuncSignature(pos(nameleft, yright), name, parameters, Ast.NoTypeExpr()); :}
 ;
 
 Parameters ::=
@@ -292,14 +316,14 @@ OtherParameters ::=
 
 Parameter ::=
 	TypeExpr:typ IDENTIFIER:name
-		{: RESULT = Ast.WParameter(pos(typleft, typright), Ast.Modifiers(), typ, name); :}
+		{: RESULT = Ast.WParameter(pos(typleft, nameright), Ast.Modifiers(), typ, name); :}
 ;
 
 TypeExpr ::=
 	IDENTIFIER:name
 		{: RESULT = Ast.TypeExprSimple(pos(nameleft, nameright), name); :}
-	| TypeExpr:e ARRAY
-		{: RESULT = Ast.TypeExprArray(e.getSource().copy(), e); :}
+	| TypeExpr:e ARRAY:y
+		{: RESULT = Ast.TypeExprArray(pos(e, yright), e); :}
 	| THISTYPE:x
 		{: RESULT = Ast.TypeExprThis(pos(xleft, xright)); :}
 ;
@@ -314,9 +338,9 @@ ArraySizes ::=
 */
 VarDef ::=
 	  Modifiers:mod TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = Ast.GlobalVarDef(pos(typleft, typright), mod, typ, name, i); :}
+		{: RESULT = Ast.GlobalVarDef(pos(typleft, i), mod, typ, name, i); :}
 	| Modifiers:mod TypeExpr:typ IDENTIFIER:name NL
-		{: RESULT = Ast.GlobalVarDef(pos(typleft, typright), mod, typ, name, Ast.NoExpr()); :}
+		{: RESULT = Ast.GlobalVarDef(pos(typleft, nameright), mod, typ, name, Ast.NoExpr()); :}
 ;
 
 Statements ::=
@@ -341,8 +365,8 @@ Statement ::=
 		{: RESULT = x; :} 
 	| StmtDestroy:x
 		{: RESULT = x; :} 
-	| FOR:x LocalVarDefInline:loopVar IN Expr:from DOT DOT DOT Expr:to NL INDENT Statements:body UNINDENT
-		{: RESULT = Ast.StmtForRange(pos(xleft, xright), loopVar, from, to, body); :}
+	| FOR:x LocalVarDefInline:loopVar IN Expr:from DOT DOT DOT Expr:to NL INDENT Statements:body UNINDENT:y
+		{: RESULT = Ast.StmtForRange(pos(xleft, yright), loopVar, from, to, body); :}
 	| BREAK:x NL
 		{: RESULT = Ast.StmtExitwhen(pos(xleft, xright), Ast.ExprBoolVal(pos(xleft, xright), true)); :}
 	| error:x NL
@@ -351,19 +375,19 @@ Statement ::=
 
 StmtDestroy ::=
 	DESTROY:x Expr:e NL
-		{: RESULT = Ast.StmtDestroy(pos(xleft, xright), e); :}
+		{: RESULT = Ast.StmtDestroy(pos(xleft, e), e); :}
 ;
 
 StmtReturn ::=
 	RETURN:x Expr:result NL
-		{: RESULT = Ast.StmtReturn(pos(xleft, xright), result); :}
+		{: RESULT = Ast.StmtReturn(pos(xleft, result), result); :}
 ;
 
 StmtIf ::=
-	IF:x Expr:cond NL INDENT Statements:thenStatements UNINDENT
-		{: RESULT = Ast.StmtIf(pos(xleft, xright), cond, thenStatements, Ast.WStatements()); :}
-	| IF:x Expr:cond NL INDENT Statements:thenStatements UNINDENT ELSE ElseStatements:elseStatements
-		{: RESULT = Ast.StmtIf(pos(xleft, xright), cond, thenStatements, elseStatements); :}
+	IF:x Expr:cond NL INDENT Statements:thenStatements UNINDENT:y
+		{: RESULT = Ast.StmtIf(pos(xleft, yright), cond, thenStatements, Ast.WStatements()); :}
+	| IF:x Expr:cond NL INDENT Statements:thenStatements UNINDENT ELSE:y ElseStatements:elseStatements
+		{: RESULT = Ast.StmtIf(pos(xleft, elseStatements.get(elseStatements.size()-1)), cond, thenStatements, elseStatements); :}
 ;
 
 ElseStatements ::= 
@@ -374,39 +398,39 @@ ElseStatements ::=
 ;
 
 StmtWhile ::=
-	WHILE:x Expr:cond NL INDENT Statements:body UNINDENT
-		{: RESULT = Ast.StmtWhile(pos(xleft, xright), cond, body); :}
+	WHILE:x Expr:cond NL INDENT Statements:body UNINDENT:y
+		{: RESULT = Ast.StmtWhile(pos(xleft, yright), cond, body); :}
 ;
 
 LocalVarDef ::=
 	VAL:x IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = Ast.LocalVarDef(pos(xleft, xright), Ast.Modifiers(Ast.ModConstant(pos(xleft, xright))), Ast.NoTypeExpr(), name, i); :}
+		{: RESULT = Ast.LocalVarDef(pos(xleft, i), Ast.Modifiers(Ast.ModConstant(pos(xleft, xright))), Ast.NoTypeExpr(), name, i); :}
 	| VAL:x TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = Ast.LocalVarDef(pos(xleft, xright), Ast.Modifiers(Ast.ModConstant(pos(xleft, xright))), typ, name, i); :}
+		{: RESULT = Ast.LocalVarDef(pos(xleft, i), Ast.Modifiers(Ast.ModConstant(pos(xleft, xright))), typ, name, i); :}
 	| TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = Ast.LocalVarDef(pos(typleft, typright), Ast.Modifiers(), typ, name, i); :}
+		{: RESULT = Ast.LocalVarDef(pos(typleft, i), Ast.Modifiers(), typ, name, i); :}
 	| TypeExpr:typ IDENTIFIER:name NL
-		{: RESULT = Ast.LocalVarDef(pos(typleft, typright), Ast.Modifiers(), typ, name, Ast.NoExpr()); :}
+		{: RESULT = Ast.LocalVarDef(pos(typleft, nameright), Ast.Modifiers(), typ, name, Ast.NoExpr()); :}
 ;
 
 LocalVarDefInline ::=
 	TypeExpr:typ IDENTIFIER:name
-		{: RESULT = Ast.LocalVarDef(pos(typleft, typright), Ast.Modifiers(), typ, name, Ast.NoExpr()); :}
+		{: RESULT = Ast.LocalVarDef(pos(typleft, nameright), Ast.Modifiers(), typ, name, Ast.NoExpr()); :}
 ;
 
 StmtSet ::= 
 	  ExprAssignable:left EQ Expr:right NL
-		{: RESULT = Ast.StmtSet(left.getSource().copy(), left, Ast.OpAssign(),  right); :}
+		{: RESULT = Ast.StmtSet(pos(left, right), left, Ast.OpAssign(),  right); :}
 	| ExprAssignable:left PLUS_EQ Expr:right NL
-		{: RESULT = Ast.StmtSet(left.getSource().copy(), left, Ast.OpPlusAssign(),  right); :}
+		{: RESULT = Ast.StmtSet(pos(left, right), left, Ast.OpPlusAssign(),  right); :}
 	| ExprAssignable:left MINUS_EQ Expr:right NL
-		{: RESULT = Ast.StmtSet(left.getSource().copy(), left, Ast.OpMinusAssign(),  right); :}
+		{: RESULT = Ast.StmtSet(pos(left, right), left, Ast.OpMinusAssign(),  right); :}
 	| ExprAssignable:left MULT_EQ Expr:right NL
-		{: RESULT = Ast.StmtSet(left.getSource().copy(), left, Ast.OpMultAssign(),  right); :}
+		{: RESULT = Ast.StmtSet(pos(left, right), left, Ast.OpMultAssign(),  right); :}
 	| ExprAssignable:left PLUS_PLUS:x
-		{: RESULT = Ast.StmtSet(left.getSource().copy(), left, Ast.OpPlusAssign(), Ast.ExprIntVal(pos(xleft, xright), 1)); :}
+		{: RESULT = Ast.StmtSet(pos(left, xright), left, Ast.OpPlusAssign(), Ast.ExprIntVal(pos(xleft, xright), 1)); :}
 	| ExprAssignable:left MINUS_MINUS:x
-		{: RESULT = Ast.StmtSet(left.getSource().copy(), left, Ast.OpMinusAssign(), Ast.ExprIntVal(pos(xleft, xright), 1)); :}
+		{: RESULT = Ast.StmtSet(pos(left, xright), left, Ast.OpMinusAssign(), Ast.ExprIntVal(pos(xleft, xright), 1)); :}
 ;
 
 OpAssign ::=
@@ -438,8 +462,8 @@ ExprVarAccess ::=
 ;
 
 ExprVarArrayAccess ::=
-	IDENTIFIER:name Indexes:Indexes
-		{: RESULT = Ast.ExprVarArrayAccess(pos(nameleft, nameright), name, Indexes); :}
+	IDENTIFIER:name Indexes:indexes
+		{: RESULT = Ast.ExprVarArrayAccess(pos(nameleft, indexes.get(indexes.size()-1)), name, indexes); :}
 ;
 
 
@@ -476,22 +500,22 @@ Expr ::=
 	
 ExprCast ::= 
 	Expr:e CASTTO TypeExpr:t 
-		{: RESULT = Ast.ExprCast(e.getSource().copy(), t, e); :} 
+		{: RESULT = Ast.ExprCast(pos(e, t), t, e); :} 
 ;	
 	
 ExprMemberVar ::=
 	Expr:left DOT IDENTIFIER:name
-		{: RESULT = Ast.ExprMemberVar(pos(nameleft,nameright), left, name); :}	
+		{: RESULT = Ast.ExprMemberVar(pos(left,nameright), left, name); :}	
 ;
 
 ExprMemberArrayVar ::=
 	Expr:left DOT IDENTIFIER:name Indexes:indexes
-		{: RESULT = Ast.ExprMemberArrayVar(pos(nameleft,nameright), left, name, indexes); :}
+		{: RESULT = Ast.ExprMemberArrayVar(pos(left, indexes.get(indexes.size()-1)), left, name, indexes); :}
 ;
 
 ExprMemberMethod ::=
-	Expr:left DOT IDENTIFIER:name LPAR Arguments:args RPAR
-		{: RESULT = Ast.ExprMemberMethod(pos(nameleft,nameright), left, name, args); :}
+	Expr:left DOT IDENTIFIER:name LPAR Arguments:args RPAR:y
+		{: RESULT = Ast.ExprMemberMethod(pos(left, yright), left, name, args); :}
 ;
 
 
@@ -511,7 +535,7 @@ ExprAtomic ::=
 	| THIS:x
 		{: RESULT = Ast.ExprThis(pos(xleft, xright)); :}
 	| FUNCTION:x IDENTIFIER:name
-		{: RESULT = Ast.ExprFuncRef(pos(xleft, xright), name); :}
+		{: RESULT = Ast.ExprFuncRef(pos(xleft, nameright), name); :}
 	| REAL_LITERAL:x
 		{: RESULT = Ast.ExprRealVal(pos(xleft, xright), x); :}
 	| ExprVarAccess:x
@@ -521,8 +545,8 @@ ExprAtomic ::=
 ;	
 
 ExprNewObject ::=
- 	NEW:x IDENTIFIER:name LPAR Arguments:args RPAR
-		{: RESULT = Ast.ExprNewObject(pos(xleft, xright), name, args); :}
+ 	NEW:x IDENTIFIER:name LPAR Arguments:args RPAR:y
+		{: RESULT = Ast.ExprNewObject(pos(xleft, yright), name, args); :}
 ;
 
 Indexes ::=
@@ -552,47 +576,47 @@ ArgumentRest ::=
 
 ExprBinary ::= 
 	  Expr:left OR Expr:right
-		{: RESULT = Ast.ExprBinary(left.getSource().copy(), left, Ast.OpOr(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpOr(), right); :}
 	| Expr:left AND Expr:right
-		{: RESULT = Ast.ExprBinary(left.getSource().copy(), left, Ast.OpAnd(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpAnd(), right); :}
 	| Expr:left PLUS Expr:right
-		{: RESULT = Ast.ExprBinary(left.getSource().copy(), left, Ast.OpPlus(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpPlus(), right); :}
 	| Expr:left MINUS Expr:right
-		{: RESULT = Ast.ExprBinary(left.getSource().copy(), left, Ast.OpMinus(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpMinus(), right); :}
 	| Expr:left MULT Expr:right
-		{: RESULT = Ast.ExprBinary(left.getSource().copy(), left, Ast.OpMult(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpMult(), right); :}
 	| Expr:left DIV_REAL Expr:right
-		{: RESULT = Ast.ExprBinary(left.getSource().copy(), left, Ast.OpDivReal(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpDivReal(), right); :}
 	| Expr:left DIV_INT Expr:right
-		{: RESULT = Ast.ExprBinary(left.getSource().copy(), left, Ast.OpDivInt(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpDivInt(), right); :}
 	| Expr:left MOD_REAL Expr:right
-		{: RESULT = Ast.ExprBinary(left.getSource().copy(), left, Ast.OpModReal(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpModReal(), right); :}
 	| Expr:left MOD_INT Expr:right
-		{: RESULT = Ast.ExprBinary(left.getSource().copy(), left, Ast.OpModInt(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpModInt(), right); :}
 	| Expr:left EQEQ Expr:right
-		{: RESULT = Ast.ExprBinary(left.getSource().copy(), left, Ast.OpEquals(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpEquals(), right); :}
 	| Expr:left GTEQ Expr:right
-		{: RESULT = Ast.ExprBinary(left.getSource().copy(), left, Ast.OpGreaterEq(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpGreaterEq(), right); :}
 	| Expr:left LTEQ Expr:right
-		{: RESULT = Ast.ExprBinary(left.getSource().copy(), left, Ast.OpLessEq(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpLessEq(), right); :}
 	| Expr:left LT Expr:right
-		{: RESULT = Ast.ExprBinary(left.getSource().copy(), left, Ast.OpLess(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpLess(), right); :}
 	| Expr:left GT Expr:right
-		{: RESULT = Ast.ExprBinary(left.getSource().copy(), left, Ast.OpGreater(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpGreater(), right); :}
 	| Expr:left NOTEQ Expr:right
-		{: RESULT = Ast.ExprBinary(left.getSource().copy(), left, Ast.OpUnequals(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpUnequals(), right); :}
 ;
 
 ExprUnary ::=
 	NOT:x Expr:right
-		{: RESULT = Ast.ExprUnary(pos(xleft, xright), Ast.OpNot(), right); :}
+		{: RESULT = Ast.ExprUnary(pos(xleft, right), Ast.OpNot(), right); :}
 	| MINUS:x Expr:right
-		{: RESULT = Ast.ExprUnary(pos(xleft, xright), Ast.OpMinus(), right); :}
+		{: RESULT = Ast.ExprUnary(pos(xleft, right), Ast.OpMinus(), right); :}
 ;
 
 ExprFunctionCall ::=
-	IDENTIFIER:name LPAR Arguments:args RPAR
-		{: RESULT = Ast.ExprFunctionCall(pos(nameleft, nameright), name, args); :}
+	IDENTIFIER:name LPAR Arguments:args RPAR:y
+		{: RESULT = Ast.ExprFunctionCall(pos(nameleft, yright), name, args); :}
 ;
 
 
@@ -619,7 +643,7 @@ JassToplevelDeclaration ::=
 
 JassTypeDecl ::=
 	TYPE:x IDENTIFIER:name EXTENDS TypeExpr:extendsName NL
-		{: RESULT = Ast.NativeType(pos(xleft, xright), Ast.Modifiers(), name, extendsName); :}
+		{: RESULT = Ast.NativeType(pos(xleft, extendsName), Ast.Modifiers(), name, extendsName); :}
 ;
 
 
@@ -637,34 +661,34 @@ JassGlobalDecls ::=
 
 JassGlobalDecl ::=
 	CONSTANT:x TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = Ast.GlobalVarDef(pos(xleft, xright), Ast.Modifiers(Ast.ModConstant(pos(xleft, xright))), typ, name, i); :}
+		{: RESULT = Ast.GlobalVarDef(pos(xleft, i), Ast.Modifiers(Ast.ModConstant(pos(xleft, xright))), typ, name, i); :}
 	| TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = Ast.GlobalVarDef(typ.getSource().copy(), Ast.Modifiers(), typ, name, i); :}
+		{: RESULT = Ast.GlobalVarDef(pos(typ, i), Ast.Modifiers(), typ, name, i); :}
 	| TypeExpr:typ IDENTIFIER:name NL
-		{: RESULT = Ast.GlobalVarDef(typ.getSource().copy(), Ast.Modifiers(), typ, name, Ast.NoExpr()); :}
+		{: RESULT = Ast.GlobalVarDef(pos(typ, nameright), Ast.Modifiers(), typ, name, Ast.NoExpr()); :}
 ;
 
 JassNativeDecl ::=
 	NATIVE:x JassFuncSignature:sig NL
-		{: RESULT = Ast.NativeFunc(pos(xleft, xright), Ast.Modifiers(), sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy()); :}
+		{: RESULT = Ast.NativeFunc(pos(xleft, sig), Ast.Modifiers(), sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy()); :}
 	| CONSTANT:x NATIVE JassFuncSignature:sig NL
-		{: RESULT = Ast.NativeFunc(pos(xleft, xright), Ast.Modifiers(), sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy()); :}
+		{: RESULT = Ast.NativeFunc(pos(xleft, sig), Ast.Modifiers(), sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy()); :}
 ;
 
 JassFuncDef ::=
-	FUNCTION:x JassFuncSignature:sig NL JassLocals:body1 JassStatements:body2 ENDFUNCTION NL
+	FUNCTION:x JassFuncSignature:sig NL JassLocals:body1 JassStatements:body2 ENDFUNCTION:y NL
 		{: 
 			body1.addAll(body2.removeAll());
-			RESULT = Ast.FuncDef(pos(xleft, xright), Ast.Modifiers(), sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body1); 
+			RESULT = Ast.FuncDef(pos(xleft, yright), Ast.Modifiers(), sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body1); 
 		:}
 ;
 
 
 JassFuncSignature ::=
 	IDENTIFIER:name TAKES JassParameters:parameters RETURNS TypeExpr:typ
-		{: RESULT = Ast.FuncSignature(pos(nameleft, nameright), name, parameters, typ); :}
-	| IDENTIFIER:name TAKES JassParameters:parameters RETURNS NOTHING
-		{: RESULT = Ast.FuncSignature(pos(nameleft, nameright), name, parameters, Ast.NoTypeExpr()); :}
+		{: RESULT = Ast.FuncSignature(pos(nameleft, typ), name, parameters, typ); :}
+	| IDENTIFIER:name TAKES JassParameters:parameters RETURNS NOTHING:y
+		{: RESULT = Ast.FuncSignature(pos(nameleft, yright), name, parameters, Ast.NoTypeExpr()); :}
 ;
 
 JassParameters ::=
@@ -683,9 +707,9 @@ JassLocals ::=
 
 JassLocal ::=
 	  LOCAL:x TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = Ast.LocalVarDef(pos(xleft, xright), Ast.Modifiers(), typ, name, i); :}
+		{: RESULT = Ast.LocalVarDef(pos(xleft, i), Ast.Modifiers(), typ, name, i); :}
 	| LOCAL:x TypeExpr:typ IDENTIFIER:name NL
-		{: RESULT = Ast.LocalVarDef(pos(xleft, xright), Ast.Modifiers(), typ, name, Ast.NoExpr()); :}
+		{: RESULT = Ast.LocalVarDef(pos(xleft, nameright), Ast.Modifiers(), typ, name, Ast.NoExpr()); :}
 ;
 
 JassStatements ::=
@@ -698,24 +722,35 @@ JassStatements ::=
 JassStatement ::=
 	  JassStatementIf:x
 		{: RESULT = x; :}
-	| LOOP:x NL JassStatements:body ENDLOOP NL
-		{: RESULT = Ast.StmtLoop(pos(xleft, xright), body); :}
+	| LOOP:x NL JassStatements:body ENDLOOP:y NL
+		{: RESULT = Ast.StmtLoop(pos(xleft, yright), body); :}
 	| EXITWHEN:x Expr:e NL
-		{: RESULT = Ast.StmtExitwhen(pos(xleft, xright), e); :}
+		{: RESULT = Ast.StmtExitwhen(pos(xleft, e), e); :}
 	| RETURN:x NL
 		{: RESULT = Ast.StmtReturn(pos(xleft, xright), Ast.NoExpr()); :}
 	| RETURN:x Expr:e NL
-		{: RESULT = Ast.StmtReturn(pos(xleft, xright), e); :}
+		{: RESULT = Ast.StmtReturn(pos(xleft, e), e); :}
 	| SET:x ExprAssignable:left EQ Expr:right NL
-		{: RESULT = Ast.StmtSet(pos(xleft, xright), left, Ast.OpAssign(),  right); :}
+		{: RESULT = Ast.StmtSet(pos(xleft, right), left, Ast.OpAssign(),  right); :}
 	| CALL:x ExprFunctionCall:call
 		{: RESULT = call; :}
 ;  
 
 
 JassStatementIf ::=
-	IF:x Expr:cond THEN NL JassStatements:thenStatements JasselseIfs:elseStatements
-		{: RESULT = Ast.StmtIf(pos(xleft, xright), cond, thenStatements, elseStatements); :}
+	IF:x Expr:cond THEN:y NL JassStatements:thenStatements JasselseIfs:elseStatements
+		{: 
+			WPos pos;
+			if (elseStatements.size() > 0) {
+				pos = pos(xleft, elseStatements.get(elseStatements.size() - 1));
+			} else {
+				if (thenStatements.size() > 0) {
+					pos = pos(xleft, thenStatements.get(thenStatements.size()-1));
+				} else {
+					pos = pos(xleft, yright);
+				}
+			}
+			RESULT = Ast.StmtIf(pos(xleft, xright), cond, thenStatements, elseStatements); :}
 ;
 
 JasselseIfs ::=

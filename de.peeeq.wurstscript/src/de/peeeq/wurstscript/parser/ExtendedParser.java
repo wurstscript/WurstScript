@@ -64,8 +64,9 @@ public class ExtendedParser extends parser {
 		return sym;
 	}
 
-	public ExtendedParser(Scanner scanner, WurstGui gui) {
+	public ExtendedParser(WurstScriptScanner scanner, WurstGui gui) {
 		super(scanner);
+		this.scanner = scanner;
 		this.gui = gui;
 	}
 
@@ -191,7 +192,7 @@ public class ExtendedParser extends parser {
 			//msg += "\nstate = " + parseState;
 		}
 
-		WPos source = Ast.WPos(filename, s.left, s.right);
+		WPos source = Ast.WPos(filename, scanner.lineStartOffsets, s.left, s.right);
 		CompileError err = new CompileError(source, msg);
 		errors.add(err);
 		gui.sendError(err);
@@ -236,7 +237,7 @@ public class ExtendedParser extends parser {
 
 	@Override
 	public void unrecovered_syntax_error(Symbol s) {
-		WPos source = Ast.WPos(filename, s.left, s.right);
+		WPos source = Ast.WPos(filename, scanner.lineStartOffsets, s.left, s.right);
 		throw new CompileError(source, "Could not continue to parse file ...");
 	}
 

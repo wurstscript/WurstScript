@@ -21,6 +21,7 @@ import de.peeeq.wurstscript.jassoptimizer.JassOptimizerImpl;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.mpq.MpqEditor;
 import de.peeeq.wurstscript.mpq.MpqEditorFactory;
+import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class Main {
@@ -132,7 +133,7 @@ public class Main {
 							pos++;
 						}
 						if (line == "") line = "0";
-						gui.sendError(new CompileError(Ast.WPos(outputMapscript.getAbsolutePath(), Integer.parseInt(line), 0), error.substring(pos)));
+						gui.sendError(new CompileError(Ast.WPos(outputMapscript.getAbsolutePath(), LineOffsets.dummy, Integer.parseInt(line), 0), error.substring(pos)));
 					}
 					break compilation;
 				}

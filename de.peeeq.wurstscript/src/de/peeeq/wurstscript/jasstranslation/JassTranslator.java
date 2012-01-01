@@ -100,6 +100,7 @@ import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeError;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
 import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
+import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.TopsortCycleException;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -179,7 +180,7 @@ public class JassTranslator {
 				}
 
 			}), ", ");
-			attr.addError(Ast.WPos("", 0, 0), "Cannot generate code because of a cyclic dependency between the following functions: \n" + msg);
+			attr.addError(Ast.WPos("", null, 0, 0), "Cannot generate code because of a cyclic dependency between the following functions: \n" + msg);
 		}
 	}
 
@@ -229,7 +230,7 @@ public class JassTranslator {
 				}
 
 			}), ", ");
-			attr.addError(Ast.WPos("", 0, 0), "Cannot generate code because of a cyclic dependency between the following variables: \n" + msg);
+			attr.addError(Ast.WPos("", LineOffsets.dummy, 0, 0), "Cannot generate code because of a cyclic dependency between the following variables: \n" + msg);
 		}
 
 		Set<JassVar> initializedVars = Sets.newHashSet();

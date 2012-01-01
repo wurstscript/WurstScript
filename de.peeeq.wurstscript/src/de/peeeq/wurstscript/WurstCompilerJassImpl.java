@@ -34,6 +34,7 @@ import de.peeeq.wurstscript.mpq.MpqEditor;
 import de.peeeq.wurstscript.mpq.MpqEditorFactory;
 import de.peeeq.wurstscript.parser.ExtendedParser;
 import de.peeeq.wurstscript.parser.WurstScriptScanner;
+import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.NotNullList;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.WurstValidator;
@@ -198,7 +199,18 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		}
 	}
 
-	private void checkAndTranslate(CompilationUnit root) {
+	public void checkAndTranslate(CompilationUnit root) {
+		checkProg(root);
+		
+		
+		if (attr.getErrorCount() > 0) {
+			return;
+		}
+		
+		prog = translateProg(root);
+	}
+
+	public void checkProg(CompilationUnit root) {
 		gui.sendProgress("Checking Files", 0.2);
 		
 		if (attr.getErrorCount() > 0) return;
@@ -215,26 +227,17 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		// validate the resource:
 		WurstValidator validator = new WurstValidator(root);
 		validator.validate();
-		
-		if (attr.getErrorCount() > 0) return;
-		
-		
-		
-		
-		
-		if (attr.getErrorCount() > 0) {
-			return;
-		}
-		
-		
+	}
+
+	public JassProg translateProg(CompilationUnit root) {
 		// translate to intermediate lang:
 		JassTranslator translator = new JassTranslator(root);
-		prog = translator.translate();
+		JassProg p = translator.translate();
 		
 		if (attr.getErrorCount() > 0) {
-			prog = null;
-			return;
+			return null;
 		}
+		return p;
 	}
 
 	
@@ -348,7 +351,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			gui.sendError(e);
 			return Ast.CompilationUnit();
 		} catch (FileNotFoundException e) {
-			gui.sendError(new CompileError(Ast.WPos(source, 0, 0), "File not found."));
+			gui.sendError(new CompileError(Ast.WPos(source, LineOffsets.dummy, 0, 0), "File not found."));
 			return Ast.CompilationUnit();
 		} finally {
 			try {
@@ -358,7 +361,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		}
 	}
 
-	private CompilationUnit parse(Reader reader, String source) {
+	public CompilationUnit parse(Reader reader, String source) {
 		try {
 			WurstScriptScanner scanner = new WurstScriptScanner(reader);
 			ExtendedParser parser = new ExtendedParser(scanner, gui );
@@ -374,7 +377,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			gui.sendError(e);
 			return Ast.CompilationUnit();
 		} catch (Exception e) {
-			gui.sendError(new CompileError(Ast.WPos(source, 0, 0), "This is a bug and should not have happened.\n" + e.getMessage()));
+			gui.sendError(new CompileError(Ast.WPos(source, LineOffsets.dummy, 0, 0), "This is a bug and should not have happened.\n" + e.getMessage()));
 			WLogger.severe(e);
 			throw new Error(e);
 		}
