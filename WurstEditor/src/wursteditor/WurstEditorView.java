@@ -26,6 +26,7 @@ public class WurstEditorView extends FrameView {
     public WurstEditorView(SingleFrameApplication app) {
         super(app);
 
+
         initComponents();
         
         getRSTASplitPane().removeAll();
