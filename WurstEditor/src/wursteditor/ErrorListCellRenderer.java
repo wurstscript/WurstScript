@@ -39,7 +39,11 @@ class ErrorListCellRenderer extends DefaultListCellRenderer {
             setBackground(new Color(.15f,.15f,.15f, .12f));
             
         }
-
+        if (iss) {
+            System.out.println("selected");
+            setBackground(new Color(0,0,255,100));
+            this.setForeground(Color.black);
+        }
 	return this;
     }
 }

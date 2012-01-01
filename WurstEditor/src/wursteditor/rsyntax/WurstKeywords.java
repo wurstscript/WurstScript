@@ -13,7 +13,7 @@ public class WurstKeywords {
 			"new", 	
 			"null", 	
 			"package", 	
-	        "endpackage", 
+                        "endpackage", 
 			"function", 	
 			"returns", 	
 			"public", 	
@@ -53,6 +53,6 @@ public class WurstKeywords {
 	};
 	
 	public final static String[] TYPES = {
-			"int", "real", "string"
+			"int", "integer", "real", "string"
 	};
 }
