@@ -12,6 +12,7 @@
                 <root id="test.src.dir"/>
             </test-roots>
         </data>
+        <references xmlns="http://www.netbeans.org/ns/ant-project-references/1"/>
         <swingapp xmlns="http://www.netbeans.org/ns/form-swingapp/1">
             <application-class name="wursteditor.WurstEditorApp"/>
         </swingapp>

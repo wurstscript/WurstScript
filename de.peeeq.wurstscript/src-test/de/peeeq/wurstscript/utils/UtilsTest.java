@@ -22,7 +22,7 @@ public class UtilsTest {
 
   @Test
   public void array() {
-    int[] ar1 = Utils.array(1, 2, 3);
+    int[] ar1 = {1,2,3};
     int[] ar2 = {1,2,3};
     Assert.assertArrayEquals(ar2, ar1);
   }
