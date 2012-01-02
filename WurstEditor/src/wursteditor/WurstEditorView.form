@@ -41,6 +41,9 @@
             <Property name="rollover" type="boolean" value="true"/>
             <Property name="name" type="java.lang.String" value="fileManagementToolbar" noResource="true"/>
           </Properties>
+          <AuxValues>
+            <AuxValue name="JavaCodeGenerator_AddingCodePost" type="java.lang.String" value="fileManagementToolbar.setFloatable(false);"/>
+          </AuxValues>
 
           <Layout class="org.netbeans.modules.form.compat2.layouts.DesignBoxLayout"/>
           <SubComponents>
@@ -101,6 +104,9 @@
             <Property name="rollover" type="boolean" value="true"/>
             <Property name="name" type="java.lang.String" value="undoRedoToolbar" noResource="true"/>
           </Properties>
+          <AuxValues>
+            <AuxValue name="JavaCodeGenerator_AddingCodePost" type="java.lang.String" value="undoRedoToolbar.setFloatable(false);"/>
+          </AuxValues>
 
           <Layout class="org.netbeans.modules.form.compat2.layouts.DesignBoxLayout"/>
           <SubComponents>
@@ -131,6 +137,9 @@
             <Property name="rollover" type="boolean" value="true"/>
             <Property name="name" type="java.lang.String" value="checkCompileToolbar" noResource="true"/>
           </Properties>
+          <AuxValues>
+            <AuxValue name="JavaCodeGenerator_AddingCodePost" type="java.lang.String" value="checkCompileToolbar.setFloatable(false);"/>
+          </AuxValues>
 
           <Layout class="org.netbeans.modules.form.compat2.layouts.DesignBoxLayout"/>
           <SubComponents>
@@ -447,6 +456,13 @@
                 <Property name="selected" type="boolean" value="true"/>
                 <Property name="text" type="java.lang.String" resourceKey="jCheckBoxMenuItem1.text"/>
                 <Property name="name" type="java.lang.String" value="jCheckBoxMenuItem1" noResource="true"/>
+              </Properties>
+            </MenuItem>
+            <MenuItem class="javax.swing.JCheckBoxMenuItem" name="jCheckBoxMenuItem2">
+              <Properties>
+                <Property name="selected" type="boolean" value="true"/>
+                <Property name="text" type="java.lang.String" resourceKey="jCheckBoxMenuItem2.text"/>
+                <Property name="name" type="java.lang.String" value="jCheckBoxMenuItem2" noResource="true"/>
               </Properties>
             </MenuItem>
           </SubComponents>

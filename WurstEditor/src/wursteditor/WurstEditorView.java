@@ -106,6 +106,7 @@ public class WurstEditorView extends FrameView {
         jMenuItem11 = new javax.swing.JMenuItem();
         jMenu2 = new javax.swing.JMenu();
         jCheckBoxMenuItem1 = new javax.swing.JCheckBoxMenuItem();
+        jCheckBoxMenuItem2 = new javax.swing.JCheckBoxMenuItem();
         jMenu3 = new javax.swing.JMenu();
         javax.swing.JMenu helpMenu = new javax.swing.JMenu();
         javax.swing.JMenuItem aboutMenuItem = new javax.swing.JMenuItem();
@@ -282,6 +283,10 @@ public class WurstEditorView extends FrameView {
                 .addComponent(leftRightSplitPane, javax.swing.GroupLayout.DEFAULT_SIZE, 568, Short.MAX_VALUE))
         );
 
+        fileManagementToolbar.setFloatable(false);
+        undoRedoToolbar.setFloatable(false);
+        checkCompileToolbar.setFloatable(false);
+
         menuBar.setName("menuBar"); // NOI18N
 
         fileMenu.setText(resourceMap.getString("fileMenu.text")); // NOI18N
@@ -351,6 +356,11 @@ public class WurstEditorView extends FrameView {
         jCheckBoxMenuItem1.setName("jCheckBoxMenuItem1"); // NOI18N
         jMenu2.add(jCheckBoxMenuItem1);
 
+        jCheckBoxMenuItem2.setSelected(true);
+        jCheckBoxMenuItem2.setText(resourceMap.getString("jCheckBoxMenuItem2.text")); // NOI18N
+        jCheckBoxMenuItem2.setName("jCheckBoxMenuItem2"); // NOI18N
+        jMenu2.add(jCheckBoxMenuItem2);
+
         menuBar.add(jMenu2);
 
         jMenu3.setText(resourceMap.getString("jMenu3.text")); // NOI18N
@@ -379,6 +389,7 @@ public class WurstEditorView extends FrameView {
     private javax.swing.JToolBar fileManagementToolbar;
     private javax.swing.JTree fileTree;
     private javax.swing.JCheckBoxMenuItem jCheckBoxMenuItem1;
+    private javax.swing.JCheckBoxMenuItem jCheckBoxMenuItem2;
     private javax.swing.JMenu jMenu1;
     private javax.swing.JMenu jMenu2;
     private javax.swing.JMenu jMenu3;
