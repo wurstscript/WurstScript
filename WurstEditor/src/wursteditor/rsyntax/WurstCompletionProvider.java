@@ -21,11 +21,15 @@ import com.google.common.collect.Multimap;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.ExprMemberVar;
+import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WScope;
+import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
 import de.peeeq.wurstscript.utils.Utils;
 
 import wursteditor.controller.SyntaxCodeAreaController;
@@ -71,35 +75,32 @@ public class WurstCompletionProvider extends LanguageAwareCompletionProvider {
 				CompilationUnit ast = controller.getNewAst();
 				
 				AstElement elem = AstHelper.getAstElementAtPos(ast, comp.getCaretPosition());
-				WScope scope = elem.attrNearestScope();
-				while (scope != null) {
-					Multimap<String, NameDef> visibleNames = scope.attrVisibleNamesPrivate();
-					for (Entry<String, NameDef> e : visibleNames.entries()) {
-						if (!e.getKey().startsWith(alreadyEntered)) {
-							continue;
-						}
-						if (e.getValue() instanceof FunctionDefinition) {
-							FunctionDefinition f = (FunctionDefinition) e.getValue();
-							FunctionCompletion completion = new FunctionCompletion(this, f.getName(), f.getName() + "()");
-							List<String> params = Utils.map(f.getParameters(), new Function<WParameter, String>() {
-
-								@Override
-								public String apply(WParameter arg0) {
-									return arg0.getName();
-								}
-								
-							});
-							completion.setParams(params);
-							completion.setReturnValueDescription(f.getReturnTyp().attrTyp().toString());
-							completions.add(completion);
-						} else {
-							completions.add(new BasicCompletion(this, e.getKey()));
-						}
-						
+				if (elem instanceof ExprMemberVar) {
+					ExprMemberVar e = (ExprMemberVar) elem;
+					completions.clear();
+					PscriptType leftType = e.getLeft().attrTyp();
+					if (leftType instanceof PscriptTypeNamedScope) {
+						PscriptTypeNamedScope ns = (PscriptTypeNamedScope) leftType;
+						Multimap<String, NameDef> visibleNames = ns.getDef().attrVisibleNamesPrivate();
+						completionsAddVisibleNames(alreadyEntered, completions, visibleNames);
 					}
-					scope = scope.attrNextScope();
+					
+					// add member vars
+					WScope scope = elem.attrNearestScope();
+					while (scope != null) {
+						Multimap<String, NameDef> visibleNames = scope.attrVisibleNamesPrivate();
+						
+						completionsAddVisibleExtensionFunctions(alreadyEntered, completions, visibleNames, leftType);
+						scope = scope.attrNextScope();
+					}
+				} else {
+					WScope scope = elem.attrNearestScope();
+					while (scope != null) {
+						Multimap<String, NameDef> visibleNames = scope.attrVisibleNamesPrivate();
+						completionsAddVisibleNames(alreadyEntered, completions, visibleNames);
+						scope = scope.attrNextScope();
+					}
 				}
-				
 				System.out.println("We are in " + elem);
 				
 			}
@@ -108,6 +109,52 @@ public class WurstCompletionProvider extends LanguageAwareCompletionProvider {
 
 		return completions;
 
+	}
+
+
+	private void completionsAddVisibleExtensionFunctions(String alreadyEntered,
+			List<Completion> completions,
+			Multimap<String, NameDef> visibleNames, PscriptType leftType) {
+		for (Entry<String, NameDef> e : visibleNames.entries()) {
+			if (!e.getKey().startsWith(alreadyEntered)) {
+				continue;
+			}
+			if (e.getValue() instanceof ExtensionFuncDef) {
+				ExtensionFuncDef ef = (ExtensionFuncDef) e.getValue();
+				if (ef.getExtendedType().attrTyp().isSupertypeOf(leftType)) {
+					completions.add(new BasicCompletion(this, e.getKey()));
+				}
+			}
+		}
+		
+	}
+
+
+	private void completionsAddVisibleNames(String alreadyEntered,
+			List<Completion> completions, Multimap<String, NameDef> visibleNames) {
+		for (Entry<String, NameDef> e : visibleNames.entries()) {
+			if (!e.getKey().startsWith(alreadyEntered)) {
+				continue;
+			}
+			if (e.getValue() instanceof FunctionDefinition) {
+				FunctionDefinition f = (FunctionDefinition) e.getValue();
+				FunctionCompletion completion = new FunctionCompletion(this, f.getName(), f.getName() + "()");
+				List<String> params = Utils.map(f.getParameters(), new Function<WParameter, String>() {
+
+					@Override
+					public String apply(WParameter arg0) {
+						return arg0.getName();
+					}
+					
+				});
+				completion.setParams(params);
+				completion.setReturnValueDescription(f.getReturnTyp().attrTyp().toString());
+				completions.add(completion);
+			} else {
+				completions.add(new BasicCompletion(this, e.getKey()));
+			}
+			
+		}
 	}
 	
 	
@@ -192,5 +239,8 @@ public class WurstCompletionProvider extends LanguageAwareCompletionProvider {
 
 	
 
-	
+	@Override
+	public boolean isAutoActivateOkay(JTextComponent jtextcomponent) {
+		return true;
+	}
 }

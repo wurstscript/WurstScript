@@ -106,6 +106,7 @@ Expr =
 	| ExprNewObject(WPos source, String typeName, Arguments args)
 	| ExprCast(WPos source, TypeExpr typ, Expr expr)
 	| ExprAtomic
+	| ExprIncomplete(WPos source, String errorMessage)
 	
 	
 ExprAtomic = 

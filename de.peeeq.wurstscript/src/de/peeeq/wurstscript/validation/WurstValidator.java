@@ -32,6 +32,7 @@ import de.peeeq.wurstscript.ast.Modifiers;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
+import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.StmtDestroy;
 import de.peeeq.wurstscript.ast.StmtIf;
@@ -55,6 +56,7 @@ import de.peeeq.wurstscript.types.PScriptTypeVoid;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
+import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
 import de.peeeq.wurstscript.utils.Utils;
 
 /**
@@ -158,6 +160,12 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 				}
 			}
 			attr.addError(pos, "Cannot assign " + rightType + " to " + leftType);
+		}
+		if (leftType instanceof PscriptTypeNamedScope) {
+			PscriptTypeNamedScope ns = (PscriptTypeNamedScope) leftType;
+			if (ns.isStaticRef()) {
+				attr.addError(pos, "Missing variable name.");
+			}
 		}
 	}
 

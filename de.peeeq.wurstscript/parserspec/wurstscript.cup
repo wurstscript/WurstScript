@@ -427,10 +427,12 @@ StmtSet ::=
 		{: RESULT = Ast.StmtSet(pos(left, right), left, Ast.OpMinusAssign(),  right); :}
 	| ExprAssignable:left MULT_EQ Expr:right NL
 		{: RESULT = Ast.StmtSet(pos(left, right), left, Ast.OpMultAssign(),  right); :}
-	| ExprAssignable:left PLUS_PLUS:x
+	| ExprAssignable:left PLUS_PLUS:x NL
 		{: RESULT = Ast.StmtSet(pos(left, xright), left, Ast.OpPlusAssign(), Ast.ExprIntVal(pos(xleft, xright), 1)); :}
-	| ExprAssignable:left MINUS_MINUS:x
+	| ExprAssignable:left MINUS_MINUS:x NL
 		{: RESULT = Ast.StmtSet(pos(left, xright), left, Ast.OpMinusAssign(), Ast.ExprIntVal(pos(xleft, xright), 1)); :}
+	| ExprAssignable:left NL
+		{: RESULT = Ast.StmtSet(pos(left, left), left, Ast.OpAssign(), Ast.ExprIncomplete(pos(left, Integer.MIN_VALUE), "missing right side of expression")); :}
 ;
 
 OpAssign ::=
@@ -495,6 +497,8 @@ Expr ::=
 	  	{: RESULT = x; :}
 	| ExprCast:x
 		{: RESULT = x; :}
+	| Expr:left DOT:y
+		{: RESULT = Ast.ExprMemberVar(pos(left,yright), left, ""); :}
 ;
 	
 	

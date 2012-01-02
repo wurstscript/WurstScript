@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.swing.JList;
+import javax.swing.KeyStroke;
 import javax.swing.ToolTipManager;
 
 import org.fife.ui.autocomplete.AutoCompletion;
@@ -18,6 +19,7 @@ import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
 import org.fife.ui.rsyntaxtextarea.RSyntaxDocument;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
+import org.fife.ui.rsyntaxtextarea.folding.CurlyFoldParser;
 import org.fife.ui.rsyntaxtextarea.folding.FoldManager;
 import org.fife.ui.rsyntaxtextarea.folding.FoldParserManager;
 import org.fife.ui.rtextarea.ToolTipSupplier;
@@ -52,23 +54,33 @@ public class SyntaxCodeAreaController {
 		areaToController.put(syntaxCodeArea, this);
 		this.errorList = errorList;
 		initWurst();
-
+	}
+	
+	
+	public void init() {
 		syntaxCodeArea.setSyntaxEditingStyle("wurstscript");
 		
-		// install auto completion
-		CompletionProvider wurstAutoCompletion = new WurstCompletionProvider();
-		AutoCompletion ac = new AutoCompletion(wurstAutoCompletion);
-		ac.install(syntaxCodeArea);
-
+		
 		// code folding
 		FoldParserManager.get().addFoldParserMapping("wurstscript", new IndentationFoldParser());
+//		FoldParserManager.get().addFoldParserMapping("wurstscript", new CurlyFoldParser(false, false));
 		FoldManager foldManager = new FoldManager(syntaxCodeArea);
 		foldManager.setCodeFoldingEnabled(true);
 		syntaxCodeArea.setCodeFoldingEnabled(true); // this seems bugged
 		
+		// install auto completion
+		CompletionProvider wurstAutoCompletion = new WurstCompletionProvider();
+		final AutoCompletion ac = new AutoCompletion(wurstAutoCompletion);
+		ac.install(syntaxCodeArea);
+		
+		
+		
+
+		
 		syntaxCodeArea.setAutoIndentEnabled(true);
 		this.parser = new WurstParser(this);
 	    syntaxCodeArea.addParser(parser);
+	    
 	    
 	    
 	    
@@ -192,5 +204,7 @@ public class SyntaxCodeAreaController {
 		parser.parse((RSyntaxDocument) syntaxCodeArea.getDocument(), false);
 		return ast;
 	}
+
+	
 
 }

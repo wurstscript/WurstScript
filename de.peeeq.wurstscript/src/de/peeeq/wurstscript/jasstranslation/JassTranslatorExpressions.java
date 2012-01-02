@@ -41,6 +41,7 @@ import de.peeeq.wurstscript.ast.ExprBoolVal;
 import de.peeeq.wurstscript.ast.ExprCast;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
+import de.peeeq.wurstscript.ast.ExprIncomplete;
 import de.peeeq.wurstscript.ast.ExprIntVal;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
@@ -280,6 +281,12 @@ public class JassTranslatorExpressions {
 			@Override
 			public ExprTranslationResult case_ExprVarArrayAccess(ExprVarArrayAccess e) {
 				return translateVarAccess(f, e);
+			}
+
+			@Override
+			public ExprTranslationResult case_ExprIncomplete(
+					ExprIncomplete exprIncomplete) {
+				throw new CompileError(exprIncomplete.getSource(), exprIncomplete.getErrorMessage());
 			}
 		});
 	}

@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.ast.ExprBoolVal;
 import de.peeeq.wurstscript.ast.ExprCast;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
+import de.peeeq.wurstscript.ast.ExprIncomplete;
 import de.peeeq.wurstscript.ast.ExprIntVal;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
@@ -121,9 +122,11 @@ public class AttrExprType {
 				}
 				if (varDef instanceof VarDef) {
 					return varDef.attrTyp().dynamic();
-				} else {
-					return varDef.attrTyp();
 				}
+				if (varDef instanceof FunctionDefinition) {
+					attr.addError(term.getSource(), "Missing parantheses for function call");
+				}
+				return varDef.attrTyp();
 			}
 
 			@Override
@@ -427,9 +430,11 @@ public class AttrExprType {
 				}
 				if (varDef instanceof VarDef) {
 					return varDef.attrTyp().dynamic();
-				} else {
-					return varDef.attrTyp();
 				}
+				if (varDef instanceof FunctionDefinition) {
+					attr.addError(term.getSource(), "Missing parantheses for function call");
+				}
+				return varDef.attrTyp();
 			}
 
 			@Override
@@ -522,6 +527,11 @@ public class AttrExprType {
 					attr.addError(term.getSource(), "Cannot cast from " + exprTyp + " to " + typ + ".");
 				}
 				return typ;
+			}
+
+			@Override
+			public PscriptType case_ExprIncomplete(ExprIncomplete exprIncomplete) {
+				return PScriptTypeUnknown.instance();
 			}
 		});
 	}

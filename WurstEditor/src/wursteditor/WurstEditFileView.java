@@ -40,7 +40,7 @@ public class WurstEditFileView extends RTextScrollPane {
 		this.fileName = fileName;
 		syntaxCodeArea = new RSyntaxTextArea();
 		
-		new SyntaxCodeAreaController(syntaxCodeArea, errorList);
+		SyntaxCodeAreaController controller = new SyntaxCodeAreaController(syntaxCodeArea, errorList);
 		
 		syntaxCodeArea.setDocument(new WurstDocument("wurstscript"));
 		
@@ -59,6 +59,8 @@ public class WurstEditFileView extends RTextScrollPane {
         
         this.setViewportView(syntaxCodeArea);
 
+        
+        controller.init();
 	}
 
 	public String getFileName() {
