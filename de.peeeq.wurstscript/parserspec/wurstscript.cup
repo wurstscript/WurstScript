@@ -60,7 +60,7 @@ terminal
 	LBRACK, RBRACK, 
 	COMMA, SEMICOLON,   
 	NL,
-	MODULE, USE, ABSTRACT, IN, FOR, BREAK, THISTYPE, ARROW, IT, IMMUTABLE, OVERRIDE,
+	MODULE, USE, ABSTRACT, IN, FOR, TO, DOWNTO, STEP, BREAK, THISTYPE, ARROW, IT, IMMUTABLE, OVERRIDE,
 	STATIC, PACKAGE, ENDPACKAGE, RETURNS,FUNCTION, VAL, PUBLIC, PUBLICREAD, PRIVATE, PROTECTED, IMPORT, NATIVETYPE, INIT, NATIVE, INTERFACE,
 	IMPLEMENTS, ARRAY, IF, ELSE, WHILE, RETURN, CLASS, NEW, NULL, EXTENDS, THIS, CONSTRUCT, ONDESTROY, 
 	TYPE, GLOBALS, ENDGLOBALS, CONSTANT, ENDFUNCTION, TAKES, NOTHING, LOCAL,
@@ -362,11 +362,19 @@ Statement ::=
 	| StmtCall:x
 		{: RESULT = x; :}
 	| StmtReturn:x
-		{: RESULT = x; :} 
+		{: RESULT = x; :}
 	| StmtDestroy:x
 		{: RESULT = x; :} 
-	| FOR:x LocalVarDefInline:loopVar IN Expr:from DOT DOT DOT Expr:to NL INDENT Statements:body UNINDENT:y
-		{: RESULT = Ast.StmtForRange(pos(xleft, yright), loopVar, from, to, body); :}
+	| FOR:x LocalVarDefInline:loopVar EQ Expr:from TO Expr:to NL INDENT Statements:body UNINDENT:y
+		{: RESULT = Ast.StmtForRange(pos(xleft, yright), loopVar, from, to, Ast.ExprIntVal(pos(to, Integer.MIN_VALUE), 1), body); :}
+	| FOR:x LocalVarDefInline:loopVar EQ Expr:from TO Expr:to STEP Expr:step NL INDENT Statements:body UNINDENT:y
+		{: RESULT = Ast.StmtForRange(pos(xleft, yright), loopVar, from, to, step, body); :}
+	| FOR:x LocalVarDefInline:loopVar EQ Expr:from DOWNTO Expr:to NL INDENT Statements:body UNINDENT:y
+		{: RESULT = Ast.StmtForRangeDown(pos(xleft, yright), loopVar, from, to, Ast.ExprIntVal(pos(to, Integer.MIN_VALUE), 1), body); :}
+	| FOR:x LocalVarDefInline:loopVar EQ Expr:from DOWNTO Expr:to STEP Expr:step NL INDENT Statements:body UNINDENT:y
+		{: RESULT = Ast.StmtForRangeDown(pos(xleft, yright), loopVar, from, to, step, body); :}
+	| FOR:x LocalVarDefInline:loopVar IN Expr:in NL INDENT Statements:body UNINDENT:y
+		{: RESULT = Ast.StmtForIn(pos(xleft, yright), loopVar, in, body); :}
 	| BREAK:x NL
 		{: RESULT = Ast.StmtExitwhen(pos(xleft, xright), Ast.ExprBoolVal(pos(xleft, xright), true)); :}
 	| error:x NL

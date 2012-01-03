@@ -164,7 +164,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		if (leftType instanceof PscriptTypeNamedScope) {
 			PscriptTypeNamedScope ns = (PscriptTypeNamedScope) leftType;
 			if (ns.isStaticRef()) {
-				attr.addError(pos, "Missing variable name.");
+				attr.addError(pos, "Missing variable name in variable declaration.");
 			}
 		}
 	}

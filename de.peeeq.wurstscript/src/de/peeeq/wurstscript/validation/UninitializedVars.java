@@ -18,7 +18,9 @@ import de.peeeq.wurstscript.ast.OptExpr;
 import de.peeeq.wurstscript.ast.StmtDestroy;
 import de.peeeq.wurstscript.ast.StmtErr;
 import de.peeeq.wurstscript.ast.StmtExitwhen;
+import de.peeeq.wurstscript.ast.StmtForIn;
 import de.peeeq.wurstscript.ast.StmtForRange;
+import de.peeeq.wurstscript.ast.StmtForRangeDown;
 import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtLoop;
 import de.peeeq.wurstscript.ast.StmtReturn;
@@ -155,6 +157,18 @@ public class UninitializedVars {
 				@Override
 				public void case_ExprFunctionCall(ExprFunctionCall exprFunctionCall) {
 					checkExpr(exprFunctionCall, uninitializedVars);
+				}
+
+				@Override
+				public void case_StmtForIn(StmtForIn s) {
+					uninitializedVars.remove(s.getLoopVar());
+					checkStatements(s.getBody(), uninitializedVars);
+				}
+
+				@Override
+				public void case_StmtForRangeDown(StmtForRangeDown s) {
+					uninitializedVars.remove(s.getLoopVar());
+					checkStatements(s.getBody(), uninitializedVars);
 				}
 			});
 		}

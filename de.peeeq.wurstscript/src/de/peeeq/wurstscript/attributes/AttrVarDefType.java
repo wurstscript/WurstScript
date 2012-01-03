@@ -67,7 +67,7 @@ public class AttrVarDefType {
 			@Override
 			public PscriptType case_TypeExprThis(TypeExprThis term)
 					 {
-				return term.attrTyp();
+				return term.attrTyp().dynamic();
 			}
 
 			@Override

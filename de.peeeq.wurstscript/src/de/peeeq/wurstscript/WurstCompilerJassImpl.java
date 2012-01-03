@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript;
 
+import static de.peeeq.wurstscript.ast.Ast.*;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -7,8 +9,12 @@ import java.io.IOException;
 import java.io.Reader;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
+
+import javax.swing.tree.ExpandVetoException;
 
 import java_cup.runtime.Symbol;
 
@@ -21,10 +27,17 @@ import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.Expr;
+import de.peeeq.wurstscript.ast.NoTypeExpr;
+import de.peeeq.wurstscript.ast.OptTypeExpr;
+import de.peeeq.wurstscript.ast.StmtForIn;
 import de.peeeq.wurstscript.ast.TopLevelDeclaration;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.ast.WPos;
+import de.peeeq.wurstscript.ast.WStatement;
+import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -244,6 +257,57 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
 	private void removeSyntacticSugar(CompilationUnit root) {
 		addDefaultConstructors(root);
+		expandForInLoops(root);
+	}
+
+	private void expandForInLoops(CompilationUnit root) {
+		// collect loops
+		final List<StmtForIn> loops = Lists.newArrayList();
+		root.accept(new CompilationUnit.DefaultVisitor() {
+			@Override
+			public void visit(StmtForIn stmtForIn) {
+				loops.add(stmtForIn);
+			}
+		});
+		
+		// exand loops
+		for (StmtForIn loop : loops) {
+			if (loop.getParent() instanceof WStatements) {
+				WStatements parent = (WStatements) loop.getParent();
+				
+				int position = parent.indexOf(loop);
+				parent.remove(position);
+				
+				String iteratorName = "iterator" +  UUID.randomUUID().toString().replace("-", "x");
+				WPos loopVarPos = loop.getLoopVar().getSource();
+				WPos loopInPos = loop.getIn().getSource();
+				parent.add(position, 
+						Ast.LocalVarDef(
+								loopInPos.copy(), 
+								Ast.Modifiers(), 
+								NoTypeExpr(), iteratorName, 
+									ExprMemberMethod(loopInPos.copy(), (Expr) loop.getIn().copy(), "iterator", Arguments())));
+				WStatements body = WStatements(
+							Ast.LocalVarDef(loopVarPos.copy(), 
+									Ast.Modifiers(),
+									(OptTypeExpr) loop.getLoopVar().getOptTyp().copy(), 
+									loop.getLoopVar().getName(), 
+									ExprMemberMethod(loopInPos.copy(), 
+											ExprVarAccess(loopVarPos.copy(), iteratorName), "next", Arguments()))
+						);
+				body.addAll(loop.getBody().removeAll());
+				parent.add(position + 1, Ast.StmtWhile(
+						loop.getSource().copy(), 
+						ExprMemberMethod(loopInPos.copy(), 
+								ExprVarAccess(loopVarPos.copy(), iteratorName), "hasNext", Arguments()),
+						body));
+				parent.add(position+2, 
+						ExprMemberMethod(loopInPos.copy(), 
+								ExprVarAccess(loopVarPos.copy(), iteratorName), "close", Arguments()));
+			} else {
+				throw new CompileError(loop.getSource(), "Loop not in statements - " + loop.getParent().getClass().getName());
+			}
+		}
 	}
 
 	/**

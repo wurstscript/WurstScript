@@ -81,7 +81,9 @@ WStatement	=
 	| StmtDestroy(WPos source, Expr destroyedObj)
 	| StmtErr(WPos source)
 	| StmtExitwhen(WPos source, Expr cond)
-	| StmtForRange(WPos source, LocalVarDef loopVar, Expr from, Expr to, WStatements body)
+	| StmtForRange(WPos source, LocalVarDef loopVar, Expr from, Expr to, Expr step, WStatements body)
+	| StmtForRangeDown(WPos source, LocalVarDef loopVar, Expr from, Expr to, Expr step, WStatements body)
+	| StmtForIn(WPos source, LocalVarDef loopVar, Expr in, WStatements body)
 	
 
 OpAssignment = OpAssign() // TODO += -= *= /= ...

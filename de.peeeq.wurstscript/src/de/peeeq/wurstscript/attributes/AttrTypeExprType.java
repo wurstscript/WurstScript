@@ -64,7 +64,7 @@ public class AttrTypeExprType {
 
 			@Override
 			public PscriptType case_TypeExprArray(TypeExprArray typeExprArray) {
-				return new PScriptTypeArray(typeExprArray.getBase().attrTyp());
+				return new PScriptTypeArray(typeExprArray.getBase().attrTyp().dynamic());
 			}
 		});
 	}

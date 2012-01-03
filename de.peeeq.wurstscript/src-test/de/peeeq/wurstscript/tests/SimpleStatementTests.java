@@ -90,7 +90,7 @@ public class SimpleStatementTests extends PscriptTest {
 	public void testFor1() {
 		assertOk(true,
 				"int x = 0",
-				"for int i in 1 ... 10",
+				"for int i = 1 to 10",
 				"	x = x + 1",
 				"if x == 10",
 				"	testSuccess()",
@@ -101,12 +101,90 @@ public class SimpleStatementTests extends PscriptTest {
 	public void testFor2() {
 		assertOk(true,
 				"int x = 0",
-				"for int i in 1 ... 10",
+				"for int i = 1 to 10",
 				"	x = x + i",
 				"if x == 55",
 				"	testSuccess()",
 				"");
 	}
+	
+	@Test
+	public void testForStep() {
+		assertOk(true,
+				"int x = 0",
+				"for int i = 0 to 10 step 3",
+				"	x = x + i",
+				"if x == 18",
+				"	testSuccess()",
+				"");
+	}
+	
+	@Test
+	public void testForDownStep() {
+		assertOk(true,
+				"int x = 0",
+				"for int i = 10 downto 0 step 3",
+				"	x = x + i",
+				"if x == 22",
+				"	testSuccess()",
+				"");
+	}
+	
+	@Test
+	public void testForIn() {
+		testAssertOkLines(true, 
+			"package test",
+			"	class IntList",
+			"		static int array elements",
+			"		int size = 0",
+			
+			"		private function getOffset() returns int",
+			"			return 64*((this castTo int)-1)",
+			
+			"		function add(int x) returns IntList",
+			"			elements[getOffset() + size] = x",
+			"			size++",
+			"			return this",
+			
+			"		function get(int i) returns int",
+			"			return elements[getOffset() + i]",
+			
+			"		function iterator() returns IntListIterator",
+			"			return new IntListIterator(this)",
+			
+			
+			"	class IntListIterator",
+			"		IntList list",
+			"		int pos = 0",
+			
+			"		construct(IntList list)",
+			"			this.list = list",
+			
+			"		function hasNext() returns boolean",
+			"			return pos < list.size",
+			
+			"		function next() returns int",
+			"			pos++",
+			"			return list.get(pos-1)",
+			
+			"		function close()",
+			"			destroy this",
+			
+			
+			"	init",
+			"		IntList list = new IntList().add(7).add(3).add(5)",
+			"		int sum = 0",
+			"		for int i in list",
+			"			sum += i",
+			"		if sum == 15",
+			"			testSuccess()",
+			
+			
+			"	native testSuccess()",
+			"endpackage"
+		);
+	}
+	
 	
 	@Test
 	public void test_inc() {
@@ -188,7 +266,6 @@ public class SimpleStatementTests extends PscriptTest {
 				"x[5] += 3"
 				);
 	}
-	
 	
 	
 	public void assertOk( boolean executeProg, String ... body) {

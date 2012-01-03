@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.jasstranslation;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassArrayVar;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassExprBinary;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassExprIntVal;
+import static de.peeeq.wurstscript.jassAst.JassAst.JassExprNull;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassExprStringVal;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassExprVarAccess;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassExprVarArrayAccess;
@@ -53,6 +54,7 @@ import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.JassGlobalBlock;
@@ -354,7 +356,7 @@ public class JassTranslator {
 		for (WParameter param : funcDef.getParameters()) {
 			f.getParams().add(translateParam(param));
 		}
-		f.getBody().addAll(translateStatements(f, funcDef.getBody()));
+		translateFunctionBody(funcDef.getBody(), f);
 		prog.getFunctions().add(f);
 	}
 
@@ -377,8 +379,26 @@ public class JassTranslator {
 		for (WParameter param : funcDef.getParameters()) {
 			f.getParams().add(translateParam(param));
 		}
-		f.getBody().addAll(translateStatements(f, funcDef.getBody()));
+		translateFunctionBody(funcDef.getBody(), f);
+		
 		prog.getFunctions().add(f);
+	}
+
+	private void translateFunctionBody(WStatements body, JassFunction f) {
+		f.getBody().addAll(translateStatements(f, body));
+		
+		if (!body.attrDoesReturn()) {
+			// set handle variables to null
+			addHandleNullSetters(f);
+		}
+	}
+
+	private void addHandleNullSetters(JassFunction f) {
+		for (JassVar l : f.getLocals()) {
+			if (handleSubTypes.contains(l.getType())) {
+				f.getBody().add(JassStmtSet(l.getName(), JassExprNull()));
+			}
+		}
 	}
 
 	private List<JassStatement> translateStatements(JassFunction f, WStatements statements) {
@@ -582,7 +602,7 @@ public class JassTranslator {
 		trace("translate init block: " + initBlock);
 		JassFunction jassFunction = manager.getJassInitFunctionFor(initBlock);
 		jassFunction.setReturnType("nothing");
-		jassFunction.getBody().addAll(translateStatements(jassFunction, initBlock.getBody()));
+		translateFunctionBody(initBlock.getBody(), jassFunction);
 
 		initFunctions.put((WPackage) initBlock.attrNearestPackage(), jassFunction);
 
@@ -727,6 +747,8 @@ public class JassTranslator {
 												JassStmtSet(firstFree.getName(), JassExprVarAccess("this"))
 												)));
 		//endif
+		
+		addHandleNullSetters(f);
 	}
 
 	private void translateConstructorDef(ClassDef classDef, ConstructorDef constructorDef, JassArrayVar nextFree, JassSimpleVar firstFree, JassSimpleVar maxIndex) {
@@ -765,7 +787,7 @@ public class JassTranslator {
 		// nextFree[this] = -1
 		f.getBody().add(JassStmtSetArray(nextFree.getName(), JassExprVarAccess("this"), JassExprIntVal(-1)));
 
-		// TODO call module constructors if feasible, compile error otherwise
+		// call module constructors if feasible, compile error otherwise
 		for (ModuleInstanciation m : classDef.attrModuleInstanciations()) {
 			translateModuleUseConstructors(m, f);
 		}
@@ -791,6 +813,8 @@ public class JassTranslator {
 		// custom code:
 		f.getBody().addAll(translateStatements(f, constructorDef.getBody()));
 
+		addHandleNullSetters(f);
+		
 		// return this:
 		f.getBody().add(JassStmtReturn(JassExprVarAccess("this")));
 	}

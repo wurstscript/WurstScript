@@ -50,7 +50,9 @@ import de.peeeq.wurstscript.ast.OpPlusAssign;
 import de.peeeq.wurstscript.ast.StmtDestroy;
 import de.peeeq.wurstscript.ast.StmtErr;
 import de.peeeq.wurstscript.ast.StmtExitwhen;
+import de.peeeq.wurstscript.ast.StmtForIn;
 import de.peeeq.wurstscript.ast.StmtForRange;
+import de.peeeq.wurstscript.ast.StmtForRangeDown;
 import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtLoop;
 import de.peeeq.wurstscript.ast.StmtReturn;
@@ -60,11 +62,15 @@ import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
 import de.peeeq.wurstscript.jassAst.JassExprIntVal;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassOpBinary;
+import de.peeeq.wurstscript.jassAst.JassOpGreater;
+import de.peeeq.wurstscript.jassAst.JassOpLess;
+import de.peeeq.wurstscript.jassAst.JassOpMinus;
 import de.peeeq.wurstscript.jassAst.JassStatement;
 import de.peeeq.wurstscript.jassAst.JassStatements;
 import de.peeeq.wurstscript.jassAst.JassVar;
@@ -194,83 +200,6 @@ public class JassTranslatorStatements {
 					}
 				}
 				
-//				stmtSet.getUpdatedExpr().match(new ExprAssignable.MatcherVoid() {
-//
-//					@Override
-//					public void case_ExprMemberVar(ExprMemberVar exprMemberVar) {
-//						VarDef leftVar = (VarDef) exprMemberVar.attrNameDef();
-//						String leftJassVar = translator.manager.getJassVarNameFor(leftVar);
-//						ExprTranslationResult index = translator.translateExpr(f, exprMemberVar.getLeft());
-//
-//						withIndex(leftJassVar, index);
-//					}
-//
-//					private void withIndex(String leftJassVar, ExprTranslationResult index) {
-//						result.addAll(index.getStatements());
-//						result.addAll(right.getStatements());
-//						JassExpr indexExpr;
-//
-//						if (binaryOp == null) {
-//							result.add(JassStmtSetArray(leftJassVar, index.getExpr(), right.getExpr())); 
-//						} else {
-//
-//							if (index.getExpr() instanceof ExprIntVal 
-//									|| index.getExpr() instanceof ExprVarAccess) {
-//								indexExpr = index.getExpr();
-//							} else {
-//								JassVar tempIndex = translator.getNewTempVar(f, "integer");
-//								result.add(JassStmtSet(tempIndex.getName(), index.getExpr()));
-//								indexExpr = JassExprVarAccess(tempIndex.getName());
-//							}
-//
-//							result.add(JassStmtSetArray(leftJassVar, indexExpr, 
-//									JassExprBinary(JassExprVarArrayAccess(leftJassVar, (JassExpr) indexExpr.copy()), binaryOp, right.getExpr())));
-//						}
-//					}
-//
-//					private void withoutIndex(String leftJassVar) {
-//						result.addAll(right.getStatements());
-//						if (binaryOp == null) {
-//							result.add(JassStmtSet(leftJassVar, right.getExpr())); 
-//						} else {
-//							result.add(JassStmtSet(leftJassVar, 
-//									JassExprBinary(JassExprVarAccess(leftJassVar), binaryOp, right.getExpr())));
-//						}
-//					}
-//
-//					@Override
-//					public void case_ExprMemberArrayVar(ExprMemberArrayVar exprMemberArrayVar) {
-//						throw new Error("Array member vars not supported yet.");
-//					}
-//
-//					@Override
-//					public void case_ExprVarAccess(ExprVarAccess exprVarAccess) {
-//						VarDef leftVar = (VarDef) exprVarAccess.attrNameDef();
-//						String leftJassVar = manager.getJassVarNameFor(leftVar);
-//						result.addAll(right.getStatements());
-//						if (leftVar.attrIsDynamicClassMember()) {
-//							withIndex(leftJassVar, new ExprTranslationResult(JassExprVarAccess("this")));
-//						} else {
-//							withoutIndex(leftJassVar);
-//						}
-//					}
-//
-//
-//
-//					@Override
-//					public void case_ExprVarArrayAccess(ExprVarArrayAccess exprVarArrayAccess) {
-//						VarDef leftVar = (VarDef) exprVarArrayAccess.attrNameDef(); // TODO cast not always possible
-//						String leftJassVar = manager.getJassVarNameFor(leftVar);
-//						ExprTranslationResult index;
-//						if (exprVarArrayAccess.getIndexes().size() == 1) {
-//							index = translator.translateExpr(f, exprVarArrayAccess.getIndexes().get(0));
-//						} else {
-//							throw new Error("multiple indexes not supported yet");
-//						}
-//						withIndex(leftJassVar, index);
-//					}
-//				});
-
 
 
 			}
@@ -426,29 +355,39 @@ public class JassTranslatorStatements {
 
 
 			@Override
-			public void case_StmtForRange(StmtForRange stmtForRange) {
-				JassVar loopVar = manager.getJassVarFor(stmtForRange.getLoopVar(), translator.translateType(stmtForRange.getLoopVar().getOptTyp()), false);
-				f.getLocals().add(loopVar);
+			public void case_StmtForRange(StmtForRange s) {
+				case_StmtForRange(s.getLoopVar(), s.getFrom(), s.getTo(), s.getStep(), s.getBody(), JassOpPlus(), JassOpGreater());
+			}
 
-				ExprTranslationResult fromExpr = translator.translateExpr(f, stmtForRange.getFrom());
-				ExprTranslationResult toExpr = translator.translateExpr(f, stmtForRange.getTo());
-				result.addAll(fromExpr.getStatements());
-				JassExpr toExpr2;
-				if (toExpr.getStatements().size() == 0 && toExpr.getExpr() instanceof JassExprIntVal) {
-					toExpr2 = toExpr.getExpr(); 
-				} else {
-					JassVar loopEndVar = translator.getNewTempVar(f, "integer");
-					result.addAll(toExpr.getStatements());
-					result.add(JassStmtSet(loopEndVar.getName(), toExpr.getExpr()));
-					toExpr2 = JassExprVarAccess(loopEndVar.getName());
-				}
+			@Override
+			public void case_StmtForRangeDown(StmtForRangeDown s) {
+				case_StmtForRange(s.getLoopVar(), s.getFrom(), s.getTo(), s.getStep(), s.getBody(), JassOpMinus(), JassAst.JassOpLess());
+			}
+			
+			
+			private void case_StmtForRange(LocalVarDef loopVar, Expr from, Expr to, Expr step, WStatements body,
+					JassOpBinary opInc, JassOpBinary op) {
+				JassVar jassLoopVar = manager.getJassVarFor(loopVar, translator.translateType(loopVar.getOptTyp()), false);
+				f.getLocals().add(jassLoopVar);
+
+				ExprTranslationResult fromExpr = translator.translateExpr(f, from);
 				result.add(JassStmtSet(loopVar.getName(), fromExpr.getExpr()));
-				JassStatements body = JassStatements();
-				body.add(JassStmtExitwhen(JassExprBinary(JassExprVarAccess(loopVar.getName()), JassOpGreater(), toExpr2)));
-				body.addAll(translateStatements(f, stmtForRange.getBody()));
-				body.add(JassStmtSet(loopVar.getName(), JassExprBinary(JassExprVarAccess(loopVar.getName()), JassOpPlus(), JassExprIntVal(1))));
-				result.add(JassStmtLoop(body));
+				
+				JassExpr toExpr = addCacheVariableSmart(f, result, to, fromExpr);
+				JassExpr stepExpr = addCacheVariableSmart(f, result, step, fromExpr);
+				
+				JassStatements jassBody = JassStatements();
+				jassBody.add(JassStmtExitwhen(JassExprBinary(JassExprVarAccess(loopVar.getName()), op, toExpr)));
+				jassBody.addAll(translateStatements(f, body));
+				jassBody.add(JassStmtSet(loopVar.getName(), JassExprBinary(JassExprVarAccess(loopVar.getName()), opInc, stepExpr)));
+				result.add(JassStmtLoop(jassBody));
+			}
 
+
+			@Override
+			public void case_StmtForIn(StmtForIn stmtForIn) {
+				// TODO Auto-generated method stub
+				throw new CompileError(stmtForIn.attrSource(), "Syntactic sugar");
 			}
 
 
@@ -456,4 +395,25 @@ public class JassTranslatorStatements {
 		return result;
 	}
 	
+	
+	/**
+	 * stores the value of expression e in a temporary variable if  
+	 * @return the expression e if e was constant or the VarAccess to the cacheVariable
+	 */
+	private JassExpr addCacheVariableSmart(final JassFunction f, final List<JassStatement> result,
+			Expr e, ExprTranslationResult fromExpr) {
+		ExprTranslationResult er = translator.translateExpr(f, e);
+		result.addAll(fromExpr.getStatements());
+		JassExpr r;
+		if (er.getStatements().size() == 0 && er.getExpr() instanceof JassExprIntVal) {
+			// TODO add other constant cases (constant vars, ExprRealVal ...)
+			r = er.getExpr(); 
+		} else {
+			JassVar loopEndVar = translator.getNewTempVar(f, "integer");
+			result.addAll(er.getStatements());
+			result.add(JassStmtSet(loopEndVar.getName(), er.getExpr()));
+			r = JassExprVarAccess(loopEndVar.getName());
+		}
+		return r;
+	}
 }
