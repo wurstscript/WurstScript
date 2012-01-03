@@ -340,9 +340,6 @@ public class JassTranslatorExpressions {
 	 */
 	private ExprListTranslationResult translateArguments(JassFunction f, List<Expr> args, List<String> types) {
 		if (args.size() != types.size()) {
-			for (Expr arg : args) {
-				System.out.println("arg = " + arg);
-			}
 			throw new IllegalArgumentException("argsize = " + args.size() + " but typessize = " + types.size() + " // " + f.getName());
 		}
 		
@@ -482,7 +479,6 @@ public class JassTranslatorExpressions {
 	}
 	
 	private ExprTranslationResult translateFunctionCall(JassFunction f, FunctionCall call) {
-		System.out.println("translating function call " + call.getFuncName() + " // " + call);
 		List<Expr> arguments = Lists.newLinkedList(call.getArgs());
 		if (call.attrImplicitParameter() instanceof Expr) {
 			// add implicit parameter to front
@@ -492,7 +488,6 @@ public class JassTranslatorExpressions {
 		FunctionDefinition calledFunc = call.attrFuncDef();
 		if (calledFunc == null) {
 			// this must be an ignored function
-			System.out.println("ignoring function " + call.getFuncName());
 			return new ExprTranslationResult(JassExprNull());			
 		}
 		JassFunction calledJassFunc = manager.getJassFunctionFor(calledFunc);

@@ -76,464 +76,470 @@ import de.peeeq.wurstscript.utils.Utils;
  *
  */
 public class AttrExprType {
-	
-	public static  PscriptType calculate(Expr node) {
-		return node.match(new Expr.Matcher<PscriptType>() {
 
-			@Override
-			public PscriptType case_ExprIntVal(ExprIntVal term)  {
-				if (Utils.isJassCode(term)) {
-					return PScriptTypeJassInt.instance();
-				} else {
-					return PScriptTypeInt.instance();
+
+
+	public static  PscriptType calculate(ExprIntVal term)  {
+		if (Utils.isJassCode(term)) {
+			return PScriptTypeJassInt.instance();
+		} else {
+			return PScriptTypeInt.instance();
+		}
+	}
+
+
+	public static  PscriptType calculate(ExprRealVal term)
+	{
+		return PScriptTypeReal.instance();
+	}
+
+
+	public static  PscriptType calculate(ExprStringVal term)
+	{
+		return PScriptTypeString.instance();
+	}
+
+
+	public static  PscriptType calculate(ExprBoolVal term)
+	{
+		return PScriptTypeBool.instance();
+	}
+
+
+	public static  PscriptType calculate(ExprFuncRef term)
+	{
+		return PScriptTypeCode.instance();
+	}
+
+
+	public static  PscriptType calculate(ExprVarAccess term)
+	{
+		NameDef varDef = term.attrNameDef();
+		if (varDef == null) {
+			return PScriptTypeUnknown.instance();
+		}
+		if (varDef instanceof VarDef) {
+			return varDef.attrTyp().dynamic();
+		}
+		if (varDef instanceof FunctionDefinition) {
+			attr.addError(term.getSource(), "Missing parantheses for function call");
+		}
+		return varDef.attrTyp();
+	}
+
+
+	public static  PscriptType calculate(
+			ExprVarArrayAccess term)  {
+		NameDef varDef = term.attrNameDef();
+		if (varDef == null) {
+			return PScriptTypeUnknown.instance();
+		}
+
+		PscriptType varDefType = varDef.attrTyp().dynamic();
+		if (varDefType instanceof PScriptTypeArray) {
+			return ((PScriptTypeArray) varDefType).getBaseType();
+		} else {
+			attr.addError(term.getSource(), "Variable " + varDef.getName() + " is no array variable.");
+		}
+		return PScriptTypeUnknown.instance();
+	}
+
+
+	public static  PscriptType calculate(ExprThis term)  {
+		if (term.getParent() == null) {
+			// not attached to the tree -> generated
+			return PScriptTypeInfer.instance();
+		}
+
+		// check if we are in an extension function
+		FunctionImplementation func = term.attrNearestFuncDef();
+		if (func instanceof ExtensionFuncDef) {
+			ExtensionFuncDef extensionFuncDef = (ExtensionFuncDef) func;
+			return extensionFuncDef.getExtendedType().attrTyp().dynamic();
+		}
+		if (!term.attrIsDynamicContext()) {
+			attr.addError(term.getSource(), "Cannot use 'this' in static methods.");
+			return PScriptTypeUnknown.instance();
+		}
+
+		// find nearest class-like thing
+		NamedScope c = term.attrNearestNamedScope();
+		if (c != null) {
+			return c.match(new NamedScope.Matcher<PscriptType>() {
+
+				@Override
+				public PscriptType case_ModuleDef(ModuleDef moduleDef) {
+					return new PscriptTypeModule(moduleDef, false);
 				}
+
+				@Override	
+				public PscriptType case_ClassDef(ClassDef classDef) {
+					return new PscriptTypeClass(classDef, false);
+				}
+
+				@Override
+				public PscriptType case_ModuleInstanciation(ModuleInstanciation moduleInstanciation) {
+					return new PscriptTypeModuleInstanciation(moduleInstanciation, false);
+				}
+
+				@Override
+				public PscriptType case_WPackage(WPackage wPackage) {
+					// 'this' cannot be used on package level
+					return PScriptTypeUnknown.instance();
+				}
+
+			});
+		} else {
+			attr.addError(term.getSource(), "The keyword 'this' can only be used inside methods.");
+			return PScriptTypeUnknown.instance();
+		}
+	}
+
+
+	public static  PscriptType calculate(final ExprBinary term)  {
+		final PscriptType  leftType = term.getLeft().attrTyp();
+		final PscriptType  rightType = term.getRight().attrTyp();
+		return term.getOp().match(new OpBinary.Matcher<PscriptType>() {
+
+
+
+			private PscriptType requireEqualTypes(
+					PScriptTypeBool requiredType, PScriptTypeBool resultType) {
+				if (!leftType.isSubtypeOf(requiredType)) {
+					attr.addError(term.getLeft().getSource(), "Operator " + term.getOp() + " requires two operands of " +
+							"type " + requiredType + " but left type was " + leftType);
+					return PScriptTypeUnknown.instance();
+				}
+				if (!leftType.isSubtypeOf(requiredType)) {
+					attr.addError(term.getRight().getSource(), "Operator " + term.getOp() + " requires two operands of " +
+							"type " + requiredType + " but right type was " + leftType);
+					return PScriptTypeUnknown.instance();
+				}
+				return resultType;
 			}
 
 			@Override
-			public PscriptType case_ExprRealVal(ExprRealVal term)
-					 {
-				return PScriptTypeReal.instance();
+			public PscriptType case_OpOr(OpOr op)  {
+				return requireEqualTypes(PScriptTypeBool.instance(), PScriptTypeBool.instance());
+			}
+
+
+			@Override
+			public PscriptType case_OpAnd(OpAnd op)  {
+				return requireEqualTypes(PScriptTypeBool.instance(), PScriptTypeBool.instance());
+			}
+
+
+			@Override
+			public PscriptType case_OpEquals(OpEquals op)
+			{
+				return caseEquality();
+
+			}
+
+
+			@Override
+			public PscriptType case_OpUnequals(OpUnequals term)
+			{
+				return caseEquality();
+			}
+
+			private PscriptType caseEquality() {
+
+				if (leftType.equals(rightType)) {
+					return PScriptTypeBool.instance();
+				}
+
+				if (leftType.isSubtypeOf(rightType) || rightType.isSubtypeOf(leftType)) {
+					return  PScriptTypeBool.instance();
+				}
+
+				if (Utils.isJassCode(term)) {
+					if (leftType instanceof PScriptTypeReal || leftType instanceof PScriptTypeInt) {
+						if (rightType instanceof PScriptTypeReal || rightType instanceof PScriptTypeInt) {
+							return  PScriptTypeBool.instance();									
+						}
+					}
+				}
+
+				// TODO check if the intersection of the basetypes of lefttpye and righttype is
+				// not empty. Example:
+				// class A implements B,C
+				// -> B and C should be comparable
+				attr.addError(term.getSource(), "Cannot compare types " + leftType + " with " + rightType);
+
+				return PScriptTypeBool.instance();
+			}
+
+
+
+
+			@Override
+			public PscriptType case_OpLessEq(OpLessEq term)
+			{
+				return caseCompare();
+			}
+
+
+
+
+			@Override
+			public PscriptType case_OpLess(OpLess term)  {
+				return caseCompare();
 			}
 
 			@Override
-			public PscriptType case_ExprStringVal(ExprStringVal term)
-					 {
-				return PScriptTypeString.instance();
+			public PscriptType case_OpGreaterEq(OpGreaterEq term)
+			{
+				return caseCompare();
 			}
 
 			@Override
-			public PscriptType case_ExprBoolVal(ExprBoolVal term)
-					 {
+			public PscriptType case_OpGreater(OpGreater term)
+			{
+				return caseCompare();
+			}
+
+			private PscriptType caseCompare() {
+				if (!(leftType instanceof PScriptTypeInt
+						|| leftType instanceof PScriptTypeReal)) {
+					attr.addError(term.getLeft().getSource(), "Can not compare with value of type " + leftType);
+				}
+				if (!(rightType instanceof PScriptTypeInt
+						|| rightType instanceof PScriptTypeReal)) {
+					attr.addError(term.getRight().getSource(), "Can not compare with value of type " + rightType);
+				}
 				return PScriptTypeBool.instance();
 			}
 
 			@Override
-			public PscriptType case_ExprFuncRef(ExprFuncRef term)
-					 {
-				return PScriptTypeCode.instance();
+			public PscriptType case_OpPlus(OpPlus op)  {
+				if (leftType instanceof PScriptTypeString && rightType instanceof PScriptTypeString) {
+					return PScriptTypeString.instance();
+				}
+				return caseMathOperation();
 			}
 
-			@Override
-			public PscriptType case_ExprVarAccess(ExprVarAccess term)
-					 {
-				NameDef varDef = term.attrNameDef();
-				if (varDef == null) {
-					return PScriptTypeUnknown.instance();
+			private PscriptType caseMathOperation() {
+				if (leftType instanceof PScriptTypeInt && rightType instanceof PScriptTypeInt) {
+					return leftType;
 				}
-				if (varDef instanceof VarDef) {
-					return varDef.attrTyp().dynamic();
+				if (leftType instanceof PScriptTypeReal || leftType instanceof PScriptTypeInt) {
+					if (rightType instanceof PScriptTypeReal || rightType instanceof PScriptTypeInt) {
+						return PScriptTypeReal.instance();
+					}
 				}
-				if (varDef instanceof FunctionDefinition) {
-					attr.addError(term.getSource(), "Missing parantheses for function call");
-				}
-				return varDef.attrTyp();
-			}
-
-			@Override
-			public PscriptType case_ExprVarArrayAccess(
-					ExprVarArrayAccess term)  {
-				NameDef varDef = term.attrNameDef();
-				if (varDef == null) {
-					return PScriptTypeUnknown.instance();
-				}
-				
-				PscriptType varDefType = varDef.attrTyp().dynamic();
-				if (varDefType instanceof PScriptTypeArray) {
-					return ((PScriptTypeArray) varDefType).getBaseType();
-				} else {
-					attr.addError(term.getSource(), "Variable " + varDef.getName() + " is no array variable.");
-				}
+				attr.addError(term.getSource(), "Operator " + term.getOp() +" is not defined for " +
+						"operands " + leftType + " and " + rightType);
 				return PScriptTypeUnknown.instance();
 			}
 
 			@Override
-			public PscriptType case_ExprThis(ExprThis term)  {
-				if (term.getParent() == null) {
-					// not attached to the tree -> generated
-					return PScriptTypeInfer.instance();
-				}
-				
-				// check if we are in an extension function
-				FunctionImplementation func = term.attrNearestFuncDef();
-				if (func instanceof ExtensionFuncDef) {
-					ExtensionFuncDef extensionFuncDef = (ExtensionFuncDef) func;
-					return extensionFuncDef.getExtendedType().attrTyp().dynamic();
-				}
-				if (!term.attrIsDynamicContext()) {
-					attr.addError(term.getSource(), "Cannot use 'this' in static methods.");
-					return PScriptTypeUnknown.instance();
-				}
-				
-				// find nearest class-like thing
-				NamedScope c = term.attrNearestNamedScope();
-				if (c != null) {
-					return c.match(new NamedScope.Matcher<PscriptType>() {
+			public PscriptType case_OpMinus(OpMinus op)
+			{
+				return caseMathOperation();
+			}
 
-						@Override
-						public PscriptType case_ModuleDef(ModuleDef moduleDef) {
-							return new PscriptTypeModule(moduleDef, false);
-						}
+			@Override
+			public PscriptType case_OpMult(OpMult term)  {
+				return caseMathOperation();
+			}
 
-						@Override
-						public PscriptType case_ClassDef(ClassDef classDef) {
-							return new PscriptTypeClass(classDef, false);
-						}
-
-						@Override
-						public PscriptType case_ModuleInstanciation(ModuleInstanciation moduleInstanciation) {
-							return new PscriptTypeModuleInstanciation(moduleInstanciation, false);
-						}
-
-						@Override
-						public PscriptType case_WPackage(WPackage wPackage) {
-							// 'this' cannot be used on package level
-							return PScriptTypeUnknown.instance();
-						}
-						
-					});
+			@Override
+			public PscriptType case_OpDivReal(OpDivReal op)
+			{
+				if (Utils.isJassCode(op)) {
+					return caseMathOperation();
 				} else {
-					attr.addError(term.getSource(), "The keyword 'this' can only be used inside methods.");
+					if (leftType instanceof PScriptTypeReal || leftType instanceof PScriptTypeInt) {
+						if (rightType instanceof PScriptTypeReal || rightType instanceof PScriptTypeInt) {
+							return PScriptTypeReal.instance();
+						}
+					}
+					attr.addError(term.getSource(), "Operator " + term.getOp() +" is not defined for " +
+							"operands " + leftType + " and " + rightType);
 					return PScriptTypeUnknown.instance();
 				}
 			}
 
 			@Override
-			public PscriptType case_ExprBinary(final ExprBinary term)  {
-				final PscriptType  leftType = term.getLeft().attrTyp();
-				final PscriptType  rightType = term.getRight().attrTyp();
-				return term.getOp().match(new OpBinary.Matcher<PscriptType>() {
-
-					
-
-					private PscriptType requireEqualTypes(
-							PScriptTypeBool requiredType, PScriptTypeBool resultType) {
-						if (!leftType.isSubtypeOf(requiredType)) {
-							attr.addError(term.getLeft().getSource(), "Operator " + term.getOp() + " requires two operands of " +
-									"type " + requiredType + " but left type was " + leftType);
-							return PScriptTypeUnknown.instance();
-						}
-						if (!leftType.isSubtypeOf(requiredType)) {
-							attr.addError(term.getRight().getSource(), "Operator " + term.getOp() + " requires two operands of " +
-									"type " + requiredType + " but right type was " + leftType);
-							return PScriptTypeUnknown.instance();
-						}
-						return resultType;
-					}
-					
-					@Override
-					public PscriptType case_OpOr(OpOr op)  {
-						return requireEqualTypes(PScriptTypeBool.instance(), PScriptTypeBool.instance());
-					}
-
-					@Override
-					public PscriptType case_OpAnd(OpAnd op)  {
-						return requireEqualTypes(PScriptTypeBool.instance(), PScriptTypeBool.instance());
-					}
-
-					@Override
-					public PscriptType case_OpEquals(OpEquals op)
-							 {
-						return caseEquality();
-						
-					}
-					
-					@Override
-					public PscriptType case_OpUnequals(OpUnequals term)
-							 {
-						return caseEquality();
-					}
-
-					private PscriptType caseEquality() {
-						
-						if (leftType.equals(rightType)) {
-							return PScriptTypeBool.instance();
-						}
-						
-						if (leftType.isSubtypeOf(rightType) || rightType.isSubtypeOf(leftType)) {
-							return  PScriptTypeBool.instance();
-						}
-						
-						if (Utils.isJassCode(term)) {
-							if (leftType instanceof PScriptTypeReal || leftType instanceof PScriptTypeInt) {
-								if (rightType instanceof PScriptTypeReal || rightType instanceof PScriptTypeInt) {
-									return  PScriptTypeBool.instance();									
-								}
-							}
-						}
-						
-						// TODO check if the intersection of the basetypes of lefttpye and righttype is
-						// not empty. Example:
-						// class A implements B,C
-						// -> B and C should be comparable
-						attr.addError(term.getSource(), "Cannot compare types " + leftType + " with " + rightType);
-					
-						return PScriptTypeBool.instance();
-					}
-
-					
-
-					@Override
-					public PscriptType case_OpLessEq(OpLessEq term)
-							 {
-						return caseCompare();
-					}
-
-					
-
-					@Override
-					public PscriptType case_OpLess(OpLess term)  {
-						return caseCompare();
-					}
-
-					@Override
-					public PscriptType case_OpGreaterEq(OpGreaterEq term)
-							 {
-						return caseCompare();
-					}
-
-					@Override
-					public PscriptType case_OpGreater(OpGreater term)
-							 {
-						return caseCompare();
-					}
-					
-					private PscriptType caseCompare() {
-						if (!(leftType instanceof PScriptTypeInt
-								|| leftType instanceof PScriptTypeReal)) {
-							attr.addError(term.getLeft().getSource(), "Can not compare with value of type " + leftType);
-						}
-						if (!(rightType instanceof PScriptTypeInt
-								|| rightType instanceof PScriptTypeReal)) {
-							attr.addError(term.getRight().getSource(), "Can not compare with value of type " + rightType);
-						}
-						return PScriptTypeBool.instance();
-					}
-
-					@Override
-					public PscriptType case_OpPlus(OpPlus op)  {
-						if (leftType instanceof PScriptTypeString && rightType instanceof PScriptTypeString) {
-							return PScriptTypeString.instance();
-						}
-						return caseMathOperation();
-					}
-
-					private PscriptType caseMathOperation() {
-						if (leftType instanceof PScriptTypeInt && rightType instanceof PScriptTypeInt) {
-							return leftType;
-						}
-						if (leftType instanceof PScriptTypeReal || leftType instanceof PScriptTypeInt) {
-							if (rightType instanceof PScriptTypeReal || rightType instanceof PScriptTypeInt) {
-								return PScriptTypeReal.instance();
-							}
-						}
-						attr.addError(term.getSource(), "Operator " + term.getOp() +" is not defined for " +
-								"operands " + leftType + " and " + rightType);
-						return PScriptTypeUnknown.instance();
-					}
-
-					@Override
-					public PscriptType case_OpMinus(OpMinus op)
-							 {
-						return caseMathOperation();
-					}
-
-					@Override
-					public PscriptType case_OpMult(OpMult term)  {
-						return caseMathOperation();
-					}
-
-					@Override
-					public PscriptType case_OpDivReal(OpDivReal op)
-							 {
-						if (Utils.isJassCode(op)) {
-							return caseMathOperation();
-						} else {
-							if (leftType instanceof PScriptTypeReal || leftType instanceof PScriptTypeInt) {
-								if (rightType instanceof PScriptTypeReal || rightType instanceof PScriptTypeInt) {
-									return PScriptTypeReal.instance();
-								}
-							}
-							attr.addError(term.getSource(), "Operator " + term.getOp() +" is not defined for " +
-									"operands " + leftType + " and " + rightType);
-							return PScriptTypeUnknown.instance();
-						}
-					}
-
-					@Override
-					public PscriptType case_OpModReal(OpModReal op)
-							 {
-						if (leftType instanceof PScriptTypeReal || leftType instanceof PScriptTypeInt) {
-							if (rightType instanceof PScriptTypeReal || rightType instanceof PScriptTypeInt) {
-								return PScriptTypeReal.instance();
-							}
-						}
-						attr.addError(term.getSource(), "Operator " + term.getOp() +" is not defined for " +
-								"operands " + leftType + " and " + rightType);
-						return PScriptTypeUnknown.instance();
-					}
-
-					@Override
-					public PscriptType case_OpModInt(OpModInt op)
-							 {
-						if (leftType instanceof PScriptTypeInt || rightType instanceof PScriptTypeInt) {
-							return leftType;
-						}
-						attr.addError(term.getSource(), "Operator " + term.getOp() +" is not defined for " +
-								"operands " + leftType + " and " + rightType);
-						return PScriptTypeUnknown.instance();
-					}
-
-					@Override
-					public PscriptType case_OpDivInt(OpDivInt op)
-							 {
-						if (leftType instanceof PScriptTypeInt && rightType instanceof PScriptTypeInt) {
-							return leftType;
-						}
-						attr.addError(term.getSource(), "Operator " + term.getOp() +" is not defined for " +
-								"operands " + leftType + " and " + rightType);
-						return PScriptTypeUnknown.instance();
-					}
-				});
-			}
-
-			@Override
-			public PscriptType case_ExprUnary(final ExprUnary term)  {
-				final PscriptType rightType = term.getRight().attrTyp();
-				return term.getOpU().match(new OpUnary.Matcher<PscriptType>() {
-
-					@Override
-					public PscriptType case_OpNot(OpNot op)  {
-						if (!(rightType instanceof PScriptTypeBool)) {
-							attr.addError(term.getSource(), "Expected Boolean after not but found " + rightType);
-						}
-						return PScriptTypeBool.instance();
-					}
-
-					@Override
-					public PscriptType case_OpMinus(OpMinus op)
-							 {
-						if (rightType instanceof PScriptTypeInt || rightType instanceof PScriptTypeReal) { 
-							return rightType;
-						}
-						attr.addError(term.getSource(), "Expected Int or Real after Minus but found " + rightType);
+			public PscriptType case_OpModReal(OpModReal op)
+			{
+				if (leftType instanceof PScriptTypeReal || leftType instanceof PScriptTypeInt) {
+					if (rightType instanceof PScriptTypeReal || rightType instanceof PScriptTypeInt) {
 						return PScriptTypeReal.instance();
 					}
-				});
+				}
+				attr.addError(term.getSource(), "Operator " + term.getOp() +" is not defined for " +
+						"operands " + leftType + " and " + rightType);
+				return PScriptTypeUnknown.instance();
 			}
 
 			@Override
-			public PscriptType case_ExprMemberVar(ExprMemberVar term)
-					 {
-				NameDef varDef = term.attrNameDef();
-				if (varDef == null) {
-					return PScriptTypeUnknown.instance();
+			public PscriptType case_OpModInt(OpModInt op)
+			{
+				if (leftType instanceof PScriptTypeInt || rightType instanceof PScriptTypeInt) {
+					return leftType;
 				}
-				if (varDef instanceof VarDef) {
-					return varDef.attrTyp().dynamic();
-				}
-				if (varDef instanceof FunctionDefinition) {
-					attr.addError(term.getSource(), "Missing parantheses for function call");
-				}
-				return varDef.attrTyp();
+				attr.addError(term.getSource(), "Operator " + term.getOp() +" is not defined for " +
+						"operands " + leftType + " and " + rightType);
+				return PScriptTypeUnknown.instance();
 			}
 
 			@Override
-			public PscriptType case_ExprMemberArrayVar(
-					ExprMemberArrayVar term)  {
-				NameDef varDef = term.attrNameDef();
-				return varDef.attrTyp().dynamic();
-			}
-
-			@Override
-			public PscriptType case_ExprMemberMethod(ExprMemberMethod term)
-					 {
-				FunctionDefinition f = term.attrFuncDef();
-				if (f == null) {
-					return PScriptTypeUnknown.instance();
+			public PscriptType case_OpDivInt(OpDivInt op)
+			{
+				if (leftType instanceof PScriptTypeInt && rightType instanceof PScriptTypeInt) {
+					return leftType;
 				}
-				if (f.getReturnTyp() instanceof NoTypeExpr) {
-					return PScriptTypeVoid.instance();
-				}
-				PscriptType typ = f.getReturnTyp().attrTyp().dynamic();
-				if (typ instanceof PscriptTypeModule) {
-					// example:
-					// module A 
-					//    function foo() returns thistype
-					// class C
-					//    use A
-					// ...
-					// C c = new C()
-					// c.foo() // this should return type c  
-					PscriptType leftType = term.getLeft().attrTyp();
-					if (leftType instanceof PscriptTypeClass ||
-							leftType instanceof PscriptTypeModule) {
-						typ = leftType;
-					}
-				}
-				return typ;
-			}
-
-			@Override
-			public PscriptType case_ExprFunctionCall(ExprFunctionCall term)
-					 {
-				if (term.attrFuncDef() == null) {
-					return PScriptTypeUnknown.instance();
-				}
-				
-				FunctionDefinition f = term.attrFuncDef();
-				if (f == null) {
-					return PScriptTypeUnknown.instance();
-				}
-				if (f.getReturnTyp() instanceof NoTypeExpr) {
-					return PScriptTypeVoid.instance();
-				}
-				PscriptType typ = f.getReturnTyp().attrTyp().dynamic();
-				if (typ instanceof PscriptTypeModule) {
-					ClassOrModule classOrModule = term.attrNearestClassOrModule();
-					if (classOrModule != null) {
-						typ = TypesHelper.typeOf(classOrModule, false);
-					}
-				}
-				return typ;
-			}
-
-			@Override
-			public PscriptType case_ExprNewObject(ExprNewObject term)
-					 {
-				
-				TypeDef typeDef = term.attrTypeDef();
-				if (typeDef instanceof ClassDef) {
-					return new PscriptTypeClass((ClassDef) typeDef, false);
-				} else {
-					attr.addError(term.getSource(), "Can only create instances of classes.");
-					return PScriptTypeUnknown.instance();
-				}
-			}
-
-			@Override
-			public PscriptType case_ExprNull(ExprNull term)  {
-				return PScriptTypeNull.instance();
-			}
-
-			@Override
-			public PscriptType case_ExprCast(ExprCast term)  {
-				PscriptType typ = term.getTyp().attrTyp().dynamic();
-				PscriptType exprTyp = term.getExpr().attrTyp();
-				if (typ instanceof PScriptTypeInt && isClassOrModule(exprTyp)) {
-					// cast from classtype to int: OK
-				} else if (isClassOrModule(typ) && exprTyp instanceof PScriptTypeInt) {
-					// cast from int to classtype: OK
-				} else {
-					attr.addError(term.getSource(), "Cannot cast from " + exprTyp + " to " + typ + ".");
-				}
-				return typ;
-			}
-
-			@Override
-			public PscriptType case_ExprIncomplete(ExprIncomplete exprIncomplete) {
+				attr.addError(term.getSource(), "Operator " + term.getOp() +" is not defined for " +
+						"operands " + leftType + " and " + rightType);
 				return PScriptTypeUnknown.instance();
 			}
 		});
+	}
+
+
+	public static  PscriptType calculate(final ExprUnary term)  {
+		final PscriptType rightType = term.getRight().attrTyp();
+		return term.getOpU().match(new OpUnary.Matcher<PscriptType>() {
+
+
+			public PscriptType case_OpNot(OpNot op)  {
+				if (!(rightType instanceof PScriptTypeBool)) {
+					attr.addError(term.getSource(), "Expected Boolean after not but found " + rightType);
+				}
+				return PScriptTypeBool.instance();
+			}
+
+
+			public PscriptType case_OpMinus(OpMinus op)
+			{
+				if (rightType instanceof PScriptTypeInt || rightType instanceof PScriptTypeReal) { 
+					return rightType;
+				}
+				attr.addError(term.getSource(), "Expected Int or Real after Minus but found " + rightType);
+				return PScriptTypeReal.instance();
+			}
+		});
+	}
+
+
+	public static  PscriptType calculate(ExprMemberVar term)
+	{
+		NameDef varDef = term.attrNameDef();
+		if (varDef == null) {
+			return PScriptTypeUnknown.instance();
+		}
+		if (varDef instanceof VarDef) {
+			return varDef.attrTyp().dynamic();
+		}
+		if (varDef instanceof FunctionDefinition) {
+			attr.addError(term.getSource(), "Missing parantheses for function call");
+		}
+		return varDef.attrTyp();
+	}
+
+
+	public static  PscriptType calculate(ExprMemberArrayVar term)  {
+		NameDef varDef = term.attrNameDef();
+		PscriptType typ = varDef.attrTyp().dynamic();
+		if (typ instanceof PScriptTypeArray) {
+			PScriptTypeArray ar = (PScriptTypeArray) typ;
+			return ar.getBaseType();			
+		}
+		attr.addError(term.getSource(), "Variable " + term.getVarName() + " is not an array.");
+		return typ;
+	}
+
+
+	public static  PscriptType calculate(ExprMemberMethod term)
+	{
+		FunctionDefinition f = term.attrFuncDef();
+		if (f == null) {
+			return PScriptTypeUnknown.instance();
+		}
+		if (f.getReturnTyp() instanceof NoTypeExpr) {
+			return PScriptTypeVoid.instance();
+		}
+		PscriptType typ = f.getReturnTyp().attrTyp().dynamic();
+		if (typ instanceof PscriptTypeModule) {
+			// example:
+				// module A 
+			//    function foo() returns thistype
+			// class C
+			//    use A
+			// ...
+			// C c = new C()
+			// c.foo() // this should return type c  
+			PscriptType leftType = term.getLeft().attrTyp();
+			if (leftType instanceof PscriptTypeClass ||
+					leftType instanceof PscriptTypeModule) {
+				typ = leftType;
+			}
+		}
+		return typ;
+	}
+
+
+	public static  PscriptType calculate(ExprFunctionCall term)
+	{
+		if (term.attrFuncDef() == null) {
+			return PScriptTypeUnknown.instance();
+		}
+
+		FunctionDefinition f = term.attrFuncDef();
+		if (f == null) {
+			return PScriptTypeUnknown.instance();
+		}
+		if (f.getReturnTyp() instanceof NoTypeExpr) {
+			return PScriptTypeVoid.instance();
+		}
+		PscriptType typ = f.getReturnTyp().attrTyp().dynamic();
+		if (typ instanceof PscriptTypeModule) {
+			ClassOrModule classOrModule = term.attrNearestClassOrModule();
+			if (classOrModule != null) {
+				typ = TypesHelper.typeOf(classOrModule, false);
+			}
+		}
+		return typ;
+	}
+
+
+	public static  PscriptType calculate(ExprNewObject term)
+	{
+
+		TypeDef typeDef = term.attrTypeDef();
+		if (typeDef instanceof ClassDef) {
+			return new PscriptTypeClass((ClassDef) typeDef, false);
+		} else {
+			attr.addError(term.getSource(), "Can only create instances of classes.");
+			return PScriptTypeUnknown.instance();
+		}
+	}
+
+
+	public static  PscriptType calculate(ExprNull term)  {
+		return PScriptTypeNull.instance();
+	}
+
+
+	public static  PscriptType calculate(ExprCast term)  {
+		PscriptType typ = term.getTyp().attrTyp().dynamic();
+		PscriptType exprTyp = term.getExpr().attrTyp();
+		if (typ instanceof PScriptTypeInt && isClassOrModule(exprTyp)) {
+			// cast from classtype to int: OK
+		} else if (isClassOrModule(typ) && exprTyp instanceof PScriptTypeInt) {
+			// cast from int to classtype: OK
+		} else {
+			attr.addError(term.getSource(), "Cannot cast from " + exprTyp + " to " + typ + ".");
+		}
+		return typ;
+	}
+
+
+	public static  PscriptType calculate(ExprIncomplete exprIncomplete) {
+		return PScriptTypeUnknown.instance();
 	}
 
 

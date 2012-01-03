@@ -1,0 +1,24 @@
+package EscaperData
+
+        public class EscaperData
+            static int array id
+            static int idCount
+            
+            static function isUnitEscaper( unit u ) returns boolean
+                int i = 0
+                int id = GetUnitTypeId(u)
+                while i <= EscaperData.idCount
+                    if id == (EscaperData.id[i]) 
+                        return true
+                    i++
+                return false
+            
+        
+        init
+            EscaperData.id[0]   = 'H003'
+            EscaperData.id[1]   = 'H00B'
+            EscaperData.id[2]   = 'H00D'
+            EscaperData.idCount = 3
+            
+    
+endpackage

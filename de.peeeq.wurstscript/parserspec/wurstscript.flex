@@ -49,7 +49,6 @@ import de.peeeq.wurstscript.utils.Utils;
 	}
 
 	private Symbol jassSymbol(int type, Object value) {
-		System.out.println("jasssymbol " + type);
 		if (yyline > currentLine) {
 			lineStartOffsets.set(yyline, yychar);
 			currentLine = yyline;
@@ -173,6 +172,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	{DIGIT}+ "." {DIGIT}*			  { return jassSymbol(TokenType.REAL_LITERAL, Double.parseDouble(yytext())); }
 	[ \t\n\r]* "." {DIGIT}+			 { return jassSymbol(TokenType.REAL_LITERAL, Double.parseDouble(yytext())); }
 	[ \t\n\r]* "."                    { return jassSymbol(TokenType.DOT); } 
+	"wurst__" {IDENT}				  { return jassSymbol(TokenType.IDENTIFIER, "w" + yytext()); }
 	{IDENT}                           { return jassSymbol(TokenType.IDENTIFIER, yytext()); }
 	[\"]                             		{ string.setLength(0); afterString = YYINITIAL; yybegin(STRING); }
 	
@@ -318,6 +318,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	{DIGIT}+ "." {DIGIT}*			  { return symbol(TokenType.REAL_LITERAL, Double.parseDouble(yytext())); }
 	[ \t\n\r]* "." {DIGIT}+			 { return symbol(TokenType.REAL_LITERAL, Double.parseDouble(yytext())); }
 	[ \t\n\r]* "."                    { return symbol(TokenType.DOT); } 
+	"wurst__" {IDENT}				  { return symbol(TokenType.IDENTIFIER, "w" + yytext()); }
 	{IDENT}                           { return symbol(TokenType.IDENTIFIER, yytext()); }
 	[\"]                             		{ string.setLength(0); afterString = WURST; yybegin(STRING); }
 	// error fallback:
