@@ -42,13 +42,13 @@ package LinkedListModule
 			if this == first
 				first = next
 
-		public static function getFirst() returns thistype
+		static function getFirst() returns thistype
 			return first
 
-		public function getNext() returns thistype
+		function getNext() returns thistype
 			return next
 
-		public function getPrev() returns thistype
+		function getPrev() returns thistype
 			return prev
 
 

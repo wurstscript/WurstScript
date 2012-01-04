@@ -5,11 +5,11 @@ package test
 
 
 	module A 
-		public function getFoo() returns int 
+		function getFoo() returns int 
 			return 5
 		
 		
-		public function getBar() returns int 
+		function getBar() returns int 
 			return getFoo() + 1
 		
 	

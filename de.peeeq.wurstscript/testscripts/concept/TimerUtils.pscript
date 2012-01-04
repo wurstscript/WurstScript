@@ -41,7 +41,7 @@ package TimerUtils
 	
 	// module to execute a function after a certain time
 	public module Timed
-		abstract public function onTimer()
+		abstract function onTimer()
 		
 		private static function timerCallback()
 			timer t = GetExpiredTimer()
@@ -49,7 +49,7 @@ package TimerUtils
 			c.onTimer()
 			t.release()
 		
-		public function startTimer(real time)
+		function startTimer(real time)
 			timer t = getTimer()
 			t.setData(this castTo integer)
 			TimerStart(t, time, false, function timerCallback)
@@ -59,9 +59,9 @@ package TimerUtils
 	
 		private timer t
 	
-		abstract public function periodic()
+		abstract function periodic()
 		
-		public function stopPeriodic()
+		function stopPeriodic()
 			t.release()
 			t = null
 		
@@ -70,7 +70,7 @@ package TimerUtils
 			thistype c = t.getData() castTo thistype
 			c.periodic()
 		
-		public function startPeriodic(real time)
+		function startPeriodic(real time)
 			t = getTimer()
 			t.setData(this castTo integer)
 			TimerStart(t, time, true, function timerCallback)
@@ -92,13 +92,13 @@ package TimerUtils
 	
 	
 	public module TimedLoop
-		public constant real PERIOD = 0.025
+		constant real PERIOD = 0.025
 		static thistype array instances		// The array
 		static integer instanceCount = 0	// The count
 		static triggercondition triggerCond = null // the triggerCondition for this
 		static conditionfunc cond = Condition(function onExpire)
 	
-		public abstract function onTimedLoop() returns boolean
+		abstract function onTimedLoop() returns boolean
 	
 		private static function onExpire() returns boolean
 			int i = instanceCount - 1
@@ -115,7 +115,7 @@ package TimerUtils
 				conditionCount--
 			return false
 	
-		public function startTimedLoop()
+		function startTimedLoop()
 			instances[instanceCount] = this
 			instanceCount++
 			if instanceCount == 1

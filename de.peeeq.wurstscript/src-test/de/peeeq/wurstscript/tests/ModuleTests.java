@@ -63,17 +63,6 @@ public class ModuleTests extends PscriptTest {
 			);
 	}
 	
-	@Test
-	public void modules_not_public_function() {
-		// each function in a module should be either private or public
-		testAssertErrorsLines(true, "must be declared public or private", 
-				"package test",
-				"	module A",
-				"		function foo() returns int",
-				"			return 3",
-				"endpackage"
-			);
-	}
 	
 	@Test
 	public void modules_thistype() {
@@ -82,7 +71,7 @@ public class ModuleTests extends PscriptTest {
 				"package test",
 				"	native testSuccess()",
 				"	module A",
-				"		public function foo() returns thistype",
+				"		function foo() returns thistype",
 				"			return this",
 				"	class C",
 				"		use A",
@@ -102,7 +91,7 @@ public class ModuleTests extends PscriptTest {
 		testAssertOkLines(true,
 				"package Blub",
 				"	public module BlubModule",
-				"		public function foo() returns int",
+				"		function foo() returns int",
 				"			return 3",
 				"endpackage",
 				"package test",
@@ -129,7 +118,7 @@ public class ModuleTests extends PscriptTest {
 				"package test",
 				"	native testSuccess()",
 				"	module BlubModule",
-				"		public function foo() returns int",
+				"		function foo() returns int",
 				"			return random()",
 				"	class C",
 				"		use BlubModule",
@@ -147,7 +136,7 @@ public class ModuleTests extends PscriptTest {
 				"package test",
 				"	native testSuccess()",
 				"	module A",
-				"		public abstract function foo() returns int",
+				"		abstract function foo() returns int",
 				"	class C",
 				"		use A",
 				"		override function foo() returns int",
@@ -227,9 +216,9 @@ public class ModuleTests extends PscriptTest {
 				"package test",
 				"	native testSuccess()",
 				"	module A",
-				"		public function foo()",
+				"		function foo()",
 				"			bar()",
-				"		public function bar()",
+				"		function bar()",
 				"			testSuccess()",
 				"	class C",
 				"		use A",

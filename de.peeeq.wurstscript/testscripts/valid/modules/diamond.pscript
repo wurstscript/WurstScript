@@ -7,11 +7,11 @@ package test
 	module A 
 		int x
 	
-		public function setX(int x) 
+		function setX(int x) 
 			this.x = x
 		
 		
-		public function getX() returns int 
+		function getX() returns int 
 			return x
 		
 	

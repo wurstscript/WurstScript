@@ -7,11 +7,11 @@ package test
 	module Counter 
 		int count = 0
 		
-		public function incCounter() 
+		function incCounter() 
 			count = count + 1
 		
 		
-		public function getCounter() returns int 
+		function getCounter() returns int 
 			return count
 		
 	

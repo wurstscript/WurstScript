@@ -336,13 +336,6 @@ public class WurstValidator {
 			UninitializedVars.checkFunc(func.attrDefinedNames().values(), func.getBody());
 		}
 
-		if (func.attrNearestClassOrModule() instanceof ModuleDef) {
-			// function is in module -> must be private or public
-			if (!func.attrIsPrivate() && !func.attrIsPublic()) {
-				attr.addError(func.getSource(), "Function " + functionName + " must be declared " + "public or private.\n");
-			}
-		}
-		
 		// check is override is correct:
 		for (FunctionDefinition overriddenFunc : func.attrOverriddenFunctions()) {
 			CheckHelper.checkIfIsRefinement(func, overriddenFunc);
@@ -647,15 +640,23 @@ public class WurstValidator {
 				}
 				
 				@Override
-				public void case_GlobalVarDef(GlobalVarDef globalVarDef) {
-					check(VisibilityPublic.class, VisibilityPrivate.class, VisibilityProtected.class,
-							ModStatic.class, ModConstant.class);
+				public void case_GlobalVarDef(GlobalVarDef g) {
+					if (g.attrNearestClassOrModule() != null) {
+						check(VisibilityPrivate.class, VisibilityProtected.class,
+								ModStatic.class, ModConstant.class);
+					} else {
+						check(VisibilityPublic.class, ModConstant.class);
+					}
 				}
 				
 				@Override
-				public void case_FuncDef(FuncDef funcDef) {
-					check(VisibilityPublic.class, VisibilityPrivate.class, VisibilityProtected.class,
-							ModAbstract.class, ModOverride.class, ModStatic.class);
+				public void case_FuncDef(FuncDef f) {
+					if (f.attrNearestClassOrModule() != null) {
+						check(VisibilityPrivate.class, VisibilityProtected.class,
+								ModAbstract.class, ModOverride.class, ModStatic.class);
+					} else {
+						check(VisibilityPublic.class);
+					}
 				}
 				
 				@Override

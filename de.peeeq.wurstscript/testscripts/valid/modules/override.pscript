@@ -5,13 +5,13 @@ package test
 
 
 	module A 
-		public function foo() returns int 
+		function foo() returns int 
 			return 2
 		
 	
 	
 	module B 
-		public function foo() returns int 
+		function foo() returns int 
 			return 3
 	
 	
@@ -20,7 +20,7 @@ package test
 		use A
 		use B
 		
-		override public function foo() returns int 
+		override function foo() returns int 
 			return 4
 		
 		
