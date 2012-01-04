@@ -12,6 +12,7 @@ import de.peeeq.wurstscript.ast.VisibilityPrivate;
 import de.peeeq.wurstscript.ast.VisibilityProtected;
 import de.peeeq.wurstscript.ast.VisibilityPublic;
 import de.peeeq.wurstscript.ast.VisibilityPublicread;
+import de.peeeq.wurstscript.ast.WParameter;
 
 public class ModifiersHelper {
 
@@ -44,7 +45,8 @@ public class ModifiersHelper {
 	}
 
 	public static boolean isConstant(AstElementWithModifiers e) {
-		return containsType(e.getModifiers(), ModConstant.class);
+		return e instanceof WParameter // parameters are always constant
+				|| containsType(e.getModifiers(), ModConstant.class);
 	}
 
 	static boolean containsType(de.peeeq.wurstscript.ast.Modifiers modifiers, Class<? extends Modifier> class1) {

@@ -33,16 +33,23 @@ import de.peeeq.wurstscript.ast.FuncRef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.FunctionImplementation;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
+import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.HasTypeArgs;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.LocalVarDef;
+import de.peeeq.wurstscript.ast.ModAbstract;
+import de.peeeq.wurstscript.ast.ModConstant;
+import de.peeeq.wurstscript.ast.ModOverride;
 import de.peeeq.wurstscript.ast.ModStatic;
 import de.peeeq.wurstscript.ast.Modifier;
 import de.peeeq.wurstscript.ast.Modifiers;
 import de.peeeq.wurstscript.ast.ModuleDef;
+import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.NamedScope;
+import de.peeeq.wurstscript.ast.NativeFunc;
+import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.StmtDestroy;
 import de.peeeq.wurstscript.ast.StmtIf;
@@ -53,6 +60,9 @@ import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.VisibilityModifier;
+import de.peeeq.wurstscript.ast.VisibilityPrivate;
+import de.peeeq.wurstscript.ast.VisibilityProtected;
+import de.peeeq.wurstscript.ast.VisibilityPublic;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WParameters;
@@ -569,5 +579,114 @@ public class WurstValidator {
 	@CheckMethod
 	public void checkFuncRef(FuncRef ref) {
 		ref.attrFuncDef();
+	}
+	
+	@CheckMethod
+	public void checkModifiers(final HasModifier e) {
+		for (final Modifier m : e.getModifiers()) {
+			final StringBuilder error = new StringBuilder();
+			
+			e.match(new HasModifier.MatcherVoid() {
+				
+				@Override
+				public void case_WParameter(WParameter wParameter) {
+					error.append("Parameters must not have modifiers");
+				}
+				
+				@Override
+				public void case_TypeParamDef(TypeParamDef typeParamDef) {
+					error.append("Type Parameters must not have modifiers");
+				}
+				
+				@Override
+				public void case_NativeType(NativeType nativeType) {
+					check(VisibilityPublic.class);
+				}
+				
+				private void check(Class<? extends Modifier> ...allowed) {
+					boolean isAllowed = false;
+					for (Class<? extends Modifier> a : allowed) {
+						if (a.isInstance(m)) {
+							isAllowed  = true;
+							break;
+						}
+					}
+					if (!isAllowed) {
+						error.append("Modifier " + printMod(m) + " not allowed for " +
+								Utils.printElement(e) + ".\n Allowed are the following" +
+								" modifiers: ");
+						boolean first = true;
+						for (Class<? extends Modifier> c : allowed) {
+							if (!first) {
+								error.append(", ");
+							}
+							error.append(printMod(c));
+							first = false;
+						}
+					}
+				}
+
+				@Override
+				public void case_NativeFunc(NativeFunc nativeFunc) {
+					check(VisibilityPublic.class);
+				}
+				
+				@Override
+				public void case_ModuleInstanciation(ModuleInstanciation moduleInstanciation) {
+					check(VisibilityPrivate.class, VisibilityProtected.class);
+				}
+				
+				@Override
+				public void case_ModuleDef(ModuleDef moduleDef) {
+					check(VisibilityPublic.class);
+				}
+				
+				@Override
+				public void case_LocalVarDef(LocalVarDef localVarDef) {
+					check(ModConstant.class);
+				}
+				
+				@Override
+				public void case_GlobalVarDef(GlobalVarDef globalVarDef) {
+					check(VisibilityPublic.class, VisibilityPrivate.class, VisibilityProtected.class,
+							ModStatic.class, ModConstant.class);
+				}
+				
+				@Override
+				public void case_FuncDef(FuncDef funcDef) {
+					check(VisibilityPublic.class, VisibilityPrivate.class, VisibilityProtected.class,
+							ModAbstract.class, ModOverride.class, ModStatic.class);
+				}
+				
+				@Override
+				public void case_ExtensionFuncDef(ExtensionFuncDef extensionFuncDef) {
+					check(VisibilityPublic.class);
+				}
+				
+				@Override
+				public void case_ConstructorDef(ConstructorDef constructorDef) {
+					check(VisibilityPrivate.class);
+				}
+				
+				@Override
+				public void case_ClassDef(ClassDef classDef) {
+					check(VisibilityPublic.class);
+				}
+			});
+			if (error.length() > 0) {
+				attr.addError(e.getSource(), error.toString());
+			}
+		}
+	}
+
+	protected String printMod(Class<? extends Modifier> c) {
+		String name = c.getSimpleName().toLowerCase();
+		name = name.replaceAll("^(mod|visibility)", "");
+		name = name.replaceAll("impl$", "");
+		return name;
+	}
+
+	protected String printMod(Modifier m) {
+		return printMod(m.getClass());
 	}
 }

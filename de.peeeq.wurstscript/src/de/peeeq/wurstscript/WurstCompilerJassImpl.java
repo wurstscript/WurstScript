@@ -322,7 +322,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			}
 			c.getSlots().add(Ast.ConstructorDef(
 					c.getSource().copy(), 
-					Ast.Modifiers(Ast.VisibilityPublic(c.getSource().copy())), 
+					Ast.Modifiers(), 
 					Ast.WParameters(), 
 					Ast.WStatements()));
 		}
