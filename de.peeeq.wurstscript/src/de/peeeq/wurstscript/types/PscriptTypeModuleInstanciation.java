@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.types;
 
+import java.util.List;
+
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NamedScope;
 
@@ -11,6 +13,11 @@ public class PscriptTypeModuleInstanciation extends PscriptTypeNamedScope {
 	public PscriptTypeModuleInstanciation(ModuleInstanciation moduleInst, boolean isStaticRef) {
 		super(isStaticRef);
 		this.moduleInst = moduleInst;
+	}
+
+	public PscriptTypeModuleInstanciation(ModuleInstanciation moduleInst2, List<PscriptType> newTypes) {
+		super(newTypes);
+		moduleInst = moduleInst2;
 	}
 
 	@Override
@@ -48,7 +55,7 @@ public class PscriptTypeModuleInstanciation extends PscriptTypeNamedScope {
 	
 	@Override
 	public String getName() {
-		return getDef().getName() + " (module instanciation)";
+		return getDef().getName() + printTypeParams() + " (module instanciation)";
 	}
 	
 	@Override
@@ -57,6 +64,11 @@ public class PscriptTypeModuleInstanciation extends PscriptTypeNamedScope {
 			return new PscriptTypeModuleInstanciation(moduleInst, false);
 		}
 		return this;
+	}
+
+	@Override
+	public PscriptType replaceTypeVars(List<PscriptType> newTypes) {
+		return new PscriptTypeModuleInstanciation(moduleInst, newTypes);
 	}
 
 }

@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.ast.FuncRef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.types.PScriptTypeUnknown;
 import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
 import de.peeeq.wurstscript.utils.NotNullList;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -28,6 +29,9 @@ public abstract class OverloadingResolver<F,C> {
 	F resolve(Iterable<F> alternativeFunctions, C caller) {
 		List<String> hints = new NotNullList<String>();
 		List<F> results = new NotNullList<F>();
+		if (Utils.size(alternativeFunctions) == 1) {
+			return Utils.getFirst(alternativeFunctions);
+		}
 		for (F f : alternativeFunctions) {
 			if (getParameterCount(f) > getArgumentCount(caller)) {
 				hints.add("Expected " + (getParameterCount(f) - getArgumentCount(caller)) + " more argument(s).");
@@ -36,7 +40,10 @@ public abstract class OverloadingResolver<F,C> {
 			} else { // parameter count matches argument count:
 				boolean match = true;
 				for (int i=0; i<getArgumentCount(caller); i++) {
-					if (! getArgumentType(caller, i).isSubtypeOf(getParameterType(f, i))) {
+					if (getArgumentType(caller, i) instanceof PscriptTypeTypeParam
+							&& getParameterType(f, i) instanceof PscriptTypeTypeParam) {
+						// should be ok!
+					} else if (! getArgumentType(caller, i).isSubtypeOf(getParameterType(f, i))) {
 						hints.add("Expected " + getParameterType(f, i)
 								 + " as parameter " + i + " but found " +  getArgumentType(caller, i) + "." );
 						match = false;

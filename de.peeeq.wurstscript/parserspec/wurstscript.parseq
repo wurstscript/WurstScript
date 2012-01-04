@@ -20,14 +20,14 @@ WEntity =
 	  TypeDef
 	| FuncDef
 	| GlobalVarDef
-	| ExtensionFuncDef(WPos source, Modifiers modifiers, TypeExpr extendedType, String name, WParameters parameters, OptTypeExpr returnTyp, WStatements body)
+	| ExtensionFuncDef(WPos source, Modifiers modifiers, TypeExpr extendedType, String name, TypeParamDefs typeParameters, WParameters parameters, OptTypeExpr returnTyp, WStatements body)
 	| InitBlock (WPos source, WStatements body)
 	| NativeFunc(WPos source, Modifiers modifiers, String name, WParameters parameters, OptTypeExpr returnTyp)
-	| ModuleDef(WPos source, Modifiers modifiers, String name, ClassSlots slots)
+	| ModuleDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, ClassSlots slots)
 
 
 TypeExpr = 
-	  TypeExprSimple(WPos source, String typeName)
+	  TypeExprSimple(WPos source, String typeName, TypeParams typeArgs)
 	| TypeExprArray(WPos source, TypeExpr base)
 	| TypeExprThis(WPos source)
 	
@@ -36,15 +36,16 @@ OptTypeExpr = NoTypeExpr() | TypeExpr
 OptExpr = NoExpr() | Expr
 	
 TypeDef = 
-	 NativeType(WPos source, Modifiers modifiers, String name, OptTypeExpr optTyp)
-	|ClassDef(WPos source, Modifiers modifiers, String name, boolean unmanaged, ClassSlots slots)
+	  NativeType(WPos source, Modifiers modifiers, String name, OptTypeExpr optTyp)
+	| ClassDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters,  boolean unmanaged, ClassSlots slots)
+	| TypeParamDef
 	
 ClassSlots * ClassSlot
 
 ClassSlot = 
 	  ConstructorDef(WPos source, Modifiers modifiers, WParameters parameters, WStatements body)
 	| OnDestroyDef(WPos source, WStatements body)
-	| ModuleUse(WPos source, String moduleName)
+	| ModuleUse(WPos source, String moduleName, TypeParams typeArgs)
 	| ModuleInstanciation(WPos source, Modifiers modifiers, String name, ClassSlots slots) 
 	| ClassMember
 	
@@ -57,13 +58,19 @@ GlobalVarDef(WPos source, Modifiers modifiers, OptTypeExpr optTyp, String name, 
 LocalVarDef(WPos source, Modifiers modifiers, OptTypeExpr optTyp, String name, OptExpr initialExpr) 
 
 	
-FuncDef(WPos source, Modifiers modifiers, String name, WParameters parameters, OptTypeExpr returnTyp, WStatements body)
+FuncDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, WParameters parameters, OptTypeExpr returnTyp, WStatements body)
 	
 
 
 ArraySizes * Expr
 	
-FuncSignature(WPos source, String name, WParameters parameters, OptTypeExpr returnTyp)	
+FuncSignature(WPos source, String name, TypeParamDefs typeParameters, WParameters parameters, OptTypeExpr returnTyp)	
+
+TypeParamDefs * TypeParamDef
+
+TypeParamDef(WPos source, Modifiers modifiers, String name)
+
+TypeParams * TypeExpr
 
 WParameters * WParameter
 WParameter(WPos source, Modifiers modifiers, TypeExpr typ, String name)
@@ -103,9 +110,9 @@ Expr =
 	| ExprUnary(WPos source, OpUnary opU, Expr right)
 	| ExprMemberVar(WPos source, Expr left, String varName)
 	| ExprMemberArrayVar(WPos source, Expr left, String varName, Indexes indexes)
-	| ExprMemberMethod(WPos source, Expr left, String funcName, Arguments args)
-	| ExprFunctionCall(WPos source, String funcName, Arguments args)
-	| ExprNewObject(WPos source, String typeName, Arguments args)
+	| ExprMemberMethod(WPos source, Expr left, String funcName, TypeParams typeArgs, Arguments args)
+	| ExprFunctionCall(WPos source, String funcName, TypeParams typeArgs, Arguments args)
+	| ExprNewObject(WPos source, String typeName, TypeParams typeArgs, Arguments args)
 	| ExprCast(WPos source, TypeExpr typ, Expr expr)
 	| ExprAtomic
 	| ExprIncomplete(WPos source, String errorMessage)
@@ -208,7 +215,9 @@ Modifier =
 // AstElementWithBody = FunctionImplementation | InitBlock | ConstructorDef | OnDestroyDef
 //AstElementWithModifier = NameDef | TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition
 HasModifier = NameDef | TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition
-	
+HasTypeArgs =  ExprNewObject | FunctionCall | ModuleUse | StmtCall | TypeExprSimple
+
+
 ClassOrModule = ClassDef | ModuleDef	
 
 ClassOrModuleOrModuleInstanciation = ClassOrModule | ModuleInstanciation
@@ -245,6 +254,9 @@ Expr.attrTyp
 	returns de.peeeq.wurstscript.types.PscriptType 
 	implemented by de.peeeq.wurstscript.attributes.AttrExprType.calculate
 
+Expr.attrExpectedTyp "try to guess what type is expected here"
+	returns de.peeeq.wurstscript.types.PscriptType 
+	implemented by de.peeeq.wurstscript.attributes.AttrExprExpectedType.calculate
 
 FuncRef.attrFuncDef
 	returns FunctionDefinition
@@ -435,3 +447,6 @@ WPos.getLine
 	returns int
 	implemented by de.peeeq.wurstscript.attributes.AttrPos.getLine
 	
+HasTypeArgs.attrTypeParameterBindings
+	returns java.util.Map<TypeParamDef, de.peeeq.wurstscript.types.PscriptType>
+	implemented by de.peeeq.wurstscript.attributes.Generics.getTypeParameterBindings

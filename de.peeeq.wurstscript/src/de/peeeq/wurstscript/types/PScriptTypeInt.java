@@ -10,7 +10,7 @@ public class PScriptTypeInt extends PscriptType {
 	
 	@Override
 	public boolean isSubtypeOf(PscriptType other) {
-		return other instanceof PScriptTypeInt;
+		return other instanceof PScriptTypeInt || other instanceof PscriptTypeTypeParam;
 	}
 
 

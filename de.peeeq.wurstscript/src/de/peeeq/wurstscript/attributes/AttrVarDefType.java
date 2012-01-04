@@ -14,12 +14,14 @@ import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
+import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.types.PscriptNativeType;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
 import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
+import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
 
 
 /**
@@ -91,6 +93,10 @@ public class AttrVarDefType {
 
 	public static PscriptType calculate(FunctionDefinition f) {
 		return f.getReturnTyp().attrTyp();
+	}
+
+	public static PscriptType calculate(TypeParamDef t) {
+		return new PscriptTypeTypeParam(t);
 	}
 
 	

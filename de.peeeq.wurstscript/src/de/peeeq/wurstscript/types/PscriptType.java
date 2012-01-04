@@ -61,4 +61,12 @@ public abstract class PscriptType {
 	public PscriptType dynamic() {
 		return this;
 	}
+
+
+	/**
+	 * replaces all type parameters in t with the actual type
+	 */
+	public  PscriptType replaceBoundTypeVars(PscriptType t) {
+		return t;
+	}
 }

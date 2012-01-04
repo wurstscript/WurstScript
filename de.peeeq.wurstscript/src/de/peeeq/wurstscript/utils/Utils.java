@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.utils;
 
+import java.awt.Component;
 import java.awt.Rectangle;
 import java.awt.Window;
 import java.io.FileInputStream;
@@ -30,6 +31,18 @@ import de.peeeq.wurstscript.ast.WScope;
 
 public class Utils {
 
+	@SuppressWarnings("rawtypes")
+	public static int size(Iterable<?> i) {
+		if (i instanceof Collection) {
+			return ((Collection) i).size();
+		}
+		int size = 0;
+		for (@SuppressWarnings("unused") Object o : i) {
+			size++;
+		}
+		return size;
+	}
+	
 	public static void printIndent(StringBuilder sb, int indent) {
 		for (int i=0; i<indent; i++) {
 			sb.append("\t");

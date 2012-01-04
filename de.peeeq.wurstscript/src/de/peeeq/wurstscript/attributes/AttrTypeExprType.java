@@ -1,5 +1,9 @@
 package de.peeeq.wurstscript.attributes;
 
+import java.util.List;
+
+import com.google.common.base.Function;
+
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.ModuleDef;
@@ -11,6 +15,7 @@ import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
+import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.types.NativeTypes;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeUnknown;
@@ -19,6 +24,8 @@ import de.peeeq.wurstscript.types.PscriptNativeType;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
+import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
+import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
 import de.peeeq.wurstscript.utils.Utils;
 
 /**
@@ -33,6 +40,22 @@ public class AttrTypeExprType {
 			@Override
 			public PscriptType case_TypeExprSimple(TypeExprSimple node) {
 				PscriptType baseType = getBaseType(node);
+				if (node.getTypeArgs().size() > 0) {
+					if (baseType instanceof PscriptTypeNamedScope) {
+						PscriptTypeNamedScope ns = (PscriptTypeNamedScope) baseType;
+						List<PscriptType> newTypes = Utils.map(node.getTypeArgs() , new Function<TypeExpr, PscriptType>() {
+
+							@Override
+							public PscriptType apply(TypeExpr input) {
+								return input.attrTyp();
+							}
+							
+						});
+						return ns.replaceTypeVars(newTypes);
+					} else {
+						attr.addError(node.getSource(), "Type " + baseType + " cannot have type args");
+					}
+				}
 				return baseType;
 			}
 
@@ -101,6 +124,11 @@ public class AttrTypeExprType {
 			@Override
 			public PscriptType case_ClassDef(ClassDef term) {
 				return new PscriptTypeClass(term, false);
+			}
+
+			@Override
+			public PscriptType case_TypeParamDef(TypeParamDef typeParamDef) {
+				return new PscriptTypeTypeParam(typeParamDef);
 			}
 		});
 

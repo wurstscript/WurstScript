@@ -16,6 +16,7 @@ public class PScriptTypeNull extends PscriptType {
 				|| other instanceof PscriptTypeModule
 				|| other instanceof PScriptTypeString
 				|| other instanceof PScriptTypeCode
+				|| other instanceof PscriptTypeTypeParam
 				|| other instanceof PscriptTypeClass
 				|| other instanceof PscriptTypeModule;
 	}

@@ -371,15 +371,15 @@ public class JassTranslatorStatements {
 				f.getLocals().add(jassLoopVar);
 
 				ExprTranslationResult fromExpr = translator.translateExpr(f, from);
-				result.add(JassStmtSet(loopVar.getName(), fromExpr.getExpr()));
+				result.add(JassStmtSet(jassLoopVar.getName(), fromExpr.getExpr()));
 				
 				JassExpr toExpr = addCacheVariableSmart(f, result, to, fromExpr);
 				JassExpr stepExpr = addCacheVariableSmart(f, result, step, fromExpr);
 				
 				JassStatements jassBody = JassStatements();
-				jassBody.add(JassStmtExitwhen(JassExprBinary(JassExprVarAccess(loopVar.getName()), op, toExpr)));
+				jassBody.add(JassStmtExitwhen(JassExprBinary(JassExprVarAccess(jassLoopVar.getName()), op, toExpr)));
 				jassBody.addAll(translateStatements(f, body));
-				jassBody.add(JassStmtSet(loopVar.getName(), JassExprBinary(JassExprVarAccess(loopVar.getName()), opInc, stepExpr)));
+				jassBody.add(JassStmtSet(jassLoopVar.getName(), JassExprBinary(JassExprVarAccess(jassLoopVar.getName()), opInc, stepExpr)));
 				result.add(JassStmtLoop(jassBody));
 			}
 

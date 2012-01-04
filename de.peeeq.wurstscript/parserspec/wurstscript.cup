@@ -66,14 +66,13 @@ terminal
 	TYPE, GLOBALS, ENDGLOBALS, CONSTANT, ENDFUNCTION, TAKES, NOTHING, LOCAL,
 	LOOP, ENDLOOP, EXITWHEN, SET, CALL, THEN, ELSEIF, ENDIF, DESTROY, CASTTO;
 
+
+// non terminal <ReturnType> <RuleName>
 non terminal Arguments Arguments;
 non terminal Arguments ArgumentRest;
-non terminal ArraySizes ArraySizes;
 non terminal ClassDef ClassDef;
-non terminal ClassMember ClassMember;
 non terminal ClassSlots ClassSlots;	
 non terminal ClassSlot ClassSlot;
-non terminal ConstructorDef ConstructorDef;
 non terminal CompilationUnit CompilationUnit;
 non terminal WEntity Entity;
 non terminal Expr Expr;
@@ -89,32 +88,29 @@ non terminal ExprNewObject ExprNewObject;
 non terminal FuncDef FuncDef;
 non terminal FuncSignature FuncSignature;
 non terminal FuncSignature JassFuncSignature; 
-non terminal InitBlock InitBlock;
 non terminal Indexes Indexes;
 non terminal WImport Import;
 non terminal LocalVarDef LocalVarDef;
 non terminal LocalVarDef LocalVarDefInline;
-non terminal MemberDef MemberDef;	
 non terminal ExprMemberArrayVar ExprMemberArrayVar;
-non terminal NativeFunc NativeFunc;
-non terminal NativeType NativeType;
 non terminal Newlines;
-non terminal OnDestroyDef OnDestroyDef; 
 non terminal StmtCall StmtCall;
 non terminal StmtDestroy StmtDestroy;
 non terminal StmtIf StmtIf;
 non terminal StmtReturn StmtReturn;
 non terminal StmtSet StmtSet;
 non terminal StmtWhile StmtWhile;	
-non terminal TypeDef TypeDef;
 non terminal NativeType JassTypeDecl;
 non terminal TypeExpr TypeExpr;
 non terminal TopLevelDeclaration TopLevelDeclaration;
+non terminal TypeParamDefs TypeParamDefList;
+non terminal TypeParamDefs TypeParamDefs;
+non terminal TypeParams TypeParams;
+non terminal TypeParams TypeParamList;
 non terminal GlobalVarDef VarDef;
 non terminal ExprVarAccess ExprVarAccess;
 non terminal ExprVarArrayAccess ExprVarArrayAccess;
 non terminal WEntities Entities;
-non terminal WEntitiy Entitiy;
 non terminal WImports Imports;
 non terminal WPackage PackageDeclaration;
 non terminal WParameter Parameter;
@@ -227,17 +223,36 @@ Entity ::=
 	| ModuleDef:x
 		{: RESULT = x; :}
 	| Modifiers:mod FUNCTION:x TypeExpr:t DOT FuncSignature:sig NL INDENT Statements:body UNINDENT:y
-		{: RESULT = Ast.ExtensionFuncDef(pos(xleft, yright), mod, t, sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body); :}
+		{: RESULT = Ast.ExtensionFuncDef(pos(xleft, yright), mod, t, sig.getName(), sig.getTypeParameters().copy(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body); :}
 ;		
 
 ClassDef ::=
-	Modifiers:mod CLASS:x IDENTIFIER:name NL INDENT ClassSlots:slots UNINDENT:y
-		{: RESULT = Ast.ClassDef(pos(xleft, yright), mod, name, false, slots); :}
+	Modifiers:mod CLASS:x IDENTIFIER:name TypeParamDefs:typeParams NL INDENT ClassSlots:slots UNINDENT:y
+		{: RESULT = Ast.ClassDef(pos(xleft, yright), mod, name, typeParams, false, slots); :}
+;
+
+TypeParamDefs ::=
+	TypeParams:p
+	  	{: RESULT = AstHelper.transformTypeParamsToTyppeParamDefs(p); :}
+;
+
+TypeParams ::=
+	LBRACK:x TypeParamList:l RBRACK:y 
+		{: RESULT = l; :}
+	|
+		{: RESULT = Ast.TypeParams(); :}
+;
+
+TypeParamList ::=
+	TypeExpr:e COMMA TypeParamList:l
+		{: l.addFront(e); RESULT = l; :}
+	| TypeExpr:e
+		{: RESULT = Ast.TypeParams(e); :}
 ;
 
 ModuleDef ::=
-	Modifiers:mod MODULE:x IDENTIFIER:name NL INDENT ClassSlots:slots UNINDENT:y
-		{: RESULT = Ast.ModuleDef(pos(xleft, yright), mod, name, slots); :}
+	Modifiers:mod MODULE:x IDENTIFIER:name TypeParamDefs:typeParams NL INDENT ClassSlots:slots UNINDENT:y
+		{: RESULT = Ast.ModuleDef(pos(xleft, yright), mod, name, typeParams, slots); :}
 ;
 
 ClassSlots ::=
@@ -250,8 +265,8 @@ ClassSlots ::=
 ClassSlot ::=
 	Modifiers:mod CONSTRUCT:x LPAR Parameters:params RPAR NL INDENT Statements:body UNINDENT:y
 		{: RESULT = Ast.ConstructorDef(pos(xleft, yright), mod, params, body); :}
-	| Modifiers:mod USE:x IDENTIFIER:m NL
-		{: RESULT = Ast.ModuleUse(pos(xleft, mright), m); :} 
+	| Modifiers:mod USE:x IDENTIFIER:m TypeParams:typeParams NL
+		{: RESULT = Ast.ModuleUse(pos(xleft, mright), m, typeParams); :} 
 	| ONDESTROY:x NL INDENT Statements:body UNINDENT:y
 		{: RESULT = Ast.OnDestroyDef(pos(xleft, yright), body); :}
 	| VarDef:x
@@ -262,9 +277,9 @@ ClassSlot ::=
 
 FuncDef ::=
 	  Modifiers:mod FUNCTION:x FuncSignature:sig NL INDENT Statements:body UNINDENT:y
-		{: RESULT = Ast.FuncDef(pos(xleft, yright), mod, sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body); :}
+		{: RESULT = Ast.FuncDef(pos(xleft, yright), mod, sig.getName(), sig.getTypeParameters().copy(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body); :}
 	| Modifiers:mod FUNCTION:x FuncSignature:sig NL
-		{: RESULT = Ast.FuncDef(pos(xleft, sig), mod, sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), Ast.WStatements()); :}
+		{: RESULT = Ast.FuncDef(pos(xleft, sig), mod, sig.getName(), sig.getTypeParameters().copy(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), Ast.WStatements()); :}
 ;
 
 Modifiers ::=
@@ -294,10 +309,10 @@ Modifier ::=
 ;
 
 FuncSignature ::=
-	IDENTIFIER:name LPAR Parameters:parameters RPAR RETURNS TypeExpr:typ
-		{: RESULT = Ast.FuncSignature(pos(nameleft, typ), name, parameters, typ); :}
-	| IDENTIFIER:name LPAR Parameters:parameters RPAR:y
-		{: RESULT = Ast.FuncSignature(pos(nameleft, yright), name, parameters, Ast.NoTypeExpr()); :}
+	IDENTIFIER:name TypeParamDefs:typeParams LPAR Parameters:parameters RPAR RETURNS TypeExpr:typ
+		{: RESULT = Ast.FuncSignature(pos(nameleft, typ), name, typeParams, parameters, typ); :}
+	| IDENTIFIER:name TypeParamDefs:typeParams LPAR Parameters:parameters RPAR:y
+		{: RESULT = Ast.FuncSignature(pos(nameleft, yright), name, typeParams, parameters, Ast.NoTypeExpr()); :}
 ;
 
 Parameters ::=
@@ -320,13 +335,15 @@ Parameter ::=
 ;
 
 TypeExpr ::=
-	IDENTIFIER:name
-		{: RESULT = Ast.TypeExprSimple(pos(nameleft, nameright), name); :}
+	IDENTIFIER:name TypeParams:typeParams
+		{: RESULT = Ast.TypeExprSimple(pos(nameleft, nameright), name, typeParams); :}
 	| TypeExpr:e ARRAY:y
 		{: RESULT = Ast.TypeExprArray(pos(e, yright), e); :}
 	| THISTYPE:x
 		{: RESULT = Ast.TypeExprThis(pos(xleft, xright)); :}
 ;
+
+
 
 /*
 ArraySizes ::= 
@@ -443,18 +460,6 @@ StmtSet ::=
 		{: RESULT = Ast.StmtSet(pos(left, left), left, Ast.OpAssign(), Ast.ExprIncomplete(pos(left, Integer.MIN_VALUE), "missing right side of expression")); :}
 ;
 
-OpAssign ::=
-	  EQ
-		{: RESULT = ; :}
-	| PLUS EQ
-		{: RESULT = Ast.OpPlusAssign(); :}
-	| MINUS EQ
-		{: RESULT = Ast.OpMinusAssign(); :}
-	| MULT EQ
-		{: RESULT = Ast.OpMultAssign(); :}
-;
-
-
 ExprAssignable ::=
 	ExprMemberVar:x
 		{: RESULT = x; :} 
@@ -528,8 +533,8 @@ ExprMemberArrayVar ::=
 ;
 
 ExprMemberMethod ::=
-	Expr:left DOT IDENTIFIER:name LPAR Arguments:args RPAR:y
-		{: RESULT = Ast.ExprMemberMethod(pos(left, yright), left, name, args); :}
+	Expr:left DOT IDENTIFIER:name TypeParams:typeParams LPAR Arguments:args RPAR:y
+		{: RESULT = Ast.ExprMemberMethod(pos(left, yright), left, name, typeParams, args); :}
 ;
 
 
@@ -559,8 +564,8 @@ ExprAtomic ::=
 ;	
 
 ExprNewObject ::=
- 	NEW:x IDENTIFIER:name LPAR Arguments:args RPAR:y
-		{: RESULT = Ast.ExprNewObject(pos(xleft, yright), name, args); :}
+ 	NEW:x IDENTIFIER:name TypeParams:typeParams LPAR Arguments:args RPAR:y
+		{: RESULT = Ast.ExprNewObject(pos(xleft, yright), name, typeParams, args); :}
 ;
 
 Indexes ::=
@@ -629,8 +634,8 @@ ExprUnary ::=
 ;
 
 ExprFunctionCall ::=
-	IDENTIFIER:name LPAR Arguments:args RPAR:y
-		{: RESULT = Ast.ExprFunctionCall(pos(nameleft, yright), name, args); :}
+	IDENTIFIER:name TypeParams:typeParams LPAR Arguments:args RPAR:y
+		{: RESULT = Ast.ExprFunctionCall(pos(nameleft, yright), name, typeParams, args); :}
 ;
 
 
@@ -693,16 +698,16 @@ JassFuncDef ::=
 	FUNCTION:x JassFuncSignature:sig NL JassLocals:body1 JassStatements:body2 ENDFUNCTION:y NL
 		{: 
 			body1.addAll(body2.removeAll());
-			RESULT = Ast.FuncDef(pos(xleft, yright), Ast.Modifiers(), sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body1); 
+			RESULT = Ast.FuncDef(pos(xleft, yright), Ast.Modifiers(), sig.getName(), sig.getTypeParameters().copy(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body1); 
 		:}
 ;
 
 
 JassFuncSignature ::=
 	IDENTIFIER:name TAKES JassParameters:parameters RETURNS TypeExpr:typ
-		{: RESULT = Ast.FuncSignature(pos(nameleft, typ), name, parameters, typ); :}
+		{: RESULT = Ast.FuncSignature(pos(nameleft, typ), name, Ast.TypeParamDefs(), parameters, typ); :}
 	| IDENTIFIER:name TAKES JassParameters:parameters RETURNS NOTHING:y
-		{: RESULT = Ast.FuncSignature(pos(nameleft, yright), name, parameters, Ast.NoTypeExpr()); :}
+		{: RESULT = Ast.FuncSignature(pos(nameleft, yright), name, Ast.TypeParamDefs(), parameters, Ast.NoTypeExpr()); :}
 ;
 
 JassParameters ::=

@@ -286,24 +286,24 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 								loopInPos.copy(), 
 								Ast.Modifiers(), 
 								NoTypeExpr(), iteratorName, 
-									ExprMemberMethod(loopInPos.copy(), (Expr) loop.getIn().copy(), "iterator", Arguments())));
+									Ast.ExprMemberMethod(loopInPos.copy(), (Expr) loop.getIn().copy(), "iterator", Ast.TypeParams(), Arguments())));
 				WStatements body = WStatements(
 							Ast.LocalVarDef(loopVarPos.copy(), 
 									Ast.Modifiers(),
 									(OptTypeExpr) loop.getLoopVar().getOptTyp().copy(), 
 									loop.getLoopVar().getName(), 
 									ExprMemberMethod(loopInPos.copy(), 
-											ExprVarAccess(loopVarPos.copy(), iteratorName), "next", Arguments()))
+											ExprVarAccess(loopVarPos.copy(), iteratorName), "next", Ast.TypeParams(), Arguments()))
 						);
 				body.addAll(loop.getBody().removeAll());
 				parent.add(position + 1, Ast.StmtWhile(
 						loop.getSource().copy(), 
 						ExprMemberMethod(loopInPos.copy(), 
-								ExprVarAccess(loopVarPos.copy(), iteratorName), "hasNext", Arguments()),
+								ExprVarAccess(loopVarPos.copy(), iteratorName), "hasNext", Ast.TypeParams(), Arguments()),
 						body));
 				parent.add(position+2, 
 						ExprMemberMethod(loopInPos.copy(), 
-								ExprVarAccess(loopVarPos.copy(), iteratorName), "close", Arguments()));
+								ExprVarAccess(loopVarPos.copy(), iteratorName), "close", Ast.TypeParams(), Arguments()));
 			} else {
 				throw new CompileError(loop.getSource(), "Loop not in statements - " + loop.getParent().getClass().getName());
 			}

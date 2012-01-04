@@ -1,12 +1,20 @@
 package de.peeeq.wurstscript.validation;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.AstElementWithTypeArgs;
+import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
@@ -21,9 +29,11 @@ import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.FuncRef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.FunctionImplementation;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
+import de.peeeq.wurstscript.ast.HasTypeArgs;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.ModStatic;
@@ -40,6 +50,7 @@ import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.VisibilityModifier;
 import de.peeeq.wurstscript.ast.WImport;
@@ -57,6 +68,7 @@ import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
 import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
+import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
 import de.peeeq.wurstscript.utils.Utils;
 
 /**
@@ -73,12 +85,15 @@ import de.peeeq.wurstscript.utils.Utils;
  * attributes
  * 
  */
-public class WurstValidator extends CompilationUnit.DefaultVisitor {
+public class WurstValidator {
 
 	private CompilationUnit prog;
 	private int functionCount;
 	private int visitedFunctions;
-
+	private List<Method> checkMethods = Lists.newArrayList();
+	private HashMultimap<Class<?>, Method> typeToMethod = HashMultimap.create();
+	private Set<Class<?>> knownTypes = Sets.newHashSet();
+	
 	public WurstValidator(CompilationUnit prog) {
 		this.prog = prog;
 	}
@@ -87,13 +102,51 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		functionCount = countFunctions();
 		visitedFunctions = 0;
 
-		prog.accept(this);
+//		prog.accept(this);
+		// TODO reflection mechanism
+		
+		
+		for (Method m : WurstValidator.class.getMethods()) {
+			if (m.getAnnotation(CheckMethod.class) != null) {
+				// this is a checkmethod
+				checkMethods.add(m);
+				if (m.getParameterTypes().length != 1) {
+					throw new Error("check method must have exactly one parameter: " + m);
+				}
+			}
+		}
+		
+		walkTree(prog);		
+	}
+
+	private void walkTree(AstElement e) {
+		check(e);
+		for (int i=0; i<e.size(); i++) {
+			walkTree(e.get(i));
+		}
+	}
+
+	private void check(AstElement e) {
+		if (!knownTypes.contains(e)) {
+			for (Method m : checkMethods) {
+				if (m.getParameterTypes()[0].isInstance(e)) {
+					typeToMethod.put(e.getClass(), m);
+				}
+			}
+		}
+		for (Method m : typeToMethod.get(e.getClass())) {
+			try {
+				m.invoke(this, e);
+			} catch (Throwable t) {
+				t.printStackTrace();
+			}
+		}
 	}
 
 	private int countFunctions() {
 		final int functionCount[] = new int[1];
 		prog.accept(new CompilationUnit.DefaultVisitor() {
-			@Override
+			@CheckMethod
 			public void visit(FuncDef f) {
 				functionCount[0]++;
 			}
@@ -101,9 +154,8 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		return functionCount[0];
 	}
 
-	@Override
+	@CheckMethod
 	public void visit(StmtSet s) {
-		super.visit(s);
 
 		PscriptType leftType = s.getUpdatedExpr().attrTyp();
 		PscriptType rightType = s.getRight().attrTyp();
@@ -169,10 +221,9 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		}
 	}
 
-	@Override
+	@CheckMethod
 	public void visit(LocalVarDef s) {
 		checkVarName(s, false);
-		super.visit(s);
 		if (s.getInitialExpr() instanceof Expr) {
 			Expr initial = (Expr) s.getInitialExpr();
 			PscriptType leftType = s.attrTyp();
@@ -193,15 +244,14 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		}
 	}
 	
-	@Override
+	@CheckMethod
 	public void visit(WParameter wParameter) {
 		checkVarName(wParameter, false);
 	}
 
-	@Override
+	@CheckMethod
 	public void visit(GlobalVarDef s) {
 		checkVarName(s, s.attrIsConstant());
-		super.visit(s);
 		if (s.getInitialExpr() instanceof Expr) {
 			Expr initial = (Expr) s.getInitialExpr();
 			PscriptType leftType = s.attrTyp();
@@ -210,25 +260,23 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		}
 	}
 
-	@Override
+	@CheckMethod
 	public void visit(StmtIf stmtIf) {
-		super.visit(stmtIf);
 		PscriptType condType = stmtIf.getCond().attrTyp();
 		if (!(condType instanceof PScriptTypeBool)) {
 			attr.addError(stmtIf.getCond().getSource(), "If condition must be a boolean but found " + condType);
 		}
 	}
 
-	@Override
+	@CheckMethod
 	public void visit(StmtWhile stmtWhile) {
-		super.visit(stmtWhile);
 		PscriptType condType = stmtWhile.getCond().attrTyp();
 		if (!(condType instanceof PScriptTypeBool)) {
 			attr.addError(stmtWhile.getCond().getSource(), "While condition must be a boolean but found " + condType);
 		}
 	}
 
-	@Override
+	@CheckMethod
 	public void visit(ExtensionFuncDef func) {
 		checkFunctionName(func);
 		
@@ -260,7 +308,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		}
 	}
 
-	@Override
+	@CheckMethod
 	public void visit(FuncDef func) {
 		visitedFunctions++;
 		attr.setProgress(null, ProgressHelper.getValidatorPercent(visitedFunctions, functionCount));
@@ -292,22 +340,22 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 
 	}
 	
-	@Override
+	@CheckMethod
 	public void visit(InitBlock initBlock) {
 		UninitializedVars.checkFunc(initBlock.attrDefinedNames().values(), initBlock.getBody());
 	}
 	
-	@Override
+	@CheckMethod
 	public void visit(OnDestroyDef onDestroyDef) {
 		UninitializedVars.checkFunc(onDestroyDef.attrDefinedNames().values(), onDestroyDef.getBody());
 	}
 	
-	@Override
+	@CheckMethod
 	public void visit(ConstructorDef constructorDef) {
 		UninitializedVars.checkFunc(constructorDef.attrDefinedNames().values(), constructorDef.getBody());
 	}
 
-	@Override
+	@CheckMethod
 	public void visit(ExprFunctionCall stmtCall) {
 		String funcName = stmtCall.getFuncName();
 		// calculating the exprType should reveal most errors:
@@ -364,6 +412,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 			for (int i=0; i<args.size(); i++) {
 				PscriptType actual = args.get(i).attrTyp();
 				PscriptType expected = parameterTypes.get(i);
+				if (expected instanceof AstElementWithTypeArgs)
 				if (!actual.isSubtypeOf(expected)) {
 					attr.addError(args.get(i).getSource(), "Expected " + expected + " as parameter " + i + " but found " + actual);
 				}
@@ -372,7 +421,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		
 	}
 
-	@Override
+	@CheckMethod
 	public void visit(ExprMemberMethod stmtCall) {
 		// calculating the exprType should reveal all errors:
 		stmtCall.attrTyp();
@@ -385,13 +434,13 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		checkParams(stmtCall, args, stmtCall.attrFuncDef());
 	}
 
-	@Override
+	@CheckMethod
 	public void visit(ExprNewObject stmtCall) {
 		stmtCall.attrTyp();
 		stmtCall.attrConstructorDef();
 	}
 
-	@Override
+	@CheckMethod
 	public void visit(Modifiers modifiers) {
 		boolean hasVis = false;
 		boolean isStatic = false;
@@ -410,7 +459,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		}
 	}
 
-	@Override
+	@CheckMethod
 	public void visit(StmtReturn s) {
 		FunctionImplementation func = s.attrNearestFuncDef();
 		if (func == null) {
@@ -436,7 +485,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		}
 	}
 
-	@Override
+	@CheckMethod
 	public void visit(ClassDef classDef) {
 		checkTypeName(classDef.getSource(), classDef.getName());
 		
@@ -458,7 +507,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		}
 	}
 
-	@Override
+	@CheckMethod
 	public void visit(ModuleDef moduleDef) {
 		checkTypeName(moduleDef.getSource(), moduleDef.getName());
 		// calculate all functions to find possible errors
@@ -466,7 +515,7 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 	}
 	
 
-	@Override
+	@CheckMethod
 	public void visit(StmtDestroy stmtDestroy) {
 		PscriptType typ = stmtDestroy.getDestroyedObj().attrTyp();
 		if (!(typ instanceof PscriptTypeModule || typ instanceof PscriptTypeClass)) {
@@ -474,14 +523,14 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 		}
 	}
 	
-	@Override 
+	@CheckMethod 
 	public void visit(ExprVarAccess e) {
 		checkVarRef(e, e.attrIsDynamicContext());
 	}
 
 	
 	
-	@Override
+	@CheckMethod
 	public void visit(WImport wImport) {
 		if (wImport.attrImportedPackage() == null) {
 			attr.addError(wImport.getSource(), "Could not find imported package " + wImport.getPackagename());
@@ -502,5 +551,23 @@ public class WurstValidator extends CompilationUnit.DefaultVisitor {
 				attr.addError(e.getSource(), "Cannot reference dynamic variable " +e.getVarName() + " from static context.");
 			}
 		}
+	}
+	
+	@CheckMethod
+	public void checkTypeBinding(HasTypeArgs e) {
+		for (Entry<TypeParamDef, PscriptType> t : e.attrTypeParameterBindings().entrySet()) {
+			PscriptType typ = t.getValue();
+			if (!(typ instanceof PScriptTypeInt)
+					&& !(typ instanceof PscriptTypeNamedScope)
+					&& !(typ instanceof PscriptTypeTypeParam)) {
+				attr.addError(e.getSource(), "Type parameters can only be bound to ints and class types, but " +
+					"not to " + typ);
+			}
+		}
+	}
+	
+	@CheckMethod
+	public void checkFuncRef(FuncRef ref) {
+		ref.attrFuncDef();
 	}
 }

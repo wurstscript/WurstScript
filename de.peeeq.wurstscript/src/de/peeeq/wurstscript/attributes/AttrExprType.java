@@ -1,5 +1,10 @@
 package de.peeeq.wurstscript.attributes;
 
+import java.util.List;
+import java.util.Map;
+
+import com.google.common.collect.Lists;
+
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.Expr;
@@ -49,6 +54,7 @@ import de.peeeq.wurstscript.ast.OpPlus;
 import de.peeeq.wurstscript.ast.OpUnary;
 import de.peeeq.wurstscript.ast.OpUnequals;
 import de.peeeq.wurstscript.ast.TypeDef;
+import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
@@ -67,6 +73,7 @@ import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
 import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
 import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
+import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -128,8 +135,7 @@ public class AttrExprType {
 	}
 
 
-	public static  PscriptType calculate(
-			ExprVarArrayAccess term)  {
+	public static  PscriptType calculate(ExprVarArrayAccess term)  {
 		NameDef varDef = term.attrNameDef();
 		if (varDef == null) {
 			return PScriptTypeUnknown.instance();
@@ -431,13 +437,10 @@ public class AttrExprType {
 		if (varDef == null) {
 			return PScriptTypeUnknown.instance();
 		}
-		if (varDef instanceof VarDef) {
-			return varDef.attrTyp().dynamic();
-		}
 		if (varDef instanceof FunctionDefinition) {
 			attr.addError(term.getSource(), "Missing parantheses for function call");
 		}
-		return varDef.attrTyp();
+		return term.getLeft().attrTyp().replaceBoundTypeVars(varDef.attrTyp());
 	}
 
 
@@ -465,7 +468,7 @@ public class AttrExprType {
 		PscriptType typ = f.getReturnTyp().attrTyp().dynamic();
 		if (typ instanceof PscriptTypeModule) {
 			// example:
-				// module A 
+			// module A 
 			//    function foo() returns thistype
 			// class C
 			//    use A
@@ -475,7 +478,20 @@ public class AttrExprType {
 			PscriptType leftType = term.getLeft().attrTyp();
 			if (leftType instanceof PscriptTypeClass ||
 					leftType instanceof PscriptTypeModule) {
-				typ = leftType;
+				return leftType;
+			}
+		} else if (typ instanceof PscriptTypeTypeParam) {
+			PscriptTypeTypeParam typParam = (PscriptTypeTypeParam) typ;
+			// typ referes to a type parameter so we have to get the binding
+			
+			// try function type args
+			if (term.attrTypeParameterBindings().containsKey(typParam.getDef())) {
+				return term.attrTypeParameterBindings().get(typParam.getDef());
+			}
+			// try left hand side type args	
+			if (term.getLeft().attrTyp() instanceof PscriptTypeNamedScope) {
+				PscriptTypeNamedScope ns = (PscriptTypeNamedScope) term.getLeft().attrTyp();
+				return ns.getTypeParameterBinding(typParam.getDef());
 			}
 		}
 		return typ;
@@ -499,7 +515,15 @@ public class AttrExprType {
 		if (typ instanceof PscriptTypeModule) {
 			ClassOrModule classOrModule = term.attrNearestClassOrModule();
 			if (classOrModule != null) {
-				typ = TypesHelper.typeOf(classOrModule, false);
+				return TypesHelper.typeOf(classOrModule, false);
+			}
+		} else if (typ instanceof PscriptTypeTypeParam) {
+			PscriptTypeTypeParam typParam = (PscriptTypeTypeParam) typ;
+			// typ referes to a type parameter so we have to get the binding
+			
+			// try function type args
+			if (term.attrTypeParameterBindings().containsKey(typParam.getDef())) {
+				return term.attrTypeParameterBindings().get(typParam.getDef());
 			}
 		}
 		return typ;
@@ -511,7 +535,18 @@ public class AttrExprType {
 
 		TypeDef typeDef = term.attrTypeDef();
 		if (typeDef instanceof ClassDef) {
-			return new PscriptTypeClass((ClassDef) typeDef, false);
+			ClassDef c = (ClassDef) typeDef;
+			final Map<TypeParamDef, PscriptType> bindings = term.attrTypeParameterBindings();
+			List<PscriptType> types = Lists.newLinkedList();
+			for (TypeParamDef t: c.getTypeParameters()) {
+				PscriptType r = bindings.get(t);
+				if (r != null) {
+					types.add(r);
+				} else {
+					types.add(PScriptTypeUnknown.instance());
+				}
+			}
+			return new PscriptTypeClass(c, types);
 		} else {
 			attr.addError(term.getSource(), "Can only create instances of classes.");
 			return PScriptTypeUnknown.instance();

@@ -68,6 +68,7 @@ import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.TopLevelDeclaration;
+import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WImport;
@@ -102,6 +103,7 @@ import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeError;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
 import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
+import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.TopsortCycleException;
 import de.peeeq.wurstscript.utils.Utils;
@@ -493,6 +495,8 @@ public class JassTranslator {
 			return "nothing";
 		} else if (t instanceof PscriptTypeModule) {
 			return "integer";
+		} else if (t instanceof PscriptTypeTypeParam) {
+			return "integer";
 		}
 		throw new Error("Cannot translate type: " + t + " // " + t.getClass());
 	}
@@ -593,6 +597,11 @@ public class JassTranslator {
 				@Override
 				public void case_ExtensionFuncDef(ExtensionFuncDef extensionFuncDef) {
 					translateExtensionFuncDef(extensionFuncDef);
+				}
+
+				@Override
+				public void case_TypeParamDef(TypeParamDef typeParamDef) {
+					throw new Error("not implemented");
 				}
 			});
 		}

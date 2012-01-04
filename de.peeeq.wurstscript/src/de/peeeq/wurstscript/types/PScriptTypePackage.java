@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.types;
 
+import java.util.List;
+
 import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.WPackage;
 
@@ -23,12 +25,17 @@ public class PScriptTypePackage extends PscriptTypeNamedScope {
 	
 	@Override
 	public String getName() {
-		return getDef().getName() + " (package)";
+		return getDef().getName() + printTypeParams() + " (package)";
 	}
 	
 	@Override
 	public PscriptType dynamic() {
 		throw new Error("Package references cannot be dynamic.");
+	}
+
+	@Override
+	public PscriptType replaceTypeVars(List<PscriptType> newTypes) {
+		return this;
 	}
 
 }

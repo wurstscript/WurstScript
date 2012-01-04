@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.types;
 
+import java.util.List;
+
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.NamedScope;
 
@@ -13,6 +15,11 @@ public class PscriptTypeModule extends PscriptTypeNamedScope {
 		this.moduleDef = moduleDef;
 	}
 
+	public PscriptTypeModule(ModuleDef moduleDef2, List<PscriptType> newTypes) {
+		super(newTypes);
+		moduleDef = moduleDef2;
+	}
+
 	@Override
 	public NamedScope getDef() {
 		return moduleDef;
@@ -20,7 +27,7 @@ public class PscriptTypeModule extends PscriptTypeNamedScope {
 	
 	@Override
 	public String getName() {
-		return getDef().getName() + " (module)";
+		return getDef().getName() + printTypeParams() + " (module)";
 	}
 
 	@Override
@@ -29,5 +36,10 @@ public class PscriptTypeModule extends PscriptTypeNamedScope {
 			return new PscriptTypeModule(moduleDef, false);
 		}
 		return this;
+	}
+
+	@Override
+	public PscriptType replaceTypeVars(List<PscriptType> newTypes) {
+		return new PscriptTypeModule(moduleDef, newTypes);
 	}
 }

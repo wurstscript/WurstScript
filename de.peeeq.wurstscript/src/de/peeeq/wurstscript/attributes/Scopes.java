@@ -8,9 +8,11 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithBody;
 import de.peeeq.wurstscript.ast.AstElementWithParameters;
 import de.peeeq.wurstscript.ast.AstElementWithSlots;
+import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModuleOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.ClassSlot;
@@ -25,6 +27,8 @@ import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.TopLevelDeclaration;
+import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.ast.TypeParamDefs;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
@@ -39,6 +43,14 @@ public class Scopes {
 
 	public static Multimap<String, NameDef> getDefinedNames(AstElementWithBody c) {
 		Multimap<String, NameDef> result = HashMultimap.create();
+		addTypeParametersIfAny(result, c);
+		addParametersIfAny(c, result);
+		addDefinedNamesInStatements(result, c.getBody());
+		return result;
+	}
+
+
+	private static void addParametersIfAny(AstElementWithBody c, Multimap<String, NameDef> result) {
 		// add parameters:
 		if (c instanceof AstElementWithParameters) {
 			AstElementWithParameters wp = (AstElementWithParameters) c;
@@ -46,8 +58,17 @@ public class Scopes {
 				result.put(p.getName(), p);
 			}
 		}
-		addDefinedNamesInStatements(result, c.getBody());
-		return result;
+	}
+
+
+	private static void addTypeParametersIfAny(Multimap<String, NameDef> result, AstElement c) {
+		if (c instanceof AstElementWithTypeParameters){
+			AstElementWithTypeParameters ewt = (AstElementWithTypeParameters) c;
+			TypeParamDefs ts = ewt.getTypeParameters();
+			for (TypeParamDef t : ts) {
+				result.put(t.getName(), t);
+			}
+		}
 	}
 	
 	
@@ -79,11 +100,13 @@ public class Scopes {
 	}
 
 	public static Multimap<String, NameDef> getDefinedNames(ClassOrModuleOrModuleInstanciation c) {
-		return getDefinedNames(c.getSlots());
+		Multimap<String, NameDef> result = HashMultimap.create();
+		addTypeParametersIfAny(result, c);
+		getDefinedNames(result, c.getSlots());
+		return result;
 	}
 	
-	private static Multimap<String, NameDef> getDefinedNames(ClassSlots slots) {
-		Multimap<String, NameDef> result = HashMultimap.create();
+	private static Multimap<String, NameDef> getDefinedNames(Multimap<String, NameDef> result , ClassSlots slots) {
 		for (ClassSlot s : slots) {
 			if (s instanceof NameDef) {
 				NameDef n = (NameDef) s;
