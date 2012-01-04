@@ -26,6 +26,7 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithName;
 import de.peeeq.wurstscript.ast.ClassOrModule;
+import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WScope;
 
@@ -474,6 +475,15 @@ public class Utils {
 		} else {
 			return "scope (" + scope.getClass().getName() +")";
 		}
+	}
+
+	public static String printElement(AstElement e) {
+		String type = e.getClass().getSimpleName().replaceAll("Impl$", "");
+		String name = "";
+		if (e instanceof AstElementWithName) {
+			name = ((AstElementWithName) e).getName();
+		}
+		return type + " " + name;
 	}
 
 }
