@@ -1,0 +1,68 @@
+package Lists
+
+	public class LinkedList{T}
+		private LLEntry{T} dummy
+		private int size = 0
+
+		construct()
+			dummy =  new LLEntry{T}(null, null, null)
+			dummy.next = dummy
+			dummy.prev = dummy
+
+		function add(T elem)
+			val entry = new LLEntry(elem, dummy.prev, dummy)
+			dummy.prev.next = entry
+			dummy.prev = entry
+			size ++
+
+		function remove(int index)
+			val e = getEntry(index)
+			e.prev.next = e.next
+			e.next.prev = e.prev
+			destroy e	
+		
+		function getSize() returns int
+			return size
+
+		private function getEntry(int index) returns LLEntry{T}
+			LLEntry{T} r = dummy
+			for int i = 0 to index
+				r = r.next
+			return r
+
+		function get(int index) returns T
+			return getEntry(index).elem
+
+		function iterator() returns LLIterator{T}
+			return new LLIterator(dummy)			
+		
+
+	class LLEntry{S}
+		S elem
+		LLEntry{S} prev
+		LLEntry{S} next
+
+		construct(S elem, LLEntry{S} prev, LLEntry{S} next)
+			this.elem = elem
+			this.prev = prev
+			this.next = next
+
+	class LLIterator{Q}
+		LLEntry{Q} dummy
+		LLEntry{Q} current
+
+		construct(LLEntry{Q} dummy)
+			this.dummy = dummy
+			this.current = dummy
+
+		function hasNext() returns boolean
+			return current.next != dummy
+
+		function next() returns Q
+			current = current.next
+			return current.elem
+
+		function close()
+			destroy this
+
+endpackage
