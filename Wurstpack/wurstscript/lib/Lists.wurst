@@ -9,17 +9,23 @@ package Lists
 			dummy.next = dummy
 			dummy.prev = dummy
 
+		// add an element to the end of the list
 		function add(T elem)
 			val entry = new LLEntry(elem, dummy.prev, dummy)
 			dummy.prev.next = entry
 			dummy.prev = entry
 			size ++
 
+		function addAll(LinkedList{T} elems)
+			for T elem in elems
+				add(elem)
+
 		function remove(int index)
 			val e = getEntry(index)
 			e.prev.next = e.next
 			e.next.prev = e.prev
 			destroy e	
+			size--
 		
 		function getSize() returns int
 			return size
@@ -35,7 +41,14 @@ package Lists
 
 		function iterator() returns LLIterator{T}
 			return new LLIterator(dummy)			
-		
+
+		ondestroy
+			LLEntry{T} current = dummy.next
+			while current != dummy
+				val temp = current
+				current = current.next
+				destroy temp
+			destroy dummy
 
 	class LLEntry{S}
 		S elem
