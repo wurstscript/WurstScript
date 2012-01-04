@@ -291,6 +291,8 @@ public class Generator {
 			printProlog(sb);
 			sb.append("public interface ");
 			sb.append(interfaceName);
+			sb.append(" extends ");
+			sb.append(getCommonSupertypeType());
 			sb.append(" { ");
 			sb.append("	void set" + toFirstUpper(p.name) + "(" + p.typ + " " + p.name + ");\n");
 			sb.append("	" + p.typ + " get" + toFirstUpper(p.name) + "();\n");

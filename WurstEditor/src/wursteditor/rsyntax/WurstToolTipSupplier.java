@@ -22,6 +22,7 @@ import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WParameter;
 
 import wursteditor.controller.SyntaxCodeAreaController;
@@ -107,6 +108,11 @@ public class WurstToolTipSupplier implements ToolTipSupplier {
 			@Override
 			public String case_LocalVarDef(LocalVarDef v) {
 				return "local variable: " + v.attrTyp() + " " + v.getName();
+			}
+
+			@Override
+			public String case_TypeParamDef(TypeParamDef typeParamDef) {
+				return "type parameter: " + typeParamDef.getName();
 			}
 		});
 	}
