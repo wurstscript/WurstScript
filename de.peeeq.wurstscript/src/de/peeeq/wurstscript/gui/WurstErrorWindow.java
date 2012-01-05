@@ -218,8 +218,6 @@ public class WurstErrorWindow extends javax.swing.JFrame {
 		this.errorDetailsPanel.setText(err.getMessage());
 		
 		String fileName = err.getSource().getFile();
-		int lineNr = err.getSource().getLine();
-		int column = err.getSource().getColumn();
 
 		try {
 			if (!currentFile.equals(fileName)) {
@@ -257,18 +255,9 @@ public class WurstErrorWindow extends javax.swing.JFrame {
 			// reset highlighting
 			codeArea.getStyledDocument().setCharacterAttributes(0, text.length()-1, attrs , true);
 
-			int selectionStart = lineNr < currentFileLineList.size()  
-					? currentFileLineList.get(lineNr) + column + 1 
-					: 0;
+			int selectionStart = err.getSource().getLeftPos();
 			// select at least one character:
-			int selectionEnd = Math.min(text.length()-1, selectionStart + 1);
-			// try to select an identifier or something:
-			while (selectionEnd < text.length()-1) {
-				selectionEnd++;
-				if (!Character.isJavaIdentifierPart(text.charAt(selectionEnd))) {
-					break;
-				}
-			}
+			int selectionEnd = err.getSource().getRightPos();
 			
 			if (selectionStart == selectionEnd && selectionStart > 0) {
 				// select at least one char

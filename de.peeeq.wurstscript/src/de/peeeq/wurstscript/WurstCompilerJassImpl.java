@@ -256,95 +256,14 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	
 
 	private void removeSyntacticSugar(CompilationUnit root) {
-		addDefaultConstructors(root);
-		expandForInLoops(root);
+		new SyntacticSugar().removeSyntacticSugar(root);
 	}
 
-	private void expandForInLoops(CompilationUnit root) {
-		// collect loops
-		final List<StmtForIn> loops = Lists.newArrayList();
-		root.accept(new CompilationUnit.DefaultVisitor() {
-			@Override
-			public void visit(StmtForIn stmtForIn) {
-				loops.add(stmtForIn);
-			}
-		});
-		
-		// exand loops
-		for (StmtForIn loop : loops) {
-			if (loop.getParent() instanceof WStatements) {
-				WStatements parent = (WStatements) loop.getParent();
-				
-				int position = parent.indexOf(loop);
-				parent.remove(position);
-				
-				String iteratorName = "iterator" +  UUID.randomUUID().toString().replace("-", "x");
-				WPos loopVarPos = loop.getLoopVar().getSource();
-				WPos loopInPos = loop.getIn().getSource();
-				parent.add(position, 
-						Ast.LocalVarDef(
-								loopInPos.copy(), 
-								Ast.Modifiers(), 
-								NoTypeExpr(), iteratorName, 
-									Ast.ExprMemberMethod(loopInPos.copy(), (Expr) loop.getIn().copy(), "iterator", Ast.TypeParams(), Arguments())));
-				WStatements body = WStatements(
-							Ast.LocalVarDef(loopVarPos.copy(), 
-									Ast.Modifiers(),
-									(OptTypeExpr) loop.getLoopVar().getOptTyp().copy(), 
-									loop.getLoopVar().getName(), 
-									ExprMemberMethod(loopInPos.copy(), 
-											ExprVarAccess(loopVarPos.copy(), iteratorName), "next", Ast.TypeParams(), Arguments()))
-						);
-				body.addAll(loop.getBody().removeAll());
-				parent.add(position + 1, Ast.StmtWhile(
-						loop.getSource().copy(), 
-						ExprMemberMethod(loopInPos.copy(), 
-								ExprVarAccess(loopVarPos.copy(), iteratorName), "hasNext", Ast.TypeParams(), Arguments()),
-						body));
-				parent.add(position+2, 
-						ExprMemberMethod(loopInPos.copy(), 
-								ExprVarAccess(loopVarPos.copy(), iteratorName), "close", Ast.TypeParams(), Arguments()));
-			} else {
-				throw new CompileError(loop.getSource(), "Loop not in statements - " + loop.getParent().getClass().getName());
-			}
-		}
-	}
+	
 
-	/**
-	 * add a empty default constructor to every class without any constructor 
-	 */
-	private void addDefaultConstructors(CompilationUnit root) {
-		outerLoop: for (ClassDef c : getAllClasses(root)) {
-			for (ClassSlot s : c.getSlots()) {
-				if (s instanceof ConstructorDef) {
-					continue outerLoop;
-				}
-			}
-			c.getSlots().add(Ast.ConstructorDef(
-					c.getSource().copy(), 
-					Ast.Modifiers(), 
-					Ast.WParameters(), 
-					Ast.WStatements()));
-		}
-	}
+	
 
-	/**
-	 * return all classes occuring in a compilation unit 
-	 */
-	private List<ClassDef> getAllClasses(CompilationUnit root) {
-		List<ClassDef> result = Lists.newArrayList();
-		for (TopLevelDeclaration t : root) {
-			if (t instanceof WPackage) {
-				WPackage p = (WPackage) t;
-				for (WEntity e : p.getElements()) {
-					if (e instanceof ClassDef) {
-						result.add((ClassDef) e);
-					}
-				}
-			}
-		}
-		return result;
-	}
+	
 
 	
 //	private List<ModuleDef> getAllModules(CompilationUnit root) {

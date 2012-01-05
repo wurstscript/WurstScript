@@ -14,11 +14,4 @@
 	<natures>
 		<nature>org.eclipse.jdt.core.javanature</nature>
 	</natures>
-	<linkedResources>
-		<link>
-			<name>Wurstpack</name>
-			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/Wurstpack</locationURI>
-		</link>
-	</linkedResources>
 </projectDescription>
