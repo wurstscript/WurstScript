@@ -222,29 +222,8 @@ public class WurstErrorWindow extends javax.swing.JFrame {
 		try {
 			if (!currentFile.equals(fileName)) {
 				currentFile = fileName;
-				currentFileLineList = new ArrayList<Integer>();
 				FileReader fr = new FileReader(fileName);
 				codeArea.read(fr, fileName);
-				
-				// caculate line numbers:
-				String text = codeArea.getText();
-				currentFileLineList.add(0);
-				int pos = 0;
-				int correctionTerm = 0;
-				while (pos >= 0) {
-					currentFileLineList.add(pos - correctionTerm);
-					int newPos = text.indexOf("\r\n", pos+1);
-					if (newPos >= 0) {
-						newPos++;
-						correctionTerm++;
-					} else {
-						newPos = text.indexOf("\n", pos+1);
-						if (newPos < 0) {
-							newPos = text.indexOf("\r", pos+1);
-						}
-					}
-					pos = newPos;
-				}
 			}
 
 			String text = codeArea.getText();
@@ -264,16 +243,16 @@ public class WurstErrorWindow extends javax.swing.JFrame {
 				selectionStart --;
 			}
 			
-//			// correct ignored chars (fix for newlines with carriage return):
-//			int ignoredChars = 0; 
-//			for (int i=0; i< selectionStart; i++) {
-//				if (text.charAt(i) == '\r') {
-//					ignoredChars++;
-//				}
-//			}
-//						
-//			selectionStart -= ignoredChars;
-//			selectionEnd -= ignoredChars;
+			// correct ignored chars (fix for newlines with carriage return):
+			int ignoredChars = 0; 
+			for (int i=0; i< selectionStart-ignoredChars; i++) {
+				if (text.charAt(i) == '\r') {
+					ignoredChars++;
+				}
+			}
+						
+			selectionStart -= ignoredChars;
+			selectionEnd -= ignoredChars;
 
 
 			StyleConstants.setUnderline(attrs, true);

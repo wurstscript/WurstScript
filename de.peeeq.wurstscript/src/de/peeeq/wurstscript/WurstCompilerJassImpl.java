@@ -7,6 +7,8 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -97,6 +99,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		gui.sendProgress("Parsing Files", 0.02);
 		// parse all the files:
 		List<CompilationUnit> compilationUnits = new NotNullList<CompilationUnit>();
+		
 		
 		for (File file : files) {
 			if (file.getName().endsWith(".w3x") || file.getName().endsWith(".w3m")) {
