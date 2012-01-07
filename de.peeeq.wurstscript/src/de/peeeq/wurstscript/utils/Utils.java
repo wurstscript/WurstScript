@@ -486,4 +486,8 @@ public class Utils {
 		return type + " " + name;
 	}
 
+	public static int inBorders(int min, int x, int max) {
+		return Math.max(min, Math.min(max, x));
+	}
+
 }

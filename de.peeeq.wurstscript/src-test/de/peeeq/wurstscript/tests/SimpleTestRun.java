@@ -24,7 +24,7 @@ public class SimpleTestRun {
 
 
 	public static void main(String ... args) throws IOException, InterruptedException {
-		String testFile = "./testscripts/valid/indent_test.pscript";
+		String testFile = "./testscripts/concept/vector.j";
 		if (args.length == 1) {
 			testFile = args[0];
 		}

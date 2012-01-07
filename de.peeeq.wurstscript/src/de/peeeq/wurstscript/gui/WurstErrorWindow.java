@@ -26,6 +26,7 @@ import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.text.BadLocationException;
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
@@ -243,21 +244,34 @@ public class WurstErrorWindow extends javax.swing.JFrame {
 				selectionStart --;
 			}
 			
+			StyledDocument doc = codeArea.getStyledDocument();
+			String docText = doc.getText(0, doc.getLength());
+			
+			
 			// correct ignored chars (fix for newlines with carriage return):
 			int ignoredChars = 0; 
-			for (int i=0; i< selectionStart-ignoredChars; i++) {
-				if (text.charAt(i) == '\r') {
+			for (int i=0; i<selectionStart-ignoredChars; i++) {
+				char docChar = docText.charAt(i);
+				char textChar = text.charAt(i+ignoredChars);
+				if (docChar == '\n' && textChar == '\r') {
 					ignoredChars++;
+				} else if (docChar != textChar) {
+					System.err.println("unexpected deviation in texts: " + docChar + " != " + textChar);
+					break;
 				}
 			}
-						
+			
 			selectionStart -= ignoredChars;
 			selectionEnd -= ignoredChars;
-
+						
+			selectionStart = Utils.inBorders(0, selectionStart, docText.length()-2);
+			selectionEnd = Utils.inBorders(1, selectionEnd, docText.length()-1);
+			
 
 			StyleConstants.setUnderline(attrs, true);
 			StyleConstants.setBackground(attrs, new Color(255, 150, 150));
-			StyledDocument doc = codeArea.getStyledDocument();
+			
+			
 			doc.setCharacterAttributes(selectionStart, selectionEnd-selectionStart, attrs, true);
 
 			codeArea.select(selectionStart, selectionEnd);
@@ -266,6 +280,9 @@ public class WurstErrorWindow extends javax.swing.JFrame {
 			codeArea.setText("Could not load file: " + fileName);
 		} catch (IOException e) {
 			codeArea.setText("Could not read file: " + fileName);
+		} catch (BadLocationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
     
