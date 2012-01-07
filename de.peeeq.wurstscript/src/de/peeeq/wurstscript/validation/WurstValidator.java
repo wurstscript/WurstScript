@@ -690,4 +690,13 @@ public class WurstValidator {
 	protected String printMod(Modifier m) {
 		return printMod(m.getClass());
 	}
+	
+	@CheckMethod
+	public void checkConstructor(ConstructorDef d) {
+		if (d.attrNearestClassOrModule() instanceof ModuleDef) {
+			if (d.getParameters().size() > 0) {
+				attr.addError(d.getParameters().attrSource(), "Module constructors must not have parameters.");
+			}
+		}
+	}
 }
