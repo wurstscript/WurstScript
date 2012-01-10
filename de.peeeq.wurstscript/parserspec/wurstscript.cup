@@ -58,9 +58,9 @@ terminal
 	LSQUARE, RSQUARE,
 	INDENT, UNINDENT,
 	LBRACK, RBRACK, 
-	COMMA, SEMICOLON,   
+	COMMA, SEMICOLON, COLON,   
 	NL,
-	MODULE, USE, ABSTRACT, IN, FOR, TO, DOWNTO, STEP, BREAK, THISTYPE, ARROW, IT, IMMUTABLE, OVERRIDE,
+	MODULE, USE, ABSTRACT, IN, FOR, TO, DOWNTO, STEP, BREAK, THISTYPE, ARROW, IT, IMMUTABLE, OVERRIDE, INSTANCE, INSTANCEOF, ENUM,
 	STATIC, PACKAGE, ENDPACKAGE, RETURNS,FUNCTION, VAL, PUBLIC, PUBLICREAD, PRIVATE, PROTECTED, IMPORT, NATIVETYPE, INIT, NATIVE, INTERFACE,
 	IMPLEMENTS, ARRAY, IF, ELSE, WHILE, RETURN, CLASS, NEW, NULL, EXTENDS, THIS, CONSTRUCT, ONDESTROY, 
 	TYPE, GLOBALS, ENDGLOBALS, CONSTANT, ENDFUNCTION, TAKES, NOTHING, LOCAL,
@@ -85,10 +85,20 @@ non terminal ExprMemberVar ExprMemberVar;
 non terminal ExprUnary ExprUnary;
 non terminal ExprFunctionCall ExprFunctionCall;
 non terminal ExprNewObject ExprNewObject;
+non terminal TypeExprList ExtendsList;
+non terminal TypeExprList ExtendsListOpt;
 non terminal FuncDef FuncDef;
+non terminal FunctionMappings FunctionMappings;
+non terminal FunctionMapping FunctionMapping;
 non terminal FuncSignature FuncSignature;
 non terminal FuncSignature JassFuncSignature; 
 non terminal Indexes Indexes;
+non terminal InterfaceDef InterfaceDef;
+non terminal InstanceDef InstanceDef;
+non terminal ClassSlots InterfaceFunctionSignatures;
+non terminal FuncDef InterfaceFunctionSignature;
+non terminal TypeExprList ImplementsList;
+non terminal TypeExprList ImplementsListOpt;
 non terminal WImport Import;
 non terminal LocalVarDef LocalVarDef;
 non terminal LocalVarDef LocalVarDefInline;
@@ -105,8 +115,8 @@ non terminal TypeExpr TypeExpr;
 non terminal TopLevelDeclaration TopLevelDeclaration;
 non terminal TypeParamDefs TypeParamDefList;
 non terminal TypeParamDefs TypeParamDefs;
-non terminal TypeParams TypeParams;
-non terminal TypeParams TypeParamList;
+non terminal TypeExprList TypeExprList;
+non terminal TypeExprList TypeParamList;
 non terminal GlobalVarDef VarDef;
 non terminal ExprVarAccess ExprVarAccess;
 non terminal ExprVarArrayAccess ExprVarArrayAccess;
@@ -222,32 +232,103 @@ Entity ::=
 		{: RESULT = x; :}
 	| ModuleDef:x
 		{: RESULT = x; :}
+	| InterfaceDef:x
+		{: RESULT = x; :}
+	| InstanceDef:x
+		{: RESULT = x; :}
 	| Modifiers:mod FUNCTION:x TypeExpr:t DOT FuncSignature:sig NL INDENT Statements:body UNINDENT:y
 		{: RESULT = Ast.ExtensionFuncDef(pos(xleft, yright), mod, t, sig.getName(), sig.getTypeParameters().copy(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body); :}
 ;		
 
+
+InterfaceDef ::=
+	Modifiers:mod INTERFACE:x IDENTIFIER:name TypeParamDefs:typeParams ExtendsListOpt:el NL INDENT InterfaceFunctionSignatures:functionSignatures UNINDENT:y
+		{: RESULT = Ast.InterfaceDef(pos(xleft, yright), mod, name, typeParams, el, functionSignatures); :}
+;
+
+ExtendsList ::= 
+	EXTENDS TypeExpr:e
+		{: RESULT = Ast.TypeExprList(e); :}
+	| ExtendsList:el COMMA TypeExpr:e
+		{: el.add(e); RESULT = el; :}
+;
+
+
+ExtendsListOpt ::=
+	ExtendsList:x
+		{: RESULT = x; :}
+	| 
+		{: RESULT = Ast.TypeExprList(); :}
+;
+
+ImplementsList ::= 
+	IMPLEMENTS TypeExpr:e
+		{: RESULT = Ast.TypeExprList(e); :}
+	| ExtendsList:el COMMA TypeExpr:e
+		{: el.add(e); RESULT = el; :}
+;
+
+ImplementsListOpt ::=
+	ImplementsList:x
+		{: RESULT = x; :}
+	| 
+		{: RESULT = Ast.TypeExprList(); :}
+;
+
+InterfaceFunctionSignatures ::=
+	Newlines InterfaceFunctionSignature:x InterfaceFunctionSignatures:xs
+		{: xs.addFront(x); RESULT = xs; :}
+	| Newlines
+		{: RESULT = Ast.ClassSlots();  :}
+;
+
+InterfaceFunctionSignature ::= 
+	FUNCTION:x FuncSignature:sig NL
+		{: RESULT = Ast.FuncDef(pos(xleft, sig), Ast.Modifiers(Ast.ModAbstract(pos(xleft, xright))), sig.getName()
+					, sig.getTypeParameters().copy(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), Ast.WStatements()); :}
+;
+
+InstanceDef ::=
+	Modifiers:mod INSTANCE:x TypeExpr:classTyp COLON TypeExpr:interfaceTyp NL INDENT FunctionMappings:functionMappings UNINDENT:y
+		{: RESULT = Ast.InstanceDef(pos(xleft, yright), mod, classTyp, interfaceTyp, functionMappings); :}
+	| Modifiers:mod INSTANCE:x TypeExpr:classTyp COLON TypeExpr:interfaceTyp NL
+		{: RESULT = Ast.InstanceDef(pos(xleft, interfaceTyp), mod, classTyp, interfaceTyp, Ast.FunctionMappings()); :}
+;
+
+FunctionMappings ::=
+	Newlines FunctionMapping:x FunctionMappings:xs
+		{: xs.addFront(x); RESULT = xs; :}
+	| Newlines
+		{: RESULT = Ast.FunctionMappings(); :}
+;
+
+FunctionMapping ::=
+	IDENTIFIER:name EQ Expr:e
+		{: RESULT = Ast.FunctionMapping(pos(nameleft, e), name, e); :}
+;
+
 ClassDef ::=
-	Modifiers:mod CLASS:x IDENTIFIER:name TypeParamDefs:typeParams NL INDENT ClassSlots:slots UNINDENT:y
-		{: RESULT = Ast.ClassDef(pos(xleft, yright), mod, name, typeParams, false, slots); :}
+	Modifiers:mod CLASS:x IDENTIFIER:name TypeParamDefs:typeParams ImplementsListOpt:il NL INDENT ClassSlots:slots UNINDENT:y
+		{: RESULT = Ast.ClassDef(pos(xleft, yright), mod, name, typeParams, il, slots); :}
 ;
 
 TypeParamDefs ::=
-	TypeParams:p
-	  	{: RESULT = AstHelper.transformTypeParamsToTyppeParamDefs(p); :}
+	TypeExprList:p
+	  	{: RESULT = AstHelper.transformTypeExprListToTyppeParamDefs(p); :}
 ;
 
-TypeParams ::=
+TypeExprList ::=
 	LBRACK:x TypeParamList:l RBRACK:y 
 		{: RESULT = l; :}
 	|
-		{: RESULT = Ast.TypeParams(); :}
+		{: RESULT = Ast.TypeExprList(); :}
 ;
 
 TypeParamList ::=
 	TypeExpr:e COMMA TypeParamList:l
 		{: l.addFront(e); RESULT = l; :}
 	| TypeExpr:e
-		{: RESULT = Ast.TypeParams(e); :}
+		{: RESULT = Ast.TypeExprList(e); :}
 ;
 
 ModuleDef ::=
@@ -265,7 +346,7 @@ ClassSlots ::=
 ClassSlot ::=
 	Modifiers:mod CONSTRUCT:x LPAR Parameters:params RPAR NL INDENT Statements:body UNINDENT:y
 		{: RESULT = Ast.ConstructorDef(pos(xleft, yright), mod, params, body); :}
-	| Modifiers:mod USE:x IDENTIFIER:m TypeParams:typeParams NL
+	| Modifiers:mod USE:x IDENTIFIER:m TypeExprList:typeParams NL
 		{: RESULT = Ast.ModuleUse(pos(xleft, mright), m, typeParams); :} 
 	| ONDESTROY:x NL INDENT Statements:body UNINDENT:y
 		{: RESULT = Ast.OnDestroyDef(pos(xleft, yright), body); :}
@@ -335,7 +416,7 @@ Parameter ::=
 ;
 
 TypeExpr ::=
-	IDENTIFIER:name TypeParams:typeParams
+	IDENTIFIER:name TypeExprList:typeParams
 		{: RESULT = Ast.TypeExprSimple(pos(nameleft, nameright), name, typeParams); :}
 	| TypeExpr:e ARRAY:y
 		{: RESULT = Ast.TypeExprArray(pos(e, yright), e); :}
@@ -512,8 +593,8 @@ Expr ::=
 	  	{: RESULT = x; :}
 	| ExprCast:x
 		{: RESULT = x; :}
-	| Expr:left DOT:y
-		{: RESULT = Ast.ExprMemberVar(pos(left,yright), left, ""); :}
+//	| Expr:left DOT:y
+//		{: RESULT = Ast.ExprMemberVar(pos(left,yright), left, ""); :}
 ;
 	
 	
@@ -533,7 +614,7 @@ ExprMemberArrayVar ::=
 ;
 
 ExprMemberMethod ::=
-	Expr:left DOT IDENTIFIER:name TypeParams:typeParams LPAR Arguments:args RPAR:y
+	Expr:left DOT IDENTIFIER:name TypeExprList:typeParams LPAR Arguments:args RPAR:y
 		{: RESULT = Ast.ExprMemberMethod(pos(left, yright), left, name, typeParams, args); :}
 ;
 
@@ -564,7 +645,7 @@ ExprAtomic ::=
 ;	
 
 ExprNewObject ::=
- 	NEW:x IDENTIFIER:name TypeParams:typeParams LPAR Arguments:args RPAR:y
+ 	NEW:x IDENTIFIER:name TypeExprList:typeParams LPAR Arguments:args RPAR:y
 		{: RESULT = Ast.ExprNewObject(pos(xleft, yright), name, typeParams, args); :}
 ;
 
@@ -634,7 +715,7 @@ ExprUnary ::=
 ;
 
 ExprFunctionCall ::=
-	IDENTIFIER:name TypeParams:typeParams LPAR Arguments:args RPAR:y
+	IDENTIFIER:name TypeExprList:typeParams LPAR Arguments:args RPAR:y
 		{: RESULT = Ast.ExprFunctionCall(pos(nameleft, yright), name, typeParams, args); :}
 ;
 

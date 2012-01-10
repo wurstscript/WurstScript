@@ -114,7 +114,7 @@ package Entity
         Vector3 position
         Vector3 velocity
         
-        construct(real x, real y, real z)
+        function setStart(real x, real y, real z)
             position = new Vector3( x, y, z )
             velocity = new Vector3()
         

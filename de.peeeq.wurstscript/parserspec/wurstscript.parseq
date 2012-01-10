@@ -24,10 +24,15 @@ WEntity =
 	| InitBlock (WPos source, WStatements body)
 	| NativeFunc(WPos source, Modifiers modifiers, String name, WParameters parameters, OptTypeExpr returnTyp)
 	| ModuleDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, ClassSlots slots)
+	| InstanceDef(WPos source, Modifiers modifiers, TypeExpr classTyp, TypeExpr implementedTyp, FunctionMappings functionMappings)
+	
+FunctionMappings * FunctionMapping
+
+FunctionMapping(WPos source, String functionName, Expr mapping)
 
 
 TypeExpr = 
-	  TypeExprSimple(WPos source, String typeName, TypeParams typeArgs)
+	  TypeExprSimple(WPos source, String typeName, TypeExprList typeArgs)
 	| TypeExprArray(WPos source, TypeExpr base)
 	| TypeExprThis(WPos source)
 	
@@ -37,15 +42,19 @@ OptExpr = NoExpr() | Expr
 	
 TypeDef = 
 	  NativeType(WPos source, Modifiers modifiers, String name, OptTypeExpr optTyp)
-	| ClassDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters,  boolean unmanaged, ClassSlots slots)
+	| ClassDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, TypeExprList implementsList, ClassSlots slots)
+	| InterfaceDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, TypeExprList extendsList, ClassSlots slots)
 	| TypeParamDef
 	
+
 ClassSlots * ClassSlot
+TypeExprList * TypeExpr
+
 
 ClassSlot = 
 	  ConstructorDef(WPos source, Modifiers modifiers, WParameters parameters, WStatements body)
 	| OnDestroyDef(WPos source, WStatements body)
-	| ModuleUse(WPos source, String moduleName, TypeParams typeArgs)
+	| ModuleUse(WPos source, String moduleName, TypeExprList typeArgs)
 	| ModuleInstanciation(WPos source, Modifiers modifiers, String name, ClassSlots slots) 
 	| ClassMember
 	
@@ -70,7 +79,6 @@ TypeParamDefs * TypeParamDef
 
 TypeParamDef(WPos source, Modifiers modifiers, String name)
 
-TypeParams * TypeExpr
 
 WParameters * WParameter
 WParameter(WPos source, Modifiers modifiers, TypeExpr typ, String name)
@@ -110,9 +118,9 @@ Expr =
 	| ExprUnary(WPos source, OpUnary opU, Expr right)
 	| ExprMemberVar(WPos source, Expr left, String varName)
 	| ExprMemberArrayVar(WPos source, Expr left, String varName, Indexes indexes)
-	| ExprMemberMethod(WPos source, Expr left, String funcName, TypeParams typeArgs, Arguments args)
-	| ExprFunctionCall(WPos source, String funcName, TypeParams typeArgs, Arguments args)
-	| ExprNewObject(WPos source, String typeName, TypeParams typeArgs, Arguments args)
+	| ExprMemberMethod(WPos source, Expr left, String funcName, TypeExprList typeArgs, Arguments args)
+	| ExprFunctionCall(WPos source, String funcName, TypeExprList typeArgs, Arguments args)
+	| ExprNewObject(WPos source, String typeName, TypeExprList typeArgs, Arguments args)
 	| ExprCast(WPos source, TypeExpr typ, Expr expr)
 	| ExprAtomic
 	| ExprIncomplete(WPos source, String errorMessage)
@@ -222,7 +230,7 @@ ClassOrModule = ClassDef | ModuleDef
 
 ClassOrModuleOrModuleInstanciation = ClassOrModule | ModuleInstanciation
 
-NamedScope = WPackage | ClassOrModuleOrModuleInstanciation
+NamedScope = WPackage | ClassOrModuleOrModuleInstanciation | InterfaceDef
 
 // Jass types:
 

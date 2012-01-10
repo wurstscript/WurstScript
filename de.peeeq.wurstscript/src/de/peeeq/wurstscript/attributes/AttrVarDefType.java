@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
+import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
@@ -97,6 +98,11 @@ public class AttrVarDefType {
 
 	public static PscriptType calculate(TypeParamDef t) {
 		return new PscriptTypeTypeParam(t);
+	}
+
+	public static PscriptType calculate(InterfaceDef i) {
+		// TODO Auto-generated method stub
+		throw new Error("not implemented");
 	}
 
 	

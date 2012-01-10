@@ -36,6 +36,7 @@ import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.HasTypeArgs;
 import de.peeeq.wurstscript.ast.InitBlock;
+import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.ModAbstract;
 import de.peeeq.wurstscript.ast.ModConstant;
@@ -671,6 +672,11 @@ public class WurstValidator {
 				
 				@Override
 				public void case_ClassDef(ClassDef classDef) {
+					check(VisibilityPublic.class);
+				}
+
+				@Override
+				public void case_InterfaceDef(InterfaceDef interfaceDef) {
 					check(VisibilityPublic.class);
 				}
 			});

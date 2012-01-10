@@ -67,20 +67,20 @@ public class SyntacticSugar {
 								loopInPos.copy(), 
 								Ast.Modifiers(), 
 								NoTypeExpr(), iteratorName, 
-									Ast.ExprMemberMethod(loopInPos.copy(), (Expr) loop.getIn().copy(), "iterator", Ast.TypeParams(), Arguments())));
+									Ast.ExprMemberMethod(loopInPos.copy(), (Expr) loop.getIn().copy(), "iterator", Ast.TypeExprList(), Arguments())));
 				WStatements body = WStatements(
 							Ast.LocalVarDef(loopVarPos.copy(), 
 									Ast.Modifiers(),
 									(OptTypeExpr) loop.getLoopVar().getOptTyp().copy(), 
 									loop.getLoopVar().getName(), 
 									ExprMemberMethod(loopInPos.copy(), 
-											ExprVarAccess(loopVarPos.copy(), iteratorName), "next", Ast.TypeParams(), Arguments()))
+											ExprVarAccess(loopVarPos.copy(), iteratorName), "next", Ast.TypeExprList(), Arguments()))
 						);
 				body.addAll(addIteratorCloseStatemenst(loop.getBody().removeAll(), iteratorName, loopVarPos, loopInPos));
 				parent.add(position + 1, Ast.StmtWhile(
 						loop.getSource().copy(), 
 						ExprMemberMethod(loopInPos.copy(), 
-								ExprVarAccess(loopVarPos.copy(), iteratorName), "hasNext", Ast.TypeParams(), Arguments()),
+								ExprVarAccess(loopVarPos.copy(), iteratorName), "hasNext", Ast.TypeExprList(), Arguments()),
 						body));
 				parent.add(position+2, 
 						closeIteratorStatement(iteratorName, loopVarPos, loopInPos));
@@ -93,7 +93,7 @@ public class SyntacticSugar {
 
 	private ExprMemberMethod closeIteratorStatement(String iteratorName, WPos loopVarPos, WPos loopInPos) {
 		return ExprMemberMethod(loopInPos.copy(), 
-				ExprVarAccess(loopVarPos.copy(), iteratorName), "close", Ast.TypeParams(), Arguments());
+				ExprVarAccess(loopVarPos.copy(), iteratorName), "close", Ast.TypeExprList(), Arguments());
 	}
 	
 	private List<WStatement> addIteratorCloseStatemenst(List<WStatement> statements, String iteratorName, WPos loopVarPos, WPos loopInPos) {

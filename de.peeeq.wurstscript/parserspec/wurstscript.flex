@@ -56,6 +56,15 @@ import de.peeeq.wurstscript.utils.Utils;
 		return new Symbol(type, yychar, yychar+yylength(), value);
 	}
 	
+	// a symbol at which point the number of parantheses must be balanced
+	private Symbol symbolP(int type) {
+		if (numberOfParantheses > 0) {
+			return symbol(TokenType.error, "missing closing parantheses");
+		} else {
+			return symbol(type, null);
+		}
+	}
+	
 	private Symbol symbol(int type) {
 		return symbol(type, null);
 	}
@@ -217,57 +226,93 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 					}	
 	"//" [^\r\n]* 			           { }
 	"/*" ~"*/"                        { }
-	";"									{ return symbol(TokenType.SEMICOLON); }
-	"class"                           	{ return symbol(TokenType.CLASS); }
-	"return"                          	{ return symbol(TokenType.RETURN); }
-	"if"                              	{ return symbol(TokenType.IF); }
-	"else"                            	{ return symbol(TokenType.ELSE); }
-	"while"                           	{ return symbol(TokenType.WHILE); }
-	"for"                           	{ return symbol(TokenType.FOR); }
+	
+	
+	// classes
+	"class"                           	{ return symbolP(TokenType.CLASS); }
+	"construct"							{ return symbolP(TokenType.CONSTRUCT); }
+	"ondestroy"							{ return symbolP(TokenType.ONDESTROY); }
+	
+
+	// packages
+	"package"							{ return symbol(TokenType.error, "unexpected package"); }
+	"endpackage"						{ yybegin(YYINITIAL); return symbolP(TokenType.ENDPACKAGE); }
+	"import"							{ return symbolP(TokenType.IMPORT); }	
+	"init"								{ return symbol(TokenType.INIT); }
+	
+	
+	// modules
+		"module"							{ return symbolP(TokenType.MODULE); }
+		"use"								{ return symbolP(TokenType.USE); }
+	
+	// functions
+	"function"							{ return symbol(TokenType.FUNCTION); }
+	"returns"							{ return symbolP(TokenType.RETURNS); }
+	"native"							{ return symbolP(TokenType.NATIVE); }
+	
+	
+	"nativetype"						{ return symbolP(TokenType.NATIVETYPE); }
+	
+	// interfaces
+	"extends"							{ return symbolP(TokenType.EXTENDS); }
+	"interface"							{ return symbolP(TokenType.INTERFACE); }
+	"implements"						{ return symbolP(TokenType.IMPLEMENTS); }
+	"instance"							{ return symbolP(TokenType.INSTANCE); }
+	
+	// enums
+	"enum"								{ return symbolP(TokenType.ENUM); } 
+	
+	// modifiers
+	"abstract"							{ return symbolP(TokenType.ABSTRACT); }
+	"static"							{ return symbolP(TokenType.STATIC); }
+	"override"							{ return symbolP(TokenType.OVERRIDE); }
+	"immutable"							{ return symbolP(TokenType.IMMUTABLE); }
+	"public"							{ return symbolP(TokenType.PUBLIC); }
+	"publicread"						{ return symbolP(TokenType.PUBLICREAD); }
+	"private"							{ return symbolP(TokenType.PRIVATE); }
+	"protected"							{ return symbolP(TokenType.PROTECTED); }
+	"constant"							{ return symbol(TokenType.CONSTANT); }
+
+	//statements
+	"val"								{ return symbolP(TokenType.VAL); }
+	"return"                          	{ return symbolP(TokenType.RETURN); }
+	"if"                              	{ return symbolP(TokenType.IF); }
+	"else"                            	{ return symbolP(TokenType.ELSE); }
+	"while"                           	{ return symbolP(TokenType.WHILE); }
+	"destroy"							{ return symbol(TokenType.DESTROY); }
+	"for"                           	{ return symbolP(TokenType.FOR); }
 	"in"                           		{ return symbol(TokenType.IN); }
 	"to"                           		{ return symbol(TokenType.TO); }
 	"downto"                           	{ return symbol(TokenType.DOWNTO); }
 	"step"                           	{ return symbol(TokenType.STEP); }
-	"break"                        		{ return symbol(TokenType.BREAK); }
-	"new"                             	{ return symbol(TokenType.NEW); }
-	"null"                            	{ return symbol(TokenType.NULL); }
-	"package"							{ return symbol(TokenType.error, "unexpected package"); }
-	"endpackage"						{ yybegin(YYINITIAL); return symbol(TokenType.ENDPACKAGE); }
-	"function"							{ return symbol(TokenType.FUNCTION); }
-	"returns"							{ return symbol(TokenType.RETURNS); }
-	"val"								{ return symbol(TokenType.VAL); }
-	"public"							{ return symbol(TokenType.PUBLIC); }
-	"publicread"						{ return symbol(TokenType.PUBLICREAD); }
-	"private"							{ return symbol(TokenType.PRIVATE); }
-	"protected"							{ return symbol(TokenType.PROTECTED); }
-	"import"							{ return symbol(TokenType.IMPORT); }
-	"native"							{ return symbol(TokenType.NATIVE); }
-	"nativetype"						{ return symbol(TokenType.NATIVETYPE); }
-	"extends"							{ return symbol(TokenType.EXTENDS); }
-	"interface"							{ return symbol(TokenType.INTERFACE); }
-	"implements"						{ return symbol(TokenType.IMPLEMENTS); }
+	"break"                        		{ return symbolP(TokenType.BREAK); }
 	
-	"module"							{ return symbol(TokenType.MODULE); }
-	"use"								{ return symbol(TokenType.USE); }
-	"abstract"							{ return symbol(TokenType.ABSTRACT); }
-	"static"							{ return symbol(TokenType.STATIC); }
-	"thistype"							{ return symbol(TokenType.THISTYPE); }
-	"override"							{ return symbol(TokenType.OVERRIDE); }
-	"immutable"							{ return symbol(TokenType.IMMUTABLE); }
+	
+	// special vars/constants
 	"it"								{ return symbol(TokenType.IT); }
+	"thistype"							{ return symbol(TokenType.THISTYPE); }
+	"this"								{ return symbol(TokenType.THIS); }
+	"null"                            	{ return symbol(TokenType.NULL); }
+	"true"                            { return symbol(TokenType.TRUE); }
+	"false"                           { return symbol(TokenType.FALSE); }
 	
+	// types
 	"array"								{ return symbol(TokenType.ARRAY); }
+	
+	// operators
+	"instanceof"						{ return symbol(TokenType.INSTANCEOF); }
 	"and"								{ return symbol(TokenType.AND); }
 	"or"								{ return symbol(TokenType.OR); }
 	"not"								{ return symbol(TokenType.NOT); }
-	"this"								{ return symbol(TokenType.THIS); }
-	"construct"							{ return symbol(TokenType.CONSTRUCT); }
-	"ondestroy"							{ return symbol(TokenType.ONDESTROY); }
-	"destroy"							{ return symbol(TokenType.DESTROY); }
+	"new"                             	{ return symbol(TokenType.NEW); }
+	"castTo"							{ return symbol(TokenType.CASTTO); }
+	"div"                               { return symbol(TokenType.DIV_INT); }
+	"mod"                               { return symbol(TokenType.MOD_INT); } 
+	
+	// jass stuff
 	"type"								{ return symbol(TokenType.TYPE); }
 	"globals"							{ return symbol(TokenType.GLOBALS); }
 	"endglobals"						{ return symbol(TokenType.ENDGLOBALS); }
-	"constant"							{ return symbol(TokenType.CONSTANT); }
 	"endfunction"						{ return symbol(TokenType.ENDFUNCTION); }
 	"nothing"							{ return symbol(TokenType.NOTHING); }
 	"takes"								{ return symbol(TokenType.TAKES); }
@@ -280,14 +325,11 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"then"								{ return symbol(TokenType.THEN); }
 	"elseif"							{ return symbol(TokenType.ELSEIF); }
 	"endif"								{ return symbol(TokenType.ENDIF); }
-	"init"								{ return symbol(TokenType.INIT); }
-	"castTo"							{ return symbol(TokenType.CASTTO); }
-	"true"                            { return symbol(TokenType.TRUE); }
-	"false"                           { return symbol(TokenType.FALSE); }
-	"div"                               { return symbol(TokenType.DIV_INT); }
-	"mod"                               { return symbol(TokenType.MOD_INT); } 
+	
 	"("                               { numberOfParantheses++; return symbol(TokenType.LPAR); }
 	")"                               { numberOfParantheses--; return symbol(TokenType.RPAR); }
+	";"									{ return symbol(TokenType.SEMICOLON); }
+	":"									{ return symbol(TokenType.COLON); }
 	","                               { return symbol(TokenType.COMMA); }
 	"{"                               { return symbol(TokenType.LBRACK); }
 	"}"                               { return symbol(TokenType.RBRACK); }

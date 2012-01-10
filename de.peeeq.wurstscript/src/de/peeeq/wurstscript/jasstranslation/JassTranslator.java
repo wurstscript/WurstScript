@@ -57,6 +57,8 @@ import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.InitBlock;
+import de.peeeq.wurstscript.ast.InstanceDef;
+import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.JassGlobalBlock;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.ModuleDef;
@@ -603,8 +605,23 @@ public class JassTranslator {
 				public void case_TypeParamDef(TypeParamDef typeParamDef) {
 					throw new Error("not implemented");
 				}
+
+				@Override
+				public void case_InterfaceDef(InterfaceDef interfaceDef) {
+					translateInterfaceDef(interfaceDef);
+				}
+
+				@Override
+				public void case_InstanceDef(InstanceDef instanceDef) {
+					// not translated
+				}
 			});
 		}
+	}
+
+	protected void translateInterfaceDef(InterfaceDef interfaceDef) {
+		// TODO Auto-generated method stub
+		throw new Error("not implemented");
 	}
 
 	private void translateInitBlock(InitBlock initBlock) {

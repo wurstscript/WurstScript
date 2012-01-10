@@ -6,6 +6,7 @@ import com.google.common.base.Function;
 
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
+import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.NoTypeExpr;
@@ -23,6 +24,7 @@ import de.peeeq.wurstscript.types.PScriptTypeVoid;
 import de.peeeq.wurstscript.types.PscriptNativeType;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
+import de.peeeq.wurstscript.types.PscriptTypeInterface;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
 import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
 import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
@@ -129,6 +131,11 @@ public class AttrTypeExprType {
 			@Override
 			public PscriptType case_TypeParamDef(TypeParamDef typeParamDef) {
 				return new PscriptTypeTypeParam(typeParamDef);
+			}
+
+			@Override
+			public PscriptType case_InterfaceDef(InterfaceDef term) {
+				return new PscriptTypeInterface(term, false);
 			}
 		});
 

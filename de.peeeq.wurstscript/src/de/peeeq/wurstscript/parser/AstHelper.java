@@ -2,15 +2,14 @@ package de.peeeq.wurstscript.parser;
 
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.ast.TypeExprList;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
-import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.TypeParamDefs;
-import de.peeeq.wurstscript.ast.TypeParams;
 import de.peeeq.wurstscript.attributes.attr;
 
 public class AstHelper {
 
-	public static TypeParamDefs transformTypeParamsToTyppeParamDefs(TypeParams p) {
+	public static TypeParamDefs transformTypeExprListToTyppeParamDefs(TypeExprList p) {
 		TypeParamDefs result = Ast.TypeParamDefs();
 		for (TypeExpr t : p) {
 			if (t instanceof TypeExprSimple) {
@@ -22,5 +21,6 @@ public class AstHelper {
 		}
 		return result;
 	}
+
 
 }

@@ -23,7 +23,7 @@
 
 
 	<target name="checkForChanges">
-		<uptodate targetfile="${srcgen}/de/peeeq/wurstscript/parser/WurstScriptScanner.java" srcfile="${scannerspec}" property="jflexNotChanged" />
+		<uptodate targetfile="${srcgen}/de/peeeq/wurstscript/parser/WurstScriptScannerIntern.java" srcfile="${scannerspec}" property="jflexNotChanged" />
 		<uptodate targetfile="${srcgen}/de/peeeq/wurstscript/parser/parser.java" srcfile="${grammarspec}" property="cupNotChanged" />
 	</target>
 

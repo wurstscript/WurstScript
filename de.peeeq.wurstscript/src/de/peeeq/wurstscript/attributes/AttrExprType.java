@@ -30,6 +30,7 @@ import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.FunctionImplementation;
+import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
@@ -191,6 +192,12 @@ public class AttrExprType {
 				@Override
 				public PscriptType case_WPackage(WPackage wPackage) {
 					// 'this' cannot be used on package level
+					return PScriptTypeUnknown.instance();
+				}
+
+				@Override
+				public PscriptType case_InterfaceDef(InterfaceDef interfaceDef) {
+					// 'this' cannot be used on interface level
 					return PScriptTypeUnknown.instance();
 				}
 
