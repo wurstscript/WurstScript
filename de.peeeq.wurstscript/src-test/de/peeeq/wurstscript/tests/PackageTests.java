@@ -173,6 +173,34 @@ public class PackageTests extends PscriptTest {
 	}
 	
 	
+
+	@Test
+	public void test_cyclic_import() {
+		assertOk(false, 
+				"package B",
+				"	import A",
+				"endpackage",
+				"package A",
+				"	import B",
+				"endpackage");
+	}
+	
+	@Test
+	public void test_cyclic_import_with_init() {
+		assertOk(false, 
+				"package B",
+				"	import A",
+				"	public int x",
+				"	init",
+				"		x = 1",
+				"endpackage",
+				"package A",
+				"	import B",
+				"	init",
+				"		x = 2",
+				"endpackage");
+	}
+	
 	
 	private String makeCode(String... body) {
 		return Utils.join(body, "\n");

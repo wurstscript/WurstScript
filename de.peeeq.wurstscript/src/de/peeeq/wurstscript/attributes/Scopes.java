@@ -218,7 +218,7 @@ public class Scopes {
 
 	public static Multimap<String, NameDef> getExportedNames(WPackage p) {
 		Multimap<String, NameDef> result = HashMultimap.create();
-		for (Entry<String, NameDef> e : p.attrVisibleNamesPrivate().entries()) {
+		for (Entry<String, NameDef> e : p.attrDefinedNames().entries()) {
 			if (e.getValue().attrIsPublic()) {
 				result.put(e.getKey(), e.getValue());
 			}
