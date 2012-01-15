@@ -80,6 +80,9 @@ public class Generics {
 
 	public static Map<TypeParamDef, PscriptType> getTypeParameterBindings(ExprNewObject e) {
 		ConstructorDef constrDef = e.attrConstructorDef();
+		if (constrDef == null) {
+			return Collections.emptyMap();
+		}
 		ClassOrModule classDef = constrDef.attrNearestClassOrModule();
 		TypeParamDefs typeParams = getTypeParameters(classDef);
 		if (hasTypeParams(e, typeParams)) {

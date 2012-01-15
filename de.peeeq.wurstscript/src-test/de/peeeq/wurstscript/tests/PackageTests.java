@@ -125,6 +125,18 @@ public class PackageTests extends PscriptTest {
 	}
 	
 	@Test
+	public void test_typename_as_var() {
+		assertError(false, "unit",
+				"type unit extends handle",
+				"package A",
+				"	unit unit",
+				"	init",
+				"		unit a = null",
+				"		unit = a",
+				"endpackage");
+	}
+	
+	@Test
 	public void test_import_var() {
 		assertOk(false,
 				"package A",

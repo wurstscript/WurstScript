@@ -11,23 +11,19 @@ import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithBody;
 import de.peeeq.wurstscript.ast.AstElementWithParameters;
-import de.peeeq.wurstscript.ast.AstElementWithSlots;
 import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
-import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModuleOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.ClassSlots;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.FuncDef;
-import de.peeeq.wurstscript.ast.FuncSignature;
-import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.JassGlobalBlock;
 import de.peeeq.wurstscript.ast.LocalVarDef;
-import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
+import de.peeeq.wurstscript.ast.StructureDefOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.TopLevelDeclaration;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.TypeParamDefs;
@@ -101,7 +97,7 @@ public class Scopes {
 		return result;
 	}
 
-	public static Multimap<String, NameDef> getDefinedNames(ClassOrModuleOrModuleInstanciation c) {
+	public static Multimap<String, NameDef> getDefinedNames(StructureDefOrModuleInstanciation c) {
 		Multimap<String, NameDef> result = HashMultimap.create();
 		addTypeParametersIfAny(result, c);
 		getDefinedNames(result, c.getSlots());

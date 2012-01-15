@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
+import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -106,6 +107,16 @@ public class AttrNearest {
 			} else {
 				return null;
 			}
+		}
+	}
+
+	public static StructureDef nearestStructureDef(AstElement e) {
+		if (e instanceof StructureDef) {
+			return (StructureDef) e;
+		} else if (e.getParent() != null) {
+				return e.getParent().attrNearestStructureDef(); 
+		} else { 
+			return null;
 		}
 	}
 	

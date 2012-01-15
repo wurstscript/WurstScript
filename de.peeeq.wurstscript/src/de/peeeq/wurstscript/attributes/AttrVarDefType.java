@@ -16,10 +16,12 @@ import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.types.PscriptNativeType;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
+import de.peeeq.wurstscript.types.PscriptTypeInterface;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
 import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
 import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
@@ -101,8 +103,7 @@ public class AttrVarDefType {
 	}
 
 	public static PscriptType calculate(InterfaceDef i) {
-		// TODO Auto-generated method stub
-		throw new Error("not implemented");
+		return new PscriptTypeInterface(i, (WPackage) i.attrNearestPackage(), true);
 	}
 
 	

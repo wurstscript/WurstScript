@@ -1,22 +1,16 @@
 package de.peeeq.wurstscript.attributes;
 
 import java.util.Collection;
-import java.util.List;
 
 import com.google.common.collect.Lists;
 
-import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.ClassOrModuleOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
-import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
-import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.NativeFunc;
+import de.peeeq.wurstscript.ast.StructureDefOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.WScope;
-import de.peeeq.wurstscript.utils.MutableValue;
-import de.peeeq.wurstscript.utils.Utils;
 
 public class OverriddenFunctions {
 
@@ -51,8 +45,8 @@ public class OverriddenFunctions {
 	}
 
 	private static FunctionDefinition getRealFuncDef(FuncDef f, WScope scope) {
-		if (scope instanceof ClassOrModuleOrModuleInstanciation) {
-			ClassOrModuleOrModuleInstanciation c = (ClassOrModuleOrModuleInstanciation) scope;
+		if (scope instanceof StructureDefOrModuleInstanciation) {
+			StructureDefOrModuleInstanciation c = (StructureDefOrModuleInstanciation) scope;
 			if (c.attrDefinedNames().containsKey(f.getName())) {
 				for (NameDef n : c.attrDefinedNames().get(f.getName())) {
 					if (n instanceof FunctionDefinition) {

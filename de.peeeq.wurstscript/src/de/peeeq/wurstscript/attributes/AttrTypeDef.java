@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.attributes;
 import java.util.List;
 
 import de.peeeq.wurstscript.ast.ExprNewObject;
+import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
@@ -53,15 +54,30 @@ public class AttrTypeDef {
 			return null; // native types have no definitionPos
 		}
 
-		List<TypeDef> typeDefs = NameResolution.searchTypedName(TypeDef.class, typeName, node);
+//		List<TypeDef> typeDefs = NameResolution.searchTypedName(TypeDef.class, typeName, node);
+//		if (typeDefs.size() == 0) {
+//			attr.addError(node.getSource(), "Could not find TypeDef for " + typeName);
+//			return null;
+//		} else {
+//			return typeDefs.get(0);
+//		}
+		// TODO ambiguous type decls
+		
+		List<NameDef> typeDefs = NameResolution.searchTypedName(NameDef.class, typeName, node);
 		if (typeDefs.size() == 0) {
 			attr.addError(node.getSource(), "Could not find TypeDef for " + typeName);
 			return null;
 		} else {
-			return typeDefs.get(0);
+			NameDef def = typeDefs.get(0);
+			if (def instanceof TypeDef) {
+				return (TypeDef) def;
+			} else {
+				attr.addError(node.getSource(), "The type name '" + typeName + "' refers to the element '" +
+						Utils.printElement(def) + "' which is not a type definition.");
+				return null;
+			}
 		}
-		// TODO ambiguous type decls
-				
+		
 	}
 
 

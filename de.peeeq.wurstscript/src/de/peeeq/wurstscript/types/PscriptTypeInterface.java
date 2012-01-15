@@ -5,20 +5,24 @@ import java.util.List;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.NamedScope;
+import de.peeeq.wurstscript.ast.WPackage;
 
 
 public class PscriptTypeInterface extends PscriptTypeNamedScope {
 
 
-	private InterfaceDef interfaceDef;
+	private final InterfaceDef interfaceDef;
+	private final WPackage pack;
 
-	public PscriptTypeInterface(InterfaceDef interfaceDef, boolean staticRef) {
+	public PscriptTypeInterface(InterfaceDef interfaceDef, WPackage pack, boolean staticRef) {
 		super(staticRef);
+		this.pack = pack;
 		this.interfaceDef = interfaceDef;
 	}
 
-	public PscriptTypeInterface(InterfaceDef interfaceDef, List<PscriptType> newTypes) {
+	public PscriptTypeInterface(InterfaceDef interfaceDef, WPackage pack, List<PscriptType> newTypes) {
 		super(newTypes);
+		this.pack = pack;
 		this.interfaceDef = interfaceDef;
 	}
 
@@ -33,20 +37,24 @@ public class PscriptTypeInterface extends PscriptTypeNamedScope {
 	
 	@Override
 	public String getName() {
-		return getDef().getName() + printTypeParams() + " (class)";
+		return getDef().getName() + printTypeParams() + " (interface)";
 	}
 	
 	@Override
 	public PscriptType dynamic() {
 		if (isStaticRef()) {
-			return new PscriptTypeInterface(getInterfaceDef(), false);
+			return new PscriptTypeInterface(getInterfaceDef(), pack, false);
 		}
 		return this;
 	}
 
 	@Override
 	public PscriptType replaceTypeVars(List<PscriptType> newTypes) {
-		return new PscriptTypeInterface(getInterfaceDef(), newTypes);
+		return new PscriptTypeInterface(getInterfaceDef(), pack, newTypes);
+	}
+
+	public WPackage getPack() {
+		return pack;
 	}
 	
 }

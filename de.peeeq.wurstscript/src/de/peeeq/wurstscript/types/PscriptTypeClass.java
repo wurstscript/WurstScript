@@ -4,6 +4,7 @@ import java.util.List;
 
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.NamedScope;
+import de.peeeq.wurstscript.ast.WPackage;
 
 
 public class PscriptTypeClass extends PscriptTypeNamedScope {
@@ -20,6 +21,21 @@ public class PscriptTypeClass extends PscriptTypeNamedScope {
 		this.classDef = classDef2;
 	}
 
+	@Override
+	public boolean isSubtypeOf(PscriptType obj) {
+		if (super.isSubtypeOf(obj)) {
+			return true;
+		}
+		if (obj instanceof PscriptTypeInterface) {
+			PscriptTypeInterface pti = (PscriptTypeInterface) obj;
+			// TODO check if this class is a subtype of the interface
+			WPackage pack = pti.getPack();
+			
+			return false;
+		}
+		return false;
+	}
+	
 	@Override
 	public NamedScope getDef() {
 		return classDef;

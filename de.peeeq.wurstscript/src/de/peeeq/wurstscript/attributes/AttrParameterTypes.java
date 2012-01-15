@@ -32,7 +32,7 @@ public class AttrParameterTypes {
 	public static List<PscriptType> calculate(FuncDef f) {
 		List<PscriptType> result = Lists.newLinkedList();
 		if (f.attrIsDynamicClassMember()) {
-			NameDef n = (NameDef) f.attrNearestClassOrModule();
+			NameDef n = (NameDef) f.attrNearestStructureDef();
 			result.add(n.attrTyp());
 		}
 		addParameterTypes(result, f.getParameters());

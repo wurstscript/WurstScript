@@ -226,11 +226,15 @@ HasModifier = NameDef | TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | Fu
 HasTypeArgs =  ExprNewObject | FunctionCall | ModuleUse | StmtCall | TypeExprSimple
 
 
-ClassOrModule = ClassDef | ModuleDef	
+ClassOrModule = ClassDef | ModuleDef
+
+StructureDef = ClassOrModule | InterfaceDef	
+
 
 ClassOrModuleOrModuleInstanciation = ClassOrModule | ModuleInstanciation
+StructureDefOrModuleInstanciation = ClassOrModuleOrModuleInstanciation | StructureDef
 
-NamedScope = WPackage | ClassOrModuleOrModuleInstanciation | InterfaceDef
+NamedScope = WPackage | StructureDefOrModuleInstanciation | InterfaceDef
 
 // Jass types:
 
@@ -350,6 +354,10 @@ AstElement.attrNearestClassOrModule
 	returns ClassOrModule
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestClassOrModule	
 	
+AstElement.attrNearestStructureDef
+	returns StructureDef
+	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestStructureDef	
+	
 AstElement.attrNearestFuncDef
 	returns FunctionImplementation
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestFuncDef
@@ -410,7 +418,7 @@ FunctionDefinition.attrRealFuncDef "returns the function definition which overri
 	returns FunctionDefinition
 	implemented by de.peeeq.wurstscript.attributes.OverriddenFunctions.getRealFuncDef
 	
-ClassOrModuleOrModuleInstanciation.attrAllFunctions
+StructureDefOrModuleInstanciation.attrAllFunctions
 	returns java.util.Map<String, FuncDef>
 	implemented by de.peeeq.wurstscript.attributes.AttrAllFunctions.calculate
 

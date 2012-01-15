@@ -8,11 +8,11 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
-import de.peeeq.wurstscript.ast.ClassOrModuleOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.ClassSlots;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
+import de.peeeq.wurstscript.ast.StructureDefOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -23,7 +23,7 @@ public class AttrAllFunctions {
 	 * @param term
 	 * @return
 	 */
-	public static Map<String, FuncDef> calculate(ClassOrModuleOrModuleInstanciation term) {
+	public static Map<String, FuncDef> calculate(StructureDefOrModuleInstanciation term) {
 		Map<String, FuncDef> result = getAllFunctions(term.getSlots(), term.getSource());
 		return result;
 	}

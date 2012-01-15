@@ -17,6 +17,7 @@ import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.types.NativeTypes;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeUnknown;
@@ -135,7 +136,7 @@ public class AttrTypeExprType {
 
 			@Override
 			public PscriptType case_InterfaceDef(InterfaceDef term) {
-				return new PscriptTypeInterface(term, false);
+				return new PscriptTypeInterface(term, (WPackage) term.attrNearestPackage(), false);
 			}
 		});
 
