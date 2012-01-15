@@ -172,8 +172,13 @@ public class WurstValidator {
 	}
 
 	@CheckMethod
-	public void visit(StmtSet s) {
+	public void checkStmtSet(StmtSet s) {
 
+		NameDef nameDef = s.getUpdatedExpr().attrNameDef();
+		if (!(nameDef instanceof VarDef)) {
+			attr.addError(s.getUpdatedExpr().getSource(), "Invalid assignment. This is not a variable, this is a " + Utils.printElement(nameDef));
+		}
+		
 		PscriptType leftType = s.getUpdatedExpr().attrTyp();
 		PscriptType rightType = s.getRight().attrTyp();
 
@@ -711,4 +716,5 @@ public class WurstValidator {
 			}
 		}
 	}
+	
 }

@@ -40,6 +40,7 @@ import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
 import de.peeeq.wurstscript.ast.LocalVarDef;
+import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.NoExpr;
 import de.peeeq.wurstscript.ast.OpAssign;
@@ -167,39 +168,43 @@ public class JassTranslatorStatements {
 					}
 				}
 				
-				VarDef varDef = (VarDef) updatedExpr.attrNameDef(); // TODO check always safe?
-				String leftJassVar = manager.getJassVarNameFor(varDef);
-				if (hasIndex) {
-					result.addAll(index.getStatements());
-					result.addAll(right.getStatements());
-					if (binaryOp == null) {
-						// simple assignment, just translate:
-						result.add(JassStmtSetArray(leftJassVar, index.getExpr(), right.getExpr()));
-					} else {
-						JassExpr indexExpr;
-						if (index.getExpr() instanceof ExprIntVal || index.getExpr() instanceof ExprVarAccess) {
-							// in case of simple var-access or contant int we can just use this index
-							indexExpr = index.getExpr();
+				NameDef nameDef = updatedExpr.attrNameDef(); // TODO check always safe?
+				if (!(nameDef instanceof VarDef)) {
+					throw new CompileError(updatedExpr.getSource(), "Cannot assign to " + Utils.printElement(nameDef));
+				} else {
+					VarDef varDef = (VarDef) nameDef;					
+					String leftJassVar = manager.getJassVarNameFor(varDef);
+					if (hasIndex) {
+						result.addAll(index.getStatements());
+						result.addAll(right.getStatements());
+						if (binaryOp == null) {
+							// simple assignment, just translate:
+							result.add(JassStmtSetArray(leftJassVar, index.getExpr(), right.getExpr()));
 						} else {
-							// in other cases we save the index into a temporary variable, so we are sure that
-							// the index expr is not evaluated twice
-							JassVar tempIndex = translator.getNewTempVar(f, "integer");
-							result.add(JassStmtSet(tempIndex.getName(), index.getExpr()));
-							indexExpr = JassExprVarAccess(tempIndex.getName());
+							JassExpr indexExpr;
+							if (index.getExpr() instanceof ExprIntVal || index.getExpr() instanceof ExprVarAccess) {
+								// in case of simple var-access or contant int we can just use this index
+								indexExpr = index.getExpr();
+							} else {
+								// in other cases we save the index into a temporary variable, so we are sure that
+								// the index expr is not evaluated twice
+								JassVar tempIndex = translator.getNewTempVar(f, "integer");
+								result.add(JassStmtSet(tempIndex.getName(), index.getExpr()));
+								indexExpr = JassExprVarAccess(tempIndex.getName());
+							}
+							result.add(JassStmtSetArray(leftJassVar, indexExpr, 
+							JassExprBinary(JassExprVarArrayAccess(leftJassVar, (JassExpr) indexExpr.copy()), binaryOp, right.getExpr())));
 						}
-						result.add(JassStmtSetArray(leftJassVar, indexExpr, 
-						JassExprBinary(JassExprVarArrayAccess(leftJassVar, (JassExpr) indexExpr.copy()), binaryOp, right.getExpr())));
-					}
-				} else { // we have no index
-					result.addAll(right.getStatements());
-					if (binaryOp == null) {
-						result.add(JassStmtSet(leftJassVar, right.getExpr()));
-					} else {
-						result.add(JassStmtSet(leftJassVar, 
-								JassExprBinary(JassExprVarAccess(leftJassVar), binaryOp, right.getExpr())));
+					} else { // we have no index
+						result.addAll(right.getStatements());
+						if (binaryOp == null) {
+							result.add(JassStmtSet(leftJassVar, right.getExpr()));
+						} else {
+							result.add(JassStmtSet(leftJassVar, 
+									JassExprBinary(JassExprVarAccess(leftJassVar), binaryOp, right.getExpr())));
+						}
 					}
 				}
-				
 
 
 			}

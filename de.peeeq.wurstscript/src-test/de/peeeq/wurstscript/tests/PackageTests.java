@@ -147,6 +147,17 @@ public class PackageTests extends PscriptTest {
 				"endpackage");
 	}
 	
+
+	@Test
+	public void test_typename_as_var3() {
+		assertError(false, "Invalid assignment",
+				"type player extends handle",
+				"package A",
+				"	function foo(player p)",
+				"		player = p",
+				"endpackage");
+	}
+	
 	@Test
 	public void test_import_var() {
 		assertOk(false,

@@ -478,6 +478,9 @@ public class Utils {
 	}
 
 	public static String printElement(AstElement e) {
+		if (e == null) {
+			return "null";
+		}
 		String type = e.getClass().getSimpleName().replaceAll("Impl$", "");
 		String name = "";
 		if (e instanceof AstElementWithName) {
@@ -488,6 +491,15 @@ public class Utils {
 
 	public static int inBorders(int min, int x, int max) {
 		return Math.max(min, Math.min(max, x));
+	}
+
+	public static String printStackTrace(StackTraceElement[] stackTrace) {
+		StringBuilder sb = new StringBuilder();
+		for (StackTraceElement s : stackTrace) {
+			sb.append(s.toString());
+			sb.append("\n");
+		}
+		return sb.toString();
 	}
 
 }

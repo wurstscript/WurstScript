@@ -541,6 +541,7 @@ public class JassTranslator {
 
 	private void translateNativeFunc(NativeFunc nativeFunc) {
 		// nothing to translate
+		manager.markNameAsUsed(nativeFunc.getName());
 	}
 
 	private void translateNativeType(NativeType nativeType) {
@@ -549,6 +550,7 @@ public class JassTranslator {
 		if (superTyp.isSubtypeOf(PScriptTypeHandle.instance())) {
 			handleSubTypes.add(nativeType.getName());
 		}
+		manager.markNameAsUsed(nativeType.getName());
 	}
 
 	private void translatePackage(WPackage wPackage) {

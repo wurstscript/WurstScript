@@ -28,9 +28,9 @@ import de.peeeq.wurstscript.utils.Utils;
  */
 public class About extends javax.swing.JDialog {
     final URI uri;
-    final String homepage = "http://code.google.com/p/pscript-lang/";
-    final String version = "0.001";
-    final String authors = "peq & Frotty";
+    final static String homepage = "http://code.google.com/p/pscript-lang/";
+    public final static String version = "0.001";
+    final static String authors = "peq & Frotty";
 
     /** Creates new form About */
     public About(java.awt.Frame parent, boolean modal) throws URISyntaxException {

@@ -60,14 +60,14 @@ public class JassManager {
 //		return name;
 //	}
 	
-	private void markNameAsUsed(String name) {
+	void markNameAsUsed(String name) {
 		givenNames.add(name);
 	}
 	
 	
 	public String getUniqueName(String baseName) {
 		// OPTIMIZE performance
-		String name = "w_" + baseName;
+		String name = baseName;
 		int i = 0;
 		while (givenNames.contains(name)) {
 			name = baseName + ++i;
