@@ -67,7 +67,7 @@ public class JassManager {
 	
 	public String getUniqueName(String baseName) {
 		// OPTIMIZE performance
-		String name = baseName;
+		String name = "w_" + baseName;
 		int i = 0;
 		while (givenNames.contains(name)) {
 			name = baseName + ++i;
