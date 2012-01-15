@@ -37,6 +37,7 @@ public class WurstEditorController {
 		v.getRedoButton().addActionListener(onclick_redo(v));
 		
 	}
+        
 
 	
 	private ActionListener onclick_redo(final WurstEditorView v) {
