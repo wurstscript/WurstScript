@@ -101,7 +101,7 @@ package ExtensionFunctions
 		DisableTrigger( this )
 		return this
 		
-	public function trigger.destroy()
+	public function trigger.destr()
 		DestroyTrigger( this )
 	
 	public function trigger.reset() returns trigger
