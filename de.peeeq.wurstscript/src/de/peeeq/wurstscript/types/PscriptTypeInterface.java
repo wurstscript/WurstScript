@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.types;
 
 import java.util.List;
 
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.NamedScope;
@@ -12,17 +13,14 @@ public class PscriptTypeInterface extends PscriptTypeNamedScope {
 
 
 	private final InterfaceDef interfaceDef;
-	private final WPackage pack;
 
-	public PscriptTypeInterface(InterfaceDef interfaceDef, WPackage pack, boolean staticRef) {
+	public PscriptTypeInterface(InterfaceDef interfaceDef, boolean staticRef) {
 		super(staticRef);
-		this.pack = pack;
 		this.interfaceDef = interfaceDef;
 	}
 
-	public PscriptTypeInterface(InterfaceDef interfaceDef, WPackage pack, List<PscriptType> newTypes) {
+	public PscriptTypeInterface(InterfaceDef interfaceDef, List<PscriptType> newTypes) {
 		super(newTypes);
-		this.pack = pack;
 		this.interfaceDef = interfaceDef;
 	}
 
@@ -43,18 +41,20 @@ public class PscriptTypeInterface extends PscriptTypeNamedScope {
 	@Override
 	public PscriptType dynamic() {
 		if (isStaticRef()) {
-			return new PscriptTypeInterface(getInterfaceDef(), pack, false);
+			return new PscriptTypeInterface(getInterfaceDef(), false);
 		}
 		return this;
 	}
 
 	@Override
 	public PscriptType replaceTypeVars(List<PscriptType> newTypes) {
-		return new PscriptTypeInterface(getInterfaceDef(), pack, newTypes);
+		return new PscriptTypeInterface(getInterfaceDef(), newTypes);
 	}
 
-	public WPackage getPack() {
-		return pack;
+	@Override
+	public boolean isSubtypeOf(PscriptType other, AstElement location) {
+		// TODO Auto-generated method stub
+		throw new Error("not implemented");
 	}
 	
 }

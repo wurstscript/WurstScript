@@ -1,20 +1,23 @@
 package de.peeeq.wurstscript.types;
 
+import de.peeeq.wurstscript.ast.AstElement;
+
 
 public abstract class PscriptType {
 	/**
 	 * @param other
+	 * @param location 
 	 * @return is this type a subtype (or equal) to other type?
 	 */
-	public abstract boolean isSubtypeOf(PscriptType other);
+	public abstract boolean isSubtypeOf(PscriptType other, AstElement location);
 	
 	
 	/**
 	 * @param other
 	 * @return is this type a supertype (or equal) to other type?
 	 */
-	public final boolean isSupertypeOf(PscriptType other) {
-		return other.isSubtypeOf(this);
+	public final boolean isSupertypeOf(PscriptType other, AstElement location) {
+		return other.isSubtypeOf(this, location);
 	}
 	
 	/**
@@ -28,8 +31,8 @@ public abstract class PscriptType {
 	public abstract String getFullName();
 	
 	
-	public boolean equalsType(PscriptType otherType) {
-		return otherType.isSubtypeOf(this) && this.isSubtypeOf(otherType);
+	public boolean equalsType(PscriptType otherType, AstElement location) {
+		return otherType.isSubtypeOf(this, location) && this.isSubtypeOf(otherType, location);
 	}
 	
 	@Override public String toString() {
@@ -39,7 +42,7 @@ public abstract class PscriptType {
 	@Override public boolean equals(Object other) {
 		if (other instanceof PscriptType) {
 			PscriptType otherType = (PscriptType) other;
-			return equalsType(otherType);			
+			return equalsType(otherType, null);			
 		} else {
 			return false;
 		}

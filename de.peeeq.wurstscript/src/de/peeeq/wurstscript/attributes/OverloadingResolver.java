@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.google.common.base.Function;
 
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
@@ -18,7 +19,7 @@ import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
 import de.peeeq.wurstscript.utils.NotNullList;
 import de.peeeq.wurstscript.utils.Utils;
 
-public abstract class OverloadingResolver<F,C> {
+public abstract class OverloadingResolver<F extends AstElement,C> {
 
 	abstract int getParameterCount(F f);
 	abstract PscriptType getParameterType(F f, int i);
@@ -43,7 +44,7 @@ public abstract class OverloadingResolver<F,C> {
 					if (getArgumentType(caller, i) instanceof PscriptTypeTypeParam
 							&& getParameterType(f, i) instanceof PscriptTypeTypeParam) {
 						// should be ok!
-					} else if (! getArgumentType(caller, i).isSubtypeOf(getParameterType(f, i))) {
+					} else if (! getArgumentType(caller, i).isSubtypeOf(getParameterType(f, i), f)) {
 						hints.add("Expected " + getParameterType(f, i)
 								 + " as parameter " + i + " but found " +  getArgumentType(caller, i) + "." );
 						match = false;

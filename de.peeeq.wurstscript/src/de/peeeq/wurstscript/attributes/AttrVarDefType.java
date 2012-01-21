@@ -103,7 +103,7 @@ public class AttrVarDefType {
 	}
 
 	public static PscriptType calculate(InterfaceDef i) {
-		return new PscriptTypeInterface(i, (WPackage) i.attrNearestPackage(), true);
+		return new PscriptTypeInterface(i, true);
 	}
 
 	

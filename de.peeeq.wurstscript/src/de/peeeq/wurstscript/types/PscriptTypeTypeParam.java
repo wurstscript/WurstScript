@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.types;
 
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 
 public class PscriptTypeTypeParam extends PscriptType {
@@ -11,7 +12,7 @@ public class PscriptTypeTypeParam extends PscriptType {
 	}
 
 	@Override
-	public boolean isSubtypeOf(PscriptType other) {
+	public boolean isSubtypeOf(PscriptType other, AstElement location) {
 		if (other instanceof PscriptTypeTypeParam) {
 			PscriptTypeTypeParam other2 = (PscriptTypeTypeParam) other;
 			return other2.def == this.def;

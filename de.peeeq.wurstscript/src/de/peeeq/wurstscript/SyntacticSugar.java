@@ -14,33 +14,64 @@ import java.util.UUID;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.Ast;
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithBody;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassSlot;
+import de.peeeq.wurstscript.ast.ClassSlots;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
+import de.peeeq.wurstscript.ast.FunctionMappings;
+import de.peeeq.wurstscript.ast.InstanceDef;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.StmtForIn;
 import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.TopLevelDeclaration;
+import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.ast.TypeExprSimple;
+import de.peeeq.wurstscript.ast.WEntities;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.attr;
 
 public class SyntacticSugar {
 
 	public void removeSyntacticSugar(CompilationUnit root) {
+		addInstanceDecls(root);
 		addDefaultConstructors(root);
 		expandForInLoops(root);
 	}
 
 	
+	private void addInstanceDecls(CompilationUnit root) {
+		for (ClassDef c : root.attrGetByType().classes) {
+			WEntities ents = (WEntities) c.getParent();
+			for (TypeExpr implemented : c.getImplementsList()) {
+				if (!(implemented instanceof TypeExprSimple)) {
+					attr.addError(implemented.getSource(), "Can only implement interfaces.");
+					continue;
+				}
+				TypeExprSimple impl = (TypeExprSimple) implemented;
+				WPos s = implemented.getSource();
+				
+				TypeExpr classTyp = Ast.TypeExprSimple(s.copy(), c.getName(), Ast.TypeExprList()); // TODO type params
+				TypeExpr implementedTyp = Ast.TypeExprSimple(s.copy(), impl.getTypeName(), impl.getTypeArgs().copy());
+				FunctionMappings functionMappings = Ast.FunctionMappings();
+				
+				InstanceDef instanceDef = Ast.InstanceDef(s.copy(), c.getModifiers().copy(), classTyp, c.getTypeParameters().copy(), implementedTyp, functionMappings);
+				ents.add(instanceDef);
+			}
+		}
+	}
+
+
 	private void expandForInLoops(CompilationUnit root) {
 		// collect loops
 		final List<StmtForIn> loops = Lists.newArrayList();
@@ -122,7 +153,7 @@ public class SyntacticSugar {
 	 * add a empty default constructor to every class without any constructor 
 	 */
 	private void addDefaultConstructors(CompilationUnit root) {
-		outerLoop: for (ClassDef c : getAllClasses(root)) {
+		outerLoop: for (ClassDef c : root.attrGetByType().classes) {
 			for (ClassSlot s : c.getSlots()) {
 				if (s instanceof ConstructorDef) {
 					continue outerLoop;
@@ -136,21 +167,21 @@ public class SyntacticSugar {
 		}
 	}
 	
-	/**
-	 * return all classes occuring in a compilation unit 
-	 */
-	private List<ClassDef> getAllClasses(CompilationUnit root) {
-		List<ClassDef> result = Lists.newArrayList();
-		for (TopLevelDeclaration t : root) {
-			if (t instanceof WPackage) {
-				WPackage p = (WPackage) t;
-				for (WEntity e : p.getElements()) {
-					if (e instanceof ClassDef) {
-						result.add((ClassDef) e);
-					}
-				}
-			}
-		}
-		return result;
-	}
+//	/**
+//	 * return all classes occuring in a compilation unit 
+//	 */
+//	private List<ClassDef> getAllClasses(CompilationUnit root) {
+//		List<ClassDef> result = Lists.newArrayList();
+//		for (TopLevelDeclaration t : root) {
+//			if (t instanceof WPackage) {
+//				WPackage p = (WPackage) t;
+//				for (WEntity e : p.getElements()) {
+//					if (e instanceof ClassDef) {
+//						result.add((ClassDef) e);
+//					}
+//				}
+//			}
+//		}
+//		return result;
+//	}
 }

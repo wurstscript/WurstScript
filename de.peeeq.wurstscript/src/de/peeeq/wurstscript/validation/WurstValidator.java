@@ -36,6 +36,7 @@ import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.HasTypeArgs;
 import de.peeeq.wurstscript.ast.InitBlock;
+import de.peeeq.wurstscript.ast.InstanceDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.ModAbstract;
@@ -225,7 +226,7 @@ public class WurstValidator {
 	}
 
 	private void checkAssignment(boolean isJassCode, WPos pos, PscriptType leftType, PscriptType rightType) {
-		if (!rightType.isSubtypeOf(leftType)) {
+		if (!rightType.isSubtypeOf(leftType, pos)) {
 			if (isJassCode) {
 				if (leftType instanceof PScriptTypeReal && rightType instanceof PScriptTypeInt) {
 					// special case: jass allows to assign an integer to a real
@@ -428,7 +429,7 @@ public class WurstValidator {
 				PscriptType actual = args.get(i).attrTyp();
 				PscriptType expected = parameterTypes.get(i);
 				if (expected instanceof AstElementWithTypeArgs)
-				if (!actual.isSubtypeOf(expected)) {
+				if (!actual.isSubtypeOf(expected, where)) {
 					attr.addError(args.get(i).getSource(), "Expected " + expected + " as parameter " + i + " but found " + actual);
 				}
 			}
@@ -484,17 +485,17 @@ public class WurstValidator {
 		PscriptType returnType = func.getReturnTyp().attrTyp();
 		if (s.getReturnedObj() instanceof Expr) {
 			Expr returned = (Expr) s.getReturnedObj();
-			if (returnType.isSubtypeOf(PScriptTypeVoid.instance())) {
+			if (returnType.isSubtypeOf(PScriptTypeVoid.instance(), s)) {
 				attr.addError(s.getSource(), "Cannot return a value from a function which returns nothing");
 			} else {
 				PscriptType returnedType = returned.attrTyp();
-				if (!returnedType.isSubtypeOf(returnType)) {
+				if (!returnedType.isSubtypeOf(returnType, s)) {
 					attr.addError(s.getSource(), "Cannot return " + returnedType + ", expected expression of type "
 							+ returnType);
 				}
 			}
 		} else { // empty return
-			if (!returnType.isSubtypeOf(PScriptTypeVoid.instance())) {
+			if (!returnType.isSubtypeOf(PScriptTypeVoid.instance(), s)) {
 				attr.addError(s.getSource(), "Missing return value");
 			}
 		}
@@ -688,6 +689,11 @@ public class WurstValidator {
 
 				@Override
 				public void case_InterfaceDef(InterfaceDef interfaceDef) {
+					check(VisibilityPublic.class);
+				}
+
+				@Override
+				public void case_InstanceDef(InstanceDef instanceDef) {
 					check(VisibilityPublic.class);
 				}
 			});

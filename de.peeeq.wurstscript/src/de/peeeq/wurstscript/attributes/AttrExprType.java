@@ -218,12 +218,12 @@ public class AttrExprType {
 
 			private PscriptType requireEqualTypes(
 					PScriptTypeBool requiredType, PScriptTypeBool resultType) {
-				if (!leftType.isSubtypeOf(requiredType)) {
+				if (!leftType.isSubtypeOf(requiredType, term)) {
 					attr.addError(term.getLeft().getSource(), "Operator " + term.getOp() + " requires two operands of " +
 							"type " + requiredType + " but left type was " + leftType);
 					return PScriptTypeUnknown.instance();
 				}
-				if (!leftType.isSubtypeOf(requiredType)) {
+				if (!leftType.isSubtypeOf(requiredType, term)) {
 					attr.addError(term.getRight().getSource(), "Operator " + term.getOp() + " requires two operands of " +
 							"type " + requiredType + " but right type was " + leftType);
 					return PScriptTypeUnknown.instance();
@@ -263,7 +263,7 @@ public class AttrExprType {
 					return PScriptTypeBool.instance();
 				}
 
-				if (leftType.isSubtypeOf(rightType) || rightType.isSubtypeOf(leftType)) {
+				if (leftType.isSubtypeOf(rightType, term) || rightType.isSubtypeOf(leftType, term)) {
 					return  PScriptTypeBool.instance();
 				}
 

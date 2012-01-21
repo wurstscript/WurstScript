@@ -24,7 +24,7 @@ WEntity =
 	| InitBlock (WPos source, WStatements body)
 	| NativeFunc(WPos source, Modifiers modifiers, String name, WParameters parameters, OptTypeExpr returnTyp)
 	| ModuleDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, ClassSlots slots)
-	| InstanceDef(WPos source, Modifiers modifiers, TypeExpr classTyp, TypeExpr implementedTyp, FunctionMappings functionMappings)
+	| InstanceDef(WPos source, Modifiers modifiers, TypeExpr classTyp, TypeParamDefs typeParameters, TypeExpr implementedTyp, FunctionMappings functionMappings)
 	
 FunctionMappings * FunctionMapping
 
@@ -222,7 +222,7 @@ Modifier =
 	
 // AstElementWithBody = FunctionImplementation | InitBlock | ConstructorDef | OnDestroyDef
 //AstElementWithModifier = NameDef | TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition
-HasModifier = NameDef | TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition
+HasModifier = NameDef | TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition | InstanceDef
 HasTypeArgs =  ExprNewObject | FunctionCall | ModuleUse | StmtCall | TypeExprSimple
 
 
@@ -466,3 +466,12 @@ WPos.getLine
 HasTypeArgs.attrTypeParameterBindings
 	returns java.util.Map<TypeParamDef, de.peeeq.wurstscript.types.PscriptType>
 	implemented by de.peeeq.wurstscript.attributes.Generics.getTypeParameterBindings
+	
+	
+PackageOrGlobal.attrInstanceDefs
+	returns  com.google.common.collect.Multimap<InterfaceDef, InstanceDef>
+	implemented by de.peeeq.wurstscript.attributes.InstanceDefs.calculates
+	
+CompilationUnit.attrGetByType
+	returns de.peeeq.wurstscript.attributes.GetByType.ByTypes
+	implemented by de.peeeq.wurstscript.attributes.GetByType.calculate

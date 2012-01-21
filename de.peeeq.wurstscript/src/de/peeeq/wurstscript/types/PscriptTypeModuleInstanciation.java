@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.types;
 
 import java.util.List;
 
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NamedScope;
 
@@ -21,8 +22,8 @@ public class PscriptTypeModuleInstanciation extends PscriptTypeNamedScope {
 	}
 
 	@Override
-	public boolean isSubtypeOf(PscriptType obj) {
-		if (super.isSubtypeOf(obj)) {
+	public boolean isSubtypeOf(PscriptType obj, AstElement location) {
+		if (super.isSubtypeOf(obj, location)) {
 			return true;
 		}
 		if (obj instanceof PscriptTypeNamedScope) {
