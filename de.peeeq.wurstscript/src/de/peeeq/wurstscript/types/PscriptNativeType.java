@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.types;
 
+import de.peeeq.wurstscript.ast.AstElement;
+
 public class PscriptNativeType extends PscriptType {
 
 	private String name;
@@ -9,12 +11,12 @@ public class PscriptNativeType extends PscriptType {
 	}
 	
 	@Override
-	public boolean isSubtypeOf(PscriptType other) {
+	public boolean isSubtypeOf(PscriptType other, AstElement location) {
 		if (other instanceof PscriptNativeType) {
 			return ((PscriptNativeType)other).name.equals(name)
-				|| superType.isSubtypeOf(other);
+				|| superType.isSubtypeOf(other, location);
 		}
-		return superType.isSubtypeOf(other);
+		return superType.isSubtypeOf(other, location);
 	}
 
 	@Override

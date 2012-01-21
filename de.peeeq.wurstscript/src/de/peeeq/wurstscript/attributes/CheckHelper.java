@@ -26,7 +26,7 @@ public class CheckHelper {
 		// check returntype
 		PscriptType f_type = f.getReturnTyp().attrTyp();
 		PscriptType of_type = of.getReturnTyp().attrTyp();
-		if (! f_type.isSubtypeOf(of_type)) { 
+		if (! f_type.isSubtypeOf(of_type, f)) { 
 			attr.addError(f.getSource(), "Cannot override function " + funcName + ": The return type is " + f_type + 
 					" but it should be " + of_type + ".");
 		}
@@ -45,7 +45,7 @@ public class CheckHelper {
 			WParameter of_p = of.getParameters().get(i);
 			PscriptType f_p_type = f_p.attrTyp();
 			PscriptType of_p_type = of_p.attrTyp();
-			if (! f_p_type.isSupertypeOf(of_p_type)) {
+			if (! f_p_type.isSupertypeOf(of_p_type, f)) {
 				attr.addError(f.getSource(), "Cannot override function " + funcName + ": The type of parameter " + f_p.getName() + " is " + f_p_type + 
 						" but it should be " + of_p_type );
 			}
