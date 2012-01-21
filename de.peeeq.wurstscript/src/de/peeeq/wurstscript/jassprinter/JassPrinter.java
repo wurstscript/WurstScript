@@ -52,6 +52,14 @@ public class JassPrinter {
 	private boolean withSpace;
 	private JassProg prog;
 
+	public String intShort(String val){
+		int d = Integer.valueOf(val);
+		if ( d > 792646 ) {
+			String s = Integer.toHexString(d).toUpperCase();
+			return "$" + s;
+		}
+		return String.valueOf(d);
+	}
 
 	public JassPrinter(boolean withSpace) {
 		this.withSpace = withSpace;
@@ -304,7 +312,9 @@ public class JassPrinter {
 			
 			@Override
 			public void case_JassExprIntVal(JassExprIntVal e) {
-				sb.append(e.getValI());
+				String val = String.valueOf(e.getValI());
+				val = intShort(val);
+				sb.append(val);
 			}
 			
 			@Override
