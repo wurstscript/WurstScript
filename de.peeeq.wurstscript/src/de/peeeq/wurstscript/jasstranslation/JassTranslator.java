@@ -515,6 +515,8 @@ public class JassTranslator {
 			return "integer";
 		} else if (t instanceof PscriptTypeTypeParam) {
 			return "integer";
+		} else if (t instanceof PscriptTypeInterface) {
+			return "integer";
 		}
 		throw new Error("Cannot translate type: " + t + " // " + t.getClass());
 	}
