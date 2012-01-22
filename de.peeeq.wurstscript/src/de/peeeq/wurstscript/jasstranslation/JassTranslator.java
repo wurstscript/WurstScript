@@ -90,6 +90,7 @@ import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
 import de.peeeq.wurstscript.jassAst.JassExprlist;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassFunctions;
+import de.peeeq.wurstscript.jassAst.JassOpBinary;
 import de.peeeq.wurstscript.jassAst.JassOpLessEq;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassAst.JassSimpleVar;
@@ -133,11 +134,15 @@ public class JassTranslator {
 	private JassFunction initGlobalsFunc;
 	private Collection<WPackage> packages = Lists.newLinkedList();
 	Set<String> handleSubTypes = Sets.newHashSet("handle");
+	private JassTranslatorStatements statementTranslator;
+	private JassTranslatorExpressions exprTranslator;
 
 
 	public JassTranslator(CompilationUnit wurstProgram) {
 		this.manager = new JassManager(this);
 		this.wurstProg = wurstProgram;
+		this.statementTranslator = new JassTranslatorStatements(this);
+		this.exprTranslator = new JassTranslatorExpressions(this);
 	}
 
 	public JassProg translate() {
@@ -250,8 +255,7 @@ public class JassTranslator {
 		for (GlobalInit gi : globalInitializers) {
 			if (! prog.attrIgnoredVariables().contains(gi.v)) {
 				ExprTranslationResult e = translateExpr(initGlobalsFunc, gi.initialExpr);
-				body.addAll(e.getStatements());
-				body.add(JassStmtSet(gi.v.getName(), e.getExpr()));
+				new JassTranslatorStatements(this).translateAssignment2(body, initGlobalsFunc, gi.v, null, null, e);
 				initializedVars.add(gi.v);
 			}
 		}
@@ -420,7 +424,7 @@ public class JassTranslator {
 	}
 
 	private List<JassStatement> translateStatements(JassFunction f, WStatements statements) {
-		return new JassTranslatorStatements(this).translateStatements(f, statements);
+		return statementTranslator.translateStatements(f, statements);
 	}
 
 	private JassSimpleVar jassThisVar() {
@@ -452,7 +456,7 @@ public class JassTranslator {
 
 
 	ExprTranslationResult translateExpr(final JassFunction f, Expr expr) {
-		return new JassTranslatorExpressions(this).translateExpr(f, expr);
+		return exprTranslator.translateExpr(f, expr);
 	}
 
 	
@@ -703,14 +707,9 @@ public class JassTranslator {
 					ExprTranslationResult e = translateExpr(f, mapping.getMapping());
 					result.addAll(e.getStatements());
 					if (returnsVoid) {
-						if (e.getExpr() instanceof JassExprFunctionCall) {
-							JassExprFunctionCall fc = (JassExprFunctionCall) e.getExpr();
-							result.add(JassStmtCall(fc.getFuncName(), fc.getArguments().copy()));
-						} else {
-							throw new CompileError(mapping.getSource(), "Invalid mapping");
-						}
+						result.addAll(asStatements(e.getExpressions()));
 					} else {
-						result.add(JassAst.JassStmtReturn(e.getExpr()));
+						result.addAll(makeReturn(e.getExpressions()));
 					}
 					return result; 
 				}
@@ -748,6 +747,35 @@ public class JassTranslator {
 			result.add(JassAst.JassStmtIf(cond, thenBlock, elseBlock));
 			return result;
 		}
+	}
+
+	/**
+	 * creates a return statement returning the given expressions
+	 * if the list is > 1, temporary variables are used to store
+	 */
+	private List<JassStatement> makeReturn(List<JassExpr> expressions) {
+		List<JassStatement> result = Lists.newArrayList();
+		if (expressions.size() == 1) {
+			result.add(JassStmtReturn(expressions.get(0)));
+		} else {
+			throw new Error(); // TODO
+		}
+		return result;
+	}
+
+	/**
+	 * transforms a list of expressions into a list of statements
+	 * discards all expressions which are not function calls 
+	 */
+	private List<JassStatement> asStatements(List<JassExpr> expressions) {
+		List<JassStatement> result = Lists.newArrayListWithCapacity(expressions.size());
+		for (JassExpr e : expressions) {
+			if (e instanceof JassExprFunctionCall) {
+				JassExprFunctionCall fc = (JassExprFunctionCall) e;
+				result.add(JassStmtCall(fc.getFuncName(), fc.getArguments().copy()));
+			}
+		}
+		return result;
 	}
 
 	private void translateInitBlock(InitBlock initBlock) {
@@ -949,9 +977,8 @@ public class JassTranslator {
 				if (var.attrIsDynamicClassMember() && var.getInitialExpr() instanceof Expr) {
 					Expr initial = (Expr) var.getInitialExpr();
 					ExprTranslationResult e = translateExpr(f, initial);
-					f.getBody().addAll(e.getStatements());
-					String jassVar = manager.getJassVarNameFor(var);
-					f.getBody().add(JassStmtSetArray(jassVar, JassExprVarAccess("this"), e.getExpr()));
+					ExprTranslationResult indexExpr = new ExprTranslationResult(JassExprVarAccess("this"));
+					statementTranslator.translateAssignment2(f.getBody(), f, var, indexExpr, null, e);
 				} // TODO default value?
 			}
 		}
@@ -981,9 +1008,8 @@ public class JassTranslator {
 				if (!v.attrIsStatic() && v.getInitialExpr() instanceof Expr) {
 					Expr expr = (Expr) v.getInitialExpr();
 					ExprTranslationResult er = translateExpr(f, expr);
-					f.getBody().addAll(er.getStatements());
-					String varName = manager.getJassVarNameFor(v);
-					f.getBody().add(JassStmtSetArray(varName,JassExprVarAccess("this"), er.getExpr()));
+					ExprTranslationResult indexExpr = new ExprTranslationResult(JassExprVarAccess("this"));
+					statementTranslator.translateAssignment2(f.getBody(), f, v, indexExpr, null, er);
 				}
 			} else if (s instanceof ConstructorDef) {
 				constructor  = (ConstructorDef) s;
