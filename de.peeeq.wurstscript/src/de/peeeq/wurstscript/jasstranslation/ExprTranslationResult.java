@@ -30,10 +30,11 @@ public class ExprTranslationResult {
 	}
 
 	/**
+	 * attention: statements and expressions are captured!
 	 * @param statements2
 	 * @param expressions2
 	 */
-	private ExprTranslationResult(List<JassStatement> statements, List<JassExpr> expressions) {
+	public ExprTranslationResult(List<JassStatement> statements, List<JassExpr> expressions) {
 		this.statements = statements;
 		this.expressions = expressions;
 	}

@@ -54,7 +54,7 @@ public class AttrAllFunctions {
 				if (!overridingFunc.attrIsOverride()) {
 					attr.addError(overridingFunc.getSource(), "The function " + funcName + " must have the 'override' annotation.");
 				}
-				CheckHelper.checkIfIsRefinement(overridingFunc, moduleFunctions.get(funcName));
+				CheckHelper.checkIfIsRefinement(overridingFunc, moduleFunctions.get(funcName), "Cannot override function ");
 				result.put(funcName, overridingFunc);
 				sameLevelFunctions.remove(funcName);
 			} else { // -> no overriding function

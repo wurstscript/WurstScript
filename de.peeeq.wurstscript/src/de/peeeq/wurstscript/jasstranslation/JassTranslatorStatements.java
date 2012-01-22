@@ -45,6 +45,7 @@ import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
+import de.peeeq.wurstscript.ast.FunctionImplementation;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.InstanceDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
@@ -261,10 +262,28 @@ public class JassTranslatorStatements {
 							}
 						}
 					}
-					if (useTempVar) {
-						String returnTyp = translator.translateType(expr.attrTyp());
-						JassVar tempVar = manager.getTempReturnVar(returnTyp, translator.prog);
-						result.add(JassStmtSet(tempVar.getName(), e.getExprSingle())); // TODO return statement interface 
+					
+					PscriptType retTyp = stmtReturn.attrNearestFuncDef().getReturnTyp().attrTyp();
+					String returnedTyp = translator.translateType(expr.attrTyp());
+					
+					if (retTyp instanceof PscriptTypeInterface) {
+						JassVar tempVar = manager.getTempReturnVar(returnedTyp, translator.prog);
+						JassVar tempVar2 = manager.getTupleReturnVar("integer", 1);
+						result.add(JassStmtSet(tempVar.getName(), e.getExpressions().get(0)));
+						if (expr.attrTyp() instanceof PscriptTypeInterface) {
+							result.add(JassStmtSet(tempVar2.getName(), e.getExpressions().get(1)));
+						} else if (expr.attrTyp() instanceof PscriptTypeClass) {
+							int typeId = getInstanceId(expr, (PscriptTypeInterface)retTyp, (PscriptTypeClass) expr.attrTyp());
+							result.add(JassStmtSet(tempVar2.getName(), JassExprIntVal(typeId)));
+						} else {
+							throw new CompileError(expr.getSource(), "Cannot return this here.");
+						}
+						result.addAll(nullSetters);
+						result.add(JassStmtReturn(JassExprVarAccess(tempVar.getName())));
+					} else if (useTempVar) {
+						
+						JassVar tempVar = manager.getTempReturnVar(returnedTyp, translator.prog);
+						result.add(JassStmtSet(tempVar.getName(), e.getExprSingle()));  
 						result.addAll(nullSetters);
 						result.add(JassStmtReturn(JassExprVarAccess(tempVar.getName())));
 					} else {
@@ -345,7 +364,6 @@ public class JassTranslatorStatements {
 
 			@Override
 			public void case_StmtForIn(StmtForIn stmtForIn) {
-				// TODO Auto-generated method stub
 				throw new CompileError(stmtForIn.attrSource(), "Syntactic sugar");
 			}
 
@@ -366,8 +384,7 @@ public class JassTranslatorStatements {
 		ExprTranslationResult er = translator.translateExpr(f, e);
 		result.addAll(fromExpr.getStatements());
 		JassExpr r;
-		if (er.getStatements().size() == 0 && er.getExprSingle() instanceof JassExprIntVal) {
-			// TODO add other constant cases (constant vars, ExprRealVal ...)
+		if (er.getStatements().size() == 0 && er.getExprSingle() instanceof JassExprAtomic) {
 			r = er.getExprSingle(); 
 		} else {
 			JassVar loopEndVar = translator.getNewTempVar(f, "integer");

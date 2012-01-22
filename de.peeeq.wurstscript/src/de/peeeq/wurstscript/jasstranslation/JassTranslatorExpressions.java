@@ -93,6 +93,8 @@ import de.peeeq.wurstscript.jassAst.JassStatement;
 import de.peeeq.wurstscript.jassAst.JassStatements;
 import de.peeeq.wurstscript.jassAst.JassVar;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
+import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.types.PscriptTypeInterface;
 
 public class JassTranslatorExpressions {
 	private JassManager manager;
@@ -536,8 +538,15 @@ public class JassTranslatorExpressions {
 		jassArgs.addAll(args.getExprs());
 
 
-		JassExprFunctionCall ex = JassExprFunctionCall(functionName, jassArgs);
-		return new ExprTranslationResult(statements, ex);
+		
+		List<JassExpr> exprs = Lists.newArrayList();
+		exprs.add(JassExprFunctionCall(functionName, jassArgs));
+		
+		PscriptType returnTyp = calledFunc.attrTyp();
+		if (returnTyp instanceof PscriptTypeInterface) {
+			exprs.add(JassExprVarAccess(manager.getTupleReturnVar("integer", 1).getName()));
+		}
+		return new ExprTranslationResult(statements, exprs);
 	}
 
 

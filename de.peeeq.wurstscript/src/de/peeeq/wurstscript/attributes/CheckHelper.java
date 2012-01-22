@@ -14,7 +14,7 @@ public class CheckHelper {
 	 * @param f
 	 * @param of
 	 */
-	public static void checkIfIsRefinement(FunctionDefinition f, FunctionDefinition of) {
+	public static void checkIfIsRefinement(FunctionDefinition f, FunctionDefinition of, String errorMessage) {
 		String funcName = f.getName();
 		// check static-ness
 		if (f.attrIsStatic() && !of.attrIsStatic()) {
@@ -27,7 +27,7 @@ public class CheckHelper {
 		PscriptType f_type = f.getReturnTyp().attrTyp();
 		PscriptType of_type = of.getReturnTyp().attrTyp();
 		if (! f_type.isSubtypeOf(of_type, f)) { 
-			attr.addError(f.getSource(), "Cannot override function " + funcName + ": The return type is " + f_type + 
+			attr.addError(f.getSource(), errorMessage + funcName + ": The return type is " + f_type + 
 					" but it should be " + of_type + ".");
 		}
 		
@@ -36,7 +36,7 @@ public class CheckHelper {
 		int of_count = of.getParameters().size(); 
 		// check parameters
 		if (f_count != of_count) {
-			attr.addError(f.getSource(), "Cannot override function " + funcName + ": The number of parameters of function " + funcName + " must be equal to " + of_count + 
+			attr.addError(f.getSource(), errorMessage + funcName + ": The number of parameters of function " + funcName + " must be equal to " + of_count + 
 					", as defined by the overriden function.");
 			return;
 		}
@@ -46,7 +46,7 @@ public class CheckHelper {
 			PscriptType f_p_type = f_p.attrTyp();
 			PscriptType of_p_type = of_p.attrTyp();
 			if (! f_p_type.isSupertypeOf(of_p_type, f)) {
-				attr.addError(f.getSource(), "Cannot override function " + funcName + ": The type of parameter " + f_p.getName() + " is " + f_p_type + 
+				attr.addError(f.getSource(), errorMessage + funcName + ": The type of parameter " + f_p.getName() + " is " + f_p_type + 
 						" but it should be " + of_p_type );
 			}
 			i++;
@@ -58,9 +58,9 @@ public class CheckHelper {
 	 * @param overridingFunc
 	 * @param overriddenFuntions
 	 */
-	public static void checkIfIsRefinement(FuncDef overridingFunc,	Collection<FuncDef> overriddenFuntions) {
+	public static void checkIfIsRefinement(FuncDef overridingFunc,	Collection<FuncDef> overriddenFuntions, String errorMessage) {
 		for (FuncDef f: overriddenFuntions) {
-			checkIfIsRefinement(overridingFunc, f);
+			checkIfIsRefinement(overridingFunc, f, errorMessage);
 		}
 		
 	}

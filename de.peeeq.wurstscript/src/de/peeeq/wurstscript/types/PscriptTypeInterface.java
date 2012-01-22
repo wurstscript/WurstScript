@@ -53,8 +53,13 @@ public class PscriptTypeInterface extends PscriptTypeNamedScope {
 
 	@Override
 	public boolean isSubtypeOf(PscriptType other, AstElement location) {
-		// TODO Auto-generated method stub
-		throw new Error("not implemented");
+		if (other instanceof PscriptTypeInterface) {
+			PscriptTypeInterface other2 = (PscriptTypeInterface) other;
+			InterfaceDef i = interfaceDef;
+			InterfaceDef otherI = other2.interfaceDef;
+			return i == otherI; // FIXME interfaces can extends other interfaces
+		}
+		return false;
 	}
 	
 }

@@ -10,6 +10,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.AstElementWithName;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
@@ -274,6 +275,19 @@ public class JassManager {
 			return typeIdCounter;
 		}
 		return typeIds.get(o1);
+	}
+
+	private Map<String, JassVar> tupleReturnVars = Maps.newHashMap();
+	
+	public JassVar getTupleReturnVar(String type, int i) {
+		String varname = "wurst__tupleReturnVar" + i;
+		if (tupleReturnVars.containsKey(varname)) {
+			return tupleReturnVars.get(varname);
+		}
+		JassVar v = JassAst.JassSimpleVar(type, varname);
+		jassTranslator.prog.getGlobals().add(v);
+		tupleReturnVars.put(varname, v);
+		return v;
 	}
 
 }
