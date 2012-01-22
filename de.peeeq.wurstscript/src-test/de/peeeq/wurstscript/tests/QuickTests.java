@@ -17,7 +17,8 @@ import de.peeeq.wurstscript.utils.UtilsTest;
 	ExpressionTests.class,
 	ClassesTests.class,
 	ModuleTests.class,
-	PackageTests.class
+	PackageTests.class,
+	OptimizerTests.class
 })
 public class QuickTests {
 

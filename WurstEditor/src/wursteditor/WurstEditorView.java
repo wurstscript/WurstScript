@@ -56,6 +56,7 @@ public class WurstEditorView extends FrameView {
         }
         WurstEditorApp.getApplication().show(getAboutBox());
     }
+    017653063102
 
     /** This method is called from within the constructor to
      * initialize the form.
@@ -291,6 +292,11 @@ public class WurstEditorView extends FrameView {
 
         fileMenu.setText(resourceMap.getString("fileMenu.text")); // NOI18N
         fileMenu.setName("fileMenu"); // NOI18N
+        fileMenu.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                fileMenuMouseClicked(evt);
+            }
+        });
 
         jMenuItem1.setText(resourceMap.getString("jMenuItem1.text")); // NOI18N
         jMenuItem1.setName("jMenuItem1"); // NOI18N
@@ -356,7 +362,6 @@ public class WurstEditorView extends FrameView {
         jCheckBoxMenuItem1.setName("jCheckBoxMenuItem1"); // NOI18N
         jMenu2.add(jCheckBoxMenuItem1);
 
-        jCheckBoxMenuItem2.setSelected(true);
         jCheckBoxMenuItem2.setText(resourceMap.getString("jCheckBoxMenuItem2.text")); // NOI18N
         jCheckBoxMenuItem2.setName("jCheckBoxMenuItem2"); // NOI18N
         jMenu2.add(jCheckBoxMenuItem2);
@@ -379,6 +384,10 @@ public class WurstEditorView extends FrameView {
         setComponent(mainPanel);
         setMenuBar(menuBar);
     }// </editor-fold>//GEN-END:initComponents
+
+    private void fileMenuMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_fileMenuMouseClicked
+        // TODO add your handling code here:
+    }//GEN-LAST:event_fileMenuMouseClicked
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JScrollPane ErrorListScrollPane;
