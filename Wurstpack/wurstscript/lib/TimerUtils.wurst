@@ -49,7 +49,7 @@ package TimerUtils
 			c.onTimer()
 			t.release()
 		
-		public function startTimer(real time)
+		function startTimer(real time)
 			timer t = getTimer()
 			t.setData(this castTo integer)
 			TimerStart(t, time, false, function timerCallback)
@@ -59,9 +59,9 @@ package TimerUtils
 	
 		private timer t
 	
-		abstract public function periodic()
+		abstract function periodic()
 		
-		public function stopPeriodic()
+		function stopPeriodic()
 			t.release()
 			t = null
 		
@@ -70,7 +70,7 @@ package TimerUtils
 			thistype c = t.getData() castTo thistype
 			c.periodic()
 		
-		public function startPeriodic(real time)
+		function startPeriodic(real time)
 			t = getTimer()
 			t.setData(this castTo integer)
 			TimerStart(t, time, true, function timerCallback)
@@ -93,15 +93,15 @@ package TimerUtils
 	
 	
 	public module TimedLoop
-		public constant static real PERIOD = 0.025
-		static thistype array instances		// The array
-		static integer instanceCount = 0	// The count
-		static triggercondition triggerCond = null // the triggerCondition for this
-		static conditionfunc cond = Condition(function onExpire)
+		constant static real PERIOD = 0.025
+		static private thistype array instances		// The array
+		static private integer instanceCount = 0	// The count
+		static private triggercondition triggerCond = null // the triggerCondition for this
+		static private conditionfunc cond = Condition(function onExpire)
 	
-		public boolean stopped = false
+		private boolean stopped = false
 	
-		public abstract function onTimedLoop()
+		abstract function onTimedLoop()
 	
 		private static function onExpire() returns boolean
 			int i = instanceCount - 1
@@ -119,10 +119,10 @@ package TimerUtils
 				conditionCount--
 			return false
 	
-		public function stopTimedLoop()
+		function stopTimedLoop()
 			stopped = true
 	
-		public function startTimedLoop()
+		function startTimedLoop()
 			BJDebugMsg("timedLoop - 1")
 			instances[instanceCount] = this
 			instanceCount++

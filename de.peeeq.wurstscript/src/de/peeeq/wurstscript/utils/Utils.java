@@ -8,6 +8,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -18,6 +19,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
@@ -29,6 +31,8 @@ import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WScope;
+import de.peeeq.wurstscript.jassAst.JassExpr;
+import de.peeeq.wurstscript.jassAst.JassExprIntVal;
 
 public class Utils {
 
@@ -500,6 +504,12 @@ public class Utils {
 			sb.append("\n");
 		}
 		return sb.toString();
+	}
+
+	public static <T> T[] conc(List<T> ts, T t) {
+		ArrayList<T> temp = Lists.newArrayList(ts);
+		temp.add(t);
+		return (T[]) temp.toArray();
 	}
 
 }
