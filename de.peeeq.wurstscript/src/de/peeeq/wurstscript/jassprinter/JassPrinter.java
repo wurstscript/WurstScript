@@ -52,9 +52,28 @@ public class JassPrinter {
 	private boolean withSpace;
 	private JassProg prog;
 
+	/**
+     * This method checks if a String contains only numbers
+     */
+    public boolean containsOnlyNumbers(String str) {
+        
+        //It can't contain only numbers if it's null or empty...
+        if (str == null || str.length() == 0)
+            return false;
+        
+        for (int i = 0; i < str.length(); i++) {
+
+            //If we find a non-digit character we return false.
+            if (!Character.isDigit(str.charAt(i)))
+                return false;
+        }
+        
+        return true;
+    }
+    
 	public String intShort(String val){
 		int d = Integer.valueOf(val);
-		if ( d > 792646 ) {
+		if ( d > 792646 && containsOnlyNumbers(val) ) {
 			String s = Integer.toHexString(d).toUpperCase();
 			return "$" + s;
 		}
@@ -313,7 +332,9 @@ public class JassPrinter {
 			@Override
 			public void case_JassExprIntVal(JassExprIntVal e) {
 				String val = String.valueOf(e.getValI());
-				val = intShort(val);
+				if(!withSpace) {
+					val = intShort(val);
+				}
 				sb.append(val);
 			}
 			
