@@ -6,6 +6,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
@@ -36,7 +38,9 @@ public class Main {
 	 */
 	public static void main(String[] args) {
 		//		JOptionPane.showMessageDialog(null , "time to connect profiler ^^");
-		WLogger.info("Started compiler with args " + Utils.printSep(", ", args));
+		SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy hh:mm:ss");
+		Date myDate = new Date();
+		WLogger.info("Started compiler at" + sdf.format(myDate) + "with args " + Utils.printSep(", ", args));
 		
 		WurstGui gui = null;
 		try {
@@ -72,7 +76,8 @@ public class Main {
 			}
 			
 			if (runArgs.getMapFile() != null) {
-				makeBackup(runArgs.getMapFile());
+				BackupController bc = new BackupController();
+				bc.makeBackup(runArgs.getMapFile(), 19);
 			}
 
 			compilation : do {
@@ -169,7 +174,7 @@ public class Main {
 			WLogger.severe(t);
 			
 			String title  = "Sorry!";
-			String message = "You have encountered a bug in the Wurst Compiler. Wa.";
+			String message = "You have encountered a bug in the Wurst Compiler.";
 			
 			Object[] options = {
 					"Nothing",
@@ -177,7 +182,9 @@ public class Main {
 					"Create manual bug report"
 				            };
 			JFrame parent = new JFrame();
+			parent.pack();
 			parent.setVisible(true);
+			Utils.setWindowToCenterOfScreen(parent);
 			int n = JOptionPane.showOptionDialog(parent,
 				message,
 				title,
@@ -185,7 +192,7 @@ public class Main {
 				JOptionPane.QUESTION_MESSAGE,
 				null,     //do not use a custom Icon
 				options,  //the titles of buttons
-				options[0]); //default button title
+				options[0]); //default button titles
 			
 			if (n == 1) {
 				boolean r = ErrorReporting.sendErrorReport(t);
@@ -214,19 +221,5 @@ public class Main {
 		}
 	}
 	
-	
-	/**
-	 * create a backup of the mapfile
-	 */
-	private static void makeBackup(String mapFileName) throws Error, IOException {
-		File mapFile = new File(mapFileName);
-		if (!mapFile.exists()) {
-			throw new Error("Mapfile " + mapFile + " does not exist.");
-		}
-		String theTime = "" + System.currentTimeMillis();
-		new File("./backups/").mkdirs();
-		File backupFile = new File("./backups/" + theTime + mapFile.getName());
-		Files.copy(mapFile, backupFile);
-	}
 
 }

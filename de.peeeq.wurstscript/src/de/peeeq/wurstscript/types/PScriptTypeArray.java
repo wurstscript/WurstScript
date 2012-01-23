@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.types;
 
+import de.peeeq.wurstscript.ast.AstElement;
+
 
 public class PScriptTypeArray extends PscriptType {
 
@@ -36,10 +38,10 @@ public class PScriptTypeArray extends PscriptType {
 
 
 	@Override
-	public boolean isSubtypeOf(PscriptType other) {
+	public boolean isSubtypeOf(PscriptType other, AstElement location) {
 		if (other instanceof PScriptTypeArray) {
 			PScriptTypeArray otherArray = (PScriptTypeArray) other;
-			return baseType.equalsType(otherArray.baseType) && getDimensions() == otherArray.getDimensions();
+			return baseType.equalsType(otherArray.baseType, location) && getDimensions() == otherArray.getDimensions();
 		}
 		return false;
 	}

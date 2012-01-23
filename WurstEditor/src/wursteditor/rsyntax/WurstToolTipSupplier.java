@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FuncRef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
+import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
@@ -113,6 +114,11 @@ public class WurstToolTipSupplier implements ToolTipSupplier {
 			@Override
 			public String case_TypeParamDef(TypeParamDef typeParamDef) {
 				return "type parameter: " + typeParamDef.getName();
+			}
+
+			@Override
+			public String case_InterfaceDef(InterfaceDef interfaceDef) {
+				return "interface: " + interfaceDef.getName();
 			}
 		});
 	}

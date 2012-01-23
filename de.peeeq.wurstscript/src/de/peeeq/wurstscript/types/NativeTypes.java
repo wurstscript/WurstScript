@@ -39,22 +39,22 @@ public class NativeTypes {
 	}
 
 	public static ILconst getDefaultValue(PscriptType type) {
-		if (type.isSubtypeOf(PScriptTypeInt.instance())) {
+		if (type.isSubtypeOf(PScriptTypeInt.instance(), null)) {
 			return new ILconstInt(0);
 		}
-		if (type.isSubtypeOf(PScriptTypeBool.instance())) {
+		if (type.isSubtypeOf(PScriptTypeBool.instance(), null)) {
 			return ILconstBool.FALSE;
 		}
-		if (type.isSubtypeOf(PScriptTypeReal.instance())) {
+		if (type.isSubtypeOf(PScriptTypeReal.instance(), null)) {
 			return new ILconstReal(0.0);
 		}
-		if (type.isSubtypeOf(PScriptTypeString.instance())) {
+		if (type.isSubtypeOf(PScriptTypeString.instance(), null)) {
 			return new ILconstString(null);
 		}
-		if (type.isSubtypeOf(PScriptTypeCode.instance())) {
+		if (type.isSubtypeOf(PScriptTypeCode.instance(), null)) {
 			return new ILconstNull();
 		}
-		if (type.isSubtypeOf(PScriptTypeHandle.instance())) {
+		if (type.isSubtypeOf(PScriptTypeHandle.instance(), null)) {
 			return new ILconstNull();
 		}
 		if (type instanceof PscriptTypeClass) {

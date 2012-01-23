@@ -136,7 +136,7 @@ public class AttrTypeExprType {
 
 			@Override
 			public PscriptType case_InterfaceDef(InterfaceDef term) {
-				return new PscriptTypeInterface(term, (WPackage) term.attrNearestPackage(), false);
+				return new PscriptTypeInterface(term, false);
 			}
 		});
 

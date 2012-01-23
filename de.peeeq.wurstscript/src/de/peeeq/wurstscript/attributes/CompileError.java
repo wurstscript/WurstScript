@@ -26,7 +26,7 @@ public class CompileError extends Error implements Serializable {
 	@Override
 	public String toString() {
 		File file = new File(source.getFile());
-		return "Error in File " + file.getName()+ " line " + source.getLine() + ":" + source.getColumn() + ":\n" + 
+		return "Error in File " + file.getName()+ " line " + source.getLine() + ":" + source.getColumn() + ":\n " + 
 				message;
 	}
 }

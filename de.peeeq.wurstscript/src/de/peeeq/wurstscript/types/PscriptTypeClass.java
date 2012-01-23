@@ -1,10 +1,21 @@
 package de.peeeq.wurstscript.types;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Map.Entry;
 
+import com.google.common.collect.Multimap;
+
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.InstanceDef;
+import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.NamedScope;
+import de.peeeq.wurstscript.ast.PackageOrGlobal;
+import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.utils.Utils;
 
 
 public class PscriptTypeClass extends PscriptTypeNamedScope {
@@ -22,16 +33,27 @@ public class PscriptTypeClass extends PscriptTypeNamedScope {
 	}
 
 	@Override
-	public boolean isSubtypeOf(PscriptType obj) {
-		if (super.isSubtypeOf(obj)) {
+	public boolean isSubtypeOf(PscriptType obj, AstElement location) {
+		if (super.isSubtypeOf(obj, location)) {
 			return true;
 		}
 		if (obj instanceof PscriptTypeInterface) {
 			PscriptTypeInterface pti = (PscriptTypeInterface) obj;
 			// TODO check if this class is a subtype of the interface
-			WPackage pack = pti.getPack();
+			PackageOrGlobal pack = location.attrNearestPackage();
 			
-			return false;
+			Collection<InstanceDef> instanceDefs = pack.attrInstanceDefs().get(pti.getInterfaceDef());
+			for (WEntity e : ((WPackage)pack).getElements()) {
+				System.out.println(Utils.printElement(e));
+			}
+			for (Entry<InterfaceDef, InstanceDef> e : pack.attrInstanceDefs().entries()) {
+				System.out.println(Utils.printElement(e.getKey()) + " => " + e.getValue());
+			}
+			for (InstanceDef iDef: instanceDefs) {
+				if (classDef == iDef.getClassTyp().attrTypeDef()) {
+					return true;
+				}
+			}
 		}
 		return false;
 	}

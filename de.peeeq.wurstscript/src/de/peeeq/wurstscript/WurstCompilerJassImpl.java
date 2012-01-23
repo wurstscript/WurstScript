@@ -285,7 +285,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 //	}
 	
 	private CompilationUnit mergeCompilationUnits(List<CompilationUnit> compilationUnits) {
-		gui.sendProgress("Merging Files", 0.2);
+		gui.sendProgress("Merging Files", 0.22);
 		CompilationUnit result = Ast.CompilationUnit();
 		for (CompilationUnit compilationUnit : compilationUnits) {
 			while (!compilationUnit.isEmpty()) {
@@ -304,6 +304,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         	// extract mapscript:
         	MpqEditor mpqEditor = MpqEditorFactory.getEditor();
         	mpqEditor.extractFile(file, "war3map.j", tempFile);
+        	new File("war3map.j").delete();
 //        	Runtime rt = Runtime.getRuntime();
 //			String[] commands = {"MpqCL.exe", "extract", file.getAbsolutePath(), "war3map.j", tempFile.getAbsolutePath()};
 //			Process proc = rt.exec(commands);

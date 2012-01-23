@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.validation;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -16,6 +17,7 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithTypeArgs;
 import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
@@ -36,6 +38,7 @@ import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.HasTypeArgs;
 import de.peeeq.wurstscript.ast.InitBlock;
+import de.peeeq.wurstscript.ast.InstanceDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.ModAbstract;
@@ -57,6 +60,7 @@ import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.StmtWhile;
+import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.VarDef;
@@ -225,7 +229,7 @@ public class WurstValidator {
 	}
 
 	private void checkAssignment(boolean isJassCode, WPos pos, PscriptType leftType, PscriptType rightType) {
-		if (!rightType.isSubtypeOf(leftType)) {
+		if (!rightType.isSubtypeOf(leftType, pos)) {
 			if (isJassCode) {
 				if (leftType instanceof PScriptTypeReal && rightType instanceof PScriptTypeInt) {
 					// special case: jass allows to assign an integer to a real
@@ -350,7 +354,7 @@ public class WurstValidator {
 
 		// check is override is correct:
 		for (FunctionDefinition overriddenFunc : func.attrOverriddenFunctions()) {
-			CheckHelper.checkIfIsRefinement(func, overriddenFunc);
+			CheckHelper.checkIfIsRefinement(func, overriddenFunc, "Can't override function ");
 		}
 
 	}
@@ -428,7 +432,7 @@ public class WurstValidator {
 				PscriptType actual = args.get(i).attrTyp();
 				PscriptType expected = parameterTypes.get(i);
 				if (expected instanceof AstElementWithTypeArgs)
-				if (!actual.isSubtypeOf(expected)) {
+				if (!actual.isSubtypeOf(expected, where)) {
 					attr.addError(args.get(i).getSource(), "Expected " + expected + " as parameter " + i + " but found " + actual);
 				}
 			}
@@ -484,17 +488,17 @@ public class WurstValidator {
 		PscriptType returnType = func.getReturnTyp().attrTyp();
 		if (s.getReturnedObj() instanceof Expr) {
 			Expr returned = (Expr) s.getReturnedObj();
-			if (returnType.isSubtypeOf(PScriptTypeVoid.instance())) {
+			if (returnType.isSubtypeOf(PScriptTypeVoid.instance(), s)) {
 				attr.addError(s.getSource(), "Cannot return a value from a function which returns nothing");
 			} else {
 				PscriptType returnedType = returned.attrTyp();
-				if (!returnedType.isSubtypeOf(returnType)) {
+				if (!returnedType.isSubtypeOf(returnType, s)) {
 					attr.addError(s.getSource(), "Cannot return " + returnedType + ", expected expression of type "
 							+ returnType);
 				}
 			}
 		} else { // empty return
-			if (!returnType.isSubtypeOf(PScriptTypeVoid.instance())) {
+			if (!returnType.isSubtypeOf(PScriptTypeVoid.instance(), s)) {
 				attr.addError(s.getSource(), "Missing return value");
 			}
 		}
@@ -690,6 +694,11 @@ public class WurstValidator {
 				public void case_InterfaceDef(InterfaceDef interfaceDef) {
 					check(VisibilityPublic.class);
 				}
+
+				@Override
+				public void case_InstanceDef(InstanceDef instanceDef) {
+					check(VisibilityPublic.class);
+				}
 			});
 			if (error.length() > 0) {
 				attr.addError(e.getSource(), error.toString());
@@ -715,6 +724,49 @@ public class WurstValidator {
 				attr.addError(d.getParameters().attrSource(), "Module constructors must not have parameters.");
 			}
 		}
+	}
+	
+	@CheckMethod
+	public void checkInstanceDef(InstanceDef d) {
+		TypeDef interfaceNameDef = d.getImplementedTyp().attrTypeDef();
+		TypeDef classNameDef = d.getClassTyp().attrTypeDef();
+		if (!(interfaceNameDef instanceof InterfaceDef)) {
+			attr.addError(d.getSource(), interfaceNameDef.getName() + " is not an interface.");
+			return;
+		}
+		if (!(classNameDef instanceof ClassDef)) {
+			attr.addError(d.getSource(), classNameDef.getName() + " is not a class.");
+			return;
+		}
+		InterfaceDef interfaceDef = (InterfaceDef) interfaceNameDef;
+		ClassDef classDef = (ClassDef) classNameDef;
+		 
+		nextFunction: for (ClassSlot s : interfaceDef.getSlots()) {
+			if (s instanceof FuncDef) {
+				FuncDef i_funcDef = (FuncDef) s;
+				Collection<NameDef> c_funcDefs = classDef.attrVisibleNamesPrivate().get(i_funcDef.getName());
+				for (NameDef c_nameDef : c_funcDefs) {
+					if (c_nameDef instanceof FuncDef) {
+						FuncDef c_funcDef = (FuncDef) c_nameDef;
+						CheckHelper.checkIfIsRefinement(i_funcDef, c_funcDef, "Cannot implement interface because of function ");
+						continue nextFunction;
+					}
+				}
+				attr.addError(d.getSource(), "The class " + classDef.getName() + " must implement the function " +
+						i_funcDef.getName() + ".");
+				
+				
+			}
+		}
+		
+	}
+	
+	@CheckMethod
+	public void checkInterfaceDef(InterfaceDef i) {
+		if (i.getExtendsList().size() > 0) {
+			attr.addError(i.getExtendsList().attrSource(), "Extending other interfaces is not supported yet.");
+		}
+		checkTypeName(i.getSource(), i.getName());
 	}
 	
 }

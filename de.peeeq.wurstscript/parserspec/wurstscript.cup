@@ -289,10 +289,12 @@ InterfaceFunctionSignature ::=
 ;
 
 InstanceDef ::=
-	Modifiers:mod INSTANCE:x TypeExpr:classTyp COLON TypeExpr:interfaceTyp NL INDENT FunctionMappings:functionMappings UNINDENT:y
-		{: RESULT = Ast.InstanceDef(pos(xleft, yright), mod, classTyp, interfaceTyp, functionMappings); :}
-	| Modifiers:mod INSTANCE:x TypeExpr:classTyp COLON TypeExpr:interfaceTyp NL
-		{: RESULT = Ast.InstanceDef(pos(xleft, interfaceTyp), mod, classTyp, interfaceTyp, Ast.FunctionMappings()); :}
+	Modifiers:mod INSTANCE:x IDENTIFIER:classTyp TypeParamDefs:typeParams  COLON TypeExpr:interfaceTyp NL INDENT FunctionMappings:functionMappings UNINDENT:y
+		{: RESULT = Ast.InstanceDef(pos(xleft, yright), mod
+				, Ast.TypeExprSimple(pos(classTypleft, classTypright), classTyp, Ast.TypeExprList()), typeParams, interfaceTyp, functionMappings); :}
+	| Modifiers:mod INSTANCE:x IDENTIFIER:classTyp TypeParamDefs:typeParams  COLON TypeExpr:interfaceTyp NL
+		{: RESULT = Ast.InstanceDef(pos(xleft, interfaceTyp), mod
+				, Ast.TypeExprSimple(pos(classTypleft, classTypright), classTyp, Ast.TypeExprList()), typeParams, interfaceTyp, Ast.FunctionMappings()); :}
 ;
 
 FunctionMappings ::=

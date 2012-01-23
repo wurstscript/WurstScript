@@ -29,7 +29,7 @@ import de.peeeq.wurstscript.utils.Utils;
 public class About extends javax.swing.JDialog {
     final URI uri;
     final static String homepage = "http://code.google.com/p/pscript-lang/";
-    public final static String version = "0.001";
+    public final static String version = "0.0013a";
     final static String authors = "peq & Frotty";
 
     /** Creates new form About */
@@ -37,12 +37,10 @@ public class About extends javax.swing.JDialog {
         super(parent, modal);        
         initComponents();
         uri = new URI(homepage);
-        getContentPane().setBackground(Color.WHITE); 
-        // Get the size of the screen
-        Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
+        getContentPane().setBackground(Color.WHITE);
          
         Utils.setWindowToCenterOfScreen(this);
-
+        requestFocus();
     }
 
     /** This method is called from within the constructor to

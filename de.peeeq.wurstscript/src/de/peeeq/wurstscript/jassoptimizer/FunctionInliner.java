@@ -52,7 +52,7 @@ public class FunctionInliner {
 		
 		// TODO replace function calls as expressions
 
-		// process childs
+		// process children
 		inlineJassFunctions(f, getChildStatements(s));
 	}
 
@@ -61,8 +61,8 @@ public class FunctionInliner {
 		
 		List<JassStatement> newStatements = r.getStatements();
 		
-		if (r.getExpr() instanceof JassExprFunctionCall) {
-			JassExprFunctionCall e = (JassExprFunctionCall) r.getExpr();
+		if (r.getExpressions().get(0) instanceof JassExprFunctionCall) {
+			JassExprFunctionCall e = (JassExprFunctionCall) r.getExpressions().get(0);
 			newStatements.add(JassAst.JassStmtCall(e.getFuncName(), e.getArguments()));
 		}
 		replaceStatement(s, newStatements);

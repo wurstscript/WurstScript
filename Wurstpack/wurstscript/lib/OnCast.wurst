@@ -6,13 +6,13 @@ package OnCast
 		static trigger t = null
 		static integer spellId
 		
-		public abstract static function onPointCast(unit caster, int level, real targetX, real targetY)
+		abstract static function onPointCast(unit caster, int level, real targetX, real targetY)
 	
 		private static function actions() returns boolean
 			onPointCast(GetSpellAbilityUnit(), GetUnitAbilityLevel(GetSpellAbilityUnit(), GetSpellAbilityId()), GetSpellTargetX(), GetSpellTargetY())
 			return false
 	
-		public static function registerSpellEvent(int p_spellId)
+		static function registerSpellEvent(int p_spellId)
 			spellId = p_spellId
 			CreateTrigger()
 				.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)

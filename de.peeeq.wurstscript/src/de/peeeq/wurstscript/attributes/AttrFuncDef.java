@@ -98,14 +98,14 @@ public class AttrFuncDef {
 		PscriptType resultType = null;
 		for (ExtensionFuncDef extensionFuncDef : collection) {
 			PscriptType fTyp = extensionFuncDef.getExtendedType().attrTyp();
-			if (receiverTyp.isSubtypeOf(fTyp)) {
+			if (receiverTyp.isSubtypeOf(fTyp, extensionFuncDef)) {
 				// function is suitable
 				if (result == null) {
 					result = extensionFuncDef;
 					resultType = fTyp;
 				} else {
 					// we have already found an other function, check if this one is more specific:
-					if (fTyp.isSubtypeOf(resultType)) {
+					if (fTyp.isSubtypeOf(resultType, extensionFuncDef)) {
 						// -> this function is more specific
 						result = extensionFuncDef;
 						resultType = fTyp;

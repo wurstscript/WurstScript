@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.types;
 
+import de.peeeq.wurstscript.ast.AstElement;
+
 /**
  * the exact type is not known but it will be whatever you want it to be ;)
  * (used for the buildin/native functions, where we cannot check the types) 
@@ -11,7 +13,7 @@ public class PScriptTypeInfer extends PscriptType {
 	private PScriptTypeInfer() {}
 	
 	@Override
-	public boolean isSubtypeOf(PscriptType other) {
+	public boolean isSubtypeOf(PscriptType other, AstElement location) {
 		return true;
 	}
 

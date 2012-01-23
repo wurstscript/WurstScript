@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.types;
 
+import de.peeeq.wurstscript.ast.AstElement;
+
 
 
 /**
@@ -15,7 +17,7 @@ public class PScriptTypeJassInt extends PScriptTypeInt {
 	private PScriptTypeJassInt() {}
 	
 	@Override
-	public boolean isSubtypeOf(PscriptType other) {
+	public boolean isSubtypeOf(PscriptType other, AstElement location) {
 		return other instanceof PScriptTypeInt || other instanceof PScriptTypeReal;
 	}
 

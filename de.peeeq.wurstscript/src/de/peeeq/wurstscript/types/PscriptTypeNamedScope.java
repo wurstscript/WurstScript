@@ -6,6 +6,7 @@ import java.util.Map;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.TypeParamDef;
@@ -49,7 +50,7 @@ public abstract class PscriptTypeNamedScope extends PscriptType {
 	}
 
 	@Override
-	public boolean isSubtypeOf(PscriptType obj) {
+	public boolean isSubtypeOf(PscriptType obj, AstElement location) {
 		if (obj instanceof PscriptTypeTypeParam) {
 			return true;
 		}
@@ -60,7 +61,7 @@ public abstract class PscriptTypeNamedScope extends PscriptType {
 					return false;
 				}
 				for (int i = 0; i < typeParameters.size(); i++) {
-					if (!typeParameters.get(i).isSubtypeOf(other.typeParameters.get(i))) {
+					if (!typeParameters.get(i).isSubtypeOf(other.typeParameters.get(i), location)) {
 						// this means covariant type parameters, but this should be no problem as
 						// wurst has no (real) subtypes for classtypes
 						return false;

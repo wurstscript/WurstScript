@@ -121,7 +121,7 @@ public class WurstCompletionProvider extends LanguageAwareCompletionProvider {
 			}
 			if (e.getValue() instanceof ExtensionFuncDef) {
 				ExtensionFuncDef ef = (ExtensionFuncDef) e.getValue();
-				if (ef.getExtendedType().attrTyp().isSupertypeOf(leftType)) {
+				if (ef.getExtendedType().attrTyp().isSupertypeOf(leftType, ef)) {
 					completions.add(new BasicCompletion(this, e.getKey()));
 				}
 			}

@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.types;
 
+import de.peeeq.wurstscript.ast.AstElement;
+
 
 public class PScriptTypeNull extends PscriptType {
 
@@ -9,15 +11,16 @@ public class PScriptTypeNull extends PscriptType {
 	private PScriptTypeNull() {}
 	
 	@Override
-	public boolean isSubtypeOf(PscriptType other) {
+	public boolean isSubtypeOf(PscriptType other, AstElement location) {
 		return other instanceof PScriptTypeNull
-				|| other.isSubtypeOf(PScriptTypeHandle.instance())
+				|| other.isSubtypeOf(PScriptTypeHandle.instance(), location)
 				|| other instanceof PscriptTypeClass
 				|| other instanceof PscriptTypeModule
 				|| other instanceof PScriptTypeString
 				|| other instanceof PScriptTypeCode
 				|| other instanceof PscriptTypeTypeParam
 				|| other instanceof PscriptTypeClass
+				|| other instanceof PscriptTypeInterface
 				|| other instanceof PscriptTypeModule;
 	}
 
