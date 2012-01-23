@@ -1,5 +1,5 @@
 package OnCast
-	import TriggerUtils
+	import ExtensionFunctions
 	
 	
 	public module OnPointCast

@@ -41,7 +41,7 @@ package TimerUtils
 	
 	// module to execute a function after a certain time
 	public module Timed
-		abstract public function onTimer()
+		abstract function onTimer()
 		
 		private static function timerCallback()
 			timer t = GetExpiredTimer()
@@ -99,7 +99,8 @@ package TimerUtils
 		static private triggercondition triggerCond = null // the triggerCondition for this
 		static private conditionfunc cond = Condition(function onExpire)
 	
-		private boolean stopped = false
+		// TODO this should be private but does not work currently
+		protected boolean stopped = false
 	
 		abstract function onTimedLoop()
 	
