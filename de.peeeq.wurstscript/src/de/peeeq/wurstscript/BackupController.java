@@ -32,8 +32,7 @@ public class BackupController {
 			deleteOldBackups(mapName);
 			count--;
 		}
-		
-		// String theTime = "" + System.currentTimeMillis();
+	
 		
 		File backupFile = new File("./backups/" + mapName + "." + toCorrectString(count+1) + ".w3x");
 		Files.copy(mapFile, backupFile);

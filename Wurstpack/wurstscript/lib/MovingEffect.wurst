@@ -26,35 +26,35 @@ This is mostly a copy of xefx, credits for that go to Vexorian
 				.addAbility('Aloc')
 				.setPos(x,y)
 				
-		public function getOwner() returns player
+		function getOwner() returns player
 			return dummy.getOwner()
 			
-		public function setOwner(player p) returns MovingEffect
+		function setOwner(player p) returns MovingEffect
 			dummy.setOwner(p, false)
 			return this
 			
-		public function setTeamcolor(playercolor c) returns MovingEffect
+		function setTeamcolor(playercolor c) returns MovingEffect
 			SetUnitColor(dummy, c)
 			return this
 		
-		public function setScale(real value) returns MovingEffect
+		function setScale(real value) returns MovingEffect
 			dummy.setScale(value)
 			return this
 
-		public function getGreen() returns int
+		function getGreen() returns int
 			return green
 		
-		public function getBlue() returns int
+		function getBlue() returns int
 			return blue
 		
-		public function getRed() returns int
+		function getRed() returns int
 			return red
 		
-		public function getAlpha() returns int
+		function getAlpha() returns int
 			return alpha
 		
 		
-		public function recolor(int r, int g, int b, int a) returns MovingEffect
+		function recolor(int r, int g, int b, int a) returns MovingEffect
 			red = r
 			green = g
 			blue = b
@@ -63,21 +63,21 @@ This is mostly a copy of xefx, credits for that go to Vexorian
 			return this
 
 
-		public function flash(string fx) returns MovingEffect
+		function flash(string fx) returns MovingEffect
 			dummy.addEffect(fx, "origin").destr()
 			return this
 
-		public function getXYAngle() returns real
+		function getXYAngle() returns real
 			return dummy.getFacing()*bj_DEGTORAD
 
-		public function setXYAngle(real value) returns MovingEffect
+		function setXYAngle(real value) returns MovingEffect
 			dummy.setFacing(value*bj_RADTODEG)
 			return this
 
-		public function getZAngle() returns real
+		function getZAngle() returns real
 			return zang
 			
-		public function setZAngle(real value) returns MovingEffect
+		function setZAngle(real value) returns MovingEffect
 			int i = R2I(value*bj_RADTODEG + 90.5)
 			zang = value
 			if i >= 180
@@ -87,32 +87,32 @@ This is mostly a copy of xefx, credits for that go to Vexorian
 			SetUnitAnimationByIndex(dummy, i)
 			return this
 		
-		public function getX() returns real
+		function getX() returns real
 			return dummy.getX()
 			
-		public function getY() returns real
+		function getY() returns real
 			return dummy.getY()
 		
-		public function getZ() returns real
+		function getZ() returns real
 			return dummy.getFlyHeight()
 		
-		public function setX(real x) returns MovingEffect
+		function setX(real x) returns MovingEffect
 			dummy.setX(x)
 			return this
 			
-		public function setY(real y) returns MovingEffect
+		function setY(real y) returns MovingEffect
 			dummy.setY(y)
 			return this
 			
-		public function setPos(real x, real y) returns MovingEffect
+		function setPos(real x, real y) returns MovingEffect
 			dummy.setPos(x, y)
 			return this
 		
-		public function setZ(real z) returns MovingEffect
+		function setZ(real z) returns MovingEffect
 			dummy.setFlyHeight(z, 0.)
 			return this
 		
-		public function setFx(string newpath) returns MovingEffect
+		function setFx(string newpath) returns MovingEffect
 			if fx != null
 				fx.destr()
 			if newpath == ""
@@ -126,7 +126,7 @@ This is mostly a copy of xefx, credits for that go to Vexorian
 				fx.destr()
 			ExplodeUnitBJ(dummy)
 		
-		public function hiddenDestroy()
+		function hiddenDestroy()
 			dummy.hide()
 			destroy this
 			

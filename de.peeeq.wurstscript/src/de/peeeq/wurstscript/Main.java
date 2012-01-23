@@ -6,6 +6,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
@@ -36,7 +38,9 @@ public class Main {
 	 */
 	public static void main(String[] args) {
 		//		JOptionPane.showMessageDialog(null , "time to connect profiler ^^");
-		WLogger.info("Started compiler with args " + Utils.printSep(", ", args));
+		SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy hh:mm:ss");
+		Date myDate = new Date();
+		WLogger.info("Started compiler at" + sdf.format(myDate) + "with args " + Utils.printSep(", ", args));
 		
 		WurstGui gui = null;
 		try {

@@ -52,7 +52,7 @@ public class FunctionInliner {
 		
 		// TODO replace function calls as expressions
 
-		// process childs
+		// process children
 		inlineJassFunctions(f, getChildStatements(s));
 	}
 

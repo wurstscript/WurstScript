@@ -285,7 +285,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 //	}
 	
 	private CompilationUnit mergeCompilationUnits(List<CompilationUnit> compilationUnits) {
-		gui.sendProgress("Merging Files", 0.2);
+		gui.sendProgress("Merging Files", 0.22);
 		CompilationUnit result = Ast.CompilationUnit();
 		for (CompilationUnit compilationUnit : compilationUnits) {
 			while (!compilationUnit.isEmpty()) {

@@ -37,7 +37,7 @@ import de.peeeq.wurstscript.jassprinter.JassPrinter;
 public class JassOptimizerImpl implements JassOptimizer {
 	String[] standards;
 	int standardsAmount = 0;
-	private final static String PSCRIPT_ENDING = ".pscript";
+	private final static String PSCRIPT_ENDING = ".wurst";
 	/**
 	 * a main method to simply test the optimizer 
 	 * @throws IOException 
