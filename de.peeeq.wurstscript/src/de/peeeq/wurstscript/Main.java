@@ -72,7 +72,8 @@ public class Main {
 			}
 			
 			if (runArgs.getMapFile() != null) {
-				makeBackup(runArgs.getMapFile());
+				BackupController bc = new BackupController();
+				bc.makeBackup(runArgs.getMapFile(), 19);
 			}
 
 			compilation : do {
@@ -216,19 +217,5 @@ public class Main {
 		}
 	}
 	
-	
-	/**
-	 * create a backup of the mapfile
-	 */
-	private static void makeBackup(String mapFileName) throws Error, IOException {
-		File mapFile = new File(mapFileName);
-		if (!mapFile.exists()) {
-			throw new Error("Mapfile " + mapFile + " does not exist.");
-		}
-		String theTime = "" + System.currentTimeMillis();
-		new File("./backups/").mkdirs();
-		File backupFile = new File("./backups/" + theTime + mapFile.getName());
-		Files.copy(mapFile, backupFile);
-	}
 
 }
