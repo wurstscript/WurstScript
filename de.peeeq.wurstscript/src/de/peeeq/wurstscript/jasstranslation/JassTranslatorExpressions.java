@@ -29,6 +29,7 @@ import static de.peeeq.wurstscript.jassAst.JassAst.JassStatements;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtIf;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtSet;
 
+import java.util.Collections;
 import java.util.List;
 
 import com.google.common.collect.Lists;
@@ -94,7 +95,9 @@ import de.peeeq.wurstscript.jassAst.JassStatements;
 import de.peeeq.wurstscript.jassAst.JassVar;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
 import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeInterface;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class JassTranslatorExpressions {
 	private JassManager manager;
@@ -196,7 +199,7 @@ public class JassTranslatorExpressions {
 				// if the right hand side of the expression uses statements we have to make sure that
 				// the left hand side is executed first:
 				if (right.getStatements().size() > 0) {
-					String type = translator.translateType(exprBinary.getLeft().attrTyp());
+					String type = translator.translateTypeSingle(exprBinary.getLeft().attrTyp());
 					JassVar tempVar = translator.getNewTempVar(f, type);
 					statements.add(JassStmtSet(tempVar.getName(), left.getExpressions().get(0)));
 					leftExpr = JassExprVarAccess(tempVar.getName());
@@ -263,11 +266,19 @@ public class JassTranslatorExpressions {
 			@Override
 			public ExprTranslationResult case_ExprNull(ExprNull exprNull) {
 				// FIXME null oder 0 ?
-				if (exprNull.attrIsClassNull()) {
-					return new ExprTranslationResult(JassExprIntVal(0));
-				} else {
-					return new ExprTranslationResult(JassExprNull());
+				List<JassExpr> exprs = Lists.newArrayList();
+				String[] types = exprNull.attrTyp().jassTranslateType();
+				System.out.println("type = " + exprNull.attrTyp());
+				System.out.println("type size = " + types.length);
+				for (String type : types) {
+					if (type.equals("integer")) {
+						exprs.add(JassExprIntVal(0));
+					} else {
+						exprs.add(JassExprNull());
+					}
 				}
+				return new ExprTranslationResult(Collections.<JassStatement>emptyList(), exprs);
+				
 			}
 
 			@Override
@@ -368,7 +379,7 @@ public class JassTranslatorExpressions {
 	 * will use statements too
 	 * @param f 
 	 */
-	private ExprListTranslationResult translateArguments(JassFunction f, List<Expr> args, List<String> types) {
+	private ExprListTranslationResult translateArguments(JassFunction f, List<Expr> args, List<PscriptType> types) {
 //		if (args.size() != types.size()) {
 //			throw new IllegalArgumentException("argsize = " + args.size() + " but typessize = " + types.size() + " // " + f.getName());
 //		}
@@ -394,16 +405,31 @@ public class JassTranslatorExpressions {
 		for (ExprTranslationResult arg : translations) {
 			statements.addAll(arg.getStatements());
 
+			PscriptType paramType = types.get(i);
+			String[] paramJassTypes = translator.translateType(paramType);
+			
+			if (paramJassTypes.length == 2 && arg.exprCount() == 1) {
+				Expr a = args.get(i);
+				if (paramType instanceof PscriptTypeInterface && a.attrTyp() instanceof PscriptTypeClass) {
+					int typeId = translator.getInstanceId(a, (PscriptTypeInterface)paramType, (PscriptTypeClass)a.attrTyp());
+					arg = arg.plus(JassExprIntVal(typeId));
+				} else if (a.attrTyp() instanceof PScriptTypeInt) {
+					arg = arg.plus(JassExprIntVal(0));
+				} else {
+					throw new CompileError(a.getSource(), "Cannot pass " + a.attrTyp() +", expected " + paramType);
+				}
+			}
+			
 			for (int j=0; j<arg.exprCount(); j++) {
 				if (i < lastTranslationWithStatements) {
-					JassVar tempVar = translator.getNewTempVar(f, types.get(i));
+					JassVar tempVar = translator.getNewTempVar(f, paramJassTypes[j]);
 					statements.add(JassStmtSet(tempVar.getName(), arg.getExpressions().get(j)));
 					exprs.add(JassExprVarAccess(tempVar.getName()));
 				} else {
 					exprs.add(arg.getExpressions().get(j));
 				}
 			}
-
+			i++;
 		}
 		return new ExprListTranslationResult(statements, exprs);
 	}
@@ -504,10 +530,10 @@ public class JassTranslatorExpressions {
 		});
 	}
 
-	List<String> getParameterTypes(WParameters params) {
-		List<String> result = Lists.newArrayListWithCapacity(params.size());
+	List<PscriptType> getParameterTypes(WParameters params) {
+		List<PscriptType> result = Lists.newArrayListWithCapacity(params.size());
 		for (WParameter p : params) {
-			result.add(translator.translateType(p.getTyp()));
+			result.add(p.attrTyp());
 		}
 		return result;
 	}
@@ -542,16 +568,17 @@ public class JassTranslatorExpressions {
 		List<JassExpr> exprs = Lists.newArrayList();
 		exprs.add(JassExprFunctionCall(functionName, jassArgs));
 		
-		PscriptType returnTyp = calledFunc.attrTyp();
-		if (returnTyp instanceof PscriptTypeInterface) {
-			exprs.add(JassExprVarAccess(manager.getTupleReturnVar("integer", 1).getName()));
+		String[] returnTypes = translator.translateType(calledFunc.attrTyp());
+		for (int i=1; i<returnTypes.length; i++) {
+			exprs.add(JassExprVarAccess(manager.getTupleReturnVar(returnTypes[i], i).getName()));
+			i++;
 		}
 		return new ExprTranslationResult(statements, exprs);
 	}
 
 
-	private List<String> getParameterTypes(FunctionDefinition call) {
-		final List<String> result = Lists.newLinkedList();
+	private List<PscriptType> getParameterTypes(FunctionDefinition call) {
+		final List<PscriptType> result = Lists.newLinkedList();
 		// add implicit parameter if any
 		call.match(new FunctionDefinition.MatcherVoid() {
 
@@ -559,7 +586,7 @@ public class JassTranslatorExpressions {
 			public void case_FuncDef(FuncDef funcDef) {
 				if (funcDef.attrIsDynamicClassMember()) {
 					// add implicit parameter 'this'
-					result.add(translator.translateType(PScriptTypeInt.instance()));
+					result.add(PScriptTypeInt.instance());
 				}
 			}
 
@@ -569,13 +596,13 @@ public class JassTranslatorExpressions {
 
 			@Override
 			public void case_ExtensionFuncDef(ExtensionFuncDef extensionFuncDef) {
-				result.add(translator.translateType(extensionFuncDef.getExtendedType().attrTyp()));
+				result.add(extensionFuncDef.getExtendedType().attrTyp());
 			}
 
 		});
 		// add normal parameters
 		for (WParameter p : call.getParameters()) {
-			result.add(translator.translateType(p.attrTyp()));
+			result.add(p.attrTyp());
 		}
 		return result;
 	}

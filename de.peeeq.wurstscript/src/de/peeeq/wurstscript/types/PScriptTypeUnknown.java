@@ -40,10 +40,10 @@ public class PScriptTypeUnknown extends PscriptType {
 		return instance;
 	}
 
+
 	@Override
-	public String printJass() {
+	public String[] jassTranslateType() {
 		throw err;
-//		return "unknown<"+name+">";
 	}
 
 }

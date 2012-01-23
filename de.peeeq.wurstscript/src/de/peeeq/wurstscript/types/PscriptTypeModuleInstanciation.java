@@ -72,4 +72,9 @@ public class PscriptTypeModuleInstanciation extends PscriptTypeNamedScope {
 		return new PscriptTypeModuleInstanciation(moduleInst, newTypes);
 	}
 
+	@Override
+	public String[] jassTranslateType() {
+		return PScriptTypeInt.instance().jassTranslateType();
+	}
+
 }

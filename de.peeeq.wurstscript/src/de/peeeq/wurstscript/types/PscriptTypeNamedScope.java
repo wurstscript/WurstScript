@@ -39,12 +39,6 @@ public abstract class PscriptTypeNamedScope extends PscriptType {
 		return getName();
 	}
 
-	@Override
-	public String printJass() {
-		// classes are just translated to integers:
-		return "integer";
-	}
-	
 	public boolean isStaticRef() {
 		return isStaticRef;
 	}

@@ -251,13 +251,16 @@ public class JassTranslator {
 			attr.addError(Ast.WPos("", LineOffsets.dummy, 0, 0), "Cannot generate code because of a cyclic dependency between the following variables: \n" + msg);
 		}
 
-		Set<VarDef> initializedVars = Sets.newHashSet();
-		for (GlobalInit gi : globalInitializers) {
-			if (! prog.attrIgnoredVariables().contains(gi.v)) {
-				ExprTranslationResult e = translateExpr(initGlobalsFunc, gi.initialExpr);
-				new JassTranslatorStatements(this).translateAssignment2(body, initGlobalsFunc, gi.v, null, null, e);
-				initializedVars.add(gi.v);
+		Set<JassVar> initializedVars = Sets.newHashSet();
+		nextInit: for (GlobalInit gi : globalInitializers) {
+			for (JassVar v : manager.getJassVarsFor(gi.v)) {
+				if (prog.attrIgnoredVariables().contains(v)) {
+					continue nextInit;
+				}
 			}
+			ExprTranslationResult e = translateExpr(initGlobalsFunc, gi.initialExpr);
+			new JassTranslatorStatements(this).translateAssignment2(body, initGlobalsFunc, gi.v, null, null, e);
+			initializedVars.addAll(manager.getJassVarsFor(gi.v));
 		}
 
 		// add default initialization for all vars which are not initialized yet
@@ -363,15 +366,26 @@ public class JassTranslator {
 
 	private void translateExtensionFuncDef(ExtensionFuncDef funcDef) {
 		JassFunction f = manager.getJassFunctionFor(funcDef);
-		f.setReturnType(translateType(funcDef.getReturnTyp()));
+		f.setReturnType(translateType(funcDef.getReturnTyp())[0]);
 
 		// add implicit parameter 'this'
-		f.getParams().add(JassAst.JassSimpleVar(translateType(funcDef.getExtendedType().attrTyp()), "this"));
+		String[] thisType = translateType(funcDef.getExtendedType().attrTyp());
+		
+		addParams(f, thisType, "this");
+		
 
 		addParameters(funcDef, f);
 		
 		translateFunctionBody(funcDef.getBody(), f);
 		prog.getFunctions().add(f);
+	}
+
+	private void addParams(JassFunction f, String[] types, String baseName) {
+		int i = 1;
+		for (String type : types) {
+			f.getParams().add(JassAst.JassSimpleVar(type, baseName + ((i == 1) ? "" : i)));
+			i++;
+		}
 	}
 
 	private void addParameters(AstElementWithParameters funcDef, JassFunction f) {
@@ -395,7 +409,7 @@ public class JassTranslator {
 			prog.attrIgnoredFunctions().add(f);
 		}
 
-		f.setReturnType(translateType(funcDef.getReturnTyp()));
+		f.setReturnType(translateType(funcDef.getReturnTyp())[0]);
 		if (isMethod && !funcDef.attrIsStatic()) {
 			// methods have an additional implicit parameter
 			f.getParams().add(jassThisVar());
@@ -476,50 +490,58 @@ public class JassTranslator {
 		return manager.getJassVarsFor(param);
 	}
 
-	String translateType(OptTypeExpr typ) {
+	String[] translateType(OptTypeExpr typ) {
 		return translateType(typ.attrTyp());
-
 	}
 
 	/**
 	 * translates a type to the corresponding jass type
 	 * in case of an array type it returns the name of the base type 
 	 * @param t
+	 * @param expectedType 
 	 * @return
 	 */
-	String translateType(PscriptType t) {
-		if (t instanceof PscriptNativeType) {
-			return t.getName();
-		} else if (t instanceof PScriptTypeArray) {
-			return translateType(((PScriptTypeArray) t).getBaseType());
-		} else if (t instanceof PScriptTypeBool) {
-			return "boolean";
-		} else if (t instanceof PscriptTypeClass) {
-			return "integer";
-		} else if (t instanceof PScriptTypeCode) {
-			return "code";
-		} else if (t instanceof PscriptTypeError) {
-			throw new Error("Error type in program...");
-		} else if (t instanceof PScriptTypeHandle) {
-			PScriptTypeHandle tt = (PScriptTypeHandle) t;
-			return tt.getName();
-		} else if (t instanceof PScriptTypeInt) {
-			return "integer";
-		} else if (t instanceof PScriptTypeReal) {
-			return "real";
-		} else if (t instanceof PScriptTypeString) {
-			return "string";
-		} else if (t instanceof PScriptTypeVoid) {
-			return "nothing";
-		} else if (t instanceof PscriptTypeModule) {
-			return "integer";
-		} else if (t instanceof PscriptTypeTypeParam) {
-			return "integer";
-		} else if (t instanceof PscriptTypeInterface) {
-			return "integer";
-		}
-		throw new Error("Cannot translate type: " + t + " // " + t.getClass());
+	String[] translateType(PscriptType t) {
+		return t.jassTranslateType();
 	}
+	
+	String translateTypeSingle(PscriptType t) {
+		String[] r = t.jassTranslateType();
+		if (r.length != 1) throw new Error("type has length " + r.length);
+		return r[0];
+	}
+//		if (t instanceof PscriptNativeType) {
+//			return new String[] {t.getName()};
+//		} else if (t instanceof PScriptTypeArray) {
+//			return translateType(((PScriptTypeArray) t).getBaseType(), expectedType);
+//		} else if (t instanceof PScriptTypeBool) {
+//			return "boolean";
+//		} else if (t instanceof PscriptTypeClass) {
+//			return "integer";
+//		} else if (t instanceof PScriptTypeCode) {
+//			return "code";
+//		} else if (t instanceof PscriptTypeError) {
+//			throw new Error("Error type in program...");
+//		} else if (t instanceof PScriptTypeHandle) {
+//			PScriptTypeHandle tt = (PScriptTypeHandle) t;
+//			return tt.getName();
+//		} else if (t instanceof PScriptTypeInt) {
+//			return "integer";
+//		} else if (t instanceof PScriptTypeReal) {
+//			return "real";
+//		} else if (t instanceof PScriptTypeString) {
+//			return "string";
+//		} else if (t instanceof PScriptTypeVoid) {
+//			return "nothing";
+//		} else if (t instanceof PscriptTypeModule) {
+//			return "integer";
+//		} else if (t instanceof PscriptTypeTypeParam) {
+//			return "integer";
+//		} else if (t instanceof PscriptTypeInterface) {
+//			return "integer";
+//		}
+//		throw new Error("Cannot translate type: " + t + " // " + t.getClass());
+//	}
 
 	private void translateJassGlobalsBlock(JassGlobalBlock jassGlobalBlock) {
 		for (GlobalVarDef v : jassGlobalBlock) {
@@ -686,7 +708,7 @@ public class JassTranslator {
 		JassFunction f = manager.getJassFunctionFor(funcDef);
 		prog.getFunctions().add(f);
 		
-		f.setReturnType(translateType(funcDef.getReturnTyp()));
+		f.setReturnType(translateType(funcDef.getReturnTyp())[0]);
 		
 		f.getParams().add(JassAst.JassSimpleVar("integer", "this"));
 		f.getParams().add(JassAst.JassSimpleVar("integer", "thistype"));
@@ -1038,26 +1060,41 @@ public class JassTranslator {
 			}
 			isArray = true;
 		}
+//		if (baseTyp instanceof PscriptTypeInterface) {
+//			// interfaces are translated with two variables
+//			JassVar v1 = newJassVar(v, "", PScriptTypeInt.instance(), isArray);
+//			JassVar v2 = newJassVar(v, "_typ", PScriptTypeInt.instance(), isArray);
+//			return Lists.newArrayList(v1, v2);
+//		}
 		
-		if (baseTyp instanceof PscriptTypeInterface) {
-			// interfaces are translated with two variables
-			JassVar v1 = newJassVar(v, "", PScriptTypeInt.instance(), isArray);
-			JassVar v2 = newJassVar(v, "_typ", PScriptTypeInt.instance(), isArray);
-			return Lists.newArrayList(v1, v2);
-		}
-		
-		return Collections.singletonList(newJassVar(v, "", baseTyp, isArray));
+		return Utils.list(newJassVars(v, "", baseTyp, isArray));
 	}
 
-	private JassVar newJassVar(VarDef v, String suffix, PscriptType baseTyp, boolean isArray) {
-		String name = manager.getJassVarNameFor(v)+ suffix;
-		if (isArray) {
-			return JassAst.JassArrayVar(translateType(baseTyp), name);
-		} else {
-			return JassAst.JassSimpleVar(translateType(baseTyp), name);
+	
+	int getInstanceId(AstElement where, PscriptTypeInterface interfaceType, PscriptTypeClass classType) {
+		Collection<InstanceDef> instanceDefs = where.attrNearestPackage().attrInstanceDefs().get(interfaceType.getInterfaceDef());
+		for (InstanceDef instanceDef : instanceDefs) {
+			if (instanceDef.getClassTyp().attrTyp().equals(classType)) {
+				return manager.getTypeId(instanceDef);
+			}
 		}
+		throw new CompileError(where.attrSource(), "Could not get instance id");
 	}
 	
+	private JassVar[] newJassVars(VarDef v, String suffix, PscriptType baseTyp, boolean isArray) {
+		String name = manager.getJassVarNameFor(v)+ suffix;
+		String[] translatedTypes = translateType(baseTyp);
+		JassVar[] result = new JassVar[translatedTypes.length];
+		for (int i=0; i<result.length; i++) {
+			String suffix2 = (i==0) ? "" : (i+1) + "";
+			if (isArray) {
+				result[i] = JassAst.JassArrayVar(translatedTypes[i], name+suffix2);
+			} else {
+				result[i] = JassAst.JassSimpleVar(translatedTypes[i], name+suffix2);
+			}
+		}
+		return result;
+	}
 	
 //	trace("translate global var " + globalVarDef.getName());
 //	boolean isArray = !globalVarDef.attrIsStatic() || (globalVarDef.attrTyp() instanceof PScriptTypeArray);

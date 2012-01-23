@@ -65,9 +65,10 @@ public class PScriptTypeArray extends PscriptType {
 
 
 
+
 	@Override
-	public String printJass() {
-		return baseType.getName() + " array";
+	public String[] jassTranslateType() {
+		return baseType.jassTranslateType();
 	}
 
 }

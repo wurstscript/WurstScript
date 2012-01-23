@@ -3,12 +3,14 @@ package de.peeeq.wurstscript.types;
 import de.peeeq.wurstscript.ast.AstElement;
 
 
-public class PScriptTypeHandle extends PscriptType {
+public class PScriptTypeHandle extends PscriptTypePrimitive {
 
 	private static final PScriptTypeHandle instance = new PScriptTypeHandle();
 
 	// make constructor private as we only need one instance
-	private PScriptTypeHandle() {}
+	private PScriptTypeHandle() {
+		super("handle");
+	}
 	
 	@Override
 	public boolean isSubtypeOf(PscriptType other, AstElement location) {
@@ -16,23 +18,10 @@ public class PScriptTypeHandle extends PscriptType {
 	}
 
 
-	@Override
-	public String getName() {
-		return "handle";
-	}
-
-	@Override
-	public String getFullName() {
-		return "handle";
-	}
 
 	public static PScriptTypeHandle instance() {
 		return instance;
 	}
 
 	
-	@Override
-	public String printJass() {
-		return getName();
-	}
 }

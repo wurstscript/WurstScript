@@ -512,4 +512,10 @@ public class Utils {
 		return (T[]) temp.toArray();
 	}
 
+	public static <T> void addAll(List<T> result, T[] elements) {
+		for (T t: elements) {
+			result.add(t);
+		}
+	}
+
 }

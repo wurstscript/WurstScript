@@ -38,4 +38,9 @@ public class PScriptTypePackage extends PscriptTypeNamedScope {
 		return this;
 	}
 
+	@Override
+	public String[] jassTranslateType() {
+		throw new Error("not implemented");
+	}
+
 }

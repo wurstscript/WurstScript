@@ -1,6 +1,6 @@
 package de.peeeq.wurstscript.intermediateLang;
 
-import de.peeeq.wurstscript.types.PScriptTypeNull;
+import de.peeeq.wurstscript.types.PScriptTypeInfer;
 import de.peeeq.wurstscript.types.PscriptType;
 
 public class ILconstNull extends ILconstAbstract {
@@ -12,7 +12,7 @@ public class ILconstNull extends ILconstAbstract {
 	}
 	
 	public PscriptType getType() {
-		return PScriptTypeNull.instance();
+		return PScriptTypeInfer.instance();
 	}
 
 	@Override

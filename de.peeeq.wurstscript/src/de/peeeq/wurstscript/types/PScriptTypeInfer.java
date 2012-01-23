@@ -32,8 +32,9 @@ public class PScriptTypeInfer extends PscriptType {
 	}
 
 	@Override
-	public String printJass() {
-		throw new Error("Unknown type.");
+	public String[] jassTranslateType() {
+		throw new Error("not implemented");
 	}
+
 
 }
