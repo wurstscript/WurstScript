@@ -169,7 +169,7 @@ public class Main {
 			WLogger.severe(t);
 			
 			String title  = "Sorry!";
-			String message = "You have encountered a bug in the Wurst Compiler. Wa.";
+			String message = "You have encountered a bug in the Wurst Compiler.";
 			
 			Object[] options = {
 					"Nothing",
@@ -177,7 +177,9 @@ public class Main {
 					"Create manual bug report"
 				            };
 			JFrame parent = new JFrame();
+			parent.pack();
 			parent.setVisible(true);
+			Utils.setWindowToCenterOfScreen(parent);
 			int n = JOptionPane.showOptionDialog(parent,
 				message,
 				title,
@@ -185,7 +187,7 @@ public class Main {
 				JOptionPane.QUESTION_MESSAGE,
 				null,     //do not use a custom Icon
 				options,  //the titles of buttons
-				options[0]); //default button title
+				options[0]); //default button titles
 			
 			if (n == 1) {
 				boolean r = ErrorReporting.sendErrorReport(t);

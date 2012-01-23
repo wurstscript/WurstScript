@@ -207,7 +207,7 @@ public class WurstErrorWindow extends javax.swing.JFrame {
     }
 
     private void closeButtonMouseClicked(java.awt.event.MouseEvent evt) {
-        dispose();
+        this.dispose();
     }
     
     private void aboutButtonMouseClicked(java.awt.event.MouseEvent evt) {
@@ -291,7 +291,8 @@ public class WurstErrorWindow extends javax.swing.JFrame {
 		if (errorListModel.isEmpty()) {
 			viewErrorDetail(elem);
 		}
-		errorListModel.addElement(elem);		
+		errorListModel.addElement(elem);	
+		this.requestFocus();
 	}
 
 	public void sendFinished() {
