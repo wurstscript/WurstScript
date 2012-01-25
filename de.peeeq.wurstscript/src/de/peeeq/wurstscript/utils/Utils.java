@@ -29,6 +29,8 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithName;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.HasModifier;
+import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.jassAst.JassExpr;
@@ -489,6 +491,21 @@ public class Utils {
 		String name = "";
 		if (e instanceof AstElementWithName) {
 			name = ((AstElementWithName) e).getName();
+		} else if (e instanceof TypeExprSimple) {
+			TypeExprSimple t = (TypeExprSimple) e;
+			name = t.getTypeName();
+			if (t.getTypeArgs().size() > 0) {
+				name += "{";
+				boolean first = true;
+				for (TypeExpr ta : t.getTypeArgs()) {
+					if (!first) {
+						name += ", ";
+					}
+					name += printElement(ta);
+					first = false;
+				}
+				name += "}";
+			}
 		}
 		return type + " " + name;
 	}

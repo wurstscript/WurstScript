@@ -27,6 +27,7 @@ import de.peeeq.wurstscript.ast.WParameters;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
 import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class Generics {
 
@@ -108,7 +109,7 @@ public class Generics {
 		if (hasTypeParams(t, typeParams)) {
 			return givenBinding(t, typeParams);
 		}
-		attr.addError(t.getSource(), "Missing type arguments for " + t.getTypeName());
+		attr.addError(t.getSource(), "Missing type arguments for " + Utils.printElement(t));
 		return Collections.emptyMap();
 	}
 	

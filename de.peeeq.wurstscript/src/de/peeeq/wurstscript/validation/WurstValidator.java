@@ -160,7 +160,12 @@ public class WurstValidator {
 			} catch (IllegalAccessException t) {
 				throw new Error(t);
 			} catch (InvocationTargetException t) {
-				throw new Error(t);
+				Throwable cause = t.getCause();
+				if (cause instanceof Error) {
+					throw (Error)cause;
+				} else {
+					throw new Error(cause);
+				}
 			}
 		}
 	}

@@ -88,8 +88,7 @@ non terminal ExprNewObject ExprNewObject;
 non terminal TypeExprList ExtendsList;
 non terminal TypeExprList ExtendsListOpt;
 non terminal FuncDef FuncDef;
-non terminal FunctionMappings FunctionMappings;
-non terminal FunctionMapping FunctionMapping;
+non terminal FuncDefs FuncDefs;
 non terminal FuncSignature FuncSignature;
 non terminal FuncSignature JassFuncSignature; 
 non terminal Indexes Indexes;
@@ -289,29 +288,27 @@ InterfaceFunctionSignature ::=
 ;
 
 InstanceDef ::=
-	Modifiers:mod INSTANCE:x IDENTIFIER:classTyp TypeParamDefs:typeParams  COLON TypeExpr:interfaceTyp NL INDENT FunctionMappings:functionMappings UNINDENT:y
+	Modifiers:mod INSTANCE:x IDENTIFIER:classTyp TypeParamDefs:typeParams  COLON TypeExpr:interfaceTyp NL INDENT FuncDefs:funcDefs UNINDENT:y
 		{: RESULT = Ast.InstanceDef(pos(xleft, yright), mod
-				, Ast.TypeExprSimple(pos(classTypleft, classTypright), classTyp, Ast.TypeExprList()), typeParams, interfaceTyp, functionMappings); :}
+				, typeParams, Ast.TypeExprSimple(pos(classTypleft, classTypright), classTyp, AstHelper.makeTypeArgs(typeParams)), interfaceTyp, funcDefs); :}
 	| Modifiers:mod INSTANCE:x IDENTIFIER:classTyp TypeParamDefs:typeParams  COLON TypeExpr:interfaceTyp NL
 		{: RESULT = Ast.InstanceDef(pos(xleft, interfaceTyp), mod
-				, Ast.TypeExprSimple(pos(classTypleft, classTypright), classTyp, Ast.TypeExprList()), typeParams, interfaceTyp, Ast.FunctionMappings()); :}
+				, typeParams, Ast.TypeExprSimple(pos(classTypleft, classTypright), classTyp, AstHelper.makeTypeArgs(typeParams)), interfaceTyp, Ast.FuncDefs()); :}
 ;
 
-FunctionMappings ::=
-	Newlines FunctionMapping:x FunctionMappings:xs
+FuncDefs ::=
+	Newlines FuncDef:x FuncDefs:xs
 		{: xs.addFront(x); RESULT = xs; :}
 	| Newlines
-		{: RESULT = Ast.FunctionMappings(); :}
+		{: RESULT = Ast.FuncDefs(); :}
 ;
 
-FunctionMapping ::=
-	IDENTIFIER:name EQ Expr:e
-		{: RESULT = Ast.FunctionMapping(pos(nameleft, e), name, e); :}
-;
 
 ClassDef ::=
 	Modifiers:mod CLASS:x IDENTIFIER:name TypeParamDefs:typeParams ImplementsListOpt:il NL INDENT ClassSlots:slots UNINDENT:y
 		{: RESULT = Ast.ClassDef(pos(xleft, yright), mod, name, typeParams, il, slots); :}
+	| Modifiers:mod CLASS:x IDENTIFIER:name TypeParamDefs:typeParams ImplementsListOpt:il NL:y
+		{: RESULT = Ast.ClassDef(pos(xleft, yright), mod, name, typeParams, il, Ast.ClassSlots()); :}
 ;
 
 TypeParamDefs ::=

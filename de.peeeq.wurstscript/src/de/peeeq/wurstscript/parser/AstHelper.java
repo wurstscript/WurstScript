@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprList;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
+import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.TypeParamDefs;
 import de.peeeq.wurstscript.attributes.attr;
 
@@ -18,6 +19,14 @@ public class AstHelper {
 			} else {
 				attr.addError(t.getSource(), "Type Parameters must be simple names.");
 			}
+		}
+		return result;
+	}
+
+	public static TypeExprList makeTypeArgs(TypeParamDefs typeParams) {
+		TypeExprList result = Ast.TypeExprList();
+		for (TypeParamDef tp : typeParams) {
+			result.add(Ast.TypeExprSimple(tp.getSource().copy(), tp.getName(), Ast.TypeExprList()));
 		}
 		return result;
 	}

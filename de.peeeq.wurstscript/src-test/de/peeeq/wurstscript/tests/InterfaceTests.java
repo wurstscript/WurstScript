@@ -82,8 +82,110 @@ public class InterfaceTests extends PscriptTest {
 			);
 	}
 	
+	@Test
+	public void type_param1() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	interface Collection{T}",
+				"		function contains(int t) returns boolean",
+				"	class Set{T} implements Collection{T}",
+				"		function contains(int t) returns boolean",
+				"			return false",
+				"	init",
+				"		Collection{int} c = new Set{int}()",
+				"		if not c.contains(4)",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+
+	@Test
+	public void type_param_fail_generics() {
+		testAssertErrorsLines(false, "Cannot assign", 
+				"package test",
+				"	native testSuccess()",
+				"	interface Collection{T}",
+				"		function contains(int t) returns boolean",
+				"	class Set{T} implements Collection{T}",
+				"		function contains(int t) returns boolean",
+				"			return false",
+				"	class A",
+				"	init",
+				"		Collection{int} c = new Set{A}()",
+				"		if not c.contains(4)",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
 	
 	
+	@Test
+	public void type_param_complicated1() {
+		testAssertOkLines(false,
+				"package test",
+				"	native testSuccess()",
+				"	interface I{S,T,V}",
+				"		function test() returns boolean",
+				"	class A{X,Y} implements I{B, Y, X}",
+				"		function test() returns boolean",
+				"			return true",
+				"	class B",
+				"	class C",
+				"	class D",
+				"	init",
+				"		I{B, C, D} i = new A{D, C}()",
+				"		if i.test()",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void type_param_complicated1_fail() {
+		testAssertErrorsLines(false, "Cannot assign", 
+				"package test",
+				"	native testSuccess()",
+				"	interface I{S,T,V}",
+				"		function test() returns boolean",
+				"	class A{X,Y} implements I{B, Y, X}",
+				"		function test() returns boolean",
+				"			return true",
+				"	class B",
+				"	class C",
+				"	class D",
+				"	init",
+				"		I{B, C, D} i = new A{C, D}()",
+				"		if i.test()",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void type_param_complicated2() {
+		testAssertErrorsLines(false, "Cannot assign", 
+				"package test",
+				"	native testSuccess()",
+				"	interface I{S,T,V}",
+				"		function test(S s, T t, V v) returns boolean",
+				"	class A{X,Y} implements I{B, Y, X}",
+				"		function test(B b, Y y, X x) returns boolean",
+				"			return true",
+				"	class B",
+				"	class C",
+				"	class D",
+				"	init",
+				"		I{B, C, D} i = new A{D, C}()",
+				"		B b = new B()",
+				"		C c = new C()",
+				"		D d = new D()",
+				"		if i.test(b, c, d)",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
 	
 	@Test
 	public void missing_method() {

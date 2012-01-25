@@ -1,10 +1,6 @@
 package de.peeeq.wurstscript;
 
-import static de.peeeq.wurstscript.ast.Ast.Arguments;
-import static de.peeeq.wurstscript.ast.Ast.ExprMemberMethod;
-import static de.peeeq.wurstscript.ast.Ast.ExprVarAccess;
-import static de.peeeq.wurstscript.ast.Ast.NoTypeExpr;
-import static de.peeeq.wurstscript.ast.Ast.WStatements;
+import static de.peeeq.wurstscript.ast.Ast.*;
 
 import java.util.Collection;
 import java.util.List;
@@ -23,7 +19,6 @@ import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
-import de.peeeq.wurstscript.ast.FunctionMappings;
 import de.peeeq.wurstscript.ast.InstanceDef;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.StmtForIn;
@@ -31,7 +26,9 @@ import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.TopLevelDeclaration;
 import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.ast.TypeExprList;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
+import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WEntities;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WPackage;
@@ -61,11 +58,15 @@ public class SyntacticSugar {
 				TypeExprSimple impl = (TypeExprSimple) implemented;
 				WPos s = implemented.getSource();
 				
-				TypeExpr classTyp = Ast.TypeExprSimple(s.copy(), c.getName(), Ast.TypeExprList()); // TODO type params
+				TypeExprList typeExprs = TypeExprList();
+				for (TypeParamDef tp : c.getTypeParameters()) {
+					typeExprs.add(TypeExprSimple(s.copy(), tp.getName(), TypeExprList()));
+				}
+				TypeExpr classTyp = Ast.TypeExprSimple(s.copy(), c.getName(), typeExprs); // TODO type params
 				TypeExpr implementedTyp = Ast.TypeExprSimple(s.copy(), impl.getTypeName(), impl.getTypeArgs().copy());
-				FunctionMappings functionMappings = Ast.FunctionMappings();
 				
-				InstanceDef instanceDef = Ast.InstanceDef(s.copy(), c.getModifiers().copy(), classTyp, c.getTypeParameters().copy(), implementedTyp, functionMappings);
+				
+				InstanceDef instanceDef = Ast.InstanceDef(s.copy(), c.getModifiers().copy(), c.getTypeParameters().copy(), classTyp, implementedTyp, Ast.FuncDefs());
 				ents.add(instanceDef);
 			}
 		}

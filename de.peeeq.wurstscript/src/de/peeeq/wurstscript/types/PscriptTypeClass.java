@@ -51,7 +51,9 @@ public class PscriptTypeClass extends PscriptTypeNamedScope {
 			}
 			for (InstanceDef iDef: instanceDefs) {
 				if (classDef == iDef.getClassTyp().attrTypeDef()) {
-					return true;
+					if (TypesHelper.checkTypeArgs(iDef, this.getTypeParameters(), pti.getTypeParameters())) {
+						return true;
+					}
 				}
 			}
 		}
