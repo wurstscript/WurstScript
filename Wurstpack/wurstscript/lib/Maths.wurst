@@ -1,25 +1,24 @@
-package Maths    
+package Maths	
 
-    public constant real PI        = 3.14159265
-    public constant real DEGTORAD  = 0.01745329
-    public constant real RADTODEG  = 57.2957795
-    
-    public function polarProjectionX ( real x,  real dist, real angle ) returns real
-        return x + dist * Cos(angle * DEGTORAD)
-    
-    public function polarProjectionY ( real y,  real dist, real angle ) returns real
-        return y + dist * Sin(angle * DEGTORAD)
+	public constant real PI		= 3.14159265
+	public constant real DEGTORAD  = 0.01745329
+	public constant real RADTODEG  = 57.2957795
+	
+	public function polarProjectionX ( real x,  real dist, real angle ) returns real
+		return x + dist * Cos(angle * DEGTORAD)
+	
+	public function polarProjectionY ( real y,  real dist, real angle ) returns real
+		return y + dist * Sin(angle * DEGTORAD)
 		
 	public function polarProjectionZ ( real z,  real dist, real angle ) returns real
 		return z + dist * Sin(angle * DEGTORAD)
-	endfunction
-    
-    public function angleBetweenCoords ( real x1, real y1, real x2, real y2 ) returns real
-        return RADTODEG * Atan2(y2 - y1, x2 - x1)
+	
+	public function angleBetweenCoords ( real x1, real y1, real x2, real y2 ) returns real
+		return RADTODEG * Atan2(y2 - y1, x2 - x1)
 
-    public function distanceBetweenCoords ( real x1, real y1, real x2, real y2 ) returns real
-        return SquareRoot((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1))
-        
-    
+	public function distanceBetweenCoords ( real x1, real y1, real x2, real y2 ) returns real
+		return SquareRoot((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1))
+		
+	
 endpackage
 

@@ -42,4 +42,9 @@ public class PscriptTypeModule extends PscriptTypeNamedScope {
 	public PscriptType replaceTypeVars(List<PscriptType> newTypes) {
 		return new PscriptTypeModule(moduleDef, newTypes);
 	}
+
+	@Override
+	public String[] jassTranslateType() {
+		return PScriptTypeInt.instance().jassTranslateType();
+	}
 }

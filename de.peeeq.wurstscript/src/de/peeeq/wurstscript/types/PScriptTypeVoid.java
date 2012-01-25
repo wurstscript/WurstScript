@@ -30,8 +30,8 @@ public class PScriptTypeVoid extends PscriptType {
 	}
 
 	@Override
-	public String printJass() {
-		return "nothing";
+	public String[] jassTranslateType() {
+		return new String[] { "nothing" };
 	}
 
 }

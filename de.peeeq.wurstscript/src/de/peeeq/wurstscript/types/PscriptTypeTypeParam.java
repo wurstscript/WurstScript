@@ -30,13 +30,13 @@ public class PscriptTypeTypeParam extends PscriptType {
 		return getName() + " (type parameter)";
 	}
 
-	@Override
-	public String printJass() {
-		return "integer";
-	}
-
 	public TypeParamDef  getDef() {
 		return def;
+	}
+
+	@Override
+	public String[] jassTranslateType() {
+		return new String[] { "integer", "integer" };
 	}
 
 }

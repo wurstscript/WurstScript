@@ -54,12 +54,6 @@ public abstract class PscriptType {
 	}
 	
 	
-	public void printJass(StringBuilder sb) {
-		sb.append(printJass());
-	}
-	
-	public abstract String printJass();
-
 
 	public PscriptType dynamic() {
 		return this;
@@ -72,4 +66,7 @@ public abstract class PscriptType {
 	public  PscriptType replaceBoundTypeVars(PscriptType t) {
 		return t;
 	}
+
+
+	public abstract String[] jassTranslateType();
 }

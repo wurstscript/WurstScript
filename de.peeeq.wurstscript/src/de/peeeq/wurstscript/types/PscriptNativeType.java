@@ -37,8 +37,8 @@ public class PscriptNativeType extends PscriptType {
 	}
 
 	@Override
-	public String printJass() {
-		return name;
+	public String[] jassTranslateType() {
+		return new String[] {name};
 	}
 
 }

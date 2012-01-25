@@ -225,11 +225,13 @@ public class JassTranslatorStatements {
 			private void case_Expr(Expr expr) {
 				ExprTranslationResult e = translator.translateExpr(f, expr);
 				result.addAll(e.getStatements());
-				if (e.getExprSingle() instanceof JassExprFunctionCall) {
-					JassExprFunctionCall call = (JassExprFunctionCall) e.getExprSingle();
-					result.add(JassStmtCall(call.getFuncName(), call.getArguments().copy()));
-				} else {
-					// we can ignore any other case because we will not need the result of the expression
+				for (JassExpr e1 : e.getExpressions()) {
+					if (e1 instanceof JassExprFunctionCall) {
+						JassExprFunctionCall call = (JassExprFunctionCall) e1;
+						result.add(JassStmtCall(call.getFuncName(), call.getArguments().copy()));
+					} else {
+						// we can ignore any other case because we will not need the result of the expression
+					}
 				}
 			}
 
@@ -264,25 +266,33 @@ public class JassTranslatorStatements {
 					}
 					
 					PscriptType retTyp = stmtReturn.attrNearestFuncDef().getReturnTyp().attrTyp();
-					String returnedTyp = translator.translateType(expr.attrTyp());
+					String[] returnedTypes = translator.translateType(expr.attrTyp());
 					
-					if (retTyp instanceof PscriptTypeInterface) {
-						JassVar tempVar = manager.getTempReturnVar(returnedTyp, translator.prog);
-						JassVar tempVar2 = manager.getTupleReturnVar("integer", 1);
+					if (returnedTypes.length != e.exprCount()) {
+						throw new CompileError(stmtReturn.getSource(), "length does not match: " 
+								+ returnedTypes.length + " != " + e.exprCount());
+					}
+					
+					if (returnedTypes.length > 1) {
+						JassVar tempVar = manager.getTempReturnVar(returnedTypes[0], translator.prog);
 						result.add(JassStmtSet(tempVar.getName(), e.getExpressions().get(0)));
-						if (expr.attrTyp() instanceof PscriptTypeInterface) {
-							result.add(JassStmtSet(tempVar2.getName(), e.getExpressions().get(1)));
-						} else if (expr.attrTyp() instanceof PscriptTypeClass) {
-							int typeId = getInstanceId(expr, (PscriptTypeInterface)retTyp, (PscriptTypeClass) expr.attrTyp());
-							result.add(JassStmtSet(tempVar2.getName(), JassExprIntVal(typeId)));
-						} else {
-							throw new CompileError(expr.getSource(), "Cannot return this here.");
+						for (int i=1; i< returnedTypes.length; i++) {
+							JassVar tempVar2 = manager.getTupleReturnVar(returnedTypes[i], i);
+							result.add(JassStmtSet(tempVar2.getName(), e.getExpressions().get(i)));
 						}
+//						if (expr.attrTyp() instanceof PscriptTypeInterface) {
+//							
+//						} else if (expr.attrTyp() instanceof PscriptTypeClass) {
+//							int typeId = getInstanceId(expr, (PscriptTypeInterface)retTyp, (PscriptTypeClass) expr.attrTyp());
+//							result.add(JassStmtSet(tempVar2.getName(), JassExprIntVal(typeId)));
+//						} else {
+//							throw new CompileError(expr.getSource(), "Cannot return this here.");
+//						}
 						result.addAll(nullSetters);
 						result.add(JassStmtReturn(JassExprVarAccess(tempVar.getName())));
 					} else if (useTempVar) {
 						
-						JassVar tempVar = manager.getTempReturnVar(returnedTyp, translator.prog);
+						JassVar tempVar = manager.getTempReturnVar(returnedTypes[0], translator.prog);
 						result.add(JassStmtSet(tempVar.getName(), e.getExprSingle()));  
 						result.addAll(nullSetters);
 						result.add(JassStmtReturn(JassExprVarAccess(tempVar.getName())));
@@ -428,25 +438,16 @@ public class JassTranslatorStatements {
 			PscriptTypeInterface varTyp2 = (PscriptTypeInterface)varTyp;
 			PscriptTypeClass rightTyp2 = (PscriptTypeClass) rightTyp;
 			// in this special case we have to manually add the type based on the static type information that we have
-			int instanceId = getInstanceId(newValue, varTyp2, rightTyp2);
+			int instanceId = translator.getInstanceId(newValue, varTyp2, rightTyp2);
 			right = right.plus(JassExprIntVal(instanceId));
 		}
-		
 		
 		
 		translateAssignment2(result, f, updatedVar, index, binaryOp, right);
 	}
 
 
-	private int getInstanceId(AstElement where, PscriptTypeInterface interfaceType, PscriptTypeClass classType) {
-		Collection<InstanceDef> instanceDefs = where.attrNearestPackage().attrInstanceDefs().get(interfaceType.getInterfaceDef());
-		for (InstanceDef instanceDef : instanceDefs) {
-			if (instanceDef.getClassTyp().attrTyp().equals(classType)) {
-				return manager.getTypeId(instanceDef);
-			}
-		}
-		throw new CompileError(where.attrSource(), "Could not get instance id");
-	}
+	
 
 
 	private ExprTranslationResult calculateIndex(final JassFunction f, NameRef updatedExpr) throws CompileError {
@@ -496,8 +497,8 @@ public class JassTranslatorStatements {
 
 	public void translateAssignmentNoIndex2(List<JassStatement> result, JassFunction f, List<JassVar> left
 			, JassOpBinary binaryOp, List<JassExpr> right) {
-		if (left.size() != right.size()) {
-			throw new Error("assignment to "+  left.get(0).getName()+ " : " + left.size() + " != " + right.size());
+		if (left.size() > right.size()) {
+			throw new Error("error in assignment to "+  left.get(0).getName()+ " : " + left.size() + " != " + right.size());
 		}
 		
 		for (int i=0; i<left.size(); i++) {

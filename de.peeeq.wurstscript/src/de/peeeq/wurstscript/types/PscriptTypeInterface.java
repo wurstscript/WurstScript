@@ -61,5 +61,11 @@ public class PscriptTypeInterface extends PscriptTypeNamedScope {
 		}
 		return false;
 	}
+
+	@Override
+	public String[] jassTranslateType() {
+		// one int for the id and one int for the type
+		return new String[]{ "integer", "integer" };
+	}
 	
 }

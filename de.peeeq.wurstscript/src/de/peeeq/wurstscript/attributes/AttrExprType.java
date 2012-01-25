@@ -64,7 +64,6 @@ import de.peeeq.wurstscript.types.PScriptTypeCode;
 import de.peeeq.wurstscript.types.PScriptTypeInfer;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
 import de.peeeq.wurstscript.types.PScriptTypeJassInt;
-import de.peeeq.wurstscript.types.PScriptTypeNull;
 import de.peeeq.wurstscript.types.PScriptTypeReal;
 import de.peeeq.wurstscript.types.PScriptTypeString;
 import de.peeeq.wurstscript.types.PScriptTypeUnknown;
@@ -562,7 +561,12 @@ public class AttrExprType {
 
 
 	public static  PscriptType calculate(ExprNull term)  {
-		return PScriptTypeNull.instance();
+		
+		PscriptType t = term.attrExpectedTyp();
+		if (t instanceof PScriptTypeUnknown) {
+			attr.addError(term.getSource(), "Could not determine type of null expression.");
+		}
+		return t;
 	}
 
 
