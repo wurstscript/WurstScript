@@ -48,6 +48,16 @@ public class ClassesTests extends PscriptTest {
 			);
 	}
 
+	
+	@Test
+	public void array_members() {
+		testAssertErrorsLines(false, "must be static", 
+				"package test",
+				"	class C",
+				"		int array blub",
+				"endpackage"
+			);
+	}
 
 	@Test
 	public void classes_static_var_get() {

@@ -266,7 +266,9 @@ public class JassTranslatorStatements {
 					}
 					
 					PscriptType retTyp = stmtReturn.attrNearestFuncDef().getReturnTyp().attrTyp();
-					String[] returnedTypes = translator.translateType(expr.attrTyp());
+					String[] returnedTypes = translator.translateType(retTyp);
+					
+					e = inferMissingTypes(expr, retTyp, expr.attrTyp(), e);
 					
 					if (returnedTypes.length != e.exprCount()) {
 						throw new CompileError(stmtReturn.getSource(), "length does not match: " 
@@ -280,14 +282,6 @@ public class JassTranslatorStatements {
 							JassVar tempVar2 = manager.getTupleReturnVar(returnedTypes[i], i);
 							result.add(JassStmtSet(tempVar2.getName(), e.getExpressions().get(i)));
 						}
-//						if (expr.attrTyp() instanceof PscriptTypeInterface) {
-//							
-//						} else if (expr.attrTyp() instanceof PscriptTypeClass) {
-//							int typeId = getInstanceId(expr, (PscriptTypeInterface)retTyp, (PscriptTypeClass) expr.attrTyp());
-//							result.add(JassStmtSet(tempVar2.getName(), JassExprIntVal(typeId)));
-//						} else {
-//							throw new CompileError(expr.getSource(), "Cannot return this here.");
-//						}
 						result.addAll(nullSetters);
 						result.add(JassStmtReturn(JassExprVarAccess(tempVar.getName())));
 					} else if (useTempVar) {
@@ -434,16 +428,22 @@ public class JassTranslatorStatements {
 		
 		ExprTranslationResult right = translator.translateExpr(f, newValue);
 		
-		if (varTyp instanceof PscriptTypeInterface && rightTyp instanceof PscriptTypeClass) {
-			PscriptTypeInterface varTyp2 = (PscriptTypeInterface)varTyp;
-			PscriptTypeClass rightTyp2 = (PscriptTypeClass) rightTyp;
-			// in this special case we have to manually add the type based on the static type information that we have
-			int instanceId = translator.getInstanceId(newValue, varTyp2, rightTyp2);
-			right = right.plus(JassExprIntVal(instanceId));
-		}
+		right = inferMissingTypes(newValue, varTyp, rightTyp, right);
 		
 		
 		translateAssignment2(result, f, updatedVar, index, binaryOp, right);
+	}
+
+
+	private ExprTranslationResult inferMissingTypes(AstElement where, PscriptType neededTyp, PscriptType actualTyp,	ExprTranslationResult expr) {
+		if (neededTyp instanceof PscriptTypeInterface && actualTyp instanceof PscriptTypeClass) {
+			PscriptTypeInterface neededTyp2 = (PscriptTypeInterface)neededTyp;
+			PscriptTypeClass actualTyp2 = (PscriptTypeClass) actualTyp;
+			// in this special case we have to manually add the type based on the static type information that we have
+			int instanceId = translator.getInstanceId(where, neededTyp2, actualTyp2);
+			expr = expr.plus(JassExprIntVal(instanceId));
+		}
+		return expr;
 	}
 
 
