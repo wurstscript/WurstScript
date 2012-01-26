@@ -40,7 +40,7 @@ public class Main {
 		//		JOptionPane.showMessageDialog(null , "time to connect profiler ^^");
 		SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy hh:mm:ss");
 		Date myDate = new Date();
-		WLogger.info("Started compiler at" + sdf.format(myDate) + "with args " + Utils.printSep(", ", args));
+		WLogger.info("Started compiler at " + sdf.format(myDate) + " with args " + Utils.printSep(", ", args));
 		
 		WurstGui gui = null;
 		try {
