@@ -16,17 +16,32 @@ package Lists
 			dummy.prev = entry
 			size ++
 
+		// add all elements from elems to this list
 		function addAll(LinkedList{T} elems)
 			for T elem in elems
 				add(elem)
 
-		function remove(int index)
+		// remove element at index
+		function removeAt(int index)
 			val e = getEntry(index)
 			e.prev.next = e.next
 			e.next.prev = e.prev
 			destroy e	
 			size--
+			
+		// removes the first occurence of t from this list
+		function remove(T t)
+			LLEntry{T} r = dummy.next
+			while r != dummy
+				if r.elem == t
+					r.prev.next = r.next
+					r.next.prev = r.prev
+					destroy r
+					size--
+					return
+				r = r.next
 		
+		// gets the size of the list
 		function getSize() returns int
 			return size
 
@@ -36,9 +51,11 @@ package Lists
 				r = r.next
 			return r
 
+		// get the element at the specified index
 		function get(int index) returns T
 			return getEntry(index).elem
 
+		// get an iterator for this list
 		function iterator() returns LLIterator{T}
 			return new LLIterator(dummy)			
 
@@ -68,6 +85,15 @@ package Lists
 			this.dummy = dummy
 			this.current = dummy
 
+		// remove the current element from the queue
+		function remove()
+			if current != dummy
+				current.next.prev = current.prev
+				current.prev.next = current.next
+				current = current.prev
+				destroy current
+				
+
 		function hasNext() returns boolean
 			return current.next != dummy
 
@@ -77,5 +103,8 @@ package Lists
 
 		function close()
 			destroy this
+
+
+	
 
 endpackage
