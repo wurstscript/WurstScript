@@ -23,14 +23,15 @@ public class PscriptTypeModuleInstanciation extends PscriptTypeNamedScope {
 
 	@Override
 	public boolean isSubtypeOf(PscriptType obj, AstElement location) {
-		if (super.isSubtypeOf(obj, location)) {
-			return true;
-		}
-		if (obj instanceof PscriptTypeNamedScope) {
-			PscriptTypeNamedScope n = (PscriptTypeNamedScope) obj;
-			return isParent(n);
-		}
-		return false;
+//		if (super.isSubtypeOf(obj, location)) {
+//			return true;
+//		}
+//		if (obj instanceof PscriptTypeNamedScope) {
+//			PscriptTypeNamedScope n = (PscriptTypeNamedScope) obj;
+//			return isParent(n);
+//		}
+//		return false;
+		return this.getDef().attrNearestClassDef().attrTyp().isSubtypeOf(obj, location);
 	}
 
 	/**

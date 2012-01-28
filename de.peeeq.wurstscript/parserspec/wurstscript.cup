@@ -204,8 +204,12 @@ Imports ::=
 
 Import ::=
 	IMPORT:x IDENTIFIER:i NL
-		{: RESULT = Ast.WImport(pos(xleft, iright), i); :}
+		{: RESULT = Ast.WImport(pos(xleft, iright), false, i); :}
+	| IMPORT:x PUBLIC IDENTIFIER:i NL
+		{: RESULT = Ast.WImport(pos(xleft, iright), true, i); :}
+
 ;
+
 
 Entities ::=
 	  Newlines Entity:x Entities:xs

@@ -7,12 +7,14 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.InstanceDef;
+import de.peeeq.wurstscript.ast.WPackage;
 
 public class GetByType {
 
 	public static class ByTypes {
 		public final List<ClassDef> classes = Lists.newArrayList();
 		public final List<InstanceDef> instanceDefs = Lists.newArrayList();
+		public final List<WPackage> packageDefs = Lists.newArrayList();
 	}
 	
 	public static ByTypes calculate(CompilationUnit cu) {
@@ -29,6 +31,10 @@ public class GetByType {
 				result.instanceDefs.add(instanceDef);
 			}
 			
+			@Override
+			public void visit(WPackage wPackage) {
+				result.packageDefs.add(wPackage);
+			}
 		});
 		
 		return result;

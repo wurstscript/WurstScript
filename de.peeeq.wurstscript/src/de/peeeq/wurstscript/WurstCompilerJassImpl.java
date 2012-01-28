@@ -62,6 +62,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	private JassProg prog;
 	private File outputMapFile;
 	private WurstGui gui;
+	private boolean hasCommonJ;
 
 	
 	public WurstCompilerJassImpl(WurstGui gui) {
@@ -100,7 +101,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		// parse all the files:
 		List<CompilationUnit> compilationUnits = new NotNullList<CompilationUnit>();
 		
-		
 		for (File file : files) {
 			if (file.getName().endsWith(".w3x") || file.getName().endsWith(".w3m")) {
 				CompilationUnit r = processMap(file);
@@ -110,6 +110,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 				compilationUnits.add(r );				
 				outputMapFile = file;
 			} else {
+				if (file.getName().endsWith("common.j")) {
+					hasCommonJ = true;
+				}
 				compilationUnits.add(parseFile(file));
 			}
 		}
@@ -119,6 +122,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		}
 		
 		try {
+			if (hasCommonJ) {
+				loadLibPackage(compilationUnits, "Wurst");
+			}
 			addImportedLibs(compilationUnits);
 		} catch (CompileError e) {
 			gui.sendError(e);
@@ -166,9 +172,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			throws CompileError {
 		if (!packages.contains(imp.getPackagename())) {
 			if (getLibs().containsKey(imp.getPackagename())) {
-				File file = getLibs().get(imp.getPackagename());
-				CompilationUnit lib = parseFile(file);
-				compilationUnits.add(lib);
+				CompilationUnit lib = loadLibPackage(compilationUnits, imp.getPackagename());
 				for (TopLevelDeclaration t : lib) {
 					if (t instanceof WPackage) {
 						WPackage p = (WPackage) t;
@@ -183,6 +187,13 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 						"Available packages: " + Utils.join(getLibs().keySet(), ", "));
 			}
 		}
+	}
+
+	private CompilationUnit loadLibPackage(List<CompilationUnit> compilationUnits, String imp) {
+		File file = getLibs().get(imp);
+		CompilationUnit lib = parseFile(file);
+		compilationUnits.add(lib);
+		return lib;
 	}
 
 	private Map<String, File> libCache = null;
@@ -259,7 +270,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	
 
 	private void removeSyntacticSugar(CompilationUnit root) {
-		new SyntacticSugar().removeSyntacticSugar(root);
+		new SyntacticSugar().removeSyntacticSugar(root, hasCommonJ);
 	}
 
 	

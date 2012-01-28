@@ -185,7 +185,8 @@ public class AttrExprType {
 
 				@Override
 				public PscriptType case_ModuleInstanciation(ModuleInstanciation moduleInstanciation) {
-					return new PscriptTypeModuleInstanciation(moduleInstanciation, false);
+					ClassDef classDef = moduleInstanciation.attrNearestClassDef();
+					return new PscriptTypeClass(classDef , false);
 				}
 
 				@Override

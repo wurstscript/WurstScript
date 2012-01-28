@@ -1,10 +1,13 @@
 package de.peeeq.wurstscript.attributes;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.Stack;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
@@ -213,6 +216,7 @@ public class Scopes {
 	}
 
 
+	
 	public static Multimap<String, NameDef> getExportedNames(WPackage p) {
 		Multimap<String, NameDef> result = HashMultimap.create();
 		for (Entry<String, NameDef> e : p.attrDefinedNames().entries()) {
@@ -220,6 +224,16 @@ public class Scopes {
 				result.put(e.getKey(), e.getValue());
 			}
 		}
+		for (WImport imp : p.getImports()) {
+			if (imp.getIsPublic()) {
+				try {
+					result.putAll(imp.attrImportedPackage().attrExportedNames());
+				} catch (Error e) {
+					attr.addError(imp.getSource(), e.getMessage());					
+				}
+			}
+		}
+		
 		return result;
 	}
 

@@ -28,6 +28,7 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithName;
 import de.peeeq.wurstscript.ast.ClassOrModule;
+import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
@@ -506,6 +507,9 @@ public class Utils {
 				}
 				name += "}";
 			}
+		} else if (e instanceof ExprFunctionCall) {
+			ExprFunctionCall fc = (ExprFunctionCall) e;
+			return "function call " +fc.getFuncName() + "()";
 		}
 		return type + " " + name;
 	}

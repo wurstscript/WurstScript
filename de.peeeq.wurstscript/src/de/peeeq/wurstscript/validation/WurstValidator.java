@@ -441,6 +441,7 @@ public class WurstValidator {
 	}
 
 	private void checkParams(AstElement where, List<Expr> args, List<PscriptType> parameterTypes) {
+		System.out.println("checking params of " + Utils.printElement(where));
 		if (args.size() > parameterTypes.size()) {
 			attr.addError(where.attrSource(), "Too many parameters.");
 			
@@ -448,11 +449,13 @@ public class WurstValidator {
 			attr.addError(where.attrSource(), "Missing parameters.");
 		} else {
 			for (int i=0; i<args.size(); i++) {
+				
 				PscriptType actual = args.get(i).attrTyp();
 				PscriptType expected = parameterTypes.get(i);
-				if (expected instanceof AstElementWithTypeArgs)
+				System.out.println("	" + actual + " <: " + expected);
+//				if (expected instanceof AstElementWithTypeArgs)
 				if (!actual.isSubtypeOf(expected, where)) {
-					attr.addError(args.get(i).getSource(), "Expected " + expected + " as parameter " + i + " but found " + actual);
+					attr.addError(args.get(i).getSource(), "Expected " + expected + " as parameter " + (i+1) + " but found " + actual);
 				}
 			}
 		}

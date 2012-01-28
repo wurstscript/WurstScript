@@ -14,7 +14,7 @@ WPackage(WPos source, String name, WImports imports, WEntities elements)
 WImports * WImport
 WEntities * WEntity
 
-WImport(WPos source, String packagename)
+WImport(WPos source, boolean isPublic, String packagename)
 
 WEntity = 
 	  TypeDef

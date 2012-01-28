@@ -143,6 +143,24 @@ public class InterfaceTests extends PscriptTest {
 	}
 	
 	@Test
+	public void module_prob() {
+		testAssertErrorsLines(false, "Expected I", 
+				"package test",
+				"	interface I",
+				"		function foo()",
+				"	module M",
+				"		construct()",
+				"			bla(this)",
+				"	class C implements I",
+				"		use M",
+				"		function foo()",
+				"		",
+				"	function bla(I i)",
+				"endpackage"
+			);
+	}
+	
+	@Test
 	public void type_param_complicated1_fail() {
 		testAssertErrorsLines(false, "Cannot assign", 
 				"package test",

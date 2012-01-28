@@ -43,13 +43,24 @@ import de.peeeq.wurstscript.attributes.attr;
 
 public class SyntacticSugar {
 
-	public void removeSyntacticSugar(CompilationUnit root) {
+	public void removeSyntacticSugar(CompilationUnit root, boolean hasCommonJ) {
+		if (hasCommonJ) {
+			addDefaultImports(root);
+		}
 		addInstanceDecls(root);
 		addDefaultConstructors(root);
 		expandForInLoops(root);
+		
 	}
 
 	
+	private void addDefaultImports(CompilationUnit root) {
+		for (WPackage i : root.attrGetByType().packageDefs) {
+			i.getImports().add(Ast.WImport(i.getSource().copy(), false, "Wurst"));
+		}
+	}
+
+
 	private void addInstanceDecls(CompilationUnit root) {
 		for (ClassDef c : root.attrGetByType().classes) {
 			WEntities ents = (WEntities) c.getParent();
