@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript;
 
+import java.awt.Desktop;
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -11,10 +12,14 @@ import java.io.StringReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 
+import javax.swing.JFrame;
 import javax.swing.JOptionPane;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 
 import com.google.common.io.CharStreams;
 
@@ -23,6 +28,61 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class ErrorReporting {
 		
+	
+	public static void handleSevere(Throwable t) {
+		t.printStackTrace();
+		WLogger.severe(t);
+		
+		
+		try {
+			UIManager.setLookAndFeel(
+					UIManager.getSystemLookAndFeelClassName());
+		} catch (Exception e) {
+			// ignore
+		}
+		
+		String title  = "Sorry!";
+		String message = "You have encountered a bug in the Wurst Compiler.\n" +
+				"What do you want to do in order to help us fix this bug?";
+		
+		Object[] options = {
+				"Nothing",
+				"Send automatic error report",
+				"Create manual bug report"
+			            };
+		JFrame parent = new JFrame();
+		parent.pack();
+		parent.setVisible(true);
+		Utils.setWindowToCenterOfScreen(parent);
+		int n = JOptionPane.showOptionDialog(parent,
+			message,
+			title,
+			JOptionPane.YES_NO_OPTION,
+			JOptionPane.QUESTION_MESSAGE,
+			null,     //do not use a custom Icon
+			options,  //the titles of buttons
+			options[1]); //default button titles
+		
+		if (n == 1) {
+			boolean r = ErrorReporting.sendErrorReport(t);
+			if (r) {
+				JOptionPane.showMessageDialog(parent, "Thank you!");
+			}else {
+				JOptionPane.showMessageDialog(parent, "Error report could not be sent.");
+			}
+		} else if (n == 2) {
+			Desktop desk = Desktop.getDesktop();
+			try {
+				desk.browse(new URI("http://code.google.com/p/pscript-lang/issues/entry"));
+			} catch (Exception e) {
+				WLogger.severe(e);
+				JOptionPane.showMessageDialog(parent, "Could not open browser.");
+			}
+		}
+		parent.setVisible(false);
+		parent.dispose();
+	}
+	
 	public static boolean sendErrorReport(Throwable t) {
 		
 		HttpURLConnection connection = null;

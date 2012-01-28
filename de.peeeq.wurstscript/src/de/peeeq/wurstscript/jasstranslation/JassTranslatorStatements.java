@@ -113,6 +113,8 @@ public class JassTranslatorStatements {
 	}
 
 	private List<JassStatement> translateStatement(final JassFunction f, final WStatement s) {
+		translator.lastElement = s;
+		
 		final List<JassStatement> result = Lists.newLinkedList();
 		s.match(new WStatement.MatcherVoid() {
 

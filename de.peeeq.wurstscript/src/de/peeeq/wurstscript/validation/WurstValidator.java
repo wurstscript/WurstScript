@@ -434,6 +434,10 @@ public class WurstValidator {
 			return;
 		}
 		List<PscriptType> parameterTypes = calledFunc.attrParameterTypes();
+		checkParams(where, args, parameterTypes);
+	}
+
+	private void checkParams(AstElement where, List<Expr> args, List<PscriptType> parameterTypes) {
 		if (args.size() > parameterTypes.size()) {
 			attr.addError(where.attrSource(), "Too many parameters.");
 			
@@ -449,7 +453,6 @@ public class WurstValidator {
 				}
 			}
 		}
-		
 	}
 
 	@CheckMethod
@@ -779,6 +782,16 @@ public class WurstValidator {
 			attr.addError(i.getExtendsList().attrSource(), "Extending other interfaces is not supported yet.");
 		}
 		checkTypeName(i.getSource(), i.getName());
+	}
+	 
+	@CheckMethod
+	public void checkNewObj(ExprNewObject e) {
+		ConstructorDef constr = e.attrConstructorDef();
+		List<PscriptType> parameterTypes = Lists.newArrayList();
+		for (WParameter p : constr.getParameters()) {
+			parameterTypes.add(p.attrTyp());
+		}
+		checkParams(e, e.getArgs(), parameterTypes);
 	}
 	
 }
