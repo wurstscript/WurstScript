@@ -1120,6 +1120,17 @@ public class JassTranslator {
 		}
 		return result;
 	}
+
+	public JassVar[] assignToTempVar(JassFunction f, List<JassStatement> statements, String[] types, ExprTranslationResult left) {
+		statements.addAll(left.getStatements());
+		JassVar[] vars = new JassVar[types.length];
+		for (int i = 0; i < vars.length; i++) {
+			vars[i] = getNewTempVar(f, types[i]);
+			statements.add(JassStmtSet(vars[i].getName(), left.getExpressions().get(i)));
+		}
+		return vars;
+		
+	}
 	
 //	trace("translate global var " + globalVarDef.getName());
 //	boolean isArray = !globalVarDef.attrIsStatic() || (globalVarDef.attrTyp() instanceof PScriptTypeArray);

@@ -258,7 +258,7 @@ public class AttrExprType {
 
 			private PscriptType caseEquality() {
 
-				if (leftType.equals(rightType)) {
+				if (leftType.equalsType(rightType, term)) {
 					return PScriptTypeBool.instance();
 				}
 
@@ -446,7 +446,7 @@ public class AttrExprType {
 		if (varDef instanceof FunctionDefinition) {
 			attr.addError(term.getSource(), "Missing parantheses for function call");
 		}
-		return term.getLeft().attrTyp().replaceBoundTypeVars(varDef.attrTyp());
+		return varDef.attrTyp().setTypeArgs(term.getLeft().attrTyp().getTypeArgBinding());
 	}
 
 
@@ -500,7 +500,7 @@ public class AttrExprType {
 				return ns.getTypeParameterBinding(typParam.getDef());
 			}
 		}
-		return typ;
+		return typ.setTypeArgs(term.getLeft().attrTyp().getTypeArgBinding());
 	}
 
 

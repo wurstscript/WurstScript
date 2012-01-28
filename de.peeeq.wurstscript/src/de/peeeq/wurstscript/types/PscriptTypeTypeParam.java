@@ -1,5 +1,11 @@
 package de.peeeq.wurstscript.types;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import com.google.common.collect.Lists;
+
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 
@@ -37,6 +43,17 @@ public class PscriptTypeTypeParam extends PscriptType {
 	@Override
 	public String[] jassTranslateType() {
 		return new String[] { "integer", "integer" };
+	}
+	
+	public Map<TypeParamDef, PscriptType> getTypeArgBinding() {
+		return Collections.emptyMap();
+	}
+
+	public PscriptType setTypeArgs(Map<TypeParamDef, PscriptType> typeParamBounds) {
+		if (typeParamBounds.containsKey(def)) {
+			return typeParamBounds.get(def);
+		} 
+		return this;
 	}
 
 }

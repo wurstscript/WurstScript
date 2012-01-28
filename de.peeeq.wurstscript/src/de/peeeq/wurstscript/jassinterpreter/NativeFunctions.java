@@ -27,6 +27,10 @@ public class NativeFunctions {
 		System.out.println(msg.getVal());
 	}
 	
+	static public void println(ILconstString msg) {
+		System.out.println(msg.getVal());
+	}
+	
 	static public ILconstInt ModuloInteger(ILconstInt a, ILconstInt b) {
 		return new ILconstInt(a.getVal() % b.getVal());
 	}

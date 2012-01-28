@@ -1,6 +1,10 @@
 package de.peeeq.wurstscript.types;
 
+import java.util.Collections;
+import java.util.Map;
+
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.TypeParamDef;
 
 
 public abstract class PscriptType {
@@ -38,14 +42,12 @@ public abstract class PscriptType {
 	@Override public String toString() {
 		return getName();
 	}
-	
+	/**
+	 * @deprecated  use {@link #equalsType(PscriptType, AstElement)}
+	 */
+	@Deprecated
 	@Override public boolean equals(Object other) {
-		if (other instanceof PscriptType) {
-			PscriptType otherType = (PscriptType) other;
-			return equalsType(otherType, null);			
-		} else {
-			return false;
-		}
+		throw new Error("operation not supported");
 	}
 	
 	@Deprecated
@@ -60,13 +62,16 @@ public abstract class PscriptType {
 	}
 
 
-	/**
-	 * replaces all type parameters in t with the actual type
-	 */
-	public  PscriptType replaceBoundTypeVars(PscriptType t) {
-		return t;
+
+	public abstract String[] jassTranslateType();
+
+
+	public PscriptType setTypeArgs(Map<TypeParamDef, PscriptType> typeParamMapping) {
+		return this;
 	}
 
 
-	public abstract String[] jassTranslateType();
+	public Map<TypeParamDef, PscriptType> getTypeArgBinding() {
+		return Collections.emptyMap();
+	}
 }

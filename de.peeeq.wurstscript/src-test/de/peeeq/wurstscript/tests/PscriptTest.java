@@ -19,6 +19,7 @@ import com.google.common.collect.Maps;
 import com.google.common.io.Files;
 
 import de.peeeq.wurstscript.Pjass;
+import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.Pjass.Result;
 import de.peeeq.wurstscript.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -98,6 +99,7 @@ public class PscriptTest {
 		boolean success = false;
 		WurstGui gui = new WurstGuiCliImpl();
 		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui);
+		WurstConfig.get().setSetting("lib", "../Wurstpack/wurstscript/lib/");
 		if (withStdLib) {
 			compiler.loadFiles(new File("./lib/common.j"), new File("./lib/blizzard.j"));
 		}

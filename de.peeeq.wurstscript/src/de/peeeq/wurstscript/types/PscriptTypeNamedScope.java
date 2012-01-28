@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.types;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -46,7 +47,7 @@ public abstract class PscriptTypeNamedScope extends PscriptType {
 	@Override
 	public boolean isSubtypeOf(PscriptType obj, AstElement location) {
 		if (obj instanceof PscriptTypeTypeParam) {
-			return true;
+			return false;
 		}
 		if (obj instanceof PscriptTypeNamedScope) {
 			PscriptTypeNamedScope other = (PscriptTypeNamedScope) obj;
@@ -106,37 +107,41 @@ public abstract class PscriptTypeNamedScope extends PscriptType {
 		return s + "}";
 	}
 	
-	@Override
-	public  PscriptType replaceBoundTypeVars(PscriptType t) {
-		if (t instanceof PscriptTypeTypeParam) {
-			PscriptTypeTypeParam tpt = (PscriptTypeTypeParam) t;
-			PscriptType s = getTypeParamBounds().get(tpt.getDef());
-			if (s != null) {
-				return s;
+//	@Override
+//	public  PscriptType replaceBoundTypeVars(PscriptType t) {
+//		if (t instanceof PscriptTypeTypeParam) {
+//			PscriptTypeTypeParam tpt = (PscriptTypeTypeParam) t;
+//			PscriptType s = getTypeParamBounds().get(tpt.getDef());
+//			if (s != null) {
+//				return s;
+//			}
+//		} else if (t instanceof PscriptTypeNamedScope) {
+//			PscriptTypeNamedScope ns = (PscriptTypeNamedScope) t;
+//			return ns.replaceTypeVars(getTypeParamBounds());
+//		}
+//		return t;
+//	}
+	
+
+
+	public Map<TypeParamDef, PscriptType> getTypeArgBinding() {
+		if (getDef() instanceof AstElementWithTypeParameters) {
+			Map<TypeParamDef, PscriptType> result = Maps.newHashMap();
+			AstElementWithTypeParameters def = (AstElementWithTypeParameters) getDef();
+			for (int i=0; i<typeParameters.size(); i++) {
+				PscriptType t = typeParameters.get(i);
+				TypeParamDef tDef = def.getTypeParameters().get(i);
+				result.put(tDef, t);
 			}
-		} else if (t instanceof PscriptTypeNamedScope) {
-			PscriptTypeNamedScope ns = (PscriptTypeNamedScope) t;
-			return ns.replaceTypeVars(getTypeParamBounds());
+			return result ;
 		}
-		return t;
+		return super.getTypeArgBinding();
 	}
 
-	private PscriptType replaceTypeVars(Map<TypeParamDef, PscriptType> typeParamBounds) {
+	public PscriptType setTypeArgs(Map<TypeParamDef, PscriptType> typeParamBounds) {
 		List<PscriptType> newTypes = Lists.newArrayList();
 		for (PscriptType t : typeParameters) {
-			if (t instanceof PscriptTypeTypeParam) {
-				PscriptType r = typeParamBounds.get(((PscriptTypeTypeParam) t).getDef());
-				if (r != null) {
-					newTypes.add(r);
-				} else {
-					newTypes.add(t);
-				}
-			} else if (t instanceof PscriptTypeNamedScope) {
-				PscriptTypeNamedScope ns = (PscriptTypeNamedScope) t;
-				newTypes.add(ns.replaceTypeVars(typeParamBounds));				
-			} else {
-				newTypes.add(t);
-			}
+			newTypes.add(t.setTypeArgs(typeParamBounds));
 		}
 		return replaceTypeVars(newTypes);
 	}

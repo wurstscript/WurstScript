@@ -60,7 +60,7 @@ terminal
 	LBRACK, RBRACK, 
 	COMMA, SEMICOLON, COLON,   
 	NL,
-	MODULE, USE, ABSTRACT, IN, FOR, TO, DOWNTO, STEP, BREAK, THISTYPE, ARROW, IT, IMMUTABLE, OVERRIDE, INSTANCE, INSTANCEOF, ENUM,
+	MODULE, USE, ABSTRACT, IN, FOR, FROM, TO, DOWNTO, STEP, BREAK, THISTYPE, ARROW, IT, IMMUTABLE, OVERRIDE, INSTANCE, INSTANCEOF, ENUM,
 	STATIC, PACKAGE, ENDPACKAGE, RETURNS,FUNCTION, VAL, PUBLIC, PUBLICREAD, PRIVATE, PROTECTED, IMPORT, NATIVETYPE, INIT, NATIVE, INTERFACE,
 	IMPLEMENTS, ARRAY, IF, ELSE, WHILE, RETURN, CLASS, NEW, NULL, EXTENDS, THIS, CONSTRUCT, ONDESTROY, 
 	TYPE, GLOBALS, ENDGLOBALS, CONSTANT, ENDFUNCTION, TAKES, NOTHING, LOCAL,
@@ -472,6 +472,8 @@ Statement ::=
 		{: RESULT = Ast.StmtForRangeDown(pos(xleft, yright), loopVar, from, to, step, body); :}
 	| FOR:x LocalVarDefInline:loopVar IN Expr:in NL INDENT Statements:body UNINDENT:y
 		{: RESULT = Ast.StmtForIn(pos(xleft, yright), loopVar, in, body); :}
+	| FOR:x LocalVarDefInline:loopVar FROM Expr:in NL INDENT Statements:body UNINDENT:y
+		{: RESULT = Ast.StmtForFrom(pos(xleft, yright), loopVar, in, body); :}
 	| BREAK:x NL
 		{: RESULT = Ast.StmtExitwhen(pos(xleft, xright), Ast.ExprBoolVal(pos(xleft, xright), true)); :}
 	| error:x NL
@@ -486,6 +488,8 @@ StmtDestroy ::=
 StmtReturn ::=
 	RETURN:x Expr:result NL
 		{: RESULT = Ast.StmtReturn(pos(xleft, result), result); :}
+	| RETURN:x NL
+		{: RESULT = Ast.StmtReturn(pos(xleft, xright), Ast.NoExpr()); :}
 ;
 
 StmtIf ::=

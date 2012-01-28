@@ -19,8 +19,10 @@ import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
+import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.InstanceDef;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
+import de.peeeq.wurstscript.ast.StmtForFrom;
 import de.peeeq.wurstscript.ast.StmtForIn;
 import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtReturn;
@@ -29,6 +31,7 @@ import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprList;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.ast.TypeParamDefs;
 import de.peeeq.wurstscript.ast.WEntities;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WPackage;
@@ -59,14 +62,18 @@ public class SyntacticSugar {
 				WPos s = implemented.getSource();
 				
 				TypeExprList typeExprs = TypeExprList();
+				TypeParamDefs typeParams = TypeParamDefs();
 				for (TypeParamDef tp : c.getTypeParameters()) {
-					typeExprs.add(TypeExprSimple(s.copy(), tp.getName(), TypeExprList()));
+					String name = tp.getName();
+					typeExprs.add(TypeExprSimple(s.copy(), name, TypeExprList()));
+					typeParams.add(TypeParamDef(tp.getSource().copy(), Ast.Modifiers(), name));
 				}
 				TypeExpr classTyp = Ast.TypeExprSimple(s.copy(), c.getName(), typeExprs); // TODO type params
 				TypeExpr implementedTyp = Ast.TypeExprSimple(s.copy(), impl.getTypeName(), impl.getTypeArgs().copy());
 				
 				
-				InstanceDef instanceDef = Ast.InstanceDef(s.copy(), c.getModifiers().copy(), c.getTypeParameters().copy(), classTyp, implementedTyp, Ast.FuncDefs());
+				
+				InstanceDef instanceDef = Ast.InstanceDef(s.copy(), c.getModifiers().copy(), typeParams, classTyp, implementedTyp, Ast.FuncDefs());
 				ents.add(instanceDef);
 			}
 		}
@@ -76,14 +83,20 @@ public class SyntacticSugar {
 	private void expandForInLoops(CompilationUnit root) {
 		// collect loops
 		final List<StmtForIn> loops = Lists.newArrayList();
+		final List<StmtForFrom> loops2 = Lists.newArrayList();
 		root.accept(new CompilationUnit.DefaultVisitor() {
 			@Override
 			public void visit(StmtForIn stmtForIn) {
 				loops.add(stmtForIn);
 			}
+			
+			@Override
+			public void visit(StmtForFrom stmtForIn) {
+				loops2.add(stmtForIn);
+			}
 		});
 		
-		// exand loops
+		// exand for ... in ... loops
 		for (StmtForIn loop : loops) {
 			if (loop.getParent() instanceof WStatements) {
 				WStatements parent = (WStatements) loop.getParent();
@@ -100,6 +113,49 @@ public class SyntacticSugar {
 								Ast.Modifiers(), 
 								NoTypeExpr(), iteratorName, 
 									Ast.ExprMemberMethod(loopInPos.copy(), (Expr) loop.getIn().copy(), "iterator", Ast.TypeExprList(), Arguments())));
+				WStatements body = WStatements(
+							Ast.LocalVarDef(loopVarPos.copy(), 
+									Ast.Modifiers(),
+									(OptTypeExpr) loop.getLoopVar().getOptTyp().copy(), 
+									loop.getLoopVar().getName(), 
+									ExprMemberMethod(loopInPos.copy(), 
+											ExprVarAccess(loopVarPos.copy(), iteratorName), "next", Ast.TypeExprList(), Arguments()))
+						);
+				body.addAll(addIteratorCloseStatemenst(loop.getBody().removeAll(), iteratorName, loopVarPos, loopInPos));
+				parent.add(position + 1, Ast.StmtWhile(
+						loop.getSource().copy(), 
+						ExprMemberMethod(loopInPos.copy(), 
+								ExprVarAccess(loopVarPos.copy(), iteratorName), "hasNext", Ast.TypeExprList(), Arguments()),
+						body));
+				parent.add(position+2, 
+						closeIteratorStatement(iteratorName, loopVarPos, loopInPos));
+			} else {
+				throw new CompileError(loop.getSource(), "Loop not in statements - " + loop.getParent().getClass().getName());
+			}
+		}
+		
+		// exand for .. from ... loops
+		for (StmtForFrom loop : loops2) {
+			if (loop.getParent() instanceof WStatements) {
+				WStatements parent = (WStatements) loop.getParent();
+				
+				int position = parent.indexOf(loop);
+				parent.remove(position);
+				
+				String iteratorName = "iterator" +  UUID.randomUUID().toString().replace("-", "x");
+				WPos loopVarPos = loop.getLoopVar().getSource();
+				WPos loopInPos = loop.getIn().getSource();
+				if (loop.getIn() instanceof ExprVarAccess) {
+					ExprVarAccess exprVarAccess = (ExprVarAccess) loop.getIn();
+					iteratorName = exprVarAccess.getVarName();
+				} else {
+					parent.add(position, 
+							Ast.LocalVarDef(
+									loopInPos.copy(), 
+									Ast.Modifiers(), 
+									NoTypeExpr(), iteratorName, 
+										(Expr) loop.getIn().copy()));
+				}
 				WStatements body = WStatements(
 							Ast.LocalVarDef(loopVarPos.copy(), 
 									Ast.Modifiers(),

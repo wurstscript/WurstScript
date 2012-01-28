@@ -61,7 +61,7 @@ public class Generics {
 			PscriptTypeTypeParam paramTyp2 = (PscriptTypeTypeParam) paramTyp;
 			if (typeParams.contains(paramTyp2.getDef())) {
 				PscriptType previousType = result.put(paramTyp2.getDef(), argType);
-				if (previousType != null && !previousType.equals(argType)) {
+				if (previousType != null && !previousType.equalsType(argType, pos)) {
 					attr.addError(pos.attrSource(), "Cannot infer type parameters, there is a conflict between "
 							+ previousType + " and " + argType + " for type parameter " + paramTyp2.getName());
 				}

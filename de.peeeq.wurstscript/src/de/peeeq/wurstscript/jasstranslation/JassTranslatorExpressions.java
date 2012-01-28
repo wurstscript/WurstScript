@@ -86,7 +86,9 @@ import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WParameters;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassAst.JassExpr;
+import de.peeeq.wurstscript.jassAst.JassExprBinary;
 import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
+import de.peeeq.wurstscript.jassAst.JassExprIntVal;
 import de.peeeq.wurstscript.jassAst.JassExprlist;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassOpBinary;
@@ -192,24 +194,63 @@ public class JassTranslatorExpressions {
 				JassExpr rightExpr;
 
 				List<JassStatement> statements = Lists.newLinkedList();
+				
+
+				PscriptType leftType = exprBinary.getLeft().attrTyp();
+				PscriptType rightType = exprBinary.getRight().attrTyp();
+				String[] leftTypes = translator.translateType(leftType);
+				String[] rightTypes = translator.translateType(rightType);
+				
+				if (left.getExpressions().size() > 1 || right.getExpressions().size() > 1) {
+					statements.addAll(right.getStatements());
+					
+					if (left.exprCount() != right.exprCount()) {
+						if (leftType instanceof PscriptTypeClass && rightType instanceof PscriptTypeInterface) {
+							int instanceId = translator.getInstanceId(exprBinary, (PscriptTypeInterface)rightType, (PscriptTypeClass)leftType);
+							left = left.plus(JassExprIntVal(instanceId));
+							leftTypes = rightTypes;
+						} else if (rightType instanceof PscriptTypeClass && leftType instanceof PscriptTypeInterface) {
+							int instanceId = translator.getInstanceId(exprBinary, (PscriptTypeInterface)leftType, (PscriptTypeClass)rightType);
+							right = right.plus(JassExprIntVal(instanceId));
+							rightTypes = leftTypes;
+						} else {
+							throw new CompileError(exprBinary.getSource(), "incompatible types, " + leftType + " and " + rightType);
+						}
+					}
+					
+					
+					JassVar[] tempLeft = translator.assignToTempVar(f, statements, leftTypes, left);
+					JassVar[] tempRight = translator.assignToTempVar(f, statements, rightTypes, right);
+					if (exprBinary.getOp() instanceof OpEquals) {
+						JassExprBinary e = JassExprBinary(JassExprVarAccess(tempLeft[0].getName()), JassOpEquals(), JassExprVarAccess(tempRight[0].getName()));
+						for (int i=1; i < left.exprCount(); i++) {
+							e = 
+									JassExprBinary(
+											e, JassOpAnd()
+											, JassExprBinary(JassExprVarAccess(tempLeft[i].getName())
+													, translateOp(exprBinary.getOp())
+													, JassExprVarAccess(tempRight[i].getName())));
+						}
+						
+						return new ExprTranslationResult(statements, e);
+					} else {
+						throw new CompileError(exprBinary.getSource(), "Invalid binary operator.");
+					}
+				}
+				
+
 				statements.addAll(left.getStatements());
-
-
-				assert left.getExpressions().size() == 1;
-				assert right.getExpressions().size() == 1;
-
-
 
 				// if the right hand side of the expression uses statements we have to make sure that
 				// the left hand side is executed first:
 				if (right.getStatements().size() > 0) {
-					String type = translator.translateTypeSingle(exprBinary.getLeft().attrTyp());
+					String type = translator.translateTypeSingle(leftType);
 					JassVar tempVar = translator.getNewTempVar(f, type);
 					statements.add(JassStmtSet(tempVar.getName(), left.getExpressions().get(0)));
 					leftExpr = JassExprVarAccess(tempVar.getName());
 
 
-					// boolean operators (and, or) have to be treated differently because the evalutation
+					// boolean operators (and, or) have to be treated differently because the evaluation
 					// of the right hand side depends on the result of the left hand side.
 					if (exprBinary.getOp() instanceof OpAnd) {
 						JassStatements thenBlock = JassStatements();
@@ -247,7 +288,7 @@ public class JassTranslatorExpressions {
 				} else if (exprBinary.getOp() instanceof OpModReal) {
 					e = JassExprFunctionCall("ModuloReal", JassExprlist(leftExpr, rightExpr));
 				} else if (exprBinary.getOp() instanceof OpDivReal 
-						&& exprBinary.getLeft().attrTyp() instanceof PScriptTypeInt
+						&& leftType instanceof PScriptTypeInt
 						&& exprBinary.getRight().attrTyp() instanceof PScriptTypeInt) {
 					// multiply the left expression by 1.0 to convert it to real
 					e = JassExprBinary(JassExprBinary(leftExpr, JassOpMult(), JassExprRealVal(1.0)), JassOpDiv(), rightExpr);
@@ -272,8 +313,6 @@ public class JassTranslatorExpressions {
 				// FIXME null oder 0 ?
 				List<JassExpr> exprs = Lists.newArrayList();
 				String[] types = exprNull.attrTyp().jassTranslateType();
-				System.out.println("type = " + exprNull.attrTyp());
-				System.out.println("type size = " + types.length);
 				for (String type : types) {
 					if (type.equals("integer")) {
 						exprs.add(JassExprIntVal(0));
@@ -320,9 +359,7 @@ public class JassTranslatorExpressions {
 		if (decl instanceof VarDef) {
 			VarDef varDef = (VarDef) decl;
 
-
 			List<JassVar> jassVars = manager.getJassVarsFor(varDef);
-
 
 			if (e.attrImplicitParameter() instanceof Expr) {
 				// we have implicit parameter
@@ -335,7 +372,7 @@ public class JassTranslatorExpressions {
 				}
 			} else {
 				// direct var access
-				if (e instanceof AstElementWithIndexes) { 
+				if (e instanceof AstElementWithIndexes) {
 					// direct access array var
 					AstElementWithIndexes withIndexes = (AstElementWithIndexes) e;
 					if (withIndexes.getIndexes().size() > 1) {
@@ -356,7 +393,7 @@ public class JassTranslatorExpressions {
 
 	private ExprTranslationResult createVarAccess(List<JassVar> jassVars) {
 		JassExpr[] exprs = new JassExpr[jassVars.size()];
-		for (int i=0; i<jassVars.size(); i++) {
+		for (int i = 0; i < jassVars.size(); i++) {
 			String jassVarName = jassVars.get(i).getName();
 			exprs[i] = JassExprVarAccess(jassVarName);
 		}
@@ -365,11 +402,12 @@ public class JassTranslatorExpressions {
 
 	private ExprTranslationResult createVarArrayAccess(List<JassVar> jassVars, ExprTranslationResult index1) {
 		JassExpr[] exprs = new JassExpr[jassVars.size()];
-		for (int i=0; i<exprs.length; i++) {
+		for (int i = 0; i < exprs.length; i++) {
 			String jassVarName = jassVars.get(i).getName();
 			JassExpr indexExpr = index1.getExpressions().get(0);
 			if (i > 0) {
-				// TODO if we use the index expression several times there could be duplicated side effects
+				// TODO if we use the index expression several times there could
+				// be duplicated side effects
 				indexExpr = (JassExpr) indexExpr.copy();
 			}
 			exprs[i] = JassExprVarArrayAccess(jassVarName, indexExpr);
@@ -378,15 +416,18 @@ public class JassTranslatorExpressions {
 	}
 
 	/**
-	 * translate a list of expressions, makes sure that the arguments are evaluated in correct order
-	 * so if we hava a list of expressions (a,b,c) and c requires additional statements then a and b
-	 * will use statements too
-	 * @param f 
+	 * translate a list of expressions, makes sure that the arguments are
+	 * evaluated in correct order so if we hava a list of expressions (a,b,c)
+	 * and c requires additional statements then a and b will use statements too
+	 * 
+	 * @param f
 	 */
-	private ExprListTranslationResult translateArguments(AstElement where, JassFunction f, List<Expr> args, List<PscriptType> types) {
-//		if (args.size() != types.size()) {
-//			throw new IllegalArgumentException("argsize = " + args.size() + " but typessize = " + types.size() + " // " + f.getName());
-//		}
+	private ExprListTranslationResult translateArguments(AstElement where, JassFunction f, List<Expr> args,
+			List<PscriptType> types) {
+		// if (args.size() != types.size()) {
+		// throw new IllegalArgumentException("argsize = " + args.size() +
+		// " but typessize = " + types.size() + " // " + f.getName());
+		// }
 
 		List<ExprTranslationResult> translations = Lists.newLinkedList();
 		int lastTranslationWithStatements = 0;
@@ -400,36 +441,34 @@ public class JassTranslatorExpressions {
 			i++;
 		}
 
-
-
 		List<JassStatement> statements = Lists.newLinkedList();
 		List<JassExpr> exprs = Lists.newLinkedList();
 
 		if (translations.size() != types.size()) {
-			throw new CompileError(where.attrSource(), "Argument size = " + translations.size() + " but " +
-					"types size = " + types.size());
+			throw new CompileError(where.attrSource(), "Argument size = " + translations.size() + " but " + "types size = "
+					+ types.size());
 		}
-		
+
 		i = 0;
 		for (ExprTranslationResult arg : translations) {
 			statements.addAll(arg.getStatements());
 
 			PscriptType paramType = types.get(i);
 			String[] paramJassTypes = translator.translateType(paramType);
-			
+
 			if (paramJassTypes.length == 2 && arg.exprCount() == 1) {
 				Expr a = args.get(i);
 				if (paramType instanceof PscriptTypeInterface && a.attrTyp() instanceof PscriptTypeClass) {
-					int typeId = translator.getInstanceId(a, (PscriptTypeInterface)paramType, (PscriptTypeClass)a.attrTyp());
+					int typeId = translator.getInstanceId(a, (PscriptTypeInterface) paramType, (PscriptTypeClass) a.attrTyp());
 					arg = arg.plus(JassExprIntVal(typeId));
 				} else if (a.attrTyp() instanceof PScriptTypeInt) {
 					arg = arg.plus(JassExprIntVal(0));
 				} else {
-					throw new CompileError(a.getSource(), "Cannot pass " + a.attrTyp() +", expected " + paramType);
+					throw new CompileError(a.getSource(), "Cannot pass " + a.attrTyp() + ", expected " + paramType);
 				}
 			}
-			
-			for (int j=0; j<arg.exprCount(); j++) {
+
+			for (int j = 0; j < arg.exprCount(); j++) {
 				if (i < lastTranslationWithStatements) {
 					JassVar tempVar = translator.getNewTempVar(f, paramJassTypes[j]);
 					statements.add(JassStmtSet(tempVar.getName(), arg.getExpressions().get(j)));
@@ -442,7 +481,6 @@ public class JassTranslatorExpressions {
 		}
 		return new ExprListTranslationResult(statements, exprs);
 	}
-
 
 	private JassOpUnary translateOpUnary(OpUnary op) {
 		return op.match(new OpUnary.Matcher<JassOpUnary>() {
@@ -557,7 +595,7 @@ public class JassTranslatorExpressions {
 		FunctionDefinition calledFunc = call.attrFuncDef();
 		if (calledFunc == null) {
 			// this must be an ignored function
-			return new ExprTranslationResult(JassExprNull());			
+			return new ExprTranslationResult(JassExprNull());
 		}
 		JassFunction calledJassFunc = manager.getJassFunctionFor(calledFunc);
 
@@ -567,53 +605,20 @@ public class JassTranslatorExpressions {
 		JassExprlist jassArgs = JassExprlist();
 		List<JassStatement> statements = Lists.newLinkedList();
 
-		// translate arguments:			
-		ExprListTranslationResult args = translateArguments(call, f, arguments, getParameterTypes(calledFunc));
+		// translate arguments:
+		ExprListTranslationResult args = translateArguments(call, f, arguments, call.attrParameterTypes());
 		statements.addAll(args.getStatements());
 		jassArgs.addAll(args.getExprs());
 
-
-		
 		List<JassExpr> exprs = Lists.newArrayList();
 		exprs.add(JassExprFunctionCall(functionName, jassArgs));
-		
+
 		String[] returnTypes = translator.translateType(calledFunc.attrTyp());
-		for (int i=1; i<returnTypes.length; i++) {
+		for (int i = 1; i < returnTypes.length; i++) {
 			exprs.add(JassExprVarAccess(manager.getTupleReturnVar(returnTypes[i], i).getName()));
 			i++;
 		}
 		return new ExprTranslationResult(statements, exprs);
-	}
-
-
-	private List<PscriptType> getParameterTypes(FunctionDefinition call) {
-		final List<PscriptType> result = Lists.newLinkedList();
-		// add implicit parameter if any
-		call.match(new FunctionDefinition.MatcherVoid() {
-
-			@Override
-			public void case_FuncDef(FuncDef funcDef) {
-				if (funcDef.attrIsDynamicClassMember()) {
-					// add implicit parameter 'this'
-					result.add(PScriptTypeInt.instance());
-				}
-			}
-
-			@Override
-			public void case_NativeFunc(NativeFunc nativeFunc) {
-			}
-
-			@Override
-			public void case_ExtensionFuncDef(ExtensionFuncDef extensionFuncDef) {
-				result.add(extensionFuncDef.getExtendedType().attrTyp());
-			}
-
-		});
-		// add normal parameters
-		for (WParameter p : call.getParameters()) {
-			result.add(p.attrTyp());
-		}
-		return result;
 	}
 
 }

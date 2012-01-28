@@ -14,7 +14,7 @@ public class PScriptTypeInt extends PscriptTypePrimitive {
 	
 	@Override
 	public boolean isSubtypeOf(PscriptType other, AstElement location) {
-		return other instanceof PScriptTypeInt || other instanceof PscriptTypeTypeParam;
+		return other instanceof PScriptTypeInt;
 	}
 
 

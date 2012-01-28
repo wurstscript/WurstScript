@@ -282,6 +282,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"destroy"							{ return symbol(TokenType.DESTROY); }
 	"for"                           	{ return symbolP(TokenType.FOR); }
 	"in"                           		{ return symbol(TokenType.IN); }
+	"from"                         		{ return symbol(TokenType.FROM); }
 	"to"                           		{ return symbol(TokenType.TO); }
 	"downto"                           	{ return symbol(TokenType.DOWNTO); }
 	"step"                           	{ return symbol(TokenType.STEP); }

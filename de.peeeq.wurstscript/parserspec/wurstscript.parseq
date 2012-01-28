@@ -97,6 +97,7 @@ WStatement	=
 	| StmtForRange(WPos source, LocalVarDef loopVar, Expr from, Expr to, Expr step, WStatements body)
 	| StmtForRangeDown(WPos source, LocalVarDef loopVar, Expr from, Expr to, Expr step, WStatements body)
 	| StmtForIn(WPos source, LocalVarDef loopVar, Expr in, WStatements body)
+	| StmtForFrom(WPos source, LocalVarDef loopVar, Expr in, WStatements body)
 	
 
 OpAssignment = OpAssign() // TODO += -= *= /= ...
@@ -323,6 +324,10 @@ FunctionDefinition.attrParameterTypes
 	returns java.util.List<de.peeeq.wurstscript.types.PscriptType>
 	implemented by de.peeeq.wurstscript.attributes.AttrParameterTypes.calculate
 
+FunctionCall.attrParameterTypes
+	returns java.util.List<de.peeeq.wurstscript.types.PscriptType>
+	implemented by de.peeeq.wurstscript.attributes.AttrParameterTypes.calculate
+	
 AstElement.attrIsDynamicContext
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.IsDynamicContext.calculate	

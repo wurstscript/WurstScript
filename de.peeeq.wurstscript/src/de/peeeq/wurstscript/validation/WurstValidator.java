@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.validation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -364,9 +365,11 @@ public class WurstValidator {
 			UninitializedVars.checkFunc(func.attrDefinedNames().values(), func.getBody());
 		}
 
+		Map<TypeParamDef, PscriptType> typeParamBinding = Collections.emptyMap();
+		
 		// check is override is correct:
 		for (FunctionDefinition overriddenFunc : func.attrOverriddenFunctions()) {
-			CheckHelper.checkIfIsRefinement(func, overriddenFunc, "Can't override function ");
+			CheckHelper.checkIfIsRefinement(typeParamBinding, func, overriddenFunc, "Can't override function ", false);
 		}
 
 	}
@@ -756,6 +759,9 @@ public class WurstValidator {
 		InterfaceDef interfaceDef = (InterfaceDef) interfaceNameDef;
 		ClassDef classDef = (ClassDef) classNameDef;
 		 
+		Map<TypeParamDef, PscriptType> typeParamMapping = d.getImplementedTyp().attrTyp().getTypeArgBinding();
+		
+		
 		nextFunction: for (ClassSlot s : interfaceDef.getSlots()) {
 			if (s instanceof FuncDef) {
 				FuncDef i_funcDef = (FuncDef) s;
@@ -763,7 +769,8 @@ public class WurstValidator {
 				for (NameDef c_nameDef : c_funcDefs) {
 					if (c_nameDef instanceof FuncDef) {
 						FuncDef c_funcDef = (FuncDef) c_nameDef;
-						CheckHelper.checkIfIsRefinement(i_funcDef, c_funcDef, "Cannot implement interface because of function ");
+						
+						CheckHelper.checkIfIsRefinement(typeParamMapping, i_funcDef, c_funcDef, "Cannot implement interface because of function ", true);
 						continue nextFunction;
 					}
 				}
@@ -787,11 +794,13 @@ public class WurstValidator {
 	@CheckMethod
 	public void checkNewObj(ExprNewObject e) {
 		ConstructorDef constr = e.attrConstructorDef();
-		List<PscriptType> parameterTypes = Lists.newArrayList();
-		for (WParameter p : constr.getParameters()) {
-			parameterTypes.add(p.attrTyp());
+		if (constr != null) {
+			List<PscriptType> parameterTypes = Lists.newArrayList();
+			for (WParameter p : constr.getParameters()) {
+				parameterTypes.add(p.attrTyp());
+			}
+			checkParams(e, e.getArgs(), parameterTypes);
 		}
-		checkParams(e, e.getArgs(), parameterTypes);
 	}
 	
 }
