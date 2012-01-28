@@ -22,4 +22,9 @@ package PrintingHelper
     public function int.toString() returns string
         return I2S(this)
 
+    public function boolean.toString() returns string
+        if this
+            return "true"
+        else
+            return "false"
 endpackage 
