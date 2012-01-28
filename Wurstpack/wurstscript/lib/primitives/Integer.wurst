@@ -1,0 +1,26 @@
+package Integer
+    
+    function int.abs() returns int
+        if this >= 0
+            return this
+        else if this < 0
+            return -this
+
+    function int.pow() returns int
+        return this*this
+            
+    function int.sign() returns int
+        if this > 0
+            return 1
+        else if this < 0
+            return -1
+        else
+            return 0
+
+    function int.toReal() returns real
+        return I2R(this)
+    
+    function int.toString() returns string
+        return I2S(this)
+
+endpackage

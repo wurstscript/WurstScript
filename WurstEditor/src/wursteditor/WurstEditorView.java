@@ -56,7 +56,7 @@ public class WurstEditorView extends FrameView {
         }
         WurstEditorApp.getApplication().show(getAboutBox());
     }
-    017653063102
+
 
     /** This method is called from within the constructor to
      * initialize the form.
