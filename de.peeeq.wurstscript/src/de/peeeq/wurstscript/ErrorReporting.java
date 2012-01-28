@@ -18,6 +18,8 @@ import java.net.URLEncoder;
 
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 
 import com.google.common.io.CharStreams;
 
@@ -28,10 +30,20 @@ public class ErrorReporting {
 		
 	
 	public static void handleSevere(Throwable t) {
+		t.printStackTrace();
 		WLogger.severe(t);
 		
+		
+		try {
+			UIManager.setLookAndFeel(
+					UIManager.getSystemLookAndFeelClassName());
+		} catch (Exception e) {
+			// ignore
+		}
+		
 		String title  = "Sorry!";
-		String message = "You have encountered a bug in the Wurst Compiler.";
+		String message = "You have encountered a bug in the Wurst Compiler.\n" +
+				"What do you want to do in order to help us fix this bug?";
 		
 		Object[] options = {
 				"Nothing",
@@ -49,7 +61,7 @@ public class ErrorReporting {
 			JOptionPane.QUESTION_MESSAGE,
 			null,     //do not use a custom Icon
 			options,  //the titles of buttons
-			options[0]); //default button titles
+			options[1]); //default button titles
 		
 		if (n == 1) {
 			boolean r = ErrorReporting.sendErrorReport(t);
@@ -67,6 +79,8 @@ public class ErrorReporting {
 				JOptionPane.showMessageDialog(parent, "Could not open browser.");
 			}
 		}
+		parent.setVisible(false);
+		parent.dispose();
 	}
 	
 	public static boolean sendErrorReport(Throwable t) {

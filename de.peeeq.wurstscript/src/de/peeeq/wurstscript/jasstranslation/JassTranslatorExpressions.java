@@ -34,6 +34,7 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithIndexes;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
@@ -121,7 +122,7 @@ public class JassTranslatorExpressions {
 				translator.calledFunctions.put(f, constructorJassFunc);
 
 				JassExprlist arguments = JassExprlist(); 
-				ExprListTranslationResult args = translateArguments(f, exprNewObject.getArgs(), getParameterTypes(constructorFunc.getParameters()));
+				ExprListTranslationResult args = translateArguments(exprNewObject, f, exprNewObject.getArgs(), getParameterTypes(constructorFunc.getParameters()));
 				List<JassStatement> statements = Lists.newLinkedList();
 				statements.addAll(args.getStatements());
 				arguments.addAll(args.getExprs());
@@ -382,7 +383,7 @@ public class JassTranslatorExpressions {
 	 * will use statements too
 	 * @param f 
 	 */
-	private ExprListTranslationResult translateArguments(JassFunction f, List<Expr> args, List<PscriptType> types) {
+	private ExprListTranslationResult translateArguments(AstElement where, JassFunction f, List<Expr> args, List<PscriptType> types) {
 //		if (args.size() != types.size()) {
 //			throw new IllegalArgumentException("argsize = " + args.size() + " but typessize = " + types.size() + " // " + f.getName());
 //		}
@@ -405,7 +406,7 @@ public class JassTranslatorExpressions {
 		List<JassExpr> exprs = Lists.newLinkedList();
 
 		if (translations.size() != types.size()) {
-			throw new CompileError(args.get(0).getSource(), "Argument size = " + translations.size() + " but " +
+			throw new CompileError(where.attrSource(), "Argument size = " + translations.size() + " but " +
 					"types size = " + types.size());
 		}
 		
@@ -567,7 +568,7 @@ public class JassTranslatorExpressions {
 		List<JassStatement> statements = Lists.newLinkedList();
 
 		// translate arguments:			
-		ExprListTranslationResult args = translateArguments(f, arguments, getParameterTypes(calledFunc));
+		ExprListTranslationResult args = translateArguments(call, f, arguments, getParameterTypes(calledFunc));
 		statements.addAll(args.getStatements());
 		jassArgs.addAll(args.getExprs());
 
