@@ -6,6 +6,9 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
+
 import de.peeeq.wurstscript.Pjass;
 import de.peeeq.wurstscript.Pjass.Result;
 import de.peeeq.wurstscript.WurstCompilerJassImpl;
@@ -20,11 +23,11 @@ import de.peeeq.wurstscript.jassprinter.JassPrinter;
 public class SimpleTestRun {
 
 
-	private static final String PSCRIPT_ENDING = ".pscript";
+	private static final String PSCRIPT_ENDING = ".wurst";
 
 
 	public static void main(String ... args) throws IOException, InterruptedException {
-		String testFile = "./testscripts/concept/vector.j";
+		String testFile = "./testscripts/concept/Collections.wurst";
 		if (args.length == 1) {
 			testFile = args[0];
 		}
@@ -53,16 +56,13 @@ public class SimpleTestRun {
 				throw new TestFailException("Compiler Errors:\n" + gui.getErrors());
 			}
 
-			File outputFile = new File(filename.replaceAll("\\"+PSCRIPT_ENDING, ".j"));
+			File outputFile = new File(filename.replaceAll("\\"+PSCRIPT_ENDING+"$", ".j"));
+			if (!outputFile.getName().endsWith(".j")) {
+				outputFile = new File(outputFile.getAbsolutePath()+".j");
+			}
 			StringBuilder sb = new StringBuilder();
 			new JassPrinter(true).printProg(sb, prog);
-			try {
-				FileWriter writer = new FileWriter(outputFile, false);
-				writer.append(sb.toString());
-				writer.close();
-			} catch (IOException e) {
-				throw new Error(e);
-			}
+			Files.write(sb.toString(), outputFile, Charsets.UTF_8);
 
 			// run pjass:
 			Result pJassResult = Pjass.runPjass(outputFile);

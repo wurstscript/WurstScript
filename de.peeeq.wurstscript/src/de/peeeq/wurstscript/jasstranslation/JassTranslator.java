@@ -135,6 +135,7 @@ public class JassTranslator {
 	Set<String> handleSubTypes = Sets.newHashSet("handle");
 	private JassTranslatorStatements statementTranslator;
 	private JassTranslatorExpressions exprTranslator;
+	public AstElement lastElement;
 
 
 	public JassTranslator(CompilationUnit wurstProgram) {
@@ -145,23 +146,31 @@ public class JassTranslator {
 	}
 
 	public JassProg translate() {
-		trace("translate " + wurstProg);
-		globals = JassVars();
-		functions = JassFunctions();
-		prog = JassProg(globals, functions);
+		try {
+			trace("translate " + wurstProg);
+			globals = JassVars();
+			functions = JassFunctions();
+			prog = JassProg(globals, functions);
+	
+			for (TopLevelDeclaration t : wurstProg) {
+				trace("translate tld " + t);
+				translateTopLevelDeclaration(t);
+			}
+	
+	
+			initGlobals();
+	
+			createMainMethod();
+	
+			sortFunctions();
 
-		for (TopLevelDeclaration t : wurstProg) {
-			trace("translate tld " + t);
-			translateTopLevelDeclaration(t);
+		} catch (CompileError e) {
+			attr.addError(e.getSource(), "Unexpected problem: " + e.getMessage());
+			throw e;
+		} catch (Error e) {
+			attr.addError(lastElement.attrSource(), "Compiler bug: " + e.getMessage());
+			throw e;
 		}
-
-
-		initGlobals();
-
-		createMainMethod();
-
-		sortFunctions();
-
 		return prog;
 	}
 
@@ -332,6 +341,7 @@ public class JassTranslator {
 	}
 
 	private void translateTopLevelDeclaration(TopLevelDeclaration t) {
+		lastElement = t;
 		trace("translate " + t);
 		t.match(new TopLevelDeclaration.MatcherVoid() {
 
@@ -601,6 +611,7 @@ public class JassTranslator {
 		}
 
 		for (WEntity elem : wPackage.getElements()) {
+			lastElement = elem;
 			elem.match(new WEntity.MatcherVoid() {
 
 				@Override
@@ -725,9 +736,13 @@ public class JassTranslator {
 			// there seem to be no instances
 			assert instances.size() == 0;
 			// just create an dummy return
-			String[] type = translateType(funcDef.getReturnTyp());
-			JassExpr def = getDefaultValueForJassType(type[0]);
-			result.add(JassStmtReturn(def));
+			if (funcDef.getReturnTyp().attrTyp() instanceof PScriptTypeVoid) {
+				
+			} else {
+				String[] type = translateType(funcDef.getReturnTyp());
+				JassExpr def = getDefaultValueForJassType(type[0]);
+				result.add(JassStmtReturn(def));
+			}
 			return result;
 		} else if (start == end) {
 			InstanceDef instance = instances.get(start);

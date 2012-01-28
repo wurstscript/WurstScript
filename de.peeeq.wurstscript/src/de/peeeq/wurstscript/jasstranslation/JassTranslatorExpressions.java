@@ -109,6 +109,9 @@ public class JassTranslatorExpressions {
 	}
 
 	protected ExprTranslationResult translateExpr(final JassFunction f, Expr expr) {
+		translator.lastElement = expr;
+		
+		
 		return expr.match(new Expr.Matcher<ExprTranslationResult>() {
 
 			@Override
@@ -401,6 +404,11 @@ public class JassTranslatorExpressions {
 		List<JassStatement> statements = Lists.newLinkedList();
 		List<JassExpr> exprs = Lists.newLinkedList();
 
+		if (translations.size() != types.size()) {
+			throw new CompileError(args.get(0).getSource(), "Argument size = " + translations.size() + " but " +
+					"types size = " + types.size());
+		}
+		
 		i = 0;
 		for (ExprTranslationResult arg : translations) {
 			statements.addAll(arg.getStatements());
