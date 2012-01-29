@@ -3,21 +3,21 @@ package realeger
     function real.abs() returns real
         if this >= 0
             return this
-        else if this < 0
+        else
             return -this
 
     function real.pow() returns real
         return this*this
             
     function real.sign() returns real
-        if this > 0
-            return 1
-        else if this < 0
-            return -1
+        if this > 0.0
+            return 1.0
+        else if this < 0.0
+            return -1.0
         else
-            return 0
+            return 0.0
 
-    function real.toInt() returns real
+    function real.toInt() returns int
         return R2I(this)
     
     function real.toString() returns string

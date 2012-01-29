@@ -3,7 +3,7 @@ package Integer
     function int.abs() returns int
         if this >= 0
             return this
-        else if this < 0
+        else
             return -this
 
     function int.pow() returns int

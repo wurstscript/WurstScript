@@ -1,5 +1,5 @@
 package Integer
-    
+
 	public function string.substring(int start, int end) returns string
 		return SubString(this, start, end)
 	
@@ -8,8 +8,8 @@ package Integer
 		
 	public function string.charAt(int index) returns string
 		return SubString(this, index, index+1)
-        
-    public function string.toAbilityId(abilityIdString) returns int
-		return AbilityId(abilityIdString)
+
+	public function string.toAbilityId() returns int
+		return AbilityId(this)
 
 endpackage
