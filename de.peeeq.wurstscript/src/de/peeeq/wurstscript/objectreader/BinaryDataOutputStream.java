@@ -36,10 +36,8 @@ public class BinaryDataOutputStream {
 //		data[0] = (byte) (i >> 0);
 		
 		byte[] data = ByteBuffer.allocate(4).putInt(i).array();
-		System.out.println(i + " ::: " + data);
 		for (int j=0; j<4; j++) {
 			byte b =  data[littleEndian ? (3-j) : j];
-			System.out.println("writing " + b);
 			out.write(b);
 		}
 	}

@@ -74,4 +74,6 @@ public abstract class PscriptType {
 	public Map<TypeParamDef, PscriptType> getTypeArgBinding() {
 		return Collections.emptyMap();
 	}
+
+
 }

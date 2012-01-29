@@ -11,8 +11,6 @@ import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.InstanceDef;
 import de.peeeq.wurstscript.ast.ModuleDef;
-import de.peeeq.wurstscript.ast.TypeExpr;
-import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.CompileError;
 
@@ -23,7 +21,11 @@ public class TypesHelper {
 
 			@Override
 			public PscriptType case_ClassDef(ClassDef classDef) {
-				return new PscriptTypeClass(classDef, isStatic);
+				PscriptType t = classDef.attrTyp();
+				if (!isStatic)  {
+					t = t.dynamic();
+				}
+				return t;
 			}
 
 			@Override

@@ -1,22 +1,14 @@
 package de.peeeq.wurstscript;
 
-import static de.peeeq.wurstscript.ast.Ast.*;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
-
-import javax.swing.tree.ExpandVetoException;
 
 import java_cup.runtime.Symbol;
 
@@ -25,21 +17,10 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.ast.Ast;
-import de.peeeq.wurstscript.ast.ClassDef;
-import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.ConstructorDef;
-import de.peeeq.wurstscript.ast.Expr;
-import de.peeeq.wurstscript.ast.NoTypeExpr;
-import de.peeeq.wurstscript.ast.OptTypeExpr;
-import de.peeeq.wurstscript.ast.StmtForIn;
 import de.peeeq.wurstscript.ast.TopLevelDeclaration;
-import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.ast.WPos;
-import de.peeeq.wurstscript.ast.WStatement;
-import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -60,7 +41,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	private Map<String, Reader> otherInputs = Maps.newHashMap();
 	private int parseErrors;
 	private JassProg prog;
-	private File outputMapFile;
 	private WurstGui gui;
 	private boolean hasCommonJ;
 
@@ -108,7 +88,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 					return;
 				}
 				compilationUnits.add(r );				
-				outputMapFile = file;
 			} else {
 				if (file.getName().endsWith("common.j")) {
 					hasCommonJ = true;

@@ -89,8 +89,6 @@ import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
 import de.peeeq.wurstscript.jassAst.JassExprlist;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassFunctions;
-import de.peeeq.wurstscript.jassAst.JassOpBinary;
-import de.peeeq.wurstscript.jassAst.JassOpLessEq;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassAst.JassSimpleVar;
 import de.peeeq.wurstscript.jassAst.JassStatement;
@@ -98,21 +96,12 @@ import de.peeeq.wurstscript.jassAst.JassStatements;
 import de.peeeq.wurstscript.jassAst.JassVar;
 import de.peeeq.wurstscript.jassAst.JassVars;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
-import de.peeeq.wurstscript.types.PScriptTypeBool;
-import de.peeeq.wurstscript.types.PScriptTypeCode;
 import de.peeeq.wurstscript.types.PScriptTypeHandle;
-import de.peeeq.wurstscript.types.PScriptTypeInt;
-import de.peeeq.wurstscript.types.PScriptTypeReal;
-import de.peeeq.wurstscript.types.PScriptTypeString;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;
-import de.peeeq.wurstscript.types.PscriptNativeType;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
-import de.peeeq.wurstscript.types.PscriptTypeError;
 import de.peeeq.wurstscript.types.PscriptTypeInterface;
-import de.peeeq.wurstscript.types.PscriptTypeModule;
 import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
-import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.TopsortCycleException;
 import de.peeeq.wurstscript.utils.Utils;
@@ -770,10 +759,15 @@ public class JassTranslator {
 					JassFunction calledJassFunc = manager.getJassFunctionFor(calledFunc);
 					calledFunctions.put(f, calledJassFunc);
 					JassExprlist arguments = JassAst.JassExprlist();
-					for (int i=0; i<f.getParams().size(); i++) {
-						if (i != 1) { // 1 is the type which we do not need when calling the class
+					int i=0;
+					for (PscriptType paramType : calledFunc.attrParameterTypes()) {
+						String[] paramJassTypes = paramType.jassTranslateType();
+						arguments.add(JassExprVarAccess(f.getParams().get(i).getName()));
+						i++;
+						if (paramJassTypes.length == 2) {
 							arguments.add(JassExprVarAccess(f.getParams().get(i).getName()));
 						}
+						i++;
 					}
 					if (returnsVoid) {
 						result.add(JassStmtCall(calledJassFunc.getName(), arguments));
@@ -978,7 +972,6 @@ public class JassTranslator {
 	}
 
 	private void translateConstructorDef(ClassDef classDef, ConstructorDef constructorDef, JassArrayVar nextFree, JassSimpleVar firstFree, JassSimpleVar maxIndex) {
-		System.out.println("translating constr fro " + classDef.getName() + " -> " + constructorDef);
 		JassFunction f = manager.getJassConstructorFor(constructorDef);
 		prog.getFunctions().add(f);
 

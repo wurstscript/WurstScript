@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import java_cup.runtime.Scanner;
 import java_cup.runtime.Symbol;
 
 import com.google.common.collect.Lists;

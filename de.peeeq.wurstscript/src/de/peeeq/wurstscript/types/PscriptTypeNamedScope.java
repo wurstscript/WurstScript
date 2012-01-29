@@ -18,14 +18,21 @@ public abstract class PscriptTypeNamedScope extends PscriptType {
 	private final boolean isStaticRef;
 	private final List<PscriptType> typeParameters;
 	
+	
+	public PscriptTypeNamedScope(List<PscriptType> typeParameters, boolean isStaticRef) {
+		this.isStaticRef = isStaticRef;
+		this.typeParameters = typeParameters;
+	}
+
+	public PscriptTypeNamedScope(List<PscriptType> typeParameters) {
+		this.isStaticRef = false;
+		this.typeParameters = typeParameters;
+	}
+
+	
 	public PscriptTypeNamedScope(boolean isStaticRef) {
 		this.isStaticRef = isStaticRef;
-		typeParameters = Lists.newArrayList();
-	}
-	
-	public PscriptTypeNamedScope(List<PscriptType> typeParameters) {
-		isStaticRef = false; // when there are type parameters this cannot be a static reference
-		this.typeParameters = typeParameters;
+		this.typeParameters = Collections.emptyList();
 	}
 
 	@Override

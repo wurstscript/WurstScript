@@ -1,15 +1,9 @@
 package de.peeeq.wurstscript;
 
-import java.awt.Component;
-import java.awt.Desktop;
 import java.io.File;
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 import com.google.common.base.Charsets;

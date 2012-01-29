@@ -18,6 +18,7 @@ import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
 import de.peeeq.wurstscript.utils.LineOffsets;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class AttrImplicitParameter {
 
@@ -69,7 +70,7 @@ public class AttrImplicitParameter {
 			if (ns.isStaticRef()) {
 				// we have a static ref like Math.sqrt()
 				// this will be handled like if we just have sqrt()
-				// if we have an implicit parameter depends on wether sqrt is static or not
+				// if we have an implicit parameter depends on whether sqrt is static or not
 				return null;
 			}
 		}

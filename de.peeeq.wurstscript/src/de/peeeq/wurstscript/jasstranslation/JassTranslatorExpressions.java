@@ -56,13 +56,10 @@ import de.peeeq.wurstscript.ast.ExprThis;
 import de.peeeq.wurstscript.ast.ExprUnary;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
-import de.peeeq.wurstscript.ast.ExtensionFuncDef;
-import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionCall;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
-import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.OpAnd;
 import de.peeeq.wurstscript.ast.OpBinary;
 import de.peeeq.wurstscript.ast.OpDivInt;
@@ -87,8 +84,6 @@ import de.peeeq.wurstscript.ast.WParameters;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassExprBinary;
-import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
-import de.peeeq.wurstscript.jassAst.JassExprIntVal;
 import de.peeeq.wurstscript.jassAst.JassExprlist;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassOpBinary;
@@ -100,7 +95,6 @@ import de.peeeq.wurstscript.types.PScriptTypeInt;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeInterface;
-import de.peeeq.wurstscript.utils.Utils;
 
 public class JassTranslatorExpressions {
 	private JassManager manager;
@@ -124,7 +118,7 @@ public class JassTranslatorExpressions {
 				translator.calledFunctions.put(f, constructorJassFunc);
 
 				JassExprlist arguments = JassExprlist(); 
-				ExprListTranslationResult args = translateArguments(exprNewObject, f, exprNewObject.getArgs(), getParameterTypes(constructorFunc.getParameters()));
+				ExprListTranslationResult args = translateArguments(exprNewObject, f, exprNewObject.getArgs(), exprNewObject.attrFunctionSignature().getParamTypes());
 				List<JassStatement> statements = Lists.newLinkedList();
 				statements.addAll(args.getStatements());
 				arguments.addAll(args.getExprs());
@@ -461,7 +455,8 @@ public class JassTranslatorExpressions {
 				if (paramType instanceof PscriptTypeInterface && a.attrTyp() instanceof PscriptTypeClass) {
 					int typeId = translator.getInstanceId(a, (PscriptTypeInterface) paramType, (PscriptTypeClass) a.attrTyp());
 					arg = arg.plus(JassExprIntVal(typeId));
-				} else if (a.attrTyp() instanceof PScriptTypeInt) {
+				} else if (a.attrTyp() instanceof PScriptTypeInt
+						|| a.attrTyp() instanceof PscriptTypeClass) {
 					arg = arg.plus(JassExprIntVal(0));
 				} else {
 					throw new CompileError(a.getSource(), "Cannot pass " + a.attrTyp() + ", expected " + paramType);
@@ -620,5 +615,6 @@ public class JassTranslatorExpressions {
 		}
 		return new ExprTranslationResult(statements, exprs);
 	}
+
 
 }

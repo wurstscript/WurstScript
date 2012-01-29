@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.attributes;
 
-import java.io.ObjectInputStream.GetField;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;

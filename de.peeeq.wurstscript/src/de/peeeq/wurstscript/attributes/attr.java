@@ -1,11 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.utils.NotNullList;
@@ -47,22 +43,5 @@ public class attr {
 		gui.sendProgress(message, percent);
 	}
 
-	private static Map<CompilationUnit, Map<String, WPackage>> packages = new HashMap<CompilationUnit, Map<String,WPackage>>();  
-	
-//	public static WPackage getImportedPackage(WImport i) {
-//		CompilationUnit root = (CompilationUnit) Utils.getRoot(i);
-//		
-//		String packageName = i.getPackagename();
-//		for (TopLevelDeclaration x : root) {
-//			if (x instanceof WPackage) {
-//				WPackage pack = (WPackage) x;
-//				if (pack.getName().equals(packageName)) {
-//					return pack;
-//				}
-//			}
-//		}
-//		attr.addError(i.getSource(), "Import " + packageName + " could not be resolved.");
-//		return null;
-//	}
 	
 }

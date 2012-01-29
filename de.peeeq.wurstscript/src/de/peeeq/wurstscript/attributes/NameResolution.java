@@ -7,11 +7,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.AstElementWithName;
-import de.peeeq.wurstscript.ast.AstElementWithSource;
 import de.peeeq.wurstscript.ast.Expr;
-import de.peeeq.wurstscript.ast.ExtensionFuncDef;
-import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WScope;
@@ -43,6 +39,7 @@ public class NameResolution {
 	}
 	
 	public static <T extends AstElement> List<T> searchTypedName(Class<T> t, String name, AstElement where) {
+		if (where == null) throw new IllegalArgumentException();
 		return searchTypedNameInScope(t, name, where.attrNearestScope());
 	}
 	

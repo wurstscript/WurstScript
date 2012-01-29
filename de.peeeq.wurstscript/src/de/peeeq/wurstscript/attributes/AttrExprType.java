@@ -7,7 +7,6 @@ import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
-import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprBoolVal;
 import de.peeeq.wurstscript.ast.ExprCast;
@@ -27,7 +26,6 @@ import de.peeeq.wurstscript.ast.ExprUnary;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
-import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.FunctionImplementation;
 import de.peeeq.wurstscript.ast.InterfaceDef;
@@ -180,13 +178,13 @@ public class AttrExprType {
 
 				@Override	
 				public PscriptType case_ClassDef(ClassDef classDef) {
-					return new PscriptTypeClass(classDef, false);
+					
+					return classDef.attrTyp().dynamic();
 				}
 
 				@Override
 				public PscriptType case_ModuleInstanciation(ModuleInstanciation moduleInstanciation) {
-					ClassDef classDef = moduleInstanciation.attrNearestClassDef();
-					return new PscriptTypeClass(classDef , false);
+					return new PscriptTypeModuleInstanciation(moduleInstanciation, false);
 				}
 
 				@Override
@@ -553,7 +551,7 @@ public class AttrExprType {
 					types.add(PScriptTypeUnknown.instance());
 				}
 			}
-			return new PscriptTypeClass(c, types);
+			return new PscriptTypeClass(c, types, false);
 		} else {
 			attr.addError(term.getSource(), "Can only create instances of classes.");
 			return PScriptTypeUnknown.instance();

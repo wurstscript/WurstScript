@@ -1,13 +1,11 @@
 package de.peeeq.wurstscript.jasstranslation;
 
-import java.beans.Expression;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.jassAst.JassExpr;
-import de.peeeq.wurstscript.jassAst.JassExprIntVal;
 import de.peeeq.wurstscript.jassAst.JassStatement;
 
 /**

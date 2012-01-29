@@ -3,10 +3,8 @@ package de.peeeq.wurstscript.types;
 import java.util.List;
 
 import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.NamedScope;
-import de.peeeq.wurstscript.ast.WPackage;
 
 
 public class PscriptTypeInterface extends PscriptTypeNamedScope {
@@ -16,11 +14,13 @@ public class PscriptTypeInterface extends PscriptTypeNamedScope {
 
 	public PscriptTypeInterface(InterfaceDef interfaceDef, boolean staticRef) {
 		super(staticRef);
+		if (interfaceDef == null) throw new IllegalArgumentException();
 		this.interfaceDef = interfaceDef;
 	}
 
 	public PscriptTypeInterface(InterfaceDef interfaceDef, List<PscriptType> newTypes) {
 		super(newTypes);
+		if (interfaceDef == null) throw new IllegalArgumentException();
 		this.interfaceDef = interfaceDef;
 	}
 
@@ -53,6 +53,11 @@ public class PscriptTypeInterface extends PscriptTypeNamedScope {
 
 	@Override
 	public boolean isSubtypeOf(PscriptType other, AstElement location) {
+		if (other instanceof PscriptTypeBoundTypeParam) {
+			PscriptTypeBoundTypeParam b = (PscriptTypeBoundTypeParam) other;
+			return isSubtypeOf(b.getBaseType(), location);
+		}
+		
 		if (other instanceof PscriptTypeInterface) {
 			PscriptTypeInterface other2 = (PscriptTypeInterface) other;
 			InterfaceDef i = interfaceDef;

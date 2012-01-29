@@ -2,8 +2,6 @@ package de.peeeq.wurstscript;
 
 import java.io.File;
 
-import javax.swing.JOptionPane;
-
 import org.apache.log4j.DailyRollingFileAppender;
 import org.apache.log4j.Layout;
 import org.apache.log4j.Logger;
@@ -40,10 +38,6 @@ public class WLogger {
 	public static void severe(String msg) {
 //		dialogBox(msg);
 		logger.error(msg);
-	}
-
-	private static void dialogBox(String msg) {
-		JOptionPane.showMessageDialog(null , msg, "Error", JOptionPane. ERROR_MESSAGE);
 	}
 
 	public static void severe(Throwable t) {

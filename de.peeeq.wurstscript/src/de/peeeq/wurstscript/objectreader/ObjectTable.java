@@ -18,7 +18,6 @@ public class ObjectTable {
 		ObjectTable objectTable = new ObjectTable();
 
 		int numberOfObjects = in.readInt();
-		System.out.println("	numberOfObjects = " + numberOfObjects);
 
 		for (int i = 0; i < numberOfObjects; i++) {
 			ObjectDefinition objDef = ObjectDefinition.readFromStream(in, fileType);

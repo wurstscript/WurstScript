@@ -2,16 +2,19 @@ package test
 		
 	native testFail(string msg)
 	native testSuccess()
-
+	native println(string s)
+	native I2S(int x) returns string
 
 	module A 
 		int x
 	
 		function setX(int x) 
+			println("set x " + I2S(x))
 			this.x = x
 		
 		
 		function getX() returns int 
+			println("get x " + I2S(x))
 			return x
 		
 	
@@ -49,7 +52,7 @@ package test
 		d.setX(5)
 		
 		if d.getX() != 5 
-			testFail("foo fail")
+			testFail("foo fail" + I2S(d.getX()))
 		
 			
 		testSuccess()

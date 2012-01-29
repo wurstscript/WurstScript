@@ -1,8 +1,15 @@
 package de.peeeq.wurstscript;
 
-import static de.peeeq.wurstscript.ast.Ast.*;
+import static de.peeeq.wurstscript.ast.Ast.Arguments;
+import static de.peeeq.wurstscript.ast.Ast.ExprMemberMethod;
+import static de.peeeq.wurstscript.ast.Ast.ExprVarAccess;
+import static de.peeeq.wurstscript.ast.Ast.NoTypeExpr;
+import static de.peeeq.wurstscript.ast.Ast.TypeExprList;
+import static de.peeeq.wurstscript.ast.Ast.TypeExprSimple;
+import static de.peeeq.wurstscript.ast.Ast.TypeParamDef;
+import static de.peeeq.wurstscript.ast.Ast.TypeParamDefs;
+import static de.peeeq.wurstscript.ast.Ast.WStatements;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.UUID;
@@ -10,11 +17,9 @@ import java.util.UUID;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.Ast;
-import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithBody;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassSlot;
-import de.peeeq.wurstscript.ast.ClassSlots;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
@@ -26,14 +31,12 @@ import de.peeeq.wurstscript.ast.StmtForFrom;
 import de.peeeq.wurstscript.ast.StmtForIn;
 import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtReturn;
-import de.peeeq.wurstscript.ast.TopLevelDeclaration;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprList;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.TypeParamDefs;
 import de.peeeq.wurstscript.ast.WEntities;
-import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WStatement;

@@ -16,9 +16,9 @@ public class ScopeForVars {
 	
 	private void addVar(VarDef v) {
 		String name = v.getName();
-		if (vars.containsKey(name)) {
-			VarDef firstDefinition = vars.get(name);
-		}
+//		if (vars.containsKey(name)) {
+//			VarDef firstDefinition = vars.get(name);
+//		}
 		vars.put(name, v);
 	}
 	

@@ -6,6 +6,7 @@ import com.google.common.base.Function;
 
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
+import de.peeeq.wurstscript.ast.InstanceDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.NativeType;
@@ -17,14 +18,12 @@ import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
 import de.peeeq.wurstscript.ast.TypeParamDef;
-import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.types.NativeTypes;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeUnknown;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;
 import de.peeeq.wurstscript.types.PscriptNativeType;
 import de.peeeq.wurstscript.types.PscriptType;
-import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeInterface;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
 import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
@@ -72,7 +71,7 @@ public class AttrTypeExprType {
 
 					@Override
 					public PscriptType case_ClassDef(ClassDef classDef) {
-						return new PscriptTypeClass(classDef, true);
+						return classDef.attrTyp();
 					}
 
 					@Override
@@ -126,11 +125,20 @@ public class AttrTypeExprType {
 
 			@Override
 			public PscriptType case_ClassDef(ClassDef term) {
-				return new PscriptTypeClass(term, false);
+				return term.attrTyp();
 			}
 
 			@Override
 			public PscriptType case_TypeParamDef(TypeParamDef typeParamDef) {
+				if (typeParamDef.getParent().getParent() instanceof InstanceDef) {
+					InstanceDef instanceDef = (InstanceDef) typeParamDef.getParent().getParent();
+					for (int i=0; i<instanceDef.getTypeParameters().size(); i++) {
+						if (instanceDef.getTypeParameters().get(i) == typeParamDef) {
+							ClassDef c = (ClassDef) instanceDef.getClassTyp().attrTypeDef();
+							return new PscriptTypeTypeParam(c.getTypeParameters().get(i));
+						}
+					}
+				}
 				return new PscriptTypeTypeParam(typeParamDef);
 			}
 

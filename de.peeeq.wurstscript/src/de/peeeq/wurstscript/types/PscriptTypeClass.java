@@ -4,11 +4,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
 
-import com.google.common.collect.Multimap;
-
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
-import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.InstanceDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.NamedScope;
@@ -22,18 +19,20 @@ public class PscriptTypeClass extends PscriptTypeNamedScope {
 
 	ClassDef classDef;
 
-	public PscriptTypeClass(ClassDef classDef, boolean staticRef) {
-		super(staticRef);
-		this.classDef = classDef;
-	}
 
-	public PscriptTypeClass(ClassDef classDef2, List<PscriptType> newTypes) {
-		super(newTypes);
-		this.classDef = classDef2;
+	public PscriptTypeClass(ClassDef classDef, List<PscriptType> typeParameters, boolean staticRef) {
+		super(typeParameters, staticRef);
+		if (classDef == null) throw new IllegalArgumentException();
+		this.classDef = classDef;
 	}
 
 	@Override
 	public boolean isSubtypeOf(PscriptType obj, AstElement location) {
+		if (obj instanceof PscriptTypeBoundTypeParam) {
+			PscriptTypeBoundTypeParam b = (PscriptTypeBoundTypeParam) obj;
+			return isSubtypeOf(b.getBaseType(), location);
+		}
+		
 		if (super.isSubtypeOf(obj, location)) {
 			return true;
 		}
@@ -43,12 +42,6 @@ public class PscriptTypeClass extends PscriptTypeNamedScope {
 			PackageOrGlobal pack = location.attrNearestPackage();
 			
 			Collection<InstanceDef> instanceDefs = pack.attrInstanceDefs().get(pti.getInterfaceDef());
-			for (WEntity e : ((WPackage)pack).getElements()) {
-				System.out.println(Utils.printElement(e));
-			}
-			for (Entry<InterfaceDef, InstanceDef> e : pack.attrInstanceDefs().entries()) {
-				System.out.println(Utils.printElement(e.getKey()) + " => " + e.getValue());
-			}
 			for (InstanceDef iDef: instanceDefs) {
 				if (classDef == iDef.getClassTyp().attrTypeDef()) {
 					if (TypesHelper.checkTypeArgs(iDef, this.getTypeParameters(), pti.getTypeParameters())) {
@@ -76,15 +69,12 @@ public class PscriptTypeClass extends PscriptTypeNamedScope {
 	
 	@Override
 	public PscriptType dynamic() {
-		if (isStaticRef()) {
-			return new PscriptTypeClass(getClassDef(), false);
-		}
-		return this;
+		return new PscriptTypeClass(getClassDef(), getTypeParameters(), false);
 	}
 
 	@Override
 	public PscriptType replaceTypeVars(List<PscriptType> newTypes) {
-		return new PscriptTypeClass(classDef, newTypes);
+		return new PscriptTypeClass(classDef, newTypes, isStaticRef());
 	}
 
 	@Override

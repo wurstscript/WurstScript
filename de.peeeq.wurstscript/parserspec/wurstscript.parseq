@@ -108,7 +108,7 @@ OpUpdateAssign =
 	| OpMultAssign()
 	| OpMinusAssign()
 
-StmtCall = ExprMemberMethod | ExprFunctionCall | ExprNewObject
+
 
 
 Expr =
@@ -176,6 +176,8 @@ VarDef =
 
 // has funcName:String attribute
 
+StmtCall = ExprMemberMethod | ExprFunctionCall | ExprNewObject
+	
 FunctionCall = ExprMemberMethod | ExprFunctionCall
 
 FuncRef = ExprFuncRef | FunctionCall
@@ -454,11 +456,18 @@ ModuleInstanciation.attrModuleOrigin
 ExprNull.attrIsClassNull
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.AttrIsClassNull.calculate
+
+	
+StmtCall.attrFunctionSignature
+	returns de.peeeq.wurstscript.types.FunctionSignature
+	implemented by de.peeeq.wurstscript.attributes.AttrFunctionSignature.calculate
 	
 AstElement.attrSource
 	returns WPos
 	implemented by de.peeeq.wurstscript.attributes.AttrPos.getPos
 	
+	
+
 WPos.getColumn
 	returns int
 	implemented by de.peeeq.wurstscript.attributes.AttrPos.getColumn

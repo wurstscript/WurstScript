@@ -1,8 +1,5 @@
 package de.peeeq.wurstscript.attributes;
 
-import java.util.List;
-import java.util.Map;
-
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithSource;

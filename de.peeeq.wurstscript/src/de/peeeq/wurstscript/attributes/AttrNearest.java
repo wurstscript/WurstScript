@@ -10,7 +10,6 @@ import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.WScope;
-import de.peeeq.wurstscript.utils.Utils;
 
 public class AttrNearest {
 

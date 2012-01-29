@@ -13,10 +13,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.AstElementWithTypeArgs;
-import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -52,7 +49,6 @@ import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
-import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
@@ -71,11 +67,11 @@ import de.peeeq.wurstscript.ast.VisibilityProtected;
 import de.peeeq.wurstscript.ast.VisibilityPublic;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WParameter;
-import de.peeeq.wurstscript.ast.WParameters;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.attributes.CheckHelper;
 import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.gui.ProgressHelper;
+import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
@@ -249,7 +245,8 @@ public class WurstValidator {
 		if (leftType instanceof PscriptTypeNamedScope) {
 			PscriptTypeNamedScope ns = (PscriptTypeNamedScope) leftType;
 			if (ns.isStaticRef()) {
-				attr.addError(pos, "Missing variable name in variable declaration.");
+				attr.addError(pos, "Missing variable name in variable declaration.\n" +
+						"Cannot assign to " + leftType);
 			}
 		}
 	}
@@ -400,7 +397,7 @@ public class WurstValidator {
 			args.add((Expr) stmtCall.attrImplicitParameter());
 		}
 		args.addAll(stmtCall.getArgs());
-		checkParams(stmtCall, args, stmtCall.attrFuncDef());
+		checkParams(stmtCall, args, stmtCall.attrFunctionSignature());
 		
 		FunctionImplementation nearestFunc = stmtCall.attrNearestFuncDef();
 		if (stmtCall.attrFuncDef() != null) {
@@ -432,16 +429,19 @@ public class WurstValidator {
 		}
 	}
 
-	private void checkParams(AstElement where, List<Expr> args, FunctionDefinition calledFunc) {
-		if (calledFunc == null) {
-			return;
-		}
-		List<PscriptType> parameterTypes = calledFunc.attrParameterTypes();
-		checkParams(where, args, parameterTypes);
+//	private void checkParams(AstElement where, List<Expr> args, FunctionDefinition calledFunc) {
+//		if (calledFunc == null) {
+//			return;
+//		}
+//		List<PscriptType> parameterTypes = calledFunc.attrParameterTypes();
+//		checkParams(where, args, parameterTypes);
+//	}
+	
+	private void checkParams(AstElement where, List<Expr> args, FunctionSignature sig) {
+		checkParams(where, args, sig.getParamTypes());
 	}
 
 	private void checkParams(AstElement where, List<Expr> args, List<PscriptType> parameterTypes) {
-		System.out.println("checking params of " + Utils.printElement(where));
 		if (args.size() > parameterTypes.size()) {
 			attr.addError(where.attrSource(), "Too many parameters.");
 			
@@ -452,10 +452,9 @@ public class WurstValidator {
 				
 				PscriptType actual = args.get(i).attrTyp();
 				PscriptType expected = parameterTypes.get(i);
-				System.out.println("	" + actual + " <: " + expected);
 //				if (expected instanceof AstElementWithTypeArgs)
 				if (!actual.isSubtypeOf(expected, where)) {
-					attr.addError(args.get(i).getSource(), "Expected " + expected + " as parameter " + (i+1) + " but found " + actual);
+					attr.addError(args.get(i).getSource(), "Expected " + expected + " as parameter " + (i+1) + " but  found " + actual);
 				}
 			}
 		}
@@ -471,8 +470,10 @@ public class WurstValidator {
 			args.add((Expr) stmtCall.attrImplicitParameter());
 		}
 		args.addAll(stmtCall.getArgs());
-		checkParams(stmtCall, args, stmtCall.attrFuncDef());
+		checkParams(stmtCall, args, stmtCall.attrFunctionSignature());
 	}
+
+	
 
 	@CheckMethod
 	public void visit(ExprNewObject stmtCall) {
@@ -798,11 +799,7 @@ public class WurstValidator {
 	public void checkNewObj(ExprNewObject e) {
 		ConstructorDef constr = e.attrConstructorDef();
 		if (constr != null) {
-			List<PscriptType> parameterTypes = Lists.newArrayList();
-			for (WParameter p : constr.getParameters()) {
-				parameterTypes.add(p.attrTyp());
-			}
-			checkParams(e, e.getArgs(), parameterTypes);
+			checkParams(e, e.getArgs(), e.attrFunctionSignature());
 		}
 	}
 	

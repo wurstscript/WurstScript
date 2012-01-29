@@ -183,7 +183,7 @@ public class InterfaceTests extends PscriptTest {
 	
 	@Test
 	public void type_param_complicated2() {
-		testAssertErrorsLines(false, "Cannot assign", 
+		testAssertOkLines(true, 
 				"package test",
 				"	native testSuccess()",
 				"	interface I{S,T,V}",
@@ -200,6 +200,26 @@ public class InterfaceTests extends PscriptTest {
 				"		C c = new C()",
 				"		D d = new D()",
 				"		if i.test(b, c, d)",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void type_param_class() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	interface I{A}",
+				"		function test(A a) returns boolean",
+				"	class C{X} implements I{X}",
+				"		function test(X x) returns boolean",
+				"			return true",
+				"	class B",
+				"	init",
+				"		I{B} i = new C{B}()",
+				"		B b = null",
+				"		if i.test(b)",
 				"			testSuccess()",
 				"endpackage"
 			);

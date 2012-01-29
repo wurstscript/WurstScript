@@ -54,6 +54,7 @@ public abstract class ImmutableList<T> implements Iterable<T> {
 	}
 	
 	public static <T> ImmutableList<T> of(Collection<T> elems) {
+		@SuppressWarnings("unchecked")
 		T[] ar = (T[]) new Object[elems.size()];
 		int i = 0;
 		for (T t : elems) {

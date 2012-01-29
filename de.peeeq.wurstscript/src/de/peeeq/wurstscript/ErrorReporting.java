@@ -1,14 +1,10 @@
 package de.peeeq.wurstscript;
 
 import java.awt.Desktop;
-import java.io.BufferedInputStream;
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.StringReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
@@ -19,9 +15,6 @@ import java.net.URLEncoder;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
-
-import com.google.common.io.CharStreams;
 
 import de.peeeq.wurstscript.gui.About;
 import de.peeeq.wurstscript.utils.Utils;

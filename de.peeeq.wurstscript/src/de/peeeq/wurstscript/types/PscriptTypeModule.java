@@ -12,11 +12,13 @@ public class PscriptTypeModule extends PscriptTypeNamedScope {
 
 	public PscriptTypeModule(ModuleDef moduleDef, boolean isStaticRef) {
 		super(isStaticRef);
+		if (moduleDef == null) throw new IllegalArgumentException();
 		this.moduleDef = moduleDef;
 	}
 
 	public PscriptTypeModule(ModuleDef moduleDef2, List<PscriptType> newTypes) {
 		super(newTypes);
+		if (moduleDef2 == null) throw new IllegalArgumentException();
 		moduleDef = moduleDef2;
 	}
 

@@ -46,7 +46,7 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 						// should be ok!
 					} else if (! getArgumentType(caller, i).isSubtypeOf(getParameterType(f, i), f)) {
 						hints.add("Expected " + getParameterType(f, i)
-								 + " as parameter " + i + " but found " +  getArgumentType(caller, i) + "." );
+								 + " as parameter " + i + " ,but found " +  getArgumentType(caller, i) + "." );
 						match = false;
 						break;
 					}

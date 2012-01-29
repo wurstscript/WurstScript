@@ -1,10 +1,7 @@
 package de.peeeq.wurstscript.types;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
-
-import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.TypeParamDef;
@@ -19,6 +16,11 @@ public class PscriptTypeTypeParam extends PscriptType {
 
 	@Override
 	public boolean isSubtypeOf(PscriptType other, AstElement location) {
+		if (other instanceof PscriptTypeBoundTypeParam) {
+			PscriptTypeBoundTypeParam b = (PscriptTypeBoundTypeParam) other;
+			return isSubtypeOf(b.getBaseType(), location);
+		}
+		
 		if (other instanceof PscriptTypeTypeParam) {
 			PscriptTypeTypeParam other2 = (PscriptTypeTypeParam) other;
 			return other2.def == this.def;
@@ -51,7 +53,8 @@ public class PscriptTypeTypeParam extends PscriptType {
 
 	public PscriptType setTypeArgs(Map<TypeParamDef, PscriptType> typeParamBounds) {
 		if (typeParamBounds.containsKey(def)) {
-			return typeParamBounds.get(def);
+			PscriptType t = typeParamBounds.get(def);
+			return new PscriptTypeBoundTypeParam(def, t);
 		} 
 		return this;
 	}
