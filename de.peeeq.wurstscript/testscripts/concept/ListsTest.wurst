@@ -1,0 +1,53 @@
+package Collections
+	import Lists
+	
+	native testSuccess()
+	native testFail(string msg)
+	native println(string msg)
+	
+	interface Closeable
+		function close()
+		function open()
+	
+	class Gate implements Closeable
+		function close()
+			println("close gate")
+		function open()
+			println("open gate")
+	class Door implements Closeable
+		function close()
+			println("close door")
+		function open()
+			println("open door")
+	class Chest implements Closeable
+		function close()
+			println("close chest")
+		function open()
+			println("open chest")
+	
+	
+	init
+		Gate gate = new Gate()
+		Door door = new Door()
+		Chest chest = new Chest()
+		// create a new list
+		LinkedList{Closeable} closeables = new LinkedList{Closeable}()
+		// add the different items to the list
+		closeables.add(gate)
+		closeables.add(door)
+		closeables.add(chest)
+		// now close everything in the list
+		for Closeable c1 in closeables
+			c1.close()
+		// and open everything aggain (but not the chest, as we want to keep our treasure)
+		//closeables.remove(chest) // remove the chest from the list
+		val iterator = closeables.iterator()
+		for Closeable c3 from iterator
+			if c3 == chest
+				iterator.remove()
+		for Closeable c2 in closeables
+			c2.open()
+		testSuccess()
+		
+
+endpackage
