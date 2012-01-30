@@ -2,6 +2,8 @@ package de.peeeq.parseq.ast;
 
 import java.util.List;
 
+import com.google.common.collect.Lists;
+
 public class ConstructorDef  implements AstBaseTypeDefinition {
 
 	public final List<Parameter> parameters;
@@ -10,6 +12,11 @@ public class ConstructorDef  implements AstBaseTypeDefinition {
 	public ConstructorDef(String name, List<Parameter> parameters) {
 		this.name = name;
 		this.parameters = parameters;
+	}
+
+	public ConstructorDef(String name) {
+		this.name = name;
+		this.parameters = Lists.newArrayList();
 	}
 
 	@Override
@@ -30,6 +37,10 @@ public class ConstructorDef  implements AstBaseTypeDefinition {
 		}
 		result +=")";
 		return result;
+	}
+
+	public void addParam(String type, String name) {
+		parameters.add(new Parameter(type, name));
 	}
 	
 	

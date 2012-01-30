@@ -2,6 +2,8 @@ package de.peeeq.parseq.ast;
 
 import java.util.List;
 
+import com.google.common.collect.Lists;
+
 public class CaseDef  implements AstEntityDefinition {
 
 	public final  List<Alternative> alternatives;
@@ -10,6 +12,11 @@ public class CaseDef  implements AstEntityDefinition {
 	public CaseDef(String supertype, List<Alternative> alternatives) {
 		this.name = supertype;
 		this.alternatives = alternatives;
+	}
+
+	public CaseDef(String name) {
+		this.name = name;
+		alternatives = Lists.newArrayList();
 	}
 
 	@Override
@@ -28,5 +35,9 @@ public class CaseDef  implements AstEntityDefinition {
 			first = false;
 		}
 		return result;
+	}
+
+	public void addAlternative(String text) {
+		alternatives.add(new Alternative(name));
 	}
 }

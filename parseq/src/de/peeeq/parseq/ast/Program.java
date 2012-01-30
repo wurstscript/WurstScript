@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.antlr.runtime.Token;
+
 public class Program {
 
 	
@@ -15,8 +17,13 @@ public class Program {
 	public final List<ConstructorDef> constructorDefs = new LinkedList<ConstructorDef>();
 	public final List<AttributeDef> attrDefs = new LinkedList<AttributeDef>();
 	public final Map<String, AstEntityDefinition> definitions = new HashMap<String, AstEntityDefinition>(); 
-	private List<String> packageParts;
+	private String packageName;
 	
+
+	public Program(String packageName) {
+		this.packageName = packageName;
+	}
+
 	public void addListDef(String name, String itemType) {
 		if (definitions.containsKey(name)) {
 			throw new Error("Name "+ name + " redefined.");
@@ -44,13 +51,6 @@ public class Program {
 		definitions.put(name, def);
 	}
 
-	public void setPackage(List<String> parts) {
-		this.packageParts = parts;
-	}
-
-	public List<String> getPackageParts() {
-		return packageParts;
-	}
 
 	public AstEntityDefinition getElement(String sub) {
 		return definitions.get(sub);
@@ -76,16 +76,43 @@ public class Program {
 	}
 
 	public String getLastPackagePart() {
-		return packageParts.get(packageParts.size()-1);
+		int pos = packageName.lastIndexOf('.');
+		if (pos >= 0) {
+			return packageName.substring(pos+1);
+		} else {
+			return packageName;
+		}
 	}
 
 	public boolean hasElement(String e) {
 		return definitions.containsKey(e);
 	}
 
-	public void addAttribute(String typ, String attr, String comment, String returns, String implementedBy) {
-		AttributeDef attrDef = new AttributeDef(typ, attr, comment, returns, implementedBy);
-		attrDefs.add(attrDef);
+
+	public void addListDef(ListDef listDef) {
+		listDefs.add(listDef);
 	}
+
+	public void addCaseDef(CaseDef caseDef) {
+		caseDefs.add(caseDef);
+	}
+
+	public String getPackageName() {
+		return packageName;
+	}
+
+	public void setPackageName(String packageName) {
+		this.packageName = packageName;
+	}
+
+	public void addAttribute(List<Parameter> parameters, String typ, String attr, String returnType, String implementedBy, Token doc) {
+		String docStr = doc != null ? doc.getText() : "";
+		attrDefs.add(new AttributeDef(parameters, typ, attr, docStr, returnType, implementedBy));
+	}
+
+	public void addConstructorDef(ConstructorDef c) {
+		constructorDefs.add(c);
+	}
+
 	
 }

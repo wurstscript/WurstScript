@@ -54,15 +54,9 @@ public class Generator {
 		
 		this.prog = prog;
 		this.outputFolder = new File(p_outputFolder).getAbsolutePath() + "/";
-		this.packageName = "";
-		for (String pp : prog.getPackageParts()) {
-			this.outputFolder += pp + "/";
-			if (packageName.length() > 0) {
-				packageName += ".";
-			}
-			packageName += pp;
-			mainName = pp;
-		}
+		this.packageName = prog.getPackageName();
+		this.outputFolder += packageName.replace('.', '/') + '/';
+		this.mainName = prog.getLastPackagePart();
 
 		File file = new File(this.outputFolder);
 		if (!file.exists()) {
@@ -310,7 +304,7 @@ public class Generator {
 				Parameter oldP = parameters.put(p.name, p);
 				if (oldP != null) {
 					if (!oldP.typ.equals(p.typ)) {
-						throw new Error("The property " + p.name + " has not the same type for each element.");
+						throw new Error("The property " + p.name + " has not the same type for each element: " + oldP.typ + " and " + p.typ);
 					}
 				}
 			}
@@ -365,21 +359,57 @@ public class Generator {
 			hasAttribute |= attr.typ.equals(getCommonSupertypeType());
 			
 			if (hasAttribute) {
-				sb.append("	private int zzattr_" + attr.attr + "_state = 0;\n");
-				sb.append("	private " + attr.returns + " zzattr_" + attr.attr + "_cache;\n");
-				sb.append("/** " + attr.comment + "*/\n");
-				sb.append("	public " + attr.returns + " " + attr.attr + "() {\n");
-				sb.append("		if (zzattr_" + attr.attr + "_state == 0) {\n");
-				sb.append("			zzattr_" + attr.attr +"_state = 1;\n");
-				sb.append("			zzattr_" + attr.attr +"_cache = "+attr.implementedBy+"(this);\n");
-				sb.append("			zzattr_" + attr.attr +"_state = 2;\n");
-				sb.append("		} else if (zzattr_" + attr.attr + "_state == 1) {\n");
-				sb.append("			throw new Error(\"Cyclic dependencies between types\");\n");
-				sb.append("		}\n");
-				sb.append("		return zzattr_" + attr.attr +"_cache;\n");
-				sb.append("	}\n");
+				if (attr.parameters == null) {
+					sb.append("	private int zzattr_" + attr.attr + "_state = 0;\n");
+					sb.append("	private " + attr.returns + " zzattr_" + attr.attr + "_cache;\n");
+					sb.append("/** " + attr.comment + "*/\n");
+					sb.append("	public " + attr.returns + " " + attr.attr + "() {\n");
+					sb.append("		if (zzattr_" + attr.attr + "_state == 0) {\n");
+					sb.append("			zzattr_" + attr.attr +"_state = 1;\n");
+					sb.append("			zzattr_" + attr.attr +"_cache = "+attr.implementedBy+"(this);\n");
+					sb.append("			zzattr_" + attr.attr +"_state = 2;\n");
+					sb.append("		} else if (zzattr_" + attr.attr + "_state == 1) {\n");
+					sb.append("			throw new Error(\"Cyclic dependencies between types\");\n");
+					sb.append("		}\n");
+					sb.append("		return zzattr_" + attr.attr +"_cache;\n");
+					sb.append("	}\n");
+				} else {
+					sb.append("/** " + attr.comment + "*/\n");
+					sb.append("	public " + attr.returns + " " + attr.attr + "("+printParams(attr.parameters)+") {\n");
+					sb.append("		return"+attr.implementedBy+"(this, "+printArgs(attr.parameters)+");\n");
+					sb.append("	}\n");
+				}
 			}
 		}
+	}
+
+	private String printArgs(List<Parameter> parameters2) {
+		String result = "";
+		boolean first = true;
+		for (Parameter p : parameters2) {
+			if (!first) {
+				result +=", ";
+			}
+			result += p.name;  
+			first = false;
+		}
+		return result;
+	}
+
+	private String printParams(List<Parameter> parameters2) {
+		if (parameters2 == null) {
+			return "";
+		}
+		String result = "";
+		boolean first = true;
+		for (Parameter p : parameters2) {
+			if (!first) {
+				result +=", ";
+			}
+			result += p.typ + " " + p.name;  
+			first = false;
+		}
+		return result;
 	}
 
 	private void createConstructor(ConstructorDef c, StringBuilder sb) {
@@ -742,7 +772,7 @@ public class Generator {
 		for (AttributeDef attr : prog.attrDefs) {
 			if (attr.typ.equals(c.getName())) {
 				sb.append("/** " + attr.comment + "*/\n");
-				sb.append("	public abstract " + attr.returns + " " + attr.attr + "();\n");
+				sb.append("	public abstract " + attr.returns + " " + attr.attr + "("+printParams(attr.parameters)+");\n");
 			}
 		}
 	}

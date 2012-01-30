@@ -1,11 +1,22 @@
-<project name="Jflex" default="jflex" basedir=".">
+<project name="Parseq" default="antlr" basedir=".">
 	<property name="root" location="." />
 	<property name="lib" location="./lib" />
 	<property name="src" location="./src" />
 	<property name="scannerspec" location="./src/de/peeeq/parseq/parseq.flex" />
+	<property name="grammarspec" location="./src/de/peeeq/parseq/parser/ParseqAntlrParser.g" />
 	<property name="output" location="./src/de/peeeq/parseq/parser" />
-	<property name="jflex" location="../de.peeeq.wurstscript/lib/jflex.jar" />
-
+	<property name="jflex" location="../de.peeeq.wurstscript/tools/jflex.jar" />
+	<property name="cup" location="../de.peeeq.wurstscript/tools/java-cup.jar" />
+	<property name="cup" location="../de.peeeq.wurstscript/tools/java-cup.jar" />
+	<property name="antlr" location="../de.peeeq.wurstscript/tools/antlr-3.4-complete-no-antlrv2.jar" />
+	
+	<target name="antlr">
+		<java jar="${antlr}" fork="true" failonerror="true">
+			<arg value="-o" />
+			<arg value="${output}" />
+			<arg value="${grammarspec}" />
+		</java>
+	</target>
 	
 	<target name="jflex" >
 		<java jar="${jflex}" fork="true" failonerror="true">
