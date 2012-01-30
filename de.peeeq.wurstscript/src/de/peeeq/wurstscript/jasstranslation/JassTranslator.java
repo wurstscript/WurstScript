@@ -54,6 +54,8 @@ import de.peeeq.wurstscript.ast.ClassSlots;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
+import de.peeeq.wurstscript.ast.ExprFunctionCall;
+import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
@@ -109,7 +111,6 @@ import de.peeeq.wurstscript.utils.Utils;
 public class JassTranslator {
 
 	private static final boolean debug = false;
-	private static final ImmutableList<ClassOrModule> ROOT_CONTEXT = ImmutableList.<ClassOrModule>emptyList();
 	JassManager manager;
 	private CompilationUnit wurstProg;
 	JassProg prog;
@@ -217,6 +218,7 @@ public class JassTranslator {
 
 		// collect dependencies between global initializers into a multimap:
 		final Multimap<GlobalInit, GlobalInit> initDependsOn = HashMultimap.create();
+		final Set<GlobalInit> initIsFunctionCall = Sets.newHashSet();
 		for (final GlobalInit gi : globalInitializers) {
 			gi.initialExpr.accept(new Expr.DefaultVisitor() {
 				@Override
@@ -227,6 +229,16 @@ public class JassTranslator {
 					if (v != null) {
 						initDependsOn.put(gi, v);
 					}
+				}
+				
+				@Override
+				public void visit(ExprFunctionCall exprFunctionCall) {
+					initIsFunctionCall.add(gi);
+				}
+				
+				@Override
+				public void visit(ExprMemberMethod exprFunctionCall) {
+					initIsFunctionCall.add(gi);
 				}
 			});
 		}
@@ -249,15 +261,11 @@ public class JassTranslator {
 		}
 
 		Set<JassVar> initializedVars = Sets.newHashSet();
-		nextInit: for (GlobalInit gi : globalInitializers) {
-			for (JassVar v : manager.getJassVarsFor(gi.v)) {
-				if (prog.attrIgnoredVariables().contains(v)) {
-					continue nextInit;
-				}
+		for (GlobalInit gi : globalInitializers) {
+			if (initIsFunctionCall.contains(gi)) {
+				continue;
 			}
-			ExprTranslationResult e = translateExpr(initGlobalsFunc, gi.initialExpr);
-			new JassTranslatorStatements(this).translateAssignment2(body, initGlobalsFunc, gi.v, null, null, e);
-			initializedVars.addAll(manager.getJassVarsFor(gi.v));
+			initGlobalVariable(body, initializedVars, gi);
 		}
 
 		// add default initialization for all vars which are not initialized yet
@@ -270,6 +278,21 @@ public class JassTranslator {
 				}
 			}
 		}
+		
+		for (GlobalInit gi : initIsFunctionCall) {
+			initGlobalVariable(body, initializedVars, gi);
+		}
+	}
+
+	private void initGlobalVariable(JassStatements body, Set<JassVar> initializedVars, GlobalInit gi) {
+		for (JassVar v : manager.getJassVarsFor(gi.v)) {
+			if (prog.attrIgnoredVariables().contains(v)) {
+				return;
+			}
+		}
+		ExprTranslationResult e = translateExpr(initGlobalsFunc, gi.initialExpr);
+		new JassTranslatorStatements(this).translateAssignment2(body, initGlobalsFunc, gi.v, null, null, e);
+		initializedVars.addAll(manager.getJassVarsFor(gi.v));
 	}
 
 	private JassExpr getDefaultValueForJassType(String type) {
