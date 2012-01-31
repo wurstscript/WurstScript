@@ -8,6 +8,5 @@
 	<classpathentry kind="lib" path="lib/log4j-1.2.16.jar" sourcepath="C:/kram/apache-log4j-1.2.16/apache-log4j-1.2.16/src"/>
 	<classpathentry kind="lib" path="lib/guava-10.0.1.jar" sourcepath="lib/guava-10.0.1-sources.jar"/>
 	<classpathentry kind="lib" path="lib/junit-4.10.jar"/>
-	<classpathentry kind="var" path="ANTLR_HOME/antlr.jar" sourcepath="ANTLR_HOME/antlrsrc.zip"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
