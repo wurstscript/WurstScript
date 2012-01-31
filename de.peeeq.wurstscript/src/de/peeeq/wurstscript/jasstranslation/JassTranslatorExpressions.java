@@ -215,21 +215,17 @@ public class JassTranslatorExpressions {
 					
 					JassVar[] tempLeft = translator.assignToTempVar(f, statements, leftTypes, left);
 					JassVar[] tempRight = translator.assignToTempVar(f, statements, rightTypes, right);
-					if (exprBinary.getOp() instanceof OpEquals) {
-						JassExprBinary e = JassExprBinary(JassExprVarAccess(tempLeft[0].getName()), JassOpEquals(), JassExprVarAccess(tempRight[0].getName()));
-						for (int i=1; i < left.exprCount(); i++) {
-							e = 
-									JassExprBinary(
-											e, JassOpAnd()
-											, JassExprBinary(JassExprVarAccess(tempLeft[i].getName())
-													, translateOp(exprBinary.getOp())
-													, JassExprVarAccess(tempRight[i].getName())));
-						}
-						
-						return new ExprTranslationResult(statements, e);
-					} else {
-						throw new CompileError(exprBinary.getSource(), "Invalid binary operator.");
+					JassExprBinary e = JassExprBinary(JassExprVarAccess(tempLeft[0].getName()), JassOpEquals(), JassExprVarAccess(tempRight[0].getName()));
+					for (int i=1; i < left.exprCount(); i++) {
+						e = 
+								JassExprBinary(
+										e, JassOpAnd()
+										, JassExprBinary(JassExprVarAccess(tempLeft[i].getName())
+												, translateOp(exprBinary.getOp())
+												, JassExprVarAccess(tempRight[i].getName())));
 					}
+					
+					return new ExprTranslationResult(statements, e);
 				}
 				
 
