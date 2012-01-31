@@ -10,6 +10,7 @@
             </manifest>
             <fileset dir="./bin"/>
             <zipfileset excludes="META-INF/*.SF" src="./lib/guava-r09.jar"/>
+        	<zipfileset excludes="META-INF/*.SF" src="./lib/antlr_runtime.jar"/>
         </jar>
     </target>
 </project>

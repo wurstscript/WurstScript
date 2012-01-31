@@ -81,7 +81,7 @@ caseDef[Program prog] returns [CaseDef caseDef]:
 	
 choice[Program prog, CaseDef caseDef]:
 	  name=ID { caseDef.addAlternative(name.getText()); }
-	| c=contructorDef[prog] { prog.addConstructorDef(c); caseDef.addAlternative(c.getName()); }
+	| c=contructorDef[prog] { caseDef.addAlternative(c.getName()); }
 	;
 
 attributeDef[Program prog]:

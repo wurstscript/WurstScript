@@ -376,7 +376,7 @@ public class Generator {
 				} else {
 					sb.append("/** " + attr.comment + "*/\n");
 					sb.append("	public " + attr.returns + " " + attr.attr + "("+printParams(attr.parameters)+") {\n");
-					sb.append("		return"+attr.implementedBy+"(this, "+printArgs(attr.parameters)+");\n");
+					sb.append("		return "+attr.implementedBy+"(this"+printArgs(attr.parameters)+");\n");
 					sb.append("	}\n");
 				}
 			}
@@ -385,13 +385,8 @@ public class Generator {
 
 	private String printArgs(List<Parameter> parameters2) {
 		String result = "";
-		boolean first = true;
 		for (Parameter p : parameters2) {
-			if (!first) {
-				result +=", ";
-			}
-			result += p.name;  
-			first = false;
+			result += ", " + p.name;  
 		}
 		return result;
 	}
