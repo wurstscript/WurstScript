@@ -397,6 +397,11 @@ public class JassPrinter {
 						}
 					}
 				}
+				
+				// TODO change this, when bug fixed...
+				useParanthesesLeft = true;
+				useParanthesesRight = true;
+				
 				sb.append(useParanthesesLeft ? "(" : "");
 				printExpr(sb, e.getLeftExpr());
 				sb.append(useParanthesesLeft ? ")" : "");
