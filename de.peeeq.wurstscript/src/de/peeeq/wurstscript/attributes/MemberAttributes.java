@@ -12,7 +12,7 @@ import de.peeeq.wurstscript.ast.StructureDefOrModuleInstanciation;
 public class MemberAttributes {
 
 	public static List<ModuleInstanciation> getModuleInstanciations(StructureDefOrModuleInstanciation c) {
-		List<ModuleInstanciation> result = Lists.newLinkedList();
+		List<ModuleInstanciation> result = Lists.newArrayList();
 		for (ClassSlot s : c.getSlots()) {
 			if (s instanceof ModuleInstanciation) {
 				result.add((ModuleInstanciation) s);
@@ -22,7 +22,7 @@ public class MemberAttributes {
 	}
 
 	public static List<ConstructorDef> getConstructors(StructureDefOrModuleInstanciation c) {
-		List<ConstructorDef> result = Lists.newLinkedList();
+		List<ConstructorDef> result = Lists.newArrayList();
 		for (ClassSlot s : c.getSlots()) {
 			if (s instanceof ConstructorDef) {
 				result.add((ConstructorDef)s);

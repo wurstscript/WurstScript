@@ -190,7 +190,7 @@ public class Utils {
 
 	
 	public static <T extends AstElement> List<T> collect(Class<T> t, AstElement pos) {
-		List<T> result = new LinkedList<T>();
+		List<T> result = Lists.newArrayList();
 		collectRec(t, pos, result);
 		return result ;
 	}
@@ -259,7 +259,7 @@ public class Utils {
 	public static <T> List<T> topSort(Collection<T> items, Function<T, ? extends Collection<T>> biggerItems) throws TopsortCycleException {
 		Set<T> visitedItems = new HashSet<T>();
 		List<T> result = new ArrayList<T>(items.size());
-		LinkedList<T> activeItems = new LinkedList<T>();
+		LinkedList<T> activeItems = Lists.newLinkedList();
 		for (T t : items) {
 			if (t == null) throw new IllegalArgumentException();
 			topSortHelper(result, visitedItems, activeItems, biggerItems, t);

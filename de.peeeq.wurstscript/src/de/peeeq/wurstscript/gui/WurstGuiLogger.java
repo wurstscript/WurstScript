@@ -40,7 +40,7 @@ public class WurstGuiLogger implements WurstGui {
 	
 	@Override
 	public List<CompileError> getErrorList() {
-		return Lists.newLinkedList(errors);
+		return Lists.newArrayList(errors);
 	}
 
 }

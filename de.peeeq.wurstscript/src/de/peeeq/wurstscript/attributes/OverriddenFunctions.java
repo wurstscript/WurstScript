@@ -16,7 +16,7 @@ public class OverriddenFunctions {
 
 
 	public static Collection<FunctionDefinition> getOverriddenFunctions(FunctionDefinition f) {
-		return Lists.newLinkedList();
+		return Lists.newArrayList();
 	}
 
 	public static FunctionDefinition getRealFuncDef(ExtensionFuncDef f) {

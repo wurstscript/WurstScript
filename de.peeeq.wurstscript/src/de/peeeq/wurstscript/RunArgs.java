@@ -6,7 +6,7 @@ import com.google.common.collect.Lists;
 
 public class RunArgs {
 
-	private List<String> files  = Lists.newLinkedList();
+	private List<String> files  = Lists.newArrayList();
 	private boolean optimize = false;
 	private boolean gui = false;
 	private String mapFile = null;

@@ -81,6 +81,7 @@ import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WPos;
+import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.attr;
@@ -116,23 +117,19 @@ public class JassTranslator {
 	JassProg prog;
 	private JassVars globals;
 	private JassFunctions functions;
-	private List<GlobalInit> globalInitializers = Lists.newLinkedList();
+	private List<GlobalInit> globalInitializers = Lists.newArrayList();
 	private BiMap<WPackage, JassFunction> initFunctions = HashBiMap.create();
 	Multimap<JassFunction, JassFunction> calledFunctions = HashMultimap.create();
 	private Multimap<WPackage, WPackage> importedPackages = HashMultimap.create();
 	private JassFunction initGlobalsFunc;
-	private Collection<WPackage> packages = Lists.newLinkedList();
+	private Collection<WPackage> packages = Lists.newArrayList();
 	Set<String> handleSubTypes = Sets.newHashSet("handle");
-	private JassTranslatorStatements statementTranslator;
-	private JassTranslatorExpressions exprTranslator;
 	public AstElement lastElement;
 
 
 	public JassTranslator(CompilationUnit wurstProgram) {
 		this.manager = new JassManager(this);
 		this.wurstProg = wurstProgram;
-		this.statementTranslator = new JassTranslatorStatements(this);
-		this.exprTranslator = new JassTranslatorExpressions(this);
 	}
 
 	public JassProg translate() {
@@ -290,8 +287,8 @@ public class JassTranslator {
 				return;
 			}
 		}
-		ExprTranslationResult e = translateExpr(initGlobalsFunc, gi.initialExpr);
-		new JassTranslatorStatements(this).translateAssignment2(body, initGlobalsFunc, gi.v, null, null, e);
+		ExprTranslationResult e = gi.initialExpr.jassTranslateExpr(this, initGlobalsFunc);
+		StmtTranslation.translateAssignment2(this, body, initGlobalsFunc, gi.v, null, null, e);
 		initializedVars.addAll(manager.getJassVarsFor(gi.v));
 	}
 
@@ -458,8 +455,13 @@ public class JassTranslator {
 		}
 	}
 
-	private List<JassStatement> translateStatements(JassFunction f, WStatements statements) {
-		return statementTranslator.translateStatements(f, statements);
+	
+	List<JassStatement> translateStatements(JassFunction f, WStatements statements) {
+		List<JassStatement> result = Lists.newArrayList();
+		for (WStatement s : statements) {
+			result.addAll(s.jassTranslateStmt(this, f));
+		}
+		return result;
 	}
 
 	private JassSimpleVar jassThisVar() {
@@ -489,12 +491,6 @@ public class JassTranslator {
 	}
 
 
-
-	ExprTranslationResult translateExpr(final JassFunction f, Expr expr) {
-		return exprTranslator.translateExpr(f, expr);
-	}
-
-	
 
 	JassVar getNewTempVar(JassFunction f, String type) {
 		String name = manager.getUniqueName("temp");
@@ -941,7 +937,7 @@ public class JassTranslator {
 
 	private Collection<JassStatement> translateOnDestroyForUsedModules(ClassOrModule c,
 			JassFunction f) {
-		Collection<JassStatement> result = Lists.newLinkedList();
+		Collection<JassStatement> result = Lists.newArrayList();
 		for (ModuleDef m : c.attrUsedModules()) {
 			result.addAll(translateOnDestroyForModule(m, f));
 		}
@@ -949,7 +945,7 @@ public class JassTranslator {
 	}
 
 	private Collection<JassStatement> translateOnDestroyForModule(ModuleDef m, JassFunction f) {
-		Collection<JassStatement> result = Lists.newLinkedList();
+		Collection<JassStatement> result = Lists.newArrayList();
 		OnDestroyDef onDestroy = null;
 		for (ClassSlot s : m.getSlots()) {
 			if (s instanceof OnDestroyDef) {
@@ -1040,9 +1036,9 @@ public class JassTranslator {
 				GlobalVarDef var = (GlobalVarDef) member;
 				if (var.attrIsDynamicClassMember() && var.getInitialExpr() instanceof Expr) {
 					Expr initial = (Expr) var.getInitialExpr();
-					ExprTranslationResult e = translateExpr(f, initial);
+					ExprTranslationResult e = initial.jassTranslateExpr(this, f);
 					ExprTranslationResult indexExpr = new ExprTranslationResult(JassExprVarAccess("this"));
-					statementTranslator.translateAssignment2(f.getBody(), f, var, indexExpr, null, e);
+					StmtTranslation.translateAssignment2(this, f.getBody(), f, var, indexExpr, null, e);
 				} // TODO default value?
 			}
 		}
@@ -1071,9 +1067,9 @@ public class JassTranslator {
 				GlobalVarDef v = (GlobalVarDef) s;
 				if (!v.attrIsStatic() && v.getInitialExpr() instanceof Expr) {
 					Expr expr = (Expr) v.getInitialExpr();
-					ExprTranslationResult er = translateExpr(f, expr);
+					ExprTranslationResult er = expr.jassTranslateExpr(this, f);
 					ExprTranslationResult indexExpr = new ExprTranslationResult(JassExprVarAccess("this"));
-					statementTranslator.translateAssignment2(f.getBody(), f, v, indexExpr, null, er);
+					StmtTranslation.translateAssignment2(this, f.getBody(), f, v, indexExpr, null, er);
 				}
 			} else if (s instanceof ConstructorDef) {
 				constructor  = (ConstructorDef) s;
@@ -1147,6 +1143,7 @@ public class JassTranslator {
 		return vars;
 		
 	}
+	
 	
 //	trace("translate global var " + globalVarDef.getName());
 //	boolean isArray = !globalVarDef.attrIsStatic() || (globalVarDef.attrTyp() instanceof PScriptTypeArray);

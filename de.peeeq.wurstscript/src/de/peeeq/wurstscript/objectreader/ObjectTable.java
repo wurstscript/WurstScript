@@ -7,7 +7,7 @@ import com.google.common.collect.Lists;
 
 public class ObjectTable {
 
-	private List<ObjectDefinition> objectDefinitions = Lists.newLinkedList();
+	private List<ObjectDefinition> objectDefinitions = Lists.newArrayList();
 	
 	public void add(ObjectDefinition objDef) {
 		objectDefinitions.add(objDef);

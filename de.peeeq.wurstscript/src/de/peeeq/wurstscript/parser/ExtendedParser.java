@@ -180,7 +180,7 @@ public class ExtendedParser extends parser {
 			msg += " expected: ";
 			// get possible actions from action table and print them
 			short[] possibleActions = this.action_table()[parseState];
-			List<String> expectedSymbols = Lists.newLinkedList();
+			List<String> expectedSymbols = Lists.newArrayList();
 			for (int j = 0; j < possibleActions.length; j += 2) {
 				if (possibleActions[j] >= 0) {
 					expectedSymbols.add(translateSym(possibleActions[j]));

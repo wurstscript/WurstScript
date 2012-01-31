@@ -1,12 +1,11 @@
 package de.peeeq.wurstscript.utils;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedList;
-
 /**
  * a simple linked list which cannot have null elements in it 
  */
-public class NotNullList<T> extends LinkedList<T> {
+public class NotNullList<T> extends ArrayList<T> {
 	private static final long serialVersionUID = -2435064420633050305L;
 
 	@Override
@@ -37,17 +36,17 @@ public class NotNullList<T> extends LinkedList<T> {
 		return super.addAll(index, c);
 	}
 
-	@Override
-	public void addFirst(T e) {
-		if (e == null) throw new IllegalArgumentException("Tried to insert null element"); 
-		super.addFirst(e);
-	}
-
-	@Override
-	public void addLast(T e) {
-		if (e == null) throw new IllegalArgumentException("Tried to insert null element"); 
-		super.addLast(e);
-	}
+//	@Override
+//	public void addFirst(T e) {
+//		if (e == null) throw new IllegalArgumentException("Tried to insert null element"); 
+//		super.addFirst(e);
+//	}
+//
+//	@Override
+//	public void addLast(T e) {
+//		if (e == null) throw new IllegalArgumentException("Tried to insert null element"); 
+//		super.addLast(e);
+//	}
 
 	@Override
 	public T set(int index, T element) {

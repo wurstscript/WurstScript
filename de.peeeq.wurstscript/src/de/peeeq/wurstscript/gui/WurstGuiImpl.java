@@ -15,7 +15,7 @@ import de.peeeq.wurstscript.utils.Utils;
 public class WurstGuiImpl implements WurstGui {
 
 
-	private List<CompileError> errors = Lists.newLinkedList(); // this is not concurrent, because we only use this list from the main thread
+	private List<CompileError> errors = Lists.newArrayList(); // this is not concurrent, because we only use this list from the main thread
 
 	private volatile Queue<CompileError> errorQueue = new ConcurrentLinkedQueue<CompileError>();
 	private volatile double progress = 0.0;
@@ -125,7 +125,7 @@ public class WurstGuiImpl implements WurstGui {
 
 	@Override
 	public List<CompileError> getErrorList() {
-		return Lists.newLinkedList(errors);
+		return Lists.newArrayList(errors);
 	}
 
 

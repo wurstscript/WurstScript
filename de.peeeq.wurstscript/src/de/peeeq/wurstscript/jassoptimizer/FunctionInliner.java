@@ -96,7 +96,7 @@ public class FunctionInliner {
 	 * @return
 	 */
 	private Iterable<JassStatement> getChildStatements(JassStatement s) {
-		final List<JassStatement> result = Lists.newLinkedList();
+		final List<JassStatement> result = Lists.newArrayList();
 		s.match(new JassStatement.MatcherVoid() {
 			
 			@Override

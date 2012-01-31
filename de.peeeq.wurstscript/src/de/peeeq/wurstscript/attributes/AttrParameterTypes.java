@@ -23,7 +23,7 @@ import de.peeeq.wurstscript.utils.Utils;
 public class AttrParameterTypes {
 
 	public static List<PscriptType> calculate(ExtensionFuncDef f) {
-		List<PscriptType> result = Lists.newLinkedList();
+		List<PscriptType> result = Lists.newArrayList();
 		result.add(f.getExtendedType().attrTyp());
 		addParameterTypes(result, f.getParameters());
 		return result;
@@ -37,7 +37,7 @@ public class AttrParameterTypes {
 	}
 
 	public static List<PscriptType> calculate(FuncDef f) {
-		List<PscriptType> result = Lists.newLinkedList();
+		List<PscriptType> result = Lists.newArrayList();
 		if (f.attrIsDynamicClassMember()) {
 			NameDef n = (NameDef) f.attrNearestStructureDef();
 			result.add(n.attrTyp());
@@ -47,7 +47,7 @@ public class AttrParameterTypes {
 	}
 
 	public static List<PscriptType> calculate(NativeFunc f) {
-		List<PscriptType> result = Lists.newLinkedList();
+		List<PscriptType> result = Lists.newArrayList();
 		addParameterTypes(result, f.getParameters());
 		return result;
 	}
