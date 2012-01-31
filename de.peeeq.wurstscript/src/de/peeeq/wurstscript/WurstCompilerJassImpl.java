@@ -170,9 +170,14 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
 	private CompilationUnit loadLibPackage(List<CompilationUnit> compilationUnits, String imp) {
 		File file = getLibs().get(imp);
-		CompilationUnit lib = parseFile(file);
-		compilationUnits.add(lib);
-		return lib;
+		if (file == null) {
+			gui.sendError(new CompileError(Ast.WPos("", 0, 0, 0), "Could not find lib-package " + imp));
+			return Ast.CompilationUnit();
+		} else {
+			CompilationUnit lib = parseFile(file);
+			compilationUnits.add(lib);
+			return lib;
+		}
 	}
 
 	private Map<String, File> libCache = null;
