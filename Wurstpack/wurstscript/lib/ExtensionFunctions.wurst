@@ -139,5 +139,21 @@ package ExtensionFunctions
 	public function item.getY() returns real
 		return GetItemY( this )
 		
+	// group iterators
+	
+	public function group.iterator() returns group
+		// return a copy of the group:
+		bj_groupAddGroupDest = CreateGroup()
+		ForGroup(this, function GroupAddGroupEnum)
+		return bj_groupAddGroupDest
+
+	public function group.hasNext() returns boolean
+		return FirstOfGroup(this) != null
+		
+	public function group.next() returns unit
+		return FirstOfGroup(this)
+		
+	public function group.close()
+		DestroyGroup(this)
 	
 endpackage
