@@ -29,7 +29,7 @@ public class NameResolution {
 	}
 	
 	private static String printAlternatives(List<? extends AstElement> alternatives) {
-		List<String> result = Lists.newLinkedList();
+		List<String> result = Lists.newArrayList();
 		for (AstElement a : alternatives) {
 			WPos source = a.attrSource();
 			String s = a.getClass().getSimpleName() + " defined in line " + source.getLine() + " ("+source.getFile()+")" ;
@@ -47,7 +47,7 @@ public class NameResolution {
 		if (scope == null) {
 			return Collections.emptyList();
 		}
-		List<T> result = Lists.newLinkedList();
+		List<T> result = Lists.newArrayList();
 		Multimap<String, NameDef> names = scope.attrVisibleNamesPrivate();
 		for (NameDef n : names.get(name)) {
 			if (t.isInstance(n)) {

@@ -2,17 +2,12 @@ package de.peeeq.wurstscript.types;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map.Entry;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.InstanceDef;
-import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
-import de.peeeq.wurstscript.ast.WEntity;
-import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.utils.Utils;
 
 
 public class PscriptTypeClass extends PscriptTypeNamedScope {

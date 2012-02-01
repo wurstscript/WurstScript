@@ -465,7 +465,7 @@ public class WurstValidator {
 		// calculating the exprType should reveal all errors:
 		stmtCall.attrTyp();
 		
-		List<Expr> args = Lists.newLinkedList();
+		List<Expr> args = Lists.newArrayList();
 		if (stmtCall.attrImplicitParameter() instanceof Expr) {
 			args.add((Expr) stmtCall.attrImplicitParameter());
 		}

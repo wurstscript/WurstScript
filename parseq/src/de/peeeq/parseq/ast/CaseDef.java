@@ -37,7 +37,7 @@ public class CaseDef  implements AstEntityDefinition {
 		return result;
 	}
 
-	public void addAlternative(String text) {
-		alternatives.add(new Alternative(name));
+	public void addAlternative(String alternative) {
+		alternatives.add(new Alternative(alternative));
 	}
 }

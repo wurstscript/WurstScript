@@ -12,7 +12,7 @@ import de.peeeq.wurstscript.utils.Utils;
  */
 public class WurstGuiCliImpl implements WurstGui {
 
-	private List<CompileError> errors = Lists.newLinkedList();
+	private List<CompileError> errors = Lists.newArrayList();
 	
 	@Override
 	public void sendError(CompileError err) {
@@ -41,7 +41,7 @@ public class WurstGuiCliImpl implements WurstGui {
 
 	@Override
 	public List<CompileError> getErrorList() {
-		return Lists.newLinkedList(errors);
+		return Lists.newArrayList(errors);
 	}
 
 }

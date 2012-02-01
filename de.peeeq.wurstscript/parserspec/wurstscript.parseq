@@ -462,17 +462,17 @@ StmtCall.attrFunctionSignature
 	returns de.peeeq.wurstscript.types.FunctionSignature
 	implemented by de.peeeq.wurstscript.attributes.AttrFunctionSignature.calculate
 	
-AstElement.attrSource
+AstElement.attrSource()
 	returns WPos
 	implemented by de.peeeq.wurstscript.attributes.AttrPos.getPos
 	
 	
 
-WPos.getColumn
+WPos.getColumn()
 	returns int
 	implemented by de.peeeq.wurstscript.attributes.AttrPos.getColumn
 	
-WPos.getLine
+WPos.getLine()
 	returns int
 	implemented by de.peeeq.wurstscript.attributes.AttrPos.getLine
 	
@@ -488,3 +488,33 @@ PackageOrGlobal.attrInstanceDefs
 CompilationUnit.attrGetByType
 	returns de.peeeq.wurstscript.attributes.GetByType.ByTypes
 	implemented by de.peeeq.wurstscript.attributes.GetByType.calculate
+	
+	
+// Jass translation:
+	
+Expr.jassTranslateExpr(
+		de.peeeq.wurstscript.jasstranslation.JassTranslator translator, 
+		de.peeeq.wurstscript.jassAst.JassFunction f
+	)
+	returns de.peeeq.wurstscript.jasstranslation.ExprTranslationResult
+	implemented by de.peeeq.wurstscript.jasstranslation.ExprTranslation.translate
+	
+	
+WStatement.jassTranslateStmt(
+		de.peeeq.wurstscript.jasstranslation.JassTranslator translator, 
+		de.peeeq.wurstscript.jassAst.JassFunction f
+	)
+	returns java.util.List<de.peeeq.wurstscript.jassAst.JassStatement>
+	implemented by de.peeeq.wurstscript.jasstranslation.StmtTranslation.translate
+	
+OpUnary.jassTranslateUnary()
+	returns de.peeeq.wurstscript.jassAst.JassOpUnary
+	implemented by de.peeeq.wurstscript.jasstranslation.OpTranslation.translateOpUnary
+	
+OpBinary.jassTranslateBinary()
+	returns de.peeeq.wurstscript.jassAst.JassOpBinary
+	implemented by de.peeeq.wurstscript.jasstranslation.OpTranslation.translateOpBinary
+	
+OpAssignment.jassTranslageAssignGetBinary()
+	returns de.peeeq.wurstscript.jassAst.JassOpBinary
+	implemented by de.peeeq.wurstscript.jasstranslation.OpTranslation.translageAssignGetBinary

@@ -37,7 +37,7 @@ import de.peeeq.wurstscript.validation.WurstValidator;
 
 public class WurstCompilerJassImpl implements WurstCompiler {
 
-	private List<File> files = Lists.newLinkedList();
+	private List<File> files = Lists.newArrayList();
 	private Map<String, Reader> otherInputs = Maps.newHashMap();
 	private int parseErrors;
 	private JassProg prog;

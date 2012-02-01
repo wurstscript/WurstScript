@@ -4,11 +4,11 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
 import com.google.common.base.Charsets;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 
@@ -68,7 +68,7 @@ public class JassOptimizerImpl implements JassOptimizer {
 		}
 		
 		File[] fileList = dir.listFiles();
-		List<File> pscriptFiles = new LinkedList<File>();
+		List<File> pscriptFiles = Lists.newArrayList();
 		
 		if ( fileList != null ) {
 			for(File f : fileList) {

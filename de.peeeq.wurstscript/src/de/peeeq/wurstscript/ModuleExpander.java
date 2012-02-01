@@ -45,7 +45,7 @@ public class ModuleExpander {
 			return;
 		}
 		
-		List<ModuleInstanciation> ins = Lists.newLinkedList();
+		List<ModuleInstanciation> ins = Lists.newArrayList();
 		Set<ModuleUse> toDelete = Sets.newHashSet();
 		
 		for (ClassSlot s : m.getSlots()) {

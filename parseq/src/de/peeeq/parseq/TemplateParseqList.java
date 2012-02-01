@@ -5,13 +5,13 @@ public class TemplateParseqList {
 	public static void writeTo(StringBuilder sb) {
 		sb.append("import java.util.Collection;\n");
 		sb.append("import java.util.Iterator;\n");
-		sb.append("import java.util.LinkedList;\n");
+		sb.append("import java.util.ArrayList;\n");
 		sb.append("import java.util.List;\n");
 		sb.append("import java.util.ListIterator;\n");
 		sb.append("\n");
 		sb.append("abstract class ParseqList<T> implements List<T> {\n");
 		sb.append("	\n");
-		sb.append("	private LinkedList<T> list = new LinkedList<T>();\n");
+		sb.append("	private List<T> list = new ArrayList<T>();\n");
 		sb.append("	\n");
 		sb.append("	abstract protected void other_setParentToThis(T t);\n");
 		sb.append("	abstract protected void other_clearParent(T t);\n");
@@ -25,7 +25,7 @@ public class TemplateParseqList {
 		sb.append("	public void addFront(T t) { add(0, t); }\n");
 		
 		sb.append("	public List<T> removeAll() {\n");
-		sb.append("		List<T> result = new LinkedList<T>();\n");
+		sb.append("		List<T> result = new ArrayList<T>();\n");
 		sb.append("		while (!isEmpty()) {\n");
 		sb.append("			result.add(remove(0));\n");
 		sb.append("		}\n");

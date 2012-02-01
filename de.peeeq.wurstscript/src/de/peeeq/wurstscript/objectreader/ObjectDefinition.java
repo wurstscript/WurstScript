@@ -9,7 +9,7 @@ public class ObjectDefinition {
 
 	private String origObjectId;
 	private String newObjectId;
-	private List<ObjectModification> modifications = Lists.newLinkedList();
+	private List<ObjectModification> modifications = Lists.newArrayList();
 
 	public ObjectDefinition(String origObjectId, String newObjectId) {
 		this.origObjectId =  origObjectId;

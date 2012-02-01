@@ -23,7 +23,7 @@ public class ExprTranslationResult {
 	}
 
 	public ExprTranslationResult(JassExpr ... exprs) {
-		this.statements = Lists.newLinkedList();
+		this.statements = Lists.newArrayList();
 		this.expressions = Lists.newArrayList(exprs);
 	}
 

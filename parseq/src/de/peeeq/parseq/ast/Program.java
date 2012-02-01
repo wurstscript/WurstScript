@@ -24,33 +24,70 @@ public class Program {
 		this.packageName = packageName;
 	}
 
-	public void addListDef(String name, String itemType) {
+//	public void addListDef(String name, String itemType) {
+//		if (definitions.containsKey(name)) {
+//			throw new Error("Name "+ name + " redefined.");
+//		}
+//		ListDef def = new ListDef(name, itemType);
+//		listDefs.add(def);
+//		definitions.put(name, def);
+//	}
+
+//	public void addCaseDef(String name, List<Alternative> alternatives) {
+//		if (definitions.containsKey(name)) {
+//			throw new Error("Name "+ name + " redefined.");
+//		}
+//		CaseDef def = new CaseDef(name, alternatives);
+//		caseDefs.add(def);
+//		definitions.put(name, def);
+//	}
+
+	
+//	public void addConstructor(String name, List<Parameter> parameters) {
+//		if (definitions.containsKey(name)) {
+//			throw new Error("Name "+ name + " redefined.");
+//		}
+//		ConstructorDef def = new ConstructorDef(name, parameters);
+//		constructorDefs.add(def);
+//		definitions.put(name, def);
+//	}
+
+	private void addDefinition(String name, AstEntityDefinition def) {
 		if (definitions.containsKey(name)) {
 			throw new Error("Name "+ name + " redefined.");
 		}
-		ListDef def = new ListDef(name, itemType);
-		listDefs.add(def);
 		definitions.put(name, def);
 	}
-
-	public void addCaseDef(String name, List<Alternative> alternatives) {
-		if (definitions.containsKey(name)) {
-			throw new Error("Name "+ name + " redefined.");
-		}
-		CaseDef def = new CaseDef(name, alternatives);
-		caseDefs.add(def);
-		definitions.put(name, def);
+	
+	public void addConstructorDef(ConstructorDef c) {
+		addDefinition(c.name, c);
+		constructorDefs.add(c);
+	}
+	
+	
+	public void addListDef(ListDef listDef) {
+		addDefinition(listDef.name, listDef);
+		listDefs.add(listDef);
 	}
 
-	public void addConstructor(String name, List<Parameter> parameters) {
-		if (definitions.containsKey(name)) {
-			throw new Error("Name "+ name + " redefined.");
-		}
-		ConstructorDef def = new ConstructorDef(name, parameters);
-		constructorDefs.add(def);
-		definitions.put(name, def);
+	public void addCaseDef(CaseDef caseDef) {
+		addDefinition(caseDef.name, caseDef);
+		caseDefs.add(caseDef);
 	}
 
+	public String getPackageName() {
+		return packageName;
+	}
+	
+	public void addAttribute(List<Parameter> parameters, String typ, String attr, String returnType, String implementedBy, Token doc) {
+		String docStr = doc != null ? doc.getText() : "";
+		attrDefs.add(new AttributeDef(parameters, typ, attr, docStr, returnType, implementedBy));
+	}
+
+	
+	
+	
+	
 
 	public AstEntityDefinition getElement(String sub) {
 		return definitions.get(sub);
@@ -89,30 +126,13 @@ public class Program {
 	}
 
 
-	public void addListDef(ListDef listDef) {
-		listDefs.add(listDef);
-	}
-
-	public void addCaseDef(CaseDef caseDef) {
-		caseDefs.add(caseDef);
-	}
-
-	public String getPackageName() {
-		return packageName;
-	}
+	
 
 	public void setPackageName(String packageName) {
 		this.packageName = packageName;
 	}
 
-	public void addAttribute(List<Parameter> parameters, String typ, String attr, String returnType, String implementedBy, Token doc) {
-		String docStr = doc != null ? doc.getText() : "";
-		attrDefs.add(new AttributeDef(parameters, typ, attr, docStr, returnType, implementedBy));
-	}
-
-	public void addConstructorDef(ConstructorDef c) {
-		constructorDefs.add(c);
-	}
+	
 
 	
 }

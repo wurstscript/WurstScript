@@ -542,7 +542,7 @@ public class AttrExprType {
 		if (typeDef instanceof ClassDef) {
 			ClassDef c = (ClassDef) typeDef;
 			final Map<TypeParamDef, PscriptType> bindings = term.attrTypeParameterBindings();
-			List<PscriptType> types = Lists.newLinkedList();
+			List<PscriptType> types = Lists.newArrayList();
 			for (TypeParamDef t: c.getTypeParameters()) {
 				PscriptType r = bindings.get(t);
 				if (r != null) {
