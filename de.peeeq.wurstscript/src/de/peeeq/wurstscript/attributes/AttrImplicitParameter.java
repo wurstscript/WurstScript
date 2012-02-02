@@ -17,6 +17,7 @@ import de.peeeq.wurstscript.ast.OptExpr;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
+import de.peeeq.wurstscript.types.PscriptTypeTuple;
 import de.peeeq.wurstscript.utils.LineOffsets;
 
 public class AttrImplicitParameter {

@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.StructureDefOrModuleInstanciation;
+import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.WScope;
 
 public class OverriddenFunctions {
@@ -59,6 +60,10 @@ public class OverriddenFunctions {
 			}
 		}
 		return f;
+	}
+
+	public static FunctionDefinition getRealFuncDef(TupleDef t) {
+		return t;
 	}
 	
 }

@@ -233,6 +233,8 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"construct"							{ return symbolP(TokenType.CONSTRUCT); }
 	"ondestroy"							{ return symbolP(TokenType.ONDESTROY); }
 	
+	// tuples
+	"tuple"								{ return symbolP(TokenType.TUPLE); }
 
 	// packages
 	"package"							{ return symbol(TokenType.error, "unexpected package"); }

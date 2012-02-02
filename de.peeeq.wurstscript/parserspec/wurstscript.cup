@@ -60,7 +60,7 @@ terminal
 	LBRACK, RBRACK, 
 	COMMA, SEMICOLON, COLON,   
 	NL,
-	MODULE, USE, ABSTRACT, IN, FOR, FROM, TO, DOWNTO, STEP, BREAK, THISTYPE, ARROW, IT, IMMUTABLE, OVERRIDE, INSTANCE, INSTANCEOF, ENUM,
+	TUPLE, MODULE, USE, ABSTRACT, IN, FOR, FROM, TO, DOWNTO, STEP, BREAK, THISTYPE, ARROW, IT, IMMUTABLE, OVERRIDE, INSTANCE, INSTANCEOF, ENUM,
 	STATIC, PACKAGE, ENDPACKAGE, RETURNS,FUNCTION, VAL, PUBLIC, PUBLICREAD, PRIVATE, PROTECTED, IMPORT, NATIVETYPE, INIT, NATIVE, INTERFACE,
 	IMPLEMENTS, ARRAY, IF, ELSE, WHILE, RETURN, CLASS, NEW, NULL, EXTENDS, THIS, CONSTRUCT, ONDESTROY, 
 	TYPE, GLOBALS, ENDGLOBALS, CONSTANT, ENDFUNCTION, TAKES, NOTHING, LOCAL,
@@ -235,6 +235,8 @@ Entity ::=
 		{: RESULT = x; :}
 	| InterfaceDef:x
 		{: RESULT = x; :}
+	| Modifiers:mod TUPLE:x IDENTIFIER:name LPAR Parameters:parameters RPAR:y NL
+		{: RESULT = Ast.TupleDef(pos(xleft, yright), mod, name, parameters, Ast.NoTypeExpr()); :}
 	| Modifiers:mod FUNCTION:x TypeExpr:t DOT FuncSignature:sig NL INDENT Statements:body UNINDENT:y
 		{: RESULT = Ast.ExtensionFuncDef(pos(xleft, yright), mod, t, sig.getName(), sig.getTypeParameters().copy(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body); :}
 ;		

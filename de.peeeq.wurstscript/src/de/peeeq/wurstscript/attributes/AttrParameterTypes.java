@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NativeFunc;
+import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WParameters;
@@ -73,6 +74,12 @@ public class AttrParameterTypes {
 				return input.setTypeArgs(typeParamMapping);
 			}
 		});
+	}
+
+	public static List<PscriptType> calculate(TupleDef tupleDef) {
+		List<PscriptType> result = Lists.newArrayList();
+		addParameterTypes(result, tupleDef.getParameters());
+		return result;
 	}
 
 }

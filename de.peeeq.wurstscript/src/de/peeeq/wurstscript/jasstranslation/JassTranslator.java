@@ -73,6 +73,7 @@ import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.TopLevelDeclaration;
+import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WEntity;
@@ -285,7 +286,7 @@ public class JassTranslator {
 			}
 		}
 		ExprTranslationResult e = gi.initialExpr.jassTranslateExpr(this, initGlobalsFunc);
-		StmtTranslation.translateAssignment2(this, body, initGlobalsFunc, gi.v, null, null, e);
+		StmtTranslation.translateAssignment2(this, body, initGlobalsFunc, gi.v, null, e);
 		initializedVars.addAll(manager.getJassVarsFor(gi.v));
 	}
 
@@ -376,6 +377,11 @@ public class JassTranslator {
 				translateFuncDef(funcDef, false);
 			}
 
+			@Override
+			public void case_TupleDef(TupleDef tupleDef) {
+				translateTupleDef(tupleDef);
+			}
+
 		});
 	}
 
@@ -384,7 +390,7 @@ public class JassTranslator {
 		f.setReturnType(translateType(funcDef.getReturnTyp())[0]);
 
 		// add implicit parameter 'this'
-		String[] thisType = translateType(funcDef.getExtendedType().attrTyp());
+		String[] thisType = funcDef.getExtendedType().attrTyp().jassTranslateType();
 		
 		addParams(f, thisType, "this");
 		
@@ -505,20 +511,9 @@ public class JassTranslator {
 	}
 
 	String[] translateType(OptTypeExpr typ) {
-		return translateType(typ.attrTyp());
+		return typ.attrTyp().jassTranslateType();
 	}
 
-	/**
-	 * translates a type to the corresponding jass type
-	 * in case of an array type it returns the name of the base type 
-	 * @param t
-	 * @param expectedType 
-	 * @return
-	 */
-	String[] translateType(PscriptType t) {
-		return t.jassTranslateType();
-	}
-	
 	String translateTypeSingle(PscriptType t) {
 		String[] r = t.jassTranslateType();
 		if (r.length != 1) throw new Error("type has length " + r.length);
@@ -669,8 +664,17 @@ public class JassTranslator {
 					translateInterfaceDef(interfaceDef);
 				}
 
+				@Override
+				public void case_TupleDef(TupleDef tupleDef) {
+					translateTupleDef(tupleDef);
+				}
+
 			});
 		}
+	}
+
+	protected void translateTupleDef(TupleDef tupleDef) {
+		// nothing to do
 	}
 
 	protected void translateInterfaceDef(InterfaceDef interfaceDef) {
@@ -1005,7 +1009,7 @@ public class JassTranslator {
 					Expr initial = (Expr) var.getInitialExpr();
 					ExprTranslationResult e = initial.jassTranslateExpr(this, f);
 					ExprTranslationResult indexExpr = new ExprTranslationResult(JassExprVarAccess("this"));
-					StmtTranslation.translateAssignment2(this, f.getBody(), f, var, indexExpr, null, e);
+					StmtTranslation.translateAssignment2(this, f.getBody(), f, var, indexExpr, e);
 				} // TODO default value?
 			}
 		}
@@ -1036,7 +1040,7 @@ public class JassTranslator {
 					Expr expr = (Expr) v.getInitialExpr();
 					ExprTranslationResult er = expr.jassTranslateExpr(this, f);
 					ExprTranslationResult indexExpr = new ExprTranslationResult(JassExprVarAccess("this"));
-					StmtTranslation.translateAssignment2(this, f.getBody(), f, v, indexExpr, null, er);
+					StmtTranslation.translateAssignment2(this, f.getBody(), f, v, indexExpr, er);
 				}
 			} else if (s instanceof ConstructorDef) {
 				constructor  = (ConstructorDef) s;
@@ -1076,7 +1080,7 @@ public class JassTranslator {
 	
 	private JassVar[] newJassVars(VarDef v, String suffix, PscriptType baseTyp, boolean isArray) {
 		String name = manager.getJassVarNameFor(v, v instanceof LocalVarDef)+ suffix;
-		String[] translatedTypes = translateType(baseTyp);
+		String[] translatedTypes = baseTyp.jassTranslateType();
 		JassVar[] result = new JassVar[translatedTypes.length];
 		for (int i=0; i<result.length; i++) {
 			String suffix2 = (i==0) ? "" : (i+1) + "";

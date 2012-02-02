@@ -21,28 +21,7 @@ import de.peeeq.wurstscript.utils.Utils;
 public class AttrTypeDef {
 
 	public static  TypeDef calculate(TypeRef node) {
-		String typeName = node.match(new TypeRef.Matcher<String>() {
-
-			@Override
-			public String case_TypeExprSimple(TypeExprSimple typeExprSimple) {
-				return typeExprSimple.getTypeName();
-			}
-
-			@Override
-			public String case_ExprNewObject(ExprNewObject exprNewObject) {
-				return exprNewObject.getTypeName();
-			}
-
-			@Override
-			public String case_TypeExprThis(TypeExprThis typeExprThis) {
-				return null;
-			}
-
-			@Override
-			public String case_TypeExprArray(TypeExprArray typeExprArray) {
-				return null;
-			}
-		});
+		String typeName = getTypeName(node);
 
 		if (typeName == null) {
 			// thistype has no typedef
@@ -78,6 +57,31 @@ public class AttrTypeDef {
 			}
 		}
 		
+	}
+
+	private static String getTypeName(TypeRef node) {
+		return node.match(new TypeRef.Matcher<String>() {
+
+			@Override
+			public String case_TypeExprSimple(TypeExprSimple typeExprSimple) {
+				return typeExprSimple.getTypeName();
+			}
+
+			@Override
+			public String case_ExprNewObject(ExprNewObject exprNewObject) {
+				return exprNewObject.getTypeName();
+			}
+
+			@Override
+			public String case_TypeExprThis(TypeExprThis typeExprThis) {
+				return null;
+			}
+
+			@Override
+			public String case_TypeExprArray(TypeExprArray typeExprArray) {
+				return null;
+			}
+		});
 	}
 
 

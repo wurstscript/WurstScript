@@ -31,6 +31,7 @@ import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WScope;
+import de.peeeq.wurstscript.jassAst.JassVar;
 
 public class Utils {
 
@@ -532,6 +533,14 @@ public class Utils {
 		for (T t: elements) {
 			result.add(t);
 		}
+	}
+
+	public static <T> List<T> slice(List<T> ts, int firstIndex, int count) {
+		List<T> result = Lists.newArrayListWithCapacity(count);
+		for (int i=0; i<count; i++) {
+			result.add(ts.get(firstIndex+i));
+		}
+		return result ;
 	}
 
 }

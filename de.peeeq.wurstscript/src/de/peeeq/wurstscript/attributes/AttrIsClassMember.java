@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.NativeFunc;
+import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.WParameter;
 
 /**
@@ -40,6 +41,10 @@ public class AttrIsClassMember {
 	}
 
 	public static boolean calculate(NativeFunc nativeFunc) {
+		return false;
+	}
+
+	public static boolean calculate(TupleDef t) {
 		return false;
 	}
 
