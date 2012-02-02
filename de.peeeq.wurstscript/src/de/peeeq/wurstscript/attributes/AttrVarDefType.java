@@ -88,7 +88,11 @@ public class AttrVarDefType {
 	}
 
 	public static PscriptType calculate(InterfaceDef i) {
-		return new PscriptTypeInterface(i, true);
+		List<PscriptType> typeArgs = Lists.newArrayList();
+		for (TypeParamDef tp : i.getTypeParameters()) {
+			typeArgs.add(tp.attrTyp());
+		}
+		return new PscriptTypeInterface(i, typeArgs, true);
 	}
 
 	

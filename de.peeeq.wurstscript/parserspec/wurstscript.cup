@@ -88,12 +88,10 @@ non terminal ExprNewObject ExprNewObject;
 non terminal TypeExprList ExtendsList;
 non terminal TypeExprList ExtendsListOpt;
 non terminal FuncDef FuncDef;
-non terminal FuncDefs FuncDefs;
 non terminal FuncSignature FuncSignature;
 non terminal FuncSignature JassFuncSignature; 
 non terminal Indexes Indexes;
 non terminal InterfaceDef InterfaceDef;
-non terminal InstanceDef InstanceDef;
 non terminal ClassSlots InterfaceFunctionSignatures;
 non terminal FuncDef InterfaceFunctionSignature;
 non terminal TypeExprList ImplementsList;
@@ -237,8 +235,6 @@ Entity ::=
 		{: RESULT = x; :}
 	| InterfaceDef:x
 		{: RESULT = x; :}
-	| InstanceDef:x
-		{: RESULT = x; :}
 	| Modifiers:mod FUNCTION:x TypeExpr:t DOT FuncSignature:sig NL INDENT Statements:body UNINDENT:y
 		{: RESULT = Ast.ExtensionFuncDef(pos(xleft, yright), mod, t, sig.getName(), sig.getTypeParameters().copy(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body); :}
 ;		
@@ -291,21 +287,6 @@ InterfaceFunctionSignature ::=
 					, sig.getTypeParameters().copy(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), Ast.WStatements()); :}
 ;
 
-InstanceDef ::=
-	Modifiers:mod INSTANCE:x IDENTIFIER:classTyp TypeParamDefs:typeParams  COLON TypeExpr:interfaceTyp NL INDENT FuncDefs:funcDefs UNINDENT:y
-		{: RESULT = Ast.InstanceDef(pos(xleft, yright), mod
-				, typeParams, Ast.TypeExprSimple(pos(classTypleft, classTypright), classTyp, AstHelper.makeTypeArgs(typeParams)), interfaceTyp, funcDefs); :}
-	| Modifiers:mod INSTANCE:x IDENTIFIER:classTyp TypeParamDefs:typeParams  COLON TypeExpr:interfaceTyp NL
-		{: RESULT = Ast.InstanceDef(pos(xleft, interfaceTyp), mod
-				, typeParams, Ast.TypeExprSimple(pos(classTypleft, classTypright), classTyp, AstHelper.makeTypeArgs(typeParams)), interfaceTyp, Ast.FuncDefs()); :}
-;
-
-FuncDefs ::=
-	Newlines FuncDef:x FuncDefs:xs
-		{: xs.addFront(x); RESULT = xs; :}
-	| Newlines
-		{: RESULT = Ast.FuncDefs(); :}
-;
 
 
 ClassDef ::=

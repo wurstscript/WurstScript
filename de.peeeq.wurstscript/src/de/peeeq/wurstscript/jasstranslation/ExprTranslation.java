@@ -132,11 +132,11 @@ public class ExprTranslation {
 			
 			if (left.exprCount() != right.exprCount()) {
 				if (leftType instanceof PscriptTypeClass && rightType instanceof PscriptTypeInterface) {
-					int instanceId = translator.getInstanceId(exprBinary, (PscriptTypeInterface)rightType, (PscriptTypeClass)leftType);
+					int instanceId = translator.manager.getTypeId(((PscriptTypeClass)leftType).getClassDef());
 					left = left.plus(JassExprIntVal(instanceId));
 					leftTypes = rightTypes;
 				} else if (rightType instanceof PscriptTypeClass && leftType instanceof PscriptTypeInterface) {
-					int instanceId = translator.getInstanceId(exprBinary, (PscriptTypeInterface)leftType, (PscriptTypeClass)rightType);
+					int instanceId = translator.manager.getTypeId(((PscriptTypeClass)rightType).getClassDef());
 					right = right.plus(JassExprIntVal(instanceId));
 					rightTypes = leftTypes;
 				} else {
@@ -359,11 +359,10 @@ public class ExprTranslation {
 
 			if (paramJassTypes.length == 2 && arg.exprCount() == 1) {
 				Expr a = args.get(i);
-				if (paramType instanceof PscriptTypeInterface && a.attrTyp() instanceof PscriptTypeClass) {
-					int typeId = translator.getInstanceId(a, (PscriptTypeInterface) paramType, (PscriptTypeClass) a.attrTyp());
+				if (a.attrTyp() instanceof PscriptTypeClass) {
+					int typeId = translator.manager.getTypeId(((PscriptTypeClass) a.attrTyp()).getClassDef());
 					arg = arg.plus(JassExprIntVal(typeId));
-				} else if (a.attrTyp() instanceof PScriptTypeInt
-						|| a.attrTyp() instanceof PscriptTypeClass) {
+				} else if (a.attrTyp() instanceof PScriptTypeInt) {
 					arg = arg.plus(JassExprIntVal(0));
 				} else {
 					throw new CompileError(a.getSource(), "Cannot pass " + a.attrTyp() + ", expected " + paramType);

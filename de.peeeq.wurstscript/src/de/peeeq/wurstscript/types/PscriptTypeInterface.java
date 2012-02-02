@@ -12,12 +12,18 @@ public class PscriptTypeInterface extends PscriptTypeNamedScope {
 
 	private final InterfaceDef interfaceDef;
 
-	public PscriptTypeInterface(InterfaceDef interfaceDef, boolean staticRef) {
-		super(staticRef);
+//	public PscriptTypeInterface(InterfaceDef interfaceDef, boolean staticRef) {
+//		super(staticRef);
+//		if (interfaceDef == null) throw new IllegalArgumentException();
+//		this.interfaceDef = interfaceDef;
+//	}
+
+	public PscriptTypeInterface(InterfaceDef interfaceDef, List<PscriptType> newTypes, boolean isStaticRef) {
+		super(newTypes, isStaticRef);
 		if (interfaceDef == null) throw new IllegalArgumentException();
 		this.interfaceDef = interfaceDef;
 	}
-
+	
 	public PscriptTypeInterface(InterfaceDef interfaceDef, List<PscriptType> newTypes) {
 		super(newTypes);
 		if (interfaceDef == null) throw new IllegalArgumentException();
@@ -41,7 +47,7 @@ public class PscriptTypeInterface extends PscriptTypeNamedScope {
 	@Override
 	public PscriptType dynamic() {
 		if (isStaticRef()) {
-			return new PscriptTypeInterface(getInterfaceDef(), false);
+			return new PscriptTypeInterface(getInterfaceDef(), getTypeParameters(), false);
 		}
 		return this;
 	}
@@ -53,19 +59,28 @@ public class PscriptTypeInterface extends PscriptTypeNamedScope {
 
 	@Override
 	public boolean isSubtypeOf(PscriptType other, AstElement location) {
-		if (other instanceof PscriptTypeBoundTypeParam) {
-			PscriptTypeBoundTypeParam b = (PscriptTypeBoundTypeParam) other;
-			return isSubtypeOf(b.getBaseType(), location);
+		if (super.isSubtypeOf(other, location)) {
+			return true;
 		}
 		
 		if (other instanceof PscriptTypeInterface) {
 			PscriptTypeInterface other2 = (PscriptTypeInterface) other;
-			InterfaceDef i = interfaceDef;
-			InterfaceDef otherI = other2.interfaceDef;
-			return i == otherI; // FIXME interfaces can extends other interfaces
+			if (interfaceDef == other2.interfaceDef) {
+				// same interface -> check if type params are equal
+				return checkTypeParametersEqual(getTypeParameters(), other2.getTypeParameters(), location);
+			} else {
+				// test super interfaces:
+				for (PscriptTypeInterface extended : interfaceDef.attrExtendedInterfaces() ) {
+					if (extended.isSubtypeOf(other, location)) {
+						return true;
+					}
+				}
+			}
 		}
 		return false;
 	}
+
+	
 
 	@Override
 	public String[] jassTranslateType() {

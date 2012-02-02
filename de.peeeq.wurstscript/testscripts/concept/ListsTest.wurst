@@ -5,25 +5,29 @@ package Collections
 	native testFail(string msg)
 	native println(string msg)
 	
+	string history = ""
+	
 	interface Closeable
 		function close()
 		function open()
 	
 	class Gate implements Closeable
 		function close()
-			println("close gate")
+			history += ",close_gate"
 		function open()
-			println("open gate")
+			history += ",open_gate"
+			
 	class Door implements Closeable
 		function close()
-			println("close door")
+			history += ",close_door"
 		function open()
-			println("open door")
+			history += ",open_door"
+			
 	class Chest implements Closeable
 		function close()
-			println("close chest")
+			history += ",close_chest"
 		function open()
-			println("open chest")
+			history += ",open_chest"
 	
 	
 	init
@@ -47,7 +51,9 @@ package Collections
 				iterator.remove()
 		for Closeable c2 in closeables
 			c2.open()
-		testSuccess()
+		println(history)
+		if history == ",close_gate,close_door,close_chest,open_gate,open_door"
+			testSuccess()
 		
 
 endpackage

@@ -6,7 +6,6 @@ import com.google.common.base.Function;
 
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
-import de.peeeq.wurstscript.ast.InstanceDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.NativeType;
@@ -106,58 +105,7 @@ public class AttrTypeExprType {
 			attr.addError(node.getSource(), "Unknown type " + typename);
 			return new PScriptTypeUnknown(typename);
 		}
-		PscriptType typ = t.match(new TypeDef.Matcher<PscriptType>() {
-
-			@Override
-			public PscriptType case_NativeType(NativeType term) {
-				PscriptType typ = NativeTypes.nativeType(term.getName(), isJassCode);
-				if (typ != null) {
-					// native type
-					return typ;
-				}
-				if (term.getOptTyp() instanceof NoTypeExpr) {
-					attr.addError(term.getSource(), "Unknown base type: " + term.getName());
-					return PScriptTypeUnknown.instance();
-				}
-				PscriptType superType = ((TypeExpr) term.getOptTyp()).attrTyp();
-				return PscriptNativeType.instance(typename, superType);
-			}
-
-			@Override
-			public PscriptType case_ClassDef(ClassDef term) {
-				return term.attrTyp();
-			}
-
-			@Override
-			public PscriptType case_TypeParamDef(TypeParamDef typeParamDef) {
-				if (typeParamDef.getParent().getParent() instanceof InstanceDef) {
-					InstanceDef instanceDef = (InstanceDef) typeParamDef.getParent().getParent();
-					for (int i=0; i<instanceDef.getTypeParameters().size(); i++) {
-						if (instanceDef.getTypeParameters().get(i) == typeParamDef) {
-							ClassDef c = (ClassDef) instanceDef.getClassTyp().attrTypeDef();
-							return new PscriptTypeTypeParam(c.getTypeParameters().get(i));
-						}
-					}
-				}
-				return new PscriptTypeTypeParam(typeParamDef);
-			}
-
-			@Override
-			public PscriptType case_InterfaceDef(InterfaceDef term) {
-				return new PscriptTypeInterface(term, false);
-			}
-		});
-
-		// if (node.isArray()) {
-		// int[] sizes = new int[node.sizes().size()];
-		// for (int i=0; i<sizes.length; i++) {
-		// sizes[i] = 0; // TODO sizes should store ILvariables which actually
-		// hold the sizes
-		// }
-		// typ = new PScriptTypeArray(typ, sizes );
-		// }
-
-		return typ;
+		return t.attrTyp();
 	}
 
 }

@@ -25,7 +25,6 @@ import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
-import de.peeeq.wurstscript.ast.InstanceDef;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.StmtForFrom;
 import de.peeeq.wurstscript.ast.StmtForIn;
@@ -46,50 +45,24 @@ import de.peeeq.wurstscript.attributes.attr;
 
 public class SyntacticSugar {
 
+	private int wurstIteratorCounter = 0;
+
+
 	public void removeSyntacticSugar(CompilationUnit root, boolean hasCommonJ) {
 		if (hasCommonJ) {
 			addDefaultImports(root);
 		}
-		addInstanceDecls(root);
 		addDefaultConstructors(root);
 		expandForInLoops(root);
 		
 	}
+	
+	
 
 	
 	private void addDefaultImports(CompilationUnit root) {
 		for (WPackage i : root.attrGetByType().packageDefs) {
 			i.getImports().add(Ast.WImport(i.getSource().copy(), false, "Wurst"));
-		}
-	}
-
-
-	private void addInstanceDecls(CompilationUnit root) {
-		for (ClassDef c : root.attrGetByType().classes) {
-			WEntities ents = (WEntities) c.getParent();
-			for (TypeExpr implemented : c.getImplementsList()) {
-				if (!(implemented instanceof TypeExprSimple)) {
-					attr.addError(implemented.getSource(), "Can only implement interfaces.");
-					continue;
-				}
-				TypeExprSimple impl = (TypeExprSimple) implemented;
-				WPos s = implemented.getSource();
-				
-				TypeExprList typeExprs = TypeExprList();
-				TypeParamDefs typeParams = TypeParamDefs();
-				for (TypeParamDef tp : c.getTypeParameters()) {
-					String name = tp.getName();
-					typeExprs.add(TypeExprSimple(s.copy(), name, TypeExprList()));
-					typeParams.add(TypeParamDef(tp.getSource().copy(), Ast.Modifiers(), name));
-				}
-				TypeExpr classTyp = Ast.TypeExprSimple(s.copy(), c.getName(), typeExprs); // TODO type params
-				TypeExpr implementedTyp = Ast.TypeExprSimple(s.copy(), impl.getTypeName(), impl.getTypeArgs().copy());
-				
-				
-				
-				InstanceDef instanceDef = Ast.InstanceDef(s.copy(), c.getModifiers().copy(), typeParams, classTyp, implementedTyp, Ast.FuncDefs());
-				ents.add(instanceDef);
-			}
 		}
 	}
 
@@ -118,7 +91,7 @@ public class SyntacticSugar {
 				int position = parent.indexOf(loop);
 				parent.remove(position);
 				
-				String iteratorName = "iterator" +  UUID.randomUUID().toString().replace("-", "x");
+				String iteratorName = "wurst__iterator" +  wurstIteratorCounter++;
 				WPos loopVarPos = loop.getLoopVar().getSource();
 				WPos loopInPos = loop.getIn().getSource();
 				parent.add(position, 
@@ -156,7 +129,7 @@ public class SyntacticSugar {
 				int position = parent.indexOf(loop);
 				parent.remove(position);
 				
-				String iteratorName = "iterator" +  UUID.randomUUID().toString().replace("-", "x");
+				String iteratorName = "wurst__iterator" +  wurstIteratorCounter++;
 				WPos loopVarPos = loop.getLoopVar().getSource();
 				WPos loopInPos = loop.getIn().getSource();
 				if (loop.getIn() instanceof ExprVarAccess) {

@@ -36,7 +36,6 @@ import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.HasTypeArgs;
 import de.peeeq.wurstscript.ast.InitBlock;
-import de.peeeq.wurstscript.ast.InstanceDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.ModAbstract;
@@ -57,7 +56,6 @@ import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.StmtWhile;
-import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.VarDef;
@@ -79,6 +77,7 @@ import de.peeeq.wurstscript.types.PScriptTypeReal;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
+import de.peeeq.wurstscript.types.PscriptTypeInterface;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
 import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
 import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
@@ -717,10 +716,6 @@ public class WurstValidator {
 					check(VisibilityPublic.class);
 				}
 
-				@Override
-				public void case_InstanceDef(InstanceDef instanceDef) {
-					check(VisibilityPublic.class);
-				}
 			});
 			if (error.length() > 0) {
 				attr.addError(e.getSource(), error.toString());
@@ -749,39 +744,29 @@ public class WurstValidator {
 	}
 	
 	@CheckMethod
-	public void checkInstanceDef(InstanceDef d) {
-		TypeDef interfaceNameDef = d.getImplementedTyp().attrTypeDef();
-		TypeDef classNameDef = d.getClassTyp().attrTypeDef();
-		if (!(interfaceNameDef instanceof InterfaceDef)) {
-			attr.addError(d.getSource(), interfaceNameDef.getName() + " is not an interface.");
-			return;
-		}
-		if (!(classNameDef instanceof ClassDef)) {
-			attr.addError(d.getSource(), classNameDef.getName() + " is not a class.");
-			return;
-		}
-		InterfaceDef interfaceDef = (InterfaceDef) interfaceNameDef;
-		ClassDef classDef = (ClassDef) classNameDef;
-		 
-		Map<TypeParamDef, PscriptType> typeParamMapping = d.getImplementedTyp().attrTyp().getTypeArgBinding();
-		
-		
-		nextFunction: for (ClassSlot s : interfaceDef.getSlots()) {
-			if (s instanceof FuncDef) {
-				FuncDef i_funcDef = (FuncDef) s;
-				Collection<NameDef> c_funcDefs = classDef.attrVisibleNamesPrivate().get(i_funcDef.getName());
-				for (NameDef c_nameDef : c_funcDefs) {
-					if (c_nameDef instanceof FuncDef) {
-						FuncDef c_funcDef = (FuncDef) c_nameDef;
-						
-						CheckHelper.checkIfIsRefinement(typeParamMapping, i_funcDef, c_funcDef, "Cannot implement interface because of function ", true);
-						continue nextFunction;
+	public void checkInstanceDef(ClassDef classDef) {
+		for (PscriptTypeInterface interfaceType : classDef.attrImplementedInterfaces()) {
+			InterfaceDef interfaceDef = interfaceType.getInterfaceDef();
+			Map<TypeParamDef, PscriptType> typeParamMapping = interfaceType.getTypeArgBinding();
+			// TODO check type mapping
+			
+			nextFunction: for (ClassSlot s : interfaceDef.getSlots()) {
+				if (s instanceof FuncDef) {
+					FuncDef i_funcDef = (FuncDef) s;
+					Collection<NameDef> c_funcDefs = classDef.attrVisibleNamesPrivate().get(i_funcDef.getName());
+					for (NameDef c_nameDef : c_funcDefs) {
+						if (c_nameDef instanceof FuncDef) {
+							FuncDef c_funcDef = (FuncDef) c_nameDef;
+							
+							CheckHelper.checkIfIsRefinement(typeParamMapping, i_funcDef, c_funcDef, "Cannot implement interface because of function ", true);
+							continue nextFunction;
+						}
 					}
+					attr.addError(classDef.getSource(), "The class " + classDef.getName() + " must implement the function " +
+							i_funcDef.getName() + ".");
+					
+					
 				}
-				attr.addError(d.getSource(), "The class " + classDef.getName() + " must implement the function " +
-						i_funcDef.getName() + ".");
-				
-				
 			}
 		}
 		
@@ -789,10 +774,8 @@ public class WurstValidator {
 	
 	@CheckMethod
 	public void checkInterfaceDef(InterfaceDef i) {
-		if (i.getExtendsList().size() > 0) {
-			attr.addError(i.getExtendsList().attrSource(), "Extending other interfaces is not supported yet.");
-		}
 		checkTypeName(i.getSource(), i.getName());
+		// TODO check if functions are refinements
 	}
 	 
 	@CheckMethod

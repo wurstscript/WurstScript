@@ -5,9 +5,7 @@ import java.util.List;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
-import de.peeeq.wurstscript.ast.InstanceDef;
 import de.peeeq.wurstscript.ast.NamedScope;
-import de.peeeq.wurstscript.ast.PackageOrGlobal;
 
 
 public class PscriptTypeClass extends PscriptTypeNamedScope {
@@ -23,27 +21,17 @@ public class PscriptTypeClass extends PscriptTypeNamedScope {
 
 	@Override
 	public boolean isSubtypeOf(PscriptType obj, AstElement location) {
-		if (obj instanceof PscriptTypeBoundTypeParam) {
-			PscriptTypeBoundTypeParam b = (PscriptTypeBoundTypeParam) obj;
-			return isSubtypeOf(b.getBaseType(), location);
-		}
-		
 		if (super.isSubtypeOf(obj, location)) {
 			return true;
 		}
 		if (obj instanceof PscriptTypeInterface) {
 			PscriptTypeInterface pti = (PscriptTypeInterface) obj;
-			// TODO check if this class is a subtype of the interface
-			PackageOrGlobal pack = location.attrNearestPackage();
-			
-			Collection<InstanceDef> instanceDefs = pack.attrInstanceDefs().get(pti.getInterfaceDef());
-			for (InstanceDef iDef: instanceDefs) {
-				if (classDef == iDef.getClassTyp().attrTypeDef()) {
-					if (TypesHelper.checkTypeArgs(iDef, this.getTypeParameters(), pti.getTypeParameters())) {
-						return true;
-					}
+			for (PscriptTypeInterface implementedInterface : classDef.attrImplementedInterfaces()) {
+				if (implementedInterface.setTypeArgs(getTypeArgBinding()).isSubtypeOf(pti, location)) {
+					return true;
 				}
 			}
+			return false;
 		}
 		return false;
 	}

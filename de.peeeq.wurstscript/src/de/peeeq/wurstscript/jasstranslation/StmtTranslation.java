@@ -337,7 +337,7 @@ public class StmtTranslation {
 			PscriptTypeInterface neededTyp2 = (PscriptTypeInterface)neededTyp;
 			PscriptTypeClass actualTyp2 = (PscriptTypeClass) actualTyp;
 			// in this special case we have to manually add the type based on the static type information that we have
-			int instanceId = translator.getInstanceId(where, neededTyp2, actualTyp2);
+			int instanceId = translator.manager.getTypeId(actualTyp2.getClassDef());
 			expr = expr.plus(JassExprIntVal(instanceId));
 		}
 		return expr;
