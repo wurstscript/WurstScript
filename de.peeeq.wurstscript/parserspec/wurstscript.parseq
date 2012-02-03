@@ -24,9 +24,7 @@ WEntity =
 	| InitBlock (WPos source, WStatements body)
 	| NativeFunc(WPos source, Modifiers modifiers, String name, WParameters parameters, OptTypeExpr returnTyp)
 	| ModuleDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, ClassSlots slots)
-	| InstanceDef(WPos source, Modifiers modifiers, TypeParamDefs typeParameters, TypeExpr classTyp, TypeExpr implementedTyp, FuncDefs funcDefs)
 	
-FuncDefs * FuncDef
 
 
 TypeExpr = 
@@ -198,7 +196,6 @@ WScope =
 	| ConstructorDef 
 	| OnDestroyDef 
 	| InitBlock
-	| InstanceDef
 
 PackageOrGlobal = WPackage | CompilationUnit	
 	
@@ -224,7 +221,7 @@ Modifier =
 	
 // AstElementWithBody = FunctionImplementation | InitBlock | ConstructorDef | OnDestroyDef
 //AstElementWithModifier = NameDef | TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition
-HasModifier = NameDef | TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition | InstanceDef
+HasModifier = NameDef | TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition
 HasTypeArgs =  ExprNewObject | FunctionCall | ModuleUse | StmtCall | TypeExprSimple
 
 
@@ -480,16 +477,22 @@ HasTypeArgs.attrTypeParameterBindings
 	returns java.util.Map<TypeParamDef, de.peeeq.wurstscript.types.PscriptType>
 	implemented by de.peeeq.wurstscript.attributes.Generics.getTypeParameterBindings
 	
-	
-PackageOrGlobal.attrInstanceDefs
-	returns  com.google.common.collect.Multimap<InterfaceDef, InstanceDef>
-	implemented by de.peeeq.wurstscript.attributes.InstanceDefs.calculates
-	
 CompilationUnit.attrGetByType
 	returns de.peeeq.wurstscript.attributes.GetByType.ByTypes
 	implemented by de.peeeq.wurstscript.attributes.GetByType.calculate
+
+CompilationUnit.attrInterfaceInstances
+	returns com.google.common.collect.Multimap<InterfaceDef, ClassDef>
+	implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getInterfaceInstances
+
+ClassDef.attrImplementedInterfaces
+	returns java.util.Collection<de.peeeq.wurstscript.types.PscriptTypeInterface>
+	implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getImplementedInterfaces
 	
-	
+InterfaceDef.attrExtendedInterfaces	
+	returns java.util.Collection<de.peeeq.wurstscript.types.PscriptTypeInterface>
+	implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getExtendedInterfaces
+
 // Jass translation:
 	
 Expr.jassTranslateExpr(

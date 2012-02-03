@@ -29,6 +29,29 @@ public class InterfaceTests extends PscriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void hierarchy() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	interface A",
+				"		function f1() returns int",
+				"	interface B extends A",
+				"		function f2() returns int",
+				"	class C implements B",
+				"		function f1() returns int",
+				"			return 3",
+				"		function f2() returns int",
+				"			return 4",
+				"	init",
+				"		B b = new C()",
+				"		A a = b",
+				"		if a.f1() == 3",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
 
 
 	@Test
@@ -113,7 +136,7 @@ public class InterfaceTests extends PscriptTest {
 				"			return false",
 				"	class A",
 				"	init",
-				"		Collection{int} c = new Set{A}()",
+				"		Collection{int} c = new Set{A}()", // cannot assign set of As to collection of int
 				"		if not c.contains(4)",
 				"			testSuccess()",
 				"endpackage"

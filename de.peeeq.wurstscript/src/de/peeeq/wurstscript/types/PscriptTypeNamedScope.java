@@ -53,23 +53,18 @@ public abstract class PscriptTypeNamedScope extends PscriptType {
 
 	@Override
 	public boolean isSubtypeOf(PscriptType obj, AstElement location) {
+		if (obj instanceof PscriptTypeBoundTypeParam) {
+			PscriptTypeBoundTypeParam b = (PscriptTypeBoundTypeParam) obj;
+			return this.isSubtypeOf(b.getBaseType(), location);
+		}
+		
 		if (obj instanceof PscriptTypeTypeParam) {
 			return false;
 		}
 		if (obj instanceof PscriptTypeNamedScope) {
 			PscriptTypeNamedScope other = (PscriptTypeNamedScope) obj;
-			if (other.getDef().equals(this.getDef())) {
-				if (this.typeParameters.size() != other.typeParameters.size()) {
-					return false;
-				}
-				for (int i = 0; i < typeParameters.size(); i++) {
-					if (!typeParameters.get(i).isSubtypeOf(other.typeParameters.get(i), location)) {
-						// this means covariant type parameters, but this should be no problem as
-						// wurst has no (real) subtypes for classtypes
-						return false;
-					}
-				}
-				return true;
+			if (other.getDef() == this.getDef()) {
+				return checkTypeParametersEqual(getTypeParameters(), other.getTypeParameters(), location);
 			}
 		}
 		return false;
@@ -155,4 +150,20 @@ public abstract class PscriptTypeNamedScope extends PscriptType {
 
 	abstract public PscriptType replaceTypeVars(List<PscriptType> newTypes);
 
+	
+	
+	protected boolean checkTypeParametersEqual(List<PscriptType> tps1, List<PscriptType> tps2, AstElement location) {
+		if (tps1.size() != tps2.size()) {
+			return false;
+		}
+		for (int i=0; i<tps1.size(); i++) {
+			PscriptType thisTp = tps1.get(i);
+			PscriptType otherTp = tps2.get(i);
+			if (!thisTp.equalsType(otherTp, location)) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
 }

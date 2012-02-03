@@ -18,7 +18,6 @@ import de.peeeq.wurstscript.ast.ClassSlots;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
-import de.peeeq.wurstscript.ast.InstanceDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.JassGlobalBlock;
 import de.peeeq.wurstscript.ast.LocalVarDef;
@@ -250,13 +249,5 @@ public class Scopes {
 	}
 
 
-	public static Multimap<String, NameDef> getDefinedNames(InstanceDef i) {
-		Multimap<String, NameDef> result = HashMultimap.create();
-		addTypeParametersIfAny(result, i);
-		for (FuncDef f : i.getFuncDefs()) {
-			result.put(f.getName(), f);
-		}
-		return result;
-	}
 	
 }

@@ -133,6 +133,10 @@ public class ExtendedParser extends parser {
 		translations.put("UMINUS", "'-'");
 		translations.put("INDENT", "increase of indentation");
 		translations.put("UNINDENT", "decrease of indentation");
+		translations.put("PLUS_EQ", "'+='");
+		translations.put("DIV_EQ", "'/='");
+		translations.put("MULT_EQ", "'*='");
+		translations.put("MINUS_EQ", "'-='");
 		if (translations.containsKey(name)) {
 			return translations.get(name);
 		} else {

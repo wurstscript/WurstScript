@@ -381,7 +381,7 @@ public class JassPrinter {
 					JassExprBinary right = (JassExprBinary) e.getRight();
 					if (precedence(right.getOp()) < precedence(e.getOp())) {
 						// if the precedence level on the right is smaller we have to use parentheses
-						useParanthesesLeft = true;
+						useParanthesesRight = true;
 					} else if (precedence(right.getOp()) == precedence(e.getOp())) {
 						// if the precedence level is equal we have to parentheses as operators are
 						// left associative but for commutative operators (+, *, and, or) we do not
@@ -397,10 +397,6 @@ public class JassPrinter {
 						}
 					}
 				}
-				
-				// TODO change this, when bug fixed...
-				useParanthesesLeft = true;
-				useParanthesesRight = true;
 				
 				sb.append(useParanthesesLeft ? "(" : "");
 				printExpr(sb, e.getLeftExpr());

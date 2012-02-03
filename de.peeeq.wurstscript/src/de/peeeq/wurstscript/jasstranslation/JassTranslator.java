@@ -61,7 +61,6 @@ import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.InitBlock;
-import de.peeeq.wurstscript.ast.InstanceDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.JassGlobalBlock;
 import de.peeeq.wurstscript.ast.LocalVarDef;
@@ -102,8 +101,6 @@ import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeHandle;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;
 import de.peeeq.wurstscript.types.PscriptType;
-import de.peeeq.wurstscript.types.PscriptTypeClass;
-import de.peeeq.wurstscript.types.PscriptTypeInterface;
 import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.TopsortCycleException;
@@ -672,21 +669,17 @@ public class JassTranslator {
 					translateInterfaceDef(interfaceDef);
 				}
 
-				@Override
-				public void case_InstanceDef(InstanceDef instanceDef) {
-					// not translated
-				}
 			});
 		}
 	}
 
 	protected void translateInterfaceDef(InterfaceDef interfaceDef) {
-		List<InstanceDef> instances = Lists.newArrayList(wurstProg.attrInstanceDefs().get(interfaceDef));
+		List<ClassDef> instances = Lists.newArrayList(wurstProg.attrInterfaceInstances().get(interfaceDef));
 		
-		Collections.sort(instances, new Comparator<InstanceDef>() {
+		Collections.sort(instances, new Comparator<ClassDef>() {
 
 			@Override
-			public int compare(InstanceDef o1, InstanceDef o2) {
+			public int compare(ClassDef o1, ClassDef o2) {
 				int i1 = getTypeId(o1);
 				int i2 = getTypeId(o2);
 				if (i1 > i2) { 
@@ -709,20 +702,12 @@ public class JassTranslator {
 		}
 	}
 
-	private int getTypeId(InstanceDef o1) {
+	private int getTypeId(ClassDef o1) {
 		return manager.getTypeId(o1);
 	}
 	
-	protected ClassDef getClassDef(InstanceDef o1) {
-		PscriptType t = o1.getClassTyp().attrTyp();
-		if (t instanceof PscriptTypeClass) {
-			PscriptTypeClass c = (PscriptTypeClass) t;
-			return c.getClassDef();
-		}
-		throw new CompileError(o1.getSource(), "Instance must refer to class type.");
-	}
 
-	private void translateInterfaceFuncDef(InterfaceDef interfaceDef, List<InstanceDef> instances, FuncDef funcDef) {
+	private void translateInterfaceFuncDef(InterfaceDef interfaceDef, List<ClassDef> instances, FuncDef funcDef) {
 		JassFunction f = manager.getJassFunctionFor(funcDef);
 		prog.getFunctions().add(f);
 		
@@ -737,7 +722,7 @@ public class JassTranslator {
 		
 	}
 
-	private List<JassStatement> createDispatch(List<InstanceDef> instances, int start, int end, FuncDef funcDef, JassFunction f) {
+	private List<JassStatement> createDispatch(List<ClassDef> instances, int start, int end, FuncDef funcDef, JassFunction f) {
 		List<JassStatement> result = Lists.newArrayList();
 		boolean returnsVoid = funcDef.attrTyp() instanceof PScriptTypeVoid;
 		if (start > end) {
@@ -753,26 +738,8 @@ public class JassTranslator {
 			}
 			return result;
 		} else if (start == end) {
-			InstanceDef instance = instances.get(start);
-			for (FuncDef mapping : instance.getFuncDefs()) {
-				if (mapping.getName().equals(funcDef.getName())) {
-					translateFuncDef(mapping, true);
-					String funcName = manager.getJassFunctionFor(mapping).getName();
-					JassExprlist arguments = JassExprlist();
-					for (WParameter p : funcDef.getParameters()) {
-						arguments.add(JassExprVarAccess(manager.getJassVarNameFor(p)));
-					}
-					if (returnsVoid) {
-						result.add(JassStmtCall(funcName, arguments));
-					} else {
-						result.add(JassStmtReturn(JassAst.JassExprFunctionCall(funcName, arguments)));
-					}
-					return result; 
-				}
-			}
-			// not defined in mapping -> look into class
-			ClassDef classDef = getClassDef(instance);
-			for (NameDef nameDef : classDef.attrVisibleNamesPrivate().get(funcDef.getName())) {
+			ClassDef instance = instances.get(start);
+			for (NameDef nameDef : instance.attrVisibleNamesPrivate().get(funcDef.getName())) {
 				if (nameDef instanceof FuncDef) {
 					FuncDef calledFunc = (FuncDef) nameDef;
 					JassFunction calledJassFunc = manager.getJassFunctionFor(calledFunc);
@@ -1107,19 +1074,8 @@ public class JassTranslator {
 	}
 
 	
-	int getInstanceId(AstElement where, PscriptTypeInterface interfaceType, PscriptTypeClass classType) {
-		Collection<InstanceDef> instanceDefs = where.attrNearestPackage().attrInstanceDefs().get(interfaceType.getInterfaceDef());
-		for (InstanceDef instanceDef : instanceDefs) {
-			PscriptTypeClass instanceDefClassType = (PscriptTypeClass) instanceDef.getClassTyp().attrTyp();
-			if (instanceDefClassType.getClassDef() == classType.getClassDef()) {
-				return manager.getTypeId(instanceDef);
-			}
-		}
-		throw new CompileError(where.attrSource(), "Could not get instance id for class " + classType + " with respect ot interface " + interfaceType);
-	}
-	
 	private JassVar[] newJassVars(VarDef v, String suffix, PscriptType baseTyp, boolean isArray) {
-		String name = manager.getJassVarNameFor(v)+ suffix;
+		String name = manager.getJassVarNameFor(v, v instanceof LocalVarDef)+ suffix;
 		String[] translatedTypes = translateType(baseTyp);
 		JassVar[] result = new JassVar[translatedTypes.length];
 		for (int i=0; i<result.length; i++) {

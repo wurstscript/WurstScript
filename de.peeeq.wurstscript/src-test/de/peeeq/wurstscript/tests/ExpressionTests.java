@@ -21,6 +21,12 @@ public class ExpressionTests extends PscriptTest {
 		assertOk("3 * 4 == 12");
 	}
 	
+	
+	@Test
+	public void parantheses() {
+		assertOk("(3-1)*(3-1) + (2-5)*(2-5)  == 13");
+	}
+	
 	@Test
 	public void div1() {
 		assertOk("14 div 3 == 4");

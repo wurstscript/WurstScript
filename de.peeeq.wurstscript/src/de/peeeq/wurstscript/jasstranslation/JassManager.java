@@ -13,7 +13,6 @@ import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.InitBlock;
-import de.peeeq.wurstscript.ast.InstanceDef;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.VarDef;
@@ -262,10 +261,10 @@ public class JassManager {
 		return v;
 	}
 
-	private Map<InstanceDef, Integer> typeIds = Maps.newHashMap();
+	private Map<ClassDef, Integer> typeIds = Maps.newHashMap();
 	private int typeIdCounter = 0;
 	
-	public int getTypeId(InstanceDef o1) {
+	public int getTypeId(ClassDef o1) {
 		if (!typeIds.containsKey(o1)) {
 			typeIdCounter++;
 			typeIds.put(o1, typeIdCounter);
