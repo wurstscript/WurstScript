@@ -114,8 +114,15 @@ public class ExprTranslation {
 	}
 	
 	public static ExprTranslationResult translate(ExprThis e, JassTranslator translator, JassFunction f) {
-		// TODO is "this" always a single variable?
-		return new ExprTranslationResult(JassExprVarAccess("this"));
+		PscriptType thisType = e.attrTyp();
+		String[] thisJassType = thisType.jassTranslateType(); 
+		List<JassExpr> exprs = Lists.newArrayList();
+		for (int i=0; i < thisJassType.length; i++) {
+			// assuming that the first n parameters are always dedicated for 'this'
+			exprs.add(JassExprVarAccess(f.getParams().get(i).getName()));
+		}
+		List<JassStatement> statements = Collections.emptyList();
+		return new ExprTranslationResult(statements, exprs);
 	}
 	
 	public static ExprTranslationResult translate(ExprBinary exprBinary, JassTranslator translator, JassFunction f) {
@@ -312,7 +319,8 @@ public class ExprTranslation {
 	private static ExprTranslationResult createTupleVarAccess(JassTranslator translator, JassFunction f, ExprMemberVar e, PscriptTypeTuple tupleType) {
 		ExprTranslationResult leftJass = e.getLeft().jassTranslateExpr(translator, f);
 		NameDef varDef = e.attrNameDef();
-		
+		System.out.println("var = " + varDef);
+		System.out.println("left  = " + e.getLeft());
 		return new ExprTranslationResult(leftJass.getStatements(), tupleType.getJassExprs(leftJass.getExpressions(), varDef));
 		
 		
@@ -452,7 +460,6 @@ public class ExprTranslation {
 		String[] returnTypes = calledFunc.attrTyp().jassTranslateType();
 		for (int i = 1; i < returnTypes.length; i++) {
 			exprs.add(JassExprVarAccess(translator.manager.getTupleReturnVar(returnTypes[i], i).getName()));
-			i++;
 		}
 		return new ExprTranslationResult(statements, exprs);
 	}
