@@ -1,0 +1,78 @@
+package Unit
+    
+    public function unit.getX() returns real
+		return GetUnitX(this)
+		
+	public function unit.getY() returns real
+		return GetUnitY(this)
+		
+	public function unit.setX(real x) returns unit
+		SetUnitX(this, x)
+		return this
+		
+	public function unit.setY(real y) returns unit
+		SetUnitY(this, y)
+		return this
+		
+	public function unit.setXY(real x, real y) returns unit
+		SetUnitX(this, x)
+		SetUnitY(this, y)
+		return this
+        
+    public function unit.setPos(real x, real y) returns unit
+		SetUnitPosition(this, x, y)
+		return this
+		
+	public function unit.kill() returns unit
+		KillUnit(this)
+		return this
+		
+	public function unit.addAbility(int abil) returns unit
+		UnitAddAbility(this, abil)
+		return this
+		
+	public function unit.removeAbility(int abil) returns unit
+		UnitRemoveAbility(this, abil)
+		return this
+	
+	public function unit.getOwner() returns player
+		return GetOwningPlayer(this)
+		
+	public function unit.setOwner(player p, boolean changeColor) returns unit
+		SetUnitOwner(this, p, changeColor)
+		return this
+		
+	public function unit.setScale(real scale) returns unit
+		SetUnitScale(this, scale, scale, scale)
+		return this
+		
+	public function unit.setVertexColor(int r, int g, int b, int a) returns unit
+		SetUnitVertexColor(this, r, g, b, a)
+		return this
+		
+	public function unit.addEffect(string fx, string attachment) returns effect
+		return AddSpecialEffectTarget(fx, this, attachment)
+	
+	public function unit.setFacing(real deg) returns unit
+		SetUnitFacing(this, deg)
+		return this
+		
+	public function unit.getFacing() returns real
+		return GetUnitFacing(this)
+		
+	public function unit.getFlyHeight() returns real
+		return GetUnitFlyHeight(this)
+		
+	public function unit.setFlyHeight(real height, real rate) returns unit
+		SetUnitFlyHeight(this, height, rate)
+		return this
+	
+	public function unit.hide() returns unit
+		ShowUnit(this, false)
+		return this
+	
+	public function unit.show() returns unit
+		ShowUnit(this, true)
+		return this
+
+endpackage
