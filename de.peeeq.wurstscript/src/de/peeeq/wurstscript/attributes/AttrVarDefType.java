@@ -15,6 +15,7 @@ import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.OptExpr;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
+import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WParameter;
@@ -24,6 +25,7 @@ import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeInterface;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
 import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
+import de.peeeq.wurstscript.types.PscriptTypeTuple;
 import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
 
 
@@ -93,6 +95,10 @@ public class AttrVarDefType {
 			typeArgs.add(tp.attrTyp());
 		}
 		return new PscriptTypeInterface(i, typeArgs, true);
+	}
+
+	public static PscriptType calculate(TupleDef t) {
+		return new PscriptTypeTuple(t);
 	}
 
 	

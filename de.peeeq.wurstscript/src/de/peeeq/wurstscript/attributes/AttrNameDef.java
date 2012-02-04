@@ -10,8 +10,10 @@ import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.StmtSet;
+import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
+import de.peeeq.wurstscript.types.PscriptTypeTuple;
 
 /**
  * this attribute find the variable definition for every variable reference
@@ -82,6 +84,15 @@ public class AttrNameDef {
 			} else {
 				return names.get(0);
 			}
+		} else if (leftType instanceof PscriptTypeTuple) {
+			PscriptTypeTuple tupleType = (PscriptTypeTuple) leftType;
+			for (WParameter p : tupleType.getTupleDef().getParameters()) {
+				if (p.getName().equals(varName)) {
+					return p;
+				}
+			}
+			attr.addError(node.getSource(), "Variable " + varName + " not found.");
+			return null;
 		} else {
 			attr.addError(node.getSource(), "Cannot acces attribute " + varName + " because " + leftType
 					+ " is not a class-type.");

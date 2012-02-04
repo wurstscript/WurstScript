@@ -32,10 +32,10 @@ public class ExpressionTests extends PscriptTest {
 		assertOk("14 div 3 == 4");
 	}
 	
-	@Test
-	public void div2() {
-		assertError("Cannot compare types", "14 / 4 == 7");
-	}
+//	@Test
+//	public void div2() {
+//		assertError("Cannot compare types", "14 / 4 == 7");
+//	}
 	
 	@Test
 	public void div3() {

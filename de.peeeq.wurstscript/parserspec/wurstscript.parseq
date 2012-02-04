@@ -39,6 +39,7 @@ OptExpr = NoExpr() | Expr
 TypeDef = 
 	  NativeType(WPos source, Modifiers modifiers, String name, OptTypeExpr optTyp)
 	| ClassDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, TypeExprList implementsList, ClassSlots slots)
+	| TupleDef(WPos source, Modifiers modifiers, String name, WParameters parameters, OptTypeExpr returnTyp)
 	| InterfaceDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, TypeExprList extendsList, ClassSlots slots)
 	| TypeParamDef
 	
@@ -181,7 +182,7 @@ FunctionCall = ExprMemberMethod | ExprFunctionCall
 FuncRef = ExprFuncRef | FunctionCall
 	
 	
-NotExtensionFunction = NativeFunc | FuncDef
+NotExtensionFunction = NativeFunc | FuncDef | TupleDef
 
 FunctionDefinition = NotExtensionFunction | ExtensionFuncDef
 	

@@ -25,6 +25,7 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 
+import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithIndexes;
 import de.peeeq.wurstscript.ast.ConstructorDef;
@@ -35,6 +36,7 @@ import de.peeeq.wurstscript.ast.ExprCast;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprIncomplete;
 import de.peeeq.wurstscript.ast.ExprIntVal;
+import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprNull;
 import de.peeeq.wurstscript.ast.ExprRealVal;
@@ -49,21 +51,25 @@ import de.peeeq.wurstscript.ast.OpAnd;
 import de.peeeq.wurstscript.ast.OpDivReal;
 import de.peeeq.wurstscript.ast.OpModInt;
 import de.peeeq.wurstscript.ast.OpModReal;
+import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WParameters;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassExprBinary;
+import de.peeeq.wurstscript.jassAst.JassExprVarAccess;
 import de.peeeq.wurstscript.jassAst.JassExprlist;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassStatement;
 import de.peeeq.wurstscript.jassAst.JassStatements;
 import de.peeeq.wurstscript.jassAst.JassVar;
+import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeInterface;
+import de.peeeq.wurstscript.types.PscriptTypeTuple;
 
 public class ExprTranslation {
 
@@ -108,8 +114,15 @@ public class ExprTranslation {
 	}
 	
 	public static ExprTranslationResult translate(ExprThis e, JassTranslator translator, JassFunction f) {
-		// TODO is "this" always a single variable?
-		return new ExprTranslationResult(JassExprVarAccess("this"));
+		PscriptType thisType = e.attrTyp();
+		String[] thisJassType = thisType.jassTranslateType(); 
+		List<JassExpr> exprs = Lists.newArrayList();
+		for (int i=0; i < thisJassType.length; i++) {
+			// assuming that the first n parameters are always dedicated for 'this'
+			exprs.add(JassExprVarAccess(f.getParams().get(i).getName()));
+		}
+		List<JassStatement> statements = Collections.emptyList();
+		return new ExprTranslationResult(statements, exprs);
 	}
 	
 	public static ExprTranslationResult translate(ExprBinary exprBinary, JassTranslator translator, JassFunction f) {
@@ -124,8 +137,8 @@ public class ExprTranslation {
 
 		PscriptType leftType = exprBinary.getLeft().attrTyp();
 		PscriptType rightType = exprBinary.getRight().attrTyp();
-		String[] leftTypes = translator.translateType(leftType);
-		String[] rightTypes = translator.translateType(rightType);
+		String[] leftTypes = leftType.jassTranslateType();
+		String[] rightTypes = rightType.jassTranslateType();
 		
 		if (left.getExpressions().size() > 1 || right.getExpressions().size() > 1) {
 			statements.addAll(right.getStatements());
@@ -260,11 +273,22 @@ public class ExprTranslation {
 			VarDef varDef = (VarDef) decl;
 
 			List<JassVar> jassVars = translator.manager.getJassVarsFor(varDef);
-
+			
+			
 			if (e.attrImplicitParameter() instanceof Expr) {
 				// we have implicit parameter
 				// e.g. "someObject.someField"
 				Expr implicitParam = (Expr) e.attrImplicitParameter();
+				
+				if (implicitParam.attrTyp() instanceof PscriptTypeTuple) {
+					PscriptTypeTuple tupleType = (PscriptTypeTuple) implicitParam.attrTyp();
+					if (e instanceof ExprMemberVar) {
+						return createTupleVarAccess(translator, f, (ExprMemberVar) e, tupleType);
+					} else {
+						throw new CompileError(e.getSource(), "Cannot create tuple access");
+					}
+				}
+				
 				if (e instanceof AstElementWithIndexes) {
 					throw new CompileError(e.getSource(), "Member array variables are not supported.");
 				} else {
@@ -290,6 +314,16 @@ public class ExprTranslation {
 		} else {
 			throw new CompileError(e.getSource(), "Cannot translate reference to " + decl.getClass().getName());
 		}
+	}
+
+	private static ExprTranslationResult createTupleVarAccess(JassTranslator translator, JassFunction f, ExprMemberVar e, PscriptTypeTuple tupleType) {
+		ExprTranslationResult leftJass = e.getLeft().jassTranslateExpr(translator, f);
+		NameDef varDef = e.attrNameDef();
+		System.out.println("var = " + varDef);
+		System.out.println("left  = " + e.getLeft());
+		return new ExprTranslationResult(leftJass.getStatements(), tupleType.getJassExprs(leftJass.getExpressions(), varDef));
+		
+		
 	}
 
 	static private  ExprTranslationResult createVarAccess(JassTranslator translator, List<JassVar> jassVars) {
@@ -355,7 +389,7 @@ public class ExprTranslation {
 			statements.addAll(arg.getStatements());
 
 			PscriptType paramType = types.get(i);
-			String[] paramJassTypes = translator.translateType(paramType);
+			String[] paramJassTypes = paramType.jassTranslateType();
 
 			if (paramJassTypes.length == 2 && arg.exprCount() == 1) {
 				Expr a = args.get(i);
@@ -403,6 +437,10 @@ public class ExprTranslation {
 			// this must be an ignored function
 			return new ExprTranslationResult(JassExprNull());
 		}
+		if (calledFunc instanceof TupleDef) {
+			TupleDef tupleDef = (TupleDef) calledFunc;
+			return translateTupleConstructorCall(translator, f, call, tupleDef);
+		}
 		JassFunction calledJassFunc = translator.manager.getJassFunctionFor(calledFunc);
 
 		translator.calledFunctions.put(f, calledJassFunc);
@@ -419,11 +457,35 @@ public class ExprTranslation {
 		List<JassExpr> exprs = Lists.newArrayList();
 		exprs.add(JassExprFunctionCall(functionName, jassArgs));
 
-		String[] returnTypes = translator.translateType(calledFunc.attrTyp());
+		String[] returnTypes = calledFunc.attrTyp().jassTranslateType();
 		for (int i = 1; i < returnTypes.length; i++) {
 			exprs.add(JassExprVarAccess(translator.manager.getTupleReturnVar(returnTypes[i], i).getName()));
+		}
+		return new ExprTranslationResult(statements, exprs);
+	}
+
+	private static ExprTranslationResult translateTupleConstructorCall(JassTranslator translator, JassFunction f,
+			FunctionCall call, TupleDef tupleDef) {
+		List<JassStatement> statements = Lists.newArrayList();
+		List<JassExpr> exprs = Lists.newArrayList();
+		
+		ExprListTranslationResult args = translateArguments(translator, call, f, call.getArgs(), call.attrParameterTypes());
+		statements.addAll(args.getStatements());
+		
+		String[] jassTypes = tupleDef.attrTyp().jassTranslateType();
+		
+		int i = 0;
+		
+		// smart store to temp variables:
+		for (JassExpr argExpr : args.getExprs()) {
+			JassExprVarAccess argExprCached; // TODO use less temp variables, be smarter
+			JassVar tempVar = translator.getNewTempVar(f, jassTypes[i]);
+			statements.add(JassStmtSet(tempVar.getName(), argExpr));
+			argExprCached = JassExprVarAccess(tempVar.getName());
+			exprs.add(argExprCached);
 			i++;
 		}
+		
 		return new ExprTranslationResult(statements, exprs);
 	}
 

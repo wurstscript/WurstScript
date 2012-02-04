@@ -52,6 +52,7 @@ import de.peeeq.wurstscript.ast.OpOr;
 import de.peeeq.wurstscript.ast.OpPlus;
 import de.peeeq.wurstscript.ast.OpUnary;
 import de.peeeq.wurstscript.ast.OpUnequals;
+import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.VarDef;
@@ -71,6 +72,7 @@ import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
 import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
 import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
+import de.peeeq.wurstscript.types.PscriptTypeTuple;
 import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
@@ -88,6 +90,9 @@ public class AttrExprType {
 		if (Utils.isJassCode(term)) {
 			return PScriptTypeJassInt.instance();
 		} else {
+			if (term.attrExpectedTyp() instanceof PScriptTypeReal) {
+				return PScriptTypeReal.instance();
+			}
 			return PScriptTypeInt.instance();
 		}
 	}
@@ -514,6 +519,9 @@ public class AttrExprType {
 			return PScriptTypeUnknown.instance();
 		}
 		if (f.getReturnTyp() instanceof NoTypeExpr) {
+			if (f instanceof TupleDef) {
+				return new PscriptTypeTuple((TupleDef) f);
+			}
 			return PScriptTypeVoid.instance();
 		}
 		PscriptType typ = f.getReturnTyp().attrTyp().dynamic();

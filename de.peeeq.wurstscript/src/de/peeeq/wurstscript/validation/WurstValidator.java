@@ -56,6 +56,7 @@ import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.StmtWhile;
+import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.VarDef;
@@ -713,6 +714,11 @@ public class WurstValidator {
 
 				@Override
 				public void case_InterfaceDef(InterfaceDef interfaceDef) {
+					check(VisibilityPublic.class);
+				}
+
+				@Override
+				public void case_TupleDef(TupleDef tupleDef) {
 					check(VisibilityPublic.class);
 				}
 
