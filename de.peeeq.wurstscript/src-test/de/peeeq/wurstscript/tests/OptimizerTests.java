@@ -16,6 +16,18 @@ public class OptimizerTests extends PscriptTest {
 				"endpackage");
 	}
 	
+	@Test
+	public void test_number_shortening2() {
+		assertOk(false,
+				"package test",
+				"	function foo() returns real",
+				"		if 1.0 > 0.1",
+				"			return 0.0",
+				"		else",
+				"			return 1.10",
+				"endpackage");
+	}
+	
 
 
 	

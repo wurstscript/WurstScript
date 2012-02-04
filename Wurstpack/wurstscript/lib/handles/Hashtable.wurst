@@ -1,5 +1,7 @@
 package Hashtable
     
-    
+    function hashtable.saveReal( integer parentKey, integer childKey, real value ) returns real
+        SaveReal( this, parentKey, childKey, value )
+        return value
 
 endpackage
