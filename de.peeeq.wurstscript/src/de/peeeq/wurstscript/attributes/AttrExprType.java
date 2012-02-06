@@ -78,6 +78,7 @@ import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
 
 
+
 /**
  * this attribute find the variable definition for every variable reference 
  *

@@ -1083,7 +1083,7 @@ public class JassTranslator {
 		String[] translatedTypes = baseTyp.jassTranslateType();
 		JassVar[] result = new JassVar[translatedTypes.length];
 		for (int i=0; i<result.length; i++) {
-			String name2 = manager.getUniqueName(name);
+			String name2 = i == 0 ? name : manager.getUniqueName(name);
 			if (isArray) {
 				result[i] = JassAst.JassArrayVar(translatedTypes[i], name2);
 			} else {

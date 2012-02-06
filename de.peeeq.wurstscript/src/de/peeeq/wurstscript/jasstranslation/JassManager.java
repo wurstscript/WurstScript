@@ -276,7 +276,7 @@ public class JassManager {
 	private Map<String, JassVar> tupleReturnVars = Maps.newHashMap();
 	
 	public JassVar getTupleReturnVar(String type, int i) {
-		String varname = "wurst__tupleReturnVar" + i;
+		String varname = "wurst__tupleReturnVar_" + type + "_" + i;
 		if (tupleReturnVars.containsKey(varname)) {
 			return tupleReturnVars.get(varname);
 		}
