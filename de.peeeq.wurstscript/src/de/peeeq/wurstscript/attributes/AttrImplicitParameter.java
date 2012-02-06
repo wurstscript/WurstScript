@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
+import de.peeeq.wurstscript.ast.ExprThis;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
 import de.peeeq.wurstscript.ast.FunctionCall;
@@ -86,7 +87,9 @@ public class AttrImplicitParameter {
 			// dynamic function call
 			if (e.attrIsDynamicContext()) {		
 				// dynamic context means we have a 'this':
-				return Ast.ExprThis(Ast.WPos("{generated}", LineOffsets.dummy, 0, 0));
+				ExprThis t = Ast.ExprThis(Ast.WPos("{generated}", LineOffsets.dummy, 0, 0));
+				t.setParent(e);
+				return t;
 			} else {
 				attr.addError(e.getSource(), "Cannot call dynamic function " + e.getFuncName() + " from static context." );
 				return Ast.NoExpr();
@@ -105,7 +108,9 @@ public class AttrImplicitParameter {
 				// dynamic var access
 				if (e.attrIsDynamicContext()) {		
 					// dynamic context means we have a 'this':
-					return Ast.ExprThis(Ast.WPos("{generated}", LineOffsets.dummy, 0, 0));
+					ExprThis t = Ast.ExprThis(Ast.WPos("{generated}", LineOffsets.dummy, 0, 0));
+					t.setParent(e);
+					return t;
 				} else {
 					attr.addError(e.getSource(), "Cannot access dynamic variabe " + varDef.getName() + " from static context." );
 					return Ast.NoExpr();
