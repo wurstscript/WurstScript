@@ -2,6 +2,8 @@
 
 package Wurst
 
-	import ExtensionFunctions
+    import public ExtensionFunctions
+    import public Real
+    import public Integer
 
 endpackage

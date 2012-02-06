@@ -1,15 +1,15 @@
-package realeger
+package Real
     
-    function real.abs() returns real
+    public function real.abs() returns real
         if this >= 0
             return this
         else
             return -this
 
-    function real.pow() returns real
+    public function real.pow() returns real
         return this*this
             
-    function real.sign() returns real
+    public function real.sign() returns real
         if this > 0.0
             return 1.0
         else if this < 0.0
@@ -17,25 +17,25 @@ package realeger
         else
             return 0.0
 
-    function real.toInt() returns int
+    public function real.toInt() returns int
         return R2I(this)
     
-    function real.toString() returns string
+    public function real.toString() returns string
         return R2S(this)
         
-    function real.acos() returns real
+    public function real.acos() returns real
         return Acos(this)
         
-    function real.asin() returns real
+    public function real.asin() returns real
         return Asin(this)
 
-    function real.atan() returns real
+    public function real.atan() returns real
         return Atan(this)
         
-    function real.cos() returns real
+    public function real.cos() returns real
         return Cos(this)
         
-    function real.sin() returns real
+    public function real.sin() returns real
         return Sin(this)
         
 endpackage
