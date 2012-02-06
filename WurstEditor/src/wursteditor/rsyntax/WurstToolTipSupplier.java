@@ -22,6 +22,7 @@ import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.NativeType;
+import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WParameter;
@@ -119,6 +120,11 @@ public class WurstToolTipSupplier implements ToolTipSupplier {
 			@Override
 			public String case_InterfaceDef(InterfaceDef interfaceDef) {
 				return "interface: " + interfaceDef.getName();
+			}
+
+			@Override
+			public String case_TupleDef(TupleDef tupleDef) {
+				return "tuple " + tupleDef.getName();
 			}
 		});
 	}

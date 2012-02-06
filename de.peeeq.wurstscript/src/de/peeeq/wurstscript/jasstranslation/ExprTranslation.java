@@ -51,6 +51,7 @@ import de.peeeq.wurstscript.ast.OpAnd;
 import de.peeeq.wurstscript.ast.OpDivReal;
 import de.peeeq.wurstscript.ast.OpModInt;
 import de.peeeq.wurstscript.ast.OpModReal;
+import de.peeeq.wurstscript.ast.OpOr;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WParameter;
@@ -126,6 +127,7 @@ public class ExprTranslation {
 	}
 	
 	public static ExprTranslationResult translate(ExprBinary exprBinary, JassTranslator translator, JassFunction f) {
+		
 		ExprTranslationResult left = exprBinary.getLeft().jassTranslateExpr(translator, f);
 		ExprTranslationResult right = exprBinary.getRight().jassTranslateExpr(translator, f);
 
@@ -134,6 +136,7 @@ public class ExprTranslation {
 
 		List<JassStatement> statements = Lists.newArrayList();
 		
+		System.out.println("expr = " + exprBinary);
 
 		PscriptType leftType = exprBinary.getLeft().attrTyp();
 		PscriptType rightType = exprBinary.getRight().attrTyp();
@@ -141,7 +144,7 @@ public class ExprTranslation {
 		String[] rightTypes = rightType.jassTranslateType();
 		
 		if (left.getExpressions().size() > 1 || right.getExpressions().size() > 1) {
-			statements.addAll(right.getStatements());
+//			statements.addAll(right.getStatements());
 			
 			if (left.exprCount() != right.exprCount()) {
 				if (leftType instanceof PscriptTypeClass && rightType instanceof PscriptTypeInterface) {
@@ -181,15 +184,22 @@ public class ExprTranslation {
 		if (right.getStatements().size() > 0) {
 			String type = translator.translateTypeSingle(leftType);
 			JassVar tempVar = translator.getNewTempVar(f, type);
+			//>> set temp = LEFT
 			statements.add(JassStmtSet(tempVar.getName(), left.getExpressions().get(0)));
 			leftExpr = JassExprVarAccess(tempVar.getName());
 
 
 			// boolean operators (and, or) have to be treated differently because the evaluation
 			// of the right hand side depends on the result of the left hand side.
-			if (exprBinary.getOp() instanceof OpAnd) {
+			if (exprBinary.getOp() instanceof OpOr) {
+				// we have (LEFT or RIGHT)
 				JassStatements thenBlock = JassStatements();
 				JassStatements elseBlock  = JassStatements();;
+				//>> if temp then
+				//>> else
+				//>> 	RIGHT.statements
+				//>>	temp = RIGHT.expr
+				//>> endif
 				elseBlock.addAll(right.getStatements());
 				elseBlock.add(JassStmtSet(tempVar.getName(), right.getExpressions().get(0)));
 				statements.add(
@@ -198,8 +208,13 @@ public class ExprTranslation {
 								thenBlock, elseBlock));
 				return new ExprTranslationResult(statements, JassExprVarAccess(tempVar.getName()));
 			} else if (exprBinary.getOp() instanceof OpAnd) {
+				// we have (LEFT and RIGHT)
 				JassStatements thenBlock = JassStatements();
 				JassStatements elseBlock  = JassStatements();;
+				//>> if temp then
+				//>> 	RIGHT.statements
+				//>>	temp = RIGHT.expr
+				//>> endif
 				thenBlock.addAll(right.getStatements());
 				thenBlock.add(JassStmtSet(tempVar.getName(), right.getExpressions().get(0)));
 				statements.add(

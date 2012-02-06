@@ -896,7 +896,8 @@ public class Generator {
 		sb.append("public interface "+getCommonSupertypeType()+" {\n" +
 				"	"+getCommonSupertypeType()+" getParent();\n" +
 				"	int size();\n" +
-				"	"+getCommonSupertypeType()+" get(int i);\n");
+				"	"+getCommonSupertypeType()+" get(int i);\n"+
+				"	void setParent("+getCommonSupertypeType()+" parent);\n");
 		for (AttributeDef attr : prog.attrDefs) {
 			if (attr.typ.equals(getCommonSupertypeType())) {
 				sb.append("	"  +attr.returns + " " + attr.attr + "();\n");

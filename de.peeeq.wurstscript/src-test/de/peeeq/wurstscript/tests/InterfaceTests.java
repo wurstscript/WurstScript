@@ -30,6 +30,49 @@ public class InterfaceTests extends PscriptTest {
 			);
 	}
 	
+	
+	@Test
+	public void equality() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	interface I",
+				"		function foo()",
+				"	class B implements I",
+				"		function foo()",
+				"	class C implements I",
+				"		function foo()",
+				"	init",
+				"		I a = new B()",
+				"		I b = new B()",
+				"		I c = new C()",
+				"		if not (a == b or a == c)",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void inequality() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	interface I",
+				"		function foo()",
+				"	class B implements I",
+				"		function foo()",
+				"	class C implements I",
+				"		function foo()",
+				"	init",
+				"		I a = new B()",
+				"		I b = new B()",
+				"		I c = new C()",
+				"		if a != b and a != c",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
 	@Test
 	public void hierarchy() {
 		testAssertOkLines(true, 
