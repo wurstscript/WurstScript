@@ -33,7 +33,7 @@ import de.peeeq.wurstscript.utils.Utils;
 	
 	int currentLineWhiteSpace = 0;
 	boolean isStart = true; // are we at the start of a line before the text begins
-	int mode = 0; // 0: unknown mode, 1: space mode, 2: tab mode
+//	int mode = 0; // 0: unknown mode, 1: space mode, 2: tab mode
 	
 	LineOffsets lineStartOffsets = new LineOffsets(); 
 	int currentLine = -1;
@@ -127,7 +127,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 					}	
 	"//" [^\r\n]* 			           { }
 	"/*" ~"*/"                        { }
-	"package"							{ mode = 0; yybegin(WURST); return symbol(TokenType.PACKAGE); }
+	"package"							{ /*mode = 0;*/ yybegin(WURST); return symbol(TokenType.PACKAGE); }
 	"return"                          	{ return jassSymbol(TokenType.RETURN); }
 	"if"                              	{ return jassSymbol(TokenType.IF); }
 	"else"                            	{ return jassSymbol(TokenType.ELSE); }
@@ -194,19 +194,19 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	[\t]                    { 
 								if (isStart) {
 									currentLineWhiteSpace += 4;
-									if (mode == 2) {
-										returnStack.push(new Symbol(TokenType.CUSTOM_ERROR, yychar-1, yychar, "Mixing tabs and spaces is not allowed."));
-									}
-									mode = 1;
+//									if (mode == 2) {
+//										returnStack.push(new Symbol(TokenType.CUSTOM_ERROR, yychar-1, yychar, "Mixing tabs and spaces is not allowed."));
+//									}
+//									mode = 1;
 								}
 							}
 	[ ]						{ 
 								if (isStart) {	
 									currentLineWhiteSpace += 1; 
-									if (mode == 1) {
-										returnStack.push(new Symbol(TokenType.CUSTOM_ERROR, yychar-1, yychar, "Mixing spaces and tabs is not allowed."));
-									}
-									mode = 2;
+//									if (mode == 1) {
+//										returnStack.push(new Symbol(TokenType.CUSTOM_ERROR, yychar-1, yychar, "Mixing spaces and tabs is not allowed."));
+//									}
+//									mode = 2;
 								}
 							}
 	{NEWLINE}							
@@ -378,8 +378,9 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
   [^\n\r\"\\]+                   { string.append( yytext() ); }
 
   \\r                            { string.append('\r'); }
+  \\n                            { string.append('\n'); }
   \\\"                           { string.append('\"'); }
-  \\                             { string.append('\\'); }
+  \\\\                             { string.append('\\'); }
   
 }
 

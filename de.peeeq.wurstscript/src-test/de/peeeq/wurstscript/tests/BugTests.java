@@ -9,33 +9,21 @@ public class BugTests extends PscriptTest {
 	
 	@Test
 	public void test_empty_escapesequence() {
-		assertOk(false,
+		testAssertErrorsLines(false, "Lexical error", 
 				"package test",
 				"	function foo() returns string",
 				"		return \"\\ \" ",
 				"endpackage");
 	}
 
-	
-
-	
-
-	
-
-
-	
-	private String makeCode(String... body) {
-		return Utils.join(body, "\n");
+	@Test
+	public void test_correct_escapesequence() {
+		testAssertOkLines(false,
+				"package test",
+				"	function foo() returns string",
+				"		return \"\\\\ \" ",
+				"endpackage");
 	}
 	
-	public void assertOk( boolean executeProg, String ... body) {
-		String prog = makeCode(body);
-		testAssertOk(Utils.getMethodName(1), executeProg, prog);
-	}
 	
-	public void assertError( boolean executeProg, String expected, String ... body) {
-		String prog = makeCode(body);
-		testAssertErrors(Utils.getMethodName(1), executeProg, prog, expected);
-	}
-
 }

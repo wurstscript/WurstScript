@@ -44,8 +44,7 @@ public class ModifiersHelper {
 	}
 
 	public static boolean isConstant(AstElementWithModifiers e) {
-		return e instanceof WParameter // parameters are always constant
-				|| containsType(e.getModifiers(), ModConstant.class);
+		return containsType(e.getModifiers(), ModConstant.class);
 	}
 
 	static boolean containsType(de.peeeq.wurstscript.ast.Modifiers modifiers, Class<? extends Modifier> class1) {

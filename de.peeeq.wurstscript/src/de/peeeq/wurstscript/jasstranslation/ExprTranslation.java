@@ -1,31 +1,12 @@
 package de.peeeq.wurstscript.jasstranslation;
 
-import static de.peeeq.wurstscript.jassAst.JassAst.JassExprBinary;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassExprBoolVal;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassExprFuncRef;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassExprFunctionCall;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassExprIntVal;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassExprNull;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassExprRealVal;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassExprStringVal;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassExprUnary;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassExprVarAccess;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassExprVarArrayAccess;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassExprlist;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassOpAnd;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassOpDiv;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassOpEquals;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassOpMult;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassStatements;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtIf;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtSet;
+import static de.peeeq.wurstscript.jassAst.JassAst.*;
 
 import java.util.Collections;
 import java.util.List;
 
 import com.google.common.collect.Lists;
 
-import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithIndexes;
 import de.peeeq.wurstscript.ast.ConstructorDef;
@@ -62,10 +43,12 @@ import de.peeeq.wurstscript.jassAst.JassExprBinary;
 import de.peeeq.wurstscript.jassAst.JassExprVarAccess;
 import de.peeeq.wurstscript.jassAst.JassExprlist;
 import de.peeeq.wurstscript.jassAst.JassFunction;
+import de.peeeq.wurstscript.jassAst.JassOpBinary;
+import de.peeeq.wurstscript.jassAst.JassOpEquals;
+import de.peeeq.wurstscript.jassAst.JassOpUnequals;
 import de.peeeq.wurstscript.jassAst.JassStatement;
 import de.peeeq.wurstscript.jassAst.JassStatements;
 import de.peeeq.wurstscript.jassAst.JassVar;
-import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
@@ -117,6 +100,11 @@ public class ExprTranslation {
 	public static ExprTranslationResult translate(ExprThis e, JassTranslator translator, JassFunction f) {
 		PscriptType thisType = e.attrTyp();
 		String[] thisJassType = thisType.jassTranslateType(); 
+		
+		if (e.attrNearestScope() instanceof ConstructorDef) {
+			return new ExprTranslationResult(JassExprVarAccess("this"));
+		}
+		
 		List<JassExpr> exprs = Lists.newArrayList();
 		for (int i=0; i < thisJassType.length; i++) {
 			// assuming that the first n parameters are always dedicated for 'this'
@@ -161,16 +149,27 @@ public class ExprTranslation {
 			}
 			
 			
+			JassOpBinary jassOp = exprBinary.getOp().jassTranslateBinary();
+			JassOpBinary jassConjunctionOperator;
+			if (jassOp instanceof JassOpEquals) {
+				jassConjunctionOperator = JassOpAnd();
+			} else if (jassOp instanceof JassOpUnequals) {
+				jassConjunctionOperator = JassOpOr();
+			} else {
+				throw new CompileError(exprBinary.getSource(), "Cannot use this operator here.");
+			}
 			JassVar[] tempLeft = translator.assignToTempVar(f, statements, leftTypes, left);
 			JassVar[] tempRight = translator.assignToTempVar(f, statements, rightTypes, right);
-			JassExprBinary e = JassExprBinary(JassExprVarAccess(tempLeft[0].getName()), JassOpEquals(), JassExprVarAccess(tempRight[0].getName()));
+			JassExprBinary e = JassExprBinary(JassExprVarAccess(tempLeft[0].getName()), jassOp, JassExprVarAccess(tempRight[0].getName()));
 			for (int i=1; i < left.exprCount(); i++) {
+				jassOp = (JassOpBinary) jassOp.copy();
 				e = 
 						JassExprBinary(
-								e, JassOpAnd()
+								e, jassConjunctionOperator
 								, JassExprBinary(JassExprVarAccess(tempLeft[i].getName())
-										, exprBinary.getOp().jassTranslateBinary()
+										, jassOp
 										, JassExprVarAccess(tempRight[i].getName())));
+				jassConjunctionOperator = (JassOpBinary) jassConjunctionOperator.copy();
 			}
 			
 			return new ExprTranslationResult(statements, e);

@@ -14,6 +14,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.AstElementWithModifiers;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -25,6 +26,7 @@ import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprNewObject;
+import de.peeeq.wurstscript.ast.ExprThis;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
@@ -207,21 +209,23 @@ public class WurstValidator {
 			
 			@Override
 			public void case_ExprVarAccess(ExprVarAccess e) {
-				checkVar(e.attrNameDef());
+				checkVarNotConstant(left, e.attrNameDef());
 			}
 			
-			private void checkVar(NameDef var) {
-				if (var instanceof GlobalVarDef) {
-					GlobalVarDef g = (GlobalVarDef) var;
-					if (g.attrIsConstant()) {
-						attr.addError(left.getSource(), "Cannot assign a new value to constant variable " + g.getName());
-					}
-				}
-			}
-
 			@Override
 			public void case_ExprMemberVar(ExprMemberVar e) {
-				checkVar(e.attrNameDef());
+				if (e.attrNameDef() instanceof WParameter) {
+					// we have an assignment to a tuple variable
+					// check wether left side is 'this' or a constant variable
+					if (e.getLeft() instanceof ExprThis) {
+						attr.addError(e.getSource(), "Cannot change 'this'. Tuples are not classes.");
+					} else if (e.getLeft() instanceof NameRef) {
+						checkIfAssigningToConstant((NameRef) e.getLeft());
+					} else {
+						attr.addError(e.getSource(), "Ok, so you are trying to assign something to the return value of a function. This wont do nothing. Tuples are not classes.");
+					}
+				}
+				checkVarNotConstant(left, e.attrNameDef());
 			}
 			
 			@Override
@@ -229,6 +233,15 @@ public class WurstValidator {
 				
 			}
 		});
+	}
+	
+	private void checkVarNotConstant(NameRef left, NameDef var) {
+		if (var instanceof HasModifier) {
+			HasModifier g = (HasModifier) var;
+			if (g.attrIsConstant()) {
+				attr.addError(left.getSource(), "Cannot assign a new value to constant variable " + Utils.printElement(var));
+			}
+		}
 	}
 
 	private void checkAssignment(boolean isJassCode, WPos pos, PscriptType leftType, PscriptType rightType) {
@@ -621,7 +634,7 @@ public class WurstValidator {
 				
 				@Override
 				public void case_WParameter(WParameter wParameter) {
-					error.append("Parameters must not have modifiers");
+					check(ModConstant.class);
 				}
 				
 				@Override

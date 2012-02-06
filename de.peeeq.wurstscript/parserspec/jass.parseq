@@ -85,8 +85,19 @@ JassFuncRef.attrFuncDef
 	returns JassFunction
 	implemented by de.peeeq.wurstscript.attributes.JassAttributes.attrFuncDef
 
+	
+JassExpr.print(java.lang.StringBuilder sb, boolean withSpace)
+	returns void
+	implemented by de.peeeq.wurstscript.jassprinter.ExprPrinter.print
 
+JassStatement.print(java.lang.StringBuilder sb, int indent, boolean withSpace)
+	returns void
+	implemented by de.peeeq.wurstscript.jassprinter.StatementPrinter.print
 
+JassOp.print(java.lang.StringBuilder sb, boolean withSpace, boolean useParanthesesLeft, boolean useParanthesesRight)
+	returns void
+	implemented by de.peeeq.wurstscript.jassprinter.OpPrinter.print
 
-
-
+JassOp.asString()
+	returns String
+	implemented by de.peeeq.wurstscript.jassprinter.OpPrinter.asString
