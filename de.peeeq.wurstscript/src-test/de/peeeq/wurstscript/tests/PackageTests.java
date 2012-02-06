@@ -37,6 +37,25 @@ public class PackageTests extends PscriptTest {
 	
 
 	@Test
+	public void import_public() {
+		assertOk(false,
+				"package A",
+				"	public function foo(int x) returns int",
+				"		return x*2",
+				"	public int x = 0",
+				"endpackage",
+				"package B",
+				"	import public A",
+				"endpackage",
+				"package C",
+				"	import B",
+				"	init",
+				"		x = foo(2)",
+				"endpackage");
+	}
+	
+	
+	@Test
 	public void test_import_ext_function() {
 		assertOk(false,
 				"package A",

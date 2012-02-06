@@ -25,5 +25,19 @@ public class BugTests extends PscriptTest {
 				"endpackage");
 	}
 	
+
+	@Test
+	public void varname_with_interface() {
+		testAssertOkLines(false,
+				"package test",
+				"	interface I",
+				"		function foo()",
+				"	class C implements I",
+				"		function foo()",
+				"	init",
+				"		I a = new C()",
+				"		int a2 = 1337",
+				"endpackage");
+	}
 	
 }

@@ -1083,11 +1083,11 @@ public class JassTranslator {
 		String[] translatedTypes = baseTyp.jassTranslateType();
 		JassVar[] result = new JassVar[translatedTypes.length];
 		for (int i=0; i<result.length; i++) {
-			String suffix2 = (i==0) ? "" : (i+1) + "";
+			String name2 = manager.getUniqueName(name);
 			if (isArray) {
-				result[i] = JassAst.JassArrayVar(translatedTypes[i], name+suffix2);
+				result[i] = JassAst.JassArrayVar(translatedTypes[i], name2);
 			} else {
-				result[i] = JassAst.JassSimpleVar(translatedTypes[i], name+suffix2);
+				result[i] = JassAst.JassSimpleVar(translatedTypes[i], name2);
 			}
 		}
 		return result;

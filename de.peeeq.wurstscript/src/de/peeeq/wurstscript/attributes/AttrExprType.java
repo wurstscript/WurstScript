@@ -488,7 +488,7 @@ public class AttrExprType {
 			PscriptType leftType = term.getLeft().attrTyp();
 			if (leftType instanceof PscriptTypeClass ||
 					leftType instanceof PscriptTypeModule) {
-				return leftType;
+				return leftType.dynamic();
 			}
 		} else if (typ instanceof PscriptTypeTypeParam) {
 			PscriptTypeTypeParam typParam = (PscriptTypeTypeParam) typ;
@@ -501,10 +501,10 @@ public class AttrExprType {
 			// try left hand side type args	
 			if (term.getLeft().attrTyp() instanceof PscriptTypeNamedScope) {
 				PscriptTypeNamedScope ns = (PscriptTypeNamedScope) term.getLeft().attrTyp();
-				return ns.getTypeParameterBinding(typParam.getDef());
+				return ns.getTypeParameterBinding(typParam.getDef()).dynamic();
 			}
 		}
-		return typ.setTypeArgs(term.getLeft().attrTyp().getTypeArgBinding());
+		return typ.setTypeArgs(term.getLeft().attrTyp().getTypeArgBinding()).dynamic();
 	}
 
 

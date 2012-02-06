@@ -216,7 +216,7 @@ public class WurstValidator {
 			public void case_ExprMemberVar(ExprMemberVar e) {
 				if (e.attrNameDef() instanceof WParameter) {
 					// we have an assignment to a tuple variable
-					// check wether left side is 'this' or a constant variable
+					// check whether left side is 'this' or a constant variable
 					if (e.getLeft() instanceof ExprThis) {
 						attr.addError(e.getSource(), "Cannot change 'this'. Tuples are not classes.");
 					} else if (e.getLeft() instanceof NameRef) {
