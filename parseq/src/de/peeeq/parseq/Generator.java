@@ -376,7 +376,11 @@ public class Generator {
 				} else {
 					sb.append("/** " + attr.comment + "*/\n");
 					sb.append("	public " + attr.returns + " " + attr.attr + "("+printParams(attr.parameters)+") {\n");
-					sb.append("		return "+attr.implementedBy+"(this"+printArgs(attr.parameters)+");\n");
+					if (attr.returns.equals("void")) {
+						sb.append("		"+attr.implementedBy+"(this"+printArgs(attr.parameters)+");\n");
+					} else {
+						sb.append("		return "+attr.implementedBy+"(this"+printArgs(attr.parameters)+");\n");
+					}
 					sb.append("	}\n");
 				}
 			}

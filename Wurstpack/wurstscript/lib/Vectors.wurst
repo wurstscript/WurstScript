@@ -1,91 +1,75 @@
 package Vectors
-    
-    /*************************
-     ********3D-Vector********
-     *************************/
-    public tuple vec3( real x, real y, real z )
-    
-    public function vec3.assign( real x, real y, real z )
-        this.x = x
-        this.y = y
-        this.z = z
-        
-    public function vec3.add( vec3 v )
-        this.x += v.x
-        this.y += v.y
-        this.z += v.z
-    
-    public function vec3.sub( vec3 v )
-        this.x -= v.x
-        this.y -= v.y
-        this.z -= v.z
-        
-    public function vec3.scale( real factor )
-        this.x *= factor
-        this.y *= factor
-        this.z *= factor
-    
-    public function vec3.scaleXY( real factor )
-        this.x *= factor
-        this.y *= factor
-        
-    function vec3.cross( vec3 v ) returns vec3
-        return vec3( this.y*v.z-this.z*v.y, this.z*v.x-this.x*v.z, this.x*v.y-this.y*v.x ) 
-        
-    function vec3.dot( vec3 v ) returns real
-        return this.x*v.x+this.y*v.y+this.z*v.z
-    
-    function vec3.trim( real value )
-        if this.x > -value and this.x < value
-            this.x = 0.
-        if this.y > -value and this.y < value
-            this.y = 0.
-        if this.z > -value and this.z < value
-            this.z = 0.
-        
-    public function vec3.length() returns real
-        return SquareRoot(this.x*this.x+this.y*this.y+this.z*this.z)
-        
-    public function vec3.toString() returns string
-        return "Vector3 [ " + this.x.toString() + ", " + this.y.toString() + ", " + this.z.toString() + " ]"
-        
-    /*************************
-     ********2D-Vector********
-     *************************/
-    public tuple vec2( real x, real y )
-    
-    public function vec2.assign( real x, real y )
-        this.x = x
-        this.y = y
-        
-    public function vec2.add( vec2 v )
-        this.x += v.x
-        this.y += v.y
-    
-    public function vec2.sub( vec2 v )
-        this.x -= v.x
-        this.y -= v.y
-        
-    public function vec2.scale( real factor )
-        this.x *= factor
-        this.y *= factor
-        
-    function vec2.cross( vec2 v ) returns vec2
-        return vec2( this.y*v.z-this.z*v.y, this.z*v.x-this.x*v.z ) 
-        
-    function vec2.dot( vec2 v ) returns real
-        return this.x*v.x+this.y*v.y
-    
-    function vec2.trim( real value )
-        if this.x > -value and this.x < value
-            this.x = 0.
-        if this.y > -value and this.y < value
-            this.y = 0.
-        
-    public function vec2.length() returns real
-        return SquareRoot(this.x*this.x+this.y*this.y)
-        
-    public function vec2.toString() returns string
-        return "Vector2 [ " + this.x.toString() + ", " + this.y.toString() + " ]"
-    
+	
+	/*************************
+	 ********3D-Vector********
+	 *************************/
+	public tuple vec3( real x, real y, real z )
+		
+	public function vec3.add( vec3 v )	returns vec3
+		return vec3(this.x + v.x, this.y + v.y, this.z + v.z)
+	
+	public function vec3.sub( vec3 v )	returns vec3
+		return vec3(this.x - v.x, this.y - v.y, this.z - v.z)
+		
+	public function vec3.scale( real factor )	returns vec3
+		return vec3(this.x * factor, this.y * factor, this.z * factor)
+	
+	public function vec3.scaleXY( real factor )	returns vec3
+		return vec3(this.x * factor, this.y * factor, this.z)
+		
+	function vec3.cross( vec3 v ) returns vec3
+		return vec3( this.y*v.z-this.z*v.y, this.z*v.x-this.x*v.z, this.x*v.y-this.y*v.x ) 
+		
+	function vec3.dot( vec3 v ) returns real
+		return this.x*v.x + this.y*v.y + this.z*v.z
+
+	function vec3.trim( real value ) returns vec3
+		vec3 result = this
+		if result.x > -value and result.x < value
+			result.x = 0.
+		if result.y > -value and result.y < value
+			result.y = 0.
+		if result.z > -value and result.z < value
+			result.z = 0.
+		return result
+		
+		
+	public function vec3.length() returns real
+		return SquareRoot(this.x*this.x+this.y*this.y+this.z*this.z)
+		
+	public function vec3.toString() returns string
+		return "Vector3 [ " + this.x.toString() + ", " + this.y.toString() + ", " + this.z.toString() + " ]"
+		
+	/*************************
+	 ********2D-Vector********
+	 *************************/
+	public tuple vec2( real x, real y )
+			
+	public function vec2.add( vec2 v )	returns vec2
+		return vec2(this.x + v.x, this.y + v.y)
+	
+	public function vec2.sub( vec2 v )	returns vec2
+		return vec2(this.x - v.x, this.y - v.y)
+		
+	public function vec2.scale( real factor )	returns vec2
+		return vec2(this.x * factor, this.y * factor)
+		
+		
+	function vec2.dot( vec2 v ) returns real
+		return this.x*v.x+this.y*v.y
+	
+	function vec2.trim( real value ) returns vec2
+		vec2 result = this
+		if result.x > -value and result.x < value
+			result.x = 0.
+		if this.y > -value and this.y < value
+			result.y = 0.
+		return result
+		
+	public function vec2.length() returns real
+		return SquareRoot(this.x*this.x+this.y*this.y)
+		
+	public function vec2.toString() returns string
+		return "Vector2 [ " + this.x.toString() + ", " + this.y.toString() + " ]"
+	
 endpackage 
