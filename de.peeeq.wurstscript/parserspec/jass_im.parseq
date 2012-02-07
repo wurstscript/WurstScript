@@ -1,0 +1,45 @@
+package de.peeeq.wurstscript.jassIm
+
+
+abstract syntax:
+	
+ImProg(ImVars globals, ImFunctions functions)
+
+ImVars * ImVar
+ImFunctions * ImFunction
+
+ImVar(ImType type, String name)
+
+ImType = 
+	  ImSimpleType(String typename)
+	| ImArrayType(String typename)
+	| ImVoid()
+	
+
+ImFunction(ImVars parameters, ImType returnType, ImVars locals, ImStmts body)
+	
+ImStmts * ImStmt
+
+ImStmt = 
+	  ImIf(ImExpr condition, ImStmts thenBlock, ImStmts elseBlock)
+	| ImLoop(ImStmts body)
+	| ImExitwhen(ImExpr condition)
+	| ImReturn(ImExprOpt returnValue)
+	| ImSet(ImVar left, ImExpr right)
+	| ImSetArray(ImVar left, ImExpr index, ImExpr right)
+	
+	
+ImExprOpt = 
+	  ImExpr
+	| ImNoExpr
+	
+ImExprs * ImExpr
+	
+ImExpr = 
+	  ImCall(String name, ImExprs arguments)
+	| ImStatementExpr(ImStmt statements, ImExpr expr)
+	| ImVarAccess(ImVar var)
+	| ImVarArrayAccess(ImVar var, ImExpr index)
+	| ImFuncRef(String name)
+	
+attributes:

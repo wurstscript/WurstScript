@@ -1,0 +1,21 @@
+package Collections
+	import Vectors
+	
+	native testSuccess()
+	native testFail(string msg)
+	native println(string msg)
+	
+	
+	
+	
+	init
+		val a = vec3(3, 4, 5)
+		val b = vec3(4, 5, 6)
+		
+		val c = a.add(b)
+		
+		
+		testSuccess()
+		
+
+endpackage

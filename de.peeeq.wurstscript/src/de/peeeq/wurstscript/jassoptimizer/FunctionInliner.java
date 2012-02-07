@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.jassoptimizer;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
 
@@ -24,7 +25,7 @@ import de.peeeq.wurstscript.jasstranslation.ExprTranslationResult;
 
 public class FunctionInliner {
 
-	
+	// a list of all functions which should be inlined
 	private Collection<JassFunction> functionsToInline;
 
 	// counter for the number of inlined functions, could be used for fixed point analysis
@@ -34,68 +35,52 @@ public class FunctionInliner {
 		this.functionsToInline =  functionsToInline;
 	}
 	
+	/**
+	 * inline functions in f
+	 */
 	public void inlineFunctions(JassFunction f) {
 		inlineJassFunctions(f, f.getBody());
 	}
 
-	private void inlineJassFunctions(JassFunction f, Iterable<JassStatement> statements) {
+	private void inlineJassFunctions(JassFunction f, List<JassStatement> statements) {
+//		ListIterator<JassStatement> statementsIterator = statements.listIterator();
+//		while (statementsIterator.hasNext()) {
+//			JassStatement s = statementsIterator.next();
+//			List<JassStatement> newStatements = inlineJassFunctions(f, s);
+//			for (JassStatement n : newStatements) {
+//				statementsIterator.add(n);
+//			}
+//		}
+		List<JassStatement> newStatements = Lists.newArrayList();
 		for (JassStatement s : statements) {
-			inlineJassFunctions(f, s);
+			newStatements.addAll(inlineJassFunctions(f, s));
 		}
-		
+		statements.clear();
+		statements.addAll(newStatements);
 	}
 
-	private void inlineJassFunctions(JassFunction f, JassStatement s) {
+	private List<JassStatement> inlineJassFunctions(JassFunction f, JassStatement s) {
 		if (s instanceof JassStmtCall) {
-			inlineJassStmtCall(f, (JassStmtCall) s);
+//			return inlineJassStmtCall(f, (JassStmtCall) s);
 		}
 		
 		// TODO replace function calls as expressions
 
 		// process children
 		inlineJassFunctions(f, getChildStatements(s));
-	}
-
-	private void inlineJassStmtCall(JassFunction f, JassStmtCall s) {
-		ExprTranslationResult r = inlineFunctionCall(f, s.attrFuncDef(), s.getArguments());
 		
-		List<JassStatement> newStatements = r.getStatements();
-		
-		if (r.getExpressions().get(0) instanceof JassExprFunctionCall) {
-			JassExprFunctionCall e = (JassExprFunctionCall) r.getExpressions().get(0);
-			newStatements.add(JassAst.JassStmtCall(e.getFuncName(), e.getArguments()));
-		}
-		replaceStatement(s, newStatements);
+		return Collections.singletonList(s);
 	}
+	
+	
 
-	private void replaceStatement(JassStmtCall orig, List<JassStatement> newStatements) {
-		JassStatements statements = (JassStatements) orig.getParent();
-		ListIterator<JassStatement> it = statements.listIterator();
-		while (it.hasNext()) {
-			JassStatement s = it.next();
-			if (s == orig) {
-				// replace this
-				it.remove();
-				for (JassStatement newS : newStatements) {
-					it.add(newS);
-				}
-				return;
-			}
-		}
-		throw new Error("Statement not attached to its parent.");
-	}
-
-	private ExprTranslationResult inlineFunctionCall(JassFunction f, JassFunction attrFuncDef, JassExprlist arguments) {
-		// TODO Auto-generated method stub
-		throw new Error();
-	}
 
 	/**
 	 * get all child statements of a given JassStatement
 	 * @param s
 	 * @return
 	 */
-	private Iterable<JassStatement> getChildStatements(JassStatement s) {
+	private List<JassStatement> getChildStatements(JassStatement s) {
 		final List<JassStatement> result = Lists.newArrayList();
 		s.match(new JassStatement.MatcherVoid() {
 			

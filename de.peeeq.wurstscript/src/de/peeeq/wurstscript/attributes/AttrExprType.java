@@ -158,7 +158,7 @@ public class AttrExprType {
 	public static  PscriptType calculate(ExprThis term)  {
 		if (term.getParent() == null) {
 			// not attached to the tree -> generated
-			return PScriptTypeInfer.instance();
+			throw new CompileError(term.getSource(), "Expression 'this' not attached to AST.");
 		}
 
 		// check if we are in an extension function
