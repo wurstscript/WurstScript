@@ -11,12 +11,14 @@ import java.io.FileNotFoundException;
  */
 public class NameGenerator {
     /** The given charmap */
-    private String charmap = "wurstqeiopadfghjklyxcvbnmQWERTZUIOPASDFGHJKLYXCVBNM";
+    private String charmapFirst = "wurstqeiopadfghjklyxcvbnmQWERTZUIOPASDFGHJKLYXCVBNM";
+    private String charmap = "wurstqeiopadfghjklyxcvbnmQWERTZUIOPASDFGHJKLYXCVBNM1234567890";
     private String TEcharmap = "wurstqeiopadfghjklyxcvbnm";
     /** A counter */
     private int currentId = 0;
     private int TEId = 0;
     /** length of charmap */
+    private int lengthFirst;
     private int length;
     private int TElength = 25;
     
@@ -28,7 +30,8 @@ public class NameGenerator {
      * @throws FileNotFoundException 
      */
     public NameGenerator(){
-        length          = charmap.length();     
+        length = charmap.length();  
+        lengthFirst = charmapFirst.length(); 
     }
     
     /**
@@ -38,9 +41,12 @@ public class NameGenerator {
     public String getToken() {
         int id = currentId++;
         StringBuilder b = new StringBuilder();
-        do {
-            b.append(charmap.charAt(id % length));
-        } while((id /=length) != 0);
+        b.append(charmapFirst.charAt(id % lengthFirst));
+        if ((id /=lengthFirst) != 0) {
+	        do {
+	            b.append(charmap.charAt((id-1) % length));
+	        } while((id /=length) != 0);
+        }
 
         return b.toString();
     }
