@@ -426,7 +426,7 @@ public class Generator {
 			if (!JavaTypes.primitiveTypes.contains(p.typ)) { 
 				// add null checks for non primitive types:
 				sb.append("		if (" + p.name	+ " == null) throw new IllegalArgumentException();\n");
-				if (isGeneratedTyp(p.typ)) {
+				if (isGeneratedTyp(p.typ) && !p.isRef) {
 					// we have a generated type. 
 					// the new element has a new parent:
 					sb.append("		(("+getCommonSupertypeType()+"Intern)" + p.name + ").setParent(this);\n");
@@ -475,7 +475,7 @@ public class Generator {
 			if (!JavaTypes.primitiveTypes.contains(p.typ)) { 
 				// add null checks for non primitive types:
 				sb.append("		if (" + p.name	+ " == null) throw new IllegalArgumentException();\n");
-				if (isGeneratedTyp(p.typ)) {
+				if (isGeneratedTyp(p.typ) && !p.isRef) {
 					// we have a generated type. 
 					// the removed type looses its parent:
 					sb.append("		(("+getCommonSupertypeType()+"Intern)this." + p.name + ").setParent(null);\n");

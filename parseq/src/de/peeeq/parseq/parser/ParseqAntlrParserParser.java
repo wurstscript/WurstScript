@@ -1,4 +1,4 @@
-// $ANTLR 3.4 /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g 2012-02-01 00:40:32
+// $ANTLR 3.4 /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g 2012-02-07 22:39:50
 
 	package de.peeeq.parseq.parser;	
 	import de.peeeq.parseq.ast.*;
@@ -13,7 +13,7 @@ import java.util.ArrayList;
 @SuppressWarnings({"all", "warnings", "unchecked"})
 public class ParseqAntlrParserParser extends Parser {
     public static final String[] tokenNames = new String[] {
-        "<invalid>", "<EOR>", "<DOWN>", "<UP>", "COMMENT", "ID", "ID_PART", "ID_START", "STRVAL", "WS", "'('", "')'", "'*'", "','", "'.'", "'<'", "'='", "'>'", "'abstract syntax:'", "'attributes:'", "'by'", "'implemented'", "'package'", "'returns'", "'|'"
+        "<invalid>", "<EOR>", "<DOWN>", "<UP>", "COMMENT", "ID", "ID_PART", "ID_START", "STRVAL", "WS", "'&'", "'('", "')'", "'*'", "','", "'.'", "'<'", "'='", "'>'", "'abstract syntax:'", "'attributes:'", "'by'", "'implemented'", "'package'", "'returns'", "'|'"
     };
 
     public static final int EOF=-1;
@@ -32,6 +32,7 @@ public class ParseqAntlrParserParser extends Parser {
     public static final int T__22=22;
     public static final int T__23=23;
     public static final int T__24=24;
+    public static final int T__25=25;
     public static final int COMMENT=4;
     public static final int ID=5;
     public static final int ID_PART=6;
@@ -85,7 +86,7 @@ public class ParseqAntlrParserParser extends Parser {
             // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:31:28: ( 'package' p= qID 'abstract syntax:' ( element[$prog] )* 'attributes:' ( attributeDef[$prog] )* EOF )
             // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:32:2: 'package' p= qID 'abstract syntax:' ( element[$prog] )* 'attributes:' ( attributeDef[$prog] )* EOF
             {
-            match(input,22,FOLLOW_22_in_spec40); 
+            match(input,23,FOLLOW_23_in_spec40); 
 
             pushFollow(FOLLOW_qID_in_spec44);
             p=qID();
@@ -97,7 +98,7 @@ public class ParseqAntlrParserParser extends Parser {
             	 prog = new Program(p);
             	
 
-            match(input,18,FOLLOW_18_in_spec50); 
+            match(input,19,FOLLOW_19_in_spec50); 
 
             // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:37:2: ( element[$prog] )*
             loop1:
@@ -129,7 +130,7 @@ public class ParseqAntlrParserParser extends Parser {
             } while (true);
 
 
-            match(input,19,FOLLOW_19_in_spec58); 
+            match(input,20,FOLLOW_20_in_spec58); 
 
             // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:39:2: ( attributeDef[$prog] )*
             loop2:
@@ -190,17 +191,17 @@ public class ParseqAntlrParserParser extends Parser {
 
             if ( (LA3_0==ID) ) {
                 switch ( input.LA(2) ) {
-                case 12:
+                case 13:
                     {
                     alt3=2;
                     }
                     break;
-                case 10:
+                case 11:
                     {
                     alt3=1;
                     }
                     break;
-                case 16:
+                case 17:
                     {
                     alt3=3;
                     }
@@ -273,19 +274,16 @@ public class ParseqAntlrParserParser extends Parser {
 
 
     // $ANTLR start "contructorDef"
-    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:49:1: contructorDef[Program prog] returns [ConstructorDef c] : name= ID '(' (t= javaType n= ID ( ',' t= javaType n= ID )* )? ')' ;
+    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:49:1: contructorDef[Program prog] returns [ConstructorDef c] : name= ID '(' ( paramDef[$c] ( ',' paramDef[$c] )* )? ')' ;
     public final ConstructorDef contructorDef(Program prog) throws RecognitionException {
         ConstructorDef c = null;
 
 
         Token name=null;
-        Token n=null;
-        String t =null;
-
 
         try {
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:49:55: (name= ID '(' (t= javaType n= ID ( ',' t= javaType n= ID )* )? ')' )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:50:2: name= ID '(' (t= javaType n= ID ( ',' t= javaType n= ID )* )? ')'
+            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:49:55: (name= ID '(' ( paramDef[$c] ( ',' paramDef[$c] )* )? ')' )
+            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:50:2: name= ID '(' ( paramDef[$c] ( ',' paramDef[$c] )* )? ')'
             {
             name=(Token)match(input,ID,FOLLOW_ID_in_contructorDef109); 
 
@@ -294,59 +292,47 @@ public class ParseqAntlrParserParser extends Parser {
             		prog.addConstructorDef(c);		
             	
 
-            match(input,10,FOLLOW_10_in_contructorDef116); 
+            match(input,11,FOLLOW_11_in_contructorDef116); 
 
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:55:6: (t= javaType n= ID ( ',' t= javaType n= ID )* )?
+            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:55:6: ( paramDef[$c] ( ',' paramDef[$c] )* )?
             int alt5=2;
             int LA5_0 = input.LA(1);
 
-            if ( (LA5_0==ID) ) {
+            if ( (LA5_0==ID||LA5_0==10) ) {
                 alt5=1;
             }
             switch (alt5) {
                 case 1 :
-                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:55:7: t= javaType n= ID ( ',' t= javaType n= ID )*
+                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:55:7: paramDef[$c] ( ',' paramDef[$c] )*
                     {
-                    pushFollow(FOLLOW_javaType_in_contructorDef121);
-                    t=javaType();
+                    pushFollow(FOLLOW_paramDef_in_contructorDef119);
+                    paramDef(c);
 
                     state._fsp--;
 
 
-                    n=(Token)match(input,ID,FOLLOW_ID_in_contructorDef125); 
-
-                     
-                    		c.addParam(t, n.getText());
-                    	
-
-                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:59:2: ( ',' t= javaType n= ID )*
+                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:55:20: ( ',' paramDef[$c] )*
                     loop4:
                     do {
                         int alt4=2;
                         int LA4_0 = input.LA(1);
 
-                        if ( (LA4_0==13) ) {
+                        if ( (LA4_0==14) ) {
                             alt4=1;
                         }
 
 
                         switch (alt4) {
                     	case 1 :
-                    	    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:59:3: ',' t= javaType n= ID
+                    	    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:55:21: ',' paramDef[$c]
                     	    {
-                    	    match(input,13,FOLLOW_13_in_contructorDef133); 
+                    	    match(input,14,FOLLOW_14_in_contructorDef123); 
 
-                    	    pushFollow(FOLLOW_javaType_in_contructorDef137);
-                    	    t=javaType();
+                    	    pushFollow(FOLLOW_paramDef_in_contructorDef125);
+                    	    paramDef(c);
 
                     	    state._fsp--;
 
-
-                    	    n=(Token)match(input,ID,FOLLOW_ID_in_contructorDef141); 
-
-
-                    	    		c.addParam(t, n.getText());
-                    	    	
 
                     	    }
                     	    break;
@@ -363,7 +349,7 @@ public class ParseqAntlrParserParser extends Parser {
             }
 
 
-            match(input,11,FOLLOW_11_in_contructorDef153); 
+            match(input,12,FOLLOW_12_in_contructorDef133); 
 
             }
 
@@ -382,21 +368,86 @@ public class ParseqAntlrParserParser extends Parser {
 
 
 
+    // $ANTLR start "paramDef"
+    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:58:1: paramDef[ConstructorDef c] : ( '&' )? t= javaType n= ID ;
+    public final void paramDef(ConstructorDef c) throws RecognitionException {
+        Token n=null;
+        String t =null;
+
+
+        try {
+            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:58:27: ( ( '&' )? t= javaType n= ID )
+            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:59:2: ( '&' )? t= javaType n= ID
+            {
+
+            		boolean ref = false;
+            	
+
+            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:62:2: ( '&' )?
+            int alt6=2;
+            int LA6_0 = input.LA(1);
+
+            if ( (LA6_0==10) ) {
+                alt6=1;
+            }
+            switch (alt6) {
+                case 1 :
+                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:62:3: '&'
+                    {
+                    match(input,10,FOLLOW_10_in_paramDef149); 
+
+                    ref = true;
+
+                    }
+                    break;
+
+            }
+
+
+            pushFollow(FOLLOW_javaType_in_paramDef159);
+            t=javaType();
+
+            state._fsp--;
+
+
+            n=(Token)match(input,ID,FOLLOW_ID_in_paramDef163); 
+
+             
+            		c.addParam(ref, t, n.getText());
+            	
+
+            }
+
+        }
+        catch (RecognitionException re) {
+            reportError(re);
+            recover(input,re);
+        }
+
+        finally {
+        	// do for sure before leaving
+        }
+        return ;
+    }
+    // $ANTLR end "paramDef"
+
+
+
     // $ANTLR start "listDef"
-    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:66:1: listDef[Program prog] : name= ID '*' of= ID ;
+    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:69:1: listDef[Program prog] : name= ID '*' of= ID ;
     public final void listDef(Program prog) throws RecognitionException {
         Token name=null;
         Token of=null;
 
         try {
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:66:22: (name= ID '*' of= ID )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:67:2: name= ID '*' of= ID
+            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:69:22: (name= ID '*' of= ID )
+            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:70:2: name= ID '*' of= ID
             {
-            name=(Token)match(input,ID,FOLLOW_ID_in_listDef167); 
+            name=(Token)match(input,ID,FOLLOW_ID_in_listDef181); 
 
-            match(input,12,FOLLOW_12_in_listDef169); 
+            match(input,13,FOLLOW_13_in_listDef183); 
 
-            of=(Token)match(input,ID,FOLLOW_ID_in_listDef173); 
+            of=(Token)match(input,ID,FOLLOW_ID_in_listDef187); 
 
 
             		prog.addListDef(new ListDef(name.getText(), of.getText()));
@@ -420,7 +471,7 @@ public class ParseqAntlrParserParser extends Parser {
 
 
     // $ANTLR start "caseDef"
-    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:73:1: caseDef[Program prog] returns [CaseDef caseDef] : name= ID '=' c= choice[prog, caseDef] ( '|' c= choice[prog, caseDef] )* ;
+    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:76:1: caseDef[Program prog] returns [CaseDef caseDef] : name= ID '=' c= choice[prog, caseDef] ( '|' c= choice[prog, caseDef] )* ;
     public final CaseDef caseDef(Program prog) throws RecognitionException {
         CaseDef caseDef = null;
 
@@ -428,42 +479,42 @@ public class ParseqAntlrParserParser extends Parser {
         Token name=null;
 
         try {
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:73:48: (name= ID '=' c= choice[prog, caseDef] ( '|' c= choice[prog, caseDef] )* )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:74:2: name= ID '=' c= choice[prog, caseDef] ( '|' c= choice[prog, caseDef] )*
+            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:76:48: (name= ID '=' c= choice[prog, caseDef] ( '|' c= choice[prog, caseDef] )* )
+            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:77:2: name= ID '=' c= choice[prog, caseDef] ( '|' c= choice[prog, caseDef] )*
             {
-            name=(Token)match(input,ID,FOLLOW_ID_in_caseDef194); 
+            name=(Token)match(input,ID,FOLLOW_ID_in_caseDef208); 
 
 
             		caseDef = new CaseDef(name.getText());
             		prog.addCaseDef(caseDef);
             	
 
-            match(input,16,FOLLOW_16_in_caseDef201); 
+            match(input,17,FOLLOW_17_in_caseDef215); 
 
-            pushFollow(FOLLOW_choice_in_caseDef205);
+            pushFollow(FOLLOW_choice_in_caseDef219);
             choice(prog, caseDef);
 
             state._fsp--;
 
 
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:79:30: ( '|' c= choice[prog, caseDef] )*
-            loop6:
+            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:82:30: ( '|' c= choice[prog, caseDef] )*
+            loop7:
             do {
-                int alt6=2;
-                int LA6_0 = input.LA(1);
+                int alt7=2;
+                int LA7_0 = input.LA(1);
 
-                if ( (LA6_0==24) ) {
-                    alt6=1;
+                if ( (LA7_0==25) ) {
+                    alt7=1;
                 }
 
 
-                switch (alt6) {
+                switch (alt7) {
             	case 1 :
-            	    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:79:31: '|' c= choice[prog, caseDef]
+            	    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:82:31: '|' c= choice[prog, caseDef]
             	    {
-            	    match(input,24,FOLLOW_24_in_caseDef209); 
+            	    match(input,25,FOLLOW_25_in_caseDef223); 
 
-            	    pushFollow(FOLLOW_choice_in_caseDef213);
+            	    pushFollow(FOLLOW_choice_in_caseDef227);
             	    choice(prog, caseDef);
 
             	    state._fsp--;
@@ -473,7 +524,7 @@ public class ParseqAntlrParserParser extends Parser {
             	    break;
 
             	default :
-            	    break loop6;
+            	    break loop7;
                 }
             } while (true);
 
@@ -496,29 +547,29 @@ public class ParseqAntlrParserParser extends Parser {
 
 
     // $ANTLR start "choice"
-    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:82:1: choice[Program prog, CaseDef caseDef] : (name= ID |c= contructorDef[prog] );
+    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:85:1: choice[Program prog, CaseDef caseDef] : (name= ID |c= contructorDef[prog] );
     public final void choice(Program prog, CaseDef caseDef) throws RecognitionException {
         Token name=null;
         ConstructorDef c =null;
 
 
         try {
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:82:38: (name= ID |c= contructorDef[prog] )
-            int alt7=2;
-            int LA7_0 = input.LA(1);
+            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:85:38: (name= ID |c= contructorDef[prog] )
+            int alt8=2;
+            int LA8_0 = input.LA(1);
 
-            if ( (LA7_0==ID) ) {
-                int LA7_1 = input.LA(2);
+            if ( (LA8_0==ID) ) {
+                int LA8_1 = input.LA(2);
 
-                if ( (LA7_1==ID||LA7_1==19||LA7_1==24) ) {
-                    alt7=1;
+                if ( (LA8_1==ID||LA8_1==20||LA8_1==25) ) {
+                    alt8=1;
                 }
-                else if ( (LA7_1==10) ) {
-                    alt7=2;
+                else if ( (LA8_1==11) ) {
+                    alt8=2;
                 }
                 else {
                     NoViableAltException nvae =
-                        new NoViableAltException("", 7, 1, input);
+                        new NoViableAltException("", 8, 1, input);
 
                     throw nvae;
 
@@ -526,25 +577,25 @@ public class ParseqAntlrParserParser extends Parser {
             }
             else {
                 NoViableAltException nvae =
-                    new NoViableAltException("", 7, 0, input);
+                    new NoViableAltException("", 8, 0, input);
 
                 throw nvae;
 
             }
-            switch (alt7) {
+            switch (alt8) {
                 case 1 :
-                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:83:4: name= ID
+                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:86:4: name= ID
                     {
-                    name=(Token)match(input,ID,FOLLOW_ID_in_choice232); 
+                    name=(Token)match(input,ID,FOLLOW_ID_in_choice246); 
 
                      caseDef.addAlternative(name.getText()); 
 
                     }
                     break;
                 case 2 :
-                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:84:4: c= contructorDef[prog]
+                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:87:4: c= contructorDef[prog]
                     {
-                    pushFollow(FOLLOW_contructorDef_in_choice241);
+                    pushFollow(FOLLOW_contructorDef_in_choice255);
                     c=contructorDef(prog);
 
                     state._fsp--;
@@ -572,7 +623,7 @@ public class ParseqAntlrParserParser extends Parser {
 
 
     // $ANTLR start "attributeDef"
-    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:87:1: attributeDef[Program prog] :elem= ID '.' attrName= ID ( '(' (t= javaType n= ID ( ',' t= javaType n= ID )* )? ')' )? (doc= STRVAL )? 'returns' returnType= javaType 'implemented' 'by' implementedBy= qID ;
+    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:90:1: attributeDef[Program prog] :elem= ID '.' attrName= ID ( '(' (t= javaType n= ID ( ',' t= javaType n= ID )* )? ')' )? (doc= STRVAL )? 'returns' returnType= javaType 'implemented' 'by' implementedBy= qID ;
     public final void attributeDef(Program prog) throws RecognitionException {
         Token elem=null;
         Token attrName=null;
@@ -586,83 +637,83 @@ public class ParseqAntlrParserParser extends Parser {
 
 
         try {
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:87:27: (elem= ID '.' attrName= ID ( '(' (t= javaType n= ID ( ',' t= javaType n= ID )* )? ')' )? (doc= STRVAL )? 'returns' returnType= javaType 'implemented' 'by' implementedBy= qID )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:88:2: elem= ID '.' attrName= ID ( '(' (t= javaType n= ID ( ',' t= javaType n= ID )* )? ')' )? (doc= STRVAL )? 'returns' returnType= javaType 'implemented' 'by' implementedBy= qID
+            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:90:27: (elem= ID '.' attrName= ID ( '(' (t= javaType n= ID ( ',' t= javaType n= ID )* )? ')' )? (doc= STRVAL )? 'returns' returnType= javaType 'implemented' 'by' implementedBy= qID )
+            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:91:2: elem= ID '.' attrName= ID ( '(' (t= javaType n= ID ( ',' t= javaType n= ID )* )? ')' )? (doc= STRVAL )? 'returns' returnType= javaType 'implemented' 'by' implementedBy= qID
             {
 
             		List<Parameter> parameters = null;
             	
 
-            elem=(Token)match(input,ID,FOLLOW_ID_in_attributeDef260); 
+            elem=(Token)match(input,ID,FOLLOW_ID_in_attributeDef274); 
 
-            match(input,14,FOLLOW_14_in_attributeDef262); 
+            match(input,15,FOLLOW_15_in_attributeDef276); 
 
-            attrName=(Token)match(input,ID,FOLLOW_ID_in_attributeDef266); 
+            attrName=(Token)match(input,ID,FOLLOW_ID_in_attributeDef280); 
 
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:92:3: ( '(' (t= javaType n= ID ( ',' t= javaType n= ID )* )? ')' )?
-            int alt10=2;
-            int LA10_0 = input.LA(1);
+            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:95:3: ( '(' (t= javaType n= ID ( ',' t= javaType n= ID )* )? ')' )?
+            int alt11=2;
+            int LA11_0 = input.LA(1);
 
-            if ( (LA10_0==10) ) {
-                alt10=1;
+            if ( (LA11_0==11) ) {
+                alt11=1;
             }
-            switch (alt10) {
+            switch (alt11) {
                 case 1 :
-                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:93:3: '(' (t= javaType n= ID ( ',' t= javaType n= ID )* )? ')'
+                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:96:3: '(' (t= javaType n= ID ( ',' t= javaType n= ID )* )? ')'
                     {
-                    match(input,10,FOLLOW_10_in_attributeDef274); 
+                    match(input,11,FOLLOW_11_in_attributeDef288); 
 
 
                     		 	parameters = new ArrayList<Parameter>();
                     		 
 
-                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:97:4: (t= javaType n= ID ( ',' t= javaType n= ID )* )?
-                    int alt9=2;
-                    int LA9_0 = input.LA(1);
+                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:100:4: (t= javaType n= ID ( ',' t= javaType n= ID )* )?
+                    int alt10=2;
+                    int LA10_0 = input.LA(1);
 
-                    if ( (LA9_0==ID) ) {
-                        alt9=1;
+                    if ( (LA10_0==ID) ) {
+                        alt10=1;
                     }
-                    switch (alt9) {
+                    switch (alt10) {
                         case 1 :
-                            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:97:5: t= javaType n= ID ( ',' t= javaType n= ID )*
+                            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:100:5: t= javaType n= ID ( ',' t= javaType n= ID )*
                             {
-                            pushFollow(FOLLOW_javaType_in_attributeDef287);
+                            pushFollow(FOLLOW_javaType_in_attributeDef301);
                             t=javaType();
 
                             state._fsp--;
 
 
-                            n=(Token)match(input,ID,FOLLOW_ID_in_attributeDef291); 
+                            n=(Token)match(input,ID,FOLLOW_ID_in_attributeDef305); 
 
                              
                             				parameters.add(new Parameter(t, n.getText()));
                             			
 
-                            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:101:4: ( ',' t= javaType n= ID )*
-                            loop8:
+                            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:104:4: ( ',' t= javaType n= ID )*
+                            loop9:
                             do {
-                                int alt8=2;
-                                int LA8_0 = input.LA(1);
+                                int alt9=2;
+                                int LA9_0 = input.LA(1);
 
-                                if ( (LA8_0==13) ) {
-                                    alt8=1;
+                                if ( (LA9_0==14) ) {
+                                    alt9=1;
                                 }
 
 
-                                switch (alt8) {
+                                switch (alt9) {
                             	case 1 :
-                            	    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:101:5: ',' t= javaType n= ID
+                            	    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:104:5: ',' t= javaType n= ID
                             	    {
-                            	    match(input,13,FOLLOW_13_in_attributeDef303); 
+                            	    match(input,14,FOLLOW_14_in_attributeDef317); 
 
-                            	    pushFollow(FOLLOW_javaType_in_attributeDef307);
+                            	    pushFollow(FOLLOW_javaType_in_attributeDef321);
                             	    t=javaType();
 
                             	    state._fsp--;
 
 
-                            	    n=(Token)match(input,ID,FOLLOW_ID_in_attributeDef311); 
+                            	    n=(Token)match(input,ID,FOLLOW_ID_in_attributeDef325); 
 
 
                             	    				parameters.add(new Parameter(t, n.getText()));
@@ -672,7 +723,7 @@ public class ParseqAntlrParserParser extends Parser {
                             	    break;
 
                             	default :
-                            	    break loop8;
+                            	    break loop9;
                                 }
                             } while (true);
 
@@ -683,7 +734,7 @@ public class ParseqAntlrParserParser extends Parser {
                     }
 
 
-                    match(input,11,FOLLOW_11_in_attributeDef332); 
+                    match(input,12,FOLLOW_12_in_attributeDef346); 
 
                     }
                     break;
@@ -691,18 +742,18 @@ public class ParseqAntlrParserParser extends Parser {
             }
 
 
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:109:3: (doc= STRVAL )?
-            int alt11=2;
-            int LA11_0 = input.LA(1);
+            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:112:3: (doc= STRVAL )?
+            int alt12=2;
+            int LA12_0 = input.LA(1);
 
-            if ( (LA11_0==STRVAL) ) {
-                alt11=1;
+            if ( (LA12_0==STRVAL) ) {
+                alt12=1;
             }
-            switch (alt11) {
+            switch (alt12) {
                 case 1 :
-                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:109:4: doc= STRVAL
+                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:112:4: doc= STRVAL
                     {
-                    doc=(Token)match(input,STRVAL,FOLLOW_STRVAL_in_attributeDef344); 
+                    doc=(Token)match(input,STRVAL,FOLLOW_STRVAL_in_attributeDef358); 
 
                     }
                     break;
@@ -710,19 +761,19 @@ public class ParseqAntlrParserParser extends Parser {
             }
 
 
-            match(input,23,FOLLOW_23_in_attributeDef348); 
+            match(input,24,FOLLOW_24_in_attributeDef362); 
 
-            pushFollow(FOLLOW_javaType_in_attributeDef352);
+            pushFollow(FOLLOW_javaType_in_attributeDef366);
             returnType=javaType();
 
             state._fsp--;
 
 
-            match(input,21,FOLLOW_21_in_attributeDef354); 
+            match(input,22,FOLLOW_22_in_attributeDef368); 
 
-            match(input,20,FOLLOW_20_in_attributeDef356); 
+            match(input,21,FOLLOW_21_in_attributeDef370); 
 
-            pushFollow(FOLLOW_qID_in_attributeDef360);
+            pushFollow(FOLLOW_qID_in_attributeDef374);
             implementedBy=qID();
 
             state._fsp--;
@@ -750,7 +801,7 @@ public class ParseqAntlrParserParser extends Parser {
 
 
     // $ANTLR start "javaType"
-    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:115:1: javaType returns [String name] : n1= qID ( '<' n= javaType ( ',' n= javaType )* '>' )? ;
+    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:118:1: javaType returns [String name] : n1= qID ( '<' n= javaType ( ',' n= javaType )* '>' )? ;
     public final String javaType() throws RecognitionException {
         String name = null;
 
@@ -761,10 +812,10 @@ public class ParseqAntlrParserParser extends Parser {
 
 
         try {
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:115:31: (n1= qID ( '<' n= javaType ( ',' n= javaType )* '>' )? )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:116:2: n1= qID ( '<' n= javaType ( ',' n= javaType )* '>' )?
+            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:118:31: (n1= qID ( '<' n= javaType ( ',' n= javaType )* '>' )? )
+            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:119:2: n1= qID ( '<' n= javaType ( ',' n= javaType )* '>' )?
             {
-            pushFollow(FOLLOW_qID_in_javaType381);
+            pushFollow(FOLLOW_qID_in_javaType395);
             n1=qID();
 
             state._fsp--;
@@ -772,20 +823,20 @@ public class ParseqAntlrParserParser extends Parser {
 
              name = n1; 
 
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:116:25: ( '<' n= javaType ( ',' n= javaType )* '>' )?
-            int alt13=2;
-            int LA13_0 = input.LA(1);
+            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:119:25: ( '<' n= javaType ( ',' n= javaType )* '>' )?
+            int alt14=2;
+            int LA14_0 = input.LA(1);
 
-            if ( (LA13_0==15) ) {
-                alt13=1;
+            if ( (LA14_0==16) ) {
+                alt14=1;
             }
-            switch (alt13) {
+            switch (alt14) {
                 case 1 :
-                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:116:26: '<' n= javaType ( ',' n= javaType )* '>'
+                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:119:26: '<' n= javaType ( ',' n= javaType )* '>'
                     {
-                    match(input,15,FOLLOW_15_in_javaType386); 
+                    match(input,16,FOLLOW_16_in_javaType400); 
 
-                    pushFollow(FOLLOW_javaType_in_javaType390);
+                    pushFollow(FOLLOW_javaType_in_javaType404);
                     n=javaType();
 
                     state._fsp--;
@@ -793,24 +844,24 @@ public class ParseqAntlrParserParser extends Parser {
 
                      name += "<" + n; 
 
-                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:116:63: ( ',' n= javaType )*
-                    loop12:
+                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:119:63: ( ',' n= javaType )*
+                    loop13:
                     do {
-                        int alt12=2;
-                        int LA12_0 = input.LA(1);
+                        int alt13=2;
+                        int LA13_0 = input.LA(1);
 
-                        if ( (LA12_0==13) ) {
-                            alt12=1;
+                        if ( (LA13_0==14) ) {
+                            alt13=1;
                         }
 
 
-                        switch (alt12) {
+                        switch (alt13) {
                     	case 1 :
-                    	    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:116:64: ',' n= javaType
+                    	    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:119:64: ',' n= javaType
                     	    {
-                    	    match(input,13,FOLLOW_13_in_javaType395); 
+                    	    match(input,14,FOLLOW_14_in_javaType409); 
 
-                    	    pushFollow(FOLLOW_javaType_in_javaType399);
+                    	    pushFollow(FOLLOW_javaType_in_javaType413);
                     	    n=javaType();
 
                     	    state._fsp--;
@@ -822,14 +873,14 @@ public class ParseqAntlrParserParser extends Parser {
                     	    break;
 
                     	default :
-                    	    break loop12;
+                    	    break loop13;
                         }
                     } while (true);
 
 
                      name += ">"; 
 
-                    match(input,17,FOLLOW_17_in_javaType408); 
+                    match(input,18,FOLLOW_18_in_javaType422); 
 
                     }
                     break;
@@ -855,7 +906,7 @@ public class ParseqAntlrParserParser extends Parser {
 
 
     // $ANTLR start "qID"
-    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:119:1: qID returns [String s] : n= ID ( '.' n= ID )* ;
+    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:122:1: qID returns [String s] : n= ID ( '.' n= ID )* ;
     public final String qID() throws RecognitionException {
         String s = null;
 
@@ -863,31 +914,31 @@ public class ParseqAntlrParserParser extends Parser {
         Token n=null;
 
         try {
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:119:23: (n= ID ( '.' n= ID )* )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:119:25: n= ID ( '.' n= ID )*
+            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:122:23: (n= ID ( '.' n= ID )* )
+            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:122:25: n= ID ( '.' n= ID )*
             {
-            n=(Token)match(input,ID,FOLLOW_ID_in_qID424); 
+            n=(Token)match(input,ID,FOLLOW_ID_in_qID438); 
 
             s =n.getText();
 
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:119:48: ( '.' n= ID )*
-            loop14:
+            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:122:48: ( '.' n= ID )*
+            loop15:
             do {
-                int alt14=2;
-                int LA14_0 = input.LA(1);
+                int alt15=2;
+                int LA15_0 = input.LA(1);
 
-                if ( (LA14_0==14) ) {
-                    alt14=1;
+                if ( (LA15_0==15) ) {
+                    alt15=1;
                 }
 
 
-                switch (alt14) {
+                switch (alt15) {
             	case 1 :
-            	    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:119:49: '.' n= ID
+            	    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:122:49: '.' n= ID
             	    {
-            	    match(input,14,FOLLOW_14_in_qID429); 
+            	    match(input,15,FOLLOW_15_in_qID443); 
 
-            	    n=(Token)match(input,ID,FOLLOW_ID_in_qID433); 
+            	    n=(Token)match(input,ID,FOLLOW_ID_in_qID447); 
 
             	    s+="."+n.getText();
 
@@ -895,7 +946,7 @@ public class ParseqAntlrParserParser extends Parser {
             	    break;
 
             	default :
-            	    break loop14;
+            	    break loop15;
                 }
             } while (true);
 
@@ -920,58 +971,59 @@ public class ParseqAntlrParserParser extends Parser {
 
  
 
-    public static final BitSet FOLLOW_22_in_spec40 = new BitSet(new long[]{0x0000000000000020L});
-    public static final BitSet FOLLOW_qID_in_spec44 = new BitSet(new long[]{0x0000000000040000L});
-    public static final BitSet FOLLOW_18_in_spec50 = new BitSet(new long[]{0x0000000000080020L});
-    public static final BitSet FOLLOW_element_in_spec53 = new BitSet(new long[]{0x0000000000080020L});
-    public static final BitSet FOLLOW_19_in_spec58 = new BitSet(new long[]{0x0000000000000020L});
+    public static final BitSet FOLLOW_23_in_spec40 = new BitSet(new long[]{0x0000000000000020L});
+    public static final BitSet FOLLOW_qID_in_spec44 = new BitSet(new long[]{0x0000000000080000L});
+    public static final BitSet FOLLOW_19_in_spec50 = new BitSet(new long[]{0x0000000000100020L});
+    public static final BitSet FOLLOW_element_in_spec53 = new BitSet(new long[]{0x0000000000100020L});
+    public static final BitSet FOLLOW_20_in_spec58 = new BitSet(new long[]{0x0000000000000020L});
     public static final BitSet FOLLOW_attributeDef_in_spec61 = new BitSet(new long[]{0x0000000000000020L});
     public static final BitSet FOLLOW_EOF_in_spec66 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_contructorDef_in_element78 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_listDef_in_element84 = new BitSet(new long[]{0x0000000000000002L});
     public static final BitSet FOLLOW_caseDef_in_element90 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ID_in_contructorDef109 = new BitSet(new long[]{0x0000000000000400L});
-    public static final BitSet FOLLOW_10_in_contructorDef116 = new BitSet(new long[]{0x0000000000000820L});
-    public static final BitSet FOLLOW_javaType_in_contructorDef121 = new BitSet(new long[]{0x0000000000000020L});
-    public static final BitSet FOLLOW_ID_in_contructorDef125 = new BitSet(new long[]{0x0000000000002800L});
-    public static final BitSet FOLLOW_13_in_contructorDef133 = new BitSet(new long[]{0x0000000000000020L});
-    public static final BitSet FOLLOW_javaType_in_contructorDef137 = new BitSet(new long[]{0x0000000000000020L});
-    public static final BitSet FOLLOW_ID_in_contructorDef141 = new BitSet(new long[]{0x0000000000002800L});
-    public static final BitSet FOLLOW_11_in_contructorDef153 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ID_in_listDef167 = new BitSet(new long[]{0x0000000000001000L});
-    public static final BitSet FOLLOW_12_in_listDef169 = new BitSet(new long[]{0x0000000000000020L});
-    public static final BitSet FOLLOW_ID_in_listDef173 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ID_in_caseDef194 = new BitSet(new long[]{0x0000000000010000L});
-    public static final BitSet FOLLOW_16_in_caseDef201 = new BitSet(new long[]{0x0000000000000020L});
-    public static final BitSet FOLLOW_choice_in_caseDef205 = new BitSet(new long[]{0x0000000001000002L});
-    public static final BitSet FOLLOW_24_in_caseDef209 = new BitSet(new long[]{0x0000000000000020L});
-    public static final BitSet FOLLOW_choice_in_caseDef213 = new BitSet(new long[]{0x0000000001000002L});
-    public static final BitSet FOLLOW_ID_in_choice232 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_contructorDef_in_choice241 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ID_in_attributeDef260 = new BitSet(new long[]{0x0000000000004000L});
-    public static final BitSet FOLLOW_14_in_attributeDef262 = new BitSet(new long[]{0x0000000000000020L});
-    public static final BitSet FOLLOW_ID_in_attributeDef266 = new BitSet(new long[]{0x0000000000800500L});
-    public static final BitSet FOLLOW_10_in_attributeDef274 = new BitSet(new long[]{0x0000000000000820L});
-    public static final BitSet FOLLOW_javaType_in_attributeDef287 = new BitSet(new long[]{0x0000000000000020L});
-    public static final BitSet FOLLOW_ID_in_attributeDef291 = new BitSet(new long[]{0x0000000000002800L});
-    public static final BitSet FOLLOW_13_in_attributeDef303 = new BitSet(new long[]{0x0000000000000020L});
-    public static final BitSet FOLLOW_javaType_in_attributeDef307 = new BitSet(new long[]{0x0000000000000020L});
-    public static final BitSet FOLLOW_ID_in_attributeDef311 = new BitSet(new long[]{0x0000000000002800L});
-    public static final BitSet FOLLOW_11_in_attributeDef332 = new BitSet(new long[]{0x0000000000800100L});
-    public static final BitSet FOLLOW_STRVAL_in_attributeDef344 = new BitSet(new long[]{0x0000000000800000L});
-    public static final BitSet FOLLOW_23_in_attributeDef348 = new BitSet(new long[]{0x0000000000000020L});
-    public static final BitSet FOLLOW_javaType_in_attributeDef352 = new BitSet(new long[]{0x0000000000200000L});
-    public static final BitSet FOLLOW_21_in_attributeDef354 = new BitSet(new long[]{0x0000000000100000L});
-    public static final BitSet FOLLOW_20_in_attributeDef356 = new BitSet(new long[]{0x0000000000000020L});
-    public static final BitSet FOLLOW_qID_in_attributeDef360 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_qID_in_javaType381 = new BitSet(new long[]{0x0000000000008002L});
-    public static final BitSet FOLLOW_15_in_javaType386 = new BitSet(new long[]{0x0000000000000020L});
-    public static final BitSet FOLLOW_javaType_in_javaType390 = new BitSet(new long[]{0x0000000000022000L});
-    public static final BitSet FOLLOW_13_in_javaType395 = new BitSet(new long[]{0x0000000000000020L});
-    public static final BitSet FOLLOW_javaType_in_javaType399 = new BitSet(new long[]{0x0000000000022000L});
-    public static final BitSet FOLLOW_17_in_javaType408 = new BitSet(new long[]{0x0000000000000002L});
-    public static final BitSet FOLLOW_ID_in_qID424 = new BitSet(new long[]{0x0000000000004002L});
-    public static final BitSet FOLLOW_14_in_qID429 = new BitSet(new long[]{0x0000000000000020L});
-    public static final BitSet FOLLOW_ID_in_qID433 = new BitSet(new long[]{0x0000000000004002L});
+    public static final BitSet FOLLOW_ID_in_contructorDef109 = new BitSet(new long[]{0x0000000000000800L});
+    public static final BitSet FOLLOW_11_in_contructorDef116 = new BitSet(new long[]{0x0000000000001420L});
+    public static final BitSet FOLLOW_paramDef_in_contructorDef119 = new BitSet(new long[]{0x0000000000005000L});
+    public static final BitSet FOLLOW_14_in_contructorDef123 = new BitSet(new long[]{0x0000000000000420L});
+    public static final BitSet FOLLOW_paramDef_in_contructorDef125 = new BitSet(new long[]{0x0000000000005000L});
+    public static final BitSet FOLLOW_12_in_contructorDef133 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_10_in_paramDef149 = new BitSet(new long[]{0x0000000000000020L});
+    public static final BitSet FOLLOW_javaType_in_paramDef159 = new BitSet(new long[]{0x0000000000000020L});
+    public static final BitSet FOLLOW_ID_in_paramDef163 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ID_in_listDef181 = new BitSet(new long[]{0x0000000000002000L});
+    public static final BitSet FOLLOW_13_in_listDef183 = new BitSet(new long[]{0x0000000000000020L});
+    public static final BitSet FOLLOW_ID_in_listDef187 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ID_in_caseDef208 = new BitSet(new long[]{0x0000000000020000L});
+    public static final BitSet FOLLOW_17_in_caseDef215 = new BitSet(new long[]{0x0000000000000020L});
+    public static final BitSet FOLLOW_choice_in_caseDef219 = new BitSet(new long[]{0x0000000002000002L});
+    public static final BitSet FOLLOW_25_in_caseDef223 = new BitSet(new long[]{0x0000000000000020L});
+    public static final BitSet FOLLOW_choice_in_caseDef227 = new BitSet(new long[]{0x0000000002000002L});
+    public static final BitSet FOLLOW_ID_in_choice246 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_contructorDef_in_choice255 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ID_in_attributeDef274 = new BitSet(new long[]{0x0000000000008000L});
+    public static final BitSet FOLLOW_15_in_attributeDef276 = new BitSet(new long[]{0x0000000000000020L});
+    public static final BitSet FOLLOW_ID_in_attributeDef280 = new BitSet(new long[]{0x0000000001000900L});
+    public static final BitSet FOLLOW_11_in_attributeDef288 = new BitSet(new long[]{0x0000000000001020L});
+    public static final BitSet FOLLOW_javaType_in_attributeDef301 = new BitSet(new long[]{0x0000000000000020L});
+    public static final BitSet FOLLOW_ID_in_attributeDef305 = new BitSet(new long[]{0x0000000000005000L});
+    public static final BitSet FOLLOW_14_in_attributeDef317 = new BitSet(new long[]{0x0000000000000020L});
+    public static final BitSet FOLLOW_javaType_in_attributeDef321 = new BitSet(new long[]{0x0000000000000020L});
+    public static final BitSet FOLLOW_ID_in_attributeDef325 = new BitSet(new long[]{0x0000000000005000L});
+    public static final BitSet FOLLOW_12_in_attributeDef346 = new BitSet(new long[]{0x0000000001000100L});
+    public static final BitSet FOLLOW_STRVAL_in_attributeDef358 = new BitSet(new long[]{0x0000000001000000L});
+    public static final BitSet FOLLOW_24_in_attributeDef362 = new BitSet(new long[]{0x0000000000000020L});
+    public static final BitSet FOLLOW_javaType_in_attributeDef366 = new BitSet(new long[]{0x0000000000400000L});
+    public static final BitSet FOLLOW_22_in_attributeDef368 = new BitSet(new long[]{0x0000000000200000L});
+    public static final BitSet FOLLOW_21_in_attributeDef370 = new BitSet(new long[]{0x0000000000000020L});
+    public static final BitSet FOLLOW_qID_in_attributeDef374 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_qID_in_javaType395 = new BitSet(new long[]{0x0000000000010002L});
+    public static final BitSet FOLLOW_16_in_javaType400 = new BitSet(new long[]{0x0000000000000020L});
+    public static final BitSet FOLLOW_javaType_in_javaType404 = new BitSet(new long[]{0x0000000000044000L});
+    public static final BitSet FOLLOW_14_in_javaType409 = new BitSet(new long[]{0x0000000000000020L});
+    public static final BitSet FOLLOW_javaType_in_javaType413 = new BitSet(new long[]{0x0000000000044000L});
+    public static final BitSet FOLLOW_18_in_javaType422 = new BitSet(new long[]{0x0000000000000002L});
+    public static final BitSet FOLLOW_ID_in_qID438 = new BitSet(new long[]{0x0000000000008002L});
+    public static final BitSet FOLLOW_15_in_qID443 = new BitSet(new long[]{0x0000000000000020L});
+    public static final BitSet FOLLOW_ID_in_qID447 = new BitSet(new long[]{0x0000000000008002L});
 
 }

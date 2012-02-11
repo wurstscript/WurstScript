@@ -4,12 +4,20 @@ public final class Parameter {
 
 	public final String typ;
 	public final  String name;
+	public final boolean isRef;
 
-	public Parameter(String typ, String name) {
+	public Parameter(boolean isRef, String typ, String name) {
+		this.isRef = isRef;
 		this.typ = typ;
 		this.name = name;
 	}
 	
+	public Parameter(String typ, String name) {
+		this.isRef = false;
+		this.typ = typ;
+		this.name = name;
+	}
+
 	@Override
 	public boolean equals(Object obj) {
 		if (obj instanceof Parameter) {

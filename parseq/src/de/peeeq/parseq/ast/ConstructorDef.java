@@ -39,8 +39,8 @@ public class ConstructorDef  implements AstBaseTypeDefinition {
 		return result;
 	}
 
-	public void addParam(String type, String name) {
-		parameters.add(new Parameter(type, name));
+	public void addParam(boolean ref, String type, String name) {
+		parameters.add(new Parameter(ref, type, name));
 	}
 	
 	

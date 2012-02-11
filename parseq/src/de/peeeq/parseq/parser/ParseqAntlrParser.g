@@ -52,15 +52,18 @@ contructorDef[Program prog] returns [ConstructorDef c]:
 		$c = new ConstructorDef(name.getText());
 		prog.addConstructorDef($c);		
 	}
-	'(' (t=javaType n=ID 
-	{ 
-		$c.addParam(t, n.getText());
-	}
-	(',' t=javaType n=ID 
+	'(' (paramDef[$c] (',' paramDef[$c] )*)? ')'
+	;
+	
+paramDef[ConstructorDef c]:
 	{
-		$c.addParam(t, n.getText());
+		boolean ref = false;
 	}
-	)*)? ')'
+	('&' {ref = true;})?
+	 t=javaType n=ID 
+	{ 
+		$c.addParam(ref, t, n.getText());
+	}
 	;
 	
 listDef[Program prog]:
