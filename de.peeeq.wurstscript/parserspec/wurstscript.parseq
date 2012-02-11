@@ -522,3 +522,41 @@ OpBinary.jassTranslateBinary()
 OpAssignment.jassTranslageAssignGetBinary()
 	returns de.peeeq.wurstscript.jassAst.JassOpBinary
 	implemented by de.peeeq.wurstscript.jasstranslation.OpTranslation.translageAssignGetBinary
+	
+	
+// Im translation
+	
+	
+	Expr.imTranslateExpr(
+			de.peeeq.wurstscript.translation.imtranslation.Translator translator, 
+			de.peeeq.wurstscript.jassIm.ImFunction f
+		)
+		returns de.peeeq.wurstscript.jassIm.ImExpr
+		implemented by de.peeeq.wurstscript.translation.imtranslation.ExprTranslation.translate
+	
+	OptExpr.imTranslateExprOpt(
+			de.peeeq.wurstscript.translation.imtranslation.Translator translator, 
+			de.peeeq.wurstscript.jassIm.ImFunction f
+		)
+		returns de.peeeq.wurstscript.jassIm.ImExprOpt
+		implemented by de.peeeq.wurstscript.translation.imtranslation.ExprTranslation.translate
+		
+		
+	WStatement.imTranslateStmt(
+			de.peeeq.wurstscript.translation.imtranslation.Translator translator, 
+			de.peeeq.wurstscript.jassIm.ImFunction f
+		)
+		returns de.peeeq.wurstscript.jassIm.ImStmt
+		implemented by de.peeeq.wurstscript.translation.imtranslation.StmtTranslation.translate
+		
+	OpUnary.imTranslateUnary()
+		returns String
+		implemented by de.peeeq.wurstscript.translation.imtranslation.OpTranslation.translateOpUnary
+		
+	OpBinary.imTranslateBinary()
+		returns String
+		implemented by de.peeeq.wurstscript.translation.imtranslation.OpTranslation.translateOpBinary
+		
+	OpAssignment.imsTranslageAssignGetBinary()
+		returns String
+		implemented by de.peeeq.wurstscript.translation.imtranslation.OpTranslation.translageAssignGetBinary

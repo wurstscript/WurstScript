@@ -60,6 +60,7 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PScriptTypeCode;
+import de.peeeq.wurstscript.types.PScriptTypeHandle;
 import de.peeeq.wurstscript.types.PScriptTypeInfer;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
 import de.peeeq.wurstscript.types.PScriptTypeJassInt;
@@ -67,7 +68,9 @@ import de.peeeq.wurstscript.types.PScriptTypeReal;
 import de.peeeq.wurstscript.types.PScriptTypeString;
 import de.peeeq.wurstscript.types.PScriptTypeUnknown;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;
+import de.peeeq.wurstscript.types.PscriptNativeType;
 import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.types.PscriptTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
 import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
@@ -569,10 +572,19 @@ public class AttrExprType {
 
 
 	public static  PscriptType calculate(ExprNull term)  {
-		
+		// null is a little bit tricky
+		// it will have the type which you expect it to have, ...
 		PscriptType t = term.attrExpectedTyp();
 		if (t instanceof PScriptTypeUnknown) {
 			attr.addError(term.getSource(), "Could not determine type of null expression.");
+		}
+		// ... but of course not all types support null
+		if (!   (  t instanceof PscriptTypeNamedScope
+				|| t instanceof PScriptTypeHandle
+				|| t instanceof PscriptTypeBoundTypeParam
+				|| t instanceof PscriptTypeTypeParam
+				|| t instanceof PscriptNativeType)) {
+			attr.addError(term.getSource(), "Null is not a valid value for " + t);
 		}
 		return t;
 	}
