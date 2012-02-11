@@ -7,6 +7,9 @@ package Vectors
 		
 	public function vec3.add( vec3 v )	returns vec3
 		return vec3(this.x + v.x, this.y + v.y, this.z + v.z)
+        
+    public function vec3.addReals( real x, real y, real z )	returns vec3
+		return vec3(this.x + x, this.y + y, this.z + z)
 	
 	public function vec3.sub( vec3 v )	returns vec3
 		return vec3(this.x - v.x, this.y - v.y, this.z - v.z)
@@ -17,13 +20,13 @@ package Vectors
 	public function vec3.scaleXY( real factor )	returns vec3
 		return vec3(this.x * factor, this.y * factor, this.z)
 		
-	function vec3.cross( vec3 v ) returns vec3
+	public function vec3.cross( vec3 v ) returns vec3
 		return vec3( this.y*v.z-this.z*v.y, this.z*v.x-this.x*v.z, this.x*v.y-this.y*v.x ) 
 		
-	function vec3.dot( vec3 v ) returns real
+	public function vec3.dot( vec3 v ) returns real
 		return this.x*v.x + this.y*v.y + this.z*v.z
 
-	function vec3.trim( real value ) returns vec3
+	public function vec3.trim( real value ) returns vec3
 		vec3 result = this
 		if result.x > -value and result.x < value
 			result.x = 0.
@@ -55,10 +58,10 @@ package Vectors
 		return vec2(this.x * factor, this.y * factor)
 		
 		
-	function vec2.dot( vec2 v ) returns real
+	public function vec2.dot( vec2 v ) returns real
 		return this.x*v.x+this.y*v.y
 	
-	function vec2.trim( real value ) returns vec2
+	public function vec2.trim( real value ) returns vec2
 		vec2 result = this
 		if result.x > -value and result.x < value
 			result.x = 0.

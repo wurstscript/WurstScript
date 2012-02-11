@@ -5,5 +5,6 @@ package Wurst
     import public ExtensionFunctions
     import public Real
     import public Integer
+    import public PrintingHelper
 
 endpackage
