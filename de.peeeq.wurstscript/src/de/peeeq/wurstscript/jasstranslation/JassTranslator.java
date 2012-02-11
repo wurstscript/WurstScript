@@ -752,12 +752,10 @@ public class JassTranslator {
 					int i=0;
 					for (PscriptType paramType : calledFunc.attrParameterTypes()) {
 						String[] paramJassTypes = paramType.jassTranslateType();
-						arguments.add(JassExprVarAccess(f.getParams().get(i).getName()));
-						i++;
-						if (paramJassTypes.length == 2) {
+						for (String paramJassType : paramJassTypes) {
 							arguments.add(JassExprVarAccess(f.getParams().get(i).getName()));
+							i++;
 						}
-						i++;
 					}
 					if (returnsVoid) {
 						result.add(JassStmtCall(calledJassFunc.getName(), arguments));

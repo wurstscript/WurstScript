@@ -583,7 +583,9 @@ public class AttrExprType {
 				|| t instanceof PScriptTypeHandle
 				|| t instanceof PscriptTypeBoundTypeParam
 				|| t instanceof PscriptTypeTypeParam
-				|| t instanceof PscriptNativeType)) {
+				|| t instanceof PscriptNativeType
+				|| t instanceof PScriptTypeString
+				|| t instanceof PScriptTypeCode)) {
 			attr.addError(term.getSource(), "Null is not a valid value for " + t);
 		}
 		return t;
