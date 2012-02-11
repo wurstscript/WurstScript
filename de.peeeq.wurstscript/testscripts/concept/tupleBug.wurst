@@ -1,0 +1,41 @@
+package Entity
+    import Vectors
+            
+    public interface Entity       
+        
+        function getVelocity() returns vec3
+        
+        function setVelocity(vec3 v)
+        
+        
+    public module StaticEntityModule
+        vec3 position
+
+            
+    public module EntityModule
+        use StaticEntityModule
+        
+        vec3 velocity     
+            
+        function getVelocity() returns vec3
+            return velocity
+            
+        function setVelocity(vec3 v)
+            velocity = v
+            
+
+    public class ArcaneMissile implements Entity       
+
+                
+        function onCollision(Entity e)
+            e.setVelocity( e.getVelocity().addReals( 2.5, 3.5, 25. ) )
+            
+        function getVelocity() returns vec3
+            return vec3(0.,0.,0.)
+            
+        function setVelocity(vec3 v)
+            real r = 0.   
+
+        
+
+endpackage
