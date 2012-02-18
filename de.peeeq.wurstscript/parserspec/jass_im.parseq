@@ -74,3 +74,11 @@ ImExpr.flattenExpr(
 	)
 	returns ImExpr
 	implemented by de.peeeq.wurstscript.translation.imtranslation.Flatten.flattenExpr
+	
+ImExprOpt.flattenExprOpt(
+		de.peeeq.wurstscript.translation.imtranslation.Translator translator, 
+		de.peeeq.wurstscript.jassIm.ImFunction f	
+	)
+	returns ImExprOpt
+	implemented by de.peeeq.wurstscript.translation.imtranslation.Flatten.flattenExpr
+		

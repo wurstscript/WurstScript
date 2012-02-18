@@ -426,6 +426,8 @@ public class JassTranslator {
 		}
 		JassFunction f = manager.getJassFunctionFor(funcDef);
 
+		prog.attrComments().put(f, "function " + Utils.printElementQualified(funcDef));
+		
 		if (isCommonOrBlizzard(funcDef.getSource())) {
 			prog.attrIgnoredFunctions().add(f);
 		}
@@ -713,6 +715,9 @@ public class JassTranslator {
 
 	private void translateInterfaceFuncDef(InterfaceDef interfaceDef, List<ClassDef> instances, FuncDef funcDef) {
 		JassFunction f = manager.getJassFunctionFor(funcDef);
+		
+		prog.attrComments().put(f, "interface dispatch function " + funcDef.getName() + " for interface " + interfaceDef.getName());
+		
 		prog.getFunctions().add(f);
 		
 		f.setReturnType(translateType(funcDef.getReturnTyp())[0]);
@@ -811,6 +816,8 @@ public class JassTranslator {
 	private void translateInitBlock(InitBlock initBlock) {
 		trace("translate init block: " + initBlock);
 		JassFunction jassFunction = manager.getJassInitFunctionFor(initBlock);
+		prog.attrComments().put(jassFunction, "init block for " + Utils.printElement(initBlock.attrNearestPackage()));
+		
 		jassFunction.setReturnType("nothing");
 		translateFunctionBody(initBlock.getBody(), jassFunction);
 
@@ -933,6 +940,9 @@ public class JassTranslator {
 
 	private void finishDestroyMethod(ClassDef classDef, JassArrayVar nextFree, JassSimpleVar firstFree, JassSimpleVar maxIndex) {
 		JassFunction f = manager.getJassDestroyFunctionFor(classDef);
+		
+		prog.attrComments().put(f, "destroy function for " + classDef.getName());
+		
 		prog.getFunctions().add(f);
 
 		f.getBody().add(
@@ -961,6 +971,9 @@ public class JassTranslator {
 
 	private void translateConstructorDef(ClassDef classDef, ConstructorDef constructorDef, JassArrayVar nextFree, JassSimpleVar firstFree, JassSimpleVar maxIndex) {
 		JassFunction f = manager.getJassConstructorFor(constructorDef);
+		
+		prog.attrComments().put(f, "constructor function for " + classDef.getName());
+		
 		prog.getFunctions().add(f);
 
 		f.setReturnType("integer");

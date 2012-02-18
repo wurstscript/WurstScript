@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.jassprinter;
 import com.google.common.base.Function;
 
 import de.peeeq.wurstscript.jassAst.JassArrayVar;
+import de.peeeq.wurstscript.jassAst.JassAstElement;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassFunctions;
 import de.peeeq.wurstscript.jassAst.JassOp;
@@ -127,6 +128,7 @@ public class JassPrinter {
 		if (prog.attrIgnoredFunctions().contains(f)) {
 			return;
 		}
+		printComment(sb, f, 0);
 		sb.append("function ");
 		sb.append(f.getName());
 		sb.append(" takes ");
@@ -157,6 +159,15 @@ public class JassPrinter {
 		}
 		printStatements(sb, 1, f.getBody(), withSpace);
 		sb.append("endfunction\n" + additionalNewline());
+	}
+
+	private void printComment(StringBuilder sb, JassAstElement f, int indent) {
+		if (withSpace) {
+			if (prog.attrComments().containsKey(f)) {
+				printIndent(sb, indent, withSpace);
+				sb.append("// " + prog.attrComments().get(f) + "\n");
+			}
+		}
 	}
 
 

@@ -10,9 +10,11 @@ import de.peeeq.wurstscript.jassIm.ImCall;
 import de.peeeq.wurstscript.jassIm.ImConst;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImExpr;
+import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImIf;
 import de.peeeq.wurstscript.jassIm.ImLoop;
+import de.peeeq.wurstscript.jassIm.ImNoExpr;
 import de.peeeq.wurstscript.jassIm.ImReturn;
 import de.peeeq.wurstscript.jassIm.ImSet;
 import de.peeeq.wurstscript.jassIm.ImSetArray;
@@ -25,6 +27,7 @@ import de.peeeq.wurstscript.jassIm.ImTupleExpr;
 import de.peeeq.wurstscript.jassIm.ImTupleSelection;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
+import de.peeeq.wurstscript.jassIm.JassIm;
 
 public class Flatten {
 
@@ -67,6 +70,13 @@ public class Flatten {
 		} 
 		return e;
 	}
+	
+	private static ImExprOpt extractStatementsOpt(List<ImStmt> result, ImExprOpt e, Translator t, ImFunction f) {
+		if (e instanceof ImExpr) {
+			return extractStatements(result, (ImExpr) e, t, f);
+		}
+		return e;
+	}
 
 	public static List<ImStmt> flatten(ImIf s, Translator t, ImFunction f) {
 		List<ImStmt> result = Lists.newArrayList();
@@ -84,49 +94,75 @@ public class Flatten {
 
 	public static List<ImStmt> flatten(ImLoop s, Translator t, ImFunction f) {
 		List<ImStmt> result = Lists.newArrayList();
-		// TODO
+		result.add(ImLoop(flattenStatements(s.getBody(), t, f)));
 		return result;
 	}
 
 	public static List<ImStmt> flatten(ImReturn s, Translator t, ImFunction f) {
 		List<ImStmt> result = Lists.newArrayList();
-		// TODO
+		ImExprOpt imExpr = s.getReturnValue().flattenExprOpt(t, f);
+		imExpr = extractStatementsOpt(result, imExpr, t, f);
+		result.add(ImReturn(ImNoExpr()));
 		return result;
 	}
 
+	
+
 	public static List<ImStmt> flatten(ImSet s, Translator t, ImFunction f) {
 		List<ImStmt> result = Lists.newArrayList();
-		// TODO
+		ImExpr e = s.getRight().flattenExpr(t, f);
+		e = extractStatements(result, e, t, f);
+		result.add(ImSet(s.getLeft(), e));
 		return result;
 	}
 
 	public static List<ImStmt> flatten(ImSetArray s, Translator t, ImFunction f) {
 		List<ImStmt> result = Lists.newArrayList();
-		// TODO
+		
+		ImExpr i = s.getIndex().flattenExpr(t, f);
+		i = extractStatements(result, i, t, f);
+		
+		ImExpr e = s.getRight().flattenExpr(t, f);
+		e = extractStatements(result, e, t, f);
+		result.add(ImSetArray(s.getLeft(), i, e));
+		
+		
 		return result;
 	}
 
 	public static List<ImStmt> flatten(ImSetArrayTuple s, Translator t, ImFunction f) {
 		List<ImStmt> result = Lists.newArrayList();
-		// TODO
+		ImExpr i = s.getIndex().flattenExpr(t, f);
+		i = extractStatements(result, i, t, f);
+		
+		ImExpr e = s.getRight().flattenExpr(t, f);
+		e = extractStatements(result, e, t, f);
+		result.add(JassIm.ImSetArrayTuple(s.getLeft(), i, s.getTupleIndex(), e));
 		return result;
 	}
 
 	public static List<ImStmt> flatten(ImSetTuple s, Translator t, ImFunction f) {
 		List<ImStmt> result = Lists.newArrayList();
-		// TODO
+		ImExpr e = s.getRight().flattenExpr(t, f);
+		e = extractStatements(result, e, t, f);
+		result.add(ImSetTuple(s.getLeft(), s.getTupleIndex(), e));
 		return result;
 	}
 
 	public static ImExpr flattenExpr(ImCall e, Translator t, ImFunction f) {
-		// TODO Auto-generated method stub
-		throw new Error("not implemented");
+		List<ImStmt> stmts = Lists.newArrayList();
+		List<ImExpr> args = Lists.newArrayList();
+		for (ImExpr a : e.getArguments()) {
+			a = a.flattenExpr(t, f);
+			a = extractStatements(stmts, a, t, f);
+			args.add(a);
+		}
+		return ImStatementExpr(ImStmts(stmts), JassIm.ImCall(e.getFunc(), ImExprs(args)));
 	}
 
 
 	public static ImExpr flattenExpr(ImConst e, Translator t, ImFunction f) {
-		// TODO Auto-generated method stub
-		throw new Error("not implemented");
+		return e;
 	}
 
 
@@ -157,6 +193,10 @@ public class Flatten {
 	public static ImExpr flattenExpr(ImVarArrayAccess e, Translator t, ImFunction f) {
 		// TODO Auto-generated method stub
 		throw new Error("not implemented");
+	}
+
+	public static ImExprOpt flattenExpr(ImNoExpr e, Translator translator, ImFunction f) {
+		return e;
 	}
 
 		

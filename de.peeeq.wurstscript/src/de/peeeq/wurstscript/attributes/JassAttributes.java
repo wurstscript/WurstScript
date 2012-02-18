@@ -1,7 +1,9 @@
 package de.peeeq.wurstscript.attributes;
 
+import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.jassAst.JassAstElement;
@@ -40,6 +42,10 @@ public class JassAttributes {
 			e = e.getParent();
 		}
 		throw new Error("Not attached to root.");
+	}
+
+	public static Map<JassAstElement, String> attrComments(JassProg jassProgImpl) {
+		return Maps.newHashMap();
 	}
 
 }

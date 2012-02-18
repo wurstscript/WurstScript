@@ -97,14 +97,14 @@ public class JassManager {
 	}
 
 	private String addContext(AstElement node, String name) {
-		node = node.getParent();
-		while (node != null) {
-			if (node instanceof NameDef) {
-				NameDef n = (NameDef) node;
-				name = n.getName() + "_" + name;
-			}
-			node = node.getParent();
-		}
+//		node = node.getParent();
+//		while (node != null) {
+//			if (node instanceof NameDef) {
+//				NameDef n = (NameDef) node;
+//				name = n.getName() + "_" + name;
+//			}
+//			node = node.getParent();
+//		}
 		return name;
 	}
 

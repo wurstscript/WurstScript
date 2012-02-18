@@ -27,6 +27,8 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithName;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
+import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.WPackage;
@@ -541,6 +543,19 @@ public class Utils {
 			result.add(ts.get(firstIndex+i));
 		}
 		return result ;
+	}
+
+	public static String printElementQualified(AstElementWithName e) {
+		String name = e.getName();
+		AstElement node = e.getParent();
+		while (node != null) {
+			if (node instanceof AstElementWithName) {
+				AstElementWithName n = (AstElementWithName) node;
+				name = n.getName() + "." + name;
+			}
+			node = node.getParent();
+		}
+		return name;
 	}
 
 }

@@ -77,6 +77,10 @@ JassProg.attrIgnoredVariables
 	returns java.util.Set<JassVar>
 	implemented by de.peeeq.wurstscript.attributes.JassAttributes.attrIgnoredVariables
 
+JassProg.attrComments
+	returns java.util.Map<JassAstElement, String>
+	implemented by de.peeeq.wurstscript.attributes.JassAttributes.attrComments
+	
 JassProg.attrIgnoredFunctions
 	returns java.util.Set<JassFunction>
 	implemented by de.peeeq.wurstscript.attributes.JassAttributes.attrIgnoredFunctions
