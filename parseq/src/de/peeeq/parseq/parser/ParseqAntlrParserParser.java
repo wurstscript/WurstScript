@@ -1,4 +1,4 @@
-// $ANTLR 3.4 /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g 2012-02-07 22:39:50
+// $ANTLR 3.4 C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g 2012-02-20 19:09:35
 
 	package de.peeeq.parseq.parser;	
 	import de.peeeq.parseq.ast.*;
@@ -56,7 +56,7 @@ public class ParseqAntlrParserParser extends Parser {
     }
 
     public String[] getTokenNames() { return ParseqAntlrParserParser.tokenNames; }
-    public String getGrammarFileName() { return "/home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g"; }
+    public String getGrammarFileName() { return "C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g"; }
 
 
         private List<String> errors = new ArrayList<String>();
@@ -74,7 +74,7 @@ public class ParseqAntlrParserParser extends Parser {
 
 
     // $ANTLR start "spec"
-    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:31:1: spec returns [Program prog] : 'package' p= qID 'abstract syntax:' ( element[$prog] )* 'attributes:' ( attributeDef[$prog] )* EOF ;
+    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:31:1: spec returns [Program prog] : 'package' p= qID 'abstract syntax:' ( element[$prog] )* 'attributes:' ( attributeDef[$prog] )* EOF ;
     public final Program spec() throws RecognitionException {
         Program prog = null;
 
@@ -83,8 +83,8 @@ public class ParseqAntlrParserParser extends Parser {
 
 
         try {
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:31:28: ( 'package' p= qID 'abstract syntax:' ( element[$prog] )* 'attributes:' ( attributeDef[$prog] )* EOF )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:32:2: 'package' p= qID 'abstract syntax:' ( element[$prog] )* 'attributes:' ( attributeDef[$prog] )* EOF
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:31:28: ( 'package' p= qID 'abstract syntax:' ( element[$prog] )* 'attributes:' ( attributeDef[$prog] )* EOF )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:32:2: 'package' p= qID 'abstract syntax:' ( element[$prog] )* 'attributes:' ( attributeDef[$prog] )* EOF
             {
             match(input,23,FOLLOW_23_in_spec40); 
 
@@ -100,7 +100,7 @@ public class ParseqAntlrParserParser extends Parser {
 
             match(input,19,FOLLOW_19_in_spec50); 
 
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:37:2: ( element[$prog] )*
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:37:2: ( element[$prog] )*
             loop1:
             do {
                 int alt1=2;
@@ -113,7 +113,7 @@ public class ParseqAntlrParserParser extends Parser {
 
                 switch (alt1) {
             	case 1 :
-            	    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:37:2: element[$prog]
+            	    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:37:2: element[$prog]
             	    {
             	    pushFollow(FOLLOW_element_in_spec53);
             	    element(prog);
@@ -132,7 +132,7 @@ public class ParseqAntlrParserParser extends Parser {
 
             match(input,20,FOLLOW_20_in_spec58); 
 
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:39:2: ( attributeDef[$prog] )*
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:39:2: ( attributeDef[$prog] )*
             loop2:
             do {
                 int alt2=2;
@@ -145,7 +145,7 @@ public class ParseqAntlrParserParser extends Parser {
 
                 switch (alt2) {
             	case 1 :
-            	    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:39:2: attributeDef[$prog]
+            	    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:39:2: attributeDef[$prog]
             	    {
             	    pushFollow(FOLLOW_attributeDef_in_spec61);
             	    attributeDef(prog);
@@ -182,10 +182,10 @@ public class ParseqAntlrParserParser extends Parser {
 
 
     // $ANTLR start "element"
-    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:43:1: element[Program prog] : ( contructorDef[prog] | listDef[prog] | caseDef[prog] );
+    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:43:1: element[Program prog] : ( contructorDef[prog] | listDef[prog] | caseDef[prog] );
     public final void element(Program prog) throws RecognitionException {
         try {
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:43:22: ( contructorDef[prog] | listDef[prog] | caseDef[prog] )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:43:22: ( contructorDef[prog] | listDef[prog] | caseDef[prog] )
             int alt3=3;
             int LA3_0 = input.LA(1);
 
@@ -224,7 +224,7 @@ public class ParseqAntlrParserParser extends Parser {
             }
             switch (alt3) {
                 case 1 :
-                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:44:2: contructorDef[prog]
+                    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:44:2: contructorDef[prog]
                     {
                     pushFollow(FOLLOW_contructorDef_in_element78);
                     contructorDef(prog);
@@ -235,7 +235,7 @@ public class ParseqAntlrParserParser extends Parser {
                     }
                     break;
                 case 2 :
-                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:45:4: listDef[prog]
+                    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:45:4: listDef[prog]
                     {
                     pushFollow(FOLLOW_listDef_in_element84);
                     listDef(prog);
@@ -246,7 +246,7 @@ public class ParseqAntlrParserParser extends Parser {
                     }
                     break;
                 case 3 :
-                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:46:4: caseDef[prog]
+                    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:46:4: caseDef[prog]
                     {
                     pushFollow(FOLLOW_caseDef_in_element90);
                     caseDef(prog);
@@ -274,7 +274,7 @@ public class ParseqAntlrParserParser extends Parser {
 
 
     // $ANTLR start "contructorDef"
-    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:49:1: contructorDef[Program prog] returns [ConstructorDef c] : name= ID '(' ( paramDef[$c] ( ',' paramDef[$c] )* )? ')' ;
+    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:49:1: contructorDef[Program prog] returns [ConstructorDef c] : name= ID '(' ( paramDef[$c] ( ',' paramDef[$c] )* )? ')' ;
     public final ConstructorDef contructorDef(Program prog) throws RecognitionException {
         ConstructorDef c = null;
 
@@ -282,8 +282,8 @@ public class ParseqAntlrParserParser extends Parser {
         Token name=null;
 
         try {
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:49:55: (name= ID '(' ( paramDef[$c] ( ',' paramDef[$c] )* )? ')' )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:50:2: name= ID '(' ( paramDef[$c] ( ',' paramDef[$c] )* )? ')'
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:49:55: (name= ID '(' ( paramDef[$c] ( ',' paramDef[$c] )* )? ')' )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:50:2: name= ID '(' ( paramDef[$c] ( ',' paramDef[$c] )* )? ')'
             {
             name=(Token)match(input,ID,FOLLOW_ID_in_contructorDef109); 
 
@@ -294,7 +294,7 @@ public class ParseqAntlrParserParser extends Parser {
 
             match(input,11,FOLLOW_11_in_contructorDef116); 
 
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:55:6: ( paramDef[$c] ( ',' paramDef[$c] )* )?
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:55:6: ( paramDef[$c] ( ',' paramDef[$c] )* )?
             int alt5=2;
             int LA5_0 = input.LA(1);
 
@@ -303,7 +303,7 @@ public class ParseqAntlrParserParser extends Parser {
             }
             switch (alt5) {
                 case 1 :
-                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:55:7: paramDef[$c] ( ',' paramDef[$c] )*
+                    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:55:7: paramDef[$c] ( ',' paramDef[$c] )*
                     {
                     pushFollow(FOLLOW_paramDef_in_contructorDef119);
                     paramDef(c);
@@ -311,7 +311,7 @@ public class ParseqAntlrParserParser extends Parser {
                     state._fsp--;
 
 
-                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:55:20: ( ',' paramDef[$c] )*
+                    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:55:20: ( ',' paramDef[$c] )*
                     loop4:
                     do {
                         int alt4=2;
@@ -324,7 +324,7 @@ public class ParseqAntlrParserParser extends Parser {
 
                         switch (alt4) {
                     	case 1 :
-                    	    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:55:21: ',' paramDef[$c]
+                    	    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:55:21: ',' paramDef[$c]
                     	    {
                     	    match(input,14,FOLLOW_14_in_contructorDef123); 
 
@@ -369,21 +369,21 @@ public class ParseqAntlrParserParser extends Parser {
 
 
     // $ANTLR start "paramDef"
-    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:58:1: paramDef[ConstructorDef c] : ( '&' )? t= javaType n= ID ;
+    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:58:1: paramDef[ConstructorDef c] : ( '&' )? t= javaType n= ID ;
     public final void paramDef(ConstructorDef c) throws RecognitionException {
         Token n=null;
         String t =null;
 
 
         try {
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:58:27: ( ( '&' )? t= javaType n= ID )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:59:2: ( '&' )? t= javaType n= ID
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:58:27: ( ( '&' )? t= javaType n= ID )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:59:2: ( '&' )? t= javaType n= ID
             {
 
             		boolean ref = false;
             	
 
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:62:2: ( '&' )?
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:62:2: ( '&' )?
             int alt6=2;
             int LA6_0 = input.LA(1);
 
@@ -392,7 +392,7 @@ public class ParseqAntlrParserParser extends Parser {
             }
             switch (alt6) {
                 case 1 :
-                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:62:3: '&'
+                    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:62:3: '&'
                     {
                     match(input,10,FOLLOW_10_in_paramDef149); 
 
@@ -434,14 +434,14 @@ public class ParseqAntlrParserParser extends Parser {
 
 
     // $ANTLR start "listDef"
-    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:69:1: listDef[Program prog] : name= ID '*' of= ID ;
+    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:69:1: listDef[Program prog] : name= ID '*' of= ID ;
     public final void listDef(Program prog) throws RecognitionException {
         Token name=null;
         Token of=null;
 
         try {
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:69:22: (name= ID '*' of= ID )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:70:2: name= ID '*' of= ID
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:69:22: (name= ID '*' of= ID )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:70:2: name= ID '*' of= ID
             {
             name=(Token)match(input,ID,FOLLOW_ID_in_listDef181); 
 
@@ -471,7 +471,7 @@ public class ParseqAntlrParserParser extends Parser {
 
 
     // $ANTLR start "caseDef"
-    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:76:1: caseDef[Program prog] returns [CaseDef caseDef] : name= ID '=' c= choice[prog, caseDef] ( '|' c= choice[prog, caseDef] )* ;
+    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:76:1: caseDef[Program prog] returns [CaseDef caseDef] : name= ID '=' c= choice[prog, caseDef] ( '|' c= choice[prog, caseDef] )* ;
     public final CaseDef caseDef(Program prog) throws RecognitionException {
         CaseDef caseDef = null;
 
@@ -479,8 +479,8 @@ public class ParseqAntlrParserParser extends Parser {
         Token name=null;
 
         try {
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:76:48: (name= ID '=' c= choice[prog, caseDef] ( '|' c= choice[prog, caseDef] )* )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:77:2: name= ID '=' c= choice[prog, caseDef] ( '|' c= choice[prog, caseDef] )*
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:76:48: (name= ID '=' c= choice[prog, caseDef] ( '|' c= choice[prog, caseDef] )* )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:77:2: name= ID '=' c= choice[prog, caseDef] ( '|' c= choice[prog, caseDef] )*
             {
             name=(Token)match(input,ID,FOLLOW_ID_in_caseDef208); 
 
@@ -497,7 +497,7 @@ public class ParseqAntlrParserParser extends Parser {
             state._fsp--;
 
 
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:82:30: ( '|' c= choice[prog, caseDef] )*
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:82:30: ( '|' c= choice[prog, caseDef] )*
             loop7:
             do {
                 int alt7=2;
@@ -510,7 +510,7 @@ public class ParseqAntlrParserParser extends Parser {
 
                 switch (alt7) {
             	case 1 :
-            	    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:82:31: '|' c= choice[prog, caseDef]
+            	    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:82:31: '|' c= choice[prog, caseDef]
             	    {
             	    match(input,25,FOLLOW_25_in_caseDef223); 
 
@@ -547,14 +547,14 @@ public class ParseqAntlrParserParser extends Parser {
 
 
     // $ANTLR start "choice"
-    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:85:1: choice[Program prog, CaseDef caseDef] : (name= ID |c= contructorDef[prog] );
+    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:85:1: choice[Program prog, CaseDef caseDef] : (name= ID |c= contructorDef[prog] );
     public final void choice(Program prog, CaseDef caseDef) throws RecognitionException {
         Token name=null;
         ConstructorDef c =null;
 
 
         try {
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:85:38: (name= ID |c= contructorDef[prog] )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:85:38: (name= ID |c= contructorDef[prog] )
             int alt8=2;
             int LA8_0 = input.LA(1);
 
@@ -584,7 +584,7 @@ public class ParseqAntlrParserParser extends Parser {
             }
             switch (alt8) {
                 case 1 :
-                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:86:4: name= ID
+                    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:86:4: name= ID
                     {
                     name=(Token)match(input,ID,FOLLOW_ID_in_choice246); 
 
@@ -593,7 +593,7 @@ public class ParseqAntlrParserParser extends Parser {
                     }
                     break;
                 case 2 :
-                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:87:4: c= contructorDef[prog]
+                    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:87:4: c= contructorDef[prog]
                     {
                     pushFollow(FOLLOW_contructorDef_in_choice255);
                     c=contructorDef(prog);
@@ -623,7 +623,7 @@ public class ParseqAntlrParserParser extends Parser {
 
 
     // $ANTLR start "attributeDef"
-    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:90:1: attributeDef[Program prog] :elem= ID '.' attrName= ID ( '(' (t= javaType n= ID ( ',' t= javaType n= ID )* )? ')' )? (doc= STRVAL )? 'returns' returnType= javaType 'implemented' 'by' implementedBy= qID ;
+    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:90:1: attributeDef[Program prog] :elem= ID '.' attrName= ID ( '(' (t= javaType n= ID ( ',' t= javaType n= ID )* )? ')' )? (doc= STRVAL )? 'returns' returnType= javaType 'implemented' 'by' implementedBy= qID ;
     public final void attributeDef(Program prog) throws RecognitionException {
         Token elem=null;
         Token attrName=null;
@@ -637,8 +637,8 @@ public class ParseqAntlrParserParser extends Parser {
 
 
         try {
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:90:27: (elem= ID '.' attrName= ID ( '(' (t= javaType n= ID ( ',' t= javaType n= ID )* )? ')' )? (doc= STRVAL )? 'returns' returnType= javaType 'implemented' 'by' implementedBy= qID )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:91:2: elem= ID '.' attrName= ID ( '(' (t= javaType n= ID ( ',' t= javaType n= ID )* )? ')' )? (doc= STRVAL )? 'returns' returnType= javaType 'implemented' 'by' implementedBy= qID
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:90:27: (elem= ID '.' attrName= ID ( '(' (t= javaType n= ID ( ',' t= javaType n= ID )* )? ')' )? (doc= STRVAL )? 'returns' returnType= javaType 'implemented' 'by' implementedBy= qID )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:91:2: elem= ID '.' attrName= ID ( '(' (t= javaType n= ID ( ',' t= javaType n= ID )* )? ')' )? (doc= STRVAL )? 'returns' returnType= javaType 'implemented' 'by' implementedBy= qID
             {
 
             		List<Parameter> parameters = null;
@@ -650,7 +650,7 @@ public class ParseqAntlrParserParser extends Parser {
 
             attrName=(Token)match(input,ID,FOLLOW_ID_in_attributeDef280); 
 
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:95:3: ( '(' (t= javaType n= ID ( ',' t= javaType n= ID )* )? ')' )?
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:95:3: ( '(' (t= javaType n= ID ( ',' t= javaType n= ID )* )? ')' )?
             int alt11=2;
             int LA11_0 = input.LA(1);
 
@@ -659,7 +659,7 @@ public class ParseqAntlrParserParser extends Parser {
             }
             switch (alt11) {
                 case 1 :
-                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:96:3: '(' (t= javaType n= ID ( ',' t= javaType n= ID )* )? ')'
+                    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:96:3: '(' (t= javaType n= ID ( ',' t= javaType n= ID )* )? ')'
                     {
                     match(input,11,FOLLOW_11_in_attributeDef288); 
 
@@ -667,7 +667,7 @@ public class ParseqAntlrParserParser extends Parser {
                     		 	parameters = new ArrayList<Parameter>();
                     		 
 
-                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:100:4: (t= javaType n= ID ( ',' t= javaType n= ID )* )?
+                    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:100:4: (t= javaType n= ID ( ',' t= javaType n= ID )* )?
                     int alt10=2;
                     int LA10_0 = input.LA(1);
 
@@ -676,7 +676,7 @@ public class ParseqAntlrParserParser extends Parser {
                     }
                     switch (alt10) {
                         case 1 :
-                            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:100:5: t= javaType n= ID ( ',' t= javaType n= ID )*
+                            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:100:5: t= javaType n= ID ( ',' t= javaType n= ID )*
                             {
                             pushFollow(FOLLOW_javaType_in_attributeDef301);
                             t=javaType();
@@ -690,7 +690,7 @@ public class ParseqAntlrParserParser extends Parser {
                             				parameters.add(new Parameter(t, n.getText()));
                             			
 
-                            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:104:4: ( ',' t= javaType n= ID )*
+                            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:104:4: ( ',' t= javaType n= ID )*
                             loop9:
                             do {
                                 int alt9=2;
@@ -703,7 +703,7 @@ public class ParseqAntlrParserParser extends Parser {
 
                                 switch (alt9) {
                             	case 1 :
-                            	    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:104:5: ',' t= javaType n= ID
+                            	    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:104:5: ',' t= javaType n= ID
                             	    {
                             	    match(input,14,FOLLOW_14_in_attributeDef317); 
 
@@ -742,7 +742,7 @@ public class ParseqAntlrParserParser extends Parser {
             }
 
 
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:112:3: (doc= STRVAL )?
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:112:3: (doc= STRVAL )?
             int alt12=2;
             int LA12_0 = input.LA(1);
 
@@ -751,7 +751,7 @@ public class ParseqAntlrParserParser extends Parser {
             }
             switch (alt12) {
                 case 1 :
-                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:112:4: doc= STRVAL
+                    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:112:4: doc= STRVAL
                     {
                     doc=(Token)match(input,STRVAL,FOLLOW_STRVAL_in_attributeDef358); 
 
@@ -801,7 +801,7 @@ public class ParseqAntlrParserParser extends Parser {
 
 
     // $ANTLR start "javaType"
-    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:118:1: javaType returns [String name] : n1= qID ( '<' n= javaType ( ',' n= javaType )* '>' )? ;
+    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:118:1: javaType returns [String name] : n1= qID ( '<' n= javaType ( ',' n= javaType )* '>' )? ;
     public final String javaType() throws RecognitionException {
         String name = null;
 
@@ -812,8 +812,8 @@ public class ParseqAntlrParserParser extends Parser {
 
 
         try {
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:118:31: (n1= qID ( '<' n= javaType ( ',' n= javaType )* '>' )? )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:119:2: n1= qID ( '<' n= javaType ( ',' n= javaType )* '>' )?
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:118:31: (n1= qID ( '<' n= javaType ( ',' n= javaType )* '>' )? )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:119:2: n1= qID ( '<' n= javaType ( ',' n= javaType )* '>' )?
             {
             pushFollow(FOLLOW_qID_in_javaType395);
             n1=qID();
@@ -823,7 +823,7 @@ public class ParseqAntlrParserParser extends Parser {
 
              name = n1; 
 
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:119:25: ( '<' n= javaType ( ',' n= javaType )* '>' )?
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:119:25: ( '<' n= javaType ( ',' n= javaType )* '>' )?
             int alt14=2;
             int LA14_0 = input.LA(1);
 
@@ -832,7 +832,7 @@ public class ParseqAntlrParserParser extends Parser {
             }
             switch (alt14) {
                 case 1 :
-                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:119:26: '<' n= javaType ( ',' n= javaType )* '>'
+                    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:119:26: '<' n= javaType ( ',' n= javaType )* '>'
                     {
                     match(input,16,FOLLOW_16_in_javaType400); 
 
@@ -844,7 +844,7 @@ public class ParseqAntlrParserParser extends Parser {
 
                      name += "<" + n; 
 
-                    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:119:63: ( ',' n= javaType )*
+                    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:119:63: ( ',' n= javaType )*
                     loop13:
                     do {
                         int alt13=2;
@@ -857,7 +857,7 @@ public class ParseqAntlrParserParser extends Parser {
 
                         switch (alt13) {
                     	case 1 :
-                    	    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:119:64: ',' n= javaType
+                    	    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:119:64: ',' n= javaType
                     	    {
                     	    match(input,14,FOLLOW_14_in_javaType409); 
 
@@ -906,7 +906,7 @@ public class ParseqAntlrParserParser extends Parser {
 
 
     // $ANTLR start "qID"
-    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:122:1: qID returns [String s] : n= ID ( '.' n= ID )* ;
+    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:122:1: qID returns [String s] : n= ID ( '.' n= ID )* ;
     public final String qID() throws RecognitionException {
         String s = null;
 
@@ -914,14 +914,14 @@ public class ParseqAntlrParserParser extends Parser {
         Token n=null;
 
         try {
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:122:23: (n= ID ( '.' n= ID )* )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:122:25: n= ID ( '.' n= ID )*
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:122:23: (n= ID ( '.' n= ID )* )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:122:25: n= ID ( '.' n= ID )*
             {
             n=(Token)match(input,ID,FOLLOW_ID_in_qID438); 
 
             s =n.getText();
 
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:122:48: ( '.' n= ID )*
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:122:48: ( '.' n= ID )*
             loop15:
             do {
                 int alt15=2;
@@ -934,7 +934,7 @@ public class ParseqAntlrParserParser extends Parser {
 
                 switch (alt15) {
             	case 1 :
-            	    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:122:49: '.' n= ID
+            	    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:122:49: '.' n= ID
             	    {
             	    match(input,15,FOLLOW_15_in_qID443); 
 

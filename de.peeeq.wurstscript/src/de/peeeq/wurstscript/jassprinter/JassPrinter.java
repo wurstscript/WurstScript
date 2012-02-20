@@ -1,6 +1,13 @@
 package de.peeeq.wurstscript.jassprinter;
 
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.jassAst.JassArrayVar;
 import de.peeeq.wurstscript.jassAst.JassAstElement;
@@ -24,6 +31,7 @@ import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassAst.JassSimpleVar;
 import de.peeeq.wurstscript.jassAst.JassStatement;
 import de.peeeq.wurstscript.jassAst.JassStatements;
+import de.peeeq.wurstscript.jassAst.JassStmtSet;
 import de.peeeq.wurstscript.jassAst.JassVar;
 import de.peeeq.wurstscript.jassAst.JassVars;
 import de.peeeq.wurstscript.utils.Utils;
@@ -146,7 +154,37 @@ public class JassPrinter {
 		sb.append(" returns ");
 		sb.append(f.getReturnType());
 		sb.append("\n");
-		for (JassVar v : f.getLocals()) {
+		
+		List<JassStatement> body = Lists.newLinkedList(f.getBody());
+		Set<JassVar> locals = Sets.newHashSet(f.getLocals()); 
+		
+		// set statements at the beginning are merged with local variable declarations...
+		while (body.size() > 0 && body.get(0) instanceof JassStmtSet) {
+			JassStmtSet set = (JassStmtSet) body.get(0);
+			JassVar localVar = null;
+			for (JassVar v : locals) {
+				if (set.getLeft().equals(v.getName()))  {
+					localVar = v;
+					break; 
+				}
+			}
+			if (localVar == null) {
+				break;
+			}
+			printIndent(sb, 1, withSpace);
+			sb.append("local ");
+			sb.append(localVar.getType());
+			sb.append(" ");
+			sb.append(localVar.getName());
+			sb.append(" = ");
+			set.getRight().print(sb, withSpace);
+			sb.append("\n");
+			
+			locals.remove(localVar);
+			body.remove(0);
+		}
+		
+		for (JassVar v : locals) {
 			printIndent(sb, 1, withSpace);
 			sb.append("local ");
 			sb.append(v.getType());
@@ -157,7 +195,7 @@ public class JassPrinter {
 			sb.append(v.getName());
 			sb.append("\n");
 		}
-		printStatements(sb, 1, f.getBody(), withSpace);
+		printStatements(sb, 1, body, withSpace);
 		sb.append("endfunction\n" + additionalNewline());
 	}
 
@@ -173,7 +211,7 @@ public class JassPrinter {
 
 	
 
-	static void printStatements(StringBuilder sb, int indent, JassStatements statements, boolean withSpace) {
+	static void printStatements(StringBuilder sb, int indent, List<JassStatement> statements, boolean withSpace) {
 		for (JassStatement s : statements) {
 			printIndent(sb, indent, withSpace);
 			s.print(sb, indent, withSpace);

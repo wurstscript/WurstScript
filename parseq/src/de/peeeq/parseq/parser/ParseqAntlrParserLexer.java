@@ -1,4 +1,4 @@
-// $ANTLR 3.4 /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g 2012-02-07 22:39:52
+// $ANTLR 3.4 C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g 2012-02-20 19:09:36
 
 	package de.peeeq.parseq.parser;	
 
@@ -47,15 +47,15 @@ public class ParseqAntlrParserLexer extends Lexer {
     public ParseqAntlrParserLexer(CharStream input, RecognizerSharedState state) {
         super(input,state);
     }
-    public String getGrammarFileName() { return "/home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g"; }
+    public String getGrammarFileName() { return "C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g"; }
 
     // $ANTLR start "T__10"
     public final void mT__10() throws RecognitionException {
         try {
             int _type = T__10;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:6:7: ( '&' )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:6:9: '&'
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:6:7: ( '&' )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:6:9: '&'
             {
             match('&'); 
 
@@ -75,8 +75,8 @@ public class ParseqAntlrParserLexer extends Lexer {
         try {
             int _type = T__11;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:7:7: ( '(' )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:7:9: '('
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:7:7: ( '(' )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:7:9: '('
             {
             match('('); 
 
@@ -96,8 +96,8 @@ public class ParseqAntlrParserLexer extends Lexer {
         try {
             int _type = T__12;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:8:7: ( ')' )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:8:9: ')'
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:8:7: ( ')' )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:8:9: ')'
             {
             match(')'); 
 
@@ -117,8 +117,8 @@ public class ParseqAntlrParserLexer extends Lexer {
         try {
             int _type = T__13;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:9:7: ( '*' )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:9:9: '*'
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:9:7: ( '*' )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:9:9: '*'
             {
             match('*'); 
 
@@ -138,8 +138,8 @@ public class ParseqAntlrParserLexer extends Lexer {
         try {
             int _type = T__14;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:10:7: ( ',' )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:10:9: ','
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:10:7: ( ',' )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:10:9: ','
             {
             match(','); 
 
@@ -159,8 +159,8 @@ public class ParseqAntlrParserLexer extends Lexer {
         try {
             int _type = T__15;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:11:7: ( '.' )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:11:9: '.'
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:11:7: ( '.' )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:11:9: '.'
             {
             match('.'); 
 
@@ -180,8 +180,8 @@ public class ParseqAntlrParserLexer extends Lexer {
         try {
             int _type = T__16;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:12:7: ( '<' )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:12:9: '<'
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:12:7: ( '<' )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:12:9: '<'
             {
             match('<'); 
 
@@ -201,8 +201,8 @@ public class ParseqAntlrParserLexer extends Lexer {
         try {
             int _type = T__17;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:13:7: ( '=' )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:13:9: '='
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:13:7: ( '=' )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:13:9: '='
             {
             match('='); 
 
@@ -222,8 +222,8 @@ public class ParseqAntlrParserLexer extends Lexer {
         try {
             int _type = T__18;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:14:7: ( '>' )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:14:9: '>'
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:14:7: ( '>' )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:14:9: '>'
             {
             match('>'); 
 
@@ -243,8 +243,8 @@ public class ParseqAntlrParserLexer extends Lexer {
         try {
             int _type = T__19;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:15:7: ( 'abstract syntax:' )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:15:9: 'abstract syntax:'
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:15:7: ( 'abstract syntax:' )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:15:9: 'abstract syntax:'
             {
             match("abstract syntax:"); 
 
@@ -266,8 +266,8 @@ public class ParseqAntlrParserLexer extends Lexer {
         try {
             int _type = T__20;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:16:7: ( 'attributes:' )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:16:9: 'attributes:'
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:16:7: ( 'attributes:' )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:16:9: 'attributes:'
             {
             match("attributes:"); 
 
@@ -289,8 +289,8 @@ public class ParseqAntlrParserLexer extends Lexer {
         try {
             int _type = T__21;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:17:7: ( 'by' )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:17:9: 'by'
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:17:7: ( 'by' )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:17:9: 'by'
             {
             match("by"); 
 
@@ -312,8 +312,8 @@ public class ParseqAntlrParserLexer extends Lexer {
         try {
             int _type = T__22;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:18:7: ( 'implemented' )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:18:9: 'implemented'
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:18:7: ( 'implemented' )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:18:9: 'implemented'
             {
             match("implemented"); 
 
@@ -335,8 +335,8 @@ public class ParseqAntlrParserLexer extends Lexer {
         try {
             int _type = T__23;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:19:7: ( 'package' )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:19:9: 'package'
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:19:7: ( 'package' )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:19:9: 'package'
             {
             match("package"); 
 
@@ -358,8 +358,8 @@ public class ParseqAntlrParserLexer extends Lexer {
         try {
             int _type = T__24;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:20:7: ( 'returns' )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:20:9: 'returns'
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:20:7: ( 'returns' )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:20:9: 'returns'
             {
             match("returns"); 
 
@@ -381,8 +381,8 @@ public class ParseqAntlrParserLexer extends Lexer {
         try {
             int _type = T__25;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:21:7: ( '|' )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:21:9: '|'
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:21:7: ( '|' )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:21:9: '|'
             {
             match('|'); 
 
@@ -400,8 +400,8 @@ public class ParseqAntlrParserLexer extends Lexer {
     // $ANTLR start "ID_START"
     public final void mID_START() throws RecognitionException {
         try {
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:126:19: ( 'a' .. 'z' | 'A' .. 'Z' )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:126:19: ( 'a' .. 'z' | 'A' .. 'Z' )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:
             {
             if ( (input.LA(1) >= 'A' && input.LA(1) <= 'Z')||(input.LA(1) >= 'a' && input.LA(1) <= 'z') ) {
                 input.consume();
@@ -426,8 +426,8 @@ public class ParseqAntlrParserLexer extends Lexer {
     // $ANTLR start "ID_PART"
     public final void mID_PART() throws RecognitionException {
         try {
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:127:18: ( ID_START | '_' | '0' .. '9' )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:127:18: ( ID_START | '_' | '0' .. '9' )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:
             {
             if ( (input.LA(1) >= '0' && input.LA(1) <= '9')||(input.LA(1) >= 'A' && input.LA(1) <= 'Z')||input.LA(1)=='_'||(input.LA(1) >= 'a' && input.LA(1) <= 'z') ) {
                 input.consume();
@@ -454,13 +454,13 @@ public class ParseqAntlrParserLexer extends Lexer {
         try {
             int _type = ID;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:129:4: ( ID_START ( ID_PART )* )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:129:6: ID_START ( ID_PART )*
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:129:4: ( ID_START ( ID_PART )* )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:129:6: ID_START ( ID_PART )*
             {
             mID_START(); 
 
 
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:129:15: ( ID_PART )*
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:129:15: ( ID_PART )*
             loop1:
             do {
                 int alt1=2;
@@ -473,7 +473,7 @@ public class ParseqAntlrParserLexer extends Lexer {
 
                 switch (alt1) {
             	case 1 :
-            	    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:
+            	    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:
             	    {
             	    if ( (input.LA(1) >= '0' && input.LA(1) <= '9')||(input.LA(1) >= 'A' && input.LA(1) <= 'Z')||input.LA(1)=='_'||(input.LA(1) >= 'a' && input.LA(1) <= 'z') ) {
             	        input.consume();
@@ -510,12 +510,12 @@ public class ParseqAntlrParserLexer extends Lexer {
         try {
             int _type = STRVAL;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:134:8: ( '\"' (~ ( '\"' ) )* '\"' )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:134:10: '\"' (~ ( '\"' ) )* '\"'
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:134:8: ( '\"' (~ ( '\"' ) )* '\"' )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:134:10: '\"' (~ ( '\"' ) )* '\"'
             {
             match('\"'); 
 
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:134:14: (~ ( '\"' ) )*
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:134:14: (~ ( '\"' ) )*
             loop2:
             do {
                 int alt2=2;
@@ -528,7 +528,7 @@ public class ParseqAntlrParserLexer extends Lexer {
 
                 switch (alt2) {
             	case 1 :
-            	    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:
+            	    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:
             	    {
             	    if ( (input.LA(1) >= '\u0000' && input.LA(1) <= '!')||(input.LA(1) >= '#' && input.LA(1) <= '\uFFFF') ) {
             	        input.consume();
@@ -567,10 +567,10 @@ public class ParseqAntlrParserLexer extends Lexer {
         try {
             int _type = WS;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:135:5: ( ( ' ' | '\\t' | '\\n' | '\\r' )+ )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:135:9: ( ' ' | '\\t' | '\\n' | '\\r' )+
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:135:5: ( ( ' ' | '\\t' | '\\n' | '\\r' )+ )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:135:9: ( ' ' | '\\t' | '\\n' | '\\r' )+
             {
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:135:9: ( ' ' | '\\t' | '\\n' | '\\r' )+
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:135:9: ( ' ' | '\\t' | '\\n' | '\\r' )+
             int cnt3=0;
             loop3:
             do {
@@ -584,7 +584,7 @@ public class ParseqAntlrParserLexer extends Lexer {
 
                 switch (alt3) {
             	case 1 :
-            	    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:
+            	    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:
             	    {
             	    if ( (input.LA(1) >= '\t' && input.LA(1) <= '\n')||input.LA(1)=='\r'||input.LA(1)==' ' ) {
             	        input.consume();
@@ -627,14 +627,14 @@ public class ParseqAntlrParserLexer extends Lexer {
         try {
             int _type = COMMENT;
             int _channel = DEFAULT_TOKEN_CHANNEL;
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:136:9: ( '//' (~ ( '\\n' | '\\r' ) )* )
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:136:11: '//' (~ ( '\\n' | '\\r' ) )*
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:136:9: ( '//' (~ ( '\\n' | '\\r' ) )* )
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:136:11: '//' (~ ( '\\n' | '\\r' ) )*
             {
             match("//"); 
 
 
 
-            // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:136:16: (~ ( '\\n' | '\\r' ) )*
+            // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:136:16: (~ ( '\\n' | '\\r' ) )*
             loop4:
             do {
                 int alt4=2;
@@ -647,7 +647,7 @@ public class ParseqAntlrParserLexer extends Lexer {
 
                 switch (alt4) {
             	case 1 :
-            	    // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:
+            	    // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:
             	    {
             	    if ( (input.LA(1) >= '\u0000' && input.LA(1) <= '\t')||(input.LA(1) >= '\u000B' && input.LA(1) <= '\f')||(input.LA(1) >= '\u000E' && input.LA(1) <= '\uFFFF') ) {
             	        input.consume();
@@ -682,12 +682,12 @@ public class ParseqAntlrParserLexer extends Lexer {
     // $ANTLR end "COMMENT"
 
     public void mTokens() throws RecognitionException {
-        // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:1:8: ( T__10 | T__11 | T__12 | T__13 | T__14 | T__15 | T__16 | T__17 | T__18 | T__19 | T__20 | T__21 | T__22 | T__23 | T__24 | T__25 | ID | STRVAL | WS | COMMENT )
+        // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:1:8: ( T__10 | T__11 | T__12 | T__13 | T__14 | T__15 | T__16 | T__17 | T__18 | T__19 | T__20 | T__21 | T__22 | T__23 | T__24 | T__25 | ID | STRVAL | WS | COMMENT )
         int alt5=20;
         alt5 = dfa5.predict(input);
         switch (alt5) {
             case 1 :
-                // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:1:10: T__10
+                // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:1:10: T__10
                 {
                 mT__10(); 
 
@@ -695,7 +695,7 @@ public class ParseqAntlrParserLexer extends Lexer {
                 }
                 break;
             case 2 :
-                // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:1:16: T__11
+                // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:1:16: T__11
                 {
                 mT__11(); 
 
@@ -703,7 +703,7 @@ public class ParseqAntlrParserLexer extends Lexer {
                 }
                 break;
             case 3 :
-                // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:1:22: T__12
+                // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:1:22: T__12
                 {
                 mT__12(); 
 
@@ -711,7 +711,7 @@ public class ParseqAntlrParserLexer extends Lexer {
                 }
                 break;
             case 4 :
-                // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:1:28: T__13
+                // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:1:28: T__13
                 {
                 mT__13(); 
 
@@ -719,7 +719,7 @@ public class ParseqAntlrParserLexer extends Lexer {
                 }
                 break;
             case 5 :
-                // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:1:34: T__14
+                // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:1:34: T__14
                 {
                 mT__14(); 
 
@@ -727,7 +727,7 @@ public class ParseqAntlrParserLexer extends Lexer {
                 }
                 break;
             case 6 :
-                // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:1:40: T__15
+                // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:1:40: T__15
                 {
                 mT__15(); 
 
@@ -735,7 +735,7 @@ public class ParseqAntlrParserLexer extends Lexer {
                 }
                 break;
             case 7 :
-                // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:1:46: T__16
+                // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:1:46: T__16
                 {
                 mT__16(); 
 
@@ -743,7 +743,7 @@ public class ParseqAntlrParserLexer extends Lexer {
                 }
                 break;
             case 8 :
-                // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:1:52: T__17
+                // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:1:52: T__17
                 {
                 mT__17(); 
 
@@ -751,7 +751,7 @@ public class ParseqAntlrParserLexer extends Lexer {
                 }
                 break;
             case 9 :
-                // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:1:58: T__18
+                // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:1:58: T__18
                 {
                 mT__18(); 
 
@@ -759,7 +759,7 @@ public class ParseqAntlrParserLexer extends Lexer {
                 }
                 break;
             case 10 :
-                // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:1:64: T__19
+                // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:1:64: T__19
                 {
                 mT__19(); 
 
@@ -767,7 +767,7 @@ public class ParseqAntlrParserLexer extends Lexer {
                 }
                 break;
             case 11 :
-                // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:1:70: T__20
+                // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:1:70: T__20
                 {
                 mT__20(); 
 
@@ -775,7 +775,7 @@ public class ParseqAntlrParserLexer extends Lexer {
                 }
                 break;
             case 12 :
-                // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:1:76: T__21
+                // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:1:76: T__21
                 {
                 mT__21(); 
 
@@ -783,7 +783,7 @@ public class ParseqAntlrParserLexer extends Lexer {
                 }
                 break;
             case 13 :
-                // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:1:82: T__22
+                // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:1:82: T__22
                 {
                 mT__22(); 
 
@@ -791,7 +791,7 @@ public class ParseqAntlrParserLexer extends Lexer {
                 }
                 break;
             case 14 :
-                // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:1:88: T__23
+                // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:1:88: T__23
                 {
                 mT__23(); 
 
@@ -799,7 +799,7 @@ public class ParseqAntlrParserLexer extends Lexer {
                 }
                 break;
             case 15 :
-                // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:1:94: T__24
+                // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:1:94: T__24
                 {
                 mT__24(); 
 
@@ -807,7 +807,7 @@ public class ParseqAntlrParserLexer extends Lexer {
                 }
                 break;
             case 16 :
-                // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:1:100: T__25
+                // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:1:100: T__25
                 {
                 mT__25(); 
 
@@ -815,7 +815,7 @@ public class ParseqAntlrParserLexer extends Lexer {
                 }
                 break;
             case 17 :
-                // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:1:106: ID
+                // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:1:106: ID
                 {
                 mID(); 
 
@@ -823,7 +823,7 @@ public class ParseqAntlrParserLexer extends Lexer {
                 }
                 break;
             case 18 :
-                // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:1:109: STRVAL
+                // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:1:109: STRVAL
                 {
                 mSTRVAL(); 
 
@@ -831,7 +831,7 @@ public class ParseqAntlrParserLexer extends Lexer {
                 }
                 break;
             case 19 :
-                // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:1:116: WS
+                // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:1:116: WS
                 {
                 mWS(); 
 
@@ -839,7 +839,7 @@ public class ParseqAntlrParserLexer extends Lexer {
                 }
                 break;
             case 20 :
-                // /home/peter/workspace/pscript-lang/parseq/src/de/peeeq/parseq/parser/ParseqAntlrParser.g:1:119: COMMENT
+                // C:\\pscript\\parseq\\src\\de\\peeeq\\parseq\\parser\\ParseqAntlrParser.g:1:119: COMMENT
                 {
                 mCOMMENT(); 
 
