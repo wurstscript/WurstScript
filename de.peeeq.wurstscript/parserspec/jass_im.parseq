@@ -51,7 +51,7 @@ ImExpr =
 	
 ImConst = 
 	  ImIntVal(int valI)
-	| ImRealVal(double valR)
+	| ImRealVal(String valR)
 	| ImStringVal(String valS)
 	| ImBoolVal(boolean valB)
 	| ImFuncRef(&ImFunction func)

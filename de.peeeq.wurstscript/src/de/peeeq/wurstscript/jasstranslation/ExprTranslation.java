@@ -240,7 +240,7 @@ public class ExprTranslation {
 				&& leftType instanceof PScriptTypeInt
 				&& exprBinary.getRight().attrTyp() instanceof PScriptTypeInt) {
 			// multiply the left expression by 1.0 to convert it to real
-			e = JassExprBinary(JassExprBinary(leftExpr, JassOpMult(), JassExprRealVal(1.0)), JassOpDiv(), rightExpr);
+			e = JassExprBinary(JassExprBinary(leftExpr, JassOpMult(), JassExprRealVal("1.")), JassOpDiv(), rightExpr);
 		} else {
 			e = JassExprBinary(leftExpr, exprBinary.getOp().jassTranslateBinary(), rightExpr);
 		}

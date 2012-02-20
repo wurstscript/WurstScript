@@ -178,8 +178,8 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"0x" [0-9a-fA-F]+                          { return jassSymbol(TokenType.INTEGER_LITERAL, Utils.parseHexInt(yytext())); }
 	"'" . "'"						  { return jassSymbol(TokenType.INTEGER_LITERAL, Utils.parseAsciiInt1(yytext())); }
 	"'" . . . . "'"					{ return jassSymbol(TokenType.INTEGER_LITERAL, Utils.parseAsciiInt4(yytext())); }
-	{DIGIT}+ "." {DIGIT}*			  { return jassSymbol(TokenType.REAL_LITERAL, Double.parseDouble(yytext())); }
-	[ \t\n\r]* "." {DIGIT}+			 { return jassSymbol(TokenType.REAL_LITERAL, Double.parseDouble(yytext())); }
+	{DIGIT}+ "." {DIGIT}*			  { return jassSymbol(TokenType.REAL_LITERAL, yytext()); }
+	[ \t\n\r]* "." {DIGIT}+			 { return jassSymbol(TokenType.REAL_LITERAL, yytext()); }
 	[ \t\n\r]* "."                    { return jassSymbol(TokenType.DOT); } 
 	"wurst__" {IDENT}				  { return jassSymbol(TokenType.IDENTIFIER, "w" + yytext()); }
 	{IDENT}                           { return jassSymbol(TokenType.IDENTIFIER, yytext()); }
@@ -360,8 +360,8 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"0x" [0-9a-fA-F]+                          { return symbol(TokenType.INTEGER_LITERAL, Utils.parseHexInt(yytext())); }
 	"'" . "'"						  { return symbol(TokenType.INTEGER_LITERAL, Utils.parseAsciiInt1(yytext())); }
 	"'" . . . . "'"					{ return symbol(TokenType.INTEGER_LITERAL, Utils.parseAsciiInt4(yytext())); }
-	{DIGIT}+ "." {DIGIT}*			  { return symbol(TokenType.REAL_LITERAL, Double.parseDouble(yytext())); }
-	[ \t\n\r]* "." {DIGIT}+			 { return symbol(TokenType.REAL_LITERAL, Double.parseDouble(yytext())); }
+	{DIGIT}+ "." {DIGIT}*			  { return symbol(TokenType.REAL_LITERAL, yytext()); }
+	[ \t\n\r]* "." {DIGIT}+			 { return symbol(TokenType.REAL_LITERAL, yytext()); }
 	[ \t\n\r]* "."                    { return symbol(TokenType.DOT); } 
 	"wurst__" {IDENT}				  { return symbol(TokenType.IDENTIFIER, "w" + yytext()); }
 	{IDENT}                           { return symbol(TokenType.IDENTIFIER, yytext()); }

@@ -44,7 +44,7 @@ parser code {:
 terminal Integer INTEGER_LITERAL;
 terminal String IDENTIFIER;
 terminal String STRING_LITERAL;
-terminal Double REAL_LITERAL;
+terminal String REAL_LITERAL;
 terminal 
 	CUSTOM_ERROR,
 	TRUE, FALSE, 

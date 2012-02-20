@@ -126,7 +126,7 @@ Expr =
 	
 ExprAtomic = 
 	  ExprIntVal(WPos source, int valI)
-	| ExprRealVal(WPos source, double valR)
+	| ExprRealVal(WPos source, String valR)
 	| ExprStringVal(WPos source, String valS)
 	| ExprBoolVal(WPos source, boolean valB)
 	| ExprFuncRef(WPos source, String funcName)

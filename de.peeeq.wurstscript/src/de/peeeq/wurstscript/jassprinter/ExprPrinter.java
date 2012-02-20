@@ -27,18 +27,19 @@ public class ExprPrinter {
 		sb.append("null");
 	}
 	public static void print(JassExprRealVal e, StringBuilder sb, boolean withSpace) {
-		String val = String.valueOf(e.getValR());
-		if(!withSpace) {
-			if( val.substring(0,2).equals("0.")) {
-				sb.append(val.substring(1,val.length()));
-			}else if( val.substring(val.length()-2,val.length()).equals(".0")) {
-				sb.append(val.substring(0,val.length()-1));
-			}else{
-				sb.append(val);
-			}
-		}else{
-			sb.append(val);
-		}
+//		String val = String.valueOf(e.getValR());
+//		if(!withSpace) {
+//			if( val.substring(0,2).equals("0.")) {
+//				sb.append(val.substring(1,val.length()));
+//			}else if( val.substring(val.length()-2,val.length()).equals(".0")) {
+//				sb.append(val.substring(0,val.length()-1));
+//			}else{
+//				sb.append(val);
+//			}
+//		}else{
+//			sb.append(val);
+//		}
+		sb.append(e.getValR());
 	}
 	public static void print(JassExprStringVal e, StringBuilder sb, boolean withSpace) {
 		sb.append("\"");

@@ -294,7 +294,7 @@ public class JassTranslator {
 		if (type.equals("integer")) {
 			return JassExprIntVal(0);
 		} else if (type.equals("real")) {
-			return JassAst.JassExprRealVal(0.);
+			return JassAst.JassExprRealVal("0.");
 		} else if (type.equals("boolean")) {
 			return JassAst.JassExprBoolVal(false);
 		} else {
