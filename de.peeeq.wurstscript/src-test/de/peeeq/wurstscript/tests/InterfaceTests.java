@@ -30,6 +30,57 @@ public class InterfaceTests extends PscriptTest {
 			);
 	}
 	
+	@Test
+	public void swap() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	interface I",
+				"		function foo() returns int",
+				"	class B implements I",
+				"		function foo() returns int",
+				"			return 2",
+				"	class C implements I",
+				"		function foo() returns int",
+				"			return 3",
+				"	init",
+				"		I i1 = new B()",
+				"		I i2 = new C()",
+				"		I temp = i2",
+				"		i2 = i1",
+				"		i1 = temp",
+				"		if i1.foo() == 3 and i2.foo() == 2",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void swapArray() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	I array ar",
+				"	interface I",
+				"		function foo() returns int",
+				"	class B implements I",
+				"		function foo() returns int",
+				"			return 2",
+				"	class C implements I",
+				"		function foo() returns int",
+				"			return 3",
+				"	init",
+				"		ar[5] = new B()",
+				"		ar[6] = new C()",
+				"		val temp = ar[6]",
+				"		ar[6] = ar[5]",
+				"		ar[5] = temp",
+				"		if ar[5].foo() == 3 and ar[6].foo() == 2",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
 	
 	@Test
 	public void equality() {

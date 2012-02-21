@@ -319,9 +319,21 @@ public class StmtTranslation {
 		result.addAll(left.getStatements());
 		result.addAll(right.getStatements());
 
+		System.out.println(">>>> " + updatedExpr + " = " + newValue);
+		System.out.println("left: " + left.exprCount());
+		System.out.println("right: " + right.exprCount());
+		
+		
+		
 		if (left.exprCount() != right.exprCount()) {
-			throw new CompileError(updatedExpr.getSource(), "Left side has " + left.exprCount()
-					+ " jass variables, but right side has " + right.exprCount() + " jass expressions.");
+			if (left.exprCount() == 2 && right.exprCount() == 1 && newValue.attrTyp() instanceof PscriptTypeClass) {
+				PscriptTypeClass newValueType = (PscriptTypeClass) newValue.attrTyp();
+				int typeId = translator.manager.getTypeId(newValueType.getClassDef());
+				right = right.plus(JassExprIntVal(typeId));
+			} else {
+				throw new CompileError(updatedExpr.getSource(), "Left side has " + left.exprCount()
+						+ " jass variables, but right side has " + right.exprCount() + " jass expressions.");
+			}
 		}
 
 		for (int i = 0; i < left.exprCount(); i++) {

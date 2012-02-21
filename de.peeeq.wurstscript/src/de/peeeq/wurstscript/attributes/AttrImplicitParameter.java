@@ -87,7 +87,7 @@ public class AttrImplicitParameter {
 			// dynamic function call
 			if (e.attrIsDynamicContext()) {		
 				// dynamic context means we have a 'this':
-				ExprThis t = Ast.ExprThis(Ast.WPos("{generated}", LineOffsets.dummy, 0, 0));
+				ExprThis t = Ast.ExprThis(e.getSource().copy());
 				t.setParent(e);
 				return t;
 			} else {
@@ -108,7 +108,7 @@ public class AttrImplicitParameter {
 				// dynamic var access
 				if (e.attrIsDynamicContext()) {		
 					// dynamic context means we have a 'this':
-					ExprThis t = Ast.ExprThis(Ast.WPos("{generated}", LineOffsets.dummy, 0, 0));
+					ExprThis t = Ast.ExprThis(e.getSource().copy());
 					t.setParent(e);
 					return t;
 				} else {
