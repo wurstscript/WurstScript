@@ -11,6 +11,8 @@ import de.peeeq.wurstscript.jassIm.ImConst;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
+import de.peeeq.wurstscript.jassIm.ImFlatExpr;
+import de.peeeq.wurstscript.jassIm.ImFlatExprOpt;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImIf;
 import de.peeeq.wurstscript.jassIm.ImLoop;
@@ -29,13 +31,34 @@ import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
 import de.peeeq.wurstscript.jassIm.JassIm;
 
+/**
+ * 
+ * flattening expressions and statements
+ * after flattening there will be no more StatementExprs
+ * for expressions there might be a StatementExpr on the top level 
+ * 
+ * TODO wait, its not that easy: you have to make sure that the execution order is not changed for functions and global variables
+ * 
+ * e.g. take
+ * 
+ * y = x + StatementExpr(setX(4), 2)
+ * 
+ * this should be translated to:
+ * 
+ * temp = x
+ * setX(4)
+ * y = temp + 2
+ * 
+ * 
+ * alternative: relax language semantics
+ *  
+ */
 public class Flatten {
 
-	public static List<ImStmt> flatten(ImExpr s, Translator t, ImFunction f) {
-		ImExpr e = s.flattenExpr(t, f);
-		List<ImStmt> result = Lists.newArrayList();
-		exprToStatements(result, e, t, f);
-		return result;
+	public static void flatten(ImExpr s, List<ImStmt> stmts, Translator t, ImFunction f) {
+		ImExpr e = s.flattenExpr(stmts, t, f);
+		
+		exprToStatements(stmts, e, t, f);
 	}
 
 	private static void exprToStatements(List<ImStmt> result, ImExpr e, Translator t, ImFunction f) {
@@ -50,40 +73,19 @@ public class Flatten {
 
 	private static void flattenStatements(List<ImStmt> result, ImStmts statements, Translator t, ImFunction f) {
 		for (ImStmt s : statements) {
-			result.addAll(s.flatten(t, f));
+			s.flatten(result, t, f);
 		}
 	}
 
-	public static List<ImStmt> flatten(ImExitwhen s, Translator t, ImFunction f) {
-		List<ImStmt> result = Lists.newArrayList();
-		ImExpr cond = s.getCondition().flattenExpr(t, f);
-		cond = extractStatements(result, cond, t, f);
-		result.add(ImExitwhen(cond));
-		return result;
+	public static void flatten(ImExitwhen s, List<ImStmt> stmts, Translator t, ImFunction f) {
+		ImExpr cond = s.getCondition().flattenExpr(stmts, t, f);
+		stmts.add(ImExitwhen(cond));
 	}
 
-	private static ImExpr extractStatements(List<ImStmt> result, ImExpr e, Translator t, ImFunction f) {
-		if (e instanceof ImStatementExpr) {
-			ImStatementExpr e2 = (ImStatementExpr) e;
-			flattenStatements(result, e2.getStatements(), t, f);
-			return extractStatements(result, e2, t, f);
-		} 
-		return e;
-	}
-	
-	private static ImExprOpt extractStatementsOpt(List<ImStmt> result, ImExprOpt e, Translator t, ImFunction f) {
-		if (e instanceof ImExpr) {
-			return extractStatements(result, (ImExpr) e, t, f);
-		}
-		return e;
-	}
 
-	public static List<ImStmt> flatten(ImIf s, Translator t, ImFunction f) {
-		List<ImStmt> result = Lists.newArrayList();
-		ImExpr cond = s.getCondition().flattenExpr(t, f);
-		cond = extractStatements(result, cond, t, f);
-		result.add(ImIf(cond, flattenStatements(s.getThenBlock(), t, f), flattenStatements(s.getElseBlock(), t, f)));
-		return result;
+	public static void flatten(ImIf s, List<ImStmt> stmts, Translator t, ImFunction f) {
+		ImExpr cond = s.getCondition().flattenExpr(stmts, t, f);
+		stmts.add(ImIf(cond, flattenStatements(s.getThenBlock(), t, f), flattenStatements(s.getElseBlock(), t, f)));
 	}
 
 	private static ImStmts flattenStatements(ImStmts statements, Translator t, ImFunction f) {
@@ -92,110 +94,87 @@ public class Flatten {
 		return result;
 	}
 
-	public static List<ImStmt> flatten(ImLoop s, Translator t, ImFunction f) {
-		List<ImStmt> result = Lists.newArrayList();
-		result.add(ImLoop(flattenStatements(s.getBody(), t, f)));
-		return result;
+	public static void flatten(ImLoop s, List<ImStmt> stmts, Translator t, ImFunction f) {
+		stmts.add(ImLoop(flattenStatements(s.getBody(), t, f)));
 	}
 
-	public static List<ImStmt> flatten(ImReturn s, Translator t, ImFunction f) {
-		List<ImStmt> result = Lists.newArrayList();
-		ImExprOpt imExpr = s.getReturnValue().flattenExprOpt(t, f);
-		imExpr = extractStatementsOpt(result, imExpr, t, f);
-		result.add(ImReturn(ImNoExpr()));
-		return result;
+	public static void flatten(ImReturn s, List<ImStmt> stmts, Translator t, ImFunction f) {
+		ImExprOpt imExpr = s.getReturnValue().flattenExprOpt(stmts, t, f);
+		stmts.add(ImReturn(imExpr));
 	}
 
-	
 
-	public static List<ImStmt> flatten(ImSet s, Translator t, ImFunction f) {
-		List<ImStmt> result = Lists.newArrayList();
-		ImExpr e = s.getRight().flattenExpr(t, f);
-		e = extractStatements(result, e, t, f);
-		result.add(ImSet(s.getLeft(), e));
-		return result;
+	public static void flatten(ImSet s, List<ImStmt> stmts, Translator t, ImFunction f) {
+		ImExpr e = s.getRight().flattenExpr(stmts, t, f);
+		stmts.add(ImSet(s.getLeft(), e));
 	}
 
-	public static List<ImStmt> flatten(ImSetArray s, Translator t, ImFunction f) {
-		List<ImStmt> result = Lists.newArrayList();
-		
-		ImExpr i = s.getIndex().flattenExpr(t, f);
-		i = extractStatements(result, i, t, f);
-		
-		ImExpr e = s.getRight().flattenExpr(t, f);
-		e = extractStatements(result, e, t, f);
-		result.add(ImSetArray(s.getLeft(), i, e));
-		
-		
-		return result;
+	public static void flatten(ImSetArray s, List<ImStmt> stmts, Translator t, ImFunction f) {
+		ImExpr i = s.getIndex().flattenExpr(stmts, t, f);
+		ImExpr e = s.getRight().flattenExpr(stmts, t, f);
+		stmts.add(ImSetArray(s.getLeft(), i, e));
 	}
 
-	public static List<ImStmt> flatten(ImSetArrayTuple s, Translator t, ImFunction f) {
-		List<ImStmt> result = Lists.newArrayList();
-		ImExpr i = s.getIndex().flattenExpr(t, f);
-		i = extractStatements(result, i, t, f);
-		
-		ImExpr e = s.getRight().flattenExpr(t, f);
-		e = extractStatements(result, e, t, f);
-		result.add(JassIm.ImSetArrayTuple(s.getLeft(), i, s.getTupleIndex(), e));
-		return result;
+	public static void flatten(ImSetArrayTuple s, List<ImStmt> stmts, Translator t, ImFunction f) {
+		ImExpr i = s.getIndex().flattenExpr(stmts, t, f);
+		ImExpr e = s.getRight().flattenExpr(stmts, t, f);
+		stmts.add(JassIm.ImSetArrayTuple(s.getLeft(), i, s.getTupleIndex(), e));
 	}
 
-	public static List<ImStmt> flatten(ImSetTuple s, Translator t, ImFunction f) {
-		List<ImStmt> result = Lists.newArrayList();
-		ImExpr e = s.getRight().flattenExpr(t, f);
-		e = extractStatements(result, e, t, f);
-		result.add(ImSetTuple(s.getLeft(), s.getTupleIndex(), e));
-		return result;
+	public static void flatten(ImSetTuple s, List<ImStmt> stmts, Translator t, ImFunction f) {
+		ImExpr e = s.getRight().flattenExpr(stmts, t, f);
+		stmts.add(ImSetTuple(s.getLeft(), s.getTupleIndex(), e));
 	}
 
-	public static ImExpr flattenExpr(ImCall e, Translator t, ImFunction f) {
-		List<ImStmt> stmts = Lists.newArrayList();
+	public static ImFlatExpr flattenExpr(ImCall e, List<ImStmt> stmts, Translator t, ImFunction f) {
 		List<ImExpr> args = Lists.newArrayList();
 		for (ImExpr a : e.getArguments()) {
-			a = a.flattenExpr(t, f);
-			a = extractStatements(stmts, a, t, f);
+			a = a.flattenExpr(stmts, t, f);
 			args.add(a);
 		}
-		return ImStatementExpr(ImStmts(stmts), JassIm.ImCall(e.getFunc(), ImExprs(args)));
+		return JassIm.ImCall(e.getFunc(), ImExprs(args));
 	}
 
 
-	public static ImExpr flattenExpr(ImConst e, Translator t, ImFunction f) {
+	public static ImFlatExpr flattenExpr(ImConst e, List<ImStmt> stmts, Translator t, ImFunction f) {
 		return e;
 	}
 
 
-	public static ImExpr flattenExpr(ImStatementExpr e, Translator t, ImFunction f) {
-		// TODO Auto-generated method stub
-		throw new Error("not implemented");
+	public static ImFlatExpr flattenExpr(ImStatementExpr e, List<ImStmt> stmts, Translator t, ImFunction f) {
+		flattenStatements(stmts, e.getStatements(), t, f);
+		return e.getExpr().flattenExpr(stmts, t, f);
 	}
 
 
-	public static ImExpr flattenExpr(ImTupleExpr e, Translator t, ImFunction f) {
-		// TODO Auto-generated method stub
-		throw new Error("not implemented");
+	public static ImFlatExpr flattenExpr(ImTupleExpr e, List<ImStmt> stmts, Translator t, ImFunction f) {
+		List<ImExpr> exprs = Lists.newArrayList();
+		for (ImExpr expr : e.getExprs()) {
+			expr = expr.flattenExpr(stmts, t, f);
+			exprs.add(expr);
+		}
+		return ImTupleExpr(ImExprs(exprs));
 	}
 
 
-	public static ImExpr flattenExpr(ImTupleSelection e, Translator t, ImFunction f) {
-		// TODO Auto-generated method stub
-		throw new Error("not implemented");
+	public static ImFlatExpr flattenExpr(ImTupleSelection e, List<ImStmt> stmts, Translator t, ImFunction f) {
+		ImFlatExpr tupleExpr = e.getTupleExpr().flattenExpr(stmts, t, f);
+		return ImTupleSelection(tupleExpr, e.getTupleIndex());
 	}
 
 
-	public static ImExpr flattenExpr(ImVarAccess e, Translator t, ImFunction f) {
-		// TODO Auto-generated method stub
-		throw new Error("not implemented");
+	public static ImFlatExpr flattenExpr(ImVarAccess e, List<ImStmt> stmts, Translator t, ImFunction f) {
+		return e;
 	}
 
 
-	public static ImExpr flattenExpr(ImVarArrayAccess e, Translator t, ImFunction f) {
-		// TODO Auto-generated method stub
-		throw new Error("not implemented");
+	public static ImFlatExpr flattenExpr(ImVarArrayAccess e, List<ImStmt> stmts, Translator t, ImFunction f) {
+		ImFlatExpr index = e.getIndex().flattenExpr(stmts, t, f);
+		return ImVarArrayAccess(e.getVar(), index);
 	}
 
-	public static ImExprOpt flattenExpr(ImNoExpr e, Translator translator, ImFunction f) {
+
+	public static ImFlatExprOpt flattenExpr(ImNoExpr e, List<ImStmt> stmts, Translator translator, ImFunction f) {
 		return e;
 	}
 

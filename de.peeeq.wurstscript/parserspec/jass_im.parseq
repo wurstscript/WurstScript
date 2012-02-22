@@ -36,18 +36,26 @@ ImStmt =
 	
 ImExprOpt = 
 	  ImExpr
+	| ImFlatExprOpt
+
+ImFlatExprOpt = 
+	  ImFlatExpr
 	| ImNoExpr()
 	
 ImExprs * ImExpr
 	
 ImExpr = 
+	  ImStatementExpr(ImStmts statements, ImExpr expr)
+	| ImFlatExpr
+
+ImFlatExpr = 
 	  ImCall(&ImFunction func, ImExprs arguments)
-	| ImStatementExpr(ImStmts statements, ImExpr expr)
 	| ImVarAccess(&ImVar var)
 	| ImVarArrayAccess(&ImVar var, ImExpr index)
 	| ImTupleExpr(ImExprs exprs)
 	| ImTupleSelection(ImExpr tupleExpr, int tupleIndex)
 	| ImConst
+	
 	
 ImConst = 
 	  ImIntVal(int valI)
@@ -62,23 +70,26 @@ attributes:
 
 	
 ImStmt.flatten(
+		java.util.List<ImStmt> stmts,
 		de.peeeq.wurstscript.translation.imtranslation.Translator translator, 
 		de.peeeq.wurstscript.jassIm.ImFunction f	
 	)
-	returns java.util.List<ImStmt>
+	returns void
 	implemented by de.peeeq.wurstscript.translation.imtranslation.Flatten.flatten
 	
 ImExpr.flattenExpr(
+		java.util.List<ImStmt> stmts,
 		de.peeeq.wurstscript.translation.imtranslation.Translator translator, 
 		de.peeeq.wurstscript.jassIm.ImFunction f	
 	)
-	returns ImExpr
+	returns ImFlatExpr
 	implemented by de.peeeq.wurstscript.translation.imtranslation.Flatten.flattenExpr
 	
 ImExprOpt.flattenExprOpt(
+		java.util.List<ImStmt> stmts,
 		de.peeeq.wurstscript.translation.imtranslation.Translator translator, 
 		de.peeeq.wurstscript.jassIm.ImFunction f	
 	)
-	returns ImExprOpt
+	returns ImFlatExprOpt
 	implemented by de.peeeq.wurstscript.translation.imtranslation.Flatten.flattenExpr
 		
