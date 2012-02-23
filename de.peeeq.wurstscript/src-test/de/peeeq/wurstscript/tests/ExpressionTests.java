@@ -32,6 +32,16 @@ public class ExpressionTests extends PscriptTest {
 		assertOk("14 div 3 == 4");
 	}
 	
+	@Test
+	public void unaryMinus1() {
+		assertOk("(-(1.0 + 2.0) * 3.0) / (4.0 + 5.0) == -1.0");
+	}
+	
+	@Test
+	public void unaryMinus2() {
+		assertOk("-4 + 5 == 1");
+	}
+	
 //	@Test
 //	public void div2() {
 //		assertError("Cannot compare types", "14 / 4 == 7");

@@ -82,6 +82,8 @@ public class ExprPrinter {
 			} 
 			// if the precedence level is equal we can assume left associativity of all operators
 			// so they are treated correctly
+		} else if (e.getLeftExpr() instanceof JassExprUnary) {
+			useParanthesesLeft = true;
 		}
 		if (e.getRight() instanceof JassExprBinary) {
 			JassExprBinary right = (JassExprBinary) e.getRight();
@@ -102,6 +104,8 @@ public class ExprPrinter {
 					useParanthesesRight = true;
 				}
 			}
+		} else if (e.getRight() instanceof JassExprUnary) {
+			useParanthesesRight = true;
 		}
 		
 		sb.append(useParanthesesLeft ? "(" : "");
