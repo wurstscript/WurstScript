@@ -32,7 +32,7 @@ JassStatement	=
 JassExprlist * JassExpr
 
 JassExpr = 
-	  JassExprBinary(JassExpr leftExpr, JassOpBinary op, JassExpr right)
+	  JassExprBinary(JassExpr leftExpr, JassOpBinary op, JassExpr right) // left = a, op = "and" right="b" --> a and b k?
 	| JassExprUnary(JassOpUnary opU, JassExpr right)
 	| JassExprFunctionCall(String funcName, JassExprlist arguments)
 	| JassExprAtomic

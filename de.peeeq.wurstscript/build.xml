@@ -16,12 +16,22 @@
 	<property name="parseqspec" location="./parserspec/wurstscript.parseq" />
 	<property name="parseq" location="./tools/parseq.jar" />
 	<property name="junitTestResults" location="./junitTestResults/" />
+	<property name="frotty_grammarspec" location="./src/de/peeeq/wurstscript/frotty/jassParser/frottyjass.g" />
+	<property name="frotty_output" location="./src-gen/de/peeeq/wurstscript/frotty/jassParser" />
 
 	<path id="classpath">
 		<fileset dir="${lib}">
 			<include name="**/*.jar" />
 		</fileset>
 	</path>
+	
+	<target name="jassparser_antlr">
+		<java jar="${antlr}" fork="true" failonerror="true">
+			<arg value="-o" />
+			<arg value="${frotty_output}" />
+			<arg value="${frotty_grammarspec}" />
+		</java>
+	</target>
 
 
 

@@ -8,13 +8,19 @@ package Vectors
 	public function vec3.add( vec3 v )	returns vec3
 		return vec3(this.x + v.x, this.y + v.y, this.z + v.z)
         
+    public function vec3.addVec2( vec2 v )	returns vec3
+		return vec3(this.x + v.x, this.y + v.y, this.z)
+        
     public function vec3.addReals( real x, real y, real z )	returns vec3
 		return vec3(this.x + x, this.y + y, this.z + z)
 	
 	public function vec3.sub( vec3 v )	returns vec3
 		return vec3(this.x - v.x, this.y - v.y, this.z - v.z)
-		
-	public function vec3.scale( real factor )	returns vec3
+	
+    public function vec3.subVec2( vec2 v )	returns vec3
+		return vec3(this.x - v.x, this.y - v.y, this.z)
+        
+	public function vec3.scale( real factor ) returns vec3
 		return vec3(this.x * factor, this.y * factor, this.z * factor)
 	
 	public function vec3.scaleXY( real factor )	returns vec3
@@ -25,6 +31,18 @@ package Vectors
 		
 	public function vec3.dot( vec3 v ) returns real
 		return this.x*v.x + this.y*v.y + this.z*v.z
+        
+    public function vec3.norm() returns vec3
+        real len = this.length()
+        real x = 0 
+        real y = 0
+        real z = 0
+        if (len != 0.0)
+            x = (this.x / len)
+            y = (this.y / len)
+            z = (this.z / len)
+        return vec3(x,y,z)
+	
 
 	public function vec3.trim( real value ) returns vec3
 		vec3 result = this
@@ -35,6 +53,9 @@ package Vectors
 		if result.z > -value and result.z < value
 			result.z = 0.
 		return result
+        
+    public function vec3.toVec2() returns vec2
+        return vec2( this.x, this.y )
 		
 		
 	public function vec3.length() returns real
@@ -57,6 +78,14 @@ package Vectors
 	public function vec2.scale( real factor )	returns vec2
 		return vec2(this.x * factor, this.y * factor)
 		
+    public function vec2.norm() returns vec2
+        real len = this.length()
+        real x = 0 
+        real y = 0
+        if (len != 0.0)
+            x = (this.x / len)
+            y = (this.y / len)
+        return vec2(x,y)
 		
 	public function vec2.dot( vec2 v ) returns real
 		return this.x*v.x+this.y*v.y

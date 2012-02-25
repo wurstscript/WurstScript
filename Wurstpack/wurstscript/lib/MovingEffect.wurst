@@ -11,6 +11,7 @@ This is mostly a copy of xefx, credits for that go to Vexorian
 		private unit dummy
 		private effect fx = null
 		private real zang  = 0.
+        private string sfxPath
 		private integer red = 255
 		private integer green = 255
 		private integer blue = 255
@@ -25,6 +26,14 @@ This is mostly a copy of xefx, credits for that go to Vexorian
 				.removeAbility('Amrf')
 				.addAbility('Aloc')
 				.setPos(x,y)
+        
+        construct(real x, real y, real facing, string fxpath)
+			dummy = CreateUnit(DUMMY_PLAYER, DUMMY_UNIT_ID, x, y, facing*bj_RADTODEG)
+				.addAbility('Amrf')
+				.removeAbility('Amrf')
+				.addAbility('Aloc')
+				.setPos(x,y)
+            setFx( fxpath )
 				
 		function getOwner() returns player
 			return dummy.getOwner()
@@ -73,6 +82,19 @@ This is mostly a copy of xefx, credits for that go to Vexorian
 		function setXYAngle(real value) returns MovingEffect
 			dummy.setFacing(value*bj_RADTODEG)
 			return this
+            
+        function setXYAngleInstant(real value) returns MovingEffect
+            real x = getX()
+            real y = getY()
+            fx.destr()
+			RemoveUnit(dummy)
+            dummy = CreateUnit(DUMMY_PLAYER, DUMMY_UNIT_ID, x, y, value*bj_RADTODEG)
+				.addAbility('Amrf')
+				.removeAbility('Amrf')
+				.addAbility('Aloc')
+				.setPos(x,y)
+            setFx(sfxPath)
+			return this
 
 		function getZAngle() returns real
 			return zang
@@ -117,14 +139,15 @@ This is mostly a copy of xefx, credits for that go to Vexorian
 				fx.destr()
 			if newpath == ""
 				fx = null
-			else
+			else                
 				fx = dummy.addEffect(newpath, "origin")
+            sfxPath = newpath
 			return this
 				
 		ondestroy
 			if fx != null
 				fx.destr()
-			ExplodeUnitBJ(dummy)
+			KillUnit(dummy)
 		
 		function hiddenDestroy()
 			dummy.hide()
