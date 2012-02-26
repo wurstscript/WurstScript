@@ -3,17 +3,25 @@ package de.peeeq.wurstscript.jassAst
 
 abstract syntax:
 
-JassProg(JassVars globals, JassFunctions functions)
+JassProg(JassTypeDefs defs, JassVars globals, JassNatives natives, JassFunctions functions)
 
+JassNatives * JassNative
+JassTypeDefs * JassTypeDef
 JassVars * JassVar
 JassSimpleVars * JassSimpleVar
 JassFunctions * JassFunction
 
+JassTypeDef( String name, String ext)
 
+JassNative(String name, JassSimpleVars params, String returnType )
+	
+	
 JassVar = 
 	  JassSimpleVar(String type, String name)
 	| JassArrayVar(String type, String name)
-
+	| JassInitializedVar(String type, String name, JassExpr val )
+	| JassConstantVar(String type, String name, JassExpr val )
+	
 JassFunction(String name, JassSimpleVars params, String returnType, JassVars locals, JassStatements body)
 
 JassStatements * JassStatement  
@@ -32,7 +40,7 @@ JassStatement	=
 JassExprlist * JassExpr
 
 JassExpr = 
-	  JassExprBinary(JassExpr leftExpr, JassOpBinary op, JassExpr right)
+	  JassExprBinary(JassExpr leftExpr, JassOpBinary op, JassExpr right) // left = a, op = "and" right="b" --> a and b k?
 	| JassExprUnary(JassOpUnary opU, JassExpr right)
 	| JassExprFunctionCall(String funcName, JassExprlist arguments)
 	| JassExprAtomic
@@ -93,6 +101,14 @@ JassFuncRef.attrFuncDef
 JassExpr.print(java.lang.StringBuilder sb, boolean withSpace)
 	returns void
 	implemented by de.peeeq.wurstscript.jassprinter.ExprPrinter.print
+	
+JassTypeDef.print(java.lang.StringBuilder sb, boolean withSpace)
+	returns void
+	implemented by de.peeeq.wurstscript.jassprinter.JassPrinter.printTypeDef
+	
+JassNative.print(java.lang.StringBuilder sb, boolean withSpace)
+	returns void
+	implemented by de.peeeq.wurstscript.jassprinter.JassPrinter.printNative
 
 JassStatement.print(java.lang.StringBuilder sb, int indent, boolean withSpace)
 	returns void

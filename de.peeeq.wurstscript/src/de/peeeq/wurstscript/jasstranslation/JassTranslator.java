@@ -135,7 +135,7 @@ public class JassTranslator {
 			trace("translate " + wurstProg);
 			globals = JassVars();
 			functions = JassFunctions();
-			prog = JassProg(globals, functions);
+			prog = JassProg(JassAst.JassTypeDefs(), globals, JassAst.JassNatives(), functions);
 	
 			for (TopLevelDeclaration t : wurstProg) {
 				trace("translate tld " + t);
