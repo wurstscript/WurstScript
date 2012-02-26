@@ -24,6 +24,7 @@ public class Test {
 				prog = parser.file();
 			} catch (Throwable t) {
 				prog = null;
+				t.printStackTrace();
 			}
 			
 			// print the errors
