@@ -18,7 +18,7 @@ ImType =
 	
 ImTypes * ImType
 
-ImFunction(ImVars parameters, ImType returnType, ImVars locals, ImStmts body, boolean isNative)
+ImFunction(String name, ImVars parameters, ImType returnType, ImVars locals, ImStmts body, boolean isNative)
 	
 ImStmts * ImStmt
 
@@ -64,9 +64,19 @@ ImConst =
 	| ImBoolVal(boolean valB)
 	| ImFuncRef(&ImFunction func)
 	| ImNull()
+
+// helper types:
+	
+ImPrintable = ImStmt | ImFunction | ImProg | ImVar | ImType | ImStmts | ImExprOpt
 	
 attributes:
 	
+
+ImPrintable.print(java.lang.StringBuilder sb, int indent)
+	returns void
+	implemented by de.peeeq.wurstscript.translation.imtranslation.ImPrinter.print
+
+
 
 	
 ImStmt.flatten(
