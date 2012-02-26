@@ -110,7 +110,7 @@
 			</java>
 		</target>
 	
-	<target name="gen" depends="cup, jflex, parseq_ast, parseq_jassAst, parseq_jassImAst" >
+	<target name="gen" depends="cup, jflex, parseq_ast, parseq_jassAst, parseq_jassImAst, jassparser_antlr" >
 	</target>
 	
 	<target name="compile" depends="gen, just_compile">

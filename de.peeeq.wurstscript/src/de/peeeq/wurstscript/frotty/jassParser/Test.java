@@ -18,7 +18,13 @@ public class Test {
 			tokens.setTokenSource(lexer);
 			frottyjassParser parser = new frottyjassParser(tokens);
 			// read/parse a file
-			JassProg prog = parser.file();
+			
+			JassProg prog = null;
+			try {
+				prog = parser.file();
+			} catch (Throwable t) {
+				prog = null;
+			}
 			
 			// print the errors
 			for (String err : parser.getErrors()) {
@@ -26,6 +32,8 @@ public class Test {
 			}
 			if (parser.getErrors().isEmpty()) {
 				System.out.println("file OK!");
+			} else {
+				return;
 			}
 			
 			JassPrinter printer = new JassPrinter(false);
@@ -33,9 +41,6 @@ public class Test {
 			System.out.println(progText);
 			
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (RecognitionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
