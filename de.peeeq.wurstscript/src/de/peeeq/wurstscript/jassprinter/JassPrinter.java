@@ -11,8 +11,11 @@ import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.jassAst.JassArrayVar;
 import de.peeeq.wurstscript.jassAst.JassAstElement;
+import de.peeeq.wurstscript.jassAst.JassConstantVar;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassFunctions;
+import de.peeeq.wurstscript.jassAst.JassInitializedVar;
+import de.peeeq.wurstscript.jassAst.JassNative;
 import de.peeeq.wurstscript.jassAst.JassOp;
 import de.peeeq.wurstscript.jassAst.JassOpAnd;
 import de.peeeq.wurstscript.jassAst.JassOpDiv;
@@ -32,6 +35,7 @@ import de.peeeq.wurstscript.jassAst.JassSimpleVar;
 import de.peeeq.wurstscript.jassAst.JassStatement;
 import de.peeeq.wurstscript.jassAst.JassStatements;
 import de.peeeq.wurstscript.jassAst.JassStmtSet;
+import de.peeeq.wurstscript.jassAst.JassTypeDef;
 import de.peeeq.wurstscript.jassAst.JassVar;
 import de.peeeq.wurstscript.jassAst.JassVars;
 import de.peeeq.wurstscript.utils.Utils;
@@ -120,6 +124,19 @@ public class JassPrinter {
 			@Override
 			public void case_JassArrayVar(JassArrayVar v) {
 				sb.append(v.getType() + " array " + v.getName() + "\n");
+			}
+
+			@Override
+			public void case_JassInitializedVar(
+					JassInitializedVar jassInitializedVar) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void case_JassConstantVar(JassConstantVar jassConstantVar) {
+				// TODO Auto-generated method stub
+				
 			}
 		});
 	}
@@ -381,6 +398,21 @@ public class JassPrinter {
 		StringBuilder sb = new StringBuilder();
 		printProg(sb, prog);
 		return sb.toString();
+	}
+
+	public static void printTypeDef(JassTypeDef jassTypeDef,
+			StringBuilder sb, boolean withSpace2) {
+		sb.append("type ");
+		sb.append(jassTypeDef.getName());
+		sb.append(" extends ");
+		sb.append(jassTypeDef.getExt());
+		
+	}
+
+	public static void printNative(JassNative jassNative,
+			StringBuilder sb, boolean withSpace2) {
+		// TODO Auto-generated method stub
+		
 	}
 	
 }

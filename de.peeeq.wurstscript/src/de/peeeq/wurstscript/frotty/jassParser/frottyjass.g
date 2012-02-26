@@ -34,38 +34,87 @@ grammar frottyjass;
 
 file returns [JassProg prog] : 
   {
-    $prog = JassProg(JassVars(), JassFunctions());
+    $prog = JassProg(JassTypeDefs(), JassVars(), JassNatives(), JassFunctions());
   }
-  NEWLINE? (file_body[$prog] NEWLINE)* function[$prog]* EOF
+  NEWLINE? 
+  ( typDef=typeDefinition
+  {
+    System.out.println( "typedef = " + typDef );
+    $prog.getDefs().add(typDef);
+  }
+  | globals1=globalsBlock 
+  {
+    // first remove all elements from globals1 before adding them
+    $prog.getGlobals().addAll(globals1.removeAll());
+  }
+  | native_decl=nativeDeclaration
+  {
+    $prog.getNatives().add(native_decl);
+  }
+  )* NEWLINE
+
+  (
+  func=function
+  {
+    $prog.getFunctions().add(func);
+  }
+  )* 
+  
+  EOF
   ;
 
-file_body[JassProg prog]: typeDefinitions | globalsBlock | nativeDeclaration
+  
+typeDefinition returns [JassTypeDef typeDef]
+  : 
+  (
+  'type' name1=ID 'extends' extends1=ID
+  {
+  System.out.println("name1: " + name1 );
+    $typeDef = JassTypeDef( name1.getText(), extends1.getText() );
+  }
+  )
+  ;
+
+globalsBlock returns [JassVars jvars]
+  : 
+  'globals' NEWLINE globals=global_variables 'endglobals'
+  {
+    $jvars = globals;
+  }
+  ;
+
+global_variables returns [JassVars jvars]
+  : 
+  {
+    $jvars = JassVars();
+  }
+  ( 
+  'constant' typ=type name1=ID '=' expr=expression NEWLINE
+  {
+    $jvars.add( JassConstantVar( typ, name1.getText(), expr ) );
+  }
+  | var_decl=variable_declaration NEWLINE 
+  {
+    $jvars.add( var_decl );
+  }
+  )*
+  ;
+
+nativeDeclaration returns [JassNative jnative]
+  : 'constant'? 'native' func_decl=function_declaration
+  {
+    $jnative = JassNative(func_decl.name, func_decl.params, func_decl.returnType );
+  }
   ;
   
-typeDefinitions
-  : 'type' ID 'extends' ('handle'|ID)
-  ;
 
-globalsBlock
-  : 'globals' NEWLINE global_variables 'endglobals'
-  ;
-
-global_variables
-  : ( 'constant' type ID '=' expression NEWLINE
-  | variable_declaration NEWLINE )*
-  ;
-
-nativeDeclaration
-  : 'constant'? 'native' function_declaration
-  ;
-  
-
-function[JassProg prog]
+function returns [JassFunction func]
   : 'constant'? 'function' decl=function_declaration NEWLINE
-    locals statements 'endfunction' NEWLINE
+    lcls=locals stmts=statements 'endfunction' NEWLINE
     {
-      JassFunction f = JassFunction(decl.name, decl.params, decl.returnType, JassVars(), JassStatements());
-      $prog.getFunctions().add(f);
+      System.out.println("stmts = " + stmts);
+      $func = JassFunction(decl.name, decl.params, decl.returnType, lcls, stmts);
+      System.out.println("func = " + $func);
     }
   ;
 
@@ -99,54 +148,198 @@ paramaters returns [JassSimpleVars vars]
   ;
   
 // Locals
-locals
-  : ('local' variable_declaration  NEWLINE)*
+locals returns [JassVars vars]
+  : 
+  {
+    $vars = JassVars();
+  }
+  (
+  'local' var_decl=variable_declaration  NEWLINE
+  {
+    $vars.add(var_decl);
+  }
+  )*
   ;
 
-variable_declaration
-  : type ID ('=' expression)? | type 'array' ID
+variable_declaration returns [JassVar jvar]
+  : 
+  typ=type name1=ID 
+  {
+    $jvar = JassSimpleVar( typ, name1.getText() );
+  }
+  | typ=type name1=ID '=' expr1=expression
+  {
+    $jvar = JassInitializedVar( typ, name1.getText(), expr1 );
+  }
+  | typ=type 'array' name1=ID
+  {
+    $jvar = JassArrayVar( typ, name1.getText() );
+  }
   ;
 //Statements
-statements
-  : (statement NEWLINE)*
+statements returns [JassStatements statements]
+  : 
+  {
+    $statements = JassStatements();
+  }
+  (
+  stmt2=statement NEWLINE+
+  {
+    System.out.println("setstmt2 = " + stmt2);
+    $statements.add(stmt2);
+  }
+  )*
   ;
 
-statement
-  : set | call | s_if | loop | exitwhen | s_return | debug
+statement returns [JassStatement statement]
+  : 
+  setstmt=s_set
+  {
+    $statement = setstmt;  
+    System.out.println("setstmt = " + $statement);  
+  }
+  | callstmt=call 
+  
+  {
+    $statement = callstmt;    
+  }
+  | ifstmt=s_if 
+  {
+    $statement = ifstmt;    
+  }
+  | loopstmt=loop 
+  {
+    $statement = loopstmt;    
+  }
+  | exitstmt=exitwhen 
+  {
+    $statement = exitstmt;    
+  }
+  | retstmt=s_return // | stmt1=debug
+  {
+    $statement = retstmt;    
+  }
   ;
 
-  set : 'set' ID '=' expression | 'set' ID '[' expression ']' '=' expression
-    ;
+  s_set returns [JassStatement stmt]
+  : 
+  'set' name1=ID '=' expr=expression 
+  {
+    $stmt = JassStmtSet( name1.getText(), expr );
+    System.out.println("stmt = " + $stmt);
+  }
+  | 'set' name1=ID '[' expr1=expression ']' '=' expr2=expression
+  {
+    System.out.println("wtf");
+    $stmt = JassStmtSetArray( name1.getText(), expr1, expr2 );
+  }
+  ;
 
 
-  call  : 'call' ID '(' arguments? ')'
+  call returns [JassStatement stmt]  
+    : 
+    'call' name1=ID '(' ')'
+    {
+	    $stmt = JassStmtCall( name1.getText(), JassExprlist() );
+	  }
+    | 'call' name1=ID '(' args=arguments ')'
+    {
+      $stmt = JassStmtCall( name1.getText(), args );
+    }
     ;
 
-  s_if  : 'if' expression 'then' NEWLINE statements else_clause? 'endif'
-    ;
-  else_clause 
-    : 'else' NEWLINE statements
-    | 'elseif' expression 'then' NEWLINE statements else_clause?
+  s_if returns [JassStmtIf stmt]
+    : 
+    'if' expr=expression 'then' NEWLINE+ stmts=statements
+    {
+      $stmt = JassStmtIf( expr, stmts, JassStatements() );
+    }
+    (
+    elseblock=else_clause
+    {
+      $stmt.setElseBlock(elseblock);       
+    }
+    )? 'endif'
     ;
     
-  loop  : 'loop' NEWLINE statements 'endloop'
+  else_clause returns [JassStatements stmts]
+    : 
+    {
+      $stmts = JassStatements();
+    }
+    'else' NEWLINE stmts1=statements
+    {
+      $stmts.addAll(stmts1);
+    }
+    | 'elseif' expr=expression 'then' NEWLINE stmts1=statements
+    {
+      JassStmtIf if2 = JassStmtIf(expr,stmts1, JassStatements());
+      $stmts.add(if2);
+    }
+    ( elseblock=else_clause
+    {
+      if2.setElseBlock(elseblock);
+    }
+    )?
+    ;
+    
+  loop returns [JassStatement loop]
+    : 
+    'loop' NEWLINE stmts=statements 'endloop'
+    {
+      $loop = JassStmtLoop(stmts);
+    }
     ;
 
-  exitwhen
-    : 'exitwhen' expression //must be in a loop
+  exitwhen returns [JassStatement exit]
+    : 
+    'exitwhen' expr=expression //must be in a loop
+    {
+      $exit = JassStmtExitwhen(expr);
+    }
     ;
 
-  s_return  : 'return' expression?
+  s_return  returns [JassStatement stmt]
+    : 
+    'return' expr=expression
+    {
+      $stmt = JassStmtReturn( expr );
+    }
+    | 'return'
+    {
+      $stmt = JassStmtReturnVoid();
+    }
     ;
 
-  debug : 'debug' (set|call|s_if|loop)
-    ;
+//  debug 
+//    : 'debug' (s_set|call|s_if|loop)
+//    ;
 
 
 //Expressions
 
 expression returns [JassExpr jexpr] //?
-  : andExpression | function_call | array_reference | func_reference | constant
+  : andExpr=andExpression
+  {
+    $jexpr = andExpr;
+  } 
+  | funcCall=function_call 
+  {
+    $jexpr = funcCall;
+  } 
+  | arrayRef=array_reference 
+  {
+    $jexpr = arrayRef;
+  } 
+  | funcRef=func_reference 
+  {
+    $jexpr = funcRef;
+  } 
+//  | cnst=constant
+//  {
+//    $jexpr = cnst;
+//  } 
+  
   ;
   
 andExpression returns [JassExpr jexpr]
@@ -264,28 +457,57 @@ atom  returns [JassExpr jexpr]
     {
       $jexpr = expr;
     }
+    |  cnst=constant
+    {
+      $jexpr = cnst;
+    }
     ;
     
-function_call
-  : 'call' ID '(' arguments ')'
+function_call returns [JassExprFunctionCall expr]
+  : 'call' name=ID '(' args=arguments ')'
+  {
+    $expr = JassExprFunctionCall( name.getText(), args );
+  }
   ;
 
-arguments
-  : ID // TODO
+arguments returns [JassExprlist exprs]
+  : 
+  {
+    $exprs = JassExprlist();
+  }
+  expr1=expression 
+  {
+    $exprs.add(expr1);
+  }
+  (
+  ',' expr2=expression
+  {
+    $exprs.add(expr2);
+  }
+  )*
   ;
 
-array_reference
-  : ID '[' expression ']'
+array_reference returns [JassExprVarArrayAccess expr]
+  : 
+  name=ID '[' expr1=expression ']'
+  {
+    $expr = JassExprVarArrayAccess(name.getText(), expr1);
+  }
   ;
 
-  func_reference
-    : 'function' ID
+  func_reference returns [JassExprFuncRef expr ]
+    : 
+    'function' name=ID
+    {
+      $expr = JassExprFuncRef( name.getText() );
+    }
     ;
 
-  constant returns [JassExprAtomic jatomic]
+  constant returns [JassExpr jatomic]
     : 
       iconst=int_const
       {
+        System.out.println("int = " + iconst);
         $jatomic = iconst; 
       } 
       | rconst=Real_const
@@ -348,7 +570,7 @@ array_reference
     ;
 
   String_const
-    : '"' .* '"' // TODO escape \n \" ...
+    :  '"' ( ESC_SEQ | ~('\\'|'"') )* '"'
     ;
 
 //  parenthesis
@@ -363,7 +585,7 @@ type returns [String typeName]  : t=(ID | 'code' | 'handle' | 'integer' | 'real'
   ;
 ID    : ('a'..'z'|'A'..'Z') (('a'..'z'|'A'..'Z'|'0'..'9'|'_')* ('a'..'z'|'A'..'Z'|'0'..'9') )?;
 
-NEWLINE : ('\r' | '\n')+ ;
+NEWLINE : ('\r' | '\n' )+ ;
       
 //stat:   expression NEWLINE {System.out.println($expression.value);}
 //    |   ID '=' expression NEWLINE
@@ -371,9 +593,36 @@ NEWLINE : ('\r' | '\n')+ ;
 //    |   NEWLINE
 //    
 
+COMMENT
+    :   '//' ~('\n'|'\r')* '\r'? '\n' {$channel=HIDDEN;}
+    ;
+    
+fragment
+ESC_SEQ
+    :   '\\' ('b'|'t'|'n'|'f'|'r'|'\"'|'\''|'\\')
+    |   UNICODE_ESC
+    |   OCTAL_ESC
+    ;
 
+fragment
+OCTAL_ESC
+    :   '\\' ('0'..'3') ('0'..'7') ('0'..'7')
+    |   '\\' ('0'..'7') ('0'..'7')
+    |   '\\' ('0'..'7')
+    ;
 
-WS  :   (' '|'\t')+ {skip();} ;
+fragment
+UNICODE_ESC
+    :   '\\' 'u' HEX_DIGIT HEX_DIGIT HEX_DIGIT HEX_DIGIT
+    ;
+    
+fragment
+HEX_DIGIT : ('0'..'9'|'a'..'f'|'A'..'F') ;
+
+WS  :   ( ' '
+        | '\t'
+        ) {$channel=HIDDEN;}
+    ;
 
 
 
