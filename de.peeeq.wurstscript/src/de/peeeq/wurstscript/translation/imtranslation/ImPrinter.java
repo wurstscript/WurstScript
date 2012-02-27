@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImBoolVal;
 import de.peeeq.wurstscript.jassIm.ImCall;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
+import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFuncRef;
 import de.peeeq.wurstscript.jassIm.ImFunction;
@@ -22,6 +23,7 @@ import de.peeeq.wurstscript.jassIm.ImSetArrayTuple;
 import de.peeeq.wurstscript.jassIm.ImSetTuple;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImStatementExpr;
+import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImStringVal;
 import de.peeeq.wurstscript.jassIm.ImTupleExpr;
@@ -176,104 +178,83 @@ public class ImPrinter {
 	
 	
 	public static void print(ImVarAccess p, StringBuilder sb, int indent) {
-		throw new Error("not implemented");
-		// TODO
+		sb.append(p.getVar().getName());
 	}
 	
 	
 	public static void print(ImVarArrayAccess p, StringBuilder sb, int indent) {
-		throw new Error("not implemented");
-		// TODO
+		sb.append(p.getVar().getName() + "[");
+		p.getIndex().print(sb, indent);
+		sb.append("]");
 	}
 	
 	
 	public static void print(ImTupleExpr p, StringBuilder sb, int indent) {
-		throw new Error("not implemented");
-		// TODO
+		sb.append("<");
+		boolean first = true;
+		for (ImExpr e : p.getExprs()) {
+			if (!first) sb.append(", ");
+			e.print(sb, indent);
+			first = false;
+		}
+		sb.append(">");
 	}
 	
 	
 	public static void print(ImTupleSelection p, StringBuilder sb, int indent) {
-		throw new Error("not implemented");
-		// TODO
+		p.getTupleExpr().print(sb, indent);
+		sb.append("#" + p.getTupleIndex());
 	}
 	
 	
 	public static void print(ImIntVal p, StringBuilder sb, int indent) {
-		throw new Error("not implemented");
-		// TODO
+		sb.append(p.getValI());
 	}
 	
 	
 	public static void print(ImRealVal p, StringBuilder sb, int indent) {
-		throw new Error("not implemented");
-		// TODO
+		sb.append(p.getValR());
 	}
 	
 	
 	public static void print(ImStringVal p, StringBuilder sb, int indent) {
-		throw new Error("not implemented");
-		// TODO
+		sb.append('"');
+		sb.append(p.getValS());
+		sb.append('"');
 	}
 	
 	
 	public static void print(ImBoolVal p, StringBuilder sb, int indent) {
-		throw new Error("not implemented");
-		// TODO
+		sb.append(p.getValB() ? "true" : "false");
 	}
 	
 	
 	public static void print(ImFuncRef p, StringBuilder sb, int indent) {
-		throw new Error("not implemented");
-		// TODO
+		sb.append("function " + p.getFunc().getName());
 	}
 	
 	
 	public static void print(ImNull p, StringBuilder sb, int indent) {
-		throw new Error("not implemented");
-		// TODO
+		sb.append("null");
+	}
+
+
+	public static void print(ImStmts ss, StringBuilder sb, int indent) {
+		for (ImStmt s : ss) {
+			indent(sb, indent);
+			s.print(sb, indent);
+			sb.append("\n");
+		}
+	}
+
+
+	public static void print(ImVar v, StringBuilder sb, int indent) {
+		v.getType().print(sb, indent);
+		sb.append(" ");
+		sb.append(v.getName());
 	}
 	
 	
 
-	public static void print(ImExprs p, StringBuilder sb, int indent) {
-		throw new Error("not implemented");
-		// TODO
-	}
-	
-
-	public static void print(ImFunctions p, StringBuilder sb, int indent) {
-		throw new Error("not implemented");
-		// TODO
-	}
-	
-
-	public static void print(ImStmts p, StringBuilder sb, int indent) {
-		throw new Error("not implemented");
-		// TODO
-	}
-	
-
-	public static void print(ImTypes p, StringBuilder sb, int indent) {
-		throw new Error("not implemented");
-		// TODO
-	}
-	
-	
-
-	public static void print(ImVar p, StringBuilder sb, int indent) {
-		throw new Error("not implemented");
-		// TODO
-	}
-	
-
-	public static void print(ImVars p, StringBuilder sb, int indent) {
-		throw new Error("not implemented");
-		// TODO
-	}
-	
-	
-	
-	
 	
 }
