@@ -16,6 +16,7 @@ import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassFunctions;
 import de.peeeq.wurstscript.jassAst.JassInitializedVar;
 import de.peeeq.wurstscript.jassAst.JassNative;
+import de.peeeq.wurstscript.jassAst.JassNatives;
 import de.peeeq.wurstscript.jassAst.JassOp;
 import de.peeeq.wurstscript.jassAst.JassOpAnd;
 import de.peeeq.wurstscript.jassAst.JassOpDiv;
@@ -36,6 +37,7 @@ import de.peeeq.wurstscript.jassAst.JassStatement;
 import de.peeeq.wurstscript.jassAst.JassStatements;
 import de.peeeq.wurstscript.jassAst.JassStmtSet;
 import de.peeeq.wurstscript.jassAst.JassTypeDef;
+import de.peeeq.wurstscript.jassAst.JassTypeDefs;
 import de.peeeq.wurstscript.jassAst.JassVar;
 import de.peeeq.wurstscript.jassAst.JassVars;
 import de.peeeq.wurstscript.utils.Utils;
@@ -79,7 +81,10 @@ public class JassPrinter {
 	
 	public void printProg(StringBuilder sb, JassProg prog) {
 		this.prog = prog;
+		
+		printTypes(sb, prog.getDefs());
 		printGlobals(sb, prog.getGlobals());
+		printNatives(sb, prog.getNatives());
 		printFunctions(sb, prog.getFunctions());
 	}
 	
@@ -109,6 +114,18 @@ public class JassPrinter {
 		}
 		sb.append("endglobals\n");
 	}
+	
+	private void printTypes(StringBuilder sb, JassTypeDefs defs) {
+		for (JassTypeDef d : defs) {
+			printTypeDef(d, sb, false);
+		}
+	}
+	
+	private void printNatives(StringBuilder sb, JassNatives natives) {
+		for (JassNative n : natives) {
+			printNative(n, sb, false);
+		}
+	}
 
 	private void printJassGlobalVar(final StringBuilder sb, JassVar g) {
 		if (prog.attrIgnoredVariables().contains(g)) {
@@ -129,14 +146,14 @@ public class JassPrinter {
 			@Override
 			public void case_JassInitializedVar(
 					JassInitializedVar jassInitializedVar) {
-				// TODO Auto-generated method stub
-				
+				sb.append(jassInitializedVar.getType() + " " + jassInitializedVar.getName() + "=" + jassInitializedVar.getVal() + "\n");
+				// TODO check if right
 			}
 
 			@Override
 			public void case_JassConstantVar(JassConstantVar jassConstantVar) {
-				// TODO Auto-generated method stub
-				
+				sb.append(jassConstantVar.getType() + " " + jassConstantVar.getName() + "=" + jassConstantVar.getVal() + "\n");
+				// TODO check if right
 			}
 		});
 	}
@@ -410,8 +427,24 @@ public class JassPrinter {
 	}
 
 	public static void printNative(JassNative jassNative,
-			StringBuilder sb, boolean withSpace2) {
-		// TODO Auto-generated method stub
+			StringBuilder sb, boolean withSpace) {
+		sb.append("native ");
+		sb.append(jassNative.getName());
+		sb.append(" takes ");
+		if (jassNative.getParams().size() == 0) {
+			sb.append("nothing");
+		} else {
+				Utils.printSep(sb, comma(withSpace), jassNative.getParams(), new Function<JassSimpleVar, String>() {
+
+					@Override
+					public String apply(JassSimpleVar input) {
+						return input.getType() + " " + input.getName();
+					}
+				});				
+		}
+		sb.append(" returns ");
+		sb.append(jassNative.getReturnType());
+		sb.append("\n");
 		
 	}
 	
