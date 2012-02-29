@@ -1,0 +1,8 @@
+#bin folders
+*/bin/*
+*/dist/*
+*/src-gen/*
+
+de.peeeq.wurstscript/logs/*
+de.peeeq.wurstscript/test-output/*
+

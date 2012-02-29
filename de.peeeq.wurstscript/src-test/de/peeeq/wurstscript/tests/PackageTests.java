@@ -54,19 +54,6 @@ public class PackageTests extends PscriptTest {
 				"endpackage");
 	}
 	
-	@Test
-	public void packageCalls() {
-		assertError(false,
-				"package A",
-				"	int i",
-				"endpackage",
-				"package B",
-				"	import A",
-				"	init",
-				"		A.i()",
-				"endpackage");
-	}
-	
 	
 	@Test
 	public void test_import_ext_function() {
