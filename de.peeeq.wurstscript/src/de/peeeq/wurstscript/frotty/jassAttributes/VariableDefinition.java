@@ -22,14 +22,18 @@ public class VariableDefinition {
 		JassAstElement node = e.getParent();
 		while (node != null) {
 			if (node instanceof JassFunction) {
+				System.out.println("In Jasfunc");
 				JassFunction jassFunction = (JassFunction) node;
-				JassVar v = jassFunction.attrVariableMap().get(varName);
+				JassVar v = getVariableMap(jassFunction).get(varName);
+				System.out.println(v);
 				if (v != null) {
 					return v;
 				}
 			} else if (node instanceof JassProgs) {
+				System.out.println("In Jassprog");
 				JassProgs jassProgs = (JassProgs) node;
 				JassVar v = jassProgs.getGlobal(varName);
+				System.out.println(v);
 				if (v != null) {
 					return v;
 				}
