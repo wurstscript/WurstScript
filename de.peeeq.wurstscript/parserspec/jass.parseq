@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.jassAst
 
 abstract syntax:
 
+JassProgs * JassProg
+
 JassProg(JassTypeDefs defs, JassVars globals, JassNatives natives, JassFunctions functions)
 
 JassNatives * JassNative
@@ -52,9 +54,12 @@ JassExprAtomic =
 	| JassExprStringVal(String valS)
 	| JassExprBoolVal(boolean valB)
 	| JassExprFuncRef(String funcName)
-	| JassExprVarAccess(String varName)
-	| JassExprVarArrayAccess(String varName, JassExpr index)
+	| JassExprVarRef 
 	| JassExprNull()
+	
+JassExprVarRef = 
+	  JassExprVarAccess(String varName)
+	| JassExprVarArrayAccess(String varName, JassExpr index)
 	
 JassOpBinary = 
 	  JassOpOr() 
@@ -78,8 +83,70 @@ JassOp = JassOpBinary | JassOpUnary
 	
 JassFuncRef = JassExprFuncRef | JassExprFunctionCall | JassStmtCall
 	
+JassScope = JassFunction | JassProg
 
 attributes:
+
+JassProgs.attrGlobalMap "returns the Globals map"
+	returns java.util.Map<String, JassVar>
+	implemented by de.peeeq.wurstscript.frotty.jassAttributes.JassProgs.attrGlobalsMap
+	
+JassProgs.addFunction(JassFunction f)
+	returns void
+	implemented by de.peeeq.wurstscript.frotty.jassValidator.JassProgsAttr.addFunction
+
+JassProgs.addNative(JassNative n)
+	returns void
+	implemented by de.peeeq.wurstscript.frotty.jassValidator.JassProgsAttr.addNative
+
+JassProgs.addGlobal(JassVar v)
+	returns void
+	implemented by de.peeeq.wurstscript.frotty.jassValidator.JassProgsAttr.addGlobal
+
+JassProgs.addTypeDef(JassTypeDef t)
+	returns void
+	implemented by de.peeeq.wurstscript.frotty.jassValidator.JassProgsAttr.addTypeDef
+	
+JassProgs.getFunction(String name)
+	returns JassFunction
+	implemented by de.peeeq.wurstscript.frotty.jassValidator.JassProgsAttr.getFunction
+
+JassProgs.getNative(String name)
+	returns JassNative
+	implemented by de.peeeq.wurstscript.frotty.jassValidator.JassProgsAttr.getNative
+	
+JassProgs.getGlobal(String name)
+	returns JassVar
+	implemented by de.peeeq.wurstscript.frotty.jassValidator.JassProgsAttr.getGlobal
+
+JassProgs.getTypeDef(String name)
+	returns JassTypeDef
+	implemented by de.peeeq.wurstscript.frotty.jassValidator.JassProgsAttr.getTypeDef
+	
+JassProg.validate()
+	returns void
+	implemented by de.peeeq.wurstscript.frotty.jassValidator.JassValidator.validate
+	
+JassAstElement.getLine
+	returns int
+	implemented by de.peeeq.wurstscript.frotty.jassValidator.LineMapAttr.getLine
+
+JassAstElement.getProg
+	returns JassProg
+	implemented by de.peeeq.wurstscript.frotty.jassValidator.LineMapAttr.getProg	
+
+	
+JassProg.attrLineMap
+	returns java.util.Map<JassAstElement, Integer >
+	implemented by de.peeeq.wurstscript.frotty.jassValidator.LineMapAttr.get
+
+JassExprVarRef.attrVariableDefinition "gets the var for a variable reference"
+	returns JassVar
+	implemented by de.peeeq.wurstscript.frotty.jassAttributes.VariableDefinition.get
+	
+JassExprFuncRef.attrFunctionDefinition "gets the function for a function reference"
+	returns JassFunction
+	implemented by de.peeeq.wurstscript.frotty.jassAttributes.FunctionDefinition.get
 
 JassProg.attrIgnoredVariables
 	returns java.util.Set<JassVar>
