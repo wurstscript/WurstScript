@@ -1,4 +1,4 @@
-package de.peeeq.wurstscript.frotty.jassAttributes;
+package de.peeeq.wurstscript.frotty.jassValidator;
 
 import java.util.Map;
 

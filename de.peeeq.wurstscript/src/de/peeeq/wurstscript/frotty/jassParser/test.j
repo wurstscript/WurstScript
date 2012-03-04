@@ -4,5 +4,7 @@ endglobals
 function bla takes nothing returns nothing
 
 
-	local integer blub = bj_PI
+	local integer x = 1
+	local integer x
+	set x = y + 1
 endfunction

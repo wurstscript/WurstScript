@@ -86,38 +86,42 @@ JassFuncRef = JassExprFuncRef | JassExprFunctionCall | JassStmtCall
 JassScope = JassFunction | JassProg
 
 attributes:
+
+JassProgs.attrGlobalMap "returns the Globals map"
+	returns java.util.Map<String, JassVar>
+	implemented by de.peeeq.wurstscript.frotty.jassAttributes.JassProgs.attrGlobalsMap
 	
 JassProgs.addFunction(JassFunction f)
 	returns void
-	implemented by de.peeeq.wurstscript.frotty.jassAttributes.JassProgsAttr.addFunction
+	implemented by de.peeeq.wurstscript.frotty.jassValidator.JassProgsAttr.addFunction
 
 JassProgs.addNative(JassNative n)
 	returns void
-	implemented by de.peeeq.wurstscript.frotty.jassAttributes.JassProgsAttr.addNative
+	implemented by de.peeeq.wurstscript.frotty.jassValidator.JassProgsAttr.addNative
 
 JassProgs.addGlobal(JassVar v)
 	returns void
-	implemented by de.peeeq.wurstscript.frotty.jassAttributes.JassProgsAttr.addGlobal
+	implemented by de.peeeq.wurstscript.frotty.jassValidator.JassProgsAttr.addGlobal
 
 JassProgs.addTypeDef(JassTypeDef t)
 	returns void
-	implemented by de.peeeq.wurstscript.frotty.jassAttributes.JassProgsAttr.addTypeDef
+	implemented by de.peeeq.wurstscript.frotty.jassValidator.JassProgsAttr.addTypeDef
 	
 JassProgs.getFunction(String name)
 	returns JassFunction
-	implemented by de.peeeq.wurstscript.frotty.jassAttributes.JassProgsAttr.getFunction
+	implemented by de.peeeq.wurstscript.frotty.jassValidator.JassProgsAttr.getFunction
 
 JassProgs.getNative(String name)
 	returns JassNative
-	implemented by de.peeeq.wurstscript.frotty.jassAttributes.JassProgsAttr.getNative
+	implemented by de.peeeq.wurstscript.frotty.jassValidator.JassProgsAttr.getNative
 	
 JassProgs.getGlobal(String name)
 	returns JassVar
-	implemented by de.peeeq.wurstscript.frotty.jassAttributes.JassProgsAttr.getGlobal
+	implemented by de.peeeq.wurstscript.frotty.jassValidator.JassProgsAttr.getGlobal
 
 JassProgs.getTypeDef(String name)
 	returns JassTypeDef
-	implemented by de.peeeq.wurstscript.frotty.jassAttributes.JassProgsAttr.getTypeDef
+	implemented by de.peeeq.wurstscript.frotty.jassValidator.JassProgsAttr.getTypeDef
 	
 JassProg.validate()
 	returns void
