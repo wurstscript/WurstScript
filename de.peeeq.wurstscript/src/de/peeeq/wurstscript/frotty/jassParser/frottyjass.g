@@ -9,7 +9,6 @@ grammar frottyjass;
   package de.peeeq.wurstscript.frotty.jassParser; 
   import de.peeeq.wurstscript.jassAst.*;
   import com.google.common.collect.Lists;
-  import com.google.common.collect.Maps;
   import static de.peeeq.wurstscript.jassAst.JassAst.*;
   import de.peeeq.wurstscript.utils.*;
   import java.util.Map;
@@ -17,8 +16,6 @@ grammar frottyjass;
 
 @members {
     private List<String> errors = new ArrayList<String>();
-    private JassProgs progs;
-    private static Map<JassAstElement, Integer> lineMap;
     private static Map<String, JassFunction> functionsMap = Maps.newHashMap();
 	  private static Map<String, JassNative> nativesMap = Maps.newHashMap();
 	  private static Map<String, JassVar> globalsMap = Maps.newHashMap();
@@ -44,7 +41,6 @@ file returns [JassProg prog] :
   {
     $prog = JassProg(JassTypeDefs(), JassVars(), JassNatives(), JassFunctions());
     lineMap = $prog.attrLineMap();
-    progs = ((JassProgs)$prog.getParent());
   }
    
   ( 
@@ -53,6 +49,7 @@ file returns [JassProg prog] :
 	  (
 	  typDef=typeDefinition
 		  {
+		    System.out.println( "typedef = " + typDef );
 		    $prog.getDefs().add(typDef);
 		  }
 	  | globals1=globalsBlock 
@@ -83,9 +80,8 @@ typeDefinition returns [JassTypeDef typeDef]
   (
   'type' name1=ID 'extends' extends1=(ID|'handle') NEWLINE
   {
+  System.out.println("name1: " + name1 );
     $typeDef = JassTypeDef( name1.getText(), extends1.getText() );
-    System.out.println($typeDef);
-    progs.addTypeDef( $typeDef );
   }
   )
   ;
@@ -106,14 +102,11 @@ global_variables returns [JassVars jvars]
   ( 
   'constant' typ=type name1=ID '=' expr=expression NEWLINE+
   {
-    JassVar v = JassConstantVar( typ, name1.getText(), expr );
-    $jvars.add( v );
-    progs.addGlobal( v );
+    $jvars.add( JassConstantVar( typ, name1.getText(), expr ) );
   }
   | var_decl=variable_declaration NEWLINE+ 
   {
     $jvars.add( var_decl );
-    progs.addGlobal( var_decl );
   }
   )*
   ;
@@ -130,7 +123,9 @@ function returns [JassFunction func]
   : 'constant'? 'function' decl=function_declaration NEWLINE+
     lcls=locals stmts=statements 'endfunction' NEWLINE
     {
+      System.out.println("stmts = " + stmts);
       $func = JassFunction(decl.name, decl.params, decl.returnType, lcls, stmts);
+      System.out.println("func = " + $func);
       lineMap.put( $func, decl.lineNr );
     }
   ;
@@ -217,6 +212,7 @@ statements returns [JassStatements statements]
   (
   stmt2=statement NEWLINE+
   {
+    System.out.println("setstmt2 = " + stmt2);
     $statements.add(stmt2);
   }
   )*
@@ -227,6 +223,7 @@ statement returns [JassStatement statement]
   setstmt=s_set
   {
     $statement = setstmt;  
+    System.out.println("setstmt = " + $statement);  
   }
   | callstmt=call 
   
@@ -257,9 +254,11 @@ statement returns [JassStatement statement]
   {
     $stmt = JassStmtSet( name1.getText(), expr );
     lineMap.put($stmt, name1.getLine());
+    System.out.println("stmt = " + $stmt);
   }
   | 'set' name1=ID '[' expr1=expression ']' '=' expr2=expression
   {
+    System.out.println("wtf");
     lineMap.put($stmt, name1.getLine());
     $stmt = JassStmtSetArray( name1.getText(), expr1, expr2 );
   }
@@ -304,9 +303,11 @@ statement returns [JassStatement statement]
     | 'elseif' expr=expression 'then' NEWLINE+ stmts1=statements
     {
       JassStmtIf if2 = JassStmtIf(expr,stmts1, JassStatements());
+      System.out.println("if2 =" + if2 );
       
       $stmts = JassStatements();
       $stmts.add(if2);
+      System.out.println("stmts =" + $stmts );
     }
     ( elseblock=else_clause
     {
@@ -546,6 +547,7 @@ array_reference returns [JassExprVarArrayAccess expr]
     : 
       iconst=int_const
       {
+        System.out.println("int = " + iconst);
         $jatomic = iconst; 
       } 
       | rconst=Real_const
@@ -561,41 +563,38 @@ array_reference returns [JassExprVarArrayAccess expr]
         String s = sconst.getText();
         s = s.substring( 1, s.length()-1 );
         StringBuilder result = new StringBuilder();
-	      for (int i=0; i<s.length(); i++) {
-	        char c = s.charAt(i);
-	        if (c == '\\') {
-	          i++;
-	          c = s.charAt(i);
-	          switch (c) {
-	            case 'n':
-	              result.append("\n");
-	              break;
-	            case 'r':
-	              result.append("\r");
-	              break;
-	            case 'b':
-	              result.append("\b");
-	              break;
-	            case 't':
-	              result.append("\t");
-	              break;
-	            case 'f':
-	              result.append("\f");
-	              break;
-	            case '\\':
-	              result.append("\\");
-	              break;
-	            case '\"':
-	              result.append("\"");
-	              break;
-	            case '\'':
-	              result.append("\'");
-	              break;
-	            }
-	        } else {
-	          result.append(c);
-	        }
-	      }
+      for (int i=0; i<s.length(); i++) {
+        char c = s.charAt(i);
+        if (c == '\\') {
+          i++;
+          c = s.charAt(i);
+          switch (c) {
+            case 'n':
+              result.append("\n");
+              break;
+            case 'b':
+              result.append("\b");
+              break;
+            case 't':
+              result.append("\t");
+              break;
+            case 'f':
+              result.append("\f");
+              break;
+            case '\\':
+              result.append("\\");
+              break;
+            case '\"':
+              result.append("\"");
+              break;
+            case '\'':
+              result.append("\'");
+              break;
+            }
+        } else {
+          result.append(c);
+        }
+      }
         $jatomic = JassExprStringVal(result.toString()); 
       } 
       | 'null'
@@ -665,7 +664,7 @@ type returns [String typeName]  : t=(ID | 'code' | 'handle' | 'integer' | 'real'
   ;
 ID    : ('a'..'z'|'A'..'Z') (('a'..'z'|'A'..'Z'|'0'..'9'|'_')* ('a'..'z'|'A'..'Z'|'0'..'9') )?;
 
-NEWLINE : '\r'? '\n'  ;
+NEWLINE : ('\r' | '\n' )+ ;
       
 //stat:   expression NEWLINE {System.out.println($expression.value);}
 //    |   ID '=' expression NEWLINE
@@ -674,14 +673,31 @@ NEWLINE : '\r'? '\n'  ;
 //    
 
 COMMENT
-   : '//' ~('\n'|'\r')* '\r'? '\n' {$channel=HIDDEN;}
-   ;
+    :   '//' ~('\n'|'\r')* '\r'? '\n' {$channel=HIDDEN;}
+    ;
     
 fragment
 ESC_SEQ
     :   '\\' ('b'|'t'|'n'|'f'|'r'|'\"'|'\''|'\\')
     ;
+        // TODO
+//    |   UNICODE_ESC
+//    |   OCTAL_ESC
 
+//fragment
+//OCTAL_ESC
+//    :   '\\' ('0'..'3') ('0'..'7') ('0'..'7')
+//    |   '\\' ('0'..'7') ('0'..'7')
+//    |   '\\' ('0'..'7')
+//    ;
+//
+//fragment
+//UNICODE_ESC
+//    :   '\\' 'u' HEX_DIGIT HEX_DIGIT HEX_DIGIT HEX_DIGIT
+//    ;
+//    
+//fragment
+//HEX_DIGIT : ('0'..'9'|'a'..'f'|'A'..'F') ;
 
 WS  :   ( ' '
         | '\t'

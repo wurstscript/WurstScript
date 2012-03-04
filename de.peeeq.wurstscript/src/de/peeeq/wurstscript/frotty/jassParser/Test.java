@@ -34,21 +34,9 @@ public class Test {
 			
 			//common.j+blizzard.j
 			try {
-				prog = parseFile("C:/Users/Frotty/Documents/WurstScript/de.peeeq.wurstscript/src/de/peeeq/wurstscript/frotty/jassParser/common.j");
-				System.out.println("common.j parsed...");
-				File common = new File("common_f.j");
-				
-				StringBuilder sb = new StringBuilder();
-				new JassPrinter(true).printProg(sb, prog);
-				Files.write(sb.toString(), common, Charsets.UTF_8);
+				prog = parseFile("./common.j");
 				progs.add( prog );
-				prog = parseFile("C:/Users/Frotty/Documents/WurstScript/de.peeeq.wurstscript/src/de/peeeq/wurstscript/frotty/jassParser/Blizzard.j");
-				System.out.println("Blizzard.j parsed...");
-				File bliz = new File("bliz_f.j");
-				
-				sb = new StringBuilder();
-				new JassPrinter(true).printProg(sb, prog);
-				Files.write(sb.toString(), bliz, Charsets.UTF_8);
+				prog = parseFile("./Blizzard.j");
 				progs.add( prog );
 				prog = parseFile(inputFile);
 				progs.add( prog );
@@ -68,7 +56,6 @@ public class Test {
 			}
 			
 			/// check prog
-			System.out.println("Validating");
 			prog.validate();
 			
 			if (JassErrors.errorCount() > 0) {
@@ -85,7 +72,6 @@ public class Test {
 			Files.write(sb.toString(), outputFile, Charsets.UTF_8);
 
 			// run pjass:
-			System.out.println("Pjass...");
 			Result pJassResult = Pjass.runPjass(outputFile);
 			System.out.println(pJassResult.getMessage());
 			if (!pJassResult.isOk()) {
