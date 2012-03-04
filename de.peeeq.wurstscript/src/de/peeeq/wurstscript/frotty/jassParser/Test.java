@@ -12,34 +12,23 @@ import com.google.common.io.Files;
 
 import de.peeeq.wurstscript.Pjass;
 import de.peeeq.wurstscript.Pjass.Result;
-import de.peeeq.wurstscript.frotty.jassValidator.JassErrors;
-import de.peeeq.wurstscript.frotty.jassValidator.JassValidator;
-import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassProg;
-import de.peeeq.wurstscript.jassAst.JassProgs;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 
 public class Test {
-	
-	static frottyjassParser parser = new frottyjassParser(null);
-	
 	public static void main(String ... args) {
 		try {
 			String inputFile = args[0];
-			
+			frottyjassLexer lexer = new frottyjassLexer(new ANTLRFileStream(inputFile));
+			CommonTokenStream tokens = new CommonTokenStream();
+			tokens.setTokenSource(lexer);
+			frottyjassParser parser = new frottyjassParser(tokens);
 			// read/parse a file
-			JassProgs progs = JassAst.JassProgs();
-			JassProg prog = null;
 			
-			//common.j+blizzard.j
+			JassProg prog = null;
 			try {
-				prog = parseFile("./common.j");
-				progs.add( prog );
-				prog = parseFile("./Blizzard.j");
-				progs.add( prog );
-				prog = parseFile(inputFile);
-				progs.add( prog );
+				prog = parser.file();
 			} catch (Throwable t) {
 				prog = null;
 				t.printStackTrace();
@@ -52,16 +41,6 @@ public class Test {
 			if (parser.getErrors().isEmpty()) {
 				System.out.println("file OK!");
 			} else {
-				return;
-			}
-			
-			/// check prog
-			prog.validate();
-			
-			if (JassErrors.errorCount() > 0) {
-				for (String err : JassErrors.getErrors()) {
-					System.out.println(err);
-				}
 				return;
 			}
 			
@@ -83,13 +62,5 @@ public class Test {
 			e.printStackTrace();
 		}
 
-	}
-
-	private static JassProg parseFile(String inputFile) throws IOException, RecognitionException {
-		frottyjassLexer lexer = new frottyjassLexer(new ANTLRFileStream(inputFile));
-		CommonTokenStream tokens = new CommonTokenStream();
-		tokens.setTokenSource(lexer);
-		parser.setTokenStream(tokens);
-		return parser.file();
 	}
 }

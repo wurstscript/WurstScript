@@ -11,15 +11,10 @@ grammar frottyjass;
   import com.google.common.collect.Lists;
   import static de.peeeq.wurstscript.jassAst.JassAst.*;
   import de.peeeq.wurstscript.utils.*;
-  import java.util.Map;
 }
 
 @members {
     private List<String> errors = new ArrayList<String>();
-    private static Map<String, JassFunction> functionsMap = Maps.newHashMap();
-	  private static Map<String, JassNative> nativesMap = Maps.newHashMap();
-	  private static Map<String, JassVar> globalsMap = Maps.newHashMap();
-	  private static Map<String, JassTypeDef> typeDefsMap = Maps.newHashMap();
     public void displayRecognitionError(String[] tokenNames,
                                         RecognitionException e) {
         String hdr = getErrorHeader(e);
@@ -40,7 +35,6 @@ grammar frottyjass;
 file returns [JassProg prog] : 
   {
     $prog = JassProg(JassTypeDefs(), JassVars(), JassNatives(), JassFunctions());
-    lineMap = $prog.attrLineMap();
   }
    
   ( 
@@ -126,15 +120,13 @@ function returns [JassFunction func]
       System.out.println("stmts = " + stmts);
       $func = JassFunction(decl.name, decl.params, decl.returnType, lcls, stmts);
       System.out.println("func = " + $func);
-      lineMap.put( $func, decl.lineNr );
     }
   ;
 
-function_declaration returns [String name, JassSimpleVars params, String returnType, int lineNr]
+function_declaration returns [String name, JassSimpleVars params, String returnType]
   : n=ID
   {
     $name = n.getText();
-    $lineNr =  n.getLine();
   }
   
    'takes' 
@@ -155,20 +147,9 @@ paramaters returns [JassSimpleVars vars]
     $vars = JassSimpleVars();
   }
   
-  t1=type n1=ID 
-  { 
-    JassSimpleVar var = JassSimpleVar(t1, n1.getText());
-    lineMap.put( var, n1.getLine() );
-    $vars.add(var); 
-  }
+  t1=type n1=ID { $vars.add(JassSimpleVar(t1, n1.getText())); }
   
-   (',' t2=type n2=ID  
-   { 
-    JassSimpleVar var2 = JassSimpleVar(t2, n2.getText());
-    lineMap.put( var2, n2.getLine() );
-    $vars.add(var2); 
-   }
-   )*
+   (',' t2=type n2=ID  { $vars.add(JassSimpleVar(t2, n2.getText())); })*
   ;
   
 // Locals
@@ -190,17 +171,14 @@ variable_declaration returns [JassVar jvar]
   typ=type name1=ID 
   {
     $jvar = JassSimpleVar( typ, name1.getText() );
-    lineMap.put($jvar, name1.getLine());
   }
   | typ=type name1=ID '=' expr1=expression
   {
     $jvar = JassInitializedVar( typ, name1.getText(), expr1 );
-    lineMap.put($jvar, name1.getLine());
   }
   | typ=type 'array' name1=ID
   {
     $jvar = JassArrayVar( typ, name1.getText() );
-    lineMap.put($jvar, name1.getLine());
   }
   ;
 //Statements
@@ -253,13 +231,11 @@ statement returns [JassStatement statement]
   'set' name1=ID '=' expr=expression 
   {
     $stmt = JassStmtSet( name1.getText(), expr );
-    lineMap.put($stmt, name1.getLine());
     System.out.println("stmt = " + $stmt);
   }
   | 'set' name1=ID '[' expr1=expression ']' '=' expr2=expression
   {
     System.out.println("wtf");
-    lineMap.put($stmt, name1.getLine());
     $stmt = JassStmtSetArray( name1.getText(), expr1, expr2 );
   }
   ;
