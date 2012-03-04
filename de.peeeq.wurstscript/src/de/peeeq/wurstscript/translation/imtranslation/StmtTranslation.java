@@ -33,11 +33,11 @@ import static de.peeeq.wurstscript.jassIm.JassIm.*;
 
 public class StmtTranslation {
 
-	public static ImStmt translate(Expr s, Translator t, ImFunction f) {
+	public static ImStmt translate(Expr s, ImTranslator t, ImFunction f) {
 		return s.imTranslateExpr(t, f);
 	}
 
-	public static ImStmt translate(LocalVarDef s, Translator t, ImFunction f) {
+	public static ImStmt translate(LocalVarDef s, ImTranslator t, ImFunction f) {
 		ImVar v = t.getVarFor(s);
 		f.getLocals().add(v);
 		if (s.getInitialExpr() instanceof Expr) {
@@ -49,7 +49,7 @@ public class StmtTranslation {
 	}
 
 
-	public static ImStmt translate(StmtDestroy s, Translator t, ImFunction f) {
+	public static ImStmt translate(StmtDestroy s, ImTranslator t, ImFunction f) {
 		PscriptType typ = s.getDestroyedObj().attrTyp();
 		ClassDef classDef;
 		if (typ instanceof PscriptTypeClass) {
@@ -66,38 +66,38 @@ public class StmtTranslation {
 	}
 
 
-	public static ImStmt translate(StmtErr s, Translator t, ImFunction f) {
+	public static ImStmt translate(StmtErr s, ImTranslator t, ImFunction f) {
 		throw new CompileError(s.getSource(), "Source contains errors.");
 	}
 
 
-	public static ImStmt translate(StmtExitwhen s, Translator t, ImFunction f) {
+	public static ImStmt translate(StmtExitwhen s, ImTranslator t, ImFunction f) {
 		return ImExitwhen(s.getCond().imTranslateExpr(t, f));
 	}
 
 
-	public static ImStmt translate(StmtForFrom s, Translator t, ImFunction f) {
+	public static ImStmt translate(StmtForFrom s, ImTranslator t, ImFunction f) {
 		throw new CompileError(s.getSource(), "syntactic sugar");
 	}
 
 
-	public static ImStmt translate(StmtForIn s, Translator t, ImFunction f) {
+	public static ImStmt translate(StmtForIn s, ImTranslator t, ImFunction f) {
 		throw new CompileError(s.getSource(), "syntactic sugar");
 	}
 
 
-	public static ImStmt translate(StmtForRange s, Translator t, ImFunction f) {
+	public static ImStmt translate(StmtForRange s, ImTranslator t, ImFunction f) {
 		return case_StmtForRange(t, f, s.getLoopVar(), s.getFrom(), s.getTo(), s.getStep(), s.getBody(), Ast.OpPlus(),
 				Ast.OpGreater());
 	}
 
 
-	public static ImStmt translate(StmtForRangeDown s, Translator t, ImFunction f) {
+	public static ImStmt translate(StmtForRangeDown s, ImTranslator t, ImFunction f) {
 		return case_StmtForRange(t, f, s.getLoopVar(), s.getFrom(), s.getTo(), s.getStep(), s.getBody(),
 				Ast.OpMinus(), Ast.OpLess());
 	}
 
-	private static ImStmt case_StmtForRange(Translator t, ImFunction f, LocalVarDef loopVar,
+	private static ImStmt case_StmtForRange(ImTranslator t, ImFunction f, LocalVarDef loopVar,
 			Expr from, Expr to, Expr step, WStatements body, OpBinary opStep, OpBinary opCompare) {
 		ImVar imLoopVar = t.getVarFor(loopVar);
 		f.getLocals().add(imLoopVar);
@@ -121,7 +121,7 @@ public class StmtTranslation {
 	}
 	
 
-	private static ImExpr addCacheVariableSmart(Translator t, ImFunction f, List<ImStmt> result, Expr toCache) {
+	private static ImExpr addCacheVariableSmart(ImTranslator t, ImFunction f, List<ImStmt> result, Expr toCache) {
 		ImExpr r = toCache.imTranslateExpr(t, f);
 		if (r instanceof ImConst) {
 			return r;
@@ -131,22 +131,22 @@ public class StmtTranslation {
 		return ImVarAccess(tempVar);
 	}
 
-	public static ImStmt translate(StmtIf s, Translator t, ImFunction f) {
+	public static ImStmt translate(StmtIf s, ImTranslator t, ImFunction f) {
 		return ImIf(s.getCond().imTranslateExpr(t, f), ImStmts(t.translateStatements(f, s.getThenBlock())), ImStmts(t.translateStatements(f, s.getElseBlock())));
 	}
 
 
-	public static ImStmt translate(StmtLoop s, Translator t, ImFunction f) {
+	public static ImStmt translate(StmtLoop s, ImTranslator t, ImFunction f) {
 		return ImLoop(ImStmts(t.translateStatements(f, s.getBody())));
 	}
 
 
-	public static ImStmt translate(StmtReturn s, Translator t, ImFunction f) {
+	public static ImStmt translate(StmtReturn s, ImTranslator t, ImFunction f) {
 		return ImReturn(s.getReturnedObj().imTranslateExprOpt(t, f));
 	}
 
 
-	public static ImStmt translate(StmtSet s, Translator t, ImFunction f) {
+	public static ImStmt translate(StmtSet s, ImTranslator t, ImFunction f) {
 		// 4 cases for left side:
 		// 	1. normal var
 		// 	2. array var
@@ -195,7 +195,7 @@ public class StmtTranslation {
 		return updated;
 	}
 
-	public static ImStmt translate(StmtWhile s, Translator t, ImFunction f) {
+	public static ImStmt translate(StmtWhile s, ImTranslator t, ImFunction f) {
 		List<ImStmt> body = Lists.newArrayList();
 		// exitwhen not while_condition
 		body.add(ImExitwhen(ImCall(t.getFuncFor(Ast.OpNot()), ImExprs(s.getCond().imTranslateExpr(t, f)))));

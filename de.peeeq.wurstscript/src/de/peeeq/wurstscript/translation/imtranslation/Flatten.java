@@ -55,13 +55,13 @@ import de.peeeq.wurstscript.jassIm.JassIm;
  */
 public class Flatten {
 
-	public static void flatten(ImExpr s, List<ImStmt> stmts, Translator t, ImFunction f) {
+	public static void flatten(ImExpr s, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
 		ImExpr e = s.flattenExpr(stmts, t, f);
 		
 		exprToStatements(stmts, e, t, f);
 	}
 
-	private static void exprToStatements(List<ImStmt> result, ImExpr e, Translator t, ImFunction f) {
+	private static void exprToStatements(List<ImStmt> result, ImExpr e, ImTranslator t, ImFunction f) {
 		if (e instanceof ImStatementExpr) {
 			ImStatementExpr e2 = (ImStatementExpr) e;
 			flattenStatements(result, e2.getStatements(), t, f);
@@ -71,62 +71,62 @@ public class Flatten {
 		}
 	}
 
-	private static void flattenStatements(List<ImStmt> result, ImStmts statements, Translator t, ImFunction f) {
+	private static void flattenStatements(List<ImStmt> result, ImStmts statements, ImTranslator t, ImFunction f) {
 		for (ImStmt s : statements) {
 			s.flatten(result, t, f);
 		}
 	}
 
-	public static void flatten(ImExitwhen s, List<ImStmt> stmts, Translator t, ImFunction f) {
+	public static void flatten(ImExitwhen s, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
 		ImExpr cond = s.getCondition().flattenExpr(stmts, t, f);
 		stmts.add(ImExitwhen(cond));
 	}
 
 
-	public static void flatten(ImIf s, List<ImStmt> stmts, Translator t, ImFunction f) {
+	public static void flatten(ImIf s, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
 		ImExpr cond = s.getCondition().flattenExpr(stmts, t, f);
 		stmts.add(ImIf(cond, flattenStatements(s.getThenBlock(), t, f), flattenStatements(s.getElseBlock(), t, f)));
 	}
 
-	private static ImStmts flattenStatements(ImStmts statements, Translator t, ImFunction f) {
+	private static ImStmts flattenStatements(ImStmts statements, ImTranslator t, ImFunction f) {
 		ImStmts result = ImStmts();
 		flattenStatements(result, statements, t, f);
 		return result;
 	}
 
-	public static void flatten(ImLoop s, List<ImStmt> stmts, Translator t, ImFunction f) {
+	public static void flatten(ImLoop s, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
 		stmts.add(ImLoop(flattenStatements(s.getBody(), t, f)));
 	}
 
-	public static void flatten(ImReturn s, List<ImStmt> stmts, Translator t, ImFunction f) {
+	public static void flatten(ImReturn s, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
 		ImExprOpt imExpr = s.getReturnValue().flattenExprOpt(stmts, t, f);
 		stmts.add(ImReturn(imExpr));
 	}
 
 
-	public static void flatten(ImSet s, List<ImStmt> stmts, Translator t, ImFunction f) {
+	public static void flatten(ImSet s, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
 		ImExpr e = s.getRight().flattenExpr(stmts, t, f);
 		stmts.add(ImSet(s.getLeft(), e));
 	}
 
-	public static void flatten(ImSetArray s, List<ImStmt> stmts, Translator t, ImFunction f) {
+	public static void flatten(ImSetArray s, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
 		ImExpr i = s.getIndex().flattenExpr(stmts, t, f);
 		ImExpr e = s.getRight().flattenExpr(stmts, t, f);
 		stmts.add(ImSetArray(s.getLeft(), i, e));
 	}
 
-	public static void flatten(ImSetArrayTuple s, List<ImStmt> stmts, Translator t, ImFunction f) {
+	public static void flatten(ImSetArrayTuple s, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
 		ImExpr i = s.getIndex().flattenExpr(stmts, t, f);
 		ImExpr e = s.getRight().flattenExpr(stmts, t, f);
 		stmts.add(JassIm.ImSetArrayTuple(s.getLeft(), i, s.getTupleIndex(), e));
 	}
 
-	public static void flatten(ImSetTuple s, List<ImStmt> stmts, Translator t, ImFunction f) {
+	public static void flatten(ImSetTuple s, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
 		ImExpr e = s.getRight().flattenExpr(stmts, t, f);
 		stmts.add(ImSetTuple(s.getLeft(), s.getTupleIndex(), e));
 	}
 
-	public static ImFlatExpr flattenExpr(ImCall e, List<ImStmt> stmts, Translator t, ImFunction f) {
+	public static ImFlatExpr flattenExpr(ImCall e, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
 		List<ImExpr> args = Lists.newArrayList();
 		for (ImExpr a : e.getArguments()) {
 			a = a.flattenExpr(stmts, t, f);
@@ -136,18 +136,18 @@ public class Flatten {
 	}
 
 
-	public static ImFlatExpr flattenExpr(ImConst e, List<ImStmt> stmts, Translator t, ImFunction f) {
+	public static ImFlatExpr flattenExpr(ImConst e, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
 		return e;
 	}
 
 
-	public static ImFlatExpr flattenExpr(ImStatementExpr e, List<ImStmt> stmts, Translator t, ImFunction f) {
+	public static ImFlatExpr flattenExpr(ImStatementExpr e, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
 		flattenStatements(stmts, e.getStatements(), t, f);
 		return e.getExpr().flattenExpr(stmts, t, f);
 	}
 
 
-	public static ImFlatExpr flattenExpr(ImTupleExpr e, List<ImStmt> stmts, Translator t, ImFunction f) {
+	public static ImFlatExpr flattenExpr(ImTupleExpr e, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
 		List<ImExpr> exprs = Lists.newArrayList();
 		for (ImExpr expr : e.getExprs()) {
 			expr = expr.flattenExpr(stmts, t, f);
@@ -157,24 +157,24 @@ public class Flatten {
 	}
 
 
-	public static ImFlatExpr flattenExpr(ImTupleSelection e, List<ImStmt> stmts, Translator t, ImFunction f) {
+	public static ImFlatExpr flattenExpr(ImTupleSelection e, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
 		ImFlatExpr tupleExpr = e.getTupleExpr().flattenExpr(stmts, t, f);
 		return ImTupleSelection(tupleExpr, e.getTupleIndex());
 	}
 
 
-	public static ImFlatExpr flattenExpr(ImVarAccess e, List<ImStmt> stmts, Translator t, ImFunction f) {
+	public static ImFlatExpr flattenExpr(ImVarAccess e, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
 		return e;
 	}
 
 
-	public static ImFlatExpr flattenExpr(ImVarArrayAccess e, List<ImStmt> stmts, Translator t, ImFunction f) {
+	public static ImFlatExpr flattenExpr(ImVarArrayAccess e, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
 		ImFlatExpr index = e.getIndex().flattenExpr(stmts, t, f);
 		return ImVarArrayAccess(e.getVar(), index);
 	}
 
 
-	public static ImFlatExprOpt flattenExpr(ImNoExpr e, List<ImStmt> stmts, Translator translator, ImFunction f) {
+	public static ImFlatExprOpt flattenExpr(ImNoExpr e, List<ImStmt> stmts, ImTranslator translator, ImFunction f) {
 		return e;
 	}
 
