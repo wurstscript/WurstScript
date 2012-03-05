@@ -366,7 +366,7 @@ public class Generator {
 					sb.append("	public " + attr.returns + " " + attr.attr + "() {\n");
 					sb.append("		if (zzattr_" + attr.attr + "_state == 0) {\n");
 					sb.append("			zzattr_" + attr.attr +"_state = 1;\n");
-					sb.append("			zzattr_" + attr.attr +"_cache = "+attr.implementedBy+"(this);\n");
+					sb.append("			zzattr_" + attr.attr +"_cache = "+attr.implementedBy+"(("+c.getName()+")this);\n");
 					sb.append("			zzattr_" + attr.attr +"_state = 2;\n");
 					sb.append("		} else if (zzattr_" + attr.attr + "_state == 1) {\n");
 					sb.append("			throw new Error(\"Cyclic dependencies between types\");\n");
@@ -377,12 +377,14 @@ public class Generator {
 					sb.append("/** " + attr.comment + "*/\n");
 					sb.append("	public " + attr.returns + " " + attr.attr + "("+printParams(attr.parameters)+") {\n");
 					if (attr.returns.equals("void")) {
-						sb.append("		"+attr.implementedBy+"(this"+printArgs(attr.parameters)+");\n");
+						sb.append("		"+attr.implementedBy+"(("+c.getName()+")this"+printArgs(attr.parameters)+");\n");
 					} else {
-						sb.append("		return "+attr.implementedBy+"(this"+printArgs(attr.parameters)+");\n");
+						sb.append("		return "+attr.implementedBy+"(("+c.getName()+")this"+printArgs(attr.parameters)+");\n");
 					}
 					sb.append("	}\n");
 				}
+				// if you wonder why 'this' is upcasted to the interface type:
+				// this is to avoid a problem when using eclipses quickfixes
 			}
 		}
 	}

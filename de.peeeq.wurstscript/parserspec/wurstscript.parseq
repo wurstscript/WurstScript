@@ -526,6 +526,11 @@ OpAssignment.jassTranslageAssignGetBinary()
 	
 // Im translation
 	
+	TopLevelDeclaration.imTranslateTLD(
+			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator 
+		)
+		returns void
+		implemented by de.peeeq.wurstscript.translation.imtranslation.TLDTranslation.translate
 	
 	Expr.imTranslateExpr(
 			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 

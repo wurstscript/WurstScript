@@ -70,9 +70,10 @@ public class ExprTranslation {
 				Expr implicitParam = (Expr) e.attrImplicitParameter();
 				
 				if (implicitParam.attrTyp() instanceof PscriptTypeTuple) {
+					PscriptTypeTuple tupleType = (PscriptTypeTuple) implicitParam.attrTyp();
 					if (e instanceof ExprMemberVar) {
 						ExprMemberVar e2 = (ExprMemberVar) e;
-						int tupleIndex = t.getTupleIndex(varDef);
+						int tupleIndex = t.getTupleIndex(tupleType.getTupleDef(), varDef);
 						return ImTupleSelection(e2.getLeft().imTranslateExpr(t, f), tupleIndex);
 					} else {
 						throw new CompileError(e.getSource(), "Cannot create tuple access");

@@ -20,6 +20,7 @@ import de.peeeq.wurstscript.jasstranslation.JassTranslator;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
+import de.peeeq.wurstscript.types.TypesHelper;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassExprBinary;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassExprVarAccess;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassOpGreater;
@@ -106,8 +107,8 @@ public class StmtTranslation {
 		List<ImStmt> result = Lists.newArrayList();
 		result.add(ImSet(imLoopVar, fromExpr));
 
-		ImExpr toExpr = addCacheVariableSmart(t, f, result, to);
-		ImExpr stepExpr = addCacheVariableSmart(t, f, result, step);
+		ImExpr toExpr = addCacheVariableSmart(t, f, result, to, TypesHelper.imInt());
+		ImExpr stepExpr = addCacheVariableSmart(t, f, result, step, TypesHelper.imInt());
 
 		ImStmts imBody = ImStmts();
 		// exitwhen imLoopVar > toExpr
@@ -121,12 +122,12 @@ public class StmtTranslation {
 	}
 	
 
-	private static ImExpr addCacheVariableSmart(ImTranslator t, ImFunction f, List<ImStmt> result, Expr toCache) {
+	private static ImExpr addCacheVariableSmart(ImTranslator t, ImFunction f, List<ImStmt> result, Expr toCache, ImType type) {
 		ImExpr r = toCache.imTranslateExpr(t, f);
 		if (r instanceof ImConst) {
 			return r;
 		}
-		ImVar tempVar = t.getNewTempVar();
+		ImVar tempVar = ImVar(type, "temp");
 		result.add(ImSet(tempVar, r));
 		return ImVarAccess(tempVar);
 	}
