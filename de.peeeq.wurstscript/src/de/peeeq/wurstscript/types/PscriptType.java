@@ -5,6 +5,7 @@ import java.util.Map;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.jassIm.ImType;
 
 
 public abstract class PscriptType {
@@ -74,6 +75,9 @@ public abstract class PscriptType {
 	public Map<TypeParamDef, PscriptType> getTypeArgBinding() {
 		return Collections.emptyMap();
 	}
+
+
+	public abstract ImType imTranslateType();
 
 
 }

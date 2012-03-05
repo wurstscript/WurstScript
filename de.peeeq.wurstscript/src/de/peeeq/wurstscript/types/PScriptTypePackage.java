@@ -4,6 +4,7 @@ import java.util.List;
 
 import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.jassIm.ImType;
 
 
 public class PScriptTypePackage extends PscriptTypeNamedScope {
@@ -41,6 +42,11 @@ public class PScriptTypePackage extends PscriptTypeNamedScope {
 
 	@Override
 	public String[] jassTranslateType() {
+		throw new Error("not implemented");
+	}
+
+	@Override
+	public ImType imTranslateType() {
 		throw new Error("not implemented");
 	}
 

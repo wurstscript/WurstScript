@@ -1,10 +1,17 @@
 package de.peeeq.wurstscript.types;
 
+import com.google.common.collect.Lists;
+
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.ModuleDef;
+import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.JassIm;
 
 public class TypesHelper {
+
+	private static final ImType intType = PScriptTypeInt.instance().imTranslateType();
+	private static final ImType intPair = JassIm.ImTupleType(Lists.newArrayList(intType, intType));
 
 	public static PscriptType typeOf(ClassOrModule classOrModule, final boolean isStatic) {
 		return classOrModule.match(new ClassOrModule.Matcher<PscriptType>() {
@@ -23,6 +30,14 @@ public class TypesHelper {
 				return new PscriptTypeModule(moduleDef, isStatic);
 			}
 		});
+	}
+
+	public static ImType imIntPair() {
+		return intPair;
+	}
+
+	public static ImType imInt() {
+		return intType;
 	}
 
 //	public static boolean checkTypeArgs(InstanceDef iDef, List<PscriptType> classParams, List<PscriptType> interfaceParams) {

@@ -5,6 +5,7 @@ import java.util.Map;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.jassIm.ImType;
 
 public class PscriptTypeTypeParam extends PscriptType {
 
@@ -57,6 +58,11 @@ public class PscriptTypeTypeParam extends PscriptType {
 			return new PscriptTypeBoundTypeParam(def, t);
 		} 
 		return this;
+	}
+
+	@Override
+	public ImType imTranslateType() {
+		return TypesHelper.imIntPair();
 	}
 
 }

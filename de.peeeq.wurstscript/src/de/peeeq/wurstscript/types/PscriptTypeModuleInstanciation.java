@@ -5,6 +5,7 @@ import java.util.List;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NamedScope;
+import de.peeeq.wurstscript.jassIm.ImType;
 
 
 public class PscriptTypeModuleInstanciation extends PscriptTypeNamedScope {
@@ -77,6 +78,11 @@ public class PscriptTypeModuleInstanciation extends PscriptTypeNamedScope {
 	@Override
 	public String[] jassTranslateType() {
 		return PScriptTypeInt.instance().jassTranslateType();
+	}
+	
+	@Override
+	public ImType imTranslateType() {
+		return TypesHelper.imInt();
 	}
 
 }

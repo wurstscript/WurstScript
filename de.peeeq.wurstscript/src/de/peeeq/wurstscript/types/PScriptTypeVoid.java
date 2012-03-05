@@ -1,6 +1,8 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.JassIm;
 
 
 public class PScriptTypeVoid extends PscriptType {
@@ -32,6 +34,11 @@ public class PScriptTypeVoid extends PscriptType {
 	@Override
 	public String[] jassTranslateType() {
 		return new String[] { "nothing" };
+	}
+
+	@Override
+	public ImType imTranslateType() {
+		return JassIm.ImVoid();
 	}
 
 }

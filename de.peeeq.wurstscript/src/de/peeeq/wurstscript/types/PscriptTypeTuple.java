@@ -15,6 +15,9 @@ import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassVar;
+import de.peeeq.wurstscript.jassIm.ImTupleType;
+import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.utils.Utils;
 
 
@@ -85,5 +88,22 @@ public class PscriptTypeTuple extends PscriptType {
 			i+= varCount;
 		}
 		throw new Error("Could not find parameter " + param.getName() + " for tuple " + tupleDef.getName());
+	}
+
+	@Override
+	public ImType imTranslateType() {
+		List<ImType> types = Lists.newArrayList();
+		for (WParameter p : tupleDef.getParameters()) {
+			ImType pt = p.attrTyp().imTranslateType();
+			if (pt instanceof ImTupleType) {
+				ImTupleType ptt = (ImTupleType) pt;
+				for (ImType t : ptt.getTypes()) {
+					types.add(t);
+				}
+			} else {
+				types.add(pt);
+			}
+		}
+		return JassIm.ImTupleType(types);
 	}
 }

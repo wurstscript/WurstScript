@@ -25,11 +25,13 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.jassAst.JassProg;
+import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jasstranslation.JassTranslator;
 import de.peeeq.wurstscript.mpq.MpqEditor;
 import de.peeeq.wurstscript.mpq.MpqEditorFactory;
 import de.peeeq.wurstscript.parser.ExtendedParser;
 import de.peeeq.wurstscript.parser.WurstScriptScanner;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.NotNullList;
 import de.peeeq.wurstscript.utils.Utils;
@@ -242,6 +244,13 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
 	public JassProg translateProg(CompilationUnit root) {
 		// translate to intermediate lang:
+		ImTranslator imTranslator = new ImTranslator(root);
+		ImProg imProg = imTranslator.translateProg();
+		
+		
+		
+		// TODO translate to jass
+		
 		JassTranslator translator = new JassTranslator(root);
 		JassProg p = translator.translate();
 		

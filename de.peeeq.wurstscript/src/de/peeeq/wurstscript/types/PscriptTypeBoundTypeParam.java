@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.jassIm.ImType;
 
 public class PscriptTypeBoundTypeParam extends PscriptType {
 
@@ -36,6 +37,11 @@ public class PscriptTypeBoundTypeParam extends PscriptType {
 
 	public PscriptType getBaseType() {
 		return baseType;
+	}
+
+	@Override
+	public ImType imTranslateType() {
+		return TypesHelper.imIntPair();
 	}
 
 }

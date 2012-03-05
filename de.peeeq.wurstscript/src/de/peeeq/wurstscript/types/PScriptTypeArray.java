@@ -1,6 +1,9 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.jassIm.ImSimpleType;
+import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.JassIm;
 
 
 public class PScriptTypeArray extends PscriptType {
@@ -69,6 +72,15 @@ public class PScriptTypeArray extends PscriptType {
 	@Override
 	public String[] jassTranslateType() {
 		return baseType.jassTranslateType();
+	}
+
+
+
+	@Override
+	public ImType imTranslateType() {
+		ImType bt = baseType.imTranslateType();
+		String typename = ((ImSimpleType) bt).getTypename();
+		return JassIm.ImArrayType(typename);
 	}
 
 }

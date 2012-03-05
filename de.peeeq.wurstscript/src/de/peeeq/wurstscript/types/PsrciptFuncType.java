@@ -1,6 +1,8 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.JassIm;
 
 
 public class PsrciptFuncType extends PscriptType {
@@ -54,6 +56,11 @@ public class PsrciptFuncType extends PscriptType {
 	@Override
 	public String[] jassTranslateType() {
 		return new String[] { "code" };
+	}
+
+	@Override
+	public ImType imTranslateType() {
+		return JassIm.ImSimpleType("code");
 	}
 
 

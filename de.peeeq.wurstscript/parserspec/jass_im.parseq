@@ -8,17 +8,15 @@ ImProg(ImVars globals, ImFunctions functions)
 ImVars * ImVar
 ImFunctions * ImFunction
 
-ImVar(ImType type, String name)
+ImVar(&ImType type, String name)
 
 ImType = 
 	  ImSimpleType(String typename)
 	| ImArrayType(String typename)
-	| ImTupleType(ImTypes types)
+	| ImTupleType(java.util.List<ImType> types)
 	| ImVoid()
 	
-ImTypes * ImType
-
-ImFunction(String name, ImVars parameters, ImType returnType, ImVars locals, ImStmts body, boolean isNative)
+ImFunction(String name, ImVars parameters, &ImType returnType, ImVars locals, ImStmts body, boolean isNative)
 	
 ImStmts * ImStmt
 
@@ -81,7 +79,7 @@ ImPrintable.print(java.lang.StringBuilder sb, int indent)
 	
 ImStmt.flatten(
 		java.util.List<ImStmt> stmts,
-		de.peeeq.wurstscript.translation.imtranslation.Translator translator, 
+		de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
 		de.peeeq.wurstscript.jassIm.ImFunction f	
 	)
 	returns void
@@ -89,7 +87,7 @@ ImStmt.flatten(
 	
 ImExpr.flattenExpr(
 		java.util.List<ImStmt> stmts,
-		de.peeeq.wurstscript.translation.imtranslation.Translator translator, 
+		de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
 		de.peeeq.wurstscript.jassIm.ImFunction f	
 	)
 	returns ImFlatExpr
@@ -97,7 +95,7 @@ ImExpr.flattenExpr(
 	
 ImExprOpt.flattenExprOpt(
 		java.util.List<ImStmt> stmts,
-		de.peeeq.wurstscript.translation.imtranslation.Translator translator, 
+		de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
 		de.peeeq.wurstscript.jassIm.ImFunction f	
 	)
 	returns ImFlatExprOpt

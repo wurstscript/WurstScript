@@ -6,6 +6,7 @@ import java.util.List;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.NamedScope;
+import de.peeeq.wurstscript.jassIm.ImType;
 
 
 public class PscriptTypeClass extends PscriptTypeNamedScope {
@@ -63,6 +64,11 @@ public class PscriptTypeClass extends PscriptTypeNamedScope {
 	@Override
 	public String[] jassTranslateType() {
 		return PScriptTypeInt.instance().jassTranslateType();
+	}
+	
+	@Override
+	public ImType imTranslateType() {
+		return TypesHelper.imInt();
 	}
 	
 }

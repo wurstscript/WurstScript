@@ -528,14 +528,14 @@ OpAssignment.jassTranslageAssignGetBinary()
 	
 	
 	Expr.imTranslateExpr(
-			de.peeeq.wurstscript.translation.imtranslation.Translator translator, 
+			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
 			de.peeeq.wurstscript.jassIm.ImFunction f
 		)
 		returns de.peeeq.wurstscript.jassIm.ImExpr
 		implemented by de.peeeq.wurstscript.translation.imtranslation.ExprTranslation.translate
 	
 	OptExpr.imTranslateExprOpt(
-			de.peeeq.wurstscript.translation.imtranslation.Translator translator, 
+			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
 			de.peeeq.wurstscript.jassIm.ImFunction f
 		)
 		returns de.peeeq.wurstscript.jassIm.ImExprOpt
@@ -543,7 +543,7 @@ OpAssignment.jassTranslageAssignGetBinary()
 		
 		
 	WStatement.imTranslateStmt(
-			de.peeeq.wurstscript.translation.imtranslation.Translator translator, 
+			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
 			de.peeeq.wurstscript.jassIm.ImFunction f
 		)
 		returns de.peeeq.wurstscript.jassIm.ImStmt

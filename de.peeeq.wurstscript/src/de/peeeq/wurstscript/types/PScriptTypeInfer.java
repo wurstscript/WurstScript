@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.jassIm.ImType;
 
 /**
  * the exact type is not known but it will be whatever you want it to be ;)
@@ -33,6 +34,11 @@ public class PScriptTypeInfer extends PscriptType {
 
 	@Override
 	public String[] jassTranslateType() {
+		throw new Error("not implemented");
+	}
+
+	@Override
+	public ImType imTranslateType() {
 		throw new Error("not implemented");
 	}
 

@@ -5,6 +5,7 @@ import java.util.List;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.NamedScope;
+import de.peeeq.wurstscript.jassIm.ImType;
 
 
 public class PscriptTypeInterface extends PscriptTypeNamedScope {
@@ -88,4 +89,9 @@ public class PscriptTypeInterface extends PscriptTypeNamedScope {
 		return new String[]{ "integer", "integer" };
 	}
 	
+	
+	@Override
+	public ImType imTranslateType() {
+		return TypesHelper.imIntPair();
+	}
 }
