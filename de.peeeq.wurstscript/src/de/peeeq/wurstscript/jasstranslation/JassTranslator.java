@@ -109,6 +109,20 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class JassTranslator {
 
+	private final class TypeIdComparator implements Comparator<ClassDef> {
+		@Override
+		public int compare(ClassDef o1, ClassDef o2) {
+			int i1 = getTypeId(o1);
+			int i2 = getTypeId(o2);
+			if (i1 > i2) { 
+				return 1;
+			} else if (i1 < i2) { 
+				return -1;
+			}
+			return 0;
+		}
+	}
+
 	private static final boolean debug = false;
 	JassManager manager;
 	private CompilationUnit wurstProg;
@@ -680,24 +694,11 @@ public class JassTranslator {
 	}
 
 	protected void translateInterfaceDef(InterfaceDef interfaceDef) {
+		// get instances of this interface
 		List<ClassDef> instances = Lists.newArrayList(wurstProg.attrInterfaceInstances().get(interfaceDef));
 		
-		Collections.sort(instances, new Comparator<ClassDef>() {
-
-			@Override
-			public int compare(ClassDef o1, ClassDef o2) {
-				int i1 = getTypeId(o1);
-				int i2 = getTypeId(o2);
-				if (i1 > i2) { 
-					return 1;
-				} else if (i1 < i2) { 
-					return -1;
-				}
-				return 0;
-			}
-
-			
-		});
+		// sort by typeid
+		Collections.sort(instances, new TypeIdComparator());
 		
 		for (ClassSlot s: interfaceDef.getSlots()) {
 			if (s instanceof FuncDef) {

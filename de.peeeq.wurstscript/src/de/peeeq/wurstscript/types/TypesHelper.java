@@ -40,6 +40,10 @@ public class TypesHelper {
 		return intType;
 	}
 
+	public static ImType imVoid() {
+		return PScriptTypeVoid.instance().imTranslateType();
+	}
+
 //	public static boolean checkTypeArgs(InstanceDef iDef, List<PscriptType> classParams, List<PscriptType> interfaceParams) {
 //		if (classParams.size() == 0 && interfaceParams.size() == 0) {
 //			return true;

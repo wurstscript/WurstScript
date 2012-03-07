@@ -532,6 +532,12 @@ OpAssignment.jassTranslageAssignGetBinary()
 		returns void
 		implemented by de.peeeq.wurstscript.translation.imtranslation.TLDTranslation.translate
 	
+	WEntity.imTranslateEntity(
+			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator 
+		)
+		returns void
+		implemented by de.peeeq.wurstscript.translation.imtranslation.TLDTranslation.translate
+		
 	Expr.imTranslateExpr(
 			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
 			de.peeeq.wurstscript.jassIm.ImFunction f

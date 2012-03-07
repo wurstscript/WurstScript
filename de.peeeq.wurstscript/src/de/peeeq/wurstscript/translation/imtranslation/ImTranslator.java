@@ -8,14 +8,20 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.jassAst.JassAst;
+import de.peeeq.wurstscript.jassAst.JassExpr;
+import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
+import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImStmt;
+import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.TypesHelper;
+import static de.peeeq.wurstscript.jassAst.JassAst.JassExprIntVal;
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
 
 public class ImTranslator {
@@ -184,7 +190,62 @@ public class ImTranslator {
 		imProg.getGlobals().add(v);
 	}
 
+	private Map<InitBlock, ImFunction> initBlockFunctionMap = Maps.newHashMap();
 	
+	public ImFunction getFuncFor(InitBlock initBlock) {
+		ImFunction f = initBlockFunctionMap.get(initBlock); 
+		if (f == null) {
+			WPackage pack = (WPackage) initBlock.attrNearestPackage();
+			f = JassIm.ImFunction("init_" + pack.getName() , ImVars(), TypesHelper.imVoid(), ImVars(), ImStmts(), false);
+			initBlockFunctionMap.put(initBlock, f);
+		}
+		return f;
+	}
+
+	private int typeIdCounter = 0;
+	Map<ClassDef, Integer> typeIdMap = Maps.newHashMap();
+	
+	public int getTypeId(ClassDef c) {
+		Integer r = typeIdMap.get(c); 
+		if (r == null) {   
+			typeIdCounter++;
+			typeIdMap.put(c, typeIdCounter);
+			return typeIdCounter;
+		} else {
+			return r;
+		}
+	}
+
+	public CompilationUnit getWurstProg() {
+		return wurstProg;
+	}
+
+	public ImExpr getDefaultValueForJassType(ImType type) {
+		if (type instanceof ImSimpleType) {
+			ImSimpleType imSimpleType = (ImSimpleType) type;
+			String typeName = imSimpleType.getTypename();
+			if (typeName.equals("integer")) {
+				return ImIntVal(0);
+			} else if (typeName.equals("real")) {
+				return ImRealVal("0.");
+			} else if (typeName.equals("boolean")) {
+				return ImBoolVal(false);
+			} else {
+				return ImNull();
+			}
+		} else if (type instanceof ImTupleType) {
+			ImTupleType imTupleType = (ImTupleType) type;
+			return getDefaultValueForJassType(imTupleType.getTypes().get(0));
+		} else {
+			throw new IllegalArgumentException("could not get default value for type " + type);
+		}
+	}
+
+	public void addCallRelation(ImFunction callingFunc, ImFunction calledFunc) {
+		// TODO Auto-generated method stub
+		throw new Error("not implemented");
+	}
+		
 
 
 }
