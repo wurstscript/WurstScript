@@ -1,4 +1,4 @@
-grammar frottyjass;
+from 1.24 patchgrammar frottyjass;
 
 
 @lexer::header {
@@ -9,12 +9,20 @@ grammar frottyjass;
   package de.peeeq.wurstscript.frotty.jassParser; 
   import de.peeeq.wurstscript.jassAst.*;
   import com.google.common.collect.Lists;
+  import com.google.common.collect.Maps;
   import static de.peeeq.wurstscript.jassAst.JassAst.*;
   import de.peeeq.wurstscript.utils.*;
+  import java.util.Map;
 }
 
 @members {
     private List<String> errors = new ArrayList<String>();
+    private JassProgs progs;
+    private static Map<JassAstElement, Integer> lineMap;
+    private static Map<String, JassFunction> functionsMap = Maps.newHashMap();
+	  private static Map<String, JassNative> nativesMap = Maps.newHashMap();
+	  private static Map<String, JassVar> globalsMap = Maps.newHashMap();
+	  private static Map<String, JassTypeDef> typeDefsMap = Maps.newHashMap();
     public void displayRecognitionError(String[] tokenNames,
                                         RecognitionException e) {
         String hdr = getErrorHeader(e);
@@ -32,9 +40,12 @@ grammar frottyjass;
 // Globals
 
 
-file returns [JassProg prog] : 
+file[JassProgs prgs] returns [JassProg prog] : 
   {
     $prog = JassProg(JassTypeDefs(), JassVars(), JassNatives(), JassFunctions());
+    prgs.add($prog); 
+    lineMap = $prog.attrLineMap();
+    progs = prgs;
   }
    
   ( 
@@ -43,7 +54,6 @@ file returns [JassProg prog] :
 	  (
 	  typDef=typeDefinition
 		  {
-		    System.out.println( "typedef = " + typDef );
 		    $prog.getDefs().add(typDef);
 		  }
 	  | globals1=globalsBlock 
@@ -63,6 +73,7 @@ file returns [JassProg prog] :
   func=function
   {
     $prog.getFunctions().add(func);
+    progs.addFunction( func );
   }
   )* 
   NEWLINE* EOF // hier at NEWLINE* gefehlt
@@ -74,8 +85,8 @@ typeDefinition returns [JassTypeDef typeDef]
   (
   'type' name1=ID 'extends' extends1=(ID|'handle') NEWLINE
   {
-  System.out.println("name1: " + name1 );
     $typeDef = JassTypeDef( name1.getText(), extends1.getText() );
+    progs.addTypeDef( $typeDef );
   }
   )
   ;
@@ -96,11 +107,14 @@ global_variables returns [JassVars jvars]
   ( 
   'constant' typ=type name1=ID '=' expr=expression NEWLINE+
   {
-    $jvars.add( JassConstantVar( typ, name1.getText(), expr ) );
+    JassVar v = JassConstantVar( typ, name1.getText(), expr );
+    $jvars.add( v );
+    progs.addGlobal( v );
   }
   | var_decl=variable_declaration NEWLINE+ 
   {
     $jvars.add( var_decl );
+    progs.addGlobal( var_decl );
   }
   )*
   ;
@@ -109,6 +123,11 @@ nativeDeclaration returns [JassNative jnative]
   : 'constant'? 'native' func_decl=function_declaration
   {
     $jnative = JassNative(func_decl.name, func_decl.params, func_decl.returnType );
+    progs.addNative( $jnative );
+    JassSimpleVars parms = JassSimpleVars();
+    parms.addAll(func_decl.params.removeAll());
+    
+    progs.addFunction(JassFunction(func_decl.name, parms, func_decl.returnType, JassVars(), JassStatements()));
   }
   ;
   
@@ -117,16 +136,16 @@ function returns [JassFunction func]
   : 'constant'? 'function' decl=function_declaration NEWLINE+
     lcls=locals stmts=statements 'endfunction' NEWLINE
     {
-      System.out.println("stmts = " + stmts);
       $func = JassFunction(decl.name, decl.params, decl.returnType, lcls, stmts);
-      System.out.println("func = " + $func);
+      lineMap.put( $func, decl.lineNr );
     }
   ;
 
-function_declaration returns [String name, JassSimpleVars params, String returnType]
+function_declaration returns [String name, JassSimpleVars params, String returnType, int lineNr]
   : n=ID
   {
     $name = n.getText();
+    $lineNr =  n.getLine();
   }
   
    'takes' 
@@ -147,9 +166,20 @@ paramaters returns [JassSimpleVars vars]
     $vars = JassSimpleVars();
   }
   
-  t1=type n1=ID { $vars.add(JassSimpleVar(t1, n1.getText())); }
+  t1=type n1=ID 
+  { 
+    JassSimpleVar var = JassSimpleVar(t1, n1.getText());
+    lineMap.put( var, n1.getLine() );
+    $vars.add(var); 
+  }
   
-   (',' t2=type n2=ID  { $vars.add(JassSimpleVar(t2, n2.getText())); })*
+   (',' t2=type n2=ID  
+   { 
+    JassSimpleVar var2 = JassSimpleVar(t2, n2.getText());
+    lineMap.put( var2, n2.getLine() );
+    $vars.add(var2); 
+   }
+   )*
   ;
   
 // Locals
@@ -171,14 +201,17 @@ variable_declaration returns [JassVar jvar]
   typ=type name1=ID 
   {
     $jvar = JassSimpleVar( typ, name1.getText() );
+    lineMap.put($jvar, name1.getLine());
   }
   | typ=type name1=ID '=' expr1=expression
   {
     $jvar = JassInitializedVar( typ, name1.getText(), expr1 );
+    lineMap.put($jvar, name1.getLine());
   }
   | typ=type 'array' name1=ID
   {
     $jvar = JassArrayVar( typ, name1.getText() );
+    lineMap.put($jvar, name1.getLine());
   }
   ;
 //Statements
@@ -190,7 +223,6 @@ statements returns [JassStatements statements]
   (
   stmt2=statement NEWLINE+
   {
-    System.out.println("setstmt2 = " + stmt2);
     $statements.add(stmt2);
   }
   )*
@@ -201,7 +233,6 @@ statement returns [JassStatement statement]
   setstmt=s_set
   {
     $statement = setstmt;  
-    System.out.println("setstmt = " + $statement);  
   }
   | callstmt=call 
   
@@ -231,11 +262,11 @@ statement returns [JassStatement statement]
   'set' name1=ID '=' expr=expression 
   {
     $stmt = JassStmtSet( name1.getText(), expr );
-    System.out.println("stmt = " + $stmt);
+    lineMap.put($stmt, name1.getLine());
   }
   | 'set' name1=ID '[' expr1=expression ']' '=' expr2=expression
   {
-    System.out.println("wtf");
+    lineMap.put($stmt, name1.getLine());
     $stmt = JassStmtSetArray( name1.getText(), expr1, expr2 );
   }
   ;
@@ -279,11 +310,9 @@ statement returns [JassStatement statement]
     | 'elseif' expr=expression 'then' NEWLINE+ stmts1=statements
     {
       JassStmtIf if2 = JassStmtIf(expr,stmts1, JassStatements());
-      System.out.println("if2 =" + if2 );
       
       $stmts = JassStatements();
       $stmts.add(if2);
-      System.out.println("stmts =" + $stmts );
     }
     ( elseblock=else_clause
     {
@@ -469,6 +498,7 @@ atom  returns [JassExpr jexpr]
 	  } 
 	  | funcRef=func_reference 
 	  {
+	    System.out.println("jjJJ");
 	    $jexpr = funcRef;
 	  } 
     ;
@@ -523,7 +553,6 @@ array_reference returns [JassExprVarArrayAccess expr]
     : 
       iconst=int_const
       {
-        System.out.println("int = " + iconst);
         $jatomic = iconst; 
       } 
       | rconst=Real_const
@@ -539,38 +568,41 @@ array_reference returns [JassExprVarArrayAccess expr]
         String s = sconst.getText();
         s = s.substring( 1, s.length()-1 );
         StringBuilder result = new StringBuilder();
-      for (int i=0; i<s.length(); i++) {
-        char c = s.charAt(i);
-        if (c == '\\') {
-          i++;
-          c = s.charAt(i);
-          switch (c) {
-            case 'n':
-              result.append("\n");
-              break;
-            case 'b':
-              result.append("\b");
-              break;
-            case 't':
-              result.append("\t");
-              break;
-            case 'f':
-              result.append("\f");
-              break;
-            case '\\':
-              result.append("\\");
-              break;
-            case '\"':
-              result.append("\"");
-              break;
-            case '\'':
-              result.append("\'");
-              break;
-            }
-        } else {
-          result.append(c);
-        }
-      }
+	      for (int i=0; i<s.length(); i++) {
+	        char c = s.charAt(i);
+	        if (c == '\\') {
+	          i++;
+	          c = s.charAt(i);
+	          switch (c) {
+	            case 'n':
+	              result.append("\n");
+	              break;
+	            case 'r':
+	              result.append("\r");
+	              break;
+	            case 'b':
+	              result.append("\b");
+	              break;
+	            case 't':
+	              result.append("\t");
+	              break;
+	            case 'f':
+	              result.append("\f");
+	              break;
+	            case '\\':
+	              result.append("\\");
+	              break;
+	            case '\"':
+	              result.append("\"");
+	              break;
+	            case '\'':
+	              result.append("\'");
+	              break;
+	            }
+	        } else {
+	          result.append(c);
+	        }
+	      }
         $jatomic = JassExprStringVal(result.toString()); 
       } 
       | 'null'
@@ -640,7 +672,7 @@ type returns [String typeName]  : t=(ID | 'code' | 'handle' | 'integer' | 'real'
   ;
 ID    : ('a'..'z'|'A'..'Z') (('a'..'z'|'A'..'Z'|'0'..'9'|'_')* ('a'..'z'|'A'..'Z'|'0'..'9') )?;
 
-NEWLINE : ('\r' | '\n' )+ ;
+NEWLINE : ('\r'|'\n')+  ;
       
 //stat:   expression NEWLINE {System.out.println($expression.value);}
 //    |   ID '=' expression NEWLINE
@@ -649,31 +681,14 @@ NEWLINE : ('\r' | '\n' )+ ;
 //    
 
 COMMENT
-    :   '//' ~('\n'|'\r')* '\r'? '\n' {$channel=HIDDEN;}
-    ;
+   :  '//' ~('\n'|'\r')* {$channel=HIDDEN;}
+   ;
     
 fragment
 ESC_SEQ
     :   '\\' ('b'|'t'|'n'|'f'|'r'|'\"'|'\''|'\\')
     ;
-        // TODO
-//    |   UNICODE_ESC
-//    |   OCTAL_ESC
 
-//fragment
-//OCTAL_ESC
-//    :   '\\' ('0'..'3') ('0'..'7') ('0'..'7')
-//    |   '\\' ('0'..'7') ('0'..'7')
-//    |   '\\' ('0'..'7')
-//    ;
-//
-//fragment
-//UNICODE_ESC
-//    :   '\\' 'u' HEX_DIGIT HEX_DIGIT HEX_DIGIT HEX_DIGIT
-//    ;
-//    
-//fragment
-//HEX_DIGIT : ('0'..'9'|'a'..'f'|'A'..'F') ;
 
 WS  :   ( ' '
         | '\t'

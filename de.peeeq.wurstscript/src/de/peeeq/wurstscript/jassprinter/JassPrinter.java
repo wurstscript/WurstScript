@@ -144,8 +144,8 @@ public class JassPrinter {
 			}
 
 			@Override
-			public void case_JassInitializedVar(
-					JassInitializedVar jassInitializedVar) {
+			public void case_JassInitializedVar(JassInitializedVar jassInitializedVar) {
+				System.out.println("jadasdas");
 				sb.append(jassInitializedVar.getType() + " " + jassInitializedVar.getName() + "=" + jassInitializedVar.getVal() + "\n");
 				// TODO check if right
 			}
@@ -190,12 +190,35 @@ public class JassPrinter {
 		sb.append("\n");
 		
 		List<JassStatement> body = Lists.newLinkedList(f.getBody());
-		Set<JassVar> locals = Sets.newHashSet(f.getLocals()); 
+		Set<JassVar> locals = Sets.newHashSet(); 
+		
+		
+		// first print all the initalized vars:
+		for (JassVar v : f.getLocals()) {
+			if (v instanceof JassInitializedVar) {
+				printIndent(sb, 1, withSpace);
+				sb.append("local ");
+				sb.append(v.getType());
+				sb.append(" ");
+				sb.append(v.getName());
+
+				JassInitializedVar ji = (JassInitializedVar) v;
+				sb.append(" = ");
+				ji.getVal().print(sb, withSpace);
+				sb.append("\n");
+			} else {
+				// if var is not initialized, remember for next step:
+				locals.add(v);
+			}
+		}
+		
 		
 		// set statements at the beginning are merged with local variable declarations...
 		while (body.size() > 0 && body.get(0) instanceof JassStmtSet) {
+			// get first set statement
 			JassStmtSet set = (JassStmtSet) body.get(0);
 			JassVar localVar = null;
+			// look if there is an uninitialized local var 
 			for (JassVar v : locals) {
 				if (set.getLeft().equals(v.getName()))  {
 					localVar = v;
@@ -205,6 +228,7 @@ public class JassPrinter {
 			if (localVar == null) {
 				break;
 			}
+			// there is a local var ==> merge
 			printIndent(sb, 1, withSpace);
 			sb.append("local ");
 			sb.append(localVar.getType());
@@ -218,6 +242,7 @@ public class JassPrinter {
 			body.remove(0);
 		}
 		
+		// print the remaining locals
 		for (JassVar v : locals) {
 			printIndent(sb, 1, withSpace);
 			sb.append("local ");

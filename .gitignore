@@ -1,3 +1,14 @@
+# Compiled source #
+###################
+*.jar
+*.class
+*.rs
+*.log
+*.orig
+*.sh
+*.w3x
+*.w3m
+
 #bin folders
 */bin/*
 */dist/*
