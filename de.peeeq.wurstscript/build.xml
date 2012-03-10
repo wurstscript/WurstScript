@@ -149,6 +149,7 @@
 	<taskdef classpathref="cobertura.classpath" resource="tasks.properties" />
 
 	<target name="junit_allTests">
+		<mkdir dir="${junitTestResults}" />
 		<junit printsummary="on">
 			<classpath location="${build}" />
 			<classpath refid="classpath.test">
