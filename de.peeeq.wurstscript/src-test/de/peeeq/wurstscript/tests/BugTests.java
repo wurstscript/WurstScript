@@ -17,6 +17,20 @@ public class BugTests extends PscriptTest {
 	}
 
 	@Test
+	public void test_unit_array() {
+		testAssertOkLines(false,
+				"type unit extends handle",
+				"package test",
+				"	native testSuccess()",
+				"	init",
+				"		unit array blub",
+				"		blub[4] = null",
+				"		if blub[4] == null",
+				"			testSuccess()",
+				"endpackage");
+	}
+	
+	@Test
 	public void test_correct_escapesequence() {
 		testAssertOkLines(false,
 				"package test",

@@ -468,8 +468,10 @@ public class JassTranslator {
 
 	private void addHandleNullSetters(JassFunction f) {
 		for (JassVar l : f.getLocals()) {
-			if (handleSubTypes.contains(l.getType())) {
-				f.getBody().add(JassStmtSet(l.getName(), JassExprNull()));
+			if (!(l instanceof JassArrayVar)) {
+				if (handleSubTypes.contains(l.getType())) {
+					f.getBody().add(JassStmtSet(l.getName(), JassExprNull()));
+				}
 			}
 		}
 	}
