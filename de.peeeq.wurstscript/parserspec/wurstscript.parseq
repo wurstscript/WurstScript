@@ -537,6 +537,13 @@ OpAssignment.jassTranslageAssignGetBinary()
 		)
 		returns void
 		implemented by de.peeeq.wurstscript.translation.imtranslation.TLDTranslation.translate
+	
+	ClassSlot.translateClassSlot(
+				de.peeeq.wurstscript.translation.imtranslation.ClassTranslator translator 
+			)
+		returns void
+		implemented by de.peeeq.wurstscript.translation.imtranslation.ClassTranslatorDispatch.translate
+		
 		
 	Expr.imTranslateExpr(
 			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 

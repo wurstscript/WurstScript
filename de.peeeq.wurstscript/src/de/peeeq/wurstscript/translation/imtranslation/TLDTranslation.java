@@ -30,8 +30,6 @@ import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.ast.WParameter;
-import de.peeeq.wurstscript.ast.WParameters;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassExpr;
@@ -47,7 +45,6 @@ import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
-import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;
 import de.peeeq.wurstscript.types.PscriptType;
@@ -67,7 +64,7 @@ public class TLDTranslation {
 		}
 	}
 
-	private static ImVar translateVar(GlobalVarDef g) {
+	static ImVar translateVar(GlobalVarDef g) {
 		// TODO initializer
 		return JassIm.ImVar(g.attrTyp().imTranslateType(), g.getName());
 	}
@@ -104,7 +101,7 @@ public class TLDTranslation {
 		// return type:
 		f.setReturnType(funcDef.getReturnTyp().attrTyp().imTranslateType());
 		// parameters
-		translateParameters(funcDef.getParameters(), f.getParameters());
+		ImHelper.translateParameters(funcDef.getParameters(), f.getParameters());
 		// body
 		List<ImStmt> stmts = translator.translateStatements(f, funcDef.getBody());
 		f.getBody().addAll(stmts);
@@ -118,7 +115,7 @@ public class TLDTranslation {
 		f.setReturnType(funcDef.getReturnTyp().attrTyp().imTranslateType());
 		// parameters
 		f.getParameters().add(JassIm.ImVar(funcDef.getExtendedType().attrTyp().imTranslateType(), "this"));
-		translateParameters(funcDef.getParameters(), f.getParameters());
+		ImHelper.translateParameters(funcDef.getParameters(), f.getParameters());
 		// body
 		List<ImStmt> stmts = translator.translateStatements(f, funcDef.getBody());
 		f.getBody().addAll(stmts);
@@ -126,18 +123,6 @@ public class TLDTranslation {
 		translator.addFunction(f);
 	}
 	
-	private static void translateParameters(WParameters params, ImVars result) {
-		for (WParameter p : params) {
-			result.add(translateParam(p));
-		}
-	}
-
-	private static ImVar translateParam(WParameter p) {
-		return JassIm.ImVar(p.attrTyp().imTranslateType(), p.getName());
-	}
-
-	
-
 	public static void translate(InitBlock initBlock, ImTranslator translator) {
 		ImFunction f = translator.getFuncFor(initBlock);
 		f.getBody().addAll(translator.translateStatements(f, initBlock.getBody()));
@@ -196,7 +181,7 @@ public class TLDTranslation {
 		
 		f.getParameters().add(JassIm.ImVar(TypesHelper.imIntPair(), "this"));
 		
-		translateParameters(funcDef.getParameters(), f.getParameters());
+		ImHelper.translateParameters(funcDef.getParameters(), f.getParameters());
 		
 		f.getBody().addAll(createDispatch(instances, 0, instances.size()-1, funcDef, f, translator));
 		
