@@ -13,6 +13,8 @@
 */bin/*
 */dist/*
 */src-gen/*
+*/logs/*
+*/temp/*
 
 de.peeeq.wurstscript/logs/*
 de.peeeq.wurstscript/test-output/*
