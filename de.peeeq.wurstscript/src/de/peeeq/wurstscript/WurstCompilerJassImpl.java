@@ -244,9 +244,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
 	public JassProg translateProg(CompilationUnit root) {
 		// translate to intermediate lang:
-		ImTranslator imTranslator = new ImTranslator(root);
-		ImProg imProg = imTranslator.translateProg();
-		
+//		ImTranslator imTranslator = new ImTranslator(root);
+//		ImProg imProg = imTranslator.translateProg();
+//		
 		
 		
 		// TODO translate to jass
