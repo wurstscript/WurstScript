@@ -86,6 +86,10 @@ JassFuncRef = JassExprFuncRef | JassExprFunctionCall | JassStmtCall
 JassScope = JassFunction | JassProg
 
 attributes:
+
+JassExpr.getType()
+	returns String
+	implemented by de.peeeq.wurstscript.frotty.jassAttributes.JassExprAttr.getType
 	
 JassProgs.addFunction(JassFunction f)
 	returns void

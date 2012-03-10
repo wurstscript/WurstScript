@@ -1,4 +1,4 @@
-from 1.24 patchgrammar frottyjass;
+grammar frottyjass;
 
 
 @lexer::header {
