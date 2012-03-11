@@ -173,6 +173,7 @@ public class TemplateParseqList {
 		sb.append("	}\n");
 		sb.append("\n");
 
+		sb.append(" @SuppressWarnings(\"unchecked\")\n");
 		sb.append("	@Override\n");
 		sb.append("	public boolean remove(Object o) {\n");
 		sb.append("		if (list.remove(o)) {\n");

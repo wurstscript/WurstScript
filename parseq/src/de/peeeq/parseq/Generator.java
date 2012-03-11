@@ -314,6 +314,7 @@ public class Generator {
 	private void generateBaseClass_Impl(ConstructorDef c) {
 		StringBuilder sb = new StringBuilder();
 		printProlog(sb);
+		sb.append("@SuppressWarnings(\"all\")\n");
 		sb.append("class " + c.name + "Impl implements ");
 		sb.append(c.name +  ", " + getCommonSupertypeType() + "Intern {\n");
 
@@ -662,6 +663,7 @@ public class Generator {
 		StringBuilder sb = new StringBuilder();
 		printProlog(sb);
 		
+		sb.append("@SuppressWarnings(\"all\")\n");
 		sb.append("public class " + toFirstUpper(prog.getLastPackagePart()) + " {\n");
 	
 		for (ConstructorDef c : prog.constructorDefs) {
@@ -806,6 +808,8 @@ public class Generator {
 		StringBuilder sb;
 		sb = new StringBuilder();
 		printProlog(sb);
+		
+		sb.append("@SuppressWarnings(\"all\")\n");
 		sb.append("class " + l.name + "Impl extends "+l.name+" implements "+getCommonSupertypeType()+"Intern {\n ");
 		
 		createGetSetParentMethods(sb);
@@ -862,6 +866,7 @@ public class Generator {
 	private void generateList_interface(ListDef l) {
 		StringBuilder sb = new StringBuilder();
 		printProlog(sb);
+		sb.append("@SuppressWarnings(\"all\")\n");
 		sb.append("public abstract class " + l.name + " extends ParseqList<"+l.itemType+"> implements ");
 		sb.append(getCommonSupertypeType());
 		for (AstEntityDefinition supertype : directSuperTypes.get(l)) {
