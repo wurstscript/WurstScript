@@ -49,7 +49,7 @@ terminal
 	CUSTOM_ERROR,
 	TRUE, FALSE, 
 	EQEQ, GTEQ, LTEQ, NOTEQ, GT, LT,
-	EQ, PLUS_EQ, MINUS_EQ, MULT_EQ, PLUS_PLUS, MINUS_MINUS,
+	EQ, PLUS_EQ, MINUS_EQ, MULT_EQ, PLUS_PLUS, MINUS_MINUS, DIV_EQ, 
 	AND, OR, NOT,
 	PLUS, MINUS, UMINUS, 
 	MULT, DIV_REAL, DIV_INT, MOD_REAL, MOD_INT,
@@ -547,6 +547,8 @@ StmtSet ::=
 		{: RESULT = Ast.StmtSet(pos(left, right), left, Ast.OpMinusAssign(),  right); :}
 	| ExprAssignable:left MULT_EQ Expr:right NL
 		{: RESULT = Ast.StmtSet(pos(left, right), left, Ast.OpMultAssign(),  right); :}
+	| ExprAssignable:left DIV_EQ Expr:right NL
+		{: RESULT = Ast.StmtSet(pos(left, right), left, Ast.OpDivAssign(),  right); :}
 	| ExprAssignable:left PLUS_PLUS:x NL
 		{: RESULT = Ast.StmtSet(pos(left, xright), left, Ast.OpPlusAssign(), Ast.ExprIntVal(pos(xleft, xright), 1)); :}
 	| ExprAssignable:left MINUS_MINUS:x NL

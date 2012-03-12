@@ -106,6 +106,7 @@ OpUpdateAssign =
 	  OpPlusAssign()
 	| OpMultAssign()
 	| OpMinusAssign()
+	| OpDivAssign()
 
 
 

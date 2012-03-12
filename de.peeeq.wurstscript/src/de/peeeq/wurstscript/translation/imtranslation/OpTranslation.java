@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import de.peeeq.wurstscript.ast.OpAnd;
 import de.peeeq.wurstscript.ast.OpAssign;
+import de.peeeq.wurstscript.ast.OpDivAssign;
 import de.peeeq.wurstscript.ast.OpDivInt;
 import de.peeeq.wurstscript.ast.OpDivReal;
 import de.peeeq.wurstscript.ast.OpEquals;
@@ -104,5 +105,9 @@ public class OpTranslation {
 
 	static public String translageAssignGetBinary(OpAssign opAssign) {
 		return null;
+	}
+
+	public static String translageAssignGetBinary(OpDivAssign opDivAssign) {
+		return "$/";
 	}
 }

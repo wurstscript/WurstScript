@@ -353,6 +353,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"+="                               { return symbol(TokenType.PLUS_EQ); }
 	"-="                               { return symbol(TokenType.MINUS_EQ); }
 	"*="                               { return symbol(TokenType.MULT_EQ); }
+	"/="                               { return symbol(TokenType.DIV_EQ); }
 	"++"                               { return symbol(TokenType.PLUS_PLUS); }
 	"--"                               { return symbol(TokenType.MINUS_MINUS); }
 	"-->"                              { return symbol(TokenType.ARROW); }

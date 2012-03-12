@@ -9,6 +9,9 @@ import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.ModuleUse;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.jassIm.ImFunction;
+import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.ImVar;
+import de.peeeq.wurstscript.jassIm.JassIm;
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 
@@ -16,6 +19,9 @@ public class ClassTranslator {
 
 	private ClassDef classDef;
 	private ImTranslator translator;
+	private ImVar nextFree;
+	private ImVar firstFree;
+	private ImVar maxIndex;
 
 	public ClassTranslator(ClassDef classDef, ImTranslator translator) {
 		this.classDef = classDef;
@@ -31,6 +37,12 @@ public class ClassTranslator {
 		for (ClassSlot s : classDef.getSlots()) {
 			s.translateClassSlot(this);
 		}
+		nextFree = JassIm.ImVar(JassIm.ImArrayType("integer"), classDef.getName() + "_nextFree");
+		translator.addGlobal(nextFree);
+		firstFree = JassIm.ImVar(TypesHelper.imInt(), classDef.getName() + "_firstFree");
+		translator.addGlobal(firstFree);
+		maxIndex = JassIm.ImVar(TypesHelper.imInt(), classDef.getName() + "_maxIndex");
+		translator.addGlobal(maxIndex);
 	}
 
 	public void translateClassSlot(FuncDef s) {
@@ -45,8 +57,14 @@ public class ClassTranslator {
 	}
 
 	public void translateClassSlot(GlobalVarDef s) {
-		// TODO Auto-generated method stub
-		throw new Error("not implemented");
+		ImVar v = translator.getVarFor(s);
+		if (s.attrIsDynamicClassMember()) {
+			// for dynamic class members create an array
+			ImType t = s.attrTyp().imTranslateType();
+			v.setType(ImHelper.toArray(t));
+		}
+		// TODO add initializers
+		translator.addGlobal(v);
 	}
 
 	public void translateClassSlot(ConstructorDef s) {

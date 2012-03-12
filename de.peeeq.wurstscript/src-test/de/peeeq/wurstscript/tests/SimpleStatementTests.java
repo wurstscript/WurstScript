@@ -227,6 +227,26 @@ public class SimpleStatementTests extends PscriptTest {
 	}
 	
 	@Test
+	public void test_diveq() {
+		assertOk(true,
+				"real x = 5",
+				"x /= 2",
+				"if x == 2.5",
+				"	testSuccess()",
+				"");
+	}
+	
+	@Test
+	public void test_diveqFail() {
+		assertError(true, "fdsaf",
+				"int x = 5",
+				"x /= 2",
+				"if x == 2",
+				"	testSuccess()",
+				"");
+	}
+	
+	@Test
 	public void test_minuseq() {
 		assertOk(true,
 				"int x = 5",
