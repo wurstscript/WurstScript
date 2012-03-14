@@ -197,17 +197,15 @@ public class SyntacticSugar {
 	 * add a empty default constructor to every class without any constructor 
 	 */
 	private void addDefaultConstructors(CompilationUnit root) {
-		outerLoop: for (ClassDef c : root.attrGetByType().classes) {
-			for (ClassSlot s : c.getSlots()) {
-				if (s instanceof ConstructorDef) {
-					continue outerLoop;
-				}
-			}
-			c.getSlots().add(Ast.ConstructorDef(
+		for (ClassDef c : root.attrGetByType().classes) {
+			if (c.getConstructors().size() == 0) {
+				// add default constructor if none exists:
+				c.getConstructors().add(Ast.ConstructorDef(
 					c.getSource().copy(), 
 					Ast.Modifiers(), 
 					Ast.WParameters(), 
 					Ast.WStatements()));
+			}
 		}
 	}
 	

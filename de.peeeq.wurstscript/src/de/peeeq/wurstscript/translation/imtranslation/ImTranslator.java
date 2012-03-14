@@ -35,73 +35,44 @@ public class ImTranslator {
 	
 	public ImTranslator(CompilationUnit wurstProg) {
 		this.wurstProg = wurstProg;
-		initBinaryOps();
-	}
-	
-	private void initBinaryOps() {
-		addOp(OpAnd.class, "boolean", "boolean");
-		addOp(OpOr.class, "boolean", "boolean");
-		
-		addOp(OpDivInt.class, "integer", "integer");
-		addOp(OpModInt.class, "integer", "integer");
-		
-		
-		addOp(OpModReal.class, "real", "real");
-		addOp(OpDivReal.class, "real", "real");
-		
-		
-		addOp(OpMinus.class, "*", "*");
-		addOp(OpMult.class, "*", "*");
-		addOp(OpPlus.class, "*", "*");
-
-		addOp(OpUnequals.class, "*", "boolean");
-		addOp(OpEquals.class, "*", "boolean");
-		addOp(OpGreater.class, "*", "boolean");
-		addOp(OpGreaterEq.class, "*", "boolean");
-		addOp(OpLess.class, "*", "boolean");
-		addOp(OpLessEq.class, "*", "boolean");
-	}
-
-	private void addOp(Class<? extends Op> op, String parameterType, String returnType) {
-		ImVars vars = ImVars(ImVar(ImSimpleType(parameterType), "left"), ImVar(ImSimpleType(parameterType), "right"));
-		binaryOperatorFunctions.put(OpAnd.class, JassIm.ImFunction(op.getSimpleName(), vars, ImSimpleType(returnType), ImVars(), ImStmts(), true));
 	}
 	
 
-	// TODO select function based on parameter types
-
-	public ImFunction getFuncFor(OpBinary op) {
-		ImFunction r = binaryOperatorFunctions.get(op);
-		if (r == null) throw new Error("invalid op " + op);
-		return r;
-	}
-
-	private ImFunction opUnaryFunc_not = ImFunction("not", ImVars(ImVar(ImSimpleType("boolean"), "right")), ImSimpleType("boolean"), ImVars(), ImStmts(), true);
-	private ImFunction opUnaryFunc_minus = ImFunction("minus", ImVars(ImVar(ImSimpleType("*"), "right")), ImSimpleType("*"), ImVars(), ImStmts(), true);
+	private Map<TranslatedToImFunction, ImFunction> functionMap = Maps.newHashMap();
 	
-	public ImFunction getFuncFor(OpUnary op) {
-		if (op instanceof OpNot) {
-			return opUnaryFunc_not;
-		} else if (op instanceof OpMinus) {
-			return opUnaryFunc_minus;
-		} else {
-			throw new IllegalArgumentException("invalid op " + op);
-		}
-	}
-	
-	
-	private Map<FunctionDefinition, ImFunction> functionMap = Maps.newHashMap();
-	
-	public ImFunction getFuncFor(FunctionDefinition funcDef) {
+	public ImFunction getFuncFor(TranslatedToImFunction funcDef) {
 		if (functionMap.containsKey(funcDef)) {
 			return functionMap.get(funcDef);
 		}
-		ImFunction f = JassIm.ImFunction(funcDef.getName(), ImVars(), ImVoid(), ImVars(), ImStmts(), false);
+		String name = getNameFor(funcDef);;
+		ImFunction f = JassIm.ImFunction(name, ImVars(), ImVoid(), ImVars(), ImStmts(), false);
 		
 		functionMap.put(funcDef, f);
 		return f;
 	}
 	
+	/**
+	 * returns a suitable name for the given element
+	 * the returned name is a valid jass identifier 
+	 */
+	public String getNameFor(AstElement e) {
+		if (e instanceof AstElementWithName) {
+			AstElementWithName wn = (AstElementWithName) e;
+			return wn.getName();
+		} else if (e instanceof ConstructorDef) {
+			return "new_" + e.attrNearestClassDef().getName();
+		}
+		String r = e.getClass().getSimpleName();
+		while (e != null) {
+			if (e instanceof AstElementWithName) {
+				AstElementWithName wn = (AstElementWithName) e;
+				r = wn + "_" + r;
+			}
+			e = e.getParent();
+		}
+		return r;
+	}
+
 	private Map<WScope, ImVar> thisVarMap = Maps.newHashMap();
 
 	public ImVar getThisVar(WScope scope) {
@@ -138,17 +109,7 @@ public class ImTranslator {
 		throw new Error("");
 	}
 	
-	private Map<ConstructorDef, ImFunction> constructorFuncMap = Maps.newHashMap();
-
-	public ImFunction getConstructorFuncFor(ConstructorDef c) {
-		ImFunction f = constructorFuncMap.get(c);
-		if (f == null) {
-			f = JassIm.ImFunction("new" + c.attrNearestClassDef().getName(), ImVars(), TypesHelper.imInt(), ImVars(), ImStmts(), false);
-			constructorFuncMap.put(c, f);
-		}
-		return f ;
-	}
-
+	
 	Map<ClassDef, ImFunction> destroyFuncMap = Maps.newHashMap();
 	private ImProg imProg;
 
@@ -190,17 +151,6 @@ public class ImTranslator {
 		imProg.getGlobals().add(v);
 	}
 
-	private Map<InitBlock, ImFunction> initBlockFunctionMap = Maps.newHashMap();
-	
-	public ImFunction getFuncFor(InitBlock initBlock) {
-		ImFunction f = initBlockFunctionMap.get(initBlock); 
-		if (f == null) {
-			WPackage pack = (WPackage) initBlock.attrNearestPackage();
-			f = JassIm.ImFunction("init_" + pack.getName() , ImVars(), TypesHelper.imVoid(), ImVars(), ImStmts(), false);
-			initBlockFunctionMap.put(initBlock, f);
-		}
-		return f;
-	}
 
 	private int typeIdCounter = 0;
 	Map<ClassDef, Integer> typeIdMap = Maps.newHashMap();
@@ -242,6 +192,11 @@ public class ImTranslator {
 	}
 
 	public void addCallRelation(ImFunction callingFunc, ImFunction calledFunc) {
+		// TODO Auto-generated method stub
+		throw new Error("not implemented");
+	}
+
+	public void addGlobalInitalizer(ImVar v, OptExpr initialExpr) {
 		// TODO Auto-generated method stub
 		throw new Error("not implemented");
 	}

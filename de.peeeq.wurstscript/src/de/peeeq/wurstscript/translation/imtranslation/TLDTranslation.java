@@ -161,12 +161,8 @@ public class TLDTranslation {
 		Collections.sort(instances, new TypeIdComparator(translator));
 		
 		// create dispatch methods
-		for (ClassSlot s: interfaceDef.getSlots()) {
-			if (s instanceof FuncDef) {
-				translateInterfaceFuncDef(interfaceDef, instances, (FuncDef) s, translator);
-			} else {
-				throw new Error("not implemented for " + Utils.printElement(s));
-			}
+		for (FuncDef f: interfaceDef.getMethods()) {
+			translateInterfaceFuncDef(interfaceDef, instances, f, translator);
 		}
 	}
 
@@ -221,7 +217,7 @@ public class TLDTranslation {
 						}
 						arguments.add(arg);
 					}
-					ImCall call = JassIm.ImCall(calledJassFunc, arguments);
+					ImCall call = JassIm.ImFunctionCall(calledJassFunc, arguments);
 					if (returnsVoid) {
 						result.add(call);
 					} else {
@@ -239,7 +235,7 @@ public class TLDTranslation {
 			// if (thistype < instances[splitAt].typeId)
 			ImVar thisVar = f.getParameters().get(0);
 			ImExpr cond = 
-					JassIm.ImCall(translator.getFuncFor(Ast.OpLess()), 
+					JassIm.ImOperatorCall(Ast.OpLess(), 
 							JassIm.ImExprs(
 									JassIm.ImTupleSelection(JassIm.ImVarAccess(thisVar), 1),
 									JassIm.ImIntVal(translator.getTypeId(instances.get(splitAt)))));

@@ -14,9 +14,11 @@ import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImFlatExpr;
 import de.peeeq.wurstscript.jassIm.ImFlatExprOpt;
 import de.peeeq.wurstscript.jassIm.ImFunction;
+import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImIf;
 import de.peeeq.wurstscript.jassIm.ImLoop;
 import de.peeeq.wurstscript.jassIm.ImNoExpr;
+import de.peeeq.wurstscript.jassIm.ImOperatorCall;
 import de.peeeq.wurstscript.jassIm.ImReturn;
 import de.peeeq.wurstscript.jassIm.ImSet;
 import de.peeeq.wurstscript.jassIm.ImSetArray;
@@ -126,15 +128,23 @@ public class Flatten {
 		stmts.add(ImSetTuple(s.getLeft(), s.getTupleIndex(), e));
 	}
 
-	public static ImFlatExpr flattenExpr(ImCall e, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
+	public static ImFlatExpr flattenExpr(ImFunctionCall e, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
+		return JassIm.ImFunctionCall(e.getFunc(), ImExprs(flattenArgs(e, stmts, t, f)));
+	}
+
+	public static ImFlatExpr flattenExpr(ImOperatorCall e, List<ImStmt> stmts, ImTranslator t,	ImFunction f) {
+		return JassIm.ImOperatorCall(e.getOp(), ImExprs(flattenArgs(e, stmts, t, f)));
+	}
+
+	private static List<ImExpr> flattenArgs(ImCall e, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
 		List<ImExpr> args = Lists.newArrayList();
 		for (ImExpr a : e.getArguments()) {
 			a = a.flattenExpr(stmts, t, f);
 			args.add(a);
 		}
-		return JassIm.ImCall(e.getFunc(), ImExprs(args));
+		return args;
 	}
-
+	
 
 	public static ImFlatExpr flattenExpr(ImConst e, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
 		return e;
@@ -177,6 +187,8 @@ public class Flatten {
 	public static ImFlatExprOpt flattenExpr(ImNoExpr e, List<ImStmt> stmts, ImTranslator translator, ImFunction f) {
 		return e;
 	}
+
+	
 
 		
 	

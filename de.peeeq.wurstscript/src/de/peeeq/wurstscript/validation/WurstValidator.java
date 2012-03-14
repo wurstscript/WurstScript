@@ -768,27 +768,23 @@ public class WurstValidator {
 			InterfaceDef interfaceDef = interfaceType.getInterfaceDef();
 			Map<TypeParamDef, PscriptType> typeParamMapping = interfaceType.getTypeArgBinding();
 			// TODO check type mapping
-			
-			nextFunction: for (ClassSlot s : interfaceDef.getSlots()) {
-				if (s instanceof FuncDef) {
-					FuncDef i_funcDef = (FuncDef) s;
-					Collection<NameDef> c_funcDefs = classDef.attrVisibleNamesPrivate().get(i_funcDef.getName());
-					for (NameDef c_nameDef : c_funcDefs) {
-						if (c_nameDef instanceof FuncDef) {
-							FuncDef c_funcDef = (FuncDef) c_nameDef;
-							
-							CheckHelper.checkIfIsRefinement(typeParamMapping, i_funcDef, c_funcDef, "Cannot implement interface because of function ", true);
-							continue nextFunction;
-						}
+
+			nextFunction: 
+			for (FuncDef i_funcDef : interfaceDef.getMethods()) {
+				Collection<NameDef> c_funcDefs = classDef.attrVisibleNamesPrivate().get(i_funcDef.getName());
+				for (NameDef c_nameDef : c_funcDefs) {
+					if (c_nameDef instanceof FuncDef) {
+						FuncDef c_funcDef = (FuncDef) c_nameDef;
+
+						CheckHelper.checkIfIsRefinement(typeParamMapping, i_funcDef, c_funcDef, "Cannot implement interface because of function ", true);
+						continue nextFunction;
 					}
-					attr.addError(classDef.getSource(), "The class " + classDef.getName() + " must implement the function " +
-							i_funcDef.getName() + ".");
-					
-					
 				}
+				attr.addError(classDef.getSource(), "The class " + classDef.getName() + " must implement the function " +
+						i_funcDef.getName() + ".");
 			}
 		}
-		
+
 	}
 	
 	@CheckMethod

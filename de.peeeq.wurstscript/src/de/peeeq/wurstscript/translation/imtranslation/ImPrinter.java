@@ -7,11 +7,13 @@ import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImFuncRef;
 import de.peeeq.wurstscript.jassIm.ImFunction;
+import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImIf;
 import de.peeeq.wurstscript.jassIm.ImIntVal;
 import de.peeeq.wurstscript.jassIm.ImLoop;
 import de.peeeq.wurstscript.jassIm.ImNoExpr;
 import de.peeeq.wurstscript.jassIm.ImNull;
+import de.peeeq.wurstscript.jassIm.ImOperatorCall;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImRealVal;
 import de.peeeq.wurstscript.jassIm.ImReturn;
@@ -166,7 +168,7 @@ public class ImPrinter {
 	}
 	
 	
-	public static void print(ImCall p, StringBuilder sb, int indent) {
+	public static void print(ImFunctionCall p, StringBuilder sb, int indent) {
 		sb.append(p.getFunc().getName() + "(");
 		
 		sb.append(")");
@@ -248,6 +250,24 @@ public class ImPrinter {
 		v.getType().print(sb, indent);
 		sb.append(" ");
 		sb.append(v.getName());
+	}
+
+
+	public static void print(ImOperatorCall e, StringBuilder sb, int indent) {
+		sb.append("(");
+		if (e.getArguments().size() == 2) {
+			// binary operator
+			e.getArguments().get(0).print(sb, indent);
+			sb.append(" " + e.getOp().toSymbol() + " ");
+			e.getArguments().get(1).print(sb, indent);
+		} else {
+			sb.append(e.getOp().toSymbol());
+			for (ImExpr a : e.getArguments()) {
+				sb.append(" ");
+				a.print(sb, indent);
+			}
+		}
+		sb.append(")");
 	}
 	
 	

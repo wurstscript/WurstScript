@@ -50,7 +50,6 @@ import de.peeeq.wurstscript.ast.AstElementWithParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.ClassSlot;
-import de.peeeq.wurstscript.ast.ClassSlots;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
@@ -659,7 +658,7 @@ public class JassTranslator {
 
 				@Override
 				public void case_ClassDef(ClassDef classDef) {
-					translateClassDef(classDef);
+//					translateClassDef(classDef);
 				}
 
 				@Override
@@ -702,12 +701,8 @@ public class JassTranslator {
 		// sort by typeid
 		Collections.sort(instances, new TypeIdComparator());
 		
-		for (ClassSlot s: interfaceDef.getSlots()) {
-			if (s instanceof FuncDef) {
-				translateInterfaceFuncDef(interfaceDef, instances, (FuncDef) s);
-			} else {
-				throw new Error("not implemented for " + Utils.printElement(s));
-			}
+		for (FuncDef f: interfaceDef.getMethods()) {
+			translateInterfaceFuncDef(interfaceDef, instances, f);
 		}
 	}
 
@@ -839,237 +834,237 @@ public class JassTranslator {
 		}
 	}
 
-	private void translateClassDef(final ClassDef classDef) {
-		trace("translate classdef " + classDef.getName());
-		String baseName = ((WPackage) classDef.attrNearestPackage()).getName() + "_" + classDef.getName() + "_";
+//	private void translateClassDef(final ClassDef classDef) {
+//		trace("translate classdef " + classDef.getName());
+//		String baseName = ((WPackage) classDef.attrNearestPackage()).getName() + "_" + classDef.getName() + "_";
+//
+//
+//		// create default class variables
+//		final JassArrayVar nextFree = JassArrayVar("integer", manager.getUniqueName(baseName + "nextFree"));
+//		globals.add(nextFree);
+//		final JassSimpleVar firstFree = JassSimpleVar("integer", manager.getUniqueName(baseName + "firstFree"));
+//		globals.add(firstFree);
+//		final JassSimpleVar maxIndex = JassSimpleVar("integer", manager.getUniqueName(baseName + "maxIndex"));
+//		globals.add(maxIndex);
+//
+//
+//
+//		translateClassSlots(classDef, classDef.getSlots(), nextFree, firstFree, maxIndex, false);
+//
+//		finishDestroyMethod(classDef, nextFree, firstFree, maxIndex);
+//	}
+//
+//
+//	private void translateClassSlots(final ClassDef classDef,	ClassSlots slots, final JassArrayVar nextFree
+//			, final JassSimpleVar firstFree, final JassSimpleVar maxIndex, final boolean inModule) {
+//
+//		for (ClassSlot member : slots) {
+//			trace("translate member " + member.getClass());
+//			final ImmutableList<ClassOrModule> context = ImmutableList.<ClassOrModule>of(classDef);
+//			member.match(new ClassSlot.MatcherVoid() {
+//
+//				@Override
+//				public void case_OnDestroyDef(OnDestroyDef onDestroyDef) {
+//					JassFunction f = manager.getJassDestroyFunctionFor(classDef);
+//					// destroy method is added in finish method
+//					f.getBody().addAll(translateStatements(f, onDestroyDef.getBody()));
+//					f.getBody().addAll(translateOnDestroyForUsedModules(classDef, f));
+//				}
+//
+//				@Override
+//				public void case_GlobalVarDef(GlobalVarDef globalVarDef) {
+//					
+//					prog.getGlobals().addAll(manager.getJassVarsFor(globalVarDef));
+//					
+//					
+//					// add initializer for static variables:
+//					if (globalVarDef.attrIsStatic() && globalVarDef.getInitialExpr() instanceof Expr) {
+//						Expr expr = (Expr) globalVarDef.getInitialExpr();
+//						globalInitializers.add(new GlobalInit(globalVarDef, expr));
+//					}
+//				}
+//
+//				@Override
+//				public void case_FuncDef(FuncDef funcDef) {
+//					translateFuncDef(funcDef, true);
+//				}
+//
+//				@Override
+//				public void case_ConstructorDef(ConstructorDef constructorDef) {
+//					if (!inModule) { // only translate class constructor
+//						translateConstructorDef(classDef, constructorDef, nextFree, firstFree, maxIndex);
+//					}
+//				}
+//
+//				@Override
+//				public void case_ModuleUse(ModuleUse moduleUse) {
+//
+//				}
+//
+//				@Override
+//				public void case_ModuleInstanciation(ModuleInstanciation moduleInstanciation) {
+//					translateClassSlots(classDef, moduleInstanciation.getSlots(), nextFree, maxIndex, maxIndex, true);
+//				}
+//
+//
+//			});
+//		}
+//
+//	}
+//
+//
+//	private Collection<JassStatement> translateOnDestroyForUsedModules(ClassOrModule c,
+//			JassFunction f) {
+//		Collection<JassStatement> result = Lists.newArrayList();
+//		for (ModuleDef m : c.attrUsedModules()) {
+//			result.addAll(translateOnDestroyForModule(m, f));
+//		}
+//		return result;
+//	}
+//
+//	private Collection<JassStatement> translateOnDestroyForModule(ModuleDef m, JassFunction f) {
+//		Collection<JassStatement> result = Lists.newArrayList();
+//		OnDestroyDef onDestroy = null;
+//		for (ClassSlot s : m.getSlots()) {
+//			if (s instanceof OnDestroyDef) {
+//				onDestroy = (OnDestroyDef) s;
+//			}
+//		}
+//
+//		if (onDestroy != null) {
+//			result.addAll(translateStatements(f, onDestroy.getBody()));
+//		}
+//
+//		result.addAll(translateOnDestroyForUsedModules(m, f));
+//		return result;
+//	}
 
 
-		// create default class variables
-		final JassArrayVar nextFree = JassArrayVar("integer", manager.getUniqueName(baseName + "nextFree"));
-		globals.add(nextFree);
-		final JassSimpleVar firstFree = JassSimpleVar("integer", manager.getUniqueName(baseName + "firstFree"));
-		globals.add(firstFree);
-		final JassSimpleVar maxIndex = JassSimpleVar("integer", manager.getUniqueName(baseName + "maxIndex"));
-		globals.add(maxIndex);
-
-
-
-		translateClassSlots(classDef, classDef.getSlots(), nextFree, firstFree, maxIndex, false);
-
-		finishDestroyMethod(classDef, nextFree, firstFree, maxIndex);
-	}
-
-
-	private void translateClassSlots(final ClassDef classDef,	ClassSlots slots, final JassArrayVar nextFree
-			, final JassSimpleVar firstFree, final JassSimpleVar maxIndex, final boolean inModule) {
-
-		for (ClassSlot member : slots) {
-			trace("translate member " + member.getClass());
-			final ImmutableList<ClassOrModule> context = ImmutableList.<ClassOrModule>of(classDef);
-			member.match(new ClassSlot.MatcherVoid() {
-
-				@Override
-				public void case_OnDestroyDef(OnDestroyDef onDestroyDef) {
-					JassFunction f = manager.getJassDestroyFunctionFor(classDef);
-					// destroy method is added in finish method
-					f.getBody().addAll(translateStatements(f, onDestroyDef.getBody()));
-					f.getBody().addAll(translateOnDestroyForUsedModules(classDef, f));
-				}
-
-				@Override
-				public void case_GlobalVarDef(GlobalVarDef globalVarDef) {
-					
-					prog.getGlobals().addAll(manager.getJassVarsFor(globalVarDef));
-					
-					
-					// add initializer for static variables:
-					if (globalVarDef.attrIsStatic() && globalVarDef.getInitialExpr() instanceof Expr) {
-						Expr expr = (Expr) globalVarDef.getInitialExpr();
-						globalInitializers.add(new GlobalInit(globalVarDef, expr));
-					}
-				}
-
-				@Override
-				public void case_FuncDef(FuncDef funcDef) {
-					translateFuncDef(funcDef, true);
-				}
-
-				@Override
-				public void case_ConstructorDef(ConstructorDef constructorDef) {
-					if (!inModule) { // only translate class constructor
-						translateConstructorDef(classDef, constructorDef, nextFree, firstFree, maxIndex);
-					}
-				}
-
-				@Override
-				public void case_ModuleUse(ModuleUse moduleUse) {
-
-				}
-
-				@Override
-				public void case_ModuleInstanciation(ModuleInstanciation moduleInstanciation) {
-					translateClassSlots(classDef, moduleInstanciation.getSlots(), nextFree, maxIndex, maxIndex, true);
-				}
-
-
-			});
-		}
-
-	}
-
-
-	private Collection<JassStatement> translateOnDestroyForUsedModules(ClassOrModule c,
-			JassFunction f) {
-		Collection<JassStatement> result = Lists.newArrayList();
-		for (ModuleDef m : c.attrUsedModules()) {
-			result.addAll(translateOnDestroyForModule(m, f));
-		}
-		return result;
-	}
-
-	private Collection<JassStatement> translateOnDestroyForModule(ModuleDef m, JassFunction f) {
-		Collection<JassStatement> result = Lists.newArrayList();
-		OnDestroyDef onDestroy = null;
-		for (ClassSlot s : m.getSlots()) {
-			if (s instanceof OnDestroyDef) {
-				onDestroy = (OnDestroyDef) s;
-			}
-		}
-
-		if (onDestroy != null) {
-			result.addAll(translateStatements(f, onDestroy.getBody()));
-		}
-
-		result.addAll(translateOnDestroyForUsedModules(m, f));
-		return result;
-	}
-
-
-	private void finishDestroyMethod(ClassDef classDef, JassArrayVar nextFree, JassSimpleVar firstFree, JassSimpleVar maxIndex) {
-		JassFunction f = manager.getJassDestroyFunctionFor(classDef);
-		
-		prog.attrComments().put(f, "destroy function for " + classDef.getName());
-		
-		prog.getFunctions().add(f);
-
-		f.getBody().add(
-				//	if nextFree[this] >= 0
-				JassStmtIf(
-						JassExprBinary(
-								JassExprVarArrayAccess(nextFree.getName(), JassExprVarAccess("this")), 
-								JassOpGreaterEq(),
-								JassExprIntVal(0)),
-								// then
-								JassStatements(
-										//	show error
-										JassStmtCall("BJDebugMsg", JassExprlist(JassExprStringVal("Double free of " + classDef.getName())))						
-										),
-										//else 
-										JassStatements(
-												//	nextFree[this] = firstFree
-												JassStmtSetArray(nextFree.getName(), JassExprVarAccess("this"), JassExprVarAccess(firstFree.getName())),
-												//	firstFree = this
-												JassStmtSet(firstFree.getName(), JassExprVarAccess("this"))
-												)));
-		//endif
-		
-		addHandleNullSetters(f);
-	}
-
-	private void translateConstructorDef(ClassDef classDef, ConstructorDef constructorDef, JassArrayVar nextFree, JassSimpleVar firstFree, JassSimpleVar maxIndex) {
-		JassFunction f = manager.getJassConstructorFor(constructorDef);
-		
-		prog.attrComments().put(f, "constructor function for " + classDef.getName());
-		
-		prog.getFunctions().add(f);
-
-		f.setReturnType("integer");
-
-		addParameters(constructorDef, f);
-
-		f.getLocals().add(jassThisVar());
-
-		// if has free indexes (firstFree > 0)
-		f.getBody().add(JassStmtIf(
-				JassExprBinary(
-						JassExprVarAccess(firstFree.getName()), JassOpGreater(), JassExprIntVal(0)),
-						// then
-						JassStatements(
-								// 		this = firstFree
-								JassStmtSet("this", JassExprVarAccess(firstFree.getName())),
-								//		firstFree = nextFree[this]
-								JassStmtSet(firstFree.getName(), JassExprVarArrayAccess(nextFree.getName(), JassExprVarAccess("this")))
-								),
-								// else
-								JassStatements(
-										// 		maxIndex = maxIndex + 1
-										JassStmtSet(maxIndex.getName(), 
-												JassExprBinary(JassExprVarAccess(maxIndex.getName()), JassOpPlus(), JassExprIntVal(1))),
-												// 		this = maxIndex
-												JassStmtSet("this", JassExprVarAccess(maxIndex.getName()))
-												// endif
-										)));
-		// nextFree[this] = -1
-		f.getBody().add(JassStmtSetArray(nextFree.getName(), JassExprVarAccess("this"), JassExprIntVal(-1)));
-
-		// call module constructors if feasible, compile error otherwise
-		for (ModuleInstanciation m : classDef.attrModuleInstanciations()) {
-			translateModuleUseConstructors(m, f);
-		}
-		
-
-
-		// init members:
-		for (ClassSlot member : classDef.getSlots()) {
-			if (member instanceof GlobalVarDef) {
-				GlobalVarDef var = (GlobalVarDef) member;
-				if (var.attrIsDynamicClassMember() && var.getInitialExpr() instanceof Expr) {
-					Expr initial = (Expr) var.getInitialExpr();
-					ExprTranslationResult e = initial.jassTranslateExpr(this, f);
-					ExprTranslationResult indexExpr = new ExprTranslationResult(JassExprVarAccess("this"));
-					StmtTranslation.translateAssignment2(this, f.getBody(), f, var, indexExpr, e);
-				} // TODO default value?
-			}
-		}
-
-
-
-		// custom code:
-		f.getBody().addAll(translateStatements(f, constructorDef.getBody()));
-
-		addHandleNullSetters(f);
-		
-		// return this:
-		f.getBody().add(JassStmtReturn(JassExprVarAccess("this")));
-	}
-
-	private void translateModuleUseConstructors(ModuleInstanciation m, JassFunction f) {
-		// translate child modules:
-		for (ModuleInstanciation childM : m.attrModuleInstanciations()) {
-			translateModuleUseConstructors(childM, f);
-		}
-
-		ConstructorDef constructor = null;
-		// initialize module variables:
-		for (ClassSlot s : m.getSlots()) {
-			if (s instanceof GlobalVarDef) {
-				GlobalVarDef v = (GlobalVarDef) s;
-				if (!v.attrIsStatic() && v.getInitialExpr() instanceof Expr) {
-					Expr expr = (Expr) v.getInitialExpr();
-					ExprTranslationResult er = expr.jassTranslateExpr(this, f);
-					ExprTranslationResult indexExpr = new ExprTranslationResult(JassExprVarAccess("this"));
-					StmtTranslation.translateAssignment2(this, f.getBody(), f, v, indexExpr, er);
-				}
-			} else if (s instanceof ConstructorDef) {
-				constructor  = (ConstructorDef) s;
-			}
-		}
-
-		// custom code
-		if (constructor != null) {
-			f.getBody().addAll(translateStatements(f, constructor.getBody()));
-		}
-	}
+//	private void finishDestroyMethod(ClassDef classDef, JassArrayVar nextFree, JassSimpleVar firstFree, JassSimpleVar maxIndex) {
+//		JassFunction f = manager.getJassDestroyFunctionFor(classDef);
+//		
+//		prog.attrComments().put(f, "destroy function for " + classDef.getName());
+//		
+//		prog.getFunctions().add(f);
+//
+//		f.getBody().add(
+//				//	if nextFree[this] >= 0
+//				JassStmtIf(
+//						JassExprBinary(
+//								JassExprVarArrayAccess(nextFree.getName(), JassExprVarAccess("this")), 
+//								JassOpGreaterEq(),
+//								JassExprIntVal(0)),
+//								// then
+//								JassStatements(
+//										//	show error
+//										JassStmtCall("BJDebugMsg", JassExprlist(JassExprStringVal("Double free of " + classDef.getName())))						
+//										),
+//										//else 
+//										JassStatements(
+//												//	nextFree[this] = firstFree
+//												JassStmtSetArray(nextFree.getName(), JassExprVarAccess("this"), JassExprVarAccess(firstFree.getName())),
+//												//	firstFree = this
+//												JassStmtSet(firstFree.getName(), JassExprVarAccess("this"))
+//												)));
+//		//endif
+//		
+//		addHandleNullSetters(f);
+//	}
+//
+//	private void translateConstructorDef(ClassDef classDef, ConstructorDef constructorDef, JassArrayVar nextFree, JassSimpleVar firstFree, JassSimpleVar maxIndex) {
+//		JassFunction f = manager.getJassConstructorFor(constructorDef);
+//		
+//		prog.attrComments().put(f, "constructor function for " + classDef.getName());
+//		
+//		prog.getFunctions().add(f);
+//
+//		f.setReturnType("integer");
+//
+//		addParameters(constructorDef, f);
+//
+//		f.getLocals().add(jassThisVar());
+//
+//		// if has free indexes (firstFree > 0)
+//		f.getBody().add(JassStmtIf(
+//				JassExprBinary(
+//						JassExprVarAccess(firstFree.getName()), JassOpGreater(), JassExprIntVal(0)),
+//						// then
+//						JassStatements(
+//								// 		this = firstFree
+//								JassStmtSet("this", JassExprVarAccess(firstFree.getName())),
+//								//		firstFree = nextFree[this]
+//								JassStmtSet(firstFree.getName(), JassExprVarArrayAccess(nextFree.getName(), JassExprVarAccess("this")))
+//								),
+//								// else
+//								JassStatements(
+//										// 		maxIndex = maxIndex + 1
+//										JassStmtSet(maxIndex.getName(), 
+//												JassExprBinary(JassExprVarAccess(maxIndex.getName()), JassOpPlus(), JassExprIntVal(1))),
+//												// 		this = maxIndex
+//												JassStmtSet("this", JassExprVarAccess(maxIndex.getName()))
+//												// endif
+//										)));
+//		// nextFree[this] = -1
+//		f.getBody().add(JassStmtSetArray(nextFree.getName(), JassExprVarAccess("this"), JassExprIntVal(-1)));
+//
+//		// call module constructors if feasible, compile error otherwise
+//		for (ModuleInstanciation m : classDef.attrModuleInstanciations()) {
+//			translateModuleUseConstructors(m, f);
+//		}
+//		
+//
+//
+//		// init members:
+//		for (ClassSlot member : classDef.getSlots()) {
+//			if (member instanceof GlobalVarDef) {
+//				GlobalVarDef var = (GlobalVarDef) member;
+//				if (var.attrIsDynamicClassMember() && var.getInitialExpr() instanceof Expr) {
+//					Expr initial = (Expr) var.getInitialExpr();
+//					ExprTranslationResult e = initial.jassTranslateExpr(this, f);
+//					ExprTranslationResult indexExpr = new ExprTranslationResult(JassExprVarAccess("this"));
+//					StmtTranslation.translateAssignment2(this, f.getBody(), f, var, indexExpr, e);
+//				} // TODO default value?
+//			}
+//		}
+//
+//
+//
+//		// custom code:
+//		f.getBody().addAll(translateStatements(f, constructorDef.getBody()));
+//
+//		addHandleNullSetters(f);
+//		
+//		// return this:
+//		f.getBody().add(JassStmtReturn(JassExprVarAccess("this")));
+//	}
+//
+//	private void translateModuleUseConstructors(ModuleInstanciation m, JassFunction f) {
+//		// translate child modules:
+//		for (ModuleInstanciation childM : m.attrModuleInstanciations()) {
+//			translateModuleUseConstructors(childM, f);
+//		}
+//
+//		ConstructorDef constructor = null;
+//		// initialize module variables:
+//		for (ClassSlot s : m.getSlots()) {
+//			if (s instanceof GlobalVarDef) {
+//				GlobalVarDef v = (GlobalVarDef) s;
+//				if (!v.attrIsStatic() && v.getInitialExpr() instanceof Expr) {
+//					Expr expr = (Expr) v.getInitialExpr();
+//					ExprTranslationResult er = expr.jassTranslateExpr(this, f);
+//					ExprTranslationResult indexExpr = new ExprTranslationResult(JassExprVarAccess("this"));
+//					StmtTranslation.translateAssignment2(this, f.getBody(), f, v, indexExpr, er);
+//				}
+//			} else if (s instanceof ConstructorDef) {
+//				constructor  = (ConstructorDef) s;
+//			}
+//		}
+//
+//		// custom code
+//		if (constructor != null) {
+//			f.getBody().addAll(translateStatements(f, constructor.getBody()));
+//		}
+//	}
 
 	public List<JassVar> createVarsForDef(VarDef v, String jassVarNameFor) {
 		PscriptType typ = v.attrTyp();

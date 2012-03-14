@@ -8,8 +8,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
-import de.peeeq.wurstscript.ast.ClassSlot;
-import de.peeeq.wurstscript.ast.ClassSlots;
+import de.peeeq.wurstscript.ast.AstElementWithModuleInstanciations;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.StructureDefOrModuleInstanciation;
@@ -24,24 +23,21 @@ public class AttrAllFunctions {
 	 * @return
 	 */
 	public static Map<String, FuncDef> calculate(StructureDefOrModuleInstanciation term) {
-		Map<String, FuncDef> result = getAllFunctions(term.getSlots(), term.getSource());
-		return result;
-	}
-
-	private static Map<String, FuncDef> getAllFunctions(ClassSlots slots, WPos mainSource) {
+		WPos mainSource = term.getSource();
 		
 		Map<String, FuncDef> sameLevelFunctions = Maps.newHashMap();
 		Multimap<String, FuncDef> moduleFunctions = HashMultimap.create();
 		
-		for (ClassSlot s : slots) {
-			if (s instanceof FuncDef) {
-				FuncDef f = (FuncDef) s;
-				FuncDef prevDefined = sameLevelFunctions.put(f.getName(), f);
-				if (prevDefined != null) {
-					attr.addError(f.getSource(), "The function " + f.getName() + " is already defined.");
-				}
-			} else if (s instanceof ModuleInstanciation) {
-				addNonPrivateMethodsFromModule(moduleFunctions, (ModuleInstanciation) s, mainSource);
+		for (FuncDef f : term.getMethods()) {
+			FuncDef prevDefined = sameLevelFunctions.put(f.getName(), f);
+			if (prevDefined != null) {
+				attr.addError(f.getSource(), "The function " + f.getName() + " is already defined.");
+			}
+		}
+		if (term instanceof AstElementWithModuleInstanciations) {
+			AstElementWithModuleInstanciations wmi = (AstElementWithModuleInstanciations) term;
+			for (ModuleInstanciation mi : wmi.getModuleInstanciations()) {
+				addNonPrivateMethodsFromModule(moduleFunctions, mi, mainSource);
 			}
 		}
 	
@@ -75,7 +71,7 @@ public class AttrAllFunctions {
 	}
 
 	private static void addNonPrivateMethodsFromModule(Multimap<String, FuncDef> addTo, ModuleInstanciation m, WPos mainSource) {
-		Map<String, FuncDef> mFuncs = getAllFunctions(m.getSlots(), mainSource);
+		Map<String, FuncDef> mFuncs = m.attrAllFunctions();
 		for (Entry<String, FuncDef> e : mFuncs.entrySet()) {
 			if (!e.getValue().attrIsPrivate()) {
 				addTo.put(e.getKey(), e.getValue());

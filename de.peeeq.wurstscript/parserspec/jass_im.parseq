@@ -47,13 +47,16 @@ ImExpr =
 	| ImFlatExpr
 
 ImFlatExpr = 
-	  ImCall(&ImFunction func, ImExprs arguments)
+	  ImCall
 	| ImVarAccess(&ImVar var)
 	| ImVarArrayAccess(&ImVar var, ImExpr index)
 	| ImTupleExpr(ImExprs exprs)
 	| ImTupleSelection(ImExpr tupleExpr, int tupleIndex)
 	| ImConst
 	
+ImCall = 
+	  ImFunctionCall(&ImFunction func, ImExprs arguments)
+	| ImOperatorCall(de.peeeq.wurstscript.ast.Op op, ImExprs arguments)
 	
 ImConst = 
 	  ImIntVal(int valI)

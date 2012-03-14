@@ -1,11 +1,11 @@
 package de.peeeq.wurstscript.attributes;
 
-import de.peeeq.wurstscript.ast.ClassSlots;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.NativeFunc;
+import de.peeeq.wurstscript.ast.StructureDefOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.WParameter;
 
@@ -19,7 +19,7 @@ public class AttrIsClassMember {
 	}
 
 	public static boolean calculate(GlobalVarDef v) {
-		if (v.getParent() instanceof ClassSlots) {
+		if (v.attrNearestNamedScope() instanceof StructureDefOrModuleInstanciation) {
 			return !v.attrIsStatic();
 		}
 		return false;
@@ -30,7 +30,7 @@ public class AttrIsClassMember {
 	}
 
 	public static boolean calculate(FuncDef f) {
-		if (f.getParent() instanceof ClassSlots) {
+		if (f.attrNearestNamedScope() instanceof StructureDefOrModuleInstanciation) {
 			return !f.attrIsStatic();
 		}
 		return false;

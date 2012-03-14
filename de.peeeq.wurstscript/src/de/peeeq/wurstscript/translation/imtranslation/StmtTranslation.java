@@ -63,7 +63,7 @@ public class StmtTranslation {
 			// TODO destroy interfaces?
 			throw new CompileError(s.getSource(), "cannot destroy object of type " + typ);
 		}
-		return ImCall(t.getDestroyFuncFor(classDef), ImExprs(s.getDestroyedObj().imTranslateExpr(t, f)));
+		return ImFunctionCall(t.getDestroyFuncFor(classDef), ImExprs(s.getDestroyedObj().imTranslateExpr(t, f)));
 	}
 
 
@@ -112,11 +112,11 @@ public class StmtTranslation {
 
 		ImStmts imBody = ImStmts();
 		// exitwhen imLoopVar > toExpr
-		imBody.add(ImExitwhen(ImCall(t.getFuncFor(opCompare), ImExprs(ImVarAccess(imLoopVar), toExpr))));
+		imBody.add(ImExitwhen(ImOperatorCall(opCompare, ImExprs(ImVarAccess(imLoopVar), toExpr))));
 		// loop body:
 		imBody.addAll(t.translateStatements(f, body));
 		// set imLoopVar = imLoopVar + stepExpr
-		imBody.add(ImSet(imLoopVar, ImCall(t.getFuncFor(opStep), ImExprs(ImVarAccess(imLoopVar), stepExpr))));
+		imBody.add(ImSet(imLoopVar, ImOperatorCall(opStep, ImExprs(ImVarAccess(imLoopVar), stepExpr))));
 		result.add(ImLoop(imBody));
 		return ImStatementExpr(ImStmts(result), ImNull());
 	}
@@ -199,7 +199,7 @@ public class StmtTranslation {
 	public static ImStmt translate(StmtWhile s, ImTranslator t, ImFunction f) {
 		List<ImStmt> body = Lists.newArrayList();
 		// exitwhen not while_condition
-		body.add(ImExitwhen(ImCall(t.getFuncFor(Ast.OpNot()), ImExprs(s.getCond().imTranslateExpr(t, f)))));
+		body.add(ImExitwhen(ImOperatorCall(Ast.OpNot(), ImExprs(s.getCond().imTranslateExpr(t, f)))));
 		body.addAll(t.translateStatements(f, s.getBody()));
 		return ImLoop(ImStmts(body));
 	}

@@ -45,28 +45,22 @@ public class ModuleExpander {
 			return;
 		}
 		
-		List<ModuleInstanciation> ins = Lists.newArrayList();
-		Set<ModuleUse> toDelete = Sets.newHashSet();
-		
-		for (ClassSlot s : m.getSlots()) {
-			if (s instanceof ModuleUse) {
-				ModuleUse moduleUse = (ModuleUse) s;
-				ModuleDef usedModule = moduleUse.attrModuleDef();
-				if (usedModule == null) {
-					attr.addError(moduleUse.getSource(), "not found");
-					continue;
-				}
-				expandModules(usedModule);
-				
-				
-				toDelete.add(moduleUse);
-				// TODO rename?
-				ins.add(Ast.ModuleInstanciation(moduleUse.getSource().copy(), Ast.Modifiers(), moduleUse.getModuleName(), usedModule.getSlots().copy()));
+
+		for (ModuleUse moduleUse : m.getModuleUses()) {
+			ModuleDef usedModule = moduleUse.attrModuleDef();
+			if (usedModule == null) {
+				attr.addError(moduleUse.getSource(), "not found");
+				continue;
 			}
+			expandModules(usedModule);
+
+
+			m.getModuleInstanciations().add(
+					Ast.ModuleInstanciation(moduleUse.getSource().copy(), Ast.Modifiers(), 
+							moduleUse.getModuleName(), m.getMethods(), m.getVars(), m.getConstructors(), 
+							m.getModuleInstanciations(), m.getModuleUses(), m.getOnDestroy()));
 		}
 		
-		m.getSlots().removeAll(toDelete);
-		m.getSlots().addAll(ins);
 		
 		done.add(m);
 	}

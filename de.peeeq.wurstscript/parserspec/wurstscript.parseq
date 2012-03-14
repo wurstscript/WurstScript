@@ -23,7 +23,9 @@ WEntity =
 	| ExtensionFuncDef(WPos source, Modifiers modifiers, TypeExpr extendedType, String name, TypeParamDefs typeParameters, WParameters parameters, OptTypeExpr returnTyp, WStatements body)
 	| InitBlock (WPos source, WStatements body)
 	| NativeFunc(WPos source, Modifiers modifiers, String name, WParameters parameters, OptTypeExpr returnTyp)
-	| ModuleDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, ClassSlots slots)
+	| ModuleDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, 
+			FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
+			ModuleInstanciations moduleInstanciations, ModuleUses moduleUses, WStatements onDestroy)
 	
 
 
@@ -38,13 +40,20 @@ OptExpr = NoExpr() | Expr
 	
 TypeDef = 
 	  NativeType(WPos source, Modifiers modifiers, String name, OptTypeExpr optTyp)
-	| ClassDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, TypeExprList implementsList, ClassSlots slots)
+	| ClassDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, TypeExprList implementsList, 
+			FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
+			ModuleInstanciations moduleInstanciations, ModuleUses moduleUses, WStatements onDestroy)
+	| InterfaceDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, TypeExprList extendsList, 
+			FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
+			ModuleInstanciations moduleInstanciations, ModuleUses moduleUses, WStatements onDestroy)
 	| TupleDef(WPos source, Modifiers modifiers, String name, WParameters parameters, OptTypeExpr returnTyp)
-	| InterfaceDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, TypeExprList extendsList, ClassSlots slots)
 	| TypeParamDef
 	
-
-ClassSlots * ClassSlot
+FuncDefs * FuncDef
+GlobalVarDefs * GlobalVarDef
+ConstructorDefs * ConstructorDef
+ModuleInstanciations * ModuleInstanciation
+ModuleUses * ModuleUse
 TypeExprList * TypeExpr
 
 
@@ -52,7 +61,9 @@ ClassSlot =
 	  ConstructorDef(WPos source, Modifiers modifiers, WParameters parameters, WStatements body)
 	| OnDestroyDef(WPos source, WStatements body)
 	| ModuleUse(WPos source, String moduleName, TypeExprList typeArgs)
-	| ModuleInstanciation(WPos source, Modifiers modifiers, String name, ClassSlots slots) 
+	| ModuleInstanciation(WPos source, Modifiers modifiers, String name, 
+			FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
+			ModuleInstanciations moduleInstanciations, ModuleUses moduleUses, WStatements onDestroy) 
 	| ClassMember
 	
 ClassMember = 
@@ -237,6 +248,7 @@ StructureDefOrModuleInstanciation = ClassOrModuleOrModuleInstanciation | Structu
 
 NamedScope = WPackage | StructureDefOrModuleInstanciation | InterfaceDef
 
+
 // Jass types:
 
 
@@ -245,9 +257,15 @@ JassToplevelDeclaration = JassGlobalBlock | NotExtensionFunction | NativeType
 JassGlobalBlock * GlobalVarDef
 
 
+// special types for translation
+TranslatedToImFunction = ConstructorDef | FunctionDefinition | InitBlock
+
+
 
 attributes:
 
+Op.toSymbol() returns String implemented by de.peeeq.wurstscript.attributes.PrettyPrinter.toSymbol
+	
 ExprNewObject.attrConstructorDef 
 	returns ConstructorDef 
 	implemented by de.peeeq.wurstscript.attributes.AttrConstructorDef.calculate

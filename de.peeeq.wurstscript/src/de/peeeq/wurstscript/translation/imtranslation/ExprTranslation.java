@@ -16,13 +16,11 @@ public class ExprTranslation {
 	public static ImExpr translate(ExprBinary e, ImTranslator t, ImFunction f) {
 		ImExpr left = e.getLeft().imTranslateExpr(t, f);
 		ImExpr right = e.getRight().imTranslateExpr(t, f);
-		ImFunction func = t.getFuncFor(e.getOp());
-		return ImCall(func, ImExprs(left, right));
+		return ImOperatorCall(e.getOp(), ImExprs(left, right));
 	}
 
 	public static ImExpr translate(ExprUnary e, ImTranslator t, ImFunction f) {
-		ImFunction func = t.getFuncFor(e.getOpU());
-		return ImCall(func, ImExprs(e.getRight().imTranslateExpr(t, f)));
+		return ImOperatorCall(e.getOpU(), ImExprs(e.getRight().imTranslateExpr(t, f)));
 	}
 	
 	public static ImExpr translate(ExprBoolVal e, ImTranslator t, ImFunction f) {
@@ -133,7 +131,7 @@ public class ExprTranslation {
 		}
 		ImFunction calledImFunc = t.getFuncFor(calledFunc);
 
-		return ImCall(calledImFunc, imArgs);
+		return ImFunctionCall(calledImFunc, imArgs);
 	}
 
 	private static ImExprs translateExprs(List<Expr> arguments,  ImTranslator t, ImFunction f) {
@@ -150,8 +148,8 @@ public class ExprTranslation {
 
 	public static ImExpr translate(ExprNewObject e, ImTranslator t, ImFunction f) {
 		ConstructorDef constructorFunc = e.attrConstructorDef();
-		ImFunction constructorImFunc = t.getConstructorFuncFor(constructorFunc);
-		return ImCall(constructorImFunc, translateExprs(e.getArgs(), t, f));
+		ImFunction constructorImFunc = t.getFuncFor(constructorFunc);
+		return ImFunctionCall(constructorImFunc, translateExprs(e.getArgs(), t, f));
 	}
 
 	public static ImExprOpt translate(NoExpr e, ImTranslator translator, ImFunction f) {
