@@ -242,8 +242,8 @@ ClassOrModule = ClassDef | ModuleDef
 
 StructureDef = ClassOrModule | InterfaceDef	
 
-
-ClassOrModuleOrModuleInstanciation = ClassOrModule | ModuleInstanciation
+ClassOrModuleInstanciation = ClassDef | ModuleInstanciation
+ClassOrModuleOrModuleInstanciation = ClassOrModule | ClassOrModuleInstanciation
 StructureDefOrModuleInstanciation = ClassOrModuleOrModuleInstanciation | StructureDef
 
 NamedScope = WPackage | StructureDefOrModuleInstanciation | InterfaceDef
@@ -557,13 +557,6 @@ OpAssignment.jassTranslageAssignGetBinary()
 		returns void
 		implemented by de.peeeq.wurstscript.translation.imtranslation.TLDTranslation.translate
 	
-	ClassSlot.translateClassSlot(
-				de.peeeq.wurstscript.translation.imtranslation.ClassTranslator translator 
-			)
-		returns void
-		implemented by de.peeeq.wurstscript.translation.imtranslation.ClassTranslatorDispatch.translate
-		
-		
 	Expr.imTranslateExpr(
 			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
 			de.peeeq.wurstscript.jassIm.ImFunction f

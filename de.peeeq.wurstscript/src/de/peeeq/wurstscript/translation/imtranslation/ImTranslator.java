@@ -123,7 +123,7 @@ public class ImTranslator {
 	}
 
 
-	public List<ImStmt> translateStatements(ImFunction f, WStatements statements) {
+	public List<ImStmt> translateStatements(ImFunction f, List<WStatement> statements) {
 		List<ImStmt> result = Lists.newArrayList();
 		for (WStatement s : statements) {
 			result.add(s.imTranslateStmt(this, f));
