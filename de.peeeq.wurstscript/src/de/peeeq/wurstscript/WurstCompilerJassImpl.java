@@ -12,9 +12,11 @@ import java.util.Set;
 
 import java_cup.runtime.Symbol;
 
+import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.io.Files;
 
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -244,9 +246,15 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
 	public JassProg translateProg(CompilationUnit root) {
 		// translate to intermediate lang:
-//		ImTranslator imTranslator = new ImTranslator(root);
-//		ImProg imProg = imTranslator.translateProg();
-//		
+		ImTranslator imTranslator = new ImTranslator(root);
+		ImProg imProg = imTranslator.translateProg();
+		StringBuilder sb = new StringBuilder();
+		imProg.print(sb, 0);
+		try {
+			Files.write(sb.toString(), new File("./testscripts/concept/test.im"), Charsets.UTF_8);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		
 		
 		// TODO translate to jass

@@ -123,7 +123,7 @@ public class ExprTranslation {
 			return ImNull();
 		}
 		
-		ImExprs imArgs = ImExprs(translateExprs(arguments, t, f));
+		ImExprs imArgs = translateExprs(arguments, t, f);
 		
 		if (calledFunc instanceof TupleDef) {
 			// creating a new tuple...

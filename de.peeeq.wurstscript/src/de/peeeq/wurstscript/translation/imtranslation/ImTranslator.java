@@ -3,9 +3,13 @@ package de.peeeq.wurstscript.translation.imtranslation;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.jassAst.JassAst;
@@ -20,6 +24,7 @@ import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.types.PScriptTypeString;
 import de.peeeq.wurstscript.types.TypesHelper;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassExprIntVal;
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
@@ -27,122 +32,81 @@ import static de.peeeq.wurstscript.jassIm.JassIm.*;
 public class ImTranslator {
 
 	
-	private Map<Class<? extends OpBinary>, ImFunction> binaryOperatorFunctions = Maps.newHashMap();
+	private Multimap<ImFunction, ImFunction> callRelations = HashMultimap.create();
+	
+	private ImFunction debugPrintFunction;
+	
+	Map<ClassDef, ImFunction> destroyFuncMap = Maps.newHashMap();
+	
+	private List<ImFunction> entryPoints = Lists.newArrayList();
+	
+	private Map<TranslatedToImFunction, ImFunction> functionMap = Maps.newHashMap();
+	
+
+	private ImFunction globalInitFunc;
+	
+	private ImProg imProg;
+	
+	Map<WPackage, ImFunction> initFuncMap = Maps.newHashMap();
+
+	private Map<WScope, ImVar> thisVarMap = Maps.newHashMap();
+
+	private Set<WPackage> translatedPackages = Sets.newHashSet();
+
+	private int typeIdCounter = 0;
+	
+	Map<ClassDef, Integer> typeIdMap = Maps.newHashMap();
+
+	private Map<VarDef, ImVar> varMap = Maps.newHashMap();
+	
 	private CompilationUnit wurstProg;
-	
-	
-	
+
+	private ImFunction mainFunc = null;
+
+	private ImFunction configFunc = null;
 	
 	public ImTranslator(CompilationUnit wurstProg) {
 		this.wurstProg = wurstProg;
 	}
 	
-
-	private Map<TranslatedToImFunction, ImFunction> functionMap = Maps.newHashMap();
-	
-	public ImFunction getFuncFor(TranslatedToImFunction funcDef) {
-		if (functionMap.containsKey(funcDef)) {
-			return functionMap.get(funcDef);
-		}
-		String name = getNameFor(funcDef);;
-		ImFunction f = JassIm.ImFunction(name, ImVars(), ImVoid(), ImVars(), ImStmts(), false);
-		
-		functionMap.put(funcDef, f);
-		return f;
-	}
-	
 	/**
-	 * returns a suitable name for the given element
-	 * the returned name is a valid jass identifier 
+	 * translates a program 
 	 */
-	public String getNameFor(AstElement e) {
-		if (e instanceof AstElementWithName) {
-			AstElementWithName wn = (AstElementWithName) e;
-			return wn.getName();
-		} else if (e instanceof ConstructorDef) {
-			return "new_" + e.attrNearestClassDef().getName();
-		}
-		String r = e.getClass().getSimpleName();
-		while (e != null) {
-			if (e instanceof AstElementWithName) {
-				AstElementWithName wn = (AstElementWithName) e;
-				r = wn + "_" + r;
-			}
-			e = e.getParent();
-		}
-		return r;
-	}
-
-	private Map<WScope, ImVar> thisVarMap = Maps.newHashMap();
-
-	public ImVar getThisVar(WScope scope) {
-		if (thisVarMap.containsKey(scope)) {
-			return thisVarMap.get(scope);
-		}
-		ImVar v = ImVar(ImSimpleType("integer"), "this");
-		thisVarMap.put(scope, v);
-		return v ;
-	}
-
-	private Map<VarDef, ImVar> varMap = Maps.newHashMap();
-	
-	public ImVar getVarFor(VarDef varDef) {
-		ImVar v = varMap.get(varDef);
-		if (v == null) {
-			ImType type = varDef.attrTyp().imTranslateType();
-			String name = varDef.getName();
-			v = JassIm.ImVar(type, name);
-			varMap.put(varDef, v);
-			
-		}
-		return v;
-	}
-
-	public int getTupleIndex(TupleDef tupleDef, VarDef parameter) {
-		int i = 0;
-		for (WParameter p : tupleDef.getParameters()) {
-			if (p == parameter) {
-				return i;
-			}
-			i++;
-		}
-		throw new Error("");
-	}
-	
-	
-	Map<ClassDef, ImFunction> destroyFuncMap = Maps.newHashMap();
-	private ImProg imProg;
-
-	public ImFunction getDestroyFuncFor(ClassDef classDef) {
-		ImFunction f = destroyFuncMap.get(classDef); 
-		if (f == null) {
-			f = JassIm.ImFunction("destroy" + classDef.getName(), ImVars(ImVar(TypesHelper.imInt(), "this")), TypesHelper.imInt(), ImVars(), ImStmts(), false);
-			destroyFuncMap.put(classDef, f);
-		}
-		return f ;
-	}
-
-
-	public List<ImStmt> translateStatements(ImFunction f, List<WStatement> statements) {
-		List<ImStmt> result = Lists.newArrayList();
-		for (WStatement s : statements) {
-			result.add(s.imTranslateStmt(this, f));
-		}
-		return result ;
-	}
-
 	public ImProg translateProg() {
 		imProg = ImProg(ImVars(), ImFunctions());
+		
+		globalInitFunc = ImFunction("initGlobals", ImVars(), ImVoid(), ImVars(), ImStmts(), false);
+		debugPrintFunction = ImFunction("debugPrint", ImVars(ImVar(PScriptTypeString.instance().imTranslateType(), "msg")), ImVoid(), ImVars(), ImStmts(), false);
+		
+		
+		
 		for (TopLevelDeclaration tld : wurstProg) {
 			tld.imTranslateTLD(this);
 		}
+		
+		if (mainFunc == null) {
+			mainFunc = ImFunction("main", ImVars(), ImVoid(), ImVars(), ImStmts(), false);
+		}
+		if (configFunc == null) {
+			configFunc = ImFunction("main", ImVars(), ImVoid(), ImVars(), ImStmts(), false);
+		}
+		finishInitFunctions();
+		
 		return imProg;
 	}
-
-	public ImProg imProg() {
-		return imProg;
+	
+	
+	private void finishInitFunctions() {
+		for (ImFunction initFunc : initFuncMap.values()) {
+			addFunction(initFunc);
+			mainFunc.getBody().add(ImFunctionCall(initFunc, ImExprs()));
+			addCallRelation(mainFunc, initFunc);
+		}
 	}
 
+	public void addCallRelation(ImFunction callingFunc, ImFunction calledFunc) {
+		callRelations.put(callingFunc, calledFunc);
+	}
 	public void addFunction(ImFunction f) {
 		imProg.getFunctions().add(f);
 	}
@@ -152,22 +116,22 @@ public class ImTranslator {
 	}
 
 
-	private int typeIdCounter = 0;
-	Map<ClassDef, Integer> typeIdMap = Maps.newHashMap();
-	
-	public int getTypeId(ClassDef c) {
-		Integer r = typeIdMap.get(c); 
-		if (r == null) {   
-			typeIdCounter++;
-			typeIdMap.put(c, typeIdCounter);
-			return typeIdCounter;
-		} else {
-			return r;
+	public void addGlobalInitalizer(ImVar v, PackageOrGlobal packageOrGlobal, OptExpr initialExpr) {
+		if (initialExpr instanceof Expr) {
+			Expr expr = (Expr) initialExpr;
+			ImFunction f;
+			if (packageOrGlobal instanceof WPackage) {
+				WPackage p = (WPackage) packageOrGlobal;
+				f = getInitFuncFor(p);
+			} else {
+				f = globalInitFunc;
+			}
+			f.getBody().add(ImSet(v, expr.imTranslateExpr(this, f)));
 		}
 	}
 
-	public CompilationUnit getWurstProg() {
-		return wurstProg;
+	public ImFunction getDebugPrintFunc() {
+		return debugPrintFunction;
 	}
 
 	public ImExpr getDefaultValueForJassType(ImType type) {
@@ -191,15 +155,143 @@ public class ImTranslator {
 		}
 	}
 
-	public void addCallRelation(ImFunction callingFunc, ImFunction calledFunc) {
-		// TODO Auto-generated method stub
-		throw new Error("not implemented");
+	public ImFunction getDestroyFuncFor(ClassDef classDef) {
+		ImFunction f = destroyFuncMap.get(classDef); 
+		if (f == null) {
+			f = JassIm.ImFunction("destroy" + classDef.getName(), ImVars(ImVar(TypesHelper.imInt(), "this")), TypesHelper.imInt(), ImVars(), ImStmts(), false);
+			destroyFuncMap.put(classDef, f);
+		}
+		return f ;
 	}
 
-	public void addGlobalInitalizer(ImVar v, OptExpr initialExpr) {
-		// TODO Auto-generated method stub
-		throw new Error("not implemented");
+
+	public ImFunction getFuncFor(TranslatedToImFunction funcDef) {
+		if (functionMap.containsKey(funcDef)) {
+			return functionMap.get(funcDef);
+		}
+		String name = getNameFor(funcDef);;
+		ImFunction f = JassIm.ImFunction(name, ImVars(), ImVoid(), ImVars(), ImStmts(), false);
+		
+		functionMap.put(funcDef, f);
+		return f;
 	}
+	public ImFunction getInitFuncFor(WPackage p) {
+		ImFunction f = initFuncMap.get(p); 
+		if (f == null) {
+			f = JassIm.ImFunction("init_" + p.getName(), ImVars(), ImVoid(), ImVars(), ImStmts(), false);
+			initFuncMap.put(p, f);
+		}
+		return f ;
+	}
+
+	/**
+	 * returns a suitable name for the given element
+	 * the returned name is a valid jass identifier 
+	 */
+	public String getNameFor(AstElement e) {
+		if (e instanceof AstElementWithName) {
+			AstElementWithName wn = (AstElementWithName) e;
+			return wn.getName();
+		} else if (e instanceof ConstructorDef) {
+			return "new_" + e.attrNearestClassDef().getName();
+		}
+		String r = e.getClass().getSimpleName();
+		while (e != null) {
+			if (e instanceof AstElementWithName) {
+				AstElementWithName wn = (AstElementWithName) e;
+				r = wn + "_" + r;
+			}
+			e = e.getParent();
+		}
+		return r;
+	}
+
+	public ImVar getThisVar(WScope scope) {
+		if (thisVarMap.containsKey(scope)) {
+			return thisVarMap.get(scope);
+		}
+		ImVar v = ImVar(ImSimpleType("integer"), "this");
+		thisVarMap.put(scope, v);
+		return v ;
+	}
+	
+	public int getTupleIndex(TupleDef tupleDef, VarDef parameter) {
+		int i = 0;
+		for (WParameter p : tupleDef.getParameters()) {
+			if (p == parameter) {
+				return i;
+			}
+			i++;
+		}
+		throw new Error("");
+	}
+
+	public int getTypeId(ClassDef c) {
+		Integer r = typeIdMap.get(c); 
+		if (r == null) {   
+			typeIdCounter++;
+			typeIdMap.put(c, typeIdCounter);
+			return typeIdCounter;
+		} else {
+			return r;
+		}
+	}
+
+	public ImVar getVarFor(VarDef varDef) {
+		ImVar v = varMap.get(varDef);
+		if (v == null) {
+			ImType type = varDef.attrTyp().imTranslateType();
+			String name = varDef.getName();
+			v = JassIm.ImVar(type, name);
+			varMap.put(varDef, v);
+			
+		}
+		return v;
+	}
+
+	public CompilationUnit getWurstProg() {
+		return wurstProg;
+	}
+
+	public ImProg imProg() {
+		return imProg;
+	}
+
+	public boolean isTranslated(WPackage pack) {
+		return translatedPackages.contains(pack);
+	}
+
+	public void setTranslated(WPackage pack) {
+		translatedPackages.add(pack);
+	}
+
+	
+
+	public List<ImStmt> translateStatements(ImFunction f, List<WStatement> statements) {
+		List<ImStmt> result = Lists.newArrayList();
+		for (WStatement s : statements) {
+			result.add(s.imTranslateStmt(this, f));
+		}
+		return result ;
+	}
+
+	public void setMainFunc(ImFunction f) {
+		if (mainFunc == null) {
+			throw new Error("mainFunction already set");
+		}
+		mainFunc = f;
+	}
+
+	public void setConfigFunc(ImFunction f) {
+		if (configFunc == null) {
+			throw new Error("configFunction already set");
+		}
+		configFunc = f;
+	}
+
+	
+
+	
 		
 
 

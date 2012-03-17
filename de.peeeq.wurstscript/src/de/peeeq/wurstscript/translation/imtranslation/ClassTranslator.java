@@ -1,7 +1,20 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
+import static de.peeeq.wurstscript.jassIm.JassIm.ImExprs;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImFunctionCall;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImIf;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImIntVal;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImOperatorCall;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImReturn;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImSet;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImSetArray;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImStmts;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImStringVal;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImVar;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImVarAccess;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImVarArrayAccess;
+
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -11,26 +24,19 @@ import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModuleInstanciation;
-import de.peeeq.wurstscript.ast.ClassOrModuleOrModuleInstanciation;
-import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
-import de.peeeq.wurstscript.ast.ModuleUse;
-import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.OptExpr;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WStatement;
-import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImFunction;
-import de.peeeq.wurstscript.jassIm.ImIf;
-import de.peeeq.wurstscript.jassIm.ImSet;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.JassIm;
-import static de.peeeq.wurstscript.jassIm.JassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 public class ClassTranslator {
@@ -69,7 +75,30 @@ public class ClassTranslator {
 
 	private void createDestroyMethod() {
 		ImFunction f = translator.getDestroyFuncFor(classDef);
+		ImVar thisVar = ImVar(TypesHelper.imInt(), "this");
+		f.getParameters().add(thisVar);
 		addOnDestroyActions(f, classDef);
+		addDeallocateCode(f, thisVar);	
+	}
+
+	private void addDeallocateCode(ImFunction f, ImVar thisVar) {
+		f.getBody().add(		
+		// if nextFree[this] < 0 then
+			ImIf(ImOperatorCall(Ast.OpLess(), ImExprs(ImVarArrayAccess(nextFree, ImVarAccess(thisVar)), ImIntVal(0))), 
+				// then
+				ImStmts(
+						// nextFree[this] = firstFree
+						ImSetArray(nextFree, ImVarAccess(thisVar), ImVarAccess(firstFree)),
+						// firstFree = this				
+						ImSet(firstFree, ImVarAccess(firstFree))
+						), 
+				// else
+				ImStmts(
+						// print error message: double free
+						ImFunctionCall(translator.getDebugPrintFunc(), 
+								ImExprs(ImStringVal("Double Free of " + classDef.getName())))
+						)));
+		
 	}
 
 	private void addOnDestroyActions(ImFunction f, ClassOrModuleInstanciation c) { 
@@ -147,41 +176,42 @@ public class ClassTranslator {
 			v.setType(ImHelper.toArray(t));
 			dynamicInits.put(v, s.getInitialExpr());
 		} else { // static class member
-			translator.addGlobalInitalizer(v, s.getInitialExpr());
+			translator.addGlobalInitalizer(v, classDef.attrNearestPackage(), s.getInitialExpr());
 		}
 		translator.addGlobal(v);
 	}
 
 	public void translateConstructor(ConstructorDef constr) {
 		ImFunction f = translator.getFuncFor(constr);
-		// TODO params & return type
+		f.setReturnType(TypesHelper.imInt());
+		ImHelper.translateParameters(constr.getParameters(), f.getParameters());
 		ImVar thisVar = ImVar(TypesHelper.imInt(), "this");
 		f.getLocals().add(thisVar);
 		f.getBody().add(
 		// if firstFree > 0
 				ImIf(ImOperatorCall(Ast.OpGreater(), ImExprs(ImVarAccess(firstFree), ImIntVal(0))),
 				// then
-						ImStmts(
+					ImStmts(
 						// this = firstFree
 						ImSet(thisVar, ImVarAccess(firstFree)),
 						// firstFree = nextFree[thisVar]
-								ImSet(firstFree, ImVarArrayAccess(nextFree, ImVarAccess(thisVar))),
-								// nextFree[thisVar] = 0
-								ImSetArray(nextFree, ImVarAccess(thisVar), ImIntVal(0))),
-						// else
-						ImStmts(
+								ImSet(firstFree, ImVarArrayAccess(nextFree, ImVarAccess(thisVar)))),
+				// else
+					ImStmts(
 						// maxindex = maxindex + 1
 						ImSet(maxIndex, ImOperatorCall(Ast.OpPlus(), ImExprs(ImVarAccess(maxIndex), ImIntVal(1)))),
 						// this = maxindex
 								ImSet(thisVar, ImVarAccess(maxIndex))))
 		// endif
 				);
+		f.getBody().add(// nextFree[thisVar] = -1
+				ImSetArray(nextFree, ImVarAccess(thisVar), ImIntVal(-1)));
 		// initialize vars
 		for (Entry<ImVar, OptExpr> i : dynamicInits.entrySet()) {
 			ImVar v = i.getKey();
 			if (i.getValue() instanceof Expr) {
 				Expr e = (Expr) i.getValue();
-				ImStmt s = ImSetArray(i.getKey(), ImVarAccess(thisVar), e.imTranslateExpr(translator, f));
+				ImStmt s = ImSetArray(v, ImVarAccess(thisVar), e.imTranslateExpr(translator, f));
 				f.getBody().add(s);
 			}
 		}
@@ -193,14 +223,5 @@ public class ClassTranslator {
 		f.getBody().add(ImReturn(ImVarAccess(thisVar)));
 	}
 
-	public void translateModuleInit(ModuleInstanciation s) {
-		// TODO Auto-generated method stub
-		throw new Error("not implemented");
-	}
-
-	public void translateDestroyMethod(OnDestroyDef s) {
-		// TODO Auto-generated method stub
-		throw new Error("not implemented");
-	}
 
 }

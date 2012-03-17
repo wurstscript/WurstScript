@@ -43,7 +43,7 @@ parser code {:
 :};
 
 terminal Integer INTEGER_LITERAL;
-terminal String IDENTIFIER;
+terminal String IDENTIFIER, IDENTIFIER_LT;
 terminal String STRING_LITERAL;
 terminal String REAL_LITERAL;
 terminal 
@@ -94,6 +94,7 @@ non terminal TypeExprList ExtendsListOpt;
 non terminal FuncDef FuncDef;
 non terminal FuncSignature FuncSignature;
 non terminal FuncSignature JassFuncSignature; 
+non terminal IdentifierWithTypeArgs IdentifierWithTypeArgs;
 non terminal Indexes Indexes;
 non terminal InterfaceDef InterfaceDef;
 non terminal List<FuncDef> InterfaceFunctionSignatures;
@@ -309,16 +310,12 @@ ClassDef ::=
 		{: RESULT = AstHelper.ClassDef(pos(xleft, yright), mod, name, typeParams, il, Collections.<ClassSlot>emptyList()); :}
 ;
 
-TypeParamDefs ::=
-	TypeExprList:p
-	  	{: RESULT = AstHelper.transformTypeExprListToTyppeParamDefs(p); :}
-;
 
-TypeExprList ::=
-	LT:x TypeParamList:l GT:y 
-		{: RESULT = l; :} %prec LOWEST
-	| 
-		{: RESULT = Ast.TypeExprList(); :}
+IdentifierWithTypeArgs ::=
+	  IDENTIFIER_LT:name TypeParamList:l GT:y
+	  	{: RESULT = Ast.IdentifierWithTypeArgs(pos(nameleft, yright), name, l); :}
+	| IDENTIFIER:name
+		{: RESULT = Ast.IdentifierWithTypeArgs(pos(nameleft, nameright), name, Ast.TypeExprList()); :}
 ;
 
 TypeParamList ::=
@@ -327,6 +324,15 @@ TypeParamList ::=
 	| TypeExpr:e
 		{: RESULT = Ast.TypeExprList(e); :}
 ;
+
+TypeParamDefs ::=
+	LT:x TypeParamList:p GT:y
+	  	{: RESULT = AstHelper.transformTypeExprListToTyppeParamDefs(p); :}
+	| 
+		{: RESULT = Ast.TypeParamDefs(); :}
+;
+
+
 
 ModuleDef ::=
 	Modifiers:mod MODULE:x IDENTIFIER:name TypeParamDefs:typeParams NL INDENT ClassSlots:slots UNINDENT:y
@@ -343,8 +349,8 @@ ClassSlots ::=
 ClassSlot ::=
 	Modifiers:mod CONSTRUCT:x LPAR Parameters:params RPAR NL INDENT Statements:body UNINDENT:y
 		{: RESULT = Ast.ConstructorDef(pos(xleft, yright), mod, params, body); :}
-	| Modifiers:mod USE:x IDENTIFIER:m TypeExprList:typeParams NL
-		{: RESULT = Ast.ModuleUse(pos(xleft, mright), m, typeParams); :} 
+	| Modifiers:mod USE:x IdentifierWithTypeArgs:m NL
+		{: RESULT = Ast.ModuleUse(pos(xleft, m), m.getName(), m.getTypeArgs()); :} 
 	| ONDESTROY:x NL INDENT Statements:body UNINDENT:y
 		{: RESULT = Ast.OnDestroyDef(pos(xleft, yright), body); :}
 	| VarDef:x
@@ -434,8 +440,8 @@ ParameterNotConstant ::=
 ;
 
 TypeExpr ::=
-	IDENTIFIER:name TypeExprList:typeParams
-		{: RESULT = Ast.TypeExprSimple(pos(nameleft, nameright), name, typeParams); :}
+	IdentifierWithTypeArgs:n
+		{: RESULT = Ast.TypeExprSimple(pos(n, n), n.getName(), n.getTypeArgs()); :}
 	| TypeExpr:e ARRAY:y
 		{: RESULT = Ast.TypeExprArray(pos(e, yright), e); :}
 	| THISTYPE:x
@@ -638,8 +644,8 @@ ExprMemberArrayVar ::=
 ;
 
 ExprMemberMethod ::=
-	Expr:left DOT IDENTIFIER:name TypeExprList:typeParams LPAR Arguments:args RPAR:y
-		{: RESULT = Ast.ExprMemberMethod(pos(left, yright), left, name, typeParams, args); :}
+	Expr:left DOT IdentifierWithTypeArgs:n LPAR Arguments:args RPAR:y
+		{: RESULT = Ast.ExprMemberMethod(pos(left, yright), left, n.getName(), n.getTypeArgs(), args); :}
 ;
 
 
@@ -669,8 +675,8 @@ ExprAtomic ::=
 ;	
 
 ExprNewObject ::=
- 	NEW:x IDENTIFIER:name TypeExprList:typeParams LPAR Arguments:args RPAR:y
-		{: RESULT = Ast.ExprNewObject(pos(xleft, yright), name, typeParams, args); :}
+ 	NEW:x IdentifierWithTypeArgs:n LPAR Arguments:args RPAR:y
+		{: RESULT = Ast.ExprNewObject(pos(xleft, yright), n.getName(), n.getTypeArgs(), args); :}
 ;
 
 Indexes ::=
@@ -742,8 +748,8 @@ ExprUnary ::=
 ;
 
 ExprFunctionCall ::=
-	IDENTIFIER:name TypeExprList:typeParams LPAR Arguments:args RPAR:y
-		{: RESULT = Ast.ExprFunctionCall(pos(nameleft, yright), name, typeParams, args); :}
+	IdentifierWithTypeArgs:n LPAR Arguments:args RPAR:y
+		{: RESULT = Ast.ExprFunctionCall(pos(n, yright), n.getName(), n.getTypeArgs(), args); :}
 ;
 
 

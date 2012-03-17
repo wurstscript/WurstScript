@@ -41,9 +41,11 @@ public class ImPrinter {
 	public static void print(ImProg p, StringBuilder sb, int indent) {
 		for (ImVar g : p.getGlobals()) {
 			g.print(sb, indent);
+			sb.append("\n");
 		}
 		for (ImFunction f : p.getFunctions()) {
 			f.print(sb, indent);
+			sb.append("\n");
 		}
 	}
 
@@ -82,7 +84,7 @@ public class ImPrinter {
 		sb.append(") returns ");
 		p.getReturnType().print(sb, indent);
 		sb.append("{ \n");
-		p.getBody().print(sb, indent);
+		p.getBody().print(sb, indent+1);
 		sb.append("}\n\n");
 	}
 	
@@ -170,7 +172,14 @@ public class ImPrinter {
 	
 	public static void print(ImFunctionCall p, StringBuilder sb, int indent) {
 		sb.append(p.getFunc().getName() + "(");
-		
+		boolean first = true;
+		for (ImExpr a : p.getArguments()) {
+			if (!first) {
+				sb.append(", ");
+			}
+			a.print(sb, indent);
+			first = false;
+		}
 		sb.append(")");
 	}
 	

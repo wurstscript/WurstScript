@@ -177,6 +177,8 @@ Op = OpBinary | OpUnary
 	
 // auxiliary types:
 
+IdentifierWithTypeArgs(WPos source, String name, &TypeExprList typeArgs);
+
 // a reference to a variable, needs a varName:String attribute
 NameRef = ExprVarArrayAccess | ExprVarAccess | ExprMemberVar | ExprMemberArrayVar
 
@@ -579,14 +581,3 @@ OpAssignment.jassTranslageAssignGetBinary()
 		returns de.peeeq.wurstscript.jassIm.ImStmt
 		implemented by de.peeeq.wurstscript.translation.imtranslation.StmtTranslation.translate
 		
-	OpUnary.imTranslateUnary()
-		returns String
-		implemented by de.peeeq.wurstscript.translation.imtranslation.OpTranslation.translateOpUnary
-		
-	OpBinary.imTranslateBinary()
-		returns String
-		implemented by de.peeeq.wurstscript.translation.imtranslation.OpTranslation.translateOpBinary
-		
-	OpAssignment.imsTranslageAssignGetBinary()
-		returns String
-		implemented by de.peeeq.wurstscript.translation.imtranslation.OpTranslation.translageAssignGetBinary

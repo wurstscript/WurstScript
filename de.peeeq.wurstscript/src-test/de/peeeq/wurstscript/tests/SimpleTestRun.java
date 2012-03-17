@@ -10,9 +10,11 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
 import de.peeeq.wurstscript.Pjass;
+import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.Pjass.Result;
 import de.peeeq.wurstscript.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.gui.WurstGuiImpl;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassinterpreter.JassInterpreter;
@@ -27,7 +29,7 @@ public class SimpleTestRun {
 
 
 	public static void main(String ... args) throws IOException, InterruptedException {
-		String testFile = "./testscripts/concept/Collections.wurst";
+		String testFile = "./testscripts/concept/VecTest.wurst";
 		if (args.length == 1) {
 			testFile = args[0];
 		}
@@ -42,8 +44,12 @@ public class SimpleTestRun {
 			System.out.println("file b = " + file);
 			String filename = file.getAbsolutePath();
 			System.out.println("parsing script ...");
-			gui = new WurstGuiImpl();
+//			gui = new WurstGuiImpl();
+			gui = new WurstGuiCliImpl();
 			WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui);
+			WurstConfig.get().setSetting("lib", "../Wurstpack/wurstscript/lib/");
+			compiler.loadFiles("../Wurstpack/wurstscript/common.j");
+			compiler.loadFiles("../Wurstpack/wurstscript/Blizzard.j");
 			compiler.loadFiles(file);
 			compiler.parseFiles();
 			JassProg prog = compiler.getProg();
