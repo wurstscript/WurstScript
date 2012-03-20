@@ -29,6 +29,7 @@ public class ExprTranslation {
 
 	public static ImExpr translate(ExprFuncRef e, ImTranslator t, ImFunction f) {
 		ImFunction func = t.getFuncFor(e.attrFuncDef());
+		t.addCallRelation(f, func);
 		return ImFuncRef(func);
 	}
 
@@ -130,7 +131,7 @@ public class ExprTranslation {
 			return ImTupleExpr(imArgs);
 		}
 		ImFunction calledImFunc = t.getFuncFor(calledFunc);
-
+		t.addCallRelation(f, calledImFunc);
 		return ImFunctionCall(calledImFunc, imArgs);
 	}
 
@@ -149,6 +150,7 @@ public class ExprTranslation {
 	public static ImExpr translate(ExprNewObject e, ImTranslator t, ImFunction f) {
 		ConstructorDef constructorFunc = e.attrConstructorDef();
 		ImFunction constructorImFunc = t.getFuncFor(constructorFunc);
+		t.addCallRelation(f, constructorImFunc);
 		return ImFunctionCall(constructorImFunc, translateExprs(e.getArgs(), t, f));
 	}
 

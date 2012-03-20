@@ -33,6 +33,7 @@ import de.peeeq.wurstscript.mpq.MpqEditor;
 import de.peeeq.wurstscript.mpq.MpqEditorFactory;
 import de.peeeq.wurstscript.parser.ExtendedParser;
 import de.peeeq.wurstscript.parser.WurstScriptScanner;
+import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.NotNullList;
@@ -245,27 +246,41 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	}
 
 	public JassProg translateProg(CompilationUnit root) {
-		// translate to intermediate lang:
+		// translate wurst to intermediate lang:
 		ImTranslator imTranslator = new ImTranslator(root);
 		ImProg imProg = imTranslator.translateProg();
 		StringBuilder sb = new StringBuilder();
 		imProg.print(sb, 0);
 		try {
+			// TODO remove test output
 			Files.write(sb.toString(), new File("./testscripts/concept/test.im"), Charsets.UTF_8);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		
+		// flatten
+		imProg.flatten(imTranslator);
 		
-		// TODO translate to jass
 		
-		JassTranslator translator = new JassTranslator(root);
+		// translate flattened intermediate lang to jass:
+		
+		ImToJassTranslator translator = new ImToJassTranslator(imProg, imTranslator.getCalledFunctions()
+				, imTranslator.getMainFunc(), imTranslator.getConfFunc());
 		JassProg p = translator.translate();
-		
 		if (attr.getErrorCount() > 0) {
 			return null;
 		}
 		return p;
+		
+		// TODO translate to jass
+		
+//		JassTranslator translator = new JassTranslator(root);
+//		JassProg p = translator.translate();
+//		
+//		if (attr.getErrorCount() > 0) {
+//			return null;
+//		}
+//		return p;
 	}
 
 	

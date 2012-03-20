@@ -19,6 +19,7 @@ import de.peeeq.wurstscript.jassIm.ImIf;
 import de.peeeq.wurstscript.jassIm.ImLoop;
 import de.peeeq.wurstscript.jassIm.ImNoExpr;
 import de.peeeq.wurstscript.jassIm.ImOperatorCall;
+import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImReturn;
 import de.peeeq.wurstscript.jassIm.ImSet;
 import de.peeeq.wurstscript.jassIm.ImSetArray;
@@ -57,6 +58,7 @@ import de.peeeq.wurstscript.jassIm.JassIm;
  */
 public class Flatten {
 
+	
 	public static void flatten(ImExpr s, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
 		ImExpr e = s.flattenExpr(stmts, t, f);
 		
@@ -108,6 +110,7 @@ public class Flatten {
 
 	public static void flatten(ImSet s, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
 		ImExpr e = s.getRight().flattenExpr(stmts, t, f);
+		e.setParent(null);
 		stmts.add(ImSet(s.getLeft(), e));
 	}
 
@@ -147,6 +150,7 @@ public class Flatten {
 	
 
 	public static ImFlatExpr flattenExpr(ImConst e, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
+		e.setParent(null);
 		return e;
 	}
 
@@ -174,6 +178,7 @@ public class Flatten {
 
 
 	public static ImFlatExpr flattenExpr(ImVarAccess e, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
+		e.setParent(null);
 		return e;
 	}
 
@@ -185,7 +190,19 @@ public class Flatten {
 
 
 	public static ImFlatExprOpt flattenExpr(ImNoExpr e, List<ImStmt> stmts, ImTranslator translator, ImFunction f) {
+		e.setParent(null);
 		return e;
+	}
+
+	public static void flattenFunc(ImFunction f, ImTranslator translator) {
+		ImStmts newBody = flattenStatements(f.getBody(), translator, f);
+		f.setBody(newBody);
+	}
+
+	public static void flattenProg(ImProg imProg, ImTranslator translator) {
+		for (ImFunction f : imProg.getFunctions()) {
+			f.flatten(translator);
+		}
 	}
 
 	

@@ -9,6 +9,7 @@ import static de.peeeq.wurstscript.jassAst.JassAst.JassStatements;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassTypeDefs;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassVars;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -18,11 +19,13 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
+import de.peeeq.wurstscript.jassAst.JassArrayVar;
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassFunctions;
 import de.peeeq.wurstscript.jassAst.JassProg;
+import de.peeeq.wurstscript.jassAst.JassSimpleVar;
 import de.peeeq.wurstscript.jassAst.JassSimpleVars;
 import de.peeeq.wurstscript.jassAst.JassStatement;
 import de.peeeq.wurstscript.jassAst.JassStatements;
@@ -33,6 +36,7 @@ import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImStmt;
+import de.peeeq.wurstscript.jassIm.ImTupleArrayType;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
@@ -91,17 +95,30 @@ public class ImToJassTranslator {
 	}
 
 	private void translateFunction(ImFunction imFunc) {
-		String name = getUniqueName(imFunc.getName());
-		JassSimpleVars params = JassSimpleVars(); // TODO params
-		String returnType = imFunc.getReturnType().translateTypeFirst();
-		JassVars locals = JassVars();
-		JassStatements body = JassStatements();
-		JassFunction f = JassFunction(name, params, returnType, locals, body);
+		JassFunction f = getJassFuncFor(imFunc);
 		
+		f.setReturnType(imFunc.getReturnType().translateTypeFirst());
+		// translate parameters
+		for (ImVar v : imFunc.getParameters()) {
+			f.getParams().addAll(simpleVars(getJassVarsFor(v)));
+		}
+		// translate locals
+		for (ImVar v : imFunc.getLocals()) {
+			f.getLocals().addAll(getJassVarsFor(v));
+		}
 		imFunc.getBody().translate(f.getBody(), f, this);
+		
 	}
 
 
+
+	private List<JassSimpleVar> simpleVars(List<JassVar> l) {
+		List<JassSimpleVar> result = Lists.newArrayListWithCapacity(l.size());
+		for (JassVar i : l) {
+			result.add((JassSimpleVar) i);
+		}
+		return result;
+	}
 
 	private String getUniqueName(String name) {
 		if (!usedNames.contains(name)) {
@@ -136,17 +153,45 @@ public class ImToJassTranslator {
 	public List<JassVar> getJassVarsFor(ImVar v) {
 		List<JassVar> vars = jassVars.get(v);
 		if (vars == null) {
-			if (v.getType() instanceof ImArrayType) {
-				
-			} else if (v.getType() instanceof ImTupleType) {
-				
-			}
+			boolean isArray = v.getType() instanceof ImArrayType || v.getType() instanceof ImTupleArrayType;
 			vars = Lists.newArrayList();
+			int i = 0;
 			for (String type : v.getType().translateType()) {
-				
+				String name = v.getName();
+				if (i > 0) {
+					name += "_" + i; 
+				}
+				name = getUniqueName(name);
+				if (isArray) {
+					vars.add(JassAst.JassArrayVar(type, name));
+				} else {
+					vars.add(JassAst.JassSimpleVar(type, name));
+				}
+				i++;
 			}
+			jassVars.put(v, vars);
 		}
 		return vars ;
+	}
+
+	public JassVar newTempVar(JassFunction f, String type, String name) {
+		JassSimpleVar v = JassAst.JassSimpleVar(type, getUniqueName(name));
+		f.getLocals().add(v);
+		return v;
+	}
+
+	Map<ImFunction, JassFunction> jassFuncs = Maps.newHashMap();
+	
+	public JassFunction getJassFuncFor(ImFunction func) {
+		JassFunction f = jassFuncs.get(func);
+		if (f == null) {
+			f = JassFunction(getUniqueName(func.getName()), JassSimpleVars(), "nothing", JassVars(), JassStatements());
+			if (!func.getIsNative()) {
+				prog.getFunctions().add(f);
+			}
+			jassFuncs.put(func, f);
+		}
+		return f;
 	}
 
 	

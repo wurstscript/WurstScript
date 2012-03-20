@@ -118,7 +118,6 @@ public class TLDTranslation {
 		List<ImStmt> stmts = translator.translateStatements(f, funcDef.getBody());
 		f.getBody().addAll(stmts);
 		
-		translator.addFunction(f);
 		if (funcDef.attrNearestPackage() instanceof CompilationUnit) {
 			if (funcDef.getName().equals("main")) {
 				translator.setMainFunc(f);
@@ -138,8 +137,6 @@ public class TLDTranslation {
 		// body
 		List<ImStmt> stmts = translator.translateStatements(f, funcDef.getBody());
 		f.getBody().addAll(stmts);
-		
-		translator.addFunction(f);
 	}
 	
 	public static void translate(InitBlock initBlock, ImTranslator translator) {

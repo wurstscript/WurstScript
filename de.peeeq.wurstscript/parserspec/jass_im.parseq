@@ -79,7 +79,13 @@ ImPrintable.print(java.lang.StringBuilder sb, int indent)
 	implemented by de.peeeq.wurstscript.translation.imtranslation.ImPrinter.print
 
 
+ImProg.flatten(de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator)
+	returns void
+	implemented by de.peeeq.wurstscript.translation.imtranslation.Flatten.flattenProg
 
+ImFunction.flatten(de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator)
+	returns void
+	implemented by de.peeeq.wurstscript.translation.imtranslation.Flatten.flattenFunc
 	
 ImStmt.flatten(
 		java.util.List<ImStmt> stmts,

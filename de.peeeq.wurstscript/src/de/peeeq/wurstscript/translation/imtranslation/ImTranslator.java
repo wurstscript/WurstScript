@@ -86,9 +86,11 @@ public class ImTranslator {
 		
 		if (mainFunc == null) {
 			mainFunc = ImFunction("main", ImVars(), ImVoid(), ImVars(), ImStmts(), false);
+			addFunction(mainFunc);
 		}
 		if (configFunc == null) {
-			configFunc = ImFunction("main", ImVars(), ImVoid(), ImVars(), ImStmts(), false);
+			configFunc = ImFunction("config", ImVars(), ImVoid(), ImVars(), ImStmts(), false);
+			addFunction(configFunc);
 		}
 		finishInitFunctions();
 		
@@ -107,7 +109,7 @@ public class ImTranslator {
 	public void addCallRelation(ImFunction callingFunc, ImFunction calledFunc) {
 		callRelations.put(callingFunc, calledFunc);
 	}
-	public void addFunction(ImFunction f) {
+	private void addFunction(ImFunction f) {
 		imProg.getFunctions().add(f);
 	}
 
@@ -174,8 +176,9 @@ public class ImTranslator {
 			return functionMap.get(funcDef);
 		}
 		String name = getNameFor(funcDef);;
-		ImFunction f = JassIm.ImFunction(name, ImVars(), ImVoid(), ImVars(), ImStmts(), false);
-		
+		boolean isNative = funcDef instanceof NativeFunc;
+		ImFunction f = JassIm.ImFunction(name, ImVars(), ImVoid(), ImVars(), ImStmts(), isNative );
+		addFunction(f);
 		functionMap.put(funcDef, f);
 		return f;
 	}
@@ -291,6 +294,18 @@ public class ImTranslator {
 			throw new Error("configFunction already set");
 		}
 		configFunc = f;
+	}
+
+	public Multimap<ImFunction, ImFunction> getCalledFunctions() {
+		return callRelations;
+	}
+
+	public ImFunction getMainFunc() {
+		return mainFunc;
+	}
+
+	public ImFunction getConfFunc() {
+		return configFunc;
 	}
 
 	
