@@ -63,7 +63,9 @@ public class StmtTranslation {
 			// TODO destroy interfaces?
 			throw new CompileError(s.getSource(), "cannot destroy object of type " + typ);
 		}
-		return ImFunctionCall(t.getDestroyFuncFor(classDef), ImExprs(s.getDestroyedObj().imTranslateExpr(t, f)));
+		ImFunction destroyFunc = t.getDestroyFuncFor(classDef);
+		t.addCallRelation(f, destroyFunc);
+		return ImFunctionCall(destroyFunc, ImExprs(s.getDestroyedObj().imTranslateExpr(t, f)));
 	}
 
 

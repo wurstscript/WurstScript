@@ -50,7 +50,7 @@ public class ExprTranslation {
 	}
 
 	public static ImExpr translate(ExprThis e, ImTranslator t, ImFunction f) {
-		ImVar var = t.getThisVar(e.attrNearestScope());
+		ImVar var = t.getThisVar(e);
 		return ImVarAccess(var);
 	}
 

@@ -113,7 +113,7 @@ public class TLDTranslation {
 		// return type:
 		f.setReturnType(funcDef.getReturnTyp().attrTyp().imTranslateType());
 		// parameters
-		ImHelper.translateParameters(funcDef.getParameters(), f.getParameters());
+		ImHelper.translateParameters(funcDef.getParameters(), f.getParameters(), translator);
 		// body
 		List<ImStmt> stmts = translator.translateStatements(f, funcDef.getBody());
 		f.getBody().addAll(stmts);
@@ -133,7 +133,7 @@ public class TLDTranslation {
 		f.setReturnType(funcDef.getReturnTyp().attrTyp().imTranslateType());
 		// parameters
 		f.getParameters().add(JassIm.ImVar(funcDef.getExtendedType().attrTyp().imTranslateType(), "this"));
-		ImHelper.translateParameters(funcDef.getParameters(), f.getParameters());
+		ImHelper.translateParameters(funcDef.getParameters(), f.getParameters(), translator);
 		// body
 		List<ImStmt> stmts = translator.translateStatements(f, funcDef.getBody());
 		f.getBody().addAll(stmts);

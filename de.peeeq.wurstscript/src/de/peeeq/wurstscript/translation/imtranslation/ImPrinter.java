@@ -197,7 +197,13 @@ public class ImPrinter {
 	
 	
 	public static void print(ImVarAccess p, StringBuilder sb, int indent) {
-		sb.append(p.getVar().getName());
+		sb.append(p.getVar().getName() + smallHash(p.getVar()));
+	
+	}
+	
+	private static String smallHash(Object g) {
+		String c = "" +g.hashCode();
+		return c.substring(0, Math.min(3, c.length()-1));
 	}
 	
 	
@@ -270,7 +276,7 @@ public class ImPrinter {
 	public static void print(ImVar v, StringBuilder sb, int indent) {
 		v.getType().print(sb, indent);
 		sb.append(" ");
-		sb.append(v.getName());
+		sb.append(v.getName() + smallHash(v));
 	}
 
 

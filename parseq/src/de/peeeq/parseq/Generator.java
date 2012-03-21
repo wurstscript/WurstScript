@@ -523,7 +523,7 @@ public class Generator {
 			if (!first) {
 				sb.append(", ");
 			}
-			if (prog.hasElement(p.typ)) {
+			if (!p.isRef && prog.hasElement(p.typ)) {
 				sb.append("(" + p.typ + ") " + p.name+".copy()");
 				childCount++;
 			} else {

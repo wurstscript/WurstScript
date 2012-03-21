@@ -28,6 +28,7 @@ import de.peeeq.wurstscript.jassIm.ImTupleExpr;
 import de.peeeq.wurstscript.jassIm.ImTupleSelection;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 public class ExprTranslation {
 
@@ -45,12 +46,17 @@ public class ExprTranslation {
 	}
 
 	public static List<JassExpr> translate(ImFunctionCall e, ImToJassTranslator translator) {
+		
 		JassFunction f = translator.getJassFuncFor(e.getFunc());
 		JassExprlist arguments = JassExprlist();
 		for (ImExpr arg : e.getArguments()) {
 			arguments.addAll(arg.translate(translator));
 		}
-		return single(JassAst.JassExprFunctionCall(f.getName(), arguments));
+		String funcName = f.getName();
+		if (funcName.equals(ImTranslator.$DEBUG_PRINT)) {
+			funcName = "BJDebugMsg";
+		}
+		return single(JassAst.JassExprFunctionCall(funcName, arguments));
 	}
 
 	public static List<JassExpr> translate(ImIntVal e, ImToJassTranslator translator) {

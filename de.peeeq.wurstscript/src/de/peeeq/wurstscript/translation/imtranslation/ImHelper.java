@@ -16,15 +16,16 @@ import de.peeeq.wurstscript.jassIm.JassIm;
 
 public class ImHelper {
 
-	static void translateParameters(WParameters params, ImVars result) {
+	static void translateParameters(WParameters params, ImVars result, ImTranslator t) {
 		for (WParameter p : params) {
-			result.add(translateParam(p));
+			result.add(t.getVarFor(p));
 		}
 	}
 
-	static ImVar translateParam(WParameter p) {
-		return JassIm.ImVar(p.attrTyp().imTranslateType(), p.getName());
-	}
+//	static ImVar translateParam(WParameter p) {
+//		return tra
+//		return JassIm.ImVar(p.attrTyp().imTranslateType(), p.getName());
+//	}
 
 	public static ImType toArray(ImType t) {
 		if (t instanceof ImSimpleType) {

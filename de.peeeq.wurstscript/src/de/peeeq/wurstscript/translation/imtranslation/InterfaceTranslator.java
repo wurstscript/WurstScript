@@ -59,7 +59,7 @@ public class InterfaceTranslator {
 
 		f.getParameters().add(JassIm.ImVar(TypesHelper.imIntPair(), "this"));
 
-		ImHelper.translateParameters(funcDef.getParameters(), f.getParameters());
+		ImHelper.translateParameters(funcDef.getParameters(), f.getParameters(), translator);
 
 		f.getBody().addAll(createDispatch(instances, 0, instances.size()-1, funcDef, f));
 

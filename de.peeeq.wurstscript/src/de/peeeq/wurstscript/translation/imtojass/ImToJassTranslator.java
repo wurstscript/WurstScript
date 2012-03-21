@@ -9,7 +9,6 @@ import static de.peeeq.wurstscript.jassAst.JassAst.JassStatements;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassTypeDefs;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassVars;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -19,28 +18,18 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
-import de.peeeq.wurstscript.jassAst.JassArrayVar;
 import de.peeeq.wurstscript.jassAst.JassAst;
-import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassFunctions;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassAst.JassSimpleVar;
-import de.peeeq.wurstscript.jassAst.JassSimpleVars;
-import de.peeeq.wurstscript.jassAst.JassStatement;
-import de.peeeq.wurstscript.jassAst.JassStatements;
 import de.peeeq.wurstscript.jassAst.JassVar;
 import de.peeeq.wurstscript.jassAst.JassVars;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
-import de.peeeq.wurstscript.jassIm.ImSimpleType;
-import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImTupleArrayType;
-import de.peeeq.wurstscript.jassIm.ImTupleType;
-import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
-import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.utils.Pair;
 
 public class ImToJassTranslator {
@@ -69,10 +58,18 @@ public class ImToJassTranslator {
 		functions = JassFunctions();
 		prog = JassProg(JassTypeDefs(), globals, JassNatives(), functions);
 		
+		collectGlobalVars();
+		
 		translateFunctionTransitive(mainFunc);
 		translateFunctionTransitive(confFunction);
 		
 		return prog;
+	}
+
+	private void collectGlobalVars() {
+		for (ImVar v : imProg.getGlobals()) {
+			globalImVars.add(v);
+		}
 	}
 
 	private void translateFunctionTransitive(ImFunction imFunc) {
@@ -120,7 +117,7 @@ public class ImToJassTranslator {
 		return result;
 	}
 
-	private String getUniqueName(String name) {
+	private String getUniqueName(String name) { // TODO find local names
 		if (!usedNames.contains(name)) {
 			usedNames.add(name);
 			return name;
@@ -149,6 +146,7 @@ public class ImToJassTranslator {
 	}
 
 	Map<ImVar, List<JassVar>> jassVars = Maps.newHashMap();
+	private Set<ImVar> globalImVars = Sets.newHashSet();
 	
 	public List<JassVar> getJassVarsFor(ImVar v) {
 		List<JassVar> vars = jassVars.get(v);
@@ -169,9 +167,18 @@ public class ImToJassTranslator {
 				}
 				i++;
 			}
+			if (isGlobal(v)) {
+				for (JassVar var : vars) {
+					globals.add(var);
+				}
+			}
 			jassVars.put(v, vars);
 		}
 		return vars ;
+	}
+
+	private boolean isGlobal(ImVar v) {
+		return globalImVars.contains(v);
 	}
 
 	public JassVar newTempVar(JassFunction f, String type, String name) {

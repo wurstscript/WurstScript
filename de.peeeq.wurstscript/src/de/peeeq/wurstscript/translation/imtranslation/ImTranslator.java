@@ -32,6 +32,8 @@ import static de.peeeq.wurstscript.jassIm.JassIm.*;
 public class ImTranslator {
 
 	
+	public static final String $DEBUG_PRINT = "$debugPrint";
+
 	private Multimap<ImFunction, ImFunction> callRelations = HashMultimap.create();
 	
 	private ImFunction debugPrintFunction;
@@ -49,7 +51,7 @@ public class ImTranslator {
 	
 	Map<WPackage, ImFunction> initFuncMap = Maps.newHashMap();
 
-	private Map<WScope, ImVar> thisVarMap = Maps.newHashMap();
+	private Map<TranslatedToImFunction, ImVar> thisVarMap = Maps.newHashMap();
 
 	private Set<WPackage> translatedPackages = Sets.newHashSet();
 
@@ -76,7 +78,7 @@ public class ImTranslator {
 		imProg = ImProg(ImVars(), ImFunctions());
 		
 		globalInitFunc = ImFunction("initGlobals", ImVars(), ImVoid(), ImVars(), ImStmts(), false);
-		debugPrintFunction = ImFunction("debugPrint", ImVars(ImVar(PScriptTypeString.instance().imTranslateType(), "msg")), ImVoid(), ImVars(), ImStmts(), false);
+		debugPrintFunction = ImFunction($DEBUG_PRINT, ImVars(ImVar(PScriptTypeString.instance().imTranslateType(), "msg")), ImVoid(), ImVars(), ImStmts(), true);
 		
 		
 		
@@ -164,8 +166,9 @@ public class ImTranslator {
 	public ImFunction getDestroyFuncFor(ClassDef classDef) {
 		ImFunction f = destroyFuncMap.get(classDef); 
 		if (f == null) {
-			f = JassIm.ImFunction("destroy" + classDef.getName(), ImVars(ImVar(TypesHelper.imInt(), "this")), TypesHelper.imInt(), ImVars(), ImStmts(), false);
+			f = JassIm.ImFunction("destroy" + classDef.getName(), ImVars(), TypesHelper.imVoid(), ImVars(), ImStmts(), false);
 			destroyFuncMap.put(classDef, f);
+			addFunction(f);
 		}
 		return f ;
 	}
@@ -213,14 +216,23 @@ public class ImTranslator {
 		return r;
 	}
 
-	public ImVar getThisVar(WScope scope) {
-		if (thisVarMap.containsKey(scope)) {
-			return thisVarMap.get(scope);
+	public ImVar getThisVar(TranslatedToImFunction f) {
+		if (thisVarMap.containsKey(f)) {
+			return thisVarMap.get(f);
 		}
 		ImVar v = ImVar(ImSimpleType("integer"), "this");
-		thisVarMap.put(scope, v);
+		thisVarMap.put(f, v);
 		return v ;
 	}
+	
+	public ImVar getThisVar(ExprThis e) {
+		AstElement node = e;
+		while (!(node instanceof TranslatedToImFunction)) {
+			node = node.getParent();
+		}
+		return getThisVar((TranslatedToImFunction) node);
+	}
+	
 	
 	public int getTupleIndex(TupleDef tupleDef, VarDef parameter) {
 		int i = 0;
@@ -307,6 +319,10 @@ public class ImTranslator {
 	public ImFunction getConfFunc() {
 		return configFunc;
 	}
+
+	
+
+	
 
 	
 

@@ -160,10 +160,11 @@ public class ClassTranslator {
 	public void translateMethod(FuncDef s) {
 		ImFunction f = translator.getFuncFor(s);
 		f.setReturnType(s.getReturnTyp().attrTyp().imTranslateType());
+		ImVar thisVar = translator.getThisVar(s);
 		// add implicit parameter
-		f.getParameters().add(ImVar(TypesHelper.imInt(), "this"));
+		f.getParameters().add(thisVar);
 		// translate other parameters:
-		ImHelper.translateParameters(s.getParameters(), f.getParameters());
+		ImHelper.translateParameters(s.getParameters(), f.getParameters(), translator);
 
 		f.getBody().addAll(translator.translateStatements(f, s.getBody()));
 	}
@@ -184,8 +185,8 @@ public class ClassTranslator {
 	public void translateConstructor(ConstructorDef constr) {
 		ImFunction f = translator.getFuncFor(constr);
 		f.setReturnType(TypesHelper.imInt());
-		ImHelper.translateParameters(constr.getParameters(), f.getParameters());
-		ImVar thisVar = ImVar(TypesHelper.imInt(), "this");
+		ImHelper.translateParameters(constr.getParameters(), f.getParameters(), translator);
+		ImVar thisVar = translator.getThisVar(constr);
 		f.getLocals().add(thisVar);
 		f.getBody().add(
 		// if firstFree > 0
