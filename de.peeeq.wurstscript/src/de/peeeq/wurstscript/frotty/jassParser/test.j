@@ -1,14 +1,10 @@
+// function CreateUnitsForPlayer5
 globals
+	integer blub = 123
+	integer blah = blub
 endglobals
-
-function foo takes nothing returns nothing
-
+function CreateUnitsForPlayer5 takes nothing returns nothing
+	local real life11 = 1.0
+	local real life2 = life11
 endfunction
 
-function bla takes nothing returns nothing
-	local integer blub
-	local trigger t = CreateTrigger()
-	local integer i = 12
-	set blub = i
-	call TriggerAddAction( t, function foo )
-endfunction

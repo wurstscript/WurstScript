@@ -1,20 +1,11 @@
 package de.peeeq.wurstscript.jassoptimizer;
 
-import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Set;
 
-import com.google.common.base.Charsets;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.google.common.io.Files;
 
-import de.peeeq.wurstscript.WurstCompilerJassImpl;
-import de.peeeq.wurstscript.gui.WurstGui;
-import de.peeeq.wurstscript.gui.WurstGuiImpl;
 import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassExprFuncRef;
 import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
@@ -31,19 +22,14 @@ import de.peeeq.wurstscript.jassAst.JassStmtSet;
 import de.peeeq.wurstscript.jassAst.JassStmtSetArray;
 import de.peeeq.wurstscript.jassAst.JassVar;
 import de.peeeq.wurstscript.jassAst.JassVars;
-import de.peeeq.wurstscript.jassprinter.JassPrinter;
 
-// The fabulous Froptimizer!
+
 public class JassOptimizerImpl implements JassOptimizer {
 	String[] standards;
 	int standardsAmount = 0;
-	private final static String PSCRIPT_ENDING = ".wurst";
-	/**
-	 * a main method to simply test the optimizer 
-	 * @throws IOException 
-	 */
-	public static void main(String ... args) throws IOException {
-
+	
+//	public static void main(String ... args) throws IOException {
+//
 //		File fe = new File("./testscripts/valid/optimizer/optimizertest_5.pscript");
 //		
 //		BufferedWriter output = new BufferedWriter(new FileWriter(fe));
@@ -57,64 +43,10 @@ public class JassOptimizerImpl implements JassOptimizer {
 //		
 //		output.write("endpackage");
 //		output.close();
+//			
+//		}	
 		
-		File dir = new File("./testscripts/valid/optimizer/");
-		
-		boolean exists = dir.exists();
-		if (exists) {
-			System.out.println("Directory " + dir + " exists!");
-		} else {
-			System.out.println("Directory " + dir + " could not be found!");	
-		}
-		
-		File[] fileList = dir.listFiles();
-		List<File> pscriptFiles = Lists.newArrayList();
-		
-		if ( fileList != null ) {
-			for(File f : fileList) {
-				String name = f.getName().toLowerCase();
-				if (name.endsWith(PSCRIPT_ENDING)) {
-					pscriptFiles.add(f);
-				}
-	
-			}
-		}
-		
-		for ( File file : pscriptFiles) {
-			
-			System.out.println( "----------------------------------------------");
-			System.out.println( "Optimizing file: " + file );
-			
-			// compile the testFile to jass (note that this is not complete yet, but might be enough for testing the optimizer a bit)
-			WurstGui gui = new WurstGuiImpl();
-			WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui);
-			
-			compiler.loadFiles(file);
-			compiler.parseFiles();
-
-			JassProg prog = compiler.getProg();
-
-			// no we have a jass program
-			// print original
-			Files.write(new JassPrinter(true).printProg(prog), new File(file+".original.j"), Charsets.UTF_8);
-			
-			// optimize it:
-			new JassOptimizerImpl().optimize(prog);
-			
-			// print the optimized version
-			Files.write(new JassPrinter(false).printProg(prog), new File(file+".optimized.j"), Charsets.UTF_8);
-			
-			// Close the gui
-			gui.sendFinished();
-			
-		}
-		
-		
-		
-		
-		
-		
-	}
+//	}
 	
 	/**
 	 * Sets predefined replacements like Filter instead of Condition
@@ -125,9 +57,10 @@ public class JassOptimizerImpl implements JassOptimizer {
 	}
 			
 	
-	public Set<StringExpressionPattern> getEverythingInEForTRVE(JassProg prg) {
+	public Set<StringExpressionPattern> getEverythingInEForTRVE(JassProg prog) {
 		final Set<StringExpressionPattern> usedFunctions = Sets.newHashSet(); 
-		prg.accept(new JassProg.DefaultVisitor() {
+		
+		prog.accept(new JassProg.DefaultVisitor() {
 			
 			@Override
 			public void visit(JassStmtCall jassCall) {
@@ -157,8 +90,8 @@ public class JassOptimizerImpl implements JassOptimizer {
 		return usedFunctions;
 	}
 	
-	public void replaceEFTRVE(JassProg prg, final HashMap<String, String> replacements) {
-		prg.accept(new JassProg.DefaultVisitor() {			
+	public void replaceEFTRVE(JassProg prog, final HashMap<String, String> replacements) {
+		prog.accept(new JassProg.DefaultVisitor() {			
 			@Override
 			public void visit(JassStmtCall jassCall) {
 				String funcname = jassCall.getFuncName();
@@ -272,12 +205,13 @@ public class JassOptimizerImpl implements JassOptimizer {
 					System.out.println(name1);
 					localReplacements.put(name1, ng.getUniqueToken());
 					local.setName(localReplacements.get(name1));
+					System.out.println(name1 + " replacement: " + localReplacements.get(name1));
 				}
 				
 				System.out.println("Body: " + jassFunction.getBody());
 				
 				// Replace everything in the function body
-				jassFunction.getBody().accept(new JassFunction.DefaultVisitor() {
+				jassFunction.accept(new JassFunction.DefaultVisitor() {
 					
 					@Override
 					public void visit(JassStmtSet setStmt ) {
@@ -295,6 +229,7 @@ public class JassOptimizerImpl implements JassOptimizer {
 					public void visit(JassStmtSetArray setArrayStmt ) {
 						String name = setArrayStmt.getLeft();
 						if ( localReplacements.containsKey(name)){
+							System.out.println("Replaced with " + localReplacements.get(name));
 							setArrayStmt.setLeft(localReplacements.get(name));
 						}else if ( replacements.containsKey(name)){
 							setArrayStmt.setLeft(replacements.get(name));
@@ -304,6 +239,7 @@ public class JassOptimizerImpl implements JassOptimizer {
 					@Override
 					public void visit(JassExprVarAccess setExpr ) {
 						String name = setExpr.getVarName();
+						System.out.println("Var  " + name + " has local replacement " + localReplacements.get(name));
 						if ( localReplacements.containsKey(name)){
 							setExpr.setVarName(localReplacements.get(name));
 						}else if ( replacements.containsKey(name)){
@@ -357,13 +293,10 @@ public class JassOptimizerImpl implements JassOptimizer {
 				if ( replacements.containsKey(name)){
 					jassFunction.setName(replacements.get(name));
 				}
-			}			
+			}	
 			
-		});
-		
-		// Replace all function statement calls names with the shorter ones
-		prog.accept(new JassProg.DefaultVisitor() {
-			
+			// Replace all function statement calls names with the shorter ones
+				
 			@Override
 			public void visit(JassStmtCall funcCall ) {
 				String name = funcCall.getFuncName();
@@ -371,22 +304,58 @@ public class JassOptimizerImpl implements JassOptimizer {
 					funcCall.setFuncName(replacements.get(name));
 				}
 			}			
+
 			
-		});
-		
-		// Replace all function expression names with the shorter ones
-		prog.accept(new JassProg.DefaultVisitor() {
-			
+			// Replace all function expression names with the shorter ones
+				
 			@Override
 			public void visit(JassExprFuncRef funcExpr ) {
 				String name = funcExpr.getFuncName();
 				if ( replacements.containsKey(name)){
 					funcExpr.setFuncName(replacements.get(name));
 				}
-			}			
+			}				
+			
 			
 		});
 		
+		prog.getGlobals().accept(new JassProg.DefaultVisitor() {
+			
+			@Override
+			public void visit(JassExprVarAccess setExpr ) {
+				String name = setExpr.getVarName();
+				if ( replacements.containsKey(name)){
+					setExpr.setVarName(replacements.get(name));
+				}else if (NullableConstants.contains(name)) {
+					setExpr.setVarName("null");
+				}
+			}	
+			
+			@Override
+			public void visit(JassExprVarArrayAccess setArrayExpr ) {
+				String name = setArrayExpr.getVarName();
+				if ( replacements.containsKey(name)){
+					setArrayExpr.setVarName(replacements.get(name));
+				}
+			}	
+			
+			@Override
+			public void visit(JassExprFuncRef funcRef ) {
+				String name = funcRef.getFuncName();
+				if ( replacements.containsKey(name)){
+					funcRef.setFuncName(replacements.get(name));
+				}
+			}	
+			
+			@Override
+			public void visit(JassExprFunctionCall funcCall ) {
+				String name = funcCall.getFuncName();
+				if ( replacements.containsKey(name)){
+					funcCall.setFuncName(replacements.get(name));
+				}
+			}	
+		});
+			
 		
 		
 	}

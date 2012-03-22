@@ -44,7 +44,7 @@ public class StringExpressionPattern {
 			}
 		} else if (e instanceof JassExprBinary) {
 			// if we have a combination of two strings, then combine the regexps
-			JassExprBinary jassExprBinary = (JassExprBinary) e;
+			// JassExprBinary jassExprBinary = (JassExprBinary) e;
 			return buildRegexp(((JassExprBinary) e).getLeftExpr()) + buildRegexp(((JassExprBinary) e).getRight());			
 		}
 		// in all other cases ignore everything:

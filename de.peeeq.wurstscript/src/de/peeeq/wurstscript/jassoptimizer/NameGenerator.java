@@ -77,8 +77,8 @@ public class NameGenerator {
         int id = TEId++;
         StringBuilder b = new StringBuilder("z");
         do {
-            b.append(TEcharmap.charAt(id % length));
-        } while((id /=length) != 0);
+            b.append(TEcharmap.charAt(id % TElength));
+        } while((id /=TElength) != 0);
 
         return b.toString();
     }

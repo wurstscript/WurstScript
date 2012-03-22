@@ -1,17 +1,11 @@
 package de.peeeq.wurstscript.frotty.jassAttributes;
 
 import de.peeeq.wurstscript.frotty.jassValidator.JassErrors;
-import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassAstElement;
-import de.peeeq.wurstscript.jassAst.JassExprFuncRef;
 import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
 import de.peeeq.wurstscript.jassAst.JassFunction;
-import de.peeeq.wurstscript.jassAst.JassNative;
-import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassAst.JassProgs;
-import de.peeeq.wurstscript.jassAst.JassScope;
 import de.peeeq.wurstscript.jassAst.JassStmtCall;
-import de.peeeq.wurstscript.jassAst.JassVar;
 
 public class FunctionCall {
 
