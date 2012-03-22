@@ -7,11 +7,13 @@ import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImFuncRef;
 import de.peeeq.wurstscript.jassIm.ImFunction;
+import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImIf;
 import de.peeeq.wurstscript.jassIm.ImIntVal;
 import de.peeeq.wurstscript.jassIm.ImLoop;
 import de.peeeq.wurstscript.jassIm.ImNoExpr;
 import de.peeeq.wurstscript.jassIm.ImNull;
+import de.peeeq.wurstscript.jassIm.ImOperatorCall;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImRealVal;
 import de.peeeq.wurstscript.jassIm.ImReturn;
@@ -24,6 +26,7 @@ import de.peeeq.wurstscript.jassIm.ImStatementExpr;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImStringVal;
+import de.peeeq.wurstscript.jassIm.ImTupleArrayType;
 import de.peeeq.wurstscript.jassIm.ImTupleExpr;
 import de.peeeq.wurstscript.jassIm.ImTupleSelection;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
@@ -39,9 +42,11 @@ public class ImPrinter {
 	public static void print(ImProg p, StringBuilder sb, int indent) {
 		for (ImVar g : p.getGlobals()) {
 			g.print(sb, indent);
+			sb.append("\n");
 		}
 		for (ImFunction f : p.getFunctions()) {
 			f.print(sb, indent);
+			sb.append("\n");
 		}
 	}
 
@@ -54,12 +59,23 @@ public class ImPrinter {
 		sb.append("array " + t.getTypename());
 	}
 	
+	public static void print(ImTupleArrayType p, StringBuilder sb, int indent) {
+		sb.append("array<");
+		boolean first = true;
+		for (String t : p.getTypes()) {
+			if (!first) sb.append(", ");
+			sb.append(t);
+			first = false;
+		}
+		sb.append(">");
+	}
+	
 	public static void print(ImTupleType p, StringBuilder sb, int indent) {
 		sb.append("<");
 		boolean first = true;
-		for (ImType t : p.getTypes()) {
+		for (String t : p.getTypes()) {
 			if (!first) sb.append(", ");
-			t.print(sb, indent);
+			sb.append(t);
 			first = false;
 		}
 		sb.append(">");
@@ -80,7 +96,7 @@ public class ImPrinter {
 		sb.append(") returns ");
 		p.getReturnType().print(sb, indent);
 		sb.append("{ \n");
-		p.getBody().print(sb, indent);
+		p.getBody().print(sb, indent+1);
 		sb.append("}\n\n");
 	}
 	
@@ -166,15 +182,28 @@ public class ImPrinter {
 	}
 	
 	
-	public static void print(ImCall p, StringBuilder sb, int indent) {
+	public static void print(ImFunctionCall p, StringBuilder sb, int indent) {
 		sb.append(p.getFunc().getName() + "(");
-		
+		boolean first = true;
+		for (ImExpr a : p.getArguments()) {
+			if (!first) {
+				sb.append(", ");
+			}
+			a.print(sb, indent);
+			first = false;
+		}
 		sb.append(")");
 	}
 	
 	
 	public static void print(ImVarAccess p, StringBuilder sb, int indent) {
-		sb.append(p.getVar().getName());
+		sb.append(p.getVar().getName() + smallHash(p.getVar()));
+	
+	}
+	
+	private static String smallHash(Object g) {
+		String c = "" +g.hashCode();
+		return c.substring(0, Math.min(3, c.length()-1));
 	}
 	
 	
@@ -247,8 +276,29 @@ public class ImPrinter {
 	public static void print(ImVar v, StringBuilder sb, int indent) {
 		v.getType().print(sb, indent);
 		sb.append(" ");
-		sb.append(v.getName());
+		sb.append(v.getName() + smallHash(v));
 	}
+
+
+	public static void print(ImOperatorCall e, StringBuilder sb, int indent) {
+		sb.append("(");
+		if (e.getArguments().size() == 2) {
+			// binary operator
+			e.getArguments().get(0).print(sb, indent);
+			sb.append(" " + e.getOp().toSymbol() + " ");
+			e.getArguments().get(1).print(sb, indent);
+		} else {
+			sb.append(e.getOp().toSymbol());
+			for (ImExpr a : e.getArguments()) {
+				sb.append(" ");
+				a.print(sb, indent);
+			}
+		}
+		sb.append(")");
+	}
+
+
+	
 	
 	
 

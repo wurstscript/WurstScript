@@ -144,7 +144,7 @@ public class SimpleStatementTests extends PscriptTest {
 			"		function add(int x) returns IntList",
 			"			elements[getOffset() + size] = x",
 			"			size++",
-			"			return this",
+			"			return this", // 10
 			
 			"		function get(int i) returns int",
 			"			return elements[getOffset() + i]",
@@ -153,14 +153,14 @@ public class SimpleStatementTests extends PscriptTest {
 			"			return new IntListIterator(this)",
 			
 			
-			"	class IntListIterator",
+			"	class IntListIterator", // 15
 			"		IntList list",
 			"		int pos = 0",
 			
 			"		construct(IntList list)",
 			"			this.list = list",
 			
-			"		function hasNext() returns boolean",
+			"		function hasNext() returns boolean", // 20
 			"			return pos < list.size",
 			
 			"		function next() returns int",
@@ -222,6 +222,26 @@ public class SimpleStatementTests extends PscriptTest {
 				"int x = 5",
 				"x *= 2",
 				"if x == 10",
+				"	testSuccess()",
+				"");
+	}
+	
+	@Test
+	public void test_diveq() {
+		assertOk(true,
+				"real x = 5",
+				"x /= 2",
+				"if x == 2.5",
+				"	testSuccess()",
+				"");
+	}
+	
+	@Test
+	public void test_diveqFail() {
+		assertError(true, "fdsaf",
+				"int x = 5",
+				"x /= 2",
+				"if x == 2",
 				"	testSuccess()",
 				"");
 	}

@@ -11,7 +11,7 @@ import de.peeeq.wurstscript.jassIm.JassIm;
 public class TypesHelper {
 
 	private static final ImType intType = PScriptTypeInt.instance().imTranslateType();
-	private static final ImType intPair = JassIm.ImTupleType(Lists.newArrayList(intType, intType));
+	private static final ImType intPair = JassIm.ImTupleType(Lists.newArrayList("integer", "integer"));
 
 	public static PscriptType typeOf(ClassOrModule classOrModule, final boolean isStatic) {
 		return classOrModule.match(new ClassOrModule.Matcher<PscriptType>() {

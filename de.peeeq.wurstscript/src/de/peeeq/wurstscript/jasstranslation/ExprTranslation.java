@@ -124,7 +124,6 @@ public class ExprTranslation {
 
 		List<JassStatement> statements = Lists.newArrayList();
 		
-		System.out.println("expr = " + exprBinary);
 
 		PscriptType leftType = exprBinary.getLeft().attrTyp();
 		PscriptType rightType = exprBinary.getRight().attrTyp();
@@ -333,8 +332,6 @@ public class ExprTranslation {
 	private static ExprTranslationResult createTupleVarAccess(JassTranslator translator, JassFunction f, ExprMemberVar e, PscriptTypeTuple tupleType) {
 		ExprTranslationResult leftJass = e.getLeft().jassTranslateExpr(translator, f);
 		NameDef varDef = e.attrNameDef();
-		System.out.println("var = " + varDef);
-		System.out.println("left  = " + e.getLeft());
 		return new ExprTranslationResult(leftJass.getStatements(), tupleType.getJassExprs(leftJass.getExpressions(), varDef));
 		
 		

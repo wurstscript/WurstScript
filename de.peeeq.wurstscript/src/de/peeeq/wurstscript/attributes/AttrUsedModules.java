@@ -13,13 +13,10 @@ public class AttrUsedModules {
 
 	public static Collection<ModuleDef> calculate(ClassOrModule c) {
 		Collection<ModuleDef> result = Lists.newArrayList();
-		for (ClassSlot s : c.getSlots()) {
-			if (s instanceof ModuleUse) {
-				ModuleUse moduleUse = (ModuleUse) s;
-				ModuleDef usedModule = moduleUse.attrModuleDef();
-				if (usedModule != null) {
-					result.add(usedModule);
-				}
+		for (ModuleUse moduleUse : c.getModuleUses()) {
+			ModuleDef usedModule = moduleUse.attrModuleDef();
+			if (usedModule != null) {
+				result.add(usedModule);
 			}
 		}
 		return result;

@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -14,7 +15,6 @@ import de.peeeq.wurstscript.ast.AstElementWithParameters;
 import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.ClassOrModuleOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.ClassSlot;
-import de.peeeq.wurstscript.ast.ClassSlots;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
@@ -100,16 +100,15 @@ public class Scopes {
 	public static Multimap<String, NameDef> getDefinedNames(StructureDefOrModuleInstanciation c) {
 		Multimap<String, NameDef> result = HashMultimap.create();
 		addTypeParametersIfAny(result, c);
-		getDefinedNames(result, c.getSlots());
+		getDefinedNames(result, c.getMethods());
+		getDefinedNames(result, c.getVars());
+		getDefinedNames(result, c.getModuleInstanciations());
 		return result;
 	}
 	
-	private static Multimap<String, NameDef> getDefinedNames(Multimap<String, NameDef> result , ClassSlots slots) {
-		for (ClassSlot s : slots) {
-			if (s instanceof NameDef) {
-				NameDef n = (NameDef) s;
-				result.put(n.getName(), n);
-			}
+	private static Multimap<String, NameDef> getDefinedNames(Multimap<String, NameDef> result , List<? extends NameDef> slots) {
+		for (NameDef n : slots) {
+			result.put(n.getName(), n);
 		}
 		return result;
 	}
@@ -237,13 +236,8 @@ public class Scopes {
 	public static Multimap<String, NameDef> getDefinedNames(InterfaceDef i) {
 		Multimap<String, NameDef> result = HashMultimap.create();
 		addTypeParametersIfAny(result, i);
-		for (ClassSlot s : i.getSlots()) {
-			if (s instanceof FuncDef) {
-				FuncDef f = (FuncDef) s;
-				result.put(f.getName(), f);
-			} else {
-				throw new Error("Interface with " + s.getClass().getSimpleName());
-			}
+		for (FuncDef f : i.getMethods()) {
+			result.put(f.getName(), f);
 		}
 		return result;
 	}

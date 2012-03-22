@@ -15,6 +15,7 @@ import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassVar;
+import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
@@ -92,16 +93,17 @@ public class PscriptTypeTuple extends PscriptType {
 
 	@Override
 	public ImType imTranslateType() {
-		List<ImType> types = Lists.newArrayList();
+		List<String> types = Lists.newArrayList();
 		for (WParameter p : tupleDef.getParameters()) {
 			ImType pt = p.attrTyp().imTranslateType();
 			if (pt instanceof ImTupleType) {
 				ImTupleType ptt = (ImTupleType) pt;
-				for (ImType t : ptt.getTypes()) {
+				for (String t : ptt.getTypes()) {
 					types.add(t);
 				}
-			} else {
-				types.add(pt);
+			} else if (pt instanceof ImSimpleType) {
+				ImSimpleType st = (ImSimpleType) pt;
+				types.add(st.getTypename());
 			}
 		}
 		return JassIm.ImTupleType(types);

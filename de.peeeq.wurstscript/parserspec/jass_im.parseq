@@ -13,7 +13,8 @@ ImVar(&ImType type, String name)
 ImType = 
 	  ImSimpleType(String typename)
 	| ImArrayType(String typename)
-	| ImTupleType(java.util.List<ImType> types)
+	| ImTupleType(java.util.List<String> types)
+	| ImTupleArrayType(java.util.List<String> types)
 	| ImVoid()
 	
 ImFunction(String name, ImVars parameters, &ImType returnType, ImVars locals, ImStmts body, boolean isNative)
@@ -47,13 +48,16 @@ ImExpr =
 	| ImFlatExpr
 
 ImFlatExpr = 
-	  ImCall(&ImFunction func, ImExprs arguments)
+	  ImCall
 	| ImVarAccess(&ImVar var)
 	| ImVarArrayAccess(&ImVar var, ImExpr index)
 	| ImTupleExpr(ImExprs exprs)
 	| ImTupleSelection(ImExpr tupleExpr, int tupleIndex)
 	| ImConst
 	
+ImCall = 
+	  ImFunctionCall(&ImFunction func, ImExprs arguments)
+	| ImOperatorCall(de.peeeq.wurstscript.ast.Op op, ImExprs arguments)
 	
 ImConst = 
 	  ImIntVal(int valI)
@@ -75,7 +79,13 @@ ImPrintable.print(java.lang.StringBuilder sb, int indent)
 	implemented by de.peeeq.wurstscript.translation.imtranslation.ImPrinter.print
 
 
+ImProg.flatten(de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator)
+	returns void
+	implemented by de.peeeq.wurstscript.translation.imtranslation.Flatten.flattenProg
 
+ImFunction.flatten(de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator)
+	returns void
+	implemented by de.peeeq.wurstscript.translation.imtranslation.Flatten.flattenFunc
 	
 ImStmt.flatten(
 		java.util.List<ImStmt> stmts,
@@ -100,4 +110,46 @@ ImExprOpt.flattenExprOpt(
 	)
 	returns ImFlatExprOpt
 	implemented by de.peeeq.wurstscript.translation.imtranslation.Flatten.flattenExpr
+	
+	
+ImStmts.translate(
+		java.util.List<de.peeeq.wurstscript.jassAst.JassStatement> stmts,
+		de.peeeq.wurstscript.jassAst.JassFunction f,
+		de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator translator
+		)
+		returns void
+		implemented by de.peeeq.wurstscript.translation.imtojass.StatementTranslation.translate
+	
+ImStmt.translate(
+		java.util.List<de.peeeq.wurstscript.jassAst.JassStatement> stmts,
+		de.peeeq.wurstscript.jassAst.JassFunction f,
+		de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator translator
+		)
+		returns void
+		implemented by de.peeeq.wurstscript.translation.imtojass.StatementTranslation.translate
+
+ImExpr.translate(
+		de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator translator
+		)
+		returns java.util.List<de.peeeq.wurstscript.jassAst.JassExpr>
+		implemented by de.peeeq.wurstscript.translation.imtojass.ExprTranslation.translate
+
 		
+ImExpr.translateSingle(
+		de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator translator
+		)
+		returns de.peeeq.wurstscript.jassAst.JassExpr
+		implemented by de.peeeq.wurstscript.translation.imtojass.ExprTranslation.translateSingle
+		
+JassImElement.getNearestFunc()
+	returns ImFunction
+	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.getNearestFunc
+	
+	
+ImType.translateTypeFirst()
+	returns String
+	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.translateTypeFirst
+	
+ImType.translateType()
+	returns java.util.List<String>
+	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.translateType

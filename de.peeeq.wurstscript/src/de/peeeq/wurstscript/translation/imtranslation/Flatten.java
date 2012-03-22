@@ -14,9 +14,12 @@ import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImFlatExpr;
 import de.peeeq.wurstscript.jassIm.ImFlatExprOpt;
 import de.peeeq.wurstscript.jassIm.ImFunction;
+import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImIf;
 import de.peeeq.wurstscript.jassIm.ImLoop;
 import de.peeeq.wurstscript.jassIm.ImNoExpr;
+import de.peeeq.wurstscript.jassIm.ImOperatorCall;
+import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImReturn;
 import de.peeeq.wurstscript.jassIm.ImSet;
 import de.peeeq.wurstscript.jassIm.ImSetArray;
@@ -55,6 +58,7 @@ import de.peeeq.wurstscript.jassIm.JassIm;
  */
 public class Flatten {
 
+	
 	public static void flatten(ImExpr s, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
 		ImExpr e = s.flattenExpr(stmts, t, f);
 		
@@ -106,6 +110,7 @@ public class Flatten {
 
 	public static void flatten(ImSet s, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
 		ImExpr e = s.getRight().flattenExpr(stmts, t, f);
+		e.setParent(null);
 		stmts.add(ImSet(s.getLeft(), e));
 	}
 
@@ -126,17 +131,26 @@ public class Flatten {
 		stmts.add(ImSetTuple(s.getLeft(), s.getTupleIndex(), e));
 	}
 
-	public static ImFlatExpr flattenExpr(ImCall e, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
+	public static ImFlatExpr flattenExpr(ImFunctionCall e, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
+		return JassIm.ImFunctionCall(e.getFunc(), ImExprs(flattenArgs(e, stmts, t, f)));
+	}
+
+	public static ImFlatExpr flattenExpr(ImOperatorCall e, List<ImStmt> stmts, ImTranslator t,	ImFunction f) {
+		return JassIm.ImOperatorCall(e.getOp(), ImExprs(flattenArgs(e, stmts, t, f)));
+	}
+
+	private static List<ImExpr> flattenArgs(ImCall e, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
 		List<ImExpr> args = Lists.newArrayList();
 		for (ImExpr a : e.getArguments()) {
 			a = a.flattenExpr(stmts, t, f);
 			args.add(a);
 		}
-		return JassIm.ImCall(e.getFunc(), ImExprs(args));
+		return args;
 	}
-
+	
 
 	public static ImFlatExpr flattenExpr(ImConst e, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
+		e.setParent(null);
 		return e;
 	}
 
@@ -164,6 +178,7 @@ public class Flatten {
 
 
 	public static ImFlatExpr flattenExpr(ImVarAccess e, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
+		e.setParent(null);
 		return e;
 	}
 
@@ -175,8 +190,22 @@ public class Flatten {
 
 
 	public static ImFlatExprOpt flattenExpr(ImNoExpr e, List<ImStmt> stmts, ImTranslator translator, ImFunction f) {
+		e.setParent(null);
 		return e;
 	}
+
+	public static void flattenFunc(ImFunction f, ImTranslator translator) {
+		ImStmts newBody = flattenStatements(f.getBody(), translator, f);
+		f.setBody(newBody);
+	}
+
+	public static void flattenProg(ImProg imProg, ImTranslator translator) {
+		for (ImFunction f : imProg.getFunctions()) {
+			f.flatten(translator);
+		}
+	}
+
+	
 
 		
 	

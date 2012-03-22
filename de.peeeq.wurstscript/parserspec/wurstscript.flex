@@ -353,6 +353,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"+="                               { return symbol(TokenType.PLUS_EQ); }
 	"-="                               { return symbol(TokenType.MINUS_EQ); }
 	"*="                               { return symbol(TokenType.MULT_EQ); }
+	"/="                               { return symbol(TokenType.DIV_EQ); }
 	"++"                               { return symbol(TokenType.PLUS_PLUS); }
 	"--"                               { return symbol(TokenType.MINUS_MINUS); }
 	"-->"                              { return symbol(TokenType.ARROW); }
@@ -365,6 +366,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	[ \t\n\r]* "."                    { return symbol(TokenType.DOT); } 
 	"wurst__" {IDENT}				  { return symbol(TokenType.IDENTIFIER, "w" + yytext()); }
 	{IDENT}                           { return symbol(TokenType.IDENTIFIER, yytext()); }
+	{IDENT} "<"                          { return symbol(TokenType.IDENTIFIER_LT, yytext().substring(0, yylength()-2)); }
 	[\"]                             		{ string.setLength(0); afterString = WURST; yybegin(STRING); }
 	// error fallback:
 	.                              { return symbol(TokenType.error, yytext()); }
