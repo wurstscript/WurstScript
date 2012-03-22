@@ -53,6 +53,7 @@ import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
+import de.peeeq.wurstscript.ast.OpDivAssign;
 import de.peeeq.wurstscript.ast.StmtDestroy;
 import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtReturn;
@@ -195,7 +196,12 @@ public class WurstValidator {
 		
 		checkIfAssigningToConstant(s.getUpdatedExpr());
 		
-		
+		if (s.getOpAssign() instanceof OpDivAssign) {
+			PscriptType t = s.getUpdatedExpr().attrTyp();
+			if (!(t instanceof PScriptTypeReal)) {
+				attr.addError(s.getSource(), "Cannot assign real to variable of type " + t);
+			}
+		}
 
 	}
 

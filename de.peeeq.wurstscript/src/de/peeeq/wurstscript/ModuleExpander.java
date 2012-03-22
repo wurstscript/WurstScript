@@ -57,8 +57,8 @@ public class ModuleExpander {
 
 			m.getModuleInstanciations().add(
 					Ast.ModuleInstanciation(moduleUse.getSource().copy(), Ast.Modifiers(), 
-							moduleUse.getModuleName(), m.getMethods(), m.getVars(), m.getConstructors(), 
-							m.getModuleInstanciations(), m.getModuleUses(), m.getOnDestroy()));
+							moduleUse.getModuleName(), m.getMethods().copy(), m.getVars().copy(), m.getConstructors().copy(), 
+							m.getModuleInstanciations().copy(), m.getModuleUses().copy(), m.getOnDestroy().copy()));
 		}
 		
 		

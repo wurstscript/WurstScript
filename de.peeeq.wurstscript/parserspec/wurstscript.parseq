@@ -543,7 +543,10 @@ OpBinary.jassTranslateBinary()
 OpAssignment.jassTranslageAssignGetBinary()
 	returns de.peeeq.wurstscript.jassAst.JassOpBinary
 	implemented by de.peeeq.wurstscript.jasstranslation.OpTranslation.translageAssignGetBinary
-	
+
+OpAssignment.binaryOp()
+	returns OpBinary
+	implemented by de.peeeq.wurstscript.translation.imtranslation.ImHelper.getBinaryOp
 	
 // Im translation
 	

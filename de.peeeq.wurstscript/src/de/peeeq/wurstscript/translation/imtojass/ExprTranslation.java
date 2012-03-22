@@ -8,6 +8,8 @@ import com.google.common.collect.Lists;
 
 import static de.peeeq.wurstscript.jassAst.JassAst.*;
 import de.peeeq.wurstscript.ast.OpBinary;
+import de.peeeq.wurstscript.ast.OpModInt;
+import de.peeeq.wurstscript.ast.OpModReal;
 import de.peeeq.wurstscript.ast.OpUnary;
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassExpr;
@@ -72,6 +74,13 @@ public class ExprTranslation {
 			OpBinary op = (OpBinary) e.getOp();
 			JassExpr left  = e.getArguments().get(0).translateSingle(translator);
 			JassExpr right = e.getArguments().get(1).translateSingle(translator);
+			
+			if (op instanceof OpModReal) {
+				return single(JassExprFunctionCall("ModuloReal", JassExprlist(left, right)));
+			} else if (op instanceof OpModInt) {
+				return single(JassExprFunctionCall("ModuloInteger", JassExprlist(left, right)));
+			}
+			
 			return single(JassExprBinary(left, op.jassTranslateBinary(), right));
 		} else if (e.getOp() instanceof OpUnary && e.getArguments().size() == 1) {
 			OpUnary op = (OpUnary) e.getOp();

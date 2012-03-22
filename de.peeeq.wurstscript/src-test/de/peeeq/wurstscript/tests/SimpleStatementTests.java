@@ -238,7 +238,7 @@ public class SimpleStatementTests extends PscriptTest {
 	
 	@Test
 	public void test_diveqFail() {
-		assertError(true, "fdsaf",
+		assertError(true, "Cannot assign real",
 				"int x = 5",
 				"x /= 2",
 				"if x == 2",

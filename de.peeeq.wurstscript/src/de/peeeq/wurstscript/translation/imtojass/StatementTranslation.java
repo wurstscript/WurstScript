@@ -85,7 +85,7 @@ public class StatementTranslation {
 			List<JassVar> tempVars = Lists.newArrayListWithCapacity(vars.size());
 			for (int i=0; i < vars.size(); i++) {
 				JassVar tempVar = translator.newTempVar(f, vars.get(i).getType(), "temp_" + vars.get(i).getName());
-				tempVars.set(i, tempVar);
+				tempVars.add(i, tempVar);
 				stmts.add(JassStmtSet(tempVar.getName(), exprs.get(i)));
 			}
 			// 2. assign to real variables

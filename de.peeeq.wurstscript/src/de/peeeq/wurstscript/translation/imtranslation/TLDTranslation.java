@@ -64,7 +64,7 @@ public class TLDTranslation {
 	}
 
 	static ImVar translateVar(GlobalVarDef g, ImTranslator translator) {
-		ImVar v = JassIm.ImVar(g.attrTyp().imTranslateType(), g.getName());
+		ImVar v = translator.getVarFor(g); 
 		translator.addGlobalInitalizer(v, g.attrNearestPackage(), g.getInitialExpr());
 		translator.addGlobal(v);
 		return v;

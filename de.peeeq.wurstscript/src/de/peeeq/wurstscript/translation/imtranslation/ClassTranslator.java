@@ -160,9 +160,11 @@ public class ClassTranslator {
 	public void translateMethod(FuncDef s) {
 		ImFunction f = translator.getFuncFor(s);
 		f.setReturnType(s.getReturnTyp().attrTyp().imTranslateType());
-		ImVar thisVar = translator.getThisVar(s);
-		// add implicit parameter
-		f.getParameters().add(thisVar);
+		if (s.attrIsDynamicClassMember()) {
+			// add implicit parameter
+			ImVar thisVar = translator.getThisVar(s);
+			f.getParameters().add(thisVar);
+		}
 		// translate other parameters:
 		ImHelper.translateParameters(s.getParameters(), f.getParameters(), translator);
 

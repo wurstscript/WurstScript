@@ -9,6 +9,8 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.types.PScriptTypeInt;
+import de.peeeq.wurstscript.types.PScriptTypeReal;
 import de.peeeq.wurstscript.types.PscriptTypeTuple;
 
 public class ExprTranslation {
@@ -16,7 +18,15 @@ public class ExprTranslation {
 	public static ImExpr translate(ExprBinary e, ImTranslator t, ImFunction f) {
 		ImExpr left = e.getLeft().imTranslateExpr(t, f);
 		ImExpr right = e.getRight().imTranslateExpr(t, f);
-		return ImOperatorCall(e.getOp(), ImExprs(left, right));
+		OpBinary op = e.getOp();
+		if (op instanceof OpDivReal) {
+			if (e.getLeft().attrTyp() instanceof PScriptTypeInt
+					&& e.getRight().attrTyp() instanceof PScriptTypeInt) {
+				// we want a real division but have 2 ints so we need to multiply with 1.0
+				left = ImOperatorCall(Ast.OpMult(), ImExprs(left, ImRealVal("1.")));
+			}
+		}
+		return ImOperatorCall(op, ImExprs(left, right));
 	}
 
 	public static ImExpr translate(ExprUnary e, ImTranslator t, ImFunction f) {
@@ -34,6 +44,9 @@ public class ExprTranslation {
 	}
 
 	public static ImExpr translate(ExprIntVal e, ImTranslator t, ImFunction f) {
+		if (e.attrExpectedTyp() instanceof PScriptTypeReal) {
+			return ImRealVal(e.getValI() + ".");
+		}
 		return ImIntVal(e.getValI());
 	}
 
