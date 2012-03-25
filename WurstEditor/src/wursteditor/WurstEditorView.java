@@ -86,8 +86,8 @@ public class WurstEditorView extends FrameView {
         fileTree = new javax.swing.JTree();
         syntaxErrorSplitpane = new javax.swing.JSplitPane();
         RSTASplitPane = new javax.swing.JTabbedPane();
-        rSyntaxScrollPane = new RTextScrollPane((RSyntaxTextArea)syntaxCodeArea);
         syntaxCodeArea = new RSyntaxTextArea();
+        rSyntaxScrollPane = new RTextScrollPane((RSyntaxTextArea)syntaxCodeArea);
         ErrorListScrollPane = new javax.swing.JScrollPane();
         errorList = new javax.swing.JList();
         menuBar = new javax.swing.JMenuBar();

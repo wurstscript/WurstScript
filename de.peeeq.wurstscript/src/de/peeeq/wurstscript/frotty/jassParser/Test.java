@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.frotty.jassParser;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 
 import org.antlr.runtime.ANTLRFileStream;
@@ -18,6 +19,8 @@ import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassAst.JassProgs;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
+import de.peeeq.wurstscript.jassoptimizer.JassOptimizer;
+import de.peeeq.wurstscript.jassoptimizer.JassOptimizerImpl;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 
 public class Test {
@@ -76,12 +79,17 @@ public class Test {
 				return;
 			}
 			
+			
+				
 			System.out.println("Validated!");
+			
+			JassOptimizerImpl jp = new JassOptimizerImpl();
+			jp.optimize(prog);
 			
 			File outputFile = new File("frottyJassTest.j");
 			
 			StringBuilder sb = new StringBuilder();
-			new JassPrinter(true).printProg(sb, prog);
+			new JassPrinter(false).printProg(sb, prog);
 			Files.write(sb.toString(), outputFile, Charsets.UTF_8);
 
 			// run pjass:

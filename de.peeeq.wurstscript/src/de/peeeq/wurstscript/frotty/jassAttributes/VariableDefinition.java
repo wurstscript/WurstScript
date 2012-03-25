@@ -12,8 +12,6 @@ import de.peeeq.wurstscript.jassAst.JassExprVarRef;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassAst.JassProgs;
-import de.peeeq.wurstscript.jassAst.JassScope;
-import de.peeeq.wurstscript.jassAst.JassSimpleVars;
 import de.peeeq.wurstscript.jassAst.JassStmtSet;
 import de.peeeq.wurstscript.jassAst.JassStmtSetArray;
 import de.peeeq.wurstscript.jassAst.JassVar;

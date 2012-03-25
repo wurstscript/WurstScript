@@ -6,6 +6,7 @@ import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassNative;
+import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassAst.JassProgs;
 import de.peeeq.wurstscript.jassAst.JassTypeDef;
 import de.peeeq.wurstscript.jassAst.JassVar;
@@ -16,6 +17,8 @@ public class JassProgsAttr {
 	private static Map<String, JassNative> nativesMap = Maps.newHashMap();
 	private static Map<String, JassVar> globalsMap = Maps.newHashMap();
 	private static Map<String, JassTypeDef> typeDefsMap = Maps.newHashMap();
+	private static Map<String, String> extendsMap = Maps.newHashMap();
+
 	
 	public static void addFunction(JassProgs jassProgs, JassFunction f) {
 		functionsMap.put(f.getName(), f);
@@ -49,6 +52,16 @@ public class JassProgsAttr {
 		// TODO Auto-generated method stub
 		return typeDefsMap.get(name);
 	}
+	public static Map<String, String> getExtendsMap(JassProgs jassProgs) {
+		for (JassProg prog : jassProgs) {
+			for( JassTypeDef f : prog.getDefs() ) {
+		
+				extendsMap.put(f.getName(), f.getExt());
+			}
+		}
+		return extendsMap;
+	}
+	
 	
 
 

@@ -15,9 +15,10 @@ public class ExprPrinter {
 	}
 	public static void print(JassExprIntVal e, StringBuilder sb, boolean withSpace) {
 		String val = String.valueOf(e.getValI());
-		if(!withSpace) {
-			val = intShort(val);
-		}
+		// Disabled due digitbug
+//		if(!withSpace) {
+//			val = intShort(val);
+//		}
 		sb.append(val);
 	}
 	
@@ -140,33 +141,16 @@ public class ExprPrinter {
 	}
 
 	
-	private static String intShort(String val){
-		int d = Integer.valueOf(val);
-		if ( d > 792646 && containsOnlyNumbers(val) ) {
-			String s = Integer.toHexString(d).toUpperCase();
-			return "$" + s;
-		}
-		return String.valueOf(d);
-	}
+//	private static String intShort(String val){
+//		int d = Integer.valueOf(val);
+//		if ( d > 792646 && containsOnlyNumbers(val) ) {
+//			String s = Integer.toHexString(d).toUpperCase();
+//			return "$" + s;
+//		}
+//		return String.valueOf(d);
+//	}
 	
-	/**
-     * This method checks if a String contains only numbers
-     */
-    private static boolean containsOnlyNumbers(String str) {
-        
-        //It can't contain only numbers if it's null or empty...
-        if (str == null || str.length() == 0)
-            return false;
-        
-        for (int i = 0; i < str.length(); i++) {
 
-            //If we find a non-digit character we return false.
-            if (!Character.isDigit(str.charAt(i)))
-                return false;
-        }
-        
-        return true;
-    }
     
     
     
