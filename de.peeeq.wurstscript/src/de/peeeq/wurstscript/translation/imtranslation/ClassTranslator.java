@@ -122,7 +122,7 @@ public class ClassTranslator {
 	}
 
 	private void collectModuleInitializers(ModuleInstanciation mi) {
-		for (ModuleInstanciation mi2 : classDef.getModuleInstanciations()) {
+		for (ModuleInstanciation mi2 : mi.getModuleInstanciations()) {
 			collectModuleInitializers(mi2);
 		}
 		for (ConstructorDef c : mi.getConstructors()) {
@@ -140,37 +140,14 @@ public class ClassTranslator {
 	}
 
 	private void translateVars(ClassOrModuleInstanciation c) {
-		for (GlobalVarDef v : classDef.getVars()) {
+		for (GlobalVarDef v : c.getVars()) {
 			translateVar(v);
 		}
 		for (ModuleInstanciation mi : c.getModuleInstanciations()) {
 			translateVars(mi);
 		}
 	}
-
-	private void translateMethods(ClassOrModuleInstanciation c) {
-		for (FuncDef f : c.getMethods()) {
-			translateMethod(f);
-		}
-		for (ModuleInstanciation mi : c.getModuleInstanciations()) {
-			translateMethods(mi);
-		}
-	}
-
-	public void translateMethod(FuncDef s) {
-		ImFunction f = translator.getFuncFor(s);
-		f.setReturnType(s.getReturnTyp().attrTyp().imTranslateType());
-		if (s.attrIsDynamicClassMember()) {
-			// add implicit parameter
-			ImVar thisVar = translator.getThisVar(s);
-			f.getParameters().add(thisVar);
-		}
-		// translate other parameters:
-		ImHelper.translateParameters(s.getParameters(), f.getParameters(), translator);
-
-		f.getBody().addAll(translator.translateStatements(f, s.getBody()));
-	}
-
+	
 	public void translateVar(GlobalVarDef s) {
 		ImVar v = translator.getVarFor(s);
 		if (s.attrIsDynamicClassMember()) {
@@ -184,10 +161,24 @@ public class ClassTranslator {
 		translator.addGlobal(v);
 	}
 
+	private void translateMethods(ClassOrModuleInstanciation c) {
+		for (FuncDef f : c.getMethods()) {
+			translateMethod(f);
+		}
+		for (ModuleInstanciation mi : c.getModuleInstanciations()) {
+			translateMethods(mi);
+		}
+	}
+
+	public void translateMethod(FuncDef s) {
+		ImFunction f = translator.getFuncFor(s);
+		f.getBody().addAll(translator.translateStatements(f, s.getBody()));
+	}
+
+	
+
 	public void translateConstructor(ConstructorDef constr) {
 		ImFunction f = translator.getFuncFor(constr);
-		f.setReturnType(TypesHelper.imInt());
-		ImHelper.translateParameters(constr.getParameters(), f.getParameters(), translator);
 		ImVar thisVar = translator.getThisVar(constr);
 		f.getLocals().add(thisVar);
 		f.getBody().add(

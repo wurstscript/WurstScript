@@ -54,12 +54,14 @@ import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.OpDivAssign;
+import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.StmtDestroy;
 import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.TupleDef;
+import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.VarDef;
@@ -68,6 +70,7 @@ import de.peeeq.wurstscript.ast.VisibilityPrivate;
 import de.peeeq.wurstscript.ast.VisibilityProtected;
 import de.peeeq.wurstscript.ast.VisibilityPublic;
 import de.peeeq.wurstscript.ast.WImport;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.attributes.CheckHelper;
@@ -807,4 +810,23 @@ public class WurstValidator {
 		}
 	}
 	
+	
+	@CheckMethod
+	public void nameDefsMustNotBeNamedAfterJassNativeTypes(NameDef n) {
+		PackageOrGlobal p = n.attrNearestPackage();
+		checkIfTypeDefExists(n, p);
+		if (p instanceof WPackage) {
+			// check global scope
+			p = p.getParent().attrNearestPackage();
+			checkIfTypeDefExists(n, p);
+		}
+	}
+
+	private void checkIfTypeDefExists(NameDef n, PackageOrGlobal p) {
+		for (NameDef e : p.attrVisibleNamesPrivate().get(n.getName())) {
+			if (e != n && e instanceof TypeDef) {
+				attr.addError(n.getSource(), "The definition for "+Utils.printElement(n)+" defines the same name as the type definition " + Utils.printElement(e));
+			}
+		}
+	}
 }

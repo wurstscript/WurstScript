@@ -1,7 +1,12 @@
 package de.peeeq.wurstscript.types;
 
+import java.util.List;
+
+import com.google.common.collect.Lists;
+
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
+import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
 
@@ -79,8 +84,16 @@ public class PScriptTypeArray extends PscriptType {
 	@Override
 	public ImType imTranslateType() {
 		ImType bt = baseType.imTranslateType();
-		String typename = ((ImSimpleType) bt).getTypename();
-		return JassIm.ImArrayType(typename);
+		if (bt instanceof ImSimpleType) {
+			String typename = ((ImSimpleType) bt).getTypename();
+			return JassIm.ImArrayType(typename);
+		} else if (bt instanceof ImTupleType) {
+			ImTupleType tt = (ImTupleType) bt;
+			List<String> types = tt.getTypes();
+			return JassIm.ImTupleArrayType(types);
+		} else {
+			throw new Error("cannot translate array type " + getName() + "  " + bt);
+		}
 	}
 
 }

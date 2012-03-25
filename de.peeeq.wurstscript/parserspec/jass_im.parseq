@@ -140,7 +140,11 @@ ImExpr.translateSingle(
 		)
 		returns de.peeeq.wurstscript.jassAst.JassExpr
 		implemented by de.peeeq.wurstscript.translation.imtojass.ExprTranslation.translateSingle
-		
+	
+ImExpr.attrTyp
+	returns ImType
+	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttrType.getType
+
 JassImElement.getNearestFunc()
 	returns ImFunction
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.getNearestFunc

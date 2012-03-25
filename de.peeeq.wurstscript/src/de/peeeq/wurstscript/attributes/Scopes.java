@@ -100,15 +100,24 @@ public class Scopes {
 	public static Multimap<String, NameDef> getDefinedNames(StructureDefOrModuleInstanciation c) {
 		Multimap<String, NameDef> result = HashMultimap.create();
 		addTypeParametersIfAny(result, c);
-		getDefinedNames(result, c.getMethods());
-		getDefinedNames(result, c.getVars());
-		getDefinedNames(result, c.getModuleInstanciations());
+		addDefinedNames(result, c);
 		return result;
 	}
+
+
+	private static void addDefinedNames(Multimap<String, NameDef> result, StructureDefOrModuleInstanciation c) {
+		addDefinedNames(result, c.getMethods());
+		addDefinedNames(result, c.getVars());
+		addDefinedNames(result, c.getModuleInstanciations());
+	}
 	
-	private static Multimap<String, NameDef> getDefinedNames(Multimap<String, NameDef> result , List<? extends NameDef> slots) {
+	private static Multimap<String, NameDef> addDefinedNames(Multimap<String, NameDef> result , List<? extends NameDef> slots) {
 		for (NameDef n : slots) {
 			result.put(n.getName(), n);
+//			if (n instanceof StructureDefOrModuleInstanciation) {
+//				StructureDefOrModuleInstanciation s = (StructureDefOrModuleInstanciation) n;
+//				addDefinedNames(result, s);
+//			}
 		}
 		return result;
 	}

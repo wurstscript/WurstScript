@@ -101,6 +101,7 @@ public class ExtendedParser extends parser {
 	private static String translateSymbolName(String name) {
 		Map<String, String> translations = Maps.newHashMap();
 		translations.put("IDENTIFIER", "name");
+		translations.put("IDENTIFIER_LT", "name with type args");
 		translations.put("GT", "'>'");
 		translations.put("NOTEQ", "'!='");
 		translations.put("DIV_INT", "'div'");
@@ -173,6 +174,9 @@ public class ExtendedParser extends parser {
 			showExpected = false;
 		} else if (s.sym == TokenType.CUSTOM_ERROR) {
 			msg = s.value.toString();
+			showExpected = false;
+		} else if (s.sym == TokenType.LBRACK) {
+			msg = "Unexpected '{', type parameters are now written with <> as in Java.";
 			showExpected = false;
 		} else {
 			msg = "Grammatical error: unexpected " + symbolToString(s);

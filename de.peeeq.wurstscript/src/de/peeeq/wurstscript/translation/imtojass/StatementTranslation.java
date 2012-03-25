@@ -81,6 +81,10 @@ public class StatementTranslation {
 			stmts.add(JassStmtSet(vars.get(0).getName(), exprs.get(0)));			
 		} else { // tuple assignment
 			
+			if (vars.size() != exprs.size()) {
+				throw new Error("Expected " + vars.size() + " expressions, but found " + exprs.size());
+			}
+			
 			// 1. assign to temp variables:
 			List<JassVar> tempVars = Lists.newArrayListWithCapacity(vars.size());
 			for (int i=0; i < vars.size(); i++) {
@@ -118,7 +122,7 @@ public class StatementTranslation {
 			List<JassVar> tempVars = Lists.newArrayListWithCapacity(vars.size());
 			for (int i=0; i < vars.size(); i++) {
 				JassVar tempVar = translator.newTempVar(f, vars.get(i).getType(), "temp_" + vars.get(i).getName());
-				tempVars.set(i, tempVar);
+				tempVars.add(i, tempVar);
 				stmts.add(JassStmtSet(tempVar.getName(), exprs.get(i)));
 			}
 			// 2. assign to real variables

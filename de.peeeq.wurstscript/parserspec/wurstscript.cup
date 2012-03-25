@@ -116,7 +116,7 @@ non terminal NativeType JassTypeDecl;
 non terminal TypeExpr TypeExpr;
 non terminal TopLevelDeclaration TopLevelDeclaration;
 non terminal TypeParamDefs TypeParamDefList;
-non terminal TypeParamDefs TypeParamDefs;
+non terminal IdentifierWithTypeParamDefs IdentifierWithTypeParamDefs;
 non terminal TypeExprList TypeExprList;
 non terminal TypeExprList TypeParamList;
 non terminal GlobalVarDef VarDef;
@@ -255,8 +255,8 @@ Entity ::=
 
 
 InterfaceDef ::=
-	Modifiers:mod INTERFACE:x IDENTIFIER:name TypeParamDefs:typeParams ExtendsListOpt:el NL INDENT InterfaceFunctionSignatures:functionSignatures UNINDENT:y
-		{: RESULT = AstHelper.InterfaceDef(pos(xleft, yright), mod, name, typeParams, el, functionSignatures); :}
+	Modifiers:mod INTERFACE:x IdentifierWithTypeParamDefs:d ExtendsListOpt:el NL INDENT InterfaceFunctionSignatures:functionSignatures UNINDENT:y
+		{: RESULT = AstHelper.InterfaceDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), el, functionSignatures); :}
 ;
 
 ExtendsList ::= 
@@ -304,10 +304,10 @@ InterfaceFunctionSignature ::=
 
 
 ClassDef ::=
-	Modifiers:mod CLASS:x IDENTIFIER:name TypeParamDefs:typeParams ImplementsListOpt:il NL INDENT ClassSlots:slots UNINDENT:y
-		{: RESULT = AstHelper.ClassDef(pos(xleft, yright), mod, name, typeParams, il, slots); :}
-	| Modifiers:mod CLASS:x IDENTIFIER:name TypeParamDefs:typeParams ImplementsListOpt:il NL:y
-		{: RESULT = AstHelper.ClassDef(pos(xleft, yright), mod, name, typeParams, il, Collections.<ClassSlot>emptyList()); :}
+	Modifiers:mod CLASS:x IdentifierWithTypeParamDefs:d ImplementsListOpt:il NL INDENT ClassSlots:slots UNINDENT:y
+		{: RESULT = AstHelper.ClassDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), il, slots); :}
+	| Modifiers:mod CLASS:x IdentifierWithTypeParamDefs:d ImplementsListOpt:il NL:y
+		{: RESULT = AstHelper.ClassDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), il, Collections.<ClassSlot>emptyList()); :}
 ;
 
 
@@ -325,18 +325,20 @@ TypeParamList ::=
 		{: RESULT = Ast.TypeExprList(e); :}
 ;
 
-TypeParamDefs ::=
-	LT:x TypeParamList:p GT:y
-	  	{: RESULT = AstHelper.transformTypeExprListToTyppeParamDefs(p); :}
-	| 
-		{: RESULT = Ast.TypeParamDefs(); :}
+IdentifierWithTypeParamDefs ::=
+	IDENTIFIER_LT:x TypeParamList:p GT:y
+	  	{: RESULT = Ast.IdentifierWithTypeParamDefs(pos(xleft, yright), x, AstHelper.transformTypeExprListToTyppeParamDefs(p)); :}
+	| IDENTIFIER:x
+		{: RESULT = Ast.IdentifierWithTypeParamDefs(pos(xleft, xright), x, Ast.TypeParamDefs()); :}
 ;
 
 
 
+
+
 ModuleDef ::=
-	Modifiers:mod MODULE:x IDENTIFIER:name TypeParamDefs:typeParams NL INDENT ClassSlots:slots UNINDENT:y
-		{: RESULT = AstHelper.ModuleDef(pos(xleft, yright), mod, name, typeParams, slots); :}
+	Modifiers:mod MODULE:x IdentifierWithTypeParamDefs:d NL INDENT ClassSlots:slots UNINDENT:y
+		{: RESULT = AstHelper.ModuleDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), slots); :}
 ;
 
 ClassSlots ::=
@@ -393,10 +395,10 @@ Modifier ::=
 ;
 
 FuncSignature ::=
-	IDENTIFIER:name TypeParamDefs:typeParams LPAR Parameters:parameters RPAR RETURNS TypeExpr:typ
-		{: RESULT = Ast.FuncSignature(pos(nameleft, typ), name, typeParams, parameters, typ); :}
-	| IDENTIFIER:name TypeParamDefs:typeParams LPAR Parameters:parameters RPAR:y
-		{: RESULT = Ast.FuncSignature(pos(nameleft, yright), name, typeParams, parameters, Ast.NoTypeExpr()); :}
+	  IdentifierWithTypeParamDefs:d LPAR Parameters:parameters RPAR RETURNS TypeExpr:typ
+		{: RESULT = Ast.FuncSignature(pos(d, typ), d.getName(), d.getTypeParams(), parameters, typ); :}
+	| IdentifierWithTypeParamDefs:d LPAR Parameters:parameters RPAR:y
+		{: RESULT = Ast.FuncSignature(pos(d, yright), d.getName(), d.getTypeParams(), parameters, Ast.NoTypeExpr()); :}
 ;
 
 Parameters ::=
