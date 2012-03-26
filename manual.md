@@ -3,51 +3,113 @@ layout: default
 title: WurstScript Manual
 ---
 
-Version: 0.00019b
 
-_by peq & Frotty_
+_by peq & Frotty_ _Version: 0.0002_ 
 
-First of all, this is a documentation about Wurstscript, *it will not teach you how to use Jass!*,
-but rather explain you the features and syntax of the language in comparison to (v)Jass.
-If you don't know anything about Jass or programming in general you should look up some more basic tutorials first.
 
-Pscript's codename for wc3 is WurstScript (SausageScript).
-The sausage is a symbol for encapsulation (Pelle/Peel), compactness (Brät/sausage meat) and modularization (being able to cut into slices).
-And because you normally know whats inside a sausage the project is also open source and easy to use (cook).
+WurstScript is a programming language named after the german word for sausage.
 
-Also remember that WurstScript and its related tools are in a probably unstable state and under heavy development, 
-so you may encounter errors and bugs we don't know about.
+The sausage is a symbol for encapsulation (Peel/Pelle), compactness (sausage meat/Brät) and modularization (cut it into slices!). And because you normally know whats inside a sausage the project is also open source and easy to use (cook).
+
+Also remember that WurstScript and its related tools are in a probably unstable state and under heavy development, so you may encounter errors and bugs we don't know about. Please report any
+problem with our [issue tracker at GitHub](https://github.com/peq/WurstScript/issues/new).
 
 # Basics
 
 
-Wurst code is organized into packages. All your wurst code has to be inside a package. 
-Packages can also import other packages to use variables, functions, classes, etc. from the imported package.
+Wurst code is organized into packages. All your wurst code has to be inside a _package_. 
+Packages can also _import_ other packages to use variables, functions, classes, etc. from the imported package. Packages can have a _init_ block to do stuff when the map script is loaded.
 
 
-	package MyVeryFirstPackage
-
-		// put your wurst code here (btw. this is a comment)
+	package HelloWurst
+		// you can import stuff from other packages:
+		import PrintPackage
 	
-		/* multi
-		line (delimited)
-		comments 
-		are written like this */
+		// the init block is called at map start
+		init
+			/* call a function */
+			print("Hello Wurst!")
 
 	endpackage
 
-	package MySecondPackage
-		import MyVeryFirstPackage
-	endpackage
+You can still use normal jass code outside of packages, but inside packages you have to adhere
+to the wurst rules.
+
+## Functions
+
+A _function_ definition consists of a name, a list of formal parameters and a return 
+type. The return type is declared after the formal parameters using the _returns_ keyword.
+If the function does not return a value this part is ommitted.
+
+	// this function returns the maximum of two integers
+	function max(int a, int b) returns int
+		if a > b
+			return a
+		else
+			return b
+			
+	// this function prints the maximum of two integers
+	function printMax(int a, int b)
+		print(max(a,b).toString())
+
+## Variables
+
+Global (local) variables can be declared anywhere in a package (function). 
+A constant value may be declared using the _val_ keyword. Variables are declared
+by writing the type of the variable before its name.
+
+	// declaring a constant - the type is inferred from the inital expression
+	val x = 5
+	// declaring a variable
+	int y = 7
 
 
+
+With these basic concepts you should be able to do anything you already know for jass.
+The syntax is a little bit different of course, but this is covered in the next chapter.
 
 # Syntax
-The WurstScript Syntax uses indention to define Blocks rather than keywords like vanilla Jass (expect packages, which use endpackage).
-Also WurstScript will make many more or less unneeded keywords from vanilla Jass like "set" and "call" optional. 
+The WurstScript Syntax uses indention to define Blocks rather than using curly
+braces (as in Java) or keywords like 'endif' (as in Jass).
 
-Other basic features are global and local declaration freedom and custom initializers. 
-## Examples
+In general WurstScript tries to avoid using symbols as much as possible to
+provide a clear and readable look. 
+
+## Expressions
+
+Semi-Formal syntax:
+
+	Expr ::= 
+		  Expr + Expr       
+		| Expr - Expr   
+		| Expr / Expr       // real division
+		| Expr div Expr     // integer division
+		| Expr % Expr       // real modulo
+		| Expr mod Expr     // integer modulo
+		| Expr and Expr     
+		| Expr or Expr
+		| Expr < Expr 
+		| Expr <= Expr 
+		| Expr > Expr 
+		| Expr >= Expr 
+		| Expr == Expr 
+		| Expr != Expr 
+		| - Expr            
+		| not Expr 		
+		| IDENTIFIER // variable access
+		| IDENTIFIER(Expr, Expr, ...) // function call 	
+		| Expr . IDENTIFIER // member variable		
+		| Expr . IDENTIFIER(Expr, Expr, ...) // member function		
+
+An _IDENTIFIER_ is a name of a variable or function. It may start with letters and may
+contain letters, numbers and underscores. 
+
+The definition above does not show calls to generic functions. These will be handled in 
+a separate chapter about generics.
+
+
+## Statements
+
 
 ### Ifs
 
@@ -131,7 +193,21 @@ To make a type usable in for-in loops you have to provide a function "iterator" 
 should also provide a close functions which clears all ressources allocated by the iterator. Most often the iterator just
 destroys itself in the close function.
 
-### Functions ###
+### Assignment Shorthands
+
+	
+WurstScript supports the following shorthands for assignments:
+	
+	i++         // i = i + 1
+	i--         // i = i - 1
+	x += y      // x = x + y
+	x -= y      // x = x - y
+	x *= y      // x = x * y
+	x /= y      // x = x / y
+
+
+
+## Functions ##
 
 	function foo() // parentheses instead of "takes", "returns nothing" optional
 		...
@@ -151,36 +227,16 @@ destroys itself in the close function.
 		int i2 = i // support for locals anywhere inside a function
 
 
-### Operators
-
-	// These unary operators only shorten the usage of what they are compiled to
-	// Nothing more, nothing less
-	// Note that those are statements and cannot be used inside expressions
-	i++ // i = i + 1
-	i-- // i = i - 1
 
 
-	i += 2 // i = i + 2
-	i -= 2 // i = i - 2
-	i *= 2 // i = i * 2
-	i /= 2 // i = i / 2
 
 
-## Examples 
-
-	while( x < 10 )
-		count++ // compiles to count = count + 1
-		doSomething( count )
-
-	while( x < 10 )
-		doSomething( count++ ) // should work aswell with intermediate lang
 
 
 
 # Classes
 
-Classes are easy, powerful and very helpful constructs. With classes you can define a set of related data and functions working with this data.
-Take a look at this small example:
+Classes are easy, powerful and very helpful constructs. A _class_ defines data and related functions working with this data. Take a look at this small example:
 
 
 
@@ -216,8 +272,9 @@ Defining a caster-class might look like this:
 
 ## Constructors
 
-WurstScript allows you to define your own constructors for each class.
-The constructor is called when creating the class via the "new" keyword and allows operations being done to the classinstance before returning it.
+WurstScript allows you to define your own constructors for each class. A constructor
+is a function to _construct_ a new instance of a class.
+The constructor is called when creating the class via the _new_ keyword and allows operations being done to the classinstance before returning it.
 
 
 	class Pair
@@ -270,11 +327,11 @@ Depending on parameter-type and -count Wurst automatically decides which contruc
 
 ## This 
 
-The this keyword refers to the current instance of the class on which the function was called. This also allows us to name the parameters the same as the class variables.
+The _this_ keyword refers to the current instance of the class on which the function was called. This also allows us to name the parameters the same as the class variables.
 
 ## ondestroy
 
-Each class can have one ondestroy block. This block is executed before the instance is destroyed.
+Each class can have one _ondestroy_ block. This block is executed before the instance is destroyed.
 Ondestroy blocks are defined as previously shown
 
 
@@ -290,7 +347,7 @@ Ondestroy blocks are defined as previously shown
 
 ## Static Elements
 
-You can declare variables and functions as "static" by writing the keyword "static" in front of the declaration. Static variables and functions belong to the class whereas
+You can declare variables and functions as _static_ by writing the keyword "static" in front of the declaration. Static variables and functions belong to the class whereas
 other elements belong to instances of the class. So you can call static functions without having an instance of the class.
 
 
@@ -331,9 +388,9 @@ Private elements can only be seen from within the class. Protected elements can 
 
 
 
-An interface is a group of related functions with empty bodies.
+An _interface_ is a group of related functions with empty bodies.
 If a class implements a certain interface it has to replace all the empty functions from the interface.
-A class can implement multiple interfaces, meaning that it complies to more interface requirements at the same time.
+A class can _implement_ multiple interfaces, meaning that it complies to more interface requirements at the same time.
 
 	class ExampleClass implements Interface1, Interface2, ...
 		    // all functions from the implemented interfaces
@@ -342,14 +399,51 @@ A class can implement multiple interfaces, meaning that it complies to more inte
 With interfaces (and modules if implicit) you can now up- and downcast any Class that implements it.
 This is especially useful for saving all instances from classes that inherit 1 interface in only 1 List/Array
 
+# Generics
+
+Generics make it possible to abstract from specific types and only program with placeholders
+for types. This is especially useful for container types (e.g. Lists) where we do not want to code a
+ListOfA, ListOfB, ListOfC for every class A, B, C which we need a list for.
+
+With generics we can instead write only one implementation for lists and use it with all types.
+Generic type parameter and arguments are written in angled brackets (< and >) after the identifier.
+
+
+	// a generic interface for Sets with type parameter T
+	interface Set<T>
+		// adds an element to the set
+		function add(T t)
+		
+		// removes an element from the set
+		function remove(T t)
+		
+		// returns the number of elements in the set
+		function size() returns int
+		
+		// checks wether a certain element is in the set
+		function contains(T t) returns boolean
+		
+	class SetImpl<T> implements Set<T>
+		// [...] implementation of the interface
+
+If we have a class defined like this, we can then use it with a concrete type (e.g. Missile):
+
+	// create a set of missiles
+	Set<Missile> missiles = new SetImpl<Missile>();
+	// add a missile m
+	missiles.add(m);
+
+Generic parameters in Wurst can be bound to integers, class types and interface types but 
+not to other native types or to tuple types.
+
 
 # Modules
 
-Modules are small packages which provide some functionality for classes. Classes can *use* modules to inherit the functionality of the module.
+A _module_ is a small packages which provides some functionality for classes. Classes can _use_ modules to inherit the functionality of the module.
 
-You can use the functions from the used module as if they were declared in the class. You can also *override* functions defined in a module to adjust its behavior.
+You can use the functions from the used module as if they were declared in the class. You can also _override_ functions defined in a module to adjust its behavior.
 
-If you know object oriented languages like Java or C#: Modules are like abstract classes and using a module is like inheriting from an abstract class but *without the sub-typing*. _(Wurstscript takes a different approach to enable polymorphism, but this is not implemented yet)_
+If you know object oriented languages like Java or C#: Modules are like abstract classes and using a module is like inheriting from an abstract class but *without the sub-typing*. (Wurstscript takes a different approach to enable polymorphism, but this is not implemented yet)
 
 ## Example 1 
 
@@ -413,11 +507,11 @@ Modules can declare abstract functions: Functions without a given implementation
 
 ## Thistype
 
-You can use *thistype* inside a module to refer to the type of the class which uses the module. This can be useful if you need to cast the class to an integer and back.
+You can use _thistype_ inside a module to refer to the type of the class which uses the module. This can be useful if you need to cast the class to an integer and back.
 
 # Tuple Types 
 
-With tuple types you can group several variables into one bundle. This can be used to return more than one value from a function, to create custom types and of course for better readability.
+With _tuple_ types you can group several variables into one bundle. This can be used to return more than one value from a function, to create custom types and of course for better readability.
 
 Note that tuples are not like classes. There are some important differences:
 - You do not destroy tuple values.
@@ -493,7 +587,7 @@ Extension functions enable you to "add" functions to existing types without crea
 
 
 # Packages 
-As mentioned above every codesegment written in Wurst has to be inside a package,
+As mentioned above every codesegment written in Wurst has to be inside a _package_,
 packages define the code organization and separate namespaces.
 Packages can also have global variables - every variable that is not inside another block (function/class/module)
 is declared global for that package.
@@ -557,23 +651,20 @@ This has no impact on the generated code but throws an error when trying to comp
 ## Init blocks
 Another package feature are init blocks.
 Every package can have one init block anywhere inside it. 
-All operations inside the init block of a package are being executed at mapstart. *Note:* Since wc3 has a micro op limitation, too many operations inside initblocks may stop it from fully executing. In order to avoid this you should only place map-init Stuff inside the init blocks and use timers and own inits for the other stuff.
+All operations inside the init block of a package are being executed at mapstart. 
+
+At the beginning of an init block you can assume that all global variables inside the 
+current package are initialized.
+
 If a given package A imports package B, the initializer in package B is run before A's.
 If packages import each other, the order is undefined.
 
-### Examples
 
-	package Blub
-		...
-	
-		init
-			...
-	endpackage
+*Note:* Since wc3 has a micro op limitation, too many operations inside initblocks may stop it from fully executing. In order to avoid this you should only place map-init Stuff inside the init blocks and use timers and own inits for the other stuff.
 
 
-### Globals
-The globals initialization happens before the init-blocks, meaning that you can access globals inside init blocks.
-Globals initialization isn't sorted generally, but globals that are used by other globals are initialized before they are being used.
+
+
 
 # Standard Library 
 
@@ -873,12 +964,12 @@ On the other hand it also has some optimizations to increase the speed of execut
 
 Stuff that is being removed, changed or not even printed
 
-  * Comments
-  * Unneeded White-spaces
-  * Excessive parentheses 
-  * number shortening (0.0 -> 0., dec -> hex)
-  * Replace all "Condition" with "Filter"
-  * Some useless Jassconstants replaced with "null"
+* Comments
+* Unneeded White-spaces
+* Excessive parentheses 
+* number shortening (0.0 -> 0., dec -> hex)
+* Replace all "Condition" with "Filter"
+* Some useless Jassconstants replaced with "null"
 
 ## Name compression
 

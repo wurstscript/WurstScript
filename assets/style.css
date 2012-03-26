@@ -8,10 +8,19 @@ body {
 	padding:0px;
 }
 
+em {
+    background-color: #CCCCFF;
+    border-radius: 10px;
+    color: black;
+    font-style: normal;
+    padding: 2px 5px;
+}
+
 #content {
 	color : #222;
 	max-width:1000px;
 	padding:20px 50px;
+	padding-bottom: 500px;
 	text-align:justify;
 	background-color:white;
 	box-shadow: 0 0 50px #000;
@@ -99,7 +108,7 @@ pre .comment
 {color:#000000;
 	font-weight:bold;
 }
-.style_int
+pre .number
 {color:#AA0000;
 }
 .style_float
@@ -127,10 +136,13 @@ code
 {
 	font-family:Consolas, monospace,Corier New,Verdana,Tahoma,Arial;
 	color:#000000;
+	line-height: 110%;
     white-space:pre-wrap;
 }
-pre.code
-{margin:20px;
+pre
+{
+	line-height: 110%;
+	margin:20px;
 }
 .nullline
 {white-space:pre;
