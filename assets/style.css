@@ -1,0 +1,141 @@
+
+body {
+	font-family: Helvetica, Arial, FreeSans, san-serif;
+	font-size: 18px;
+	line-height: 160%;
+	background-image: url('http://peeeq.de/blog/wp-content/themes/peq/images/black_paper.png');
+	margin:0px;
+	padding:0px;
+}
+
+#content {
+	color : #222;
+	max-width:1000px;
+	padding:20px 50px;
+	text-align:justify;
+	background-color:white;
+	box-shadow: 0 0 50px #000;
+	margin-left:300px;
+}
+
+#nav {
+	background: none repeat scroll 0 0 black;
+	box-shadow: 0 0 20px #000000;
+	float: left;
+	height: 100%;
+	position: fixed;
+	width: 300px;
+	color: #aaa;
+	overflow: auto;
+}
+#nav ul {
+	padding-left: 10px;
+	list-style-type:none;
+}
+
+#nav a {
+	color: #aaa;
+	text-decoration: none;
+}
+
+#nav a.current {
+	color: #fff;
+	text-shadow: 1px 1px 5px #FFFFFF;
+}
+
+
+
+h1, h2, h3, h4, h5, h6 {
+	color : #000;
+}
+
+
+h1 { font-size: 42px; line-height: 42px;}
+h2 { font-size: 36px; line-height: 36px;}
+h3 { font-size: 30px; line-height: 30px; }
+h4 { font-size: 25px; line-height: 25px;}
+h5 { font-size: 22px; line-height:22px;}
+h6 { font-size: 20px; line-height:20px;}
+
+h1.giant {
+	font-size: 134px;
+	line-height: 134px;
+}
+
+
+
+#content code {
+	white-space:pre;
+	white-space:pre-wrap;
+	font-size: 16px;
+	line-height:20px;
+}
+
+
+
+/* code style */
+
+.style_keyword
+{color:#333366;
+	font-weight:bold;
+}
+.style_function
+{color:#906;
+}
+.style_string
+{color:#55CC55;
+}
+.style_comment
+{color:#999;
+	font-style: italic;
+}
+.style_type
+{color:#228888;
+}
+.style_symbol
+{color:#000000;
+	font-weight:bold;
+}
+.style_int
+{color:#AA0000;
+}
+.style_float
+{color:#AA8800;
+}
+.style_preprocessor
+{color:#FF7733;
+}
+.highlight_line
+{width:100%;
+	background-color:#ff7;
+	white-space:pre;
+height:16px;
+display:list-item;
+}
+.normal_line
+{white-space:pre;
+height:16px;
+display:list-item;
+}
+.highlight
+{background-image:url(difference.png);;
+}
+code
+{
+	font-family:Consolas, monospace,Corier New,Verdana,Tahoma,Arial;
+	color:#000000;
+    white-space:pre-wrap;
+}
+pre.code
+{margin:20px;
+}
+.nullline
+{white-space:pre;
+width:100%;
+height:16px;
+       background-color:#999;
+       background-image:url(stripes.png);;
+}
+.style_constant
+{color:#bc9494;
+}
