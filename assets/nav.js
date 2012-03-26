@@ -9,7 +9,7 @@
 
 	var headers = new Array();
 	var headerLinks = new Array();
-	$(function () {
+	function createNav() {
 		$("h1, h2, h3, h4, h5, h6").each(function() {
 			var elem = $(this);
 			//alert(elem.attr('id'));
@@ -49,13 +49,13 @@
 		}
 		menus[1].appendTo("#nav");
 
-	});
+	}
 
 
 	var lastHeader = -1;
 			
 	function updateScroll() {
-		var scroll = $(window).scrollTop() + $(window).height()/2;
+		var scroll = $(window).scrollTop() + $(window).height()*0.5;
 		var currentHeader = -1;
 		for (var i=0; i<headers.length; i++) {
 			if (headers[i].offset().top > scroll) {
@@ -91,7 +91,10 @@
 	
 	}
 	$(window).scroll(updateScroll);
-	$(updateScroll);
+
+	createNav();
+	$("#nav ul.submenu").hide();
+	updateScroll();
 				
 
 })(jQuery);

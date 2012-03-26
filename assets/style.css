@@ -75,17 +75,20 @@ h1.giant {
 
 /* code style */
 
-.style_keyword
+pre .keyword
 {color:#333366;
 	font-weight:bold;
+}
+pre .typename {
+	color: #630;
 }
 .style_function
 {color:#906;
 }
-.style_string
+pre .string
 {color:#55CC55;
 }
-.style_comment
+pre .comment
 {color:#999;
 	font-style: italic;
 }
