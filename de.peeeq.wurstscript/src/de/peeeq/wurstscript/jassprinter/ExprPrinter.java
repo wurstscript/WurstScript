@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.jassprinter;
 
 import de.peeeq.wurstscript.jassAst.*;
+import de.peeeq.wurstscript.utils.Utils;
 import static de.peeeq.wurstscript.jassprinter.JassPrinter.*;
 
 public class ExprPrinter {
@@ -15,10 +16,12 @@ public class ExprPrinter {
 	}
 	public static void print(JassExprIntVal e, StringBuilder sb, boolean withSpace) {
 		String val = String.valueOf(e.getValI());
+		
 		// Disabled due digitbug
 //		if(!withSpace) {
 //			val = intShort(val);
 //		}
+
 		sb.append(val);
 	}
 	

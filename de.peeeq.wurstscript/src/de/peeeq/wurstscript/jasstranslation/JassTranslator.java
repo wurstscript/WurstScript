@@ -305,7 +305,7 @@ public class JassTranslator {
 
 	private JassExpr getDefaultValueForJassType(String type) {
 		if (type.equals("integer")) {
-			return JassExprIntVal(0);
+			return JassExprIntVal("0");
 		} else if (type.equals("real")) {
 			return JassAst.JassExprRealVal("0.");
 		} else if (type.equals("boolean")) {
@@ -778,7 +778,7 @@ public class JassTranslator {
 			List<JassStatement> case1 = createDispatch(instances, start, splitAt, funcDef, f);
 			List<JassStatement> case2 = createDispatch(instances, splitAt+1, end, funcDef, f);
 			
-			JassExpr cond = JassExprBinary(JassExprVarAccess("thistype"), JassAst.JassOpLessEq(), JassExprIntVal(getTypeId(instances.get(splitAt))));
+			JassExpr cond = JassExprBinary(JassExprVarAccess("thistype"), JassAst.JassOpLessEq(), JassExprIntVal(String.valueOf(getTypeId(instances.get(splitAt)))));
 			JassStatements thenBlock = JassAst.JassStatements(case1);
 			JassStatements elseBlock = JassAst.JassStatements(case2);
 			result.add(JassAst.JassStmtIf(cond, thenBlock, elseBlock));

@@ -615,11 +615,11 @@ array_reference returns [JassExprVarArrayAccess expr]
     : 
     d=Decimal
     {
-      $jint = JassExprIntVal(Integer.parseInt(d.getText())); //? :D
+      $jint = JassExprIntVal(d.getText()); //? :D
     } 
     | o=Octal
     {
-      $jint = JassExprIntVal(Integer.parseInt(o.getText(), 8)); //? :D
+      $jint = JassExprIntVal(o.getText()); //? :D
     } 
     | h=Hex
     {
@@ -627,11 +627,11 @@ array_reference returns [JassExprVarArrayAccess expr]
       s = s.substring(1, s.length());
       
           
-      $jint = JassExprIntVal(Integer.parseInt(s, 16)); //? :D
+      $jint = JassExprIntVal(s); //? :D
     } 
     | f=Fourcc
     {
-      $jint = JassExprIntVal(Utils.parseAsciiInt4(f.getText())); //? :D Danke
+      $jint = JassExprIntVal(f.getText()); //? :D Danke
     } 
     ;
 

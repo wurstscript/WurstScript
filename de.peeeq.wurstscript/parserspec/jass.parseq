@@ -49,7 +49,7 @@ JassExpr =
 	
 	
 JassExprAtomic = 
-	  JassExprIntVal(int valI)
+	  JassExprIntVal(String valI)
 	| JassExprRealVal(String valR)
 	| JassExprStringVal(String valS)
 	| JassExprBoolVal(boolean valB)
