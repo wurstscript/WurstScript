@@ -30,7 +30,7 @@ public abstract class PscriptTypePrimitive extends PscriptType {
 	}
 	
 	@Override
-	public ImType imTranslateType() {
+	public ImSimpleType imTranslateType() {
 		return imType;
 	}
 	

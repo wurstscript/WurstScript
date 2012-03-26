@@ -15,8 +15,10 @@ import de.peeeq.wurstscript.jassIm.ImCall;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
+import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmts;
+import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.JassIm;
@@ -50,17 +52,6 @@ public class InterfaceTranslator {
 
 	private void translateInterfaceFuncDef(InterfaceDef interfaceDef, List<ClassDef> instances, FuncDef funcDef) {
 		ImFunction f = translator.getFuncFor(funcDef);
-
-		//				prog.attrComments().put(f, "interface dispatch function " + funcDef.getName() + " for interface " + interfaceDef.getName());
-
-		//				prog.getFunctions().add(f);
-
-		f.setReturnType(funcDef.getReturnTyp().attrTyp().imTranslateType());
-
-		f.getParameters().add(JassIm.ImVar(TypesHelper.imIntPair(), "this"));
-
-		ImHelper.translateParameters(funcDef.getParameters(), f.getParameters(), translator);
-
 		f.getBody().addAll(createDispatch(instances, 0, instances.size()-1, funcDef, f));
 
 	}
@@ -91,7 +82,11 @@ public class InterfaceTranslator {
 					for (int i=0; i<f.getParameters().size(); i++) {
 						ImExpr arg;
 						ImVar p = f.getParameters().get(i);
-						if (i == 0) {
+						ImVar expected = calledJassFunc.getParameters().get(i);
+						if (expected.getType() instanceof ImSimpleType
+								&& p.getType() instanceof ImTupleType) {
+							// class type expected but got interface type 
+							// ==> select only first part 
 							arg = JassIm.ImTupleSelection(JassIm.ImVarAccess(p), 0);
 						} else {
 							arg = JassIm.ImVarAccess(p);
@@ -114,10 +109,10 @@ public class InterfaceTranslator {
 			List<ImStmt> case1 = createDispatch(instances, start, splitAt, funcDef, f);
 			List<ImStmt> case2 = createDispatch(instances, splitAt+1, end, funcDef, f);
 
-			// if (thistype < instances[splitAt].typeId)
+			// if (thistype <= instances[splitAt].typeId)
 			ImVar thisVar = f.getParameters().get(0);
 			ImExpr cond = 
-					JassIm.ImOperatorCall(Ast.OpLess(), 
+					JassIm.ImOperatorCall(Ast.OpLessEq(), 
 							JassIm.ImExprs(
 									JassIm.ImTupleSelection(JassIm.ImVarAccess(thisVar), 1),
 									JassIm.ImIntVal(translator.getTypeId(instances.get(splitAt)))));

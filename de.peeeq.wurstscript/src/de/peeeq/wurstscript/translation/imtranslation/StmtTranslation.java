@@ -163,6 +163,11 @@ public class StmtTranslation {
 		
 		
 		ImExpr right = s.getRight().imTranslateExpr(t, f);
+		OpBinary binOp = s.getOpAssign().binaryOp();
+		if (binOp != null) {
+			// we have a statement like i+=1
+			right = JassIm.ImOperatorCall(binOp, ImExprs(updated, right));
+		}
 		
 		if (updated instanceof ImTupleSelection) {
 			ImTupleSelection tupleSelection = (ImTupleSelection) updated;
@@ -187,6 +192,7 @@ public class StmtTranslation {
 			throw new CompileError(s.getSource(), "Cannot translate set statement.");
 		}
 	}
+
 
 
 	private static ImExpr flatten(ImExpr updated, List<ImStmt> statements) {

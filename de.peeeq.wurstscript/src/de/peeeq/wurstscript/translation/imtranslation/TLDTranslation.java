@@ -64,7 +64,7 @@ public class TLDTranslation {
 	}
 
 	static ImVar translateVar(GlobalVarDef g, ImTranslator translator) {
-		ImVar v = JassIm.ImVar(g.attrTyp().imTranslateType(), g.getName());
+		ImVar v = translator.getVarFor(g); 
 		translator.addGlobalInitalizer(v, g.attrNearestPackage(), g.getInitialExpr());
 		translator.addGlobal(v);
 		return v;
@@ -110,10 +110,7 @@ public class TLDTranslation {
 	
 	public static void translate(FuncDef funcDef, ImTranslator translator) {
 		ImFunction f = translator.getFuncFor(funcDef);
-		// return type:
-		f.setReturnType(funcDef.getReturnTyp().attrTyp().imTranslateType());
-		// parameters
-		ImHelper.translateParameters(funcDef.getParameters(), f.getParameters(), translator);
+		
 		// body
 		List<ImStmt> stmts = translator.translateStatements(f, funcDef.getBody());
 		f.getBody().addAll(stmts);
@@ -129,11 +126,6 @@ public class TLDTranslation {
 	
 	public static void translate(ExtensionFuncDef funcDef, ImTranslator translator) {
 		ImFunction f = translator.getFuncFor(funcDef);
-		// return type:
-		f.setReturnType(funcDef.getReturnTyp().attrTyp().imTranslateType());
-		// parameters
-		f.getParameters().add(JassIm.ImVar(funcDef.getExtendedType().attrTyp().imTranslateType(), "this"));
-		ImHelper.translateParameters(funcDef.getParameters(), f.getParameters(), translator);
 		// body
 		List<ImStmt> stmts = translator.translateStatements(f, funcDef.getBody());
 		f.getBody().addAll(stmts);

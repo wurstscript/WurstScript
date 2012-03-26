@@ -5,12 +5,13 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.ModuleDef;
+import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
 
 public class TypesHelper {
 
-	private static final ImType intType = PScriptTypeInt.instance().imTranslateType();
+	private static final ImSimpleType intType = PScriptTypeInt.instance().imTranslateType();
 	private static final ImType intPair = JassIm.ImTupleType(Lists.newArrayList("integer", "integer"));
 
 	public static PscriptType typeOf(ClassOrModule classOrModule, final boolean isStatic) {
@@ -36,7 +37,7 @@ public class TypesHelper {
 		return intPair;
 	}
 
-	public static ImType imInt() {
+	public static ImSimpleType imInt() {
 		return intType;
 	}
 

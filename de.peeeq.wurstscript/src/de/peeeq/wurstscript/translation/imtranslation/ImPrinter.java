@@ -44,6 +44,7 @@ public class ImPrinter {
 			g.print(sb, indent);
 			sb.append("\n");
 		}
+		sb.append("\n\n");
 		for (ImFunction f : p.getFunctions()) {
 			f.print(sb, indent);
 			sb.append("\n");
@@ -96,6 +97,12 @@ public class ImPrinter {
 		sb.append(") returns ");
 		p.getReturnType().print(sb, indent);
 		sb.append("{ \n");
+		for (ImVar v : p.getLocals()) {
+			indent(sb, indent+1);
+			sb.append("local ");
+			v.print(sb, indent+1);
+			sb.append("\n");
+		}
 		p.getBody().print(sb, indent+1);
 		sb.append("}\n\n");
 	}
@@ -138,21 +145,18 @@ public class ImPrinter {
 	}
 	
 	public static void print(ImSet p, StringBuilder sb, int indent) {
-		p.getLeft().print(sb, indent);
-		sb.append(" = " );
+		sb.append(p.getLeft().getName() + smallHash(p.getLeft()) + " = " );
 		p.getRight().print(sb, indent);
 	}
 	
 	public static void print(ImSetTuple p, StringBuilder sb, int indent) {
-		p.getLeft().print(sb, indent);
-		sb.append(" #" + p.getTupleIndex());
+		sb.append(p.getLeft().getName() + smallHash(p.getLeft()) + " #" + p.getTupleIndex());
 		sb.append(" = " );
 		p.getRight().print(sb, indent);
 	}
 	
 	public static void print(ImSetArray p, StringBuilder sb, int indent) {
-		p.getLeft().print(sb, indent);
-		sb.append("[");
+		sb.append(p.getLeft().getName() + smallHash(p.getLeft()) + "[");
 		p.getIndex().print(sb, indent);
 		sb.append("]");
 		sb.append(" = " );
@@ -160,8 +164,7 @@ public class ImPrinter {
 	}
 	
 	public static void print(ImSetArrayTuple p, StringBuilder sb, int indent) {
-		p.getLeft().print(sb, indent);
-		sb.append("[");
+		sb.append(p.getLeft().getName() + smallHash(p.getLeft()) + "[");
 		p.getIndex().print(sb, indent);
 		sb.append("]");
 		sb.append(" #" + p.getTupleIndex());
@@ -202,13 +205,14 @@ public class ImPrinter {
 	}
 	
 	private static String smallHash(Object g) {
+//		return "";
 		String c = "" +g.hashCode();
 		return c.substring(0, Math.min(3, c.length()-1));
 	}
 	
 	
 	public static void print(ImVarArrayAccess p, StringBuilder sb, int indent) {
-		sb.append(p.getVar().getName() + "[");
+		sb.append(p.getVar().getName() + smallHash(p.getVar()) + "[");
 		p.getIndex().print(sb, indent);
 		sb.append("]");
 	}

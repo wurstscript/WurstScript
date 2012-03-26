@@ -124,6 +124,7 @@ OpUpdateAssign =
 
 Expr =
 	  NameRef
+	| FunctionCall
 	| ExprBinary(WPos source, Expr left, OpBinary op, Expr right)
 	| ExprUnary(WPos source, OpUnary opU, Expr right)
 	| ExprMemberVar(WPos source, Expr left, String varName)
@@ -177,7 +178,10 @@ Op = OpBinary | OpUnary
 	
 // auxiliary types:
 
-IdentifierWithTypeArgs(WPos source, String name, &TypeExprList typeArgs);
+IdentifierWithTypeArgs(WPos source, String name, &TypeExprList typeArgs)
+
+IdentifierWithTypeParamDefs(WPos source, String name, &TypeParamDefs typeParams)
+
 
 // a reference to a variable, needs a varName:String attribute
 NameRef = ExprVarArrayAccess | ExprVarAccess | ExprMemberVar | ExprMemberArrayVar
@@ -543,7 +547,10 @@ OpBinary.jassTranslateBinary()
 OpAssignment.jassTranslageAssignGetBinary()
 	returns de.peeeq.wurstscript.jassAst.JassOpBinary
 	implemented by de.peeeq.wurstscript.jasstranslation.OpTranslation.translageAssignGetBinary
-	
+
+OpAssignment.binaryOp()
+	returns OpBinary
+	implemented by de.peeeq.wurstscript.translation.imtranslation.ImHelper.getBinaryOp
 	
 // Im translation
 	
@@ -581,3 +588,11 @@ OpAssignment.jassTranslageAssignGetBinary()
 		returns de.peeeq.wurstscript.jassIm.ImStmt
 		implemented by de.peeeq.wurstscript.translation.imtranslation.StmtTranslation.translate
 		
+
+	TranslatedToImFunction.imCreateFuncSkeleton(
+			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
+			de.peeeq.wurstscript.jassIm.ImFunction f
+		)
+		returns void
+		implemented by de.peeeq.wurstscript.translation.imtranslation.FuncSkeleton.create
+	

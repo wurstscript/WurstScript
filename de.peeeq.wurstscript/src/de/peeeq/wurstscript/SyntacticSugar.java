@@ -54,12 +54,12 @@ public class SyntacticSugar {
 		}
 		addDefaultConstructors(root);
 		expandForInLoops(root);
-		
 	}
 	
 	
 
 	
+
 	private void addDefaultImports(CompilationUnit root) {
 		for (WPackage i : root.attrGetByType().packageDefs) {
 			i.getImports().add(Ast.WImport(i.getSource().copy(), false, "Wurst"));

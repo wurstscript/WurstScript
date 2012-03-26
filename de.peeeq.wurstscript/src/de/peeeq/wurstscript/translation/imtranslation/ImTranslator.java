@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.translation.imtranslation;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import com.google.common.collect.HashMultimap;
@@ -15,7 +16,9 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassIm.ImExpr;
+import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
+import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImStmt;
@@ -100,12 +103,64 @@ public class ImTranslator {
 	}
 	
 	
+	
+	/**
+	 *	in the case of type parameters it may be the case that an int is passed
+	 * to a function which takes two ints. The missing int is added here 
+	 */
+	public void adjustImArgs(ImExprs imArgs, ImFunction calledImFunc) {
+		if (calledImFunc.getIsNative()) {
+			return;
+		}
+		if (imArgs.size() != calledImFunc.getParameters().size()) {
+			throw new Error();
+		}
+		for (int i = 0; i<imArgs.size(); i++) {
+			ImType expectedType = calledImFunc.getParameters().get(i).getType();
+			ImExpr actualExpr = imArgs.get(i);
+			if (!(expectedType instanceof ImTupleType)) {
+				continue;
+			}
+			ImTupleType tt = (ImTupleType) expectedType;
+			if (tt.getTypes().size() != 2) {
+				continue;
+			}
+			String t1 = tt.getTypes().get(0);
+			String t2 = tt.getTypes().get(1);
+			if (!t1.equals(TypesHelper.imInt().getTypename()) || !t2.equals(TypesHelper.imInt().getTypename())) {
+				continue;
+			}
+			if (actualExpr.attrTyp() instanceof ImSimpleType) {
+				imArgs.set(i, ImTupleExpr(ImExprs((ImExpr) actualExpr.copy(), ImIntVal(0))));
+			}
+		}
+	}
+
 	private void finishInitFunctions() {
+		
 		for (ImFunction initFunc : initFuncMap.values()) {
 			addFunction(initFunc);
-			mainFunc.getBody().add(ImFunctionCall(initFunc, ImExprs()));
-			addCallRelation(mainFunc, initFunc);
 		}
+		Set<WPackage> calledInitializers = Sets.newHashSet();
+		for (WPackage p : initFuncMap.keySet()) {
+			callInitFunc(calledInitializers, p);
+		}
+	}
+
+	private void callInitFunc(Set<WPackage> calledInitializers, WPackage p) {
+		if (calledInitializers.contains(p)) {
+			return;
+		}
+		calledInitializers.add(p);
+		for (WImport i : p.getImports()) {
+			callInitFunc(calledInitializers, i.attrImportedPackage());
+		}
+		ImFunction initFunc = initFuncMap.get(p);
+		if (initFunc == null) {
+			return;
+		}
+		mainFunc.getBody().add(ImFunctionCall(initFunc, ImExprs()));
+		addCallRelation(mainFunc, initFunc);
 	}
 
 	public void addCallRelation(ImFunction callingFunc, ImFunction calledFunc) {
@@ -181,6 +236,7 @@ public class ImTranslator {
 		String name = getNameFor(funcDef);;
 		boolean isNative = funcDef instanceof NativeFunc;
 		ImFunction f = JassIm.ImFunction(name, ImVars(), ImVoid(), ImVars(), ImStmts(), isNative );
+		funcDef.imCreateFuncSkeleton(this, f);
 		addFunction(f);
 		functionMap.put(funcDef, f);
 		return f;
@@ -319,6 +375,7 @@ public class ImTranslator {
 	public ImFunction getConfFunc() {
 		return configFunc;
 	}
+
 
 	
 

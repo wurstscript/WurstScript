@@ -9,14 +9,29 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.types.PScriptTypeHandle;
+import de.peeeq.wurstscript.types.PScriptTypeInt;
+import de.peeeq.wurstscript.types.PScriptTypeReal;
+import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.types.PscriptTypeClass;
+import de.peeeq.wurstscript.types.PscriptTypeInterface;
 import de.peeeq.wurstscript.types.PscriptTypeTuple;
+import de.peeeq.wurstscript.types.TypesHelper;
 
 public class ExprTranslation {
 
 	public static ImExpr translate(ExprBinary e, ImTranslator t, ImFunction f) {
 		ImExpr left = e.getLeft().imTranslateExpr(t, f);
 		ImExpr right = e.getRight().imTranslateExpr(t, f);
-		return ImOperatorCall(e.getOp(), ImExprs(left, right));
+		OpBinary op = e.getOp();
+		if (op instanceof OpDivReal) {
+			if (e.getLeft().attrTyp() instanceof PScriptTypeInt
+					&& e.getRight().attrTyp() instanceof PScriptTypeInt) {
+				// we want a real division but have 2 ints so we need to multiply with 1.0
+				left = ImOperatorCall(Ast.OpMult(), ImExprs(left, ImRealVal("1.")));
+			}
+		}
+		return ImOperatorCall(op, ImExprs(left, right));
 	}
 
 	public static ImExpr translate(ExprUnary e, ImTranslator t, ImFunction f) {
@@ -34,11 +49,30 @@ public class ExprTranslation {
 	}
 
 	public static ImExpr translate(ExprIntVal e, ImTranslator t, ImFunction f) {
-		return ImIntVal(e.getValI());
+		if (e.attrExpectedTyp() instanceof PScriptTypeReal) {
+			return ImRealVal(e.getValI() + ".");
+		}
+		return interfaceWrapper(e, ImIntVal(e.getValI()), t);
 	}
 
 	public static ImExpr translate(ExprNull e, ImTranslator t, ImFunction f) {
-		return ImNull();
+		ImType imType = e.attrTyp().imTranslateType();
+		if (imType instanceof ImSimpleType) {
+			ImSimpleType st = (ImSimpleType) imType;
+			if (st.getTypename().equals(TypesHelper.imInt().getTypename())) {
+				return ImIntVal(0);
+			} else {
+				return ImNull();
+			}
+		} else if (imType instanceof ImTupleType) {
+			ImTupleType tt = (ImTupleType) imType;
+			ImExprs exprs = JassIm.ImExprs();
+			for (String $ : tt.getTypes()) {
+				exprs.add(ImIntVal(0));
+			}
+			return ImTupleExpr(exprs);
+		}
+		throw new Error("unhandled case");
 	}
 
 	public static ImExpr translate(ExprRealVal e, ImTranslator t, ImFunction f) {
@@ -55,7 +89,23 @@ public class ExprTranslation {
 	}
 
 	public static ImExpr translate(NameRef e, ImTranslator t, ImFunction f) {
-		// TODO deal with nested tuples ...
+		return interfaceWrapper(e, translateNameDef(e, t, f), t);
+	}
+
+	private static ImExpr interfaceWrapper(Expr e, ImExpr translated, ImTranslator t) {
+		System.out.println(e + " ||| " + e.attrTyp() + " <->  " + e.attrExpectedTyp());
+		if (e.attrTyp() instanceof PscriptTypeClass) {
+			PscriptTypeClass typ = (PscriptTypeClass) e.attrTyp();
+			if (e.attrExpectedTyp() instanceof PscriptTypeInterface && 
+					!(translated instanceof ImTupleExpr)) { 
+				ClassDef c = typ.getClassDef();
+				return JassIm.ImTupleExpr(JassIm.ImExprs(translated, JassIm.ImIntVal(t.getTypeId(c))));
+			}
+		}
+		return translated;
+	}
+
+	private static ImExpr translateNameDef(NameRef e, ImTranslator t, ImFunction f) throws CompileError {
 		NameDef decl = e.attrNameDef();
 		if (decl instanceof VarDef) {
 			VarDef varDef = (VarDef) decl;
@@ -112,6 +162,10 @@ public class ExprTranslation {
 	}
 
 	public static ImExpr translate(FunctionCall e, ImTranslator t, ImFunction f) {
+		return interfaceWrapper(e, translateFunctionCall(e, t, f), t);
+	}
+
+	private static ImExpr translateFunctionCall(FunctionCall e, ImTranslator t, ImFunction f) {
 		List<Expr> arguments = Lists.newArrayList(e.getArgs());
 		if (e.attrImplicitParameter() instanceof Expr) {
 			// add implicit parameter to front
@@ -132,8 +186,14 @@ public class ExprTranslation {
 		}
 		ImFunction calledImFunc = t.getFuncFor(calledFunc);
 		t.addCallRelation(f, calledImFunc);
-		return ImFunctionCall(calledImFunc, imArgs);
+		
+		
+		ImFunctionCall fc = ImFunctionCall(calledImFunc, imArgs);
+		t.adjustImArgs(imArgs, calledImFunc);
+		return fc;
 	}
+
+	
 
 	private static ImExprs translateExprs(List<Expr> arguments,  ImTranslator t, ImFunction f) {
 		ImExprs result = ImExprs();
@@ -151,7 +211,8 @@ public class ExprTranslation {
 		ConstructorDef constructorFunc = e.attrConstructorDef();
 		ImFunction constructorImFunc = t.getFuncFor(constructorFunc);
 		t.addCallRelation(f, constructorImFunc);
-		return ImFunctionCall(constructorImFunc, translateExprs(e.getArgs(), t, f));
+		ImExpr result = ImFunctionCall(constructorImFunc, translateExprs(e.getArgs(), t, f));
+		return interfaceWrapper(e, result, t);
 	}
 
 	public static ImExprOpt translate(NoExpr e, ImTranslator translator, ImFunction f) {
