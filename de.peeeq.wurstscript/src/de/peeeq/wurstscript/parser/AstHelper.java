@@ -49,7 +49,7 @@ public class AstHelper {
 	public static ClassDef ClassDef(WPos pos, Modifiers mod, String name, TypeParamDefs typeParams, TypeExprList il,
 			List<ClassSlot> slots) {
 		ClassDef c = Ast.ClassDef(pos, mod, name, typeParams, il, Ast.FuncDefs(), Ast.GlobalVarDefs(), 
-				Ast.ConstructorDefs(), Ast.ModuleInstanciations(), Ast.ModuleUses(), Ast.WStatements());
+				Ast.ConstructorDefs(), Ast.ModuleInstanciations(), Ast.ModuleUses(), Ast.OnDestroyDef(pos.copy(), Ast.WStatements()));
 		addClassSlots(slots, c);		
 		return c;
 	}
@@ -66,7 +66,7 @@ public class AstHelper {
 				c.getModuleUses().add((ModuleUse) s);
 			} else if (s instanceof OnDestroyDef) {
 				OnDestroyDef odf = (OnDestroyDef) s;
-				c.getOnDestroy().addAll(odf.getBody().removeAll());
+				c.setOnDestroy(odf);
 			} else {
 				throw new CompileError(s.getSource(), "Unhandled case for classSlot: " + s.getClass());
 			}
@@ -75,7 +75,7 @@ public class AstHelper {
 
 	public static ModuleDef ModuleDef(WPos pos, Modifiers mod, String name, TypeParamDefs typeParams, List<ClassSlot> slots) {
 		ModuleDef m = Ast.ModuleDef(pos, mod, name, typeParams, Ast.FuncDefs(), Ast.GlobalVarDefs(), 
-				Ast.ConstructorDefs(), Ast.ModuleInstanciations(), Ast.ModuleUses(), Ast.WStatements());
+				Ast.ConstructorDefs(), Ast.ModuleInstanciations(), Ast.ModuleUses(), Ast.OnDestroyDef(pos.copy(), Ast.WStatements()));
 		addClassSlots(slots, m);		
 		return m;
 	}
@@ -83,7 +83,7 @@ public class AstHelper {
 	public static InterfaceDef InterfaceDef(WPos pos, Modifiers mod, String name, TypeParamDefs typeParams, TypeExprList el,
 			List<FuncDef> slots) {
 		InterfaceDef i = Ast.InterfaceDef(pos, mod, name, typeParams, el, Ast.FuncDefs(), Ast.GlobalVarDefs(), 
-				Ast.ConstructorDefs(), Ast.ModuleInstanciations(), Ast.ModuleUses(), Ast.WStatements());
+				Ast.ConstructorDefs(), Ast.ModuleInstanciations(), Ast.ModuleUses(), Ast.OnDestroyDef(pos.copy(), Ast.WStatements()));
 		addClassSlots(slots, i);		
 		return i;
 	}

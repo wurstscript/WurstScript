@@ -21,6 +21,7 @@ package StackModule
 			return first
 		
 		static function pop() returns thistype
-			destroy first
+			destroy first //destroying 'first' will make a new item the first one
+			return first
 			
 endpackage

@@ -75,7 +75,7 @@ public class ClassTranslator {
 
 	private void createDestroyMethod() {
 		ImFunction f = translator.getDestroyFuncFor(classDef);
-		ImVar thisVar = ImVar(TypesHelper.imInt(), "this");
+		ImVar thisVar = translator.getThisVar(classDef.getOnDestroy());
 		f.getParameters().add(thisVar);
 		addOnDestroyActions(f, classDef);
 		addDeallocateCode(f, thisVar);	
@@ -102,7 +102,7 @@ public class ClassTranslator {
 	}
 
 	private void addOnDestroyActions(ImFunction f, ClassOrModuleInstanciation c) { 
-		f.getBody().addAll(translator.translateStatements(f, c.getOnDestroy()));
+		f.getBody().addAll(translator.translateStatements(f, c.getOnDestroy().getBody()));
 		
 		for (ModuleInstanciation mi : c.getModuleInstanciations()) {
 			addOnDestroyActions(f, mi);
@@ -131,11 +131,11 @@ public class ClassTranslator {
 	}
 
 	private void createClassManagementVars() {
-		nextFree = JassIm.ImVar(JassIm.ImArrayType("integer"), classDef.getName() + "_nextFree");
+		nextFree = JassIm.ImVar(JassIm.ImArrayType("integer"), classDef.getName() + "_nextFree", false);
 		translator.addGlobal(nextFree);
-		firstFree = JassIm.ImVar(TypesHelper.imInt(), classDef.getName() + "_firstFree");
+		firstFree = JassIm.ImVar(TypesHelper.imInt(), classDef.getName() + "_firstFree", false);
 		translator.addGlobal(firstFree);
-		maxIndex = JassIm.ImVar(TypesHelper.imInt(), classDef.getName() + "_maxIndex");
+		maxIndex = JassIm.ImVar(TypesHelper.imInt(), classDef.getName() + "_maxIndex", false);
 		translator.addGlobal(maxIndex);
 	}
 

@@ -8,7 +8,7 @@ ImProg(ImVars globals, ImFunctions functions)
 ImVars * ImVar
 ImFunctions * ImFunction
 
-ImVar(&ImType type, String name)
+ImVar(&ImType type, String name, boolean isBJ)
 
 ImType = 
 	  ImSimpleType(String typename)
@@ -17,7 +17,7 @@ ImType =
 	| ImTupleArrayType(java.util.List<String> types)
 	| ImVoid()
 	
-ImFunction(String name, ImVars parameters, &ImType returnType, ImVars locals, ImStmts body, boolean isNative)
+ImFunction(String name, ImVars parameters, &ImType returnType, ImVars locals, ImStmts body, boolean isNative, boolean isBJ)
 	
 ImStmts * ImStmt
 

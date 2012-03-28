@@ -25,7 +25,7 @@ WEntity =
 	| NativeFunc(WPos source, Modifiers modifiers, String name, WParameters parameters, OptTypeExpr returnTyp)
 	| ModuleDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, 
 			FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
-			ModuleInstanciations moduleInstanciations, ModuleUses moduleUses, WStatements onDestroy)
+			ModuleInstanciations moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy)
 	
 
 
@@ -42,10 +42,10 @@ TypeDef =
 	  NativeType(WPos source, Modifiers modifiers, String name, OptTypeExpr optTyp)
 	| ClassDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, TypeExprList implementsList, 
 			FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
-			ModuleInstanciations moduleInstanciations, ModuleUses moduleUses, WStatements onDestroy)
+			ModuleInstanciations moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy)
 	| InterfaceDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, TypeExprList extendsList, 
 			FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
-			ModuleInstanciations moduleInstanciations, ModuleUses moduleUses, WStatements onDestroy)
+			ModuleInstanciations moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy)
 	| TupleDef(WPos source, Modifiers modifiers, String name, WParameters parameters, OptTypeExpr returnTyp)
 	| TypeParamDef
 	
@@ -63,7 +63,7 @@ ClassSlot =
 	| ModuleUse(WPos source, String moduleName, TypeExprList typeArgs)
 	| ModuleInstanciation(WPos source, Modifiers modifiers, String name, 
 			FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
-			ModuleInstanciations moduleInstanciations, ModuleUses moduleUses, WStatements onDestroy) 
+			ModuleInstanciations moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy) 
 	| ClassMember
 	
 ClassMember = 
@@ -264,7 +264,7 @@ JassGlobalBlock * GlobalVarDef
 
 
 // special types for translation
-TranslatedToImFunction = ConstructorDef | FunctionDefinition | InitBlock
+TranslatedToImFunction = ConstructorDef | FunctionDefinition | InitBlock | OnDestroyDef
 
 
 
