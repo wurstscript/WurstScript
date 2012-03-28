@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.NativeFunc;
+import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImVar;
@@ -54,6 +55,9 @@ public class FuncSkeleton {
 	public static void create(TupleDef tupleDef, ImTranslator translator, ImFunction f) {
 		// TODO Auto-generated method stub
 		throw new Error("not implemented");
+	}
+
+	public static void create(OnDestroyDef onDestroyDef, ImTranslator translator, ImFunction f) {
 	}
 
 }

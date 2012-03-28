@@ -181,4 +181,20 @@ public class ClassesTests extends PscriptTest {
 			);
 	}
 	
+	
+	@Test
+	public void ondestroy() {
+		testAssertOkLines(false, 
+				"package test",
+				"	native testSuccess()",
+				"	class C",
+				"		int i = 3",
+				"		ondestroy",
+				"			i = i + 1",
+				"			testSuccess()",
+				"	init",
+				"		destroy new C()",
+				"endpackage"
+			);
+	}
 }

@@ -16,6 +16,7 @@ import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeInterface;
 import de.peeeq.wurstscript.types.PscriptTypeTuple;
+import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 public class ExprTranslation {
@@ -93,16 +94,19 @@ public class ExprTranslation {
 	}
 
 	private static ImExpr interfaceWrapper(Expr e, ImExpr translated, ImTranslator t) {
-		System.out.println(e + " ||| " + e.attrTyp() + " <->  " + e.attrExpectedTyp());
 		if (e.attrTyp() instanceof PscriptTypeClass) {
 			PscriptTypeClass typ = (PscriptTypeClass) e.attrTyp();
-			if (e.attrExpectedTyp() instanceof PscriptTypeInterface && 
-					!(translated instanceof ImTupleExpr)) { 
+			if (expectedInterfaceType(e) && !(translated instanceof ImTupleExpr)) { 
 				ClassDef c = typ.getClassDef();
 				return JassIm.ImTupleExpr(JassIm.ImExprs(translated, JassIm.ImIntVal(t.getTypeId(c))));
 			}
 		}
 		return translated;
+	}
+
+	/** checks whether a interface type is expected for e */
+	private static boolean expectedInterfaceType(Expr e) {
+		return e.attrExpectedTyp() instanceof PscriptTypeInterface || e.attrExpectedTyp() instanceof PscriptTypeTypeParam;
 	}
 
 	private static ImExpr translateNameDef(NameRef e, ImTranslator t, ImFunction f) throws CompileError {

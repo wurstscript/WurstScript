@@ -39,8 +39,6 @@ public class ImToJassTranslator {
 	private ImFunction mainFunc;
 	private ImFunction confFunction;
 	private JassProg prog;
-	private JassVars globals;
-	private JassFunctions functions;
 	private Set<ImFunction> translatingFunctions = Sets.newHashSet();
 	private Set<ImFunction> translatedFunctions = Sets.newHashSet();
 	private Set<String> usedNames = Sets.newHashSet();
@@ -54,8 +52,8 @@ public class ImToJassTranslator {
 	}
 	
 	public JassProg translate() {
-		globals = JassVars();
-		functions = JassFunctions();
+		JassVars globals = JassVars();
+		JassFunctions functions = JassFunctions();
 		prog = JassProg(JassTypeDefs(), globals, JassNatives(), functions);
 		
 		collectGlobalVars();
@@ -139,7 +137,7 @@ public class ImToJassTranslator {
 		JassVar v = tempReturnVars.get(key);
 		if (v == null) {
 			v = JassAst.JassSimpleVar(type, getUniqueName("temp_return_"+type+"_"+nr));
-			globals.add(v);
+			prog.getGlobals().add(v);
 			tempReturnVars.put(key, v);
 		}
 		return v;
@@ -167,9 +165,9 @@ public class ImToJassTranslator {
 				}
 				i++;
 			}
-			if (isGlobal(v)) {
+			if (isGlobal(v) && !v.getIsBJ()) {
 				for (JassVar var : vars) {
-					globals.add(var);
+					prog.getGlobals().add(var);
 				}
 			}
 			jassVars.put(v, vars);
@@ -193,7 +191,7 @@ public class ImToJassTranslator {
 		JassFunction f = jassFuncs.get(func);
 		if (f == null) {
 			f = JassFunction(getUniqueName(func.getName()), JassSimpleVars(), "nothing", JassVars(), JassStatements());
-			if (!func.getIsNative()) {
+			if (!func.getIsNative() && !func.getIsBJ()) {
 				prog.getFunctions().add(f);
 			}
 			jassFuncs.put(func, f);

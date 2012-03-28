@@ -117,6 +117,7 @@ public class TLDTranslation {
 		
 		if (funcDef.attrNearestPackage() instanceof CompilationUnit) {
 			if (funcDef.getName().equals("main")) {
+				System.out.println("main in line " + funcDef.getSource().getFile() + ":" + funcDef.getSource().getLine());
 				translator.setMainFunc(f);
 			} else if (funcDef.getName().equals("")) {
 				translator.setConfigFunc(f);

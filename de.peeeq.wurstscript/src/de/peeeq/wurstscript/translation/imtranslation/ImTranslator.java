@@ -80,8 +80,8 @@ public class ImTranslator {
 	public ImProg translateProg() {
 		imProg = ImProg(ImVars(), ImFunctions());
 		
-		globalInitFunc = ImFunction("initGlobals", ImVars(), ImVoid(), ImVars(), ImStmts(), false);
-		debugPrintFunction = ImFunction($DEBUG_PRINT, ImVars(ImVar(PScriptTypeString.instance().imTranslateType(), "msg")), ImVoid(), ImVars(), ImStmts(), true);
+		globalInitFunc = ImFunction("initGlobals", ImVars(), ImVoid(), ImVars(), ImStmts(), false, false);
+		debugPrintFunction = ImFunction($DEBUG_PRINT, ImVars(ImVar(PScriptTypeString.instance().imTranslateType(), "msg", false)), ImVoid(), ImVars(), ImStmts(), true, false);
 		
 		
 		
@@ -90,11 +90,12 @@ public class ImTranslator {
 		}
 		
 		if (mainFunc == null) {
-			mainFunc = ImFunction("main", ImVars(), ImVoid(), ImVars(), ImStmts(), false);
+			System.out.println("generating default main function");
+			mainFunc = ImFunction("main", ImVars(), ImVoid(), ImVars(), ImStmts(), false, false);
 			addFunction(mainFunc);
 		}
 		if (configFunc == null) {
-			configFunc = ImFunction("config", ImVars(), ImVoid(), ImVars(), ImStmts(), false);
+			configFunc = ImFunction("config", ImVars(), ImVoid(), ImVars(), ImStmts(), false, false);
 			addFunction(configFunc);
 		}
 		finishInitFunctions();
@@ -221,7 +222,7 @@ public class ImTranslator {
 	public ImFunction getDestroyFuncFor(ClassDef classDef) {
 		ImFunction f = destroyFuncMap.get(classDef); 
 		if (f == null) {
-			f = JassIm.ImFunction("destroy" + classDef.getName(), ImVars(), TypesHelper.imVoid(), ImVars(), ImStmts(), false);
+			f = JassIm.ImFunction("destroy" + classDef.getName(), ImVars(), TypesHelper.imVoid(), ImVars(), ImStmts(), false, false);
 			destroyFuncMap.put(classDef, f);
 			addFunction(f);
 		}
@@ -235,16 +236,22 @@ public class ImTranslator {
 		}
 		String name = getNameFor(funcDef);;
 		boolean isNative = funcDef instanceof NativeFunc;
-		ImFunction f = JassIm.ImFunction(name, ImVars(), ImVoid(), ImVars(), ImStmts(), isNative );
+		boolean isBJ = isBJ(funcDef.getSource());
+		ImFunction f = JassIm.ImFunction(name, ImVars(), ImVoid(), ImVars(), ImStmts(), isNative, isBJ);
 		funcDef.imCreateFuncSkeleton(this, f);
 		addFunction(f);
 		functionMap.put(funcDef, f);
 		return f;
 	}
+	private boolean isBJ(WPos source) {
+		String f = source.getFile().toLowerCase();
+		return f.endsWith("blizzard.j") || f.endsWith("common.j");
+	}
+
 	public ImFunction getInitFuncFor(WPackage p) {
 		ImFunction f = initFuncMap.get(p); 
 		if (f == null) {
-			f = JassIm.ImFunction("init_" + p.getName(), ImVars(), ImVoid(), ImVars(), ImStmts(), false);
+			f = JassIm.ImFunction("init_" + p.getName(), ImVars(), ImVoid(), ImVars(), ImStmts(), false, false);
 			initFuncMap.put(p, f);
 		}
 		return f ;
@@ -273,10 +280,20 @@ public class ImTranslator {
 	}
 
 	public ImVar getThisVar(TranslatedToImFunction f) {
+		if (f instanceof OnDestroyDef) {
+			// special case for onDestroy defs
+			// TODO also special case for constructors needed?
+			OnDestroyDef od = (OnDestroyDef) f;
+			if (od.getParent() instanceof ModuleInstanciation) {
+				ModuleInstanciation mi = (ModuleInstanciation) od.getParent();
+				ClassDef c = mi.attrNearestClassDef();
+				f = c.getOnDestroy();  
+			}
+		}
 		if (thisVarMap.containsKey(f)) {
 			return thisVarMap.get(f);
 		}
-		ImVar v = ImVar(ImSimpleType("integer"), "this");
+		ImVar v = ImVar(ImSimpleType("integer"), "this", false);
 		thisVarMap.put(f, v);
 		return v ;
 	}
@@ -317,7 +334,8 @@ public class ImTranslator {
 		if (v == null) {
 			ImType type = varDef.attrTyp().imTranslateType();
 			String name = varDef.getName();
-			v = JassIm.ImVar(type, name);
+			boolean isBj = isBJ(varDef.getSource());
+			v = JassIm.ImVar(type, name, isBj);
 			varMap.put(varDef, v);
 			
 		}
@@ -351,7 +369,7 @@ public class ImTranslator {
 	}
 
 	public void setMainFunc(ImFunction f) {
-		if (mainFunc == null) {
+		if (mainFunc != null) {
 			throw new Error("mainFunction already set");
 		}
 		mainFunc = f;

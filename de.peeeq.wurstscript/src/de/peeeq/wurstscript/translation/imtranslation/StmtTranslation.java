@@ -129,7 +129,7 @@ public class StmtTranslation {
 		if (r instanceof ImConst) {
 			return r;
 		}
-		ImVar tempVar = ImVar(type, "temp");
+		ImVar tempVar = ImVar(type, "temp", false);
 		result.add(ImSet(tempVar, r));
 		return ImVarAccess(tempVar);
 	}
