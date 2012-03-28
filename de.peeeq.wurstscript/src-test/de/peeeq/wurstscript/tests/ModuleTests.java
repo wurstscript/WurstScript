@@ -16,8 +16,13 @@ public class ModuleTests extends PscriptTest {
 	}
 
 	@Test
-	public void multi() throws IOException {
+	public void multi1() throws IOException {
 		testAssertOkFile(new File(TEST_DIR + "multi.pscript"), true);
+	}
+	
+	@Test
+	public void multi2() throws IOException {
+		testAssertOkFile(new File(TEST_DIR + "multi2.pscript"), true);
 	}
 	
 	@Test

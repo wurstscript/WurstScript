@@ -1,0 +1,48 @@
+package test 
+		
+	native testFail(string msg)
+	native testSuccess()
+
+
+	module A 
+		function bar() returns int 
+			return 2
+		
+	
+	
+	module B 		
+		function foo() returns int 
+			return 3
+		
+	
+	
+	
+	module C 
+		use A
+		use B
+		
+	
+	module D
+		use C
+		
+	class E
+		use D
+	
+	
+	
+	init 
+		E e = new E()
+		
+		
+		
+		if e.foo() != 3 
+			testFail("foo fail")
+		
+		
+		if e.bar() != 2 
+			testFail("bar fail")
+		
+			
+		testSuccess()
+	
+endpackage

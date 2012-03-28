@@ -8,6 +8,18 @@ public class SimpleFunctionTests extends PscriptTest {
 
 	
 	@Test
+	public void test_funcref() {
+		assertOk(false,
+				"function foo(code c)",
+				"	int i = 0",
+				"function bar()",
+				"	int j = 0",
+				"init",
+				"	foo( function bar )",
+				"");
+	}
+	
+	@Test
 	public void test_has_return_ifs() {
 		assertOk(false,
 				"function foo(int x) returns int",

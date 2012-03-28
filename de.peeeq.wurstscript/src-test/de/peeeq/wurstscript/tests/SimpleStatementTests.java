@@ -7,6 +7,22 @@ import de.peeeq.wurstscript.utils.Utils;
 public class SimpleStatementTests extends PscriptTest {
 
 	@Test
+	public void testMod1() {
+		assertOk(true, 
+				"if 10. % 2. == 0.",
+				"	testSuccess()\n" +	
+				"");
+	}
+	
+	@Test
+	public void testMod2() {
+		assertOk(true, 
+				"if 2 mod 10 == 2",
+				"	testSuccess()\n" +	
+				"");
+	}
+	
+	@Test
 	public void testIf1() {
 		assertOk(true, 
 				"if 2 == 2 ",
