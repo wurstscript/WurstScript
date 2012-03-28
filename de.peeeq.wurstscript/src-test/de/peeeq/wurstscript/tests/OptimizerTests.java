@@ -28,22 +28,7 @@ public class OptimizerTests extends PscriptTest {
 				"endpackage");
 	}
 	
-	@Test
-	public void test_EF() {
-		assertOk(false,
-				"package abc",
-				"	function ExecuteFunction( string s )",
-				"		int a = 0",
-				"	function foo1()",
-				"		int i = 0",
-				"	function foo2()",
-				"		int i2 = 0",
-				"	init",
-				"		int k = 1",
-				"		ExecuteFunction( \"foo\" )",
-				"endpackage");
-	}
-	
+
 
 
 	
