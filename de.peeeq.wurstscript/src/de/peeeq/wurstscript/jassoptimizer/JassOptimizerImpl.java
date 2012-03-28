@@ -1,6 +1,10 @@
 package de.peeeq.wurstscript.jassoptimizer;
 
+import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Set;
 
@@ -28,25 +32,25 @@ public class JassOptimizerImpl implements JassOptimizer {
 	String[] standards;
 	int standardsAmount = 0;
 	
-//	public static void main(String ... args) throws IOException {
-//
-//		File fe = new File("./testscripts/valid/optimizer/optimizertest_5.pscript");
-//		
-//		BufferedWriter output = new BufferedWriter(new FileWriter(fe));
-//		output.write("package test");
-//		output.newLine();
-//
-//		for( int i = 0; i < 4000; i++) { // Got also tested with 132651
-//			output.write("    int var" + String.valueOf(i) );
-//			output.newLine();
-//		}
-//		
-//		output.write("endpackage");
-//		output.close();
-//			
-//		}	
+	public static void main(String ... args) throws IOException {
+
+		File fe = new File("./testscripts/valid/optimizer/test.wurst");
 		
-//	}
+		BufferedWriter output = new BufferedWriter(new FileWriter(fe));
+		NameGenerator ng = new NameGenerator();
+
+		for( int i = 0; i < 40000; i++) { // Got also tested with 132651
+			output.write("    int " + String.valueOf(ng.getUniqueToken()) );
+			output.newLine();
+		}
+			
+		output.write("endpackage");
+		output.close();
+		System.out.println("jka");
+			
+	}	
+	
+	
 	
 	/**
 	 * Sets predefined replacements like Filter instead of Condition

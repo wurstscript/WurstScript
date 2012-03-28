@@ -1,0 +1,25 @@
+package StackModule
+
+	public module StackModule
+		static thistype last = null
+		static thistype first = null
+		static int count = 0
+		thistype prev
+
+		construct()
+			count++
+			if count == 1
+				last = this
+				first = this
+			else
+				prev = first
+				first = this
+		
+		ondestroy
+			count--
+			last = this.prev
+
+		static function getLast() returns thistype
+			return last
+
+endpackage

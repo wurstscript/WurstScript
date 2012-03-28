@@ -73,7 +73,7 @@ public class ExprTranslation {
 	}
 	
 	public static ExprTranslationResult translate(ExprIntVal e, JassTranslator translator, JassFunction f) {
-		return new ExprTranslationResult(JassExprIntVal(e.getValI()));
+		return new ExprTranslationResult(JassExprIntVal(String.valueOf(e.getValI())));
 	}
 	
 	public static ExprTranslationResult translate(ExprNull e, JassTranslator translator, JassFunction f) {
@@ -81,7 +81,7 @@ public class ExprTranslation {
 		String[] types = e.attrTyp().jassTranslateType();
 		for (String type : types) {
 			if (type.equals("integer")) {
-				exprs.add(JassExprIntVal(0));
+				exprs.add(JassExprIntVal("0"));
 			} else {
 				exprs.add(JassExprNull());
 			}
@@ -136,11 +136,11 @@ public class ExprTranslation {
 			if (left.exprCount() != right.exprCount()) {
 				if (leftType instanceof PscriptTypeClass && rightType instanceof PscriptTypeInterface) {
 					int instanceId = translator.manager.getTypeId(((PscriptTypeClass)leftType).getClassDef());
-					left = left.plus(JassExprIntVal(instanceId));
+					left = left.plus(JassExprIntVal(String.valueOf(instanceId)));
 					leftTypes = rightTypes;
 				} else if (rightType instanceof PscriptTypeClass && leftType instanceof PscriptTypeInterface) {
 					int instanceId = translator.manager.getTypeId(((PscriptTypeClass)rightType).getClassDef());
-					right = right.plus(JassExprIntVal(instanceId));
+					right = right.plus(JassExprIntVal(String.valueOf(instanceId)));
 					rightTypes = leftTypes;
 				} else {
 					throw new CompileError(exprBinary.getSource(), "incompatible types, " + leftType + " and " + rightType);
@@ -406,9 +406,9 @@ public class ExprTranslation {
 				Expr a = args.get(i);
 				if (a.attrTyp() instanceof PscriptTypeClass) {
 					int typeId = translator.manager.getTypeId(((PscriptTypeClass) a.attrTyp()).getClassDef());
-					arg = arg.plus(JassExprIntVal(typeId));
+					arg = arg.plus(JassExprIntVal(String.valueOf(typeId)));
 				} else if (a.attrTyp() instanceof PScriptTypeInt) {
-					arg = arg.plus(JassExprIntVal(0));
+					arg = arg.plus(JassExprIntVal("0"));
 				} else {
 					throw new CompileError(a.getSource(), "Cannot pass " + a.attrTyp() + ", expected " + paramType);
 				}

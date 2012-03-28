@@ -329,7 +329,7 @@ public class StmtTranslation {
 			if (left.exprCount() == 2 && right.exprCount() == 1 && newValue.attrTyp() instanceof PscriptTypeClass) {
 				PscriptTypeClass newValueType = (PscriptTypeClass) newValue.attrTyp();
 				int typeId = translator.manager.getTypeId(newValueType.getClassDef());
-				right = right.plus(JassExprIntVal(typeId));
+				right = right.plus(JassExprIntVal(String.valueOf(typeId)));
 			} else {
 				throw new CompileError(updatedExpr.getSource(), "Left side has " + left.exprCount()
 						+ " jass variables, but right side has " + right.exprCount() + " jass expressions.");
@@ -425,7 +425,7 @@ public class StmtTranslation {
 			// in this special case we have to manually add the type based on
 			// the static type information that we have
 			int instanceId = translator.manager.getTypeId(actualTyp2.getClassDef());
-			expr = expr.plus(JassExprIntVal(instanceId));
+			expr = expr.plus(JassExprIntVal(String.valueOf(instanceId)));
 		}
 		return expr;
 	}

@@ -35,7 +35,7 @@ package Collections
 		Door door = new Door()
 		Chest chest = new Chest()
 		// create a new list
-		LinkedList{Closeable} closeables = new LinkedList{Closeable}()
+		LinkedList<Closeable> closeables = new LinkedList<Closeable>()
 		// add the different items to the list
 		closeables.add(gate)
 		closeables.add(door)

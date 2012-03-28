@@ -422,7 +422,7 @@ public class JassInterpreter {
 
 			@Override
 			public ILconst case_JassExprIntVal(JassExprIntVal e) {
-				return ILconstInt.create(e.getValI());
+				return ILconstInt.create(Integer.parseInt(e.getValI()));
 			}
 
 			@Override

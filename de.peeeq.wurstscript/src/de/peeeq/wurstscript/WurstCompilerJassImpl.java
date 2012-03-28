@@ -29,6 +29,7 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jasstranslation.JassTranslator;
+import de.peeeq.wurstscript.mpq.LadikMpq;
 import de.peeeq.wurstscript.mpq.MpqEditor;
 import de.peeeq.wurstscript.mpq.MpqEditorFactory;
 import de.peeeq.wurstscript.parser.ExtendedParser;
@@ -329,7 +330,15 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         	File tempFile = new File("./temp/temp_war3map.j");
         	
         	// extract mapscript:
-        	MpqEditor mpqEditor = MpqEditorFactory.getEditor();
+        	if ( MpqEditorFactory.getFilepath().equals("")) {
+        		MpqEditorFactory.setFilepath("./mpqedit/mpqeditor.exe");
+        	}
+        	LadikMpq mpqEditor = null;
+			try {
+				mpqEditor = MpqEditorFactory.getEditor();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
         	mpqEditor.extractFile(file, "war3map.j", tempFile);
         	new File("war3map.j").delete();
 //        	Runtime rt = Runtime.getRuntime();

@@ -1,11 +1,11 @@
 package Lists
 
-	public class LinkedList{T}
-		private LLEntry{T} dummy
+	public class LinkedList<T>
+		private LLEntry<T> dummy
 		private int size = 0
 
 		construct()
-			dummy =  new LLEntry{T}(null, null, null)
+			dummy =  new LLEntry<T>(null, null, null)
 			dummy.next = dummy
 			dummy.prev = dummy
 
@@ -17,7 +17,7 @@ package Lists
 			size ++
 
 		// add all elements from elems to this list
-		function addAll(LinkedList{T} elems)
+		function addAll(LinkedList<T> elems)
 			for T elem in elems
 				add(elem)
 
@@ -31,7 +31,7 @@ package Lists
 			
 		// removes the first occurence of t from this list
 		function remove(T t)
-			LLEntry{T} r = dummy.next
+			LLEntry<T> r = dummy.next
 			while r != dummy
 				if r.elem == t
 					r.prev.next = r.next
@@ -45,8 +45,8 @@ package Lists
 		function getSize() returns int
 			return size
 
-		private function getEntry(int index) returns LLEntry{T}
-			LLEntry{T} r = dummy
+		private function getEntry(int index) returns LLEntry<T>
+			LLEntry<T> r = dummy
 			for int i = 0 to index
 				r = r.next
 			return r
@@ -56,32 +56,32 @@ package Lists
 			return getEntry(index).elem
 
 		// get an iterator for this list
-		function iterator() returns LLIterator{T}
+		function iterator() returns LLIterator<T>
 			return new LLIterator(dummy)			
 
 		ondestroy
-			LLEntry{T} current = dummy.next
+			LLEntry<T> current = dummy.next
 			while current != dummy
 				val temp = current
 				current = current.next
 				destroy temp
 			destroy dummy
 
-	class LLEntry{S}
+	class LLEntry<S>
 		S elem
-		LLEntry{S} prev
-		LLEntry{S} next
+		LLEntry<S> prev
+		LLEntry<S> next
 
-		construct(S elem, LLEntry{S} prev, LLEntry{S} next)
+		construct(S elem, LLEntry<S> prev, LLEntry<S> next)
 			this.elem = elem
 			this.prev = prev
 			this.next = next
 
-	class LLIterator{Q}
-		LLEntry{Q} dummy
-		LLEntry{Q} current
+	class LLIterator<Q>
+		LLEntry<Q> dummy
+		LLEntry<Q> current
 
-		construct(LLEntry{Q} dummy)
+		construct(LLEntry<Q> dummy)
 			this.dummy = dummy
 			this.current = dummy
 

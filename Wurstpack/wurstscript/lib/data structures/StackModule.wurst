@@ -1,0 +1,26 @@
+package StackModule
+
+	public module StackModule
+		static thistype first = null
+		static int count = 0
+		thistype next
+
+		construct()
+			count++
+			if count == 1
+				first = this
+			else
+				next = first
+				first = this
+		
+		ondestroy
+			count--
+			first = this.next
+
+		static function peek() returns thistype
+			return first
+		
+		static function pop() returns thistype
+			destroy first
+			
+endpackage

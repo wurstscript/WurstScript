@@ -82,7 +82,7 @@ public class ExprTranslation {
 	}
 
 	public static List<JassExpr> translate(ImIntVal e, ImToJassTranslator translator) {
-		return single(JassExprIntVal(e.getValI()));
+		return single(JassExprIntVal(String.valueOf(e.getValI())));
 	}
 
 	public static List<JassExpr> translate(ImNull e, ImToJassTranslator translator) {
