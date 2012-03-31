@@ -5,7 +5,7 @@ import java.io.IOException;
 
 public interface MpqEditor {
 
-	void extractFile(File mpqArchive, String fileToExtract, File tempFile)
+	File extractFile(File mpqArchive, String fileToExtract)
 			throws IOException, InterruptedException;
 
 	void insertFile(File mpqArchive, String filenameInMpq, File tempFile)
@@ -13,5 +13,7 @@ public interface MpqEditor {
 
 	void deleteFile(File mpqArchive, String filenameInMpq)
 			throws IOException, InterruptedException;
-
+	
+	void compactArchive(File mpqArchive)
+			throws IOException, InterruptedException;
 }

@@ -327,7 +327,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	private CompilationUnit processMap(File file) {
 		gui.sendProgress("Processing Map " + file.getName(), 0.05);		
         try {
-        	File tempFile = new File("./temp/temp_war3map.j");
+        	
         	
         	// extract mapscript:
         	if ( MpqEditorFactory.getFilepath().equals("")) {
@@ -339,8 +339,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-        	mpqEditor.extractFile(file, "war3map.j", tempFile);
-        	new File("war3map.j").delete();
+			File tempFile = mpqEditor.extractFile(file, "war3map.j");
 //        	Runtime rt = Runtime.getRuntime();
 //			String[] commands = {"MpqCL.exe", "extract", file.getAbsolutePath(), "war3map.j", tempFile.getAbsolutePath()};
 //			Process proc = rt.exec(commands);
