@@ -49,6 +49,7 @@ import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtLoop;
 import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StmtSet;
+import de.peeeq.wurstscript.ast.StmtSkip;
 import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WStatements;
@@ -439,6 +440,11 @@ public class StmtTranslation {
 			index = JassExprVarAccess(tempVar.getName());
 		}
 		return index;
+	}
+
+	public static List<JassStatement> translate(StmtSkip stmtSkip,
+			JassTranslator translator, JassFunction f) {
+		return Collections.emptyList();
 	}
 
 	

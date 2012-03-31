@@ -789,8 +789,10 @@ public class WurstValidator {
 						continue nextFunction;
 					}
 				}
-				attr.addError(classDef.getSource(), "The class " + classDef.getName() + " must implement the function " +
+				if (i_funcDef.getBody().isEmpty()) {
+					attr.addError(classDef.getSource(), "The class " + classDef.getName() + " must implement the function " +
 						i_funcDef.getName() + ".");
+				}
 			}
 		}
 

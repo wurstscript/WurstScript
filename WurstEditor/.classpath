@@ -2,7 +2,7 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="src" path="/de.peeeq.wurstscript"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/de.peeeq.wurstscript"/>
 	<classpathentry kind="lib" path="lib/appframework-1.0.3.jar"/>
 	<classpathentry kind="lib" path="lib/autocomplete.jar"/>
 	<classpathentry kind="lib" path="lib/gson-2.0-javadoc.jar"/>

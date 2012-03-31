@@ -27,6 +27,7 @@ import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.jassIm.JassImElement;
 import de.peeeq.wurstscript.types.PScriptTypeString;
 import de.peeeq.wurstscript.types.TypesHelper;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassExprIntVal;
@@ -70,6 +71,9 @@ public class ImTranslator {
 
 	private ImFunction configFunc = null;
 	
+	// trace from im elements to ast elements
+	private Map<JassImElement, AstElement> trace = Maps.newHashMap();
+	
 	public ImTranslator(CompilationUnit wurstProg) {
 		this.wurstProg = wurstProg;
 	}
@@ -79,6 +83,7 @@ public class ImTranslator {
 	 */
 	public ImProg translateProg() {
 		imProg = ImProg(ImVars(), ImFunctions());
+		addSource(imProg, wurstProg);
 		
 		globalInitFunc = ImFunction("initGlobals", ImVars(), ImVoid(), ImVars(), ImStmts(), false, false);
 		debugPrintFunction = ImFunction($DEBUG_PRINT, ImVars(ImVar(PScriptTypeString.instance().imTranslateType(), "msg", false)), ImVoid(), ImVars(), ImStmts(), true, false);
@@ -103,6 +108,10 @@ public class ImTranslator {
 		return imProg;
 	}
 	
+	
+	public void addSource(JassImElement elem, AstElement source) {
+		trace.put(elem, source);
+	}
 	
 	
 	/**
@@ -224,6 +233,7 @@ public class ImTranslator {
 		if (f == null) {
 			f = JassIm.ImFunction("destroy" + classDef.getName(), ImVars(), TypesHelper.imVoid(), ImVars(), ImStmts(), false, false);
 			destroyFuncMap.put(classDef, f);
+			addSource(f, classDef.getOnDestroy().getSource());
 			addFunction(f);
 		}
 		return f ;
@@ -241,6 +251,7 @@ public class ImTranslator {
 		funcDef.imCreateFuncSkeleton(this, f);
 		addFunction(f);
 		functionMap.put(funcDef, f);
+		addSource(f, funcDef.getSource());
 		return f;
 	}
 	private boolean isBJ(WPos source) {
@@ -253,6 +264,7 @@ public class ImTranslator {
 		if (f == null) {
 			f = JassIm.ImFunction("init_" + p.getName(), ImVars(), ImVoid(), ImVars(), ImStmts(), false, false);
 			initFuncMap.put(p, f);
+			addSource(f, p.getSource()); // XXX more precise source
 		}
 		return f ;
 	}
@@ -337,7 +349,7 @@ public class ImTranslator {
 			boolean isBj = isBJ(varDef.getSource());
 			v = JassIm.ImVar(type, name, isBj);
 			varMap.put(varDef, v);
-			
+			addSource(v, varDef.getSource());
 		}
 		return v;
 	}
@@ -392,6 +404,10 @@ public class ImTranslator {
 
 	public ImFunction getConfFunc() {
 		return configFunc;
+	}
+
+	public Map<JassImElement, AstElement> getTrace() {
+		return trace;
 	}
 
 

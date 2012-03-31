@@ -276,6 +276,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"constant"							{ return symbol(TokenType.CONSTANT); }
 
 	//statements
+	"skip"								{ return symbolP(TokenType.SKIP); }
 	"val"								{ return symbolP(TokenType.VAL); }
 	"return"                          	{ return symbolP(TokenType.RETURN); }
 	"if"                              	{ return symbolP(TokenType.IF); }

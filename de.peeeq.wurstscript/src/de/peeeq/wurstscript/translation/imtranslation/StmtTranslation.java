@@ -212,6 +212,11 @@ public class StmtTranslation {
 		return ImLoop(ImStmts(body));
 	}
 
+	public static ImStmt translate(StmtSkip stmtSkip, ImTranslator translator,
+			ImFunction f) {
+		return JassIm.ImNull();
+	}
+
 
 		
 }

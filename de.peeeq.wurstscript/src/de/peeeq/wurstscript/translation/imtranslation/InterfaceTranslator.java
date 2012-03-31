@@ -10,6 +10,8 @@ import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.NameDef;
+import de.peeeq.wurstscript.ast.Op;
+import de.peeeq.wurstscript.ast.OpLessEq;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.ImCall;
 import de.peeeq.wurstscript.jassIm.ImExpr;
@@ -22,8 +24,10 @@ import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import static de.peeeq.wurstscript.jassIm.JassIm.*;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;
 import de.peeeq.wurstscript.types.TypesHelper;
+import de.peeeq.wurstscript.utils.Pair;
 
 public class InterfaceTranslator {
 
@@ -52,12 +56,26 @@ public class InterfaceTranslator {
 
 	private void translateInterfaceFuncDef(InterfaceDef interfaceDef, List<ClassDef> instances, FuncDef funcDef) {
 		ImFunction f = translator.getFuncFor(funcDef);
-		f.getBody().addAll(createDispatch(instances, 0, instances.size()-1, funcDef, f));
-
+		List<Pair<ClassDef, FuncDef>> instances2 = getClassedWithImplementation(instances, funcDef);
+		f.getBody().addAll(createDispatch(instances2, 0, instances.size()-1, funcDef, f, false));
+		if (funcDef.getBody().size() > 0) {
+			// TODO add default implementation
+		} else {
+			if (!(funcDef.attrTyp() instanceof PScriptTypeVoid)) {
+				// TODO add return statement
+				ImType type = f.getReturnType();
+				ImExpr def = translator.getDefaultValueForJassType(type);
+				f.getBody().add(JassIm.ImReturn(def));
+			}
+		}
 	}
 
-	private List<ImStmt> createDispatch(List<ClassDef> instances, int start, int end, FuncDef funcDef, ImFunction f) {
+	private List<ImStmt> createDispatch(List<Pair<ClassDef, FuncDef>> instances, int start, int end
+			, FuncDef funcDef, ImFunction f, boolean equalityKnown) {
+		
+		
 		List<ImStmt> result = Lists.newArrayList();
+		ImVar thisVar = f.getParameters().get(0);
 		boolean returnsVoid = funcDef.attrTyp() instanceof PScriptTypeVoid;
 		if (start > end) {
 			// there seem to be no instances
@@ -72,55 +90,85 @@ public class InterfaceTranslator {
 			}
 			return result;
 		} else if (start == end) {
-			ClassDef instance = instances.get(start);
-			for (NameDef nameDef : instance.attrVisibleNamesPrivate().get(funcDef.getName())) {
-				if (nameDef instanceof FuncDef) {
-					FuncDef calledFunc = (FuncDef) nameDef;
-					ImFunction calledJassFunc = translator.getFuncFor(calledFunc);
-					translator.addCallRelation(f, calledJassFunc);
-					ImExprs arguments = JassIm.ImExprs();
-					for (int i=0; i<f.getParameters().size(); i++) {
-						ImExpr arg;
-						ImVar p = f.getParameters().get(i);
-						ImVar expected = calledJassFunc.getParameters().get(i);
-						if (expected.getType() instanceof ImSimpleType
-								&& p.getType() instanceof ImTupleType) {
-							// class type expected but got interface type 
-							// ==> select only first part 
-							arg = JassIm.ImTupleSelection(JassIm.ImVarAccess(p), 0);
-						} else {
-							arg = JassIm.ImVarAccess(p);
-							// TODO subtyping differences interface vs class?
-						}
-						arguments.add(arg);
-					}
-					ImCall call = JassIm.ImFunctionCall(calledJassFunc, arguments);
-					if (returnsVoid) {
-						result.add(call);
-					} else {
-						result.add(JassIm.ImReturn(call));
-					}
-					return result;
+			ClassDef instance = instances.get(start).getA();
+			FuncDef calledFunc = instances.get(start).getB();
+			ImFunction calledJassFunc = translator.getFuncFor(calledFunc);
+			translator.addCallRelation(f, calledJassFunc);
+			ImExprs arguments = JassIm.ImExprs();
+			for (int i=0; i<f.getParameters().size(); i++) {
+				ImExpr arg;
+				ImVar p = f.getParameters().get(i);
+				ImVar expected = calledJassFunc.getParameters().get(i);
+				if (expected.getType() instanceof ImSimpleType
+						&& p.getType() instanceof ImTupleType) {
+					// class type expected but got interface type 
+					// ==> select only first part 
+					arg = JassIm.ImTupleSelection(JassIm.ImVarAccess(p), 0);
+				} else {
+					arg = JassIm.ImVarAccess(p);
+					// TODO subtyping differences interface vs class?
 				}
+				arguments.add(arg);
 			}
-			throw new CompileError(instance.getSource(), "not really an instance...");
+			ImCall call = JassIm.ImFunctionCall(calledJassFunc, arguments);
+			if (returnsVoid) {
+				result.add(call);
+			} else {
+				result.add(JassIm.ImReturn(call));
+			}
+			if (!equalityKnown) {
+				// check for equality
+				ImExpr condition = JassIm.ImOperatorCall(Ast.OpEquals(), 
+						JassIm.ImExprs(
+								JassIm.ImTupleSelection(JassIm.ImVarAccess(thisVar), 1),
+								JassIm.ImIntVal(translator.getTypeId(instances.get(start).getA()))));;
+				
+				return Collections.<ImStmt>singletonList(
+						JassIm.ImIf(condition, ImStmts(), ImStmts())
+					);
+			} else {
+				return result;
+			}
 		} else {
 			int splitAt = start + (end-start) / 2;
-			List<ImStmt> case1 = createDispatch(instances, start, splitAt, funcDef, f);
-			List<ImStmt> case2 = createDispatch(instances, splitAt+1, end, funcDef, f);
+			
+			boolean eq = false;
+			if (splitAt - start == 1) {
+				// if we only have one element at the left side, we can already check for equality
+				eq = true;
+			}
+			
+			List<ImStmt> case1 = createDispatch(instances, start, splitAt, funcDef, f, eq);
+			List<ImStmt> case2 = createDispatch(instances, splitAt+1, end, funcDef, f, false);
 
 			// if (thistype <= instances[splitAt].typeId)
-			ImVar thisVar = f.getParameters().get(0);
 			ImExpr cond = 
-					JassIm.ImOperatorCall(Ast.OpLessEq(), 
+					JassIm.ImOperatorCall(eq ? Ast.OpEquals() : Ast.OpLessEq(), 
 							JassIm.ImExprs(
 									JassIm.ImTupleSelection(JassIm.ImVarAccess(thisVar), 1),
-									JassIm.ImIntVal(translator.getTypeId(instances.get(splitAt)))));
+									JassIm.ImIntVal(translator.getTypeId(instances.get(splitAt).getA()))));
 			ImStmts thenBlock = JassIm.ImStmts(case1);
 			ImStmts elseBlock = JassIm.ImStmts(case2);
 			result.add(JassIm.ImIf(cond, thenBlock, elseBlock));
 			return result;
 		}
+	}
+
+	/**
+	 * returns a list of classes and functions implementing funcDef
+	 */
+	private List<Pair<ClassDef, FuncDef>> getClassedWithImplementation(
+			List<ClassDef> instances, FuncDef funcDef) {
+		List<Pair<ClassDef, FuncDef>> result = Lists.newArrayListWithCapacity(instances.size());
+		for (ClassDef c : instances) {
+			for (NameDef nameDef : c.attrVisibleNamesPrivate().get(funcDef.getName())) {
+				if (nameDef instanceof FuncDef) {
+					FuncDef calledFunc = (FuncDef) nameDef;
+					result.add(Pair.create(c, calledFunc));
+				}
+			}
+		}
+		return result;
 	}
 
 }
