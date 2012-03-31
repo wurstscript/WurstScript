@@ -13,8 +13,9 @@ public class MpqCl implements MpqEditor {
 	MpqCl() {}
 	
 	@Override
-	public void extractFile(File mpqArchive, String fileToExtract, File tempFile) throws IOException, InterruptedException {
+	public File extractFile(File mpqArchive, String fileToExtract) throws IOException, InterruptedException {
 		Runtime rt = Runtime.getRuntime();
+		File tempFile = new File("./temp/" + fileToExtract);
 		String[] commands = {"./wurstscript/MpqCL.exe", "extract", mpqArchive.getAbsolutePath(), fileToExtract, tempFile.getAbsolutePath()};
 		Process proc = rt.exec(commands);
 		InputStream procOut = proc.getInputStream();
@@ -24,7 +25,9 @@ public class MpqCl implements MpqEditor {
 		while ((line = procOutReader.readLine()) != null) {
 			WLogger.info(line);
 		}
+		return tempFile;
 	}
+	
 	@Override
 	public void insertFile(File mpqArchive, String filenameInMpq, File tempFile) throws IOException, InterruptedException {
 		Runtime rt = Runtime.getRuntime();
@@ -38,6 +41,7 @@ public class MpqCl implements MpqEditor {
 			WLogger.info(line);
 		}
 	}
+	
 	@Override
 	public void deleteFile(File mpqArchive, String filenameInMpq)
 			throws IOException, InterruptedException {
@@ -51,5 +55,13 @@ public class MpqCl implements MpqEditor {
 		while ((line = procOutReader.readLine()) != null) {
 			WLogger.info(line);
 		}
+	}
+
+	@Override
+	public void compactArchive(File mpqArchive) throws IOException,
+			InterruptedException {
+		throw new IOException("Not Implemented");
+		//TODO fix
+		
 	}
 }

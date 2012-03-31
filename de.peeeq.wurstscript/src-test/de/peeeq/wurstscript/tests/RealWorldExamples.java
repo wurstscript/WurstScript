@@ -72,6 +72,11 @@ public class RealWorldExamples extends PscriptTest {
 	}
 	
 	@Test
+	public void optimizer() throws IOException {
+		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "optimizer.wurst"), false);
+	}
+	
+	@Test
 	public void test_stdlib() throws IOException {
 		List<File> inputs = Lists.newLinkedList();
 //		settings.put("lib", "./wurstscript/lib/");

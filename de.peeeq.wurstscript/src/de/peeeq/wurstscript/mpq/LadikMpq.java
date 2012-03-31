@@ -19,17 +19,14 @@ public class LadikMpq implements MpqEditor {
 	}
 	
 	@Override
-	public void extractFile(File mpqArchive, String fileToExtract, File tempFile)
+	public File extractFile(File mpqArchive, String fileToExtract)
 			throws IOException, InterruptedException {
 		Runtime rt = Runtime.getRuntime();
 		File tempFile1 = new File("./temp/" + fileToExtract);
-		//scriptfile
-		File script = new File("extract.txt");
-		String scriptString = "extract " + mpqArchive.getAbsolutePath() + " " + fileToExtract;  
-		Files.write(scriptString, script, Charsets.UTF_8);
-		String[] commands = {MpqEditorFactory.getFilepath(), "/console", script.getAbsolutePath(), "./temp"};
-		System.out.println(Arrays.toString( commands ));
-		System.out.println("yes");
+		File script = MoPaqScriptfiles.extractFile(mpqArchive, "war3map.j");
+		
+		String[] commands = {MpqEditorFactory.getFilepath(), "/console", script.getAbsolutePath()};
+		System.out.println(Arrays.toString(commands));
 		
 		Process proc = rt.exec(commands);
 		InputStream procOut = proc.getInputStream();
@@ -37,22 +34,14 @@ public class LadikMpq implements MpqEditor {
 		proc.waitFor();
 		String line;
 		while ((line = procOutReader.readLine()) != null) {
+			System.out.println(line);
 			WLogger.info(line);
 		}
-		
+		tempFile1 = new File("./temp/" + fileToExtract); 
 		if (!tempFile1.exists()) {
 			throw new Error("could not extract file");
 		}
-		
-		if (tempFile.exists()) {
-			tempFile.delete();
-		}
-		
-		tempFile1.renameTo(tempFile);
-		if (!tempFile.exists()) {
-			throw new Error("could not rename file");
-		}
-		
+		return tempFile1;
 		
 	}
 
@@ -60,7 +49,9 @@ public class LadikMpq implements MpqEditor {
 	public void insertFile(File mpqArchive, String filenameInMpq, File tempFile)
 			throws IOException, InterruptedException {
 		Runtime rt = Runtime.getRuntime();
-		String[] commands = {MpqEditorFactory.getFilepath(),"/console", "add", mpqArchive.getAbsolutePath(), tempFile.getAbsolutePath(), filenameInMpq};
+		File script = MoPaqScriptfiles.insertFile(mpqArchive, tempFile, filenameInMpq);
+		
+		String[] commands = {MpqEditorFactory.getFilepath(), "/console", script.getAbsolutePath()};
 		
 		Process proc = rt.exec(commands);
 		InputStream procOut = proc.getInputStream();
@@ -77,7 +68,9 @@ public class LadikMpq implements MpqEditor {
 	public void deleteFile(File mpqArchive, String filenameInMpq)
 			throws IOException, InterruptedException {
 		Runtime rt = Runtime.getRuntime();
-		String[] commands = {MpqEditorFactory.getFilepath(),"/console", "delete", mpqArchive.getAbsolutePath(), filenameInMpq};
+		File script = MoPaqScriptfiles.deleteMapfile(mpqArchive, filenameInMpq);
+		
+		String[] commands = {MpqEditorFactory.getFilepath(), "/console", script.getAbsolutePath()};		
 		
 		Process proc = rt.exec(commands);
 		InputStream procOut = proc.getInputStream();
@@ -94,6 +87,25 @@ public class LadikMpq implements MpqEditor {
 			throws IOException, InterruptedException {
 		Runtime rt = Runtime.getRuntime();
 		String[] commands = {MpqEditorFactory.getFilepath(),"/console", "compact", mpqArchive.getAbsolutePath()};
+		
+		Process proc = rt.exec(commands);
+		InputStream procOut = proc.getInputStream();
+		BufferedReader procOutReader = new BufferedReader(new InputStreamReader(procOut));
+		proc.waitFor();
+		String line;
+		while ((line = procOutReader.readLine()) != null) {
+			WLogger.info(line);
+		}
+		
+	}
+
+	@Override
+	public void compactArchive(File mpqArchive) throws IOException,
+			InterruptedException {
+		Runtime rt = Runtime.getRuntime();
+		File script = MoPaqScriptfiles.compactMapfile(mpqArchive);
+		
+		String[] commands = {MpqEditorFactory.getFilepath(), "/console", script.getAbsolutePath()};		
 		
 		Process proc = rt.exec(commands);
 		InputStream procOut = proc.getInputStream();

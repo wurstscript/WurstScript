@@ -14,7 +14,7 @@ public class WinMpq implements MpqEditor {
 	}
 	
 	@Override
-	public void extractFile(File mpqArchive, String fileToExtract, File tempFile)
+	public File extractFile(File mpqArchive, String fileToExtract)
 			throws IOException, InterruptedException {
 		Runtime rt = Runtime.getRuntime();
 		File tempFile1 = new File("./temp/" + fileToExtract);
@@ -35,14 +35,8 @@ public class WinMpq implements MpqEditor {
 			throw new Error("could not extract file");
 		}
 		
-		if (tempFile.exists()) {
-			tempFile.delete();
-		}
 		
-		tempFile1.renameTo(tempFile);
-		if (!tempFile.exists()) {
-			throw new Error("could not rename file");
-		}
+		return tempFile1;
 		
 		
 	}
@@ -78,6 +72,13 @@ public class WinMpq implements MpqEditor {
 		while ((line = procOutReader.readLine()) != null) {
 			WLogger.info(line);
 		}
+		
+	}
+
+	@Override
+	public void compactArchive(File mpqArchive) throws IOException,
+			InterruptedException {
+		// TODO Auto-generated method stub
 		
 	}
 

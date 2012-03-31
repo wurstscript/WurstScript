@@ -1,0 +1,12 @@
+package Boolexpr
+    
+    public function boolexpr.or( boolexpr operandB ) returns boolexpr
+		return Or( this, operandB )
+		
+	public function boolexpr.and( boolexpr operandB ) returns boolexpr
+		return And( this, operandB )
+		
+	public function boolexpr.destr()
+		DestroyBoolExpr( this )
+
+endpackage
