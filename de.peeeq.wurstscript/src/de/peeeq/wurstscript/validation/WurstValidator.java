@@ -359,9 +359,15 @@ public class WurstValidator {
 
 	private void checkReturn(FunctionImplementation func) {
 		String functionName = func.getName();
-		if (func.getReturnTyp() instanceof TypeExpr) {
-			if (!func.getBody().attrDoesReturn()) {
-				attr.addError(func.getSource(), "Function " + functionName + " is missing a return statement.");
+		if (func.getBody().size() > 0) {
+			if (func.getReturnTyp() instanceof TypeExpr) {
+				if (!func.getBody().attrDoesReturn()) {
+					attr.addError(func.getSource(), "Function " + functionName + " is missing a return statement.");
+				}
+			}
+		} else { // no body, check if in interface:
+			if (func.getReturnTyp() instanceof TypeExpr && !(func.attrNearestStructureDef() instanceof InterfaceDef)) {
+				attr.addError(func.getSource(), "Function " + functionName + " is missing a body. Use the 'skip' statement to define an empty body.");
 			}
 		}
 	}

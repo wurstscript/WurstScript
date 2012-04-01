@@ -57,12 +57,15 @@ public class InterfaceTranslator {
 	private void translateInterfaceFuncDef(InterfaceDef interfaceDef, List<ClassDef> instances, FuncDef funcDef) {
 		ImFunction f = translator.getFuncFor(funcDef);
 		List<Pair<ClassDef, FuncDef>> instances2 = getClassedWithImplementation(instances, funcDef);
-		f.getBody().addAll(createDispatch(instances2, 0, instances.size()-1, funcDef, f, false));
+		f.getBody().addAll(createDispatch(instances2, 0, instances2.size()-1, funcDef, f, false));
 		if (funcDef.getBody().size() > 0) {
 			// TODO add default implementation
+			f.getBody().addAll(translator.translateStatements(f, funcDef.getBody()));
 		} else {
 			if (!(funcDef.attrTyp() instanceof PScriptTypeVoid)) {
-				// TODO add return statement
+				String msg = "ERROR: invalid type for interface dispatch";
+				f.getBody().add(JassIm.ImFunctionCall(translator.getDebugPrintFunc(), ImExprs(ImStringVal(msg))));
+				// add return statement
 				ImType type = f.getReturnType();
 				ImExpr def = translator.getDefaultValueForJassType(type);
 				f.getBody().add(JassIm.ImReturn(def));
@@ -124,7 +127,7 @@ public class InterfaceTranslator {
 								JassIm.ImIntVal(translator.getTypeId(instances.get(start).getA()))));;
 				
 				return Collections.<ImStmt>singletonList(
-						JassIm.ImIf(condition, ImStmts(), ImStmts())
+						JassIm.ImIf(condition, ImStmts(result), ImStmts())
 					);
 			} else {
 				return result;
@@ -133,7 +136,8 @@ public class InterfaceTranslator {
 			int splitAt = start + (end-start) / 2;
 			
 			boolean eq = false;
-			if (splitAt - start == 1) {
+			System.out.println("splitAt - start = " + (splitAt - start));
+			if (splitAt - start == 0) {
 				// if we only have one element at the left side, we can already check for equality
 				eq = true;
 			}

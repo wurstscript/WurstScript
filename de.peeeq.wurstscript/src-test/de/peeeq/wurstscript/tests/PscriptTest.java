@@ -74,6 +74,13 @@ public class PscriptTest {
 		reader.close();
 		Assert.assertEquals("", errors);
 	}
+	
+	public void testAssertErrorFileWithStdLib(File file, String errorMessage, boolean executeProg) throws IOException {
+		Reader reader= new FileReader(file);
+		String errors = testScript(file.getAbsolutePath(), reader, file.getName(), executeProg, true);
+		reader.close();
+		Assert.assertTrue(errors, errors.contains(errorMessage));
+	}
 
 	public void testAssertErrors(String name, boolean executeProg, String prog, String errorMessage) {
 		name = Utils.getMethodName(2);

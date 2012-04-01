@@ -36,6 +36,7 @@ import de.peeeq.wurstscript.jassIm.ImTupleArrayType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.JassImElement;
 import de.peeeq.wurstscript.utils.Pair;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class ImToJassTranslator {
 
@@ -83,12 +84,22 @@ public class ImToJassTranslator {
 			return;
 		}
 		if (translatingFunctions.contains(imFunc)) {
-			String msg = "cyclic dependency between functions: " + imFunc.getName() + "!";
-			for (ImFunction f : translatingFunctions) { 
-				msg += "\n - " + f.getName();
+			if (imFunc != translatingFunctions.peek()) {
+				String msg = "cyclic dependency between functions: " ;
+				boolean start = false;
+				for (ImFunction f : translatingFunctions) {
+					if (imFunc == f) {
+						start = true;
+					}
+					if (start) {
+						msg += "\n - " + Utils.printElement(getTrace(f));
+					}
+				}
+				WPos src = getTrace(imFunc).attrSource();
+				throw new CompileError(src, msg);
 			}
-			WPos src = getTrace(imFunc).attrSource();
-			throw new CompileError(src, msg);
+			// already translating, recursive function
+			return;
 		}
 		translatingFunctions.push(imFunc);
 		for (ImFunction f : calledFunctions.get(imFunc)) {

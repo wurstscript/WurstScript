@@ -233,7 +233,7 @@ public class ImTranslator {
 		if (f == null) {
 			f = JassIm.ImFunction("destroy" + classDef.getName(), ImVars(), TypesHelper.imVoid(), ImVars(), ImStmts(), false, false);
 			destroyFuncMap.put(classDef, f);
-			addSource(f, classDef.getOnDestroy().getSource());
+			addSource(f, classDef.getOnDestroy());
 			addFunction(f);
 		}
 		return f ;
@@ -251,7 +251,7 @@ public class ImTranslator {
 		funcDef.imCreateFuncSkeleton(this, f);
 		addFunction(f);
 		functionMap.put(funcDef, f);
-		addSource(f, funcDef.getSource());
+		addSource(f, funcDef);
 		return f;
 	}
 	private boolean isBJ(WPos source) {
@@ -264,7 +264,7 @@ public class ImTranslator {
 		if (f == null) {
 			f = JassIm.ImFunction("init_" + p.getName(), ImVars(), ImVoid(), ImVars(), ImStmts(), false, false);
 			initFuncMap.put(p, f);
-			addSource(f, p.getSource()); // XXX more precise source
+			addSource(f, p); // XXX more precise source
 		}
 		return f ;
 	}
@@ -349,7 +349,7 @@ public class ImTranslator {
 			boolean isBj = isBJ(varDef.getSource());
 			v = JassIm.ImVar(type, name, isBj);
 			varMap.put(varDef, v);
-			addSource(v, varDef.getSource());
+			addSource(v, varDef);
 		}
 		return v;
 	}

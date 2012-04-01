@@ -27,7 +27,7 @@ public class RealWorldExamples extends PscriptTest {
 	
 	@Test
 	public void testCyclic() throws IOException {
-		super.testAssertOkFileWithStdLib(new File(BUG_DIR + "cyclic.wurst"), true);
+		super.testAssertErrorFileWithStdLib(new File(BUG_DIR + "cyclic.wurst"), "cyclic dependency", true);
 	}
 	
 	@Test

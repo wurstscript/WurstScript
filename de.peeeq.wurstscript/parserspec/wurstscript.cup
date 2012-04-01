@@ -202,6 +202,9 @@ PackageDeclaration ::=
 			Entities:entities
 		UNINDENT ENDPACKAGE:y
 		{: RESULT = Ast.WPackage(pos(xleft, yright), name, imports, entities); :}
+		| PACKAGE:x IDENTIFIER:name NL ENDPACKAGE:y
+		{: RESULT = Ast.WPackage(pos(xleft, yright), name, Ast.WImports(), Ast.WEntities()); :}
+		
 ;		
 		
 // 0 or more imports		
