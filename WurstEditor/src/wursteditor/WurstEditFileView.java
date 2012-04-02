@@ -36,31 +36,32 @@ public class WurstEditFileView extends RTextScrollPane {
 		return syntaxCodeArea;
 	}
 
-	public WurstEditFileView(String fileName, JList errorList) {
-		this.fileName = fileName;
-		syntaxCodeArea = new RSyntaxTextArea();
-		
-		SyntaxCodeAreaController controller = new SyntaxCodeAreaController(syntaxCodeArea, errorList);
-		
-		syntaxCodeArea.setDocument(new WurstDocument("wurstscript"));
-		
-		this.setName("jScrollPane2"); // NOI18N
+	public WurstEditFileView( String fileName, JList errorList) {
+            this.fileName = fileName;
+            syntaxCodeArea = new RSyntaxTextArea("toll");
 
-        syntaxCodeArea.setColumns(20);
-        syntaxCodeArea.setRows(60);
-        syntaxCodeArea.setName("syntaxCodeArea"); // NOI18N
-        
-        
-        
-        syntaxCodeArea.setFont(new Font("Consolas", Font.PLAIN, 14));	
-        syntaxCodeArea.setAntiAliasingEnabled(true);
-        
-        syntaxCodeArea.setAnimateBracketMatching(false);
-        
-        this.setViewportView(syntaxCodeArea);
+            System.out.println("1");
+            SyntaxCodeAreaController controller = new SyntaxCodeAreaController(syntaxCodeArea, errorList);
+            System.out.println("2");
+            syntaxCodeArea.setDocument(new WurstDocument("wurstscript"));
+            System.out.println("3");
+            this.setName("jScrollPane2"); // NO
+            syntaxCodeArea.setColumns(20);
+            System.out.println("4");
+            syntaxCodeArea.setRows(60);
+            syntaxCodeArea.setName("syntaxCodeArea"); // NOI18N
 
-        
-        controller.init();
+
+            System.out.println("5");
+            syntaxCodeArea.setFont(new Font("Consolas", Font.PLAIN, 14));	
+            syntaxCodeArea.setAntiAliasingEnabled(true);
+
+            syntaxCodeArea.setAnimateBracketMatching(false);
+
+            this.setViewportView(syntaxCodeArea);
+
+
+            controller.init();
 	}
 
 	public String getFileName() {

@@ -52,7 +52,7 @@ public class MpqTest {
 			//edit.insertFile(new File("./testscripts/mpq/test.w3x"), "war3map.j", f);
 			Assert.assertTrue(f.exists());
 			f.delete();
-
+			//bnlub
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
