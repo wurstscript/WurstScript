@@ -94,7 +94,8 @@ WParameter(WPos source, Modifiers modifiers, TypeExpr typ, String name)
 WStatements * WStatement
 	
 WStatement	=
-	  StmtIf(WPos source, Expr cond, WStatements thenBlock, WStatements elseBlock)
+	  StmtSkip(WPos source)
+	| StmtIf(WPos source, Expr cond, WStatements thenBlock, WStatements elseBlock)
 	| StmtWhile(WPos source, Expr cond, WStatements body)
 	| StmtLoop(WPos source, WStatements body)
 	| LocalVarDef

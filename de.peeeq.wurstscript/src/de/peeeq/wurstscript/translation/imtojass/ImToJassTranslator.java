@@ -12,12 +12,16 @@ import static de.peeeq.wurstscript.jassAst.JassAst.JassVars;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
+import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.WPos;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassFunctions;
@@ -30,7 +34,9 @@ import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImTupleArrayType;
 import de.peeeq.wurstscript.jassIm.ImVar;
+import de.peeeq.wurstscript.jassIm.JassImElement;
 import de.peeeq.wurstscript.utils.Pair;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class ImToJassTranslator {
 
@@ -39,16 +45,18 @@ public class ImToJassTranslator {
 	private ImFunction mainFunc;
 	private ImFunction confFunction;
 	private JassProg prog;
-	private Set<ImFunction> translatingFunctions = Sets.newHashSet();
+	private Stack<ImFunction> translatingFunctions = new Stack<ImFunction>();
 	private Set<ImFunction> translatedFunctions = Sets.newHashSet();
 	private Set<String> usedNames = Sets.newHashSet();
+	private Map<JassImElement, AstElement> trace;
 
 	public ImToJassTranslator(ImProg imProg, Multimap<ImFunction, ImFunction> calledFunctions, 
-			ImFunction mainFunc, ImFunction confFunction) {
+			ImFunction mainFunc, ImFunction confFunction, Map<JassImElement, AstElement> trace) {
 		this.imProg = imProg;
 		this.calledFunctions = calledFunctions;
 		this.mainFunc = mainFunc;
 		this.confFunction = confFunction;
+		this.trace = trace;
 	}
 	
 	public JassProg translate() {
@@ -76,9 +84,24 @@ public class ImToJassTranslator {
 			return;
 		}
 		if (translatingFunctions.contains(imFunc)) {
-			throw new Error("cyclic dependency between functions ");
+			if (imFunc != translatingFunctions.peek()) {
+				String msg = "cyclic dependency between functions: " ;
+				boolean start = false;
+				for (ImFunction f : translatingFunctions) {
+					if (imFunc == f) {
+						start = true;
+					}
+					if (start) {
+						msg += "\n - " + Utils.printElement(getTrace(f));
+					}
+				}
+				WPos src = getTrace(imFunc).attrSource();
+				throw new CompileError(src, msg);
+			}
+			// already translating, recursive function
+			return;
 		}
-		translatingFunctions.add(imFunc);
+		translatingFunctions.push(imFunc);
 		for (ImFunction f : calledFunctions.get(imFunc)) {
 			translateFunctionTransitive(f);
 		}
@@ -86,7 +109,21 @@ public class ImToJassTranslator {
 		translateFunction(imFunc);
 		
 		// translation finished
+		if (translatingFunctions.pop() != imFunc) {
+			throw new Error("something went wrong...");
+		}
 		translatedFunctions.add(imFunc);
+	}
+
+	private AstElement getTrace(JassImElement elem) {
+		while (elem != null) {
+			AstElement t = trace.get(elem);
+			if (t != null) {
+				return t;
+			}
+			elem = elem.getParent();
+		}
+		throw new Error("Could not get trace to original program.");
 	}
 
 	private void translateFunction(ImFunction imFunc) {

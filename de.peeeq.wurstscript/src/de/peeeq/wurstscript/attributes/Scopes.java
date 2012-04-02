@@ -196,6 +196,9 @@ public class Scopes {
 			}
 			result.put(name, def);
 		}
+		
+		// TODO add default methods from interfaces
+		
 		return result;
 	}
 	

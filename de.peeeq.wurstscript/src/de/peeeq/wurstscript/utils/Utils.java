@@ -26,9 +26,11 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithName;
 import de.peeeq.wurstscript.ast.ClassOrModule;
+import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.NameDef;
+import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.WPackage;
@@ -491,7 +493,19 @@ public class Utils {
 		}
 		String type = e.getClass().getSimpleName().replaceAll("Impl$", "");
 		String name = "";
-		if (e instanceof AstElementWithName) {
+		if (e instanceof ExprFunctionCall) {
+			ExprFunctionCall fc = (ExprFunctionCall) e;
+			return "function call " +fc.getFuncName() + "()";
+		} else if (e instanceof FuncDef) {
+			FuncDef fd = (FuncDef) e;
+			return "function " + fd.getName();
+		} else if (e instanceof OnDestroyDef) {
+			OnDestroyDef d = (OnDestroyDef) e;
+			return "destroy function for " + d.attrNearestClassDef().getName();
+		} else if (e instanceof ConstructorDef) {
+			ConstructorDef c = (ConstructorDef) e;
+			return "constructor for " + e.attrNearestClassDef().getName();
+		} else if (e instanceof AstElementWithName) {
 			name = ((AstElementWithName) e).getName();
 		} else if (e instanceof TypeExprSimple) {
 			TypeExprSimple t = (TypeExprSimple) e;
@@ -508,9 +522,6 @@ public class Utils {
 				}
 				name += "}";
 			}
-		} else if (e instanceof ExprFunctionCall) {
-			ExprFunctionCall fc = (ExprFunctionCall) e;
-			return "function call " +fc.getFuncName() + "()";
 		}
 		return type + " " + name;
 	}

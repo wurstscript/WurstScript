@@ -17,13 +17,18 @@ import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 public class RealWorldExamples extends PscriptTest {
 	
 	private static final String TEST_DIR = "./testscripts/concept/";
-
+	private static final String BUG_DIR = "./testscripts/realbugs/";
 	
 	@Override 
 	protected boolean testOptimizer() {
 		return false;
 	}
 	
+	
+	@Test
+	public void testCyclic() throws IOException {
+		super.testAssertErrorFileWithStdLib(new File(BUG_DIR + "cyclic.wurst"), "cyclic dependency", true);
+	}
 	
 	@Test
 	public void testLists() throws IOException {

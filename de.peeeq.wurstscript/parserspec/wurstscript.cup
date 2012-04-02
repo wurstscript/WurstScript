@@ -62,7 +62,7 @@ terminal
 	COMMA, SEMICOLON, COLON,   
 	NL,
 	TUPLE, MODULE, USE, ABSTRACT, IN, FOR, FROM, TO, DOWNTO, STEP, BREAK, THISTYPE, ARROW, IT, IMMUTABLE, OVERRIDE, INSTANCE, INSTANCEOF, ENUM,
-	STATIC, PACKAGE, ENDPACKAGE, RETURNS,FUNCTION, VAL, PUBLIC, PUBLICREAD, PRIVATE, PROTECTED, IMPORT, NATIVETYPE, INIT, NATIVE, INTERFACE,
+	STATIC, PACKAGE, ENDPACKAGE, RETURNS,FUNCTION, SKIP, VAL, PUBLIC, PUBLICREAD, PRIVATE, PROTECTED, IMPORT, NATIVETYPE, INIT, NATIVE, INTERFACE,
 	IMPLEMENTS, ARRAY, IF, ELSE, WHILE, RETURN, CLASS, NEW, NULL, EXTENDS, THIS, CONSTRUCT, ONDESTROY, 
 	TYPE, GLOBALS, ENDGLOBALS, CONSTANT, ENDFUNCTION, TAKES, NOTHING, LOCAL,
 	LOOP, ENDLOOP, EXITWHEN, SET, CALL, THEN, ELSEIF, ENDIF, DESTROY, CASTTO,
@@ -202,6 +202,9 @@ PackageDeclaration ::=
 			Entities:entities
 		UNINDENT ENDPACKAGE:y
 		{: RESULT = Ast.WPackage(pos(xleft, yright), name, imports, entities); :}
+		| PACKAGE:x IDENTIFIER:name NL ENDPACKAGE:y
+		{: RESULT = Ast.WPackage(pos(xleft, yright), name, Ast.WImports(), Ast.WEntities()); :}
+		
 ;		
 		
 // 0 or more imports		
@@ -255,8 +258,8 @@ Entity ::=
 
 
 InterfaceDef ::=
-	Modifiers:mod INTERFACE:x IdentifierWithTypeParamDefs:d ExtendsListOpt:el NL INDENT InterfaceFunctionSignatures:functionSignatures UNINDENT:y
-		{: RESULT = AstHelper.InterfaceDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), el, functionSignatures); :}
+	Modifiers:mod INTERFACE:x IdentifierWithTypeParamDefs:d ExtendsListOpt:el NL INDENT ClassSlots:slots UNINDENT:y
+		{: RESULT = AstHelper.InterfaceDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), el, slots); :}
 ;
 
 ExtendsList ::= 
@@ -503,6 +506,8 @@ Statement ::=
 		{: RESULT = Ast.StmtForFrom(pos(xleft, yright), loopVar, in, body); :}
 	| BREAK:x NL
 		{: RESULT = Ast.StmtExitwhen(pos(xleft, xright), Ast.ExprBoolVal(pos(xleft, xright), true)); :}
+	| SKIP:x NL
+		{: RESULT = Ast.StmtSkip(pos(xleft, xright)); :}
 	| error:x NL
 		{: RESULT = Ast.StmtErr(pos(xleft, xright)); :}
 ;

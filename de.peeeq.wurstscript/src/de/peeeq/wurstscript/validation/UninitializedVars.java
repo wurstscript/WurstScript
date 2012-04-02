@@ -26,6 +26,7 @@ import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtLoop;
 import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StmtSet;
+import de.peeeq.wurstscript.ast.StmtSkip;
 import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
@@ -176,6 +177,11 @@ public class UninitializedVars {
 				public void case_StmtForFrom(StmtForFrom s) {
 					uninitializedVars.remove(s.getLoopVar());
 					checkStatements(s.getBody(), uninitializedVars);
+				}
+
+				@Override
+				public void case_StmtSkip(StmtSkip stmtSkip) {
+					// nothing to do					
 				}
 			});
 		}
