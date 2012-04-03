@@ -304,6 +304,17 @@ public class SimpleStatementTests extends PscriptTest {
 	}
 	
 	
+	@Test
+	public void test_forloop() {
+		assertOk(false,
+				"int a = 10",
+				"for int i = 1 to a",
+				"	a++",
+				"if a == 20",
+				"	testSuccess()"
+				);
+	}
+	
 	public void assertOk( boolean executeProg, String ... body) {
 		String prog = "package test\n" +
 				"	native testFail(string msg)\n" +
