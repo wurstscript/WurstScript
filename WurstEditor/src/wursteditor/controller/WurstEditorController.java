@@ -112,19 +112,20 @@ public class WurstEditorController {
 		WurstEditFileView fileView;
 		try {
 			fileView = new WurstEditFileView(new RSyntaxTextArea(), file.getAbsolutePath(), view.getErrorList());
+		
+			String text = "";
+			try {
+				text = Files.toString(file, Charsets.UTF_8);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			fileView.getSyntaxCodeArea().setText(text);
+			view.getRSTASplitPane().addTab(file.getName(), fileView);
+			view.getRSTASplitPane().setSelectedComponent(fileView);
 		} catch (IOException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-		String text = "";
-		try {
-			text = Files.toString(file, Charsets.UTF_8);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		fileView.getSyntaxCodeArea().setText(text);
-		view.getRSTASplitPane().addTab(file.getName(), fileView);
-		view.getRSTASplitPane().setSelectedComponent(fileView);
 	}
 	
 	private ActionListener onClick_saveFile() {

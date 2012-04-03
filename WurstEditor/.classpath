@@ -9,7 +9,6 @@
 	<classpathentry kind="lib" path="lib/gson-2.0.jar"/>
 	<classpathentry kind="lib" path="lib/guava-10.0.1.jar"/>
 	<classpathentry kind="lib" path="lib/swing-worker-1.1.jar"/>
-	<classpathentry kind="lib" path="C:/Users/Frotty/Documents/Wurst/WurstEditor/lib/autocomplete.jar"/>
-	<classpathentry kind="lib" path="C:/Users/Frotty/Documents/Wurst/WurstEditor/lib/rsyntaxtextarea.jar"/>
+	<classpathentry kind="lib" path="lib/autocomplete.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
