@@ -26,17 +26,18 @@ public class ExprTranslation {
 		ImExpr right = e.getRight().imTranslateExpr(t, f);
 		OpBinary op = e.getOp();
 		if (e.attrFuncDef() != null) {
-			return JassIm.ImFunctionCall(t.getFuncFor(e.attrFuncDef()), ImExprs(left, right));
-		} else {
-			if (op instanceof OpDivReal) {
-				if (e.getLeft().attrTyp() instanceof PScriptTypeInt
-						&& e.getRight().attrTyp() instanceof PScriptTypeInt) {
-					// we want a real division but have 2 ints so we need to multiply with 1.0
-					left = ImOperatorCall(Ast.OpMult(), ImExprs(left, ImRealVal("1.")));
-				}
+			ImFunction calledFunc = t.getFuncFor(e.attrFuncDef());
+			t.addCallRelation(f, calledFunc);
+			return JassIm.ImFunctionCall(calledFunc, ImExprs(left, right));
+		} 
+		if (op instanceof OpDivReal) {
+			if (e.getLeft().attrTyp() instanceof PScriptTypeInt
+					&& e.getRight().attrTyp() instanceof PScriptTypeInt) {
+				// we want a real division but have 2 ints so we need to multiply with 1.0
+				left = ImOperatorCall(Ast.OpMult(), ImExprs(left, ImRealVal("1.")));
 			}
-			return ImOperatorCall(op, ImExprs(left, right));
 		}
+		return ImOperatorCall(op, ImExprs(left, right));
 	}
 
 	public static ImExpr translate(ExprUnary e, ImTranslator t, ImFunction f) {
