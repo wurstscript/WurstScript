@@ -13,6 +13,9 @@ import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FuncRef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.NotExtensionFunction;
+import de.peeeq.wurstscript.ast.OpDivReal;
+import de.peeeq.wurstscript.ast.OpMinus;
+import de.peeeq.wurstscript.ast.OpMult;
 import de.peeeq.wurstscript.ast.OpPlus;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.WPackage;
@@ -48,6 +51,12 @@ public class AttrFuncDef {
 		String funcName = null;
 		if ( node.getOp() instanceof OpPlus) {
 			funcName = overloadingPlus;
+		}else if ( node.getOp() instanceof OpMinus) {
+			funcName = overloadingMinus;
+		}else if ( node.getOp() instanceof OpMult) {
+			funcName = overloadingMult;
+		}else if ( node.getOp() instanceof OpDivReal) {
+			funcName = overloadingDiv;
 		}
 		if (bothTypesRealOrInt(node.getLeft().attrTyp(), node.getRight().attrTyp())) {
 			return null;
@@ -69,14 +78,16 @@ public class AttrFuncDef {
 				Collection<ExtensionFuncDef> functions = NameResolution.searchTypedName(ExtensionFuncDef.class, funcName, pack);
 				result = selectExtensionFunction(left.attrTyp(), functions);
 			}
+			return null;
 		}
-		if (result == null) {
-			attr.addError(node.getSource(), "The function " + funcName + " is undefined for receiver of type " + leftType);
-		}
-		if (funcName == overloadingPlus) {
+//		if (result == null) {
+//			attr.addError(node.getSource(), "The function " + funcName + " is undefined for receiver of type " + leftType);
+//			return null;
+//		}
+		if (funcName == overloadingPlus || funcName == overloadingMinus || funcName == overloadingDiv || funcName == overloadingMult) {
 			WParameters params= result.getParameters();
 			if ( params.size() != 1 ){
-				attr.addError(node.getSource(), "The function " + funcName + " which is supposed to overload '+' doesn't have only 1 parameter" );
+				attr.addError(node.getSource(), "The function " + funcName + " doesn't have only 1 parameter. Overloading functions may only have one." );
 			}
 		}
 		return result;

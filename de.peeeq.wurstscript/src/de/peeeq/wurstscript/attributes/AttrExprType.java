@@ -349,7 +349,10 @@ public class AttrExprType {
 					return caseMathOperation();
 				} else {
 					FunctionDefinition def = term.attrFuncDef();
-					return def.getReturnTyp().attrTyp();
+					if (def != null) {
+						return def.getReturnTyp().attrTyp();
+					}
+					return PScriptTypeUnknown.instance();
 				}
 		
 				
@@ -372,12 +375,28 @@ public class AttrExprType {
 			@Override
 			public PscriptType case_OpMinus(OpMinus op)
 			{
-				return caseMathOperation();
+				if (bothTypesRealOrInt()) {
+					return caseMathOperation();
+				} else {
+					FunctionDefinition def = term.attrFuncDef();
+					if (def != null) {
+						return def.getReturnTyp().attrTyp();
+					}
+					return PScriptTypeUnknown.instance();
+				}
 			}
 
 			@Override
-			public PscriptType case_OpMult(OpMult term)  {
-				return caseMathOperation();
+			public PscriptType case_OpMult(OpMult op)  {
+				if (bothTypesRealOrInt()) {
+					return caseMathOperation();
+				} else {
+					FunctionDefinition def = term.attrFuncDef();
+					if (def != null) {
+						return def.getReturnTyp().attrTyp();
+					}
+					return PScriptTypeUnknown.instance();
+				}
 			}
 
 			@Override
@@ -385,16 +404,18 @@ public class AttrExprType {
 			{
 				if (Utils.isJassCode(op)) {
 					return caseMathOperation();
+				} else if (bothTypesRealOrInt()) {
+					return PScriptTypeReal.instance();			
 				} else {
-					if (leftType instanceof PScriptTypeReal || leftType instanceof PScriptTypeInt) {
-						if (rightType instanceof PScriptTypeReal || rightType instanceof PScriptTypeInt) {
-							return PScriptTypeReal.instance();
-						}
+					FunctionDefinition def = term.attrFuncDef();
+					if (def != null) {
+						return def.getReturnTyp().attrTyp();
 					}
-					attr.addError(term.getSource(), "Operator " + term.getOp() +" is not defined for " +
-							"operands " + leftType + " and " + rightType);
 					return PScriptTypeUnknown.instance();
 				}
+//				attr.addError(term.getSource(), "Operator " + term.getOp() +" is not defined for " +
+//						"operands " + leftType + " and " + rightType);
+//				return PScriptTypeUnknown.instance();
 			}
 
 			@Override
