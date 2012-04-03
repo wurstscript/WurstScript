@@ -272,6 +272,10 @@ TranslatedToImFunction = ConstructorDef | FunctionDefinition | InitBlock | OnDes
 attributes:
 
 Op.toSymbol() returns String implemented by de.peeeq.wurstscript.attributes.PrettyPrinter.toSymbol
+
+ExprBinary.attrFuncDef
+	returns FunctionDefinition
+	implemented by de.peeeq.wurstscript.attributes.AttrFuncDef.calculate
 	
 ExprNewObject.attrConstructorDef 
 	returns ConstructorDef 

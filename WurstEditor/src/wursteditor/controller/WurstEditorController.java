@@ -109,7 +109,13 @@ public class WurstEditorController {
                 System.out.println(view);
 		System.out.println(view.getErrorList());
 		System.out.println(file.getAbsolutePath());
-		WurstEditFileView fileView = new WurstEditFileView(new RSyntaxTextArea(), file.getAbsolutePath(), view.getErrorList());
+		WurstEditFileView fileView;
+		try {
+			fileView = new WurstEditFileView(new RSyntaxTextArea(), file.getAbsolutePath(), view.getErrorList());
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		String text = "";
 		try {
 			text = Files.toString(file, Charsets.UTF_8);
