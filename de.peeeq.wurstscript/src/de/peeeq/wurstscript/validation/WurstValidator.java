@@ -20,6 +20,7 @@ import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
+import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
@@ -488,6 +489,19 @@ public class WurstValidator {
 		}
 	}
 
+	@CheckMethod
+	public void visit(ExprBinary expr) {
+		FunctionDefinition def = expr.attrFuncDef();
+		System.out.println(def);
+		if (def != null) {
+			FunctionSignature sig = new FunctionSignature(def.attrParameterTypes(), def.getReturnTyp().attrTyp());
+			List<Expr> args = Lists.newArrayList();
+			args.add(expr.getLeft());
+			args.add(expr.getRight());
+			checkParams(expr, args, sig);
+		}
+	}
+	
 	@CheckMethod
 	public void visit(ExprMemberMethod stmtCall) {
 		// calculating the exprType should reveal all errors:

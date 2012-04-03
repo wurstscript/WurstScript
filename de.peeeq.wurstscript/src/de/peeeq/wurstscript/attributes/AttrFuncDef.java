@@ -16,6 +16,9 @@ import de.peeeq.wurstscript.ast.NotExtensionFunction;
 import de.peeeq.wurstscript.ast.OpPlus;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.ast.WParameters;
+import de.peeeq.wurstscript.types.PScriptTypeInt;
+import de.peeeq.wurstscript.types.PScriptTypeReal;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
 
@@ -25,6 +28,10 @@ import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
  *
  */
 public class AttrFuncDef {
+	final static String overloadingPlus = "plus";
+	final static String overloadingMinus = "minus";
+	final static String overloadingMult = "multiply";
+	final static String overloadingDiv = "divide";
 
 	public static  FunctionDefinition calculate(final ExprFuncRef node) {
 		FunctionDefinition result = searchFunction(node.getFuncName(), node);
@@ -40,7 +47,10 @@ public class AttrFuncDef {
 		PscriptType leftType = left.attrTyp();
 		String funcName = null;
 		if ( node.getOp() instanceof OpPlus) {
-			funcName = "plus";
+			funcName = overloadingPlus;
+		}
+		if (bothTypesRealOrInt(node.getLeft().attrTyp(), node.getRight().attrTyp())) {
+			return null;
 		}
 		if (leftType instanceof PscriptTypeNamedScope) {
 			PscriptTypeNamedScope sr = (PscriptTypeNamedScope) leftType;
@@ -61,9 +71,22 @@ public class AttrFuncDef {
 			}
 		}
 		if (result == null) {
-			attr.addError(node.getSource(), "The method " + funcName + " is undefined for receiver of type " + leftType);
+			attr.addError(node.getSource(), "The function " + funcName + " is undefined for receiver of type " + leftType);
+		}
+		if (funcName == overloadingPlus) {
+			WParameters params= result.getParameters();
+			if ( params.size() != 1 ){
+				attr.addError(node.getSource(), "The function " + funcName + " which is supposed to overload '+' doesn't have only 1 parameter" );
+			}
 		}
 		return result;
+	}
+
+	private static boolean bothTypesRealOrInt(PscriptType leftType, PscriptType rightType) {
+		if ((leftType instanceof PScriptTypeInt || leftType instanceof PScriptTypeReal) && (rightType instanceof PScriptTypeInt || rightType instanceof PScriptTypeReal)) {
+			return true;
+		}
+		return false;
 	}
 
 	public static  FunctionDefinition calculate(final ExprFunctionCall node) {
