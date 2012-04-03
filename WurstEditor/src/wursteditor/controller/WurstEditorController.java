@@ -14,11 +14,12 @@ import javax.swing.UIManager;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
+
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import com.google.common.io.PatternFilenameFilter;
 
-import de.peeeq.wurstscript.PUtil.PUtil;
 import de.peeeq.wurstscript.attributes.CompileError;
 
 import de.peeeq.wurstscript.utils.Utils;
@@ -108,7 +109,7 @@ public class WurstEditorController {
                 System.out.println(view);
 		System.out.println(view.getErrorList());
 		System.out.println(file.getAbsolutePath());
-		WurstEditFileView fileView = new WurstEditFileView( file.getAbsolutePath(), view.getErrorList());
+		WurstEditFileView fileView = new WurstEditFileView(new RSyntaxTextArea(), file.getAbsolutePath(), view.getErrorList());
 		String text = "";
 		try {
 			text = Files.toString(file, Charsets.UTF_8);

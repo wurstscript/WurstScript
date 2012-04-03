@@ -3,8 +3,11 @@ package wursteditor;
 import java.awt.Font;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import javax.swing.JList;
 import javax.swing.text.Document;
 
@@ -12,6 +15,7 @@ import org.fife.ui.autocomplete.AutoCompletion;
 import org.fife.ui.autocomplete.CompletionProvider;
 import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
+import org.fife.ui.rsyntaxtextarea.Theme;
 import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
 import org.fife.ui.rsyntaxtextarea.folding.FoldManager;
 import org.fife.ui.rsyntaxtextarea.folding.FoldParserManager;
@@ -36,9 +40,12 @@ public class WurstEditFileView extends RTextScrollPane {
 		return syntaxCodeArea;
 	}
 
-	public WurstEditFileView( String fileName, JList errorList) {
+	public WurstEditFileView(RSyntaxTextArea syntaxCodeArea, String fileName, JList errorList) throws IOException {
+			super(syntaxCodeArea);
             this.fileName = fileName;
-            syntaxCodeArea = new RSyntaxTextArea("toll");
+            this.syntaxCodeArea = syntaxCodeArea;
+            Theme theme = Theme.load(new FileInputStream(new File("./lib/wurst.xml")));
+            theme.apply(this.syntaxCodeArea);
 
             System.out.println("1");
             SyntaxCodeAreaController controller = new SyntaxCodeAreaController(syntaxCodeArea, errorList);

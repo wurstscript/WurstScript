@@ -30,7 +30,7 @@ public class WurstEditorView extends FrameView {
 
         initComponents();
         
-        //getRSTASplitPane().removeAll();
+        getRSTASplitPane().removeAll();
         
         ResourceMap resourceMap = Application.getInstance(wursteditor.WurstEditorApp.class).getContext().getResourceMap(WurstEditorView.class);
         
