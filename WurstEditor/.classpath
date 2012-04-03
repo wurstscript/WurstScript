@@ -4,12 +4,12 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/de.peeeq.wurstscript"/>
 	<classpathentry kind="lib" path="lib/appframework-1.0.3.jar"/>
-	<classpathentry kind="lib" path="lib/autocomplete.jar"/>
 	<classpathentry kind="lib" path="lib/gson-2.0-javadoc.jar"/>
 	<classpathentry kind="lib" path="lib/gson-2.0-sources.jar"/>
 	<classpathentry kind="lib" path="lib/gson-2.0.jar"/>
 	<classpathentry kind="lib" path="lib/guava-10.0.1.jar"/>
-	<classpathentry kind="lib" path="lib/rsyntaxtextarea.jar"/>
 	<classpathentry kind="lib" path="lib/swing-worker-1.1.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Frotty/Documents/Wurst/WurstEditor/lib/autocomplete.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Frotty/Documents/Wurst/WurstEditor/lib/rsyntaxtextarea.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
