@@ -14,6 +14,7 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
+import javax.swing.JList;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rtextarea.RTextScrollPane;
 import org.jdesktop.application.Application;
@@ -43,6 +44,7 @@ public class WurstEditorView extends FrameView {
         getFrame().setIconImage(image);
         // status bar initialization - message timeout, idle icon and busy animation, etc
         
+        errorList = new JList();
     }
     
     
@@ -86,8 +88,9 @@ public class WurstEditorView extends FrameView {
         fileTree = new javax.swing.JTree();
         syntaxErrorSplitpane = new javax.swing.JSplitPane();
         RSTASplitPane = new javax.swing.JTabbedPane();
-        syntaxCodeArea = new RSyntaxTextArea();
+		syntaxCodeArea = new RSyntaxTextArea();
         rSyntaxScrollPane = new RTextScrollPane((RSyntaxTextArea)syntaxCodeArea);
+        
         ErrorListScrollPane = new javax.swing.JScrollPane();
         errorList = new javax.swing.JList();
         menuBar = new javax.swing.JMenuBar();
@@ -111,6 +114,8 @@ public class WurstEditorView extends FrameView {
         jMenu3 = new javax.swing.JMenu();
         javax.swing.JMenu helpMenu = new javax.swing.JMenu();
         javax.swing.JMenuItem aboutMenuItem = new javax.swing.JMenuItem();
+        jFrame1 = new javax.swing.JFrame();
+        jFileChooser1 = new javax.swing.JFileChooser();
 
         mainPanel.setName("mainPanel"); // NOI18N
 
@@ -381,6 +386,37 @@ public class WurstEditorView extends FrameView {
 
         menuBar.add(helpMenu);
 
+        jFrame1.setName("jFrame1"); // NOI18N
+
+        jFileChooser1.setFileFilter(new ProjectFileFiler());
+        jFileChooser1.setName("jFileChooser1"); // NOI18N
+        jFileChooser1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jFileChooser1ActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout jFrame1Layout = new javax.swing.GroupLayout(jFrame1.getContentPane());
+        jFrame1.getContentPane().setLayout(jFrame1Layout);
+        jFrame1Layout.setHorizontalGroup(
+            jFrame1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 594, Short.MAX_VALUE)
+            .addGroup(jFrame1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(jFrame1Layout.createSequentialGroup()
+                    .addGap(0, 0, Short.MAX_VALUE)
+                    .addComponent(jFileChooser1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGap(0, 0, Short.MAX_VALUE)))
+        );
+        jFrame1Layout.setVerticalGroup(
+            jFrame1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 397, Short.MAX_VALUE)
+            .addGroup(jFrame1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(jFrame1Layout.createSequentialGroup()
+                    .addGap(0, 0, Short.MAX_VALUE)
+                    .addComponent(jFileChooser1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGap(0, 0, Short.MAX_VALUE)))
+        );
+
         setComponent(mainPanel);
         setMenuBar(menuBar);
     }// </editor-fold>//GEN-END:initComponents
@@ -388,6 +424,10 @@ public class WurstEditorView extends FrameView {
     private void fileMenuMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_fileMenuMouseClicked
         // TODO add your handling code here:
     }//GEN-LAST:event_fileMenuMouseClicked
+
+    private void jFileChooser1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jFileChooser1ActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_jFileChooser1ActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JScrollPane ErrorListScrollPane;
@@ -399,6 +439,8 @@ public class WurstEditorView extends FrameView {
     private javax.swing.JTree fileTree;
     private javax.swing.JCheckBoxMenuItem jCheckBoxMenuItem1;
     private javax.swing.JCheckBoxMenuItem jCheckBoxMenuItem2;
+    private javax.swing.JFileChooser jFileChooser1;
+    private javax.swing.JFrame jFrame1;
     private javax.swing.JMenu jMenu1;
     private javax.swing.JMenu jMenu2;
     private javax.swing.JMenu jMenu3;
@@ -713,6 +755,20 @@ public class WurstEditorView extends FrameView {
      */
     public JDialog getAboutBox() {
         return aboutBox;
+    }
+
+    /**
+     * @return the jFileChooser1
+     */
+    public javax.swing.JFileChooser getjFileChooser1() {
+        return jFileChooser1;
+    }
+
+    /**
+     * @param jFileChooser1 the jFileChooser1 to set
+     */
+    public void setjFileChooser1(javax.swing.JFileChooser jFileChooser1) {
+        this.jFileChooser1 = jFileChooser1;
     }
 
 

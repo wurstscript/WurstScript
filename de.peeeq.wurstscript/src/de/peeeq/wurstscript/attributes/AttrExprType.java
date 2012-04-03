@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
@@ -74,6 +75,7 @@ import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
 import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
 import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
+import de.peeeq.wurstscript.types.PscriptTypePrimitive;
 import de.peeeq.wurstscript.types.PscriptTypeTuple;
 import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -330,13 +332,33 @@ public class AttrExprType {
 				}
 				return PScriptTypeBool.instance();
 			}
+			
+			public boolean bothTypesRealOrInt() {
+				if ((leftType instanceof PScriptTypeInt || leftType instanceof PScriptTypeReal) && (rightType instanceof PScriptTypeInt || rightType instanceof PScriptTypeReal)) {
+					return true;
+				}
+				return false;
+				
+			}
 
 			@Override
 			public PscriptType case_OpPlus(OpPlus op)  {
 				if (leftType instanceof PScriptTypeString && rightType instanceof PScriptTypeString) {
 					return PScriptTypeString.instance();
+				} if (bothTypesRealOrInt()) {
+					return caseMathOperation();
+				} else if(leftType instanceof PscriptTypeClass) {
+					PscriptTypeClass pclass = (PscriptTypeClass)leftType;
+					ClassDef def = pclass.getClassDef();
+					Multimap<String, NameDef > map = def.attrVisibleNamesPublic();
+					if (map.containsKey("plus")) {
+						
+					}else {
+						
+					}
 				}
-				return caseMathOperation();
+				return null;
+				
 			}
 
 			private PscriptType caseMathOperation() {

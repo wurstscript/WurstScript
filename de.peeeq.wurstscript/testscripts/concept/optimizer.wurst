@@ -128,6 +128,9 @@ package Test
     	
     function blah3214()
     	ExecuteFunc( "blub" )
+    	
+    init
+    	foo()
 
 endpackage
 

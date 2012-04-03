@@ -14,12 +14,16 @@ import javax.swing.UIManager;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
+
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import com.google.common.io.PatternFilenameFilter;
 
 import de.peeeq.wurstscript.attributes.CompileError;
 
+import de.peeeq.wurstscript.utils.Utils;
+import java.awt.EventQueue;
 import wursteditor.WurstEditFileView;
 import wursteditor.WurstEditorView;
 
@@ -31,7 +35,7 @@ public class WurstEditorController {
 
 	
 	public WurstEditorController(final WurstEditorView v) {
-		v.getOpenProjectButton().addActionListener(onClick_openProject());
+		v.getOpenProjectButton().addActionListener(onClick_openProject(v));
 		v.getSaveFileButton().addActionListener(onClick_saveFile());
 		v.getUndoButton().addActionListener(onclick_undo(v));
 		v.getRedoButton().addActionListener(onclick_redo(v));
@@ -61,17 +65,27 @@ public class WurstEditorController {
 		};
 	}
 
-	private ActionListener onClick_openProject() {
+	private ActionListener onClick_openProject(final WurstEditorView v) {
+		this.view = v;
 		return new ActionListener() {
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				FileDialog chooser = new FileDialog(view.getFrame());
-				FilenameFilter filter = new PatternFilenameFilter(".*\\.wurst|.*\\.wurstproject");
-				chooser.setFilenameFilter(filter);
-				chooser.setVisible(true);
-				File file = new File(chooser.getDirectory() + chooser.getFile());
-				openFile(file);
+                            EventQueue.invokeLater(new Runnable() {
+                                 public void run() {
+                                    int returnVal = view.getjFileChooser1().showOpenDialog(view.getFrame());
+                                    if (returnVal == JFileChooser.APPROVE_OPTION) {
+                                        File currentFile = view.getjFileChooser1().getSelectedFile();
+                                        System.out.println("File: " + currentFile.getName());
+                                        if (currentFile.getName().endsWith(".wurst")) {
+                                            openFile(currentFile);
+                                        }
+
+                                    } else {
+                                        System.out.println("File access cancelled by user.");
+                                    }
+                                 }
+                             });
 			}
 
 			
@@ -92,9 +106,16 @@ public class WurstEditorController {
 				}
 			}
 		}
-		
-		
-		WurstEditFileView fileView = new WurstEditFileView(file.getAbsolutePath(), view.getErrorList());
+                System.out.println(view);
+		System.out.println(view.getErrorList());
+		System.out.println(file.getAbsolutePath());
+		WurstEditFileView fileView;
+		try {
+			fileView = new WurstEditFileView(new RSyntaxTextArea(), file.getAbsolutePath(), view.getErrorList());
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		String text = "";
 		try {
 			text = Files.toString(file, Charsets.UTF_8);

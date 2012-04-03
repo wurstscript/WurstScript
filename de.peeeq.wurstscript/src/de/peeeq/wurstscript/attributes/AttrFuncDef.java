@@ -4,13 +4,16 @@ import java.util.Collection;
 import java.util.List;
 
 import de.peeeq.wurstscript.ast.Expr;
+import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
+import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FuncRef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.NotExtensionFunction;
+import de.peeeq.wurstscript.ast.OpPlus;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.types.PscriptType;
@@ -27,6 +30,38 @@ public class AttrFuncDef {
 		FunctionDefinition result = searchFunction(node.getFuncName(), node);
 		if (result == null) {
 			attr.addError(node.getSource(), "Could not resolve reference to function " + node.getFuncName());
+		}
+		return result;
+	}
+	
+	public static FunctionDefinition calculate(ExprBinary node) {
+		FunctionDefinition result = null;
+		Expr left = node.getLeft();
+		PscriptType leftType = left.attrTyp();
+		String funcName = null;
+		if ( node.getOp() instanceof OpPlus) {
+			funcName = "plus";
+		}
+		if (leftType instanceof PscriptTypeNamedScope) {
+			PscriptTypeNamedScope sr = (PscriptTypeNamedScope) leftType;
+			result = NameResolution.getTypedNameFromNamedScope(FunctionDefinition.class, left, funcName, sr);
+			// get real implementation funcDef (wrt override)
+			if (result != null && !sr.isStaticRef()) {
+				result = result.attrRealFuncDef();
+			}
+		}
+
+		// check extension methods:
+		if (result == null) {
+			PackageOrGlobal scope = node.attrNearestPackage();
+			if (scope instanceof WPackage) {
+				WPackage pack = (WPackage) scope;
+				Collection<ExtensionFuncDef> functions = NameResolution.searchTypedName(ExtensionFuncDef.class, funcName, pack);
+				result = selectExtensionFunction(left.attrTyp(), functions);
+			}
+		}
+		if (result == null) {
+			attr.addError(node.getSource(), "The method " + funcName + " is undefined for receiver of type " + leftType);
 		}
 		return result;
 	}

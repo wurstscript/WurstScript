@@ -10,7 +10,8 @@ import de.peeeq.wurstscript.utils.UtilsTest;
 @RunWith(Suite.class)
 @SuiteClasses({ 
 	QuickTests.class,
-	RealWorldExamples.class
+	RealWorldExamples.class,
+	MpqTest.class
 })
 public class AllTests {
 
