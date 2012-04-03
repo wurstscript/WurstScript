@@ -35,62 +35,55 @@ import de.peeeq.wurstscript.utils.Utils;
  */
 public class AttrTypeExprType {
 
-	public static PscriptType calculate(OptTypeExpr optType) {
-		return optType.match(new OptTypeExpr.Matcher<PscriptType>() {
-
-			@Override
-			public PscriptType case_TypeExprSimple(TypeExprSimple node) {
-				PscriptType baseType = getBaseType(node);
-				if (node.getTypeArgs().size() > 0) {
-					if (baseType instanceof PscriptTypeNamedScope) {
-						PscriptTypeNamedScope ns = (PscriptTypeNamedScope) baseType;
-						List<PscriptType> newTypes = Utils.map(node.getTypeArgs() , new Function<TypeExpr, PscriptType>() {
-
-							@Override
-							public PscriptType apply(TypeExpr input) {
-								return input.attrTyp();
-							}
-							
-						});
-						return ns.replaceTypeVars(newTypes);
-					} else {
-						attr.addError(node.getSource(), "Type " + baseType + " cannot have type args");
-					}
-				}
-				return baseType;
-			}
-
-			@Override
-			public PscriptType case_TypeExprThis(final TypeExprThis node) {
-				ClassOrModule n = node.attrNearestClassOrModule();
-				if (n == null) {
-					return PScriptTypeUnknown.instance();
-				}
-				return n.match(new ClassOrModule.Matcher<PscriptType>() {
+	
+	public static PscriptType calculate(TypeExprSimple node) {
+		PscriptType baseType = getBaseType(node);
+		if (node.getTypeArgs().size() > 0) {
+			if (baseType instanceof PscriptTypeNamedScope) {
+				PscriptTypeNamedScope ns = (PscriptTypeNamedScope) baseType;
+				List<PscriptType> newTypes = Utils.map(node.getTypeArgs() , new Function<TypeExpr, PscriptType>() {
 
 					@Override
-					public PscriptType case_ClassDef(ClassDef classDef) {
-						return classDef.attrTyp();
+					public PscriptType apply(TypeExpr input) {
+						return input.attrTyp();
 					}
-
-					@Override
-					public PscriptType case_ModuleDef(ModuleDef moduleDef) {
-						return new PscriptTypeModule(moduleDef, true);
-					}
-
+					
 				});
+				return ns.replaceTypeVars(newTypes);
+			} else {
+				attr.addError(node.getSource(), "Type " + baseType + " cannot have type args");
+			}
+		}
+		return baseType;
+	}
+	
+	public static PscriptType calculate(TypeExprThis node) {
+		ClassOrModule n = node.attrNearestClassOrModule();
+		if (n == null) {
+			return PScriptTypeUnknown.instance();
+		}
+		return n.match(new ClassOrModule.Matcher<PscriptType>() {
+
+			@Override
+			public PscriptType case_ClassDef(ClassDef classDef) {
+				return classDef.attrTyp();
 			}
 
 			@Override
-			public PscriptType case_NoTypeExpr(NoTypeExpr node) {
-				return PScriptTypeVoid.instance();
+			public PscriptType case_ModuleDef(ModuleDef moduleDef) {
+				return new PscriptTypeModule(moduleDef, true);
 			}
 
-			@Override
-			public PscriptType case_TypeExprArray(TypeExprArray typeExprArray) {
-				return new PScriptTypeArray(typeExprArray.getBase().attrTyp().dynamic());
-			}
 		});
+	}
+	
+	public static PscriptType calculate(NoTypeExpr optType) {
+		return PScriptTypeVoid.instance();
+	}
+	
+	
+	public static PscriptType calculate(TypeExprArray typeExprArray) {
+		return new PScriptTypeArray(typeExprArray.getBase().attrTyp().dynamic());
 	}
 
 	private static PscriptType getBaseType(TypeExprSimple node) {

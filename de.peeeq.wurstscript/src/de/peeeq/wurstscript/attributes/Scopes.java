@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -13,10 +14,12 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithBody;
 import de.peeeq.wurstscript.ast.AstElementWithParameters;
 import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
+import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModuleOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.JassGlobalBlock;
@@ -33,6 +36,9 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.ast.WStatements;
+import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.types.PscriptTypeInterface;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class Scopes {
 
@@ -197,7 +203,27 @@ public class Scopes {
 			result.put(name, def);
 		}
 		
-		// TODO add default methods from interfaces
+//		// add default methods from interfaces TODO
+//		if (c instanceof ClassDef) {
+//			ClassDef cd = (ClassDef) c;
+//			for (PscriptTypeInterface interfaceType : cd.attrImplementedInterfaces()) {
+//				InterfaceDef i = interfaceType.getInterfaceDef();
+//				for (FuncDef i_funcDef : i.getMethods()) {
+//					String fname = i_funcDef.getName();
+//					if (!result.containsKey(fname)) {
+//						if (i_funcDef.getBody().size() > 0) {
+//							// add default impl
+//							result.put(fname, i_funcDef);
+//						} else {
+//							// no default impl exists --> error
+//							attr.addError(cd.getSource(), "Class " + cd.getName() + " does not implement " +
+//									"function " + fname + " defined in interface " + i.getName() + ".");							
+//						}
+//					}
+//				}
+//			}
+//		}
+		
 		
 		return result;
 	}
