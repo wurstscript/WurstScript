@@ -130,6 +130,7 @@ public class StmtTranslation {
 			return r;
 		}
 		ImVar tempVar = ImVar(type, "temp", false);
+		f.getLocals().add(tempVar);
 		result.add(ImSet(tempVar, r));
 		return ImVarAccess(tempVar);
 	}
