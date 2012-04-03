@@ -6,9 +6,11 @@ import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
+import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.FunctionCall;
 import de.peeeq.wurstscript.ast.FunctionImplementation;
+import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.TypeParamDef;
@@ -67,6 +69,11 @@ public class AttrExprExpectedType {
 				StmtReturn stmtReturn = (StmtReturn) parent;
 				FunctionImplementation nearestFuncDef = stmtReturn.attrNearestFuncDef();
 				return nearestFuncDef.getReturnTyp().attrTyp();		
+			} else if (parent instanceof ExprMemberMethod) {
+				ExprMemberMethod m = (ExprMemberMethod) parent;
+				if (m.getLeft() == expr) {
+					return m.attrParameterTypes().get(0);
+				}
 			}
 		} catch (Throwable t) {
 			System.out.println("ignorable error: ");

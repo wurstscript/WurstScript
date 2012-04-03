@@ -72,6 +72,7 @@ import de.peeeq.wurstscript.types.PscriptNativeType;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
+import de.peeeq.wurstscript.types.PscriptTypeInterface;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
 import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
 import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
@@ -205,8 +206,7 @@ public class AttrExprType {
 
 				@Override
 				public PscriptType case_InterfaceDef(InterfaceDef interfaceDef) {
-					// 'this' cannot be used on interface level
-					return PScriptTypeUnknown.instance();
+					return  interfaceDef.attrTyp().dynamic();
 				}
 
 			});

@@ -10,6 +10,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.junit.BeforeClass;
+
 import junit.framework.Assert;
 
 import com.google.common.base.Charsets;
@@ -22,6 +24,7 @@ import de.peeeq.wurstscript.Pjass;
 import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.Pjass.Result;
 import de.peeeq.wurstscript.WurstCompilerJassImpl;
+import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
@@ -38,6 +41,7 @@ public class PscriptTest {
 
 	private static final String TEST_OUTPUT_PATH = "./test-output/";
 
+	
 	protected boolean testOptimizer() {
 		return true;
 	}
