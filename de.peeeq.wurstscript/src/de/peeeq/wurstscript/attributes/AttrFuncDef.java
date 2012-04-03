@@ -71,7 +71,7 @@ public class AttrFuncDef {
 			}
 		}
 		if (result == null) {
-			attr.addError(node.getSource(), "The function " + funcName + " is undefined for receiver of type " + leftType);
+//			attr.addError(node.getSource(), "The function " + funcName + " is undefined for receiver of type " + leftType);
 		}
 		if (funcName == overloadingPlus) {
 			WParameters params= result.getParameters();

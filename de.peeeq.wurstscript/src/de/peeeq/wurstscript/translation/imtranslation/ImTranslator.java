@@ -274,6 +274,14 @@ public class ImTranslator {
 	 * the returned name is a valid jass identifier 
 	 */
 	public String getNameFor(AstElement e) {
+		if (e instanceof FuncDef) {
+			FuncDef f = (FuncDef) e;
+			if (f.attrNearestStructureDef() != null) {
+				return f.attrNearestStructureDef().getName() + "_" + f.getName();
+			}
+		}
+		
+			
 		if (e instanceof AstElementWithName) {
 			AstElementWithName wn = (AstElementWithName) e;
 			return wn.getName();

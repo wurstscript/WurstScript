@@ -11,6 +11,9 @@ public class attr {
 	private static List<CompileError> errors;
 	private static WurstGui gui;
 	
+	// set this to true, when running unit tests. 
+	//This will throw compiler errors instead of adding them to the list
+	public static boolean unitTestMode = false;
 	
 	public static void init(WurstGui gui) {
 		errors = new NotNullList<CompileError>();
@@ -18,6 +21,9 @@ public class attr {
 	}
 
 	public static void addError(WPos pos, String msg) {
+		if (unitTestMode) {
+			throw new CompileError(pos, msg);
+		}
 		for (CompileError err : errors) {
 			if (err.getSource().getFile().equals(pos.getFile())
 					&& err.getSource().getLine() == pos.getLine()) {
