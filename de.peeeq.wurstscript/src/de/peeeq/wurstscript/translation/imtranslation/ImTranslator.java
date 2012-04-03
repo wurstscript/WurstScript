@@ -388,7 +388,7 @@ public class ImTranslator {
 	}
 
 	public void setConfigFunc(ImFunction f) {
-		if (configFunc == null) {
+		if (configFunc != null) {
 			throw new Error("configFunction already set");
 		}
 		configFunc = f;
