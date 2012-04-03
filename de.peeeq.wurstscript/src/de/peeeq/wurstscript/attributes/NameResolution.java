@@ -7,10 +7,13 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.NameDef;
+import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WScope;
+import de.peeeq.wurstscript.types.PscriptTypeInterface;
 import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -82,6 +85,16 @@ public class NameResolution {
 				@SuppressWarnings("unchecked")
 				T n2 = (T) n;
 				return n2;
+			}
+		}
+		// if not found yet, try to find default implementation in interfaces:
+		if (sr.getDef() instanceof ClassDef) {
+			ClassDef c = (ClassDef) sr.getDef();
+			for (PscriptTypeInterface i : c.attrImplementedInterfaces()) {
+				T r = getTypedNameFromNamedScope(t, context, name, i);
+				if (r != null) {
+					return r;
+				}
 			}
 		}
 		return null;
