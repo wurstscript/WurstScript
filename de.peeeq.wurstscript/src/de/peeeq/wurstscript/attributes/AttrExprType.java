@@ -347,17 +347,11 @@ public class AttrExprType {
 					return PScriptTypeString.instance();
 				} if (bothTypesRealOrInt()) {
 					return caseMathOperation();
-				} else if(leftType instanceof PscriptTypeClass) {
-					PscriptTypeClass pclass = (PscriptTypeClass)leftType;
-					ClassDef def = pclass.getClassDef();
-					Multimap<String, NameDef > map = def.attrVisibleNamesPublic();
-					if (map.containsKey("plus")) {
-						
-					}else {
-						
-					}
+				} else {
+					FunctionDefinition def = term.attrFuncDef();
+					return def.getReturnTyp().attrTyp();
 				}
-				return null;
+		
 				
 			}
 
