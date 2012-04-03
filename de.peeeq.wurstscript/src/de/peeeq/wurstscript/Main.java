@@ -34,7 +34,7 @@ public class Main {
 		//		JOptionPane.showMessageDialog(null , "time to connect profiler ^^");
 		SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy hh:mm:ss");
 		Date myDate = new Date();
-		WLogger.info("Started compiler at " + sdf.format(myDate) + " with args " + Utils.printSep(", ", args));
+		WLogger.info( ">>> " + sdf.format(myDate) + " - Started compiler at with args " + Utils.printSep(", ", args));
 		
 		WurstGui gui = null;
 		try {
@@ -149,6 +149,7 @@ public class Main {
 					MpqEditor mpqEditor = MpqEditorFactory.getEditor();
 					mpqEditor.deleteFile(mapFile, "war3map.j");
 					mpqEditor.insertFile(mapFile, "war3map.j", outputMapscript);
+					mpqEditor.compactArchive(mapFile);
 				}
 
 			} while (false); // dummy loop to allow "break compilation"
