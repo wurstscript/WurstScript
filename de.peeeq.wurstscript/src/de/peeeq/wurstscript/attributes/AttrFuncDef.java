@@ -78,20 +78,8 @@ public class AttrFuncDef {
 				Collection<ExtensionFuncDef> functions = NameResolution.searchTypedName(ExtensionFuncDef.class, funcName, pack);
 				result = selectExtensionFunction(left.attrTyp(), functions);
 			}
-			return null;
 		}
-<<<<<<< HEAD
-//		if (result == null) {
-//			attr.addError(node.getSource(), "The function " + funcName + " is undefined for receiver of type " + leftType);
-//			return null;
-//		}
-		if (funcName == overloadingPlus || funcName == overloadingMinus || funcName == overloadingDiv || funcName == overloadingMult) {
-=======
-		if (result == null) {
-//			attr.addError(node.getSource(), "The function " + funcName + " is undefined for receiver of type " + leftType);
-		}
-		if (funcName == overloadingPlus) {
->>>>>>> origin/master
+		if (result != null) {
 			WParameters params= result.getParameters();
 			if ( params.size() != 1 ){
 				attr.addError(node.getSource(), "The function " + funcName + " doesn't have only 1 parameter. Overloading functions may only have one." );
