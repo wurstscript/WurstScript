@@ -306,7 +306,7 @@ public class SimpleStatementTests extends PscriptTest {
 	
 	@Test
 	public void test_forloop() {
-		assertOk(false,
+		assertOk(true,
 				"int a = 10",
 				"for int i = 1 to a",
 				"	a++",
