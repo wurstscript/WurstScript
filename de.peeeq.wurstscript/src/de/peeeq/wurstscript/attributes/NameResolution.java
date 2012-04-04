@@ -11,8 +11,10 @@ import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.StructureDef;
+import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WScope;
+import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeInterface;
 import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
 import de.peeeq.wurstscript.utils.Utils;
@@ -86,10 +88,24 @@ public class NameResolution {
 				T n2 = (T) n;
 				return n2;
 			}
-		}
-		// if not found yet, try to find default implementation in interfaces:
+		}		
+		// if not found yet, try to find implementation in supertypes:
 		if (sr.getDef() instanceof ClassDef) {
 			ClassDef c = (ClassDef) sr.getDef();
+			// search for impl in extended class
+			if (c.getExtendedClass() instanceof TypeExpr) {
+				TypeExpr typeExpr = (TypeExpr) c.getExtendedClass();
+				PscriptType superType = typeExpr.attrTyp();
+				if (superType instanceof PscriptTypeNamedScope) {
+					T r = getTypedNameFromNamedScope(t, context, name, (PscriptTypeNamedScope) superType);
+					if (r != null) {
+						return r;
+					}
+				}
+				
+			}
+			
+			// search for default implementation in interfaces
 			for (PscriptTypeInterface i : c.attrImplementedInterfaces()) {
 				T r = getTypedNameFromNamedScope(t, context, name, i);
 				if (r != null) {
