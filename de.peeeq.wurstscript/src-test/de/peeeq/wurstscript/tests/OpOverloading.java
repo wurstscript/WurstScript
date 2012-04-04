@@ -13,7 +13,7 @@ public class OpOverloading extends PscriptTest {
 				"	class A ",
 				"		int i = 2",
 				"		",
-				"		function plus(A a) returns int",
+				"		function op_plus(A a) returns int",
 				"			return this.i + a.i",
 				"	init",
 				"		A a1 = new A()",
@@ -30,7 +30,7 @@ public class OpOverloading extends PscriptTest {
 				"	class A ",
 				"		int i = 2",
 				"		",
-				"		function minus(A a) returns int",
+				"		function op_minus(A a) returns int",
 				"			return this.i - a.i",
 				"	init",
 				"		A a1 = new A()",
@@ -47,7 +47,7 @@ public class OpOverloading extends PscriptTest {
 				"	class A ",
 				"		int i = 2",
 				"		",
-				"		function multiply(A a) returns int",
+				"		function op_mult(A a) returns int",
 				"			return this.i * a.i",
 				"	init",
 				"		A a1 = new A()",
@@ -64,7 +64,7 @@ public class OpOverloading extends PscriptTest {
 				"	class A ",
 				"		int i = 2",
 				"		",
-				"		function divide(A a) returns real",
+				"		function op_div(A a) returns real",
 				"			return this.i / a.i",
 				"	init",
 				"		A a1 = new A()",
@@ -80,7 +80,7 @@ public class OpOverloading extends PscriptTest {
 		assertOk(true, 
 				"	tuple vec3( real x, real y, real z )",
 				"",
-				"	public function vec3.plus( vec3 v )	returns vec3",
+				"	public function vec3.op_plus( vec3 v )	returns vec3",
 				"			return vec3(this.x + v.x, this.y + v.y, this.z + v.z)",
 				"",
 				"",
@@ -95,7 +95,7 @@ public class OpOverloading extends PscriptTest {
 	
 	@Test
 	public void testOverloading3() {
-		assertError(true, 
+		assertError(true, "is not defined for",
 				"	tuple vec3( real x, real y, real z )",
 				"",
 				"",
@@ -104,8 +104,17 @@ public class OpOverloading extends PscriptTest {
 				"		vec3 v1 = vec3(1.,1.,1.)",
 				"		vec3 v2 = vec3(1.,1.,1.)",
 				"		vec3 v3 = v1 + v2",
-				"		if v3.x == 2",
-				"			testSuccess()",
+				"");
+	}
+	
+	@Test
+	public void testOverloading4() {
+		assertError(true, "is not defined for",
+				"	nativetype unit",
+				"	init",
+				"		unit u = null",
+				"		unit u2 = null",
+				"		unit u3 = u + u2",
 				"");
 	}
 	

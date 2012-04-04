@@ -340,6 +340,11 @@ public class AttrExprType {
 				return false;
 				
 			}
+			
+			public void noOpError() {
+				attr.addError(term.getSource(), "Operator " + term.getOp() +" is not defined for " +
+						"operands " + leftType + " and " + rightType);				
+			}
 
 			@Override
 			public PscriptType case_OpPlus(OpPlus op)  {
@@ -352,6 +357,7 @@ public class AttrExprType {
 					if (def != null) {
 						return def.getReturnTyp().attrTyp();
 					}
+					noOpError();
 					return PScriptTypeUnknown.instance();
 				}
 		
@@ -367,8 +373,7 @@ public class AttrExprType {
 						return PScriptTypeReal.instance();
 					}
 				}
-				attr.addError(term.getSource(), "Operator " + term.getOp() +" is not defined for " +
-						"operands " + leftType + " and " + rightType);
+				noOpError();
 				return PScriptTypeUnknown.instance();
 			}
 
@@ -382,6 +387,7 @@ public class AttrExprType {
 					if (def != null) {
 						return def.getReturnTyp().attrTyp();
 					}
+					noOpError();
 					return PScriptTypeUnknown.instance();
 				}
 			}
@@ -395,6 +401,7 @@ public class AttrExprType {
 					if (def != null) {
 						return def.getReturnTyp().attrTyp();
 					}
+					noOpError();
 					return PScriptTypeUnknown.instance();
 				}
 			}
@@ -411,11 +418,9 @@ public class AttrExprType {
 					if (def != null) {
 						return def.getReturnTyp().attrTyp();
 					}
+					noOpError();
 					return PScriptTypeUnknown.instance();
 				}
-//				attr.addError(term.getSource(), "Operator " + term.getOp() +" is not defined for " +
-//						"operands " + leftType + " and " + rightType);
-//				return PScriptTypeUnknown.instance();
 			}
 
 			@Override
@@ -426,8 +431,7 @@ public class AttrExprType {
 						return PScriptTypeReal.instance();
 					}
 				}
-				attr.addError(term.getSource(), "Operator " + term.getOp() +" is not defined for " +
-						"operands " + leftType + " and " + rightType);
+				noOpError();
 				return PScriptTypeUnknown.instance();
 			}
 
@@ -437,8 +441,7 @@ public class AttrExprType {
 				if (leftType instanceof PScriptTypeInt || rightType instanceof PScriptTypeInt) {
 					return leftType;
 				}
-				attr.addError(term.getSource(), "Operator " + term.getOp() +" is not defined for " +
-						"operands " + leftType + " and " + rightType);
+				noOpError();
 				return PScriptTypeUnknown.instance();
 			}
 
@@ -448,8 +451,7 @@ public class AttrExprType {
 				if (leftType instanceof PScriptTypeInt && rightType instanceof PScriptTypeInt) {
 					return leftType;
 				}
-				attr.addError(term.getSource(), "Operator " + term.getOp() +" is not defined for " +
-						"operands " + leftType + " and " + rightType);
+				noOpError();
 				return PScriptTypeUnknown.instance();
 			}
 		});
