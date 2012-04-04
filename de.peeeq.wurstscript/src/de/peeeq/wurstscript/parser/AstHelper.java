@@ -12,7 +12,9 @@ import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.Modifiers;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleUse;
+import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
+import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.StructureDefOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprList;
@@ -46,9 +48,9 @@ public class AstHelper {
 		return result;
 	}
 
-	public static ClassDef ClassDef(WPos pos, Modifiers mod, String name, TypeParamDefs typeParams, TypeExprList il,
+	public static ClassDef ClassDef(WPos pos, Modifiers mod, String name, TypeParamDefs typeParams, OptTypeExpr extendedClass, TypeExprList il,
 			List<ClassSlot> slots) {
-		ClassDef c = Ast.ClassDef(pos, mod, name, typeParams, il, Ast.FuncDefs(), Ast.GlobalVarDefs(), 
+		ClassDef c = Ast.ClassDef(pos, mod, name, typeParams, extendedClass, il, Ast.FuncDefs(), Ast.GlobalVarDefs(), 
 				Ast.ConstructorDefs(), Ast.ModuleInstanciations(), Ast.ModuleUses(), Ast.OnDestroyDef(pos.copy(), Ast.WStatements()));
 		addClassSlots(slots, c);		
 		return c;

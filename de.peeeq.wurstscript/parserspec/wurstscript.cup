@@ -307,11 +307,16 @@ InterfaceFunctionSignature ::=
 
 
 ClassDef ::=
-	Modifiers:mod CLASS:x IdentifierWithTypeParamDefs:d ImplementsListOpt:il NL INDENT ClassSlots:slots UNINDENT:y
-		{: RESULT = AstHelper.ClassDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), il, slots); :}
+	Modifiers:mod CLASS:x IdentifierWithTypeParamDefs:d EXTENDS TypeExpr:ex ImplementsListOpt:il NL INDENT ClassSlots:slots UNINDENT:y
+		{: RESULT = AstHelper.ClassDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), ex, il, slots); :}
+	| Modifiers:mod CLASS:x IdentifierWithTypeParamDefs:d EXTENDS TypeExpr:ex ImplementsListOpt:il NL:y
+		{: RESULT = AstHelper.ClassDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), ex, il, Collections.<ClassSlot>emptyList()); :}
+	| Modifiers:mod CLASS:x IdentifierWithTypeParamDefs:d ImplementsListOpt:il NL INDENT ClassSlots:slots UNINDENT:y
+		{: RESULT = AstHelper.ClassDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), Ast.NoTypeExpr(), il, slots); :}
 	| Modifiers:mod CLASS:x IdentifierWithTypeParamDefs:d ImplementsListOpt:il NL:y
-		{: RESULT = AstHelper.ClassDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), il, Collections.<ClassSlot>emptyList()); :}
+		{: RESULT = AstHelper.ClassDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), Ast.NoTypeExpr(), il, Collections.<ClassSlot>emptyList()); :}
 ;
+
 
 
 IdentifierWithTypeArgs ::=

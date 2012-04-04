@@ -40,7 +40,7 @@ OptExpr = NoExpr() | Expr
 	
 TypeDef = 
 	  NativeType(WPos source, Modifiers modifiers, String name, OptTypeExpr optTyp)
-	| ClassDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, TypeExprList implementsList, 
+	| ClassDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, OptTypeExpr extendedClass, TypeExprList implementsList, 
 			FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
 			ModuleInstanciations moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy)
 	| InterfaceDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, TypeExprList extendsList, 
