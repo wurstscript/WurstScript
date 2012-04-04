@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.attributes;
 import java.util.Collection;
 import java.util.List;
 
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
@@ -22,6 +23,7 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameters;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
 import de.peeeq.wurstscript.types.PScriptTypeReal;
+import de.peeeq.wurstscript.types.PScriptTypeString;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
 
@@ -51,48 +53,31 @@ public class AttrFuncDef {
 		String funcName = null;
 		if ( node.getOp() instanceof OpPlus) {
 			funcName = overloadingPlus;
-		}else if ( node.getOp() instanceof OpMinus) {
+		} else if ( node.getOp() instanceof OpMinus) {
 			funcName = overloadingMinus;
-		}else if ( node.getOp() instanceof OpMult) {
+		} else if ( node.getOp() instanceof OpMult) {
 			funcName = overloadingMult;
-		}else if ( node.getOp() instanceof OpDivReal) {
+		} else if ( node.getOp() instanceof OpDivReal) {
 			funcName = overloadingDiv;
-		}
-		if (bothTypesRealOrInt(node.getLeft().attrTyp(), node.getRight().attrTyp())) {
+		} else {
 			return null;
 		}
-		if (leftType instanceof PscriptTypeNamedScope) {
-			PscriptTypeNamedScope sr = (PscriptTypeNamedScope) leftType;
-			result = NameResolution.getTypedNameFromNamedScope(FunctionDefinition.class, left, funcName, sr);
-			// get real implementation funcDef (wrt override)
-			if (result != null && !sr.isStaticRef()) {
-				result = result.attrRealFuncDef();
-			}
+		if (nativeOperator(leftType, node.getRight().attrTyp())) {
+			return null;
 		}
-
-		// check extension methods:
-		if (result == null) {
-			PackageOrGlobal scope = node.attrNearestPackage();
-			if (scope instanceof WPackage) {
-				WPackage pack = (WPackage) scope;
-				Collection<ExtensionFuncDef> functions = NameResolution.searchTypedName(ExtensionFuncDef.class, funcName, pack);
-				result = selectExtensionFunction(left.attrTyp(), functions);
-			}
-		}
-		if (result != null) {
-			WParameters params= result.getParameters();
-			if ( params.size() != 1 ){
-				attr.addError(node.getSource(), "The function " + funcName + " doesn't have only 1 parameter. Overloading functions may only have one." );
-			}
-		}
+		result = getMemberFunc(left, leftType, funcName);
 		return result;
 	}
 
-	private static boolean bothTypesRealOrInt(PscriptType leftType, PscriptType rightType) {
-		if ((leftType instanceof PScriptTypeInt || leftType instanceof PScriptTypeReal) && (rightType instanceof PScriptTypeInt || rightType instanceof PScriptTypeReal)) {
-			return true;
-		}
-		return false;
+	/**
+	 * chcks if operator is a native operator like for 1+2
+	 */
+	private static boolean nativeOperator(PscriptType leftType, PscriptType rightType) {
+		return
+			// numeric
+			((leftType instanceof PScriptTypeInt || leftType instanceof PScriptTypeReal) && (rightType instanceof PScriptTypeInt || rightType instanceof PScriptTypeReal))
+			// strings
+			|| (leftType instanceof PScriptTypeString && rightType instanceof PScriptTypeString);
 	}
 
 	public static  FunctionDefinition calculate(final ExprFunctionCall node) {
@@ -129,13 +114,23 @@ public class AttrFuncDef {
 
 
 	public static  FunctionDefinition calculate(final ExprMemberMethod node) {
-		FunctionDefinition result = null;
+		
 		Expr left = node.getLeft();
 		PscriptType leftType = left.attrTyp();
 		String funcName = node.getFuncName();
+		
+		FunctionDefinition result = getMemberFunc(node, leftType, funcName);
+		if (result == null) {
+			attr.addError(node.getSource(), "The method " + funcName + " is undefined for receiver of type " + leftType);
+		}
+		return result;
+	}
+
+	private static FunctionDefinition getMemberFunc(Expr context, PscriptType leftType, String funcName) {
+		FunctionDefinition result = null;
 		if (leftType instanceof PscriptTypeNamedScope) {
 			PscriptTypeNamedScope sr = (PscriptTypeNamedScope) leftType;
-			result = NameResolution.getTypedNameFromNamedScope(FunctionDefinition.class, left, funcName, sr);
+			result = NameResolution.getTypedNameFromNamedScope(FunctionDefinition.class, context, funcName, sr);
 			// get real implementation funcDef (wrt override)
 			if (result != null && !sr.isStaticRef()) {
 				result = result.attrRealFuncDef();
@@ -144,15 +139,12 @@ public class AttrFuncDef {
 
 		// check extension methods:
 		if (result == null) {
-			PackageOrGlobal scope = node.attrNearestPackage();
+			PackageOrGlobal scope = context.attrNearestPackage();
 			if (scope instanceof WPackage) {
 				WPackage pack = (WPackage) scope;
 				Collection<ExtensionFuncDef> functions = NameResolution.searchTypedName(ExtensionFuncDef.class, funcName, pack);
-				result = selectExtensionFunction(left.attrTyp(), functions);
+				result = selectExtensionFunction(leftType, functions);
 			}
-		}
-		if (result == null) {
-			attr.addError(node.getSource(), "The method " + funcName + " is undefined for receiver of type " + leftType);
 		}
 		return result;
 	}
