@@ -348,14 +348,20 @@ public class AttrExprType {
 				} if (bothTypesRealOrInt()) {
 					return caseMathOperation();
 				} else {
-					FunctionDefinition def = term.attrFuncDef();
-					if (def != null) {
-						return def.getReturnTyp().attrTyp();
-					}
-					return PScriptTypeUnknown.instance();
+					return handleOperatorOverloading(term);
 				}
 		
 				
+			}
+
+			private PscriptType handleOperatorOverloading(final ExprBinary term) {
+				FunctionDefinition def = term.attrFuncDef();
+				if (def == null) {
+					attr.addError(term.getSource(), "No operator overloading function for operator " + term.getOp() +
+							" was found for operands " + leftType + " and " + rightType);
+					return PScriptTypeUnknown.instance();
+				}
+				return def.getReturnTyp().attrTyp();
 			}
 
 			private PscriptType caseMathOperation() {
@@ -378,11 +384,7 @@ public class AttrExprType {
 				if (bothTypesRealOrInt()) {
 					return caseMathOperation();
 				} else {
-					FunctionDefinition def = term.attrFuncDef();
-					if (def != null) {
-						return def.getReturnTyp().attrTyp();
-					}
-					return PScriptTypeUnknown.instance();
+					return handleOperatorOverloading(term);
 				}
 			}
 
@@ -391,11 +393,7 @@ public class AttrExprType {
 				if (bothTypesRealOrInt()) {
 					return caseMathOperation();
 				} else {
-					FunctionDefinition def = term.attrFuncDef();
-					if (def != null) {
-						return def.getReturnTyp().attrTyp();
-					}
-					return PScriptTypeUnknown.instance();
+					return handleOperatorOverloading(term);
 				}
 			}
 
@@ -407,11 +405,7 @@ public class AttrExprType {
 				} else if (bothTypesRealOrInt()) {
 					return PScriptTypeReal.instance();			
 				} else {
-					FunctionDefinition def = term.attrFuncDef();
-					if (def != null) {
-						return def.getReturnTyp().attrTyp();
-					}
-					return PScriptTypeUnknown.instance();
+					return handleOperatorOverloading(term);
 				}
 //				attr.addError(term.getSource(), "Operator " + term.getOp() +" is not defined for " +
 //						"operands " + leftType + " and " + rightType);
