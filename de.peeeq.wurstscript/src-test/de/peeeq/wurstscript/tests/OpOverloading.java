@@ -93,6 +93,22 @@ public class OpOverloading extends PscriptTest {
 				"");
 	}
 	
+	@Test
+	public void testOverloading3() {
+		assertError(true, 
+				"	tuple vec3( real x, real y, real z )",
+				"",
+				"",
+				"",
+				"	init",
+				"		vec3 v1 = vec3(1.,1.,1.)",
+				"		vec3 v2 = vec3(1.,1.,1.)",
+				"		vec3 v3 = v1 + v2",
+				"		if v3.x == 2",
+				"			testSuccess()",
+				"");
+	}
+	
 	
 
 
@@ -108,5 +124,16 @@ public class OpOverloading extends PscriptTest {
 		System.out.println(prog);
 		testAssertOk(Utils.getMethodName(1), executeProg, prog);
 	}
+	
+	public void assertError( boolean executeProg, String expected, String ... body) {
+		String prog = "package test\n" +
+				"	native testFail(string msg)\n" +
+				"	native testSuccess()\n" +
+				Utils.join(body, "\n") + "\n" +
+				"endpackage\n";
+		testAssertErrors(Utils.getMethodName(1), executeProg, prog, expected);
+	}
+	
+
 
 }
