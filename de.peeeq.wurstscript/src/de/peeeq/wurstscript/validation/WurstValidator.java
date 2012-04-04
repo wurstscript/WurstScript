@@ -492,7 +492,6 @@ public class WurstValidator {
 	@CheckMethod
 	public void visit(ExprBinary expr) {
 		FunctionDefinition def = expr.attrFuncDef();
-		System.out.println(def);
 		if (def != null) {
 			FunctionSignature sig = new FunctionSignature(def.attrParameterTypes(), def.getReturnTyp().attrTyp());
 			List<Expr> args = Lists.newArrayList();

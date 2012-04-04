@@ -20,6 +20,7 @@ import de.peeeq.wurstscript.utils.UtilsTest;
 	PackageTests.class,
 	OptimizerTests.class,
 	InterfaceTests.class,
+	InterfaceExtendedTests.class,
 	GenericsTests.class,
 	TupleTests.class,
 	BugTests.class,
