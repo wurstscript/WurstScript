@@ -64,4 +64,22 @@ public class ClassesExtTests extends PscriptTest {
 			);
 	}
 
+	
+
+	@Test
+	public void extends_variables() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	class C",
+				"		int i = 5",
+				"	class D extends C",
+				"		function foo() returns int",
+				"			return i+1",
+				"	init",
+				"		if new D().foo() == 6",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
 }

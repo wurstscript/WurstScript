@@ -6,7 +6,7 @@ import de.peeeq.wurstscript.ast.ModuleInstanciation;
 public class AttrModuleInstanciations {
 
 	public static ModuleDef getModuleOrigin(ModuleInstanciation mi) {
-		return NameResolution.searchTypedNameGetOne(ModuleDef.class, mi.getName(), mi.getParent());
+		return NameResolution.searchTypedNameGetOne(ModuleDef.class, mi.getName(), mi.getParent(), false);
 	}
 
 }

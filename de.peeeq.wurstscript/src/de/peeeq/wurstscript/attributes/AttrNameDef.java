@@ -57,7 +57,7 @@ public class AttrNameDef {
 	}
 
 	protected static NameDef searchNameInScope(String varName, NameRef node) {
-		return NameResolution.searchTypedNameGetOne(NameDef.class, varName, node);
+		return NameResolution.searchTypedNameGetOne(NameDef.class, varName, node, true);
 	}
 
 	private static boolean isWriteAccess(final NameRef node) {
@@ -77,7 +77,7 @@ public class AttrNameDef {
 		PscriptType leftType = left.attrTyp();
 		if (leftType instanceof PscriptTypeNamedScope) {
 			PscriptTypeNamedScope ns = (PscriptTypeNamedScope) leftType;
-			List<NameDef> names = NameResolution.searchTypedName(NameDef.class, varName, ns.getDef());
+			List<NameDef> names = NameResolution.searchTypedName(NameDef.class, varName, ns.getDef(), true);
 			if (names.size() == 0) {
 				attr.addError(node.getSource(), "Variable " + varName + " not found.");
 				return null;

@@ -379,6 +379,9 @@ WScope.attrNextScope "returns the scope surrounding this scope"
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nextScope
 
 
+AstElement.attrCompilationUnit
+	returns CompilationUnit
+	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestCompilationUnit
 	
 AstElement.attrNearestClassDef
 	returns ClassDef
@@ -516,6 +519,7 @@ CompilationUnit.attrInterfaceInstances
 	returns com.google.common.collect.Multimap<InterfaceDef, ClassDef>
 	implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getInterfaceInstances
 
+
 ClassDef.attrImplementedInterfaces
 	returns java.util.Collection<de.peeeq.wurstscript.types.PscriptTypeInterface>
 	implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getImplementedInterfaces
@@ -523,6 +527,20 @@ ClassDef.attrImplementedInterfaces
 InterfaceDef.attrExtendedInterfaces	
 	returns java.util.Collection<de.peeeq.wurstscript.types.PscriptTypeInterface>
 	implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getExtendedInterfaces
+
+
+CompilationUnit.attrSubClasses
+	returns com.google.common.collect.Multimap<ClassDef, ClassDef>
+	implemented by de.peeeq.wurstscript.attributes.SubClasses.getSubClasses
+	
+ClassDef.attrSubClasses
+	returns java.util.Collection<ClassDef>
+	implemented by de.peeeq.wurstscript.attributes.SubClasses.getSubClasses
+
+
+ClassDef.attrExtendedClass
+	returns ClassDef
+	implemented by de.peeeq.wurstscript.attributes.SubClasses.getExtendedClass
 
 // Jass translation:
 	

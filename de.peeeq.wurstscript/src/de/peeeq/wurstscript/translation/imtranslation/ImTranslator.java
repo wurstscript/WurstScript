@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -15,6 +16,7 @@ import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassExpr;
+import de.peeeq.wurstscript.jassIm.ImCall;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
@@ -22,6 +24,8 @@ import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImStmt;
+import de.peeeq.wurstscript.jassIm.ImStmts;
+import de.peeeq.wurstscript.jassIm.ImTupleSelection;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
@@ -29,7 +33,9 @@ import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.jassIm.JassImElement;
 import de.peeeq.wurstscript.types.PScriptTypeString;
+import de.peeeq.wurstscript.types.PScriptTypeVoid;
 import de.peeeq.wurstscript.types.TypesHelper;
+import de.peeeq.wurstscript.utils.Pair;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassExprIntVal;
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
 
@@ -418,10 +424,131 @@ public class ImTranslator {
 		return trace;
 	}
 
+	private Map<ClassDef, ClassManagementVars> classManagementVars = Maps.newHashMap();
+	
+	public ClassManagementVars getClassManagementVarsFor(ClassDef classDef) {
+		ClassManagementVars m = classManagementVars.get(classDef);
+		if (m == null) {
+			if (classDef.attrExtendedClass() != null) {
+				m = getClassManagementVarsFor(classDef.attrExtendedClass()); 
+			} else {
+				m = new ClassManagementVars(classDef, this);
+			}
+			classManagementVars.put(classDef, m);
+		}
+		return m;
+	}
+
 
 	
 
+	/**
+	 * returns a list of classes and functions implementing funcDef
+	 */
+	public List<Pair<ClassDef, FuncDef>> getClassedWithImplementation(Collection<ClassDef> instances, FuncDef func) {
+		if (func.attrIsPrivate()) {
+			// private functions cannot be overridden
+			return Collections.emptyList();
+		}
+		List<Pair<ClassDef, FuncDef>> result = Lists.newArrayListWithCapacity(instances.size());
+		for (ClassDef c : instances) {
+			for (NameDef nameDef : c.attrVisibleNamesPrivate().get(func.getName())) {
+				if (nameDef instanceof FuncDef) {
+					FuncDef f = (FuncDef) nameDef;
+					result.add(Pair.create(c, f));
+				}
+			}
+		}
+		return result;
+	}
 	
+	public List<ImStmt> createDispatch(List<Pair<ClassDef, FuncDef>> instances, int start, int end
+			, FuncDef funcDef, ImFunction f, boolean equalityKnown, TypeIdGetter typeId) {
+		
+		System.out.println("create dispatch " + start + " to " + end);
+		List<ImStmt> result = Lists.newArrayList();
+		ImVar thisVar = f.getParameters().get(0);
+		boolean returnsVoid = funcDef.attrTyp() instanceof PScriptTypeVoid;
+		if (start > end) {
+			System.out.println("	no instances");
+			// there seem to be no instances
+			assert instances.size() == 0;
+			// just create an dummy return
+			if (funcDef.getReturnTyp().attrTyp() instanceof PScriptTypeVoid) {
+				// empty function
+			} else {
+				ImType type = f.getReturnType();
+				ImExpr def = getDefaultValueForJassType(type);
+				result.add(JassIm.ImReturn(def));
+			}
+			return result;
+		} else if (start == end) {
+			System.out.println("	call");
+			FuncDef calledFunc = instances.get(start).getB();
+			ImFunction calledJassFunc = getFuncFor(calledFunc);
+			addCallRelation(f, calledJassFunc);
+			ImExprs arguments = JassIm.ImExprs();
+			for (int i=0; i<f.getParameters().size(); i++) {
+				ImExpr arg;
+				ImVar p = f.getParameters().get(i);
+				ImVar expected = calledJassFunc.getParameters().get(i);
+				if (expected.getType() instanceof ImSimpleType
+						&& p.getType() instanceof ImTupleType) {
+					// class type expected but got interface type 
+					// ==> select only first part 
+					arg = JassIm.ImTupleSelection(JassIm.ImVarAccess(p), 0);
+				} else {
+					arg = JassIm.ImVarAccess(p);
+					// TODO subtyping differences interface vs class?
+				}
+				arguments.add(arg);
+			}
+			ImCall call = JassIm.ImFunctionCall(calledJassFunc, arguments);
+			if (returnsVoid) {
+				result.add(call);
+			} else {
+				result.add(JassIm.ImReturn(call));
+			}
+			if (!equalityKnown) {
+				// check for equality
+				ImExpr condition = JassIm.ImOperatorCall(Ast.OpEquals(), 
+						JassIm.ImExprs(
+								typeId.get(thisVar),
+								JassIm.ImIntVal(getTypeId(instances.get(start).getA()))));;
+				
+				return Collections.<ImStmt>singletonList(
+						JassIm.ImIf(condition, ImStmts(result), ImStmts())
+					);
+			} else {
+				return result;
+			}
+		} else {
+			System.out.println("	split");
+			int splitAt = start + (end-start) / 2;
+			
+			boolean eq = false;
+			System.out.println("splitAt - start = " + (splitAt - start));
+			if (splitAt - start == 0) {
+				// if we only have one element at the left side, we can already check for equality
+				eq = true;
+			}
+			
+			List<ImStmt> case1 = createDispatch(instances, start, splitAt, funcDef, f, eq, typeId);
+			List<ImStmt> case2 = createDispatch(instances, splitAt+1, end, funcDef, f, false, typeId);
+
+			// if (thistype <= instances[splitAt].typeId)
+			ImExpr cond = 
+					JassIm.ImOperatorCall(eq ? Ast.OpEquals() : Ast.OpLessEq(), 
+							JassIm.ImExprs(
+									typeId.get(thisVar),
+									JassIm.ImIntVal(getTypeId(instances.get(splitAt).getA()))));
+			ImStmts thenBlock = JassIm.ImStmts(case1);
+			ImStmts elseBlock = JassIm.ImStmts(case2);
+			result.add(JassIm.ImIf(cond, thenBlock, elseBlock));
+			return result;
+		}
+	}
+
 
 	
 

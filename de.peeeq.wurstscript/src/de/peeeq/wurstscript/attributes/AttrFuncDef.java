@@ -103,7 +103,7 @@ public class AttrFuncDef {
 			return null;
 		}
 		
-		List<NotExtensionFunction> functions = NameResolution.searchTypedName(NotExtensionFunction.class, funcName, node);
+		List<NotExtensionFunction> functions = NameResolution.searchTypedName(NotExtensionFunction.class, funcName, node, true);
 		if (functions.size() > 0) {
 			// TODO ambiguous function 
 			return functions.get(0).attrRealFuncDef();
@@ -142,7 +142,7 @@ public class AttrFuncDef {
 			PackageOrGlobal scope = context.attrNearestPackage();
 			if (scope instanceof WPackage) {
 				WPackage pack = (WPackage) scope;
-				Collection<ExtensionFuncDef> functions = NameResolution.searchTypedName(ExtensionFuncDef.class, funcName, pack);
+				Collection<ExtensionFuncDef> functions = NameResolution.searchTypedName(ExtensionFuncDef.class, funcName, pack, false);
 				result = selectExtensionFunction(leftType, functions);
 			}
 		}
