@@ -308,6 +308,7 @@ public class ClassTranslator {
 		for (ConstructorDef c : mi.getConstructors()) {
 			List<ImStmt> stmts = translator.translateStatements(f, c.getBody());
 			replaceVar(stmts, translator.getThisVar(c), thisVar);
+			f.getBody().addAll(stmts);
 		}
 	}
 
