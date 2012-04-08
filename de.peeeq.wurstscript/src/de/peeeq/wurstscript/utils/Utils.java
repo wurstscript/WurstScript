@@ -510,7 +510,7 @@ public class Utils {
 			LocalVarDef l = (LocalVarDef) e;
 			return "local variable " + l.getName();
 		} else if (e instanceof VarDef) {
-			LocalVarDef l = (LocalVarDef) e;
+			VarDef l = (VarDef) e;
 			return "variable " + l.getName();
 		} else if (e instanceof AstElementWithName) {
 			name = ((AstElementWithName) e).getName();
