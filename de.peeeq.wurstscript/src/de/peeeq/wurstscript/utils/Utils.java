@@ -502,10 +502,10 @@ public class Utils {
 			return "function " + fd.getName();
 		} else if (e instanceof OnDestroyDef) {
 			OnDestroyDef d = (OnDestroyDef) e;
-			return "destroy function for " + d.attrNearestClassDef().getName();
+			return "destroy function for " + d.attrNearestStructureDef().getName();
 		} else if (e instanceof ConstructorDef) {
 			ConstructorDef c = (ConstructorDef) e;
-			return "constructor for " + e.attrNearestClassDef().getName();
+			return "constructor for " + e.attrNearestStructureDef().getName();
 		} else if (e instanceof AstElementWithName) {
 			name = ((AstElementWithName) e).getName();
 		} else if (e instanceof TypeExprSimple) {

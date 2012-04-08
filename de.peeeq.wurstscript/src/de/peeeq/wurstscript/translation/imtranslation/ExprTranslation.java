@@ -218,7 +218,7 @@ public class ExprTranslation {
 
 	public static ImExpr translate(ExprNewObject e, ImTranslator t, ImFunction f) {
 		ConstructorDef constructorFunc = e.attrConstructorDef();
-		ImFunction constructorImFunc = t.getFuncFor(constructorFunc);
+		ImFunction constructorImFunc = t.getConstructNewFunc(constructorFunc);
 		t.addCallRelation(f, constructorImFunc);
 		ImExpr result = ImFunctionCall(constructorImFunc, translateExprs(e.getArgs(), t, f));
 		return interfaceWrapper(e, result, t);

@@ -64,6 +64,7 @@ public class ImTranslator {
 	private Map<TranslatedToImFunction, ImVar> thisVarMap = Maps.newHashMap();
 
 	private Set<WPackage> translatedPackages = Sets.newHashSet();
+	private Set<ClassDef>  translatedClasses = Sets.newHashSet();
 
 	private int typeIdCounter = 0;
 	
@@ -384,7 +385,13 @@ public class ImTranslator {
 		translatedPackages.add(pack);
 	}
 
-	
+	public boolean isTranslated(ClassDef c) {
+		return translatedClasses.contains(c);
+	}
+
+	public void setTranslated(ClassDef c) {
+		translatedClasses.add(c);
+	}
 
 	public List<ImStmt> translateStatements(ImFunction f, List<WStatement> statements) {
 		List<ImStmt> result = Lists.newArrayList();
@@ -549,6 +556,59 @@ public class ImTranslator {
 		}
 	}
 
+	private Map<ClassDef, Map<ImVar, OptExpr>> classDynamicInitMap = Maps.newHashMap();
+	private Map<ClassDef, List<WStatement>> classInitStatements = Maps.newHashMap();
+	
+	public Map<ImVar, OptExpr> getDynamicInits(ClassDef c) {
+		Map<ImVar, OptExpr> r = classDynamicInitMap.get(c);
+		if (r == null) {
+			r = Maps.newHashMap();
+			classDynamicInitMap.put(c, r);
+		}
+		return r;
+	}
+
+	public List<WStatement> getInitStatement(ClassDef c) {
+		List<WStatement> r = classInitStatements.get(c);
+		if (r == null) {
+			r = Lists.newArrayList();
+			classInitStatements.put(c, r);
+		}
+		return r;
+	}
+
+	Map<ConstructorDef, ImFunction> constructorFuncs = Maps.newHashMap();
+	
+	public ImFunction getConstructFunc(ConstructorDef constr) {
+		ImFunction f = constructorFuncs.get(constr);
+		if (f == null) {
+			String name = "construct_" + constr.attrNearestClassDef().getName();
+			ImVars params = ImVars(getThisVar(constr));
+			for (WParameter p : constr.getParameters()) {
+				params.add(getVarFor(p));
+			}
+			f = JassIm.ImFunction(name, params, ImVoid(), ImVars(), ImStmts(), false, false);
+			addFunction(f);
+			addSource(f, constr);
+			constructorFuncs.put(constr, f);
+		}
+		return f;
+	}
+
+	
+	Map<ConstructorDef, ImFunction> constrNewFuncs = Maps.newHashMap();
+	
+	public ImFunction getConstructNewFunc(ConstructorDef constr) {
+		ImFunction f = constrNewFuncs.get(constr);
+		if (f == null) {
+			String name = "new_" + constr.attrNearestClassDef().getName();
+			f = JassIm.ImFunction(name, ImVars(), TypesHelper.imInt(), ImVars(), ImStmts(), false, false);
+			addFunction(f);
+			addSource(f, constr);
+			constrNewFuncs.put(constr, f);
+		}
+		return f;
+	}
 
 	
 

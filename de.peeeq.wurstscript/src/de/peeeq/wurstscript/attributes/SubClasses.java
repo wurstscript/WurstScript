@@ -7,6 +7,8 @@ import com.google.common.collect.Multimap;
 
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.ConstructorDefs;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -34,6 +36,21 @@ public class SubClasses {
 			return c.getClassDef();
 		}
 		return null;
+	}
+
+	public static ConstructorDef getSuperConstructor(ConstructorDef constr) {
+		ClassDef c = constr.attrNearestClassDef();
+		if (c == null) {
+			return null;
+		}
+		ClassDef superClass = c.attrExtendedClass();
+		if (superClass == null) {
+			return null;
+		}
+		// call super constructor
+		ConstructorDefs constructors = superClass.getConstructors();
+		ConstructorDef superConstr = OverloadingResolver.resolveSuperCall(constructors, constr);
+		return superConstr;
 	}
 
 }

@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.validation;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.Set;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.ast.AstElement;
@@ -82,6 +84,7 @@ import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
 import de.peeeq.wurstscript.types.PScriptTypeReal;
+import de.peeeq.wurstscript.types.PScriptTypeUnknown;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
@@ -426,7 +429,7 @@ public class WurstValidator {
 			args.add((Expr) stmtCall.attrImplicitParameter());
 		}
 		args.addAll(stmtCall.getArgs());
-		checkParams(stmtCall, args, stmtCall.attrFunctionSignature());
+		checkParams(stmtCall, "", args, stmtCall.attrFunctionSignature());
 		
 		FunctionImplementation nearestFunc = stmtCall.attrNearestFuncDef();
 		if (stmtCall.attrFuncDef() != null) {
@@ -466,16 +469,16 @@ public class WurstValidator {
 //		checkParams(where, args, parameterTypes);
 //	}
 	
-	private void checkParams(AstElement where, List<Expr> args, FunctionSignature sig) {
-		checkParams(where, args, sig.getParamTypes());
+	private void checkParams(AstElement where, String preMsg, List<Expr> args, FunctionSignature sig) {
+		checkParams(where, preMsg, args, sig.getParamTypes());
 	}
 
-	private void checkParams(AstElement where, List<Expr> args, List<PscriptType> parameterTypes) {
+	private void checkParams(AstElement where, String preMsg, List<Expr> args, List<PscriptType> parameterTypes) {
 		if (args.size() > parameterTypes.size()) {
-			attr.addError(where.attrSource(), "Too many parameters.");
+			attr.addError(where.attrSource(), preMsg + "Too many parameters.");
 			
 		} else if (args.size() < parameterTypes.size()) {
-			attr.addError(where.attrSource(), "Missing parameters.");
+			attr.addError(where.attrSource(), preMsg + "Missing parameters.");
 		} else {
 			for (int i=0; i<args.size(); i++) {
 				
@@ -483,7 +486,7 @@ public class WurstValidator {
 				PscriptType expected = parameterTypes.get(i);
 //				if (expected instanceof AstElementWithTypeArgs)
 				if (!actual.isSubtypeOf(expected, where)) {
-					attr.addError(args.get(i).getSource(), "Expected " + expected + " as parameter " + (i+1) + " but  found " + actual);
+					attr.addError(args.get(i).getSource(), preMsg + "Expected " + expected + " as parameter " + (i+1) + " but  found " + actual);
 				}
 			}
 		}
@@ -497,7 +500,7 @@ public class WurstValidator {
 			List<Expr> args = Lists.newArrayList();
 			args.add(expr.getLeft());
 			args.add(expr.getRight());
-			checkParams(expr, args, sig);
+			checkParams(expr, "Operator overloading problem: ", args, sig);
 		}
 	}
 	
@@ -511,7 +514,7 @@ public class WurstValidator {
 			args.add((Expr) stmtCall.attrImplicitParameter());
 		}
 		args.addAll(stmtCall.getArgs());
-		checkParams(stmtCall, args, stmtCall.attrFunctionSignature());
+		checkParams(stmtCall, "", args, stmtCall.attrFunctionSignature());
 	}
 
 	
@@ -581,6 +584,47 @@ public class WurstValidator {
 						+ " must be implemented in class " + classDef.getName() + ".");
 			}
 		}
+		
+		
+		
+		// check overridden methods
+		if (classDef.getExtendedClass() instanceof TypeExpr) {
+			PscriptType extendedType = classDef.getExtendedClass().attrTyp();
+			if (extendedType instanceof PscriptTypeClass) {
+				PscriptTypeClass ptc = (PscriptTypeClass) extendedType;
+				Map<TypeParamDef, PscriptType> typeParamMapping = ptc.getTypeArgBinding();
+				ClassDef superClass = ptc.getClassDef();
+				Multimap<String, NameDef> superClassFunctions = superClass.attrVisibleNamesProtected();
+				for (FunctionDefinition f : functions.values()) {
+					// TODO is this transitive?
+					FunctionDefinition superClassFunction = getFunction(superClassFunctions, f.getName());
+					if (superClassFunction == null) {
+						if (f.attrIsOverride() && f.attrOverriddenFunctions().size() == 0) {
+							attr.addError(f.getSource(), "Function " + f.getName() + " does not exist in super type.");
+						}
+					} else {
+						if (!f.attrIsOverride()) {
+							attr.addError(f.getSource(), "Function " + f.getName() + " must have the override annotation.");
+						}
+						
+						CheckHelper.checkIfIsRefinement(typeParamMapping , f, superClassFunction, "Cannot extend class because of function ", true);
+					}
+				}
+			} else {
+				attr.addError(classDef.getExtendedClass().attrSource(), "Cannot extend " + extendedType + ". " +
+						"Only classes can be extended.");
+			}
+		}
+	}
+
+	private FunctionDefinition getFunction(
+			Multimap<String, NameDef> superClassFunctions, String name) {
+		for (NameDef n : superClassFunctions.get(name)) {
+			if (n instanceof FunctionDefinition) {
+				return (FunctionDefinition) n;
+			}
+		}
+		return null;
 	}
 
 	private void checkTypeName(WPos source, String name) {
@@ -788,6 +832,22 @@ public class WurstValidator {
 				attr.addError(d.getParameters().attrSource(), "Module constructors must not have parameters.");
 			}
 		}
+		ClassDef c = d.attrNearestClassDef();
+		if (c != null && c.attrExtendedClass() != null) {
+			;
+			// check if super constructor is called correctly...
+			// TODO check constr.
+			ConstructorDef sc = d.attrSuperConstructor();
+			if (sc == null) {
+				attr.addError(d.getSource(), "No super constructor found.");
+			} else {
+				List<PscriptType> paramTypes = Lists.newArrayList();
+				for (WParameter p : sc.getParameters()) {
+					paramTypes.add(p.attrTyp());
+				}
+				checkParams(d, "Incorrect call to super constructor: ", d.getSuperArgs(), paramTypes);
+			}
+		}
 	}
 	
 	@CheckMethod
@@ -827,7 +887,7 @@ public class WurstValidator {
 	public void checkNewObj(ExprNewObject e) {
 		ConstructorDef constr = e.attrConstructorDef();
 		if (constr != null) {
-			checkParams(e, e.getArgs(), e.attrFunctionSignature());
+			checkParams(e, "Wrong object creation: ", e.getArgs(), e.attrFunctionSignature());
 		}
 	}
 	

@@ -58,7 +58,7 @@ TypeExprList * TypeExpr
 
 
 ClassSlot = 
-	  ConstructorDef(WPos source, Modifiers modifiers, WParameters parameters, WStatements body)
+	  ConstructorDef(WPos source, Modifiers modifiers, WParameters parameters, Arguments superArgs, WStatements body)
 	| OnDestroyDef(WPos source, WStatements body)
 	| ModuleUse(WPos source, String moduleName, TypeExprList typeArgs)
 	| ModuleInstanciation(WPos source, Modifiers modifiers, String name, 
@@ -541,6 +541,11 @@ ClassDef.attrSubClasses
 ClassDef.attrExtendedClass
 	returns ClassDef
 	implemented by de.peeeq.wurstscript.attributes.SubClasses.getExtendedClass
+
+ConstructorDef.attrSuperConstructor
+	returns ConstructorDef
+	implemented by de.peeeq.wurstscript.attributes.SubClasses.getSuperConstructor
+
 
 // Jass translation:
 	

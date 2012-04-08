@@ -16,6 +16,7 @@ import de.peeeq.wurstscript.utils.UtilsTest;
 	ArrayTests.class,
 	ExpressionTests.class,
 	ClassesTests.class,
+	ClassesExtTests.class,
 	ModuleTests.class,
 	PackageTests.class,
 	OptimizerTests.class,

@@ -204,6 +204,7 @@ public class SyntacticSugar {
 					c.getSource().copy(), 
 					Ast.Modifiers(), 
 					Ast.WParameters(), 
+					Ast.Arguments(),
 					Ast.WStatements()));
 			}
 		}

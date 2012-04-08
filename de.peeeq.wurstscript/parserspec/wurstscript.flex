@@ -260,6 +260,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"interface"							{ return symbolP(TokenType.INTERFACE); }
 	"implements"						{ return symbolP(TokenType.IMPLEMENTS); }
 	"instance"							{ return symbolP(TokenType.INSTANCE); }
+	"super"								{ return symbolP(TokenType.SUPER); }
 	
 	// enums
 	"enum"								{ return symbolP(TokenType.ENUM); } 

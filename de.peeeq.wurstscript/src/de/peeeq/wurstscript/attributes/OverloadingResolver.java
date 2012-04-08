@@ -116,6 +116,37 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 		}.resolve(constructors, node);
 	}
 	
+	public static ConstructorDef resolveSuperCall(List<ConstructorDef> constructors, final ConstructorDef node) {
+		return new OverloadingResolver<ConstructorDef, ConstructorDef>() {
+
+			@Override
+			int getParameterCount(ConstructorDef f) {
+				return f.getParameters().size();
+			}
+
+			@Override
+			PscriptType getParameterType(ConstructorDef f, int i) {
+				return f.getParameters().get(i).getTyp().attrTyp();
+			}
+
+			@Override
+			int getArgumentCount(ConstructorDef c) {
+				return c.getSuperArgs().size();
+			}
+
+			@Override
+			PscriptType getArgumentType(ConstructorDef c, int i) {
+				return c.getSuperArgs().get(i).attrTyp();
+			}
+
+			@Override
+			void handleError(List<String> hints) {
+				attr.addError(node.getSource(), "No suitable constructor found. \n" + Utils.join(hints, ", \n"));
+			}
+		}.resolve(constructors, node);
+	}
+	
+	
 	public static FunctionDefinition resolveFuncCall(final Collection<FunctionDefinition> collection, final FuncRef funcCall) {
 		return new OverloadingResolver<FunctionDefinition, FuncRef>() {
 

@@ -195,7 +195,7 @@ public class Scopes {
 						attr.addError(funcDef.attrSource(), "Function " + name + " needs the 'override' modifier.");
 					}
 				} else {
-					if (funcDef.attrIsOverride()) {
+					if (funcDef.attrIsOverride() && !(c instanceof ClassDef)) {
 						attr.addError(funcDef.attrSource(), "Nothing to override for function " + name + ".");
 					}
 				}

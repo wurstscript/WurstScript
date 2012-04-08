@@ -10,10 +10,10 @@ import static de.peeeq.wurstscript.jassIm.JassIm.ImSet;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImSetArray;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImStmts;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImStringVal;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImVar;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVarAccess;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVarArrayAccess;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -26,18 +26,24 @@ import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.ConstructorDefs;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.OptExpr;
+import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WStatement;
+import de.peeeq.wurstscript.attributes.OverloadingResolver;
 import de.peeeq.wurstscript.jassIm.ImExpr;
+import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
+import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
 
 public class ClassTranslator {
@@ -45,13 +51,15 @@ public class ClassTranslator {
 	private ClassDef classDef;
 	private ImTranslator translator;
 	/** list of statements to initialize a new object **/
-	private ArrayList<WStatement> initStatements = Lists.newArrayList();
-	private Map<ImVar, OptExpr> dynamicInits = Maps.newHashMap();
+	final private List<WStatement> initStatements;
+	final private Map<ImVar, OptExpr> dynamicInits;
 	private ClassManagementVars m;
 
 	public ClassTranslator(ClassDef classDef, ImTranslator translator) {
 		this.classDef = classDef;
 		this.translator = translator;
+		initStatements = translator.getInitStatement(classDef);
+		dynamicInits = translator.getDynamicInits(classDef);
 	}
 
 	public static void translate(ClassDef classDef, ImTranslator translator) {
@@ -109,6 +117,13 @@ public class ClassTranslator {
 		
 		for (ModuleInstanciation mi : c.getModuleInstanciations()) {
 			addOnDestroyActions(f, mi);
+		}
+		
+		if (c instanceof ClassDef) {
+			ClassDef cd = (ClassDef) c;
+			if (cd.attrExtendedClass() != null) {
+				addOnDestroyActions(f, cd.attrExtendedClass());
+			}
 		}
 	}
 
@@ -201,8 +216,25 @@ public class ClassTranslator {
 	}
 
 	public void translateConstructor(ConstructorDef constr) {
-		ImFunction f = translator.getFuncFor(constr);
-		ImVar thisVar = translator.getThisVar(constr);
+		createNewFunc(constr);
+		createConstructFunc(constr);
+	}
+
+	
+
+	private void createNewFunc(ConstructorDef constr) {
+		ImFunction f = translator.getConstructNewFunc(constr);
+		Map<ImVar, ImVar> varReplacements = Maps.newHashMap();
+		
+		for (WParameter p : constr.getParameters()) {
+			ImVar imP = ImVar(p.attrTyp().imTranslateType(), p.getName(), false);
+			varReplacements.put(translator.getVarFor(p), imP);
+			f.getParameters().add(imP);
+		}
+		
+		
+		ImVar thisVar = JassIm.ImVar(TypesHelper.imInt(), "this", false);
+		varReplacements.put(translator.getThisVar(constr), thisVar);
 		f.getLocals().add(thisVar);
 		f.getBody().add(
 		// if firstFree > 0
@@ -229,8 +261,38 @@ public class ClassTranslator {
 			f.getBody().add(ImSetArray(m.typeId, ImVarAccess(thisVar), ImIntVal(translator.getTypeId(classDef))));
 		}
 		
+		// call user defined constructor code:
+		ImFunction constrFunc = translator.getConstructFunc(constr);
+		ImExprs arguments = ImExprs(ImVarAccess(thisVar));
+		for (ImVar a : f.getParameters()) {
+			arguments.add(ImVarAccess(a));
+		}
+		f.getBody().add(ImFunctionCall(constrFunc, arguments));
+		translator.addCallRelation(f, constrFunc);
+		
+		// return this
+		f.getBody().add(ImReturn(ImVarAccess(thisVar)));
+		
+	}
+
+	
+
+	private void createConstructFunc(ConstructorDef constr) {
+		ImFunction f = translator.getConstructFunc(constr);
+		ImVar thisVar = f.getParameters().get(0);
+		ConstructorDef superConstr = constr.attrSuperConstructor();
+		if (superConstr != null) {
+			// call super constructor
+			ImFunction superConstrFunc = translator.getConstructFunc(superConstr);
+			ImExprs arguments = ImExprs(ImVarAccess(thisVar));
+			for (Expr a : constr.getSuperArgs()) {
+				arguments.add(a.imTranslateExpr(translator, f));
+			}
+			f.getBody().add(ImFunctionCall(superConstrFunc, arguments));
+			translator.addCallRelation(f, superConstrFunc);
+		}
 		// initialize vars
-		for (Entry<ImVar, OptExpr> i : dynamicInits.entrySet()) {
+		for (Entry<ImVar, OptExpr> i : translator.getDynamicInits(classDef).entrySet()) {
 			ImVar v = i.getKey();
 			if (i.getValue() instanceof Expr) {
 				Expr e = (Expr) i.getValue();
@@ -239,12 +301,10 @@ public class ClassTranslator {
 			}
 		}
 		// initializers from modules
-		f.getBody().addAll(translator.translateStatements(f, initStatements));
-		// constructor
+		f.getBody().addAll(translator.translateStatements(f, translator.getInitStatement(classDef)));
+		// constructor user code
 		f.getBody().addAll(translator.translateStatements(f, constr.getBody()));
-		// return this
-		f.getBody().add(ImReturn(ImVarAccess(thisVar)));
 	}
-
+	
 
 }

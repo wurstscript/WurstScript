@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.parser;
 
 import java.util.List;
 
+import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassSlot;
@@ -21,6 +22,8 @@ import de.peeeq.wurstscript.ast.TypeExprList;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.TypeParamDefs;
+import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.ast.WParameters;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.attr;
@@ -88,6 +91,14 @@ public class AstHelper {
 				Ast.ConstructorDefs(), Ast.ModuleInstanciations(), Ast.ModuleUses(), Ast.OnDestroyDef(pos.copy(), Ast.WStatements()));
 		addClassSlots(slots, i);		
 		return i;
+	}
+
+	public static Arguments inferSuperArgs(WParameters params) {
+		Arguments result = Ast.Arguments();
+		for (WParameter p : params) {
+			result.add(Ast.ExprVarAccess(p.getSource().copy(), p.getName()));
+		}
+		return result;
 	}
 
 
