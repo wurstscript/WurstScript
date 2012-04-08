@@ -49,11 +49,6 @@ public class InterfaceTranslator {
 		// sort instances by typeid
 		Collections.sort(instances, new TypeIdComparator(translator));
 
-		System.out.println("instances = ");
-		for (ClassDef i : instances) {
-			System.out.println("	 " + i.getName());
-		}
-		
 		// create dispatch methods
 		for (FuncDef f: interfaceDef.getMethods()) {
 			translateInterfaceFuncDef(interfaceDef, instances, f);

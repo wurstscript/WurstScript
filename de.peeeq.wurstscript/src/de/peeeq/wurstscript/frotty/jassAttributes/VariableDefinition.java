@@ -25,15 +25,12 @@ public class VariableDefinition {
 			if (node instanceof JassFunction) {
 				JassFunction jassFunction = (JassFunction) node;
 				JassVar v = getVariableMap(jassFunction).get(varName);
-				System.out.println(v);
 				if (v != null) {
 					return v;
 				}
 			} else if (node instanceof JassProgs) {
-				//System.out.println("In Jassprog");
 				JassProgs jassProgs = (JassProgs) node;
 				JassVar v = jassProgs.getGlobal(varName);
-				System.out.println(v);
 				if (v != null) {
 					return v;
 				}
@@ -75,7 +72,6 @@ public class VariableDefinition {
 			if (node instanceof JassFunction) {
 				JassFunction jassFunction = (JassFunction) node;
 				JassVar v = getVariableMap(jassFunction).get(varName);
-				System.out.println(v);
 				if (v != null && !( v instanceof JassArrayVar)) {
 					return e;
 				}else if(v != null && v instanceof JassArrayVar) {
@@ -83,10 +79,8 @@ public class VariableDefinition {
 					return null;
 				}
 			} else if (node instanceof JassProgs) {
-				//System.out.println("In Jassprog");
 				JassProgs jassProgs = (JassProgs) node;
 				JassVar v = jassProgs.getGlobal(varName);
-				System.out.println(v);
 				if (v != null && !( v instanceof JassArrayVar)) {
 					return e;
 				}else if(v != null && v instanceof JassArrayVar) {
@@ -109,15 +103,12 @@ public class VariableDefinition {
 			if (node instanceof JassFunction) {
 				JassFunction jassFunction = (JassFunction) node;
 				JassVar v = getVariableMap(jassFunction).get(varName);
-				System.out.println(v);
 				if (v != null && v instanceof JassArrayVar) {
 					return e;
 				}
 			} else if (node instanceof JassProgs) {
-				//System.out.println("In Jassprog");
 				JassProgs jassProgs = (JassProgs) node;
 				JassVar v = jassProgs.getGlobal(varName);
-				System.out.println(v);
 				if (v != null && v instanceof JassArrayVar) {
 					return e;
 				}

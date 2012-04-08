@@ -50,7 +50,6 @@ public class NameResolution {
 	}
 	
 	private static <T extends AstElement> List<T> searchTypedNameInScope(Class<T> t, String name, WScope scope, boolean withInheritance) {
-		System.out.println("Searching " + t.getSimpleName() + " " + name + " in " + Utils.printElement(scope));
 		if (scope == null) {
 			return Collections.emptyList();
 		}
@@ -87,7 +86,6 @@ public class NameResolution {
 	}
 	
 	private static <T> T getTypedNameFromNamedScope(Class<T> t, AstElement context, String name, NamedScope ns) {
-		System.out.println("named scope searching " + t.getSimpleName() + " " + name + " in " + Utils.printElement(ns));
 		Multimap<String, NameDef> names;
 		if (isSameClass(context, ns)) {
 			names = ns.attrVisibleNamesPrivate();

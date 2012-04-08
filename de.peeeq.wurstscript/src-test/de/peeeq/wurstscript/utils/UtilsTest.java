@@ -42,7 +42,7 @@ public class UtilsTest {
 	GlobalVarDef testVarDef = (GlobalVarDef) testPackage.getElements().get(2);
 	
     List<NameRef> varRefs = Utils.collect(NameRef.class, testVarDef.getInitialExpr());
-    System.out.println(Utils.join(varRefs, ", "));
+    Debug.println(Utils.join(varRefs, ", "));
     Assert.assertEquals("v3", testVarDef.getName());
     Assert.assertEquals(1, varRefs.size());
     Assert.assertEquals("r2", varRefs.get(0).getVarName());

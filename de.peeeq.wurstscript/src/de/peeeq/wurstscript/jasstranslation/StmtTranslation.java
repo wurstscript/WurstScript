@@ -320,11 +320,6 @@ public class StmtTranslation {
 		result.addAll(left.getStatements());
 		result.addAll(right.getStatements());
 
-		System.out.println(">>>> " + updatedExpr + " = " + newValue);
-		System.out.println("left: " + left.exprCount());
-		System.out.println("right: " + right.exprCount());
-		
-		
 		
 		if (left.exprCount() != right.exprCount()) {
 			if (left.exprCount() == 2 && right.exprCount() == 1 && newValue.attrTyp() instanceof PscriptTypeClass) {

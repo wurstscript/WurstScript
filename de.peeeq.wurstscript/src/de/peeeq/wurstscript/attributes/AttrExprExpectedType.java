@@ -1,7 +1,9 @@
 package de.peeeq.wurstscript.attributes;
 
 import java.util.Map;
+import java.util.logging.Logger;
 
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.Expr;
@@ -76,8 +78,7 @@ public class AttrExprExpectedType {
 				}
 			}
 		} catch (Throwable t) {
-			System.out.println("ignorable error: ");
-			System.out.println(t);
+			WLogger.info(t);
 		}
 		return PScriptTypeUnknown.instance();
 	}

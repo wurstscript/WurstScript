@@ -26,6 +26,7 @@ import de.peeeq.wurstscript.jassAst.JassStmtSet;
 import de.peeeq.wurstscript.jassAst.JassStmtSetArray;
 import de.peeeq.wurstscript.jassAst.JassVar;
 import de.peeeq.wurstscript.jassAst.JassVars;
+import de.peeeq.wurstscript.utils.Debug;
 
 
 public class JassOptimizerImpl implements JassOptimizer {
@@ -46,7 +47,7 @@ public class JassOptimizerImpl implements JassOptimizer {
 			
 		output.write("endpackage");
 		output.close();
-		System.out.println("jka");
+		Debug.println("jka");
 			
 	}	
 	
@@ -69,15 +70,15 @@ public class JassOptimizerImpl implements JassOptimizer {
 			@Override
 			public void visit(JassStmtCall jassCall) {
 				String funcname = jassCall.getFuncName();
-				System.out.println("name: " + funcname);
+				Debug.println("name: " + funcname);
 				if ( funcname.equals("ExecuteFunction") ) {
-					System.out.println("equals");
+					Debug.println("equals");
 					JassExprlist list = jassCall.getArguments();
 					JassExpr argument = list.get(0);
 					usedFunctions.add(new StringExpressionPattern(argument));
 					if ( argument instanceof JassExprStringVal ){
 						String stringName = ((JassExprStringVal) argument).getValS();						
-						System.out.println(stringName + " used in EF");
+						Debug.println(stringName + " used in EF");
 					}					
 				}else if ( funcname.equals( "TriggerRegisterVariableEvent")){
 					JassExprlist list = jassCall.getArguments();
@@ -85,7 +86,7 @@ public class JassOptimizerImpl implements JassOptimizer {
 					usedFunctions.add(new StringExpressionPattern(argument));
 					if ( argument instanceof JassExprStringVal ){
 						String stringName = ((JassExprStringVal) argument).getValS();						
-						System.out.println(stringName + " is USED IN TRVE <<<<<<<<<<<<<<<<");
+						Debug.println(stringName + " is USED IN TRVE <<<<<<<<<<<<<<<<");
 					}
 				}
 			}
@@ -128,7 +129,7 @@ public class JassOptimizerImpl implements JassOptimizer {
 				
 				for (JassVar global : globals ) {
 					String name = global.getName();
-					System.out.println(name);
+					Debug.println(name);
 					replacements.put(name, ng.getUniqueToken());
 					global.setName(replacements.get(name));
 				}
@@ -170,15 +171,15 @@ public class JassOptimizerImpl implements JassOptimizer {
 				// Visit and generate short function names,
 				// checking for EF/TRVE appearance
 				String name = jassFunction.getName();
-				System.out.println("Function:" + name);
+				Debug.println("Function:" + name);
 				if ( !RestrictedStandardNames.contains(name) ){
-					System.out.println("Function:" + name + " is not restricted.");
+					Debug.println("Function:" + name + " is not restricted.");
 					boolean used = false;
 					for( StringExpressionPattern sex : usedInEFTRVE) {
 						if( sex.check(name)) {
-							System.out.println(name + " is used in EF or TRVE");
+							Debug.println(name + " is used in EF or TRVE");
 							if(sex.isConst()) {
-								System.out.println("Pattern is a constant String");
+								Debug.println("Pattern is a constant String");
 								replacements.put(name, ng.getTEToken());	
 							}
 							used = true;
@@ -193,26 +194,26 @@ public class JassOptimizerImpl implements JassOptimizer {
 				// Create small replacements for parameters and locals
 				final HashMap<String, String> localReplacements = new HashMap<String, String>();
 				JassSimpleVars params = jassFunction.getParams();
-				System.out.println("Parameters:");
+				Debug.println("Parameters:");
 				// params
 				for (JassSimpleVar param : params ) {
 					String name1 = param.getName();
-					System.out.println(name1);
+					Debug.println(name1);
 					localReplacements.put(name1, ng.getUniqueToken());
 					param.setName(localReplacements.get(name1));
 				}
 				JassVars locals = jassFunction.getLocals();
-				System.out.println("Locals:");
+				Debug.println("Locals:");
 				// locals
 				for (JassVar local : locals ) {
 					String name1 = local.getName();
-					System.out.println(name1);
+					Debug.println(name1);
 					localReplacements.put(name1, ng.getUniqueToken());
 					local.setName(localReplacements.get(name1));
-					System.out.println(name1 + " replacement: " + localReplacements.get(name1));
+					Debug.println(name1 + " replacement: " + localReplacements.get(name1));
 				}
 				
-				System.out.println("Body: " + jassFunction.getBody());
+				Debug.println("Body: " + jassFunction.getBody());
 				
 				// Replace everything in the function body
 				jassFunction.accept(new JassFunction.DefaultVisitor() {
@@ -220,9 +221,9 @@ public class JassOptimizerImpl implements JassOptimizer {
 					@Override
 					public void visit(JassStmtSet setStmt ) {
 						String name = setStmt.getLeft();
-						//System.out.println("Left Statement: " + name );
+						//Debug.println("Left Statement: " + name );
 						if ( localReplacements.containsKey(name)){
-							System.out.println("Replaced with " + localReplacements.get(name));
+							Debug.println("Replaced with " + localReplacements.get(name));
 							setStmt.setLeft(localReplacements.get(name));
 						}else if ( replacements.containsKey(name)){
 							setStmt.setLeft(replacements.get(name));
@@ -233,7 +234,7 @@ public class JassOptimizerImpl implements JassOptimizer {
 					public void visit(JassStmtSetArray setArrayStmt ) {
 						String name = setArrayStmt.getLeft();
 						if ( localReplacements.containsKey(name)){
-							System.out.println("Replaced with " + localReplacements.get(name));
+							Debug.println("Replaced with " + localReplacements.get(name));
 							setArrayStmt.setLeft(localReplacements.get(name));
 						}else if ( replacements.containsKey(name)){
 							setArrayStmt.setLeft(replacements.get(name));
@@ -243,7 +244,7 @@ public class JassOptimizerImpl implements JassOptimizer {
 					@Override
 					public void visit(JassExprVarAccess setExpr ) {
 						String name = setExpr.getVarName();
-						System.out.println("Var  " + name + " has local replacement " + localReplacements.get(name));
+						Debug.println("Var  " + name + " has local replacement " + localReplacements.get(name));
 						if ( localReplacements.containsKey(name)){
 							setExpr.setVarName(localReplacements.get(name));
 						}else if ( replacements.containsKey(name)){

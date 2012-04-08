@@ -115,7 +115,6 @@ public class JassPrinter {
 
 			@Override
 			public void case_JassInitializedVar(JassInitializedVar jassInitializedVar) {
-				System.out.println("jadasdas");
 				sb.append(jassInitializedVar.getType() + " " + jassInitializedVar.getName() + "=");
 				 jassInitializedVar.getVal().print(sb, withSpace);
 				 sb.append("\n");

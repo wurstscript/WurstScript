@@ -189,15 +189,6 @@ public class ClassTranslator {
 		
 		List<Pair<ClassDef, FuncDef>> subClasses2 = translator.getClassedWithImplementation(subClasses, s);
 		
-		System.out.println(classDef.getName() + ".subClasses =  ");
-		for (ClassDef i  : subClasses) {
-			System.out.println("	" + i.getName());
-		}
-		System.out.println(classDef.getName() + "." + s.getName() + ".instances 2 =  ");
-		for (Pair<ClassDef, FuncDef> i  : subClasses2) {
-			System.out.println("	" + i.getA().getName());
-		}
-		
 		
 		if (subClasses2.size() > 0) {
 			f.getBody().addAll(translator.createDispatch(subClasses2, 0, subClasses2.size()-1, s, f, false, new TypeIdGetterImpl()));

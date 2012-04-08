@@ -102,7 +102,6 @@ public class ImTranslator {
 		}
 		
 		if (mainFunc == null) {
-			System.out.println("generating default main function");
 			mainFunc = ImFunction("main", ImVars(), ImVoid(), ImVars(), ImStmts(), false, false);
 			addFunction(mainFunc);
 		}
@@ -472,12 +471,10 @@ public class ImTranslator {
 	public List<ImStmt> createDispatch(List<Pair<ClassDef, FuncDef>> instances, int start, int end
 			, FuncDef funcDef, ImFunction f, boolean equalityKnown, TypeIdGetter typeId) {
 		
-		System.out.println("create dispatch " + start + " to " + end);
 		List<ImStmt> result = Lists.newArrayList();
 		ImVar thisVar = f.getParameters().get(0);
 		boolean returnsVoid = funcDef.attrTyp() instanceof PScriptTypeVoid;
 		if (start > end) {
-			System.out.println("	no instances");
 			// there seem to be no instances
 			assert instances.size() == 0;
 			// just create an dummy return
@@ -490,7 +487,6 @@ public class ImTranslator {
 			}
 			return result;
 		} else if (start == end) {
-			System.out.println("	call");
 			FuncDef calledFunc = instances.get(start).getB();
 			ImFunction calledJassFunc = getFuncFor(calledFunc);
 			addCallRelation(f, calledJassFunc);
@@ -530,11 +526,9 @@ public class ImTranslator {
 				return result;
 			}
 		} else {
-			System.out.println("	split");
 			int splitAt = start + (end-start) / 2;
 			
 			boolean eq = false;
-			System.out.println("splitAt - start = " + (splitAt - start));
 			if (splitAt - start == 0) {
 				// if we only have one element at the left side, we can already check for equality
 				eq = true;
