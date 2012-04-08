@@ -50,15 +50,15 @@ public class ClassTranslator {
 
 	private ClassDef classDef;
 	private ImTranslator translator;
-	/** list of statements to initialize a new object **/
-	final private List<WStatement> initStatements;
+//	/** list of statements to initialize a new object **/
+//	final private List<WStatement> initStatements;
 	final private Map<ImVar, OptExpr> dynamicInits;
 	private ClassManagementVars m;
 
 	public ClassTranslator(ClassDef classDef, ImTranslator translator) {
 		this.classDef = classDef;
 		this.translator = translator;
-		initStatements = translator.getInitStatement(classDef);
+//		initStatements = translator.getInitStatement(classDef);
 		dynamicInits = translator.getDynamicInits(classDef);
 	}
 
@@ -128,10 +128,10 @@ public class ClassTranslator {
 	}
 
 	private void translateConstructors() {
-		// collect init statements from module instantiations:
-		for (ModuleInstanciation mi : classDef.getModuleInstanciations()) {
-			collectModuleInitializers(mi);
-		}
+//		// collect init statements from module instantiations:
+//		for (ModuleInstanciation mi : classDef.getModuleInstanciations()) {
+//			collectModuleInitializers(mi);
+//		}
 
 		for (ConstructorDef c : classDef.getConstructors()) {
 			translateConstructor(c);
@@ -139,14 +139,14 @@ public class ClassTranslator {
 
 	}
 
-	private void collectModuleInitializers(ModuleInstanciation mi) {
-		for (ModuleInstanciation mi2 : mi.getModuleInstanciations()) {
-			collectModuleInitializers(mi2);
-		}
-		for (ConstructorDef c : mi.getConstructors()) {
-			initStatements.addAll(c.getBody());
-		}
-	}
+//	private void collectModuleInitializers(ModuleInstanciation mi) {
+//		for (ModuleInstanciation mi2 : mi.getModuleInstanciations()) {
+//			collectModuleInitializers(mi2);
+//		}
+//		for (ConstructorDef c : mi.getConstructors()) {
+//			initStatements.addAll(c.getBody());
+//		}
+//	}
 
 	private void createClassManagementVars() {
 		m = translator.getClassManagementVarsFor(classDef);
@@ -270,7 +270,7 @@ public class ClassTranslator {
 
 	private void createConstructFunc(ConstructorDef constr) {
 		ImFunction f = translator.getConstructFunc(constr);
-		ImVar thisVar = f.getParameters().get(0);
+		ImVar thisVar = translator.getThisVar(constr);
 		ConstructorDef superConstr = constr.attrSuperConstructor();
 		if (superConstr != null) {
 			// call super constructor
@@ -291,10 +291,41 @@ public class ClassTranslator {
 				f.getBody().add(s);
 			}
 		}
-		// initializers from modules
-		f.getBody().addAll(translator.translateStatements(f, translator.getInitStatement(classDef)));
+		// add initializers from modules
+		for (ModuleInstanciation mi : classDef.getModuleInstanciations()) {
+			addModuleInits(f, mi, thisVar);
+		}
 		// constructor user code
 		f.getBody().addAll(translator.translateStatements(f, constr.getBody()));
+	}
+
+	private void addModuleInits(ImFunction f, ModuleInstanciation mi,	ImVar thisVar) {
+		// add initializers from modules
+		for (ModuleInstanciation mi2 : mi.getModuleInstanciations()) {
+			addModuleInits(f, mi2, thisVar);
+		}
+		
+		for (ConstructorDef c : mi.getConstructors()) {
+			List<ImStmt> stmts = translator.translateStatements(f, c.getBody());
+			replaceVar(stmts, translator.getThisVar(c), thisVar);
+		}
+	}
+
+	private void replaceVar(List<ImStmt> stmts, final ImVar oldVar, final ImVar newVar) {
+		for (ImStmt s : stmts) {
+			replaceVar(s, oldVar, newVar);
+		}
+	}
+
+	private void replaceVar(ImStmt s, final ImVar oldVar, final ImVar newVar) {
+		s.accept(new ImStmt.DefaultVisitor() {
+			@Override
+			public void visit(ImVarAccess imVar) {
+				if (imVar.getVar() == oldVar) {
+					imVar.setVar(newVar);
+				}
+			}				
+		});
 	}
 	
 
