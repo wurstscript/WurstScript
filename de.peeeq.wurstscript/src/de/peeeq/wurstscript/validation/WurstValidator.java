@@ -252,7 +252,7 @@ public class WurstValidator {
 		if (var instanceof HasModifier) {
 			HasModifier g = (HasModifier) var;
 			if (g.attrIsConstant()) {
-				attr.addError(left.getSource(), "Cannot assign a new value to constant variable " + Utils.printElement(var));
+				attr.addError(left.getSource(), "Cannot assign a new value to constant " + Utils.printElement(var));
 			}
 		}
 	}

@@ -278,7 +278,8 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 
 	//statements
 	"skip"								{ return symbolP(TokenType.SKIP); }
-	"val"								{ return symbolP(TokenType.VAL); }
+	"let"								{ return symbolP(TokenType.LET); }
+	"var"								{ return symbolP(TokenType.VAR); }
 	"return"                          	{ return symbolP(TokenType.RETURN); }
 	"if"                              	{ return symbolP(TokenType.IF); }
 	"else"                            	{ return symbolP(TokenType.ELSE); }

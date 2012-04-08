@@ -45,7 +45,7 @@ package Collections
 			c1.close()
 		// and open everything aggain (but not the chest, as we want to keep our treasure)
 		//closeables.remove(chest) // remove the chest from the list
-		val iterator = closeables.iterator()
+		let iterator = closeables.iterator()
 		for Closeable c3 from iterator
 			if c3 == chest
 				iterator.remove()

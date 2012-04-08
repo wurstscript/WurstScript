@@ -11,7 +11,7 @@ package Lists
 
 		// add an element to the end of the list
 		function add(T elem)
-			val entry = new LLEntry(elem, dummy.prev, dummy)
+			let entry = new LLEntry(elem, dummy.prev, dummy)
 			dummy.prev.next = entry
 			dummy.prev = entry
 			size ++
@@ -23,7 +23,7 @@ package Lists
 
 		// remove element at index
 		function removeAt(int index)
-			val e = getEntry(index)
+			let e = getEntry(index)
 			e.prev.next = e.next
 			e.next.prev = e.prev
 			destroy e	
@@ -62,7 +62,7 @@ package Lists
 		ondestroy
 			LLEntry<T> current = dummy.next
 			while current != dummy
-				val temp = current
+				let temp = current
 				current = current.next
 				destroy temp
 			destroy dummy

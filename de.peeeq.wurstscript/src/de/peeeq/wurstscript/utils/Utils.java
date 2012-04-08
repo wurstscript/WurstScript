@@ -30,10 +30,12 @@ import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
+import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.jassAst.JassVar;
@@ -501,11 +503,15 @@ public class Utils {
 			FuncDef fd = (FuncDef) e;
 			return "function " + fd.getName();
 		} else if (e instanceof OnDestroyDef) {
-			OnDestroyDef d = (OnDestroyDef) e;
-			return "destroy function for " + d.attrNearestStructureDef().getName();
+			return "destroy function for " + e.attrNearestStructureDef().getName();
 		} else if (e instanceof ConstructorDef) {
-			ConstructorDef c = (ConstructorDef) e;
 			return "constructor for " + e.attrNearestStructureDef().getName();
+		} else if (e instanceof LocalVarDef) {
+			LocalVarDef l = (LocalVarDef) e;
+			return "local variable " + l.getName();
+		} else if (e instanceof VarDef) {
+			LocalVarDef l = (LocalVarDef) e;
+			return "variable " + l.getName();
 		} else if (e instanceof AstElementWithName) {
 			name = ((AstElementWithName) e).getName();
 		} else if (e instanceof TypeExprSimple) {

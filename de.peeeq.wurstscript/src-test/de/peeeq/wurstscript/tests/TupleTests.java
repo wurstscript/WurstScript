@@ -49,7 +49,7 @@ public class TupleTests extends PscriptTest {
 				"	function sum(vec v) returns real",
 				"		return v.x + v.y + v.z",
 				"	init",
-				"		val v = vec(4,5,6)",
+				"		let v = vec(4,5,6)",
 				"		if sum(v) == 15",
 				"			testSuccess()",
 				"endpackage"
@@ -65,7 +65,7 @@ public class TupleTests extends PscriptTest {
 				"	function blub(real x, real y) returns vec",
 				"		return vec(x, y, 0)",
 				"	init",
-				"		val v = blub(4,5)",
+				"		let v = blub(4,5)",
 				"		if v.x == 4 and v.y == 5 and v.z == 0",
 				"			testSuccess()",
 				"endpackage"
@@ -81,7 +81,7 @@ public class TupleTests extends PscriptTest {
 				"	function vec.plus(vec other) returns vec",
 				"		return vec(this.x + other.x, this.y + other.y, this.z + other.z)",
 				"	init",
-				"		val v = vec(1,2,3).plus(vec(4,5,6))",
+				"		let v = vec(1,2,3).plus(vec(4,5,6))",
 				"		if v.x == 5 and v.y == 7 and v.z == 9",
 				"			testSuccess()",
 				"endpackage"
