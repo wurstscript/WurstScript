@@ -55,13 +55,15 @@ If the function does not return a value this part is ommitted.
 ## Variables
 
 Global (local) variables can be declared anywhere in a package (function). 
-A constant value may be declared using the _val_ keyword. Variables are declared
-by writing the type of the variable before its name.
+A constant value may be declared using the _let_ keyword. Variables are declared
+by using the _var_ keyword or writing the type of the variable before its name.
 
 	// declaring a constant - the type is inferred from the inital expression
-	val x = 5
+	let x = 5
 	// declaring a variable
-	int y = 7
+	var y = 5
+	// declaring a variable with explicit type
+	int z = 7
 
 
 
@@ -110,6 +112,9 @@ a separate chapter about generics.
 
 ## Statements
 
+### Skip
+
+The simplest statement is the _skip_ statement. It has no effect and can be used to create empty functions or blocks.
 
 ### Ifs
 
@@ -163,7 +168,7 @@ A for-in loop can be transformed into an equivialent while-loop very easily:
 		Statements
 	
 	// is equivalent to:
-	val iterator = b.iterator()
+	let iterator = b.iterator()
 	while iterator.hasNext()
 		A a = iterator.next()
 		Statements*
@@ -367,6 +372,37 @@ other elements belong to instances of the class. So you can call static function
 By default class elements are visible everywhere. You can add the modifiers "private" or "protected" in front of a variable or function definition to restrict its visibility.
 Private elements can only be seen from within the class. Protected elements can be seen within the enclosing package.
 
+## Subclassing
+
+A class can _extend_ an other class. The class then inherits all the non-private functions and variables from that class
+and can be used anywhere where the super class can be used. 
+
+Constructors of the class have to specify how the super class should be constructed. This is done using a _super_ call, 
+which defines the arguments for the super constructor. There can not be any statement before this call.
+
+Functions inherited from super classes can be overridden in the subclass. Such functions have to be annotated with _override_.
+
+### Example
+
+	class Missile 		
+		construct(string fx, real x, real y)
+			// ...
+		
+		function onCollide(unit u)
+			skip
+	
+		// ...
+		
+	// a fireball missile is a special kind of missile
+	class FireballMissile extends Missile	
+		// we construct it using a fireball fx
+		construct(real x, real y)
+			super("Abilities\\Weapons\\RedDragonBreath\\RedDragonMissile.mdl", x, y)
+		// a fireball does some special things when it collides
+		// with a unit, so we override the onCollide method
+		override function onCollide(unit u)
+			// create a big explosion here ;)
+			//...
 
 
 # Interfaces 
@@ -398,6 +434,14 @@ A class can _implement_ multiple interfaces, meaning that it complies to more in
 
 With interfaces (and modules if implicit) you can now up- and downcast any Class that implements it.
 This is especially useful for saving all instances from classes that inherit 1 interface in only 1 List/Array
+
+## Defender methods
+
+An interface can have functions with an implementation. This implementation is used, when a class implementing the interface
+does not provide an implementation of the method itself. Usually this is not needed but in some cases it might
+be necessary in order to evolve an interface without breaking its implementing classes.
+
+
 
 # Generics
 
