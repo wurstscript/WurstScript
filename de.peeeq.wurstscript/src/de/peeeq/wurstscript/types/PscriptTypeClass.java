@@ -6,6 +6,7 @@ import java.util.List;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.NamedScope;
+import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.jassIm.ImType;
 
 
@@ -32,7 +33,11 @@ public class PscriptTypeClass extends PscriptTypeNamedScope {
 					return true;
 				}
 			}
-			return false;
+		}
+		if (classDef.getExtendedClass() instanceof TypeExpr) {
+			TypeExpr extendedClass = (TypeExpr) classDef.getExtendedClass();
+			PscriptType superType = extendedClass.attrTyp();
+			return superType.isSubtypeOf(obj, location);
 		}
 		return false;
 	}

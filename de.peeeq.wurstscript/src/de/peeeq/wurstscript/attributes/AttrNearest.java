@@ -1,8 +1,10 @@
 package de.peeeq.wurstscript.attributes;
 
+import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
+import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.FunctionImplementation;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
@@ -115,6 +117,16 @@ public class AttrNearest {
 		} else if (e.getParent() != null) {
 				return e.getParent().attrNearestStructureDef(); 
 		} else { 
+			return null;
+		}
+	}
+
+	public static CompilationUnit nearestCompilationUnit(AstElement e) {
+		if (e instanceof CompilationUnit) {
+			return (CompilationUnit) e;
+		} else if (e.getParent() != null) {
+			return e.getParent().attrCompilationUnit();
+		} else {
 			return null;
 		}
 	}

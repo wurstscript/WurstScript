@@ -340,11 +340,6 @@ public class AttrExprType {
 				return false;
 				
 			}
-			
-			public void noOpError() {
-				attr.addError(term.getSource(), "Operator " + term.getOp() +" is not defined for " +
-						"operands " + leftType + " and " + rightType);				
-			}
 
 			@Override
 			public PscriptType case_OpPlus(OpPlus op)  {
@@ -353,15 +348,20 @@ public class AttrExprType {
 				} if (bothTypesRealOrInt()) {
 					return caseMathOperation();
 				} else {
-					FunctionDefinition def = term.attrFuncDef();
-					if (def != null) {
-						return def.getReturnTyp().attrTyp();
-					}
-					noOpError();
-					return PScriptTypeUnknown.instance();
+					return handleOperatorOverloading(term);
 				}
 		
 				
+			}
+
+			private PscriptType handleOperatorOverloading(final ExprBinary term) {
+				FunctionDefinition def = term.attrFuncDef();
+				if (def == null) {
+					attr.addError(term.getSource(), "No operator overloading function for operator " + term.getOp() +
+							" was found for operands " + leftType + " and " + rightType);
+					return PScriptTypeUnknown.instance();
+				}
+				return def.getReturnTyp().attrTyp();
 			}
 
 			private PscriptType caseMathOperation() {
@@ -373,7 +373,8 @@ public class AttrExprType {
 						return PScriptTypeReal.instance();
 					}
 				}
-				noOpError();
+				attr.addError(term.getSource(), "Operator " + term.getOp() +" is not defined for " +
+						"operands " + leftType + " and " + rightType);
 				return PScriptTypeUnknown.instance();
 			}
 
@@ -383,12 +384,7 @@ public class AttrExprType {
 				if (bothTypesRealOrInt()) {
 					return caseMathOperation();
 				} else {
-					FunctionDefinition def = term.attrFuncDef();
-					if (def != null) {
-						return def.getReturnTyp().attrTyp();
-					}
-					noOpError();
-					return PScriptTypeUnknown.instance();
+					return handleOperatorOverloading(term);
 				}
 			}
 
@@ -397,12 +393,7 @@ public class AttrExprType {
 				if (bothTypesRealOrInt()) {
 					return caseMathOperation();
 				} else {
-					FunctionDefinition def = term.attrFuncDef();
-					if (def != null) {
-						return def.getReturnTyp().attrTyp();
-					}
-					noOpError();
-					return PScriptTypeUnknown.instance();
+					return handleOperatorOverloading(term);
 				}
 			}
 
@@ -414,13 +405,11 @@ public class AttrExprType {
 				} else if (bothTypesRealOrInt()) {
 					return PScriptTypeReal.instance();			
 				} else {
-					FunctionDefinition def = term.attrFuncDef();
-					if (def != null) {
-						return def.getReturnTyp().attrTyp();
-					}
-					noOpError();
-					return PScriptTypeUnknown.instance();
+					return handleOperatorOverloading(term);
 				}
+//				attr.addError(term.getSource(), "Operator " + term.getOp() +" is not defined for " +
+//						"operands " + leftType + " and " + rightType);
+//				return PScriptTypeUnknown.instance();
 			}
 
 			@Override
@@ -431,7 +420,8 @@ public class AttrExprType {
 						return PScriptTypeReal.instance();
 					}
 				}
-				noOpError();
+				attr.addError(term.getSource(), "Operator " + term.getOp() +" is not defined for " +
+						"operands " + leftType + " and " + rightType);
 				return PScriptTypeUnknown.instance();
 			}
 
@@ -441,7 +431,8 @@ public class AttrExprType {
 				if (leftType instanceof PScriptTypeInt || rightType instanceof PScriptTypeInt) {
 					return leftType;
 				}
-				noOpError();
+				attr.addError(term.getSource(), "Operator " + term.getOp() +" is not defined for " +
+						"operands " + leftType + " and " + rightType);
 				return PScriptTypeUnknown.instance();
 			}
 
@@ -451,7 +442,8 @@ public class AttrExprType {
 				if (leftType instanceof PScriptTypeInt && rightType instanceof PScriptTypeInt) {
 					return leftType;
 				}
-				noOpError();
+				attr.addError(term.getSource(), "Operator " + term.getOp() +" is not defined for " +
+						"operands " + leftType + " and " + rightType);
 				return PScriptTypeUnknown.instance();
 			}
 		});

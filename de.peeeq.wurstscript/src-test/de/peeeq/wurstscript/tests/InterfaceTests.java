@@ -72,7 +72,7 @@ public class InterfaceTests extends PscriptTest {
 				"	init",
 				"		ar[5] = new B()",
 				"		ar[6] = new C()",
-				"		val temp = ar[6]",
+				"		let temp = ar[6]",
 				"		ar[6] = ar[5]",
 				"		ar[5] = temp",
 				"		if ar[5].foo() == 3 and ar[6].foo() == 2",

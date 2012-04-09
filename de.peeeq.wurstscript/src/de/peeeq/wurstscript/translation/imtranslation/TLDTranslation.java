@@ -104,7 +104,15 @@ public class TLDTranslation {
 	}
 
 	public static void translate(ClassDef classDef, ImTranslator translator) {
+		if (translator.isTranslated(classDef)) {
+			return;
+		}
+		if (classDef.attrExtendedClass() != null) {
+			// first translate super classes:
+			translate(classDef.attrExtendedClass(), translator);
+		}
 		ClassTranslator.translate(classDef, translator);
+		translator.setTranslated(classDef);
 	}
 
 	

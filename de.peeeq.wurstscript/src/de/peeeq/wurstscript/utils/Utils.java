@@ -17,6 +17,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import com.google.common.base.Function;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -29,10 +30,12 @@ import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
+import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.jassAst.JassVar;
@@ -500,11 +503,15 @@ public class Utils {
 			FuncDef fd = (FuncDef) e;
 			return "function " + fd.getName();
 		} else if (e instanceof OnDestroyDef) {
-			OnDestroyDef d = (OnDestroyDef) e;
-			return "destroy function for " + d.attrNearestClassDef().getName();
+			return "destroy function for " + e.attrNearestStructureDef().getName();
 		} else if (e instanceof ConstructorDef) {
-			ConstructorDef c = (ConstructorDef) e;
-			return "constructor for " + e.attrNearestClassDef().getName();
+			return "constructor for " + e.attrNearestStructureDef().getName();
+		} else if (e instanceof LocalVarDef) {
+			LocalVarDef l = (LocalVarDef) e;
+			return "local variable " + l.getName();
+		} else if (e instanceof VarDef) {
+			VarDef l = (VarDef) e;
+			return "variable " + l.getName();
 		} else if (e instanceof AstElementWithName) {
 			name = ((AstElementWithName) e).getName();
 		} else if (e instanceof TypeExprSimple) {
@@ -570,6 +577,29 @@ public class Utils {
 			node = node.getParent();
 		}
 		return name;
+	}
+	
+	/**
+	 * calculates the transient closure of a multimap 
+	 */
+	public static <T> Multimap<T, T> transientClosure(Multimap<T, T> start) {
+		Multimap<T, T> result = HashMultimap.create();
+		result.putAll(start);
+		
+		boolean changed;
+		do {
+			Multimap<T, T> changes = HashMultimap.create();
+			
+			for (Entry<T, T> e1 : result.entries()) {
+				for (T t : result.get(e1.getValue())) {
+					changes.put(e1.getKey(), t);
+				}
+			}
+			changed = result.putAll(changes);
+			
+		} while (changed);
+		
+		return result;
 	}
 
 }

@@ -2,6 +2,8 @@ package de.peeeq.wurstscript.jassoptimizer;
 
 import java.io.FileNotFoundException;
 
+import de.peeeq.wurstscript.utils.Debug;
+
 /**
  * This will be used to generate unique Strings which aren't named like the ones
  * in the restricted list.
@@ -65,7 +67,7 @@ public class NameGenerator {
     public String getUniqueToken() {
         String s = getToken();
         if (RestrictedCompressedNames.contains(s)){
-        	System.out.println("is restricted");
+        	Debug.println("is restricted");
             // Wishful thinking, but normally this should work
             // there are only a handful of restricted names anyway.
             s = getToken();

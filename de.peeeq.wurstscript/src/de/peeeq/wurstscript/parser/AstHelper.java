@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.parser;
 
 import java.util.List;
 
+import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassSlot;
@@ -12,13 +13,17 @@ import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.Modifiers;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleUse;
+import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
+import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.StructureDefOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprList;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.TypeParamDefs;
+import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.ast.WParameters;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.attr;
@@ -46,9 +51,9 @@ public class AstHelper {
 		return result;
 	}
 
-	public static ClassDef ClassDef(WPos pos, Modifiers mod, String name, TypeParamDefs typeParams, TypeExprList il,
+	public static ClassDef ClassDef(WPos pos, Modifiers mod, String name, TypeParamDefs typeParams, OptTypeExpr extendedClass, TypeExprList il,
 			List<ClassSlot> slots) {
-		ClassDef c = Ast.ClassDef(pos, mod, name, typeParams, il, Ast.FuncDefs(), Ast.GlobalVarDefs(), 
+		ClassDef c = Ast.ClassDef(pos, mod, name, typeParams, extendedClass, il, Ast.FuncDefs(), Ast.GlobalVarDefs(), 
 				Ast.ConstructorDefs(), Ast.ModuleInstanciations(), Ast.ModuleUses(), Ast.OnDestroyDef(pos.copy(), Ast.WStatements()));
 		addClassSlots(slots, c);		
 		return c;
@@ -86,6 +91,14 @@ public class AstHelper {
 				Ast.ConstructorDefs(), Ast.ModuleInstanciations(), Ast.ModuleUses(), Ast.OnDestroyDef(pos.copy(), Ast.WStatements()));
 		addClassSlots(slots, i);		
 		return i;
+	}
+
+	public static Arguments inferSuperArgs(WParameters params) {
+		Arguments result = Ast.Arguments();
+		for (WParameter p : params) {
+			result.add(Ast.ExprVarAccess(p.getSource().copy(), p.getName()));
+		}
+		return result;
 	}
 
 

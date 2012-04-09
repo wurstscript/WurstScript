@@ -315,6 +315,46 @@ public class SimpleStatementTests extends PscriptTest {
 				);
 	}
 	
+	@Test
+	public void test_let() {
+		assertOk(true,
+				"let a = 11",
+				"let b = a + 9",
+				"if b == 20",
+				"	testSuccess()"
+				);
+	}
+	
+	@Test
+	public void test_let2() {
+		assertError(true, "Cannot assign",
+				"let a = 11",
+				"a = a + 9",
+				"if a == 20",
+				"	testSuccess()"
+				);
+	}
+	
+	@Test
+	public void test_var() {
+		assertOk(true,
+				"var a = 11",
+				"var b = a + 9",
+				"if b == 20",
+				"	testSuccess()"
+				);
+	}
+	
+	@Test
+	public void test_var2() {
+		assertOk(true,
+				"var a = 11",
+				"a = a + 9",
+				"if a == 20",
+				"	testSuccess()"
+				);
+	}
+	
 	public void assertOk( boolean executeProg, String ... body) {
 		String prog = "package test\n" +
 				"	native testFail(string msg)\n" +

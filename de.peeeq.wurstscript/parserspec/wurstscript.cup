@@ -62,8 +62,8 @@ terminal
 	COMMA, SEMICOLON, COLON,   
 	NL,
 	TUPLE, MODULE, USE, ABSTRACT, IN, FOR, FROM, TO, DOWNTO, STEP, BREAK, THISTYPE, ARROW, IT, IMMUTABLE, OVERRIDE, INSTANCE, INSTANCEOF, ENUM,
-	STATIC, PACKAGE, ENDPACKAGE, RETURNS,FUNCTION, SKIP, VAL, PUBLIC, PUBLICREAD, PRIVATE, PROTECTED, IMPORT, NATIVETYPE, INIT, NATIVE, INTERFACE,
-	IMPLEMENTS, ARRAY, IF, ELSE, WHILE, RETURN, CLASS, NEW, NULL, EXTENDS, THIS, CONSTRUCT, ONDESTROY, 
+	STATIC, PACKAGE, ENDPACKAGE, RETURNS,FUNCTION, SKIP, LET, VAR, PUBLIC, PUBLICREAD, PRIVATE, PROTECTED, IMPORT, NATIVETYPE, INIT, NATIVE, INTERFACE,
+	IMPLEMENTS, ARRAY, IF, ELSE, WHILE, RETURN, CLASS, NEW, NULL, EXTENDS, SUPER, THIS, CONSTRUCT, ONDESTROY, 
 	TYPE, GLOBALS, ENDGLOBALS, CONSTANT, ENDFUNCTION, TAKES, NOTHING, LOCAL,
 	LOOP, ENDLOOP, EXITWHEN, SET, CALL, THEN, ELSEIF, ENDIF, DESTROY, CASTTO,
 	// virtual terminals:
@@ -307,11 +307,16 @@ InterfaceFunctionSignature ::=
 
 
 ClassDef ::=
-	Modifiers:mod CLASS:x IdentifierWithTypeParamDefs:d ImplementsListOpt:il NL INDENT ClassSlots:slots UNINDENT:y
-		{: RESULT = AstHelper.ClassDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), il, slots); :}
+	Modifiers:mod CLASS:x IdentifierWithTypeParamDefs:d EXTENDS TypeExpr:ex ImplementsListOpt:il NL INDENT ClassSlots:slots UNINDENT:y
+		{: RESULT = AstHelper.ClassDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), ex, il, slots); :}
+	| Modifiers:mod CLASS:x IdentifierWithTypeParamDefs:d EXTENDS TypeExpr:ex ImplementsListOpt:il NL:y
+		{: RESULT = AstHelper.ClassDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), ex, il, Collections.<ClassSlot>emptyList()); :}
+	| Modifiers:mod CLASS:x IdentifierWithTypeParamDefs:d ImplementsListOpt:il NL INDENT ClassSlots:slots UNINDENT:y
+		{: RESULT = AstHelper.ClassDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), Ast.NoTypeExpr(), il, slots); :}
 	| Modifiers:mod CLASS:x IdentifierWithTypeParamDefs:d ImplementsListOpt:il NL:y
-		{: RESULT = AstHelper.ClassDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), il, Collections.<ClassSlot>emptyList()); :}
+		{: RESULT = AstHelper.ClassDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), Ast.NoTypeExpr(), il, Collections.<ClassSlot>emptyList()); :}
 ;
+
 
 
 IdentifierWithTypeArgs ::=
@@ -352,8 +357,10 @@ ClassSlots ::=
 ;
 
 ClassSlot ::=
-	Modifiers:mod CONSTRUCT:x LPAR Parameters:params RPAR NL INDENT Statements:body UNINDENT:y
-		{: RESULT = Ast.ConstructorDef(pos(xleft, yright), mod, params, body); :}
+	  Modifiers:mod CONSTRUCT:x LPAR Parameters:params RPAR NL INDENT Statements:body UNINDENT:y
+		{: RESULT = Ast.ConstructorDef(pos(xleft, yright), mod, params, AstHelper.inferSuperArgs(params), body); :}
+	| Modifiers:mod CONSTRUCT:x LPAR Parameters:params RPAR NL INDENT SUPER LPAR Arguments:superArgs RPAR NL Statements:body UNINDENT:y
+		{: RESULT = Ast.ConstructorDef(pos(xleft, yright), mod, params, superArgs, body); :}
 	| Modifiers:mod USE:x IdentifierWithTypeArgs:m NL
 		{: RESULT = Ast.ModuleUse(pos(xleft, m), m.getName(), m.getTypeArgs()); :} 
 	| ONDESTROY:x NL INDENT Statements:body UNINDENT:y
@@ -544,10 +551,12 @@ StmtWhile ::=
 ;
 
 LocalVarDef ::=
-	VAL:x IDENTIFIER:name EQ Expr:i NL
+	LET:x IDENTIFIER:name EQ Expr:i NL
 		{: RESULT = Ast.LocalVarDef(pos(xleft, i), Ast.Modifiers(Ast.ModConstant(pos(xleft, xright))), Ast.NoTypeExpr(), name, i); :}
-	| VAL:x TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
+	| LET:x TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
 		{: RESULT = Ast.LocalVarDef(pos(xleft, i), Ast.Modifiers(Ast.ModConstant(pos(xleft, xright))), typ, name, i); :}
+	| VAR:x IDENTIFIER:name EQ Expr:i NL
+		{: RESULT = Ast.LocalVarDef(pos(xleft, i), Ast.Modifiers(), Ast.NoTypeExpr(), name, i); :}
 	| TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
 		{: RESULT = Ast.LocalVarDef(pos(typleft, i), Ast.Modifiers(), typ, name, i); :}
 	| TypeExpr:typ IDENTIFIER:name NL

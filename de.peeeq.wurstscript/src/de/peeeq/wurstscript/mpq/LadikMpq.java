@@ -12,6 +12,7 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
 import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.utils.Debug;
 
 public class LadikMpq implements MpqEditor {
 
@@ -26,7 +27,7 @@ public class LadikMpq implements MpqEditor {
 		File script = MoPaqScriptfiles.extractFile(mpqArchive, "war3map.j");
 		
 		String[] commands = {MpqEditorFactory.getFilepath(), "/console", script.getAbsolutePath()};
-		System.out.println(Arrays.toString(commands));
+		Debug.println(Arrays.toString(commands));
 		
 		Process proc = rt.exec(commands);
 		InputStream procOut = proc.getInputStream();
@@ -34,7 +35,7 @@ public class LadikMpq implements MpqEditor {
 		proc.waitFor();
 		String line;
 		while ((line = procOutReader.readLine()) != null) {
-			System.out.println(line);
+			Debug.println(line);
 			WLogger.info(line);
 		}
 		tempFile1 = new File("./temp/" + fileToExtract); 

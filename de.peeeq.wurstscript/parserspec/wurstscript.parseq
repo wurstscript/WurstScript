@@ -40,7 +40,7 @@ OptExpr = NoExpr() | Expr
 	
 TypeDef = 
 	  NativeType(WPos source, Modifiers modifiers, String name, OptTypeExpr optTyp)
-	| ClassDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, TypeExprList implementsList, 
+	| ClassDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, OptTypeExpr extendedClass, TypeExprList implementsList, 
 			FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
 			ModuleInstanciations moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy)
 	| InterfaceDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, TypeExprList extendsList, 
@@ -58,7 +58,7 @@ TypeExprList * TypeExpr
 
 
 ClassSlot = 
-	  ConstructorDef(WPos source, Modifiers modifiers, WParameters parameters, WStatements body)
+	  ConstructorDef(WPos source, Modifiers modifiers, WParameters parameters, Arguments superArgs, WStatements body)
 	| OnDestroyDef(WPos source, WStatements body)
 	| ModuleUse(WPos source, String moduleName, TypeExprList typeArgs)
 	| ModuleInstanciation(WPos source, Modifiers modifiers, String name, 
@@ -379,6 +379,9 @@ WScope.attrNextScope "returns the scope surrounding this scope"
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nextScope
 
 
+AstElement.attrCompilationUnit
+	returns CompilationUnit
+	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestCompilationUnit
 	
 AstElement.attrNearestClassDef
 	returns ClassDef
@@ -516,6 +519,7 @@ CompilationUnit.attrInterfaceInstances
 	returns com.google.common.collect.Multimap<InterfaceDef, ClassDef>
 	implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getInterfaceInstances
 
+
 ClassDef.attrImplementedInterfaces
 	returns java.util.Collection<de.peeeq.wurstscript.types.PscriptTypeInterface>
 	implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getImplementedInterfaces
@@ -523,6 +527,25 @@ ClassDef.attrImplementedInterfaces
 InterfaceDef.attrExtendedInterfaces	
 	returns java.util.Collection<de.peeeq.wurstscript.types.PscriptTypeInterface>
 	implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getExtendedInterfaces
+
+
+CompilationUnit.attrSubClasses
+	returns com.google.common.collect.Multimap<ClassDef, ClassDef>
+	implemented by de.peeeq.wurstscript.attributes.SubClasses.getSubClasses
+	
+ClassDef.attrSubClasses
+	returns java.util.Collection<ClassDef>
+	implemented by de.peeeq.wurstscript.attributes.SubClasses.getSubClasses
+
+
+ClassDef.attrExtendedClass
+	returns ClassDef
+	implemented by de.peeeq.wurstscript.attributes.SubClasses.getExtendedClass
+
+ConstructorDef.attrSuperConstructor
+	returns ConstructorDef
+	implemented by de.peeeq.wurstscript.attributes.SubClasses.getSuperConstructor
+
 
 // Jass translation:
 	

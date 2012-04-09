@@ -42,8 +42,7 @@ public class AttrTypeDef {
 //		}
 		// TODO ambiguous type decls
 		
-		// TODO is it right to only search in nearest package? what about moduleinstanciations?
-		List<NameDef> typeDefs = NameResolution.searchTypedName(NameDef.class, typeName, node);
+		List<NameDef> typeDefs = NameResolution.searchTypedName(NameDef.class, typeName, node, false);
 		
 		if (typeDefs.size() == 0) {
 			attr.addError(node.getSource(), "Could not find TypeDef for " + typeName);
