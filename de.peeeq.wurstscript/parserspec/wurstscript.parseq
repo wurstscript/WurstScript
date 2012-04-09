@@ -212,6 +212,7 @@ FunctionImplementation = FuncDef | ExtensionFuncDef
 WScope = 
 	  NamedScope 
 	| PackageOrGlobal 
+	| FunctionDefinition
 	| FunctionImplementation 
 	| ConstructorDef 
 	| OnDestroyDef 

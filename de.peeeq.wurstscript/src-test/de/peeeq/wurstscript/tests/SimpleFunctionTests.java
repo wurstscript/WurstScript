@@ -47,6 +47,21 @@ public class SimpleFunctionTests extends PscriptTest {
 	}
 	
 	
+	@Test
+	public void test_cyclic() {
+		assertError(false, "cyclic",
+				"function foo(int x) returns int",
+				"	return bar(x)",
+				"function bar(int x) returns int",
+				"	return blub(x)",
+				"function unrelated(int x) returns int",
+				"	return foo(x)",
+				"function blub(int x) returns int",
+				"	return foo(x)",
+				"");
+	}
+	
+	
 	public void assertOk( boolean executeProg, String ... body) {
 		String prog = makeCode(body);
 		testAssertOk(Utils.getMethodName(1), executeProg, prog);

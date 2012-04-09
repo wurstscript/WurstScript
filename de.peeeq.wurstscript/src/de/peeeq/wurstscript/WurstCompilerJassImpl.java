@@ -34,6 +34,7 @@ import de.peeeq.wurstscript.mpq.MpqEditor;
 import de.peeeq.wurstscript.mpq.MpqEditorFactory;
 import de.peeeq.wurstscript.parser.ExtendedParser;
 import de.peeeq.wurstscript.parser.WurstScriptScanner;
+import de.peeeq.wurstscript.translation.imoptimizer.ImInliner;
 import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.LineOffsets;
@@ -255,11 +256,26 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		// translate wurst to intermediate lang:
 		ImTranslator imTranslator = new ImTranslator(root);
 		ImProg imProg = imTranslator.translateProg();
-		StringBuilder sb = new StringBuilder();
-		imProg.print(sb, 0);
+		
 		try {
 			// TODO remove test output
+			StringBuilder sb = new StringBuilder();
+			imProg.print(sb, 0);
 			Files.write(sb.toString(), new File("./test-output/test.im"), Charsets.UTF_8);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		// optimize
+		// TODO add flag to disable optimization
+		ImInliner inliner = new ImInliner(imTranslator);
+		inliner.doInlining();
+		
+		try {
+			// TODO remove test output
+			StringBuilder sb = new StringBuilder();
+			imProg.print(sb, 0);
+			Files.write(sb.toString(), new File("./test-output/test_opt.im"), Charsets.UTF_8);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

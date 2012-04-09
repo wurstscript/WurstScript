@@ -63,6 +63,7 @@ import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.StmtWhile;
+import de.peeeq.wurstscript.ast.TranslatedToImFunction;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
@@ -76,7 +77,9 @@ import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WPos;
+import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.attributes.CheckHelper;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.FunctionSignature;
@@ -116,6 +119,7 @@ public class WurstValidator {
 	private List<Method> checkMethods = Lists.newArrayList();
 	private HashMultimap<Class<?>, Method> typeToMethod = HashMultimap.create();
 	private Set<Class<?>> knownTypes = Sets.newHashSet();
+	private Multimap<WScope	, WScope> calledFunctions = HashMultimap.create();
 	
 	public WurstValidator(CompilationUnit prog) {
 		this.prog = prog;
@@ -140,6 +144,26 @@ public class WurstValidator {
 		}
 		
 		walkTree(prog);		
+		postChecks();
+//		for (CompileError e : attr.getErrors()) {
+//			throw e;
+//		}
+//		throw new Error("exit..");
+	}
+
+	/**
+	 * checks done after walking the tree
+	 */
+	private void postChecks() {
+		Multimap<WScope, WScope> calledFunctionsTr = Utils.transientClosure(calledFunctions);
+		for (WScope s : calledFunctionsTr.keySet()) {
+			if (calledFunctionsTr.containsEntry(s, s)) {
+				if (!calledFunctions.containsEntry(s, s)) {
+					attr.addError(s.attrSource(), Utils.printElement(s) + " has a cyclic dependency to itself.");
+				}
+			}
+		}
+		
 	}
 
 	private void walkTree(AstElement e) {
@@ -644,8 +668,14 @@ public class WurstValidator {
 	@CheckMethod
 	public void visit(StmtDestroy stmtDestroy) {
 		PscriptType typ = stmtDestroy.getDestroyedObj().attrTyp();
-		if (!(typ instanceof PscriptTypeModule || typ instanceof PscriptTypeClass)) {
+		if (typ instanceof PscriptTypeModule) {
+			
+		} else if (typ instanceof PscriptTypeClass) {
+			PscriptTypeClass c = (PscriptTypeClass) typ;
+			calledFunctions.put(stmtDestroy.attrNearestScope(), c.getClassDef().getOnDestroy()); 
+		} else {
 			attr.addError(stmtDestroy.getSource(), "Cannot destroy objects of type " + typ);
+			return;
 		}
 	}
 	
@@ -694,7 +724,8 @@ public class WurstValidator {
 	
 	@CheckMethod
 	public void checkFuncRef(FuncRef ref) {
-		ref.attrFuncDef();
+		FunctionDefinition called = ref.attrFuncDef();
+		calledFunctions.put(ref.attrNearestScope(), called);
 	}
 	
 	@CheckMethod
@@ -757,11 +788,13 @@ public class WurstValidator {
 					check(VisibilityPublic.class);
 				}
 				
+				@SuppressWarnings("unchecked")
 				@Override
 				public void case_LocalVarDef(LocalVarDef localVarDef) {
 					check(ModConstant.class);
 				}
 				
+				@SuppressWarnings("unchecked")
 				@Override
 				public void case_GlobalVarDef(GlobalVarDef g) {
 					if (g.attrNearestClassOrModule() != null) {
@@ -772,6 +805,7 @@ public class WurstValidator {
 					}
 				}
 				
+				@SuppressWarnings("unchecked")
 				@Override
 				public void case_FuncDef(FuncDef f) {
 					if (f.attrNearestStructureDef() != null) {
@@ -886,9 +920,11 @@ public class WurstValidator {
 	@CheckMethod
 	public void checkNewObj(ExprNewObject e) {
 		ConstructorDef constr = e.attrConstructorDef();
+		calledFunctions.put(e.attrNearestScope(), constr);
 		if (constr != null) {
 			checkParams(e, "Wrong object creation: ", e.getArgs(), e.attrFunctionSignature());
 		}
+		
 	}
 	
 	
@@ -910,4 +946,7 @@ public class WurstValidator {
 			}
 		}
 	}
+	
+	
+	
 }

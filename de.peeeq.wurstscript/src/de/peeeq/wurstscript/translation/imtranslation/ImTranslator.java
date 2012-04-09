@@ -604,6 +604,14 @@ public class ImTranslator {
 		return f;
 	}
 
+	public ImProg getImProg() {
+		return imProg;
+	}
+
+	public void removeCallRelation(ImFunction f, ImFunction called) {
+		callRelations.remove(f, called);
+	}
+
 	
 
 	

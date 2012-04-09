@@ -26,8 +26,10 @@ import de.peeeq.wurstscript.ast.JassGlobalBlock;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
+import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.StructureDefOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.TopLevelDeclaration;
+import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.TypeParamDefs;
 import de.peeeq.wurstscript.ast.WEntity;
@@ -278,6 +280,16 @@ public class Scopes {
 			result.put(f.getName(), f);
 		}
 		return result;
+	}
+
+
+	public static Multimap<String, NameDef> getDefinedNames(NativeFunc nativeFunc) {
+		return HashMultimap.create();
+	}
+
+
+	public static Multimap<String, NameDef> getDefinedNames(TupleDef tupleDef) {
+		return HashMultimap.create();
 	}
 
 

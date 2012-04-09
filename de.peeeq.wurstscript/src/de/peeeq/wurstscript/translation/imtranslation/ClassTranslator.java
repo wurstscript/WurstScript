@@ -307,27 +307,12 @@ public class ClassTranslator {
 		
 		for (ConstructorDef c : mi.getConstructors()) {
 			List<ImStmt> stmts = translator.translateStatements(f, c.getBody());
-			replaceVar(stmts, translator.getThisVar(c), thisVar);
+			ImHelper.replaceVar(stmts, translator.getThisVar(c), thisVar);
 			f.getBody().addAll(stmts);
 		}
 	}
 
-	private void replaceVar(List<ImStmt> stmts, final ImVar oldVar, final ImVar newVar) {
-		for (ImStmt s : stmts) {
-			replaceVar(s, oldVar, newVar);
-		}
-	}
-
-	private void replaceVar(ImStmt s, final ImVar oldVar, final ImVar newVar) {
-		s.accept(new ImStmt.DefaultVisitor() {
-			@Override
-			public void visit(ImVarAccess imVar) {
-				if (imVar.getVar() == oldVar) {
-					imVar.setVar(newVar);
-				}
-			}				
-		});
-	}
+	
 	
 
 }
