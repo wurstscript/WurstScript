@@ -183,14 +183,14 @@ public class SimpleStatementTests extends PscriptTest {
 			"			pos++",
 			"			return list.get(pos-1)",
 			
-			"		function close()",
+			"		function close()", // 25
 			"			destroy this",
 			
 			
 			"	init",
 			"		IntList list = new IntList().add(7).add(3).add(5)",
 			"		int sum = 0",
-			"		for int i in list",
+			"		for int i in list", // 30
 			"			sum += i",
 			"		if sum == 15",
 			"			testSuccess()",

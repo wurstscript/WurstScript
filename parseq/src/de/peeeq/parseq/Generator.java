@@ -11,7 +11,6 @@ import java.util.Set;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -329,6 +328,8 @@ public class Generator {
 		
 		//get method
 		int childCount = createGetMethod(c, sb);
+		// set method
+		createSetMethod(c, sb);
 		
 		//size method
 		createSizeMethod(sb, childCount);
@@ -497,7 +498,7 @@ public class Generator {
 		sb.append("		switch (i) {\n");
 		int childCount = 0;
 		for (Parameter p : c.parameters) {
-			if (prog.hasElement(p.typ)) {
+			if (prog.hasElement(p.typ) && !p.isRef) {
 				sb.append("			case "+childCount+": return "+p.name+";\n");
 				childCount++;
 			}
@@ -506,6 +507,22 @@ public class Generator {
 		sb.append("		}\n");
 		sb.append("	}\n");
 		return childCount;
+	}
+	
+	private void createSetMethod(ConstructorDef c, StringBuilder sb) {
+		sb.append("	public "+getCommonSupertypeType()+" set(int i, "+getCommonSupertypeType()+" newElem) {\n");
+		sb.append("		"+getCommonSupertypeType()+" oldElem;\n");
+		sb.append("		switch (i) {\n");
+		int childCount = 0;
+		for (Parameter p : c.parameters) {
+			if (prog.hasElement(p.typ) && !p.isRef) {
+				sb.append("			case "+childCount+": oldElem = "+p.name+"; set"+toFirstUpper(p.name)+"(("+p.typ+") newElem); return oldElem;\n");
+				childCount++;
+			}
+		}
+		sb.append("			default: throw new IllegalArgumentException(\"Index out of range: \" + i);\n");
+		sb.append("		}\n");
+		sb.append("	}\n");
 	}
 
 	private void createSizeMethod(StringBuilder sb, int childCount) {
@@ -540,7 +557,7 @@ public class Generator {
 			if (transientChildTypes.get(parent).contains(c)) {
 				sb.append("	@Override public void accept(" + parent.getName()+".Visitor v) {\n");
 				for (Parameter p : c.parameters) {
-					if (prog.hasElement(p.typ)) {
+					if (prog.hasElement(p.typ) && !p.isRef) {
 						sb.append("		" + p.name + ".accept(v);\n");
 					}
 				}
@@ -818,14 +835,19 @@ public class Generator {
 		if (isGeneratedTyp(l.itemType)) {
 			sb.append("		(("+getCommonSupertypeType()+"Intern) t).setParent(this);\n");
 		}
-		sb.append("	}\n");
+		sb.append("	}\n\n");
 		
 		sb.append("	protected void other_clearParent("+l.itemType+" t) {\n");
 		if (isGeneratedTyp(l.itemType)) {
 			sb.append("		(("+getCommonSupertypeType()+"Intern) t).setParent(null);\n");
 		}
-		sb.append("	}\n");
+		sb.append("	}\n\n");
 		
+		// set method:
+		sb.append("	@Override\n");
+		sb.append("	public "+getCommonSupertypeType()+" set(int i, "+getCommonSupertypeType()+" newElement) {\n");
+		sb.append("		return ((ParseqList<"+l.itemType+">) this).set(i, ("+l.itemType+") newElement);\n");
+		sb.append("	}\n\n");
 		
 		// match methods for switch
 		createMatchMethods(l, sb);
@@ -908,6 +930,7 @@ public class Generator {
 				"	"+getCommonSupertypeType()+" getParent();\n" +
 				"	int size();\n" +
 				"	"+getCommonSupertypeType()+" get(int i);\n"+
+				"	"+getCommonSupertypeType()+" set(int i, "+getCommonSupertypeType()+" newElement);\n"+
 				"	void setParent("+getCommonSupertypeType()+" parent);\n");
 		for (AttributeDef attr : prog.attrDefs) {
 			if (attr.typ.equals(getCommonSupertypeType())) {

@@ -29,7 +29,7 @@ public class SimpleTestRun {
 
 
 	public static void main(String ... args) throws IOException, InterruptedException {
-		String testFile = "./testscripts/concept/VecTest.wurst";
+		String testFile = "./testscripts/realbugs/test.wurst";
 		if (args.length == 1) {
 			testFile = args[0];
 		}

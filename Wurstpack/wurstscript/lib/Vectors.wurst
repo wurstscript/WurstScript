@@ -5,7 +5,7 @@ package Vectors
 	 *************************/
 	public tuple vec3( real x, real y, real z )
 		
-	public function vec3.add( vec3 v )	returns vec3
+	public function vec3.plus( vec3 v )	returns vec3
 		return vec3(this.x + v.x, this.y + v.y, this.z + v.z)
         
     public function vec3.addVec2( vec2 v )	returns vec3
