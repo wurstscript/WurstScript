@@ -95,7 +95,7 @@ public class OpOverloading extends PscriptTest {
 	
 	@Test
 	public void testOverloading3() {
-		assertError(true, "is not defined for",
+		assertError(true, "No operator overloading function",
 				"	tuple vec3( real x, real y, real z )",
 				"",
 				"",
@@ -109,7 +109,7 @@ public class OpOverloading extends PscriptTest {
 	
 	@Test
 	public void testOverloading4() {
-		assertError(true, "is not defined for",
+		assertError(true, "No operator overloading function",
 				"	nativetype unit",
 				"	init",
 				"		unit u = null",
