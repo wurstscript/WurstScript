@@ -77,7 +77,7 @@ public class JassInterpreter {
 			if (v instanceof JassArrayVar) {
 				value = new JassArray(v.getType());
 			} else {
-				value = getDefaultValue(v.getType());
+				// --- not initialized 
 			}
 			globalVarMap.put(v.getName(), value );
 		}
