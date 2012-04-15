@@ -10,6 +10,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
+import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
@@ -87,7 +88,7 @@ public class RealWorldExamples extends PscriptTest {
 //		settings.put("lib", "./wurstscript/lib/");
 		WurstConfig config = WurstConfig.get();
 		config.setSetting("lib", "../Wurstpack/wurstscript/lib/");
-		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(new WurstGuiCliImpl());
+		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(new WurstGuiCliImpl(), RunArgs.defaults());
 		for (File f : comp.getLibs().values()) {
 			System.out.println("Adding file: " + f);
 			inputs.add(f);

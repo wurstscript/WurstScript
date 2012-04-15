@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
+import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.jassAst.JassProg;
@@ -81,7 +82,7 @@ public class ILInterpreterImplTest {
 	
 	private static void runTest(String filename) {
 		System.out.println("parsing script ...");
-		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(new WurstGuiCliImpl());
+		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(new WurstGuiCliImpl(), RunArgs.defaults());
 		compiler.loadFiles(filename);
 		compiler.parseFiles();		
 		

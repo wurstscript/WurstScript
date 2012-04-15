@@ -15,6 +15,10 @@ public class RunArgs {
 	private boolean showLastErrors = false;
 	private boolean inline;
 	
+	public static RunArgs defaults() {
+		return new RunArgs(new String[] {});
+	}
+	
 	public RunArgs(String[] args) {
 		for (int i=0; i<args.length; i++) {
 			String a = args[i];

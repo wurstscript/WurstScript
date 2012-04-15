@@ -10,6 +10,7 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
 import de.peeeq.wurstscript.Pjass;
+import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.Pjass.Result;
 import de.peeeq.wurstscript.WurstCompilerJassImpl;
@@ -46,7 +47,7 @@ public class SimpleTestRun {
 			System.out.println("parsing script ...");
 //			gui = new WurstGuiImpl();
 			gui = new WurstGuiCliImpl();
-			WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui);
+			WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, RunArgs.defaults());
 			WurstConfig.get().setSetting("lib", "../Wurstpack/wurstscript/lib/");
 			compiler.loadFiles("../Wurstpack/wurstscript/common.j");
 			compiler.loadFiles("../Wurstpack/wurstscript/Blizzard.j");

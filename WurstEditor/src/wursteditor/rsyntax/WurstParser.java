@@ -15,6 +15,7 @@ import org.fife.ui.rsyntaxtextarea.parser.ParserNotice;
 import wursteditor.controller.SyntaxCodeAreaController;
 import wursteditor.controller.WurstEditorController;
 
+import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WurstCompiler;
 import de.peeeq.wurstscript.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -43,7 +44,7 @@ public class WurstParser extends AbstractParser {
 	public ParseResult parse(RSyntaxDocument doc, boolean doChecks) {
 		DefaultParseResult result = new DefaultParseResult(this);
 		WurstGui gui = new WurstGuiLogger();
-		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui);
+		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, RunArgs.defaults());
 		Reader reader;
 		try {
 			reader = new StringReader(doc.getText(0, doc.getLength()));
