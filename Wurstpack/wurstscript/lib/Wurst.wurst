@@ -6,5 +6,6 @@ package Wurst
     import public Real
     import public Integer
     import public PrintingHelper
+	import public Unit
 
 endpackage
