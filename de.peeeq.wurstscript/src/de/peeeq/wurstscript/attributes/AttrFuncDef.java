@@ -33,10 +33,10 @@ import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
  *
  */
 public class AttrFuncDef {
-	final static String overloadingPlus = "plus";
-	final static String overloadingMinus = "minus";
-	final static String overloadingMult = "multiply";
-	final static String overloadingDiv = "divide";
+	final static String overloadingPlus = "op_plus";
+	final static String overloadingMinus = "op_minus";
+	final static String overloadingMult = "op_mult";
+	final static String overloadingDiv = "op_div";
 
 	public static  FunctionDefinition calculate(final ExprFuncRef node) {
 		FunctionDefinition result = searchFunction(node.getFuncName(), node);

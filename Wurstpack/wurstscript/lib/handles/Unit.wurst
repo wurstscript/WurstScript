@@ -74,5 +74,12 @@ package Unit
 	public function unit.show() returns unit
 		ShowUnit(this, true)
 		return this
+		
+	public function unit.setUserData(int data) returns unit
+		SetUnitUserData(this, data)
+		return this
+		
+	public function unit.getUserData() returns int
+		return GetUnitUserData(this)
 
 endpackage
