@@ -93,6 +93,7 @@ public class ImTranslator {
 		addSource(imProg, wurstProg);
 		
 		globalInitFunc = ImFunction("initGlobals", ImVars(), ImVoid(), ImVars(), ImStmts(), false, false);
+		addFunction(globalInitFunc);
 		debugPrintFunction = ImFunction($DEBUG_PRINT, ImVars(ImVar(PScriptTypeString.instance().imTranslateType(), "msg", false)), ImVoid(), ImVars(), ImStmts(), true, false);
 		
 		
@@ -153,6 +154,10 @@ public class ImTranslator {
 	}
 
 	private void finishInitFunctions() {
+		// init globals:
+		mainFunc.getBody().add(ImFunctionCall(globalInitFunc, ImExprs()));
+		addCallRelation(mainFunc, globalInitFunc);
+		
 		
 		for (ImFunction initFunc : initFuncMap.values()) {
 			addFunction(initFunc);

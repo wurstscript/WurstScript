@@ -50,10 +50,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	private JassProg prog;
 	private WurstGui gui;
 	private boolean hasCommonJ;
+	private RunArgs runArgs;
 
 	
-	public WurstCompilerJassImpl(WurstGui gui) {
+	public WurstCompilerJassImpl(WurstGui gui, RunArgs runArgs) {
 		this.gui = gui;
+		this.runArgs = runArgs;
 		attr.init(gui);
 	}
 
@@ -266,10 +268,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			e.printStackTrace();
 		}
 		
-		// optimize
-		// TODO add flag to disable optimization
-		ImInliner inliner = new ImInliner(imTranslator);
-		inliner.doInlining();
+		if (runArgs.isInline()) {
+			ImInliner inliner = new ImInliner(imTranslator);
+			inliner.doInlining();
+		}
 		
 		try {
 			// TODO remove test output
@@ -293,16 +295,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			return null;
 		}
 		return p;
-		
-		// TODO translate to jass
-		
-//		JassTranslator translator = new JassTranslator(root);
-//		JassProg p = translator.translate();
-//		
-//		if (attr.getErrorCount() > 0) {
-//			return null;
-//		}
-//		return p;
 	}
 
 	

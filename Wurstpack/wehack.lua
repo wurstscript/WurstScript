@@ -89,6 +89,7 @@ if havewurst then
 	wurstmenu = wehack.addmenu("WurstScript")
 	wurst_enable = TogMenuEntry:New(wurstmenu,"Enable WurstScript",nil,true)
 	wurst_optenable = TogMenuEntry:New(wurstmenu,"Enable Froptimizer",nil,false)
+	wurst_inliner = TogMenuEntry:New(wurstmenu, "Enable Inlinder",nil,false)
 	
 	wehack.addmenuseparator(wurstmenu)
 	
@@ -409,6 +410,10 @@ grim.log("running tool on save: "..cmdargs)
 		if wurst_optenable.checked then
 			cmdline = cmdline .. " -opt"
 		end
+		if wurst_inliner.checked then
+			cmdline = cmdline .. " -inline"
+		end
+		
 		cmdline = cmdline .. " wurstscript\\common.j wurstscript\\Blizzard.j \"" .. mappath .."\""
 		toolresult = 0
 --		if wurst_fast ~= nil and wurst_fast.checked then

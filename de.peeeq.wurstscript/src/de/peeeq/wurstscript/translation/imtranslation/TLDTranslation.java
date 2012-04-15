@@ -65,8 +65,11 @@ public class TLDTranslation {
 
 	static ImVar translateVar(GlobalVarDef g, ImTranslator translator) {
 		ImVar v = translator.getVarFor(g); 
-		translator.addGlobalInitalizer(v, g.attrNearestPackage(), g.getInitialExpr());
 		translator.addGlobal(v);
+		if (!v.getIsBJ()) {
+			// add init code for non-BJ variables
+			translator.addGlobalInitalizer(v, g.attrNearestPackage(), g.getInitialExpr());
+		}
 		return v;
 	}
 	

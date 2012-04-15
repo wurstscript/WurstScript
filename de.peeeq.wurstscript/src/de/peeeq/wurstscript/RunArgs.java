@@ -13,6 +13,7 @@ public class RunArgs {
 	private String outFile = null;
 	private boolean showAbout = false;
 	private boolean showLastErrors = false;
+	private boolean inline;
 	
 	public RunArgs(String[] args) {
 		for (int i=0; i<args.length; i++) {
@@ -20,6 +21,8 @@ public class RunArgs {
 			if (a.startsWith("-")) {
 				if (a.equals("-opt")) {
 					this.optimize = true;
+				} else if (a.equals("-inline")) {
+					inline = true;
 				} else if (a.equals("-gui")) {
 					this.gui = true;
 				} else if (a.equals("-out")) {
@@ -68,6 +71,10 @@ public class RunArgs {
 
 	public boolean showLastErrors() {
 		return showLastErrors;
+	}
+
+	public boolean isInline() {
+		return inline;
 	}
 
 

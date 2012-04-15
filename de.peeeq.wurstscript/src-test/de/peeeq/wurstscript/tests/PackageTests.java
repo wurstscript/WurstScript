@@ -255,6 +255,32 @@ public class PackageTests extends PscriptTest {
 	}
 	
 	
+	@Test
+	public void test_globals_init() {
+		assertOk(true, 
+				"package B",
+				"	native testSuccess()",
+				"	public int x = 1",
+				"	init",
+				"		if x == 1",
+				"			testSuccess()",
+				"endpackage");
+	}
+	
+	@Test
+	public void test_globals_init2() {
+		assertOk(true, 
+				"globals",
+				"	integer x = 1",
+				"endglobals", 
+				"package B",
+				"	native testSuccess()",
+				"	init",
+				"		if x == 1",
+				"			testSuccess()",
+				"endpackage");
+	}
+	
 	private String makeCode(String... body) {
 		return Utils.join(body, "\n");
 	}

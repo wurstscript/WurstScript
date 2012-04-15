@@ -77,7 +77,7 @@ public class Main {
 			compilation : do {
 
 
-				WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui);
+				WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, runArgs);
 				for (String file: runArgs.getFiles()) {
 					compiler.loadFiles(file);
 				}
