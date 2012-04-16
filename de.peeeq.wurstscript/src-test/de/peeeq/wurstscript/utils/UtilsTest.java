@@ -30,15 +30,17 @@ public class UtilsTest {
   @Test
   public void collect() {
 	  WPos source = Ast.WPos("", LineOffsets.dummy, 0, 0);
-	CompilationUnit testProg = Ast.CompilationUnit(
+	CompilationUnit testProg = Ast.CompilationUnit("",
+			Ast.JassToplevelDeclarations(),
+			Ast.WPackages(
 			  Ast.WPackage(source.copy() , "test", Ast.WImports(), Ast.WEntities(
 					  Ast.GlobalVarDef(source.copy(), Ast.Modifiers(), Ast.NoTypeExpr(), "v1", Ast.ExprIntVal(source.copy(), 5)),
 					  Ast.GlobalVarDef(source.copy(), Ast.Modifiers(), Ast.NoTypeExpr(), "v2", Ast.ExprVarAccess(source.copy(), "r1")),
 					  Ast.GlobalVarDef(source.copy(), Ast.Modifiers(), Ast.NoTypeExpr(), "v3", Ast.ExprBinary(source.copy(), Ast.ExprIntVal(source.copy(), 3), Ast.OpPlus(), Ast.ExprVarAccess(source.copy(), "r2"))),
 					  Ast.GlobalVarDef(source.copy(), Ast.Modifiers(), Ast.NoTypeExpr(), "v4", Ast.ExprVarAccess(source.copy(), "r3"))
-					  ))			  
+					  )))		  
 			  );
-	WPackage testPackage = (WPackage) testProg.get(0);
+	WPackage testPackage = testProg.getPackages().get(0);
 	GlobalVarDef testVarDef = (GlobalVarDef) testPackage.getElements().get(2);
 	
     List<NameRef> varRefs = Utils.collect(NameRef.class, testVarDef.getInitialExpr());

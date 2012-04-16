@@ -20,17 +20,15 @@ import com.google.common.io.Files;
 
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.TopLevelDeclaration;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassIm.ImProg;
-import de.peeeq.wurstscript.jasstranslation.JassTranslator;
 import de.peeeq.wurstscript.mpq.LadikMpq;
-import de.peeeq.wurstscript.mpq.MpqEditor;
 import de.peeeq.wurstscript.mpq.MpqEditorFactory;
 import de.peeeq.wurstscript.parser.ExtendedParser;
 import de.peeeq.wurstscript.parser.WurstScriptScanner;
@@ -122,7 +120,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		if (attr.getErrorCount() > 0) return;
 		
 		// merge the compilationUnits:
-		CompilationUnit merged = mergeCompilationUnits(compilationUnits);
+		WurstModel merged = mergeCompilationUnits(compilationUnits);
 		
 		
 		
@@ -138,13 +136,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		Set<String> packages = Sets.newHashSet();
 		Map<String, WImport> imports = Maps.newHashMap();
 		for (CompilationUnit c : compilationUnits) {
-			for (TopLevelDeclaration t : c) {
-				if (t instanceof WPackage) {
-					WPackage p = (WPackage) t;
-					packages.add(p.getName());
-					for (WImport i : p.getImports()) {
-						imports.put(i.getPackagename(), i);
-					}
+			for (WPackage p : c.getPackages()) {
+				packages.add(p.getName());
+				for (WImport i : p.getImports()) {
+					imports.put(i.getPackagename(), i);
 				}
 			}
 		}	
@@ -161,13 +156,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		if (!packages.contains(imp.getPackagename())) {
 			if (getLibs().containsKey(imp.getPackagename())) {
 				CompilationUnit lib = loadLibPackage(compilationUnits, imp.getPackagename());
-				for (TopLevelDeclaration t : lib) {
-					if (t instanceof WPackage) {
-						WPackage p = (WPackage) t;
-						packages.add(p.getName());
-						for (WImport i : p.getImports()) {
-							resolveImport(compilationUnits, packages, imports, i);
-						}
+				for (WPackage p : lib.getPackages()) {
+					packages.add(p.getName());
+					for (WImport i : p.getImports()) {
+						resolveImport(compilationUnits, packages, imports, i);
 					}
 				}
 			} else {
@@ -181,7 +173,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		File file = getLibs().get(imp);
 		if (file == null) {
 			gui.sendError(new CompileError(Ast.WPos("", 0, 0, 0), "Could not find lib-package " + imp));
-			return Ast.CompilationUnit();
+			return Ast.CompilationUnit("", Ast.JassToplevelDeclarations(), Ast.WPackages());
 		} else {
 			CompilationUnit lib = parseFile(file);
 			compilationUnits.add(lib);
@@ -219,7 +211,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		}
 	}
 
-	public void checkAndTranslate(CompilationUnit root) {
+	public void checkAndTranslate(WurstModel root) {
 		checkProg(root);
 		
 		
@@ -235,7 +227,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		}
 	}
 
-	public void checkProg(CompilationUnit root) {
+	public void checkProg(WurstModel root) {
 		gui.sendProgress("Checking Files", 0.2);
 		
 		if (attr.getErrorCount() > 0) return;
@@ -245,7 +237,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		
 		if (attr.getErrorCount() > 0) return;
 		
-		new ModuleExpander().expandModules(root);
+		expandModules(root);
 		
 		if (attr.getErrorCount() > 0) return;
 		
@@ -254,7 +246,19 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		validator.validate();
 	}
 
-	public JassProg translateProg(CompilationUnit root) {
+	private void expandModules(WurstModel root) {
+		for (CompilationUnit cu : root) {
+			new ModuleExpander().expandModules(cu);
+		}
+	}
+
+	private void removeSyntacticSugar(WurstModel root) {
+		for (CompilationUnit cu : root) {
+			removeSyntacticSugar(cu);
+		}
+	}
+
+	public JassProg translateProg(WurstModel root) {
 		// translate wurst to intermediate lang:
 		ImTranslator imTranslator = new ImTranslator(root);
 		ImProg imProg = imTranslator.translateProg();
@@ -325,14 +329,13 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 //		return result;
 //	}
 	
-	private CompilationUnit mergeCompilationUnits(List<CompilationUnit> compilationUnits) {
+	private WurstModel mergeCompilationUnits(List<CompilationUnit> compilationUnits) {
 		gui.sendProgress("Merging Files", 0.22);
-		CompilationUnit result = Ast.CompilationUnit();
+		WurstModel result = Ast.WurstModel();
 		for (CompilationUnit compilationUnit : compilationUnits) {
-			while (!compilationUnit.isEmpty()) {
-				TopLevelDeclaration x = compilationUnit.remove(0);
-				result.add(x);
-			}
+			// remove from old parent
+			compilationUnit.setParent(null);
+			result.add(compilationUnit);
 		}
 		return result;
 	}
@@ -384,16 +387,20 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			
 		} catch (CompileError e) {
 			gui.sendError(e);
-			return Ast.CompilationUnit();
+			return emptyCompilationUnit();
 		} catch (FileNotFoundException e) {
 			gui.sendError(new CompileError(Ast.WPos(source, LineOffsets.dummy, 0, 0), "File not found."));
-			return Ast.CompilationUnit();
+			return emptyCompilationUnit();
 		} finally {
 			try {
 				if (reader != null) reader.close();
 			} catch (IOException e) {
 			}
 		}
+	}
+
+	private CompilationUnit emptyCompilationUnit() {
+		return Ast.CompilationUnit("<empty compilation unit>", Ast.JassToplevelDeclarations(), Ast.WPackages());
 	}
 
 	public CompilationUnit parse(Reader reader, String source) {
@@ -404,13 +411,13 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			Symbol sym = parser.parse();
 			parseErrors = parser.getErrorCount();
 			if (parseErrors > 0) {
-				return Ast.CompilationUnit();
+				return emptyCompilationUnit();
 			}	
 			CompilationUnit root = (CompilationUnit) sym.value;
 			return root;
 		} catch (CompileError e) {
 			gui.sendError(e);
-			return Ast.CompilationUnit();
+			return emptyCompilationUnit();
 		} catch (Exception e) {
 			gui.sendError(new CompileError(Ast.WPos(source, LineOffsets.dummy, 0, 0), "This is a bug and should not have happened.\n" + e.getMessage()));
 			WLogger.severe(e);

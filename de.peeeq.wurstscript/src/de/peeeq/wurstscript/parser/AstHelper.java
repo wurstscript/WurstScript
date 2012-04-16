@@ -6,10 +6,12 @@ import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassSlot;
+import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
+import de.peeeq.wurstscript.ast.JassToplevelDeclaration;
 import de.peeeq.wurstscript.ast.Modifiers;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleUse;
@@ -17,11 +19,13 @@ import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.StructureDefOrModuleInstanciation;
+import de.peeeq.wurstscript.ast.TopLevelDeclaration;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprList;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.TypeParamDefs;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WParameters;
 import de.peeeq.wurstscript.ast.WPos;
@@ -99,6 +103,18 @@ public class AstHelper {
 			result.add(Ast.ExprVarAccess(p.getSource().copy(), p.getName()));
 		}
 		return result;
+	}
+
+	public static CompilationUnit addFront(CompilationUnit c,	TopLevelDeclaration p) {
+		// TODO would it be important to add this to the front?
+		if (p instanceof WPackage) {
+			c.getPackages().add((WPackage) p);
+		} else if (p instanceof JassToplevelDeclaration) {
+			c.getJassDecls().add((JassToplevelDeclaration) p);
+		} else {
+			throw new Error("unhandled type: " + p.getClass());
+		}
+		return c;
 	}
 
 

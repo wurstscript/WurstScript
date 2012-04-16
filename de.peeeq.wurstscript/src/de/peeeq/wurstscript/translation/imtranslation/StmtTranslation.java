@@ -1,36 +1,62 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import java.util.Collections;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImExitwhen;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImExprs;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImFunctionCall;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImIf;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImLoop;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImNull;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImOperatorCall;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImReturn;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImSet;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImSetArray;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImSetArrayTuple;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImSetTuple;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImStatementExpr;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImStmts;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImVar;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImVarAccess;
+
 import java.util.List;
 
 import com.google.common.collect.Lists;
 
-import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.ast.Ast;
+import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.Expr;
+import de.peeeq.wurstscript.ast.LocalVarDef;
+import de.peeeq.wurstscript.ast.OpBinary;
+import de.peeeq.wurstscript.ast.StmtDestroy;
+import de.peeeq.wurstscript.ast.StmtErr;
+import de.peeeq.wurstscript.ast.StmtExitwhen;
+import de.peeeq.wurstscript.ast.StmtForFrom;
+import de.peeeq.wurstscript.ast.StmtForIn;
+import de.peeeq.wurstscript.ast.StmtForRange;
+import de.peeeq.wurstscript.ast.StmtForRangeDown;
+import de.peeeq.wurstscript.ast.StmtIf;
+import de.peeeq.wurstscript.ast.StmtLoop;
+import de.peeeq.wurstscript.ast.StmtReturn;
+import de.peeeq.wurstscript.ast.StmtSet;
+import de.peeeq.wurstscript.ast.StmtSkip;
+import de.peeeq.wurstscript.ast.StmtWhile;
+import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.jassAst.JassAst;
-import de.peeeq.wurstscript.jassAst.JassExpr;
-import de.peeeq.wurstscript.jassAst.JassFunction;
-import de.peeeq.wurstscript.jassAst.JassOpBinary;
-import de.peeeq.wurstscript.jassAst.JassStatement;
-import de.peeeq.wurstscript.jassAst.JassStatements;
-import de.peeeq.wurstscript.jassAst.JassVar;
-import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.jasstranslation.ExprTranslationResult;
-import de.peeeq.wurstscript.jasstranslation.JassTranslator;
+import de.peeeq.wurstscript.jassIm.ImConst;
+import de.peeeq.wurstscript.jassIm.ImExpr;
+import de.peeeq.wurstscript.jassIm.ImFunction;
+import de.peeeq.wurstscript.jassIm.ImStatementExpr;
+import de.peeeq.wurstscript.jassIm.ImStmt;
+import de.peeeq.wurstscript.jassIm.ImStmts;
+import de.peeeq.wurstscript.jassIm.ImTupleSelection;
+import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.ImVar;
+import de.peeeq.wurstscript.jassIm.ImVarAccess;
+import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
+import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
 import de.peeeq.wurstscript.types.TypesHelper;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassExprBinary;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassExprVarAccess;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassOpGreater;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassOpMinus;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassOpPlus;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassStatements;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtExitwhen;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtLoop;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtSet;
-import static de.peeeq.wurstscript.jassIm.JassIm.*;
 
 public class StmtTranslation {
 

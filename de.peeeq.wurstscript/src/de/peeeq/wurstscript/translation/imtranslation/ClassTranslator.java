@@ -71,7 +71,7 @@ public class ClassTranslator {
 	 * translates the given classDef
 	 */
 	private void translate() {
-		List<ClassDef> subClasses = Lists.newArrayList(classDef.attrSubClasses());
+		List<ClassDef> subClasses = Lists.newArrayList(translator.getSubClasses(classDef));
 		// sort subclasses by typeid
 		Collections.sort(subClasses, new TypeIdComparator(translator));
 		
@@ -247,7 +247,7 @@ public class ClassTranslator {
 		// nextFree[thisVar] = -1
 		f.getBody().add(ImSetArray(m.nextFree, ImVarAccess(thisVar), ImIntVal(-1)));
 		
-		if (classDef.attrSubClasses().size() > 0 || classDef.attrExtendedClass() != null) {
+		if (translator.getSubClasses(classDef).size() > 0 || classDef.attrExtendedClass() != null) {
 			// set typeId:
 			f.getBody().add(ImSetArray(m.typeId, ImVarAccess(thisVar), ImIntVal(translator.getTypeId(classDef))));
 		}

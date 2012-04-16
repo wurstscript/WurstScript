@@ -56,8 +56,14 @@ public class AttrAllFunctions {
 			} else { // -> no overriding function
 				Collection<FuncDef> funcs = moduleFunctions.get(funcName);
 				if (funcs.size() > 1) {
+					
+					StringBuilder functions = new StringBuilder();
+					int i=1;
+					for (FuncDef f : funcs) {
+						functions.append(i++ +". " + Utils.printElement(f.getParent().attrNearestNamedScope()) + "\n");
+					}
 					attr.addError(mainSource, "There are two or more functions with name " + funcName + " inherited from used modules. " +
-							"You should override this function or rename one of them.");
+							"You should override this function or rename one of them. The functions are:\n" + functions);
 				}
 				result.put(funcName, Utils.getFirst(funcs));
 			}

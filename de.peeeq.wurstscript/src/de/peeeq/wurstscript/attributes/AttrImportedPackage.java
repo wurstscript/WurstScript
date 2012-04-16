@@ -4,16 +4,17 @@ import java.util.Map;
 
 import com.google.common.collect.Maps;
 
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.TopLevelDeclaration;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class AttrImportedPackage {
 
 	public static WPackage getImportedPackage(WImport i) {
-		CompilationUnit root = (CompilationUnit) Utils.getRoot(i);
+		WurstModel root = i.getModel();
 		WPackage p = root.attrPackages().get(i.getPackagename());
 		if (p == null) {
 			attr.addError(i.getSource(), "Could not find imported package " + i.getPackagename());
@@ -21,15 +22,26 @@ public class AttrImportedPackage {
 		return p;
 	}
 
-	public static Map<String, WPackage> getPackages(CompilationUnit c) {
+	public static WurstModel getModel(AstElement elem) {
+		AstElement e = elem.attrCompilationUnit();
+		while (e != null) {
+			if (e instanceof WurstModel) {
+				return (WurstModel) e;
+			}
+			e = e.getParent();
+		}
+		throw new Error("trying to get model for element " + Utils.printElement(elem) + ", which is not attached to a model");
+	}
+
+	public static Map<String, WPackage> getPackages(WurstModel wurstModel) {
 		Map<String, WPackage> result = Maps.newHashMap();
-		for (TopLevelDeclaration e : c ) {
-			if (e instanceof WPackage) {
-				WPackage p = (WPackage) e;
+		for (CompilationUnit cu : wurstModel) {
+			for (WPackage p : cu.getPackages()) {
 				result.put(p.getName(), p);
 			}
 		}
 		return result;
 	}
+
 
 }

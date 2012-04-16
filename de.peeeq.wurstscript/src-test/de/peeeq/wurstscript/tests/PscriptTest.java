@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -25,6 +26,7 @@ import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.Pjass.Result;
 import de.peeeq.wurstscript.WurstCompilerJassImpl;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
@@ -47,6 +49,44 @@ public class PscriptTest {
 		return true;
 	}
 	
+	static class CU {
+		final public String content;
+		final public String name;
+		public CU(String name, String content) {
+			this.name = name;
+			this.content = content;
+		}
+	}
+	
+	public CU compilationUnit(String name, String ... input) {
+		return new CU(name, Utils.join(input, "\n"));
+	}
+	
+	public void testAssertOk(boolean excuteProg, boolean withStdLib, CU ... units) {
+		List<File> inputFiles = Collections.emptyList();
+		Map<String, Reader> inputs = Maps.newHashMap();
+		for (CU cu : units) {
+			inputs.put(cu.name, new StringReader(cu.content));
+		}
+		String name = Utils.getMethodName(2);
+		testScript(inputFiles, inputs, name, excuteProg, withStdLib);
+	}
+	
+	public void testAssertErrors(String errorMessage, boolean excuteProg, boolean withStdLib, CU ... units) {
+		List<File> inputFiles = Collections.emptyList();
+		Map<String, Reader> inputs = Maps.newHashMap();
+		for (CU cu : units) {
+			inputs.put(cu.name, new StringReader(cu.content));
+		}
+		String name = Utils.getMethodName(2);
+		try {
+			testScript(inputFiles, inputs, name, excuteProg, withStdLib);
+			Assert.assertTrue("No errors were discovered", false);
+		} catch (CompileError e) {
+			Assert.assertTrue(e.getMessage(), e.getMessage().contains(errorMessage));
+		}
+	}
+	
 	
 	public void testAssertOkLines(boolean executeProg, String ... input) {
 		String prog = Utils.join(input, "\n") + "\n";
@@ -62,45 +102,53 @@ public class PscriptTest {
 		if (name.length() == 0) {
 			name = Utils.getMethodName(1);
 		}
-		String errors = testScript(name, new StringReader(prog), this.getClass().getSimpleName() + "_" + name, executeProg, false);
-		Assert.assertEquals("", errors);
+		testScript(name, new StringReader(prog), this.getClass().getSimpleName() + "_" + name, executeProg, false);
 	}
 
 	public void testAssertOkFile(File file, boolean executeProg) throws IOException {
 		Reader reader= new FileReader(file);
-		String errors = testScript(Collections.singleton(file), null, file.getName(), executeProg, false);
+		testScript(Collections.singleton(file), null, file.getName(), executeProg, false);
 		reader.close();
-		Assert.assertEquals("", errors);
 	}
 	
 	public void testAssertOkFileWithStdLib(File file, boolean executeProg) throws IOException {
 		Reader reader= new FileReader(file);
-		String errors = testScript(file.getAbsolutePath(), reader, file.getName(), executeProg, true);
+		testScript(file.getAbsolutePath(), reader, file.getName(), executeProg, true);
 		reader.close();
-		Assert.assertEquals("", errors);
 	}
 	
 	public void testAssertErrorFileWithStdLib(File file, String errorMessage, boolean executeProg) throws IOException {
 		Reader reader= new FileReader(file);
-		String errors = testScript(file.getAbsolutePath(), reader, file.getName(), executeProg, true);
+		try { 
+			testScript(file.getAbsolutePath(), reader, file.getName(), executeProg, true);
+		} catch (CompileError e) {
+			Assert.assertTrue(e.getMessage(), e.getMessage().contains(errorMessage));
+		}
 		reader.close();
-		Assert.assertTrue(errors, errors.contains(errorMessage));
 	}
 
 	public void testAssertErrors(String name, boolean executeProg, String prog, String errorMessage) {
 		name = Utils.getMethodName(2);
-		String errors = testScript(name, new StringReader(prog), this.getClass().getSimpleName() + "_" + name, executeProg, false);
-		Assert.assertTrue("No errors were discovered", errors.length() > 0);
-		Assert.assertTrue(errors, errors.contains(errorMessage));
+		try {
+			testScript(name, new StringReader(prog), this.getClass().getSimpleName() + "_" + name, executeProg, false);
+			Assert.assertTrue("No errors were discovered", false);
+		} catch (CompileError e) {
+			Assert.assertTrue(e.getMessage(), e.getMessage().contains(errorMessage));
+		}
+		
+		
 	}
 
-	protected String testScript(String inputName, Reader input, String name, boolean executeProg, boolean withStdLib) {
+	protected void testScript(String inputName, Reader input, String name, boolean executeProg, boolean withStdLib) {
 		Map<String, Reader> inputs = Maps.newHashMap();
 		inputs.put(inputName, input);
-		return testScript(null, inputs, name, executeProg, withStdLib);
+		testScript(null, inputs, name, executeProg, withStdLib);
 	}
 	
-	protected String testScript(Iterable<File> inputFiles, Map<String, Reader> inputs, String name, boolean executeProg, boolean withStdLib) {
+	protected void testScript(Iterable<File> inputFiles, Map<String, Reader> inputs, String name, boolean executeProg, boolean withStdLib) {
+		// enable debug:
+		attr.unitTestMode = true;
+		
 		if (inputFiles == null) {
 			inputFiles = Collections.emptyList();
 		}
@@ -123,9 +171,10 @@ public class PscriptTest {
 		}
 		compiler.parseFiles();
 		JassProg prog = compiler.getProg();
-
-		if (prog == null || gui.getErrorCount() > 0) {
-			return gui.getErrors();
+		
+		Assert.assertNotNull(prog);
+		if (gui.getErrorCount() > 0) {
+			throw gui.getErrorList().get(0);
 		}
 
 		File outputFile = new File(TEST_OUTPUT_PATH + name + ".j");
@@ -136,7 +185,7 @@ public class PscriptTest {
 			
 			Files.write(sb.toString(), outputFile, Charsets.UTF_8);
 		} catch (IOException e) {
-			return "IOException, could not write jass file "+ outputFile + "\n"  + gui.getErrors();
+			throw new Error("IOException, could not write jass file "+ outputFile + "\n"  + gui.getErrors());
 		}
 
 
@@ -144,7 +193,7 @@ public class PscriptTest {
 		Result pJassResult = Pjass.runPjass(outputFile);
 		System.out.println(pJassResult.getMessage());
 		if (!pJassResult.isOk() && !pJassResult.getMessage().equals("IO Exception")) {
-			return pJassResult.getMessage();
+			throw new Error(pJassResult.getMessage());
 		}
 
 		if (executeProg) {
@@ -156,7 +205,7 @@ public class PscriptTest {
 				interpreter.LoadProgram(prog);
 				interpreter.executeFunction("main");
 			} catch (TestFailException e) {
-				return e.getVal();
+				throw e;
 			} catch (TestSuccessException e)  {
 				success = true;
 			}
@@ -168,7 +217,7 @@ public class PscriptTest {
 			try {
 				optimizer.optimize(prog);
 			} catch (FileNotFoundException e) {
-				return "Optimizer Exception " + e;
+				throw new Error(e);
 			}
 			
 			
@@ -181,14 +230,14 @@ public class PscriptTest {
 				new JassPrinter(false).printProg(sb, prog);
 				Files.write(sb.toString(), outputFile, Charsets.UTF_8);
 			} catch (IOException e) {
-				return "IOException, could not write optimized file "+ outputFile + "\n"  + gui.getErrors();
+				throw new Error("IOException, could not write optimized file "+ outputFile + "\n"  + gui.getErrors());
 			}
 	
 			// test optimized file with pjass:
 			pJassResult = Pjass.runPjass(outputFile);
 			System.out.println(pJassResult.getMessage());
 			if (!pJassResult.isOk() && !pJassResult.getMessage().equals("IO Exception")) {
-				return "Errors in optimized version: " + pJassResult.getMessage();
+				throw new Error("Errors in optimized version: " + pJassResult.getMessage());
 			}
 		
 			if (executeProg) {
@@ -200,7 +249,7 @@ public class PscriptTest {
 					interpreter.LoadProgram(prog);
 					interpreter.executeFunction("main");
 				} catch (TestFailException e) {
-					return e.getVal();
+					throw e;
 				} catch (TestSuccessException e)  {
 					success = true;
 				}
@@ -208,9 +257,8 @@ public class PscriptTest {
 		}
 		
 		if (executeProg && !success) {
-			return "Succeed function not called";
+			throw new Error("Succeed function not called");
 		}
-		return "";
 	}
 
 

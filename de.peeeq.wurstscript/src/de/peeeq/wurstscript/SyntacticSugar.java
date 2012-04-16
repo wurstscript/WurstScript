@@ -40,6 +40,7 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
+import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.attr;
 
@@ -71,7 +72,7 @@ public class SyntacticSugar {
 		// collect loops
 		final List<StmtForIn> loops = Lists.newArrayList();
 		final List<StmtForFrom> loops2 = Lists.newArrayList();
-		root.accept(new CompilationUnit.DefaultVisitor() {
+		root.accept(new WurstModel.DefaultVisitor() {
 			@Override
 			public void visit(StmtForIn stmtForIn) {
 				loops.add(stmtForIn);

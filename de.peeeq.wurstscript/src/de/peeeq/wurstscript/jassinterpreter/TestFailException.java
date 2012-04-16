@@ -12,5 +12,10 @@ public class TestFailException extends Error {
 	public String getVal() {
 		return test;
 	}
+	
+	@Override
+	public String toString() {
+		return "test failed: " + test;
+	}
 
 }

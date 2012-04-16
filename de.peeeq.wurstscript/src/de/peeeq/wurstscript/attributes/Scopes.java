@@ -2,7 +2,6 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -16,19 +15,17 @@ import de.peeeq.wurstscript.ast.AstElementWithParameters;
 import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModuleOrModuleInstanciation;
-import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.FuncDef;
-import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.JassGlobalBlock;
+import de.peeeq.wurstscript.ast.JassToplevelDeclaration;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.StructureDefOrModuleInstanciation;
-import de.peeeq.wurstscript.ast.TopLevelDeclaration;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.TypeParamDefs;
@@ -38,9 +35,7 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.ast.WStatements;
-import de.peeeq.wurstscript.types.PscriptType;
-import de.peeeq.wurstscript.types.PscriptTypeInterface;
-import de.peeeq.wurstscript.utils.Utils;
+import de.peeeq.wurstscript.ast.WurstModel;
 
 public class Scopes {
 
@@ -90,7 +85,7 @@ public class Scopes {
 
 	public static Multimap<String, NameDef> getDefinedNames(CompilationUnit c) {
 		Multimap<String, NameDef> result = HashMultimap.create();
-		for (TopLevelDeclaration e : c) {
+		for (JassToplevelDeclaration e : c.getJassDecls()) {
 			if (e instanceof NameDef) {
 				NameDef n = (NameDef) e;
 				result.put(n.getName(), n);
@@ -160,6 +155,14 @@ public class Scopes {
 		
 		// add all defined names
 		result.putAll(p.attrDefinedNames());
+		return result;
+	}
+	
+	public static Multimap<String, NameDef> getVisibleNamesPrivate(WurstModel w) {
+		Multimap<String, NameDef> result = HashMultimap.create();
+		for (CompilationUnit cu : w) {
+			result.putAll(cu.attrVisibleNamesPrivate());
+		}
 		return result;
 	}
 	
@@ -289,6 +292,11 @@ public class Scopes {
 
 
 	public static Multimap<String, NameDef> getDefinedNames(TupleDef tupleDef) {
+		return HashMultimap.create();
+	}
+
+
+	public static Multimap<String, NameDef> getDefinedNames(WurstModel wurstModel) {
 		return HashMultimap.create();
 	}
 

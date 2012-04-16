@@ -78,6 +78,7 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WScope;
+import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CheckHelper;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.attr;
@@ -113,7 +114,7 @@ import de.peeeq.wurstscript.utils.Utils;
  */
 public class WurstValidator {
 
-	private CompilationUnit prog;
+	private WurstModel prog;
 	private int functionCount;
 	private int visitedFunctions;
 	private List<Method> checkMethods = Lists.newArrayList();
@@ -121,8 +122,8 @@ public class WurstValidator {
 	private Set<Class<?>> knownTypes = Sets.newHashSet();
 	private Multimap<WScope	, WScope> calledFunctions = HashMultimap.create();
 	
-	public WurstValidator(CompilationUnit prog) {
-		this.prog = prog;
+	public WurstValidator(WurstModel root) {
+		this.prog = root;
 	}
 
 	public void validate() {
@@ -203,7 +204,7 @@ public class WurstValidator {
 
 	private int countFunctions() {
 		final int functionCount[] = new int[1];
-		prog.accept(new CompilationUnit.DefaultVisitor() {
+		prog.accept(new WurstModel.DefaultVisitor() {
 			@CheckMethod
 			public void visit(FuncDef f) {
 				functionCount[0]++;

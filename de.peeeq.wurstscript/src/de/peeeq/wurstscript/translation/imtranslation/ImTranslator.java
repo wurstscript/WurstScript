@@ -34,8 +34,10 @@ import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.jassIm.JassImElement;
 import de.peeeq.wurstscript.types.PScriptTypeString;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;
+import de.peeeq.wurstscript.types.PscriptTypeInterface;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
+import de.peeeq.wurstscript.utils.Utils;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassExprIntVal;
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
 
@@ -72,7 +74,7 @@ public class ImTranslator {
 
 	private Map<VarDef, ImVar> varMap = Maps.newHashMap();
 	
-	private CompilationUnit wurstProg;
+	private WurstModel wurstProg;
 
 	private ImFunction mainFunc = null;
 
@@ -81,7 +83,7 @@ public class ImTranslator {
 	// trace from im elements to ast elements
 	private Map<JassImElement, AstElement> trace = Maps.newHashMap();
 	
-	public ImTranslator(CompilationUnit wurstProg) {
+	public ImTranslator(WurstModel wurstProg) {
 		this.wurstProg = wurstProg;
 	}
 	
@@ -97,9 +99,9 @@ public class ImTranslator {
 		debugPrintFunction = ImFunction($DEBUG_PRINT, ImVars(ImVar(PScriptTypeString.instance().imTranslateType(), "msg", false)), ImVoid(), ImVars(), ImStmts(), true, false);
 		
 		
-		
-		for (TopLevelDeclaration tld : wurstProg) {
-			tld.imTranslateTLD(this);
+	
+		for (CompilationUnit cu : wurstProg) {
+			translateCompilationUnit(cu);
 		}
 		
 		if (mainFunc == null) {
@@ -116,6 +118,15 @@ public class ImTranslator {
 	}
 	
 	
+	private void translateCompilationUnit(CompilationUnit cu) {
+		for (WPackage p : cu.getPackages()) {
+			p.imTranslateTLD(this);
+		}
+		for (JassToplevelDeclaration tld : cu.getJassDecls()) {
+			tld.imTranslateTLD(this);
+		}
+	}
+
 	public void addSource(JassImElement elem, AstElement source) {
 		trace.put(elem, source);
 	}
@@ -373,7 +384,7 @@ public class ImTranslator {
 		return v;
 	}
 
-	public CompilationUnit getWurstProg() {
+	public WurstModel getWurstProg() {
 		return wurstProg;
 	}
 
@@ -615,6 +626,49 @@ public class ImTranslator {
 
 	public void removeCallRelation(ImFunction f, ImFunction called) {
 		callRelations.remove(f, called);
+	}
+
+	
+	private Multimap<InterfaceDef, ClassDef> interfaceInstances = null;
+	
+	public Collection<ClassDef> getInterfaceInstances(InterfaceDef interfaceDef) {
+		if (interfaceInstances == null) {
+			calculateInterfaceInstances();
+		}
+		return interfaceInstances.get(interfaceDef);
+	}
+
+	private void calculateInterfaceInstances() {
+		interfaceInstances = HashMultimap.create();
+		for (CompilationUnit cu : wurstProg) {
+			for (ClassDef c : cu.attrGetByType().classes) {
+				for (PscriptTypeInterface i : c.attrImplementedInterfaces()) {
+					interfaceInstances.put(i.getInterfaceDef(), c);
+				}
+			}
+		}
+	}
+
+	
+	private Multimap<ClassDef, ClassDef> subclasses = null;
+	
+	public Collection<ClassDef> getSubClasses(ClassDef classDef) {
+		if (subclasses == null) {
+			calculateSubclasses();
+		}
+		return subclasses.get(classDef);
+	}
+
+	private void calculateSubclasses() {
+		subclasses = HashMultimap.create();
+		for (CompilationUnit cu : wurstProg) {
+			for (ClassDef c : cu.attrGetByType().classes) {
+				if (c.attrExtendedClass() != null) {
+					subclasses.put(c.attrExtendedClass(), c);
+				}
+			}
+		}
+		subclasses = Utils.transientClosure(subclasses);
 	}
 
 	

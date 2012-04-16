@@ -1,4 +1,4 @@
-package de.peeeq.wurstscript.jasstranslation;
+package de.peeeq.wurstscript.translation.imtojass;
 
 import static de.peeeq.wurstscript.jassAst.JassAst.JassOpAnd;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassOpDiv;
@@ -38,7 +38,6 @@ import de.peeeq.wurstscript.jassAst.JassOpBinary;
 import de.peeeq.wurstscript.jassAst.JassOpUnary;
 
 public class OpTranslation {
-
 	static public JassOpUnary translateOpUnary(OpNot opNot) {
 		return JassOpNot();
 	}
@@ -107,15 +106,18 @@ public class OpTranslation {
 		return JassOpOr();
 	}
 
-	static public JassOpBinary translageAssignGetBinary(OpMinusAssign opMinusAssign) {
+	static public JassOpBinary translageAssignGetBinary(
+			OpMinusAssign opMinusAssign) {
 		return JassOpMinus();
 	}
 
-	static public JassOpBinary translageAssignGetBinary(OpPlusAssign opPlusAssign) {
+	static public JassOpBinary translageAssignGetBinary(
+			OpPlusAssign opPlusAssign) {
 		return JassOpPlus();
 	}
 
-	static public JassOpBinary translageAssignGetBinary(OpMultAssign opMultAssign) {
+	static public JassOpBinary translageAssignGetBinary(
+			OpMultAssign opMultAssign) {
 		return JassOpMult();
 	}
 
@@ -126,5 +128,4 @@ public class OpTranslation {
 	public static JassOpBinary translageAssignGetBinary(OpDivAssign opDivAssign) {
 		return JassOpDiv();
 	}
-
 }

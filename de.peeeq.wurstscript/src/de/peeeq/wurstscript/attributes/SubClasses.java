@@ -14,10 +14,6 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class SubClasses {
 
-	public static Collection<ClassDef> getSubClasses(ClassDef classDef) {
-		CompilationUnit cu = classDef.attrCompilationUnit();
-		return cu.attrSubClasses().get(classDef);
-	}
 
 	public static Multimap<ClassDef, ClassDef> getSubClasses(CompilationUnit cu) {
 		Multimap<ClassDef, ClassDef> result = HashMultimap.create();

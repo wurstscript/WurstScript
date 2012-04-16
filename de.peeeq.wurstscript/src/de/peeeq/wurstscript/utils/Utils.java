@@ -327,14 +327,6 @@ public class Utils {
 		return false;
 	}
 
-	public static AstElement getRoot(AstElement i) {
-		AstElement s = i;
-		while (s.getParent() != null) {
-			s = s.getParent();
-		}
-		return s;
-	}
-
 	public static String printContext(ImmutableList<ClassOrModule> context) {
 		return join(map(context, new Function<ClassOrModule, String>() {
 

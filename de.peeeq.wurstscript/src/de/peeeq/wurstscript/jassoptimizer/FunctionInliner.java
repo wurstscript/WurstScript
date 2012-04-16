@@ -3,16 +3,11 @@ package de.peeeq.wurstscript.jassoptimizer;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.ListIterator;
 
 import com.google.common.collect.Lists;
 
-import de.peeeq.wurstscript.jassAst.JassAst;
-import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
-import de.peeeq.wurstscript.jassAst.JassExprlist;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassStatement;
-import de.peeeq.wurstscript.jassAst.JassStatements;
 import de.peeeq.wurstscript.jassAst.JassStmtCall;
 import de.peeeq.wurstscript.jassAst.JassStmtExitwhen;
 import de.peeeq.wurstscript.jassAst.JassStmtIf;
@@ -21,7 +16,6 @@ import de.peeeq.wurstscript.jassAst.JassStmtReturn;
 import de.peeeq.wurstscript.jassAst.JassStmtReturnVoid;
 import de.peeeq.wurstscript.jassAst.JassStmtSet;
 import de.peeeq.wurstscript.jassAst.JassStmtSetArray;
-import de.peeeq.wurstscript.jasstranslation.ExprTranslationResult;
 
 public class FunctionInliner {
 

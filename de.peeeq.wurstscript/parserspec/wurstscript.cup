@@ -178,9 +178,9 @@ Newlines ::=
 // one file = 1 or more packages
 CompilationUnit ::=
 	Newlines TopLevelDeclaration:p CompilationUnit:c
-		{: c.addFront(p);  RESULT = c; :}
+		{: RESULT = AstHelper.addFront(c, p); :}
 	| Newlines
-		{: RESULT = Ast.CompilationUnit(); :}
+		{: RESULT = Ast.CompilationUnit("", Ast.JassToplevelDeclarations(), Ast.WPackages()); :}
 ;
 
 

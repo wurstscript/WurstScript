@@ -51,7 +51,8 @@ public class WurstParser extends AbstractParser {
 			CompilationUnit cu = comp.parse(reader, "temp.wurst");
 			syntaxCodeAreaController.setAst(cu);
 			if (doChecks) {
-				comp.checkProg(cu);
+				// TODO do checks
+				// comp.checkProg(cu);
 			}
 		} catch (BadLocationException e) {
 			// TODO Auto-generated catch block

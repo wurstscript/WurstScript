@@ -9,7 +9,7 @@ public class PackageTests extends PscriptTest {
 	
 	@Test
 	public void test_import_function_fail() {
-		assertError(false, "Could not resolve",
+		testAssertErrorsLines(false, "Could not resolve",
 				"package A",
 				"	function foo(int x) returns int",
 				"		return x*2",
@@ -23,7 +23,7 @@ public class PackageTests extends PscriptTest {
 	
 	@Test
 	public void test_import_function() {
-		assertOk(false,
+		testAssertOkLines(false,
 				"package A",
 				"	public function foo(int x) returns int",
 				"		return x*2",
@@ -38,7 +38,7 @@ public class PackageTests extends PscriptTest {
 
 	@Test
 	public void import_public() {
-		assertOk(false,
+		testAssertOkLines(false,
 				"package A",
 				"	public function foo(int x) returns int",
 				"		return x*2",
@@ -57,7 +57,7 @@ public class PackageTests extends PscriptTest {
 	
 	@Test
 	public void test_import_ext_function() {
-		assertOk(false,
+		testAssertOkLines(false,
 				"package A",
 				"	public function int.plusOne() returns int",
 				"		return this + 2",
@@ -71,7 +71,7 @@ public class PackageTests extends PscriptTest {
 	
 	@Test
 	public void test_import_ext_function_fail() {
-		assertError(false, "undefined",
+		testAssertErrorsLines(false, "undefined",
 				"package A",
 				"	function int.plusOne() returns int",
 				"		return this + 2",
@@ -85,7 +85,7 @@ public class PackageTests extends PscriptTest {
 	
 	@Test
 	public void test_import_class() {
-		assertOk(false,
+		testAssertOkLines(false,
 				"package A",
 				"	public class Blub",
 				"		function foo()",
@@ -100,7 +100,7 @@ public class PackageTests extends PscriptTest {
 	
 	@Test
 	public void test_import_class_protected() {
-		assertError(false, "undefined",
+		testAssertErrorsLines(false, "undefined",
 				"package A",
 				"	public class Blub",
 				"		protected function foo()",
@@ -115,7 +115,7 @@ public class PackageTests extends PscriptTest {
 	
 	@Test
 	public void test_import_class_private() {
-		assertError(false, "undefined",
+		testAssertErrorsLines(false, "undefined",
 				"package A",
 				"	public class Blub",
 				"		private function foo()",
@@ -130,7 +130,7 @@ public class PackageTests extends PscriptTest {
 	
 	@Test
 	public void test_import_class_fail() {
-		assertError(false, "Blub",
+		testAssertErrorsLines(false, "Blub",
 				"package A",
 				"	class Blub",
 				"		function foo()",
@@ -145,7 +145,7 @@ public class PackageTests extends PscriptTest {
 	
 	@Test
 	public void test_typename_as_var() {
-		assertError(false, "type name 'unit'",
+		testAssertErrorsLines(false, "defines the same name",
 				"type unit extends handle",
 				"package A",
 				"	unit unit",
@@ -157,7 +157,7 @@ public class PackageTests extends PscriptTest {
 	
 	@Test
 	public void test_typename_as_var2() {
-		assertError(false, "defines the same name",
+		testAssertErrorsLines(false, "defines the same name",
 				"type unit extends handle",
 				"package A",
 				"	int unit",
@@ -169,7 +169,7 @@ public class PackageTests extends PscriptTest {
 
 	@Test
 	public void test_typename_as_var3() {
-		assertError(false, "Invalid assignment",
+		testAssertErrorsLines(false, "Invalid assignment",
 				"type player extends handle",
 				"package A",
 				"	function foo(player p)",
@@ -179,7 +179,7 @@ public class PackageTests extends PscriptTest {
 	
 	@Test
 	public void test_import_var() {
-		assertOk(false,
+		testAssertOkLines(false,
 				"package A",
 				"	public int x = 4",
 				"endpackage",
@@ -192,7 +192,7 @@ public class PackageTests extends PscriptTest {
 	
 	@Test
 	public void test_import_var_fail() {
-		assertError(false, "Could not resolve",
+		testAssertErrorsLines(false, "Could not resolve",
 				"package A",
 				"	int x = 4",
 				"endpackage",
@@ -205,7 +205,7 @@ public class PackageTests extends PscriptTest {
 	
 	@Test
 	public void test_global_var() {
-		assertOk(false, 
+		testAssertOkLines(false, 
 				"globals",
 				"	integer x = 4",
 				"endglobals",
@@ -217,7 +217,7 @@ public class PackageTests extends PscriptTest {
 	
 	@Test
 	public void test_global_type() {
-		assertOk(false, 
+		testAssertOkLines(false, 
 				"type unit extends handle",
 				"package B",
 				"	init",
@@ -229,7 +229,7 @@ public class PackageTests extends PscriptTest {
 
 	@Test
 	public void test_cyclic_import() {
-		assertOk(false, 
+		testAssertOkLines(false, 
 				"package B",
 				"	import A",
 				"endpackage",
@@ -240,7 +240,7 @@ public class PackageTests extends PscriptTest {
 	
 	@Test
 	public void test_cyclic_import_with_init() {
-		assertOk(false, 
+		testAssertOkLines(false, 
 				"package B",
 				"	import A",
 				"	public int x",
@@ -257,7 +257,7 @@ public class PackageTests extends PscriptTest {
 	
 	@Test
 	public void test_globals_init() {
-		assertOk(true, 
+		testAssertOkLines(true, 
 				"package B",
 				"	native testSuccess()",
 				"	public int x = 1",
@@ -269,7 +269,7 @@ public class PackageTests extends PscriptTest {
 	
 	@Test
 	public void test_globals_init2() {
-		assertOk(true, 
+		testAssertOkLines(true, 
 				"globals",
 				"	integer x = 1",
 				"endglobals", 
@@ -281,18 +281,5 @@ public class PackageTests extends PscriptTest {
 				"endpackage");
 	}
 	
-	private String makeCode(String... body) {
-		return Utils.join(body, "\n");
-	}
-	
-	public void assertOk( boolean executeProg, String ... body) {
-		String prog = makeCode(body);
-		testAssertOk(Utils.getMethodName(1), executeProg, prog);
-	}
-	
-	public void assertError( boolean executeProg, String expected, String ... body) {
-		String prog = makeCode(body);
-		testAssertErrors(Utils.getMethodName(1), executeProg, prog, expected);
-	}
 
 }

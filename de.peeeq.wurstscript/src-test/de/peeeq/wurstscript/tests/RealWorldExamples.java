@@ -93,8 +93,7 @@ public class RealWorldExamples extends PscriptTest {
 			System.out.println("Adding file: " + f);
 			inputs.add(f);
 		}
-		String result = testScript(inputs, null, "stdlib", false, true);
-		assertEquals("", result);
+		testScript(inputs, null, "stdlib", false, true);
 	}
 	
 }

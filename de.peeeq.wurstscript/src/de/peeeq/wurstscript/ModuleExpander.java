@@ -1,33 +1,25 @@
 package de.peeeq.wurstscript;
 
-import java.util.List;
 import java.util.Set;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.ClassOrModule;
-import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ModuleDef;
-import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.ModuleUse;
-import de.peeeq.wurstscript.ast.TopLevelDeclaration;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.attributes.attr;
 
 public class ModuleExpander {
 
-	private Set<ClassOrModule> done = Sets.newHashSet();
 
-	public void expandModules(CompilationUnit root) {
-		for (TopLevelDeclaration t : root) {
-			if (t instanceof WPackage) {
-				expandModules((WPackage) t);
-			}
+	public void expandModules(CompilationUnit cu) {
+		for (WPackage t : cu.getPackages()) {
+			expandModules((WPackage) t);
 		}
 	}
 
@@ -40,8 +32,9 @@ public class ModuleExpander {
 	}
 
 	private void expandModules(ClassOrModule m) {
+		System.out.println();
 		Preconditions.checkNotNull(m);
-		if (done.contains(m)) {
+		if (m.getModuleInstanciations().size() > 0) {
 			return;
 		}
 		
@@ -54,15 +47,14 @@ public class ModuleExpander {
 			}
 			expandModules(usedModule);
 
-
+			
+			
 			m.getModuleInstanciations().add(
 					Ast.ModuleInstanciation(moduleUse.getSource().copy(), Ast.Modifiers(), 
 							usedModule.getName(), usedModule.getMethods().copy(), usedModule.getVars().copy(), usedModule.getConstructors().copy(), 
 							usedModule.getModuleInstanciations().copy(), usedModule.getModuleUses().copy(), usedModule.getOnDestroy().copy()));
 		}
 		
-		
-		done.add(m);
 	}
 
 	

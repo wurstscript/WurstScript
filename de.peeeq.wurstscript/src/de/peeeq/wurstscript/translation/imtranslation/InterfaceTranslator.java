@@ -44,7 +44,7 @@ public class InterfaceTranslator {
 		// TODO implement @castable
 
 		// get classes implementing this interface
-		List<ClassDef> instances = Lists.newArrayList(translator.getWurstProg().attrInterfaceInstances().get(interfaceDef));
+		List<ClassDef> instances = Lists.newArrayList(translator.getInterfaceInstances(interfaceDef));
 
 		// sort instances by typeid
 		Collections.sort(instances, new TypeIdComparator(translator));

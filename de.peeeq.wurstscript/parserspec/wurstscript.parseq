@@ -5,9 +5,18 @@ abstract syntax:
 
 WPos ( String file, Object lineOffsets, int leftPos, int rightPos )
 
-CompilationUnit * TopLevelDeclaration
+WurstModel * CompilationUnit
 
-TopLevelDeclaration = WPackage | JassToplevelDeclaration
+CompilationUnit( String file, JassToplevelDeclarations jassDecls, WPackages packages)
+
+
+JassToplevelDeclarations * JassToplevelDeclaration
+
+WPackages * WPackage 
+
+
+TopLevelDeclaration = JassToplevelDeclaration | WPackage
+TopLevelDeclarations * TopLevelDeclaration
 
 WPackage(WPos source, String name, WImports imports, WEntities elements)
 
@@ -217,6 +226,7 @@ WScope =
 	| ConstructorDef 
 	| OnDestroyDef 
 	| InitBlock
+	| WurstModel
 
 PackageOrGlobal = WPackage | CompilationUnit	
 	
@@ -477,9 +487,7 @@ WImport.attrImportedPackage
 	returns WPackage
 	implemented by de.peeeq.wurstscript.attributes.AttrImportedPackage.getImportedPackage
 
-CompilationUnit.attrPackages
-	returns java.util.Map<String, WPackage>
-	implemented by de.peeeq.wurstscript.attributes.AttrImportedPackage.getPackages
+
 	
 ModuleInstanciation.attrModuleOrigin
 	returns ModuleDef
@@ -512,32 +520,13 @@ HasTypeArgs.attrTypeParameterBindings
 	returns java.util.Map<TypeParamDef, de.peeeq.wurstscript.types.PscriptType>
 	implemented by de.peeeq.wurstscript.attributes.Generics.getTypeParameterBindings
 	
-CompilationUnit.attrGetByType
-	returns de.peeeq.wurstscript.attributes.GetByType.ByTypes
-	implemented by de.peeeq.wurstscript.attributes.GetByType.calculate
-
-CompilationUnit.attrInterfaceInstances
-	returns com.google.common.collect.Multimap<InterfaceDef, ClassDef>
-	implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getInterfaceInstances
 
 
-ClassDef.attrImplementedInterfaces
-	returns java.util.Collection<de.peeeq.wurstscript.types.PscriptTypeInterface>
-	implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getImplementedInterfaces
+
 	
 InterfaceDef.attrExtendedInterfaces	
 	returns java.util.Collection<de.peeeq.wurstscript.types.PscriptTypeInterface>
 	implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getExtendedInterfaces
-
-
-CompilationUnit.attrSubClasses
-	returns com.google.common.collect.Multimap<ClassDef, ClassDef>
-	implemented by de.peeeq.wurstscript.attributes.SubClasses.getSubClasses
-	
-ClassDef.attrSubClasses
-	returns java.util.Collection<ClassDef>
-	implemented by de.peeeq.wurstscript.attributes.SubClasses.getSubClasses
-
 
 ClassDef.attrExtendedClass
 	returns ClassDef
@@ -547,35 +536,34 @@ ConstructorDef.attrSuperConstructor
 	returns ConstructorDef
 	implemented by de.peeeq.wurstscript.attributes.SubClasses.getSuperConstructor
 
+	
+	
+WurstModel.attrPackages
+	returns java.util.Map<String, WPackage>
+	implemented by de.peeeq.wurstscript.attributes.AttrImportedPackage.getPackages
+	
+AstElement.getModel()
+	returns WurstModel
+	implemented by de.peeeq.wurstscript.attributes.AttrImportedPackage.getModel
 
-// Jass translation:
+CompilationUnit.attrGetByType
+	returns de.peeeq.wurstscript.attributes.GetByType.ByTypes
+	implemented by de.peeeq.wurstscript.attributes.GetByType.calculate
 	
-Expr.jassTranslateExpr(
-		de.peeeq.wurstscript.jasstranslation.JassTranslator translator, 
-		de.peeeq.wurstscript.jassAst.JassFunction f
-	)
-	returns de.peeeq.wurstscript.jasstranslation.ExprTranslationResult
-	implemented by de.peeeq.wurstscript.jasstranslation.ExprTranslation.translate
-	
-	
-WStatement.jassTranslateStmt(
-		de.peeeq.wurstscript.jasstranslation.JassTranslator translator, 
-		de.peeeq.wurstscript.jassAst.JassFunction f
-	)
-	returns java.util.List<de.peeeq.wurstscript.jassAst.JassStatement>
-	implemented by de.peeeq.wurstscript.jasstranslation.StmtTranslation.translate
-	
+
+
 OpUnary.jassTranslateUnary()
 	returns de.peeeq.wurstscript.jassAst.JassOpUnary
-	implemented by de.peeeq.wurstscript.jasstranslation.OpTranslation.translateOpUnary
+	implemented by de.peeeq.wurstscript.translation.imtojass.OpTranslation.translateOpUnary
 	
 OpBinary.jassTranslateBinary()
 	returns de.peeeq.wurstscript.jassAst.JassOpBinary
-	implemented by de.peeeq.wurstscript.jasstranslation.OpTranslation.translateOpBinary
+	implemented by de.peeeq.wurstscript.translation.imtojass.OpTranslation.translateOpBinary
 	
 OpAssignment.jassTranslageAssignGetBinary()
 	returns de.peeeq.wurstscript.jassAst.JassOpBinary
-	implemented by de.peeeq.wurstscript.jasstranslation.OpTranslation.translageAssignGetBinary
+	implemented by de.peeeq.wurstscript.translation.imtojass.OpTranslation.translageAssignGetBinary
+
 
 OpAssignment.binaryOp()
 	returns OpBinary
@@ -583,12 +571,19 @@ OpAssignment.binaryOp()
 	
 // Im translation
 	
-	TopLevelDeclaration.imTranslateTLD(
+	WPackage.imTranslateTLD(
 			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator 
 		)
 		returns void
 		implemented by de.peeeq.wurstscript.translation.imtranslation.TLDTranslation.translate
 	
+	JassToplevelDeclaration.imTranslateTLD(
+			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator 
+		)
+		returns void
+		implemented by de.peeeq.wurstscript.translation.imtranslation.TLDTranslation.translate	
+		
+		
 	WEntity.imTranslateEntity(
 			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator 
 		)
@@ -624,4 +619,35 @@ OpAssignment.binaryOp()
 		)
 		returns void
 		implemented by de.peeeq.wurstscript.translation.imtranslation.FuncSkeleton.create
+
+	ClassDef.attrImplementedInterfaces
+		returns java.util.Collection<de.peeeq.wurstscript.types.PscriptTypeInterface>
+		implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getImplementedInterfaces
+		
+		
+// removed attributes:
+//
+//
+//CompilationUnit.attrGetByType
+//	returns de.peeeq.wurstscript.attributes.GetByType.ByTypes
+//	implemented by de.peeeq.wurstscript.attributes.GetByType.calculate
+//	
+//CompilationUnit.attrInterfaceInstances
+//	returns com.google.common.collect.Multimap<InterfaceDef, ClassDef>
+//	implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getInterfaceInstances
+//
+//
+
+//	
+//CompilationUnit.attrSubClasses
+//	returns com.google.common.collect.Multimap<ClassDef, ClassDef>
+//	implemented by de.peeeq.wurstscript.attributes.SubClasses.getSubClasses
+//	
+//ClassDef.attrSubClasses
+//	returns java.util.Collection<ClassDef>
+//	implemented by de.peeeq.wurstscript.attributes.SubClasses.getSubClasses
+//
+//CompilationUnit.attrPackages
+//	returns java.util.Map<String, WPackage>
+//	implemented by de.peeeq.wurstscript.attributes.AttrImportedPackage.getPackages
 	
