@@ -23,7 +23,7 @@ public class MoPaqScriptfiles {
 	
 	static File insertFile(File mpqArchive, File file, String fileInMap) {
 		File script = new File("./temp/insert.txt");
-		String scriptString = "add " + "\"" + mpqArchive.getAbsolutePath() + "\"" + " " + file.getAbsolutePath() + " " + fileInMap;  
+		String scriptString = "add " + "\"" + mpqArchive.getAbsolutePath() + "\"" + " " + "\"" + file.getAbsolutePath() + "\"" + " " + fileInMap;  
 		try {
 			Files.write(scriptString, script, Charsets.UTF_8);
 		} catch (IOException e) {
