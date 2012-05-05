@@ -165,8 +165,8 @@ public class ImTranslator {
 	}
 
 	private void finishInitFunctions() {
-		// init globals:
-		mainFunc.getBody().add(ImFunctionCall(globalInitFunc, ImExprs()));
+		// init globals, at beginning of main func:
+		mainFunc.getBody().add(0, ImFunctionCall(globalInitFunc, ImExprs()));
 		addCallRelation(mainFunc, globalInitFunc);
 		
 		
