@@ -1,7 +1,104 @@
 package Hashtable
     
-    function hashtable.saveReal( integer parentKey, integer childKey, real value ) returns real
+    public function hashtable.saveReal( integer parentKey, integer childKey, real value ) returns real
         SaveReal( this, parentKey, childKey, value )
         return value
 
-endpackage
+    public function hashtable.saveInt( integer parentKey, integer childKey, int value ) returns int
+        SaveInteger( this, parentKey, childKey, value )
+        return value
+
+    public function hashtable.loadInt( int parentKey, int childKey ) returns int
+        return LoadInteger( this, parentKey, childKey )
+
+    public function hashtable.loadAbilityHandle( integer parentKey, integer childKey ) returns ability
+        return LoadAbilityHandle( this, parentKey, childKey )
+
+    function hashtable.loadBoolean( integer parentKey, integer childKey ) returns boolean
+        return LoadBoolean( this, parentKey, childKey )
+
+    function hashtable.loadBooleanExprHandle( integer parentKey, integer childKey ) returns boolexpr
+        return LoadBooleanExprHandle( this, parentKey, childKey )
+
+    function hashtable.loadButtonHandle( integer parentKey, integer childKey ) returns button
+        return LoadButtonHandle( this, parentKey, childKey )
+
+    function hashtable.loadDefeatConditionHandle( integer parentKey, integer childKey ) returns defeatcondition
+        return LoadDefeatConditionHandle( this, parentKey, childKey )
+
+    function hashtable.loadDestructableHandle( integer parentKey, integer childKey ) returns destructable
+        return LoadDestructableHandle( this, parentKey, childKey )
+
+    function hashtable.loadDialogHandle( integer parentKey, integer childKey ) returns dialog
+        return LoadDialogHandle( this, parentKey, childKey )
+
+    function hashtable.loadFogModifierHandle( integer parentKey, integer childKey ) returns fogmodifier
+        return LoadFogModifierHandle( this, parentKey, childKey )
+
+    function hashtable.loadFogStateHandle( integer parentKey, integer childKey ) returns fogstate
+        return LoadFogStateHandle( this, parentKey, childKey )
+
+    function hashtable.loadForceHandle( integer parentKey, integer childKey ) returns force
+        return LoadForceHandle( this, parentKey, childKey )
+
+    function hashtable.loadGroupHandle( integer parentKey, integer childKey ) returns group
+        return LoadGroupHandle( this, parentKey, childKey )
+
+    function hashtable.loadImageHandle( integer parentKey, integer childKey ) returns image
+        return LoadImageHandle( this, parentKey, childKey )
+
+    function hashtable.loadItemHandle( integer parentKey, integer childKey ) returns item
+        return LoadItemHandle( this, parentKey, childKey )
+
+    function hashtable.loadItemPoolHandle( integer parentKey, integer childKey ) returns itempool
+        return LoadItemPoolHandle( this, parentKey, childKey )
+
+    function hashtable.loadLeaderboardHandle( integer parentKey, integer childKey ) returns leaderboard
+        return LoadLeaderboardHandle( this, parentKey, childKey )
+
+    function hashtable.loadFogStateHandle( integer parentKey, integer childKey ) returns fogstate
+        return LoadFogStateHandle( this, parentKey, childKey )
+
+    function hashtable.loadLightningHandle( integer parentKey, integer childKey ) returns lightning
+        return LoadLightningHandle( this, parentKey, childKey )
+
+    function hashtable.loadLocationHandle( integer parentKey, integer childKey ) returns location
+        return LoadLocationHandle( this, parentKey, childKey )
+
+    function hashtable.loadImageHandle( integer parentKey, integer childKey ) returns image
+        return LoadImageHandle( this, parentKey, childKey )
+
+    function hashtable.loadMultiboardHandle( integer parentKey, integer childKey ) returns multiboard
+        return LoadMultiboardHandle( this, parentKey, childKey )
+
+    function hashtable.loadFogModifierHandle( integer parentKey, integer childKey ) returns fogmodifier
+        return LoadFogModifierHandle( this, parentKey, childKey )
+
+    function hashtable.loadFogStateHandle( integer parentKey, integer childKey ) returns fogstate
+        return LoadFogStateHandle( this, parentKey, childKey )
+
+    function hashtable.loadForceHandle( integer parentKey, integer childKey ) returns force
+        return LoadForceHandle( this, parentKey, childKey )
+
+    function hashtable.loadItemHandle( integer parentKey, integer childKey ) returns item
+        return LoadItemHandle( this, parentKey, childKey )
+
+    function hashtable.loadPlayerHandle( integer parentKey, integer childKey ) returns player
+        return LoadPlayerHandle( this, parentKey, childKey )
+
+    function hashtable.loadQuestHandle( integer parentKey, integer childKey ) returns quest
+        return LoadQuestHandle( this, parentKey, childKey )
+
+    function hashtable.loadQuestItemHandle( integer parentKey, integer childKey ) returns questitem
+        return LoadQuestItemHandle( this, parentKey, childKey )
+
+    function hashtable.loadReal( integer parentKey, integer childKey ) returns real
+        return LoadReal( this, parentKey, childKey )
+
+    function hashtable.loadRectHandle( integer parentKey, integer childKey ) returns rect
+        return LoadRectHandle( this, parentKey, childKey )
+
+    function hashtable.loadRegionHandle( integer parentKey, integer childKey ) returns region
+        return LoadRegionHandle( this, parentKey, childKey )
+    
+endpackage 

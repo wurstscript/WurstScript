@@ -1,4 +1,0 @@
-package Dummy
-
-    public constant int DUMMY_UNIT_ID = 'e000'
-endpackage

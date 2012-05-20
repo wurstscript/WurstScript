@@ -22,16 +22,18 @@ public class BackupController {
 		backupFolder.mkdirs();
 		backupLimit = limit;
 		if (backupLimit > 998) { backupLimit = 998; }
-		
+		WLogger.info(mapFileName);
 		String mapName = mapFileName.substring(mapFileName.lastIndexOf("\\")+1,mapFileName.lastIndexOf("."));
+		WLogger.info(mapName);
 		int count = backupCount(mapName);
+		WLogger.info("Count " + count);
 		if (count > backupLimit ) {
 			deleteOldBackups(mapName);
 			count--;
 		}
 	
 		
-		File backupFile = new File("./backups/" + mapName + "." + toCorrectString(count+1) + ".w3x");
+		File backupFile = new File("./backups/" + mapName + "-" + toCorrectString(count+1) + ".w3x");
 		Files.copy(mapFile, backupFile);
 	}
 	
@@ -49,8 +51,11 @@ public class BackupController {
 		int count = 0;
 		for ( File f : backupFolder.listFiles()) {
 			String name = f.getName();
-			if (name.length() > 4 && name.substring(0,name.indexOf(".")).equals(mapName) ) {
-				count++;
+			WLogger.info(name + " " + name.substring(0,name.lastIndexOf("-")));
+			if (name.lastIndexOf("-") > 0){
+				if (name.length() > 4 && name.substring(0,name.lastIndexOf("-")).equals(mapName) ) {
+					count++;
+				}
 			}
 		}
 		return count;
@@ -61,8 +66,10 @@ public class BackupController {
 		File[] files = new File[backupLimit+1];
 		for ( File f : backupFolder.listFiles()) {
 			String name = f.getName();
-			if (name.length() > 6 && name.substring(0,name.indexOf(".")).equals(mapName) ) {
-				files[Integer.valueOf(name.substring(name.indexOf(".")+1,name.lastIndexOf(".")))-1] = f;
+			if (name.lastIndexOf("-") > 0){
+				if (name.length() > 4 && name.substring(0,name.lastIndexOf("-")).equals(mapName) ) {
+					files[Integer.valueOf(name.substring(name.lastIndexOf("-")+1,name.lastIndexOf(".")))-1] = f;
+				}
 			}
 		}
 		files[0].delete();
@@ -70,13 +77,12 @@ public class BackupController {
 		for ( int i = 1; i <= backupLimit; i++ ) {
 			File f = files[i];
 			String name = f.getName();
-//			WLogger.info("Current in array: " + name);
-			name = name.replaceFirst("."+toCorrectString(i+1)+".", "."+toCorrectString(i)+".");
-//			WLogger.info("Current in array replaced: " + name);
+			WLogger.info("Current in array: " + name);
+			name = name.replaceFirst("-"+toCorrectString(i+1)+".", "-"+toCorrectString(i)+".");
+			WLogger.info("Current in array replaced: " + name);
 			File backupFile = new File("./backups/" + name );
 			Files.copy(f, backupFile);
 			f.delete();
-			i++;
 		}
 		
 	}

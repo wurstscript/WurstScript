@@ -12,15 +12,15 @@ package PrintingHelper
 
     public function printNote(string msg)
         for int i = 0 to 12
-            DisplayTimedTextToPlayer(Player(i), 0., 0., 60., "|cffFFFF00[NOTIFICATION] - " + msg + "|r")
+            DisplayTimedTextToPlayer(Player(i), 0., 0., 60., "|cffFFFF00[NOTIFICATION]|r - " + msg)
 
     public function printWarning(string msg)
         for int i = 0 to 12
-            DisplayTimedTextToPlayer(Player(i), 0., 0., 60., "|cffFF8000[WARNING] - " + msg + "|r")
+            DisplayTimedTextToPlayer(Player(i), 0., 0., 60., "|cffFF8000[WARNING]|r - " + msg)
 
     public function printError(string msg)
         for int i = 0 to 12
-            DisplayTimedTextToPlayer(Player(i), 0., 0., 60., "|cffFF0000[ERROR] - " + msg + "|r")
+            DisplayTimedTextToPlayer(Player(i), 0., 0., 60., "|cffFF0000[ERROR]|r - " + msg)
 
     public function real.toString() returns string
         return R2S(this)

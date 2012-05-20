@@ -4,7 +4,7 @@ package Dummy
 //		* Anitarf (original xedummy)
 
 
-	import BasicDummy
+	import Basics
 
 	// The number of different angles at which the dummy units will be stored.
 	int ANGLE_RESOLUTION = 12

@@ -71,7 +71,7 @@ public class Main {
 			
 			if (runArgs.getMapFile() != null) {
 				BackupController bc = new BackupController();
-				bc.makeBackup(runArgs.getMapFile(), 19);
+				bc.makeBackup(runArgs.getMapFile(), 24);
 			}
 
 			compilation : do {

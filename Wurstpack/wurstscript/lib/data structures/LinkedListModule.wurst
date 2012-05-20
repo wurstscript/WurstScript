@@ -3,14 +3,14 @@ package LinkedListModule
 	public module LinkedListModule
 		static thistype first = null
 		static thistype last = null
-		static int count = 0
+		static int size = 0
 		thistype prev
 		thistype next
 
 		construct()
 			print("1.01")
-			count++
-			if count == 1
+			size++
+			if size == 1
 				first = this
 				prev = null	
 				
@@ -22,7 +22,7 @@ package LinkedListModule
 			last = this
 		
 		ondestroy
-			count--
+			size--
 			if this != first
 				prev.next = next
 			if this != last

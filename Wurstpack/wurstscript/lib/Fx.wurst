@@ -1,0 +1,156 @@
+package Fx
+/*
+This is mostly a copy of xefx, credits for that go to Vexorian
+*/
+	import Basics
+	import ExtensionFunctions
+	
+	constant player DUMMY_PLAYER = Player(15)
+	
+	public class Fx
+		private unit dummy
+		private effect fx = null
+		private real zang  = 0.
+        private string sfxPath
+		private integer red = 255
+		private integer green = 255
+		private integer blue = 255
+		private integer alpha = 255
+		
+		// needed?
+		private integer abil=0
+		
+		construct(real x, real y, real facing)
+			dummy = CreateUnit(DUMMY_PLAYER, DUMMY_UNIT_ID, x, y, facing*bj_RADTODEG)
+				.addAbility('Amrf')
+				.removeAbility('Amrf')
+				.addAbility('Aloc')
+				.setPos(x,y)
+        
+        construct(real x, real y, real facing, string fxpath)
+			dummy = CreateUnit(DUMMY_PLAYER, DUMMY_UNIT_ID, x, y, facing*bj_RADTODEG)
+				.addAbility('Amrf')
+				.removeAbility('Amrf')
+				.addAbility('Aloc')
+				.setPos(x,y)
+            setFx( fxpath )
+				
+		function getOwner() returns player
+			return dummy.getOwner()
+			
+		function setOwner(player p) returns Fx
+			dummy.setOwner(p, false)
+			return this
+			
+		function setTeamcolor(playercolor c) returns Fx
+			SetUnitColor(dummy, c)
+			return this
+		
+		function setScale(real value) returns Fx
+			dummy.setScale(value)
+			return this
+
+		function getGreen() returns int
+			return green
+		
+		function getBlue() returns int
+			return blue
+		
+		function getRed() returns int
+			return red
+		
+		function getAlpha() returns int
+			return alpha
+		
+		
+		function recolor(int r, int g, int b, int a) returns Fx
+			red = r
+			green = g
+			blue = b
+			alpha = a
+			dummy.setVertexColor(r, g, b, a)
+			return this
+
+
+		function flash(string fx) returns Fx
+			dummy.addEffect(fx, "origin").destr()
+			return this
+
+		function getXYAngle() returns real
+			return dummy.getFacing()*bj_DEGTORAD
+
+		function setXYAngle(real value) returns Fx
+			dummy.setFacing(value*bj_RADTODEG)
+			return this
+            
+        function setXYAngleInstant(real value) returns Fx
+            real x = getX()
+            real y = getY()
+            fx.destr()
+			RemoveUnit(dummy)
+            dummy = CreateUnit(DUMMY_PLAYER, DUMMY_UNIT_ID, x, y, value*bj_RADTODEG)
+				.addAbility('Amrf')
+				.removeAbility('Amrf')
+				.addAbility('Aloc')
+				.setPos(x,y)
+            setFx(sfxPath)
+			return this
+
+		function getZAngle() returns real
+			return zang
+			
+		function setZAngle(real value) returns Fx
+			int i = R2I(value*bj_RADTODEG + 90.5)
+			zang = value
+			if i >= 180
+				i = 179
+			else if i < 0
+				i = 0
+			SetUnitAnimationByIndex(dummy, i)
+			return this
+		
+		function getX() returns real
+			return dummy.getX()
+			
+		function getY() returns real
+			return dummy.getY()
+		
+		function getZ() returns real
+			return dummy.getFlyHeight()
+		
+		function setX(real x) returns Fx
+			dummy.setX(x)
+			return this
+			
+		function setY(real y) returns Fx
+			dummy.setY(y)
+			return this
+			
+		function setPos(real x, real y) returns Fx
+			dummy.setPos(x, y)
+			return this
+		
+		function setZ(real z) returns Fx
+			dummy.setFlyHeight(z, 0.)
+			return this
+		
+		function setFx(string newpath) returns Fx
+			if fx != null
+				fx.destr()
+			if newpath == ""
+				fx = null
+			else                
+				fx = dummy.addEffect(newpath, "origin")
+            sfxPath = newpath
+			return this
+				
+		ondestroy
+			if fx != null
+				fx.destr()
+			KillUnit(dummy)
+		
+		function hiddenDestroy()
+			dummy.hide()
+			destroy this
+			
+endpackage

@@ -64,11 +64,11 @@ package Multiboard
         MultiboardSetItemsWidth(this, width)
         return this
 
-    public function multiboard.setTitleText(string label) returns multiboard
+    public function multiboard.setTitle(string label) returns multiboard
         MultiboardSetTitleText(this, label)
         return this
 
-    public function multiboard.setTitleTextColor(integer r,integer g, integer b, integer a) returns multiboard
+    public function multiboard.setTitleColor(integer r,integer g, integer b, integer a) returns multiboard
         MultiboardSetTitleTextColor(this, r,g,b,a)
         return this
 
