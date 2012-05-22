@@ -629,7 +629,7 @@ Extension functions enable you to "add" functions to existing types without crea
 
 # Operator Overloading
 
-Operator Overloading allows you to change the behaviour of internal operators +,-,*,/ for custom arguments.
+Operator Overloading allows you to change the behaviour of internal operators "+", "-", "*" and "/" for custom arguments.
 A quick example from the standard library (Vectors.wurst):
 
     // Defining the "+" operator for the tupletype vec3
@@ -647,10 +647,10 @@ A quick example from the standard library (Vectors.wurst):
 You can overload operators for existing types via Extension-Functions or via class-functions for the specific classtype.
 In order to define an overloading function it has to be named as following:
 
-_+_ - "op_plus"
-_-_ - "op_minus"
-_*_ - "op_mult"
-_/_ - "op_divReal"
+    +  "op_plus"
+    -  "op_minus"
+    *  "op_mult"
+    /  "op_divReal"
     
 # Packages 
 As mentioned above every code-segment written in Wurst has to be inside a _package_,
