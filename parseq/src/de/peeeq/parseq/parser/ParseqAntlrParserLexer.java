@@ -34,6 +34,7 @@ public class ParseqAntlrParserLexer extends Lexer {
     public static final int STRVAL=8;
     public static final int WS=9;
 
+    
     // delegates
     // delegators
     public Lexer[] getDelegates() {

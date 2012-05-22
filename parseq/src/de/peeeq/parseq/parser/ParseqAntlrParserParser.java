@@ -16,6 +16,7 @@ public class ParseqAntlrParserParser extends Parser {
         "<invalid>", "<EOR>", "<DOWN>", "<UP>", "COMMENT", "ID", "ID_PART", "ID_START", "STRVAL", "WS", "'&'", "'('", "')'", "'*'", "','", "'.'", "'<'", "'='", "'>'", "'abstract syntax:'", "'attributes:'", "'by'", "'implemented'", "'package'", "'returns'", "'|'"
     };
 
+    
     public static final int EOF=-1;
     public static final int T__10=10;
     public static final int T__11=11;

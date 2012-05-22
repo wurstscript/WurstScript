@@ -9,6 +9,7 @@ public class CaseDef  implements AstEntityDefinition {
 	public final  List<Alternative> alternatives;
 	public final  String name;
 
+	
 	public CaseDef(String supertype, List<Alternative> alternatives) {
 		this.name = supertype;
 		this.alternatives = alternatives;

@@ -10,6 +10,7 @@ public class AttributeDef {
 	public final String returns;
 	public final String implementedBy;
 	public final List<Parameter> parameters;
+	
 
 	public AttributeDef(List<Parameter> parameters, String typ, String attr, String comment, String returns2,
 			String implementedBy2) {

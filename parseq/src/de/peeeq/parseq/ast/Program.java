@@ -11,7 +11,6 @@ import org.antlr.runtime.Token;
 
 public class Program {
 
-	
 	public final List<ListDef> listDefs = new LinkedList<ListDef>();
 	public final List<CaseDef> caseDefs = new LinkedList<CaseDef>();
 	public final List<ConstructorDef> constructorDefs = new LinkedList<ConstructorDef>();
