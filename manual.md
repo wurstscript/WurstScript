@@ -39,7 +39,7 @@ to the wurst rules.
 
 A _function_ definition consists of a name, a list of formal parameters and a return 
 type. The return type is declared after the formal parameters using the _returns_ keyword.
-If the function does not return a value this part is ommitted.
+If the function does not return a value this part is omitted.
 
 	// this function returns the maximum of two integers
 	function max(int a, int b) returns int
@@ -58,7 +58,7 @@ Global (local) variables can be declared anywhere in a package (function).
 A constant value may be declared using the _let_ keyword. Variables are declared
 by using the _var_ keyword or writing the type of the variable before its name.
 
-	// declaring a constant - the type is inferred from the inital expression
+	// declaring a constant - the type is inferred from the initial expression
 	let x = 5
 	// declaring a variable
 	var y = 5
@@ -139,7 +139,7 @@ The simplest statement is the _skip_ statement. It has no effect and can be used
 	for int i = 0 to 10 step 2 // for-loop with step 2
 		...
 
-	for int i = 10 downto 0 // wurst can also count downwards
+	for int i = 10 downto 0 // wurst can also count down wards
 
 
 	while a > b // while-loop with input condition
@@ -161,7 +161,7 @@ The simplest statement is the _skip_ statement. It has no effect and can be used
 #### For-in/from Loops
 
 The for-in loop lets you iterate over any object which provides an iterator. 
-A for-in loop can be transformed into an equivialent while-loop very easily:
+A for-in loop can be transformed into an equivalent while-loop very easily:
 
 
 	for A a in b
@@ -195,7 +195,7 @@ So how do you write your own iterator? Just add a function "hasNext" which retur
 returns the next element for your type and you have an iterator which can be used in for-from loops.
 
 To make a type usable in for-in loops you have to provide a function "iterator" which returns an iterator. Such an iterator
-should also provide a close functions which clears all ressources allocated by the iterator. Most often the iterator just
+should also provide a close functions which clears all resources allocated by the iterator. Most often the iterator just
 destroys itself in the close function.
 
 ### Assignment Shorthands
@@ -254,7 +254,7 @@ In this example we created a Caster named "dummyCaster" at the location(200, 400
 Then we ordered dummyCaster to cast a flame strike at another position and finally we destroyed "dummyCaster".
 
 This example shows you how to create a new object (line 1), invoke a function on an object (line 2) and how to destroy an object (line 3).
-But how can you define a new objecttype like "Caster"? This is where classes come in. A class defines a new kind of object.
+But how can you define a new object type like "Caster"? This is where classes come in. A class defines a new kind of object.
 A class defines variables and functions, which every instance of this class should understand.
 A class can also define how a new object is constructed ("construct") and what should happen, when it is destroyed ("ondestroy").
 
@@ -262,7 +262,7 @@ Defining a caster-class might look like this:
 
 
 	class Caster // opening the class-block. "Caster" is the name of the class
-		unit u // classvariables can be defined anywhere inside a class
+		unit u // class variables can be defined anywhere inside a class
 	
 		construct(real x, real y)
 			u = CreateUnit(...)
@@ -279,7 +279,7 @@ Defining a caster-class might look like this:
 
 WurstScript allows you to define your own constructors for each class. A constructor
 is a function to _construct_ a new instance of a class.
-The constructor is called when creating the class via the _new_ keyword and allows operations being done to the classinstance before returning it.
+The constructor is called when creating the class via the _new_ keyword and allows operations being done to the class-instance before returning it.
 
 
 	class Pair
@@ -328,7 +328,7 @@ You can define more than one constructor.
 
 
 In this example the class pair has two constructors - one taking 2 and the second one taking three parameters.
-Depending on parameter-type and -count Wurst automatically decides which contructor to take when using "new".
+Depending on parameter-type and -count Wurst automatically decides which constructor to take when using "new".
 
 ## This 
 
@@ -464,7 +464,7 @@ Generic type parameter and arguments are written in angled brackets (< and >) af
 		// returns the number of elements in the set
 		function size() returns int
 		
-		// checks wether a certain element is in the set
+		// checks whether a certain element is in the set
 		function contains(T t) returns boolean
 		
 	class SetImpl<T> implements Set<T>
@@ -487,7 +487,7 @@ A _module_ is a small packages which provides some functionality for classes. Cl
 
 You can use the functions from the used module as if they were declared in the class. You can also _override_ functions defined in a module to adjust its behavior.
 
-If you know object oriented languages like Java or C#: Modules are like abstract classes and using a module is like inheriting from an abstract class but *without the sub-typing*. (Wurstscript takes a different approach to enable polymorphism, but this is not implemented yet)
+If you know object oriented languages like Java or C#: Modules are like abstract classes and using a module is like inheriting from an abstract class but *without the sub-typing*. (WurstScript takes a different approach to enable polymorphism, but this is not implemented yet)
 
 ## Example 1 
 
@@ -629,10 +629,32 @@ Extension functions enable you to "add" functions to existing types without crea
 
 # Operator Overloading
 
+Operator Overloading allows you to change the behaviour of internal operators +,-,*,/ for custom arguments.
+A quick example from the standard library (Vectors.wurst):
 
+    // Defining the "+" operator for the tupletype vec3
+    public function vec3.op_plus( vec3 v ) returns vec3
+        return vec3(this.x + v.x, this.y + v.y, this.z + v.z)
+        
+    // Usage example
+    vec3 a = (1.,1.,1.)
+    vec3 b = (1.,1.,1.)
+    // Without Operator Overloading (the add function was replaced by it)
+    vec3 c = a.add( b )
+    // With operator Overloading
+    vec3 c = a + b
+   
+You can overload operators for existing types via Extension-Functions or via class-functions for the specific classtype.
+In order to define an overloading function it has to be named as following:
+
+_+_ - "op_plus"
+_-_ - "op_minus"
+_*_ - "op_mult"
+_/_ - "op_divReal"
+    
 # Packages 
-As mentioned above every codesegment written in Wurst has to be inside a _package_,
-packages define the code organization and separate namespaces.
+As mentioned above every code-segment written in Wurst has to be inside a _package_,
+packages define the code organization and separate name-spaces.
 Packages can also have global variables - every variable that is not inside another block (function/class/module)
 is declared global for that package.
 Packages can import other packages to access classes, functions, variables, etc. that are not defined private.
@@ -704,7 +726,7 @@ If a given package A imports package B, the initializer in package B is run befo
 If packages import each other, the order is undefined.
 
 
-*Note:* Since wc3 has a micro op limitation, too many operations inside initblocks may stop it from fully executing. In order to avoid this you should only place map-init Stuff inside the init blocks and use timers and own inits for the other stuff.
+*Note:* Since wc3 has a micro op limitation, too many operations inside init-blocks may stop it from fully executing. In order to avoid this you should only place map-init Stuff inside the init blocks and use timers and own inits for the other stuff.
 
 
 
@@ -849,7 +871,7 @@ _*Wurst:*_
 
 ## Librarys/Scopes 
 
-Namespaces/code organisation in wurst is handled by packages.
+Name-spaces/code organisation in wurst is handled by packages.
 All code in Wurst has to be inside a package.
 
 _*vJass:*_
