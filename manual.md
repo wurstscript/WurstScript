@@ -483,7 +483,7 @@ not to other native types or to tuple types.
 
 # Modules
 
-A _module_ is a small packages which provides some functionality for classes. Classes can _use_ modules to inherit the functionality of the module.
+A _module_ is a small package which provides some functionality for classes. Classes can _use_ modules to inherit the functionality of the module.
 
 You can use the functions from the used module as if they were declared in the class. You can also _override_ functions defined in a module to adjust its behavior.
 
