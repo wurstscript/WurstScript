@@ -629,7 +629,7 @@ Extension functions enable you to "add" functions to existing types without crea
 
 # Operator Overloading
 
-Operator Overloading allows you to change the behaviour of internal operators "+", "-", "*" and "/" for custom arguments.
+Operator Overloading allows you to change the behaviour of internal operators +, -, \* and / for custom arguments.
 A quick example from the standard library (Vectors.wurst):
 
     // Defining the "+" operator for the tupletype vec3
