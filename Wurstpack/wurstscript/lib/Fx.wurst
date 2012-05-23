@@ -4,8 +4,62 @@ This is mostly a copy of xefx, credits for that go to Vexorian
 */
 	import Basics
 	import ExtensionFunctions
+    import Dummy
 	
 	constant player DUMMY_PLAYER = Player(15)
+    
+    //Delay in order to show the death animation of the effect correctly when xefx is destroyed.
+    //You may need to increase this if you are using effects with longer death animations.
+    constant real    MIN_RECYCLE_DELAY = 4.0
+
+    //The delay does not need to be exact so we do cleanup in batches instead of individually.
+    //This determines how often the recycler runs, should be less than MIN_RECYCLE_DELAY.
+    constant real    RECYCLE_INTERVAL = 0.5
+
+    //if this is true and the xedummy library is present, units will be recycled instead of removed.
+    constant boolean RECYCLE_DUMMY_UNITS = true
+    
+    timer    recycler = CreateTimer()
+
+    Recyclebin array list
+    
+    function recycle()
+            Recyclebin rb = list[Recyclebin.readindex]
+            while Recyclebin.count > 0
+
+                releaseDummyUnit(rb.u)
+                rb.u = null
+                Recyclebin.count--
+                destroy rb
+                rb = rb.next
+
+            list[Recyclebin.readindex] = null
+            Recyclebin.writeindex=Recyclebin.readindex
+            //Recyclebin.readindex++
+            if Recyclebin.readindex>R2I(MIN_RECYCLE_DELAY/RECYCLE_INTERVAL+1.0) 
+                Recyclebin.readindex=0
+
+            if Recyclebin.count != 0 
+                TimerStart(recycler, RECYCLE_INTERVAL, false, function recycle)
+                
+    class Recyclebin
+        unit u
+
+        private Recyclebin next
+
+        private static int readindex = 0
+        private static int writeindex = 0
+        private static int count = 0
+
+        construct( unit u )
+            if Recyclebin.count==0 
+                TimerStart(recycler, RECYCLE_INTERVAL, false, function recycle)
+                
+            Recyclebin.count++
+            this.u = u
+            SetUnitOwner(u,DUMMY_PLAYER,false)
+            next=list[Recyclebin.writeindex]
+            list[Recyclebin.writeindex]=this
 	
 	public class Fx
 		private unit dummy
@@ -21,18 +75,10 @@ This is mostly a copy of xefx, credits for that go to Vexorian
 		private integer abil=0
 		
 		construct(real x, real y, real facing)
-			dummy = CreateUnit(DUMMY_PLAYER, DUMMY_UNIT_ID, x, y, facing*bj_RADTODEG)
-				.addAbility('Amrf')
-				.removeAbility('Amrf')
-				.addAbility('Aloc')
-				.setPos(x,y)
+			dummy = newDummyUnit(DUMMY_PLAYER, x,y, facing*bj_RADTODEG)
         
         construct(real x, real y, real facing, string fxpath)
-			dummy = CreateUnit(DUMMY_PLAYER, DUMMY_UNIT_ID, x, y, facing*bj_RADTODEG)
-				.addAbility('Amrf')
-				.removeAbility('Amrf')
-				.addAbility('Aloc')
-				.setPos(x,y)
+			dummy = newDummyUnit(DUMMY_PLAYER, x,y, facing*bj_RADTODEG)
             setFx( fxpath )
 				
 		function getOwner() returns player
@@ -145,9 +191,15 @@ This is mostly a copy of xefx, credits for that go to Vexorian
 			return this
 				
 		ondestroy
-			if fx != null
+            if abil != 0
+               UnitRemoveAbility(dummy,abil)
+               
+            if fx != null
 				fx.destr()
-			KillUnit(dummy)
+
+            new Recyclebin(dummy)
+            dummy=null
+
 		
 		function hiddenDestroy()
 			dummy.hide()

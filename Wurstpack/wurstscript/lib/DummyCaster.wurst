@@ -1,0 +1,409 @@
+package DummyCaster
+//******************************************************************************
+// ------
+//  Because dummy casters REALLY ARE this complicated!
+//
+//******************************************************************************
+
+//==============================================================================
+ 
+    constant int MAXINSTANCES         = 8190
+    //this is a lot, unless you leak xecast objects (which is a bad thing)
+    
+    constant int INITIAL_DUMMY_COUNT  = 12
+    
+    //don't allow to keep more than DUMMY_STACK_LIMIT innactive dummy units :
+    constant int DUMMY_STACK_LIMIT    = 50
+    
+    // If your map does not give visibility to all players, or
+    // for other reasons, you might want xecast to work on
+    // units that are not visible to the player, in that case
+    // change this to true, else it is just a performance loss.
+    constant boolean FORCE_INVISIBLE_CAST = false
+
+    //When AUTO_RESET_MANA_COOLDOWN is to true, xecast will reset
+    // the dummy unit's cooldown and mana before casting every spell.
+    // it is a performance penalty, so if you are sure that all dummy spells
+    // in your map got 0 mana and cooldown cost, you may it to false.    
+    constant boolean AUTO_RESET_MANA_COOLDOWN = true 
+
+
+//=========================================================================
+// Please notice all textmacros in this library are considered private.
+//  in other words: DON'T RUN THOSE TEXTMACROS!
+//
+
+
+    real EPSILON=0.001 //noticed in war3 this is the sort of precision we want...
+
+
+    public class DummyCaster
+
+        int abilityId    = 0    //ID (rawcode) of the ability to cast
+        int level        = 1    //Level of the ability to cast
+
+        real    recycledelay = 0.0  //Please notice, some spells need a recycle delay
+                                           // This is, a time period before they get recycle.
+                                           // For example, some spells are not instant, there is
+                                           // also the problem with damaging spells, this recycle
+                                           // delay must be large enough to contain all the time
+                                           // in which the spell can do damage.
+
+
+        player  owningplayer=Player(15)  //which player to credit for the ability cast?
+                                                //notice this can also affect what units are targeteable
+
+        //==================================================================================================
+        // You need an order id for the ability so the dummy unit is able to cast it, two ways to assign it
+        //   instance.orderid     = 288883            //would assign an int orderid
+        //   instance.orderstring = "chainlightning"  //would assign an orderstring
+        //                                                 (as those in the object editor)
+        //
+        function setOrderId( int id ) 
+            orderId = id
+
+        function setOrderString( string s )
+            orderId = OrderId(s)
+        
+
+        //=================================================================================================
+        // Finally, you can determine from which point to cast the ability: z is the height coordinate.
+        //
+        boolean customSource = false //Use a custom casting source?
+
+        real    sourceX     // Determine the casting source for the dummy spell, require customSource =true
+        real    sourceY     // You might prefer to use the setSourcePoint method
+        real    sourceZ = 0.0 //
+
+        function setSourcePoint( real x, real y, real z )
+           sourceX = x
+           sourceY = y
+           sourceZ = z
+           customSource = true
+
+
+        private boolean autodestroy  = false
+        //========================================================================================================
+        // you are always allowed to use .create() but you can also use createBasic which sets some things that
+        // are usually necessary up.
+        //
+        construct( int abilityId, int orderId, player owner, boolean autodestroy )
+            this.orderId     = orderId
+            this.abilityId   = abilityId
+            owningplayer     = owner
+            this.autodestroy = autodestroy
+
+
+        //==========================================================================================================
+        // So, create the dummy, assign options and cast the skill!
+        // .castOnTarget(u)       : If you want to hit a unit u with the ability, supports FORCE_INVISIBLE_CAST.
+        // .castOnWidgetTarget(w) : If you want to hit a widget w with the ability.
+        // .castOnPoint(x,y)      : If you want to hit a point (x,y) with the ability.
+        // .castInPoint(x,y)      : For spells like warstomp which do not have a target.
+        // .castOnAOE(x,y,radius) : Classic area of effect cast. Considers collision size.
+        // .castOnGroup(g)        : Cast unit the unit group g, notice it will empty the group yet not destroy it.
+        //
+
+        //**********************************************************************************************************
+        // The implementation of such methods follows: 
+
+        private static  unit array  dummystack
+        private static  int         top = 0
+        private static  unit        instantdummy
+
+        private int                 orderId = 0
+
+        private static timer        gametime
+        private static timer        T
+        private static unit array   recycle
+        private static real array   expiretime
+        private static int          rn = 0
+
+        
+
+
+        private static trigger abilityRemove
+
+
+        // Repetitive process and no inline implemented for large functions, so for now it is a textmacro:
+        function createDummyCaster( DummyCaster dc ) returns unit
+            unit dummy
+            if dc.recycledelay < EPSILON
+                dummy = DummyCaster.instantdummy
+                SetUnitOwner( dummy, dc.owningplayer, false )
+            else if DummyCaster.top > 0
+                DummyCaster.top--
+                dummy = DummyCaster.dummystack[DummyCaster.top]
+                SetUnitOwner( dummy, dc.owningplayer, false )
+            else
+                dummy = CreateUnit( dc.owningplayer, DUMMY_UNIT_ID, 0., 0., 0. )
+                TriggerRegisterUnitEvent( DummyCaster.abilityRemove, dummy, EVENT_UNIT_SPELL_ENDCAST )
+                UnitAddAbility( dummy, 'Aloc' )
+                UnitAddAbility( dummy, HEIGHT_ENABLER )
+                UnitRemoveAbility( dummy, HEIGHT_ENABLER )
+
+            UnitAddAbility( dummy, abilityId )
+            if AUTO_RESET_MANA_COOLDOWN
+                UnitResetCooldown( dummy )
+                SetUnitState( dummy, UNIT_STATE_MANA, 10000.0 )
+
+            if level > 1 
+                SetUnitAbilityLevel(dummy, abilityId, level)
+            
+            return dummy
+
+        private static int  cparent
+        private static int  current
+        private static real cexpire
+        
+        function destroyDummyCaster( DummyCaster dc, unit dummy )
+            if dc.recycledelay >= EPSILON 
+                DummyCaster.cexpire = TimerGetElapsed(DummyCaster.gametime) + dc.recycledelay
+                DummyCaster.current = DummyCaster.rn
+                DummyCaster.rn++
+                DummyCaster.cparent = (DummyCaster.current-1) div 2
+                while current > 0 or DummyCaster.expiretime[DummyCaster.cparent] > DummyCaster.cexpire
+                    DummyCaster.recycle[DummyCaster.current] = DummyCaster.recycle[DummyCaster.cparent]
+                    DummyCaster.expiretime[DummyCaster.current]=DummyCaster.expiretime[DummyCaster.cparent]
+                    DummyCaster.current=DummyCaster.cparent
+                    DummyCaster.cparent=(DummyCaster.current-1) div 2
+
+                DummyCaster.expiretime[DummyCaster.current]=DummyCaster.cexpire
+                DummyCaster.recycle[DummyCaster.current]=dummy
+                SetUnitUserData(dummy,dc.abilityId)
+                TimerStart(DummyCaster.T, DummyCaster.expiretime[0]-TimerGetElapsed(DummyCaster.gametime), false, function dorecycle)
+            else
+                SetUnitUserData(dummy,0)
+                SetUnitFlyHeight(dummy,0.,0.)
+                UnitRemoveAbility(dummy,dc.abilityId)
+
+
+        function castOnTarget( unit target )
+            unit dummy = createDummyCaster( this )
+            if customSource
+                SetUnitX(dummy,sourceX)
+                SetUnitY(dummy,sourceY)
+                SetUnitFlyHeight(dummy,sourceZ,0.0)
+            else
+                SetUnitX(dummy,GetWidgetX(target))
+                SetUnitY(dummy,GetWidgetY(target))
+
+            if FORCE_INVISIBLE_CAST
+                UnitShareVision(target, owningplayer, true)
+                IssueTargetOrderById(dummy,orderId,target)
+                UnitShareVision(target, owningplayer, false)
+            else
+                IssueTargetOrderById(dummy,orderId,target)
+
+
+            destroyDummyCaster( this, dummy )
+            if autodestroy
+                destroy this
+
+        //accepts units, items and destructables, if you know it is
+        // a unit it is better to use castOnTarget since that would
+        // be able to use FORCE_INVISIBLE_CAST if necessary.
+        //
+        function castOnWidgetTarget( widget target )
+            unit dummy = createDummyCaster( this )
+
+            if customSource
+                SetUnitX(dummy,sourceX)
+                SetUnitY(dummy,sourceY)
+                SetUnitFlyHeight(dummy,sourceZ,0.0)
+            else
+                SetUnitX(dummy,GetWidgetX(target))
+                SetUnitY(dummy,GetWidgetY(target))
+                
+            IssueTargetOrderById(dummy,orderId,target)
+
+
+            destroyDummyCaster( this, dummy )
+            if autodestroy
+                destroy this
+
+
+
+        function castOnPoint( real x, real y )
+            unit dummy = createDummyCaster( this )
+            if customSource
+                SetUnitX(dummy,sourceX)
+                SetUnitY(dummy,sourceY)
+                SetUnitFlyHeight(dummy,sourceZ,0.0)
+            else
+                SetUnitX(dummy,x)
+                SetUnitY(dummy,y)
+
+            IssuePointOrderById(dummy,orderId,x,y)
+            
+            destroyDummyCaster( this, dummy )
+            if autodestroy
+                destroy this
+                
+
+
+        //ignores custom source x and y (for obvious reasons)
+        function castInPoint( real x, real y )
+            unit dummy = createDummyCaster( this )
+            if customSource
+                SetUnitFlyHeight(dummy,sourceZ,0.0)
+
+            SetUnitX(dummy, x)
+            SetUnitY(dummy, y)
+            IssueImmediateOrderById(dummy,orderId)
+            
+            destroyDummyCaster( this, dummy )
+            if autodestroy
+                destroy this
+
+
+
+        //===================================================================================================
+        // For method castOnAOE:
+        //
+        private static group        enumgroup
+        private static real         aoex
+        private static real         aoey
+        private static real         aoeradius
+        private static DummyCaster  cinstance
+        private static boolexpr     aoefunc
+
+        
+
+
+        //
+        function castOnAOE( real x, real y, real radius )
+            boolean ad = autodestroy
+
+            if ad
+                autodestroy=false
+
+            aoex=x
+            aoey=y
+            aoeradius=radius
+            cinstance=this
+            GroupEnumUnitsInRange(DummyCaster.enumgroup,x,y,radius + MAX_COLLISION_SIZE , DummyCaster.aoefunc)
+            if ad
+                destroy this
+
+
+
+        //==================================================================================================
+        // A quick and dirt castOnGroup method, perhaps it'll later have castOntarget inlined, but not now
+        //
+        function castOnGroup( group g )
+            boolean ad = autodestroy    
+
+            if ad
+                this.autodestroy=false
+
+            for unit u from g
+                castOnTarget(u)
+
+            if ad
+                destroy this
+
+
+    function removeAbility() returns boolean
+        unit u=GetTriggerUnit()
+        if(GetUnitUserData(u)!=0)
+            PauseUnit(u,true)
+
+        //This is necessary, picture a value for recycle delay that's higher than the casting time,
+        //for example if the spell does dps, if you leave the dummy caster with the ability and it 
+        //is owned by an AI player it will start casting the ability on player units, so it is
+        // a good idea to pause it...
+
+
+        return true
+
+    // Might look wrong, but this is the way to make it consider collision size, a spell that
+        // got a target circle and uses this method will let the user know which units it will
+        // hit with the mass cast.
+    function filterAOE() returns boolean
+        unit u=GetFilterUnit()
+        if IsUnitInRangeXY(u, DummyCaster.aoex, DummyCaster.aoey, DummyCaster.aoeradius)
+            DummyCaster.cinstance.castOnTarget(u)
+
+
+        return false
+    //==========================================================================================================
+        // private dorecycle method, sorry but I need this up here.
+        //
+    function dorecycle()
+        unit u = DummyCaster.recycle[0]
+        int l
+        int r
+        int p
+        real    lt
+        IssueImmediateOrder(u,"stop")
+        UnitRemoveAbility(u,GetUnitUserData(u))
+        SetUnitUserData(u,0)
+        SetUnitFlyHeight(u,0,0)
+        PauseUnit(u,false)
+        
+        if DummyCaster.top == DUMMY_STACK_LIMIT
+            RemoveUnit(u)
+        else
+            DummyCaster.dummystack[DummyCaster.top] = u
+            DummyCaster.top++
+            
+        DummyCaster.rn--
+        if DummyCaster.rn == 0
+            return
+
+        p = 0
+        lt = DummyCaster.expiretime[DummyCaster.rn]
+        l = p * 2 + 1
+        while l < DummyCaster.rn
+            r = p * 2 + 2
+            if r >= DummyCaster.rn 
+                if DummyCaster.expiretime[l] < lt
+                    DummyCaster.expiretime[p] = DummyCaster.expiretime[l]
+                    DummyCaster.recycle[p] = DummyCaster.recycle[l]
+                    p = l
+                else
+                    break
+
+            else if lt <= DummyCaster.expiretime[l] and lt <= DummyCaster.expiretime[r]
+                break
+            else if DummyCaster.expiretime[l] < DummyCaster.expiretime[r]
+                DummyCaster.expiretime[p] = DummyCaster.expiretime[l]
+                DummyCaster.recycle[p] = DummyCaster.recycle[l]
+                p = l
+            else
+                DummyCaster.expiretime[p] = DummyCaster.expiretime[r]
+                DummyCaster.recycle[p] = DummyCaster.recycle[r]
+                p = r
+
+            l=p*2+1
+
+        DummyCaster.recycle[p] = DummyCaster.recycle[DummyCaster.rn]
+        DummyCaster.expiretime[p] = lt
+        TimerStart(DummyCaster.T, DummyCaster.expiretime[0] - TimerGetElapsed(DummyCaster.gametime), false, function dorecycle)
+            
+    init
+        unit u
+        DummyCaster.aoefunc=Condition(function filterAOE)
+        DummyCaster.enumgroup=CreateGroup()
+        DummyCaster.abilityRemove = CreateTrigger()
+        for int i = INITIAL_DUMMY_COUNT+1 downto 0
+            u=CreateUnit(Player(15),DUMMY_UNIT_ID,0,0,0)
+            TriggerRegisterUnitEvent(DummyCaster.abilityRemove,u,EVENT_UNIT_SPELL_ENDCAST)
+            UnitAddAbility(u,'Aloc')
+            UnitAddAbility(u,HEIGHT_ENABLER)
+            UnitRemoveAbility(u,HEIGHT_ENABLER)
+            DummyCaster.dummystack[DummyCaster.top]=u
+            DummyCaster.top=DummyCaster.top+1
+
+
+        TriggerAddCondition(DummyCaster.abilityRemove, Condition(function removeAbility ) )
+        DummyCaster.top--
+        DummyCaster.instantdummy=DummyCaster.dummystack[DummyCaster.top]
+        DummyCaster.T=CreateTimer()
+        DummyCaster.gametime=CreateTimer()
+        TimerStart(DummyCaster.gametime,12.*60.*60.,false,null)
+
+
+endpackage 
+

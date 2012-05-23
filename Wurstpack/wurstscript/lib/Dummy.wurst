@@ -1,0 +1,206 @@
+package Dummy
+    import LinkedListModule
+// 
+//	Credits: 
+//		* Anitarf (original xedummy)
+
+//==============================================================================
+
+    // The number of different angles at which the dummy units will be stored.
+    constant int ANGLE_RESOLUTION = 12
+
+    // The total number of xe dummy units that will be preloaded on map initialization.
+    constant int INITIAL_DUMMY_COUNT  = 36
+    
+    // Don't allow to keep more than DUMMY_STACK_LIMIT inactive dummy units.
+    constant int DUMMY_STACK_LIMIT    = 240
+
+
+// END OF CALIBRATION SECTION
+// ================================================================
+//                        ---API---
+// ================================================================
+
+    public function newDummyUnit( player p, real x, real y, real face ) returns unit
+        return Dummy.newDummy( p,x,y,face )
+
+
+    public function releaseDummyUnit( unit u )
+        Dummy.release( u )
+        
+// ================================================================
+    
+    RecycleQueue array rqs
+    
+    class RecycleQueue
+        use LinkedListModule
+
+        real angle = 0.
+        int queueSize
+        
+        Dummy firstDummy
+        Dummy lastDummy
+        
+        construct( real angle )
+            this.angle = angle
+        
+        static function get( real angle ) returns RecycleQueue
+            return rqs[R2I(angle/360.0*ANGLE_RESOLUTION)]
+    
+        static function initRecycleQueues()
+            for int i = 0 to ANGLE_RESOLUTION
+                rqs[i] = new RecycleQueue((i-0.5)*(360.0/ANGLE_RESOLUTION))
+                
+            RecycleQueue.first.prev = RecycleQueue.last
+            RecycleQueue.last.next = RecycleQueue.first
+
+
+
+// ================================================================
+
+    class Dummy
+        static  group g=CreateGroup()
+        unit u
+
+        // ----------------------------------------------------------------
+
+        Dummy next
+        
+        private function queueInsert(RecycleQueue q)
+            SetUnitFacing(u, q.angle)
+            Dummy dum
+            if q.queueSize == 0
+                q.firstDummy = this
+            else
+                q.lastDummy.next = this
+
+            q.lastDummy = this
+            this.next = null
+
+            // Recursively check adajcent queues and migrate xedummies as needed.
+            if q.queueSize > q.next.queueSize
+                dum = q.firstDummy
+                q.firstDummy = dum.next
+                dum.queueInsert(q.next)
+            else if q.queueSize > q.prev.queueSize
+                dum = q.firstDummy
+                q.firstDummy = dum.next
+                dum.queueInsert(q.prev)
+            else
+                q.queueSize++
+
+        
+        private static function queueRemove( RecycleQueue q ) returns Dummy
+            // Recursively check adajcent queues and migrate xedummies as needed.
+            Dummy d
+            if q.queueSize < q.next.queueSize
+                d = q.lastDummy
+                q.lastDummy = queueRemove(q.next)
+                d.next = q.lastDummy
+                SetUnitFacing(q.lastDummy.u, q.angle)
+            else if q.queueSize < q.prev.queueSize
+                d = q.lastDummy
+                q.lastDummy = queueRemove(q.prev)
+                d.next = q.lastDummy
+                SetUnitFacing(q.lastDummy.u, q.angle)
+            else
+                q.queueSize = q.queueSize-1
+                if q.queueSize == 0
+                    q.lastDummy = null
+
+
+            d = q.firstDummy
+            q.firstDummy = d.next
+            d.next = null
+            return d
+
+    
+        // ----------------------------------------------------------------
+
+        construct( unit u )
+            print( DUMMY_UNIT_ID.toString() )
+            print( GetUnitTypeId(u).toString() )
+            if GetUnitTypeId(u) != DUMMY_UNIT_ID
+                printError("ReleaseDummy error: Method called on a unit of an incorrect type.")
+            else if IsUnitInGroup(u, g)
+                printError("ReleaseDummy error: Method called on an already released unit.")
+            else
+                if this castTo int > DUMMY_STACK_LIMIT
+                    RemoveUnit(u)
+                    destroy this
+                
+                this.u=u
+                GroupAddUnit(g, u)
+                queueInsert(RecycleQueue.get(GetUnitFacing(u)))
+                SetUnitAnimationByIndex(u, 90)
+                SetUnitScale(u, 1, 0, 0)
+                SetUnitVertexColor(u, 255, 255, 255, 255)
+                // ShowUnit(u, false) // Do not hide the unit, it is rather costly and not needed.
+                printTimed("unit recycled", 10.)
+
+        ondestroy
+            GroupRemoveUnit(g, u)
+            ShowUnit(u, true) // Show the unit in case it was hidden before being recycled.
+
+        
+        // ----------------------------------------------------------------
+
+        private static unit staticDummy
+
+
+        static function newDummy( player p, real x, real y, real face ) returns unit
+            RecycleQueue q
+            Dummy dum
+            real angle = face
+            while angle <= 0.0 
+                angle += 360.0
+
+            while angle >= 360.0 
+                angle -= 360.0
+
+            q = RecycleQueue.get(angle)
+            
+            if q.queueSize == 0
+                Dummy.staticDummy = CreateUnit(p, DUMMY_UNIT_ID, x,y,angle)
+                UnitAddAbility(staticDummy,HEIGHT_ENABLER)
+                UnitAddAbility(staticDummy,'Aloc')
+                UnitRemoveAbility(staticDummy,HEIGHT_ENABLER)
+                SetUnitX(staticDummy, x)
+                SetUnitY(staticDummy, y)
+            else
+                dum = queueRemove(q)
+                Dummy.staticDummy = dum.u
+                destroy dum
+                SetUnitX(staticDummy, x)
+                SetUnitY(staticDummy, y)
+                SetUnitFacing(staticDummy, angle)
+                SetUnitOwner(staticDummy, p, true)
+
+            return Dummy.staticDummy
+
+
+        static function release( unit u )
+            new Dummy(u)
+
+    init
+        RecycleQueue.initRecycleQueues()
+        
+        int i = INITIAL_DUMMY_COUNT
+        RecycleQueue q = rqs[0]
+        if i > DUMMY_STACK_LIMIT
+            printWarning("dummy error: INITIAL_DUMMY_COUNT can not be larger than DUMMY_STACK_LIMIT.")
+            i = DUMMY_STACK_LIMIT
+
+        while i > 0
+            Dummy.staticDummy = CreateUnit(Player(15), DUMMY_UNIT_ID, 0.0,0.0,q.angle)
+            UnitAddAbility(Dummy.staticDummy,HEIGHT_ENABLER)
+            UnitAddAbility(Dummy.staticDummy,'Aloc')
+            UnitRemoveAbility(Dummy.staticDummy,HEIGHT_ENABLER)
+            new Dummy(Dummy.staticDummy)
+            i--
+            q=q.next
+   
+
+
+
+endpackage 
