@@ -48,6 +48,31 @@ public class ClassesTests extends PscriptTest {
 			);
 	}
 
+	@Test
+	public void classes_static_var() {
+		testAssertErrorsLines(false, "static", 
+				"package test",
+				"	class C",
+				"		static int size = 0",
+				"		function foo() returns int",
+				"			return this.size",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void classes_static_var2() {
+		testAssertErrorsLines(false, "static", 
+				"package test",
+				"	class C",
+				"		static int size = 0",
+				"		function foo() returns int",
+				"			this.size++",
+				"			return this.size",
+				"endpackage"
+			);
+	}
+	
 	
 	@Test
 	public void array_members() {

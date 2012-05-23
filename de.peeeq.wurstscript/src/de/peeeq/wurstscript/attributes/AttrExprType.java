@@ -499,6 +499,12 @@ public class AttrExprType {
 		if (varDef instanceof FunctionDefinition) {
 			attr.addError(term.getSource(), "Missing parantheses for function call");
 		}
+		if (varDef.attrIsStatic() && term.getLeft().attrTyp() instanceof PscriptTypeNamedScope) {
+			PscriptTypeNamedScope ns = (PscriptTypeNamedScope) term.getLeft().attrTyp();
+			if (!ns.isStaticRef()) {
+				attr.addError(term.attrSource(), "Cannot access static variable " + term.getVarName() + " via a dynamic reference.");
+			}
+		}
 		return varDef.attrTyp().setTypeArgs(term.getLeft().attrTyp().getTypeArgBinding());
 	}
 
