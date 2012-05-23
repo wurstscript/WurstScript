@@ -42,6 +42,7 @@ public class LadikMpq implements MpqEditor {
 		if (!tempFile1.exists()) {
 			throw new Error("could not extract file");
 		}
+		script.delete();
 		return tempFile1;
 		
 	}
@@ -59,6 +60,7 @@ public class LadikMpq implements MpqEditor {
 		BufferedReader procOutReader = new BufferedReader(new InputStreamReader(procOut));
 		proc.waitFor();
 		String line;
+		script.delete();
 		while ((line = procOutReader.readLine()) != null) {
 			WLogger.info(line);
 		}
@@ -78,6 +80,7 @@ public class LadikMpq implements MpqEditor {
 		BufferedReader procOutReader = new BufferedReader(new InputStreamReader(procOut));
 		proc.waitFor();
 		String line;
+		script.delete();
 		while ((line = procOutReader.readLine()) != null) {
 			WLogger.info(line);
 		}
@@ -113,6 +116,7 @@ public class LadikMpq implements MpqEditor {
 		BufferedReader procOutReader = new BufferedReader(new InputStreamReader(procOut));
 		proc.waitFor();
 		String line;
+		script.delete();
 		while ((line = procOutReader.readLine()) != null) {
 			WLogger.info(line);
 		}
