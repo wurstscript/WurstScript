@@ -1,6 +1,13 @@
 package PrintingHelper
     
-    public int DEBUG_LEVEL = 1
+    int DEBUG_LEVEL = 1
+	real DEBUG_MSG_DURATION = 60.
+	
+	public function setDebugLvl( int value )
+		DEBUG_LEVEL = value
+		
+	public function setDebugMsgDuration( int value )
+		DEBUG_MSG_DURATION = value
     
     public function debugPrint(string msg, int level)
         if level >= DEBUG_LEVEL
@@ -8,19 +15,23 @@ package PrintingHelper
             
     public function print(string msg)
         for int i = 0 to 12
-            DisplayTimedTextToPlayer(Player(i), 0., 0., 60., msg)
+            DisplayTimedTextToPlayer(Player(i), 0., 0., DEBUG_MSG_DURATION, msg)
 
     public function printNote(string msg)
         for int i = 0 to 12
-            DisplayTimedTextToPlayer(Player(i), 0., 0., 60., "|cffFFFF00[NOTIFICATION]|r - " + msg)
+            DisplayTimedTextToPlayer(Player(i), 0., 0., DEBUG_MSG_DURATION, "|cffFFFF00[NOTIFICATION]|r - " + msg)
 
     public function printWarning(string msg)
         for int i = 0 to 12
-            DisplayTimedTextToPlayer(Player(i), 0., 0., 60., "|cffFF8000[WARNING]|r - " + msg)
+            DisplayTimedTextToPlayer(Player(i), 0., 0., DEBUG_MSG_DURATION, "|cffFF8000[WARNING]|r - " + msg)
 
     public function printError(string msg)
         for int i = 0 to 12
-            DisplayTimedTextToPlayer(Player(i), 0., 0., 60., "|cffFF0000[ERROR]|r - " + msg)
+            DisplayTimedTextToPlayer(Player(i), 0., 0., DEBUG_MSG_DURATION, "|cffFF0000[ERROR]|r - " + msg)
+		
+	public function printTimed(string msg, real duration)
+        for int i = 0 to 12
+            DisplayTimedTextToPlayer(Player(i), 0., 0., duration, msg)
 
     public function real.toString() returns string
         return R2S(this)

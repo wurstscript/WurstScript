@@ -8,7 +8,6 @@ package LinkedListModule
 		thistype next
 
 		construct()
-			print("1.01")
 			size++
 			if size == 1
 				first = this
