@@ -358,7 +358,7 @@ public class AttrExprType {
 				FunctionDefinition def = term.attrFuncDef();
 				if (def == null) {
 					attr.addError(term.getSource(), "No operator overloading function for operator " + term.getOp() +
-							" was found for operands " + leftType + " and " + rightType);
+							" was found for operands " + leftType + " and " + rightType + ". The overloading function has to be named: " + convertOpToOpol(term.getOp()));
 					return PScriptTypeUnknown.instance();
 				}
 				return def.getReturnTyp().attrTyp();
@@ -447,6 +447,21 @@ public class AttrExprType {
 				return PScriptTypeUnknown.instance();
 			}
 		});
+	}
+
+
+	protected static String convertOpToOpol(OpBinary op) {
+		String result = "";
+		if ( op instanceof OpPlus) {
+			result = AttrFuncDef.overloadingPlus;
+		}else if ( op instanceof OpMinus) {
+			result = AttrFuncDef.overloadingMinus;
+		}else if ( op instanceof OpDivReal) {
+			result = AttrFuncDef.overloadingDiv;
+		}else if ( op instanceof OpMult) {
+			result = AttrFuncDef.overloadingMult;
+		}
+		return result;
 	}
 
 

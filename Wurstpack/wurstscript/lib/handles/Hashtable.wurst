@@ -1,104 +1,333 @@
 package Hashtable
-    
-    public function hashtable.saveReal( integer parentKey, integer childKey, real value ) returns real
-        SaveReal( this, parentKey, childKey, value )
-        return value
 
-    public function hashtable.saveInt( integer parentKey, integer childKey, int value ) returns int
-        SaveInteger( this, parentKey, childKey, value )
-        return value
+    public function hashtable.hasBoolean( integer parentKey, integer childKey ) returns boolean
+        return HaveSavedBoolean( this, parentKey, childKey )
 
-    public function hashtable.loadInt( int parentKey, int childKey ) returns int
-        return LoadInteger( this, parentKey, childKey )
+    public function hashtable.hasHandle( integer parentKey, integer childKey ) returns boolean
+        return HaveSavedHandle( this, parentKey, childKey )
+
+	public public function hashtable.hasInt( int parentKey, int childKey ) returns boolean
+        return HaveSavedInteger( this, parentKey, childKey )
+
+    public function hashtable.hasReal( integer parentKey, integer childKey ) returns boolean
+        return HaveSavedReal( this, parentKey, childKey )
+	
+	public function hashtable.hasString( integer parentKey, integer childKey ) returns boolean
+        return HaveSavedStr( this, parentKey, childKey )
 
     public function hashtable.loadAbilityHandle( integer parentKey, integer childKey ) returns ability
         return LoadAbilityHandle( this, parentKey, childKey )
 
-    function hashtable.loadBoolean( integer parentKey, integer childKey ) returns boolean
+    public function hashtable.loadBoolean( integer parentKey, integer childKey ) returns boolean
         return LoadBoolean( this, parentKey, childKey )
 
-    function hashtable.loadBooleanExprHandle( integer parentKey, integer childKey ) returns boolexpr
+    public function hashtable.loadBooleanExprHandle( integer parentKey, integer childKey ) returns boolexpr
         return LoadBooleanExprHandle( this, parentKey, childKey )
 
-    function hashtable.loadButtonHandle( integer parentKey, integer childKey ) returns button
+    public function hashtable.loadButtonHandle( integer parentKey, integer childKey ) returns button
         return LoadButtonHandle( this, parentKey, childKey )
 
-    function hashtable.loadDefeatConditionHandle( integer parentKey, integer childKey ) returns defeatcondition
+    public function hashtable.loadDefeatConditionHandle( integer parentKey, integer childKey ) returns defeatcondition
         return LoadDefeatConditionHandle( this, parentKey, childKey )
 
-    function hashtable.loadDestructableHandle( integer parentKey, integer childKey ) returns destructable
+    public function hashtable.loadDestructableHandle( integer parentKey, integer childKey ) returns destructable
         return LoadDestructableHandle( this, parentKey, childKey )
 
-    function hashtable.loadDialogHandle( integer parentKey, integer childKey ) returns dialog
+    public function hashtable.loadDialogHandle( integer parentKey, integer childKey ) returns dialog
         return LoadDialogHandle( this, parentKey, childKey )
 
-    function hashtable.loadFogModifierHandle( integer parentKey, integer childKey ) returns fogmodifier
+    public function hashtable.loadFogModifierHandle( integer parentKey, integer childKey ) returns fogmodifier
         return LoadFogModifierHandle( this, parentKey, childKey )
 
-    function hashtable.loadFogStateHandle( integer parentKey, integer childKey ) returns fogstate
+    public function hashtable.loadFogStateHandle( integer parentKey, integer childKey ) returns fogstate
         return LoadFogStateHandle( this, parentKey, childKey )
 
-    function hashtable.loadForceHandle( integer parentKey, integer childKey ) returns force
+    public function hashtable.loadForceHandle( integer parentKey, integer childKey ) returns force
         return LoadForceHandle( this, parentKey, childKey )
 
-    function hashtable.loadGroupHandle( integer parentKey, integer childKey ) returns group
+    public function hashtable.loadGroupHandle( integer parentKey, integer childKey ) returns group
         return LoadGroupHandle( this, parentKey, childKey )
 
-    function hashtable.loadImageHandle( integer parentKey, integer childKey ) returns image
+    public function hashtable.loadImageHandle( integer parentKey, integer childKey ) returns image
         return LoadImageHandle( this, parentKey, childKey )
 
-    function hashtable.loadItemHandle( integer parentKey, integer childKey ) returns item
+	public public function hashtable.loadInt( int parentKey, int childKey ) returns int
+        return LoadInteger( this, parentKey, childKey )
+
+    public function hashtable.loadItemHandle( integer parentKey, integer childKey ) returns item
         return LoadItemHandle( this, parentKey, childKey )
 
-    function hashtable.loadItemPoolHandle( integer parentKey, integer childKey ) returns itempool
+    public function hashtable.loadItemPoolHandle( integer parentKey, integer childKey ) returns itempool
         return LoadItemPoolHandle( this, parentKey, childKey )
 
-    function hashtable.loadLeaderboardHandle( integer parentKey, integer childKey ) returns leaderboard
+    public function hashtable.loadLeaderboardHandle( integer parentKey, integer childKey ) returns leaderboard
         return LoadLeaderboardHandle( this, parentKey, childKey )
 
-    function hashtable.loadFogStateHandle( integer parentKey, integer childKey ) returns fogstate
+    public function hashtable.loadFogStateHandle( integer parentKey, integer childKey ) returns fogstate
         return LoadFogStateHandle( this, parentKey, childKey )
 
-    function hashtable.loadLightningHandle( integer parentKey, integer childKey ) returns lightning
+    public function hashtable.loadLightningHandle( integer parentKey, integer childKey ) returns lightning
         return LoadLightningHandle( this, parentKey, childKey )
 
-    function hashtable.loadLocationHandle( integer parentKey, integer childKey ) returns location
+    public function hashtable.loadLocationHandle( integer parentKey, integer childKey ) returns location
         return LoadLocationHandle( this, parentKey, childKey )
 
-    function hashtable.loadImageHandle( integer parentKey, integer childKey ) returns image
+    public function hashtable.loadImageHandle( integer parentKey, integer childKey ) returns image
         return LoadImageHandle( this, parentKey, childKey )
 
-    function hashtable.loadMultiboardHandle( integer parentKey, integer childKey ) returns multiboard
+    public function hashtable.loadMultiboardHandle( integer parentKey, integer childKey ) returns multiboard
         return LoadMultiboardHandle( this, parentKey, childKey )
 
-    function hashtable.loadFogModifierHandle( integer parentKey, integer childKey ) returns fogmodifier
+    public function hashtable.loadFogModifierHandle( integer parentKey, integer childKey ) returns fogmodifier
         return LoadFogModifierHandle( this, parentKey, childKey )
 
-    function hashtable.loadFogStateHandle( integer parentKey, integer childKey ) returns fogstate
+    public function hashtable.loadFogStateHandle( integer parentKey, integer childKey ) returns fogstate
         return LoadFogStateHandle( this, parentKey, childKey )
 
-    function hashtable.loadForceHandle( integer parentKey, integer childKey ) returns force
+    public function hashtable.loadForceHandle( integer parentKey, integer childKey ) returns force
         return LoadForceHandle( this, parentKey, childKey )
 
-    function hashtable.loadItemHandle( integer parentKey, integer childKey ) returns item
+    public function hashtable.loadItemHandle( integer parentKey, integer childKey ) returns item
         return LoadItemHandle( this, parentKey, childKey )
 
-    function hashtable.loadPlayerHandle( integer parentKey, integer childKey ) returns player
+    public function hashtable.loadPlayerHandle( integer parentKey, integer childKey ) returns player
         return LoadPlayerHandle( this, parentKey, childKey )
 
-    function hashtable.loadQuestHandle( integer parentKey, integer childKey ) returns quest
+    public function hashtable.loadQuestHandle( integer parentKey, integer childKey ) returns quest
         return LoadQuestHandle( this, parentKey, childKey )
 
-    function hashtable.loadQuestItemHandle( integer parentKey, integer childKey ) returns questitem
+    public function hashtable.loadQuestItemHandle( integer parentKey, integer childKey ) returns questitem
         return LoadQuestItemHandle( this, parentKey, childKey )
 
-    function hashtable.loadReal( integer parentKey, integer childKey ) returns real
+    public function hashtable.loadReal( integer parentKey, integer childKey ) returns real
         return LoadReal( this, parentKey, childKey )
 
-    function hashtable.loadRectHandle( integer parentKey, integer childKey ) returns rect
+    public function hashtable.loadRectHandle( integer parentKey, integer childKey ) returns rect
         return LoadRectHandle( this, parentKey, childKey )
 
-    function hashtable.loadRegionHandle( integer parentKey, integer childKey ) returns region
+    public function hashtable.loadRegionHandle( integer parentKey, integer childKey ) returns region
         return LoadRegionHandle( this, parentKey, childKey )
-    
+		
+	public function hashtable.loadSoundHandle( integer parentKey, integer childKey ) returns sound
+        return LoadSoundHandle( this, parentKey, childKey )
+	
+	public function hashtable.loadString( integer parentKey, integer childKey ) returns string
+        return LoadStr( this, parentKey, childKey )
+	
+	public function hashtable.loadTextTagHandle( integer parentKey, integer childKey ) returns texttag
+        return LoadTextTagHandle( this, parentKey, childKey )
+		
+	public function hashtable.loadTimerDialogHandle( integer parentKey, integer childKey ) returns timerdialog
+        return LoadTimerDialogHandle( this, parentKey, childKey )
+	
+	public function hashtable.loadTimerHandle( integer parentKey, integer childKey ) returns timer
+        return LoadTimerHandle( this, parentKey, childKey )
+	
+	public function hashtable.loadTrackableHandle( integer parentKey, integer childKey ) returns trackable
+        return LoadTrackableHandle( this, parentKey, childKey )
+		
+	public function hashtable.loadTriggerActionHandle( integer parentKey, integer childKey ) returns triggeraction
+        return LoadTriggerActionHandle( this, parentKey, childKey )
+	
+	public function hashtable.loadTriggerConditionHandle( integer parentKey, integer childKey ) returns triggercondition
+        return LoadTriggerConditionHandle( this, parentKey, childKey )
+		
+	public function hashtable.loadTriggerEventHandle( integer parentKey, integer childKey ) returns event
+        return LoadTriggerEventHandle( this, parentKey, childKey )
+		
+	public function hashtable.loadTriggerHandle( integer parentKey, integer childKey ) returns trigger
+        return LoadTriggerHandle( this, parentKey, childKey )
+	
+	public function hashtable.loadUbersplatHandle( integer parentKey, integer childKey ) returns ubersplat
+        return LoadUbersplatHandle( this, parentKey, childKey )
+		
+	public function hashtable.loadUnitHandle( integer parentKey, integer childKey ) returns unit
+        return LoadUnitHandle( this, parentKey, childKey )
+	
+	public function hashtable.loadUnitPoolHandle( integer parentKey, integer childKey ) returns unitpool
+        return LoadUnitPoolHandle( this, parentKey, childKey )
+		
+	public function hashtable.loadWidgetHandle( integer parentKey, integer childKey ) returns widget
+        return LoadWidgetHandle( this, parentKey, childKey )
+	
+    public function hashtable.saveAbilityHandle( integer parentKey, integer childKey, ability value ) returns ability
+        SaveAbilityHandle( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveBoolean( integer parentKey, integer childKey, boolean value ) returns boolean
+        SaveBoolean( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveBooleanExprHandle( integer parentKey, integer childKey, boolexpr value ) returns boolexpr
+        SaveBooleanExprHandle( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveButtonHandle( integer parentKey, integer childKey, button value ) returns button
+        SaveButtonHandle( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveDefeatConditionHandle( integer parentKey, integer childKey, defeatcondition value ) returns defeatcondition
+        SaveDefeatConditionHandle( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveDestructableHandle( integer parentKey, integer childKey, destructable value ) returns destructable
+        SaveDestructableHandle( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveDialogHandle( integer parentKey, integer childKey, dialog value ) returns dialog
+        SaveDialogHandle( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveFogModifierHandle( integer parentKey, integer childKey, fogmodifier value ) returns fogmodifier
+        SaveFogModifierHandle( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveFogStateHandle( integer parentKey, integer childKey, fogstate value ) returns fogstate
+        SaveFogStateHandle( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveForceHandle( integer parentKey, integer childKey, force value ) returns force
+        SaveForceHandle( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveGroupHandle( integer parentKey, integer childKey, group value ) returns group
+        SaveGroupHandle( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveImageHandle( integer parentKey, integer childKey, image value ) returns image
+        SaveImageHandle( this, parentKey, childKey, value )
+		return this
+
+	public public function hashtable.saveInt( int parentKey, int childKey, int value ) returns int
+        SaveInteger( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveItemHandle( integer parentKey, integer childKey, item value ) returns item
+        SaveItemHandle( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveItemPoolHandle( integer parentKey, integer childKey, itempool value ) returns itempool
+        SaveItemPoolHandle( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveLeaderboardHandle( integer parentKey, integer childKey, leaderboard value ) returns leaderboard
+        SaveLeaderboardHandle( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveFogStateHandle( integer parentKey, integer childKey, fogstate value ) returns fogstate
+        SaveFogStateHandle( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveLightningHandle( integer parentKey, integer childKey, lightning value ) returns lightning
+        SaveLightningHandle( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveLocationHandle( integer parentKey, integer childKey, location value ) returns location
+        SaveLocationHandle( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveImageHandle( integer parentKey, integer childKey, image value ) returns image
+        SaveImageHandle( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveMultiboardHandle( integer parentKey, integer childKey, multiboard value ) returns multiboard
+        SaveMultiboardHandle( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveFogModifierHandle( integer parentKey, integer childKey, fogmodifier value ) returns fogmodifier
+        SaveFogModifierHandle( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveFogStateHandle( integer parentKey, integer childKey, fogstate value ) returns fogstate
+        SaveFogStateHandle( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveForceHandle( integer parentKey, integer childKey, force value ) returns force
+        SaveForceHandle( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveItemHandle( integer parentKey, integer childKey, item value ) returns item
+        SaveItemHandle( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.savePlayerHandle( integer parentKey, integer childKey, player value ) returns player
+        SavePlayerHandle( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveQuestHandle( integer parentKey, integer childKey, quest value ) returns quest
+        SaveQuestHandle( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveQuestItemHandle( integer parentKey, integer childKey, questitem value ) returns questitem
+        SaveQuestItemHandle( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveReal( integer parentKey, integer childKey, real value ) returns real
+        SaveReal( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveRectHandle( integer parentKey, integer childKey, rect value ) returns rect
+        SaveRectHandle( this, parentKey, childKey, value )
+		return this
+
+    public function hashtable.saveRegionHandle( integer parentKey, integer childKey, region value ) returns region
+        SaveRegionHandle( this, parentKey, childKey, value )
+		return this
+		
+	public function hashtable.saveSoundHandle( integer parentKey, integer childKey, sound value ) returns sound
+        SaveSoundHandle( this, parentKey, childKey, value )
+		return this
+	
+	public function hashtable.saveString( integer parentKey, integer childKey, string value ) returns string
+        SaveStr( this, parentKey, childKey, value )
+		return this
+	
+	public function hashtable.saveTextTagHandle( integer parentKey, integer childKey, texttag value ) returns texttag
+        SaveTextTagHandle( this, parentKey, childKey, value )
+		return this
+		
+	public function hashtable.saveTimerDialogHandle( integer parentKey, integer childKey, timerdialog value ) returns timerdialog
+        SaveTimerDialogHandle( this, parentKey, childKey, value )
+		return this
+	
+	public function hashtable.saveTimerHandle( integer parentKey, integer childKey, timer value ) returns timer
+        SaveTimerHandle( this, parentKey, childKey, value )
+		return this
+	
+	public function hashtable.saveTrackableHandle( integer parentKey, integer childKey, trackable value ) returns trackable
+        SaveTrackableHandle( this, parentKey, childKey, value )
+		return this
+		
+	public function hashtable.saveTriggerActionHandle( integer parentKey, integer childKey, triggeraction value ) returns triggeraction
+        SaveTriggerActionHandle( this, parentKey, childKey, value )
+		return this
+	
+	public function hashtable.saveTriggerConditionHandle( integer parentKey, integer childKey, triggercondition value ) returns triggercondition
+        SaveTriggerConditionHandle( this, parentKey, childKey, value )
+		return this
+		
+	public function hashtable.saveTriggerEventHandle( integer parentKey, integer childKey, event value ) returns event
+        SaveTriggerEventHandle( this, parentKey, childKey, value )
+		return this
+		
+	public function hashtable.saveTriggerHandle( integer parentKey, integer childKey, trigger value ) returns trigger
+        SaveTriggerHandle( this, parentKey, childKey, value )
+		return this
+	
+	public function hashtable.saveUbersplatHandle( integer parentKey, integer childKey, ubersplat value ) returns ubersplat
+        SaveUbersplatHandle( this, parentKey, childKey, value )
+		return this
+		
+	public function hashtable.saveUnitHandle( integer parentKey, integer childKey, unit value ) returns unit
+        SaveUnitHandle( this, parentKey, childKey, value )
+		return this
+	
+	public function hashtable.saveUnitPoolHandle( integer parentKey, integer childKey, unitpool value ) returns unitpool
+        SaveUnitPoolHandle( this, parentKey, childKey, value )
+		return this
+		
+	public function hashtable.saveWidgetHandle( integer parentKey, integer childKey, widget value ) returns widget
+        SaveWidgetHandle( this, parentKey, childKey, value )
+		return this
+		
 endpackage 
