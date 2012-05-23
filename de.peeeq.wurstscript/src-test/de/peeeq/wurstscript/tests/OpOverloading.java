@@ -13,7 +13,7 @@ public class OpOverloading extends PscriptTest {
 				"	class A ",
 				"		int i = 2",
 				"		",
-				"		function op_plwus(A a) returns int",
+				"		function op_plus(A a) returns int",
 				"			return this.i + a.i",
 				"	init",
 				"		A a1 = new A()",
