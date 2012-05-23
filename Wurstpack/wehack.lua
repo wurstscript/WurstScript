@@ -89,7 +89,7 @@ if havewurst then
 	wurstmenu = wehack.addmenu("WurstScript")
 	wurst_enable = TogMenuEntry:New(wurstmenu,"Enable WurstScript",nil,true)
 	wurst_optenable = TogMenuEntry:New(wurstmenu,"Enable Froptimizer",nil,false)
-	wurst_inliner = TogMenuEntry:New(wurstmenu, "Enable Inlinder",nil,false)
+	wurst_inliner = TogMenuEntry:New(wurstmenu, "Enable Inliner",nil,false)
 	
 	wehack.addmenuseparator(wurstmenu)
 	

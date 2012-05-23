@@ -6,7 +6,7 @@ package PrintingHelper
 	public function setDebugLvl( int value )
 		DEBUG_LEVEL = value
 		
-	public function setDebugMsgDuration( int value )
+	public function setDebugMsgDuration( real value )
 		DEBUG_MSG_DURATION = value
     
     public function debugPrint(string msg, int level)

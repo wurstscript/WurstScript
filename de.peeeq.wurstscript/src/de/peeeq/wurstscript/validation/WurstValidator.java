@@ -557,7 +557,7 @@ public class WurstValidator {
 		for (Modifier m : modifiers) {
 			if (m instanceof VisibilityModifier) {
 				if (hasVis) {
-					attr.addError(m.getSource(), "Each element can only have one visibility modfifier (public, private, ...)");
+					attr.addError(m.getSource(), "Each element can only have one visibility modifier (public, private, ...)");
 				}
 				hasVis = true;
 			} else if (m instanceof ModStatic) {

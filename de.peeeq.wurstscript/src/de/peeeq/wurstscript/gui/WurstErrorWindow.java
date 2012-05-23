@@ -11,6 +11,7 @@
 package de.peeeq.wurstscript.gui;
 
 import java.awt.Color;
+import java.awt.Frame;
 import java.awt.image.BufferedImage;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -95,6 +96,9 @@ public class WurstErrorWindow extends javax.swing.JFrame {
         this.setSize(800,650);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         Utils.setWindowToCenterOfScreen(this);
+        toFront();
+        setState(Frame.NORMAL);
+
     }
 
     /** This method is called from within the constructor to
