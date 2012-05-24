@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+   <extension
+         id="wurstBuilder"
+         name="Wurst Project Builder"
+         point="org.eclipse.core.resources.builders">
+      <builder
+            hasNature="true">
+         <run
+               class="de.peeeq.eclipsewurstplugin.builder.WurstBuilder">
+         </run>
+      </builder>
+   </extension>
+   <extension
+         id="wurstNature"
+         name="wurstNature"
+         point="org.eclipse.core.resources.natures">
+      <runtime>
+         <run
+               class="de.peeeq.eclipsewurstplugin.builder.WurstNature">
+         </run>
+      </runtime>
+      <builder
+      		callOnEmptyDelta="true"
+            id="EclipseWurstPlugin.wurstBuilder">
+      </builder>
+   </extension>
+   <extension
+         point="org.eclipse.ui.popupMenus">
+      <objectContribution
+            adaptable="true"
+            objectClass="org.eclipse.core.resources.IProject"
+            nameFilter="*"
+            id="EclipseWurstPlugin.contribution1">
+         <!--<action
+               label="Add/Remove Sample Nature"
+               class="de.peeeq.eclipsewurstplugin.builder.ToggleNatureAction"
+               menubarPath="additions"
+               enablesFor="+"
+               id="EclipseWurstPlugin.addRemoveNatureAction">
+         </action>-->
+      </objectContribution>
+   </extension>
+   <extension
+         id="wurstProblem"
+         name="Wurst Problem"
+         point="org.eclipse.core.resources.markers">
+      <super
+            type="org.eclipse.core.resources.problemmarker">
+      </super>
+      <persistent
+            value="true">
+      </persistent>
+   </extension>
+   <!-- Wizards -->
+	<extension
+	      point = "org.eclipse.ui.newWizards">
+		<category
+		   id = "de.peeeq.eclipsewurstplugin.wizards"
+		   name="Wurst">
+		</category>
+	 	<wizard
+		   id = "de.peeeq.eclipsewurstplugin.wizards.newproject"
+			name = "New Wurst Project"
+			project="true"
+			finalPerspective="de.peeeq.eclipsewurstplugin.wurstperspective"
+		   class="de.peeeq.eclipsewurstplugin.wizards.NewProjectWizard"
+		   category="de.peeeq.eclipsewurstplugin.wizards"
+		   icon="icons/obj16/newreadme_wiz.png">
+	    	   <description>Create a new wurst project</description>
+		   <selection class="org.eclipse.core.resources.IResource"/>
+		</wizard>
+	</extension>
+	<!-- editor -->
+	   <extension
+         point="org.eclipse.ui.editors">
+      <editor
+            name="Wurst Editor"
+            extensions="wurst"
+            icon="icons/sample.gif"
+            contributorClass="org.eclipse.ui.texteditor.BasicTextEditorActionContributor"
+            class="de.peeeq.eclipsewurstplugin.editor.WurstEditor"
+            id="de.peeeq.eclipsewurstplugin.editorWurstEditor">
+      </editor>
+   </extension>
+   <!-- preference pages -->
+   <extension
+          point="org.eclipse.ui.preferencePages">
+       <page
+             class="de.peeeq.eclipsewurstplugin.preferences.WurstPreferencePage"
+             id="de.peeeq.eclipsewurstplugin.preferences.WurstPreferencePage"
+             name="Wurst">
+       </page>
+       <page
+             category="de.peeeq.eclipsewurstplugin.preferences.WurstPreferencePage"
+             class="de.peeeq.eclipsewurstplugin.preferences.WurstSyntaxColoring"
+             id="de.peeeq.eclipsewurstplugin.preferences.WurstSyntaxColoring"
+             name="Wurst Syntax Coloring">
+       </page>
+    </extension>
+</plugin>
