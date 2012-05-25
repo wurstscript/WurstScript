@@ -335,7 +335,11 @@ public class Generator {
 		createSizeMethod(sb, childCount);
 		
 		//copy method
-		createCopyMethod(c, sb, childCount);
+		createCopyMethod(c, sb);
+		
+		// clear attributes method
+		createClearMethod(c, sb);
+		
 		
 		// accept method for visitor
 		createAcceptMethods(c, sb);
@@ -354,13 +358,8 @@ public class Generator {
 
 	private void createAttributeImpl(AstBaseTypeDefinition c, StringBuilder sb) {
 		for (AttributeDef attr : prog.attrDefs) {
-			boolean hasAttribute = attr.typ.equals(c.getName());
-			for (AstEntityDefinition sup : transientSuperTypes.get(c)) {
-				hasAttribute |= attr.typ.equals(sup.getName());
-			}
-			hasAttribute |= attr.typ.equals(getCommonSupertypeType());
 			
-			if (hasAttribute) {
+			if (hasAttribute(c, attr)) {
 				if (attr.parameters == null) {
 					sb.append("	private int zzattr_" + attr.attr + "_state = 0;\n");
 					sb.append("	private " + attr.returns + " zzattr_" + attr.attr + "_cache;\n");
@@ -531,7 +530,7 @@ public class Generator {
 		sb.append("	}\n");
 	}
 
-	private void createCopyMethod(ConstructorDef c, StringBuilder sb, int childCount) {
+	private void createCopyMethod(ConstructorDef c, StringBuilder sb) {
 		boolean first;
 		sb.append("	@Override public " + c.name + " copy() {\n");
 		sb.append("		return new " + c.name + "Impl(");
@@ -542,7 +541,6 @@ public class Generator {
 			}
 			if (!p.isRef && prog.hasElement(p.typ)) {
 				sb.append("(" + p.typ + ") " + p.name+".copy()");
-				childCount++;
 			} else {
 				sb.append(p.name);
 			}			
@@ -551,7 +549,48 @@ public class Generator {
 		sb.append(");\n");
 		sb.append("	}\n");
 	}
+	
+	private void createClearMethod(ConstructorDef c, StringBuilder sb) {
+		sb.append("	@Override public void clearAttributes() {\n");
+		for (Parameter p : c.parameters) {
+			if (!p.isRef && prog.hasElement(p.typ)) {
+				sb.append("		" + p.name+".clearAttributes();\n");
+			}			
+		}
+		for (AttributeDef attr : prog.attrDefs) {
+			if (hasAttribute(c, attr)) {
+				if (attr.parameters == null) {
+					sb.append("		zzattr_" + attr.attr + "_state = 0;\n");
+				}
+			}
+		}
+		sb.append("	}\n");
+	}
+	
+	private void createClearMethod(ListDef c, StringBuilder sb) {
+		sb.append("	@Override public void clearAttributes() {\n");
+		sb.append("		for ("+c.itemType+" child : this) {\n");
+		sb.append("			child.clearAttributes();\n");
+		sb.append("		}\n");
+		for (AttributeDef attr : prog.attrDefs) {
+			if (hasAttribute(c, attr)) {
+				if (attr.parameters == null) {
+					sb.append("		zzattr_" + attr.attr + "_state = 0;\n");
+				}
+			}
+		}
+		sb.append("	}\n");
+	}
 
+	private boolean hasAttribute(AstBaseTypeDefinition c, AttributeDef attr) {
+		boolean hasAttribute = attr.typ.equals(c.getName());
+		for (AstEntityDefinition sup : transientSuperTypes.get(c)) {
+			hasAttribute |= attr.typ.equals(sup.getName());
+		}
+		hasAttribute |= attr.typ.equals(getCommonSupertypeType());
+		return hasAttribute;
+	}
+	
 	private void createAcceptMethods(ConstructorDef c, StringBuilder sb) {
 		for (AstEntityDefinition parent : transientChildTypes.keySet()) {
 			if (transientChildTypes.get(parent).contains(c)) {
@@ -617,6 +656,9 @@ public class Generator {
 		
 		// copy method
 		sb.append("	" + c.name + " copy();\n");
+		
+		// clear attributes method
+		sb.append("	void clearAttributes();\n");
 		
 		generateVisitorInterface(c, sb);
 		
@@ -864,7 +906,7 @@ public class Generator {
 				sb.append("	}\n");
 			}
 		}
-		
+		createClearMethod(l, sb);
 		createAttributeImpl(l, sb);
 		
 		// toString method
@@ -929,6 +971,7 @@ public class Generator {
 		sb.append("public interface "+getCommonSupertypeType()+" {\n" +
 				"	"+getCommonSupertypeType()+" getParent();\n" +
 				"	int size();\n" +
+				"	void clearAttributes();\n" +
 				"	"+getCommonSupertypeType()+" get(int i);\n"+
 				"	"+getCommonSupertypeType()+" set(int i, "+getCommonSupertypeType()+" newElement);\n"+
 				"	void setParent("+getCommonSupertypeType()+" parent);\n");

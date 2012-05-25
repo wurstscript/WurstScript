@@ -52,5 +52,15 @@ public class AttrPos {
 		return lineOffsets.getLine(p.getLeftPos()) + 1;
 	}
 	
+	public static int getEndColumn(WPos p) {
+		LineOffsets lineOffsets = (LineOffsets) p.getLineOffsets();
+		return p.getRightPos() - lineOffsets.get(p.getEndLine() - 1);
+	}
+	
+	public static int getEndLine(WPos p) {
+		LineOffsets lineOffsets = (LineOffsets) p.getLineOffsets();
+		return lineOffsets.getLine(p.getRightPos()) + 1;
+	}
+	
 
 }

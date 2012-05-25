@@ -15,6 +15,7 @@ import javax.xml.parsers.SAXParserFactory;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IProjectNature;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IResourceDelta;
 import org.eclipse.core.resources.IResourceDeltaVisitor;
@@ -61,7 +62,7 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 				break;
 			case IResourceDelta.REMOVED:
 				// handle removed resource
-				removeCompilationUnit(resource);
+				getModelManager().removeCompilationUnit(resource);
 				break;
 			case IResourceDelta.CHANGED:
 				// handle changed resource
@@ -89,50 +90,27 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 		}
 	}
 	
-	private void removeCompilationUnit(IResource resource) {
-		ListIterator<CompilationUnit> it = model.listIterator();
-		while (it.hasNext()) {
-			CompilationUnit cu = it.next();
-			if (cu.getFile().equals(resource.getName())) {
-				it.remove();
-				break;
-			}
-		}
 
-	}
+	
 
 	public static final String BUILDER_ID = "EclipseWurstPlugin.wurstBuilder";
 
 	public static final String MARKER_TYPE = "EclipseWurstPlugin.wurstProblem";
 
-	private WurstModel model;
-
-	private void addMarker(IFile file, String message, int lineNumber, int severity) {
+	private ModelManager getModelManager() {
 		try {
-			IMarker marker = file.createMarker(MARKER_TYPE);
-			marker.setAttribute(IMarker.MESSAGE, message);
-			marker.setAttribute(IMarker.SEVERITY, severity);
-			if (lineNumber == -1) {
-				lineNumber = 1;
+			IProjectNature nature = getProject().getNature(WurstNature.NATURE_ID);
+			if (nature instanceof WurstNature) {
+				WurstNature wurstNature = (WurstNature) nature;
+				return wurstNature.getModelManager();
 			}
-			marker.setAttribute(IMarker.LINE_NUMBER, lineNumber);
 		} catch (CoreException e) {
+			e.printStackTrace();
 		}
+		return new ModelManagerStub();
 	}
+	
 
-	private void addErrorMarker(IFile file, CompileError e) {
-		try {
-			IMarker marker = file.createMarker(MARKER_TYPE);
-			marker.setAttribute(IMarker.MESSAGE, e.getMessage());
-			marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
-
-			marker.setAttribute(IMarker.LINE_NUMBER, e.getSource().getLine());
-			marker.setAttribute(WurstPlugin.START_POS, e.getSource().getLeftPos());
-			marker.setAttribute(WurstPlugin.END_POS, e.getSource().getRightPos());
-		} catch (CoreException ex) {
-		}
-
-	}
 
 	/*
 	 * (non-Javadoc)
@@ -143,7 +121,7 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 	@Override
 	protected IProject[] build(int kind, Map args, IProgressMonitor monitor) throws CoreException {
 		System.out.println("build ...");
-		if (kind == FULL_BUILD || model == null) {
+		if (kind == FULL_BUILD || getModelManager().needsFullBuild()) {
 			fullBuild(monitor);
 		} else {
 			IResourceDelta delta = getDelta(getProject());
@@ -160,95 +138,51 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 	protected void clean(IProgressMonitor monitor) throws CoreException {
 		super.clean(monitor);
 		getProject().deleteMarkers(MARKER_TYPE, true, IResource.DEPTH_INFINITE);
-		model = null;
+		getModelManager().clean();
 	}
 
 	void checkCompilatinUnit(WurstGui gui, IResource resource) {
+		// TODO move to model manager?
 		if (resource instanceof IFile && resource.getName().endsWith(".wurst")) {
 			IFile file = (IFile) resource;
-			deleteMarkers(file);
+			WurstNature.deleteMarkers(file);
 
 			WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, RunArgs.defaults());
 			Reader reader;
 			boolean doChecks = true;
 			try {
 				reader = new InputStreamReader(file.getContents());
-				CompilationUnit cu = comp.parse(reader, file.getName());
-				cu.setFile(file.getName());
-				// syntaxCodeAreaController.setAst(cu);
-				// if (doChecks) {
-				// // TODO do checks
-				// comp.checkProg(Ast.WurstModel(cu));
-				// }
-				updateModel(resource, cu);
+				String fileName = file.getProjectRelativePath().toString();
+				CompilationUnit cu = comp.parse(reader, fileName);
+				cu.setFile(fileName);
+				getModelManager().updateModel(cu, gui);
 			} catch (CoreException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 
 			if (doChecks) {
 				for (CompileError e : gui.getErrorList()) {
 					System.out.println(e);
-					addErrorMarker(file, e);
+					WurstNature.addErrorMarker(file, e);
 				}
 			}
 		}
 	}
 	
-	private void typeCheckModel(WurstGui gui) {
-		if (gui.getErrorCount() > 0) {
-			return;
-		}
-		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, RunArgs.defaults());
-		comp.checkProg(model);
-		for (CompileError e : gui.getErrorList()) {
-			System.out.println(e);
-			addErrorMarker(getFile(e.getSource().getFile()), e);
-		}
-	}
+	
 
-	private IFile getFile(String file) {
-		return this.getProject().getFile(file);
-	}
+	
 
-	private void updateModel(IResource resource, CompilationUnit cu) {
-		if (model == null) {
-			model = Ast.WurstModel(cu);
-		} else {
-			ListIterator<CompilationUnit> it = model.listIterator();
-			boolean updated = false;
-			while (it.hasNext()) {
-				CompilationUnit c = it.next();
-				if (c.getFile().equals(cu.getFile())) {
-					// replace old compilationunit with new one:
-					it.set(cu);
-					updated = true;
-					break;
-				}
-			}
-			if (!updated) {
-				model.add(cu);
-			}
-		}
-		System.out.println("updated cu for " + cu.getFile());
-		for (CompilationUnit c : model) {
-			System.out.println("	- " + c.getFile());
-		}
-	}
+	
 
-	private void deleteMarkers(IFile file) {
-		try {
-			file.deleteMarkers(MARKER_TYPE, false, IResource.DEPTH_ZERO);
-		} catch (CoreException ce) {
-		}
-	}
+	
 
 	protected void fullBuild(final IProgressMonitor monitor) throws CoreException {
 		try {
 			System.out.println("full build ...");
-			WurstGui gui = new WurstGuiLogger();
+			WurstGui gui = new WurstGuiEclipse(monitor);
 			getProject().accept(new SampleResourceVisitor(gui));
-			typeCheckModel(gui);
+			getModelManager().typeCheckModel(gui);
 		} catch (CoreException e) {
 		}
 	}
@@ -258,8 +192,8 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 	protected void incrementalBuild(IResourceDelta delta, IProgressMonitor monitor) throws CoreException {
 		// the visitor does the work.
 		System.out.println("incremental build ...");
-		WurstGui gui = new WurstGuiLogger();
+		WurstGui gui = new WurstGuiEclipse(monitor);
 		delta.accept(new SampleDeltaVisitor(gui));
-		typeCheckModel(gui);
+		getModelManager().typeCheckModel(gui);
 	}
 }

@@ -515,6 +515,15 @@ WPos.getColumn()
 WPos.getLine()
 	returns int
 	implemented by de.peeeq.wurstscript.attributes.AttrPos.getLine
+
+WPos.getEndColumn()
+	returns int
+	implemented by de.peeeq.wurstscript.attributes.AttrPos.getEndColumn
+	
+WPos.getEndLine()
+	returns int
+	implemented by de.peeeq.wurstscript.attributes.AttrPos.getEndLine
+
 	
 HasTypeArgs.attrTypeParameterBindings
 	returns java.util.Map<TypeParamDef, de.peeeq.wurstscript.types.PscriptType>

@@ -10,6 +10,7 @@ import org.eclipse.jface.preference.PreferenceConverter;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.TextAttribute;
 import org.eclipse.jface.text.rules.IRule;
+import org.eclipse.jface.text.rules.IToken;
 import org.eclipse.jface.text.rules.IWhitespaceDetector;
 import org.eclipse.jface.text.rules.IWordDetector;
 import org.eclipse.jface.text.rules.MultiLineRule;
@@ -42,8 +43,9 @@ public class SimpleCodeScanner extends RuleBasedScanner implements WurstScanner 
 		keywordToken = makeToken(preferencestore, WurstPlugin.SYNTAXCOLOR_KEYWORD);
 		commentToken = makeToken(preferencestore, WurstPlugin.SYNTAXCOLOR_COMMENT);
 		stringToken = makeToken(preferencestore, WurstPlugin.SYNTAXCOLOR_STRING);
-
-		WordRule rule = new WordRule(new IWordDetector() {
+		IToken identifierToken = new Token(new TextAttribute(new Color(Display.getCurrent(), 0,0,0), null, 0));
+		
+		WordRule keywordRule = new WordRule(new IWordDetector() {
 			public boolean isWordStart(char c) {
 				return Character.isJavaIdentifierStart(c);
 			}
@@ -51,18 +53,25 @@ public class SimpleCodeScanner extends RuleBasedScanner implements WurstScanner 
 			public boolean isWordPart(char c) {
 				return Character.isJavaIdentifierPart(c);
 			}
-		});
+		}, identifierToken, false);
 		// add tokens for each reserved word
-		for (int n = 0; n < KEYWORDS.length; n++) {
-			rule.addWord(KEYWORDS[n], keywordToken);
+		for (String keyword : KEYWORDS) {
+			keywordRule.addWord(keyword, keywordToken);
 		}
-		setRules(new IRule[] { rule, new SingleLineRule("//", null, commentToken), new SingleLineRule("\"", "\"", stringToken, '\\'),
-				new SingleLineRule("'", "'", stringToken, '\\'), new MultiLineRule("/*", "*/", commentToken),
-				new WhitespaceRule(new IWhitespaceDetector() {
-					public boolean isWhitespace(char c) {
-						return Character.isWhitespace(c);
-					}
-				}), });
+		
+		WhitespaceRule whitespaceRule = new WhitespaceRule(new IWhitespaceDetector() {
+			public boolean isWhitespace(char c) {
+				return Character.isWhitespace(c);
+			}
+		});
+		setRules(new IRule[] { 
+				new SingleLineRule("//", null, commentToken), 
+				new SingleLineRule("\"", "\"", stringToken, '\\'),
+				new SingleLineRule("'", "'", stringToken, '\\'), 
+				new MultiLineRule("/*", "*/", commentToken),
+				whitespaceRule,
+				keywordRule
+			});
 	}
 
 	private Token makeToken(IPreferenceStore preferencestore, String key) {

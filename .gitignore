@@ -8,6 +8,8 @@
 *.sh
 *.w3x
 *.w3m
+*.settings
+*.classpath
 
 #bin folders
 */bin/*

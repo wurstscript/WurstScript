@@ -1,10 +1,16 @@
 package de.peeeq.eclipsewurstplugin.builder;
 
 import org.eclipse.core.resources.ICommand;
+import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IProjectDescription;
 import org.eclipse.core.resources.IProjectNature;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
+
+import de.peeeq.eclipsewurstplugin.WurstPlugin;
+import de.peeeq.wurstscript.attributes.CompileError;
 
 public class WurstNature implements IProjectNature {
 
@@ -15,6 +21,12 @@ public class WurstNature implements IProjectNature {
 
 	private IProject project;
 
+	private ModelManager modelManager;
+
+	public WurstNature() {
+		this.modelManager = new ModelManagerImpl(this);
+	}
+	
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -60,22 +72,49 @@ public class WurstNature implements IProjectNature {
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.eclipse.core.resources.IProjectNature#getProject()
-	 */
 	public IProject getProject() {
 		return project;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.eclipse.core.resources.IProjectNature#setProject(org.eclipse.core.resources.IProject)
-	 */
 	public void setProject(IProject project) {
 		this.project = project;
+	}
+
+	public ModelManager getModelManager() {
+		return modelManager;
+	}
+
+	public static void addErrorMarker(IFile file, CompileError e) {
+		try {
+			IMarker marker = file.createMarker(WurstBuilder.MARKER_TYPE);
+			marker.setAttribute(IMarker.MESSAGE, e.getMessage());
+			marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
+
+			marker.setAttribute(IMarker.LINE_NUMBER, e.getSource().getLine());
+			marker.setAttribute(WurstPlugin.START_POS, e.getSource().getLeftPos());
+			marker.setAttribute(WurstPlugin.END_POS, e.getSource().getRightPos());
+		} catch (CoreException ex) {
+		}
+		
+	}
+	
+	public static void deleteMarkers(IFile file) {
+		try {
+			file.deleteMarkers(WurstBuilder.MARKER_TYPE, false, IResource.DEPTH_ZERO);
+		} catch (CoreException ce) {
+		}
+	}
+
+	public static WurstNature get(IProject p) {
+		try {
+			IProjectNature nat = p.getNature(NATURE_ID);
+			if (nat instanceof WurstNature) {
+				return (WurstNature) nat;
+			}
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 
 }
