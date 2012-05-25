@@ -203,6 +203,62 @@ public class SimpleStatementTests extends PscriptTest {
 	
 	
 	@Test
+	public void testForFrom() {
+		testAssertOkLines(true, 
+			"package test",
+			"	class IntList",
+			"		static int array elements",
+			"		int size = 0",
+			
+			"		private function getOffset() returns int",
+			"			return 64*((this castTo int)-1)",
+			
+			"		function add(int x) returns IntList",
+			"			elements[getOffset() + size] = x",
+			"			size++",
+			"			return this", // 10
+			
+			"		function get(int i) returns int",
+			"			return elements[getOffset() + i]",
+			
+			"		function iterator() returns IntListIterator",
+			"			return new IntListIterator(this)",
+			
+			
+			"	class IntListIterator", // 15
+			"		IntList list",
+			"		int pos = 0",
+			
+			"		construct(IntList list)",
+			"			this.list = list",
+			
+			"		function hasNext() returns boolean", // 20
+			"			return pos < list.size",
+			
+			"		function next() returns int",
+			"			pos++",
+			"			return list.get(pos-1)",
+			
+			"		function close()", // 25
+			"			destroy this",
+			
+			
+			"	init",
+			"		IntList list = new IntList().add(7).add(3).add(5)",
+			"		int sum = 0",
+			"		let listIterator = list.iterator()",
+			"		for int i from listIterator", // 30
+			"			sum += i",
+			"		if sum == 15",
+			"			testSuccess()",
+			
+			
+			"	native testSuccess()",
+			"endpackage"
+		);
+	}
+	
+	@Test
 	public void test_inc() {
 		assertOk(true,
 				"int x = 5",
