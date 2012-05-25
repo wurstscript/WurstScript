@@ -35,6 +35,9 @@ package Hashtable
 
     public function hashtable.loadDialogHandle( integer parentKey, integer childKey ) returns dialog
         return LoadDialogHandle( this, parentKey, childKey )
+        
+    public function hashtable.loadEffectHandle( integer parentKey, integer childKey ) returns effect
+        return LoadEffectHandle( this, parentKey, childKey )
 
     public function hashtable.loadFogModifierHandle( integer parentKey, integer childKey ) returns fogmodifier
         return LoadFogModifierHandle( this, parentKey, childKey )
@@ -176,6 +179,10 @@ package Hashtable
 
     public function hashtable.saveDialogHandle( integer parentKey, integer childKey, dialog value ) returns hashtable
         SaveDialogHandle( this, parentKey, childKey, value )
+		return this
+        
+    public function hashtable.saveEffectHandle( integer parentKey, integer childKey, effect value ) returns hashtable
+        SaveEffectHandle( this, parentKey, childKey, value )
 		return this
 
     public function hashtable.saveFogModifierHandle( integer parentKey, integer childKey, fogmodifier value ) returns hashtable

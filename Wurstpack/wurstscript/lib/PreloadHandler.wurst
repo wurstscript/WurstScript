@@ -1,28 +1,17 @@
 package PreloadHandler
-    
-    import Basics
-    
-    unit dum=null
 
-    //inline friendly (when debug mode is off..)
+    unit dum
+
+    // use this function to preload an ability
     public function preloadAbility( int abilid )
         UnitAddAbility(dum, abilid)
-		if(dum==null) 
+		if dum == null 
             printError("PreloadAbility: do not load abilities after map init or during modules' onInit")
 		else if GetUnitAbilityLevel(dum, abilid) == 0
 			printWarning("PreloadAbility: Ability "+debugIdInteger2IdString(abilid)+" does not exist.")
 
-
-
     //================================================================================
     // Convert a integer id value into a 4-letter id code.
-    // * Taken from cheats.j so I don't have to code it again.
-    // * Used only on debug so making a whole library for it seemed silly
-    // * Private so people don't begin using xepreload just to call this function....
-    // * It will not work correctly if you paste this code in the custom script section
-    //   due to the infamous % bug. Then again, if you do that then you probably 
-    // deserve it....
-    //
     function debugIdInteger2IdString (int value) returns string
 		string charMap = ".................................!.#$%&'()*+,-./0123456789:;<=>.@ABCDEFGHIJKLMNOPQRSTUVWXYZ[.]^_`abcdefghijklmnopqrstuvwxyz{|}~................................................................................................................................."
 		string result = ""
@@ -34,24 +23,18 @@ package PreloadHandler
 			remainingValue = remainingValue div 256
 			result = SubString(charMap, charValue, charValue + 1) + result
 
-
 		return result
     
 
-    //--------------------------------
     function kill()
         RemoveUnit(dum)
-
-    
+        DestroyTimer(GetExpiredTimer())
 
     init
-		timer t=CreateTimer()
-        dum = CreateUnit( Player(15), DUMMY_UNIT_ID, 0,0,0)
-        if( dum == null)
+        dum = CreateUnit( Player(15), DUMMY_UNIT_ID, 0., 0., 0. )
+        if dum == null
             printError("xePreload : DUMMY_UNITID ("+debugIdInteger2IdString(DUMMY_UNIT_ID)+") not added correctly to the map.")
 
-        TimerStart(t,0.0,false,function kill)
-
-
+        TimerStart( CreateTimer(), 0.0, false, function kill )
 
 endpackage 

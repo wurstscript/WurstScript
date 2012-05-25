@@ -10,5 +10,6 @@ package Wurst
 	import public Multiboard
 	import public Basics
 	import public Hashtable
+	import public Unittype
 	
 endpackage

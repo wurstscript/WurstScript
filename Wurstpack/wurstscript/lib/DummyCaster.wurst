@@ -1,14 +1,11 @@
 package DummyCaster
 //******************************************************************************
+// @credit Anitarf
 // ------
 //  Because dummy casters REALLY ARE this complicated!
 //
 //******************************************************************************
-
-//==============================================================================
- 
-    constant int MAXINSTANCES         = 8190
-    //this is a lot, unless you leak xecast objects (which is a bad thing)
+    import Basics
     
     constant int INITIAL_DUMMY_COUNT  = 12
     
@@ -50,7 +47,7 @@ package DummyCaster
                                            // in which the spell can do damage.
 
 
-        player  owningplayer=Player(15)  //which player to credit for the ability cast?
+        player  owningplayer = DUMMY_PLAYER  //which player to credit for the ability cast?
                                                 //notice this can also affect what units are targeteable
 
         //==================================================================================================
@@ -87,8 +84,8 @@ package DummyCaster
         // you are always allowed to use .create() but you can also use createBasic which sets some things that
         // are usually necessary up.
         //
-        construct( int abilityId, int orderId, player owner, boolean autodestroy )
-            this.orderId     = orderId
+        construct( int abilityId, string orderString, player owner, boolean autodestroy )
+            this.orderId     = OrderId( orderString )
             this.abilityId   = abilityId
             owningplayer     = owner
             this.autodestroy = autodestroy
@@ -125,22 +122,24 @@ package DummyCaster
         private static trigger abilityRemove
 
 
-        // Repetitive process and no inline implemented for large functions, so for now it is a textmacro:
         function createDummyCaster( DummyCaster dc ) returns unit
             unit dummy
             if dc.recycledelay < EPSILON
                 dummy = DummyCaster.instantdummy
                 SetUnitOwner( dummy, dc.owningplayer, false )
+                print("static one")
             else if DummyCaster.top > 0
                 DummyCaster.top--
                 dummy = DummyCaster.dummystack[DummyCaster.top]
                 SetUnitOwner( dummy, dc.owningplayer, false )
+                print("old one")
             else
                 dummy = CreateUnit( dc.owningplayer, DUMMY_UNIT_ID, 0., 0., 0. )
                 TriggerRegisterUnitEvent( DummyCaster.abilityRemove, dummy, EVENT_UNIT_SPELL_ENDCAST )
                 UnitAddAbility( dummy, 'Aloc' )
                 UnitAddAbility( dummy, HEIGHT_ENABLER )
                 UnitRemoveAbility( dummy, HEIGHT_ENABLER )
+                print("new one")
 
             UnitAddAbility( dummy, abilityId )
             if AUTO_RESET_MANA_COOLDOWN
@@ -387,14 +386,15 @@ package DummyCaster
         DummyCaster.aoefunc=Condition(function filterAOE)
         DummyCaster.enumgroup=CreateGroup()
         DummyCaster.abilityRemove = CreateTrigger()
-        for int i = INITIAL_DUMMY_COUNT+1 downto 0
+        for int i = INITIAL_DUMMY_COUNT downto 0
             u=CreateUnit(Player(15),DUMMY_UNIT_ID,0,0,0)
             TriggerRegisterUnitEvent(DummyCaster.abilityRemove,u,EVENT_UNIT_SPELL_ENDCAST)
             UnitAddAbility(u,'Aloc')
             UnitAddAbility(u,HEIGHT_ENABLER)
             UnitRemoveAbility(u,HEIGHT_ENABLER)
             DummyCaster.dummystack[DummyCaster.top]=u
-            DummyCaster.top=DummyCaster.top+1
+            DummyCaster.top++
+            print(i.toString())
 
 
         TriggerAddCondition(DummyCaster.abilityRemove, Condition(function removeAbility ) )
