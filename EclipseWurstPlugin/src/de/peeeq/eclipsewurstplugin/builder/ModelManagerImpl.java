@@ -3,6 +3,7 @@ package de.peeeq.eclipsewurstplugin.builder;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Reader;
 import java.util.ListIterator;
 
 import org.eclipse.core.resources.IFile;
@@ -12,6 +13,11 @@ import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
 import org.osgi.framework.Bundle;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+
+import de.peeeq.eclipsewurstplugin.WurstPlugin;
+import de.peeeq.eclipsewurstplugin.editor.CompilationUnitChangeListener;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.ast.Ast;
@@ -27,6 +33,7 @@ public class ModelManagerImpl implements ModelManager {
 
 	private WurstModel model;
 	private final WurstNature nature;
+	private Multimap<String, CompilationUnitChangeListener> changeListeners = HashMultimap.create();
 	
 	public ModelManagerImpl(WurstNature nature) {
 		this.nature = nature;
@@ -67,6 +74,7 @@ public class ModelManagerImpl implements ModelManager {
 		model.clearAttributes();
 		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, RunArgs.defaults());
 		comp.checkProg(model);
+		nature.clearMarkers();
 		for (CompileError e : gui.getErrorList()) {
 			System.out.println("typecheck error: " + e);
 			WurstNature.addErrorMarker(getFile(e.getSource().getFile()), e);
@@ -102,10 +110,13 @@ public class ModelManagerImpl implements ModelManager {
 			System.out.print(c.getFile() +", ");
 		}
 		System.out.println();
+		for (CompilationUnitChangeListener cl : changeListeners.get(cu.getFile())) {
+			cl.onCompilationUnitChanged(cu);
+		}
 	}
 
 	private WurstModel newModel(CompilationUnit cu, WurstGui gui) {
-		Bundle bundle = Platform.getBundle("EclipseWurstPlugin");
+		Bundle bundle = Platform.getBundle(WurstPlugin.PLUGIN_ID);
 		if (bundle == null) {
 			throw new Error("could not locate wurst bundle");
 		}
@@ -126,6 +137,35 @@ public class ModelManagerImpl implements ModelManager {
 		CompilationUnit cu = comp.parse(reader, fileName);
 		cu.setFile(fileName);
 		return cu;
+	}
+
+	@Override
+	public CompilationUnit getCompilationUnit(String fileName) {
+		if (model == null) {
+			return null;
+		}
+		for (CompilationUnit cu : model) {
+			if (cu.getFile().equals(fileName)) {
+				return cu;
+			}
+		}
+		return null;
+	}
+
+	@Override
+	public void registerChangeListener(String fileName, CompilationUnitChangeListener listener) {
+		this.changeListeners.put(fileName, listener);
+		
+	}
+
+	@Override
+	public void parse(WurstGui gui, String fileName, Reader source) {
+		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, RunArgs.defaults());
+		CompilationUnit cu = comp.parse(source, fileName);
+		if (cu != null && cu.getJassDecls().size() + cu.getPackages().size() > 0) {
+			cu.setFile(fileName);
+			updateModel(cu, gui);
+		}
 	}
 	
 }

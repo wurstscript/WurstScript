@@ -38,8 +38,9 @@ public class AttrPos {
 				return Ast.WPos(parentSource.getFile(), parentSource.getLineOffsets(), 
 						parentSource.getLeftPos(), parentSource.getLeftPos()-1);
 			}
+			parent = parent.getParent();
 		} 
-		return Ast.WPos("<source not found>", null, 0, 0);
+		return Ast.WPos("<source of " + e + " not found>", new LineOffsets(), 0, 0);
 	}
 
 	public static int getColumn(WPos p) {

@@ -1,6 +1,7 @@
 package de.peeeq.eclipsewurstplugin.builder;
 
 import org.eclipse.core.resources.ICommand;
+import org.eclipse.core.filesystem.IFileStore;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IProject;
@@ -8,10 +9,17 @@ import org.eclipse.core.resources.IProjectDescription;
 import org.eclipse.core.resources.IProjectNature;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.jface.text.IDocumentExtension;
 
 import de.peeeq.eclipsewurstplugin.WurstPlugin;
+import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
 import de.peeeq.wurstscript.attributes.CompileError;
 
+import org.eclipse.ui.IEditorPart;
+import org.eclipse.ui.IWorkbenchPage;
+import org.eclipse.ui.PartInitException;
+import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.ide.IDE;
 public class WurstNature implements IProjectNature {
 
 	/**
@@ -104,8 +112,19 @@ public class WurstNature implements IProjectNature {
 		} catch (CoreException ce) {
 		}
 	}
+	
+	public void clearMarkers() {
+		try {
+			getProject().deleteMarkers(WurstBuilder.MARKER_TYPE, false, IResource.DEPTH_INFINITE);
+		} catch (CoreException e) {
+		}
+		
+	}
 
 	public static WurstNature get(IProject p) {
+		if (p == null) {
+			return null;
+		}
 		try {
 			IProjectNature nat = p.getNature(NATURE_ID);
 			if (nat instanceof WurstNature) {
@@ -116,5 +135,35 @@ public class WurstNature implements IProjectNature {
 		}
 		return null;
 	}
+
+	public static void open(IProject p, String fileName, int offset) {
+		WurstNature nature = get(p);
+		if (nature != null) {
+			nature.open(fileName, offset);
+		}
+		// TODO Auto-generated method stub
+		
+	}
+
+	private void open(String fileName, int offset) {
+		IFile file = getProject().getFile(fileName);
+		IEditorPart editor;
+		try {
+			editor = IDE.openEditor(getActiveWorkbenchPage(), file);
+			if (editor instanceof WurstEditor) {
+				WurstEditor wurstEditor = (WurstEditor) editor;
+				wurstEditor.setHighlightRange(offset, 0, true);
+			}
+		} catch (PartInitException e) {
+			e.printStackTrace();
+		}
+		
+	}
+	
+	private static IWorkbenchPage getActiveWorkbenchPage() {
+		return PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+	}
+
+	
 
 }

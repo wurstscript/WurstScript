@@ -147,15 +147,12 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 			IFile file = (IFile) resource;
 			WurstNature.deleteMarkers(file);
 
-			WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, RunArgs.defaults());
 			Reader reader;
 			boolean doChecks = true;
 			try {
 				reader = new InputStreamReader(file.getContents());
 				String fileName = file.getProjectRelativePath().toString();
-				CompilationUnit cu = comp.parse(reader, fileName);
-				cu.setFile(fileName);
-				getModelManager().updateModel(cu, gui);
+				getModelManager().parse(gui, fileName, reader);
 			} catch (CoreException e) {
 				e.printStackTrace();
 			}
