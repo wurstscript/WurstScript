@@ -52,7 +52,7 @@ public class ClassTranslator {
 	private ImTranslator translator;
 //	/** list of statements to initialize a new object **/
 //	final private List<WStatement> initStatements;
-	final private Map<ImVar, OptExpr> dynamicInits;
+	final private List<Pair<ImVar, OptExpr>> dynamicInits;
 	private ClassManagementVars m;
 
 	public ClassTranslator(ClassDef classDef, ImTranslator translator) {
@@ -167,7 +167,7 @@ public class ClassTranslator {
 			// for dynamic class members create an array
 			ImType t = s.attrTyp().imTranslateType();
 			v.setType(ImHelper.toArray(t));
-			dynamicInits.put(v, s.getInitialExpr());
+			dynamicInits.add(Pair.create(v, s.getInitialExpr()));
 		} else { // static class member
 			translator.addGlobalInitalizer(v, classDef.attrNearestPackage(), s.getInitialExpr());
 		}
@@ -283,10 +283,10 @@ public class ClassTranslator {
 			translator.addCallRelation(f, superConstrFunc);
 		}
 		// initialize vars
-		for (Entry<ImVar, OptExpr> i : translator.getDynamicInits(classDef).entrySet()) {
-			ImVar v = i.getKey();
-			if (i.getValue() instanceof Expr) {
-				Expr e = (Expr) i.getValue();
+		for (Pair<ImVar, OptExpr> i : translator.getDynamicInits(classDef)) {
+			ImVar v = i.getA();
+			if (i.getB() instanceof Expr) {
+				Expr e = (Expr) i.getB();
 				ImStmt s = ImSetArray(v, ImVarAccess(thisVar), e.imTranslateExpr(translator, f));
 				f.getBody().add(s);
 			}

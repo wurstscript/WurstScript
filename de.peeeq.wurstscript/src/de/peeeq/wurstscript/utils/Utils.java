@@ -9,6 +9,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -614,6 +616,18 @@ public class Utils {
 
 	public static boolean elementContainsPos(AstElement e, int pos) {
 		return e.attrSource().getLeftPos() <= pos && e.attrSource().getRightPos() >= pos;
+	}
+
+	public static <T extends AstElementWithName> List<T> sortByName(Collection<T> c) {
+		List<T> r = Lists.newArrayList(c);
+		Collections.sort(r, new Comparator<T>() {
+
+			@Override
+			public int compare(T o1, T o2) {
+				return o1.getName().compareTo(o2.getName());
+			}
+		});
+		return r;
 	}
 
 }
