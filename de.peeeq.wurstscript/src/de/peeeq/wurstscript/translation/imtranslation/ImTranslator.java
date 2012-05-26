@@ -174,7 +174,7 @@ public class ImTranslator {
 			addFunction(initFunc);
 		}
 		Set<WPackage> calledInitializers = Sets.newHashSet();
-		for (WPackage p : initFuncMap.keySet()) {
+		for (WPackage p : Utils.sortByName(initFuncMap.keySet())) {
 			callInitFunc(calledInitializers, p);
 		}
 	}

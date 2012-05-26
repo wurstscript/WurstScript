@@ -53,6 +53,8 @@ public class AttrExprExpectedType {
 				if (stmtSet.getRight() == expr) {
 					PscriptType leftType = stmtSet.getUpdatedExpr().attrTyp();
 					return leftType;
+				} else if (stmtSet.getUpdatedExpr() == expr) {
+					return PScriptTypeUnknown.instance();
 				}
 				throw new CompileError(expr.getSource(), "b) could not find expr " + expr + " in parent " + parent);
 			} else if (parent instanceof VarDef) {
