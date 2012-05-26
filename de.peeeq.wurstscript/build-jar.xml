@@ -7,7 +7,7 @@
 		<jar destfile="./dist/wurstscript.jar">
 			<manifest>
 				<attribute name="Main-Class" value="de.peeeq.wurstscript.Main"/>
-				<attribute name="Class-Path" value=". wurstscript_lib/java-cup-runtime.jar wurstscript_lib/log4j-1.2.16.jar wurstscript_lib/guava-10.0.1.jar wurstscript_lib/junit-4.10.jar"/>
+				<attribute name="Class-Path" value=". wurstscript_lib/java-cup-runtime.jar wurstscript_lib/log4j-1.2.16.jar wurstscript_lib/guava-12.0.jar wurstscript_lib/junit-4.10.jar"/>
 			</manifest>
 			<fileset dir="./bin"/>
 		</jar>
@@ -15,7 +15,7 @@
 		<mkdir dir="./dist/wurstscript_lib"/>
 		<copy file="./lib/java-cup-runtime.jar" todir="./dist/wurstscript_lib"/>
 		<copy file="./lib/log4j-1.2.16.jar" todir="./dist/wurstscript_lib"/>
-		<copy file="./lib/guava-10.0.1.jar" todir="./dist/wurstscript_lib"/>
+		<copy file="./lib/guava-12.0.jar" todir="./dist/wurstscript_lib"/>
 		<copy file="./lib/junit-4.10.jar" todir="./dist/wurstscript_lib"/>
 	</target>
 
@@ -23,7 +23,7 @@
 		<copy file="./dist/wurstscript.jar" todir="../Wurstpack/wurstscript/" overwrite="true" />
 		<copy file="./lib/java-cup-runtime.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true"/>
 		<copy file="./lib/log4j-1.2.16.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true"/>
-		<copy file="./lib/guava-10.0.1.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true"/>
+		<copy file="./lib/guava-12.0.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true"/>
 		<copy file="./lib/junit-4.10.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true"/>
 
 	</target>
