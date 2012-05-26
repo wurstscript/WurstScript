@@ -1,0 +1,57 @@
+package Table
+    
+    hashtable ht = InitHashtable()
+    
+    public class Table
+        
+        function getInt( int parentKey ) returns int
+            return ht.loadInt(this castTo int, parentKey)
+        
+        function setInt( int parentKey, int value )
+            ht.saveInt(this castTo int, parentKey, value)
+
+        function hasInt( int parentKey ) returns boolean
+            return ht.hasInt(this castTo int, parentKey)
+        
+        function removeInt( integer parentKey )
+            RemoveSavedInteger(ht, this castTo int, parentKey)
+            
+        function getReal( int parentKey ) returns real
+            return ht.loadReal(this castTo int, parentKey)
+        
+        function setReal( int parentKey, real value )
+            ht.saveReal(this castTo int, parentKey, value)
+
+        function hasReal( int parentKey ) returns boolean
+            return ht.hasReal(this castTo int, parentKey)
+        
+        function removeReal( integer parentKey )
+            RemoveSavedReal(ht, this castTo int, parentKey)
+			
+        function getEffect( int parentKey ) returns effect
+            return ht.loadEffectHandle(this castTo int, parentKey)
+
+        function setEffect( int parentKey, effect value )
+            ht.saveEffectHandle(this castTo int, parentKey, value)
+            
+        function getGroup( int parentKey ) returns group
+            return ht.loadGroupHandle(this castTo int, parentKey)
+
+        function setGroup( int parentKey, group value )
+            ht.saveGroupHandle(this castTo int, parentKey, value)
+
+        function hasHandle( int parentKey ) returns boolean
+            return ht.hasHandle(this castTo int, parentKey)
+
+        function removeHandle( integer parentKey )
+            RemoveSavedHandle(ht, this castTo int, parentKey)
+		
+                    
+        //Remove all data from a Table instance
+        function flush()
+            FlushChildHashtable(ht, this castTo int)
+
+        ondestroy
+            this.flush()
+    
+endpackage 
