@@ -121,8 +121,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		
 		// merge the compilationUnits:
 		WurstModel merged = mergeCompilationUnits(compilationUnits);
-		
-		
+		StringBuilder sb = new StringBuilder();
+		for (CompilationUnit cu:merged) {
+			sb.append(cu.getFile() + ", ");
+		}
+		WLogger.info("Compiling compilation units: " + sb);
 		
 		checkAndTranslate(merged);
 		gui.sendProgress("finished parsing", .9);
@@ -153,6 +156,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
 	private void resolveImport(List<CompilationUnit> compilationUnits, Set<String> packages, Map<String, WImport> imports, WImport imp)
 			throws CompileError {
+		WLogger.info("resolving import: " + imp.getPackagename());
 		if (!packages.contains(imp.getPackagename())) {
 			if (getLibs().containsKey(imp.getPackagename())) {
 				CompilationUnit lib = loadLibPackage(compilationUnits, imp.getPackagename());
@@ -166,6 +170,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 				throw new CompileError(imp.getSource(), "The import " + imp.getPackagename() + " could not be resolved.\n" + 
 						"Available packages: " + Utils.join(getLibs().keySet(), ", "));
 			}
+		} else {
+			WLogger.info("already imported: " + imp.getPackagename());
 		}
 	}
 
