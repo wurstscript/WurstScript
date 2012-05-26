@@ -18,6 +18,7 @@ import de.peeeq.wurstscript.types.PscriptTypeInterface;
 import de.peeeq.wurstscript.types.PscriptTypeTuple;
 import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
 import de.peeeq.wurstscript.types.TypesHelper;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class ExprTranslation {
 
@@ -30,7 +31,7 @@ public class ExprTranslation {
 			t.addCallRelation(f, calledFunc);
 			return JassIm.ImFunctionCall(calledFunc, ImExprs(left, right));
 		} 
-		if (op instanceof OpDivReal) {
+		if (op instanceof OpDivReal && !Utils.isJassCode(op)) {
 			if (e.getLeft().attrTyp() instanceof PScriptTypeInt
 					&& e.getRight().attrTyp() instanceof PScriptTypeInt) {
 				// we want a real division but have 2 ints so we need to multiply with 1.0

@@ -151,7 +151,9 @@ package ExtensionFunctions
 		return FirstOfGroup(this) != null
 		
 	public function group.next() returns unit
-		return FirstOfGroup(this)
+		let u = FirstOfGroup(this)
+		GroupRemoveUnit(this, u) 
+		return u
 		
 	public function group.close()
 		DestroyGroup(this)
