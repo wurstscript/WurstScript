@@ -119,7 +119,7 @@ public class ImToJassTranslator {
 	}
 
 	private List<ImFunction> sorted(Collection<ImFunction> collection) {
-		List<ImFunction> r = Lists.newArrayList();
+		List<ImFunction> r = Lists.newArrayList(collection);
 		Collections.sort(r, new Comparator<ImFunction>() {
 
 			@Override
