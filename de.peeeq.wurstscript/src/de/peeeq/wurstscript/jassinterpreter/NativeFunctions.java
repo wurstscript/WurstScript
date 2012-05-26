@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.jassinterpreter;
 
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
+import de.peeeq.wurstscript.intermediateLang.ILconstNull;
 import de.peeeq.wurstscript.intermediateLang.ILconstReal;
 import de.peeeq.wurstscript.intermediateLang.ILconstString;
 
@@ -42,5 +43,9 @@ public class NativeFunctions {
 	@Native
 	static public ILconstString I2S(ILconstInt i) {
 		return new ILconstString("" + i.getVal());
+	}
+	
+	static public ILconstNull Player(ILconstInt p) {
+		return new ILconstNull();
 	}
 }

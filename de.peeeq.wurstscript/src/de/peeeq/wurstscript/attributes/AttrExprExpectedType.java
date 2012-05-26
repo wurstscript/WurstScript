@@ -47,14 +47,14 @@ public class AttrExprExpectedType {
 						return paramType.setTypeArgs(typeParamBindings);
 					}
 				}
-				throw new CompileError(expr.getSource(), "could not find expr in parent");
+				throw new CompileError(expr.getSource(), "a) could not find expr " + expr + " in parent " + parent);
 			} else if (parent instanceof StmtSet) {
 				StmtSet stmtSet = (StmtSet) parent;
 				if (stmtSet.getRight() == expr) {
 					PscriptType leftType = stmtSet.getUpdatedExpr().attrTyp();
 					return leftType;
 				}
-				throw new CompileError(expr.getSource(), "could not find expr in parent");
+				throw new CompileError(expr.getSource(), "b) could not find expr " + expr + " in parent " + parent);
 			} else if (parent instanceof VarDef) {
 				VarDef varDef = (VarDef) parent;
 				PscriptType leftType = varDef.attrTyp();
@@ -66,7 +66,7 @@ public class AttrExprExpectedType {
 				} else if (exprBinary.getRight() == expr) {
 					return exprBinary.getLeft().attrTyp();
 				}
-				throw new CompileError(expr.getSource(), "could not find expr in parent");
+				throw new CompileError(expr.getSource(), "c) could not find expr " + expr + " in parent " + parent);
 			} else if (parent instanceof StmtReturn) {
 				StmtReturn stmtReturn = (StmtReturn) parent;
 				FunctionImplementation nearestFuncDef = stmtReturn.attrNearestFuncDef();

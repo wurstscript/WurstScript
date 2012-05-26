@@ -566,13 +566,13 @@ public class ImTranslator {
 		}
 	}
 
-	private Map<ClassDef, Map<ImVar, OptExpr>> classDynamicInitMap = Maps.newHashMap();
+	private Map<ClassDef, List<Pair<ImVar, OptExpr>>> classDynamicInitMap = Maps.newHashMap();
 	private Map<ClassDef, List<WStatement>> classInitStatements = Maps.newHashMap();
 	
-	public Map<ImVar, OptExpr> getDynamicInits(ClassDef c) {
-		Map<ImVar, OptExpr> r = classDynamicInitMap.get(c);
+	public List<Pair<ImVar, OptExpr>> getDynamicInits(ClassDef c) {
+		List<Pair<ImVar, OptExpr>> r = classDynamicInitMap.get(c);
 		if (r == null) {
-			r = Maps.newHashMap();
+			r = Lists.newArrayList();
 			classDynamicInitMap.put(c, r);
 		}
 		return r;
