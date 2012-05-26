@@ -31,6 +31,21 @@ public class BugTests extends PscriptTest {
 	}
 	
 	@Test
+	public void test_inline_jass_div() {
+		testAssertOkLines(false,
+				"function divide takes integer a, integer b returns integer",
+				"	return a / b",
+				"endfunction",
+				"package test",
+				"	native testSuccess()",
+				"	init",
+				"		if divide(17,3) == 5",
+				"			testSuccess()",
+				"endpackage");
+	}
+	
+	
+	@Test
 	public void test_correct_escapesequence() {
 		testAssertOkLines(false,
 				"package test",
