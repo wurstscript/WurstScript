@@ -9,6 +9,9 @@ import static de.peeeq.wurstscript.jassAst.JassAst.JassStatements;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassTypeDefs;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassVars;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -102,7 +105,7 @@ public class ImToJassTranslator {
 			return;
 		}
 		translatingFunctions.push(imFunc);
-		for (ImFunction f : calledFunctions.get(imFunc)) {
+		for (ImFunction f : sorted(calledFunctions.get(imFunc))) {
 			translateFunctionTransitive(f);
 		}
 		
@@ -113,6 +116,18 @@ public class ImToJassTranslator {
 			throw new Error("something went wrong...");
 		}
 		translatedFunctions.add(imFunc);
+	}
+
+	private List<ImFunction> sorted(Collection<ImFunction> collection) {
+		List<ImFunction> r = Lists.newArrayList();
+		Collections.sort(r, new Comparator<ImFunction>() {
+
+			@Override
+			public int compare(ImFunction f, ImFunction g) {
+				return f.getName().compareTo(g.getName());
+			}
+		});
+		return r;
 	}
 
 	private AstElement getTrace(JassImElement elem) {
