@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.attributes;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -34,11 +35,11 @@ public class NameResolution {
 		return names.get(0);
 	}
 	
-	private static String printAlternatives(List<? extends AstElement> alternatives) {
+	public static String printAlternatives(Iterable<? extends AstElement> alternatives) {
 		List<String> result = Lists.newArrayList();
 		for (AstElement a : alternatives) {
 			WPos source = a.attrSource();
-			String s = a.getClass().getSimpleName() + " defined in line " + source.getLine() + " ("+source.getFile()+")" ;
+			String s = Utils.printElement(a) + " defined in line " + source.getLine() + " ("+source.getFile()+")" ;
 			result.add(s);
 		}
 		return " * " + Utils.join(result, "\n * ") ;
@@ -56,10 +57,8 @@ public class NameResolution {
 		List<T> result = Lists.newArrayList();
 		if (withInheritance && scope instanceof NamedScope) {
 			NamedScope namedScope = (NamedScope) scope;
-			T r = getTypedNameFromNamedScope(t, scope, name, namedScope);
-			if (r != null) {
-				result.add(r);
-			}
+			Collection<T> rs = getTypedNameFromNamedScope(t, scope, name, namedScope);
+			result.addAll(rs);
 		} else {
 			Multimap<String, NameDef> names = scope.attrVisibleNamesPrivate();
 			for (NameDef n : names.get(name)) {
@@ -81,11 +80,11 @@ public class NameResolution {
 	
 	
 
-	public static <T> T getTypedNameFromNamedScope(Class<T> t, Expr context, String name, PscriptTypeNamedScope sr) {
+	public static <T> Collection<T> getTypedNameFromNamedScope(Class<T> t, Expr context, String name, PscriptTypeNamedScope sr) {
 		return getTypedNameFromNamedScope(t, context, name, sr.getDef());
 	}
 	
-	private static <T> T getTypedNameFromNamedScope(Class<T> t, AstElement context, String name, NamedScope ns) {
+	private static <T> Collection<T> getTypedNameFromNamedScope(Class<T> t, AstElement context, String name, NamedScope ns) {
 		Multimap<String, NameDef> names;
 		if (isSameClass(context, ns)) {
 			names = ns.attrVisibleNamesPrivate();
@@ -95,13 +94,17 @@ public class NameResolution {
 			// different package
 			names = ns.attrVisibleNamesPublic();
 		}
+		List<T> result = Lists.newArrayList();
 		for (NameDef n : names.get(name)) {
 			if (t.isInstance(n)) {
 				@SuppressWarnings("unchecked")
 				T n2 = (T) n;
-				return n2;
+				result.add(n2);
 			}
 		}		
+		if (result.size() > 0) {
+			return result;
+		}
 		// if not found yet, try to find implementation in supertypes:
 		if (ns instanceof ClassDef) {
 			ClassDef c = (ClassDef) ns;
@@ -111,8 +114,8 @@ public class NameResolution {
 				PscriptType superType = typeExpr.attrTyp();
 				if (superType instanceof PscriptTypeNamedScope) {
 					PscriptTypeNamedScope superTypeNs = (PscriptTypeNamedScope) superType;
-					T r = getTypedNameFromNamedScope(t, context, name, superTypeNs.getDef());
-					if (r != null) {
+					Collection<T> r = getTypedNameFromNamedScope(t, context, name, superTypeNs.getDef());
+					if (r.size() > 0) {
 						return r;
 					}
 				}
@@ -121,13 +124,13 @@ public class NameResolution {
 			
 			// search for default implementation in interfaces
 			for (PscriptTypeInterface i : c.attrImplementedInterfaces()) {
-				T r = getTypedNameFromNamedScope(t, context, name, i.getDef());
-				if (r != null) {
+				Collection<T> r = getTypedNameFromNamedScope(t, context, name, i.getDef());
+				if (r.size() > 0) {
 					return r;
 				}
 			}
 		}
-		return null;
+		return Collections.emptyList();
 	}
 
 	private static boolean isSamePackage(AstElement context, NamedScope ns) {
