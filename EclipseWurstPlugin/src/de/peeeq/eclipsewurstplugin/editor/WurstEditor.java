@@ -29,6 +29,7 @@ import com.google.common.collect.Sets;
 import de.peeeq.eclipsewurstplugin.builder.ModelManager;
 import de.peeeq.eclipsewurstplugin.builder.ModelManagerStub;
 import de.peeeq.eclipsewurstplugin.builder.WurstNature;
+import de.peeeq.eclipsewurstplugin.editor.outline.Icons;
 import de.peeeq.eclipsewurstplugin.editor.outline.WurstContentOutlinePage;
 import de.peeeq.eclipsewurstplugin.editor.reconciling.WurstReconcilingStategy;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -45,6 +46,7 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 		super();
 		setSourceViewerConfiguration(new WurstEditorConfig(this));
 		setDocumentProvider(new WurstDocumentProvicer());
+		
 	}
 	
 	
@@ -133,7 +135,7 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 	@Override
 	public void createPartControl(Composite parent) {
 		super.createPartControl(parent);
-		
+		setTitleImage(Icons.file);
 		WurstNature nature = getNature();
 		if (nature != null) {
 			modelManager = nature.getModelManager();

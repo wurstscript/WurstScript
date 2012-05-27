@@ -1,5 +1,6 @@
 package de.peeeq.eclipsewurstplugin.editor.outline;
 
+import org.eclipse.core.resources.IFile;
 import org.eclipse.jface.viewers.IBaseLabelProvider;
 import org.eclipse.jface.viewers.ILabelProvider;
 import org.eclipse.jface.viewers.ILabelProviderListener;
@@ -14,8 +15,11 @@ public class WurstLabelProvider extends LabelProvider implements ILabelProvider 
 		if (element instanceof OutlineNode) {
 			OutlineNode outlineNode = (OutlineNode) element;
 			return outlineNode.getImage();
+		} else if (element instanceof IFile) {
+			IFile iFile = (IFile) element;
+			return Icons.file;
 		}
-		return null;
+		return Icons.file;
 	}
 
 	@Override
