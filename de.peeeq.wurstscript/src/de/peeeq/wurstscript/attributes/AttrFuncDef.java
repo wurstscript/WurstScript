@@ -26,6 +26,7 @@ import de.peeeq.wurstscript.types.PScriptTypeReal;
 import de.peeeq.wurstscript.types.PScriptTypeString;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
+import de.peeeq.wurstscript.utils.Utils;
 
 
 /**
@@ -130,7 +131,15 @@ public class AttrFuncDef {
 		FunctionDefinition result = null;
 		if (leftType instanceof PscriptTypeNamedScope) {
 			PscriptTypeNamedScope sr = (PscriptTypeNamedScope) leftType;
-			result = NameResolution.getTypedNameFromNamedScope(FunctionDefinition.class, context, funcName, sr);
+			result = null;
+			Collection<FunctionDefinition> funcs = NameResolution.getTypedNameFromNamedScope(FunctionDefinition.class, context, funcName, sr);
+			if (funcs.size() > 0) {
+				result = Utils.getFirst(funcs);
+				if (funcs.size() > 1) {
+					attr.addError(context.getSource(), "Reference to function " + funcName + " is ambigious. " +
+							"Alternatives are: " + NameResolution.printAlternatives(funcs));
+				}
+			}
 			// get real implementation funcDef (wrt override)
 			if (result != null && !sr.isStaticRef()) {
 				result = result.attrRealFuncDef();

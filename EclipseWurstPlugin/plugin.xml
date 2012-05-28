@@ -100,4 +100,20 @@
              name="Wurst Syntax Coloring">
        </page>
     </extension>
+    
+    <extension
+          point="org.eclipse.ui.navigator.navigatorContent">
+       <navigatorContent
+             activeByDefault="true"
+             contentProvider="de.peeeq.eclipsewurstplugin.editor.outline.ContentProvider"
+             id="de.peeeq.eclipsewurstplugin.navigator.content"
+             labelProvider="de.peeeq.eclipsewurstplugin.editor.outline.WurstLabelProvider"
+             name="Wurst Package Explorer Content">
+             <enablement>
+	             <instanceof
+	                   value="org.eclipse.core.resources.IProject">
+	             </instanceof>
+	          </enablement>
+             </navigatorContent>
+   </extension>
 </plugin>

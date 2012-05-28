@@ -16,6 +16,7 @@ public class Icons {
 
 	private static final String ICON_PATH = "resources/icons/";
 
+	public static Image file = createIcon("WurstFile16.gif");
 	public static Image block = createIcon("block.gif");
 	public static Image wclass = createIcon("class.gif");
 	public static Image wenum = createIcon("enum.gif");

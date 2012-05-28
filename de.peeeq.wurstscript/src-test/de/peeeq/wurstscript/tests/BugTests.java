@@ -46,6 +46,26 @@ public class BugTests extends PscriptTest {
 	
 	
 	@Test
+	public void test_import_same() {
+		testAssertOkLines(false,
+				"package A",
+				"	public int x = 2",
+				"endpackage",
+				"package B",
+				"	public int x = 3",
+				"endpackage",
+				"package test",
+				"	import B",
+				"	import A",
+				"	native testSuccess()",
+				"	init",
+				"		if x == 3",
+				"			testSuccess()",
+				"endpackage");
+	}
+	
+	
+	@Test
 	public void test_correct_escapesequence() {
 		testAssertOkLines(false,
 				"package test",

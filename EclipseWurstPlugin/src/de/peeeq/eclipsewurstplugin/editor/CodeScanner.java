@@ -16,6 +16,7 @@ import static de.peeeq.eclipsewurstplugin.WurstPlugin.*;
 import de.peeeq.eclipsewurstplugin.util.UtilityFunctions;
 import de.peeeq.wurstscript.parser.TokenType;
 import de.peeeq.wurstscript.parser.WurstScriptScanner;
+import java_cup.runtime.Symbol;
 
 public class CodeScanner implements WurstScanner {
 
@@ -57,7 +58,7 @@ public class CodeScanner implements WurstScanner {
 	public IToken nextToken() {
 		if (scanner != null) {
 			try {
-				java_cup.runtime.Symbol t = scanner.next_token();
+				Symbol t = scanner.next_token();
 				if (t == null) {
 					return null;
 				}
