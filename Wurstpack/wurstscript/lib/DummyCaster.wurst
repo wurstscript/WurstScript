@@ -5,7 +5,6 @@ package DummyCaster
 //  Because dummy casters REALLY ARE this complicated!
 //
 //******************************************************************************
-    import Basics
     
     constant int INITIAL_DUMMY_COUNT  = 12
     
