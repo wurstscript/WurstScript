@@ -37,7 +37,11 @@ public class AttrImportedPackage {
 		Map<String, WPackage> result = Maps.newHashMap();
 		for (CompilationUnit cu : wurstModel) {
 			for (WPackage p : cu.getPackages()) {
-				result.put(p.getName(), p);
+				WPackage old = result.put(p.getName(), p);
+				if (old != null) {
+					attr.addError(p.getSource(), "Package " + p.getName() + " is already defined in " + Utils.printPos(old.getSource()));
+					attr.addError(old.getSource(), "Package " + p.getName() + " is already defined in " + Utils.printPos(p.getSource()));
+				}
 			}
 		}
 		return result;

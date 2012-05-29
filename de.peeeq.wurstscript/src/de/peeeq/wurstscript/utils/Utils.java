@@ -41,6 +41,7 @@ import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.jassAst.JassVar;
 
@@ -628,6 +629,10 @@ public class Utils {
 			}
 		});
 		return r;
+	}
+
+	public static String printPos(WPos source) {
+		return source.getFile() + ", line " + source.getLine();
 	}
 
 }

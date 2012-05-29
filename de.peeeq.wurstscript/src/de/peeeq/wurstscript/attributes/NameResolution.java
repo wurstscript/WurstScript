@@ -12,6 +12,7 @@ import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NamedScope;
+import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.WPos;
@@ -30,6 +31,13 @@ public class NameResolution {
 			attr.addError(where.attrSource(), "Could not resolve reference to " + name);
 			return null;
 		} else if (names.size() > 1) {
+			PackageOrGlobal p = where.attrNearestPackage();
+			for (T n : names) {
+				// check if there is a name from the current package, we always prefer this.
+				if (n.attrNearestPackage() == p) {
+					return n;
+				}
+			}
 			attr.addError(where.attrSource(), "Reference to " + name + " is ambiguous. Alternatives are:\n" + printAlternatives(names));
 		}
 		return names.get(0);

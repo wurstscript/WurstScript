@@ -22,13 +22,17 @@ import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.JassGlobalBlock;
 import de.peeeq.wurstscript.ast.JassToplevelDeclaration;
 import de.peeeq.wurstscript.ast.LocalVarDef;
+import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NativeFunc;
+import de.peeeq.wurstscript.ast.NotExtensionFunction;
 import de.peeeq.wurstscript.ast.StructureDefOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.TupleDef;
+import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.TypeParamDefs;
+import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
@@ -47,6 +51,7 @@ public class Scopes {
 		addTypeParametersIfAny(result, c);
 		addParametersIfAny(c, result);
 		addDefinedNamesInStatements(result, c.getBody());
+		checkForDuplicates(result);
 		return result;
 	}
 
@@ -97,6 +102,7 @@ public class Scopes {
 				}
 			}
 		}
+		checkForDuplicates(result);
 		return result;
 	}
 
@@ -104,6 +110,7 @@ public class Scopes {
 		Multimap<String, NameDef> result = HashMultimap.create();
 		addTypeParametersIfAny(result, c);
 		addDefinedNames(result, c);
+		checkForDuplicates(result);
 		return result;
 	}
 
@@ -134,8 +141,40 @@ public class Scopes {
 				result.put(n.getName(), n);
 			}
 		}
+		checkForDuplicates(result);
 		return result;
 	}
+
+	private static void checkForDuplicates(Multimap<String, NameDef> definitions) {
+		for (String name : definitions.keySet()) {
+			Collection<NameDef> defs = definitions.get(name);
+			if (defs.size() > 1) {
+				int varCount = 0,
+					typeCount = 0,
+					funcCount = 0;
+				for (NameDef d : defs) {
+					if (d instanceof VarDef) {
+						varCount++;
+						if (varCount > 1) {
+							attr.addError(d.getSource(), "Variable " + d.getName() + " is already defined.");
+						}
+					} else if (d instanceof NotExtensionFunction) {
+						funcCount++;
+						if (funcCount > 1) {
+							attr.addError(d.getSource(), "Function " + d.getName() + " is already defined.");
+						}
+					} else if (d instanceof ModuleDef || d instanceof TypeDef) {
+						typeCount++;
+						if (typeCount > 1) {
+							attr.addError(d.getSource(), "Type " + d.getName() + " is already defined.");
+						}
+					}
+				}
+			}
+		}
+		
+	}
+
 
 	// default implementation, override for others:
 	public static Multimap<String, NameDef> getVisibleNamesPrivate(WScope s) {

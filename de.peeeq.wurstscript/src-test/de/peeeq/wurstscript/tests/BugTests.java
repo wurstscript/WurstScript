@@ -46,21 +46,52 @@ public class BugTests extends PscriptTest {
 	
 	
 	@Test
-	public void test_import_same() {
+	public void test_for_from() {
 		testAssertOkLines(false,
-				"package A",
-				"	public int x = 2",
-				"endpackage",
-				"package B",
-				"	public int x = 3",
-				"endpackage",
+				"type unit extends handle",
+				"type group extends handle",
+				"native FirstOfGroup takes group g returns unit",
+				"native GroupRemoveUnit takes group g, unit u returns nothing",
 				"package test",
-				"	import B",
-				"	import A",
-				"	native testSuccess()",
+				"	function group.hasNext() returns boolean",
+				"		return FirstOfGroup(this) != null",
+				"	function group.next() returns unit",
+				"		let u = FirstOfGroup(this)",
+				"		GroupRemoveUnit(this, u)",
+				"		return u",
+				"	function group.close()",
+				"		skip",
 				"	init",
-				"		if x == 3",
-				"			testSuccess()",
+				"		group g = null",
+				"		for unit u from g",
+				"			skip",
+				"endpackage");
+	}
+	
+	
+	@Test
+	public void test_for_in() {
+		testAssertOkLines(false,
+				"type unit extends handle",
+				"type group extends handle",
+				"native FirstOfGroup takes group g returns unit",
+				"native GroupRemoveUnit takes group g, unit u returns nothing",
+				"package test",
+				"	function group.iterator() returns group",
+                "		// a correct implementation would return a copy",
+                "		return this",
+				"	function group.hasNext() returns boolean",
+				"		return FirstOfGroup(this) != null",
+				"	function group.next() returns unit",
+				"		let u = FirstOfGroup(this)",
+				"		GroupRemoveUnit(this, u)",
+				"		return u",
+				"	function group.close()",
+				"		skip",
+				"	init",
+				"		group g = null",
+				"		for unit u in g",
+				"			skip",
 				"endpackage");
 	}
 	

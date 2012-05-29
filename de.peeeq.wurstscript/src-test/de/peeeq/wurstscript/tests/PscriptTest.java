@@ -172,10 +172,11 @@ public class PscriptTest {
 		compiler.parseFiles();
 		JassProg prog = compiler.getProg();
 		
-		Assert.assertNotNull(prog);
+		
 		if (gui.getErrorCount() > 0) {
 			throw gui.getErrorList().get(0);
 		}
+		Assert.assertNotNull(prog);
 
 		File outputFile = new File(TEST_OUTPUT_PATH + name + ".j");
 		new File(TEST_OUTPUT_PATH).mkdirs();
