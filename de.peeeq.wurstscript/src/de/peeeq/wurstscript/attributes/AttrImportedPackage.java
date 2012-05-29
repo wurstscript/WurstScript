@@ -38,10 +38,11 @@ public class AttrImportedPackage {
 		for (CompilationUnit cu : wurstModel) {
 			for (WPackage p : cu.getPackages()) {
 				WPackage old = result.put(p.getName(), p);
-				if (old != null) {
-					attr.addError(p.getSource(), "Package " + p.getName() + " is already defined in " + Utils.printPos(old.getSource()));
-					attr.addError(old.getSource(), "Package " + p.getName() + " is already defined in " + Utils.printPos(p.getSource()));
-				}
+//				if (old != null) {
+//				TODO should this error?
+//					attr.addError(p.getSource(), "Package " + p.getName() + " is already defined in " + Utils.printPos(old.getSource()));
+//					attr.addError(old.getSource(), "Package " + p.getName() + " is already defined in " + Utils.printPos(p.getSource()));
+//				}
 			}
 		}
 		return result;

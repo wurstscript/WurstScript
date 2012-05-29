@@ -17,7 +17,6 @@ import static de.peeeq.wurstscript.jassIm.JassIm.ImVarArrayAccess;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -26,19 +25,21 @@ import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.ConstructorDef;
-import de.peeeq.wurstscript.ast.ConstructorDefs;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.OptExpr;
 import de.peeeq.wurstscript.ast.WParameter;
-import de.peeeq.wurstscript.ast.WStatement;
-import de.peeeq.wurstscript.attributes.OverloadingResolver;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
+import de.peeeq.wurstscript.jassIm.ImSet;
+import de.peeeq.wurstscript.jassIm.ImSetArray;
+import de.peeeq.wurstscript.jassIm.ImSetArrayTuple;
+import de.peeeq.wurstscript.jassIm.ImSetTuple;
 import de.peeeq.wurstscript.jassIm.ImStmt;
+import de.peeeq.wurstscript.jassIm.ImStmt.DefaultVisitor;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
@@ -88,7 +89,7 @@ public class ClassTranslator {
 		ImFunction f = translator.getDestroyFuncFor(classDef);
 		ImVar thisVar = translator.getThisVar(classDef.getOnDestroy());
 		f.getParameters().add(thisVar);
-		addOnDestroyActions(f, classDef);
+		addOnDestroyActions(f, classDef, thisVar);
 		addDeallocateCode(f, thisVar);	
 	}
 
@@ -112,19 +113,62 @@ public class ClassTranslator {
 		
 	}
 
-	private void addOnDestroyActions(ImFunction f, ClassOrModuleInstanciation c) { 
-		f.getBody().addAll(translator.translateStatements(f, c.getOnDestroy().getBody()));
+	private void addOnDestroyActions(ImFunction f, ClassOrModuleInstanciation c, ImVar thisVar) { 
+		List<ImStmt> stmts = translator.translateStatements(f, c.getOnDestroy().getBody());
+		replaceThisExpr(stmts, translator.getThisVar(c.getOnDestroy()), thisVar);
+		f.getBody().addAll(stmts);
 		
 		for (ModuleInstanciation mi : c.getModuleInstanciations()) {
-			addOnDestroyActions(f, mi);
+			addOnDestroyActions(f, mi, thisVar);
 		}
 		
 		if (c instanceof ClassDef) {
 			ClassDef cd = (ClassDef) c;
 			if (cd.attrExtendedClass() != null) {
-				addOnDestroyActions(f, cd.attrExtendedClass());
+				addOnDestroyActions(f, cd.attrExtendedClass(), thisVar);
 			}
 		}
+	}
+
+	private void replaceThisExpr(List<ImStmt> stmts, final ImVar oldThis, final ImVar newThis) {
+		if (oldThis == newThis) {
+			return;
+		}
+		DefaultVisitor replacer = new ImStmt.DefaultVisitor() {
+			public void visit(ImVarAccess v) {
+				if (v.getVar() == oldThis) {
+					v.setVar(newThis);
+				}
+			}
+			
+			public void visit(ImSet v) {
+				if (v.getLeft() == oldThis) {
+					v.setLeft(newThis);
+				}
+			}
+			
+			public void visit(ImSetArray v) {
+				if (v.getLeft() == oldThis) {
+					v.setLeft(newThis);
+				}
+			}
+			
+			public void visit(ImSetTuple v) {
+				if (v.getLeft() == oldThis) {
+					v.setLeft(newThis);
+				}
+			}
+			
+			public void visit(ImSetArrayTuple v) {
+				if (v.getLeft() == oldThis) {
+					v.setLeft(newThis);
+				}
+			}
+		};
+		for (ImStmt s : stmts) {
+			s.accept(replacer);
+		}
+		
 	}
 
 	private void translateConstructors() {

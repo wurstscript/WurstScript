@@ -217,4 +217,26 @@ public class ClassesExtTests extends PscriptTest {
 			);
 	}
 	
+	
+	@Test
+	public void ondestroyUsingThis() {
+		testAssertOkLines(true,  
+				"package test",
+				"	native testSuccess()",
+				"	int x = 2",
+				"	class B",
+				"		int y = 2",
+				"		ondestroy",
+				"			x *= y",
+				"	class A extends B",
+				"		ondestroy",
+				"			x += y",
+				"	init",
+				"		A a = new A()",
+				"		destroy a",
+				"		if x == 8",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
 }

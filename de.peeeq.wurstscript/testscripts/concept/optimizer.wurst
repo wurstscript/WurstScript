@@ -109,7 +109,7 @@ endfunction
 //TESH.alwaysfold=0
 package Test
     
-    function foo()
+    function fooo()
     	ExecuteFunc( "blub" )
     	
     function blub()
@@ -130,7 +130,7 @@ package Test
     	ExecuteFunc( "blub" )
     	
     init
-    	foo()
+    	fooo()
 
 endpackage
 

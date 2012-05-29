@@ -143,6 +143,7 @@ public class SyntacticSugar {
 									Ast.Modifiers(), 
 									NoTypeExpr(), iteratorName, 
 										(Expr) loop.getIn().copy()));
+					position++;
 				}
 				WStatements body = WStatements(
 							Ast.LocalVarDef(loopVarPos.copy(), 

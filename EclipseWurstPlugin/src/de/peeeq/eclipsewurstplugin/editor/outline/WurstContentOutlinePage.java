@@ -77,7 +77,8 @@ public class WurstContentOutlinePage extends ContentOutlinePage implements Compi
 				OutlineNode outlineNode = (OutlineNode) selectedElem;
 				WPos pos = outlineNode.getNode().attrSource();
 				try {
-					editor.setHighlightRange(pos.getLeftPos(), pos.getRightPos() - pos.getLeftPos(), selectionMoveCursor);
+					int length = Math.max(pos.getRightPos() - pos.getLeftPos(), 0);
+					editor.setHighlightRange(pos.getLeftPos(), length, selectionMoveCursor);
 				} catch (IllegalArgumentException x) {
 					editor.resetHighlightRange();
 				}

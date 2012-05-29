@@ -48,4 +48,8 @@ public class NativeFunctions {
 	static public ILconstNull Player(ILconstInt p) {
 		return new ILconstNull();
 	}
+	
+	static public ILconstNull InitHashtable() {
+		return new ILconstNull();
+	}
 }
