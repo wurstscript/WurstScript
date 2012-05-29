@@ -11,5 +11,7 @@ package Wurst
 	import public Basics
 	import public Hashtable
 	import public Unittype
+    import public Maths
+    import public Table
 	
 endpackage

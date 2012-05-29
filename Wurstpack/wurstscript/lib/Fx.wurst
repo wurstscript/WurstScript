@@ -2,11 +2,7 @@ package Fx
 /*
 This is mostly a copy of xefx, credits for that go to Vexorian
 */
-	import Basics
-	import ExtensionFunctions
     import Dummy
-	
-	constant player DUMMY_PLAYER = Player(15)
     
     //Delay in order to show the death animation of the effect correctly when xefx is destroyed.
     //You may need to increase this if you are using effects with longer death animations.
