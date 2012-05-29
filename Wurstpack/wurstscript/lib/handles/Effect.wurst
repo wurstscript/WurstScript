@@ -1,6 +1,6 @@
 package Effect
     
     public function effect.destr()
-		DestroyEffct( this )
+		DestroyEffect( this )
 		
 endpackage
