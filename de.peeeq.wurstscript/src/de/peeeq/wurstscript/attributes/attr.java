@@ -8,23 +8,23 @@ import de.peeeq.wurstscript.utils.NotNullList;
 
 public class attr {
 	
-	private static List<CompileError> errors;
-	private static WurstGui gui;
+	private static ThreadLocal<List<CompileError>> errors = new ThreadLocal<List<CompileError>>();
+	private static ThreadLocal<WurstGui> gui = new ThreadLocal<WurstGui>();
 	
 	// set this to true, when running unit tests. 
 	//This will throw compiler errors instead of adding them to the list
 	public static boolean unitTestMode = false;
 	
 	public static void init(WurstGui gui) {
-		errors = new NotNullList<CompileError>();
-		attr.gui = gui;
+		setErrors(new NotNullList<CompileError>());
+		attr.setGui(gui);
 	}
 
 	public static void addError(WPos pos, String msg) {
 		if (unitTestMode) {
 			throw new CompileError(pos, msg);
 		}
-		for (CompileError err : errors) {
+		for (CompileError err : getErrors()) {
 			if (err.getSource().getFile().equals(pos.getFile())
 					&& err.getSource().getLine() == pos.getLine()) {
 				// return only one error per line
@@ -32,21 +32,33 @@ public class attr {
 			}
 		}
 		CompileError c = new CompileError(pos, msg);
-		errors.add(c);
-		gui.sendError(c);
+		getErrors().add(c);
+		getGui().sendError(c);
 	}
 	
 	
 	public static int getErrorCount() {
-		return errors.size();
+		return getErrors().size();
 	}
 	
 	public static List<CompileError> getErrors() {
-		return errors;
+		return errors.get();
 	}
 	
 	public static void setProgress(String message, double percent) {
-		gui.sendProgress(message, percent);
+		getGui().sendProgress(message, percent);
+	}
+
+	public static void setErrors(List<CompileError> errors) {
+		attr.errors.set(errors);
+	}
+
+	public static WurstGui getGui() {
+		return gui.get();
+	}
+
+	public static void setGui(WurstGui gui) {
+		attr.gui.set(gui);
 	}
 
 	
