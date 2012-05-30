@@ -154,7 +154,6 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 	@Override
 	public void createPartControl(Composite parent) {
 		super.createPartControl(parent);
-		setTitleImage(Icons.file);
 		WurstNature nature = getNature();
 		if (nature != null) {
 			modelManager = nature.getModelManager();

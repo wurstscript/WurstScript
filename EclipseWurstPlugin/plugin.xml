@@ -79,7 +79,7 @@
       <editor
             name="Wurst Editor"
             extensions="wurst"
-            icon="icons/sample.gif"
+            icon="resources/icons/WurstFile16.gif"
             contributorClass="org.eclipse.ui.texteditor.BasicTextEditorActionContributor"
             class="de.peeeq.eclipsewurstplugin.editor.WurstEditor"
             id="de.peeeq.eclipsewurstplugin.editorWurstEditor">
