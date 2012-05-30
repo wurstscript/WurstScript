@@ -34,6 +34,10 @@ action code {:
 	private WPos pos(int left, AstElementWithSource right) {
 		return pos(left, right.getSource());
 	}
+	
+	private WPos pos(int left, List<? extends AstElementWithSource> right) {
+		return pos(left, right.get(right.size()-1));
+	}
 
 :};
 
@@ -241,7 +245,7 @@ Entity ::=
 	| VarDef:x
 		{: RESULT = x; :}
 	| INIT:x NL INDENT Statements:body UNINDENT:y
-		{: RESULT = Ast.InitBlock(pos(xleft, yright), body); :}
+		{: RESULT = Ast.InitBlock(pos(xleft, body), body); :}
 	| NATIVE:x FuncSignature:sig NL
 		{: RESULT = Ast.NativeFunc(pos(xleft, sig), Ast.Modifiers(), sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy()); :}
 	| ClassDef:x
@@ -253,13 +257,13 @@ Entity ::=
 	| Modifiers:mod TUPLE:x IDENTIFIER:name LPAR ParametersNotConstant:parameters RPAR:y NL
 		{: RESULT = Ast.TupleDef(pos(xleft, yright), mod, name, parameters, Ast.NoTypeExpr()); :}
 	| Modifiers:mod FUNCTION:x TypeExpr:t DOT FuncSignature:sig NL INDENT Statements:body UNINDENT:y
-		{: RESULT = Ast.ExtensionFuncDef(pos(xleft, yright), mod, t, sig.getName(), sig.getTypeParameters().copy(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body); :}
+		{: RESULT = Ast.ExtensionFuncDef(pos(xleft, body), mod, t, sig.getName(), sig.getTypeParameters().copy(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body); :}
 ;		
 
 
 InterfaceDef ::=
 	Modifiers:mod INTERFACE:x IdentifierWithTypeParamDefs:d ExtendsListOpt:el NL INDENT ClassSlots:slots UNINDENT:y
-		{: RESULT = AstHelper.InterfaceDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), el, slots); :}
+		{: RESULT = AstHelper.InterfaceDef(pos(xleft, slots), mod, d.getName(), d.getTypeParams(), el, slots); :}
 ;
 
 ExtendsList ::= 
@@ -308,11 +312,11 @@ InterfaceFunctionSignature ::=
 
 ClassDef ::=
 	Modifiers:mod CLASS:x IdentifierWithTypeParamDefs:d EXTENDS TypeExpr:ex ImplementsListOpt:il NL INDENT ClassSlots:slots UNINDENT:y
-		{: RESULT = AstHelper.ClassDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), ex, il, slots); :}
+		{: RESULT = AstHelper.ClassDef(pos(xleft, slots), mod, d.getName(), d.getTypeParams(), ex, il, slots); :}
 	| Modifiers:mod CLASS:x IdentifierWithTypeParamDefs:d EXTENDS TypeExpr:ex ImplementsListOpt:il NL:y
 		{: RESULT = AstHelper.ClassDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), ex, il, Collections.<ClassSlot>emptyList()); :}
 	| Modifiers:mod CLASS:x IdentifierWithTypeParamDefs:d ImplementsListOpt:il NL INDENT ClassSlots:slots UNINDENT:y
-		{: RESULT = AstHelper.ClassDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), Ast.NoTypeExpr(), il, slots); :}
+		{: RESULT = AstHelper.ClassDef(pos(xleft, slots), mod, d.getName(), d.getTypeParams(), Ast.NoTypeExpr(), il, slots); :}
 	| Modifiers:mod CLASS:x IdentifierWithTypeParamDefs:d ImplementsListOpt:il NL:y
 		{: RESULT = AstHelper.ClassDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), Ast.NoTypeExpr(), il, Collections.<ClassSlot>emptyList()); :}
 ;
@@ -346,7 +350,7 @@ IdentifierWithTypeParamDefs ::=
 
 ModuleDef ::=
 	Modifiers:mod MODULE:x IdentifierWithTypeParamDefs:d NL INDENT ClassSlots:slots UNINDENT:y
-		{: RESULT = AstHelper.ModuleDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), slots); :}
+		{: RESULT = AstHelper.ModuleDef(pos(xleft, slots), mod, d.getName(), d.getTypeParams(), slots); :}
 ;
 
 ClassSlots ::=
@@ -358,13 +362,13 @@ ClassSlots ::=
 
 ClassSlot ::=
 	  Modifiers:mod CONSTRUCT:x LPAR Parameters:params RPAR NL INDENT Statements:body UNINDENT:y
-		{: RESULT = Ast.ConstructorDef(pos(xleft, yright), mod, params, AstHelper.inferSuperArgs(params), body); :}
+		{: RESULT = Ast.ConstructorDef(pos(xleft, body), mod, params, AstHelper.inferSuperArgs(params), body); :}
 	| Modifiers:mod CONSTRUCT:x LPAR Parameters:params RPAR NL INDENT SUPER LPAR Arguments:superArgs RPAR NL Statements:body UNINDENT:y
-		{: RESULT = Ast.ConstructorDef(pos(xleft, yright), mod, params, superArgs, body); :}
+		{: RESULT = Ast.ConstructorDef(pos(xleft, body), mod, params, superArgs, body); :}
 	| Modifiers:mod USE:x IdentifierWithTypeArgs:m NL
 		{: RESULT = Ast.ModuleUse(pos(xleft, m), m.getName(), m.getTypeArgs()); :} 
 	| ONDESTROY:x NL INDENT Statements:body UNINDENT:y
-		{: RESULT = Ast.OnDestroyDef(pos(xleft, yright), body); :}
+		{: RESULT = Ast.OnDestroyDef(pos(xleft, body), body); :}
 	| VarDef:x
 		{: RESULT = x; :}
 	| FuncDef:x
@@ -373,7 +377,7 @@ ClassSlot ::=
 
 FuncDef ::=
 	  Modifiers:mod FUNCTION:x FuncSignature:sig NL INDENT Statements:body UNINDENT:y
-		{: RESULT = Ast.FuncDef(pos(xleft, yright), mod, sig.getName(), sig.getTypeParameters().copy(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body); :}
+		{: RESULT = Ast.FuncDef(pos(xleft, body), mod, sig.getName(), sig.getTypeParameters().copy(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body); :}
 	| Modifiers:mod FUNCTION:x FuncSignature:sig NL
 		{: RESULT = Ast.FuncDef(pos(xleft, sig), mod, sig.getName(), sig.getTypeParameters().copy(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), Ast.WStatements()); :}
 ;
@@ -500,17 +504,17 @@ Statement ::=
 	| StmtDestroy:x
 		{: RESULT = x; :} 
 	| FOR:x LocalVarDefInline:loopVar EQ Expr:from TO Expr:to NL INDENT Statements:body UNINDENT:y
-		{: RESULT = Ast.StmtForRange(pos(xleft, yright), loopVar, from, to, Ast.ExprIntVal(pos(to, Integer.MIN_VALUE), 1), body); :}
+		{: RESULT = Ast.StmtForRange(pos(xleft, body), loopVar, from, to, Ast.ExprIntVal(pos(to, Integer.MIN_VALUE), 1), body); :}
 	| FOR:x LocalVarDefInline:loopVar EQ Expr:from TO Expr:to STEP Expr:step NL INDENT Statements:body UNINDENT:y
-		{: RESULT = Ast.StmtForRange(pos(xleft, yright), loopVar, from, to, step, body); :}
+		{: RESULT = Ast.StmtForRange(pos(xleft, body), loopVar, from, to, step, body); :}
 	| FOR:x LocalVarDefInline:loopVar EQ Expr:from DOWNTO Expr:to NL INDENT Statements:body UNINDENT:y
-		{: RESULT = Ast.StmtForRangeDown(pos(xleft, yright), loopVar, from, to, Ast.ExprIntVal(pos(to, Integer.MIN_VALUE), 1), body); :}
+		{: RESULT = Ast.StmtForRangeDown(pos(xleft, body), loopVar, from, to, Ast.ExprIntVal(pos(to, Integer.MIN_VALUE), 1), body); :}
 	| FOR:x LocalVarDefInline:loopVar EQ Expr:from DOWNTO Expr:to STEP Expr:step NL INDENT Statements:body UNINDENT:y
-		{: RESULT = Ast.StmtForRangeDown(pos(xleft, yright), loopVar, from, to, step, body); :}
+		{: RESULT = Ast.StmtForRangeDown(pos(xleft, body), loopVar, from, to, step, body); :}
 	| FOR:x LocalVarDefInline:loopVar IN Expr:in NL INDENT Statements:body UNINDENT:y
-		{: RESULT = Ast.StmtForIn(pos(xleft, yright), loopVar, in, body); :}
+		{: RESULT = Ast.StmtForIn(pos(xleft, body), loopVar, in, body); :}
 	| FOR:x LocalVarDefInline:loopVar FROM Expr:in NL INDENT Statements:body UNINDENT:y
-		{: RESULT = Ast.StmtForFrom(pos(xleft, yright), loopVar, in, body); :}
+		{: RESULT = Ast.StmtForFrom(pos(xleft, body), loopVar, in, body); :}
 	| BREAK:x NL
 		{: RESULT = Ast.StmtExitwhen(pos(xleft, xright), Ast.ExprBoolVal(pos(xleft, xright), true)); :}
 	| SKIP:x NL
@@ -533,7 +537,7 @@ StmtReturn ::=
 
 StmtIf ::=
 	IF:x Expr:cond NL INDENT Statements:thenStatements UNINDENT:y
-		{: RESULT = Ast.StmtIf(pos(xleft, yright), cond, thenStatements, Ast.WStatements()); :}
+		{: RESULT = Ast.StmtIf(pos(xleft, thenStatements), cond, thenStatements, Ast.WStatements()); :}
 	| IF:x Expr:cond NL INDENT Statements:thenStatements UNINDENT ELSE:y ElseStatements:elseStatements
 		{: RESULT = Ast.StmtIf(pos(xleft, elseStatements.get(elseStatements.size()-1)), cond, thenStatements, elseStatements); :}
 ;
@@ -547,7 +551,7 @@ ElseStatements ::=
 
 StmtWhile ::=
 	WHILE:x Expr:cond NL INDENT Statements:body UNINDENT:y
-		{: RESULT = Ast.StmtWhile(pos(xleft, yright), cond, body); :}
+		{: RESULT = Ast.StmtWhile(pos(xleft, body), cond, body); :}
 ;
 
 LocalVarDef ::=

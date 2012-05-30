@@ -31,6 +31,13 @@ public class WurstEditorConfig extends SourceViewerConfiguration {
 		this.editor = editor;
 		System.out.println("blas");
 	}
+	
+	@Override
+	public String[] getIndentPrefixes(ISourceViewer sourceViewer, String contentType) {
+		return getIndentPrefixesForTab(4);
+	}
+	
+	
 
 	@Override
 	public IPresentationReconciler getPresentationReconciler(ISourceViewer sourceViewer) {
