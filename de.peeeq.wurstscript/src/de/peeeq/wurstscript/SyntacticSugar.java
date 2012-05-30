@@ -36,6 +36,7 @@ import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.TypeParamDefs;
 import de.peeeq.wurstscript.ast.WEntities;
+import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WStatement;
@@ -44,6 +45,14 @@ import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.attr;
 
+
+/**
+ * general rules for syntactic sugar:
+ * 
+ *  1. operations must be idempotent: syntacticSugar(syntacticSugar(program)) = syntacticSugar(program)
+ *  2. operations must not depend on other compilation units. 
+ *
+ */
 public class SyntacticSugar {
 
 	private int wurstIteratorCounter = 0;
@@ -62,8 +71,14 @@ public class SyntacticSugar {
 	
 
 	private void addDefaultImports(CompilationUnit root) {
-		for (WPackage i : root.attrGetByType().packageDefs) {
-			i.getImports().add(Ast.WImport(i.getSource().copy(), false, "Wurst"));
+		nextPackage: for (WPackage p : root.attrGetByType().packageDefs) {
+			// add 'import Wurst' if it does not exist
+			for (WImport imp : p.getImports()) {
+				if (imp.getPackagename().equals("Wurst")) {
+					continue nextPackage;
+				}
+			}
+			p.getImports().add(Ast.WImport(p.getSource().copy(), false, "Wurst"));
 		}
 	}
 

@@ -16,6 +16,8 @@ import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
+import de.peeeq.wurstscript.ast.WImport;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class WurstHylerlinkDetector implements IHyperlinkDetector {
@@ -32,7 +34,7 @@ public class WurstHylerlinkDetector implements IHyperlinkDetector {
 		CompilationUnit cu = editor.getCompilationUnit();
 		if (cu != null) {
 			AstElement e = Utils.getAstElementAtPos(cu, region.getOffset());
-//			System.out.println("hover: " + e.getClass().getSimpleName());
+			System.out.println("hover: " + e.getClass().getSimpleName());
 			if (e instanceof FuncRef) {
 				FuncRef funcRef = (FuncRef) e;
 				FunctionDefinition decl = funcRef.attrFuncDef();
@@ -45,6 +47,10 @@ public class WurstHylerlinkDetector implements IHyperlinkDetector {
 				TypeExpr typeExpr = (TypeExpr) e;
 				TypeDef decl = typeExpr.attrTypeDef();
 				return linkTo(decl, e.attrSource().getLeftPos(), e.attrSource().getRightPos()-1);
+			} else if (e instanceof WImport) {
+				WImport wImport = (WImport) e;
+				WPackage p = wImport.attrImportedPackage();
+				return linkTo(p, e.attrSource().getLeftPos(), e.attrSource().getRightPos()-1);
 			}
 		}
 		return null;

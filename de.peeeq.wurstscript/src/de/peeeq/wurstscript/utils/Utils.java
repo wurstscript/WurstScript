@@ -29,6 +29,7 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithName;
 import de.peeeq.wurstscript.ast.AstElementWithSource;
+import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
@@ -600,18 +601,37 @@ public class Utils {
 	}
 
 	public static AstElement getAstElementAtPos(AstElement elem, int caretPosition) {
-		AstElement result = elem;
+		if (elem instanceof ClassDef) {
+			System.out.println("blub");
+		}
+		List<AstElement> betterResults = Lists.newArrayList();
 		for (int i=0; i < elem.size(); i++) {
 			AstElement e = elem.get(i);
 			if (elementContainsPos(e, caretPosition)) {
-				result = e;
+				betterResults.add(getAstElementAtPos(e, caretPosition));
 			}
 		}
-		if (result == elem) {
-			return result;
+		if (betterResults.size() == 0) {
+			return elem;
 		} else {
-			return getAstElementAtPos(result, caretPosition);
+			return bestResult(betterResults);
 		}
+	}
+
+	/**
+	 * return the element with the smallest size 
+	 */
+	private static AstElement bestResult(List<AstElement> betterResults) {
+		int minSize = Integer.MAX_VALUE;
+		AstElement min = null;
+		for (AstElement e : betterResults) {
+			int size = e.attrSource().getRightPos() - e.attrSource().getLeftPos();
+			if (size < minSize) {
+				minSize = size;
+				min = e;
+			}
+		}
+		return min;
 	}
 
 

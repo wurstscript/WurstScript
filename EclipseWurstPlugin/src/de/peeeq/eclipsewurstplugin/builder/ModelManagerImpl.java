@@ -161,6 +161,7 @@ public class ModelManagerImpl implements ModelManager {
 	@Override
 	public void parse(WurstGui gui, String fileName, Reader source) {
 		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, RunArgs.defaults());
+		comp.setHasCommonJ(true); // we always want to have a common.j if we have an eclipse plugin
 		CompilationUnit cu = comp.parse(source, fileName);
 		if (cu != null && cu.getJassDecls().size() + cu.getPackages().size() > 0) {
 			cu.setFile(fileName);

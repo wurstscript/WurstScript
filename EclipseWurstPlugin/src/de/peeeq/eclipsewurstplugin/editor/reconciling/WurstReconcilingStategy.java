@@ -47,11 +47,8 @@ public class WurstReconcilingStategy implements IReconcilingStrategy {
 		WurstGui gui = new WurstGuiLogger();
 		IFile file = editor.getFile();
 		if (file != null) {
-			WurstNature.deleteMarkers(file);
+			// TODO handle parser-error markers
 			mm.parse(gui, file.getProjectRelativePath().toString(), new StringReader(document.get()));
-			for (CompileError e : gui.getErrorList()) {
-				WurstNature.addErrorMarker(file, e);
-			}
 		}
 		
 	}

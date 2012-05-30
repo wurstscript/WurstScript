@@ -238,11 +238,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		
 		if (attr.getErrorCount() > 0) return;
 		
-		// handle syntactic sugar
-		removeSyntacticSugar(root);
-		
-		if (attr.getErrorCount() > 0) return;
-		
 		expandModules(root);
 		
 		if (attr.getErrorCount() > 0) return;
@@ -255,12 +250,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	private void expandModules(WurstModel root) {
 		for (CompilationUnit cu : root) {
 			new ModuleExpander().expandModules(cu);
-		}
-	}
-
-	private void removeSyntacticSugar(WurstModel root) {
-		for (CompilationUnit cu : root) {
-			removeSyntacticSugar(cu);
 		}
 	}
 
@@ -420,6 +409,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 				return emptyCompilationUnit();
 			}	
 			CompilationUnit root = (CompilationUnit) sym.value;
+			removeSyntacticSugar(root);
 			return root;
 		} catch (CompileError e) {
 			gui.sendError(e);
@@ -438,6 +428,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
 	public void loadReader(String name, Reader input) {
 		otherInputs.put(name, input);
+	}
+
+	public void setHasCommonJ(boolean hasCommonJ) {
+		this.hasCommonJ = hasCommonJ;
 	}
 
 	

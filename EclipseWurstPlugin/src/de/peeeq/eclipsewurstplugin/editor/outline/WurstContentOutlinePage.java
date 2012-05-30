@@ -32,6 +32,7 @@ public class WurstContentOutlinePage extends ContentOutlinePage implements Compi
 	private WurstEditor editor;
 	private ContentProvider contentProvider;
 	private boolean selectionMoveCursor;
+	private volatile boolean disposed = false;
 
 	public WurstContentOutlinePage(IDocumentProvider documentProvider, WurstEditor wurstEditor) {
 		this.documentProvider = documentProvider;
@@ -87,13 +88,19 @@ public class WurstContentOutlinePage extends ContentOutlinePage implements Compi
 		}
 	}
 	
+	@Override
+	public void dispose() {
+		super.dispose();
+		disposed  = true;
+	}
 
 	@Override
 	public void onCompilationUnitChanged(final CompilationUnit newCu) {
 		Display.getDefault().asyncExec(new Runnable() {
 			@Override
 			public void run() {
-				if (getTreeViewer() != null) {
+				if (getTreeViewer() != null && !disposed) {
+					// TODO  java.lang.IllegalStateException: Need an underlying widget to be able to set the input.(Has the widget been disposed?)
 					getTreeViewer().setInput(new OutlineNode(newCu, null));
 				}
 			}
