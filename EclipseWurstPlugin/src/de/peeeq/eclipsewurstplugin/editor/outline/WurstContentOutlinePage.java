@@ -1,6 +1,7 @@
 package de.peeeq.eclipsewurstplugin.editor.outline;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.eclipse.jface.text.projection.Segment;
 import org.eclipse.jface.viewers.ISelection;
@@ -115,7 +116,13 @@ public class WurstContentOutlinePage extends ContentOutlinePage implements Compi
 			OutlineNode outlineNode = (OutlineNode) input;
 			OutlineNode sel = findNodeInLine(outlineNode, offset);
 			if (sel != null) {
-				ISelection selection = new StructuredSelection(sel); 
+//				ISelection selection = new StructuredSelection(sel); 
+				List<Object> segments = Lists.newArrayList();
+				while (sel != null) {
+					segments.add(0, sel);
+					sel = sel.getParent();
+				}
+				ISelection selection = new TreeSelection(new TreePath(segments.toArray()));
 				setSelectionWithoutCursorMove(selection);
 			}
 		}
@@ -128,15 +135,15 @@ public class WurstContentOutlinePage extends ContentOutlinePage implements Compi
 		selectionMoveCursor = true;
 	}
 
-	private OutlineNode findNodeInLine(OutlineNode node, int startLine) {
-		if (node.getNode().attrSource().getLeftPos() > startLine) {
+	private OutlineNode findNodeInLine(OutlineNode node, int startOffset) {
+		if (node.getNode().attrSource().getLeftPos() > startOffset) {
 			return null;
 		}
 		OutlineNode result = node;
 		for (Object child : contentProvider.getChildren(node)) {
 			if (child instanceof OutlineNode) {
 				OutlineNode childNode = (OutlineNode) child;
-				OutlineNode r = findNodeInLine(childNode, startLine);
+				OutlineNode r = findNodeInLine(childNode, startOffset);
 				if (r != null) {
 					result = r;
 				} else {

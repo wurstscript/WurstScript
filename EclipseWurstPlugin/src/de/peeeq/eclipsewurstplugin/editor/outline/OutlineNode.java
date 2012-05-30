@@ -191,15 +191,13 @@ public class OutlineNode {
 		if (this == other) return true;
 		if (other instanceof OutlineNode) {
 			OutlineNode otherN = (OutlineNode) other;
-			if (node.getClass().equals(otherN.getNode().getClass())) {
-				return toString().equals(otherN.toString());
-			}
+			return node.equals(otherN.node);
 		}
 		return false;
 	}
 	
 	public int hashCode() {
-		return Objects.hashCode(node.getClass(), toString());
+		return node.hashCode();
 	}
 	
 }

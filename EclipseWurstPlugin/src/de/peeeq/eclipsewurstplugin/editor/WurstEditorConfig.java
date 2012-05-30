@@ -2,6 +2,8 @@ package de.peeeq.eclipsewurstplugin.editor;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.text.DefaultTextHover;
+import org.eclipse.jface.text.IAutoEditStrategy;
+import org.eclipse.jface.text.IAutoIndentStrategy;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextHover;
 import org.eclipse.jface.text.hyperlink.IHyperlinkDetector;
@@ -17,6 +19,7 @@ import org.eclipse.jface.text.source.SourceViewerConfiguration;
 import org.eclipse.ui.texteditor.SimpleMarkerAnnotation;
 
 import de.peeeq.eclipsewurstplugin.builder.WurstBuilder;
+import de.peeeq.eclipsewurstplugin.editor.autoedit.WurstAutoIndentStrategy;
 import de.peeeq.eclipsewurstplugin.editor.reconciling.WurstReconcilingStategy;
 
 
@@ -78,5 +81,13 @@ public class WurstEditorConfig extends SourceViewerConfiguration {
 	@Override
 	public IHyperlinkDetector[] getHyperlinkDetectors(ISourceViewer sourceViewer) {
 		return new IHyperlinkDetector[] {new WurstHylerlinkDetector(editor)};
+	}
+	
+	@Override
+	public IAutoEditStrategy[] getAutoEditStrategies(ISourceViewer sourceViewer, String contentType) {
+//		return super.getAutoEditStrategies(sourceViewer, contentType);
+		return new IAutoEditStrategy[] {
+				new WurstAutoIndentStrategy()
+		};
 	}
 }
