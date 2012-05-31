@@ -655,4 +655,9 @@ public class Utils {
 		return source.getFile() + ", line " + source.getLine();
 	}
 
+	public static boolean isEmptyCU(CompilationUnit cu) {
+		return (cu == null) 
+		  || (cu.getJassDecls().size() + cu.getPackages().size() == 0);
+	}
+
 }

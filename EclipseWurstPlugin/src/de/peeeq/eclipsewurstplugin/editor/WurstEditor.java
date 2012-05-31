@@ -180,6 +180,11 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 		}
 		
 	}
+
+
+	public CompilationUnit reconcile() {
+		return reconciler.reconcile();
+	}
 	
 	
 }

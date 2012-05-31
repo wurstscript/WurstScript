@@ -29,12 +29,7 @@ import de.peeeq.eclipsewurstplugin.util.UtilityFunctions;
 
 public class SimpleCodeScanner extends RuleBasedScanner implements WurstScanner {
 
-	private static final String[] KEYWORDS = new String[] { "class", "return", "if", "else", "while", "for", "in", "break", "new", "null",
-			"package", "endpackage", "function", "returns", "public", "private", "protected", "import", "native", "nativetype", "extends",
-			"interface", "implements", "module", "use", "abstract", "static", "thistype", "override", "immutable", "it", "array", "and",
-			"or", "not", "this", "construct", "ondestroy", "destroy", "type", "globals", "endglobals", "constant", "endfunction",
-			"nothing", "takes", "local", "loop", "endloop", "exitwhen", "set", "call", "then", "elseif", "endif", "init", "castTo",
-			"tuple", "div", "mod", "let", "from", "to", "downto", "step", "endpackage", "skip" };
+	
 	private Token keywordToken;
 	private Token commentToken;
 	private Token stringToken;
@@ -56,7 +51,7 @@ public class SimpleCodeScanner extends RuleBasedScanner implements WurstScanner 
 			}
 		}, identifierToken, false);
 		// add tokens for each reserved word
-		for (String keyword : KEYWORDS) {
+		for (String keyword : WurstConstants.KEYWORDS) {
 			keywordRule.addWord(keyword, keywordToken);
 		}
 		

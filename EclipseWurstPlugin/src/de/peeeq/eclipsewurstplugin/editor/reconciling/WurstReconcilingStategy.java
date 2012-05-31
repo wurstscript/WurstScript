@@ -11,6 +11,7 @@ import org.eclipse.jface.text.reconciler.IReconcilingStrategy;
 import de.peeeq.eclipsewurstplugin.builder.ModelManager;
 import de.peeeq.eclipsewurstplugin.builder.WurstNature;
 import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
+import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
@@ -42,15 +43,15 @@ public class WurstReconcilingStategy implements IReconcilingStrategy {
 		reconcile();
 	}
 
-	public void reconcile() {
+	public CompilationUnit reconcile() {
 		ModelManager mm = editor.getModelManager();
 		WurstGui gui = new WurstGuiLogger();
 		IFile file = editor.getFile();
 		if (file != null) {
 			// TODO handle parser-error markers
-			mm.parse(gui, file.getProjectRelativePath().toString(), new StringReader(document.get()));
+			return mm.parse(gui, file.getProjectRelativePath().toString(), new StringReader(document.get()));
 		}
-		
+		return null;
 	}
 
 }

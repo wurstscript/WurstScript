@@ -405,12 +405,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			parser.setFilename(source);
 			Symbol sym = parser.parse();
 			parseErrors = parser.getErrorCount();
-			if (parseErrors > 0) {
-				return emptyCompilationUnit();
-			}	
-			CompilationUnit root = (CompilationUnit) sym.value;
-			removeSyntacticSugar(root);
-			return root;
+			if (sym.value instanceof CompilationUnit) {
+				CompilationUnit root = (CompilationUnit) sym.value;
+				removeSyntacticSugar(root);
+				return root;
+			}
+			return emptyCompilationUnit();
 		} catch (CompileError e) {
 			gui.sendError(e);
 			return emptyCompilationUnit();

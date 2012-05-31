@@ -24,7 +24,7 @@ public interface ModelManager {
 
 	 void registerChangeListener(String fileName, CompilationUnitChangeListener listener);
 
-	 void parse(WurstGui gui, String fileName, Reader source);
+	 CompilationUnit parse(WurstGui gui, String fileName, Reader source);
 
 	 void fullBuildDone();
 

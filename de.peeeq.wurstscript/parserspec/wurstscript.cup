@@ -643,8 +643,8 @@ Expr ::=
 	  	{: RESULT = x; :}
 	| ExprCast:x
 		{: RESULT = x; :}
-//	| Expr:left DOT:y
-//		{: RESULT = Ast.ExprMemberVar(pos(left,yright), left, ""); :}
+	| Expr:left DOT:y
+		{: RESULT = Ast.ExprMemberVar(pos(left,yright), left, ""); :}
 ;
 	
 	

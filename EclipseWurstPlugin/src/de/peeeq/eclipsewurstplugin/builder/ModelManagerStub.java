@@ -43,8 +43,8 @@ public class ModelManagerStub implements ModelManager {
 	}
 
 	@Override
-	public void parse(WurstGui gui, String fileName, Reader source) {
-		
+	public CompilationUnit parse(WurstGui gui, String fileName, Reader source) {
+		return null;
 	}
 
 	@Override
