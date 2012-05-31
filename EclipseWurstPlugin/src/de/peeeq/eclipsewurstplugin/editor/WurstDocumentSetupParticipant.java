@@ -7,8 +7,8 @@ import org.eclipse.jface.text.IDocumentPartitioner;
 import org.eclipse.jface.text.rules.FastPartitioner;
 
 import de.peeeq.eclipsewurstplugin.WurstPlugin;
+import de.peeeq.eclipsewurstplugin.WurstConstants;
 
-import eclipsewurstplugin.Activator;
 
 public class WurstDocumentSetupParticipant  implements IDocumentSetupParticipant {
 
@@ -16,8 +16,8 @@ public class WurstDocumentSetupParticipant  implements IDocumentSetupParticipant
 		public void setup(IDocument document) {
 			if (document instanceof IDocumentExtension3) {
 				IDocumentExtension3 extension3= (IDocumentExtension3) document;
-				IDocumentPartitioner partitioner= new FastPartitioner(Activator.getDefault().scanners().wurstPartitionScanner(), WurstPlugin.PARTITION_TYPES);
-				extension3.setDocumentPartitioner(WurstPlugin.WURST_PARTITIONING, partitioner);
+				IDocumentPartitioner partitioner= new FastPartitioner(WurstPlugin.getDefault().scanners().wurstPartitionScanner(), WurstConstants.PARTITION_TYPES);
+				extension3.setDocumentPartitioner(WurstConstants.WURST_PARTITIONING, partitioner);
 				partitioner.connect(document);
 			}
 		}

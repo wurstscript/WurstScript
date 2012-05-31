@@ -1,12 +1,12 @@
 package de.peeeq.eclipsewurstplugin.editor.highlighting;
 
-import static de.peeeq.eclipsewurstplugin.WurstPlugin.SYNTAXCOLOR_BOLD;
-import static de.peeeq.eclipsewurstplugin.WurstPlugin.SYNTAXCOLOR_COLOR;
-import static de.peeeq.eclipsewurstplugin.WurstPlugin.SYNTAXCOLOR_COMMENT;
-import static de.peeeq.eclipsewurstplugin.WurstPlugin.SYNTAXCOLOR_ITALIC;
-import static de.peeeq.eclipsewurstplugin.WurstPlugin.SYNTAXCOLOR_STRIKETHROUGH;
-import static de.peeeq.eclipsewurstplugin.WurstPlugin.SYNTAXCOLOR_STRING;
-import static de.peeeq.eclipsewurstplugin.WurstPlugin.SYNTAXCOLOR_UNDERLINE;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_BOLD;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_COLOR;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_COMMENT;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_ITALIC;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_STRIKETHROUGH;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_STRING;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_UNDERLINE;
 
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.preference.PreferenceConverter;
@@ -23,9 +23,9 @@ import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.widgets.Display;
 
 import de.peeeq.eclipsewurstplugin.WurstPlugin;
+import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.eclipsewurstplugin.util.UtilityFunctions;
 
-import eclipsewurstplugin.Activator;
 
 public class Scanners {
 	
@@ -43,7 +43,7 @@ public class Scanners {
 
 		@Override
 		public String getPartitionType() {
-			return WurstPlugin.PARTITION_SINLGE_LINE_COMMENT;
+			return WurstConstants.PARTITION_SINLGE_LINE_COMMENT;
 		}
 
 
@@ -60,7 +60,7 @@ public class Scanners {
 
 		@Override
 		public String getPartitionType() {
-			return WurstPlugin.PARTITION_MULTI_LINE_COMMENT;
+			return WurstConstants.PARTITION_MULTI_LINE_COMMENT;
 		}
 	}
 	public static class StringScanner extends RuleBasedScanner implements WurstScanner {
@@ -77,7 +77,7 @@ public class Scanners {
 
 		@Override
 		public String getPartitionType() {
-			return WurstPlugin.PARTITION_STRING;
+			return WurstConstants.PARTITION_STRING;
 		}
 	}
 	public static class CharacterScanner extends RuleBasedScanner implements WurstScanner {
@@ -91,7 +91,7 @@ public class Scanners {
 
 		@Override
 		public String getPartitionType() {
-			return WurstPlugin.PARTITION_CHARACTER;
+			return WurstConstants.PARTITION_CHARACTER;
 		}
 	}
 

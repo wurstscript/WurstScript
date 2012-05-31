@@ -1,8 +1,8 @@
 package de.peeeq.eclipsewurstplugin.editor;
 
-import static de.peeeq.eclipsewurstplugin.WurstPlugin.DEFAULT_MATCHING_BRACKETS_COLOR;
-import static de.peeeq.eclipsewurstplugin.WurstPlugin.EDITOR_MATCHING_BRACKETS;
-import static de.peeeq.eclipsewurstplugin.WurstPlugin.EDITOR_MATCHING_BRACKETS_COLOR;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.DEFAULT_MATCHING_BRACKETS_COLOR;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.EDITOR_MATCHING_BRACKETS;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.EDITOR_MATCHING_BRACKETS_COLOR;
 
 import java.util.Set;
 

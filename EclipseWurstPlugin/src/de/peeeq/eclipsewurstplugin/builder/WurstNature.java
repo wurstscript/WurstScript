@@ -11,7 +11,7 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.text.IDocumentExtension;
 
-import de.peeeq.eclipsewurstplugin.WurstPlugin;
+import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
 import de.peeeq.wurstscript.attributes.CompileError;
 
@@ -99,8 +99,8 @@ public class WurstNature implements IProjectNature {
 			marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
 
 			marker.setAttribute(IMarker.LINE_NUMBER, e.getSource().getLine());
-			marker.setAttribute(WurstPlugin.START_POS, e.getSource().getLeftPos());
-			marker.setAttribute(WurstPlugin.END_POS, e.getSource().getRightPos());
+			marker.setAttribute(WurstConstants.START_POS, e.getSource().getLeftPos());
+			marker.setAttribute(WurstConstants.END_POS, e.getSource().getRightPos());
 		} catch (CoreException ex) {
 		}
 		

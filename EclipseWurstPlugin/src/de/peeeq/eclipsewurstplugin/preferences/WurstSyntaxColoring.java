@@ -17,7 +17,7 @@ import org.eclipse.ui.IWorkbenchPreferencePage;
 
 import de.peeeq.eclipsewurstplugin.util.UtilityFunctions;
 
-import static de.peeeq.eclipsewurstplugin.WurstPlugin.*;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.*;
 /**
  * Preference page for syntax highlighting of the ABS editor.
  * @author tfischer

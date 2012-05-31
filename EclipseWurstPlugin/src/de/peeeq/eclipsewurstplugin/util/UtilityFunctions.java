@@ -1,9 +1,9 @@
 package de.peeeq.eclipsewurstplugin.util;
 
-import static de.peeeq.eclipsewurstplugin.WurstPlugin.SYNTAXCOLOR_BOLD;
-import static de.peeeq.eclipsewurstplugin.WurstPlugin.SYNTAXCOLOR_ITALIC;
-import static de.peeeq.eclipsewurstplugin.WurstPlugin.SYNTAXCOLOR_STRIKETHROUGH;
-import static de.peeeq.eclipsewurstplugin.WurstPlugin.SYNTAXCOLOR_UNDERLINE;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_BOLD;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_ITALIC;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_STRIKETHROUGH;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_UNDERLINE;
 
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.preference.IPreferenceStore;
@@ -11,7 +11,8 @@ import org.eclipse.jface.text.TextAttribute;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Display;
 
-import eclipsewurstplugin.Activator;
+import de.peeeq.eclipsewurstplugin.WurstPlugin;
+
 
 public class UtilityFunctions {
 
@@ -20,7 +21,7 @@ public class UtilityFunctions {
 	}
 
 	public static IPreferenceStore getDefaultPreferenceStore() {
-		return Activator.getDefault().getPreferenceStore();
+		return WurstPlugin.getDefault().getPreferenceStore();
 	}
 
 	

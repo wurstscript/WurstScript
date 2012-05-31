@@ -12,7 +12,7 @@ import org.eclipse.jface.text.rules.IToken;
 import org.eclipse.jface.text.rules.Token;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.widgets.Display;
-import static de.peeeq.eclipsewurstplugin.WurstPlugin.*;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.*;
 import de.peeeq.eclipsewurstplugin.util.UtilityFunctions;
 import de.peeeq.wurstscript.parser.TokenType;
 import de.peeeq.wurstscript.parser.WurstScriptScanner;

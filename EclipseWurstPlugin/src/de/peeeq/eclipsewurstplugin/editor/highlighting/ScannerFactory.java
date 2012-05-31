@@ -1,6 +1,6 @@
 package de.peeeq.eclipsewurstplugin.editor.highlighting;
 
-import static de.peeeq.eclipsewurstplugin.WurstPlugin.SYNTAXCOLOR_COLOR;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_COLOR;
 
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.preference.PreferenceConverter;
@@ -12,7 +12,7 @@ import org.eclipse.jface.text.rules.ITokenScanner;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.widgets.Display;
 
-import de.peeeq.eclipsewurstplugin.WurstPlugin;
+import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.eclipsewurstplugin.editor.WurstPartitionScanner;
 import de.peeeq.eclipsewurstplugin.util.UtilityFunctions;
 
@@ -27,8 +27,8 @@ public class ScannerFactory {
 	public ScannerFactory() {
 		preferencestore = UtilityFunctions.getDefaultPreferenceStore();
 		wurstCodeScanner = new SimpleCodeScanner();
-		hotDocScanner = new SingleTokenScanner(getStyle(WurstPlugin.SYNTAXCOLOR_COMMENT));
-		multilineCommentScanner = new SingleTokenScanner(getStyle(WurstPlugin.SYNTAXCOLOR_COMMENT));
+		hotDocScanner = new SingleTokenScanner(getStyle(WurstConstants.SYNTAXCOLOR_COMMENT));
+		multilineCommentScanner = new SingleTokenScanner(getStyle(WurstConstants.SYNTAXCOLOR_COMMENT));
 	}
 	
 	private TextAttribute getStyle(String key) {
@@ -44,11 +44,11 @@ public class ScannerFactory {
 	}
 
 	public ITokenScanner hotDocScanner() {
-		return new SingleTokenScanner(getStyle(WurstPlugin.SYNTAXCOLOR_COMMENT));
+		return new SingleTokenScanner(getStyle(WurstConstants.SYNTAXCOLOR_COMMENT));
 	}
 
 	public ITokenScanner multilineCommentScanner() {
-		return new SingleTokenScanner(getStyle(WurstPlugin.SYNTAXCOLOR_COMMENT));
+		return new SingleTokenScanner(getStyle(WurstConstants.SYNTAXCOLOR_COMMENT));
 	}
 
 	public IPartitionTokenScanner wurstPartitionScanner() {

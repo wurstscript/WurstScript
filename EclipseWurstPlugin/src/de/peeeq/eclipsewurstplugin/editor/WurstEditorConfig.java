@@ -19,12 +19,12 @@ import org.eclipse.jface.text.source.SourceViewerConfiguration;
 import org.eclipse.ui.texteditor.SimpleMarkerAnnotation;
 
 import de.peeeq.eclipsewurstplugin.WurstPlugin;
+import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.eclipsewurstplugin.builder.WurstBuilder;
 import de.peeeq.eclipsewurstplugin.editor.autoedit.WurstAutoIndentStrategy;
 import de.peeeq.eclipsewurstplugin.editor.highlighting.SingleTokenScanner;
 import de.peeeq.eclipsewurstplugin.editor.highlighting.WurstScanner;
 import de.peeeq.eclipsewurstplugin.editor.reconciling.WurstReconcilingStategy;
-import eclipsewurstplugin.Activator;
 
 import org.eclipse.swt.graphics.RGB;
 
@@ -73,10 +73,10 @@ public class WurstEditorConfig extends SourceViewerConfiguration {
 //		registerRepairer(reconciler, new SimpleCodeScanner());
 //		return reconciler;
 		
-		Activator plugin = Activator.getDefault();
+		WurstPlugin plugin = WurstPlugin.getDefault();
 		PresentationReconciler reconciler= new PresentationReconciler();
 //		reconciler.setDocumentPartitioning(getConfiguredDocumentPartitioning(sourceViewer));
-		reconciler.setDocumentPartitioning(WurstPlugin.WURST_PARTITIONING);
+		reconciler.setDocumentPartitioning(WurstConstants.WURST_PARTITIONING);
 
 		DefaultDamagerRepairer dr= new DefaultDamagerRepairer(plugin.scanners().wurstCodeScanner());
 		reconciler.setDamager(dr, IDocument.DEFAULT_CONTENT_TYPE);

@@ -10,7 +10,7 @@ import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.swt.graphics.Image;
 import org.osgi.framework.Bundle;
 
-import de.peeeq.eclipsewurstplugin.WurstPlugin;
+import de.peeeq.eclipsewurstplugin.WurstConstants;
 
 public class Icons {
 
@@ -32,7 +32,7 @@ public class Icons {
 	}
 	
 	public static Image createImage(String path){
-		Bundle bundle = Platform.getBundle(WurstPlugin.PLUGIN_ID);
+		Bundle bundle = Platform.getBundle(WurstConstants.PLUGIN_ID);
 		IPath imagepath = new Path(path);
 		URL imageUrl = FileLocator.find(bundle, imagepath,null);
 		ImageDescriptor id = ImageDescriptor.createFromURL(imageUrl);

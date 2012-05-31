@@ -1,7 +1,7 @@
 package de.peeeq.eclipsewurstplugin.editor.highlighting;
 
-import static de.peeeq.eclipsewurstplugin.WurstPlugin.SYNTAXCOLOR_COLOR;
-import static de.peeeq.eclipsewurstplugin.WurstPlugin.SYNTAXCOLOR_KEYWORD;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_COLOR;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_KEYWORD;
 
 import javax.swing.text.html.parser.Parser;
 
@@ -24,7 +24,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.widgets.Display;
 
-import de.peeeq.eclipsewurstplugin.WurstPlugin;
+import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.eclipsewurstplugin.util.UtilityFunctions;
 
 public class SimpleCodeScanner extends RuleBasedScanner implements WurstScanner {
@@ -41,9 +41,9 @@ public class SimpleCodeScanner extends RuleBasedScanner implements WurstScanner 
 
 	public SimpleCodeScanner() {
 		IPreferenceStore preferencestore = UtilityFunctions.getDefaultPreferenceStore();
-		keywordToken = makeToken(preferencestore, WurstPlugin.SYNTAXCOLOR_KEYWORD);
-		commentToken = makeToken(preferencestore, WurstPlugin.SYNTAXCOLOR_COMMENT);
-		stringToken = makeToken(preferencestore, WurstPlugin.SYNTAXCOLOR_STRING);
+		keywordToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_KEYWORD);
+		commentToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_COMMENT);
+		stringToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_STRING);
 		IToken identifierToken = new Token(new TextAttribute(new Color(Display.getCurrent(), 0,0,0), null, 0));
 		
 		WordRule keywordRule = new WordRule(new IWordDetector() {
