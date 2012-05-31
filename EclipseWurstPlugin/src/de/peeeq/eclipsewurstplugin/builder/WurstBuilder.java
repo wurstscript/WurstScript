@@ -180,6 +180,7 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 			WurstGui gui = new WurstGuiEclipse(monitor);
 			getProject().accept(new SampleResourceVisitor(gui));
 			getModelManager().typeCheckModel(gui);
+			getModelManager().fullBuildDone();
 		} catch (CoreException e) {
 		}
 	}

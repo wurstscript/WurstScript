@@ -34,6 +34,7 @@ public class ModelManagerImpl implements ModelManager {
 	private WurstModel model;
 	private final WurstNature nature;
 	private Multimap<String, CompilationUnitChangeListener> changeListeners = HashMultimap.create();
+	private boolean needsFullBuild = true;
 	
 	public ModelManagerImpl(WurstNature nature) {
 		this.nature = nature;
@@ -57,12 +58,13 @@ public class ModelManagerImpl implements ModelManager {
 
 	@Override
 	public boolean needsFullBuild() {
-		return model == null;
+		return needsFullBuild;
 	}
 
 	@Override
 	public void clean() {
 		model = null;
+		needsFullBuild = true;
 	}
 	
 	@Override
@@ -167,6 +169,11 @@ public class ModelManagerImpl implements ModelManager {
 			cu.setFile(fileName);
 			updateModel(cu, gui);
 		}
+	}
+
+	@Override
+	public void fullBuildDone() {
+		needsFullBuild = false;
 	}
 	
 }

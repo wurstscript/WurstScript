@@ -10,20 +10,22 @@ import de.peeeq.wurstscript.gui.WurstGui;
 
 public interface ModelManager {
 
-	public abstract void removeCompilationUnit(IResource resource);
+	 void removeCompilationUnit(IResource resource);
 
-	public abstract boolean needsFullBuild();
+	 boolean needsFullBuild();
 
-	public abstract void clean();
+	 void clean();
 
-	void typeCheckModel(WurstGui gui);
+	 void typeCheckModel(WurstGui gui);
 
-	void updateModel(CompilationUnit cu, WurstGui gui);
+	 void updateModel(CompilationUnit cu, WurstGui gui);
 
-	public abstract CompilationUnit getCompilationUnit(String fileName);
+	 CompilationUnit getCompilationUnit(String fileName);
 
-	public abstract void registerChangeListener(String fileName, CompilationUnitChangeListener listener);
+	 void registerChangeListener(String fileName, CompilationUnitChangeListener listener);
 
-	public abstract void parse(WurstGui gui, String fileName, Reader source);
+	 void parse(WurstGui gui, String fileName, Reader source);
+
+	 void fullBuildDone();
 
 }

@@ -47,4 +47,8 @@ public class ModelManagerStub implements ModelManager {
 		
 	}
 
+	@Override
+	public void fullBuildDone() {
+	}
+
 }
