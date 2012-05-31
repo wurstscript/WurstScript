@@ -1,4 +1,4 @@
-package de.peeeq.eclipsewurstplugin.editor;
+package de.peeeq.eclipsewurstplugin.editor.highlighting;
 
 import static de.peeeq.eclipsewurstplugin.WurstPlugin.SYNTAXCOLOR_COLOR;
 import static de.peeeq.eclipsewurstplugin.WurstPlugin.SYNTAXCOLOR_KEYWORD;
@@ -9,6 +9,7 @@ import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.preference.PreferenceConverter;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.TextAttribute;
+import org.eclipse.jface.text.rules.EndOfLineRule;
 import org.eclipse.jface.text.rules.IRule;
 import org.eclipse.jface.text.rules.IToken;
 import org.eclipse.jface.text.rules.IWhitespaceDetector;
@@ -65,10 +66,10 @@ public class SimpleCodeScanner extends RuleBasedScanner implements WurstScanner 
 			}
 		});
 		setRules(new IRule[] { 
-				new SingleLineRule("//", null, commentToken), 
+				new EndOfLineRule("//", commentToken), 
 				new SingleLineRule("\"", "\"", stringToken, '\\'),
 				new SingleLineRule("'", "'", stringToken, '\\'), 
-				new MultiLineRule("/*", "*/", commentToken),
+//				new MultiLineRule("/*", "*/", commentToken),
 				whitespaceRule,
 				keywordRule
 			});

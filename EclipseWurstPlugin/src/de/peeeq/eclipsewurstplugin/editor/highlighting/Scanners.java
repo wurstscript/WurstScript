@@ -1,4 +1,4 @@
-package de.peeeq.eclipsewurstplugin.editor;
+package de.peeeq.eclipsewurstplugin.editor.highlighting;
 
 import static de.peeeq.eclipsewurstplugin.WurstPlugin.SYNTAXCOLOR_BOLD;
 import static de.peeeq.eclipsewurstplugin.WurstPlugin.SYNTAXCOLOR_COLOR;

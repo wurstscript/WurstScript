@@ -4,7 +4,6 @@ import static de.peeeq.eclipsewurstplugin.WurstPlugin.DEFAULT_MATCHING_BRACKETS_
 import static de.peeeq.eclipsewurstplugin.WurstPlugin.EDITOR_MATCHING_BRACKETS;
 import static de.peeeq.eclipsewurstplugin.WurstPlugin.EDITOR_MATCHING_BRACKETS_COLOR;
 
-import java.util.Iterator;
 import java.util.Set;
 
 import org.eclipse.core.resources.IFile;
@@ -12,18 +11,8 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.text.IDocumentExtension3;
 import org.eclipse.jface.text.ITextSelection;
-import org.eclipse.jface.text.ITextViewerExtension5;
-import org.eclipse.jface.text.Position;
-import org.eclipse.jface.text.Region;
 import org.eclipse.jface.text.source.DefaultCharacterPairMatcher;
-import org.eclipse.jface.text.source.IAnnotationModel;
 import org.eclipse.jface.text.source.ICharacterPairMatcher;
-import org.eclipse.jface.text.source.ISourceViewer;
-import org.eclipse.jface.text.source.IVerticalRuler;
-import org.eclipse.jface.text.source.projection.ProjectionAnnotation;
-import org.eclipse.jface.text.source.projection.ProjectionAnnotationModel;
-import org.eclipse.jface.text.source.projection.ProjectionSupport;
-import org.eclipse.jface.text.source.projection.ProjectionViewer;
 import org.eclipse.jface.viewers.IPostSelectionProvider;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
@@ -32,7 +21,6 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.IFileEditorInput;
 import org.eclipse.ui.IPersistableEditor;
 import org.eclipse.ui.editors.text.TextEditor;
-import org.eclipse.ui.texteditor.ITextEditor;
 import org.eclipse.ui.texteditor.SourceViewerDecorationSupport;
 import org.eclipse.ui.views.contentoutline.IContentOutlinePage;
 
@@ -41,16 +29,9 @@ import com.google.common.collect.Sets;
 import de.peeeq.eclipsewurstplugin.builder.ModelManager;
 import de.peeeq.eclipsewurstplugin.builder.ModelManagerStub;
 import de.peeeq.eclipsewurstplugin.builder.WurstNature;
-import de.peeeq.eclipsewurstplugin.editor.outline.Icons;
 import de.peeeq.eclipsewurstplugin.editor.outline.WurstContentOutlinePage;
 import de.peeeq.eclipsewurstplugin.editor.reconciling.WurstReconcilingStategy;
-import de.peeeq.wurstscript.ast.AstElementWithSource;
-import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.ExtensionFuncDef;
-import de.peeeq.wurstscript.ast.FuncDef;
-import de.peeeq.wurstscript.ast.InterfaceDef;
-import de.peeeq.wurstscript.ast.ModuleDef;
 
 public class WurstEditor extends TextEditor implements IPersistableEditor, CompilationUnitChangeListener, ISelectionChangedListener {
 	

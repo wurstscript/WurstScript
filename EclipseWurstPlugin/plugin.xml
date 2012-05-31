@@ -85,6 +85,7 @@
             id="de.peeeq.eclipsewurstplugin.editorWurstEditor">
       </editor>
    </extension>
+   
    <!-- preference pages -->
    <extension
           point="org.eclipse.ui.preferencePages">

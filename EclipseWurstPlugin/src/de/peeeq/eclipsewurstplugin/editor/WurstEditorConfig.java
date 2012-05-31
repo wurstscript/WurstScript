@@ -3,9 +3,9 @@ package de.peeeq.eclipsewurstplugin.editor;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.text.DefaultTextHover;
 import org.eclipse.jface.text.IAutoEditStrategy;
-import org.eclipse.jface.text.IAutoIndentStrategy;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextHover;
+import org.eclipse.jface.text.TextAttribute;
 import org.eclipse.jface.text.hyperlink.IHyperlinkDetector;
 import org.eclipse.jface.text.presentation.IPresentationReconciler;
 import org.eclipse.jface.text.presentation.PresentationReconciler;
@@ -18,9 +18,33 @@ import org.eclipse.jface.text.source.ISourceViewer;
 import org.eclipse.jface.text.source.SourceViewerConfiguration;
 import org.eclipse.ui.texteditor.SimpleMarkerAnnotation;
 
+import de.peeeq.eclipsewurstplugin.WurstPlugin;
 import de.peeeq.eclipsewurstplugin.builder.WurstBuilder;
 import de.peeeq.eclipsewurstplugin.editor.autoedit.WurstAutoIndentStrategy;
+import de.peeeq.eclipsewurstplugin.editor.highlighting.SingleTokenScanner;
+import de.peeeq.eclipsewurstplugin.editor.highlighting.WurstScanner;
 import de.peeeq.eclipsewurstplugin.editor.reconciling.WurstReconcilingStategy;
+import eclipsewurstplugin.Activator;
+
+import org.eclipse.swt.graphics.RGB;
+
+import org.eclipse.jface.text.DefaultIndentLineAutoEditStrategy;
+import org.eclipse.jface.text.IAutoEditStrategy;
+import org.eclipse.jface.text.IDocument;
+import org.eclipse.jface.text.ITextDoubleClickStrategy;
+import org.eclipse.jface.text.ITextHover;
+import org.eclipse.jface.text.TextAttribute;
+import org.eclipse.jface.text.contentassist.ContentAssistant;
+import org.eclipse.jface.text.contentassist.IContentAssistant;
+import org.eclipse.jface.text.presentation.IPresentationReconciler;
+import org.eclipse.jface.text.presentation.PresentationReconciler;
+import org.eclipse.jface.text.rules.BufferedRuleBasedScanner;
+import org.eclipse.jface.text.rules.DefaultDamagerRepairer;
+import org.eclipse.jface.text.rules.Token;
+import org.eclipse.jface.text.source.IAnnotationHover;
+import org.eclipse.jface.text.source.ISourceViewer;
+import org.eclipse.jface.text.source.SourceViewerConfiguration;
+
 
 
 public class WurstEditorConfig extends SourceViewerConfiguration {
@@ -41,12 +65,31 @@ public class WurstEditorConfig extends SourceViewerConfiguration {
 
 	@Override
 	public IPresentationReconciler getPresentationReconciler(ISourceViewer sourceViewer) {
-		PresentationReconciler reconciler = new PresentationReconciler();
-//		registerRepairer(reconciler, new Scanners.SingleCommentScanner());
-//		registerRepairer(reconciler, new Scanners.MultiCommentScanner());
-//		registerRepairer(reconciler, new Scanners.StringScanner());
-//		registerRepairer(reconciler, new Scanners.CharacterScanner());
-		registerRepairer(reconciler, new SimpleCodeScanner());
+//		PresentationReconciler reconciler = new PresentationReconciler();
+////		registerRepairer(reconciler, new Scanners.SingleCommentScanner());
+////		registerRepairer(reconciler, new Scanners.MultiCommentScanner());
+////		registerRepairer(reconciler, new Scanners.StringScanner());
+////		registerRepairer(reconciler, new Scanners.CharacterScanner());
+//		registerRepairer(reconciler, new SimpleCodeScanner());
+//		return reconciler;
+		
+		Activator plugin = Activator.getDefault();
+		PresentationReconciler reconciler= new PresentationReconciler();
+//		reconciler.setDocumentPartitioning(getConfiguredDocumentPartitioning(sourceViewer));
+		reconciler.setDocumentPartitioning(WurstPlugin.WURST_PARTITIONING);
+
+		DefaultDamagerRepairer dr= new DefaultDamagerRepairer(plugin.scanners().wurstCodeScanner());
+		reconciler.setDamager(dr, IDocument.DEFAULT_CONTENT_TYPE);
+		reconciler.setRepairer(dr, IDocument.DEFAULT_CONTENT_TYPE);
+
+		dr= new DefaultDamagerRepairer(plugin.scanners().hotDocScanner());
+		reconciler.setDamager(dr, WurstPartitionScanner.HOT_DOC);
+		reconciler.setRepairer(dr, WurstPartitionScanner.HOT_DOC);
+
+		dr= new DefaultDamagerRepairer(plugin.scanners().multilineCommentScanner());
+		reconciler.setDamager(dr, WurstPartitionScanner.WURST_MULTILINE_COMMENT);
+		reconciler.setRepairer(dr, WurstPartitionScanner.WURST_MULTILINE_COMMENT);
+
 		return reconciler;
 	}
 

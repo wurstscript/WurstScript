@@ -1,4 +1,4 @@
-package de.peeeq.eclipsewurstplugin.editor;
+package de.peeeq.eclipsewurstplugin.editor.highlighting;
 
 import java.io.IOException;
 import java.io.StringReader;

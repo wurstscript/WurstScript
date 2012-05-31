@@ -26,13 +26,14 @@ import static de.peeeq.eclipsewurstplugin.WurstPlugin.SYNTAXCOLOR_STRING;
 import static de.peeeq.eclipsewurstplugin.WurstPlugin.SYNTAXCOLOR_UNDERLINE;
 import static de.peeeq.eclipsewurstplugin.WurstPlugin.SYNTAXCOLOR_VAR;
 
-import org.eclipse.core.runtime.Platform;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.preference.PreferenceConverter;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.swt.graphics.RGB;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
+
+import de.peeeq.eclipsewurstplugin.editor.highlighting.ScannerFactory;
 
 /**
  * The activator class controls the plug-in life cycle
@@ -44,6 +45,8 @@ public class Activator extends AbstractUIPlugin {
 
 	// The shared instance
 	private static Activator plugin;
+
+	private ScannerFactory scanners;
 	
 	/**
 	 * The constructor
@@ -59,6 +62,7 @@ public class Activator extends AbstractUIPlugin {
 		super.start(context);
 		plugin = this;
 		initializePreferenceStore();
+		scanners = new ScannerFactory();
 	}
 
 	/*
@@ -167,4 +171,9 @@ public class Activator extends AbstractUIPlugin {
 	public static IPreferenceStore getDefaultPreferenceStore(){
 		return Activator.getDefault().getPreferenceStore();
 	}
+
+	public ScannerFactory scanners() {
+		return scanners;
+	}
+	
 }
