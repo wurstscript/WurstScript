@@ -157,14 +157,15 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 
 	private ICompletionProposal makeFunctionCompletion(FunctionDefinition f) {
-		String replacementString = f.getName() + "(";
-		if (f.getParameters().size() == 0) {
-			replacementString += ")";
-		}
+		String replacementString = f.getName() + "()";
+		
 		replacementString = replacementString.substring(alreadyEntered.length());
 		int replacementOffset = offset;
 		int replacementLength = 0;
-		int cursorPosition = replacementString.length();
+		int cursorPosition = replacementString.length() - 1; // inside parentheses
+		if (f.getParameters().size() == 0) {
+			cursorPosition++; // outside parentheses
+		}
 		Image image = null;
 		String displayString = f.getName();
 		StringBuilder descr = new StringBuilder();
