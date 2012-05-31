@@ -25,12 +25,12 @@ public class WurstAutoIndentStrategy extends DefaultIndentLineAutoEditStrategy i
 		try {
 			// find start of line
 			int p= (c.offset == d.getLength() ? c.offset  - 1 : c.offset);
-			IRegion info= d.getLineInformationOfOffset(p);
-			int start= info.getOffset();
-
-			String line = d.get(info.getOffset(), info.getLength());
+			IRegion lineInfo= d.getLineInformationOfOffset(p);
+			int start= lineInfo.getOffset();
+			int startOfWord = start + lineInfo.getLength();
+			String line = d.get(lineInfo.getOffset(), lineInfo.getLength());
 			int spaces = 0;
-			int startOfWord = start + info.getLength();
+			
 			for (int i=0; i< line.length(); i++) {
 				if (line.charAt(i) == ' ') {
 					spaces++;
@@ -41,19 +41,26 @@ public class WurstAutoIndentStrategy extends DefaultIndentLineAutoEditStrategy i
 					break;
 				}
 			}
-			int indent = spaces/4; 
-			boolean usingSpaces = line.length() > 0 && line.charAt(0) == ' ';
-			String lineT = line.substring(startOfWord-start);
-			if (incIndent.matcher(lineT).matches()) {
-				indent++;
+			int indent;
+			if (c.offset < lineInfo.getOffset() + lineInfo.getLength()) {
+				// we are in the middle of a line
+				indent = -1; // 
 			} else {
-				indent=-1;
+				// we are at the end of a line
+				indent = spaces/4; 
+			
+				
+				String lineT = line.substring(startOfWord-start);
+				if (incIndent.matcher(lineT).matches()) {
+					indent++;
+				} else {
+					indent=-1;
+				}
 			}
+			boolean usingSpaces = line.length() > 0 && line.charAt(0) == ' ';
 			StringBuffer buf= new StringBuffer(c.text);
 			if (indent >= 0) {
-				for (int i=0; i<indent; i++) {
-					buf.append('\t');
-				}
+				makeIndent(indent, usingSpaces, buf);
 			} else {
 				// use same indentation:
 				if (startOfWord > start) {
@@ -65,6 +72,12 @@ public class WurstAutoIndentStrategy extends DefaultIndentLineAutoEditStrategy i
 			c.text= buf.toString();
 		} catch (BadLocationException excp) {
 			// stop work
+		}
+	}
+
+	private void makeIndent(int indent, boolean usingSpaces, StringBuffer buf) {
+		for (int i=0; i<indent; i++) {
+			buf.append(usingSpaces ? "    " : "\t");
 		}
 	}
 

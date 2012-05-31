@@ -135,9 +135,9 @@ public class WurstEditorConfig extends SourceViewerConfiguration {
 	
 	@Override
 	public IAutoEditStrategy[] getAutoEditStrategies(ISourceViewer sourceViewer, String contentType) {
-//		return super.getAutoEditStrategies(sourceViewer, contentType);
 		return new IAutoEditStrategy[] {
 				new WurstAutoIndentStrategy()
 		};
 	}
+	
 }
