@@ -15,6 +15,7 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.utils.NotNullList;
 import de.peeeq.wurstscript.utils.Utils;
@@ -201,6 +202,9 @@ public class ExtendedParser extends parser {
 
 		WPos source = Ast.WPos(filename, scanner.lineStartOffsets, s.left, s.right);
 		CompileError err = new CompileError(source, msg);
+		if (attr.unitTestMode) {
+			throw err;
+		}
 		errors.add(err);
 		gui.sendError(err);
 		// throw err;
