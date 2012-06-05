@@ -1,0 +1,15 @@
+package Item
+	
+	public function item.getName() returns string
+		return GetItemName( this )
+		
+	public function item.getX() returns real
+		return GetItemX( this )
+			
+	public function item.getY() returns real
+		return GetItemY( this )
+	
+	public function item.setPos( real x, real y ) returns item
+		SetItemPosition( this, x, y )
+		return this
+endpackage

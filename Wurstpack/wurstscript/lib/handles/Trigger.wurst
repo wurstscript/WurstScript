@@ -1,0 +1,38 @@
+package Trigger
+
+	public function trigger.enable() returns trigger
+		EnableTrigger( this )
+		return this
+		
+	public function trigger.disable() returns trigger
+		DisableTrigger( this )
+		return this
+		
+	public function trigger.destr()
+		DestroyTrigger( this )
+	
+	public function trigger.reset() returns trigger
+		ResetTrigger( this )
+		return this
+		
+	public function trigger.addAction(code actionFunc) returns trigger
+		TriggerAddAction( this, actionFunc )
+		return this
+	
+	public function trigger.addCondition(boolexpr condition) returns trigger
+		TriggerAddCondition( this, condition )
+		return this
+		
+	public function trigger.evaluate() returns trigger
+		TriggerEvaluate( this )
+		return this
+	
+	public function trigger.execute() returns trigger
+		TriggerExecute( this )
+		return this
+		
+	public function trigger.registerAnyUnitEvent(playerunitevent whichEvent) returns trigger
+		TriggerRegisterAnyUnitEventBJ(this, whichEvent)
+		return this
+
+endpackage 
