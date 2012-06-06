@@ -7,7 +7,8 @@
          name="Wurst Project Builder"
          point="org.eclipse.core.resources.builders">
       <builder
-            hasNature="true">
+            hasNature="true"
+            callOnEmptyDelta="true">
          <run
                class="de.peeeq.eclipsewurstplugin.builder.WurstBuilder">
          </run>

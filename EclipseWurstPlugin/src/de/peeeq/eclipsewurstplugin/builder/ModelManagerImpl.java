@@ -70,6 +70,9 @@ public class ModelManagerImpl implements ModelManager {
 	@Override
 	public void typeCheckModel(WurstGui gui) {
 		System.out.println("#typechecking");
+		if (needsFullBuild) {
+			System.out.println("needs full build...");
+		}
 		if (gui.getErrorCount() > 0) {
 			return;
 		}

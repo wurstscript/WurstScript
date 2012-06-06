@@ -305,6 +305,10 @@ public class Scopes {
 		for (WImport imp : p.getImports()) {
 			if (imp.getIsPublic()) {
 				try {
+					if (imp.attrImportedPackage() == null) {
+						attr.addError(imp.getSource(), "Could not find package " + imp.getPackagename());
+						continue;
+					}
 					result.putAll(imp.attrImportedPackage().attrExportedNames());
 				} catch (Error e) {
 					attr.addError(imp.getSource(), e.getMessage());					
