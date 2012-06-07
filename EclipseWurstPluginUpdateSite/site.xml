@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<site>
+   <feature url="features/EclipseWurstPluginFeatures_1.0.0.201206072213.jar" id="EclipseWurstPluginFeatures" version="1.0.0.201206072213">
+      <category name="wurstPlugin"/>
+   </feature>
+   <category-def name="wurstPlugin" label="WurstScript Eclipse Plugin"/>
+</site>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="EclipseWurstPluginFeatures"
+      label="Wurst IDE support"
+      version="1.0.0.qualifier">
+
+   <description url="https://github.com/peq/WurstScript">
+      Wurst is a programming language ...
+   </description>
+
+   <license url="">
+      By installing this plugin you give your soul to the devil. Furthermore this plugin does not come with any warranties.
+   </license>
+
+   <url>
+      <update url="http://peeeq.de/wurst/updateSite/"/>
+   </url>
+
+   <plugin
+         id="de.peeeq.wurstscript"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"/>
+
+   <plugin
+         id="EclipseWurstPlugin"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+
+</feature>
