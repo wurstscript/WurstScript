@@ -1018,6 +1018,23 @@ _*Wurst:*_
 
 Wurst-modules are also more powerful than vJass modules. They allow overriding and can declare abstract functions.
 
+# Eclipse Plugin
+
+Installation: You can find information on how to install the plugin at the [Wurst Homepage](http://peq.github.com/WurstScript/).
+
+## Usage
+
+1. Go to *File*-*New Project* and select *New Wurst Project*. Choose a name and press Finish.
+2. Add a new file named *wurst.dependencies*. Each line in this file points to a folder on which your project depends.
+	As every project depends on the standard library you have to add the path to *Wurstpack/wurstscript/lib* in your Wurstpack folder.
+3. Create a new file with the *.wurst* filename extension and an arbitrary name. You can now start writing your code.
+
+### Useful Features 
+
+* Press *Ctrl*+*space* to open the auto complete assistant.
+* Hold down *Ctrl* and click on a function or variable to jump to the point where it was defined. 
+
+
 # Optimizer
 
 The Wurstcompiler has a build-in scriptoptimizer which will, when enabled, optimize the Jass code in various ways.
