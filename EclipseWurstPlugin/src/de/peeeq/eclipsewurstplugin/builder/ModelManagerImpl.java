@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Set;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
@@ -18,6 +19,7 @@ import org.osgi.framework.Bundle;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.eclipsewurstplugin.editor.CompilationUnitChangeListener;
@@ -41,7 +43,7 @@ public class ModelManagerImpl implements ModelManager {
 	private final WurstNature nature;
 	private Multimap<String, CompilationUnitChangeListener> changeListeners = HashMultimap.create();
 	private boolean needsFullBuild = true;
-	private List<String> dependencies = Lists.newArrayList();
+	private Set<String> dependencies = Sets.newHashSet();
 	
 	public ModelManagerImpl(WurstNature nature) {
 		this.nature = nature;
