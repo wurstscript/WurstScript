@@ -6,7 +6,7 @@ package Real
         else
             return -this
 
-    public function real.pow() returns real
+    public function real.square() returns real
         return this*this
             
     public function real.sign() returns real

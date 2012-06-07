@@ -6,7 +6,7 @@ package Integer
         else
             return -this
 
-    public function int.pow() returns int
+    public function int.squared() returns int
         return this*this
             
     public function int.sign() returns int
