@@ -1,5 +1,6 @@
 package de.peeeq.eclipsewurstplugin.builder;
 
+import java.io.File;
 import java.io.Reader;
 
 import org.eclipse.core.resources.IResource;
@@ -49,6 +50,12 @@ public class ModelManagerStub implements ModelManager {
 
 	@Override
 	public void fullBuildDone() {
+	}
+
+	@Override
+	public void addDependency(File f) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

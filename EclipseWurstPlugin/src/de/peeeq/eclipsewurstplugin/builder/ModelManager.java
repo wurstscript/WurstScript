@@ -1,5 +1,6 @@
 package de.peeeq.eclipsewurstplugin.builder;
 
+import java.io.File;
 import java.io.Reader;
 
 import org.eclipse.core.resources.IResource;
@@ -27,5 +28,7 @@ public interface ModelManager {
 	 CompilationUnit parse(WurstGui gui, String fileName, Reader source);
 
 	 void fullBuildDone();
+
+	void addDependency(File f);
 
 }

@@ -11,7 +11,11 @@ import com.google.common.io.Files;
 
 public class WurstConfig {
 
-	private static WurstConfig instance;
+	private static ThreadLocal<WurstConfig> instance = new ThreadLocal<WurstConfig>() {
+		protected WurstConfig initialValue() {
+			return new WurstConfig();
+		}
+	};
 
 	private Map<String, String> settings = Maps.newHashMap();
 	
@@ -39,10 +43,7 @@ public class WurstConfig {
 	}
 
 	public static WurstConfig get() {
-		if (instance == null) {
-			instance = new WurstConfig();
-		}
-		return instance;
+		return instance.get();
 	}
 	
 	

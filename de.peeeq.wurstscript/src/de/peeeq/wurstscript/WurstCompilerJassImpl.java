@@ -135,7 +135,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	/**
 	 * this method scans for unsatisfied imports and tries to find them in the lib-path 
 	 */
-	private void addImportedLibs(List<CompilationUnit> compilationUnits) {
+	public void addImportedLibs(List<CompilationUnit> compilationUnits) {
 		Set<String> packages = Sets.newHashSet();
 		Map<String, WImport> imports = Maps.newHashMap();
 		for (CompilationUnit c : compilationUnits) {
@@ -167,7 +167,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 					}
 				}
 			} else {
-				throw new CompileError(imp.getSource(), "The import " + imp.getPackagename() + " could not be resolved.\n" + 
+				if (imp.getPackagename().equals("Wurst")) {
+					throw new CompileError(imp.getSource(), "The standard library could not be imported.");
+				}
+				throw new CompileError(imp.getSource(), "The import '" + imp.getPackagename() + "' could not be resolved.\n" + 
 						"Available packages: " + Utils.join(getLibs().keySet(), ", "));
 			}
 		} else {
@@ -194,6 +197,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			libCache = Maps.newHashMap();
 			String[] libFolders = WurstConfig.get().getSetting("lib").split(";");
 			for (String libDirName : libFolders) {
+				if (libDirName.length() == 0) { 
+					continue;
+				}
 				File libDir = new File(libDirName);
 				addLibDir(libDir);
 			}
@@ -434,6 +440,5 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		this.hasCommonJ = hasCommonJ;
 	}
 
-	
 	
 }

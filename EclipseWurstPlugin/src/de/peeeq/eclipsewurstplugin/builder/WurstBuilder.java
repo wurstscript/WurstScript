@@ -1,6 +1,9 @@
 package de.peeeq.eclipsewurstplugin.builder;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
@@ -143,36 +146,62 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 
 	void checkCompilatinUnit(WurstGui gui, IResource resource) {
 		// TODO move to model manager?
-		if (resource instanceof IFile && resource.getName().endsWith(".wurst")) {
+		if (resource instanceof IFile) {
 			IFile file = (IFile) resource;
-			WurstNature.deleteMarkers(file);
-
-			Reader reader;
-			boolean doChecks = true;
-			try {
-				reader = new InputStreamReader(file.getContents());
-				String fileName = file.getProjectRelativePath().toString();
-				getModelManager().parse(gui, fileName, reader);
-			} catch (CoreException e) {
-				e.printStackTrace();
-			}
-
-			if (doChecks) {
-				for (CompileError e : gui.getErrorList()) {
-					System.out.println(e);
-					WurstNature.addErrorMarker(file, e);
+			if (resource.getName().endsWith(".wurst")) {
+				WurstNature.deleteMarkers(file);
+	
+				Reader reader;
+				boolean doChecks = true;
+				try {
+					reader = new InputStreamReader(file.getContents());
+					String fileName = file.getProjectRelativePath().toString();
+					getModelManager().parse(gui, fileName, reader);
+				} catch (CoreException e) {
+					e.printStackTrace();
 				}
+	
+				if (doChecks) {
+					for (CompileError e : gui.getErrorList()) {
+						System.out.println(e);
+						WurstNature.addErrorMarker(file, e);
+					}
+				}
+			} else if (resource.getName().equals("wurst.dependencies")) {
+				try {
+					BufferedReader reader = new BufferedReader(new InputStreamReader(file.getContents()));
+					while (true) {
+						String line = reader.readLine();
+						if (line == null) break;
+						addDependency(gui, line);						
+					}
+				} catch (CoreException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			
+				
 			}
 		}
 	}
 	
 	
 
-	
+	private void addDependency(WurstGui gui, String fileName) {
+		File f = new File(fileName);
+		getModelManager().addDependency(f);
+	}
 
 	
 
 	
+
+	
+
+
 
 	protected void fullBuild(final IProgressMonitor monitor) throws CoreException {
 		try {

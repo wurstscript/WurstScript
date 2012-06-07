@@ -1,9 +1,11 @@
 package de.peeeq.eclipsewurstplugin.builder;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.util.List;
 import java.util.ListIterator;
 
 import org.eclipse.core.resources.IFile;
@@ -14,17 +16,21 @@ import org.eclipse.core.runtime.Platform;
 import org.osgi.framework.Bundle;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.eclipsewurstplugin.editor.CompilationUnitChangeListener;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WurstCompilerJassImpl;
+import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.utils.Utils;
 
 /**
  * keeps a version of the model which is always the most recent one 
@@ -35,6 +41,7 @@ public class ModelManagerImpl implements ModelManager {
 	private final WurstNature nature;
 	private Multimap<String, CompilationUnitChangeListener> changeListeners = HashMultimap.create();
 	private boolean needsFullBuild = true;
+	private List<String> dependencies = Lists.newArrayList();
 	
 	public ModelManagerImpl(WurstNature nature) {
 		this.nature = nature;
@@ -78,7 +85,13 @@ public class ModelManagerImpl implements ModelManager {
 		}
 		model.clearAttributes();
 		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, RunArgs.defaults());
-		comp.checkProg(model);
+		WurstConfig.get().setSetting("lib", Utils.join(dependencies, ";"));
+		try {
+			comp.addImportedLibs(model);		
+			comp.checkProg(model);
+		} catch (CompileError e) {
+			attr.addError(e.getSource(), e.getMessage());
+		}
 		nature.clearMarkers();
 		for (CompileError e : gui.getErrorList()) {
 			System.out.println("typecheck error: " + e);
@@ -178,6 +191,11 @@ public class ModelManagerImpl implements ModelManager {
 	@Override
 	public void fullBuildDone() {
 		needsFullBuild = false;
+	}
+
+	@Override
+	public void addDependency(File f) {
+		dependencies.add(f.getAbsolutePath());
 	}
 	
 }
