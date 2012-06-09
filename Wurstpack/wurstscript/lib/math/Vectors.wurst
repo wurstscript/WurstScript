@@ -7,7 +7,10 @@ package Vectors
 		
 	public function vec3.op_plus( vec3 v )	returns vec3
 		return vec3(this.x + v.x, this.y + v.y, this.z + v.z)
-        
+    
+    public function vec3.op_minus( vec3 v )	returns vec3
+		return vec3(this.x - v.x, this.y - v.y, this.z - v.z)
+                
     public function vec3.addVec2( vec2 v )	returns vec3
 		return vec3(this.x + v.x, this.y + v.y, this.z)
         
@@ -31,6 +34,9 @@ package Vectors
 		
 	public function vec3.dot( vec3 v ) returns real
 		return this.x*v.x + this.y*v.y + this.z*v.z
+		
+	public function vec3.op_mult(real factor) returns vec3
+		return vec3(this.x*factor, this.y*factor, this.z*factor) 
         
     public function vec3.norm() returns vec3
         real len = this.length()
@@ -60,6 +66,10 @@ package Vectors
 		
 	public function vec3.length() returns real
 		return SquareRoot(this.x*this.x+this.y*this.y+this.z*this.z)
+		
+	public function vec3.lengthXY() returns real
+		return SquareRoot(this.x*this.x+this.y*this.y)
+			
 		
 	public function vec3.toString() returns string
 		return "Vector3 [ " + this.x.toString() + ", " + this.y.toString() + ", " + this.z.toString() + " ]"

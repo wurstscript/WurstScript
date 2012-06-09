@@ -1,0 +1,20 @@
+package HandleTable
+	
+	
+	// a table which uses handles as key and attaches arbitrary            
+	public class HandleTable<T>
+		static private hashtable ht = InitHashtable()
+		
+		function put(handle h, T data)
+			
+			ht.saveInt(this castTo int, GetHandleId(h), (data castTo reference).refId)
+			
+		function get(handle h) returns T
+			return ht.loadInt(this castTo int, GetHandleId(h))
+
+		function flush()
+            FlushChildHashtable(ht, this castTo int)
+
+        ondestroy
+            this.flush()
+endpackage
