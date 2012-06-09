@@ -81,6 +81,7 @@ import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CheckHelper;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.NameResolution;
 import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.FunctionSignature;
@@ -941,11 +942,16 @@ public class WurstValidator {
 	}
 
 	private void checkIfTypeDefExists(NameDef n, PackageOrGlobal p) {
-		for (NameDef e : p.attrVisibleNamesPrivate().get(n.getName())) {
-			if (e != n && e instanceof TypeDef) {
-				attr.addError(n.getSource(), "The definition for "+Utils.printElement(n)+" defines the same name as the type definition " + Utils.printElement(e));
-			}
+		List<TypeDef> types = NameResolution.searchTypedName(TypeDef.class, n.getName(), p, false);
+		types.remove(n);
+		if (types.size() > 0) {
+			attr.addError(n.getSource(), "The definition for "+Utils.printElement(n)+" defines the same name as the type definition " + Utils.printElement(types.get(0)));
 		}
+//		for (NameDef e : p.attrVisibleNamesPrivate().get(n.getName())) {
+//			if (e != n && e instanceof TypeDef) {
+//				attr.addError(n.getSource(), "The definition for "+Utils.printElement(n)+" defines the same name as the type definition " + Utils.printElement(e));
+//			}
+//		}
 	}
 	
 	

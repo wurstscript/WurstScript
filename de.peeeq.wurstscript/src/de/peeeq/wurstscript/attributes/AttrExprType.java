@@ -511,6 +511,9 @@ public class AttrExprType {
 
 	public static  PscriptType calculate(ExprMemberArrayVar term)  {
 		NameDef varDef = term.attrNameDef();
+		if (varDef == null) {
+			return PScriptTypeUnknown.instance();
+		}
 		PscriptType typ = varDef.attrTyp().dynamic();
 		if (typ instanceof PScriptTypeArray) {
 			PScriptTypeArray ar = (PScriptTypeArray) typ;
