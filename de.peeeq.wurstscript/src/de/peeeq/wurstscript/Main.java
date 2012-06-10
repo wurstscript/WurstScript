@@ -70,6 +70,9 @@ public class Main {
 			}
 			
 			if (runArgs.getMapFile() != null) {
+				// tempfolder
+				File tempFolder = new File("./temp/");
+				tempFolder.mkdirs();
 				BackupController bc = new BackupController();
 				bc.makeBackup(runArgs.getMapFile(), 24);
 			}
