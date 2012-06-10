@@ -1,19 +1,15 @@
 package Fx
-/*
-This is mostly a copy of xefx, credits for that go to Vexorian
-*/
     import Dummy
+    // This is mostly a copy of xefx, credits for that go to Vexorian
+
     
-    //Delay in order to show the death animation of the effect correctly when xefx is destroyed.
-    //You may need to increase this if you are using effects with longer death animations.
+    // Delay in order to show the death animation of the effect correctly when a Fx is destroyed.
+    // You may need to increase this if you are using effects with longer death animations.
     constant real    MIN_RECYCLE_DELAY = 4.0
 
-    //The delay does not need to be exact so we do cleanup in batches instead of individually.
-    //This determines how often the recycler runs, should be less than MIN_RECYCLE_DELAY.
+    // The delay does not need to be exact so we do cleanup in batches instead of individually.
+    // This determines how often the recycler runs, should be less than MIN_RECYCLE_DELAY.
     constant real    RECYCLE_INTERVAL = 0.5
-
-    //if this is true and the xedummy library is present, units will be recycled instead of removed.
-    constant boolean RECYCLE_DUMMY_UNITS = true
     
     timer    recycler = CreateTimer()
 

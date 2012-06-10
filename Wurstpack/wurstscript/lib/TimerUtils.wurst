@@ -1,4 +1,5 @@
 package TimerUtils
+	import Table
 // 
 //	Credits: 
 //		* Vexorian (original TimerUtils + TimedLoop)
@@ -7,8 +8,8 @@ package TimerUtils
 	// basic TimerUtils functions with Timer-Pool and setData/getData functions
 		
 	timer array freeTimers
-	integer freeTimersCount = 0
-	hashtable ht = InitHashtable()
+	int freeTimersCount = 0
+	Table timerData = new Table()
 	
 	public function getTimer() returns timer
 		if freeTimersCount > 0
@@ -18,17 +19,17 @@ package TimerUtils
 			return CreateTimer()
 	
 	public function timer.setData(integer data)
-		SaveInteger(ht, 0, GetHandleId(this), data)
+		timerData.setInt( GetHandleId(this), data )
 		
 	
 	public function timer.getData() returns integer
-		return LoadInteger(ht, 0, GetHandleId(this))
+		return timerData.getInt( GetHandleId(this) )
 
 	
 	public function timer.release()
 		this.pause()
 		freeTimers[freeTimersCount] = this
-		freeTimersCount += 1
+		freeTimersCount++
 	
 	public function timer.pause()
 		PauseTimer(this)
