@@ -93,6 +93,11 @@ public class RealWorldExamples extends PscriptTest {
 	}
 	
 	@Test
+	public void staticCallback() throws IOException {
+		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "staticCallback.wurst"), false);
+	}
+	
+	@Test
 	public void test_stdlib() throws IOException {
 		List<File> inputs = Lists.newLinkedList();
 //		settings.put("lib", "./wurstscript/lib/");
