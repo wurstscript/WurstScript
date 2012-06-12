@@ -1,6 +1,6 @@
 package Damager
 //===========================================================================================================
-    constant integer   MAX_SUB_OPTIONS = 3
+    constant int   MAX_SUB_OPTIONS = 3
     
     constant real      FACTOR_TEST_DAMAGE = 0.01 
     // a low damage to do on units to test their damage factors for specific

@@ -12,6 +12,9 @@ public class WurstConstants {
 		"nothing", "takes", "local", "loop", "endloop", "exitwhen", "set", "call", "then", "elseif", "endif", "init", "castTo",
 		"tuple", "div", "mod", "let", "from", "to", "downto", "step", "endpackage", "skip" };
 	
+	public static final String[] JASSTYPES = new String[] { "int", "integer", "real", "boolean", "string", "code", "trigger",
+		"boolexpr", "unit", "item", "widget"};
+	
 	public static final String PLUGIN_PACKAGE ="de.peeeq.eclipsewurstplugin";
 	
 	//Parenthesis Highlighting
@@ -28,6 +31,7 @@ public class WurstConstants {
 	public static final String SYNTAXCOLOR_STRIKETHROUGH = "Strikethrough";
 
 	public static final String SYNTAXCOLOR_KEYWORD     = "Keyword";
+	public static final String SYNTAXCOLOR_JASSTYPE    = "Jasstype";
 	public static final String SYNTAXCOLOR_STRING      = "String";
 	public static final String SYNTAXCOLOR_COMMENT     = "Comment";
 	public static final String SYNTAXCOLOR_FUNCTION    = "Function";
@@ -40,7 +44,8 @@ public class WurstConstants {
 
 	//Colors
 	private static final RGB COLOR_BLACK = new RGB(0,0,0);
-
+	
+	public static final RGB SYNTAXCOLOR_RGB_JASSTYPE     = new RGB(34, 136, 143);
 	public static final RGB SYNTAXCOLOR_RGB_KEYWORD      = new RGB(127, 0, 85);
 	public static final RGB SYNTAXCOLOR_RGB_STRING       = new RGB(42, 0, 255);
 	public static final RGB SYNTAXCOLOR_RGB_COMMENT      = new RGB(63, 127, 95);

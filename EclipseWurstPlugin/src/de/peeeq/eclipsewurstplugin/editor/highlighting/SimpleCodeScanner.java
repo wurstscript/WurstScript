@@ -33,9 +33,11 @@ public class SimpleCodeScanner extends RuleBasedScanner implements WurstScanner 
 	private Token keywordToken;
 	private Token commentToken;
 	private Token stringToken;
+	private Token jasstypeToken;
 
 	public SimpleCodeScanner() {
 		IPreferenceStore preferencestore = UtilityFunctions.getDefaultPreferenceStore();
+		jasstypeToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_JASSTYPE);
 		keywordToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_KEYWORD);
 		commentToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_COMMENT);
 		stringToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_STRING);
@@ -53,6 +55,10 @@ public class SimpleCodeScanner extends RuleBasedScanner implements WurstScanner 
 		// add tokens for each reserved word
 		for (String keyword : WurstConstants.KEYWORDS) {
 			keywordRule.addWord(keyword, keywordToken);
+		}
+		
+		for (String jasstype : WurstConstants.JASSTYPES) {
+			keywordRule.addWord(jasstype, jasstypeToken);
 		}
 		
 		WhitespaceRule whitespaceRule = new WhitespaceRule(new IWhitespaceDetector() {
