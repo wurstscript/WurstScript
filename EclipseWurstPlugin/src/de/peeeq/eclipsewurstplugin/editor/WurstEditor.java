@@ -44,7 +44,7 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 	public WurstEditor() {
 		super();
 		setSourceViewerConfiguration(new WurstEditorConfig(this));
-		setDocumentProvider(new WurstDocumentProvicer());
+		setDocumentProvider(new WurstDocumentProvider());
 		
 	}
 	

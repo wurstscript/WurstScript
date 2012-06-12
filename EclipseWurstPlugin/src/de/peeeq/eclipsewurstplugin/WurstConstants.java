@@ -12,8 +12,26 @@ public class WurstConstants {
 		"nothing", "takes", "local", "loop", "endloop", "exitwhen", "set", "call", "then", "elseif", "endif", "init", "castTo",
 		"tuple", "div", "mod", "let", "from", "to", "downto", "step", "endpackage", "skip" };
 	
-	public static final String[] JASSTYPES = new String[] { "int", "integer", "real", "boolean", "string", "code", "trigger",
-		"boolexpr", "unit", "item", "widget"};
+	public static final String[] JASSTYPES = new String[] { 
+		"int", "integer", "real", "code", "boolean", "string",
+		"agent",  "event",  "player",  "widget",  "unit",  "destructable", 
+		 "item",  "ability",  "buff",  "force",  "group", 
+		 "trigger",  "triggercondition",  "triggeraction",  "timer",  "location", 
+		 "region",  "rect",  "boolexpr",  "sound",  "conditionfunc", 
+		 "filterfunc",  "unitpool",  "itempool",  "race",  "alliancetype", 
+		 "racepreference",  "gamestate",  "igamestate",  "fgamestate",  "playerstate", 
+		 "playerscore",  "playergameresult",  "unitstate",  "aidifficulty",  "eventid", 
+		 "gameevent",  "playerevent",  "playerunitevent",  "unitevent",  "limitop", 
+		 "widgetevent",  "dialogevent",  "unittype",  "gamespeed",  "gamedifficulty", 
+		 "gametype",  "mapflag",  "mapvisibility",  "mapsetting",  "mapdensity", 
+		 "mapcontrol",  "playerslotstate",  "volumegroup",  "camerafield",  "camerasetup", 
+		 "playercolor",  "placement",  "startlocprio",  "raritycontrol",  "blendmode", 
+		 "texmapflags",  "effect",  "effecttype",  "weathereffect",  "terraindeformation", 
+		 "fogstate",  "fogmodifier",  "dialog",  "button",  "quest", 
+		 "questitem",  "defeatcondition",  "timerdialog",  "leaderboard",  "multiboard", 
+		 "multiboarditem",  "trackable",  "gamecache",  "version",  "itemtype", 
+		 "texttag",  "attacktype",  "damagetype",  "weapontype",  "soundtype", 
+		 "lightning",  "pathingtype",  "image",  "ubersplat",  "hashtable" };
 	
 	public static final String PLUGIN_PACKAGE ="de.peeeq.eclipsewurstplugin";
 	

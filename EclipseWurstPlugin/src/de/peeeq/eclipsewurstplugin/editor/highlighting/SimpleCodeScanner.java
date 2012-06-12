@@ -72,7 +72,8 @@ public class SimpleCodeScanner extends RuleBasedScanner implements WurstScanner 
 				new SingleLineRule("'", "'", stringToken, '\\'), 
 //				new MultiLineRule("/*", "*/", commentToken),
 				whitespaceRule,
-				keywordRule
+				keywordRule,
+
 			});
 	}
 

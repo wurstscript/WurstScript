@@ -1,30 +1,7 @@
 package de.peeeq.eclipsewurstplugin;
 
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_BOLD;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_COLOR;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_COMMENT;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_CONSTRUCTOR;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_DATATYPE;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_FIELD;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_FUNCTION;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_INTERFACE;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_ITALIC;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_KEYWORD;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_PARAM;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_COMMENT;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_CONSTRUCTOR;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_DATATYPE;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_FIELD;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_FUNCTION;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_INTERFACE;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_KEYWORD;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_PARAM;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_STRING;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_VAR;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_STRIKETHROUGH;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_STRING;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_UNDERLINE;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_VAR;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.*;
+
 
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.preference.PreferenceConverter;
@@ -99,6 +76,7 @@ public class WurstPlugin extends AbstractUIPlugin {
 		
 		//Colors for syntax highlighting
 		setDefaultValue(SYNTAXCOLOR_COLOR + SYNTAXCOLOR_KEYWORD,     SYNTAXCOLOR_RGB_KEYWORD);
+		setDefaultValue(SYNTAXCOLOR_COLOR + SYNTAXCOLOR_JASSTYPE,    SYNTAXCOLOR_RGB_JASSTYPE);
 		setDefaultValue(SYNTAXCOLOR_COLOR + SYNTAXCOLOR_STRING,      SYNTAXCOLOR_RGB_STRING);
 		setDefaultValue(SYNTAXCOLOR_COLOR + SYNTAXCOLOR_COMMENT,     SYNTAXCOLOR_RGB_COMMENT);
 		setDefaultValue(SYNTAXCOLOR_COLOR + SYNTAXCOLOR_FUNCTION,    SYNTAXCOLOR_RGB_FUNCTION);
@@ -111,6 +89,7 @@ public class WurstPlugin extends AbstractUIPlugin {
 
 		//Style for syntax highlighting
 		setDefaultValue(SYNTAXCOLOR_BOLD + SYNTAXCOLOR_KEYWORD,    true);
+		setDefaultValue(SYNTAXCOLOR_BOLD + SYNTAXCOLOR_JASSTYPE,   false);
 		setDefaultValue(SYNTAXCOLOR_BOLD + SYNTAXCOLOR_STRING,     false);
 		setDefaultValue(SYNTAXCOLOR_BOLD + SYNTAXCOLOR_COMMENT,    false);
 		setDefaultValue(SYNTAXCOLOR_BOLD + SYNTAXCOLOR_FUNCTION,   false);
@@ -122,6 +101,7 @@ public class WurstPlugin extends AbstractUIPlugin {
 		setDefaultValue(SYNTAXCOLOR_BOLD + SYNTAXCOLOR_CONSTRUCTOR,false);
 		
 		setDefaultValue(SYNTAXCOLOR_ITALIC + SYNTAXCOLOR_KEYWORD,    false);
+		setDefaultValue(SYNTAXCOLOR_ITALIC + SYNTAXCOLOR_JASSTYPE,   false);
 		setDefaultValue(SYNTAXCOLOR_ITALIC + SYNTAXCOLOR_STRING,     false);
 		setDefaultValue(SYNTAXCOLOR_ITALIC + SYNTAXCOLOR_COMMENT,    false);
 		setDefaultValue(SYNTAXCOLOR_ITALIC + SYNTAXCOLOR_FUNCTION,   true);
@@ -133,6 +113,7 @@ public class WurstPlugin extends AbstractUIPlugin {
 		setDefaultValue(SYNTAXCOLOR_ITALIC + SYNTAXCOLOR_CONSTRUCTOR,true);
 		
 		setDefaultValue(SYNTAXCOLOR_UNDERLINE + SYNTAXCOLOR_KEYWORD,    false);
+		setDefaultValue(SYNTAXCOLOR_UNDERLINE + SYNTAXCOLOR_JASSTYPE,   false);
 		setDefaultValue(SYNTAXCOLOR_UNDERLINE + SYNTAXCOLOR_STRING,     false);
 		setDefaultValue(SYNTAXCOLOR_UNDERLINE + SYNTAXCOLOR_COMMENT,    false);
 		setDefaultValue(SYNTAXCOLOR_UNDERLINE + SYNTAXCOLOR_FUNCTION,   false);
@@ -144,6 +125,7 @@ public class WurstPlugin extends AbstractUIPlugin {
 		setDefaultValue(SYNTAXCOLOR_UNDERLINE + SYNTAXCOLOR_CONSTRUCTOR,false);
 		
 		setDefaultValue(SYNTAXCOLOR_STRIKETHROUGH + SYNTAXCOLOR_KEYWORD,    false);
+		setDefaultValue(SYNTAXCOLOR_STRIKETHROUGH + SYNTAXCOLOR_JASSTYPE,   false);
 		setDefaultValue(SYNTAXCOLOR_STRIKETHROUGH + SYNTAXCOLOR_STRING,     false);
 		setDefaultValue(SYNTAXCOLOR_STRIKETHROUGH + SYNTAXCOLOR_COMMENT,    false);
 		setDefaultValue(SYNTAXCOLOR_STRIKETHROUGH + SYNTAXCOLOR_FUNCTION,   false);
