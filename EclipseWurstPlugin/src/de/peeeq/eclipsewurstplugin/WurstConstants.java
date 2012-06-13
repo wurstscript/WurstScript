@@ -10,7 +10,7 @@ public class WurstConstants {
 		"interface", "implements", "module", "use", "abstract", "static", "thistype", "override", "immutable", "it", "array", "and",
 		"or", "not", "this", "construct", "ondestroy", "destroy", "type", "globals", "endglobals", "constant", "endfunction",
 		"nothing", "takes", "local", "loop", "endloop", "exitwhen", "set", "call", "then", "elseif", "endif", "init", "castTo",
-		"tuple", "div", "mod", "let", "from", "to", "downto", "step", "endpackage", "skip" };
+		"tuple", "div", "mod", "let", "from", "to", "downto", "step", "endpackage", "skip", "true", "false" };
 	
 	public static final String[] JASSTYPES = new String[] { 
 		"int", "integer", "real", "code", "boolean", "string",

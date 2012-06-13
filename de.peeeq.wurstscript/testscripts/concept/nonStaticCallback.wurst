@@ -1,4 +1,4 @@
-package StaticTest
+package NonStaticTest
 	import TimerUtils
 	import Trigger
 	

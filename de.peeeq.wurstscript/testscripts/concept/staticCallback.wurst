@@ -16,5 +16,6 @@ package StaticTest
         t.start(1., function SomeClass.timerCallback )
         trigger trg = CreateTrigger()
         trg.addAction( function SomeClass.triggerAction )
+
     
 endpackage

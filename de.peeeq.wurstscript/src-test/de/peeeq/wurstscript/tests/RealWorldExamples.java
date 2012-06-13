@@ -35,6 +35,7 @@ public class RealWorldExamples extends PscriptTest {
 	public void testLists() throws IOException {
 		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "ListsTest.wurst"), true);
 	}
+
 	
 	@Test
 	public void testVecs() throws IOException {
@@ -95,6 +96,11 @@ public class RealWorldExamples extends PscriptTest {
 	@Test
 	public void staticCallback() throws IOException {
 		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "staticCallback.wurst"), false);
+	}
+	
+	@Test
+	public void nonStaticCallback() throws IOException {
+		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "nonStaticCallback.wurst"), false);
 	}
 	
 	@Test

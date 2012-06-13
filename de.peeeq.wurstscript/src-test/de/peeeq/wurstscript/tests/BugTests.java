@@ -15,6 +15,7 @@ public class BugTests extends PscriptTest {
 				"		return \"\\ \" ",
 				"endpackage");
 	}
+	
 
 	@Test
 	public void test_unit_array() {

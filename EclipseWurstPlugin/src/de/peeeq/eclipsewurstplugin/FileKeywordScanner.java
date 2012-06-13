@@ -9,6 +9,13 @@ import java.util.Scanner;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
+/**
+ * Temporary Class for parsing the common.j in order 
+ * to extract the jasstype names.
+ * Simple java Scanner app.
+ * @author Frotty
+ *
+ */
 public class FileKeywordScanner {
 
 	/**

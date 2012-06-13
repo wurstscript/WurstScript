@@ -7,5 +7,4 @@ package Basics
 	public constant real    MAX_COLLISION_SIZE 	=  197.0
 	public constant player  DUMMY_PLAYER 		= Player(15)
 
-		
 endpackage
