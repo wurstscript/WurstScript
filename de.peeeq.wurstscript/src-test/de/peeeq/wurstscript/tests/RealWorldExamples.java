@@ -100,7 +100,7 @@ public class RealWorldExamples extends PscriptTest {
 	
 	@Test
 	public void nonStaticCallback() throws IOException {
-		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "nonStaticCallback.wurst"), false);
+		super.testAssertErrorFileWithStdLib(new File(TEST_DIR + "nonStaticCallback.wurst"), "without parameters", false);
 	}
 	
 	@Test

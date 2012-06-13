@@ -87,6 +87,7 @@ import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
+import de.peeeq.wurstscript.types.PScriptTypeCode;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
 import de.peeeq.wurstscript.types.PScriptTypeReal;
 import de.peeeq.wurstscript.types.PScriptTypeUnknown;
@@ -476,9 +477,6 @@ public class WurstValidator {
 				ExprFuncRef exprFuncRef = (ExprFuncRef) firstArg;
 				FunctionDefinition f = exprFuncRef.attrFuncDef();
 				if (f != null) {
-					if (f.getParameters().size() > 0) {
-						attr.addError(firstArg.getSource(), "Functions passed to Filter or Condition must have no parameters.");
-					}
 					if (!(f.getReturnTyp().attrTyp() instanceof PScriptTypeBool)) {
 						attr.addError(firstArg.getSource(), "Functions passed to Filter or Condition must return boolean.");
 					}
@@ -728,6 +726,16 @@ public class WurstValidator {
 	public void checkFuncRef(FuncRef ref) {
 		FunctionDefinition called = ref.attrFuncDef();
 		calledFunctions.put(ref.attrNearestScope(), called);
+	}
+	
+	@CheckMethod
+	public void checkFuncRef(ExprFuncRef ref) {
+		FunctionDefinition called = ref.attrFuncDef();
+		if (ref.attrTyp() instanceof PScriptTypeCode) {
+			if (called.attrParameterTypes().size() > 0) {
+				attr.addError(ref.getSource(), "Can only use functions without parameters in 'code' function references.");
+			}
+		}
 	}
 	
 	@CheckMethod
