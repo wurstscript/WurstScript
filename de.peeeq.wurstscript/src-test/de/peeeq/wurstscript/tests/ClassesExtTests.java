@@ -195,6 +195,26 @@ public class ClassesExtTests extends PscriptTest {
 			);
 	}
 	
+	@Test
+	public void constr_super_wrong1() {
+		testAssertErrorsLines(true, "Expected integer",  
+				"package test",
+				"	native testSuccess()",
+				"	class Pair",
+				"		int a",
+				"		int b",
+				"		construct(int a, int b)",
+				"			this.a = a",
+				"			this.b = b",
+				"	class OtherPair extends Pair",
+				"		construct(int a, int b)",
+				"			super(a*2, \"bla\")",
+				"	init",
+				"		if new OtherPair(2, 3).a == 4",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
 	
 	@Test
 	public void ondestroy() {
