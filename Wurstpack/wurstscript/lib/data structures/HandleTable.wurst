@@ -6,11 +6,13 @@ package HandleTable
 		static private hashtable ht = InitHashtable()
 		
 		function put(handle h, T data)
-			
-			ht.saveInt(this castTo int, GetHandleId(h), (data castTo reference).refId)
+			//ht.saveInt(this castTo int, GetHandleId(h), data castTo int)
+			// TODO
 			
 		function get(handle h) returns T
-			return ht.loadInt(this castTo int, GetHandleId(h))
+			//return ht.loadInt(this castTo int, GetHandleId(h)) castTo T
+			// TODO
+			return null
 
 		function flush()
             FlushChildHashtable(ht, this castTo int)
