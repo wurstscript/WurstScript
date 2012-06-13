@@ -21,6 +21,7 @@ import de.peeeq.wurstscript.ast.OpPlus;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameters;
+import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
 import de.peeeq.wurstscript.types.PScriptTypeReal;
 import de.peeeq.wurstscript.types.PScriptTypeString;
@@ -40,11 +41,32 @@ public class AttrFuncDef {
 	final static String overloadingDiv = "op_div";
 
 	public static  FunctionDefinition calculate(final ExprFuncRef node) {
-		FunctionDefinition result = searchFunction(node.getFuncName(), node);
+		FunctionDefinition result;
+		if (node.getScopeName().length() > 0) {
+			result = searchFunctionWithScope(node);
+		} else {
+			result = searchFunction(node.getFuncName(), node);
+		}
 		if (result == null) {
 			attr.addError(node.getSource(), "Could not resolve reference to function " + node.getFuncName());
 		}
 		return result;
+	}
+
+	private static FunctionDefinition searchFunctionWithScope(final ExprFuncRef node) {
+		WScope scope = NameResolution.searchTypedNameGetOne(WScope.class, node.getScopeName(), node, true);
+		if (scope == null) {
+			return null;
+		}
+		List<NotExtensionFunction> functions = NameResolution.searchTypedName(NotExtensionFunction.class, node.getFuncName(), scope, true);
+		if (functions.size() == 0) {
+			return null;
+		} else {
+			if (functions.size() > 1) {
+				attr.addError(node.getSource(), "Reference to function " + node.getFuncName() + " is ambigious.");
+			}
+			return functions.get(0);
+		}
 	}
 	
 	public static FunctionDefinition calculate(ExprBinary node) {

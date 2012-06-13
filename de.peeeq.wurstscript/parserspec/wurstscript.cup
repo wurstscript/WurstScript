@@ -685,7 +685,9 @@ ExprAtomic ::=
 	| THIS:x
 		{: RESULT = Ast.ExprThis(pos(xleft, xright)); :}
 	| FUNCTION:x IDENTIFIER:name
-		{: RESULT = Ast.ExprFuncRef(pos(xleft, nameright), name); :}
+		{: RESULT = Ast.ExprFuncRef(pos(xleft, nameright), "", name); :}
+	| FUNCTION:x IDENTIFIER:c DOT IDENTIFIER:name
+		{: RESULT = Ast.ExprFuncRef(pos(xleft, nameright), c, name); :}
 	| REAL_LITERAL:x
 		{: RESULT = Ast.ExprRealVal(pos(xleft, xright), x); :}
 	| ExprVarAccess:x

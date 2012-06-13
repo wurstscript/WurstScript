@@ -152,7 +152,7 @@ ExprAtomic =
 	| ExprRealVal(WPos source, String valR)
 	| ExprStringVal(WPos source, String valS)
 	| ExprBoolVal(WPos source, boolean valB)
-	| ExprFuncRef(WPos source, String funcName)
+	| ExprFuncRef(WPos source, String scopeName, String funcName)
 	| ExprVarAccess(WPos source, String varName)
 	| ExprVarArrayAccess(WPos source, String varName, Indexes indexes)
 	| ExprThis(WPos source)
