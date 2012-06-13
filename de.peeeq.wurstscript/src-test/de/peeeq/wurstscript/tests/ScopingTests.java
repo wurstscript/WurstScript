@@ -6,17 +6,17 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class ScopingTests extends PscriptTest {
 
-	@Test
-	public void test_duplicates_cu() {
-		testAssertErrorsLines(false, "already defined",
-				"package A",
-				"endpackage",
-				"package A",
-				"endpackage",
-				"package B",
-				"	import A",
-				"endpackage");
-	}
+//	@Test
+//	public void test_duplicates_cu() {
+//		testAssertErrorsLines(false, "already defined",
+//				"package A",
+//				"endpackage",
+//				"package A",
+//				"endpackage",
+//				"package B",
+//				"	import A",
+//				"endpackage");
+//	}
 	
 	@Test
 	public void test_duplicates_jass_func() {

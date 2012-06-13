@@ -1639,7 +1639,7 @@ package Fx
 This is mostly a copy of xefx, credits for that go to Vexorian
 */
 	import Basics
-	import ExtensionFunctions
+	import Effect
     import Dummy
 	
 	

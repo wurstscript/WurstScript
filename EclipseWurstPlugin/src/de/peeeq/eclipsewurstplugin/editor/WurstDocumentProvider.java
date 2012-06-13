@@ -12,7 +12,7 @@ import org.eclipse.ui.editors.text.FileDocumentProvider;
 import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.eclipsewurstplugin.WurstPlugin;
 
-public class WurstDocumentProvicer extends FileDocumentProvider {
+public class WurstDocumentProvider extends FileDocumentProvider {
 
 	protected IDocument createDocument(Object element) throws CoreException {
 		IDocument document = super.createDocument(element);

@@ -1,6 +1,6 @@
-package StackModule
+package QueueModule
 
-	public module StackModule
+	public module QueueModule
 		static thistype last = null
 		static thistype first = null
 		static int count = 0

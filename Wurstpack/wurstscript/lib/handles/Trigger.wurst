@@ -1,5 +1,6 @@
 package Trigger
 
+	
 	public function trigger.enable() returns trigger
 		EnableTrigger( this )
 		return this

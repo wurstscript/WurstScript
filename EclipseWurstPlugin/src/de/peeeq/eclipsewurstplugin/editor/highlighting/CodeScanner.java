@@ -27,10 +27,12 @@ public class CodeScanner implements WurstScanner {
 	private int lastOffset;
 	private int startOffset;
 	private int endOFfset;
+	private Token jasstypeToken;
 	
 	public CodeScanner() {
 		IPreferenceStore preferencestore = UtilityFunctions.getDefaultPreferenceStore();
 		keywordToken = makeToken(preferencestore, SYNTAXCOLOR_KEYWORD);
+		jasstypeToken = makeToken(preferencestore, SYNTAXCOLOR_JASSTYPE);
 	}
 
 	private Token makeToken(IPreferenceStore preferencestore, String key) {

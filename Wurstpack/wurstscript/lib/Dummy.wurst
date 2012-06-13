@@ -13,7 +13,7 @@ package Dummy
     constant int INITIAL_DUMMY_COUNT  = 36
     
     // Don't allow to keep more than DUMMY_STACK_LIMIT inactive dummy units.
-    constant int DUMMY_STACK_LIMIT    = 240
+    constant int DUMMY_STACK_LIMIT    = 128
 
 
 // END OF CALIBRATION SECTION
@@ -23,7 +23,6 @@ package Dummy
 
     public function newDummyUnit( player p, real x, real y, real face ) returns unit
         return Dummy.newDummy( p,x,y,face )
-
 
     public function releaseDummyUnit( unit u )
         Dummy.release( u )

@@ -85,6 +85,9 @@ public class ModelManagerImpl implements ModelManager {
 		if (gui.getErrorCount() > 0) {
 			return;
 		}
+		if (model == null) {
+			return;
+		}
 		model.clearAttributes();
 		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, RunArgs.defaults());
 		WurstConfig.get().setSetting("lib", Utils.join(dependencies, ";"));

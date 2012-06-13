@@ -1,33 +1,28 @@
 package DummyCaster
-//******************************************************************************
+//==============================================================================
 // @credit Anitarf
 // ------
 //  Because dummy casters REALLY ARE this complicated!
 //
-//******************************************************************************
+//==============================================================================
     
     constant int INITIAL_DUMMY_COUNT  = 12
     
-    //don't allow to keep more than DUMMY_STACK_LIMIT innactive dummy units :
+    // don't allow to keep more than DUMMY_STACK_LIMIT innactive dummy units
     constant int DUMMY_STACK_LIMIT    = 50
     
     // If your map does not give visibility to all players, or
-    // for other reasons, you might want xecast to work on
+    // for other reasons, you might want the Dummycaster to work on
     // units that are not visible to the player, in that case
     // change this to true, else it is just a performance loss.
     constant boolean FORCE_INVISIBLE_CAST = false
 
-    //When AUTO_RESET_MANA_COOLDOWN is to true, xecast will reset
-    // the dummy unit's cooldown and mana before casting every spell.
-    // it is a performance penalty, so if you are sure that all dummy spells
-    // in your map got 0 mana and cooldown cost, you may it to false.    
+    // When AUTO_RESET_MANA_COOLDOWN is to true, the DummyCaster's
+    // cooldown and mana will be reset before casting every spell.
+    // It is a performance penalty, so if you are sure that all dummy spells
+    // in your map got 0 mana and cooldown cost, you may set it to false.    
     constant boolean AUTO_RESET_MANA_COOLDOWN = true 
 
-
-//=========================================================================
-// Please notice all textmacros in this library are considered private.
-//  in other words: DON'T RUN THOSE TEXTMACROS!
-//
 
 
     real EPSILON=0.001 //noticed in war3 this is the sort of precision we want...
@@ -79,10 +74,9 @@ package DummyCaster
 
 
         private boolean autodestroy  = false
+        
         //========================================================================================================
-        // you are always allowed to use .create() but you can also use createBasic which sets some things that
-        // are usually necessary up.
-        //
+        // Basic Constructor with needed arguments in order to cast
         construct( int abilityId, string orderString, player owner, boolean autodestroy )
             this.orderId     = OrderId( orderString )
             this.abilityId   = abilityId
@@ -91,7 +85,7 @@ package DummyCaster
 
 
         //==========================================================================================================
-        // So, create the dummy, assign options and cast the skill!
+        // So, create the CasterDummy, assign options and cast the skill!
         // .castOnTarget(u)       : If you want to hit a unit u with the ability, supports FORCE_INVISIBLE_CAST.
         // .castOnWidgetTarget(w) : If you want to hit a widget w with the ability.
         // .castOnPoint(x,y)      : If you want to hit a point (x,y) with the ability.
