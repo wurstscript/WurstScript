@@ -1,0 +1,24 @@
+package StaticTest
+	import TimerUtils
+	import Trigger
+	
+    class SomeClass
+        int i = 0
+        
+        function timerCallback()
+        	print("yes")
+        	this.i++
+        	
+        function triggerAction()
+        	print("ya")
+            this.i++
+        
+    	construct()
+    		timer t = getTimer()
+        	t.start(1., function timerCallback )
+        	trigger trg = CreateTrigger()
+        	trg.addAction( function triggerAction )
+        
+
+    
+endpackage
