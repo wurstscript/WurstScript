@@ -84,7 +84,7 @@ package TimerUtils
 	
 	timer timedLoopTimer = CreateTimer()
 	trigger timedLoopTrig = CreateTrigger()
-	int conditionCount
+	int conditionCount = 0
 	
 	function evaluateTimedLoopTrig()
 		BJDebugMsg("timedLoop - evaluate")
@@ -101,7 +101,7 @@ package TimerUtils
 		static private conditionfunc cond = Condition(function onExpire)
 	
 		// TODO this should be private but does not work currently
-		private boolean stopped = false
+		protected boolean stopped = false
 	
 		abstract function onTimedLoop()
 	
@@ -110,7 +110,7 @@ package TimerUtils
 			while i >= 0
 				thistype t = instances[i]
 				t.onTimedLoop()
-				if (t.stopped)
+				if t.stopped
 					instanceCount--
 					instances[i] = instances[instanceCount]
 					destroy t

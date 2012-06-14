@@ -1,0 +1,324 @@
+package Collider
+    import Fx
+
+	//================================================================
+	//
+	// xecollider 0.9
+	// --------------
+	//  A xecollider object is a special effect that has a collision
+	// size that can trigger a hit event and also many options to
+	// configure its automatic movement.
+	//
+	//  Please use .terminate() instead of .destroy() this ensures
+	// that it will be safe to destroy it (else you would have to
+	// worry about destroying it during the animation loop/etc.)
+	//
+	//  To use this struct is a little different than the other
+	// current parts of xe. Instead of just creating the xecollider
+	// (which works, but it would only be a xefx that can have speed)
+	// you probably need to make it do something special on the
+	// unit hit event... For this reason, you need to make a new
+	// struct extending xecollider that declares an onUnitHit method
+	// you may also declare a loopControl method, very useful, can
+	// help you reduce 'attaching'.
+	//
+	//================================================================
+	
+
+    //================================================================
+
+    constant real DEFAULT_COLLISION_SIZE  =   50.0 // These are defaults, on one hand you can change them
+    constant real DEFAULT_MAX_SPEED       = 1500.0 // on the other hand, if a spell relies on the defaults
+    constant real DEFAULT_EXPIRATION_TIME =    5.0 // changing them would make the behavior vary...
+
+    constant real PI2 = 6.28318 //It might not be wise to change this
+
+    //================================================================
+    //  Global Enums, don't change
+
+    constant int ANGLE_HOMING_UNIT  = 1
+    constant int ANGLE_HOMING_POINT = 2
+    constant int ANGLE_NO_MOVEMENT  = 0
+    constant int ANGLE_ROTATING     = 3
+
+    //===========================================================================
+    // So, this exists merely so you can declare your own event handler methods
+    // if interfaces make your brain blow out, please skip the next four lines.
+    //
+    interface EventHandler
+        function onUnitHit( unit hitTarget )
+        function loopControl()
+
+    //===========================================================================
+    public class Collider implements EventHandler
+        // use terminate() instead of .destroy() to "kill" the collider.
+        // don't worry, terminate will destroy automatically.
+        Fx fx
+
+        //##==========================================================================
+        // public variables:
+        //
+        real expirationTime = DEFAULT_EXPIRATION_TIME
+
+        // Movement speed for the missile.
+        real speed          = 0.0
+
+        // Speed added per second (notice you can use a negative value here)
+        real acceleration   = 0.0
+
+        // If there is acceleration, it is wise to have a cap...
+        real maxSpeed       = DEFAULT_MAX_SPEED
+        real minSpeed       = 0.0
+
+        real angleSpeed     = 0.0 //The increment in radians per second to the
+        // direction angle, allows curved movement.
+
+        private static int lastSeen = 0
+        private group   seen
+
+        //##==========================================================================
+        // public methods:
+        //
+
+        //----
+        // Well, it is a good idea to actually create the missiles.
+        // notice that if your custom missile struct needs to declare its own create
+        // method, you can this as allocate(x,y,dir).
+
+        construct( real x, real y, real dir )
+            fx = new Fx( x, y, dir )
+            this.dir = dir
+            Collider.V[Collider.N] = this
+            Collider.N++
+            if Collider.N == 1
+                TimerStart( Collider.T, ANIMATION_PERIOD, true, function timerLoop )
+
+            if Collider.lastSeen < this castTo int  //with this I do group recycling
+                Collider.lastSeen = this castTo int
+            seen = CreateGroup()
+
+        //----
+        // The direction is just the angle in radians to which the missile's model faces
+        // and the automatic movement uses.
+        //
+        function setDirection( real v )
+            dir = v
+            fx.setXYAngle( v )
+
+
+        //---
+        // targetUnit is a unit to follow (or try to follow), notice that homing
+        // options require an angleSpeed different to 0.0
+        //
+        function setTargetUnit( unit u )
+            if u == null 
+            	angleMode = ANGLE_NO_MOVEMENT
+            else
+            	angleMode = ANGLE_HOMING_UNIT
+
+            homingTargetUnit = u
+
+
+        //----
+        // targetPoint is a point to reach (or try to reach), notice that homing
+        // options require an angleSpeed different to 0.0
+        //
+        function setTargetPoint( real x, real y )
+            angleMode = ANGLE_HOMING_POINT
+            homingTargetX = x
+            homingTargetY = y
+
+        //----
+        // this in case you used targetUnit or TargetPoint so the missile
+        // forgets the order to home that target.
+        //
+        function forgetTarget()
+            angleMode = ANGLE_NO_MOVEMENT
+
+        function isRotating() returns boolean
+            return angleMode == ANGLE_ROTATING
+
+        function setRotating( boolean val )
+            if val
+            	angleMode = ANGLE_ROTATING
+            else if angleMode == ANGLE_ROTATING
+            	angleMode = ANGLE_NO_MOVEMENT
+
+
+        private boolean silent = false
+
+        ondestroy
+            GroupClear(seen)
+            if silent
+                fx.hiddenDestroy()
+            else
+                destroy fx
+
+
+        function terminate()
+            dead=true
+            fx.setFx("")
+
+        // declare hiddenDestroy so people don't call directly on the delegate xefx
+        function hiddenDestroy()
+            silent = true
+            terminate()
+
+        //--------
+        private static timer      T
+        private static int    N=0
+        private static Collider array V
+
+        private        boolean dead = false
+
+
+        real collisionSize = DEFAULT_COLLISION_SIZE
+        real dir
+
+
+
+
+        private        int angleMode  =0
+
+        private unit homingTargetUnit = null
+        private real homingTargetX
+        private real homingTargetY
+
+
+        private static real       newx
+        private static real       newy
+        private static group      enumGroup
+        private static group      tempGroup
+
+        private static unit array picked
+        private static int    pickedN
+
+        function onUnitHit( unit hitTarget )
+
+        function loopControl()
+
+	    static function timerLoop()
+	        int c=0
+	        Collider cl
+	        real d
+	        real ns = 0.
+	        real wa
+	        real df1
+	        real df2
+	        unit u = null
+	        group g
+	
+	        for int i = 0 to Collider.N-1
+	            cl = Collider.V[i] //adopt-a-instance
+	            cl.expirationTime -= ANIMATION_PERIOD
+	            if cl.dead or cl.expirationTime <= 0.0  
+	                print("dead")
+	                destroy cl
+	            else
+	                ns = cl.angleSpeed * ANIMATION_PERIOD
+	                if ns != 0.0 
+	                    if cl.angleMode == ANGLE_HOMING_UNIT 
+	                        u = cl.homingTargetUnit
+	                        if ( GetUnitTypeId(u) == 0 ) or IsUnitType( u, UNIT_TYPE_DEAD )  
+	                            cl.angleMode = ANGLE_NO_MOVEMENT
+	                            cl.homingTargetUnit = null
+	                        else
+	                            cl.homingTargetX = GetUnitX(u)
+	                            cl.homingTargetY = GetUnitY(u)
+	
+	                        u = null  
+	                    else if not cl.angleMode == ANGLE_ROTATING and cl.angleMode != ANGLE_NO_MOVEMENT 
+	                        if ns <= 0.
+	                            ns = -ns
+	
+	                        wa = Atan2( cl.homingTargetY - cl.fx.getY(), cl.homingTargetX - cl.fx.getX() )
+	
+	                        df1 = wa - cl.dir
+	                        df2 = (PI2 + wa) - cl.dir
+	
+	                        if df1 <= 0
+	                            if df2 <= 0 
+	                                if df2 >= df1 
+	                                    df1 = df2
+	                            else
+	                                if -df1 >= df2
+	                                    df1 = df2
+	                        else
+	                            if df2 <= 0 
+	                                if -df2 <= df1
+	                                    df1 = df2
+	                            else
+	                                if df2 <= df1 
+	                                    df1 = df2
+	                        if df1 <= 0 
+	                            if -df1 >= ns 
+	                                ns = -ns
+	                            else
+	                                ns = df1
+	                        else
+	                            if df1 <= ns 
+	                                ns = df1
+	                else
+	                    ns = 0
+	
+	                d = cl.dir
+	                d += ns
+	                if d >= PI2
+	                    d -= PI2
+	                else if d < 0
+	                    d += PI2
+	
+	                cl.dir = d
+	                cl.fx.setXYAngle( d )
+	
+	
+	                ns = cl.speed + cl.acceleration * ANIMATION_PERIOD
+	                if ns < cl.minSpeed
+	                    ns = cl.minSpeed
+	                else if ns > cl.maxSpeed
+	                    ns = cl.maxSpeed
+	
+	                d = ((cl.speed + ns) /2) * ANIMATION_PERIOD
+	                cl.speed = ns
+	                Collider.newx= cl.fx.getX()+d*Cos(cl.dir)
+	                Collider.newy= cl.fx.getY()+d*Sin(cl.dir)
+	                cl.fx.setX( Collider.newx )
+	                cl.fx.setY( Collider.newy )
+	
+	                GroupEnumUnitsInRange( Collider.enumGroup, Collider.newx, Collider.newy, cl.collisionSize + MAX_COLLISION_SIZE, null)
+	                for unit u2 from Collider.enumGroup
+	                    if not IsUnitType(u2, UNIT_TYPE_DEAD)  and not(cl.dead) and (GetUnitTypeId(u2) != DUMMY_UNIT_ID) and IsUnitInRangeXY(u, Collider.newx, Collider.newy, cl.collisionSize) 
+	                        GroupAddUnit(Collider.tempGroup, u)
+	                        if not IsUnitInGroup (u, cl.seen ) 
+	                            cl.onUnitHit(u)
+	                    //GroupRemoveUnit( Collider.enumGroup, u2 )
+	
+	                g = Collider.tempGroup
+	                GroupClear(cl.seen)
+	                Collider.tempGroup = cl.seen
+	                cl.seen = g
+	                g = null
+	
+	                Collider.V[c]=cl
+	                c++
+	                if not cl.dead 
+	                    cl.loopControl()
+
+
+	        //BJDebugMsg("}")
+	        Collider.N = c
+	        if c == 0 
+	        	PauseTimer(Collider.T)
+
+
+    //============================================================================
+    // you aren't supposed to doInit yourself, try not to do it.
+    //
+    init
+        Collider.enumGroup = CreateGroup()
+        Collider.tempGroup = CreateGroup()
+        Collider.T=CreateTimer()
+
+
+endpackage 
+

@@ -1,0 +1,5 @@
+package TupleHelper
+	
+	public tuple data3 ( int a, int b, int c )
+	
+endpackage
