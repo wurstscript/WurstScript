@@ -731,6 +731,9 @@ public class WurstValidator {
 	@CheckMethod
 	public void checkFuncRef(ExprFuncRef ref) {
 		FunctionDefinition called = ref.attrFuncDef();
+		if (called == null) {
+			return;
+		}
 		if (ref.attrTyp() instanceof PScriptTypeCode) {
 			if (called.attrParameterTypes().size() > 0) {
 				attr.addError(ref.getSource(), "Can only use functions without parameters in 'code' function references.");
