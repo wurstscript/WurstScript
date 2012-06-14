@@ -81,7 +81,7 @@ public class WurstPartitionScanner extends RuleBasedPartitionScanner {
 		List<IPredicateRule> rules= Lists.newArrayList();
 
 		// Add rule for single line comments.
-		rules.add(new EndOfLineRule("//", Token.UNDEFINED)); //$NON-NLS-1$
+		rules.add(new EndOfLineRule("//", comment)); //$NON-NLS-1$
 
 		// Add rule for strings and character constants.
 		rules.add(new SingleLineRule("\"", "\"", Token.UNDEFINED, '\\')); //$NON-NLS-2$ //$NON-NLS-1$
@@ -95,5 +95,11 @@ public class WurstPartitionScanner extends RuleBasedPartitionScanner {
 		rules.add(new MultiLineRule("/*", "*/", comment, (char) 0, true)); //$NON-NLS-1$ //$NON-NLS-2$
 
 		setPredicateRules(rules.toArray(new IPredicateRule[rules.size()]));
+	}
+	
+	
+	@Override
+	public IToken nextToken() {
+		return super.nextToken();
 	}
 }
