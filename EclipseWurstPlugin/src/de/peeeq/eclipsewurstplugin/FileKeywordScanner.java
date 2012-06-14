@@ -36,14 +36,24 @@ public class FileKeywordScanner {
 				String s = sc.next();
 				if (s.equals("type")) {
 					System.out.println(s);
-					sb.append(" \"" + sc.next() + "\", ");
-					if ( i > 4 ) {
-						i = 0;
-						sb.append("\n");
-					}
+					s = sc.next();
+					String s2 = s.substring(0,1);
+					s2 = s2.toUpperCase() + s.substring(1, s.length());
+					sb.append("function load" + s2 + "( int parentKey ) returns " + s);
+					sb.append("\n");
+					sb.append("    return ht.load" + s2 + "Handle" + "( this castTo int, parentKey )");
+					sb.append("\n");sb.append("\n");
+					sb.append("function save" + s2 + "( int parentKey, " + s + " value )");
+					sb.append("\n");
+					sb.append("    ht.save" + s2 + "Handle" + "( this castTo int, parentKey, value )");
+					sb.append("\n");sb.append("\n");
 					i++;
 				}
-				
+//				function getInt( int parentKey ) returns int
+//	            return ht.loadInt(this castTo int, parentKey)
+//	        
+//	        function setInt( int parentKey, int value )
+//	            ht.saveInt(this castTo int, parentKey, value)
 			}
 			System.out.println("yo2");
 			System.out.println(sb);

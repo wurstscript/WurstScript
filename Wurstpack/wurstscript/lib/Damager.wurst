@@ -121,8 +121,8 @@ package Damager
                 printWarning("In one instance of Damager, you are doing too much calls to factor(), please increase MAX_SUB_OPTIONS to allow more, or cut the number of factor() calls")
                 return
 
-            fct.setInt( fcn, convertUnitTypeToInt( ut ))
-            this.fc.setReal( fcn, fc )
+            fct.saveInt( fcn, convertUnitTypeToInt( ut ))
+            this.fc.saveReal( fcn, fc )
             fcn++
 
 
@@ -143,8 +143,8 @@ package Damager
                 printWarning("In one instance of Damager, you are doing too much calls to abilityFactor(), please increase MAX_SUB_OPTIONS to allow more, or cut the number of abilityFactor() calls")
                 return
 
-            abifct.setInt( abifcn, abilityId )
-            abifc.setReal( abifcn, fc )
+            abifct.saveInt( abifcn, abilityId )
+            abifc.saveReal( abifcn, fc )
             abifcn++
 
 
@@ -277,8 +277,8 @@ package Damager
             i=fcn-1
             while i > 0
 
-                if( IsUnitType(target, ConvertUnitType(this.fct.getInt(i)) ) ) 
-                    f=f*this.fc.getReal(i)
+                if( IsUnitType(target, ConvertUnitType(this.fct.loadInt(i)) ) ) 
+                    f=f*this.fc.loadReal(i)
                     if(f <= -EPSILON) 
                         f=-f
                         negf=-1.0
@@ -287,8 +287,8 @@ package Damager
 
             i= abifcn-1
             while i > 0
-                if( GetUnitAbilityLevel(target,this.abifct.getInt(i) )>0 ) 
-                    f=f*this.abifc.getReal(i)
+                if( GetUnitAbilityLevel(target,this.abifct.loadInt(i) )>0 ) 
+                    f=f*this.abifc.loadReal(i)
                     if(f <= -EPSILON) 
                         f=-f
                         negf=-1.0
