@@ -4,26 +4,27 @@ title: WurstScript Manual
 ---
 
 
-_by peq & Frotty_ _Version: 0.0002_ 
+_by peq & Frotty_ _Version: 0.000_ 
 
 
 WurstScript is a programming language named after the german word for sausage.
 
 The sausage is a symbol for encapsulation (Peel/Pelle), compactness (sausage meat/Brät) and modularization (cut it into slices!). And because you normally know whats inside a sausage the project is also open source and easy to use (cook).
 
-Also remember that WurstScript and its related tools are in a probably unstable state and under heavy development, so you may encounter errors and bugs we don't know about. Please report any
+Remember, WurstScript and its related tools are in a probably unstable state and under heavy development, so you may encounter errors and bugs we don't know about. Please report any
 problem with our [issue tracker at GitHub](https://github.com/peq/WurstScript/issues/new).
 
 # Basics
 
 
-Wurst code is organized into packages. All your wurst code has to be inside a _package_. 
-Packages can also _import_ other packages to use variables, functions, classes, etc. from the imported package. Packages can have a _init_ block to do stuff when the map script is loaded.
+Wurst code is organized into _packages_. All your wurst code has to be inside a _package_. 
+Packages can also _import_ other packages to use variables, functions, classes, etc. from the imported package. Packages can have an _init_ block to do stuff when the map is loaded.
 
 
 	package HelloWurst
 		// you can import stuff from other packages:
-		import PrintPackage
+		import PrintingHelper
+        // Since the Wurst.wurst-Update this isn't needed anymore.
 	
 		// the init block is called at map start
 		init
@@ -71,7 +72,7 @@ With these basic concepts you should be able to do anything you already know for
 The syntax is a little bit different of course, but this is covered in the next chapter.
 
 # Syntax
-The WurstScript Syntax uses indention to define Blocks rather than using curly
+The WurstScript Syntax uses indention to define Blocks, rather than using curly
 braces (as in Java) or keywords like 'endif' (as in Jass).
 
 In general WurstScript tries to avoid using symbols as much as possible to
@@ -774,7 +775,7 @@ provides functions "open" and "close". You can use Lists to store different kind
 <tr><td> <strong>modules</strong> </td><td> yes </td><td> yes </td><td></td></tr>
 <tr><td> <strong>delegate</strong> </td><td> yes </td><td> - </td><td></td></tr>
 <tr><td> <strong>function interfaces</strong> </td><td> yes </td><td> <em>not yet</em> </td><td></td></tr>
-<tr><td> <strong>interfaces</strong> </td><td> yes </td><td> <em>not yet</em> </td><td></td></tr>
+<tr><td> <strong>interfaces</strong> </td><td> yes </td><td> yes </td><td></td></tr>
 <tr><td> <strong>textmacros</strong> </td><td> yes </td><td> - </td><td></td></tr>
 <tr><td> <strong>keyword</strong> </td><td> yes </td><td> - </td><td></td></tr>
 <tr><td> <strong>struct onInit</strong> </td><td> yes </td><td> - </td><td></td></tr>
@@ -794,14 +795,14 @@ provides functions "open" and "close". You can use Lists to store different kind
 <tr><td> <strong>inject</strong> </td><td> yes </td><td> - </td><td></td></tr>
 <tr><td> <strong>Loading structs from SLK files</strong> </td><td> yes </td><td> - </td><td></td></tr>
 <tr><td> <strong>Script optimization</strong> </td><td> only inlining </td><td> yes </td><td></td></tr>
-<tr><td> <strong>Function inlining</strong> </td><td> limited </td><td> <em>not yet</em> </td><td></td></tr>
+<tr><td> <strong>Function inlining</strong> </td><td> limited </td><td> yes </td><td></td></tr>
 <tr><td> <strong>External tools</strong> </td><td> yes </td><td> - </td><td></td></tr>
 <tr><td> <strong>Typechecker</strong> </td><td> limited </td><td> yes </td><td></td></tr>
 <tr><td> <strong>Function sorting</strong> </td><td> - </td><td> yes </td><td></td></tr>
 <tr><td> <strong>Extension functions</strong> </td><td> - </td><td> yes </td><td></td></tr>
-<tr><td> <strong>generics</strong> </td><td> - </td><td> <em>planned</em> </td><td></td></tr>
-<tr><td> <strong>tuple types</strong> </td><td> - </td><td> <em>planned</em> </td><td></td></tr>
-<tr><td> <strong>closures</strong> </td><td> - </td><td> <em>planned</em> </td><td></td></tr>
+<tr><td> <strong>generics</strong> </td><td> - </td><td> yes </td><td></td></tr>
+<tr><td> <strong>tuple types</strong> </td><td> - </td><td> yes </td><td></td></tr>
+<tr><td> <strong>closures</strong> </td><td> - </td><td> yes </td><td></td></tr>
 <tr><td> <strong>compiletime functions</strong> </td><td> - </td><td> <em>planned</em> </td><td></td></tr>
 </table>
 
