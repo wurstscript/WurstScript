@@ -24,9 +24,6 @@ package Fx
 		private integer blue = 255
 		private integer alpha = 255
 		
-		// needed?
-		private integer abil=0
-		
 		construct(real x, real y, real facing)
 			dummy = newDummyUnit(DUMMY_PLAYER, x,y, facing*bj_RADTODEG)
         
@@ -143,10 +140,7 @@ package Fx
             sfxPath = newpath
 			return this
 				
-		ondestroy
-            if abil != 0
-               UnitRemoveAbility(dummy,abil)
-               
+		ondestroy              
             if fx != null
 				fx.destr()
 

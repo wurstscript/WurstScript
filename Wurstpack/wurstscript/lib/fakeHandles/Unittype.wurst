@@ -1,5 +1,7 @@
 package Unittype
 	
+	// Converts a unittype into the correct int (global-wise)
+	// If the unittype doesn't exist, -1 is returned.
 	public function convertUnitTypeToInt( unittype ut ) returns int
 		if ut == UNIT_TYPE_HERO
 			return 0
