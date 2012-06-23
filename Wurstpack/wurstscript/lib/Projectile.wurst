@@ -43,7 +43,7 @@ package Projectile
 					var y = target.getY()
 					tempPolar = polarProjection3d( vec3(x, y, getTerrainZ(x,y)+position.z), 100., rotationAngleGround, rotationAngleAir )
 					velocity = tempPolar - lastPolar 
-				else
+				else 
 					print( "last: " + lastPolar.toString() )
 					tempPolar = polarProjection3d( position, 100., rotationAngleGround, rotationAngleAir )
 					print( "temp: " + tempPolar.toString() )

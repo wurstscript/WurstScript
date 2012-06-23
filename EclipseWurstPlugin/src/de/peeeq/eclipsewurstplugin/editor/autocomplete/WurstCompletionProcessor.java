@@ -21,6 +21,7 @@ import com.google.common.collect.Multimap;
 
 import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
+import de.peeeq.eclipsewurstplugin.editor.outline.Icons;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
@@ -146,8 +147,8 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		int replacementOffset = offset;
 		int replacementLength = 0;
 		int cursorPosition = replacementString.length();
-		Image image = null;
-		String displayString = n.getName();
+		Image image = Icons.var;
+		String displayString = n.getName() + " : " + n.attrTyp().getFullName();
 		IContextInformation contextInformation= new ContextInformation(
 				n.getName(), Utils.printElement(n)); //$NON-NLS-1$
 		String additionalProposalInfo = ":-)";
@@ -166,8 +167,8 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		if (f.getParameters().size() == 0) {
 			cursorPosition++; // outside parentheses
 		}
-		Image image = null;
-		String displayString = f.getName();
+		Image image = Icons.function;
+		
 		StringBuilder descr = new StringBuilder();
 		for (WParameter p : f.getParameters()) {
 			if (descr.length() > 0) {
@@ -175,6 +176,8 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			}
 			descr.append(p.attrTyp() + " " + p.getName());
 		}
+		String returnType = f.getReturnTyp().attrTyp().getFullName();
+		String displayString = f.getName() +"(" + descr.toString() + ") : " + returnType;
 		IContextInformation contextInformation = descr.length() == 0 ? null : new ContextInformation(f.getName(), descr.toString());
 		String additionalProposalInfo = ":-)";
 		return new CompletionProposal(replacementString, replacementOffset, replacementLength, cursorPosition, image, displayString,
