@@ -1,10 +1,20 @@
 package Fx
     import Dummy
     import Effect
-   
-    // This is mostly a copy of xefx, credits for that go to Vexorian
+   	
+	/********************************************************
+	 * * * * * * * * * * Fx * * * * * * * * * * * * * * * * *
+	 * An Fx-Object is basically just a moveable effect.  	*
+	 * Up above you find the Fx-Class. By creating			*
+	 * an instace of it, you recieve the mentioned,			*
+	 * moveable effect.										*
+	 * Constructors and functions defined as following,		*
+	 * should be self-explanatory.							*
+	 * Also features automatic recycling of Fx-instances	*
+	 *														*
+	 * Credits to Vexorian 								  	*
+	 ********************************************************/
 
-    
     // Delay in order to show the death animation of the effect correctly when a Fx is destroyed.
     // You may need to increase this if you are using effects with longer death animations.
     constant real    MIN_RECYCLE_DELAY = 4.0
@@ -15,20 +25,23 @@ package Fx
     
 	
 	public class Fx
-		private unit dummy
-		private effect fx = null
-		private real zang  = 0.
-        private string sfxPath
-		private integer red = 255
-		private integer green = 255
-		private integer blue = 255
-		private integer alpha = 255
+		private unit 	dummy	= null
+		private effect 	fx 		= null
+		private real 	zAngle  = 0.
+        private string 	sfxPath
+        
+		private integer red 	= 255
+		private integer green 	= 255
+		private integer blue 	= 255
+		private integer alpha 	= 255
 		
 		construct(real x, real y, real facing)
 			dummy = newDummyUnit(DUMMY_PLAYER, x,y, facing*bj_RADTODEG)
+			
         
         construct(real x, real y, real facing, string fxpath)
 			dummy = newDummyUnit(DUMMY_PLAYER, x,y, facing*bj_RADTODEG)
+			print(GetUnitName(dummy))
             setFx( fxpath )
 				
 		function getOwner() returns player
@@ -93,11 +106,11 @@ package Fx
 			return this
 
 		function getZAngle() returns real
-			return zang
+			return zAngle
 			
 		function setZAngle(real value) returns Fx
 			int i = R2I(value*bj_RADTODEG + 90.5)
-			zang = value
+			zAngle = value
 			if i >= 180
 				i = 179
 			else if i < 0
@@ -135,12 +148,14 @@ package Fx
 				fx.destr()
 			if newpath == ""
 				fx = null
-			else                
+			else
+				print("added")      
 				fx = dummy.addEffect(newpath, "origin")
             sfxPath = newpath
 			return this
 				
-		ondestroy              
+		ondestroy  
+			print("destroyed")            
             if fx != null
 				fx.destr()
 
@@ -157,23 +172,24 @@ package Fx
     Recyclebin array list
     
     function recycle()
-            Recyclebin rb = list[Recyclebin.readindex]
-            while Recyclebin.count > 0
+        print("recycle")
+        Recyclebin rb = list[Recyclebin.readindex]
+        while Recyclebin.count > 0
 
-                releaseDummyUnit(rb.u)
-                rb.u = null
-                Recyclebin.count--
-                destroy rb
-                rb = rb.next
+            releaseDummyUnit(rb.u)
+            rb.u = null
+            Recyclebin.count--
+            destroy rb
+            rb = rb.next
 
-            list[Recyclebin.readindex] = null
-            Recyclebin.writeindex=Recyclebin.readindex
-            //Recyclebin.readindex++
-            if Recyclebin.readindex>R2I(MIN_RECYCLE_DELAY/RECYCLE_INTERVAL+1.0) 
-                Recyclebin.readindex=0
+        list[Recyclebin.readindex] = null
+        Recyclebin.writeindex=Recyclebin.readindex
+        //Recyclebin.readindex++
+        if Recyclebin.readindex>R2I(MIN_RECYCLE_DELAY/RECYCLE_INTERVAL+1.0) 
+            Recyclebin.readindex=0
 
-            if Recyclebin.count != 0 
-                TimerStart(recycler, RECYCLE_INTERVAL, false, function recycle)
+        if Recyclebin.count != 0 
+            TimerStart(recycler, RECYCLE_INTERVAL, false, function recycle)
                 
     class Recyclebin
         unit u

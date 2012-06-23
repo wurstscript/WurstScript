@@ -87,7 +87,7 @@ package TimerUtils
 	int conditionCount = 0
 	
 	function evaluateTimedLoopTrig()
-		BJDebugMsg("timedLoop - evaluate")
+		//BJDebugMsg("timedLoop - evaluate")
 		TriggerEvaluate(timedLoopTrig)
 		if conditionCount == 0
 			timedLoopTimer.pause()

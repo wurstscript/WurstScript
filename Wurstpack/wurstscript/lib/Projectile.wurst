@@ -1,0 +1,76 @@
+package Projectile
+    import Fx
+	import Vectors
+	import Maths
+	import TimerUtils
+	import Terrain
+	
+	public class Projectile
+		use TimedLoop
+		
+		vec3 position
+		vec3 velocity
+		vec3 targetPos
+		vec3 lastPolar
+		
+		Fx fx
+		
+		private int movement_type = SPIN_MOVEMENT
+		
+		unit target					= null
+		real rotationAngleGround 	= 0.
+		real groundAngleSpeed		= 0.
+		real rotationAngleAir		= 0.
+		real airAngleSpeed			= 0.
+		
+		boolean useForceSources     = false
+		boolean bounceOff			= false
+		
+		construct( real x, real y, real z, string fxpath )
+			fx = new Fx(x,y, 0., fxpath)
+			fx.setZ(z)
+			position = vec3(x,y,z)
+			lastPolar = polarProjection3d( position, 100., rotationAngleGround, rotationAngleAir )
+			fx.setPos(lastPolar.x, lastPolar.y)
+			fx.setZ(lastPolar.z)
+			startTimedLoop()
+			
+		override function onTimedLoop()
+			vec3 tempPolar
+			if movement_type == SPIN_MOVEMENT
+				if target != null
+					var x = target.getX()
+					var y = target.getY()
+					tempPolar = polarProjection3d( vec3(x, y, getTerrainZ(x,y)+position.z), 100., rotationAngleGround, rotationAngleAir )
+					velocity = tempPolar - lastPolar 
+				else
+					print( "last: " + lastPolar.toString() )
+					tempPolar = polarProjection3d( position, 100., rotationAngleGround, rotationAngleAir )
+					print( "temp: " + tempPolar.toString() )
+					velocity = lastPolar - tempPolar 
+					print( "velocity: " + velocity.toString() )
+				lastPolar = tempPolar
+				rotationAngleAir += airAngleSpeed
+				rotationAngleGround += groundAngleSpeed
+			else if movement_type == FREE_MOVEMENT
+				skip
+			else if movement_type == AIM_MOVEMENT
+				skip
+			
+			position = position + velocity
+			fx.setX(position.x)
+			fx.setY(position.y)
+			fx.setZ(position.z)
+		
+		function setFx( string fxpath )
+			fx.setFx( fxpath )
+		
+	
+	
+	
+	constant int NO_MOVEMENT 	= 0
+	constant int SPIN_MOVEMENT 	= 1
+	constant int FREE_MOVEMENT  = 2
+	constant int AIM_MOVEMENT 	= 3
+		
+endpackage

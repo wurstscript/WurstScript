@@ -1,6 +1,14 @@
 package PreloadHandler
-
-    unit dum
+	/********************************************************
+	 * * * * * * * * PreloadHandler * * * * * * * * * * * * *
+	 * The PreloadHandler helps you to preload resources  	*
+	 * at mapstart, to avoid first-laggs.					*
+	 * Use the corresponding function to preload the data	*
+	 * you want.											*
+	 *														*
+	 * Credits to Vexorian 								  	*
+	 ********************************************************/
+    
 
     // use this function to preload an ability
     public function preloadAbility( int abilid )
@@ -25,7 +33,8 @@ package PreloadHandler
 
 		return result
     
-
+	unit dum
+	
     function kill()
         RemoveUnit(dum)
         DestroyTimer(GetExpiredTimer())

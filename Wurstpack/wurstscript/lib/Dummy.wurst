@@ -13,7 +13,7 @@ package Dummy
     constant int INITIAL_DUMMY_COUNT  = 36
     
     // Don't allow to keep more than DUMMY_STACK_LIMIT inactive dummy units.
-    constant int DUMMY_STACK_LIMIT    = 128
+    constant int DUMMY_STACK_LIMIT    = 240
 
 
 // END OF CALIBRATION SECTION
