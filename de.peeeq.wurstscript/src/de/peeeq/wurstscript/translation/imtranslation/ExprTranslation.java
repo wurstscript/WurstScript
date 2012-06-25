@@ -27,6 +27,7 @@ public class ExprTranslation {
 		ImExpr right = e.getRight().imTranslateExpr(t, f);
 		OpBinary op = e.getOp();
 		if (e.attrFuncDef() != null) {
+			// overloaded operator
 			ImFunction calledFunc = t.getFuncFor(e.attrFuncDef());
 			t.addCallRelation(f, calledFunc);
 			return JassIm.ImFunctionCall(calledFunc, ImExprs(left, right));

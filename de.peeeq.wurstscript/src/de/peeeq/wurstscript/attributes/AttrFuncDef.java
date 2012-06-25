@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FuncRef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.NotExtensionFunction;
+import de.peeeq.wurstscript.ast.OpBinary;
 import de.peeeq.wurstscript.ast.OpDivReal;
 import de.peeeq.wurstscript.ast.OpMinus;
 import de.peeeq.wurstscript.ast.OpMult;
@@ -70,26 +71,30 @@ public class AttrFuncDef {
 	}
 	
 	public static FunctionDefinition calculate(ExprBinary node) {
-		FunctionDefinition result = null;
-		Expr left = node.getLeft();
-		PscriptType leftType = left.attrTyp();
-		String funcName = null;
-		if ( node.getOp() instanceof OpPlus) {
-			funcName = overloadingPlus;
-		} else if ( node.getOp() instanceof OpMinus) {
-			funcName = overloadingMinus;
-		} else if ( node.getOp() instanceof OpMult) {
-			funcName = overloadingMult;
-		} else if ( node.getOp() instanceof OpDivReal) {
-			funcName = overloadingDiv;
+		return getExtensionFunction(node.getLeft(), node.getRight(), node.getOp());
+	}
+
+	public static FunctionDefinition getExtensionFunction(Expr left, Expr right, OpBinary op) {
+		String funcName = getOperatorFuncName(op);
+		if (funcName == null || nativeOperator(left.attrTyp(), right.attrTyp())) {
+			return null;
+		}
+		return getMemberFunc(left, left.attrTyp(), funcName);
+	}
+	
+	
+	private static String getOperatorFuncName(OpBinary op) {
+		if ( op instanceof OpPlus) {
+			return overloadingPlus;
+		} else if ( op instanceof OpMinus) {
+			return overloadingMinus;
+		} else if ( op instanceof OpMult) {
+			return overloadingMult;
+		} else if ( op instanceof OpDivReal) {
+			return overloadingDiv;
 		} else {
 			return null;
 		}
-		if (nativeOperator(leftType, node.getRight().attrTyp())) {
-			return null;
-		}
-		result = getMemberFunc(left, leftType, funcName);
-		return result;
 	}
 
 	/**

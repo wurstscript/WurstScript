@@ -94,6 +94,24 @@ public class OpOverloading extends PscriptTest {
 	}
 	
 	@Test
+	public void testOverloading2Abbreviation() {
+		assertOk(true, 
+				"	tuple vec3( real x, real y, real z )",
+				"",
+				"	public function vec3.op_plus( vec3 v )	returns vec3",
+				"			return vec3(this.x + v.x, this.y + v.y, this.z + v.z)",
+				"",
+				"",
+				"	init",
+				"		vec3 v1 = vec3(1.,1.,1.)",
+				"		vec3 v2 = vec3(1.,1.,1.)",
+				"		v1 += v2",
+				"		if v1.x == 2",
+				"			testSuccess()",
+				"");
+	}
+	
+	@Test
 	public void testOverloading3() {
 		assertError(true, "No operator overloading function",
 				"	tuple vec3( real x, real y, real z )",
@@ -119,9 +137,7 @@ public class OpOverloading extends PscriptTest {
 	}
 	
 	
-
-
-	
+		
 	
 
 	public void assertOk(boolean executeProg, String ... input) {
