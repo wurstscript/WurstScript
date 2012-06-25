@@ -17,6 +17,7 @@
 */src-gen/*
 */logs/*
 */temp/*
+*/MapStuff/*
 
 de.peeeq.wurstscript/logs/*
 de.peeeq.wurstscript/test-output/*
