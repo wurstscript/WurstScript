@@ -35,7 +35,7 @@ package Projectile
 			fx.setZ(lastPolar.z)
 			startTimedLoop()
 			
-		override function onTimedLoop()
+		override function onTimedLoop() 
 			vec3 tempPolar
 			if movement_type == SPIN_MOVEMENT
 				if target != null

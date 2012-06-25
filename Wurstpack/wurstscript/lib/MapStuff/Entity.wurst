@@ -1,0 +1,14 @@
+package Entity
+	import Vectors
+	import LinkedListModule
+	
+	public class Entity
+		use LinkedListModule
+		
+		vec3 position
+		
+		real collisionRadius
+		
+		
+		
+endpackage

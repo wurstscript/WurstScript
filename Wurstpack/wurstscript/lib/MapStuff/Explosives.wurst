@@ -1,0 +1,19 @@
+package Explosives
+	import Terrain
+	import Vectors
+	
+	public class Explosive
+		vec3 position
+		
+		real size
+		real explosionRadius
+		real explosionStrength
+		real explosionDmg
+		real dmgFalloff
+		
+		real timeOut
+		
+		construct(real x, real y)
+			position = vec3( x, y, getTerrainZ(x,y) )
+
+endpackage
