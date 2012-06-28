@@ -4,7 +4,7 @@ title: WurstScript Manual
 ---
 
 
-_by peq & Frotty_ _Version: 0.000_ 
+_by peq & Frotty_ _Version: 0.003b_ 
 
 
 WurstScript is a programming language named after the german word for sausage.
@@ -18,13 +18,13 @@ problem with our [issue tracker at GitHub](https://github.com/peq/WurstScript/is
 
 
 Wurst code is organized into _packages_. All your wurst code has to be inside a _package_. 
-Packages can also _import_ other packages to use variables, functions, classes, etc. from the imported package. Packages can have an _init_ block to do stuff when the map is loaded.
+Packages can also _import_ other packages in order to use variables, functions, classes, etc. from the imported package. Packages can have an _init_ block to do stuff when the map is loaded.
 
 
 	package HelloWurst
 		// you can import stuff from other packages:
 		import PrintingHelper
-        // Since the Wurst.wurst-Update this isn't needed anymore.
+        // NOTE: Since the Wurst.wurst-Update this isn't needed anymore.
 	
 		// the init block is called at map start
 		init
@@ -58,6 +58,7 @@ If the function does not return a value this part is omitted.
 Global (local) variables can be declared anywhere in a package (function). 
 A constant value may be declared using the _let_ keyword. Variables are declared
 by using the _var_ keyword or writing the type of the variable before its name.
+Remember that functionnames have to start with a lowercase letter.
 
 	// declaring a constant - the type is inferred from the initial expression
 	let x = 5
@@ -65,9 +66,16 @@ by using the _var_ keyword or writing the type of the variable before its name.
 	var y = 5
 	// declaring a variable with explicit type
 	int z = 7
-
-
-
+    
+    // inside a function
+    function getUnitInfo( unit u )
+        player p = u.getOwner()
+        var name = u.getName()
+        print( name )
+        real x = u.getX()
+        real y = u.getY()
+        
+        
 With these basic concepts you should be able to do anything you already know for jass.
 The syntax is a little bit different of course, but this is covered in the next chapter.
 
@@ -76,7 +84,7 @@ The WurstScript Syntax uses indention to define Blocks, rather than using curly
 braces (as in Java) or keywords like 'endif' (as in Jass).
 
 In general WurstScript tries to avoid using symbols as much as possible to
-provide a clear and readable look. 
+provide a clear and readable look. At the same time most of Jass' verbosity got removed. 
 
 ## Expressions
 
@@ -130,10 +138,13 @@ The simplest statement is the _skip_ statement. It has no effect and can be used
 
 	if x > y or x <= z and "blub" != "blah"
 		...
-
+    print("if done.")
 
 ### Loops
 
+    while a > b // while-loop with input condition
+		...
+        
 	for int i = 0 to 10 // for-loop
 		...
 
@@ -141,10 +152,9 @@ The simplest statement is the _skip_ statement. It has no effect and can be used
 		...
 
 	for int i = 10 downto 0 // wurst can also count down wards
+        ...
 
 
-	while a > b // while-loop with input condition
-		...
 
 
 
@@ -215,13 +225,13 @@ WurstScript supports the following shorthands for assignments:
 
 ## Functions ##
 
-	function foo() // parentheses instead of "takes", "returns nothing" optional
+	function foo() // parentheses instead of "takes", "returns nothing" obsolete.
 		...
 
 	function foo2( unit u ) // parameters
 		RemoveUnit( u )
 
-	function bar( integer i ) returns int // "returns" type
+	function bar( integer i ) returns int // "returns" [type]
 		return i + 4
 	
 	function blub() returns int // without parameters
@@ -382,7 +392,8 @@ Constructors of the class have to specify how the super class should be construc
 which defines the arguments for the super constructor. There can not be any statement before this call.
 
 Functions inherited from super classes can be overridden in the subclass. Such functions have to be annotated with _override_.
-
+    
+          
 ### Example
 
 	class Missile 		
@@ -790,7 +801,7 @@ provides functions "open" and "close". You can use Lists to store different kind
 <tr><td> <strong>Structs with more index space</strong> </td><td> yes </td><td> - </td><td></td></tr>
 <tr><td> <strong>Dynamic arrays with more index space</strong> </td><td> yes </td><td> - </td><td></td></tr>
 <tr><td> <strong>Colon</strong> </td><td> yes </td><td> - </td><td></td></tr>
-<tr><td> <strong>Operator overloading</strong> </td><td> limited </td><td> <em>not yet</em> </td><td></td></tr>
+<tr><td> <strong>Operator overloading</strong> </td><td> limited </td><td> <em>yes, for +,-,*,/></em> </td><td></td></tr>
 <tr><td> <strong>hook</strong> </td><td> yes </td><td> - </td><td></td></tr>
 <tr><td> <strong>inject</strong> </td><td> yes </td><td> - </td><td></td></tr>
 <tr><td> <strong>Loading structs from SLK files</strong> </td><td> yes </td><td> - </td><td></td></tr>
@@ -1068,6 +1079,10 @@ Functionnames that are used within EF or TRVE only get replaced when there is on
 Inlining is not an easy task, but brings great performance boosts to systems with much overhead/1-line functions. 
 
 There may be forced inlining one day.
+
+## Garbage Removal
+
+The optimizer tries to get rid of every unused function and variable to lower the mapscript's filesize.
 
 ## Removing GUI Elements
 
