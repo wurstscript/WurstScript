@@ -97,7 +97,10 @@ public class ExpressionTests extends PscriptTest {
 		assertOk("'wc 3' == 2002985011"); // or 2002985611 ? 
 	}
 	
-	
+	@Test
+	public void string() {
+		assertOk("\"Halloßüöä \\\"Welt\\\"\" != null"); 
+	}
 	
 	private String makeProg(String booleanExpr) {
 		String prog = "package test \n" +

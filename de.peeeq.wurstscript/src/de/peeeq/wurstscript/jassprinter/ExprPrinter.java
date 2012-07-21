@@ -72,6 +72,9 @@ public class ExprPrinter {
 				case '\r':
 					sb.append("\\r");
 					break;
+				case '\"':
+					sb.append("\\\"");
+					break;
 				case '\\':
 					sb.append("\\\\");
 					break;
