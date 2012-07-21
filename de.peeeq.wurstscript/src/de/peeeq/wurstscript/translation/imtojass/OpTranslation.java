@@ -14,8 +14,6 @@ import static de.peeeq.wurstscript.jassAst.JassAst.JassOpOr;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassOpPlus;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassOpUnequals;
 import de.peeeq.wurstscript.ast.OpAnd;
-import de.peeeq.wurstscript.ast.OpAssign;
-import de.peeeq.wurstscript.ast.OpDivAssign;
 import de.peeeq.wurstscript.ast.OpDivInt;
 import de.peeeq.wurstscript.ast.OpDivReal;
 import de.peeeq.wurstscript.ast.OpEquals;
@@ -24,15 +22,12 @@ import de.peeeq.wurstscript.ast.OpGreaterEq;
 import de.peeeq.wurstscript.ast.OpLess;
 import de.peeeq.wurstscript.ast.OpLessEq;
 import de.peeeq.wurstscript.ast.OpMinus;
-import de.peeeq.wurstscript.ast.OpMinusAssign;
 import de.peeeq.wurstscript.ast.OpModInt;
 import de.peeeq.wurstscript.ast.OpModReal;
 import de.peeeq.wurstscript.ast.OpMult;
-import de.peeeq.wurstscript.ast.OpMultAssign;
 import de.peeeq.wurstscript.ast.OpNot;
 import de.peeeq.wurstscript.ast.OpOr;
 import de.peeeq.wurstscript.ast.OpPlus;
-import de.peeeq.wurstscript.ast.OpPlusAssign;
 import de.peeeq.wurstscript.ast.OpUnequals;
 import de.peeeq.wurstscript.jassAst.JassOpBinary;
 import de.peeeq.wurstscript.jassAst.JassOpUnary;
@@ -106,26 +101,4 @@ public class OpTranslation {
 		return JassOpOr();
 	}
 
-	static public JassOpBinary translageAssignGetBinary(
-			OpMinusAssign opMinusAssign) {
-		return JassOpMinus();
-	}
-
-	static public JassOpBinary translageAssignGetBinary(
-			OpPlusAssign opPlusAssign) {
-		return JassOpPlus();
-	}
-
-	static public JassOpBinary translageAssignGetBinary(
-			OpMultAssign opMultAssign) {
-		return JassOpMult();
-	}
-
-	static public JassOpBinary translageAssignGetBinary(OpAssign opAssign) {
-		return null;
-	}
-
-	public static JassOpBinary translageAssignGetBinary(OpDivAssign opDivAssign) {
-		return JassOpDiv();
-	}
 }

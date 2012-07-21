@@ -133,7 +133,7 @@ public class PscriptTest {
 			testScript(name, new StringReader(prog), this.getClass().getSimpleName() + "_" + name, executeProg, false);
 			Assert.assertTrue("No errors were discovered", false);
 		} catch (CompileError e) {
-			Assert.assertTrue(e.getMessage(), e.getMessage().contains(errorMessage));
+			Assert.assertTrue(e.getMessage(), e.getMessage().toLowerCase().contains(errorMessage.toLowerCase()));
 		}
 		
 		

@@ -192,19 +192,6 @@ public class StmtTranslation {
 		
 		
 		ImExpr right = s.getRight().imTranslateExpr(t, f);
-		OpBinary binOp = s.getOpAssign().binaryOp();
-		if (binOp != null) {
-			// we have a statement like i+=1
-			
-			FunctionDefinition opOverloadingFunc = AttrFuncDef.getExtensionFunction(s.getUpdatedExpr(), s.getRight(), binOp);
-			if (opOverloadingFunc == null) {
-				right = JassIm.ImOperatorCall(binOp, ImExprs(updated, right));
-			} else {
-				ImFunction calledFunc = t.getFuncFor(opOverloadingFunc);
-				t.addCallRelation(f, calledFunc);
-				right = JassIm.ImFunctionCall(calledFunc, ImExprs(updated, right));
-			}
-		}
 		
 		if (updated instanceof ImTupleSelection) {
 			ImTupleSelection tupleSelection = (ImTupleSelection) updated;

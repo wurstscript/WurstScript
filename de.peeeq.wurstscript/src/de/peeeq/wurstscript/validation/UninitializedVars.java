@@ -13,7 +13,6 @@ import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
-import de.peeeq.wurstscript.ast.OpUpdateAssign;
 import de.peeeq.wurstscript.ast.OptExpr;
 import de.peeeq.wurstscript.ast.StmtDestroy;
 import de.peeeq.wurstscript.ast.StmtErr;
@@ -86,9 +85,6 @@ public class UninitializedVars {
 					checkExpr(stmtSet.getRight(), uninitializedVars);
 					if (left instanceof ExprVarAccess) {
 						ExprVarAccess exprVarAccess = (ExprVarAccess) left;
-						if (stmtSet.getOpAssign() instanceof OpUpdateAssign) {
-							checkExpr(left, uninitializedVars);
-						}
 						uninitializedVars.remove(exprVarAccess.attrNameDef());
 					} else {
 						checkExpr(left, uninitializedVars);
