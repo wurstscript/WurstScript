@@ -60,7 +60,7 @@ public class ExprTranslation {
 		if (e.attrExpectedTyp() instanceof PScriptTypeReal) {
 			return ImRealVal(e.getValI() + ".");
 		}
-		return interfaceWrapper(e, ImIntVal(e.getValI()), t);
+		return ImIntVal(e.getValI());
 	}
 
 	public static ImExpr translate(ExprNull e, ImTranslator t, ImFunction f) {
@@ -97,18 +97,7 @@ public class ExprTranslation {
 	}
 
 	public static ImExpr translate(NameRef e, ImTranslator t, ImFunction f) {
-		return interfaceWrapper(e, translateNameDef(e, t, f), t);
-	}
-
-	private static ImExpr interfaceWrapper(Expr e, ImExpr translated, ImTranslator t) {
-		if (e.attrTyp() instanceof PscriptTypeClass) {
-			PscriptTypeClass typ = (PscriptTypeClass) e.attrTyp();
-			if (expectedInterfaceType(e) && !(translated instanceof ImTupleExpr)) { 
-				ClassDef c = typ.getClassDef();
-				return JassIm.ImTupleExpr(JassIm.ImExprs(translated, JassIm.ImIntVal(t.getTypeId(c))));
-			}
-		}
-		return translated;
+		return translateNameDef(e, t, f);
 	}
 
 	/** checks whether a interface type is expected for e */
@@ -173,7 +162,7 @@ public class ExprTranslation {
 	}
 
 	public static ImExpr translate(FunctionCall e, ImTranslator t, ImFunction f) {
-		return interfaceWrapper(e, translateFunctionCall(e, t, f), t);
+		return translateFunctionCall(e, t, f);
 	}
 
 	private static ImExpr translateFunctionCall(FunctionCall e, ImTranslator t, ImFunction f) {
@@ -222,8 +211,7 @@ public class ExprTranslation {
 		ConstructorDef constructorFunc = e.attrConstructorDef();
 		ImFunction constructorImFunc = t.getConstructNewFunc(constructorFunc);
 		t.addCallRelation(f, constructorImFunc);
-		ImExpr result = ImFunctionCall(constructorImFunc, translateExprs(e.getArgs(), t, f));
-		return interfaceWrapper(e, result, t);
+		return ImFunctionCall(constructorImFunc, translateExprs(e.getArgs(), t, f));
 	}
 
 	public static ImExprOpt translate(NoExpr e, ImTranslator translator, ImFunction f) {

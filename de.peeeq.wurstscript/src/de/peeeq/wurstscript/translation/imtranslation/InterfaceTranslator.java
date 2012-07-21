@@ -34,10 +34,12 @@ public class InterfaceTranslator {
 
 	private InterfaceDef interfaceDef;
 	private ImTranslator translator;
+	private ClassManagementVars m;
 
 	public InterfaceTranslator(InterfaceDef interfaceDef, ImTranslator translator) {
 		this.interfaceDef = interfaceDef;
 		this.translator = translator;
+		m = translator.getClassManagementVarsFor(interfaceDef);
 	}
 
 	public void translate() {
@@ -65,9 +67,10 @@ public class InterfaceTranslator {
 			// TODO add default implementation
 			f.getBody().addAll(translator.translateStatements(f, funcDef.getBody()));
 		} else {
+			// create dynamic message when not matched:
+			String msg = "ERROR: invalid type for interface dispatch when calling " + interfaceDef.getName() + "." + funcDef.getName();
+			f.getBody().add(JassIm.ImFunctionCall(translator.getDebugPrintFunc(), ImExprs(ImStringVal(msg))));
 			if (!(funcDef.attrTyp() instanceof PScriptTypeVoid)) {
-				String msg = "ERROR: invalid type for interface dispatch";
-				f.getBody().add(JassIm.ImFunctionCall(translator.getDebugPrintFunc(), ImExprs(ImStringVal(msg))));
 				// add return statement
 				ImType type = f.getReturnType();
 				ImExpr def = translator.getDefaultValueForJassType(type);
@@ -80,7 +83,7 @@ public class InterfaceTranslator {
 	private class TypeIdGetterImpl implements TypeIdGetter {
 		@Override
 		public ImExpr get(ImVar thisVar) {
-			return JassIm.ImTupleSelection(JassIm.ImVarAccess(thisVar), 1);
+			return JassIm.ImVarArrayAccess(m.typeId, JassIm.ImVarAccess(thisVar));
 		}
 	}
 	

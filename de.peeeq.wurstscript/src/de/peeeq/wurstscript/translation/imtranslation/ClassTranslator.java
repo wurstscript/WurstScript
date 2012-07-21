@@ -291,10 +291,8 @@ public class ClassTranslator {
 		// nextFree[thisVar] = -1
 		f.getBody().add(ImSetArray(m.nextFree, ImVarAccess(thisVar), ImIntVal(-1)));
 		
-		if (translator.getSubClasses(classDef).size() > 0 || classDef.attrExtendedClass() != null) {
-			// set typeId:
-			f.getBody().add(ImSetArray(m.typeId, ImVarAccess(thisVar), ImIntVal(translator.getTypeId(classDef))));
-		}
+		// set typeId:
+		f.getBody().add(ImSetArray(m.typeId, ImVarAccess(thisVar), ImIntVal(translator.getTypeId(classDef))));
 		
 		// call user defined constructor code:
 		ImFunction constrFunc = translator.getConstructFunc(constr);

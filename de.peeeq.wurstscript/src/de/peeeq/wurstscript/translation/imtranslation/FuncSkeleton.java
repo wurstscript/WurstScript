@@ -36,9 +36,6 @@ public class FuncSkeleton {
 		// parameters
 		if (funcDef.attrIsDynamicClassMember()) {
 			ImVar thisVar = translator.getThisVar(funcDef);
-			if (funcDef.attrNearestStructureDef() instanceof InterfaceDef) {
-				thisVar.setType(TypesHelper.imIntPair());
-			}
 			f.getParameters().add(thisVar);
 		}
 		ImHelper.translateParameters(funcDef.getParameters(), f.getParameters(), translator);

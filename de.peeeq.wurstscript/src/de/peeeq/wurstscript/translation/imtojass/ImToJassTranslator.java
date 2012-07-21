@@ -63,6 +63,10 @@ public class ImToJassTranslator {
 	}
 	
 	public JassProg translate() {
+		StringBuilder sb = new StringBuilder();
+		imProg.print(sb, 0);
+		System.out.println(sb.toString());
+		
 		JassVars globals = JassVars();
 		JassFunctions functions = JassFunctions();
 		prog = JassProg(JassTypeDefs(), globals, JassNatives(), functions);

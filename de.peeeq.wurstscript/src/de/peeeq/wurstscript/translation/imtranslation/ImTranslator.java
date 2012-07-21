@@ -13,6 +13,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
+import de.peeeq.datastructures.Partitions;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassExpr;
@@ -446,23 +447,55 @@ public class ImTranslator {
 		return trace;
 	}
 
-	private Map<ClassDef, ClassManagementVars> classManagementVars = Maps.newHashMap();
+	private Partitions<StructureDef> classPartitions = new Partitions<StructureDef>();
+	private Map<StructureDef, ClassManagementVars> classManagementVars = Maps.newHashMap();
 	
-	public ClassManagementVars getClassManagementVarsFor(ClassDef classDef) {
-		ClassManagementVars m = classManagementVars.get(classDef);
+	public ClassManagementVars getClassManagementVarsFor(StructureDef classDef) {
+		buildClassParition(classDef);
+		
+		
+		// class representing this partition
+		StructureDef repClass = classPartitions.getRep(classDef);
+		
+		ClassManagementVars m = classManagementVars.get(repClass);
 		if (m == null) {
-			if (classDef.attrExtendedClass() != null) {
-				m = getClassManagementVarsFor(classDef.attrExtendedClass()); 
-			} else {
-				m = new ClassManagementVars(classDef, this);
-			}
-			classManagementVars.put(classDef, m);
+			m = new ClassManagementVars(repClass, this);
+			classManagementVars.put(repClass, m);
 		}
 		return m;
 	}
 
-
 	
+
+	private void buildClassParition(StructureDef s) {
+		if (!classPartitions.contains(s)) {
+			classPartitions.add(s);
+			if (s instanceof ClassDef) {
+				ClassDef c = (ClassDef) s;
+				
+				if (c.attrExtendedClass() != null) {
+					// union with extended class
+					buildClassParition(c.attrExtendedClass());
+					classPartitions.union(c, c.attrExtendedClass());
+				}
+				for (PscriptTypeInterface i : c.attrImplementedInterfaces()) {
+					// union with implemented interfaces
+					buildClassParition(i.getInterfaceDef());
+					classPartitions.union(c, i.getInterfaceDef());
+				}
+			} else if (s instanceof InterfaceDef)  {
+				InterfaceDef i = (InterfaceDef) s;
+				for (PscriptTypeInterface t : i.attrExtendedInterfaces()) {
+					// union with extended interfaces
+					buildClassParition(t.getInterfaceDef());
+					classPartitions.union(i, t.getInterfaceDef());
+				}
+				
+			} else {
+				throw new Error("invalid type: " + s.getClass());
+			}
+		}
+	}
 
 	/**
 	 * returns a list of classes and functions implementing funcDef
@@ -670,6 +703,8 @@ public class ImTranslator {
 		}
 		subclasses = Utils.transientClosure(subclasses);
 	}
+
+	
 
 	
 

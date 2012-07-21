@@ -41,7 +41,7 @@ public class PscriptTypeBoundTypeParam extends PscriptType {
 
 	@Override
 	public ImType imTranslateType() {
-		return TypesHelper.imIntPair();
+		return TypesHelper.imInt();
 	}
 
 }
