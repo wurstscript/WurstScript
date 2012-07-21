@@ -394,5 +394,4 @@ public class InterfaceTests extends PscriptTest {
 			);
 	}
 	
-	s
 }
