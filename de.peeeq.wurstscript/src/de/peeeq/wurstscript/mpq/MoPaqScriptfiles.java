@@ -2,7 +2,6 @@ package de.peeeq.wurstscript.mpq;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;

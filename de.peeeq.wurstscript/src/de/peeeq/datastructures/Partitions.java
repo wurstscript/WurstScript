@@ -5,8 +5,6 @@ import java.util.Map;
 
 import com.google.common.collect.Maps;
 
-import de.peeeq.wurstscript.ast.ClassDef;
-
 public class Partitions<T> {
 	
 	private class Partition {

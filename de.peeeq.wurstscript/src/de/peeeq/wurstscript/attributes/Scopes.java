@@ -40,7 +40,6 @@ import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.ast.WurstModel;
-import de.peeeq.wurstscript.utils.Utils;
 
 public class Scopes {
 

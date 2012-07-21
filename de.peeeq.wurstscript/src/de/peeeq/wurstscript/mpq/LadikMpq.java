@@ -2,14 +2,10 @@ package de.peeeq.wurstscript.mpq;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Arrays;
-
-import com.google.common.base.Charsets;
-import com.google.common.io.Files;
 
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.utils.Debug;

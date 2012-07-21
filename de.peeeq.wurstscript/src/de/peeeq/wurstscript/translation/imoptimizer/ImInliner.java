@@ -1,7 +1,9 @@
 package de.peeeq.wurstscript.translation.imoptimizer;
 
+import static de.peeeq.wurstscript.jassIm.JassIm.ImStatementExpr;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImStmts;
+
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Map;
 import java.util.Set;
 
@@ -9,48 +11,18 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import de.peeeq.wurstscript.ast.Expr;
-import de.peeeq.wurstscript.jassIm.ImArrayType;
-import de.peeeq.wurstscript.jassIm.ImBoolVal;
-import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
-import de.peeeq.wurstscript.jassIm.ImExprs;
-import de.peeeq.wurstscript.jassIm.ImFuncRef;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
-import de.peeeq.wurstscript.jassIm.ImIf;
-import de.peeeq.wurstscript.jassIm.ImIntVal;
-import de.peeeq.wurstscript.jassIm.ImLoop;
-import de.peeeq.wurstscript.jassIm.ImNoExpr;
-import de.peeeq.wurstscript.jassIm.ImNull;
-import de.peeeq.wurstscript.jassIm.ImOperatorCall;
 import de.peeeq.wurstscript.jassIm.ImProg;
-import de.peeeq.wurstscript.jassIm.ImRealVal;
 import de.peeeq.wurstscript.jassIm.ImReturn;
-import de.peeeq.wurstscript.jassIm.ImSet;
-import de.peeeq.wurstscript.jassIm.ImSetArray;
-import de.peeeq.wurstscript.jassIm.ImSetArrayTuple;
-import de.peeeq.wurstscript.jassIm.ImSetTuple;
-import de.peeeq.wurstscript.jassIm.ImSimpleType;
-import de.peeeq.wurstscript.jassIm.ImStatementExpr;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmts;
-import de.peeeq.wurstscript.jassIm.ImStringVal;
-import de.peeeq.wurstscript.jassIm.ImTupleArrayType;
-import de.peeeq.wurstscript.jassIm.ImTupleExpr;
-import de.peeeq.wurstscript.jassIm.ImTupleSelection;
-import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImVar;
-import de.peeeq.wurstscript.jassIm.ImVarAccess;
-import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
-import de.peeeq.wurstscript.jassIm.ImVars;
-import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.JassIm;
-import static de.peeeq.wurstscript.jassIm.JassIm.*;
 import de.peeeq.wurstscript.jassIm.JassImElement;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
-import de.peeeq.wurstscript.translation.imtranslation.ImPrinter;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 public class ImInliner {

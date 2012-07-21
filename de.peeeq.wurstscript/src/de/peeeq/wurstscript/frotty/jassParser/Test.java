@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.frotty.jassParser;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 
 import org.antlr.runtime.ANTLRFileStream;
@@ -14,12 +13,10 @@ import com.google.common.io.Files;
 import de.peeeq.wurstscript.Pjass;
 import de.peeeq.wurstscript.Pjass.Result;
 import de.peeeq.wurstscript.frotty.jassValidator.JassErrors;
-import de.peeeq.wurstscript.frotty.jassValidator.JassValidator;
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassAst.JassProgs;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
-import de.peeeq.wurstscript.jassoptimizer.JassOptimizer;
 import de.peeeq.wurstscript.jassoptimizer.JassOptimizerImpl;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 

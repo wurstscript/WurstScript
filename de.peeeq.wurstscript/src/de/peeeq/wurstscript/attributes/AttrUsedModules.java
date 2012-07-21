@@ -5,7 +5,6 @@ import java.util.Collection;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.ClassOrModule;
-import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleUse;
 
