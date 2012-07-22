@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
 
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
@@ -76,7 +75,6 @@ import de.peeeq.wurstscript.types.PscriptTypeInterface;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
 import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
 import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
-import de.peeeq.wurstscript.types.PscriptTypePrimitive;
 import de.peeeq.wurstscript.types.PscriptTypeTuple;
 import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -647,16 +645,16 @@ public class AttrExprType {
 
 
 	public static  PscriptType calculate(ExprCast term)  {
-		PscriptType typ = term.getTyp().attrTyp().dynamic();
+		PscriptType targetTyp = term.getTyp().attrTyp().dynamic();
 		PscriptType exprTyp = term.getExpr().attrTyp();
-		if (typ instanceof PScriptTypeInt && isClassOrModule(exprTyp)) {
+		if (targetTyp instanceof PScriptTypeInt && isCastableToInt(exprTyp)) {
 			// cast from classtype to int: OK
-		} else if (isClassOrModule(typ) && exprTyp instanceof PScriptTypeInt) {
+		} else if (isCastableToInt(targetTyp) && exprTyp instanceof PScriptTypeInt) {
 			// cast from int to classtype: OK
 		} else {
-			attr.addError(term.getSource(), "Cannot cast from " + exprTyp + " to " + typ + ".");
+			attr.addError(term.getSource(), "Cannot cast from " + exprTyp + " to " + targetTyp + ".");
 		}
-		return typ;
+		return targetTyp;
 	}
 
 
@@ -665,9 +663,12 @@ public class AttrExprType {
 	}
 
 
-	protected static boolean isClassOrModule(PscriptType typ) {
+	protected static boolean isCastableToInt(PscriptType typ) {
 		return typ instanceof PscriptTypeClass 
-				|| typ instanceof PscriptTypeModule;
+				|| typ instanceof PscriptTypeModule
+				|| typ instanceof PscriptTypeInterface
+				|| typ instanceof PscriptTypeTypeParam
+				|| typ instanceof PscriptTypeBoundTypeParam;
 	}
 
 }

@@ -11,7 +11,6 @@ import de.peeeq.wurstscript.ast.VisibilityPrivate;
 import de.peeeq.wurstscript.ast.VisibilityProtected;
 import de.peeeq.wurstscript.ast.VisibilityPublic;
 import de.peeeq.wurstscript.ast.VisibilityPublicread;
-import de.peeeq.wurstscript.ast.WParameter;
 
 public class ModifiersHelper {
 

@@ -1,43 +1,34 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
+import static de.peeeq.wurstscript.jassIm.JassIm.ImExprs;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImStringVal;
+
 import java.util.Collections;
 import java.util.List;
 
 import com.google.common.collect.Lists;
 
-import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
-import de.peeeq.wurstscript.ast.NameDef;
-import de.peeeq.wurstscript.ast.Op;
-import de.peeeq.wurstscript.ast.OpLessEq;
-import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.jassIm.ImCall;
 import de.peeeq.wurstscript.jassIm.ImExpr;
-import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
-import de.peeeq.wurstscript.jassIm.ImSimpleType;
-import de.peeeq.wurstscript.jassIm.ImStmt;
-import de.peeeq.wurstscript.jassIm.ImStmts;
-import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.JassIm;
-import static de.peeeq.wurstscript.jassIm.JassIm.*;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;
-import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
-import de.peeeq.wurstscript.utils.Utils;
 
 public class InterfaceTranslator {
 
 	private InterfaceDef interfaceDef;
 	private ImTranslator translator;
+	private ClassManagementVars m;
 
 	public InterfaceTranslator(InterfaceDef interfaceDef, ImTranslator translator) {
 		this.interfaceDef = interfaceDef;
 		this.translator = translator;
+		m = translator.getClassManagementVarsFor(interfaceDef);
 	}
 
 	public void translate() {
@@ -65,9 +56,10 @@ public class InterfaceTranslator {
 			// TODO add default implementation
 			f.getBody().addAll(translator.translateStatements(f, funcDef.getBody()));
 		} else {
+			// create dynamic message when not matched:
+			String msg = "ERROR: invalid type for interface dispatch when calling " + interfaceDef.getName() + "." + funcDef.getName();
+			f.getBody().add(JassIm.ImFunctionCall(translator.getDebugPrintFunc(), ImExprs(ImStringVal(msg))));
 			if (!(funcDef.attrTyp() instanceof PScriptTypeVoid)) {
-				String msg = "ERROR: invalid type for interface dispatch";
-				f.getBody().add(JassIm.ImFunctionCall(translator.getDebugPrintFunc(), ImExprs(ImStringVal(msg))));
 				// add return statement
 				ImType type = f.getReturnType();
 				ImExpr def = translator.getDefaultValueForJassType(type);
@@ -80,7 +72,7 @@ public class InterfaceTranslator {
 	private class TypeIdGetterImpl implements TypeIdGetter {
 		@Override
 		public ImExpr get(ImVar thisVar) {
-			return JassIm.ImTupleSelection(JassIm.ImVarAccess(thisVar), 1);
+			return JassIm.ImVarArrayAccess(m.typeId, JassIm.ImVarAccess(thisVar));
 		}
 	}
 	

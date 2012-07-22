@@ -1,19 +1,8 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import static de.peeeq.wurstscript.jassAst.JassAst.JassExprBinary;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassExprIntVal;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassExprVarAccess;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtCall;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtReturn;
-
-import java.util.Collections;
 import java.util.List;
 
-import com.google.common.collect.Lists;
-
-import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.ClassDef;
-import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
@@ -22,36 +11,16 @@ import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.JassGlobalBlock;
 import de.peeeq.wurstscript.ast.ModuleDef;
-import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.NativeType;
-import de.peeeq.wurstscript.ast.OpLessEq;
-import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.jassAst.JassAst;
-import de.peeeq.wurstscript.jassAst.JassExpr;
-import de.peeeq.wurstscript.jassAst.JassExprlist;
-import de.peeeq.wurstscript.jassAst.JassFunction;
-import de.peeeq.wurstscript.jassAst.JassStatement;
-import de.peeeq.wurstscript.jassAst.JassStatements;
-import de.peeeq.wurstscript.jassIm.ImCall;
-import de.peeeq.wurstscript.jassIm.ImExpr;
-import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImStmt;
-import de.peeeq.wurstscript.jassIm.ImStmts;
-import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
-import de.peeeq.wurstscript.jassIm.JassIm;
-import de.peeeq.wurstscript.types.PScriptTypeVoid;
-import de.peeeq.wurstscript.types.PscriptType;
-import de.peeeq.wurstscript.types.TypesHelper;
-import de.peeeq.wurstscript.utils.Utils;
 
 public class TLDTranslation {
 

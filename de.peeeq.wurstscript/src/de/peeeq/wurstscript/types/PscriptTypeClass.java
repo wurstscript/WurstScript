@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.types;
 
-import java.util.Collection;
 import java.util.List;
 
 import de.peeeq.wurstscript.ast.AstElement;

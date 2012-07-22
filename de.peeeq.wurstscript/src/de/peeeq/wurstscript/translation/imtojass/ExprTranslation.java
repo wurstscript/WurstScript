@@ -1,14 +1,23 @@
 package de.peeeq.wurstscript.translation.imtojass;
 
 
+import static de.peeeq.wurstscript.jassAst.JassAst.JassExprBinary;
+import static de.peeeq.wurstscript.jassAst.JassAst.JassExprFunctionCall;
+import static de.peeeq.wurstscript.jassAst.JassAst.JassExprIntVal;
+import static de.peeeq.wurstscript.jassAst.JassAst.JassExprNull;
+import static de.peeeq.wurstscript.jassAst.JassAst.JassExprRealVal;
+import static de.peeeq.wurstscript.jassAst.JassAst.JassExprStringVal;
+import static de.peeeq.wurstscript.jassAst.JassAst.JassExprUnary;
+import static de.peeeq.wurstscript.jassAst.JassAst.JassExprVarAccess;
+import static de.peeeq.wurstscript.jassAst.JassAst.JassExprVarArrayAccess;
+import static de.peeeq.wurstscript.jassAst.JassAst.JassExprlist;
+
 import java.util.Collections;
 import java.util.List;
 
 import com.google.common.collect.Lists;
 
-import static de.peeeq.wurstscript.jassAst.JassAst.*;
 import de.peeeq.wurstscript.ast.Ast;
-import de.peeeq.wurstscript.ast.OpAnd;
 import de.peeeq.wurstscript.ast.OpBinary;
 import de.peeeq.wurstscript.ast.OpEquals;
 import de.peeeq.wurstscript.ast.OpModInt;
@@ -20,7 +29,6 @@ import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
 import de.peeeq.wurstscript.jassAst.JassExprlist;
 import de.peeeq.wurstscript.jassAst.JassFunction;
-import de.peeeq.wurstscript.jassAst.JassOpBinary;
 import de.peeeq.wurstscript.jassAst.JassVar;
 import de.peeeq.wurstscript.jassIm.ImBoolVal;
 import de.peeeq.wurstscript.jassIm.ImExpr;

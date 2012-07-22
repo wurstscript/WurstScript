@@ -1,6 +1,19 @@
 package de.peeeq.wurstscript.jassprinter;
 
-import de.peeeq.wurstscript.jassAst.*;
+import de.peeeq.wurstscript.jassAst.JassOp;
+import de.peeeq.wurstscript.jassAst.JassOpAnd;
+import de.peeeq.wurstscript.jassAst.JassOpDiv;
+import de.peeeq.wurstscript.jassAst.JassOpEquals;
+import de.peeeq.wurstscript.jassAst.JassOpGreater;
+import de.peeeq.wurstscript.jassAst.JassOpGreaterEq;
+import de.peeeq.wurstscript.jassAst.JassOpLess;
+import de.peeeq.wurstscript.jassAst.JassOpLessEq;
+import de.peeeq.wurstscript.jassAst.JassOpMinus;
+import de.peeeq.wurstscript.jassAst.JassOpMult;
+import de.peeeq.wurstscript.jassAst.JassOpNot;
+import de.peeeq.wurstscript.jassAst.JassOpOr;
+import de.peeeq.wurstscript.jassAst.JassOpPlus;
+import de.peeeq.wurstscript.jassAst.JassOpUnequals;
 
 public class OpPrinter {
 

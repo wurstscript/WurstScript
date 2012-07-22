@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.mpq;
 
-import java.io.File;
 
 public class MpqEditorFactory {
 	private static String filepath = "";

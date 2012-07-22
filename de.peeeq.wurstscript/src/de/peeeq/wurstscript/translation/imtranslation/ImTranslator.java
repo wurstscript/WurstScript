@@ -1,10 +1,26 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
+import static de.peeeq.wurstscript.jassIm.JassIm.ImBoolVal;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImExprs;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImFunction;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImFunctionCall;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImFunctions;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImIntVal;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImNull;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImProg;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImRealVal;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImSet;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImSimpleType;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImStmts;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImTupleExpr;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImVar;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImVars;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImVoid;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import com.google.common.collect.HashMultimap;
@@ -13,19 +29,42 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
-import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.jassAst.JassAst;
-import de.peeeq.wurstscript.jassAst.JassExpr;
+import de.peeeq.datastructures.Partitions;
+import de.peeeq.wurstscript.ast.Ast;
+import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.AstElementWithName;
+import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.Expr;
+import de.peeeq.wurstscript.ast.ExprThis;
+import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.InterfaceDef;
+import de.peeeq.wurstscript.ast.JassToplevelDeclaration;
+import de.peeeq.wurstscript.ast.ModuleInstanciation;
+import de.peeeq.wurstscript.ast.NameDef;
+import de.peeeq.wurstscript.ast.NativeFunc;
+import de.peeeq.wurstscript.ast.OnDestroyDef;
+import de.peeeq.wurstscript.ast.OptExpr;
+import de.peeeq.wurstscript.ast.PackageOrGlobal;
+import de.peeeq.wurstscript.ast.StructureDef;
+import de.peeeq.wurstscript.ast.TranslatedToImFunction;
+import de.peeeq.wurstscript.ast.TupleDef;
+import de.peeeq.wurstscript.ast.VarDef;
+import de.peeeq.wurstscript.ast.WImport;
+import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.ast.WPos;
+import de.peeeq.wurstscript.ast.WStatement;
+import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.jassIm.ImCall;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
-import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmts;
-import de.peeeq.wurstscript.jassIm.ImTupleSelection;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
@@ -38,8 +77,6 @@ import de.peeeq.wurstscript.types.PscriptTypeInterface;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassExprIntVal;
-import static de.peeeq.wurstscript.jassIm.JassIm.*;
 
 public class ImTranslator {
 
@@ -446,23 +483,55 @@ public class ImTranslator {
 		return trace;
 	}
 
-	private Map<ClassDef, ClassManagementVars> classManagementVars = Maps.newHashMap();
+	private Partitions<StructureDef> classPartitions = new Partitions<StructureDef>();
+	private Map<StructureDef, ClassManagementVars> classManagementVars = Maps.newHashMap();
 	
-	public ClassManagementVars getClassManagementVarsFor(ClassDef classDef) {
-		ClassManagementVars m = classManagementVars.get(classDef);
+	public ClassManagementVars getClassManagementVarsFor(StructureDef classDef) {
+		buildClassParition(classDef);
+		
+		
+		// class representing this partition
+		StructureDef repClass = classPartitions.getRep(classDef);
+		
+		ClassManagementVars m = classManagementVars.get(repClass);
 		if (m == null) {
-			if (classDef.attrExtendedClass() != null) {
-				m = getClassManagementVarsFor(classDef.attrExtendedClass()); 
-			} else {
-				m = new ClassManagementVars(classDef, this);
-			}
-			classManagementVars.put(classDef, m);
+			m = new ClassManagementVars(repClass, this);
+			classManagementVars.put(repClass, m);
 		}
 		return m;
 	}
 
-
 	
+
+	private void buildClassParition(StructureDef s) {
+		if (!classPartitions.contains(s)) {
+			classPartitions.add(s);
+			if (s instanceof ClassDef) {
+				ClassDef c = (ClassDef) s;
+				
+				if (c.attrExtendedClass() != null) {
+					// union with extended class
+					buildClassParition(c.attrExtendedClass());
+					classPartitions.union(c, c.attrExtendedClass());
+				}
+				for (PscriptTypeInterface i : c.attrImplementedInterfaces()) {
+					// union with implemented interfaces
+					buildClassParition(i.getInterfaceDef());
+					classPartitions.union(c, i.getInterfaceDef());
+				}
+			} else if (s instanceof InterfaceDef)  {
+				InterfaceDef i = (InterfaceDef) s;
+				for (PscriptTypeInterface t : i.attrExtendedInterfaces()) {
+					// union with extended interfaces
+					buildClassParition(t.getInterfaceDef());
+					classPartitions.union(i, t.getInterfaceDef());
+				}
+				
+			} else {
+				throw new Error("invalid type: " + s.getClass());
+			}
+		}
+	}
 
 	/**
 	 * returns a list of classes and functions implementing funcDef
@@ -670,6 +739,8 @@ public class ImTranslator {
 		}
 		subclasses = Utils.transientClosure(subclasses);
 	}
+
+	
 
 	
 

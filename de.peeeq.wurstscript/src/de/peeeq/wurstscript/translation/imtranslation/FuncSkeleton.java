@@ -4,13 +4,11 @@ import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.InitBlock;
-import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImVar;
-import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 public class FuncSkeleton {
@@ -36,9 +34,6 @@ public class FuncSkeleton {
 		// parameters
 		if (funcDef.attrIsDynamicClassMember()) {
 			ImVar thisVar = translator.getThisVar(funcDef);
-			if (funcDef.attrNearestStructureDef() instanceof InterfaceDef) {
-				thisVar.setType(TypesHelper.imIntPair());
-			}
 			f.getParameters().add(thisVar);
 		}
 		ImHelper.translateParameters(funcDef.getParameters(), f.getParameters(), translator);

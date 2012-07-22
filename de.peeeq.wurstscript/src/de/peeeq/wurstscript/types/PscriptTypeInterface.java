@@ -92,6 +92,6 @@ public class PscriptTypeInterface extends PscriptTypeNamedScope {
 	
 	@Override
 	public ImType imTranslateType() {
-		return TypesHelper.imIntPair();
+		return TypesHelper.imInt();
 	}
 }

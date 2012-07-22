@@ -9,7 +9,9 @@ public class OpOverloading extends PscriptTest {
 	
 	@Test
 	public void testOverloading1() {
-		assertOk(true, 
+		testAssertOkLines(true,
+				"package test",
+				"	native testSuccess()",
 				"	class A ",
 				"		int i = 2",
 				"		",
@@ -21,12 +23,14 @@ public class OpOverloading extends PscriptTest {
 				"		int result = a1 + a2",
 				"		if result == 4",
 				"			testSuccess()",
-				"");
+				"endpackage");
 	}
 	
 	@Test
 	public void testOverloading1_2() {
-		assertOk(true, 
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
 				"	class A ",
 				"		int i = 2",
 				"		",
@@ -38,12 +42,14 @@ public class OpOverloading extends PscriptTest {
 				"		int result = a1 - a2",
 				"		if result == 0",
 				"			testSuccess()",
-				"");
+				"endpackage");
 	}
 	
 	@Test
 	public void testOverloading1_3() {
-		assertOk(true, 
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
 				"	class A ",
 				"		int i = 2",
 				"		",
@@ -55,12 +61,14 @@ public class OpOverloading extends PscriptTest {
 				"		int result = a1 * a2",
 				"		if result == 4",
 				"			testSuccess()",
-				"");
+				"endpackage");
 	}
 	
 	@Test
 	public void testOverloading1_4() {
-		assertOk(true, 
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
 				"	class A ",
 				"		int i = 2",
 				"		",
@@ -72,12 +80,14 @@ public class OpOverloading extends PscriptTest {
 				"		real result = a1 / a2",
 				"		if result == 1",
 				"			testSuccess()",
-				"");
+				"endpackage");
 	}
 	
 	@Test
 	public void testOverloading2() {
-		assertOk(true, 
+		testAssertOkLines(true,
+				"package test",
+				"	native testSuccess()",
 				"	tuple vec3( real x, real y, real z )",
 				"",
 				"	public function vec3.op_plus( vec3 v )	returns vec3",
@@ -90,12 +100,14 @@ public class OpOverloading extends PscriptTest {
 				"		vec3 v3 = v1 + v2",
 				"		if v3.x == 2",
 				"			testSuccess()",
-				"");
+				"endpackage");
 	}
 	
 	@Test
 	public void testOverloading2Abbreviation() {
-		assertOk(true, 
+		testAssertOkLines(true,
+				"package test",
+				"	native testSuccess()",
 				"	tuple vec3( real x, real y, real z )",
 				"",
 				"	public function vec3.op_plus( vec3 v )	returns vec3",
@@ -108,12 +120,14 @@ public class OpOverloading extends PscriptTest {
 				"		v1 += v2",
 				"		if v1.x == 2",
 				"			testSuccess()",
-				"");
+				"endpackage");
 	}
 	
 	@Test
 	public void testOverloading3() {
-		assertError(true, "No operator overloading function",
+		testAssertErrorsLines(true, "No operator overloading function",
+				"package test",
+				"	native testSuccess()",
 				"	tuple vec3( real x, real y, real z )",
 				"",
 				"",
@@ -122,43 +136,53 @@ public class OpOverloading extends PscriptTest {
 				"		vec3 v1 = vec3(1.,1.,1.)",
 				"		vec3 v2 = vec3(1.,1.,1.)",
 				"		vec3 v3 = v1 + v2",
-				"");
+				"endpackage");
 	}
 	
 	@Test
 	public void testOverloading4() {
-		assertError(true, "No operator overloading function",
+		testAssertErrorsLines(true, "No operator overloading function",
+				"package test",
+				"	native testSuccess()",
 				"	nativetype unit",
 				"	init",
 				"		unit u = null",
 				"		unit u2 = null",
 				"		unit u3 = u + u2",
-				"");
+				"endpackage");
 	}
 	
-	
-		
-	
-
-	public void assertOk(boolean executeProg, String ... input) {
-		String prog = "package test\n" +
-				"	native testFail(string msg)\n" +
-				"	native testSuccess()\n" +
-				Utils.join(input, "\n") + "\n" +
-				"endpackage\n";
-		System.out.println(prog);
-		testAssertOk(Utils.getMethodName(1), executeProg, prog);
+	@Test
+	public void testOverloading_shortForm1() {
+		testAssertOkLines(true,
+				"package test",
+				"	native testSuccess()",
+				"	tuple vec(real x, real y, real z)",
+				"	function vec.op_mult(real r) returns vec",
+				"			return vec(this.x*r, this.y*r, this.z*r)",
+				"	init",
+				"		vec v = vec(1,2,3)",
+				"		v *= 2.",
+				"		if v == vec(2,4,6)",
+				"			testSuccess()",
+				"endpackage");
 	}
 	
-	public void assertError( boolean executeProg, String expected, String ... body) {
-		String prog = "package test\n" +
-				"	native testFail(string msg)\n" +
-				"	native testSuccess()\n" +
-				Utils.join(body, "\n") + "\n" +
-				"endpackage\n";
-		testAssertErrors(Utils.getMethodName(1), executeProg, prog, expected);
+	@Test
+	public void testOverloading_shortForm2() {
+		testAssertErrorsLines(true, "expected real",
+				"package test",
+				"	native testSuccess()",
+				"	tuple vec(real x, real y, real z)",
+				"	function vec.op_mult(real r) returns vec",
+				"			return vec(this.x*r, this.y*r, this.z*r)",
+				"	init",
+				"		vec v = vec(1,2,3)",
+				"		v *= v",
+				"		if v == vec(2,4,6)",
+				"			testSuccess()",
+				"endpackage");
 	}
-	
 
 
 }

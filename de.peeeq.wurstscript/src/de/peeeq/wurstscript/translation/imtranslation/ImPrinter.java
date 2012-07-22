@@ -2,7 +2,6 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImBoolVal;
-import de.peeeq.wurstscript.jassIm.ImCall;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImFuncRef;
@@ -30,7 +29,6 @@ import de.peeeq.wurstscript.jassIm.ImTupleArrayType;
 import de.peeeq.wurstscript.jassIm.ImTupleExpr;
 import de.peeeq.wurstscript.jassIm.ImTupleSelection;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
-import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;

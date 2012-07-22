@@ -108,7 +108,7 @@ WStatement	=
 	| StmtWhile(WPos source, Expr cond, WStatements body)
 	| StmtLoop(WPos source, WStatements body)
 	| LocalVarDef
-	| StmtSet(WPos source, NameRef updatedExpr, OpAssignment opAssign, Expr right)
+	| StmtSet(WPos source, NameRef updatedExpr, Expr right)
 	| StmtCall
 	| StmtReturn(WPos source, OptExpr returnedObj)
 	| StmtDestroy(WPos source, Expr destroyedObj)
@@ -119,17 +119,6 @@ WStatement	=
 	| StmtForIn(WPos source, LocalVarDef loopVar, Expr in, WStatements body)
 	| StmtForFrom(WPos source, LocalVarDef loopVar, Expr in, WStatements body)
 	
-
-OpAssignment = OpAssign() // TODO += -= *= /= ...
-	| OpUpdateAssign
-
-OpUpdateAssign =
-	  OpPlusAssign()
-	| OpMultAssign()
-	| OpMinusAssign()
-	| OpDivAssign()
-
-
 
 
 Expr =
@@ -569,14 +558,6 @@ OpBinary.jassTranslateBinary()
 	returns de.peeeq.wurstscript.jassAst.JassOpBinary
 	implemented by de.peeeq.wurstscript.translation.imtojass.OpTranslation.translateOpBinary
 	
-OpAssignment.jassTranslageAssignGetBinary()
-	returns de.peeeq.wurstscript.jassAst.JassOpBinary
-	implemented by de.peeeq.wurstscript.translation.imtojass.OpTranslation.translageAssignGetBinary
-
-
-OpAssignment.binaryOp()
-	returns OpBinary
-	implemented by de.peeeq.wurstscript.translation.imtranslation.ImHelper.getBinaryOp
 	
 // Im translation
 	

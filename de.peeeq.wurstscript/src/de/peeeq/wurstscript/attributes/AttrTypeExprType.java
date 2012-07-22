@@ -6,27 +6,20 @@ import com.google.common.base.Function;
 
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
-import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.ModuleDef;
-import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.NoTypeExpr;
-import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
-import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.types.NativeTypes;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeUnknown;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;
-import de.peeeq.wurstscript.types.PscriptNativeType;
 import de.peeeq.wurstscript.types.PscriptType;
-import de.peeeq.wurstscript.types.PscriptTypeInterface;
 import de.peeeq.wurstscript.types.PscriptTypeModule;
 import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
-import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
 import de.peeeq.wurstscript.utils.Utils;
 
 /**

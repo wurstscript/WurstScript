@@ -1,7 +1,18 @@
 package de.peeeq.wurstscript.jassprinter;
 
-import de.peeeq.wurstscript.jassAst.*;
-import static de.peeeq.wurstscript.jassprinter.JassPrinter.*;
+import static de.peeeq.wurstscript.jassprinter.JassPrinter.assign;
+import static de.peeeq.wurstscript.jassprinter.JassPrinter.comma;
+import static de.peeeq.wurstscript.jassprinter.JassPrinter.printIndent;
+import static de.peeeq.wurstscript.jassprinter.JassPrinter.printStatements;
+import de.peeeq.wurstscript.jassAst.JassExpr;
+import de.peeeq.wurstscript.jassAst.JassStmtCall;
+import de.peeeq.wurstscript.jassAst.JassStmtExitwhen;
+import de.peeeq.wurstscript.jassAst.JassStmtIf;
+import de.peeeq.wurstscript.jassAst.JassStmtLoop;
+import de.peeeq.wurstscript.jassAst.JassStmtReturn;
+import de.peeeq.wurstscript.jassAst.JassStmtReturnVoid;
+import de.peeeq.wurstscript.jassAst.JassStmtSet;
+import de.peeeq.wurstscript.jassAst.JassStmtSetArray;
 
 public class StatementPrinter {
 

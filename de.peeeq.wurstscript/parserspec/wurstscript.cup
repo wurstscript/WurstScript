@@ -574,21 +574,21 @@ LocalVarDefInline ::=
 
 StmtSet ::= 
 	  ExprAssignable:left EQ Expr:right NL
-		{: RESULT = Ast.StmtSet(pos(left, right), left, Ast.OpAssign(),  right); :}
+		{: RESULT = Ast.StmtSet(pos(left, right), left, right); :}
 	| ExprAssignable:left PLUS_EQ Expr:right NL
-		{: RESULT = Ast.StmtSet(pos(left, right), left, Ast.OpPlusAssign(),  right); :}
+		{: RESULT = Ast.StmtSet(pos(left, right), left, Ast.ExprBinary(pos(left, right), (Expr) left.copy(), Ast.OpPlus(), right)); :}
 	| ExprAssignable:left MINUS_EQ Expr:right NL
-		{: RESULT = Ast.StmtSet(pos(left, right), left, Ast.OpMinusAssign(),  right); :}
+		{: RESULT = Ast.StmtSet(pos(left, right), left, Ast.ExprBinary(pos(left, right), (Expr) left.copy(), Ast.OpMinus(), right)); :}
 	| ExprAssignable:left MULT_EQ Expr:right NL
-		{: RESULT = Ast.StmtSet(pos(left, right), left, Ast.OpMultAssign(),  right); :}
+		{: RESULT = Ast.StmtSet(pos(left, right), left, Ast.ExprBinary(pos(left, right), (Expr) left.copy(), Ast.OpMult(), right)); :}
 	| ExprAssignable:left DIV_EQ Expr:right NL
-		{: RESULT = Ast.StmtSet(pos(left, right), left, Ast.OpDivAssign(),  right); :}
+		{: RESULT = Ast.StmtSet(pos(left, right), left,  Ast.ExprBinary(pos(left, right), (Expr) left.copy(), Ast.OpDivReal(), right)); :}
 	| ExprAssignable:left PLUS_PLUS:x NL
-		{: RESULT = Ast.StmtSet(pos(left, xright), left, Ast.OpPlusAssign(), Ast.ExprIntVal(pos(xleft, xright), 1)); :}
+		{: RESULT = Ast.StmtSet(pos(left, xright), left, Ast.ExprBinary(pos(left, xright), (Expr) left.copy(), Ast.OpPlus(), Ast.ExprIntVal(pos(xleft, xright), 1))); :}
 	| ExprAssignable:left MINUS_MINUS:x NL
-		{: RESULT = Ast.StmtSet(pos(left, xright), left, Ast.OpMinusAssign(), Ast.ExprIntVal(pos(xleft, xright), 1)); :}
+		{: RESULT = Ast.StmtSet(pos(left, xright), left, Ast.ExprBinary(pos(left, xright), (Expr) left.copy(), Ast.OpMinus(), Ast.ExprIntVal(pos(xleft, xright), 1))); :}
 	| ExprAssignable:left NL
-		{: RESULT = Ast.StmtSet(pos(left, left), left, Ast.OpAssign(), Ast.ExprIncomplete(pos(left, Integer.MIN_VALUE), "missing right side of expression")); :}
+		{: RESULT = Ast.StmtSet(pos(left, left), left, Ast.ExprIncomplete(pos(left, Integer.MIN_VALUE), "missing right side of expression")); :}
 ;
 
 ExprAssignable ::=
@@ -886,7 +886,7 @@ JassStatement ::=
 	| RETURN:x Expr:e NL
 		{: RESULT = Ast.StmtReturn(pos(xleft, e), e); :}
 	| SET:x ExprAssignable:left EQ Expr:right NL
-		{: RESULT = Ast.StmtSet(pos(xleft, right), left, Ast.OpAssign(),  right); :}
+		{: RESULT = Ast.StmtSet(pos(xleft, right), left, right); :}
 	| CALL:x ExprFunctionCall:call
 		{: RESULT = call; :}
 ;  

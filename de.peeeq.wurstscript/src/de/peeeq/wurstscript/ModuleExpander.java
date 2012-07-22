@@ -1,9 +1,6 @@
 package de.peeeq.wurstscript;
 
-import java.util.Set;
-
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.ClassOrModule;

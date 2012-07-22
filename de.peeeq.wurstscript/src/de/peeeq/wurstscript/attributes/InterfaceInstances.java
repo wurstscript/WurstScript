@@ -6,7 +6,6 @@ import java.util.Map;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;

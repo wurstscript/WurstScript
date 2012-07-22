@@ -33,7 +33,7 @@ public class TypesHelper {
 		});
 	}
 
-	public static ImType imIntPair() {
+	private static ImType imIntPair() {
 		return intPair;
 	}
 

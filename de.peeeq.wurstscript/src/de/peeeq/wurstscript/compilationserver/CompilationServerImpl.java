@@ -9,7 +9,6 @@ import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.utils.Pair;
 
 public class CompilationServerImpl implements CompilationServer {
 

@@ -1,15 +1,11 @@
 package de.peeeq.wurstscript.types;
 
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.NameDef;
-import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WParameter;

@@ -2,7 +2,6 @@ package de.peeeq.wurstscript.validation;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -16,10 +15,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.AstElementWithModifiers;
 import de.peeeq.wurstscript.ast.ClassDef;
-import de.peeeq.wurstscript.ast.ClassSlot;
-import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
@@ -56,14 +52,12 @@ import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
-import de.peeeq.wurstscript.ast.OpDivAssign;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.StmtDestroy;
 import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.StmtWhile;
-import de.peeeq.wurstscript.ast.TranslatedToImFunction;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
@@ -80,7 +74,6 @@ import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CheckHelper;
-import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.NameResolution;
 import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.gui.ProgressHelper;
@@ -90,7 +83,6 @@ import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PScriptTypeCode;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
 import de.peeeq.wurstscript.types.PScriptTypeReal;
-import de.peeeq.wurstscript.types.PScriptTypeUnknown;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
@@ -230,13 +222,6 @@ public class WurstValidator {
 		
 		checkIfAssigningToConstant(s.getUpdatedExpr());
 		
-		if (s.getOpAssign() instanceof OpDivAssign) {
-			PscriptType t = s.getUpdatedExpr().attrTyp();
-			if (!(t instanceof PScriptTypeReal)) {
-				attr.addError(s.getSource(), "Cannot assign real to variable of type " + t);
-			}
-		}
-
 	}
 
 	private void checkIfAssigningToConstant(final NameRef left) {

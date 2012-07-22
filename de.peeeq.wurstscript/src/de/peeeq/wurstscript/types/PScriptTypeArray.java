@@ -2,8 +2,6 @@ package de.peeeq.wurstscript.types;
 
 import java.util.List;
 
-import com.google.common.collect.Lists;
-
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImTupleType;

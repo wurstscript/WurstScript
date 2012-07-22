@@ -15,7 +15,6 @@ import de.peeeq.wurstscript.ast.JassToplevelDeclaration;
 import de.peeeq.wurstscript.ast.Modifiers;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleUse;
-import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.StructureDefOrModuleInstanciation;

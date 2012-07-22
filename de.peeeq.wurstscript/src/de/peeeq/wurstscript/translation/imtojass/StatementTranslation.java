@@ -1,11 +1,19 @@
 package de.peeeq.wurstscript.translation.imtojass;
 
-import java.util.ArrayList;
+import static de.peeeq.wurstscript.jassAst.JassAst.JassExprVarAccess;
+import static de.peeeq.wurstscript.jassAst.JassAst.JassStatements;
+import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtExitwhen;
+import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtIf;
+import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtLoop;
+import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtReturn;
+import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtReturnVoid;
+import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtSet;
+import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtSetArray;
+
 import java.util.List;
 
 import com.google.common.collect.Lists;
 
-import static de.peeeq.wurstscript.jassAst.JassAst.*;
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
@@ -25,8 +33,6 @@ import de.peeeq.wurstscript.jassIm.ImSetArrayTuple;
 import de.peeeq.wurstscript.jassIm.ImSetTuple;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmts;
-import de.peeeq.wurstscript.jassIm.ImType;
-import de.peeeq.wurstscript.jassIm.ImVar;
 
 public class StatementTranslation {
 

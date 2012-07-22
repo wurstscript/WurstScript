@@ -24,7 +24,6 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.Expr;
-import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.OpBinary;
 import de.peeeq.wurstscript.ast.StmtDestroy;
@@ -41,7 +40,6 @@ import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.StmtSkip;
 import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.WStatements;
-import de.peeeq.wurstscript.attributes.AttrFuncDef;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.ImConst;
 import de.peeeq.wurstscript.jassIm.ImExpr;
@@ -192,19 +190,6 @@ public class StmtTranslation {
 		
 		
 		ImExpr right = s.getRight().imTranslateExpr(t, f);
-		OpBinary binOp = s.getOpAssign().binaryOp();
-		if (binOp != null) {
-			// we have a statement like i+=1
-			
-			FunctionDefinition opOverloadingFunc = AttrFuncDef.getExtensionFunction(s.getUpdatedExpr(), s.getRight(), binOp);
-			if (opOverloadingFunc == null) {
-				right = JassIm.ImOperatorCall(binOp, ImExprs(updated, right));
-			} else {
-				ImFunction calledFunc = t.getFuncFor(opOverloadingFunc);
-				t.addCallRelation(f, calledFunc);
-				right = JassIm.ImFunctionCall(calledFunc, ImExprs(updated, right));
-			}
-		}
 		
 		if (updated instanceof ImTupleSelection) {
 			ImTupleSelection tupleSelection = (ImTupleSelection) updated;

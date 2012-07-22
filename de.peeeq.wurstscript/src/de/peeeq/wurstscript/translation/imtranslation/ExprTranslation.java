@@ -1,19 +1,61 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import static de.peeeq.wurstscript.jassIm.JassIm.*;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImExprs;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImFuncRef;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImFunctionCall;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImIntVal;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImNull;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImOperatorCall;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImRealVal;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImStringVal;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImTupleExpr;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImTupleSelection;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImVarAccess;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImVarArrayAccess;
 
 import java.util.List;
 
 import com.google.common.collect.Lists;
 
-import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.ast.Ast;
+import de.peeeq.wurstscript.ast.AstElementWithIndexes;
+import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.Expr;
+import de.peeeq.wurstscript.ast.ExprBinary;
+import de.peeeq.wurstscript.ast.ExprBoolVal;
+import de.peeeq.wurstscript.ast.ExprCast;
+import de.peeeq.wurstscript.ast.ExprFuncRef;
+import de.peeeq.wurstscript.ast.ExprIncomplete;
+import de.peeeq.wurstscript.ast.ExprIntVal;
+import de.peeeq.wurstscript.ast.ExprMemberVar;
+import de.peeeq.wurstscript.ast.ExprNewObject;
+import de.peeeq.wurstscript.ast.ExprNull;
+import de.peeeq.wurstscript.ast.ExprRealVal;
+import de.peeeq.wurstscript.ast.ExprStringVal;
+import de.peeeq.wurstscript.ast.ExprThis;
+import de.peeeq.wurstscript.ast.ExprUnary;
+import de.peeeq.wurstscript.ast.FunctionCall;
+import de.peeeq.wurstscript.ast.FunctionDefinition;
+import de.peeeq.wurstscript.ast.NameDef;
+import de.peeeq.wurstscript.ast.NameRef;
+import de.peeeq.wurstscript.ast.NoExpr;
+import de.peeeq.wurstscript.ast.OpBinary;
+import de.peeeq.wurstscript.ast.OpDivReal;
+import de.peeeq.wurstscript.ast.TupleDef;
+import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.types.PScriptTypeHandle;
+import de.peeeq.wurstscript.jassIm.ImExpr;
+import de.peeeq.wurstscript.jassIm.ImExprOpt;
+import de.peeeq.wurstscript.jassIm.ImExprs;
+import de.peeeq.wurstscript.jassIm.ImFunction;
+import de.peeeq.wurstscript.jassIm.ImFunctionCall;
+import de.peeeq.wurstscript.jassIm.ImSimpleType;
+import de.peeeq.wurstscript.jassIm.ImTupleType;
+import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.ImVar;
+import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
 import de.peeeq.wurstscript.types.PScriptTypeReal;
-import de.peeeq.wurstscript.types.PscriptType;
-import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeInterface;
 import de.peeeq.wurstscript.types.PscriptTypeTuple;
 import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
@@ -60,7 +102,7 @@ public class ExprTranslation {
 		if (e.attrExpectedTyp() instanceof PScriptTypeReal) {
 			return ImRealVal(e.getValI() + ".");
 		}
-		return interfaceWrapper(e, ImIntVal(e.getValI()), t);
+		return ImIntVal(e.getValI());
 	}
 
 	public static ImExpr translate(ExprNull e, ImTranslator t, ImFunction f) {
@@ -97,18 +139,7 @@ public class ExprTranslation {
 	}
 
 	public static ImExpr translate(NameRef e, ImTranslator t, ImFunction f) {
-		return interfaceWrapper(e, translateNameDef(e, t, f), t);
-	}
-
-	private static ImExpr interfaceWrapper(Expr e, ImExpr translated, ImTranslator t) {
-		if (e.attrTyp() instanceof PscriptTypeClass) {
-			PscriptTypeClass typ = (PscriptTypeClass) e.attrTyp();
-			if (expectedInterfaceType(e) && !(translated instanceof ImTupleExpr)) { 
-				ClassDef c = typ.getClassDef();
-				return JassIm.ImTupleExpr(JassIm.ImExprs(translated, JassIm.ImIntVal(t.getTypeId(c))));
-			}
-		}
-		return translated;
+		return translateNameDef(e, t, f);
 	}
 
 	/** checks whether a interface type is expected for e */
@@ -173,7 +204,7 @@ public class ExprTranslation {
 	}
 
 	public static ImExpr translate(FunctionCall e, ImTranslator t, ImFunction f) {
-		return interfaceWrapper(e, translateFunctionCall(e, t, f), t);
+		return translateFunctionCall(e, t, f);
 	}
 
 	private static ImExpr translateFunctionCall(FunctionCall e, ImTranslator t, ImFunction f) {
@@ -222,8 +253,7 @@ public class ExprTranslation {
 		ConstructorDef constructorFunc = e.attrConstructorDef();
 		ImFunction constructorImFunc = t.getConstructNewFunc(constructorFunc);
 		t.addCallRelation(f, constructorImFunc);
-		ImExpr result = ImFunctionCall(constructorImFunc, translateExprs(e.getArgs(), t, f));
-		return interfaceWrapper(e, result, t);
+		return ImFunctionCall(constructorImFunc, translateExprs(e.getArgs(), t, f));
 	}
 
 	public static ImExprOpt translate(NoExpr e, ImTranslator translator, ImFunction f) {

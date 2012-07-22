@@ -1,10 +1,21 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
+import static de.peeeq.wurstscript.jassIm.JassIm.ImExitwhen;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImExprs;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImIf;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImLoop;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImReturn;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImSet;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImSetArray;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImSetTuple;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImStmts;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImTupleExpr;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImTupleSelection;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImVarArrayAccess;
+
 import java.util.List;
 
 import com.google.common.collect.Lists;
-
-import static de.peeeq.wurstscript.jassIm.JassIm.*;
 
 import de.peeeq.wurstscript.jassIm.ImCall;
 import de.peeeq.wurstscript.jassIm.ImConst;

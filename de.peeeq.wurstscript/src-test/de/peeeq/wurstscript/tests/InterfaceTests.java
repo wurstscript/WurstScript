@@ -370,4 +370,28 @@ public class InterfaceTests extends PscriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void casts() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	interface I",
+				"		function foo() returns int",
+				"	class B implements I",
+				"		function foo() returns int",
+				"			return 2",
+				"	class C implements I",
+				"		function foo() returns int",
+				"			return 3",
+				"	init",
+				"		I a = new C()",
+				"		int b = a castTo int",
+				"		I c = b castTo I",
+				"		if c == a",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
 }
