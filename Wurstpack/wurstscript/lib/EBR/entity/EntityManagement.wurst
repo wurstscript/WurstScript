@@ -1,0 +1,16 @@
+package EntityManagement
+	import Entity
+
+	
+	function updateEntities()
+		Entity e = Entity.first
+		while e != null
+			e.update()
+			e = e.next
+			
+		
+	public function init_EntityManagement()
+		TimerStart(CreateTimer(), 0.015625000, true, function updateEntities)
+		
+		
+endpackage

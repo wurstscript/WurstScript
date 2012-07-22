@@ -5,10 +5,10 @@ package StaticTest
     class SomeClass
             
         static function timerCallback()
-        	print("yes")
+        	print("ßßß")
         	
         static function triggerAction()
-        	print("ya")
+        	print("öäü")
             
         
     init

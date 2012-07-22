@@ -91,6 +91,7 @@ public class Main {
 				}
 
 				JassProg jassProg = compiler.getProg();
+				System.out.println(jassProg.toString());
 
 				if (jassProg == null || gui.getErrorCount() > 0) {
 					break compilation;
@@ -123,7 +124,7 @@ public class Main {
 					//outputMapscript = File.createTempFile("outputMapscript", ".j");
 					outputMapscript = new File("./temp/output.j");
 				}
-				Files.write(mapScript, outputMapscript, Charsets.US_ASCII); // use ascii here, wc3 no understand utf8, you know?
+				Files.write(mapScript, outputMapscript, Charsets.UTF_8); // use ascii here, wc3 no understand utf8, you know?
 
 				Result pJassResult = Pjass.runPjass(outputMapscript);
 				System.out.println(pJassResult.getMessage());

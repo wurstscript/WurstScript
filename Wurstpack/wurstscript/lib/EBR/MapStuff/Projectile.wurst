@@ -2,20 +2,16 @@ package Projectile
     import Fx
 	import Vectors
 	import Maths
-	import TimerUtils
+	import Entity
 	import Terrain
 	
-	public class Projectile
-		use TimedLoop
-		
-		vec3 position
-		vec3 velocity
+	public class Projectile extends DynamicEntity
 		vec3 targetPos
 		vec3 lastPolar
 		
 		Fx fx
 		
-		private int movement_type = SPIN_MOVEMENT
+		private int movement_type = FREE_MOVEMENT
 		
 		unit target					= null
 		real rotationAngleGround 	= 0.
@@ -26,16 +22,14 @@ package Projectile
 		boolean useForceSources     = false
 		boolean bounceOff			= false
 		
-		construct( real x, real y, real z, string fxpath )
-			fx = new Fx(x,y, 0., fxpath)
+		construct( real x, real y, real z, real angle, string fxpath )
+			super(x,y,z)
+			fx = new Fx(x,y, angle, fxpath)
 			fx.setZ(z)
-			position = vec3(x,y,z)
-			lastPolar = polarProjection3d( position, 100., rotationAngleGround, rotationAngleAir )
-			fx.setPos(lastPolar.x, lastPolar.y)
-			fx.setZ(lastPolar.z)
-			startTimedLoop()
+
+		
 			
-		override function onTimedLoop() 
+		override function update() 
 			vec3 tempPolar
 			if movement_type == SPIN_MOVEMENT
 				if target != null
@@ -53,14 +47,14 @@ package Projectile
 				rotationAngleAir += airAngleSpeed
 				rotationAngleGround += groundAngleSpeed
 			else if movement_type == FREE_MOVEMENT
-				skip
+				velocity += vec3( 0.,0.,-0.8)
 			else if movement_type == AIM_MOVEMENT
 				skip
 			
 			position = position + velocity
 			fx.setX(position.x)
 			fx.setY(position.y)
-			fx.setZ(position.z)
+			fx.setZ(position.z- (getTerrainZ(position.x, position.y) - 336.))
 		
 		function setFx( string fxpath )
 			fx.setFx( fxpath )
