@@ -13,9 +13,10 @@ package de.peeeq.wurstscript.gui;
 import java.awt.Color;
 import java.awt.Frame;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.Reader;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 
@@ -33,6 +34,7 @@ import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.utils.FileReading;
 import de.peeeq.wurstscript.utils.Utils;
 
 /**
@@ -227,7 +229,7 @@ public class WurstErrorWindow extends javax.swing.JFrame {
 		try {
 			if (!currentFile.equals(fileName)) {
 				currentFile = fileName;
-				FileReader fr = new FileReader(fileName);
+				Reader fr = FileReading.getFileReader(new File(fileName));
 				codeArea.read(fr, fileName);
 			}
 

@@ -1,9 +1,10 @@
 package de.peeeq.wurstscript.compilationserver;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.IOException;
 import java.io.Reader;
+
+import de.peeeq.wurstscript.utils.FileReading;
 
 public class ResourceInputFile extends ResourceInput {
 	public File f;
@@ -14,7 +15,7 @@ public class ResourceInputFile extends ResourceInput {
 	}
 	
 	@Override
-	public Reader getReader() throws FileNotFoundException {
-		return new FileReader(f);
+	public Reader getReader() throws IOException {
+		return FileReading.getFileReader(f);
 	}
 }

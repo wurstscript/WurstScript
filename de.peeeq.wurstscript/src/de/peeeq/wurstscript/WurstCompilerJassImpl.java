@@ -2,7 +2,6 @@ package de.peeeq.wurstscript;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.List;
@@ -35,6 +34,7 @@ import de.peeeq.wurstscript.parser.WurstScriptScanner;
 import de.peeeq.wurstscript.translation.imoptimizer.ImInliner;
 import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.utils.FileReading;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.NotNullList;
 import de.peeeq.wurstscript.utils.Utils;
@@ -379,9 +379,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	private CompilationUnit parseFile(File file) {
 		gui.sendProgress("Parsing File " + file.getName(), 0.05);
 		String source = file.getAbsolutePath();
-		FileReader reader = null;
+		Reader reader = null;
 		try {
-			reader = new FileReader(file);
+			reader = FileReading.getFileReader(file);
 			
 			// scanning
 			return parse(reader, source);
@@ -391,6 +391,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			return emptyCompilationUnit();
 		} catch (FileNotFoundException e) {
 			gui.sendError(new CompileError(Ast.WPos(source, LineOffsets.dummy, 0, 0), "File not found."));
+			return emptyCompilationUnit();
+		} catch (IOException e) {
+			gui.sendError(new CompileError(Ast.WPos(source, LineOffsets.dummy, 0, 0), "Could not read file."));
 			return emptyCompilationUnit();
 		} finally {
 			try {

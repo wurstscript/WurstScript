@@ -2,7 +2,6 @@ package de.peeeq.wurstscript.tests;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
@@ -11,26 +10,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.junit.BeforeClass;
-
 import junit.framework.Assert;
 
 import com.google.common.base.Charsets;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.Files;
 
 import de.peeeq.wurstscript.Pjass;
-import de.peeeq.wurstscript.RunArgs;
-import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.Pjass.Result;
+import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WurstCompilerJassImpl;
+import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
-import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassinterpreter.JassInterpreter;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
@@ -38,6 +32,7 @@ import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.jassoptimizer.JassOptimizer;
 import de.peeeq.wurstscript.jassoptimizer.JassOptimizerImpl;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
+import de.peeeq.wurstscript.utils.FileReading;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class PscriptTest {
@@ -106,19 +101,19 @@ public class PscriptTest {
 	}
 
 	public void testAssertOkFile(File file, boolean executeProg) throws IOException {
-		Reader reader= new FileReader(file);
+		Reader reader= FileReading.getFileReader(file);
 		testScript(Collections.singleton(file), null, file.getName(), executeProg, false);
 		reader.close();
 	}
 	
 	public void testAssertOkFileWithStdLib(File file, boolean executeProg) throws IOException {
-		Reader reader= new FileReader(file);
+		Reader reader= FileReading.getFileReader(file);
 		testScript(file.getAbsolutePath(), reader, file.getName(), executeProg, true);
 		reader.close();
 	}
 	
 	public void testAssertErrorFileWithStdLib(File file, String errorMessage, boolean executeProg) throws IOException {
-		Reader reader= new FileReader(file);
+		Reader reader= FileReading.getFileReader(file);
 		try { 
 			testScript(file.getAbsolutePath(), reader, file.getName(), executeProg, true);
 		} catch (CompileError e) {
@@ -183,6 +178,7 @@ public class PscriptTest {
 		try {
 			StringBuilder sb = new StringBuilder();
 			new JassPrinter(true).printProg(sb, prog);
+			System.out.println(sb.toString());
 			
 			Files.write(sb.toString(), outputFile, Charsets.UTF_8);
 		} catch (IOException e) {
