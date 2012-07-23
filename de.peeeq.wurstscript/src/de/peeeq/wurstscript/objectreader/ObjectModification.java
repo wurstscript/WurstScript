@@ -13,6 +13,13 @@ public class ObjectModification {
 	private String stringData;
 	private float floatData;
 
+	@Override
+	public String toString() {
+		return "ObjectModification [modificationId=" + modificationId + ", variableType=" + variableType + ", levelCount=" + levelCount
+				+ ", dataPointer=" + dataPointer + ", intData=" + intData + ", floa=" + floa + ", stringData=" + stringData
+				+ ", floatData=" + floatData + "]";
+	}
+
 	public ObjectModification(String modificationId, int variableType) {
 		this.modificationId = modificationId;
 		this.variableType = variableType;
@@ -81,6 +88,5 @@ public class ObjectModification {
 		// throw new Error("corrupt end value");
 		// }
 	}
-
 
 }

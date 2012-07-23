@@ -34,7 +34,7 @@ public enum ObjectFileType {
 		this.ext = ext;
 		this.objectIDs = objectIDs;
 		this.modIDs = modIDs;
-		this.usesLevels = true;
+		this.usesLevels = usesLevels;
 	}
 	
 }

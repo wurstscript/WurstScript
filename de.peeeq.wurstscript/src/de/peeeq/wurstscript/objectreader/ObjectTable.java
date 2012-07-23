@@ -26,5 +26,10 @@ public class ObjectTable {
 
 		return objectTable;
 	}
+	
+	
+	public List<ObjectDefinition> getObjectDefinitions() {
+		return objectDefinitions;
+	}
 
 }

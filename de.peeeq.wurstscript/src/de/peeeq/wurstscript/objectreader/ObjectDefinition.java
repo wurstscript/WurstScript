@@ -32,4 +32,16 @@ public class ObjectDefinition {
 		return def;
 	}
 
+	public String getOrigObjectId() {
+		return origObjectId;
+	}
+
+	public String getNewObjectId() {
+		return newObjectId;
+	}
+
+	public List<ObjectModification> getModifications() {
+		return modifications;
+	}
+
 }
