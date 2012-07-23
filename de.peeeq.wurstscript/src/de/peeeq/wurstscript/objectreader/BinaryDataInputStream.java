@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 
+import com.google.common.base.Charsets;
+
 public class BinaryDataInputStream {
 
 	private BufferedInputStream in;
@@ -29,10 +31,10 @@ public class BinaryDataInputStream {
 		int result = 0;
 		if (littleEndian) {
 			for (int i=3; i>0; i--) {
-				result += data[i];
+				result += interpret2compl(data[i]);
 				result <<= 8;
 			}
-			result += data[0];
+			result += interpret2compl(data[0]);
 		} else {
 			for (int i=0; i<3; i++) {
 				result += data[i];
@@ -43,6 +45,14 @@ public class BinaryDataInputStream {
 		return result;
 		
 	}
+
+	private int interpret2compl(byte b) {
+		if (b >= 0) {
+			return b;
+		}
+		return b + 256;
+	}
+
 
 	private byte[] readBytes(int size) throws IOException {
 		byte[] data = new byte[size];
@@ -63,7 +73,7 @@ public class BinaryDataInputStream {
 
 	public String readString(int length) throws IOException {
 		byte[] data = readBytes(length);
-		return new String(data, Charset.defaultCharset());
+		return new String(data, Charsets.UTF_8);
 	}
 
 	public float readFloat() throws IOException {
@@ -77,7 +87,7 @@ public class BinaryDataInputStream {
 		while (true) {
 			byte b = readByte();
 			if (b == 0) {
-				return new String(buffer);
+				return new String(buffer,0,pos, Charsets.UTF_8);
 			}
 			if (pos >= buffer.length) {
 				byte[] newBuffer = new byte[buffer.length*2];
