@@ -336,5 +336,11 @@ package Hashtable
 	public function hashtable.saveWidgetHandle( integer parentKey, integer childKey, widget value ) returns hashtable
         SaveWidgetHandle( this, parentKey, childKey, value )
 		return this
+	
+	public function hashtable.flushChild(int parentKey)
+		FlushChildHashtable(this, parentKey)
+		
+	public function hashtable.flush()
+		FlushParentHashtable(this)
 		
 endpackage 
