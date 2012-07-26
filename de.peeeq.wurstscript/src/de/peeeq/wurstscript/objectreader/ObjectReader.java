@@ -16,5 +16,7 @@ public class ObjectReader {
 				System.out.println("    " + m.toString());
 			}
 		}
+		
+		objFile.writeTo(new File("testscripts/data/units_out.w3u"));
 	}
 }

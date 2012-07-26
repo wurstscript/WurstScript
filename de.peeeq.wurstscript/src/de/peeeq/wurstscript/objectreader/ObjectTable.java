@@ -32,4 +32,15 @@ public class ObjectTable {
 		return objectDefinitions;
 	}
 
+	public void writeToStream(BinaryDataOutputStream out, ObjectFileType fileType) throws IOException {
+		
+		// write number of objects
+		out.writeInt(objectDefinitions.size());
+		
+		for (ObjectDefinition od : objectDefinitions) {
+			od.writeToStream(out, fileType);
+		}
+		
+	}
+
 }

@@ -48,6 +48,7 @@ parser code {:
 
 terminal Integer INTEGER_LITERAL;
 terminal String IDENTIFIER, IDENTIFIER_LT;
+terminal String ANNOTATION;
 terminal String STRING_LITERAL;
 terminal String REAL_LITERAL;
 terminal 
@@ -406,6 +407,8 @@ Modifier ::=
 		{: RESULT = Ast.ModAbstract(pos(xleft, xright)); :}
 	| CONSTANT:x
 		{: RESULT = Ast.ModConstant(pos(xleft, xright)); :}
+	| ANNOTATION:x
+		{: RESULT = Ast.Annotation(pos(xleft, xright), x); :}
 ;
 
 FuncSignature ::=

@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.objectreader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 
 import de.peeeq.wurstscript.WLogger;
@@ -12,6 +13,7 @@ public class ObjectFile {
 	private ObjectFileType fileType;
 	private ObjectTable origTable;
 	private ObjectTable modifiedTable;
+	private int version;
 
 	public ObjectFileType getFileType() {
 		return fileType;
@@ -31,7 +33,7 @@ public class ObjectFile {
 		try {
 			BinaryDataInputStream in = new BinaryDataInputStream(file, true);
 
-			int version = in.readInt();
+			version = in.readInt();
 
 			this.origTable = ObjectTable.readFromStream(in, fileType);
 			this.modifiedTable = ObjectTable.readFromStream(in, fileType);
@@ -52,6 +54,34 @@ public class ObjectFile {
 			}
 		}
 
+	}
+
+	public void writeTo(File file) {
+		FileOutputStream fos = null;
+		
+		try {
+			BinaryDataOutputStream out = new BinaryDataOutputStream(file, true);
+			
+			out.writeInt(version);
+			
+			this.origTable.writeToStream(out, fileType);
+			this.modifiedTable.writeToStream(out, fileType);
+			
+			
+			out.flush();
+			
+		} catch (IOException e) {
+			WLogger.severe(e);
+			throw new Error(e);
+		} finally {
+			if (fos != null) {
+				try {
+					fos.close();
+				} catch (IOException e) {
+					throw new Error(e);
+				}
+			}
+		}
 	}
 
 	

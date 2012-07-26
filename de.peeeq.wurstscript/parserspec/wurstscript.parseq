@@ -234,6 +234,7 @@ Modifiers * Modifier
 
 Modifier = 
 	  VisibilityModifier
+	| Annotation(WPos source, String annotationType)
 	| ModStatic(WPos source)
 	| ModOverride(WPos source)
 	| ModAbstract(WPos source)

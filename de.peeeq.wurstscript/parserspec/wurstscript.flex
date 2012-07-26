@@ -368,6 +368,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	[ \t\n\r]* "." {DIGIT}+			 { return symbol(TokenType.REAL_LITERAL, yytext()); }
 	[ \t\n\r]* "."                    { return symbol(TokenType.DOT); } 
 	"wurst__" {IDENT}				  { return symbol(TokenType.IDENTIFIER, "w" + yytext()); }
+	"@" {IDENT}							{ return symbol(TokenType.ANNOTATION, yytext()); }
 	{IDENT}                           { return symbol(TokenType.IDENTIFIER, yytext()); }
 	{IDENT} "<"                          { return symbol(TokenType.IDENTIFIER_LT, yytext().substring(0, yylength()-1)); }
 	[\"]                             		{ string.setLength(0); afterString = WURST; yybegin(STRING); }
