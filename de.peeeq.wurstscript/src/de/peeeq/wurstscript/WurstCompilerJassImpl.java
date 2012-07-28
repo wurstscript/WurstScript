@@ -268,7 +268,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			// TODO remove test output
 			StringBuilder sb = new StringBuilder();
 			imProg.print(sb, 0);
-			Files.write(sb.toString(), new File("./test-output/test.im"), Charsets.UTF_8);
+			File out = new File("./test-output/test.im");
+			out.getParentFile().mkdirs();
+			Files.write(sb.toString(), out, Charsets.UTF_8);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

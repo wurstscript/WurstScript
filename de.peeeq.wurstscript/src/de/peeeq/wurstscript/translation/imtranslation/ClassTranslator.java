@@ -102,7 +102,7 @@ public class ClassTranslator {
 						// nextFree[this] = firstFree
 						ImSetArray(m.nextFree, ImVarAccess(thisVar), ImVarAccess(m.firstFree)),
 						// firstFree = this				
-						ImSet(m.firstFree, ImVarAccess(m.firstFree))
+						ImSet(m.firstFree, ImVarAccess(thisVar))
 						), 
 				// else
 				ImStmts(

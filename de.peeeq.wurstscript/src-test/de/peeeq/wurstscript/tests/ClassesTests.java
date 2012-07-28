@@ -222,4 +222,30 @@ public class ClassesTests extends PscriptTest {
 				"endpackage"
 			);
 	}
+	
+
+	@Test
+	public void recyling() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	native println(string msg)",
+				"	native I2S(int i) returns string",
+				"	class C",
+				"		int i",
+				"",
+				"	init",
+				"		C array cs",
+				"		for int i = 0 to 6000",
+				"			cs[i] = new C()",
+				"		for int j = 0 to 6000",
+				"			destroy cs[j]",
+				"		for int k = 0 to 6000",
+				"			cs[k] = new C()",
+				"			println(I2S(cs[k] castTo int))",
+				"		if cs[6000] castTo int <= 6001",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
 }
