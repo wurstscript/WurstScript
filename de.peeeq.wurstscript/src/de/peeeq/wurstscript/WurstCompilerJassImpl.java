@@ -49,6 +49,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	private WurstGui gui;
 	private boolean hasCommonJ;
 	private RunArgs runArgs;
+	private File mapFile;
 
 	
 	public WurstCompilerJassImpl(WurstGui gui, RunArgs runArgs) {
@@ -90,6 +91,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		
 		for (File file : files) {
 			if (file.getName().endsWith(".w3x") || file.getName().endsWith(".w3m")) {
+				mapFile = file;
 				CompilationUnit r = processMap(file);
 				if (r == null) {
 					return;
@@ -202,6 +204,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 				}
 				File libDir = new File(libDirName);
 				addLibDir(libDir);
+			}
+			if (mapFile != null) {
+				File relativeWurstDir = new File(mapFile.getParentFile().getAbsolutePath() + "/wurst/");
+				if (relativeWurstDir.exists()) {
+					addLibDir(relativeWurstDir);
+				}
 			}
 		}
 		return libCache;
