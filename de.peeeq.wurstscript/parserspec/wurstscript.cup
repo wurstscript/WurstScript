@@ -184,6 +184,8 @@ Newlines ::=
 CompilationUnit ::=
 	Newlines TopLevelDeclaration:p CompilationUnit:c
 		{: RESULT = AstHelper.addFront(c, p); :}
+	| Newlines PACKAGE:x IDENTIFIER:name NL Imports:imports	Entities:entities
+		{: RESULT = Ast.CompilationUnit("", Ast.JassToplevelDeclarations(), Ast.WPackages(Ast.WPackage(pos(xleft, entities), name, imports, entities))); :}
 	| Newlines
 		{: RESULT = Ast.CompilationUnit("", Ast.JassToplevelDeclarations(), Ast.WPackages()); :}
 ;
