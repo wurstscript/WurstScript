@@ -1,6 +1,7 @@
 package de.peeeq.eclipsewurstplugin.builder;
 
 import org.eclipse.core.resources.ICommand;
+import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.filesystem.IFileStore;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
@@ -9,6 +10,7 @@ import org.eclipse.core.resources.IProjectDescription;
 import org.eclipse.core.resources.IProjectNature;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.jface.text.IDocumentExtension;
 
 import de.peeeq.eclipsewurstplugin.WurstConstants;
@@ -147,15 +149,27 @@ public class WurstNature implements IProjectNature {
 
 	private void open(String fileName, int offset) {
 		IFile file = getProject().getFile(fileName);
-		IEditorPart editor;
-		try {
-			editor = IDE.openEditor(getActiveWorkbenchPage(), file);
-			if (editor instanceof WurstEditor) {
-				WurstEditor wurstEditor = (WurstEditor) editor;
-				wurstEditor.setHighlightRange(offset, 0, true);
+		IEditorPart editor = null;
+		if (file.exists()) {
+			try {
+				editor  = IDE.openEditor(getActiveWorkbenchPage(), file);
+				
+			} catch (PartInitException e) {
+				e.printStackTrace();
 			}
-		} catch (PartInitException e) {
-			e.printStackTrace();
+		} else { // open external file
+			IFileStore fileStore = EFS.getLocalFileSystem().getStore(new Path(fileName));
+			if (!fileStore.fetchInfo().isDirectory() && fileStore.fetchInfo().exists()) {
+			    try {
+			        editor = IDE.openEditorOnFileStore(getActiveWorkbenchPage(), fileStore);
+			    } catch (PartInitException e) {
+			    	e.printStackTrace();
+			    }
+			}
+		}
+		if (editor instanceof WurstEditor) {
+			WurstEditor wurstEditor = (WurstEditor) editor;
+			wurstEditor.setHighlightRange(offset, 0, true);
 		}
 		
 	}
