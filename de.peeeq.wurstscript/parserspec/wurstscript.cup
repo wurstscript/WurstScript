@@ -261,6 +261,8 @@ Entity ::=
 		{: RESULT = Ast.TupleDef(pos(xleft, yright), mod, name, parameters, Ast.NoTypeExpr()); :}
 	| Modifiers:mod FUNCTION:x TypeExpr:t DOT FuncSignature:sig NL INDENT Statements:body UNINDENT:y
 		{: RESULT = Ast.ExtensionFuncDef(pos(xleft, body), mod, t, sig.getName(), sig.getTypeParameters().copy(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body); :}
+	| error:x 
+		{: RESULT = Ast.InitBlock(pos(xleft, xright), Ast.WStatements(Ast.StmtErr(pos(xleft, xright)))); :} // TODO error entity
 ;		
 
 
