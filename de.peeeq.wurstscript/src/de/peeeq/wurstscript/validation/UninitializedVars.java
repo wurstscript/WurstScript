@@ -8,6 +8,7 @@ import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
+import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.LocalVarDef;
@@ -178,6 +179,11 @@ public class UninitializedVars {
 				@Override
 				public void case_StmtSkip(StmtSkip stmtSkip) {
 					// nothing to do					
+				}
+
+				@Override
+				public void case_ExprMemberVar(ExprMemberVar exprMemberVar) {
+					// nothing to do
 				}
 			});
 		}

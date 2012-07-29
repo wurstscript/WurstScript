@@ -73,6 +73,7 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WScope;
+import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CheckHelper;
 import de.peeeq.wurstscript.attributes.NameResolution;
@@ -954,6 +955,15 @@ public class WurstValidator {
 //		}
 	}
 	
+	
+	@CheckMethod
+	public void checkMemberVar(ExprMemberVar e) {
+		if (e.getVarName().length() == 0) {
+			attr.addError(e.getSource(), "Incomplete member access.");
+		} if (e.getParent() instanceof WStatements) {
+			attr.addError(e.getSource(), "Incomplete statement.");
+		}
+	}
 	
 	
 }

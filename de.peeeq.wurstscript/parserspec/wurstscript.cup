@@ -526,6 +526,8 @@ Statement ::=
 		{: RESULT = Ast.StmtExitwhen(pos(xleft, xright), Ast.ExprBoolVal(pos(xleft, xright), true)); :}
 	| SKIP:x NL
 		{: RESULT = Ast.StmtSkip(pos(xleft, xright)); :}
+	| Expr:left DOT:y NL
+		{: RESULT = Ast.ExprMemberVar(pos(left,yright), left, ""); :}
 	| error:x NL
 		{: RESULT = Ast.StmtErr(pos(xleft, xright)); :}
 ;
