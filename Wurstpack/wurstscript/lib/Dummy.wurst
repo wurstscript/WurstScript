@@ -117,8 +117,8 @@ package Dummy
         // ----------------------------------------------------------------
 
         construct( unit u )
-            print( DUMMY_UNIT_ID.toString() )
-            print( GetUnitTypeId(u).toString() )
+            //print( DUMMY_UNIT_ID.toString() )
+            //print( GetUnitTypeId(u).toString() )
             if GetUnitTypeId(u) != DUMMY_UNIT_ID
                 printError("ReleaseDummy error: Method called on a unit of an incorrect type.")
             else if IsUnitInGroup(u, g)
@@ -135,7 +135,7 @@ package Dummy
                 SetUnitScale(u, 1, 0, 0)
                 SetUnitVertexColor(u, 255, 255, 255, 255)
                 // ShowUnit(u, false) // Do not hide the unit, it is rather costly and not needed.
-                printTimed("unit recycled", 10.)
+                //printTimed("unit recycled", 10.)
 
         ondestroy
             GroupRemoveUnit(g, u)

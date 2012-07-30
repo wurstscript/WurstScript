@@ -120,19 +120,19 @@ package DummyCaster
             if dc.recycledelay < EPSILON
                 dummy = DummyCaster.instantdummy
                 SetUnitOwner( dummy, dc.owningplayer, false )
-                print("static one")
+                //print("static one")
             else if DummyCaster.top > 0
                 DummyCaster.top--
                 dummy = DummyCaster.dummystack[DummyCaster.top]
                 SetUnitOwner( dummy, dc.owningplayer, false )
-                print("old one")
+                //print("old one")
             else
                 dummy = CreateUnit( dc.owningplayer, DUMMY_UNIT_ID, 0., 0., 0. )
                 TriggerRegisterUnitEvent( DummyCaster.abilityRemove, dummy, EVENT_UNIT_SPELL_ENDCAST )
                 UnitAddAbility( dummy, 'Aloc' )
                 UnitAddAbility( dummy, HEIGHT_ENABLER )
                 UnitRemoveAbility( dummy, HEIGHT_ENABLER )
-                print("new one")
+                //print("new one")
 
             UnitAddAbility( dummy, abilityId )
             if AUTO_RESET_MANA_COOLDOWN
@@ -387,7 +387,7 @@ package DummyCaster
             UnitRemoveAbility(u,HEIGHT_ENABLER)
             DummyCaster.dummystack[DummyCaster.top]=u
             DummyCaster.top++
-            print(i.toString())
+            //print(i.toString())
 
 
         TriggerAddCondition(DummyCaster.abilityRemove, Condition(function removeAbility ) )
