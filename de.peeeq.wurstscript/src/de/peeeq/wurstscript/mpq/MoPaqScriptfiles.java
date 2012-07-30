@@ -10,6 +10,7 @@ public class MoPaqScriptfiles {
 
 	static File extractFile(File mpqArchive, String fileInMap) {
 		File script = new File("./temp/extract.txt");
+		script.getParentFile().mkdirs();
 		String scriptString = "extract " + "\"" + mpqArchive.getAbsolutePath() + "\"" + " " + fileInMap;  
 		try {
 			Files.write(scriptString, script, Charsets.UTF_8);

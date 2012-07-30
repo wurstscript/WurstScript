@@ -15,7 +15,7 @@ import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
 public class WurstAutoIndentStrategy extends DefaultIndentLineAutoEditStrategy implements IAutoEditStrategy {
 
 
-	Pattern incIndent = Pattern.compile("^(if |else|while |for |function |package |class |interface |module ).*");
+	Pattern incIndent = Pattern.compile("^(if |else|while |for |function |class |interface |module ).*");
 	
 	private void autoIndentAfterNewLine(IDocument d, DocumentCommand c) {
 

@@ -121,5 +121,23 @@ package Vectors
 		
 	public function vec2.toString() returns string
 		return "Vector2 [ " + this.x.toString() + ", " + this.y.toString() + " ]"
+		
+	public function vec2.op_plus( vec2 v )	returns vec2
+		return vec2(this.x + v.x, this.y + v.y)
+    
+    public function vec2.op_minus( vec2 v )	returns vec2
+		return vec2(this.x - v.x, this.y - v.y)
+		
+	public function vec2.op_mult(real factor) returns vec2
+		return vec2(this.x*factor, this.y*factor)
+	
+	public function unit.getPos() returns vec2
+	 	return vec2(this.getX(), this.getY()) 
+	 	
+	public function vec2.angleTo(vec2 v) returns real
+		return Atan2(v.y - this.y, v.x - this.x) 
+		
+	public function vec2.polarOffset(real angle, real dist) returns vec2
+		return vec2(this.x + Cos(angle)*dist, this.y + Sin(angle)*dist)
 	
 endpackage 

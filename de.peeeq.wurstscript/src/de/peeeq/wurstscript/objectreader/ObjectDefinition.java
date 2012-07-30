@@ -31,6 +31,18 @@ public class ObjectDefinition {
 		}
 		return def;
 	}
+	
+	public void writeToStream(BinaryDataOutputStream out, ObjectFileType fileType) throws IOException {
+		out.writeString(origObjectId, 4);
+		out.writeString(newObjectId, 4);
+		
+		// write number of modifications.
+		out.writeInt(modifications.size());
+		for (ObjectModification m : modifications) {
+			m.writeToStream(out, fileType);
+		}
+		
+	}
 
 	public String getOrigObjectId() {
 		return origObjectId;
@@ -43,5 +55,7 @@ public class ObjectDefinition {
 	public List<ObjectModification> getModifications() {
 		return modifications;
 	}
+
+	
 
 }

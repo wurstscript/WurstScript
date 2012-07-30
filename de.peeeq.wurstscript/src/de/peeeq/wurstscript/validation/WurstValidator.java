@@ -14,6 +14,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
+import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ConstructorDef;
@@ -72,6 +73,7 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WScope;
+import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CheckHelper;
 import de.peeeq.wurstscript.attributes.NameResolution;
@@ -773,7 +775,7 @@ public class WurstValidator {
 
 				@Override
 				public void case_NativeFunc(NativeFunc nativeFunc) {
-					check(VisibilityPublic.class);
+					check(VisibilityPublic.class, Annotation.class);
 				}
 				
 				@Override
@@ -810,7 +812,7 @@ public class WurstValidator {
 						check(VisibilityPrivate.class, VisibilityProtected.class,
 								ModAbstract.class, ModOverride.class, ModStatic.class);
 					} else {
-						check(VisibilityPublic.class);
+						check(VisibilityPublic.class, Annotation.class);
 					}
 				}
 				
@@ -854,6 +856,9 @@ public class WurstValidator {
 	}
 
 	protected String printMod(Modifier m) {
+		if (m instanceof Annotation) {
+			return ((Annotation) m).getAnnotationType();
+		}
 		return printMod(m.getClass());
 	}
 	
@@ -950,6 +955,15 @@ public class WurstValidator {
 //		}
 	}
 	
+	
+	@CheckMethod
+	public void checkMemberVar(ExprMemberVar e) {
+		if (e.getVarName().length() == 0) {
+			attr.addError(e.getSource(), "Incomplete member access.");
+		} if (e.getParent() instanceof WStatements) {
+			attr.addError(e.getSource(), "Incomplete statement.");
+		}
+	}
 	
 	
 }

@@ -2,27 +2,22 @@ package de.peeeq.wurstscript.objectreader;
 
 import java.io.IOException;
 
-public class ObjectModification {
+public abstract class ObjectModification { // TODO split into appropiate subclasses
 
-	private String modificationId;
-	private int variableType;
-	private int levelCount;
-	private int dataPointer;
-	private int intData;
-	private float floa;
-	private String stringData;
-	private float floatData;
+	protected String modificationId;
+	protected int variableType;
+	protected int levelCount;
+	protected int dataPointer;
+	private String originalObjectId;
+	private String newObjectId;
 
-	@Override
-	public String toString() {
-		return "ObjectModification [modificationId=" + modificationId + ", variableType=" + variableType + ", levelCount=" + levelCount
-				+ ", dataPointer=" + dataPointer + ", intData=" + intData + ", floa=" + floa + ", stringData=" + stringData
-				+ ", floatData=" + floatData + "]";
-	}
-
-	public ObjectModification(String modificationId, int variableType) {
+	public ObjectModification(String originalObjectId, String newObjectId, String modificationId, int variableType, int levelCount, int dataPointer) {
+		this.originalObjectId = originalObjectId;
+		this.newObjectId = newObjectId;
 		this.modificationId = modificationId;
 		this.variableType = variableType;
+		this.levelCount = levelCount;
+		this.dataPointer = dataPointer;
 	}
 
 	public void setLevelData(int levelCount, int dataPointer) {
@@ -30,63 +25,66 @@ public class ObjectModification {
 		this.dataPointer = dataPointer;
 	}
 
-	public void setIntData(int intData) {
-		this.intData = intData;
-	}
-
-	public void setFloatData(float floatData) {
-		this.floatData = floatData;
-	}
-
-	public void setStringData(String stringData) {
-		this.stringData = stringData;
-	}
 	
 	static ObjectModification readFromStream(BinaryDataInputStream in, ObjectFileType fileType, String originalObjectId, String newObjectId) throws IOException {
 		String modificationId = in.readString(4);
 
 		int variableType = in.readInt();
 
-		ObjectModification result = new ObjectModification(modificationId, variableType);
-		
+		int levelCount = 0;
+		int dataPointer = 0;
 		if (fileType.usesLevels()) {
-			int levelCount = in.readInt();
-
-			int dataPointer = in.readInt();
-			
-			result.setLevelData(levelCount, dataPointer);
+			levelCount = in.readInt();
+			dataPointer = in.readInt();
 		}
 
 		
 		
+		ObjectModification result;
 		switch (variableType) {
 			case VariableTypes.INTEGER:
 				int intData = in.readInt();
-				result.setIntData(intData);
+				result = new ObjectModificationInt(originalObjectId, newObjectId, modificationId, variableType, levelCount, dataPointer, intData);
 				break;
 			case VariableTypes.REAL:
-			case VariableTypes.UNREAL:
 				float floatData = in.readFloat();
-				result.setFloatData(floatData);
+				result = new ObjectModificationUnreal(originalObjectId, newObjectId, modificationId, variableType, levelCount, dataPointer, floatData);
+				break;
+			case VariableTypes.UNREAL:
+				float floatData2 = in.readFloat();
+				result = new ObjectModificationUnreal(originalObjectId, newObjectId, modificationId, variableType, levelCount, dataPointer, floatData2);
 				break;
 			case VariableTypes.STRING:
 				String stringData = in.readNullTerminatedString();
-				result.setStringData(stringData);
+				result = new ObjectModificationString(originalObjectId, newObjectId, modificationId, variableType, levelCount, dataPointer, stringData);
 				break;
 			default:
 				throw new Error("unsupported vartype " + variableType);
 		}
 
 		String end = in.readString(4);
-//		if (end.length() > 0 && !(end.charAt(0) == 0) && !end.equals(originalObjectId) && !end.equals(newObjectId)) {
-//			throw new Error("corrupt end value: " + (int) end.charAt(0) + ", " + end + ", expected " + originalObjectId
-//					+ " or " + newObjectId);
-//		}
+		if (end.length() > 0 && !(end.charAt(0) == 0) && !end.equals(originalObjectId) && !end.equals(newObjectId)) {
+			throw new Error("corrupt end value: " + (int) end.charAt(0) + ", " + end + ", expected " + originalObjectId
+					+ " or " + newObjectId);
+		}
 		return result;
 
 		// if (end != 0 && end != originalObjectId && end != newObjectId) {
 		// throw new Error("corrupt end value");
 		// }
 	}
+
+	public final void writeToStream(BinaryDataOutputStream out, ObjectFileType fileType) throws IOException {
+		out.writeString(modificationId, 4);
+		out.writeInt(variableType);
+		if (fileType.usesLevels()) {
+			out.writeInt(levelCount);
+			out.writeInt(dataPointer);
+		}
+		writeDataToStream(out, fileType);
+		out.writeString(newObjectId, 4);
+	}
+	
+	abstract void writeDataToStream(BinaryDataOutputStream out, ObjectFileType fileType) throws IOException; 
 
 }

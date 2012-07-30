@@ -22,6 +22,7 @@ public class WurstScriptScanner extends WurstScriptScannerIntern {
 			do {
 				 token = super.next_token();
 			} while (token == null);
+
 		}
 		return token;
 	}

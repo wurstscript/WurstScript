@@ -1,0 +1,20 @@
+package HashMap
+	
+	
+	// a map from Ks to Vs            
+	public class HashMap<K,V>
+		static private hashtable ht = InitHashtable()
+		
+		function put(K key, V value)
+			ht.saveInt(this castTo int, key castTo int, value castTo int)
+			
+		function get(K key) returns V
+			return ht.loadInt(this castTo int, key castTo int) castTo V
+
+		function flush()
+            FlushChildHashtable(ht, this castTo int)
+
+        ondestroy
+            this.flush()
+       
+endpackage

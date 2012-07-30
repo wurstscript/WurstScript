@@ -85,7 +85,7 @@ package Lists
 			this.dummy = dummy
 			this.current = dummy
 
-		// remove the current element from the queue
+		// remove the current element from the list
 		function remove()
 			if current != dummy
 				current.next.prev = current.prev
