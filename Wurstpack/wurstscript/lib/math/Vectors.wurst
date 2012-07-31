@@ -4,7 +4,15 @@ package Vectors
 	 ********3D-Vector********
 	 *************************/
 	public tuple vec3( real x, real y, real z )
-		
+	
+	public function vec3.setLength( real length ) returns vec3
+		real l = SquareRoot(this.x*this.x + this.y*this.y + this.z*this.z)
+		if l == 0.0
+			printError("vector.setLength error: The length of the vector is 0.0!")
+			return vec3(0.,0.,0.)
+        l = length/l
+        return vec3(this.x*l, this.y*l, this.z*l)
+
 	public function vec3.op_plus( vec3 v )	returns vec3
 		return vec3(this.x + v.x, this.y + v.y, this.z + v.z)
     

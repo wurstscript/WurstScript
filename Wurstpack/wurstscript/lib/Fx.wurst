@@ -41,7 +41,7 @@ package Fx
         
         construct(real x, real y, real facing, string fxpath)
 			dummy = newDummyUnit(DUMMY_PLAYER, x,y, facing*bj_RADTODEG)
-			print(GetUnitName(dummy))
+			//print(GetUnitName(dummy))
             setFx( fxpath )
 				
 		function getOwner() returns player
@@ -149,13 +149,13 @@ package Fx
 			if newpath == ""
 				fx = null
 			else
-				print("added")      
+				//print("added")      
 				fx = dummy.addEffect(newpath, "origin")
             sfxPath = newpath
 			return this
 				
 		ondestroy  
-			print("destroyed")            
+			//print("destroyed")            
             if fx != null
 				fx.destr()
 
@@ -172,7 +172,7 @@ package Fx
     Recyclebin array list
     
     function recycle()
-        print("recycle")
+        //print("recycle")
         Recyclebin rb = list[Recyclebin.readindex]
         while Recyclebin.count > 0
 

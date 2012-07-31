@@ -27,7 +27,10 @@ package Table
         
         function removeReal( integer parentKey )
             RemoveSavedReal(ht, this castTo int, parentKey)
-				
+		
+		function removeHandle( integer parentKey )
+            RemoveSavedHandle(ht, this castTo int, parentKey)
+            
 		function loadPlayer( int parentKey ) returns player
 		    return ht.loadPlayerHandle( this castTo int, parentKey )
 		
