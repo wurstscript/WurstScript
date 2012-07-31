@@ -46,10 +46,10 @@ public class NativeFunctions {
 	}
 	
 	static public ILconstNull Player(ILconstInt p) {
-		return new ILconstNull();
+		return ILconstNull.instance();
 	}
 	
 	static public ILconstNull InitHashtable() {
-		return new ILconstNull();
+		return ILconstNull.instance();
 	}
 }

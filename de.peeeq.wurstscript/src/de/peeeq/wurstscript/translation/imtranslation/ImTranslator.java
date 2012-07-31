@@ -720,6 +720,8 @@ public class ImTranslator {
 
 	
 	private Multimap<ClassDef, ClassDef> subclasses = null;
+
+	private List<ImFunction> compiletimeFuncs = Lists.newArrayList();
 	
 	public Collection<ClassDef> getSubClasses(ClassDef classDef) {
 		if (subclasses == null) {
@@ -740,12 +742,8 @@ public class ImTranslator {
 		subclasses = Utils.transientClosure(subclasses);
 	}
 
-	
-
-	
-
-	
-		
-
+	public void addCompiletimeFunc(ImFunction f) {
+		compiletimeFuncs.add(f);
+	}
 
 }

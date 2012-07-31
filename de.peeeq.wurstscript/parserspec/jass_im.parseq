@@ -157,3 +157,23 @@ ImType.translateTypeFirst()
 ImType.translateType()
 	returns java.util.List<String>
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.translateType
+	
+ImVar.isGlobal
+	returns boolean
+	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.isGlobal
+	
+ImStmts.runStatements(de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState globalState
+		, de.peeeq.wurstscript.intermediateLang.interpreter.LocalState localState)
+	returns void
+	implemented by de.peeeq.wurstscript.intermediateLang.interpreter.RunStatement.run
+	
+ImStmt.runStatement(de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState globalState
+		, de.peeeq.wurstscript.intermediateLang.interpreter.LocalState localState)
+	returns void
+	implemented by de.peeeq.wurstscript.intermediateLang.interpreter.RunStatement.run
+	
+ImExpr.evaluate(de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState globalState
+		, de.peeeq.wurstscript.intermediateLang.interpreter.LocalState localState)
+	returns de.peeeq.wurstscript.intermediateLang.ILconst
+	implemented by de.peeeq.wurstscript.intermediateLang.interpreter.EvaluateExpr.eval
+	

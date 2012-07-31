@@ -5,6 +5,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.base.Function;
+import com.google.common.base.Supplier;
+
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstAddable;
@@ -61,7 +64,6 @@ import de.peeeq.wurstscript.utils.Utils;
 public class JassInterpreter {
 
 	private JassProg prog;
-	private static ExitwhenException staticExitwhenException = new ExitwhenException();
 	private static ReturnException staticReturnException = new ReturnException(null);
 	private Map<String, ILconst> globalVarMap;
 	private boolean trace = false;
@@ -92,7 +94,7 @@ public class JassInterpreter {
 		}else if (type.equals("real")) {
 			return new ILconstReal(0.0f);
 		}else {
-			return new ILconstNull();
+			return ILconstNull.instance();
 		}
 	}
 	
@@ -207,7 +209,7 @@ public class JassInterpreter {
 			public void case_JassStmtExitwhen(JassStmtExitwhen jassStmtExitwhen) {
 				ILconstBool cond = (ILconstBool) executeExpr(localVarMap, jassStmtExitwhen.getCond());
 				if (cond.getVal()) {
-					throw staticExitwhenException;
+					throw ExitwhenException.instance();
 				}
 			}
 			
@@ -443,7 +445,7 @@ public class JassInterpreter {
 
 			@Override
 			public ILconst case_JassExprNull(JassExprNull e) {
-				return new ILconstNull();
+				return ILconstNull.instance();
 			}
 			
 		});
@@ -507,4 +509,9 @@ public class JassInterpreter {
 		trace = b;
 	}
 
+	
+	private de.peeeq.wurstscript.intermediateLang.ILconst evalOp(de.peeeq.wurstscript.intermediateLang.ILconst left, com.google.common.base.Supplier<de.peeeq.wurstscript.intermediateLang.ILconst> right) {
+		return left;
+		
+	}
 }

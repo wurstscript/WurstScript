@@ -414,7 +414,9 @@ TypeRef.attrTypeDef
 
 
 
-	
+HasModifier.attrIsCompiletime
+	returns boolean
+	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isCompiletime	
 
 HasModifier.attrIsPublic
 	returns boolean
@@ -617,6 +619,15 @@ OpBinary.jassTranslateBinary()
 		implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getImplementedInterfaces
 		
 		
+	
+OpBinary.evaluateBinaryOperator(de.peeeq.wurstscript.intermediateLang.ILconst left, com.google.common.base.Supplier<de.peeeq.wurstscript.intermediateLang.ILconst> right)
+	returns de.peeeq.wurstscript.intermediateLang.ILconst	
+	implemented by de.peeeq.wurstscript.intermediateLang.interpreter.EvaluateBinaryOperator.eval
+
+OpUnary.evaluateUnaryOperator(de.peeeq.wurstscript.intermediateLang.ILconst val)
+	returns de.peeeq.wurstscript.intermediateLang.ILconst	
+	implemented by de.peeeq.wurstscript.intermediateLang.interpreter.EvaluateUnaryOperator.eval
+	
 // removed attributes:
 //
 //

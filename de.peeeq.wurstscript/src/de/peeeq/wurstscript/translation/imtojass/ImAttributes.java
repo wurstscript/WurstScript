@@ -7,9 +7,11 @@ import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImFunction;
+import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImTupleArrayType;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
+import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.JassImElement;
 
@@ -75,6 +77,11 @@ public class ImAttributes {
 			result.add(p);
 		}
 		return result;
+	}
+
+
+	public static boolean isGlobal(ImVar imVar) {
+		return imVar.getParent().getParent() instanceof ImProg;
 	}
 	
 

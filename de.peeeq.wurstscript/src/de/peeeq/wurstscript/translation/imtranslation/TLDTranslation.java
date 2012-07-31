@@ -91,6 +91,10 @@ public class TLDTranslation {
 	public static void translate(FuncDef funcDef, ImTranslator translator) {
 		ImFunction f = translator.getFuncFor(funcDef);
 		
+		if (funcDef.attrIsCompiletime()) {
+			translator.addCompiletimeFunc(f);
+		}
+		
 		// body
 		List<ImStmt> stmts = translator.translateStatements(f, funcDef.getBody());
 		f.getBody().addAll(stmts);

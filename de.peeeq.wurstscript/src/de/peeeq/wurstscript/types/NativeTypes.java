@@ -52,10 +52,10 @@ public class NativeTypes {
 			return new ILconstString(null);
 		}
 		if (type.isSubtypeOf(PScriptTypeCode.instance(), null)) {
-			return new ILconstNull();
+			return ILconstNull.instance();
 		}
 		if (type.isSubtypeOf(PScriptTypeHandle.instance(), null)) {
-			return new ILconstNull();
+			return ILconstNull.instance();
 		}
 		if (type instanceof PscriptTypeClass) {
 			return new ILconstInt(0);

@@ -1,12 +1,15 @@
 package de.peeeq.wurstscript.attributes;
 
+import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElementWithModifiers;
+import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.ModAbstract;
 import de.peeeq.wurstscript.ast.ModConstant;
 import de.peeeq.wurstscript.ast.ModOverride;
 import de.peeeq.wurstscript.ast.ModStatic;
 import de.peeeq.wurstscript.ast.Modifier;
+import de.peeeq.wurstscript.ast.Modifiers;
 import de.peeeq.wurstscript.ast.VisibilityPrivate;
 import de.peeeq.wurstscript.ast.VisibilityProtected;
 import de.peeeq.wurstscript.ast.VisibilityPublic;
@@ -58,6 +61,22 @@ public class ModifiersHelper {
 
 	static void checkAllowedModifiers(HasModifier e) {
 		// TODO check allowed modifiers and call this method from checker
+	}
+
+	public static boolean isCompiletime(HasModifier e) {
+		return hasAnnotation(e.getModifiers(), "@compiletime");
+	}
+
+	private static boolean hasAnnotation(Modifiers modifiers, String string) {
+		for (Modifier m : modifiers) {
+			if (m instanceof Annotation) {
+				Annotation annotation = (Annotation) m;
+				if (annotation.getAnnotationType().equals(string)) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 

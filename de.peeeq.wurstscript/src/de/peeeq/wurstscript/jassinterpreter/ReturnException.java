@@ -10,11 +10,11 @@ public class ReturnException extends Error {
 		this.val = value;
 	}
 
-	ILconst getVal() {
+	public ILconst getVal() {
 		return val;
 	}
 	
-	ReturnException setVal(ILconst val) {
+	public ReturnException setVal(ILconst val) {
 		this.val = val;
 		return this;
 	}
