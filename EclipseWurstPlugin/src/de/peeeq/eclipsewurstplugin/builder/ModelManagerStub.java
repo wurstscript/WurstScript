@@ -54,7 +54,10 @@ public class ModelManagerStub implements ModelManager {
 
 	@Override
 	public void addDependency(File f) {
-		// TODO Auto-generated method stub
+	}
+
+	@Override
+	public void clearDependencies() {
 		
 	}
 

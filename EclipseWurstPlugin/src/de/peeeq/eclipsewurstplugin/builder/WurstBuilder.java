@@ -148,7 +148,10 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 		// TODO move to model manager?
 		if (resource instanceof IFile) {
 			IFile file = (IFile) resource;
-			if (resource.getName().endsWith(".wurst")) {
+			if (!file.exists()) {
+				return;
+			}
+			if (file.getName().endsWith(".wurst")) {
 				WurstNature.deleteMarkers(file);
 	
 				Reader reader;
@@ -167,8 +170,9 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 						WurstNature.addErrorMarker(file, e);
 					}
 				}
-			} else if (resource.getName().equals("wurst.dependencies")) {
+			} else if (file.getName().equals("wurst.dependencies")) {
 				try {
+					getModelManager().clearDependencies();
 					BufferedReader reader = new BufferedReader(new InputStreamReader(file.getContents()));
 					while (true) {
 						String line = reader.readLine();
@@ -192,6 +196,12 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 
 	private void addDependency(WurstGui gui, String fileName) {
 		File f = new File(fileName);
+		if (!f.exists()) {
+			gui.sendError(new CompileError(Ast.WPos(fileName, 0, 0, 0), "Path '"+fileName + "' could not be found."));
+		} else if (!f.isDirectory()) {
+			gui.sendError(new CompileError(Ast.WPos(fileName, 0, 0, 0), "Path '"+fileName + "' is not a folder."));
+		}
+		
 		getModelManager().addDependency(f);
 	}
 

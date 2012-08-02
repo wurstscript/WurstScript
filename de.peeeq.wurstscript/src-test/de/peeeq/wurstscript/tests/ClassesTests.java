@@ -248,4 +248,17 @@ public class ClassesTests extends PscriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void casts() {
+		testAssertErrorsLines(false, "already defined", 
+				"package test",
+				"	class C",
+				"	class D",
+				"	init",
+				"		var obj = (1 castTo C)",
+				"		obj = (obj castTo int) castTo D",
+				"endpackage"
+			);
+	}
 }

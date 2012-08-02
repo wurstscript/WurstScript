@@ -31,4 +31,6 @@ public interface ModelManager {
 
 	void addDependency(File f);
 
+	void clearDependencies();
+
 }

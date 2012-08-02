@@ -73,6 +73,7 @@ public class ModelManagerImpl implements ModelManager {
 	@Override
 	public void clean() {
 		model = null;
+		dependencies.clear();
 		needsFullBuild = true;
 	}
 	
@@ -201,6 +202,11 @@ public class ModelManagerImpl implements ModelManager {
 	@Override
 	public void addDependency(File f) {
 		dependencies.add(f.getAbsolutePath());
+	}
+
+	@Override
+	public void clearDependencies() {
+		dependencies.clear();
 	}
 	
 }

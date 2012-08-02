@@ -44,22 +44,32 @@ public class AttrPos {
 	}
 
 	public static int getColumn(WPos p) {
-		LineOffsets lineOffsets = (LineOffsets) p.getLineOffsets();
+		LineOffsets lineOffsets = getLineOffsets(p);
 		return p.getLeftPos() - lineOffsets.get(p.getLine() - 1);
+	}
+
+	private static LineOffsets getLineOffsets(WPos p) {
+		LineOffsets lineOffsets;
+		if (p.getLineOffsets() instanceof LineOffsets) {
+			lineOffsets = (LineOffsets) p.getLineOffsets();
+		} else {
+			lineOffsets = new LineOffsets();
+		}
+		return lineOffsets;
 	}
 	
 	public static int getLine(WPos p) {
-		LineOffsets lineOffsets = (LineOffsets) p.getLineOffsets();
+		LineOffsets lineOffsets = getLineOffsets(p);
 		return lineOffsets.getLine(p.getLeftPos()) + 1;
 	}
 	
 	public static int getEndColumn(WPos p) {
-		LineOffsets lineOffsets = (LineOffsets) p.getLineOffsets();
+		LineOffsets lineOffsets = getLineOffsets(p);
 		return p.getRightPos() - lineOffsets.get(p.getEndLine() - 1);
 	}
 	
 	public static int getEndLine(WPos p) {
-		LineOffsets lineOffsets = (LineOffsets) p.getLineOffsets();
+		LineOffsets lineOffsets = getLineOffsets(p);
 		return lineOffsets.getLine(p.getRightPos()) + 1;
 	}
 	
