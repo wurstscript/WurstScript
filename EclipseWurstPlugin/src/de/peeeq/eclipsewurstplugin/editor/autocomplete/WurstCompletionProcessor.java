@@ -29,8 +29,11 @@ import de.peeeq.wurstscript.ast.ExprRealVal;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.NameDef;
+import de.peeeq.wurstscript.ast.StmtErr;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WScope;
+import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
 import de.peeeq.wurstscript.utils.Utils;
@@ -94,7 +97,8 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			}
 		} else if (elem instanceof ExprRealVal) {
 			// show no hints for reals
-			return null;
+		} else if (elem instanceof WPackage) {
+			// no hints at package level
 		} else {
 			WScope scope = elem.attrNearestScope();
 			while (scope != null) {
@@ -111,6 +115,8 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	}
 
 	
+
+
 	private String getAlreadyEnteredText(ITextViewer viewer, int offset) {
 		try {
 			int start = offset-1;
