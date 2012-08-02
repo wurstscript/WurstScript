@@ -91,6 +91,7 @@ public class ModelManagerImpl implements ModelManager {
 		}
 		model.clearAttributes();
 		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, RunArgs.defaults());
+		comp.setHasCommonJ(true);
 		WurstConfig.get().setSetting("lib", Utils.join(dependencies, ";"));
 		try {
 			comp.addImportedLibs(model);		

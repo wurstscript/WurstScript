@@ -115,7 +115,7 @@ public class AttrFuncDef {
 					&& node.attrNearestFuncDef().getName().equals("InitCustomTriggers")) {
 				// ignore missing InitTrig functions
 			} else {
-				attr.addError(node.getSource(), "Could not resolve reference to function " + funcName);
+				attr.addError(node.getSource(), "Could not resolve reference to called function " + funcName);
 			}
 		}
 		return result;
