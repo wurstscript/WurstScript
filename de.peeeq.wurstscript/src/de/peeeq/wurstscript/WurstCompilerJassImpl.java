@@ -162,11 +162,18 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		if (!packages.contains(imp.getPackagename())) {
 			if (getLibs().containsKey(imp.getPackagename())) {
 				CompilationUnit lib = loadLibPackage(compilationUnits, imp.getPackagename());
+				boolean foundPackage = false;
 				for (WPackage p : lib.getPackages()) {
 					packages.add(p.getName());
+					if (p.getName().equals(imp.getPackagename())) {
+						foundPackage = true;
+					}
 					for (WImport i : p.getImports()) {
 						resolveImport(compilationUnits, packages, imports, i);
 					}
+				}
+				if (!foundPackage) {
+					throw new CompileError(imp.getSource(), "The import " + imp.getPackagename() + " could not be found in file " + lib.getFile());
 				}
 			} else {
 				if (imp.getPackagename().equals("Wurst")) {

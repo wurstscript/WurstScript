@@ -17,6 +17,7 @@ import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
@@ -965,5 +966,14 @@ public class WurstValidator {
 		}
 	}
 	
-	
+	@CheckMethod
+	public void checkPackageName(CompilationUnit cu) {
+		if (cu.getPackages().size() == 1 && cu.getFile().endsWith(".wurst")) {
+			// only one package in a wurst file
+			WPackage p = cu.getPackages().get(0);
+			if (!cu.getFile().endsWith(p.getName()+".wurst")) {
+				p.addError("The file must have the same name as the package " + p.getName());
+			}
+		}
+	}
 }

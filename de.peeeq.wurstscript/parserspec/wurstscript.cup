@@ -36,7 +36,11 @@ action code {:
 	}
 	
 	private WPos pos(int left, List<? extends AstElementWithSource> right) {
-		return pos(left, right.get(right.size()-1));
+		if (right.size() > 0) {
+			return pos(left, right.get(right.size()-1));
+		} else {
+			return pos(left, left+1);
+		}
 	}
 
 :};
