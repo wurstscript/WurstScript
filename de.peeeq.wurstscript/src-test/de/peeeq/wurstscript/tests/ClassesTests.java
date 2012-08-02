@@ -297,4 +297,17 @@ public class ClassesTests extends PscriptTest {
 				"endpackage"
 			);
 	}
+	
+	
+	@Test
+	public void override() {
+		testAssertErrorsLines(false, "uses override", 
+				"package test",
+				"	native testSuccess()",
+				"	class A",
+				"		override function foo()",
+				"			skip",
+				"endpackage"
+			);
+	}
 }

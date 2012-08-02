@@ -54,6 +54,7 @@ import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.NativeType;
+import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.StmtDestroy;
@@ -625,6 +626,12 @@ public class WurstValidator {
 			} else {
 				attr.addError(classDef.getExtendedClass().attrSource(), "Cannot extend " + extendedType + ". " +
 						"Only classes can be extended.");
+			}
+		} else {
+			for (FunctionDefinition f : functions.values()) {
+				if (f.attrIsOverride() && f.attrOverriddenFunctions().size() == 0) {
+					attr.addError(f.getSource(), "Function " + f.getName() + " uses override notation but there is no superclass.");
+				}
 			}
 		}
 	}
