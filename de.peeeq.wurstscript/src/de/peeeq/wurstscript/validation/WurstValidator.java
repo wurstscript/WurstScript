@@ -116,7 +116,6 @@ public class WurstValidator {
 	private int visitedFunctions;
 	private List<Method> checkMethods = Lists.newArrayList();
 	private HashMultimap<Class<?>, Method> typeToMethod = HashMultimap.create();
-	private Set<Class<?>> knownTypes = Sets.newHashSet();
 	private Multimap<WScope	, WScope> calledFunctions = HashMultimap.create();
 	
 	public WurstValidator(WurstModel root) {
@@ -172,7 +171,7 @@ public class WurstValidator {
 	}
 
 	private void check(AstElement e) {
-		if (!knownTypes.contains(e)) {
+		if (!typeToMethod.containsKey(e)) {
 			for (Method m : checkMethods) {
 				if (m.getParameterTypes()[0].isInstance(e)) {
 					typeToMethod.put(e.getClass(), m);
@@ -976,4 +975,5 @@ public class WurstValidator {
 			}
 		}
 	}
+	
 }
