@@ -975,11 +975,19 @@ public class Generator {
 				"	"+getCommonSupertypeType()+" get(int i);\n"+
 				"	"+getCommonSupertypeType()+" set(int i, "+getCommonSupertypeType()+" newElement);\n"+
 				"	void setParent("+getCommonSupertypeType()+" parent);\n");
-		for (AttributeDef attr : prog.attrDefs) {
-			if (attr.typ.equals(getCommonSupertypeType())) {
-				sb.append("	"  +attr.returns + " " + attr.attr + "();\n");
+		AstEntityDefinition c = new AstEntityDefinition() {
+			
+			@Override
+			public String getName() {
+				return getCommonSupertypeType();
 			}
-		}
+		};
+		//		for (AttributeDef attr : prog.attrDefs) {
+//			if (attr.typ.equals(getCommonSupertypeType())) {
+//				sb.append("	"  +attr.returns + " " + attr.attr + "();\n");
+//			}
+//		}
+		createAttributeStubs(c, sb);
 		sb.append("}\n\n");
 		
 		sb.append("interface "+getCommonSupertypeType()+"Intern {\n" +

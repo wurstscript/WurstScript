@@ -250,14 +250,50 @@ public class ClassesTests extends PscriptTest {
 	}
 	
 	@Test
-	public void casts() {
-		testAssertErrorsLines(false, "already defined", 
+	public void cast_class() {
+		testAssertOkLines(true, 
 				"package test",
-				"	class C",
-				"	class D",
+				"	native testSuccess()",
+				"	class A",
+				"	class B extends A",
 				"	init",
-				"		var obj = (1 castTo C)",
-				"		obj = (obj castTo int) castTo D",
+				"		A a = new B()",
+				"		if a instanceof B",
+				"			B b = a castTo B",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void cast_class2() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	class A",
+				"	class B extends A",
+				"	class C extends B",
+				"	init",
+				"		A a = new C()",
+				"		if a instanceof B",
+				"			B b = a castTo B",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void cast_class_unrelated() {
+		testAssertErrorsLines(true, "not directly related", 
+				"package test",
+				"	native testSuccess()",
+				"	class A",
+				"	class B",
+				"	init",
+				"		A a = new A()",
+				"		if a instanceof B",
+				"			B b = a castTo B",
+				"			testSuccess()",
 				"endpackage"
 			);
 	}

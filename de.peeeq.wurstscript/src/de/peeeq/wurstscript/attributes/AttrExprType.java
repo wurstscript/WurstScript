@@ -5,6 +5,7 @@ import java.util.Map;
 
 import com.google.common.collect.Lists;
 
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.ExprBinary;
@@ -13,6 +14,7 @@ import de.peeeq.wurstscript.ast.ExprCast;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprIncomplete;
+import de.peeeq.wurstscript.ast.ExprInstanceOf;
 import de.peeeq.wurstscript.ast.ExprIntVal;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
@@ -652,7 +654,7 @@ public class AttrExprType {
 		} else if (isCastableToInt(targetTyp) && exprTyp instanceof PScriptTypeInt) {
 			// cast from int to classtype: OK
 		} else {
-			attr.addError(term.getSource(), "Cannot cast from " + exprTyp + " to " + targetTyp + ".");
+			checkCastOrInstanceOf(term, exprTyp, targetTyp, "cast expression");
 		}
 		return targetTyp;
 	}
@@ -669,6 +671,32 @@ public class AttrExprType {
 				|| typ instanceof PscriptTypeInterface
 				|| typ instanceof PscriptTypeTypeParam
 				|| typ instanceof PscriptTypeBoundTypeParam;
+	}
+
+
+	public static PscriptType calculate(ExprInstanceOf e) {
+		PscriptType exprType = e.getExpr().attrTyp();
+		PscriptType targetType = e.getTyp().attrTyp();
+		checkCastOrInstanceOf(e, exprType, targetType, "instanceof expression");
+		return PScriptTypeBool.instance();
+	}
+
+
+	private static void checkCastOrInstanceOf(AstElement e, PscriptType exprType, PscriptType targetType, String msgPre) {
+		if (!(exprType instanceof PscriptTypeClass
+				|| exprType instanceof PscriptTypeInterface)) {
+			e.addError(msgPre + " not defined for expression type " + exprType);
+		}
+		if (!(targetType instanceof PscriptTypeClass
+				|| targetType instanceof PscriptTypeInterface)) {
+			e.addError(msgPre + "instanceof expression not defined for target type " + targetType);
+		}
+		if (exprType.isSubtypeOf(targetType, e)) {
+			e.addError("This "+ msgPre + " is always true");
+		} else if (!exprType.isSupertypeOf(targetType, e)) {
+			e.addError(msgPre + " is not allowed because types " + exprType + " and " + targetType + " are not directly related.\n" +
+					"Consider adding a cast to a common superType first.");
+		}
 	}
 
 }

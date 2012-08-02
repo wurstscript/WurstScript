@@ -17,6 +17,7 @@ import static de.peeeq.wurstscript.jassIm.JassIm.ImVar;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVars;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVoid;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -73,6 +74,8 @@ import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.jassIm.JassImElement;
 import de.peeeq.wurstscript.types.PScriptTypeString;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;
+import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.types.PscriptTypeClass;
 import de.peeeq.wurstscript.types.PscriptTypeInterface;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
@@ -744,6 +747,23 @@ public class ImTranslator {
 
 	public void addCompiletimeFunc(ImFunction f) {
 		compiletimeFuncs.add(f);
+	}
+
+	/**
+	 * returns all classes which are subtypes or equal to the given type 
+	 */
+	public Collection<ClassDef> getConcreteSubtypes(PscriptType t) {
+		if (t instanceof PscriptTypeInterface) {
+			PscriptTypeInterface ti = (PscriptTypeInterface) t;
+			return getInterfaceInstances(ti.getInterfaceDef());
+		}
+		if (t instanceof PscriptTypeClass) {
+			PscriptTypeClass tc = (PscriptTypeClass) t;
+			ArrayList<ClassDef> result = Lists.newArrayList(getSubClasses(tc.getClassDef()));
+			result.add(tc.getClassDef());
+			return result;
+		}
+		throw new Error("not implemented");
 	}
 
 }

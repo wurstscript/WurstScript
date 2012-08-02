@@ -13,12 +13,15 @@ import static de.peeeq.wurstscript.jassIm.JassIm.ImTupleSelection;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVarAccess;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVarArrayAccess;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElementWithIndexes;
+import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
@@ -26,6 +29,7 @@ import de.peeeq.wurstscript.ast.ExprBoolVal;
 import de.peeeq.wurstscript.ast.ExprCast;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprIncomplete;
+import de.peeeq.wurstscript.ast.ExprInstanceOf;
 import de.peeeq.wurstscript.ast.ExprIntVal;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprNewObject;
@@ -44,18 +48,23 @@ import de.peeeq.wurstscript.ast.OpDivReal;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.jassIm.ImBoolVal;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
+import de.peeeq.wurstscript.jassIm.ImOperatorCall;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
+import de.peeeq.wurstscript.jassIm.ImStmt;
+import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
 import de.peeeq.wurstscript.types.PScriptTypeReal;
+import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeInterface;
 import de.peeeq.wurstscript.types.PscriptTypeTuple;
 import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
@@ -258,6 +267,43 @@ public class ExprTranslation {
 
 	public static ImExprOpt translate(NoExpr e, ImTranslator translator, ImFunction f) {
 		return JassIm.ImNoExpr();
+	}
+
+	public static ImExpr translate(ExprInstanceOf e, ImTranslator translator, ImFunction f) {
+		PscriptType targetType = e.getTyp().attrTyp();
+		
+		Collection<ClassDef> subTypes = translator.getConcreteSubtypes(targetType);
+		if (subTypes.size() == 1) {
+			for (ClassDef st : subTypes) {
+				int id = translator.getTypeId(st);
+				ClassManagementVars cmv = translator.getClassManagementVarsFor(st);
+				return JassIm.ImOperatorCall(Ast.OpEquals(), JassIm.ImExprs(
+						JassIm.ImVarArrayAccess(cmv.typeId, e.getExpr().imTranslateExpr(translator, f)),
+						JassIm.ImIntVal(id)));
+			}
+			throw new Error();
+		} else {
+			ImVar tempVar = JassIm.ImVar(TypesHelper.imInt(), "tempInstanceOfExpr", false);
+			f.getLocals().add(tempVar);
+			
+			ImExpr condition = JassIm.ImBoolVal(false);
+			for (ClassDef st : subTypes) {
+				int id = translator.getTypeId(st);
+				ClassManagementVars cmv = translator.getClassManagementVarsFor(st);
+				
+				ImOperatorCall check = JassIm.ImOperatorCall(Ast.OpEquals(), JassIm.ImExprs(
+						JassIm.ImVarArrayAccess(cmv.typeId, JassIm.ImVarAccess(tempVar)),
+						JassIm.ImIntVal(id)));
+				if (condition instanceof ImBoolVal) {
+					condition = check;
+				} else {
+					condition = JassIm.ImOperatorCall(Ast.OpOr(), JassIm.ImExprs(condition, check));
+				}
+				
+			}
+			ImStmt evalExpr = JassIm.ImSet(tempVar, e.getExpr().imTranslateExpr(translator, f));
+			return JassIm.ImStatementExpr(JassIm.ImStmts(evalExpr), condition);
+		}
 	}
 
 	

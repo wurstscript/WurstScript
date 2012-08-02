@@ -169,7 +169,8 @@ precedence left		UMINUS;
 precedence right    DOT;
 precedence left 	NL;
 precedence right	NEW;
-precedence right	CASTTO;
+precedence right	CASTTO, INSTANCEOF;
+
 
 
 start with CompilationUnit;
@@ -652,6 +653,8 @@ Expr ::=
 	  	{: RESULT = x; :}
 	| ExprCast:x
 		{: RESULT = x; :}
+	| Expr:e INSTANCEOF TypeExpr:t
+		{: RESULT = Ast.ExprInstanceOf(pos(e,t), t, e); :}
 	| Expr:left DOT:y
 		{: RESULT = Ast.ExprMemberVar(pos(left,yright), left, ""); :}
 ;

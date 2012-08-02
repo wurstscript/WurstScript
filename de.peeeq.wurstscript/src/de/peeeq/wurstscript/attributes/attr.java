@@ -2,6 +2,8 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.List;
 
+import de.peeeq.wurstscript.ast.Annotation;
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.utils.NotNullList;
@@ -59,6 +61,10 @@ public class attr {
 
 	public static void setGui(WurstGui gui) {
 		attr.gui.set(gui);
+	}
+
+	public static void addError(AstElement e, String msg) {
+		addError(e.attrSource(), msg);
 	}
 
 	

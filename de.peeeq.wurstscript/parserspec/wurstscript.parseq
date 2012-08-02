@@ -133,6 +133,7 @@ Expr =
 	| ExprFunctionCall(WPos source, String funcName, TypeExprList typeArgs, Arguments args)
 	| ExprNewObject(WPos source, String typeName, TypeExprList typeArgs, Arguments args)
 	| ExprCast(WPos source, TypeExpr typ, Expr expr)
+	| ExprInstanceOf(WPos source, TypeExpr typ, Expr expr)
 	| ExprAtomic
 	| ExprIncomplete(WPos source, String errorMessage)
 	
@@ -628,6 +629,11 @@ OpUnary.evaluateUnaryOperator(de.peeeq.wurstscript.intermediateLang.ILconst val)
 	returns de.peeeq.wurstscript.intermediateLang.ILconst	
 	implemented by de.peeeq.wurstscript.intermediateLang.interpreter.EvaluateUnaryOperator.eval
 	
+
+AstElement.addError(String msg)
+	returns void
+	implemented by de.peeeq.wurstscript.attributes.attr.addError	
+
 // removed attributes:
 //
 //
