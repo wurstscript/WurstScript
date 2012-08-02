@@ -93,7 +93,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				scope = scope.attrNextScope();
 			}
 		} else if (elem instanceof ExprRealVal) {
-			// show now hints for reals
+			// show no hints for reals
 			return null;
 		} else {
 			WScope scope = elem.attrNearestScope();
