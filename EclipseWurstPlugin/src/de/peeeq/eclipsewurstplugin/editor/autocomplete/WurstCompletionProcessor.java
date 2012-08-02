@@ -25,6 +25,7 @@ import de.peeeq.eclipsewurstplugin.editor.outline.Icons;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
+import de.peeeq.wurstscript.ast.ExprRealVal;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.NameDef;
@@ -91,6 +92,9 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				completionsAddVisibleExtensionFunctions(alreadyEntered, completions, visibleNames, leftType);
 				scope = scope.attrNextScope();
 			}
+		} else if (elem instanceof ExprRealVal) {
+			// show now hints for reals
+			return null;
 		} else {
 			WScope scope = elem.attrNearestScope();
 			while (scope != null) {
