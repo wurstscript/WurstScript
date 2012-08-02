@@ -13,6 +13,10 @@ import org.mozilla.intl.chardet.nsDetector;
 import org.mozilla.intl.chardet.nsICharsetDetectionObserver;
 import org.mozilla.intl.chardet.nsPSMDetector;
 
+import com.google.common.base.Charsets;
+
+import de.peeeq.wurstscript.WLogger;
+
 public class FileReading {
 	
 	/**
@@ -69,7 +73,9 @@ public class FileReading {
         String encoding = charset[0];
         
 	    if (encoding == null) {
-	    	throw new IOException("Could not get encoding for " + file.getAbsolutePath());
+//	    	throw new IOException("Could not get encoding for " + file.getAbsolutePath());
+	    	WLogger.severe("Could not get encoding for " + file.getAbsolutePath());
+	    	return getFileReader(file, Charsets.UTF_8);	    	
 	    } else {
 	    	return getFileReader(file, Charset.forName(encoding));
 	    }

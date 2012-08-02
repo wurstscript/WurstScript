@@ -33,6 +33,7 @@ import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.utils.FileReading;
 import de.peeeq.wurstscript.utils.Utils;
@@ -286,6 +287,7 @@ public class WurstErrorWindow extends javax.swing.JFrame {
 			codeArea.setText("Could not load file: " + fileName);
 		} catch (IOException e) {
 			codeArea.setText("Could not read file: " + fileName);
+			WLogger.info(e);
 		} catch (BadLocationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
