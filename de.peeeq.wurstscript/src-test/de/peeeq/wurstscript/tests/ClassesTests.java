@@ -310,4 +310,23 @@ public class ClassesTests extends PscriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void override_valid() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	class A",
+				"		function foo() returns int",
+				"			return 7",
+				"	class B extends A",
+				"		override function foo() returns int",
+				"			return 8",
+				"	init",
+				"		A b = new B()",
+				"		if b.foo() == 8",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
 }

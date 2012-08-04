@@ -589,6 +589,8 @@ public class WurstValidator {
 		
 		// calculate all functions to find possible errors
 		Map<String, FuncDef> functions = classDef.attrAllFunctions();
+		
+		// calculate private names to get overridden funcs
 		classDef.attrVisibleNamesPrivate();
 		
 		// check that there are no abstract functions in a class
