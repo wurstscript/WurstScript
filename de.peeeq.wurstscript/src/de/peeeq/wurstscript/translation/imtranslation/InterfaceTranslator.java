@@ -5,6 +5,7 @@ import static de.peeeq.wurstscript.jassIm.JassIm.ImStringVal;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import com.google.common.collect.Lists;
 
@@ -48,9 +49,9 @@ public class InterfaceTranslator {
 
 	private void translateInterfaceFuncDef(InterfaceDef interfaceDef, List<ClassDef> instances, FuncDef funcDef) {
 		ImFunction f = translator.getFuncFor(funcDef);
-		List<Pair<ClassDef, FuncDef>> instances2 = translator.getClassedWithImplementation(instances, funcDef);
+		Map<ClassDef, FuncDef> instances2 = translator.getClassedWithImplementation(instances, funcDef);
 		if (instances2.size() > 0) {
-			f.getBody().addAll(translator.createDispatch(instances2, 0, instances2.size()-1, funcDef, f, false, new TypeIdGetterImpl()));
+			f.getBody().addAll(translator.createDispatch(instances2, funcDef, f, false, new TypeIdGetterImpl()));
 		}
 		if (funcDef.getBody().size() > 0) {
 			// TODO add default implementation

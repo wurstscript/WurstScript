@@ -231,11 +231,11 @@ public class ClassTranslator {
 		ImFunction f = translator.getFuncFor(s);
 		
 		
-		List<Pair<ClassDef, FuncDef>> subClasses2 = translator.getClassedWithImplementation(subClasses, s);
+		Map<ClassDef, FuncDef> subClasses2 = translator.getClassedWithImplementation(subClasses, s);
 		
 		
 		if (subClasses2.size() > 0) {
-			f.getBody().addAll(translator.createDispatch(subClasses2, 0, subClasses2.size()-1, s, f, false, new TypeIdGetterImpl()));
+			f.getBody().addAll(translator.createDispatch(subClasses2, s, f, false, new TypeIdGetterImpl()));
 		}
 		
 		

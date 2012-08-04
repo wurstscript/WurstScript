@@ -23,11 +23,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
 
 import de.peeeq.datastructures.Partitions;
@@ -51,6 +53,7 @@ import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.TranslatedToImFunction;
 import de.peeeq.wurstscript.ast.TupleDef;
+import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
@@ -111,6 +114,7 @@ public class ImTranslator {
 	private int typeIdCounter = 0;
 	
 	Map<ClassDef, Integer> typeIdMap = Maps.newHashMap();
+	Map<ClassDef, Integer> typeIdMapMax = Maps.newHashMap();
 
 	private Map<VarDef, ImVar> varMap = Maps.newHashMap();
 	
@@ -403,12 +407,38 @@ public class ImTranslator {
 	public int getTypeId(ClassDef c) {
 		Integer r = typeIdMap.get(c); 
 		if (r == null) {   
-			typeIdCounter++;
-			typeIdMap.put(c, typeIdCounter);
-			return typeIdCounter;
-		} else {
-			return r;
+			makeTypeIdsForHiearchy(c);
+			r = typeIdMap.get(c); 
 		}
+//			typeIdCounter++;
+//			int typeId = typeIdCounter;
+//			typeIdMap.put(c, typeId);
+//			
+//			// also assign types to subclasses:
+//			
+//			return typeId;
+			return r;
+	}
+
+	private void makeTypeIdsForHiearchy(ClassDef c) {
+		if (c.getExtendedClass() instanceof TypeExpr) {
+			TypeExpr sc = (TypeExpr) c.getExtendedClass();
+			if (sc.attrTyp() instanceof PscriptTypeClass) {
+				PscriptTypeClass ct = (PscriptTypeClass) sc.attrTyp();
+				makeTypeIdsForHiearchy(ct.getClassDef());
+				return;
+			}
+		}
+		makeTypeIdsForClass(c);
+	}
+
+	private void makeTypeIdsForClass(ClassDef c) {
+		typeIdCounter++;
+		typeIdMap.put(c, typeIdCounter);
+		for (ClassDef sc : getDirectSubClasses(c)) {
+			makeTypeIdsForClass(sc);
+		}
+		typeIdMapMax.put(c, typeIdCounter);
 	}
 
 	public ImVar getVarFor(VarDef varDef) {
@@ -539,34 +569,86 @@ public class ImTranslator {
 	/**
 	 * returns a list of classes and functions implementing funcDef
 	 */
-	public List<Pair<ClassDef, FuncDef>> getClassedWithImplementation(Collection<ClassDef> instances, FuncDef func) {
+	public Map<ClassDef, FuncDef> getClassedWithImplementation(Collection<ClassDef> instances, FuncDef func) {
 		if (func.attrIsPrivate()) {
 			// private functions cannot be overridden
-			return Collections.emptyList();
+			return Collections.emptyMap();
 		}
-		List<Pair<ClassDef, FuncDef>> result = Lists.newArrayListWithCapacity(instances.size());
+		Map<ClassDef, FuncDef> result = Maps.newHashMap();
 		for (ClassDef c : instances) {
 			for (NameDef nameDef : c.attrVisibleNamesPrivate().get(func.getName())) {
 				if (nameDef instanceof FuncDef) {
 					FuncDef f = (FuncDef) nameDef;
-					result.add(Pair.create(c, f));
+					result.put(c, f);
 				}
 			}
 		}
 		return result;
 	}
 	
-	public List<ImStmt> createDispatch(List<Pair<ClassDef, FuncDef>> instances, int start, int end
-			, FuncDef funcDef, ImFunction f, boolean equalityKnown, TypeIdGetter typeId) {
+	public List<ImStmt> createDispatch(Map<ClassDef, FuncDef> instances, FuncDef funcDef, ImFunction f, boolean equalityKnown, TypeIdGetter typeId) {
+		List<Pair<IntRange, FuncDef>> instances2 = transformInstances(instances);
+		IntRange knownRange;
+		if (instances2.size() == 0) {
+			// does not matter
+			knownRange = new IntRange(0, 0);
+		} else {
+			knownRange = new IntRange(0, instances2.get(instances2.size()-1).getA().end);
+		}
+		return createDispatchHelper(instances2, 0, instances2.size()-1, funcDef, f, typeId, knownRange);
+	}
+		
+	/**
+	 * returns a mapping from classdefs to functions into a mapping 
+	 * from typeid ranges to functions 	
+	 * 
+	 * the resulting list is sorted by the intrange and the intervals are disjunct
+	 */
+	private List<Pair<IntRange, FuncDef>> transformInstances(Map<ClassDef, FuncDef> instances) {
+		Vector<FuncDef> funcs = new Vector<>();
+		List<ClassDef> classes = Lists.newArrayList(instances.keySet());
+		Collections.sort(classes, new TypeIdComparator(this));
+		for (ClassDef c : classes) {
+			getTypeId(c);
+		}
+		funcs.setSize(typeIdCounter+2);
+		for (ClassDef c : classes) {
+			FuncDef f = instances.get(c);
+			funcs.set(getTypeId(c), f);
+			for (ClassDef sc : getSubClasses(c)) {
+				funcs.set(getTypeId(sc), f);
+			}
+		}
+		
+		List<Pair<IntRange, FuncDef>> result = Lists.newArrayList();
+		
+		for (int i=0; i<=typeIdCounter; i++) {
+			FuncDef f = funcs.get(i);
+			if (f == null) {
+				continue;
+			}
+			int j = i;
+			while (funcs.get(j) == f) {
+				j++;
+			}
+			result.add(Pair.create(new IntRange(i, j-1), f));
+			i = j-1;
+		}
+		return result;
+	}
+
+	private List<ImStmt> createDispatchHelper(List<Pair<IntRange, FuncDef>> instances2, int start, int end
+				, FuncDef funcDef, ImFunction f, TypeIdGetter typeId, IntRange knownRange) {
+		
 		
 		List<ImStmt> result = Lists.newArrayList();
 		ImVar thisVar = f.getParameters().get(0);
 		boolean returnsVoid = funcDef.attrTyp() instanceof PScriptTypeVoid;
 		if (start > end) {
 			// there seem to be no instances
-			assert instances.size() == 0;
+			assert instances2.size() == 0;
 			// just create an dummy return
-			if (funcDef.getReturnTyp().attrTyp() instanceof PScriptTypeVoid) {
+			if (returnsVoid) {
 				// empty function
 			} else {
 				ImType type = f.getReturnType();
@@ -575,62 +657,76 @@ public class ImTranslator {
 			}
 			return result;
 		} else if (start == end) {
-			FuncDef calledFunc = instances.get(start).getB();
+			FuncDef calledFunc = instances2.get(start).getB();
 			ImFunction calledJassFunc = getFuncFor(calledFunc);
 			addCallRelation(f, calledJassFunc);
 			ImExprs arguments = JassIm.ImExprs();
 			for (int i=0; i<f.getParameters().size(); i++) {
-				ImExpr arg;
 				ImVar p = f.getParameters().get(i);
-				ImVar expected = calledJassFunc.getParameters().get(i);
-				if (expected.getType() instanceof ImSimpleType
-						&& p.getType() instanceof ImTupleType) {
-					// class type expected but got interface type 
-					// ==> select only first part 
-					arg = JassIm.ImTupleSelection(JassIm.ImVarAccess(p), 0);
-				} else {
-					arg = JassIm.ImVarAccess(p);
-					// TODO subtyping differences interface vs class?
-				}
-				arguments.add(arg);
+				arguments.add(JassIm.ImVarAccess(p));
 			}
 			ImCall call = JassIm.ImFunctionCall(calledJassFunc, arguments);
 			if (returnsVoid) {
 				result.add(call);
+				result.add(JassIm.ImReturn(JassIm.ImNoExpr()));
 			} else {
 				result.add(JassIm.ImReturn(call));
 			}
-			if (!equalityKnown) {
-				// check for equality
-				ImExpr condition = JassIm.ImOperatorCall(Ast.OpEquals(), 
-						JassIm.ImExprs(
-								typeId.get(thisVar),
-								JassIm.ImIntVal(getTypeId(instances.get(start).getA()))));;
-				
+			// check for equality
+			IntRange range = instances2.get(start).getA();
+			List<ImExpr> conditions = Lists.newArrayList();
+			if (knownRange.start < knownRange.end) {
+				if (range.start == range.end) {
+					conditions.add(JassIm.ImOperatorCall(Ast.OpEquals(), 
+							JassIm.ImExprs(
+									typeId.get(thisVar),
+									JassIm.ImIntVal(range.start))));
+				} else {
+					// start condition
+					if (range.start > knownRange.start) {
+						conditions.add(JassIm.ImOperatorCall(Ast.OpGreaterEq(), 
+								JassIm.ImExprs(
+										typeId.get(thisVar),
+										JassIm.ImIntVal(range.start))));
+					}
+					// end condition
+					if (range.end < knownRange.end) {
+						conditions.add(JassIm.ImOperatorCall(Ast.OpLessEq(),
+								JassIm.ImExprs(
+										typeId.get(thisVar),
+										JassIm.ImIntVal(range.end))));
+					}
+				}
+			}
+			if (conditions.size() == 0) {
+				return result;
+			} else if (conditions.size() == 1) {
 				return Collections.<ImStmt>singletonList(
-						JassIm.ImIf(condition, ImStmts(result), ImStmts())
+						JassIm.ImIf(conditions.get(0), ImStmts(result), ImStmts())
 					);
 			} else {
-				return result;
+				return Collections.<ImStmt>singletonList(
+						JassIm.ImIf(JassIm.ImOperatorCall(Ast.OpAnd(), 
+								ImExprs(conditions.get(0), conditions.get(1))), 
+								ImStmts(result), ImStmts())
+					);
 			}
+			
+			
 		} else {
 			int splitAt = start + (end-start) / 2;
 			
-			boolean eq = false;
-			if (splitAt - start == 0) {
-				// if we only have one element at the left side, we can already check for equality
-				eq = true;
-			}
 			
-			List<ImStmt> case1 = createDispatch(instances, start, splitAt, funcDef, f, eq, typeId);
-			List<ImStmt> case2 = createDispatch(instances, splitAt+1, end, funcDef, f, false, typeId);
+			int typeIdSplitPoint = instances2.get(splitAt).getA().end;
+			
+			List<ImStmt> case1 = createDispatchHelper(instances2, start, splitAt, funcDef, f, typeId, new IntRange(knownRange.start, typeIdSplitPoint));
+			List<ImStmt> case2 = createDispatchHelper(instances2, splitAt+1, end, funcDef, f, typeId, new IntRange(typeIdSplitPoint+1, knownRange.end));
 
-			// if (thistype <= instances[splitAt].typeId)
-			ImExpr cond = 
-					JassIm.ImOperatorCall(eq ? Ast.OpEquals() : Ast.OpLessEq(), 
+			// if (thistype <= typeIdSplitPoint)
+			ImExpr cond = JassIm.ImOperatorCall(Ast.OpLessEq(), 
 							JassIm.ImExprs(
 									typeId.get(thisVar),
-									JassIm.ImIntVal(getTypeId(instances.get(splitAt).getA()))));
+									JassIm.ImIntVal(typeIdSplitPoint)));
 			ImStmts thenBlock = JassIm.ImStmts(case1);
 			ImStmts elseBlock = JassIm.ImStmts(case2);
 			result.add(JassIm.ImIf(cond, thenBlock, elseBlock));
@@ -723,28 +819,42 @@ public class ImTranslator {
 
 	
 	private Multimap<ClassDef, ClassDef> subclasses = null;
+	private Multimap<ClassDef, ClassDef> directSubclasses = null;
 
 	private List<ImFunction> compiletimeFuncs = Lists.newArrayList();
 	
 	public Collection<ClassDef> getSubClasses(ClassDef classDef) {
-		if (subclasses == null) {
-			calculateSubclasses();
-		}
+		calculateSubclasses();
 		return subclasses.get(classDef);
 	}
 
 	private void calculateSubclasses() {
-		subclasses = HashMultimap.create();
+		if (subclasses != null) {
+			return;
+		}
+		calculateDirectSubclasses();
+		subclasses = Utils.transientClosure(directSubclasses);
+	}
+
+	public Collection<ClassDef> getDirectSubClasses(ClassDef classDef) {
+		calculateDirectSubclasses();
+		return directSubclasses.get(classDef);
+	}
+
+	private void calculateDirectSubclasses() {
+		if (directSubclasses != null) {
+			return;
+		}
+		directSubclasses = HashMultimap.create();
 		for (CompilationUnit cu : wurstProg) {
 			for (ClassDef c : cu.attrGetByType().classes) {
 				if (c.attrExtendedClass() != null) {
-					subclasses.put(c.attrExtendedClass(), c);
+					directSubclasses.put(c.attrExtendedClass(), c);
 				}
 			}
 		}
-		subclasses = Utils.transientClosure(subclasses);
 	}
-
+	
 	public void addCompiletimeFunc(ImFunction f) {
 		compiletimeFuncs.add(f);
 	}

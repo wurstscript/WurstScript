@@ -329,4 +329,88 @@ public class ClassesTests extends PscriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void override_valid_trans() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	class A",
+				"		function foo() returns int",
+				"			return 7",
+				"	class B extends A",
+				"		override function foo() returns int",
+				"			return 8",
+				"	class C extends B",
+				"	init",
+				"		A c = new C()",
+				"		if c.foo() == 8",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void override_valid_void() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	int i",
+				"	class A",
+				"		function foo()",
+				"			i = 7",
+				"	class B extends A",
+				"		override function foo()",
+				"			i = 8",
+				"	init",
+				"		A b = new B()",
+				"		b.foo()",
+				"		if i == 8",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void override_valid_trans_big() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	native testFail(string msg)",
+				"	class A",
+				"		function foo() returns int",
+				"			return 7",
+				"	class B extends A",
+				"		override function foo() returns int",
+				"			return 8",
+				"	class B1 extends B",
+				"	class B2 extends B",
+				"	class B11 extends B1",
+				"	class B111 extends B11",
+				"	class C extends A",
+				"		override function foo() returns int",
+				"			return 9",
+				"	class C1 extends C",
+				"	class C2 extends C",
+				"	class C11 extends C1",
+				"	class C111 extends C11",
+				"	init",
+				"		A a = new C11()",
+				"		if a.foo() != 9",
+				"			testFail(\"c11\")",
+				"		a = new B11()",
+				"		if a.foo() != 8",
+				"			testFail(\"b11\")",
+				"		a = new C()",
+				"		if a.foo() != 9",
+				"			testFail(\"C\")",
+				"		a = new A()",
+				"		if a.foo() != 7",
+				"			testFail(\"A\")",
+				
+				
+				"		testSuccess()",
+				"endpackage"
+			);
+	}
 }
