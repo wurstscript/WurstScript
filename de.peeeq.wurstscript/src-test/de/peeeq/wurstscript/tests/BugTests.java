@@ -121,4 +121,15 @@ public class BugTests extends PscriptTest {
 				"endpackage");
 	}
 	
+	@Test
+	public void testCodeNull() {
+		testAssertOkLines(false, 
+				"package test",
+				"	function foo(code c)",
+				"		skip",
+				"	init",
+				"		foo(null)",
+				"endpackage");
+	}
+	
 }
