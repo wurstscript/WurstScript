@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.intermediateLang.interpreter;
 
 import de.peeeq.wurstscript.intermediateLang.ILconst;
+import de.peeeq.wurstscript.intermediateLang.ILconstBool;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
 import de.peeeq.wurstscript.intermediateLang.ILconstTuple;
 import de.peeeq.wurstscript.jassIm.ImBoolVal;
@@ -27,15 +28,15 @@ public class RunStatement {
 	}
 
 	public static void run(ImExitwhen s, ProgramState globalState, LocalState localState) {
-		ImBoolVal c = (ImBoolVal) s.getCondition().evaluate(globalState, localState);
-		if (c.getValB()) {
+		ILconstBool c = (ILconstBool) s.getCondition().evaluate(globalState, localState);
+		if (c.getVal()) {
 			throw ExitwhenException.instance();
 		}
 	}
 
 	public static void run(ImIf s, ProgramState globalState, LocalState localState) {
-		ImBoolVal c = (ImBoolVal) s.getCondition().evaluate(globalState, localState);
-		if (c.getValB()) {
+		ILconstBool c = (ILconstBool) s.getCondition().evaluate(globalState, localState);
+		if (c.getVal()) {
 			s.getThenBlock().runStatements(globalState, localState);
 		} else {
 			s.getElseBlock().runStatements(globalState, localState);

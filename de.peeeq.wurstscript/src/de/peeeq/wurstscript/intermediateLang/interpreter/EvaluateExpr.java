@@ -75,7 +75,7 @@ public class EvaluateExpr {
 	public static ILconst eval(ImOperatorCall e, final ProgramState globalState, final LocalState localState) {
 		final ImExprs arguments = e.getArguments();
 		Op op = e.getOp();
-		if (op instanceof OpBinary) {
+		if (arguments.size() == 2 && op instanceof OpBinary) {
 			OpBinary opb = (OpBinary) op;
 			return opb.evaluateBinaryOperator(arguments.get(0).evaluate(globalState, localState), new Supplier<ILconst>() {
 				
@@ -84,7 +84,7 @@ public class EvaluateExpr {
 					return arguments.get(1).evaluate(globalState, localState);
 				}
 			});
-		} else if (op instanceof OpUnary) {
+		} else if (arguments.size() == 1 && op instanceof OpUnary) {
 			OpUnary opu = (OpUnary) op;
 			return opu.evaluateUnaryOperator(arguments.get(0).evaluate(globalState, localState));
 		} else {
