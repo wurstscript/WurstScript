@@ -25,7 +25,9 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
+import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreter;
 import de.peeeq.wurstscript.jassAst.JassProg;
+import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassinterpreter.JassInterpreter;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
@@ -165,6 +167,24 @@ public class PscriptTest {
 			compiler.loadReader(input.getKey(), input.getValue());
 		}
 		compiler.parseFiles();
+		ImProg imProg = compiler.getImProg();
+		
+		
+		writeJassImProg(name, gui, imProg);
+		if (executeProg) {
+			try {
+				// run the interpreter on the intermediate language
+				success = false;
+				ILInterpreter interpreter = new ILInterpreter(imProg);
+				interpreter.executeFunction("main");
+			} catch (TestFailException e) {
+				throw e;
+			} catch (TestSuccessException e)  {
+				success = true;
+			}
+		}
+		
+		
 		JassProg prog = compiler.getProg();
 		
 		
@@ -173,17 +193,7 @@ public class PscriptTest {
 		}
 		Assert.assertNotNull(prog);
 
-		File outputFile = new File(TEST_OUTPUT_PATH + name + ".j");
-		new File(TEST_OUTPUT_PATH).mkdirs();
-		try {
-			StringBuilder sb = new StringBuilder();
-			new JassPrinter(true).printProg(sb, prog);
-			System.out.println(sb.toString());
-			
-			Files.write(sb.toString(), outputFile, Charsets.UTF_8);
-		} catch (IOException e) {
-			throw new Error("IOException, could not write jass file "+ outputFile + "\n"  + gui.getErrors());
-		}
+		File outputFile = writeJassProg(name, gui, prog);
 
 
 		// run pjass:
@@ -217,18 +227,9 @@ public class PscriptTest {
 				throw new Error(e);
 			}
 			
-			
-			
 	
 			// write optimized file:
-			try {
-				outputFile = new File(TEST_OUTPUT_PATH + name + "_opt.j");
-				StringBuilder sb = new StringBuilder();
-				new JassPrinter(false).printProg(sb, prog);
-				Files.write(sb.toString(), outputFile, Charsets.UTF_8);
-			} catch (IOException e) {
-				throw new Error("IOException, could not write optimized file "+ outputFile + "\n"  + gui.getErrors());
-			}
+			outputFile = writeJassProg(name+"opt", gui, prog);
 	
 			// test optimized file with pjass:
 			pJassResult = Pjass.runPjass(outputFile);
@@ -258,6 +259,39 @@ public class PscriptTest {
 		}
 	}
 
+	/**
+	 * writes a jass prog to a file
+	 */
+	private File writeJassProg(String name, WurstGui gui, JassProg prog) throws Error {
+		File outputFile = new File(TEST_OUTPUT_PATH + name + ".j");
+		new File(TEST_OUTPUT_PATH).mkdirs();
+		try {
+			StringBuilder sb = new StringBuilder();
+			new JassPrinter(true).printProg(sb, prog);
+			
+			Files.write(sb.toString(), outputFile, Charsets.UTF_8);
+		} catch (IOException e) {
+			throw new Error("IOException, could not write jass file "+ outputFile + "\n"  + gui.getErrors());
+		}
+		return outputFile;
+	}
+
+	/**
+	 * writes a jass prog to a file
+	 */
+	private File writeJassImProg(String name, WurstGui gui, ImProg prog) throws Error {
+		File outputFile = new File(TEST_OUTPUT_PATH + name + ".jim");
+		new File(TEST_OUTPUT_PATH).mkdirs();
+		try {
+			StringBuilder sb = new StringBuilder();
+			prog.print(sb, 0);
+			
+			Files.write(sb.toString(), outputFile, Charsets.UTF_8);
+		} catch (IOException e) {
+			throw new Error("IOException, could not write jass file "+ outputFile + "\n"  + gui.getErrors());
+		}
+		return outputFile;
+	}
 
 	
 
