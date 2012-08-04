@@ -586,14 +586,14 @@ public class ImTranslator {
 		return result;
 	}
 	
-	public List<ImStmt> createDispatch(Map<ClassDef, FuncDef> instances, FuncDef funcDef, ImFunction f, boolean equalityKnown, TypeIdGetter typeId) {
+	public List<ImStmt> createDispatch(Map<ClassDef, FuncDef> instances, FuncDef funcDef, ImFunction f, int maxTypeId, TypeIdGetter typeId) {
 		List<Pair<IntRange, FuncDef>> instances2 = transformInstances(instances);
 		IntRange knownRange;
 		if (instances2.size() == 0) {
 			// does not matter
 			knownRange = new IntRange(0, 0);
 		} else {
-			knownRange = new IntRange(0, instances2.get(instances2.size()-1).getA().end);
+			knownRange = new IntRange(0, maxTypeId);
 		}
 		return createDispatchHelper(instances2, 0, instances2.size()-1, funcDef, f, typeId, knownRange);
 	}
@@ -874,6 +874,14 @@ public class ImTranslator {
 			return result;
 		}
 		throw new Error("not implemented");
+	}
+
+	public int getMaxTypeId(List<ClassDef> cs) {
+		int max = 0;
+		for (ClassDef c : cs) {
+			max = Math.max(max, getTypeId(c));
+		}
+		return max;
 	}
 
 }

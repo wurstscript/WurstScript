@@ -51,7 +51,8 @@ public class InterfaceTranslator {
 		ImFunction f = translator.getFuncFor(funcDef);
 		Map<ClassDef, FuncDef> instances2 = translator.getClassedWithImplementation(instances, funcDef);
 		if (instances2.size() > 0) {
-			f.getBody().addAll(translator.createDispatch(instances2, funcDef, f, false, new TypeIdGetterImpl()));
+			int maxTypeId = translator.getMaxTypeId(instances);
+			f.getBody().addAll(translator.createDispatch(instances2, funcDef, f, maxTypeId, new TypeIdGetterImpl()));
 		}
 		if (funcDef.getBody().size() > 0) {
 			// TODO add default implementation

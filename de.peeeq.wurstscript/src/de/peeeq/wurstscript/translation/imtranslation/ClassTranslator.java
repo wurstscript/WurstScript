@@ -235,7 +235,8 @@ public class ClassTranslator {
 		
 		
 		if (subClasses2.size() > 0) {
-			f.getBody().addAll(translator.createDispatch(subClasses2, s, f, false, new TypeIdGetterImpl()));
+			int maxTypeId = translator.getMaxTypeId(subClasses);
+			f.getBody().addAll(translator.createDispatch(subClasses2, s, f, maxTypeId, new TypeIdGetterImpl()));
 		}
 		
 		
