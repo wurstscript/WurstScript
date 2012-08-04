@@ -99,7 +99,7 @@ public class ExpressionTests extends PscriptTest {
 	
 	@Test
 	public void string() {
-		assertOk("\"Halloßüöä \\\"Welt\\\"\" != null"); 
+		assertOk("\"Hallo \\\"Welt\\\"\" != null"); 
 	}
 	
 	private String makeProg(String booleanExpr) {
