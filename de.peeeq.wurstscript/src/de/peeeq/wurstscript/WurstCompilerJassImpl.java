@@ -200,6 +200,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	}
 
 	private Map<String, File> libCache = null;
+	private ImProg imProg;
 	
 	public Map<String, File> getLibs() {
 		if (libCache == null) {
@@ -277,7 +278,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	public JassProg translateProg(WurstModel root) {
 		// translate wurst to intermediate lang:
 		ImTranslator imTranslator = new ImTranslator(root);
-		ImProg imProg = imTranslator.translateProg();
+		imProg = imTranslator.translateProg();
 		
 		try {
 			// TODO remove test output
@@ -458,6 +459,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
 	public void setHasCommonJ(boolean hasCommonJ) {
 		this.hasCommonJ = hasCommonJ;
+	}
+
+	public ImProg getImProg() {
+		return imProg;
 	}
 
 	
