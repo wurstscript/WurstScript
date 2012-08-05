@@ -17,7 +17,8 @@ ImType =
 	| ImTupleArrayType(java.util.List<String> types)
 	| ImVoid()
 	
-ImFunction(String name, ImVars parameters, &ImType returnType, ImVars locals, ImStmts body, boolean isNative, boolean isBJ)
+ImFunction(String name, ImVars parameters, &ImType returnType, ImVars locals, ImStmts body, java.util.List<de.peeeq.wurstscript.translation.imtranslation.FunctionFlag> flags)
+	
 	
 ImStmts * ImStmt
 
@@ -177,3 +178,14 @@ ImExpr.evaluate(de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState g
 	returns de.peeeq.wurstscript.intermediateLang.ILconst
 	implemented by de.peeeq.wurstscript.intermediateLang.interpreter.EvaluateExpr.eval
 	
+ImFunction.isNative()
+	returns boolean
+	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.isNative
+
+ImFunction.isBj()
+	returns boolean
+	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.isBj
+	
+ImFunction.isCompiletime()
+	returns boolean
+	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.isCompiletime

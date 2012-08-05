@@ -154,7 +154,7 @@ public class ImInliner {
 	}
 
 	private double getRating(ImFunction f) {
-		if (f.getIsNative() || !inlinableFunctions.contains(f)) {
+		if (f.isNative() || !inlinableFunctions.contains(f)) {
 			return Double.MAX_VALUE;
 		}
 		
@@ -174,7 +174,7 @@ public class ImInliner {
 	}
 	
 	private boolean shouldInline(ImFunction f) {
-		return    !f.getIsNative() 
+		return    !f.isNative() 
 				&& inlinableFunctions.contains(f) 
 				&& getRating(f) < 50;
 	}

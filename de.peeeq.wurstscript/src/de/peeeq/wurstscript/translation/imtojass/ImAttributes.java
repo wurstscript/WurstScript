@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.JassImElement;
+import de.peeeq.wurstscript.translation.imtranslation.FunctionFlag;
 
 public class ImAttributes {
 
@@ -83,6 +84,19 @@ public class ImAttributes {
 	public static boolean isGlobal(ImVar imVar) {
 		return imVar.getParent().getParent() instanceof ImProg;
 	}
+
+
+	public static boolean isBj(ImFunction f) {
+		return f.getFlags().contains(FunctionFlag.IS_BJ);
+	}
 	
 
+	public static boolean isNative(ImFunction f) {
+		return f.getFlags().contains(FunctionFlag.IS_NATIVE);
+	}
+	
+	public static boolean isCompiletime(ImFunction f) {
+		return f.getFlags().contains(FunctionFlag.IS_COMPILETIME);
+	}
+	
 }

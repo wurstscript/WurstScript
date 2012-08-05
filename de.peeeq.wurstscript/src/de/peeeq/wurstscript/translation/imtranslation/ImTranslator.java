@@ -16,6 +16,7 @@ import static de.peeeq.wurstscript.jassIm.JassIm.ImTupleExpr;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVar;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVars;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVoid;
+import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlag.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -138,9 +139,9 @@ public class ImTranslator {
 		imProg = ImProg(ImVars(), ImFunctions());
 		addSource(imProg, wurstProg);
 		
-		globalInitFunc = ImFunction("initGlobals", ImVars(), ImVoid(), ImVars(), ImStmts(), false, false);
+		globalInitFunc = ImFunction("initGlobals", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
 		addFunction(globalInitFunc);
-		debugPrintFunction = ImFunction($DEBUG_PRINT, ImVars(ImVar(PScriptTypeString.instance().imTranslateType(), "msg", false)), ImVoid(), ImVars(), ImStmts(), true, false);
+		debugPrintFunction = ImFunction($DEBUG_PRINT, ImVars(ImVar(PScriptTypeString.instance().imTranslateType(), "msg", false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE));
 		
 		
 	
@@ -149,16 +150,20 @@ public class ImTranslator {
 		}
 		
 		if (mainFunc == null) {
-			mainFunc = ImFunction("main", ImVars(), ImVoid(), ImVars(), ImStmts(), false, false);
+			mainFunc = ImFunction("main", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
 			addFunction(mainFunc);
 		}
 		if (configFunc == null) {
-			configFunc = ImFunction("config", ImVars(), ImVoid(), ImVars(), ImStmts(), false, false);
+			configFunc = ImFunction("config", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
 			addFunction(configFunc);
 		}
 		finishInitFunctions();
 		
 		return imProg;
+	}
+
+	private ArrayList<FunctionFlag> flags(FunctionFlag ... flags) {
+		return Lists.newArrayList(flags);
 	}
 	
 	
@@ -181,7 +186,7 @@ public class ImTranslator {
 	 * to a function which takes two ints. The missing int is added here 
 	 */
 	public void adjustImArgs(ImExprs imArgs, ImFunction calledImFunc) {
-		if (calledImFunc.getIsNative()) {
+		if (calledImFunc.isNative()) {
 			return;
 		}
 		if (imArgs.size() != calledImFunc.getParameters().size()) {
@@ -297,7 +302,7 @@ public class ImTranslator {
 	public ImFunction getDestroyFuncFor(ClassDef classDef) {
 		ImFunction f = destroyFuncMap.get(classDef); 
 		if (f == null) {
-			f = JassIm.ImFunction("destroy" + classDef.getName(), ImVars(), TypesHelper.imVoid(), ImVars(), ImStmts(), false, false);
+			f = JassIm.ImFunction("destroy" + classDef.getName(), ImVars(), TypesHelper.imVoid(), ImVars(), ImStmts(), flags());
 			destroyFuncMap.put(classDef, f);
 			addSource(f, classDef.getOnDestroy());
 			addFunction(f);
@@ -311,9 +316,20 @@ public class ImTranslator {
 			return functionMap.get(funcDef);
 		}
 		String name = getNameFor(funcDef);;
-		boolean isNative = funcDef instanceof NativeFunc;
-		boolean isBJ = isBJ(funcDef.getSource());
-		ImFunction f = JassIm.ImFunction(name, ImVars(), ImVoid(), ImVars(), ImStmts(), isNative, isBJ);
+		List<FunctionFlag> flags = flags();
+		if (funcDef instanceof NativeFunc) {
+			flags.add(IS_NATIVE);
+		}
+		if (isBJ(funcDef.getSource())) {
+			flags.add(IS_BJ);
+		}
+		if (funcDef instanceof FuncDef) {
+			FuncDef funcDef2 = (FuncDef) funcDef;
+			if (funcDef2.attrIsCompiletime()) {
+				flags.add(IS_COMPILETIME);
+			}
+		}
+		ImFunction f = JassIm.ImFunction(name, ImVars(), ImVoid(), ImVars(), ImStmts(), flags);
 		funcDef.imCreateFuncSkeleton(this, f);
 		addFunction(f);
 		functionMap.put(funcDef, f);
@@ -328,7 +344,7 @@ public class ImTranslator {
 	public ImFunction getInitFuncFor(WPackage p) {
 		ImFunction f = initFuncMap.get(p); 
 		if (f == null) {
-			f = JassIm.ImFunction("init_" + p.getName(), ImVars(), ImVoid(), ImVars(), ImStmts(), false, false);
+			f = JassIm.ImFunction("init_" + p.getName(), ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
 			initFuncMap.put(p, f);
 			addSource(f, p); // XXX more precise source
 		}
@@ -765,7 +781,7 @@ public class ImTranslator {
 			for (WParameter p : constr.getParameters()) {
 				params.add(getVarFor(p));
 			}
-			f = JassIm.ImFunction(name, params, ImVoid(), ImVars(), ImStmts(), false, false);
+			f = JassIm.ImFunction(name, params, ImVoid(), ImVars(), ImStmts(), flags());
 			addFunction(f);
 			addSource(f, constr);
 			constructorFuncs.put(constr, f);
@@ -780,7 +796,7 @@ public class ImTranslator {
 		ImFunction f = constrNewFuncs.get(constr);
 		if (f == null) {
 			String name = "new_" + constr.attrNearestClassDef().getName();
-			f = JassIm.ImFunction(name, ImVars(), TypesHelper.imInt(), ImVars(), ImStmts(), false, false);
+			f = JassIm.ImFunction(name, ImVars(), TypesHelper.imInt(), ImVars(), ImStmts(), flags());
 			addFunction(f);
 			addSource(f, constr);
 			constrNewFuncs.put(constr, f);

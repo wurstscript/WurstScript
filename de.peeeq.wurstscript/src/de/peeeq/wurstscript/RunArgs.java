@@ -14,6 +14,7 @@ public class RunArgs {
 	private boolean showAbout = false;
 	private boolean showLastErrors = false;
 	private boolean inline;
+	private boolean runCompiletimeFunctions;
 	
 	public static RunArgs defaults() {
 		return new RunArgs(new String[] {});
@@ -36,7 +37,8 @@ public class RunArgs {
 					this.showAbout = true;			
 				} else if (a.equals("--showerrors")) {
 					this.showLastErrors = true;
-					
+				} else if (a.equals("-runcompiletimefunctions")) {
+					runCompiletimeFunctions  = true;
 				} else {
 					throw new Error("Unknown option: " + a);
 				}
@@ -79,6 +81,10 @@ public class RunArgs {
 
 	public boolean isInline() {
 		return inline;
+	}
+
+	public boolean runCompiletimeFunctions() {
+		return runCompiletimeFunctions;
 	}
 
 

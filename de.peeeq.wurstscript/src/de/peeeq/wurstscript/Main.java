@@ -89,6 +89,11 @@ public class Main {
 				if (gui.getErrorCount() > 0) {
 					break compilation;
 				}
+				
+				
+				if (runArgs.runCompiletimeFunctions()) {
+					new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile()).run();
+				}
 
 				JassProg jassProg = compiler.getProg();
 				System.out.println(jassProg.toString());

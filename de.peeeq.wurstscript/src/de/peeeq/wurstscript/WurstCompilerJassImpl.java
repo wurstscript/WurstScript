@@ -465,5 +465,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		return imProg;
 	}
 
+	public File getMapFile() {
+		return mapFile;
+	}
+
 	
 }

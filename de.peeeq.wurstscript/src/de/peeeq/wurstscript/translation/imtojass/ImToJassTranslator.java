@@ -243,7 +243,7 @@ public class ImToJassTranslator {
 		JassFunction f = jassFuncs.get(func);
 		if (f == null) {
 			f = JassFunction(getUniqueName(func.getName()), JassSimpleVars(), "nothing", JassVars(), JassStatements());
-			if (!func.getIsNative() && !func.getIsBJ()) {
+			if (!func.isNative() && !func.isBj()) {
 				prog.getFunctions().add(f);
 			}
 			jassFuncs.put(func, f);

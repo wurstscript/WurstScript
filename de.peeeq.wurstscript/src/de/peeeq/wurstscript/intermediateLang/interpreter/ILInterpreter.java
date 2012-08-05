@@ -22,7 +22,7 @@ public class ILInterpreter {
 	}
 	
 	public static ILconst runFunc(ProgramState globalState, ImFunction f, ILconst ... args) {
-		if (f.getIsNative()) {
+		if (f.isNative()) {
 			Class<NativeFunctions> natives = NativeFunctions.class;
 			for (Method method : natives.getMethods()) {
 				if (method.getName().equals(f.getName())) {
@@ -68,6 +68,10 @@ public class ILInterpreter {
 			}
 		}
 		throw new Error("no function with name "+ funcName + "was found.");
+	}
+
+	public void runVoidFunc(ImFunction f) {
+		runFunc(globalState, f);
 	}
 
 
