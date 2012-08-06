@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
@@ -14,6 +15,7 @@ import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.JassImElement;
+import de.peeeq.wurstscript.jassIm.JassImElementWithTrace;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlag;
 
 public class ImAttributes {
@@ -98,5 +100,16 @@ public class ImAttributes {
 	public static boolean isCompiletime(ImFunction f) {
 		return f.getFlags().contains(FunctionFlag.IS_COMPILETIME);
 	}
+
+
+	public static AstElement getTrace(JassImElementWithTrace t) {
+		return t.getTrace();
+	}
 	
+	public static AstElement getTrace(JassImElement t) {
+		if (t.getParent() != null) {
+			return t.getParent().attrTrace();
+		}
+		return null; 
+	}
 }

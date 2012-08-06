@@ -17,20 +17,20 @@ ImType =
 	| ImTupleArrayType(java.util.List<String> types)
 	| ImVoid()
 	
-ImFunction(String name, ImVars parameters, &ImType returnType, ImVars locals, ImStmts body, java.util.List<de.peeeq.wurstscript.translation.imtranslation.FunctionFlag> flags)
+ImFunction(de.peeeq.wurstscript.ast.AstElement trace, String name, ImVars parameters, &ImType returnType, ImVars locals, ImStmts body, java.util.List<de.peeeq.wurstscript.translation.imtranslation.FunctionFlag> flags)
 	
 	
 ImStmts * ImStmt
 
 ImStmt = 
-	  ImIf(ImExpr condition, ImStmts thenBlock, ImStmts elseBlock)
-	| ImLoop(ImStmts body)
-	| ImExitwhen(ImExpr condition)
-	| ImReturn(ImExprOpt returnValue)
-	| ImSet(&ImVar left, ImExpr right)
-	| ImSetTuple(&ImVar left, int tupleIndex, ImExpr right)
-	| ImSetArray(&ImVar left, ImExpr index, ImExpr right)
-	| ImSetArrayTuple(&ImVar left, ImExpr index, int tupleIndex, ImExpr right)
+	  ImIf(de.peeeq.wurstscript.ast.AstElement trace, ImExpr condition, ImStmts thenBlock, ImStmts elseBlock)
+	| ImLoop(de.peeeq.wurstscript.ast.AstElement trace, ImStmts body)
+	| ImExitwhen(de.peeeq.wurstscript.ast.AstElement trace, ImExpr condition)
+	| ImReturn(de.peeeq.wurstscript.ast.AstElement trace, ImExprOpt returnValue)
+	| ImSet(de.peeeq.wurstscript.ast.AstElement trace, &ImVar left, ImExpr right)
+	| ImSetTuple(de.peeeq.wurstscript.ast.AstElement trace, &ImVar left, int tupleIndex, ImExpr right)
+	| ImSetArray(de.peeeq.wurstscript.ast.AstElement trace, &ImVar left, ImExpr index, ImExpr right)
+	| ImSetArrayTuple(de.peeeq.wurstscript.ast.AstElement trace, &ImVar left, ImExpr index, int tupleIndex, ImExpr right)
 	| ImExpr
 	
 	
@@ -57,7 +57,7 @@ ImFlatExpr =
 	| ImConst
 	
 ImCall = 
-	  ImFunctionCall(&ImFunction func, ImExprs arguments)
+	  ImFunctionCall(de.peeeq.wurstscript.ast.AstElement trace, &ImFunction func, ImExprs arguments)
 	| ImOperatorCall(de.peeeq.wurstscript.ast.Op op, ImExprs arguments)
 	
 ImConst = 
@@ -189,3 +189,7 @@ ImFunction.isBj()
 ImFunction.isCompiletime()
 	returns boolean
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.isCompiletime
+
+JassImElement.attrTrace()
+	returns de.peeeq.wurstscript.ast.AstElement
+	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.getTrace

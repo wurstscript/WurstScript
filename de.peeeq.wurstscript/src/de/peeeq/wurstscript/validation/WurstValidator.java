@@ -829,7 +829,7 @@ public class WurstValidator {
 				
 				@Override
 				public void case_ExtensionFuncDef(ExtensionFuncDef extensionFuncDef) {
-					check(VisibilityPublic.class);
+					check(VisibilityPublic.class, Annotation.class);
 				}
 				
 				@Override

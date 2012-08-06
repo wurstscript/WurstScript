@@ -38,6 +38,7 @@ import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImTupleArrayType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.JassImElement;
+import de.peeeq.wurstscript.jassIm.JassImElementWithTrace;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -51,15 +52,13 @@ public class ImToJassTranslator {
 	private Stack<ImFunction> translatingFunctions = new Stack<ImFunction>();
 	private Set<ImFunction> translatedFunctions = Sets.newHashSet();
 	private Set<String> usedNames = Sets.newHashSet();
-	private Map<JassImElement, AstElement> trace;
 
 	public ImToJassTranslator(ImProg imProg, Multimap<ImFunction, ImFunction> calledFunctions, 
-			ImFunction mainFunc, ImFunction confFunction, Map<JassImElement, AstElement> trace) {
+			ImFunction mainFunc, ImFunction confFunction) {
 		this.imProg = imProg;
 		this.calledFunctions = calledFunctions;
 		this.mainFunc = mainFunc;
 		this.confFunction = confFunction;
-		this.trace = trace;
 	}
 	
 	public JassProg translate() {
@@ -130,11 +129,14 @@ public class ImToJassTranslator {
 		return r;
 	}
 
-	private AstElement getTrace(JassImElement elem) {
+	public static AstElement getTrace(JassImElement elem) {
 		while (elem != null) {
-			AstElement t = trace.get(elem);
-			if (t != null) {
-				return t;
+			if (elem instanceof JassImElementWithTrace) {
+				JassImElementWithTrace jassImElementWithTrace = (JassImElementWithTrace) elem;
+				AstElement t = jassImElementWithTrace.getTrace();
+				if (t != null) {
+					return t;
+				}
 			}
 			elem = elem.getParent();
 		}

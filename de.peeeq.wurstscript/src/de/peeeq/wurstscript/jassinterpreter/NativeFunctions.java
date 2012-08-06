@@ -1,9 +1,15 @@
 package de.peeeq.wurstscript.jassinterpreter;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
+import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
 import de.peeeq.wurstscript.intermediateLang.ILconstNull;
 import de.peeeq.wurstscript.intermediateLang.ILconstReal;
 import de.peeeq.wurstscript.intermediateLang.ILconstString;
+import de.peeeq.wurstscript.intermediateLang.interpreter.InterprationError;
+import de.peeeq.wurstscript.intermediateLang.interpreter.NativesProvider;
 
 
 /**
@@ -12,7 +18,7 @@ import de.peeeq.wurstscript.intermediateLang.ILconstString;
  * 
  *  remember that all functions must be static
  */
-public class NativeFunctions {
+public class NativeFunctions implements NativesProvider {
 
 	@Native
 	static public void testSuccess() {
@@ -51,5 +57,27 @@ public class NativeFunctions {
 	
 	static public ILconstNull InitHashtable() {
 		return ILconstNull.instance();
+	}
+
+	@Override
+	public ILconst invoke(String funcname, ILconst[] args) {
+		for (Method method : this.getClass().getMethods()) {
+			if (method.getName().equals(funcname)) {
+				Object r = null;
+				try {
+					r = method.invoke(null, (Object[]) args);
+				} catch (IllegalAccessException | IllegalArgumentException e) {
+					e.printStackTrace();
+					throw new Error(e);
+				} catch (InvocationTargetException e) {
+					if (e.getCause() instanceof Error) {
+						throw (Error) e.getCause();
+					}
+					throw new Error(e.getCause());
+				}
+				return (ILconst) r;
+			}
+		}
+		throw new InterprationError("native function " + funcname + " can not be executed at compile time.");
 	}
 }

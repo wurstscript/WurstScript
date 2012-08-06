@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.intermediateLang.interpreter;
 
+
 import com.google.common.base.Supplier;
 
 import de.peeeq.wurstscript.ast.OpAnd;

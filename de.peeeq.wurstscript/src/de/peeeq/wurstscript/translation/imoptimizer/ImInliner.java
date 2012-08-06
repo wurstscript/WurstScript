@@ -107,7 +107,7 @@ public class ImInliner {
 			f.getLocals().add(tempVar);
 			varSubtitutions.put(param, tempVar);
 			// set temp var
-			stmts.add(JassIm.ImSet(tempVar, arg));
+			stmts.add(JassIm.ImSet(null, tempVar, arg));
 		}
 		// add locals
 		for (ImVar l : called.getLocals()) {

@@ -18,6 +18,7 @@ import com.google.common.io.Files;
 
 import de.peeeq.wurstscript.Pjass;
 import de.peeeq.wurstscript.Pjass.Result;
+import de.peeeq.wurstscript.CompiletimeFunctionRunner;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.WurstConfig;
@@ -172,10 +173,13 @@ public class PscriptTest {
 		
 		writeJassImProg(name, gui, imProg);
 		if (executeProg) {
+			CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(imProg, null, gui);
+			cfr.run();
+			
 			try {
 				// run the interpreter on the intermediate language
 				success = false;
-				ILInterpreter interpreter = new ILInterpreter(imProg);
+				ILInterpreter interpreter = new ILInterpreter(imProg, gui);
 				interpreter.executeFunction("main");
 			} catch (TestFailException e) {
 				throw e;

@@ -22,6 +22,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.ast.Ast;
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.ConstructorDef;
@@ -49,6 +50,7 @@ import de.peeeq.wurstscript.utils.Pair;
 
 public class ClassTranslator {
 
+	private static final AstElement emptyTrace = Ast.NoExpr();
 	private ClassDef classDef;
 	private ImTranslator translator;
 //	/** list of statements to initialize a new object **/
@@ -96,18 +98,18 @@ public class ClassTranslator {
 	private void addDeallocateCode(ImFunction f, ImVar thisVar) {
 		f.getBody().add(		
 		// if nextFree[this] < 0 then
-			ImIf(ImOperatorCall(Ast.OpLess(), ImExprs(ImVarArrayAccess(m.nextFree, ImVarAccess(thisVar)), ImIntVal(0))), 
+			ImIf(emptyTrace, ImOperatorCall(Ast.OpLess(), ImExprs(ImVarArrayAccess(m.nextFree, ImVarAccess(thisVar)), ImIntVal(0))), 
 				// then
 				ImStmts(
 						// nextFree[this] = firstFree
-						ImSetArray(m.nextFree, ImVarAccess(thisVar), ImVarAccess(m.firstFree)),
+						ImSetArray(emptyTrace, m.nextFree, ImVarAccess(thisVar), ImVarAccess(m.firstFree)),
 						// firstFree = this				
-						ImSet(m.firstFree, ImVarAccess(thisVar))
+						ImSet(emptyTrace, m.firstFree, ImVarAccess(thisVar))
 						), 
 				// else
 				ImStmts(
 						// print error message: double free
-						ImFunctionCall(translator.getDebugPrintFunc(), 
+						ImFunctionCall(emptyTrace, translator.getDebugPrintFunc(), 
 								ImExprs(ImStringVal("Double Free of " + classDef.getName())))
 						)));
 		
@@ -259,6 +261,7 @@ public class ClassTranslator {
 	
 
 	private void createNewFunc(ConstructorDef constr) {
+		ConstructorDef trace = constr;
 		ImFunction f = translator.getConstructNewFunc(constr);
 		Map<ImVar, ImVar> varReplacements = Maps.newHashMap();
 		
@@ -274,26 +277,26 @@ public class ClassTranslator {
 		f.getLocals().add(thisVar);
 		f.getBody().add(
 		// if firstFree > 0
-				ImIf(ImOperatorCall(Ast.OpGreater(), ImExprs(ImVarAccess(m.firstFree), ImIntVal(0))),
+				ImIf(trace, ImOperatorCall(Ast.OpGreater(), ImExprs(ImVarAccess(m.firstFree), ImIntVal(0))),
 				// then
 					ImStmts(
 						// this = firstFree
-						ImSet(thisVar, ImVarAccess(m.firstFree)),
+						ImSet(trace, thisVar, ImVarAccess(m.firstFree)),
 						// firstFree = nextFree[thisVar]
-								ImSet(m.firstFree, ImVarArrayAccess(m.nextFree, ImVarAccess(thisVar)))),
+								ImSet(trace, m.firstFree, ImVarArrayAccess(m.nextFree, ImVarAccess(thisVar)))),
 				// else
 					ImStmts(
 						// maxindex = maxindex + 1
-						ImSet(m.maxIndex, ImOperatorCall(Ast.OpPlus(), ImExprs(ImVarAccess(m.maxIndex), ImIntVal(1)))),
+						ImSet(emptyTrace, m.maxIndex, ImOperatorCall(Ast.OpPlus(), ImExprs(ImVarAccess(m.maxIndex), ImIntVal(1)))),
 						// this = maxindex
-								ImSet(thisVar, ImVarAccess(m.maxIndex))))
+								ImSet(trace, thisVar, ImVarAccess(m.maxIndex))))
 		// endif
 				);
 		// nextFree[thisVar] = -1
-		f.getBody().add(ImSetArray(m.nextFree, ImVarAccess(thisVar), ImIntVal(-1)));
+		f.getBody().add(ImSetArray(trace, m.nextFree, ImVarAccess(thisVar), ImIntVal(-1)));
 		
 		// set typeId:
-		f.getBody().add(ImSetArray(m.typeId, ImVarAccess(thisVar), ImIntVal(translator.getTypeId(classDef))));
+		f.getBody().add(ImSetArray(trace, m.typeId, ImVarAccess(thisVar), ImIntVal(translator.getTypeId(classDef))));
 		
 		// call user defined constructor code:
 		ImFunction constrFunc = translator.getConstructFunc(constr);
@@ -301,17 +304,18 @@ public class ClassTranslator {
 		for (ImVar a : f.getParameters()) {
 			arguments.add(ImVarAccess(a));
 		}
-		f.getBody().add(ImFunctionCall(constrFunc, arguments));
+		f.getBody().add(ImFunctionCall(trace, constrFunc, arguments));
 		translator.addCallRelation(f, constrFunc);
 		
 		// return this
-		f.getBody().add(ImReturn(ImVarAccess(thisVar)));
+		f.getBody().add(ImReturn(trace, ImVarAccess(thisVar)));
 		
 	}
 
 	
 
 	private void createConstructFunc(ConstructorDef constr) {
+		ConstructorDef trace = constr;
 		ImFunction f = translator.getConstructFunc(constr);
 		ImVar thisVar = translator.getThisVar(constr);
 		ConstructorDef superConstr = constr.attrSuperConstructor();
@@ -322,7 +326,7 @@ public class ClassTranslator {
 			for (Expr a : constr.getSuperArgs()) {
 				arguments.add(a.imTranslateExpr(translator, f));
 			}
-			f.getBody().add(ImFunctionCall(superConstrFunc, arguments));
+			f.getBody().add(ImFunctionCall(trace, superConstrFunc, arguments));
 			translator.addCallRelation(f, superConstrFunc);
 		}
 		// initialize vars
@@ -330,7 +334,7 @@ public class ClassTranslator {
 			ImVar v = i.getA();
 			if (i.getB() instanceof Expr) {
 				Expr e = (Expr) i.getB();
-				ImStmt s = ImSetArray(v, ImVarAccess(thisVar), e.imTranslateExpr(translator, f));
+				ImStmt s = ImSetArray(trace, v, ImVarAccess(thisVar), e.imTranslateExpr(translator, f));
 				f.getBody().add(s);
 			}
 		}

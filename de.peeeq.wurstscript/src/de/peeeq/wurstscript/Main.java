@@ -92,7 +92,8 @@ public class Main {
 				
 				
 				if (runArgs.runCompiletimeFunctions()) {
-					new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile()).run();
+					CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), gui);
+					ctr.run();
 				}
 
 				JassProg jassProg = compiler.getProg();

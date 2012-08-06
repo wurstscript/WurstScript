@@ -81,7 +81,7 @@ public class ExprTranslation {
 			// overloaded operator
 			ImFunction calledFunc = t.getFuncFor(e.attrFuncDef());
 			t.addCallRelation(f, calledFunc);
-			return JassIm.ImFunctionCall(calledFunc, ImExprs(left, right));
+			return JassIm.ImFunctionCall(e, calledFunc, ImExprs(left, right));
 		} 
 		if (op instanceof OpDivReal && !Utils.isJassCode(op)) {
 			if (e.getLeft().attrTyp() instanceof PScriptTypeInt
@@ -239,8 +239,7 @@ public class ExprTranslation {
 		t.addCallRelation(f, calledImFunc);
 		
 		
-		ImFunctionCall fc = ImFunctionCall(calledImFunc, imArgs);
-		t.adjustImArgs(imArgs, calledImFunc);
+		ImFunctionCall fc = ImFunctionCall(e, calledImFunc, imArgs);
 		return fc;
 	}
 
@@ -262,7 +261,7 @@ public class ExprTranslation {
 		ConstructorDef constructorFunc = e.attrConstructorDef();
 		ImFunction constructorImFunc = t.getConstructNewFunc(constructorFunc);
 		t.addCallRelation(f, constructorImFunc);
-		return ImFunctionCall(constructorImFunc, translateExprs(e.getArgs(), t, f));
+		return ImFunctionCall(e, constructorImFunc, translateExprs(e.getArgs(), t, f));
 	}
 
 	public static ImExprOpt translate(NoExpr e, ImTranslator translator, ImFunction f) {
@@ -301,7 +300,7 @@ public class ExprTranslation {
 				}
 				
 			}
-			ImStmt evalExpr = JassIm.ImSet(tempVar, e.getExpr().imTranslateExpr(translator, f));
+			ImStmt evalExpr = JassIm.ImSet(e, tempVar, e.getExpr().imTranslateExpr(translator, f));
 			return JassIm.ImStatementExpr(JassIm.ImStmts(evalExpr), condition);
 		}
 	}

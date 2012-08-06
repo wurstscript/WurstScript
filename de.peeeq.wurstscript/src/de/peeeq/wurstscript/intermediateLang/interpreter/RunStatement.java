@@ -117,6 +117,7 @@ public class RunStatement {
 
 	public static void run(ImStmts stmts, ProgramState globalState, LocalState localState) {
 		for (ImStmt s : stmts) {
+			globalState.setLastStatement(s);
 			s.runStatement(globalState, localState);
 		}
 	}

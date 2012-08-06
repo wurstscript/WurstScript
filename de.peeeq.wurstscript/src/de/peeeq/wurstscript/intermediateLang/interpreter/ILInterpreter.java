@@ -1,12 +1,15 @@
 package de.peeeq.wurstscript.intermediateLang.interpreter;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
+import de.peeeq.wurstscript.ast.Annotation;
+import de.peeeq.wurstscript.ast.AstElementWithModifiers;
+import de.peeeq.wurstscript.ast.Modifier;
+import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstNull;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
+import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassinterpreter.NativeFunctions;
@@ -16,32 +19,20 @@ public class ILInterpreter {
 	private final ImProg prog;
 	private ProgramState globalState;
 
-	public ILInterpreter(ImProg prog) {
+	public ILInterpreter(ImProg prog, WurstGui gui) {
 		this.prog = prog;
-		this.globalState = new ProgramState();
+		this.globalState = new ProgramState(gui);
 	}
-	
+
 	public static ILconst runFunc(ProgramState globalState, ImFunction f, ILconst ... args) {
+		if (isCompiletimeNative(f)) {
+			return runBuiltinFunction(f, new CompiletimeNatives(globalState), args);
+		}
+		
+		
 		if (f.isNative()) {
 			Class<NativeFunctions> natives = NativeFunctions.class;
-			for (Method method : natives.getMethods()) {
-				if (method.getName().equals(f.getName())) {
-					Object r = null;
-					try {
-						r = method.invoke(null, (Object[]) args);
-					} catch (IllegalAccessException | IllegalArgumentException e) {
-						e.printStackTrace();
-						throw new Error(e);
-					} catch (InvocationTargetException e) {
-						if (e.getCause() instanceof Error) {
-							throw (Error) e.getCause();
-						}
-						throw new Error(e.getCause());
-					}
-					return (ILconst) r;
-				}
-			}
-			throw new Error("native function " + f.getName() + " can not be executed at compile time.");
+			return runBuiltinFunction(f, new NativeFunctions(), args);
 		}
 		LocalState localState = new LocalState();
 		int i = 0;
@@ -57,7 +48,26 @@ public class ILInterpreter {
 		if (f.getReturnType() instanceof ImVoid) {
 			return ILconstNull.instance();
 		}
-		throw new Error("function " + f.getName() + " did not return any value...");
+		throw new InterprationError("function " + f.getName() + " did not return any value...");
+	}
+
+	private static ILconst runBuiltinFunction(ImFunction f, NativesProvider natives, ILconst... args)	throws Error, InterprationError {
+		return natives.invoke(f.getName(), args);
+	}
+
+	private static boolean isCompiletimeNative(ImFunction f) {
+		if (f.getTrace() instanceof AstElementWithModifiers) {
+			AstElementWithModifiers f2 = (AstElementWithModifiers) f.getTrace();
+			for (Modifier m : f2.getModifiers()) {
+				if (m instanceof Annotation) {
+					Annotation annotation = (Annotation) m;
+					if (annotation.getAnnotationType().equals("@compiletimenative")) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
 	}
 
 	public void executeFunction(String funcName) {
@@ -72,6 +82,10 @@ public class ILInterpreter {
 
 	public void runVoidFunc(ImFunction f) {
 		runFunc(globalState, f);
+	}
+
+	public ImStmt getLastStatement() {
+		return globalState.getLastStatement();
 	}
 
 

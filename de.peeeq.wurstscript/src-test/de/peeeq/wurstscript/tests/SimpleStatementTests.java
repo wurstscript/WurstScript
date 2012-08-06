@@ -14,6 +14,7 @@ public class SimpleStatementTests extends PscriptTest {
 				"");
 	}
 	
+	
 	@Test
 	public void testMod2() {
 		assertOk(true, 

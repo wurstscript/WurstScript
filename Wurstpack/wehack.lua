@@ -90,6 +90,7 @@ if havewurst then
 	wurst_enable = TogMenuEntry:New(wurstmenu,"Enable WurstScript",nil,true)
 	wurst_optenable = TogMenuEntry:New(wurstmenu,"Enable Froptimizer",nil,false)
 	wurst_inliner = TogMenuEntry:New(wurstmenu, "Enable Inliner",nil,false)
+	wurst_compiletimefunctions  = TogMenuEntry:New(wurstmenu, "Run compiletime functions",nil,false)
 	
 	wehack.addmenuseparator(wurstmenu)
 	
@@ -412,6 +413,9 @@ grim.log("running tool on save: "..cmdargs)
 		end
 		if wurst_inliner.checked then
 			cmdline = cmdline .. " -inline"
+		end
+		if wurst_compiletimefunctions.checked then
+			cmdline = cmdline .. " -runcompiletimefunctions"
 		end
 		
 		cmdline = cmdline .. " wurstscript\\common.j wurstscript\\Blizzard.j \"" .. mappath .."\""

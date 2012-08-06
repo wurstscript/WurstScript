@@ -9,6 +9,7 @@ import java.util.Map;
 
 import com.google.common.collect.Lists;
 
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
@@ -48,6 +49,7 @@ public class InterfaceTranslator {
 	}
 
 	private void translateInterfaceFuncDef(InterfaceDef interfaceDef, List<ClassDef> instances, FuncDef funcDef) {
+		AstElement trace = funcDef;
 		ImFunction f = translator.getFuncFor(funcDef);
 		Map<ClassDef, FuncDef> instances2 = translator.getClassedWithImplementation(instances, funcDef);
 		if (instances2.size() > 0) {
@@ -60,12 +62,13 @@ public class InterfaceTranslator {
 		} else {
 			// create dynamic message when not matched:
 			String msg = "ERROR: invalid type for interface dispatch when calling " + interfaceDef.getName() + "." + funcDef.getName();
-			f.getBody().add(JassIm.ImFunctionCall(translator.getDebugPrintFunc(), ImExprs(ImStringVal(msg))));
+			
+			f.getBody().add(JassIm.ImFunctionCall(trace, translator.getDebugPrintFunc(), ImExprs(ImStringVal(msg))));
 			if (!(funcDef.attrTyp() instanceof PScriptTypeVoid)) {
 				// add return statement
 				ImType type = f.getReturnType();
 				ImExpr def = translator.getDefaultValueForJassType(type);
-				f.getBody().add(JassIm.ImReturn(def));
+				f.getBody().add(JassIm.ImReturn(trace, def));
 			}
 		}
 	}
