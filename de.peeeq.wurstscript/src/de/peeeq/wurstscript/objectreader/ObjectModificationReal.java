@@ -5,8 +5,8 @@ import java.io.IOException;
 public class ObjectModificationReal extends ObjectModification {
 	private float data;
 
-	public ObjectModificationReal(String originalObjectId, String newObjectId, String modificationId, int variableType, int levelCount, int dataPointer, float data) {
-		super(originalObjectId, newObjectId, modificationId, variableType, levelCount, dataPointer);
+	public ObjectModificationReal(ObjectDefinition parent, String modificationId, int levelCount, int dataPointer, float data) {
+		super(parent, modificationId, VariableTypes.REAL, levelCount, dataPointer);
 		this.data = data;
 	}
 
@@ -19,5 +19,15 @@ public class ObjectModificationReal extends ObjectModification {
 	public String toString() {
 		return modificationId + " = " + data;
 	}
+
+	public float getData() {
+		return data;
+	}
+
+	public void setData(float data) {
+		this.data = data;
+	}
+	
+	
 
 }

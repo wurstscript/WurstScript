@@ -1,0 +1,38 @@
+package ObjEditingNatives
+
+/* Complete example:
+
+package ObjTest
+import ObjEditingNatives
+
+
+@compiletime function createTestUnit()
+	let u = createUnitType("h000", "hfoo")
+	// set base damage
+	u.setInt("ua1b", 42)
+
+*/
+
+
+public tuple unitType(string key)
+
+// when this function is called at compiletime it generated a compile error with the given message 
+@compiletimenative public function compileError(string msg)
+
+// creates a new unit type
+// for example to create a new unit with id "h000" which is based on a footman ("hfoo") 
+// let u = createUnitType("h000", "hfoo")
+@compiletimenative public function createUnitType(string newId, string deriveFrom) returns unitType
+	return unitType("") // dummy implementation
+	
+// changes an integer value of a unit
+// for example to change the base damage to 42 of a unit use
+// u.setInt("ua1b", 42)
+@compiletimenative public function unitType.setInt(string modification, int value)
+	skip
+	
+
+
+
+
+

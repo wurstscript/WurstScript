@@ -179,7 +179,7 @@ public class PscriptTest {
 			try {
 				// run the interpreter on the intermediate language
 				success = false;
-				ILInterpreter interpreter = new ILInterpreter(imProg, gui);
+				ILInterpreter interpreter = new ILInterpreter(imProg, gui, null);
 				interpreter.executeFunction("main");
 			} catch (TestFailException e) {
 				throw e;

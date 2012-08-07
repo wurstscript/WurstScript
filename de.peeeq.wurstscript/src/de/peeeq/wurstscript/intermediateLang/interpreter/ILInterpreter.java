@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.intermediateLang.interpreter;
 
+import java.io.File;
+
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElementWithModifiers;
 import de.peeeq.wurstscript.ast.Modifier;
@@ -19,9 +21,9 @@ public class ILInterpreter {
 	private final ImProg prog;
 	private ProgramState globalState;
 
-	public ILInterpreter(ImProg prog, WurstGui gui) {
+	public ILInterpreter(ImProg prog, WurstGui gui, File mapFile) {
 		this.prog = prog;
-		this.globalState = new ProgramState(gui);
+		this.globalState = new ProgramState(mapFile, gui);
 	}
 
 	public static ILconst runFunc(ProgramState globalState, ImFunction f, ILconst ... args) {
@@ -86,6 +88,11 @@ public class ILInterpreter {
 
 	public ImStmt getLastStatement() {
 		return globalState.getLastStatement();
+	}
+
+	public void writebackGlobalState() {
+		globalState.writeBack();
+		
 	}
 
 

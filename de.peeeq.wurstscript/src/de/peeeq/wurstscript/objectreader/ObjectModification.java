@@ -5,15 +5,15 @@ import java.io.IOException;
 public abstract class ObjectModification { // TODO split into appropiate subclasses
 
 	protected String modificationId;
+	
+
 	protected int variableType;
 	protected int levelCount;
 	protected int dataPointer;
-	private String originalObjectId;
-	private String newObjectId;
+	protected ObjectDefinition parent;
 
-	public ObjectModification(String originalObjectId, String newObjectId, String modificationId, int variableType, int levelCount, int dataPointer) {
-		this.originalObjectId = originalObjectId;
-		this.newObjectId = newObjectId;
+	public ObjectModification(ObjectDefinition parent, String modificationId, int variableType, int levelCount, int dataPointer) {
+		this.parent = parent;
 		this.modificationId = modificationId;
 		this.variableType = variableType;
 		this.levelCount = levelCount;
@@ -26,7 +26,7 @@ public abstract class ObjectModification { // TODO split into appropiate subclas
 	}
 
 	
-	static ObjectModification readFromStream(BinaryDataInputStream in, ObjectFileType fileType, String originalObjectId, String newObjectId) throws IOException {
+	static ObjectModification readFromStream(BinaryDataInputStream in, ObjectFileType fileType, ObjectDefinition parent) throws IOException {
 		String modificationId = in.readString(4);
 
 		int variableType = in.readInt();
@@ -44,25 +44,27 @@ public abstract class ObjectModification { // TODO split into appropiate subclas
 		switch (variableType) {
 			case VariableTypes.INTEGER:
 				int intData = in.readInt();
-				result = new ObjectModificationInt(originalObjectId, newObjectId, modificationId, variableType, levelCount, dataPointer, intData);
+				result = new ObjectModificationInt(parent, modificationId, levelCount, dataPointer, intData);
 				break;
 			case VariableTypes.REAL:
 				float floatData = in.readFloat();
-				result = new ObjectModificationUnreal(originalObjectId, newObjectId, modificationId, variableType, levelCount, dataPointer, floatData);
+				result = new ObjectModificationReal(parent, modificationId, levelCount, dataPointer, floatData);
 				break;
 			case VariableTypes.UNREAL:
 				float floatData2 = in.readFloat();
-				result = new ObjectModificationUnreal(originalObjectId, newObjectId, modificationId, variableType, levelCount, dataPointer, floatData2);
+				result = new ObjectModificationUnreal(parent, modificationId, levelCount, dataPointer, floatData2);
 				break;
 			case VariableTypes.STRING:
 				String stringData = in.readNullTerminatedString();
-				result = new ObjectModificationString(originalObjectId, newObjectId, modificationId, variableType, levelCount, dataPointer, stringData);
+				result = new ObjectModificationString(parent, modificationId, levelCount, dataPointer, stringData);
 				break;
 			default:
 				throw new Error("unsupported vartype " + variableType);
 		}
 
 		String end = in.readString(4);
+		String originalObjectId = parent.getOrigObjectId();
+		Object newObjectId = parent.getNewObjectId();
 		if (end.length() > 0 && !(end.charAt(0) == 0) && !end.equals(originalObjectId) && !end.equals(newObjectId)) {
 			throw new Error("corrupt end value: " + (int) end.charAt(0) + ", " + end + ", expected " + originalObjectId
 					+ " or " + newObjectId);
@@ -82,7 +84,28 @@ public abstract class ObjectModification { // TODO split into appropiate subclas
 			out.writeInt(dataPointer);
 		}
 		writeDataToStream(out, fileType);
-		out.writeString(newObjectId, 4);
+		out.writeString(parent.getNewObjectId(), 4);
+	}
+
+	
+	public int getLevelCount() {
+		return levelCount;
+	}
+
+	public void setLevelCount(int levelCount) {
+		this.levelCount = levelCount;
+	}
+
+	public int getDataPointer() {
+		return dataPointer;
+	}
+
+	public void setDataPointer(int dataPointer) {
+		this.dataPointer = dataPointer;
+	}
+
+	public String getModificationId() {
+		return modificationId;
 	}
 	
 	abstract void writeDataToStream(BinaryDataOutputStream out, ObjectFileType fileType) throws IOException; 

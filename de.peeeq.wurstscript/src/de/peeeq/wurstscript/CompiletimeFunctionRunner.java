@@ -28,7 +28,7 @@ public class CompiletimeFunctionRunner {
 	public CompiletimeFunctionRunner(ImProg imProg, File mapFile, WurstGui gui) {
 		this.imProg = imProg;
 		this.mapFile = mapFile;
-		this.interpreter = new ILInterpreter(imProg, gui);
+		this.interpreter = new ILInterpreter(imProg, gui, mapFile);
 		this.gui = gui;
 	}
 	
@@ -41,6 +41,8 @@ public class CompiletimeFunctionRunner {
 					interpreter.runVoidFunc(f);
 				}
 			}
+			
+			interpreter.writebackGlobalState();
 		} catch (Throwable e) {
 			ImStmt s = interpreter.getLastStatement();
 			AstElement origin = s.attrTrace();
