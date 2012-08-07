@@ -46,6 +46,15 @@ package Vectors
 	public function vec3.op_mult(real factor) returns vec3
 		return vec3(this.x*factor, this.y*factor, this.z*factor) 
         
+    public function vec3.project( vec3 direction ) returns vec3
+    	real l = direction.x*direction.x+direction.y*direction.y+direction.z*direction.z
+        if l == 0.0
+        	printError("vector.projectVector error: The length of the direction vector is 0.0!")
+            return vec3(0.,0.,0.)
+            
+        l = (this.x*direction.x+this.y*direction.y+this.z*direction.z) / l
+		return vec3( direction.x*l, direction.y*l, direction.z*l )
+        
     public function vec3.norm() returns vec3
         real len = this.length()
         real x = 0 
