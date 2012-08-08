@@ -254,7 +254,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			prog = translateProg(root);
 		} catch (CompileError e) {
 			WLogger.severe(e);
-			e.getSource().addError(e.getMessage());
+			errorHandler.sendError(e);
 		}
 	}
 

@@ -43,10 +43,6 @@ public class AttrPos {
 		return Ast.WPos("<source of " + e + " not found>", new LineOffsets(), 0, 0);
 	}
 	
-	public static WPos getPos(WPos e) {
-		return e;
-	}
-	
 	
 	public static int getColumn(WPos p) {
 		LineOffsets lineOffsets = getLineOffsets(p);

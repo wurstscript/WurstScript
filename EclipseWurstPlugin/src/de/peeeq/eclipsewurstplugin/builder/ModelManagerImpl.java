@@ -106,7 +106,7 @@ public class ModelManagerImpl implements ModelManager {
 			comp.addImportedLibs(model);		
 			comp.checkProg(model);
 		} catch (CompileError e) {
-			e.getSource().addError((String) e.getMessage());
+			gui.sendError(e);
 		}
 		nature.clearMarkers();
 		createErrorMarkers(gui);
