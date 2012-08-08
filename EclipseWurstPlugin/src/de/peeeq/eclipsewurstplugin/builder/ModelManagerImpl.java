@@ -83,6 +83,7 @@ public class ModelManagerImpl implements ModelManager {
 			System.out.println("needs full build...");
 		}
 		if (gui.getErrorCount() > 0) {
+			createErrorMarkers(gui);
 			return;
 		}
 		if (model == null) {
@@ -99,8 +100,11 @@ public class ModelManagerImpl implements ModelManager {
 			e.getSource().addError((String) e.getMessage());
 		}
 		nature.clearMarkers();
+		createErrorMarkers(gui);
+	}
+
+	private void createErrorMarkers(WurstGui gui) {
 		for (CompileError e : gui.getErrorList()) {
-			System.out.println("typecheck error: " + e);
 			WurstNature.addErrorMarker(getFile(e.getSource().getFile()), e);
 		}
 	}
