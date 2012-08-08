@@ -11,6 +11,8 @@ import java.util.Set;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IncrementalProjectBuilder;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
@@ -81,6 +83,13 @@ public class ModelManagerImpl implements ModelManager {
 		System.out.println("#typechecking");
 		if (needsFullBuild) {
 			System.out.println("needs full build...");
+			try {
+				nature.getProject().build(IncrementalProjectBuilder.FULL_BUILD, null);
+			} catch (CoreException e) {
+				e.printStackTrace();
+			}
+			// full build will trigger a new run of typeCheckModel ...
+			return;
 		}
 		if (gui.getErrorCount() > 0) {
 			createErrorMarkers(gui);

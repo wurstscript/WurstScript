@@ -212,21 +212,20 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 	
 
 
-
-	protected void fullBuild(final IProgressMonitor monitor) throws CoreException {
+	private void fullBuild(final IProgressMonitor monitor) throws CoreException {
 		try {
 			System.out.println("full build ...");
 			WurstGui gui = new WurstGuiEclipse(monitor);
 			getProject().accept(new SampleResourceVisitor(gui));
-			getModelManager().typeCheckModel(gui);
 			getModelManager().fullBuildDone();
+			getModelManager().typeCheckModel(gui);
 		} catch (CoreException e) {
 		}
 	}
 
 	
 
-	protected void incrementalBuild(IResourceDelta delta, IProgressMonitor monitor) throws CoreException {
+	private void incrementalBuild(IResourceDelta delta, IProgressMonitor monitor) throws CoreException {
 		// the visitor does the work.
 		System.out.println("incremental build ...");
 		WurstGui gui = new WurstGuiEclipse(monitor);
