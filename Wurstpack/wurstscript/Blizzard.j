@@ -368,19 +368,12 @@ globals
     constant integer   bj_GATEOPERATION_OPEN       = 1
     constant integer   bj_GATEOPERATION_DESTROY    = 2
 
-	// Game cache value types
-	constant integer   bj_GAMECACHE_BOOLEAN                 = 0
-	constant integer   bj_GAMECACHE_INTEGER                 = 1
-	constant integer   bj_GAMECACHE_REAL                    = 2
-	constant integer   bj_GAMECACHE_UNIT                    = 3
-	constant integer   bj_GAMECACHE_STRING                  = 4
-	
-	// Hashtable value types
-	constant integer   bj_HASHTABLE_BOOLEAN                 = 0
-	constant integer   bj_HASHTABLE_INTEGER                 = 1
-	constant integer   bj_HASHTABLE_REAL                    = 2
-	constant integer   bj_HASHTABLE_STRING                  = 3
-	constant integer   bj_HASHTABLE_HANDLE                  = 4
+    // Game cache value types
+    constant integer   bj_GAMECACHE_BOOLEAN        = 0
+    constant integer   bj_GAMECACHE_INTEGER        = 1
+    constant integer   bj_GAMECACHE_REAL           = 2
+    constant integer   bj_GAMECACHE_UNIT           = 3
+    constant integer   bj_GAMECACHE_STRING         = 4
 
     // Item status types
     constant integer   bj_ITEM_STATUS_HIDDEN       = 0
@@ -610,7 +603,6 @@ globals
     string             bj_lastPlayedMusic          = ""
     real               bj_lastTransmissionDuration = 0
     gamecache          bj_lastCreatedGameCache     = null
-    hashtable          bj_lastCreatedHashtable     = null
     unit               bj_lastLoadedUnit           = null
     button             bj_lastCreatedButton        = null
     unit               bj_lastReplacedUnit         = null
@@ -1632,14 +1624,6 @@ endfunction
 //
 function SubStringBJ takes string source, integer start, integer end returns string
     return SubString(source, start-1, end)
-endfunction  
-  
-function GetHandleIdBJ takes handle h returns integer
-    return GetHandleId(h)
-endfunction
-
-function StringHashBJ takes string s returns integer
-    return StringHash(s)
 endfunction
 
 
@@ -1836,10 +1820,11 @@ function RegisterDestDeathInRegionEnum takes nothing returns nothing
 endfunction
 
 //===========================================================================
-function TriggerRegisterDestDeathInRegionEvent takes trigger trig, rect r returns nothing
+function TriggerRegisterDestDeathInRegionEvent takes trigger trig, rect r returns event
     set bj_destInRegionDiesTrig = trig
     set bj_destInRegionDiesCount = 0
     call EnumDestructablesInRect(r, null, function RegisterDestDeathInRegionEnum)
+    return trig
 endfunction
 
 
@@ -6950,17 +6935,6 @@ function GetLastCreatedGameCacheBJ takes nothing returns gamecache
 endfunction
 
 //===========================================================================
-function InitHashtableBJ takes nothing returns hashtable
-    set bj_lastCreatedHashtable = InitHashtable()
-    return bj_lastCreatedHashtable
-endfunction
-
-//===========================================================================
-function GetLastCreatedHashtableBJ takes nothing returns hashtable
-    return bj_lastCreatedHashtable
-endfunction
-
-//===========================================================================
 function StoreRealBJ takes real value, string key, string missionKey, gamecache cache returns nothing
     call StoreReal(cache, missionKey, key, value)
 endfunction
@@ -6983,221 +6957,6 @@ endfunction
 //===========================================================================
 function StoreUnitBJ takes unit whichUnit, string key, string missionKey, gamecache cache returns boolean
     return StoreUnit(cache, missionKey, key, whichUnit)
-endfunction
-
-//===========================================================================
-function SaveRealBJ takes real value, integer key, integer missionKey, hashtable table returns nothing
-    call SaveReal(table, missionKey, key, value)
-endfunction
-
-//===========================================================================
-function SaveIntegerBJ takes integer value, integer key, integer missionKey, hashtable table returns nothing
-    call SaveInteger(table, missionKey, key, value)
-endfunction
-
-//===========================================================================
-function SaveBooleanBJ takes boolean value, integer key, integer missionKey, hashtable table returns nothing
-    call SaveBoolean(table, missionKey, key, value)
-endfunction
-
-//===========================================================================
-function SaveStringBJ takes string value, integer key, integer missionKey, hashtable table returns boolean
-    return SaveStr(table, missionKey, key, value)
-endfunction
-
-//===========================================================================
-function SavePlayerHandleBJ takes player whichPlayer, integer key, integer missionKey, hashtable table returns boolean
-    return SavePlayerHandle(table, missionKey, key, whichPlayer)
-endfunction
-
-//===========================================================================
-function SaveWidgetHandleBJ takes widget whichWidget, integer key, integer missionKey, hashtable table returns boolean
-    return SaveWidgetHandle(table, missionKey, key, whichWidget)
-endfunction
-
-//===========================================================================
-function SaveDestructableHandleBJ takes destructable whichDestructable, integer key, integer missionKey, hashtable table returns boolean
-    return SaveDestructableHandle(table, missionKey, key, whichDestructable)
-endfunction
-
-//===========================================================================
-function SaveItemHandleBJ takes item whichItem, integer key, integer missionKey, hashtable table returns boolean
-    return SaveItemHandle(table, missionKey, key, whichItem)
-endfunction
-
-//===========================================================================
-function SaveUnitHandleBJ takes unit whichUnit, integer key, integer missionKey, hashtable table returns boolean
-    return SaveUnitHandle(table, missionKey, key, whichUnit)
-endfunction
-
-//===========================================================================
-function SaveAbilityHandleBJ takes ability whichAbility, integer key, integer missionKey, hashtable table returns boolean
-    return SaveAbilityHandle(table, missionKey, key, whichAbility)
-endfunction
-
-//===========================================================================
-function SaveTimerHandleBJ takes timer whichTimer, integer key, integer missionKey, hashtable table returns boolean
-    return SaveTimerHandle(table, missionKey, key, whichTimer)
-endfunction
-
-//===========================================================================
-function SaveTriggerHandleBJ takes trigger whichTrigger, integer key, integer missionKey, hashtable table returns boolean
-    return SaveTriggerHandle(table, missionKey, key, whichTrigger)
-endfunction
-
-//===========================================================================
-function SaveTriggerConditionHandleBJ takes triggercondition whichTriggercondition, integer key, integer missionKey, hashtable table returns boolean
-    return SaveTriggerConditionHandle(table, missionKey, key, whichTriggercondition)
-endfunction
-
-//===========================================================================
-function SaveTriggerActionHandleBJ takes triggeraction whichTriggeraction, integer key, integer missionKey, hashtable table returns boolean
-    return SaveTriggerActionHandle(table, missionKey, key, whichTriggeraction)
-endfunction
-
-//===========================================================================
-function SaveTriggerEventHandleBJ takes event whichEvent, integer key, integer missionKey, hashtable table returns boolean
-    return SaveTriggerEventHandle(table, missionKey, key, whichEvent)
-endfunction
-
-//===========================================================================
-function SaveForceHandleBJ takes force whichForce, integer key, integer missionKey, hashtable table returns boolean
-    return SaveForceHandle(table, missionKey, key, whichForce)
-endfunction
-
-//===========================================================================
-function SaveGroupHandleBJ takes group whichGroup, integer key, integer missionKey, hashtable table returns boolean
-    return SaveGroupHandle(table, missionKey, key, whichGroup)
-endfunction
-
-//===========================================================================
-function SaveLocationHandleBJ takes location whichLocation, integer key, integer missionKey, hashtable table returns boolean
-    return SaveLocationHandle(table, missionKey, key, whichLocation)
-endfunction
-
-//===========================================================================
-function SaveRectHandleBJ takes rect whichRect, integer key, integer missionKey, hashtable table returns boolean
-    return SaveRectHandle(table, missionKey, key, whichRect)
-endfunction
-
-//===========================================================================
-function SaveBooleanExprHandleBJ takes boolexpr whichBoolexpr, integer key, integer missionKey, hashtable table returns boolean
-    return SaveBooleanExprHandle(table, missionKey, key, whichBoolexpr)
-endfunction
-
-//===========================================================================
-function SaveSoundHandleBJ takes sound whichSound, integer key, integer missionKey, hashtable table returns boolean
-    return SaveSoundHandle(table, missionKey, key, whichSound)
-endfunction
-
-//===========================================================================
-function SaveEffectHandleBJ takes effect whichEffect, integer key, integer missionKey, hashtable table returns boolean
-    return SaveEffectHandle(table, missionKey, key, whichEffect)
-endfunction
-
-//===========================================================================
-function SaveUnitPoolHandleBJ takes unitpool whichUnitpool, integer key, integer missionKey, hashtable table returns boolean
-    return SaveUnitPoolHandle(table, missionKey, key, whichUnitpool)
-endfunction
-
-//===========================================================================
-function SaveItemPoolHandleBJ takes itempool whichItempool, integer key, integer missionKey, hashtable table returns boolean
-    return SaveItemPoolHandle(table, missionKey, key, whichItempool)
-endfunction
-
-//===========================================================================
-function SaveQuestHandleBJ takes quest whichQuest, integer key, integer missionKey, hashtable table returns boolean
-    return SaveQuestHandle(table, missionKey, key, whichQuest)
-endfunction
-
-//===========================================================================
-function SaveQuestItemHandleBJ takes questitem whichQuestitem, integer key, integer missionKey, hashtable table returns boolean
-    return SaveQuestItemHandle(table, missionKey, key, whichQuestitem)
-endfunction
-
-//===========================================================================
-function SaveDefeatConditionHandleBJ takes defeatcondition whichDefeatcondition, integer key, integer missionKey, hashtable table returns boolean
-    return SaveDefeatConditionHandle(table, missionKey, key, whichDefeatcondition)
-endfunction
-
-//===========================================================================
-function SaveTimerDialogHandleBJ takes timerdialog whichTimerdialog, integer key, integer missionKey, hashtable table returns boolean
-    return SaveTimerDialogHandle(table, missionKey, key, whichTimerdialog)
-endfunction
-
-//===========================================================================
-function SaveLeaderboardHandleBJ takes leaderboard whichLeaderboard, integer key, integer missionKey, hashtable table returns boolean
-    return SaveLeaderboardHandle(table, missionKey, key, whichLeaderboard)
-endfunction
-
-//===========================================================================
-function SaveMultiboardHandleBJ takes multiboard whichMultiboard, integer key, integer missionKey, hashtable table returns boolean
-    return SaveMultiboardHandle(table, missionKey, key, whichMultiboard)
-endfunction
-
-//===========================================================================
-function SaveMultiboardItemHandleBJ takes multiboarditem whichMultiboarditem, integer key, integer missionKey, hashtable table returns boolean
-    return SaveMultiboardItemHandle(table, missionKey, key, whichMultiboarditem)
-endfunction
-
-//===========================================================================
-function SaveTrackableHandleBJ takes trackable whichTrackable, integer key, integer missionKey, hashtable table returns boolean
-    return SaveTrackableHandle(table, missionKey, key, whichTrackable)
-endfunction
-
-//===========================================================================
-function SaveDialogHandleBJ takes dialog whichDialog, integer key, integer missionKey, hashtable table returns boolean
-    return SaveDialogHandle(table, missionKey, key, whichDialog)
-endfunction
-
-//===========================================================================
-function SaveButtonHandleBJ takes button whichButton, integer key, integer missionKey, hashtable table returns boolean
-    return SaveButtonHandle(table, missionKey, key, whichButton)
-endfunction
-
-//===========================================================================
-function SaveTextTagHandleBJ takes texttag whichTexttag, integer key, integer missionKey, hashtable table returns boolean
-    return SaveTextTagHandle(table, missionKey, key, whichTexttag)
-endfunction
-
-//===========================================================================
-function SaveLightningHandleBJ takes lightning whichLightning, integer key, integer missionKey, hashtable table returns boolean
-    return SaveLightningHandle(table, missionKey, key, whichLightning)
-endfunction
-
-//===========================================================================
-function SaveImageHandleBJ takes image whichImage, integer key, integer missionKey, hashtable table returns boolean
-    return SaveImageHandle(table, missionKey, key, whichImage)
-endfunction
-
-//===========================================================================
-function SaveUbersplatHandleBJ takes ubersplat whichUbersplat, integer key, integer missionKey, hashtable table returns boolean
-    return SaveUbersplatHandle(table, missionKey, key, whichUbersplat)
-endfunction
-
-//===========================================================================
-function SaveRegionHandleBJ takes region whichRegion, integer key, integer missionKey, hashtable table returns boolean
-    return SaveRegionHandle(table, missionKey, key, whichRegion)
-endfunction
-
-//===========================================================================
-function SaveFogStateHandleBJ takes fogstate whichFogState, integer key, integer missionKey, hashtable table returns boolean
-    return SaveFogStateHandle(table, missionKey, key, whichFogState)
-endfunction
-
-//===========================================================================
-function SaveFogModifierHandleBJ takes fogmodifier whichFogModifier, integer key, integer missionKey, hashtable table returns boolean
-    return SaveFogModifierHandle(table, missionKey, key, whichFogModifier)
-endfunction
-
-//===========================================================================
-function SaveAgentHandleBJ takes agent whichAgent, integer key, integer missionKey, hashtable table returns boolean
-    return SaveAgentHandle(table, missionKey, key, whichAgent)
-endfunction
-
-//===========================================================================
-function SaveHashtableHandleBJ takes hashtable whichHashtable, integer key, integer missionKey, hashtable table returns boolean
-    return SaveHashtableHandle(table, missionKey, key, whichHashtable)
 endfunction
 
 //===========================================================================
@@ -7232,227 +6991,6 @@ function GetStoredStringBJ takes string key, string missionKey, gamecache cache 
 endfunction
 
 //===========================================================================
-function LoadRealBJ takes integer key, integer missionKey, hashtable table returns real
-    //call SyncStoredReal(table, missionKey, key)
-    return LoadReal(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadIntegerBJ takes integer key, integer missionKey, hashtable table returns integer
-    //call SyncStoredInteger(table, missionKey, key)
-    return LoadInteger(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadBooleanBJ takes integer key, integer missionKey, hashtable table returns boolean
-    //call SyncStoredBoolean(table, missionKey, key)
-    return LoadBoolean(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadStringBJ takes integer key, integer missionKey, hashtable table returns string
-    local string s
-
-    //call SyncStoredString(table, missionKey, key)
-    set s = LoadStr(table, missionKey, key)
-    if (s == null) then
-        return ""
-    else
-        return s
-    endif
-endfunction
-
-//===========================================================================
-function LoadPlayerHandleBJ takes integer key, integer missionKey, hashtable table returns player
-    return LoadPlayerHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadWidgetHandleBJ takes integer key, integer missionKey, hashtable table returns widget
-    return LoadWidgetHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadDestructableHandleBJ takes integer key, integer missionKey, hashtable table returns destructable
-    return LoadDestructableHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadItemHandleBJ takes integer key, integer missionKey, hashtable table returns item
-    return LoadItemHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadUnitHandleBJ takes integer key, integer missionKey, hashtable table returns unit
-    return LoadUnitHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadAbilityHandleBJ takes integer key, integer missionKey, hashtable table returns ability
-    return LoadAbilityHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadTimerHandleBJ takes integer key, integer missionKey, hashtable table returns timer
-    return LoadTimerHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadTriggerHandleBJ takes integer key, integer missionKey, hashtable table returns trigger
-    return LoadTriggerHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadTriggerConditionHandleBJ takes integer key, integer missionKey, hashtable table returns triggercondition
-    return LoadTriggerConditionHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadTriggerActionHandleBJ takes integer key, integer missionKey, hashtable table returns triggeraction
-    return LoadTriggerActionHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadTriggerEventHandleBJ takes integer key, integer missionKey, hashtable table returns event
-    return LoadTriggerEventHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadForceHandleBJ takes integer key, integer missionKey, hashtable table returns force
-    return LoadForceHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadGroupHandleBJ takes integer key, integer missionKey, hashtable table returns group
-    return LoadGroupHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadLocationHandleBJ takes integer key, integer missionKey, hashtable table returns location
-    return LoadLocationHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadRectHandleBJ takes integer key, integer missionKey, hashtable table returns rect
-    return LoadRectHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadBooleanExprHandleBJ takes integer key, integer missionKey, hashtable table returns boolexpr
-    return LoadBooleanExprHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadSoundHandleBJ takes integer key, integer missionKey, hashtable table returns sound
-    return LoadSoundHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadEffectHandleBJ takes integer key, integer missionKey, hashtable table returns effect
-    return LoadEffectHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadUnitPoolHandleBJ takes integer key, integer missionKey, hashtable table returns unitpool
-    return LoadUnitPoolHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadItemPoolHandleBJ takes integer key, integer missionKey, hashtable table returns itempool
-    return LoadItemPoolHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadQuestHandleBJ takes integer key, integer missionKey, hashtable table returns quest
-    return LoadQuestHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadQuestItemHandleBJ takes integer key, integer missionKey, hashtable table returns questitem
-    return LoadQuestItemHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadDefeatConditionHandleBJ takes integer key, integer missionKey, hashtable table returns defeatcondition
-    return LoadDefeatConditionHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadTimerDialogHandleBJ takes integer key, integer missionKey, hashtable table returns timerdialog
-    return LoadTimerDialogHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadLeaderboardHandleBJ takes integer key, integer missionKey, hashtable table returns leaderboard
-    return LoadLeaderboardHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadMultiboardHandleBJ takes integer key, integer missionKey, hashtable table returns multiboard
-    return LoadMultiboardHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadMultiboardItemHandleBJ takes integer key, integer missionKey, hashtable table returns multiboarditem
-    return LoadMultiboardItemHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadTrackableHandleBJ takes integer key, integer missionKey, hashtable table returns trackable
-    return LoadTrackableHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadDialogHandleBJ takes integer key, integer missionKey, hashtable table returns dialog
-    return LoadDialogHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadButtonHandleBJ takes integer key, integer missionKey, hashtable table returns button
-    return LoadButtonHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadTextTagHandleBJ takes integer key, integer missionKey, hashtable table returns texttag
-    return LoadTextTagHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadLightningHandleBJ takes integer key, integer missionKey, hashtable table returns lightning
-    return LoadLightningHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadImageHandleBJ takes integer key, integer missionKey, hashtable table returns image
-    return LoadImageHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadUbersplatHandleBJ takes integer key, integer missionKey, hashtable table returns ubersplat
-    return LoadUbersplatHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadRegionHandleBJ takes integer key, integer missionKey, hashtable table returns region
-    return LoadRegionHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadFogStateHandleBJ takes integer key, integer missionKey, hashtable table returns fogstate
-    return LoadFogStateHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadFogModifierHandleBJ takes integer key, integer missionKey, hashtable table returns fogmodifier
-    return LoadFogModifierHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
-function LoadHashtableHandleBJ takes integer key, integer missionKey, hashtable table returns hashtable
-    return LoadHashtableHandle(table, missionKey, key)
-endfunction
-
-//===========================================================================
 function RestoreUnitLocFacingAngleBJ takes string key, string missionKey, gamecache cache, player forWhichPlayer, location loc, real facing returns unit
     //call SyncStoredUnit(cache, missionKey, key)
     set bj_lastLoadedUnit = RestoreUnit(cache, missionKey, key, forWhichPlayer, GetLocationX(loc), GetLocationY(loc), facing)
@@ -7481,16 +7019,6 @@ function FlushStoredMissionBJ takes string missionKey, gamecache cache returns n
 endfunction
 
 //===========================================================================
-function FlushParentHashtableBJ takes hashtable table returns nothing
-    call FlushParentHashtable(table)
-endfunction
-
-//===========================================================================
-function FlushChildHashtableBJ takes integer missionKey, hashtable table returns nothing
-    call FlushChildHashtable(table, missionKey)
-endfunction
-
-//===========================================================================
 function HaveStoredValue takes string key, integer valueType, string missionKey, gamecache cache returns boolean
     if (valueType == bj_GAMECACHE_BOOLEAN) then
         return HaveStoredBoolean(cache, missionKey, key)
@@ -7502,24 +7030,6 @@ function HaveStoredValue takes string key, integer valueType, string missionKey,
         return HaveStoredUnit(cache, missionKey, key)
     elseif (valueType == bj_GAMECACHE_STRING) then
         return HaveStoredString(cache, missionKey, key)
-    else
-        // Unrecognized value type - ignore the request.
-        return false
-    endif
-endfunction
-
-//===========================================================================
-function HaveSavedValue takes integer key, integer valueType, integer missionKey, hashtable table returns boolean
-    if (valueType == bj_HASHTABLE_BOOLEAN) then
-        return HaveSavedBoolean(table, missionKey, key)
-    elseif (valueType == bj_HASHTABLE_INTEGER) then
-        return HaveSavedInteger(table, missionKey, key)
-    elseif (valueType == bj_HASHTABLE_REAL) then
-        return HaveSavedReal(table, missionKey, key)
-    elseif (valueType == bj_HASHTABLE_STRING) then
-        return HaveSavedString(table, missionKey, key)
-    elseif (valueType == bj_HASHTABLE_HANDLE) then
-        return HaveSavedHandle(table, missionKey, key)
     else
         // Unrecognized value type - ignore the request.
         return false
@@ -7604,17 +7114,10 @@ endfunction
 //===========================================================================
 function GetFadeFromSeconds takes real seconds returns integer
     if (seconds != 0) then
-        return 128 / R2I(seconds)
+        return 128 / seconds
+    else
+        return 10000
     endif
-    return 10000
-endfunction
-
-//===========================================================================
-function GetFadeFromSecondsAsReal takes real seconds returns real
-    if (seconds != 0) then
-        return 128.00 / seconds
-    endif
-    return 10000.00
 endfunction
 
 //===========================================================================
@@ -7824,7 +7327,7 @@ endfunction
 
 //===========================================================================
 function GetDyingDestructable takes nothing returns destructable
-    return GetTriggerDestructable()
+    return GetTriggerWidget()
 endfunction
 
 //===========================================================================
