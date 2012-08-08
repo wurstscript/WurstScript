@@ -15,7 +15,7 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.attributes.attr;
+import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.utils.NotNullList;
 import de.peeeq.wurstscript.utils.Utils;
@@ -28,7 +28,7 @@ import de.peeeq.wurstscript.utils.Utils;
 public class ExtendedParser extends parser {
 
 	private List<CompileError> errors = new NotNullList<CompileError>();
-	private WurstGui gui;
+	private ErrorHandler errorHandler;
 
 	public void setFilename(String filename) {
 		this.filename = filename;
@@ -64,12 +64,18 @@ public class ExtendedParser extends parser {
 		return sym;
 	}
 
-	public ExtendedParser(WurstScriptScanner scanner, WurstGui gui) {
+	public ExtendedParser(WurstScriptScanner scanner, ErrorHandler eh) {
 		super(scanner);
 		this.scanner = scanner;
-		this.gui = gui;
+		this.errorHandler = eh;
 	}
 
+	@Override
+	protected void init_actions() {
+		super.init_actions();
+		action_obj.errorHandler = errorHandler;
+	}
+	
 	public int getErrorCount() {
 		return errors.size();
 	}
@@ -202,11 +208,8 @@ public class ExtendedParser extends parser {
 
 		WPos source = Ast.WPos(filename, scanner.lineStartOffsets, s.left, s.right);
 		CompileError err = new CompileError(source, msg);
-		if (attr.unitTestMode) {
-			throw err;
-		}
 		errors.add(err);
-		gui.sendError(err);
+		errorHandler.sendError(err);
 		// throw err;
 	}
 

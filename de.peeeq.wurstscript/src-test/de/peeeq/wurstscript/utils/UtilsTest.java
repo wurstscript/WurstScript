@@ -17,10 +17,14 @@ import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WPos;
+import de.peeeq.wurstscript.attributes.ErrorHandler;
+import de.peeeq.wurstscript.gui.WurstGuiLogger;
 
 public class UtilsTest {
 
-  @Test
+  private ErrorHandler errorHandler = new ErrorHandler(new WurstGuiLogger());
+
+@Test
   public void array() {
     int[] ar1 = {1,2,3};
     int[] ar2 = {1,2,3};
@@ -31,7 +35,7 @@ public class UtilsTest {
   public void collect() {
 	  WPos source = Ast.WPos("", LineOffsets.dummy, 0, 0);
 	CompilationUnit testProg = Ast.CompilationUnit("",
-			Ast.JassToplevelDeclarations(),
+			errorHandler, Ast.JassToplevelDeclarations(),
 			Ast.WPackages(
 			  Ast.WPackage(source.copy() , "test", Ast.WImports(), Ast.WEntities(
 					  Ast.GlobalVarDef(source.copy(), Ast.Modifiers(), Ast.NoTypeExpr(), "v1", Ast.ExprIntVal(source.copy(), 5)),

@@ -45,15 +45,15 @@ public class AttrTypeDef {
 		List<NameDef> typeDefs = NameResolution.searchTypedName(NameDef.class, typeName, node, false);
 		
 		if (typeDefs.size() == 0) {
-			attr.addError(node.getSource(), "Could not find TypeDef for " + typeName);
+			node.getSource().addError("Could not find TypeDef for " + typeName);
 			return null;
 		} else {
 			NameDef def = typeDefs.get(0);
 			if (def instanceof TypeDef) {
 				return (TypeDef) def;
 			} else {
-				attr.addError(node.getSource(), "The type name '" + typeName + "' refers to the element '" +
-						Utils.printElement(def) + "' which is not a type definition.");
+				node.getSource().addError("The type name '" + typeName + "' refers to the element '" +
+				Utils.printElement(def) + "' which is not a type definition.");
 				return null;
 			}
 		}

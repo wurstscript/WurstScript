@@ -53,7 +53,7 @@ public class InterfaceInstances {
 				result.add((PscriptTypeInterface) i2.setTypeArgs(typeParamBounds));
 			}
 		} else {
-			attr.addError(t.getSource(), Utils.printElement(t) + " is not an interface.");
+			t.getSource().addError(Utils.printElement(t) + " is not an interface.");
 		}
 	}
 

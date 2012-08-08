@@ -1,19 +1,16 @@
 package de.peeeq.wurstscript.validation;
 
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElement;
@@ -54,7 +51,6 @@ import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.NativeType;
-import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.StmtDestroy;
@@ -80,7 +76,6 @@ import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CheckHelper;
 import de.peeeq.wurstscript.attributes.NameResolution;
-import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
@@ -158,7 +153,7 @@ public class WurstValidator {
 		for (WScope s : calledFunctionsTr.keySet()) {
 			if (calledFunctionsTr.containsEntry(s, s)) {
 				if (!calledFunctions.containsEntry(s, s)) {
-					attr.addError(s.attrSource(), Utils.printElement(s) + " has a cyclic dependency to itself.");
+					s.attrSource().addError(Utils.printElement(s) + " has a cyclic dependency to itself.");
 				}
 			}
 		}
@@ -216,7 +211,7 @@ public class WurstValidator {
 
 		NameDef nameDef = s.getUpdatedExpr().attrNameDef();
 		if (!(nameDef instanceof VarDef)) {
-			attr.addError(s.getUpdatedExpr().getSource(), "Invalid assignment. This is not a variable, this is a " + Utils.printElement(nameDef));
+			s.getUpdatedExpr().getSource().addError("Invalid assignment. This is not a variable, this is a " + Utils.printElement(nameDef));
 		}
 		
 		PscriptType leftType = s.getUpdatedExpr().attrTyp();
@@ -247,11 +242,11 @@ public class WurstValidator {
 					// we have an assignment to a tuple variable
 					// check whether left side is 'this' or a constant variable
 					if (e.getLeft() instanceof ExprThis) {
-						attr.addError(e.getSource(), "Cannot change 'this'. Tuples are not classes.");
+						e.getSource().addError("Cannot change 'this'. Tuples are not classes.");
 					} else if (e.getLeft() instanceof NameRef) {
 						checkIfAssigningToConstant((NameRef) e.getLeft());
 					} else {
-						attr.addError(e.getSource(), "Ok, so you are trying to assign something to the return value of a function. This wont do nothing. Tuples are not classes.");
+						e.getSource().addError("Ok, so you are trying to assign something to the return value of a function. This wont do nothing. Tuples are not classes.");
 					}
 				}
 				checkVarNotConstant(left, e.attrNameDef());
@@ -268,7 +263,7 @@ public class WurstValidator {
 		if (var instanceof HasModifier) {
 			HasModifier g = (HasModifier) var;
 			if (g.attrIsConstant()) {
-				attr.addError(left.getSource(), "Cannot assign a new value to constant " + Utils.printElement(var));
+				left.getSource().addError("Cannot assign a new value to constant " + Utils.printElement(var));
 			}
 		}
 	}
@@ -282,13 +277,13 @@ public class WurstValidator {
 					return;
 				}
 			}
-			attr.addError(pos, "Cannot assign " + rightType + " to " + leftType);
+			pos.addError("Cannot assign " + rightType + " to " + leftType);
 		}
 		if (leftType instanceof PscriptTypeNamedScope) {
 			PscriptTypeNamedScope ns = (PscriptTypeNamedScope) leftType;
 			if (ns.isStaticRef()) {
-				attr.addError(pos, "Missing variable name in variable declaration.\n" +
-						"Cannot assign to " + leftType);
+				pos.addError("Missing variable name in variable declaration.\n" +
+				"Cannot assign to " + leftType);
 			}
 		}
 	}
@@ -310,7 +305,7 @@ public class WurstValidator {
 		if (!Utils.isJassCode(s)) {
 			if (!Character.isLowerCase(varName.charAt(0))) {
 				if (!varName.matches("[A-Z0-9_]+")) {
-					attr.addError(s.getSource(), "Variable names must start with a lower case character. (" + varName + ")" );
+					s.getSource().addError("Variable names must start with a lower case character. (" + varName + ")");
 				}
 			}
 		}
@@ -333,8 +328,8 @@ public class WurstValidator {
 		
 		
 		if (s.attrTyp() instanceof PScriptTypeArray && !s.attrIsStatic() && s.attrIsDynamicClassMember()) {
-			attr.addError(s.getSource(), "Array variables must be static.\n" +
-					"Hint: use Lists for dynamic stuff.");
+			s.getSource().addError("Array variables must be static.\n" +
+			"Hint: use Lists for dynamic stuff.");
 		}
 	}
 
@@ -342,7 +337,7 @@ public class WurstValidator {
 	public void visit(StmtIf stmtIf) {
 		PscriptType condType = stmtIf.getCond().attrTyp();
 		if (!(condType instanceof PScriptTypeBool)) {
-			attr.addError(stmtIf.getCond().getSource(), "If condition must be a boolean but found " + condType);
+			stmtIf.getCond().getSource().addError("If condition must be a boolean but found " + condType);
 		}
 	}
 
@@ -350,7 +345,7 @@ public class WurstValidator {
 	public void visit(StmtWhile stmtWhile) {
 		PscriptType condType = stmtWhile.getCond().attrTyp();
 		if (!(condType instanceof PScriptTypeBool)) {
-			attr.addError(stmtWhile.getCond().getSource(), "While condition must be a boolean but found " + condType);
+			stmtWhile.getCond().getSource().addError("While condition must be a boolean but found " + condType);
 		}
 	}
 
@@ -366,7 +361,7 @@ public class WurstValidator {
 	private void checkFunctionName(FunctionDefinition f) {
 		if (!Utils.isJassCode(f)) {
 			if (Character.isUpperCase(f.getName().charAt(0))) {
-				attr.addError(f.getSource(), "Function names must start with an lower case character.");
+				f.getSource().addError("Function names must start with an lower case character.");
 			}
 		}
 	}
@@ -382,12 +377,12 @@ public class WurstValidator {
 		if (func.getBody().size() > 0) {
 			if (func.getReturnTyp() instanceof TypeExpr) {
 				if (!func.getBody().attrDoesReturn()) {
-					attr.addError(func.getSource(), "Function " + functionName + " is missing a return statement.");
+					func.getSource().addError("Function " + functionName + " is missing a return statement.");
 				}
 			}
 		} else { // no body, check if in interface:
 			if (func.getReturnTyp() instanceof TypeExpr && !(func.attrNearestStructureDef() instanceof InterfaceDef)) {
-				attr.addError(func.getSource(), "Function " + functionName + " is missing a body. Use the 'skip' statement to define an empty body.");
+				func.getSource().addError("Function " + functionName + " is missing a body. Use the 'skip' statement to define an empty body.");
 			}
 		}
 	}
@@ -395,15 +390,15 @@ public class WurstValidator {
 	@CheckMethod
 	public void visit(FuncDef func) {
 		visitedFunctions++;
-		attr.setProgress(null, ProgressHelper.getValidatorPercent(visitedFunctions, functionCount));
+		func.getErrorHandler().setProgress(null, ProgressHelper.getValidatorPercent(visitedFunctions, functionCount));
 
 		checkFunctionName(func);
 		
 		String functionName = func.getName();
 		if (func.attrIsAbstract()) {
 			if (func.getBody().size() > 0) {
-				attr.addError(func.getBody().get(0).getSource(), "The abstract function " + functionName
-						+ " must not have any statements.");
+				func.getBody().get(0).getSource().addError("The abstract function " + functionName
+				+ " must not have any statements.");
 			}
 		} else { // not abstract
 			checkReturn(func);
@@ -453,8 +448,8 @@ public class WurstValidator {
 			FunctionDefinition calledFunc = stmtCall.attrFuncDef();
 			if (calledFunc.attrIsDynamicClassMember()) {
 				if (!stmtCall.attrIsDynamicContext()) {
-							attr.addError(stmtCall.getSource(), "Cannot call dynamic function " + funcName  +
-									" from static function " + nearestFunc.getName());
+							stmtCall.getSource().addError("Cannot call dynamic function " + funcName  +
+							" from static function " + nearestFunc.getName());
 				}
 			}
 		}
@@ -467,7 +462,7 @@ public class WurstValidator {
 				FunctionDefinition f = exprFuncRef.attrFuncDef();
 				if (f != null) {
 					if (!(f.getReturnTyp().attrTyp() instanceof PScriptTypeBool)) {
-						attr.addError(firstArg.getSource(), "Functions passed to Filter or Condition must return boolean.");
+						firstArg.getSource().addError("Functions passed to Filter or Condition must return boolean.");
 					}
 				}
 			}
@@ -488,10 +483,10 @@ public class WurstValidator {
 
 	private void checkParams(AstElement where, String preMsg, List<Expr> args, List<PscriptType> parameterTypes) {
 		if (args.size() > parameterTypes.size()) {
-			attr.addError(where.attrSource(), preMsg + "Too many parameters.");
+			where.attrSource().addError(preMsg + "Too many parameters.");
 			
 		} else if (args.size() < parameterTypes.size()) {
-			attr.addError(where.attrSource(), preMsg + "Missing parameters.");
+			where.attrSource().addError(preMsg + "Missing parameters.");
 		} else {
 			for (int i=0; i<args.size(); i++) {
 				
@@ -499,7 +494,7 @@ public class WurstValidator {
 				PscriptType expected = parameterTypes.get(i);
 //				if (expected instanceof AstElementWithTypeArgs)
 				if (!actual.isSubtypeOf(expected, where)) {
-					attr.addError(args.get(i).getSource(), preMsg + "Expected " + expected + " as parameter " + (i+1) + " but  found " + actual);
+					args.get(i).getSource().addError(preMsg + "Expected " + expected + " as parameter " + (i+1) + " but  found " + actual);
 				}
 			}
 		}
@@ -545,12 +540,12 @@ public class WurstValidator {
 		for (Modifier m : modifiers) {
 			if (m instanceof VisibilityModifier) {
 				if (hasVis) {
-					attr.addError(m.getSource(), "Each element can only have one visibility modifier (public, private, ...)");
+					m.getSource().addError("Each element can only have one visibility modifier (public, private, ...)");
 				}
 				hasVis = true;
 			} else if (m instanceof ModStatic) {
 				if (isStatic) {
-					attr.addError(m.getSource(), "double static? - what r u trying to do?");
+					m.getSource().addError("double static? - what r u trying to do?");
 				}
 				isStatic = true;
 			}
@@ -561,24 +556,24 @@ public class WurstValidator {
 	public void visit(StmtReturn s) {
 		FunctionImplementation func = s.attrNearestFuncDef();
 		if (func == null) {
-			attr.addError(s.getSource(), "return statements can only be used inside functions");
+			s.getSource().addError("return statements can only be used inside functions");
 			return;
 		}
 		PscriptType returnType = func.getReturnTyp().attrTyp();
 		if (s.getReturnedObj() instanceof Expr) {
 			Expr returned = (Expr) s.getReturnedObj();
 			if (returnType.isSubtypeOf(PScriptTypeVoid.instance(), s)) {
-				attr.addError(s.getSource(), "Cannot return a value from a function which returns nothing");
+				s.getSource().addError("Cannot return a value from a function which returns nothing");
 			} else {
 				PscriptType returnedType = returned.attrTyp();
 				if (!returnedType.isSubtypeOf(returnType, s)) {
-					attr.addError(s.getSource(), "Cannot return " + returnedType + ", expected expression of type "
-							+ returnType);
+					s.getSource().addError("Cannot return " + returnedType + ", expected expression of type "
+					+ returnType);
 				}
 			}
 		} else { // empty return
 			if (!returnType.isSubtypeOf(PScriptTypeVoid.instance(), s)) {
-				attr.addError(s.getSource(), "Missing return value");
+				s.getSource().addError("Missing return value");
 			}
 		}
 	}
@@ -596,8 +591,8 @@ public class WurstValidator {
 		// check that there are no abstract functions in a class
 		for (FunctionDefinition f : functions.values()) {
 			if (f.attrIsAbstract()) {
-				attr.addError(classDef.getSource(), "The abstract method " + f.getName()
-						+ " must be implemented in class " + classDef.getName() + ".");
+				classDef.getSource().addError("The abstract method " + f.getName()
+				+ " must be implemented in class " + classDef.getName() + ".");
 			}
 		}
 		
@@ -616,24 +611,24 @@ public class WurstValidator {
 					FunctionDefinition superClassFunction = getFunction(superClassFunctions, f.getName());
 					if (superClassFunction == null) {
 						if (f.attrIsOverride() && f.attrOverriddenFunctions().size() == 0) {
-							attr.addError(f.getSource(), "Function " + f.getName() + " does not exist in super type.");
+							f.getSource().addError("Function " + f.getName() + " does not exist in super type.");
 						}
 					} else {
 						if (!f.attrIsOverride()) {
-							attr.addError(f.getSource(), "Function " + f.getName() + " must have the override annotation.");
+							f.getSource().addError("Function " + f.getName() + " must have the override annotation.");
 						}
 						
 						CheckHelper.checkIfIsRefinement(typeParamMapping , f, superClassFunction, "Cannot extend class because of function ", true);
 					}
 				}
 			} else {
-				attr.addError(classDef.getExtendedClass().attrSource(), "Cannot extend " + extendedType + ". " +
-						"Only classes can be extended.");
+				classDef.getExtendedClass().attrSource().addError("Cannot extend " + extendedType + ". " +
+				"Only classes can be extended.");
 			}
 		} else {
 			for (FunctionDefinition f : functions.values()) {
 				if (f.attrIsOverride() && f.attrOverriddenFunctions().size() == 0) {
-					attr.addError(f.getSource(), "Function " + f.getName() + " uses override notation but there is no superclass.");
+					f.getSource().addError("Function " + f.getName() + " uses override notation but there is no superclass.");
 				}
 			}
 		}
@@ -651,7 +646,7 @@ public class WurstValidator {
 
 	private void checkTypeName(WPos source, String name) {
 		if (!Character.isUpperCase(name.charAt(0))) {
-			attr.addError(source, "Type names must start with upper case characters.");
+			source.addError("Type names must start with upper case characters.");
 		}
 	}
 
@@ -672,7 +667,7 @@ public class WurstValidator {
 			PscriptTypeClass c = (PscriptTypeClass) typ;
 			calledFunctions.put(stmtDestroy.attrNearestScope(), c.getClassDef().getOnDestroy()); 
 		} else {
-			attr.addError(stmtDestroy.getSource(), "Cannot destroy objects of type " + typ);
+			stmtDestroy.getSource().addError("Cannot destroy objects of type " + typ);
 			return;
 		}
 	}
@@ -687,7 +682,7 @@ public class WurstValidator {
 	@CheckMethod
 	public void visit(WImport wImport) {
 		if (wImport.attrImportedPackage() == null) {
-			attr.addError(wImport.getSource(), "Could not find imported package " + wImport.getPackagename());
+			wImport.getSource().addError("Could not find imported package " + wImport.getPackagename());
 		}
 	}
 
@@ -702,7 +697,7 @@ public class WurstValidator {
 		if (def instanceof GlobalVarDef) {
 			GlobalVarDef g = (GlobalVarDef) def;
 			if (g.attrIsDynamicClassMember() && !dynamicContext) {
-				attr.addError(e.getSource(), "Cannot reference dynamic variable " +e.getVarName() + " from static context.");
+				e.getSource().addError("Cannot reference dynamic variable " +e.getVarName() + " from static context.");
 			}
 		}
 	}
@@ -714,8 +709,8 @@ public class WurstValidator {
 			if (!(typ instanceof PScriptTypeInt)
 					&& !(typ instanceof PscriptTypeNamedScope)
 					&& !(typ instanceof PscriptTypeTypeParam)) {
-				attr.addError(e.getSource(), "Type parameters can only be bound to ints and class types, but " +
-					"not to " + typ);
+				e.getSource().addError("Type parameters can only be bound to ints and class types, but " +
+				"not to " + typ);
 			}
 		}
 	}
@@ -734,7 +729,7 @@ public class WurstValidator {
 		}
 		if (ref.attrTyp() instanceof PScriptTypeCode) {
 			if (called.attrParameterTypes().size() > 0) {
-				attr.addError(ref.getSource(), "Can only use functions without parameters in 'code' function references.");
+				ref.getSource().addError("Can only use functions without parameters in 'code' function references.");
 			}
 		}
 	}
@@ -854,7 +849,7 @@ public class WurstValidator {
 
 			});
 			if (error.length() > 0) {
-				attr.addError(e.getSource(), error.toString());
+				e.getSource().addError(error.toString());
 			}
 		}
 	}
@@ -877,7 +872,7 @@ public class WurstValidator {
 	public void checkConstructor(ConstructorDef d) {
 		if (d.attrNearestClassOrModule() instanceof ModuleDef) {
 			if (d.getParameters().size() > 0) {
-				attr.addError(d.getParameters().attrSource(), "Module constructors must not have parameters.");
+				d.getParameters().attrSource().addError("Module constructors must not have parameters.");
 			}
 		}
 		ClassDef c = d.attrNearestClassDef();
@@ -887,7 +882,7 @@ public class WurstValidator {
 			// TODO check constr.
 			ConstructorDef sc = d.attrSuperConstructor();
 			if (sc == null) {
-				attr.addError(d.getSource(), "No super constructor found.");
+				d.getSource().addError("No super constructor found.");
 			} else {
 				List<PscriptType> paramTypes = Lists.newArrayList();
 				for (WParameter p : sc.getParameters()) {
@@ -917,8 +912,8 @@ public class WurstValidator {
 					}
 				}
 				if (i_funcDef.getBody().isEmpty()) {
-					attr.addError(classDef.getSource(), "The class " + classDef.getName() + " must implement the function " +
-						i_funcDef.getName() + ".");
+					classDef.getSource().addError("The class " + classDef.getName() + " must implement the function " +
+					i_funcDef.getName() + ".");
 				}
 			}
 		}
@@ -957,7 +952,7 @@ public class WurstValidator {
 		List<TypeDef> types = NameResolution.searchTypedName(TypeDef.class, n.getName(), p, false);
 		types.remove(n);
 		if (types.size() > 0) {
-			attr.addError(n.getSource(), "The definition for "+Utils.printElement(n)+" defines the same name as the type definition " + Utils.printElement(types.get(0)));
+			n.getSource().addError("The definition for "+Utils.printElement(n)+" defines the same name as the type definition " + Utils.printElement(types.get(0)));
 		}
 //		for (NameDef e : p.attrVisibleNamesPrivate().get(n.getName())) {
 //			if (e != n && e instanceof TypeDef) {
@@ -970,9 +965,9 @@ public class WurstValidator {
 	@CheckMethod
 	public void checkMemberVar(ExprMemberVar e) {
 		if (e.getVarName().length() == 0) {
-			attr.addError(e.getSource(), "Incomplete member access.");
+			e.getSource().addError("Incomplete member access.");
 		} if (e.getParent() instanceof WStatements) {
-			attr.addError(e.getSource(), "Incomplete statement.");
+			e.getSource().addError("Incomplete statement.");
 		}
 	}
 	

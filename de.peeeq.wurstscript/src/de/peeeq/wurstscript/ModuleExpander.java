@@ -9,7 +9,6 @@ import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleUse;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.attributes.attr;
 
 public class ModuleExpander {
 
@@ -39,7 +38,7 @@ public class ModuleExpander {
 		for (ModuleUse moduleUse : m.getModuleUses()) {
 			ModuleDef usedModule = moduleUse.attrModuleDef();
 			if (usedModule == null) {
-				attr.addError(moduleUse.getSource(), "not found");
+				moduleUse.getSource().addError("not found");
 				continue;
 			}
 			expandModules(usedModule);

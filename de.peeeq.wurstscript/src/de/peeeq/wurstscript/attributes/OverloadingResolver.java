@@ -111,7 +111,7 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 
 			@Override
 			void handleError(List<String> hints) {
-				attr.addError(node.getSource(), "No suitable constructor found. \n" + Utils.join(hints, ", \n"));
+				node.getSource().addError("No suitable constructor found. \n" + Utils.join(hints, ", \n"));
 			}
 		}.resolve(constructors, node);
 	}
@@ -141,7 +141,7 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 
 			@Override
 			void handleError(List<String> hints) {
-				attr.addError(node.getSource(), "No suitable constructor found. \n" + Utils.join(hints, ", \n"));
+				node.getSource().addError("No suitable constructor found. \n" + Utils.join(hints, ", \n"));
 			}
 		}.resolve(constructors, node);
 	}
@@ -204,7 +204,7 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 
 			@Override
 			void handleError(List<String> hints) {
-				attr.addError(funcCall.getSource(), "Could not find the right method to call: \n" + Utils.join(hints, ", \n"));
+				funcCall.getSource().addError("Could not find the right method to call: \n" + Utils.join(hints, ", \n"));
 			}
 
 		}.resolve(collection, funcCall);

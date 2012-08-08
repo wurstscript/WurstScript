@@ -30,7 +30,6 @@ import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -97,7 +96,7 @@ public class ModelManagerImpl implements ModelManager {
 			comp.addImportedLibs(model);		
 			comp.checkProg(model);
 		} catch (CompileError e) {
-			attr.addError(e.getSource(), e.getMessage());
+			e.getSource().addError((String) e.getMessage());
 		}
 		nature.clearMarkers();
 		for (CompileError e : gui.getErrorList()) {

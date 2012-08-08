@@ -23,7 +23,6 @@ import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreter;
@@ -144,9 +143,6 @@ public class PscriptTest {
 	}
 	
 	protected void testScript(Iterable<File> inputFiles, Map<String, Reader> inputs, String name, boolean executeProg, boolean withStdLib) {
-		// enable debug:
-		attr.unitTestMode = true;
-		
 		if (inputFiles == null) {
 			inputFiles = Collections.emptyList();
 		}
@@ -157,6 +153,7 @@ public class PscriptTest {
 		boolean success = false;
 		WurstGui gui = new WurstGuiCliImpl();
 		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, RunArgs.defaults());
+		compiler.getErrorHandler().enableUnitTestMode();
 		WurstConfig.get().setSetting("lib", "../Wurstpack/wurstscript/lib/");
 		if (withStdLib) {
 			compiler.loadFiles(new File("./lib/common.j"), new File("./lib/blizzard.j"));
@@ -168,9 +165,14 @@ public class PscriptTest {
 			compiler.loadReader(input.getKey(), input.getValue());
 		}
 		compiler.parseFiles();
+		
+		
+		if (gui.getErrorCount() > 0) {
+			throw gui.getErrorList().get(0);
+		}
+		
+		
 		ImProg imProg = compiler.getImProg();
-		
-		
 		writeJassImProg(name, gui, imProg);
 		if (executeProg) {
 			CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(imProg, null, gui);
