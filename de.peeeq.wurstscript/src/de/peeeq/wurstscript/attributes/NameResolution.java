@@ -27,7 +27,7 @@ public class NameResolution {
 	public static <T extends AstElement> T searchTypedNameGetOne(Class<T> t, String name, AstElement where, boolean withInheritance) {
 		List<T> names = searchTypedNameInScope(t, name, where.attrNearestScope(), withInheritance);
 		if (names.size() == 0) {
-			where.attrSource().addError("Could not resolve reference to " + name);
+			where.addError("Could not resolve reference to " + name);
 			return null;
 		} else if (names.size() > 1) {
 			PackageOrGlobal p = where.attrNearestPackage();
@@ -37,7 +37,7 @@ public class NameResolution {
 					return n;
 				}
 			}
-			where.attrSource().addError("Reference to " + name + " is ambiguous. Alternatives are:\n" + printAlternatives(names));
+			where.addError("Reference to " + name + " is ambiguous. Alternatives are:\n" + printAlternatives(names));
 		}
 		return names.get(0);
 	}

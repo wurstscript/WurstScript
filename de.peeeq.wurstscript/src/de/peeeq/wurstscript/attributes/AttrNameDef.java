@@ -51,7 +51,7 @@ public class AttrNameDef {
 		});
 
 		if (result == null) {
-			node.getSource().addError("Could not resolve reference to variable " + varName);
+			node.addError("Could not resolve reference to variable " + varName);
 		}
 		return result;
 	}
@@ -79,7 +79,7 @@ public class AttrNameDef {
 			PscriptTypeNamedScope ns = (PscriptTypeNamedScope) leftType;
 			List<NameDef> names = NameResolution.searchTypedName(NameDef.class, varName, ns.getDef(), true);
 			if (names.size() == 0) {
-				node.getSource().addError("Variable " + varName + " not found.");
+				node.addError("Variable " + varName + " not found.");
 				return null;
 			} else {
 				return names.get(0);
@@ -91,10 +91,10 @@ public class AttrNameDef {
 					return p;
 				}
 			}
-			node.getSource().addError("Variable " + varName + " not found.");
+			node.addError("Variable " + varName + " not found.");
 			return null;
 		} else {
-			node.getSource().addError("Cannot acces attribute " + varName + " because " + leftType
+			node.addError("Cannot acces attribute " + varName + " because " + leftType
 			+ " is not a class-type.");
 			return null;
 		}

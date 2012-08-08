@@ -31,7 +31,7 @@ public class AttrAllFunctions {
 		for (FuncDef f : term.getMethods()) {
 			FuncDef prevDefined = sameLevelFunctions.put(f.getName(), f);
 			if (prevDefined != null) {
-				f.getSource().addError("The function " + f.getName() + " is already defined.");
+				f.addError("The function " + f.getName() + " is already defined.");
 			}
 		}
 		if (term instanceof AstElementWithModuleInstanciations) {
@@ -48,7 +48,7 @@ public class AttrAllFunctions {
 				// -> there is a overriding function
 				FuncDef overridingFunc = sameLevelFunctions.get(funcName);
 				if (!overridingFunc.attrIsOverride()) {
-					overridingFunc.getSource().addError("The function " + funcName + " must have the 'override' annotation.");
+					overridingFunc.addError("The function " + funcName + " must have the 'override' annotation.");
 				}
 				CheckHelper.checkIfIsRefinement(overridingFunc, moduleFunctions.get(funcName), "Cannot override function ");
 				result.put(funcName, overridingFunc);

@@ -89,7 +89,7 @@ public class AttrImplicitParameter {
 				t.setParent(e);
 				return t;
 			} else {
-				e.getSource().addError("Cannot call dynamic function " + e.getFuncName() + " from static context.");
+				e.addError("Cannot call dynamic function " + e.getFuncName() + " from static context.");
 				return Ast.NoExpr();
 			}
 		} else {
@@ -110,7 +110,7 @@ public class AttrImplicitParameter {
 					t.setParent(e);
 					return t;
 				} else {
-					e.getSource().addError("Cannot access dynamic variabe " + varDef.getName() + " from static context.");
+					e.addError("Cannot access dynamic variabe " + varDef.getName() + " from static context.");
 					return Ast.NoExpr();
 				}
 			}

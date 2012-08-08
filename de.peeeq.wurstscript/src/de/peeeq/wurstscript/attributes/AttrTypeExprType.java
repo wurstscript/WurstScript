@@ -44,7 +44,7 @@ public class AttrTypeExprType {
 				});
 				return ns.replaceTypeVars(newTypes);
 			} else {
-				node.getSource().addError("Type " + baseType + " cannot have type args");
+				node.addError("Type " + baseType + " cannot have type args");
 			}
 		}
 		return baseType;
@@ -88,7 +88,7 @@ public class AttrTypeExprType {
 			if (nativeType != null) {
 				return nativeType;
 			}
-			node.getSource().addError("Unknown type " + typename);
+			node.addError("Unknown type " + typename);
 			return new PScriptTypeUnknown(typename);
 		}
 		return t.attrTyp();

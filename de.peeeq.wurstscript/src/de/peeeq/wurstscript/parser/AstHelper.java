@@ -39,7 +39,7 @@ public class AstHelper {
 				TypeExprSimple ts = (TypeExprSimple) t;
 				result.add(Ast.TypeParamDef(t.getSource().copy(), Ast.Modifiers(), ts.getTypeName()));
 			} else {
-				t.getSource().addError("Type Parameters must be simple names.");
+				t.addError("Type Parameters must be simple names.");
 			}
 		}
 		return result;

@@ -60,7 +60,7 @@ public class UninitializedVars {
 			@Override
 			public void visit(ExprVarAccess exprVarAccess) {
 				if (uninitializedVars.contains(exprVarAccess.attrNameDef())) {
-					exprVarAccess.getSource().addError("Variable " + exprVarAccess.getVarName() + 
+					exprVarAccess.addError("Variable " + exprVarAccess.getVarName() + 
 					" is not initialized.");
 				}
 			}

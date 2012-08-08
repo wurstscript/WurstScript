@@ -49,7 +49,7 @@ public class Generics {
 			inferTypeParameters(result, args, args.get(i).attrTyp(), params.get(i).attrTyp(), typeParams);
 		}
 		if (result.size() < typeParams.size()) {
-			args.attrSource().addError("Could not infer all type parameters.");
+			args.addError("Could not infer all type parameters.");
 		}
 		return result;
 	}
@@ -61,7 +61,7 @@ public class Generics {
 			if (typeParams.contains(paramTyp2.getDef())) {
 				PscriptType previousType = result.put(paramTyp2.getDef(), argType);
 				if (previousType != null && !previousType.equalsType(argType, pos)) {
-					pos.attrSource().addError("Cannot infer type parameters, there is a conflict between "
+					pos.addError("Cannot infer type parameters, there is a conflict between "
 					+ previousType + " and " + argType + " for type parameter " + paramTyp2.getName());
 				}
 			}
@@ -98,7 +98,7 @@ public class Generics {
 		if (hasTypeParams(m, typeParams)) {
 			return givenBinding(m, typeParams);
 		}
-		m.getSource().addError("Missing type arguments for module " + m.getModuleName());
+		m.addError("Missing type arguments for module " + m.getModuleName());
 		return Collections.emptyMap();
 	}
 
@@ -108,7 +108,7 @@ public class Generics {
 		if (hasTypeParams(t, typeParams)) {
 			return givenBinding(t, typeParams);
 		}
-		t.getSource().addError("Missing type arguments for " + Utils.printElement(t));
+		t.addError("Missing type arguments for " + Utils.printElement(t));
 		return Collections.emptyMap();
 	}
 	
@@ -132,7 +132,7 @@ public class Generics {
 			return true;
 		}
 		if (fc.getTypeArgs().size() > 0) {
-			fc.attrSource().addError("Wrong number of type arguments. Expected " + typeParams.size());
+			fc.addError("Wrong number of type arguments. Expected " + typeParams.size());
 		}
 		return false;
 	}

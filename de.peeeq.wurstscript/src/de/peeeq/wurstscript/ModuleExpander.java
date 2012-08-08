@@ -38,7 +38,7 @@ public class ModuleExpander {
 		for (ModuleUse moduleUse : m.getModuleUses()) {
 			ModuleDef usedModule = moduleUse.attrModuleDef();
 			if (usedModule == null) {
-				moduleUse.getSource().addError("not found");
+				moduleUse.addError("not found");
 				continue;
 			}
 			expandModules(usedModule);

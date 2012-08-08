@@ -22,16 +22,16 @@ public class CheckHelper {
 		String funcName = f.getName();
 		// check static-ness
 		if (f.attrIsStatic() && !of.attrIsStatic()) {
-			f.getSource().addError("Function " + funcName + " must not be static.");
+			f.addError("Function " + funcName + " must not be static.");
 		}
 		if (!f.attrIsStatic() && of.attrIsStatic()) {
-			f.getSource().addError("Function " + funcName + " must be static.");
+			f.addError("Function " + funcName + " must be static.");
 		}
 		// check returntype
 		PscriptType f_type = getRealType(typeParamMapping, f.getReturnTyp().attrTyp());
 		PscriptType of_type = getRealType(typeParamMapping, of.getReturnTyp().attrTyp());
 		if (! f_type.isSubtypeOf(of_type, f)) { 
-			f.getSource().addError(errorMessage + funcName + ": The return type is " + f_type + 
+			f.addError(errorMessage + funcName + ": The return type is " + f_type + 
 			" but it should be " + of_type + ".");
 		}
 		
@@ -40,7 +40,7 @@ public class CheckHelper {
 		int of_count = of.getParameters().size(); 
 		// check parameters
 		if (f_count != of_count) {
-			f.getSource().addError(errorMessage + funcName + ": The number of parameters of function " + funcName + " must be equal to " + of_count + 
+			f.addError(errorMessage + funcName + ": The number of parameters of function " + funcName + " must be equal to " + of_count + 
 			", as defined by the overriden function.");
 			return;
 		}
@@ -56,7 +56,7 @@ public class CheckHelper {
 					of_p_type = temp;
 				}
 				
-				f.getSource().addError(errorMessage + funcName + ": The type of parameter " + f_p.getName() + " is " + f_p_type + 
+				f.addError(errorMessage + funcName + ": The type of parameter " + f_p.getName() + " is " + f_p_type + 
 				" but it should be " + of_p_type);
 			}
 			i++;

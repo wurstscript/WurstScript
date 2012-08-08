@@ -49,7 +49,7 @@ public class ModelManagerImpl implements ModelManager {
 	}
 	
 	@Override
-	public void removeCompilationUnit(IResource resource) {
+	public synchronized void removeCompilationUnit(IResource resource) {
 		if (model == null) {
 			return;
 		}
@@ -65,19 +65,19 @@ public class ModelManagerImpl implements ModelManager {
 	}
 
 	@Override
-	public boolean needsFullBuild() {
+	public synchronized boolean needsFullBuild() {
 		return needsFullBuild;
 	}
 
 	@Override
-	public void clean() {
+	public synchronized void clean() {
 		model = null;
 		dependencies.clear();
 		needsFullBuild = true;
 	}
 	
 	@Override
-	public void typeCheckModel(WurstGui gui) {
+	public synchronized void typeCheckModel(WurstGui gui) {
 		System.out.println("#typechecking");
 		if (needsFullBuild) {
 			System.out.println("needs full build...");
@@ -110,7 +110,7 @@ public class ModelManagerImpl implements ModelManager {
 	}
 	
 	@Override
-	public void updateModel(CompilationUnit cu, WurstGui gui) {
+	public synchronized void updateModel(CompilationUnit cu, WurstGui gui) {
 		if (model == null) {
 			model = newModel(cu, gui);
 		} else {
@@ -177,13 +177,13 @@ public class ModelManagerImpl implements ModelManager {
 	}
 
 	@Override
-	public void registerChangeListener(String fileName, CompilationUnitChangeListener listener) {
+	public synchronized void registerChangeListener(String fileName, CompilationUnitChangeListener listener) {
 		this.changeListeners.put(fileName, listener);
 		
 	}
 
 	@Override
-	public CompilationUnit parse(WurstGui gui, String fileName, Reader source) {
+	public synchronized CompilationUnit parse(WurstGui gui, String fileName, Reader source) {
 		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, RunArgs.defaults());
 		comp.setHasCommonJ(true); // we always want to have a common.j if we have an eclipse plugin
 		CompilationUnit cu = comp.parse(source, fileName);
@@ -195,17 +195,17 @@ public class ModelManagerImpl implements ModelManager {
 	}
 
 	@Override
-	public void fullBuildDone() {
+	public synchronized void fullBuildDone() {
 		needsFullBuild = false;
 	}
 
 	@Override
-	public void addDependency(File f) {
+	public synchronized void addDependency(File f) {
 		dependencies.add(f.getAbsolutePath());
 	}
 
 	@Override
-	public void clearDependencies() {
+	public synchronized void clearDependencies() {
 		dependencies.clear();
 	}
 	

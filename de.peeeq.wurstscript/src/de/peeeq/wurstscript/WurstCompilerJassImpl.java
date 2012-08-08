@@ -143,6 +143,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		Set<String> packages = Sets.newHashSet();
 		Map<String, WImport> imports = Maps.newHashMap();
 		for (CompilationUnit c : compilationUnits) {
+			c.setCuErrorHandler(errorHandler);
 			for (WPackage p : c.getPackages()) {
 				packages.add(p.getName());
 				for (WImport i : p.getImports()) {
@@ -262,6 +263,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		
 		if (errorHandler.getErrorCount() > 0) return;
 		
+		attachErrorHanlder(root);
+		
 		expandModules(root);
 		
 		if (errorHandler.getErrorCount() > 0) return;
@@ -269,6 +272,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		// validate the resource:
 		WurstValidator validator = new WurstValidator(root);
 		validator.validate();
+	}
+
+	private void attachErrorHanlder(WurstModel root) {
+		for (CompilationUnit cu : root) {
+			cu.setCuErrorHandler(errorHandler);
+		}
 	}
 
 	private void expandModules(WurstModel root) {

@@ -49,7 +49,9 @@ public class WurstReconcilingStategy implements IReconcilingStrategy {
 		IFile file = editor.getFile();
 		if (file != null) {
 			// TODO handle parser-error markers
-			return mm.parse(gui, file.getProjectRelativePath().toString(), new StringReader(document.get()));
+			CompilationUnit cu = mm.parse(gui, file.getProjectRelativePath().toString(), new StringReader(document.get()));
+			mm.typeCheckModel(gui);
+			return cu;
 		}
 		return null;
 	}

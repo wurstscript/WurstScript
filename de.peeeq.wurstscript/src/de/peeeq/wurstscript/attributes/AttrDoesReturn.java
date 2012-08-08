@@ -19,7 +19,7 @@ public class AttrDoesReturn {
 		boolean returns = false; 
 		for (WStatement s : statements) {
 			if (returns) {
-				s.getSource().addError("Unreachable code, function already returned");
+				s.addError("Unreachable code, function already returned");
 				return true;
 			}
 			if (s instanceof StmtReturn) {

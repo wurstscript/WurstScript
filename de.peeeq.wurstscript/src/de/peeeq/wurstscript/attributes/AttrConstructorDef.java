@@ -29,7 +29,7 @@ public class AttrConstructorDef {
 			return OverloadingResolver.resolveExprNew(constructors, node);
 			
 		} else {
-			node.getSource().addError("Can only create instances of classes.");
+			node.addError("Can only create instances of classes.");
 			return null;
 		}
 		

@@ -138,7 +138,7 @@ public class AttrExprType {
 			return varDef.attrTyp().dynamic();
 		}
 		if (varDef instanceof FunctionDefinition) {
-			term.getSource().addError("Missing parantheses for function call");
+			term.addError("Missing parantheses for function call");
 		}
 		return varDef.attrTyp();
 	}
@@ -154,7 +154,7 @@ public class AttrExprType {
 		if (varDefType instanceof PScriptTypeArray) {
 			return ((PScriptTypeArray) varDefType).getBaseType();
 		} else {
-			term.getSource().addError("Variable " + varDef.getName() + " is no array variable.");
+			term.addError("Variable " + varDef.getName() + " is no array variable.");
 		}
 		return PScriptTypeUnknown.instance();
 	}
@@ -173,7 +173,7 @@ public class AttrExprType {
 			return extensionFuncDef.getExtendedType().attrTyp().dynamic();
 		}
 		if (!term.attrIsDynamicContext()) {
-			term.getSource().addError("Cannot use 'this' in static methods.");
+			term.addError("Cannot use 'this' in static methods.");
 			return PScriptTypeUnknown.instance();
 		}
 
@@ -211,7 +211,7 @@ public class AttrExprType {
 
 			});
 		} else {
-			term.getSource().addError("The keyword 'this' can only be used inside methods.");
+			term.addError("The keyword 'this' can only be used inside methods.");
 			return PScriptTypeUnknown.instance();
 		}
 	}
@@ -227,12 +227,12 @@ public class AttrExprType {
 			private PscriptType requireEqualTypes(
 					PScriptTypeBool requiredType, PScriptTypeBool resultType) {
 				if (!leftType.isSubtypeOf(requiredType, term)) {
-					term.getLeft().getSource().addError("Operator " + term.getOp() + " requires two operands of " +
+					term.getLeft().addError("Operator " + term.getOp() + " requires two operands of " +
 					"type " + requiredType + " but left type was " + leftType);
 					return PScriptTypeUnknown.instance();
 				}
 				if (!leftType.isSubtypeOf(requiredType, term)) {
-					term.getRight().getSource().addError("Operator " + term.getOp() + " requires two operands of " +
+					term.getRight().addError("Operator " + term.getOp() + " requires two operands of " +
 					"type " + requiredType + " but right type was " + leftType);
 					return PScriptTypeUnknown.instance();
 				}
@@ -287,7 +287,7 @@ public class AttrExprType {
 				// not empty. Example:
 				// class A implements B,C
 				// -> B and C should be comparable
-				term.getSource().addError("Cannot compare types " + leftType + " with " + rightType);
+				term.addError("Cannot compare types " + leftType + " with " + rightType);
 
 				return PScriptTypeBool.instance();
 			}
@@ -324,11 +324,11 @@ public class AttrExprType {
 			private PscriptType caseCompare() {
 				if (!(leftType instanceof PScriptTypeInt
 						|| leftType instanceof PScriptTypeReal)) {
-					term.getLeft().getSource().addError("Can not compare with value of type " + leftType);
+					term.getLeft().addError("Can not compare with value of type " + leftType);
 				}
 				if (!(rightType instanceof PScriptTypeInt
 						|| rightType instanceof PScriptTypeReal)) {
-					term.getRight().getSource().addError("Can not compare with value of type " + rightType);
+					term.getRight().addError("Can not compare with value of type " + rightType);
 				}
 				return PScriptTypeBool.instance();
 			}
@@ -357,7 +357,7 @@ public class AttrExprType {
 			private PscriptType handleOperatorOverloading(final ExprBinary term) {
 				FunctionDefinition def = term.attrFuncDef();
 				if (def == null) {
-					term.getSource().addError("No operator overloading function for operator " + term.getOp() +
+					term.addError("No operator overloading function for operator " + term.getOp() +
 					" was found for operands " + leftType + " and " + rightType + ". The overloading function has to be named: " + convertOpToOpol(term.getOp()));
 					return PScriptTypeUnknown.instance();
 				}
@@ -373,7 +373,7 @@ public class AttrExprType {
 						return PScriptTypeReal.instance();
 					}
 				}
-				term.getSource().addError("Operator " + term.getOp() +" is not defined for " +
+				term.addError("Operator " + term.getOp() +" is not defined for " +
 				"operands " + leftType + " and " + rightType);
 				return PScriptTypeUnknown.instance();
 			}
@@ -420,7 +420,7 @@ public class AttrExprType {
 						return PScriptTypeReal.instance();
 					}
 				}
-				term.getSource().addError("Operator " + term.getOp() +" is not defined for " +
+				term.addError("Operator " + term.getOp() +" is not defined for " +
 				"operands " + leftType + " and " + rightType);
 				return PScriptTypeUnknown.instance();
 			}
@@ -431,7 +431,7 @@ public class AttrExprType {
 				if (leftType instanceof PScriptTypeInt || rightType instanceof PScriptTypeInt) {
 					return leftType;
 				}
-				term.getSource().addError("Operator " + term.getOp() +" is not defined for " +
+				term.addError("Operator " + term.getOp() +" is not defined for " +
 				"operands " + leftType + " and " + rightType);
 				return PScriptTypeUnknown.instance();
 			}
@@ -442,7 +442,7 @@ public class AttrExprType {
 				if (leftType instanceof PScriptTypeInt && rightType instanceof PScriptTypeInt) {
 					return leftType;
 				}
-				term.getSource().addError("Operator " + term.getOp() +" is not defined for " +
+				term.addError("Operator " + term.getOp() +" is not defined for " +
 				"operands " + leftType + " and " + rightType);
 				return PScriptTypeUnknown.instance();
 			}
@@ -472,7 +472,7 @@ public class AttrExprType {
 
 			public PscriptType case_OpNot(OpNot op)  {
 				if (!(rightType instanceof PScriptTypeBool)) {
-					term.getSource().addError("Expected Boolean after not but found " + rightType);
+					term.addError("Expected Boolean after not but found " + rightType);
 				}
 				return PScriptTypeBool.instance();
 			}
@@ -483,7 +483,7 @@ public class AttrExprType {
 				if (rightType instanceof PScriptTypeInt || rightType instanceof PScriptTypeReal) { 
 					return rightType;
 				}
-				term.getSource().addError("Expected Int or Real after Minus but found " + rightType);
+				term.addError("Expected Int or Real after Minus but found " + rightType);
 				return PScriptTypeReal.instance();
 			}
 		});
@@ -497,12 +497,12 @@ public class AttrExprType {
 			return PScriptTypeUnknown.instance();
 		}
 		if (varDef instanceof FunctionDefinition) {
-			term.getSource().addError("Missing parantheses for function call");
+			term.addError("Missing parantheses for function call");
 		}
 		if (varDef.attrIsStatic() && term.getLeft().attrTyp() instanceof PscriptTypeNamedScope) {
 			PscriptTypeNamedScope ns = (PscriptTypeNamedScope) term.getLeft().attrTyp();
 			if (!ns.isStaticRef()) {
-				term.attrSource().addError("Cannot access static variable " + term.getVarName() + " via a dynamic reference.");
+				term.addError("Cannot access static variable " + term.getVarName() + " via a dynamic reference.");
 			}
 		}
 		return varDef.attrTyp().setTypeArgs(term.getLeft().attrTyp().getTypeArgBinding());
@@ -519,7 +519,7 @@ public class AttrExprType {
 			PScriptTypeArray ar = (PScriptTypeArray) typ;
 			return ar.getBaseType();			
 		}
-		term.getSource().addError("Variable " + term.getVarName() + " is not an array.");
+		term.addError("Variable " + term.getVarName() + " is not an array.");
 		return typ;
 	}
 
@@ -619,7 +619,7 @@ public class AttrExprType {
 			}
 			return new PscriptTypeClass(c, types, false);
 		} else {
-			term.getSource().addError("Can only create instances of classes.");
+			term.addError("Can only create instances of classes.");
 			return PScriptTypeUnknown.instance();
 		}
 	}
@@ -630,7 +630,7 @@ public class AttrExprType {
 		// it will have the type which you expect it to have, ...
 		PscriptType t = term.attrExpectedTyp();
 		if (t instanceof PScriptTypeUnknown) {
-			term.getSource().addError("Could not determine type of null expression.");
+			term.addError("Could not determine type of null expression.");
 		}
 		// ... but of course not all types support null
 		if (!   (  t instanceof PscriptTypeNamedScope
@@ -640,7 +640,7 @@ public class AttrExprType {
 				|| t instanceof PscriptNativeType
 				|| t instanceof PScriptTypeString
 				|| t instanceof PScriptTypeCode)) {
-			term.getSource().addError("Null is not a valid value for " + t);
+			term.addError("Null is not a valid value for " + t);
 		}
 		return t;
 	}
