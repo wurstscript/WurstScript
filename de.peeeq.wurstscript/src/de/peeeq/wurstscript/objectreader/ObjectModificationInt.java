@@ -5,9 +5,9 @@ import java.io.IOException;
 public class ObjectModificationInt extends ObjectModification {
 	private int data;
 
-	public ObjectModificationInt(String originalObjectId, String newObjectId, String modificationId, int variableType, int levelCount, int dataPointer, int data) {
-		super(originalObjectId, newObjectId, modificationId, variableType, levelCount, dataPointer);
-		this.data = data;
+	public ObjectModificationInt(ObjectDefinition parent, String modificationId, int levelCount, int dataPointer, int intData) {
+		super(parent, modificationId, VariableTypes.INTEGER, levelCount, dataPointer);
+		this.data = intData;
 	}
 
 	@Override
@@ -18,6 +18,14 @@ public class ObjectModificationInt extends ObjectModification {
 	@Override
 	public String toString() {
 		return modificationId + " = " + data;
+	}
+
+	public int getData() {
+		return data;
+	}
+
+	public void setData(int data) {
+		this.data = data;
 	}
 	
 	

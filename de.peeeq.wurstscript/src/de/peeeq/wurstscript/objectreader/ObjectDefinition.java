@@ -26,7 +26,7 @@ public class ObjectDefinition {
 		ObjectDefinition def = new ObjectDefinition(origObjectId, newObjectId);
 		int numberOfModifications = in.readInt();
 		for (int i = 0; i < numberOfModifications; i++) {
-			ObjectModification mod = ObjectModification.readFromStream(in, fileType, origObjectId, newObjectId);
+			ObjectModification mod = ObjectModification.readFromStream(in, fileType, def);
 			def.add(mod);
 		}
 		return def;

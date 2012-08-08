@@ -20,7 +20,10 @@ public class LadikMpq implements MpqEditor {
 			throws IOException, InterruptedException {
 		Runtime rt = Runtime.getRuntime();
 		File tempFile1 = new File("./temp/" + fileToExtract);
-		File script = MoPaqScriptfiles.extractFile(mpqArchive, "war3map.j");
+		if (tempFile1.exists()) {
+			tempFile1.delete();
+		}
+		File script = MoPaqScriptfiles.extractFile(mpqArchive, fileToExtract);
 		
 		String[] commands = {MpqEditorFactory.getFilepath(), "/console", script.getAbsolutePath()};
 		Debug.println(Arrays.toString(commands));

@@ -8,11 +8,12 @@ import java.io.IOException;
 public class ObjectModificationUnreal extends ObjectModification {
 	private float data;
 
-	public ObjectModificationUnreal(String originalObjectId, String newObjectId, String modificationId, int variableType, int levelCount, int dataPointer, float data) {
-		super(originalObjectId, newObjectId, modificationId, variableType, levelCount, dataPointer);
-		this.data = data;
+	public ObjectModificationUnreal(ObjectDefinition parent, String modificationId, int levelCount, int dataPointer,
+			float floatData) {
+		super(parent, modificationId, VariableTypes.UNREAL, levelCount, dataPointer);
+		this.data = floatData;
 	}
-	
+
 	@Override
 	void writeDataToStream(BinaryDataOutputStream out, ObjectFileType fileType) throws IOException {
 		out.writeFloat(data);
@@ -22,6 +23,16 @@ public class ObjectModificationUnreal extends ObjectModification {
 	public String toString() {
 		return modificationId + " = " + data + "  (unreal)";
 	}
+
+	public float getData() {
+		return data;
+	}
+
+	public void setData(float data) {
+		this.data = data;
+	}
 	
 
+	
+	
 }
