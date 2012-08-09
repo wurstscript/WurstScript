@@ -32,11 +32,16 @@ public class LineOffsets {
 		int min = 0;
 		int max = maxLine;
 		while (min < max) {
-			int test = (int) Math.ceil((min + max) / 2.0);
-			if (get(test) <= offset) {
-				min = test;
+			int test = (min + max) / 2;
+			int v = get(test);
+			if (v < offset) {
+				if (min == test) {
+					min++;
+				} else {
+					min = test;
+				}
 			} else {
-				max = test - 1;
+				max = test;
 			}
 		}
 		return min;

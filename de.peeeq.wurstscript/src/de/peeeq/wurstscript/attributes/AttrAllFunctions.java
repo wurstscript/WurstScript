@@ -31,7 +31,7 @@ public class AttrAllFunctions {
 		for (FuncDef f : term.getMethods()) {
 			FuncDef prevDefined = sameLevelFunctions.put(f.getName(), f);
 			if (prevDefined != null) {
-				attr.addError(f.getSource(), "The function " + f.getName() + " is already defined.");
+				f.addError("The function " + f.getName() + " is already defined.");
 			}
 		}
 		if (term instanceof AstElementWithModuleInstanciations) {
@@ -48,7 +48,7 @@ public class AttrAllFunctions {
 				// -> there is a overriding function
 				FuncDef overridingFunc = sameLevelFunctions.get(funcName);
 				if (!overridingFunc.attrIsOverride()) {
-					attr.addError(overridingFunc.getSource(), "The function " + funcName + " must have the 'override' annotation.");
+					overridingFunc.addError("The function " + funcName + " must have the 'override' annotation.");
 				}
 				CheckHelper.checkIfIsRefinement(overridingFunc, moduleFunctions.get(funcName), "Cannot override function ");
 				result.put(funcName, overridingFunc);
@@ -62,8 +62,8 @@ public class AttrAllFunctions {
 					for (FuncDef f : funcs) {
 						functions.append(i++ +". " + Utils.printElement(f.getParent().attrNearestNamedScope()) + "\n");
 					}
-					attr.addError(mainSource, "There are two or more functions with name " + funcName + " inherited from used modules. " +
-							"You should override this function or rename one of them. The functions are:\n" + functions);
+					mainSource.addError("There are two or more functions with name " + funcName + " inherited from used modules. " +
+					"You should override this function or rename one of them. The functions are:\n" + functions);
 				}
 				result.put(funcName, Utils.getFirst(funcs));
 			}

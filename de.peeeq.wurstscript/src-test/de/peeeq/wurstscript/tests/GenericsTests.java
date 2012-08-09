@@ -74,7 +74,7 @@ public class GenericsTests extends PscriptTest {
 	
 	@Test
 	public void identityFail1() {
-		testAssertErrorsLines(true, "only be bound",  
+		testAssertErrorsLines(true, "real",  
 				"package test",
 				"	native testSuccess()",
 				"	function identity<A>(A a) returns A",

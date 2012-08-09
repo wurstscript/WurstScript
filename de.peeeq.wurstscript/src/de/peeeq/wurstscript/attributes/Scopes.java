@@ -156,17 +156,17 @@ public class Scopes {
 					if (d instanceof VarDef) {
 						varCount++;
 						if (varCount > 1) {
-							attr.addError(d.getSource(), "Variable " + d.getName() + " is already defined.");
+							d.addError("Variable " + d.getName() + " is already defined.");
 						}
 					} else if (d instanceof NotExtensionFunction) {
 						funcCount++;
 						if (funcCount > 1) {
-							attr.addError(d.getSource(), "Function " + d.getName() + " is already defined.");
+							d.addError("Function " + d.getName() + " is already defined.");
 						}
 					} else if (d instanceof ModuleDef || d instanceof TypeDef) {
 						typeCount++;
 						if (typeCount > 1) {
-							attr.addError(d.getSource(), "Type " + d.getName() + " is already defined.");
+							d.addError("Type " + d.getName() + " is already defined.");
 						}
 					}
 				}
@@ -236,11 +236,11 @@ public class Scopes {
 					names.removeAll(toRemove);
 					
 					if (!funcDef.attrIsOverride()) {
-						attr.addError(funcDef.attrSource(), "Function " + name + " needs the 'override' modifier.");
+						funcDef.addError("Function " + name + " needs the 'override' modifier.");
 					}
 				} else {
 					if (funcDef.attrIsOverride() && !(c instanceof ClassDef)) {
-						attr.addError(funcDef.attrSource(), "Nothing to override for function " + name + ".");
+						funcDef.addError("Nothing to override for function " + name + ".");
 					}
 				}
 			}
@@ -305,12 +305,12 @@ public class Scopes {
 			if (imp.getIsPublic()) {
 				try {
 					if (imp.attrImportedPackage() == null) {
-						attr.addError(imp.getSource(), "Could not find package " + imp.getPackagename());
+						imp.addError("Could not find package " + imp.getPackagename());
 						continue;
 					}
 					result.putAll(imp.attrImportedPackage().attrExportedNames());
 				} catch (Error e) {
-					attr.addError(imp.getSource(), e.getMessage());					
+					imp.addError(e.getMessage());					
 				}
 			}
 		}

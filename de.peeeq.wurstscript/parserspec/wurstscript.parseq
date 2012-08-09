@@ -7,7 +7,8 @@ WPos ( String file, Object lineOffsets, int leftPos, int rightPos )
 
 WurstModel * CompilationUnit
 
-CompilationUnit( String file, JassToplevelDeclarations jassDecls, WPackages packages)
+CompilationUnit( String file, de.peeeq.wurstscript.attributes.ErrorHandler cuErrorHandler, 
+	JassToplevelDeclarations jassDecls, WPackages packages)
 
 
 JassToplevelDeclarations * JassToplevelDeclaration
@@ -632,8 +633,12 @@ OpUnary.evaluateUnaryOperator(de.peeeq.wurstscript.intermediateLang.ILconst val)
 
 AstElement.addError(String msg)
 	returns void
-	implemented by de.peeeq.wurstscript.attributes.attr.addError	
-
+	implemented by de.peeeq.wurstscript.attributes.ErrorHandling.addError
+	
+AstElement.getErrorHandler()
+	returns de.peeeq.wurstscript.attributes.ErrorHandler
+	implemented by de.peeeq.wurstscript.attributes.ErrorHandling.getErrorHandler	
+	
 // removed attributes:
 //
 //

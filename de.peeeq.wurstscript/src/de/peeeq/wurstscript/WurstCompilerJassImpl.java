@@ -24,7 +24,7 @@ import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.attributes.attr;
+import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassIm.ImProg;
@@ -46,18 +46,18 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
 	private List<File> files = Lists.newArrayList();
 	private Map<String, Reader> otherInputs = Maps.newHashMap();
-	private int parseErrors;
 	private JassProg prog;
 	private WurstGui gui;
 	private boolean hasCommonJ;
 	private RunArgs runArgs;
 	private File mapFile;
+	private ErrorHandler errorHandler;
 
 	
 	public WurstCompilerJassImpl(WurstGui gui, RunArgs runArgs) {
 		this.gui = gui;
 		this.runArgs = runArgs;
-		attr.init(gui);
+		this.errorHandler = new ErrorHandler(gui);
 	}
 
 	@Override
@@ -121,7 +121,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			return;
 		}
 		
-		if (attr.getErrorCount() > 0) return;
+		if (errorHandler.getErrorCount() > 0) return;
 		
 		// merge the compilationUnits:
 		WurstModel merged = mergeCompilationUnits(compilationUnits);
@@ -143,6 +143,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		Set<String> packages = Sets.newHashSet();
 		Map<String, WImport> imports = Maps.newHashMap();
 		for (CompilationUnit c : compilationUnits) {
+			c.setCuErrorHandler(errorHandler);
 			for (WPackage p : c.getPackages()) {
 				packages.add(p.getName());
 				for (WImport i : p.getImports()) {
@@ -193,7 +194,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		File file = getLibs().get(imp);
 		if (file == null) {
 			gui.sendError(new CompileError(Ast.WPos("", 0, 0, 0), "Could not find lib-package " + imp));
-			return Ast.CompilationUnit("", Ast.JassToplevelDeclarations(), Ast.WPackages());
+			return Ast.CompilationUnit("", errorHandler, Ast.JassToplevelDeclarations(), Ast.WPackages());
 		} else {
 			CompilationUnit lib = parseFile(file);
 			compilationUnits.add(lib);
@@ -245,7 +246,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		checkProg(root);
 		
 		
-		if (attr.getErrorCount() > 0) {
+		if (errorHandler.getErrorCount() > 0) {
 			return;
 		}
 		
@@ -253,22 +254,30 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			prog = translateProg(root);
 		} catch (CompileError e) {
 			WLogger.severe(e);
-			attr.addError(e.getSource(), e.getMessage());
+			errorHandler.sendError(e);
 		}
 	}
 
 	public void checkProg(WurstModel root) {
 		gui.sendProgress("Checking Files", 0.2);
 		
-		if (attr.getErrorCount() > 0) return;
+		if (errorHandler.getErrorCount() > 0) return;
+		
+		attachErrorHanlder(root);
 		
 		expandModules(root);
 		
-		if (attr.getErrorCount() > 0) return;
+		if (errorHandler.getErrorCount() > 0) return;
 		
 		// validate the resource:
 		WurstValidator validator = new WurstValidator(root);
 		validator.validate();
+	}
+
+	private void attachErrorHanlder(WurstModel root) {
+		for (CompilationUnit cu : root) {
+			cu.setCuErrorHandler(errorHandler);
+		}
 	}
 
 	private void expandModules(WurstModel root) {
@@ -316,7 +325,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		ImToJassTranslator translator = new ImToJassTranslator(imProg, imTranslator.getCalledFunctions()
 				, imTranslator.getMainFunc(), imTranslator.getConfFunc());
 		JassProg p = translator.translate();
-		if (attr.getErrorCount() > 0) {
+		if (errorHandler.getErrorCount() > 0) {
 			return null;
 		}
 		return p;
@@ -424,16 +433,15 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	}
 
 	private CompilationUnit emptyCompilationUnit() {
-		return Ast.CompilationUnit("<empty compilation unit>", Ast.JassToplevelDeclarations(), Ast.WPackages());
+		return Ast.CompilationUnit("<empty compilation unit>", errorHandler, Ast.JassToplevelDeclarations(), Ast.WPackages());
 	}
 
 	public CompilationUnit parse(Reader reader, String source) {
 		try {
 			WurstScriptScanner scanner = new WurstScriptScanner(reader);
-			ExtendedParser parser = new ExtendedParser(scanner, gui );
+			ExtendedParser parser = new ExtendedParser(scanner, errorHandler);
 			parser.setFilename(source);
 			Symbol sym = parser.parse();
-			parseErrors = parser.getErrorCount();
 			if (sym.value instanceof CompilationUnit) {
 				CompilationUnit root = (CompilationUnit) sym.value;
 				removeSyntacticSugar(root);
@@ -469,6 +477,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
 	public File getMapFile() {
 		return mapFile;
+	}
+
+	public ErrorHandler getErrorHandler() {
+		return errorHandler;
 	}
 
 	

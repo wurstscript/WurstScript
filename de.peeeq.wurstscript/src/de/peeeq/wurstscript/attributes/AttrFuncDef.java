@@ -46,7 +46,7 @@ public class AttrFuncDef {
 			result = searchFunction(node.getFuncName(), node);
 		}
 		if (result == null) {
-			attr.addError(node.getSource(), "Could not resolve reference to function " + node.getFuncName());
+			node.addError("Could not resolve reference to function " + node.getFuncName());
 		}
 		return result;
 	}
@@ -61,7 +61,7 @@ public class AttrFuncDef {
 			return null;
 		} else {
 			if (functions.size() > 1) {
-				attr.addError(node.getSource(), "Reference to function " + node.getFuncName() + " is ambigious.");
+				node.addError("Reference to function " + node.getFuncName() + " is ambigious.");
 			}
 			return functions.get(0);
 		}
@@ -115,7 +115,7 @@ public class AttrFuncDef {
 					&& node.attrNearestFuncDef().getName().equals("InitCustomTriggers")) {
 				// ignore missing InitTrig functions
 			} else {
-				attr.addError(node.getSource(), "Could not resolve reference to called function " + funcName);
+				node.addError("Could not resolve reference to called function " + funcName);
 			}
 		}
 		return result;
@@ -146,7 +146,7 @@ public class AttrFuncDef {
 		
 		FunctionDefinition result = getMemberFunc(node, leftType, funcName);
 		if (result == null) {
-			attr.addError(node.getSource(), "The method " + funcName + " is undefined for receiver of type " + leftType);
+			node.addError("The method " + funcName + " is undefined for receiver of type " + leftType);
 		}
 		return result;
 	}
@@ -160,8 +160,8 @@ public class AttrFuncDef {
 			if (funcs.size() > 0) {
 				result = Utils.getFirst(funcs);
 				if (funcs.size() > 1) {
-					attr.addError(context.getSource(), "Reference to function " + funcName + " is ambigious. " +
-							"Alternatives are: " + NameResolution.printAlternatives(funcs));
+					context.addError("Reference to function " + funcName + " is ambigious. " +
+					"Alternatives are: " + NameResolution.printAlternatives(funcs));
 				}
 			}
 			// get real implementation funcDef (wrt override)

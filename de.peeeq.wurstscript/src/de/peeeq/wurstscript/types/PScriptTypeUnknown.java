@@ -29,7 +29,7 @@ public class PScriptTypeUnknown extends PscriptType {
 
 	@Override
 	public String getName() {
-		return "unknown type (the type " + name + 
+		return "'unknown type'\n(the type " + name + 
 				" could not be found, maybe some package misses an import...)";
 	}
 

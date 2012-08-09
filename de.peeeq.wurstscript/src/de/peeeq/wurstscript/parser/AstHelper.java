@@ -29,7 +29,6 @@ import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WParameters;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.attributes.attr;
 
 public class AstHelper {
 
@@ -40,7 +39,7 @@ public class AstHelper {
 				TypeExprSimple ts = (TypeExprSimple) t;
 				result.add(Ast.TypeParamDef(t.getSource().copy(), Ast.Modifiers(), ts.getTypeName()));
 			} else {
-				attr.addError(t.getSource(), "Type Parameters must be simple names.");
+				t.addError("Type Parameters must be simple names.");
 			}
 		}
 		return result;

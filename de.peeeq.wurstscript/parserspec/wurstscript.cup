@@ -4,8 +4,12 @@ import java_cup.runtime.*;
 import de.peeeq.wurstscript.ast.*;
 import java.util.*;
 import com.google.common.collect.Lists;
+import de.peeeq.wurstscript.attributes.ErrorHandler;
 
 action code {: 
+
+	public ErrorHandler errorHandler;
+
 
 	private WPos pos(int left, int right) {
 		return Ast.WPos(parser.filename, parser.scanner.lineStartOffsets, left, right);
@@ -190,9 +194,9 @@ CompilationUnit ::=
 	Newlines TopLevelDeclaration:p CompilationUnit:c
 		{: RESULT = AstHelper.addFront(c, p); :}
 	| Newlines PACKAGE:x IDENTIFIER:name NL Imports:imports	Entities:entities
-		{: RESULT = Ast.CompilationUnit("", Ast.JassToplevelDeclarations(), Ast.WPackages(Ast.WPackage(pos(xleft, entities), name, imports, entities))); :}
+		{: RESULT = Ast.CompilationUnit("", errorHandler, Ast.JassToplevelDeclarations(), Ast.WPackages(Ast.WPackage(pos(xleft, entities), name, imports, entities))); :}
 	| Newlines
-		{: RESULT = Ast.CompilationUnit("", Ast.JassToplevelDeclarations(), Ast.WPackages()); :}
+		{: RESULT = Ast.CompilationUnit("", errorHandler, Ast.JassToplevelDeclarations(), Ast.WPackages()); :}
 ;
 
 

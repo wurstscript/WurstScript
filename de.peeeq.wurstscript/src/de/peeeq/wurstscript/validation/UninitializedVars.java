@@ -30,7 +30,6 @@ import de.peeeq.wurstscript.ast.StmtSkip;
 import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
-import de.peeeq.wurstscript.attributes.attr;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -61,8 +60,8 @@ public class UninitializedVars {
 			@Override
 			public void visit(ExprVarAccess exprVarAccess) {
 				if (uninitializedVars.contains(exprVarAccess.attrNameDef())) {
-					attr.addError(exprVarAccess.getSource(), "Variable " + exprVarAccess.getVarName() + 
-							" is not initialized.");
+					exprVarAccess.addError("Variable " + exprVarAccess.getVarName() + 
+					" is not initialized.");
 				}
 			}
 		});

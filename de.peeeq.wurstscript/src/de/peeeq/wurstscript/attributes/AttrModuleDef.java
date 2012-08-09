@@ -11,7 +11,7 @@ public class AttrModuleDef {
 		String moduleName = moduleUse.getModuleName();
 		List<ModuleDef> modules = NameResolution.searchTypedName(ModuleDef.class, moduleName, moduleUse.attrNearestPackage(), false);
 		if (modules.size() == 0) {
-			attr.addError(moduleUse.getSource(), "Module " + moduleUse.getModuleName() + " could not be found.");
+			moduleUse.addError("Module " + moduleUse.getModuleName() + " could not be found.");
 			return null;
 		} else {
 			return modules.get(0);
