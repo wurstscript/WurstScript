@@ -9,6 +9,7 @@ import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExprNewObject;
+import de.peeeq.wurstscript.ast.ExprUnary;
 import de.peeeq.wurstscript.ast.FunctionCall;
 import de.peeeq.wurstscript.ast.FunctionImplementation;
 import de.peeeq.wurstscript.ast.StmtReturn;
@@ -16,6 +17,9 @@ import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WParameters;
+import de.peeeq.wurstscript.types.PScriptTypeBool;
+import de.peeeq.wurstscript.types.PScriptTypeInt;
+import de.peeeq.wurstscript.types.PScriptTypeReal;
 import de.peeeq.wurstscript.types.PScriptTypeUnknown;
 import de.peeeq.wurstscript.types.PscriptType;
 
@@ -67,6 +71,15 @@ public class AttrExprExpectedType {
 					return exprBinary.getLeft().attrTyp();
 				}
 				throw new CompileError(expr.getSource(), "c) could not find expr " + expr + " in parent " + parent);
+			} else if (parent instanceof ExprUnary) {
+				ExprUnary exprUnary = (ExprUnary) parent;
+				if (exprUnary.attrExpectedTyp() instanceof PScriptTypeReal) {
+					return PScriptTypeReal.instance();
+				} else if (exprUnary.attrExpectedTyp() instanceof PScriptTypeInt) {
+					return PScriptTypeInt.instance();
+				} else if (exprUnary.attrExpectedTyp() instanceof PScriptTypeBool) {
+					return PScriptTypeBool.instance();
+				}
 			} else if (parent instanceof StmtReturn) {
 				StmtReturn stmtReturn = (StmtReturn) parent;
 				FunctionImplementation nearestFuncDef = stmtReturn.attrNearestFuncDef();
