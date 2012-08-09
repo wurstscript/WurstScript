@@ -16,6 +16,7 @@ import org.eclipse.jface.text.IDocumentExtension;
 import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.gui.WurstGui;
 
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbenchPage;
@@ -108,6 +109,17 @@ public class WurstNature implements IProjectNature {
 		
 	}
 	
+	
+	public void addErrorMarkers(WurstGui gui) {
+		for (CompileError e : gui.getErrorList()) {
+			IFile file = getProject().getFile(e.getSource().getFile());
+			if (file != null) {
+				addErrorMarker(file, e);
+			}
+		}
+		gui.clearErrors();
+	}
+	
 	public static void deleteMarkers(IFile file) {
 		try {
 			file.deleteMarkers(WurstBuilder.MARKER_TYPE, false, IResource.DEPTH_ZERO);
@@ -177,6 +189,8 @@ public class WurstNature implements IProjectNature {
 	private static IWorkbenchPage getActiveWorkbenchPage() {
 		return PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
 	}
+
+	
 
 	
 
