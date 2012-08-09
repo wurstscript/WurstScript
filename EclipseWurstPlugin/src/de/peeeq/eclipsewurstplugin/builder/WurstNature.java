@@ -16,6 +16,7 @@ import org.eclipse.jface.text.IDocumentExtension;
 import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.gui.WurstGui;
 
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbenchPage;
@@ -94,9 +95,9 @@ public class WurstNature implements IProjectNature {
 		return modelManager;
 	}
 
-	public static void addErrorMarker(IFile file, CompileError e) {
+	public static void addErrorMarker(IFile file, CompileError e, String markerType) {
 		try {
-			IMarker marker = file.createMarker(WurstBuilder.MARKER_TYPE);
+			IMarker marker = file.createMarker(markerType);
 			marker.setAttribute(IMarker.MESSAGE, e.getMessage());
 			marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
 
@@ -108,16 +109,27 @@ public class WurstNature implements IProjectNature {
 		
 	}
 	
-	public static void deleteMarkers(IFile file) {
+	
+	public void addErrorMarkers(WurstGui gui, String markerType) {
+		for (CompileError e : gui.getErrorList()) {
+			IFile file = getProject().getFile(e.getSource().getFile());
+			if (file != null) {
+				addErrorMarker(file, e, markerType);
+			}
+		}
+		gui.clearErrors();
+	}
+	
+	public static void deleteMarkers(IFile file, String markerType) {
 		try {
-			file.deleteMarkers(WurstBuilder.MARKER_TYPE, false, IResource.DEPTH_ZERO);
+			file.deleteMarkers(markerType, false, IResource.DEPTH_ZERO);
 		} catch (CoreException ce) {
 		}
 	}
 	
-	public void clearMarkers() {
+	public void clearMarkers(String markerType) {
 		try {
-			getProject().deleteMarkers(WurstBuilder.MARKER_TYPE, false, IResource.DEPTH_INFINITE);
+			getProject().deleteMarkers(markerType, false, IResource.DEPTH_INFINITE);
 		} catch (CoreException e) {
 		}
 		
@@ -177,6 +189,19 @@ public class WurstNature implements IProjectNature {
 	private static IWorkbenchPage getActiveWorkbenchPage() {
 		return PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
 	}
+
+	public void clearAllMarkers() {
+		clearMarkers(WurstBuilder.MARKER_TYPE_GRAMMAR);
+		clearMarkers(WurstBuilder.MARKER_TYPE_TYPES);
+	}
+
+	public static void deleteAllMarkers(IFile file) {
+		deleteMarkers(file, WurstBuilder.MARKER_TYPE_GRAMMAR);
+		deleteMarkers(file, WurstBuilder.MARKER_TYPE_TYPES);
+		
+	}
+
+	
 
 	
 

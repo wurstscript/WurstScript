@@ -35,22 +35,24 @@ public class WurstReconcilingStategy implements IReconcilingStrategy {
 
 	@Override
 	public void reconcile(DirtyRegion dirtyRegion, IRegion subRegion) {
-		reconcile();
+		reconcile(true);
 	}
 
 	@Override
 	public void reconcile(IRegion partition) {
-		reconcile();
+		reconcile(true);
 	}
 
-	public CompilationUnit reconcile() {
+	public CompilationUnit reconcile(boolean doTypecheck) {
 		ModelManager mm = editor.getModelManager();
 		WurstGui gui = new WurstGuiLogger();
 		IFile file = editor.getFile();
 		if (file != null) {
 			// TODO handle parser-error markers
 			CompilationUnit cu = mm.parse(gui, file.getProjectRelativePath().toString(), new StringReader(document.get()));
-			mm.typeCheckModel(gui);
+			if (doTypecheck) {
+				mm.typeCheckModel(gui);
+			}
 			return cu;
 		}
 		return null;

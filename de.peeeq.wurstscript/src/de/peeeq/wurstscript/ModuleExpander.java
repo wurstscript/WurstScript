@@ -28,7 +28,6 @@ public class ModuleExpander {
 	}
 
 	private void expandModules(ClassOrModule m) {
-		System.out.println();
 		Preconditions.checkNotNull(m);
 		if (m.getModuleInstanciations().size() > 0) {
 			return;

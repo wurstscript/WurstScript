@@ -60,4 +60,9 @@ public class WurstGuiEclipse implements WurstGui {
 	public List<CompileError> getErrorList() {
 		return Lists.newArrayList(errors);
 	}
+
+	@Override
+	public void clearErrors() {
+		errors.clear();
+	}
 }

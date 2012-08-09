@@ -129,4 +129,10 @@ public class WurstGuiImpl implements WurstGui {
 	}
 
 
+	@Override
+	public void clearErrors() {
+		errors.clear();
+	}
+
+
 }

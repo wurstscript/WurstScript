@@ -98,7 +98,8 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 
 	public static final String BUILDER_ID = "EclipseWurstPlugin.wurstBuilder";
 
-	public static final String MARKER_TYPE = "EclipseWurstPlugin.wurstProblem";
+	public static final String MARKER_TYPE_GRAMMAR = "EclipseWurstPlugin.wurstProblemGrammar";
+	public static final String MARKER_TYPE_TYPES = "EclipseWurstPlugin.wurstProblemTypes";
 
 	private ModelManager getModelManager() {
 		try {
@@ -140,7 +141,7 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 	@Override
 	protected void clean(IProgressMonitor monitor) throws CoreException {
 		super.clean(monitor);
-		getProject().deleteMarkers(MARKER_TYPE, true, IResource.DEPTH_INFINITE);
+		WurstNature.get(getProject()).clearAllMarkers();
 		getModelManager().clean();
 	}
 
@@ -152,7 +153,7 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 				return;
 			}
 			if (file.getName().endsWith(".wurst")) {
-				WurstNature.deleteMarkers(file);
+				WurstNature.deleteAllMarkers(file);
 	
 				Reader reader;
 				boolean doChecks = true;
@@ -165,10 +166,7 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 				}
 	
 				if (doChecks) {
-					for (CompileError e : gui.getErrorList()) {
-						System.out.println(e);
-						WurstNature.addErrorMarker(file, e);
-					}
+					WurstNature.get(file.getProject()).addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_GRAMMAR);
 				}
 			} else if (file.getName().equals("wurst.dependencies")) {
 				try {
@@ -231,5 +229,16 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 		WurstGui gui = new WurstGuiEclipse(monitor);
 		delta.accept(new SampleDeltaVisitor(gui));
 		getModelManager().typeCheckModel(gui);
+	}
+
+
+
+	public static boolean isWurstMarker(IMarker marker) {
+		try {
+			return marker.isSubtypeOf(WurstBuilder.MARKER_TYPE_GRAMMAR) 
+					|| marker.isSubtypeOf(WurstBuilder.MARKER_TYPE_TYPES);
+		} catch (CoreException e) {
+			return false;
+		}
 	}
 }

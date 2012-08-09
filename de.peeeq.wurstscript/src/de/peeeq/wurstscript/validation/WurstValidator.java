@@ -982,4 +982,14 @@ public class WurstValidator {
 		}
 	}
 	
+	@CheckMethod
+	public void checkBannedFunctions(ExprFunctionCall e) {
+		String[] banned = new String[] {"TriggerRegisterVariableEvent", "ExecuteFunc"};
+		for (String name : banned) {
+			if (e.getFuncName().equals(name)) {
+				e.addError("The function " + name + " is not allowed in Wurst.");
+			}
+		}
+	}
+	
 }

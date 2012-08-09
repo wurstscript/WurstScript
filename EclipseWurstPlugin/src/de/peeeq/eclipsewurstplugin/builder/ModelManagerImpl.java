@@ -81,6 +81,7 @@ public class ModelManagerImpl implements ModelManager {
 	@Override
 	public synchronized void typeCheckModel(WurstGui gui) {
 		System.out.println("#typechecking");
+		long time = System.currentTimeMillis();
 		if (needsFullBuild) {
 			System.out.println("needs full build...");
 			try {
@@ -92,7 +93,8 @@ public class ModelManagerImpl implements ModelManager {
 			return;
 		}
 		if (gui.getErrorCount() > 0) {
-			createErrorMarkers(gui);
+			nature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_GRAMMAR);
+			System.out.println("finished typechecking* in " + (System.currentTimeMillis() - time) + "ms");
 			return;
 		}
 		if (model == null) {
@@ -107,20 +109,13 @@ public class ModelManagerImpl implements ModelManager {
 			comp.checkProg(model);
 		} catch (CompileError e) {
 			gui.sendError(e);
+			e.printStackTrace();
 		}
-		nature.clearMarkers();
-		createErrorMarkers(gui);
+		nature.clearMarkers(WurstBuilder.MARKER_TYPE_TYPES);
+		System.out.println("finished typechecking in " + (System.currentTimeMillis() - time) + "ms");
+		nature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_TYPES);
 	}
 
-	private void createErrorMarkers(WurstGui gui) {
-		for (CompileError e : gui.getErrorList()) {
-			WurstNature.addErrorMarker(getFile(e.getSource().getFile()), e);
-		}
-	}
-	
-	private IFile getFile(String file) {
-		return nature.getProject().getFile(file);
-	}
 	
 	@Override
 	public synchronized void updateModel(CompilationUnit cu, WurstGui gui) {

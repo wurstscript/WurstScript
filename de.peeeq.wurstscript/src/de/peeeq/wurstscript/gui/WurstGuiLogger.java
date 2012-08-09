@@ -43,4 +43,9 @@ public class WurstGuiLogger implements WurstGui {
 		return Lists.newArrayList(errors);
 	}
 
+	@Override
+	public void clearErrors() {
+		errors.clear();
+	}
+
 }
