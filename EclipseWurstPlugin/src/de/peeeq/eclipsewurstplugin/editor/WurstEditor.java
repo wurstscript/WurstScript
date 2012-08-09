@@ -146,7 +146,7 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 		
 		
 		if (reconciler != null) {
-			reconciler.reconcile();
+			reconciler.reconcile(false);
 		}
 	
 	}
@@ -183,7 +183,7 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 
 
 	public CompilationUnit reconcile() {
-		return reconciler.reconcile();
+		return reconciler.reconcile(true);
 	}
 	
 	

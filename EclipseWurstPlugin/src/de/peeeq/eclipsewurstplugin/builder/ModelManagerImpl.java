@@ -81,6 +81,7 @@ public class ModelManagerImpl implements ModelManager {
 	@Override
 	public synchronized void typeCheckModel(WurstGui gui) {
 		System.out.println("#typechecking");
+		long time = System.currentTimeMillis();
 		if (needsFullBuild) {
 			System.out.println("needs full build...");
 			try {
@@ -109,6 +110,7 @@ public class ModelManagerImpl implements ModelManager {
 			gui.sendError(e);
 		}
 		nature.clearMarkers();
+		System.out.println("finished typechecking in " + (System.currentTimeMillis() - time) + "ms");
 		createErrorMarkers(gui);
 	}
 
