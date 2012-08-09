@@ -166,8 +166,13 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 	
 				if (doChecks) {
 					for (CompileError e : gui.getErrorList()) {
-						System.out.println(e);
-						WurstNature.addErrorMarker(file, e);
+						String filename1 = e.getSource().getFile();
+						String filename2 = file.toString();
+						if (filename2.endsWith(filename1)) {
+							System.out.println(e);
+							WurstNature.addErrorMarker(file, e);
+						}
+						
 					}
 				}
 			} else if (file.getName().equals("wurst.dependencies")) {
