@@ -97,12 +97,8 @@ public class WurstEditorConfig extends SourceViewerConfiguration {
 			protected boolean isIncluded(Annotation annotation) {
 				if(annotation instanceof SimpleMarkerAnnotation){
 					SimpleMarkerAnnotation markerannotation = (SimpleMarkerAnnotation)annotation;
-					try {
-						return markerannotation.getMarker().exists() 
-							&& (markerannotation.getMarker().isSubtypeOf(WurstBuilder.MARKER_TYPE));
-					} catch (CoreException e) {
-						e.printStackTrace();
-					}
+					return markerannotation.getMarker().exists() 
+						&& WurstBuilder.isWurstMarker(markerannotation.getMarker());
 				}
 				return false;
 			}

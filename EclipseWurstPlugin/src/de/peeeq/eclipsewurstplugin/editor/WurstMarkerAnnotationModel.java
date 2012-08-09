@@ -20,19 +20,16 @@ public class WurstMarkerAnnotationModel extends ResourceMarkerAnnotationModel {
 
 	@Override
 	protected Position createPositionFromMarker(IMarker marker) {
-		try {
-			if(marker.isSubtypeOf(WurstBuilder.MARKER_TYPE)
-					&& marker.getAttribute(IMarker.CHAR_START, -1) == -1){
-				int start = marker.getAttribute(WurstConstants.START_POS, -1);
-				int end = marker.getAttribute(WurstConstants.END_POS, -1);
-				if (start >= 0 && end >= start) {
-					return new Position(start, end-start);
-					
-				}
+		if(WurstBuilder.isWurstMarker(marker)
+				&& marker.getAttribute(IMarker.CHAR_START, -1) == -1){
+			int start = marker.getAttribute(WurstConstants.START_POS, -1);
+			int end = marker.getAttribute(WurstConstants.END_POS, -1);
+			if (start >= 0 && end >= start) {
+				return new Position(start, end-start);
+				
 			}
-		} catch (CoreException e) {
-			return super.createPositionFromMarker(marker);
 		}
 		return super.createPositionFromMarker(marker);
 	}
+
 }
