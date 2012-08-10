@@ -34,6 +34,7 @@ public class CompiletimeFunctionRunner {
 	
 
 	public void run() {
+		gui.sendProgress("Running compiletime functions", 0.9);
 //		interpreter.executeFunction("initGlobals");
 		try {
 			for (ImFunction f : imProg.getFunctions()) {

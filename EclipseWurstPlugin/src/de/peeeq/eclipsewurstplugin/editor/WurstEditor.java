@@ -182,8 +182,8 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 	}
 
 
-	public CompilationUnit reconcile() {
-		return reconciler.reconcile(true);
+	public CompilationUnit reconcile(boolean doTypecheck) {
+		return reconciler.reconcile(doTypecheck);
 	}
 	
 	

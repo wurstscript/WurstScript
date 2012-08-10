@@ -64,7 +64,7 @@ public class CompiletimeNatives implements NativesProvider {
 			}
 		}
 		ObjectDefinition objDef = new ObjectDefinition(deriveFrom.getVal(), newUnitId.getVal());
-		objDef.add(new ObjectModificationString(objDef, "unsf", 0, 0, ProgramState.GENERATED_BY_WURST));
+		objDef.add(new ObjectModificationInt(objDef, "wurs", 0, 0, ProgramState.GENERATED_BY_WURST));
 		String key = globalState.addObjectDefinition(objDef);		
 		unitStore.getModifiedTable().add(objDef);
 		return makeKey(key);

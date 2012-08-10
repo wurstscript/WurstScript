@@ -14,12 +14,17 @@ import de.peeeq.wurstscript.utils.Utils;
 public class AttrImportedPackage {
 
 	public static WPackage getImportedPackage(WImport i) {
-		WurstModel root = i.getModel();
-		WPackage p = root.attrPackages().get(i.getPackagename());
-		if (p == null) {
-			i.addError("Could not find imported package " + i.getPackagename());
+		try {
+			WurstModel root = i.getModel();
+			WPackage p = root.attrPackages().get(i.getPackagename());
+			if (p == null) {
+				i.addError("Could not find imported package " + i.getPackagename());
+			}
+			return p;
+		} catch (Error e) {
+			i.addError("Could not find imported package " + i.getPackagename() + "\n" + e.getMessage());
+			return null;
 		}
-		return p;
 	}
 
 	public static WurstModel getModel(AstElement elem) {
