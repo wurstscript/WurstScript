@@ -60,7 +60,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	@Override
 	public ICompletionProposal[] computeCompletionProposals(ITextViewer viewer, int offset) {
 		this.offset = offset;
-		CompilationUnit cu = editor.reconcile();
+		CompilationUnit cu = editor.reconcile(false);
 		if (Utils.isEmptyCU(cu)) {
 			errorMessage = "Could not parse file.";
 			System.out.println("cu is empty ...");

@@ -19,10 +19,7 @@ public class LadikMpq implements MpqEditor {
 	public File extractFile(File mpqArchive, String fileToExtract)
 			throws IOException, InterruptedException {
 		Runtime rt = Runtime.getRuntime();
-		File tempFile1 = new File("./temp/" + fileToExtract);
-		if (tempFile1.exists()) {
-			tempFile1.delete();
-		}
+		File tempFile1 = getNewTempFile(fileToExtract, 0);
 		File script = MoPaqScriptfiles.extractFile(mpqArchive, fileToExtract);
 		
 		String[] commands = {MpqEditorFactory.getFilepath(), "/console", script.getAbsolutePath()};
@@ -37,13 +34,27 @@ public class LadikMpq implements MpqEditor {
 			Debug.println(line);
 			WLogger.info(line);
 		}
-		tempFile1 = new File("./temp/" + fileToExtract); 
 		if (!tempFile1.exists()) {
 			throw new Error("could not extract file");
 		}
 		script.delete();
 		return tempFile1;
 		
+	}
+
+	private File getNewTempFile(String fileName, int i) {
+		String fileName2 = fileName;
+		if (i > 0) {
+			fileName2 = fileName2.replace(".", i + ".");
+		}
+		File f = new File("./temp/" + fileName2);
+		if (f.exists()) {
+			boolean deleted = f.delete();
+			if (!deleted) {
+				return getNewTempFile(fileName, i+1);
+			}
+		}
+		return f;
 	}
 
 	@Override

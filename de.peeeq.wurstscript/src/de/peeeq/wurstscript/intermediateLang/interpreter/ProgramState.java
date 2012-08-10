@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.intermediateLang.interpreter;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -12,10 +11,7 @@ import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
-import de.peeeq.wurstscript.intermediateLang.ILconst;
-import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImStmt;
-import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.mpq.LadikMpq;
 import de.peeeq.wurstscript.mpq.MpqEditorFactory;
 import de.peeeq.wurstscript.objectreader.ObjectDefinition;
@@ -27,7 +23,7 @@ import de.peeeq.wurstscript.objectreader.ObjectModificationString;
 
 public class ProgramState extends State {
 
-	public static final String GENERATED_BY_WURST = "W";
+	public static final int GENERATED_BY_WURST = 42;
 	private ImStmt lastStatement;
 	private WurstGui gui;
 	private File mapFile;
@@ -71,11 +67,11 @@ public class ProgramState extends State {
 			while (it.hasNext()) {
 				ObjectDefinition od = it.next();
 				for (ObjectModification om : od.getModifications()) {
-					gui.sendError(new CompileError(lastStatement.attrTrace().attrSource(), 
-							od.getNewObjectId() + " -- " + om.getModificationId() + " : " + om));
-					if (om.getModificationId().equals("unsf") && om instanceof ObjectModificationString) {
-						ObjectModificationString om2 = (ObjectModificationString) om;
-						if (om2.getData().equals(GENERATED_BY_WURST)) {
+//					gui.sendError(new CompileError(lastStatement.attrTrace().attrSource(), 
+//							od.getNewObjectId() + " -- " + om.getModificationId() + " : " + om));
+					if (om.getModificationId().equals("wurs") && om instanceof ObjectModificationInt) {
+						ObjectModificationInt om2 = (ObjectModificationInt) om;
+						if (om2.getData() == GENERATED_BY_WURST) {
 							it.remove();
 							break;
 						}
@@ -102,19 +98,35 @@ public class ProgramState extends State {
 	}
 
 	public void writeBack() {
+		gui.sendProgress("Writing back generated objects", 0.9);
 		if (unitStore != null) {
-			File w3u = new File("./temp/war3map.w3u");
+			File w3u = new File("./temp/new_war3map.w3u");
+			if (w3u.exists()) {
+				w3u.delete();
+			}
 			unitStore.writeTo(w3u);
+			
 			try {
 				LadikMpq editor = MpqEditorFactory.getEditor();
-				JOptionPane.showMessageDialog(null, "deleting w3u (if you wait long enought before clicking ok it might work...)");
 				editor.deleteFile(mapFile, "war3map.w3u");
-				JOptionPane.showMessageDialog(null, "deleted w3u (if you wait long enought before clicking ok it might work...)");
-//				Thread.sleep(1000);
-				editor.insertFile(mapFile, "war3map.w3u", w3u);
-				JOptionPane.showMessageDialog(null, "added w3u (if you wait long enought before clicking ok it might work...)\n"
-						+ "reload the map to see effects in the editor");
-//				editor.insertFile(mapFile, "test.w3u", w3u);
+				int tries = 1;
+				while (tries < 20) {
+					editor.insertFile(mapFile, "war3map.w3u", w3u);
+					
+					File extr;
+					try {
+						extr = editor.extractFile(mapFile, "war3map.w3u");
+					} catch (Error e) {
+						extr = null;
+					}
+					if (extr != null && extr.exists()) {
+						break;
+					}
+					tries++;
+				}
+				if (tries >= 20) {
+					JOptionPane.showMessageDialog(null, "Could not insert w3u.");
+				}
 			} catch (Exception e) {
 				WLogger.severe(e);
 				throw new Error(e);
