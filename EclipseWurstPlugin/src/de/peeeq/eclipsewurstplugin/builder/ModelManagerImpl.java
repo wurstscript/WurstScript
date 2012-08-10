@@ -195,6 +195,20 @@ public class ModelManagerImpl implements ModelManager {
 		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, RunArgs.defaults());
 		comp.setHasCommonJ(true); // we always want to have a common.j if we have an eclipse plugin
 		CompilationUnit cu = comp.parse(source, fileName);
+		
+		IFile file = nature.getProject().getFile(fileName);
+		if (file != null) {
+			WurstNature.deleteMarkers(file, WurstBuilder.MARKER_TYPE_GRAMMAR);
+		}
+		if (gui.getErrorCount() > 0) {
+			// when there are parse errors we also should clear the type errors:
+			if (file != null) {
+				WurstNature.deleteMarkers(file, WurstBuilder.MARKER_TYPE_TYPES);
+			}
+			nature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_GRAMMAR);
+			gui.clearErrors();
+		}
+		
 		if (cu != null && cu.getJassDecls().size() + cu.getPackages().size() > 0) {
 			cu.setFile(fileName);
 			updateModel(cu, gui);
