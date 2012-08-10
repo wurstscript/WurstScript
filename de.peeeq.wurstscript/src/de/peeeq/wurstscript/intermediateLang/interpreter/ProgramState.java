@@ -1,15 +1,17 @@
 package de.peeeq.wurstscript.intermediateLang.interpreter;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 
 import javax.swing.JOptionPane;
 
+import com.google.common.base.Charsets;
 import com.google.common.collect.Maps;
+import com.google.common.io.Files;
 
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.mpq.LadikMpq;
@@ -19,7 +21,6 @@ import de.peeeq.wurstscript.objectreader.ObjectFile;
 import de.peeeq.wurstscript.objectreader.ObjectFileType;
 import de.peeeq.wurstscript.objectreader.ObjectModification;
 import de.peeeq.wurstscript.objectreader.ObjectModificationInt;
-import de.peeeq.wurstscript.objectreader.ObjectModificationString;
 
 public class ProgramState extends State {
 
@@ -106,6 +107,13 @@ public class ProgramState extends State {
 			}
 			unitStore.writeTo(w3u);
 			
+			
+			try {
+				Files.write(unitStore.exportToWurst(),  new File("./temp/exportedObjects.wurst"), Charsets.UTF_8);
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+			
 			try {
 				LadikMpq editor = MpqEditorFactory.getEditor();
 				editor.deleteFile(mapFile, "war3map.w3u");
@@ -122,6 +130,7 @@ public class ProgramState extends State {
 					if (extr != null && extr.exists()) {
 						break;
 					}
+					System.gc();
 					tries++;
 				}
 				if (tries >= 20) {

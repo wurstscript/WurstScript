@@ -30,6 +30,14 @@ public class ObjectModificationString extends ObjectModification {
 		this.data = data;
 	}
 
+	@Override
+	public void exportToWurst(Appendable out) throws IOException {
+		out.append("	u.setString(\"");
+		out.append(modificationId);
+		out.append("\", \""+data+"\")\n");
+		
+	}
+
 	
 	
 }

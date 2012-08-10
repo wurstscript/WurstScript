@@ -91,7 +91,7 @@ public class BinaryDataInputStream {
 			}
 			if (pos >= buffer.length) {
 				byte[] newBuffer = new byte[buffer.length*2];
-				System.arraycopy(buffer, 0, newBuffer, 0, pos-1);
+				System.arraycopy(buffer, 0, newBuffer, 0, pos);
 				buffer = newBuffer;
 			}
 			buffer[pos] = b;

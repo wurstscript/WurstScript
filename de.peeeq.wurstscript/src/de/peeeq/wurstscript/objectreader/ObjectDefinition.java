@@ -56,6 +56,29 @@ public class ObjectDefinition {
 		return modifications;
 	}
 
+	public void prettyPrint(StringBuilder sb) {
+		sb.append("Object " + newObjectId + " <: " + origObjectId+ "[\n");
+		
+		for (ObjectModification m : modifications) {
+			sb.append("    " + m.toString() + ";\n");
+		}
+		
+		sb.append("]\n\n");
+	}
+
+	public void exportToWurst(Appendable out) throws IOException {
+		out.append("@compiletime function createUnit"+newObjectId+"()\n");
+		out.append("	let u = createUnitType(\"");
+		out.append(newObjectId);
+		out.append("\", \"");
+		out.append(origObjectId);
+		out.append("\")\n");
+		for (ObjectModification m : modifications) {
+			m.exportToWurst(out);
+		}
+		out.append("\n\n");
+	}
+
 	
 
 }

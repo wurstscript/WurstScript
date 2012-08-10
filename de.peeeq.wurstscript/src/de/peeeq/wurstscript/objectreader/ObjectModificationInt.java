@@ -27,6 +27,14 @@ public class ObjectModificationInt extends ObjectModification {
 	public void setData(int data) {
 		this.data = data;
 	}
+
+	@Override
+	public void exportToWurst(Appendable out) throws IOException {
+		out.append("	u.setInt(\"");
+		out.append(modificationId);
+		out.append("\", "+data+")\n");
+		
+	}
 	
 	
 

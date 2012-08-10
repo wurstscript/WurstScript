@@ -43,4 +43,18 @@ public class ObjectTable {
 		
 	}
 
+	public void prettyPrint(StringBuilder sb) {
+		for (ObjectDefinition od : objectDefinitions) {
+			od.prettyPrint(sb);
+		}
+		
+	}
+
+	public void exportToWurst(Appendable out) throws IOException {
+		for (ObjectDefinition od : objectDefinitions) {
+			od.exportToWurst(out);
+		}
+		
+	}
+
 }

@@ -59,4 +59,9 @@ public class BinaryDataOutputStream {
 		writeInt(asInt);
 	}
 
+
+	public void close() throws IOException {
+		out.close();
+	}
+
 }

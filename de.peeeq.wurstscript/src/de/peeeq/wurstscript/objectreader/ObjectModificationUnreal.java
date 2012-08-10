@@ -31,6 +31,14 @@ public class ObjectModificationUnreal extends ObjectModification {
 	public void setData(float data) {
 		this.data = data;
 	}
+
+	@Override
+	public void exportToWurst(Appendable out) throws IOException {
+		out.append("	u.setUnreal(\"");
+		out.append(modificationId);
+		out.append("\", "+data+")\n");
+		
+	}
 	
 
 	

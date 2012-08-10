@@ -108,6 +108,8 @@ public abstract class ObjectModification { // TODO split into appropiate subclas
 		return modificationId;
 	}
 	
-	abstract void writeDataToStream(BinaryDataOutputStream out, ObjectFileType fileType) throws IOException; 
+	abstract void writeDataToStream(BinaryDataOutputStream out, ObjectFileType fileType) throws IOException;
+
+	public abstract void exportToWurst(Appendable out) throws IOException;
 
 }
