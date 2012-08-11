@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
+import de.peeeq.wurstscript.intermediateLang.ILconstReal;
 import de.peeeq.wurstscript.intermediateLang.ILconstString;
 import de.peeeq.wurstscript.intermediateLang.ILconstTuple;
 import de.peeeq.wurstscript.objectreader.BinaryDataOutputStream;
@@ -30,8 +31,17 @@ public class CompiletimeNatives implements NativesProvider {
 
 	@Override
 	public ILconst invoke(String funcname, ILconst[] args) {
-		for (Method method : this.getClass().getMethods()) {
+		nextMethod: for (Method method : this.getClass().getMethods()) {
 			if (method.getName().equals(funcname)) {
+				// TODO check parameter types, handle overloading, only public methods
+				int i = 0;
+				for (Class<?> paramType : method.getParameterTypes()) {
+					if (!paramType.isAssignableFrom(args[i].getClass())) {
+						continue nextMethod;
+					}
+					i++;
+				}
+				
 				Object r = null;
 				try {
 					r = method.invoke(this, (Object[]) args);
@@ -74,18 +84,37 @@ public class CompiletimeNatives implements NativesProvider {
 		return new ILconstTuple(new ILconstString(key));
 	}
 	
-	public void setInt(ILconstTuple unitType, ILconstString modification, ILconstInt value) {
+	public void unitType_setInt(ILconstTuple unitType, ILconstString modification, ILconstInt value) {
 		ObjectDefinition od = globalState.getObjectDefinition(getKey(unitType));
+		modifyObject(od, modification, VariableType.INTEGER, value.getVal());
+	}
+	
+	public void unitType_setString(ILconstTuple unitType, ILconstString modification, ILconstString value) {
+		ObjectDefinition od = globalState.getObjectDefinition(getKey(unitType));
+		modifyObject(od, modification, VariableType.STRING, value.getVal());
+	}
+	
+	public void unitType_setReal(ILconstTuple unitType, ILconstString modification, ILconstReal value) {
+		ObjectDefinition od = globalState.getObjectDefinition(getKey(unitType));
+		modifyObject(od, modification, VariableType.REAL, value.getVal());
+	}
+	
+	public void unitType_setUnreal(ILconstTuple unitType, ILconstString modification, ILconstReal value) {
+		ObjectDefinition od = globalState.getObjectDefinition(getKey(unitType));
+		modifyObject(od, modification, VariableType.UNREAL, value.getVal());
+	}
+
+	private <T> void modifyObject(ObjectDefinition od, ILconstString modification, VariableType<T> variableType, T value) {
 		String modificationId = modification.getVal();
-		for (ObjectModification m : od.getModifications()) {
+		for (ObjectModification<?> m : od.getModifications()) {
 			if (m.getModificationId().equals(modificationId)) {
-				ObjectModificationInt m2 = (ObjectModificationInt) m;
-				m2.setData(value.getVal());
+				ObjectModification<T> m2 = m.castTo(value);
+				m2.setData(value);
 				return;
 			}
 		}
 		// create new modification:
-		od.add(new ObjectModificationInt(od, modificationId, 0, 0, value.getVal()));
+		od.add(ObjectModification.create(od, modificationId, variableType, 0, 0, value));
 	}
 
 	private String getKey(ILconstTuple unitType) {

@@ -59,9 +59,13 @@ public class ProgramState extends State {
 		
 		try {
 			// extract unit file:
-			LadikMpq editor = MpqEditorFactory.getEditor();
-			File w3u = editor.extractFile(mapFile, "war3map.w3u");
-			unitStore = new ObjectFile(w3u, ObjectFileType.UNITS);
+			try {
+				LadikMpq editor = MpqEditorFactory.getEditor();
+				File w3u = editor.extractFile(mapFile, "war3map.w3u");
+				unitStore = new ObjectFile(w3u, ObjectFileType.UNITS);
+			} catch (Error e) {
+				unitStore = new ObjectFile(ObjectFileType.UNITS);
+			}
 			
 			// clean unitstore:
 			Iterator<ObjectDefinition> it = unitStore.getModifiedTable().getObjectDefinitions().iterator();

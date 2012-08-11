@@ -45,6 +45,7 @@ public class CompiletimeFunctionRunner {
 			
 			interpreter.writebackGlobalState();
 		} catch (Throwable e) {
+			WLogger.severe(e);
 			ImStmt s = interpreter.getLastStatement();
 			AstElement origin = s.attrTrace();
 			if (origin != null) { 

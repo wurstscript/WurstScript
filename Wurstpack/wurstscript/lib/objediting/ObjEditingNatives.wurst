@@ -32,7 +32,16 @@ public tuple unitType(string key)
 	skip
 	
 
-
-
+// changes a string value of a unit
+@compiletimenative public function unitType.setString(string modification, string value)
+	skip
+	
+// changes a real of a unit
+@compiletimenative public function unitType.setReal(string modification, real value)
+	skip
+	
+// changes a unreal (real between 0.0 and 1.0) of a unit
+@compiletimenative public function unitType.setUnreal(string modification, real value)
+	skip
 
 

@@ -2,7 +2,9 @@ package de.peeeq.wurstscript.objectreader;
 
 import java.io.IOException;
 
-public abstract class ObjectModification { // TODO split into appropiate subclasses
+import de.peeeq.wurstscript.intermediateLang.interpreter.VariableType;
+
+public abstract class ObjectModification<T> { // TODO split into appropiate subclasses
 
 	protected String modificationId;
 	
@@ -11,13 +13,24 @@ public abstract class ObjectModification { // TODO split into appropiate subclas
 	protected int levelCount;
 	protected int dataPointer;
 	protected ObjectDefinition parent;
+	protected T data;
 
-	public ObjectModification(ObjectDefinition parent, String modificationId, int variableType, int levelCount, int dataPointer) {
+	public ObjectModification(ObjectDefinition parent, String modificationId, int variableType, int levelCount, int dataPointer, T data) {
 		this.parent = parent;
 		this.modificationId = modificationId;
 		this.variableType = variableType;
 		this.levelCount = levelCount;
 		this.dataPointer = dataPointer;
+		this.data = data;
+	}
+	
+	
+	public T getData() {
+		return data;
+	}
+
+	public void setData(T data) {
+		this.data = data;
 	}
 
 	public void setLevelData(int levelCount, int dataPointer) {
@@ -26,7 +39,7 @@ public abstract class ObjectModification { // TODO split into appropiate subclas
 	}
 
 	
-	static ObjectModification readFromStream(BinaryDataInputStream in, ObjectFileType fileType, ObjectDefinition parent) throws IOException {
+	static ObjectModification<?> readFromStream(BinaryDataInputStream in, ObjectFileType fileType, ObjectDefinition parent) throws IOException {
 		String modificationId = in.readString(4);
 
 		int variableType = in.readInt();
@@ -40,7 +53,7 @@ public abstract class ObjectModification { // TODO split into appropiate subclas
 
 		
 		
-		ObjectModification result;
+		ObjectModification<?> result;
 		switch (variableType) {
 			case VariableTypes.INTEGER:
 				int intData = in.readInt();
@@ -112,4 +125,27 @@ public abstract class ObjectModification { // TODO split into appropiate subclas
 
 	public abstract void exportToWurst(Appendable out) throws IOException;
 
+
+	@SuppressWarnings("unchecked")
+	public <K> ObjectModification<K> castTo(K val) {
+		if (!data.getClass().equals(val.getClass())) {
+			throw new Error("cannot cast from " + data.getClass() + " to " + val.getClass());
+		}
+		return (ObjectModification<K>) this;
+	}
+
+	
+	@SuppressWarnings("unchecked")
+	public static <T> ObjectModification<T> create(ObjectDefinition parent, String modificationId, VariableType<T> variableType2, int levelCount, int dataPointer, T value) {
+		if (variableType2 == VariableType.INTEGER) {
+			return (ObjectModification<T>) new ObjectModificationInt(parent, modificationId, levelCount, dataPointer, (Integer) value);
+		} else if (variableType2 == VariableType.REAL) {
+			return (ObjectModification<T>) new ObjectModificationReal(parent, modificationId, levelCount, dataPointer, (Float) value);
+		} else if (variableType2 == VariableType.UNREAL) {
+			return (ObjectModification<T>) new ObjectModificationUnreal(parent, modificationId, levelCount, dataPointer, (Float) value);
+		} else if (variableType2 == VariableType.STRING) {
+			return  (ObjectModification<T>) new ObjectModificationString(parent, modificationId, levelCount, dataPointer, (String) value);
+		}
+		throw new Error("unsupported vartype " + variableType2);
+	}
 }

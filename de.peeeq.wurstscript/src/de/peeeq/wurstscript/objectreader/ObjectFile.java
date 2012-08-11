@@ -56,6 +56,13 @@ public class ObjectFile {
 
 	}
 
+	public ObjectFile(ObjectFileType fileType) {
+		this.fileType = fileType;
+		version = 2;
+		origTable = new ObjectTable();
+		modifiedTable = new ObjectTable();
+	}
+
 	public void writeTo(File file) {
 		BinaryDataOutputStream out = null;
 		try {

@@ -42,6 +42,7 @@ import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprThis;
+import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.JassToplevelDeclaration;
@@ -55,6 +56,9 @@ import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.TranslatedToImFunction;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.ast.TypeExprArray;
+import de.peeeq.wurstscript.ast.TypeExprSimple;
+import de.peeeq.wurstscript.ast.TypeExprThis;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
@@ -325,7 +329,22 @@ public class ImTranslator {
 			if (f.attrNearestStructureDef() != null) {
 				return f.attrNearestStructureDef().getName() + "_" + f.getName();
 			}
+		} else if (e instanceof ExtensionFuncDef) {
+			ExtensionFuncDef f = (ExtensionFuncDef) e;
+			return getNameFor(f.getExtendedType()) + "_" + f.getName();
+		} else if (e instanceof TypeExprSimple) {
+			TypeExprSimple t = (TypeExprSimple) e;
+			return t.getTypeName();
+		} else if (e instanceof TypeExprSimple) {
+			TypeExprSimple t = (TypeExprSimple) e;
+			return t.getTypeName();
+		} else if (e instanceof TypeExprThis) {
+			return "thistype";
+		} else if (e instanceof TypeExprArray) {
+			TypeExprArray t = (TypeExprArray) e;
+			return getNameFor(t.getBase()) + "Array";
 		}
+		
 		
 			
 		if (e instanceof AstElementWithName) {
