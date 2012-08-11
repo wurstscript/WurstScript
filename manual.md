@@ -4,7 +4,7 @@ title: WurstScript Manual
 ---
 
 
-_by peq & Frotty_ _Version: 0.003b_ 
+_by peq & Frotty_ _Version: 0.004a_ 
 
 
 WurstScript is a programming language named after the german word for sausage.
@@ -13,6 +13,13 @@ The sausage is a symbol for encapsulation (Peel/Pelle), compactness (sausage mea
 
 Remember, WurstScript and its related tools are in a probably unstable state and under heavy development, so you may encounter errors and bugs we don't know about. Please report any
 problem with our [issue tracker at GitHub](https://github.com/peq/WurstScript/issues/new).
+
+# Syntax
+The WurstScript Syntax uses indention to define Blocks, rather than using curly
+braces (as in Java) or keywords like 'endif' (as in Jass).
+
+In general WurstScript tries to avoid using symbols as much as possible to
+provide a clear and readable look. At the same time most of Jass' verbosity got removed. 
 
 # Basics
 
@@ -66,6 +73,8 @@ Remember that functionnames have to start with a lowercase letter.
 	var y = 5
 	// declaring a variable with explicit type
 	int z = 7
+	// declaring an int array
+	int array a
     
     // inside a function
     function getUnitInfo( unit u )
@@ -79,12 +88,6 @@ Remember that functionnames have to start with a lowercase letter.
 With these basic concepts you should be able to do anything you already know for jass.
 The syntax is a little bit different of course, but this is covered in the next chapter.
 
-# Syntax
-The WurstScript Syntax uses indention to define Blocks, rather than using curly
-braces (as in Java) or keywords like 'endif' (as in Jass).
-
-In general WurstScript tries to avoid using symbols as much as possible to
-provide a clear and readable look. At the same time most of Jass' verbosity got removed. 
 
 ## Expressions
 
@@ -238,8 +241,8 @@ WurstScript supports the following shorthands for assignments:
 		return someArray[5]
 
 	function foobar()
-		int i // no "local" keyword
-		i = i + 1 // no "set" keyword
+		int i // local variable
+		i = i + 1 // variable assignment
 		int i2 = i // support for locals anywhere inside a function
 
 
@@ -740,7 +743,11 @@ If packages import each other, the order is undefined.
 
 *Note:* Since wc3 has a micro op limitation, too many operations inside init-blocks may stop it from fully executing. In order to avoid this you should only place map-init Stuff inside the init blocks and use timers and own inits for the other stuff.
 
+# Compiletime Functions
+Compiletime Functions are functions, that get executed when compiling yur script/map.
+They mainly offer the possibility to create Object-Editor Objects via code.
 
+## Declaration
 
 
 
