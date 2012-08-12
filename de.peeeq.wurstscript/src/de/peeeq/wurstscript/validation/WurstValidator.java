@@ -847,6 +847,11 @@ public class WurstValidator {
 					check(VisibilityPublic.class);
 				}
 
+				@Override
+				public void case_WPackage(WPackage wPackage) {
+					check();
+				}
+
 			});
 			if (error.length() > 0) {
 				e.addError(error.toString());

@@ -53,5 +53,12 @@ public class AttrImportedPackage {
 		return result;
 	}
 
+	public static Map<String, WPackage> getPackagesFresh(WurstModel wurstModel) {
+		Map<String, WPackage> attrPackages = wurstModel.attrPackages();
+		attrPackages.clear();
+		attrPackages.putAll(getPackages(wurstModel));
+		return attrPackages;
+	}
+
 
 }

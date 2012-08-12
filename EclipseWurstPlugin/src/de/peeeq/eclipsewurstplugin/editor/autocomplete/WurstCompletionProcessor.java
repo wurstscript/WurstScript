@@ -30,10 +30,12 @@ import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.StmtErr;
+import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.ast.WStatements;
+import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
 import de.peeeq.wurstscript.utils.Utils;
@@ -99,6 +101,14 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			// show no hints for reals
 		} else if (elem instanceof WPackage) {
 			// no hints at package level
+		} else if (elem instanceof WImport) {
+			WImport imp = (WImport) elem;
+			WurstModel model = elem.getModel();
+			for (WPackage p : model.attrPackagesFresh().values()) {
+				if (p.getName().startsWith(alreadyEntered)) {
+					completions.add(makeNameDefCompletion(p));
+				}
+			}
 		} else {
 			WScope scope = elem.attrNearestScope();
 			while (scope != null) {

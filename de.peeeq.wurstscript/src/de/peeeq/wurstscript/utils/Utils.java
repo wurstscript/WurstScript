@@ -600,9 +600,6 @@ public class Utils {
 	}
 
 	public static AstElement getAstElementAtPos(AstElement elem, int caretPosition) {
-		if (elem instanceof ClassDef) {
-			System.out.println("blub");
-		}
 		List<AstElement> betterResults = Lists.newArrayList();
 		for (int i=0; i < elem.size(); i++) {
 			AstElement e = elem.get(i);

@@ -18,7 +18,9 @@ import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.types.PScriptTypePackage;
 import de.peeeq.wurstscript.types.PscriptNativeType;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
@@ -101,7 +103,9 @@ public class AttrVarDefType {
 		return new PscriptTypeTuple(t);
 	}
 
-	
+	public static PscriptType calculate(WPackage p) {
+		return new PScriptTypePackage(p);
+	}
 	
 
 }
