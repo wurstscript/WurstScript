@@ -954,6 +954,10 @@ public class WurstValidator {
 	}
 
 	private void checkIfTypeDefExists(NameDef n, PackageOrGlobal p) {
+		if (n instanceof WPackage) {
+			// TODO check that there is no other package with same name?
+			return;
+		}
 		List<TypeDef> types = NameResolution.searchTypedName(TypeDef.class, n.getName(), p, false);
 		types.remove(n);
 		if (types.size() > 0) {

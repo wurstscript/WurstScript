@@ -281,5 +281,12 @@ public class PackageTests extends PscriptTest {
 				"endpackage");
 	}
 	
+	@Test
+	public void test_same_name_as_class() {
+		testAssertOkLines(false, 
+				"package A",
+				"	class A",
+				"endpackage");
+	}
 
 }
