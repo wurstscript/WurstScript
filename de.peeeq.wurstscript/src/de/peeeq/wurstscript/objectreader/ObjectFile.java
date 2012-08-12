@@ -59,8 +59,8 @@ public class ObjectFile {
 	public ObjectFile(ObjectFileType fileType) {
 		this.fileType = fileType;
 		version = 2;
-		origTable = new ObjectTable();
-		modifiedTable = new ObjectTable();
+		origTable = new ObjectTable(fileType);
+		modifiedTable = new ObjectTable(fileType);
 	}
 
 	public void writeTo(File file) {

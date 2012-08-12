@@ -1,47 +1,65 @@
 package ObjEditingNatives
 
-/* Complete example:
 
-package ObjTest
-import ObjEditingNatives
-
-
-@compiletime function createTestUnit()
-	let u = createUnitType("h000", "hfoo")
-	// set base damage
-	u.setInt("ua1b", 42)
-
-*/
-
-
-public tuple unitType(string key)
 
 // when this function is called at compiletime it generated a compile error with the given message 
 @compiletimenative public function compileError(string msg)
 
-// creates a new unit type
+
+public tuple ObjectDefinition(string key)
+
+// creates a new unit objectdefinition
 // for example to create a new unit with id "h000" which is based on a footman ("hfoo") 
-// let u = createUnitType("h000", "hfoo")
-@compiletimenative public function createUnitType(string newId, string deriveFrom) returns unitType
-	return unitType("") // dummy implementation
+// let u = createObjectDefinition("w3u", "h000", "hfoo")
+@compiletimenative public function createObjectDefinition(string fileType, string newId, string deriveFrom) returns ObjectDefinition
+	return ObjectDefinition("") // dummy implementation
 	
-// changes an integer value of a unit
-// for example to change the base damage to 42 of a unit use
-// u.setInt("ua1b", 42)
-@compiletimenative public function unitType.setInt(string modification, int value)
+// changes an integer value of an objectdefinition
+@compiletimenative public function ObjectDefinition.setInt(string modification, int value)
 	skip
 	
-
-// changes a string value of a unit
-@compiletimenative public function unitType.setString(string modification, string value)
+// changes a string value of an objectdefinition
+@compiletimenative public function ObjectDefinition.setString(string modification, string value)
 	skip
 	
-// changes a real of a unit
-@compiletimenative public function unitType.setReal(string modification, real value)
+// changes a real of an objectdefinition
+@compiletimenative public function ObjectDefinition.setReal(string modification, real value)
 	skip
 	
-// changes a unreal (real between 0.0 and 1.0) of a unit
-@compiletimenative public function unitType.setUnreal(string modification, real value)
+// changes a unreal (real between 0.0 and 1.0) of an objectdefinition
+@compiletimenative public function ObjectDefinition.setUnreal(string modification, real value)
 	skip
 
 
+// changes an integer value of an objectdefinition
+@compiletimenative public function ObjectDefinition.setLvlInt(string modification, int lvl, int value)
+	skip
+	
+// changes a string value of an objectdefinition
+@compiletimenative public function ObjectDefinition.setLvlString(string modification, int lvl, string value)
+	skip
+	
+// changes a real of an objectdefinition
+@compiletimenative public function ObjectDefinition.setLvlReal(string modification, int lvl, real value)
+	skip
+	
+// changes a unreal (real between 0.0 and 1.0) of an objectdefinition
+@compiletimenative public function ObjectDefinition.setLvlUnreal(string modification, int lvl, real value)
+	skip
+
+
+// changes an integer value of an objectdefinition
+@compiletimenative public function ObjectDefinition.setLvlDataInt(string modification, int lvl, int dataPointer, int value)
+	skip
+	
+// changes a string value of an objectdefinition
+@compiletimenative public function ObjectDefinition.setLvlDataString(string modification, int lvl, int dataPointer, string value)
+	skip
+	
+// changes a real of an objectdefinition
+@compiletimenative public function ObjectDefinition.setLvlDataReal(string modification, int lvl, int dataPointer, real value)
+	skip
+	
+// changes a unreal (real between 0.0 and 1.0) of an objectdefinition
+@compiletimenative public function ObjectDefinition.setLvlDataUnreal(string modification, int lvl, int dataPointer, real value)
+	skip

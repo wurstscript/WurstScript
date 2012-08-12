@@ -21,13 +21,9 @@ public class ObjectModificationString extends ObjectModification<String> {
 
 
 	@Override
-	public void exportToWurst(Appendable out) throws IOException {
-		out.append("	u.setString(\"");
-		out.append(modificationId);
-		out.append("\", \""+data+"\")\n");
-		
+	protected String getFuncPostfix() {
+		return "String";
 	}
-
 	
 	
 }

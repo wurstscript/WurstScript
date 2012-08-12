@@ -8,19 +8,24 @@ import com.google.common.collect.Lists;
 public class ObjectTable {
 
 	private List<ObjectDefinition> objectDefinitions = Lists.newArrayList();
+	private ObjectFileType fileType;
 	
+	public ObjectTable(ObjectFileType fileType2) {
+		this.fileType = fileType2;
+	}
+
 	public void add(ObjectDefinition objDef) {
 		objectDefinitions.add(objDef);
 	}
 
 	static ObjectTable readFromStream(BinaryDataInputStream in, ObjectFileType fileType) throws IOException {
-
-		ObjectTable objectTable = new ObjectTable();
+		ObjectTable objectTable = new ObjectTable(fileType);
+		
 
 		int numberOfObjects = in.readInt();
 
 		for (int i = 0; i < numberOfObjects; i++) {
-			ObjectDefinition objDef = ObjectDefinition.readFromStream(in, fileType);
+			ObjectDefinition objDef = ObjectDefinition.readFromStream(in, objectTable);
 			objectTable.add(objDef);
 		}
 
@@ -55,6 +60,10 @@ public class ObjectTable {
 			od.exportToWurst(out);
 		}
 		
+	}
+
+	public ObjectFileType getFileType() {
+		return fileType;
 	}
 
 }

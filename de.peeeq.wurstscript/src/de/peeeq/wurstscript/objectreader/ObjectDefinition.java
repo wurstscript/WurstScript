@@ -9,24 +9,27 @@ public class ObjectDefinition {
 
 	private String origObjectId;
 	private String newObjectId;
-	private List<ObjectModification> modifications = Lists.newArrayList();
-
-	public ObjectDefinition(String origObjectId, String newObjectId) {
+	private List<ObjectModification<?>> modifications = Lists.newArrayList();
+	private final ObjectTable parent;
+	
+	public ObjectDefinition(ObjectTable parent, String origObjectId, String newObjectId) {
 		this.origObjectId =  origObjectId;
 		this.newObjectId = newObjectId;
+		this.parent = parent;
 	}
 
-	public void add(ObjectModification mod) {
+	public void add(ObjectModification<?> mod) {
 		modifications.add(mod);
 	}
 	
-	static ObjectDefinition readFromStream(BinaryDataInputStream in, ObjectFileType fileType) throws IOException {
+	static ObjectDefinition readFromStream(BinaryDataInputStream in, ObjectTable parent) throws IOException {
+		ObjectFileType fileType = parent.getFileType();
 		String origObjectId = in.readString(4);
 		String newObjectId = in.readString(4);
-		ObjectDefinition def = new ObjectDefinition(origObjectId, newObjectId);
+		ObjectDefinition def = new ObjectDefinition(parent, origObjectId, newObjectId);
 		int numberOfModifications = in.readInt();
 		for (int i = 0; i < numberOfModifications; i++) {
-			ObjectModification mod = ObjectModification.readFromStream(in, fileType, def);
+			ObjectModification<?> mod = ObjectModification.readFromStream(in, fileType, def);
 			def.add(mod);
 		}
 		return def;
@@ -38,7 +41,7 @@ public class ObjectDefinition {
 		
 		// write number of modifications.
 		out.writeInt(modifications.size());
-		for (ObjectModification m : modifications) {
+		for (ObjectModification<?> m : modifications) {
 			m.writeToStream(out, fileType);
 		}
 		
@@ -52,14 +55,14 @@ public class ObjectDefinition {
 		return newObjectId;
 	}
 
-	public List<ObjectModification> getModifications() {
+	public List<ObjectModification<?>> getModifications() {
 		return modifications;
 	}
 
 	public void prettyPrint(StringBuilder sb) {
 		sb.append("Object " + newObjectId + " <: " + origObjectId+ "[\n");
 		
-		for (ObjectModification m : modifications) {
+		for (ObjectModification<?> m : modifications) {
 			sb.append("    " + m.toString() + ";\n");
 		}
 		
@@ -68,15 +71,23 @@ public class ObjectDefinition {
 
 	public void exportToWurst(Appendable out) throws IOException {
 		out.append("@compiletime function createUnit"+newObjectId+"()\n");
-		out.append("	let u = createUnitType(\"");
+		out.append("	let u = createObjectDefinition(\""+parent.getFileType().getExt()+ "\", \"");
 		out.append(newObjectId);
 		out.append("\", \"");
 		out.append(origObjectId);
 		out.append("\")\n");
-		for (ObjectModification m : modifications) {
+		for (ObjectModification<?> m : modifications) {
 			m.exportToWurst(out);
 		}
 		out.append("\n\n");
+	}
+
+	public ObjectTable getParent() {
+		return parent;
+	}
+	
+	public ObjectFileType getFileType() {
+		return parent.getFileType();
 	}
 
 	

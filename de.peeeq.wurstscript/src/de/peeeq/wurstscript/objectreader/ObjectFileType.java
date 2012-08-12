@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.objectreader;
 
+import java.util.Map;
+
 public enum ObjectFileType {
 	UNITS("w3u", "Units\\UnitData.slk", "Units\\UnitMetaData.slk", false),
 	ITEMS("w3t", "Units\\ItemData.slk", "Units\\UnitMetaData.slk", false),
@@ -8,6 +10,7 @@ public enum ObjectFileType {
 	ABILITIES("w3a", "Units\\AbilityData.slk", "Units\\AbilityMetaData.slk", true),
 	BUFFS("w3b", "Units\\AbilityBuffData.slk", "Units\\AbilityBuffMetaData.slk", false),
 	UPGRADES("w3u", "Units\\UpgradeData.slk", "Units\\UpgradeMetaData.slk", true);
+	
 	
 	private boolean usesLevels;
 	private String ext;
@@ -35,6 +38,15 @@ public enum ObjectFileType {
 		this.objectIDs = objectIDs;
 		this.modIDs = modIDs;
 		this.usesLevels = usesLevels;
+	}
+
+	public static ObjectFileType fromExt(String fileExtension) {
+		for (ObjectFileType t : ObjectFileType.values()) {
+			if (t.getExt().equals(fileExtension)) {
+				return t;
+			}
+		}
+		throw new Error("Unsupoorted filetype: " + fileExtension);
 	}
 	
 }

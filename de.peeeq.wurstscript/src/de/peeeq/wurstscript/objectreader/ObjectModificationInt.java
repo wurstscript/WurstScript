@@ -21,11 +21,8 @@ public class ObjectModificationInt extends ObjectModification<Integer> {
 	
 
 	@Override
-	public void exportToWurst(Appendable out) throws IOException {
-		out.append("	u.setInt(\"");
-		out.append(modificationId);
-		out.append("\", "+data+")\n");
-		
+	protected String getFuncPostfix() {
+		return "Int";
 	}
 	
 	
