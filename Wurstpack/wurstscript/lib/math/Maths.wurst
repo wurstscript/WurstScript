@@ -1,9 +1,9 @@
 package Maths	
 	import Vectors
 
-	public constant real PI		= 3.14159265
-	public constant real DEGTORAD  = 0.01745329
-	public constant real RADTODEG  = 57.2957795
+	public constant real PI			=  3.141592654
+	public constant real DEGTORAD  	=  0.017453293
+	public constant real RADTODEG  	= 57.295779513
 	
 	public function polarProjectionX ( real x,  real dist, real angle ) returns real
 		return x + dist * Cos(angle * DEGTORAD)
@@ -29,6 +29,11 @@ package Maths
 		real z = pos.z + distance * Cos(angleAir) 
 		return vec3(x,y,z)
 		
+	public function angleToVector( real angle ) returns vec2
+		return vec2(Cos(angle), Sin(angle))
+		
+	public function vectorToAngle( vec2 v ) returns real
+		return Atan2(v.y, v.x)
 	
 endpackage
 

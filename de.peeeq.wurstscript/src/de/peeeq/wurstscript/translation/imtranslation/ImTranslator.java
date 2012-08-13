@@ -21,6 +21,7 @@ import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlag.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,6 +41,8 @@ import de.peeeq.wurstscript.ast.AstElementWithName;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.EnumMember;
+import de.peeeq.wurstscript.ast.EnumMembers;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprThis;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
@@ -876,6 +879,11 @@ public class ImTranslator {
 			max = Math.max(max, getTypeId(c));
 		}
 		return max;
+	}
+
+
+	public int getEnumMemberId(EnumMember enumMember) {
+		return ((EnumMembers) enumMember.getParent()).indexOf(enumMember);
 	}
 
 }

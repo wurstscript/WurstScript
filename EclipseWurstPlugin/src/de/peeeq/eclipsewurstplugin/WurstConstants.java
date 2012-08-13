@@ -8,8 +8,7 @@ public class WurstConstants {
 	public static final String[] KEYWORDS = new String[] { "class", "return", "if", "else", "while", "for", "in", "break", "new", "null",
 		"package", "endpackage", "function", "returns", "public", "private", "protected", "import", "native", "nativetype", "extends",
 		"interface", "implements", "module", "use", "abstract", "static", "thistype", "override", "immutable", "it", "array", "and",
-		"or", "not", "this", "construct", "ondestroy", "destroy", "type", "globals", "endglobals", "constant", "endfunction",
-		"nothing", "takes", "local", "loop", "endloop", "exitwhen", "set", "call", "then", "elseif", "endif", "init", "castTo",
+		"or", "not", "this", "construct", "ondestroy", "destroy", "type", "constant", "endfunction", "nothing", "init", "castTo",
 		"tuple", "div", "mod", "let", "from", "to", "downto", "step", "endpackage", "skip", "true", "false", "var", "instanceof",
 		"super"};
 	

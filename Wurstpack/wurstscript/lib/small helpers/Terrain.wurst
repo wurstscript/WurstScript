@@ -40,6 +40,7 @@ package Terrain
 // 
     constant real    MAX_RANGE     = 10.
     constant integer DUMMY_ITEM_ID = 'wolg'
+    constant real MAP_STANDARD_HEIGHT = 335.
 	location tempLoc = Location(0.,0.)
     
     item       dItem   = null
@@ -68,7 +69,7 @@ package Terrain
 	
 	public function getTerrainZ(real x, real y) returns real
 		MoveLocation( tempLoc, x, y )
-		return GetLocationZ( tempLoc )
+		return GetLocationZ( tempLoc ) - MAP_STANDARD_HEIGHT
 
 	public function isTerrainDeepWater(real x, real y) returns boolean
 	    return not IsTerrainPathable(x, y, PATHING_TYPE_FLOATABILITY) and IsTerrainPathable(x, y, PATHING_TYPE_WALKABILITY)

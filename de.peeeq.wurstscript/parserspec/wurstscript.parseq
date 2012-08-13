@@ -58,7 +58,9 @@ TypeDef =
 			ModuleInstanciations moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy)
 	| TupleDef(WPos source, Modifiers modifiers, String name, WParameters parameters, OptTypeExpr returnTyp)
 	| TypeParamDef
+	| EnumDef(WPos source, Modifiers modifiers, String name, EnumMembers members )
 	
+EnumMembers * EnumMember
 FuncDefs * FuncDef
 GlobalVarDefs * GlobalVarDef
 ConstructorDefs * ConstructorDef
@@ -79,7 +81,9 @@ ClassSlot =
 ClassMember = 
 	  GlobalVarDef
 	| FuncDef
-
+	
+EnumMember(WPos source, Modifiers modifiers, String name)
+	
 
 GlobalVarDef(WPos source, Modifiers modifiers, OptTypeExpr optTyp, String name, OptExpr initialExpr)
 LocalVarDef(WPos source, Modifiers modifiers, OptTypeExpr optTyp, String name, OptExpr initialExpr) 
@@ -224,7 +228,7 @@ PackageOrGlobal = WPackage | CompilationUnit
 	
 TypeRef = TypeExpr | ExprNewObject
 
-NameDef = VarDef | TypeDef | ModuleDef | ModuleInstanciation | FunctionDefinition | WPackage
+NameDef = VarDef | TypeDef | ModuleDef | ModuleInstanciation | FunctionDefinition | WPackage | EnumDef | EnumMember
 
 VisibilityModifier = 
 	  VisibilityPublic(WPos source) 
@@ -257,7 +261,7 @@ ClassOrModuleInstanciation = ClassDef | ModuleInstanciation
 ClassOrModuleOrModuleInstanciation = ClassOrModule | ClassOrModuleInstanciation
 StructureDefOrModuleInstanciation = ClassOrModuleOrModuleInstanciation | StructureDef
 
-NamedScope = WPackage | StructureDefOrModuleInstanciation | InterfaceDef
+NamedScope = WPackage | StructureDefOrModuleInstanciation | InterfaceDef | EnumDef
 
 
 // Jass types:

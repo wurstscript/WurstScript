@@ -16,6 +16,8 @@ import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModuleOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.EnumDef;
+import de.peeeq.wurstscript.ast.EnumMember;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
@@ -342,6 +344,16 @@ public class Scopes {
 	public static Multimap<String, NameDef> getDefinedNames(WurstModel wurstModel) {
 		return HashMultimap.create();
 	}
+
+
+	public static Multimap<String, NameDef> getDefinedNames(EnumDef e) {
+		Multimap<String, NameDef> result = HashMultimap.create();
+		for (EnumMember f : e.getMembers()) {
+			result.put(f.getName(), f);
+		}
+		return result;
+	}
+
 
 
 	
