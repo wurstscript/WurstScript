@@ -19,7 +19,7 @@ WPackages * WPackage
 TopLevelDeclaration = JassToplevelDeclaration | WPackage
 TopLevelDeclarations * TopLevelDeclaration
 
-WPackage(WPos source, String name, WImports imports, WEntities elements)
+WPackage(WPos source, Modifiers modifiers, String name, WImports imports, WEntities elements)
 
 WImports * WImport
 WEntities * WEntity
@@ -224,7 +224,7 @@ PackageOrGlobal = WPackage | CompilationUnit
 	
 TypeRef = TypeExpr | ExprNewObject
 
-NameDef = VarDef | TypeDef | ModuleDef | ModuleInstanciation | FunctionDefinition
+NameDef = VarDef | TypeDef | ModuleDef | ModuleInstanciation | FunctionDefinition | WPackage
 
 VisibilityModifier = 
 	  VisibilityPublic(WPos source) 
@@ -545,6 +545,10 @@ ConstructorDef.attrSuperConstructor
 WurstModel.attrPackages
 	returns java.util.Map<String, WPackage>
 	implemented by de.peeeq.wurstscript.attributes.AttrImportedPackage.getPackages
+	
+WurstModel.attrPackagesFresh()
+	returns java.util.Map<String, WPackage>
+	implemented by de.peeeq.wurstscript.attributes.AttrImportedPackage.getPackagesFresh
 	
 AstElement.getModel()
 	returns WurstModel

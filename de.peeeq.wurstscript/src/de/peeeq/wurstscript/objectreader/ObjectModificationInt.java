@@ -2,12 +2,10 @@ package de.peeeq.wurstscript.objectreader;
 
 import java.io.IOException;
 
-public class ObjectModificationInt extends ObjectModification {
-	private int data;
+public class ObjectModificationInt extends ObjectModification<Integer> {
 
 	public ObjectModificationInt(ObjectDefinition parent, String modificationId, int levelCount, int dataPointer, int intData) {
-		super(parent, modificationId, VariableTypes.INTEGER, levelCount, dataPointer);
-		this.data = intData;
+		super(parent, modificationId, VariableTypes.INTEGER, levelCount, dataPointer, intData);
 	}
 
 	@Override
@@ -20,12 +18,11 @@ public class ObjectModificationInt extends ObjectModification {
 		return modificationId + " = " + data;
 	}
 
-	public int getData() {
-		return data;
-	}
+	
 
-	public void setData(int data) {
-		this.data = data;
+	@Override
+	protected String getFuncPostfix() {
+		return "Int";
 	}
 	
 	

@@ -37,7 +37,7 @@ public class UtilsTest {
 	CompilationUnit testProg = Ast.CompilationUnit("",
 			errorHandler, Ast.JassToplevelDeclarations(),
 			Ast.WPackages(
-			  Ast.WPackage(source.copy() , "test", Ast.WImports(), Ast.WEntities(
+			  Ast.WPackage(source.copy() , Ast.Modifiers(), "test", Ast.WImports(), Ast.WEntities(
 					  Ast.GlobalVarDef(source.copy(), Ast.Modifiers(), Ast.NoTypeExpr(), "v1", Ast.ExprIntVal(source.copy(), 5)),
 					  Ast.GlobalVarDef(source.copy(), Ast.Modifiers(), Ast.NoTypeExpr(), "v2", Ast.ExprVarAccess(source.copy(), "r1")),
 					  Ast.GlobalVarDef(source.copy(), Ast.Modifiers(), Ast.NoTypeExpr(), "v3", Ast.ExprBinary(source.copy(), Ast.ExprIntVal(source.copy(), 3), Ast.OpPlus(), Ast.ExprVarAccess(source.copy(), "r2"))),

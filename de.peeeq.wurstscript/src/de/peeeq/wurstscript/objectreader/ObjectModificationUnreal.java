@@ -5,13 +5,11 @@ import java.io.IOException;
 /**
  * same as {@link ObjectModificationReal} but with 0 <= data <= 1  
  */
-public class ObjectModificationUnreal extends ObjectModification {
-	private float data;
+public class ObjectModificationUnreal extends ObjectModification<Float> {
 
 	public ObjectModificationUnreal(ObjectDefinition parent, String modificationId, int levelCount, int dataPointer,
 			float floatData) {
-		super(parent, modificationId, VariableTypes.UNREAL, levelCount, dataPointer);
-		this.data = floatData;
+		super(parent, modificationId, VariableTypes.UNREAL, levelCount, dataPointer, floatData);
 	}
 
 	@Override
@@ -24,13 +22,11 @@ public class ObjectModificationUnreal extends ObjectModification {
 		return modificationId + " = " + data + "  (unreal)";
 	}
 
-	public float getData() {
-		return data;
+	@Override
+	protected String getFuncPostfix() {
+		return "Unreal";
 	}
 
-	public void setData(float data) {
-		this.data = data;
-	}
 	
 
 	

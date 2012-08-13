@@ -13,8 +13,7 @@ public class PScriptTypePackage extends PscriptTypeNamedScope {
 
 	private WPackage pack;
 
-	// make constructor private as we only need one instance
-	private PScriptTypePackage(WPackage pack) {
+	public PScriptTypePackage(WPackage pack) {
 		super(true);
 		if (pack == null) throw new IllegalArgumentException();
 		this.pack = pack;

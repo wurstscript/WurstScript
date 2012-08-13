@@ -56,11 +56,17 @@ public class ObjectFile {
 
 	}
 
+	public ObjectFile(ObjectFileType fileType) {
+		this.fileType = fileType;
+		version = 2;
+		origTable = new ObjectTable(fileType);
+		modifiedTable = new ObjectTable(fileType);
+	}
+
 	public void writeTo(File file) {
-		FileOutputStream fos = null;
-		
+		BinaryDataOutputStream out = null;
 		try {
-			BinaryDataOutputStream out = new BinaryDataOutputStream(file, true);
+			out = new BinaryDataOutputStream(file, true);
 			
 			out.writeInt(version);
 			
@@ -69,23 +75,51 @@ public class ObjectFile {
 			
 			
 			out.flush();
-			
 		} catch (IOException e) {
 			WLogger.severe(e);
 			throw new Error(e);
 		} finally {
-			if (fos != null) {
+			
+			if (out != null) {
 				try {
-					fos.close();
+					out.close();
 				} catch (IOException e) {
 					throw new Error(e);
 				}
 			}
 		}
 	}
+	
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("version = " + version + "\n");
+		sb.append("origTable:\n");
+		sb.append("##################\n");
+		origTable.prettyPrint(sb);
+		sb.append("origTable:\n");
+		sb.append("##################\n");
+		modifiedTable.prettyPrint(sb);
+		
+		return sb.toString();
+	}
 
 	
+	public void exportToWurst(Appendable out) throws IOException {
+		out.append("package ExportedObjects\n");
+		out.append("import ObjEditingNatives\n\n");
+		modifiedTable.exportToWurst(out);
+	}
+	
 
-
+	public String exportToWurst() {
+		StringBuilder sb = new StringBuilder();
+		try {
+			exportToWurst(sb);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return sb.toString();
+	}
 	
 }
