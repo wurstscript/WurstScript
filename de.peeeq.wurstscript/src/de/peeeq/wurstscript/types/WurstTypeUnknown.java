@@ -4,15 +4,15 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.jassIm.ImType;
 
 
-public class PScriptTypeUnknown extends PscriptType {
+public class WurstTypeUnknown extends WurstType {
 
-	private static final PScriptTypeUnknown instance = new PScriptTypeUnknown("unknown");
+	private static final WurstTypeUnknown instance = new WurstTypeUnknown("unknown");
 
 	private String name = "unknown";
 
 	private Error err;
 	
-	public PScriptTypeUnknown(String name) {
+	public WurstTypeUnknown(String name) {
 		this.name = name;
 		try {
 			throw new Error("unknown type");
@@ -22,7 +22,7 @@ public class PScriptTypeUnknown extends PscriptType {
 	}
 
 	@Override
-	public boolean isSubtypeOf(PscriptType other, AstElement location) {
+	public boolean isSubtypeOf(WurstType other, AstElement location) {
 		return false;
 	}
 
@@ -38,7 +38,7 @@ public class PScriptTypeUnknown extends PscriptType {
 		return getName();
 	}
 
-	public static PScriptTypeUnknown instance() {
+	public static WurstTypeUnknown instance() {
 		return instance;
 	}
 

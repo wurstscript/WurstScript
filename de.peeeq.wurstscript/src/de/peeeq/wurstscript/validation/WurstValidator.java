@@ -84,20 +84,20 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.NameResolution;
 import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.FunctionSignature;
-import de.peeeq.wurstscript.types.PScriptTypeArray;
-import de.peeeq.wurstscript.types.PScriptTypeBool;
-import de.peeeq.wurstscript.types.PScriptTypeCode;
-import de.peeeq.wurstscript.types.PScriptTypeEnum;
-import de.peeeq.wurstscript.types.PScriptTypeInt;
-import de.peeeq.wurstscript.types.PScriptTypeReal;
-import de.peeeq.wurstscript.types.PScriptTypeString;
-import de.peeeq.wurstscript.types.PScriptTypeVoid;
-import de.peeeq.wurstscript.types.PscriptType;
-import de.peeeq.wurstscript.types.PscriptTypeClass;
-import de.peeeq.wurstscript.types.PscriptTypeInterface;
-import de.peeeq.wurstscript.types.PscriptTypeModule;
-import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
-import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
+import de.peeeq.wurstscript.types.WurstTypeArray;
+import de.peeeq.wurstscript.types.WurstTypeBool;
+import de.peeeq.wurstscript.types.WurstTypeCode;
+import de.peeeq.wurstscript.types.WurstTypeEnum;
+import de.peeeq.wurstscript.types.WurstTypeInt;
+import de.peeeq.wurstscript.types.WurstTypeReal;
+import de.peeeq.wurstscript.types.WurstTypeString;
+import de.peeeq.wurstscript.types.WurstTypeVoid;
+import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeClass;
+import de.peeeq.wurstscript.types.WurstTypeInterface;
+import de.peeeq.wurstscript.types.WurstTypeModule;
+import de.peeeq.wurstscript.types.WurstTypeNamedScope;
+import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 import de.peeeq.wurstscript.utils.Utils;
 
 /**
@@ -222,8 +222,8 @@ public class WurstValidator {
 			s.getUpdatedExpr().addError("Invalid assignment. This is not a variable, this is a " + Utils.printElement(nameDef));
 		}
 		
-		PscriptType leftType = s.getUpdatedExpr().attrTyp();
-		PscriptType rightType = s.getRight().attrTyp();
+		WurstType leftType = s.getUpdatedExpr().attrTyp();
+		WurstType rightType = s.getRight().attrTyp();
 
 		checkAssignment(Utils.isJassCode(s), s.getSource(), leftType, rightType);
 		
@@ -276,10 +276,10 @@ public class WurstValidator {
 		}
 	}
 
-	private void checkAssignment(boolean isJassCode, WPos pos, PscriptType leftType, PscriptType rightType) {
+	private void checkAssignment(boolean isJassCode, WPos pos, WurstType leftType, WurstType rightType) {
 		if (!rightType.isSubtypeOf(leftType, pos)) {
 			if (isJassCode) {
-				if (leftType instanceof PScriptTypeReal && rightType instanceof PScriptTypeInt) {
+				if (leftType instanceof WurstTypeReal && rightType instanceof WurstTypeInt) {
 					// special case: jass allows to assign an integer to a real
 					// variable
 					return;
@@ -287,8 +287,8 @@ public class WurstValidator {
 			}
 			pos.addError("Cannot assign " + rightType + " to " + leftType);
 		}
-		if (leftType instanceof PscriptTypeNamedScope) {
-			PscriptTypeNamedScope ns = (PscriptTypeNamedScope) leftType;
+		if (leftType instanceof WurstTypeNamedScope) {
+			WurstTypeNamedScope ns = (WurstTypeNamedScope) leftType;
 			if (ns.isStaticRef()) {
 				pos.addError("Missing variable name in variable declaration.\n" +
 				"Cannot assign to " + leftType);
@@ -301,8 +301,8 @@ public class WurstValidator {
 		checkVarName(s, false);
 		if (s.getInitialExpr() instanceof Expr) {
 			Expr initial = (Expr) s.getInitialExpr();
-			PscriptType leftType = s.attrTyp();
-			PscriptType rightType = initial.attrTyp();
+			WurstType leftType = s.attrTyp();
+			WurstType rightType = initial.attrTyp();
 
 			checkAssignment(Utils.isJassCode(s), s.getSource(), leftType, rightType);
 		}
@@ -329,13 +329,13 @@ public class WurstValidator {
 		checkVarName(s, s.attrIsConstant());
 		if (s.getInitialExpr() instanceof Expr) {
 			Expr initial = (Expr) s.getInitialExpr();
-			PscriptType leftType = s.attrTyp();
-			PscriptType rightType = initial.attrTyp();
+			WurstType leftType = s.attrTyp();
+			WurstType rightType = initial.attrTyp();
 			checkAssignment(Utils.isJassCode(s), s.getSource(), leftType, rightType);
 		}
 		
 		
-		if (s.attrTyp() instanceof PScriptTypeArray && !s.attrIsStatic() && s.attrIsDynamicClassMember()) {
+		if (s.attrTyp() instanceof WurstTypeArray && !s.attrIsStatic() && s.attrIsDynamicClassMember()) {
 			s.addError("Array variables must be static.\n" +
 			"Hint: use Lists for dynamic stuff.");
 		}
@@ -343,16 +343,16 @@ public class WurstValidator {
 
 	@CheckMethod
 	public void visit(StmtIf stmtIf) {
-		PscriptType condType = stmtIf.getCond().attrTyp();
-		if (!(condType instanceof PScriptTypeBool)) {
+		WurstType condType = stmtIf.getCond().attrTyp();
+		if (!(condType instanceof WurstTypeBool)) {
 			stmtIf.getCond().addError("If condition must be a boolean but found " + condType);
 		}
 	}
 
 	@CheckMethod
 	public void visit(StmtWhile stmtWhile) {
-		PscriptType condType = stmtWhile.getCond().attrTyp();
-		if (!(condType instanceof PScriptTypeBool)) {
+		WurstType condType = stmtWhile.getCond().attrTyp();
+		if (!(condType instanceof WurstTypeBool)) {
 			stmtWhile.getCond().addError("While condition must be a boolean but found " + condType);
 		}
 	}
@@ -413,7 +413,7 @@ public class WurstValidator {
 			UninitializedVars.checkFunc(func.attrDefinedNames().values(), func.getBody());
 		}
 
-		Map<TypeParamDef, PscriptType> typeParamBinding = Collections.emptyMap();
+		Map<TypeParamDef, WurstType> typeParamBinding = Collections.emptyMap();
 		
 		// check is override is correct:
 		for (FunctionDefinition overriddenFunc : func.attrOverriddenFunctions()) {
@@ -469,7 +469,7 @@ public class WurstValidator {
 				ExprFuncRef exprFuncRef = (ExprFuncRef) firstArg;
 				FunctionDefinition f = exprFuncRef.attrFuncDef();
 				if (f != null) {
-					if (!(f.getReturnTyp().attrTyp() instanceof PScriptTypeBool)) {
+					if (!(f.getReturnTyp().attrTyp() instanceof WurstTypeBool)) {
 						firstArg.addError("Functions passed to Filter or Condition must return boolean.");
 					}
 				}
@@ -489,7 +489,7 @@ public class WurstValidator {
 		checkParams(where, preMsg, args, sig.getParamTypes());
 	}
 
-	private void checkParams(AstElement where, String preMsg, List<Expr> args, List<PscriptType> parameterTypes) {
+	private void checkParams(AstElement where, String preMsg, List<Expr> args, List<WurstType> parameterTypes) {
 		if (args.size() > parameterTypes.size()) {
 			where.addError(preMsg + "Too many parameters.");
 			
@@ -498,8 +498,8 @@ public class WurstValidator {
 		} else {
 			for (int i=0; i<args.size(); i++) {
 				
-				PscriptType actual = args.get(i).attrTyp();
-				PscriptType expected = parameterTypes.get(i);
+				WurstType actual = args.get(i).attrTyp();
+				WurstType expected = parameterTypes.get(i);
 //				if (expected instanceof AstElementWithTypeArgs)
 				if (!actual.isSubtypeOf(expected, where)) {
 					args.get(i).addError(preMsg + "Expected " + expected + " as parameter " + (i+1) + " but  found " + actual);
@@ -567,20 +567,20 @@ public class WurstValidator {
 			s.addError("return statements can only be used inside functions");
 			return;
 		}
-		PscriptType returnType = func.getReturnTyp().attrTyp();
+		WurstType returnType = func.getReturnTyp().attrTyp();
 		if (s.getReturnedObj() instanceof Expr) {
 			Expr returned = (Expr) s.getReturnedObj();
-			if (returnType.isSubtypeOf(PScriptTypeVoid.instance(), s)) {
+			if (returnType.isSubtypeOf(WurstTypeVoid.instance(), s)) {
 				s.addError("Cannot return a value from a function which returns nothing");
 			} else {
-				PscriptType returnedType = returned.attrTyp();
+				WurstType returnedType = returned.attrTyp();
 				if (!returnedType.isSubtypeOf(returnType, s)) {
 					s.addError("Cannot return " + returnedType + ", expected expression of type "
 					+ returnType);
 				}
 			}
 		} else { // empty return
-			if (!returnType.isSubtypeOf(PScriptTypeVoid.instance(), s)) {
+			if (!returnType.isSubtypeOf(WurstTypeVoid.instance(), s)) {
 				s.addError("Missing return value");
 			}
 		}
@@ -608,10 +608,10 @@ public class WurstValidator {
 		
 		// check overridden methods
 		if (classDef.getExtendedClass() instanceof TypeExpr) {
-			PscriptType extendedType = classDef.getExtendedClass().attrTyp();
-			if (extendedType instanceof PscriptTypeClass) {
-				PscriptTypeClass ptc = (PscriptTypeClass) extendedType;
-				Map<TypeParamDef, PscriptType> typeParamMapping = ptc.getTypeArgBinding();
+			WurstType extendedType = classDef.getExtendedClass().attrTyp();
+			if (extendedType instanceof WurstTypeClass) {
+				WurstTypeClass ptc = (WurstTypeClass) extendedType;
+				Map<TypeParamDef, WurstType> typeParamMapping = ptc.getTypeArgBinding();
 				ClassDef superClass = ptc.getClassDef();
 				Multimap<String, NameDef> superClassFunctions = superClass.attrVisibleNamesProtected();
 				for (FunctionDefinition f : functions.values()) {
@@ -668,11 +668,11 @@ public class WurstValidator {
 
 	@CheckMethod
 	public void visit(StmtDestroy stmtDestroy) {
-		PscriptType typ = stmtDestroy.getDestroyedObj().attrTyp();
-		if (typ instanceof PscriptTypeModule) {
+		WurstType typ = stmtDestroy.getDestroyedObj().attrTyp();
+		if (typ instanceof WurstTypeModule) {
 			
-		} else if (typ instanceof PscriptTypeClass) {
-			PscriptTypeClass c = (PscriptTypeClass) typ;
+		} else if (typ instanceof WurstTypeClass) {
+			WurstTypeClass c = (WurstTypeClass) typ;
 			calledFunctions.put(stmtDestroy.attrNearestScope(), c.getClassDef().getOnDestroy()); 
 		} else {
 			stmtDestroy.addError("Cannot destroy objects of type " + typ);
@@ -712,11 +712,11 @@ public class WurstValidator {
 	
 	@CheckMethod
 	public void checkTypeBinding(HasTypeArgs e) {
-		for (Entry<TypeParamDef, PscriptType> t : e.attrTypeParameterBindings().entrySet()) {
-			PscriptType typ = t.getValue();
-			if (!(typ instanceof PScriptTypeInt)
-					&& !(typ instanceof PscriptTypeNamedScope)
-					&& !(typ instanceof PscriptTypeTypeParam)) {
+		for (Entry<TypeParamDef, WurstType> t : e.attrTypeParameterBindings().entrySet()) {
+			WurstType typ = t.getValue();
+			if (!(typ instanceof WurstTypeInt)
+					&& !(typ instanceof WurstTypeNamedScope)
+					&& !(typ instanceof WurstTypeTypeParam)) {
 				e.addError("Type parameters can only be bound to ints and class types, but " +
 				"not to " + typ);
 			}
@@ -735,7 +735,7 @@ public class WurstValidator {
 		if (called == null) {
 			return;
 		}
-		if (ref.attrTyp() instanceof PScriptTypeCode) {
+		if (ref.attrTyp() instanceof WurstTypeCode) {
 			if (called.attrParameterTypes().size() > 0) {
 				ref.addError("Can only use functions without parameters in 'code' function references.");
 			}
@@ -907,7 +907,7 @@ public class WurstValidator {
 			if (sc == null) {
 				d.addError("No super constructor found.");
 			} else {
-				List<PscriptType> paramTypes = Lists.newArrayList();
+				List<WurstType> paramTypes = Lists.newArrayList();
 				for (WParameter p : sc.getParameters()) {
 					paramTypes.add(p.attrTyp());
 				}
@@ -918,9 +918,9 @@ public class WurstValidator {
 	
 	@CheckMethod
 	public void checkInstanceDef(ClassDef classDef) {
-		for (PscriptTypeInterface interfaceType : classDef.attrImplementedInterfaces()) {
+		for (WurstTypeInterface interfaceType : classDef.attrImplementedInterfaces()) {
 			InterfaceDef interfaceDef = interfaceType.getInterfaceDef();
-			Map<TypeParamDef, PscriptType> typeParamMapping = interfaceType.getTypeArgBinding();
+			Map<TypeParamDef, WurstType> typeParamMapping = interfaceType.getTypeArgBinding();
 			// TODO check type mapping
 
 			nextFunction: 
@@ -1020,10 +1020,10 @@ public class WurstValidator {
 	}
 	
 	private boolean isViableSwitchtype(Expr expr) {
-		PscriptType typ = expr.attrTyp();
-		if( typ.equalsType(PScriptTypeInt.instance(), null) 
-				|| typ.equalsType(PScriptTypeString.instance(), null) 
-				|| (typ instanceof PScriptTypeEnum) ) {
+		WurstType typ = expr.attrTyp();
+		if( typ.equalsType(WurstTypeInt.instance(), null) 
+				|| typ.equalsType(WurstTypeString.instance(), null) 
+				|| (typ instanceof WurstTypeEnum) ) {
 			return true;
 			
 		}else {

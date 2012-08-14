@@ -13,18 +13,18 @@ import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.FuncRef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
-import de.peeeq.wurstscript.types.PScriptTypeUnknown;
-import de.peeeq.wurstscript.types.PscriptType;
-import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
+import de.peeeq.wurstscript.types.WurstTypeUnknown;
+import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 import de.peeeq.wurstscript.utils.NotNullList;
 import de.peeeq.wurstscript.utils.Utils;
 
 public abstract class OverloadingResolver<F extends AstElement,C> {
 
 	abstract int getParameterCount(F f);
-	abstract PscriptType getParameterType(F f, int i);
+	abstract WurstType getParameterType(F f, int i);
 	abstract int getArgumentCount(C c);
-	abstract PscriptType getArgumentType(C c, int i);
+	abstract WurstType getArgumentType(C c, int i);
 	abstract void handleError(List<String> hints);
 	
 	F resolve(Iterable<F> alternativeFunctions, C caller) {
@@ -41,8 +41,8 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 			} else { // parameter count matches argument count:
 				boolean match = true;
 				for (int i=0; i<getArgumentCount(caller); i++) {
-					if (getArgumentType(caller, i) instanceof PscriptTypeTypeParam
-							&& getParameterType(f, i) instanceof PscriptTypeTypeParam) {
+					if (getArgumentType(caller, i) instanceof WurstTypeTypeParam
+							&& getParameterType(f, i) instanceof WurstTypeTypeParam) {
 						// should be ok!
 					} else if (! getArgumentType(caller, i).isSubtypeOf(getParameterType(f, i), f)) {
 						hints.add("Expected " + getParameterType(f, i)
@@ -95,7 +95,7 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 			}
 
 			@Override
-			PscriptType getParameterType(ConstructorDef f, int i) {
+			WurstType getParameterType(ConstructorDef f, int i) {
 				return f.getParameters().get(i).getTyp().attrTyp();
 			}
 
@@ -105,7 +105,7 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 			}
 
 			@Override
-			PscriptType getArgumentType(ExprNewObject c, int i) {
+			WurstType getArgumentType(ExprNewObject c, int i) {
 				return c.getArgs().get(i).attrTyp();
 			}
 
@@ -125,7 +125,7 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 			}
 
 			@Override
-			PscriptType getParameterType(ConstructorDef f, int i) {
+			WurstType getParameterType(ConstructorDef f, int i) {
 				return f.getParameters().get(i).getTyp().attrTyp();
 			}
 
@@ -135,7 +135,7 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 			}
 
 			@Override
-			PscriptType getArgumentType(ConstructorDef c, int i) {
+			WurstType getArgumentType(ConstructorDef c, int i) {
 				return c.getSuperArgs().get(i).attrTyp();
 			}
 
@@ -156,7 +156,7 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 			}
 
 			@Override
-			PscriptType getParameterType(FunctionDefinition f, int i) {
+			WurstType getParameterType(FunctionDefinition f, int i) {
 				return f.getParameters().get(i).getTyp().attrTyp();
 			}
 
@@ -182,21 +182,21 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 			}
 
 			@Override
-			PscriptType getArgumentType(FuncRef c, final int i) {
-				return c.match(new FuncRef.Matcher<PscriptType>() {
+			WurstType getArgumentType(FuncRef c, final int i) {
+				return c.match(new FuncRef.Matcher<WurstType>() {
 
 					@Override
-					public PscriptType case_ExprFuncRef(ExprFuncRef term)  {
-						return PScriptTypeUnknown.instance(); // CHECK a funcref should be able to specify the parameter types and count
+					public WurstType case_ExprFuncRef(ExprFuncRef term)  {
+						return WurstTypeUnknown.instance(); // CHECK a funcref should be able to specify the parameter types and count
 					}
 
 					@Override
-					public PscriptType case_ExprMemberMethod(ExprMemberMethod term)  {
+					public WurstType case_ExprMemberMethod(ExprMemberMethod term)  {
 						return term.getArgs().get(i).attrTyp(); // the implicit parameter is not necessary for overloading
 					}
 
 					@Override
-					public PscriptType case_ExprFunctionCall(ExprFunctionCall term)  {
+					public WurstType case_ExprFunctionCall(ExprFunctionCall term)  {
 						return term.getArgs().get(i).attrTyp();
 					}
 				});

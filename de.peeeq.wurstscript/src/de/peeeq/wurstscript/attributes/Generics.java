@@ -23,14 +23,14 @@ import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.TypeParamDefs;
 import de.peeeq.wurstscript.ast.WParameters;
-import de.peeeq.wurstscript.types.PscriptType;
-import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
-import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
+import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeNamedScope;
+import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class Generics {
 
-	public static Map<TypeParamDef, PscriptType> getTypeParameterBindings(FunctionCall fc) {
+	public static Map<TypeParamDef, WurstType> getTypeParameterBindings(FunctionCall fc) {
 		FunctionDefinition def = fc.attrFuncDef();
 		TypeParamDefs typeParams = getTypeParameters(def);
 		if (hasTypeParams(fc, typeParams)) {
@@ -42,8 +42,8 @@ public class Generics {
 
 	// TODO in the future this should also take return type into account
 	// e.g. List<String> = new List() // infer String here
-	private static Map<TypeParamDef, PscriptType> inferTypeParametersUsingArguments(Arguments args, WParameters params,	TypeParamDefs typeParams) {
-		Map<TypeParamDef, PscriptType> result = Maps.newHashMap();
+	private static Map<TypeParamDef, WurstType> inferTypeParametersUsingArguments(Arguments args, WParameters params,	TypeParamDefs typeParams) {
+		Map<TypeParamDef, WurstType> result = Maps.newHashMap();
 		// calculate (most general) unifier
 		for (int i = 0; i < args.size() && i < params.size(); i++) {
 			inferTypeParameters(result, args, args.get(i).attrTyp(), params.get(i).attrTyp(), typeParams);
@@ -54,23 +54,23 @@ public class Generics {
 		return result;
 	}
 
-	private static void inferTypeParameters(Map<TypeParamDef, PscriptType> result, AstElement pos, PscriptType argType, PscriptType paramTyp,
+	private static void inferTypeParameters(Map<TypeParamDef, WurstType> result, AstElement pos, WurstType argType, WurstType paramTyp,
 			TypeParamDefs typeParams) {
-		if (paramTyp instanceof PscriptTypeTypeParam) {
-			PscriptTypeTypeParam paramTyp2 = (PscriptTypeTypeParam) paramTyp;
+		if (paramTyp instanceof WurstTypeTypeParam) {
+			WurstTypeTypeParam paramTyp2 = (WurstTypeTypeParam) paramTyp;
 			if (typeParams.contains(paramTyp2.getDef())) {
-				PscriptType previousType = result.put(paramTyp2.getDef(), argType);
+				WurstType previousType = result.put(paramTyp2.getDef(), argType);
 				if (previousType != null && !previousType.equalsType(argType, pos)) {
 					pos.addError("Cannot infer type parameters, there is a conflict between "
 					+ previousType + " and " + argType + " for type parameter " + paramTyp2.getName());
 				}
 			}
 		}
-		if (paramTyp instanceof PscriptTypeNamedScope && argType instanceof PscriptTypeNamedScope) {
-			PscriptTypeNamedScope paramTyp2 = (PscriptTypeNamedScope) paramTyp;
-			PscriptTypeNamedScope argTyp2 = (PscriptTypeNamedScope) argType;
-			List<PscriptType> paramTyp2childs = paramTyp2.getTypeParameters();
-			List<PscriptType> argTyp2childs = argTyp2.getTypeParameters();
+		if (paramTyp instanceof WurstTypeNamedScope && argType instanceof WurstTypeNamedScope) {
+			WurstTypeNamedScope paramTyp2 = (WurstTypeNamedScope) paramTyp;
+			WurstTypeNamedScope argTyp2 = (WurstTypeNamedScope) argType;
+			List<WurstType> paramTyp2childs = paramTyp2.getTypeParameters();
+			List<WurstType> argTyp2childs = argTyp2.getTypeParameters();
 			for (int i = 0; i < paramTyp2childs.size() && i < argTyp2childs.size(); i++) {
 				inferTypeParameters(result, pos, argTyp2childs.get(i), paramTyp2childs.get(i), typeParams);
 			}
@@ -78,7 +78,7 @@ public class Generics {
 		}
 	}
 
-	public static Map<TypeParamDef, PscriptType> getTypeParameterBindings(ExprNewObject e) {
+	public static Map<TypeParamDef, WurstType> getTypeParameterBindings(ExprNewObject e) {
 		ConstructorDef constrDef = e.attrConstructorDef();
 		if (constrDef == null) {
 			return Collections.emptyMap();
@@ -92,7 +92,7 @@ public class Generics {
 		return inferTypeParametersUsingArguments(e.getArgs(), constrDef.getParameters(), typeParams);
 	}
 	
-	public static Map<TypeParamDef, PscriptType> getTypeParameterBindings(ModuleUse m) {
+	public static Map<TypeParamDef, WurstType> getTypeParameterBindings(ModuleUse m) {
 		ModuleDef usedModule = m.attrModuleDef();
 		TypeParamDefs typeParams = getTypeParameters(usedModule);
 		if (hasTypeParams(m, typeParams)) {
@@ -102,7 +102,7 @@ public class Generics {
 		return Collections.emptyMap();
 	}
 
-	public static Map<TypeParamDef, PscriptType> getTypeParameterBindings(TypeExprSimple t) {
+	public static Map<TypeParamDef, WurstType> getTypeParameterBindings(TypeExprSimple t) {
 		TypeDef def = t.attrTypeDef();
 		TypeParamDefs typeParams = getTypeParameters(def);
 		if (hasTypeParams(t, typeParams)) {
@@ -116,8 +116,8 @@ public class Generics {
 	/**
 	 * returns the binding given by the user
 	 */
-	private static Map<TypeParamDef, PscriptType> givenBinding(AstElementWithTypeArgs fc, TypeParamDefs typeParams) {
-		Map<TypeParamDef, PscriptType> result = Maps.newHashMap();
+	private static Map<TypeParamDef, WurstType> givenBinding(AstElementWithTypeArgs fc, TypeParamDefs typeParams) {
+		Map<TypeParamDef, WurstType> result = Maps.newHashMap();
 		for (int i = 0; i < typeParams.size(); i++) {
 			result.put(typeParams.get(i), fc.getTypeArgs().get(i).attrTyp());
 		}

@@ -16,9 +16,9 @@ import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WScope;
-import de.peeeq.wurstscript.types.PscriptType;
-import de.peeeq.wurstscript.types.PscriptTypeInterface;
-import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
+import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeInterface;
+import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class NameResolution {
@@ -87,7 +87,7 @@ public class NameResolution {
 	
 	
 
-	public static <T> Collection<T> getTypedNameFromNamedScope(Class<T> t, Expr context, String name, PscriptTypeNamedScope sr) {
+	public static <T> Collection<T> getTypedNameFromNamedScope(Class<T> t, Expr context, String name, WurstTypeNamedScope sr) {
 		return getTypedNameFromNamedScope(t, context, name, sr.getDef());
 	}
 	
@@ -118,9 +118,9 @@ public class NameResolution {
 			// search for impl in extended class
 			if (c.getExtendedClass() instanceof TypeExpr) {
 				TypeExpr typeExpr = (TypeExpr) c.getExtendedClass();
-				PscriptType superType = typeExpr.attrTyp();
-				if (superType instanceof PscriptTypeNamedScope) {
-					PscriptTypeNamedScope superTypeNs = (PscriptTypeNamedScope) superType;
+				WurstType superType = typeExpr.attrTyp();
+				if (superType instanceof WurstTypeNamedScope) {
+					WurstTypeNamedScope superTypeNs = (WurstTypeNamedScope) superType;
 					Collection<T> r = getTypedNameFromNamedScope(t, context, name, superTypeNs.getDef());
 					if (r.size() > 0) {
 						return r;
@@ -130,7 +130,7 @@ public class NameResolution {
 			}
 			
 			// search for default implementation in interfaces
-			for (PscriptTypeInterface i : c.attrImplementedInterfaces()) {
+			for (WurstTypeInterface i : c.attrImplementedInterfaces()) {
 				Collection<T> r = getTypedNameFromNamedScope(t, context, name, i.getDef());
 				if (r.size() > 0) {
 					return r;

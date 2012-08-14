@@ -7,23 +7,23 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.jassIm.ImType;
 
-public class PscriptTypeTypeParam extends PscriptType {
+public class WurstTypeTypeParam extends WurstType {
 
 	private TypeParamDef def;
 
-	public PscriptTypeTypeParam(TypeParamDef t) {
+	public WurstTypeTypeParam(TypeParamDef t) {
 		this.def = t;
 	}
 
 	@Override
-	public boolean isSubtypeOf(PscriptType other, AstElement location) {
-		if (other instanceof PscriptTypeBoundTypeParam) {
-			PscriptTypeBoundTypeParam b = (PscriptTypeBoundTypeParam) other;
+	public boolean isSubtypeOf(WurstType other, AstElement location) {
+		if (other instanceof WurstTypeBoundTypeParam) {
+			WurstTypeBoundTypeParam b = (WurstTypeBoundTypeParam) other;
 			return isSubtypeOf(b.getBaseType(), location);
 		}
 		
-		if (other instanceof PscriptTypeTypeParam) {
-			PscriptTypeTypeParam other2 = (PscriptTypeTypeParam) other;
+		if (other instanceof WurstTypeTypeParam) {
+			WurstTypeTypeParam other2 = (WurstTypeTypeParam) other;
 			return other2.def == this.def;
 		}
 		return false;
@@ -48,14 +48,14 @@ public class PscriptTypeTypeParam extends PscriptType {
 		return new String[] { "integer", "integer" };
 	}
 	
-	public Map<TypeParamDef, PscriptType> getTypeArgBinding() {
+	public Map<TypeParamDef, WurstType> getTypeArgBinding() {
 		return Collections.emptyMap();
 	}
 
-	public PscriptType setTypeArgs(Map<TypeParamDef, PscriptType> typeParamBounds) {
+	public WurstType setTypeArgs(Map<TypeParamDef, WurstType> typeParamBounds) {
 		if (typeParamBounds.containsKey(def)) {
-			PscriptType t = typeParamBounds.get(def);
-			return new PscriptTypeBoundTypeParam(def, t);
+			WurstType t = typeParamBounds.get(def);
+			return new WurstTypeBoundTypeParam(def, t);
 		} 
 		return this;
 	}

@@ -17,21 +17,21 @@ import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WParameters;
-import de.peeeq.wurstscript.types.PScriptTypeBool;
-import de.peeeq.wurstscript.types.PScriptTypeInt;
-import de.peeeq.wurstscript.types.PScriptTypeReal;
-import de.peeeq.wurstscript.types.PScriptTypeUnknown;
-import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.types.WurstTypeBool;
+import de.peeeq.wurstscript.types.WurstTypeInt;
+import de.peeeq.wurstscript.types.WurstTypeReal;
+import de.peeeq.wurstscript.types.WurstTypeUnknown;
+import de.peeeq.wurstscript.types.WurstType;
 
 public class AttrExprExpectedType {
 
-	public static PscriptType calculate(Expr expr) {
+	public static WurstType calculate(Expr expr) {
 		try {
 			AstElement parent = expr.getParent();
 			if (parent instanceof Arguments) {
 				Arguments args = (Arguments) parent;
 				WParameters params;
-				Map<TypeParamDef, PscriptType> typeParamBindings;
+				Map<TypeParamDef, WurstType> typeParamBindings;
 				if (args.getParent() instanceof FunctionCall) {
 					FunctionCall efc = (FunctionCall) args.getParent();
 					params = efc.attrFuncDef().getParameters();
@@ -45,7 +45,7 @@ public class AttrExprExpectedType {
 				}
 				for (int i = 0; i < args.size(); i++) {
 					if (args.get(i) == expr) {
-						PscriptType paramType = params.get(i).attrTyp();
+						WurstType paramType = params.get(i).attrTyp();
 						return paramType.setTypeArgs(typeParamBindings);
 					}
 				}
@@ -53,15 +53,15 @@ public class AttrExprExpectedType {
 			} else if (parent instanceof StmtSet) {
 				StmtSet stmtSet = (StmtSet) parent;
 				if (stmtSet.getRight() == expr) {
-					PscriptType leftType = stmtSet.getUpdatedExpr().attrTyp();
+					WurstType leftType = stmtSet.getUpdatedExpr().attrTyp();
 					return leftType;
 				} else if (stmtSet.getUpdatedExpr() == expr) {
-					return PScriptTypeUnknown.instance();
+					return WurstTypeUnknown.instance();
 				}
 				throw new CompileError(expr.getSource(), "b) could not find expr " + expr + " in parent " + parent);
 			} else if (parent instanceof VarDef) {
 				VarDef varDef = (VarDef) parent;
-				PscriptType leftType = varDef.attrTyp();
+				WurstType leftType = varDef.attrTyp();
 				return leftType;
 			} else if (parent instanceof ExprBinary) {
 				ExprBinary exprBinary = (ExprBinary) parent;
@@ -73,12 +73,12 @@ public class AttrExprExpectedType {
 				throw new CompileError(expr.getSource(), "c) could not find expr " + expr + " in parent " + parent);
 			} else if (parent instanceof ExprUnary) {
 				ExprUnary exprUnary = (ExprUnary) parent;
-				if (exprUnary.attrExpectedTyp() instanceof PScriptTypeReal) {
-					return PScriptTypeReal.instance();
-				} else if (exprUnary.attrExpectedTyp() instanceof PScriptTypeInt) {
-					return PScriptTypeInt.instance();
-				} else if (exprUnary.attrExpectedTyp() instanceof PScriptTypeBool) {
-					return PScriptTypeBool.instance();
+				if (exprUnary.attrExpectedTyp() instanceof WurstTypeReal) {
+					return WurstTypeReal.instance();
+				} else if (exprUnary.attrExpectedTyp() instanceof WurstTypeInt) {
+					return WurstTypeInt.instance();
+				} else if (exprUnary.attrExpectedTyp() instanceof WurstTypeBool) {
+					return WurstTypeBool.instance();
 				}
 			} else if (parent instanceof StmtReturn) {
 				StmtReturn stmtReturn = (StmtReturn) parent;
@@ -93,7 +93,7 @@ public class AttrExprExpectedType {
 		} catch (Throwable t) {
 			WLogger.info(t);
 		}
-		return PScriptTypeUnknown.instance();
+		return WurstTypeUnknown.instance();
 	}
 
 }

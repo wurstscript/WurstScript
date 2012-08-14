@@ -3,16 +3,16 @@ package de.peeeq.wurstscript.types;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.jassIm.ImType;
 
-public class PscriptTypeError extends PscriptType {
+public class WurstTypeError extends WurstType {
 
 	private String msg;
 
-	public PscriptTypeError(String msg) {
+	public WurstTypeError(String msg) {
 		this.msg = msg;
 	}
 
 	@Override
-	public boolean isSubtypeOf(PscriptType other, AstElement location) {
+	public boolean isSubtypeOf(WurstType other, AstElement location) {
 		return false;
 	}
 

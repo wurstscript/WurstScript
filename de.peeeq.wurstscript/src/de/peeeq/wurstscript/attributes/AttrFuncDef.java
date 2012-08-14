@@ -20,11 +20,11 @@ import de.peeeq.wurstscript.ast.OpPlus;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WScope;
-import de.peeeq.wurstscript.types.PScriptTypeInt;
-import de.peeeq.wurstscript.types.PScriptTypeReal;
-import de.peeeq.wurstscript.types.PScriptTypeString;
-import de.peeeq.wurstscript.types.PscriptType;
-import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
+import de.peeeq.wurstscript.types.WurstTypeInt;
+import de.peeeq.wurstscript.types.WurstTypeReal;
+import de.peeeq.wurstscript.types.WurstTypeString;
+import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.utils.Utils;
 
 
@@ -97,12 +97,12 @@ public class AttrFuncDef {
 	/**
 	 * chcks if operator is a native operator like for 1+2
 	 */
-	private static boolean nativeOperator(PscriptType leftType, PscriptType rightType) {
+	private static boolean nativeOperator(WurstType leftType, WurstType rightType) {
 		return
 			// numeric
-			((leftType instanceof PScriptTypeInt || leftType instanceof PScriptTypeReal) && (rightType instanceof PScriptTypeInt || rightType instanceof PScriptTypeReal))
+			((leftType instanceof WurstTypeInt || leftType instanceof WurstTypeReal) && (rightType instanceof WurstTypeInt || rightType instanceof WurstTypeReal))
 			// strings
-			|| (leftType instanceof PScriptTypeString && rightType instanceof PScriptTypeString);
+			|| (leftType instanceof WurstTypeString && rightType instanceof WurstTypeString);
 	}
 
 	public static  FunctionDefinition calculate(final ExprFunctionCall node) {
@@ -141,7 +141,7 @@ public class AttrFuncDef {
 	public static  FunctionDefinition calculate(final ExprMemberMethod node) {
 		
 		Expr left = node.getLeft();
-		PscriptType leftType = left.attrTyp();
+		WurstType leftType = left.attrTyp();
 		String funcName = node.getFuncName();
 		
 		FunctionDefinition result = getMemberFunc(node, leftType, funcName);
@@ -151,10 +151,10 @@ public class AttrFuncDef {
 		return result;
 	}
 
-	private static FunctionDefinition getMemberFunc(Expr context, PscriptType leftType, String funcName) {
+	private static FunctionDefinition getMemberFunc(Expr context, WurstType leftType, String funcName) {
 		FunctionDefinition result = null;
-		if (leftType instanceof PscriptTypeNamedScope) {
-			PscriptTypeNamedScope sr = (PscriptTypeNamedScope) leftType;
+		if (leftType instanceof WurstTypeNamedScope) {
+			WurstTypeNamedScope sr = (WurstTypeNamedScope) leftType;
 			result = null;
 			Collection<FunctionDefinition> funcs = NameResolution.getTypedNameFromNamedScope(FunctionDefinition.class, context, funcName, sr);
 			if (funcs.size() > 0) {
@@ -182,11 +182,11 @@ public class AttrFuncDef {
 		return result;
 	}
 
-	protected static FunctionDefinition selectExtensionFunction(PscriptType receiverTyp, Collection<ExtensionFuncDef> collection) {
+	protected static FunctionDefinition selectExtensionFunction(WurstType receiverTyp, Collection<ExtensionFuncDef> collection) {
 		FunctionDefinition result = null;
-		PscriptType resultType = null;
+		WurstType resultType = null;
 		for (ExtensionFuncDef extensionFuncDef : collection) {
-			PscriptType fTyp = extensionFuncDef.getExtendedType().attrTyp();
+			WurstType fTyp = extensionFuncDef.getExtendedType().attrTyp();
 			if (receiverTyp.isSubtypeOf(fTyp, extensionFuncDef)) {
 				// function is suitable
 				if (result == null) {

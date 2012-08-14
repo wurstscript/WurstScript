@@ -1,7 +1,7 @@
 package de.peeeq.wurstscript.intermediateLang;
 
-import de.peeeq.wurstscript.types.PScriptTypeCode;
-import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.types.WurstTypeCode;
+import de.peeeq.wurstscript.types.WurstType;
 
 public class ILconstFuncRef extends ILconstAbstract {
 
@@ -19,8 +19,8 @@ public class ILconstFuncRef extends ILconstAbstract {
 	}
 	
 
-	public PscriptType getType() {
-		return PScriptTypeCode.instance();
+	public WurstType getType() {
+		return WurstTypeCode.instance();
 	}
 
 	@Override

@@ -1,7 +1,7 @@
 package de.peeeq.wurstscript.intermediateLang;
 
-import de.peeeq.wurstscript.types.PScriptTypeInfer;
-import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.types.WurstTypeInfer;
+import de.peeeq.wurstscript.types.WurstType;
 
 public class ILconstNull extends ILconstAbstract {
 
@@ -16,8 +16,8 @@ public class ILconstNull extends ILconstAbstract {
 		return "null";
 	}
 	
-	public PscriptType getType() {
-		return PScriptTypeInfer.instance();
+	public WurstType getType() {
+		return WurstTypeInfer.instance();
 	}
 
 	@Override

@@ -63,9 +63,9 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
 import de.peeeq.wurstscript.jassIm.JassIm;
-import de.peeeq.wurstscript.types.PscriptType;
-import de.peeeq.wurstscript.types.PscriptTypeClass;
-import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
+import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeClass;
+import de.peeeq.wurstscript.types.WurstTypeModuleInstanciation;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 public class StmtTranslation {
@@ -87,13 +87,13 @@ public class StmtTranslation {
 
 
 	public static ImStmt translate(StmtDestroy s, ImTranslator t, ImFunction f) {
-		PscriptType typ = s.getDestroyedObj().attrTyp();
+		WurstType typ = s.getDestroyedObj().attrTyp();
 		ClassDef classDef;
-		if (typ instanceof PscriptTypeClass) {
-			PscriptTypeClass classType = (PscriptTypeClass) typ;
+		if (typ instanceof WurstTypeClass) {
+			WurstTypeClass classType = (WurstTypeClass) typ;
 			classDef = classType.getClassDef();
-		} else if (typ instanceof PscriptTypeModuleInstanciation) {
-			PscriptTypeModuleInstanciation minsType = (PscriptTypeModuleInstanciation) typ;
+		} else if (typ instanceof WurstTypeModuleInstanciation) {
+			WurstTypeModuleInstanciation minsType = (WurstTypeModuleInstanciation) typ;
 			classDef = minsType.getDef().attrNearestClassDef();
 		} else {
 			// TODO destroy interfaces?

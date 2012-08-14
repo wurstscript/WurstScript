@@ -31,7 +31,7 @@ import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.SwitchStmt;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
-import de.peeeq.wurstscript.types.PScriptTypeArray;
+import de.peeeq.wurstscript.types.WurstTypeArray;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class UninitializedVars {
@@ -45,7 +45,7 @@ public class UninitializedVars {
 		for (NameDef n : locals) {
 			if (n instanceof LocalVarDef) {
 				LocalVarDef localVarDef = (LocalVarDef) n;
-				if (localVarDef.attrTyp() instanceof PScriptTypeArray) {
+				if (localVarDef.attrTyp() instanceof WurstTypeArray) {
 					
 				} else {
 					uninitializedVars.add((LocalVarDef) n);

@@ -9,13 +9,13 @@ import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
 
 
-public class PScriptTypeArray extends PscriptType {
+public class WurstTypeArray extends WurstType {
 
-	private PscriptType baseType;
+	private WurstType baseType;
 	private int[] sizes;
 	
-	public PScriptTypeArray(PscriptType baseType, int[] sizes) {
-		if (baseType instanceof PScriptTypeArray) {
+	public WurstTypeArray(WurstType baseType, int[] sizes) {
+		if (baseType instanceof WurstTypeArray) {
 			throw new Error("cannot have array of arrays...");
 		}
 		this.baseType = baseType;
@@ -24,14 +24,14 @@ public class PScriptTypeArray extends PscriptType {
 	
 	
 	
-	public PScriptTypeArray(PscriptType baseType) {
+	public WurstTypeArray(WurstType baseType) {
 		this.baseType = baseType;
 		this.sizes = new int[1];
 	}
 
 
 
-	public PscriptType getBaseType() {
+	public WurstType getBaseType() {
 		return baseType;
 	}
 
@@ -44,9 +44,9 @@ public class PScriptTypeArray extends PscriptType {
 
 
 	@Override
-	public boolean isSubtypeOf(PscriptType other, AstElement location) {
-		if (other instanceof PScriptTypeArray) {
-			PScriptTypeArray otherArray = (PScriptTypeArray) other;
+	public boolean isSubtypeOf(WurstType other, AstElement location) {
+		if (other instanceof WurstTypeArray) {
+			WurstTypeArray otherArray = (WurstTypeArray) other;
 			return baseType.equalsType(otherArray.baseType, location) && getDimensions() == otherArray.getDimensions();
 		}
 		return false;

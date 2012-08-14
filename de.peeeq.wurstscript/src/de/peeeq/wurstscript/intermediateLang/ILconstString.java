@@ -1,7 +1,7 @@
 package de.peeeq.wurstscript.intermediateLang;
 
-import de.peeeq.wurstscript.types.PScriptTypeString;
-import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.types.WurstTypeString;
+import de.peeeq.wurstscript.types.WurstType;
 
 public class ILconstString extends ILconstAbstract implements ILconstAddable {
 
@@ -20,8 +20,8 @@ public class ILconstString extends ILconstAbstract implements ILconstAddable {
 		return "\"" + val + "\"";
 	}
 
-	public PscriptType getType() {
-		return PScriptTypeString.instance();
+	public WurstType getType() {
+		return WurstTypeString.instance();
 	}
 
 	@Override

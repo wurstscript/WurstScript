@@ -11,15 +11,15 @@ import de.peeeq.wurstscript.jassIm.JassIm;
 
 public class TypesHelper {
 
-	private static final ImSimpleType intType = PScriptTypeInt.instance().imTranslateType();
+	private static final ImSimpleType intType = WurstTypeInt.instance().imTranslateType();
 	private static final ImType intPair = JassIm.ImTupleType(Lists.newArrayList("integer", "integer"));
 
-	public static PscriptType typeOf(ClassOrModule classOrModule, final boolean isStatic) {
-		return classOrModule.match(new ClassOrModule.Matcher<PscriptType>() {
+	public static WurstType typeOf(ClassOrModule classOrModule, final boolean isStatic) {
+		return classOrModule.match(new ClassOrModule.Matcher<WurstType>() {
 
 			@Override
-			public PscriptType case_ClassDef(ClassDef classDef) {
-				PscriptType t = classDef.attrTyp();
+			public WurstType case_ClassDef(ClassDef classDef) {
+				WurstType t = classDef.attrTyp();
 				if (!isStatic)  {
 					t = t.dynamic();
 				}
@@ -27,8 +27,8 @@ public class TypesHelper {
 			}
 
 			@Override
-			public PscriptType case_ModuleDef(ModuleDef moduleDef) {
-				return new PscriptTypeModule(moduleDef, isStatic);
+			public WurstType case_ModuleDef(ModuleDef moduleDef) {
+				return new WurstTypeModule(moduleDef, isStatic);
 			}
 		});
 	}
@@ -42,7 +42,7 @@ public class TypesHelper {
 	}
 
 	public static ImType imVoid() {
-		return PScriptTypeVoid.instance().imTranslateType();
+		return WurstTypeVoid.instance().imTranslateType();
 	}
 
 //	public static boolean checkTypeArgs(InstanceDef iDef, List<PscriptType> classParams, List<PscriptType> interfaceParams) {

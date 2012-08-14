@@ -3,18 +3,18 @@ package de.peeeq.wurstscript.types;
 import de.peeeq.wurstscript.ast.AstElement;
 
 
-public class PScriptTypeString extends PscriptTypePrimitive {
+public class WurstTypeString extends WurstTypePrimitive {
 
-	private static final PScriptTypeString instance = new PScriptTypeString();
+	private static final WurstTypeString instance = new WurstTypeString();
 
 	// make constructor private as we only need one instance
-	private PScriptTypeString() {
+	private WurstTypeString() {
 		super("string");
 	}
 	
 	@Override
-	public boolean isSubtypeOf(PscriptType other, AstElement location) {
-		return other instanceof PScriptTypeString;
+	public boolean isSubtypeOf(WurstType other, AstElement location) {
+		return other instanceof WurstTypeString;
 	}
 
 
@@ -28,7 +28,7 @@ public class PScriptTypeString extends PscriptTypePrimitive {
 		return "string";
 	}
 
-	public static PScriptTypeString instance() {
+	public static WurstTypeString instance() {
 		return instance;
 	}
 	

@@ -9,29 +9,29 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 
 public class FunctionSignature {
-	public static FunctionSignature empty = new FunctionSignature(Collections.<PscriptType>emptyList(), PScriptTypeUnknown.instance());
-	private List<PscriptType> paramTypes;
-	private PscriptType returnType;
+	public static FunctionSignature empty = new FunctionSignature(Collections.<WurstType>emptyList(), WurstTypeUnknown.instance());
+	private List<WurstType> paramTypes;
+	private WurstType returnType;
 	
 	
-	public FunctionSignature(List<PscriptType> paramTypes, PscriptType returnType) {
+	public FunctionSignature(List<WurstType> paramTypes, WurstType returnType) {
 		this.paramTypes = paramTypes;
 		this.returnType = returnType;
 	}
 	
 	
-	public List<PscriptType> getParamTypes() {
+	public List<WurstType> getParamTypes() {
 		return paramTypes;
 	}
-	public PscriptType getReturnType() {
+	public WurstType getReturnType() {
 		return returnType;
 	}
 
 
-	public FunctionSignature setTypeArgs(Map<TypeParamDef, PscriptType> typeArgBinding) {
-		PscriptType r2 = returnType.setTypeArgs(typeArgBinding);
-		List<PscriptType> pt2 = Lists.newArrayList();
-		for (PscriptType p : paramTypes) {
+	public FunctionSignature setTypeArgs(Map<TypeParamDef, WurstType> typeArgBinding) {
+		WurstType r2 = returnType.setTypeArgs(typeArgBinding);
+		List<WurstType> pt2 = Lists.newArrayList();
+		for (WurstType p : paramTypes) {
 			pt2.add(p.setTypeArgs(typeArgBinding));
 		}
 		return new FunctionSignature(pt2, r2);

@@ -7,14 +7,14 @@ import de.peeeq.wurstscript.jassIm.ImType;
  * the exact type is not known but it will be whatever you want it to be ;)
  * (used for the buildin/native functions, where we cannot check the types) 
  */
-public class PScriptTypeInfer extends PscriptType {
+public class WurstTypeInfer extends WurstType {
 
-	private static PscriptType instance = new PScriptTypeInfer();
+	private static WurstType instance = new WurstTypeInfer();
 
-	private PScriptTypeInfer() {}
+	private WurstTypeInfer() {}
 	
 	@Override
-	public boolean isSubtypeOf(PscriptType other, AstElement location) {
+	public boolean isSubtypeOf(WurstType other, AstElement location) {
 		return true;
 	}
 
@@ -28,7 +28,7 @@ public class PScriptTypeInfer extends PscriptType {
 		return getName();
 	}
 
-	public static PscriptType instance() {
+	public static WurstType instance() {
 		return instance ;
 	}
 

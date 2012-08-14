@@ -13,7 +13,7 @@ import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.types.FunctionSignature;
-import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.types.WurstType;
 
 public class AttrFunctionSignature {
 
@@ -22,8 +22,8 @@ public class AttrFunctionSignature {
 		if (f == null) {
 			return FunctionSignature.empty;
 		}
-		PscriptType returnType = f.getReturnTyp().attrTyp();
-		List<PscriptType> paramTypes = f.attrParameterTypes();
+		WurstType returnType = f.getReturnTyp().attrTyp();
+		List<WurstType> paramTypes = f.attrParameterTypes();
 		FunctionSignature sig = new FunctionSignature(paramTypes, returnType);
 		if (fc.attrImplicitParameter() instanceof Expr) {
 			Expr expr = (Expr) fc.attrImplicitParameter();
@@ -35,9 +35,9 @@ public class AttrFunctionSignature {
 
 	public static FunctionSignature calculate(ExprNewObject fc) {
 		ConstructorDef f = fc.attrConstructorDef();
-		PscriptType returnType = fc.attrTyp();
-		Map<TypeParamDef, PscriptType> binding2 = fc.attrTypeParameterBindings();
-		List<PscriptType> paramTypes = Lists.newArrayList();
+		WurstType returnType = fc.attrTyp();
+		Map<TypeParamDef, WurstType> binding2 = fc.attrTypeParameterBindings();
+		List<WurstType> paramTypes = Lists.newArrayList();
 		for (WParameter p : f.getParameters()) {
 			paramTypes.add(p.attrTyp().setTypeArgs(binding2));
 		}

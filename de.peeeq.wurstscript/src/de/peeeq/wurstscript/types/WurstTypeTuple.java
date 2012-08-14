@@ -18,20 +18,20 @@ import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.utils.Utils;
 
 
-public class PscriptTypeTuple extends PscriptType {
+public class WurstTypeTuple extends WurstType {
 
 	TupleDef tupleDef;
 
 
-	public PscriptTypeTuple(TupleDef tupleDef) {
+	public WurstTypeTuple(TupleDef tupleDef) {
 		if (tupleDef == null) throw new IllegalArgumentException();
 		this.tupleDef = tupleDef;
 	}
 
 	@Override
-	public boolean isSubtypeOf(PscriptType other, AstElement location) {
-		if (other instanceof PscriptTypeTuple) {
-			PscriptTypeTuple otherTuple = (PscriptTypeTuple) other;
+	public boolean isSubtypeOf(WurstType other, AstElement location) {
+		if (other instanceof WurstTypeTuple) {
+			WurstTypeTuple otherTuple = (WurstTypeTuple) other;
 			return tupleDef == otherTuple.tupleDef;
 		}
 		return false;

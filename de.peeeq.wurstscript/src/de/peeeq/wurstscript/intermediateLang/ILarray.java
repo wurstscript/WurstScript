@@ -3,16 +3,16 @@ package de.peeeq.wurstscript.intermediateLang;
 import java.util.Vector;
 
 import de.peeeq.wurstscript.types.NativeTypes;
-import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.types.WurstType;
 
 public class ILarray extends ILconstAbstract {
 
 	private static final int maxsize = 8191;
 	Vector<ILconst> values = new Vector<ILconst>(16);
-	PscriptType type;
+	WurstType type;
 	
-	public ILarray(PscriptType pscriptType) {
-		this.type = pscriptType;
+	public ILarray(WurstType wurstType) {
+		this.type = wurstType;
 	}
 	
 	
@@ -58,7 +58,7 @@ public class ILarray extends ILconstAbstract {
 	}
 
 
-	public PscriptType getType() {
+	public WurstType getType() {
 		// TODO Auto-generated method stub
 		throw new Error("Not implemented yet.");
 	}

@@ -63,12 +63,12 @@ import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.JassIm;
-import de.peeeq.wurstscript.types.PScriptTypeInt;
-import de.peeeq.wurstscript.types.PScriptTypeReal;
-import de.peeeq.wurstscript.types.PscriptType;
-import de.peeeq.wurstscript.types.PscriptTypeInterface;
-import de.peeeq.wurstscript.types.PscriptTypeTuple;
-import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
+import de.peeeq.wurstscript.types.WurstTypeInt;
+import de.peeeq.wurstscript.types.WurstTypeReal;
+import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeInterface;
+import de.peeeq.wurstscript.types.WurstTypeTuple;
+import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -85,8 +85,8 @@ public class ExprTranslation {
 			return JassIm.ImFunctionCall(e, calledFunc, ImExprs(left, right));
 		} 
 		if (op instanceof OpDivReal && !Utils.isJassCode(op)) {
-			if (e.getLeft().attrTyp() instanceof PScriptTypeInt
-					&& e.getRight().attrTyp() instanceof PScriptTypeInt) {
+			if (e.getLeft().attrTyp() instanceof WurstTypeInt
+					&& e.getRight().attrTyp() instanceof WurstTypeInt) {
 				// we want a real division but have 2 ints so we need to multiply with 1.0
 				left = ImOperatorCall(Ast.OpMult(), ImExprs(left, ImRealVal("1.")));
 			}
@@ -109,7 +109,7 @@ public class ExprTranslation {
 	}
 
 	public static ImExpr translate(ExprIntVal e, ImTranslator t, ImFunction f) {
-		if (e.attrExpectedTyp() instanceof PScriptTypeReal) {
+		if (e.attrExpectedTyp() instanceof WurstTypeReal) {
 			return ImRealVal(e.getValI() + ".");
 		}
 		return ImIntVal(e.getValI());
@@ -154,7 +154,7 @@ public class ExprTranslation {
 
 	/** checks whether a interface type is expected for e */
 	private static boolean expectedInterfaceType(Expr e) {
-		return e.attrExpectedTyp() instanceof PscriptTypeInterface || e.attrExpectedTyp() instanceof PscriptTypeTypeParam;
+		return e.attrExpectedTyp() instanceof WurstTypeInterface || e.attrExpectedTyp() instanceof WurstTypeTypeParam;
 	}
 
 	private static ImExpr translateNameDef(NameRef e, ImTranslator t, ImFunction f) throws CompileError {
@@ -170,8 +170,8 @@ public class ExprTranslation {
 				// e.g. "someObject.someField"
 				Expr implicitParam = (Expr) e.attrImplicitParameter();
 				
-				if (implicitParam.attrTyp() instanceof PscriptTypeTuple) {
-					PscriptTypeTuple tupleType = (PscriptTypeTuple) implicitParam.attrTyp();
+				if (implicitParam.attrTyp() instanceof WurstTypeTuple) {
+					WurstTypeTuple tupleType = (WurstTypeTuple) implicitParam.attrTyp();
 					if (e instanceof ExprMemberVar) {
 						ExprMemberVar e2 = (ExprMemberVar) e;
 						int tupleIndex = t.getTupleIndex(tupleType.getTupleDef(), varDef);
@@ -274,7 +274,7 @@ public class ExprTranslation {
 	}
 
 	public static ImExpr translate(ExprInstanceOf e, ImTranslator translator, ImFunction f) {
-		PscriptType targetType = e.getTyp().attrTyp();
+		WurstType targetType = e.getTyp().attrTyp();
 		
 		Collection<ClassDef> subTypes = translator.getConcreteSubtypes(targetType);
 		if (subTypes.size() == 1) {

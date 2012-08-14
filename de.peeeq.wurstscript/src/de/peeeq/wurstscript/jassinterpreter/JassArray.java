@@ -6,7 +6,7 @@ import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstAbstract;
-import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.types.WurstType;
 
 public class JassArray extends ILconstAbstract {
 
@@ -17,7 +17,7 @@ public class JassArray extends ILconstAbstract {
 		this.type = type;
 	}
 
-	public PscriptType getType() {
+	public WurstType getType() {
 		throw new Error("Not implemented.");
 	}
 

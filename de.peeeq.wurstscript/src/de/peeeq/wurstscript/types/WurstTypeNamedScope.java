@@ -13,24 +13,24 @@ import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.TypeParamDefs;
 
-public abstract class PscriptTypeNamedScope extends PscriptType {
+public abstract class WurstTypeNamedScope extends WurstType {
 
 	private final boolean isStaticRef;
-	private final List<PscriptType> typeParameters;
+	private final List<WurstType> typeParameters;
 	
 	
-	public PscriptTypeNamedScope(List<PscriptType> typeParameters, boolean isStaticRef) {
+	public WurstTypeNamedScope(List<WurstType> typeParameters, boolean isStaticRef) {
 		this.isStaticRef = isStaticRef;
 		this.typeParameters = typeParameters;
 	}
 
-	public PscriptTypeNamedScope(List<PscriptType> typeParameters) {
+	public WurstTypeNamedScope(List<WurstType> typeParameters) {
 		this.isStaticRef = false;
 		this.typeParameters = typeParameters;
 	}
 
 	
-	public PscriptTypeNamedScope(boolean isStaticRef) {
+	public WurstTypeNamedScope(boolean isStaticRef) {
 		this.isStaticRef = isStaticRef;
 		this.typeParameters = Collections.emptyList();
 	}
@@ -52,17 +52,17 @@ public abstract class PscriptTypeNamedScope extends PscriptType {
 	}
 
 	@Override
-	public boolean isSubtypeOf(PscriptType obj, AstElement location) {
-		if (obj instanceof PscriptTypeBoundTypeParam) {
-			PscriptTypeBoundTypeParam b = (PscriptTypeBoundTypeParam) obj;
+	public boolean isSubtypeOf(WurstType obj, AstElement location) {
+		if (obj instanceof WurstTypeBoundTypeParam) {
+			WurstTypeBoundTypeParam b = (WurstTypeBoundTypeParam) obj;
 			return this.isSubtypeOf(b.getBaseType(), location);
 		}
 		
-		if (obj instanceof PscriptTypeTypeParam) {
+		if (obj instanceof WurstTypeTypeParam) {
 			return false;
 		}
-		if (obj instanceof PscriptTypeNamedScope) {
-			PscriptTypeNamedScope other = (PscriptTypeNamedScope) obj;
+		if (obj instanceof WurstTypeNamedScope) {
+			WurstTypeNamedScope other = (WurstTypeNamedScope) obj;
 			if (other.getDef() == this.getDef()) {
 				return checkTypeParametersEqual(getTypeParameters(), other.getTypeParameters(), location);
 			}
@@ -70,18 +70,18 @@ public abstract class PscriptTypeNamedScope extends PscriptType {
 		return false;
 	}
 
-	public List<PscriptType> getTypeParameters() {
+	public List<WurstType> getTypeParameters() {
 		return typeParameters;
 	}
 
-	public PscriptType getTypeParameterBinding(TypeParamDef def) {
-		PscriptType t = getTypeParamBounds().get(def);
-		return t != null ? t : PScriptTypeUnknown.instance();
+	public WurstType getTypeParameterBinding(TypeParamDef def) {
+		WurstType t = getTypeParamBounds().get(def);
+		return t != null ? t : WurstTypeUnknown.instance();
 	}
 	
 	
-	Map<TypeParamDef, PscriptType> cache_typeParamBounds;
-	private Map<TypeParamDef, PscriptType> getTypeParamBounds() {
+	Map<TypeParamDef, WurstType> cache_typeParamBounds;
+	private Map<TypeParamDef, WurstType> getTypeParamBounds() {
 		if (cache_typeParamBounds == null) {
 			cache_typeParamBounds = Maps.newHashMap();
 			if (getDef() instanceof AstElementWithTypeParameters) {
@@ -126,12 +126,12 @@ public abstract class PscriptTypeNamedScope extends PscriptType {
 	
 
 
-	public Map<TypeParamDef, PscriptType> getTypeArgBinding() {
+	public Map<TypeParamDef, WurstType> getTypeArgBinding() {
 		if (getDef() instanceof AstElementWithTypeParameters) {
-			Map<TypeParamDef, PscriptType> result = Maps.newHashMap();
+			Map<TypeParamDef, WurstType> result = Maps.newHashMap();
 			AstElementWithTypeParameters def = (AstElementWithTypeParameters) getDef();
 			for (int i=0; i<typeParameters.size(); i++) {
-				PscriptType t = typeParameters.get(i);
+				WurstType t = typeParameters.get(i);
 				TypeParamDef tDef = def.getTypeParameters().get(i);
 				result.put(tDef, t);
 			}
@@ -140,25 +140,25 @@ public abstract class PscriptTypeNamedScope extends PscriptType {
 		return super.getTypeArgBinding();
 	}
 
-	public PscriptType setTypeArgs(Map<TypeParamDef, PscriptType> typeParamBounds) {
-		List<PscriptType> newTypes = Lists.newArrayList();
-		for (PscriptType t : typeParameters) {
+	public WurstType setTypeArgs(Map<TypeParamDef, WurstType> typeParamBounds) {
+		List<WurstType> newTypes = Lists.newArrayList();
+		for (WurstType t : typeParameters) {
 			newTypes.add(t.setTypeArgs(typeParamBounds));
 		}
 		return replaceTypeVars(newTypes);
 	}
 
-	abstract public PscriptType replaceTypeVars(List<PscriptType> newTypes);
+	abstract public WurstType replaceTypeVars(List<WurstType> newTypes);
 
 	
 	
-	protected boolean checkTypeParametersEqual(List<PscriptType> tps1, List<PscriptType> tps2, AstElement location) {
+	protected boolean checkTypeParametersEqual(List<WurstType> tps1, List<WurstType> tps2, AstElement location) {
 		if (tps1.size() != tps2.size()) {
 			return false;
 		}
 		for (int i=0; i<tps1.size(); i++) {
-			PscriptType thisTp = tps1.get(i);
-			PscriptType otherTp = tps2.get(i);
+			WurstType thisTp = tps1.get(i);
+			WurstType otherTp = tps2.get(i);
 			if (!thisTp.equalsType(otherTp, location)) {
 				return false;
 			}

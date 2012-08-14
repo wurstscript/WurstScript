@@ -8,29 +8,29 @@ import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.jassIm.ImType;
 
 
-public class PscriptTypeModuleInstanciation extends PscriptTypeNamedScope {
+public class WurstTypeModuleInstanciation extends WurstTypeNamedScope {
 
 	private ModuleInstanciation moduleInst;
 
-	public PscriptTypeModuleInstanciation(ModuleInstanciation moduleInst, boolean isStaticRef) {
+	public WurstTypeModuleInstanciation(ModuleInstanciation moduleInst, boolean isStaticRef) {
 		super(isStaticRef);
 		if (moduleInst == null) throw new IllegalArgumentException();
 		this.moduleInst = moduleInst;
 	}
 
-	public PscriptTypeModuleInstanciation(ModuleInstanciation moduleInst2, List<PscriptType> newTypes) {
+	public WurstTypeModuleInstanciation(ModuleInstanciation moduleInst2, List<WurstType> newTypes) {
 		super(newTypes);
 		if (moduleInst2 == null) throw new IllegalArgumentException();
 		moduleInst = moduleInst2;
 	}
 
 	@Override
-	public boolean isSubtypeOf(PscriptType obj, AstElement location) {
+	public boolean isSubtypeOf(WurstType obj, AstElement location) {
 		if (super.isSubtypeOf(obj, location)) {
 			return true;
 		}
-		if (obj instanceof PscriptTypeNamedScope) {
-			PscriptTypeNamedScope n = (PscriptTypeNamedScope) obj;
+		if (obj instanceof WurstTypeNamedScope) {
+			WurstTypeNamedScope n = (WurstTypeNamedScope) obj;
 			return isParent(n);
 		}
 		return false;
@@ -39,7 +39,7 @@ public class PscriptTypeModuleInstanciation extends PscriptTypeNamedScope {
 	/**
 	 * check if n is a parent of this
 	 */
-	private boolean isParent(PscriptTypeNamedScope n) {
+	private boolean isParent(WurstTypeNamedScope n) {
 		NamedScope ns = this.getDef();
 		while (true) {
 			ns = ns.getParent().attrNearestNamedScope();
@@ -63,21 +63,21 @@ public class PscriptTypeModuleInstanciation extends PscriptTypeNamedScope {
 	}
 	
 	@Override
-	public PscriptType dynamic() {
+	public WurstType dynamic() {
 		if (isStaticRef()) {
-			return new PscriptTypeModuleInstanciation(moduleInst, false);
+			return new WurstTypeModuleInstanciation(moduleInst, false);
 		}
 		return this;
 	}
 
 	@Override
-	public PscriptType replaceTypeVars(List<PscriptType> newTypes) {
-		return new PscriptTypeModuleInstanciation(moduleInst, newTypes);
+	public WurstType replaceTypeVars(List<WurstType> newTypes) {
+		return new WurstTypeModuleInstanciation(moduleInst, newTypes);
 	}
 
 	@Override
 	public String[] jassTranslateType() {
-		return PScriptTypeInt.instance().jassTranslateType();
+		return WurstTypeInt.instance().jassTranslateType();
 	}
 	
 	@Override

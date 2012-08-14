@@ -1,8 +1,8 @@
 package de.peeeq.wurstscript.intermediateLang;
 
 
-import de.peeeq.wurstscript.types.PScriptTypeReal;
-import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.types.WurstTypeReal;
+import de.peeeq.wurstscript.types.WurstType;
 
 
 public class ILconstReal extends ILconstAbstract implements ILconstNum {
@@ -23,8 +23,8 @@ public class ILconstReal extends ILconstAbstract implements ILconstNum {
 		return val + "";
 	}
 
-	public PscriptType getType() {
-		return PScriptTypeReal.instance();
+	public WurstType getType() {
+		return WurstTypeReal.instance();
 	}
 
 	@Override

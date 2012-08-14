@@ -7,17 +7,17 @@ import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.jassIm.ImType;
 
 
-public class PscriptTypeModule extends PscriptTypeNamedScope {
+public class WurstTypeModule extends WurstTypeNamedScope {
 
 	private ModuleDef moduleDef;
 
-	public PscriptTypeModule(ModuleDef moduleDef, boolean isStaticRef) {
+	public WurstTypeModule(ModuleDef moduleDef, boolean isStaticRef) {
 		super(isStaticRef);
 		if (moduleDef == null) throw new IllegalArgumentException();
 		this.moduleDef = moduleDef;
 	}
 
-	public PscriptTypeModule(ModuleDef moduleDef2, List<PscriptType> newTypes) {
+	public WurstTypeModule(ModuleDef moduleDef2, List<WurstType> newTypes) {
 		super(newTypes);
 		if (moduleDef2 == null) throw new IllegalArgumentException();
 		moduleDef = moduleDef2;
@@ -34,21 +34,21 @@ public class PscriptTypeModule extends PscriptTypeNamedScope {
 	}
 
 	@Override
-	public PscriptType dynamic() {
+	public WurstType dynamic() {
 		if (isStaticRef()) {
-			return new PscriptTypeModule(moduleDef, false);
+			return new WurstTypeModule(moduleDef, false);
 		}
 		return this;
 	}
 
 	@Override
-	public PscriptType replaceTypeVars(List<PscriptType> newTypes) {
-		return new PscriptTypeModule(moduleDef, newTypes);
+	public WurstType replaceTypeVars(List<WurstType> newTypes) {
+		return new WurstTypeModule(moduleDef, newTypes);
 	}
 
 	@Override
 	public String[] jassTranslateType() {
-		return PScriptTypeInt.instance().jassTranslateType();
+		return WurstTypeInt.instance().jassTranslateType();
 	}
 
 	@Override

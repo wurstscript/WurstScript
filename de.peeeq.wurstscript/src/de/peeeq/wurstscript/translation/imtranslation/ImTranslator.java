@@ -83,11 +83,11 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.jassIm.JassImElement;
-import de.peeeq.wurstscript.types.PScriptTypeString;
-import de.peeeq.wurstscript.types.PScriptTypeVoid;
-import de.peeeq.wurstscript.types.PscriptType;
-import de.peeeq.wurstscript.types.PscriptTypeClass;
-import de.peeeq.wurstscript.types.PscriptTypeInterface;
+import de.peeeq.wurstscript.types.WurstTypeString;
+import de.peeeq.wurstscript.types.WurstTypeVoid;
+import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeClass;
+import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
@@ -147,7 +147,7 @@ public class ImTranslator {
 		
 		globalInitFunc = ImFunction(emptyTrace, "initGlobals", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
 		addFunction(globalInitFunc);
-		debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImVars(ImVar(PScriptTypeString.instance().imTranslateType(), "msg", false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE));
+		debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImVars(ImVar(WurstTypeString.instance().imTranslateType(), "msg", false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE));
 		
 		
 	
@@ -425,8 +425,8 @@ public class ImTranslator {
 	private void makeTypeIdsForHiearchy(ClassDef c) {
 		if (c.getExtendedClass() instanceof TypeExpr) {
 			TypeExpr sc = (TypeExpr) c.getExtendedClass();
-			if (sc.attrTyp() instanceof PscriptTypeClass) {
-				PscriptTypeClass ct = (PscriptTypeClass) sc.attrTyp();
+			if (sc.attrTyp() instanceof WurstTypeClass) {
+				WurstTypeClass ct = (WurstTypeClass) sc.attrTyp();
 				makeTypeIdsForHiearchy(ct.getClassDef());
 				return;
 			}
@@ -546,14 +546,14 @@ public class ImTranslator {
 					buildClassParition(c.attrExtendedClass());
 					classPartitions.union(c, c.attrExtendedClass());
 				}
-				for (PscriptTypeInterface i : c.attrImplementedInterfaces()) {
+				for (WurstTypeInterface i : c.attrImplementedInterfaces()) {
 					// union with implemented interfaces
 					buildClassParition(i.getInterfaceDef());
 					classPartitions.union(c, i.getInterfaceDef());
 				}
 			} else if (s instanceof InterfaceDef)  {
 				InterfaceDef i = (InterfaceDef) s;
-				for (PscriptTypeInterface t : i.attrExtendedInterfaces()) {
+				for (WurstTypeInterface t : i.attrExtendedInterfaces()) {
 					// union with extended interfaces
 					buildClassParition(t.getInterfaceDef());
 					classPartitions.union(i, t.getInterfaceDef());
@@ -642,7 +642,7 @@ public class ImTranslator {
 		
 		List<ImStmt> result = Lists.newArrayList();
 		ImVar thisVar = f.getParameters().get(0);
-		boolean returnsVoid = funcDef.attrTyp() instanceof PScriptTypeVoid;
+		boolean returnsVoid = funcDef.attrTyp() instanceof WurstTypeVoid;
 		if (start > end) {
 			// there seem to be no instances
 			assert instances2.size() == 0;
@@ -807,7 +807,7 @@ public class ImTranslator {
 		interfaceInstances = HashMultimap.create();
 		for (CompilationUnit cu : wurstProg) {
 			for (ClassDef c : cu.attrGetByType().classes) {
-				for (PscriptTypeInterface i : c.attrImplementedInterfaces()) {
+				for (WurstTypeInterface i : c.attrImplementedInterfaces()) {
 					interfaceInstances.put(i.getInterfaceDef(), c);
 				}
 			}
@@ -859,13 +859,13 @@ public class ImTranslator {
 	/**
 	 * returns all classes which are subtypes or equal to the given type 
 	 */
-	public Collection<ClassDef> getConcreteSubtypes(PscriptType t) {
-		if (t instanceof PscriptTypeInterface) {
-			PscriptTypeInterface ti = (PscriptTypeInterface) t;
+	public Collection<ClassDef> getConcreteSubtypes(WurstType t) {
+		if (t instanceof WurstTypeInterface) {
+			WurstTypeInterface ti = (WurstTypeInterface) t;
 			return getInterfaceInstances(ti.getInterfaceDef());
 		}
-		if (t instanceof PscriptTypeClass) {
-			PscriptTypeClass tc = (PscriptTypeClass) t;
+		if (t instanceof WurstTypeClass) {
+			WurstTypeClass tc = (WurstTypeClass) t;
 			ArrayList<ClassDef> result = Lists.newArrayList(getSubClasses(tc.getClassDef()));
 			result.add(tc.getClassDef());
 			return result;

@@ -10,7 +10,7 @@ import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
 import de.peeeq.wurstscript.ast.TypeRef;
 import de.peeeq.wurstscript.types.NativeTypes;
-import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.utils.Utils;
 
 
@@ -28,7 +28,7 @@ public class AttrTypeDef {
 			return null;
 		}
 
-		PscriptType nativeType = NativeTypes.nativeType(typeName, Utils.isJassCode(node));
+		WurstType nativeType = NativeTypes.nativeType(typeName, Utils.isJassCode(node));
 		if (nativeType != null) {
 			return null; // native types have no definitionPos
 		}

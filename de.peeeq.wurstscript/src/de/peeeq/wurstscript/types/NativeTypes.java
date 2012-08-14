@@ -12,52 +12,52 @@ public class NativeTypes {
 	 * returns the PscriptType for a given nativetype definition
 	 * @param b 
 	 */
-	public static PscriptType nativeType(String typeName, boolean isJassCode) {
+	public static WurstType nativeType(String typeName, boolean isJassCode) {
 		if (typeName.equals("int") || typeName.equals("integer")) {
 			if (isJassCode) {
-				return PScriptTypeJassInt.instance();
+				return WurstTypeJassInt.instance();
 			} else {
-				return PScriptTypeInt.instance();
+				return WurstTypeInt.instance();
 			}
 		}
 		if (typeName.equals("bool") || typeName.equals("boolean")) {
-			return PScriptTypeBool.instance();
+			return WurstTypeBool.instance();
 		}
 		if (typeName.equals("real")) {
-			return PScriptTypeReal.instance();
+			return WurstTypeReal.instance();
 		}
 		if (typeName.equals("string")) {
-			return PScriptTypeString.instance();
+			return WurstTypeString.instance();
 		}
 		if (typeName.equals("code")) {
-			return PScriptTypeCode.instance();
+			return WurstTypeCode.instance();
 		}
 		if (typeName.equals("handle")) {
-			return PScriptTypeHandle.instance();
+			return WurstTypeHandle.instance();
 		}
 		return null;
 	}
 
-	public static ILconst getDefaultValue(PscriptType type) {
-		if (type.isSubtypeOf(PScriptTypeInt.instance(), null)) {
+	public static ILconst getDefaultValue(WurstType type) {
+		if (type.isSubtypeOf(WurstTypeInt.instance(), null)) {
 			return new ILconstInt(0);
 		}
-		if (type.isSubtypeOf(PScriptTypeBool.instance(), null)) {
+		if (type.isSubtypeOf(WurstTypeBool.instance(), null)) {
 			return ILconstBool.FALSE;
 		}
-		if (type.isSubtypeOf(PScriptTypeReal.instance(), null)) {
+		if (type.isSubtypeOf(WurstTypeReal.instance(), null)) {
 			return new ILconstReal(0.0);
 		}
-		if (type.isSubtypeOf(PScriptTypeString.instance(), null)) {
+		if (type.isSubtypeOf(WurstTypeString.instance(), null)) {
 			return new ILconstString(null);
 		}
-		if (type.isSubtypeOf(PScriptTypeCode.instance(), null)) {
+		if (type.isSubtypeOf(WurstTypeCode.instance(), null)) {
 			return ILconstNull.instance();
 		}
-		if (type.isSubtypeOf(PScriptTypeHandle.instance(), null)) {
+		if (type.isSubtypeOf(WurstTypeHandle.instance(), null)) {
 			return ILconstNull.instance();
 		}
-		if (type instanceof PscriptTypeClass) {
+		if (type instanceof WurstTypeClass) {
 			return new ILconstInt(0);
 		}
 		throw new Error("default value for type " + type + " not implemented");

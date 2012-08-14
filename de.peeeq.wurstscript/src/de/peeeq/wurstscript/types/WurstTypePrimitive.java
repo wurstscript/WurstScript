@@ -3,13 +3,13 @@ package de.peeeq.wurstscript.types;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.JassIm;
 
-public abstract class PscriptTypePrimitive extends PscriptType {
+public abstract class WurstTypePrimitive extends WurstType {
 	
 	private String name;
 	private String[] jassType;
 	private ImSimpleType imType;
 
-	protected PscriptTypePrimitive(String name) {
+	protected WurstTypePrimitive(String name) {
 		this.name = name;
 		jassType = new String[] { name };
 		imType = JassIm.ImSimpleType(name);

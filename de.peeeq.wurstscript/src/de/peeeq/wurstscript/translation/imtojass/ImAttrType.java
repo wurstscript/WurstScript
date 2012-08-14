@@ -24,21 +24,21 @@ import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
 import de.peeeq.wurstscript.jassIm.JassIm;
-import de.peeeq.wurstscript.types.PScriptTypeBool;
-import de.peeeq.wurstscript.types.PScriptTypeCode;
-import de.peeeq.wurstscript.types.PScriptTypeHandle;
-import de.peeeq.wurstscript.types.PScriptTypeInt;
-import de.peeeq.wurstscript.types.PScriptTypeReal;
-import de.peeeq.wurstscript.types.PScriptTypeString;
+import de.peeeq.wurstscript.types.WurstTypeBool;
+import de.peeeq.wurstscript.types.WurstTypeCode;
+import de.peeeq.wurstscript.types.WurstTypeHandle;
+import de.peeeq.wurstscript.types.WurstTypeInt;
+import de.peeeq.wurstscript.types.WurstTypeReal;
+import de.peeeq.wurstscript.types.WurstTypeString;
 
 public class ImAttrType {
 
 	public static ImType getType(ImBoolVal e) {
-		return PScriptTypeBool.instance().imTranslateType();
+		return WurstTypeBool.instance().imTranslateType();
 	}
 
 	public static ImType getType(ImFuncRef e) {
-		return PScriptTypeCode.instance().imTranslateType();
+		return WurstTypeCode.instance().imTranslateType();
 	}
 
 	public static ImType getType(ImFunctionCall e) {
@@ -46,20 +46,20 @@ public class ImAttrType {
 	}
 
 	public static ImType getType(ImIntVal e) {
-		return PScriptTypeInt.instance().imTranslateType();
+		return WurstTypeInt.instance().imTranslateType();
 	}
 
 	public static ImType getType(ImNull e) {
-		return PScriptTypeHandle.instance().imTranslateType();
+		return WurstTypeHandle.instance().imTranslateType();
 	}
 
 	public static ImType getType(ImOperatorCall e) {
 		// TODO this is a lie
-		return PScriptTypeReal.instance().imTranslateType();
+		return WurstTypeReal.instance().imTranslateType();
 	}
 
 	public static ImType getType(ImRealVal e) {
-		return PScriptTypeReal.instance().imTranslateType();
+		return WurstTypeReal.instance().imTranslateType();
 	}
 
 	public static ImType getType(ImStatementExpr e) {
@@ -67,7 +67,7 @@ public class ImAttrType {
 	}
 
 	public static ImType getType(ImStringVal e) {
-		return PScriptTypeString.instance().imTranslateType();
+		return WurstTypeString.instance().imTranslateType();
 	}
 
 	public static ImType getType(ImTupleSelection e) {

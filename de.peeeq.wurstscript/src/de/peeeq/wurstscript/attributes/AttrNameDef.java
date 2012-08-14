@@ -11,9 +11,9 @@ import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.WParameter;
-import de.peeeq.wurstscript.types.PscriptType;
-import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
-import de.peeeq.wurstscript.types.PscriptTypeTuple;
+import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeNamedScope;
+import de.peeeq.wurstscript.types.WurstTypeTuple;
 
 /**
  * this attribute find the variable definition for every variable reference
@@ -74,9 +74,9 @@ public class AttrNameDef {
 
 	private static NameDef memberVarCase(Expr left, String varName, boolean writeAccess, Expr node) {
 		
-		PscriptType leftType = left.attrTyp();
-		if (leftType instanceof PscriptTypeNamedScope) {
-			PscriptTypeNamedScope ns = (PscriptTypeNamedScope) leftType;
+		WurstType leftType = left.attrTyp();
+		if (leftType instanceof WurstTypeNamedScope) {
+			WurstTypeNamedScope ns = (WurstTypeNamedScope) leftType;
 			List<NameDef> names = NameResolution.searchTypedName(NameDef.class, varName, ns.getDef(), true);
 			if (names.size() == 0) {
 				node.addError("Variable " + varName + " not found.");
@@ -84,8 +84,8 @@ public class AttrNameDef {
 			} else {
 				return names.get(0);
 			}
-		} else if (leftType instanceof PscriptTypeTuple) {
-			PscriptTypeTuple tupleType = (PscriptTypeTuple) leftType;
+		} else if (leftType instanceof WurstTypeTuple) {
+			WurstTypeTuple tupleType = (WurstTypeTuple) leftType;
 			for (WParameter p : tupleType.getTupleDef().getParameters()) {
 				if (p.getName().equals(varName)) {
 					return p;

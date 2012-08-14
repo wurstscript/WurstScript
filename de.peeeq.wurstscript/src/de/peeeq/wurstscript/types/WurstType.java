@@ -8,20 +8,20 @@ import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.jassIm.ImType;
 
 
-public abstract class PscriptType {
+public abstract class WurstType {
 	/**
 	 * @param other
 	 * @param location 
 	 * @return is this type a subtype (or equal) to other type?
 	 */
-	public abstract boolean isSubtypeOf(PscriptType other, AstElement location);
+	public abstract boolean isSubtypeOf(WurstType other, AstElement location);
 	
 	
 	/**
 	 * @param other
 	 * @return is this type a supertype (or equal) to other type?
 	 */
-	public final boolean isSupertypeOf(PscriptType other, AstElement location) {
+	public final boolean isSupertypeOf(WurstType other, AstElement location) {
 		return other.isSubtypeOf(this, location);
 	}
 	
@@ -36,7 +36,7 @@ public abstract class PscriptType {
 	public abstract String getFullName();
 	
 	
-	public boolean equalsType(PscriptType otherType, AstElement location) {
+	public boolean equalsType(WurstType otherType, AstElement location) {
 		return otherType.isSubtypeOf(this, location) && this.isSubtypeOf(otherType, location);
 	}
 	
@@ -44,7 +44,7 @@ public abstract class PscriptType {
 		return getName();
 	}
 	/**
-	 * @deprecated  use {@link #equalsType(PscriptType, AstElement)}
+	 * @deprecated  use {@link #equalsType(WurstType, AstElement)}
 	 */
 	@Deprecated
 	@Override public boolean equals(Object other) {
@@ -58,7 +58,7 @@ public abstract class PscriptType {
 	
 	
 
-	public PscriptType dynamic() {
+	public WurstType dynamic() {
 		return this;
 	}
 
@@ -67,12 +67,12 @@ public abstract class PscriptType {
 	public abstract String[] jassTranslateType();
 
 
-	public PscriptType setTypeArgs(Map<TypeParamDef, PscriptType> typeParamMapping) {
+	public WurstType setTypeArgs(Map<TypeParamDef, WurstType> typeParamMapping) {
 		return this;
 	}
 
 
-	public Map<TypeParamDef, PscriptType> getTypeArgBinding() {
+	public Map<TypeParamDef, WurstType> getTypeArgBinding() {
 		return Collections.emptyMap();
 	}
 

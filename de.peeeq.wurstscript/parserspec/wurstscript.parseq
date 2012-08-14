@@ -301,16 +301,16 @@ WStatements.attrDoesReturn
 
 
 OptTypeExpr.attrTyp
-	returns de.peeeq.wurstscript.types.PscriptType
+	returns de.peeeq.wurstscript.types.WurstType
 	implemented by de.peeeq.wurstscript.attributes.AttrTypeExprType.calculate
 
 
 Expr.attrTyp
-	returns de.peeeq.wurstscript.types.PscriptType 
+	returns de.peeeq.wurstscript.types.WurstType 
 	implemented by de.peeeq.wurstscript.attributes.AttrExprType.calculate
 
 Expr.attrExpectedTyp "try to guess what type is expected here"
-	returns de.peeeq.wurstscript.types.PscriptType 
+	returns de.peeeq.wurstscript.types.WurstType 
 	implemented by de.peeeq.wurstscript.attributes.AttrExprExpectedType.calculate
 
 FuncRef.attrFuncDef
@@ -351,7 +351,7 @@ WScope.attrVisibleNamesPublic
 	implemented by de.peeeq.wurstscript.attributes.Scopes.getVisibleNamesPublic
 
 NameDef.attrTyp
-	returns de.peeeq.wurstscript.types.PscriptType 
+	returns de.peeeq.wurstscript.types.WurstType 
 	implemented by de.peeeq.wurstscript.attributes.AttrVarDefType.calculate
 
 
@@ -364,11 +364,11 @@ FunctionDefinition.attrIsDynamicClassMember
 	implemented by de.peeeq.wurstscript.attributes.AttrIsClassMember.calculate
 
 FunctionDefinition.attrParameterTypes
-	returns java.util.List<de.peeeq.wurstscript.types.PscriptType>
+	returns java.util.List<de.peeeq.wurstscript.types.WurstType>
 	implemented by de.peeeq.wurstscript.attributes.AttrParameterTypes.calculate
 
 FunctionCall.attrParameterTypes
-	returns java.util.List<de.peeeq.wurstscript.types.PscriptType>
+	returns java.util.List<de.peeeq.wurstscript.types.WurstType>
 	implemented by de.peeeq.wurstscript.attributes.AttrParameterTypes.calculate
 	
 AstElement.attrIsDynamicContext
@@ -530,7 +530,7 @@ WPos.getEndLine()
 
 	
 HasTypeArgs.attrTypeParameterBindings
-	returns java.util.Map<TypeParamDef, de.peeeq.wurstscript.types.PscriptType>
+	returns java.util.Map<TypeParamDef, de.peeeq.wurstscript.types.WurstType>
 	implemented by de.peeeq.wurstscript.attributes.Generics.getTypeParameterBindings
 	
 
@@ -538,7 +538,7 @@ HasTypeArgs.attrTypeParameterBindings
 
 	
 InterfaceDef.attrExtendedInterfaces	
-	returns java.util.Collection<de.peeeq.wurstscript.types.PscriptTypeInterface>
+	returns java.util.Collection<de.peeeq.wurstscript.types.WurstTypeInterface>
 	implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getExtendedInterfaces
 
 ClassDef.attrExtendedClass
@@ -630,7 +630,7 @@ OpBinary.jassTranslateBinary()
 		implemented by de.peeeq.wurstscript.translation.imtranslation.FuncSkeleton.create
 
 	ClassDef.attrImplementedInterfaces
-		returns java.util.Collection<de.peeeq.wurstscript.types.PscriptTypeInterface>
+		returns java.util.Collection<de.peeeq.wurstscript.types.WurstTypeInterface>
 		implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getImplementedInterfaces
 		
 		

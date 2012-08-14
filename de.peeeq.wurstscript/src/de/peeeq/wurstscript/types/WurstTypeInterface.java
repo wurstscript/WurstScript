@@ -8,7 +8,7 @@ import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.jassIm.ImType;
 
 
-public class PscriptTypeInterface extends PscriptTypeNamedScope {
+public class WurstTypeInterface extends WurstTypeNamedScope {
 
 
 	private final InterfaceDef interfaceDef;
@@ -19,13 +19,13 @@ public class PscriptTypeInterface extends PscriptTypeNamedScope {
 //		this.interfaceDef = interfaceDef;
 //	}
 
-	public PscriptTypeInterface(InterfaceDef interfaceDef, List<PscriptType> newTypes, boolean isStaticRef) {
+	public WurstTypeInterface(InterfaceDef interfaceDef, List<WurstType> newTypes, boolean isStaticRef) {
 		super(newTypes, isStaticRef);
 		if (interfaceDef == null) throw new IllegalArgumentException();
 		this.interfaceDef = interfaceDef;
 	}
 	
-	public PscriptTypeInterface(InterfaceDef interfaceDef, List<PscriptType> newTypes) {
+	public WurstTypeInterface(InterfaceDef interfaceDef, List<WurstType> newTypes) {
 		super(newTypes);
 		if (interfaceDef == null) throw new IllegalArgumentException();
 		this.interfaceDef = interfaceDef;
@@ -46,32 +46,32 @@ public class PscriptTypeInterface extends PscriptTypeNamedScope {
 	}
 	
 	@Override
-	public PscriptType dynamic() {
+	public WurstType dynamic() {
 		if (isStaticRef()) {
-			return new PscriptTypeInterface(getInterfaceDef(), getTypeParameters(), false);
+			return new WurstTypeInterface(getInterfaceDef(), getTypeParameters(), false);
 		}
 		return this;
 	}
 
 	@Override
-	public PscriptType replaceTypeVars(List<PscriptType> newTypes) {
-		return new PscriptTypeInterface(getInterfaceDef(), newTypes);
+	public WurstType replaceTypeVars(List<WurstType> newTypes) {
+		return new WurstTypeInterface(getInterfaceDef(), newTypes);
 	}
 
 	@Override
-	public boolean isSubtypeOf(PscriptType other, AstElement location) {
+	public boolean isSubtypeOf(WurstType other, AstElement location) {
 		if (super.isSubtypeOf(other, location)) {
 			return true;
 		}
 		
-		if (other instanceof PscriptTypeInterface) {
-			PscriptTypeInterface other2 = (PscriptTypeInterface) other;
+		if (other instanceof WurstTypeInterface) {
+			WurstTypeInterface other2 = (WurstTypeInterface) other;
 			if (interfaceDef == other2.interfaceDef) {
 				// same interface -> check if type params are equal
 				return checkTypeParametersEqual(getTypeParameters(), other2.getTypeParameters(), location);
 			} else {
 				// test super interfaces:
-				for (PscriptTypeInterface extended : interfaceDef.attrExtendedInterfaces() ) {
+				for (WurstTypeInterface extended : interfaceDef.attrExtendedInterfaces() ) {
 					if (extended.isSubtypeOf(other, location)) {
 						return true;
 					}

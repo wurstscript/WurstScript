@@ -1,7 +1,7 @@
 package de.peeeq.wurstscript.intermediateLang;
 
-import de.peeeq.wurstscript.types.PScriptTypeString;
-import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.types.WurstTypeString;
+import de.peeeq.wurstscript.types.WurstType;
 
 public class ILconstTuple extends ILconstAbstract {
 
@@ -24,8 +24,8 @@ public class ILconstTuple extends ILconstAbstract {
 		return sb.toString();
 	}
 
-	public PscriptType getType() {
-		return PScriptTypeString.instance();
+	public WurstType getType() {
+		return WurstTypeString.instance();
 	}
 
 

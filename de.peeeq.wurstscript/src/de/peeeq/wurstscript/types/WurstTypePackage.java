@@ -7,13 +7,13 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.jassIm.ImType;
 
 
-public class PScriptTypePackage extends PscriptTypeNamedScope {
+public class WurstTypePackage extends WurstTypeNamedScope {
 
 	
 
 	private WPackage pack;
 
-	public PScriptTypePackage(WPackage pack) {
+	public WurstTypePackage(WPackage pack) {
 		super(true);
 		if (pack == null) throw new IllegalArgumentException();
 		this.pack = pack;
@@ -30,12 +30,12 @@ public class PScriptTypePackage extends PscriptTypeNamedScope {
 	}
 	
 	@Override
-	public PscriptType dynamic() {
+	public WurstType dynamic() {
 		throw new Error("Package references cannot be dynamic.");
 	}
 
 	@Override
-	public PscriptType replaceTypeVars(List<PscriptType> newTypes) {
+	public WurstType replaceTypeVars(List<WurstType> newTypes) {
 		return this;
 	}
 

@@ -36,8 +36,8 @@ import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.ast.WurstModel;
-import de.peeeq.wurstscript.types.PscriptType;
-import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
+import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class WurstCompletionProcessor implements IContentAssistProcessor {
@@ -82,9 +82,9 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		
 		if (elem instanceof ExprMemberVar) {
 			ExprMemberVar e = (ExprMemberVar) elem;
-			PscriptType leftType = e.getLeft().attrTyp();
-			if (leftType instanceof PscriptTypeNamedScope) {
-				PscriptTypeNamedScope ns = (PscriptTypeNamedScope) leftType;
+			WurstType leftType = e.getLeft().attrTyp();
+			if (leftType instanceof WurstTypeNamedScope) {
+				WurstTypeNamedScope ns = (WurstTypeNamedScope) leftType;
 				Multimap<String, NameDef> visibleNames = ns.getDef().attrVisibleNamesPrivate();
 				completionsAddVisibleNames(alreadyEntered, completions, visibleNames);
 			}
@@ -207,7 +207,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 	private void completionsAddVisibleExtensionFunctions(String alreadyEntered,
 			List<ICompletionProposal> completions,
-			Multimap<String, NameDef> visibleNames, PscriptType leftType) {
+			Multimap<String, NameDef> visibleNames, WurstType leftType) {
 		for (Entry<String, NameDef> e : visibleNames.entries()) {
 			if (!e.getKey().startsWith(alreadyEntered)) {
 				continue;

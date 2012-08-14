@@ -22,16 +22,16 @@ import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
-import de.peeeq.wurstscript.types.PScriptTypeEnum;
-import de.peeeq.wurstscript.types.PScriptTypePackage;
-import de.peeeq.wurstscript.types.PscriptNativeType;
-import de.peeeq.wurstscript.types.PscriptType;
-import de.peeeq.wurstscript.types.PscriptTypeClass;
-import de.peeeq.wurstscript.types.PscriptTypeInterface;
-import de.peeeq.wurstscript.types.PscriptTypeModule;
-import de.peeeq.wurstscript.types.PscriptTypeModuleInstanciation;
-import de.peeeq.wurstscript.types.PscriptTypeTuple;
-import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
+import de.peeeq.wurstscript.types.WurstTypeEnum;
+import de.peeeq.wurstscript.types.WurstTypePackage;
+import de.peeeq.wurstscript.types.WurstNativeType;
+import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeClass;
+import de.peeeq.wurstscript.types.WurstTypeInterface;
+import de.peeeq.wurstscript.types.WurstTypeModule;
+import de.peeeq.wurstscript.types.WurstTypeModuleInstanciation;
+import de.peeeq.wurstscript.types.WurstTypeTuple;
+import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 
 
 /**
@@ -40,28 +40,28 @@ import de.peeeq.wurstscript.types.PscriptTypeTypeParam;
  */
 public class AttrVarDefType {
 	
-	public static  PscriptType calculate(GlobalVarDef node) {
+	public static  WurstType calculate(GlobalVarDef node) {
 		return defaultCase(node.getOptTyp(), node.getInitialExpr());
 	}
 	
-	public static  PscriptType calculate(LocalVarDef node) {
+	public static  WurstType calculate(LocalVarDef node) {
 		return defaultCase(node.getOptTyp(), node.getInitialExpr());
 	}
 	
-	public static  PscriptType calculate(WParameter node) {
+	public static  WurstType calculate(WParameter node) {
 		return node.getTyp().attrTyp();
 	}
 	
-	public static PscriptType calculate(ClassDef c) {
-		List<PscriptType> typeArgs = Lists.newArrayList();
+	public static WurstType calculate(ClassDef c) {
+		List<WurstType> typeArgs = Lists.newArrayList();
 		for (TypeParamDef tp : c.getTypeParameters()) {
-			typeArgs.add(new PscriptTypeTypeParam(tp));
+			typeArgs.add(new WurstTypeTypeParam(tp));
 		}
-		PscriptTypeClass t = new PscriptTypeClass(c, typeArgs, true);
+		WurstTypeClass t = new WurstTypeClass(c, typeArgs, true);
 		return t;
 	}
 	
-	private static PscriptType defaultCase(OptTypeExpr typ,
+	private static WurstType defaultCase(OptTypeExpr typ,
 			final OptExpr initialExpr) {
 		if (typ instanceof TypeExpr) {
 			return typ.attrTyp().dynamic();
@@ -74,48 +74,48 @@ public class AttrVarDefType {
 		}
 	}
 
-	public static PscriptType calculate(ModuleDef moduleDef) {
-		return new PscriptTypeModule(moduleDef, true);
+	public static WurstType calculate(ModuleDef moduleDef) {
+		return new WurstTypeModule(moduleDef, true);
 	}
 
-	public static PscriptType calculate(ModuleInstanciation m) {
-		return new PscriptTypeModuleInstanciation(m, true);
+	public static WurstType calculate(ModuleInstanciation m) {
+		return new WurstTypeModuleInstanciation(m, true);
 	}
 
-	public static PscriptType calculate(NativeType n) {
-		return PscriptNativeType.instance(n.getName(), n.getOptTyp().attrTyp());
+	public static WurstType calculate(NativeType n) {
+		return WurstNativeType.instance(n.getName(), n.getOptTyp().attrTyp());
 	}
 
-	public static PscriptType calculate(FunctionDefinition f) {
+	public static WurstType calculate(FunctionDefinition f) {
 		return f.getReturnTyp().attrTyp();
 	}
 
-	public static PscriptType calculate(TypeParamDef t) {
-		return new PscriptTypeTypeParam(t);
+	public static WurstType calculate(TypeParamDef t) {
+		return new WurstTypeTypeParam(t);
 	}
 
-	public static PscriptType calculate(InterfaceDef i) {
-		List<PscriptType> typeArgs = Lists.newArrayList();
+	public static WurstType calculate(InterfaceDef i) {
+		List<WurstType> typeArgs = Lists.newArrayList();
 		for (TypeParamDef tp : i.getTypeParameters()) {
 			typeArgs.add(tp.attrTyp());
 		}
-		return new PscriptTypeInterface(i, typeArgs, true);
+		return new WurstTypeInterface(i, typeArgs, true);
 	}
 
-	public static PscriptType calculate(TupleDef t) {
-		return new PscriptTypeTuple(t);
+	public static WurstType calculate(TupleDef t) {
+		return new WurstTypeTuple(t);
 	}
 
-	public static PscriptType calculate(WPackage p) {
-		return new PScriptTypePackage(p);
+	public static WurstType calculate(WPackage p) {
+		return new WurstTypePackage(p);
 	}
 
-	public static PscriptType calculate(EnumDef enumDef) {
-		return new PScriptTypeEnum(true, enumDef);
+	public static WurstType calculate(EnumDef enumDef) {
+		return new WurstTypeEnum(true, enumDef);
 	}
 
-	public static PscriptType calculate(EnumMember enumMember) {
-		return new PScriptTypeEnum(false, (EnumDef) enumMember.getParent().getParent());
+	public static WurstType calculate(EnumMember enumMember) {
+		return new WurstTypeEnum(false, (EnumDef) enumMember.getParent().getParent());
 	}
 	
 

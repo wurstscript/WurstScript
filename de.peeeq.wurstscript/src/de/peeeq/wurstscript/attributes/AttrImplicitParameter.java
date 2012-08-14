@@ -16,8 +16,8 @@ import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.OptExpr;
 import de.peeeq.wurstscript.ast.VarDef;
-import de.peeeq.wurstscript.types.PscriptType;
-import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
+import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 
 public class AttrImplicitParameter {
 
@@ -63,9 +63,9 @@ public class AttrImplicitParameter {
 	}
 	
 	private static Expr getImplicitParameterUsingLeft(AstElementWithLeft e) {
-		PscriptType leftType = e.getLeft().attrTyp();
-		if (leftType instanceof PscriptTypeNamedScope) {
-			PscriptTypeNamedScope ns = (PscriptTypeNamedScope) leftType;
+		WurstType leftType = e.getLeft().attrTyp();
+		if (leftType instanceof WurstTypeNamedScope) {
+			WurstTypeNamedScope ns = (WurstTypeNamedScope) leftType;
 			if (ns.isStaticRef()) {
 				// we have a static ref like Math.sqrt()
 				// this will be handled like if we just have sqrt()

@@ -5,20 +5,20 @@ import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
 
 
-public class PsrciptFuncType extends PscriptType {
+public class WurstFuncType extends WurstType {
 
 
-	private PscriptType returnType;
-	private PscriptType[] paramTypes;
+	private WurstType returnType;
+	private WurstType[] paramTypes;
 
-	public PsrciptFuncType(PscriptType returnType, PscriptType ... paramTypes ) {
+	public WurstFuncType(WurstType returnType, WurstType ... paramTypes ) {
 		this.returnType = returnType;
 		this.paramTypes = paramTypes;
 	}
 
 	@Override
-	public boolean isSubtypeOf(PscriptType other, AstElement location) {
-		if (! (other instanceof PsrciptFuncType)) {
+	public boolean isSubtypeOf(WurstType other, AstElement location) {
+		if (! (other instanceof WurstFuncType)) {
 			return false;
 		}
 //		PsciptFuncType f = (PsciptFuncType) other;

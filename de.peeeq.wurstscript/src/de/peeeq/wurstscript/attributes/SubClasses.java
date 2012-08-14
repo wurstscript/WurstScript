@@ -7,7 +7,7 @@ import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ConstructorDefs;
-import de.peeeq.wurstscript.types.PscriptTypeClass;
+import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class SubClasses {
@@ -25,8 +25,8 @@ public class SubClasses {
 	}
 
 	public static ClassDef getExtendedClass(ClassDef classDef) {
-		if (classDef.getExtendedClass().attrTyp() instanceof PscriptTypeClass) {
-			PscriptTypeClass c = (PscriptTypeClass) classDef.getExtendedClass().attrTyp();
+		if (classDef.getExtendedClass().attrTyp() instanceof WurstTypeClass) {
+			WurstTypeClass c = (WurstTypeClass) classDef.getExtendedClass().attrTyp();
 			return c.getClassDef();
 		}
 		return null;

@@ -1,7 +1,7 @@
 package de.peeeq.wurstscript.intermediateLang;
 
-import de.peeeq.wurstscript.types.PScriptTypeBool;
-import de.peeeq.wurstscript.types.PscriptType;
+import de.peeeq.wurstscript.types.WurstTypeBool;
+import de.peeeq.wurstscript.types.WurstType;
 
 public class ILconstBool extends ILconstAbstract {
 
@@ -32,8 +32,8 @@ public class ILconstBool extends ILconstAbstract {
 	}
 
 
-	public PscriptType getType() {
-		return PScriptTypeBool.instance();
+	public WurstType getType() {
+		return WurstTypeBool.instance();
 	}
 
 	public ILconst negate() {

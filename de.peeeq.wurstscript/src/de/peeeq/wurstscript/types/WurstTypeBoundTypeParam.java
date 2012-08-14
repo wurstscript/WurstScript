@@ -4,19 +4,19 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.jassIm.ImType;
 
-public class PscriptTypeBoundTypeParam extends PscriptType {
+public class WurstTypeBoundTypeParam extends WurstType {
 
 	
 	private TypeParamDef typeParamDef;
-	private PscriptType baseType;
+	private WurstType baseType;
 
-	public PscriptTypeBoundTypeParam(TypeParamDef def, PscriptType baseType) {
+	public WurstTypeBoundTypeParam(TypeParamDef def, WurstType baseType) {
 		this.typeParamDef = def;
 		this.baseType = baseType;
 	}
 
 	@Override
-	public boolean isSubtypeOf(PscriptType other, AstElement location) {
+	public boolean isSubtypeOf(WurstType other, AstElement location) {
 		return baseType.isSubtypeOf(other, location);
 	}
 
@@ -35,7 +35,7 @@ public class PscriptTypeBoundTypeParam extends PscriptType {
 		return new String[] { "integer", "integer" };
 	}
 
-	public PscriptType getBaseType() {
+	public WurstType getBaseType() {
 		return baseType;
 	}
 

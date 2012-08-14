@@ -14,12 +14,12 @@ import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
 import de.peeeq.wurstscript.types.NativeTypes;
-import de.peeeq.wurstscript.types.PScriptTypeArray;
-import de.peeeq.wurstscript.types.PScriptTypeUnknown;
-import de.peeeq.wurstscript.types.PScriptTypeVoid;
-import de.peeeq.wurstscript.types.PscriptType;
-import de.peeeq.wurstscript.types.PscriptTypeModule;
-import de.peeeq.wurstscript.types.PscriptTypeNamedScope;
+import de.peeeq.wurstscript.types.WurstTypeArray;
+import de.peeeq.wurstscript.types.WurstTypeUnknown;
+import de.peeeq.wurstscript.types.WurstTypeVoid;
+import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeModule;
+import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.utils.Utils;
 
 /**
@@ -29,15 +29,15 @@ import de.peeeq.wurstscript.utils.Utils;
 public class AttrTypeExprType {
 
 	
-	public static PscriptType calculate(TypeExprSimple node) {
-		PscriptType baseType = getBaseType(node);
+	public static WurstType calculate(TypeExprSimple node) {
+		WurstType baseType = getBaseType(node);
 		if (node.getTypeArgs().size() > 0) {
-			if (baseType instanceof PscriptTypeNamedScope) {
-				PscriptTypeNamedScope ns = (PscriptTypeNamedScope) baseType;
-				List<PscriptType> newTypes = Utils.map(node.getTypeArgs() , new Function<TypeExpr, PscriptType>() {
+			if (baseType instanceof WurstTypeNamedScope) {
+				WurstTypeNamedScope ns = (WurstTypeNamedScope) baseType;
+				List<WurstType> newTypes = Utils.map(node.getTypeArgs() , new Function<TypeExpr, WurstType>() {
 
 					@Override
-					public PscriptType apply(TypeExpr input) {
+					public WurstType apply(TypeExpr input) {
 						return input.attrTyp();
 					}
 					
@@ -50,46 +50,46 @@ public class AttrTypeExprType {
 		return baseType;
 	}
 	
-	public static PscriptType calculate(TypeExprThis node) {
+	public static WurstType calculate(TypeExprThis node) {
 		ClassOrModule n = node.attrNearestClassOrModule();
 		if (n == null) {
-			return PScriptTypeUnknown.instance();
+			return WurstTypeUnknown.instance();
 		}
-		return n.match(new ClassOrModule.Matcher<PscriptType>() {
+		return n.match(new ClassOrModule.Matcher<WurstType>() {
 
 			@Override
-			public PscriptType case_ClassDef(ClassDef classDef) {
+			public WurstType case_ClassDef(ClassDef classDef) {
 				return classDef.attrTyp();
 			}
 
 			@Override
-			public PscriptType case_ModuleDef(ModuleDef moduleDef) {
-				return new PscriptTypeModule(moduleDef, true);
+			public WurstType case_ModuleDef(ModuleDef moduleDef) {
+				return new WurstTypeModule(moduleDef, true);
 			}
 
 		});
 	}
 	
-	public static PscriptType calculate(NoTypeExpr optType) {
-		return PScriptTypeVoid.instance();
+	public static WurstType calculate(NoTypeExpr optType) {
+		return WurstTypeVoid.instance();
 	}
 	
 	
-	public static PscriptType calculate(TypeExprArray typeExprArray) {
-		return new PScriptTypeArray(typeExprArray.getBase().attrTyp().dynamic());
+	public static WurstType calculate(TypeExprArray typeExprArray) {
+		return new WurstTypeArray(typeExprArray.getBase().attrTyp().dynamic());
 	}
 
-	private static PscriptType getBaseType(TypeExprSimple node) {
+	private static WurstType getBaseType(TypeExprSimple node) {
 		final String typename = node.getTypeName();
 		final boolean isJassCode = Utils.isJassCode(node);
 		TypeDef t = node.attrTypeDef();
 		if (t == null) {
-			PscriptType nativeType = NativeTypes.nativeType(typename, isJassCode);
+			WurstType nativeType = NativeTypes.nativeType(typename, isJassCode);
 			if (nativeType != null) {
 				return nativeType;
 			}
 			node.addError("Unknown type " + typename);
-			return new PScriptTypeUnknown(typename);
+			return new WurstTypeUnknown(typename);
 		}
 		return t.attrTyp();
 	}

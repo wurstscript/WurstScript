@@ -5,16 +5,16 @@ import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
 
 
-public class PScriptTypeVoid extends PscriptType {
+public class WurstTypeVoid extends WurstType {
 
-	private static final PScriptTypeVoid instance = new PScriptTypeVoid();
+	private static final WurstTypeVoid instance = new WurstTypeVoid();
 
 	// make constructor private as we only need one instance
-	private PScriptTypeVoid() {}
+	private WurstTypeVoid() {}
 	
 	@Override
-	public boolean isSubtypeOf(PscriptType other, AstElement location) {
-		return other instanceof PScriptTypeVoid;
+	public boolean isSubtypeOf(WurstType other, AstElement location) {
+		return other instanceof WurstTypeVoid;
 	}
 
 	@Override
@@ -27,7 +27,7 @@ public class PScriptTypeVoid extends PscriptType {
 		return "Void";
 	}
 
-	public static PScriptTypeVoid instance() {
+	public static WurstTypeVoid instance() {
 		return instance;
 	}
 

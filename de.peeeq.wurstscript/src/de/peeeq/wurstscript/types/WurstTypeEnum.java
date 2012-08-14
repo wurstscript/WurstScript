@@ -8,13 +8,13 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.jassIm.ImType;
 
 
-public class PScriptTypeEnum extends PscriptTypeNamedScope {
+public class WurstTypeEnum extends WurstTypeNamedScope {
 
 	
 
 	private EnumDef edef;
 
-	public PScriptTypeEnum(boolean isStaticRef, EnumDef edef) {
+	public WurstTypeEnum(boolean isStaticRef, EnumDef edef) {
 		super(isStaticRef);
 		if (edef == null) throw new IllegalArgumentException();
 		this.edef = edef;
@@ -31,18 +31,18 @@ public class PScriptTypeEnum extends PscriptTypeNamedScope {
 	}
 	
 	@Override
-	public PscriptType dynamic() {
-		return new PScriptTypeEnum(false, edef);
+	public WurstType dynamic() {
+		return new WurstTypeEnum(false, edef);
 	}
 
 	@Override
-	public PscriptType replaceTypeVars(List<PscriptType> newTypes) {
+	public WurstType replaceTypeVars(List<WurstType> newTypes) {
 		return this;
 	}
 
 	@Override
 	public String[] jassTranslateType() {
-		return PScriptTypeInt.instance().jassTranslateType();
+		return WurstTypeInt.instance().jassTranslateType();
 	}
 	
 	@Override

@@ -9,25 +9,25 @@ import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.jassIm.ImType;
 
 
-public class PscriptTypeClass extends PscriptTypeNamedScope {
+public class WurstTypeClass extends WurstTypeNamedScope {
 
 	ClassDef classDef;
 
 
-	public PscriptTypeClass(ClassDef classDef, List<PscriptType> typeParameters, boolean staticRef) {
+	public WurstTypeClass(ClassDef classDef, List<WurstType> typeParameters, boolean staticRef) {
 		super(typeParameters, staticRef);
 		if (classDef == null) throw new IllegalArgumentException();
 		this.classDef = classDef;
 	}
 
 	@Override
-	public boolean isSubtypeOf(PscriptType obj, AstElement location) {
+	public boolean isSubtypeOf(WurstType obj, AstElement location) {
 		if (super.isSubtypeOf(obj, location)) {
 			return true;
 		}
-		if (obj instanceof PscriptTypeInterface) {
-			PscriptTypeInterface pti = (PscriptTypeInterface) obj;
-			for (PscriptTypeInterface implementedInterface : classDef.attrImplementedInterfaces()) {
+		if (obj instanceof WurstTypeInterface) {
+			WurstTypeInterface pti = (WurstTypeInterface) obj;
+			for (WurstTypeInterface implementedInterface : classDef.attrImplementedInterfaces()) {
 				if (implementedInterface.setTypeArgs(getTypeArgBinding()).isSubtypeOf(pti, location)) {
 					return true;
 				}
@@ -35,7 +35,7 @@ public class PscriptTypeClass extends PscriptTypeNamedScope {
 		}
 		if (classDef.getExtendedClass() instanceof TypeExpr) {
 			TypeExpr extendedClass = (TypeExpr) classDef.getExtendedClass();
-			PscriptType superType = extendedClass.attrTyp();
+			WurstType superType = extendedClass.attrTyp();
 			return superType.isSubtypeOf(obj, location);
 		}
 		return false;
@@ -56,18 +56,18 @@ public class PscriptTypeClass extends PscriptTypeNamedScope {
 	}
 	
 	@Override
-	public PscriptType dynamic() {
-		return new PscriptTypeClass(getClassDef(), getTypeParameters(), false);
+	public WurstType dynamic() {
+		return new WurstTypeClass(getClassDef(), getTypeParameters(), false);
 	}
 
 	@Override
-	public PscriptType replaceTypeVars(List<PscriptType> newTypes) {
-		return new PscriptTypeClass(classDef, newTypes, isStaticRef());
+	public WurstType replaceTypeVars(List<WurstType> newTypes) {
+		return new WurstTypeClass(classDef, newTypes, isStaticRef());
 	}
 
 	@Override
 	public String[] jassTranslateType() {
-		return PScriptTypeInt.instance().jassTranslateType();
+		return WurstTypeInt.instance().jassTranslateType();
 	}
 	
 	@Override
