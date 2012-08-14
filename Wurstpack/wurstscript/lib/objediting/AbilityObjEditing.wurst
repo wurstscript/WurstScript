@@ -1,0 +1,202 @@
+package AbilityObjEditing
+import ObjEditingNatives
+
+public class AbilityDefinition
+	ObjectDefinition def
+	
+	construct(string newAbilityId, string origAbilityId)
+		def = createObjectDefinition("w3a", newAbilityId, origAbilityId)
+	
+	function setName(int level, string value)
+		def.setLvlDataString("anam",  level, 0,  value)
+
+	function setEditorSuffix(int level, string value)
+		def.setLvlDataString("ansf",  level, 0,  value)
+
+	function setHeroAbility(int level, boolean value)
+		def.setLvlDataBoolean("aher",  level, 0,  value)
+
+	function setItemAbility(int level, boolean value)
+		def.setLvlDataBoolean("aite",  level, 0,  value)
+
+	function setRace(int level, string value)
+		def.setLvlDataString("arac",  level, 0,  value)
+
+	function setButtonPositionNormalX(int level, int value)
+		def.setLvlDataInt("abpx",  level, 0,  value)
+
+	function setButtonPositionNormalY(int level, int value)
+		def.setLvlDataInt("abpy",  level, 0,  value)
+
+	function setButtonPositionTurnOffX(int level, int value)
+		def.setLvlDataInt("aubx",  level, 0,  value)
+
+	function setButtonPositionTurnOffY(int level, int value)
+		def.setLvlDataInt("auby",  level, 0,  value)
+
+	function setButtonPositionResearchX(int level, int value)
+		def.setLvlDataInt("arpx",  level, 0,  value)
+
+	function setButtonPositionResearchY(int level, int value)
+		def.setLvlDataInt("arpy",  level, 0,  value)
+
+	function setIconNormal(int level, string value)
+		def.setLvlDataString("aart",  level, 0,  value)
+
+	function setIconTurnOff(int level, string value)
+		def.setLvlDataString("auar",  level, 0,  value)
+
+	function setIconResearch(int level, string value)
+		def.setLvlDataString("arar",  level, 0,  value)
+
+	function setCaster(int level, string value)
+		def.setLvlDataString("acat",  level, 0,  value)
+
+	function setTarget(int level, string value)
+		def.setLvlDataString("atat",  level, 0,  value)
+
+	function setSpecial(int level, string value)
+		def.setLvlDataString("asat",  level, 0,  value)
+
+	function setEffect(int level, string value)
+		def.setLvlDataString("aeat",  level, 0,  value)
+
+	function setAreaEffect(int level, string value)
+		def.setLvlDataString("aaea",  level, 0,  value)
+
+	function setMissileArt(int level, string value)
+		def.setLvlDataString("amat",  level, 0,  value)
+
+	function setMissileSpeed(int level, int value)
+		def.setLvlDataInt("amsp",  level, 0,  value)
+
+	function setMissileArc(int level, real value)
+		def.setLvlDataReal("amac",  level, 0,  value)
+
+	function setMissileHomingEnabled(int level, boolean value)
+		def.setLvlDataBoolean("amho",  level, 0,  value)
+
+	function setTargetAttachments(int level, int value)
+		def.setLvlDataInt("atac",  level, 0,  value)
+
+	function setTargetAttachmentPoint0(int level, string value)
+		def.setLvlDataString("ata0",  level, 0,  value)
+
+	function setTargetAttachmentPoint1(int level, string value)
+		def.setLvlDataString("ata1",  level, 0,  value)
+
+	function setTargetAttachmentPoint2(int level, string value)
+		def.setLvlDataString("ata2",  level, 0,  value)
+
+	function setTargetAttachmentPoint3(int level, string value)
+		def.setLvlDataString("ata3",  level, 0,  value)
+
+	function setTargetAttachmentPoint4(int level, string value)
+		def.setLvlDataString("ata4",  level, 0,  value)
+
+	function setTargetAttachmentPoint5(int level, string value)
+		def.setLvlDataString("ata5",  level, 0,  value)
+
+	function setCasterAttachments(int level, int value)
+		def.setLvlDataInt("acac",  level, 0,  value)
+
+	function setCasterAttachmentPoint(int level, string value)
+		def.setLvlDataString("acap",  level, 0,  value)
+
+	function setCasterAttachmentPoint1(int level, string value)
+		def.setLvlDataString("aca1",  level, 0,  value)
+
+	function setSpecialAttachmentPoint(int level, string value)
+		def.setLvlDataString("aspt",  level, 0,  value)
+
+	function setTooltipNormal(int level, string value)
+		def.setLvlDataString("atp1",  level, 0,  value)
+
+	function setTooltipTurnOff(int level, string value)
+		def.setLvlDataString("aut1",  level, 0,  value)
+
+	function setTooltipNormalExtended(int level, string value)
+		def.setLvlDataString("aub1",  level, 0,  value)
+
+	function setTooltipTurnOffExtended(int level, string value)
+		def.setLvlDataString("auu1",  level, 0,  value)
+
+	function setTooltipLearn(int level, string value)
+		def.setLvlDataString("aret",  level, 0,  value)
+
+	function setTooltipLearnExtended(int level, string value)
+		def.setLvlDataString("arut",  level, 0,  value)
+
+	function setHotkeyLearn(int level, string value)
+		def.setLvlDataString("arhk",  level, 0,  value)
+
+	function setHotkeyNormal(int level, string value)
+		def.setLvlDataString("ahky",  level, 0,  value)
+
+	function setHotkeyTurnOff(int level, string value)
+		def.setLvlDataString("auhk",  level, 0,  value)
+
+	function setRequirements(int level, string value)
+		def.setLvlDataString("areq",  level, 0,  value)
+
+	function setRequirementsLevels(int level, string value)
+		def.setLvlDataString("arqa",  level, 0,  value)
+
+	function setCheckDependencies(int level, boolean value)
+		def.setLvlDataBoolean("achd",  level, 0,  value)
+
+	function setPriorityforSpellSteal(int level, int value)
+		def.setLvlDataInt("apri",  level, 0,  value)
+
+	function setOrderStringUseTurnOn(int level, string value)
+		def.setLvlDataString("aord",  level, 0,  value)
+
+	function setOrderStringTurnOff(int level, string value)
+		def.setLvlDataString("aoru",  level, 0,  value)
+
+	function setOrderStringActivate(int level, string value)
+		def.setLvlDataString("aoro",  level, 0,  value)
+
+	function setOrderStringDeactivate(int level, string value)
+		def.setLvlDataString("aorf",  level, 0,  value)
+
+	function setEffectSound(int level, string value)
+		def.setLvlDataString("aefs",  level, 0,  value)
+
+	function setEffectSoundLooping(int level, string value)
+		def.setLvlDataString("aefl",  level, 0,  value)
+
+	function setLevels(int level, int value)
+		def.setLvlDataInt("alev",  level, 0,  value)
+
+	function setRequiredLevel(int level, int value)
+		def.setLvlDataInt("arlv",  level, 0,  value)
+
+	function setLevelSkipRequirement(int level, int value)
+		def.setLvlDataInt("alsk",  level, 0,  value)
+
+	function setTargetsAllowed(int level, string value)
+		def.setLvlDataString("atar",  level, 0,  value)
+
+	function setCastingTime(int level, real value)
+		def.setLvlDataReal("acas",  level, 0,  value)
+
+	function setDurationNormal(int level, real value)
+		def.setLvlDataReal("adur",  level, 0,  value)
+
+	function setDurationHero(int level, real value)
+		def.setLvlDataReal("ahdu",  level, 0,  value)
+
+	function setCooldown(int level, real value)
+		def.setLvlDataReal("acdn",  level, 0,  value)
+
+	function setManaCost(int level, int value)
+		def.setLvlDataInt("amcs",  level, 0,  value)
+
+	function setAreaofEffect(int level, real value)
+		def.setLvlDataReal("aare",  level, 0,  value)
+
+	function setCastRange(int level, real value)
+		def.setLvlDataReal("aran",  level, 0,  value)
+
+

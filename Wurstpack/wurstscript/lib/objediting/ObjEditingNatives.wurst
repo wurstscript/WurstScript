@@ -63,3 +63,9 @@ public tuple ObjectDefinition(string key)
 // changes a unreal (real between 0.0 and 1.0) of an objectdefinition
 @compiletimenative public function ObjectDefinition.setLvlDataUnreal(string modification, int lvl, int dataPointer, real value)
 	skip
+	
+public function ObjectDefinition.setLvlDataBoolean(string modification, int lvl, int dataPointer, boolean value)
+	if value
+		this.setLvlDataInt(modification, lvl, dataPointer, 1)
+	else
+		this.setLvlDataInt(modification, lvl, dataPointer, 0)
