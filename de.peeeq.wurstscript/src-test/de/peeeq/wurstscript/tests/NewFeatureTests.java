@@ -122,6 +122,61 @@ public class NewFeatureTests extends PscriptTest {
 				);
 	}
 	
+	@Test
+	public void testSwitchReturn() {
+		testAssertOkLines(false,
+				"package Test",
+				"native testSuccess()",
+				"function foo() returns int",
+				"	var s = \"toll\"",
+				"	switch s",
+				"		case \"bla\"",
+				"			return 1",
+				"		case \"toll\"",
+				"			return 2",
+				"		default",
+				"			return 3"
+				);
+	}
+	
+	@Test
+	public void testSwitchInit() {
+		testAssertOkLines(false,
+				"package Test",
+				"native testSuccess()",
+				"function foo()",
+				"	var s = \"toll\"",
+				"	int i",
+				"	switch s",
+				"		case \"bla\"",
+				"			i = 1",
+				"		case \"toll\"",
+				"			i= 2",
+				"		default",
+				"			i = 3",
+				"	i++"
+				);
+	}
+	
+	@Test
+	public void testSwitchEnumAll() {
+		testAssertErrorsLines(false, "asdasdsa", 
+				"package Test",
+				"native testSuccess()",
+				"enum Blub",
+				"	A",
+				"	B",
+				"	C",
+				"init",
+				"	var i = 5",
+				"	switch Blub.C",
+				"		case Blub.A",
+				"			i = 1",
+				"		case Blub.B",
+				"			i = 2"
+				);
+	}
+	
 	/*
 	 * i =1 
 	 * lastIf = (if b == Blub.A

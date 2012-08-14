@@ -28,6 +28,9 @@ import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.StmtSkip;
 import de.peeeq.wurstscript.ast.StmtWhile;
+import de.peeeq.wurstscript.ast.SwitchCase;
+import de.peeeq.wurstscript.ast.SwitchDefaultCase;
+import de.peeeq.wurstscript.ast.SwitchDefaultCaseStatements;
 import de.peeeq.wurstscript.ast.SwitchStmt;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
@@ -189,7 +192,17 @@ public class UninitializedVars {
 				@Override
 				public void case_SwitchStmt(SwitchStmt switchStmt) {
 					checkExpr(switchStmt.getExpr(), uninitializedVars);
-					
+					Set<LocalVarDef> vars = Sets.newHashSet();
+					for( SwitchCase c : switchStmt.getCases()) {
+						checkExpr(c.getExpr(), uninitializedVars);
+						vars.addAll(checkStatements(c.getStmts(), uninitializedVars));
+					}
+					SwitchDefaultCase dflt = switchStmt.getSwitchDefault();
+					if( dflt instanceof SwitchDefaultCaseStatements) {
+						vars.addAll(checkStatements(((SwitchDefaultCaseStatements)dflt).getStmts(), uninitializedVars));
+					}
+					uninitializedVars.clear();
+					uninitializedVars.addAll(vars);
 				}
 			});
 		}

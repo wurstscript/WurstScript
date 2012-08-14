@@ -54,6 +54,7 @@ import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.NativeType;
+import de.peeeq.wurstscript.ast.NoDefaultCase;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.StmtDestroy;
@@ -62,6 +63,7 @@ import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.SwitchCase;
+import de.peeeq.wurstscript.ast.SwitchDefaultCaseStatements;
 import de.peeeq.wurstscript.ast.SwitchStmt;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeDef;
@@ -1042,6 +1044,23 @@ public class WurstValidator {
 							+  s.getExpr().attrTyp() + ".");
 				}
 			}
+		}
+		if(s.getExpr().attrTyp() instanceof WurstTypeEnum) {
+			WurstTypeEnum wurstTypeEnum = (WurstTypeEnum) s.getExpr().attrTyp();
+			if(s.getSwitchDefault() instanceof NoDefaultCase)
+				nextMember: for( EnumMember e : wurstTypeEnum.getDef().getMembers()) {
+					String name = e.getName();
+					for (SwitchCase c : s.getCases()) {		
+						if( c.getExpr() instanceof NameRef) {
+							NameRef exprVarAccess = (NameRef) c.getExpr();
+							if (exprVarAccess.attrNameDef() == e) {
+								continue nextMember;
+							}
+						}
+					}
+					s.addError("Enum member " + e.getName() + " from enum " + wurstTypeEnum.getName() + " not covered in switchstatement and no default found.");
+				}
+				
 		}
 		// TODO check if all cases for switch are covered
 		
