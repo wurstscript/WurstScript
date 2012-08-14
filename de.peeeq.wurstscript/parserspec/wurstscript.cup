@@ -103,6 +103,8 @@ non terminal ExprMemberVar ExprMemberVar;
 non terminal ExprUnary ExprUnary;
 non terminal ExprFunctionCall ExprFunctionCall;
 non terminal ExprNewObject ExprNewObject;
+non terminal EnumDef EnumDef;
+non terminal EnumMembers EnumMembers;
 non terminal TypeExprList ExtendsList;
 non terminal TypeExprList ExtendsListOpt;
 non terminal FuncDef FuncDef;
@@ -263,6 +265,8 @@ Entity ::=
 		{: RESULT = Ast.NativeFunc(pos(xleft, sig), Ast.Modifiers(), sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy()); :}
 	| ClassDef:x
 		{: RESULT = x; :}
+	| EnumDef:x
+		{: RESULT = x; :}
 	| ModuleDef:x
 		{: RESULT = x; :}
 	| InterfaceDef:x
@@ -336,6 +340,17 @@ ClassDef ::=
 		{: RESULT = AstHelper.ClassDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), Ast.NoTypeExpr(), il, Collections.<ClassSlot>emptyList()); :}
 ;
 
+EnumDef ::=
+	Modifiers:mod ENUM:x IDENTIFIER:name NL INDENT EnumMembers:membs UNINDENT:y
+		{: RESULT = Ast.EnumDef(pos(xleft, yright), mod, name, membs ); :}
+;
+
+EnumMembers ::=
+	Newlines IDENTIFIER:id EnumMembers:members
+		{: members.addFront( Ast.EnumMember( pos(idleft,idright), Ast.Modifiers(), id )); RESULT = members;  :}
+	| Newlines
+		{: RESULT = Ast.EnumMembers(); :}
+;
 
 
 IdentifierWithTypeArgs ::=

@@ -22,7 +22,7 @@ public class RealWorldExamples extends PscriptTest {
 	
 	@Override 
 	protected boolean testOptimizer() {
-		return false;
+		return true;
 	}
 	
 	
@@ -91,6 +91,11 @@ public class RealWorldExamples extends PscriptTest {
 	@Test
 	public void optimizer() throws IOException {
 		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "optimizer.wurst"), false);
+	}
+	
+	@Test
+	public void optimizerNew() throws IOException {
+		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "optimizerNewTests.wurst"), false);
 	}
 	
 	@Test

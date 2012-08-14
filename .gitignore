@@ -10,6 +10,7 @@
 *.w3m
 *.settings
 *.classpath
+*.im
 
 #bin folders
 */bin/*

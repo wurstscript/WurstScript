@@ -4,6 +4,7 @@ import java.util.List;
 
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.EnumDef;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
@@ -134,6 +135,11 @@ public class TLDTranslation {
 	public static void translate(TypeParamDef typeParamDef, ImTranslator translator) {
 		// not possible
 		throw new Error("invalid AST");
+	}
+
+	public static void translate(EnumDef enumDef, ImTranslator translator) {
+		// nothing to do
+		
 	}
 
 }

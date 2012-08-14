@@ -8,9 +8,9 @@ public class WurstConstants {
 	public static final String[] KEYWORDS = new String[] { "class", "return", "if", "else", "while", "for", "in", "break", "new", "null",
 		"package", "endpackage", "function", "returns", "public", "private", "protected", "import", "native", "nativetype", "extends",
 		"interface", "implements", "module", "use", "abstract", "static", "thistype", "override", "immutable", "it", "array", "and",
-		"or", "not", "this", "construct", "ondestroy", "destroy", "type", "globals", "endglobals", "constant", "endfunction",
-		"nothing", "takes", "local", "loop", "endloop", "exitwhen", "set", "call", "then", "elseif", "endif", "init", "castTo",
-		"tuple", "div", "mod", "let", "from", "to", "downto", "step", "endpackage", "skip", "true", "false", "var", "instanceof" };
+		"or", "not", "this", "construct", "ondestroy", "destroy", "type", "constant", "endfunction", "nothing", "init", "castTo",
+		"tuple", "div", "mod", "let", "from", "to", "downto", "step", "endpackage", "skip", "true", "false", "var", "instanceof",
+		"super"};
 	
 	public static final String[] JASSTYPES = new String[] { 
 		"int", "integer", "real", "code", "boolean", "string",
@@ -39,7 +39,6 @@ public class WurstConstants {
 	public final static String EDITOR_MATCHING_BRACKETS       = "matchingBrackets";
 	public final static String EDITOR_MATCHING_BRACKETS_COLOR = "matchingBracketsColor";
 	public static final String DEFAULT_MATCHING_BRACKETS_COLOR = "128,128,128";
-	
 	
 	//PreferenceStore Strings
 	public static final String SYNTAXCOLOR_COLOR         = "Color";

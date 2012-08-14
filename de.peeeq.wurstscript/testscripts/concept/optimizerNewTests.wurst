@@ -1,0 +1,10 @@
+package Test
+
+	function foo()
+		skip
+		
+	function foo2()
+		int i = 0
+
+
+endpackage

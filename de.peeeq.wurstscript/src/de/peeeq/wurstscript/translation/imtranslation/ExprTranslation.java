@@ -23,6 +23,7 @@ import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElementWithIndexes;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.EnumMember;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprBoolVal;
@@ -202,6 +203,10 @@ public class ExprTranslation {
 
 				}
 			}
+		} else if (decl instanceof EnumMember) {
+			EnumMember enumMember = (EnumMember) decl;
+			int id = t.getEnumMemberId(enumMember);
+			return ImIntVal(id);
 		} else {
 			throw new CompileError(e.getSource(), "Cannot translate reference to " + decl.getClass().getName());
 		}

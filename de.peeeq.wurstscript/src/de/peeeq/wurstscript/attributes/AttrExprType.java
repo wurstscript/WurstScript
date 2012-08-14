@@ -8,6 +8,7 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
+import de.peeeq.wurstscript.ast.EnumDef;
 import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprBoolVal;
 import de.peeeq.wurstscript.ast.ExprCast;
@@ -62,6 +63,7 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PScriptTypeCode;
+import de.peeeq.wurstscript.types.PScriptTypeEnum;
 import de.peeeq.wurstscript.types.PScriptTypeHandle;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
 import de.peeeq.wurstscript.types.PScriptTypeJassInt;
@@ -207,6 +209,12 @@ public class AttrExprType {
 				@Override
 				public PscriptType case_InterfaceDef(InterfaceDef interfaceDef) {
 					return  interfaceDef.attrTyp().dynamic();
+				}
+
+				@Override
+				public PscriptType case_EnumDef(EnumDef enumDef) {
+					// 'this' cannot be used in enums
+					return PScriptTypeUnknown.instance();
 				}
 
 			});
@@ -670,7 +678,8 @@ public class AttrExprType {
 				|| typ instanceof PscriptTypeModule
 				|| typ instanceof PscriptTypeInterface
 				|| typ instanceof PscriptTypeTypeParam
-				|| typ instanceof PscriptTypeBoundTypeParam;
+				|| typ instanceof PscriptTypeBoundTypeParam
+				|| typ instanceof PScriptTypeEnum;
 	}
 
 

@@ -5,6 +5,8 @@ import java.util.List;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.EnumDef;
+import de.peeeq.wurstscript.ast.EnumMember;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
@@ -20,6 +22,7 @@ import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.types.PScriptTypeEnum;
 import de.peeeq.wurstscript.types.PScriptTypePackage;
 import de.peeeq.wurstscript.types.PscriptNativeType;
 import de.peeeq.wurstscript.types.PscriptType;
@@ -105,6 +108,14 @@ public class AttrVarDefType {
 
 	public static PscriptType calculate(WPackage p) {
 		return new PScriptTypePackage(p);
+	}
+
+	public static PscriptType calculate(EnumDef enumDef) {
+		return new PScriptTypeEnum(true, enumDef);
+	}
+
+	public static PscriptType calculate(EnumMember enumMember) {
+		return new PScriptTypeEnum(false, (EnumDef) enumMember.getParent().getParent());
 	}
 	
 

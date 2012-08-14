@@ -15,7 +15,6 @@ package Damager
     // rants about how they detect 20.0 damage where none is visible...
     constant real      MAX_DAMAGE_FACTOR = 3.00
     // The maximum damage factor in the map. I think 3 is fine.
-   
 
     //=======================================================
     constant real      EPSILON = 0.000000001

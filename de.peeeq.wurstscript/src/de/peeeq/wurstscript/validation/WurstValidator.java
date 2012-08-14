@@ -17,6 +17,8 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.EnumDef;
+import de.peeeq.wurstscript.ast.EnumMember;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
@@ -849,6 +851,16 @@ public class WurstValidator {
 
 				@Override
 				public void case_WPackage(WPackage wPackage) {
+					check();
+				}
+
+				@Override
+				public void case_EnumDef(EnumDef enumDef) {
+					check(VisibilityPublic.class);
+				}
+
+				@Override
+				public void case_EnumMember(EnumMember enumMember) {
 					check();
 				}
 

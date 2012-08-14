@@ -18,6 +18,9 @@ package Vectors
     
     public function vec3.op_minus( vec3 v )	returns vec3
 		return vec3(this.x - v.x, this.y - v.y, this.z - v.z)
+		
+	public function vec3.op_mult(real factor) returns vec3
+		return vec3(this.x*factor, this.y*factor, this.z*factor) 
                 
     public function vec3.addVec2( vec2 v )	returns vec3
 		return vec3(this.x + v.x, this.y + v.y, this.z)
@@ -25,15 +28,9 @@ package Vectors
     public function vec3.addReals( real x, real y, real z )	returns vec3
 		return vec3(this.x + x, this.y + y, this.z + z)
 	
-	public function vec3.sub( vec3 v )	returns vec3
-		return vec3(this.x - v.x, this.y - v.y, this.z - v.z)
-	
     public function vec3.subVec2( vec2 v )	returns vec3
 		return vec3(this.x - v.x, this.y - v.y, this.z)
-        
-	public function vec3.scale( real factor ) returns vec3
-		return vec3(this.x * factor, this.y * factor, this.z * factor)
-	
+        	
 	public function vec3.scaleXY( real factor )	returns vec3
 		return vec3(this.x * factor, this.y * factor, this.z)
 		
@@ -42,10 +39,7 @@ package Vectors
 		
 	public function vec3.dot( vec3 v ) returns real
 		return this.x*v.x + this.y*v.y + this.z*v.z
-		
-	public function vec3.op_mult(real factor) returns vec3
-		return vec3(this.x*factor, this.y*factor, this.z*factor) 
-        
+		        
     public function vec3.project( vec3 direction ) returns vec3
     	real l = direction.x*direction.x+direction.y*direction.y+direction.z*direction.z
         if l == 0.0
@@ -78,8 +72,7 @@ package Vectors
 		return result
         
     public function vec3.toVec2() returns vec2
-        return vec2( this.x, this.y )
-		
+        return vec2( this.x, this.y )		
 		
 	public function vec3.length() returns real
 		return SquareRoot(this.x*this.x+this.y*this.y+this.z*this.z)
@@ -96,16 +89,22 @@ package Vectors
 	 *************************/
 	public tuple vec2( real x, real y )
 			
-	public function vec2.add( vec2 v )	returns vec2
+	public function vec2.op_plus( vec2 v )	returns vec2
 		return vec2(this.x + v.x, this.y + v.y)
 	
-	public function vec2.sub( vec2 v )	returns vec2
+	public function vec2.op_minus( vec2 v )	returns vec2
 		return vec2(this.x - v.x, this.y - v.y)
 		
-	public function vec2.scale( real factor )	returns vec2
-		return vec2(this.x * factor, this.y * factor)
+	public function vec2.op_mult(real factor) returns vec2
+		return vec2(this.x*factor, this.y*factor) 
 		
-    public function vec2.norm() returns vec2
+	public function vec2.addReals( real x, real y )	returns vec2
+		return vec2(this.x + x, this.y + y)
+						
+	public function vec2.dot( vec2 v ) returns real
+		return this.x*v.x+this.y*v.y
+	
+	public function vec2.norm() returns vec2
         real len = this.length()
         real x = 0 
         real y = 0
@@ -113,9 +112,6 @@ package Vectors
             x = (this.x / len)
             y = (this.y / len)
         return vec2(x,y)
-		
-	public function vec2.dot( vec2 v ) returns real
-		return this.x*v.x+this.y*v.y
 	
 	public function vec2.trim( real value ) returns vec2
 		vec2 result = this
@@ -130,15 +126,6 @@ package Vectors
 		
 	public function vec2.toString() returns string
 		return "Vector2 [ " + this.x.toString() + ", " + this.y.toString() + " ]"
-		
-	public function vec2.op_plus( vec2 v )	returns vec2
-		return vec2(this.x + v.x, this.y + v.y)
-    
-    public function vec2.op_minus( vec2 v )	returns vec2
-		return vec2(this.x - v.x, this.y - v.y)
-		
-	public function vec2.op_mult(real factor) returns vec2
-		return vec2(this.x*factor, this.y*factor)
 	
 	public function unit.getPos() returns vec2
 	 	return vec2(this.getX(), this.getY()) 
@@ -148,5 +135,13 @@ package Vectors
 		
 	public function vec2.polarOffset(real angle, real dist) returns vec2
 		return vec2(this.x + Cos(angle)*dist, this.y + Sin(angle)*dist)
+		
+	public function vec2.setLength( real length ) returns vec2
+		real l = SquareRoot(this.x*this.x + this.y*this.y)
+		if l == 0.0
+			printError("vector.setLength error: The length of the vector is 0.0!")
+			return vec2(0.,0.)
+        l = length/l
+        return vec2(this.x*l, this.y*l)
 	
 endpackage 
