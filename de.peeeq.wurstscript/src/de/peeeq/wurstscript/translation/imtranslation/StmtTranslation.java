@@ -26,7 +26,9 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.LocalVarDef;
+import de.peeeq.wurstscript.ast.NoDefaultCase;
 import de.peeeq.wurstscript.ast.OpBinary;
+import de.peeeq.wurstscript.ast.OpEquals;
 import de.peeeq.wurstscript.ast.StmtDestroy;
 import de.peeeq.wurstscript.ast.StmtErr;
 import de.peeeq.wurstscript.ast.StmtExitwhen;
@@ -40,11 +42,18 @@ import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.StmtSkip;
 import de.peeeq.wurstscript.ast.StmtWhile;
+import de.peeeq.wurstscript.ast.SwitchCase;
+import de.peeeq.wurstscript.ast.SwitchDefaultCase;
+import de.peeeq.wurstscript.ast.SwitchDefaultCaseStatements;
+import de.peeeq.wurstscript.ast.SwitchStmt;
 import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.jassAst.JassOpEquals;
 import de.peeeq.wurstscript.jassIm.ImConst;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImFunction;
+import de.peeeq.wurstscript.jassIm.ImIf;
+import de.peeeq.wurstscript.jassIm.ImOperatorCall;
 import de.peeeq.wurstscript.jassIm.ImStatementExpr;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmts;
@@ -238,6 +247,48 @@ public class StmtTranslation {
 	public static ImStmt translate(StmtSkip s, ImTranslator translator,	ImFunction f) {
 		return JassIm.ImNull();
 	}
+
+	public static ImStmt translate(SwitchStmt switchStmt, ImTranslator t, ImFunction f) {
+		List<ImStmt> result = Lists.newArrayList();
+		ImType type = switchStmt.getExpr().attrTyp().imTranslateType();
+		ImExpr tempVar = addCacheVariableSmart(t, f, result, switchStmt.getExpr(), type);
+		// generate ifs
+		// leerer Block:
+		//ImStmts();
+		// if else
+		//ImIf(trace, condition, thenBlock, elseBlock);
+		// vergleich
+		//ImOperatorCall(Ast.OpEquals(), ImExprs(a,b))
+		
+		ImIf lastIf = null;
+		SwitchCase cse;
+		for ( int i = 0; i < switchStmt.getCases().size(); i++ ) {
+			cse = switchStmt.getCases().get(i);
+			if (lastIf == null) {
+				lastIf = ImIf(switchStmt, ImOperatorCall(Ast.OpEquals(), ImExprs((ImExpr)tempVar.copy(), cse.getExpr().imTranslateExpr(t, f)) ), ImStmts(t.translateStatements(f, cse.getStmts())), ImStmts() );
+				result.add(lastIf);
+			} else {
+				ImIf tmp = ImIf(switchStmt, ImOperatorCall(Ast.OpEquals(), ImExprs((ImExpr)tempVar.copy(), cse.getExpr().imTranslateExpr(t, f)) ), ImStmts(t.translateStatements(f, cse.getStmts())), ImStmts() );
+				lastIf.setElseBlock(ImStmts(tmp));
+				lastIf = tmp;
+			}
+			
+		}
+		System.out.println("it is a " + switchStmt.getSwitchDefault().getClass());
+		if (switchStmt.getSwitchDefault() instanceof SwitchDefaultCaseStatements) {
+			
+			System.out.println("indeed it is");
+			SwitchDefaultCaseStatements dflt = (SwitchDefaultCaseStatements) switchStmt.getSwitchDefault();
+			lastIf.setElseBlock(ImStmts(t.translateStatements(f,dflt.getStmts())));
+		}else if (switchStmt.getSwitchDefault() instanceof NoDefaultCase) {
+			System.out.println("wtf?");
+		}
+		
+		
+		
+		return ImStatementExpr(ImStmts(result), ImNull());
+	}
+
 
 
 		

@@ -28,6 +28,7 @@ import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.StmtSkip;
 import de.peeeq.wurstscript.ast.StmtWhile;
+import de.peeeq.wurstscript.ast.SwitchStmt;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
@@ -183,6 +184,12 @@ public class UninitializedVars {
 				@Override
 				public void case_ExprMemberVar(ExprMemberVar exprMemberVar) {
 					// nothing to do
+				}
+
+				@Override
+				public void case_SwitchStmt(SwitchStmt switchStmt) {
+					checkExpr(switchStmt.getExpr(), uninitializedVars);
+					
 				}
 			});
 		}
