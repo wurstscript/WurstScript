@@ -266,6 +266,11 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	// enums
 	"enum"								{ return symbolP(TokenType.ENUM); } 
 	
+	// switch
+	"switch"							{ return symbolP(TokenType.SWITCH); } 
+	"case"								{ return symbolP(TokenType.CASE); } 
+	"default"							{ return symbolP(TokenType.DEFAULT); } 
+	
 	// modifiers
 	"abstract"							{ return symbolP(TokenType.ABSTRACT); }
 	"static"							{ return symbolP(TokenType.STATIC); }

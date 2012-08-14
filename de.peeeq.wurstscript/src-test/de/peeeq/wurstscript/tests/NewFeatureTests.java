@@ -48,5 +48,101 @@ public class NewFeatureTests extends PscriptTest {
 				"		testSuccess()"
 				);
 	}
+	
+	@Test
+	public void testSwitch() {
+		testAssertOkLines(true, 
+				"package Test",
+				"native testSuccess()",
+				"enum Blub",
+				"	A",
+				"	B",
+				"init",
+				"	Blub b = Blub.B",
+				"	switch b",
+				"		case Blub.A",
+				"			skip",
+				"		case Blub.B",
+				"			testSuccess()"
+				);
+	}
+	
+	@Test
+	public void testSwitchDefault() {
+		testAssertOkLines(true, 
+				"package Test",
+				"native testSuccess()",
+				"enum Blub",
+				"	A",
+				"	B",
+				"	C",
+				"init",
+				"	var i = 5",
+				"	switch Blub.C",
+				"		case Blub.A",
+				"			i = 1",
+				"		case Blub.B",
+				"			i = 2",
+				"		default",
+				"			testSuccess()"
+				);
+	}
+	
+	@Test
+	public void testSwitchString() {
+		testAssertOkLines(true, 
+				"package Test",
+				"native testSuccess()",
+				"init",
+				"	var s = \"toll\"",
+				"	switch s",
+				"		case \"wurst\"",
+				"			s = \"\"",
+				"		case \"toll\"",
+				"			testSuccess()",
+				"		default",
+				"			skip"
+				);
+	}
+	
+	@Test
+	public void testSwitchWrongTypes() {
+		testAssertErrorsLines(true, "does not match",
+				"package Test",
+				"native testSuccess()",
+				"init",
+				"	var s = \"toll\"",
+				"	switch s",
+				"		case 123",
+				"			s = \"\"",
+				"		case \"toll\"",
+				"			testSuccess()",
+				"		default",
+				"			skip"
+				);
+	}
+	
+	/*
+	 * i =1 
+	 * lastIf = (if b == Blub.A
+	 * 	skip
+	 * else
+	 * 	LEER)
+	 * 
+	 * i = 2
+	 * lastIf.setElse()
+	 * 
+	 * if b == Blub.A
+	 *   skip
+	 * else 
+	 * 		if b == Blub.B
+	 *   		testSuccess()
+	 * 1,2,3,4,5
+	 * b <= 3
+	 * switch foo()
+	 * 	case Blub.A
+	 * 
+	 */
+	
 
 }

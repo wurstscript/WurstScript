@@ -77,7 +77,7 @@ terminal
 	NL,
 	TUPLE, MODULE, USE, ABSTRACT, IN, FOR, FROM, TO, DOWNTO, STEP, BREAK, THISTYPE, ARROW, IT, IMMUTABLE, OVERRIDE, INSTANCE, INSTANCEOF, ENUM,
 	STATIC, PACKAGE, ENDPACKAGE, RETURNS,FUNCTION, SKIP, LET, VAR, PUBLIC, PUBLICREAD, PRIVATE, PROTECTED, IMPORT, NATIVETYPE, INIT, NATIVE, INTERFACE,
-	IMPLEMENTS, ARRAY, IF, ELSE, WHILE, RETURN, CLASS, NEW, NULL, EXTENDS, SUPER, THIS, CONSTRUCT, ONDESTROY, 
+	IMPLEMENTS, ARRAY, IF, ELSE, WHILE, RETURN, CLASS, NEW, NULL, EXTENDS, SUPER, THIS, CONSTRUCT, ONDESTROY, SWITCH, CASE, DEFAULT,
 	TYPE, GLOBALS, ENDGLOBALS, CONSTANT, ENDFUNCTION, TAKES, NOTHING, LOCAL,
 	LOOP, ENDLOOP, EXITWHEN, SET, CALL, THEN, ELSEIF, ENDIF, DESTROY, CASTTO,
 	// virtual terminals:
@@ -92,6 +92,7 @@ non terminal ClassDef ClassDef;
 non terminal List<ClassSlot> ClassSlots;	
 non terminal ClassSlot ClassSlot;
 non terminal CompilationUnit CompilationUnit;
+non terminal SwitchDefaultCase SwitchDefaultCase;
 non terminal WEntity Entity;
 non terminal Expr Expr;
 non terminal Expr ExprAtomic;
@@ -127,7 +128,9 @@ non terminal StmtDestroy StmtDestroy;
 non terminal StmtIf StmtIf;
 non terminal StmtReturn StmtReturn;
 non terminal StmtSet StmtSet;
-non terminal StmtWhile StmtWhile;	
+non terminal StmtWhile StmtWhile;
+non terminal SwitchStmt SwitchStmt;
+non terminal SwitchCases SwitchCases;
 non terminal NativeType JassTypeDecl;
 non terminal TypeExpr TypeExpr;
 non terminal TopLevelDeclaration TopLevelDeclaration;
@@ -353,6 +356,7 @@ EnumMembers ::=
 ;
 
 
+
 IdentifierWithTypeArgs ::=
 	  IDENTIFIER_LT:name TypeParamList:l GT:y
 	  	{: RESULT = Ast.IdentifierWithTypeArgs(pos(nameleft, yright), name, l); :}
@@ -555,6 +559,8 @@ Statement ::=
 		{: RESULT = Ast.ExprMemberVar(pos(left,yright), left, ""); :}
 	| error:x NL
 		{: RESULT = Ast.StmtErr(pos(xleft, xright)); :}
+	| SwitchStmt:x
+		{: RESULT = x; :}
 ;
 
 StmtDestroy ::=
@@ -575,6 +581,26 @@ StmtIf ::=
 	| IF:x Expr:cond NL INDENT Statements:thenStatements UNINDENT ELSE:y ElseStatements:elseStatements
 		{: RESULT = Ast.StmtIf(pos(xleft, elseStatements.get(elseStatements.size()-1)), cond, thenStatements, elseStatements); :}
 ;
+
+SwitchCases ::=
+	Newlines CASE:x Expr:expr NL INDENT Statements:stmts UNINDENT:y SwitchCases:cases
+		{: cases.addFront( Ast.SwitchCase( pos(xleft,exprright), expr, stmts ) ); RESULT = cases; :}
+	| Newlines
+		{: RESULT = Ast.SwitchCases(); :} 
+;
+
+SwitchDefaultCase ::=
+	DEFAULT:x NL INDENT Statements:stmts UNINDENT:y
+		{: RESULT = Ast.SwitchDefaultCaseStatements(pos(xleft,xright), stmts ); :}
+;
+
+SwitchStmt ::=
+	SWITCH:x Expr:expr NL INDENT SwitchCases:cases SwitchDefaultCase:defaultCase UNINDENT:y
+		{: RESULT = Ast.SwitchStmt(pos(xleft,exprright), expr, cases, defaultCase ); :}
+	| SWITCH:x Expr:expr NL INDENT SwitchCases:cases UNINDENT:y
+		{: RESULT = Ast.SwitchStmt(pos(xleft,exprright), expr, cases, Ast.NoDefaultCase() ); :}
+;
+
 
 ElseStatements ::= 
 	StmtIf:x 

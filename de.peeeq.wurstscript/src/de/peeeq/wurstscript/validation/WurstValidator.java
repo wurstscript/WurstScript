@@ -13,6 +13,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 import de.peeeq.wurstscript.ast.Annotation;
+import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -60,6 +61,8 @@ import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.StmtWhile;
+import de.peeeq.wurstscript.ast.SwitchCase;
+import de.peeeq.wurstscript.ast.SwitchStmt;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
@@ -77,14 +80,17 @@ import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CheckHelper;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.NameResolution;
 import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.PScriptTypeArray;
 import de.peeeq.wurstscript.types.PScriptTypeBool;
 import de.peeeq.wurstscript.types.PScriptTypeCode;
+import de.peeeq.wurstscript.types.PScriptTypeEnum;
 import de.peeeq.wurstscript.types.PScriptTypeInt;
 import de.peeeq.wurstscript.types.PScriptTypeReal;
+import de.peeeq.wurstscript.types.PScriptTypeString;
 import de.peeeq.wurstscript.types.PScriptTypeVoid;
 import de.peeeq.wurstscript.types.PscriptType;
 import de.peeeq.wurstscript.types.PscriptTypeClass;
@@ -1011,6 +1017,34 @@ public class WurstValidator {
 				e.addError("The function " + name + " is not allowed in Wurst.");
 			}
 		}
+	}
+	
+	private boolean isViableSwitchtype(Expr expr) {
+		PscriptType typ = expr.attrTyp();
+		if( typ.equalsType(PScriptTypeInt.instance(), null) 
+				|| typ.equalsType(PScriptTypeString.instance(), null) 
+				|| (typ instanceof PScriptTypeEnum) ) {
+			return true;
+			
+		}else {
+			return false;
+		}
+	}
+	
+	@CheckMethod
+	public void checkSwitch(SwitchStmt s) {
+		if (! isViableSwitchtype(s.getExpr()))
+			s.addError("The type " + s.getExpr().attrTyp() + " is not viable as switchtype.");
+		else {
+			for (SwitchCase c : s.getCases()) {		
+				if( !s.getExpr().attrTyp().equalsType(c.getExpr().attrTyp(), c)) {
+					c.addError("The type " + c.getExpr().attrTyp() + " does not match the switchtype "
+							+  s.getExpr().attrTyp() + ".");
+				}
+			}
+		}
+		// TODO check if all cases for switch are covered
+		
 	}
 	
 }

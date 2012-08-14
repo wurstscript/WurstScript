@@ -67,7 +67,11 @@ ConstructorDefs * ConstructorDef
 ModuleInstanciations * ModuleInstanciation
 ModuleUses * ModuleUse
 TypeExprList * TypeExpr
+SwitchCases * SwitchCase
 
+
+SwitchCase( WPos source, Expr expr, WStatements stmts )
+SwitchDefaultCase = SwitchDefaultCaseStatements(WPos source, WStatements stmts) | NoDefaultCase()
 
 ClassSlot = 
 	  ConstructorDef(WPos source, Modifiers modifiers, WParameters parameters, Arguments superArgs, WStatements body)
@@ -124,6 +128,7 @@ WStatement	=
 	| StmtForIn(WPos source, LocalVarDef loopVar, Expr in, WStatements body)
 	| StmtForFrom(WPos source, LocalVarDef loopVar, Expr in, WStatements body)
 	| ExprMemberVar
+	| SwitchStmt(WPos source, Expr expr, SwitchCases cases, SwitchDefaultCase switchDefault)
 	
 
 
