@@ -88,7 +88,24 @@ public class TupleTests extends PscriptTest {
 			);
 	}
 	
-	
+	@Test
+	public void inClass() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	tuple vec(real x, real y, real z)",
+				"	class A",
+				"		vec pos",
+				"		construct()",
+				"			pos = vec(1,1,1)",
+				"		function foo()",
+				"			pos.x = 3",
+				"	init",
+				"		A a = new A()",
+				"		a.foo()",
+				"endpackage"
+			);
+	}
 	
 	
 }

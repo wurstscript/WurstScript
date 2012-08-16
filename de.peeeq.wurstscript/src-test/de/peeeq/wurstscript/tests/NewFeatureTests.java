@@ -160,7 +160,7 @@ public class NewFeatureTests extends PscriptTest {
 	
 	@Test
 	public void testSwitchEnumAll() {
-		testAssertErrorsLines(false, "asdasdsa", 
+		testAssertErrorsLines(false, "Enum member", 
 				"package Test",
 				"native testSuccess()",
 				"enum Blub",
@@ -178,6 +178,13 @@ public class NewFeatureTests extends PscriptTest {
 	}
 	
 	/*
+	 * 
+	 * case A
+	 * 	foo()
+	 * case B
+	 * 	foo()
+	 * 
+	 * 
 	 * i =1 
 	 * lastIf = (if b == Blub.A
 	 * 	skip

@@ -14,9 +14,12 @@ package Maths
 	public function polarProjectionZ ( real z,  real dist, real angle ) returns real
 		return z + dist * Sin(angle * DEGTORAD)
 	
-	public function angleBetweenCoords ( real x1, real y1, real x2, real y2 ) returns real
+	public function angleBetweenCoordsD ( real x1, real y1, real x2, real y2 ) returns real
 		return RADTODEG * Atan2(y2 - y1, x2 - x1)
-
+		
+	public function angleBetweenCoordsR ( real x1, real y1, real x2, real y2 ) returns real
+		return Atan2(y2 - y1, x2 - x1)
+		
 	public function distanceBetweenCoords ( real x1, real y1, real x2, real y2 ) returns real
 		return SquareRoot((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1))
 		
