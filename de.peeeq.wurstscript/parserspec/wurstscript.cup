@@ -75,9 +75,12 @@ terminal
 	LBRACK, RBRACK, 
 	COMMA, SEMICOLON, COLON,   
 	NL,
-	TUPLE, MODULE, USE, ABSTRACT, IN, FOR, FROM, TO, DOWNTO, STEP, BREAK, THISTYPE, ARROW, IT, IMMUTABLE, OVERRIDE, INSTANCE, INSTANCEOF, ENUM,
-	STATIC, PACKAGE, ENDPACKAGE, RETURNS,FUNCTION, SKIP, LET, VAR, PUBLIC, PUBLICREAD, PRIVATE, PROTECTED, IMPORT, NATIVETYPE, INIT, NATIVE, INTERFACE,
-	IMPLEMENTS, ARRAY, IF, ELSE, WHILE, RETURN, CLASS, NEW, NULL, EXTENDS, SUPER, THIS, CONSTRUCT, ONDESTROY, SWITCH, CASE, DEFAULT,
+	TUPLE, MODULE, USE, ABSTRACT, IN, FOR, FROM, TO, DOWNTO, STEP, BREAK,
+	THISTYPE, ARROW, IT, IMMUTABLE, OVERRIDE, INSTANCE, INSTANCEOF, ENUM,
+	STATIC, PACKAGE, ENDPACKAGE, RETURNS,FUNCTION, SKIP, LET, VAR, PUBLIC,
+	PUBLICREAD, PRIVATE, PROTECTED, IMPORT, NATIVETYPE, INIT, NATIVE, 
+	INTERFACE, IMPLEMENTS, ARRAY, IF, ELSE, WHILE, RETURN, CLASS, NEW, NULL,
+	EXTENDS, SUPER, THIS, CONSTRUCT, ONDESTROY, SWITCH, CASE, DEFAULT,
 	TYPE, GLOBALS, ENDGLOBALS, CONSTANT, ENDFUNCTION, TAKES, NOTHING, LOCAL,
 	LOOP, ENDLOOP, EXITWHEN, SET, CALL, THEN, ELSEIF, ENDIF, DESTROY, CASTTO,
 	// virtual terminals:
@@ -86,42 +89,49 @@ terminal
 
 
 // non terminal <ReturnType> <RuleName>
-non terminal Arguments Arguments;
 non terminal Arguments ArgumentRest;
+non terminal Arguments Arguments;
 non terminal ClassDef ClassDef;
-non terminal List<ClassSlot> ClassSlots;	
 non terminal ClassSlot ClassSlot;
 non terminal CompilationUnit CompilationUnit;
-non terminal SwitchDefaultCase SwitchDefaultCase;
-non terminal WEntity Entity;
-non terminal Expr Expr;
-non terminal Expr ExprAtomic;
-non terminal NameRef ExprAssignable;
-non terminal ExprBinary ExprBinary;
-non terminal ExprCast ExprCast;
-non terminal ExprMemberMethod ExprMemberMethod;
-non terminal ExprMemberVar ExprMemberVar;
-non terminal ExprUnary ExprUnary;
-non terminal ExprFunctionCall ExprFunctionCall;
-non terminal ExprNewObject ExprNewObject;
 non terminal EnumDef EnumDef;
 non terminal EnumMembers EnumMembers;
-non terminal TypeExprList ExtendsList;
-non terminal TypeExprList ExtendsListOpt;
+non terminal ExprBinary ExprBinary;
+non terminal ExprCast ExprCast;
+non terminal Expr Expr;
+non terminal Expr ExprAtomic;
+non terminal ExprFunctionCall ExprFunctionCall;
+non terminal ExprMemberArrayVar ExprMemberArrayVar;
+non terminal ExprMemberMethod ExprMemberMethod;
+non terminal ExprMemberVar ExprMemberVar;
+non terminal ExprNewObject ExprNewObject;
+non terminal ExprUnary ExprUnary;
+non terminal ExprVarAccess ExprVarAccess;
+non terminal ExprVarArrayAccess ExprVarArrayAccess;
 non terminal FuncDef FuncDef;
+non terminal FuncDef InterfaceFunctionSignature;
+non terminal FuncDef JassFuncDef;
 non terminal FuncSignature FuncSignature;
-non terminal FuncSignature JassFuncSignature; 
+non terminal FuncSignature JassFuncSignature;
+non terminal GlobalVarDef JassGlobalDecl;
+non terminal GlobalVarDef VarDef;
 non terminal IdentifierWithTypeArgs IdentifierWithTypeArgs;
+non terminal IdentifierWithTypeParamDefs IdentifierWithTypeParamDefs;
 non terminal Indexes Indexes;
 non terminal InterfaceDef InterfaceDef;
+non terminal JassGlobalBlock JassGlobalBlock;
+non terminal JassGlobalBlock JassGlobalDecls;
+non terminal JassToplevelDeclaration JassToplevelDeclaration;
+non terminal List<ClassSlot> ClassSlots;
 non terminal List<FuncDef> InterfaceFunctionSignatures;
-non terminal FuncDef InterfaceFunctionSignature;
-non terminal TypeExprList ImplementsList;
-non terminal TypeExprList ImplementsListOpt;
-non terminal WImport Import;
 non terminal LocalVarDef LocalVarDef;
 non terminal LocalVarDef LocalVarDefInline;
-non terminal ExprMemberArrayVar ExprMemberArrayVar;
+non terminal Modifier Modifier;
+non terminal Modifiers Modifiers;
+non terminal ModuleDef ModuleDef;
+non terminal NameRef ExprAssignable;
+non terminal NativeFunc JassNativeDecl;
+non terminal NativeType JassTypeDecl;
 non terminal Newlines;
 non terminal StmtCall StmtCall;
 non terminal StmtDestroy StmtDestroy;
@@ -129,46 +139,39 @@ non terminal StmtIf StmtIf;
 non terminal StmtReturn StmtReturn;
 non terminal StmtSet StmtSet;
 non terminal StmtWhile StmtWhile;
-non terminal SwitchStmt SwitchStmt;
 non terminal SwitchCases SwitchCases;
-non terminal NativeType JassTypeDecl;
-non terminal TypeExpr TypeExpr;
+non terminal SwitchDefaultCase SwitchDefaultCase;
+non terminal SwitchStmt SwitchStmt;
 non terminal TopLevelDeclaration TopLevelDeclaration;
-non terminal TypeParamDefs TypeParamDefList;
-non terminal IdentifierWithTypeParamDefs IdentifierWithTypeParamDefs;
+non terminal TypeExprList ExtendsList;
+non terminal TypeExprList ExtendsListOpt;
+non terminal TypeExprList ImplementsList;
+non terminal TypeExprList ImplementsListOpt;
 non terminal TypeExprList TypeExprList;
 non terminal TypeExprList TypeParamList;
-non terminal GlobalVarDef VarDef;
-non terminal ExprVarAccess ExprVarAccess;
-non terminal ExprVarArrayAccess ExprVarArrayAccess;
+non terminal TypeExpr TypeExpr;
+non terminal TypeParamDefs TypeParamDefList;
 non terminal WEntities Entities;
+non terminal WEntity Entity;
+non terminal WImport Import;
 non terminal WImports Imports;
 non terminal WPackage PackageDeclaration;
 non terminal WParameter Parameter;
 non terminal WParameter ParameterNotConstant;
-non terminal WParameters Parameters;	
-non terminal WParameters ParametersNotConstant;
+non terminal WParameters JassParameters;
 non terminal WParameters OtherParameters;
 non terminal WParameters OtherParametersNotConstant;
-non terminal WParameters JassParameters;
+non terminal WParameters Parameters;
+non terminal WParameters ParametersNotConstant;
+non terminal WStatement JassLocal;
+non terminal WStatement JassStatement;
+non terminal WStatement JassStatementIf;
 non terminal WStatement Statement;
 non terminal WStatements ElseStatements;
-non terminal WStatements Statements;	
-non terminal JassGlobalBlock JassGlobalBlock;
-non terminal FuncDef JassFuncDef;
-non terminal JassGlobalBlock JassGlobalDecls;
-non terminal GlobalVarDef JassGlobalDecl;
 non terminal WStatements JassLocals;
 non terminal WStatements JassStatements;
-non terminal WStatement JassLocal;
-non terminal WStatement JassStatement; 
-non terminal WStatement JassStatementIf;
 non terminal WStatements JasselseIfs;
-non terminal NativeFunc JassNativeDecl;
-non terminal JassToplevelDeclaration JassToplevelDeclaration;
-non terminal Modifier Modifier;
-non terminal Modifiers Modifiers;
-non terminal ModuleDef ModuleDef;
+non terminal WStatements Statements;
 
 precedence nonassoc LOWEST;
 precedence left 	INFIX_CALL;

@@ -36,11 +36,11 @@ package Fx
 		private integer alpha 	= 255
 		
 		construct(real x, real y, real facing)
-			dummy = newDummyUnit(DUMMY_PLAYER, x,y, facing*bj_RADTODEG)
+			dummy = newDummyUnit(DUMMY_PLAYER, x,y, facing)
 			
         
         construct(real x, real y, real facing, string fxpath)
-			dummy = newDummyUnit(DUMMY_PLAYER, x,y, facing*bj_RADTODEG)
+			dummy = newDummyUnit(DUMMY_PLAYER, x,y, facing)
 			//print(GetUnitName(dummy))
             setFx( fxpath )
 				
@@ -89,7 +89,7 @@ package Fx
 			return dummy.getFacing()*bj_DEGTORAD
 
 		function setXYAngle(real value) returns Fx
-			dummy.setFacing(value*bj_RADTODEG)
+			dummy.setFacing(value)
 			return this
             
         function setXYAngleInstant(real value) returns Fx
@@ -97,14 +97,14 @@ package Fx
             real y = getY()
             fx.destr()
 			RemoveUnit(dummy)
-            dummy = CreateUnit(DUMMY_PLAYER, DUMMY_UNIT_ID, x, y, value*bj_RADTODEG)
+            dummy = CreateUnit(DUMMY_PLAYER, DUMMY_UNIT_ID, x, y, value)
 				.addAbility('Amrf')
 				.removeAbility('Amrf')
 				.addAbility('Aloc')
 				.setPos(x,y)
             setFx(sfxPath)
 			return this
-
+		
 		function getZAngle() returns real
 			return zAngle
 			
