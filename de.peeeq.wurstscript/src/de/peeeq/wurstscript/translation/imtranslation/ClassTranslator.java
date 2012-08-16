@@ -30,6 +30,7 @@ import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
+import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.OptExpr;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.jassIm.ImExpr;
@@ -41,11 +42,14 @@ import de.peeeq.wurstscript.jassIm.ImSetArrayTuple;
 import de.peeeq.wurstscript.jassIm.ImSetTuple;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmt.DefaultVisitor;
+import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.TypesHelper;
+import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.utils.Pair;
 
 public class ClassTranslator {
@@ -89,10 +93,42 @@ public class ClassTranslator {
 
 	private void createDestroyMethod() {
 		ImFunction f = translator.getDestroyFuncFor(classDef);
-		ImVar thisVar = translator.getThisVar(classDef.getOnDestroy());
+		OnDestroyDef trace = classDef.getOnDestroy();
+		ImVar thisVar = translator.getThisVar(trace);
 		f.getParameters().add(thisVar);
-		addOnDestroyActions(f, classDef, thisVar);
+		
+		ImStmts addTo = f.getBody();
+		for (ClassDef sc :  translator.getSubClasses(classDef)) {
+			if (!hasOwnDestroy(sc, classDef)) {
+				
+			}
+			ImStmts thenBlock = ImStmts();
+			ImStmts elseBlock = ImStmts();
+			addTo.add(ImIf(trace, ImOperatorCall(Ast.OpEquals(), 
+						ImExprs(ImVarArrayAccess(m.typeId, ImVarAccess(thisVar)), 
+								ImIntVal(translator.getTypeId(sc)))), 
+					thenBlock, elseBlock));
+			addOnDestroyActions(f, thenBlock, sc, thisVar);
+			addTo = elseBlock;
+		}
+		
+		addOnDestroyActions(f, addTo, classDef, thisVar);
 		addDeallocateCode(f, thisVar);	
+	}
+
+	/**
+	 * 
+	 */
+	private boolean hasOwnDestroy(ClassDef sc, ClassDef classDef2) {
+		if (sc == classDef2) {
+			return false;
+		}
+		if (sc.getOnDestroy().getBody().isEmpty()) {
+			WurstTypeClass superClass = (WurstTypeClass) sc.getExtendedClass().attrTyp();
+			return hasOwnDestroy(superClass.getClassDef(), classDef2);
+		} else {
+			return true;
+		}
 	}
 
 	private void addDeallocateCode(ImFunction f, ImVar thisVar) {
@@ -115,19 +151,19 @@ public class ClassTranslator {
 		
 	}
 
-	private void addOnDestroyActions(ImFunction f, ClassOrModuleInstanciation c, ImVar thisVar) { 
+	private void addOnDestroyActions(ImFunction f, List<ImStmt> addTo, ClassOrModuleInstanciation c, ImVar thisVar) { 
 		List<ImStmt> stmts = translator.translateStatements(f, c.getOnDestroy().getBody());
 		replaceThisExpr(stmts, translator.getThisVar(c.getOnDestroy()), thisVar);
-		f.getBody().addAll(stmts);
+		addTo.addAll(stmts);
 		
 		for (ModuleInstanciation mi : c.getModuleInstanciations()) {
-			addOnDestroyActions(f, mi, thisVar);
+			addOnDestroyActions(f, addTo, mi, thisVar);
 		}
 		
 		if (c instanceof ClassDef) {
 			ClassDef cd = (ClassDef) c;
 			if (cd.attrExtendedClass() != null) {
-				addOnDestroyActions(f, cd.attrExtendedClass(), thisVar);
+				addOnDestroyActions(f, addTo, cd.attrExtendedClass(), thisVar);
 			}
 		}
 	}

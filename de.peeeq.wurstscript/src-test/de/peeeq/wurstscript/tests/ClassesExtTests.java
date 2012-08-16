@@ -239,6 +239,73 @@ public class ClassesExtTests extends PscriptTest {
 	
 	
 	@Test
+	public void ondestroy_dynamicdispatch() {
+		testAssertOkLines(true,  
+				"package test",
+				"	native testSuccess()",
+				"	int x = 2",
+				"	class B",
+				"		ondestroy",
+				"			x *= 2",
+				"	class A extends B",
+				"		ondestroy",
+				"			x += 1",
+				"	init",
+				"		B a = new A()",
+				"		destroy a",
+				"		if x == 6",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	
+	@Test
+	public void ondestroy_dynamicdispatch2() {
+		testAssertOkLines(true,  
+				"package test",
+				"	native testSuccess()",
+				"	int x = 2",
+				"	class B",
+				"		ondestroy",
+				"			x *= 2",
+				"	class A extends B",
+				"	class X extends A",
+				"		ondestroy",
+				"			x += 1",
+				"	init",
+				"		B a = new X()",
+				"		destroy a",
+				"		if x == 6",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void ondestroy_dynamicdispatch3() {
+		testAssertOkLines(true,  
+				"package test",
+				"	native testSuccess()",
+				"	int x = 2",
+				"	class B",
+				"		ondestroy",
+				"			x *= 2",
+				"	class A extends B",
+				"		ondestroy",
+				"			x += 1",
+				"	class X extends A",
+				"	init",
+				"		B a = new X()",
+				"		destroy a",
+				"		if x == 6",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	
+	@Test
 	public void ondestroyUsingThis() {
 		testAssertOkLines(true,  
 				"package test",
