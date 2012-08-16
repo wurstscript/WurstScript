@@ -1,6 +1,11 @@
 package de.peeeq.wurstscript.jassoptimizer;
 
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.jassAst.JassExprFuncRef;
 import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
@@ -22,17 +27,21 @@ public class GarbageRemover {
 		
 		// Remove Unneeded ones
 		JassFunctions originalFuncs = prog.getFunctions();
+		Collection<JassFunction> toRemove = Sets.newHashSet();
 		for ( JassFunction func : originalFuncs ) {
 			System.out.println("Process: " + func.getName());
 			if ( useMap.get(func.getName())  == null && ! RestrictedStandardNames.contains(func.getName()) ) {
 				System.out.println("unneeded " + func.getName());
-				originalFuncs.remove(func);
+				toRemove.add(func);
+				
+				
 				System.out.println("Removed: " + func.getName());
 			}
 		}
+		originalFuncs.removeAll(toRemove);
 	}
 
-
+	
 	
 	private static void findFunctionUses(JassProg prog,
 			final HashMap<String, Boolean> useMap) {

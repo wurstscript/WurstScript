@@ -478,6 +478,16 @@ public class SimpleStatementTests extends PscriptTest {
 		testAssertOk(Utils.getMethodName(1), executeProg, prog);
 	}
 	
+	@Test
+	public void test_destroy() {
+		testAssertErrorsLines(false, "Cannot destroy class", 
+				"package test",
+				"class C",
+				"init",
+				"	destroy C"
+				);
+	}
+	
 	public void assertError( boolean executeProg, String expected, String ... body) {
 		String prog = "package test\n" +
 				"	native testFail(string msg)\n" +

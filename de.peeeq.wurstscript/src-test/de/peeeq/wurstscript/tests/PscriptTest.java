@@ -152,7 +152,8 @@ public class PscriptTest {
 		
 		boolean success = false;
 		WurstGui gui = new WurstGuiCliImpl();
-		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, RunArgs.defaults());
+		RunArgs runArgs = new RunArgs(new String[] {"-inline"});
+		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, runArgs);
 		compiler.getErrorHandler().enableUnitTestMode();
 		WurstConfig.get().setSetting("lib", "../Wurstpack/wurstscript/lib/");
 		if (withStdLib) {

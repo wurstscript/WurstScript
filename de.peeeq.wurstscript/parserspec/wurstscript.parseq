@@ -111,26 +111,37 @@ WParameter(WPos source, Modifiers modifiers, TypeExpr typ, String name)
 	
 WStatements * WStatement
 	
-WStatement	=
+WStatement	= ActionStatement | ControlflowStatement
+
+ActionStatement = 
 	  StmtSkip(WPos source)
-	| StmtIf(WPos source, Expr cond, WStatements thenBlock, WStatements elseBlock)
-	| StmtWhile(WPos source, Expr cond, WStatements body)
-	| StmtLoop(WPos source, WStatements body)
 	| LocalVarDef
 	| StmtSet(WPos source, NameRef updatedExpr, Expr right)
 	| StmtCall
-	| StmtReturn(WPos source, OptExpr returnedObj)
 	| StmtDestroy(WPos source, Expr destroyedObj)
 	| StmtErr(WPos source)
+	| ExprMemberVar
+	
+	  
+ControlflowStatement = 
+	  CompoundStatement
+	| StmtReturn(WPos source, OptExpr returnedObj)
 	| StmtExitwhen(WPos source, Expr cond)
+	  
+CompoundStatement = 
+	  StmtIf(WPos source, Expr cond, WStatements thenBlock, WStatements elseBlock)
+	| SwitchStmt(WPos source, Expr expr, SwitchCases cases, SwitchDefaultCase switchDefault)
+	| LoopStatement
+
+LoopStatement = 
+	  StmtWhile(WPos source, Expr cond, WStatements body)
+	| StmtLoop(WPos source, WStatements body)
 	| StmtForRange(WPos source, LocalVarDef loopVar, Expr from, Expr to, Expr step, WStatements body)
 	| StmtForRangeDown(WPos source, LocalVarDef loopVar, Expr from, Expr to, Expr step, WStatements body)
 	| StmtForIn(WPos source, LocalVarDef loopVar, Expr in, WStatements body)
 	| StmtForFrom(WPos source, LocalVarDef loopVar, Expr in, WStatements body)
-	| ExprMemberVar
-	| SwitchStmt(WPos source, Expr expr, SwitchCases cases, SwitchDefaultCase switchDefault)
 	
-
+	
 
 Expr =
 	  NameRef
@@ -293,6 +304,24 @@ ExprBinary.attrFuncDef
 ExprNewObject.attrConstructorDef 
 	returns ConstructorDef 
 	implemented by de.peeeq.wurstscript.attributes.AttrConstructorDef.calculate
+
+
+WStatement.attrNextStatements "returns all statements which can be executed after this statement"
+	returns java.util.List<WStatement>
+	implemented by de.peeeq.wurstscript.attributes.Flow.getNext
+
+WStatement.attrPreviousStatements "returns all statements which could have been executed before this statement"
+	returns java.util.List<WStatement>
+	implemented by de.peeeq.wurstscript.attributes.Flow.getPrevious
+	
+	
+CompoundStatement.attrAfterBodyStatements "returns all statements which can be executed after the body/thenBlock/elseBlock of this statement is executed"
+	returns java.util.List<WStatement>
+	implemented by de.peeeq.wurstscript.attributes.Flow.getAfterBody
+
+WStatement.attrListIndex "returns the index this statement has in the underlying list"
+	returns int
+	implemented by  de.peeeq.wurstscript.attributes.Flow.getListIndex
 
 
 WStatements.attrDoesReturn

@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 
+import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImFunction;
@@ -110,6 +111,6 @@ public class ImAttributes {
 		if (t.getParent() != null) {
 			return t.getParent().attrTrace();
 		}
-		return null; 
+		return Ast.NoExpr(); 
 	}
 }
