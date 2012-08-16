@@ -675,6 +675,9 @@ public class WurstValidator {
 			
 		} else if (typ instanceof WurstTypeClass) {
 			WurstTypeClass c = (WurstTypeClass) typ;
+			if (c.isStaticRef()) {
+				stmtDestroy.addError("Cannot destroy class " + typ);
+			}
 			calledFunctions.put(stmtDestroy.attrNearestScope(), c.getClassDef().getOnDestroy()); 
 		} else {
 			stmtDestroy.addError("Cannot destroy objects of type " + typ);
