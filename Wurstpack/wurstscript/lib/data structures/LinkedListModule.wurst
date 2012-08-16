@@ -21,6 +21,18 @@ package LinkedListModule
 			last = this
 		
 		ondestroy
+			remove()
+
+		static function getFirst() returns thistype
+			return first
+			
+		function getNext() returns thistype
+			return next
+
+		function getPrev() returns thistype
+			return prev
+			
+		function remove()
 			size--
 			if this != first
 				prev.next = next
@@ -30,15 +42,6 @@ package LinkedListModule
 				last = prev
 			if this == first
 				first = next
-
-		static function getFirst() returns thistype
-			return first
-
-		function getNext() returns thistype
-			return next
-
-		function getPrev() returns thistype
-			return prev
 
 
 endpackage

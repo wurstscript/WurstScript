@@ -1,15 +1,14 @@
-package HTList
+package TList
 	
-	hashtable ht = InitHashtable()
 
-	// a list based on a hashtable
-	public class HTList<T>
+	// a list based on a Table
+	public class TList<T>
 		private Table t
 		private int size = 0
 
 		// add an element to the end of the list
 		function add(T elem)
-			ht.saveInt(this castTo int, size, elem castTo int)
+			t.saveInt(size, elem castTo int)
 			size ++
 		
 		// add an element to a specific position of the list
@@ -19,7 +18,7 @@ package HTList
 			setElem(pos, elem)
 
 		// add all elements from elems to this list
-		function addAll(HTList<T> elems)
+		function addAll(TList<T> elems)
 			for T elem in elems
 				add(elem)
 
@@ -30,7 +29,7 @@ package HTList
 				setElem(i, get(i+1))
 				
 		function setElem(int index, T elem)
-			ht.saveInt(this castTo int, index, elem castTo int)				
+			t.saveInt(index, elem castTo int)				
 			
 		// removes the first occurence of t from this list
 		function remove(T t)
@@ -45,20 +44,20 @@ package HTList
 
 		// get the element at the specified index
 		function get(int index) returns T
-			return ht.loadInt(this castTo int, index) castTo T
+			return t.loadInt(index) castTo T
 
 		// get an iterator for this list
-		function iterator() returns HTIterator<T>
-			return new HTIterator(this)			
+		function iterator() returns TIterator<T>
+			return new TIterator(this)			
 
 		ondestroy
-			ht.flushChild(this castTo int)
+			t.flush()
 
-	class HTIterator<Q>
+	class TIterator<Q>
 		int pos = 0
-		HTList<Q> list
+		TList<Q> list
 		
-		construct(HTList<Q> list)
+		construct(TList<Q> list)
 			this.list = list
 			
 
