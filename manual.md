@@ -142,6 +142,19 @@ The simplest statement is the _skip_ statement. It has no effect and can be used
 	if x > y or x <= z and "blub" != "blah"
 		...
     print("if done.")
+    
+### Switchs
+    
+    // i is of type int
+    switch i
+        case 1
+            print("1")
+        case 3
+            print("3")
+        case 88
+            print("88")
+        default
+            print("not implemented")
 
 ### Loops
 
@@ -418,8 +431,38 @@ Functions inherited from super classes can be overridden in the subclass. Such f
 		override function onCollide(unit u)
 			// create a big explosion here ;)
 			//...
+			
+			
+Note that overridden functions also get called when the instance is casted to a supertype.
+
+### Example
+
+    Class A
+        string name
+        
+        construct(string name)
+            this.name = name
+            
+        function printName()
+            print("Instance of A named: " + name )
 
 
+    Class B extends A
+    
+        construct(string name)
+            super(name)
+            
+        override function printName()
+            print("Instance of B named: " + name )
+            
+    init 
+        A a = new B("first") // This works because B extends A
+        a.printName() // This will print "Instance of B named: first", because a is an Instance of B.
+        
+This is especially usefull when iterating through ClassInstances of the same supertype,
+meaning you don't have to cast the instance to it's proper subtype.
+            
+            
 # Interfaces 
 
 
@@ -567,6 +610,42 @@ Modules can declare abstract functions: Functions without a given implementation
 ## Thistype
 
 You can use _thistype_ inside a module to refer to the type of the class which uses the module. This can be useful if you need to cast the class to an integer and back.
+
+# Enums
+
+In Wurst, _Enums_ can be used to set up collections of named (int) constants.
+These Constants can then be accessed via the Enum's name:
+
+    enum State
+        FLYING
+        GROUND
+        WATER
+        
+    init
+        State s = State.GROUND
+        
+You can also use enums inside of classes
+
+    class C
+        State currentState
+        
+        construct( State state )
+            currentState = state
+            
+To check the current value of an enum, you can use the switch statement.
+Note that all Enummembers have to be checked (or a defaut).
+
+    switch currentState
+        case State.FLYING
+            print("flying")
+        case State.GROUND
+            print("ground")
+        case State.WATER
+            print("water")
+            
+        
+        
+
 
 # Tuple Types 
 
