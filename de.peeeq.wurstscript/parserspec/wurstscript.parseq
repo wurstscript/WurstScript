@@ -111,7 +111,7 @@ WParameter(WPos source, Modifiers modifiers, TypeExpr typ, String name)
 	
 WStatements * WStatement
 	
-WStatement	= ActionStatement | ControlflowStatement
+WStatement	= ActionStatement | ControlflowStatement | EndFunctionStatement(WPos source)
 
 ActionStatement = 
 	  StmtSkip(WPos source)
@@ -325,9 +325,6 @@ WStatement.attrListIndex "returns the index this statement has in the underlying
 	implemented by  de.peeeq.wurstscript.attributes.Flow.getListIndex
 
 
-WStatements.attrDoesReturn
-	returns boolean 
-	implemented by de.peeeq.wurstscript.attributes.AttrDoesReturn.calculate
 
 
 OptTypeExpr.attrTyp

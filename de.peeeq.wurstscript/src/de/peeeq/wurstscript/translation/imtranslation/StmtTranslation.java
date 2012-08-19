@@ -24,6 +24,7 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.EndFunctionStatement;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.NoDefaultCase;
@@ -287,6 +288,10 @@ public class StmtTranslation {
 		
 		
 		return ImStatementExpr(ImStmts(result), ImNull());
+	}
+
+	public static ImStmt translate(EndFunctionStatement endFunctionStatement, ImTranslator translator, ImFunction f) {
+		return ImNull();
 	}
 
 

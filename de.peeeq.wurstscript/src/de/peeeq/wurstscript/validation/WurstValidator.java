@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import sun.org.mozilla.javascript.internal.ast.AstNode;
+
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -65,6 +67,7 @@ import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.SwitchCase;
 import de.peeeq.wurstscript.ast.SwitchDefaultCaseStatements;
 import de.peeeq.wurstscript.ast.SwitchStmt;
+import de.peeeq.wurstscript.ast.TranslatedToImFunction;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
@@ -79,6 +82,7 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WScope;
+import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CheckHelper;
@@ -101,6 +105,8 @@ import de.peeeq.wurstscript.types.WurstTypeModule;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 import de.peeeq.wurstscript.utils.Utils;
+import de.peeeq.wurstscript.validation.controlflow.ForwardExecution;
+import de.peeeq.wurstscript.validation.controlflow.ReturnsAnalysis;
 
 /**
  * this class validates a pscript program
@@ -384,12 +390,13 @@ public class WurstValidator {
 
 	private void checkReturn(FunctionImplementation func) {
 		String functionName = func.getName();
-		if (func.getBody().size() > 0) {
-			if (func.getReturnTyp() instanceof TypeExpr) {
-				if (!func.getBody().attrDoesReturn()) {
-					func.addError("Function " + functionName + " is missing a return statement.");
-				}
-			}
+		if (func.getBody().size() > 1) {
+//			if (func.getReturnTyp() instanceof TypeExpr) {
+//				if (!func.getBody().attrDoesReturn()) {
+//					func.addError("Function " + functionName + " is missing a return statement.");
+//				}
+//			}
+			new ForwardExecution<>(func, new ReturnsAnalysis()).execute();
 		} else { // no body, check if in interface:
 			if (func.getReturnTyp() instanceof TypeExpr && !(func.attrNearestStructureDef() instanceof InterfaceDef)) {
 				func.addError("Function " + functionName + " is missing a body. Use the 'skip' statement to define an empty body.");
@@ -397,6 +404,18 @@ public class WurstValidator {
 		}
 	}
 
+	@CheckMethod
+	public void checkReachability(WStatement s) {
+		if (s.getParent() instanceof WStatements) {
+			WStatements stmts = (WStatements) s.getParent();
+			if (s.attrPreviousStatements().isEmpty()) {
+				if (s.attrListIndex() > 0 || !(stmts.getParent() instanceof TranslatedToImFunction)) {
+					s.addError("unreachable code");
+				}
+			}
+		}
+	}
+	
 	@CheckMethod
 	public void visit(FuncDef func) {
 		visitedFunctions++;
@@ -406,7 +425,7 @@ public class WurstValidator {
 		
 		String functionName = func.getName();
 		if (func.attrIsAbstract()) {
-			if (func.getBody().size() > 0) {
+			if (func.getBody().size() > 1) {
 				func.getBody().get(0).addError("The abstract function " + functionName
 				+ " must not have any statements.");
 			}
@@ -939,7 +958,7 @@ public class WurstValidator {
 						continue nextFunction;
 					}
 				}
-				if (i_funcDef.getBody().isEmpty()) {
+				if (i_funcDef.getBody().size() <= 1) {
 					classDef.addError("The class " + classDef.getName() + " must implement the function " +
 					i_funcDef.getName() + ".");
 				}
@@ -1067,6 +1086,18 @@ public class WurstValidator {
 		}
 		// TODO check if all cases for switch are covered
 		
+	}
+
+	public static void computeFlowAttributes(AstElement node) {
+		if (node instanceof WStatement) {
+			WStatement s = (WStatement) node;
+			s.attrNextStatements();
+		}
+		
+		// traverse childs
+		for (int i =0; i<node.size(); i++) {
+			computeFlowAttributes(node.get(i));
+		}
 	}
 	
 }

@@ -88,10 +88,10 @@ public class RealWorldExamples extends PscriptTest {
 		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "tupleBug.wurst"), false);
 	}
 	
-	@Test
-	public void optimizer() throws IOException {
-		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "optimizer.wurst"), false);
-	}
+//	@Test
+//	public void optimizer() throws IOException {
+//		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "optimizer.wurst"), false);
+//	}
 	
 	@Test
 	public void optimizerNew() throws IOException {

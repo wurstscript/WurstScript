@@ -5,6 +5,7 @@ import java.util.Set;
 
 import com.google.common.collect.Sets;
 
+import de.peeeq.wurstscript.ast.EndFunctionStatement;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
@@ -203,6 +204,11 @@ public class UninitializedVars {
 					}
 					uninitializedVars.clear();
 					uninitializedVars.addAll(vars);
+				}
+
+				@Override
+				public void case_EndFunctionStatement(EndFunctionStatement endFunctionStatement) {
+					// nothing to do
 				}
 			});
 		}

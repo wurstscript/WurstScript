@@ -269,6 +269,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		
 		if (errorHandler.getErrorCount() > 0) return;
 		
+		// compute the flow attributes
+		WurstValidator.computeFlowAttributes(root);
+		
+		
 		// validate the resource:
 		WurstValidator validator = new WurstValidator(root);
 		validator.validate();
