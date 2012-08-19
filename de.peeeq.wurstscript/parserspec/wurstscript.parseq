@@ -169,6 +169,7 @@ ExprAtomic =
 	| ExprVarArrayAccess(WPos source, String varName, Indexes indexes)
 	| ExprThis(WPos source)
 	| ExprNull(WPos source)
+	| ExprSuper(WPos source)
 	
 	
 Indexes * Expr

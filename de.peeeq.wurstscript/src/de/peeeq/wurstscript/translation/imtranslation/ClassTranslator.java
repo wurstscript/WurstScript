@@ -33,6 +33,7 @@ import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.OptExpr;
 import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.jassIm.ImCall;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
@@ -41,6 +42,7 @@ import de.peeeq.wurstscript.jassIm.ImSetArray;
 import de.peeeq.wurstscript.jassIm.ImSetArrayTuple;
 import de.peeeq.wurstscript.jassIm.ImSetTuple;
 import de.peeeq.wurstscript.jassIm.ImStmt;
+import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.ImStmt.DefaultVisitor;
 import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImType;
@@ -266,19 +268,38 @@ public class ClassTranslator {
 	}
 
 	public void translateMethod(FuncDef s, List<ClassDef> subClasses) {
-		ImFunction f = translator.getFuncFor(s);
+		createDynamicDispatchMethod(s, subClasses);
+		createStaticCallFunc(s);
+	}
+
+	private ImFunction createDynamicDispatchMethod(FuncDef funcDef, List<ClassDef> subClasses) {
+		ImFunction f = translator.getDynamicDispatchFuncFor(funcDef);
+		ImFunction staticF = translator.getFuncFor(funcDef);
 		
-		
-		Map<ClassDef, FuncDef> subClasses2 = translator.getClassedWithImplementation(subClasses, s);
-		
-		
+		Map<ClassDef, FuncDef> subClasses2 = translator.getClassedWithImplementation(subClasses, funcDef);
 		if (subClasses2.size() > 0) {
 			int maxTypeId = translator.getMaxTypeId(subClasses);
-			f.getBody().addAll(translator.createDispatch(subClasses2, s, f, maxTypeId, new TypeIdGetterImpl()));
+			f.getBody().addAll(translator.createDispatch(subClasses2, funcDef, f, maxTypeId, new TypeIdGetterImpl()));
+		}
+		ImExprs arguments = ImExprs();
+		for (int i=0; i<f.getParameters().size(); i++) {
+			arguments.add(ImVarAccess(f.getParameters().get(i)));
+		}
+		translator.addCallRelation(f, staticF);
+		
+		if (f.getReturnType() instanceof ImVoid) {
+			f.getBody().add(JassIm.ImFunctionCall(funcDef, staticF, arguments));
+		} else {
+			f.getBody().add(JassIm.ImReturn(funcDef, JassIm.ImFunctionCall(funcDef, staticF, arguments)));
 		}
 		
 		
-		f.getBody().addAll(translator.translateStatements(f, s.getBody()));
+		return f;
+	}
+
+	private void createStaticCallFunc(FuncDef funcDef) {
+		ImFunction f = translator.getFuncFor(funcDef);
+		f.getBody().addAll(translator.translateStatements(f, funcDef.getBody()));
 	}
 
 

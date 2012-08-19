@@ -103,6 +103,8 @@ public class TupleTests extends PscriptTest {
 				"	init",
 				"		A a = new A()",
 				"		a.foo()",
+				"		if a.pos.x == 3",
+				"			testSuccess()",
 				"endpackage"
 			);
 	}

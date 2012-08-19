@@ -94,7 +94,7 @@ public class ImToJassTranslator {
 						start = true;
 					}
 					if (start) {
-						msg += "\n - " + Utils.printElement(getTrace(f));
+						msg += "\n - " + Utils.printElement(getTrace(f)) + "  ( " + f.attrTrace().attrSource().getFile() + " line  " +  f.attrTrace().attrSource().getLine() + ")";
 					}
 				}
 				WPos src = getTrace(imFunc).attrSource();

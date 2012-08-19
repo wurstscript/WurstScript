@@ -326,4 +326,76 @@ public class ClassesExtTests extends PscriptTest {
 				"endpackage"
 			);
 	}
+	
+
+	@Test
+	public void superCall() {
+		testAssertOkLines(true,  
+				"package test",
+				"	native testSuccess()",
+				"	int x = 2",
+				"	class B",
+				"		int y = 2",
+				"		function foo()",
+				"			x *= y",
+				"	class A extends B",
+				"		override function foo()",
+				"			x += y",
+				"			super.foo()",
+				"	init",
+				"		A a = new A()",
+				"		a.foo()",
+				"		if x == 8",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void superCall2() {
+		testAssertOkLines(true,  
+				"package test",
+				"	native testSuccess()",
+				"	int x = 2",
+				"	class B",
+				"		int y = 2",
+				"		function foo()",
+				"			x *= y",
+				"	class A extends B",
+				"		override function foo()",
+				"			x += y",
+				"			B.foo()",
+				"	init",
+				"		A a = new A()",
+				"		a.foo()",
+				"		if x == 8",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void testtest() {
+		testAssertOkLines(true,  
+				"package test",
+				"	native testSuccess()",
+				"	int x = 2",
+				"	class A",
+				"		int y = 2",
+				"		function foo()",
+				"			x = 4",
+				"	class B extends A",
+				"		override function foo()",
+				"			x = 5",
+				"	class C extends B",
+				"		override function foo()",
+				"			x = 6",
+				"	init",
+				"		A a = new B()",
+				"		a.foo()",
+				"		if x == 5",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
 }

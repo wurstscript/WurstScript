@@ -400,7 +400,7 @@ ClassSlots ::=
 ClassSlot ::=
 	  Modifiers:mod CONSTRUCT:x LPAR Parameters:params RPAR NL INDENT Statements:body UNINDENT:y
 		{: RESULT = Ast.ConstructorDef(pos(xleft, body), mod, params, AstHelper.inferSuperArgs(params), body); :}
-	| Modifiers:mod CONSTRUCT:x LPAR Parameters:params RPAR NL INDENT SUPER LPAR Arguments:superArgs RPAR NL Statements:body UNINDENT:y
+	| Modifiers:mod CONSTRUCT:x LPAR Parameters:params RPAR NL INDENT Newlines SUPER LPAR Arguments:superArgs RPAR NL Statements:body UNINDENT:y
 		{: RESULT = Ast.ConstructorDef(pos(xleft, yright), mod, params, superArgs, body); :}
 	| Modifiers:mod USE:x IdentifierWithTypeArgs:m NL
 		{: RESULT = Ast.ModuleUse(pos(xleft, m), m.getName(), m.getTypeArgs()); :} 
@@ -710,6 +710,8 @@ Expr ::=
 		{: RESULT = Ast.ExprInstanceOf(pos(e,t), t, e); :}
 	| Expr:left DOT:y
 		{: RESULT = Ast.ExprMemberVar(pos(left,yright), left, ""); :}
+	| SUPER:x
+		{: RESULT = Ast.ExprSuper(pos(xleft, xright)); :}
 ;
 	
 	
