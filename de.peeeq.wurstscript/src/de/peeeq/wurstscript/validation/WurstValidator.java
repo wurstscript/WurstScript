@@ -227,7 +227,7 @@ public class WurstValidator {
 		WurstType leftType = s.getUpdatedExpr().attrTyp();
 		WurstType rightType = s.getRight().attrTyp();
 
-		checkAssignment(Utils.isJassCode(s), s.getSource(), leftType, rightType);
+		checkAssignment(Utils.isJassCode(s), s, leftType, rightType);
 		
 		checkIfAssigningToConstant(s.getUpdatedExpr());
 		
@@ -278,7 +278,7 @@ public class WurstValidator {
 		}
 	}
 
-	private void checkAssignment(boolean isJassCode, WPos pos, WurstType leftType, WurstType rightType) {
+	private void checkAssignment(boolean isJassCode, AstElement pos, WurstType leftType, WurstType rightType) {
 		if (!rightType.isSubtypeOf(leftType, pos)) {
 			if (isJassCode) {
 				if (leftType instanceof WurstTypeReal && rightType instanceof WurstTypeInt) {
@@ -306,7 +306,7 @@ public class WurstValidator {
 			WurstType leftType = s.attrTyp();
 			WurstType rightType = initial.attrTyp();
 
-			checkAssignment(Utils.isJassCode(s), s.getSource(), leftType, rightType);
+			checkAssignment(Utils.isJassCode(s), s, leftType, rightType);
 		}
 	}
 
@@ -333,7 +333,7 @@ public class WurstValidator {
 			Expr initial = (Expr) s.getInitialExpr();
 			WurstType leftType = s.attrTyp();
 			WurstType rightType = initial.attrTyp();
-			checkAssignment(Utils.isJassCode(s), s.getSource(), leftType, rightType);
+			checkAssignment(Utils.isJassCode(s), s, leftType, rightType);
 		}
 		
 		
