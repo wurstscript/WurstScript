@@ -44,6 +44,7 @@ import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.EnumMember;
 import de.peeeq.wurstscript.ast.EnumMembers;
 import de.peeeq.wurstscript.ast.Expr;
+import de.peeeq.wurstscript.ast.ExprSuper;
 import de.peeeq.wurstscript.ast.ExprThis;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
@@ -108,7 +109,7 @@ public class ImTranslator {
 	private List<ImFunction> entryPoints = Lists.newArrayList();
 	
 	private Map<TranslatedToImFunction, ImFunction> functionMap = Maps.newHashMap();
-	
+	private Map<TranslatedToImFunction, ImFunction> dynamicDispatchFunctionMap = Maps.newHashMap();
 
 	private ImFunction globalInitFunc;
 	
@@ -307,6 +308,29 @@ public class ImTranslator {
 		functionMap.put(funcDef, f);
 		return f;
 	}
+
+	public ImFunction getDynamicDispatchFuncFor(TranslatedToImFunction funcDef) {
+		if (dynamicDispatchFunctionMap.containsKey(funcDef)) {
+			return dynamicDispatchFunctionMap.get(funcDef);
+		}
+		if (funcDef.attrNearestStructureDef() instanceof InterfaceDef) {
+			// for interfaces use same function..
+			return getFuncFor(funcDef);
+		}
+		String name = "dispatch_" + getNameFor(funcDef);
+		if (funcDef instanceof NativeFunc) {
+			throw new Error("native dispatch not possible");
+		}
+		if (isBJ(funcDef.getSource())) {
+			throw new Error("bj dispatch not possible");
+		}
+		ImFunction f = getFuncFor(funcDef);
+		ImFunction dispatchFunc = JassIm.ImFunction(funcDef, name, f.getParameters().copy(), (ImType) f.getReturnType().copy(), ImVars(), ImStmts(), flags());
+		addFunction(dispatchFunc);
+		dynamicDispatchFunctionMap.put(funcDef, dispatchFunc);
+		return dispatchFunc;
+	}
+	
 	private boolean isBJ(WPos source) {
 		String f = source.getFile().toLowerCase();
 		return f.endsWith("blizzard.j") || f.endsWith("common.j");
@@ -387,7 +411,14 @@ public class ImTranslator {
 	}
 	
 	public ImVar getThisVar(ExprThis e) {
-		AstElement node = e;
+		return getThisVarForNode(e);
+	}
+
+	public ImVar getThisVar(ExprSuper e) {
+		return getThisVarForNode(e);
+	}
+
+	private ImVar getThisVarForNode(AstElement node) {
 		while (!(node instanceof TranslatedToImFunction)) {
 			node = node.getParent();
 		}
@@ -886,4 +917,6 @@ public class ImTranslator {
 		return ((EnumMembers) enumMember.getParent()).indexOf(enumMember);
 	}
 
+	
+	
 }

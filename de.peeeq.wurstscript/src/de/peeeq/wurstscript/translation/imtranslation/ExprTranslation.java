@@ -32,11 +32,13 @@ import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprIncomplete;
 import de.peeeq.wurstscript.ast.ExprInstanceOf;
 import de.peeeq.wurstscript.ast.ExprIntVal;
+import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprNull;
 import de.peeeq.wurstscript.ast.ExprRealVal;
 import de.peeeq.wurstscript.ast.ExprStringVal;
+import de.peeeq.wurstscript.ast.ExprSuper;
 import de.peeeq.wurstscript.ast.ExprThis;
 import de.peeeq.wurstscript.ast.ExprUnary;
 import de.peeeq.wurstscript.ast.FunctionCall;
@@ -63,7 +65,9 @@ import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.tests.PscriptTest;
 import de.peeeq.wurstscript.types.WurstTypeInt;
+import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeReal;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
@@ -147,6 +151,11 @@ public class ExprTranslation {
 		ImVar var = t.getThisVar(e);
 		return ImVarAccess(var);
 	}
+	
+	public static ImExpr translate(ExprSuper e, ImTranslator t, ImFunction f) {
+		ImVar var = t.getThisVar(e);
+		return ImVarAccess(var);
+	}
 
 	public static ImExpr translate(NameRef e, ImTranslator t, ImFunction f) {
 		return translateNameDef(e, t, f);
@@ -223,7 +232,12 @@ public class ExprTranslation {
 
 	private static ImExpr translateFunctionCall(FunctionCall e, ImTranslator t, ImFunction f) {
 		List<Expr> arguments = Lists.newArrayList(e.getArgs());
+		boolean dynamicDispatch = false;
+
 		if (e.attrImplicitParameter() instanceof Expr) {
+			if (isCalledOnDynamicRef(e)) {
+				dynamicDispatch = true;	
+			}
 			// add implicit parameter to front
 			arguments.add(0, (Expr) e.attrImplicitParameter());
 		}
@@ -234,18 +248,48 @@ public class ExprTranslation {
 			return ImNull();
 		}
 		
+		if (calledFunc == e.attrNearestFuncDef()) {
+			// recursive self calls are bound statically
+			// this is different to other objectoriented languages but it is necessary 
+			// because jass does not allow mutually recursive calls
+			// The only situation where this would make a difference is with super-calls 
+			// (or other statically bound calls)
+			dynamicDispatch = false;
+		}
+		
 		ImExprs imArgs = translateExprs(arguments, t, f);
 		
 		if (calledFunc instanceof TupleDef) {
 			// creating a new tuple...
 			return ImTupleExpr(imArgs);
 		}
-		ImFunction calledImFunc = t.getFuncFor(calledFunc);
+		ImFunction calledImFunc;
+		if (dynamicDispatch) {
+			calledImFunc = t.getDynamicDispatchFuncFor(calledFunc);
+		} else {
+			calledImFunc = t.getFuncFor(calledFunc);
+		}
 		t.addCallRelation(f, calledImFunc);
 		
 		
 		ImFunctionCall fc = ImFunctionCall(e, calledImFunc, imArgs);
 		return fc;
+	}
+
+	
+	private static boolean isCalledOnDynamicRef(FunctionCall e) {
+		if (e instanceof ExprMemberMethod) {
+			ExprMemberMethod mm = (ExprMemberMethod) e;
+			if (mm.getLeft().attrTyp() instanceof WurstTypeNamedScope) {
+				WurstTypeNamedScope tns = (WurstTypeNamedScope) mm.getLeft().attrTyp();
+				if (!tns.isStaticRef()) {
+					return true;
+				}
+			}
+		} else if (e.attrIsDynamicContext()) {
+			return true;
+		}
+		return false;
 	}
 
 	
@@ -309,6 +353,8 @@ public class ExprTranslation {
 			return JassIm.ImStatementExpr(JassIm.ImStmts(evalExpr), condition);
 		}
 	}
+
+	
 
 	
 

@@ -40,7 +40,8 @@ public class EvaluateBinaryOperator {
 	}
 	
 	public static ILconst eval(OpEquals opEquals, ILconst left, Supplier<ILconst> right) {
-		return ILconstBool.instance(left.equals(right.get()));
+		ILconst r = right.get();
+		return ILconstBool.instance(left.equals(r));
 	}
 
 	public static ILconst eval(OpPlus opPlus, ILconst left, Supplier<ILconst> right) {

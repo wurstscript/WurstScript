@@ -24,6 +24,7 @@ import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprNull;
 import de.peeeq.wurstscript.ast.ExprRealVal;
 import de.peeeq.wurstscript.ast.ExprStringVal;
+import de.peeeq.wurstscript.ast.ExprSuper;
 import de.peeeq.wurstscript.ast.ExprThis;
 import de.peeeq.wurstscript.ast.ExprUnary;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
@@ -706,6 +707,21 @@ public class AttrExprType {
 			e.addError(msgPre + " is not allowed because types " + exprType + " and " + targetType + " are not directly related.\n" +
 					"Consider adding a cast to a common superType first.");
 		}
+	}
+
+
+	public static WurstType calculate(ExprSuper e) {
+		ClassDef cd = e.attrNearestClassDef();
+		if (cd == null) {
+			e.addError("'super' can only be used inside classes.");
+		} else if (cd.getExtendedClass().attrTyp() instanceof WurstTypeClass) {
+			WurstTypeClass superType = (WurstTypeClass) cd.getExtendedClass().attrTyp();
+			assert superType.isStaticRef();
+			return superType;
+		} else {
+			e.addError("No super class found.");
+		}
+		return WurstTypeUnknown.instance();
 	}
 
 }
