@@ -55,8 +55,8 @@ public class SyntacticSugar {
 		if (hasCommonJ) {
 			addDefaultImports(root);
 		}
-		addEndFunctionStatements(root);
 		addDefaultConstructors(root);
+		addEndFunctionStatements(root);
 		expandForInLoops(root);
 	}
 	
@@ -98,6 +98,7 @@ public class SyntacticSugar {
 				WPos pos = f.attrSource().copy();
 				pos.setRightPos(pos.getLeftPos()-1);
 				f.getBody().add(Ast.EndFunctionStatement(pos));
+				f.getBody().add(0, Ast.StartFunctionStatement(pos.copy()));
 			}
 			
 		});

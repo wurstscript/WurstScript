@@ -16,6 +16,7 @@ import de.peeeq.wurstscript.ast.EndFunctionStatement;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBoolVal;
 import de.peeeq.wurstscript.ast.LoopStatement;
+import de.peeeq.wurstscript.ast.StartFunctionStatement;
 import de.peeeq.wurstscript.ast.StmtExitwhen;
 import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtLoop;
@@ -36,6 +37,13 @@ public class Flow {
 		setPrevios(s, r);
 		return r;
 	}
+	
+	public static List<WStatement> getNext(StartFunctionStatement s) {
+		List<WStatement> r = getFollowingStatements(s);
+		setPrevios(s, r);
+		return r;
+	}
+
 	
 	public static List<WStatement> getNext(LoopStatement s) {
 		// we can go to the statement following the loop
@@ -246,5 +254,6 @@ public class Flow {
 		return Collections.emptyList();
 	}
 
+	
 
 }

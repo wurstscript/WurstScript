@@ -7,17 +7,23 @@ import com.google.common.base.Function;
 import de.peeeq.wurstscript.ast.EndFunctionStatement;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionImplementation;
+import de.peeeq.wurstscript.ast.FunctionLike;
 import de.peeeq.wurstscript.ast.InterfaceDef;
+import de.peeeq.wurstscript.ast.StartFunctionStatement;
 import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.WStatement;
+import de.peeeq.wurstscript.types.WurstTypeVoid;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class ReturnsAnalysis extends ForwardMethod<Boolean> {
 
 
 	@Override
 	Boolean calculate(WStatement s, Boolean incoming) {
-		if (s instanceof StmtReturn) {
+		if (s instanceof StartFunctionStatement) {
+			return false;
+		} else if (s instanceof StmtReturn) {
 			return true;
 		} else {
 			return incoming;
@@ -46,17 +52,17 @@ public class ReturnsAnalysis extends ForwardMethod<Boolean> {
 
 	@Override
 	void checkFinal(Boolean incoming) {
-		FunctionImplementation f = getFuncDef();
-		if (f.getReturnTyp() instanceof TypeExpr && !(f.attrNearestStructureDef() instanceof InterfaceDef)) {
+		FunctionLike f = getFuncDef();
+		if (!(f.attrReturnType() instanceof WurstTypeVoid) && !(f.attrNearestStructureDef() instanceof InterfaceDef)) {
 			if (!incoming) {
-				f.addError("Function " + f.getName() + " is missing a return statement.");
+				f.addError(Utils.printElement(f) + " is missing a return statement.");
 			}
 		}
 		
 	}
 
 	@Override
-	public Boolean inital() {
+	public Boolean startValue() {
 		return true; 
 	}
 

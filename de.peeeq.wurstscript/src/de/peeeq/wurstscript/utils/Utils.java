@@ -8,6 +8,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.lang.reflect.Array;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -654,6 +655,13 @@ public class Utils {
 	public static boolean isEmptyCU(CompilationUnit cu) {
 		return (cu == null) 
 		  || (cu.getJassDecls().size() + cu.getPackages().size() == 0);
+	}
+
+	public static <T> T[] copyArray(T[] ar) {
+		@SuppressWarnings("unchecked")
+		T[] r = (T[]) Array.newInstance(ar.getClass(), ar.length);
+		System.arraycopy(ar, 0, r, 0, ar.length);
+		return r;
 	}
 
 }

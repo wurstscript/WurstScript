@@ -388,10 +388,10 @@ public class SimpleStatementTests extends PscriptTest {
 	public void test_unitialized() {
 		assertError(false, "not initialized",
 				"int x",
-				"int y = 2",
-				"if y == 3",
-				"	x = 2",
-				"x++");
+				"int y = 2", // 6
+				"if y == 3", // 7
+				"	x = 2", // 8
+				"x++"); // 9
 	}
 	
 	@Test

@@ -14,6 +14,7 @@ import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionImplementation;
+import de.peeeq.wurstscript.ast.FunctionLike;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -21,7 +22,7 @@ public class ForwardExecution<T> {
 
 	private ForwardMethod<T> method;
 	private Map<WStatement, T> currentValues = Maps.newHashMap();
-	private FunctionImplementation f;
+	private FunctionLike f;
 	
 	private PriorityQueue<WStatement> todo = new PriorityQueue<WStatement>(11, new Comparator<WStatement>() {
 
@@ -32,13 +33,17 @@ public class ForwardExecution<T> {
 
 	});
 	
-	public ForwardExecution(FunctionImplementation f, ForwardMethod<T> method) {
+	ForwardExecution(FunctionLike f, ForwardMethod<T> method) {
 		this.f = f;
 		this.method = method;
 		method.setFuncDef(f);
 	}
 	
-	public void execute() {
+
+	void execute() {
+		if (f.getBody().isEmpty()) {
+			throw new Error("" + f);
+		}
 		addTodo(f.getBody().get(0));
 		while (!todo.isEmpty()) {
 			checkStmt(fromTodo());
@@ -59,11 +64,11 @@ public class ForwardExecution<T> {
 	}
 
 	private void checkStmt(WStatement s) {
-		System.out.println("statement " +Utils.printElement(s) +"  in line " + s.attrSource().getLine());
+		debug("statement " +Utils.printElement(s) +"  in line " + s.attrSource().getLine());
 		T incoming = method.merge(get(s.attrPreviousStatements()));
 		T oldR = currentValues.get(s);
 		T r = method.calculate(s, incoming);
-		System.out.println("	from " + oldR + " to " + r);
+		debug("	from " + method.print(oldR) + " to " + method.print(r));
 		if (oldR == null || !method.equality(oldR, r)) {
 			// value changed...
 			currentValues.put(s, r);
@@ -75,19 +80,29 @@ public class ForwardExecution<T> {
 	}
 
 	private Collection<T> get(List<WStatement> previousStatements) {
-		
+		if (previousStatements.isEmpty()) {
+			return Collections.singleton(method.startValue());
+		}
 		Collection<T> result = Lists.newArrayList();
 		for (WStatement s : previousStatements) {
-			System.out.println("	prev: " + Utils.printElement(s) +"  in line " + s.attrSource().getLine());
+			debug("	prev: " + Utils.printElement(s) +"  in line " + s.attrSource().getLine() 
+					+ " " + method.print(currentValues.get(s)));
 			result.add(get(s));			
 		}
 		return result;
 	}
 
+	private void debug(String msg) {
+		if (method.debug) {
+			System.out.println(msg);
+		}
+	}
+
+
 	private T get(WStatement s) {
 		T t = currentValues.get(s);
 		if (t == null) {
-			t = method.inital();
+			t = method.startValue();
 		}
 		return t;
 	}

@@ -39,9 +39,17 @@ public class FlowAnalysisTests extends PscriptTest {
 	}
 	
 	
-
 	@Test
 	public void testReturns4() {
+		assertError(false, "missing a return" ,
+				"function foo(int i) returns int",
+				"	skip"
+				);
+	}
+	
+
+	@Test
+	public void testReturns5() {
 		assertOk(false, 
 				"function foo(int i) returns int",
 				"	var j = i",

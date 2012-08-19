@@ -56,7 +56,7 @@ public class InterfaceTranslator {
 			int maxTypeId = translator.getMaxTypeId(instances);
 			f.getBody().addAll(translator.createDispatch(instances2, funcDef, f, maxTypeId, new TypeIdGetterImpl()));
 		}
-		if (funcDef.getBody().size() > 1) {
+		if (funcDef.getBody().size() > 2) {
 			// TODO add default implementation
 			f.getBody().addAll(translator.translateStatements(f, funcDef.getBody()));
 		} else {

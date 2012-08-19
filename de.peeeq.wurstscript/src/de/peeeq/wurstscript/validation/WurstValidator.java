@@ -38,6 +38,7 @@ import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FuncRef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.FunctionImplementation;
+import de.peeeq.wurstscript.ast.FunctionLike;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.HasTypeArgs;
@@ -105,6 +106,7 @@ import de.peeeq.wurstscript.types.WurstTypeModule;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 import de.peeeq.wurstscript.utils.Utils;
+import de.peeeq.wurstscript.validation.controlflow.DataflowAnomalyAnalysis;
 import de.peeeq.wurstscript.validation.controlflow.ForwardExecution;
 import de.peeeq.wurstscript.validation.controlflow.ReturnsAnalysis;
 
@@ -368,10 +370,6 @@ public class WurstValidator {
 	@CheckMethod
 	public void visit(ExtensionFuncDef func) {
 		checkFunctionName(func);
-		
-		
-		checkReturn(func);
-		UninitializedVars.checkFunc(func.attrDefinedNames().values(), func.getBody());
 	}
 
 	private void checkFunctionName(FunctionDefinition f) {
@@ -387,19 +385,15 @@ public class WurstValidator {
 	
 
 	
-
-	private void checkReturn(FunctionImplementation func) {
-		String functionName = func.getName();
-		if (func.getBody().size() > 1) {
-//			if (func.getReturnTyp() instanceof TypeExpr) {
-//				if (!func.getBody().attrDoesReturn()) {
-//					func.addError("Function " + functionName + " is missing a return statement.");
-//				}
-//			}
-			new ForwardExecution<>(func, new ReturnsAnalysis()).execute();
+	private void checkReturn(FunctionLike func) {
+		if (func.getBody().size() > 2) {
+			new ReturnsAnalysis().execute(func);
 		} else { // no body, check if in interface:
-			if (func.getReturnTyp() instanceof TypeExpr && !(func.attrNearestStructureDef() instanceof InterfaceDef)) {
-				func.addError("Function " + functionName + " is missing a body. Use the 'skip' statement to define an empty body.");
+			if (func instanceof FuncDef) {
+				FuncDef funcDef = (FuncDef) func;
+				if (funcDef.getReturnTyp() instanceof TypeExpr && !(func.attrNearestStructureDef() instanceof InterfaceDef)) {
+					func.addError("Function " + funcDef.getName() + " is missing a body. Use the 'skip' statement to define an empty body.");
+				}
 			}
 		}
 	}
@@ -423,17 +417,6 @@ public class WurstValidator {
 
 		checkFunctionName(func);
 		
-		String functionName = func.getName();
-		if (func.attrIsAbstract()) {
-			if (func.getBody().size() > 1) {
-				func.getBody().get(0).addError("The abstract function " + functionName
-				+ " must not have any statements.");
-			}
-		} else { // not abstract
-			checkReturn(func);
-			UninitializedVars.checkFunc(func.attrDefinedNames().values(), func.getBody());
-		}
-
 		Map<TypeParamDef, WurstType> typeParamBinding = Collections.emptyMap();
 		
 		// check is override is correct:
@@ -443,19 +426,26 @@ public class WurstValidator {
 
 	}
 	
-	@CheckMethod
-	public void visit(InitBlock initBlock) {
-		UninitializedVars.checkFunc(initBlock.attrDefinedNames().values(), initBlock.getBody());
-	}
 	
 	@CheckMethod
-	public void visit(OnDestroyDef onDestroyDef) {
-		UninitializedVars.checkFunc(onDestroyDef.attrDefinedNames().values(), onDestroyDef.getBody());
-	}
-	
-	@CheckMethod
-	public void visit(ConstructorDef constructorDef) {
-		UninitializedVars.checkFunc(constructorDef.attrDefinedNames().values(), constructorDef.getBody());
+	public void checkUninitializedVars(FunctionLike f) {
+		boolean isAbstract = false;
+		if (f instanceof FuncDef) {
+			FuncDef func = (FuncDef) f;
+			if (func.attrIsAbstract()) {
+				isAbstract = true;
+				if (func.getBody().size() > 2) {
+					func.getBody().get(0).addError("The abstract function " + func.getName()
+					+ " must not have any statements.");
+				}
+			}
+		}
+		if (!isAbstract) { // not abstract
+			checkReturn(f);
+			if (!Utils.isJassCode(f)) {
+				new DataflowAnomalyAnalysis().execute(f);
+			}
+		}
 	}
 
 	@CheckMethod
@@ -958,7 +948,7 @@ public class WurstValidator {
 						continue nextFunction;
 					}
 				}
-				if (i_funcDef.getBody().size() <= 1) {
+				if (i_funcDef.getBody().size() <= 2) {
 					classDef.addError("The class " + classDef.getName() + " must implement the function " +
 					i_funcDef.getName() + ".");
 				}
