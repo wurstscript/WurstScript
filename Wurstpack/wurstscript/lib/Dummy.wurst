@@ -119,7 +119,7 @@ package Dummy
 
         construct( unit u )
             //print( DUMMY_UNIT_ID.toString() )
-            //print( GetUnitTypeId(u).toString() )
+            print( GetUnitTypeId(u).toString() )
             if GetUnitTypeId(u) != DUMMY_UNIT_ID
                 printError("ReleaseDummy error: Method called on a unit of an incorrect type.")
             else if IsUnitInGroup(u, g)
