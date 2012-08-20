@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.intermediateLang.interpreter;
 
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -11,13 +10,10 @@ import de.peeeq.wurstscript.intermediateLang.ILconstInt;
 import de.peeeq.wurstscript.intermediateLang.ILconstReal;
 import de.peeeq.wurstscript.intermediateLang.ILconstString;
 import de.peeeq.wurstscript.intermediateLang.ILconstTuple;
-import de.peeeq.wurstscript.objectreader.BinaryDataOutputStream;
 import de.peeeq.wurstscript.objectreader.ObjectDefinition;
 import de.peeeq.wurstscript.objectreader.ObjectFile;
-import de.peeeq.wurstscript.objectreader.ObjectFileType;
 import de.peeeq.wurstscript.objectreader.ObjectModification;
 import de.peeeq.wurstscript.objectreader.ObjectModificationInt;
-import de.peeeq.wurstscript.objectreader.ObjectModificationString;
 import de.peeeq.wurstscript.objectreader.ObjectTable;
 
 public class CompiletimeNatives implements NativesProvider {

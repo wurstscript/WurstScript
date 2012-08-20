@@ -6,14 +6,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
-import java.util.Set;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
-import de.peeeq.wurstscript.ast.FuncDef;
-import de.peeeq.wurstscript.ast.FunctionImplementation;
 import de.peeeq.wurstscript.ast.FunctionLike;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.utils.Utils;

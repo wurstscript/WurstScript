@@ -19,7 +19,6 @@ import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
-import de.peeeq.wurstscript.utils.Pair;
 
 public class InterfaceTranslator {
 

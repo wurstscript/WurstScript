@@ -2,7 +2,6 @@ package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElementWithModifiers;
-import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.ModAbstract;
 import de.peeeq.wurstscript.ast.ModConstant;

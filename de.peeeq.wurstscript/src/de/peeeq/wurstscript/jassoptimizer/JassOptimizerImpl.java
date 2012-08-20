@@ -5,27 +5,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Set;
 
-import com.google.common.collect.Sets;
-
-import de.peeeq.wurstscript.jassAst.JassExpr;
-import de.peeeq.wurstscript.jassAst.JassExprFuncRef;
-import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
-import de.peeeq.wurstscript.jassAst.JassExprStringVal;
-import de.peeeq.wurstscript.jassAst.JassExprVarAccess;
-import de.peeeq.wurstscript.jassAst.JassExprVarArrayAccess;
-import de.peeeq.wurstscript.jassAst.JassExprlist;
-import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassProg;
-import de.peeeq.wurstscript.jassAst.JassSimpleVar;
-import de.peeeq.wurstscript.jassAst.JassSimpleVars;
-import de.peeeq.wurstscript.jassAst.JassStmtCall;
-import de.peeeq.wurstscript.jassAst.JassStmtSet;
-import de.peeeq.wurstscript.jassAst.JassStmtSetArray;
-import de.peeeq.wurstscript.jassAst.JassVar;
-import de.peeeq.wurstscript.jassAst.JassVars;
 import de.peeeq.wurstscript.utils.Debug;
 
 

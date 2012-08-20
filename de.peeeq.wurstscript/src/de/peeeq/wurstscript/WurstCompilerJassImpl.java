@@ -18,7 +18,6 @@ import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 
 import de.peeeq.wurstscript.ast.Ast;
-import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
@@ -28,7 +27,6 @@ import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassIm.ImProg;
-import de.peeeq.wurstscript.jassIm.JassImElement;
 import de.peeeq.wurstscript.mpq.LadikMpq;
 import de.peeeq.wurstscript.mpq.MpqEditorFactory;
 import de.peeeq.wurstscript.parser.ExtendedParser;

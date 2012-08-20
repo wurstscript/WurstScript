@@ -29,7 +29,6 @@ import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.NoDefaultCase;
 import de.peeeq.wurstscript.ast.OpBinary;
-import de.peeeq.wurstscript.ast.OpEquals;
 import de.peeeq.wurstscript.ast.StartFunctionStatement;
 import de.peeeq.wurstscript.ast.StmtDestroy;
 import de.peeeq.wurstscript.ast.StmtErr;
@@ -45,17 +44,14 @@ import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.StmtSkip;
 import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.SwitchCase;
-import de.peeeq.wurstscript.ast.SwitchDefaultCase;
 import de.peeeq.wurstscript.ast.SwitchDefaultCaseStatements;
 import de.peeeq.wurstscript.ast.SwitchStmt;
 import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.jassAst.JassOpEquals;
 import de.peeeq.wurstscript.jassIm.ImConst;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImIf;
-import de.peeeq.wurstscript.jassIm.ImOperatorCall;
 import de.peeeq.wurstscript.jassIm.ImStatementExpr;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmts;
@@ -65,10 +61,10 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeModuleInstanciation;
-import de.peeeq.wurstscript.types.TypesHelper;
 
 public class StmtTranslation {
 

@@ -20,11 +20,11 @@ import de.peeeq.wurstscript.ast.OpPlus;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WScope;
+import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeInt;
+import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeReal;
 import de.peeeq.wurstscript.types.WurstTypeString;
-import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.utils.Utils;
 
 

@@ -14,12 +14,12 @@ import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
 import de.peeeq.wurstscript.types.NativeTypes;
-import de.peeeq.wurstscript.types.WurstTypeArray;
-import de.peeeq.wurstscript.types.WurstTypeUnknown;
-import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeArray;
 import de.peeeq.wurstscript.types.WurstTypeModule;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
+import de.peeeq.wurstscript.types.WurstTypeUnknown;
+import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.utils.Utils;
 
 /**

@@ -1,7 +1,7 @@
 package de.peeeq.wurstscript.intermediateLang;
 
-import de.peeeq.wurstscript.types.WurstTypeBool;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeBool;
 
 public class ILconstBool extends ILconstAbstract {
 

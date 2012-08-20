@@ -5,7 +5,6 @@ import java.io.File;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElementWithModifiers;
 import de.peeeq.wurstscript.ast.Modifier;
-import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstNull;

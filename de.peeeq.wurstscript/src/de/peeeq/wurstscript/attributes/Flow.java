@@ -7,8 +7,6 @@ import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.ActionStatement;
 import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.AstElementWithCond;
-import de.peeeq.wurstscript.ast.AstElementWithValB;
 import de.peeeq.wurstscript.ast.CompoundStatement;
 import de.peeeq.wurstscript.ast.EndFunctionStatement;
 import de.peeeq.wurstscript.ast.Expr;

@@ -2,33 +2,22 @@ package de.peeeq.wurstscript.validation.controlflow;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import de.peeeq.immutablecollections.ImmutableList;
-import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithLoopVar;
-import de.peeeq.wurstscript.ast.AstElementWithUpdatedExpr;
 import de.peeeq.wurstscript.ast.Expr;
-import de.peeeq.wurstscript.ast.ExprBoolVal;
-import de.peeeq.wurstscript.ast.FunctionImplementation;
 import de.peeeq.wurstscript.ast.FunctionLike;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.StartFunctionStatement;
-import de.peeeq.wurstscript.ast.StmtForRange;
 import de.peeeq.wurstscript.ast.StmtSet;
-import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WStatement;
-import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.types.WurstTypeArray;
-import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 
 

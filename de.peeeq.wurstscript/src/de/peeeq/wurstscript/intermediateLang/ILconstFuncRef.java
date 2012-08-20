@@ -1,7 +1,7 @@
 package de.peeeq.wurstscript.intermediateLang;
 
-import de.peeeq.wurstscript.types.WurstTypeCode;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeCode;
 
 public class ILconstFuncRef extends ILconstAbstract {
 

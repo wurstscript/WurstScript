@@ -13,9 +13,9 @@ import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.FuncRef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
-import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeTypeParam;
+import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.utils.NotNullList;
 import de.peeeq.wurstscript.utils.Utils;
 

@@ -16,7 +16,6 @@ import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
-import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.utils.NotNullList;
 import de.peeeq.wurstscript.utils.Utils;
 

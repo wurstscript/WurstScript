@@ -15,7 +15,6 @@ import static de.peeeq.wurstscript.jassIm.JassIm.ImVarArrayAccess;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
 import com.google.common.collect.Lists;
 
@@ -60,20 +59,18 @@ import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImOperatorCall;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImStmt;
-import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.JassIm;
-import de.peeeq.wurstscript.tests.PscriptTest;
+import de.peeeq.wurstscript.types.TypesHelper;
+import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeInt;
+import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeReal;
-import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.types.WurstTypeTuple;
 import de.peeeq.wurstscript.types.WurstTypeTypeParam;
-import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class ExprTranslation {

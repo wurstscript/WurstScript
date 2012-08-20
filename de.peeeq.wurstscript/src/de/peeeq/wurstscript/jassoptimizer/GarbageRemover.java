@@ -2,9 +2,7 @@ package de.peeeq.wurstscript.jassoptimizer;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.jassAst.JassExprFuncRef;

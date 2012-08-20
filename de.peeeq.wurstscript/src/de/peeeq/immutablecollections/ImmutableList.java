@@ -5,8 +5,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-import de.peeeq.wurstscript.ast.NameDef;
-
 public abstract class ImmutableList<T> implements Iterable<T> {
 	
 	private int hashCode = 0;

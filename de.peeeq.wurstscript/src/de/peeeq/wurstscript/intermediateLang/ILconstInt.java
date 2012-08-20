@@ -1,7 +1,7 @@
 package de.peeeq.wurstscript.intermediateLang;
 
-import de.peeeq.wurstscript.types.WurstTypeInt;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeInt;
 
 public class ILconstInt extends ILconstAbstract implements ILconstNum {
 

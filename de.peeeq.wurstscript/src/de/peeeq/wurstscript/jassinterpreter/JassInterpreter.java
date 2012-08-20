@@ -5,9 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.base.Function;
-import com.google.common.base.Supplier;
-
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstAddable;

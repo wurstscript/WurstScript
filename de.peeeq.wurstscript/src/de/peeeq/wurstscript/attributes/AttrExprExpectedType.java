@@ -17,11 +17,11 @@ import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WParameters;
+import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBool;
 import de.peeeq.wurstscript.types.WurstTypeInt;
 import de.peeeq.wurstscript.types.WurstTypeReal;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
-import de.peeeq.wurstscript.types.WurstType;
 
 public class AttrExprExpectedType {
 

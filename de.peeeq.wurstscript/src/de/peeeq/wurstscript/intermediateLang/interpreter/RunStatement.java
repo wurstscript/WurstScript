@@ -4,8 +4,6 @@ import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstBool;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
 import de.peeeq.wurstscript.intermediateLang.ILconstTuple;
-import de.peeeq.wurstscript.jassIm.ImBoolVal;
-import de.peeeq.wurstscript.jassIm.ImConst;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImIf;

@@ -1,11 +1,6 @@
 package de.peeeq.wurstscript;
 
 import java.io.File;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import javax.swing.JOptionPane;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.attributes.CompileError;
@@ -14,9 +9,6 @@ import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreter;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImStmt;
-import de.peeeq.wurstscript.jassIm.ImStmts;
-import de.peeeq.wurstscript.jassIm.JassImElement;
-import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 public class CompiletimeFunctionRunner {
 

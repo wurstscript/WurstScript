@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.objectreader;
 
-import java.util.Map;
 
 public enum ObjectFileType {
 	UNITS("w3u", "Units\\UnitData.slk", "Units\\UnitMetaData.slk", false),

@@ -2,16 +2,10 @@ package de.peeeq.wurstscript.validation.controlflow;
 
 import java.util.Collection;
 
-import com.google.common.base.Function;
-
-import de.peeeq.wurstscript.ast.EndFunctionStatement;
-import de.peeeq.wurstscript.ast.FuncDef;
-import de.peeeq.wurstscript.ast.FunctionImplementation;
 import de.peeeq.wurstscript.ast.FunctionLike;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.StartFunctionStatement;
 import de.peeeq.wurstscript.ast.StmtReturn;
-import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.utils.Utils;
