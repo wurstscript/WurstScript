@@ -29,7 +29,20 @@ public class OptimizerTests extends PscriptTest {
 	}
 	
 
-
+	@Test
+	public void test_double_renaming_bug() {
+		assertOk(false,
+				"package test",
+				"	function w() returns int",
+				"		return 1",
+				"	function s(int j) returns int",
+				"		return 2",
+				"	init",
+				"		w()",
+				"		s(2)",
+				"		let c = function w",
+				"endpackage");
+	}
 
 	
 	private String makeCode(String... body) {
