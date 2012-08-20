@@ -3,8 +3,6 @@ package de.peeeq.wurstscript.attributes;
 import java.util.Collections;
 import java.util.List;
 
-import sun.org.mozilla.javascript.internal.ast.AstNode;
-
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.ActionStatement;
