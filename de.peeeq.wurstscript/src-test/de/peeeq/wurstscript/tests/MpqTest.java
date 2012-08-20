@@ -31,22 +31,22 @@ public class MpqTest {
 		
 	}
 	
-	@Test
-	public void test_extract_w3u() {
-		try {
-			MpqEditorFactory.setFilepath("./lib/mpqedit/mpqeditor.exe");
-			MpqEditorFactory.setTempfolder(TEST_OUTPUT_PATH);
-			LadikMpq edit = MpqEditorFactory.getEditor();
-			File f = edit.extractFile(new File("./testscripts/mpq/objtest.w3x"), "war3map.w3u");
-			Assert.assertTrue(f.exists());
-			f.delete();
-			//bnlub
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-	}
+//	@Test
+//	public void test_extract_w3u() {
+//		try {
+//			MpqEditorFactory.setFilepath("./lib/mpqedit/mpqeditor.exe");
+//			MpqEditorFactory.setTempfolder(TEST_OUTPUT_PATH);
+//			LadikMpq edit = MpqEditorFactory.getEditor();
+//			File f = edit.extractFile(new File("./testscripts/mpq/objtest.w3x"), "war3map.w3u");
+//			Assert.assertTrue(f.exists());
+//			f.delete();
+//			//bnlub
+//		} catch (Exception e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//		
+//	}
 	
 	@Test
 	public void test_insert() {

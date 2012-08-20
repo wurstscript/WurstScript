@@ -5,6 +5,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+import de.peeeq.wurstscript.ast.NameDef;
+
 public abstract class ImmutableList<T> implements Iterable<T> {
 	
 	private int hashCode = 0;
@@ -17,7 +19,7 @@ public abstract class ImmutableList<T> implements Iterable<T> {
 	/**
 	 * adds an other ImmutableList to the end 
 	 */
-	abstract public ImmutableList<T> cons(ImmutableList<? extends T> other);
+	abstract public <R extends T> ImmutableList<T> cons(ImmutableList<R> other);
 	
 	abstract public T head();
 	abstract public ImmutableList<T> tail();
@@ -119,6 +121,8 @@ public abstract class ImmutableList<T> implements Iterable<T> {
 	public ImmutableList<T> appBack(T elem) {
 		return this.cons(ImmutableList.<T>emptyList().appFront(elem));
 	}
+
+	public abstract ImmutableList<T> removeAll(T t);
 }
 
 
@@ -184,11 +188,16 @@ class ImmutableListEmpty<T> extends ImmutableList<T> {
 
 	
 	@Override
-	public ImmutableList<T> cons(ImmutableList<? extends T> other) {
+	public <R extends T> ImmutableList<T> cons(ImmutableList<R> other) {
 		// just return other since this list is empty
 		@SuppressWarnings("unchecked") // this is safe because the list is immutable
 		ImmutableList<T> result = (ImmutableList<T>) other;
 		return result;
+	}
+
+	@Override
+	public ImmutableList<T> removeAll(T t) {
+		return this;
 	}
 
 }
@@ -274,27 +283,36 @@ class ImmutableListImpl<T> extends ImmutableList<T> {
 	}
 
 	@Override
-	public ImmutableList<T> cons(ImmutableList<? extends T> other) {
+	public <R extends T> ImmutableList<T> cons(ImmutableList<R> other) {
 		if (other.isEmpty()) {
 			return this;
 		} else {
-			return new ImmutableListImplCons<T>(this, other);
+			return new ImmutableListImplCons<T, T, R>(this, other);
+		}
+	}
+
+	@Override
+	public ImmutableList<T> removeAll(T t) {
+		if (head.equals(t)) {
+			return tail.removeAll(t);
+		} else {
+			return tail.removeAll(t).appFront(head);
 		}
 	}
 
 }
 
-class ImmutableListImplCons<T> extends ImmutableList<T> {
+class ImmutableListImplCons<T, L extends T, R extends T> extends ImmutableList<T> {
 
 	
 	
 	// invariant: size(left) > 0 && size(right) > 0
 	
-	private final ImmutableList<? extends T> left;
-	private final ImmutableList<? extends T> right;
+	private final ImmutableList<L> left;
+	private final ImmutableList<R> right;
 	private final int size;
 
-	ImmutableListImplCons(ImmutableList<? extends T> left, ImmutableList<? extends T> right) {
+	ImmutableListImplCons(ImmutableList<L> left, ImmutableList<R> right) {
 		if (left.size() == 0) throw new IllegalArgumentException("left list is empty");
 		if (right.size() == 0) throw new IllegalArgumentException("right list is empty");
 		this.left = left;
@@ -314,11 +332,11 @@ class ImmutableListImplCons<T> extends ImmutableList<T> {
 	}
 
 	@Override
-	public ImmutableList<T> cons(ImmutableList<? extends T> other) {
+	public <R2 extends T> ImmutableList<T> cons(ImmutableList<R2> other) {
 		if (other.isEmpty()) {
 			return this;
 		} else {
-			return new ImmutableListImplCons<T>(this, other);
+			return new ImmutableListImplCons<T, T, R2>(this, other);
 		}
 	}
 
@@ -334,12 +352,23 @@ class ImmutableListImplCons<T> extends ImmutableList<T> {
 		if (leftTail.isEmpty()) {
 			return (ImmutableList<T>) right;
 		}
-		return new ImmutableListImplCons<T>(leftTail, right);
+		return new ImmutableListImplCons<T, T, R>(leftTail, right);
 	}
 
 	@Override
 	public int size() {
 		return size;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public ImmutableList<T> removeAll(T t) {
+		ImmutableList<L> l = left.removeAll((L) t);
+		ImmutableList<R> r = right.removeAll((R) t);
+		if (left == l && right == r) {
+			return this;
+		}
+		return ((ImmutableList<T>) l).cons(r);
 	}
 	
 }

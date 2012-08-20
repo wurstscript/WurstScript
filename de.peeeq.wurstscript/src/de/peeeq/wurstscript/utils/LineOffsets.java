@@ -10,7 +10,11 @@ public class LineOffsets {
 	public void set(int line, int offset) {
 		maxLine = Math.max(line, maxLine);
 		if (line >= offsets.length) {
-			int[] offsets2 = new int[offsets.length*2];
+			int newLen = offsets.length;
+			while (line >= newLen) {
+				newLen *= 2;
+			}
+			int[] offsets2 = new int[newLen];
 			System.arraycopy(offsets, 0, offsets2, 0, offsets.length);
 			offsets = offsets2;
 		}

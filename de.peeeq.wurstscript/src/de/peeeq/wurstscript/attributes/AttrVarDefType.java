@@ -5,16 +5,19 @@ import java.util.List;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.EnumDef;
 import de.peeeq.wurstscript.ast.EnumMember;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
+import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NativeType;
+import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.OptExpr;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.TupleDef;
@@ -32,6 +35,7 @@ import de.peeeq.wurstscript.types.WurstTypeModule;
 import de.peeeq.wurstscript.types.WurstTypeModuleInstanciation;
 import de.peeeq.wurstscript.types.WurstTypeTuple;
 import de.peeeq.wurstscript.types.WurstTypeTypeParam;
+import de.peeeq.wurstscript.types.WurstTypeVoid;
 
 
 /**
@@ -117,6 +121,16 @@ public class AttrVarDefType {
 	public static WurstType calculate(EnumMember enumMember) {
 		return new WurstTypeEnum(false, (EnumDef) enumMember.getParent().getParent());
 	}
+
+	public static WurstType calculate(ConstructorDef constructorDef) {
+		return WurstTypeVoid.instance();
+	}
 	
+	public static WurstType calculate(InitBlock constructorDef) {
+		return WurstTypeVoid.instance();
+	}
+	public static WurstType calculate(OnDestroyDef constructorDef) {
+		return WurstTypeVoid.instance();
+	}
 
 }

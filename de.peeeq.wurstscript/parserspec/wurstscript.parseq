@@ -111,7 +111,7 @@ WParameter(WPos source, Modifiers modifiers, TypeExpr typ, String name)
 	
 WStatements * WStatement
 	
-WStatement	= ActionStatement | ControlflowStatement
+WStatement	= ActionStatement | ControlflowStatement | EndFunctionStatement(WPos source) | StartFunctionStatement(WPos source)
 
 ActionStatement = 
 	  StmtSkip(WPos source)
@@ -229,16 +229,16 @@ FunctionDefinition = NotExtensionFunction | ExtensionFuncDef
 	
 FunctionImplementation = FuncDef | ExtensionFuncDef
 
+FunctionLike = FunctionImplementation | ConstructorDef | InitBlock | OnDestroyDef
+
+
 
 
 WScope = 
 	  NamedScope 
 	| PackageOrGlobal 
 	| FunctionDefinition
-	| FunctionImplementation 
-	| ConstructorDef 
-	| OnDestroyDef 
-	| InitBlock
+	| FunctionLike 
 	| WurstModel
 
 PackageOrGlobal = WPackage | CompilationUnit	
@@ -325,10 +325,14 @@ WStatement.attrListIndex "returns the index this statement has in the underlying
 	implemented by  de.peeeq.wurstscript.attributes.Flow.getListIndex
 
 
-WStatements.attrDoesReturn
-	returns boolean 
-	implemented by de.peeeq.wurstscript.attributes.AttrDoesReturn.calculate
+Expr.attrReadVariables
+	returns de.peeeq.immutablecollections.ImmutableList<NameDef>
+	implemented by de.peeeq.wurstscript.attributes.ReadVariables.calculate
 
+
+WStatement.attrReadVariables2
+	returns de.peeeq.immutablecollections.ImmutableList<NameDef>
+	implemented by de.peeeq.wurstscript.attributes.ReadVariables.calculate
 
 OptTypeExpr.attrTyp
 	returns de.peeeq.wurstscript.types.WurstType
@@ -384,6 +388,9 @@ NameDef.attrTyp
 	returns de.peeeq.wurstscript.types.WurstType 
 	implemented by de.peeeq.wurstscript.attributes.AttrVarDefType.calculate
 
+FunctionLike.attrReturnType
+	returns de.peeeq.wurstscript.types.WurstType 
+	implemented by de.peeeq.wurstscript.attributes.AttrVarDefType.calculate
 
 VarDef.attrIsDynamicClassMember
 	returns boolean

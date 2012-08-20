@@ -15,14 +15,21 @@ import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElementWithBody;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
+import de.peeeq.wurstscript.ast.ExtensionFuncDef;
+import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.FunctionImplementation;
+import de.peeeq.wurstscript.ast.InitBlock;
+import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.StmtForFrom;
 import de.peeeq.wurstscript.ast.StmtForIn;
 import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtReturn;
+import de.peeeq.wurstscript.ast.TranslatedToImFunction;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WPos;
@@ -49,12 +56,58 @@ public class SyntacticSugar {
 			addDefaultImports(root);
 		}
 		addDefaultConstructors(root);
+		addEndFunctionStatements(root);
 		expandForInLoops(root);
 	}
 	
 	
 
 	
+
+	private void addEndFunctionStatements(CompilationUnit root) {
+		
+		root.accept(new WurstModel.DefaultVisitor() {
+			@Override
+			public void visit(ExtensionFuncDef f) {
+				addEnd(f);
+			}
+
+			
+			@Override
+			public void visit(FuncDef f) {
+				addEnd(f);
+			}
+			
+			@Override
+			public void visit(ConstructorDef f) {
+				addEnd(f);
+			}
+			
+			@Override
+			public void visit(InitBlock f) {
+				addEnd(f);
+			}
+			
+
+			@Override
+			public void visit(OnDestroyDef f) {
+				addEnd(f);
+			}
+			
+			private void addEnd(AstElementWithBody f) {
+				WPos pos = f.attrSource().copy();
+				pos.setRightPos(pos.getLeftPos()-1);
+				f.getBody().add(Ast.EndFunctionStatement(pos));
+				f.getBody().add(0, Ast.StartFunctionStatement(pos.copy()));
+			}
+			
+		});
+		
+	}
+
+
+
+
 
 	private void addDefaultImports(CompilationUnit root) {
 		nextPackage: for (WPackage p : root.attrGetByType().packageDefs) {

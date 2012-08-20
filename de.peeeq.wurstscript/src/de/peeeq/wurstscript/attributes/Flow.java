@@ -3,15 +3,25 @@ package de.peeeq.wurstscript.attributes;
 import java.util.Collections;
 import java.util.List;
 
+import sun.org.mozilla.javascript.internal.ast.AstNode;
+
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.ActionStatement;
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.AstElementWithCond;
+import de.peeeq.wurstscript.ast.AstElementWithValB;
 import de.peeeq.wurstscript.ast.CompoundStatement;
+import de.peeeq.wurstscript.ast.EndFunctionStatement;
+import de.peeeq.wurstscript.ast.Expr;
+import de.peeeq.wurstscript.ast.ExprBoolVal;
 import de.peeeq.wurstscript.ast.LoopStatement;
+import de.peeeq.wurstscript.ast.StartFunctionStatement;
 import de.peeeq.wurstscript.ast.StmtExitwhen;
 import de.peeeq.wurstscript.ast.StmtIf;
+import de.peeeq.wurstscript.ast.StmtLoop;
 import de.peeeq.wurstscript.ast.StmtReturn;
+import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.SwitchCase;
 import de.peeeq.wurstscript.ast.SwitchDefaultCaseStatements;
 import de.peeeq.wurstscript.ast.SwitchStmt;
@@ -28,9 +38,23 @@ public class Flow {
 		return r;
 	}
 	
+	public static List<WStatement> getNext(StartFunctionStatement s) {
+		List<WStatement> r = getFollowingStatements(s);
+		setPrevios(s, r);
+		return r;
+	}
+
+	
 	public static List<WStatement> getNext(LoopStatement s) {
 		// we can go to the statement following the loop
-		List<WStatement> r = getFollowingStatements(s);
+		List<WStatement> r;
+		if (s instanceof StmtLoop) {
+			r = Lists.newArrayList();
+		} else if (s instanceof StmtWhile && isConstantBool(((StmtWhile) s).getCond(), true)) {
+			r = Lists.newArrayList();
+		} else {
+			r = getFollowingStatements(s);
+		}
 		
 		// we can go to the start of the loop
 		if (!s.getBody().isEmpty()) {
@@ -44,8 +68,17 @@ public class Flow {
 	public static List<WStatement> getNext(StmtExitwhen s) {
 		LoopStatement loop = getParent(LoopStatement.class, s);
 		List<WStatement> next = getFollowingStatements(loop);
+		if (isConstantBool(s.getCond(), true)) {
+			// always breaks
+		} else {
+			next.addAll(getFollowingStatements(s));
+		}
 		setPrevios(s, next);
 		return next;
+	}
+
+	private static boolean isConstantBool(Expr cond, boolean value) {
+		return cond instanceof ExprBoolVal && ((ExprBoolVal) cond).getValB() == value;
 	}
 
 	
@@ -68,8 +101,26 @@ public class Flow {
 		return r;
 	}
 
-	public static List<WStatement> getNext(StmtReturn stmtReturn) {
-		return Collections.emptyList();
+	public static List<WStatement> getNext(StmtReturn s) {
+		WStatement endStmt = findEndStatement(s);
+		endStmt.attrPreviousStatements().add(s);
+		return Collections.singletonList(endStmt);
+	}
+
+	private static EndFunctionStatement findEndStatement(AstElement n) {
+		if (n == null) {
+			return null;
+		}
+		if (n instanceof WStatements) {
+			WStatements stmts = (WStatements) n;
+			if (!stmts.isEmpty()) {
+				WStatement last = stmts.get(stmts.size()-1);
+				if (last instanceof EndFunctionStatement) {
+					return (EndFunctionStatement) last;
+				}
+			}
+		}
+		return findEndStatement(n.getParent());
 	}
 
 	public static List<WStatement> getNext(SwitchStmt s) {
@@ -102,18 +153,24 @@ public class Flow {
 	}
 
 	private static List<WStatement> getFollowingStatements(WStatement s) {
-		WStatements parent = (WStatements) s.getParent();
-		List<WStatement> r = Lists.newArrayList();
-		
-		int index = s.attrListIndex();
-		if (index+1 < parent.size()) {
-			r.add(parent.get(index+1));
+		if (s.getParent() instanceof WStatements) {
+			WStatements parent = (WStatements) s.getParent();
+			List<WStatement> r = Lists.newArrayList();
+
+			int index = s.attrListIndex();
+			if (index+1 < parent.size()) {
+				r.add(parent.get(index+1));
+			} else {
+				// at end of statements, next statement depends on parent statement
+				CompoundStatement parentStmt = getParentStatement(parent);
+				if (parentStmt != null) {
+					r.addAll(parentStmt.attrAfterBodyStatements());
+				}
+			}
+			return r;
 		} else {
-			// at end of statements, next statement depends on parent statement
-			CompoundStatement parentStmt = getParentStatement(parent);
-			r.addAll(parentStmt.attrAfterBodyStatements());
+			return Collections.emptyList();
 		}
-		return r;
 	}
 
 	private static CompoundStatement getParentStatement(AstElement node) {
@@ -122,7 +179,7 @@ public class Flow {
 		} else if (node instanceof WEntity) {
 			return null;
 		}
-		return getParentStatement(node);
+		return getParentStatement(node.getParent());
 	}
 
 	private static void setPrevios(WStatement s, List<WStatement> next) {
@@ -193,5 +250,10 @@ public class Flow {
 		return null;
 	}
 
+	public static List<WStatement> getNext(EndFunctionStatement endFunctionStatement) {
+		return Collections.emptyList();
+	}
+
+	
 
 }
