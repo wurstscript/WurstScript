@@ -105,7 +105,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			WImport imp = (WImport) elem;
 			WurstModel model = elem.getModel();
 			for (WPackage p : model.attrPackagesFresh().values()) {
-				if (p.getName().startsWith(alreadyEntered)) {
+				if (p.getName().toLowerCase().startsWith(alreadyEntered)) {
 					completions.add(makeNameDefCompletion(p));
 				}
 			}
@@ -137,7 +137,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				start--;
 			}
 			start++;
-			return doc.get(start, offset-start);
+			return doc.get(start, offset-start).toLowerCase();
 		} catch (BadLocationException e) {
 		}
 		return "";
@@ -147,7 +147,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	private void completionsAddVisibleNames(String alreadyEntered,
 			List<ICompletionProposal> completions, Multimap<String, NameDef> visibleNames) {
 		for (Entry<String, NameDef> e : visibleNames.entries()) {
-			if (!e.getKey().startsWith(alreadyEntered)) {
+			if (!e.getKey().toLowerCase().startsWith(alreadyEntered)) {
 				continue;
 			}
 			if (e.getValue() instanceof FunctionDefinition) {
@@ -163,14 +163,14 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	}
 	
 	private ICompletionProposal makeNameDefCompletion(NameDef n) {
-		String replacementString = n.getName().substring(alreadyEntered.length());
-		int replacementOffset = offset;
-		int replacementLength = 0;
+		String replacementString = n.getName();
+		int replacementOffset = offset - alreadyEntered.length();
+		int replacementLength = alreadyEntered.length();
 		int cursorPosition = replacementString.length();
 		Image image = Icons.var;
 		String displayString = n.getName() + " : " + n.attrTyp().getFullName();
 		IContextInformation contextInformation= new ContextInformation(
-				n.getName(), Utils.printElement(n)); //$NON-NLS-1$
+				n.getName(), Utils.printElement(n)+" : " + n.attrTyp().getFullName()); //$NON-NLS-1$
 		String additionalProposalInfo = ":-)";
 		return new CompletionProposal(replacementString, replacementOffset, replacementLength,
 				cursorPosition, image, displayString, contextInformation, additionalProposalInfo);
@@ -180,9 +180,8 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	private ICompletionProposal makeFunctionCompletion(FunctionDefinition f) {
 		String replacementString = f.getName() + "()";
 		
-		replacementString = replacementString.substring(alreadyEntered.length());
-		int replacementOffset = offset;
-		int replacementLength = 0;
+		int replacementOffset = offset - alreadyEntered.length();
+		int replacementLength = alreadyEntered.length();
 		int cursorPosition = replacementString.length() - 1; // inside parentheses
 		if (f.getParameters().size() == 0) {
 			cursorPosition++; // outside parentheses
@@ -209,7 +208,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			List<ICompletionProposal> completions,
 			Multimap<String, NameDef> visibleNames, WurstType leftType) {
 		for (Entry<String, NameDef> e : visibleNames.entries()) {
-			if (!e.getKey().startsWith(alreadyEntered)) {
+			if (!e.getKey().toLowerCase().startsWith(alreadyEntered)) {
 				continue;
 			}
 			if (e.getValue() instanceof ExtensionFuncDef) {
