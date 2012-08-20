@@ -1,14 +1,21 @@
 package de.peeeq.wurstscript.attributes;
 
 import java.util.List;
+import java.util.Set;
 
+import com.google.common.collect.Sets;
+
+import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeExprArray;
+import de.peeeq.wurstscript.ast.TypeExprList;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
 import de.peeeq.wurstscript.ast.TypeRef;
+import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.types.NativeTypes;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.utils.Utils;
@@ -42,7 +49,12 @@ public class AttrTypeDef {
 //		}
 		// TODO ambiguous type decls
 		
-		List<NameDef> typeDefs = NameResolution.searchTypedName(NameDef.class, typeName, node, false);
+		Set<WScope> ignoredScopes = Sets.newHashSet();
+		if (node.attrNearestClassDef() != null) {
+			ignoredScopes.add(node.attrNearestClassDef());
+			
+		}
+		List<NameDef> typeDefs = NameResolution.searchTypedName(NameDef.class, typeName, node, false, ignoredScopes);
 		
 		if (typeDefs.size() == 0) {
 			node.addError("Could not find TypeDef for " + typeName);

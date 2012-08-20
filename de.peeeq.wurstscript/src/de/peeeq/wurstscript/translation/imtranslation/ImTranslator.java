@@ -605,7 +605,7 @@ public class ImTranslator {
 		Map<ClassDef, FuncDef> result = Maps.newHashMap();
 		for (ClassDef c : instances) {
 			for (NameDef nameDef : c.attrVisibleNamesPrivate().get(func.getName())) {
-				if (nameDef instanceof FuncDef) {
+				if (nameDef instanceof FuncDef && nameDef.attrNearestClassDef() == c) {
 					FuncDef f = (FuncDef) nameDef;
 					result.put(c, f);
 				}
