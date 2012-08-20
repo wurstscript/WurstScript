@@ -63,15 +63,27 @@ public class ReadVariables {
 	
 	
 	public static ImmutableList<NameDef> calculate(ExprVarAccess e) {
-		return ImmutableList.of(e.attrNameDef());
+		if (e.attrNameDef() != null) {
+			return ImmutableList.of(e.attrNameDef());
+		} else {
+			return ImmutableList.emptyList();
+		}
 	}
 
 	public static ImmutableList<NameDef> calculate(ExprVarArrayAccess e) {
-		return ImmutableList.of(e.attrNameDef());
+		if (e.attrNameDef() != null) {
+			return ImmutableList.of(e.attrNameDef());
+		} else {
+			return ImmutableList.emptyList();
+		}
 	}
 	
 	public static ImmutableList<NameDef> calculate(ExprMemberArrayVar e) {
-		return ImmutableList.of(e.attrNameDef());
+		if (e.attrNameDef() != null) {
+			return ImmutableList.of(e.attrNameDef());
+		} else {
+			return ImmutableList.emptyList();
+		}
 	}
 	
 	public static ImmutableList<NameDef> calculate(ExprBinary e) {
