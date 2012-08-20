@@ -661,4 +661,9 @@ public class Utils {
 		return r;
 	}
 
+	public static String printElementWithSource(AstElement e) {
+		WPos src = e.attrSource();
+		return printElement(e) + " (" + src.getFile() + ", line " + src.getLine() +")";
+	}
+
 }

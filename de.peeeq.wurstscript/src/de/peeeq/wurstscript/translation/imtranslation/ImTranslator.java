@@ -848,6 +848,8 @@ public class ImTranslator {
 	private Multimap<ClassDef, ClassDef> directSubclasses = null;
 
 	private List<ImFunction> compiletimeFuncs = Lists.newArrayList();
+
+	public DebugLevel debugLevel = DebugLevel.DEFAULT;
 	
 	public Collection<ClassDef> getSubClasses(ClassDef classDef) {
 		calculateSubclasses();
@@ -914,6 +916,11 @@ public class ImTranslator {
 	public int getEnumMemberId(EnumMember enumMember) {
 		return ((EnumMembers) enumMember.getParent()).indexOf(enumMember);
 	}
+
+	public ImFunction getDebugPrintFunction() {
+		return debugPrintFunction;
+	}
+
 
 	
 	
