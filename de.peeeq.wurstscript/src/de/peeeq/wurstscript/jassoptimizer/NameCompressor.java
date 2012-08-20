@@ -30,7 +30,7 @@ public class NameCompressor {
 	 * @param map
 	 */
 	private static void setHashmapPredefines(HashMap<String, String> map) {
-		map.put("Condition", "Filter");
+		//map.put("Condition", "Filter");
 	}
 			
 	

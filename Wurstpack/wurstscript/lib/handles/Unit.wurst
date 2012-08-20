@@ -81,5 +81,8 @@ package Unit
 		
 	public function unit.getUserData() returns int
 		return GetUnitUserData(this)
+		
+	public function unit.remove()
+		RemoveUnit(this)
 
 endpackage

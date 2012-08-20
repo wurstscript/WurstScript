@@ -1,10 +1,10 @@
 package MapBounds
     import Vectors
  
-    real minx = GetRectMinX( GetPlayableMapRect())
-    real miny = GetRectMinY( GetPlayableMapRect())
-    real maxx = GetRectMaxX( GetPlayableMapRect())
-    real maxy = GetRectMaxY( GetPlayableMapRect())
+    public real minx = GetRectMinX( GetPlayableMapRect())
+    public real miny = GetRectMinY( GetPlayableMapRect())
+    public real maxx = GetRectMaxX( GetPlayableMapRect())
+    public real maxy = GetRectMaxY( GetPlayableMapRect())
  
     public function vec2.inBounds() returns boolean
         return this.x > minx and this.x < maxx and this.y > miny and  this.y < maxy
