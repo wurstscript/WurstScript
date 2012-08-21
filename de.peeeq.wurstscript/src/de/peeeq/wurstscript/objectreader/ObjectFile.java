@@ -112,7 +112,7 @@ public class ObjectFile {
 		try {
 			exportToWurst(sb);
 		} catch (IOException e) {
-			e.printStackTrace();
+			WLogger.severe(e);
 		}
 		return sb.toString();
 	}

@@ -41,6 +41,7 @@ public class WLogger {
 	}
 
 	public static void severe(Throwable t) {
+		t.printStackTrace();
 		logger.error("Error", t);
 	}
 

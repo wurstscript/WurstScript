@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.jassinterpreter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
 import de.peeeq.wurstscript.intermediateLang.ILconstNull;
@@ -72,7 +73,7 @@ public class NativeFunctions implements NativesProvider {
 				try {
 					r = method.invoke(null, (Object[]) args);
 				} catch (IllegalAccessException | IllegalArgumentException e) {
-					e.printStackTrace();
+					WLogger.severe(e);
 					throw new Error(e);
 				} catch (InvocationTargetException e) {
 					if (e.getCause() instanceof Error) {

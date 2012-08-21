@@ -24,6 +24,7 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
+import de.peeeq.wurstscript.attributes.ErrorHandling;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassIm.ImProg;
@@ -298,7 +299,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			out.getParentFile().mkdirs();
 			Files.write(sb.toString(), out, Charsets.UTF_8);
 		} catch (IOException e) {
-			e.printStackTrace();
+			ErrorReporting.handleSevere(e);
 		}
 		
 		if (runArgs.isInline()) {
@@ -312,7 +313,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			imProg.print(sb, 0);
 			Files.write(sb.toString(), new File("./test-output/test_opt.im"), Charsets.UTF_8);
 		} catch (IOException e) {
-			e.printStackTrace();
+			ErrorReporting.handleSevere(e);
 		}
 		
 		// flatten
