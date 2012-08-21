@@ -1,0 +1,10 @@
+package de.peeeq.wurstscript.jassinterpreter;
+
+public class DebugPrintError extends Error {
+	public DebugPrintError(String val) {
+		super(val);
+	}
+
+	private static final long serialVersionUID = 629417346498474872L;
+
+}
