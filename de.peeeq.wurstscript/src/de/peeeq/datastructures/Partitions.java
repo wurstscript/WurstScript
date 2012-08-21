@@ -54,9 +54,7 @@ public class Partitions<T> {
 	 * add a new partition
 	 */
 	public void add(T t) {
-		if (getPartition(t) == null) {
-			partitions.put(t, new Partition(t));
-		}
+		getPartition(t);
 	}
 	
 	/**

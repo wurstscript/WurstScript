@@ -34,11 +34,8 @@ public class AttrAllFunctions {
 				f.addError("The function " + f.getName() + " is already defined.");
 			}
 		}
-		if (term instanceof AstElementWithModuleInstanciations) {
-			AstElementWithModuleInstanciations wmi = (AstElementWithModuleInstanciations) term;
-			for (ModuleInstanciation mi : wmi.getModuleInstanciations()) {
-				addNonPrivateMethodsFromModule(moduleFunctions, mi, mainSource);
-			}
+		for (ModuleInstanciation mi : term.getModuleInstanciations()) {
+			addNonPrivateMethodsFromModule(moduleFunctions, mi, mainSource);
 		}
 	
 		Map<String, FuncDef> result = Maps.newHashMap();

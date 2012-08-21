@@ -178,7 +178,7 @@ public class WurstValidator {
 	}
 
 	private void check(AstElement e) {
-		if (!typeToMethod.containsKey(e)) {
+		if (!typeToMethod.containsKey(e.getClass())) {
 			for (Method m : checkMethods) {
 				if (m.getParameterTypes()[0].isInstance(e)) {
 					typeToMethod.put(e.getClass(), m);
@@ -270,11 +270,8 @@ public class WurstValidator {
 	}
 	
 	private void checkVarNotConstant(NameRef left, NameDef var) {
-		if (var instanceof HasModifier) {
-			HasModifier g = (HasModifier) var;
-			if (g.attrIsConstant()) {
-				left.addError("Cannot assign a new value to constant " + Utils.printElement(var));
-			}
+		if (var.attrIsConstant()) {
+			left.addError("Cannot assign a new value to constant " + Utils.printElement(var));
 		}
 	}
 

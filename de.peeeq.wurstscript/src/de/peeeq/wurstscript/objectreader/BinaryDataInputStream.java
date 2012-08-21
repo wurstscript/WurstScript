@@ -98,4 +98,13 @@ public class BinaryDataInputStream {
 		}
 	}
 
+
+	public void close() {
+		try {
+			in.close();
+		} catch (IOException e) {
+			throw new Error(e);
+		}
+	}
+
 }

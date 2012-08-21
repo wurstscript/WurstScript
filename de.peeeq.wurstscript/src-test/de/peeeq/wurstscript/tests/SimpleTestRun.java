@@ -82,7 +82,7 @@ public class SimpleTestRun {
 
 			JassInterpreter interpreter = new JassInterpreter();
 			interpreter.trace(true);
-			interpreter.LoadProgram(prog);
+			interpreter.loadProgram(prog);
 			interpreter.executeFunction("main");
 
 

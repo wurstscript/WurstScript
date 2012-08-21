@@ -93,9 +93,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			if (file.getName().endsWith(".w3x") || file.getName().endsWith(".w3m")) {
 				mapFile = file;
 				CompilationUnit r = processMap(file);
-				if (r == null) {
-					return;
-				}
 				compilationUnits.add(r );				
 			} else {
 				if (file.getName().endsWith("common.j")) {
@@ -374,37 +371,20 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
 	private CompilationUnit processMap(File file) {
 		gui.sendProgress("Processing Map " + file.getName(), 0.05);		
-        try {
-        	
-        	
-        	// extract mapscript:
-        	if ( MpqEditorFactory.getFilepath().equals("")) {
-        		MpqEditorFactory.setFilepath("./mpqedit/mpqeditor.exe");
-        	}
-        	LadikMpq mpqEditor = null;
-			try {
-				mpqEditor = MpqEditorFactory.getEditor();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+
+		// extract mapscript:
+		if ( MpqEditorFactory.getFilepath().equals("")) {
+			MpqEditorFactory.setFilepath("./mpqedit/mpqeditor.exe");
+		}
+		LadikMpq mpqEditor = null;
+		try {
+			mpqEditor = MpqEditorFactory.getEditor();
 			File tempFile = mpqEditor.extractFile(file, "war3map.j");
-//        	Runtime rt = Runtime.getRuntime();
-//			String[] commands = {"MpqCL.exe", "extract", file.getAbsolutePath(), "war3map.j", tempFile.getAbsolutePath()};
-//			Process proc = rt.exec(commands);
-//			InputStream procOut = proc.getInputStream();
-//			BufferedReader procOutReader = new BufferedReader(new InputStreamReader(procOut));
-//			proc.waitFor();
-//			String line;
-//			while ((line = procOutReader.readLine()) != null) {
-//				WLogger.info(line);
-//			}
-//			
 			return parseFile(tempFile);
-		} catch (IOException e) {
-			throw new Error(e);
-		} catch (InterruptedException e) {
+		} catch (Exception e) {
 			throw new Error(e);
 		}
+
 	}
 
 	private CompilationUnit parseFile(File file) {

@@ -97,7 +97,6 @@ public class Main {
 				}
 
 				JassProg jassProg = compiler.getProg();
-				System.out.println(jassProg.toString());
 
 				if (jassProg == null || gui.getErrorCount() > 0) {
 					break compilation;
@@ -146,7 +145,9 @@ public class Main {
 							line+=error.charAt(pos);
 							pos++;
 						}
-						if (line == "") line = "0";
+						if (line.isEmpty()) {
+							line = "0";
+						}
 						gui.sendError(new CompileError(Ast.WPos(outputMapscript.getAbsolutePath(), LineOffsets.dummy, Integer.parseInt(line), 0), error.substring(pos)));
 					}
 					break compilation;

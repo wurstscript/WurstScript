@@ -218,7 +218,7 @@ public class PscriptTest {
 				success = false;
 				JassInterpreter interpreter = new JassInterpreter();
 				interpreter.trace(true);
-				interpreter.LoadProgram(prog);
+				interpreter.loadProgram(prog);
 				interpreter.executeFunction("main");
 			} catch (TestFailException e) {
 				throw e;
@@ -257,7 +257,7 @@ public class PscriptTest {
 					// run the interpreter with the optimized program
 					JassInterpreter interpreter = new JassInterpreter();
 					interpreter.trace(true);
-					interpreter.LoadProgram(prog);
+					interpreter.loadProgram(prog);
 					interpreter.executeFunction("main");
 				} catch (TestFailException e) {
 					throw e;

@@ -107,7 +107,7 @@ public class ILInterpreterImplTest {
 		
 		
 		JassInterpreter interpreter = new JassInterpreter();
-		interpreter.LoadProgram(prog);
+		interpreter.loadProgram(prog);
 		interpreter.executeFunction("test_runTest");
 	}
 

@@ -65,7 +65,7 @@ public class JassInterpreter {
 	private Map<String, ILconst> globalVarMap;
 	private boolean trace = false;
 
-	public void LoadProgram(JassProg prog) {
+	public void loadProgram(JassProg prog) {
 		this.prog = prog;
 		globalVarMap = new HashMap<String, ILconst>();
 

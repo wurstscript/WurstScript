@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.parser;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import java_cup.runtime.Symbol;
@@ -234,8 +235,9 @@ public class ExtendedParser extends parser {
 				));
 
 		Set<String> matchingGroups = Sets.newHashSet();
-		for (String groupName : groups.keySet()) {
-			Set<String> group = groups.get(groupName);
+		for (Entry<String, Set<String>> e : groups.entrySet()) {
+			String groupName = e.getKey();
+			Set<String> group = e.getValue();
 			if (expectedSymbols.containsAll(group)) {
 				matchingGroups.add(groupName);
 			}
