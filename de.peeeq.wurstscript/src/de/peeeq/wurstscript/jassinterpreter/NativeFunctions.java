@@ -38,6 +38,11 @@ public class NativeFunctions implements NativesProvider {
 		System.out.println(msg.getVal());
 	}
 	
+	static public void $debugPrint(ILconstString msg) {
+		System.err.println(msg.getVal());
+		throw new DebugPrintError(msg.getVal());
+	}
+	
 	static public ILconstInt ModuloInteger(ILconstInt a, ILconstInt b) {
 		return new ILconstInt(a.getVal() % b.getVal());
 	}

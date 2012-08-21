@@ -1,14 +1,15 @@
 package TList
 	
 
+	hashtable ht = InitHashtable()
+
 	// a list based on a Table
 	public class TList<T>
-		private Table t
 		private int size = 0
 
 		// add an element to the end of the list
 		function add(T elem)
-			t.saveInt(size, elem castTo int)
+			ht.saveInt(this castTo int, size, elem castTo int)
 			size ++
 		
 		// add an element to a specific position of the list
@@ -29,7 +30,7 @@ package TList
 				setElem(i, get(i+1))
 				
 		function setElem(int index, T elem)
-			t.saveInt(index, elem castTo int)				
+			ht.saveInt(this castTo int, index, elem castTo int)				
 			
 		// removes the first occurence of t from this list
 		function remove(T t)
@@ -44,14 +45,14 @@ package TList
 
 		// get the element at the specified index
 		function get(int index) returns T
-			return t.loadInt(index) castTo T
+			return ht.loadInt(this castTo int, index) castTo T
 
 		// get an iterator for this list
 		function iterator() returns TIterator<T>
 			return new TIterator(this)			
 
 		ondestroy
-			t.flush()
+			ht.flushChild(this castTo int)
 
 	class TIterator<Q>
 		int pos = 0

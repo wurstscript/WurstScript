@@ -44,6 +44,8 @@ public class ClassesExtTests extends PscriptTest {
 			);
 	}
 	
+	
+	
 	@Test
 	public void extends_override2() {
 		testAssertOkLines(true, 
@@ -65,6 +67,47 @@ public class ClassesExtTests extends PscriptTest {
 	}
 
 	
+	@Test
+	public void extends_override3() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	class C",
+				"		function foo() returns int",
+				"			return 3",
+				"	class D extends C",
+				"	class E extends D",
+				"		override function foo() returns int",
+				"			return 4",
+				"	init",
+				"		D e = new E()",
+				"		if e.foo() == 4",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void extends_override4() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	class C",
+				"		function foo() returns int",
+				"			return 3",
+				"	class D extends C",
+				"		function bla() returns int",
+				"			return foo()",
+				"	class E extends D",
+				"		override function foo() returns int",
+				"			return 4",
+				"	init",
+				"		D e = new E()",
+				"		if e.bla() == 4",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
 
 	@Test
 	public void extends_variables() {

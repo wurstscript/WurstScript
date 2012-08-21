@@ -31,8 +31,10 @@ import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
+import de.peeeq.wurstscript.ast.OpEquals;
 import de.peeeq.wurstscript.ast.OptExpr;
 import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
@@ -51,6 +53,7 @@ import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.utils.Pair;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class ClassTranslator {
 
@@ -266,13 +269,35 @@ public class ClassTranslator {
 	}
 
 	public void translateMethod(FuncDef s, List<ClassDef> subClasses) {
-		createDynamicDispatchMethod(s, subClasses);
+		if (!s.attrIsStatic()) {
+			createDynamicDispatchMethod(s, subClasses);
+		}
 		createStaticCallFunc(s);
 	}
 
 	private ImFunction createDynamicDispatchMethod(FuncDef funcDef, List<ClassDef> subClasses) {
 		ImFunction f = translator.getDynamicDispatchFuncFor(funcDef);
 		ImFunction staticF = translator.getFuncFor(funcDef);
+		
+		
+		if (f.getParameters().isEmpty()) {
+			funcDef.addError("meh");
+		}
+		if (translator.debugLevel.methodDispatchChecks) {
+			AstElement trace = funcDef;
+			f.getBody().add(JassIm.ImIf(trace, JassIm.ImOperatorCall(Ast.OpLessEq(), 
+					JassIm.ImExprs(ImVarAccess(f.getParameters().get(0)), ImIntVal(0))), 
+						ImStmts(ImFunctionCall(trace, translator.getDebugPrintFunc(), 
+								ImExprs(ImStringVal("Nullpointer dereference when calling " + Utils.printElementWithSource(funcDef))))), 
+						ImStmts(
+								JassIm.ImIf(trace, JassIm.ImOperatorCall(Ast.OpGreaterEq(), 
+										JassIm.ImExprs(ImVarArrayAccess(m.nextFree, ImVarAccess(f.getParameters().get(0))), ImIntVal(0))), 
+											ImStmts(ImFunctionCall(trace, translator.getDebugPrintFunc(), 
+													ImExprs(ImStringVal("Calling " + Utils.printElementWithSource(funcDef) + " on a destroyed object.")))), 
+													ImStmts()))
+								
+								));
+		}
 		
 		Map<ClassDef, FuncDef> subClasses2 = translator.getClassedWithImplementation(subClasses, funcDef);
 		if (subClasses2.size() > 0) {

@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.attributes;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -14,6 +15,7 @@ import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.types.WurstType;
@@ -25,7 +27,7 @@ public class NameResolution {
 
 	
 	public static <T extends AstElement> T searchTypedNameGetOne(Class<T> t, String name, AstElement where, boolean withInheritance) {
-		List<T> names = searchTypedNameInScope(t, name, where.attrNearestScope(), withInheritance);
+		List<T> names = searchTypedName(t, name, where, withInheritance);
 		if (names.size() == 0) {
 			where.addError("Could not resolve reference to " + name);
 			return null;
@@ -54,12 +56,32 @@ public class NameResolution {
 	
 	public static <T extends AstElement> List<T> searchTypedName(Class<T> t, String name, AstElement where, boolean withInheritance) {
 		if (where == null) throw new IllegalArgumentException();
-		return searchTypedNameInScope(t, name, where.attrNearestScope(), withInheritance);
+		return searchTypedNameInScope(t, name, where.attrNearestScope(), withInheritance, Collections.<WScope>emptySet());
 	}
 	
-	private static <T extends AstElement> List<T> searchTypedNameInScope(Class<T> t, String name, WScope scope, boolean withInheritance) {
+	
+	public static <T extends AstElement> List<T> searchTypedName(Class<T> t, String name, AstElement where, boolean withInheritance, Set<WScope> ignoredScopes) {
+		if (where == null) throw new IllegalArgumentException();
+		return searchTypedNameInScope(t, name, where.attrNearestScope(), withInheritance, ignoredScopes);
+	}
+	
+	private static <T extends AstElement> List<T> searchTypedNameInScope(Class<T> t, String name, WScope scope, boolean withInheritance, Set<WScope> ignoredScopes) {
 		if (scope == null) {
 			return Collections.emptyList();
+		}
+		if (ignoredScopes.contains(scope)) {
+			if (scope instanceof ClassDef) {
+				ClassDef c = (ClassDef) scope;
+				for (TypeParamDef tp : c.getTypeParameters()) {
+					if (tp.getName().equals(name)) {
+						return Collections.singletonList((T)tp);
+					}
+				}
+				
+			}
+			
+			
+			return searchTypedNameInScope(t, name, scope.attrNextScope(), withInheritance, ignoredScopes);
 		}
 		List<T> result = Lists.newArrayList();
 		if (withInheritance && scope instanceof NamedScope) {
@@ -80,7 +102,7 @@ public class NameResolution {
 			return result;
 		} else {
 			// not found yet, search in next scope
-			return searchTypedNameInScope(t, name, scope.attrNextScope(), withInheritance);
+			return searchTypedNameInScope(t, name, scope.attrNextScope(), withInheritance, ignoredScopes);
 		}
 		
 	}
@@ -112,31 +134,31 @@ public class NameResolution {
 		if (result.size() > 0) {
 			return result;
 		}
-		// if not found yet, try to find implementation in supertypes:
-		if (ns instanceof ClassDef) {
-			ClassDef c = (ClassDef) ns;
-			// search for impl in extended class
-			if (c.getExtendedClass() instanceof TypeExpr) {
-				TypeExpr typeExpr = (TypeExpr) c.getExtendedClass();
-				WurstType superType = typeExpr.attrTyp();
-				if (superType instanceof WurstTypeNamedScope) {
-					WurstTypeNamedScope superTypeNs = (WurstTypeNamedScope) superType;
-					Collection<T> r = getTypedNameFromNamedScope(t, context, name, superTypeNs.getDef());
-					if (r.size() > 0) {
-						return r;
-					}
-				}
-				
-			}
-			
-			// search for default implementation in interfaces
-			for (WurstTypeInterface i : c.attrImplementedInterfaces()) {
-				Collection<T> r = getTypedNameFromNamedScope(t, context, name, i.getDef());
-				if (r.size() > 0) {
-					return r;
-				}
-			}
-		}
+//		// if not found yet, try to find implementation in supertypes:
+//		if (ns instanceof ClassDef) {
+//			ClassDef c = (ClassDef) ns;
+//			// search for impl in extended class
+//			if (c.getExtendedClass() instanceof TypeExpr) {
+//				TypeExpr typeExpr = (TypeExpr) c.getExtendedClass();
+//				WurstType superType = typeExpr.attrTyp();
+//				if (superType instanceof WurstTypeNamedScope) {
+//					WurstTypeNamedScope superTypeNs = (WurstTypeNamedScope) superType;
+//					Collection<T> r = getTypedNameFromNamedScope(t, context, name, superTypeNs.getDef());
+//					if (r.size() > 0) {
+//						return r;
+//					}
+//				}
+//				
+//			}
+//			
+//			// search for default implementation in interfaces
+//			for (WurstTypeInterface i : c.attrImplementedInterfaces()) {
+//				Collection<T> r = getTypedNameFromNamedScope(t, context, name, i.getDef());
+//				if (r.size() > 0) {
+//					return r;
+//				}
+//			}
+//		}
 		return Collections.emptyList();
 	}
 

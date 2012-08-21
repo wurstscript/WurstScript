@@ -4,6 +4,9 @@ import java.io.File;
 import java.io.IOException;
 
 import org.junit.Test;
+import org.junit.experimental.categories.Categories.ExcludeCategory;
+
+import de.peeeq.wurstscript.jassinterpreter.DebugPrintError;
 
 public class ClassesTests extends PscriptTest {
 	
@@ -410,6 +413,39 @@ public class ClassesTests extends PscriptTest {
 				
 				
 				"		testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test(expected=DebugPrintError.class)
+	public void NPE() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	class A",
+				"		function foo() returns int",
+				"			return 7",
+				"	init",
+				"		A a = null",
+				"		if a.foo() == 7",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test(expected=DebugPrintError.class)
+	public void destroyed() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	class A",
+				"		function foo() returns int",
+				"			return 7",
+				"	init",
+				"		A a = new A()",
+				"		destroy a",
+				"		if a.foo() == 7",
+				"			testSuccess()",
 				"endpackage"
 			);
 	}

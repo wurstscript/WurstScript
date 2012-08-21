@@ -48,8 +48,7 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<Set<LocalVarDef>> {
 				continue;
 			}
 			if (incoming.contains(v)) {
-				err = "Variable " + v.getName() + " is not initialized " + s;
-				System.out.println("		adding error " + err);
+				err = "Variable " + v.getName() + " is not initialized ";
 			}
 		}
 		errors.put(s, err);

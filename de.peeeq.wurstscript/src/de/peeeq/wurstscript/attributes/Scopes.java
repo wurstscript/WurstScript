@@ -42,6 +42,8 @@ import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.ast.WurstModel;
+import de.peeeq.wurstscript.types.WurstTypeClass;
+import de.peeeq.wurstscript.types.WurstTypeInterface;
 
 public class Scopes {
 
@@ -271,6 +273,41 @@ public class Scopes {
 //		}
 		
 		
+		if (c instanceof ClassDef) {
+			ClassDef classDef = (ClassDef) c;
+			
+			
+			
+			
+			// add names from superclass that are not shadowed or overridden
+			if (classDef.getExtendedClass().attrTyp() instanceof WurstTypeClass) {
+				WurstTypeClass wurstTypeClass = (WurstTypeClass) classDef.getExtendedClass().attrTyp();
+				ClassDef extendedClass = wurstTypeClass.getClassDef();
+				for (Entry<String, NameDef> e : extendedClass.attrVisibleNamesProtected().entries()) {
+					if (!result.containsKey(e.getKey())) {
+						result.put(e.getKey(), e.getValue());
+					}
+				}
+			}
+			
+			// add default implementations from interface
+			for (WurstTypeInterface interfaceType : classDef.attrImplementedInterfaces()) {
+				InterfaceDef i = interfaceType.getInterfaceDef();
+				for (FuncDef i_funcDef : i.getMethods()) {
+					String fname = i_funcDef.getName();
+					if (!result.containsKey(fname)) {
+						if (i_funcDef.getBody().size() > 2) {
+							// add default impl
+							result.put(fname, i_funcDef);
+						} else {
+							// no default impl exists --> error
+							classDef.addError("The class " + classDef.getName() + " must implement the function " +
+									i_funcDef.getName() + "  defined in interface " + i.getName() + ".");
+						}
+					}
+				}
+			}
+		}
 		return result;
 	}
 	
