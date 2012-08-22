@@ -230,6 +230,7 @@ public class PscriptTest {
 		// run the optimizer:
 		System.out.println("optimizer1");
 		if (testOptimizer()) {
+			
 			System.out.println("optimizer2");
 			JassOptimizer optimizer = new JassOptimizerImpl();
 			System.out.println("optimizer3");

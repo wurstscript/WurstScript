@@ -33,10 +33,11 @@ public class OptimizerTests extends PscriptTest {
 	public void test_double_renaming_bug() {
 		assertOk(false,
 				"package test",
+				"	int testVar = 0",
 				"	function w() returns int",
 				"		return 1",
 				"	function s(int j) returns int",
-				"		return 2",
+				"		return testVar",
 				"	init",
 				"		w()",
 				"		s(2)",

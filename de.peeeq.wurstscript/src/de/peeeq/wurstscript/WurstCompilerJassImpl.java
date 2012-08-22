@@ -31,6 +31,7 @@ import de.peeeq.wurstscript.mpq.LadikMpq;
 import de.peeeq.wurstscript.mpq.MpqEditorFactory;
 import de.peeeq.wurstscript.parser.ExtendedParser;
 import de.peeeq.wurstscript.parser.WurstScriptScanner;
+import de.peeeq.wurstscript.translation.imoptimizer.GlobalsInliner;
 import de.peeeq.wurstscript.translation.imoptimizer.ImInliner;
 import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
@@ -304,9 +305,13 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			e.printStackTrace();
 		}
 		
-		if (runArgs.isInline()) {
+		if (true /*runArgs.isInline()*/) {
+			System.out.println("bjghjghkghkhgggjg");
+			GlobalsInliner gbinliner = new GlobalsInliner(imTranslator);
+			gbinliner.inlineGlobals();
 			ImInliner inliner = new ImInliner(imTranslator);
 			inliner.doInlining();
+			
 		}
 		
 		try {
