@@ -8,14 +8,14 @@ import org.eclipse.jface.text.hyperlink.IHyperlink;
 import de.peeeq.eclipsewurstplugin.builder.WurstNature;
 import de.peeeq.wurstscript.ast.AstElementWithSource;
 
-public class WurstHyperlinik implements IHyperlink {
+public class WurstHyperlink implements IHyperlink {
 
 	private IProject project;
 	private AstElementWithSource decl;
 	private int startOffset;
 	private int endOffset;
 
-	public WurstHyperlinik(IProject project, AstElementWithSource decl, int start, int end) {
+	public WurstHyperlink(IProject project, AstElementWithSource decl, int start, int end) {
 		this.project = project;
 		this.decl = decl;
 		this.startOffset = start;

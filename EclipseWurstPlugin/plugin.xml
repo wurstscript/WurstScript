@@ -176,4 +176,57 @@
 	          </enablement>
              </navigatorContent>
    </extension>
+   
+   <!-- editor hotkeys -->
+   <extension point="org.eclipse.ui.commands">
+       <command
+             id="de.peeeq.eclipsewurstplugin.jumpdecl"
+             name="Jump to declaration">
+       </command>
+    </extension>
+       <extension point="org.eclipse.ui.bindings">
+       <key
+             commandId="de.peeeq.eclipsewurstplugin.jumpdecl"
+             contextId="de.peeeq.eclipsewurstplugin.wursteditorscope"
+             schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+             sequence="F3">
+       </key>
+    </extension>
+        <extension
+          point="org.eclipse.ui.contexts">
+       <context
+             id="de.peeeq.eclipsewurstplugin.wursteditorscope"
+             name="Wurst Editor Scope"
+             parentId="org.eclipse.ui.textEditorScope">
+       </context>
+    </extension>
+       <extension
+          point="org.eclipse.ui.editorActions">
+       <editorContribution
+             id="de.peeeq.eclipsewurstplugin.editorContribution1"
+             targetID="de.peeeq.eclipsewurstplugin.editorWurstEditor">
+          <action
+                class="de.peeeq.eclipsewurstplugin.editor.JumpToDeclaration"
+                definitionId="de.peeeq.eclipsewurstplugin.jumpdecl"
+                id="eu.hatsproject.absplugin.jumpToDeclaration"
+                label="Jump to declaration"
+                style="push">
+          </action>
+       </editorContribution>
+    </extension>
+        <extension
+          point="org.eclipse.ui.popupMenus">
+       <viewerContribution
+             id="de.peeeq.eclipsewurstplugin.viewerContribution1"
+             targetID="#TextEditorContext">
+          <action
+                class="de.peeeq.eclipsewurstplugin.editor.JumpToDeclaration"
+                definitionId="de.peeeq.eclipsewurstplugin.jumpdecl"
+                id="de.peeeq.eclipsewurstplugin.jumpToDeclaration"
+                label="Jump to declaration"
+                menubarPath="additions"
+                style="push">
+          </action>
+       </viewerContribution>
+    </extension>
 </plugin>

@@ -18,8 +18,12 @@ import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.ui.IEditorInput;
+import org.eclipse.ui.IEditorSite;
 import org.eclipse.ui.IFileEditorInput;
 import org.eclipse.ui.IPersistableEditor;
+import org.eclipse.ui.PartInitException;
+import org.eclipse.ui.contexts.IContextService;
 import org.eclipse.ui.editors.text.TextEditor;
 import org.eclipse.ui.texteditor.SourceViewerDecorationSupport;
 import org.eclipse.ui.views.contentoutline.IContentOutlinePage;
@@ -48,6 +52,13 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 		
 	}
 	
+	@Override
+	public void init(IEditorSite site, IEditorInput input) throws PartInitException {
+		super.init(site, input);
+		
+        IContextService cs = (IContextService)getSite().getService(IContextService.class);
+        cs.activateContext("de.peeeq.eclipsewurstplugin.wursteditorscope");
+	}
 	
 	@Override
 	protected void configureSourceViewerDecorationSupport (SourceViewerDecorationSupport support) {
