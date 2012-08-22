@@ -20,6 +20,8 @@ public class WurstPlugin extends AbstractUIPlugin {
 	// The plug-in ID
 	public static final String PLUGIN_ID = "EclipseWurstPlugin"; //$NON-NLS-1$
 
+	public static final String WURST_PERSPECTIVE_ID = "de.peeeq.eclipsewurstplugin.wurstperspective";
+
 	// The shared instance
 	private static WurstPlugin plugin;
 

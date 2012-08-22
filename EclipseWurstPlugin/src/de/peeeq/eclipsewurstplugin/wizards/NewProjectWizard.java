@@ -1,6 +1,7 @@
 package de.peeeq.eclipsewurstplugin.wizards;
 
 import java.io.File;
+import java.io.IOException;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IProjectDescription;
@@ -13,7 +14,11 @@ import org.eclipse.ui.INewWizard;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.dialogs.WizardNewProjectCreationPage;
 
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
+
 import de.peeeq.eclipsewurstplugin.WurstConstants;
+import de.peeeq.eclipsewurstplugin.WurstPlugin;
 import de.peeeq.eclipsewurstplugin.builder.WurstNature;
 import de.peeeq.eclipsewurstplugin.util.UtilityFunctions;
 
@@ -73,13 +78,26 @@ public class NewProjectWizard extends Wizard implements INewWizard {
 			desc.setNatureIds(new String[]{WurstNature.NATURE_ID});
 			project.setDescription(desc, null);
 			
-//			workbench.showPerspective(WurstPlugin.WURST_PERSPECTIVE_ID, workbench.getActiveWorkbenchWindow());
+			workbench.showPerspective(WurstPlugin.WURST_PERSPECTIVE_ID, workbench.getActiveWorkbenchWindow());
+			
+			createWurstDependenciesFile(projectFile.getParentFile());
+			project.refreshLocal(1, null);
+			
 			return true;
 		}catch(CoreException ex){
 			ex.printStackTrace();
 			UtilityFunctions.showErrorMessage("Could not create new Project: \n"+ex.getLocalizedMessage());
 		}
 		return false;
+	}
+
+	private void createWurstDependenciesFile(File f) {
+		try {
+			Files.write("C:\\<insert path to wurst here>\\WurstScript\\Wurstpack\\wurstscript\\lib\n", new File(f, "wurst.dependencies"), Charsets.UTF_8);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
 	}
 
 	
