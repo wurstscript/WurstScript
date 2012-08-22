@@ -466,6 +466,10 @@ HasModifier.attrIsCompiletime
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isCompiletime	
 
+HasModifier.attrHasAnnotation(String name)
+	returns boolean
+	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.hasAnnotation
+
 HasModifier.attrIsPublic
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isPublic

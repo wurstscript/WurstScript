@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElementWithModifiers;
+import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.ModAbstract;
 import de.peeeq.wurstscript.ast.ModConstant;
@@ -63,20 +64,24 @@ public class ModifiersHelper {
 	}
 
 	public static boolean isCompiletime(HasModifier e) {
-		return hasAnnotation(e.getModifiers(), "@compiletime");
+		return hasAnnotation(e, "compiletime");
 	}
+
+	public static boolean hasAnnotation(AstElementWithModifiers e, String name) {
+		return hasAnnotation(e.getModifiers(), name);
+	}
+
 
 	private static boolean hasAnnotation(Modifiers modifiers, String string) {
 		for (Modifier m : modifiers) {
 			if (m instanceof Annotation) {
 				Annotation annotation = (Annotation) m;
-				if (annotation.getAnnotationType().equals(string)) {
+				if (annotation.getAnnotationType().equals("@" + string)) {
 					return true;
 				}
 			}
 		}
 		return false;
 	}
-
-
+	
 }

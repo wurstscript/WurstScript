@@ -119,7 +119,7 @@ public class RealWorldExamples extends PscriptTest {
 			System.out.println("Adding file: " + f);
 			inputs.add(f);
 		}
-		testScript(inputs, null, "stdlib", false, true);
+		testScript(inputs, null, "stdlib", false, true, true);
 	}
 	
 }

@@ -1,11 +1,13 @@
 package de.peeeq.wurstscript.intermediateLang;
 
+import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeCode;
 
 public class ILconstFuncRef extends ILconstAbstract {
 
 	private String funcName;
+	private ImFunction func;
 
 
 	public ILconstFuncRef(String funcName) {
@@ -13,6 +15,12 @@ public class ILconstFuncRef extends ILconstAbstract {
 	}
 
 	
+	public ILconstFuncRef(ImFunction func) {
+		this.func = func;
+		this.funcName = func.getName();
+	}
+
+
 	@Override
 	public String print() {
 		return "function " + funcName;

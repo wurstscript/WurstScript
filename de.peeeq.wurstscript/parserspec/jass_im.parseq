@@ -3,7 +3,7 @@ package de.peeeq.wurstscript.jassIm
 
 abstract syntax:
 	
-ImProg(ImVars globals, ImFunctions functions)
+ImProg(ImVars globals, ImFunctions functions, java.util.Map<ImVar, ImExpr> globalInits)
 
 ImVars * ImVar
 ImFunctions * ImFunction
@@ -69,11 +69,15 @@ ImConst =
 	| ImNull()
 
 // helper types:
+
 	
 ImPrintable = ImStmt | ImFunction | ImProg | ImVar | ImType | ImStmts | ImExprOpt
 	
 attributes:
 	
+ImType.defaultValue
+	returns de.peeeq.wurstscript.intermediateLang.ILconst
+	implemented by de.peeeq.wurstscript.translation.imtojass.DefaultValue.get
 
 ImPrintable.print(java.lang.StringBuilder sb, int indent)
 	returns void
@@ -190,6 +194,16 @@ ImFunction.isCompiletime()
 	returns boolean
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.isCompiletime
 
+ImFunction.hasFlag(de.peeeq.wurstscript.translation.imtranslation.FunctionFlag flag)
+	returns boolean
+	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.hasFlag
+
 JassImElement.attrTrace()
 	returns de.peeeq.wurstscript.ast.AstElement
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.getTrace
+	
+	
+
+JassImElement.attrProg()
+	returns ImProg
+	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.getProg

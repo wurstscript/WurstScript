@@ -2,15 +2,23 @@ package de.peeeq.wurstscript.jassinterpreter;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+
+import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
 import de.peeeq.wurstscript.intermediateLang.ILconstNull;
+import de.peeeq.wurstscript.intermediateLang.ILconstNum;
 import de.peeeq.wurstscript.intermediateLang.ILconstReal;
 import de.peeeq.wurstscript.intermediateLang.ILconstString;
+import de.peeeq.wurstscript.intermediateLang.IlConstHandle;
 import de.peeeq.wurstscript.intermediateLang.interpreter.InterprationError;
 import de.peeeq.wurstscript.intermediateLang.interpreter.NativesProvider;
+import de.peeeq.wurstscript.utils.Utils;
 
 
 /**
@@ -61,16 +69,50 @@ public class NativeFunctions implements NativesProvider {
 		return ILconstNull.instance();
 	}
 	
-	static public ILconstNull InitHashtable() {
-		return ILconstNull.instance();
+	static public IlConstHandle InitHashtable() {
+		return new IlConstHandle(getRandomName("ht"), new HashMap<Integer, Map<Integer, Object>>());
+	}
+	
+	static public void SaveInteger(IlConstHandle ht, ILconstInt key1, ILconstInt key2, ILconstInt value) {
+		Map<Integer, Map<Integer, Object>> map = (Map<Integer, Map<Integer, Object>>) ht.getObj();
+		Map<Integer, Object> map2 = map.get(key1.getVal());
+		if (map2 == null) {
+			map2 = Maps.newHashMap();
+			map.put(key1.getVal(), map2);
+		}
+		map2.put(key2.getVal(), value);
+	}
+	
+	static public ILconstInt LoadInteger(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+		Map<Integer, Map<Integer, Object>> map = (Map<Integer, Map<Integer, Object>>) ht.getObj();
+		Map<Integer, Object> map2 = map.get(key1.getVal());
+		if (map2 == null) {
+			return ILconstInt.create(0);
+		}
+		return (ILconstInt) map2.get(key2.getVal());
+	}
+	
+	private static String getRandomName(String string) {
+		return string + new Random().nextInt(100);
+	}
+
+	static public void DisplayTimedTextToPlayer(Object player, ILconstReal x, ILconstReal y, ILconstReal duration, ILconstString msg) {
+		System.out.println(msg.getVal());
 	}
 
 	@Override
 	public ILconst invoke(String funcname, ILconst[] args) {
-		for (Method method : this.getClass().getMethods()) {
+		nextMethod: for (Method method : this.getClass().getMethods()) {
 			if (method.getName().equals(funcname)) {
 				Object r = null;
 				try {
+					int i = 0;
+					for (Class<?> paramType : method.getParameterTypes()) {
+						if (!paramType.isAssignableFrom(args[i].getClass())) {
+							continue nextMethod;
+						}
+						i++;
+					}
 					r = method.invoke(null, (Object[]) args);
 				} catch (IllegalAccessException | IllegalArgumentException e) {
 					WLogger.severe(e);
@@ -84,6 +126,12 @@ public class NativeFunctions implements NativesProvider {
 				return (ILconst) r;
 			}
 		}
-		throw new InterprationError("native function " + funcname + " can not be executed at compile time.");
+		String[] parameterTypes = new String[args.length];
+		for (int i=0; i<args.length; i++) {
+			parameterTypes[i] = "" + args[i];
+		}
+		System.err.println("native function " + funcname + "("+ Utils.printSep(", ", parameterTypes) +  ") can not be executed at compile time.");
+		return ILconstNull.instance();
+//		throw new InterprationError("native function " + funcname + " can not be executed at compile time.");
 	}
 }

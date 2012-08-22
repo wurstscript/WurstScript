@@ -27,14 +27,18 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreter;
 import de.peeeq.wurstscript.jassAst.JassProg;
+import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
+import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassinterpreter.JassInterpreter;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.jassoptimizer.JassOptimizer;
 import de.peeeq.wurstscript.jassoptimizer.JassOptimizerImpl;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
+import de.peeeq.wurstscript.translation.imtranslation.FunctionFlag;
 import de.peeeq.wurstscript.utils.FileReading;
+import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class PscriptTest {
@@ -66,7 +70,7 @@ public class PscriptTest {
 			inputs.put(cu.name, new StringReader(cu.content));
 		}
 		String name = Utils.getMethodName(2);
-		testScript(inputFiles, inputs, name, excuteProg, withStdLib);
+		testScript(inputFiles, inputs, name, excuteProg, withStdLib, false);
 	}
 	
 	public void testAssertErrors(String errorMessage, boolean excuteProg, boolean withStdLib, CU ... units) {
@@ -77,7 +81,7 @@ public class PscriptTest {
 		}
 		String name = Utils.getMethodName(2);
 		try {
-			testScript(inputFiles, inputs, name, excuteProg, withStdLib);
+			testScript(inputFiles, inputs, name, excuteProg, withStdLib, false);
 			Assert.assertTrue("No errors were discovered", false);
 		} catch (CompileError e) {
 			Assert.assertTrue(e.getMessage(), e.getMessage().contains(errorMessage));
@@ -104,7 +108,7 @@ public class PscriptTest {
 
 	public void testAssertOkFile(File file, boolean executeProg) throws IOException {
 		Reader reader= FileReading.getFileReader(file);
-		testScript(Collections.singleton(file), null, file.getName(), executeProg, false);
+		testScript(Collections.singleton(file), null, file.getName(), executeProg, false, false);
 		reader.close();
 	}
 	
@@ -139,10 +143,10 @@ public class PscriptTest {
 	protected void testScript(String inputName, Reader input, String name, boolean executeProg, boolean withStdLib) {
 		Map<String, Reader> inputs = Maps.newHashMap();
 		inputs.put(inputName, input);
-		testScript(null, inputs, name, executeProg, withStdLib);
+		testScript(null, inputs, name, executeProg, withStdLib, false);
 	}
 	
-	protected void testScript(Iterable<File> inputFiles, Map<String, Reader> inputs, String name, boolean executeProg, boolean withStdLib) {
+	protected void testScript(Iterable<File> inputFiles, Map<String, Reader> inputs, String name, boolean executeProg, boolean withStdLib, boolean executeTests) {
 		if (inputFiles == null) {
 			inputFiles = Collections.emptyList();
 		}
@@ -177,9 +181,21 @@ public class PscriptTest {
 		
 		ImProg imProg = compiler.getImProg();
 		writeJassImProg(name, gui, imProg);
-		if (executeProg) {
-			CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(imProg, null, gui);
+		if (executeTests) {
+			CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(imProg, null, gui, FunctionFlag.IS_TEST);
 			cfr.run();
+			System.out.println("Successfull tests: " + cfr.getSuccessTests().size());
+			int failedTestCount = cfr.getFailTests().size();
+			System.out.println("Failed tests: " + failedTestCount);
+			if (failedTestCount > 0 ) {
+				for (Entry<ImFunction, Pair<ImStmt, String>> e : cfr.getFailTests().entrySet()) {
+					Assert.assertFalse(Utils.printElementWithSource(e.getKey().attrTrace()) + " " + e.getValue().getB()
+							+ "\n" + "at " + Utils.printElementWithSource(e.getValue().getA().attrTrace()), true);
+				}
+			} else {
+				success = true;
+			}
+		} if (executeProg) {
 			
 			try {
 				// run the interpreter on the intermediate language
