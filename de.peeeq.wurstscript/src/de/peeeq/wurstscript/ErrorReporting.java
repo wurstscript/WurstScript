@@ -23,7 +23,6 @@ public class ErrorReporting {
 		
 	
 	public static void handleSevere(Throwable t) {
-		t.printStackTrace();
 		WLogger.severe(t);
 		
 		
@@ -121,19 +120,15 @@ public class ErrorReporting {
 			}
 		} catch (MalformedURLException e) {
 			WLogger.severe(e);
-			e.printStackTrace();
 			handleError("Malformed URL\n" + e.getMessage());
 		} catch (ProtocolException e) {
 			WLogger.severe(e);
-			e.printStackTrace();
 			handleError("ProtocolException\n" + e.getMessage());
 		} catch (FileNotFoundException e) {
 			WLogger.severe(e);
-			e.printStackTrace();
 			handleError("Error reporting URL not found...\n" + e.getMessage());
 		} catch (IOException e) {
 			WLogger.severe(e);
-			e.printStackTrace();
 			handleError("IOException\n" + e.getMessage());
 		} finally {
 			if (connection != null) {

@@ -94,7 +94,7 @@ public class TemplateParseqList {
 		sb.append("\n");
 		sb.append("	@Override\n");
 		sb.append("	public int lastIndexOf(Object o) {\n");
-		sb.append("		return list.lastIndexOf(list);\n");
+		sb.append("		return list.lastIndexOf(o);\n");
 		sb.append("	}\n");
 		sb.append("\n");
 		sb.append("	@Override\n");

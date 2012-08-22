@@ -79,7 +79,7 @@ abstract class ParseqList<T> implements List<T> {
 
 	@Override
 	public int lastIndexOf(Object o) {
-		return list.lastIndexOf(list);
+		return list.lastIndexOf(o);
 	}
 
 	@Override

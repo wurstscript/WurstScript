@@ -11,8 +11,6 @@ import de.peeeq.wurstscript.utils.Debug;
 
 
 public class JassOptimizerImpl implements JassOptimizer {
-	String[] standards;
-	int standardsAmount = 0;
 	
 	public static void main(String ... args) throws IOException {
 

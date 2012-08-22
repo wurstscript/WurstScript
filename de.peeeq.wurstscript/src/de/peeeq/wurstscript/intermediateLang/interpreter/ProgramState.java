@@ -133,7 +133,7 @@ public class ProgramState extends State {
 		try {
 			Files.write(dataStore.exportToWurst(),  new File("./temp/exportedObjects_"+fileType.getExt()+".wurst"), Charsets.UTF_8);
 		} catch (IOException e1) {
-			e1.printStackTrace();
+			WLogger.severe(e1);
 		}
 		
 		try {

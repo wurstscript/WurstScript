@@ -28,9 +28,9 @@ public class ObjectFile {
 
 	public ObjectFile(File file, ObjectFileType fileType) {
 		this.fileType = fileType;
-		FileInputStream fis = null;
+		BinaryDataInputStream in = null;
 		try {
-			BinaryDataInputStream in = new BinaryDataInputStream(file, true);
+			in = new BinaryDataInputStream(file, true);
 
 			version = in.readInt();
 
@@ -44,12 +44,8 @@ public class ObjectFile {
 			WLogger.severe(e);
 			throw new Error(e);
 		} finally {
-			if (fis != null) {
-				try {
-					fis.close();
-				} catch (IOException e) {
-					throw new Error(e);
-				}
+			if (in != null) {
+				in.close();
 			}
 		}
 
@@ -116,7 +112,7 @@ public class ObjectFile {
 		try {
 			exportToWurst(sb);
 		} catch (IOException e) {
-			e.printStackTrace();
+			WLogger.severe(e);
 		}
 		return sb.toString();
 	}

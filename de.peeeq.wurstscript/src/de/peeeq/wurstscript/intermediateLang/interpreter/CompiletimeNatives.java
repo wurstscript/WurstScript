@@ -43,7 +43,6 @@ public class CompiletimeNatives implements NativesProvider {
 				try {
 					r = method.invoke(this, (Object[]) args);
 				} catch (IllegalAccessException | IllegalArgumentException e) {
-					e.printStackTrace();
 					throw new Error(e);
 				} catch (InvocationTargetException e) {
 					if (e.getCause() instanceof Error) {

@@ -71,7 +71,7 @@ public class WurstErrorWindow extends javax.swing.JFrame {
             image = ImageIO.read(
                 getClass().getResource("wurst.png"));
         } catch (IOException e) {
-            e.printStackTrace();
+            WLogger.severe(e);
         }
         setIconImage(image);
         
@@ -289,8 +289,7 @@ public class WurstErrorWindow extends javax.swing.JFrame {
 			codeArea.setText("Could not read file: " + fileName);
 			WLogger.info(e);
 		} catch (BadLocationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			WLogger.severe(e);
 		}
 	}
     

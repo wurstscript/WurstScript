@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.utils.Utils;
 
 
 public class WurstTypeArray extends WurstType {
@@ -19,7 +20,7 @@ public class WurstTypeArray extends WurstType {
 			throw new Error("cannot have array of arrays...");
 		}
 		this.baseType = baseType;
-		this.sizes = sizes;
+		this.sizes = Utils.copyArray(sizes);
 	}
 	
 	

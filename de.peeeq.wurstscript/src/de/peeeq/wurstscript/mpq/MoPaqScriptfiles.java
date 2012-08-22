@@ -6,6 +6,8 @@ import java.io.IOException;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
+import de.peeeq.wurstscript.WLogger;
+
 public class MoPaqScriptfiles {
 
 	static File extractFile(File mpqArchive, String fileInMap) {
@@ -15,8 +17,7 @@ public class MoPaqScriptfiles {
 		try {
 			Files.write(scriptString, script, Charsets.UTF_8);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			WLogger.severe(e);
 		}
 		return script;
 	}
@@ -27,8 +28,7 @@ public class MoPaqScriptfiles {
 		try {
 			Files.write(scriptString, script, Charsets.UTF_8);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			WLogger.severe(e);
 		}
 		return script;
 	}
@@ -39,8 +39,7 @@ public class MoPaqScriptfiles {
 		try {
 			Files.write(scriptString, script, Charsets.UTF_8);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			WLogger.severe(e);
 		}
 		return script;
 	}
@@ -51,8 +50,7 @@ public class MoPaqScriptfiles {
 		try {
 			Files.write(scriptString, script, Charsets.UTF_8);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			WLogger.severe(e);
 		}
 		return script;
 	}

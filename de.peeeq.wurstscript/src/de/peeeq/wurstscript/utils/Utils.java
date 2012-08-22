@@ -666,4 +666,10 @@ public class Utils {
 		return printElement(e) + " (" + src.getFile() + ", line " + src.getLine() +")";
 	}
 
+	public static int[] copyArray(int[] ar) {
+		int[] r = new int[ar.length];
+		System.arraycopy(ar, 0, r, 0, ar.length);
+		return r;
+	}
+
 }

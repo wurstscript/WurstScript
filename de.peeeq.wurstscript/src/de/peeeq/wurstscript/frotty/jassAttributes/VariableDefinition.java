@@ -69,23 +69,21 @@ public class VariableDefinition {
 		String varName = e.getLeft();
 		JassAstElement node = e.getParent();
 		while (node != null) {
+			JassVar v = null;
 			if (node instanceof JassFunction) {
 				JassFunction jassFunction = (JassFunction) node;
-				JassVar v = getVariableMap(jassFunction).get(varName);
-				if (v != null && !( v instanceof JassArrayVar)) {
-					return e;
-				}else if(v != null && v instanceof JassArrayVar) {
-					JassErrors.addError("Variable '" + varName + "' is declared as an array.", e.getLine());
-					return null;
-				}
+				v = getVariableMap(jassFunction).get(varName);
 			} else if (node instanceof JassProgs) {
 				JassProgs jassProgs = (JassProgs) node;
-				JassVar v = jassProgs.getGlobal(varName);
-				if (v != null && !( v instanceof JassArrayVar)) {
-					return e;
-				}else if(v != null && v instanceof JassArrayVar) {
+				v = jassProgs.getGlobal(varName);
+
+			}
+			if (v != null) {
+				if ( v instanceof JassArrayVar) {
 					JassErrors.addError("Variable '" + varName + "' is declared as an array.", e.getLine());
 					return null;
+				} else {
+					return e;
 				}
 			}
 			node = node.getParent();

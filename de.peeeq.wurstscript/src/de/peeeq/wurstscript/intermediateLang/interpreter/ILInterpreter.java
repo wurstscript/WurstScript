@@ -32,7 +32,6 @@ public class ILInterpreter {
 		
 		
 		if (f.isNative()) {
-			Class<NativeFunctions> natives = NativeFunctions.class;
 			return runBuiltinFunction(f, new NativeFunctions(), args);
 		}
 		LocalState localState = new LocalState();

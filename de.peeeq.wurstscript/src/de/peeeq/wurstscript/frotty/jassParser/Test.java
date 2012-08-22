@@ -11,6 +11,7 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
 import de.peeeq.wurstscript.Pjass;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.Pjass.Result;
 import de.peeeq.wurstscript.frotty.jassValidator.JassErrors;
 import de.peeeq.wurstscript.jassAst.JassAst;
@@ -52,7 +53,7 @@ public class Test {
 				prog = parseFile(inputFile);
 			} catch (Throwable t) {
 				prog = null;
-				t.printStackTrace();
+				WLogger.severe(t);
 			}
 			
 			// print the errors
@@ -98,8 +99,7 @@ public class Test {
 			}
 			
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			WLogger.severe(e);
 		}
 
 	}

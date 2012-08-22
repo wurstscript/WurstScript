@@ -9,7 +9,7 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 
 public class FunctionSignature {
-	public static FunctionSignature empty = new FunctionSignature(Collections.<WurstType>emptyList(), WurstTypeUnknown.instance());
+	public static final FunctionSignature empty = new FunctionSignature(Collections.<WurstType>emptyList(), WurstTypeUnknown.instance());
 	private List<WurstType> paramTypes;
 	private WurstType returnType;
 	
