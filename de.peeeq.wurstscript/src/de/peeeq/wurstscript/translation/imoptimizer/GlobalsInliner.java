@@ -39,8 +39,12 @@ public class GlobalsInliner {
 	private ImTranslator translator;
 	private ImProg prog;
 	private List<ImVar> globals = Lists.newArrayList();
-	private List<ImSet> setExprs = Lists.newArrayList();
+	private List<ImStmt> setExprs = Lists.newArrayList();
 	private Set<ImVar> unused = Sets.newHashSet();
+	
+	
+	ImSet s = null;
+	ImSetArray sa = null;
 	
 	boolean notUsed = true;
 
@@ -79,7 +83,24 @@ public class GlobalsInliner {
 					}else if ( name.equals(v.getName()) && f.getName().substring(0, 5).equals("init_") ) {
 						System.out.println("processing: " + f.getName() + " - init");
 						globals.add(v);
-						setExprs.add(set);
+						setExprs.add((ImStmt) set);
+						notUsed = false;
+					}
+				}
+				
+				@Override
+				public void visit(ImSetArray set) {
+					String name = set.getLeft().getName();
+					ImFunction f = set.getNearestFunc();
+					System.out.println("processing: " + f.getName());
+					if ( name.equals(v.getName()) && f.getName().length() >= 5 && ! f.getName().substring(0, 5).equals("init_")){
+						System.out.println("processing: " + f.getName() + " - not init");
+						System.out.println("ye2s " + v.getName());
+						notUsed = false;
+					}else if ( name.equals(v.getName()) && f.getName().length() >= 5 && f.getName().substring(0, 5).equals("init_") ) {
+						System.out.println("processing: " + f.getName() + " - init");
+						globals.add(v);
+						setExprs.add((ImStmt) set);
 						notUsed = false;
 					}
 				}
@@ -120,26 +141,63 @@ public class GlobalsInliner {
 		System.out.println("globals - " + globals.size());
 		for ( int i = 0; i < globals.size(); i++) {
 			final ImVar v = globals.get(i);
-			final ImSet s = setExprs.get(i);
-			System.out.println("@: " + v + "  " + s);
-			if ( s.getRight() instanceof ImConst ) {
-				System.out.println("is constant");
-				prog.getFunctions().accept(new ImProg.DefaultVisitor() {
-						
-					@Override
-					public void visit(ImVarAccess va) {
-						String name = va.getVar().getName();
-							
-						if ( name.equals(v.getName())){
-							replace(va, s.getRight());
-						}
-					}
-											
-				}); 
-			}else {
-				globals.remove(i);
-				i--;
+			final ImStmt e = setExprs.get(i);
+			if( e instanceof ImSet) {
+				s = (ImSet) e;
+			} else if ( e instanceof ImSetArray) {
+				sa = (ImSetArray) e;
 			}
+			System.out.println("@: " + v + "  " + s);
+			if(!( s == null)) {
+				if ( s.getRight() instanceof ImConst ) {
+					System.out.println("is constant");
+					prog.getFunctions().accept(new ImProg.DefaultVisitor() {
+							
+						@Override
+						public void visit(ImVarAccess va) {
+							String name = va.getVar().getName();
+								
+							if ( name.equals(v.getName() ) ){
+								if ( s == null ) {
+									replace(va, sa.getRight());
+								} else {
+									replace(va, s.getRight());	
+								}
+							}
+						}
+												
+					}); 
+				}else {
+					globals.remove(i);
+					i--;
+				}
+			}else {
+				if ( sa.getRight() instanceof ImConst ) {
+					System.out.println("is constant");
+					prog.getFunctions().accept(new ImProg.DefaultVisitor() {
+							
+						@Override
+						public void visit(ImVarAccess va) {
+							String name = va.getVar().getName();
+								
+							if ( name.equals(v.getName() ) ){
+								if ( s == null ) {
+									replace(va, sa.getRight());
+								} else {
+									replace(va, s.getRight());	
+								}
+							}
+						}
+												
+					}); 
+				}else {
+					globals.remove(i);
+					i--;
+				}
+				
+			}
+			
+			
 		
 		}
 		

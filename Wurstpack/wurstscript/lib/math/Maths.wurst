@@ -5,11 +5,11 @@ package Maths
 	public constant real DEGTORAD  	=  0.017453293
 	public constant real RADTODEG  	= 57.295779513
 	
-	public function polarProjectionX ( real x,  real dist, real angle ) returns real
-		return x + dist * Cos(angle * DEGTORAD)
+	public function polarProjectionXR ( real x,  real dist, real angle ) returns real
+		return x + dist * Cos(angle)
 	
-	public function polarProjectionY ( real y,  real dist, real angle ) returns real
-		return y + dist * Sin(angle * DEGTORAD)
+	public function polarProjectionYR ( real y,  real dist, real angle ) returns real
+		return y + dist * Sin(angle)
 		
 	public function polarProjectionZ ( real z,  real dist, real angle ) returns real
 		return z + dist * Sin(angle * DEGTORAD)

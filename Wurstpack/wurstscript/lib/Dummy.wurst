@@ -11,7 +11,7 @@ package Dummy
     constant int ANGLE_RESOLUTION = 12
 
     // The total number of xe dummy units that will be preloaded on map initialization.
-    constant int INITIAL_DUMMY_COUNT  = 36
+    constant int INITIAL_DUMMY_COUNT  = 72
     
     // Don't allow to keep more than DUMMY_STACK_LIMIT inactive dummy units.
     constant int DUMMY_STACK_LIMIT    = 240
@@ -135,6 +135,7 @@ package Dummy
                 SetUnitAnimationByIndex(u, 90)
                 SetUnitScale(u, 1, 0, 0)
                 SetUnitVertexColor(u, 255, 255, 255, 255)
+                SetUnitAnimation(u, "death")
                 // ShowUnit(u, false) // Do not hide the unit, it is rather costly and not needed.
                 //printTimed("unit recycled", 10.)
 
