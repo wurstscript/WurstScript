@@ -1,81 +1,107 @@
 package TList
+import Wurstunit
+
+hashtable ht = InitHashtable()
+
+// a list based on a Table
+public class TList<T>
+	private int size = 0
+
+	// add an element to the end of the list
+	function add(T elem)
+		ht.saveInt(this castTo int, size, elem castTo int)
+		size ++
+	
+	// add an element to a specific position of the list
+	function addAt(int pos, T elem)
+		for int i = pos to size-1
+			setElem(i+1, get(i))
+		setElem(pos, elem)
+
+	// add all elements from elems to this list
+	function addAll(TList<T> elems)
+		for T elem in elems
+			add(elem)
+
+	// remove element at index
+	function removeAt(int index)
+		size--
+		for int i = index to size
+			setElem(i, get(i+1))
+			
+	function setElem(int index, T elem)
+		ht.saveInt(this castTo int, index, elem castTo int)				
+		
+	// removes the first occurence of t from this list
+	function remove(T t)
+		for int i = 0 to size-1
+			if get(i) == t
+				removeAt(i)
+				break
+	
+	// gets the size of the list
+	function getSize() returns int
+		return size
+
+	// get the element at the specified index
+	function get(int index) returns T
+		return ht.loadInt(this castTo int, index) castTo T
+
+	// get an iterator for this list
+	function iterator() returns TIterator<T>
+		return new TIterator(this)			
+
+	ondestroy
+		ht.flushChild(this castTo int)
+
+class TIterator<Q>
+	int pos = -1 // start in front of the first element list
+	TList<Q> list
+	
+	construct(TList<Q> list)
+		this.list = list
+		
+
+	// remove the current element from the list
+	function remove()
+		list.removeAt(pos)
+			
+
+	function hasNext() returns boolean
+		return pos < list.getSize() - 1
+
+	function next() returns Q
+		pos++
+		return list.get(pos)
+
+	function close()
+		destroy this
+
+
+function TList<int>.sum() returns int
+	var sum = 0
+	
+	for int x in this
+		sum += x
+		testPrint("x = " + x.toString())
+	return sum
 	
 
-	hashtable ht = InitHashtable()
 
-	// a list based on a Table
-	public class TList<T>
-		private int size = 0
-
-		// add an element to the end of the list
-		function add(T elem)
-			ht.saveInt(this castTo int, size, elem castTo int)
-			size ++
+@test function test1()
+	let l = new TList<int>()
+	l.add(4)
+	l.add(9)
+	l.add(14)
+	l.getSize().assertEquals(3)
+	l.sum().assertEquals(27)
+	l.get(1).assertEquals(9)
+	l.removeAt(0)
+	l.getSize().assertEquals(2)
+	l.get(1).assertEquals(14)
+	l.sum().assertEquals(23)
 		
-		// add an element to a specific position of the list
-		function addAt(int pos, T elem)
-			for int i = pos to size-1
-				setElem(i+1, get(i))
-			setElem(pos, elem)
+	
 
-		// add all elements from elems to this list
-		function addAll(TList<T> elems)
-			for T elem in elems
-				add(elem)
-
-		// remove element at index
-		function removeAt(int index)
-			size--
-			for int i = index to size
-				setElem(i, get(i+1))
+	
 				
-		function setElem(int index, T elem)
-			ht.saveInt(this castTo int, index, elem castTo int)				
-			
-		// removes the first occurence of t from this list
-		function remove(T t)
-			for int i = 0 to size-1
-				if get(i) == t
-					removeAt(i)
-					break
-		
-		// gets the size of the list
-		function getSize() returns int
-			return size
-
-		// get the element at the specified index
-		function get(int index) returns T
-			return ht.loadInt(this castTo int, index) castTo T
-
-		// get an iterator for this list
-		function iterator() returns TIterator<T>
-			return new TIterator(this)			
-
-		ondestroy
-			ht.flushChild(this castTo int)
-
-	class TIterator<Q>
-		int pos = 0
-		TList<Q> list
-		
-		construct(TList<Q> list)
-			this.list = list
-			
-
-		// remove the current element from the list
-		function remove()
-			list.removeAt(pos)
-				
-
-		function hasNext() returns boolean
-			return pos < list.getSize() - 1
-
-		function next() returns Q
-			pos++
-			return list.get(pos)
-
-		function close()
-			destroy this
-
-
-endpackage

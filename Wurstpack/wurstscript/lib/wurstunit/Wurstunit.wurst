@@ -1,0 +1,11 @@
+package Wurstunit
+// Wurst unit testing library
+
+
+@compiletimenative public function testPrint(string msg)
+@compiletimenative public function testFail(string msg)
+@compiletimenative public function testSuccess()
+
+public function int.assertEquals(int other)
+	if this != other
+		testFail("expected " + other.toString() + " but was " + this.toString())

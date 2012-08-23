@@ -15,6 +15,7 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassinterpreter.NativeFunctions;
 import de.peeeq.wurstscript.jassinterpreter.ReturnException;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class ILInterpreter {
 	private final ImProg prog;
@@ -26,6 +27,12 @@ public class ILInterpreter {
 	}
 
 	public static ILconst runFunc(ProgramState globalState, ImFunction f, ILconst ... args) {
+		String[] parameterTypes = new String[args.length];
+		for (int i=0; i<args.length; i++) {
+			parameterTypes[i] = "" + args[i];
+		}
+		System.out.println("calling function " + f.getName() + "("+ Utils.printSep(", ", parameterTypes) +  ")");
+		
 		if (isCompiletimeNative(f)) {
 			return runBuiltinFunction(f, new CompiletimeNatives(globalState), args);
 		}

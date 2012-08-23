@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.ast.OpBinary;
 import de.peeeq.wurstscript.ast.OpUnary;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstBool;
+import de.peeeq.wurstscript.intermediateLang.ILconstFuncRef;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
 import de.peeeq.wurstscript.intermediateLang.ILconstNull;
 import de.peeeq.wurstscript.intermediateLang.ILconstReal;
@@ -25,6 +26,8 @@ import de.peeeq.wurstscript.jassIm.ImStatementExpr;
 import de.peeeq.wurstscript.jassIm.ImStringVal;
 import de.peeeq.wurstscript.jassIm.ImTupleExpr;
 import de.peeeq.wurstscript.jassIm.ImTupleSelection;
+import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
 
@@ -35,7 +38,7 @@ public class EvaluateExpr {
 	}
 
 	public static ILconst eval(ImFuncRef e, ProgramState globalState, LocalState localState) {
-		throw new Error("not implemented: func refs");
+		return new ILconstFuncRef(e.getFunc());
 	}
 
 	public static ILconst eval(ImFunctionCall e, ProgramState globalState, LocalState localState) {
@@ -45,7 +48,12 @@ public class EvaluateExpr {
 		for (int i=0; i < arguments.size(); i++) {
 			args[i] = arguments.get(i).evaluate(globalState, localState);
 		}
-		return ILInterpreter.runFunc(globalState, f, args);
+		ILconst r = ILInterpreter.runFunc(globalState, f, args);
+		if (r == null) {
+			return new ILconstError("Void return of function " + f.getName());
+		} else {
+			return r;
+		}
 	}
 
 	public static ILconst eval(ImIntVal e, ProgramState globalState, LocalState localState) {
@@ -104,19 +112,33 @@ public class EvaluateExpr {
 	}
 
 	public static de.peeeq.wurstscript.intermediateLang.ILconst eval(ImVarAccess e, ProgramState globalState, LocalState localState) {
-		if (e.getVar().isGlobal()) {
-			return globalState.getVal(e.getVar());
+		ImVar var = e.getVar();
+		if (var.isGlobal()) {
+			ILconst r = globalState.getVal(var);
+			if (r == null) {
+				r = e.attrProg().getGlobalInits().get(var).evaluate(globalState, localState);
+				globalState.setVal(var, r);
+			}
+			return r;
 		} else {
-			return localState.getVal(e.getVar());
+			return notNull(localState.getVal(var), var.getType(), "Local variable " + var.getName() + " is null.");
 		}
+	}
+
+	private static ILconst notNull(ILconst val, ImType imType, String msg) {
+		if (val == null) {
+			System.err.println(msg);
+			return imType.defaultValue();
+		}
+		return val;
 	}
 
 	public static ILconst eval(ImVarArrayAccess e, ProgramState globalState, LocalState localState) {
 		ILconstInt index = (ILconstInt) e.getIndex().evaluate(globalState, localState);
 		if (e.getVar().isGlobal()) {
-			return globalState.getArrayVal(e.getVar(), index.getVal());
+			return notNull(globalState.getArrayVal(e.getVar(), index.getVal()), e.getVar().getType(), "Variable " + e.getVar().getName() + " is null.");
 		} else {
-			return localState.getArrayVal(e.getVar(), index.getVal());
+			return notNull(localState.getArrayVal(e.getVar(), index.getVal()), e.getVar().getType(), "Variable " + e.getVar().getName() + " is null.");
 		}
 	}
 

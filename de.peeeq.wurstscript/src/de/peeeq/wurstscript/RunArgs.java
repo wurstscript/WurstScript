@@ -15,6 +15,7 @@ public class RunArgs {
 	private boolean showLastErrors = false;
 	private boolean inline;
 	private boolean runCompiletimeFunctions;
+	private boolean runtests;
 	
 	public static RunArgs defaults() {
 		return new RunArgs(new String[] {});
@@ -28,6 +29,8 @@ public class RunArgs {
 					this.optimize = true;
 				} else if (a.equals("-inline")) {
 					inline = true;
+				} else if (a.equals("-runtests")) {
+					runtests = true;
 				} else if (a.equals("-gui")) {
 					this.gui = true;
 				} else if (a.equals("-out")) {
@@ -86,6 +89,11 @@ public class RunArgs {
 	public boolean runCompiletimeFunctions() {
 		return runCompiletimeFunctions;
 	}
+
+	public boolean runtests() {
+		return runtests;
+	}
+
 
 
 }

@@ -26,7 +26,7 @@ public class ILconstInt extends ILconstAbstract implements ILconstNum {
 		return create(-val);
 	}
 
-	public static ILconstNum create(int i) {
+	public static ILconstInt create(int i) {
 		return new ILconstInt(i);
 	}
 

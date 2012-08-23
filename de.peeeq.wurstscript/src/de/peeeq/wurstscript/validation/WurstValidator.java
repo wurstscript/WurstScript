@@ -270,7 +270,7 @@ public class WurstValidator {
 	}
 	
 	private void checkVarNotConstant(NameRef left, NameDef var) {
-		if (var.attrIsConstant()) {
+		if (var != null && var.attrIsConstant()) {
 			left.addError("Cannot assign a new value to constant " + Utils.printElement(var));
 		}
 	}

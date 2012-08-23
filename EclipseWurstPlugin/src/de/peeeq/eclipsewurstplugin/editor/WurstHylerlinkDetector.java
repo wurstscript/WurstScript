@@ -31,9 +31,14 @@ public class WurstHylerlinkDetector implements IHyperlinkDetector {
 
 	@Override
 	public IHyperlink[] detectHyperlinks(ITextViewer textViewer, IRegion region, boolean canShowMultipleHyperlinks) {
+		int offset = region.getOffset();
+		return getHyperlinks(offset);
+	}
+
+	public IHyperlink[] getHyperlinks(int offset) {
 		CompilationUnit cu = editor.getCompilationUnit();
 		if (cu != null) {
-			AstElement e = Utils.getAstElementAtPos(cu, region.getOffset());
+			AstElement e = Utils.getAstElementAtPos(cu, offset);
 			System.out.println("hover: " + e.getClass().getSimpleName());
 			if (e instanceof FuncRef) {
 				FuncRef funcRef = (FuncRef) e;
@@ -59,7 +64,7 @@ public class WurstHylerlinkDetector implements IHyperlinkDetector {
 	private IHyperlink[] linkTo(AstElementWithSource decl, int start, int end) {
 		if (decl == null) return null;
 		return new IHyperlink[] {
-			new WurstHyperlinik(editor.getProject(), decl, start, end)
+			new WurstHyperlink(editor.getProject(), decl, start, end)
 		};
 	}
 

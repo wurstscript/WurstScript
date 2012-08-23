@@ -8,6 +8,7 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
+import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
@@ -112,5 +113,21 @@ public class ImAttributes {
 			return t.getParent().attrTrace();
 		}
 		return Ast.NoExpr(); 
+	}
+
+
+	public static boolean hasFlag(ImFunction f, FunctionFlag flag) {
+		return f.getFlags().contains(flag);
+	}
+
+
+	public static ImProg getProg(JassImElement e) {
+		while (e != null) {
+			if (e instanceof ImProg) {
+				return (ImProg) e;
+			}
+			e = e.getParent();
+		}
+		throw new Error("Element "+ e + " not attached to root.");
 	}
 }

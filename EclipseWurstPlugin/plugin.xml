@@ -44,6 +44,7 @@
          </action>-->
       </objectContribution>
    </extension>
+   <!-- error markers -->
    <extension
          id="wurstProblemGrammar"
          name="Wurst Grammar"
@@ -66,6 +67,16 @@
             value="true">
       </persistent>
    </extension>
+   <!-- perspective -->
+	 <extension 
+        point="org.eclipse.ui.perspectives"> 
+        <perspective 
+            id="de.peeeq.eclipsewurstplugin.wurstperspective" 
+            name="Wurst" 
+            class="de.peeeq.eclipsewurstplugin.ui.WurstPerspective" 
+            icon="resources/icons/WurstFile16.gif"> 
+        </perspective> 
+    </extension> 
    <!-- Wizards -->
 	<extension
 	      point = "org.eclipse.ui.newWizards">
@@ -75,16 +86,52 @@
 		</category>
 	 	<wizard
 		   id = "de.peeeq.eclipsewurstplugin.wizards.newproject"
-			name = "New Wurst Project"
+			name = "Wurst Project"
 			project="true"
 			finalPerspective="de.peeeq.eclipsewurstplugin.wurstperspective"
 		   class="de.peeeq.eclipsewurstplugin.wizards.NewProjectWizard"
 		   category="de.peeeq.eclipsewurstplugin.wizards"
-		   icon="icons/obj16/newreadme_wiz.png">
+		   icon="resources/icons/WurstFile16.gif">
 	    	   <description>Create a new wurst project</description>
 		   <selection class="org.eclipse.core.resources.IResource"/>
 		</wizard>
+		<wizard
+		   id = "de.peeeq.eclipsewurstplugin.wizards.newpackage"
+			name = "Wurst Package"
+			project="false"
+			finalPerspective="de.peeeq.eclipsewurstplugin.wurstperspective"
+		   class="de.peeeq.eclipsewurstplugin.wizards.NewPackageWizard"
+		   category="de.peeeq.eclipsewurstplugin.wizards"
+		   icon="resources/icons/WurstFile16.gif">
+	    	   <description>Create a new wurst package</description>
+		   <selection class="org.eclipse.core.resources.IResource"/>
+		</wizard>
 	</extension>
+	
+    <!-- navigator content -->
+    <extension
+      point="org.eclipse.ui.navigator.navigatorContent">
+       <commonWizard
+             type="new"
+             wizardId="de.peeeq.eclipsewurstplugin.wizards.newproject">
+          <enablement>
+             <or>
+                <adapt type="org.eclipse.core.resources.IProject" />
+                <adapt type="org.eclipse.core.resources.IWorkspaceRoot" /> 
+             </or>
+        	</enablement>
+       </commonWizard>
+        <commonWizard
+             type="new"
+             wizardId="de.peeeq.eclipsewurstplugin.wizards.newpackage">
+          <enablement>
+             <or>
+                <adapt type="org.eclipse.core.resources.IProject" />
+                <adapt type="org.eclipse.core.resources.IFolder" />
+             </or>
+        	</enablement>
+       </commonWizard>
+   </extension>
 	<!-- editor -->
 	   <extension
          point="org.eclipse.ui.editors">
@@ -129,4 +176,57 @@
 	          </enablement>
              </navigatorContent>
    </extension>
+   
+   <!-- editor hotkeys -->
+   <extension point="org.eclipse.ui.commands">
+       <command
+             id="de.peeeq.eclipsewurstplugin.jumpdecl"
+             name="Jump to declaration">
+       </command>
+    </extension>
+       <extension point="org.eclipse.ui.bindings">
+       <key
+             commandId="de.peeeq.eclipsewurstplugin.jumpdecl"
+             contextId="de.peeeq.eclipsewurstplugin.wursteditorscope"
+             schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+             sequence="F3">
+       </key>
+    </extension>
+        <extension
+          point="org.eclipse.ui.contexts">
+       <context
+             id="de.peeeq.eclipsewurstplugin.wursteditorscope"
+             name="Wurst Editor Scope"
+             parentId="org.eclipse.ui.textEditorScope">
+       </context>
+    </extension>
+       <extension
+          point="org.eclipse.ui.editorActions">
+       <editorContribution
+             id="de.peeeq.eclipsewurstplugin.editorContribution1"
+             targetID="de.peeeq.eclipsewurstplugin.editorWurstEditor">
+          <action
+                class="de.peeeq.eclipsewurstplugin.editor.JumpToDeclaration"
+                definitionId="de.peeeq.eclipsewurstplugin.jumpdecl"
+                id="eu.hatsproject.absplugin.jumpToDeclaration"
+                label="Jump to declaration"
+                style="push">
+          </action>
+       </editorContribution>
+    </extension>
+        <extension
+          point="org.eclipse.ui.popupMenus">
+       <viewerContribution
+             id="de.peeeq.eclipsewurstplugin.viewerContribution1"
+             targetID="#TextEditorContext">
+          <action
+                class="de.peeeq.eclipsewurstplugin.editor.JumpToDeclaration"
+                definitionId="de.peeeq.eclipsewurstplugin.jumpdecl"
+                id="de.peeeq.eclipsewurstplugin.jumpToDeclaration"
+                label="Jump to declaration"
+                menubarPath="additions"
+                style="push">
+          </action>
+       </viewerContribution>
+    </extension>
 </plugin>

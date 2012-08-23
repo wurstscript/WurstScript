@@ -159,30 +159,42 @@ public class WurstNature implements IProjectNature {
 		
 	}
 
-	private void open(String fileName, int offset) {
+	private WurstEditor open(String fileName, int offset) {
 		IFile file = getProject().getFile(fileName);
-		IEditorPart editor = null;
 		if (file.exists()) {
-			try {
-				editor  = IDE.openEditor(getActiveWorkbenchPage(), file);
-				
-			} catch (PartInitException e) {
-				e.printStackTrace();
-			}
+			WurstEditor editor = open(file, offset);
+			return editor;
 		} else { // open external file
-			IFileStore fileStore = EFS.getLocalFileSystem().getStore(new Path(fileName));
+			IFileStore fileStore = EFS.getLocalFileSystem().getStore(new Path(file.getFullPath().toString()));
 			if (!fileStore.fetchInfo().isDirectory() && fileStore.fetchInfo().exists()) {
 			    try {
-			        editor = IDE.openEditorOnFileStore(getActiveWorkbenchPage(), fileStore);
+			        IEditorPart editor = IDE.openEditorOnFileStore(getActiveWorkbenchPage(), fileStore);
+			        if (editor instanceof WurstEditor) {
+						WurstEditor wurstEditor = (WurstEditor) editor;
+						wurstEditor.setHighlightRange(offset, 0, true);
+						return wurstEditor;
+					}
 			    } catch (PartInitException e) {
 			    	e.printStackTrace();
 			    }
 			}
 		}
-		if (editor instanceof WurstEditor) {
-			WurstEditor wurstEditor = (WurstEditor) editor;
-			wurstEditor.setHighlightRange(offset, 0, true);
+		return null;
+	}
+	
+	public WurstEditor open(IFile file, int offset) {
+		try {
+			IEditorPart editor = IDE.openEditor(getActiveWorkbenchPage(), file);
+			if (editor instanceof WurstEditor) {
+				WurstEditor wurstEditor = (WurstEditor) editor;
+				wurstEditor.setHighlightRange(offset, 0, true);
+				return wurstEditor;
+			}
+		} catch (PartInitException e) {
+			e.printStackTrace();
 		}
+		
+		return null;
 		
 	}
 	
@@ -200,6 +212,8 @@ public class WurstNature implements IProjectNature {
 		deleteMarkers(file, WurstBuilder.MARKER_TYPE_TYPES);
 		
 	}
+
+	
 
 	
 

@@ -10,6 +10,8 @@ import de.peeeq.wurstscript.intermediateLang.ILconstInt;
 import de.peeeq.wurstscript.intermediateLang.ILconstReal;
 import de.peeeq.wurstscript.intermediateLang.ILconstString;
 import de.peeeq.wurstscript.intermediateLang.ILconstTuple;
+import de.peeeq.wurstscript.jassinterpreter.TestFailException;
+import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.objectreader.ObjectDefinition;
 import de.peeeq.wurstscript.objectreader.ObjectFile;
 import de.peeeq.wurstscript.objectreader.ObjectModification;
@@ -54,6 +56,19 @@ public class CompiletimeNatives implements NativesProvider {
 			}
 		}
 		throw new InterprationError("Compiletime function " + funcname + " is not implemented yet.");
+	}
+	
+	public void testFail(ILconstString msg) {
+		throw new TestFailException(msg.getVal());
+	}
+	
+	public void testPrint(ILconstString msg) {
+		System.out.println(msg.getVal());
+	}
+	
+	
+	public void testSuccess() {
+		throw TestSuccessException.instance;
 	}
 	
 	public void compileError(ILconstString msg) {

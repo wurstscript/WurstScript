@@ -18,6 +18,7 @@ import static de.peeeq.wurstscript.jassIm.JassIm.ImVoid;
 import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlag.IS_BJ;
 import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlag.IS_COMPILETIME;
 import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlag.IS_NATIVE;
+import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlag.IS_TEST;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -142,7 +143,7 @@ public class ImTranslator {
 	 * translates a program 
 	 */
 	public ImProg translateProg() {
-		imProg = ImProg(ImVars(), ImFunctions());
+		imProg = ImProg(ImVars(), ImFunctions(), Maps.<ImVar,ImExpr>newHashMap());
 		
 		globalInitFunc = ImFunction(emptyTrace, "initGlobals", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
 		addFunction(globalInitFunc);
@@ -230,6 +231,7 @@ public class ImTranslator {
 	public void addGlobalInitalizer(ImVar v, PackageOrGlobal packageOrGlobal, OptExpr initialExpr) {
 		if (initialExpr instanceof Expr) {
 			Expr expr = (Expr) initialExpr;
+			
 			ImFunction f;
 			if (packageOrGlobal instanceof WPackage) {
 				WPackage p = (WPackage) packageOrGlobal;
@@ -238,7 +240,9 @@ public class ImTranslator {
 				f = globalInitFunc;
 			}
 			AstElement trace = packageOrGlobal == null ? emptyTrace : packageOrGlobal;
-			f.getBody().add(ImSet(trace, v, expr.imTranslateExpr(this, f)));
+			ImExpr translated = expr.imTranslateExpr(this, f);
+			f.getBody().add(ImSet(trace, v, translated));
+			imProg.getGlobalInits().put(v, (ImExpr) translated.copy());
 		}
 	}
 
@@ -299,6 +303,9 @@ public class ImTranslator {
 			if (funcDef2.attrIsCompiletime()) {
 				flags.add(IS_COMPILETIME);
 			}
+			if (funcDef2.attrHasAnnotation("test")) {
+				flags.add(IS_TEST);
+			}
 		}
 		ImFunction f = JassIm.ImFunction(funcDef, name, ImVars(), ImVoid(), ImVars(), ImStmts(), flags);
 		funcDef.imCreateFuncSkeleton(this, f);
@@ -311,8 +318,10 @@ public class ImTranslator {
 		if (dynamicDispatchFunctionMap.containsKey(funcDef)) {
 			return dynamicDispatchFunctionMap.get(funcDef);
 		}
-		if (funcDef.attrNearestStructureDef() instanceof InterfaceDef) {
-			// for interfaces use same function..
+		if (funcDef.attrNearestStructureDef() instanceof InterfaceDef // for interfaces use same function.. 
+				|| funcDef instanceof ExtensionFuncDef // extension func defs are always statically bound
+				) {
+			
 			return getFuncFor(funcDef);
 		}
 		String name = "dispatch_" + getNameFor(funcDef);
