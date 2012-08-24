@@ -1,5 +1,5 @@
 package Unit
-    
+
     public function unit.getX() returns real
 		return GetUnitX(this)
 		
@@ -84,5 +84,8 @@ package Unit
 		
 	public function unit.remove()
 		RemoveUnit(this)
+		
+	public function unit.getState( unitstate state ) returns real
+		return GetUnitState( this, state )
 
 endpackage

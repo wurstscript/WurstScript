@@ -1,5 +1,5 @@
 package Fx
-    import Dummy
+    import DummyRecycler
     import Effect
    	
 	/********************************************************
@@ -14,15 +14,6 @@ package Fx
 	 *														*
 	 * Credits to Vexorian 								  	*
 	 ********************************************************/
-
-    // Delay in order to show the death animation of the effect correctly when a Fx is destroyed.
-    // You may need to increase this if you are using effects with longer death animations.
-    constant real    MIN_RECYCLE_DELAY = 4.0
-
-    // The delay does not need to be exact so we do cleanup in batches instead of individually.
-    // This determines how often the recycler runs, should be less than MIN_RECYCLE_DELAY.
-    constant real    RECYCLE_INTERVAL = 0.5
-    
 	
 	public class Fx
 		private unit 	dummy	= null
@@ -36,11 +27,11 @@ package Fx
 		private integer alpha 	= 255
 		
 		construct(real x, real y, real facing)
-			dummy = newDummyUnit(DUMMY_PLAYER, x,y, facing)
+			dummy = newDummy( x, y, 0, facing)
 			
         
         construct(real x, real y, real facing, string fxpath)
-			dummy = newDummyUnit(DUMMY_PLAYER, x,y, facing)
+			dummy = newDummy( x, y, 0, facing)
 			//print(GetUnitName(dummy))
             setFx( fxpath )
 				
@@ -159,55 +150,13 @@ package Fx
             if fx != null
 				fx.destr()
 
-            new Recyclebin(dummy)
-            dummy=null
+            recycleDummy(dummy)
 
 		
 		function hiddenDestroy()
 			dummy.hide()
 			destroy this
 			
-	timer    recycler = CreateTimer()
 
-    Recyclebin array list
-    
-    function recycle()
-        //print("recycle")
-        Recyclebin rb = list[Recyclebin.readindex]
-        while Recyclebin.count > 0
-
-            releaseDummyUnit(rb.u)
-            rb.u = null
-            Recyclebin.count--
-            destroy rb
-            rb = rb.next
-
-        list[Recyclebin.readindex] = null
-        Recyclebin.writeindex=Recyclebin.readindex
-        //Recyclebin.readindex++
-        if Recyclebin.readindex>R2I(MIN_RECYCLE_DELAY/RECYCLE_INTERVAL+1.0) 
-            Recyclebin.readindex=0
-
-        if Recyclebin.count != 0 
-            TimerStart(recycler, RECYCLE_INTERVAL, false, function recycle)
-                
-    class Recyclebin
-        unit u
-
-        private Recyclebin next
-
-        private static int readindex = 0
-        private static int writeindex = 0
-        private static int count = 0
-
-        construct( unit u )
-            if Recyclebin.count==0 
-                TimerStart(recycler, RECYCLE_INTERVAL, false, function recycle)
-                
-            Recyclebin.count++
-            this.u = u
-            SetUnitOwner(u,DUMMY_PLAYER,false)
-            next=list[Recyclebin.writeindex]
-            list[Recyclebin.writeindex]=this
 			
 endpackage

@@ -3,6 +3,7 @@ package Basics
 	public constant int 	DUMMY_UNIT_ID 	   	= 'e000'
 	public constant int 	HEIGHT_ENABLER     	= 'Amrf'
 	public constant int		TREE_RECOGNITION  	= 'Aeat'
+	public constant int 	LOCUST_ID			= 'Aloc'
 	public constant real    ANIMATION_PERIOD   	=  0.015625000
 	public constant real    MAX_COLLISION_SIZE 	=  197.0
 	public constant player  DUMMY_PLAYER 		= Player(15)

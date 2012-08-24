@@ -1,0 +1,257 @@
+package DummyRecycler
+	import MapBounds /*
+
+    MissileRecycler v 1.2.0.4
+    =========================================================================
+    Credits:
+    -------------------------------------------------------------------------
+    Written by Bribe
+    Vexorian, Anitarf and iNfraNe for the dummy.mdx model file
+    Nestharus for the Queue data structure and for finding that paused units
+        consume very few CPU resources.
+
+    =========================================================================
+    Requirements:
+    -------------------------------------------------------------------------
+    -   Updated JassHelper by Cohadar
+
+    =========================================================================
+    Introduction:
+    -------------------------------------------------------------------------
+    Recycling dummy units is important because the CreateUnit is one of,
+    if not the, most processor-intensive native in the entire game. Creating
+    just a couple dozen dummy units in a single thread causes a visible frame
+    glitch for that instant. The overhead is even higher if you are using a
+    Unit Indexing library in the map which causes some extra evaluations per
+    new unit.
+
+    There are also reports of removed units leaving a little trail of RAM
+    surplus in their wake. I have not been able to reproduce this so I don't
+    know if this is still a factor in 1.26.
+
+    I was motivated to create this system because removed units might be un-
+    safe in very large numbers and CreateUnit is a very heavy process.
+
+    The thing that makes this system different than others is the fact that
+    it considers the facing angle of the dummies being recycled, which I have
+    never seen another system even attempt. Considering the facing angle is
+    important because it takes almost 1 second for the unit to turn around,
+    which looks especially weird if you are creating a unit-trail or if you
+    are shooting arrow-shaped objects as projectiles. For fireball effects or
+    effects that generally don't depend on facing angle, this system would be
+    a bit wasteful.
+
+    Worst case scenario, it will take 0.09 seconds for the projectile to turn
+    to the angle you need. This is 1/8 of the normal worst case scenario if
+    you weren't recycling dummies considering facing. On average, it takes
+    roughly 0.045 seconds to turn to the angle you need (which is not even
+    noticable). However, I have made this completely configurable and you are
+    able to change the values to whatever needs you have.
+
+    =========================================================================
+    Calibration Guide:
+    -------------------------------------------------------------------------
+    The thing that surprised me the most about this system was, no matter how
+    complex it turned out, it became very configurable. So I should let you
+    know what the constants do so you know if/how much you want to modify.
+
+    constant int ANG_N = 8
+
+    -   How many different angles are recognized by the system. You can't do
+    360 different angles because  you're going to have thousands of dummy
+    units stored and that's ridiculous, the game lags enough at 1000 units.
+    Increasing ANG_N increases realism but decreases the chance that a dummy
+    unit will be available to be recycled. I don't recommend making this any
+    lower, though the max I'd recommend would be 16.
+
+    constant int ANG_STORAGE_MAX = 12
+
+    -   How many dummy units are stored per angle. This limit is important
+    because you might have a spike at one point in the game where many units
+    are created, which could lead to many of those dummy units never being
+    used again.
+        In general, I advise that the factor of ANG_N x ANG_STORAGE_MAX does
+    not exceed 100. More than that is too much in my opinion.
+        Preloads ANG_N x ANG_STORAGE_MAX dummy units. Preloading dummies is
+    useful as it dumps a lot of CreateUnit calls in initialization where you
+    won't see a frame glitch.
+
+    =========================================================================
+    API Guide:
+    -------------------------------------------------------------------------
+    You obviously need some functions so you can get a recycled dummy unit or
+    recycle it. Therefore I provide these:
+
+    function GetRecycledMissile
+        takes real x, real y, real z, real facing
+            returns unit
+
+        Returns a new dummy unit that acts as a projectile missile. The args
+        are simply the last three arguments you'd use for a CreateUnit call,
+        with the addition of a z parameter to represent the flying height -
+        it isn't the absolute z but relative to the ground because it uses
+        SetUnitFlyHeight on that value directly.
+
+    function RecycleMissile
+        takes unit u
+            returns nothing
+
+        When you are done with that dummy unit, recycle it via this function.
+        This function is pretty intelligent and resets that unit's animation
+        and its facing angle so you don't have to.
+*/
+    //=======================================================================
+    // Save the map,  delete the exclaimation mark in the following line.
+    // Make sure that you don't have an object in your map with the rawcode
+    // 'dumi' and also configure the model path (war3mapImported\dummy.mdl)
+    // to the dummy.mdx model created by Vexorian.
+    //! external ObjectMerger w3u ewsp dumi unam "Missile Dummy" ubui "" uhom 1 ucol 0.01 umvt "None" umvr 1.00 utar "" uspa "" umdl "war3mapImported\dummy.mdl" umxr 0.00 umxp 0.00 ushr 0 uerd 0.00 udtm 0.00 ucbs 0.00 uble 0.00 uabi "Aloc,Amrf"
+
+
+    //-------------------------------------------------------------------
+    // You must configure the dummy unit with the one created from the
+    // ObjectMerger statement above.
+    //
+    constant int ANG_N = 8              //# of indexed angles. Higher value increases realism but decreases recycle frequency.
+    constant int ANG_STORAGE_MAX = 12   //Max dummies per indexed angle. I recommend lowering this if you increase ANG_N.
+
+    constant real DEATH_TIME = 2. //Allow the special effect on
+    //the unit to complete its "death" animation in this timeframe. Must
+    //be higher than 0.74 seconds to allow the unit time to turn. This
+    //number should not be lower than the maximum death-animation time of
+    //your missile-units' effect attachments, just to be safe.
+
+
+    constant int ANG_VAL = 360 div ANG_N //Generate angle value from ANG_N.
+    constant int ANG_MID = ANG_VAL div 2 //The middle value of angle value.
+
+    //Misc vars
+    unit array stack       //Recycled dummy units.
+    int array stackN   //How many units are in the stack?
+    real array timeStamp   //Prevents early recycling of units.
+    int array queueNext
+    int array queueLast
+    int recycle = 0
+    timer gameTime  = CreateTimer() //Used for visual continuity.
+    group protect   = CreateGroup() //Used to prevent double frees.
+
+
+
+    //=======================================================================
+    // Get a recycled dummy missile unit. If there are no recycled dummies
+    // that are already facing the angle you need, it creates a new dummy for
+    // you.
+    //
+    public function newDummy( real x, real y, real z, real facing ) returns unit
+        int i = ModuloInteger(R2I(facing), 360) div ANG_VAL
+        int qn = queueNext[i]
+        unit u
+        if qn != 0 and TimerGetElapsed(gameTime) >= timeStamp[qn] 
+            //Dequeue this
+            queueNext[i] = queueNext[qn]
+            if queueNext[i] == 0 
+                queueLast[i] = i
+
+            stackN[i] = stackN[i] - 1
+            //Recycle this index
+            queueLast[qn] = recycle
+            recycle = qn
+            //Old unit will return as new
+            u = stack[qn]
+            SetUnitFacing(u, facing)
+            GroupRemoveUnit(protect, u)
+        else
+            u = CreateUnit(DUMMY_PLAYER, DUMMY_UNIT_ID, x, y, facing)
+            u.addAbility(HEIGHT_ENABLER).removeAbility(HEIGHT_ENABLER)
+            u.addAbility(LOCUST_ID)
+            PauseUnit(u, true)
+
+        SetUnitX(u, x)
+        SetUnitY(u, y)
+        SetUnitFlyHeight(u, z, 0)
+        bj_lastCreatedUnit = u
+        u = null
+        return bj_lastCreatedUnit
+
+    //=======================================================================
+    // You should recycle the dummy missile unit when its job is done.
+    //
+    public function recycleDummy( unit u )
+        int rc = recycle
+        if GetUnitTypeId(u) == DUMMY_UNIT_ID and not IsUnitInGroup(u, protect) 
+            if rc == 0 
+                RemoveUnit(u)
+                return
+            //Recycle this
+            recycle = queueLast[rc]
+            //Index the dummy unit to an available facing angle.
+            i = R2I(GetUnitFacing(u)) div ANG_VAL
+            if stackN[i] < ANG_STORAGE_MAX 
+                int i = ANG_N
+                while stackN[i] > ANG_STORAGE_MAX
+                    i--
+
+            //Enqueue this
+            queueNext[queueLast[i]] = rc
+            queueLast[i] = rc
+            queueNext[rc] = 0
+            stackN[i] = stackN[i] + 1
+            //Allow a time barrier for the effect to destroy/turn to complete.
+            timeStamp[rc] = TimerGetElapsed(gameTime) + DEATH_TIME
+            stack[rc] = u
+            //Prevent double-free of this unit.
+            GroupAddUnit(protect, u)
+            //Rethe dummy's properties.
+            SetUnitFacing(u, (i * ANG_VAL + ANG_MID).toReal())
+            SetUnitVertexColor(u, 255, 255, 255, 255)
+            SetUnitAnimationByIndex(u, 90)
+            SetUnitScale(u, 1, 0, 0)
+            //PauseUnit(u, false) -- you can disable "resets" that you don't need to worry about.
+        else
+            printError("[MissileRecycler] Error: Attempt to recycle invalid unit.")
+
+    //=======================================================================
+    // Map the dummy units to their facing angles (map below is if ANG_N is
+    // 4 and ANG_STORAGE_MAX is 3).
+    //
+    // angle[0] (0)   -  [4] [5] [6]
+    // angle[1] (90)  -  [7] [8] [9]
+    // angle[2] (180) - [10][11][12]
+    // angle[3] (270) - [13][14][15]
+    //
+    init
+    	print("start")
+        int end
+        print("start2")
+        int n = ANG_N
+        print("start3")
+        real angle
+        print("start4")
+        real x = maxx
+        print("start5")
+        real y = maxy
+		print("ochs")
+        for int i = ANG_N downto 0
+            print("1")
+            stackN[i] = ANG_STORAGE_MAX
+            queueNext[i] = n
+            angle = (i * ANG_VAL + ANG_MID).toReal()
+            end = n + ANG_STORAGE_MAX
+            queueLast[i] = end - 1
+            while n < end
+                print("2")
+                queueNext[n] = n + 1
+                stack[n] = CreateUnit(DUMMY_PLAYER, DUMMY_UNIT_ID, x, y, angle)
+                stack[n].addAbility(HEIGHT_ENABLER).removeAbility(HEIGHT_ENABLER)
+            	stack[n].addAbility(LOCUST_ID)
+                PauseUnit(stack[n], true)
+                n++
+
+            queueNext[n - 1] = 0
+
+
+
+        TimerStart(gameTime, 1000000., false, null)
+
+
+endpackage

@@ -82,7 +82,7 @@ package Knockback
             real x
             real y 
                         
-			print("yes")
+			//print("yes")
             //change the time which has been gone
             timeOver += PERIOD
             currentSpeed -= deceleration
@@ -102,10 +102,10 @@ package Knockback
             if isTerrainWalkable(x, y)
                 SetUnitX(target, x)
                 SetUnitY(target, y)
-                print("foo")
+                //print("foo")
             else
                 if STOP_WHEN_IMPASSABLE
-                    print("impassable")
+                    //print("impassable")
                     stopTimedLoop()
                 
             //change the knockback effect if the user want to use it
@@ -121,7 +121,7 @@ package Knockback
             
             //if the knockback ended because the target reached the end or the speed is smaller than 0
             if currentSpeed <= 0 or movedDistance >= distance
-                print("ende")
+                //print("ende")
                 stopTimedLoop()
             
             

@@ -11,7 +11,16 @@ package Maths
 	public function polarProjectionYR ( real y,  real dist, real angle ) returns real
 		return y + dist * Sin(angle)
 		
-	public function polarProjectionZ ( real z,  real dist, real angle ) returns real
+	public function polarProjectionZR ( real z,  real dist, real angle ) returns real
+		return z + dist * Sin(angle)
+		
+	public function polarProjectionXD ( real x,  real dist, real angle ) returns real
+		return x + dist * Cos(angle * DEGTORAD)
+	
+	public function polarProjectionYD ( real y,  real dist, real angle ) returns real
+		return y + dist * Sin(angle * DEGTORAD)
+		
+	public function polarProjectionZD ( real z,  real dist, real angle ) returns real
 		return z + dist * Sin(angle * DEGTORAD)
 	
 	public function angleBetweenCoordsD ( real x1, real y1, real x2, real y2 ) returns real
