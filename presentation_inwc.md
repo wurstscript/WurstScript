@@ -3,7 +3,7 @@ layout: default
 title: WurstScript Präsentation inWarcraft
 ---
 
-Wurst ist eine Sprache, die ähnlich wie vJass, cJass oder zinc int Jass übersetzt werden kann. 
+Wurst ist eine Sprache, die ähnlich wie vJass, cJass oder zinc zu Jass übersetzt werden kann. 
 
 Warum eine neue Sprache? 
 ===========================
