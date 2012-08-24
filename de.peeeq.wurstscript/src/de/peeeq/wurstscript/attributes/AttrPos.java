@@ -1,8 +1,12 @@
 package de.peeeq.wurstscript.attributes;
 
+import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithSource;
+import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
 
@@ -73,6 +77,28 @@ public class AttrPos {
 		LineOffsets lineOffsets = getLineOffsets(p);
 		return lineOffsets.getLine(p.getRightPos()) + 1;
 	}
-	
 
+
+	public static WPos getErrorPos(AstElement e) {
+		return e.attrSource();
+	}
+	
+	public static WPos getErrorPos(WPackage e) {
+		WPos pos = e.getSource().copy();
+		pos.setRightPos(pos.getLeftPos() + ("package " + e.getName()).length());
+		return pos;
+	}
+	
+	public static WPos getErrorPos(FuncDef e) {
+		WPos pos = e.getSource().copy();
+		pos.setRightPos(pos.getLeftPos() + ("function " + e.getName()).length());
+		return pos;
+	}
+	
+	public static WPos getErrorPos(ClassDef e) {
+		WPos pos = e.getSource().copy();
+		pos.setRightPos(pos.getLeftPos() + ("class " + e.getName()).length());
+		return pos;
+	}
+	
 }
