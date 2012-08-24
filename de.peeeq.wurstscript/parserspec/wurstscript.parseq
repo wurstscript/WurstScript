@@ -551,7 +551,9 @@ AstElement.attrSource()
 	returns WPos
 	implemented by de.peeeq.wurstscript.attributes.AttrPos.getPos
 	
-	
+AstElement.attrErrorPos() "returns the position where errors are marked"
+	returns WPos
+	implemented by de.peeeq.wurstscript.attributes.AttrPos.getErrorPos	
 
 WPos.getColumn()
 	returns int
