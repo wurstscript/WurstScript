@@ -5,7 +5,13 @@ import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithSource;
 import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.FunctionLike;
+import de.peeeq.wurstscript.ast.InitBlock;
+import de.peeeq.wurstscript.ast.OnDestroyDef;
+import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
@@ -95,10 +101,39 @@ public class AttrPos {
 		return pos;
 	}
 	
+	public static WPos getErrorPos(ExtensionFuncDef e) {
+		WPos pos = e.getSource().copy();
+		pos.setRightPos(e.getExtendedType().getSource().getRightPos() + (".function " + e.getName()).length());
+		return pos;
+	}
+	
 	public static WPos getErrorPos(ClassDef e) {
 		WPos pos = e.getSource().copy();
 		pos.setRightPos(pos.getLeftPos() + ("class " + e.getName()).length());
 		return pos;
 	}
 	
+	public static WPos getErrorPos(ConstructorDef e) {
+		WPos pos = e.getSource().copy();
+		pos.setRightPos(pos.getLeftPos() + ("construct").length());
+		return pos;
+	}
+	
+	public static WPos getErrorPos(InitBlock e) {
+		WPos pos = e.getSource().copy();
+		pos.setRightPos(pos.getLeftPos() + ("init").length());
+		return pos;
+	}
+	
+	public static WPos getErrorPos(OnDestroyDef e) {
+		WPos pos = e.getSource().copy();
+		pos.setRightPos(pos.getLeftPos() + ("ondestroy").length());
+		return pos;
+	}
+	
+	public static WPos getErrorPos(StructureDef e) {
+		WPos pos = e.getSource().copy();
+		pos.setRightPos(pos.getLeftPos() + 5 + e.getName().length());
+		return pos;
+	}
 }
