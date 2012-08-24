@@ -3,24 +3,24 @@ layout: default
 title: WurstScript Präsentation inWarcraft
 ---
 
-Wurst ist eine Sprache, die ähnlich wie vJass, cJass oder zinc übersetzt werden kann. 
+Wurst ist eine Sprache, die ähnlich wie vJass, cJass oder zinc int Jass übersetzt werden kann. 
 
 Warum eine neue Sprache? 
 ===========================
 
 ## Editor Support
 
-VJass basiert stark auf Textersetzungen (vJass modules, textmacros). Das macht es schwer einen 
-guten Editor mit Features wie autocomplete für vJass zu schreiben.
+vJass basiert hauptsächlich auf Textersetzungen (vJass modules, textmacros). Das macht es schwer einen 
+guten Editor, mit Features wie autocomplete, für vJass zu schreiben.
 
-Wurst setzt auf sehr einfach strukturierten Code, welcher in einer Compiler-Phase analysiert werden kann. 
-VJass benötigt hingegen [mehrere Phasen](http://www.wc3c.net/vexorian/zincmanual.html#compileerror).
+Wurst setzt auf sehr einfach strukturierten Code, welcher in einer einzigen Compiler-Phase analysiert werden kann. 
+vJass benötigt hingegen [mehrere Phasen](http://www.wc3c.net/vexorian/zincmanual.html#compileerror).
 
 Der Editor Support für Wurst ist als Eclipse Plugin realisiert. Mehr Informationen dazu folgen später.
 
 ## Typsicherheit
 
-VJass ist nicht typsicher. Als Beispiel nehme man den folgenden Code:
+vJass ist nicht typsicher. Als Beispiel nehme man den folgenden Code:
 
 *vJass Code*
 
@@ -37,7 +37,7 @@ VJass ist nicht typsicher. Als Beispiel nehme man den folgenden Code:
 		set a = "bla" // pjass error
 	endfunction
 
-VJass prüft nicht, ob in einer Variable vom Typ B auch wirklich nur Objekte vom Typ B gespeichert sind.
+vJass prüft nicht, ob in einer Variable vom Typ B auch wirklich nur Objekte vom Typ B gespeichert sind.
 Dies kann zu Fehlern führen, die man erst spät entdeckt oder man bekommt einen pJass Fehler,
 der teilweise nicht leicht zu verstehen ist. 
 
@@ -47,7 +47,7 @@ Der entsprechende Wurst-Code sieht folgendermaßen aus (Screenshot aus dem Eclip
 
 ## Weniger schreiben, einfacher Lesen
 
-VJass hat einige redundate Syntax-Elemente. Beispiele dafür sind "set", "call"
+vJass hat einige redundate Syntax-Elemente. Beispiele dafür sind "set", "call"
 oder "takes nothing returns nothing". Gleichzeitg hat vJass sehr wenige Elemente, 
 die es erlauben Code zu schreiben, der besser lesbar ist. Insbesondere gibt es nur 
 eine Form von Schleife.
@@ -73,7 +73,7 @@ Außerdem können Variablen an einer beliebigen Stelle in der Funktion definiert
 
 ## Extension functions
 
-Extension functions erlauben es einem vorhanden Typ neue Funktionen zu geben, welche mit der Punkt-Syntax von Methodenaufrufen benutzt werden können.
+Extension functions erlauben es, einem vorhanden Typ neue Funktionen zu geben, welche mit der Punkt-Syntax von Methodenaufrufen benutzt werden können.
 
 Deklaration: 
 
