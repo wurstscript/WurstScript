@@ -14,5 +14,6 @@ package Wurst
     import public Maths
     import public Table
     import public Trigger
+	import public Primitives
 	
 endpackage

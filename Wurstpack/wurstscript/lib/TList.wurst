@@ -102,6 +102,3 @@ function TList<int>.sum() returns int
 	l.sum().assertEquals(23)
 		
 	
-
-	
-				

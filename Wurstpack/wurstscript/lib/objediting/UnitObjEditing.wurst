@@ -1,0 +1,786 @@
+package UnitObjEditing
+
+import ObjEditingNatives
+
+public class W3UDefinition
+	ObjectDefinition def
+	
+	construct(string newUnitId, string origUnitId)
+		def = createObjectDefinition("w3u", newUnitId, origUnitId)
+		
+	function setTooltipExtended(string data)
+		def.setString("utub", data)
+	
+	function setTooltipBasic(string data)
+		def.setString("utip", data)
+	
+	function setRequirementsLevels(string data)
+		def.setString("urqa", data)
+	
+	function setRequirements(string data)
+		def.setString("ureq", data)
+	
+	function setName(string data)
+		def.setString("unam", data)
+	
+	function setHotkey(string data)
+		def.setString("uhot", data)
+	
+	function setDescription(string data)
+		def.setString("ides", data)
+	
+	function setButtonPositionY(int data)
+		def.setInt("ubpy", data)
+	
+	function setButtonPositionX(int data)
+		def.setInt("ubpx", data)
+	
+
+class UnitOrBuildingOrHeroDefinition extends W3UDefinition
+	
+	construct(string newUnitId, string origUnitId)
+		def = createObjectDefinition("w3u", newUnitId, origUnitId)
+	
+	function setUseExtendedLineofSight(boolean data)
+		def.setBoolean("ulos", data)
+
+	function setUseClickHelper(boolean data)
+		def.setBoolean("uuch", data)
+
+	function setUpgradesUsed(string data)
+		def.setString("upgr", data)
+
+	function setUnitSoundSet(string data)
+		def.setString("usnd", data)
+
+	function setUnitClassification(string data)
+		def.setString("utyp", data)
+
+	function setType(string data)
+		def.setString("umvt", data)
+
+	function setTurnRate(real data)
+		def.setReal("umvr", data)
+
+	function setTintingColor3Blue(int data)
+		def.setInt("uclb", data)
+
+	function setTintingColor2Green(int data)
+		def.setInt("uclg", data)
+
+	function setTintingColor1Red(int data)
+		def.setInt("uclr", data)
+
+	function setTilesets(string data)
+		def.setString("util", data)
+
+	function setTeamColor(string data)
+		def.setString("utco", data)
+
+	function setTargetedas(string data)
+		def.setString("utar", data)
+
+	function setTarget(string data)
+		def.setString("utaa", data)
+
+	function setStockStartDelay(int data)
+		def.setInt("usst", data)
+
+	function setStockReplenishInterval(int data)
+		def.setInt("usrg", data)
+
+	function setStockMaximum(int data)
+		def.setInt("usma", data)
+
+	function setSpeedMinimum(int data)
+		def.setInt("umis", data)
+
+	function setSpeedMaximum(int data)
+		def.setInt("umas", data)
+
+	function setSpeedBase(int data)
+		def.setInt("umvs", data)
+
+	function setSpecial(string data)
+		def.setString("uspa", data)
+
+	function setSleeps(boolean data)
+		def.setBoolean("usle", data)
+
+	function setSightRadiusNight(int data)
+		def.setInt("usin", data)
+
+	function setSightRadiusDay(int data)
+		def.setInt("usid", data)
+
+	function setShadowTextureBuilding(string data)
+		def.setString("ushb", data)
+
+	function setShadowImageWidth(real data)
+		def.setReal("ushw", data)
+
+	function setShadowImageUnit(string data)
+		def.setString("ushu", data)
+
+	function setShadowImageHeight(real data)
+		def.setReal("ushh", data)
+
+	function setShadowImageCenterY(real data)
+		def.setReal("ushy", data)
+
+	function setShadowImageCenterX(real data)
+		def.setReal("ushx", data)
+
+	function setSelectionScale(real data)
+		def.setReal("ussc", data)
+
+	function setSelectionCircleOnWater(boolean data)
+		def.setBoolean("usew", data)
+
+	function setSelectionCircleHeight(real data)
+		def.setReal("uslz", data)
+
+	function setScalingValue(real data)
+		def.setReal("usca", data)
+
+	function setScaleProjectiles(boolean data)
+		def.setBoolean("uscb", data)
+
+	function setRequiredBoneNames(string data)
+		def.setString("ubpr", data)
+
+	function setRequiredAttachmentLinkNames(string data)
+		def.setString("ualp", data)
+
+	function setRequiredAnimationNamesAttachments(string data)
+		def.setString("uaap", data)
+
+	function setRequiredAnimationNames(string data)
+		def.setString("uani", data)
+
+	function setRepairTime(int data)
+		def.setInt("urtm", data)
+
+	function setRepairLumberCost(int data)
+		def.setInt("ulur", data)
+
+	function setRepairGoldCost(int data)
+		def.setInt("ugor", data)
+
+	function setRandom(string data)
+		def.setString("ursl", data)
+
+	function setRace(string data)
+		def.setString("urac", data)
+
+	function setPropulsionWindowdegrees(real data)
+		def.setReal("uprw", data)
+
+	function setProjectileLaunchZSwimming(real data)
+		def.setReal("ulsz", data)
+
+	function setProjectileLaunchZ(real data)
+		def.setReal("ulpz", data)
+
+	function setProjectileLaunchY(real data)
+		def.setReal("ulpy", data)
+
+	function setProjectileLaunchX(real data)
+		def.setReal("ulpx", data)
+
+	function setProjectileImpactZSwimming(real data)
+		def.setReal("uisz", data)
+
+	function setProjectileImpactZ(real data)
+		def.setReal("uimz", data)
+
+	function setPriority(int data)
+		def.setInt("upri", data)
+
+	function setPointValue(int data)
+		def.setInt("upoi", data)
+
+	function setPlaceableInEditor(boolean data)
+		def.setBoolean("uine", data)
+
+	function setOrientationInterpolation(int data)
+		def.setInt("uori", data)
+
+	function setOccluderHeight(real data)
+		def.setReal("uocc", data)
+
+	function setNormal(string data)
+		def.setString("uabi", data)
+
+	function setNameEditorSuffix(string data)
+		def.setString("unsf", data)
+
+	function setMovement(string data)
+		def.setString("umsl", data)
+
+	function setModelFileExtraVersions(string data)
+		def.setString("uver", data)
+
+	function setModelFile(string data)
+		def.setString("umdl", data)
+
+	function setMinimumAttackRange(int data)
+		def.setInt("uamn", data)
+
+	function setMaximumRollAngledegrees(real data)
+		def.setReal("umxr", data)
+
+	function setMaximumPitchAngledegrees(real data)
+		def.setReal("umxp", data)
+
+	function setManaRegeneration(real data)
+		def.setReal("umpr", data)
+
+	function setManaMaximum(int data)
+		def.setInt("umpm", data)
+
+	function setManaInitialAmount(int data)
+		def.setInt("umpi", data)
+
+	function setLumberCost(int data)
+		def.setInt("ulum", data)
+
+	function setLoopingFadeOutRate(int data)
+		def.setInt("ulfo", data)
+
+	function setLoopingFadeInRate(int data)
+		def.setInt("ulfi", data)
+
+	function setIsaBuilding(boolean data)
+		def.setBoolean("ubdg", data)
+
+	function setIconScoreScreen(string data)
+		def.setString("ussi", data)
+
+	function setIconGameInterface(string data)
+		def.setString("uico", data)
+
+	function setHitPointsRegenerationType(string data)
+		def.setString("uhrt", data)
+
+	function setHitPointsRegenerationRate(real data)
+		def.setReal("uhpr", data)
+
+	function setHitPointsMaximumBase(int data)
+		def.setInt("uhpm", data)
+
+	function setHeightMinimum(real data)
+		def.setReal("umvf", data)
+
+	function setHeight(real data)
+		def.setReal("umvh", data)
+
+	function setHasWaterShadow(boolean data)
+		def.setBoolean("ushr", data)
+
+	function setHasTilesetSpecificData(boolean data)
+		def.setBoolean("utss", data)
+
+	function setGoldCost(int data)
+		def.setInt("ugol", data)
+
+	function setGoldBountyAwardedSidesperDie(int data)
+		def.setInt("ubsi", data)
+
+	function setGoldBountyAwardedNumberofDice(int data)
+		def.setInt("ubdi", data)
+
+	function setGoldBountyAwardedBase(int data)
+		def.setInt("ubba", data)
+
+	function setFoodProduced(int data)
+		def.setInt("ufma", data)
+
+	function setFoodCost(int data)
+		def.setInt("ufoo", data)
+
+	function setFogofWarSampleRadius(real data)
+		def.setReal("ufrd", data)
+
+	function setElevationSampleRadius(real data)
+		def.setReal("uerd", data)
+
+	function setElevationSamplePoints(int data)
+		def.setInt("uept", data)
+
+	function setDisplayasNeutralHostile(boolean data)
+		def.setBoolean("uhos", data)
+
+	function setDependencyEquivalents(string data)
+		def.setString("udep", data)
+
+	function setDefenseUpgradeBonus(int data)
+		def.setInt("udup", data)
+
+	function setDefenseType(string data)
+		def.setString("udty", data)
+
+	function setDefenseBase(int data)
+		def.setInt("udef", data)
+
+	function setDefaultActiveAbility(string data)
+		def.setString("udaa", data)
+
+	function setDeathType(string data)
+		def.setString("udea", data)
+
+	function setDeathTimeseconds(real data)
+		def.setReal("udtm", data)
+
+	function setCollisionSize(real data)
+		def.setReal("ucol", data)
+
+	function setCategorizationSpecial(boolean data)
+		def.setBoolean("uspe", data)
+
+	function setCategorizationCampaign(boolean data)
+		def.setBoolean("ucam", data)
+
+	function setCanFlee(boolean data)
+		def.setBoolean("ufle", data)
+
+	function setCanDropItemsOnDeath(boolean data)
+		def.setBoolean("udro", data)
+
+	function setBuildTime(int data)
+		def.setInt("ubld", data)
+
+	function setAttacksEnabled(string data)
+		def.setString("uaen", data)
+
+	function setAttack2WeaponType(string data)
+		def.setString("ua2w", data)
+
+	function setAttack2WeaponSound(string data)
+		def.setString("ucs2", data)
+
+	function setAttack2TargetsAllowed(string data)
+		def.setString("ua2g", data)
+
+	function setAttack2ShowUI(boolean data)
+		def.setBoolean("uwu2", data)
+
+	function setAttack2RangeMotionBuffer(real data)
+		def.setReal("urb2", data)
+
+	function setAttack2Range(int data)
+		def.setInt("ua2r", data)
+
+	function setAttack2ProjectileSpeed(int data)
+		def.setInt("ua2z", data)
+
+	function setAttack2ProjectileHomingEnabled(boolean data)
+		def.setBoolean("umh2", data)
+
+	function setAttack2ProjectileArt(string data)
+		def.setString("ua2m", data)
+
+	function setAttack2ProjectileArc(real data)
+		def.setReal("uma2", data)
+
+	function setAttack2MaximumNumberofTargets(int data)
+		def.setInt("utc2", data)
+
+	function setAttack2DamageUpgradeAmount(int data)
+		def.setInt("udu2", data)
+
+	function setAttack2DamageSpillRadius(real data)
+		def.setReal("usr2", data)
+
+	function setAttack2DamageSpillDistance(real data)
+		def.setReal("usd2", data)
+
+	function setAttack2DamageSidesperDie(int data)
+		def.setInt("ua2s", data)
+
+	function setAttack2DamageNumberofDice(int data)
+		def.setInt("ua2d", data)
+
+	function setAttack2DamageLossFactor(real data)
+		def.setReal("udl2", data)
+
+	function setAttack2DamageFactorSmall(real data)
+		def.setReal("uqd2", data)
+
+	function setAttack2DamageFactorMedium(real data)
+		def.setReal("uhd2", data)
+
+	function setAttack2DamageBase(int data)
+		def.setInt("ua2b", data)
+
+	function setAttack2CooldownTime(real data)
+		def.setReal("ua2c", data)
+
+	function setAttack2AttackType(string data)
+		def.setString("ua2t", data)
+
+	function setAttack2AreaofEffectTargets(string data)
+		def.setString("ua2p", data)
+
+	function setAttack2AreaofEffectSmallDamage(int data)
+		def.setInt("ua2q", data)
+
+	function setAttack2AreaofEffectMediumDamage(int data)
+		def.setInt("ua2h", data)
+
+	function setAttack2AreaofEffectFullDamage(int data)
+		def.setInt("ua2f", data)
+
+	function setAttack2AnimationDamagePoint(real data)
+		def.setReal("udp2", data)
+
+	function setAttack2AnimationBackswingPoint(real data)
+		def.setReal("ubs2", data)
+
+	function setAttack1WeaponType(string data)
+		def.setString("ua1w", data)
+
+	function setAttack1WeaponSound(string data)
+		def.setString("ucs1", data)
+
+	function setAttack1TargetsAllowed(string data)
+		def.setString("ua1g", data)
+
+	function setAttack1ShowUI(boolean data)
+		def.setBoolean("uwu1", data)
+
+	function setAttack1RangeMotionBuffer(real data)
+		def.setReal("urb1", data)
+
+	function setAttack1Range(int data)
+		def.setInt("ua1r", data)
+
+	function setAttack1ProjectileSpeed(int data)
+		def.setInt("ua1z", data)
+
+	function setAttack1ProjectileHomingEnabled(boolean data)
+		def.setBoolean("umh1", data)
+
+	function setAttack1ProjectileArt(string data)
+		def.setString("ua1m", data)
+
+	function setAttack1ProjectileArc(real data)
+		def.setReal("uma1", data)
+
+	function setAttack1MaximumNumberofTargets(int data)
+		def.setInt("utc1", data)
+
+	function setAttack1DamageUpgradeAmount(int data)
+		def.setInt("udu1", data)
+
+	function setAttack1DamageSpillRadius(real data)
+		def.setReal("usr1", data)
+
+	function setAttack1DamageSpillDistance(real data)
+		def.setReal("usd1", data)
+
+	function setAttack1DamageSidesperDie(int data)
+		def.setInt("ua1s", data)
+
+	function setAttack1DamageNumberofDice(int data)
+		def.setInt("ua1d", data)
+
+	function setAttack1DamageLossFactor(real data)
+		def.setReal("udl1", data)
+
+	function setAttack1DamageFactorSmall(real data)
+		def.setReal("uqd1", data)
+
+	function setAttack1DamageFactorMedium(real data)
+		def.setReal("uhd1", data)
+
+	function setAttack1DamageBase(int data)
+		def.setInt("ua1b", data)
+
+	function setAttack1CooldownTime(real data)
+		def.setReal("ua1c", data)
+
+	function setAttack1AttackType(string data)
+		def.setString("ua1t", data)
+
+	function setAttack1AreaofEffectTargets(string data)
+		def.setString("ua1p", data)
+
+	function setAttack1AreaofEffectSmallDamage(int data)
+		def.setInt("ua1q", data)
+
+	function setAttack1AreaofEffectMediumDamage(int data)
+		def.setInt("ua1h", data)
+
+	function setAttack1AreaofEffectFullDamage(int data)
+		def.setInt("ua1f", data)
+
+	function setAttack1AnimationDamagePoint(real data)
+		def.setReal("udp1", data)
+
+	function setAttack1AnimationBackswingPoint(real data)
+		def.setReal("ubs1", data)
+
+	function setArmorType(string data)
+		def.setString("uarm", data)
+
+	function setAnimationWalkSpeed(real data)
+		def.setReal("uwal", data)
+
+	function setAnimationRunSpeed(real data)
+		def.setReal("urun", data)
+
+	function setAnimationCastPoint(real data)
+		def.setReal("ucpt", data)
+
+	function setAnimationCastBackswing(real data)
+		def.setReal("ucbs", data)
+
+	function setAnimationBlendTimeseconds(real data)
+		def.setReal("uble", data)
+
+	function setAllowCustomTeamColor(boolean data)
+		def.setBoolean("utcc", data)
+
+	function setAIPlacementType(string data)
+		def.setString("uabt", data)
+
+	function setAIPlacementRadius(real data)
+		def.setReal("uabr", data)
+
+	function setAcquisitionRange(real data)
+		def.setReal("uacq", data)
+	
+class UnitOrHeroDefinition extends UnitOrBuildingOrHeroDefinition
+	
+	construct(string newId, string origId)
+		super(newId, origId)
+	
+	function setTransportedSize(int data)
+		def.setInt("ucar", data)
+	
+	function setLevel(int data)
+		def.setInt("ulev", data)
+	
+	function setGroupSeparationPriority(int data)
+		def.setInt("urpr", data)
+	
+	function setGroupSeparationParameter(int data)
+		def.setInt("urpp", data)
+	
+	function setGroupSeparationGroupNumber(int data)
+		def.setInt("urpg", data)
+	
+	function setGroupSeparationEnabled(boolean data)
+		def.setBoolean("urpo", data)
+	
+	function setFormationRank(int data)
+		def.setInt("ufor", data)
+	
+public class HeroDefinition extends UnitOrHeroDefinition						
+
+	construct(string newId, string origId)
+		super(newId, origId)
+	
+	
+	function setTooltipRevive(string data)
+		def.setString("utpr", data)
+
+	function setTooltipAwaken(string data)
+		def.setString("uawt", data)
+
+	function setStrengthperLevel(real data)
+		def.setReal("ustp", data)
+
+	function setStartingStrength(int data)
+		def.setInt("ustr", data)
+
+	function setStartingIntelligence(int data)
+		def.setInt("uint", data)
+
+	function setStartingAgility(int data)
+		def.setInt("uagi", data)
+
+	function setProperNamesUsed(int data)
+		def.setInt("upru", data)
+
+	function setProperNames(string data)
+		def.setString("upro", data)
+
+	function setPrimaryAttribute(string data)
+		def.setString("upra", data)
+
+	function setIntelligenceperLevel(real data)
+		def.setReal("uinp", data)
+
+	function setHeroRevivalLocations(string data)
+		def.setString("urva", data)
+
+	function setHero(string data)
+		def.setString("uhab", data)
+
+	function setAgilityperLevel(real data)
+		def.setReal("uagp", data)
+
+public class UnitDefinition extends UnitOrHeroDefinition
+	
+	construct(string newId, string origId)
+		super(newId, origId)
+		
+	function setStructuresBuilt(string data)
+		def.setString("ubui", data)
+	
+	function setCasterUpgradeTips(string data)
+		def.setString("ucut", data)
+	
+	function setCasterUpgradeNames(string data)
+		def.setString("ucun", data)
+	
+	function setCasterUpgradeArt(string data)
+		def.setString("ucua", data)
+		
+public class BuildingDefinition extends UnitOrBuildingOrHeroDefinition
+	
+	construct(string newId, string origId)
+		super(newId, origId)
+		
+	function setUpgradesTo(string data)
+		def.setString("uupt", data)
+
+	function setUnitsTrained(string data)
+		def.setString("utra", data)
+
+	function setUnitsSold(string data)
+		def.setString("useu", data)
+
+	function setRevivesDeadHeros(boolean data)
+		def.setBoolean("urev", data)
+
+	function setResearchesAvailable(string data)
+		def.setString("ures", data)
+
+	function setPlacementRequiresWaterRadius(real data)
+		def.setReal("upaw", data)
+
+	function setPlacementRequires(string data)
+		def.setString("upap", data)
+
+	function setPlacementPreventedBy(string data)
+		def.setString("upar", data)
+
+	function setPathingMap(string data)
+		def.setString("upat", data)
+
+	function setNeutralBuildingValidAsRandomBuilding(boolean data)
+		def.setBoolean("unbr", data)
+
+	function setNeutralBuildingShowsMinimapIcon(boolean data)
+		def.setBoolean("unbm", data)
+
+	function setItemsSold(string data)
+		def.setString("usei", data)
+
+	function setItemsMade(string data)
+		def.setString("umki", data)
+
+	function setGroundTexture(string data)
+		def.setString("uubs", data)
+
+	function setConstruction(string data)
+		def.setString("ubsl", data)
+
+public class ItemDefinition extends W3UDefinition
+	
+	construct(string newId, string origId)
+		super(newId, origId)
+	
+	function setAbilities(string data)
+		def.setString("iabi", data)
+
+	function setArmorType(string data)
+		def.setString("iarm", data)
+
+	function setClassification(string data)
+		def.setString("icla", data)
+
+	function setTintingColor3Blue(int data)
+		def.setInt("iclb", data)
+
+	function setTintingColor2Green(int data)
+		def.setInt("iclg", data)
+
+	function setTintingColor1Red(int data)
+		def.setInt("iclr", data)
+
+	function setCooldownGroup(string data)
+		def.setString("icid", data)
+
+	function setDroppedWhenCarrierDies(boolean data)
+		def.setBoolean("idrp", data)
+
+	function setCanBeDropped(boolean data)
+		def.setBoolean("idro", data)
+
+	function setModelUsed(string data)
+		def.setString("ifil", data)
+
+	function setGoldCost(int data)
+		def.setInt("igol", data)
+
+	function setHitPoints(int data)
+		def.setInt("ihtp", data)
+
+	function setIgnoreCooldown(boolean data)
+		def.setBoolean("iicd", data)
+
+	function setLevel(int data)
+		def.setInt("ilev", data)
+
+	function setLumberCost(int data)
+		def.setInt("ilum", data)
+
+	function setValidTargetForTransformation(boolean data)
+		def.setBoolean("imor", data)
+
+	function setLevelUnclassified(int data)
+		def.setInt("ilvo", data)
+
+	function setPerishable(boolean data)
+		def.setBoolean("iper", data)
+
+	function setIncludeAsRandomChoice(boolean data)
+		def.setBoolean("iprn", data)
+
+	function setUseAutomaticallyWhenAcquired(boolean data)
+		def.setBoolean("ipow", data)
+
+	function setPriority(int data)
+		def.setInt("ipri", data)
+
+	function setScalingValue(real data)
+		def.setReal("isca", data)
+
+	function setCanBeSoldByMerchants(boolean data)
+		def.setBoolean("isel", data)
+
+	function setCanBeSoldToMerchants(boolean data)
+		def.setBoolean("ipaw", data)
+
+	function setStockMaximum(int data)
+		def.setInt("isto", data)
+
+	function setStockReplenishInterval(int data)
+		def.setInt("istr", data)
+
+	function setStockStartDelay(int data)
+		def.setInt("isst", data)
+
+	function setActivelyUsed(boolean data)
+		def.setBoolean("iusa", data)
+
+	function setNumberofCharges(int data)
+		def.setInt("iuse", data)
+
+	function setInterfaceIcon(string data)
+		def.setString("iico", data)
+
