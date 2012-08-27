@@ -14,24 +14,19 @@ package PrintingHelper
             print(msg)
             
     public function print(string msg)
-        for int i = 0 to 12
-            DisplayTimedTextToPlayer(Player(i), 0., 0., DEBUG_MSG_DURATION, msg)
+		DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, msg)
 
     public function printNote(string msg)
-        for int i = 0 to 12
-            DisplayTimedTextToPlayer(Player(i), 0., 0., DEBUG_MSG_DURATION, "|cffFFFF00[NOTIFICATION]|r - " + msg)
+        DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, "|cffFFFF00[NOTIFICATION]|r - " + msg)
 
     public function printWarning(string msg)
-        for int i = 0 to 12
-            DisplayTimedTextToPlayer(Player(i), 0., 0., DEBUG_MSG_DURATION, "|cffFF8000[WARNING]|r - " + msg)
+        DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, "|cffFF8000[WARNING]|r - " + msg)
 
     public function printError(string msg)
-        for int i = 0 to 12
-            DisplayTimedTextToPlayer(Player(i), 0., 0., DEBUG_MSG_DURATION, "|cffFF0000[ERROR]|r - " + msg)
+        DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, "|cffFF0000[ERROR]|r - " + msg)
 		
 	public function printTimed(string msg, real duration)
-        for int i = 0 to 12
-            DisplayTimedTextToPlayer(Player(i), 0., 0., duration, msg)
+        DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., duration, msg)
 
     public function real.toString() returns string
         return R2S(this)
