@@ -48,12 +48,8 @@ public class EvaluateExpr {
 		for (int i=0; i < arguments.size(); i++) {
 			args[i] = arguments.get(i).evaluate(globalState, localState);
 		}
-		ILconst r = ILInterpreter.runFunc(globalState, f, args);
-		if (r == null) {
-			return new ILconstError("Void return of function " + f.getName());
-		} else {
-			return r;
-		}
+		LocalState r = ILInterpreter.runFunc(globalState, f, args);
+		return r.getReturnVal();
 	}
 
 	public static ILconst eval(ImIntVal e, ProgramState globalState, LocalState localState) {

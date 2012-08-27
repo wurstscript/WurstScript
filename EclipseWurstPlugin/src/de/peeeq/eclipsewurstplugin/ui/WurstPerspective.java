@@ -1,16 +1,27 @@
 package de.peeeq.eclipsewurstplugin.ui;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
 import org.eclipse.ui.IFolderLayout;
 import org.eclipse.ui.IPageLayout;
 import org.eclipse.ui.IPerspectiveFactory;
+import org.eclipse.ui.console.ConsolePlugin;
+import org.eclipse.ui.console.IConsole;
 import org.eclipse.ui.console.IConsoleConstants;
+import org.eclipse.ui.console.IConsoleManager;
+import org.eclipse.ui.console.IOConsoleInputStream;
+import org.eclipse.ui.console.IOConsoleOutputStream;
+import org.eclipse.ui.console.MessageConsole;
+
+import de.peeeq.eclipsewurstplugin.console.WurstConsole;
 
 public class WurstPerspective implements IPerspectiveFactory {
 
 	@Override
 	public void createInitialLayout(IPageLayout layout) {
 		String editorArea = layout.getEditorArea();
-		//String editorArea = "eu.hatsproject.abs.Abs";
 		IFolderLayout left = layout.createFolder("left", IPageLayout.LEFT, 0.20f, editorArea);
 		IFolderLayout bottom = layout.createFolder("bottom", IPageLayout.BOTTOM, 0.75f, editorArea);
 		IFolderLayout right = layout.createFolder("right", IPageLayout.RIGHT, 0.80f, editorArea);
@@ -33,7 +44,23 @@ public class WurstPerspective implements IPerspectiveFactory {
 		layout.addShowViewShortcut(IPageLayout.ID_OUTLINE);
 		layout.addShowViewShortcut(IPageLayout.ID_PROJECT_EXPLORER);
 		
-
+		findConsole();
+		
+		
+		
 	}
 
+	public static WurstConsole findConsole() {
+	      ConsolePlugin plugin = ConsolePlugin.getDefault();
+	      IConsoleManager conMan = plugin.getConsoleManager();
+	      IConsole[] existing = conMan.getConsoles();
+	      for (int i = 0; i < existing.length; i++)
+	         if (existing[i] instanceof WurstConsole)
+	            return (WurstConsole) existing[i];
+	      //no console found, so create a new one
+	      WurstConsole myConsole = new WurstConsole();
+	      conMan.addConsoles(new IConsole[]{myConsole});
+	      return myConsole;
+	   }
+	
 }

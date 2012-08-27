@@ -27,7 +27,7 @@ public class ModelManagerStub implements ModelManager {
 	}
 
 	@Override
-	public void typeCheckModel(WurstGui gui) {
+	public void typeCheckModel(WurstGui gui, boolean addErrorMarkers) {
 	}
 
 	@Override

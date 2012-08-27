@@ -79,7 +79,7 @@ public class ModelManagerImpl implements ModelManager {
 	}
 	
 	@Override
-	public synchronized void typeCheckModel(WurstGui gui) {
+	public synchronized void typeCheckModel(WurstGui gui, boolean addErrorMarkers) {
 		System.out.println("#typechecking");
 		long time = System.currentTimeMillis();
 		if (needsFullBuild) {
@@ -93,7 +93,9 @@ public class ModelManagerImpl implements ModelManager {
 			return;
 		}
 		if (gui.getErrorCount() > 0) {
-			nature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_GRAMMAR);
+			if (addErrorMarkers) {
+				nature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_GRAMMAR);
+			}
 			System.out.println("finished typechecking* in " + (System.currentTimeMillis() - time) + "ms");
 			return;
 		}
@@ -111,9 +113,11 @@ public class ModelManagerImpl implements ModelManager {
 			gui.sendError(e);
 			e.printStackTrace();
 		}
-		nature.clearMarkers(WurstBuilder.MARKER_TYPE_TYPES);
-		System.out.println("finished typechecking in " + (System.currentTimeMillis() - time) + "ms");
-		nature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_TYPES);
+		if (addErrorMarkers) {
+			nature.clearMarkers(WurstBuilder.MARKER_TYPE_TYPES);
+			System.out.println("finished typechecking in " + (System.currentTimeMillis() - time) + "ms");
+			nature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_TYPES);
+		}
 	}
 
 	

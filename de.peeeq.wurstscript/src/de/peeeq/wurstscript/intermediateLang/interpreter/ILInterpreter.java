@@ -15,6 +15,7 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassinterpreter.NativeFunctions;
 import de.peeeq.wurstscript.jassinterpreter.ReturnException;
+import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class ILInterpreter {
@@ -26,7 +27,7 @@ public class ILInterpreter {
 		this.globalState = new ProgramState(mapFile, gui);
 	}
 
-	public static ILconst runFunc(ProgramState globalState, ImFunction f, ILconst ... args) {
+	public static LocalState runFunc(ProgramState globalState, ImFunction f, ILconst ... args) {
 		String[] parameterTypes = new String[args.length];
 		for (int i=0; i<args.length; i++) {
 			parameterTypes[i] = "" + args[i];
@@ -50,16 +51,16 @@ public class ILInterpreter {
 		try {
 			f.getBody().runStatements(globalState, localState);
 		} catch (ReturnException e) {
-			return e.getVal();
+			return localState.setReturnVal(e.getVal());
 		}
 		if (f.getReturnType() instanceof ImVoid) {
-			return ILconstNull.instance();
+			return localState;
 		}
 		throw new InterprationError("function " + f.getName() + " did not return any value...");
 	}
 
-	private static ILconst runBuiltinFunction(ImFunction f, NativesProvider natives, ILconst... args)	throws Error, InterprationError {
-		return natives.invoke(f.getName(), args);
+	private static LocalState runBuiltinFunction(ImFunction f, NativesProvider natives, ILconst... args)	throws Error, InterprationError {
+		return new LocalState(natives.invoke(f.getName(), args));
 	}
 
 	private static boolean isCompiletimeNative(ImFunction f) {
@@ -77,11 +78,10 @@ public class ILInterpreter {
 		return false;
 	}
 
-	public void executeFunction(String funcName) {
+	public LocalState executeFunction(String funcName) {
 		for (ImFunction f : prog.getFunctions()) {
 			if (f.getName().equals(funcName)) {
-				runFunc(globalState, f);
-				return;
+				return runFunc(globalState, f);
 			}
 		}
 		throw new Error("no function with name "+ funcName + "was found.");

@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.intermediateLang.interpreter;
 
 import java.util.Map;
+import java.util.Map.Entry;
 
 import com.google.common.collect.Maps;
 
@@ -36,6 +37,15 @@ public abstract class State {
 
 	public ILconst getArrayVal(ImVar v, int index) {
 		return getArray(v).get(index);
+	}
+	
+	public ILconst getVarValue(String varName) {
+		for (Entry<ImVar, ILconst> e : values.entrySet()) {
+			if (e.getKey().getName().equals(varName)) {
+				return e.getValue();
+			}
+		}
+		return null;
 	}
 	
 }

@@ -214,7 +214,7 @@ public class ExprTranslation {
 			int id = t.getEnumMemberId(enumMember);
 			return ImIntVal(id);
 		} else {
-			throw new CompileError(e.getSource(), "Cannot translate reference to " + decl.getClass().getName());
+			throw new CompileError(e.getSource(), "Cannot translate reference to " + Utils.printElement(decl));
 		}
 	}
 

@@ -17,7 +17,7 @@ public interface ModelManager {
 
 	 void clean();
 
-	 void typeCheckModel(WurstGui gui);
+	 void typeCheckModel(WurstGui gui, boolean addErrorMarkers);
 
 	 void updateModel(CompilationUnit cu, WurstGui gui);
 

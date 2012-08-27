@@ -92,6 +92,10 @@ public class NativeFunctions implements NativesProvider {
 		return (ILconstInt) map2.get(key2.getVal());
 	}
 	
+	static public IlConstHandle GetLocalPlayer() {
+		return new IlConstHandle("Local Player", "local player");
+	}
+	
 	private static String getRandomName(String string) {
 		return string + new Random().nextInt(100);
 	}

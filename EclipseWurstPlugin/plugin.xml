@@ -208,7 +208,7 @@
           <action
                 class="de.peeeq.eclipsewurstplugin.editor.JumpToDeclaration"
                 definitionId="de.peeeq.eclipsewurstplugin.jumpdecl"
-                id="eu.hatsproject.absplugin.jumpToDeclaration"
+                id="de.peeeq.eclipsewurstplugin.jumpToDeclaration"
                 label="Jump to declaration"
                 style="push">
           </action>
@@ -229,4 +229,12 @@
           </action>
        </viewerContribution>
     </extension>
+    <!-- console -->
+    <extension point="org.eclipse.ui.console.consoleFactories">
+	  <consoleFactory 
+	     label="Wurst Console"
+	     class="de.peeeq.eclipsewurstplugin.console.ConsoleFactory"
+	     icon="resources/icons/WurstFile16.gif">
+	  </consoleFactory>
+	</extension>
 </plugin>
