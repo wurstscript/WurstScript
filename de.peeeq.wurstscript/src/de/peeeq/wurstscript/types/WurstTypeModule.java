@@ -4,7 +4,9 @@ import java.util.List;
 
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.NamedScope;
+import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.JassIm;
 
 
 public class WurstTypeModule extends WurstTypeNamedScope {
@@ -54,5 +56,10 @@ public class WurstTypeModule extends WurstTypeNamedScope {
 	@Override
 	public ImType imTranslateType() {
 		return TypesHelper.imInt();
+	}
+
+	@Override
+	public ImExprOpt getDefaultValue() {
+		return JassIm.ImNull();
 	}
 }

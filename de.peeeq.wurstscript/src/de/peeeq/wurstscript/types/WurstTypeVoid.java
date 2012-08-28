@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
 
@@ -39,6 +40,11 @@ public class WurstTypeVoid extends WurstType {
 	@Override
 	public ImType imTranslateType() {
 		return JassIm.ImVoid();
+	}
+
+	@Override
+	public ImExprOpt getDefaultValue() {
+		return JassIm.ImNoExpr();
 	}
 
 }

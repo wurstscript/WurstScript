@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.types;
 import java.util.List;
 
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImType;
@@ -93,6 +94,13 @@ public class WurstTypeArray extends WurstType {
 		} else {
 			throw new Error("cannot translate array type " + getName() + "  " + bt);
 		}
+	}
+
+
+
+	@Override
+	public ImExprOpt getDefaultValue() {
+		throw new Error();
 	}
 
 }

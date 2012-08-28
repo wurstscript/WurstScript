@@ -1,6 +1,8 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.intermediateLang.ILconstNull;
+import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
 
@@ -61,6 +63,11 @@ public class WurstFuncType extends WurstType {
 	@Override
 	public ImType imTranslateType() {
 		return JassIm.ImSimpleType("code");
+	}
+
+	@Override
+	public ImExprOpt getDefaultValue() {
+		return JassIm.ImNull();
 	}
 
 

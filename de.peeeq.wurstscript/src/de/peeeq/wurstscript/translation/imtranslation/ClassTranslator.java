@@ -50,8 +50,10 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.tests.PscriptTest;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstTypeClass;
+import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -323,6 +325,10 @@ public class ClassTranslator {
 	private void createStaticCallFunc(FuncDef funcDef) {
 		ImFunction f = translator.getFuncFor(funcDef);
 		f.getBody().addAll(translator.translateStatements(f, funcDef.getBody()));
+		// TODO add return for abstract function
+		if (funcDef.attrIsAbstract() && !(funcDef.attrReturnType() instanceof WurstTypeVoid)) {
+			f.getBody().add(ImReturn(funcDef, funcDef.attrReturnType().getDefaultValue()));
+		}
 	}
 
 

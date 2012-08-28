@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 
 public class WurstTypeError extends WurstType {
@@ -35,6 +36,11 @@ public class WurstTypeError extends WurstType {
 
 	@Override
 	public ImType imTranslateType() {
+		throw new Error("not implemented");
+	}
+
+	@Override
+	public ImExprOpt getDefaultValue() {
 		throw new Error("not implemented");
 	}
 

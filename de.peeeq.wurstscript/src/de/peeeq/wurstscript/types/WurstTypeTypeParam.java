@@ -5,7 +5,9 @@ import java.util.Map;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.JassIm;
 
 public class WurstTypeTypeParam extends WurstType {
 
@@ -63,6 +65,11 @@ public class WurstTypeTypeParam extends WurstType {
 	@Override
 	public ImType imTranslateType() {
 		return TypesHelper.imInt();
+	}
+
+	@Override
+	public ImExprOpt getDefaultValue() {
+		return JassIm.ImNull();
 	}
 
 }

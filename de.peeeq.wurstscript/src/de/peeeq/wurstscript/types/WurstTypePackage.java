@@ -4,6 +4,7 @@ import java.util.List;
 
 import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 
 
@@ -46,6 +47,11 @@ public class WurstTypePackage extends WurstTypeNamedScope {
 
 	@Override
 	public ImType imTranslateType() {
+		throw new Error("not implemented");
+	}
+
+	@Override
+	public ImExprOpt getDefaultValue() {
 		throw new Error("not implemented");
 	}
 
