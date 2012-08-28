@@ -19,8 +19,9 @@ import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class ILInterpreter {
-	private final ImProg prog;
+	private ImProg prog;
 	private ProgramState globalState;
+
 
 	public ILInterpreter(ImProg prog, WurstGui gui, File mapFile) {
 		this.prog = prog;
@@ -35,12 +36,13 @@ public class ILInterpreter {
 		System.out.println("calling function " + f.getName() + "("+ Utils.printSep(", ", parameterTypes) +  ")");
 		
 		if (isCompiletimeNative(f)) {
-			return runBuiltinFunction(f, new CompiletimeNatives(globalState), args);
+			return runBuiltinFunction(globalState, f, new CompiletimeNatives(globalState), args);
 		}
 		
 		
 		if (f.isNative()) {
-			return runBuiltinFunction(f, new NativeFunctions(), args);
+			NativesProvider nativeFuncs = new NativeFunctions();
+			return runBuiltinFunction(globalState, f, nativeFuncs, args);
 		}
 		LocalState localState = new LocalState();
 		int i = 0;
@@ -59,7 +61,8 @@ public class ILInterpreter {
 		throw new InterprationError("function " + f.getName() + " did not return any value...");
 	}
 
-	private static LocalState runBuiltinFunction(ImFunction f, NativesProvider natives, ILconst... args)	throws Error, InterprationError {
+	private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, NativesProvider natives, ILconst... args)	throws Error, InterprationError {
+		natives.setOutStream(globalState.getOutStream());
 		return new LocalState(natives.invoke(f.getName(), args));
 	}
 
@@ -100,5 +103,16 @@ public class ILInterpreter {
 		
 	}
 
+	public ProgramState getGlobalState() {
+		return globalState;
+	}
+
+	public void setGlobalState(ProgramState globalState) {
+		this.globalState = globalState;
+	}
+
+	public void setProgram(ImProg imProg) {
+		this.prog = imProg;
+	}
 
 }

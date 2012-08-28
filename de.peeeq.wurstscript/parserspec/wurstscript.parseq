@@ -429,6 +429,10 @@ WScope.attrNextScope "returns the scope surrounding this scope"
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nextScope
 
 
+AstElement.attrPathDescription
+	returns String
+	implemented by de.peeeq.wurstscript.attributes.PathDescription.get
+
 AstElement.attrCompilationUnit
 	returns CompilationUnit
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestCompilationUnit

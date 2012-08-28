@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.intermediateLang.ILconstReal;
 import de.peeeq.wurstscript.intermediateLang.ILconstString;
 import de.peeeq.wurstscript.intermediateLang.ILconstTuple;
 import de.peeeq.wurstscript.jassIm.ImBoolVal;
+import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFuncRef;
 import de.peeeq.wurstscript.jassIm.ImFunction;
@@ -112,7 +113,12 @@ public class EvaluateExpr {
 		if (var.isGlobal()) {
 			ILconst r = globalState.getVal(var);
 			if (r == null) {
-				r = e.attrProg().getGlobalInits().get(var).evaluate(globalState, localState);
+				ImExpr initExpr = e.attrProg().getGlobalInits().get(var);
+				if (initExpr != null) {
+					r = initExpr.evaluate(globalState, localState);
+				} else {
+					throw new Error("Variable " + var.getName() + " is not initalized.");
+				}
 				globalState.setVal(var, r);
 			}
 			return r;

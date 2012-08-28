@@ -99,14 +99,14 @@ public abstract class WurstTypeNamedScope extends WurstType {
 		if (typeParameters.size() == 0) {
 			return "";
 		}
-		String s = "{";
+		String s = "<";
 		for (int i=0; i<typeParameters.size(); i++) {
 			if (i > 0) {
 				s += ", ";
 			}
 			s += typeParameters.get(i);
 		}
-		return s + "}";
+		return s + ">";
 	}
 	
 //	@Override

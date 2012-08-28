@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.intermediateLang.interpreter;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -32,6 +33,7 @@ public class ProgramState extends State {
 	private Map<ObjectFileType, ObjectFile> dataStoreMap = Maps.newHashMap();
 	private int id = 0;
 	private Map<String, ObjectDefinition> objDefinitions = Maps.newHashMap();
+	private PrintStream outStream = System.out;
 
 	public ProgramState(File mapFile, WurstGui gui) {
 		this.gui = gui;
@@ -163,6 +165,14 @@ public class ProgramState extends State {
 			WLogger.severe(e);
 			throw new Error(e);
 		}
+	}
+
+	public PrintStream getOutStream() {
+		return outStream ;
+	}
+	
+	public void setOutStream(PrintStream os) {
+		outStream = os;
 	}
 
 	

@@ -54,7 +54,7 @@ public class WurstTypeClass extends WurstTypeNamedScope {
 	
 	@Override
 	public String getName() {
-		return getDef().getName() + printTypeParams() + " (class)";
+		return getDef().getName() + printTypeParams();
 	}
 	
 	@Override

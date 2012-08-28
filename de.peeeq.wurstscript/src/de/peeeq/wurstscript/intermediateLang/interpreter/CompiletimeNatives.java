@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.intermediateLang.interpreter;
 
+import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -23,7 +24,14 @@ public class CompiletimeNatives implements NativesProvider {
 	
 
 	private ProgramState globalState;
+	private PrintStream outStream = System.out;
 
+	@Override
+	public void setOutStream(PrintStream outStream) {
+		this.outStream = outStream;
+	}
+	
+	
 	public CompiletimeNatives(ProgramState globalState) {
 		this.globalState = globalState;
 	}
@@ -63,7 +71,7 @@ public class CompiletimeNatives implements NativesProvider {
 	}
 	
 	public void testPrint(ILconstString msg) {
-		System.out.println(msg.getVal());
+		outStream.println(msg.getVal());
 	}
 	
 	

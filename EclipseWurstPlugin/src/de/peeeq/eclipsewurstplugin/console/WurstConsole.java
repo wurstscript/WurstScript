@@ -29,7 +29,8 @@ public class WurstConsole extends IOConsole implements Runnable {
 		final BufferedReader in = new BufferedReader(new InputStreamReader(getInputStream()));
 		final IOConsoleOutputStream out = newOutputStream();
 		try {
-			out.write("Hello Wurst!\n");
+			out.write("Welcome to Wurst, the best language since sliced bread!\n");
+			out.write("Type 'help' to get help.\n");
 		} catch (IOException e1) {
 			WLogger.severe(e1);
 		}
@@ -78,7 +79,11 @@ public class WurstConsole extends IOConsole implements Runnable {
 //				out.flush();
 			}
 		} catch (IOException e) {
-			WLogger.severe(e);
+			if (e.getMessage().contains("Stream Closed")) {
+				// ignore
+			} else {
+				WLogger.severe(e);
+			}
 		} catch (InterruptedException e) {
 			WLogger.severe(e);
 		}

@@ -241,7 +241,11 @@ public class ImTranslator {
 			}
 			AstElement trace = packageOrGlobal == null ? emptyTrace : packageOrGlobal;
 			ImExpr translated = expr.imTranslateExpr(this, f);
-			f.getBody().add(ImSet(trace, v, translated));
+			if (!v.getIsBJ()) {
+				// add init statement for non-bj vars
+				// bj-vars are already initalized by blizzard
+				f.getBody().add(ImSet(trace, v, translated));
+			}
 			imProg.getGlobalInits().put(v, (ImExpr) translated.copy());
 		}
 	}

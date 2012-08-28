@@ -234,5 +234,10 @@ public class ModelManagerImpl implements ModelManager {
 	public synchronized void clearDependencies() {
 		dependencies.clear();
 	}
+
+	@Override
+	public WurstModel getModel() {
+		return model;
+	}
 	
 }

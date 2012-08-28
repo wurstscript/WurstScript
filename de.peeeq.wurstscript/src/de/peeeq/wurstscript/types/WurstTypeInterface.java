@@ -44,7 +44,7 @@ public class WurstTypeInterface extends WurstTypeNamedScope {
 	
 	@Override
 	public String getName() {
-		return getDef().getName() + printTypeParams() + " (interface)";
+		return getDef().getName() + printTypeParams();
 	}
 	
 	@Override

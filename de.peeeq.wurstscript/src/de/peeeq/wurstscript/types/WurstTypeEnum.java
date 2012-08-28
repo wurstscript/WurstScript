@@ -27,7 +27,7 @@ public class WurstTypeEnum extends WurstTypeNamedScope {
 	
 	@Override
 	public String getName() {
-		return getDef().getName()  + " (enum)";
+		return getDef().getName();
 	}
 	
 	@Override

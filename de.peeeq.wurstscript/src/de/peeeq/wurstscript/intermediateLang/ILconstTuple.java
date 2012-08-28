@@ -16,9 +16,13 @@ public class ILconstTuple extends ILconstAbstract {
 	public String print() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("(");
+		boolean first = true;
 		for (ILconst v : values) {
+			if (!first) {
+				sb.append(", ");
+			}
 			sb.append(v.print());
-			sb.append(", ");
+			first = false;
 		}
 		sb.append(")");
 		return sb.toString();
@@ -57,6 +61,11 @@ public class ILconstTuple extends ILconstAbstract {
 		System.arraycopy(values, 0, newValues, 0, values.length);
 		newValues[tupleIndex] = newVal;
 		return new ILconstTuple(newValues);
+	}
+
+
+	public int size() {
+		return values.length;
 	}
 
 
