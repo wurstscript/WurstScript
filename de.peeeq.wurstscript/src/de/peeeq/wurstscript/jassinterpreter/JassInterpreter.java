@@ -493,10 +493,11 @@ public class JassInterpreter {
 	}
 
 	private ExecutableJassFunction searchNativeJassFunction(String name) {
+		NativeFunctions nf = new NativeFunctions();
 		Class<NativeFunctions> natives = NativeFunctions.class;
 		for (Method method : natives.getMethods()) {
 			if (method.getName().equals(name)) {
-				return new NativeJassFunction(method);
+				return new NativeJassFunction(nf, method);
 			}
 		}
 		return new UnknownJassFunction(name);

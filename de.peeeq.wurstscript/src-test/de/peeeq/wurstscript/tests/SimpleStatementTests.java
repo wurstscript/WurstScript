@@ -315,6 +315,19 @@ public class SimpleStatementTests extends PscriptTest {
 	}
 	
 	@Test
+	public void testForFrom3() {
+		testAssertOkLinesWithStdLib(false,
+			"package test",
+			"init",
+			"	group g = CreateGroup()",
+			"	for unit u in g",
+			"		skip",
+			"	DestroyGroup( g)"
+			);
+	
+	}
+			
+	@Test
 	public void test_inc() {
 		assertOk(true,
 				"int x = 5",
