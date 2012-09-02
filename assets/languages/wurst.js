@@ -30,13 +30,7 @@ hljs.LANGUAGES.wurst = function(){
         {
           className: 'string',
           begin: '`', end: '[^\\\\]`'
-        },
-        {
-          className: 'number',
-          begin: '[^a-zA-Z_0-9](\\-|\\+)?\\d+(\\.\\d+|\\/\\d+)?((d|e|f|l|s)(\\+|\\-)?\\d+)?',
-          relevance: 0
-        },
-        hljs.C_NUMBER_MODE
+        }
       ]
     }
   };
