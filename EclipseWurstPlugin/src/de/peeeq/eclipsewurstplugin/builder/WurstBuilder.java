@@ -169,13 +169,14 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 					WurstNature.get(file.getProject()).addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_GRAMMAR);
 				}
 			} else if (file.getName().equals("wurst.dependencies")) {
+				WurstNature.deleteAllMarkers(file);
 				try {
 					getModelManager().clearDependencies();
 					BufferedReader reader = new BufferedReader(new InputStreamReader(file.getContents()));
 					while (true) {
 						String line = reader.readLine();
 						if (line == null) break;
-						addDependency(gui, line);						
+						addDependency(gui, file, line);						
 					}
 				} catch (CoreException e) {
 					// TODO Auto-generated catch block
@@ -192,12 +193,14 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 	
 	
 
-	private void addDependency(WurstGui gui, String fileName) {
+	private void addDependency(WurstGui gui, IFile depfile, String fileName) {
 		File f = new File(fileName);
 		if (!f.exists()) {
-			gui.sendError(new CompileError(Ast.WPos(fileName, 0, 0, 0), "Path '"+fileName + "' could not be found."));
+			gui.sendError(new CompileError(Ast.WPos(depfile.getProjectRelativePath().toString(), 0, 0, 0), "Path '"+fileName + "' could not be found."));
+			return;
 		} else if (!f.isDirectory()) {
-			gui.sendError(new CompileError(Ast.WPos(fileName, 0, 0, 0), "Path '"+fileName + "' is not a folder."));
+			gui.sendError(new CompileError(Ast.WPos(depfile.getProjectRelativePath().toString(), 0, 0, 0), "Path '"+fileName + "' is not a folder."));
+			return;
 		}
 		
 		getModelManager().addDependency(f);

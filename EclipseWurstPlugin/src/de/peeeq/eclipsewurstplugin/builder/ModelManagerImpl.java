@@ -111,7 +111,6 @@ public class ModelManagerImpl implements ModelManager {
 			comp.checkProg(model);
 		} catch (CompileError e) {
 			gui.sendError(e);
-			e.printStackTrace();
 		}
 		if (addErrorMarkers) {
 			nature.clearMarkers(WurstBuilder.MARKER_TYPE_TYPES);
