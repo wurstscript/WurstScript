@@ -3,7 +3,8 @@ Bundle-ManifestVersion: 2
 Bundle-Name: Wurstscript
 Bundle-SymbolicName: de.peeeq.wurstscript
 Bundle-Version: 1.0.0.qualifier
-Bundle-ClassPath: lib/java-cup-runtime.jar,
+Bundle-ClassPath: wurstscript.jar,
+ lib/java-cup-runtime.jar,
  lib/log4j-1.2.16.jar,
  lib/junit-4.10.jar,
  lib/antr_runtime.jar,
@@ -22,7 +23,6 @@ Export-Package: com.google.common.annotations,
  com.google.common.primitives,
  com.google.common.reflect,
  com.google.common.util.concurrent,
- de.peeeq.datastructures,
  de.peeeq.immutablecollections,
  de.peeeq.wurstscript,
  de.peeeq.wurstscript.ast,
@@ -49,7 +49,6 @@ Export-Package: com.google.common.annotations,
  de.peeeq.wurstscript.types,
  de.peeeq.wurstscript.utils,
  de.peeeq.wurstscript.validation,
- de.peeeq.wurstscript.validation.controlflow,
  java_cup.runtime,
  junit.extensions,
  junit.framework,
@@ -108,3 +107,4 @@ Export-Package: com.google.common.annotations,
  org.junit.runner.notification,
  org.junit.runners,
  org.junit.runners.model
+Import-Package: de.peeeq.wurstscript.jassIm
