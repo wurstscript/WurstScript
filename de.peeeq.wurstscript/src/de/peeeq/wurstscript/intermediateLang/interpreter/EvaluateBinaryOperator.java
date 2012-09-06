@@ -76,11 +76,21 @@ public class EvaluateBinaryOperator {
 
 	
 	public static ILconst eval(OpModReal opModReal, ILconst left, Supplier<ILconst> right) {
-		return new ILconstReal(getReal(left) % getReal(right.get()));
+		float right2 = getReal(right.get());
+		float r = getReal(left) % right2;
+		if (r < 0) {
+			r += right2; 
+		}
+		return new ILconstReal(r);
 	}
 
 	public static ILconst eval(OpModInt opModInt, ILconst left, Supplier<ILconst> right) {
-		return new ILconstInt(((ILconstInt)left).getVal() % ((ILconstInt)right.get()).getVal());
+		int right2 = ((ILconstInt)right.get()).getVal();
+		int r = ((ILconstInt)left).getVal() % right2;
+		if (r < 0) {
+			r += right2;
+		}
+		return new ILconstInt(r);
 	}
 	
 	public static ILconst eval(OpDivReal opDivReal, ILconst left, Supplier<ILconst> right) {
