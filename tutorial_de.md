@@ -53,8 +53,8 @@ leeres Paket, in das wir unseren Code schreiben können.
 Ausdrücke
 =========
 
-Wir beginnen mit ein paar einfachen mathematischen Ausdrücken. Ausdrücke können direkt in der Console getestet werden.
-Zum Beispiel können wir "3+4" in die Console eingeben und erhalten als Ergebnis 7.
+Wir beginnen mit ein paar einfachen mathematischen Ausdrücken. Ausdrücke können direkt in der Konsole getestet werden.
+Zum Beispiel können wir "3+4" in die Konsole eingeben und erhalten als Ergebnis 7.
 
 	> 3+4
 	res = 7     // integer
@@ -70,7 +70,7 @@ Ein "Grammatical error" sagt uns, dass unsere Eingabe nicht mit der Grammatik de
 Das Multiplikations-Zeichen "\*" passt an dieser Stelle nicht. Statt dessen hätte Wurst dort gerne eine "expression" oder
 ein paar andere Dinge. Fehlermeldungen von Wurst sind nicht immer einach zu verstehen, aber meistens reicht ein Blick an 
 die Fehlerstelle um das Problem zu erkennen.
-Manchmal kommt es auch zu Fehlern in der Console, die sich nicht mehr beheben lassen. In diesen Fällen lässt sich die Console 
+Manchmal kommt es auch zu Fehlern in der Konsole, die sich nicht mehr beheben lassen. In diesen Fällen lässt sich die Konsole 
 durch die Eingabe von "reset" zurücksetzen.
 
 Weiter mit Fehlerlosen Ausdrücken ... Auch kompliziertere Ausdrücke als "3+4" sind möglich:
@@ -167,7 +167,7 @@ Wurst bietet die folgenden Operatoren:
 
 #### Übung 1.1
 
-Für and und or gibt es eine ähnliche Regel wie die Punkt-vor-Strich-Regel. Benutze die Console um heraus zu finden, ob "and" oder "or" 
+Für and und or gibt es eine ähnliche Regel wie die Punkt-vor-Strich-Regel. Benutze die Konsole um heraus zu finden, ob "and" oder "or" 
 stärker bindet (also sich wie das "\*" Zeichen verhält).
 
 #### Übung 1.2
@@ -235,7 +235,7 @@ Dafür hat sie aber einen Seiteneffekt, wenn sie aufgerufen wird: Sie gibt ihren
 	Hello Wurst
 
 Wir wollen nun unsere erste eigene Funktion schreiben. 
-Eigene Funktionen können nicht in der Console definiert werden. 
+Eigene Funktionen können nicht in der Konsole definiert werden. 
 Deshalb schreiben wir diesen Kode in unser Paket "Test", welches wir zu Beginn des Tutorials erstellt hatten (Also in das große Editor-Fenster).
 
 Eine Funktions-Definition besteht aus einem Name, einer Liste von Parametern, einem Rückgabetyp und einer Implementierung.
@@ -254,7 +254,9 @@ Die fertige Implementierung sieht dann so aus (Erklärung folgt gleich):
 		return (x + y) / 2
 
 
-Nachdem wir die Funktion definiert haben, können wir sie in der Console benutzen :
+Nachdem wir die Funktion definiert haben, können wir sie in der Konsole benutzen. 
+In der Regel sollte man die Datei speichern, bevor man neue Funktion in der Konsole verwendet, sonst kann es passieren, dass nicht 
+alle Änderungen übernommen werden.
 
 	> average(2,3) == 2.5
 	res = true     // boolean
@@ -283,7 +285,7 @@ Anweisungen
 
 In diesem Kapitel werden wir nun einige weitere Anweisungen kennen lernen, die man zum implementieren von Funktionen benötigt.
 
-Da wären zuerst einmal die Variablen Definitionen, die wir schon aus der Console kennen. Diese kann man zum Beispiel verwenden
+Da wären zuerst einmal die Variablen Definitionen, die wir schon aus der Konsole kennen. Diese kann man zum Beispiel verwenden
 um die komplizierte Formel aus der average Funktion in einzelne Teile aufzuteilen, denen man dann sinnvolle Namen geben kann:
 
 	function average(real x, real y) returns real
@@ -345,10 +347,14 @@ Implementiere die Funktion maximum3 mit nur einer Anweisung, indem du die Funkti
 #### Übung 2.3
 
 Die Funktionen `bla`, `blub` und `naund` unterscheiden sich nur durch ihre Einrückung. 
-Was berechnen die Funktionen? Vereinfache jede Funktion so, dass sie nur aus einer `return` Anweisung besteht und immer noch das gleiche macht.
-
+Was berechnen die Funktionen? Vereinfache jede Funktion so, dass sie nur aus einer `return` Anweisung besteht (und keine anderen Anweisungen, die Implementierung
+soll also auf eine Zeile reduziert werden) und immer noch das gleiche macht.
 
 Hinweis: `z++` ist eine Abkürzung für `z = z + 1`
+
+Tipp: Operatoren wie `and`, `or`, `not` könnten hilfreich beim vereinfachen sein.
+
+
 	
 	function bla(boolean x, boolean y) returns boolean
 		var z = 0
@@ -405,7 +411,7 @@ Hier ist die Vorlage mit den Konstanten und dem Anfang der Funktion:
 	function rockPaperScissors(int player1choice, int player2choice)
 		print("Implementierung fehlt")
 
-Und so sollte es aussehen, wenn man das Spiel auf der Console "spielt":
+Und so sollte es aussehen, wenn man das Spiel auf der Konsole "spielt":
 
 	> rockPaperScissors(paper, rock)
 	Spieler 1 gewinnt
