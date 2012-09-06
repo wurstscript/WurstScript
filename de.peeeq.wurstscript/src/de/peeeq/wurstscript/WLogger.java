@@ -18,11 +18,13 @@ public class WLogger {
 			Layout layout = new SimpleLayout();
 			File logFile = new File("./logs/wurst.log");
 			File logDir = new File(logFile.getParent());
-			logDir.mkdirs();
-			DailyRollingFileAppender newAppender = new DailyRollingFileAppender(layout, logFile.getAbsolutePath(), "yyyy-MM-dd");
-			logger.addAppender(newAppender);
+			boolean created = logDir.mkdirs();
+			if (created && logDir.exists()) {
+				DailyRollingFileAppender newAppender = new DailyRollingFileAppender(layout, logFile.getAbsolutePath(), "yyyy-MM-dd");
+				logger.addAppender(newAppender);
+			}
 		} catch (Exception e) {
-			throw new Error(e);
+			e.printStackTrace();
 		}
 
 	}
