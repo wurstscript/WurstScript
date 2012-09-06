@@ -63,6 +63,11 @@ public class NativeFunctions implements NativesProvider {
 		return new ILconstString("" + i.getVal());
 	}
 
+	@Native
+	public ILconstString R2S(ILconstReal r) {
+		return new ILconstString("" + r.getVal());
+	}
+	
 	public ILconstNull Player(ILconstInt p) {
 		return ILconstNull.instance();
 	}
