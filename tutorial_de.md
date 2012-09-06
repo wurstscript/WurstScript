@@ -31,7 +31,9 @@ Wir werden in diesem Tutorial das Wurst-Plugin für Eclipse benutzen. Um dies zu
 	Nach der Installation muss Eclipse neu gestartet werden.
 
 
-TODO Download wurstpack
+Außerdem brauchen wir noch das Wurstpack: [Download](http://peeeq.de/wurst/Wurstpack.zip)
+
+Das Wurstpack beinhaltet den Worldeditor mit eingebautem Wurst-Compiler und es beinhaltet die Standard-Bibliothek.
 	
 Das erste Projekt
 =================
@@ -143,20 +145,37 @@ kann man mit Strings auch rechnen (((Anmerkung: Strings bilden mit dem Plus Oper
 	> "4"+"5"
 	res = "45"     // string
 
+
+Wurst bietet die folgenden Operatoren:
+
+	+			// Addition
+	-			// Subtraktion
+	*			// Multiplikation
+	/			// Division 
+	div			// ganzzahlige Division
+	mod			// Rest der ganzzahligen Division, es gilt 0 <= (x mod y) < y
+	and			// Konjunktion
+	or			// Disjunktion
+	<			// kleiner
+	<=			// kleiner oder gleich
+	>			// größer
+	>=			// größer oder gleich
+	==			// gleich
+	!=			// ungleich
+	
 	
 
-### Übung 1
+#### Übung 1.1
 
 Für and und or gibt es eine ähnliche Regel wie die Punkt-vor-Strich-Regel. Benutze die Console um heraus zu finden, ob "and" oder "or" 
 stärker bindet (also sich wie das "\*" Zeichen verhält).
 
-### Übung 2
+#### Übung 1.2
 	
 Rechne den Wert für folgenden Ausdruck auf dem Papier aus und schreibe für jeden Teil-Ausdruck den Typ auf:
 	
 	not (not ((3 + 4)*7 < 10 or 100 != 40) and 10. >= 100 / 15)
 	
-
 	
 	
 Variablen
@@ -197,14 +216,217 @@ verschiedene Werte haben kann. Der Wert eines Ausdrucks hängt nun davon ab, wel
 
 	
 Funktionen
-----------
+===========
 
-Neben den grundlegenden Operatoren gibt es noch Funktionen. Ein Beispiel dafür ist die Quadrat-Wurzel-Funktion (englisch: square root). 
+Neben den grundlegenden Operatoren gibt es noch Funktionen. Ein Beispiel dafür ist die Quadrat-Wurzel-Funktion (englisch: square root).
 
-	> SquareRoot(9)
-	res = 3.0     // real
-	> SquareRoot(16)
-	res = 4.0     // real
+    > SquareRoot(9.0)
+    res = 3.0     // real
+
+Hier haben wir die Funktion SquareRoot mit dem *Parameter* 9 aufgerufen. 
+SquareRoot ist eine Funktion, welche einen real als Parameter nimmt und ein real zurück gibt. 
+Es ist also eine richtige Funktion im mathematischen Sinn.
+
+Eine nicht so mathematische Funktion ist "print". 
+Diese nimmt einen string als Parameter und gibt nichts zurück. 
+Dafür hat sie aber einen Seiteneffekt, wenn sie aufgerufen wird: Sie gibt ihren Parameter auf der Konsole aus.
+
+	> print("Hello Wurst")
+	Hello Wurst
+
+Wir wollen nun unsere erste eigene Funktion schreiben. 
+Eigene Funktionen können nicht in der Console definiert werden. 
+Deshalb schreiben wir diesen Kode in unser Paket "Test", welches wir zu Beginn des Tutorials erstellt hatten (Also in das große Editor-Fenster).
+
+Eine Funktions-Definition besteht aus einem Name, einer Liste von Parametern, einem Rückgabetyp und einer Implementierung.
+
+Beginnen wir mit einem einfachen Beispiel. Eine Funktion "average", die zwei real als Parameter nimmt und einen real zurück gibt. 
+Die Funktion soll den Mittelwert der beiden Parameter zurückgeben. 
+Zum Beispiel soll der folgenden Ausdrücke wahr sein: 
+	
+	average(2,3) == 2.5
+	
+Die fertige Implementierung sieht dann so aus (Erklärung folgt gleich):
+
+	package Test
+
+	function average(real x, real y) returns real
+		return (x + y) / 2
+
+
+Nachdem wir die Funktion definiert haben, können wir sie in der Console benutzen :
+
+	> average(2,3) == 2.5
+	res = true     // boolean
+	> average(3,8)
+	res = 5.5     // real
+
+Betrachten wir die Definition der Funktion nun etwas genauer:
+
+![Funktions Definition](assets/images/tut1_function.png)
+
+- Jede Funktion hat einen Namen
+- Eine Funktion hat eine Liste von Parametern. Jeder Parameter hat einen Typ und einen Namen. 
+	Parameter können wie andere Variablen gelesen werden. Man kann sie aber nicht verändern.
+- Der Rückgabetyp gibt an, welchen Typ die Funktion zurückgibt.
+- Die Implementierung bestimmt was die Funktion macht. Eine Implementierung besteht in der Regel aus
+	einer Liste von Anweisungen, wobei jede Anweisung in einer neuen Zeile steht. In unserem Beispiel haben wir nur 
+	die *return* Anweisung verwendet. Diese Anweisung gibt den Rückgabewert der Funktion an. Hinter dem *return* kann
+	ein beliebiger Ausdruck stehen.
+
+	Wichtig ist, dass die Implementierung weiter eingerückt ist (das heisst mehr Lehrzeichen/Tabs vor dem Beginn der Zeile). 
+	Dieser Mechanismus wird in Wurst immmer verwendet, um auszudrücken, dass Zeilen zu einer anderen Zeile gehören.
+	In diesem Fall drückt sie aus, dass die Implementierung zur Funktion gehört.
+	
+Anweisungen
+-----------
+
+In diesem Kapitel werden wir nun einige weitere Anweisungen kennen lernen, die man zum implementieren von Funktionen benötigt.
+
+Da wären zuerst einmal die Variablen Definitionen, die wir schon aus der Console kennen. Diese kann man zum Beispiel verwenden
+um die komplizierte Formel aus der average Funktion in einzelne Teile aufzuteilen, denen man dann sinnvolle Namen geben kann:
+
+	function average(real x, real y) returns real
+		let sum = x + y
+		let average = sum / 2
+		return average
+
+Funktionsaufrufe sind ebenfalls gültige Anweisungen. Dies können wir nutzen um mit der print Funktion die Zwischenergebnisse auszugeben.
+Weil die print Funktion einen string als Parameter erwartet, wir aber einen real ausgeben wollen, müssen wir den Wert zuerst umwandeln.
+Dafür gibt es die eingebaute Funktion R2S (der Name ist eine Abkürzung für real to string).
+
+	function average(real x, real y) returns real
+		let sum = x + y
+		print("Die Summe ist " + R2S(sum))
+		let average = sum / 2
+		return average
+
+Die Ausgabe von Zwischenergebnissen kann manchmal sehr hilfreich sein, um Fehler zu finden.
+
+### If Anweisung
+
+Bisher sind unsere Anweisungen recht langweilig, denn sie werden einfach nur nacheinander ausgeführt. 
+Interessant wird das ganze erst, wenn wir den Kontrollfluss verändern können. Eine Möglichkeit, den Kontrollfluss zu verändern,
+ist die bedingte Ausführung. Diese betrachtet den Wert eines Ausdrucks. Ist der Wert true, dann wird die eine Anweisung ausgeführt,
+ist der Wert false, wird eine andere Anweisung ausgeführt. Damit lässt sich dann zum Beispiel eine Funktion "maximum" implementieren,
+welche die größere von zwei Zahlen zurück gibt:
+
+	function maximum(real x, real y) returns real
+		if x > y
+			return x
+		else
+			return y
+	
+Wenn der Ausdruck hinter dem *if* wahr ist (also wenn x größer als y ist) wird die Anweisung `return x` ausgeführt. 
+Ansonsten wird die Anweisung `return y` ausgeführt. Insgesamt gibt die Funktion also die größere Zahl zurück. 
+Man beachte, dass hier wieder die Einrückung angibt, dass die Anweisungen zum if-Teil oder else-Teil gehören.
+
+Der else-Teil kann auch weg gelassen werden. Ein Beispiel hierfür ist eine Funktion maximum3, welche die größte von drei Zahlen bestimmt.
+Hier verwenden wir eine Variable `result`, um uns zu merken welche Zahl am größten ist. *var* und *let* Variablen sind im Prinzip identisch, aber 
+Variablen, die mit `let` definiert wurden, dürfen später nicht mehr verändert werden. In diesem Beispiel wollen wir die Variable `result`
+verändern, wenn wir eine größere Zahl finden. Deshalb müssen wir `var` verwenden.
+
+	function maximum3(real x, real y, real z) returns real
+		var result = x
+		if y > result
+			result = y
+		if z > result
+			result = z
+		return result
+
+#### Übung 2.1
+
+Implementiere die Funktion maximum3 ohne eine Variable zu benutzen.
+
+#### Übung 2.2
+
+Implementiere die Funktion maximum3 mit nur einer Anweisung, indem du die Funktion maximum (für zwei Zahlen) verwendest.
+
+#### Übung 2.3
+
+Die Funktionen `bla`, `blub` und `naund` unterscheiden sich nur durch ihre Einrückung. 
+Was berechnen die Funktionen? Vereinfache jede Funktion so, dass sie nur aus einer `return` Anweisung besteht und immer noch das gleiche macht.
+
+
+Hinweis: `z++` ist eine Abkürzung für `z = z + 1`
+	
+	function bla(boolean x, boolean y) returns boolean
+		var z = 0
+		if x
+			z++
+			z++
+		if y
+			z++
+		return z == 1
+		
+	function blub(boolean x, boolean y) returns boolean
+		var z = 0
+		if x
+			z++
+		z++
+		if y
+			z++
+		return z == 1
+		
+	function naund(boolean x, boolean y) returns boolean
+		var z = 0
+		if x
+			z++
+			z++
+			if y
+				z++
+		return z == 1
+
+
+#### Übung 2.4
+
+Implementiere ein Stein-Schere-Papier-Spiel für 2 Spieler. 
+
+- Das Spiel besteht aus einer einzigen Funktion, welche zwei Parameter hat.
+- Der erste Parameter gibt an, welche Wahl der erste Spieler getroffen hat. Der Parameter hat Typ integer, wobei
+	die Zahl 0 für Stein steht, 1 für Papier und 2 für Schere. Damit das Programm besser lesbar ist kann man Konstanten definieren (siehe Vorlage)
+	und die Konstanten statt den Zahlen verwenden.
+- Der zweite Parameter gibt analog zum ersten an, welche Wahl der zweite Spieler getroffen.
+- Die Funktion hat keinen Rückgabewert, sondern benutzt die print Funktion, um auszugeben, wer gewonnen hat.
+- Wenn beide Spieler die gleiche Wahl getroffen haben soll "Unentschieden" ausgegeben werden. 
+	Ansonsten soll "Spieler 1 gewinnt" bzw. "Spieler 2 gewinnt" ausgegeben werden.
+- Papier gewinnt gegen Stein
+- Stein gewinnt gegen Schere
+- Schere gewinnt gegen Papier
+	
+	
+
+Hier ist die Vorlage mit den Konstanten und dem Anfang der Funktion:
+
+	constant int rock = 0
+	constant int scissors = 1	
+	constant int paper = 2
+		
+	function rockPaperScissors(int player1choice, int player2choice)
+		print("Implementierung fehlt")
+
+Und so sollte es aussehen, wenn man das Spiel auf der Console "spielt":
+
+	> rockPaperScissors(paper, rock)
+	Spieler 1 gewinnt
+	> rockPaperScissors(rock, rock)
+	Unentschieden
+	> rockPaperScissors(scissors, rock)
+	Spieler 2 gewinnt
+
+
+	
+Zusatzaufgabe: Implementiere das Spiel mit nur einer if-Anweisung. 
+Tipp: Der Operator `mod` berechnet den Rest einer Division (zum Beispiel 5 mod 3 == 2).
+
+
+### For Schleife
+
+### While Schleife
+
+
+
+
 
 
 
