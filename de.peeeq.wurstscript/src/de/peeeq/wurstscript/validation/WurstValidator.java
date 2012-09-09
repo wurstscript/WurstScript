@@ -413,6 +413,9 @@ public class WurstValidator {
 			CheckHelper.checkIfIsRefinement(typeParamBinding, func, overriddenFunc, "Can't override function ", false);
 		}
 
+		if (func.attrIsAbstract() && func.getBody().size() > 2) {
+			func.addError("Abstract function " + func.getName() + " must not have a body.");			
+		}
 	}
 	
 	
@@ -596,11 +599,13 @@ public class WurstValidator {
 		// calculate private names to get overridden funcs
 		classDef.attrVisibleNamesPrivate();
 		
-		// check that there are no abstract functions in a class
-		for (FunctionDefinition f : functions.values()) {
-			if (f.attrIsAbstract()) {
-				classDef.addError("The abstract method " + f.getName()
-				+ " must be implemented in class " + classDef.getName() + ".");
+		if (!classDef.attrIsAbstract()) {
+			// check that there are no abstract functions in a class
+			for (FunctionDefinition f : functions.values()) {
+				if (f.attrIsAbstract()) {
+					classDef.addError("The abstract method " + f.getName()
+					+ " must be implemented in class " + classDef.getName() + ".");
+				}
 			}
 		}
 		
@@ -845,7 +850,7 @@ public class WurstValidator {
 				
 				@Override
 				public void case_ClassDef(ClassDef classDef) {
-					check(VisibilityPublic.class);
+					check(VisibilityPublic.class, ModAbstract.class);
 				}
 
 				@Override
@@ -943,7 +948,30 @@ public class WurstValidator {
 				}
 			}
 		}
-
+		
+		if (!classDef.attrIsAbstract() && classDef.attrExtendedClass() != null) {
+			for (Entry<String, NameDef> e : classDef.attrExtendedClass().attrVisibleNamesPrivate().entries()) {
+				if (e.getValue() instanceof FuncDef) {
+					FuncDef f = (FuncDef) e.getValue();
+					if (f.attrIsAbstract()) {
+						boolean implemented = false;
+						Collection<NameDef> c_funcDefs = classDef.attrVisibleNamesPrivate().get(f.getName());
+						for (NameDef c_nameDef : c_funcDefs) {
+							if (c_nameDef instanceof FuncDef) {
+								FuncDef f2 = (FuncDef) c_nameDef;
+								if (!f2.attrIsAbstract()) {
+									implemented = true;
+								}
+							}
+						}
+						if (!implemented) {
+							classDef.addError("Class " + classDef.getName() + " must implement the abstract function " +
+									f.getName() + " from class " + f.attrNearestClassDef().getName());
+						}
+					}
+				}
+			}
+		}
 	}
 	
 	@CheckMethod
@@ -955,8 +983,12 @@ public class WurstValidator {
 	@CheckMethod
 	public void checkNewObj(ExprNewObject e) {
 		ConstructorDef constr = e.attrConstructorDef();
-		calledFunctions.put(e.attrNearestScope(), constr);
 		if (constr != null) {
+			calledFunctions.put(e.attrNearestScope(), constr);
+			if (constr.attrNearestClassDef().attrIsAbstract()) {
+				e.addError("Cannot create an instance of the abstract class " + constr.attrNearestClassDef().getName());
+				return;
+			} 
 			checkParams(e, "Wrong object creation: ", e.getArgs(), e.attrFunctionSignature());
 		}
 		

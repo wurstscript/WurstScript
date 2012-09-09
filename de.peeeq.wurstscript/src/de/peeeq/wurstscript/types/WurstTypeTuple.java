@@ -11,6 +11,9 @@ import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassVar;
+import de.peeeq.wurstscript.jassIm.ImExpr;
+import de.peeeq.wurstscript.jassIm.ImExprOpt;
+import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImType;
@@ -103,5 +106,14 @@ public class WurstTypeTuple extends WurstType {
 			}
 		}
 		return JassIm.ImTupleType(types);
+	}
+
+	@Override
+	public ImExprOpt getDefaultValue() {
+		ImExprs exprs = JassIm.ImExprs();
+		for (WParameter p : tupleDef.getParameters()) {
+			exprs.add((ImExpr) p.attrTyp().getDefaultValue());
+		}
+		return JassIm.ImTupleExpr(exprs);
 	}
 }

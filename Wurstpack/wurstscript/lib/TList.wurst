@@ -80,10 +80,8 @@ class TIterator<Q>
 
 function TList<int>.sum() returns int
 	var sum = 0
-	
 	for int x in this
 		sum += x
-		testPrint("x = " + x.toString())
 	return sum
 	
 
@@ -102,6 +100,3 @@ function TList<int>.sum() returns int
 	l.sum().assertEquals(23)
 		
 	
-
-	
-				

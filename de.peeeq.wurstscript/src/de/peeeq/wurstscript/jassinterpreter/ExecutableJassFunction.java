@@ -32,15 +32,17 @@ class UserDefinedJassFunction implements ExecutableJassFunction {
 class NativeJassFunction implements ExecutableJassFunction {
 
 	private Method method;
+	private NativeFunctions natives;
 
-	public NativeJassFunction(Method method) {
+	public NativeJassFunction(NativeFunctions natives, Method method) {
+		this.natives = natives;
 		this.method = method;
 	}
 
 	@Override
 	public ILconst execute(JassInterpreter jassInterpreter, ILconst[] arguments) {
 		try {
-			Object result = method.invoke(null, (Object[])arguments);
+			Object result = method.invoke(natives, (Object[])arguments);
 			return (ILconst) result;
 		} catch (IllegalArgumentException e) {
 			throw new Error(e);

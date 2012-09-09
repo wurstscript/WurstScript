@@ -11,6 +11,7 @@ import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 
 import de.peeeq.eclipsewurstplugin.editor.highlighting.ScannerFactory;
+import de.peeeq.eclipsewurstplugin.ui.WurstPerspective;
 
 /**
  * The activator class controls the plug-in life cycle
@@ -42,6 +43,7 @@ public class WurstPlugin extends AbstractUIPlugin {
 		plugin = this;
 		initializePreferenceStore();
 		scanners = new ScannerFactory();
+		WurstPerspective.findConsole();
 	}
 
 	/*

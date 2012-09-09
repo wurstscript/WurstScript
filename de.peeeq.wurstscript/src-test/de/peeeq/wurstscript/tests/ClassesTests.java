@@ -449,4 +449,75 @@ public class ClassesTests extends PscriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void abstract_class() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	int i",
+				"	abstract class A",
+				"		abstract function foo()",
+				"	class B extends A",
+				"		override function foo()",
+				"			i = 8",
+				"	init",
+				"		A b = new B()",
+				"		b.foo()",
+				"		if i == 8",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void abstract_class2() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	int i",
+				"	abstract class A",
+				"		abstract function foo() returns int",
+				"	class B extends A",
+				"		override function foo() returns int",
+				"			i = 8",
+				"			return i",
+				"	init",
+				"		A b = new B()",
+				"		if b.foo() == 8",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void abstract_fail() {
+		testAssertErrorsLines(true, "Cannot create an instance of the abstract class A", 
+				"package test",
+				"	native testSuccess()",
+				"	int i",
+				"	abstract class A",
+				"		abstract function foo() returns int",
+				"	init",
+				"		A b = new A()",
+				"		if b.foo() == 8",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+
+	@Test
+	public void abstract_fail2() {
+		testAssertErrorsLines(true, "must implement the abstract function foo from class A", 
+				"package test",
+				"	native testSuccess()",
+				"	int i",
+				"	abstract class A",
+				"		abstract function foo() returns int",
+				"	abstract class B extends A",
+				"	class C extends B",
+				"endpackage"
+			);
+	}
 }

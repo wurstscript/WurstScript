@@ -7,6 +7,7 @@ import org.eclipse.core.resources.IResource;
 
 import de.peeeq.eclipsewurstplugin.editor.CompilationUnitChangeListener;
 import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.gui.WurstGui;
 
 public interface ModelManager {
@@ -17,7 +18,7 @@ public interface ModelManager {
 
 	 void clean();
 
-	 void typeCheckModel(WurstGui gui);
+	 void typeCheckModel(WurstGui gui, boolean addErrorMarkers);
 
 	 void updateModel(CompilationUnit cu, WurstGui gui);
 
@@ -32,5 +33,7 @@ public interface ModelManager {
 	void addDependency(File f);
 
 	void clearDependencies();
+
+	WurstModel getModel();
 
 }

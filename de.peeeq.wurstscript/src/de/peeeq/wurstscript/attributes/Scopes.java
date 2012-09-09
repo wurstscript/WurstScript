@@ -192,7 +192,12 @@ public class Scopes {
 		for (WImport i : p.getImports()) {
 			WPackage importedPackage = i.attrImportedPackage();
 			if (importedPackage != null) {
-				result.putAll(importedPackage.attrExportedNames());
+				if (p.getName().equals("WurstREPL")) {
+					// repl can see private names
+					result.putAll(importedPackage.attrVisibleNamesPrivate());
+				} else {
+					result.putAll(importedPackage.attrExportedNames());
+				}
 			}
 		}
 		

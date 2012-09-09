@@ -7,6 +7,7 @@ import org.eclipse.core.resources.IResource;
 
 import de.peeeq.eclipsewurstplugin.editor.CompilationUnitChangeListener;
 import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.gui.WurstGui;
 /*
  * model manager which does nothing
@@ -27,7 +28,7 @@ public class ModelManagerStub implements ModelManager {
 	}
 
 	@Override
-	public void typeCheckModel(WurstGui gui) {
+	public void typeCheckModel(WurstGui gui, boolean addErrorMarkers) {
 	}
 
 	@Override
@@ -59,6 +60,11 @@ public class ModelManagerStub implements ModelManager {
 	@Override
 	public void clearDependencies() {
 		
+	}
+
+	@Override
+	public WurstModel getModel() {
+		return null;
 	}
 
 }

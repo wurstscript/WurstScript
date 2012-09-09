@@ -1,6 +1,8 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.jassIm.ImExprOpt;
+import de.peeeq.wurstscript.jassIm.JassIm;
 
 
 public class WurstTypeString extends WurstTypePrimitive {
@@ -30,6 +32,11 @@ public class WurstTypeString extends WurstTypePrimitive {
 
 	public static WurstTypeString instance() {
 		return instance;
+	}
+
+	@Override
+	public ImExprOpt getDefaultValue() {
+		return JassIm.ImStringVal("");
 	}
 	
 }

@@ -40,6 +40,7 @@ public class ImInliner {
 	}
 	
 	public void doInlining() {
+		prog.flatten(translator);
 		collectInlinableFunctions();
 		rateInitalizableFunctions();
 		inlineFunctions();
@@ -174,8 +175,13 @@ public class ImInliner {
 	}
 	
 	private boolean shouldInline(ImFunction f) {
-		return    !f.isNative() 
-				&& inlinableFunctions.contains(f) 
+		if (f.isNative()) {
+			return false;
+		}
+		System.out.println("Should I inline function " + f.getName() + "?");
+		System.out.println("	ininable: " + inlinableFunctions.contains(f));
+		System.out.println("	rating: " + getRating(f));
+		return  inlinableFunctions.contains(f) 
 				&& getRating(f) < 50;
 	}
 	

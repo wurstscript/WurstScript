@@ -35,6 +35,7 @@ import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
+import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
@@ -677,6 +678,17 @@ public class Utils {
 			return s;
 		}
 		return s.substring(0, 1).toUpperCase() + s.substring(1);
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <T extends AstElement> T getParentOfType(Class<T> class1, AstElement node) {
+		while (node != null) {
+			if (class1.isAssignableFrom(node.getClass())) {
+				return (T) node;
+			}
+			node = node.getParent();
+		}
+		return null;
 	}
 
 }

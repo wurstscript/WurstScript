@@ -19,10 +19,15 @@ import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.IEditorInput;
+import org.eclipse.ui.IEditorPart;
+import org.eclipse.ui.IEditorReference;
 import org.eclipse.ui.IEditorSite;
 import org.eclipse.ui.IFileEditorInput;
 import org.eclipse.ui.IPersistableEditor;
+import org.eclipse.ui.IWorkbenchPage;
+import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PartInitException;
+import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.contexts.IContextService;
 import org.eclipse.ui.editors.text.TextEditor;
 import org.eclipse.ui.texteditor.SourceViewerDecorationSupport;
@@ -195,6 +200,30 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 
 	public CompilationUnit reconcile(boolean doTypecheck) {
 		return reconciler.reconcile(doTypecheck);
+	}
+
+	public static WurstEditor getActiveEditor() {
+		IWorkbenchWindow wb = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+		if (wb == null) {
+			System.out.println("not called from UI thread?");
+			return null;
+		}
+		IWorkbenchPage activePage = wb.getActivePage();
+		if (activePage == null) {
+			System.out.println("no active page");
+			return null;
+		}
+		IEditorPart editor = activePage.getActiveEditor();
+		if (editor instanceof WurstEditor) {
+			return (WurstEditor) editor;
+		}
+		for (IEditorReference r : activePage.getEditorReferences()) {
+			editor = r.getEditor(false);
+			if (editor instanceof WurstEditor) {
+				return (WurstEditor) editor;
+			}
+		}
+		return null;
 	}
 	
 	

@@ -6,7 +6,9 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.JassIm;
 
 
 public class WurstTypeClass extends WurstTypeNamedScope {
@@ -52,7 +54,7 @@ public class WurstTypeClass extends WurstTypeNamedScope {
 	
 	@Override
 	public String getName() {
-		return getDef().getName() + printTypeParams() + " (class)";
+		return getDef().getName() + printTypeParams();
 	}
 	
 	@Override
@@ -73,6 +75,11 @@ public class WurstTypeClass extends WurstTypeNamedScope {
 	@Override
 	public ImType imTranslateType() {
 		return TypesHelper.imInt();
+	}
+
+	@Override
+	public ImExprOpt getDefaultValue() {
+		return JassIm.ImIntVal(0);
 	}
 	
 }

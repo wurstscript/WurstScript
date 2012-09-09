@@ -18,6 +18,9 @@ public tuple ObjectDefinition(string key)
 @compiletimenative public function ObjectDefinition.setInt(string modification, int value)
 	skip
 	
+public function ObjectDefinition.setBoolean(string modification, boolean value)
+	this.setInt(modification, value.toInt())
+	
 // changes a string value of an objectdefinition
 @compiletimenative public function ObjectDefinition.setString(string modification, string value)
 	skip

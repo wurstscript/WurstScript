@@ -3,7 +3,9 @@ package de.peeeq.wurstscript.types;
 import java.util.List;
 
 import de.peeeq.wurstscript.ast.EnumDef;
+import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.JassIm;
 
 
 public class WurstTypeEnum extends WurstTypeNamedScope {
@@ -25,7 +27,7 @@ public class WurstTypeEnum extends WurstTypeNamedScope {
 	
 	@Override
 	public String getName() {
-		return getDef().getName()  + " (enum)";
+		return getDef().getName();
 	}
 	
 	@Override
@@ -46,6 +48,11 @@ public class WurstTypeEnum extends WurstTypeNamedScope {
 	@Override
 	public ImType imTranslateType() {
 		return TypesHelper.imInt();
+	}
+
+	@Override
+	public ImExprOpt getDefaultValue() {
+		return JassIm.ImIntVal(0);
 	}
 
 }

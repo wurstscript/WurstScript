@@ -26,7 +26,7 @@ import de.peeeq.wurstscript.utils.Utils;
  */
 public class About extends javax.swing.JDialog {
     final URI uri;
-    final static String homepage = "http://code.google.com/p/pscript-lang/";
+    final static String homepage = "http://peq.github.com/WurstScript/";
     public final static String version = "0.0013a";
     final static String authors = "peq & Frotty";
 
@@ -53,7 +53,6 @@ public class About extends javax.swing.JDialog {
         homepageButton = new javax.swing.JButton();
         logo = new javax.swing.JLabel();
         heading = new javax.swing.JLabel();
-        subTitle = new javax.swing.JLabel();
         description = new javax.swing.JLabel();
         versionTitle = new javax.swing.JLabel();
         authorTitle = new javax.swing.JLabel();
@@ -68,7 +67,7 @@ public class About extends javax.swing.JDialog {
         setResizable(false);
 
         homepageButton.setForeground(new java.awt.Color(0, 0, 255));
-        homepageButton.setText("http://code.google.com/p/pscript-lang/");
+        homepageButton.setText(homepage);
         homepageButton.setBorderPainted(false);
         homepageButton.setContentAreaFilled(false);
         homepageButton.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
@@ -91,11 +90,6 @@ public class About extends javax.swing.JDialog {
         heading.setText("WurstScript");
         heading.setName("heading"); // NOI18N
 
-        subTitle.setFont(new java.awt.Font("Tahoma", 0, 10)); // NOI18N
-        subTitle.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        subTitle.setText("PScript for Warcraft 3");
-        subTitle.setVerticalAlignment(javax.swing.SwingConstants.TOP);
-        subTitle.setName("subTitle"); // NOI18N
 
         description.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         description.setText("A Wurst to Jass compiler plus built-in optimizer");
@@ -107,7 +101,7 @@ public class About extends javax.swing.JDialog {
         versionTitle.setName("versionTitle"); // NOI18N
 
         authorTitle.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
-        authorTitle.setText("Author");
+        authorTitle.setText("Authors:");
         authorTitle.setName("authorTitle"); // NOI18N
 
         homepageTitle.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
@@ -130,7 +124,6 @@ public class About extends javax.swing.JDialog {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(description, javax.swing.GroupLayout.DEFAULT_SIZE, 302, Short.MAX_VALUE)
-                    .addComponent(subTitle, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 302, Short.MAX_VALUE)
                     .addComponent(heading, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 302, Short.MAX_VALUE)
                     .addGroup(layout.createSequentialGroup()
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
@@ -154,7 +147,6 @@ public class About extends javax.swing.JDialog {
                         .addGap(11, 11, 11)
                         .addComponent(heading, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(subTitle)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(description)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -239,7 +231,6 @@ public class About extends javax.swing.JDialog {
     private javax.swing.JButton homepageButton;
     private javax.swing.JLabel homepageTitle;
     private javax.swing.JLabel logo;
-    private javax.swing.JLabel subTitle;
     private javax.swing.JLabel versionCurrent;
     private javax.swing.JLabel versionTitle;
     // End of variables declaration//GEN-END:variables
