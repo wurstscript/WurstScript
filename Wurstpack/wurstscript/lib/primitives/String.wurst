@@ -1,14 +1,16 @@
 package String
 
-public function string.substring(int start, int end) returns string
-	return SubString(this, start, end)
-
-public function string.length() returns int
-	return StringLength(this)
+	public function string.substring(int start, int end) returns string
+		return SubString(this, start, end)
 	
-public function string.charAt(int index) returns string
-	return SubString(this, index, index+1)
+	public function string.length() returns int
+		return StringLength(this)
+		
+	public function string.charAt(int index) returns string
+		return SubString(this, index, index+1)
+	
+	public function string.toAbilityId() returns int
+		return AbilityId(this)
 
-public function string.toAbilityId() returns int
-	return AbilityId(this)
+endpackage
 
