@@ -94,7 +94,7 @@ package TimerUtils
 	
 	
 	public module TimedLoop
-		constant static real PERIOD = 0.031250000
+		static constant real PERIOD = 0.031250000
 		static private thistype array instances		// The array
 		static private integer instanceCount = 0	// The count
 		static private triggercondition triggerCond = null // the triggerCondition for this

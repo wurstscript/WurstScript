@@ -101,7 +101,7 @@ public class ClassesTests extends PscriptTest {
 	
 		@Test
 	public void constantVars() {
-		testAssertErrorsLines(false, "constant variable", 
+		testAssertErrorsLines(false, "Grammatical error", 
 				"package test",
 				"	class C",
 				"		constant int i",

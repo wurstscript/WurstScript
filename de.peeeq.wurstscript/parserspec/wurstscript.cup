@@ -441,8 +441,6 @@ Modifier ::=
 		{: RESULT = Ast.ModOverride(pos(xleft, xright)); :}
 	| ABSTRACT:x
 		{: RESULT = Ast.ModAbstract(pos(xleft, xright)); :}
-	| CONSTANT:x
-		{: RESULT = Ast.ModConstant(pos(xleft, xright)); :}
 	| ANNOTATION:x
 		{: RESULT = Ast.Annotation(pos(xleft, xright), x); :}
 ;
@@ -516,6 +514,12 @@ ArraySizes ::=
 VarDef ::=
 	  Modifiers:mod TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
 		{: RESULT = Ast.GlobalVarDef(pos(typleft, i), mod, typ, name, i); :}
+	| Modifiers:mod VAR:v IDENTIFIER:name EQ Expr:i NL
+		{: RESULT = Ast.GlobalVarDef(pos(vleft, i), mod, Ast.NoTypeExpr(), name, i); :}
+	| Modifiers:mod CONSTANT:v TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
+		{: mod.add(Ast.ModConstant(pos(vleft, vright))); RESULT = Ast.GlobalVarDef(pos(vleft, i), mod, typ, name, i); :}
+	| Modifiers:mod CONSTANT:v IDENTIFIER:name EQ Expr:i NL
+		{: mod.add(Ast.ModConstant(pos(vleft, vright))); RESULT = Ast.GlobalVarDef(pos(vleft, i), mod, Ast.NoTypeExpr(), name, i); :}	
 	| Modifiers:mod TypeExpr:typ IDENTIFIER:name NL
 		{: RESULT = Ast.GlobalVarDef(pos(typleft, nameright), mod, typ, name, Ast.NoExpr()); :}
 ;
