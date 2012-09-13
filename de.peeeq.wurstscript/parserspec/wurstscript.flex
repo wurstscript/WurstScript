@@ -174,10 +174,10 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"<"                              { return jassSymbol(TokenType.LT); }
 	">"                              { return jassSymbol(TokenType.GT); }
 	"="                               { return jassSymbol(TokenType.EQ); }
-	{DIGIT}+                          { return jassSymbol(TokenType.INTEGER_LITERAL, Utils.parseInt(yytext())); }
-	"0x" [0-9a-fA-F]+                          { return jassSymbol(TokenType.INTEGER_LITERAL, Utils.parseHexInt(yytext())); }
-	"'" . "'"						  { return jassSymbol(TokenType.INTEGER_LITERAL, Utils.parseAsciiInt1(yytext())); }
-	"'" . . . . "'"					{ return jassSymbol(TokenType.INTEGER_LITERAL, Utils.parseAsciiInt4(yytext())); }
+	{DIGIT}+                          { try { return jassSymbol(TokenType.INTEGER_LITERAL, Utils.parseInt(yytext())); } catch (NumberFormatException e) { return jassSymbol(TokenType.error, "invalid number"); } }
+	"0x" [0-9a-fA-F]+                          { try { return jassSymbol(TokenType.INTEGER_LITERAL, Utils.parseHexInt(yytext())); } catch (NumberFormatException e) { return jassSymbol(TokenType.error, "invalid number"); } }
+	"'" . "'"						  { try { return jassSymbol(TokenType.INTEGER_LITERAL, Utils.parseAsciiInt1(yytext())); } catch (NumberFormatException e) { return jassSymbol(TokenType.error, "invalid number"); } }
+	"'" . . . . "'"					{ try { return jassSymbol(TokenType.INTEGER_LITERAL, Utils.parseAsciiInt4(yytext())); } catch (NumberFormatException e) { return jassSymbol(TokenType.error, "invalid number"); } }
 	{DIGIT}+ "." {DIGIT}*			  { return jassSymbol(TokenType.REAL_LITERAL, yytext()); }
 	[ \t\n\r]* "." {DIGIT}+			 { return jassSymbol(TokenType.REAL_LITERAL, yytext()); }
 	[ \t\n\r]* "."                    { return jassSymbol(TokenType.DOT); } 
@@ -350,10 +350,10 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"++"                               { return symbol(TokenType.PLUS_PLUS); }
 	"--"                               { return symbol(TokenType.MINUS_MINUS); }
 	"-->"                              { return symbol(TokenType.ARROW); }
-	{DIGIT}+                          { return symbol(TokenType.INTEGER_LITERAL, Utils.parseInt(yytext())); }
-	"0x" [0-9a-fA-F]+                          { return symbol(TokenType.INTEGER_LITERAL, Utils.parseHexInt(yytext())); }
-	"'" . "'"						  { return symbol(TokenType.INTEGER_LITERAL, Utils.parseAsciiInt1(yytext())); }
-	"'" . . . . "'"					{ return symbol(TokenType.INTEGER_LITERAL, Utils.parseAsciiInt4(yytext())); }
+	{DIGIT}+                          { try { return symbol(TokenType.INTEGER_LITERAL, Utils.parseInt(yytext())); } catch (NumberFormatException e) { return symbol(TokenType.error, "invalid number"); }  }
+	"0x" [0-9a-fA-F]+                          { try { return symbol(TokenType.INTEGER_LITERAL, Utils.parseHexInt(yytext())); } catch (NumberFormatException e) { return symbol(TokenType.error, "invalid number"); }  }
+	"'" . "'"						  { try { return symbol(TokenType.INTEGER_LITERAL, Utils.parseAsciiInt1(yytext())); } catch (NumberFormatException e) { return symbol(TokenType.error, "invalid number"); }  }
+	"'" . . . . "'"					{ try { return symbol(TokenType.INTEGER_LITERAL, Utils.parseAsciiInt4(yytext())); } catch (NumberFormatException e) { return symbol(TokenType.error, "invalid number"); }  }
 	{DIGIT}+ "." {DIGIT}*			  { return symbol(TokenType.REAL_LITERAL, yytext()); }
 	[ \t\n\r]* "." {DIGIT}+			 { return symbol(TokenType.REAL_LITERAL, yytext()); }
 	[ \t\n\r]* "."                    { return symbol(TokenType.DOT); } 
