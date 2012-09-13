@@ -38,6 +38,7 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
+import de.peeeq.wurstscript.intermediateLang.ILconstReal;
 import de.peeeq.wurstscript.intermediateLang.ILconstTuple;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreter;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ILconstError;
@@ -120,8 +121,9 @@ public class WurstREPL {
 		
 		
 		try {
-			
-			if (line.equals("reset")) {
+			if (line.isEmpty()) {
+				return;
+			} else if (line.equals("reset")) {
 				init();
 				return;
 			} else if (line.equals("main")) {
@@ -204,10 +206,23 @@ public class WurstREPL {
 				
 				
 				String valueTranslated = getTranslatedValue(typ, value);
-				if (valueTranslated != null && !(value instanceof ILconstError)) {
-					print(varName + " = " + value + "     // " + typ + "\n");
-					currentState.put(varName, "let " + varName + " = " + valueTranslated);
+				if (valueTranslated == null) return;
+				if (value instanceof ILconstError) return;
+				
+				if (value instanceof ILconstReal) {
+					ILconstReal r = (ILconstReal) value;
+					if (r.getVal() == Float.NaN || r.getVal() == Float.NEGATIVE_INFINITY || r.getVal() == Float.POSITIVE_INFINITY) {
+						print("cannot store result of computation: " + r.getVal() + "\n");
+						return;
+					}
 				}
+				
+				print(varName + " = " + value + "     // " + typ + "\n");
+				
+				
+				
+				currentState.put(varName, "let " + varName + " = " + valueTranslated);
+				
 			} else if (assignment instanceof StmtSet) {
 				StmtSet stmtSet = (StmtSet) assignment;
 				WurstType typ = stmtSet.getRight().attrTyp();
