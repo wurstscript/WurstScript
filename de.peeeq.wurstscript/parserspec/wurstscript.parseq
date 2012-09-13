@@ -136,8 +136,8 @@ CompoundStatement =
 LoopStatement = 
 	  StmtWhile(WPos source, Expr cond, WStatements body)
 	| StmtLoop(WPos source, WStatements body)
-	| StmtForRange(WPos source, LocalVarDef loopVar, Expr from, Expr to, Expr step, WStatements body)
-	| StmtForRangeDown(WPos source, LocalVarDef loopVar, Expr from, Expr to, Expr step, WStatements body)
+	| StmtForRange(WPos source, LocalVarDef loopVar, Expr to, Expr step, WStatements body)
+	| StmtForRangeDown(WPos source, LocalVarDef loopVar, Expr to, Expr step, WStatements body)
 	| StmtForIn(WPos source, LocalVarDef loopVar, Expr in, WStatements body)
 	| StmtForFrom(WPos source, LocalVarDef loopVar, Expr in, WStatements body)
 	

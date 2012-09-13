@@ -547,13 +547,13 @@ Statement ::=
 	| StmtDestroy:x
 		{: RESULT = x; :} 
 	| FOR:x LocalVarDefInline:loopVar EQ Expr:from TO Expr:to NL INDENT Statements:body UNINDENT:y
-		{: RESULT = Ast.StmtForRange(pos(xleft, body), loopVar, from, to, Ast.ExprIntVal(pos(to, Integer.MIN_VALUE), 1), body); :}
+		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRange(pos(xleft, body), loopVar, to, Ast.ExprIntVal(pos(to, Integer.MIN_VALUE), 1), body); :}
 	| FOR:x LocalVarDefInline:loopVar EQ Expr:from TO Expr:to STEP Expr:step NL INDENT Statements:body UNINDENT:y
-		{: RESULT = Ast.StmtForRange(pos(xleft, body), loopVar, from, to, step, body); :}
+		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRange(pos(xleft, body), loopVar, to, step, body); :}
 	| FOR:x LocalVarDefInline:loopVar EQ Expr:from DOWNTO Expr:to NL INDENT Statements:body UNINDENT:y
-		{: RESULT = Ast.StmtForRangeDown(pos(xleft, body), loopVar, from, to, Ast.ExprIntVal(pos(to, Integer.MIN_VALUE), 1), body); :}
+		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRangeDown(pos(xleft, body), loopVar, to, Ast.ExprIntVal(pos(to, Integer.MIN_VALUE), 1), body); :}
 	| FOR:x LocalVarDefInline:loopVar EQ Expr:from DOWNTO Expr:to STEP Expr:step NL INDENT Statements:body UNINDENT:y
-		{: RESULT = Ast.StmtForRangeDown(pos(xleft, body), loopVar, from, to, step, body); :}
+		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRangeDown(pos(xleft, body), loopVar, to, step, body); :}
 	| FOR:x LocalVarDefInline:loopVar IN Expr:in NL INDENT Statements:body UNINDENT:y
 		{: RESULT = Ast.StmtForIn(pos(xleft, body), loopVar, in, body); :}
 	| FOR:x LocalVarDefInline:loopVar FROM Expr:in NL INDENT Statements:body UNINDENT:y
@@ -637,6 +637,8 @@ LocalVarDef ::=
 LocalVarDefInline ::=
 	TypeExpr:typ IDENTIFIER:name
 		{: RESULT = Ast.LocalVarDef(pos(typleft, nameright), Ast.Modifiers(), typ, name, Ast.NoExpr()); :}
+	| IDENTIFIER:name
+		{: RESULT = Ast.LocalVarDef(pos(nameleft, nameright), Ast.Modifiers(), Ast.NoTypeExpr(), name, Ast.NoExpr()); :}
 ;
 
 StmtSet ::= 
