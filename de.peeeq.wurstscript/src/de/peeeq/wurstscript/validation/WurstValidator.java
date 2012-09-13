@@ -66,6 +66,8 @@ import de.peeeq.wurstscript.ast.TranslatedToImFunction;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.ast.TypeExprArray;
+import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.VisibilityModifier;
@@ -1108,6 +1110,17 @@ public class WurstValidator {
 		// traverse childs
 		for (int i =0; i<node.size(); i++) {
 			computeFlowAttributes(node.get(i));
+		}
+	}
+	
+	@CheckMethod
+	public void chechCodeArrays(TypeExprArray e) {
+		if (e.getBase() instanceof TypeExprSimple) {
+			TypeExprSimple base = (TypeExprSimple) e.getBase();
+			if (base.getTypeName().equals("code")) {
+				e.addError("Code arrays are not supported. Try using an array of triggers or conditionfuncs.");
+			}
+			
 		}
 	}
 	

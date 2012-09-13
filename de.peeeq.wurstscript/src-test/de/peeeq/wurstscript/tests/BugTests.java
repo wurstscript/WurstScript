@@ -8,6 +8,14 @@ public class BugTests extends PscriptTest {
 
 	
 	@Test
+	public void bug62_codearray() {
+		testAssertErrorsLines(false, "Code arrays", 
+				"package test",
+				"	code array coar",
+				"endpackage");
+	}
+	
+	@Test
 	public void test_empty_escapesequence() {
 		testAssertErrorsLines(false, "Lexical error", 
 				"package test",
