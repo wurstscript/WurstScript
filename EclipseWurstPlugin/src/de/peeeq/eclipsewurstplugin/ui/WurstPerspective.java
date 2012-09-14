@@ -19,6 +19,9 @@ import de.peeeq.eclipsewurstplugin.console.WurstConsole;
 
 public class WurstPerspective implements IPerspectiveFactory {
 
+	
+	
+	
 	@Override
 	public void createInitialLayout(IPageLayout layout) {
 		String editorArea = layout.getEditorArea();
@@ -43,6 +46,12 @@ public class WurstPerspective implements IPerspectiveFactory {
 		layout.addShowViewShortcut(IConsoleConstants.ID_CONSOLE_VIEW);
 		layout.addShowViewShortcut(IPageLayout.ID_OUTLINE);
 		layout.addShowViewShortcut(IPageLayout.ID_PROJECT_EXPLORER);
+		
+		// add wizard shortcuts
+		layout.addNewWizardShortcut("de.peeeq.eclipsewurstplugin.wizards.newpackage");
+		layout.addNewWizardShortcut("org.eclipse.ui.wizards.new.folder");
+        layout.addNewWizardShortcut("org.eclipse.ui.wizards.new.file");
+		
 		
 		findConsole();
 		
