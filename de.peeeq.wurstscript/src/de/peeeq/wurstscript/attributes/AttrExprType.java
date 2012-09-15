@@ -547,6 +547,9 @@ public class AttrExprType {
 			return WurstTypeVoid.instance();
 		}
 		WurstType typ = f.getReturnTyp().attrTyp().dynamic();
+		if (term.getSource().getFile().endsWith("Test.wurst")) {
+			System.out.println("typ = " + typ);
+		}
 		if (typ instanceof WurstTypeModule) {
 			// example:
 			// module A 

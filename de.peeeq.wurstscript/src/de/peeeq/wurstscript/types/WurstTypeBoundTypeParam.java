@@ -51,4 +51,9 @@ public class WurstTypeBoundTypeParam extends WurstType {
 		return JassIm.ImIntVal(0);
 	}
 
+	
+	@Override
+	public WurstType dynamic() {
+		return baseType.dynamic();
+	}
 }
