@@ -1,6 +1,7 @@
 package Fx
     import DummyRecycler
     import Effect
+	import Vectors
    	
 	/********************************************************
 	 * * * * * * * * * * Fx * * * * * * * * * * * * * * * * *
@@ -28,7 +29,22 @@ package Fx
 		
 		construct(real x, real y, real facing)
 			dummy = newDummy( x, y, 0, facing)
-			
+		
+		construct(vec2 pos, real facing)
+			dummy = newDummy( pos.x, pos.y, 0, facing)
+		
+		construct(vec2 pos, real facing, string fxpath)
+			dummy = newDummy( pos.x, pos.y, 0, facing)
+			setFx( fxpath )
+		
+		construct(vec3 pos, real facing)
+			dummy = newDummy( pos.x, pos.y, 0, facing)
+			setZ(pos.z)	
+        
+        construct(vec3 pos, real facing, string fxpath)
+			dummy = newDummy( pos.x, pos.y, 0, facing)
+			setZ(pos.z)
+			setFx( fxpath )	
         
         construct(real x, real y, real facing, string fxpath)
 			dummy = newDummy( x, y, 0, facing)
@@ -130,9 +146,20 @@ package Fx
 			dummy.setPos(x, y)
 			return this
 		
+		function setPos2(vec2 pos) returns Fx
+			dummy.setPos(pos.x, pos.y)
+			return this
+		
+		function setPos3(vec3 pos) returns Fx
+			dummy.setPos(pos.x, pos.y)
+			setZAngle(pos.z)
+			return this
+		
 		function setZ(real z) returns Fx
 			dummy.setFlyHeight(z, 0.)
 			return this
+			
+		
 		
 		function setFx(string newpath) returns Fx
 			if fx != null

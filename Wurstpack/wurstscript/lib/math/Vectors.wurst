@@ -88,6 +88,9 @@ package Vectors
 	public function vec3.toString() returns string
 		return "Vector3 [ " + this.x.toString() + ", " + this.y.toString() + ", " + this.z.toString() + " ]"
 		
+	public function vec3.flat() returns vec2
+		return vec2(this.x, this.y)
+		
 	/*************************
 	 ********2D-Vector********
 	 *************************/
@@ -155,5 +158,8 @@ package Vectors
 			return vec2(0.,0.)
         l = length/l
         return vec2(this.x*l, this.y*l)
+        
+	public function vec2.withZ(real z) returns vec3
+		return vec3(this.x, this.y, z) 
 	
 endpackage 
