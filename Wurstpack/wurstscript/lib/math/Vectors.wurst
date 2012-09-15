@@ -124,6 +124,9 @@ package Vectors
 	public function vec2.length() returns real
 		return SquareRoot(this.x*this.x+this.y*this.y)
 		
+	public function vec2.lengthSquared() returns real
+		return this.x*this.x+this.y*this.y
+		
 	public function vec2.toString() returns string
 		return "Vector2 [ " + this.x.toString() + ", " + this.y.toString() + " ]"
 	

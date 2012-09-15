@@ -42,7 +42,11 @@ package Terrain
     constant integer DUMMY_ITEM_ID = 'wolg'
     constant real MAP_STANDARD_HEIGHT = 335.
 	location tempLoc = Location(0.,0.)
-    
+    public rect worldRect = GetWorldBounds()
+    public real     minWorldX
+    public real     minWorldY
+    public real     maxWorldX
+    public real     maxWorldY
     item       dItem   = null
     rect       find   = null
     item array hid
@@ -54,6 +58,10 @@ package Terrain
 	    find = Rect(0., 0., 128., 128.)
 	    dItem = CreateItem(DUMMY_ITEM_ID, 0, 0)
 	    SetItemVisible(dItem, false)
+	    minWorldX = GetRectMinX(worldRect)
+        minWorldY = GetRectMinY(worldRect)
+        maxWorldX = GetRectMaxX(worldRect)
+        maxWorldY = GetRectMaxY(worldRect)
 	    
 	public function getTerrainNormal( real x, real y, real sampleRadius) returns vec3
         MoveLocation(tempLoc, x-sampleRadius, y)
