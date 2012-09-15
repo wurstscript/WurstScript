@@ -1,24 +1,67 @@
 package OnCast
-	import Trigger
+import Trigger
+import Vectors
+
+public module OnPointCast
+	private static trigger t = null
+	private static integer spellId
 	
-	
-	public module OnPointCast
-		static trigger t = null
-		static integer spellId
+	abstract static function onPointCast(unit caster, int level, vec2 target)
+
+	private static function actions() returns boolean
+		if GetSpellAbilityId() == spellId
+			onPointCast(GetSpellAbilityUnit(), 
+				GetUnitAbilityLevel(GetSpellAbilityUnit(), spellId), 
+				vec2(GetSpellTargetX(), GetSpellTargetY()))
+		return false
+
+	static function registerSpellEvent(int p_spellId)
+		spellId = p_spellId
+		CreateTrigger()
+			.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
+			.addCondition(Condition(function actions))
+
 		
-		abstract static function onPointCast(unit caster, int level, real targetX, real targetY)
+public module OnCast
+	private static trigger t = null
+	private static integer spellId
 	
-		private static function actions() returns boolean
-			onPointCast(GetSpellAbilityUnit(), GetUnitAbilityLevel(GetSpellAbilityUnit(), GetSpellAbilityId()), GetSpellTargetX(), GetSpellTargetY())
-			return false
+	abstract static function onCast(unit caster, int level)
+
+	private static function actions() returns boolean
+		if GetSpellAbilityId() == spellId
+			onCast(GetSpellAbilityUnit(), 
+				GetUnitAbilityLevel(GetSpellAbilityUnit(), spellId))
+		return false
+
+	static function registerSpellEvent(int p_spellId)
+		spellId = p_spellId
+		CreateTrigger()
+			.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
+			.addCondition(Condition(function actions))
+
+public module OnUnitTargetCast
+	private static trigger t = null
+	private static integer spellId
 	
-		static function registerSpellEvent(int p_spellId)
-			spellId = p_spellId
-			CreateTrigger()
-				.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
-				.addCondition(Condition(function actions))
+	abstract static function onUnitTargetCast(unit caster, int level, unit target)
+
+	private static function actions() returns boolean
+		if GetSpellAbilityId() == spellId
+			onUnitTargetCast(GetSpellAbilityUnit(), 
+				GetUnitAbilityLevel(GetSpellAbilityUnit(), spellId), GetSpellTargetUnit())
+		return false
+
+	static function registerSpellEvent(int p_spellId)
+		spellId = p_spellId
+		CreateTrigger()
+			.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
+			.addCondition(Condition(function actions))		
+			
 		
+		
+				
+								
 	// TODO add other onCast modules (unit target etc...)
 	
 		
-endpackage

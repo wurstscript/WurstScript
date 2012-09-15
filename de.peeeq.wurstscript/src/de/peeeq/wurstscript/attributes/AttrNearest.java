@@ -103,6 +103,9 @@ public class AttrNearest {
 		if (scope instanceof ModuleInstanciation) {
 			ModuleInstanciation mi = (ModuleInstanciation) scope;
 			ModuleDef m = mi.attrModuleOrigin();
+			if (m == null) {
+				return null;
+			}
 			return m.attrNextScope();			
 		} else {
 			if (scope.getParent() != null) {
