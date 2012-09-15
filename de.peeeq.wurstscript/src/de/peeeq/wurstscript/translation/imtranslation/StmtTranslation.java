@@ -124,21 +124,22 @@ public class StmtTranslation {
 
 
 	public static ImStmt translate(StmtForRange s, ImTranslator t, ImFunction f) {
-		return case_StmtForRange(t, f, s.getLoopVar(), s.getFrom(), s.getTo(), s.getStep(), s.getBody(), Ast.OpPlus(),
+		return case_StmtForRange(t, f, s.getLoopVar(), s.getTo(), s.getStep(), s.getBody(), Ast.OpPlus(),
 				Ast.OpGreater(), s);
 	}
 
 
 	public static ImStmt translate(StmtForRangeDown s, ImTranslator t, ImFunction f) {
-		return case_StmtForRange(t, f, s.getLoopVar(), s.getFrom(), s.getTo(), s.getStep(), s.getBody(),
+		return case_StmtForRange(t, f, s.getLoopVar(), s.getTo(), s.getStep(), s.getBody(),
 				Ast.OpMinus(), Ast.OpLess(), s);
 	}
 
 	private static ImStmt case_StmtForRange(ImTranslator t, ImFunction f, LocalVarDef loopVar,
-			Expr from, Expr to, Expr step, WStatements body, OpBinary opStep, OpBinary opCompare, AstElement trace) {
+			Expr to, Expr step, WStatements body, OpBinary opStep, OpBinary opCompare, AstElement trace) {
 		ImVar imLoopVar = t.getVarFor(loopVar);
 		f.getLocals().add(imLoopVar);
 
+		Expr from = (Expr) loopVar.getInitialExpr();
 		ImExpr fromExpr = from.imTranslateExpr(t, f);
 		List<ImStmt> result = Lists.newArrayList();
 		result.add(ImSet(loopVar, imLoopVar, fromExpr));

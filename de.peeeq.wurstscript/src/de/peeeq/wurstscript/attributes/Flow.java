@@ -63,6 +63,10 @@ public class Flow {
 	
 	public static List<WStatement> getNext(StmtExitwhen s) {
 		LoopStatement loop = getParent(LoopStatement.class, s);
+		if (loop == null) {
+			s.addError("Break statements must be used inside a loop.");
+			return Collections.emptyList();
+		}
 		List<WStatement> next = getFollowingStatements(loop);
 		if (isConstantBool(s.getCond(), true)) {
 			// always breaks
