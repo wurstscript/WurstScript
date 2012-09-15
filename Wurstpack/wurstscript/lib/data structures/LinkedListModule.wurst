@@ -43,5 +43,25 @@ package LinkedListModule
 			if this == first
 				first = next
 
+		
+		// linked list iterator functions
+
+/* this feature would need inner classes
+		static function iterator() returns Iterator
+			return new Iterator()
+	
+		public class Iterator
+			private parenttype current
+			
+			construct()
+				this.current = parent.current
+					
+			function hasNext() returns boolean
+				return current.next != null
+				
+			function next() returns parenttype
+				current = current.next
+				return current
+*/
 
 endpackage

@@ -22,6 +22,9 @@ public class AttrNearest {
 		if (node instanceof ModuleInstanciation) {
 			ModuleInstanciation mi = (ModuleInstanciation) node;
 			ModuleDef m = mi.attrModuleOrigin();
+			if (m == null) {
+				return null;
+			}
 			return m.attrNearestPackage();
 		}
 		if (node instanceof PackageOrGlobal) {
