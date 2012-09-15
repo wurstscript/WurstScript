@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import javax.swing.JOptionPane;
+
 import java_cup.runtime.Symbol;
 
 import com.google.common.base.Charsets;
@@ -76,24 +78,57 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	public void loadFiles(File ... files) {
 		gui.sendProgress("Loading Files", 0.01);
 		for (File file : files) {
-			if (file == null) {
-				throw new Error("File must not be null");
+			loadFile(file);
+		}
+	}
+
+	private void loadFile(File file) throws Error {
+		if (file == null) {
+			throw new Error("File must not be null");
+		}
+		if (!file.exists()) {
+			throw new Error("File " + file + " does not exist.");
+		}
+		this.files.add(file);
+	}
+	
+	private void loadWurstFilesInDir(File dir) {
+		for (File f : dir.listFiles()) {
+			if (f.isDirectory()) {
+				loadWurstFilesInDir(f);
+			} else if (f.getName().endsWith(".wurst")) {
+				loadFile(f);
 			}
-			if (!file.exists()) {
-				throw new Error("File " + file + " does not exist.");
-			}
-			this.files.add(file);
 		}
 	}
 	
 	@Override public void parseFiles() {
+
+		// search mapFile
+		for (File file : files) {
+			if (file.getName().endsWith(".w3x") || file.getName().endsWith(".w3m")) {
+				mapFile = file;
+			}
+		}
+		
+		// import wurst folder if it exists
+		if (mapFile != null) {
+			File relativeWurstDir = new File(mapFile.getParentFile().getAbsolutePath() + "/wurst/");
+			if (relativeWurstDir.exists()) {
+				WLogger.info("Importing wurst files from " + relativeWurstDir);
+				loadWurstFilesInDir(relativeWurstDir);
+			} else {
+				WLogger.info("No wurst folder found in " + relativeWurstDir);
+			}
+		}
+		
+		
 		gui.sendProgress("Parsing Files", 0.02);
 		// parse all the files:
 		List<CompilationUnit> compilationUnits = new NotNullList<CompilationUnit>();
 		
 		for (File file : files) {
 			if (file.getName().endsWith(".w3x") || file.getName().endsWith(".w3m")) {
-				mapFile = file;
 				CompilationUnit r = processMap(file);
 				compilationUnits.add(r );				
 			} else {
@@ -131,6 +166,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		checkAndTranslate(merged);
 		gui.sendProgress("finished parsing", .9);
 	}
+	
+
 	
 
 	/**
@@ -212,12 +249,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 				}
 				File libDir = new File(libDirName);
 				addLibDir(libDir);
-			}
-			if (mapFile != null) {
-				File relativeWurstDir = new File(mapFile.getParentFile().getAbsolutePath() + "/wurst/");
-				if (relativeWurstDir.exists()) {
-					addLibDir(relativeWurstDir);
-				}
 			}
 		}
 		return libCache;
