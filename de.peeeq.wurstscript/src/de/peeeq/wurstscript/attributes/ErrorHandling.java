@@ -21,13 +21,18 @@ public class ErrorHandling {
 				if (bigger(err.getSource(), pos)) {
 					// remove bigger errors
 					it.remove();
-				} else if (bigger(pos, err.getSource())) {
+				} else if (bigger(pos, err.getSource()) || equal(pos, err.getSource())) {
+					// do not add smaller or equal errors
 					return;
 				}
 			}
 		}
 		CompileError c = new CompileError(pos, msg);
 		handler.sendError(c);
+	}
+
+	private static boolean equal(WPos a, WPos b) {
+		return a.getLeftPos() == b.getLeftPos() && a.getRightPos() == b.getRightPos();
 	}
 
 	private static boolean bigger(WPos a, WPos b) {
