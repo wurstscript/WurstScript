@@ -305,8 +305,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		
 		if (true /*runArgs.isInline()*/) {
 			System.out.println("bjghjghkghkhgggjg");
-			GlobalsInliner gbinliner = new GlobalsInliner(imTranslator);
-			gbinliner.inlineGlobals();
+//			GlobalsInliner gbinliner = new GlobalsInliner(imTranslator);
+//			gbinliner.inlineGlobals();
 			ImInliner inliner = new ImInliner(imTranslator);
 			inliner.doInlining();
 			
