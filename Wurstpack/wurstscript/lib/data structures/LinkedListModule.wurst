@@ -42,6 +42,9 @@ package LinkedListModule
 				last = prev
 			if this == first
 				first = next
+				
+		ondestroy
+			remove()
 
 
 endpackage

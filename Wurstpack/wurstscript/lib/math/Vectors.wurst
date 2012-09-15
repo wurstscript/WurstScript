@@ -80,6 +80,10 @@ package Vectors
 	public function vec3.lengthXY() returns real
 		return SquareRoot(this.x*this.x+this.y*this.y)
 			
+	public function vec3.inCircle( vec3 v2, real radius ) returns boolean
+		if (this.x-v2.x).squared() + (this.y-v2.y).squared() <= radius*radius
+			return true
+		return false
 		
 	public function vec3.toString() returns string
 		return "Vector3 [ " + this.x.toString() + ", " + this.y.toString() + ", " + this.z.toString() + " ]"
@@ -126,6 +130,11 @@ package Vectors
 		
 	public function vec2.lengthSquared() returns real
 		return this.x*this.x+this.y*this.y
+		
+	public function vec2.inCircle( vec2 v2, real radius ) returns boolean
+		if (this.x-v2.x).squared() + (this.y-v2.y).squared() <= radius*radius
+			return true
+		return false
 		
 	public function vec2.toString() returns string
 		return "Vector2 [ " + this.x.toString() + ", " + this.y.toString() + " ]"

@@ -40,7 +40,7 @@ package Terrain
 // 
     constant real    MAX_RANGE     = 10.
     constant integer DUMMY_ITEM_ID = 'wolg'
-    constant real MAP_STANDARD_HEIGHT = 335.
+    constant real MAP_STANDARD_HEIGHT = 0.
 	location tempLoc = Location(0.,0.)
     public rect worldRect = GetWorldBounds()
     public real     minWorldX
