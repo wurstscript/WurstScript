@@ -11,6 +11,12 @@ package String
 	
 	public function string.toAbilityId() returns int
 		return AbilityId(this)
+		
+	public function string.indexOf( string s ) returns int
+		for int i = 0 to this.length() - 1
+			if this.substring(i, i+1) == s
+				return i
+		return -1
 
 endpackage
 
