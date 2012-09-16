@@ -22,6 +22,7 @@ import de.peeeq.wurstscript.translation.imtranslation.FunctionFlag;
 
 public class ImAttributes {
 
+
 	public static ImFunction getNearestFunc(JassImElement e ) {
 		while (e != null && !(e instanceof ImFunction)) {
 			e = e.getParent();

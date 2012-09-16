@@ -73,6 +73,9 @@ ImConst =
 	
 ImPrintable = ImStmt | ImFunction | ImProg | ImVar | ImType | ImStmts | ImExprOpt
 	
+ImVarWrite = ImSet | ImSetArray | ImSetArrayTuple | ImSetTuple
+ImVarRead = ImVarAccess | ImVarArrayAccess	
+	
 attributes:
 	
 ImType.defaultValue
@@ -207,3 +210,16 @@ JassImElement.attrTrace()
 JassImElement.attrProg()
 	returns ImProg
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.getProg
+	
+ImProg.attrVariableUses
+	returns de.peeeq.wurstscript.translation.imoptimizer.VariableUses.Uses
+	implemented by de.peeeq.wurstscript.translation.imoptimizer.VariableUses.calcVarUses
+	
+ImVar.attrWrites
+	returns java.util.Collection<ImVarWrite>
+	implemented by de.peeeq.wurstscript.translation.imoptimizer.VariableUses.getVarWrites
+	
+	
+ImVar.attrReads
+	returns java.util.Collection<ImVarRead>
+	implemented by de.peeeq.wurstscript.translation.imoptimizer.VariableUses.getVarReads
