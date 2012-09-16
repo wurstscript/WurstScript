@@ -4,6 +4,7 @@ public enum FunctionFlag {
 	IS_BJ,
 	IS_NATIVE,
 	IS_COMPILETIME,
-	IS_TEST
+	IS_TEST, 
+	IS_COMPILETIME_NATIVE
 	
 }

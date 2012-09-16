@@ -1006,6 +1006,11 @@ public class WurstValidator {
 	@CheckMethod
 	public void nameDefsMustNotBeNamedAfterJassNativeTypes(NameDef n) {
 		PackageOrGlobal p = n.attrNearestPackage();
+		if (p == null) {
+			System.out.println("...");
+			n.addError("Not in package or global: " + n.getName());
+			return;
+		}
 		checkIfTypeDefExists(n, p);
 		if (p instanceof WPackage) {
 			// check global scope
