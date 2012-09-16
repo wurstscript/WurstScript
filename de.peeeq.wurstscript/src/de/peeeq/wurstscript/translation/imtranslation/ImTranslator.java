@@ -52,6 +52,7 @@ import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.JassToplevelDeclaration;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
+import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.OptExpr;
@@ -490,11 +491,21 @@ public class ImTranslator {
 		if (v == null) {
 			ImType type = varDef.attrTyp().imTranslateType();
 			String name = varDef.getName();
+			if (isNamedScopeVar(varDef)) {
+				name = varDef.attrNearestNamedScope().getName() + "_" + name;
+			}
 			boolean isBj = isBJ(varDef.getSource());
 			v = JassIm.ImVar(type, name, isBj);
 			varMap.put(varDef, v);
 		}
 		return v;
+	}
+
+	private boolean isNamedScopeVar(VarDef varDef) {
+		if (varDef.getParent() == null) {
+			return false;
+		}
+		return varDef.getParent().getParent() instanceof NamedScope;
 	}
 
 	public WurstModel getWurstProg() {

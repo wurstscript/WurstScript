@@ -93,6 +93,7 @@ public class WurstTypeTuple extends WurstType {
 	@Override
 	public ImType imTranslateType() {
 		List<String> types = Lists.newArrayList();
+		List<String> names = Lists.newArrayList();
 		for (WParameter p : tupleDef.getParameters()) {
 			ImType pt = p.attrTyp().imTranslateType();
 			if (pt instanceof ImTupleType) {
@@ -100,12 +101,16 @@ public class WurstTypeTuple extends WurstType {
 				for (String t : ptt.getTypes()) {
 					types.add(t);
 				}
+				for (String n : ptt.getNames()) {
+					names.add(p.getName() + "_" + n);
+				}
 			} else if (pt instanceof ImSimpleType) {
 				ImSimpleType st = (ImSimpleType) pt;
 				types.add(st.getTypename());
+				names.add(p.getName());
 			}
 		}
-		return JassIm.ImTupleType(types);
+		return JassIm.ImTupleType(types, names);
 	}
 
 	@Override

@@ -86,17 +86,20 @@ public class ImAttrType {
 			return JassIm.ImSimpleType(t.getTypename());
 		} else if (ar instanceof ImTupleArrayType) {
 			ImTupleArrayType t = (ImTupleArrayType) ar;
-			return JassIm.ImTupleType(t.getTypes());
+			return JassIm.ImTupleType(t.getTypes(), t.getNames());
 		}
 		return ar;
 	}
 
 	public static ImType getType(ImTupleExpr imTupleExpr) {
 		List<String> types = Lists.newArrayList();
+		List<String> names = Lists.newArrayList();
+		int i = 1;
 		for (ImExpr e : imTupleExpr.getExprs()) {
 			types.add(((ImSimpleType)e.attrTyp()).getTypename());
+			names.add("" + i++);
 		}
-		return JassIm.ImTupleType(types);
+		return JassIm.ImTupleType(types, names);
 	}
 
 }
