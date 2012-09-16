@@ -6,13 +6,13 @@ public module OnPointCast
 	private static trigger t = null
 	private static integer spellId
 	
-	abstract static function onPointCast(unit caster, int level, vec2 target)
+	abstract static function onPointCast(unit caster, int level, vec2 target )
 
 	private static function actions() returns boolean
 		if GetSpellAbilityId() == spellId
 			onPointCast(GetSpellAbilityUnit(), 
-				GetUnitAbilityLevel(GetSpellAbilityUnit(), spellId), 
-				vec2(GetSpellTargetX(), GetSpellTargetY()))
+			GetUnitAbilityLevel(GetSpellAbilityUnit(), spellId), 
+			vec2(GetSpellTargetX(), GetSpellTargetY()))
 		return false
 
 	static function registerSpellEvent(int p_spellId)

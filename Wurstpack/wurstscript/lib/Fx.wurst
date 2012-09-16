@@ -100,15 +100,9 @@ package Fx
 			return this
             
         function setXYAngleInstant(real value) returns Fx
-            real x = getX()
-            real y = getY()
             fx.destr()
-			RemoveUnit(dummy)
-            dummy = CreateUnit(DUMMY_PLAYER, DUMMY_UNIT_ID, x, y, value)
-				.addAbility('Amrf')
-				.removeAbility('Amrf')
-				.addAbility('Aloc')
-				.setPos(x,y)
+			recycleDummy(dummy)
+            dummy = newDummy( getX(), getY(), 0, value)
             setFx(sfxPath)
 			return this
 		

@@ -107,7 +107,10 @@ package Vectors
 		
 	public function vec2.addReals( real x, real y )	returns vec2
 		return vec2(this.x + x, this.y + y)
-						
+	
+	public function vec2.toVec3() returns vec3
+		return vec3( this.x, this.y, 0. )
+		
 	public function vec2.dot( vec2 v ) returns real
 		return this.x*v.x+this.y*v.y
 	

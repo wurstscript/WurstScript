@@ -112,7 +112,7 @@ package DummyRecycler
     // You must configure the dummy unit with the one created from the
     // ObjectMerger statement above.
     //
-    constant int ANG_N = 8              //# of indexed angles. Higher value increases realism but decreases recycle frequency.
+    constant int ANG_N = 10              //# of indexed angles. Higher value increases realism but decreases recycle frequency.
     constant int ANG_STORAGE_MAX = 12   //Max dummies per indexed angle. I recommend lowering this if you increase ANG_N.
 
     constant real DEATH_TIME = 2. //Allow the special effect on
