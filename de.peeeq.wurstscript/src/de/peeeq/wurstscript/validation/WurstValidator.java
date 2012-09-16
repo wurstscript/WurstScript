@@ -320,7 +320,10 @@ public class WurstValidator {
 		}
 		if ( varName.matches("handle")) {
 			s.addError("\"handle\" is not a valid variable name");
+		}else if ( varName.matches("code")) {
+			s.addError("\"code\" is not a valid variable name");
 		}
+		
 	}
 	
 	@CheckMethod
