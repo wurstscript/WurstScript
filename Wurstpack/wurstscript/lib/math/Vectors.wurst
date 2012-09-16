@@ -77,6 +77,9 @@ package Vectors
 	public function vec3.length() returns real
 		return SquareRoot(this.x*this.x+this.y*this.y+this.z*this.z)
 		
+	public function vec3.lengthSquared() returns real
+		return this.x*this.x+this.y*this.y+this.z*this.z
+		
 	public function vec3.lengthXY() returns real
 		return SquareRoot(this.x*this.x+this.y*this.y)
 			
