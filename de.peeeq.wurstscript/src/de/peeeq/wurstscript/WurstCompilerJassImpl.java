@@ -195,7 +195,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
 	private void resolveImport(List<CompilationUnit> compilationUnits, Set<String> packages, Map<String, WImport> imports, WImport imp)
 			throws CompileError {
-		WLogger.info("resolving import: " + imp.getPackagename());
+//		WLogger.info("resolving import: " + imp.getPackagename());
 		if (!packages.contains(imp.getPackagename())) {
 			if (getLibs().containsKey(imp.getPackagename())) {
 				CompilationUnit lib = loadLibPackage(compilationUnits, imp.getPackagename());
@@ -220,7 +220,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 						"Available packages: " + Utils.join(getLibs().keySet(), ", "));
 			}
 		} else {
-			WLogger.info("already imported: " + imp.getPackagename());
+//			WLogger.info("already imported: " + imp.getPackagename());
 		}
 	}
 
