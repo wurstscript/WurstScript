@@ -89,8 +89,7 @@ public class WurstTypeArray extends WurstType {
 			return JassIm.ImArrayType(typename);
 		} else if (bt instanceof ImTupleType) {
 			ImTupleType tt = (ImTupleType) bt;
-			List<String> types = tt.getTypes();
-			return JassIm.ImTupleArrayType(types);
+			return JassIm.ImTupleArrayType(tt.getTypes(), tt.getNames());
 		} else {
 			throw new Error("cannot translate array type " + getName() + "  " + bt);
 		}

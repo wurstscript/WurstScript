@@ -40,7 +40,7 @@ public class ImHelper {
 			return JassIm.ImArrayType(imSimpleType.getTypename());
 		} else if (t instanceof ImTupleType) {
 			ImTupleType imTupleType = (ImTupleType) t;
-			ImType result = JassIm.ImTupleArrayType(imTupleType.getTypes());
+			ImType result = JassIm.ImTupleArrayType(imTupleType.getTypes(), imTupleType.getNames());
 			return result;
 		}
 		throw new Error("Can't make array type from " + t);

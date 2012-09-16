@@ -1,18 +1,14 @@
 package de.peeeq.wurstscript.types;
 
-import com.google.common.collect.Lists;
-
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImType;
-import de.peeeq.wurstscript.jassIm.JassIm;
 
 public class TypesHelper {
 
 	private static final ImSimpleType intType = WurstTypeInt.instance().imTranslateType();
-	private static final ImType intPair = JassIm.ImTupleType(Lists.newArrayList("integer", "integer"));
 
 	public static WurstType typeOf(ClassOrModule classOrModule, final boolean isStatic) {
 		return classOrModule.match(new ClassOrModule.Matcher<WurstType>() {
@@ -33,9 +29,6 @@ public class TypesHelper {
 		});
 	}
 
-	private static ImType imIntPair() {
-		return intPair;
-	}
 
 	public static ImSimpleType imInt() {
 		return intType;
