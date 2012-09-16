@@ -11,8 +11,8 @@ public module OnPointCast
 	private static function actions() returns boolean
 		if GetSpellAbilityId() == spellId
 			onPointCast(GetSpellAbilityUnit(), 
-			GetUnitAbilityLevel(GetSpellAbilityUnit(), spellId), 
-			vec2(GetSpellTargetX(), GetSpellTargetY()))
+				GetUnitAbilityLevel(GetSpellAbilityUnit(), spellId), 
+				vec2(GetSpellTargetX(), GetSpellTargetY()))
 		return false
 
 	static function registerSpellEvent(int p_spellId)
