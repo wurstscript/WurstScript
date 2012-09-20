@@ -1,0 +1,19 @@
+package EnumTest
+
+		class A
+			construct(real x, real y)
+				foo(0)
+				
+			function foo(int v)
+				int i = v
+
+        class B extends A
+        	construct( real x, real y )
+        		super(x,y)
+        		
+        	override function foo(int v)
+        		int i = v+1
+        	
+
+    
+endpackage

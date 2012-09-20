@@ -1,11 +1,21 @@
 package de.peeeq.wurstscript.tests;
 
+import java.io.File;
+import java.io.IOException;
+
 import org.junit.Test;
 
 import de.peeeq.wurstscript.utils.Utils;
 
 public class BugTests extends PscriptTest {
 
+	private static final String TEST_DIR = "./testscripts/concept/";
+
+	@Test
+	public void cyclic() throws IOException {
+		testAssertOkFile(new File(TEST_DIR + "CyclicError.wurst"), true);
+	}
+	
 	
 	@Test
 	public void bug62_codearray() {

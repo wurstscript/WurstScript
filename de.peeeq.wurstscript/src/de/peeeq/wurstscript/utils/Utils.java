@@ -174,7 +174,9 @@ public class Utils {
 
 
 	public static int parseHexInt(String yytext) {
-		return Integer.parseInt(yytext.substring(2), 16);
+		System.out.println(yytext);
+		System.out.println(yytext.substring(2));
+		return (int) Long.parseLong(yytext.substring(2), 16);
 	}
 
 	public static void sleep(int i) {

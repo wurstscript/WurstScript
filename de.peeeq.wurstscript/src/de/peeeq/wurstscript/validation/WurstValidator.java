@@ -39,6 +39,7 @@ import de.peeeq.wurstscript.ast.FunctionLike;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.HasTypeArgs;
+import de.peeeq.wurstscript.ast.Indexes;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.ModAbstract;
@@ -978,6 +979,15 @@ public class WurstValidator {
 						}
 					}
 				}
+			}
+		}
+	}
+	
+	@CheckMethod
+	public void checkArrayAccess( ExprVarArrayAccess ea) {
+		for (Expr index : ea.getIndexes()) {
+			if (!(index.attrTyp() instanceof WurstTypeInt)) { 
+				index.addError("Arrayindices have to be of type int");
 			}
 		}
 	}

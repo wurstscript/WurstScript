@@ -12,7 +12,6 @@ public class ClassesTests extends PscriptTest {
 	
 	private static final String TEST_DIR = "./testscripts/valid/classes/";
 
-	
 	@Test
 	public void classes1() throws IOException {
 		testAssertOkFile(new File(TEST_DIR + "Classes_1.pscript"), true);

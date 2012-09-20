@@ -16,5 +16,7 @@ package Wurst
     import public Trigger
 	import public Primitives
 	import public String
+	import public Effect
+	import public Texttag
 	
 endpackage

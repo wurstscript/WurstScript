@@ -21,6 +21,12 @@ package Table
         
         function saveReal( int parentKey, real value )
             ht.saveReal(this castTo int, parentKey, value)
+            
+		function loadString( int parentKey ) returns string
+            return ht.loadString(this castTo int, parentKey)
+        
+        function saveString( int parentKey, string value )
+            ht.saveString(this castTo int, parentKey, value)
 
         function hasReal( int parentKey ) returns boolean
             return ht.hasReal(this castTo int, parentKey)

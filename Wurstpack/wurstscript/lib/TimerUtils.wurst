@@ -18,8 +18,9 @@ package TimerUtils
 		else
 			return CreateTimer()
 	
-	public function timer.setData(integer data)
+	public function timer.setData(integer data) returns timer
 		timerData.saveInt( GetHandleId(this), data )
+		return this
 		
 	
 	public function timer.getData() returns integer

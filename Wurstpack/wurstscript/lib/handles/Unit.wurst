@@ -85,7 +85,19 @@ package Unit
 	public function unit.remove()
 		RemoveUnit(this)
 		
+	public function unit.setState( unitstate state, real value ) returns unit
+		SetUnitState( this, state, value )
+		return this
+		
 	public function unit.getState( unitstate state ) returns real
 		return GetUnitState( this, state )
+		
+	public function unit.setHP( real hp ) returns unit
+		this.setState( UNIT_STATE_LIFE, hp )
+		return this
+		
+	public function unit.getHP() returns real
+		return this.getState( UNIT_STATE_LIFE )
+
 
 endpackage

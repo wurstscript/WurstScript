@@ -1,6 +1,6 @@
 package OnCast
 import Trigger
-import Vectors
+import public Vectors
 
 public module OnPointCast
 	private static trigger t = null

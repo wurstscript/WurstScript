@@ -1,0 +1,40 @@
+package Texttag
+	import public Vectors
+	
+	public function texttag.setPos( real x, real y, real z) returns texttag
+		SetTextTagPos(this, x ,y , z)
+		return this
+		
+	public function texttag.setPosVec( vec3 pos ) returns texttag
+		SetTextTagPos(this, pos.x , pos.y , pos.z)
+		return this
+
+	public function texttag.setColor( int r, int g, int b, int a ) returns texttag
+		SetTextTagColor(this, r, g , b, a)
+		return this
+
+	public function texttag.setText( string text, real height ) returns texttag
+		SetTextTagText(this, text, height)
+		return this
+		
+	public function texttag.setLifespan( real span ) returns texttag
+		SetTextTagLifespan(this, span)
+		return this
+		
+	public function texttag.setPermanent( boolean flag ) returns texttag
+		SetTextTagPermanent(this, flag)
+		return this
+		
+	public function texttag.setFadepoint( real fadepoint ) returns texttag
+		SetTextTagFadepoint(this, fadepoint)
+		return this
+		
+	public function texttag.setAge( real age ) returns texttag
+		SetTextTagAge(this, age)
+		return this
+		
+	public function texttag.setVelocity( real xvel, real yvel ) returns texttag
+		SetTextTagVelocity(this, xvel, yvel)
+		return this
+		
+endpackage
