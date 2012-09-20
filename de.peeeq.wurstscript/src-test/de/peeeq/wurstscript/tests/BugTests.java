@@ -13,7 +13,7 @@ public class BugTests extends PscriptTest {
 
 	@Test
 	public void cyclic() throws IOException {
-		testAssertOkFile(new File(TEST_DIR + "CyclicError.wurst"), true);
+		testAssertOkFile(new File(TEST_DIR + "CyclicError.wurst"), false);
 	}
 	
 	
