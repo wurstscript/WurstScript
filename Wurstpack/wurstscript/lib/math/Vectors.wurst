@@ -13,6 +13,7 @@ package Vectors
         l = length/l
         return vec3(this.x*l, this.y*l, this.z*l)
 
+	// op_ - Operator overloading
 	public function vec3.op_plus( vec3 v )	returns vec3
 		return vec3(this.x + v.x, this.y + v.y, this.z + v.z)
     

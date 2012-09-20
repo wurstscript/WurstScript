@@ -1,5 +1,4 @@
 // This is the package which is imported into any other package ...
-
 package Wurst
 
     import public ExtensionFunctions

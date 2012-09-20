@@ -709,7 +709,7 @@ public class WurstValidator {
 		if (wImport.attrImportedPackage() == null) {
 			wImport.addError("Could not find imported package " + wImport.getPackagename());
 		}
-		if (wImport.attrImportedPackage().getName() ==  wImport.attrNearestNamedScope().getName()) {
+		if (! wImport.attrImportedPackage().getName().equals("Wurst") && wImport.attrImportedPackage().getName() ==  wImport.attrNearestNamedScope().getName()) {
 			wImport.addError("Packages cannot import themselves");
 		}
 	}
