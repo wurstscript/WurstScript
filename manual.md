@@ -952,7 +952,8 @@ to Wurst or got replaced.
 
 ## Feature table
 
-<table><tr><td> <strong>Feature</strong> </td><td> <strong>vJass</strong> </td><td> <strong>Wurst</strong> </td><td></td></tr>
+<table>
+<tr><td> <strong>Feature</strong> </td><td> <strong>vJass</strong> </td><td> <strong>Wurst</strong> </td><td></td></tr>
 <tr><td> <strong>code organization</strong> </td><td> libraries </td><td> packages </td><td></td></tr>
 <tr><td> <strong>nested scopes</strong> </td><td> yes </td><td> -  </td><td></td></tr>
 <tr><td> <strong>classes</strong> </td><td> structs </td><td> classes </td><td></td></tr>
