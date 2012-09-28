@@ -984,7 +984,7 @@ to Wurst or got replaced.
 <tr><td> <strong>Extension functions</strong> 	</td><td> - 		</td><td> yes 					</td><td></td></tr>
 <tr><td> <strong>generics</strong> 		</td><td> - 		</td><td> yes 					</td><td></td></tr>
 <tr><td> <strong>tuple types</strong> 		</td><td> - 		</td><td> yes 					</td><td></td></tr>
-<tr><td> <strong>closures</strong> 		</td><td> - 		</td><<em>planned</em> 				</td><td></td></tr>
+<tr><td> <strong>closures</strong> 		</td><td> - 		</td><em>planned</em> 				</td><td></td></tr>
 <tr><td> <strong>compiletimefunctions</strong>	</td><td> - 		</td><td> yes 					</td><td></td></tr>
 </table>
 
