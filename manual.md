@@ -4,14 +4,14 @@ title: WurstScript Manual
 ---
 
 
-_by peq & Frotty_ _Version: 0.004a_ 
+_by peq & Frotty_ _Version: 28.09.12_ 
 
 
 WurstScript is a programming language named after the german word for sausage.
 
 The sausage is a symbol for encapsulation (Peel/Pelle), compactness (sausage meat/Brät) and modularization (cut it into slices!). And because you normally know whats inside a sausage the project is also open source and easy to use (cook).
 
-Remember, WurstScript and its related tools are in a probably unstable state and under heavy development, so you may encounter errors and bugs we don't know about. Please report any
+Remember: WurstScript and its related tools are in a probably unstable state and under heavy development, so you may encounter errors and bugs we don't know about. Please report any
 problem with our [issue tracker at GitHub](https://github.com/peq/WurstScript/issues/new).
 
 # Syntax
@@ -69,11 +69,11 @@ Remember that functionnames have to start with a lowercase letter.
 
 	// declaring a constant - the type is inferred from the initial expression
 	let x = 5
-	// declaring a variable
+	// declaring a variable - the inferring works the same as 'let', but the value cn be changed
 	var y = 5
 	// declaring a variable with explicit type
 	int z = 7
-	// declaring an int array
+	// declaring an array
 	int array a
     
     // inside a function
@@ -126,7 +126,7 @@ a separate chapter about generics.
 
 ### Skip
 
-The simplest statement is the _skip_ statement. It has no effect and can be used to create empty functions or blocks.
+The simplest statement is the _skip_ statement. It has no effect and can be used to create empty blocks.
 
 ### Ifs
 
@@ -140,8 +140,8 @@ The simplest statement is the _skip_ statement. It has no effect and can be used
 	// Closing the if by indenting back
 
 	if x > y or x <= z and "blub" != "blah"
-		...
-    print("if done.")
+		print("if is true")
+	print("if done.")
     
 ### Switchs
     
@@ -155,6 +155,9 @@ The simplest statement is the _skip_ statement. It has no effect and can be used
             print("88")
         default
             print("not implemented")
+            
+As you see in the example, a switch statement is basically a nicer syntax for
+nesting ifs and else ifs, with the special default case.
 
 ### Loops
 
@@ -237,7 +240,8 @@ WurstScript supports the following shorthands for assignments:
 	x *= y      // x = x * y
 	x /= y      // x = x / y
 
-
+Because these shorthands simply get translated into their equivalents, they can
+be used with overloaded operators, too.
 
 ## Functions ##
 
@@ -461,7 +465,58 @@ Note that overridden functions also get called when the instance is casted to a 
         
 This is especially usefull when iterating through ClassInstances of the same supertype,
 meaning you don't have to cast the instance to it's proper subtype.
-            
+
+## Abstract Classes
+
+An _abstract_ class is a class, that is declared abstract — it may or may not
+include abstract functions. You cannot create an instance of an abstract class,
+but subclass it.
+
+An abstract function is declared with the keyword 'abstract' and by leaving out
+an implementation.
+    
+    abstract function oHit()
+
+Abstract classes are similar to interfaces, but they can have own, implemented
+functions and variables like normal classes.
+
+The advantage of an abstract class is, that you can reference and call the
+abstract functions inside the abstract class, without having a vlid
+implementation.
+
+Take Collision-Responses as example. You have several Bodies in your map, and
+you want each of them to behave differently.
+You could do this by centralizing the updating function, or by using abstract
+classes like so:
+
+    abstract class CollidableObject
+
+	abstract function onHit()
+	
+	function checkCollision(CollidableObject o)
+	    if this.inRange(o)
+	      onHit()
+	      o.onHit()
+	    
+    class Ball extends CollidableObject
+	
+	override function onHit()
+	    print("I'm a ball")
+		
+    class Rect extends CollidableObject
+	
+	override function onHit()
+	    print("I'm a Rect")
+	   
+	   
+	   
+Because CollidableObject requires it's subclasses to implement the function
+onHit; it can be called within the abstract class and without knowing it's
+type.
+
+If a subclass of an abstract class does not implement all abstract functions
+from its superclass, it has to be abstract, too.
+
             
 # Interfaces 
 
@@ -506,9 +561,13 @@ be necessary in order to evolve an interface without breaking its implementing c
 Generics make it possible to abstract from specific types and only program with placeholders
 for types. This is especially useful for container types (e.g. Lists) where we do not want to code a
 ListOfA, ListOfB, ListOfC for every class A, B, C which we need a list for.
+Think of it as creating a general List with all it's functionality, but for an
+unknown type, that gets defined when creating the instance.
 
 With generics we can instead write only one implementation for lists and use it with all types.
-Generic type parameter and arguments are written in angled brackets (< and >) after the identifier.
+Generic type parameter and arguments are
+written in angled  bracket s  (<  an d >) after the identifier.
+
 
 
 	// a generic interface for Sets with type parameter T
@@ -684,12 +743,25 @@ Note that tuples are not like classes. There are some important differences:
 			p = pair(p.y, p.x)
 			if p.x == 2 and p.y == 1
 				testSuccess()
+				
+				
+Because tuples don't have any functions themselves, you can add extension
+functions to an existing tuple type in order to achieve class-like
+functionality.
+Remember that you can't modify the value of a tuple in it's extension function
+- so you have to return a new tuple everytime if you wan't to change something.
+Look at the Vector package in the Standard Library for some tuple usage
+examples. (Vectors.wurst)
 
 
 
 # Extension Functions
 
-Extension functions enable you to "add" functions to existing types without creating a new derived type, recompiling, or otherwise modifying the original type. Extension functions are a special kind of static function, but they are called as if they were instance functions on the extended type.
+Extension functions enable you to "add" functions to existing types without
+creating a new derived type, recompiling, or otherwise modifying the original
+type. 
+Extension functions are a special kind of static function, but they are called
+as if they were instance functions on the extended type.
 
 ## Declaration
 
@@ -828,7 +900,9 @@ They mainly offer the possibility to create Object-Editor Objects via code.
 
 ## Declaration
 
-
+    @compiltetime function foo()
+    
+Compiltetime functions cannot take nor return anything.
 
 # Standard Library 
 
@@ -863,6 +937,11 @@ provides functions "open" and "close". You can use Lists to store different kind
 
 # vJass vs Wurst
 
+If you plan to convert from using vJass to Wurst, it will probably be helpful
+to read this segment.
+Specific vJass syntax and features are directly compared to the equivalent
+WurstCode.
+
 ## Feature table
 
 <table><tr><td> <strong>Feature</strong> </td><td> <strong>vJass</strong> </td><td> <strong>Wurst</strong> </td><td></td></tr>
@@ -870,13 +949,13 @@ provides functions "open" and "close". You can use Lists to store different kind
 <tr><td> <strong>nested scopes</strong> </td><td> yes </td><td> -  </td><td></td></tr>
 <tr><td> <strong>classes</strong> </td><td> structs </td><td> classes </td><td></td></tr>
 <tr><td> <strong>modules</strong> </td><td> yes </td><td> yes </td><td></td></tr>
-<tr><td> <strong>delegate</strong> </td><td> yes </td><td> - </td><td></td></tr>
 <tr><td> <strong>function interfaces</strong> </td><td> yes </td><td> <em>not yet</em> </td><td></td></tr>
 <tr><td> <strong>interfaces</strong> </td><td> yes </td><td> yes </td><td></td></tr>
 <tr><td> <strong>textmacros</strong> </td><td> yes </td><td> - </td><td></td></tr>
 <tr><td> <strong>keyword</strong> </td><td> yes </td><td> - </td><td></td></tr>
 <tr><td> <strong>struct onInit</strong> </td><td> yes </td><td> - </td><td></td></tr>
-<tr><td> <strong>stub methods</strong> </td><td> yes </td><td> - </td><td></td></tr>
+<tr><td> <strong>stub methods</strong> </td><td> yes </td><td> overriding and abstract
+classes </td><td></td></tr>
 <tr><td> <strong>Dynamic arrays</strong> </td><td> yes </td><td> - </td><td></td></tr>
 <tr><td> <strong>Array members</strong> </td><td> yes </td><td> - </td><td></td></tr>
 <tr><td> <strong>Delegate</strong> </td><td> yes </td><td> - </td><td></td></tr>
@@ -899,12 +978,14 @@ provides functions "open" and "close". You can use Lists to store different kind
 <tr><td> <strong>Extension functions</strong> </td><td> - </td><td> yes </td><td></td></tr>
 <tr><td> <strong>generics</strong> </td><td> - </td><td> yes </td><td></td></tr>
 <tr><td> <strong>tuple types</strong> </td><td> - </td><td> yes </td><td></td></tr>
-<tr><td> <strong>closures</strong> </td><td> - </td><td> yes </td><td></td></tr>
-<tr><td> <strong>compiletime functions</strong> </td><td> - </td><td> <em>planned</em> </td><td></td></tr>
+<tr><td> <strong>closures</strong> </td><td> - </td><<em>planned</em>td> yes
+</td><td></td></tr>
+<tr><td> <strong>compiletime functions</strong> </td><td> - </td><td> yes
+</td><td></td></tr>
 </table>
 
 
-## Globals 
+## xGlobals 
 
 Instead of a globals block, every variable outside a block inside a package is considered a global in that package.
 
@@ -923,7 +1004,7 @@ _*Wurst:*_
 	endpackage
 
 
-## Functions
+## xFunctions
 
 _*vJass:*_
 
@@ -945,7 +1026,7 @@ _*Wurst:*_
 		...
 
 
-## Locals 
+## xLocals 
 
 locals can be declared and initialized anywhere inside a function.
 
@@ -967,7 +1048,7 @@ _*Wurst:*_
 		int j = i
 
 
-## Librarys/Scopes 
+## xLibrarys/Scopes 
 
 Name-spaces/code organisation in wurst is handled by packages.
 All code in Wurst has to be inside a package.
@@ -986,7 +1067,7 @@ _*Wurst:*_
 	endpackage
 
 
-### importing 
+### ximporting 
 
 _*vJass:*_
 
@@ -1005,7 +1086,7 @@ _*Wurst:*_
 	endpackage
 
 
-### init-blocks 
+### xinit-blocks 
 
 _*vJass:*_
 
@@ -1027,7 +1108,7 @@ _*Wurst:*_
 
 
 
-## Structs / Classes 
+## xStructs / Classes 
 
 _*vJass:*_
 
@@ -1087,7 +1168,7 @@ _*Wurst:*_
 
 
 
-## Modules 
+## xModules 
 
 _*vJass:*_
 
