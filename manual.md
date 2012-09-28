@@ -942,6 +942,14 @@ to read this segment.
 Specific vJass syntax and features are directly compared to the equivalent
 WurstCode.
 
+
+You might be wondering why Wurst is missing so many vJass features.
+The answer is simple: Wurst utilizes several better/smarter constructs to achieve
+similar functionality like in vJass and beyond.
+
+Textmacros and member-arrays aside, most vJass features either got useless due
+to Wurst or got replaced.
+
 ## Feature table
 
 <table><tr><td> <strong>Feature</strong> </td><td> <strong>vJass</strong> </td><td> <strong>Wurst</strong> </td><td></td></tr>
@@ -954,8 +962,7 @@ WurstCode.
 <tr><td> <strong>textmacros</strong> </td><td> yes </td><td> - </td><td></td></tr>
 <tr><td> <strong>keyword</strong> </td><td> yes </td><td> - </td><td></td></tr>
 <tr><td> <strong>struct onInit</strong> </td><td> yes </td><td> - </td><td></td></tr>
-<tr><td> <strong>stub methods</strong> </td><td> yes </td><td> overriding and abstract
-classes </td><td></td></tr>
+<tr><td> <strong>stub methods</strong> </td><td> yes </td><td> overriding and abstract classes </td><td></td></tr>
 <tr><td> <strong>Dynamic arrays</strong> </td><td> yes </td><td> - </td><td></td></tr>
 <tr><td> <strong>Array members</strong> </td><td> yes </td><td> - </td><td></td></tr>
 <tr><td> <strong>Delegate</strong> </td><td> yes </td><td> - </td><td></td></tr>
@@ -978,10 +985,8 @@ classes </td><td></td></tr>
 <tr><td> <strong>Extension functions</strong> </td><td> - </td><td> yes </td><td></td></tr>
 <tr><td> <strong>generics</strong> </td><td> - </td><td> yes </td><td></td></tr>
 <tr><td> <strong>tuple types</strong> </td><td> - </td><td> yes </td><td></td></tr>
-<tr><td> <strong>closures</strong> </td><td> - </td><<em>planned</em>td> yes
-</td><td></td></tr>
-<tr><td> <strong>compiletime functions</strong> </td><td> - </td><td> yes
-</td><td></td></tr>
+<tr><td> <strong>closures</strong> </td><td> - </td><<em>planned</em>td> yes </td><td></td></tr>
+<tr><td> <strong>compiletime functions</strong> </td><td> - </td><td> yes </td><td></td></tr>
 </table>
 
 
@@ -1228,32 +1233,31 @@ Stuff that is being removed, changed or not even printed
 
 * Comments
 * Unneeded White-spaces
-* Excessive parentheses 
-* number shortening (0.0 -> 0., dec -> hex)
-* Replace all "Condition" with "Filter"
+* Excessive parentheses
 * Some useless Jassconstants replaced with "null"
 
 ## Name compression
 
 Smaller names execute faster, so all the names of functions and variables are being compressed to the shortest name possible.
 
-If names are used in ExecuteFunction or TriggerRegisterVariableEvent they start with a 'z' and are only lowercase.
-
-Functionnames that are used within EF or TRVE only get replaced when there is only a constant string inside of EF or TRVE. If there is some function called that returns a string e.g. it won't be touched and all functions that contain the constant string won't be compressed either.
 
 ## Inlining
 
-Inlining is not an easy task, but brings great performance boosts to systems with much overhead/1-line functions. 
+Inlining is not an easy task, but brings great performance boosts to systems which use many different functions. 
+It also makes coding easier and more readable, because you don't have to care about the performance loss
+when splitting stuff into too many functions.
 
-There may be forced inlining one day.
+In the current state, every function that has none or only 1 return statement gets inlined (when the inliner is activated).
+Unlike the vJass Inliner, the Wurst Inliner can handle functions with more than 1 line,
+also the parameter-order and usage doesn't matter.
+
+All blizzard.j functions, such as BJs and Swaps, also get inlined.
+
+Global variables that have a constant value get inlined as well as constant locals. (not yet implemented)
+
 
 ## Garbage Removal
 
 The optimizer tries to get rid of every unused function and variable to lower the mapscript's filesize.
 
-## Removing GUI Elements
-
-There probably will be some module that removes/optimizes some GUI functions and stuff.
-Though because Wurst is not supposed to be mixed with GUI/normal Jass especially when programming in WurstEdit,
-this has a low priority.
 
