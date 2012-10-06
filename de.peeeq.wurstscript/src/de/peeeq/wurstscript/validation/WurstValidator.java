@@ -759,7 +759,7 @@ public class WurstValidator {
 			if (called.attrParameterTypes().size() > 0) {
 				String msg = "Can only use functions without parameters in 'code' function references.";
 				if (called.attrIsDynamicClassMember()) {
-					msg += " Not that " + called.getName() + " is a dynamic function and thus has an implicit parameter 'this'.";
+					msg += " Note that " + called.getName() + " is a dynamic function and thus has an implicit parameter 'this'.";
 				}
 				ref.addError(msg);
 			}
