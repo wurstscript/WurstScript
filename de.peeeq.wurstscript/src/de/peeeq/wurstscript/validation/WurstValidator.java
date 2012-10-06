@@ -757,7 +757,11 @@ public class WurstValidator {
 		}
 		if (ref.attrTyp() instanceof WurstTypeCode) {
 			if (called.attrParameterTypes().size() > 0) {
-				ref.addError("Can only use functions without parameters in 'code' function references.");
+				String msg = "Can only use functions without parameters in 'code' function references.";
+				if (called.attrIsDynamicClassMember()) {
+					msg += " Not that " + called.getName() + " is a dynamic function and thus has an implicit parameter 'this'.";
+				}
+				ref.addError(msg);
 			}
 		}
 	}
