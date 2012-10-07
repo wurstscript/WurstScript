@@ -155,3 +155,8 @@ height:16px;
 .style_constant
 {color:#bc9494;
 }
+
+td {
+	padding-right: 15px;
+	padding-left: 15px;
+}
