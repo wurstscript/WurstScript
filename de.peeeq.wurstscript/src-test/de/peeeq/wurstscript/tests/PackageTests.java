@@ -24,6 +24,15 @@ public class PackageTests extends PscriptTest {
 	}
 	
 	@Test
+	public void duplicatePackageName() {
+		testAssertErrorsLines(false, "Package A is already defined",
+				"package A",
+				"endpackage",
+				"package A",
+				"endpackage");
+	}
+	
+	@Test
 	public void test_import_function_fail() {
 		testAssertErrorsLines(false, "Could not resolve",
 				"package A",

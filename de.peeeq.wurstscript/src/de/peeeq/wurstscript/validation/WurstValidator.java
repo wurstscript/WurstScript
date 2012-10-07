@@ -1075,6 +1075,11 @@ public class WurstValidator {
 	}
 	
 	@CheckMethod
+	public void checkForDuplicatePackages(WurstModel model) {
+		model.attrPackages();
+	}
+	
+	@CheckMethod
 	public void checkBannedFunctions(ExprFunctionCall e) {
 		String[] banned = new String[] {"TriggerRegisterVariableEvent", "ExecuteFunc"};
 		for (String name : banned) {
