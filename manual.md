@@ -871,7 +871,7 @@ provides functions "open" and "close". You can use Lists to store different kind
 <tr><td> <strong>classes</strong> </td><td> structs </td><td> classes </td><td></td></tr>
 <tr><td> <strong>modules</strong> </td><td> yes </td><td> yes </td><td></td></tr>
 <tr><td> <strong>delegate</strong> </td><td> yes </td><td> - </td><td></td></tr>
-<tr><td> <strong>function interfaces</strong> </td><td> yes </td><td> <em>not yet</em> </td><td></td></tr>
+<tr><td> <strong>function interfaces</strong> </td><td> yes </td><td> not yet </td><td></td></tr>
 <tr><td> <strong>interfaces</strong> </td><td> yes </td><td> yes </td><td></td></tr>
 <tr><td> <strong>textmacros</strong> </td><td> yes </td><td> - </td><td></td></tr>
 <tr><td> <strong>keyword</strong> </td><td> yes </td><td> - </td><td></td></tr>
@@ -887,11 +887,11 @@ provides functions "open" and "close". You can use Lists to store different kind
 <tr><td> <strong>Structs with more index space</strong> </td><td> yes </td><td> - </td><td></td></tr>
 <tr><td> <strong>Dynamic arrays with more index space</strong> </td><td> yes </td><td> - </td><td></td></tr>
 <tr><td> <strong>Colon</strong> </td><td> yes </td><td> - </td><td></td></tr>
-<tr><td> <strong>Operator overloading</strong> </td><td> limited </td><td> <em>yes, for +,-,*,/></em> </td><td></td></tr>
+<tr><td> <strong>Operator overloading</strong> </td><td> for [] </td><td> for +,-,*,/ </td><td></td></tr>
 <tr><td> <strong>hook</strong> </td><td> yes </td><td> - </td><td></td></tr>
 <tr><td> <strong>inject</strong> </td><td> yes </td><td> - </td><td></td></tr>
 <tr><td> <strong>Loading structs from SLK files</strong> </td><td> yes </td><td> - </td><td></td></tr>
-<tr><td> <strong>Script optimization</strong> </td><td> only inlining </td><td> yes </td><td></td></tr>
+<tr><td> <strong>Script optimization</strong> </td><td> only some inlining </td><td> yes </td><td></td></tr>
 <tr><td> <strong>Function inlining</strong> </td><td> limited </td><td> yes </td><td></td></tr>
 <tr><td> <strong>External tools</strong> </td><td> yes </td><td> - </td><td></td></tr>
 <tr><td> <strong>Typechecker</strong> </td><td> limited </td><td> yes </td><td></td></tr>
@@ -899,8 +899,8 @@ provides functions "open" and "close". You can use Lists to store different kind
 <tr><td> <strong>Extension functions</strong> </td><td> - </td><td> yes </td><td></td></tr>
 <tr><td> <strong>generics</strong> </td><td> - </td><td> yes </td><td></td></tr>
 <tr><td> <strong>tuple types</strong> </td><td> - </td><td> yes </td><td></td></tr>
-<tr><td> <strong>closures</strong> </td><td> - </td><td> yes </td><td></td></tr>
-<tr><td> <strong>compiletime functions</strong> </td><td> - </td><td> <em>planned</em> </td><td></td></tr>
+<tr><td> <strong>closures</strong> </td><td> - </td><td> planned </td><td></td></tr>
+<tr><td> <strong>compiletime functions</strong> </td><td> - </td><td> yes (but unstable) </td><td></td></tr>
 </table>
 
 
