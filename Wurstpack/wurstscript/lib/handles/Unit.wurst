@@ -98,6 +98,14 @@ package Unit
 		
 	public function unit.getHP() returns real
 		return this.getState( UNIT_STATE_LIFE )
+		
+	public function unit.addItem(int id) returns unit
+		UnitAddItemById(this, id)
+		return this
+		
+	public function unit.setTimedLife( real time ) returns unit
+		UnitApplyTimedLife( this, 'BTLF', time )
+		return this
 
 
 endpackage

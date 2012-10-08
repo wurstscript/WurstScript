@@ -1,0 +1,9 @@
+package Rect
+	
+	public function rect.getCenterX() returns real
+		return GetRectCenterX(this)
+		
+	public function rect.getCenterY() returns real
+		return GetRectCenterY(this)
+		
+endpackage
