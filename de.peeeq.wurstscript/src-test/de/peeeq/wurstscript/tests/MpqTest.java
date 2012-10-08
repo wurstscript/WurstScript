@@ -1,25 +1,46 @@
 package de.peeeq.wurstscript.tests;
 
 import java.io.File;
+import java.io.IOException;
 
 import junit.framework.Assert;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.io.Files;
 
 import de.peeeq.wurstscript.mpq.LadikMpq;
 import de.peeeq.wurstscript.mpq.MpqEditorFactory;
 
 public class MpqTest {
 
+	private static final String TEST_W3X = "./testscripts/mpq/test_temp.w3x";
+	private static final String TEST_W3X_ORIG = "./testscripts/mpq/test.w3x";
 	private static final String TEST_OUTPUT_PATH = "./test-output/";
 
+	@Before
+	public void before() throws IOException {
+		Files.copy(new File(TEST_W3X_ORIG), new File(TEST_W3X));
+	}
+	
+	@After
+	public void after() {
+		File f = new File(TEST_W3X);
+		if (f.exists()) {
+			f.delete();
+		}
+	}
+	
+	
 	@Test
 	public void test_extract() {
 		try {
 			MpqEditorFactory.setFilepath("./lib/mpqedit/mpqeditor.exe");
 			MpqEditorFactory.setTempfolder(TEST_OUTPUT_PATH);
 			LadikMpq edit = MpqEditorFactory.getEditor();
-			File f = edit.extractFile(new File("./testscripts/mpq/test.w3x"), "war3map.j");
+			File f = edit.extractFile(new File(TEST_W3X), "war3map.j");
 			//edit.insertFile(new File("./testscripts/mpq/test.w3x"), "war3map.j", f);
 			Assert.assertTrue(f.exists());
 			f.delete();
@@ -54,7 +75,7 @@ public class MpqTest {
 			MpqEditorFactory.setFilepath("./lib/mpqedit/mpqeditor.exe");
 			MpqEditorFactory.setTempfolder(TEST_OUTPUT_PATH);
 			LadikMpq edit = MpqEditorFactory.getEditor();
-			edit.insertFile(new File("./testscripts/mpq/test.w3x"), "test.txt", new File("./testscripts/mpq/test.txt"));
+			edit.insertFile(new File(TEST_W3X), "test.txt", new File("./testscripts/mpq/test.txt"));
 			Assert.assertTrue(true);
 
 		} catch (Exception e) {
@@ -70,7 +91,7 @@ public class MpqTest {
 			MpqEditorFactory.setFilepath("./lib/mpqedit/mpqeditor.exe");
 			MpqEditorFactory.setTempfolder(TEST_OUTPUT_PATH);
 			LadikMpq edit = MpqEditorFactory.getEditor();
-			edit.deleteFile(new File("./testscripts/mpq/test.w3x"), "test.txt");
+			edit.deleteFile(new File(TEST_W3X), "test.txt");
 			Assert.assertTrue(true);
 
 		} catch (Exception e) {
@@ -86,7 +107,7 @@ public class MpqTest {
 			MpqEditorFactory.setFilepath("./lib/mpqedit/mpqeditor.exe");
 			MpqEditorFactory.setTempfolder(TEST_OUTPUT_PATH);
 			LadikMpq edit = MpqEditorFactory.getEditor();
-			edit.compact(new File("./testscripts/mpq/test.w3x"));
+			edit.compact(new File(TEST_W3X));
 			Assert.assertTrue(true);
 
 		} catch (Exception e) {

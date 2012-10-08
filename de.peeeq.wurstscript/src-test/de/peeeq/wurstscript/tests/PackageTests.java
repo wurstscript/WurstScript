@@ -8,6 +8,31 @@ public class PackageTests extends PscriptTest {
 
 	
 	@Test
+	public void test_static_init() { // test case for #68
+		testAssertOkLines(true,
+				"package A",
+				"	public class Blub",
+				"		static int b = 2",
+				"endpackage",
+				"package B",
+				"	import A",
+				"	native testSuccess()",
+				"	init",
+				"		if Blub.b == 2",
+				"			testSuccess()",
+				"endpackage");
+	}
+	
+	@Test
+	public void duplicatePackageName() {
+		testAssertErrorsLines(false, "Package A is already defined",
+				"package A",
+				"endpackage",
+				"package A",
+				"endpackage");
+	}
+	
+	@Test
 	public void test_import_function_fail() {
 		testAssertErrorsLines(false, "Could not resolve",
 				"package A",
