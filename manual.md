@@ -4,7 +4,7 @@ title: WurstScript Manual
 ---
 
 
-_by peq & Frotty_ _Version: 28.09.12_ 
+_by peq & Frotty_ _Version: 12.10.12_ 
 
 
 WurstScript is a programming language named after the german word for sausage.
@@ -364,6 +364,7 @@ Depending on parameter-type and -count Wurst automatically decides which constru
 ## This 
 
 The _this_ keyword refers to the current instance of the class on which the function was called. This also allows us to name the parameters the same as the class variables.
+However it can be left out in classfunctions.
 
 ## ondestroy
 
@@ -466,6 +467,75 @@ Note that overridden functions also get called when the instance is casted to a 
 This is especially usefull when iterating through ClassInstances of the same supertype,
 meaning you don't have to cast the instance to it's proper subtype.
 
+## Typecasting
+
+You need typecasting for several reasons.
+One being to save class instances and for example attaching them onto a timer, like done in TimerUtils.wurst
+This process also needs to be reversed (casting from int to a classtype)
+But typecasting is also necessary when using subtyping, in order to down- and upcast instances.
+In order to typecast, you use the keyword _castTo_
+
+### Examples
+	class Test
+		int val
+		
+	init
+		Test t = new Test()
+		int i = t castTo int
+		
+		
+	--
+	
+	class A
+	
+	class B extends A
+	
+	init
+		B b = new B()
+		A a = b castTo a
+		
+		
+## Dynamic dispatch
+
+Wurst features dynamic dispatching when accessing classinstances.
+What this means is simple: If you have a classinstance of a subclass B, casted into a variable of
+the superclass A, calling a function with that reference will automatically call the overridden function from
+the original type.
+It is easier to understand with an example:
+
+###Example
+
+	class A
+		function printOut()
+			print("I'm A")
+			
+	class B extends A
+		override function printOut()
+			print("I'm B")
+			
+	init
+		A a = new B()
+		a.printOut()
+		// this will print "I'm B", even though it's a type A variable
+		
+## instanceof
+
+If you want to typecast a classinstance, remember it can only be cast to an int, or a sub/super- class.
+To ensure correct casting, a typecheck is needed.
+In Wurst you can check the type of a classinstance with the _instanceof_ keyword.
+
+###Example
+
+	class A
+	
+	class B extends A
+
+	init
+		A a = new B()
+		
+		if a instanceof B
+			print("It's a B")
+
 ## Abstract Classes
 
 An _abstract_ class is a class, that is declared abstract — it may or may not
@@ -475,7 +545,7 @@ but subclass it.
 An abstract function is declared with the keyword 'abstract' and by leaving out
 an implementation.
     
-    abstract function oHit()
+    abstract function onHit()
 
 Abstract classes are similar to interfaces, but they can have own, implemented
 functions and variables like normal classes.
