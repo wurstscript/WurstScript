@@ -145,6 +145,14 @@ public class AttrExprType {
 				return getHandleType(term, "rect");
 			} else if (varName.startsWith("gg_trg_")) {
 				return getHandleType(term, "trigger");
+			} else if (varName.startsWith("gg_unit_")) {
+				return getHandleType(term, "unit");
+			} else if (varName.startsWith("gg_dest_")) {
+				return getHandleType(term, "destructable");
+			} else if (varName.startsWith("gg_cam_")) {
+				return getHandleType(term, "camerasetup");
+			} else if (varName.startsWith("gg_snd_")) {
+				return getHandleType(term, "sound");
 			}
 			
 			return WurstTypeUnknown.instance();
