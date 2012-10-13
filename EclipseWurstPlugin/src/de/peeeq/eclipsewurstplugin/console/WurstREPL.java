@@ -335,6 +335,7 @@ public class WurstREPL {
 
 	private ImProg translate(WurstModel model) {
 		ImTranslator imTranslator = new ImTranslator(model);
+		imTranslator.setEclipseMode(true);
 		ImProg imProg = imTranslator.translateProg();
 		return imProg;
 	}

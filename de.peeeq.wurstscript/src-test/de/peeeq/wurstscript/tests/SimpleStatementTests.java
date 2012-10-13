@@ -501,6 +501,7 @@ public class SimpleStatementTests extends PscriptTest {
 				);
 	}
 	
+
 	public void assertError( boolean executeProg, String expected, String ... body) {
 		String prog = "package test\n" +
 				"	native testFail(string msg)\n" +
