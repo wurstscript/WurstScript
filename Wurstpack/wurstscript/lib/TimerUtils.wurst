@@ -34,12 +34,17 @@ package TimerUtils
 	
 	public function timer.pause()
 		PauseTimer(this)
+		
+	public function timer.resume()
+		ResumeTimer(this)
 	
-	public function timer.start(real time, code timerCallBack)
+	public function timer.start(real time, code timerCallBack) returns timer
 		TimerStart(this, time, false, timerCallBack)
-	
-	public function timer.startPeriodic(real time, code timerCallBack)
+		return this
+		
+	public function timer.startPeriodic(real time, code timerCallBack) returns timer
 		TimerStart(this, time, true, timerCallBack)
+		return this
 	
 	// module to execute a function after a certain time
 	public module Timed

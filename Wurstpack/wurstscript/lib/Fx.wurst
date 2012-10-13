@@ -167,7 +167,7 @@ package Fx
 			return this
 				
 		ondestroy  
-			//print("destroyed")            
+			print("destroyed")            
             if fx != null
 				fx.destr()
 

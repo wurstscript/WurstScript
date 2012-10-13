@@ -145,13 +145,10 @@ package CustomBar
             textsize = TextTagSize2Height(size)
             fg_color = makeColor(DEFAULT_FOREGROUND)
             NUM_CHARS = numochars
-            if char == "|" // ugly hack
-                setChar( "||" )
-            else
-                setChar( char )
+            setChar(char)
 
             locked = false
-            setValue(.5)
+            setValue(.0)
             
             if t != null
                 t.setPosVec( position )
@@ -197,10 +194,12 @@ package CustomBar
                 
             value = newval / 100. // the new value
             txt = fg_color.toColorString()
-            chars = R2I((R2I((getValue() * NUM_CHARS * char.length())+0.5)/char.length())*char.length()) // calculate the number of chars needed to display the new value
+            chars = (R2I((value * NUM_CHARS * char.length())+0.5) div char.length())*char.length() // calculate the number of chars needed to display the new value
             txt += ptext.substring( 0, chars)
-            txt += "|r"
-            txt +=  ptext.substring( 0, ptext.length()-chars)
+            
+			txt += "|r"
+            txt += ptext.substring( 0, ptext.length()-chars)
+
             if t != null
                 t.setText( txt, textsize)
 

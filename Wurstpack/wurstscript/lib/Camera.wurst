@@ -1,0 +1,11 @@
+package Camera
+
+public function shakeCameraTimed( player p, real value, real time )
+	CameraSetEQNoiseForPlayer(p, value)
+	getTimer().setData(GetPlayerId(p)).start(time, function resetCam)
+	
+function resetCam()
+	var t = GetExpiredTimer()
+	CameraClearNoiseForPlayer(Player(t.getData()))
+	t.release()
+	
