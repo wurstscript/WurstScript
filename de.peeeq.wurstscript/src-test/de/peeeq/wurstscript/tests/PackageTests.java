@@ -170,7 +170,7 @@ public class PackageTests extends PscriptTest {
 	
 	@Test
 	public void test_typename_as_var() {
-		testAssertErrorsLines(false, "defines the same name",
+		testAssertErrorsLines(false, "unit",
 				"type unit extends handle",
 				"package A",
 				"	unit unit",
