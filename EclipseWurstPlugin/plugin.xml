@@ -137,7 +137,7 @@
          point="org.eclipse.ui.editors">
       <editor
             name="Wurst Editor"
-            extensions="wurst"
+            extensions="wurst,j"
             icon="resources/icons/WurstFile16.gif"
             contributorClass="org.eclipse.ui.texteditor.BasicTextEditorActionContributor"
             class="de.peeeq.eclipsewurstplugin.editor.WurstEditor"

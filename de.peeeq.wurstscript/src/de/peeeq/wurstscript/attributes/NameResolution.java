@@ -29,6 +29,10 @@ public class NameResolution {
 	public static <T extends AstElement> T searchTypedNameGetOne(Class<T> t, String name, AstElement where, boolean withInheritance) {
 		List<T> names = searchTypedName(t, name, where, withInheritance);
 		if (names.size() == 0) {
+			if (name.startsWith("gg_")) {
+				// ignore editor variables ...
+				return null; 
+			}
 			where.addError("Could not resolve reference to " + name);
 			return null;
 		} else if (names.size() > 1) {

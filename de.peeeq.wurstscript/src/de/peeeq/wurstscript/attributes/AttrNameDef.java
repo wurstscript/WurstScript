@@ -51,7 +51,9 @@ public class AttrNameDef {
 		});
 
 		if (result == null) {
-			node.addError("Could not resolve reference to variable " + varName);
+			if (!varName.startsWith("gg_")) { // ignore editor variables
+				node.addError("Could not resolve reference to variable " + varName);
+			}
 		}
 		return result;
 	}

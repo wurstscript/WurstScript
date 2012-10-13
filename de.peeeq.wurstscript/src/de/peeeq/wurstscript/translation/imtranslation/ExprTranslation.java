@@ -165,7 +165,13 @@ public class ExprTranslation {
 
 	private static ImExpr translateNameDef(NameRef e, ImTranslator t, ImFunction f) throws CompileError {
 		NameDef decl = e.attrNameDef();
-		if (decl instanceof VarDef) {
+		if (decl == null) {
+			// should only happen with gg_ variables
+			if (!t.isEclipseMode()) {
+				e.addError("Could not find definition of " + e.getVarName() + ".");
+			}
+			return ImNull();
+		} if (decl instanceof VarDef) {
 			VarDef varDef = (VarDef) decl;
 
 			ImVar v = t.getVarFor(varDef);

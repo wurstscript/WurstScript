@@ -1,7 +1,10 @@
 package de.peeeq.wurstscript.attributes;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.google.common.collect.Lists;
 
@@ -61,6 +64,7 @@ import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstNativeType;
 import de.peeeq.wurstscript.types.WurstType;
@@ -134,7 +138,23 @@ public class AttrExprType {
 	public static  WurstType calculate(ExprVarAccess term)
 	{
 		NameDef varDef = term.attrNameDef();
+		
 		if (varDef == null) {
+			String varName = term.getVarName();
+			if (varName.startsWith("gg_rct_")) {
+				return getHandleType(term, "rect");
+			} else if (varName.startsWith("gg_trg_")) {
+				return getHandleType(term, "trigger");
+			} else if (varName.startsWith("gg_unit_")) {
+				return getHandleType(term, "unit");
+			} else if (varName.startsWith("gg_dest_")) {
+				return getHandleType(term, "destructable");
+			} else if (varName.startsWith("gg_cam_")) {
+				return getHandleType(term, "camerasetup");
+			} else if (varName.startsWith("gg_snd_")) {
+				return getHandleType(term, "sound");
+			}
+			
 			return WurstTypeUnknown.instance();
 		}
 		if (varDef instanceof VarDef) {
@@ -148,6 +168,18 @@ public class AttrExprType {
 			term.addError("Missing parantheses for function call");
 		}
 		return varDef.attrTyp();
+	}
+
+
+	private static WurstType getHandleType(AstElement node, String typeName) {
+		Set<WScope> ignoredScopes = Collections.emptySet();
+		//		Collection<NameDef> defs = term.attrCompilationUnit().attrDefinedNames().get(typeName);
+		List<NameDef> defs = NameResolution.searchTypedName(NameDef.class, typeName, node, false, ignoredScopes);
+		if (defs.size() > 0) {
+			return Utils.getFirst(defs).attrTyp();
+		} else {
+			return WurstTypeUnknown.instance();
+		}
 	}
 
 

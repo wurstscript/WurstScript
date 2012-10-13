@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.net.URL;
+import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
@@ -169,8 +171,14 @@ public class ModelManagerImpl implements ModelManager {
 		InputStream source = FileLocator.openStream(bundle, new Path(fileName), false);
 		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, RunArgs.defaults());
 		InputStreamReader reader = new InputStreamReader(source);
-		CompilationUnit cu = comp.parse(reader, fileName);
-		cu.setFile(fileName);
+
+		URL fileUrl = FileLocator.find(bundle, new Path(fileName), Collections.emptyMap());
+		String bundleFile = FileLocator.toFileURL(fileUrl).getFile();
+		if (bundleFile.matches("^/[a-zA-Z]:/.*")) {
+			bundleFile = bundleFile.substring(1);
+		}
+		CompilationUnit cu = comp.parse(reader, bundleFile);
+		cu.setFile(bundleFile);
 		return cu;
 	}
 

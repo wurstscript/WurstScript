@@ -877,6 +877,8 @@ public class ImTranslator {
 	private List<ImFunction> compiletimeFuncs = Lists.newArrayList();
 
 	public DebugLevel debugLevel = DebugLevel.DEFAULT;
+
+	private boolean isEclipseMode = false;
 	
 	public Collection<ClassDef> getSubClasses(ClassDef classDef) {
 		calculateSubclasses();
@@ -948,7 +950,13 @@ public class ImTranslator {
 		return debugPrintFunction;
 	}
 
+	public boolean isEclipseMode() {
+		return isEclipseMode;
+	}
 
+	public void setEclipseMode(boolean enabled) {
+		isEclipseMode = enabled;
+	}
 	
 	
 }

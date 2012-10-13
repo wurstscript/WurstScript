@@ -165,7 +165,7 @@ public class WurstNature implements IProjectNature {
 			WurstEditor editor = open(file, offset);
 			return editor;
 		} else { // open external file
-			IFileStore fileStore = EFS.getLocalFileSystem().getStore(new Path(file.getFullPath().toString()));
+			IFileStore fileStore = EFS.getLocalFileSystem().getStore(new Path(fileName));
 			if (!fileStore.fetchInfo().isDirectory() && fileStore.fetchInfo().exists()) {
 			    try {
 			        IEditorPart editor = IDE.openEditorOnFileStore(getActiveWorkbenchPage(), fileStore);
