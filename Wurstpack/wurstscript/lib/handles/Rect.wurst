@@ -1,9 +1,20 @@
 package Rect
 	
+ 	
+	Table sourceTable = new Table()
+
 	public function rect.getCenterX() returns real
-		return GetRectCenterX(this)
-		
+     	return GetRectCenterX(this)
+
 	public function rect.getCenterY() returns real
-		return GetRectCenterY(this)
-		
+     	return GetRectCenterY(this)
+
+	public function trigger.registerRectEnterEventSource( rect r )
+		TriggerRegisterEnterRectSimple(this, r)
+		sourceTable.saveRect(GetHandleId(this), r)
+  	
+  	
+	public function trigger.getSourceRect() returns rect
+		return sourceTable.loadRect(GetHandleId(this))
+
 endpackage
