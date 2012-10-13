@@ -20,6 +20,5 @@ package Wurst
 	import public Rect
 	import public TimerUtils
 	import public Camera
-	import public Player
 	
 endpackage
