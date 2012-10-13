@@ -8,6 +8,7 @@ import java.util.Set;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.text.IDocumentExtension3;
 import org.eclipse.jface.text.ITextSelection;
@@ -24,12 +25,15 @@ import org.eclipse.ui.IEditorReference;
 import org.eclipse.ui.IEditorSite;
 import org.eclipse.ui.IFileEditorInput;
 import org.eclipse.ui.IPersistableEditor;
+import org.eclipse.ui.IStorageEditorInput;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.contexts.IContextService;
 import org.eclipse.ui.editors.text.TextEditor;
+import org.eclipse.ui.ide.FileStoreEditorInput;
+import org.eclipse.ui.texteditor.IDocumentProvider;
 import org.eclipse.ui.texteditor.SourceViewerDecorationSupport;
 import org.eclipse.ui.views.contentoutline.IContentOutlinePage;
 
@@ -226,5 +230,21 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 		return null;
 	}
 	
+	@Override
+	protected void doSetInput(IEditorInput input) throws CoreException {
+		setDocumentProvider(createDocumentProvider(input));
+		super.doSetInput(input);
+	}
+
+	private IDocumentProvider createDocumentProvider(IEditorInput input) {
+		if(input instanceof IFileEditorInput
+				|| input instanceof FileStoreEditorInput) {
+			return new WurstTextDocumentProvider();
+		} else if (input instanceof IStorageEditorInput){
+			return new WurstDocumentProvider();
+		}
+		throw new Error("Got IEditorInput of type " + input.getClass());
+		
+	}
 	
 }
