@@ -8,6 +8,8 @@ import org.eclipse.jface.text.hyperlink.IHyperlinkDetector;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithSource;
 import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.FuncRef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
@@ -56,6 +58,10 @@ public class WurstHylerlinkDetector implements IHyperlinkDetector {
 				WImport wImport = (WImport) e;
 				WPackage p = wImport.attrImportedPackage();
 				return linkTo(p, e.attrSource().getLeftPos(), e.attrSource().getRightPos()-1);
+			} else if (e instanceof ExprNewObject) {
+				ExprNewObject exprNew = (ExprNewObject) e;
+				ConstructorDef def = exprNew.attrConstructorDef();
+				return linkTo(def, e.attrSource().getLeftPos(), e.attrSource().getRightPos()-1);
 			}
 		}
 		return null;
