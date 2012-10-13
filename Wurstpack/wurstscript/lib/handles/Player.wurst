@@ -1,0 +1,4 @@
+package Player
+
+public function player.getId() returns int
+	return GetPlayerId(this)
