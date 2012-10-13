@@ -237,11 +237,11 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 	}
 
 	private IDocumentProvider createDocumentProvider(IEditorInput input) {
-		if(input instanceof IFileEditorInput
+		if (input instanceof IStorageEditorInput){
+			return new WurstDocumentProvider();
+		} else if(input instanceof IFileEditorInput
 				|| input instanceof FileStoreEditorInput) {
 			return new WurstTextDocumentProvider();
-		} else if (input instanceof IStorageEditorInput){
-			return new WurstDocumentProvider();
 		}
 		throw new Error("Got IEditorInput of type " + input.getClass());
 		
