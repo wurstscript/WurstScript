@@ -298,15 +298,6 @@ attributes:
 
 Op.toSymbol() returns String implemented by de.peeeq.wurstscript.attributes.PrettyPrinter.toSymbol
 
-ExprBinary.attrFuncDef
-	returns FunctionDefinition
-	implemented by de.peeeq.wurstscript.attributes.AttrFuncDef.calculate
-	
-ExprNewObject.attrConstructorDef 
-	returns ConstructorDef 
-	implemented by de.peeeq.wurstscript.attributes.AttrConstructorDef.calculate
-
-
 WStatement.attrNextStatements "returns all statements which can be executed after this statement"
 	returns java.util.List<WStatement>
 	implemented by de.peeeq.wurstscript.attributes.Flow.getNext
@@ -347,9 +338,6 @@ Expr.attrExpectedTyp "try to guess what type is expected here"
 	returns de.peeeq.wurstscript.types.WurstType 
 	implemented by de.peeeq.wurstscript.attributes.AttrExprExpectedType.calculate
 
-FuncRef.attrFuncDef
-	returns FunctionDefinition
-	implemented by de.peeeq.wurstscript.attributes.AttrFuncDef.calculate
 
 FunctionCall.attrImplicitParameter
 	returns OptExpr
@@ -359,30 +347,6 @@ NameRef.attrImplicitParameter
 	returns OptExpr
 	implemented by de.peeeq.wurstscript.attributes.AttrImplicitParameter.getImplicitParameter
 
-	
-NameRef.attrNameDef
-	returns NameDef
-	implemented by de.peeeq.wurstscript.attributes.AttrNameDef.calculate
-
-WPackage.attrExportedNames "get the exported names of a package"
-	returns  com.google.common.collect.Multimap<String, NameDef>
-	implemented by de.peeeq.wurstscript.attributes.Scopes.getExportedNames
-
-WScope.attrDefinedNames "get the names defined in this scope"
-	returns com.google.common.collect.Multimap<String, NameDef>
-	implemented by de.peeeq.wurstscript.attributes.Scopes.getDefinedNames
-
-WScope.attrVisibleNamesPrivate ""
-	returns com.google.common.collect.Multimap<String, NameDef>
-	implemented by de.peeeq.wurstscript.attributes.Scopes.getVisibleNamesPrivate
-
-WScope.attrVisibleNamesProtected
-	returns com.google.common.collect.Multimap<String, NameDef>
-	implemented by de.peeeq.wurstscript.attributes.Scopes.getVisibleNamesProtected
-
-WScope.attrVisibleNamesPublic
-	returns com.google.common.collect.Multimap<String, NameDef>
-	implemented by de.peeeq.wurstscript.attributes.Scopes.getVisibleNamesPublic
 
 NameDef.attrTyp
 	returns de.peeeq.wurstscript.types.WurstType 
@@ -453,13 +417,7 @@ AstElement.attrNearestFuncDef
 	returns FunctionImplementation
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestFuncDef
 
-ModuleUse.attrModuleDef
-	returns ModuleDef
-	implemented by de.peeeq.wurstscript.attributes.AttrModuleDef.calculate
 
-TypeRef.attrTypeDef
-	returns TypeDef
-	implemented by de.peeeq.wurstscript.attributes.AttrTypeDef.calculate
 
 
 
@@ -507,17 +465,7 @@ HasModifier.attrIsConstant
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isConstant
 	
 	
-FunctionDefinition.attrOverriddenFunctions
-	returns java.util.Collection<FunctionDefinition>
-	implemented by de.peeeq.wurstscript.attributes.OverriddenFunctions.getOverriddenFunctions
 
-FunctionDefinition.attrRealFuncDef "returns the function definition which overrides this definition"
-	returns FunctionDefinition
-	implemented by de.peeeq.wurstscript.attributes.OverriddenFunctions.getRealFuncDef
-	
-StructureDefOrModuleInstanciation.attrAllFunctions
-	returns java.util.Map<String, FuncDef>
-	implemented by de.peeeq.wurstscript.attributes.AttrAllFunctions.calculate
 
 ClassOrModuleOrModuleInstanciation.attrModuleInstanciations
 	returns java.util.List<ModuleInstanciation>
@@ -699,29 +647,63 @@ AstElement.getErrorHandler()
 	returns de.peeeq.wurstscript.attributes.ErrorHandler
 	implemented by de.peeeq.wurstscript.attributes.ErrorHandling.getErrorHandler	
 	
-// removed attributes:
-//
-//
-//CompilationUnit.attrGetByType
-//	returns de.peeeq.wurstscript.attributes.GetByType.ByTypes
-//	implemented by de.peeeq.wurstscript.attributes.GetByType.calculate
-//	
-//CompilationUnit.attrInterfaceInstances
-//	returns com.google.common.collect.Multimap<InterfaceDef, ClassDef>
-//	implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getInterfaceInstances
-//
-//
+/* Naming */
 
-//	
-//CompilationUnit.attrSubClasses
-//	returns com.google.common.collect.Multimap<ClassDef, ClassDef>
-//	implemented by de.peeeq.wurstscript.attributes.SubClasses.getSubClasses
-//	
-//ClassDef.attrSubClasses
-//	returns java.util.Collection<ClassDef>
-//	implemented by de.peeeq.wurstscript.attributes.SubClasses.getSubClasses
-//
-//CompilationUnit.attrPackages
-//	returns java.util.Map<String, WPackage>
-//	implemented by de.peeeq.wurstscript.attributes.AttrImportedPackage.getPackages
+NameRef.attrNameDef
+	returns NameDef
+	implemented by de.peeeq.wurstscript.attributes.AttrNameDef.calculate
+
+FuncRef.attrFuncDef
+	returns FunctionDefinition
+	implemented by de.peeeq.wurstscript.attributes.AttrFuncDef.calculate
+	
+ExprNewObject.attrConstructorDef 
+	returns ConstructorDef 
+	implemented by de.peeeq.wurstscript.attributes.AttrConstructorDef.calculate
+	
+ExprBinary.attrFuncDef
+	returns FunctionDefinition
+	implemented by de.peeeq.wurstscript.attributes.AttrFuncDef.calculate
+
+
+FunctionDefinition.attrOverriddenFunctions
+	returns java.util.Collection<FunctionDefinition>
+	implemented by de.peeeq.wurstscript.attributes.OverriddenFunctions.getOverriddenFunctions
+
+FunctionDefinition.attrRealFuncDef "returns the function definition which overrides this definition"
+	returns FunctionDefinition
+	implemented by de.peeeq.wurstscript.attributes.OverriddenFunctions.getRealFuncDef
+	
+StructureDefOrModuleInstanciation.attrAllFunctions
+	returns java.util.Map<String, FuncDef>
+	implemented by de.peeeq.wurstscript.attributes.AttrAllFunctions.calculate
+	
+ModuleUse.attrModuleDef
+	returns ModuleDef
+	implemented by de.peeeq.wurstscript.attributes.AttrModuleDef.calculate
+
+TypeRef.attrTypeDef
+	returns TypeDef
+	implemented by de.peeeq.wurstscript.attributes.AttrTypeDef.calculate
+	
+
+WPackage.attrExportedNames "get the exported names of a package"
+	returns  com.google.common.collect.Multimap<String, NameDef>
+	implemented by de.peeeq.wurstscript.attributes.Scopes.getExportedNames
+
+WScope.attrDefinedNames "get the names defined in this scope"
+	returns com.google.common.collect.Multimap<String, NameDef>
+	implemented by de.peeeq.wurstscript.attributes.Scopes.getDefinedNames
+
+WScope.attrVisibleNamesPrivate ""
+	returns com.google.common.collect.Multimap<String, NameDef>
+	implemented by de.peeeq.wurstscript.attributes.Scopes.getVisibleNamesPrivate
+
+WScope.attrVisibleNamesProtected
+	returns com.google.common.collect.Multimap<String, NameDef>
+	implemented by de.peeeq.wurstscript.attributes.Scopes.getVisibleNamesProtected
+
+WScope.attrVisibleNamesPublic
+	returns com.google.common.collect.Multimap<String, NameDef>
+	implemented by de.peeeq.wurstscript.attributes.Scopes.getVisibleNamesPublic
 	
