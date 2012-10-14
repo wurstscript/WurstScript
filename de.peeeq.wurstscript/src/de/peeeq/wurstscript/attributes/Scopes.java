@@ -301,7 +301,7 @@ public class Scopes {
 				for (FuncDef i_funcDef : i.getMethods()) {
 					String fname = i_funcDef.getName();
 					if (!result.containsKey(fname)) {
-						if (i_funcDef.getBody().size() > 2) {
+						if (!i_funcDef.attrHasEmptyBody()) {
 							// add default impl
 							result.put(fname, i_funcDef);
 						} else {

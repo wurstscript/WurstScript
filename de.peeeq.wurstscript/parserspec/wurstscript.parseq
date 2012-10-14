@@ -647,7 +647,12 @@ AstElement.getErrorHandler()
 	returns de.peeeq.wurstscript.attributes.ErrorHandler
 	implemented by de.peeeq.wurstscript.attributes.ErrorHandling.getErrorHandler	
 	
-/* Naming */
+	
+FunctionLike.attrHasEmptyBody()
+	returns boolean
+	implemented by de.peeeq.wurstscript.attributes.SmallHelpers.hasEmptyBody
+
+// Naming:
 
 NameRef.attrNameDef
 	returns NameDef

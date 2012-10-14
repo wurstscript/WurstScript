@@ -384,7 +384,7 @@ public class WurstValidator {
 
 	
 	private void checkReturn(FunctionLike func) {
-		if (func.getBody().size() > 2) {
+		if (!func.attrHasEmptyBody()) {
 			new ReturnsAnalysis().execute(func);
 		} else { // no body, check if in interface:
 			if (func instanceof FuncDef) {
@@ -422,7 +422,7 @@ public class WurstValidator {
 			CheckHelper.checkIfIsRefinement(typeParamBinding, func, overriddenFunc, "Can't override function ", false);
 		}
 
-		if (func.attrIsAbstract() && func.getBody().size() > 2) {
+		if (func.attrIsAbstract() && !func.attrHasEmptyBody()) {
 			func.addError("Abstract function " + func.getName() + " must not have a body.");			
 		}
 	}
@@ -435,7 +435,7 @@ public class WurstValidator {
 			FuncDef func = (FuncDef) f;
 			if (func.attrIsAbstract()) {
 				isAbstract = true;
-				if (func.getBody().size() > 2) {
+				if (!func.attrHasEmptyBody()) {
 					func.getBody().get(0).addError("The abstract function " + func.getName()
 					+ " must not have any statements.");
 				}
@@ -958,7 +958,7 @@ public class WurstValidator {
 						continue nextFunction;
 					}
 				}
-				if (i_funcDef.getBody().size() <= 2) {
+				if (i_funcDef.attrHasEmptyBody()) {
 					classDef.addError("The class " + classDef.getName() + " must implement the function " +
 					i_funcDef.getName() + ".");
 				}
