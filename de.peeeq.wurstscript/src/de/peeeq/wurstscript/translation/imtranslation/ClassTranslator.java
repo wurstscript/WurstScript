@@ -128,7 +128,7 @@ public class ClassTranslator {
 		if (sc == classDef2) {
 			return false;
 		}
-		if (sc.getOnDestroy().getBody().size() <= 2) {
+		if (sc.getOnDestroy().attrHasEmptyBody()) {
 			WurstTypeClass superClass = (WurstTypeClass) sc.getExtendedClass().attrTyp();
 			return hasOwnDestroy(superClass.getClassDef(), classDef2);
 		} else {
