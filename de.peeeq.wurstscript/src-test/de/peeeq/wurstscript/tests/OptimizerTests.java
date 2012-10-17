@@ -49,11 +49,15 @@ public class OptimizerTests extends PscriptTest {
 	public void test_inline_globals() {
 		assertOk(false,
 				"package test",
-				"	int testVar = 1",
-				"	function w() returns int",
-				"		return testVar",
+				"	int testVar1 = 1",
+				"	real testVar2 = 1.1",
+				"	string testVar3 = \"blub\"",
+				"	boolean testVar4 = true",
 				"	init",
-				"		int i = w()",
+				"		int i = testVar1",
+				"		real r = testVar2",
+				"		string s = testVar3",
+				"		boolean b = testVar4",
 				"endpackage");
 	}
 

@@ -54,46 +54,67 @@ public class GlobalsInliner {
 		this.prog = translator.getImProg();
 	}
 	
-	public void inlineGlobals() {
-		collectGlobals();
-	}
 
-	private void collectGlobals() {
+	public void inlineGlobals() {
+		Set<ImVar> obsoleteVars = Sets.newHashSet();
 		for ( final ImVar v : prog.getGlobals() ) {
 			if (v.attrWrites().size() == 1) {
 				System.out.println(">>>>>only 1 write");
 				boolean valid = false;
-				ImVar theVar = null;
+				ImExpr right = null;
+				ImVarWrite obs = null;
 				for ( ImVarWrite v2 : v.attrWrites()) {
 					ImFunction func = v2.getNearestFunc();
 					System.out.println(">>>>>checking write..");
 					if (func.getName().startsWith("init_") || func.getName().equals("main") ) {
 						System.out.println(">>>>>in init or main");
 						valid = true;
-						theVar = v2.getLeft();
+						right = v2.getRight();
+						obs = v2;
 						System.out.println(">>>>>set");
 						break;
 					}
 				}
 				if( valid ) {
 					for ( ImVarRead v3 : v.attrReads()) {
+						if (right instanceof ImIntVal) {
+							System.out.println("replaced");
+							ImIntVal val = (ImIntVal)right;
+							v3.replaceWith(JassIm.ImIntVal(val.getValI()));
+							if (obs.getParent() != null)
+								obs.replaceWith(JassIm.ImNull());
+							obsoleteVars.add(v);
+						}else if (right instanceof ImRealVal) {
+							System.out.println("replaced");
+							ImRealVal val = (ImRealVal)right;
+							v3.replaceWith(JassIm.ImRealVal(val.getValR()));
+							if (obs.getParent() != null)
+								obs.replaceWith(JassIm.ImNull());
+							obsoleteVars.add(v);
+						}else if (right instanceof ImStringVal) {
+							System.out.println("replaced");
+							ImStringVal val = (ImStringVal)right;
+							v3.replaceWith(JassIm.ImStringVal(val.getValS()));
+							if (obs.getParent() != null)
+								obs.replaceWith(JassIm.ImNull());
+							obsoleteVars.add(v);
+						}else if (right instanceof ImBoolVal) {
+							System.out.println("replaced");
+							ImBoolVal val = (ImBoolVal)right;
+							v3.replaceWith(JassIm.ImBoolVal(val.getValB()));
+							if (obs.getParent() != null)
+								obs.replaceWith(JassIm.ImNull());
+							obsoleteVars.add(v);
+						}
 						
-						v3.getParent().set(0, theVar);
+						
 					}
 				}
 			}
 		}
+		prog.getGlobals().removeAll(obsoleteVars);
 	}
 	
-	void replace(JassImElement elem, JassImElement newElem) {
-		JassImElement parent = elem.getParent();
-		for (int i=0; i<parent.size(); i++) {
-			if (parent.get(i) == elem) {
-				parent.set(i, ((ImExpr) newElem).copy());
-				break;
-			}
-		}
-	}
 	
 	
 }
