@@ -44,6 +44,18 @@ public class OptimizerTests extends PscriptTest {
 				"		let c = function w",
 				"endpackage");
 	}
+	
+	@Test
+	public void test_inline_globals() {
+		assertOk(false,
+				"package test",
+				"	int testVar = 1",
+				"	function w() returns int",
+				"		return testVar",
+				"	init",
+				"		int i = w()",
+				"endpackage");
+	}
 
 	
 	private String makeCode(String... body) {

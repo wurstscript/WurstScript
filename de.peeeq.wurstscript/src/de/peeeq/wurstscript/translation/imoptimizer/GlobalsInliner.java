@@ -27,6 +27,7 @@ import de.peeeq.wurstscript.jassIm.ImStatementExpr;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImVar;
+import de.peeeq.wurstscript.jassIm.ImVarWrite;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.jassIm.JassImElement;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
@@ -59,9 +60,27 @@ public class GlobalsInliner {
 
 	private void collectGlobals() {
 		for ( final ImVar v : prog.getGlobals() ) {
-			if(v instanceof ImConst) {
-				ImConst cst = (ImConst)v;
-
+			if (v.attrWrites().size() == 1) {
+				System.out.println(">>>>>only 1 write");
+				boolean valid = false;
+				ImVar theVar = null;
+				for ( ImVarWrite v2 : v.attrWrites()) {
+					ImFunction func = v2.getNearestFunc();
+					System.out.println(">>>>>checking write..");
+					if (func.getName().startsWith("init_") || func.getName().equals("main") ) {
+						System.out.println(">>>>>in init or main");
+						valid = true;
+						theVar = v2.getLeft();
+						System.out.println(">>>>>set");
+						break;
+					}
+				}
+				if( valid ) {
+					for ( ImVarRead v3 : v.attrReads()) {
+						
+						v3.getParent().set(0, theVar);
+					}
+				}
 			}
 		}
 	}
