@@ -1,20 +1,38 @@
 package Rect
-	
- 	
+
 	Table sourceTable = new Table()
-
+	Table regionData = new Table()
+	
 	public function rect.getCenterX() returns real
-     	return GetRectCenterX(this)
-
+		return GetRectCenterX(this)
+	
 	public function rect.getCenterY() returns real
-     	return GetRectCenterY(this)
-
+		return GetRectCenterY(this)
+		
+	public function rect.getMaxX() returns real
+		return GetRectMaxX(this)
+		
+	public function rect.getMaxY() returns real
+		return GetRectMaxY(this)
+		
+	public function rect.getMinX() returns real
+		return GetRectMinX(this)
+		
+	public function rect.getMinY() returns real
+		return GetRectMinY(this)
+	
 	public function trigger.registerRectEnterEventSource( rect r )
 		TriggerRegisterEnterRectSimple(this, r)
 		sourceTable.saveRect(GetHandleId(this), r)
-  	
-  	
+	
 	public function trigger.getSourceRect() returns rect
 		return sourceTable.loadRect(GetHandleId(this))
+	
+	public function region.setRegionData(int data)
+		regionData.saveInt(GetHandleId(this), data)
+	
+	public function region.loadRegionData() returns int
+		return regionData.loadInt(GetHandleId(this))
+
 
 endpackage

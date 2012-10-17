@@ -1106,7 +1106,17 @@ public class WurstValidator {
 		if (! isViableSwitchtype(s.getExpr()))
 			s.addError("The type " + s.getExpr().attrTyp() + " is not viable as switchtype.");
 		else {
-			for (SwitchCase c : s.getCases()) {		
+			int i = 0;
+			for (SwitchCase c : s.getCases()) {	
+				if ( i > 0 ) {
+//					for( int j = 0; j<i; j++) {
+//						System.out.println(">>>>>>>>>>>>>>>>"+c.getExpr());
+//						System.out.println(">>>>>>>>>>>>>>>>"+s.getCases().get(j).getExpr());
+//						if ( c.getExpr().att.equals(s.getCases().get(j).getExpr()) )
+//							c.addError("Case " + j + " and " + i + " are the same.");
+//					}
+				}
+				i++;
 				if( !s.getExpr().attrTyp().equalsType(c.getExpr().attrTyp(), c)) {
 					c.addError("The type " + c.getExpr().attrTyp() + " does not match the switchtype "
 							+  s.getExpr().attrTyp() + ".");

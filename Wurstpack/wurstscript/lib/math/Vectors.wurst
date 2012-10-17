@@ -167,6 +167,23 @@ package Vectors
         return vec2(this.x*l, this.y*l)
         
 	public function vec2.withZ(real z) returns vec3
-		return vec3(this.x, this.y, z) 
+		return vec3(this.x, this.y, z)
+		
+	public function vec2.distToVec( vec2 v ) returns real
+		 return SquareRoot((v.x - this.x).squared() + (v.y - this.y).squared())
+		
+	public function vec2.distToVecSquared( vec2 v ) returns real
+		 return (v.x - this.x).squared() + (v.y - this.y).squared()
+		 
+	public function vec2.distToSegmentSquared( vec2 v1, vec2 v2) returns real
+  		var l2 = v1.distToVecSquared(v2)
+  		if l2 == 0 
+  			return this.distToVecSquared(v1)
+  		var t = ((this.x - v1.x) * (v2.x - v1.x) + (this.y - v1.y) * (v2.y - v1.y)) / l2
+  		if (t < 0) 
+  			return this.distToVecSquared(v1)
+  		if (t > 1) 
+  			return this.distToVecSquared(v2)
+  		return this.distToVecSquared( vec2( v1.x + t * (v2.x - v1.x), v1.y + t * (v2.y - v1.y) ) )
 	
 endpackage 

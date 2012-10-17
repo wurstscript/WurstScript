@@ -1,5 +1,6 @@
 package Texttag
 	import public Vectors
+	import public RGBA
 	
 	public function texttag.setPos( real x, real y, real z) returns texttag
 		SetTextTagPos(this, x ,y , z)
@@ -11,6 +12,10 @@ package Texttag
 
 	public function texttag.setColor( int r, int g, int b, int a ) returns texttag
 		SetTextTagColor(this, r, g , b, a)
+		return this
+	
+	public function texttag.setColorRGBA( colorRGBA col) returns texttag
+		SetTextTagColor(this, col.red, col.green , col.blue, col.alpha)
 		return this
 
 	public function texttag.setText( string text, real height ) returns texttag
@@ -36,5 +41,16 @@ package Texttag
 	public function texttag.setVelocity( real xvel, real yvel ) returns texttag
 		SetTextTagVelocity(this, xvel, yvel)
 		return this
+		
+	public function createTTEx(vec3 pos, string message, int size, real duration, colorRGBA col ) returns texttag
+        texttag tt = CreateTextTag()
+        tt.setPosVec(pos)
+        .setText( message, size * 0.0023 )
+        .setColorRGBA( col )
+        .setVelocity( 0.00000128484, 0.0277344)
+        .setLifespan( duration) 
+        tt.setFadepoint(.1) 
+        tt.setPermanent(false)
+        return tt
 		
 endpackage
