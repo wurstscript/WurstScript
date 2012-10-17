@@ -205,7 +205,9 @@ JassImElement.attrTrace()
 	returns de.peeeq.wurstscript.ast.AstElement
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.getTrace
 	
-	
+JassImElement.replaceWith(JassImElement other) "replaces this element with some new element"
+	returns void
+	implemented by de.peeeq.wurstscript.translation.imtranslation.ImHelper.replaceElem
 
 JassImElement.attrProg()
 	returns ImProg
@@ -223,3 +225,4 @@ ImVar.attrWrites
 ImVar.attrReads
 	returns java.util.Collection<ImVarRead>
 	implemented by de.peeeq.wurstscript.translation.imoptimizer.VariableUses.getVarReads
+	

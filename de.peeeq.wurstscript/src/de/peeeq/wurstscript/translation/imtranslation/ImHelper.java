@@ -5,6 +5,7 @@ import java.util.Map;
 
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WParameters;
+import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImNoExpr;
 import de.peeeq.wurstscript.jassIm.ImSet;
 import de.peeeq.wurstscript.jassIm.ImSetArray;
@@ -20,6 +21,7 @@ import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
 import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.jassIm.JassImElement;
 
 public class ImHelper {
 
@@ -155,5 +157,17 @@ public class ImHelper {
 		
 
 		
+	}
+
+	public static void replaceElem(JassImElement oldElem, JassImElement newElement) {
+		JassImElement parent = oldElem.getParent();
+		if (parent == null) throw new Error("Element has no parent: " + oldElem);
+		for (int i=0; i<parent.size(); i++) {
+			if (parent.get(i) == oldElem) {
+				parent.set(i, newElement);
+				return;
+			}
+		}
+		throw new Error("Element " + oldElem + " not found in parent. This should never happen ;)");
 	}
 }
