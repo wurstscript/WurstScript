@@ -977,32 +977,7 @@ Compiltetime functions cannot take nor return anything.
 # Standard Library 
 
 Wurst comes with a library of some useful standard functions
-
-## Collections 
-
-### Lists 
-
-Suppose you have an interface Closable and classes Door, Chest and Gate  implementing this interface. Furthermore the interface I
-provides functions "open" and "close". You can use Lists to store different kind of Closable things in one place.
-
-
-	Gate gate = ...
-	Door door = ...
-	Chest chest = ...
-	// create a new list
-	LinkedList{Closeable} closeables = new LinkedList{Closeable}()
-	// add the different items to the list
-	closeables.add(gate)
-	closeables.add(door)
-	closeables.add(chest)
-	// now close everything in the list
-	for Closeable c1 in closeables
-		c1.close()
-	// and open everything again (but not the chest, as we want to keep our treasure)
-	closeables.remove(chest) // remove the chest from the list
-	for Closeable c2 in closeables
-		c2.open()
-
+Look here for a documentation [The Wurstscript Standardlibrary](http://peq.github.com/WurstScript/standardlib.html)
 
 
 # vJass vs Wurst
