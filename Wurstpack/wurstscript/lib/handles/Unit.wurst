@@ -1,5 +1,6 @@
 package Unit
-
+	import public Vectors
+	
     public function unit.getX() returns real
 		return GetUnitX(this)
 		
@@ -17,6 +18,11 @@ package Unit
 	public function unit.setXY(real x, real y) returns unit
 		SetUnitX(this, x)
 		SetUnitY(this, y)
+		return this
+		
+	public function unit.setXYVec(vec2 pos) returns unit
+		SetUnitX(this, pos.x)
+		SetUnitY(this, pos.y)
 		return this
         
     public function unit.setPos(real x, real y) returns unit

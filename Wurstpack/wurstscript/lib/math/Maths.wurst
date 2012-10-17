@@ -47,6 +47,7 @@ package Maths
 		
 	public function vectorToAngle( vec2 v ) returns real
 		return Atan2(v.y, v.x)
-	
+		
+
 endpackage
 

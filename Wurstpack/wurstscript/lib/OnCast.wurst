@@ -39,6 +39,8 @@ public module OnCast
 		CreateTrigger()
 			.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
 			.addCondition(Condition(function actions))
+			
+
 
 public module OnUnitTargetCast
 	private static trigger t = null

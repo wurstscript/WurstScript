@@ -23,9 +23,8 @@ package Trigger
         DestroyTrigger(t)
         triggerData.removeHandle(h)
         triggerData.removeHandle(th)
-
-    
-	public function trigger.enable() returns trigger
+        
+    public function trigger.enable() returns trigger
 		EnableTrigger( this )
 		return this
 		
@@ -56,8 +55,91 @@ package Trigger
 		TriggerExecute( this )
 		return this
 		
+	//Events
+	
 	public function trigger.registerAnyUnitEvent(playerunitevent whichEvent) returns trigger
 		TriggerRegisterAnyUnitEventBJ(this, whichEvent)
 		return this
 
+	public function trigger.registerPlayerEvent(player whichPlayer, playerevent whichPlayerEvent) returns trigger
+   		TriggerRegisterPlayerEvent(this, whichPlayer, whichPlayerEvent)
+   		return this
+   		
+	public function trigger.registerDeathEvent(widget whichWidget) returns trigger
+		TriggerRegisterDeathEvent(this, whichWidget)
+		return this
+		
+	public function trigger.registerDialogButtonEvent(button whichButton) returns trigger
+		TriggerRegisterDialogButtonEvent(this, whichButton)
+		return this
+		
+	public function trigger.registerDialogEvent(dialog whichDialog) returns trigger
+		TriggerRegisterDialogEvent(this, whichDialog)
+		return this
+		
+	public function trigger.registerEnterRegion(region whichRegion, boolexpr filter) returns trigger
+		TriggerRegisterEnterRegion(this, whichRegion, filter)
+		return this
+		
+	public function trigger.registerGameEvent(gameevent whichGameEvent) returns trigger
+		TriggerRegisterGameEvent(this, whichGameEvent)
+		return this
+   	
+	public function trigger.registerGameStateEvent(gamestate whichState, limitop opcode, real limitval) returns trigger
+		TriggerRegisterGameStateEvent(this, whichState, opcode, limitval)
+		return this
+		
+	public function trigger.registerLeaveRegion(region whichRegion, boolexpr filter) returns trigger
+		TriggerRegisterLeaveRegion(this, whichRegion, filter)
+		return this
+		
+	public function trigger.registerPlayerChatEvent(player whichPlayer, string chatMessageToDetect, boolean exactMatchOnly) returns trigger
+		TriggerRegisterPlayerChatEvent(this, whichPlayer, chatMessageToDetect, exactMatchOnly)
+		return this
+	
+	public function trigger.registerPlayerStateEvent(player whichPlayer, playerstate whichState, limitop opcode, real limitval) returns trigger
+		TriggerRegisterPlayerStateEvent(this, whichPlayer, whichState, opcode, limitval)
+		return this
+		
+	public function trigger.registerPlayerUnitEventplayer(player whichPlayer, playerunitevent whichPlayerUnitEvent, boolexpr filter) returns trigger
+		TriggerRegisterPlayerUnitEvent(this, whichPlayer, whichPlayerUnitEvent, filter)
+		return this
+		
+	public function trigger.registerTimerEvent(real timeout, boolean periodic) returns trigger
+		TriggerRegisterTimerEvent(this, timeout, periodic)
+		return this
+		
+	public function trigger.registerTimerExpireEvent(timer whichTimer) returns trigger
+		TriggerRegisterTimerExpireEvent(this, whichTimer)
+		return this
+		
+	public function trigger.registerTrackableHitEvent(trackable whichTrackable) returns trigger
+		TriggerRegisterTrackableHitEvent(this, whichTrackable)
+		return this
+		
+	public function trigger.registerTrackableTrackEvent(trackable whichTrackable) returns trigger
+		TriggerRegisterTrackableTrackEvent(this, whichTrackable)
+		return this
+		
+	public function trigger.registerUnitEvent(unit whichUnit, unitevent whichEvent ) returns trigger
+		TriggerRegisterUnitEvent(this, whichUnit, whichEvent)
+		return this
+		
+	public function trigger.registerUnitInRange(unit whichUnit, real range, boolexpr filter) returns trigger
+		TriggerRegisterUnitInRange(this, whichUnit, range, filter)
+		return this
+		
+	public function trigger.registerUnitStateEvent(unit whichUnit, unitstate whichState, limitop opcode, real limitval) returns trigger
+		TriggerRegisterUnitStateEvent(this, whichUnit, whichState, opcode, limitval)
+		return this
+		
+	public function trigger.clearConditions() returns trigger
+		TriggerClearConditions(this)
+		return this
+	
+	//not allowed	
+	//public function trigger.registerVariableEvent(string varName, limitop opcode, real limitval) returns trigger
+	//	TriggerRegisterVariableEvent(this, varName, opcode, limitval)
+	//	return this
+		
 endpackage 

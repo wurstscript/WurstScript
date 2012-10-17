@@ -2,3 +2,9 @@ package Player
 
 public function player.getId() returns int
 	return GetPlayerId(this)
+
+	
+public function player.getName() returns string
+	return GetPlayerName(this)
+	
+	

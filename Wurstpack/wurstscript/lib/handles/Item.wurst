@@ -12,4 +12,14 @@ package Item
 	public function item.setPos( real x, real y ) returns item
 		SetItemPosition( this, x, y )
 		return this
+		
+	public function item.getUserData() returns int
+		return GetItemUserData(this)
+		
+	public function item.setUserData(int data)
+		SetItemUserData(this, data)
+		
+	public function item.remove()
+		RemoveItem(this)
+		
 endpackage
