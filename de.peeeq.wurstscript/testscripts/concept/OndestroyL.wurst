@@ -22,6 +22,7 @@ package Test
         			c++
         	
 
-    	
-    	
+    	init
+    		B b = new B(null)
+    		destroy b
 endpackage
