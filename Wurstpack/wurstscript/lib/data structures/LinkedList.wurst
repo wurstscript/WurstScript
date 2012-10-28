@@ -1,4 +1,4 @@
-package Lists
+package LinkedList
 
 	public class LinkedList<T>
 		private LLEntry<T> dummy
@@ -103,6 +103,7 @@ package Lists
 
 		function close()
 			destroy this
+
 
 
 	

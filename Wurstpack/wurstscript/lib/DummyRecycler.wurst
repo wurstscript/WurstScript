@@ -112,7 +112,6 @@ package DummyRecycler
         SetUnitY(u, y)
         SetUnitFlyHeight(u, z, 0)
         bj_lastCreatedUnit = u
-        u = null
         return bj_lastCreatedUnit
 
     //=======================================================================

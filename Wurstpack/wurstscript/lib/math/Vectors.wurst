@@ -89,6 +89,12 @@ package Vectors
 			return true
 		return false
 		
+	public function vec3.distToVec( vec3 v ) returns real
+		return SquareRoot((v.x - this.x).squared() + (v.y - this.y).squared() + (v.z - this.z).squared())
+		
+	public function vec3.distToVecSquared( vec3 v ) returns real
+		return (v.x - this.x).squared() + (v.y - this.y).squared() + (v.z - this.z).squared()
+		
 	public function vec3.toString() returns string
 		return "Vector3 [ " + this.x.toString() + ", " + this.y.toString() + ", " + this.z.toString() + " ]"
 		

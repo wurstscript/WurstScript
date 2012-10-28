@@ -127,6 +127,9 @@ package Fx
 		
 		function getZ() returns real
 			return dummy.getFlyHeight()
+			
+		function getPos2() returns vec2
+			return vec2(getX(), getY())
 		
 		function setX(real x) returns Fx
 			dummy.setX(x)
@@ -161,7 +164,7 @@ package Fx
 			if newpath == ""
 				fx = null
 			else
-				//print("added")      
+				print("added")      
 				fx = dummy.addEffect(newpath, "origin")
             sfxPath = newpath
 			return this

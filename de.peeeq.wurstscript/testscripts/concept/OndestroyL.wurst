@@ -1,0 +1,27 @@
+package Test
+
+		nativetype unit
+		native RemoveUnit(unit u )
+		
+		class A
+			unit u
+			construct(unit u)
+				this.u = u
+				
+			ondestroy
+				RemoveUnit(u)
+
+        class B extends A
+        	int c
+        	construct( unit u )
+        		super(u)
+        		
+        	ondestroy
+        		while c < 4
+        			var l = c+6
+        			c++
+        	
+
+    	
+    	
+endpackage
