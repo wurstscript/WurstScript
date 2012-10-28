@@ -11,7 +11,7 @@ WurstScript is a programming language named after the german word for sausage.
 
 The sausage is a symbol for encapsulation (Peel/Pelle), compactness (sausage meat/Brät) and modularization (cut it into slices!). And because you normally know whats inside a sausage the project is also open source and easy to use (cook).
 
-*Remember*: WurstScript and its related tools are in a probably unstable state and under heavy development, so you may encounter errors and bugs we don't know about. Please report any
+**Remember**: WurstScript and its related tools are in a probably unstable state and under heavy development, so you may encounter errors and bugs we don't know about. Please report any
 problem with our [issue tracker at GitHub](https://github.com/peq/WurstScript/issues/new).
 
 # Syntax
