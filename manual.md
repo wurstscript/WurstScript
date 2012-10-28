@@ -4,14 +4,14 @@ title: WurstScript Manual
 ---
 
 
-_by peq & Frotty_ _Version: 12.10.12_ 
+_by peq & Frotty_ _Last Change: 28.10.12_ 
 
 
 WurstScript is a programming language named after the german word for sausage.
 
 The sausage is a symbol for encapsulation (Peel/Pelle), compactness (sausage meat/Brät) and modularization (cut it into slices!). And because you normally know whats inside a sausage the project is also open source and easy to use (cook).
 
-Remember: WurstScript and its related tools are in a probably unstable state and under heavy development, so you may encounter errors and bugs we don't know about. Please report any
+*Remember*: WurstScript and its related tools are in a probably unstable state and under heavy development, so you may encounter errors and bugs we don't know about. Please report any
 problem with our [issue tracker at GitHub](https://github.com/peq/WurstScript/issues/new).
 
 # Syntax
@@ -22,7 +22,6 @@ In general WurstScript tries to avoid using symbols as much as possible to
 provide a clear and readable look. At the same time most of Jass' verbosity got removed. 
 
 # Basics
-
 
 Wurst code is organized into _packages_. All your wurst code has to be inside a _package_. 
 Packages can also _import_ other packages in order to use variables, functions, classes, etc. from the imported package. Packages can have an _init_ block to do stuff when the map is loaded.
@@ -40,8 +39,18 @@ Packages can also _import_ other packages in order to use variables, functions, 
 
 	endpackage
 
-You can still use normal jass code outside of packages, but inside packages you have to adhere
+You can still use normal jass syntax/code outside of packages, but inside packages you have to adhere
 to the wurst rules.
+
+# Naming Conventions
+
+Wurst enforces several naming conventions to create a common way of writing code and to provide general readability rules:
+-  Functions have to start with a lowercase letter
+-  Variables have to either start with a lowercase letter or be all uppercase letters + "_"
+-  Class/Module/Interface/Package names have to start with an uppercase letter
+-  Tuplenames have to start with a lowercase letter
+-  
+
 
 ## Functions
 
@@ -59,6 +68,23 @@ If the function does not return a value this part is omitted.
 	// this function prints the maximum of two integers
 	function printMax(int a, int b)
 		print(max(a,b).toString())
+
+	function foo() // parentheses instead of "takes", "returns nothing" obsolete.
+		...
+
+	function foo2( unit u ) // parameters
+		RemoveUnit( u )
+
+	function bar( integer i ) returns int // "returns" [type]
+		return i + 4
+	
+	function blub() returns int // without parameters
+		return someArray[5]
+
+	function foobar()
+		int i // local variable
+		i = i + 1 // variable assignment
+		int i2 = i // support for locals anywhere inside a function
 
 ## Variables
 
@@ -243,24 +269,7 @@ WurstScript supports the following shorthands for assignments:
 Because these shorthands simply get translated into their equivalents, they can
 be used with overloaded operators, too.
 
-## Functions ##
 
-	function foo() // parentheses instead of "takes", "returns nothing" obsolete.
-		...
-
-	function foo2( unit u ) // parameters
-		RemoveUnit( u )
-
-	function bar( integer i ) returns int // "returns" [type]
-		return i + 4
-	
-	function blub() returns int // without parameters
-		return someArray[5]
-
-	function foobar()
-		int i // local variable
-		i = i + 1 // variable assignment
-		int i2 = i // support for locals anywhere inside a function
 
 
 
