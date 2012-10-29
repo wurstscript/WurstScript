@@ -4,7 +4,7 @@ title: WurstScript Manual
 ---
 
 
-_by peq & Frotty_ _Last Change: 28.10.12_ 
+_by peq & Frotty_ _Last Change: 29.10.12_ 
 
 
 WurstScript is a programming language named after the german word for sausage.
@@ -323,15 +323,6 @@ WurstScript supports the following shorthands for assignments:
 
 Because these shorthands simply get translated into their equivalents, they can
 be used with overloaded operators, too.
-
-
-
-
-
-
-
-
-
 
 
 # Classes
