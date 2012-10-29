@@ -24,7 +24,8 @@ provide a clear and readable look. At the same time most of Jass' verbosity got 
 # Basics
 
 Wurst code is organized into _packages_. All your wurst code has to be inside a _package_. 
-Packages can also _import_ other packages in order to use variables, functions, classes, etc. from the imported package. Packages can have an _init_ block to do stuff when the map is loaded.
+Packages can also _import_ other packages in order to use variables, functions, classes, etc. from the imported package. 
+Packages can have an _init_ block to do stuff when the map is loaded.
 
 
 	package HelloWurst
@@ -42,13 +43,13 @@ Packages can also _import_ other packages in order to use variables, functions, 
 You can still use normal jass syntax/code outside of packages, but inside packages you have to adhere
 to the wurst rules.
 
-# Naming Conventions
+## Naming Conventions
 
 Wurst enforces several naming conventions to create a common way of writing code and to provide general readability rules:
--  Functions have to start with a lowercase letter
--  Variables have to either start with a lowercase letter or be all uppercase letters + "_"
--  Class/Module/Interface/Package names have to start with an uppercase letter
--  Tuplenames have to start with a lowercase letter
+-  **Functions** have to start with a **lowercase letter**
+-  **Variables** have to either start with a **lowercase letter** *or* be **all uppercase letters and "_"**
+-  **Class/Module/Interface/Package** names have to start with an **uppercase letter**
+-  **Tuplenames** have to start with a **lowercase letter**
 -  
 
 
@@ -75,7 +76,7 @@ If the function does not return a value this part is omitted.
 	function foo2( unit u ) // parameters
 		RemoveUnit( u )
 
-	function bar( integer i ) returns int // "returns" [type]
+	function bar( int i ) returns int // "returns" [type]
 		return i + 4
 	
 	function blub() returns int // without parameters
@@ -168,6 +169,9 @@ The simplest statement is the _skip_ statement. It has no effect and can be used
 	if x > y or x <= z and "blub" != "blah"
 		print("if is true")
 	print("if done.")
+	
+	if GetSpellAbilityId() == 'A000'
+		AddSpecialEffect( GetSpellTargetX(), GetSpellTargetY(), FX_PATH )
     
 ### Switchs
     
@@ -199,11 +203,6 @@ nesting ifs and else ifs, with the special default case.
 	for int i = 10 downto 0 // wurst can also count down wards
         ...
 
-
-
-
-
-
 	for unit u in someGroup // loop over all units in a group
 		...
 
@@ -214,7 +213,7 @@ nesting ifs and else ifs, with the special default case.
 		...
 
 
-#### For-in/from Loops
+### For-in/from Loops
 
 The for-in loop lets you iterate over any object which provides an iterator. 
 A for-in loop can be transformed into an equivalent while-loop very easily:
@@ -231,7 +230,7 @@ A for-in loop can be transformed into an equivalent while-loop very easily:
 	iterator.close()
 
 
-Note that iterator.close() will also be called before any return statement inside the body of the while loop.
+**Note** that iterator.close() will also be called before any return statement inside the body of the while loop.
 
 If you already have an iterator or want to access further functions of the iterator you can use the for-from loop.
 The translation is very similar:
@@ -245,14 +244,70 @@ The translation is very similar:
 		Statements
 
 
-Note that you have to close the iterator i yourself.
+**Note** that you have to close the iterator i yourself.
 
-So how do you write your own iterator? Just add a function "hasNext" which returns a boolean and a function "next" which
-returns the next element for your type and you have an iterator which can be used in for-from loops.
+### Iterators
 
-To make a type usable in for-in loops you have to provide a function "iterator" which returns an iterator. Such an iterator
-should also provide a close functions which clears all resources allocated by the iterator. Most often the iterator just
-destroys itself in the close function.
+
+So how do you write your own iterator? Just provide the following functions:
+-  function hasNext() returns boolean (return if there is another object left)
+-  function mext() returny TYPE (return the next element for your type)
+
+With this two functions you get an iterator which can be used in for-from loops.
+
+To make a type usable in for-in loops you have to provide 
+-  function iterator() returns Iterator
+for your type, that returns an iterator object.
+That iterator class should also provide a close functions which clears all resources allocated by the iterator. 
+Most often the iterator just destroys itself in the close function.
+
+Look at the 2 examples from the stdlib:
+
+**Group-Iterator**
+
+	public function group.iterator() returns group
+		// return a copy of the group:
+		bj_groupAddGroupDest = CreateGroup()
+		ForGroup(this, function GroupAddGroupEnum)
+		return bj_groupAddGroupDest
+
+	public function group.hasNext() returns boolean
+		return FirstOfGroup(this) != null
+
+	public function group.next() returns unit
+		let u = FirstOfGroup(this)
+		GroupRemoveUnit(this, u) 
+		return u
+
+	public function group.close()
+		DestroyGroup(this)
+		
+**LinkedList-Iterator**
+
+	public class LinkedList<T>
+		...
+		
+		// get an iterator for this list
+		function iterator() returns LLIterator<T>
+			return new LLIterator(dummy)
+			
+	class LLIterator<Q>
+		LLEntry<Q> dummy
+		LLEntry<Q> current
+
+		construct(LLEntry<Q> dummy)
+			this.dummy = dummy
+			this.current = dummy
+
+		function hasNext() returns boolean
+			return current.next != dummy
+
+		function next() returns Q
+			current = current.next
+			return current.elem
+
+		function close()
+			destroy this
 
 ### Assignment Shorthands
 
@@ -570,22 +625,22 @@ classes like so:
 
     abstract class CollidableObject
 
-	abstract function onHit()
+		abstract function onHit()
 	
-	function checkCollision(CollidableObject o)
-	    if this.inRange(o)
-	      onHit()
-	      o.onHit()
+		function checkCollision(CollidableObject o)
+			if this.inRange(o)
+			  onHit()
+			  o.onHit()
 	    
     class Ball extends CollidableObject
 	
-	override function onHit()
-	    print("I'm a ball")
+		override function onHit()
+			print("I'm a ball")
 		
     class Rect extends CollidableObject
 	
-	override function onHit()
-	    print("I'm a Rect")
+		override function onHit()
+			print("I'm a Rect")
 	   
 	   
 	   
