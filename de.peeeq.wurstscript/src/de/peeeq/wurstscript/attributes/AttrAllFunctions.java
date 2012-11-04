@@ -11,7 +11,7 @@ import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.ast.AstElementWithModuleInstanciations;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
-import de.peeeq.wurstscript.ast.StructureDefOrModuleInstanciation;
+import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -22,7 +22,7 @@ public class AttrAllFunctions {
 	 * @param term
 	 * @return
 	 */
-	public static Map<String, FuncDef> calculate(StructureDefOrModuleInstanciation term) {
+	public static Map<String, FuncDef> calculate(StructureDef term) {
 		WPos mainSource = term.getSource();
 		
 		Map<String, FuncDef> sameLevelFunctions = Maps.newHashMap();

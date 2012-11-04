@@ -19,9 +19,9 @@ public function unit.unregisterCastEvent()
 			DestroyCondition(conds[i])
 			break
 			
-	for j = i to count - 1
-		conds[j] = conds[j+1]	
-		casters[j] = casters[j+1]
+		for j = i to count - 1
+			conds[j] = conds[j+1]	
+			casters[j] = casters[j+1]
 
 	count--
 	

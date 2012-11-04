@@ -34,6 +34,7 @@ public class ImInliner {
 	private Map<ImFunction, Integer> callCounts = Maps.newHashMap();
 	private Map<ImFunction, Integer> funcSizes = Maps.newHashMap();
 	private Set<ImFunction> done = Sets.newHashSet();
+	private double inlineTreshold = 50;
 	
 	public ImInliner(ImTranslator translator) {
 		this.translator = translator;
@@ -183,7 +184,7 @@ public class ImInliner {
 		System.out.println("	ininable: " + inlinableFunctions.contains(f));
 		System.out.println("	rating: " + getRating(f));
 		return  inlinableFunctions.contains(f) 
-				&& getRating(f) < 50;
+				&& getRating(f) < inlineTreshold;
 	}
 	
 	private int estimateSize(ImFunction f) {

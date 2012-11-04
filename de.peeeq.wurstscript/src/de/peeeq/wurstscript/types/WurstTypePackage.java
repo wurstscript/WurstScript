@@ -32,7 +32,7 @@ public class WurstTypePackage extends WurstTypeNamedScope {
 	
 	@Override
 	public WurstType dynamic() {
-		throw new Error("Package references cannot be dynamic.");
+		return this;
 	}
 
 	@Override

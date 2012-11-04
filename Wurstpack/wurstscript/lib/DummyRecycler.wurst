@@ -127,9 +127,9 @@ package DummyRecycler
             //Recycle this
             recycle = queueLast[rc]
             //Index the dummy unit to an available facing angle.
-            i = R2I(GetUnitFacing(u)) div ANG_VAL
+            int i = R2I(GetUnitFacing(u)) div ANG_VAL
             if stackN[i] < ANG_STORAGE_MAX 
-                int i = ANG_N
+                i = ANG_N
                 while stackN[i] > ANG_STORAGE_MAX
                     i--
 

@@ -35,6 +35,10 @@ public class WurstTypeClass extends WurstTypeNamedScope {
 				}
 			}
 		}
+		if (obj instanceof WurstTypeModuleInstanciation) {
+			WurstTypeModuleInstanciation n = (WurstTypeModuleInstanciation) obj;
+			return n.isParent(this);
+		}
 		if (classDef.getExtendedClass() instanceof TypeExpr) {
 			TypeExpr extendedClass = (TypeExpr) classDef.getExtendedClass();
 			WurstType superType = extendedClass.attrTyp();

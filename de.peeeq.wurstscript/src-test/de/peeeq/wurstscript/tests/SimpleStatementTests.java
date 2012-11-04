@@ -231,9 +231,9 @@ public class SimpleStatementTests extends PscriptTest {
 			"		int pos = 0",
 			
 			"		construct(IntList list)",
-			"			this.list = list",
+			"			this.list = list", // 20
 			
-			"		function hasNext() returns boolean", // 20
+			"		function hasNext() returns boolean", 
 			"			return pos < list.size",
 			
 			"		function next() returns int",

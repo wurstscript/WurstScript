@@ -73,9 +73,9 @@ public class AttrExprExpectedType {
 				throw new CompileError(expr.getSource(), "c) could not find expr " + expr + " in parent " + parent);
 			} else if (parent instanceof ExprUnary) {
 				ExprUnary exprUnary = (ExprUnary) parent;
-				if (exprUnary.attrExpectedTyp() instanceof WurstTypeReal) {
+				if (exprUnary.attrExpectedTyp().isSubtypeOf(WurstTypeReal.instance(), expr)) {
 					return WurstTypeReal.instance();
-				} else if (exprUnary.attrExpectedTyp() instanceof WurstTypeInt) {
+				} else if (exprUnary.attrExpectedTyp().isSubtypeOf(WurstTypeInt.instance(), expr)) {
 					return WurstTypeInt.instance();
 				} else if (exprUnary.attrExpectedTyp() instanceof WurstTypeBool) {
 					return WurstTypeBool.instance();

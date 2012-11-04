@@ -129,7 +129,7 @@ public class ClassesExtTests extends PscriptTest {
 	
 	@Test
 	public void privateVar() {
-		testAssertErrorsLines(false, "Could not resolve reference", 
+		testAssertErrorsLines(false, "not visible here", 
 				"package test",
 				"	native testSuccess()",
 				"	class C",
@@ -143,7 +143,7 @@ public class ClassesExtTests extends PscriptTest {
 	
 	@Test
 	public void privateFunc() {
-		testAssertErrorsLines(false, "Could not resolve reference", 
+		testAssertErrorsLines(false, "not visible", 
 				"package test",
 				"	native testSuccess()",
 				"	class C",

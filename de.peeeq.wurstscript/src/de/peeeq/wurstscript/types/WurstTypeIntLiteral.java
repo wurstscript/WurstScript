@@ -5,13 +5,13 @@ import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.JassIm;
 
 
-public class WurstTypeInt extends WurstTypePrimitive {
+public class WurstTypeIntLiteral extends WurstTypePrimitive {
 
-	private static final WurstTypeInt instance = new WurstTypeInt();
+	private static final WurstTypeIntLiteral instance = new WurstTypeIntLiteral();
 
 	// make constructor private as we only need one instance
-	protected WurstTypeInt() {
-		super("integer");
+	protected WurstTypeIntLiteral() {
+		super("integer-literal");
 	}
 	
 	@Override
@@ -22,11 +22,13 @@ public class WurstTypeInt extends WurstTypePrimitive {
 		if (other instanceof WurstTypeFreeTypeParam) {
 			return true;
 		}
-		return other instanceof WurstTypeInt;
+		return other instanceof WurstTypeIntLiteral
+			|| other instanceof WurstTypeInt
+			|| other instanceof WurstTypeReal;
 	}
 
 
-	public static WurstTypeInt instance() {
+	public static WurstTypeIntLiteral instance() {
 		return instance;
 	}
 

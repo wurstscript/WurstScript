@@ -36,6 +36,7 @@ import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.ast.WurstModel;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.utils.Utils;
@@ -85,14 +86,14 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			WurstType leftType = e.getLeft().attrTyp();
 			if (leftType instanceof WurstTypeNamedScope) {
 				WurstTypeNamedScope ns = (WurstTypeNamedScope) leftType;
-				Multimap<String, NameDef> visibleNames = ns.getDef().attrVisibleNamesPrivate();
+				Multimap<String, NameLink> visibleNames = ns.getDef().attrNameLinks();
 				completionsAddVisibleNames(alreadyEntered, completions, visibleNames);
 			}
 			
 			// add member vars
 			WScope scope = elem.attrNearestScope();
 			while (scope != null) {
-				Multimap<String, NameDef> visibleNames = scope.attrVisibleNamesPrivate();
+				Multimap<String, NameLink> visibleNames = scope.attrNameLinks();
 				
 				completionsAddVisibleExtensionFunctions(alreadyEntered, completions, visibleNames, leftType);
 				scope = scope.attrNextScope();
@@ -112,7 +113,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		} else {
 			WScope scope = elem.attrNearestScope();
 			while (scope != null) {
-				Multimap<String, NameDef> visibleNames = scope.attrVisibleNamesPrivate();
+				Multimap<String, NameLink> visibleNames = scope.attrNameLinks();
 				completionsAddVisibleNames(alreadyEntered, completions, visibleNames);
 				scope = scope.attrNextScope();
 			}
@@ -145,18 +146,18 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 
 	private void completionsAddVisibleNames(String alreadyEntered,
-			List<ICompletionProposal> completions, Multimap<String, NameDef> visibleNames) {
-		for (Entry<String, NameDef> e : visibleNames.entries()) {
+			List<ICompletionProposal> completions, Multimap<String, NameLink> visibleNames) {
+		for (Entry<String, NameLink> e : visibleNames.entries()) {
 			if (!e.getKey().toLowerCase().startsWith(alreadyEntered)) {
 				continue;
 			}
-			if (e.getValue() instanceof FunctionDefinition) {
-				FunctionDefinition f = (FunctionDefinition) e.getValue();
+			if (e.getValue().getNameDef() instanceof FunctionDefinition) {
+				FunctionDefinition f = (FunctionDefinition) e.getValue().getNameDef();
 				
 				ICompletionProposal completion = makeFunctionCompletion(f);
 				completions.add(completion);
 			} else {
-				completions.add(makeNameDefCompletion(e.getValue()));
+				completions.add(makeNameDefCompletion(e.getValue().getNameDef()));
 			}
 			
 		}
@@ -206,13 +207,13 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 	private void completionsAddVisibleExtensionFunctions(String alreadyEntered,
 			List<ICompletionProposal> completions,
-			Multimap<String, NameDef> visibleNames, WurstType leftType) {
-		for (Entry<String, NameDef> e : visibleNames.entries()) {
+			Multimap<String, NameLink> visibleNames, WurstType leftType) {
+		for (Entry<String, NameLink> e : visibleNames.entries()) {
 			if (!e.getKey().toLowerCase().startsWith(alreadyEntered)) {
 				continue;
 			}
-			if (e.getValue() instanceof ExtensionFuncDef) {
-				ExtensionFuncDef ef = (ExtensionFuncDef) e.getValue();
+			if (e.getValue().getNameDef() instanceof ExtensionFuncDef) {
+				ExtensionFuncDef ef = (ExtensionFuncDef) e.getValue().getNameDef();
 				if (ef.getExtendedType().attrTyp().isSupertypeOf(leftType, ef)) {
 					completions.add(makeFunctionCompletion(ef));
 				}

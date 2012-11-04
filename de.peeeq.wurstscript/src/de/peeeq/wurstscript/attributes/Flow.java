@@ -21,6 +21,7 @@ import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.SwitchCase;
 import de.peeeq.wurstscript.ast.SwitchDefaultCaseStatements;
 import de.peeeq.wurstscript.ast.SwitchStmt;
+import de.peeeq.wurstscript.ast.WBlock;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
@@ -99,6 +100,13 @@ public class Flow {
 		
 		setPrevios(s, r);
 		return r;
+	}
+	
+	public static List<WStatement> getNext(WBlock s) {
+		if (s.getBody().isEmpty()) {
+			return s.attrAfterBodyStatements();
+		}
+		return Collections.singletonList(s.getBody().get(0));
 	}
 
 	public static List<WStatement> getNext(StmtReturn s) {
@@ -235,6 +243,10 @@ public class Flow {
 	public static List<WStatement> getAfterBody(StmtIf s) {
 		return getFollowingStatements(s);
 	}
+	
+	public static List<WStatement> getAfterBody(WBlock s) {
+		return getFollowingStatements(s);
+	}
 
 	public static List<WStatement> getAfterBody(SwitchStmt s) {
 		return getFollowingStatements(s);
@@ -253,6 +265,10 @@ public class Flow {
 	public static List<WStatement> getNext(EndFunctionStatement endFunctionStatement) {
 		return Collections.emptyList();
 	}
+
+	
+
+	
 
 	
 

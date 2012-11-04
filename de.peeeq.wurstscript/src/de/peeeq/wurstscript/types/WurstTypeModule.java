@@ -2,8 +2,10 @@ package de.peeeq.wurstscript.types;
 
 import java.util.List;
 
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.NamedScope;
+import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
@@ -23,6 +25,18 @@ public class WurstTypeModule extends WurstTypeNamedScope {
 		super(newTypes);
 		if (moduleDef2 == null) throw new IllegalArgumentException();
 		moduleDef = moduleDef2;
+	}
+	
+	@Override
+	public boolean isSubtypeOf(WurstType obj, AstElement location) {
+		if (super.isSubtypeOf(obj, location)) {
+			return true;
+		}
+		if (obj instanceof WurstTypeModuleInstanciation) {
+			WurstTypeModuleInstanciation n = (WurstTypeModuleInstanciation) obj;
+			return n.isParent(this);
+		}
+		return false;
 	}
 
 	@Override

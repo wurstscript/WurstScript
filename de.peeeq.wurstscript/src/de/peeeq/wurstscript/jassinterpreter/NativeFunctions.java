@@ -68,6 +68,12 @@ public class NativeFunctions implements NativesProvider {
 		return new ILconstString("" + r.getVal());
 	}
 	
+	@Native
+	public ILconstInt StringHash(ILconstString s) {
+		// TODO can we use same string hash function as used in wc3?
+		return new ILconstInt(s.getVal().hashCode());
+	}
+	
 	public ILconstNull Player(ILconstInt p) {
 		return ILconstNull.instance();
 	}

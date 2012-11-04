@@ -46,6 +46,8 @@ import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.SwitchCase;
 import de.peeeq.wurstscript.ast.SwitchDefaultCaseStatements;
 import de.peeeq.wurstscript.ast.SwitchStmt;
+import de.peeeq.wurstscript.ast.WBlock;
+import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.ImConst;
@@ -294,6 +296,14 @@ public class StmtTranslation {
 
 	public static ImStmt translate(StartFunctionStatement startFunctionStatement, ImTranslator translator, ImFunction f) {
 		return ImNull();
+	}
+
+	public static ImStmt translate(WBlock block, ImTranslator translator, ImFunction f) {
+		ImStmts stmts = ImStmts();
+		for (WStatement s: block.getBody()) {
+			stmts.add(s.imTranslateStmt(translator, f));
+		}
+		return JassIm.ImStatementExpr(stmts, ImNull());
 	}
 
 

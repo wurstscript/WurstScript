@@ -4,10 +4,14 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -78,13 +82,16 @@ import de.peeeq.wurstscript.ast.VisibilityPublic;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.ast.WParameters;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CheckHelper;
-import de.peeeq.wurstscript.attributes.NameResolution;
+import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.NameLinkType;
+import de.peeeq.wurstscript.attributes.names.Visibility;
 import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.WurstType;
@@ -281,7 +288,7 @@ public class WurstValidator {
 	private void checkAssignment(boolean isJassCode, AstElement pos, WurstType leftType, WurstType rightType) {
 		if (!rightType.isSubtypeOf(leftType, pos)) {
 			if (isJassCode) {
-				if (leftType instanceof WurstTypeReal && rightType instanceof WurstTypeInt) {
+				if (leftType.isSubtypeOf(WurstTypeReal.instance(), pos) && rightType.isSubtypeOf(WurstTypeInt.instance(), pos)) {
 					// special case: jass allows to assign an integer to a real
 					// variable
 					return;
@@ -417,11 +424,6 @@ public class WurstValidator {
 		
 		Map<TypeParamDef, WurstType> typeParamBinding = Collections.emptyMap();
 		
-		// check is override is correct:
-		for (FunctionDefinition overriddenFunc : func.attrOverriddenFunctions()) {
-			CheckHelper.checkIfIsRefinement(typeParamBinding, func, overriddenFunc, "Can't override function ", false);
-		}
-
 		if (func.attrIsAbstract() && !func.attrHasEmptyBody()) {
 			func.addError("Abstract function " + func.getName() + " must not have a body.");			
 		}
@@ -606,7 +608,7 @@ public class WurstValidator {
 		Map<String, FuncDef> functions = classDef.attrAllFunctions();
 		
 		// calculate private names to get overridden funcs
-		classDef.attrVisibleNamesPrivate();
+		classDef.attrNameLinks();
 		
 		if (!classDef.attrIsAbstract()) {
 			// check that there are no abstract functions in a class
@@ -621,39 +623,40 @@ public class WurstValidator {
 		
 		
 		// check overridden methods
-		if (classDef.getExtendedClass() instanceof TypeExpr) {
-			WurstType extendedType = classDef.getExtendedClass().attrTyp();
-			if (extendedType instanceof WurstTypeClass) {
-				WurstTypeClass ptc = (WurstTypeClass) extendedType;
-				Map<TypeParamDef, WurstType> typeParamMapping = ptc.getTypeArgBinding();
-				ClassDef superClass = ptc.getClassDef();
-				Multimap<String, NameDef> superClassFunctions = superClass.attrVisibleNamesProtected();
-				for (FunctionDefinition f : functions.values()) {
-					// TODO is this transitive?
-					FunctionDefinition superClassFunction = getFunction(superClassFunctions, f.getName());
-					if (superClassFunction == null) {
-						if (f.attrIsOverride() && f.attrOverriddenFunctions().size() == 0) {
-							f.addError("Function " + f.getName() + " does not exist in super type.");
-						}
-					} else {
-						if (!f.attrIsOverride()) {
-							f.addError("Function " + f.getName() + " must have the override annotation.");
-						}
-						
-						CheckHelper.checkIfIsRefinement(typeParamMapping , f, superClassFunction, "Cannot extend class because of function ", true);
-					}
-				}
-			} else {
-				classDef.getExtendedClass().addError("Cannot extend " + extendedType + ". " +
-				"Only classes can be extended.");
-			}
-		} else {
-			for (FunctionDefinition f : functions.values()) {
-				if (f.attrIsOverride() && f.attrOverriddenFunctions().size() == 0) {
-					f.addError("Function " + f.getName() + " uses override notation but there is no superclass.");
-				}
-			}
-		}
+		// TODO overloading
+//		if (classDef.getExtendedClass() instanceof TypeExpr) {
+//			WurstType extendedType = classDef.getExtendedClass().attrTyp();
+//			if (extendedType instanceof WurstTypeClass) {
+//				WurstTypeClass ptc = (WurstTypeClass) extendedType;
+//				Map<TypeParamDef, WurstType> typeParamMapping = ptc.getTypeArgBinding();
+//				ClassDef superClass = ptc.getClassDef();
+//				Multimap<String, NameLink> superClassFunctions = superClass.attrNameLinks();
+//				for (FunctionDefinition f : functions.values()) {
+//					// TODO is this transitive?
+//					FunctionDefinition superClassFunction = getFunction(superClassFunctions, f.getName());
+//					if (superClassFunction == null) {
+//						if (f.attrIsOverride() && f.attrOverriddenFunctions().size() == 0) {
+//							f.addError("Function " + f.getName() + " does not exist in super type.");
+//						}
+//					} else {
+//						if (!f.attrIsOverride()) {
+//							f.addError("Function " + f.getName() + " must have the override annotation.");
+//						}
+//						
+//						CheckHelper.checkIfIsRefinement(typeParamMapping , f, superClassFunction, "Cannot extend class because of function ", true);
+//					}
+//				}
+//			} else {
+//				classDef.getExtendedClass().addError("Cannot extend " + extendedType + ". " +
+//				"Only classes can be extended.");
+//			}
+//		} else {
+//			for (FunctionDefinition f : functions.values()) {
+//				if (f.attrIsOverride() && f.attrOverriddenFunctions().size() == 0) {
+//					f.addError("Function " + f.getName() + " uses override notation but there is no superclass.");
+//				}
+//			}
+//		}
 	}
 
 	private FunctionDefinition getFunction(
@@ -734,7 +737,7 @@ public class WurstValidator {
 	public void checkTypeBinding(HasTypeArgs e) {
 		for (Entry<TypeParamDef, WurstType> t : e.attrTypeParameterBindings().entrySet()) {
 			WurstType typ = t.getValue();
-			if (!(typ instanceof WurstTypeInt)
+			if (!(typ.isSubtypeOf(WurstTypeInt.instance(), e))
 					&& !(typ instanceof WurstTypeNamedScope)
 					&& !(typ instanceof WurstTypeTypeParam)) {
 				e.addError("Type parameters can only be bound to ints and class types, but " +
@@ -746,7 +749,11 @@ public class WurstValidator {
 	@CheckMethod
 	public void checkFuncRef(FuncRef ref) {
 		FunctionDefinition called = ref.attrFuncDef();
-		calledFunctions.put(ref.attrNearestScope(), called);
+		WScope scope = ref.attrNearestFuncDef();
+		if (scope == null) {
+			scope = ref.attrNearestScope();
+		}
+		calledFunctions.put(scope, called);
 	}
 	
 	@CheckMethod
@@ -949,8 +956,9 @@ public class WurstValidator {
 
 			nextFunction: 
 			for (FuncDef i_funcDef : interfaceDef.getMethods()) {
-				Collection<NameDef> c_funcDefs = classDef.attrVisibleNamesPrivate().get(i_funcDef.getName());
-				for (NameDef c_nameDef : c_funcDefs) {
+				Collection<NameLink> c_funcDefs = classDef.attrNameLinks().get(i_funcDef.getName());
+				for (NameLink nameLink : c_funcDefs) {
+					NameDef c_nameDef = nameLink.getNameDef();
 					if (c_nameDef instanceof FuncDef) {
 						FuncDef c_funcDef = (FuncDef) c_nameDef;
 
@@ -966,13 +974,14 @@ public class WurstValidator {
 		}
 		
 		if (!classDef.attrIsAbstract() && classDef.attrExtendedClass() != null) {
-			for (Entry<String, NameDef> e : classDef.attrExtendedClass().attrVisibleNamesPrivate().entries()) {
+			for (Entry<String, NameLink> e : classDef.attrExtendedClass().attrNameLinks().entries()) {
 				if (e.getValue() instanceof FuncDef) {
-					FuncDef f = (FuncDef) e.getValue();
+					FuncDef f = (FuncDef) e.getValue().getNameDef();
 					if (f.attrIsAbstract()) {
 						boolean implemented = false;
-						Collection<NameDef> c_funcDefs = classDef.attrVisibleNamesPrivate().get(f.getName());
-						for (NameDef c_nameDef : c_funcDefs) {
+						Collection<NameLink> c_funcDefs = classDef.attrNameLinks().get(f.getName());
+						for (NameLink c_nameDefLink : c_funcDefs) {
+							NameDef c_nameDef = c_nameDefLink.getNameDef();
 							if (c_nameDef instanceof FuncDef) {
 								FuncDef f2 = (FuncDef) c_nameDef;
 								if (!f2.attrIsAbstract()) {
@@ -993,7 +1002,7 @@ public class WurstValidator {
 	@CheckMethod
 	public void checkArrayAccess( ExprVarArrayAccess ea) {
 		for (Expr index : ea.getIndexes()) {
-			if (!(index.attrTyp() instanceof WurstTypeInt)) { 
+			if (!(index.attrTyp().isSubtypeOf(WurstTypeInt.instance(), ea))) { 
 				index.addError("Arrayindices have to be of type int");
 			}
 		}
@@ -1028,30 +1037,24 @@ public class WurstValidator {
 			n.addError("Not in package or global: " + n.getName());
 			return;
 		}
-		checkIfTypeDefExists(n, p);
-		if (p instanceof WPackage) {
-			// check global scope
-			p = p.getParent().attrNearestPackage();
-			checkIfTypeDefExists(n, p);
-		}
-	}
-
-	private void checkIfTypeDefExists(NameDef n, PackageOrGlobal p) {
-		if (n instanceof WPackage) {
-			// TODO check that there is no other package with same name?
-			return;
-		}
-		List<TypeDef> types = NameResolution.searchTypedName(TypeDef.class, n.getName(), p, false);
-		types.remove(n);
-		if (types.size() > 0) {
-			n.addError("The definition for "+Utils.printElement(n)+" defines the same name as the type definition " + Utils.printElement(types.get(0)));
-		}
-//		for (NameDef e : p.attrVisibleNamesPrivate().get(n.getName())) {
-//			if (e != n && e instanceof TypeDef) {
-//				attr.addError(n.getSource(), "The definition for "+Utils.printElement(n)+" defines the same name as the type definition " + Utils.printElement(e));
-//			}
+//		checkIfTypeDefExists(n, p);
+//		if (p instanceof WPackage) {
+//			// check global scope
+//			p = p.getParent().attrNearestPackage();
+//			checkIfTypeDefExists(n, p);
 //		}
 	}
+
+//	private void checkIfTypeDefExists(NameDef n, PackageOrGlobal p) {
+//		if (n instanceof WPackage) {
+//			// TODO check that there is no other package with same name?
+//			return;
+//		}
+//		TypeDef def = p.lookupType(n.getName());
+//		if (def != null) {
+//			n.addError("The definition for "+Utils.printElement(n)+" defines the same name as the type definition " + Utils.printElement(def));
+//		}
+//	}
 	
 	
 	@CheckMethod
@@ -1165,6 +1168,188 @@ public class WurstValidator {
 			}
 			
 		}
+	}
+	
+	@CheckMethod
+	public void checkOverrides(ClassDef c) {
+		int level = c.attrLevel();
+		for (String funcName : c.attrNameLinks().keySet()) {
+			List<NameLink> funcs = Lists.newArrayList(c.attrNameLinks().get(funcName)); 
+			keepFunctions(funcs);
+			sortByLevel(funcs);
+			
+			List<NameLink> abstractFuncs = Lists.newArrayList();
+			
+			Multimap<NameLink, NameLink> overridesMap = calcOverrides(funcs);
+			Multimap<NameLink, NameLink> overriddenByMap = Utils.inverse(overridesMap);
+			
+			for (NameLink link : funcs) {
+				FuncDef func = (FuncDef) link.getNameDef();
+				if (func.attrIsAbstract() && !(c.attrIsAbstract())) {
+					boolean implExists = false;
+					for (NameLink link2 : overriddenByMap.get(link)) {
+						FuncDef func2 = (FuncDef) link2.getNameDef();
+						if (!func2.attrIsAbstract()) {
+							implExists = true;
+							break;
+						}
+					}
+					if (!implExists) {
+						c.addError("Class " + c.getName() + " must implement the abstract function " +
+								func.getName() + " from class " + func.attrNearestClassDef().getName());
+					}
+				}
+				
+				if (link.getLevel() < level) {
+					// only check functions from current level
+					continue;
+				}
+				 
+				if (func.attrIsOverride()) {
+					if (overridesMap.get(link).size() == 0) {
+						func.addError("Function " + func.getName() + " uses override modifier but overrides nothing.");
+					}
+				} else {
+					for (NameLink overriden : overridesMap.get(link)) {
+						if (!(overriden.getDefinedIn() instanceof InterfaceDef)) {
+							func.addError("Function " + func.getName() + " needs the 'override' modifier.");
+							break;
+						}
+					}
+				}
+				
+			}
+			
+			
+		}
+	}
+
+
+	private Multimap<NameLink, NameLink> calcOverrides(List<NameLink> funcs) {
+		Multimap<NameLink, NameLink> overridesMap = HashMultimap.create();
+					
+		for (NameLink link1 : funcs) {
+			FuncDef func1 = (FuncDef) link1.getNameDef();
+			for (NameLink link2 : funcs) {
+				if (link1 == link2) {
+					continue;
+				}
+				FuncDef func2 = (FuncDef) link2.getNameDef();
+				if (overrides(func1, func2)) {
+					overridesMap.put(link1, link2);
+				}
+				
+			}
+		}
+		return overridesMap;
+	}
+
+	/**
+	 * checks if func1 can override func2 
+	 */
+	public static boolean overrides(FuncDef func1, FuncDef func2) {
+		if (func1.getParameters().size() != func2.getParameters().size()) {
+			return false;
+		}
+		
+		
+		for (int i=0; i<func1.getParameters().size(); i++) {
+			if (!func1.getParameters().get(i).attrTyp()
+					.isSupertypeOf(
+							func2.getParameters().get(i).attrTyp(), func1)) {
+				return false;
+			}
+		}
+		// covariant return types
+		if (!func1.attrTyp().isSubtypeOf(func2.attrTyp(), func1)) {
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * only keep functions and remove everything else from the list
+	 * also removes private methods from other scopes 
+	 */
+	private void keepFunctions(List<NameLink> funcs) {
+		Iterator<NameLink> it = funcs.iterator();
+		while (it.hasNext()) {
+			NameLink func = it.next();
+			if (!(func.getNameDef() instanceof FuncDef)
+					|| func.getVisibility() == Visibility.PRIVATE_OTHER) {
+				it.remove();
+			}
+		}
+	}
+
+	/** 
+	 * sorts the funcs by their level (lowest level first)
+	 * @param funcs
+	 */
+	private void sortByLevel(List<NameLink> funcs) {
+		Collections.sort(funcs, new Comparator<NameLink>() {
+			@Override
+			public int compare(NameLink a, NameLink b) {
+				return a.getLevel() - b.getLevel();
+			}
+		});
+	}
+	
+	
+	@CheckMethod
+	public void checkForDuplicateMethods(WScope scope) {
+		Multimap<String, NameLink> links = scope.attrNameLinks();
+		for (String name : links.keySet()) {
+			Collection<NameLink> nameLinks = links.get(name);
+			if (nameLinks.size() <= 1) {
+				continue;
+			}
+			List<NameLink> funcs = Lists.newArrayList();
+			for (NameLink nl : nameLinks) {
+				if (nl.getType() == NameLinkType.FUNCTION
+						&& nl.getDefinedIn() == scope) {
+					funcs.add(nl);
+				}
+			}
+			if (funcs.size() <= 1) {
+				continue;
+			}
+			for (int i=0; i<funcs.size()-1; i++) {
+				NameLink f1 = funcs.get(i);
+				for (int j=i+1; j<funcs.size(); j++) {
+					NameLink f2 = funcs.get(j);
+					if (!distinctFunctions(f1, f2)) {
+						f1.getNameDef().addError("Function already defined : " 
+								+ Utils.printElementWithSource(f2.getNameDef()));
+						f2.getNameDef().addError("Function already defined : " 
+								+ Utils.printElementWithSource(f1.getNameDef()));
+					}
+				}
+			}
+		}
+	}
+
+	private boolean distinctFunctions(NameLink nl1, NameLink nl2) {
+		if (nl1.getReceiverType() != null
+				&& nl2.getReceiverType() != null	
+				&& !nl1.getReceiverType().equalsType(nl2.getReceiverType(), nl1.getNameDef())) {
+			return true;
+		}
+		FunctionDefinition f1 = (FunctionDefinition) nl1.getNameDef();
+		FunctionDefinition f2 = (FunctionDefinition) nl2.getNameDef();
+		WParameters ps1 = f1.getParameters();
+		WParameters ps2 = f2.getParameters();
+		if (ps1.size() != ps2.size()) {
+			return true;
+		}
+		for (int i=0; i<ps1.size(); i++) {
+			WurstType t1 = ps1.get(i).attrTyp();
+			WurstType t2 = ps2.get(i).attrTyp();
+			if (!t1.isSubtypeOf(t2, f1) && !t2.isSubtypeOf(t1, f1)) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 }

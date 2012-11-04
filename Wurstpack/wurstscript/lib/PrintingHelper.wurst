@@ -28,12 +28,6 @@ package PrintingHelper
 	public function printTimed(string msg, real duration)
         DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., duration, msg)
 
-    public function real.toString() returns string
-        return R2S(this)
-        
-    public function int.toString() returns string
-        return I2S(this)
-
     public function boolean.toString() returns string
         if this
             return "true"

@@ -29,6 +29,9 @@ import de.peeeq.wurstscript.types.WurstNativeType;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeEnum;
+import de.peeeq.wurstscript.types.WurstTypeFreeTypeParam;
+import de.peeeq.wurstscript.types.WurstTypeInt;
+import de.peeeq.wurstscript.types.WurstTypeIntLiteral;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.types.WurstTypeModule;
 import de.peeeq.wurstscript.types.WurstTypeModuleInstanciation;
@@ -59,7 +62,7 @@ public class AttrVarDefType {
 	public static WurstType calculate(ClassDef c) {
 		List<WurstType> typeArgs = Lists.newArrayList();
 		for (TypeParamDef tp : c.getTypeParameters()) {
-			typeArgs.add(new WurstTypeTypeParam(tp));
+			typeArgs.add(new WurstTypeFreeTypeParam(tp));
 		}
 		WurstTypeClass t = new WurstTypeClass(c, typeArgs, true);
 		return t;
@@ -71,7 +74,12 @@ public class AttrVarDefType {
 			return typ.attrTyp().dynamic();
 		} else {
 			if (initialExpr instanceof Expr) {
-				return ((Expr) initialExpr).attrTyp();
+				WurstType result = ((Expr) initialExpr).attrTyp();
+				if (result instanceof WurstTypeIntLiteral) {
+					// let a = 1 // we want an int here
+					return WurstTypeInt.instance();
+				}
+				return result;
 			} else {
 				throw new Error("Vardef must either have a type or an initial value");
 			}
@@ -101,7 +109,7 @@ public class AttrVarDefType {
 	public static WurstType calculate(InterfaceDef i) {
 		List<WurstType> typeArgs = Lists.newArrayList();
 		for (TypeParamDef tp : i.getTypeParameters()) {
-			typeArgs.add(tp.attrTyp());
+			typeArgs.add(new WurstTypeFreeTypeParam(tp));
 		}
 		return new WurstTypeInterface(i, typeArgs, true);
 	}

@@ -4,19 +4,22 @@ import java.util.List;
 
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleUse;
+import de.peeeq.wurstscript.ast.TypeDef;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class AttrModuleDef {
 
 	public static ModuleDef calculate(ModuleUse moduleUse) {
 		String moduleName = moduleUse.getModuleName();
-		List<ModuleDef> modules = NameResolution.searchTypedName(ModuleDef.class, moduleName, moduleUse.attrNearestPackage(), false);
-		if (modules.size() == 0) {
-			moduleUse.addError("Module " + moduleUse.getModuleName() + " could not be found.");
-			return null;
+		TypeDef def = moduleUse.lookupType(moduleName);
+		if (def instanceof ModuleDef) {
+			return (ModuleDef) def;
+		} else if (def == null) {
+			moduleUse.addError("Found " + Utils.printElement(def) + " but wanted a module.");
 		} else {
-			return modules.get(0);
+			moduleUse.addError("Module " + moduleUse.getModuleName() + " could not be found.");
 		}
-		
+		return null;
 	}
 
 }

@@ -43,6 +43,7 @@ import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WScope;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 
 public class Utils {
 
@@ -94,7 +95,7 @@ public class Utils {
 		return result;
 	}
 
-	public static <T> List<T> removeDuplicates(List<T> list) {
+	public static <T> List<T> removedDuplicates(List<T> list) {
 		List<T> result = new NotNullList<T>();
 		for (T t : list) {
 			if (!result.contains(t)) {
@@ -691,6 +692,34 @@ public class Utils {
 			node = node.getParent();
 		}
 		return null;
+	}
+	
+	public static String printAlternatives(Iterable<? extends AstElement> alternatives) {
+		List<String> result = Lists.newArrayList();
+		for (AstElement a : alternatives) {
+			WPos source = a.attrSource();
+			String s = Utils.printElement(a) + " defined in line " + source.getLine() + " ("+source.getFile()+")" ;
+			result.add(s);
+		}
+		return " * " + Utils.join(result, "\n * ") ;
+	}
+
+	public static String printAlternatives(Collection<NameLink> alternatives) {
+		List<String> result = Lists.newArrayList();
+		for (NameLink a : alternatives) {
+			WPos source = a.getNameDef().attrSource();
+			String s = Utils.printElement(a.getNameDef()) + " defined in line " + source.getLine() + " ("+source.getFile()+")" ;
+			result.add(s);
+		}
+		return " * " + Utils.join(result, "\n * ") ;
+	}
+
+	public static <T, S> Multimap<T, S> inverse(Multimap<S, T> orig) {
+		Multimap<T, S> result = HashMultimap.create();
+		for (Entry<S, T> e : orig.entries()) {
+			result.put(e.getValue(), e.getKey());
+		}
+		return result;
 	}
 
 }

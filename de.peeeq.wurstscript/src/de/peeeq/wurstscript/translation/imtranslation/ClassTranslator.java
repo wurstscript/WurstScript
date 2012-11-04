@@ -301,7 +301,7 @@ public class ClassTranslator {
 								));
 		}
 		
-		Map<ClassDef, FuncDef> subClasses2 = translator.getClassedWithImplementation(subClasses, funcDef);
+		Map<ClassDef, FuncDef> subClasses2 = translator.getClassesWithImplementation(subClasses, funcDef);
 		if (subClasses2.size() > 0) {
 			int maxTypeId = translator.getMaxTypeId(subClasses);
 			f.getBody().addAll(translator.createDispatch(subClasses2, funcDef, f, maxTypeId, new TypeIdGetterImpl()));

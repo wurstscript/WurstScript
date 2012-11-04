@@ -31,9 +31,9 @@ public class WurstTypeModuleInstanciation extends WurstTypeNamedScope {
 		if (super.isSubtypeOf(obj, location)) {
 			return true;
 		}
-		if (obj instanceof WurstTypeNamedScope) {
-			WurstTypeNamedScope n = (WurstTypeNamedScope) obj;
-			return isParent(n);
+		if (obj instanceof WurstTypeModuleInstanciation) {
+			WurstTypeModuleInstanciation n = (WurstTypeModuleInstanciation) obj;
+			return n.isParent(this);
 		}
 		return false;
 	}
@@ -41,7 +41,7 @@ public class WurstTypeModuleInstanciation extends WurstTypeNamedScope {
 	/**
 	 * check if n is a parent of this
 	 */
-	private boolean isParent(WurstTypeNamedScope n) {
+	boolean isParent(WurstTypeNamedScope n) {
 		NamedScope ns = this.getDef();
 		while (true) {
 			ns = ns.getParent().attrNearestNamedScope();

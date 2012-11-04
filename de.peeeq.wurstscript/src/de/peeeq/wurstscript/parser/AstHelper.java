@@ -17,7 +17,7 @@ import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleUse;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
-import de.peeeq.wurstscript.ast.StructureDefOrModuleInstanciation;
+import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.TopLevelDeclaration;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprList;
@@ -61,7 +61,7 @@ public class AstHelper {
 		return c;
 	}
 
-	private static void addClassSlots(List<? extends ClassSlot> slots, StructureDefOrModuleInstanciation c) throws CompileError {
+	private static void addClassSlots(List<? extends ClassSlot> slots, StructureDef c) throws CompileError {
 		for (ClassSlot s : slots) {
 			if (s instanceof FuncDef) {
 				c.getMethods().add((FuncDef) s);

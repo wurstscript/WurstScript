@@ -1,8 +1,12 @@
 package de.peeeq.wurstscript.attributes;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
+import com.google.common.collect.Lists;
+
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
@@ -10,7 +14,9 @@ import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncRef;
+import de.peeeq.wurstscript.ast.FunctionCall;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
+import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NotExtensionFunction;
 import de.peeeq.wurstscript.ast.OpBinary;
 import de.peeeq.wurstscript.ast.OpDivReal;
@@ -18,8 +24,11 @@ import de.peeeq.wurstscript.ast.OpMinus;
 import de.peeeq.wurstscript.ast.OpMult;
 import de.peeeq.wurstscript.ast.OpPlus;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
+import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WScope;
+import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.Visibility;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeInt;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
@@ -39,47 +48,78 @@ public class AttrFuncDef {
 	final static String overloadingDiv = "op_div";
 
 	public static  FunctionDefinition calculate(final ExprFuncRef node) {
-		FunctionDefinition result;
+
+		Collection<NameLink> funcs;
 		if (node.getScopeName().length() > 0) {
-			result = searchFunctionWithScope(node);
+			TypeDef typeDef = node.lookupType(node.getScopeName());
+			if (typeDef == null) {
+				node.addError("Could not find type " + node.getScopeName() + ".");
+				return null;
+			}
+			WurstType receiverType = typeDef.attrTyp();
+			funcs = node.lookupMemberFuncs(receiverType, node.getFuncName());
 		} else {
-			result = searchFunction(node.getFuncName(), node);
+			funcs = node.lookupFuncs(node.getFuncName());
 		}
-		if (result == null) {
-			node.addError("Could not resolve reference to function " + node.getFuncName());
+		if (funcs.size() == 0) {
+			node.addError("Could not find a function with name " + node.getFuncName());
+			return null;
+		} else if (funcs.size() > 1) {
+			node.addError("Reference to function " + node.getFuncName() + " is ambiguous. Alternatives are:\n" + Utils.printAlternatives(funcs));
 		}
-		return result;
+		NameLink nameLink = Utils.getFirst(funcs);
+		if (nameLink.getNameDef() instanceof FunctionDefinition) {
+			return (FunctionDefinition) nameLink.getNameDef();
+		} else {
+			// should never happen
+			node.addError("impossibru");
+			return null;
+		}
 	}
 
-	private static FunctionDefinition searchFunctionWithScope(final ExprFuncRef node) {
-		WScope scope = NameResolution.searchTypedNameGetOne(WScope.class, node.getScopeName(), node, true);
-		if (scope == null) {
-			return null;
-		}
-		List<NotExtensionFunction> functions = NameResolution.searchTypedName(NotExtensionFunction.class, node.getFuncName(), scope, true);
-		if (functions.size() == 0) {
-			return null;
-		} else {
-			if (functions.size() > 1) {
-				node.addError("Reference to function " + node.getFuncName() + " is ambigious.");
-			}
-			return functions.get(0);
-		}
-	}
-	
+
 	public static FunctionDefinition calculate(ExprBinary node) {
 		return getExtensionFunction(node.getLeft(), node.getRight(), node.getOp());
 	}
 
-	public static FunctionDefinition getExtensionFunction(Expr left, Expr right, OpBinary op) {
+	public static  FunctionDefinition calculate(final ExprMemberMethod node) {
+
+		Expr left = node.getLeft();
+		WurstType leftType = left.attrTyp();
+		String funcName = node.getFuncName();
+
+		FunctionDefinition result = getMemberFunc(node, leftType, funcName, argumentTypes(node));
+		if (result == null) {
+			node.addError("The method " + funcName + " is undefined for receiver of type " + leftType);
+		}
+		return result;
+	}
+
+	public static  FunctionDefinition calculate(final ExprFunctionCall node) {
+		FunctionDefinition result = searchFunction(node.getFuncName(), node, argumentTypes(node));
+
+		if (result == null) {
+			String funcName = node.getFuncName();
+			if (funcName.startsWith("InitTrig_") 
+					&& node.attrNearestFuncDef() != null
+					&& node.attrNearestFuncDef().getName().equals("InitCustomTriggers")) {
+				// ignore missing InitTrig functions
+			} else {
+				node.addError("Could not resolve reference to called function " + funcName);
+			}
+		}
+		return result;
+	}
+
+	private static FunctionDefinition getExtensionFunction(Expr left, Expr right, OpBinary op) {
 		String funcName = getOperatorFuncName(op);
-		if (funcName == null || nativeOperator(left.attrTyp(), right.attrTyp())) {
+		if (funcName == null || nativeOperator(left.attrTyp(), right.attrTyp(), left)) {
 			return null;
 		}
-		return getMemberFunc(left, left.attrTyp(), funcName);
+		return getMemberFunc(left, left.attrTyp(), funcName, Collections.singletonList(right.attrTyp()));
 	}
-	
-	
+
+
 	private static String getOperatorFuncName(OpBinary op) {
 		if ( op instanceof OpPlus) {
 			return overloadingPlus;
@@ -95,114 +135,184 @@ public class AttrFuncDef {
 	}
 
 	/**
-	 * chcks if operator is a native operator like for 1+2
+	 * checks if operator is a native operator like for 1+2
+	 * TODO also check which operator is used?
+	 * @param term 
 	 */
-	private static boolean nativeOperator(WurstType leftType, WurstType rightType) {
+	private static boolean nativeOperator(WurstType leftType, WurstType rightType, AstElement term) {
 		return
 			// numeric
-			((leftType instanceof WurstTypeInt || leftType instanceof WurstTypeReal) && (rightType instanceof WurstTypeInt || rightType instanceof WurstTypeReal))
+			((leftType.isSubtypeOf(WurstTypeInt.instance(), term) || leftType.isSubtypeOf(WurstTypeReal.instance(), term)) 
+					&& (rightType.isSubtypeOf(WurstTypeInt.instance(), term) || rightType.isSubtypeOf(WurstTypeReal.instance(), term)))
 			// strings
 			|| (leftType instanceof WurstTypeString && rightType instanceof WurstTypeString);
 	}
 
-	public static  FunctionDefinition calculate(final ExprFunctionCall node) {
-		FunctionDefinition result = searchFunction(node.getFuncName(), node);
 
-		if (result == null) {
-			String funcName = node.getFuncName();
-			if (funcName.startsWith("InitTrig_") 
-					&& node.attrNearestFuncDef() != null
-					&& node.attrNearestFuncDef().getName().equals("InitCustomTriggers")) {
-				// ignore missing InitTrig functions
-			} else {
-				node.addError("Could not resolve reference to called function " + funcName);
-			}
+
+
+
+	private static List<WurstType> argumentTypes(FunctionCall node) {
+		List<WurstType> result = Lists.newArrayList();
+		for (Expr arg : node.getArgs()) {
+			result.add(arg.attrTyp());
 		}
 		return result;
 	}
 
 
-
-	private static FunctionDefinition searchFunction(String funcName, FuncRef node) {
+	private static FunctionDefinition searchFunction(String funcName, FuncRef node, List<WurstType> argumentTypes) {
 		if (node == null) {
 			return null;
 		}
-		
-		List<NotExtensionFunction> functions = NameResolution.searchTypedName(NotExtensionFunction.class, funcName, node, true);
-		if (functions.size() > 0) {
-			// TODO ambiguous function 
-			return functions.get(0).attrRealFuncDef();
-		} else {
+		Collection<NameLink> funcs1 = node.lookupFuncs(funcName);
+		if (funcs1.size() == 0) {
+			if (funcName.startsWith("InitTrig_")) {
+				// ignore error
+				return null;
+			}
+			node.addError("Reference to function " + funcName + " could not be resolved.");
 			return null;
 		}
-	}
 
-
-	public static  FunctionDefinition calculate(final ExprMemberMethod node) {
-		
-		Expr left = node.getLeft();
-		WurstType leftType = left.attrTyp();
-		String funcName = node.getFuncName();
-		
-		FunctionDefinition result = getMemberFunc(node, leftType, funcName);
-		if (result == null) {
-			node.addError("The method " + funcName + " is undefined for receiver of type " + leftType);
+		// filter out the methods which are private somewhere else
+		List<FunctionDefinition> funcs2 = Lists.newArrayListWithCapacity(funcs1.size());
+		for (NameLink nl : funcs1) {
+			if (!(nl.getVisibility() == Visibility.PRIVATE_OTHER
+					|| nl.getVisibility() == Visibility.PROTECTED_OTHER)
+					&& nl.getNameDef() instanceof FunctionDefinition) {
+				funcs2.add((FunctionDefinition) nl.getNameDef());
+			}
 		}
-		return result;
-	}
+		
+		funcs2 = Utils.removedDuplicates(funcs2);
 
-	private static FunctionDefinition getMemberFunc(Expr context, WurstType leftType, String funcName) {
-		FunctionDefinition result = null;
-		if (leftType instanceof WurstTypeNamedScope) {
-			WurstTypeNamedScope sr = (WurstTypeNamedScope) leftType;
-			result = null;
-			Collection<FunctionDefinition> funcs = NameResolution.getTypedNameFromNamedScope(FunctionDefinition.class, context, funcName, sr);
-			if (funcs.size() > 0) {
-				result = Utils.getFirst(funcs);
-				if (funcs.size() > 1) {
-					context.addError("Reference to function " + funcName + " is ambigious. " +
-					"Alternatives are: " + NameResolution.printAlternatives(funcs));
+		if (funcs2.size() == 0) {
+			node.addError("Function " + funcName + " is not visible here.");
+			return firstFunc(funcs1);
+		} else if (funcs2.size() == 1) {
+			return funcs2.get(0);
+		}
+
+		// filter out methods with wrong number of params
+		List<FunctionDefinition> funcs3 = Lists.newArrayListWithCapacity(funcs2.size());
+		for (FunctionDefinition f : funcs2) {
+			if (f.getParameters().size() == argumentTypes.size()) {
+				funcs3.add(f);
+			}
+		}
+		if (funcs3.size() == 0) {
+			return funcs2.get(0);
+		} else if (funcs3.size() == 1) {
+			return funcs3.get(0);
+		}
+
+		// filter out methods for which the arguments have wrong types
+		List<FunctionDefinition> funcs4 = Lists.newArrayListWithCapacity(funcs3.size());
+		nextFunc: for (FunctionDefinition f : funcs3) {
+			for (int i=0; i<argumentTypes.size(); i++) {
+				if (!argumentTypes.get(i).isSubtypeOf(f.getParameters().get(i).attrTyp(), node)) {
+					continue nextFunc;
 				}
 			}
-			// get real implementation funcDef (wrt override)
-			if (result != null && !sr.isStaticRef()) {
-				result = result.attrRealFuncDef();
-			}
+			funcs4.add(f);
+		}
+		if (funcs4.size() == 0) {
+			return funcs3.get(0);
+		} else if (funcs4.size() == 1) {
+			return funcs4.get(0);
 		}
 
-		// check extension methods:
-		if (result == null) {
-			PackageOrGlobal scope = context.attrNearestPackage();
-			if (scope instanceof WPackage) {
-				WPackage pack = (WPackage) scope;
-				Collection<ExtensionFuncDef> functions = NameResolution.searchTypedName(ExtensionFuncDef.class, funcName, pack, false);
-				result = selectExtensionFunction(leftType, functions);
-			}
-		}
-		return result;
+
+		// TODO determine the function with the most precise type (or should I skip this step?)
+		// I mean, why would anybody want to do something like that??
+
+		
+		node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n " 
+					+ Utils.printAlternatives(funcs4));
+		return funcs3.get(0);
+
 	}
 
-	protected static FunctionDefinition selectExtensionFunction(WurstType receiverTyp, Collection<ExtensionFuncDef> collection) {
-		FunctionDefinition result = null;
-		WurstType resultType = null;
-		for (ExtensionFuncDef extensionFuncDef : collection) {
-			WurstType fTyp = extensionFuncDef.getExtendedType().attrTyp();
-			if (receiverTyp.isSubtypeOf(fTyp, extensionFuncDef)) {
-				// function is suitable
-				if (result == null) {
-					result = extensionFuncDef;
-					resultType = fTyp;
-				} else {
-					// we have already found an other function, check if this one is more specific:
-					if (fTyp.isSubtypeOf(resultType, extensionFuncDef)) {
-						// -> this function is more specific
-						result = extensionFuncDef;
-						resultType = fTyp;
+
+	private static FunctionDefinition getMemberFunc(Expr node, WurstType leftType, String funcName, List<WurstType> argumentTypes) {
+		Collection<NameLink> funcs1 = node.lookupMemberFuncs(leftType, funcName);
+		if (funcs1.size() == 0) {
+			return null;
+		}
+
+		// filter out the methods which are private somewhere else
+		List<NameLink> funcs2 = Lists.newArrayListWithCapacity(funcs1.size());
+		for (NameLink nl : funcs1) {
+			if (!(nl.getVisibility() == Visibility.PRIVATE_OTHER
+					|| nl.getVisibility() == Visibility.PROTECTED_OTHER)
+					&& nl.getNameDef() instanceof FunctionDefinition) {
+				funcs2.add(nl);
+			}
+		}
+
+		if (funcs2.size() == 0) {
+			node.addError("Function " + funcName + " is not visible here.");
+			return firstFunc(funcs1);
+		} else if (funcs2.size() == 1) {
+			return (FunctionDefinition) funcs2.get(0).getNameDef();
+		}
+
+		// chose method with most specific receiver type
+		List<FunctionDefinition> funcs3 = Lists.newArrayListWithCapacity(funcs2.size());
+		for (NameLink f : funcs2) {
+			boolean existsMoreSpecific = false;
+			for (NameLink g : funcs2) {
+				if (f != g) {
+					if (g.getReceiverType().isSubtypeOf(f.getReceiverType(), node)
+						&& !g.getReceiverType().equalsType(f.getReceiverType(), node)) {
+						existsMoreSpecific = true;
+						break;
 					}
 				}
 			}
+			if (!existsMoreSpecific) {
+				funcs3.add((FunctionDefinition) f.getNameDef());
+			}
 		}
-		return result;
+		
+		if (funcs3.size() == 0) {
+			node.addError("Function " + funcName + " dfopsdfmpso.");
+			return (FunctionDefinition) funcs2.get(0).getNameDef();
+		} else if (funcs2.size() == 1) {
+			return funcs3.get(0);
+		}
+		
+		
+		// filter out methods with wrong number of params
+		List<FunctionDefinition> funcs4 = Lists.newArrayListWithCapacity(funcs3.size());
+		for (FunctionDefinition f : funcs3) {
+			if (f.getParameters().size() == argumentTypes.size()) {
+				funcs4.add(f);
+			}
+		}
+		if (funcs4.size() == 0) {
+			return funcs3.get(0);
+		} else if (funcs4.size() == 1) {
+			return funcs4.get(0);
+		}
+
+		// TODO filter out methods for which the arguments have wrong types
+
+
+		// TODO determine the function with the most precise type (or should I skip this step?)
+		// I mean, why would anybody want to do something like that??
+
+		node.addError("Overloading not activated yet, so call to function " + funcName + " is ambiguous. Alternatives are:\n" + Utils.printAlternatives(funcs3));
+		return funcs3.get(0);
+	}
+
+	private static FunctionDefinition firstFunc(Collection<NameLink> funcs1) {
+		NameLink nl = Utils.getFirst(funcs1);
+		if (nl != null && nl.getNameDef() instanceof FunctionDefinition) {
+			return (FunctionDefinition) nl.getNameDef();
+		}
+		return null;
 	}
 
 

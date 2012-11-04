@@ -62,7 +62,9 @@ public class WurstTypeInterface extends WurstTypeNamedScope {
 
 	@Override
 	public boolean isSubtypeOf(WurstType other, AstElement location) {
+		System.out.println(this + " <: " + other + "   ?");
 		if (super.isSubtypeOf(other, location)) {
+			System.out.println("	yes 1");
 			return true;
 		}
 		
@@ -70,16 +72,19 @@ public class WurstTypeInterface extends WurstTypeNamedScope {
 			WurstTypeInterface other2 = (WurstTypeInterface) other;
 			if (interfaceDef == other2.interfaceDef) {
 				// same interface -> check if type params are equal
+				System.out.println("	?");
 				return checkTypeParametersEqual(getTypeParameters(), other2.getTypeParameters(), location);
 			} else {
 				// test super interfaces:
 				for (WurstTypeInterface extended : interfaceDef.attrExtendedInterfaces() ) {
 					if (extended.isSubtypeOf(other, location)) {
+						System.out.println("	yes 2");
 						return true;
 					}
 				}
 			}
 		}
+		System.out.println("	yes 3");
 		return false;
 	}
 
