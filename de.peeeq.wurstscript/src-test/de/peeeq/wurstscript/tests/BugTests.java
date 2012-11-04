@@ -10,7 +10,12 @@ import de.peeeq.wurstscript.utils.Utils;
 public class BugTests extends PscriptTest {
 
 	private static final String TEST_DIR = "./testscripts/concept/";
-
+	
+	@Test
+	public void localsInOndestroy() throws IOException {
+		testAssertOkFile(new File(TEST_DIR + "OndestroyL.wurst"), false);
+	}
+	
 	@Test
 	public void cyclic() throws IOException {
 		testAssertOkFile(new File(TEST_DIR + "CyclicError.wurst"), false);

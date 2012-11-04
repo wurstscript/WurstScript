@@ -1,4 +1,4 @@
-package Lists
+package LinkedList
 
 	public class LinkedList<T>
 		private LLEntry<T> dummy
@@ -92,8 +92,12 @@ package Lists
 				current.prev.next = current.next
 				current = current.prev
 				destroy current
+			var id = 0
+			var x = GetUnitX(null).toInt()
+			switch id
+				case 1+1+x
+					print("blub")
 				
-
 		function hasNext() returns boolean
 			return current.next != dummy
 
@@ -103,6 +107,7 @@ package Lists
 
 		function close()
 			destroy this
+
 
 
 	

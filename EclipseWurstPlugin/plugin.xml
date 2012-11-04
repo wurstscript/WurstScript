@@ -183,6 +183,10 @@
              id="de.peeeq.eclipsewurstplugin.jumpdecl"
              name="Jump to declaration">
        </command>
+       <command
+             id="de.peeeq.eclipsewurstplugin.togglecomment"
+             name="Toggle Comment">
+       </command>
     </extension>
        <extension point="org.eclipse.ui.bindings">
        <key
@@ -191,6 +195,10 @@
              schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
              sequence="F3">
        </key>
+       <key sequence="Ctrl+7"
+			commandId="de.peeeq.eclipsewurstplugin.togglecomment"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+			contextId="de.peeeq.eclipsewurstplugin.wursteditorscope"/>
     </extension>
         <extension
           point="org.eclipse.ui.contexts">
@@ -213,10 +221,21 @@
                 style="push">
           </action>
        </editorContribution>
+       <editorContribution
+             id="de.peeeq.eclipsewurstplugin.editorContribution2"
+             targetID="de.peeeq.eclipsewurstplugin.editorWurstEditor">
+          <action
+                class="de.peeeq.eclipsewurstplugin.editor.ToggleComment"
+                definitionId="de.peeeq.eclipsewurstplugin.togglecomment"
+                id="de.peeeq.eclipsewurstplugin.toggleComment"
+                label="Toggle Comment"
+                style="push">
+          </action>
+       </editorContribution>
     </extension>
         <extension
           point="org.eclipse.ui.popupMenus">
-       <viewerContribution
+   		<viewerContribution
              id="de.peeeq.eclipsewurstplugin.viewerContribution1"
              targetID="#TextEditorContext">
           <action
@@ -224,6 +243,18 @@
                 definitionId="de.peeeq.eclipsewurstplugin.jumpdecl"
                 id="de.peeeq.eclipsewurstplugin.jumpToDeclaration"
                 label="Jump to declaration"
+                menubarPath="additions"
+                style="push">
+          </action>
+         </viewerContribution>
+     	<viewerContribution
+             id="de.peeeq.eclipsewurstplugin.viewerContribution2"
+             targetID="#TextEditorContext">
+          <action
+                class="de.peeeq.eclipsewurstplugin.editor.ToggleComment"
+                definitionId="de.peeeq.eclipsewurstplugin.togglecomment"
+                id="de.peeeq.eclipsewurstplugin.toggleComment"
+                label="Toggle Comment"
                 menubarPath="additions"
                 style="push">
           </action>
