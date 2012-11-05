@@ -6,7 +6,7 @@ package Group
 	public function group.clear()
 		GroupClear(this)
 		
-			// group iterators
+	// group iterators
 	
 	public function group.iterator() returns group
 		// return a copy of the group:

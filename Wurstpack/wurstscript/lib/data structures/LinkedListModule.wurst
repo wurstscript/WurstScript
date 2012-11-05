@@ -25,6 +25,7 @@ package LinkedListModule
 			next = null
 			last = this
 			print("initlinked 3")
+			
 		ondestroy
 			remove()
 

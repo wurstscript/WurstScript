@@ -149,7 +149,7 @@ package Fx
 		
 		function setPos3(vec3 pos) returns Fx
 			dummy.setPos(pos.x, pos.y)
-			setZAngle(pos.z)
+			setZ(pos.z)
 			return this
 		
 		function setZ(real z) returns Fx
