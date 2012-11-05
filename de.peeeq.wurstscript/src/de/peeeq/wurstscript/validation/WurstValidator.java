@@ -1196,7 +1196,7 @@ public class WurstValidator {
 					}
 					if (!implExists) {
 						c.addError("Class " + c.getName() + " must implement the abstract function " +
-								func.getName() + " from class " + func.attrNearestClassDef().getName());
+								func.getName() + " from " + Utils.printElement(func.attrNearestStructureDef()));
 					}
 				}
 				
