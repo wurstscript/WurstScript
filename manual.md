@@ -40,6 +40,7 @@ Packages can have an _init_ block to do stuff when the map is loaded.
 
 	endpackage
 
+For more information about packages, read the packages section. 
 You can still use normal jass syntax/code outside of packages, but inside packages you have to adhere
 to the wurst rules.
 
@@ -324,6 +325,82 @@ WurstScript supports the following shorthands for assignments:
 Because these shorthands simply get translated into their equivalents, they can
 be used with overloaded operators, too.
 
+# Packages 
+As mentioned above every code-segment written in Wurst has to be inside a _package_,
+packages define the code organization and separate name-spaces.
+Packages can also have global variables - every variable that is not inside another block (function/class/module)
+is declared global for that package.
+Packages can import other packages to access classes, functions, variables, etc. that are not defined private.
+
+
+	// declaring
+	package $PackageName$
+		...
+	endpackage
+	// importing
+	package Blub
+		import SomePackage
+		import AnotherPackge // importing more than 1 package
+		import MyExternalWurstFile // Import a scriptfile from the class-lib directory 
+	endpackage
+
+
+When importing an external Scriptfile you just write the Filename without .wurst.
+Remember to name the package inside your file the same as the name of the scriptfile (In the EclipsePlugin this is enforced, when working with WE only, this might be the source of packages not being found).
+
+## Public declarations
+All members of a package are private by default.
+If you want to make them visible inside packages that import that package you have to add the keyword "public".
+
+## Constants
+You can declare a variable constant to prohibit changes after initialization.
+This has no impact on the generated code but throws an error when trying to compile.
+
+
+
+### Examples
+
+	package First
+		int i // (private by default) Visible inside the package
+		public int j // public, gets exported
+	endpackage
+
+	package Second
+		import First
+	
+		int k = i // Error
+		int m = j // Works, because j is public
+	endpackage
+
+
+	package Foo
+		constant int myImportantNumber = 21364 // has to be initialized with declaration
+
+		function blub()
+			myImportantNumber = 123 // Error
+		
+		private constant int myPrivateNumber = 123 // Correct keyword order
+	endpackage
+
+
+
+
+
+
+## Init blocks
+Another package feature are init blocks.
+Every package can have one init block anywhere inside it. 
+All operations inside the init block of a package are being executed at mapstart. 
+
+At the beginning of an init block you can assume that all global variables inside the 
+current package are initialized.
+
+If a given package A imports package B, the initializer in package B is run before A's.
+If packages import each other, the order is undefined.
+
+
+*Note:* Since wc3 has a micro op limitation, too many operations inside init-blocks may stop it from fully executing. In order to avoid this you should only place map-init Stuff inside the init blocks and use timers and own inits for the other stuff.
+
 
 # Classes
 
@@ -493,35 +570,6 @@ Functions inherited from super classes can be overridden in the subclass. Such f
 			//...
 			
 			
-Note that overridden functions also get called when the instance is casted to a supertype.
-
-### Example
-
-    Class A
-        string name
-        
-        construct(string name)
-            this.name = name
-            
-        function printName()
-            print("Instance of A named: " + name )
-
-
-    Class B extends A
-    
-        construct(string name)
-            super(name)
-            
-        override function printName()
-            print("Instance of B named: " + name )
-            
-    init 
-        A a = new B("first") // This works because B extends A
-        a.printName() // This will print "Instance of B named: first", because a is an Instance of B.
-        
-This is especially usefull when iterating through ClassInstances of the same supertype,
-meaning you don't have to cast the instance to it's proper subtype.
-
 ## Typecasting
 
 You need typecasting for several reasons.
@@ -558,7 +606,7 @@ the superclass A, calling a function with that reference will automatically call
 the original type.
 It is easier to understand with an example:
 
-###Example
+###Example 1
 
 	class A
 		function printOut()
@@ -573,6 +621,33 @@ It is easier to understand with an example:
 		a.printOut()
 		// this will print "I'm B", even though it's a type A variable
 		
+### Example 2
+
+    Class A
+        string name
+        
+        construct(string name)
+            this.name = name
+            
+        function printName()
+            print("Instance of A named: " + name )
+
+
+    Class B extends A
+    
+        construct(string name)
+            super(name)
+            
+        override function printName()
+            print("Instance of B named: " + name )
+            
+    init 
+        A a = new B("first") // This works because B extends A
+        a.printName() // This will print "Instance of B named: first", because a is an Instance of B.
+        
+This is especially usefull when iterating through ClassInstances of the same supertype,
+meaning you don't have to cast the instance to it's proper subtype.
+
 ## instanceof
 
 If you want to typecast a classinstance, remember it can only be cast to an int, or a sub/super- class.
@@ -876,7 +951,7 @@ functionality.
 Remember that you can't modify the value of a tuple in it's extension function
 - so you have to return a new tuple everytime if you wan't to change something.
 Look at the Vector package in the Standard Library for some tuple usage
-examples. (Vectors.wurst)
+examples. (Math/Vectors.wurst)
 
 
 
@@ -886,7 +961,7 @@ Extension functions enable you to "add" functions to existing types without
 creating a new derived type, recompiling, or otherwise modifying the original
 type. 
 Extension functions are a special kind of static function, but they are called
-as if they were instance functions on the extended type.
+as if they were instance functions of the extended type.
 
 ## Declaration
 
@@ -917,6 +992,10 @@ as if they were instance functions on the extended type.
 	// Also classes, e.g. setter and getter for private vars
 	public function BlubClass.getPrivateMember() returns real
 		return this.privateMember
+		
+	// And tuples as mentioned above
+	public function vec2.lengthSquared returns real
+		return this.x*this.x+this.y*this.y
 
 # Operator Overloading
 
@@ -943,82 +1022,6 @@ In order to define an overloading function it has to be named as following:
     *  "op_mult"
     /  "op_divReal"
     
-# Packages 
-As mentioned above every code-segment written in Wurst has to be inside a _package_,
-packages define the code organization and separate name-spaces.
-Packages can also have global variables - every variable that is not inside another block (function/class/module)
-is declared global for that package.
-Packages can import other packages to access classes, functions, variables, etc. that are not defined private.
-
-
-	// declaring
-	package $PackageName$
-		...
-	endpackage
-	// importing
-	package Blub
-		import SomePackage
-		import AnotherPackge // importing more than 1 package
-		import MyExternalWurstFile // Import a scriptfile from the class-lib directory 
-	endpackage
-
-
-When importing an external Scriptfile you just write the Filename without .wurst.
-Remember to name the package inside your file the same as the name of the scriptfile.
-
-## Public declarations
-All members of a package ar private by default.
-If you want to make them visible inside packages that import that package you have to add the keyword "public".
-
-## Constants
-You can declare a variable constant to prohibited changes after initialization.
-This has no impact on the generated code but throws an error when trying to compile.
-
-
-
-### Examples
-
-	package First
-		int i // (private by default) Visible inside the package
-		public int j // public, gets exported
-	endpackage
-
-	package Second
-		import First
-	
-		int k = i // Error
-		int m = j // Works, because j is public
-	endpackage
-
-
-	package Foo
-		constant int myImportantNumber = 21364 // has to be initialized with declaration
-
-		function blub()
-			myImportantNumber = 123 // Error
-		
-		private constant int myPrivateNumber = 123 // Correct keyword order
-	endpackage
-
-
-
-
-
-
-## Init blocks
-Another package feature are init blocks.
-Every package can have one init block anywhere inside it. 
-All operations inside the init block of a package are being executed at mapstart. 
-
-At the beginning of an init block you can assume that all global variables inside the 
-current package are initialized.
-
-If a given package A imports package B, the initializer in package B is run before A's.
-If packages import each other, the order is undefined.
-
-
-*Note:* Since wc3 has a micro op limitation, too many operations inside init-blocks may stop it from fully executing. In order to avoid this you should only place map-init Stuff inside the init blocks and use timers and own inits for the other stuff.
-
 # Compiletime Functions
 Compiletime Functions are functions, that get executed when compiling yur script/map.
 They mainly offer the possibility to create Object-Editor Objects via code.
