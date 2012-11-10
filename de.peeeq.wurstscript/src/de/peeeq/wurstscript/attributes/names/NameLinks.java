@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.attributes.names;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -39,6 +40,7 @@ import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.ast.WurstModel;
+import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.utils.Utils;
@@ -182,15 +184,18 @@ public class NameLinks {
 	}
 
 	private static void addNamesFromImplementedInterfaces(Multimap<String, NameLink> result, ClassDef classDef) {
+		// TODO type param mapping
 		for (WurstTypeInterface interfaceType : classDef.attrImplementedInterfaces()) {
+			Map<TypeParamDef, WurstType> binding = interfaceType.getTypeArgBinding();
 			InterfaceDef i = interfaceType.getInterfaceDef();
 			for (Entry<String, NameLink> e : i.attrNameLinks().entries()) {
-				result.put(e.getKey(), e.getValue());
+				result.put(e.getKey(), e.getValue().withTypeArgBinding(binding));
 			}
 		}
 	}
 
 	private static void addNamesFormSuperClass(Multimap<String, NameLink> result, ClassDef classDef) {
+		// TODO type param mapping
 		if (classDef.getExtendedClass().attrTyp() instanceof WurstTypeClass) {
 			WurstTypeClass wurstTypeClass = (WurstTypeClass) classDef.getExtendedClass().attrTyp();
 			ClassDef extendedClass = wurstTypeClass.getClassDef();

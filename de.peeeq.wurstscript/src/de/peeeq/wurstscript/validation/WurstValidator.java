@@ -60,6 +60,7 @@ import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.NoDefaultCase;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
+import de.peeeq.wurstscript.ast.StmtCall;
 import de.peeeq.wurstscript.ast.StmtDestroy;
 import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtReturn;
@@ -93,6 +94,7 @@ import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.NameLinkType;
 import de.peeeq.wurstscript.attributes.names.Visibility;
 import de.peeeq.wurstscript.gui.ProgressHelper;
+import de.peeeq.wurstscript.types.CallSignature;
 import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeArray;
@@ -450,19 +452,35 @@ public class WurstValidator {
 			}
 		}
 	}
+	
+	@CheckMethod
+	public void checkCall(StmtCall call) { 
+		String funcName = call.match(new StmtCall.Matcher<String>() {
+
+			@Override
+			public String case_ExprNewObject(ExprNewObject c) {
+				return "constructor";
+			}
+
+			@Override
+			public String case_ExprMemberMethod(ExprMemberMethod c) {
+				return c.getFuncName();
+			}
+
+			@Override
+			public String case_ExprFunctionCall(ExprFunctionCall c) {
+				return c.getFuncName();
+			}
+		});
+		
+		call.attrCallSignature().checkSignatureCompatibility(call.attrFunctionSignature(), funcName, call);
+	}
 
 	@CheckMethod
 	public void visit(ExprFunctionCall stmtCall) {
 		String funcName = stmtCall.getFuncName();
 		// calculating the exprType should reveal most errors:
 		stmtCall.attrTyp();
-		
-		List<Expr> args = Lists.newArrayList();
-		if (stmtCall.attrImplicitParameter() instanceof Expr) {
-			args.add((Expr) stmtCall.attrImplicitParameter());
-		}
-		args.addAll(stmtCall.getArgs());
-		checkParams(stmtCall, "", args, stmtCall.attrFunctionSignature());
 		
 		FunctionImplementation nearestFunc = stmtCall.attrNearestFuncDef();
 		if (stmtCall.attrFuncDef() != null) {
@@ -499,10 +517,12 @@ public class WurstValidator {
 //		checkParams(where, args, parameterTypes);
 //	}
 	
+	@Deprecated
 	private void checkParams(AstElement where, String preMsg, List<Expr> args, FunctionSignature sig) {
 		checkParams(where, preMsg, args, sig.getParamTypes());
 	}
 
+	@Deprecated
 	private void checkParams(AstElement where, String preMsg, List<Expr> args, List<WurstType> parameterTypes) {
 		if (args.size() > parameterTypes.size()) {
 			where.addError(preMsg + "Too many parameters.");
@@ -526,11 +546,9 @@ public class WurstValidator {
 	public void visit(ExprBinary expr) {
 		FunctionDefinition def = expr.attrFuncDef();
 		if (def != null) {
-			FunctionSignature sig = new FunctionSignature(def.attrParameterTypes(), def.getReturnTyp().attrTyp());
-			List<Expr> args = Lists.newArrayList();
-			args.add(expr.getLeft());
-			args.add(expr.getRight());
-			checkParams(expr, "Operator overloading problem: ", args, sig);
+			FunctionSignature sig = new FunctionSignature(def.attrReceiverType(), def.attrParameterTypes(), def.getReturnTyp().attrTyp());
+			CallSignature callSig = new CallSignature(expr.getLeft(), Collections.singletonList(expr.getRight()));
+			callSig.checkSignatureCompatibility(sig, ""+expr.getOp(), expr);
 		}
 	}
 	
@@ -538,13 +556,6 @@ public class WurstValidator {
 	public void visit(ExprMemberMethod stmtCall) {
 		// calculating the exprType should reveal all errors:
 		stmtCall.attrTyp();
-		
-		List<Expr> args = Lists.newArrayList();
-		if (stmtCall.attrImplicitParameter() instanceof Expr) {
-			args.add((Expr) stmtCall.attrImplicitParameter());
-		}
-		args.addAll(stmtCall.getArgs());
-		checkParams(stmtCall, "", args, stmtCall.attrFunctionSignature());
 	}
 
 	
@@ -763,7 +774,7 @@ public class WurstValidator {
 			return;
 		}
 		if (ref.attrTyp() instanceof WurstTypeCode) {
-			if (called.attrParameterTypes().size() > 0) {
+			if (called.attrParameterTypesIncludingReceiver().size() > 0) {
 				String msg = "Can only use functions without parameters in 'code' function references.";
 				if (called.attrIsDynamicClassMember()) {
 					msg += "\nNote that " + called.getName() + " is a dynamic function and thus has an implicit parameter 'this'.";
@@ -1229,41 +1240,47 @@ public class WurstValidator {
 		Multimap<NameLink, NameLink> overridesMap = HashMultimap.create();
 					
 		for (NameLink link1 : funcs) {
-			FuncDef func1 = (FuncDef) link1.getNameDef();
 			for (NameLink link2 : funcs) {
 				if (link1 == link2) {
 					continue;
 				}
-				FuncDef func2 = (FuncDef) link2.getNameDef();
-				if (overrides(func1, func2)) {
+				if (overrides(link1, link2)) {
+					System.out.println(link1 + " overrides " + link2);
 					overridesMap.put(link1, link2);
+				} else {
+					System.out.println(link1 + " does not override " + link2);
 				}
 				
 			}
 		}
+		System.out.println("overrides = " + overridesMap );
 		return overridesMap;
 	}
 
 	/**
 	 * checks if func1 can override func2 
 	 */
-	public static boolean overrides(FuncDef func1, FuncDef func2) {
-		if (func1.getParameters().size() != func2.getParameters().size()) {
+	public static boolean overrides(NameLink func1, NameLink func2) {
+		if (func1.getParameterTypes().size() != func2.getParameterTypes().size()) {
+			System.out.println("paramcount");
 			return false;
 		}
 		
-		
-		for (int i=0; i<func1.getParameters().size(); i++) {
-			if (!func1.getParameters().get(i).attrTyp()
+		// contravariant parametertypes
+		for (int i=0; i<func1.getParameterTypes().size(); i++) {
+			if (!func1.getParameterTypes().get(i)
 					.isSupertypeOf(
-							func2.getParameters().get(i).attrTyp(), func1)) {
+							func2.getParameterTypes().get(i), func1.getNameDef())) {
+				System.out.println("param not super " + i);
 				return false;
 			}
 		}
 		// covariant return types
-		if (!func1.attrTyp().isSubtypeOf(func2.attrTyp(), func1)) {
+		if (!func1.getReturnType().isSubtypeOf(func2.getReturnType(), func1.getNameDef())) {
+			System.out.println("returntype not sub");
 			return false;
 		}
+		System.out.println("true");
 		return true;
 	}
 
@@ -1350,6 +1367,15 @@ public class WurstValidator {
 			}
 		}
 		return false;
+	}
+	
+	@CheckMethod
+	public void checkTypenameAsVar(VarDef v) {
+		TypeDef t = v.lookupType(v.getName(), false);
+		if (t != null) {
+			v.addError("Variable " + v.getName() + " defines the same name as " + Utils.printElementWithSource(t));
+		}
+		
 	}
 	
 }

@@ -87,7 +87,7 @@ public class AttrExprExpectedType {
 			} else if (parent instanceof ExprMemberMethod) {
 				ExprMemberMethod m = (ExprMemberMethod) parent;
 				if (m.getLeft() == expr) {
-					return m.attrParameterTypes().get(0);
+					return m.attrFunctionSignature().getReceiverType();
 				}
 			}
 		} catch (Throwable t) {

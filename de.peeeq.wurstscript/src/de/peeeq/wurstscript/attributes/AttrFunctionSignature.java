@@ -23,8 +23,8 @@ public class AttrFunctionSignature {
 			return FunctionSignature.empty;
 		}
 		WurstType returnType = f.getReturnTyp().attrTyp();
-		List<WurstType> paramTypes = f.attrParameterTypes();
-		FunctionSignature sig = new FunctionSignature(paramTypes, returnType);
+		List<WurstType> paramTypes = f.attrParameterTypes(); 
+		FunctionSignature sig = new FunctionSignature(f.attrReceiverType(), paramTypes, returnType);
 		if (fc.attrImplicitParameter() instanceof Expr) {
 			Expr expr = (Expr) fc.attrImplicitParameter();
 			sig = sig.setTypeArgs(expr.attrTyp().getTypeArgBinding());
@@ -41,7 +41,7 @@ public class AttrFunctionSignature {
 		for (WParameter p : f.getParameters()) {
 			paramTypes.add(p.attrTyp().setTypeArgs(binding2));
 		}
-		return new FunctionSignature(paramTypes, returnType);
+		return new FunctionSignature(null, paramTypes, returnType);
 	}
 
 }

@@ -46,8 +46,9 @@ public class ModifiersHelper {
 	public static boolean isAbstract(AstElementWithModifiers e) {
 		if (e instanceof FuncDef
 				&& e.attrNearestStructureDef() instanceof InterfaceDef) {
-			// functions in interfaces are always abstract...
-			return true;
+			FuncDef f = (FuncDef) e;
+			// functions in interfaces are always abstract if they have no implementation ...
+			return f.attrHasEmptyBody();
 		}
 		return containsType(e.getModifiers(), ModAbstract.class);
 	}

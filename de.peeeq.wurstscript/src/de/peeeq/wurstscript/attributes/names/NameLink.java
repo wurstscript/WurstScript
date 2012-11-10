@@ -1,5 +1,12 @@
 package de.peeeq.wurstscript.attributes.names;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import com.google.common.collect.Lists;
+
+import de.peeeq.wurstscript.ast.AstElementWithParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
@@ -12,10 +19,15 @@ import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NotExtensionFunction;
 import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.TupleDef;
+import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.ast.TypeParamDefs;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
+import de.peeeq.wurstscript.types.WurstTypeFreeTypeParam;
+import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 import de.peeeq.wurstscript.utils.Utils;
 
 
@@ -27,6 +39,8 @@ public class NameLink {
 	private boolean receiverTypeCalculted = false;
 	private WurstType receiverType = null;
 	private final NameDef nameDef;
+	private WurstType returnType;
+	private List<WurstType> parameterTypes;
 
 	
 	private NameLink(Visibility visibility, NameLinkType type,
@@ -36,6 +50,17 @@ public class NameLink {
 		this.type = type;
 		this.definedIn = definedIn;
 		this.nameDef = nameDef;
+	}
+	
+	private NameLink(Visibility visibility, NameLinkType type,
+			WScope definedIn, NameDef nameDef, WurstType returnType, List<WurstType> parameterTypes) {
+		super();
+		this.visibility = visibility;
+		this.type = type;
+		this.definedIn = definedIn;
+		this.nameDef = nameDef;
+		this.returnType = returnType;
+		this.parameterTypes = parameterTypes;
 	}
 
 	public static NameLink create(NameDef nameDef, WScope definedIn) {
@@ -201,6 +226,64 @@ public class NameLink {
 		return r = r + Utils.printElementWithSource(nameDef);
 	}
 
+	public NameLink withTypeArgBinding(Map<TypeParamDef, WurstType> binding) {
+		if (binding.isEmpty()) {
+			return this;
+		}
+		WurstType newReturnType = adjustType(returnType, binding);
+		boolean changed = newReturnType != returnType;
+		List<WurstType> newParamTypes;
+		if (getParameterTypes().isEmpty()) {
+			newParamTypes = getParameterTypes();
+		} else {
+			newParamTypes = Lists.newArrayListWithCapacity(getParameterTypes().size());
+			for (WurstType pt : getParameterTypes()) {
+				WurstType newPt = adjustType(pt, binding);
+				if (newPt != pt) {
+					changed = true;
+				}
+				newParamTypes.add(newPt);
+			}
+		}
+		if (changed) {
+			return new NameLink(visibility, type, definedIn, nameDef, newReturnType, newParamTypes);
+		} else {
+			return this;
+		}
+	}
+
+	private WurstType adjustType(WurstType t, Map<TypeParamDef, WurstType> binding) {
+		TypeParamDef def = null;
+		if (t instanceof WurstTypeTypeParam) {
+			def = ((WurstTypeTypeParam) t).getDef();
+		} else if (t instanceof WurstTypeFreeTypeParam) {
+			def = ((WurstTypeFreeTypeParam) t).getDef();
+		}
+		if (t != null && binding.containsKey(def)) {
+			return binding.get(def);
+		}
+		return t;
+	}
+
+	
+	public WurstType getReturnType() {
+		if (returnType == null) {
+			returnType = nameDef.attrTyp();
+		}
+		return returnType;
+	}
+	
+	public List<WurstType> getParameterTypes() {
+		if (parameterTypes == null) {
+			if (nameDef instanceof FunctionDefinition) {
+				FunctionDefinition f = (FunctionDefinition) nameDef;
+				parameterTypes = f.attrParameterTypes();
+			} else {
+				parameterTypes = Collections.emptyList();
+			}
+		}
+		return parameterTypes;
+	}
 	
 	
 	

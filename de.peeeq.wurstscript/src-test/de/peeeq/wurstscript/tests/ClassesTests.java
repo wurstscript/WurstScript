@@ -508,7 +508,7 @@ public class ClassesTests extends PscriptTest {
 
 	@Test
 	public void abstract_fail2() {
-		testAssertErrorsLines(true, "must implement the abstract function foo from class A", 
+		testAssertErrorsLines(true, "must implement the abstract function foo", 
 				"package test",
 				"	native testSuccess()",
 				"	int i",
