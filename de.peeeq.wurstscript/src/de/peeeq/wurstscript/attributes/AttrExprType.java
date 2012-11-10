@@ -401,7 +401,7 @@ public class AttrExprType {
 
 			private WurstType caseMathOperation() {
 				if (leftType.isSubtypeOf(WurstTypeInt.instance(), term) && rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
-					return leftType;
+					return WurstTypeInt.instance();
 				}
 				if (leftType.isSubtypeOf(WurstTypeReal.instance(), term) || leftType.isSubtypeOf(WurstTypeInt.instance(), term)) {
 					if (rightType.isSubtypeOf(WurstTypeReal.instance(), term) || rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
