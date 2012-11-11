@@ -8,6 +8,8 @@ import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.AstElementWithParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.EnumDef;
+import de.peeeq.wurstscript.ast.EnumMember;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
@@ -66,7 +68,6 @@ public class NameLink {
 	public static NameLink create(NameDef nameDef, WScope definedIn) {
 		Visibility visibiliy = calcVisibility(definedIn, nameDef);
 		NameLinkType type = calcNameLinkType(nameDef);
-		
 		return new NameLink(visibiliy, type, definedIn, nameDef);
 	}
 
@@ -85,6 +86,11 @@ public class NameLink {
 				if (nameDef.getParent().getParent() instanceof TupleDef) {
 					TupleDef tupleDef = (TupleDef) nameDef.getParent().getParent();
 					return tupleDef.attrTyp();
+				}
+			} else if (nameDef instanceof EnumMember) {
+				if (nameDef.getParent().getParent() instanceof EnumDef) {
+					EnumDef enumDef = (EnumDef) nameDef.getParent().getParent();
+					return enumDef.attrTyp();
 				}
 			}
 		}
@@ -141,6 +147,8 @@ public class NameLink {
 				return Visibility.PUBLIC;
 			}
 		} else if (definedIn instanceof TupleDef) {
+			return Visibility.PUBLIC;
+		} else if (definedIn instanceof EnumDef) {
 			return Visibility.PUBLIC;
 		} else {
 			return Visibility.LOCAL;
