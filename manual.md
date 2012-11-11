@@ -997,7 +997,22 @@ as if they were instance functions of the extended type.
 	public function vec2.lengthSquared returns real
 		return this.x*this.x+this.y*this.y
 
-# Operator Overloading
+# Advanced Concepts
+
+## Function Overloading
+
+Function overloading allows you to have several functions with the same name.
+The compiler will then decide which function to call based on the static type
+of the arguments.
+
+Wurst uses a very simple form of overloading. If there is exactly one function in
+scope which is feasible for the given arguments, then this function will be used.
+If there is more than one feasible function the compiler will give an error.
+
+Note that this is different to many other languages like Java, where the
+function with the most specific feasible type is chosen instead of giving an error.
+
+## Operator Overloading
 
 Operator Overloading allows you to change the behaviour of internal operators +, -, \* and / for custom arguments.
 A quick example from the standard library (Vectors.wurst):
@@ -1022,11 +1037,11 @@ In order to define an overloading function it has to be named as following:
     *  "op_mult"
     /  "op_divReal"
     
-# Compiletime Functions
+## Compiletime Functions
 Compiletime Functions are functions, that get executed when compiling yur script/map.
 They mainly offer the possibility to create Object-Editor Objects via code.
 
-## Declaration
+### Declaration
 
     @compiltetime function foo()
     
