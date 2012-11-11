@@ -73,6 +73,9 @@ public class AstHelper {
 				c.getModuleUses().add((ModuleUse) s);
 			} else if (s instanceof OnDestroyDef) {
 				OnDestroyDef odf = (OnDestroyDef) s;
+				if (!c.getOnDestroy().getBody().isEmpty()) {
+					throw new CompileError(odf.getSource(), "There must not be more than one ondestroy block.");
+				}
 				c.setOnDestroy(odf);
 			} else {
 				throw new CompileError(s.getSource(), "Unhandled case for classSlot: " + s.getClass());
