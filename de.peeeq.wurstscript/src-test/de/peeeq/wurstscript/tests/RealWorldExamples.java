@@ -44,7 +44,8 @@ public class RealWorldExamples extends PscriptTest {
 	
 	@Test
 	public void testEditorVars() throws IOException {
-		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "EditorVariables.wurst"), false);
+		// we expect an error here, but only in the translation phase
+		testAssertErrorFileWithStdLib(new File(TEST_DIR + "EditorVariables.wurst"), "Translation Error: Could not find definition of gg_", false);
 	}
 	
 	@Test
