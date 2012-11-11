@@ -303,7 +303,7 @@ public class AttrFuncDef {
 		// TODO determine the function with the most precise type (or should I skip this step?)
 		// I mean, why would anybody want to do something like that??
 
-		node.addError("Overloading not activated yet, so call to function " + funcName + " is ambiguous. Alternatives are:\n" + Utils.printAlternatives(funcs3));
+		node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n" + Utils.printAlternatives(funcs3));
 		return funcs3.get(0);
 	}
 

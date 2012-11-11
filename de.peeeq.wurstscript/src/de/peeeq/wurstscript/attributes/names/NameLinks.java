@@ -106,16 +106,12 @@ public class NameLinks {
 	}
 
 	public static Multimap<String, NameLink> calculate(WPackage p) {
-//		System.out.println("calculate namelinks for package " + p.getName());
 		Multimap<String, NameLink> result = HashMultimap.create();
 		for (WImport imp : p.getImports()) {
 			WPackage importedPackage = imp.attrImportedPackage();
-//			System.out.println("   importing " + Utils.printElement(importedPackage));
 			result.putAll(importedPackage.attrExportedNameLinks());
 		}
 		
-//		System.out.println("Names in package " + p.getName() );
-//		System.out.println(result.keys());
 		return result;
 	}
 

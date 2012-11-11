@@ -1131,7 +1131,7 @@ public class WurstValidator {
 //					}
 //				}
 				i++;
-				if( !s.getExpr().attrTyp().equalsType(c.getExpr().attrTyp(), c)) {
+				if( !c.getExpr().attrTyp().isSubtypeOf(s.getExpr().attrTyp(), c)) {
 					c.addError("The type " + c.getExpr().attrTyp() + " does not match the switchtype "
 							+  s.getExpr().attrTyp() + ".");
 				}
