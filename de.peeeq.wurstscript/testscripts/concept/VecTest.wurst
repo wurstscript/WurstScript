@@ -6,13 +6,20 @@ package VecTest
 	native println(string msg)
 	
 	
-	init
+	init			
+		vec3 v3 = vec3(1,1,1)
+		vec3 v32 = vec3(3,3,3)
+		vec2 v2 = vec2(2,2)
+		
+		vec3 v4 = v3 + v32
+		vec3 v5 = v3 + v2
+		
 		let a = vec3(2, 3, 4)
 		let b = vec3(4, 3, 2)
 		
 		let c = a + b
 		
-		if c == vec3(6, 6, 6)		
+		if c == vec3(6, 6, 6) and v4 == vec3(4,4,4) and v5 == vec3(3,3,1)
 			testSuccess()
 		
 

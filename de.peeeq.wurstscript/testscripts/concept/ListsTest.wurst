@@ -1,5 +1,5 @@
 package Collections
-	import Lists
+	import LinkedList
 	
 	native testSuccess()
 	native testFail(string msg)
