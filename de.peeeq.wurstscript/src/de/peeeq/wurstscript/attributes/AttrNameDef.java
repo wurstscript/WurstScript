@@ -41,7 +41,7 @@ public class AttrNameDef {
 
 
 	protected static NameDef searchNameInScope(String varName, NameRef node) {
-		NameDef result = node.lookupVar(varName);
+		NameDef result = node.lookupVar(varName, false);
 		if (result == null) {
 			if (!varName.startsWith("gg_")) { // ignore editor variables
 				node.addError("Could not resolve reference to variable " + varName);

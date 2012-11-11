@@ -88,7 +88,7 @@ public class AttrFuncDef {
 		WurstType leftType = left.attrTyp();
 		String funcName = node.getFuncName();
 
-		FunctionDefinition result = getMemberFunc(node, leftType, funcName, argumentTypes(node));
+		FunctionDefinition result = searchMemberFunc(node, leftType, funcName, argumentTypes(node));
 		if (result == null) {
 			node.addError("The method " + funcName + " is undefined for receiver of type " + leftType);
 		}
@@ -116,7 +116,7 @@ public class AttrFuncDef {
 		if (funcName == null || nativeOperator(left.attrTyp(), right.attrTyp(), left)) {
 			return null;
 		}
-		return getMemberFunc(left, left.attrTyp(), funcName, Collections.singletonList(right.attrTyp()));
+		return searchMemberFunc(left, left.attrTyp(), funcName, Collections.singletonList(right.attrTyp()));
 	}
 
 
@@ -174,71 +174,91 @@ public class AttrFuncDef {
 			node.addError("Reference to function " + funcName + " could not be resolved.");
 			return null;
 		}
-
-		// filter out the methods which are private somewhere else
-		List<FunctionDefinition> funcs2 = Lists.newArrayListWithCapacity(funcs1.size());
-		for (NameLink nl : funcs1) {
-			if (!(nl.getVisibility() == Visibility.PRIVATE_OTHER
-					|| nl.getVisibility() == Visibility.PROTECTED_OTHER)
-					&& nl.getNameDef() instanceof FunctionDefinition) {
-				funcs2.add((FunctionDefinition) nl.getNameDef());
-			}
+		try {
+			// filter out the methods which are private somewhere else
+			List<NameLink> funcs = filterInvisible(funcName, node, funcs1);
+	
+			funcs = filterByParameters(node, argumentTypes, funcs);
+	
+			node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n " 
+						+ Utils.printAlternatives(funcs));
+			return firstFunc(funcs);
+		} catch (EarlyReturn e) {
+			return e.getFunc();
 		}
-		
-		funcs2 = Utils.removedDuplicates(funcs2);
-
-		if (funcs2.size() == 0) {
-			node.addError("Function " + funcName + " is not visible here.");
-			return firstFunc(funcs1);
-		} else if (funcs2.size() == 1) {
-			return funcs2.get(0);
+	}
+	
+	
+	private static FunctionDefinition searchMemberFunc(Expr node, WurstType leftType, String funcName, List<WurstType> argumentTypes) {
+		Collection<NameLink> funcs1 = node.lookupMemberFuncs(leftType, funcName);
+		if (funcs1.size() == 0) {
+			return null;
 		}
+		try {
+			// filter out the methods which are private somewhere else
+			List<NameLink> funcs = filterInvisible(funcName, node, funcs1);
 
+			// chose method with most specific receiver type
+			funcs = filterByReceiverType(node, funcName, funcs);
+			funcs = filterByParameters(node, argumentTypes, funcs);
+
+			node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n" + Utils.printAlternatives(funcs));
+			return firstFunc(funcs);
+		} catch (EarlyReturn e) {
+			return e.getFunc();
+		}
+	}
+
+
+	private static List<NameLink> filterByParameters(AstElement node,
+			List<WurstType> argumentTypes, List<NameLink> funcs)
+			throws EarlyReturn {
 		// filter out methods with wrong number of params
-		List<FunctionDefinition> funcs3 = Lists.newArrayListWithCapacity(funcs2.size());
-		for (FunctionDefinition f : funcs2) {
-			if (f.getParameters().size() == argumentTypes.size()) {
-				funcs3.add(f);
-			}
-		}
-		if (funcs3.size() == 0) {
-			return funcs2.get(0);
-		} else if (funcs3.size() == 1) {
-			return funcs3.get(0);
-		}
+		funcs = filterByParamaeterNumber(argumentTypes, funcs);
 
 		// filter out methods for which the arguments have wrong types
-		List<FunctionDefinition> funcs4 = Lists.newArrayListWithCapacity(funcs3.size());
-		nextFunc: for (FunctionDefinition f : funcs3) {
+		funcs = filterByParameterTypes(node, argumentTypes, funcs);
+		return funcs;
+	}
+
+
+	private static List<NameLink> filterByParameterTypes(
+			AstElement node, List<WurstType> argumentTypes, List<NameLink> funcs3) throws EarlyReturn {
+		List<NameLink> funcs4 = Lists.newArrayListWithCapacity(funcs3.size());
+		nextFunc: for (NameLink f : funcs3) {
 			for (int i=0; i<argumentTypes.size(); i++) {
-				if (!argumentTypes.get(i).isSubtypeOf(f.getParameters().get(i).attrTyp(), node)) {
+				if (!argumentTypes.get(i).isSubtypeOf(f.getParameterTypes().get(i), node)) {
 					continue nextFunc;
 				}
 			}
 			funcs4.add(f);
 		}
 		if (funcs4.size() == 0) {
-			return funcs3.get(0);
+			throw new EarlyReturn(firstFunc(funcs3));
 		} else if (funcs4.size() == 1) {
-			return funcs4.get(0);
+			throw new EarlyReturn(firstFunc(funcs4));
 		}
-
-
-		
-		node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n " 
-					+ Utils.printAlternatives(funcs4));
-		return funcs4.get(0);
-
+		return funcs4;
 	}
 
 
-	private static FunctionDefinition getMemberFunc(Expr node, WurstType leftType, String funcName, List<WurstType> argumentTypes) {
-		Collection<NameLink> funcs1 = node.lookupMemberFuncs(leftType, funcName);
-		if (funcs1.size() == 0) {
-			return null;
+	private static List<NameLink> filterByParamaeterNumber(List<WurstType> argumentTypes, List<NameLink> funcs2) throws EarlyReturn {
+		List<NameLink> funcs3 = Lists.newArrayListWithCapacity(funcs2.size());
+		for (NameLink f : funcs2) {
+			if (f.getParameterTypes().size() == argumentTypes.size()) {
+				funcs3.add(f);
+			}
 		}
+		if (funcs3.size() == 0) {
+			throw new EarlyReturn(firstFunc(funcs2));
+		} else if (funcs3.size() == 1) {
+			throw new EarlyReturn(firstFunc(funcs3));
+		}
+		return funcs3;
+	}
 
-		// filter out the methods which are private somewhere else
+
+	private static List<NameLink> filterInvisible(String funcName, AstElement node, Collection<NameLink> funcs1) throws EarlyReturn {
 		List<NameLink> funcs2 = Lists.newArrayListWithCapacity(funcs1.size());
 		for (NameLink nl : funcs1) {
 			if (!(nl.getVisibility() == Visibility.PRIVATE_OTHER
@@ -247,16 +267,25 @@ public class AttrFuncDef {
 				funcs2.add(nl);
 			}
 		}
+		
+		funcs2 = Utils.removedDuplicates(funcs2);
 
 		if (funcs2.size() == 0) {
 			node.addError("Function " + funcName + " is not visible here.");
-			return firstFunc(funcs1);
+			throw new EarlyReturn(firstFunc(funcs1));
 		} else if (funcs2.size() == 1) {
-			return (FunctionDefinition) funcs2.get(0).getNameDef();
+			throw new EarlyReturn(firstFunc(funcs2));
 		}
+		return funcs2;
+	}
 
-		// chose method with most specific receiver type
-		List<FunctionDefinition> funcs3 = Lists.newArrayListWithCapacity(funcs2.size());
+
+	
+
+
+	private static List<NameLink> filterByReceiverType(Expr node,
+			String funcName, List<NameLink> funcs2) throws EarlyReturn {
+		List<NameLink> funcs3 = Lists.newArrayListWithCapacity(funcs2.size());
 		for (NameLink f : funcs2) {
 			boolean existsMoreSpecific = false;
 			for (NameLink g : funcs2) {
@@ -269,49 +298,17 @@ public class AttrFuncDef {
 				}
 			}
 			if (!existsMoreSpecific) {
-				funcs3.add((FunctionDefinition) f.getNameDef());
+				funcs3.add(f);
 			}
 		}
 		
 		if (funcs3.size() == 0) {
 			node.addError("Function " + funcName + " dfopsdfmpso.");
-			return (FunctionDefinition) funcs2.get(0).getNameDef();
+			throw new EarlyReturn( firstFunc(funcs2));
 		} else if (funcs2.size() == 1) {
-			return funcs3.get(0);
+			throw new EarlyReturn(firstFunc(funcs3));
 		}
-		
-		
-		// filter out methods with wrong number of params
-		List<FunctionDefinition> funcs4 = Lists.newArrayListWithCapacity(funcs3.size());
-		for (FunctionDefinition f : funcs3) {
-			if (f.getParameters().size() == argumentTypes.size()) {
-				funcs4.add(f);
-			}
-		}
-		if (funcs4.size() == 0) {
-			return funcs3.get(0);
-		} else if (funcs4.size() == 1) {
-			return funcs4.get(0);
-		}
-
-		// filter out methods for which the arguments have wrong types
-		List<FunctionDefinition> funcs5 = Lists.newArrayListWithCapacity(funcs3.size());
-		nextFunc: for (FunctionDefinition f : funcs3) {
-			for (int i=0; i<argumentTypes.size(); i++) {
-				if (!argumentTypes.get(i).isSubtypeOf(f.getParameters().get(i).attrTyp(), node)) {
-					continue nextFunc;
-				}
-			}
-			funcs5.add(f);
-		}
-		if (funcs5.size() == 0) {
-			return funcs4.get(0);
-		} else if (funcs5.size() == 1) {
-			return funcs5.get(0);
-		}
-
-		node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n" + Utils.printAlternatives(funcs5));
-		return funcs5.get(0);
+		return funcs3;
 	}
 
 	private static FunctionDefinition firstFunc(Collection<NameLink> funcs1) {
@@ -319,7 +316,7 @@ public class AttrFuncDef {
 		if (nl != null && nl.getNameDef() instanceof FunctionDefinition) {
 			return (FunctionDefinition) nl.getNameDef();
 		}
-		return null;
+		throw new Error("Collection of funcs was empty");
 	}
 
 

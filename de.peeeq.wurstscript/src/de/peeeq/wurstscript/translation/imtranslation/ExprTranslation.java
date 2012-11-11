@@ -177,7 +177,7 @@ public class ExprTranslation {
 		if (decl == null) {
 			// should only happen with gg_ variables
 			if (!t.isEclipseMode()) {
-				e.addError("Could not find definition of " + e.getVarName() + ".");
+				e.addError("Translation Error: Could not find definition of " + e.getVarName() + ".");
 			}
 			return ImNull();
 		} if (decl instanceof VarDef) {

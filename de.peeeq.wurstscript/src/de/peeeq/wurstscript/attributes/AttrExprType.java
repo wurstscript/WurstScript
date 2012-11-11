@@ -146,6 +146,8 @@ public class AttrExprType {
 				return getHandleType(term, "camerasetup");
 			} else if (varName.startsWith("gg_snd_")) {
 				return getHandleType(term, "sound");
+			} else if (varName.startsWith("gg_item")) {
+				return getHandleType(term, "item");
 			}
 			
 			return WurstTypeUnknown.instance();
