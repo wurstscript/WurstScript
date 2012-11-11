@@ -16,9 +16,6 @@ package Vectors
 	// op_ - Operator overloading
 	public function vec3.op_plus( vec3 v )	returns vec3
 		return vec3(this.x + v.x, this.y + v.y, this.z + v.z)
-	
-	public function vec3.op_plus( vec2 v )	returns vec3
-		return vec3(this.x + v.x, this.y + v.y, this.z)
     
     public function vec3.op_minus( vec3 v )	returns vec3
 		return vec3(this.x - v.x, this.y - v.y, this.z - v.z)

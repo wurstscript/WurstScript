@@ -27,7 +27,8 @@ import de.peeeq.wurstscript.utils.UtilsTest;
 	BugTests.class,
 	ScopingTests.class,
 	OpOverloading.class,
-	FlowAnalysisTests.class
+	FlowAnalysisTests.class,
+	NewFeatureTests.class
 })
 public class QuickTests {
 

@@ -89,6 +89,24 @@ public class NewFeatureTests extends PscriptTest {
 	}
 	
 	@Test
+	public void testSwitchInt() {
+		testAssertOkLines(true, 
+				"package Test",
+				"native testSuccess()",
+				"init",
+				"	var i = 1",
+				"	switch i",
+				"		case 0",
+				"			i = 1",
+				"		case 1",
+				"			testSuccess()",
+				"		default",
+				"			skip"
+				);
+	}
+	
+	
+	@Test
 	public void testSwitchString() {
 		testAssertOkLines(true, 
 				"package Test",
