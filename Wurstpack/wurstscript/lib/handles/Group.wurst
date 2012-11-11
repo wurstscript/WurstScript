@@ -1,7 +1,5 @@
 package Group
 
-
-	public group ENUM_GROUP = CreateGroup()
 	
 	public function group.clear()
 		GroupClear(this)
