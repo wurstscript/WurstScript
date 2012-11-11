@@ -25,9 +25,6 @@ package LinkedListModule
 			next = null
 			last = this
 			print("initlinked 3")
-			
-		ondestroy
-			remove()
 
 		static function getFirst() returns thistype
 			return first

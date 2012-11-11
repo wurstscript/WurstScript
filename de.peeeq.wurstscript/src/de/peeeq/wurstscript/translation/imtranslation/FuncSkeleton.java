@@ -53,6 +53,8 @@ public class FuncSkeleton {
 	}
 
 	public static void create(OnDestroyDef onDestroyDef, ImTranslator translator, ImFunction f) {
+		f.setName(onDestroyDef.attrNearestStructureDef().getName() + "_onDestroy");
+		f.getParameters().add(translator.getThisVar(onDestroyDef));
 	}
 
 }

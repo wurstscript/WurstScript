@@ -16,15 +16,15 @@ package Vectors
 	// op_ - Operator overloading
 	public function vec3.op_plus( vec3 v )	returns vec3
 		return vec3(this.x + v.x, this.y + v.y, this.z + v.z)
+	
+	public function vec3.op_plus( vec2 v )	returns vec3
+		return vec3(this.x + v.x, this.y + v.y, this.z)
     
     public function vec3.op_minus( vec3 v )	returns vec3
 		return vec3(this.x - v.x, this.y - v.y, this.z - v.z)
 		
 	public function vec3.op_mult(real factor) returns vec3
 		return vec3(this.x*factor, this.y*factor, this.z*factor) 
-                
-    public function vec3.addVec2( vec2 v )	returns vec3
-		return vec3(this.x + v.x, this.y + v.y, this.z)
         
     public function vec3.addReals( real x, real y, real z )	returns vec3
 		return vec3(this.x + x, this.y + y, this.z + z)

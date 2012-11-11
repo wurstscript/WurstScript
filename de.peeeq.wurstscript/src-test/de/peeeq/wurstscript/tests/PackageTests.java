@@ -34,7 +34,7 @@ public class PackageTests extends PscriptTest {
 	
 	@Test
 	public void test_import_function_fail() {
-		testAssertErrorsLines(false, "Could not resolve",
+		testAssertErrorsLines(false, "not visible",
 				"package A",
 				"	function foo(int x) returns int",
 				"		return x*2",
@@ -96,7 +96,7 @@ public class PackageTests extends PscriptTest {
 	
 	@Test
 	public void test_import_ext_function_fail() {
-		testAssertErrorsLines(false, "undefined",
+		testAssertErrorsLines(false, "not visible",
 				"package A",
 				"	function int.plusOne() returns int",
 				"		return this + 2",
@@ -125,7 +125,7 @@ public class PackageTests extends PscriptTest {
 	
 	@Test
 	public void test_import_class_protected() {
-		testAssertErrorsLines(false, "undefined",
+		testAssertErrorsLines(false, "not visible",
 				"package A",
 				"	public class Blub",
 				"		protected function foo()",
@@ -140,7 +140,7 @@ public class PackageTests extends PscriptTest {
 	
 	@Test
 	public void test_import_class_private() {
-		testAssertErrorsLines(false, "undefined",
+		testAssertErrorsLines(false, "not visible",
 				"package A",
 				"	public class Blub",
 				"		private function foo()",
@@ -217,7 +217,7 @@ public class PackageTests extends PscriptTest {
 	
 	@Test
 	public void test_import_var_fail() {
-		testAssertErrorsLines(false, "Could not resolve",
+		testAssertErrorsLines(false, "not visible here",
 				"package A",
 				"	int x = 4",
 				"endpackage",

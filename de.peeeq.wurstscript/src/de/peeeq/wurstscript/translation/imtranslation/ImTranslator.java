@@ -71,6 +71,7 @@ import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WurstModel;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImCall;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprs;
@@ -624,14 +625,16 @@ public class ImTranslator {
 	/**
 	 * returns a list of classes and functions implementing funcDef
 	 */
-	public Map<ClassDef, FuncDef> getClassedWithImplementation(Collection<ClassDef> instances, FuncDef func) {
+	public Map<ClassDef, FuncDef> getClassesWithImplementation(Collection<ClassDef> instances, FuncDef func) {
 		if (func.attrIsPrivate()) {
 			// private functions cannot be overridden
 			return Collections.emptyMap();
 		}
 		Map<ClassDef, FuncDef> result = Maps.newHashMap();
 		for (ClassDef c : instances) {
-			for (NameDef nameDef : c.attrVisibleNamesPrivate().get(func.getName())) {
+			for (NameLink nameLink : c.attrNameLinks().get(func.getName())) {
+				NameDef nameDef = nameLink.getNameDef();
+				// TODO FIXME XXX overloading stuff ...
 				if (nameDef instanceof FuncDef && nameDef.attrNearestClassDef() == c) {
 					FuncDef f = (FuncDef) nameDef;
 					result.put(c, f);

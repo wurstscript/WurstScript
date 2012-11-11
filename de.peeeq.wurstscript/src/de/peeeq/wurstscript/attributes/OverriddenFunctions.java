@@ -1,24 +1,18 @@
 package de.peeeq.wurstscript.attributes;
 
-import java.util.Collection;
-
-import com.google.common.collect.Lists;
-
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NativeFunc;
-import de.peeeq.wurstscript.ast.StructureDefOrModuleInstanciation;
+import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.WScope;
+import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.validation.WurstValidator;
 
 public class OverriddenFunctions {
 
-
-	public static Collection<FunctionDefinition> getOverriddenFunctions(FunctionDefinition f) {
-		return Lists.newArrayList();
-	}
 
 	public static FunctionDefinition getRealFuncDef(ExtensionFuncDef f) {
 		// extension functions cannot be overridden
@@ -46,11 +40,18 @@ public class OverriddenFunctions {
 	}
 
 	private static FunctionDefinition getRealFuncDef(FuncDef f, WScope scope) {
-		if (scope instanceof StructureDefOrModuleInstanciation) {
-			StructureDefOrModuleInstanciation c = (StructureDefOrModuleInstanciation) scope;
-			if (c.attrDefinedNames().containsKey(f.getName())) {
-				for (NameDef n : c.attrDefinedNames().get(f.getName())) {
-					if (n instanceof FunctionDefinition) {
+		if (scope instanceof StructureDef) {
+			StructureDef c = (StructureDef) scope;
+			
+			NameLink fNameLink = NameLink.create(f, f.attrNearestScope());
+			
+			if (c.attrNameLinks().containsKey(f.getName())) {
+				for (NameLink nl : c.attrNameLinks().get(f.getName())) {
+					NameDef n = nl.getNameDef();
+					if (nl.getLevel() == c.attrLevel()
+							&& n instanceof FunctionDefinition
+							&& WurstValidator.overrides(nl, fNameLink)
+							) {
 						return ((FunctionDefinition) n).attrRealFuncDef();
 					}
 				}

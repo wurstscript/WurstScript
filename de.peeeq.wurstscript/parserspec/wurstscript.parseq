@@ -59,6 +59,7 @@ TypeDef =
 	| TupleDef(WPos source, Modifiers modifiers, String name, WParameters parameters, OptTypeExpr returnTyp)
 	| TypeParamDef
 	| EnumDef(WPos source, Modifiers modifiers, String name, EnumMembers members )
+	| StructureDef
 	
 EnumMembers * EnumMember
 FuncDefs * FuncDef
@@ -111,7 +112,7 @@ WParameter(WPos source, Modifiers modifiers, TypeExpr typ, String name)
 	
 WStatements * WStatement
 	
-WStatement	= ActionStatement | ControlflowStatement | EndFunctionStatement(WPos source) | StartFunctionStatement(WPos source)
+WStatement = ActionStatement | ControlflowStatement | EndFunctionStatement(WPos source) | StartFunctionStatement(WPos source)
 
 ActionStatement = 
 	  StmtSkip(WPos source)
@@ -131,12 +132,16 @@ ControlflowStatement =
 CompoundStatement = 
 	  StmtIf(WPos source, Expr cond, WStatements thenBlock, WStatements elseBlock)
 	| SwitchStmt(WPos source, Expr expr, SwitchCases cases, SwitchDefaultCase switchDefault)
+	| WBlock(WPos source, WStatements body)
 	| LoopStatement
 
 LoopStatement = 
 	  StmtWhile(WPos source, Expr cond, WStatements body)
 	| StmtLoop(WPos source, WStatements body)
-	| StmtForRange(WPos source, LocalVarDef loopVar, Expr to, Expr step, WStatements body)
+	| LoopStatementWithVarDef
+	
+LoopStatementWithVarDef = 
+	  StmtForRange(WPos source, LocalVarDef loopVar, Expr to, Expr step, WStatements body)
 	| StmtForRangeDown(WPos source, LocalVarDef loopVar, Expr to, Expr step, WStatements body)
 	| StmtForIn(WPos source, LocalVarDef loopVar, Expr in, WStatements body)
 	| StmtForFrom(WPos source, LocalVarDef loopVar, Expr in, WStatements body)
@@ -240,6 +245,10 @@ WScope =
 	| FunctionDefinition
 	| FunctionLike 
 	| WurstModel
+	| WStatements
+	| LoopStatementWithVarDef
+	| WBlock
+	| WEntities
 
 PackageOrGlobal = WPackage | CompilationUnit	
 	
@@ -272,13 +281,12 @@ HasTypeArgs =  ExprNewObject | FunctionCall | ModuleUse | StmtCall | TypeExprSim
 
 ClassOrModule = ClassDef | ModuleDef
 
-StructureDef = ClassOrModule | InterfaceDef	
+StructureDef = ClassOrModuleOrModuleInstanciation | InterfaceDef	
 
 ClassOrModuleInstanciation = ClassDef | ModuleInstanciation
 ClassOrModuleOrModuleInstanciation = ClassOrModule | ClassOrModuleInstanciation
-StructureDefOrModuleInstanciation = ClassOrModuleOrModuleInstanciation | StructureDef
 
-NamedScope = WPackage | StructureDefOrModuleInstanciation | InterfaceDef | EnumDef
+NamedScope = WPackage | StructureDef | InterfaceDef | EnumDef
 
 
 // Jass types:
@@ -329,15 +337,13 @@ OptTypeExpr.attrTyp
 	returns de.peeeq.wurstscript.types.WurstType
 	implemented by de.peeeq.wurstscript.attributes.AttrTypeExprType.calculate
 
-
 Expr.attrTyp
 	returns de.peeeq.wurstscript.types.WurstType 
 	implemented by de.peeeq.wurstscript.attributes.AttrExprType.calculate
 
 Expr.attrExpectedTyp "try to guess what type is expected here"
-	returns de.peeeq.wurstscript.types.WurstType 
+	returns de.peeeq.wurstscript.types.WurstType
 	implemented by de.peeeq.wurstscript.attributes.AttrExprExpectedType.calculate
-
 
 FunctionCall.attrImplicitParameter
 	returns OptExpr
@@ -364,14 +370,18 @@ FunctionDefinition.attrIsDynamicClassMember
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.AttrIsClassMember.calculate
 
+FunctionDefinition.attrParameterTypesIncludingReceiver
+	returns java.util.List<de.peeeq.wurstscript.types.WurstType>
+	implemented by de.peeeq.wurstscript.attributes.AttrParameterTypes.parameterTypesIncludingReceiver
+
 FunctionDefinition.attrParameterTypes
 	returns java.util.List<de.peeeq.wurstscript.types.WurstType>
-	implemented by de.peeeq.wurstscript.attributes.AttrParameterTypes.calculate
+	implemented by de.peeeq.wurstscript.attributes.AttrParameterTypes.parameterTypes
 
-FunctionCall.attrParameterTypes
-	returns java.util.List<de.peeeq.wurstscript.types.WurstType>
-	implemented by de.peeeq.wurstscript.attributes.AttrParameterTypes.calculate
-	
+FunctionDefinition.attrReceiverType
+	returns de.peeeq.wurstscript.types.WurstType
+	implemented by de.peeeq.wurstscript.attributes.AttrParameterTypes.receiverType
+
 AstElement.attrIsDynamicContext
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.IsDynamicContext.calculate	
@@ -490,14 +500,14 @@ ModuleInstanciation.attrModuleOrigin
 	returns ModuleDef
 	implemented by de.peeeq.wurstscript.attributes.AttrModuleInstanciations.getModuleOrigin
 	
-ExprNull.attrIsClassNull
-	returns boolean
-	implemented by de.peeeq.wurstscript.attributes.AttrIsClassNull.calculate
-
 	
 StmtCall.attrFunctionSignature
 	returns de.peeeq.wurstscript.types.FunctionSignature
 	implemented by de.peeeq.wurstscript.attributes.AttrFunctionSignature.calculate
+	
+StmtCall.attrCallSignature
+	returns de.peeeq.wurstscript.types.CallSignature
+	implemented by de.peeeq.wurstscript.attributes.AttrCallSignature.calculate
 	
 AstElement.attrSource()
 	returns WPos
@@ -671,17 +681,21 @@ ExprBinary.attrFuncDef
 	implemented by de.peeeq.wurstscript.attributes.AttrFuncDef.calculate
 
 
-FunctionDefinition.attrOverriddenFunctions
-	returns java.util.Collection<FunctionDefinition>
-	implemented by de.peeeq.wurstscript.attributes.OverriddenFunctions.getOverriddenFunctions
-
 FunctionDefinition.attrRealFuncDef "returns the function definition which overrides this definition"
 	returns FunctionDefinition
 	implemented by de.peeeq.wurstscript.attributes.OverriddenFunctions.getRealFuncDef
 	
-StructureDefOrModuleInstanciation.attrAllFunctions
+StructureDef.attrAllFunctions
 	returns java.util.Map<String, FuncDef>
 	implemented by de.peeeq.wurstscript.attributes.AttrAllFunctions.calculate
+	
+StructureDef.attrLevel "returns the level in the hierarchy. no supertype -> level 1"
+	returns int
+	implemented by de.peeeq.wurstscript.attributes.Level.get
+	
+NameDef.createNameLink(WScope definedIn) "returns a namelink pointing to this NameDef"
+	returns de.peeeq.wurstscript.attributes.names.NameLink
+	implemented by de.peeeq.wurstscript.attributes.names.NameLink.create	
 	
 ModuleUse.attrModuleDef
 	returns ModuleDef
@@ -692,23 +706,92 @@ TypeRef.attrTypeDef
 	implemented by de.peeeq.wurstscript.attributes.AttrTypeDef.calculate
 	
 
-WPackage.attrExportedNames "get the exported names of a package"
-	returns  com.google.common.collect.Multimap<String, NameDef>
-	implemented by de.peeeq.wurstscript.attributes.Scopes.getExportedNames
+//WPackage.attrExportedNames "get the exported names of a package"
+//	returns  com.google.common.collect.Multimap<String, NameDef>
+//	implemented by de.peeeq.wurstscript.attributes.Scopes.getExportedNames
 
-WScope.attrDefinedNames "get the names defined in this scope"
-	returns com.google.common.collect.Multimap<String, NameDef>
-	implemented by de.peeeq.wurstscript.attributes.Scopes.getDefinedNames
+//WScope.attrDefinedNames "get the names defined in this scope"
+//	returns com.google.common.collect.Multimap<String, NameDef>
+//	implemented by de.peeeq.wurstscript.attributes.Scopes.getDefinedNames
 
-WScope.attrVisibleNamesPrivate ""
-	returns com.google.common.collect.Multimap<String, NameDef>
-	implemented by de.peeeq.wurstscript.attributes.Scopes.getVisibleNamesPrivate
+//WScope.attrVisibleNamesPrivate ""
+//	returns com.google.common.collect.Multimap<String, NameDef>
+//	implemented by de.peeeq.wurstscript.attributes.Scopes.getVisibleNamesPrivate
 
-WScope.attrVisibleNamesProtected
-	returns com.google.common.collect.Multimap<String, NameDef>
-	implemented by de.peeeq.wurstscript.attributes.Scopes.getVisibleNamesProtected
+//WScope.attrVisibleNamesProtected
+//	returns com.google.common.collect.Multimap<String, NameDef>
+//	implemented by de.peeeq.wurstscript.attributes.Scopes.getVisibleNamesProtected
 
-WScope.attrVisibleNamesPublic
-	returns com.google.common.collect.Multimap<String, NameDef>
-	implemented by de.peeeq.wurstscript.attributes.Scopes.getVisibleNamesPublic
+//WScope.attrVisibleNamesPublic
+//	returns com.google.common.collect.Multimap<String, NameDef>
+//	implemented by de.peeeq.wurstscript.attributes.Scopes.getVisibleNamesPublic
 	
+WScope.attrNameLinks "returns a map of all the names visible in this scope."
+	returns com.google.common.collect.Multimap<String, de.peeeq.wurstscript.attributes.names.NameLink>
+	implemented by de.peeeq.wurstscript.attributes.names.NameLinks.calculate
+
+WScope.attrTypeNameLinks "returns a map of all the names visible in this scope."
+	returns com.google.common.collect.Multimap<String, de.peeeq.wurstscript.attributes.names.NameLink>
+	implemented by de.peeeq.wurstscript.attributes.names.TypeNameLinks.calculate	
+
+WPackage.attrExportedNameLinks
+	returns com.google.common.collect.Multimap<String, de.peeeq.wurstscript.attributes.names.NameLink>
+	implemented by de.peeeq.wurstscript.attributes.names.Exports.exportedNameLinks
+
+WPackage.attrExportedTypeNameLinks
+	returns com.google.common.collect.Multimap<String, de.peeeq.wurstscript.attributes.names.NameLink>
+	implemented by de.peeeq.wurstscript.attributes.names.Exports.exportedTypeNameLinks
+	
+	
+AstElement.lookupType(String name, boolean showErrors)
+	returns TypeDef
+	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupType
+	
+AstElement.lookupPackage(String name, boolean showErrors)
+	returns WPackage
+	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupPackage
+	
+AstElement.lookupVar(String name, boolean showErrors)
+	returns NameDef
+	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupVar
+	
+AstElement.lookupMemberVar(de.peeeq.wurstscript.types.WurstType receiverType, String name, boolean showErrors)
+	returns NameDef
+	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberVar
+	
+AstElement.lookupFuncs(String name, boolean showErrors)
+	returns java.util.Collection<de.peeeq.wurstscript.attributes.names.NameLink>
+	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupFuncs
+	
+AstElement.lookupMemberFuncs(de.peeeq.wurstscript.types.WurstType receiverType, String name, boolean showErrors)
+	returns java.util.Collection<de.peeeq.wurstscript.attributes.names.NameLink>
+	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberFuncs
+
+	
+AstElement.lookupType(String name)
+	returns TypeDef
+	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupTypeShort
+	
+AstElement.lookupPackage(String name)
+	returns WPackage
+	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupPackageShort
+	
+AstElement.lookupVar(String name)
+	returns NameDef
+	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupVarShort
+	
+AstElement.lookupMemberVar(de.peeeq.wurstscript.types.WurstType receiverType, String name)
+	returns NameDef
+	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberVarShort
+	
+AstElement.lookupFuncs(String name)
+	returns java.util.Collection<de.peeeq.wurstscript.attributes.names.NameLink>
+	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupFuncsShort
+	
+AstElement.lookupMemberFuncs(de.peeeq.wurstscript.types.WurstType receiverType, String name)
+	returns java.util.Collection<de.peeeq.wurstscript.attributes.names.NameLink>
+	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberFuncsShort
+	
+TypeParamDefs.attrTypes()
+	returns java.util.List<de.peeeq.wurstscript.types.WurstType>
+	implemented by de.peeeq.wurstscript.attributes.TypeParamTypes.calculte

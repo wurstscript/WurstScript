@@ -39,37 +39,7 @@ public class AttrTypeDef {
 		if (nativeType != null) {
 			return null; // native types have no definitionPos
 		}
-
-//		List<TypeDef> typeDefs = NameResolution.searchTypedName(TypeDef.class, typeName, node);
-//		if (typeDefs.size() == 0) {
-//			attr.addError(node.getSource(), "Could not find TypeDef for " + typeName);
-//			return null;
-//		} else {
-//			return typeDefs.get(0);
-//		}
-		// TODO ambiguous type decls
-		
-		Set<WScope> ignoredScopes = Sets.newHashSet();
-		if (node.attrNearestClassDef() != null) {
-			ignoredScopes.add(node.attrNearestClassDef());
-			
-		}
-		List<NameDef> typeDefs = NameResolution.searchTypedName(NameDef.class, typeName, node, false, ignoredScopes);
-		
-		if (typeDefs.size() == 0) {
-			node.addError("Could not find TypeDef for " + typeName);
-			return null;
-		} else {
-			NameDef def = typeDefs.get(0);
-			if (def instanceof TypeDef) {
-				return (TypeDef) def;
-			} else {
-				node.addError("The type name '" + typeName + "' refers to the element '" +
-				Utils.printElement(def) + "' which is not a type definition.");
-				return null;
-			}
-		}
-		
+		return node.lookupType(typeName);
 	}
 
 	private static String getTypeName(TypeRef node) {

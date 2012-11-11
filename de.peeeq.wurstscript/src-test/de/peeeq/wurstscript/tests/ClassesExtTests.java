@@ -129,7 +129,7 @@ public class ClassesExtTests extends PscriptTest {
 	
 	@Test
 	public void privateVar() {
-		testAssertErrorsLines(false, "Could not resolve reference", 
+		testAssertErrorsLines(false, "not visible here", 
 				"package test",
 				"	native testSuccess()",
 				"	class C",
@@ -143,7 +143,7 @@ public class ClassesExtTests extends PscriptTest {
 	
 	@Test
 	public void privateFunc() {
-		testAssertErrorsLines(false, "Could not resolve reference", 
+		testAssertErrorsLines(false, "not visible", 
 				"package test",
 				"	native testSuccess()",
 				"	class C",
@@ -347,6 +347,74 @@ public class ClassesExtTests extends PscriptTest {
 			);
 	}
 	
+	
+	@Test
+	public void ondestroy_dynamicdispatch4() {
+		testAssertOkLines(true,  
+				"package test",
+				"	native testSuccess()",
+				"	int x = 2",
+				"	class B",
+				"		ondestroy",
+				"			x *= 2",
+				"	class A extends B",
+				"		ondestroy",
+				"			x += 1",
+				"	class X extends A",
+				"	init",
+				"		A a = new X()",
+				"		destroy a",
+				"		if x == 6",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void ondestroy_dynamicdispatch5() {
+		testAssertOkLines(true,  
+				"package test",
+				"	native testSuccess()",
+				"	int x = 2",
+				"	class B",
+				"		ondestroy",
+				"			x *= 2",
+				"	class A extends B",
+				"		ondestroy",
+				"			x += 1",
+				"	class X extends A",
+				"	init",
+				"		X a = new X()",
+				"		destroy a",
+				"		if x == 6",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void ondestroy_withVar() {
+		testAssertOkLines(true,  
+				"package test",
+				"	native testSuccess()",
+				"	int x = 2",
+				"	class B",
+				"		ondestroy",
+				"			let y = 2",
+				"			x *= y",
+				"	class A extends B",
+				"		ondestroy",
+				"			let z = 1",
+				"			x += z",
+				"	class X extends A",
+				"	init",
+				"		X a = new X()",
+				"		destroy a",
+				"		if x == 6",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
 	
 	@Test
 	public void ondestroyUsingThis() {

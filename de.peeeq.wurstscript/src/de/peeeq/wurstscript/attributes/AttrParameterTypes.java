@@ -23,63 +23,41 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class AttrParameterTypes {
 
-	public static List<WurstType> calculate(ExtensionFuncDef f) {
+	public static List<WurstType> parameterTypesIncludingReceiver(FunctionDefinition f) {
 		List<WurstType> result = Lists.newArrayList();
-		result.add(f.getExtendedType().attrTyp());
-		addParameterTypes(result, f.getParameters());
+		if (f.attrReceiverType() != null) {
+			result.add(f.attrReceiverType());
+		}
+		result.addAll(f.attrParameterTypes());
 		return result;
 	}
-
-	private static void addParameterTypes(List<WurstType> result, WParameters parameters) {
-		for (WParameter p : parameters) {
+	
+	public static List<WurstType> parameterTypes(FunctionDefinition f) {
+		List<WurstType> result = Lists.newArrayList();
+		for (WParameter p : f.getParameters()) {
 			result.add(p.attrTyp());
 		}
-		
+		return result;
 	}
 
-	public static List<WurstType> calculate(FuncDef f) {
-		List<WurstType> result = Lists.newArrayList();
+	public static WurstType receiverType(FuncDef f) {
 		if (f.attrIsDynamicClassMember()) {
 			NameDef n = (NameDef) f.attrNearestStructureDef();
-			result.add(n.attrTyp());
+			return n.attrTyp();
 		}
-		addParameterTypes(result, f.getParameters());
-		return result;
+		return null;
+	}
+	
+	public static WurstType receiverType(ExtensionFuncDef f) {
+		return f.getExtendedType().attrTyp();
 	}
 
-	public static List<WurstType> calculate(NativeFunc f) {
-		List<WurstType> result = Lists.newArrayList();
-		addParameterTypes(result, f.getParameters());
-		return result;
+	public static WurstType receiverType(TupleDef tupleDef) {
+		return null;
 	}
-
-	public static List<WurstType> calculate(ExprFunctionCall call) {
-		FunctionDefinition calledFunc = call.attrFuncDef();
-		if (calledFunc == null) {
-			return Collections.emptyList();
-		}
-		return calledFunc.attrParameterTypes();
+	
+	public static WurstType receiverType(NativeFunc f) {
+		return null;
 	}
-
-	public static List<WurstType> calculate(ExprMemberMethod call) {
-		FunctionDefinition calledFunc = call.attrFuncDef();
-		if (calledFunc == null) {
-			return Collections.emptyList();
-		}
-		List<WurstType> types = calledFunc.attrParameterTypes();
-		final Map<TypeParamDef, WurstType> typeParamMapping = call.getLeft().attrTyp().getTypeArgBinding();
-		return Utils.map(types, new Function<WurstType, WurstType>() {
-			@Override
-			public WurstType apply(WurstType input) {
-				return input.setTypeArgs(typeParamMapping);
-			}
-		});
-	}
-
-	public static List<WurstType> calculate(TupleDef tupleDef) {
-		List<WurstType> result = Lists.newArrayList();
-		addParameterTypes(result, tupleDef.getParameters());
-		return result;
-	}
-
+	
 }

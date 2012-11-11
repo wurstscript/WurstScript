@@ -1,10 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import com.google.common.collect.Lists;
 
@@ -64,9 +61,7 @@ import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.types.TypesHelper;
-import de.peeeq.wurstscript.types.WurstNativeType;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeArray;
 import de.peeeq.wurstscript.types.WurstTypeBool;
@@ -74,13 +69,14 @@ import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeCode;
 import de.peeeq.wurstscript.types.WurstTypeEnum;
-import de.peeeq.wurstscript.types.WurstTypeHandle;
 import de.peeeq.wurstscript.types.WurstTypeInt;
+import de.peeeq.wurstscript.types.WurstTypeIntLiteral;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.types.WurstTypeJassInt;
 import de.peeeq.wurstscript.types.WurstTypeModule;
 import de.peeeq.wurstscript.types.WurstTypeModuleInstanciation;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
+import de.peeeq.wurstscript.types.WurstTypeNull;
 import de.peeeq.wurstscript.types.WurstTypeReal;
 import de.peeeq.wurstscript.types.WurstTypeString;
 import de.peeeq.wurstscript.types.WurstTypeTuple;
@@ -103,10 +99,7 @@ public class AttrExprType {
 		if (Utils.isJassCode(term)) {
 			return WurstTypeJassInt.instance();
 		} else {
-			if (term.attrExpectedTyp() instanceof WurstTypeReal) {
-				return WurstTypeReal.instance();
-			}
-			return WurstTypeInt.instance();
+			return WurstTypeIntLiteral.instance();
 		}
 	}
 
@@ -172,11 +165,9 @@ public class AttrExprType {
 
 
 	private static WurstType getHandleType(AstElement node, String typeName) {
-		Set<WScope> ignoredScopes = Collections.emptySet();
-		//		Collection<NameDef> defs = term.attrCompilationUnit().attrDefinedNames().get(typeName);
-		List<NameDef> defs = NameResolution.searchTypedName(NameDef.class, typeName, node, false, ignoredScopes);
-		if (defs.size() > 0) {
-			return Utils.getFirst(defs).attrTyp();
+		TypeDef def = node.lookupType(typeName);
+		if (def != null) {
+			return def.attrTyp();
 		} else {
 			return WurstTypeUnknown.instance();
 		}
@@ -228,13 +219,14 @@ public class AttrExprType {
 
 				@Override	
 				public WurstType case_ClassDef(ClassDef classDef) {
-					
-					return classDef.attrTyp().dynamic();
+					WurstTypeClass result = (WurstTypeClass) classDef.attrTyp().dynamic();
+					return result.replaceTypeVars(classDef.getTypeParameters().attrTypes());
 				}
 
 				@Override
 				public WurstType case_ModuleInstanciation(ModuleInstanciation moduleInstanciation) {
-					return new WurstTypeModuleInstanciation(moduleInstanciation, false);
+					ClassOrModule parent = moduleInstanciation.attrNearestClassOrModule();
+					return parent.attrTyp().dynamic();
 				}
 
 				@Override
@@ -245,7 +237,8 @@ public class AttrExprType {
 
 				@Override
 				public WurstType case_InterfaceDef(InterfaceDef interfaceDef) {
-					return  interfaceDef.attrTyp().dynamic();
+					WurstTypeInterface result = (WurstTypeInterface) interfaceDef.attrTyp().dynamic();
+					return result.replaceTypeVars(interfaceDef.getTypeParameters().attrTypes());
 				}
 
 				@Override
@@ -321,8 +314,8 @@ public class AttrExprType {
 				}
 
 				if (Utils.isJassCode(term)) {
-					if (leftType instanceof WurstTypeReal || leftType instanceof WurstTypeInt) {
-						if (rightType instanceof WurstTypeReal || rightType instanceof WurstTypeInt) {
+					if (leftType.isSubtypeOf(WurstTypeReal.instance(), term) || leftType.isSubtypeOf(WurstTypeInt.instance(), term)) {
+						if (rightType.isSubtypeOf(WurstTypeReal.instance(), term) || rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
 							return  WurstTypeBool.instance();									
 						}
 					}
@@ -367,23 +360,20 @@ public class AttrExprType {
 			}
 
 			private WurstType caseCompare() {
-				if (!(leftType instanceof WurstTypeInt
-						|| leftType instanceof WurstTypeReal)) {
+				if (!(leftType.isSubtypeOf(WurstTypeInt.instance(), term)
+						|| leftType.isSubtypeOf(WurstTypeReal.instance(), term))) {
 					term.getLeft().addError("Can not compare with value of type " + leftType);
 				}
-				if (!(rightType instanceof WurstTypeInt
-						|| rightType instanceof WurstTypeReal)) {
+				if (!(rightType.isSubtypeOf(WurstTypeInt.instance(), term)
+						|| rightType.isSubtypeOf(WurstTypeReal.instance(), term))) {
 					term.getRight().addError("Can not compare with value of type " + rightType);
 				}
 				return WurstTypeBool.instance();
 			}
 			
 			public boolean bothTypesRealOrInt() {
-				if ((leftType instanceof WurstTypeInt || leftType instanceof WurstTypeReal) && (rightType instanceof WurstTypeInt || rightType instanceof WurstTypeReal)) {
-					return true;
-				}
-				return false;
-				
+				return ((leftType.isSubtypeOf(WurstTypeInt.instance(), term) || leftType .isSubtypeOf(WurstTypeReal.instance(), term)) 
+						&& (rightType.isSubtypeOf(WurstTypeInt.instance(), term) || rightType.isSubtypeOf(WurstTypeReal.instance(), term)));
 			}
 
 			@Override
@@ -410,11 +400,11 @@ public class AttrExprType {
 			}
 
 			private WurstType caseMathOperation() {
-				if (leftType instanceof WurstTypeInt && rightType instanceof WurstTypeInt) {
-					return leftType;
+				if (leftType.isSubtypeOf(WurstTypeInt.instance(), term) && rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
+					return WurstTypeInt.instance();
 				}
-				if (leftType instanceof WurstTypeReal || leftType instanceof WurstTypeInt) {
-					if (rightType instanceof WurstTypeReal || rightType instanceof WurstTypeInt) {
+				if (leftType.isSubtypeOf(WurstTypeReal.instance(), term) || leftType.isSubtypeOf(WurstTypeInt.instance(), term)) {
+					if (rightType.isSubtypeOf(WurstTypeReal.instance(), term) || rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
 						return WurstTypeReal.instance();
 					}
 				}
@@ -460,8 +450,8 @@ public class AttrExprType {
 			@Override
 			public WurstType case_OpModReal(OpModReal op)
 			{
-				if (leftType instanceof WurstTypeReal || leftType instanceof WurstTypeInt) {
-					if (rightType instanceof WurstTypeReal || rightType instanceof WurstTypeInt) {
+				if (leftType.isSubtypeOf(WurstTypeReal.instance(), term) || leftType.isSubtypeOf(WurstTypeInt.instance(), term)) {
+					if (rightType.isSubtypeOf(WurstTypeReal.instance(), term) || rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
 						return WurstTypeReal.instance();
 					}
 				}
@@ -473,7 +463,7 @@ public class AttrExprType {
 			@Override
 			public WurstType case_OpModInt(OpModInt op)
 			{
-				if (leftType instanceof WurstTypeInt || rightType instanceof WurstTypeInt) {
+				if (leftType.isSubtypeOf(WurstTypeInt.instance(), term) || rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
 					return leftType;
 				}
 				term.addError("Operator " + term.getOp() +" is not defined for " +
@@ -484,7 +474,7 @@ public class AttrExprType {
 			@Override
 			public WurstType case_OpDivInt(OpDivInt op)
 			{
-				if (leftType instanceof WurstTypeInt && rightType instanceof WurstTypeInt) {
+				if (leftType.isSubtypeOf(WurstTypeInt.instance(), term) && rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
 					return leftType;
 				}
 				term.addError("Operator " + term.getOp() +" is not defined for " +
@@ -525,7 +515,7 @@ public class AttrExprType {
 
 			public WurstType case_OpMinus(OpMinus op)
 			{
-				if (rightType instanceof WurstTypeInt || rightType instanceof WurstTypeReal) { 
+				if (rightType.isSubtypeOf(WurstTypeInt.instance(), term) || rightType.isSubtypeOf(WurstTypeReal.instance(), term)) { 
 					return rightType;
 				}
 				term.addError("Expected Int or Real after Minus but found " + rightType);
@@ -667,39 +657,24 @@ public class AttrExprType {
 			}
 			return new WurstTypeClass(c, types, false);
 		} else {
-			term.addError("Can only create instances of classes.");
+			term.addError("Can only create instances of classes, but found " + Utils.printElement(typeDef) + ".");
 			return WurstTypeUnknown.instance();
 		}
 	}
 
 
 	public static  WurstType calculate(ExprNull term)  {
-		// null is a little bit tricky
-		// it will have the type which you expect it to have, ...
-		WurstType t = term.attrExpectedTyp();
-		if (t instanceof WurstTypeUnknown) {
-			term.addError("Could not determine type of null expression.");
-		}
-		// ... but of course not all types support null
-		if (!   (  t instanceof WurstTypeNamedScope
-				|| t instanceof WurstTypeHandle
-				|| t instanceof WurstTypeBoundTypeParam
-				|| t instanceof WurstTypeTypeParam
-				|| t instanceof WurstNativeType
-				|| t instanceof WurstTypeString
-				|| t instanceof WurstTypeCode)) {
-			term.addError("Null is not a valid value for " + t);
-		}
-		return t;
+		return WurstTypeNull.instance();
 	}
+	
 
 
 	public static  WurstType calculate(ExprCast term)  {
 		WurstType targetTyp = term.getTyp().attrTyp().dynamic();
 		WurstType exprTyp = term.getExpr().attrTyp();
-		if (targetTyp instanceof WurstTypeInt && isCastableToInt(exprTyp)) {
+		if (targetTyp.isSubtypeOf(WurstTypeInt.instance(), term) && isCastableToInt(exprTyp)) {
 			// cast from classtype to int: OK
-		} else if (isCastableToInt(targetTyp) && exprTyp instanceof WurstTypeInt) {
+		} else if (isCastableToInt(targetTyp) && exprTyp.isSubtypeOf(WurstTypeInt.instance(), term)) {
 			// cast from int to classtype: OK
 		} else {
 			checkCastOrInstanceOf(term, exprTyp, targetTyp, "cast expression");

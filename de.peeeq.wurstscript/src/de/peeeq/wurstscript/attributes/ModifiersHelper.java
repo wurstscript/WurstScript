@@ -3,7 +3,9 @@ package de.peeeq.wurstscript.attributes;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElementWithModifiers;
 import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.HasModifier;
+import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.ModAbstract;
 import de.peeeq.wurstscript.ast.ModConstant;
 import de.peeeq.wurstscript.ast.ModOverride;
@@ -42,6 +44,12 @@ public class ModifiersHelper {
 	}
 
 	public static boolean isAbstract(AstElementWithModifiers e) {
+		if (e instanceof FuncDef
+				&& e.attrNearestStructureDef() instanceof InterfaceDef) {
+			FuncDef f = (FuncDef) e;
+			// functions in interfaces are always abstract if they have no implementation ...
+			return f.attrHasEmptyBody();
+		}
 		return containsType(e.getModifiers(), ModAbstract.class);
 	}
 

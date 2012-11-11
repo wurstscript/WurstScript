@@ -65,8 +65,12 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
+import de.peeeq.wurstscript.types.WurstTypeClass;
+import de.peeeq.wurstscript.types.WurstTypeFreeTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeInt;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
+import de.peeeq.wurstscript.types.WurstTypeModuleInstanciation;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeReal;
 import de.peeeq.wurstscript.types.WurstTypeTuple;
@@ -86,8 +90,8 @@ public class ExprTranslation {
 			return JassIm.ImFunctionCall(e, calledFunc, ImExprs(left, right));
 		} 
 		if (op instanceof OpDivReal && !Utils.isJassCode(op)) {
-			if (e.getLeft().attrTyp() instanceof WurstTypeInt
-					&& e.getRight().attrTyp() instanceof WurstTypeInt) {
+			if (e.getLeft().attrTyp().isSubtypeOf(WurstTypeInt.instance(), e)
+					&& e.getRight().attrTyp().isSubtypeOf(WurstTypeInt.instance(), e)) {
 				// we want a real division but have 2 ints so we need to multiply with 1.0
 				left = ImOperatorCall(Ast.OpMult(), ImExprs(left, ImRealVal("1.")));
 			}
@@ -111,29 +115,39 @@ public class ExprTranslation {
 
 	public static ImExpr translate(ExprIntVal e, ImTranslator t, ImFunction f) {
 		if (e.attrExpectedTyp() instanceof WurstTypeReal) {
-			return ImRealVal(e.getValI() + ".");
+			// translate differently when real is expected
+			return ImRealVal(e.getValI()+".");
 		}
+		
 		return ImIntVal(e.getValI());
 	}
 
 	public static ImExpr translate(ExprNull e, ImTranslator t, ImFunction f) {
-		ImType imType = e.attrTyp().imTranslateType();
-		if (imType instanceof ImSimpleType) {
-			ImSimpleType st = (ImSimpleType) imType;
-			if (st.getTypename().equals(TypesHelper.imInt().getTypename())) {
-				return ImIntVal(0);
-			} else {
-				return ImNull();
-			}
-		} else if (imType instanceof ImTupleType) {
-			ImTupleType tt = (ImTupleType) imType;
-			ImExprs exprs = JassIm.ImExprs();
-			for (String $ : tt.getTypes()) {
-				exprs.add(ImIntVal(0));
-			}
-			return ImTupleExpr(exprs);
+		WurstType expectedType = e.attrExpectedTyp();
+		if (expectedType instanceof WurstTypeNamedScope
+				|| expectedType instanceof WurstTypeTypeParam
+				|| expectedType instanceof WurstTypeFreeTypeParam
+				|| expectedType instanceof WurstTypeBoundTypeParam) {
+			return ImIntVal(0);
 		}
-		throw new Error("unhandled case");
+		return ImNull();
+//		ImType imType = e.attrTyp().imTranslateType();
+//		if (imType instanceof ImSimpleType) {
+//			ImSimpleType st = (ImSimpleType) imType;
+//			if (st.getTypename().equals(TypesHelper.imInt().getTypename())) {
+//				return ImIntVal(0);
+//			} else {
+//				return ImNull();
+//			}
+//		} else if (imType instanceof ImTupleType) {
+//			ImTupleType tt = (ImTupleType) imType;
+//			ImExprs exprs = JassIm.ImExprs();
+//			for (String $ : tt.getTypes()) {
+//				exprs.add(ImIntVal(0));
+//			}
+//			return ImTupleExpr(exprs);
+//		}
+//		throw new Error("unhandled case");
 	}
 
 	public static ImExpr translate(ExprRealVal e, ImTranslator t, ImFunction f) {
@@ -156,11 +170,6 @@ public class ExprTranslation {
 
 	public static ImExpr translate(NameRef e, ImTranslator t, ImFunction f) {
 		return translateNameDef(e, t, f);
-	}
-
-	/** checks whether a interface type is expected for e */
-	private static boolean expectedInterfaceType(Expr e) {
-		return e.attrExpectedTyp() instanceof WurstTypeInterface || e.attrExpectedTyp() instanceof WurstTypeTypeParam;
 	}
 
 	private static ImExpr translateNameDef(NameRef e, ImTranslator t, ImFunction f) throws CompileError {
@@ -246,9 +255,26 @@ public class ExprTranslation {
 		}
 
 		FunctionDefinition calledFunc = e.attrFuncDef();
+		
+		// get real func def (override of module function)
+		boolean useRealFuncDef = true;
+		if (e instanceof ExprMemberMethod) {
+			ExprMemberMethod exprMemberMethod = (ExprMemberMethod) e;
+			WurstType left = exprMemberMethod.getLeft().attrTyp();
+			if (left instanceof WurstTypeModuleInstanciation) {
+				// if we have a call like A.foo() and A is a module,
+				// use this function
+				useRealFuncDef = false;
+			}
+		}
+		
 		if (calledFunc == null) {
 			// this must be an ignored function
 			return ImNull();
+		}
+		
+		if (useRealFuncDef) {
+			calledFunc = calledFunc.attrRealFuncDef();
 		}
 		
 		if (calledFunc == e.attrNearestFuncDef()) {
@@ -356,8 +382,6 @@ public class ExprTranslation {
 			return JassIm.ImStatementExpr(JassIm.ImStmts(evalExpr), condition);
 		}
 	}
-
-	
 
 	
 

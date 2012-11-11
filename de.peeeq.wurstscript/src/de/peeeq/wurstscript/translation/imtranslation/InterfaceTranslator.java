@@ -50,7 +50,7 @@ public class InterfaceTranslator {
 	private void translateInterfaceFuncDef(InterfaceDef interfaceDef, List<ClassDef> instances, FuncDef funcDef) {
 		AstElement trace = funcDef;
 		ImFunction f = translator.getDynamicDispatchFuncFor(funcDef);
-		Map<ClassDef, FuncDef> instances2 = translator.getClassedWithImplementation(instances, funcDef);
+		Map<ClassDef, FuncDef> instances2 = translator.getClassesWithImplementation(instances, funcDef);
 		if (instances2.size() > 0) {
 			int maxTypeId = translator.getMaxTypeId(instances);
 			f.getBody().addAll(translator.createDispatch(instances2, funcDef, f, maxTypeId, new TypeIdGetterImpl()));

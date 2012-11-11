@@ -12,6 +12,7 @@ import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.JassGlobalBlock;
 import de.peeeq.wurstscript.ast.ModuleDef;
+import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.TupleDef;
@@ -137,6 +138,10 @@ public class TLDTranslation {
 	public static void translate(EnumDef enumDef, ImTranslator translator) {
 		// nothing to do
 		
+	}
+
+	public static void translate(ModuleInstanciation moduleInstanciation, ImTranslator translator) {
+		// nothing to do?
 	}
 
 }

@@ -344,7 +344,7 @@ public class InterfaceTests extends PscriptTest {
 	
 	@Test
 	public void missing_method() {
-		testAssertErrorsLines(false, "must implement the function foo", 
+		testAssertErrorsLines(false, "implement", 
 				"package test",
 				"	native testSuccess()",
 				"	interface I",
@@ -359,7 +359,7 @@ public class InterfaceTests extends PscriptTest {
 	
 	@Test
 	public void wrong_method() {
-		testAssertErrorsLines(false, "not implement interface", 
+		testAssertErrorsLines(false, "implement", 
 				"package test",
 				"	native testSuccess()",
 				"	interface I",

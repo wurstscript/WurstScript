@@ -35,6 +35,7 @@ import de.peeeq.wurstscript.ast.OpEquals;
 import de.peeeq.wurstscript.ast.OptExpr;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.jassAst.JassAst;
+import de.peeeq.wurstscript.jassIm.ImCall;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
@@ -92,14 +93,16 @@ public class ClassTranslator {
 		translateMethods(classDef, subClasses);
 		translateVars(classDef);
 		translateConstructors();
+		createOnDestroyMethod();
 		createDestroyMethod();
 
 	}
 
+
 	private void createDestroyMethod() {
 		ImFunction f = translator.getDestroyFuncFor(classDef);
 		OnDestroyDef trace = classDef.getOnDestroy();
-		ImVar thisVar = translator.getThisVar(trace);
+		ImVar thisVar = ImVar(JassIm.ImSimpleType("integer"), "this", false);
 		f.getParameters().add(thisVar);
 		
 		ImStmts addTo = f.getBody();
@@ -113,11 +116,19 @@ public class ClassTranslator {
 						ImExprs(ImVarArrayAccess(m.typeId, ImVarAccess(thisVar)), 
 								ImIntVal(translator.getTypeId(sc)))), 
 					thenBlock, elseBlock));
-			addOnDestroyActions(f, thenBlock, sc, thisVar);
+			
+			ImFunction scOnDestroy = translator.getFuncFor(sc.getOnDestroy());
+			translator.addCallRelation(f, scOnDestroy);
+			thenBlock.add(ImFunctionCall(trace, 
+					scOnDestroy, 
+					ImExprs(ImVarAccess(thisVar))));
 			addTo = elseBlock;
 		}
-		
-		addOnDestroyActions(f, addTo, classDef, thisVar);
+		ImFunction onDestroy = translator.getFuncFor(classDef.getOnDestroy());
+		translator.addCallRelation(f, onDestroy);
+		addTo.add(ImFunctionCall(trace, 
+				onDestroy, 
+				ImExprs(ImVarAccess(thisVar))));
 		addDeallocateCode(f, thisVar);	
 	}
 
@@ -156,11 +167,19 @@ public class ClassTranslator {
 		
 	}
 
+	private void createOnDestroyMethod() {
+		OnDestroyDef onDestroy = classDef.getOnDestroy();
+		ImFunction f = translator.getFuncFor(onDestroy);
+		addOnDestroyActions(f, f.getBody(), classDef, translator.getThisVar(onDestroy));
+	}
+	
 	private void addOnDestroyActions(ImFunction f, List<ImStmt> addTo, ClassOrModuleInstanciation c, ImVar thisVar) { 
+		// translate ondestroy statements
 		List<ImStmt> stmts = translator.translateStatements(f, c.getOnDestroy().getBody());
 		replaceThisExpr(stmts, translator.getThisVar(c.getOnDestroy()), thisVar);
 		addTo.addAll(stmts);
 		
+		// add onDestroy actions from modules
 		for (ModuleInstanciation mi : c.getModuleInstanciations()) {
 			addOnDestroyActions(f, addTo, mi, thisVar);
 		}
@@ -168,7 +187,12 @@ public class ClassTranslator {
 		if (c instanceof ClassDef) {
 			ClassDef cd = (ClassDef) c;
 			if (cd.attrExtendedClass() != null) {
-				addOnDestroyActions(f, addTo, cd.attrExtendedClass(), thisVar);
+				// call onDestroy of super class
+				ImFunction onDestroy = translator.getFuncFor(cd.attrExtendedClass().getOnDestroy());
+				translator.addCallRelation(f, onDestroy);
+				addTo.add(ImFunctionCall(c, 
+						onDestroy, 
+						ImExprs(ImVarAccess(thisVar))));
 			}
 		}
 	}
@@ -301,7 +325,7 @@ public class ClassTranslator {
 								));
 		}
 		
-		Map<ClassDef, FuncDef> subClasses2 = translator.getClassedWithImplementation(subClasses, funcDef);
+		Map<ClassDef, FuncDef> subClasses2 = translator.getClassesWithImplementation(subClasses, funcDef);
 		if (subClasses2.size() > 0) {
 			int maxTypeId = translator.getMaxTypeId(subClasses);
 			f.getBody().addAll(translator.createDispatch(subClasses2, funcDef, f, maxTypeId, new TypeIdGetterImpl()));

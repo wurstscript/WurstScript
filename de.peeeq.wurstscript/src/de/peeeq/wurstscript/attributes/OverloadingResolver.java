@@ -81,8 +81,8 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 				}
 			
 			}), "\n * ");
-			handleError(Utils.list("call is ambigious, there are several alternatives: \n * " + alts));
-			// call is ambigious but we just choose the first method and continue:
+			handleError(Utils.list("call is ambiguous, there are several alternatives: \n * " + alts));
+			// call is ambiguous but we just choose the first method and continue:
 			return results.get(0);
 		}
 	}

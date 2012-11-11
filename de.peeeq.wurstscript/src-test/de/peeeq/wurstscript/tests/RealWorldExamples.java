@@ -30,17 +30,17 @@ public class RealWorldExamples extends PscriptTest {
 	public void testCyclic() throws IOException {
 		super.testAssertErrorFileWithStdLib(new File(BUG_DIR + "cyclic.wurst"), "cyclic dependency", true);
 	}
-	
-	@Test
-	public void testLists() throws IOException {
-		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "ListsTest.wurst"), true);
-	}
+
+//	@Test
+//	public void testLists() throws IOException {
+//		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "ListsTest.wurst"), true);
+//	}
 
 	
-	@Test
-	public void testVecs() throws IOException {
-		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "VecTest.wurst"), true);
-	}
+//	@Test
+//	public void testVecs() throws IOException {
+//		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "VecTest.wurst"), true);
+//	}
 	
 	@Test
 	public void setNullTests() throws IOException {
