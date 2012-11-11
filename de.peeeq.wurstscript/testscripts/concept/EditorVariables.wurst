@@ -1,0 +1,10 @@
+package EditorVariablesTest
+
+init
+	rect r = gg_rct_Region_000
+	sound s = gg_snd_QuestFailed
+	camerasetup cs = gg_cam_Camera_000
+	trigger t = gg_trg_Untitled_Trigger_000
+	unit u = gg_unit_n000_0000
+	destructable d = gg_dest_BTtw_0000
+	item itm = gg_item_I00A_0000

@@ -43,6 +43,11 @@ public class RealWorldExamples extends PscriptTest {
 	}
 	
 	@Test
+	public void testEditorVars() throws IOException {
+		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "EditorVariables.wurst"), false);
+	}
+	
+	@Test
 	public void setNullTests() throws IOException {
 		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "SetNullTests.pscript"), false);
 	}
