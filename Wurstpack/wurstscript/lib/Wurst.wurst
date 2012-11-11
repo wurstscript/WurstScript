@@ -1,6 +1,7 @@
 // This is the package which is imported into any other package ...
 package Wurst
 
+	import public Group
     import public Real
     import public Integer
     import public PrintingHelper
