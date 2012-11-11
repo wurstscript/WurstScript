@@ -13,6 +13,7 @@ public function unit.registerCastEvent( conditionfunc c )
 	casters[count] = this
 	count++
 	
+	
 public function unit.unregisterCastEvent()
 	for i = 0 to count
 		if casters[i] == this
@@ -32,7 +33,6 @@ function evaluateEvent() returns boolean
 			evalTrig.addCondition(conds[i])
 			evalTrig.evaluate()
 			evalTrig.clearConditions()
-			break
 	return false
 
 init
