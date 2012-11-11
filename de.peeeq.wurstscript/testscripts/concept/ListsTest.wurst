@@ -5,55 +5,15 @@ package Collections
 	native testFail(string msg)
 	native println(string msg)
 	
-	string history = ""
+	class UnitNode
+		unit u
 	
-	interface Closeable
-		function close()
-		function open()
-	
-	class Gate implements Closeable
-		function close()
-			history += ",close_gate"
-		function open()
-			history += ",open_gate"
-			
-	class Door implements Closeable
-		function close()
-			history += ",close_door"
-		function open()
-			history += ",open_door"
-			
-	class Chest implements Closeable
-		function close()
-			history += ",close_chest"
-		function open()
-			history += ",open_chest"
-	
+	LinkedList<UnitNode> units = new LinkedList<UnitNode>()
 	
 	init
-		Gate gate = new Gate()
-		Door door = new Door()
-		Chest chest = new Chest()
-		// create a new list
-		LinkedList<Closeable> closeables = new LinkedList<Closeable>()
-		// add the different items to the list
-		closeables.add(gate)
-		closeables.add(door)
-		closeables.add(chest)
-		// now close everything in the list
-		for Closeable c1 in closeables
-			c1.close()
-		// and open everything aggain (but not the chest, as we want to keep our treasure)
-		//closeables.remove(chest) // remove the chest from the list
-		let iterator = closeables.iterator()
-		for Closeable c3 from iterator
-			if c3 == chest
-				iterator.remove()
-		for Closeable c2 in closeables
-			c2.open()
-		println(history)
-		if history == ",close_gate,close_door,close_chest,open_gate,open_door"
-			testSuccess()
+		for n in units
+			print("blub")
+	
 		
 
 endpackage

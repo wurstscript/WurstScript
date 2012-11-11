@@ -113,5 +113,7 @@ package Unit
 		UnitApplyTimedLife( this, 'BTLF', time )
 		return this
 
+	public function unit.getname() returns string
+		return GetUnitName(this)
 
 endpackage
