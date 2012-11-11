@@ -129,7 +129,7 @@ public class PscriptTest {
 		try { 
 			testScript(file.getAbsolutePath(), reader, file.getName(), executeProg, true);
 		} catch (CompileError e) {
-			Assert.assertTrue(e.getMessage(), e.getMessage().contains(errorMessage));
+			Assert.assertTrue(e.toString(), e.getMessage().contains(errorMessage));
 		}
 		reader.close();
 	}
