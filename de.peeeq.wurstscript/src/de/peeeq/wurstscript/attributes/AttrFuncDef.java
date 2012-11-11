@@ -224,13 +224,10 @@ public class AttrFuncDef {
 		}
 
 
-		// TODO determine the function with the most precise type (or should I skip this step?)
-		// I mean, why would anybody want to do something like that??
-
 		
 		node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n " 
 					+ Utils.printAlternatives(funcs4));
-		return funcs3.get(0);
+		return funcs4.get(0);
 
 	}
 
@@ -297,14 +294,24 @@ public class AttrFuncDef {
 			return funcs4.get(0);
 		}
 
-		// TODO filter out methods for which the arguments have wrong types
+		// filter out methods for which the arguments have wrong types
+		List<FunctionDefinition> funcs5 = Lists.newArrayListWithCapacity(funcs3.size());
+		nextFunc: for (FunctionDefinition f : funcs3) {
+			for (int i=0; i<argumentTypes.size(); i++) {
+				if (!argumentTypes.get(i).isSubtypeOf(f.getParameters().get(i).attrTyp(), node)) {
+					continue nextFunc;
+				}
+			}
+			funcs5.add(f);
+		}
+		if (funcs5.size() == 0) {
+			return funcs4.get(0);
+		} else if (funcs5.size() == 1) {
+			return funcs5.get(0);
+		}
 
-
-		// TODO determine the function with the most precise type (or should I skip this step?)
-		// I mean, why would anybody want to do something like that??
-
-		node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n" + Utils.printAlternatives(funcs3));
-		return funcs3.get(0);
+		node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n" + Utils.printAlternatives(funcs5));
+		return funcs5.get(0);
 	}
 
 	private static FunctionDefinition firstFunc(Collection<NameLink> funcs1) {
