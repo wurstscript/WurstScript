@@ -162,7 +162,11 @@ public class AttrExprType {
 		if (varDef instanceof FunctionDefinition) {
 			term.addError("Missing parantheses for function call");
 		}
-		return varDef.attrTyp();
+		WurstType typ = varDef.attrTyp();
+		if (typ instanceof WurstTypeJassInt && !Utils.isJassCode(term)) {
+			return WurstTypeInt.instance();
+		}
+		return typ;
 	}
 
 
@@ -184,7 +188,11 @@ public class AttrExprType {
 
 		WurstType varDefType = varDef.attrTyp().dynamic();
 		if (varDefType instanceof WurstTypeArray) {
-			return ((WurstTypeArray) varDefType).getBaseType();
+			WurstType typ = ((WurstTypeArray) varDefType).getBaseType();
+			if (typ instanceof WurstTypeJassInt && !Utils.isJassCode(term)) {
+				return WurstTypeInt.instance();
+			}
+			return typ;
 		} else {
 			term.addError("Variable " + varDef.getName() + " is no array variable.");
 		}
@@ -636,6 +644,8 @@ public class AttrExprType {
 			if (term.attrTypeParameterBindings().containsKey(typParam.getDef())) {
 				return term.attrTypeParameterBindings().get(typParam.getDef());
 			}
+		} else if (typ instanceof WurstTypeJassInt && !Utils.isJassCode(term)) {
+			return WurstTypeInt.instance();
 		}
 		return typ;
 	}

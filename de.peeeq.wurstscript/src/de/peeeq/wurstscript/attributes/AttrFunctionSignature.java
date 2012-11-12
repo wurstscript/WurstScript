@@ -35,6 +35,9 @@ public class AttrFunctionSignature {
 
 	public static FunctionSignature calculate(ExprNewObject fc) {
 		ConstructorDef f = fc.attrConstructorDef();
+		if (f == null) {
+			return FunctionSignature.empty;
+		}
 		WurstType returnType = fc.attrTyp();
 		Map<TypeParamDef, WurstType> binding2 = fc.attrTypeParameterBindings();
 		List<WurstType> paramTypes = Lists.newArrayList();

@@ -1044,7 +1044,6 @@ public class WurstValidator {
 	public void nameDefsMustNotBeNamedAfterJassNativeTypes(NameDef n) {
 		PackageOrGlobal p = n.attrNearestPackage();
 		if (p == null) {
-			System.out.println("...");
 			n.addError("Not in package or global: " + n.getName());
 			return;
 		}
@@ -1245,15 +1244,11 @@ public class WurstValidator {
 					continue;
 				}
 				if (overrides(link1, link2)) {
-					System.out.println(link1 + " overrides " + link2);
 					overridesMap.put(link1, link2);
-				} else {
-					System.out.println(link1 + " does not override " + link2);
 				}
 				
 			}
 		}
-		System.out.println("overrides = " + overridesMap );
 		return overridesMap;
 	}
 
@@ -1262,7 +1257,6 @@ public class WurstValidator {
 	 */
 	public static boolean overrides(NameLink func1, NameLink func2) {
 		if (func1.getParameterTypes().size() != func2.getParameterTypes().size()) {
-			System.out.println("paramcount");
 			return false;
 		}
 		
@@ -1271,16 +1265,13 @@ public class WurstValidator {
 			if (!func1.getParameterTypes().get(i)
 					.isSupertypeOf(
 							func2.getParameterTypes().get(i), func1.getNameDef())) {
-				System.out.println("param not super " + i);
 				return false;
 			}
 		}
 		// covariant return types
 		if (!func1.getReturnType().isSubtypeOf(func2.getReturnType(), func1.getNameDef())) {
-			System.out.println("returntype not sub");
 			return false;
 		}
-		System.out.println("true");
 		return true;
 	}
 
