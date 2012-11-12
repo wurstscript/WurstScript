@@ -5,7 +5,9 @@ package ListTest
 	native testFail(string msg)
 	native println(string msg)
 	
-	class UnitNode
+	class Node
+	
+	class UnitNode extends Node
 		unit u
 	
 	LinkedList<UnitNode> units = new LinkedList<UnitNode>()

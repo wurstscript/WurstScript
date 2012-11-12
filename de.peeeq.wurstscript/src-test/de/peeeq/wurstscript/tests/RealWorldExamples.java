@@ -33,7 +33,7 @@ public class RealWorldExamples extends PscriptTest {
 
 	@Test
 	public void testLists() throws IOException {
-		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "ListsTest.wurst"), true);
+		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "ListsTest.wurst"), false);
 	}
 
 	
