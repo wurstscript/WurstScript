@@ -177,6 +177,8 @@ public class AttrFuncDef {
 		try {
 			// filter out the methods which are private somewhere else
 			List<NameLink> funcs = filterInvisible(funcName, node, funcs1);
+			
+			funcs = filterByReceiverType(node, funcName, funcs);
 	
 			funcs = filterByParameters(node, argumentTypes, funcs);
 	
@@ -283,17 +285,20 @@ public class AttrFuncDef {
 	
 
 
-	private static List<NameLink> filterByReceiverType(Expr node,
+	private static List<NameLink> filterByReceiverType(AstElement node,
 			String funcName, List<NameLink> funcs2) throws EarlyReturn {
 		List<NameLink> funcs3 = Lists.newArrayListWithCapacity(funcs2.size());
 		for (NameLink f : funcs2) {
 			boolean existsMoreSpecific = false;
-			for (NameLink g : funcs2) {
-				if (f != g) {
-					if (g.getReceiverType().isSubtypeOf(f.getReceiverType(), node)
-						&& !g.getReceiverType().equalsType(f.getReceiverType(), node)) {
-						existsMoreSpecific = true;
-						break;
+			if (f.getReceiverType() != null) {
+				for (NameLink g : funcs2) {
+					if (f != g) {
+						if (g.getReceiverType() != null
+							&&  g.getReceiverType().isSubtypeOf(f.getReceiverType(), node)
+							&& !g.getReceiverType().equalsType(f.getReceiverType(), node)) {
+							existsMoreSpecific = true;
+							break;
+						}
 					}
 				}
 			}
