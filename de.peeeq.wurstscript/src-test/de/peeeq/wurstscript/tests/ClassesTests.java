@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.jassinterpreter.DebugPrintError;
 public class ClassesTests extends PscriptTest {
 	
 	private static final String TEST_DIR = "./testscripts/valid/classes/";
+	private static final String TEST_DIR2 = "./testscripts/concept/";
 
 	@Test
 	public void classes1() throws IOException {
@@ -20,6 +21,11 @@ public class ClassesTests extends PscriptTest {
 	@Test
 	public void classes_construct() throws IOException {
 		testAssertOkFile(new File(TEST_DIR + "Classes_construct.pscript"), true);
+	}
+	
+	@Test
+	public void OverrideClass() throws IOException {
+		testAssertOkFile(new File(TEST_DIR2 + "OverrideTest.wurst"), false);
 	}
 
 	@Test

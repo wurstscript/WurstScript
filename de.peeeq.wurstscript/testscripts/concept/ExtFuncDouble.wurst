@@ -1,0 +1,5 @@
+package ExtFunc
+
+init
+	unit u = null
+	print(GetUnitTypeId(u).toString())

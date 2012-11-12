@@ -1,0 +1,15 @@
+package OverrideTest
+
+	
+class A
+	
+	function doSomething()
+
+		
+class B extends A
+	
+	override function doSomething()
+
+		
+	function doMore()
+		doSomething()

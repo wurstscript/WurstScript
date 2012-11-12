@@ -1,4 +1,4 @@
-package Collections
+package ListTest
 	import LinkedList
 	
 	native testSuccess()

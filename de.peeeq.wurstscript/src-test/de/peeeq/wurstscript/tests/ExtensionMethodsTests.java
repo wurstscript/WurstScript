@@ -1,14 +1,20 @@
 package de.peeeq.wurstscript.tests;
 
+import java.io.File;
+import java.io.IOException;
+
 import org.junit.Test;
 
 public class ExtensionMethodsTests extends PscriptTest {
 	
-	private static final String TEST_DIR = "./testscripts/valid/extensionmethods/";
+	private static final String TEST_DIR = "./testscripts/concept/";
 
 	
 
-	
+	@Test
+	public void extFuncDouble() throws IOException {
+		testAssertOkFileWithStdLib(new File(TEST_DIR + "ExtFuncDouble.wurst"), false);
+	}
 	
 	@Test
 	public void extensionFunction_int() {
@@ -101,6 +107,7 @@ public class ExtensionMethodsTests extends PscriptTest {
 				"endpackage"
 			);
 	}
+	
 	
 	
 }
