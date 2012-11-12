@@ -74,7 +74,6 @@ public class NameResolution {
 	}
 
 	public static Collection<NameLink> lookupMemberFuncs(AstElement node, WurstType receiverType, String name, boolean showErrors) {
-//		System.out.println("lookupMemberFuncs " + receiverType + " . " + name );
 		List<NameLink> result = Lists.newArrayList();
 		WScope scope = node.attrNearestScope();
 		while (scope != null) {

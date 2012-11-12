@@ -18,8 +18,6 @@ public class Exports {
 
 		addExportedNameLinks(result, p, Sets.<WPackage>newHashSet());
 //		result.putAll(p.getElements().attrNameLinks());
-		System.out.println("Exported from " + p.getName() + ":");
-		System.out.println("" + result);
 		// TODO hide package privates...
 		// TODO add public imports
 
