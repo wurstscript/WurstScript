@@ -113,7 +113,15 @@ package Unit
 		UnitApplyTimedLife( this, 'BTLF', time )
 		return this
 
-	public function unit.getname() returns string
+	public function unit.getName() returns string
 		return GetUnitName(this)
+		
+	public function unit.getMoveSpeed() returns real
+		return GetUnitMoveSpeed(this)
+		
+	public function unit.setMoveSpeed(real speed) returns unit
+		SetUnitMoveSpeed(this, speed)
+		return this
+		
 
 endpackage

@@ -1117,7 +1117,7 @@ public class WurstValidator {
 	@CheckMethod
 	public void checkSwitch(SwitchStmt s) {
 		if (! isViableSwitchtype(s.getExpr()))
-			s.addError("The type " + s.getExpr().attrTyp() + " is not viable as switchtype.");
+			s.addError("The type " + s.getExpr().attrTyp() + " is not viable as switchtype.\nViable switchtypes: int, string, enum");
 		else {
 			int i = 0;
 			for (SwitchCase c : s.getCases()) {	

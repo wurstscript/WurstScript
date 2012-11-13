@@ -32,7 +32,7 @@ public class WurstTypeUnknown extends WurstType {
 	@Override
 	public String getName() {
 		return "'unknown type'\n(the type " + name + 
-				" could not be found, maybe some package misses an import...)";
+				" could not be found, the containing package might not be imported)";
 	}
 
 	@Override

@@ -8,12 +8,15 @@ import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.jface.text.contentassist.CompletionProposal;
+import org.eclipse.jface.text.contentassist.ContentAssistant;
 import org.eclipse.jface.text.contentassist.ContextInformation;
 import org.eclipse.jface.text.contentassist.ICompletionProposal;
 import org.eclipse.jface.text.contentassist.IContentAssistProcessor;
+import org.eclipse.jface.text.contentassist.IContentAssistant;
 import org.eclipse.jface.text.contentassist.IContextInformation;
 import org.eclipse.jface.text.contentassist.IContextInformationValidator;
 import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.graphics.RGB;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -169,9 +172,11 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		int replacementLength = alreadyEntered.length();
 		int cursorPosition = replacementString.length();
 		Image image = Icons.var;
-		String displayString = n.getName() + " : " + n.attrTyp().getFullName();
+		RGB rbg  = new RGB(255, 255, 222);
+		
+		String displayString = n.getName() + " : " + n.attrTyp().getFullName() + " - " + n.attrNearestNamedScope().getName();
 		IContextInformation contextInformation= new ContextInformation(
-				n.getName(), Utils.printElement(n)+" : " + n.attrTyp().getFullName()); //$NON-NLS-1$
+				n.getName(), Utils.printElement(n)+" : " + n.attrTyp().getFullName() + " - " + n.attrNearestNamedScope().getName()); //$NON-NLS-1$
 		String additionalProposalInfo = ":-)";
 		return new CompletionProposal(replacementString, replacementOffset, replacementLength,
 				cursorPosition, image, displayString, contextInformation, additionalProposalInfo);

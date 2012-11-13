@@ -137,8 +137,8 @@ public class NameResolution {
 			if (privateCandidate == null) {
 				node.addError("Could not find variable " + name + ".");
 			} else {
-				node.addError(Utils.printElementWithSource(privateCandidate.getNameDef()) + " is not visible here." +
-						" Try to make it public.");
+				node.addError(Utils.printElementWithSource(privateCandidate.getNameDef()) + " is not visible inside this package." +
+						" If you want to access it, declare it public.");
 				return privateCandidate.getNameDef();
 			}
 		}
@@ -193,8 +193,8 @@ public class NameResolution {
 			if (privateCandidate == null) {
 				node.addError("Could not find type " + name + ".");
 			} else {
-				node.addError(Utils.printElementWithSource(privateCandidate.getNameDef()) + " is not visible here." +
-						" Try to make it public.");
+				node.addError(Utils.printElementWithSource(privateCandidate.getNameDef()) + " is not visible inside this package." +
+						" If you want to access it, declare it public.");
 				return (TypeDef) privateCandidate.getNameDef();
 			}
 		}

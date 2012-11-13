@@ -33,7 +33,7 @@ public class NewPackageWizard extends Wizard implements INewWizard {
             mainPage = new WizardNewFileCreationPage("Create new Wurst package", projectSelectionFromModulePath);
             mainPage.setTitle("Create new Wurst package");
             mainPage.setFileExtension("wurst");
-            mainPage.setDescription("Blablub");
+            mainPage.setDescription("Create a new Wurst package");
             addPage(mainPage);
     }
 	

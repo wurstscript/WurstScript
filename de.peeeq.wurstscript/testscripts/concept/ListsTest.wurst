@@ -10,12 +10,17 @@ package ListTest
 	class UnitNode extends Node
 		unit u
 	
-	LinkedList<UnitNode> units = new LinkedList<UnitNode>()
-	
+	public LinkedList<UnitNode> units = new LinkedList<UnitNode>()
+		
+		
+
+endpackage
+
+package Second
+	import ListTest
+
 	init
 		for n in units
 			print("blub")
-	
-		
 
 endpackage
