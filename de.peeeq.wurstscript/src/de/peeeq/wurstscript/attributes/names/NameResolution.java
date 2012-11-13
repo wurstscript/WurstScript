@@ -13,6 +13,7 @@ import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class NameResolution {
@@ -77,16 +78,29 @@ public class NameResolution {
 		List<NameLink> result = Lists.newArrayList();
 		WScope scope = node.attrNearestScope();
 		while (scope != null) {
-			for (NameLink n : scope.attrNameLinks().get(name)) {
-				if (n.getType() == NameLinkType.FUNCTION
-						&& n.getReceiverType() != null
-						&& n.getReceiverType().isSupertypeOf(receiverType, node)) {
-					result.add(n);
-				}
-			}
+			addFeasibleMemberFuncsFromScope(node, receiverType, name, result,
+					scope);
 			scope = nextScope(scope);
 		}
+		if (receiverType instanceof WurstTypeNamedScope) {
+			WurstTypeNamedScope wurstTypeNamedScope = (WurstTypeNamedScope) receiverType;
+			scope = wurstTypeNamedScope.getDef();
+			addFeasibleMemberFuncsFromScope(node, receiverType, name, result,
+					scope);
+		}
 		return removeDuplicates(result);
+	}
+
+	private static void addFeasibleMemberFuncsFromScope(AstElement node,
+			WurstType receiverType, String name, List<NameLink> result,
+			WScope scope) {
+		for (NameLink n : scope.attrNameLinks().get(name)) {
+			if (n.getType() == NameLinkType.FUNCTION
+					&& n.getReceiverType() != null
+					&& n.getReceiverType().isSupertypeOf(receiverType, node)) {
+				result.add(n);
+			}
+		}
 	}
 	
 	public static NameDef lookupVar(AstElement node, String name, boolean showErrors) {
