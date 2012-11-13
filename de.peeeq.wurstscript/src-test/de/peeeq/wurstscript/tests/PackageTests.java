@@ -217,7 +217,7 @@ public class PackageTests extends PscriptTest {
 	
 	@Test
 	public void test_import_var_fail() {
-		testAssertErrorsLines(false, "not visible here",
+		testAssertErrorsLines(false, "not visible",
 				"package A",
 				"	int x = 4",
 				"endpackage",

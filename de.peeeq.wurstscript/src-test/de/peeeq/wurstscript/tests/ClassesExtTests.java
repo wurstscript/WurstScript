@@ -129,7 +129,7 @@ public class ClassesExtTests extends PscriptTest {
 	
 	@Test
 	public void privateVar() {
-		testAssertErrorsLines(false, "not visible here", 
+		testAssertErrorsLines(false, "not visible", 
 				"package test",
 				"	native testSuccess()",
 				"	class C",
