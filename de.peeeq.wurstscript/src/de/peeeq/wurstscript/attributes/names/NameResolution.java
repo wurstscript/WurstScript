@@ -78,29 +78,29 @@ public class NameResolution {
 		List<NameLink> result = Lists.newArrayList();
 		WScope scope = node.attrNearestScope();
 		while (scope != null) {
-			addFeasibleMemberFuncsFromScope(node, receiverType, name, result,
-					scope);
+			for (NameLink n : scope.attrNameLinks().get(name)) {
+				if (n.getType() == NameLinkType.FUNCTION
+						&& n.getReceiverType() != null
+						&& n.getReceiverType().isSupertypeOf(receiverType, node)) {
+					result.add(n);
+				}
+			}
 			scope = nextScope(scope);
 		}
 		if (receiverType instanceof WurstTypeNamedScope) {
 			WurstTypeNamedScope wurstTypeNamedScope = (WurstTypeNamedScope) receiverType;
+			// add public method from receiver
 			scope = wurstTypeNamedScope.getDef();
-			addFeasibleMemberFuncsFromScope(node, receiverType, name, result,
-					scope);
-		}
-		return removeDuplicates(result);
-	}
-
-	private static void addFeasibleMemberFuncsFromScope(AstElement node,
-			WurstType receiverType, String name, List<NameLink> result,
-			WScope scope) {
-		for (NameLink n : scope.attrNameLinks().get(name)) {
-			if (n.getType() == NameLinkType.FUNCTION
-					&& n.getReceiverType() != null
-					&& n.getReceiverType().isSupertypeOf(receiverType, node)) {
-				result.add(n);
+			for (NameLink n : scope.attrNameLinks().get(name)) {
+				if (n.getType() == NameLinkType.FUNCTION
+						&& n.getVisibility() == Visibility.PUBLIC
+						&& n.getReceiverType() != null
+						&& n.getReceiverType().isSupertypeOf(receiverType, node)) {
+					result.add(n);
+				}
 			}
 		}
+		return removeDuplicates(result);
 	}
 	
 	public static NameDef lookupVar(AstElement node, String name, boolean showErrors) {
