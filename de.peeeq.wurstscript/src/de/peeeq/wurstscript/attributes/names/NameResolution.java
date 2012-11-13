@@ -93,10 +93,9 @@ public class NameResolution {
 			scope = wurstTypeNamedScope.getDef();
 			for (NameLink n : scope.attrNameLinks().get(name)) {
 				if (n.getType() == NameLinkType.FUNCTION
-						&& n.getVisibility() == Visibility.PUBLIC
 						&& n.getReceiverType() != null
 						&& n.getReceiverType().isSupertypeOf(receiverType, node)) {
-					result.add(n);
+					result.add(n.hidingPrivateAndProtected());
 				}
 			}
 		}
