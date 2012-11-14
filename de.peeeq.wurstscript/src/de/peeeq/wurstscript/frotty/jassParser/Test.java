@@ -35,7 +35,7 @@ public class Test {
 			JassProg prog;
 			//common.j+blizzard.j
 			try {
-				prog = parseFile("C:/Users/Frotty/Documents/WurstScript/de.peeeq.wurstscript/src/de/peeeq/wurstscript/frotty/jassParser/common.j");
+				prog = parseFile("C:/Users/Frotty/Documents/GitHub/WurstScript/de.peeeq.wurstscript/src/de/peeeq/wurstscript/frotty/jassParser/common.j");
 				System.out.println("common.j parsed...");
 				File common = new File("common_f.j");
 				
@@ -43,7 +43,7 @@ public class Test {
 				new JassPrinter(true).printProg(sb, prog);
 				Files.write(sb.toString(), common, Charsets.UTF_8);
 				
-				prog = parseFile("C:/Users/Frotty/Documents/WurstScript/de.peeeq.wurstscript/src/de/peeeq/wurstscript/frotty/jassParser/Blizzard.j");
+				prog = parseFile("C:/Users/Frotty/Documents/GitHub/WurstScript/de.peeeq.wurstscript/src/de/peeeq/wurstscript/frotty/jassParser/Blizzard.j");
 				System.out.println("Blizzard.j parsed...");
 				File bliz = new File("bliz_f.j");
 				
@@ -109,6 +109,9 @@ public class Test {
 		CommonTokenStream tokens = new CommonTokenStream();
 		tokens.setTokenSource(lexer);
 		parser.setTokenStream(tokens);
+		System.out.println("OOOOOOOOOOOOOOO");
+		parser.toString();
+		System.out.println("OOOOOOOOOOOOOOO1");
 		return parser.file(progs);
 	}
 }

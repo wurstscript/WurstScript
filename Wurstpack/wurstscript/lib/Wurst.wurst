@@ -16,7 +16,6 @@ package Wurst
 	import public Primitives
 	import public String
 	import public Effect
-	import public Texttag
 	import public Rect
 	import public TimerUtils
 	import public Camera

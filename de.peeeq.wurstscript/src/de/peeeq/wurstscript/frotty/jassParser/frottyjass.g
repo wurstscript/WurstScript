@@ -1,6 +1,5 @@
 grammar frottyjass;
 
-
 @lexer::header {
   package de.peeeq.wurstscript.frotty.jassParser; 
 }
