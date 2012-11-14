@@ -53,7 +53,7 @@ public class ModuleTests extends PscriptTest {
 	
 	@Test
 	public void modules_conflict() {
-		testAssertErrorsLines(true, "two or more", 
+		testAssertErrorsLines(false, "ambiguous", 
 				"package test",
 				"	module A",
 				"		function foo() returns int",
@@ -64,6 +64,8 @@ public class ModuleTests extends PscriptTest {
 				"	class C",
 				"		use A",
 				"		use B",
+				"		function test()",
+				"			foo()",
 				"endpackage"
 			);
 	}
@@ -157,7 +159,7 @@ public class ModuleTests extends PscriptTest {
 	
 	@Test
 	public void modules_abstract_err() {
-		testAssertErrorsLines(false, "abstract method foo must be implemented", 
+		testAssertErrorsLines(false, "must implement", 
 				"package test",
 				"	module A",
 				"		abstract function foo() returns int",
