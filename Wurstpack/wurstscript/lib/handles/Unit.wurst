@@ -20,13 +20,17 @@ package Unit
 		SetUnitY(this, y)
 		return this
 		
-	public function unit.setXYVec(vec2 pos) returns unit
+	public function unit.setXY(vec2 pos) returns unit
 		SetUnitX(this, pos.x)
 		SetUnitY(this, pos.y)
 		return this
 		
 	public function unit.setPos(real x, real y) returns unit
 		SetUnitPosition(this, x, y)
+		return this
+		
+	public function unit.setPos(vec2 pos) returns unit
+		SetUnitPosition(this, pos.x, pos.y)
 		return this
 		
 	public function unit.kill() returns unit

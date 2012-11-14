@@ -110,7 +110,6 @@ public class Test {
 		tokens.setTokenSource(lexer);
 		parser.setTokenStream(tokens);
 		System.out.println("OOOOOOOOOOOOOOO");
-		parser.toString();
 		System.out.println("OOOOOOOOOOOOOOO1");
 		return parser.file(progs);
 	}

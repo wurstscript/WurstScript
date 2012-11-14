@@ -1,5 +1,5 @@
 package Item
-	
+	import public Vectors
 	public function item.getName() returns string
 		return GetItemName( this )
 		
@@ -11,6 +11,10 @@ package Item
 	
 	public function item.setPos( real x, real y ) returns item
 		SetItemPosition( this, x, y )
+		return this
+		
+	public function item.setPos( vec2 pos ) returns item
+		SetItemPosition( this, pos.x, pos.y )
 		return this
 		
 	public function item.getUserData() returns int

@@ -88,6 +88,7 @@ package CustomBar
 	import TimerUtils
 	import RGBA
 	import Vectors
+	import Texttag
 
 
 	// TTBar
@@ -151,7 +152,7 @@ package CustomBar
 			setValue(.0)
 			
 			if t != null
-				t.setPosVec( position )
+				t.setPos( position )
 				.setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
 				.setText( txt, textsize)
 
@@ -210,7 +211,7 @@ package CustomBar
 		function setX( real x )
 			position.x = x
 			if t != null and not locked
-				t.setPosVec( position )
+				t.setPos( position )
 
 
 		function getY() returns real
@@ -219,7 +220,7 @@ package CustomBar
 		function  setY( real y )
 			position.y = y
 			if t != null and not locked
-				t.setPosVec( position )
+				t.setPos( position )
 
 
 		function getZ() returns real
@@ -228,7 +229,7 @@ package CustomBar
 		function setZ( real z )
 			position.z = z
 			if t != null
-				t.setPosVec( position )
+				t.setPos( position )
 
 
 		function isLocked() returns boolean
@@ -265,7 +266,7 @@ package CustomBar
 			position.x = x
 			position.y = y
 			if t != null and not locked
-				t.setPosVec( position )
+				t.setPos( position )
 
 
 		function setBackground( colorRGBA col )
@@ -299,7 +300,7 @@ package CustomBar
 					if t != null
 						t.setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
 						.setText( txt, textsize)
-						.setPosVec( position)
+						.setPos( position)
 					else
 						printError("CustomBar: TextTag limit reached!")
 
@@ -313,7 +314,7 @@ package CustomBar
 					if t != null
 						t.setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
 						.setText( txt, textsize)
-						.setPosVec( position)
+						.setPos( position)
 					else
 						printError("CustomBar: TextTag limit reached!")
 
