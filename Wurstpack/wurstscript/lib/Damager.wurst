@@ -121,7 +121,7 @@ package Damager
 				return
 
 			fct.save( fcn, convertUnitTypeToInt( ut ))
-			this.fc.saveReal( fcn, fc )
+			this.fc.save( fcn, fc )
 			fcn++
 
 
@@ -143,7 +143,7 @@ package Damager
 				return
 
 			abifct.save( abifcn, abilityId )
-			abifc.saveReal( abifcn, fc )
+			abifc.save( abifcn, fc )
 			abifcn++
 
 

@@ -19,7 +19,7 @@ package Table
 		function loadReal( int parentKey ) returns real
 			return ht.loadReal(this castTo int, parentKey)
 		
-		function saveReal( int parentKey, real value )
+		function save( int parentKey, real value )
 			ht.save(this castTo int, parentKey, value)
 			
 		function loadString( int parentKey ) returns string
