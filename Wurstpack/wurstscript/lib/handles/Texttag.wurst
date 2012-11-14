@@ -47,22 +47,22 @@ package Texttag
 		return this
 		
 	public function createTTEx(vec3 pos, vec2 vel, string message, int size, real duration, colorRGBA col ) returns texttag
-        texttag tt = CreateTextTag()
-        tt.setPosVec(pos)
-        .setText( message, size * 0.0023 )
-        .setColorRGBA( col )
-        .setVelocity( vel.x, vel.y)
-        .setLifespan( duration) 
-        tt.setFadepoint(.1) 
-        tt.setPermanent(false)
-        return tt
-        
+		texttag tt = CreateTextTag()
+		tt.setPosVec(pos)
+		.setText( message, size * 0.0023 )
+		.setColorRGBA( col )
+		.setVelocity( vel.x, vel.y)
+		.setLifespan( duration) 
+		tt.setFadepoint(.1) 
+		tt.setPermanent(false)
+		return tt
+		
 	public function createTTExForPlayer(vec3 pos, vec2 vel, string message, int size, real duration, colorRGBA col, player p ) returns texttag
-        texttag tt = createTTEx(pos, vel, message,size,duration,col)
-        if GetLocalPlayer() == p
-            tt.setVisibility(true)
-        else
-            tt.setVisibility(false)
-        return tt
+		texttag tt = createTTEx(pos, vel, message,size,duration,col)
+		if GetLocalPlayer() == p
+			tt.setVisibility(true)
+		else
+			tt.setVisibility(false)
+		return tt
 		
 endpackage

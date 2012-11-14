@@ -23,6 +23,7 @@ import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
@@ -33,6 +34,7 @@ import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.mpq.LadikMpq;
 import de.peeeq.wurstscript.mpq.MpqEditorFactory;
 import de.peeeq.wurstscript.parser.ExtendedParser;
+import de.peeeq.wurstscript.parser.ScannerError;
 import de.peeeq.wurstscript.parser.WurstScriptScanner;
 import de.peeeq.wurstscript.translation.imoptimizer.GlobalsInliner;
 import de.peeeq.wurstscript.translation.imoptimizer.ImInliner;
@@ -460,9 +462,16 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			ExtendedParser parser = new ExtendedParser(scanner, errorHandler);
 			parser.setFilename(source);
 			Symbol sym = parser.parse();
+			
 			if (sym.value instanceof CompilationUnit) {
 				CompilationUnit root = (CompilationUnit) sym.value;
 				removeSyntacticSugar(root);
+				WPos p = root.attrErrorPos().copy();
+				p.setFile(source);
+				for (ScannerError err : scanner.getErrors()) {
+					CompileError ce = err.makeCompilerError(p);
+					gui.sendError(ce);
+				}
 				return root;
 			}
 			return emptyCompilationUnit();

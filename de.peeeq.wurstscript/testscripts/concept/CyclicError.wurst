@@ -7,14 +7,14 @@ package EnumTest
 			function foo(int v)
 				int i = v
 
-        class B extends A
-        	construct( real x, real y )
-        		super(x,y)
-        		
-        	override function foo(int v)
-        		int i = v+1
-        	
+		class B extends A
+			construct( real x, real y )
+				super(x,y)
+				
+			override function foo(int v)
+				int i = v+1
+			
 
-    	
-    	
+		
+		
 endpackage

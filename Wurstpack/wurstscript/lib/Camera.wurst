@@ -1,27 +1,27 @@
 package Camera
-    timer array noiseTimer
- 
-    public function setCameraNoiseTimed(player owner, real value, real velocity, real time)
-        int id = GetPlayerId(owner)
-        if TimerGetRemaining(noiseTimer[id]) == 0
-            noiseTimer[id] = getTimer()
-            CameraSetSourceNoiseForPlayer( owner, value, velocity)
-            noiseTimer[id].setData(id).start(time, function resetCam)
-        else
-            CameraSetSourceNoiseForPlayer( owner, value, velocity)
-            noiseTimer[id].start(time, function resetCam)
- 
-    public function releaseCameraNoise(int owner)
-        CameraClearNoiseForPlayer(Player(owner))
-        noiseTimer[owner].release()
- 
- 
-    public function shakeCameraTimed( player p, real value, real time )
-        CameraSetEQNoiseForPlayer(p, value)
-        getTimer().setData(GetPlayerId(p)).start(time, function resetCam)
- 
-    function resetCam()
-        var t = GetExpiredTimer()
-        CameraClearNoiseForPlayer(Player(t.getData()))
-        t.release()
+	timer array noiseTimer
+
+	public function setCameraNoiseTimed(player owner, real value, real velocity, real time)
+		int id = GetPlayerId(owner)
+		if TimerGetRemaining(noiseTimer[id]) == 0
+			noiseTimer[id] = getTimer()
+			CameraSetSourceNoiseForPlayer( owner, value, velocity)
+			noiseTimer[id].setData(id).start(time, function resetCam)
+		else
+			CameraSetSourceNoiseForPlayer( owner, value, velocity)
+			noiseTimer[id].start(time, function resetCam)
+
+	public function releaseCameraNoise(int owner)
+		CameraClearNoiseForPlayer(Player(owner))
+		noiseTimer[owner].release()
+
+
+	public function shakeCameraTimed( player p, real value, real time )
+		CameraSetEQNoiseForPlayer(p, value)
+		getTimer().setData(GetPlayerId(p)).start(time, function resetCam)
+
+	function resetCam()
+		var t = GetExpiredTimer()
+		CameraClearNoiseForPlayer(Player(t.getData()))
+		t.release()
 endpackage

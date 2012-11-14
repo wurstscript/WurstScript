@@ -8,19 +8,19 @@ package PreloadHandler
 	 *														*
 	 * Credits to Vexorian 								  	*
 	 ********************************************************/
-    
+	
 
-    // use this function to preload an ability
-    public function preloadAbility( int abilid )
-        UnitAddAbility(dum, abilid)
+	// use this function to preload an ability
+	public function preloadAbility( int abilid )
+		UnitAddAbility(dum, abilid)
 		if dum == null 
-            printError("PreloadAbility: do not load abilities after map init or during modules' onInit")
+			printError("PreloadAbility: do not load abilities after map init or during modules' onInit")
 		else if GetUnitAbilityLevel(dum, abilid) == 0
 			printWarning("PreloadAbility: Ability "+debugIdInteger2IdString(abilid)+" does not exist.")
 
-    //================================================================================
-    // Convert a integer id value into a 4-letter id code.
-    function debugIdInteger2IdString (int value) returns string
+	//================================================================================
+	// Convert a integer id value into a 4-letter id code.
+	function debugIdInteger2IdString (int value) returns string
 		string charMap = ".................................!.#$%&'()*+,-./0123456789:;<=>.@ABCDEFGHIJKLMNOPQRSTUVWXYZ[.]^_`abcdefghijklmnopqrstuvwxyz{|}~................................................................................................................................."
 		string result = ""
 		int remainingValue = value
@@ -32,18 +32,18 @@ package PreloadHandler
 			result = SubString(charMap, charValue, charValue + 1) + result
 
 		return result
-    
+	
 	unit dum
 	
-    function kill()
-        RemoveUnit(dum)
-        DestroyTimer(GetExpiredTimer())
+	function kill()
+		RemoveUnit(dum)
+		DestroyTimer(GetExpiredTimer())
 
-    init
-        dum = CreateUnit( Player(15), DUMMY_UNIT_ID, 0., 0., 0. )
-        if dum == null
-            printError("xePreload : DUMMY_UNITID ("+debugIdInteger2IdString(DUMMY_UNIT_ID)+") not added correctly to the map.")
+	init
+		dum = CreateUnit( Player(15), DUMMY_UNIT_ID, 0., 0., 0. )
+		if dum == null
+			printError("xePreload : DUMMY_UNITID ("+debugIdInteger2IdString(DUMMY_UNIT_ID)+") not added correctly to the map.")
 
-        TimerStart( CreateTimer(), 0.0, false, function kill )
+		TimerStart( CreateTimer(), 0.0, false, function kill )
 
 endpackage 

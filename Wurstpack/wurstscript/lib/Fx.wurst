@@ -1,27 +1,27 @@
 package Fx
-    import DummyRecycler
-    import Effect
+	import DummyRecycler
+	import Effect
 	import Vectors
-   	
-	/********************************************************
-	 * * * * * * * * * * Fx * * * * * * * * * * * * * * * * *
-	 * An Fx-Object is basically just a moveable effect.  	*
-	 * Up above you find the Fx-Class. By creating			*
-	 * an instace of it, you recieve the mentioned,			*
-	 * moveable effect.										*
-	 * Constructors and functions defined as following,		*
-	 * should be self-explanatory.							*
-	 * Also features automatic recycling of Fx-instances	*
-	 *														*
-	 * Credits to Vexorian 								  	*
-	 ********************************************************/
-	
+
+/********************************************************
+ * * * * * * * * * * Fx * * * * * * * * * * * * * * * * *
+ * An Fx-Object is basically just a moveable effect.  	*
+ * Up above you find the Fx-Class. By creating			*
+ * an instace of it, you recieve the mentioned,			*
+ * moveable effect.										*
+ * Constructors and functions defined as following,		*
+ * should be self-explanatory.							*
+ * Also features automatic recycling of Fx-instances	*
+ *														*
+ * Credits to Vexorian 								  	*
+ ********************************************************/
+
 	public class Fx
 		private unit 	dummy	= null
 		private effect 	fx 		= null
 		private real 	zAngle  = 0.
-        private string 	sfxPath
-        
+		private string 	sfxPath
+		
 		private integer red 	= 255
 		private integer green 	= 255
 		private integer blue 	= 255
@@ -40,16 +40,16 @@ package Fx
 		construct(vec3 pos, real facing)
 			dummy = newDummy( pos.x, pos.y, 0, facing)
 			setZ(pos.z)	
-        
-        construct(vec3 pos, real facing, string fxpath)
+		
+		construct(vec3 pos, real facing, string fxpath)
 			dummy = newDummy( pos.x, pos.y, 0, facing)
 			setZ(pos.z)
 			setFx( fxpath )	
-        
-        construct(real x, real y, real facing, string fxpath)
+		
+		construct(real x, real y, real facing, string fxpath)
 			dummy = newDummy( x, y, 0, facing)
 			//print(GetUnitName(dummy))
-            setFx( fxpath )
+			setFx( fxpath )
 				
 		function getOwner() returns player
 			return dummy.getOwner()
@@ -98,12 +98,12 @@ package Fx
 		function setXYAngle(real value) returns Fx
 			dummy.setFacing(value)
 			return this
-            
-        function setXYAngleInstant(real value) returns Fx
-            fx.destr()
+			
+		function setXYAngleInstant(real value) returns Fx
+			fx.destr()
 			recycleDummy(dummy)
-            dummy = newDummy( getX(), getY(), 0, value)
-            setFx(sfxPath)
+			dummy = newDummy( getX(), getY(), 0, value)
+			setFx(sfxPath)
 			return this
 		
 		function getZAngle() returns real
@@ -164,17 +164,17 @@ package Fx
 			if newpath == ""
 				fx = null
 			else
-				print("added")      
+				print("added")	  
 				fx = dummy.addEffect(newpath, "origin")
-            sfxPath = newpath
+			sfxPath = newpath
 			return this
 				
 		ondestroy  
-			print("destroyed")            
-            if fx != null
+			print("destroyed")			
+			if fx != null
 				fx.destr()
 
-            recycleDummy(dummy)
+			recycleDummy(dummy)
 
 		
 		function hiddenDestroy()

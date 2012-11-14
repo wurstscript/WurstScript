@@ -9,12 +9,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElement;
@@ -1367,6 +1369,16 @@ public class WurstValidator {
 			v.addError("Variable " + v.getName() + " defines the same name as " + Utils.printElementWithSource(t));
 		}
 		
+	}
+	
+	@CheckMethod
+	public void checkForDuplicateImports(WPackage p) {
+		Set<String> imports = Sets.newHashSet();
+		for (WImport imp : p.getImports()) {
+			if (!imports.add(imp.getPackagename())) {
+				imp.addError("The package " + imp.getPackagename() + " is already imported.");
+			}
+		}
 	}
 	
 }

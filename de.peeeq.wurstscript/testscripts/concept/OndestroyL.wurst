@@ -11,18 +11,18 @@ package Test
 			ondestroy
 				RemoveUnit(u)
 
-        class B extends A
-        	int c
-        	construct( unit u )
-        		super(u)
-        		
-        	ondestroy
-        		while c < 4
-        			var l = c+6
-        			c++
-        	
+		class B extends A
+			int c
+			construct( unit u )
+				super(u)
+				
+			ondestroy
+				while c < 4
+					var l = c+6
+					c++
+			
 
-    	init
-    		B b = new B(null)
-    		destroy b
+		init
+			B b = new B(null)
+			destroy b
 endpackage

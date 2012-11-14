@@ -23,6 +23,9 @@ public class CallSignature {
 	}
 	
 	public void checkSignatureCompatibility(FunctionSignature sig, String funcName, AstElement pos) {
+		if (sig == FunctionSignature.empty) {
+			return;
+		}
 		if (receiver != null) {
 			if (sig.getReceiverType() == null) {
 				receiver.addError("No receiver expected for function " + funcName + ".");

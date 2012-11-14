@@ -1,86 +1,86 @@
 // *************************************************************
-// *                   TTBars -- Version 1.5.0
-// *                        by Deaod
+// *				   TTBars -- Version 1.5.0
+// *						by Deaod
 // *************************************************************
 // *
-// *    CREDITS:
-// *        - Ammorth (found a bug)
-// *        - Anitarf (suggestions)
-// *        - Ddyq (helped testing)
-// *        - Vexorian (JassHelper, ARGB)
-// *        - PitzerMike (JassNewGenPack)
-// *        - Pipedream (Grimoire)
+// *	CREDITS:
+// *		- Ammorth (found a bug)
+// *		- Anitarf (suggestions)
+// *		- Ddyq (helped testing)
+// *		- Vexorian (JassHelper, ARGB)
+// *		- PitzerMike (JassNewGenPack)
+// *		- Pipedream (Grimoire)
 // *
-// *        - cohadar (used PUI for demonstration purposes)
-// *        - zwiebelchen (used a modified version of a script he wrote (CastingBar) for demonstration puposes)
+// *		- cohadar (used PUI for demonstration purposes)
+// *		- zwiebelchen (used a modified version of a script he wrote (CastingBar) for demonstration puposes)
 // *
-// *    HOW TO USE:
-// *        * declare a variable of type TTBar or TTGradBar
-// *            - TTGradBar only has the additional feature of adding Gradients. TTBar and TTGradBar are identical in all other regards.
+// *	HOW TO USE:
+// *		* declare a variable of type TTBar or TTGradBar
+// *			- TTGradBar only has the additional feature of adding Gradients. TTBar and TTGradBar are identical in all other regards.
 // *
-// *        * use [TTBar or TTGradBar].create(string char, integer numochars, real size, real x, real y, real z)
-// *            - char is the basic string the bar is made out of
-// *            - numochars is the number of chars this bar consits of
-// *            - size is the textsize of the bar
-// *            - x is the x-coord of the point where this bar is created
-// *            - y is the y-coord of the point where this bar is created
-// *            - z is the height offabove the ground
+// *		* use [TTBar or TTGradBar].create(string char, integer numochars, real size, real x, real y, real z)
+// *			- char is the basic string the bar is made out of
+// *			- numochars is the number of chars this bar consits of
+// *			- size is the textsize of the bar
+// *			- x is the x-coord of the point where this bar is created
+// *			- y is the y-coord of the point where this bar is created
+// *			- z is the height offabove the ground
 // *
-// *        * add a gradient by using YourBar.AddGradient(real threshold, ARGB color)
-// *            !! This is a feature of TTGradBar. Will not work with TTBar !!
-// *            - threshold is the value the bar must be equal to or lower than to apply the color specified in colorstring
-// *            - example input would be "ARGB.create(SOME_ALPHA, SOME_RED, SOME_GREEN, SOME_BLUE)" or "0xAARRGGBB"
-// *              Look at ARGB's manual for detailed reference
-// *            - there exists an alternative version named AddGradientString(real, threshold, string color),
-// *              where the color argument is formatted as follows: "|cAARRGGBB"
+// *		* add a gradient by using YourBar.AddGradient(real threshold, ARGB color)
+// *			!! This is a feature of TTGradBar. Will not work with TTBar !!
+// *			- threshold is the value the bar must be equal to or lower than to apply the color specified in colorstring
+// *			- example input would be "ARGB.create(SOME_ALPHA, SOME_RED, SOME_GREEN, SOME_BLUE)" or "0xAARRGGBB"
+// *			  Look at ARGB's manual for detailed reference
+// *			- there exists an alternative version named AddGradientString(real, threshold, string color),
+// *			  where the color argument is formatted as follows: "|cAARRGGBB"
 // *
-// *        * you can change the value of the bar at any time by using "YourBar.Value=newval"
-// *            - value is a percentage
-// *              --> use 100 to fill it completely, use 0 to display an empty bar
+// *		* you can change the value of the bar at any time by using "YourBar.Value=newval"
+// *			- value is a percentage
+// *			  --> use 100 to fill it completely, use 0 to display an empty bar
 // *
-// *        * you can lock this bar to a unit using YourBar.LockToUnit(unit u, real xOffset, real yOffset, real zOffset)
-// *            - u is the unit this bar is locked to
-// *            - xOffis the offin x from the position of the unit the bar is locked to
-// *            - yOffis the offin y from the position of the unit the bar is locked to
-// *            - zOffis the height offabove ground level
+// *		* you can lock this bar to a unit using YourBar.LockToUnit(unit u, real xOffset, real yOffset, real zOffset)
+// *			- u is the unit this bar is locked to
+// *			- xOffis the offin x from the position of the unit the bar is locked to
+// *			- yOffis the offin y from the position of the unit the bar is locked to
+// *			- zOffis the height offabove ground level
 // *
-// *        * of course you can also unlock the bar via YourBar.Unlock()
+// *		* of course you can also unlock the bar via YourBar.Unlock()
 // *
-// *        * you can change the foreground color with YourBar.SetForeground(ARGB color)
-// *            !! Gradients are preferred over this !!
-// *            - example input would be "ARGB.create(SOME_ALPHA, SOME_RED, SOME_GREEN, SOME_BLUE)" or "0xAARRGGBB"
-// *              Look at ARGB's manual for detailed reference
-// *            - there exitsts an alternative version named SetForegroundString(string color),
-// *              which takes a string formatted as follows: "|cAARRGGBB"
+// *		* you can change the foreground color with YourBar.SetForeground(ARGB color)
+// *			!! Gradients are preferred over this !!
+// *			- example input would be "ARGB.create(SOME_ALPHA, SOME_RED, SOME_GREEN, SOME_BLUE)" or "0xAARRGGBB"
+// *			  Look at ARGB's manual for detailed reference
+// *			- there exitsts an alternative version named SetForegroundString(string color),
+// *			  which takes a string formatted as follows: "|cAARRGGBB"
 // *
-// *        * you can change the background color with YouBar.SetBackground(ARGB color)
-// *            - example input would be "ARGB.create(SOME_ALPHA, SOME_RED, SOME_GREEN, SOME_BLUE)" or "0xAARRGGBB"
-// *              Look at ARGB's manual for detailed reference
+// *		* you can change the background color with YouBar.SetBackground(ARGB color)
+// *			- example input would be "ARGB.create(SOME_ALPHA, SOME_RED, SOME_GREEN, SOME_BLUE)" or "0xAARRGGBB"
+// *			  Look at ARGB's manual for detailed reference
 // *
-// *        * want to show the bar to more players? Use YourBar.ChangeVisibility(force disp)
-// *            - disp should contain all players this bar should be displayed to; note that you have to destroy this parameter for yourself
-// *              inserting null will show the bar to all players
+// *		* want to show the bar to more players? Use YourBar.ChangeVisibility(force disp)
+// *			- disp should contain all players this bar should be displayed to; note that you have to destroy this parameter for yourself
+// *			  inserting null will show the bar to all players
 // *
-// *        * you can change the size of the bar any time by using "YourBar.Size=newval"
+// *		* you can change the size of the bar any time by using "YourBar.Size=newval"
 // *
-// *        * you can read and write a bar's X, Y and Z coordinate by using the X, and X= operators (Y and Z respectively as well).
-// *          I added another method, YourBar.SetPosXY(real x, real y), which sets the bars X and Y coordinate, for speed reasons.
+// *		* you can read and write a bar's X, Y and Z coordinate by using the X, and X= operators (Y and Z respectively as well).
+// *		  I added another method, YourBar.SetPosXY(real x, real y), which sets the bars X and Y coordinate, for speed reasons.
 // *
-// *        * you have access to XOffand YOffmembers (both are of type real). They are only important when locking a bar to a unit.
-// *          You can probably guess by their names what i added them for.
+// *		* you have access to XOffand YOffmembers (both are of type real). They are only important when locking a bar to a unit.
+// *		  You can probably guess by their names what i added them for.
 // *
-// *        * you can read/change a bars primitive char by reading/changing the member Char
+// *		* you can read/change a bars primitive char by reading/changing the member Char
 // *
-// *        * you can read/change a bars number of chars by reading/changing the member Width
+// *		* you can read/change a bars number of chars by reading/changing the member Width
 // *
-// *        * you can fade out bars when destroying them using YourBar.FadeOut(real overTime, boolean followThrough, real xVel, real yVel)
-// *            - overTime is the time fading should take
-// *            - followThrough changes whether the TTBar instance should be destroyed on the spot
-// *              of if it should destroy it when the fading is finished
-// *              "true" destroys the TTBar instance when the fading is finished
-// *              "false" destroys the TTBar instance on the spot
-// *            - xVel and yVel can only be used if the Bar is not locked to a unit
-// *              and move the bar into x and y direction (respectively) by the amount specified
+// *		* you can fade out bars when destroying them using YourBar.FadeOut(real overTime, boolean followThrough, real xVel, real yVel)
+// *			- overTime is the time fading should take
+// *			- followThrough changes whether the TTBar instance should be destroyed on the spot
+// *			  of if it should destroy it when the fading is finished
+// *			  "true" destroys the TTBar instance when the fading is finished
+// *			  "false" destroys the TTBar instance on the spot
+// *			- xVel and yVel can only be used if the Bar is not locked to a unit
+// *			  and move the bar into x and y direction (respectively) by the amount specified
 // *
 // *************************************************************
 
@@ -90,350 +90,350 @@ package CustomBar
 	import Vectors
 
 
-    // TTBar
-    constant    int         DEFAULT_BACKGROUND  = 0xFF000000 // 0xAARRGGBB // alpha channel is non-functional (blame blizzard for that)
+	// TTBar
+	constant	int		 DEFAULT_BACKGROUND  = 0xFF000000 // 0xAARRGGBB // alpha channel is non-functional (blame blizzard for that)
 
-    // TTBar and TTGradBar
-    constant    int     	DEFAULT_FOREGROUND  = 0xFFFFFFFF // 0xAARRGGBB
+	// TTBar and TTGradBar
+	constant	int	 	DEFAULT_FOREGROUND  = 0xFFFFFFFF // 0xAARRGGBB
 
-    // TTGradBar
-    constant    int     	MAX_GRADIENTS       = 10 // Maximum number of gradients you can add
-
-
-    // I dont recommend to change anything below this line
+	// TTGradBar
+	constant	int	 	MAX_GRADIENTS	   = 10 // Maximum number of gradients you can add
 
 
-    force 		tempForce
-    CustomBar 	array bars
-    int 		count = 0
-    timer 		animationTimer = CreateTimer()
+	// I dont recommend to change anything below this line
 
 
-    public class CustomBar
-        texttag t
-        // background color
-        colorRGBA bg_color
-        // foreground color
-        colorRGBA fg_color
-        // Position
-        vec3 position
-        // Text
-        string txt
-        real textsize
-        // locking to units
-        integer lockindex
-        boolean locked
-        unit u
-        
-        real xOffset
-        real yOffset
-        // misc
-        force disp
-        real value // value
-        integer NUM_CHARS // number of chars this bar uses
-        string char // primitive char/string
-        string ptext // primitive text without colors
-        
+	force 		tempForce
+	CustomBar 	array bars
+	int 		count = 0
+	timer 		animationTimer = CreateTimer()
+
+
+	public class CustomBar
+		texttag t
+		// background color
+		colorRGBA bg_color
+		// foreground color
+		colorRGBA fg_color
+		// Position
+		vec3 position
+		// Text
+		string txt
+		real textsize
+		// locking to units
+		integer lockindex
+		boolean locked
+		unit u
+		
+		real xOffset
+		real yOffset
+		// misc
+		force disp
+		real value // value
+		integer NUM_CHARS // number of chars this bar uses
+		string char // primitive char/string
+		string ptext // primitive text without colors
+		
 		construct( vec3 pos, string char, integer numochars, real size )
-            t=CreateTextTag()
-            if t==null
-            	printError("TTBARS: TextTag limit reached!")
-            	
+			t=CreateTextTag()
+			if t==null
+				printError("TTBARS: TextTag limit reached!")
+				
 			position = pos
-            bg_color = makeColor(DEFAULT_BACKGROUND)
-            
-            textsize = TextTagSize2Height(size)
-            fg_color = makeColor(DEFAULT_FOREGROUND)
-            NUM_CHARS = numochars
-            setChar(char)
+			bg_color = makeColor(DEFAULT_BACKGROUND)
+			
+			textsize = TextTagSize2Height(size)
+			fg_color = makeColor(DEFAULT_FOREGROUND)
+			NUM_CHARS = numochars
+			setChar(char)
 
-            locked = false
-            setValue(.0)
-            
-            if t != null
-                t.setPosVec( position )
-                .setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
-                .setText( txt, textsize)
+			locked = false
+			setValue(.0)
+			
+			if t != null
+				t.setPosVec( position )
+				.setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
+				.setText( txt, textsize)
 
-            rebuildText()
+			rebuildText()
 
-        static function copyForce()
-            ForceAddPlayer(tempForce, GetEnumPlayer())
-
-
-        static function lockCallback()
-        	CustomBar s
-            for i = count-1 downto 0
-                s = bars[i]
-                s.position.x = GetUnitX(s.u)
-                s.position.y = GetUnitY(s.u)
-                SetTextTagPos(s.t, s.position.x+s.xOffset, s.position.y+s.yOffset, s.position.z)
+		static function copyForce()
+			ForceAddPlayer(tempForce, GetEnumPlayer())
 
 
-        function getSize() returns real
-            return textsize/0.0023
+		static function lockCallback()
+			CustomBar s
+			for i = count-1 downto 0
+				s = bars[i]
+				s.position.x = GetUnitX(s.u)
+				s.position.y = GetUnitY(s.u)
+				SetTextTagPos(s.t, s.position.x+s.xOffset, s.position.y+s.yOffset, s.position.z)
 
 
-        function setSize( real size )
-            textsize = TextTagSize2Height(size)
+		function getSize() returns real
+			return textsize/0.0023
 
 
-        function getValue() returns real
-            return value * 100.
+		function setSize( real size )
+			textsize = TextTagSize2Height(size)
 
 
-        function setValue( real val )
-        	int chars = 0
-        	int i = 0
-        	var newval = val
-            // keep newval inside possible boundaries
-            if newval > 100.
-                newval = 100.
-            else if newval < 0.
-                newval = 0.
-                
-            value = newval / 100. // the new value
-            txt = fg_color.toColorString()
-            chars = (R2I((value * NUM_CHARS * char.length())+0.5) div char.length())*char.length() // calculate the number of chars needed to display the new value
-            txt += ptext.substring( 0, chars)
-            
+		function getValue() returns real
+			return value * 100.
+
+
+		function setValue( real val )
+			int chars = 0
+			int i = 0
+			var newval = val
+			// keep newval inside possible boundaries
+			if newval > 100.
+				newval = 100.
+			else if newval < 0.
+				newval = 0.
+				
+			value = newval / 100. // the new value
+			txt = fg_color.toColorString()
+			chars = (R2I((value * NUM_CHARS * char.length())+0.5) div char.length())*char.length() // calculate the number of chars needed to display the new value
+			txt += ptext.substring( 0, chars)
+			
 			txt += "|r"
-            txt += ptext.substring( 0, ptext.length()-chars)
+			txt += ptext.substring( 0, ptext.length()-chars)
 
-            if t != null
-                t.setText( txt, textsize)
-
-
-        function getX() returns real
-            return position.x
-
-        function setX( real x )
-            position.x = x
-            if t != null and not locked
-                t.setPosVec( position )
+			if t != null
+				t.setText( txt, textsize)
 
 
-        function getY() returns real
-            return position.y
+		function getX() returns real
+			return position.x
 
-        function  setY( real y )
-            position.y = y
-            if t != null and not locked
-                t.setPosVec( position )
+		function setX( real x )
+			position.x = x
+			if t != null and not locked
+				t.setPosVec( position )
+
+
+		function getY() returns real
+			return position.y
+
+		function  setY( real y )
+			position.y = y
+			if t != null and not locked
+				t.setPosVec( position )
 
 
 		function getZ() returns real
-            return position.z
+			return position.z
 
-        function setZ( real z )
-            position.z = z
-            if t != null
-                t.setPosVec( position )
-
-
-        function isLocked() returns boolean
-            return locked
-
-        private function rebuildText()
-            ptext = ""
-            for i = 0 to NUM_CHARS
-                ptext = ptext + char
-
-        function getChar() returns string
-            return char
+		function setZ( real z )
+			position.z = z
+			if t != null
+				t.setPosVec( position )
 
 
-        function setChar( string newStr )
-            var newString = newStr
-            if newString == "|"
-                newString = "||"
+		function isLocked() returns boolean
+			return locked
 
-            char = newString
-            rebuildText()
-            setValue(value)
+		private function rebuildText()
+			ptext = ""
+			for i = 0 to NUM_CHARS
+				ptext = ptext + char
 
-
-        function getWidth() returns int
-            return NUM_CHARS
-
-        function setWidth( int width )
-            NUM_CHARS = width
-            rebuildText()
-            setValue(value)
-
-        function setPosXY( real x, real y ) // added for speed reasons
-            position.x = x
-            position.y = y
-            if t != null and not locked
-                t.setPosVec( position )
+		function getChar() returns string
+			return char
 
 
-        function setBackground( colorRGBA col )
-            bg_color = col
-            if t != null
-                t.setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
+		function setChar( string newStr )
+			var newString = newStr
+			if newString == "|"
+				newString = "||"
+
+			char = newString
+			rebuildText()
+			setValue(value)
 
 
-        function setForeground( colorRGBA col )
-            fg_color = col
-            setValue(value)
+		function getWidth() returns int
+			return NUM_CHARS
+
+		function setWidth( int width )
+			NUM_CHARS = width
+			rebuildText()
+			setValue(value)
+
+		function setPosXY( real x, real y ) // added for speed reasons
+			position.x = x
+			position.y = y
+			if t != null and not locked
+				t.setPosVec( position )
 
 
-        function setForegroundString( colorRGBA col )
-            fg_color = col
-            setValue(value)
+		function setBackground( colorRGBA col )
+			bg_color = col
+			if t != null
+				t.setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
 
 
-        function changeVisibility( force dsp )
-            force disp = dsp
-            if disp != null
-                if disp == null
-                    disp = CreateForce()
-                else
-                    ForceClear(disp)
-
-                tempForce = disp
-                ForForce(disp, function CustomBar.copyForce)
-                if IsPlayerInForce(GetLocalPlayer(), disp) and t == null
-                    t = CreateTextTag()
-                    if t != null
-                        t.setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
-                        .setText( txt, textsize)
-                        .setPosVec( position)
-                    else
-                    	printError("CustomBar: TextTag limit reached!")
-
-                else if t != null and not IsPlayerInForce(GetLocalPlayer(), disp)
-                    DestroyTextTag(t)
-                    t = null
-
-            else
-                if t == null
-                    t = CreateTextTag()
-                    if t != null
-                        t.setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
-                        .setText( txt, textsize)
-                        .setPosVec( position)
-                    else
-                    	printError("CustomBar: TextTag limit reached!")
+		function setForeground( colorRGBA col )
+			fg_color = col
+			setValue(value)
 
 
-        function lockToUnit( unit u, real xOffset, real yOffset, real zOff )
-            if not locked
-                bars[count] = this
-                this.u = u
-                locked = true
-                lockindex = count
-                this.xOffset = xOffset
-                this.yOffset = yOffset
-                position.z = zOff
-                if count == 0
-                    animationTimer.startPeriodic( ANIMATION_PERIOD, function CustomBar.lockCallback)
-
-                count++
+		function setForegroundString( colorRGBA col )
+			fg_color = col
+			setValue(value)
 
 
-        function unlock()
-        	int i = 0
-            if not locked
-                return
+		function changeVisibility( force dsp )
+			force disp = dsp
+			if disp != null
+				if disp == null
+					disp = CreateForce()
+				else
+					ForceClear(disp)
 
-            count--
-            if count == 0
-                PauseTimer(animationTimer)
+				tempForce = disp
+				ForForce(disp, function CustomBar.copyForce)
+				if IsPlayerInForce(GetLocalPlayer(), disp) and t == null
+					t = CreateTextTag()
+					if t != null
+						t.setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
+						.setText( txt, textsize)
+						.setPosVec( position)
+					else
+						printError("CustomBar: TextTag limit reached!")
 
-            bars[lockindex] = bars[count]
-            bars[count].lockindex = lockindex
+				else if t != null and not IsPlayerInForce(GetLocalPlayer(), disp)
+					DestroyTextTag(t)
+					t = null
+
+			else
+				if t == null
+					t = CreateTextTag()
+					if t != null
+						t.setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
+						.setText( txt, textsize)
+						.setPosVec( position)
+					else
+						printError("CustomBar: TextTag limit reached!")
+
+
+		function lockToUnit( unit u, real xOffset, real yOffset, real zOff )
+			if not locked
+				bars[count] = this
+				this.u = u
+				locked = true
+				lockindex = count
+				this.xOffset = xOffset
+				this.yOffset = yOffset
+				position.z = zOff
+				if count == 0
+					animationTimer.startPeriodic( ANIMATION_PERIOD, function CustomBar.lockCallback)
+
+				count++
+
+
+		function unlock()
+			int i = 0
+			if not locked
+				return
+
+			count--
+			if count == 0
+				PauseTimer(animationTimer)
+
+			bars[lockindex] = bars[count]
+			bars[count].lockindex = lockindex
 			locked=false
 
 
-        ondestroy
-            if t != null
-                DestroyTextTag(t)
+		ondestroy
+			if t != null
+				DestroyTextTag(t)
 
-            if locked
-                unlock()
-
-
-        static function fadeOutCallback()
-        	thistype bar = GetExpiredTimer().getData() castTo thistype
-            bar.t = null
-            destroy bar
-            GetExpiredTimer().release()
+			if locked
+				unlock()
 
 
-        function fadeOut( real overTime, boolean followThrough, real xVel, real yVel )
-        	timer tim
-            if t != null
-                t.setLifespan(overTime)
-                .setAge(0)
-                .setFadepoint(0)
-                .setPermanent(false)
-                if not locked
-                    t.setVelocity(TextTagSpeed2Velocity(xVel), TextTagSpeed2Velocity(yVel))
+		static function fadeOutCallback()
+			thistype bar = GetExpiredTimer().getData() castTo thistype
+			bar.t = null
+			destroy bar
+			GetExpiredTimer().release()
 
-            if followThrough
-                getTimer()
-                .setData( this castTo int )
-                .start( overTime, function CustomBar.fadeOutCallback)
-            else
-                t = null
-                destroy this
+
+		function fadeOut( real overTime, boolean followThrough, real xVel, real yVel )
+			timer tim
+			if t != null
+				t.setLifespan(overTime)
+				.setAge(0)
+				.setFadepoint(0)
+				.setPermanent(false)
+				if not locked
+					t.setVelocity(TextTagSpeed2Velocity(xVel), TextTagSpeed2Velocity(yVel))
+
+			if followThrough
+				getTimer()
+				.setData( this castTo int )
+				.start( overTime, function CustomBar.fadeOutCallback)
+			else
+				t = null
+				destroy this
 
 /*
 	
 	class CustomGradBar extends CustomBar
-        Table gradientTable
-        int gradCnt
+		Table gradientTable
+		int gradCnt
 
-        construct( vec3 position, string char, integer numochars, real size )
-            super(position, char, numochars, size)
-            gradientTable = new Table()
-            gradCnt = 0
-            fg_color=makeColor(DEFAULT_FOREGROUND)
-
-
-        function addGradient( real pthreshold, colorRGBA col )
-            var threshold = pthreshold
-            if gradCnt >= MAX_GRADIENTS
-                printError("TTGradBar: Cannot add any more Gradients to TTGradBar " + I2S(this castTo int) + "!")
-                return
-
-            if threshold > 100
-                threshold=100
-            else if threshold < 0
-                threshold = 0
-
-            gradientTable.saveReal(gradCnt, threshold)
-            gradientTable.saveString( gradCnt, col.toColorString().substring(2, 16) )
-            gradCnt++
+		construct( vec3 position, string char, integer numochars, real size )
+			super(position, char, numochars, size)
+			gradientTable = new Table()
+			gradCnt = 0
+			fg_color=makeColor(DEFAULT_FOREGROUND)
 
 
-        override function setValue( real val )
-        	real k
-        	int j = 0
-        	int l=0
-        	real newval = 0
-            // keep newval inside possible boundaries
-            if val > 100
-                newval=100
-            else if val < 0
-                newval=0
+		function addGradient( real pthreshold, colorRGBA col )
+			var threshold = pthreshold
+			if gradCnt >= MAX_GRADIENTS
+				printError("TTGradBar: Cannot add any more Gradients to TTGradBar " + I2S(this castTo int) + "!")
+				return
 
-            k=110 // some value above 100 will work just as well
-            // find appropriate gradient
-            for i = 0 to gradCnt -1
-                if newval <= gradientTable.loadReal(i) and ((gradientTable.loadReal(i)-newval) < k)
-                    k = gradientTable.loadReal(i)-newval
-                    j=i
-                    l++ // count how many gradients have been considered for use
+			if threshold > 100
+				threshold=100
+			else if threshold < 0
+				threshold = 0
 
-            // colorize the bar
-            if l > 0
-                setForeground(fromHexString(gradientTable.loadString(j)))
-            else
-                setForeground(fg_color)
+			gradientTable.saveReal(gradCnt, threshold)
+			gradientTable.saveString( gradCnt, col.toColorString().substring(2, 16) )
+			gradCnt++
 
-            setValue(newval)
+
+		override function setValue( real val )
+			real k
+			int j = 0
+			int l=0
+			real newval = 0
+			// keep newval inside possible boundaries
+			if val > 100
+				newval=100
+			else if val < 0
+				newval=0
+
+			k=110 // some value above 100 will work just as well
+			// find appropriate gradient
+			for i = 0 to gradCnt -1
+				if newval <= gradientTable.loadReal(i) and ((gradientTable.loadReal(i)-newval) < k)
+					k = gradientTable.loadReal(i)-newval
+					j=i
+					l++ // count how many gradients have been considered for use
+
+			// colorize the bar
+			if l > 0
+				setForeground(fromHexString(gradientTable.loadString(j)))
+			else
+				setForeground(fg_color)
+
+			setValue(newval)
 */
 endpackage

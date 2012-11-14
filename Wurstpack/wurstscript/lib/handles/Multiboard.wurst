@@ -1,100 +1,100 @@
 package Multiboard
 //Since it is long to type multiboard, ill leave it out from the functions.
 //multiboards
-    public function multiboard.destr()
-        DestroyMultiboard(this)
+	public function multiboard.destr()
+		DestroyMultiboard(this)
 
-    public function multiboard.isDisplayed() returns boolean
-        return IsMultiboardDisplayed(this)
+	public function multiboard.isDisplayed() returns boolean
+		return IsMultiboardDisplayed(this)
 
-    public function multiboard.isMinimized() returns boolean
-        return IsMultiboardMinimized(this)
+	public function multiboard.isMinimized() returns boolean
+		return IsMultiboardMinimized(this)
 
-    public function multiboard.clear() returns multiboard
-        MultiboardClear(this)
-        return this
+	public function multiboard.clear() returns multiboard
+		MultiboardClear(this)
+		return this
 
-    public function multiboard.display(boolean show) returns multiboard
-        MultiboardDisplay(this,show)
-        return this
+	public function multiboard.display(boolean show) returns multiboard
+		MultiboardDisplay(this,show)
+		return this
 
-    //get smthg
-    public function multiboard.getColumnCount() returns integer
-        return MultiboardGetColumnCount(this)
+	//get smthg
+	public function multiboard.getColumnCount() returns integer
+		return MultiboardGetColumnCount(this)
 
-    public function multiboard.getItem(integer row, integer column) returns multiboarditem
-        return MultiboardGetItem(this,row,column)
+	public function multiboard.getItem(integer row, integer column) returns multiboarditem
+		return MultiboardGetItem(this,row,column)
 
-    public function multiboard.getRowCount() returns integer
-        return MultiboardGetRowCount(this)
+	public function multiboard.getRowCount() returns integer
+		return MultiboardGetRowCount(this)
 
-    public function multiboard.getTitleText() returns string
-        return MultiboardGetTitleText(this)
+	public function multiboard.getTitleText() returns string
+		return MultiboardGetTitleText(this)
 
-    public function multiboard.minimalize(boolean minimalize) returns multiboard
-        MultiboardMinimize(this,minimalize)
-        return this
+	public function multiboard.minimalize(boolean minimalize) returns multiboard
+		MultiboardMinimize(this,minimalize)
+		return this
 
-    //set smthg
-    public function multiboard.setColumnCount(integer count) returns multiboard
-        MultiboardSetColumnCount(this, count)
-        return this
+	//set smthg
+	public function multiboard.setColumnCount(integer count) returns multiboard
+		MultiboardSetColumnCount(this, count)
+		return this
 
-    public function multiboard.setRowCount(integer count) returns multiboard
-        MultiboardSetRowCount(this, count)
-        return this
+	public function multiboard.setRowCount(integer count) returns multiboard
+		MultiboardSetRowCount(this, count)
+		return this
 
-    public function multiboard.setItemsIcon(string path) returns multiboard
-        MultiboardSetItemsIcon(this, path)
-        return this
+	public function multiboard.setItemsIcon(string path) returns multiboard
+		MultiboardSetItemsIcon(this, path)
+		return this
 
-    public function multiboard.setItemsStyle(boolean showValues, boolean showIcons) returns multiboard
-        MultiboardSetItemsStyle(this, showValues, showIcons)
-        return this
+	public function multiboard.setItemsStyle(boolean showValues, boolean showIcons) returns multiboard
+		MultiboardSetItemsStyle(this, showValues, showIcons)
+		return this
 
-    public function multiboard.setItemsValue(string value) returns multiboard
-        MultiboardSetItemsValue(this,value)
-        return this
+	public function multiboard.setItemsValue(string value) returns multiboard
+		MultiboardSetItemsValue(this,value)
+		return this
 
-    public function multiboard.setItemsValueColor(integer r,integer g, integer b, integer a ) returns multiboard
-        MultiboardSetItemsValueColor(this,r,g,b,a)
-        return this
+	public function multiboard.setItemsValueColor(integer r,integer g, integer b, integer a ) returns multiboard
+		MultiboardSetItemsValueColor(this,r,g,b,a)
+		return this
 
-    public function multiboard.setItemsWidth(real width) returns multiboard
-        MultiboardSetItemsWidth(this, width)
-        return this
+	public function multiboard.setItemsWidth(real width) returns multiboard
+		MultiboardSetItemsWidth(this, width)
+		return this
 
-    public function multiboard.setTitle(string label) returns multiboard
-        MultiboardSetTitleText(this, label)
-        return this
+	public function multiboard.setTitle(string label) returns multiboard
+		MultiboardSetTitleText(this, label)
+		return this
 
-    public function multiboard.setTitleColor(integer r,integer g, integer b, integer a) returns multiboard
-        MultiboardSetTitleTextColor(this, r,g,b,a)
-        return this
+	public function multiboard.setTitleColor(integer r,integer g, integer b, integer a) returns multiboard
+		MultiboardSetTitleTextColor(this, r,g,b,a)
+		return this
 
-    //multiboarditems
-    public function multiboarditem.release() returns multiboarditem
-        MultiboardReleaseItem(this)
-        return this
+	//multiboarditems
+	public function multiboarditem.release() returns multiboarditem
+		MultiboardReleaseItem(this)
+		return this
 
-    public function multiboarditem.setIcon(string iconFileName) returns multiboarditem
-        MultiboardSetItemIcon(this,iconFileName)
-        return this
+	public function multiboarditem.setIcon(string iconFileName) returns multiboarditem
+		MultiboardSetItemIcon(this,iconFileName)
+		return this
 
-    public function multiboarditem.setStyle(boolean showValue, boolean showIcon) returns multiboarditem
-        MultiboardSetItemStyle(this, showValue, showIcon)
-        return this
+	public function multiboarditem.setStyle(boolean showValue, boolean showIcon) returns multiboarditem
+		MultiboardSetItemStyle(this, showValue, showIcon)
+		return this
 
-    public function multiboarditem.setValue(string value) returns multiboarditem
-        MultiboardSetItemValue(this,value)
-        return this
+	public function multiboarditem.setValue(string value) returns multiboarditem
+		MultiboardSetItemValue(this,value)
+		return this
 
-    public function multiboarditem.setValueColor(integer r, integer g, integer b, integer a) returns multiboarditem
-        MultiboardSetItemValueColor(this, r,g,b,a)
-        return this
+	public function multiboarditem.setValueColor(integer r, integer g, integer b, integer a) returns multiboarditem
+		MultiboardSetItemValueColor(this, r,g,b,a)
+		return this
 
-    public function multiboarditem.setWidth(real width) returns multiboarditem
-        MultiboardSetItemWidth(this, width)
-        return this
+	public function multiboarditem.setWidth(real width) returns multiboarditem
+		MultiboardSetItemWidth(this, width)
+		return this
 
 endpackage

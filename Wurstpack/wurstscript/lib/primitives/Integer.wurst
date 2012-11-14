@@ -1,26 +1,26 @@
 package Integer
-    
-    public function int.abs() returns int
-        if this >= 0
-            return this
-        else
-            return -this
+	
+	public function int.abs() returns int
+		if this >= 0
+			return this
+		else
+			return -this
 
-    public function int.squared() returns int
-        return this*this
-            
-    public function int.sign() returns int
-        if this > 0
-            return 1
-        else if this < 0
-            return -1
-        else
-            return 0
+	public function int.squared() returns int
+		return this*this
+			
+	public function int.sign() returns int
+		if this > 0
+			return 1
+		else if this < 0
+			return -1
+		else
+			return 0
 
-    public function int.toReal() returns real
-        return I2R(this)
-    
-    public function int.toString() returns string
-        return I2S(this)
+	public function int.toReal() returns real
+		return I2R(this)
+	
+	public function int.toString() returns string
+		return I2S(this)
 
 endpackage

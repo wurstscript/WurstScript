@@ -16,9 +16,9 @@
 //***************************************************************************
 
 globals
-    // Generated
-    trigger                 gg_trg_ss                  = null
-    trigger                 gg_trg_OptimizedMaths      = null
+	// Generated
+	trigger				 gg_trg_ss				  = null
+	trigger				 gg_trg_OptimizedMaths	  = null
 endglobals
 
 function InitGlobals takes nothing returns nothing
@@ -36,59 +36,59 @@ endfunction
 //TESH.scrollpos=0
 //TESH.alwaysfold=0
 package knockbackSystem
-    
-    module LinkedListModule
-        static thistype first = null
-        static thistype last = null
-        static int count = 0
-        thistype prev
-        thistype next
+	
+	module LinkedListModule
+		static thistype first = null
+		static thistype last = null
+		static int count = 0
+		thistype prev
+		thistype next
 
-        construct()
-            count++
-            if count == 1
-                first = this
-                prev = null	
-            else
-                prev = last
-                last.next = this
-                first.prev = this
-            next = null
-            last = this
-        
-        ondestroy
-            count--
-            if this != first
-                prev.next = next
-            if this != last
-                next.prev = prev	
-            if this == last
-                last = prev
-            if this == first
-                first = next
+		construct()
+			count++
+			if count == 1
+				first = this
+				prev = null	
+			else
+				prev = last
+				last.next = this
+				first.prev = this
+			next = null
+			last = this
+		
+		ondestroy
+			count--
+			if this != first
+				prev.next = next
+			if this != last
+				next.prev = prev	
+			if this == last
+				last = prev
+			if this == first
+				first = next
 
-        static function getFirst() returns thistype
-            return first
+		static function getFirst() returns thistype
+			return first
 
-        function getNext() returns thistype
-            return next
+		function getNext() returns thistype
+			return next
 
-        function getPrev() returns thistype
-            return prev
-            
-    class KBData
-        use LinkedListModule
-        unit u
-        real speed
-        real angle
-        
-        construct( unit target, real initialSpeed, real angle )
-            u       = target
-            speed   = initialSpeed
-            
-    
-    function setAllPositions()
-        KBData.getFirst()
+		function getPrev() returns thistype
+			return prev
+			
+	class KBData
+		use LinkedListModule
+		unit u
+		real speed
+		real angle
+		
+		construct( unit target, real initialSpeed, real angle )
+			u	   = target
+			speed   = initialSpeed
+			
+	
+	function setAllPositions()
+		KBData.getFirst()
 
 endpackage
 //===========================================================================
@@ -99,29 +99,29 @@ endpackage
 package OptimizedMaths
 
 
-    constant real PI        = 3.14159265
-    constant real DEGTORAD  = 0.01745329
-    constant real RADTODEG  = 57.2957795
-    
-    function pPX ( real x,  real dist, real angle ) returns real
-        return x + dist * Cos(angle * DEGTORAD)
-    
-    function pPY ( real y,  real dist, real angle ) returns real
-        return y + dist * Sin(angle * DEGTORAD)
-    
-    function angleBetweenCoords ( real x1, real y1, real x2, real y2 ) returns real
-        return RADTODEG * Atan2(y2 - y1, x2 - x1)
+	constant real PI		= 3.14159265
+	constant real DEGTORAD  = 0.01745329
+	constant real RADTODEG  = 57.2957795
+	
+	function pPX ( real x,  real dist, real angle ) returns real
+		return x + dist * Cos(angle * DEGTORAD)
+	
+	function pPY ( real y,  real dist, real angle ) returns real
+		return y + dist * Sin(angle * DEGTORAD)
+	
+	function angleBetweenCoords ( real x1, real y1, real x2, real y2 ) returns real
+		return RADTODEG * Atan2(y2 - y1, x2 - x1)
 
-    function distanceBetweenCoords ( real x1, real y1, real x2, real y2 ) returns real
-        return SquareRoot((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1))
+	function distanceBetweenCoords ( real x1, real y1, real x2, real y2 ) returns real
+		return SquareRoot((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1))
 
 
 endpackage
 
 //===========================================================================
 function InitCustomTriggers takes nothing returns nothing
-    call InitTrig_ss(  )
-    call InitTrig_OptimizedMaths(  )
+	call InitTrig_ss(  )
+	call InitTrig_OptimizedMaths(  )
 endfunction
 
 //***************************************************************************
@@ -132,18 +132,18 @@ endfunction
 
 function InitCustomPlayerSlots takes nothing returns nothing
 
-    // Player 0
-    call SetPlayerStartLocation( Player(0), 0 )
-    call SetPlayerColor( Player(0), ConvertPlayerColor(0) )
-    call SetPlayerRacePreference( Player(0), RACE_PREF_HUMAN )
-    call SetPlayerRaceSelectable( Player(0), true )
-    call SetPlayerController( Player(0), MAP_CONTROL_USER )
+	// Player 0
+	call SetPlayerStartLocation( Player(0), 0 )
+	call SetPlayerColor( Player(0), ConvertPlayerColor(0) )
+	call SetPlayerRacePreference( Player(0), RACE_PREF_HUMAN )
+	call SetPlayerRaceSelectable( Player(0), true )
+	call SetPlayerController( Player(0), MAP_CONTROL_USER )
 
 endfunction
 
 function InitCustomTeams takes nothing returns nothing
-    // Force: TRIGSTR_002
-    call SetPlayerTeam( Player(0), 0 )
+	// Force: TRIGSTR_002
+	call SetPlayerTeam( Player(0), 0 )
 
 endfunction
 
@@ -155,15 +155,15 @@ endfunction
 
 //===========================================================================
 function main takes nothing returns nothing
-    call SetCameraBounds( -3328.0 + GetCameraMargin(CAMERA_MARGIN_LEFT), -3584.0 + GetCameraMargin(CAMERA_MARGIN_BOTTOM), 3328.0 - GetCameraMargin(CAMERA_MARGIN_RIGHT), 3072.0 - GetCameraMargin(CAMERA_MARGIN_TOP), -3328.0 + GetCameraMargin(CAMERA_MARGIN_LEFT), 3072.0 - GetCameraMargin(CAMERA_MARGIN_TOP), 3328.0 - GetCameraMargin(CAMERA_MARGIN_RIGHT), -3584.0 + GetCameraMargin(CAMERA_MARGIN_BOTTOM) )
-    call SetDayNightModels( "Environment\\DNC\\DNCLordaeron\\DNCLordaeronTerrain\\DNCLordaeronTerrain.mdl", "Environment\\DNC\\DNCLordaeron\\DNCLordaeronUnit\\DNCLordaeronUnit.mdl" )
-    call NewSoundEnvironment( "Default" )
-    call SetAmbientDaySound( "LordaeronSummerDay" )
-    call SetAmbientNightSound( "LordaeronSummerNight" )
-    call SetMapMusic( "Music", true, 0 )
-    call InitBlizzard(  )
-    call InitGlobals(  )
-    call InitCustomTriggers(  )
+	call SetCameraBounds( -3328.0 + GetCameraMargin(CAMERA_MARGIN_LEFT), -3584.0 + GetCameraMargin(CAMERA_MARGIN_BOTTOM), 3328.0 - GetCameraMargin(CAMERA_MARGIN_RIGHT), 3072.0 - GetCameraMargin(CAMERA_MARGIN_TOP), -3328.0 + GetCameraMargin(CAMERA_MARGIN_LEFT), 3072.0 - GetCameraMargin(CAMERA_MARGIN_TOP), 3328.0 - GetCameraMargin(CAMERA_MARGIN_RIGHT), -3584.0 + GetCameraMargin(CAMERA_MARGIN_BOTTOM) )
+	call SetDayNightModels( "Environment\\DNC\\DNCLordaeron\\DNCLordaeronTerrain\\DNCLordaeronTerrain.mdl", "Environment\\DNC\\DNCLordaeron\\DNCLordaeronUnit\\DNCLordaeronUnit.mdl" )
+	call NewSoundEnvironment( "Default" )
+	call SetAmbientDaySound( "LordaeronSummerDay" )
+	call SetAmbientNightSound( "LordaeronSummerNight" )
+	call SetMapMusic( "Music", true, 0 )
+	call InitBlizzard(  )
+	call InitGlobals(  )
+	call InitCustomTriggers(  )
 
 endfunction
 
@@ -174,16 +174,16 @@ endfunction
 //***************************************************************************
 
 function config takes nothing returns nothing
-    call SetMapName( "Just another Warcraft III map" )
-    call SetMapDescription( "Nondescript" )
-    call SetPlayers( 1 )
-    call SetTeams( 1 )
-    call SetGamePlacement( MAP_PLACEMENT_USE_MAP_SETTINGS )
+	call SetMapName( "Just another Warcraft III map" )
+	call SetMapDescription( "Nondescript" )
+	call SetPlayers( 1 )
+	call SetTeams( 1 )
+	call SetGamePlacement( MAP_PLACEMENT_USE_MAP_SETTINGS )
 
-    call DefineStartLocation( 0, -128.0, -2816.0 )
+	call DefineStartLocation( 0, -128.0, -2816.0 )
 
-    // Player setup
-    call InitCustomPlayerSlots(  )
-    call SetPlayerSlotAvailable( Player(0), MAP_CONTROL_USER )
-    call InitGenericPlayerSlots(  )
+	// Player setup
+	call InitCustomPlayerSlots(  )
+	call SetPlayerSlotAvailable( Player(0), MAP_CONTROL_USER )
+	call InitGenericPlayerSlots(  )
 endfunction

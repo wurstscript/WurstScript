@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.parser;
 import java.io.InputStream;
 import java.io.Reader;
+import java.util.List;
 
 import java_cup.runtime.Symbol;
 
@@ -56,4 +57,7 @@ public class WurstScriptScanner extends WurstScriptScannerIntern {
 		return token;
 	}
 
+	public List<ScannerError> getErrors() {
+		return errors;
+	}
 }

@@ -1,11 +1,15 @@
 package de.peeeq.wurstscript.parser;
 
+import java.util.List;
 import java.util.Stack;
 
+import com.google.common.collect.Lists;
+
 import java_cup.runtime.Symbol;
+import de.peeeq.wurstscript.ast.Ast;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
-
 
 
 %%
@@ -34,6 +38,9 @@ import de.peeeq.wurstscript.utils.Utils;
 	int currentLineWhiteSpace = 0;
 	boolean isStart = true; // are we at the start of a line before the text begins
 //	int mode = 0; // 0: unknown mode, 1: space mode, 2: tab mode
+	
+	int spaceErrorStart = -1; // was there already an error in this line
+	protected List<ScannerError> errors = Lists.newArrayList();		
 	
 	LineOffsets lineStartOffsets = new LineOffsets(); 
 	int currentLine = -1;
@@ -76,6 +83,9 @@ import de.peeeq.wurstscript.utils.Utils;
 		}
 		Symbol s = new Symbol(type, yychar, yychar+yylength(), value);
 		if (isStart) {
+			if (spaceErrorStart >= 0) {
+				errors.add(new ScannerError(spaceErrorStart, yychar, "Spaces are not allowed for indentation. Use tabs."));
+			}
 			isStart = false;
 			if (indentationLevels.peek() > currentLineWhiteSpace) {
 				returnStack.push(s);
@@ -201,7 +211,10 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 								}
 							}
 	[ ]						{ 
-								if (isStart) {	
+								if (isStart) {
+									if (spaceErrorStart < 0) {
+										spaceErrorStart = yychar;
+									}
 									currentLineWhiteSpace += 1; 
 //									if (mode == 1) {
 //										returnStack.push(new Symbol(TokenType.CUSTOM_ERROR, yychar-1, yychar, "Mixing spaces and tabs is not allowed."));
@@ -216,8 +229,10 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 							} else {
 								numberOfParantheses = 0;
 								currentLineWhiteSpace = 0;
+								spaceErrorStart = -1;
 								if (!isStart) {
 									isStart = true;
+									
 									return new Symbol(TokenType.NL, yychar-1, yychar);
 								} else {
 									return null;

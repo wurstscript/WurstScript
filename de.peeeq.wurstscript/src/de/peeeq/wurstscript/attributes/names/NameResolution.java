@@ -13,6 +13,7 @@ import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class NameResolution {
@@ -85,6 +86,18 @@ public class NameResolution {
 				}
 			}
 			scope = nextScope(scope);
+		}
+		if (receiverType instanceof WurstTypeNamedScope) {
+			WurstTypeNamedScope wurstTypeNamedScope = (WurstTypeNamedScope) receiverType;
+			// add public method from receiver
+			scope = wurstTypeNamedScope.getDef();
+			for (NameLink n : scope.attrNameLinks().get(name)) {
+				if (n.getType() == NameLinkType.FUNCTION
+						&& n.getReceiverType() != null
+						&& n.getReceiverType().isSupertypeOf(receiverType, node)) {
+					result.add(n.hidingPrivateAndProtected());
+				}
+			}
 		}
 		return removeDuplicates(result);
 	}

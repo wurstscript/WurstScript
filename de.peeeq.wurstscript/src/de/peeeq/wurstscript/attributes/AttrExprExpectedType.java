@@ -20,7 +20,6 @@ import de.peeeq.wurstscript.ast.WParameters;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBool;
 import de.peeeq.wurstscript.types.WurstTypeInt;
-import de.peeeq.wurstscript.types.WurstTypeJassInt;
 import de.peeeq.wurstscript.types.WurstTypeReal;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
 
@@ -74,12 +73,10 @@ public class AttrExprExpectedType {
 				throw new CompileError(expr.getSource(), "c) could not find expr " + expr + " in parent " + parent);
 			} else if (parent instanceof ExprUnary) {
 				ExprUnary exprUnary = (ExprUnary) parent;
-				if (exprUnary.attrExpectedTyp() instanceof WurstTypeJassInt) {
+				if (exprUnary.attrExpectedTyp().isSubtypeOf(WurstTypeInt.instance(), expr)) {
 					return WurstTypeInt.instance();
-				} if (exprUnary.attrExpectedTyp().isSubtypeOf(WurstTypeReal.instance(), expr)) {
+				} else if (exprUnary.attrExpectedTyp().isSubtypeOf(WurstTypeReal.instance(), expr)) {
 					return WurstTypeReal.instance();
-				} else if (exprUnary.attrExpectedTyp().isSubtypeOf(WurstTypeInt.instance(), expr)) {
-					return WurstTypeInt.instance();
 				} else if (exprUnary.attrExpectedTyp() instanceof WurstTypeBool) {
 					return WurstTypeBool.instance();
 				}
