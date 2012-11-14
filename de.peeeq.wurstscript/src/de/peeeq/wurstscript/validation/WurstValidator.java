@@ -616,71 +616,8 @@ public class WurstValidator {
 	@CheckMethod
 	public void visit(ClassDef classDef) {
 		checkTypeName(classDef.getSource(), classDef.getName());
-		
-		// calculate all functions to find possible errors
-		Map<String, FuncDef> functions = classDef.attrAllFunctions();
-		
-		// calculate private names to get overridden funcs
-		classDef.attrNameLinks();
-		
-		if (!classDef.attrIsAbstract()) {
-			// check that there are no abstract functions in a class
-			for (FunctionDefinition f : functions.values()) {
-				if (f.attrIsAbstract()) {
-					classDef.addError("The abstract method " + f.getName()
-					+ " must be implemented in class " + classDef.getName() + ".");
-				}
-			}
-		}
-		
-		
-		
-		// check overridden methods
-		// TODO overloading
-//		if (classDef.getExtendedClass() instanceof TypeExpr) {
-//			WurstType extendedType = classDef.getExtendedClass().attrTyp();
-//			if (extendedType instanceof WurstTypeClass) {
-//				WurstTypeClass ptc = (WurstTypeClass) extendedType;
-//				Map<TypeParamDef, WurstType> typeParamMapping = ptc.getTypeArgBinding();
-//				ClassDef superClass = ptc.getClassDef();
-//				Multimap<String, NameLink> superClassFunctions = superClass.attrNameLinks();
-//				for (FunctionDefinition f : functions.values()) {
-//					// TODO is this transitive?
-//					FunctionDefinition superClassFunction = getFunction(superClassFunctions, f.getName());
-//					if (superClassFunction == null) {
-//						if (f.attrIsOverride() && f.attrOverriddenFunctions().size() == 0) {
-//							f.addError("Function " + f.getName() + " does not exist in super type.");
-//						}
-//					} else {
-//						if (!f.attrIsOverride()) {
-//							f.addError("Function " + f.getName() + " must have the override annotation.");
-//						}
-//						
-//						CheckHelper.checkIfIsRefinement(typeParamMapping , f, superClassFunction, "Cannot extend class because of function ", true);
-//					}
-//				}
-//			} else {
-//				classDef.getExtendedClass().addError("Cannot extend " + extendedType + ". " +
-//				"Only classes can be extended.");
-//			}
-//		} else {
-//			for (FunctionDefinition f : functions.values()) {
-//				if (f.attrIsOverride() && f.attrOverriddenFunctions().size() == 0) {
-//					f.addError("Function " + f.getName() + " uses override notation but there is no superclass.");
-//				}
-//			}
-//		}
 	}
 
-	private FunctionDefinition getFunction(
-			Multimap<String, NameDef> superClassFunctions, String name) {
-		for (NameDef n : superClassFunctions.get(name)) {
-			if (n instanceof FunctionDefinition) {
-				return (FunctionDefinition) n;
-			}
-		}
-		return null;
-	}
 
 	private void checkTypeName(WPos source, String name) {
 		if (!Character.isUpperCase(name.charAt(0))) {
@@ -692,7 +629,7 @@ public class WurstValidator {
 	public void visit(ModuleDef moduleDef) {
 		checkTypeName(moduleDef.getSource(), moduleDef.getName());
 		// calculate all functions to find possible errors
-		moduleDef.attrAllFunctions();
+		moduleDef.attrNameLinks();
 	}
 	
 

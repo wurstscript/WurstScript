@@ -685,10 +685,6 @@ FunctionDefinition.attrRealFuncDef "returns the function definition which overri
 	returns FunctionDefinition
 	implemented by de.peeeq.wurstscript.attributes.OverriddenFunctions.getRealFuncDef
 	
-StructureDef.attrAllFunctions
-	returns java.util.Map<String, FuncDef>
-	implemented by de.peeeq.wurstscript.attributes.AttrAllFunctions.calculate
-	
 StructureDef.attrLevel "returns the level in the hierarchy. no supertype -> level 1"
 	returns int
 	implemented by de.peeeq.wurstscript.attributes.Level.get
