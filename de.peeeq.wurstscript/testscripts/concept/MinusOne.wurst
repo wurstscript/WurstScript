@@ -2,6 +2,6 @@ package Test
 
 	init
 		SetTerrainType( 0., 0., 0, -1, 1, 1 )
-            
-    
+			
+	
 endpackage

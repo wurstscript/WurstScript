@@ -1,30 +1,30 @@
 package Trigger
 	
 	Table triggerData = new Table()
-    
-    public function trigger.registerUnitInRangeSource( unit whichUnit, real range ) returns event
-        int h = GetHandleId(this)
-        int u = GetHandleId(whichUnit)
-        triggerData.saveUnit(h,whichUnit)
-        triggerData.saveTrigger(u,this)
-        return TriggerRegisterUnitInRange(this, whichUnit, range, null)
-    
-    
+	
+	public function trigger.registerUnitInRangeSource( unit whichUnit, real range ) returns event
+		int h = GetHandleId(this)
+		int u = GetHandleId(whichUnit)
+		triggerData.saveUnit(h,whichUnit)
+		triggerData.saveTrigger(u,this)
+		return TriggerRegisterUnitInRange(this, whichUnit, range, null)
+	
+	
 
-    public function trigger.getSource() returns unit
-        return triggerData.loadUnit(GetHandleId(this))
-    
+	public function trigger.getSource() returns unit
+		return triggerData.loadUnit(GetHandleId(this))
+	
 
-    
-    public function unit.clearRegister()
-        int h = GetHandleId(this)
-        trigger t = triggerData.loadTrigger(h)
-        integer th = GetHandleId(t)
-        DestroyTrigger(t)
-        triggerData.removeHandle(h)
-        triggerData.removeHandle(th)
-        
-    public function trigger.enable() returns trigger
+	
+	public function unit.clearRegister()
+		int h = GetHandleId(this)
+		trigger t = triggerData.loadTrigger(h)
+		integer th = GetHandleId(t)
+		DestroyTrigger(t)
+		triggerData.removeHandle(h)
+		triggerData.removeHandle(th)
+		
+	public function trigger.enable() returns trigger
 		EnableTrigger( this )
 		return this
 		
@@ -62,8 +62,8 @@ package Trigger
 		return this
 
 	public function trigger.registerPlayerEvent(player whichPlayer, playerevent whichPlayerEvent) returns trigger
-   		TriggerRegisterPlayerEvent(this, whichPlayer, whichPlayerEvent)
-   		return this
+		TriggerRegisterPlayerEvent(this, whichPlayer, whichPlayerEvent)
+		return this
    		
 	public function trigger.registerDeathEvent(widget whichWidget) returns trigger
 		TriggerRegisterDeathEvent(this, whichWidget)

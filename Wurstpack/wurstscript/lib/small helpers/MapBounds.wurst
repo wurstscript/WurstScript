@@ -1,15 +1,15 @@
 package MapBounds
-    import Vectors
+	import Vectors
  
-    public real minx = GetRectMinX( GetPlayableMapRect())
-    public real miny = GetRectMinY( GetPlayableMapRect())
-    public real maxx = GetRectMaxX( GetPlayableMapRect())
-    public real maxy = GetRectMaxY( GetPlayableMapRect())
+	public real minx = GetRectMinX( GetPlayableMapRect())
+	public real miny = GetRectMinY( GetPlayableMapRect())
+	public real maxx = GetRectMaxX( GetPlayableMapRect())
+	public real maxy = GetRectMaxY( GetPlayableMapRect())
  
-    public function vec2.inBounds() returns boolean
-        return this.x > minx and this.x < maxx and this.y > miny and  this.y < maxy
+	public function vec2.inBounds() returns boolean
+		return this.x > minx and this.x < maxx and this.y > miny and  this.y < maxy
  
-    public function randomPointOnMap() returns vec2
-        return vec2(GetRandomReal(minx,maxx), GetRandomReal(miny, maxy))
+	public function randomPointOnMap() returns vec2
+		return vec2(GetRandomReal(minx,maxx), GetRandomReal(miny, maxy))
  
 endpackage

@@ -2,17 +2,17 @@
 package Wurst
 
 	import public Group
-    import public Real
-    import public Integer
-    import public PrintingHelper
+	import public Real
+	import public Integer
+	import public PrintingHelper
 	import public Unit
 	import public Multiboard
 	import public Basics
 	import public Hashtable
 	import public Unittype
-    import public Maths
-    import public Table
-    import public Trigger
+	import public Maths
+	import public Table
+	import public Trigger
 	import public Primitives
 	import public String
 	import public Effect

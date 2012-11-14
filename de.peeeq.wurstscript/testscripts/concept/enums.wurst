@@ -5,28 +5,28 @@ package EnumTest
 			SPIN
 			AIM
 
-        public class Missile
-            Movement movementType = Movement.FREE
-            
-            function update()
-            	if movementType == Movement.FREE
-            		print("free")
-            	else if movementType == Movement.SPIN
-            		print("spin")
-            	else if movementType == Movement.AIM
-            		print("aim")
-            		
+		public class Missile
+			Movement movementType = Movement.FREE
+			
+			function update()
+				if movementType == Movement.FREE
+					print("free")
+				else if movementType == Movement.SPIN
+					print("spin")
+				else if movementType == Movement.AIM
+					print("aim")
+					
 
-            function setType( Movement typ )
-            	movementType = typ
-        
-        init
-            Missile m = new Missile()
-            m.update()
-            m.setType( Movement.SPIN )
-            m.update()
-            m.setType( Movement.AIM )
-            m.update()
-            
-    
+			function setType( Movement typ )
+				movementType = typ
+		
+		init
+			Missile m = new Missile()
+			m.update()
+			m.setType( Movement.SPIN )
+			m.update()
+			m.setType( Movement.AIM )
+			m.update()
+			
+	
 endpackage

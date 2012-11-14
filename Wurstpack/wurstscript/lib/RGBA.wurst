@@ -49,68 +49,68 @@ package RGBA
 	
 	public function makeColor(int colo) returns colorRGBA
 		int a = 0
-	    int r = 0
-	    int g = 0
-	    int b = 0
-	    int col = colo
-	    if col < 0
+		int r = 0
+		int g = 0
+		int b = 0
+		int col = colo
+		if col < 0
 			col=-(-col+0x80000000)
 			a = 0x80 + col div 0x1000000
 			col = col-(a-0x80)*0x1000000
 		else
 			a = col div 0x1000000
 			col = col-a*0x1000000
-           
+		   
 		r=col div 0x10000
 		col=col-r*0x10000
 		g=col div 0x100
 		b=col-g*0x100
 
 		return colorRGBA(r,g,b,a)
-	    
-    public function fromPlayerColor( playercolor pc ) returns color
-        if pc  ==  PLAYER_COLOR_RED
-            return color(255,3,3)
-        else if pc == PLAYER_COLOR_BLUE
-            return color(0,66,255)
-        else if pc == PLAYER_COLOR_CYAN
-            return color(28,230,185)
-        else if pc == PLAYER_COLOR_PURPLE
-            return color(84,0,129)
-        else if pc == PLAYER_COLOR_YELLOW
-            return color(255,252,1)
-        else if pc == PLAYER_COLOR_ORANGE
-            return color(254,138,14)
-        else if pc == PLAYER_COLOR_GREEN
-            return color(32,192,0)
-        else if pc == PLAYER_COLOR_PINK
-            return color(229,91,176)
-        else if pc == PLAYER_COLOR_LIGHT_GRAY
-            return color(149,150,151)
-        else if pc == PLAYER_COLOR_LIGHT_BLUE
-            return color(126,191,241)
-        else if pc == PLAYER_COLOR_AQUA
-            return color(16,98,70)
-        else if pc == PLAYER_COLOR_BROWN
-            return color(78,42,4)
-        
-        return color(0,0,0)
-	    
+		
+	public function fromPlayerColor( playercolor pc ) returns color
+		if pc  ==  PLAYER_COLOR_RED
+			return color(255,3,3)
+		else if pc == PLAYER_COLOR_BLUE
+			return color(0,66,255)
+		else if pc == PLAYER_COLOR_CYAN
+			return color(28,230,185)
+		else if pc == PLAYER_COLOR_PURPLE
+			return color(84,0,129)
+		else if pc == PLAYER_COLOR_YELLOW
+			return color(255,252,1)
+		else if pc == PLAYER_COLOR_ORANGE
+			return color(254,138,14)
+		else if pc == PLAYER_COLOR_GREEN
+			return color(32,192,0)
+		else if pc == PLAYER_COLOR_PINK
+			return color(229,91,176)
+		else if pc == PLAYER_COLOR_LIGHT_GRAY
+			return color(149,150,151)
+		else if pc == PLAYER_COLOR_LIGHT_BLUE
+			return color(126,191,241)
+		else if pc == PLAYER_COLOR_AQUA
+			return color(16,98,70)
+		else if pc == PLAYER_COLOR_BROWN
+			return color(78,42,4)
+		
+		return color(0,0,0)
+		
 	
-    public function fromPlayer( player p ) returns color
+	public function fromPlayer( player p ) returns color
 		return fromPlayerColor(GetPlayerColor(p))
-        
+		
 
 	
-    // ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  == 
-    // Mixes two colors, s would be a number 0<=s<=1 that determines
-    // the weight given to color c2.
-    //
-    //  mix(c1,c2,0)   = c1
-    //  mix(c1,c2,1)   = c2
-    //  mix(c1,c2,0.5) = Mixing the colors c1 and c2 in equal proportions.
-    //
-    public function colorRGBA.mix( colorRGBA c2, real s ) returns colorRGBA
+	// ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  == 
+	// Mixes two colors, s would be a number 0<=s<=1 that determines
+	// the weight given to color c2.
+	//
+	//  mix(c1,c2,0)   = c1
+	//  mix(c1,c2,1)   = c2
+	//  mix(c1,c2,0.5) = Mixing the colors c1 and c2 in equal proportions.
+	//
+	public function colorRGBA.mix( colorRGBA c2, real s ) returns colorRGBA
 		return colorRGBA( R2I(c2.red*s+this.red*(1-s)+0.5),
 						R2I(c2.green*s+this.green*(1-s)+0.5),
 						R2I(c2.blue*s+this.blue*(1-s)+0.5), 						

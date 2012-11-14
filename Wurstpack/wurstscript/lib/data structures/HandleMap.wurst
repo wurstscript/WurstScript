@@ -12,8 +12,8 @@ package HandleMap
 			return ht.loadInt(this castTo int, GetHandleId(h)) castTo V
 
 		function flush()
-            FlushChildHashtable(ht, this castTo int)
+			FlushChildHashtable(ht, this castTo int)
 
-        ondestroy
-            this.flush()
+		ondestroy
+			this.flush()
 endpackage

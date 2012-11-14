@@ -16,8 +16,8 @@
 //***************************************************************************
 
 globals
-    // Generated
-    trigger                 gg_trg_test                = null
+	// Generated
+	trigger				 gg_trg_test				= null
 endglobals
 
 function InitGlobals takes nothing returns nothing
@@ -31,13 +31,13 @@ endfunction
 
 //===========================================================================
 function CreateUnitsForPlayer0 takes nothing returns nothing
-    local player p = Player(0)
-    local unit u
-    local integer unitID
-    local trigger t
-    local real life
+	local player p = Player(0)
+	local unit u
+	local integer unitID
+	local trigger t
+	local real life
 
-    set u = CreateUnit( p, 'Hblm', -380.0, 1558.8, 42.628 )
+	set u = CreateUnit( p, 'Hblm', -380.0, 1558.8, 42.628 )
 endfunction
 
 //===========================================================================
@@ -46,13 +46,13 @@ endfunction
 
 //===========================================================================
 function CreatePlayerUnits takes nothing returns nothing
-    call CreateUnitsForPlayer0(  )
+	call CreateUnitsForPlayer0(  )
 endfunction
 
 //===========================================================================
 function CreateAllUnits takes nothing returns nothing
-    call CreatePlayerBuildings(  )
-    call CreatePlayerUnits(  )
+	call CreatePlayerBuildings(  )
+	call CreatePlayerUnits(  )
 endfunction
 
 //***************************************************************************
@@ -69,20 +69,20 @@ endfunction
 //TESH.scrollpos=0
 //TESH.alwaysfold=0
 package Test
-    
-    
-    init
-        BJDebugMsg("Hello World.")
+	
+	
+	init
+		BJDebugMsg("Hello World.")
 
 endpackage
 //===========================================================================
 function InitCustomTriggers takes nothing returns nothing
-    call InitTrig_test(  )
+	call InitTrig_test(  )
 endfunction
 
 //===========================================================================
 function RunInitializationTriggers takes nothing returns nothing
-    call ConditionalTriggerExecute( gg_trg_test )
+	call ConditionalTriggerExecute( gg_trg_test )
 endfunction
 
 //***************************************************************************
@@ -93,18 +93,18 @@ endfunction
 
 function InitCustomPlayerSlots takes nothing returns nothing
 
-    // Player 0
-    call SetPlayerStartLocation( Player(0), 0 )
-    call SetPlayerColor( Player(0), ConvertPlayerColor(0) )
-    call SetPlayerRacePreference( Player(0), RACE_PREF_HUMAN )
-    call SetPlayerRaceSelectable( Player(0), true )
-    call SetPlayerController( Player(0), MAP_CONTROL_USER )
+	// Player 0
+	call SetPlayerStartLocation( Player(0), 0 )
+	call SetPlayerColor( Player(0), ConvertPlayerColor(0) )
+	call SetPlayerRacePreference( Player(0), RACE_PREF_HUMAN )
+	call SetPlayerRaceSelectable( Player(0), true )
+	call SetPlayerController( Player(0), MAP_CONTROL_USER )
 
 endfunction
 
 function InitCustomTeams takes nothing returns nothing
-    // Force: TRIGSTR_002
-    call SetPlayerTeam( Player(0), 0 )
+	// Force: TRIGSTR_002
+	call SetPlayerTeam( Player(0), 0 )
 
 endfunction
 
@@ -116,17 +116,17 @@ endfunction
 
 //===========================================================================
 function main takes nothing returns nothing
-    call SetCameraBounds( -7424.0 + GetCameraMargin(CAMERA_MARGIN_LEFT), -7680.0 + GetCameraMargin(CAMERA_MARGIN_BOTTOM), 7424.0 - GetCameraMargin(CAMERA_MARGIN_RIGHT), 7168.0 - GetCameraMargin(CAMERA_MARGIN_TOP), -7424.0 + GetCameraMargin(CAMERA_MARGIN_LEFT), 7168.0 - GetCameraMargin(CAMERA_MARGIN_TOP), 7424.0 - GetCameraMargin(CAMERA_MARGIN_RIGHT), -7680.0 + GetCameraMargin(CAMERA_MARGIN_BOTTOM) )
-    call SetDayNightModels( "Environment\\DNC\\DNCDalaran\\DNCDalaranTerrain\\DNCDalaranTerrain.mdl", "Environment\\DNC\\DNCDalaran\\DNCDalaranUnit\\DNCDalaranUnit.mdl" )
-    call NewSoundEnvironment( "Default" )
-    call SetAmbientDaySound( "DalaranRuinsDay" )
-    call SetAmbientNightSound( "DalaranRuinsNight" )
-    call SetMapMusic( "Music", true, 0 )
-    call CreateAllUnits(  )
-    call InitBlizzard(  )
-    call InitGlobals(  )
-    call InitCustomTriggers(  )
-    call RunInitializationTriggers(  )
+	call SetCameraBounds( -7424.0 + GetCameraMargin(CAMERA_MARGIN_LEFT), -7680.0 + GetCameraMargin(CAMERA_MARGIN_BOTTOM), 7424.0 - GetCameraMargin(CAMERA_MARGIN_RIGHT), 7168.0 - GetCameraMargin(CAMERA_MARGIN_TOP), -7424.0 + GetCameraMargin(CAMERA_MARGIN_LEFT), 7168.0 - GetCameraMargin(CAMERA_MARGIN_TOP), 7424.0 - GetCameraMargin(CAMERA_MARGIN_RIGHT), -7680.0 + GetCameraMargin(CAMERA_MARGIN_BOTTOM) )
+	call SetDayNightModels( "Environment\\DNC\\DNCDalaran\\DNCDalaranTerrain\\DNCDalaranTerrain.mdl", "Environment\\DNC\\DNCDalaran\\DNCDalaranUnit\\DNCDalaranUnit.mdl" )
+	call NewSoundEnvironment( "Default" )
+	call SetAmbientDaySound( "DalaranRuinsDay" )
+	call SetAmbientNightSound( "DalaranRuinsNight" )
+	call SetMapMusic( "Music", true, 0 )
+	call CreateAllUnits(  )
+	call InitBlizzard(  )
+	call InitGlobals(  )
+	call InitCustomTriggers(  )
+	call RunInitializationTriggers(  )
 
 endfunction
 
@@ -137,17 +137,17 @@ endfunction
 //***************************************************************************
 
 function config takes nothing returns nothing
-    call SetMapName( "Just another Warcraft III map" )
-    call SetMapDescription( "Nondescript" )
-    call SetPlayers( 1 )
-    call SetTeams( 1 )
-    call SetGamePlacement( MAP_PLACEMENT_USE_MAP_SETTINGS )
+	call SetMapName( "Just another Warcraft III map" )
+	call SetMapDescription( "Nondescript" )
+	call SetPlayers( 1 )
+	call SetTeams( 1 )
+	call SetGamePlacement( MAP_PLACEMENT_USE_MAP_SETTINGS )
 
-    call DefineStartLocation( 0, -384.0, 1600.0 )
+	call DefineStartLocation( 0, -384.0, 1600.0 )
 
-    // Player setup
-    call InitCustomPlayerSlots(  )
-    call SetPlayerSlotAvailable( Player(0), MAP_CONTROL_USER )
-    call InitGenericPlayerSlots(  )
+	// Player setup
+	call InitCustomPlayerSlots(  )
+	call SetPlayerSlotAvailable( Player(0), MAP_CONTROL_USER )
+	call InitGenericPlayerSlots(  )
 endfunction
 

@@ -1,110 +1,110 @@
 package Harvest
-    //import Init
-    import LinkedListModule
-    import TimerUtils
+	//import Init
+	import LinkedListModule
+	import TimerUtils
  
-    public class Burningtrees
-        use LinkedListModule
-        destructable d
-        player p
-        real rate
-        unit harvester
+	public class Burningtrees
+		use LinkedListModule
+		destructable d
+		player p
+		real rate
+		unit harvester
  
-        construct (unit u, destructable des)
-            d = des
-            harvester = u
-            p = GetOwningPlayer(u)
-            rate = 10
-            decreaselifeperiod()
+		construct (unit u, destructable des)
+			d = des
+			harvester = u
+			p = GetOwningPlayer(u)
+			rate = 10
+			decreaselifeperiod()
  
  
-        function decreaselifeperiod()
-            if GetDestructableLife(d) < rate
-                KillDestructable(d)
-                print("--- >.<")
-                destroy this
-            else
-                SetDestructableLife(d,GetDestructableLife(d)-rate)
-                TriggerSleepAction(1)
-                decreaselifeperiod()
+		function decreaselifeperiod()
+			if GetDestructableLife(d) < rate
+				KillDestructable(d)
+				print("--- >.<")
+				destroy this
+			else
+				SetDestructableLife(d,GetDestructableLife(d)-rate)
+				TriggerSleepAction(1)
+				decreaselifeperiod()
  
-        ondestroy
-            extend(GetDestructableX(d),GetDestructableY(d),p)
-            RemoveUnit(harvester)
-            print("Destroyed")
+		ondestroy
+			extend(GetDestructableX(d),GetDestructableY(d),p)
+			RemoveUnit(harvester)
+			print("Destroyed")
 //////////////////////////////////////////////////////////////////////////////////////Q\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
  
-    function isBusy(destructable dest) returns boolean
-        Burningtrees tree = Burningtrees.getFirst()
-        while tree != null
-            if tree.d == dest
-                return false
-            else
-                tree = tree.next
-        return true
+	function isBusy(destructable dest) returns boolean
+		Burningtrees tree = Burningtrees.getFirst()
+		while tree != null
+			if tree.d == dest
+				return false
+			else
+				tree = tree.next
+		return true
  
-    function checkifavailable() returns boolean
-        if GetDestructableTypeId(GetFilterDestructable()) == 'WTst'
-            if (GetDestructableLife(GetFilterDestructable()) > 0)
-                if isBusy(GetFilterDestructable())
-                    return true
-                else
-                    print("try-fail")
-        return false
+	function checkifavailable() returns boolean
+		if GetDestructableTypeId(GetFilterDestructable()) == 'WTst'
+			if (GetDestructableLife(GetFilterDestructable()) > 0)
+				if isBusy(GetFilterDestructable())
+					return true
+				else
+					print("try-fail")
+		return false
  
-    function startburning()
-        unit caster = GetSpellAbilityUnit()
-        if GetSpellAbilityId() == 'A001'
-            destructable d = GetSpellTargetDestructable()
-            unit u = CreateUnitAtLoc(GetOwningPlayer(caster), 'e000' , Location(GetDestructableX(d),GetDestructableY(d)),0.)
-            RemoveUnit(caster)
-            Burningtrees tree = new Burningtrees(u,d)
-            SetBlightLoc(GetOwningPlayer(u), Location(GetDestructableX(d),GetDestructableY(d)), 64.00 , true )
-            SetBlightLoc(GetOwningPlayer(u), Location(GetDestructableX(d),GetDestructableY(d)), 66.00 , false)
-            TriggerSleepAction(0.01)
-            IssueTargetOrder(u, "harvest", d)
+	function startburning()
+		unit caster = GetSpellAbilityUnit()
+		if GetSpellAbilityId() == 'A001'
+			destructable d = GetSpellTargetDestructable()
+			unit u = CreateUnitAtLoc(GetOwningPlayer(caster), 'e000' , Location(GetDestructableX(d),GetDestructableY(d)),0.)
+			RemoveUnit(caster)
+			Burningtrees tree = new Burningtrees(u,d)
+			SetBlightLoc(GetOwningPlayer(u), Location(GetDestructableX(d),GetDestructableY(d)), 64.00 , true )
+			SetBlightLoc(GetOwningPlayer(u), Location(GetDestructableX(d),GetDestructableY(d)), 66.00 , false)
+			TriggerSleepAction(0.01)
+			IssueTargetOrder(u, "harvest", d)
  
  
-    function extend(real x, real y,player p)
-        //EnumDestructablesInRectAll( Rect(x-200, y-200, x+200, y+200), function addtogroup )
-        destructable d = RandomDestructableInRectBJ(Rect(x-180, y-180, x+180, y+180), Condition(function checkifavailable))
-        //group dgroup = CreateGroup()
-        if d != null
-            print("succseded")
-            unit u2 = CreateUnitAtLoc(p, 'e000' , Location(GetDestructableX(d),GetDestructableY(d)),0.)
-            SetBlightLoc(p, Location(GetDestructableX(d),GetDestructableY(d)), 64.00 , true )
-            SetBlightLoc(p, Location(GetDestructableX(d),GetDestructableY(d)), 66.00 , false)
-            TriggerSleepAction(0.01)
-            IssueTargetOrder(u2, "harvest", d)
-            Burningtrees tree = new Burningtrees(u2,d)
-        else
-            print("dissapeared")
-            CreateUnitAtLoc(p, 'u000' , Location(x,y),0.)
-    /*
-    function foreachtree()
-        Burningtrees tree = Burningtrees.getFirst()
+	function extend(real x, real y,player p)
+		//EnumDestructablesInRectAll( Rect(x-200, y-200, x+200, y+200), function addtogroup )
+		destructable d = RandomDestructableInRectBJ(Rect(x-180, y-180, x+180, y+180), Condition(function checkifavailable))
+		//group dgroup = CreateGroup()
+		if d != null
+			print("succseded")
+			unit u2 = CreateUnitAtLoc(p, 'e000' , Location(GetDestructableX(d),GetDestructableY(d)),0.)
+			SetBlightLoc(p, Location(GetDestructableX(d),GetDestructableY(d)), 64.00 , true )
+			SetBlightLoc(p, Location(GetDestructableX(d),GetDestructableY(d)), 66.00 , false)
+			TriggerSleepAction(0.01)
+			IssueTargetOrder(u2, "harvest", d)
+			Burningtrees tree = new Burningtrees(u2,d)
+		else
+			print("dissapeared")
+			CreateUnitAtLoc(p, 'u000' , Location(x,y),0.)
+	/*
+	function foreachtree()
+		Burningtrees tree = Burningtrees.getFirst()
 
-        while tree != null
-            if GetDestructableLife(tree.d) <= 10.
-                KillDestructable(tree.d)
-                extend(GetUnitX(tree.harvester),GetUnitY(tree.harvester),tree.p)
-                print("next")
-                destroy tree
-                tree = Burningtrees.getFirst()
-            else
-                tree.decreaselife(10.)
-                if GetRandomInt(1,100)<5
-                    extend(GetUnitX(tree.harvester),GetUnitY(tree.harvester),tree.p)
-                tree = tree.next
-                */
-    init
-        trigger t = CreateTrigger(  )
-        trigger t2 = CreateTrigger()
-        TriggerRegisterTimerEvent(t2,1,true)
-        TriggerRegisterDestDeathInRegionEvent( t2, GetPlayableMapRect() )
-        TriggerRegisterAnyUnitEventBJ( t, EVENT_PLAYER_UNIT_SPELL_EFFECT)
-        TriggerAddAction( t, function startburning )
-        //TriggerAddAction(t2,function foreachtree)
+		while tree != null
+			if GetDestructableLife(tree.d) <= 10.
+				KillDestructable(tree.d)
+				extend(GetUnitX(tree.harvester),GetUnitY(tree.harvester),tree.p)
+				print("next")
+				destroy tree
+				tree = Burningtrees.getFirst()
+			else
+				tree.decreaselife(10.)
+				if GetRandomInt(1,100)<5
+					extend(GetUnitX(tree.harvester),GetUnitY(tree.harvester),tree.p)
+				tree = tree.next
+				*/
+	init
+		trigger t = CreateTrigger(  )
+		trigger t2 = CreateTrigger()
+		TriggerRegisterTimerEvent(t2,1,true)
+		TriggerRegisterDestDeathInRegionEvent( t2, GetPlayableMapRect() )
+		TriggerRegisterAnyUnitEventBJ( t, EVENT_PLAYER_UNIT_SPELL_EFFECT)
+		TriggerAddAction( t, function startburning )
+		//TriggerAddAction(t2,function foreachtree)
  
 endpackage
  

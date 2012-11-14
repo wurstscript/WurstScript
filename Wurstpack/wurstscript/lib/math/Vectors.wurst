@@ -10,8 +10,8 @@ package Vectors
 		if l == 0.0
 			printError("vector.setLength error: The length of the vector is 0.0!")
 			return vec3(0.,0.,0.)
-        l = length/l
-        return vec3(this.x*l, this.y*l, this.z*l)
+		l = length/l
+		return vec3(this.x*l, this.y*l, this.z*l)
 
 	// op_ - Operator overloading
 	public function vec3.op_plus( vec3 v )	returns vec3
@@ -19,19 +19,19 @@ package Vectors
 	
 	public function vec3.op_plus( vec2 v )	returns vec3
 		return vec3(this.x + v.x, this.y + v.y, this.z)
-    
-    public function vec3.op_minus( vec3 v )	returns vec3
+	
+	public function vec3.op_minus( vec3 v )	returns vec3
 		return vec3(this.x - v.x, this.y - v.y, this.z - v.z)
 		
 	public function vec3.op_mult(real factor) returns vec3
 		return vec3(this.x*factor, this.y*factor, this.z*factor) 
-        
-    public function vec3.addReals( real x, real y, real z )	returns vec3
+		
+	public function vec3.addReals( real x, real y, real z )	returns vec3
 		return vec3(this.x + x, this.y + y, this.z + z)
 	
-    public function vec3.subVec2( vec2 v )	returns vec3
+	public function vec3.subVec2( vec2 v )	returns vec3
 		return vec3(this.x - v.x, this.y - v.y, this.z)
-        	
+			
 	public function vec3.scaleXY( real factor )	returns vec3
 		return vec3(this.x * factor, this.y * factor, this.z)
 		
@@ -40,26 +40,26 @@ package Vectors
 		
 	public function vec3.dot( vec3 v ) returns real
 		return this.x*v.x + this.y*v.y + this.z*v.z
-		        
-    public function vec3.project( vec3 direction ) returns vec3
-    	real l = direction.x*direction.x+direction.y*direction.y+direction.z*direction.z
-        if l == 0.0
-        	printError("vector.projectVector error: The length of the direction vector is 0.0!")
-            return vec3(0.,0.,0.)
-            
-        l = (this.x*direction.x+this.y*direction.y+this.z*direction.z) / l
+				
+	public function vec3.project( vec3 direction ) returns vec3
+		real l = direction.x*direction.x+direction.y*direction.y+direction.z*direction.z
+		if l == 0.0
+			printError("vector.projectVector error: The length of the direction vector is 0.0!")
+			return vec3(0.,0.,0.)
+			
+		l = (this.x*direction.x+this.y*direction.y+this.z*direction.z) / l
 		return vec3( direction.x*l, direction.y*l, direction.z*l )
-        
-    public function vec3.norm() returns vec3
-        real len = this.length()
-        real x = 0 
-        real y = 0
-        real z = 0
-        if (len != 0.0)
-            x = (this.x / len)
-            y = (this.y / len)
-            z = (this.z / len)
-        return vec3(x,y,z)
+		
+	public function vec3.norm() returns vec3
+		real len = this.length()
+		real x = 0 
+		real y = 0
+		real z = 0
+		if (len != 0.0)
+			x = (this.x / len)
+			y = (this.y / len)
+			z = (this.z / len)
+		return vec3(x,y,z)
 	
 
 	public function vec3.trim( real value ) returns vec3
@@ -71,9 +71,9 @@ package Vectors
 		if result.z > -value and result.z < value
 			result.z = 0.
 		return result
-        
-    public function vec3.toVec2() returns vec2
-        return vec2( this.x, this.y )		
+		
+	public function vec3.toVec2() returns vec2
+		return vec2( this.x, this.y )		
 		
 	public function vec3.length() returns real
 		return SquareRoot(this.x*this.x+this.y*this.y+this.z*this.z)
@@ -125,13 +125,13 @@ package Vectors
 		return this.x*v.x+this.y*v.y
 	
 	public function vec2.norm() returns vec2
-        real len = this.length()
-        real x = 0 
-        real y = 0
-        if (len != 0.0)
-            x = (this.x / len)
-            y = (this.y / len)
-        return vec2(x,y)
+		real len = this.length()
+		real x = 0 
+		real y = 0
+		if (len != 0.0)
+			x = (this.x / len)
+			y = (this.y / len)
+		return vec2(x,y)
 	
 	public function vec2.trim( real value ) returns vec2
 		vec2 result = this
@@ -156,7 +156,7 @@ package Vectors
 		return "Vector2 [ " + this.x.toString() + ", " + this.y.toString() + " ]"
 	
 	public function unit.getPos() returns vec2
-	 	return vec2(this.getX(), this.getY()) 
+		return vec2(this.getX(), this.getY()) 
 	 	
 	public function vec2.angleTo(vec2 v) returns real
 		return Atan2(v.y - this.y, v.x - this.x) 
@@ -169,27 +169,27 @@ package Vectors
 		if l == 0.0
 			printError("vector.setLength error: The length of the vector is 0.0!")
 			return vec2(0.,0.)
-        l = length/l
-        return vec2(this.x*l, this.y*l)
-        
+		l = length/l
+		return vec2(this.x*l, this.y*l)
+		
 	public function vec2.withZ(real z) returns vec3
 		return vec3(this.x, this.y, z)
 		
 	public function vec2.distToVec( vec2 v ) returns real
-		 return SquareRoot((v.x - this.x).squared() + (v.y - this.y).squared())
+		return SquareRoot((v.x - this.x).squared() + (v.y - this.y).squared())
 		
 	public function vec2.distToVecSquared( vec2 v ) returns real
-		 return (v.x - this.x).squared() + (v.y - this.y).squared()
+		return (v.x - this.x).squared() + (v.y - this.y).squared()
 		 
 	public function vec2.distToSegmentSquared( vec2 v1, vec2 v2) returns real
-  		var l2 = v1.distToVecSquared(v2)
-  		if l2 == 0 
-  			return this.distToVecSquared(v1)
-  		var t = ((this.x - v1.x) * (v2.x - v1.x) + (this.y - v1.y) * (v2.y - v1.y)) / l2
-  		if (t < 0) 
-  			return this.distToVecSquared(v1)
-  		if (t > 1) 
-  			return this.distToVecSquared(v2)
-  		return this.distToVecSquared( vec2( v1.x + t * (v2.x - v1.x), v1.y + t * (v2.y - v1.y) ) )
+		var l2 = v1.distToVecSquared(v2)
+		if l2 == 0 
+			return this.distToVecSquared(v1)
+		var t = ((this.x - v1.x) * (v2.x - v1.x) + (this.y - v1.y) * (v2.y - v1.y)) / l2
+		if (t < 0) 
+			return this.distToVecSquared(v1)
+		if (t > 1) 
+			return this.distToVecSquared(v2)
+		return this.distToVecSquared( vec2( v1.x + t * (v2.x - v1.x), v1.y + t * (v2.y - v1.y) ) )
 	
 endpackage 

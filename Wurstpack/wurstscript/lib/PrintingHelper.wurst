@@ -1,6 +1,6 @@
 package PrintingHelper
-    
-    int DEBUG_LEVEL = 1
+	
+	int DEBUG_LEVEL = 1
 	real DEBUG_MSG_DURATION = 60.
 	
 	public function setDebugLvl( int value )
@@ -8,29 +8,29 @@ package PrintingHelper
 		
 	public function setDebugMsgDuration( real value )
 		DEBUG_MSG_DURATION = value
-    
-    public function debugPrint(string msg, int level)
-        if level >= DEBUG_LEVEL
-            print(msg)
-            
-    public function print(string msg)
+	
+	public function debugPrint(string msg, int level)
+		if level >= DEBUG_LEVEL
+			print(msg)
+			
+	public function print(string msg)
 		DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, msg)
 
-    public function printNote(string msg)
-        DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, "|cffFFFF00[NOTIFICATION]|r - " + msg)
+	public function printNote(string msg)
+		DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, "|cffFFFF00[NOTIFICATION]|r - " + msg)
 
-    public function printWarning(string msg)
-        DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, "|cffFF8000[WARNING]|r - " + msg)
+	public function printWarning(string msg)
+		DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, "|cffFF8000[WARNING]|r - " + msg)
 
-    public function printError(string msg)
-        DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, "|cffFF0000[ERROR]|r - " + msg)
+	public function printError(string msg)
+		DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, "|cffFF0000[ERROR]|r - " + msg)
 		
 	public function printTimed(string msg, real duration)
-        DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., duration, msg)
+		DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., duration, msg)
 
-    public function boolean.toString() returns string
-        if this
-            return "true"
-        else
-            return "false"
+	public function boolean.toString() returns string
+		if this
+			return "true"
+		else
+			return "false"
 endpackage 
