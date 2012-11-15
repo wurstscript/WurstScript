@@ -19,7 +19,7 @@ package TimerUtils
 			return CreateTimer()
 	
 	public function timer.setData(integer data) returns timer
-		timerData.save( GetHandleId(this), data )
+		timerData.saveInt( GetHandleId(this), data )
 		return this
 		
 	

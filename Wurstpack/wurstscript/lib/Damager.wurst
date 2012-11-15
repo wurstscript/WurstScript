@@ -120,8 +120,8 @@ package Damager
 				printWarning("In one instance of Damager, you are doing too much calls to factor(), please increase MAX_SUB_OPTIONS to allow more, or cut the number of factor() calls")
 				return
 
-			fct.save( fcn, convertUnitTypeToInt( ut ))
-			this.fc.save( fcn, fc )
+			fct.saveInt( fcn, convertUnitTypeToInt( ut ))
+			this.fc.saveReal( fcn, fc )
 			fcn++
 
 
@@ -142,8 +142,8 @@ package Damager
 				printWarning("In one instance of Damager, you are doing too much calls to abilityFactor(), please increase MAX_SUB_OPTIONS to allow more, or cut the number of abilityFactor() calls")
 				return
 
-			abifct.save( abifcn, abilityId )
-			abifc.save( abifcn, fc )
+			abifct.saveInt( abifcn, abilityId )
+			abifc.saveReal( abifcn, fc )
 			abifcn++
 
 
