@@ -48,7 +48,7 @@ package Texttag
 		
 	public function createTTEx(vec3 pos, vec2 vel, string message, int size, real duration, colorRGBA col ) returns texttag
 		texttag tt = CreateTextTag()
-		tt.setPos(pos)
+		tt.setPos(pos.toVec2().withZ(20.))
 		.setText( message, size * 0.0023 )
 		.setColor( col )
 		.setVelocity( vel.x, vel.y)

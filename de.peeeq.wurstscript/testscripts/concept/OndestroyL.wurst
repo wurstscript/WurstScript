@@ -1,20 +1,36 @@
 package Test
 
+		native testSuccess()
+		native testFail(string msg)
+		native println(string msg)
 		nativetype unit
-		native RemoveUnit(unit u )
 		
 		class A
 			unit u
-			construct(unit u)
-				this.u = u
+
 				
 			ondestroy
-				RemoveUnit(u)
-
+				u = null
+				
+				
 		class B extends A
+			unit u2
+			
+			ondestroy
+				u2 = null
+				
+		class C extends B
+			int i = 0
+			
+			ondestroy
+				i = 2
+				testSuccess()
+				
+		class D extends C
 			int c
-			construct( unit u )
-				super(u)
+			construct( int i )
+				super()
+				c = i
 				
 			ondestroy
 				while c < 4
@@ -23,6 +39,6 @@ package Test
 			
 
 		init
-			B b = new B(null)
-			destroy b
+			D d = new D(0)
+			destroy d
 endpackage

@@ -13,12 +13,17 @@ public class BugTests extends PscriptTest {
 	
 	@Test
 	public void localsInOndestroy() throws IOException {
-		testAssertOkFile(new File(TEST_DIR + "OndestroyL.wurst"), false);
+		testAssertOkFile(new File(TEST_DIR + "OndestroyL.wurst"), true);
 	}
 	
 	@Test
 	public void cyclic() throws IOException {
 		testAssertOkFile(new File(TEST_DIR + "CyclicError.wurst"), false);
+	}
+	
+	@Test
+	public void forfrom() throws IOException {
+		testAssertOkFileWithStdLib(new File(TEST_DIR + "ForFrom.wurst"), true);
 	}
 	
 	

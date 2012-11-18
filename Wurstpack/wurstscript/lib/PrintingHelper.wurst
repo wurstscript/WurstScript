@@ -11,7 +11,7 @@ package PrintingHelper
 	
 	public function debugPrint(string msg, int level)
 		if level >= DEBUG_LEVEL
-			print(msg)
+			print("|cff9C9C9CDEBUG - |r" + msg)
 			
 	public function print(string msg)
 		DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, msg)
@@ -31,6 +31,5 @@ package PrintingHelper
 	public function boolean.toString() returns string
 		if this
 			return "true"
-		else
-			return "false"
+		return "false"
 endpackage 

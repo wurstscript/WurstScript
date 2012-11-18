@@ -1,0 +1,18 @@
+package ForFrom
+	import LinkedList
+	
+	class Entity
+		vec2 pos
+		
+	LinkedList<Entity> entities = new LinkedList<Entity>()
+	
+	init
+		let itr = entities.iterator()
+		for e from itr
+			if e != null
+				e.pos = vec2(0,0)
+			else
+				itr.remove()
+		itr.close()
+	
+endpackage

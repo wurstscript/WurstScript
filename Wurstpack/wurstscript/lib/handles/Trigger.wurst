@@ -47,6 +47,10 @@ package Trigger
 		TriggerAddCondition( this, condition )
 		return this
 		
+	public function trigger.removeCondition(triggercondition condition) returns trigger
+		TriggerRemoveCondition( this, condition )
+		return this
+		
 	public function trigger.evaluate() returns trigger
 		TriggerEvaluate( this )
 		return this

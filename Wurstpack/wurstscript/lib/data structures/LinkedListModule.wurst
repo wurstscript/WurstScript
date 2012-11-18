@@ -8,23 +8,16 @@ package LinkedListModule
 		thistype next
 
 		construct()
-			print("initlinked 1")
 			size++
-			print("initlinked 1.1")
 			if size == 1
-				print("initlinked 1.2")
 				first = this
-				print("initlinked 1.3")
 				prev = null	
-				print("initlinked 2.1")
 			else
 				prev = last
 				last.next = this
 				first.prev = this
-				print("initlinked 2.2")
 			next = null
 			last = this
-			print("initlinked 3")
 
 		static function getFirst() returns thistype
 			return first
