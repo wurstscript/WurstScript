@@ -156,14 +156,14 @@ package RGBA
 		
 		decs = new Table()
 		for i2 = 0 to 9
-			decs.save(StringHash(i2.toString()), i2 )
+			decs.saveInt(StringHash(i2.toString()), i2 )
 		
-		decs.save(StringHash("A"), 10 )
-		decs.save(StringHash("B"), 11 )
-		decs.save(StringHash("C"), 12 )
-		decs.save(StringHash("D"), 13 )
-		decs.save(StringHash("E"), 14 )
-		decs.save(StringHash("F"), 15 )
+		decs.saveInt(StringHash("A"), 10 )
+		decs.saveInt(StringHash("B"), 11 )
+		decs.saveInt(StringHash("C"), 12 )
+		decs.saveInt(StringHash("D"), 13 )
+		decs.saveInt(StringHash("E"), 14 )
+		decs.saveInt(StringHash("F"), 15 )
 	
 
 endpackage

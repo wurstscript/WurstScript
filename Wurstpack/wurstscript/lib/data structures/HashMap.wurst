@@ -6,7 +6,7 @@ package HashMap
 		static private hashtable ht = InitHashtable()
 		
 		function put(K key, V value)
-			ht.save(this castTo int, key castTo int, value castTo int)
+			ht.saveInt(this castTo int, key castTo int, value castTo int)
 			
 		function get(K key) returns V
 			return ht.loadInt(this castTo int, key castTo int) castTo V

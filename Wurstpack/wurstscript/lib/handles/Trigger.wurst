@@ -5,8 +5,8 @@ package Trigger
 	public function trigger.registerUnitInRangeSource( unit whichUnit, real range ) returns event
 		int h = GetHandleId(this)
 		int u = GetHandleId(whichUnit)
-		triggerData.save(h,whichUnit)
-		triggerData.save(u,this)
+		triggerData.saveUnit(h,whichUnit)
+		triggerData.saveTrigger(u,this)
 		return TriggerRegisterUnitInRange(this, whichUnit, range, null)
 	
 	

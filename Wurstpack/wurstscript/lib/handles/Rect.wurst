@@ -23,13 +23,13 @@ package Rect
 	
 	public function trigger.registerRectEnterEventSource( rect r )
 		TriggerRegisterEnterRectSimple(this, r)
-		sourceTable.save(GetHandleId(this), r)
+		sourceTable.saveRect(GetHandleId(this), r)
 	
 	public function trigger.getSourceRect() returns rect
 		return sourceTable.loadRect(GetHandleId(this))
 	
 	public function region.setRegionData(int data)
-		regionData.save(GetHandleId(this), data)
+		regionData.saveInt(GetHandleId(this), data)
 	
 	public function region.loadRegionData() returns int
 		return regionData.loadInt(GetHandleId(this))
