@@ -213,8 +213,6 @@ public class SyntacticSugar {
 						ExprMemberMethod(loopInPos.copy(), 
 								ExprVarAccess(loopVarPos.copy(), iteratorName), "hasNext", Ast.TypeExprList(), Arguments()),
 						body));
-				parent.add(position+1, 
-						closeIteratorStatement(iteratorName, loopVarPos, loopInPos));
 			} else {
 				throw new CompileError(loop.getSource(), "Loop not in statements - " + loop.getParent().getClass().getName());
 			}
