@@ -1322,4 +1322,9 @@ public class WurstValidator {
 		}
 	}
 	
+	@CheckMethod
+	public void checkVarDef(VarDef v) {
+		v.attrTyp();
+	}
+	
 }

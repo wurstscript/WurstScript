@@ -635,7 +635,7 @@ LocalVarDef ::=
 	| LET:x IDENTIFIER:name NL
 		{: RESULT = Ast.LocalVarDef(pos(xleft, nameright), Ast.Modifiers(Ast.ModConstant(pos(xleft, xright))), Ast.NoTypeExpr(), name, Ast.NoExpr()); :}
 	| VAR:x IDENTIFIER:name NL
-		{: RESULT = Ast.LocalVarDef(pos(xleft, nameright), Ast.Modifiers(Ast.ModConstant(pos(xleft, xright))), Ast.NoTypeExpr(), name, Ast.NoExpr()); :}
+		{: RESULT = Ast.LocalVarDef(pos(xleft, nameright), Ast.Modifiers(), Ast.NoTypeExpr(), name, Ast.NoExpr()); :}
 ;
 
 LocalVarDefInline ::=
