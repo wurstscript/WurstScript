@@ -632,6 +632,10 @@ LocalVarDef ::=
 		{: RESULT = Ast.LocalVarDef(pos(typleft, i), Ast.Modifiers(), typ, name, i); :}
 	| TypeExpr:typ IDENTIFIER:name NL
 		{: RESULT = Ast.LocalVarDef(pos(typleft, nameright), Ast.Modifiers(), typ, name, Ast.NoExpr()); :}
+	| LET:x IDENTIFIER:name NL
+		{: RESULT = Ast.LocalVarDef(pos(xleft, nameright), Ast.Modifiers(Ast.ModConstant(pos(xleft, xright))), Ast.NoTypeExpr(), name, Ast.NoExpr()); :}
+	| VAR:x IDENTIFIER:name NL
+		{: RESULT = Ast.LocalVarDef(pos(xleft, nameright), Ast.Modifiers(Ast.ModConstant(pos(xleft, xright))), Ast.NoTypeExpr(), name, Ast.NoExpr()); :}
 ;
 
 LocalVarDefInline ::=

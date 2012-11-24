@@ -215,9 +215,12 @@ IdentifierWithTypeParamDefs(WPos source, String name, &TypeParamDefs typeParams)
 NameRef = ExprVarArrayAccess | ExprVarAccess | ExprMemberVar | ExprMemberArrayVar
 
 VarDef = 
-	GlobalVarDef
-	| LocalVarDef
+	  GlobalOrLocalVarDef
 	| WParameter
+	
+GlobalOrLocalVarDef = 
+	  GlobalVarDef
+	| LocalVarDef
 
 // has funcName:String attribute
 

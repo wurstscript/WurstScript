@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.ast.EnumDef;
 import de.peeeq.wurstscript.ast.EnumMember;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
+import de.peeeq.wurstscript.ast.GlobalOrLocalVarDef;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.InterfaceDef;
@@ -23,6 +24,7 @@ import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.types.WurstNativeType;
@@ -38,6 +40,7 @@ import de.peeeq.wurstscript.types.WurstTypeModuleInstanciation;
 import de.peeeq.wurstscript.types.WurstTypePackage;
 import de.peeeq.wurstscript.types.WurstTypeTuple;
 import de.peeeq.wurstscript.types.WurstTypeTypeParam;
+import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
 
 
@@ -48,11 +51,11 @@ import de.peeeq.wurstscript.types.WurstTypeVoid;
 public class AttrVarDefType {
 	
 	public static  WurstType calculate(GlobalVarDef node) {
-		return defaultCase(node.getOptTyp(), node.getInitialExpr());
+		return defaultCase(node);
 	}
 	
 	public static  WurstType calculate(LocalVarDef node) {
-		return defaultCase(node.getOptTyp(), node.getInitialExpr());
+		return defaultCase(node);
 	}
 	
 	public static  WurstType calculate(WParameter node) {
@@ -68,8 +71,9 @@ public class AttrVarDefType {
 		return t;
 	}
 	
-	private static WurstType defaultCase(OptTypeExpr typ,
-			final OptExpr initialExpr) {
+	private static WurstType defaultCase(GlobalOrLocalVarDef v) {
+		OptTypeExpr typ = v.getOptTyp();
+		final OptExpr initialExpr = v.getInitialExpr();
 		if (typ instanceof TypeExpr) {
 			return typ.attrTyp().dynamic();
 		} else {
@@ -81,7 +85,9 @@ public class AttrVarDefType {
 				}
 				return result;
 			} else {
-				throw new Error("Vardef must either have a type or an initial value");
+				v.addError("Could not infer the type of variable '" + v.getName() + "' because it does not have an initial expression.\n"
+						+ "Fix this error by providing a type (e.g. 'int "+v.getName()+"' or 'string "+v.getName()+"').");
+				return WurstTypeUnknown.instance();
 			}
 		}
 	}

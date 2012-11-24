@@ -418,6 +418,15 @@ public class SimpleStatementTests extends PscriptTest {
 	}
 	
 	@Test
+	public void test_var_err() {
+		assertError(false, "Could not infer the type of variable",
+				"var a",
+				"if true",
+				"	a = 10"
+				);
+	}
+	
+	@Test
 	public void test_var2() {
 		assertOk(true,
 				"var a = 11",
