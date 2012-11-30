@@ -235,7 +235,11 @@ public class WurstValidator {
 
 		NameDef nameDef = s.getUpdatedExpr().attrNameDef();
 		if (!(nameDef instanceof VarDef)) {
+			if (nameDef == null) {
+				s.getUpdatedExpr().addError("Could not find variable " + s.getUpdatedExpr().getVarName() + ".");
+			}
 			s.getUpdatedExpr().addError("Invalid assignment. This is not a variable, this is a " + Utils.printElement(nameDef));
+			return;
 		}
 		
 		WurstType leftType = s.getUpdatedExpr().attrTyp();
@@ -1316,6 +1320,11 @@ public class WurstValidator {
 				imp.addError("The package " + imp.getPackagename() + " is already imported.");
 			}
 		}
+	}
+	
+	@CheckMethod
+	public void checkVarDef(VarDef v) {
+		v.attrTyp();
 	}
 	
 }

@@ -39,6 +39,15 @@ action code {:
 		return pos(left, right.getSource());
 	}
 	
+	
+	private WPos pos(int xleft, int yright, WStatements stmts) {
+		if (stmts.size() > 0) {
+			return pos(xleft, stmts.get(stmts.size()-1));
+		} else {
+			return pos(xleft, yright);
+		}
+	}
+	
 	private final WPos pos(int left, List<? extends AstElementWithSource> ... right) {
 		for (int i = right.length-1; i>=0; i--) {
 			if (right[i].size() > 0) {
@@ -172,6 +181,7 @@ non terminal WStatements JassLocals;
 non terminal WStatements JassStatements;
 non terminal WStatements JasselseIfs;
 non terminal WStatements Statements;
+non terminal WStatements OptionalBlock;
 
 precedence nonassoc LOWEST;
 precedence left 	INFIX_CALL;
@@ -546,18 +556,18 @@ Statement ::=
 		{: RESULT = x; :}
 	| StmtDestroy:x
 		{: RESULT = x; :} 
-	| FOR:x LocalVarDefInline:loopVar EQ Expr:from TO Expr:to NL INDENT Statements:body UNINDENT:y
-		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRange(pos(xleft, body), loopVar, to, Ast.ExprIntVal(pos(to, Integer.MIN_VALUE), 1), body); :}
-	| FOR:x LocalVarDefInline:loopVar EQ Expr:from TO Expr:to STEP Expr:step NL INDENT Statements:body UNINDENT:y
-		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRange(pos(xleft, body), loopVar, to, step, body); :}
-	| FOR:x LocalVarDefInline:loopVar EQ Expr:from DOWNTO Expr:to NL INDENT Statements:body UNINDENT:y
-		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRangeDown(pos(xleft, body), loopVar, to, Ast.ExprIntVal(pos(to, Integer.MIN_VALUE), 1), body); :}
-	| FOR:x LocalVarDefInline:loopVar EQ Expr:from DOWNTO Expr:to STEP Expr:step NL INDENT Statements:body UNINDENT:y
-		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRangeDown(pos(xleft, body), loopVar, to, step, body); :}
-	| FOR:x LocalVarDefInline:loopVar IN Expr:in NL INDENT Statements:body UNINDENT:y
-		{: RESULT = Ast.StmtForIn(pos(xleft, body), loopVar, in, body); :}
-	| FOR:x LocalVarDefInline:loopVar FROM Expr:in NL INDENT Statements:body UNINDENT:y
-		{: RESULT = Ast.StmtForFrom(pos(xleft, body), loopVar, in, body); :}
+	| FOR:x LocalVarDefInline:loopVar EQ Expr:from TO Expr:to NL:y OptionalBlock:body
+		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRange(pos(xleft, yright, body), loopVar, to, Ast.ExprIntVal(pos(to, Integer.MIN_VALUE), 1), body); :}
+	| FOR:x LocalVarDefInline:loopVar EQ Expr:from TO Expr:to STEP Expr:step NL:y OptionalBlock:body
+		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRange(pos(xleft, yright, body), loopVar, to, step, body); :}
+	| FOR:x LocalVarDefInline:loopVar EQ Expr:from DOWNTO Expr:to NL:y OptionalBlock:body
+		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRangeDown(pos(xleft, yright, body), loopVar, to, Ast.ExprIntVal(pos(to, Integer.MIN_VALUE), 1), body); :}
+	| FOR:x LocalVarDefInline:loopVar EQ Expr:from DOWNTO Expr:to STEP Expr:step NL:y OptionalBlock:body
+		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRangeDown(pos(xleft, yright, body), loopVar, to, step, body); :}
+	| FOR:x LocalVarDefInline:loopVar IN Expr:in NL:y OptionalBlock:body
+		{: RESULT = Ast.StmtForIn(pos(xleft, yright, body), loopVar, in, body); :}
+	| FOR:x LocalVarDefInline:loopVar FROM Expr:in NL:y OptionalBlock:body
+		{: RESULT = Ast.StmtForFrom(pos(xleft, yright, body), loopVar, in, body); :}
 	| BREAK:x NL
 		{: RESULT = Ast.StmtExitwhen(pos(xleft, xright), Ast.ExprBoolVal(pos(xleft, xright), true)); :}
 	| SKIP:x NL
@@ -583,10 +593,17 @@ StmtReturn ::=
 ;
 
 StmtIf ::=
-	IF:x Expr:cond NL INDENT Statements:thenStatements UNINDENT:y
-		{: RESULT = Ast.StmtIf(pos(xleft, thenStatements), cond, thenStatements, Ast.WStatements()); :}
-	| IF:x Expr:cond NL INDENT Statements:thenStatements UNINDENT ELSE:y ElseStatements:elseStatements
-		{: RESULT = Ast.StmtIf(pos(xleft, elseStatements.get(elseStatements.size()-1)), cond, thenStatements, elseStatements); :}
+	IF:x Expr:cond NL:y OptionalBlock:thenStatements
+		{: RESULT = Ast.StmtIf(pos(xleft, yright, thenStatements), cond, thenStatements, Ast.WStatements()); :}
+	| IF:x Expr:cond NL OptionalBlock:thenStatements ELSE:y ElseStatements:elseStatements
+		{: RESULT = Ast.StmtIf(pos(xleft, yright, elseStatements), cond, thenStatements, elseStatements); :}
+;
+
+OptionalBlock ::=
+	INDENT Statements:stmts UNINDENT:y
+		{: RESULT = stmts; :}
+	| 
+		{: RESULT = Ast.WStatements(); :}
 ;
 
 SwitchCases ::=
@@ -612,13 +629,13 @@ SwitchStmt ::=
 ElseStatements ::= 
 	StmtIf:x 
 		{: RESULT = Ast.WStatements(x); :}
-	| NL INDENT Statements:x UNINDENT
+	| NL OptionalBlock:x
 		{: RESULT = x; :}
 ;
 
 StmtWhile ::=
-	WHILE:x Expr:cond NL INDENT Statements:body UNINDENT:y
-		{: RESULT = Ast.StmtWhile(pos(xleft, body), cond, body); :}
+	WHILE:x Expr:cond NL:y OptionalBlock:body
+		{: RESULT = Ast.StmtWhile(pos(xleft, yright, body), cond, body); :}
 ;
 
 LocalVarDef ::=
@@ -632,6 +649,10 @@ LocalVarDef ::=
 		{: RESULT = Ast.LocalVarDef(pos(typleft, i), Ast.Modifiers(), typ, name, i); :}
 	| TypeExpr:typ IDENTIFIER:name NL
 		{: RESULT = Ast.LocalVarDef(pos(typleft, nameright), Ast.Modifiers(), typ, name, Ast.NoExpr()); :}
+	| LET:x IDENTIFIER:name NL
+		{: RESULT = Ast.LocalVarDef(pos(xleft, nameright), Ast.Modifiers(Ast.ModConstant(pos(xleft, xright))), Ast.NoTypeExpr(), name, Ast.NoExpr()); :}
+	| VAR:x IDENTIFIER:name NL
+		{: RESULT = Ast.LocalVarDef(pos(xleft, nameright), Ast.Modifiers(), Ast.NoTypeExpr(), name, Ast.NoExpr()); :}
 ;
 
 LocalVarDefInline ::=
