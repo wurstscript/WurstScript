@@ -35,7 +35,6 @@ function evaluateEvent() returns boolean
 			evalTrig.addCondition(conds[i])
 			evalTrig.evaluate()
 			evalTrig.clearConditions()
-			print("evaluate")
 	return false
 
 init

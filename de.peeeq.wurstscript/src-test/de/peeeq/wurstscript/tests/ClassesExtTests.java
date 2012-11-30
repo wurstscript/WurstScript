@@ -5,7 +5,7 @@ import java.io.IOException;
 
 import org.junit.Test;
 
-public class ClassesExtTests extends PscriptTest {
+public class ClassesExtTests extends WurstScriptTest {
 	
 	
 	

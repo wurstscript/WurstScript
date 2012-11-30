@@ -41,7 +41,7 @@ import de.peeeq.wurstscript.utils.FileReading;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 
-public class PscriptTest {
+public class WurstScriptTest {
 
 	private static final String TEST_OUTPUT_PATH = "./test-output/";
 
@@ -163,7 +163,7 @@ public class PscriptTest {
 		boolean success = false;
 		WurstGui gui = new WurstGuiCliImpl();
 		RunArgs runArgs = new RunArgs(new String[] {
-				"-inline"
+				"-inline", "-opt"
 			});
 		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, runArgs);
 		compiler.getErrorHandler().enableUnitTestMode();
@@ -253,15 +253,15 @@ public class PscriptTest {
 		System.out.println("optimizer1");
 		if (testOptimizer()) {
 			
-			System.out.println("optimizer2");
-			JassOptimizer optimizer = new JassOptimizerImpl();
-			System.out.println("optimizer3");
-			try {
-				optimizer.optimize(prog);
-				System.out.println("optimizer4");
-			} catch (FileNotFoundException e) {
-				throw new Error(e);
-			}
+//			System.out.println("optimizer2");
+//			JassOptimizer optimizer = new JassOptimizerImpl();
+//			System.out.println("optimizer3");
+//			try {
+//				optimizer.optimize(prog);
+//				System.out.println("optimizer4");
+//			} catch (FileNotFoundException e) {
+//				throw new Error(e);
+//			}
 			
 	
 			// write optimized file:

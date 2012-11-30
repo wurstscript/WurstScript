@@ -7,7 +7,7 @@ import org.junit.Test;
 
 import de.peeeq.wurstscript.utils.Utils;
 
-public class BugTests extends PscriptTest {
+public class BugTests extends WurstScriptTest {
 
 	private static final String TEST_DIR = "./testscripts/concept/";
 	

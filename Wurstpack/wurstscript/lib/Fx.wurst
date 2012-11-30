@@ -142,12 +142,17 @@ package Fx
 		function setPos(real x, real y) returns Fx
 			dummy.setPos(x, y)
 			return this
+			
+		function setPos(real x, real y, real z) returns Fx
+			dummy.setPos(x, y)
+			dummy.setFlyHeight(z, 0.)
+			return this
 		
-		function setPos2(vec2 pos) returns Fx
+		function setPos(vec2 pos) returns Fx
 			dummy.setPos(pos.x, pos.y)
 			return this
 		
-		function setPos3(vec3 pos) returns Fx
+		function setPos(vec3 pos) returns Fx
 			dummy.setPos(pos.x, pos.y)
 			setZ(pos.z)
 			return this
@@ -164,13 +169,11 @@ package Fx
 			if newpath == ""
 				fx = null
 			else
-				print("added")	  
 				fx = dummy.addEffect(newpath, "origin")
 			sfxPath = newpath
 			return this
 				
-		ondestroy  
-			print("destroyed")			
+		ondestroy  			
 			if fx != null
 				fx.destr()
 

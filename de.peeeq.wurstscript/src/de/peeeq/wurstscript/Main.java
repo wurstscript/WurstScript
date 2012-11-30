@@ -109,9 +109,9 @@ public class Main {
 
 				boolean withSpace;
 				if (runArgs.isOptimize()) {
-					gui.sendProgress("Optimizing Jass", 0.85);
-					JassOptimizer optimizer = new JassOptimizerImpl();
-					optimizer.optimize(jassProg);
+					gui.sendProgress("Pretty Jass", 0.85);
+//					JassOptimizer optimizer = new JassOptimizerImpl();
+//					optimizer.optimize(jassProg);
 					withSpace = false;
 				} else {
 					withSpace = true;

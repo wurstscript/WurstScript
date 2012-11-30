@@ -4,7 +4,7 @@ import org.junit.Test;
 
 import de.peeeq.wurstscript.utils.Utils;
 
-public class OpOverloading extends PscriptTest {
+public class OpOverloading extends WurstScriptTest {
 
 	
 	@Test

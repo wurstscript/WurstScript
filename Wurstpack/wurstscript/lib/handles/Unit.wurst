@@ -127,5 +127,8 @@ package Unit
 		SetUnitMoveSpeed(this, speed)
 		return this
 		
+	public function unit.damageTarget(unit target, real amount)
+		UnitDamageTarget(this, target, amount, false, false, ATTACK_TYPE_NORMAL, DAMAGE_TYPE_UNIVERSAL, WEAPON_TYPE_WHOKNOWS)
+		
 
 endpackage

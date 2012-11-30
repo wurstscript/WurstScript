@@ -39,10 +39,7 @@ public class GlobalsInliner {
 	
 	private ImTranslator translator;
 	private ImProg prog;
-	private List<ImVar> globals = Lists.newArrayList();
-	private List<ImStmt> setExprs = Lists.newArrayList();
-	private Set<ImVar> unused = Sets.newHashSet();
-	
+
 	
 	ImSet s = null;
 	ImSetArray sa = null;

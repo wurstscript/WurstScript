@@ -5,7 +5,7 @@ import java.io.IOException;
 
 import org.junit.Test;
 
-public class ExtensionMethodsTests extends PscriptTest {
+public class ExtensionMethodsTests extends WurstScriptTest {
 	
 	private static final String TEST_DIR = "./testscripts/concept/";
 

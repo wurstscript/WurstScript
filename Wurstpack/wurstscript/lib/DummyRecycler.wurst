@@ -108,9 +108,10 @@ package DummyRecycler
 			u.addAbility(LOCUST_ID)
 			PauseUnit(u, true)
 
-		SetUnitX(u, x)
-		SetUnitY(u, y)
-		SetUnitFlyHeight(u, z, 0)
+		u.setX(x)
+		u.setY(y)
+		u.setFlyHeight(z, 0)
+		u.show()
 		bj_lastCreatedUnit = u
 		return bj_lastCreatedUnit
 

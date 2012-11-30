@@ -8,7 +8,7 @@ import org.junit.experimental.categories.Categories.ExcludeCategory;
 
 import de.peeeq.wurstscript.jassinterpreter.DebugPrintError;
 
-public class ClassesTests extends PscriptTest {
+public class ClassesTests extends WurstScriptTest {
 	
 	private static final String TEST_DIR = "./testscripts/valid/classes/";
 	private static final String TEST_DIR2 = "./testscripts/concept/";

@@ -5,7 +5,7 @@ import java.io.IOException;
 
 import org.junit.Test;
 
-public class TupleTests extends PscriptTest {
+public class TupleTests extends WurstScriptTest {
 	
 	
 	@Test

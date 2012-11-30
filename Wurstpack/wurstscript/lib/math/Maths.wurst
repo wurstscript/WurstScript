@@ -2,6 +2,7 @@ package Maths
 	import Vectors
 
 	public constant real PI			=  3.141592654
+	public constant real PI2 		=  6.28318
 	public constant real DEGTORAD  	=  0.017453293
 	public constant real RADTODEG  	= 57.295779513
 	

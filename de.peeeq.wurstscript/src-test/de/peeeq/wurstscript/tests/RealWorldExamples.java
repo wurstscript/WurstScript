@@ -15,7 +15,7 @@ import de.peeeq.wurstscript.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 
-public class RealWorldExamples extends PscriptTest {
+public class RealWorldExamples extends WurstScriptTest {
 	
 	private static final String TEST_DIR = "./testscripts/concept/";
 	private static final String BUG_DIR = "./testscripts/realbugs/";

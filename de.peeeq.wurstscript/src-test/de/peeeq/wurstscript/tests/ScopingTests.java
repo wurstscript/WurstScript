@@ -4,7 +4,7 @@ import org.junit.Test;
 
 import de.peeeq.wurstscript.utils.Utils;
 
-public class ScopingTests extends PscriptTest {
+public class ScopingTests extends WurstScriptTest {
 
 //	@Test
 //	public void test_duplicates_cu() {

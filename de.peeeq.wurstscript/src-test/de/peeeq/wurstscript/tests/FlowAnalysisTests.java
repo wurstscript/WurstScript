@@ -4,7 +4,7 @@ import org.junit.Test;
 
 import de.peeeq.wurstscript.utils.Utils;
 
-public class FlowAnalysisTests extends PscriptTest {
+public class FlowAnalysisTests extends WurstScriptTest {
 
 	@Test
 	public void testReturns1() {

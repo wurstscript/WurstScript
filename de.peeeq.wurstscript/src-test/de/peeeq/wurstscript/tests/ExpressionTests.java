@@ -4,7 +4,7 @@ import org.junit.Test;
 
 import de.peeeq.wurstscript.utils.Utils;
 
-public class ExpressionTests extends PscriptTest {
+public class ExpressionTests extends WurstScriptTest {
 
 	@Test
 	public void plus() {

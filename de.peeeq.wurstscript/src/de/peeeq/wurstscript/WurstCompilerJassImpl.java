@@ -38,6 +38,7 @@ import de.peeeq.wurstscript.parser.ScannerError;
 import de.peeeq.wurstscript.parser.WurstScriptScanner;
 import de.peeeq.wurstscript.translation.imoptimizer.GlobalsInliner;
 import de.peeeq.wurstscript.translation.imoptimizer.ImInliner;
+import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
 import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.FileReading;
@@ -336,12 +337,13 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			ErrorReporting.handleSevere(e);
 		}
 		
+		ImOptimizer optimizer = new ImOptimizer(imTranslator);
+		
 		if (runArgs.isInline()) {
-			GlobalsInliner gbinliner = new GlobalsInliner(imTranslator);
-			gbinliner.inlineGlobals();
-			ImInliner inliner = new ImInliner(imTranslator);
-			inliner.doInlining();
-			
+			optimizer.doInlining();
+		}
+		if (runArgs.isOptimize()) {
+			optimizer.optimize();
 		}
 		
 		try {

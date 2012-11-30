@@ -8,7 +8,7 @@ import de.peeeq.wurstscript.utils.Utils;
  * Tests using using more than one compilation unit 
  *
  */
-public class CompilationUnitTests extends PscriptTest {
+public class CompilationUnitTests extends WurstScriptTest {
 
 	
 	@Test

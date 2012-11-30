@@ -97,9 +97,29 @@ package Vectors
 		
 	public function vec3.toString() returns string
 		return "Vector3 [ " + this.x.toString() + ", " + this.y.toString() + ", " + this.z.toString() + " ]"
-		
-	public function vec3.flat() returns vec2
-		return vec2(this.x, this.y)
+	
+	public function vec3.rotate( vec3 axis, real angle ) returns vec3 //angle is taken in radians
+		var al = axis.x*axis.x+axis.y*axis.y+axis.z*axis.z //axis length^2
+		var c = Cos(angle)
+		var s = Sin(angle)
+		if al == 0.0
+			printError("vector.rotate error: The length of the axis vector is 0.0!")
+			return vec3(0,0,0)
+
+		var f = (this.x*axis.x+this.y*axis.y+this.z*axis.z) / al
+		var zx = axis.x*f
+		var zy = axis.y*f
+		var zz = axis.z*f //axis component of rotated vector
+		var xx = this.x-zx
+		var xy = this.y-zy
+		var xz = this.z-zz //component of vector perpendicular to axis
+		al = SquareRoot(al)
+		var yx = (axis.y*xz - axis.z*xy)/al
+		var yy = (axis.z*xx - axis.x*xz)/al //y same length as x by using cross product and dividing with axis length
+		var yz = (axis.x*xy - axis.y*xx)/al //x,y - coordinate system in which we rotate
+		return vec3(xx*c+yx*s+zx, xy*c+yy*s+zy, xz*c+yz*s+zz )
+
+	
 		
 	/*************************
 	 ********2D-Vector********
