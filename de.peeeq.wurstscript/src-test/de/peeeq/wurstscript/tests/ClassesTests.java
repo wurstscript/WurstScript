@@ -91,6 +91,16 @@ public class ClassesTests extends WurstScriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void code_members() {
+		testAssertErrorsLines(false, "code members not allowed", 
+				"package test",
+				"	class C",
+				"		code c",
+				"endpackage"
+			);
+	}
 
 	@Test
 	public void classes_static_var_get() {
