@@ -1,0 +1,123 @@
+package Sound
+import Stack
+
+constant boolean DEFAULT_SOUND_STOPS_ON_LEAVE_RANGE = true
+constant real DEFAULT_SOUND_FADE_IN_RATE = 10
+constant real DEFAULT_SOUND_FADE_OUT_RATE = 10
+constant string  DEFAULT_SOUND_EAX_SETTINGS = "CombatSoundsEAX"
+constant int DEFAULT_SOUND_VOLUME = 127
+constant real DEFAULT_SOUND_PITCH = 1
+
+constant int SOUND_CHANNEL = 5
+constant real SOUND_MIN_DIST = 600
+constant real SOUND_MAX_DIST = 10000
+constant real SOUND_DIST_CUT = 3000
+
+class SData
+	sound snd
+	Sound soundData
+	unit onUnit
+
+public class Sound
+	Stack<SData> soundStack = new Stack<SData>()
+	
+	string file
+	int duration
+	boolean looping
+	boolean is3D
+	boolean stopOnLeaveRange
+	int fadeIn
+	int fadeOut
+	string eaxSetting
+	
+	construct(string file, int duration, boolean looping, boolean is3D, boolean stopOnLeaveRange, int fadeIn, int fadeOut, string eaxSetting )
+		this.file = file
+		this.duration = duration
+		this.looping = looping
+		this.is3D = is3D
+		this.stopOnLeaveRange = stopOnLeaveRange
+		this.fadeIn = fadeIn
+		this.fadeOut = fadeOut
+		this.eaxSetting = eaxSetting
+	
+
+	function getSound() returns SData
+		// If there is a handle on the stack
+		if soundStack.size > 0
+			return soundStack.pop()
+		else
+			// No free handle, create a new one
+			 /*
+			*   Create new sound and point it to
+			*   Sound struct instance.
+			*/
+			var sdata = new SData()
+			sdata.snd = CreateSound(this.file, this.looping, this.is3D, this.stopOnLeaveRange, this.fadeIn, this.fadeOut, this.eaxSetting)
+			sdata.soundData = this
+			/*
+			*   Configure sound
+			*/
+			SetSoundDuration(sdata.snd, this.duration)
+			SetSoundChannel(sdata.snd, SOUND_CHANNEL)
+			SetSoundVolume(sdata.snd, DEFAULT_SOUND_VOLUME)
+			SetSoundPitch(sdata.snd, DEFAULT_SOUND_PITCH)
+			
+			/*
+			*   Proper 3D sound configuration
+			*/
+			if this.is3D
+				SetSoundDistances(sdata.snd, SOUND_MIN_DIST, SOUND_MAX_DIST)
+				SetSoundDistanceCutoff(sdata.snd, SOUND_DIST_CUT)
+				SetSoundConeAngles(sdata.snd, 0, 0, DEFAULT_SOUND_VOLUME)
+				SetSoundConeOrientation(sdata.snd, 0, 0, 0)
+				
+			
+			return sdata
+			
+	function play()
+		getTimer().setData(getSound() castTo int).start(0., function Sound.playSound)
+		
+	function playOnUnit(unit u)
+		var s = getSound()
+		s.onUnit = u
+		getTimer().setData(s castTo int).start(0., function Sound.playSound)
+		
+	function playOnPoint(real x, real y, real z)
+		var s = getSound()
+		SetSoundPosition(s.snd, x, y, z)
+		getTimer().setData(s castTo int).start(0., function Sound.playSound)
+		
+	function playOnPoint(vec3 pos)
+		var s = getSound()
+		SetSoundPosition(s.snd, pos.x, pos.y, pos.z)
+		getTimer().setData(s castTo int).start(0., function Sound.playSound)
+			
+	private static function playSound()
+		var tm = GetExpiredTimer()
+		var sdata = tm.getData() castTo SData
+		if sdata.onUnit != null
+			AttachSoundToUnit(sdata.snd, sdata.onUnit)
+		SetSoundVolume(sdata.snd, 100)
+		StartSound(sdata.snd)
+		tm.release()
+		getTimer().setData(sdata castTo int).start(sdata.soundData.duration * 0.001, function Sound.recycle)
+	
+	private static function recycle()
+		var tm = GetExpiredTimer()
+		var sdata = tm.getData() castTo SData
+		if sdata.soundData.soundStack.size < 4
+			sdata.soundData.soundStack.push(sdata)
+		else
+			StopSound(sdata.snd, true, true)
+			destroy sdata
+			
+		tm.release()
+			
+			
+			
+			
+			
+			
+			
+			
+			

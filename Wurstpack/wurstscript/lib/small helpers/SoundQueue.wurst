@@ -1,0 +1,30 @@
+package SoundQueue
+import Queue
+import Sound
+
+code c = function SoundQueue.nextSound
+public class SoundQueue
+	Queue<Sound> queue = new Queue<Sound>()
+
+	timer tm = getTimer()
+	
+	construct()
+		tm.setData(this castTo int)
+	
+	function addSound(Sound snd)
+		queue.enqueue(snd)
+		
+	function startQueue()
+		if queue.size > 0
+			let snd = queue.dequeue()
+			snd.play()
+			debugPrint("playing Sound " + (snd castTo int).toString() , 1)
+			tm.start(snd.duration * 0.001, c)
+		else
+			tm.release()
+			destroy this
+		
+	static function nextSound()
+		var tm = GetExpiredTimer()
+		var sndq = tm.getData() castTo SoundQueue
+		sndq.startQueue()

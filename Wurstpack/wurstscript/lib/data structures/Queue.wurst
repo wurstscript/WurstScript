@@ -1,35 +1,37 @@
-package Stack
+package Queue
 
-	public class Stack<T>
+	public class Queue<T>
 		private SEntry<T> dummy
-		private SEntry<T> top
+		private SEntry<T> front
+		private SEntry<T> back
 		private int size = 0
 
 		construct()
 			dummy = new SEntry<T>(null, null)
-			top = dummy
+			front = dummy
 
-		// add an element to the end of the list
-		function push(T elem)
-			top = new SEntry(elem, top)
+		// add an element
+		function enqueue(T elem)
+			if front == dummy
+				front = new SEntry(elem, dummy)
+				back = front
+			else
+				back.next = new SEntry(elem, dummy)
+				back = back.next
 			size++
 			
 		// get & remove the top element
-		function pop() returns T
-			let val = top
-			top = top.prev
+		function dequeue() returns T
+			let tmp = front
+			front = front.next
 			size--
-			return val.elem
+			return tmp.elem
 			
-		
-		// look at the top element
-		function peek() returns T
-			return top.elem
 
 		// add all elements from elems to this list
-		function addAll(Stack<T> elems)
+		function addAll(Queue<T> elems)
 			for T elem in elems
-				push(elem)
+				enqueue(elem)
 
 		
 		// gets the size of the stack
@@ -38,23 +40,23 @@ package Stack
 
 		// get an iterator for this list
 		function iterator() returns SIterator<T>
-			return new SIterator(dummy, top)			
+			return new SIterator(dummy, front)			
 
 		ondestroy
-			SEntry<T> current = top
+			SEntry<T> current = front
 			while current != dummy
 				let temp = current
-				current = current.prev
+				current = current.next
 				destroy temp
 			destroy dummy
 
 	class SEntry<S>
 		S elem
-		SEntry<S> prev
+		SEntry<S> next
 
-		construct(S elem, SEntry<S> prev)
+		construct(S elem, SEntry<S> next)
 			this.elem = elem
-			this.prev = prev
+			this.next = next
 
 	class SIterator<Q>
 		SEntry<Q> dummy
@@ -67,16 +69,16 @@ package Stack
 		// remove the current element from the list
 		function remove()
 			if current != dummy
-				let cp = current.prev
+				let cp = current.next
 				destroy current
 				current = cp
 				
 
 		function hasNext() returns boolean
-			return current.prev != dummy
+			return current.next != dummy
 
 		function next() returns Q
-			current = current.prev
+			current = current.next
 			return current.elem
 
 		function close()
