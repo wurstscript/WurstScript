@@ -1,4 +1,5 @@
-package Sound
+package SoundHelper
+
 import Stack
 
 constant boolean DEFAULT_SOUND_STOPS_ON_LEAVE_RANGE = true
@@ -112,12 +113,3 @@ public class Sound
 			destroy sdata
 			
 		tm.release()
-			
-			
-			
-			
-			
-			
-			
-			
-			

@@ -1,0 +1,15 @@
+package Sound
+
+// Sound Duration is always in miliseconds
+public function sound.setDuration(int dur) returns sound
+	SetSoundDuration(this, dur)
+	return this
+	
+
+
+			
+			
+			
+			
+			
+			

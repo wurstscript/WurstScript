@@ -26,7 +26,7 @@ package Stack
 		function peek() returns T
 			return top.elem
 
-		// add all elements from elems to this list
+		// add all elements from elems to this stack
 		function addAll(Stack<T> elems)
 			for T elem in elems
 				push(elem)
@@ -36,7 +36,7 @@ package Stack
 		function getSize() returns int
 			return size
 
-		// get an iterator for this list
+		// get an iterator for this stack
 		function iterator() returns SIterator<T>
 			return new SIterator(dummy, top)			
 

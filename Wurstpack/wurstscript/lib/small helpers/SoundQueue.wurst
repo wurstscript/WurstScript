@@ -1,6 +1,6 @@
 package SoundQueue
 import Queue
-import Sound
+import SoundHelper
 
 code c = function SoundQueue.nextSound
 public class SoundQueue

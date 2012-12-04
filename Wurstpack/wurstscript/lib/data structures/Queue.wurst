@@ -28,17 +28,17 @@ package Queue
 			return tmp.elem
 			
 
-		// add all elements from elems to this list
+		// add all elements from elems to this queue
 		function addAll(Queue<T> elems)
 			for T elem in elems
 				enqueue(elem)
 
 		
-		// gets the size of the stack
+		// gets the size of the queue
 		function getSize() returns int
 			return size
 
-		// get an iterator for this list
+		// get an iterator for this queue
 		function iterator() returns SIterator<T>
 			return new SIterator(dummy, front)			
 
@@ -62,11 +62,11 @@ package Queue
 		SEntry<Q> dummy
 		SEntry<Q> current
 
-		construct(SEntry<Q> dummy, SEntry<Q> top)
+		construct(SEntry<Q> dummy, SEntry<Q> front)
 			this.dummy = dummy
-			this.current = top
+			this.current = front
 			
-		// remove the current element from the list
+		// remove the current element from the queue
 		function remove()
 			if current != dummy
 				let cp = current.next
@@ -78,8 +78,9 @@ package Queue
 			return current.next != dummy
 
 		function next() returns Q
+			let tmp = current
 			current = current.next
-			return current.elem
+			return tmp.elem
 
 		function close()
 			destroy this
