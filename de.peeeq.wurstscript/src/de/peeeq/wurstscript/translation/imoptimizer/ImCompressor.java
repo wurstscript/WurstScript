@@ -21,7 +21,7 @@ public class ImCompressor {
 	public void compressNames() {
 		System.out.println("Compressing Names......");
 		compressGlobals();
-		//compressFunctions();
+		compressFunctions();
 		System.out.println("Compressing Names......DONE");
 	}
 	
@@ -30,9 +30,12 @@ public class ImCompressor {
 		for ( final ImVar global : prog.getGlobals() ) {
 			if (global.getIsBJ()) {
 				// no not rename bj constants
+				
 				continue;
 			}
+			
 			String replacement = ng.getUniqueToken();
+			
 			global.setName(replacement);
 		}
 	}
@@ -45,7 +48,18 @@ public class ImCompressor {
 			}
 			String rname = ng.getUniqueToken();
 			func.setName(rname);
+			compressLocals(func);
 		}
 		
+	}
+
+	private void compressLocals(ImFunction func) {
+		// TODO compressing locals should not use the global name pool but use a own pool
+		for (ImVar local : func.getParameters()) {
+			local.setName(ng.getUniqueToken());
+		}
+		for (ImVar local : func.getLocals()) {
+			local.setName(ng.getUniqueToken());
+		}
 	}
 }

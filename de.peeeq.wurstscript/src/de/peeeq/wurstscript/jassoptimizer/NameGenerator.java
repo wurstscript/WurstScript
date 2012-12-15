@@ -13,9 +13,10 @@ import de.peeeq.wurstscript.utils.Debug;
  */
 public class NameGenerator {
     /** The given charmap */
-    private String charmapFirst = "wurstqeiopadfghjklyxcvbnmQWERTZUIOPASDFGHJKLYXCVBNM";
-    private String charmapMid = "wurstqeiopadfghjklyxcvbnmQWERTZUIOPASDFGHJKLYXCVBNM1234567890_";
-    private String charmap = "wurstqeiopadfghjklyxcvbnmQWERTZUIOPASDFGHJKLYXCVBNM1234567890";
+    private final String charmapFirst = "wurstiScoOlbypeqandfRTYGghFkjxvmQWEZUIPADHJKLXCVBNM";
+    private final String charmap = charmapFirst + "3142567890";
+    private final String charmapMid = charmap + "_";
+    
     private String TEcharmap = "wurstqeiopadfghjklyxcvbnm";
     /** A counter */
     private int currentId = 0;
@@ -34,12 +35,26 @@ public class NameGenerator {
      * @throws FileNotFoundException 
      */
     public NameGenerator(){
+    	checkCharmap(charmapFirst);
+    	checkCharmap(charmap);
+    	checkCharmap(charmapMid);
         length = charmap.length();  
         lengthMid = charmapMid.length(); 
         lengthFirst = charmapFirst.length(); 
     }
     
-    /**
+    private void checkCharmap(String c) {
+		for (int i=0; i<c.length(); i++) {
+			for (int j=i+1; j<c.length(); j++) {
+				if (c.charAt(i) == c.charAt(j)) {
+					throw new Error("Charmap contains letter " + c.charAt(i) +" twice. -- "+c);
+				}
+			}
+		}
+		
+	}
+
+	/**
      * Get a token
      * @return A (for this Namegenrator) unique token
      */
@@ -66,8 +81,8 @@ public class NameGenerator {
      */
     public String getUniqueToken() {
         String s = getToken();
-        if (RestrictedCompressedNames.contains(s)){
-        	Debug.println("is restricted");
+        while (RestrictedCompressedNames.contains(s)){
+        	Debug.println(s + "is restricted");
             // Wishful thinking, but normally this should work
             // there are only a handful of restricted names anyway.
             s = getToken();
