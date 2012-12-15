@@ -69,6 +69,7 @@ terminal String IDENTIFIER, IDENTIFIER_LT;
 terminal String ANNOTATION;
 terminal String STRING_LITERAL;
 terminal String REAL_LITERAL;
+terminal String WURSTDOC;
 terminal 
 	CUSTOM_ERROR,
 	TRUE, FALSE, 
@@ -137,6 +138,7 @@ non terminal LocalVarDef LocalVarDef;
 non terminal LocalVarDef LocalVarDefInline;
 non terminal Modifier Modifier;
 non terminal Modifiers Modifiers;
+non terminal Modifiers ModifiersWithDoc;
 non terminal ModuleDef ModuleDef;
 non terminal NameRef ExprAssignable;
 non terminal NativeFunc JassNativeDecl;
@@ -182,6 +184,7 @@ non terminal WStatements JassStatements;
 non terminal WStatements JasselseIfs;
 non terminal WStatements Statements;
 non terminal WStatements OptionalBlock;
+
 
 precedence nonassoc LOWEST;
 precedence left 	INFIX_CALL;
@@ -267,9 +270,9 @@ Entities ::=
 ;
 
 Entity ::=
-	Modifiers:mod NATIVETYPE:x IDENTIFIER:name EXTENDS TypeExpr:extendsName NL
+	ModifiersWithDoc:mod NATIVETYPE:x IDENTIFIER:name EXTENDS TypeExpr:extendsName NL
 		{: RESULT = Ast.NativeType(pos(xleft, extendsName), mod, name, extendsName); :}
-	| Modifiers:mod NATIVETYPE:x IDENTIFIER:name NL
+	| ModifiersWithDoc:mod NATIVETYPE:x IDENTIFIER:name NL
 		{: RESULT = Ast.NativeType(pos(xleft, nameright), mod, name, Ast.NoTypeExpr()); :}
 	| FuncDef:x
 		{: RESULT = x; :}
@@ -287,9 +290,9 @@ Entity ::=
 		{: RESULT = x; :}
 	| InterfaceDef:x
 		{: RESULT = x; :}
-	| Modifiers:mod TUPLE:x IDENTIFIER:name LPAR ParametersNotConstant:parameters RPAR:y NL
+	| ModifiersWithDoc:mod TUPLE:x IDENTIFIER:name LPAR ParametersNotConstant:parameters RPAR:y NL
 		{: RESULT = Ast.TupleDef(pos(xleft, yright), mod, name, parameters, Ast.NoTypeExpr()); :}
-	| Modifiers:mod FUNCTION:x TypeExpr:t DOT FuncSignature:sig NL INDENT Statements:body UNINDENT:y
+	| ModifiersWithDoc:mod FUNCTION:x TypeExpr:t DOT FuncSignature:sig NL INDENT Statements:body UNINDENT:y
 		{: RESULT = Ast.ExtensionFuncDef(pos(xleft, body), mod, t, sig.getName(), sig.getTypeParameters().copy(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body); :}
 	| error:x 
 		{: RESULT = Ast.InitBlock(pos(xleft, xright), Ast.WStatements(Ast.StmtErr(pos(xleft, xright)))); :} // TODO error entity
@@ -297,7 +300,7 @@ Entity ::=
 
 
 InterfaceDef ::=
-	Modifiers:mod INTERFACE:x IdentifierWithTypeParamDefs:d ExtendsListOpt:el NL INDENT ClassSlots:slots UNINDENT:y
+	ModifiersWithDoc:mod INTERFACE:x IdentifierWithTypeParamDefs:d ExtendsListOpt:el NL INDENT ClassSlots:slots UNINDENT:y
 		{: RESULT = AstHelper.InterfaceDef(pos(xleft, slots), mod, d.getName(), d.getTypeParams(), el, slots); :}
 ;
 
@@ -346,18 +349,18 @@ InterfaceFunctionSignature ::=
 
 
 ClassDef ::=
-	Modifiers:mod CLASS:x IdentifierWithTypeParamDefs:d EXTENDS TypeExpr:ex ImplementsListOpt:il NL INDENT ClassSlots:slots UNINDENT:y
+	ModifiersWithDoc:mod CLASS:x IdentifierWithTypeParamDefs:d EXTENDS TypeExpr:ex ImplementsListOpt:il NL INDENT ClassSlots:slots UNINDENT:y
 		{: RESULT = AstHelper.ClassDef(pos(xleft, slots), mod, d.getName(), d.getTypeParams(), ex, il, slots); :}
-	| Modifiers:mod CLASS:x IdentifierWithTypeParamDefs:d EXTENDS TypeExpr:ex ImplementsListOpt:il NL:y
+	| ModifiersWithDoc:mod CLASS:x IdentifierWithTypeParamDefs:d EXTENDS TypeExpr:ex ImplementsListOpt:il NL:y
 		{: RESULT = AstHelper.ClassDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), ex, il, Collections.<ClassSlot>emptyList()); :}
-	| Modifiers:mod CLASS:x IdentifierWithTypeParamDefs:d ImplementsListOpt:il NL INDENT ClassSlots:slots UNINDENT:y
+	| ModifiersWithDoc:mod CLASS:x IdentifierWithTypeParamDefs:d ImplementsListOpt:il NL INDENT ClassSlots:slots UNINDENT:y
 		{: RESULT = AstHelper.ClassDef(pos(xleft, slots), mod, d.getName(), d.getTypeParams(), Ast.NoTypeExpr(), il, slots); :}
-	| Modifiers:mod CLASS:x IdentifierWithTypeParamDefs:d ImplementsListOpt:il NL:y
+	| ModifiersWithDoc:mod CLASS:x IdentifierWithTypeParamDefs:d ImplementsListOpt:il NL:y
 		{: RESULT = AstHelper.ClassDef(pos(xleft, yright), mod, d.getName(), d.getTypeParams(), Ast.NoTypeExpr(), il, Collections.<ClassSlot>emptyList()); :}
 ;
 
 EnumDef ::=
-	Modifiers:mod ENUM:x IDENTIFIER:name NL INDENT EnumMembers:membs UNINDENT:y
+	ModifiersWithDoc:mod ENUM:x IDENTIFIER:name NL INDENT EnumMembers:membs UNINDENT:y
 		{: RESULT = Ast.EnumDef(pos(xleft, yright), mod, name, membs ); :}
 ;
 
@@ -396,7 +399,7 @@ IdentifierWithTypeParamDefs ::=
 
 
 ModuleDef ::=
-	Modifiers:mod MODULE:x IdentifierWithTypeParamDefs:d NL INDENT ClassSlots:slots UNINDENT:y
+	ModifiersWithDoc:mod MODULE:x IdentifierWithTypeParamDefs:d NL INDENT ClassSlots:slots UNINDENT:y
 		{: RESULT = AstHelper.ModuleDef(pos(xleft, slots), mod, d.getName(), d.getTypeParams(), slots); :}
 ;
 
@@ -408,11 +411,11 @@ ClassSlots ::=
 ;
 
 ClassSlot ::=
-	  Modifiers:mod CONSTRUCT:x LPAR Parameters:params RPAR NL INDENT Statements:body UNINDENT:y
+	  ModifiersWithDoc:mod CONSTRUCT:x LPAR Parameters:params RPAR NL INDENT Statements:body UNINDENT:y
 		{: RESULT = Ast.ConstructorDef(pos(xleft, body), mod, params, AstHelper.inferSuperArgs(params), body); :}
-	| Modifiers:mod CONSTRUCT:x LPAR Parameters:params RPAR NL INDENT Newlines SUPER LPAR Arguments:superArgs RPAR NL Statements:body UNINDENT:y
+	| ModifiersWithDoc:mod CONSTRUCT:x LPAR Parameters:params RPAR NL INDENT Newlines SUPER LPAR Arguments:superArgs RPAR NL Statements:body UNINDENT:y
 		{: RESULT = Ast.ConstructorDef(pos(xleft, yright), mod, params, superArgs, body); :}
-	| Modifiers:mod USE:x IdentifierWithTypeArgs:m NL
+	| ModifiersWithDoc:mod USE:x IdentifierWithTypeArgs:m NL
 		{: RESULT = Ast.ModuleUse(pos(xleft, m), m.getName(), m.getTypeArgs()); :} 
 	| ONDESTROY:x NL INDENT Statements:body UNINDENT:y
 		{: RESULT = Ast.OnDestroyDef(pos(xleft, body), body); :}
@@ -423,10 +426,17 @@ ClassSlot ::=
 ;
 
 FuncDef ::=
-	  Modifiers:mod FUNCTION:x FuncSignature:sig NL INDENT Statements:body UNINDENT:y
+	  ModifiersWithDoc:mod FUNCTION:x FuncSignature:sig NL INDENT Statements:body UNINDENT:y
 		{: RESULT = Ast.FuncDef(pos(xleft, body), mod, sig.getName(), sig.getTypeParameters().copy(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body); :}
-	| Modifiers:mod FUNCTION:x FuncSignature:sig NL
+	| ModifiersWithDoc:mod FUNCTION:x FuncSignature:sig NL
 		{: RESULT = Ast.FuncDef(pos(xleft, sig), mod, sig.getName(), sig.getTypeParameters().copy(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), Ast.WStatements()); :}
+;
+
+ModifiersWithDoc ::= 
+	  WURSTDOC:doc NL Modifiers:mods
+	  	{: mods.addFront(Ast.WurstDoc(pos(docleft, docright), doc)); RESULT = mods; :}
+	| Modifiers:mods
+		{: RESULT = mods; :}
 ;
 
 Modifiers ::=
@@ -522,15 +532,15 @@ ArraySizes ::=
 ;
 */
 VarDef ::=
-	  Modifiers:mod TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
+	  ModifiersWithDoc:mod TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
 		{: RESULT = Ast.GlobalVarDef(pos(typleft, i), mod, typ, name, i); :}
-	| Modifiers:mod VAR:v IDENTIFIER:name EQ Expr:i NL
+	| ModifiersWithDoc:mod VAR:v IDENTIFIER:name EQ Expr:i NL
 		{: RESULT = Ast.GlobalVarDef(pos(vleft, i), mod, Ast.NoTypeExpr(), name, i); :}
-	| Modifiers:mod CONSTANT:v TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
+	| ModifiersWithDoc:mod CONSTANT:v TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
 		{: mod.add(Ast.ModConstant(pos(vleft, vright))); RESULT = Ast.GlobalVarDef(pos(vleft, i), mod, typ, name, i); :}
-	| Modifiers:mod CONSTANT:v IDENTIFIER:name EQ Expr:i NL
+	| ModifiersWithDoc:mod CONSTANT:v IDENTIFIER:name EQ Expr:i NL
 		{: mod.add(Ast.ModConstant(pos(vleft, vright))); RESULT = Ast.GlobalVarDef(pos(vleft, i), mod, Ast.NoTypeExpr(), name, i); :}	
-	| Modifiers:mod TypeExpr:typ IDENTIFIER:name NL
+	| ModifiersWithDoc:mod TypeExpr:typ IDENTIFIER:name NL
 		{: RESULT = Ast.GlobalVarDef(pos(typleft, nameright), mod, typ, name, Ast.NoExpr()); :}
 ;
 

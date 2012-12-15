@@ -129,6 +129,7 @@ public class WurstEditorConfig extends SourceViewerConfiguration {
 		assistant.setProposalPopupOrientation(IContentAssistant.PROPOSAL_OVERLAY);
 		assistant.setContextInformationPopupOrientation(IContentAssistant.CONTEXT_INFO_ABOVE);
 //		assistant.setContextInformationPopupBackground(...);
+		assistant.setInformationControlCreator(new WurstInformationControlCreator(editor));
 		assistant.enableAutoInsert(true);
 		return assistant;
 	}

@@ -240,8 +240,8 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 							}
 					}	
 	"//" [^\r\n]* 			           { }
+	"/**" ~"*/"                       { return symbol(TokenType.WURSTDOC, yytext()); }
 	"/*" ~"*/"                        { }
-	
 	
 	// classes
 	"class"                           	{ return symbolP(TokenType.CLASS); }

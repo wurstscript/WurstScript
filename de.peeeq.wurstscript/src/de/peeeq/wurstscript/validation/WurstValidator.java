@@ -90,6 +90,7 @@ import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
+import de.peeeq.wurstscript.ast.WurstDoc;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CheckHelper;
 import de.peeeq.wurstscript.attributes.names.NameLink;
@@ -750,6 +751,10 @@ public class WurstValidator {
 				}
 				
 				private void check(Class<? extends Modifier> ...allowed) {
+					if (m instanceof WurstDoc) {
+						// wurstdoc always allowed
+						return;
+					}
 					boolean isAllowed = false;
 					for (Class<? extends Modifier> a : allowed) {
 						if (a.isInstance(m)) {

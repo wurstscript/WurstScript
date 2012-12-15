@@ -202,7 +202,9 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		String displayString = n.getName() + " : " + n.attrTyp().getFullName() + " -  defined in " + nearestScopeName(n);
 		IContextInformation contextInformation= new ContextInformation(
 				n.getName(), Utils.printElement(n)+" : " + n.attrTyp().getFullName() + " -  defined in " + nearestScopeName(n)); //$NON-NLS-1$
-		String additionalProposalInfo = ":-)";
+		String additionalProposalInfo = n.attrTyp().getFullName() + " " + n.getName() + "\n\n"
+				+ n.attrComment()
+				+ "\n\n" + "//defined in " + nearestScopeName(n);
 		return new CompletionProposal(replacementString, replacementOffset, replacementLength,
 				cursorPosition, image, displayString, contextInformation, additionalProposalInfo);
 	}
@@ -238,7 +240,10 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		String returnType = f.getReturnTyp().attrTyp().getFullName();
 		String displayString = f.getName() +"(" + descr.toString() + ") returns " + returnType + " - defined in " + nearestScopeName(f);
 		IContextInformation contextInformation = descr.length() == 0 ? null : new ContextInformation(f.getName(), descr.toString());
-		String additionalProposalInfo = ":-)";
+		String additionalProposalInfo = "function " + f.getName() +"(" + descr.toString() + ") returns " + returnType + "\n\n" 
+				+ f.attrComment()
+				+ "\n\n" + "defined in " + nearestScopeName(f) + "\n";
+		
 		return new CompletionProposal(replacementString, replacementOffset, replacementLength, cursorPosition, image, displayString,
 				contextInformation, additionalProposalInfo);
 	}
