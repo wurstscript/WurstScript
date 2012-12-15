@@ -109,6 +109,10 @@ public class NameLinks {
 		Multimap<String, NameLink> result = HashMultimap.create();
 		for (WImport imp : p.getImports()) {
 			WPackage importedPackage = imp.attrImportedPackage();
+			if (importedPackage == null) {
+				System.out.println("could not resolve import: " + Utils.printElementWithSource(imp)); 
+				continue;
+			}
 			result.putAll(importedPackage.attrExportedNameLinks());
 		}
 		

@@ -174,12 +174,21 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		Image image = Icons.var;
 		RGB rbg  = new RGB(255, 255, 222);
 		
-		String displayString = n.getName() + " : " + n.attrTyp().getFullName() + " - " + n.attrNearestNamedScope().getName();
+		String displayString = n.getName() + " : " + n.attrTyp().getFullName() + " - " + nearestScopeName(n);
 		IContextInformation contextInformation= new ContextInformation(
-				n.getName(), Utils.printElement(n)+" : " + n.attrTyp().getFullName() + " - " + n.attrNearestNamedScope().getName()); //$NON-NLS-1$
+				n.getName(), Utils.printElement(n)+" : " + n.attrTyp().getFullName() + " - " + nearestScopeName(n)); //$NON-NLS-1$
 		String additionalProposalInfo = ":-)";
 		return new CompletionProposal(replacementString, replacementOffset, replacementLength,
 				cursorPosition, image, displayString, contextInformation, additionalProposalInfo);
+	}
+
+
+	private String nearestScopeName(NameDef n) {
+		if (n.attrNearestNamedScope() != null) {
+			return n.attrNearestNamedScope().getName();
+		} else {
+			return "Global";
+		}
 	}
 
 
