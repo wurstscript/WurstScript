@@ -46,6 +46,10 @@ public class ImCompressor {
 				// do not rename builtin an bj functions
 				continue;
 			}
+			if (func.getName().equals("main") || func.getName().equals("config")) {
+				// do not rename main and config functions
+				continue;
+			}
 			String rname = ng.getUniqueToken();
 			func.setName(rname);
 			compressLocals(func);
