@@ -1325,6 +1325,11 @@ public class WurstValidator {
 	@CheckMethod
 	public void checkVarDef(VarDef v) {
 		v.attrTyp();
+		
+		if (v.attrTyp() instanceof WurstTypeCode && v.attrIsDynamicClassMember()) { 
+			v.addError("Code members not allowed as dynamic class members (variable "+v.getName()+")\n" +
+					"Try using a trigger or conditionfunc instead.");
+		}
 	}
 	
 }

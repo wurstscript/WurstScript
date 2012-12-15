@@ -23,7 +23,7 @@ public class BugTests extends WurstScriptTest {
 	
 	@Test
 	public void forfrom() throws IOException {
-		testAssertOkFileWithStdLib(new File(TEST_DIR + "ForFrom.wurst"), true);
+		testAssertOkFileWithStdLib(new File(TEST_DIR + "ForFrom.wurst"), false);
 	}
 	
 	

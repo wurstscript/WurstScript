@@ -121,6 +121,8 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				scope = scope.attrNextScope();
 			}
 		}
+		removeDuplicates(completions);
+		
 		if (completions.size() > 0) {
 			return completions.toArray(new ICompletionProposal[completions.size()]);
 		}
@@ -129,6 +131,29 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	}
 
 	
+
+
+	private void removeDuplicates(List<ICompletionProposal> cs) {
+		for (int i=0; i<cs.size()-1; i++) {
+			String displayStringI = firstPartOfDisplayString(cs.get(i).getDisplayString());
+			for (int j=cs.size()-1; j>i; j--) {				
+				String displayStringJ =firstPartOfDisplayString(cs.get(j).getDisplayString());
+				if (displayStringI.equals(displayStringJ)) {
+					cs.remove(j);
+				}
+			}
+		}
+		
+	}
+
+
+	private String firstPartOfDisplayString(String s) {
+		int p = s.indexOf("-");
+		if (p < 0) {
+			return s;
+		}
+		return s.substring(0,p);
+	}
 
 
 	private String getAlreadyEnteredText(ITextViewer viewer, int offset) {
@@ -174,12 +199,21 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		Image image = Icons.var;
 		RGB rbg  = new RGB(255, 255, 222);
 		
-		String displayString = n.getName() + " : " + n.attrTyp().getFullName() + " - " + n.attrNearestNamedScope().getName();
+		String displayString = n.getName() + " : " + n.attrTyp().getFullName() + " -  defined in " + nearestScopeName(n);
 		IContextInformation contextInformation= new ContextInformation(
-				n.getName(), Utils.printElement(n)+" : " + n.attrTyp().getFullName() + " - " + n.attrNearestNamedScope().getName()); //$NON-NLS-1$
+				n.getName(), Utils.printElement(n)+" : " + n.attrTyp().getFullName() + " -  defined in " + nearestScopeName(n)); //$NON-NLS-1$
 		String additionalProposalInfo = ":-)";
 		return new CompletionProposal(replacementString, replacementOffset, replacementLength,
 				cursorPosition, image, displayString, contextInformation, additionalProposalInfo);
+	}
+
+
+	private String nearestScopeName(NameDef n) {
+		if (n.attrNearestNamedScope() != null) {
+			return Utils.printElement(n.attrNearestNamedScope());
+		} else {
+			return "Global";
+		}
 	}
 
 
@@ -202,7 +236,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			descr.append(p.attrTyp() + " " + p.getName());
 		}
 		String returnType = f.getReturnTyp().attrTyp().getFullName();
-		String displayString = f.getName() +"(" + descr.toString() + ") : " + returnType;
+		String displayString = f.getName() +"(" + descr.toString() + ") returns " + returnType + " - defined in " + nearestScopeName(f);
 		IContextInformation contextInformation = descr.length() == 0 ? null : new ContextInformation(f.getName(), descr.toString());
 		String additionalProposalInfo = ":-)";
 		return new CompletionProposal(replacementString, replacementOffset, replacementLength, cursorPosition, image, displayString,

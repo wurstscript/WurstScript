@@ -493,7 +493,7 @@ public class Utils {
 		if (e == null) {
 			return "null";
 		}
-		String type = e.getClass().getSimpleName().replaceAll("Impl$", "");
+		String type = makeReadableTypeName(e);
 		String name = "";
 		if (e instanceof ExprFunctionCall) {
 			ExprFunctionCall fc = (ExprFunctionCall) e;
@@ -530,6 +530,17 @@ public class Utils {
 			}
 		}
 		return type + " " + name;
+	}
+
+	private static String makeReadableTypeName(AstElement e) {
+		String type = e.getClass().getSimpleName()
+				.replaceAll("Impl$", "")
+				.replaceAll("Def$", "")
+				.toLowerCase();
+		if (type.equals("wpackage")) {
+			type = "package";
+		}
+		return type;
 	}
 
 	public static int inBorders(int min, int x, int max) {
