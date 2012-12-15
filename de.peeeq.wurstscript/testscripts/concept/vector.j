@@ -337,7 +337,7 @@ package Vector3
 		function dot( Vector3 v ) returns real
 			return this.x*v.x+this.y*v.y+this.z*v.z
 		
-		 /**
+		/**
 		  * Returns the dot product of this vector and vector v.
 		  * Neither this nor v is modified.
 		  * z coordinated if trucated
@@ -359,7 +359,7 @@ package Vector3
 		function cross( Vector3 v ) returns Vector3
 			return new Vector3( y*v.z-z*v.y, z*v.x-x*v.z, x*v.y-y*v.x ) 
 		
-	   /**
+		/**
 		* Sets result vector to the vector cross product of vectors v1 and v2.
 		* Neither v1 nor v2 is modified.
 		* @param v1 the first vector
