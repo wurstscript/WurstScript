@@ -40,6 +40,7 @@ public class ToggleComment implements IEditorActionDelegate {
 			} else {
 				// add comments
 				text = "//" + text.replaceAll("(\\r?\\n|\\r)", "$1//");
+				
 			}
 			
 			doc.replace(startOffset, len, text);

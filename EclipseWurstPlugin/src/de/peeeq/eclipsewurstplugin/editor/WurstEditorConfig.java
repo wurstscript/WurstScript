@@ -1,9 +1,13 @@
 package de.peeeq.eclipsewurstplugin.editor;
 
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.jface.internal.text.html.HTMLTextPresenter;
+import org.eclipse.jface.text.DefaultInformationControl;
 import org.eclipse.jface.text.DefaultTextHover;
 import org.eclipse.jface.text.IAutoEditStrategy;
 import org.eclipse.jface.text.IDocument;
+import org.eclipse.jface.text.IInformationControl;
+import org.eclipse.jface.text.IInformationControlCreator;
 import org.eclipse.jface.text.ITextHover;
 import org.eclipse.jface.text.contentassist.ContentAssistant;
 import org.eclipse.jface.text.contentassist.IContentAssistant;
@@ -16,6 +20,7 @@ import org.eclipse.jface.text.rules.DefaultDamagerRepairer;
 import org.eclipse.jface.text.source.Annotation;
 import org.eclipse.jface.text.source.ISourceViewer;
 import org.eclipse.jface.text.source.SourceViewerConfiguration;
+import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.texteditor.SimpleMarkerAnnotation;
 
 import de.peeeq.eclipsewurstplugin.WurstConstants;
@@ -117,21 +122,35 @@ public class WurstEditorConfig extends SourceViewerConfiguration {
 		};
 	}
 	
+	ContentAssistant assistant;
 
 	@Override
 	public IContentAssistant getContentAssistant(ISourceViewer sourceViewer) {
-		ContentAssistant assistant= new ContentAssistant();
-		assistant.setDocumentPartitioning(getConfiguredDocumentPartitioning(sourceViewer));
-		assistant.setContentAssistProcessor(new WurstCompletionProcessor(editor), IDocument.DEFAULT_CONTENT_TYPE);
-
-		assistant.enableAutoActivation(true);
-		assistant.setAutoActivationDelay(500);
-		assistant.setProposalPopupOrientation(IContentAssistant.PROPOSAL_OVERLAY);
-		assistant.setContextInformationPopupOrientation(IContentAssistant.CONTEXT_INFO_ABOVE);
-//		assistant.setContextInformationPopupBackground(...);
-		assistant.setInformationControlCreator(new WurstInformationControlCreator(editor));
-		assistant.enableAutoInsert(true);
+		if (assistant == null) {
+			assistant = new ContentAssistant();
+			assistant.setDocumentPartitioning(getConfiguredDocumentPartitioning(sourceViewer));
+			assistant.setContentAssistProcessor(new WurstCompletionProcessor(editor), IDocument.DEFAULT_CONTENT_TYPE);
+	
+			assistant.enableAutoActivation(true);
+			assistant.setAutoActivationDelay(500);
+			assistant.setProposalPopupOrientation(IContentAssistant.PROPOSAL_OVERLAY);
+			assistant.setContextInformationPopupOrientation(IContentAssistant.CONTEXT_INFO_ABOVE);
+	//		assistant.setContextInformationPopupBackground(...);
+			assistant.setInformationControlCreator(getInformationControlCreator(sourceViewer));
+			assistant.enableAutoInsert(true);
+		}
 		return assistant;
 	}
+	
+    @Override
+    public IInformationControlCreator getInformationControlCreator(ISourceViewer sourceViewer) {
+        return new IInformationControlCreator() {
+            @SuppressWarnings("restriction")
+			public IInformationControl createInformationControl(Shell parent) {
+                return new DefaultInformationControl(parent,new HTMLTextPresenter(false));
+            }
+
+        };
+    }
 	
 }

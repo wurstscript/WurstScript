@@ -50,17 +50,21 @@ package Fx
 			//print(GetUnitName(dummy))
 			setFx( fxpath )
 				
+		/** Get the owner if this Fx Object */
 		function getOwner() returns player
 			return dummy.getOwner()
 			
+		/** Set the owner if this Fx Object */
 		function setOwner(player p) returns Fx
 			dummy.setOwner(p, false)
 			return this
 			
+		/** Set the teamcolor of this Fx Object */
 		function setTeamcolor(playercolor c) returns Fx
 			SetUnitColor(dummy, c)
 			return this
 		
+		/** Set the scale if this Fx Object */
 		function setScale(real value) returns Fx
 			dummy.setScale(value)
 			return this
@@ -86,14 +90,16 @@ package Fx
 			dummy.setVertexColor(r, g, b, a)
 			return this
 
-
+		/** "Flashs" the gived effect. Flashing basically plays the death animation. */
 		function flash(string fx) returns Fx
 			dummy.addEffect(fx, "origin").destr()
 			return this
-
+		
+		/** Get the angle in radians */
 		function getXYAngle() returns real
 			return dummy.getFacing()*bj_DEGTORAD
-
+ 
+		/** Set the angle in degrees */
 		function setXYAngle(real value) returns Fx
 			dummy.setFacing(value)
 			return this

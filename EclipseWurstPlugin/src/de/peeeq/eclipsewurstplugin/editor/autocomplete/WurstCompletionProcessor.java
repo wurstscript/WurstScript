@@ -51,6 +51,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	private String alreadyEntered;
 	private String errorMessage;
 	private IContextInformationValidator validator;
+	
 
 	public WurstCompletionProcessor(WurstEditor editor) {
 		this.editor = editor;
@@ -202,9 +203,14 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		String displayString = n.getName() + " : " + n.attrTyp().getFullName() + " - [" + nearestScopeName(n) +"]";
 		IContextInformation contextInformation= new ContextInformation(
 				n.getName(), Utils.printElement(n)+" : " + n.attrTyp().getFullName() + " -  defined in " + nearestScopeName(n)); //$NON-NLS-1$
-		String additionalProposalInfo = n.attrTyp().getFullName() + " " + n.getName() + "\n\n"
-				+ n.attrComment()
-				+ "\n\n" + "//defined in " + nearestScopeName(n);
+		String additionalProposalInfo;
+		if (n.attrComment().length() > 1) {
+			additionalProposalInfo = n.attrComment() + "<br>----<br>" + n.attrTyp().getFullName() + " " + n.getName()
+				+ "<br>" + "defined in " + nearestScopeName(n);
+		}else{
+			additionalProposalInfo = "<pre>No hotdoc provided</pre>" + "<br>----<br>" + n.attrTyp().getFullName() + " " + n.getName()
+					+ "<br>" + "defined in " + nearestScopeName(n);
+		}
 		return new CompletionProposal(replacementString, replacementOffset, replacementLength,
 				cursorPosition, image, displayString, contextInformation, additionalProposalInfo);
 	}
@@ -238,11 +244,18 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			descr.append(p.attrTyp() + " " + p.getName());
 		}
 		String returnType = f.getReturnTyp().attrTyp().getFullName();
-		String displayString = f.getName() +"(" + descr.toString() + ") returns " + returnType + " - defined in " + nearestScopeName(f);
+		String displayString = f.getName() +"(" + descr.toString() + ") returns " + returnType + " - [" + nearestScopeName(f) +"]";
 		IContextInformation contextInformation = descr.length() == 0 ? null : new ContextInformation(f.getName(), descr.toString());
-		String additionalProposalInfo = "function " + f.getName() +"(" + descr.toString() + ") returns " + returnType + "\n\n" 
-				+ f.attrComment()
-				+ "\n\n" + "defined in " + nearestScopeName(f) + "\n";
+		String additionalProposalInfo;
+		if (f.attrComment().length() > 1) {
+			additionalProposalInfo = f.attrComment() + "<br>----<br>" + "function " + f.getName() +"(" + descr.toString() + ") returns " + returnType
+				+ "<br>" + "defined in " + nearestScopeName(f);
+		}else{
+			additionalProposalInfo = "<pre>No hotdoc provided</pre>" + "<br>----<br>" + "function " + f.getName() +"(" + descr.toString() + ") returns " + returnType
+					+ "<br>" + "defined in " + nearestScopeName(f);
+			
+		}
+
 		
 		return new CompletionProposal(replacementString, replacementOffset, replacementLength, cursorPosition, image, displayString,
 				contextInformation, additionalProposalInfo);
