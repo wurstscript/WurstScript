@@ -3,19 +3,18 @@ package Fx
 	import Effect
 	import Vectors
 
-/********************************************************
- * * * * * * * * * * Fx * * * * * * * * * * * * * * * * *
- * An Fx-Object is basically just a moveable effect.  	*
- * Up above you find the Fx-Class. By creating			*
- * an instace of it, you recieve the mentioned,			*
- * moveable effect.										*
- * Constructors and functions defined as following,		*
- * should be self-explanatory.							*
- * Also features automatic recycling of Fx-instances	*
- *														*
- * Credits to Vexorian 								  	*
- ********************************************************/
-
+	/********************************************************
+	 * * * * * * * * * * Fx * * * * * * * * * * * * * * * * *
+	 * An Fx-Object is basically just a moveable effect.  	*
+	 * Up above you find the Fx-Class. By creating			*
+	 * an instace of it, you recieve the mentioned,			*
+	 * moveable effect.										*
+	 * Constructors and functions defined as following,		*
+	 * should be self-explanatory.							*
+	 * Also features automatic recycling of Fx-instances	*
+	 *														*
+	 * Credits to Vexorian 								  	*
+	 ********************************************************/
 	public class Fx
 		private unit 	dummy	= null
 		private effect 	fx 		= null

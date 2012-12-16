@@ -275,6 +275,7 @@ Modifier =
 	| ModOverride(WPos source)
 	| ModAbstract(WPos source)
 	| ModConstant(WPos source)
+	| WurstDoc(WPos source, String rawComment)
 	
 // AstElementWithBody = FunctionImplementation | InitBlock | ConstructorDef | OnDestroyDef
 //AstElementWithModifier = NameDef | TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition
@@ -794,3 +795,7 @@ AstElement.lookupMemberFuncs(de.peeeq.wurstscript.types.WurstType receiverType, 
 TypeParamDefs.attrTypes()
 	returns java.util.List<de.peeeq.wurstscript.types.WurstType>
 	implemented by de.peeeq.wurstscript.attributes.TypeParamTypes.calculte
+
+NameDef.attrComment
+	returns String
+	implemented by de.peeeq.wurstscript.attributes.AttrWurstDoc.getComment
