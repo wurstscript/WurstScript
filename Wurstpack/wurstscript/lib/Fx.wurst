@@ -1,6 +1,7 @@
 package Fx
 	import DummyRecycler
 	import Effect
+	import Colors
 	import Vectors
 
 	/********************************************************
@@ -21,10 +22,7 @@ package Fx
 		private real 	zAngle  = 0.
 		private string 	sfxPath
 		
-		private integer red 	= 255
-		private integer green 	= 255
-		private integer blue 	= 255
-		private integer alpha 	= 255
+		private colorA col
 		
 		construct(real x, real y, real facing)
 			dummy = newDummy( x, y, 0, facing)
@@ -50,11 +48,11 @@ package Fx
 			//print(GetUnitName(dummy))
 			setFx( fxpath )
 				
-		/** Get the owner if this Fx Object */
+		/** Get the owner of this Fx Object */
 		function getOwner() returns player
 			return dummy.getOwner()
 			
-		/** Set the owner if this Fx Object */
+		/** Set the owner of this Fx Object */
 		function setOwner(player p) returns Fx
 			dummy.setOwner(p, false)
 			return this
@@ -64,38 +62,56 @@ package Fx
 			SetUnitColor(dummy, c)
 			return this
 		
-		/** Set the scale if this Fx Object */
+		/** Set the scale of this Fx Object */
 		function setScale(real value) returns Fx
 			dummy.setScale(value)
 			return this
 
+		/** Get the green color value (rgba) */
 		function getGreen() returns int
-			return green
+			return col.green
 		
+		/** Get the blue color value (rgba) */
 		function getBlue() returns int
-			return blue
+			return col.blue
 		
+		/** Get the red color value (rgba) */
 		function getRed() returns int
-			return red
+			return col.red
 		
+		/** Get the alpha color value (rgba) */
 		function getAlpha() returns int
-			return alpha
+			return col.alpha
 		
-		
+		/** Recolor the Fx object with the given color values (rgba) 
+		Color: 0 = no color - 255 = full color
+		Alpha: 0 = transparent - 255 = visible */
 		function recolor(int r, int g, int b, int a) returns Fx
-			red = r
-			green = g
-			blue = b
-			alpha = a
+			col.red = r
+			col.green = g
+			col.blue = b
+			col.alpha = a
 			dummy.setVertexColor(r, g, b, a)
 			return this
+		
+		/** Recolor the Fx object with the given color tuple (colorA) 
+		Color: 0 = no color - 255 = full color
+		Alpha: 0 = transparent - 255 = visible */
+		function recolor(colorA newColor) returns Fx
+			col.red = newColor.red
+			col.green = newColor.green
+			col.blue = newColor.blue
+			col.alpha = newColor.alpha
+			dummy.setVertexColor(newColor)
+			return this
 
-		/** "Flashs" the gived effect. Flashing basically plays the death animation. */
+		/** "Flashs" the given effect.
+		Flashing plays the death animation of the effect at the fx' position. */
 		function flash(string fx) returns Fx
 			dummy.addEffect(fx, "origin").destr()
 			return this
 		
-		/** Get the angle in radians */
+		/** Get the xy angle in radians */
 		function getXYAngle() returns real
 			return dummy.getFacing()*bj_DEGTORAD
  
@@ -103,7 +119,8 @@ package Fx
 		function setXYAngle(real value) returns Fx
 			dummy.setFacing(value)
 			return this
-			
+		
+		/** Creates a new dummy with the given facing in order to achieve instant turning. */
 		function setXYAngleInstant(real value) returns Fx
 			fx.destr()
 			recycleDummy(dummy)
@@ -111,9 +128,11 @@ package Fx
 			setFx(sfxPath)
 			return this
 		
+		/** Get the z angle in radians */
 		function getZAngle() returns real
 			return zAngle
-			
+		
+		/** Set the z angle in radians */
 		function setZAngle(real value) returns Fx
 			int i = R2I(value*bj_RADTODEG + 90.5)
 			zAngle = value
@@ -124,50 +143,62 @@ package Fx
 			SetUnitAnimationByIndex(dummy, i)
 			return this
 		
+		/** Get the x coordinate */
 		function getX() returns real
 			return dummy.getX()
-			
+		
+		/** Get the y coordinate */
 		function getY() returns real
 			return dummy.getY()
 		
+		/** Get the z coordinate (fly height) */
 		function getZ() returns real
 			return dummy.getFlyHeight()
 			
+		/** Get the xy position as vector tuple */			
 		function getPos2() returns vec2
 			return vec2(getX(), getY())
 		
+		/** Set the x coordinate */
 		function setX(real x) returns Fx
 			dummy.setX(x)
 			return this
-			
+		
+		/** Set the y coordinate */
 		function setY(real y) returns Fx
 			dummy.setY(y)
 			return this
 			
+		/** Set the position to the given xy coordinates */
 		function setPos(real x, real y) returns Fx
 			dummy.setPos(x, y)
 			return this
-			
+		
+		/** Set the position to the given xyz coordinates
+		z = flyHeight */
 		function setPos(real x, real y, real z) returns Fx
 			dummy.setPos(x, y)
 			dummy.setFlyHeight(z, 0.)
 			return this
 		
+		/** Set the position to the given xy vector tuple */
 		function setPos(vec2 pos) returns Fx
 			dummy.setPos(pos.x, pos.y)
 			return this
 		
+		/** Set the position to the given xyz vector tuple */
 		function setPos(vec3 pos) returns Fx
 			dummy.setPos(pos.x, pos.y)
 			setZ(pos.z)
 			return this
-		
+			
+		/** Set the z coordinate (flyHeight) */
 		function setZ(real z) returns Fx
 			dummy.setFlyHeight(z, 0.)
 			return this
 			
-		
-		
+		/** Set the path to the sfx model that shoulöd be displayed. 
+		If there is already a model displayed, it will be replaced with the new one.*/
 		function setFx(string newpath) returns Fx
 			if fx != null
 				fx.destr()
@@ -184,7 +215,7 @@ package Fx
 
 			recycleDummy(dummy)
 
-		
+		/** Destroys the Fx object without showing the effect's death animation */
 		function hiddenDestroy()
 			dummy.hide()
 			destroy this

@@ -200,17 +200,28 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		Image image = Icons.var;
 		RGB rbg  = new RGB(255, 255, 222);
 		
+		String comment = n.attrComment();
+		comment = comment.replaceAll("\n", "<br>");
+		
 		String displayString = n.getName() + " : " + n.attrTyp().getFullName() + " - [" + nearestScopeName(n) +"]";
 		IContextInformation contextInformation= new ContextInformation(
 				n.getName(), Utils.printElement(n)+" : " + n.attrTyp().getFullName() + " -  defined in " + nearestScopeName(n)); //$NON-NLS-1$
 		String additionalProposalInfo;
 		if (n.attrComment().length() > 1) {
-			additionalProposalInfo = n.attrComment() + "<br>----<br>" + n.attrTyp().getFullName() + " " + n.getName()
-				+ "<br>" + "defined in " + nearestScopeName(n);
+			additionalProposalInfo = comment;
 		}else{
-			additionalProposalInfo = "<pre>No hotdoc provided</pre>" + "<br>----<br>" + n.attrTyp().getFullName() + " " + n.getName()
-					+ "<br>" + "defined in " + nearestScopeName(n);
+			additionalProposalInfo = "<i>No hotdoc provided</i>";
 		}
+		String typ = n.attrTyp().getFullName();
+		for (String s : WurstConstants.JASSTYPES) {
+			if ( s.equals(typ) ) {
+				typ = "<font color=\"rgb(34,136,143)\">" + typ + " </font>";
+				break;
+			}
+		}
+		additionalProposalInfo += "<pre><hr>" + typ + n.getName()
+					+ "<br></pre>" + "defined in " + nearestScopeName(n);
+
 		return new CompletionProposal(replacementString, replacementOffset, replacementLength,
 				cursorPosition, image, displayString, contextInformation, additionalProposalInfo);
 	}
@@ -235,26 +246,44 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			cursorPosition++; // outside parentheses
 		}
 		Image image = Icons.function;
-		
+		String comment = f.attrComment();
+		comment = comment.replaceAll("\n", "<br>");
 		StringBuilder descr = new StringBuilder();
+		StringBuilder descrhtml = new StringBuilder();
 		for (WParameter p : f.getParameters()) {
 			if (descr.length() > 0) {
 				descr.append(", ");
+				descrhtml.append(", ");
+			}
+			String typ = p.attrTyp().toString();
+			for (String s : WurstConstants.JASSTYPES) {
+				if ( s.equals(typ) ) {
+					typ = "<font color=\"rgb(34,136,143)\">" + typ + "</font>";
+					break;
+				}
 			}
 			descr.append(p.attrTyp() + " " + p.getName());
+			descrhtml.append(typ + " " + p.getName());
 		}
 		String returnType = f.getReturnTyp().attrTyp().getFullName();
+		String returnTypeHtml = returnType;
+		for (String s : WurstConstants.JASSTYPES) {
+			if ( s.equals(returnTypeHtml) ) {
+				returnTypeHtml = "<font color=\"rgb(34,136,143)\">" + returnTypeHtml + "</font>";
+				break;
+			}
+		}
 		String displayString = f.getName() +"(" + descr.toString() + ") returns " + returnType + " - [" + nearestScopeName(f) +"]";
 		IContextInformation contextInformation = descr.length() == 0 ? null : new ContextInformation(f.getName(), descr.toString());
 		String additionalProposalInfo;
 		if (f.attrComment().length() > 1) {
-			additionalProposalInfo = f.attrComment() + "<br>----<br>" + "function " + f.getName() +"(" + descr.toString() + ") returns " + returnType
-				+ "<br>" + "defined in " + nearestScopeName(f);
+			additionalProposalInfo = comment;
 		}else{
-			additionalProposalInfo = "<pre>No hotdoc provided</pre>" + "<br>----<br>" + "function " + f.getName() +"(" + descr.toString() + ") returns " + returnType
-					+ "<br>" + "defined in " + nearestScopeName(f);
-			
+			additionalProposalInfo = "<i>No hotdoc provided</i>";
 		}
+		additionalProposalInfo += "<pre><hr><b><font color=\"rgb(127,0,85)\">" + "function</b></font> " + f.getName() +"(" + descrhtml.toString() + ") "
+				+ "<b><font color=\"rgb(127,0,85)\">returns</b></font> " + returnTypeHtml
+				+ "<br></pre>" + "defined in " + nearestScopeName(f);
 
 		
 		return new CompletionProposal(replacementString, replacementOffset, replacementLength, cursorPosition, image, displayString,
