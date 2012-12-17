@@ -16,6 +16,7 @@ public class RunArgs {
 	private boolean inline;
 	private boolean runCompiletimeFunctions;
 	private boolean runtests;
+	private boolean createHotDoc;
 	
 	public static RunArgs defaults() {
 		return new RunArgs(new String[] {});
@@ -38,6 +39,8 @@ public class RunArgs {
 					this.outFile = args[i];
 				} else if (a.equals("--about")) {
 					this.showAbout = true;			
+				} else if (a.equals("--hotdoc")) {
+					this.createHotDoc = true;
 				} else if (a.equals("--showerrors")) {
 					this.showLastErrors = true;
 				} else if (a.equals("-runcompiletimefunctions")) {
@@ -92,6 +95,10 @@ public class RunArgs {
 
 	public boolean runtests() {
 		return runtests;
+	}
+
+	public boolean createHotDoc() {
+		return createHotDoc;
 	}
 
 

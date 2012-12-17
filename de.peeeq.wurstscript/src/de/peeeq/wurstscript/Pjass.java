@@ -39,12 +39,12 @@ public class Pjass {
 			Process p;
 			WLogger.info("Starting pjass");
 			if (System.getProperty("os.name").toLowerCase().contains("windows")) {
-				p = Runtime.getRuntime().exec("lib/pjass.exe lib/common.j lib/debugnatives.j lib/blizzard.j " + outputFile.getPath());
+				p = Runtime.getRuntime().exec("resources/pjass.exe resources/common.j resources/debugnatives.j resources/blizzard.j " + outputFile.getPath());
 			} else {
 				WLogger.info("Operation system " + System.getProperty("os.name") + " detected.");
 				WLogger.info("Trying to run with wine ...");
 				// try to run with wine
-				p = Runtime.getRuntime().exec("wine lib/pjass.exe lib/common.j lib/debugnatives.j lib/blizzard.j " + outputFile.getPath());
+				p = Runtime.getRuntime().exec("wine resources/pjass.exe resources/common.j resources/debugnatives.j resources/blizzard.j " + outputFile.getPath());
 			}
 			BufferedReader input =
 					new BufferedReader

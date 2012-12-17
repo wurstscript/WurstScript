@@ -95,7 +95,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		this.files.add(file);
 	}
 	
-	private void loadWurstFilesInDir(File dir) {
+	public void loadWurstFilesInDir(File dir) {
 		for (File f : dir.listFiles()) {
 			if (f.isDirectory()) {
 				loadWurstFilesInDir(f);
@@ -105,7 +105,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		}
 	}
 	
-	@Override public void parseFiles() {
+	@Override public WurstModel parseFiles() {
 
 		// search mapFile
 		for (File file : files) {
@@ -153,10 +153,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			addImportedLibs(compilationUnits);
 		} catch (CompileError e) {
 			gui.sendError(e);
-			return;
+			return null;
 		}
 		
-		if (errorHandler.getErrorCount() > 0) return;
+		if (errorHandler.getErrorCount() > 0) return null;
 		
 		// merge the compilationUnits:
 		WurstModel merged = mergeCompilationUnits(compilationUnits);
@@ -168,6 +168,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		
 		checkAndTranslate(merged);
 		gui.sendProgress("finished parsing", .9);
+		
+		return merged;
 	}
 	
 
