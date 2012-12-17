@@ -1,6 +1,7 @@
 package de.peeeq.eclipsewurstplugin.editor;
 
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.jface.internal.text.html.BrowserInformationControl;
 import org.eclipse.jface.internal.text.html.HTMLTextPresenter;
 import org.eclipse.jface.text.DefaultInformationControl;
 import org.eclipse.jface.text.DefaultTextHover;
@@ -147,7 +148,8 @@ public class WurstEditorConfig extends SourceViewerConfiguration {
         return new IInformationControlCreator() {
             @SuppressWarnings("restriction")
 			public IInformationControl createInformationControl(Shell parent) {
-                return new DefaultInformationControl(parent,new HTMLTextPresenter(false));
+                //return new DefaultInformationControl(parent,new HTMLTextPresenter(false));
+            	return new BrowserInformationControl(parent, "sans", false);
             }
 
         };
