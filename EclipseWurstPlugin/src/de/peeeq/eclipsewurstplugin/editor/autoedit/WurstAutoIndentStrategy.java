@@ -24,14 +24,16 @@ public class WurstAutoIndentStrategy extends DefaultIndentLineAutoEditStrategy i
 
 		try {
 			// find start of line
-			int p= (c.offset == d.getLength() ? c.offset  - 1 : c.offset);
-			IRegion lineInfo= d.getLineInformationOfOffset(p);
-			int start= lineInfo.getOffset();
-			int startOfWord = start + lineInfo.getLength();
-			String line = d.get(lineInfo.getOffset(), lineInfo.getLength());
+			final int p= (c.offset == d.getLength() ? c.offset  - 1 : c.offset);
+			final IRegion lineInfo= d.getLineInformationOfOffset(p);
+			final int start= lineInfo.getOffset();
+			
+			final String line = d.get(lineInfo.getOffset(), lineInfo.getLength());
+			final int cursorPosInLine = Math.min(p - lineInfo.getOffset(), line.length());
+			int startOfWord = start + cursorPosInLine;
 			int spaces = 0;
 			
-			for (int i=0; i< line.length(); i++) {
+			for (int i=0; i< cursorPosInLine; i++) {
 				if (line.charAt(i) == ' ') {
 					spaces++;
 				} else if (line.charAt(i) == '\t') {
@@ -52,8 +54,10 @@ public class WurstAutoIndentStrategy extends DefaultIndentLineAutoEditStrategy i
 				
 				String lineT = line.substring(startOfWord-start);
 				if (incIndent.matcher(lineT).matches()) {
+					// increase indent after certain keywords
 					indent++;
 				} else {
+					// indent of -1 means: use same indent
 					indent=-1;
 				}
 			}
@@ -67,8 +71,8 @@ public class WurstAutoIndentStrategy extends DefaultIndentLineAutoEditStrategy i
 					// append to input
 					buf.append(d.get(start, startOfWord - start));
 				}
-				
 			}
+			System.out.println("buf = " + buf.toString().replace('\t', '_').replace(' ','-').replace('\n', 'n'));
 			c.text= buf.toString();
 		} catch (BadLocationException excp) {
 			// stop work
