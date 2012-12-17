@@ -16,6 +16,7 @@ import de.peeeq.wurstscript.gui.About;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.gui.WurstGuiImpl;
+import de.peeeq.wurstscript.hotdoc.HotdocGenerator;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassoptimizer.JassOptimizer;
 import de.peeeq.wurstscript.jassoptimizer.JassOptimizerImpl;
@@ -45,6 +46,11 @@ public class Main {
 				About about = new About(null, false);
 				about.setVisible(true);
 				return;
+			}
+			
+			if (runArgs.createHotDoc()) {
+				HotdocGenerator hg = new HotdocGenerator(runArgs.getFiles());
+				hg.generateDoc();
 			}
 
 			

@@ -18,6 +18,7 @@
 		<copy file="./lib/guava-12.0.jar" todir="./dist/wurstscript_lib"/>
 		<copy file="./lib/junit-4.10.jar" todir="./dist/wurstscript_lib"/>
 		<copy file="./lib/chardet.jar"  todir="./dist/wurstscript_lib"/>
+		<copy file="./lib/velocity-1.7-dep.jar"  todir="./dist/wurstscript_lib"/>
 	</target>
 
 	<target name="make_for_wurstpack" depends="create_run_jar">
@@ -27,7 +28,7 @@
 		<copy file="./lib/guava-12.0.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true"/>
 		<copy file="./lib/junit-4.10.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true"/>
 		<copy file="./lib/chardet.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true"/>
-
+		<copy file="./lib/velocity-1.7-dep.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true"/>
 	</target>
 
 </project>

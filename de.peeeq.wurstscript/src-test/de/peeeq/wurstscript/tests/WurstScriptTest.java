@@ -169,7 +169,7 @@ public class WurstScriptTest {
 		compiler.getErrorHandler().enableUnitTestMode();
 		WurstConfig.get().setSetting("lib", "../Wurstpack/wurstscript/lib/");
 		if (withStdLib) {
-			compiler.loadFiles(new File("./lib/common.j"), new File("./lib/blizzard.j"));
+			compiler.loadFiles(new File("./resources/common.j"), new File("./resources/blizzard.j"));
 		}
 		for (File input : inputFiles) {
 			compiler.loadFiles(input);
