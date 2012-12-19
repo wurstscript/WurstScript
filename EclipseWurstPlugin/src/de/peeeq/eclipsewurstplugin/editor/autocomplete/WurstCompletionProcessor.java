@@ -42,6 +42,7 @@ import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
+import de.peeeq.wurstscript.types.WurstTypeTuple;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class WurstCompletionProcessor implements IContentAssistProcessor {
@@ -91,6 +92,10 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			if (leftType instanceof WurstTypeNamedScope) {
 				WurstTypeNamedScope ns = (WurstTypeNamedScope) leftType;
 				Multimap<String, NameLink> visibleNames = ns.getDef().attrNameLinks();
+				completionsAddVisibleNames(alreadyEntered, completions, visibleNames);
+			} else if (leftType instanceof WurstTypeTuple) {
+				WurstTypeTuple tt = (WurstTypeTuple) leftType;
+				Multimap<String, NameLink> visibleNames = tt.getTupleDef().attrNameLinks();
 				completionsAddVisibleNames(alreadyEntered, completions, visibleNames);
 			}
 			
