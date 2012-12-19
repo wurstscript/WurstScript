@@ -86,7 +86,7 @@
 
 package CustomBar
 	import TimerUtils
-	import RGBA
+	import Colors
 	import Vectors
 	import Texttag
 
@@ -113,9 +113,9 @@ package CustomBar
 	public class CustomBar
 		texttag t
 		// background color
-		colorRGBA bg_color
+		colorA bg_color
 		// foreground color
-		colorRGBA fg_color
+		colorA fg_color
 		// Position
 		vec3 position
 		// Text
@@ -269,18 +269,18 @@ package CustomBar
 				t.setPos( position )
 
 
-		function setBackground( colorRGBA col )
+		function setBackground( colorA col )
 			bg_color = col
 			if t != null
 				t.setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
 
 
-		function setForeground( colorRGBA col )
+		function setForeground( colorA col )
 			fg_color = col
 			setValue(value)
 
 
-		function setForegroundString( colorRGBA col )
+		function setForegroundString( colorA col )
 			fg_color = col
 			setValue(value)
 
@@ -394,7 +394,7 @@ package CustomBar
 			fg_color=makeColor(DEFAULT_FOREGROUND)
 
 
-		function addGradient( real pthreshold, colorRGBA col )
+		function addGradient( real pthreshold, colorA col )
 			var threshold = pthreshold
 			if gradCnt >= MAX_GRADIENTS
 				printError("TTGradBar: Cannot add any more Gradients to TTGradBar " + I2S(this castTo int) + "!")

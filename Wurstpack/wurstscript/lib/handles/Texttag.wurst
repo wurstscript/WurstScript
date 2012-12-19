@@ -1,6 +1,6 @@
 package Texttag
 	import public Vectors
-	import public RGBA
+	import public Colors
 	
 	public function texttag.setPos( real x, real y, real z) returns texttag
 		SetTextTagPos(this, x ,y , z)
@@ -14,7 +14,7 @@ package Texttag
 		SetTextTagColor(this, r, g , b, a)
 		return this
 	
-	public function texttag.setColor( colorRGBA col) returns texttag
+	public function texttag.setColor( colorA col) returns texttag
 		SetTextTagColor(this, col.red, col.green , col.blue, col.alpha)
 		return this
 
@@ -46,7 +46,7 @@ package Texttag
 		SetTextTagVisibility(this, flag)
 		return this
 		
-	public function createTTEx(vec3 pos, vec2 vel, string message, int size, real duration, colorRGBA col ) returns texttag
+	public function createTTEx(vec3 pos, vec2 vel, string message, int size, real duration, colorA col ) returns texttag
 		texttag tt = CreateTextTag()
 		tt.setPos(pos.toVec2().withZ(20.))
 		.setText( message, size * 0.0023 )
@@ -57,7 +57,7 @@ package Texttag
 		tt.setPermanent(false)
 		return tt
 		
-	public function createTTEx(vec3 pos, vec2 vel, string message, int size, real duration, colorRGBA col, player p ) returns texttag
+	public function createTTEx(vec3 pos, vec2 vel, string message, int size, real duration, colorA col, player p ) returns texttag
 		texttag tt = createTTEx(pos, vel, message,size,duration,col)
 		if GetLocalPlayer() == p
 			tt.setVisibility(true)
