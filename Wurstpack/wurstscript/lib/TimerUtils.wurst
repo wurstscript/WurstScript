@@ -11,22 +11,26 @@ package TimerUtils
 	int freeTimersCount = 0
 	Table timerData = new Table()
 	
+	/** Get a new timer. Use this instead of "CreateTimer".
+	You can attach data to the timer with .setData and retrieve it with .getData
+	If you're done with the timer, release it with .release */
 	public function getTimer() returns timer
 		if freeTimersCount > 0
 			freeTimersCount -= 1
 			return freeTimers[freeTimersCount]
 		else
 			return CreateTimer()
-	
+			
+	/** Attach Data to this timer */
 	public function timer.setData(integer data) returns timer
 		timerData.saveInt( GetHandleId(this), data )
 		return this
 		
-	
+	/** Retrieve the data attached to this timer */
 	public function timer.getData() returns integer
 		return timerData.loadInt( GetHandleId(this) )
 
-	
+	/** Release the timer. Use this instead of "DestroyTimer" ! */
 	public function timer.release()
 		this.pause()
 		freeTimers[freeTimersCount] = this
