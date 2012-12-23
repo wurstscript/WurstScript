@@ -111,7 +111,6 @@ package DummyRecycler
 		u.setX(x)
 		u.setY(y)
 		u.setFlyHeight(z, 0)
-		u.show()
 		bj_lastCreatedUnit = u
 		return bj_lastCreatedUnit
 
@@ -148,6 +147,7 @@ package DummyRecycler
 			SetUnitVertexColor(u, 255, 255, 255, 255)
 			SetUnitAnimationByIndex(u, 90)
 			SetUnitScale(u, 1, 0, 0)
+			u.show()
 			//PauseUnit(u, false) -- you can disable "resets" that you don't need to worry about.
 		else
 			printError("[MissileRecycler] Error: Attempt to recycle invalid unit.")

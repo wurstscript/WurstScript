@@ -1,6 +1,0 @@
-package TupleHelper
-	
-	public tuple data2 ( int a, int b )
-	public tuple data3 ( int a, int b, int c )
-	
-endpackage

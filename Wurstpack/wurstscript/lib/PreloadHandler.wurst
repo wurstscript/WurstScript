@@ -1,16 +1,15 @@
 package PreloadHandler
-	/********************************************************
+	/*
 	 * * * * * * * * PreloadHandler * * * * * * * * * * * * *
 	 * The PreloadHandler helps you to preload resources  	*
 	 * at mapstart, to avoid first-laggs.					*
 	 * Use the corresponding function to preload the data	*
 	 * you want.											*
 	 *														*
-	 * Credits to Vexorian 								  	*
-	 ********************************************************/
+															*/
 	
 
-	// use this function to preload an ability
+	/** use this function to preload an ability */
 	public function preloadAbility( int abilid )
 		UnitAddAbility(dum, abilid)
 		if dum == null 
@@ -18,8 +17,8 @@ package PreloadHandler
 		else if GetUnitAbilityLevel(dum, abilid) == 0
 			printWarning("PreloadAbility: Ability "+debugIdInteger2IdString(abilid)+" does not exist.")
 
-	//================================================================================
-	// Convert a integer id value into a 4-letter id code.
+
+	/** Convert a integer id value into a 4-letter id code. */
 	function debugIdInteger2IdString (int value) returns string
 		string charMap = ".................................!.#$%&'()*+,-./0123456789:;<=>.@ABCDEFGHIJKLMNOPQRSTUVWXYZ[.]^_`abcdefghijklmnopqrstuvwxyz{|}~................................................................................................................................."
 		string result = ""

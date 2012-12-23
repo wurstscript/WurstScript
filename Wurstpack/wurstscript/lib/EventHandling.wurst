@@ -5,14 +5,13 @@ trigger castTrig
 trigger evalTrig
 conditionfunc array conds
 unit array casters
-int count = 0
+int count  = 0
 
 public function unit.registerCastEvent( conditionfunc c )
 	castTrig.registerUnitEvent(this, EVENT_UNIT_SPELL_EFFECT)
 	conds[count] = c
 	casters[count] = this
 	count++
-	
 	
 public function unit.unregisterCastEvent()
 
@@ -30,7 +29,9 @@ public function unit.unregisterCastEvent()
 	
 function evaluateEvent() returns boolean
 	var caster = GetSpellAbilityUnit()
-	for i = 0 to count
+	debugPrint(caster.getName(), 2)
+	for i = 0 to count-1
+		debugPrint(i.toString(), 2)
 		if casters[i] == caster
 			evalTrig.addCondition(conds[i])
 			evalTrig.evaluate()
