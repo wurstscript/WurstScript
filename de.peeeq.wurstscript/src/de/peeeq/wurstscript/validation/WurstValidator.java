@@ -819,8 +819,18 @@ public class WurstValidator {
 				@Override
 				public void case_FuncDef(FuncDef f) {
 					if (f.attrNearestStructureDef() != null) {
-						check(VisibilityPrivate.class, VisibilityProtected.class,
-								ModAbstract.class, ModOverride.class, ModStatic.class);
+						if (f.attrNearestStructureDef() instanceof InterfaceDef) {
+							check(VisibilityPrivate.class, VisibilityProtected.class,
+								ModAbstract.class, ModOverride.class);
+						} else {
+							check(VisibilityPrivate.class, VisibilityProtected.class,
+									ModAbstract.class, ModOverride.class, ModStatic.class);
+							if (f.attrNearestStructureDef() instanceof ClassDef) {
+								if (f.attrIsStatic() && f.attrIsAbstract()) {
+									f.addError("Static functions cannot be abstract.");
+								}
+							}
+						}
 					} else {
 						check(VisibilityPublic.class, Annotation.class);
 					}
@@ -1172,6 +1182,15 @@ public class WurstValidator {
 				if (func.attrIsOverride()) {
 					if (overridesMap.get(link).size() == 0) {
 						func.addError("Function " + func.getName() + " uses override modifier but overrides nothing.");
+					}
+					for (NameLink overriden : overridesMap.get(link)) {
+						if (overriden.getDefinedIn() instanceof ClassDef 
+								&& overriden.getNameDef() instanceof FuncDef) {
+							FuncDef overriddenFunc = (FuncDef) overriden.getNameDef();
+							if (overriddenFunc.attrIsStatic()) {
+								func.addError("Cannot overwrite static function from classes.");
+							}
+						}
 					}
 				} else {
 					for (NameLink overriden : overridesMap.get(link)) {

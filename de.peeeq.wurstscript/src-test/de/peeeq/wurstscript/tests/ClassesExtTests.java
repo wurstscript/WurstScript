@@ -509,4 +509,28 @@ public class ClassesExtTests extends WurstScriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void teststaticoverride() {
+		testAssertErrorsLines(false, "Cannot overwrite static func",  
+				"package test",
+				"	native testSuccess()",
+				"	class A",
+				"		static function foo()",
+				"	class B extends A",
+				"		override static function foo()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void teststaticoverride2() {
+		testAssertErrorsLines(false, "Static functions cannot be abstract",  
+				"package test",
+				"	native testSuccess()",
+				"	abstract class A",
+				"		abstract static function foo()",
+				"endpackage"
+			);
+	}
 }
