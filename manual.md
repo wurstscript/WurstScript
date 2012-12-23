@@ -1307,6 +1307,7 @@ Wurst-modules are also more powerful than vJass modules. They allow overriding a
 # Eclipse Plugin
 
 Installation: You can find information on how to install the plugin at the [Wurst Homepage](http://peq.github.com/WurstScript/).
+[Installation](http://peq.github.com/WurstScript/installation.html)
 
 ## Usage
 
