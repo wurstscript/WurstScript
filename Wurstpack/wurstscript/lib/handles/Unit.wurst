@@ -131,5 +131,9 @@ package Unit
 		UnitDamageTarget(this, target, amount, false, false, ATTACK_TYPE_NORMAL, DAMAGE_TYPE_UNIVERSAL, WEAPON_TYPE_WHOKNOWS)
 		return this
 		
+	public function unit.setAnimation(string animation) returns unit
+		SetUnitAnimation(this, animation)
+		return this
+		
 
 endpackage

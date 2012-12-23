@@ -1,6 +1,6 @@
 package PrintingHelper
 	
-	int DEBUG_LEVEL = 1
+	int DEBUG_LEVEL = 2
 	real DEBUG_MSG_DURATION = 60.
 	
 	public function setDebugLvl( int value )
