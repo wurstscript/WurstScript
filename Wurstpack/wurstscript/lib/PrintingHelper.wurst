@@ -1,4 +1,5 @@
 package PrintingHelper
+	import NoWurst
 	
 	int DEBUG_LEVEL = 2
 	real DEBUG_MSG_DURATION = 60.

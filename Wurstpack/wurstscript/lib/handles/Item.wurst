@@ -1,5 +1,7 @@
 package Item
+	import NoWurst
 	import public Vectors
+	
 	public function item.getName() returns string
 		return GetItemName( this )
 		

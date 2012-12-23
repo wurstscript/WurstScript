@@ -17,7 +17,7 @@ public class AttrImportedPackage {
 		try {
 			WurstModel root = i.getModel();
 			WPackage p = root.attrPackages().get(i.getPackagename());
-			if (p == null) {
+			if (p == null && !i.getPackagename().equals("NoWurst")) {
 				i.addError("Could not find imported package " + i.getPackagename());
 			}
 			return p;

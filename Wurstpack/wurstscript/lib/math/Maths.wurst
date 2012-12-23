@@ -1,4 +1,5 @@
 package Maths	
+	import NoWurst
 	import Vectors
 
 	public constant real PI			=  3.141592654

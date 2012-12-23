@@ -1,4 +1,5 @@
 package Player
+import NoWurst
 
 public function player.getId() returns int
 	return GetPlayerId(this)

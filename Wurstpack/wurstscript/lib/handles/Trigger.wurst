@@ -1,4 +1,6 @@
 package Trigger
+	import NoWurst
+	import Table
 	
 	Table triggerData = new Table()
 	

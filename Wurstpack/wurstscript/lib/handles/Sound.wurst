@@ -1,4 +1,5 @@
 package Sound
+import NoWurst
 
 // Sound Duration is always in miliseconds
 public function sound.setDuration(int dur) returns sound

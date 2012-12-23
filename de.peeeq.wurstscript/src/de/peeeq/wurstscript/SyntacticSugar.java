@@ -112,6 +112,11 @@ public class SyntacticSugar {
 			// add 'import Wurst' if it does not exist
 			for (WImport imp : p.getImports()) {
 				if (imp.getPackagename().equals("Wurst")) {
+					// wurst package already imported
+					continue nextPackage;
+				}
+				if (imp.getPackagename().equals("NoWurst")) {
+					// NoWurst package imported --> no standard lib wanted
 					continue nextPackage;
 				}
 			}

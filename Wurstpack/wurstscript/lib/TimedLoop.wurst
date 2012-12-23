@@ -1,4 +1,5 @@
 package TimedLoop
+import TimerUtils
 
 // TimedLoop
 // originally created by Vexorian

@@ -1,4 +1,5 @@
 package Integer
+	import NoWurst
 	
 	public function int.abs() returns int
 		if this >= 0

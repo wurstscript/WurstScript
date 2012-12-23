@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.HashMultimap;
@@ -39,6 +40,7 @@ import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FuncRef;
+import de.peeeq.wurstscript.ast.FunctionCall;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.FunctionImplementation;
 import de.peeeq.wurstscript.ast.FunctionLike;
@@ -46,6 +48,7 @@ import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.HasTypeArgs;
 import de.peeeq.wurstscript.ast.Indexes;
+import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.ModAbstract;
@@ -665,7 +668,10 @@ public class WurstValidator {
 	@CheckMethod
 	public void visit(WImport wImport) {
 		if (wImport.attrImportedPackage() == null) {
-			wImport.addError("Could not find imported package " + wImport.getPackagename());
+			if (!wImport.getPackagename().equals("NoWurst")) {
+				wImport.addError("Could not find imported package " + wImport.getPackagename());
+			}
+			return;
 		}
 		if (! wImport.attrImportedPackage().getName().equals("Wurst") && wImport.attrImportedPackage().getName() ==  wImport.attrNearestNamedScope().getName()) {
 			wImport.addError("Packages cannot import themselves");
@@ -1337,4 +1343,100 @@ public class WurstValidator {
 		}
 	}
 	
+	
+	@CheckMethod
+	public void checkInitOrderGlobal(final GlobalVarDef v) {
+		if (v.getInitialExpr() instanceof Expr) {
+			Expr expr = (Expr) v.getInitialExpr();
+			checkInitializationElement(v, expr, v.attrIsDynamicClassMember());
+		}
+	}
+	
+	@CheckMethod
+	public void checkInitOrderInitBlock(InitBlock ib) {
+		checkInitializationElement(ib, ib.getBody(), false);
+	}
+
+	private void checkInitializationElement(final AstElement initPart, final AstElement expr, final boolean dynamicContext) {
+		if (!(expr.attrNearestPackage() instanceof WPackage)) {
+			return;
+		}
+		final WPackage v_definedIn = (WPackage) expr.attrNearestPackage();
+		Utils.visitRec(expr, new Predicate<AstElement>() {
+			public boolean apply(AstElement e) {
+				if (e instanceof NameRef) {
+					NameRef nameRef = (NameRef) e;
+					if (nameRef.attrNameDef() instanceof GlobalVarDef) {
+						GlobalVarDef used = (GlobalVarDef) nameRef.attrNameDef();
+						if (dynamicContext && !used.attrIsDynamicClassMember()) {
+							// this is ok, because dynamic class members are 
+							// initialized after static vars unless one does something
+							// stupid like calling constructors in static init 
+							return true;
+						}
+						checkUsedIsInitializedBefore(e, initPart, v_definedIn,	used);
+					}
+				}
+				if (e instanceof FunctionCall) {
+					FunctionCall funcRef = (FunctionCall) e;
+					FunctionDefinition f = funcRef.attrFuncDef();
+					if (f == null) {
+						return true;
+					}
+					for (VarDef used : f.attrUsedGlobalVariables()) {
+						checkUsedIsInitializedBefore(e, initPart, v_definedIn, used);
+					}
+				}
+				if (e instanceof ExprNewObject) {
+					ExprNewObject exprNewObject = (ExprNewObject) e;
+					ConstructorDef c = exprNewObject.attrConstructorDef();
+					checkUsedIsInitializedBefore(e, initPart, v_definedIn, c);
+				}
+				if (e instanceof StmtDestroy) {
+					StmtDestroy stmtDestroy = (StmtDestroy) e;
+					WurstType t1 = stmtDestroy.getDestroyedObj().attrTyp();
+					if (t1 instanceof WurstTypeClass) {
+						WurstTypeClass t = (WurstTypeClass) t1;
+						checkUsedIsInitializedBefore(e, initPart, v_definedIn, t.getClassDef());
+					}
+					
+				}
+				return true;
+			}
+
+			private void checkUsedIsInitializedBefore(AstElement errorPos,
+					final AstElement initPart, final WPackage v_definedIn,
+					AstElement used) {
+				if (used == null) {
+					return;
+				}
+				if (used.attrNearestPackage() instanceof WPackage) {
+					WPackage definedIn = (WPackage) used.attrNearestPackage();
+					if (definedIn == v_definedIn) {
+						// defined in same package
+						if (used.attrSource().getLeftPos() > initPart.attrSource().getLeftPos()) {
+							errorPos.addError(Utils.printElement(used) + " is used before it is initialized.");
+						}
+					} else {
+						// defined in different package
+						if (v_definedIn.attrPackageLevel() <= definedIn.attrPackageLevel()) {
+							errorPos.addError("Cannot use " + Utils.printElement(used) + " which is defined in package " + 
+									definedIn.getName() + ", because that package is not yet initialized.\n" +
+									"Try to remove cyclic imports to resolve this issue or define the initialization order manually.");							
+						}
+					}
+				}
+			}
+		});
+	}
+	
+	@CheckMethod
+	public void checkLocalShadowing(LocalVarDef v) {
+		NameDef shadowed = v.getParent().getParent().lookupVar(v.getName(), false);
+		if (shadowed instanceof LocalVarDef) {
+			v.addError("Variable " + v.getName() + " hides an other local variable with the same name.");
+		} else if (shadowed instanceof WParameter) {
+			v.addError("Variable " + v.getName() + " hides a parameter with the same name.");
+		}
+	}
 }

@@ -1,4 +1,5 @@
 package Real
+	import NoWurst
 	
 	public function real.abs() returns real
 		if this >= 0

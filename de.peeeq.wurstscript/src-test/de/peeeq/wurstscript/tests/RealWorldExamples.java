@@ -100,6 +100,18 @@ public class RealWorldExamples extends WurstScriptTest {
 	}
 	
 	@Test
+	public void criggesInitOrder1() throws IOException {
+		super.testAssertErrorFileWithStdLib(new File(TEST_DIR + "CriggesInitOrder1.wurst"), "not yet initialized", false);
+	}
+	
+	@Test
+	public void criggesInitOrder2() throws IOException {
+		super.testAssertErrorFileWithStdLib(new File(TEST_DIR + "CriggesInitOrder2.wurst"), "used before it is initialized", false);
+	}
+	
+	
+	
+	@Test
 	public void test_stdlib() throws IOException {
 		List<File> inputs = Lists.newLinkedList();
 //		settings.put("lib", "./wurstscript/lib/");
@@ -111,6 +123,7 @@ public class RealWorldExamples extends WurstScriptTest {
 			inputs.add(f);
 		}
 		testScript(inputs, null, "stdlib", false, true, true);
+		
 	}
 	
 }

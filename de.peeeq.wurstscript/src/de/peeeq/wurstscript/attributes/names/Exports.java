@@ -25,7 +25,7 @@ public class Exports {
 	}
 
 	private static void addExportedNameLinks(Multimap<String, NameLink> result,	WPackage p, HashSet<WPackage> alreadyImported) {
-		if (alreadyImported.contains(p)) {
+		if (p == null || alreadyImported.contains(p)) {
 			return;
 		}
 		alreadyImported.add(p);
@@ -50,7 +50,7 @@ public class Exports {
 
 
 	private static void addExportedTypeNameLinks(Multimap<String, NameLink> result,	WPackage p, HashSet<WPackage> alreadyImported) {
-		if (alreadyImported.contains(p)) {
+		if (p == null || alreadyImported.contains(p)) {
 			return;
 		}
 		alreadyImported.add(p);

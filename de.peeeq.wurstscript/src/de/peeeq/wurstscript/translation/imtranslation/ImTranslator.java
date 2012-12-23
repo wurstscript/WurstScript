@@ -203,7 +203,7 @@ public class ImTranslator {
 	}
 
 	private void callInitFunc(Set<WPackage> calledInitializers, WPackage p) {
-		if (calledInitializers.contains(p)) {
+		if (p == null || calledInitializers.contains(p)) {
 			return;
 		}
 		calledInitializers.add(p);

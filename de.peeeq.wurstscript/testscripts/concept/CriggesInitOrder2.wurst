@@ -1,0 +1,48 @@
+package Dot
+	import LinkedListModule
+	//import Damage
+	
+	init
+		getTimer().startPeriodic(0.5, function Dot.loopList)
+		for int i = 0 to 10
+			unit u = CreateUnit(Player(0), 'hpea', 0, 0, 0)
+			new Dot(u, u, 300, 15.) // here it crashes, so just one unit!
+
+	public class Dot
+		use LinkedListModule
+		unit u
+		unit source
+		real damage
+		timer t
+		
+		construct(unit u, unit source, real damage, real time)
+			print("This never get printed")
+			if time % 0.5 != 0
+				printError("Die Dauer des Dots ist nicht zulässig")
+				destroy this
+			else
+				this.u = u
+				this.source = source
+				this.damage = damage / (time / 0.5)
+				t = getTimer()
+				t.setData(this castTo int)
+				t.start(time, function timerDestroyDot)
+				
+		static function timerDestroyDot()
+			destroy GetExpiredTimer().getData() castTo Dot
+			
+			
+		static function loopList()
+			var d = getFirst()
+			while d != null
+				//damageAbs(d.u, d.source, d.damage)
+				d = d.getNext()
+				
+		ondestroy
+			t.release()
+
+endpackage
+
+
+
+

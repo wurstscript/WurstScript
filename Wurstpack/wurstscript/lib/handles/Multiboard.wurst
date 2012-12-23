@@ -1,4 +1,5 @@
 package Multiboard
+	import NoWurst
 //Since it is long to type multiboard, ill leave it out from the functions.
 //multiboards
 	public function multiboard.destr()

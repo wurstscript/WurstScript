@@ -1,4 +1,6 @@
 package Rect
+	import NoWurst
+	import Table
 
 	Table sourceTable = new Table()
 	Table regionData = new Table()

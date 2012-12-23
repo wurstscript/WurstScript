@@ -1,4 +1,5 @@
 package Unittype
+	import NoWurst
 	
 	// Converts a unittype into the correct int (global-wise)
 	// If the unittype doesn't exist, -1 is returned.

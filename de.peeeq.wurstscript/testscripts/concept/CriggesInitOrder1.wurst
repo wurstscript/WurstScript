@@ -1,0 +1,29 @@
+package RacerControll
+
+	import Raceengine
+    
+	init
+    
+        new Racer(1) 
+        
+endpackage 
+
+package Raceengine
+
+	import Maths
+	import TimerUtils
+	import RacerControll
+	int error = 0
+	
+	public class Racer
+		
+		int i
+		
+		construct(int i)
+			this.i = i
+			print("1")
+            error++
+            print("2")
+			
+endpackage
+		
