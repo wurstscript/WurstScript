@@ -1,4 +1,6 @@
 package Effect
+	import NoWurst
+	import Vectors
 	
 	public function effect.destr()
 		DestroyEffect( this )

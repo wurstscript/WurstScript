@@ -1,4 +1,8 @@
 package Vectors
+	import NoWurst
+	import PrintingHelper
+	import Maths
+	import Real
 	
 	/*************************
 	 ********3D-Vector********
@@ -176,7 +180,7 @@ package Vectors
 		return "Vector2 [ " + this.x.toString() + ", " + this.y.toString() + " ]"
 	
 	public function unit.getPos() returns vec2
-		return vec2(this.getX(), this.getY()) 
+		return vec2(GetUnitX(this), GetUnitY(this)) 
 	 	
 	public function vec2.angleTo(vec2 v) returns real
 		return Atan2(v.y - this.y, v.x - this.x) 

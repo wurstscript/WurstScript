@@ -1,4 +1,5 @@
 package Hashtable
+	import NoWurst
 
 	public function hashtable.hasBoolean( integer parentKey, integer childKey ) returns boolean
 		return HaveSavedBoolean( this, parentKey, childKey )

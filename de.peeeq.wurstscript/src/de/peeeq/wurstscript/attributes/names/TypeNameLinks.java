@@ -75,6 +75,9 @@ public class TypeNameLinks {
 		Multimap<String, NameLink> result = HashMultimap.create();
 		for (WImport imp : p.getImports()) {
 			WPackage importedPackage = imp.attrImportedPackage();
+			if (importedPackage == null) {
+				continue;
+			}
 			result.putAll(importedPackage.attrExportedTypeNameLinks());
 		}
 		return result;

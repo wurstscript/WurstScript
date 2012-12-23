@@ -1,4 +1,5 @@
 package String
+	import NoWurst
 
 	public function string.substring(int start, int end) returns string
 		return SubString(this, start, end)

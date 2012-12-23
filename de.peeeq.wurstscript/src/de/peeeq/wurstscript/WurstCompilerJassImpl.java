@@ -221,8 +221,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 				if (imp.getPackagename().equals("Wurst")) {
 					throw new CompileError(imp.getSource(), "The standard library could not be imported.");
 				}
-				throw new CompileError(imp.getSource(), "The import '" + imp.getPackagename() + "' could not be resolved.\n" + 
+				if (imp.getPackagename().equals("NoWurst")) {
+					// ignore this package
+				} else {
+					throw new CompileError(imp.getSource(), "The import '" + imp.getPackagename() + "' could not be resolved.\n" + 
 						"Available packages: " + Utils.join(getLibs().keySet(), ", "));
+				}
 			}
 		} else {
 //			WLogger.info("already imported: " + imp.getPackagename());

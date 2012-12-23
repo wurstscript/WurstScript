@@ -1,4 +1,7 @@
 package Camera
+	import NoWurst
+	import TimerUtils
+	
 	timer array noiseTimer
 
 	public function setCameraNoiseTimed(player owner, real value, real velocity, real time)

@@ -22,5 +22,6 @@ package Wurst
 	import public Player
 	import public Item
 	import public Sound
+	import public Vectors
 	
 endpackage

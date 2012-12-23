@@ -1,5 +1,5 @@
 package Group
-
+	import NoWurst
 	
 	public function group.clear()
 		GroupClear(this)

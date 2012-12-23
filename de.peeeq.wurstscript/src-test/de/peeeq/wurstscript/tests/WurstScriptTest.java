@@ -22,6 +22,9 @@ import de.peeeq.wurstscript.CompiletimeFunctionRunner;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.WurstConfig;
+import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
@@ -177,7 +180,7 @@ public class WurstScriptTest {
 		for (Entry<String, Reader> input : inputs.entrySet()) {
 			compiler.loadReader(input.getKey(), input.getValue());
 		}
-		compiler.parseFiles();
+		WurstModel model = compiler.parseFiles();
 		
 		
 		if (gui.getErrorCount() > 0) {

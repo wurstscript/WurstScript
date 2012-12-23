@@ -65,7 +65,10 @@ public class TLDTranslation {
 		
 		// first translate all packages used by this package
 		for (WImport imp : pack.getImports()) {
-			imp.attrImportedPackage().imTranslateTLD(translator);
+			WPackage p = imp.attrImportedPackage();
+			if (p != null) {
+				p.imTranslateTLD(translator);
+			}
 		}
 		
 		// translate the package itself

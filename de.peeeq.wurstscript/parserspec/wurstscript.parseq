@@ -110,7 +110,10 @@ TypeParamDef(WPos source, Modifiers modifiers, String name)
 WParameters * WParameter
 WParameter(WPos source, Modifiers modifiers, TypeExpr typ, String name)
 	
+	
 WStatements * WStatement
+
+ExprOrStatements = WStatements | WStatement | Expr
 	
 WStatement = ActionStatement | ControlflowStatement | EndFunctionStatement(WPos source) | StartFunctionStatement(WPos source)
 
@@ -799,3 +802,19 @@ TypeParamDefs.attrTypes()
 NameDef.attrComment
 	returns String
 	implemented by de.peeeq.wurstscript.attributes.AttrWurstDoc.getComment
+	
+ExprOrStatements.attrUsedGlobalVariables
+	returns java.util.List<VarDef>
+	implemented by de.peeeq.wurstscript.attributes.UsedGlobalVariables.getUsedGlobals
+	
+FunctionDefinition.attrUsedGlobalVariables
+	returns java.util.List<VarDef>
+	implemented by de.peeeq.wurstscript.attributes.UsedGlobalVariables.getUsedGlobals
+	
+WurstModel.attrPackageLevels
+	returns java.util.Map<WPackage, Integer>
+	implemented by de.peeeq.wurstscript.attributes.PackageLevels.calculate
+	
+WPackage.attrPackageLevel
+	returns int
+	implemented by de.peeeq.wurstscript.attributes.PackageLevels.get

@@ -1,4 +1,6 @@
 package Table
+	import NoWurst
+	import Hashtable
 	
 	hashtable ht = InitHashtable()
 	

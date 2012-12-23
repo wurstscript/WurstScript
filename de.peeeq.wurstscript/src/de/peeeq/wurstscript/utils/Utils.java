@@ -20,6 +20,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -32,6 +33,7 @@ import de.peeeq.wurstscript.ast.AstElementWithName;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
@@ -731,6 +733,19 @@ public class Utils {
 			result.put(e.getValue(), e.getKey());
 		}
 		return result;
+	}
+
+	public static boolean visitRec(AstElement e, Predicate<AstElement> f) {
+		if (!f.apply(e)) {
+			return false;
+		}
+		for (int i=0; i<e.size(); i++) {
+			boolean r = visitRec(e.get(i), f);
+			if (!r) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 }

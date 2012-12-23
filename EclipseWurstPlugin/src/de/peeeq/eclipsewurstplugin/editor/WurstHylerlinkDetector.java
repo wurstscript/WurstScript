@@ -57,6 +57,9 @@ public class WurstHylerlinkDetector implements IHyperlinkDetector {
 			} else if (e instanceof WImport) {
 				WImport wImport = (WImport) e;
 				WPackage p = wImport.attrImportedPackage();
+				if (p == null) {
+					return null;
+				}
 				return linkTo(p, e.attrSource().getLeftPos(), e.attrSource().getRightPos()-1);
 			} else if (e instanceof ExprNewObject) {
 				ExprNewObject exprNew = (ExprNewObject) e;

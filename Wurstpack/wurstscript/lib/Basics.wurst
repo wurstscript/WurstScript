@@ -1,4 +1,6 @@
 package Basics
+	import NoWurst
+
 	/** Id of the dummy unit */
 	public constant int 	DUMMY_UNIT_ID 	   		= 'e000'
 	/** Id of Ravenform to allow setting fly height */
