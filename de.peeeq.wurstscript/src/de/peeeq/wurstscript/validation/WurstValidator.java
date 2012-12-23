@@ -1429,4 +1429,14 @@ public class WurstValidator {
 			}
 		});
 	}
+	
+	@CheckMethod
+	public void checkLocalShadowing(LocalVarDef v) {
+		NameDef shadowed = v.getParent().getParent().lookupVar(v.getName(), false);
+		if (shadowed instanceof LocalVarDef) {
+			v.addError("Variable " + v.getName() + " hides an other local variable with the same name.");
+		} else if (shadowed instanceof WParameter) {
+			v.addError("Variable " + v.getName() + " hides a parameter with the same name.");
+		}
+	}
 }
