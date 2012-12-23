@@ -16,7 +16,11 @@ problem with our [issue tracker at GitHub](https://github.com/peq/WurstScript/is
 
 # Syntax
 The WurstScript Syntax uses indention to define Blocks, rather than using curly
-braces (as in Java) or keywords like 'endif' (as in Jass).
+braces (as in Java) or keywords like 'endif' (as in Jass). Indentation must not use spaces, only tabs are permitted.
+
+In general newlines come at the end of a statement, with two exceptions: 
+- Inside parenthesis newlines are ignored. You can use this to break longer expressions or long parameter lists over several lines.
+- Newlines are ignored when the next line starts with a dot. This can be used to chain method invocations.
 
 In general WurstScript tries to avoid using symbols as much as possible to
 provide a clear and readable look. At the same time most of Jass' verbosity got removed. 
@@ -51,7 +55,7 @@ Wurst enforces several naming conventions to create a common way of writing code
 -  **Variables** have to either start with a **lowercase letter** *or* be **all uppercase letters and "_"**
 -  **Class/Module/Interface/Package** names have to start with an **uppercase letter**
 -  **Tuplenames** have to start with a **lowercase letter**
--  
+
 
 
 ## Functions
@@ -214,6 +218,12 @@ nesting ifs and else ifs, with the special default case.
 		...
 
 
+In for loops you can also ommit the type of the loop variable.
+
+	for i = 0 to 10
+	for u in someGroup
+	...
+
 ### For-in/from Loops
 
 The for-in loop lets you iterate over any object which provides an iterator. 
@@ -330,11 +340,14 @@ As mentioned above every code-segment written in Wurst has to be inside a _packa
 packages define the code organization and separate name-spaces.
 Packages can also have global variables - every variable that is not inside another block (function/class/module)
 is declared global for that package.
-Packages can import other packages to access classes, functions, variables, etc. that are not defined private.
+
+## Imports
+
+Packages can import other packages to access classes, functions, variables, etc. that are defined public.
 
 
 	// declaring
-	package $PackageName$
+	package SomePackage
 		...
 	endpackage
 	// importing
@@ -342,11 +355,52 @@ Packages can import other packages to access classes, functions, variables, etc.
 		import SomePackage
 		import AnotherPackge // importing more than 1 package
 		import MyExternalWurstFile // Import a scriptfile from the class-lib directory 
+		import public PackageX // public import (see below)
 	endpackage
 
 
 When importing an external Scriptfile you just write the Filename without .wurst.
 Remember to name the package inside your file the same as the name of the scriptfile (In the EclipsePlugin this is enforced, when working with WE only, this might be the source of packages not being found).
+
+### import public
+
+By default imported names are not exported by the package. For example the following will not compile:
+
+	package A
+		public constant x = 5
+	endpackage
+	package B
+		import A
+	endpackage
+	package C
+		import B
+		constant z = x
+	endpackage
+
+
+The variable x is usable in package B but it is not exported from B. So in the package C we cannot use the variable x. We could 
+fix this by simply importing A into C but sometimes you want to avoid those imports. Then you can use public imports. Those
+imports will export everything which is imported. Thus the following code will work:
+
+	package A
+		public constant x = 5
+	endpackage
+	package B
+		import public A
+	endpackage
+	package C
+		import B
+		constant z = x
+	endpackage
+
+### The special Wurst package
+
+By default, every package imports a package named Wurst which is defined in the standard library. This package exports some
+packages which are used very often. 
+
+If you do not want this standard import you can disable it by importing a package NoWurst. This directive is mainly used to
+resolve some cyclic dependencies in the standard library.
+
 
 ## Public declarations
 All members of a package are private by default.
@@ -395,11 +449,29 @@ All operations inside the init block of a package are being executed at mapstart
 At the beginning of an init block you can assume that all global variables inside the 
 current package are initialized.
 
-If a given package A imports package B, the initializer in package B is run before A's.
-If packages import each other, the order is undefined.
-
 
 *Note:* Since wc3 has a micro op limitation, too many operations inside init-blocks may stop it from fully executing. In order to avoid this you should only place map-init Stuff inside the init blocks and use timers and own inits for the other stuff.
+
+
+## Initialization 
+
+The initialization rules for Wurst are very simple:
+
+1. Inside a package initialization is done from top to bottom.
+	The initializer of a package is the union of all global variable static initializers
+	(including static class variables) and all init blocks.
+2. If a package A imports a package B, the initializer of package B is run before A's.
+3. If packages import each other, the order is undefined.
+
+The Wurst Checker tries to detect some initialization errors at runtime. However this approach is not sound, so 
+there can still be initialization errors happening at runtime. Those will stop the initialization of the program.
+The rules for the checker are as follows:
+
+1. Inside a package you can only refer to variables which have been declared before.
+2. You can only refer to variables in other packages, when the other package does not depend on the current package (i.e. there is
+	a cyclic import).
+3. When function calls, constructor calls and destroy statements are used, the checker will try to guess the used variables and
+	base the analysis on those results.
 
 
 # Classes
@@ -997,7 +1069,22 @@ as if they were instance functions of the extended type.
 	public function vec2.lengthSquared returns real
 		return this.x*this.x+this.y*this.y
 
-# Operator Overloading
+# Advanced Concepts
+
+## Function Overloading
+
+Function overloading allows you to have several functions with the same name.
+The compiler will then decide which function to call based on the static type
+of the arguments.
+
+Wurst uses a very simple form of overloading. If there is exactly one function in
+scope which is feasible for the given arguments, then this function will be used.
+If there is more than one feasible function the compiler will give an error.
+
+Note that this is different to many other languages like Java, where the
+function with the most specific feasible type is chosen instead of giving an error.
+
+## Operator Overloading
 
 Operator Overloading allows you to change the behaviour of internal operators +, -, \* and / for custom arguments.
 A quick example from the standard library (Vectors.wurst):
@@ -1022,11 +1109,11 @@ In order to define an overloading function it has to be named as following:
     *  "op_mult"
     /  "op_divReal"
     
-# Compiletime Functions
+## Compiletime Functions
 Compiletime Functions are functions, that get executed when compiling yur script/map.
 They mainly offer the possibility to create Object-Editor Objects via code.
 
-## Declaration
+### Declaration
 
     @compiltetime function foo()
     
@@ -1036,6 +1123,66 @@ Compiltetime functions cannot take nor return anything.
 
 Wurst comes with a library of some useful standard functions
 Look here for a documentation [The Wurstscript Standardlibrary](http://peq.github.com/WurstScript/standardlib.html)
+
+# Wurst Style
+
+In this section we describe some style guidelines which you should follow when programming in Wurst.
+
+## Rule 1: Write for readability
+
+You should always write your code so that it can be read easily. Ideally your code should be readable like normal English text.
+Use suitable names for functions and variables to make your code sound like normal text.
+
+- Create functions which help you to express your intend on a higher level of abstraction.
+- When a function or variable has type boolean, name it like a question. The name should sound natural when used inside an if statement.
+- Use class functions and extension methods to make code readable from left to right.
+
+
+Example:
+
+	// not so readable:
+	if GetUnitState(h, UNIT_STATE_LIFE) <= 0.405
+		let t = NewTimer()
+		t.setData(...)
+		t.start(...)
+		...
+
+	// better:
+	if hero.isDead()
+		hero.reviveAt(town, REVIVE_TIME)
+
+	// that timer stuff is in a different small function
+
+
+### Rule 1.1 Document your Code
+### Rule 1.2 Keep functions short
+### Rule 1.3 The Golden Path
+
+
+
+
+## Rule 2: Write checkable code
+
+Your code should be checkable by the compiler. The Wurst compiler provides you with some powerful typechecking tools. Use 
+them wisely to reduce the mistakes you can do in your program. You might also want to watch [this awesome talk by Yaron Minsky](http://vimeo.com/14313378) who summarizes it pretty nicely: "make invalid state unrepresentable". Of course Wurst is not as sophisticated as ML
+but there are still a lot of things you can do.
+
+- avoid the castTo expression whenever possible
+- use high level libraries like HashMap instead of lower level libraries like Table or even then hashtable natives
+- use tuple types to give meaning to values (see Vector for an example)
+- use enums with switch statements
+
+## Rule 3: DRY: Don't repeat yourself
+
+When you find the same lines of code at several places of your project, try to put the common code into a function, class or module.
+
+## Rule 4: KISS: Keep it simple, stupid!
+
+Always try to choose the most simple solution to your problem. Avoid premature optimization. 
+
+
+
+
 
 
 # vJass vs Wurst
