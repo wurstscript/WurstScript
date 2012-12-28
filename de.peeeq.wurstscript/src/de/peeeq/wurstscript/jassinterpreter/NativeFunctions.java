@@ -74,10 +74,16 @@ public class NativeFunctions implements NativesProvider {
 		return new ILconstInt(s.getVal().hashCode());
 	}
 	
+	@Native
 	public ILconstNull Player(ILconstInt p) {
 		return ILconstNull.instance();
 	}
 
+	@Native
+	public ILconstInt GetPlayerId(ILconstNull p) {
+		return ILconstInt.create(0);
+	}
+	
 	public IlConstHandle InitHashtable() {
 		return new IlConstHandle(getRandomName("ht"), new HashMap<Integer, Map<Integer, Object>>());
 	}

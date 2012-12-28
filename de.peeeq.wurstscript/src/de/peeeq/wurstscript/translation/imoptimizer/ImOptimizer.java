@@ -21,5 +21,10 @@ public class ImOptimizer {
 		ImInliner inliner = new ImInliner(trans);
 		inliner.doInlining();
 	}
+
+	public void doNullsetting() {
+		NullSetter ns = new NullSetter(trans);
+		ns.optimize();
+	}
 	
 }

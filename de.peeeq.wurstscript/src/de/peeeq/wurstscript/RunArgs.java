@@ -101,6 +101,10 @@ public class RunArgs {
 		return createHotDoc;
 	}
 
+	public boolean isNullsetting() {
+		return true;
+	}
+
 
 
 }
