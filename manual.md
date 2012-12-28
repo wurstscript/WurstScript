@@ -695,7 +695,7 @@ It is easier to understand with an example:
 		
 ### Example 2
 
-    Class A
+    class A
         string name
         
         construct(string name)
@@ -705,7 +705,7 @@ It is easier to understand with an example:
             print("Instance of A named: " + name )
 
 
-    Class B extends A
+    class B extends A
     
         construct(string name)
             super(name)
