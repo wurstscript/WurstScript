@@ -720,6 +720,28 @@ It is easier to understand with an example:
 This is especially usefull when iterating through ClassInstances of the same supertype,
 meaning you don't have to cast the instance to it's proper subtype.
 
+## super calls
+
+When you override a method you can still call to the original implementation by using the *super* keyword. This is useful since
+subclasses often just add some functionality to its base classes.
+
+As an example consider a fireball spell for which we want to create a more powerful version:
+
+	class FireBall
+		...
+		function hitUnit(unit u, real damage)
+			...
+
+	class PowerFireBall extends FireBall
+		...
+		// here we override the original behavior of the hitUnit function
+		override function hitUnit(unit u, real damage)
+			// first we create a big explosion effect
+			createSomeBigExplosionEffect(u)
+			// then we call the original hitUnit function but with doubled damage
+			super.hitUnit(u, damage*2)
+
+
 ## instanceof
 
 If you want to typecast a classinstance, remember it can only be cast to an int, or a sub/super- class.
