@@ -171,7 +171,7 @@ public class BugTests extends WurstScriptTest {
 	
 	@Test
 	public void cyclicDependency() {
-		testAssertOkLines(false, 
+		testAssertErrorsLines(false, "depends on itself", 
 				"package test",
 				"	class A extends A",
 				"endpackage");
