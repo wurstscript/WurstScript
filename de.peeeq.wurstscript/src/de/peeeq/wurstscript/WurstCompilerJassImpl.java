@@ -345,21 +345,19 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		
 		ImOptimizer optimizer = new ImOptimizer(imTranslator);
 		
+		
 		if (runArgs.isInline()) {
 			optimizer.doInlining();
 		}
+		
+		if (runArgs.isNullsetting()) {
+			optimizer.doNullsetting();
+		}
+		
 		if (runArgs.isOptimize()) {
 			optimizer.optimize();
 		}
-		
-		try {
-			// TODO remove test output
-			StringBuilder sb = new StringBuilder();
-			imProg.print(sb, 0);
-			Files.write(sb.toString(), new File("./test-output/test_opt.im"), Charsets.UTF_8);
-		} catch (IOException e) {
-			ErrorReporting.handleSevere(e);
-		}
+		printDebugImProg("./test-output/test_opt.im");
 		
 		// flatten
 		imProg.flatten(imTranslator);
@@ -374,6 +372,17 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			return null;
 		}
 		return p;
+	}
+
+	private void printDebugImProg(String debugFile) {
+		try {
+			// TODO remove test output
+			StringBuilder sb = new StringBuilder();
+			imProg.print(sb, 0);
+			Files.write(sb.toString(), new File(debugFile), Charsets.UTF_8);
+		} catch (IOException e) {
+			ErrorReporting.handleSevere(e);
+		}
 	}
 
 	

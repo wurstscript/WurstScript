@@ -62,6 +62,74 @@ public class OptimizerTests extends WurstScriptTest {
 	}
 
 	
+	@Test
+	public void test_nullsetter1() {
+		assertOk(true,
+				"type player extends handle",
+				"native Player takes integer id returns player",
+				"native GetPlayerId takes player whichPlayer returns integer",
+				"package test",
+				"	native testSuccess()",
+				"	function foo()",
+				"		player p = Player(0)",
+				"	init",
+				"		foo()",
+				"		testSuccess()",
+				"endpackage");
+	}
+	
+	@Test
+	public void test_nullsetter2() {
+		assertOk(true,
+				"type player extends handle",
+				"native Player takes integer id returns player",
+				"native GetPlayerId takes player whichPlayer returns integer",
+				"package test",
+				"	native testSuccess()",
+				"	function foo() returns player",
+				"		player p = Player(0)",
+				"		return p",
+				"	init",
+				"		foo()",
+				"		testSuccess()",
+				"endpackage");
+	}
+	
+	@Test
+	public void test_nullsetter3() {
+		assertOk(true,
+				"type player extends handle",
+				"native Player takes integer id returns player",
+				"native GetPlayerId takes player whichPlayer returns integer",
+				"package test",
+				"	native testSuccess()",
+				"	function foo() returns int",
+				"		player p = Player(0)",
+				"		return GetPlayerId(p)",
+				"	init",
+				"		foo()",
+				"		testSuccess()",
+				"endpackage");
+	}
+	
+	@Test
+	public void test_nullsetter4() {
+		assertOk(true,
+				"type player extends handle",
+				"native Player takes integer id returns player",
+				"native GetPlayerId takes player whichPlayer returns integer",
+				"package test",
+				"	native testSuccess()",
+				"	function foo() returns int",
+				"		player p = Player(0)",
+				"		return 0",
+				"	init",
+				"		foo()",
+				"		testSuccess()",
+				"endpackage");
+	}
+
+	
 	private String makeCode(String... body) {
 		return Utils.join(body, "\n");
 	}

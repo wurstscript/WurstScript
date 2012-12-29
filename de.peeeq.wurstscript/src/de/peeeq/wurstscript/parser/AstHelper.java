@@ -98,13 +98,6 @@ public class AstHelper {
 		return i;
 	}
 
-	public static Arguments inferSuperArgs(WParameters params) {
-		Arguments result = Ast.Arguments();
-		for (WParameter p : params) {
-			result.add(Ast.ExprVarAccess(p.getSource().copy(), p.getName()));
-		}
-		return result;
-	}
 
 	public static CompilationUnit addFront(CompilationUnit c,	TopLevelDeclaration p) {
 		// TODO would it be important to add this to the front?

@@ -412,9 +412,9 @@ ClassSlots ::=
 
 ClassSlot ::=
 	  ModifiersWithDoc:mod CONSTRUCT:x LPAR Parameters:params RPAR NL INDENT Statements:body UNINDENT:y
-		{: RESULT = Ast.ConstructorDef(pos(xleft, body), mod, params, AstHelper.inferSuperArgs(params), body); :}
+		{: RESULT = Ast.ConstructorDef(pos(xleft, body), mod, params, false, Ast.Arguments(), body); :}
 	| ModifiersWithDoc:mod CONSTRUCT:x LPAR Parameters:params RPAR NL INDENT Newlines SUPER LPAR Arguments:superArgs RPAR NL Statements:body UNINDENT:y
-		{: RESULT = Ast.ConstructorDef(pos(xleft, yright), mod, params, superArgs, body); :}
+		{: RESULT = Ast.ConstructorDef(pos(xleft, yright), mod, params, true, superArgs, body); :}
 	| ModifiersWithDoc:mod USE:x IdentifierWithTypeArgs:m NL
 		{: RESULT = Ast.ModuleUse(pos(xleft, m), m.getName(), m.getTypeArgs()); :} 
 	| ONDESTROY:x NL INDENT Statements:body UNINDENT:y

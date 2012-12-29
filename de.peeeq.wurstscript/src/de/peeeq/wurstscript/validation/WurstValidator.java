@@ -24,6 +24,7 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.CyclicDependencyError;
 import de.peeeq.wurstscript.ast.EnumDef;
 import de.peeeq.wurstscript.ast.EnumMember;
 import de.peeeq.wurstscript.ast.Expr;
@@ -64,6 +65,7 @@ import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.NoDefaultCase;
+import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.StmtCall;
 import de.peeeq.wurstscript.ast.StmtDestroy;
@@ -96,6 +98,7 @@ import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.ast.WurstDoc;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CheckHelper;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.NameLinkType;
 import de.peeeq.wurstscript.attributes.names.Visibility;
@@ -214,7 +217,13 @@ public class WurstValidator {
 				throw new Error(t);
 			} catch (InvocationTargetException t) {
 				Throwable cause = t.getCause();
-				if (cause instanceof Error) {
+				if (cause instanceof CyclicDependencyError) {
+					CyclicDependencyError cde = (CyclicDependencyError) cause;
+					cde.printStackTrace();
+					AstElement element = cde.getElement();
+					String attr = cde.getAttributeName().replaceFirst("^attr", "");
+					throw new CompileError(element.attrSource(), Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
+				} else if (cause instanceof Error) {
 					throw (Error)cause;
 				} else {
 					throw new Error(cause);
@@ -819,8 +828,18 @@ public class WurstValidator {
 				@Override
 				public void case_FuncDef(FuncDef f) {
 					if (f.attrNearestStructureDef() != null) {
-						check(VisibilityPrivate.class, VisibilityProtected.class,
-								ModAbstract.class, ModOverride.class, ModStatic.class);
+						if (f.attrNearestStructureDef() instanceof InterfaceDef) {
+							check(VisibilityPrivate.class, VisibilityProtected.class,
+								ModAbstract.class, ModOverride.class);
+						} else {
+							check(VisibilityPrivate.class, VisibilityProtected.class,
+									ModAbstract.class, ModOverride.class, ModStatic.class);
+							if (f.attrNearestStructureDef() instanceof ClassDef) {
+								if (f.attrIsStatic() && f.attrIsAbstract()) {
+									f.addError("Static functions cannot be abstract.");
+								}
+							}
+						}
 					} else {
 						check(VisibilityPublic.class, Annotation.class);
 					}
@@ -1173,6 +1192,15 @@ public class WurstValidator {
 					if (overridesMap.get(link).size() == 0) {
 						func.addError("Function " + func.getName() + " uses override modifier but overrides nothing.");
 					}
+					for (NameLink overriden : overridesMap.get(link)) {
+						if (overriden.getDefinedIn() instanceof ClassDef 
+								&& overriden.getNameDef() instanceof FuncDef) {
+							FuncDef overriddenFunc = (FuncDef) overriden.getNameDef();
+							if (overriddenFunc.attrIsStatic()) {
+								func.addError("Cannot overwrite static function from classes.");
+							}
+						}
+					}
 				} else {
 					for (NameLink overriden : overridesMap.get(link)) {
 						if (!(overriden.getDefinedIn() instanceof InterfaceDef)) {
@@ -1437,6 +1465,18 @@ public class WurstValidator {
 			v.addError("Variable " + v.getName() + " hides an other local variable with the same name.");
 		} else if (shadowed instanceof WParameter) {
 			v.addError("Variable " + v.getName() + " hides a parameter with the same name.");
+		}
+	}
+	
+	@CheckMethod
+	public void checkConstructorSuperCall(ConstructorDef c) {
+		if (c.getIsExplicit()) {
+			if (c.attrNearestClassDef() instanceof ClassDef) {
+				ClassDef classDef = (ClassDef) c.attrNearestClassDef();
+				if (classDef.getExtendedClass() instanceof NoTypeExpr) {
+					c.addError("Super call in a class which extends nothing.");
+				}
+			}
 		}
 	}
 }

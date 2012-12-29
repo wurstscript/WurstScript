@@ -209,6 +209,7 @@ public class ClassesExtTests extends WurstScriptTest {
 				"			this.b = b",
 				"	class OtherPair extends Pair",
 				"		construct(int a, int b)",
+				"			super(a,b)",
 				"			skip",
 				"	init",
 				"		if new OtherPair(2, 3).a == 2",
@@ -506,6 +507,30 @@ public class ClassesExtTests extends WurstScriptTest {
 				"		a.foo()",
 				"		if x == 5",
 				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void teststaticoverride() {
+		testAssertErrorsLines(false, "Cannot overwrite static func",  
+				"package test",
+				"	native testSuccess()",
+				"	class A",
+				"		static function foo()",
+				"	class B extends A",
+				"		override static function foo()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void teststaticoverride2() {
+		testAssertErrorsLines(false, "Static functions cannot be abstract",  
+				"package test",
+				"	native testSuccess()",
+				"	abstract class A",
+				"		abstract static function foo()",
 				"endpackage"
 			);
 	}
