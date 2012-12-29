@@ -98,6 +98,7 @@ import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.ast.WurstDoc;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CheckHelper;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.NameLinkType;
 import de.peeeq.wurstscript.attributes.names.Visibility;
@@ -218,10 +219,11 @@ public class WurstValidator {
 				Throwable cause = t.getCause();
 				if (cause instanceof CyclicDependencyError) {
 					CyclicDependencyError cde = (CyclicDependencyError) cause;
+					cde.printStackTrace();
 					AstElement element = cde.getElement();
 					String attr = cde.getAttributeName().replaceFirst("^attr", "");
-					element.addError(Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
-				} if (cause instanceof Error) {
+					throw new CompileError(element.attrSource(), Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
+				} else if (cause instanceof Error) {
 					throw (Error)cause;
 				} else {
 					throw new Error(cause);
