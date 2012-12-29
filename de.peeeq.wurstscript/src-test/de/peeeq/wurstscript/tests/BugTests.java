@@ -169,4 +169,12 @@ public class BugTests extends WurstScriptTest {
 				"endpackage");
 	}
 	
+	@Test
+	public void cyclicDependency() {
+		testAssertOkLines(false, 
+				"package test",
+				"	class A extends A",
+				"endpackage");
+	}
+	
 }

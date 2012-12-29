@@ -24,6 +24,7 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.CyclicDependencyError;
 import de.peeeq.wurstscript.ast.EnumDef;
 import de.peeeq.wurstscript.ast.EnumMember;
 import de.peeeq.wurstscript.ast.Expr;
@@ -215,7 +216,12 @@ public class WurstValidator {
 				throw new Error(t);
 			} catch (InvocationTargetException t) {
 				Throwable cause = t.getCause();
-				if (cause instanceof Error) {
+				if (cause instanceof CyclicDependencyError) {
+					CyclicDependencyError cde = (CyclicDependencyError) cause;
+					AstElement element = cde.getElement();
+					String attr = cde.getAttributeName().replaceFirst("^attr", "");
+					element.addError(Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
+				} if (cause instanceof Error) {
 					throw (Error)cause;
 				} else {
 					throw new Error(cause);

@@ -256,6 +256,7 @@ public class Generator {
 		
 		generateStandardClasses();
 		generateStandardList();
+		generateCyclicDependencyError();
 		
 		
 		System.out.println("generating property interfaces ... ");
@@ -370,7 +371,7 @@ public class Generator {
 					sb.append("			zzattr_" + attr.attr +"_cache = "+attr.implementedBy+"(("+c.getName()+")this);\n");
 					sb.append("			zzattr_" + attr.attr +"_state = 2;\n");
 					sb.append("		} else if (zzattr_" + attr.attr + "_state == 1) {\n");
-					sb.append("			throw new Error(\"Cyclic dependencies between types\");\n");
+					sb.append("			throw new CyclicDependencyError(this, \""+attr.attr+"\");\n");
 					sb.append("		}\n");
 					sb.append("		return zzattr_" + attr.attr +"_cache;\n");
 					sb.append("	}\n");
@@ -1003,14 +1004,15 @@ public class Generator {
 	private void generateStandardList() {
 		StringBuilder sb = new StringBuilder();
 		printProlog(sb);
-//		File template = new File("./templates/ParseqList.java");
-//		try {
-//			sb.append(Files.toString(template, Charsets.UTF_8));
-//		} catch (IOException e) {
-//			abort("Could not read template " + template);
-//		}
 		TemplateParseqList.writeTo(sb);
 		createFile("ParseqList", sb);
+	}
+	
+	private void generateCyclicDependencyError() {
+		StringBuilder sb = new StringBuilder();
+		printProlog(sb);
+		TemplateCyclicDependencyError.writeTo(sb, getCommonSupertypeType());
+		createFile("CyclicDependencyError", sb);
 	}
 
 	private String getCommonSupertypeType() {
