@@ -75,7 +75,7 @@ SwitchCase( WPos source, Expr expr, WStatements stmts )
 SwitchDefaultCase = SwitchDefaultCaseStatements(WPos source, WStatements stmts) | NoDefaultCase()
 
 ClassSlot = 
-	  ConstructorDef(WPos source, Modifiers modifiers, WParameters parameters, Arguments superArgs, WStatements body)
+	  ConstructorDef(WPos source, Modifiers modifiers, WParameters parameters, boolean isExplicit, Arguments superArgs, WStatements body)
 	| OnDestroyDef(WPos source, WStatements body)
 	| ModuleUse(WPos source, String moduleName, TypeExprList typeArgs)
 	| ModuleInstanciation(WPos source, Modifiers modifiers, String name, 

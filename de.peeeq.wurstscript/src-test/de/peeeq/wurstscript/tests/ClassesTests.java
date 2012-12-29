@@ -535,4 +535,15 @@ public class ClassesTests extends WurstScriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void construct_super() {
+		testAssertErrorsLines(false, "Super call in a class which extends nothing", 
+				"package test",
+				"	class C",
+				"		construct(int x)",
+				"			super()",
+				"endpackage"
+			);
+	}
 }

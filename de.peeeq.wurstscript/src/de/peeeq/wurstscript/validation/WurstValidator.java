@@ -64,6 +64,7 @@ import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.NoDefaultCase;
+import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.StmtCall;
 import de.peeeq.wurstscript.ast.StmtDestroy;
@@ -1456,6 +1457,18 @@ public class WurstValidator {
 			v.addError("Variable " + v.getName() + " hides an other local variable with the same name.");
 		} else if (shadowed instanceof WParameter) {
 			v.addError("Variable " + v.getName() + " hides a parameter with the same name.");
+		}
+	}
+	
+	@CheckMethod
+	public void checkConstructorSuperCall(ConstructorDef c) {
+		if (c.getIsExplicit()) {
+			if (c.attrNearestClassDef() instanceof ClassDef) {
+				ClassDef classDef = (ClassDef) c.attrNearestClassDef();
+				if (classDef.getExtendedClass() instanceof NoTypeExpr) {
+					c.addError("Super call in a class which extends nothing.");
+				}
+			}
 		}
 	}
 }

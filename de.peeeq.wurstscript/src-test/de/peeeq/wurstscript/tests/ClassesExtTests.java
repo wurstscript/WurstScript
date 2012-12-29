@@ -209,6 +209,7 @@ public class ClassesExtTests extends WurstScriptTest {
 				"			this.b = b",
 				"	class OtherPair extends Pair",
 				"		construct(int a, int b)",
+				"			super(a,b)",
 				"			skip",
 				"	init",
 				"		if new OtherPair(2, 3).a == 2",
