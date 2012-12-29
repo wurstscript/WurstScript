@@ -650,6 +650,9 @@ This process also needs to be reversed (casting from int to a classtype)
 But typecasting is also necessary when using subtyping, in order to down- and upcast instances.
 In order to typecast, you use the keyword _castTo_
 
+_Note_: You should avoid castTo whenever possible. Casts are noch checked at runtime so they can go horribly wrong. 
+Casts can be avoided by using high level libraries and object oriented programming.
+
 ### Examples
 	class Test
 		int val
@@ -747,6 +750,8 @@ As an example consider a fireball spell for which we want to create a more power
 If you want to typecast a classinstance, remember it can only be cast to an int, or a sub/super- class.
 To ensure correct casting, a typecheck is needed.
 In Wurst you can check the type of a classinstance with the _instanceof_ keyword.
+
+_Note_: You should avoid instanceof checks whenever possible and prefer object oriented programming.
 
 ###Example
 
@@ -1203,8 +1208,26 @@ When you find the same lines of code at several places of your project, try to p
 Always try to choose the most simple solution to your problem. Avoid premature optimization. 
 
 
+## Rule 5: Use Object oriented programming
 
+### Avoid instanceof
 
+Using *instanceof* is usually a sign for bad use of object orientation. Often instanceof checks can 
+be replaced by using dynamic dispatch. Let's look at an example:
+
+	if shape instanceof Circle
+		Circle c = shape castTo Circle
+		area = bj_PI * c.radius*c.radius
+ 	else if shape instanceof Rect
+		Rect r = shape castTo Rect
+		area = r.width * r.height
+
+It would be better to have one area function in Shape and then implement it for Circle and Rect. 
+That way you can just write:
+
+	area = shape.area()
+
+The right area method will then be automatically selected based on the type of shape.
 
 
 # vJass vs Wurst
