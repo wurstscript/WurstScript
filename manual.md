@@ -616,6 +616,9 @@ and can be used anywhere where the super class can be used.
 Constructors of the class have to specify how the super class should be constructed. This is done using a _super_ call, 
 which defines the arguments for the super constructor. There can not be any statement before this call.
 
+If a constructor does not provide a super call, the compiler tries to insert a super call with no arguments. 
+
+
 Functions inherited from super classes can be overridden in the subclass. Such functions have to be annotated with _override_.
     
           
