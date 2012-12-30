@@ -263,7 +263,7 @@ public class ImTranslator {
 			return getDefaultValueForJassTypeName(typeName);
 		} else if (type instanceof ImTupleType) {
 			ImTupleType imTupleType = (ImTupleType) type;
-			return getDefaultValueForJassTypeName(imTupleType.getTypes().get(0));
+			return getDefaultValueForJassType(imTupleType.getTypes().get(0));
 		} else {
 			throw new IllegalArgumentException("could not get default value for type " + type);
 		}

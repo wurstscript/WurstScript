@@ -13,8 +13,8 @@ ImVar(&ImType type, String name, boolean isBJ)
 ImType = 
 	  ImSimpleType(String typename)
 	| ImArrayType(String typename)
-	| ImTupleType(java.util.List<String> types, java.util.List<String> names)
-	| ImTupleArrayType(java.util.List<String> types, java.util.List<String> names)
+	| ImTupleType(java.util.List<ImType> types, java.util.List<String> names)
+	| ImTupleArrayType(java.util.List<ImType> types, java.util.List<String> names)
 	| ImVoid()
 	
 ImFunction(de.peeeq.wurstscript.ast.AstElement trace, String name, ImVars parameters, &ImType returnType, ImVars locals, ImStmts body, java.util.List<de.peeeq.wurstscript.translation.imtranslation.FunctionFlag> flags)

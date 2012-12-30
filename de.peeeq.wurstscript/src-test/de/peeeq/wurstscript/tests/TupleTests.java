@@ -109,5 +109,36 @@ public class TupleTests extends WurstScriptTest {
 			);
 	}
 	
+	@Test
+	public void tupleInTuple() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	tuple vec(real x, real y)",
+				"	tuple line(vec start, vec end)",
+				"	init",
+				"		let l = line(vec(1,2), vec(3,4))",
+				"		if l.end.x == 3",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void tupleInTuple2() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	tuple vec(real x, real y)",
+				"	tuple line(vec start, vec end)",
+				"	function bla(vec v) returns real",
+				"		return v.x + v.y",
+				"	init",
+				"		let l = line(vec(1,2), vec(3,4))",
+				"		if bla(l.end) == 7",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
 	
 }
