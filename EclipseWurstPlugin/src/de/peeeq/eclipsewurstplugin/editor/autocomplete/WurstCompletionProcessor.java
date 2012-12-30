@@ -71,6 +71,9 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	@Override
 	public ICompletionProposal[] computeCompletionProposals(ITextViewer viewer, int offset) {
 		this.offset = offset;
+		if (isEnteringRealNumber(viewer, offset)) {
+			return null;
+		}
 		CompilationUnit cu = editor.reconcile(false);
 		if (Utils.isEmptyCU(cu)) {
 			errorMessage = "Could not parse file.";
@@ -152,6 +155,21 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		}
 		errorMessage = null;
 		return null;
+	}
+
+
+	private boolean isEnteringRealNumber(ITextViewer viewer, int offset) {
+		IDocument doc = viewer.getDocument();
+		try {
+			String before = doc.get(offset-2, 1);
+			if (before.matches("[0-9]")) {
+				// we are entering a real
+				return true;
+			}
+		} catch (BadLocationException e1) {
+			e1.printStackTrace();
+		}
+		return false;
 	}
 
 	
