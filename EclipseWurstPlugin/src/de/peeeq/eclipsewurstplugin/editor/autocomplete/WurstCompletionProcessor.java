@@ -206,7 +206,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		RGB rbg  = new RGB(255, 255, 222);
 		
 		String comment = n.attrComment();
-		comment = comment.replaceAll("\n", "<br>");
+		comment = comment.replaceAll("\n", "<br />");
 		
 		String displayString = n.getName() + " : " + n.attrTyp().getFullName() + " - [" + nearestScopeName(n) +"]";
 		IContextInformation contextInformation= new ContextInformation(
@@ -224,8 +224,8 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				break;
 			}
 		}
-		additionalProposalInfo += "<pre><hr>" + typ + n.getName()
-					+ "<br></pre>" + "defined in " + nearestScopeName(n);
+		additionalProposalInfo += "<pre><hr />" + typ + n.getName()
+					+ "<br /></pre>" + "defined in " + nearestScopeName(n);
 
 		return new CompletionProposal(replacementString, replacementOffset, replacementLength,
 				cursorPosition, image, displayString, contextInformation, additionalProposalInfo);
@@ -252,7 +252,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		}
 		Image image = Icons.function;
 		String comment = f.attrComment();
-		comment = comment.replaceAll("\n", "<br>");
+		comment = comment.replaceAll("\n", "<br />");
 		StringBuilder descr = new StringBuilder();
 		StringBuilder descrhtml = new StringBuilder();
 		for (WParameter p : f.getParameters()) {
@@ -286,9 +286,9 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		}else{
 			additionalProposalInfo = "<i>No hotdoc provided</i>";
 		}
-		additionalProposalInfo += "<pre><hr><b><font color=\"rgb(127,0,85)\">" + "function</b></font> " + f.getName() +"(" + descrhtml.toString() + ") "
-				+ "<b><font color=\"rgb(127,0,85)\">returns</b></font> " + returnTypeHtml
-				+ "<br></pre>" + "defined in " + nearestScopeName(f);
+		additionalProposalInfo += "<pre><hr /><b><font color=\"rgb(127,0,85)\">" + "function</font></b> " + f.getName() +"(" + descrhtml.toString() + ") "
+				+ "<br /><b><font color=\"rgb(127,0,85)\">returns</font></b> " + returnTypeHtml
+				+ "<br /></pre>" + "defined in " + nearestScopeName(f);
 
 		
 		return new CompletionProposal(replacementString, replacementOffset, replacementLength, cursorPosition, image, displayString,
