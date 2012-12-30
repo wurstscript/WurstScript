@@ -242,6 +242,7 @@ FunctionImplementation = FuncDef | ExtensionFuncDef
 
 FunctionLike = FunctionImplementation | ConstructorDef | InitBlock | OnDestroyDef
 
+Documentable = NameDef | ConstructorDef
 
 
 
@@ -799,7 +800,7 @@ TypeParamDefs.attrTypes()
 	returns java.util.List<de.peeeq.wurstscript.types.WurstType>
 	implemented by de.peeeq.wurstscript.attributes.TypeParamTypes.calculte
 
-NameDef.attrComment
+Documentable.attrComment
 	returns String
 	implemented by de.peeeq.wurstscript.attributes.AttrWurstDoc.getComment
 	

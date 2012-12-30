@@ -47,7 +47,7 @@ public class WurstTypeTuple extends WurstType {
 	
 	@Override
 	public String getName() {
-		return tupleDef.getName() + " (tuple)";
+		return tupleDef.getName();
 	}
 
 	@Override
