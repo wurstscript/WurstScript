@@ -40,7 +40,7 @@ public class WurstTypeModule extends WurstTypeNamedScope {
 	}
 
 	@Override
-	public NamedScope getDef() {
+	public ModuleDef getDef() {
 		return moduleDef;
 	}
 	

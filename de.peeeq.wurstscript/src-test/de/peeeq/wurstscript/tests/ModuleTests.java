@@ -236,4 +236,19 @@ public class ModuleTests extends WurstScriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void static_external() {
+		testAssertErrorsLines(false, "from within",
+				"package test",
+				"	module A",
+				"		static int b = 0",
+				"	init",
+				"		A.b = 0",
+				"endpackage"
+			);
+	}
+	
+	
+	
 }
