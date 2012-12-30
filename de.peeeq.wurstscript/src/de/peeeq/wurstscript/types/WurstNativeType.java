@@ -35,7 +35,7 @@ public class WurstNativeType extends WurstType {
 	public static WurstNativeType instance(String name, WurstType superType) {
 		WurstNativeType t = new WurstNativeType();
 		t.name = name;
-		t.superType = superType;
+		t.superType = superType.dynamic();
 		return t;
 	}
 

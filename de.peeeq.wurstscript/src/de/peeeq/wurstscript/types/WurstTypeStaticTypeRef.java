@@ -1,0 +1,50 @@
+package de.peeeq.wurstscript.types;
+
+import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.jassIm.ImExprOpt;
+import de.peeeq.wurstscript.jassIm.ImType;
+
+public class WurstTypeStaticTypeRef extends WurstType {
+
+	private final WurstType base;
+	
+	public WurstTypeStaticTypeRef(WurstType base) {
+		this.base = base;
+	}
+	
+	@Override
+	public boolean isSubtypeOf(WurstType other, AstElement location) {
+		return false;
+	}
+
+	@Override
+	public String getName() {
+		return "static reference to " + base.getName();
+	}
+
+	@Override
+	public String getFullName() {
+		return "static reference to " + base.getFullName();
+	}
+
+	@Override
+	public String[] jassTranslateType() {
+		return base.jassTranslateType();
+	}
+
+	@Override
+	public ImType imTranslateType() {
+		return base.imTranslateType();
+	}
+
+	@Override
+	public ImExprOpt getDefaultValue() {
+		return base.getDefaultValue();
+	}
+	
+	@Override
+	public WurstType dynamic() {
+		return base;
+	}
+
+}

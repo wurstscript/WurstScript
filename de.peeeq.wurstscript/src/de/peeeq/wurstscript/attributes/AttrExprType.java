@@ -173,7 +173,7 @@ public class AttrExprType {
 	private static WurstType getHandleType(AstElement node, String typeName) {
 		TypeDef def = node.lookupType(typeName);
 		if (def != null) {
-			return def.attrTyp();
+			return def.attrTyp().dynamic();
 		} else {
 			return WurstTypeUnknown.instance();
 		}
