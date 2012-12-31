@@ -146,13 +146,6 @@ public class WurstInformationControl extends DefaultInformationControl {
 		public String updatePresentation(Display display, String hoverInfo,
 				TextPresentation presentation, int maxWidth, int maxHeight) {
 			this.display = display;
-//			StyleRange range = new StyleRange(2, 4, null, null);
-//			FontRegistry reg = new FontRegistry(display);
-//			System.out.println("fonts = " + reg.getKeySet());
-//			range.font = new Font(display, "Courier New", 13, 0);//reg.get("serif");
-//			System.out.println("font = " + range.font);
-//			presentation.addStyleRange(range);
-			System.out.println(hoverInfo);
 			
 			
 			StringBuilder sb = new StringBuilder();
@@ -166,13 +159,6 @@ public class WurstInformationControl extends DefaultInformationControl {
 				e.printStackTrace();
 				return hoverInfo;
 			}
-			Iterator<StyleRange> it = presentation.getAllStyleRangeIterator();
-			while (it.hasNext()) {
-				StyleRange range = it.next();
-				System.out.println("range = " + range);
-				
-			}
-			
 			
 			return sb.toString();
 		}
@@ -182,11 +168,6 @@ public class WurstInformationControl extends DefaultInformationControl {
 			
 			List<StyleRangeCustom> styles = Lists.newArrayList();
 			parseElement(doc.getDocumentElement(), styles, sb);
-			
-			for (StyleRangeCustom style : styles) {
-				System.out.println("style " + style);
-				System.out.println("	" + sb.substring(style.start, style.stop));
-			}
 			
 			Set<Integer> changepoints = getChangePoints(styles);
 			List<Integer> changepointsSorted = Lists.newArrayList(changepoints);
@@ -218,9 +199,6 @@ public class WurstInformationControl extends DefaultInformationControl {
 			for (StyleRangeCustom r : activeStyles) {
 				r.style(range);
 			}
-			System.out.println("adding range from " + point + " to " + end);
-			System.out.println("	" + range);
-			System.out.println("	" + sb.substring(point, end));
 			presentation.addStyleRange(range);
 			
 		}

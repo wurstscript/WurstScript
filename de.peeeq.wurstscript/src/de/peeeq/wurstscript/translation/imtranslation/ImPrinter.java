@@ -29,6 +29,7 @@ import de.peeeq.wurstscript.jassIm.ImTupleArrayType;
 import de.peeeq.wurstscript.jassIm.ImTupleExpr;
 import de.peeeq.wurstscript.jassIm.ImTupleSelection;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
+import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
@@ -61,9 +62,9 @@ public class ImPrinter {
 	public static void print(ImTupleArrayType p, StringBuilder sb, int indent) {
 		sb.append("array<");
 		boolean first = true;
-		for (String t : p.getTypes()) {
+		for (ImType t : p.getTypes()) {
 			if (!first) sb.append(", ");
-			sb.append(t);
+			t.print(sb, indent);
 			first = false;
 		}
 		sb.append(">");
@@ -72,9 +73,9 @@ public class ImPrinter {
 	public static void print(ImTupleType p, StringBuilder sb, int indent) {
 		sb.append("<");
 		boolean first = true;
-		for (String t : p.getTypes()) {
+		for (ImType t : p.getTypes()) {
 			if (!first) sb.append(", ");
-			sb.append(t);
+			t.print(sb, indent);
 			first = false;
 		}
 		sb.append(">");

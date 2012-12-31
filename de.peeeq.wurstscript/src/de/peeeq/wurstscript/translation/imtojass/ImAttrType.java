@@ -72,7 +72,7 @@ public class ImAttrType {
 
 	public static ImType getType(ImTupleSelection e) {
 		ImTupleType tt = (ImTupleType) e.getTupleExpr().attrTyp();
-		return JassIm.ImSimpleType(tt.getTypes().get(e.getTupleIndex()));
+		return tt.getTypes().get(e.getTupleIndex());
 	}
 
 	public static ImType getType(ImVarAccess e) {
@@ -92,11 +92,11 @@ public class ImAttrType {
 	}
 
 	public static ImType getType(ImTupleExpr imTupleExpr) {
-		List<String> types = Lists.newArrayList();
+		List<ImType> types = Lists.newArrayList();
 		List<String> names = Lists.newArrayList();
 		int i = 1;
 		for (ImExpr e : imTupleExpr.getExprs()) {
-			types.add(((ImSimpleType)e.attrTyp()).getTypename());
+			types.add(e.attrTyp());
 			names.add("" + i++);
 		}
 		return JassIm.ImTupleType(types, names);

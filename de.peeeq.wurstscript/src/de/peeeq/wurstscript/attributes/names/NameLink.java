@@ -75,7 +75,7 @@ public class NameLink {
 		if (type == NameLinkType.FUNCTION) {
 			if (nameDef instanceof ExtensionFuncDef) {
 				ExtensionFuncDef exF = (ExtensionFuncDef) nameDef;
-				return exF.getExtendedType().attrTyp(); 
+				return exF.getExtendedType().attrTyp().dynamic(); 
 			} else if (nameDef instanceof FuncDef) {
 				return getReceiverType(definedIn);
 			}

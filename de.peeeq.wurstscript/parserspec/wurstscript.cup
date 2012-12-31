@@ -803,6 +803,10 @@ ExprAtomic ::=
 ExprNewObject ::=
  	NEW:x IdentifierWithTypeArgs:n LPAR Arguments:args RPAR:y
 		{: RESULT = Ast.ExprNewObject(pos(xleft, yright), n.getName(), n.getTypeArgs(), args); :}
+	| NEW:x IdentifierWithTypeArgs:n
+		{: RESULT = Ast.ExprNewObject(pos(xleft, n), n.getName(), n.getTypeArgs(), Ast.Arguments()); :}
+	| NEW:x	
+		{: RESULT = Ast.ExprNewObject(pos(xleft, xright+1), "", Ast.TypeExprList(), Ast.Arguments()); :}
 ;
 
 Indexes ::=

@@ -49,7 +49,7 @@ public class AttrParameterTypes {
 	}
 	
 	public static WurstType receiverType(ExtensionFuncDef f) {
-		return f.getExtendedType().attrTyp();
+		return f.getExtendedType().attrTyp().dynamic();
 	}
 
 	public static WurstType receiverType(TupleDef tupleDef) {

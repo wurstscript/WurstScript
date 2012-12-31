@@ -26,8 +26,11 @@ import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
 import de.peeeq.eclipsewurstplugin.editor.outline.Icons;
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
+import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprRealVal;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
@@ -68,6 +71,9 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	@Override
 	public ICompletionProposal[] computeCompletionProposals(ITextViewer viewer, int offset) {
 		this.offset = offset;
+		if (isEnteringRealNumber(viewer, offset)) {
+			return null;
+		}
 		CompilationUnit cu = editor.reconcile(false);
 		if (Utils.isEmptyCU(cu)) {
 			errorMessage = "Could not parse file.";
@@ -119,6 +125,21 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 					completions.add(makeNameDefCompletion(p));
 				}
 			}
+		} else if (elem instanceof ExprNewObject) {
+			WScope scope = elem.attrNearestScope();
+			while (scope != null) {
+				Multimap<String, NameLink> visibleNames = scope.attrNameLinks();
+				for (NameLink n : visibleNames.values()) {
+					if (n.getNameDef() instanceof ClassDef 
+						&& n.getName().toLowerCase().startsWith(alreadyEntered)) {
+						ClassDef c = (ClassDef) n.getNameDef();
+						for (ConstructorDef constr : c.attrConstructors()) {
+							completions.add(makeConstructorCompletion(c, constr));
+						}
+					}
+				}
+				scope = scope.attrNextScope();
+			}
 		} else {
 			WScope scope = elem.attrNearestScope();
 			while (scope != null) {
@@ -134,6 +155,21 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		}
 		errorMessage = null;
 		return null;
+	}
+
+
+	private boolean isEnteringRealNumber(ITextViewer viewer, int offset) {
+		IDocument doc = viewer.getDocument();
+		try {
+			String before = doc.get(offset-2, 1);
+			if (before.matches("[0-9]")) {
+				// we are entering a real
+				return true;
+			}
+		} catch (BadLocationException e1) {
+			e1.printStackTrace();
+		}
+		return false;
 	}
 
 	
@@ -289,6 +325,51 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		additionalProposalInfo += "<pre><hr /><b><font color=\"rgb(127,0,85)\">" + "function</font></b> " + f.getName() +"(" + descrhtml.toString() + ") "
 				+ "<br /><b><font color=\"rgb(127,0,85)\">returns</font></b> " + returnTypeHtml
 				+ "<br /></pre>" + "defined in " + nearestScopeName(f);
+
+		
+		return new CompletionProposal(replacementString, replacementOffset, replacementLength, cursorPosition, image, displayString,
+				contextInformation, additionalProposalInfo);
+	}
+	
+	private ICompletionProposal makeConstructorCompletion(ClassDef c, ConstructorDef constr) {
+		String replacementString = c.getName() + "()";
+		
+		int replacementOffset = offset - alreadyEntered.length();
+		int replacementLength = alreadyEntered.length();
+		int cursorPosition = replacementString.length() - 1; // inside parentheses
+		if (constr.getParameters().size() == 0) {
+			cursorPosition++; // outside parentheses
+		}
+		Image image = Icons.block;
+		String comment = constr.attrComment();
+		comment = comment.replaceAll("\n", "<br />");
+		StringBuilder descr = new StringBuilder();
+		StringBuilder descrhtml = new StringBuilder();
+		for (WParameter p : constr.getParameters()) {
+			if (descr.length() > 0) {
+				descr.append(", ");
+				descrhtml.append(", ");
+			}
+			String typ = p.attrTyp().toString();
+			for (String s : WurstConstants.JASSTYPES) {
+				if ( s.equals(typ) ) {
+					typ = "<font color=\"rgb(34,136,143)\">" + typ + "</font>";
+					break;
+				}
+			}
+			descr.append(p.attrTyp() + " " + p.getName());
+			descrhtml.append(typ + " " + p.getName());
+		}
+		String displayString = c.getName() +"(" + descr.toString() + ")";
+		IContextInformation contextInformation = descr.length() == 0 ? null : new ContextInformation(c.getName(), descr.toString());
+		String additionalProposalInfo;
+		if (constr.attrComment().length() > 1) {
+			additionalProposalInfo = comment;
+		}else{
+			additionalProposalInfo = "<i>No hotdoc provided</i>";
+		}
+		additionalProposalInfo += "<pre><hr /><b><font color=\"rgb(127,0,85)\">" + "construct</font></b>(" + descrhtml.toString() + ") "
+				+ "<br /></pre>" + "defined in class " + c.getName();
 
 		
 		return new CompletionProposal(replacementString, replacementOffset, replacementLength, cursorPosition, image, displayString,

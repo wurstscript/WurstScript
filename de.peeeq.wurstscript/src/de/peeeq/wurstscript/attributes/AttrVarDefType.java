@@ -39,6 +39,7 @@ import de.peeeq.wurstscript.types.WurstTypeModule;
 import de.peeeq.wurstscript.types.WurstTypeModuleInstanciation;
 import de.peeeq.wurstscript.types.WurstTypePackage;
 import de.peeeq.wurstscript.types.WurstTypeTuple;
+import de.peeeq.wurstscript.types.WurstTypeStaticTypeRef;
 import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
@@ -59,7 +60,7 @@ public class AttrVarDefType {
 	}
 	
 	public static  WurstType calculate(WParameter node) {
-		return node.getTyp().attrTyp();
+		return node.getTyp().attrTyp().dynamic();
 	}
 	
 	public static WurstType calculate(ClassDef c) {
@@ -101,7 +102,8 @@ public class AttrVarDefType {
 	}
 
 	public static WurstType calculate(NativeType n) {
-		return WurstNativeType.instance(n.getName(), n.getOptTyp().attrTyp());
+		WurstNativeType base = WurstNativeType.instance(n.getName(), n.getOptTyp().attrTyp());
+		return new WurstTypeStaticTypeRef(base);
 	}
 
 	public static WurstType calculate(FunctionDefinition f) {

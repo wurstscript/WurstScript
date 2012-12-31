@@ -43,8 +43,10 @@ import de.peeeq.wurstscript.jassIm.ImStringVal;
 import de.peeeq.wurstscript.jassIm.ImTupleExpr;
 import de.peeeq.wurstscript.jassIm.ImTupleSelection;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
+import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
+import de.peeeq.wurstscript.jassIm.JassImElement;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 public class ExprTranslation {
@@ -79,7 +81,7 @@ public class ExprTranslation {
 			List<JassExpr> result = Lists.newArrayList();
 			result.add(call);
 			for (int i = 1; i < rt.getTypes().size(); i++) {
-				String r = rt.getTypes().get(i);
+				String r = rt.getTypes().get(i).translateTypeFirst();
 				JassVar v = translator.getTempReturnVar(r, i);
 				result.add(JassExprVarAccess(v.getName()));
 			}
@@ -132,8 +134,10 @@ public class ExprTranslation {
 
 	private static List<JassExpr> compare(OpBinary op, OpBinary combiOp, List<JassExpr> leftExprs, List<JassExpr> rightExprs) {
 		JassExpr result = JassExprBinary(leftExprs.get(0), op.jassTranslateBinary(), rightExprs.get(0));
-		if (leftExprs.size() != rightExprs.size()) throw new Error("unequal sizes");
-		for (int i=1; i<leftExprs.size(); i++) {
+		int leftSize = leftExprs.size();
+		int rightSize = rightExprs.size();
+		if (leftSize != rightSize) throw new Error("unequal sizes " + leftSize + " vs " + rightSize);
+		for (int i=1; i<leftSize; i++) {
 			result = JassAst.JassExprBinary(result, combiOp.jassTranslateBinary(), JassExprBinary(leftExprs.get(i), op.jassTranslateBinary(), rightExprs.get(i)));
 		}
 		return single(result);
@@ -160,8 +164,28 @@ public class ExprTranslation {
 	}
 
 	public static List<JassExpr> translate(ImTupleSelection e, ImToJassTranslator translator) {
+		//		List<JassExpr> exprs = e.getTupleExpr().translate(translator);
+//		return single(exprs.get(e.getTupleIndex()));
+		// TODO discarded side-effects?
+		
+		ImExpr tupleExpr = e.getTupleExpr();
+		ImTupleType t =  (ImTupleType) tupleExpr.attrTyp();
 		List<JassExpr> exprs = e.getTupleExpr().translate(translator);
-		return single(exprs.get(e.getTupleIndex()));
+		int pos = 0;
+		int index = 0;
+		List<JassExpr> result = Lists.newArrayList();
+		for (ImType tt : t.getTypes()) {
+			int ttsize = tt.translateType().size();
+			if (index == e.getTupleIndex()) {
+				for (int i=0; i<ttsize; i++) {
+					result.add(exprs.get(pos+i));
+				}
+			}
+			pos += ttsize;
+			index++;
+		}
+		
+		return result;
 	}
 
 	public static List<JassExpr> translate(ImVarAccess e, ImToJassTranslator translator) {

@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImTupleArrayType;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
+import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.JassImElement;
@@ -32,7 +33,7 @@ public class ImAttributes {
 
 	
 	public static String translateTypeFirst(ImTupleType t) {
-		return t.getTypes().get(0);
+		return t.getTypes().get(0).translateTypeFirst();
 	}
 
 	public static String translateTypeFirst(ImVoid t) {
@@ -60,8 +61,8 @@ public class ImAttributes {
 
 	public static List<String> translateType(ImTupleType t) {
 		List<String> result = Lists.newArrayList();
-		for (String p : t.getTypes()) {
-			result.add(p);
+		for (ImType p : t.getTypes()) {
+			result.addAll(p.translateType());
 		}
 		return result;
 	}
@@ -73,14 +74,14 @@ public class ImAttributes {
 
 
 	public static String translateTypeFirst(ImTupleArrayType t) {
-		return t.getTypes().get(0);
+		return t.getTypes().get(0).translateTypeFirst();
 	}
 
 
 	public static List<String> translateType(ImTupleArrayType t) {
 		List<String> result = Lists.newArrayList();
-		for (String p : t.getTypes()) {
-			result.add(p);
+		for (ImType p : t.getTypes()) {
+			result.addAll(p.translateType());
 		}
 		return result;
 	}

@@ -611,7 +611,7 @@ public class WurstValidator {
 			s.addError("return statements can only be used inside functions");
 			return;
 		}
-		WurstType returnType = func.getReturnTyp().attrTyp();
+		WurstType returnType = func.getReturnTyp().attrTyp().dynamic();
 		if (s.getReturnedObj() instanceof Expr) {
 			Expr returned = (Expr) s.getReturnedObj();
 			if (returnType.isSubtypeOf(WurstTypeVoid.instance(), s)) {

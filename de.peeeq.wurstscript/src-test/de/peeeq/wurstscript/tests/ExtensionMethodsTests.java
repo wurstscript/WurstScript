@@ -108,6 +108,18 @@ public class ExtensionMethodsTests extends WurstScriptTest {
 			);
 	}
 	
+	@Test
+	public void extmethontype() {
+		testAssertErrorsLines(true, "static reference", 
+				"type unit extends handle",
+				"package test",
+				"	function unit.bla()",
+				"		skip",
+				"	init",
+				"		unit.bla()",
+				"endpackage"
+			);
+	}
 	
 	
 }
