@@ -96,24 +96,8 @@ public class WurstTypeTuple extends WurstType {
 		List<String> names = Lists.newArrayList();
 		for (WParameter p : tupleDef.getParameters()) {
 			ImType pt = p.attrTyp().imTranslateType();
-			if (pt instanceof ImTupleType) {
-				ImTupleType ptt = (ImTupleType) pt;
-				types.add(ptt);
-				for (String n : ptt.getNames()) {
-					names.add(p.getName() + "_" + n);
-				}
-				
-//				for (String t : ptt.getTypes()) {
-//					types.add(t);
-//				}
-//				for (String n : ptt.getNames()) {
-//					names.add(p.getName() + "_" + n);
-//				}
-			} else if (pt instanceof ImSimpleType) {
-				ImSimpleType st = (ImSimpleType) pt;
-				types.add(st);
-				names.add(p.getName());
-			}
+			types.add(pt);
+			names.add(p.getName());
 		}
 		return JassIm.ImTupleType(types, names);
 	}
