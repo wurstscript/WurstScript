@@ -11,19 +11,10 @@ import static de.peeeq.wurstscript.jassAst.JassAst.JassExprUnary;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassExprVarAccess;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassExprVarArrayAccess;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassExprlist;
-
-import java.util.Collections;
-import java.util.List;
-
-import com.google.common.collect.Lists;
-
-import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.OpBinary;
-import de.peeeq.wurstscript.ast.OpEquals;
 import de.peeeq.wurstscript.ast.OpModInt;
 import de.peeeq.wurstscript.ast.OpModReal;
 import de.peeeq.wurstscript.ast.OpUnary;
-import de.peeeq.wurstscript.ast.OpUnequals;
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
@@ -44,11 +35,8 @@ import de.peeeq.wurstscript.jassIm.ImStatementExpr;
 import de.peeeq.wurstscript.jassIm.ImStringVal;
 import de.peeeq.wurstscript.jassIm.ImTupleExpr;
 import de.peeeq.wurstscript.jassIm.ImTupleSelection;
-import de.peeeq.wurstscript.jassIm.ImTupleType;
-import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
-import de.peeeq.wurstscript.jassIm.JassImElement;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 public class ExprTranslation {

@@ -363,7 +363,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	
 		
 		if (runArgs.isOptimize()) {
-//			TODO optimizer.optimize();
+			optimizer.optimize();
 		}
 		
 		// translate flattened intermediate lang to jass:
