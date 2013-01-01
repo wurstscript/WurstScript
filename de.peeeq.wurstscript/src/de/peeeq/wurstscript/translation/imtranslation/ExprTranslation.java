@@ -81,7 +81,6 @@ public class ExprTranslation {
 		if (e.attrFuncDef() != null) {
 			// overloaded operator
 			ImFunction calledFunc = t.getFuncFor(e.attrFuncDef());
-			t.addCallRelation(f, calledFunc);
 			return JassIm.ImFunctionCall(e, calledFunc, ImExprs(left, right));
 		} 
 		if (op instanceof OpDivReal && !Utils.isJassCode(op)) {
@@ -104,7 +103,6 @@ public class ExprTranslation {
 
 	public static ImExpr translate(ExprFuncRef e, ImTranslator t, ImFunction f) {
 		ImFunction func = t.getFuncFor(e.attrFuncDef());
-		t.addCallRelation(f, func);
 		return ImFuncRef(func);
 	}
 
@@ -293,9 +291,6 @@ public class ExprTranslation {
 		} else {
 			calledImFunc = t.getFuncFor(calledFunc);
 		}
-		t.addCallRelation(f, calledImFunc);
-		
-		
 		ImFunctionCall fc = ImFunctionCall(e, calledImFunc, imArgs);
 		return fc;
 	}
@@ -333,7 +328,6 @@ public class ExprTranslation {
 	public static ImExpr translate(ExprNewObject e, ImTranslator t, ImFunction f) {
 		ConstructorDef constructorFunc = e.attrConstructorDef();
 		ImFunction constructorImFunc = t.getConstructNewFunc(constructorFunc);
-		t.addCallRelation(f, constructorImFunc);
 		return ImFunctionCall(e, constructorImFunc, translateExprs(e.getArgs(), t, f));
 	}
 

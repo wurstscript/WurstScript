@@ -362,6 +362,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		imTranslator.assertProperties(AssertProperty.NOTUPLES, AssertProperty.FLAT);
 	
 		
+		
 		if (runArgs.isOptimize()) {
 			optimizer.optimize();
 		}

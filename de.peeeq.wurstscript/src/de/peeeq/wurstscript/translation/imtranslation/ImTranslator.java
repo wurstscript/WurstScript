@@ -89,6 +89,7 @@ import de.peeeq.wurstscript.jassIm.ImTupleSelection;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
+import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.JassIm;
@@ -111,7 +112,9 @@ public class ImTranslator {
 
 	private static final AstElement emptyTrace = Ast.NoExpr();
 
-	private Multimap<ImFunction, ImFunction> callRelations = HashMultimap.create();
+	private Multimap<ImFunction, ImFunction> callRelations = null;
+	private Set<ImVar> usedVariables = null;
+	private Set<ImFunction> usedFunctions = null;
 
 	private ImFunction debugPrintFunction;
 
@@ -202,9 +205,6 @@ public class ImTranslator {
 	private void finishInitFunctions() {
 		// init globals, at beginning of main func:
 		mainFunc.getBody().add(0, ImFunctionCall(emptyTrace, globalInitFunc, ImExprs()));
-		addCallRelation(mainFunc, globalInitFunc);
-
-
 		for (ImFunction initFunc : initFuncMap.values()) {
 			addFunction(initFunc);
 		}
@@ -227,12 +227,8 @@ public class ImTranslator {
 			return;
 		}
 		mainFunc.getBody().add(ImFunctionCall(emptyTrace, initFunc, ImExprs()));
-		addCallRelation(mainFunc, initFunc);
 	}
 
-	public void addCallRelation(ImFunction callingFunc, ImFunction calledFunc) {
-		callRelations.put(callingFunc, calledFunc);
-	}
 	private void addFunction(ImFunction f) {
 		imProg.getFunctions().add(f);
 	}
@@ -572,7 +568,41 @@ public class ImTranslator {
 	}
 
 	public Multimap<ImFunction, ImFunction> getCalledFunctions() {
+		if (callRelations == null) {
+			calculateCallRelationsAndUsedVariables();
+		}
 		return callRelations;
+	}
+
+	public void calculateCallRelationsAndUsedVariables() {
+		callRelations = HashMultimap.create();
+		usedVariables = Sets.newHashSet();
+		usedFunctions = Sets.newHashSet();
+		calculateCallRelations(getMainFunc());
+		calculateCallRelations(getConfFunc());
+		
+		System.out.println("USED FUNCS:");
+		for (ImFunction f : usedFunctions) {
+			System.out.println("	" + f.getName());
+		}
+	}
+
+	private void calculateCallRelations(ImFunction f) {
+		if (usedFunctions.contains(f)) {
+			return;
+		}
+		usedFunctions.add(f);
+		Set<ImVar> usedVars = f.calcUsedVariables();
+		System.out.println("Function " + f.getName() + " uses vars: " + usedVars);
+		usedVariables.addAll(usedVars);
+		Set<ImFunction> calledFuncs = f.calcUsedFunctions();
+		
+		for (ImFunction called : calledFuncs) {
+			System.out.println("Function " + f.getName() + " calls: " + called.getName());
+			callRelations.put(f, called);
+			calculateCallRelations(called);
+		}
+		
 	}
 
 	public ImFunction getMainFunc() {
@@ -729,7 +759,6 @@ public class ImTranslator {
 		} else if (start == end) {
 			FuncDef calledFunc = instances2.get(start).getB();
 			ImFunction calledJassFunc = getFuncFor(calledFunc);
-			addCallRelation(f, calledJassFunc);
 			ImExprs arguments = JassIm.ImExprs();
 			for (int i=0; i<f.getParameters().size(); i++) {
 				ImVar p = f.getParameters().get(i);
@@ -860,9 +889,6 @@ public class ImTranslator {
 		return imProg;
 	}
 
-	public void removeCallRelation(ImFunction f, ImFunction called) {
-		callRelations.remove(f, called);
-	}
 
 
 	private Multimap<InterfaceDef, ClassDef> interfaceInstances = null;
@@ -1092,6 +1118,19 @@ public class ImTranslator {
 		}
 	}
 
+	public Set<ImVar> getUsedVariables() {
+		if (usedVariables == null) {
+			calculateCallRelationsAndUsedVariables();
+		}
+		return usedVariables;
+	}
+
+	public Set<ImFunction> getUsedFunctions() {
+		if (usedFunctions == null) {
+			calculateCallRelationsAndUsedVariables();
+		}
+		return usedFunctions;
+	}
 
 
 }
