@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.translation.imtojass;
 
-import static de.peeeq.wurstscript.jassAst.JassAst.JassExprVarAccess;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassStatements;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtExitwhen;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtIf;
@@ -8,11 +7,8 @@ import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtLoop;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtReturn;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtReturnVoid;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtSet;
-import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtSetArray;
 
 import java.util.List;
-
-import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassExpr;
@@ -38,11 +34,11 @@ public class StatementTranslation {
 
 
 	public static void translate(ImExitwhen imExitwhen, List<JassStatement> stmts, JassFunction f, ImToJassTranslator translator) {
-		stmts.add(JassStmtExitwhen(imExitwhen.getCondition().translateSingle(translator)));
+		stmts.add(JassStmtExitwhen(imExitwhen.getCondition().translate(translator)));
 	}
 
 	public static void translate(ImIf imIf, List<JassStatement> stmts, JassFunction f, ImToJassTranslator translator) {
-		JassExpr cond = imIf.getCondition().translateSingle(translator);
+		JassExpr cond = imIf.getCondition().translate(translator);
 		JassStatements thenBlock = JassStatements(); 
 		imIf.getThenBlock().translate(thenBlock, f, translator);
 		JassStatements elseBlock = JassStatements();
@@ -62,96 +58,40 @@ public class StatementTranslation {
 			stmts.add(JassStmtReturnVoid());
 		} else {
 			ImExpr e = (ImExpr) imReturn.getReturnValue();
-			List<JassExpr> returnValues = e.translate(translator);
-			
-			
-			List<String> retTypes = imReturn.getNearestFunc().getReturnType().translateType();
-		
-			// assign to temp return values
-			for (int i=1; i<returnValues.size(); i++) {
-				
-				JassVar tempVar = translator.getTempReturnVar(retTypes.get(i), i);
-				stmts.add(JassStmtSet(tempVar.getName(), returnValues.get(i)));
-				
-			}
-			// XXX remark: this will evaluate the first expression of the tuple at the end
-			JassExpr returnValue = returnValues.get(0);
+			JassExpr returnValue = e.translate(translator);
 			stmts.add(JassStmtReturn(returnValue));
 		}
 	}
 
 	public static void translate(ImSet imSet, List<JassStatement> stmts, JassFunction f, ImToJassTranslator translator) {
-		List<JassVar> vars = translator.getJassVarsFor(imSet.getLeft());
-		List<JassExpr> exprs = imSet.getRight().translate(translator);
-		if (vars.size() == 1) {
-			stmts.add(JassStmtSet(vars.get(0).getName(), exprs.get(0)));			
-		} else { // tuple assignment
-			
-			if (vars.size() != exprs.size()) {
-				throw new Error("Expected " + vars.size() + " expressions, but found " + exprs.size());
-			}
-			
-			// 1. assign to temp variables:
-			List<JassVar> tempVars = Lists.newArrayListWithCapacity(vars.size());
-			for (int i=0; i < vars.size(); i++) {
-				JassVar tempVar = translator.newTempVar(f, vars.get(i).getType(), "temp_" + vars.get(i).getName());
-				tempVars.add(i, tempVar);
-				stmts.add(JassStmtSet(tempVar.getName(), exprs.get(i)));
-			}
-			// 2. assign to real variables
-			for (int i=0; i < vars.size(); i++) {
-				stmts.add(JassStmtSet(vars.get(i).getName(), JassExprVarAccess(tempVars.get(i).getName())));
-			}
-		}
+		JassVar vars = translator.getJassVarFor(imSet.getLeft());
+		JassExpr exprs = imSet.getRight().translate(translator);
+		stmts.add(JassStmtSet(vars.getName(), exprs));
 	}
 
 	public static void translate(ImExpr imExpr, List<JassStatement> stmts, JassFunction f, ImToJassTranslator translator) {
-		List<JassExpr> exprs = imExpr.translate(translator);
-		for (JassExpr expr : exprs) {
-			if (expr instanceof JassExprFunctionCall) {
-				JassExprFunctionCall fc = (JassExprFunctionCall) expr;
-				stmts.add(JassAst.JassStmtCall(fc.getFuncName(), fc.getArguments().copy()));
-			}
+		JassExpr expr = imExpr.translate(translator);
+		if (expr instanceof JassExprFunctionCall) {
+			JassExprFunctionCall fc = (JassExprFunctionCall) expr;
+			stmts.add(JassAst.JassStmtCall(fc.getFuncName(), fc.getArguments().copy()));
 		}
 	}
 
 	
 
 	public static void translate(ImSetArray imSet, List<JassStatement> stmts, JassFunction f, ImToJassTranslator translator) {
-		List<JassVar> vars = translator.getJassVarsFor(imSet.getLeft());
-		List<JassExpr> exprs = imSet.getRight().translate(translator);
-		if (vars.size() == 1) {
-			stmts.add(JassAst.JassStmtSetArray(vars.get(0).getName(), imSet.getIndex().translateSingle(translator), exprs.get(0)));			
-		} else { // tuple assignment
-			
-			// 1. assign to temp variables:
-			List<JassVar> tempVars = Lists.newArrayListWithCapacity(vars.size());
-			for (int i=0; i < vars.size(); i++) {
-				JassVar tempVar = translator.newTempVar(f, vars.get(i).getType(), "temp_" + vars.get(i).getName());
-				tempVars.add(i, tempVar);
-				stmts.add(JassStmtSet(tempVar.getName(), exprs.get(i)));
-			}
-			// 2. assign to real variables
-			for (int i=0; i < vars.size(); i++) {
-				stmts.add(JassStmtSetArray(vars.get(i).getName(), imSet.getIndex().translateSingle(translator), JassExprVarAccess(tempVars.get(i).getName())));
-			}
-		}
+		JassVar leftVar = translator.getJassVarFor(imSet.getLeft());
+		JassExpr right = imSet.getRight().translate(translator);
+		stmts.add(JassAst.JassStmtSetArray(leftVar.getName(), imSet.getIndex().translate(translator), right));			
 	}
 	
 	public static void translate(ImSetArrayTuple imSet, List<JassStatement> stmts, JassFunction f,
 			ImToJassTranslator translator) {
-		List<JassVar> vars = translator.getJassVarsFor(imSet.getLeft());
-		String varName = vars.get(imSet.getTupleIndex()).getName();
-		JassExpr index = imSet.getIndex().translateSingle(translator);
-		JassExpr right = imSet.getRight().translateSingle(translator);
-		stmts.add(JassAst.JassStmtSetArray(varName, index, right));
+		throw new Error("tuples should be eliminated in earlier phase");
 	}
 
 	public static void translate(ImSetTuple imSet, List<JassStatement> stmts, JassFunction f, ImToJassTranslator translator) {
-		List<JassVar> vars = translator.getJassVarsFor(imSet.getLeft());
-		String varName = vars.get(imSet.getTupleIndex()).getName();
-		JassExpr right = imSet.getRight().translateSingle(translator);
-		stmts.add(JassAst.JassStmtSet(varName, right));
+		throw new Error("tuples should be eliminated in earlier phase");
 	}
 
 	public static void translate(ImStmts imStmts, List<JassStatement> stmts, JassFunction f, ImToJassTranslator translator) {

@@ -81,7 +81,7 @@ public class ImToJassTranslator {
 	private void collectGlobalVars() {
 		for (ImVar v : imProg.getGlobals()) {
 			globalImVars.add(v);
-			getJassVarsFor(v);
+			getJassVarFor(v);
 		}
 	}
 
@@ -151,14 +151,14 @@ public class ImToJassTranslator {
 	private void translateFunction(ImFunction imFunc) {
 		JassFunction f = getJassFuncFor(imFunc);
 		
-		f.setReturnType(imFunc.getReturnType().translateTypeFirst());
+		f.setReturnType(imFunc.getReturnType().translateType());
 		// translate parameters
 		for (ImVar v : imFunc.getParameters()) {
-			f.getParams().addAll(simpleVars(getJassVarsFor(v)));
+			f.getParams().add((JassSimpleVar) getJassVarFor(v));
 		}
 		// translate locals
 		for (ImVar v : imFunc.getLocals()) {
-			f.getLocals().addAll(getJassVarsFor(v));
+			f.getLocals().add(getJassVarFor(v));
 		}
 		imFunc.getBody().translate(f.getBody(), f, this);
 		
@@ -217,46 +217,32 @@ public class ImToJassTranslator {
 		return v;
 	}
 
-	Map<ImVar, List<JassVar>> jassVars = Maps.newHashMap();
+	Map<ImVar, JassVar> jassVars = Maps.newHashMap();
 	private Set<ImVar> globalImVars = Sets.newHashSet();
 	
-	public List<JassVar> getJassVarsFor(ImVar v) {
-		List<JassVar> vars = jassVars.get(v);
-		if (vars == null) {
+	public JassVar getJassVarFor(ImVar v) {
+		JassVar result = jassVars.get(v);
+		if (result == null) {
 			boolean isArray = v.getType() instanceof ImArrayType || v.getType() instanceof ImTupleArrayType;
-			vars = Lists.newArrayList();
 			int i = 0;
-			List<String> translatedType = v.getType().translateType();
-			for (String type : translatedType) {
-				String name = v.getName();
-				if (translatedType.size() > 1) {
-					if (v.getType() instanceof JassImElementWithNames) {
-						JassImElementWithNames t = (JassImElementWithNames) v.getType();
-						name += "_" + t.getNames().get(i);
-					} else {
-						name += "_" + i; 
-					}
-				}
-				if (v.getNearestFunc() != null) {
-					name = getUniqueLocalName(v.getNearestFunc(), name);
-				} else {
-					name = getUniqueGlobalName(name);
-				}
-				if (isArray) {
-					vars.add(JassAst.JassArrayVar(type, name));
-				} else {
-					vars.add(JassAst.JassSimpleVar(type, name));
-				}
-				i++;
+			String type = v.getType().translateType();
+			String name = v.getName();
+			if (v.getNearestFunc() != null) {
+				name = getUniqueLocalName(v.getNearestFunc(), name);
+			} else {
+				name = getUniqueGlobalName(name);
+			}
+			if (isArray) {
+				result = JassAst.JassArrayVar(type, name);
+			} else {
+				result = JassAst.JassSimpleVar(type, name);
 			}
 			if (isGlobal(v) && !v.getIsBJ()) {
-				for (JassVar var : vars) {
-					prog.getGlobals().add(var);
-				}
+				prog.getGlobals().add(result);
 			}
-			jassVars.put(v, vars);
+			jassVars.put(v, result);
 		}
-		return vars ;
+		return result ;
 	}
 
 	private boolean isGlobal(ImVar v) {

@@ -32,58 +32,33 @@ public class ImAttributes {
 	}
 
 	
-	public static String translateTypeFirst(ImTupleType t) {
-		return t.getTypes().get(0).translateTypeFirst();
+	public static String translateType(ImArrayType t) {
+		return t.getTypename();
 	}
 
-	public static String translateTypeFirst(ImVoid t) {
+
+	public static String translateType(ImSimpleType t) {
+		return t.getTypename();
+	}
+
+
+	public static String translateType(ImTupleType t) {
+		throw new Error("tuples should be eliminated in earlier phase");
+	}
+
+
+	public static String translateType(ImVoid t) {
 		return "nothing";
-	}
-
-	public static String translateTypeFirst(ImArrayType t) {
-		return t.getTypename();
-	}
-
-	public static String translateTypeFirst(ImSimpleType t) {
-		return t.getTypename();
-	}
-
-
-	public static List<String> translateType(ImArrayType t) {
-		return Collections.singletonList(t.translateTypeFirst());
-	}
-
-
-	public static List<String> translateType(ImSimpleType t) {
-		return Collections.singletonList(t.translateTypeFirst());
-	}
-
-
-	public static List<String> translateType(ImTupleType t) {
-		List<String> result = Lists.newArrayList();
-		for (ImType p : t.getTypes()) {
-			result.addAll(p.translateType());
-		}
-		return result;
-	}
-
-
-	public static List<String> translateType(ImVoid t) {
-		return Collections.singletonList(t.translateTypeFirst());
 	}
 
 
 	public static String translateTypeFirst(ImTupleArrayType t) {
-		return t.getTypes().get(0).translateTypeFirst();
+		throw new Error("tuples should be eliminated in earlier phase");
 	}
 
 
-	public static List<String> translateType(ImTupleArrayType t) {
-		List<String> result = Lists.newArrayList();
-		for (ImType p : t.getTypes()) {
-			result.addAll(p.translateType());
-		}
-		return result;
+	public static String translateType(ImTupleArrayType t) {
+		throw new Error("tuples should be eliminated in earlier phase");
 	}
 
 

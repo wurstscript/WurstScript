@@ -27,6 +27,8 @@ import de.peeeq.wurstscript.ast.OpUnequals;
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
+import de.peeeq.wurstscript.jassAst.JassExprVarAccess;
+import de.peeeq.wurstscript.jassAst.JassExprVarArrayAccess;
 import de.peeeq.wurstscript.jassAst.JassExprlist;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassVar;
@@ -51,115 +53,88 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 public class ExprTranslation {
 
-	public static List<JassExpr> translate(ImBoolVal e, ImToJassTranslator translator) {
-		return single(JassAst.JassExprBoolVal(e.getValB()));
+	public static JassExpr translate(ImBoolVal e, ImToJassTranslator translator) {
+		return JassAst.JassExprBoolVal(e.getValB());
 	}
 
-	private static List<JassExpr> single(JassExpr e) {
-		return Collections.singletonList(e);
-	}
-
-	public static List<JassExpr> translate(ImFuncRef e, ImToJassTranslator translator) {
+	public static JassExpr translate(ImFuncRef e, ImToJassTranslator translator) {
 		JassFunction f = translator.getJassFuncFor(e.getFunc());
-		return single(JassAst.JassExprFuncRef(f.getName()));
+		return JassAst.JassExprFuncRef(f.getName());
 	}
 
-	public static List<JassExpr> translate(ImFunctionCall e, ImToJassTranslator translator) {
+	public static JassExpr translate(ImFunctionCall e, ImToJassTranslator translator) {
 		
 		JassFunction f = translator.getJassFuncFor(e.getFunc());
 		JassExprlist arguments = JassExprlist();
 		for (ImExpr arg : e.getArguments()) {
-			arguments.addAll(arg.translate(translator));
+			arguments.add(arg.translate(translator));
 		}
 		String funcName = f.getName();
 		if (funcName.equals(ImTranslator.$DEBUG_PRINT)) {
 			funcName = "BJDebugMsg";
 		}
 		JassExprFunctionCall call = JassAst.JassExprFunctionCall(funcName, arguments);
-		return single(call);
+		return call;
 	}
 
-	public static List<JassExpr> translate(ImIntVal e, ImToJassTranslator translator) {
-		return single(JassExprIntVal(String.valueOf(e.getValI())));
+	public static JassExpr translate(ImIntVal e, ImToJassTranslator translator) {
+		return JassExprIntVal(String.valueOf(e.getValI()));
 	}
 
-	public static List<JassExpr> translate(ImNull e, ImToJassTranslator translator) {
-		return single(JassExprNull());
+	public static JassExpr translate(ImNull e, ImToJassTranslator translator) {
+		return JassExprNull();
 	}
 
-	public static List<JassExpr> translate(ImOperatorCall e, ImToJassTranslator translator) {
+	public static JassExpr translate(ImOperatorCall e, ImToJassTranslator translator) {
 		if (e.getOp() instanceof OpBinary && e.getArguments().size() == 2) {
 			OpBinary op = (OpBinary) e.getOp();
-			List<JassExpr> leftExprs  = e.getArguments().get(0).translate(translator);
-			List<JassExpr> rightExprs = e.getArguments().get(1).translate(translator);
+			JassExpr left  = e.getArguments().get(0).translate(translator);
+			JassExpr right = e.getArguments().get(1).translate(translator);
 			
-			
-			if (leftExprs.size() != 1) throw new Error("Operator " + op + " not defined for expressions of size " + leftExprs.size());
-			if (rightExprs.size() != 1) throw new Error("Operator " + op + " not defined for expressions of size " + rightExprs.size());
-			
-			JassExpr left = leftExprs.get(0);
-			JassExpr right = rightExprs.get(0);
 			if (op instanceof OpModReal) {
-				return single(JassExprFunctionCall("ModuloReal", JassExprlist(left, right)));
+				return JassExprFunctionCall("ModuloReal", JassExprlist(left, right));
 			} else if (op instanceof OpModInt) {
-				return single(JassExprFunctionCall("ModuloInteger", JassExprlist(left, right)));
+				return JassExprFunctionCall("ModuloInteger", JassExprlist(left, right));
 			}
 			
-			return single(JassExprBinary(left, op.jassTranslateBinary(), right));
+			return JassExprBinary(left, op.jassTranslateBinary(), right);
 		} else if (e.getOp() instanceof OpUnary && e.getArguments().size() == 1) {
 			OpUnary op = (OpUnary) e.getOp();
-			return single(JassExprUnary(op.jassTranslateUnary(), e.getArguments().get(0).translateSingle(translator)));
+			return JassExprUnary(op.jassTranslateUnary(), e.getArguments().get(0).translate(translator));
 		} else {
 			throw new Error("not implemented: " + e);
 		}
 	}
 
 
-	public static List<JassExpr> translate(ImRealVal e, ImToJassTranslator translator) {
-		return single(JassExprRealVal(e.getValR()));
+	public static JassExpr translate(ImRealVal e, ImToJassTranslator translator) {
+		return JassExprRealVal(e.getValR());
 	}
 
-	public static List<JassExpr> translate(ImStatementExpr e, ImToJassTranslator translator) {
+	public static JassExpr translate(ImStatementExpr e, ImToJassTranslator translator) {
 		throw new Error("this expr should have been flattened: " + e);
 	}
 
-	public static List<JassExpr> translate(ImStringVal e, ImToJassTranslator translator) {
-		return single(JassExprStringVal(e.getValS()));
+	public static JassExpr translate(ImStringVal e, ImToJassTranslator translator) {
+		return JassExprStringVal(e.getValS());
 	}
 
-	public static List<JassExpr> translate(ImTupleExpr e, ImToJassTranslator translator) {
+	public static JassExpr translate(ImTupleExpr e, ImToJassTranslator translator) {
 		throw new Error("tuples should be eliminated in this phase");
 	}
 
-	public static List<JassExpr> translate(ImTupleSelection e, ImToJassTranslator translator) {
+	public static JassExpr translate(ImTupleSelection e, ImToJassTranslator translator) {
 		throw new Error("tuples should be eliminated in this phase");
 	}
 
-	public static List<JassExpr> translate(ImVarAccess e, ImToJassTranslator translator) {
-		List<JassVar> vars = translator.getJassVarsFor(e.getVar());
-		List<JassExpr> result = Lists.newArrayListWithCapacity(vars.size());
-		for (JassVar v : vars) {
-			result.add(JassExprVarAccess(v.getName()));
-		}
-		return result;
+	public static JassExprVarAccess translate(ImVarAccess e, ImToJassTranslator translator) {
+		JassVar v = translator.getJassVarFor(e.getVar());
+		return JassExprVarAccess(v.getName());
 	}
 
-	public static List<JassExpr> translate(ImVarArrayAccess e, ImToJassTranslator translator) {
-		List<JassVar> vars = translator.getJassVarsFor(e.getVar());
-		List<JassExpr> result = Lists.newArrayListWithCapacity(vars.size());
-		for (JassVar v : vars) {
-			result.add(JassExprVarArrayAccess(v.getName(), e.getIndex().translateSingle(translator)));
-			// XXX index expression is evaluated n times ...
-		}
-		return result;
-	}
-
-	public static JassExpr translateSingle(ImExpr e, ImToJassTranslator translator) {
-		List<JassExpr> translated = e.translate(translator);
-		if (translated.size() != 1){
-			throw new Error("expression has size " + translated.size() + " for expression " + e);
-		}
-		return translated.get(0);
+	public static JassExprVarArrayAccess translate(ImVarArrayAccess e, ImToJassTranslator translator) {
+		JassVar v = translator.getJassVarFor(e.getVar());
+		return JassExprVarArrayAccess(v.getName(), e.getIndex().translate(translator));
 	}
 
 }
