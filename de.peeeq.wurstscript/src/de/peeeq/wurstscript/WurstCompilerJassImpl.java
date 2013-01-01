@@ -327,27 +327,22 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		// translate wurst to intermediate lang:
 		ImTranslator imTranslator = new ImTranslator(root);
 		imProg = imTranslator.translateProg();
+		int stage = 1;
 		
-		try {
-			// TODO remove test output
-			StringBuilder sb = new StringBuilder();
-			imProg.print(sb, 0);
-			File out = new File("./test-output/test.im");
-			out.getParentFile().mkdirs();
-			Files.write(sb.toString(), out, Charsets.UTF_8);
-		} catch (IOException e) {
-			ErrorReporting.handleSevere(e);
-		}
+		printDebugImProg("./test-output/im " + stage++ + ".im");
 		
 		ImOptimizer optimizer = new ImOptimizer(imTranslator);
 		
 		
 		if (runArgs.isInline()) {
 			optimizer.doInlining();
+			
+			printDebugImProg("./test-output/im " + stage++ + "_afterinline.im");
 		}
 		
 		if (runArgs.isNullsetting()) {
 			optimizer.doNullsetting();
+			printDebugImProg("./test-output/im " + stage++ + "_afternullsetting.im");
 		}
 		
 		
@@ -357,14 +352,19 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		imProg.eliminateTuples(imTranslator);
 		imTranslator.assertProperties(AssertProperty.NOTUPLES);
 		
+		printDebugImProg("./test-output/im " + stage++ + "_withouttuples.im");
+		
 		// flatten
 		imProg.flatten(imTranslator);
 		imTranslator.assertProperties(AssertProperty.NOTUPLES, AssertProperty.FLAT);
-	
+		
+		printDebugImProg("./test-output/im " + stage++ + "_flat.im");
 		
 		
 		if (runArgs.isOptimize()) {
 			optimizer.optimize();
+			
+			printDebugImProg("./test-output/im " + stage++ + "_afteroptimize.im");
 		}
 		
 		// translate flattened intermediate lang to jass:
@@ -379,11 +379,17 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	}
 
 	private void printDebugImProg(String debugFile) {
+		if (!errorHandler.isUnitTestMode()) {
+			// output only in unit test mode
+			return;
+		}
 		try {
 			// TODO remove test output
 			StringBuilder sb = new StringBuilder();
 			imProg.print(sb, 0);
-			Files.write(sb.toString(), new File(debugFile), Charsets.UTF_8);
+			File file = new File(debugFile);
+			file.getParentFile().mkdirs();
+			Files.write(sb.toString(), file, Charsets.UTF_8);
 		} catch (IOException e) {
 			ErrorReporting.handleSevere(e);
 		}

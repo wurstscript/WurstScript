@@ -546,4 +546,21 @@ public class ClassesTests extends WurstScriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void constructor_overloading() {
+		testAssertOkLines(false, 
+				"type player extends handle",
+				"package test",
+				"	class A",
+				"		construct(player p)",
+				"			skip",
+				"		construct(int y)",
+				"			skip",
+				"	class B extends A",
+				"		construct (player p)",
+				"			super(p)",
+				"endpackage"
+			);
+	}
 }
