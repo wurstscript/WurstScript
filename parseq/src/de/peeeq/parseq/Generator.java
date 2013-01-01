@@ -608,6 +608,13 @@ public class Generator {
 	}
 
 	private void createToString(ConstructorDef c, StringBuilder sb) {
+		for (AttributeDef attr : prog.attrDefs) {
+			if (attr.attr.equals("toString") && hasAttribute(c, attr)) {
+				// already has toString method
+				return;
+			}
+		}
+		
 		boolean first;
 		sb.append("	@Override public String toString() {\n");
 		sb.append("		return \"" + c.name);
@@ -911,6 +918,20 @@ public class Generator {
 		createAttributeImpl(l, sb);
 		
 		// toString method
+		createToString(l, sb);
+		
+		sb.append("}\n");
+		createFile(l.name + "Impl", sb);
+	}
+
+	private void createToString(ListDef l, StringBuilder sb) {
+		for (AttributeDef attr : prog.attrDefs) {
+			if (attr.attr.equals("toString") && hasAttribute(l, attr)) {
+				// already has toString method
+				return;
+			}
+		}
+		
 		sb.append("	@Override public String toString() {\n");
 		sb.append("		String result =  \""+l.getName()+"(\";\n");
 		sb.append("		boolean first = true;\n");
@@ -923,9 +944,6 @@ public class Generator {
 		sb.append("		result +=  \")\";\n");
 		sb.append("		return result;\n");
 		sb.append("	}\n");
-		
-		sb.append("}\n");
-		createFile(l.name + "Impl", sb);
 	}
 
 	private void generateList_interface(ListDef l) {
