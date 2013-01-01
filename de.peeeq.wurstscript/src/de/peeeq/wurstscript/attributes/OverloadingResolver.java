@@ -96,7 +96,7 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 
 			@Override
 			WurstType getParameterType(ConstructorDef f, int i) {
-				return f.getParameters().get(i).getTyp().attrTyp();
+				return f.getParameters().get(i).getTyp().attrTyp().dynamic();
 			}
 
 			@Override
@@ -126,7 +126,7 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 
 			@Override
 			WurstType getParameterType(ConstructorDef f, int i) {
-				return f.getParameters().get(i).getTyp().attrTyp();
+				return f.getParameters().get(i).getTyp().attrTyp().dynamic();
 			}
 
 			@Override
