@@ -1,18 +1,13 @@
 package de.peeeq.wurstscript.jassoptimizer;
 
 import java.util.HashMap;
-import java.util.Set;
 
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
-import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassExprFuncRef;
 import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
-import de.peeeq.wurstscript.jassAst.JassExprStringVal;
 import de.peeeq.wurstscript.jassAst.JassExprVarAccess;
 import de.peeeq.wurstscript.jassAst.JassExprVarArrayAccess;
-import de.peeeq.wurstscript.jassAst.JassExprlist;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassAst.JassSimpleVar;

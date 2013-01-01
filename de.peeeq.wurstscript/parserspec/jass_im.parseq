@@ -86,6 +86,10 @@ ImPrintable.print(java.lang.StringBuilder sb, int indent)
 	returns void
 	implemented by de.peeeq.wurstscript.translation.imtranslation.ImPrinter.print
 
+ImPrintable.toString()
+	returns String
+	implemented by de.peeeq.wurstscript.translation.imtranslation.ImPrinter.asString
+
 
 ImProg.flatten(de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator)
 	returns void
@@ -119,6 +123,36 @@ ImExprOpt.flattenExprOpt(
 	returns ImFlatExprOpt
 	implemented by de.peeeq.wurstscript.translation.imtranslation.Flatten.flattenExpr
 	
+
+ImProg.eliminateTuples(de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator)
+	returns void
+	implemented by de.peeeq.wurstscript.translation.imtranslation.EliminateTuples.eliminateTuplesProg
+
+ImFunction.eliminateTuples(de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator)
+	returns void
+	implemented by de.peeeq.wurstscript.translation.imtranslation.EliminateTuples.eliminateTuplesFunc
+	
+ImStmt.eliminateTuples(
+		de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
+		de.peeeq.wurstscript.jassIm.ImFunction f	
+	)
+	returns ImStmt
+	implemented by de.peeeq.wurstscript.translation.imtranslation.EliminateTuples.eliminateTuples
+	
+ImExpr.eliminateTuplesExpr(
+		de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
+		de.peeeq.wurstscript.jassIm.ImFunction f	
+	)
+	returns ImExpr
+	implemented by de.peeeq.wurstscript.translation.imtranslation.EliminateTuples.eliminateTuplesExpr
+	
+ImExprOpt.eliminateTuplesExprOpt(
+		de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
+		de.peeeq.wurstscript.jassIm.ImFunction f	
+	)
+	returns ImExprOpt
+	implemented by de.peeeq.wurstscript.translation.imtranslation.EliminateTuples.eliminateTuplesExpr
+	
 	
 ImStmts.translate(
 		java.util.List<de.peeeq.wurstscript.jassAst.JassStatement> stmts,
@@ -139,15 +173,10 @@ ImStmt.translate(
 ImExpr.translate(
 		de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator translator
 		)
-		returns java.util.List<de.peeeq.wurstscript.jassAst.JassExpr>
+		returns de.peeeq.wurstscript.jassAst.JassExpr
 		implemented by de.peeeq.wurstscript.translation.imtojass.ExprTranslation.translate
 
 		
-ImExpr.translateSingle(
-		de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator translator
-		)
-		returns de.peeeq.wurstscript.jassAst.JassExpr
-		implemented by de.peeeq.wurstscript.translation.imtojass.ExprTranslation.translateSingle
 	
 ImExpr.attrTyp
 	returns ImType
@@ -158,12 +187,8 @@ JassImElement.getNearestFunc()
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.getNearestFunc
 	
 	
-ImType.translateTypeFirst()
-	returns String
-	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.translateTypeFirst
-	
 ImType.translateType()
-	returns java.util.List<String>
+	returns String
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.translateType
 	
 ImVar.isGlobal
@@ -225,4 +250,16 @@ ImVar.attrWrites
 ImVar.attrReads
 	returns java.util.Collection<ImVarRead>
 	implemented by de.peeeq.wurstscript.translation.imoptimizer.VariableUses.getVarReads
+	
+	
+ImFunction.calcUsedVariables()
+	returns java.util.Set<ImVar>
+	implemented by de.peeeq.wurstscript.translation.imtranslation.UsedVariables.calculate
+	
+ImFunction.calcUsedFunctions()
+	returns java.util.Set<ImFunction>
+	implemented by de.peeeq.wurstscript.translation.imtranslation.UsedFunctions.calculate
+	
+
+	
 	

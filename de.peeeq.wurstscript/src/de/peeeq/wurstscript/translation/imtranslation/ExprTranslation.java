@@ -57,19 +57,14 @@ import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImOperatorCall;
-import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImStmt;
-import de.peeeq.wurstscript.jassIm.ImTupleType;
-import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
-import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeFreeTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeInt;
-import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.types.WurstTypeModuleInstanciation;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeReal;
@@ -86,7 +81,6 @@ public class ExprTranslation {
 		if (e.attrFuncDef() != null) {
 			// overloaded operator
 			ImFunction calledFunc = t.getFuncFor(e.attrFuncDef());
-			t.addCallRelation(f, calledFunc);
 			return JassIm.ImFunctionCall(e, calledFunc, ImExprs(left, right));
 		} 
 		if (op instanceof OpDivReal && !Utils.isJassCode(op)) {
@@ -109,7 +103,6 @@ public class ExprTranslation {
 
 	public static ImExpr translate(ExprFuncRef e, ImTranslator t, ImFunction f) {
 		ImFunction func = t.getFuncFor(e.attrFuncDef());
-		t.addCallRelation(f, func);
 		return ImFuncRef(func);
 	}
 
@@ -298,9 +291,6 @@ public class ExprTranslation {
 		} else {
 			calledImFunc = t.getFuncFor(calledFunc);
 		}
-		t.addCallRelation(f, calledImFunc);
-		
-		
 		ImFunctionCall fc = ImFunctionCall(e, calledImFunc, imArgs);
 		return fc;
 	}
@@ -338,7 +328,6 @@ public class ExprTranslation {
 	public static ImExpr translate(ExprNewObject e, ImTranslator t, ImFunction f) {
 		ConstructorDef constructorFunc = e.attrConstructorDef();
 		ImFunction constructorImFunc = t.getConstructNewFunc(constructorFunc);
-		t.addCallRelation(f, constructorImFunc);
 		return ImFunctionCall(e, constructorImFunc, translateExprs(e.getArgs(), t, f));
 	}
 

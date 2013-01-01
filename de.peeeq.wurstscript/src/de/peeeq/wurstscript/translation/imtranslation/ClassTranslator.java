@@ -31,11 +31,8 @@ import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
-import de.peeeq.wurstscript.ast.OpEquals;
 import de.peeeq.wurstscript.ast.OptExpr;
 import de.peeeq.wurstscript.ast.WParameter;
-import de.peeeq.wurstscript.jassAst.JassAst;
-import de.peeeq.wurstscript.jassIm.ImCall;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
@@ -51,7 +48,6 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.JassIm;
-import de.peeeq.wurstscript.tests.WurstScriptTest;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
@@ -118,14 +114,12 @@ public class ClassTranslator {
 					thenBlock, elseBlock));
 			
 			ImFunction scOnDestroy = translator.getFuncFor(sc.getOnDestroy());
-			translator.addCallRelation(f, scOnDestroy);
 			thenBlock.add(ImFunctionCall(trace, 
 					scOnDestroy, 
 					ImExprs(ImVarAccess(thisVar))));
 			addTo = elseBlock;
 		}
 		ImFunction onDestroy = translator.getFuncFor(classDef.getOnDestroy());
-		translator.addCallRelation(f, onDestroy);
 		addTo.add(ImFunctionCall(trace, 
 				onDestroy, 
 				ImExprs(ImVarAccess(thisVar))));
@@ -189,7 +183,6 @@ public class ClassTranslator {
 			if (cd.attrExtendedClass() != null) {
 				// call onDestroy of super class
 				ImFunction onDestroy = translator.getFuncFor(cd.attrExtendedClass().getOnDestroy());
-				translator.addCallRelation(f, onDestroy);
 				addTo.add(ImFunctionCall(c, 
 						onDestroy, 
 						ImExprs(ImVarAccess(thisVar))));
@@ -334,8 +327,6 @@ public class ClassTranslator {
 		for (int i=0; i<f.getParameters().size(); i++) {
 			arguments.add(ImVarAccess(f.getParameters().get(i)));
 		}
-		translator.addCallRelation(f, staticF);
-		
 		if (f.getReturnType() instanceof ImVoid) {
 			f.getBody().add(JassIm.ImFunctionCall(funcDef, staticF, arguments));
 		} else {
@@ -415,7 +406,7 @@ public class ClassTranslator {
 			arguments.add(ImVarAccess(a));
 		}
 		f.getBody().add(ImFunctionCall(trace, constrFunc, arguments));
-		translator.addCallRelation(f, constrFunc);
+		
 		
 		// return this
 		f.getBody().add(ImReturn(trace, ImVarAccess(thisVar)));
@@ -437,7 +428,6 @@ public class ClassTranslator {
 				arguments.add(a.imTranslateExpr(translator, f));
 			}
 			f.getBody().add(ImFunctionCall(trace, superConstrFunc, arguments));
-			translator.addCallRelation(f, superConstrFunc);
 		}
 		// initialize vars
 		for (Pair<ImVar, OptExpr> i : translator.getDynamicInits(classDef)) {

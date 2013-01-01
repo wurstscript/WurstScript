@@ -18,8 +18,6 @@ import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.gui.WurstGuiImpl;
 import de.peeeq.wurstscript.hotdoc.HotdocGenerator;
 import de.peeeq.wurstscript.jassAst.JassProg;
-import de.peeeq.wurstscript.jassoptimizer.JassOptimizer;
-import de.peeeq.wurstscript.jassoptimizer.JassOptimizerImpl;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.mpq.MpqEditor;
 import de.peeeq.wurstscript.mpq.MpqEditorFactory;

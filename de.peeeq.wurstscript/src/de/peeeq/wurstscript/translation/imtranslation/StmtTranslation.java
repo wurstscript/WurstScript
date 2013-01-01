@@ -100,7 +100,6 @@ public class StmtTranslation {
 			throw new CompileError(s.getSource(), "cannot destroy object of type " + typ);
 		}
 		ImFunction destroyFunc = t.getDestroyFuncFor(classDef);
-		t.addCallRelation(f, destroyFunc);
 		return ImFunctionCall(s, destroyFunc, ImExprs(s.getDestroyedObj().imTranslateExpr(t, f)));
 	}
 

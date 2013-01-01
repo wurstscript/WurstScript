@@ -1,7 +1,5 @@
 package de.peeeq.wurstscript.types;
 
-import java.util.List;
-
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;

@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.AstElementWithModifiers;
-import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Modifier;
 import de.peeeq.wurstscript.ast.Modifiers;

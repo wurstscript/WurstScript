@@ -33,11 +33,9 @@ import de.peeeq.wurstscript.ast.AstElementWithName;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
-import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
-import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
@@ -380,6 +378,17 @@ public class Utils {
 	    }
 	    
 	    return ste[depth+2].getMethodName(); 
+	  }
+	  
+	  public static String getMethodNameExt(final int depth)
+	  {
+	    StackTraceElement[] ste = Thread.currentThread().getStackTrace();
+	    int i = 0;
+	    for (StackTraceElement s : ste) {
+//	    	System.out.println("Trace " +i+++ " = " + s.getMethodName());
+	    }
+	    StackTraceElement sf = ste[depth+2];
+	    return sf.getMethodName() + "" + sf.getLineNumber(); 
 	  }
 
 	public static <T> List<T> topSortIgnoreCycles(Collection<T> input,

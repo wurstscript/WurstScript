@@ -11,8 +11,8 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
 import de.peeeq.wurstscript.Pjass;
-import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.Pjass.Result;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.frotty.jassValidator.JassErrors;
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassProg;

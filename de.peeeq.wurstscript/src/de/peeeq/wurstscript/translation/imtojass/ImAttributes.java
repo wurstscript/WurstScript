@@ -1,20 +1,13 @@
 package de.peeeq.wurstscript.translation.imtojass;
 
-import java.util.Collections;
-import java.util.List;
-
-import com.google.common.collect.Lists;
-
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
-import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImTupleArrayType;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
-import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.JassImElement;
@@ -32,58 +25,33 @@ public class ImAttributes {
 	}
 
 	
-	public static String translateTypeFirst(ImTupleType t) {
-		return t.getTypes().get(0).translateTypeFirst();
+	public static String translateType(ImArrayType t) {
+		return t.getTypename();
 	}
 
-	public static String translateTypeFirst(ImVoid t) {
+
+	public static String translateType(ImSimpleType t) {
+		return t.getTypename();
+	}
+
+
+	public static String translateType(ImTupleType t) {
+		throw new Error("tuples should be eliminated in earlier phase");
+	}
+
+
+	public static String translateType(ImVoid t) {
 		return "nothing";
-	}
-
-	public static String translateTypeFirst(ImArrayType t) {
-		return t.getTypename();
-	}
-
-	public static String translateTypeFirst(ImSimpleType t) {
-		return t.getTypename();
-	}
-
-
-	public static List<String> translateType(ImArrayType t) {
-		return Collections.singletonList(t.translateTypeFirst());
-	}
-
-
-	public static List<String> translateType(ImSimpleType t) {
-		return Collections.singletonList(t.translateTypeFirst());
-	}
-
-
-	public static List<String> translateType(ImTupleType t) {
-		List<String> result = Lists.newArrayList();
-		for (ImType p : t.getTypes()) {
-			result.addAll(p.translateType());
-		}
-		return result;
-	}
-
-
-	public static List<String> translateType(ImVoid t) {
-		return Collections.singletonList(t.translateTypeFirst());
 	}
 
 
 	public static String translateTypeFirst(ImTupleArrayType t) {
-		return t.getTypes().get(0).translateTypeFirst();
+		throw new Error("tuples should be eliminated in earlier phase");
 	}
 
 
-	public static List<String> translateType(ImTupleArrayType t) {
-		List<String> result = Lists.newArrayList();
-		for (ImType p : t.getTypes()) {
-			result.addAll(p.translateType());
-		}
-		return result;
+	public static String translateType(ImTupleArrayType t) {
+		throw new Error("tuples should be eliminated in earlier phase");
 	}
 
 

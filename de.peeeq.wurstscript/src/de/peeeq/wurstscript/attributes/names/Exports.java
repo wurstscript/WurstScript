@@ -1,8 +1,6 @@
 package de.peeeq.wurstscript.attributes.names;
 
 import java.util.HashSet;
-import java.util.Set;
-import java.util.Map.Entry;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;

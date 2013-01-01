@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.translation.imoptimizer;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -8,13 +7,10 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.Expr;
-import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImIf;
 import de.peeeq.wurstscript.jassIm.ImLoop;
-import de.peeeq.wurstscript.jassIm.ImNoExpr;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImReturn;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;

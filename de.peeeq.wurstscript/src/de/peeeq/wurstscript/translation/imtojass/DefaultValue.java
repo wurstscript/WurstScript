@@ -30,17 +30,14 @@ public class DefaultValue {
 	}
 
 	public static ILconst get(ImTupleArrayType t) {
-		// TODO Auto-generated method stub
 		throw new Error();
 	}
 
 	public static ILconst get(ImTupleType t) {
-		// TODO Auto-generated method stub
 		throw new Error();
 	}
 
 	public static ILconst get(ImVoid t) {
-		// TODO Auto-generated method stub
 		throw new Error();
 	}
 

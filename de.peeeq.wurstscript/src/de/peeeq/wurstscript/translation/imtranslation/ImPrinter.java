@@ -13,6 +13,7 @@ import de.peeeq.wurstscript.jassIm.ImLoop;
 import de.peeeq.wurstscript.jassIm.ImNoExpr;
 import de.peeeq.wurstscript.jassIm.ImNull;
 import de.peeeq.wurstscript.jassIm.ImOperatorCall;
+import de.peeeq.wurstscript.jassIm.ImPrintable;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImRealVal;
 import de.peeeq.wurstscript.jassIm.ImReturn;
@@ -298,6 +299,18 @@ public class ImPrinter {
 			}
 		}
 		sb.append(")");
+	}
+
+
+	public static String asString(ImPrintable p) {
+		StringBuilder sb = new StringBuilder();
+		try {
+			p.print(sb, 0);
+		} catch (Throwable t) {
+			t.printStackTrace();
+			sb.append("## error {" + t + "}");
+		}
+		return sb.toString();
 	}
 
 
