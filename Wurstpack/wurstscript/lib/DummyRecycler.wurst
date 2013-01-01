@@ -111,6 +111,7 @@ package DummyRecycler
 		u.setX(x)
 		u.setY(y)
 		u.setFlyHeight(z, 0)
+		u.show()
 		bj_lastCreatedUnit = u
 		return bj_lastCreatedUnit
 
@@ -119,6 +120,8 @@ package DummyRecycler
 	//
 	public function recycleDummy( unit u )
 		int rc = recycle
+		u.removeAbility(LOCUST_ID)
+		u.addAbility(LOCUST_ID)
 		if GetUnitTypeId(u) == DUMMY_UNIT_ID and not IsUnitInGroup(u, protect) 
 			if rc == 0 
 				RemoveUnit(u)
@@ -147,7 +150,7 @@ package DummyRecycler
 			SetUnitVertexColor(u, 255, 255, 255, 255)
 			SetUnitAnimationByIndex(u, 90)
 			SetUnitScale(u, 1, 0, 0)
-			u.show()
+			u.setOwner(DUMMY_PLAYER, true)
 			//PauseUnit(u, false) -- you can disable "resets" that you don't need to worry about.
 		else
 			printError("[MissileRecycler] Error: Attempt to recycle invalid unit.")
@@ -162,19 +165,12 @@ package DummyRecycler
 	// angle[3] (270) - [13][14][15]
 	//
 	init
-		print("start")
 		int end
-		print("start2")
 		int n = ANG_N
-		print("start3")
 		real angle
-		print("start4")
 		real x = maxx
-		print("start5")
 		real y = maxy
-		print("ochs")
 		for int i = ANG_N downto 0
-			print("1")
 			stackN[i] = ANG_STORAGE_MAX
 			queueNext[i] = n
 			angle = (i * ANG_VAL + ANG_MID).toReal()
@@ -191,7 +187,6 @@ package DummyRecycler
 			queueNext[n - 1] = 0
 
 
-		print("inited Recycling")
 		TimerStart(gameTime, 1000000., false, null)
 
 

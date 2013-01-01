@@ -3,8 +3,8 @@ package SoundHelper
 import Stack
 
 constant boolean DEFAULT_SOUND_STOPS_ON_LEAVE_RANGE = true
-constant real DEFAULT_SOUND_FADE_IN_RATE = 10
-constant real DEFAULT_SOUND_FADE_OUT_RATE = 10
+constant int DEFAULT_SOUND_FADE_IN_RATE = 10
+constant int DEFAULT_SOUND_FADE_OUT_RATE = 10
 constant string  DEFAULT_SOUND_EAX_SETTINGS = "CombatSoundsEAX"
 constant int DEFAULT_SOUND_VOLUME = 127
 constant real DEFAULT_SOUND_PITCH = 1
@@ -40,6 +40,26 @@ public class Sound
 		this.fadeIn = fadeIn
 		this.fadeOut = fadeOut
 		this.eaxSetting = eaxSetting
+		
+	construct(string file, int duration, boolean looping )
+		this.file = file
+		this.duration = duration
+		this.looping = looping
+		this.is3D = false
+		this.stopOnLeaveRange = false
+		this.fadeIn = DEFAULT_SOUND_FADE_IN_RATE
+		this.fadeOut = DEFAULT_SOUND_FADE_OUT_RATE
+		this.eaxSetting = DEFAULT_SOUND_EAX_SETTINGS
+		
+	construct(string file, int duration, boolean looping, boolean is3D )
+		this.file = file
+		this.duration = duration
+		this.looping = looping
+		this.is3D = is3D
+		this.stopOnLeaveRange = true
+		this.fadeIn = DEFAULT_SOUND_FADE_IN_RATE
+		this.fadeOut = DEFAULT_SOUND_FADE_OUT_RATE
+		this.eaxSetting = DEFAULT_SOUND_EAX_SETTINGS
 	
 
 	function getSound() returns SData

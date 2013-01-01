@@ -53,8 +53,8 @@ package Fx
 			return dummy.getOwner()
 			
 		/** Set the owner of this Fx Object */
-		function setOwner(player p) returns Fx
-			dummy.setOwner(p, false)
+		function setOwner(player p, boolean changeColor) returns Fx
+			dummy.setOwner(p, changeColor)
 			return this
 			
 		/** Set the teamcolor of this Fx Object */

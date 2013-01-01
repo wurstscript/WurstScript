@@ -136,5 +136,13 @@ package Unit
 		SetUnitAnimation(this, animation)
 		return this
 		
+	public function unit.queueAnimation(string animation) returns unit
+		QueueUnitAnimation(this, animation)
+		return this
+		
+	public function unit.setTimeScale(real scale) returns unit
+		SetUnitTimeScale(this, scale)
+		return this
+		
 
 endpackage
