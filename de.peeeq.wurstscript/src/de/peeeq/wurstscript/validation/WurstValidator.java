@@ -12,8 +12,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import com.google.common.base.Predicate;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -48,7 +46,6 @@ import de.peeeq.wurstscript.ast.FunctionLike;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.HasTypeArgs;
-import de.peeeq.wurstscript.ast.Indexes;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;

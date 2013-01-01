@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.translation.imoptimizer;
 
-import de.peeeq.wurstscript.translation.imtranslation.AssertProperty;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 public class ImOptimizer {

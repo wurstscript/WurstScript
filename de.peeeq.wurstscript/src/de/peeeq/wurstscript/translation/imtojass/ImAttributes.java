@@ -1,20 +1,13 @@
 package de.peeeq.wurstscript.translation.imtojass;
 
-import java.util.Collections;
-import java.util.List;
-
-import com.google.common.collect.Lists;
-
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
-import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImTupleArrayType;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
-import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.JassImElement;

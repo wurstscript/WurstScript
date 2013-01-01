@@ -1,25 +1,17 @@
 package de.peeeq.wurstscript.attributes;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
-import de.peeeq.wurstscript.ast.ExprFunctionCall;
-import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.TupleDef;
-import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WParameter;
-import de.peeeq.wurstscript.ast.WParameters;
 import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.utils.Utils;
 
 public class AttrParameterTypes {
 

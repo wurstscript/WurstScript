@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.intermediateLang.interpreter;
 
 import de.peeeq.wurstscript.intermediateLang.ILconst;
-import de.peeeq.wurstscript.intermediateLang.ILconstNull;
 
 
 

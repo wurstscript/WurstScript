@@ -1,8 +1,5 @@
 package de.peeeq.wurstscript.attributes.names;
 
-import java.util.List;
-import java.util.Map.Entry;
-
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
@@ -12,9 +9,7 @@ import de.peeeq.wurstscript.ast.ClassOrModuleOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.EnumDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
-import de.peeeq.wurstscript.ast.JassGlobalBlock;
 import de.peeeq.wurstscript.ast.JassToplevelDeclaration;
-import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeDef;

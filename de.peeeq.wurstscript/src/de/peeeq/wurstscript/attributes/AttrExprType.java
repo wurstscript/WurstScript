@@ -74,7 +74,6 @@ import de.peeeq.wurstscript.types.WurstTypeIntLiteral;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.types.WurstTypeJassInt;
 import de.peeeq.wurstscript.types.WurstTypeModule;
-import de.peeeq.wurstscript.types.WurstTypeModuleInstanciation;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeNull;
 import de.peeeq.wurstscript.types.WurstTypeReal;

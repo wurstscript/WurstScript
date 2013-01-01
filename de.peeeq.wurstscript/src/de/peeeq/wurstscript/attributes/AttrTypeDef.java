@@ -1,21 +1,11 @@
 package de.peeeq.wurstscript.attributes;
 
-import java.util.List;
-import java.util.Set;
-
-import com.google.common.collect.Sets;
-
-import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ExprNewObject;
-import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeExprArray;
-import de.peeeq.wurstscript.ast.TypeExprList;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
 import de.peeeq.wurstscript.ast.TypeRef;
-import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.types.NativeTypes;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.utils.Utils;

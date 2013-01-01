@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.attributes;
 
-import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithSource;
@@ -8,7 +7,6 @@ import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
-import de.peeeq.wurstscript.ast.FunctionLike;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.StructureDef;

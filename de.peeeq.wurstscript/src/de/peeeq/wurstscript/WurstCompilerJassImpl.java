@@ -9,8 +9,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import javax.swing.JOptionPane;
-
 import java_cup.runtime.Symbol;
 
 import com.google.common.base.Charsets;
@@ -27,7 +25,6 @@ import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
-import de.peeeq.wurstscript.attributes.ErrorHandling;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassIm.ImProg;
@@ -36,8 +33,6 @@ import de.peeeq.wurstscript.mpq.MpqEditorFactory;
 import de.peeeq.wurstscript.parser.ExtendedParser;
 import de.peeeq.wurstscript.parser.ScannerError;
 import de.peeeq.wurstscript.parser.WurstScriptScanner;
-import de.peeeq.wurstscript.translation.imoptimizer.GlobalsInliner;
-import de.peeeq.wurstscript.translation.imoptimizer.ImInliner;
 import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
 import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.AssertProperty;

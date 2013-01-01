@@ -6,7 +6,6 @@ import java.util.Map;
 
 import com.google.common.collect.Lists;
 
-import de.peeeq.wurstscript.ast.AstElementWithParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.EnumDef;
 import de.peeeq.wurstscript.ast.EnumMember;
@@ -18,16 +17,13 @@ import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
-import de.peeeq.wurstscript.ast.NotExtensionFunction;
 import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
-import de.peeeq.wurstscript.ast.TypeParamDefs;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeFreeTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 import de.peeeq.wurstscript.utils.Utils;

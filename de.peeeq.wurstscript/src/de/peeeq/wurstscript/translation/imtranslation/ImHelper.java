@@ -5,7 +5,6 @@ import java.util.Map;
 
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WParameters;
-import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImNoExpr;
 import de.peeeq.wurstscript.jassIm.ImSet;
 import de.peeeq.wurstscript.jassIm.ImSetArray;

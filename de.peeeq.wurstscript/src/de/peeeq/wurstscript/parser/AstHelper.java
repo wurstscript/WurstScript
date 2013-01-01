@@ -2,7 +2,6 @@ package de.peeeq.wurstscript.parser;
 
 import java.util.List;
 
-import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassSlot;
@@ -25,8 +24,6 @@ import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.TypeParamDefs;
 import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.ast.WParameter;
-import de.peeeq.wurstscript.ast.WParameters;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.attributes.CompileError;
 

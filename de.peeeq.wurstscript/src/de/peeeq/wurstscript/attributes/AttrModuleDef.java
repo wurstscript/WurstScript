@@ -1,7 +1,5 @@
 package de.peeeq.wurstscript.attributes;
 
-import java.util.List;
-
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleUse;
 import de.peeeq.wurstscript.ast.TypeDef;
