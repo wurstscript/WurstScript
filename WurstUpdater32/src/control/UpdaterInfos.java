@@ -1,5 +1,6 @@
 package control;
 
+
 import java.io.File;
 import java.io.IOException;
 
@@ -13,7 +14,7 @@ public class UpdaterInfos {
 	public String packVersion 			= "0";
 	public String compilerVersion 		= "0";
 	
-	public String updateSite			= "http://www.sunayama.de/Wurst/";
+	public String updateSite			= "http://www.sunayama.de/WurstUpdt/";
 	public String infoFileName 			= "latestInfo.json";
 	public String updatePackName 		= "packUpdate.zip";
 	public String updateCompilerName 	= "compilerUpdate.zip";
