@@ -381,6 +381,17 @@ public class Utils {
 	    
 	    return ste[depth+2].getMethodName(); 
 	  }
+	  
+	  public static String getMethodNameExt(final int depth)
+	  {
+	    StackTraceElement[] ste = Thread.currentThread().getStackTrace();
+	    int i = 0;
+	    for (StackTraceElement s : ste) {
+//	    	System.out.println("Trace " +i+++ " = " + s.getMethodName());
+	    }
+	    StackTraceElement sf = ste[depth+2];
+	    return sf.getMethodName() + "" + sf.getLineNumber(); 
+	  }
 
 	public static <T> List<T> topSortIgnoreCycles(Collection<T> input,
 			final Multimap<T, T> biggerItems) {

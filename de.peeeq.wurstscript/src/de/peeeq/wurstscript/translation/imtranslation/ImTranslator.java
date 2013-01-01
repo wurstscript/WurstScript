@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -72,19 +73,34 @@ import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImCall;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
+import de.peeeq.wurstscript.jassIm.ImSet;
+import de.peeeq.wurstscript.jassIm.ImSetArray;
+import de.peeeq.wurstscript.jassIm.ImSetArrayTuple;
+import de.peeeq.wurstscript.jassIm.ImSetTuple;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
+import de.peeeq.wurstscript.jassIm.ImStatementExpr;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmts;
+import de.peeeq.wurstscript.jassIm.ImTupleArrayType;
+import de.peeeq.wurstscript.jassIm.ImTupleExpr;
+import de.peeeq.wurstscript.jassIm.ImTupleSelection;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
+import de.peeeq.wurstscript.jassIm.ImVarAccess;
+import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
 import de.peeeq.wurstscript.jassIm.ImVars;
+import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.jassIm.JassImElement;
+import de.peeeq.wurstscript.jassIm.JassImElementWithLeft;
+import de.peeeq.wurstscript.jassIm.JassImElementWithVar;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeClass;
@@ -96,26 +112,26 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class ImTranslator {
 
-	
+
 	public static final String $DEBUG_PRINT = "$debugPrint";
 
 	private static final AstElement emptyTrace = Ast.NoExpr();
 
 	private Multimap<ImFunction, ImFunction> callRelations = HashMultimap.create();
-	
+
 	private ImFunction debugPrintFunction;
-	
+
 	Map<ClassDef, ImFunction> destroyFuncMap = Maps.newHashMap();
-	
+
 	private List<ImFunction> entryPoints = Lists.newArrayList();
-	
+
 	private Map<TranslatedToImFunction, ImFunction> functionMap = Maps.newHashMap();
 	private Map<TranslatedToImFunction, ImFunction> dynamicDispatchFunctionMap = Maps.newHashMap();
 
 	private ImFunction globalInitFunc;
-	
+
 	private ImProg imProg;
-	
+
 	Map<WPackage, ImFunction> initFuncMap = Maps.newHashMap();
 
 	private Map<TranslatedToImFunction, ImVar> thisVarMap = Maps.newHashMap();
@@ -124,39 +140,41 @@ public class ImTranslator {
 	private Set<ClassDef>  translatedClasses = Sets.newHashSet();
 
 	private int typeIdCounter = 0;
-	
+
 	Map<ClassDef, Integer> typeIdMap = Maps.newHashMap();
 	Map<ClassDef, Integer> typeIdMapMax = Maps.newHashMap();
 
 	private Map<VarDef, ImVar> varMap = Maps.newHashMap();
-	
+
 	private WurstModel wurstProg;
 
 	private ImFunction mainFunc = null;
 
 	private ImFunction configFunc = null;
-	
-	
+
+	private Map<ImVar, List<ImVar>> varsForTupleVar = Maps.newHashMap();
+
+
 	public ImTranslator(WurstModel wurstProg) {
 		this.wurstProg = wurstProg;
 	}
-	
+
 	/**
 	 * translates a program 
 	 */
 	public ImProg translateProg() {
 		imProg = ImProg(ImVars(), ImFunctions(), Maps.<ImVar,ImExpr>newHashMap());
-		
+
 		globalInitFunc = ImFunction(emptyTrace, "initGlobals", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
 		addFunction(globalInitFunc);
 		debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImVars(ImVar(WurstTypeString.instance().imTranslateType(), "msg", false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE));
-		
-		
-	
+
+
+
 		for (CompilationUnit cu : wurstProg) {
 			translateCompilationUnit(cu);
 		}
-		
+
 		if (mainFunc == null) {
 			mainFunc = ImFunction(emptyTrace, "main", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
 			addFunction(mainFunc);
@@ -166,15 +184,15 @@ public class ImTranslator {
 			addFunction(configFunc);
 		}
 		finishInitFunctions();
-		
+
 		return imProg;
 	}
 
 	private ArrayList<FunctionFlag> flags(FunctionFlag ... flags) {
 		return Lists.newArrayList(flags);
 	}
-	
-	
+
+
 	private void translateCompilationUnit(CompilationUnit cu) {
 		for (WPackage p : cu.getPackages()) {
 			p.imTranslateTLD(this);
@@ -184,15 +202,15 @@ public class ImTranslator {
 		}
 	}
 
-	
-	
+
+
 
 	private void finishInitFunctions() {
 		// init globals, at beginning of main func:
 		mainFunc.getBody().add(0, ImFunctionCall(emptyTrace, globalInitFunc, ImExprs()));
 		addCallRelation(mainFunc, globalInitFunc);
-		
-		
+
+
 		for (ImFunction initFunc : initFuncMap.values()) {
 			addFunction(initFunc);
 		}
@@ -233,7 +251,7 @@ public class ImTranslator {
 	public void addGlobalInitalizer(ImVar v, PackageOrGlobal packageOrGlobal, OptExpr initialExpr) {
 		if (initialExpr instanceof Expr) {
 			Expr expr = (Expr) initialExpr;
-			
+
 			ImFunction f;
 			if (packageOrGlobal instanceof WPackage) {
 				WPackage p = (WPackage) packageOrGlobal;
@@ -330,7 +348,7 @@ public class ImTranslator {
 		if (funcDef.attrNearestStructureDef() instanceof InterfaceDef // for interfaces use same function.. 
 				|| funcDef instanceof ExtensionFuncDef // extension func defs are always statically bound
 				) {
-			
+
 			return getFuncFor(funcDef);
 		}
 		String name = "dispatch_" + getNameFor(funcDef);
@@ -346,7 +364,7 @@ public class ImTranslator {
 		dynamicDispatchFunctionMap.put(funcDef, dispatchFunc);
 		return dispatchFunc;
 	}
-	
+
 	private boolean isBJ(WPos source) {
 		String f = source.getFile().toLowerCase();
 		return f.endsWith("blizzard.j") || f.endsWith("common.j");
@@ -387,9 +405,9 @@ public class ImTranslator {
 			TypeExprArray t = (TypeExprArray) e;
 			return getNameFor(t.getBase()) + "Array";
 		}
-		
-		
-			
+
+
+
 		if (e instanceof AstElementWithName) {
 			AstElementWithName wn = (AstElementWithName) e;
 			return wn.getName();
@@ -425,7 +443,7 @@ public class ImTranslator {
 		thisVarMap.put(f, v);
 		return v ;
 	}
-	
+
 	public ImVar getThisVar(ExprThis e) {
 		return getThisVarForNode(e);
 	}
@@ -440,8 +458,8 @@ public class ImTranslator {
 		}
 		return getThisVar((TranslatedToImFunction) node);
 	}
-	
-	
+
+
 	public int getTupleIndex(TupleDef tupleDef, VarDef parameter) {
 		int i = 0;
 		for (WParameter p : tupleDef.getParameters()) {
@@ -459,14 +477,14 @@ public class ImTranslator {
 			makeTypeIdsForHiearchy(c);
 			r = typeIdMap.get(c); 
 		}
-//			typeIdCounter++;
-//			int typeId = typeIdCounter;
-//			typeIdMap.put(c, typeId);
-//			
-//			// also assign types to subclasses:
-//			
-//			return typeId;
-			return r;
+		//			typeIdCounter++;
+		//			int typeId = typeIdCounter;
+		//			typeIdMap.put(c, typeId);
+		//			
+		//			// also assign types to subclasses:
+		//			
+		//			return typeId;
+		return r;
 	}
 
 	private void makeTypeIdsForHiearchy(ClassDef c) {
@@ -574,14 +592,14 @@ public class ImTranslator {
 
 	private Partitions<StructureDef> classPartitions = new Partitions<StructureDef>();
 	private Map<StructureDef, ClassManagementVars> classManagementVars = Maps.newHashMap();
-	
+
 	public ClassManagementVars getClassManagementVarsFor(StructureDef classDef) {
 		buildClassParition(classDef);
-		
-		
+
+
 		// class representing this partition
 		StructureDef repClass = classPartitions.getRep(classDef);
-		
+
 		ClassManagementVars m = classManagementVars.get(repClass);
 		if (m == null) {
 			m = new ClassManagementVars(repClass, this);
@@ -590,14 +608,14 @@ public class ImTranslator {
 		return m;
 	}
 
-	
+
 
 	private void buildClassParition(StructureDef s) {
 		if (!classPartitions.contains(s)) {
 			classPartitions.add(s);
 			if (s instanceof ClassDef) {
 				ClassDef c = (ClassDef) s;
-				
+
 				if (c.attrExtendedClass() != null) {
 					// union with extended class
 					buildClassParition(c.attrExtendedClass());
@@ -615,7 +633,7 @@ public class ImTranslator {
 					buildClassParition(t.getInterfaceDef());
 					classPartitions.union(i, t.getInterfaceDef());
 				}
-				
+
 			} else {
 				throw new Error("invalid type: " + s.getClass());
 			}
@@ -643,7 +661,7 @@ public class ImTranslator {
 		}
 		return result;
 	}
-	
+
 	public List<ImStmt> createDispatch(Map<ClassDef, FuncDef> instances, FuncDef funcDef, ImFunction f, int maxTypeId, TypeIdGetter typeId) {
 		List<Pair<IntRange, FuncDef>> instances2 = transformInstances(instances);
 		IntRange knownRange;
@@ -655,7 +673,7 @@ public class ImTranslator {
 		}
 		return createDispatchHelper(instances2, 0, instances2.size()-1, funcDef, f, typeId, knownRange);
 	}
-		
+
 	/**
 	 * returns a mapping from classdefs to functions into a mapping 
 	 * from typeid ranges to functions 	
@@ -677,9 +695,9 @@ public class ImTranslator {
 				funcs.set(getTypeId(sc), f);
 			}
 		}
-		
+
 		List<Pair<IntRange, FuncDef>> result = Lists.newArrayList();
-		
+
 		for (int i=0; i<=typeIdCounter; i++) {
 			FuncDef f = funcs.get(i);
 			if (f == null) {
@@ -696,9 +714,9 @@ public class ImTranslator {
 	}
 
 	private List<ImStmt> createDispatchHelper(List<Pair<IntRange, FuncDef>> instances2, int start, int end
-				, FuncDef funcDef, ImFunction f, TypeIdGetter typeId, IntRange knownRange) {
-		
-		
+			, FuncDef funcDef, ImFunction f, TypeIdGetter typeId, IntRange knownRange) {
+
+
 		List<ImStmt> result = Lists.newArrayList();
 		ImVar thisVar = f.getParameters().get(0);
 		boolean returnsVoid = funcDef.attrTyp() instanceof WurstTypeVoid;
@@ -761,30 +779,30 @@ public class ImTranslator {
 			} else if (conditions.size() == 1) {
 				return Collections.<ImStmt>singletonList(
 						JassIm.ImIf(emptyTrace, conditions.get(0), ImStmts(result), ImStmts())
-					);
+						);
 			} else {
 				return Collections.<ImStmt>singletonList(
 						JassIm.ImIf(emptyTrace, JassIm.ImOperatorCall(Ast.OpAnd(), 
 								ImExprs(conditions.get(0), conditions.get(1))), 
 								ImStmts(result), ImStmts())
-					);
+						);
 			}
-			
-			
+
+
 		} else {
 			int splitAt = start + (end-start) / 2;
-			
-			
+
+
 			int typeIdSplitPoint = instances2.get(splitAt).getA().end;
-			
+
 			List<ImStmt> case1 = createDispatchHelper(instances2, start, splitAt, funcDef, f, typeId, new IntRange(knownRange.start, typeIdSplitPoint));
 			List<ImStmt> case2 = createDispatchHelper(instances2, splitAt+1, end, funcDef, f, typeId, new IntRange(typeIdSplitPoint+1, knownRange.end));
 
 			// if (thistype <= typeIdSplitPoint)
 			ImExpr cond = JassIm.ImOperatorCall(Ast.OpLessEq(), 
-							JassIm.ImExprs(
-									typeId.get(thisVar),
-									JassIm.ImIntVal(typeIdSplitPoint)));
+					JassIm.ImExprs(
+							typeId.get(thisVar),
+							JassIm.ImIntVal(typeIdSplitPoint)));
 			ImStmts thenBlock = JassIm.ImStmts(case1);
 			ImStmts elseBlock = JassIm.ImStmts(case2);
 			result.add(JassIm.ImIf(emptyTrace, cond, thenBlock, elseBlock));
@@ -794,7 +812,7 @@ public class ImTranslator {
 
 	private Map<ClassDef, List<Pair<ImVar, OptExpr>>> classDynamicInitMap = Maps.newHashMap();
 	private Map<ClassDef, List<WStatement>> classInitStatements = Maps.newHashMap();
-	
+
 	public List<Pair<ImVar, OptExpr>> getDynamicInits(ClassDef c) {
 		List<Pair<ImVar, OptExpr>> r = classDynamicInitMap.get(c);
 		if (r == null) {
@@ -814,7 +832,7 @@ public class ImTranslator {
 	}
 
 	Map<ConstructorDef, ImFunction> constructorFuncs = Maps.newHashMap();
-	
+
 	public ImFunction getConstructFunc(ConstructorDef constr) {
 		ImFunction f = constructorFuncs.get(constr);
 		if (f == null) {
@@ -830,9 +848,9 @@ public class ImTranslator {
 		return f;
 	}
 
-	
+
 	Map<ConstructorDef, ImFunction> constrNewFuncs = Maps.newHashMap();
-	
+
 	public ImFunction getConstructNewFunc(ConstructorDef constr) {
 		ImFunction f = constrNewFuncs.get(constr);
 		if (f == null) {
@@ -852,9 +870,9 @@ public class ImTranslator {
 		callRelations.remove(f, called);
 	}
 
-	
+
 	private Multimap<InterfaceDef, ClassDef> interfaceInstances = null;
-	
+
 	public Collection<ClassDef> getInterfaceInstances(InterfaceDef interfaceDef) {
 		if (interfaceInstances == null) {
 			calculateInterfaceInstances();
@@ -873,7 +891,7 @@ public class ImTranslator {
 		}
 	}
 
-	
+
 	private Multimap<ClassDef, ClassDef> subclasses = null;
 	private Multimap<ClassDef, ClassDef> directSubclasses = null;
 
@@ -882,7 +900,7 @@ public class ImTranslator {
 	public DebugLevel debugLevel = DebugLevel.DEFAULT;
 
 	private boolean isEclipseMode = false;
-	
+
 	public Collection<ClassDef> getSubClasses(ClassDef classDef) {
 		calculateSubclasses();
 		return subclasses.get(classDef);
@@ -914,7 +932,7 @@ public class ImTranslator {
 			}
 		}
 	}
-	
+
 	public void addCompiletimeFunc(ImFunction f) {
 		compiletimeFuncs.add(f);
 	}
@@ -960,6 +978,126 @@ public class ImTranslator {
 	public void setEclipseMode(boolean enabled) {
 		isEclipseMode = enabled;
 	}
+
+	public List<ImVar> getVarsForTuple(ImVar v) {
+
+		List<ImVar> result = varsForTupleVar.get(v);
+		if (result == null) {
+			if (v.getType() instanceof ImArrayType || v.getType() instanceof ImSimpleType) {
+				result = Collections.singletonList(v);
+			} else {
+				result = Lists.newArrayList();
+				addVarsForType(result, v.getName(), v.getType(), false);
+			}
+			varsForTupleVar.put(v, result);
+		}
+		return result;
+	}
+
+	private void addVarsForType(List<ImVar> result, String name, ImType type, boolean array) {
+		Preconditions.checkNotNull(type);
+		Preconditions.checkNotNull(result);
+		// TODO handle names
+		if (type instanceof ImTupleType) {
+			ImTupleType tt = (ImTupleType) type;
+			int i=0;
+			for (ImType t : tt.getTypes()) {
+				addVarsForType(result, name + "_" + tt.getNames().get(i), t, false);
+				i++;
+			}
+		} else if (type instanceof ImTupleArrayType) {
+			ImTupleArrayType tt = (ImTupleArrayType) type;
+			for (ImType t : tt.getTypes()) {
+				addVarsForType(result, name, t, true);
+			}
+		} else if (type instanceof ImVoid) {
+
+		} else {
+			if (array && type instanceof ImSimpleType){
+				ImSimpleType st = (ImSimpleType) type;
+				type = JassIm.ImArrayType(st.getTypename());
+			}
+			result.add(JassIm.ImVar(type, name, false));
+		}
+
+	}
+
+	private Map<ImFunction, List<ImVar>> tempReturnVars = Maps.newHashMap();
+	public List<ImVar> getTempReturnVarsFor(ImFunction f) {
+		List<ImVar> result = tempReturnVars.get(f);
+		if (result == null) {
+			result = Lists.newArrayList();
+			addVarsForType(result, f.getName() +  "_return", getOriginalReturnValue(f), false);
+			imProg.getGlobals().addAll(result);
+			tempReturnVars.put(f, result);
+		}
+		return result ;
+	}
+
+	private Map<ImFunction, ImType> originalReturnValues = Maps.newHashMap();
+
+
+	public void setOriginalReturnValue(ImFunction f, ImType t) {
+		originalReturnValues.put(f, t);
+	}
+
+	public ImType getOriginalReturnValue(ImFunction f) {
+		ImType result = originalReturnValues.get(f);
+		if (result == null) {
+			result = f.getReturnType();
+			originalReturnValues.put(f, result);
+		}
+		return result;
+	}
+
+	public void assertProperties(AssertProperty ... properties1) {
+		final Set<AssertProperty> properties = Sets.newEnumSet(Lists.newArrayList(properties1), AssertProperty.class);
+		assertProperties(properties, imProg);
+	}
+
+	private void assertProperties(Set<AssertProperty> properties, JassImElement e) {
+		if (e instanceof JassImElementWithLeft) {
+			checkVar(((JassImElementWithLeft) e).getLeft(), properties);
+		}
+		if (e instanceof JassImElementWithVar) {
+			checkVar(((JassImElementWithVar) e).getVar(), properties);
+		}
+		if (properties.contains(AssertProperty.NOTUPLES)) {
+			if (e instanceof ImTupleExpr
+					|| e instanceof ImTupleSelection
+					) {
+				throw new Error("contains tuple expr " + e);
+			}
+			if (e instanceof ImVar) {
+				ImVar v = (ImVar) e;
+				if (v.getType() instanceof ImTupleType
+						|| v.getType() instanceof ImTupleArrayType) {
+					throw new Error("contains tuple var: " + v + " in\n" + v.getParent().getParent());
+				}
+			}
+		}
+		if (properties.contains(AssertProperty.FLAT)) {
+			if (e instanceof ImStatementExpr) {
+				throw new Error("contains statementExpr " + e);
+			}
+		}
+		for (int i=0; i<e.size(); i++) {
+			assertProperties(properties, e.get(i));
+		}
+	}
 	
-	
+	private void checkVar(ImVar left, Set<AssertProperty> properties) {
+		if (left.getParent() == null) {
+			throw new Error("var not attached: " + left);
+		}			
+		if (properties.contains(AssertProperty.NOTUPLES)) {
+			if (left.getType() instanceof ImTupleType
+					|| left.getType() instanceof ImTupleArrayType) {
+				throw new Error("program contains tuple var " + left);
+			}
+		}
+	}
+
+
+
 }

@@ -40,6 +40,7 @@ import de.peeeq.wurstscript.translation.imoptimizer.GlobalsInliner;
 import de.peeeq.wurstscript.translation.imoptimizer.ImInliner;
 import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
 import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.AssertProperty;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.FileReading;
 import de.peeeq.wurstscript.utils.LineOffsets;
@@ -354,14 +355,21 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			optimizer.doNullsetting();
 		}
 		
-		if (runArgs.isOptimize()) {
-			optimizer.optimize();
-		}
+		
 		printDebugImProg("./test-output/test_opt.im");
+	
+		// eliminate tuples
+		imProg.eliminateTuples(imTranslator);
+		imTranslator.assertProperties(AssertProperty.NOTUPLES);
 		
 		// flatten
 		imProg.flatten(imTranslator);
+		imTranslator.assertProperties(AssertProperty.NOTUPLES, AssertProperty.FLAT);
+	
 		
+		if (runArgs.isOptimize()) {
+//			TODO optimizer.optimize();
+		}
 		
 		// translate flattened intermediate lang to jass:
 		

@@ -86,6 +86,10 @@ ImPrintable.print(java.lang.StringBuilder sb, int indent)
 	returns void
 	implemented by de.peeeq.wurstscript.translation.imtranslation.ImPrinter.print
 
+ImPrintable.toString()
+	returns String
+	implemented by de.peeeq.wurstscript.translation.imtranslation.ImPrinter.asString
+
 
 ImProg.flatten(de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator)
 	returns void
@@ -118,6 +122,36 @@ ImExprOpt.flattenExprOpt(
 	)
 	returns ImFlatExprOpt
 	implemented by de.peeeq.wurstscript.translation.imtranslation.Flatten.flattenExpr
+	
+
+ImProg.eliminateTuples(de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator)
+	returns void
+	implemented by de.peeeq.wurstscript.translation.imtranslation.EliminateTuples.eliminateTuplesProg
+
+ImFunction.eliminateTuples(de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator)
+	returns void
+	implemented by de.peeeq.wurstscript.translation.imtranslation.EliminateTuples.eliminateTuplesFunc
+	
+ImStmt.eliminateTuples(
+		de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
+		de.peeeq.wurstscript.jassIm.ImFunction f	
+	)
+	returns ImStmt
+	implemented by de.peeeq.wurstscript.translation.imtranslation.EliminateTuples.eliminateTuples
+	
+ImExpr.eliminateTuplesExpr(
+		de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
+		de.peeeq.wurstscript.jassIm.ImFunction f	
+	)
+	returns ImExpr
+	implemented by de.peeeq.wurstscript.translation.imtranslation.EliminateTuples.eliminateTuplesExpr
+	
+ImExprOpt.eliminateTuplesExprOpt(
+		de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
+		de.peeeq.wurstscript.jassIm.ImFunction f	
+	)
+	returns ImExprOpt
+	implemented by de.peeeq.wurstscript.translation.imtranslation.EliminateTuples.eliminateTuplesExpr
 	
 	
 ImStmts.translate(

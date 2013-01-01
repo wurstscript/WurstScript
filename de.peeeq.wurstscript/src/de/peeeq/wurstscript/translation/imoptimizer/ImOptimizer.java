@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.translation.imoptimizer;
 
+import de.peeeq.wurstscript.translation.imtranslation.AssertProperty;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 public class ImOptimizer {
@@ -20,11 +21,13 @@ public class ImOptimizer {
 		globalsInliner.inlineGlobals();
 		ImInliner inliner = new ImInliner(trans);
 		inliner.doInlining();
+		trans.assertProperties();
 	}
 
 	public void doNullsetting() {
 		NullSetter ns = new NullSetter(trans);
 		ns.optimize();
+		trans.assertProperties();
 	}
 	
 }

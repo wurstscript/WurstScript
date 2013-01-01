@@ -76,19 +76,7 @@ public class ExprTranslation {
 			funcName = "BJDebugMsg";
 		}
 		JassExprFunctionCall call = JassAst.JassExprFunctionCall(funcName, arguments);
-		if (e.getFunc().getReturnType() instanceof ImTupleType) {
-			ImTupleType rt = (ImTupleType) e.getFunc().getReturnType();
-			List<JassExpr> result = Lists.newArrayList();
-			result.add(call);
-			for (int i = 1; i < rt.getTypes().size(); i++) {
-				String r = rt.getTypes().get(i).translateTypeFirst();
-				JassVar v = translator.getTempReturnVar(r, i);
-				result.add(JassExprVarAccess(v.getName()));
-			}
-			return result;
-		} else {
-			return single(call);
-		}
+		return single(call);
 	}
 
 	public static List<JassExpr> translate(ImIntVal e, ImToJassTranslator translator) {
@@ -106,24 +94,18 @@ public class ExprTranslation {
 			List<JassExpr> rightExprs = e.getArguments().get(1).translate(translator);
 			
 			
-			if (op instanceof OpEquals) {
-				return compare(op, Ast.OpAnd(), leftExprs, rightExprs);
-			} else if (op instanceof OpUnequals) {
-				return compare(op, Ast.OpOr(), leftExprs, rightExprs);
-			} else {
-				if (leftExprs.size() != 1) throw new Error("Operator " + op + " not defined for expressions of size " + leftExprs.size());
-				if (rightExprs.size() != 1) throw new Error("Operator " + op + " not defined for expressions of size " + rightExprs.size());
-				
-				JassExpr left = leftExprs.get(0);
-				JassExpr right = rightExprs.get(0);
-				if (op instanceof OpModReal) {
-					return single(JassExprFunctionCall("ModuloReal", JassExprlist(left, right)));
-				} else if (op instanceof OpModInt) {
-					return single(JassExprFunctionCall("ModuloInteger", JassExprlist(left, right)));
-				}
-				
-				return single(JassExprBinary(left, op.jassTranslateBinary(), right));
+			if (leftExprs.size() != 1) throw new Error("Operator " + op + " not defined for expressions of size " + leftExprs.size());
+			if (rightExprs.size() != 1) throw new Error("Operator " + op + " not defined for expressions of size " + rightExprs.size());
+			
+			JassExpr left = leftExprs.get(0);
+			JassExpr right = rightExprs.get(0);
+			if (op instanceof OpModReal) {
+				return single(JassExprFunctionCall("ModuloReal", JassExprlist(left, right)));
+			} else if (op instanceof OpModInt) {
+				return single(JassExprFunctionCall("ModuloInteger", JassExprlist(left, right)));
 			}
+			
+			return single(JassExprBinary(left, op.jassTranslateBinary(), right));
 		} else if (e.getOp() instanceof OpUnary && e.getArguments().size() == 1) {
 			OpUnary op = (OpUnary) e.getOp();
 			return single(JassExprUnary(op.jassTranslateUnary(), e.getArguments().get(0).translateSingle(translator)));
@@ -132,16 +114,6 @@ public class ExprTranslation {
 		}
 	}
 
-	private static List<JassExpr> compare(OpBinary op, OpBinary combiOp, List<JassExpr> leftExprs, List<JassExpr> rightExprs) {
-		JassExpr result = JassExprBinary(leftExprs.get(0), op.jassTranslateBinary(), rightExprs.get(0));
-		int leftSize = leftExprs.size();
-		int rightSize = rightExprs.size();
-		if (leftSize != rightSize) throw new Error("unequal sizes " + leftSize + " vs " + rightSize);
-		for (int i=1; i<leftSize; i++) {
-			result = JassAst.JassExprBinary(result, combiOp.jassTranslateBinary(), JassExprBinary(leftExprs.get(i), op.jassTranslateBinary(), rightExprs.get(i)));
-		}
-		return single(result);
-	}
 
 	public static List<JassExpr> translate(ImRealVal e, ImToJassTranslator translator) {
 		return single(JassExprRealVal(e.getValR()));
@@ -156,36 +128,11 @@ public class ExprTranslation {
 	}
 
 	public static List<JassExpr> translate(ImTupleExpr e, ImToJassTranslator translator) {
-		List<JassExpr> result = Lists.newArrayList();
-		for (ImExpr x : e.getExprs()) {
-			result.addAll(x.translate(translator));
-		}
-		return result;
+		throw new Error("tuples should be eliminated in this phase");
 	}
 
 	public static List<JassExpr> translate(ImTupleSelection e, ImToJassTranslator translator) {
-		//		List<JassExpr> exprs = e.getTupleExpr().translate(translator);
-//		return single(exprs.get(e.getTupleIndex()));
-		// TODO discarded side-effects?
-		
-		ImExpr tupleExpr = e.getTupleExpr();
-		ImTupleType t =  (ImTupleType) tupleExpr.attrTyp();
-		List<JassExpr> exprs = e.getTupleExpr().translate(translator);
-		int pos = 0;
-		int index = 0;
-		List<JassExpr> result = Lists.newArrayList();
-		for (ImType tt : t.getTypes()) {
-			int ttsize = tt.translateType().size();
-			if (index == e.getTupleIndex()) {
-				for (int i=0; i<ttsize; i++) {
-					result.add(exprs.get(pos+i));
-				}
-			}
-			pos += ttsize;
-			index++;
-		}
-		
-		return result;
+		throw new Error("tuples should be eliminated in this phase");
 	}
 
 	public static List<JassExpr> translate(ImVarAccess e, ImToJassTranslator translator) {

@@ -89,6 +89,55 @@ public class TupleTests extends WurstScriptTest {
 	}
 	
 	@Test
+	public void vecs2() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	tuple vec(real x, real y, real z)",
+				"	function vec.plus(vec other) returns vec",
+				"		if this.x > 0",
+				"			return vec(this.x + other.x, this.y + other.y, this.z + other.z)",
+				"		else",
+				"			return vec(this.x + other.x, this.y + other.y, this.z + other.z)",
+				"	init",
+				"		if vec(1,2,3).plus(vec(4,5,6)).y == 7",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void bugtest() {
+		testAssertOkLines(false, 
+				"package test",
+				"	tuple tup(real x)",
+				"	function foo(tup mytup)",
+				"		real y = mytup.x",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void vecs4() {
+		testAssertOkLines(false, 
+				"package test",
+				"	native testSuccess()",
+				"	native Sin(real x) returns real",
+				"	native Cos(real x) returns real",
+				"	tuple vec3(real x, real y, real z)",
+				"	public function polarProjection3d( vec3 pos, real distance, real angleGround, real angleAir ) returns vec3",
+				"		real x = pos.x + distance * Cos(angleGround) * Sin(angleAir)",
+				"		real y = pos.y + distance * Sin(angleGround) * Sin(angleAir)",
+				"		real z = pos.z + distance * Cos(angleAir) ",
+				"		return vec3(x,y,z)",
+				"endpackage"
+			);
+	}
+	
+	
+	
+	
+	@Test
 	public void inClass() {
 		testAssertOkLines(true, 
 				"package test",
@@ -141,4 +190,73 @@ public class TupleTests extends WurstScriptTest {
 			);
 	}
 	
+	@Test
+	public void test_equals() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	tuple tup(int a, int b, int c)",
+				"	init",
+				"		let a = tup(1,2,3)",
+				"		let b = tup(1,2,3)",
+				"		let c = tup(1,1,3)",
+				"		if a == b and (not b == c)",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void test_unequals() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	tuple tup(int a, int b, int c)",
+				"	init",
+				"		let a = tup(1,2,3)",
+				"		let b = tup(1,2,3)",
+				"		let c = tup(1,1,3)",
+				"		if a != c and (not a != b)",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void test_singletuple() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	tuple tup(int a)",
+				"	function foo(boolean b) returns tup",
+				"		if b",
+				"			return tup(2)",
+				"		return tup(3)",
+				"	init",
+				"		let a = foo(true)",
+				"		if a.a == 2",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void test_singletuple2() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	tuple tup(int a)",
+				"	function foo(tup t) returns tup",
+				"		if t.a > 5",
+				"			return tup(2)",
+				"		return tup(3)",
+				"	tup array x",
+				"	init",
+				"		x[0] = tup(8)",
+				"		let a = foo(x[0])",
+				"		if a.a == 2",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
 }

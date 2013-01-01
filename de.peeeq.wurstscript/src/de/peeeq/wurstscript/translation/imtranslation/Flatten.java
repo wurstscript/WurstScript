@@ -214,6 +214,7 @@ public class Flatten {
 		for (ImFunction f : imProg.getFunctions()) {
 			f.flatten(translator);
 		}
+		translator.assertProperties(AssertProperty.FLAT);
 	}
 
 	
