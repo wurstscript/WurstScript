@@ -11,6 +11,7 @@
 *.settings
 *.classpath
 *.im
+*.db
 
 #bin folders
 */bin/*

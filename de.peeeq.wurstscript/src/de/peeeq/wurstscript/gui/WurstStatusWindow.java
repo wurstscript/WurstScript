@@ -32,7 +32,15 @@ public class WurstStatusWindow extends javax.swing.JFrame {
     /** Creates new form WurstStatusWindow */	
     public WurstStatusWindow() {
     	super("Progress");
-    	
+    	Process ps;
+		try {
+			ps = Runtime.getRuntime().exec(new String[]{"java","-jar","./updater/WurstUpdater.jar","-check"});
+			ps.waitFor();
+		} catch (IOException | InterruptedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+        
     	BufferedImage image = null;
         try {
             image = ImageIO.read(

@@ -80,10 +80,12 @@ public class About extends javax.swing.JDialog {
                 homepageButtonMouseClicked(evt);
             }
         });
+        
 
         logo.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        logo.setIcon(new javax.swing.ImageIcon(getClass().getResource("pscript.jpg"))); // NOI18N
+        logo.setIcon(new javax.swing.ImageIcon(getClass().getResource("wurst.jpg"))); // NOI18N
         logo.setName("logo"); // NOI18N
+        logo.setLocation(0, 0);
 
         heading.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
         heading.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
