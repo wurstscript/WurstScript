@@ -37,6 +37,7 @@ public class Main {
 		WLogger.info( ">>> " + sdf.format(myDate) + " - Started compiler at with args " + Utils.printSep(", ", args));
 		
 		WurstGui gui = null;
+		WurstCompilerJassImpl compiler = null;
 		try {
 			RunArgs runArgs = new RunArgs(args);
 
@@ -85,7 +86,7 @@ public class Main {
 			compilation : do {
 
 
-				WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, runArgs);
+				compiler = new WurstCompilerJassImpl(gui, runArgs);
 				for (String file: runArgs.getFiles()) {
 					compiler.loadFiles(file);
 				}
@@ -177,16 +178,17 @@ public class Main {
 			
 //			List<CompileError> errors = gui.getErrorList();
 //			Utils.saveToFile(errors, "lastErrors.data");
-
-			
-
-
-
-
 		} catch (Throwable t) {
+			String source = "";
+			try {
+				if (compiler != null) {
+					source = compiler.getCompleteSourcecode();
+				}
+			} catch (Throwable t2) {
+				WLogger.severe(t2);
+			}
 
-
-			ErrorReporting.handleSevere(t);
+			ErrorReporting.handleSevere(t, source);
 			
 
 		} finally {

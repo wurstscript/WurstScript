@@ -10,7 +10,7 @@ public class ErrorReportingTest {
 
 	@Test
 	public void testSendErrorReport() {
-		boolean result = ErrorReporting.sendErrorReport(new Error("bla"));
+		boolean result = ErrorReporting.sendErrorReport(new Error("bla"), "source");
 		assertEquals(true, result);
 	}
 

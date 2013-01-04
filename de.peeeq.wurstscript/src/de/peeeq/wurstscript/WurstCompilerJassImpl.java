@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Reader;
+import java.nio.CharBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -325,7 +326,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
 	public JassProg translateProg(WurstModel root) {
 		// translate wurst to intermediate lang:
-		ImTranslator imTranslator = new ImTranslator(root);
+		ImTranslator imTranslator = new ImTranslator(root, errorHandler.isUnitTestMode());
 		imProg = imTranslator.translateProg();
 		int stage = 1;
 		
@@ -391,7 +392,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			file.getParentFile().mkdirs();
 			Files.write(sb.toString(), file, Charsets.UTF_8);
 		} catch (IOException e) {
-			ErrorReporting.handleSevere(e);
+			ErrorReporting.handleSevere(e, getCompleteSourcecode());
 		}
 	}
 
@@ -535,6 +536,39 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
 	public ErrorHandler getErrorHandler() {
 		return errorHandler;
+	}
+
+	public String getCompleteSourcecode() {
+		
+		StringBuilder sb = new StringBuilder();
+		try {
+			for (File f: files) {
+				sb.append(" //######################################################\n");
+				sb.append(" // File " + f.getAbsolutePath() + "\n");
+				sb.append(" //######################################################\n");
+				sb.append(Files.toString(f, Charsets.UTF_8));
+			}
+			
+			for (Entry<String, Reader> entry : otherInputs.entrySet()) {
+				sb.append(" //######################################################\n");
+				sb.append(" // Input " + entry.getKey() + "\n");
+				sb.append(" //######################################################\n");
+				Reader reader = entry.getValue();
+				char[] buffer = new char[1024];
+				while (true) {
+					int len = reader.read(buffer);
+					if (len < 0) {
+						break;
+					}
+					sb.append(buffer, 0, len);
+				}
+			}
+		} catch (Throwable t) {
+			sb.append(t.getMessage());
+			sb.append(Utils.printStackTrace(t.getStackTrace()));
+			WLogger.severe(t);
+		}
+		return sb.toString();
 	}
 
 	

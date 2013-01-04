@@ -22,7 +22,7 @@ import de.peeeq.wurstscript.utils.Utils;
 public class ErrorReporting {
 		
 	
-	public static void handleSevere(Throwable t) {
+	public static void handleSevere(Throwable t, String sourcecode) {
 		WLogger.severe(t);
 		
 		
@@ -56,7 +56,7 @@ public class ErrorReporting {
 			options[1]); //default button titles
 		
 		if (n == 1) {
-			boolean r = ErrorReporting.sendErrorReport(t);
+			boolean r = sendErrorReport(t, sourcecode);
 			if (r) {
 				JOptionPane.showMessageDialog(parent, "Thank you!");
 			}else {
@@ -75,7 +75,7 @@ public class ErrorReporting {
 		parent.dispose();
 	}
 	
-	public static boolean sendErrorReport(Throwable t) {
+	public static boolean sendErrorReport(Throwable t, String sourcecode) {
 		
 		HttpURLConnection connection = null;
 		try {
@@ -84,6 +84,7 @@ public class ErrorReporting {
 		    String data = URLEncoder.encode("errormessage", "UTF-8") + "=" + URLEncoder.encode(t.getMessage(), "UTF-8");
 		    data += "&" + URLEncoder.encode("stacktrace", "UTF-8") + "=" + URLEncoder.encode(Utils.printStackTrace(t.getStackTrace()), "UTF-8");
 		    data += "&" + URLEncoder.encode("version", "UTF-8") + "=" + URLEncoder.encode(About.version, "UTF-8");
+		    data += "&" + URLEncoder.encode("source", "UTF-8") + "=" + URLEncoder.encode(sourcecode, "UTF-8");
 			
 			String request = "http://peeeq.de/wursterrors.php";
 			URL url = new URL(request); 

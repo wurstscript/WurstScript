@@ -151,9 +151,12 @@ public class ImTranslator {
 
 	private Map<ImVar, List<ImVar>> varsForTupleVar = Maps.newHashMap();
 
+	private boolean isUnitTestMode;
 
-	public ImTranslator(WurstModel wurstProg) {
+
+	public ImTranslator(WurstModel wurstProg, boolean isUnitTestMode) {
 		this.wurstProg = wurstProg;
+		this.isUnitTestMode = isUnitTestMode;
 	}
 
 	/**
@@ -1130,6 +1133,10 @@ public class ImTranslator {
 			calculateCallRelationsAndUsedVariables();
 		}
 		return usedFunctions;
+	}
+
+	public boolean isUnitTestMode() {
+		return isUnitTestMode;
 	}
 
 
