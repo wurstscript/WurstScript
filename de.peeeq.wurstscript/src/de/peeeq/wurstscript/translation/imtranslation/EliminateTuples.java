@@ -21,6 +21,7 @@ import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImIf;
 import de.peeeq.wurstscript.jassIm.ImLoop;
 import de.peeeq.wurstscript.jassIm.ImNoExpr;
+import de.peeeq.wurstscript.jassIm.ImNull;
 import de.peeeq.wurstscript.jassIm.ImOperatorCall;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImReturn;
@@ -188,7 +189,16 @@ public class EliminateTuples {
 	
 	
 	public static ImStmt eliminateTuples(ImExpr e, ImTranslator translator, ImFunction f) {
-		return e.eliminateTuplesExpr(translator, f);
+		ImExpr e2 = e.eliminateTuplesExpr(translator, f);
+		if (e2 instanceof ImTupleExpr) {
+			ImTupleExpr te = (ImTupleExpr) e2;
+			ImStmts stmts = JassIm.ImStmts();
+			for (ImExpr child : te.getExprs().removeAll()) {
+				stmts.add(child);
+			}
+			return JassIm.ImStatementExpr(stmts, JassIm.ImNull());
+		}
+		return e2;
 	}
 	
 	public static ImStmt eliminateTuples(ImSet e, ImTranslator translator, ImFunction f) {

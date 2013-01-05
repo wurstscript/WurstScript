@@ -134,6 +134,29 @@ public class TupleTests extends WurstScriptTest {
 			);
 	}
 	
+	@Test
+	public void vecs_trim() {
+		testAssertOkLines(false, 
+				"package test",
+				"	native testSuccess()",
+				"	tuple vec3(real x, real y, real z)",
+				"	public function vec3.trim( real value ) returns vec3",
+				"		vec3 result = this",
+				"		if result.x > -value and result.x < value",
+				"			result.x = 0.",
+				"		if result.y > -value and result.y < value",
+				"			result.y = 0.",
+				"		if result.z > -value and result.z < value",
+				"			result.z = 0.",
+				"		return result",
+				"	vec3 array vs",
+				"	init",
+				"		vs[0] = vec3(3,15,4)",
+				"		vs[0].trim(5)",
+				"endpackage"
+			);
+	}
+	
 	
 	
 	
