@@ -1,6 +1,7 @@
 package Unit
 	import NoWurst
 	import public Vectors
+	import Angle
 	
 	public function unit.getX() returns real
 		return GetUnitX(this)
@@ -67,9 +68,16 @@ package Unit
 	public function unit.setFacing(real deg) returns unit
 		SetUnitFacing(this, deg)
 		return this
+	
+	public function unit.setFacing(angle a) returns unit
+		SetUnitFacing(this, a.degrees())
+		return this
 		
 	public function unit.getFacing() returns real
 		return GetUnitFacing(this)
+		
+	public function unit.getFacingAngle() returns angle
+		return GetUnitFacing(this).asAngleDegrees()
 		
 	public function unit.getFlyHeight() returns real
 		return GetUnitFlyHeight(this)
@@ -143,6 +151,10 @@ package Unit
 	public function unit.setTimeScale(real scale) returns unit
 		SetUnitTimeScale(this, scale)
 		return this
+		
+	public function createUnit(player p, int unitId, vec2 pos, angle facing) returns unit
+		return CreateUnit(p, unitId, pos.x, pos.y, facing.degrees())
+		
 		
 
 endpackage
