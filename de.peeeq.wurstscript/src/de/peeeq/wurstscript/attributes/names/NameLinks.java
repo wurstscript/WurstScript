@@ -105,7 +105,14 @@ public class NameLinks {
 				System.out.println("could not resolve import: " + Utils.printElementWithSource(imp)); 
 				continue;
 			}
-			result.putAll(importedPackage.attrExportedNameLinks());
+			if (p.getName().equals("WurstREPL")) {
+				// the REPL is special and can use all names
+				result.putAll(importedPackage.getElements().attrNameLinks());
+				result.putAll(importedPackage.attrNameLinks());
+			} else {
+				// normal packages can only use the exported names of a package
+				result.putAll(importedPackage.attrExportedNameLinks());
+			}
 		}
 		
 		return result;
