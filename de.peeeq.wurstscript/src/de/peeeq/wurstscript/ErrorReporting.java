@@ -2,6 +2,7 @@ package de.peeeq.wurstscript;
 
 import java.awt.Desktop;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,6 +16,9 @@ import java.net.URLEncoder;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.UIManager;
+
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
 
 import de.peeeq.wurstscript.gui.About;
 import de.peeeq.wurstscript.utils.Utils;
@@ -56,11 +60,22 @@ public class ErrorReporting {
 			options[1]); //default button titles
 		
 		if (n == 1) {
-			boolean r = sendErrorReport(t, sourcecode);
-			if (r) {
+			boolean r1 = sendErrorReport(t, "");  
+			boolean r2 = sendErrorReport(t, sourcecode);
+			
+			try {
+				Files.write(sourcecode, new File("errorreport_source.wurst"), Charsets.UTF_8);
+			} catch (IOException e) {
+				WLogger.severe(e);
+			}
+			
+			if (r1 && r2) {
 				JOptionPane.showMessageDialog(parent, "Thank you!");
-			}else {
+			} else if (!r1 && !r2) {
 				JOptionPane.showMessageDialog(parent, "Error report could not be sent.");
+			} else {
+				JOptionPane.showMessageDialog(parent, "Error Report could only be sent partially.");
+				
 			}
 		} else if (n == 2) {
 			Desktop desk = Desktop.getDesktop();
