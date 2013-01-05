@@ -239,9 +239,12 @@ PackageDeclaration ::=
 			Imports:imports
 			Entities:entities
 		UNINDENT ENDPACKAGE:y
-		{: RESULT = Ast.WPackage(pos(xleft, yright), Ast.Modifiers(), name, imports, entities); :}
-		| PACKAGE:x IDENTIFIER:name NL ENDPACKAGE:y
-		{: RESULT = Ast.WPackage(pos(xleft, yright), Ast.Modifiers(), name, Ast.WImports(), Ast.WEntities()); :}
+			{: RESULT = Ast.WPackage(pos(xleft, yright), Ast.Modifiers(), name, imports, entities); :}
+		| PACKAGE:x IDENTIFIER:name NL 
+			Imports:imports
+			Entities:entities
+		  ENDPACKAGE:y
+			{: RESULT = Ast.WPackage(pos(xleft, yright), Ast.Modifiers(), name, imports, entities); :}
 		
 ;		
 		

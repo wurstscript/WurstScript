@@ -168,6 +168,10 @@ public class EliminateTuples {
 		} else if (e instanceof ImStmt) {
 			ImStmt stmt = (ImStmt) e;
 			return stmt.eliminateTuples(translator, f);
+		} else if (e instanceof ImStmts) {
+			ImStmts stmts = (ImStmts) e;
+			transformStatements(f, stmts, translator);
+			return stmts;
 		}
 		return eliminateTuples2(e, translator, f);
 	}
