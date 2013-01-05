@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Reader;
-import java.nio.CharBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -244,6 +243,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
 	private Map<String, File> libCache = null;
 	private ImProg imProg;
+	private List<File> parsedFiles = Lists.newArrayList();
 	
 	public Map<String, File> getLibs() {
 		if (libCache == null) {
@@ -454,6 +454,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	}
 
 	private CompilationUnit parseFile(File file) {
+		parsedFiles .add(file);
+		
 		gui.sendProgress("Parsing File " + file.getName(), 0.05);
 		String source = file.getAbsolutePath();
 		Reader reader = null;
@@ -542,7 +544,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		
 		StringBuilder sb = new StringBuilder();
 		try {
-			for (File f: files) {
+			for (File f: parsedFiles) {
 				sb.append(" //######################################################\n");
 				sb.append(" // File " + f.getAbsolutePath() + "\n");
 				sb.append(" //######################################################\n");
