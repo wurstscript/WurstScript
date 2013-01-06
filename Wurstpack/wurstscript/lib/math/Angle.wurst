@@ -1,0 +1,53 @@
+package Angle
+
+/** an angle is just a wrapper around a real which allows for
+typesafe APIs without the confusion between radians and degrees*/
+public tuple angle(real radians)
+
+/** get the real representation of this angle in degrees */
+public function angle.degrees() returns real
+	return this.radians*180./bj_PI
+
+/** interpret this real as an angle given in degrees */
+public function real.asAngleDegrees() returns angle
+	return angle(this*bj_PI/180.)
+
+/** interpret this int as an angle given in degrees */
+public function int.asAngleDegrees() returns angle
+	return angle(this*bj_PI/180.)
+
+/** interpret this real as an angle given in radians*/
+public function real.asAngleRadians() returns angle
+	return angle(this)
+
+/** get the sinus of this angle */
+public function angle.sin() returns real
+	return Sin(this.radians)
+
+/** get the cosinus of this angle */
+public function angle.cos() returns real
+	return Cos(this.radians)
+
+/** get the tangens of this angle */
+public function angle.tan() returns real
+	return Tan(this.radians)	
+
+/** returns a vector of the given length pointing into the direction of this angle */
+public function angle.toVec(real len) returns vec2
+	return vec2(Cos(this.radians)*len, Sin(this.radians)*len)
+
+/** returns a vector of length 1 pointing into the direction of this angle */
+public function angle.direction() returns vec2
+	return vec2(Cos(this.radians), Sin(this.radians))
+	
+/** adds two angles */
+public function angle.op_plus(angle other) returns angle
+	return angle(this.radians + other.radians)
+
+/** substracts two angles */
+public function angle.op_minus(angle other) returns angle
+	return angle(this.radians - other.radians)
+
+/** returns the angle of this vector */	
+public function vec2.getAngle() returns angle
+	return angle(Atan2(this.y, this.x))

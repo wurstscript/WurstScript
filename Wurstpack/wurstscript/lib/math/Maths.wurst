@@ -1,29 +1,30 @@
 package Maths	
 	import NoWurst
 	import Vectors
+	import Angle
 
 	public constant real PI			=  3.141592654
 	public constant real PI2 		=  6.28318
 	public constant real DEGTORAD  	=  0.017453293
 	public constant real RADTODEG  	= 57.295779513
 	
-	public function polarProjectionXR ( real x,  real dist, real angle ) returns real
-		return x + dist * Cos(angle)
+	public function polarProjectionXR ( real x,  real dist, real ang ) returns real
+		return x + dist * Cos(ang)
 	
-	public function polarProjectionYR ( real y,  real dist, real angle ) returns real
-		return y + dist * Sin(angle)
+	public function polarProjectionYR ( real y,  real dist, real ang ) returns real
+		return y + dist * Sin(ang)
 		
-	public function polarProjectionZR ( real z,  real dist, real angle ) returns real
-		return z + dist * Sin(angle)
+	public function polarProjectionZR ( real z,  real dist, real ang ) returns real
+		return z + dist * Sin(ang)
 		
-	public function polarProjectionXD ( real x,  real dist, real angle ) returns real
-		return x + dist * Cos(angle * DEGTORAD)
+	public function polarProjectionXD ( real x,  real dist, real ang ) returns real
+		return x + dist * Cos(ang * DEGTORAD)
 	
-	public function polarProjectionYD ( real y,  real dist, real angle ) returns real
-		return y + dist * Sin(angle * DEGTORAD)
+	public function polarProjectionYD ( real y,  real dist, real ang ) returns real
+		return y + dist * Sin(ang * DEGTORAD)
 		
-	public function polarProjectionZD ( real z,  real dist, real angle ) returns real
-		return z + dist * Sin(angle * DEGTORAD)
+	public function polarProjectionZD ( real z,  real dist, real ang ) returns real
+		return z + dist * Sin(ang * DEGTORAD)
 	
 	public function angleBetweenCoordsD ( real x1, real y1, real x2, real y2 ) returns real
 		return RADTODEG * Atan2(y2 - y1, x2 - x1)
@@ -31,6 +32,8 @@ package Maths
 	public function angleBetweenCoordsR ( real x1, real y1, real x2, real y2 ) returns real
 		return Atan2(y2 - y1, x2 - x1)
 		
+	public function angleBetweenCoords ( real x1, real y1, real x2, real y2 ) returns angle
+		return Atan2(y2 - y1, x2 - x1).asAngleRadians()
 
 	public function distanceBetweenCoords ( real x1, real y1, real x2, real y2 ) returns real
 		return SquareRoot((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1))
@@ -44,8 +47,14 @@ package Maths
 		real z = pos.z + distance * Cos(angleAir) 
 		return vec3(x,y,z)
 		
-	public function angleToVector( real angle ) returns vec2
-		return vec2(Cos(angle), Sin(angle))
+	public function polarProjection3d( vec3 pos, real distance, angle angleGround, angle angleAir ) returns vec3
+		real x = pos.x + distance * angleGround.cos() * angleAir.sin()
+		real y = pos.y + distance * angleGround.sin() * angleAir.sin()
+		real z = pos.z + distance * angleAir.cos() 
+		return vec3(x,y,z)
+		
+	public function angleToVector( real ang ) returns vec2
+		return vec2(Cos(ang), Sin(ang))
 		
 	public function vectorToAngle( vec2 v ) returns real
 		return Atan2(v.y, v.x)

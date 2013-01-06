@@ -3,6 +3,7 @@ package Vectors
 	import PrintingHelper
 	import Maths
 	import Real
+	import Angle
 	
 	/*************************
 	 ********3D-Vector********
@@ -102,10 +103,10 @@ package Vectors
 	public function vec3.toString() returns string
 		return "Vector3 [ " + this.x.toString() + ", " + this.y.toString() + ", " + this.z.toString() + " ]"
 	
-	public function vec3.rotate( vec3 axis, real angle ) returns vec3 //angle is taken in radians
+	public function vec3.rotate( vec3 axis, real radians ) returns vec3 //angle is taken in radians
 		var al = axis.x*axis.x+axis.y*axis.y+axis.z*axis.z //axis length^2
-		var c = Cos(angle)
-		var s = Sin(angle)
+		var c = Cos(radians)
+		var s = Sin(radians)
 		if al == 0.0
 			printError("vector.rotate error: The length of the axis vector is 0.0!")
 			return vec3(0,0,0)
@@ -123,7 +124,8 @@ package Vectors
 		var yz = (axis.x*xy - axis.y*xx)/al //x,y - coordinate system in which we rotate
 		return vec3(xx*c+yx*s+zx, xy*c+yy*s+zy, xz*c+yz*s+zz )
 
-	
+	public function vec3.rotate( vec3 axis, angle ang ) returns vec3
+		return this.rotate(axis, ang.radians)
 		
 	/*************************
 	 ********2D-Vector********
@@ -182,11 +184,14 @@ package Vectors
 	public function unit.getPos() returns vec2
 		return vec2(GetUnitX(this), GetUnitY(this)) 
 	 	
-	public function vec2.angleTo(vec2 v) returns real
-		return Atan2(v.y - this.y, v.x - this.x) 
+	public function vec2.angleTo(vec2 v) returns angle
+		return Atan2(v.y - this.y, v.x - this.x).asAngleRadians()
 		
-	public function vec2.polarOffset(real angle, real dist) returns vec2
-		return vec2(this.x + Cos(angle)*dist, this.y + Sin(angle)*dist)
+	public function vec2.polarOffset(real ang, real dist) returns vec2
+		return vec2(this.x + Cos(ang)*dist, this.y + Sin(ang)*dist)
+	
+	public function vec2.polarOffset(angle ang, real dist) returns vec2
+		return this + ang.toVec(dist)
 		
 	public function vec2.setLength( real length ) returns vec2
 		real l = SquareRoot(this.x*this.x + this.y*this.y)
