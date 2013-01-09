@@ -85,7 +85,7 @@ package Collider
 		// notice that if your custom missile struct needs to declare its own create
 		// method, you can this as allocate(x,y,dir).
 
-		construct( real x, real y, real dir )
+		construct( real x, real y, angle dir )
 			fx = new Fx( x, y, dir )
 			this.dir = dir
 			Collider.V[Collider.N] = this
@@ -101,9 +101,9 @@ package Collider
 		// The direction is just the angle in radians to which the missile's model faces
 		// and the automatic movement uses.
 		//
-		function setDirection( real v )
+		function setDirection( angle v )
 			dir = v
-			fx.setXYAngle( v )
+			fx.setXYAngle( dir.degrees() )
 
 
 		//---
@@ -173,7 +173,7 @@ package Collider
 
 
 		real collisionSize = DEFAULT_COLLISION_SIZE
-		real dir
+		angle dir
 
 
 
@@ -233,8 +233,8 @@ package Collider
 	
 							wa = Atan2( cl.homingTargetY - cl.fx.getY(), cl.homingTargetX - cl.fx.getX() )
 	
-							df1 = wa - cl.dir
-							df2 = (PI2 + wa) - cl.dir
+							df1 = wa - cl.dir.degrees()
+							df2 = (PI2 + wa) - cl.dir.degrees()
 	
 							if df1 <= 0
 								if df2 <= 0 
@@ -261,14 +261,14 @@ package Collider
 					else
 						ns = 0
 	
-					d = cl.dir
+					d = cl.dir.degrees()
 					d += ns
 					if d >= PI2
 						d -= PI2
 					else if d < 0
 						d += PI2
 	
-					cl.dir = d
+					cl.dir = angle(d)
 					cl.fx.setXYAngle( d )
 	
 	
@@ -280,8 +280,8 @@ package Collider
 	
 					d = ((cl.speed + ns) /2) * ANIMATION_PERIOD
 					cl.speed = ns
-					Collider.newx= cl.fx.getX()+d*Cos(cl.dir)
-					Collider.newy= cl.fx.getY()+d*Sin(cl.dir)
+					Collider.newx= cl.fx.getX()+d*Cos(cl.dir.degrees())
+					Collider.newy= cl.fx.getY()+d*Sin(cl.dir.degrees())
 					cl.fx.setX( Collider.newx )
 					cl.fx.setY( Collider.newy )
 	

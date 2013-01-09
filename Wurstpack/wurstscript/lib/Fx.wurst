@@ -3,6 +3,8 @@ package Fx
 	import Effect
 	import Colors
 	import Vectors
+	import Angle
+	import MapBounds
 
 	/********************************************************
 	 * * * * * * * * * * Fx * * * * * * * * * * * * * * * * *
@@ -24,27 +26,27 @@ package Fx
 		
 		private colorA col
 		
-		construct(real x, real y, real facing)
-			dummy = newDummy( x, y, 0, facing)
+		construct(real x, real y, angle facing)
+			dummy = newDummy( x, y, 0, facing.degrees())
 		
-		construct(vec2 pos, real facing)
-			dummy = newDummy( pos.x, pos.y, 0, facing)
+		construct(vec2 pos, angle facing)
+			dummy = newDummy( pos.x, pos.y, 0, facing.degrees())
 		
-		construct(vec2 pos, real facing, string fxpath)
-			dummy = newDummy( pos.x, pos.y, 0, facing)
+		construct(vec2 pos, angle facing, string fxpath)
+			dummy = newDummy( pos.x, pos.y, 0, facing.degrees())
 			setFx( fxpath )
 		
-		construct(vec3 pos, real facing)
-			dummy = newDummy( pos.x, pos.y, 0, facing)
+		construct(vec3 pos, angle facing)
+			dummy = newDummy( pos.x, pos.y, 0, facing.degrees())
 			setZ(pos.z)	
 		
-		construct(vec3 pos, real facing, string fxpath)
-			dummy = newDummy( pos.x, pos.y, 0, facing)
+		construct(vec3 pos, angle facing, string fxpath)
+			dummy = newDummy( pos.x, pos.y, 0, facing.degrees())
 			setZ(pos.z)
 			setFx( fxpath )	
 		
-		construct(real x, real y, real facing, string fxpath)
-			dummy = newDummy( x, y, 0, facing)
+		construct(real x, real y, angle facing, string fxpath)
+			dummy = newDummy( x, y, 0, facing.degrees())
 			//print(GetUnitName(dummy))
 			setFx( fxpath )
 				
@@ -215,9 +217,10 @@ package Fx
 
 			recycleDummy(dummy)
 
-		/** Destroys the Fx object without showing the effect's death animation */
+		/** Destroys the Fx object without showing the effect's death animation 
+			Sort of a workaround by setting the position to the top right corner, hopefully not visible.*/
 		function hiddenDestroy()
-			dummy.hide()
+			dummy.setXY(maxx, maxy)
 			destroy this
 			
 

@@ -159,7 +159,7 @@ package Knockback
 				
 		
 		//this method creates a new knockback
-		construct( unit caster, unit target, real distance, real time, real angle )
+		construct( unit caster, unit target, real distance, real time, real xyangle )
 			real speed = 2 * distance / ((time / PERIOD) + 1)
 			real deceleration = speed / (time / PERIOD)
 			int i = 0
@@ -167,12 +167,12 @@ package Knockback
 			//variables
 			this.caster = caster
 			this.target = target
-			this.knockbackAngle = angle
+			this.knockbackAngle = xyangle
 			this.distance = distance
 			this.duration = time
 			this.currentSpeed = speed
 			this.deceleration = deceleration
-			this.knockbackAngle = angle
+			this.knockbackAngle = xyangle
 			this.cos = Cos(this.knockbackAngle * bj_DEGTORAD)
 			this.sin = Sin(this.knockbackAngle * bj_DEGTORAD)
 			

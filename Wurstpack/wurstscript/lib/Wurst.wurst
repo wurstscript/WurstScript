@@ -23,5 +23,6 @@ package Wurst
 	import public Item
 	import public Sound
 	import public Vectors
+	import public Angle
 	
 endpackage

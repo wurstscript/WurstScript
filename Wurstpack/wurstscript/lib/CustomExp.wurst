@@ -1,0 +1,164 @@
+package CustomExp
+import TempGroups
+import Texttag
+
+//Configuration globals
+/** Radius to consider heroes for exp gain */
+constant real RADIUS = 650.
+/** Determines "Close" for distance effect. Gives full exp */
+constant real CLOSE = 200.
+/** Determines the "Middle" for distance effect. Gives less exp */
+constant real MEDIUM = 400.
+/** Determines the "Far" for distance effect. Gives even less exp
+	Should probably be the same as Radius */
+constant real FAR = 650.
+
+/** Determines what % of exp heroes in the "close" range get. (1 == 100%) */
+constant real CLOSE_FACTOR = 1. //
+/** Determines what % of exp heroes in the "medium" range get. (.5 == 50%) */
+constant real MEDIUM_FACTOR = .5 //
+/** Determines what % of exp heroes in the "far" range get. (.25 == 25%) */
+constant real FAR_FACTOR = .25//
+/** How much exp per level (of the unit) units give. */
+constant int UNIT_EXP = 10 //
+/** How much exp per level (of the dying hero) heroes give. */
+constant int HERO_EXP = 15 //
+/** How much exp is granted per allies hero nearby. 
+	If this value is positive, more heroes == more exp each
+	if this value is negative, more heroes == less exp each ('Blizzard' method)
+	If this value is 0, the number of heroes effects nothing. */
+constant int BONUS_EXP = 9 //
+
+
+//This is for the displaying of exp in textag format
+/** How long the message will last */
+constant real DURATION = 5.
+/** Font size */
+constant int SIZE = 12 
+/** Red value (of 255) for the text */
+constant int RED = 0
+/** Green value (of 255) for the text */
+constant int GREEN = 74
+/** Blue value (of 255) for the text */
+constant int BLUE = 255
+/** this to false to stop texttags  */
+constant boolean SHOW_TEXT = true
+/** to true to divide the final exp by the number of heroes */
+constant boolean SPLIT = false 
+/** to false if you do not want the
+	distance from the kill to determine how much exp the heroes get. */
+constant boolean DISTANCE_EFFECT = true
+
+/** This is the function that determines how XP is calculted.
+	Unless you have a different method, don't touch this. */
+function formula( int xPfactor, int unitlevel, int heroesinradius, int bonus ) returns int
+	return (xPfactor * unitlevel) + (heroesinradius * bonus)
+
+
+/** This is the filter that picks up heroes in the radius of the killer.
+	To modify it, simply add more booleans. */
+function filter() returns boolean
+	unit u = GetFilterUnit()
+	boolean b1 = IsUnitType(u, UNIT_TYPE_DEAD) == false
+	boolean b2 = IsUnitType(u, UNIT_TYPE_HERO) == true
+	boolean b3 = IsUnitAlly(u, GetOwningPlayer(GetKillingUnit())) == true
+	
+	return b1 and b2 and b3
+
+
+/** Use this filter to modify the exp given for certain conditions. */
+function expFilter (int exp, unit u ) returns int
+	return exp
+
+/** This applies the XP accordingly. */
+function giveXP()
+	unit deadUnit = GetTriggerUnit()
+	real dx = deadUnit.getX()
+	real dy = deadUnit.getY()
+	unit killer = GetKillingUnit()
+	player killerPlayer = killer.getOwner()
+	int add = 0
+	int killedUnitLevel
+	int unitNum = 0
+	real kx = killer.getX()
+	real ky = killer.getY()
+
+	
+	
+	GroupEnumUnitsInRange(ENUM_GROUP, kx, ky, RADIUS, Condition(function filter))
+	ForGroup(ENUM_GROUP, function CountUnitsInGroupEnum)
+	unitNum = bj_groupCountUnits
+	
+	//============================================================
+	if IsUnitAlly(deadUnit, killerPlayer) == false
+		if IsUnitType(deadUnit, UNIT_TYPE_HERO) == true
+			killedUnitLevel = GetHeroLevel(deadUnit)
+			add = formula(HERO_EXP, killedUnitLevel, unitNum, BONUS_EXP) 
+		else
+			killedUnitLevel = GetUnitLevel(deadUnit)
+			add = formula(UNIT_EXP, killedUnitLevel, unitNum, BONUS_EXP)
+
+	
+	if SPLIT
+		add = R2I(add / unitNum)
+
+	//============================================================
+	 
+	if DISTANCE_EFFECT
+
+		add = expFilter(add, deadUnit)
+		for f in ENUM_GROUP
+			let distance = distanceBetweenCoords(dx, dy, kx, ky)
+	      	//Far Away Units
+			if distance > MEDIUM*MEDIUM and distance <= FAR*FAR 
+				SetPlayerHandicapXP(GetOwningPlayer(f), 1.00)
+				add = R2I(add * FAR_FACTOR)
+				AddHeroXP(f, add, true)
+				SetPlayerHandicapXP(GetOwningPlayer(f), 0.00)
+	      //Medium Distance Units  
+			else if distance > CLOSE*CLOSE and distance <= MEDIUM*MEDIUM
+				SetPlayerHandicapXP(GetOwningPlayer(f), 1.00)
+				add = R2I(add * MEDIUM_FACTOR)
+				AddHeroXP(f, add, true)
+				SetPlayerHandicapXP(GetOwningPlayer(f), 0.00)
+	      //Close Range Units
+			else if distance <= CLOSE*CLOSE
+				SetPlayerHandicapXP(GetOwningPlayer(f), 1.00)
+				add = R2I(add * CLOSE_FACTOR)
+				AddHeroXP(f, add, true)
+				SetPlayerHandicapXP(GetOwningPlayer(f), 0.00)
+
+			if SHOW_TEXT and add > 0
+				createTTEx(f.getPos().toVec3(), vec2(0,0), "+ " + I2S(add), SIZE, DURATION, colorA(RED, GREEN, BLUE, 255))
+
+    
+	else
+		add = expFilter(add, deadUnit) 
+		for f in ENUM_GROUP
+  
+			if SHOW_TEXT and add > 0
+				createTTEx(f.getPos().toVec3(), vec2(0,0), "+ " + I2S(add), SIZE, DURATION, colorA(RED, GREEN, BLUE, 255))
+			SetPlayerHandicapXP(GetOwningPlayer(f), 1.00)
+			AddHeroXP(f, add, true)
+			SetPlayerHandicapXP(GetOwningPlayer(f), 0.00)
+
+
+	ENUM_GROUP.clear()
+
+
+
+/** This trigger stops players from gaining XP when they shouldn't be. */
+function disableXpGain()
+	for i = 0 to 12
+		SetPlayerHandicapXP(Player(i), 0.00)
+
+	DestroyTimer(GetExpiredTimer())
+
+
+init
+	trigger t = CreateTrigger()
+	TriggerRegisterAnyUnitEventBJ(t, EVENT_PLAYER_UNIT_DEATH )
+	TriggerAddAction(t, function giveXP )
+	TimerStart(CreateTimer(), .04, false, function disableXpGain)
+
+

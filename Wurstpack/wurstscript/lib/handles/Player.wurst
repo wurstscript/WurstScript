@@ -8,4 +8,9 @@ public function player.getId() returns int
 public function player.getName() returns string
 	return GetPlayerName(this)
 	
+public function player.getSlotState() returns playerslotstate
+	return GetPlayerSlotState(this)
+	
+public function player.getController() returns mapcontrol
+	return GetPlayerController(this)
 	

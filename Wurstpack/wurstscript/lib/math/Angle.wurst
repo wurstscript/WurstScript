@@ -1,4 +1,5 @@
 package Angle
+import Maths
 
 /** an angle is just a wrapper around a real which allows for
 typesafe APIs without the confusion between radians and degrees*/
@@ -6,21 +7,21 @@ public tuple angle(real radians)
 
 /** get the real representation of this angle in degrees */
 public function angle.degrees() returns real
-	return this.radians*180./bj_PI
+	return this.radians*RADTODEG
 
 /** interpret this real as an angle given in degrees */
 public function real.asAngleDegrees() returns angle
-	return angle(this*bj_PI/180.)
+	return angle(this*RADTODEG)
 
-/** interpret this int as an angle given in degrees */
-public function int.asAngleDegrees() returns angle
-	return angle(this*bj_PI/180.)
+/** interpret this int as an angle given in radians */
+public function int.asAngleRadians() returns angle
+	return angle(this*DEGTORAD)
 
 /** interpret this real as an angle given in radians*/
 public function real.asAngleRadians() returns angle
 	return angle(this)
-
 /** get the sinus of this angle */
+
 public function angle.sin() returns real
 	return Sin(this.radians)
 

@@ -167,18 +167,18 @@ package DummyRecycler
 	init
 		int end
 		int n = ANG_N
-		real angle
+		real angl
 		real x = maxx
 		real y = maxy
 		for int i = ANG_N downto 0
 			stackN[i] = ANG_STORAGE_MAX
 			queueNext[i] = n
-			angle = (i * ANG_VAL + ANG_MID).toReal()
+			angl = (i * ANG_VAL + ANG_MID).toReal()
 			end = n + ANG_STORAGE_MAX
 			queueLast[i] = end - 1
 			while n < end
 				queueNext[n] = n + 1
-				stack[n] = CreateUnit(DUMMY_PLAYER, DUMMY_UNIT_ID, x, y, angle)
+				stack[n] = CreateUnit(DUMMY_PLAYER, DUMMY_UNIT_ID, x, y, angl)
 				stack[n].addAbility(HEIGHT_ENABLER).removeAbility(HEIGHT_ENABLER)
 				stack[n].addAbility(LOCUST_ID)
 				PauseUnit(stack[n], true)

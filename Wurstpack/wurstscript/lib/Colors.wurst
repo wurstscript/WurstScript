@@ -1,38 +1,6 @@
 package Colors
-//******************************************************************************
-//*
-//* ARGB 1.2
-//*  ==  == 
-//*  For your color needs.
-//*  
-//*  An ARGB object is a by-value struct, this means that assigning copies the
-//* contents of the struct and that you don't have to use .destroy(), the
-//* downside is that you cannot assign its members (can't do set c.r= 123 )
-//*
-//*  This library should have plenty of uses, for example, if your spell involves
-//* some unit recoloring you can allow users to input the color in the config
-//* section as 0xAARRGGBB and you can use this to decode that stuff.
-//*
-//* You can also easily merge two colors and make fading effects using ARGB.mix
-//*
-//* There's ARGB.fromPlayer which gets an ARGB object containing the player's
-//* color. you can use the previous utilities on it.
-//*
-//* The .str() instance method can recolor a string, and the recolorUnit method
-//* will apply the ARGB on a unit
-//*
-//* For other uses, you can use the .red, .green, .blue and .alpha members to get
-//* an ARGB object's color value (from 0 to 255).
-//*
-//* structs that have a recolor method that takes red,green,blue and alpha as 0.255
-//* integers can implement the ARGBrecolor module to gain an ability to quickly
-//* recolor using an ARGB object.
-//*
-//********************************************************************************
 
-// ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  == =
-	
-	//this double naming stuff is beginning to make me insane, if only TriggerEvaluate() wasn't so slow...
+
 	public tuple color(int red, int green, int blue)
 	public tuple colorA(int red, int green, int blue, int alpha)
 	
@@ -119,15 +87,20 @@ package Colors
 	
 	public function colorA.toString() returns string
 		return "colorRBGA [" + this.red.toString() + "|" +this.green.toString() + "|" +this.blue.toString() + "|"+this.alpha.toString() +"]"
-
-	
 			
 	public function unit.setVertexColor(colorA col) returns unit
 		SetUnitVertexColor(this, col.red, col.green, col.blue, col.alpha)
 		return this
 		
+	public function unit.setVertexColor(color col) returns unit
+		SetUnitVertexColor(this, col.red, col.green, col.blue, 255)
+		return this
+		
 	public function colorA.toColorString() returns string
 		return "|C" + toHex(this.alpha) + toHex(this.red) + toHex(this.green) + toHex(this.blue)
+		
+	public function color.toColorString() returns string
+		return "|C" + toHex(this.red) + toHex(this.green) + toHex(this.blue)
 
 	public function toHex( int number ) returns string
 		var firstpart = number div 16
@@ -145,6 +118,7 @@ package Colors
 	
 	string array hexs
 	Table decs
+	public color array colors
 	
 	init
 		for i = 0 to 9
@@ -166,6 +140,19 @@ package Colors
 		decs.saveInt(StringHash("D"), 13 )
 		decs.saveInt(StringHash("E"), 14 )
 		decs.saveInt(StringHash("F"), 15 )
-	
+
+		colors[0] = color(255,255,255)
+		colors[1] = color(255,2,2)
+		colors[2] = color(0,65,255)
+		colors[3] = color(27,230,184)
+		colors[4] = color(83,0,128)
+		colors[5] = color(255,204,0)
+		colors[6] = color(255,255,1)
+		colors[7] = color(31,191,0)
+		colors[8] = color(229,90,175)
+		colors[9] = color(148,149,150)
+		colors[10] = color(125,190,241)
+		colors[11] = color(15,97,69)
+		colors[12] = color(77,41,3)
 
 endpackage
