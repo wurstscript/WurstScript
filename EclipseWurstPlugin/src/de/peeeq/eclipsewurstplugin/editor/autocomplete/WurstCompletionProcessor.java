@@ -386,7 +386,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			}
 			if (e.getValue().getNameDef() instanceof ExtensionFuncDef) {
 				ExtensionFuncDef ef = (ExtensionFuncDef) e.getValue().getNameDef();
-				if (ef.getExtendedType().attrTyp().isSupertypeOf(leftType, ef)) {
+				if (ef.getExtendedType().attrTyp().dynamic().isSupertypeOf(leftType, ef)) {
 					completions.add(makeFunctionCompletion(ef));
 				}
 			}

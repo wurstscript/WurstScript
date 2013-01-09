@@ -220,5 +220,13 @@ package Vectors
 		if (t > 1) 
 			return this.distToVecSquared(v2)
 		return this.distToVecSquared( vec2( v1.x + t * (v2.x - v1.x), v1.y + t * (v2.y - v1.y) ) )
+		
+	public tuple isInRangeHelper2(vec2 v, real range)
+	
+	public function vec2.isInRange(real range) returns isInRangeHelper2
+		return isInRangeHelper2(this, range)
+		
+	public function isInRangeHelper2.of(vec2 other) returns boolean
+		return this.v.distToVecSquared(other) <= this.range*this.range
 	
 endpackage 
