@@ -80,9 +80,9 @@ package knockbackSystem
 		use LinkedListModule
 		unit u
 		real speed
-		real angle
+		real angl
 		
-		construct( unit target, real initialSpeed, real angle )
+		construct( unit target, real initialSpeed, real angl )
 			u	   = target
 			speed   = initialSpeed
 			
@@ -103,11 +103,11 @@ package OptimizedMaths
 	constant real DEGTORAD  = 0.01745329
 	constant real RADTODEG  = 57.2957795
 	
-	function pPX ( real x,  real dist, real angle ) returns real
-		return x + dist * Cos(angle * DEGTORAD)
+	function pPX ( real x,  real dist, real angl ) returns real
+		return x + dist * Cos(angl * DEGTORAD)
 	
-	function pPY ( real y,  real dist, real angle ) returns real
-		return y + dist * Sin(angle * DEGTORAD)
+	function pPY ( real y,  real dist, real angl ) returns real
+		return y + dist * Sin(angl * DEGTORAD)
 	
 	function angleBetweenCoords ( real x1, real y1, real x2, real y2 ) returns real
 		return RADTODEG * Atan2(y2 - y1, x2 - x1)

@@ -721,14 +721,14 @@ package Entity
 			
 		function setTarget( vec3 tpos, real speed )
 			var t = distanceBetweenCoords(pos.x, pos.y, tpos.x, tpos.y) / speed
-			let angle = angleBetweenCoordsR(pos.x, pos.y, tpos.x, tpos.y)
+			let angl = anglBetweenCoordsR(pos.x, pos.y, tpos.x, tpos.y)
 			let e = getTerrainZ(tpos.x,tpos.y)
 			
 			if t < 1.
 				t = 1./speed
 			
 			let startZVelocity = ((-gravity.z * t) / 2 - pos.z/t + e/t)
-			this.setVel( vec3( Cos(angle) * speed, Sin(angle) * speed, startZVelocity) )
+			this.setVel( vec3( Cos(angl) * speed, Sin(angl) * speed, startZVelocity) )
 			
 		function terminate()
 			done = true
@@ -900,7 +900,7 @@ package ChatCommand
 import Gamemode
 	
 function displayScore()
-	DisplayTimedTextToForce(bj_FORCE_PLAYER[GetPlayerId(GetTriggerPlayer())], 12., "|cffff6347Rotes Team: |r" + redscore.toString() + "\n\n|cff3cb371Grünes Team: |r" + greenscore.toString())
+	DisplayTimedTextToForce(bj_FORCE_PLAYER[GetPlayerId(GetTriggerPlayer())], 12., "|cffff6347Rotes Team: |r" + redscore.toString() + "\n\n|cff3cb371Gruenes Team: |r" + greenscore.toString())
 
 
 init
@@ -1159,8 +1159,8 @@ constant real CT_X = 0.
 constant real CT_Y = 4096.
 public function spawnPresent()
 	var dist = GetRandomReal(400,800)
-	var angle = GetRandomReal(-PI,PI)
-	new ItemObject( CreateItem(ITEM_ID,polarProjectionXR(CT_X,dist,angle),polarProjectionYR(CT_Y,dist,angle)))
+	var angl = GetRandomReal(-PI,PI)
+	new ItemObject( CreateItem(ITEM_ID,polarProjectionXR(CT_X,dist,angl),polarProjectionYR(CT_Y,dist,angl)))
 	//var p = new Present(vec3(,0))
 	DisplayTimedTextToForce(GetPlayersAll(), 12., "|cffFFAD29» |cffFF7329In der Mitte ist ein Geschenk erschienen!")
 	
@@ -1865,7 +1865,7 @@ package HomingMissile
 		real push
 		real pushFaktor
 		real i
-		real angle
+		real angl
 		Fx fx
 		
 		
@@ -1874,7 +1874,7 @@ package HomingMissile
 			this.u=u
 			this.ut=ut
 
-			angle = angleBetweenCoordsD(u.getX(), u.getY(), ut.getX(), ut.getY())
+			angl = anglBetweenCoordsD(u.getX(), u.getY(), ut.getX(), ut.getY())
 
 			push = 1			//Speed für den Vektor
 			pushFaktor = 0.05	//Verringert den Vektor
@@ -1885,7 +1885,7 @@ package HomingMissile
 			x2 = 0
 			y2 = 0
 			
-			fx = new Fx(u.getX(),u.getY(),angle,"Abilities\\Weapons\\IllidanMissile\\IllidanMissile.mdl")
+			fx = new Fx(u.getX(),u.getY(),angl,"Abilities\\Weapons\\IllidanMissile\\IllidanMissile.mdl")
 			fx.setOwner(GetOwningPlayer(u), false)
 			fx.setZ(50)
 			
@@ -1899,12 +1899,12 @@ package HomingMissile
 		function theSpell()
 			i--
 			
-			angle = angleBetweenCoordsD(fx.getX(), fx.getY(), ut.getX(), ut.getY())
+			angl = anglBetweenCoordsD(fx.getX(), fx.getY(), ut.getX(), ut.getY())
 			
-			x = polarProjectionXD(fx.getX(), push, angle)
-			y = polarProjectionYD(fx.getY(), push, angle)
+			x = polarProjectionXD(fx.getX(), push, angl)
+			y = polarProjectionYD(fx.getY(), push, angl)
 			
-			x = x - fx.getX() // why not polarProjectionXD(0., push, angle) ?
+			x = x - fx.getX() // why not polarProjectionXD(0., push, angl) ?
 			y = y - fx.getY()
 			
 			x2 = x2 + x
@@ -1938,22 +1938,22 @@ import Terrain
 
 public enum HOMING
 	attract // Direct homing
-	angular // Chaning angle
+	angular // Chaning angl
 	forced // pushed homing (warlock-like)
 
 public class HomingProjectile extends Projectile
 	Entity target
 	real speed = 12.
 	real homingSpeed = 0.15
-	real zangle
+	real zangl
 	HOMING homingType = HOMING.attract
 	
 
 	
-	construct(vec3 pos, player owner, real radius, real angle, string fxpath)
+	construct(vec3 pos, player owner, real radius, real angl, string fxpath)
 		super(pos, owner, radius)
-		fx = new Fx(pos, angle*RADTODEG, fxpath)
-		xyangle = angle
+		fx = new Fx(pos, angl*RADTODEG, fxpath)
+		xyangl = angl
 		
 	function setHomingTarget(Entity e)
 		target = e
@@ -1961,14 +1961,14 @@ public class HomingProjectile extends Projectile
 		
 	override function update()
 		let dist = distanceBetweenCoords(pos.x, pos.y, target.pos.x, target.pos.y)
-		let anglexy = angleBetweenCoordsR(pos.x, pos.y, target.pos.x, target.pos.y)
-		let anglez = getSlopeAngle(pos.z, target.pos.z, dist )
+		let anglxy = anglBetweenCoordsR(pos.x, pos.y, target.pos.x, target.pos.y)
+		let anglz = getSlopeangl(pos.z, target.pos.z, dist )
 		switch homingType
 			case HOMING.attract
 				vel = (target.pos - this.pos).setLength(speed)
 			case HOMING.angular
-				var df1 = anglexy - xyangle
-				var df2 = (PI2 + anglexy) - xyangle
+				var df1 = anglxy - xyangl
+				var df2 = (PI2 + anglxy) - xyangl
 				var ns = homingSpeed
 		
 				if df1 <= 0
@@ -1993,29 +1993,29 @@ public class HomingProjectile extends Projectile
 				else
 					if df1 <= ns 
 						ns = df1
-				var d = xyangle
+				var d = xyangl
 				d += ns
 				if d >= PI2
 					d -= PI2
 				else if d < 0
 					d += PI2
 		
-				xyangle = d
+				xyangl = d
 		
-				if anglez > zangle
-					if anglez - zangle < homingSpeed
-						zangle += anglez - zangle
+				if anglz > zangl
+					if anglz - zangl < homingSpeed
+						zangl += anglz - zangl
 					else
-						zangle += homingSpeed
-				else if zangle > anglez
-					if zangle - anglez < homingSpeed
-						zangle -= zangle - anglez
+						zangl += homingSpeed
+				else if zangl > anglz
+					if zangl - anglz < homingSpeed
+						zangl -= zangl - anglz
 					else
-						zangle -= homingSpeed
-				vel = vec3( speed * Cos(xyangle), speed * Sin(xyangle), speed * Sin(zangle)  )
+						zangl -= homingSpeed
+				vel = vec3( speed * Cos(xyangl), speed * Sin(xyangl), speed * Sin(zangl)  )
 				
 			case HOMING.forced
-				vec3 tmp = vec3(polarProjectionXR(pos.x, speed, anglexy), polarProjectionYR(pos.y, speed, anglexy), polarProjectionZR(pos.z, speed, anglez))
+				vec3 tmp = vec3(polarProjectionXR(pos.x, speed, anglxy), polarProjectionYR(pos.y, speed, anglxy), polarProjectionZR(pos.z, speed, anglz))
 				
 				tmp -= pos
 				
@@ -2045,7 +2045,7 @@ public class Projectile extends Entity
 	boolean timed = false
 	real time
 	real xyspeed
-	real xyangle
+	real xyangl
 	boolean keepHeight = true
 	real terrainZ = 0.
 	boolean gravityAffected = false
@@ -2060,7 +2060,7 @@ public class Projectile extends Entity
 		
 	function setXYSpeed(real speed)
 		xyspeed = speed
-		vel = vec3(Cos(xyangle)*speed, Sin(xyangle)*speed, vel.z)
+		vel = vec3(Cos(xyangl)*speed, Sin(xyangl)*speed, vel.z)
 		
 	override function update()
 		terrainZ = getTerrainZ(pos.x, pos.y)
@@ -2071,7 +2071,7 @@ public class Projectile extends Entity
 			fx.setPos(pos.x, pos.y, pos.z-terrainZ)
 		else
 			fx.setPos(pos)
-		fx.setXYAngle(xyangle*RADTODEG)
+		fx.setXYangl(xyangl*RADTODEG)
 		if timed
 			time -= ANIMATION_PERIOD
 			if time < 0
@@ -2103,12 +2103,12 @@ constant real SPEED = 24
 
 public class Iceshard extends Projectile
 
-	construct(vec3 pos, player owner, real angle)
+	construct(vec3 pos, player owner, real angl)
 		super(pos, owner, 32.)
-		fx = new Fx(pos, angle*RADTODEG, "Abilities\\Weapons\\LichMissile\\LichMissile.mdl")
+		fx = new Fx(pos, angl*RADTODEG, "Abilities\\Weapons\\LichMissile\\LichMissile.mdl")
 		fx.setOwner(owner, false)
 		setTimed(4.)
-		xyangle = angle
+		xyangl = angl
 		setXYSpeed(SPEED)
 		throwSound.playOnPoint(pos)
 		
@@ -2165,11 +2165,11 @@ public class IceMissile extends Projectile
 	construct(vec3 pos, player owner, vec3 target)
 		super(pos, owner, 32.)
 		this.target = target
-		let angle = angleBetweenCoordsR(pos.x, pos.y, target.x, target.y)
-		fx = new Fx(pos, angle*RADTODEG, "Abilities\\Weapons\\WingedSerpentMissile\\WingedSerpentMissile.mdl")
+		let angl = anglBetweenCoordsR(pos.x, pos.y, target.x, target.y)
+		fx = new Fx(pos, angl*RADTODEG, "Abilities\\Weapons\\WingedSerpentMissile\\WingedSerpentMissile.mdl")
 		fx.setOwner(owner, false)
 		setTimed(4.)
-		xyangle = angle
+		xyangl = angl
 		setXYSpeed(SPEED)
 		//throwSound.playOnPoint(pos)
 		
@@ -2191,15 +2191,15 @@ public class IceMissile extends Projectile
 	function onHit(Entity e)
 		terminate()
 		if e instanceof Child
-			let angle = angleBetweenCoordsR(pos.x, pos.y, e.pos.x, e.pos.y)
-			e.addVel(vec3(Cos(angle) * FACTOR, Sin(angle) * FACTOR, 1.))
+			let angl = anglBetweenCoordsR(pos.x, pos.y, e.pos.x, e.pos.y)
+			e.addVel(vec3(Cos(angl) * FACTOR, Sin(angl) * FACTOR, 1.))
 
 			
 	ondestroy
 		if not pos.z < terrainZ
 			new Iceblock(vec3(pos.x, pos.y, 0), owner,.5 )
-			new Iceblock(vec3(polarProjectionXR(pos.x, 48.,xyangle-1.8), polarProjectionYR(pos.y, 48.,xyangle-1.8), 0), owner,.4 )
-			new Iceblock(vec3(polarProjectionXR(pos.x, 48.,xyangle+1.8), polarProjectionYR(pos.y, 48.,xyangle+1.8), 0), owner,.4 )
+			new Iceblock(vec3(polarProjectionXR(pos.x, 48.,xyangl-1.8), polarProjectionYR(pos.y, 48.,xyangl-1.8), 0), owner,.4 )
+			new Iceblock(vec3(polarProjectionXR(pos.x, 48.,xyangl+1.8), polarProjectionYR(pos.y, 48.,xyangl+1.8), 0), owner,.4 )
 
 public class Iceblock extends Entity
 	real scale
@@ -2266,12 +2266,12 @@ public class Rollingball extends Projectile
 	real size = 2
 	real startz
 
-	construct(vec3 pos, player owner, real angle)
+	construct(vec3 pos, player owner, real angl)
 		super(pos, owner, 32.)
 		startz = pos.z
-		fx = new Fx(pos, angle*RADTODEG, "war3mapImported\\rollingball.mdx")
+		fx = new Fx(pos, angl*RADTODEG, "war3mapImported\\rollingball.mdx")
 		fx.setOwner(owner, true)
-		xyangle = angle
+		xyangl = angl
 		setXYSpeed(STARTMOMENTUM)
 		momentum = STARTMOMENTUM
 		startRoll.playOnPoint(pos)
@@ -2288,12 +2288,12 @@ public class Rollingball extends Projectile
 			radius = size*8
 			pos.z = startz+radius-16.
 		super.update()
-		var x = polarProjectionXR(pos.x,radius -2., xyangle+90*DEGTORAD )
-		var y = polarProjectionYR(pos.y,radius -2., xyangle+90*DEGTORAD )
+		var x = polarProjectionXR(pos.x,radius -2., xyangl+90*DEGTORAD )
+		var y = polarProjectionYR(pos.y,radius -2., xyangl+90*DEGTORAD )
 		//AddSpecialEffect("Abilities\\Weapons\\SpiritOfVengeanceMissile\\SpiritOfVengeanceMissile.mdl", x, y)
 		let tz1 = getTerrainZ(x,y)
-		x = polarProjectionXR(pos.x,radius -2., xyangle-90*DEGTORAD )
-		y = polarProjectionYR(pos.y,radius -2., xyangle-90*DEGTORAD )
+		x = polarProjectionXR(pos.x,radius -2., xyangl-90*DEGTORAD )
+		y = polarProjectionYR(pos.y,radius -2., xyangl-90*DEGTORAD )
 		//AddSpecialEffect("Abilities\\Weapons\\SpiritOfVengeanceMissile\\SpiritOfVengeanceMissile.mdl", x, y)
 		let tz2 = getTerrainZ(x,y)
 		if radius > 32.
@@ -2352,13 +2352,13 @@ constant real SPEED = 14
 
 public class Snowball extends Projectile
 
-	construct(vec3 pos, player owner, real angle)
+	construct(vec3 pos, player owner, real angl)
 		super(pos, owner, 32.)
-		fx = new Fx(pos, angle*RADTODEG, "war3mapImported\\CorpseBomb.mdx")
+		fx = new Fx(pos, angl*RADTODEG, "war3mapImported\\CorpseBomb.mdx")
 		fx.setOwner(owner, true)
 		setTimed(4.)
 		
-		xyangle = angle
+		xyangl = angl
 		setXYSpeed(SPEED)
 		throwSound.playOnPoint(pos)
 		
@@ -2425,7 +2425,7 @@ public class Snowbomb extends Projectile
 		fx.setOwner(owner, false)
 		let dist = target.distToVec(pos)
 		if dist < 200.
-			var ntarget = target.toVec2().polarOffset(angleBetweenCoordsR(pos.x, pos.y, target.x, target.y), 200.-dist).toVec3()
+			var ntarget = target.toVec2().polarOffset(anglBetweenCoordsR(pos.x, pos.y, target.x, target.y), 200.-dist).toVec3()
 			setTarget(ntarget, SPEED)
 		else
 			setTarget(target, SPEED)
@@ -2447,9 +2447,9 @@ public class Snowbomb extends Projectile
 				debugPrint(pos.distToVecSquared(e.pos).toString(),1)
 				if pos.distToVecSquared(e.pos) < AOE
 					var c = e castTo Child
-					let angle = angleBetweenCoordsR(pos.x, pos.y, c.pos.x, c.pos.y)
+					let angl = anglBetweenCoordsR(pos.x, pos.y, c.pos.x, c.pos.y)
 					let factor = (300 - distanceBetweenCoords(pos.x, pos.y, c.pos.x, c.pos.y)) / 100.
-					c.addVel(vec3(Cos(angle) * factor * FACTOR, Sin(angle) * factor * FACTOR, 4.))
+					c.addVel(vec3(Cos(angl) * factor * FACTOR, Sin(angl) * factor * FACTOR, 4.))
 					fx.dummy.damageTarget(c.actor, 25*factor)
 					
 			e = e.next
@@ -2477,7 +2477,7 @@ constant real MELT = 192
 public class SnowmanMissile extends HomingProjectile
 
 	construct(vec3 pos, player owner, vec2 target)
-		super(pos, owner, 16., angleBetweenCoordsR(pos.x, pos.y, target.x, target.y), "Abilities\\Weapons\\FrostWyrmMissile\\FrostWyrmMissile.mdl")
+		super(pos, owner, 16., anglBetweenCoordsR(pos.x, pos.y, target.x, target.y), "Abilities\\Weapons\\FrostWyrmMissile\\FrostWyrmMissile.mdl")
 		fx.setOwner(owner, false).setScale(.7)
 		real dst = 0.
 		Child chld = null
@@ -2622,10 +2622,10 @@ public class Child extends PhysicsUnitEntity
 		var tx = GetSpellTargetX()
 		var ty = GetSpellTargetY()
 		var tz = getTerrainZ(tx,ty)
-		let angle = angleBetweenCoordsR(data.pos.x, data.pos.y, tx, ty)
+		let angl = anglBetweenCoordsR(data.pos.x, data.pos.y, tx, ty)
 		switch id
 			case 'A000'
-				new Snowball(vec3(data.actor.getX(), data.actor.getY(), data.pos.z+16.), data.owner, angle )
+				new Snowball(vec3(data.actor.getX(), data.actor.getY(), data.pos.z+16.), data.owner, angl )
 			case 'A001'
 				debugPrint("casted", 1)
 				new Snowbomb(vec3(data.pos.x, data.pos.y, data.pos.z+16.), data.owner, vec3(tx, ty, tz ))
@@ -2641,7 +2641,7 @@ public class Child extends PhysicsUnitEntity
 							SetItemCharges(uit,GetItemCharges(uit) -1)
 						break
 			case 'A002'
-				new Rollingball(vec3(data.pos.x + Cos(angle) * 16., data.pos.y + Sin(angle) * 16., data.pos.z +16.), data.owner, angle )
+				new Rollingball(vec3(data.pos.x + Cos(angl) * 16., data.pos.y + Sin(angl) * 16., data.pos.z +16.), data.owner, angl )
 				for int i = 0 to 5
 					var uit = UnitItemInSlot(data.actor, i)
 					if GetItemTypeId(uit) == 'I004'
@@ -2680,7 +2680,7 @@ public class Child extends PhysicsUnitEntity
 							SetItemCharges(uit,GetItemCharges(uit) -1)
 						break
 			case 'A008'
-				new Iceshard(vec3(data.actor.getX(), data.actor.getY(), data.pos.z+16.), data.owner, angle )
+				new Iceshard(vec3(data.actor.getX(), data.actor.getY(), data.pos.z+16.), data.owner, angl )
 				for int i = 0 to 5
 					var uit = UnitItemInSlot(data.actor, i)
 					if GetItemTypeId(uit) == 'I00E'
@@ -2925,10 +2925,10 @@ package Vectors
 	public function vec3.toString() returns string
 		return "Vector3 [ " + this.x.toString() + ", " + this.y.toString() + ", " + this.z.toString() + " ]"
 	
-	public function vec3.rotate( vec3 axis, real angle ) returns vec3 //angle is taken in radians
+	public function vec3.rotate( vec3 axis, real angl ) returns vec3 //angl is taken in radians
 		var al = axis.x*axis.x+axis.y*axis.y+axis.z*axis.z //axis length^2
-		var c = Cos(angle)
-		var s = Sin(angle)
+		var c = Cos(angl)
+		var s = Sin(angl)
 		if al == 0.0
 			printError("vector.rotate error: The length of the axis vector is 0.0!")
 			return vec3(0,0,0)
@@ -3005,11 +3005,11 @@ package Vectors
 	public function unit.getPos() returns vec2
 		return vec2(GetUnitX(this), GetUnitY(this)) 
 	 	
-	public function vec2.angleTo(vec2 v) returns real
+	public function vec2.anglTo(vec2 v) returns real
 		return Atan2(v.y - this.y, v.x - this.x) 
 		
-	public function vec2.polarOffset(real angle, real dist) returns vec2
-		return vec2(this.x + Cos(angle)*dist, this.y + Sin(angle)*dist)
+	public function vec2.polarOffset(real angl, real dist) returns vec2
+		return vec2(this.x + Cos(angl)*dist, this.y + Sin(angl)*dist)
 		
 	public function vec2.setLength( real length ) returns vec2
 		real l = SquareRoot(this.x*this.x + this.y*this.y)
@@ -3091,47 +3091,47 @@ package Maths
 	public constant real DEGTORAD  	=  0.017453293
 	public constant real RADTODEG  	= 57.295779513
 	
-	public function polarProjectionXR ( real x,  real dist, real angle ) returns real
-		return x + dist * Cos(angle)
+	public function polarProjectionXR ( real x,  real dist, real angl ) returns real
+		return x + dist * Cos(angl)
 	
-	public function polarProjectionYR ( real y,  real dist, real angle ) returns real
-		return y + dist * Sin(angle)
+	public function polarProjectionYR ( real y,  real dist, real angl ) returns real
+		return y + dist * Sin(angl)
 		
-	public function polarProjectionZR ( real z,  real dist, real angle ) returns real
-		return z + dist * Sin(angle)
+	public function polarProjectionZR ( real z,  real dist, real angl ) returns real
+		return z + dist * Sin(angl)
 		
-	public function polarProjectionXD ( real x,  real dist, real angle ) returns real
-		return x + dist * Cos(angle * DEGTORAD)
+	public function polarProjectionXD ( real x,  real dist, real angl ) returns real
+		return x + dist * Cos(angl * DEGTORAD)
 	
-	public function polarProjectionYD ( real y,  real dist, real angle ) returns real
-		return y + dist * Sin(angle * DEGTORAD)
+	public function polarProjectionYD ( real y,  real dist, real angl ) returns real
+		return y + dist * Sin(angl * DEGTORAD)
 		
-	public function polarProjectionZD ( real z,  real dist, real angle ) returns real
-		return z + dist * Sin(angle * DEGTORAD)
+	public function polarProjectionZD ( real z,  real dist, real angl ) returns real
+		return z + dist * Sin(angl * DEGTORAD)
 	
-	public function angleBetweenCoordsD ( real x1, real y1, real x2, real y2 ) returns real
+	public function anglBetweenCoordsD ( real x1, real y1, real x2, real y2 ) returns real
 		return RADTODEG * Atan2(y2 - y1, x2 - x1)
 		
-	public function angleBetweenCoordsR ( real x1, real y1, real x2, real y2 ) returns real
+	public function anglBetweenCoordsR ( real x1, real y1, real x2, real y2 ) returns real
 		return Atan2(y2 - y1, x2 - x1)
 		
 
 	public function distanceBetweenCoords ( real x1, real y1, real x2, real y2 ) returns real
 		return SquareRoot((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1))
 		
-	public function getSlopeAngle( real z1, real z2, real dist ) returns real
+	public function getSlopeangl( real z1, real z2, real dist ) returns real
 		return Atan2(z2-z1, dist )
 		
-	public function polarProjection3d( vec3 pos, real distance, real angleGround, real angleAir ) returns vec3
-		real x = pos.x + distance * Cos(angleGround) * Sin(angleAir)
-		real y = pos.y + distance * Sin(angleGround) * Sin(angleAir)
-		real z = pos.z + distance * Cos(angleAir) 
+	public function polarProjection3d( vec3 pos, real distance, real anglGround, real anglAir ) returns vec3
+		real x = pos.x + distance * Cos(anglGround) * Sin(anglAir)
+		real y = pos.y + distance * Sin(anglGround) * Sin(anglAir)
+		real z = pos.z + distance * Cos(anglAir) 
 		return vec3(x,y,z)
 		
-	public function angleToVector( real angle ) returns vec2
-		return vec2(Cos(angle), Sin(angle))
+	public function anglToVector( real angl ) returns vec2
+		return vec2(Cos(angl), Sin(angl))
 		
-	public function vectorToAngle( vec2 v ) returns real
+	public function vectorToangl( vec2 v ) returns real
 		return Atan2(v.y, v.x)
 		
 
@@ -5807,7 +5807,7 @@ package Fx
 	public class Fx
 		private unit 	dummy	= null
 		private effect 	fx 		= null
-		private real 	zAngle  = 0.
+		private real 	zangl  = 0.
 		private string 	sfxPath
 		
 		private colorA col
@@ -5899,31 +5899,31 @@ package Fx
 			dummy.addEffect(fx, "origin").destr()
 			return this
 		
-		/** Get the xy angle in radians */
-		function getXYAngle() returns real
+		/** Get the xy angl in radians */
+		function getXYangl() returns real
 			return dummy.getFacing()*bj_DEGTORAD
  
-		/** Set the angle in degrees */
-		function setXYAngle(real value) returns Fx
+		/** Set the angl in degrees */
+		function setXYangl(real value) returns Fx
 			dummy.setFacing(value)
 			return this
 		
 		/** Creates a new dummy with the given facing in order to achieve instant turning. */
-		function setXYAngleInstant(real value) returns Fx
+		function setXYanglInstant(real value) returns Fx
 			fx.destr()
 			recycleDummy(dummy)
 			dummy = newDummy( getX(), getY(), 0, value)
 			setFx(sfxPath)
 			return this
 		
-		/** Get the z angle in radians */
-		function getZAngle() returns real
-			return zAngle
+		/** Get the z angl in radians */
+		function getZangl() returns real
+			return zangl
 		
-		/** Set the z angle in radians */
-		function setZAngle(real value) returns Fx
+		/** Set the z angl in radians */
+		function setZangl(real value) returns Fx
 			int i = R2I(value*bj_RADTODEG + 90.5)
-			zAngle = value
+			zangl = value
 			if i >= 180
 				i = 179
 			else if i < 0
@@ -6026,8 +6026,8 @@ package DummyRecycler
 
 	constant int ANG_N = 8
 
-	-   How many different angles are recognized by the system. You can't do
-	360 different angles because  you're going to have thousands of dummy
+	-   How many different angls are recognized by the system. You can't do
+	360 different angls because  you're going to have thousands of dummy
 	units stored and that's ridiculous, the game lags enough at 1000 units.
 	Increasing ANG_N increases realism but decreases the chance that a dummy
 	unit will be available to be recycled. I don't recommend making this any
@@ -6035,7 +6035,7 @@ package DummyRecycler
 
 	constant int ANG_STORAGE_MAX = 12
 
-	-   How many dummy units are stored per angle. This limit is important
+	-   How many dummy units are stored per angl. This limit is important
 	because you might have a spike at one point in the game where many units
 	are created, which could lead to many of those dummy units never being
 	used again.
@@ -6067,11 +6067,11 @@ package DummyRecycler
 
 		When you are done with that dummy unit, recycle it via this function.
 		This function is pretty intelligent and resets that unit's animation
-		and its facing angle so you don't have to.
+		and its facing angl so you don't have to.
 */
 
-	constant int ANG_N = 8				//# of indexed angles. Higher value increases realism but decreases recycle frequency.
-	constant int ANG_STORAGE_MAX = 12   //Max dummies per indexed angle. I recommend lowering this if you increase ANG_N.
+	constant int ANG_N = 8				//# of indexed angls. Higher value increases realism but decreases recycle frequency.
+	constant int ANG_STORAGE_MAX = 12   //Max dummies per indexed angl. I recommend lowering this if you increase ANG_N.
 
 	constant real DEATH_TIME = 2. //Allow the special effect on
 	//the unit to complete its "death" animation in this timeframe. Must
@@ -6080,8 +6080,8 @@ package DummyRecycler
 	//your missile-units' effect attachments, just to be safe.
 
 
-	constant int ANG_VAL = 360 div ANG_N //Generate angle value from ANG_N.
-	constant int ANG_MID = ANG_VAL div 2 //The middle value of angle value.
+	constant int ANG_VAL = 360 div ANG_N //Generate angl value from ANG_N.
+	constant int ANG_MID = ANG_VAL div 2 //The middle value of angl value.
 
 	//Misc vars
 	unit array stack	   //Recycled dummy units.
@@ -6097,7 +6097,7 @@ package DummyRecycler
 
 	//=======================================================================
 	// Get a recycled dummy missile unit. If there are no recycled dummies
-	// that are already facing the angle you need, it creates a new dummy for
+	// that are already facing the angl you need, it creates a new dummy for
 	// you.
 	//
 	public function newDummy( real x, real y, real z, real facing ) returns unit
@@ -6144,7 +6144,7 @@ package DummyRecycler
 				return
 			//Recycle this
 			recycle = queueLast[rc]
-			//Index the dummy unit to an available facing angle.
+			//Index the dummy unit to an available facing angl.
 			int i = R2I(GetUnitFacing(u)) div ANG_VAL
 			if stackN[i] < ANG_STORAGE_MAX 
 				i = ANG_N
@@ -6172,29 +6172,29 @@ package DummyRecycler
 			printError("[MissileRecycler] Error: Attempt to recycle invalid unit.")
 
 	//=======================================================================
-	// Map the dummy units to their facing angles (map below is if ANG_N is
+	// Map the dummy units to their facing angls (map below is if ANG_N is
 	// 4 and ANG_STORAGE_MAX is 3).
 	//
-	// angle[0] (0)   -  [4] [5] [6]
-	// angle[1] (90)  -  [7] [8] [9]
-	// angle[2] (180) - [10][11][12]
-	// angle[3] (270) - [13][14][15]
+	// angl[0] (0)   -  [4] [5] [6]
+	// angl[1] (90)  -  [7] [8] [9]
+	// angl[2] (180) - [10][11][12]
+	// angl[3] (270) - [13][14][15]
 	//
 	init
 		int end
 		int n = ANG_N
-		real angle
+		real angl
 		real x = maxx
 		real y = maxy
 		for int i = ANG_N downto 0
 			stackN[i] = ANG_STORAGE_MAX
 			queueNext[i] = n
-			angle = (i * ANG_VAL + ANG_MID).toReal()
+			angl = (i * ANG_VAL + ANG_MID).toReal()
 			end = n + ANG_STORAGE_MAX
 			queueLast[i] = end - 1
 			while n < end
 				queueNext[n] = n + 1
-				stack[n] = CreateUnit(DUMMY_PLAYER, DUMMY_UNIT_ID, x, y, angle)
+				stack[n] = CreateUnit(DUMMY_PLAYER, DUMMY_UNIT_ID, x, y, angl)
 				stack[n].addAbility(HEIGHT_ENABLER).removeAbility(HEIGHT_ENABLER)
 				stack[n].addAbility(LOCUST_ID)
 				PauseUnit(stack[n], true)
