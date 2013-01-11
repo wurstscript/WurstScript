@@ -513,7 +513,7 @@ public class ClassesExtTests extends WurstScriptTest {
 	
 	@Test
 	public void teststaticoverride() {
-		testAssertErrorsLines(false, "Cannot overwrite static func",  
+		testAssertErrorsLines(false, "Cannot override static func",  
 				"package test",
 				"	native testSuccess()",
 				"	class A",
