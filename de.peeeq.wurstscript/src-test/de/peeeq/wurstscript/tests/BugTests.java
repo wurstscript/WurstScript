@@ -177,4 +177,24 @@ public class BugTests extends WurstScriptTest {
 				"endpackage");
 	}
 	
+	@Test
+	public void nonAbstractClass() {
+		testAssertErrorsLines(false, "class A is not abstract", 
+				"package test",
+				"	class A",
+				"		abstract function blub()",
+				"endpackage");
+	}
+	
+	@Test
+	public void staticOverride() {
+		testAssertErrorsLines(false, "can't override static functions", 
+				"package test",
+				"	abstract class A",
+				"		abstract function blub()",
+				"	class B extends A",
+				"		override static function blub()",
+				"endpackage");
+	}
+	
 }
