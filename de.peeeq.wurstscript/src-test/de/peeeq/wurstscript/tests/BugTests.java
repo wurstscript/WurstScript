@@ -188,7 +188,7 @@ public class BugTests extends WurstScriptTest {
 	
 	@Test
 	public void staticOverride() {
-		testAssertErrorsLines(false, "can't override static functions", 
+		testAssertErrorsLines(false, "Cannot override", 
 				"package test",
 				"	abstract class A",
 				"		abstract function blub()",
