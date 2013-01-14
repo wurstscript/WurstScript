@@ -14,6 +14,10 @@ The sausage is a symbol for encapsulation (Peel/Pelle), compactness (sausage mea
 **Remember**: WurstScript and its related tools are in a probably unstable state and under heavy development, so you may encounter errors and bugs we don't know about. Please report any
 problem with our [issue tracker at GitHub](https://github.com/peq/WurstScript/issues/new).
 
+*Note*: WurstScript is written in Java and should therefore be useable on Windows, OS/X and most Linux Distributions. 
+This applies only to the compiler & the eclipse plugin, because the Wurstpack is based on the Jass New Gen Pack.
+
+
 # Syntax
 The WurstScript Syntax uses indention to define Blocks, rather than using curly
 braces (as in Java) or keywords like 'endif' (as in Jass). Indentation must not use spaces, only tabs are permitted.
@@ -95,12 +99,14 @@ If the function does not return a value this part is omitted.
 ## Variables
 
 Global (local) variables can be declared anywhere in a package (function). 
-A constant value may be declared using the _let_ keyword. Variables are declared
+A constant value may be declared using the _let_ or the _constant_ keyword, as seen below. Variables are declared
 by using the _var_ keyword or writing the type of the variable before its name.
 Remember that functionnames have to start with a lowercase letter.
 
 	// declaring a constant - the type is inferred from the initial expression
 	let x = 5
+	// The same but with explicit type
+	constant real x = 5
 	// declaring a variable - the inferring works the same as 'let', but the value cn be changed
 	var y = 5
 	// declaring a variable with explicit type
@@ -115,6 +121,7 @@ Remember that functionnames have to start with a lowercase letter.
         print( name )
         real x = u.getX()
         real y = u.getY()
+		let sum = x + y
         
         
 With these basic concepts you should be able to do anything you already know for jass.
@@ -150,7 +157,7 @@ Semi-Formal syntax:
 An _IDENTIFIER_ is a name of a variable or function. It may start with letters and may
 contain letters, numbers and underscores. 
 
-The definition above does not show calls to generic functions. These will be handled in 
+**Note**: The definition above does not show calls to generic functions. These will be handled in 
 a separate chapter about generics.
 
 
@@ -205,7 +212,7 @@ nesting ifs and else ifs, with the special default case.
 	for int i = 0 to 10 step 2 // for-loop with step 2
 		...
 
-	for int i = 10 downto 0 // wurst can also count down wards
+	for int i = 10 downto 0 // wurst can also count downwards
         ...
 
 	for unit u in someGroup // loop over all units in a group
@@ -246,30 +253,36 @@ A for-in loop can be transformed into an equivalent while-loop very easily:
 If you already have an iterator or want to access further functions of the iterator you can use the for-from loop.
 The translation is very similar:
 
-	for A a from i
-		Statements
+	let iterator = myList.iterator()
+	for segment from iterator
+		//Statements
+	iterator.close()
 	
 	// is equivalent to:
-	while i.hasNext()
-		A a = i.next()
-		Statements
+	let iterator = myList.iterator()
+	while iterator.hasNext()
+		segment = iterator.next()
+		//Statements
+	iterator.close()
 
-
-**Note** that you have to close the iterator i yourself.
+**Note** that you have to close the iterator yourself.
 
 ### Iterators
 
 
 So how do you write your own iterator? Just provide the following functions:
--  function hasNext() returns boolean (return if there is another object left)
--  function mext() returny TYPE (return the next element for your type)
+-  function **hasNext()** returns boolean (return if there is another object left)
+-  function **next()** returns TYPE (return the next element for your type)
 
 With this two functions you get an iterator which can be used in for-from loops.
 
 To make a type usable in for-in loops you have to provide 
--  function iterator() returns Iterator
-for your type, that returns an iterator object.
-That iterator class should also provide a close functions which clears all resources allocated by the iterator. 
+
+-  function *iterator()* returns Iterator
+
+for your type, that returns the object for the iteration. 
+This can either be a handle, like in the group-iterator or an object like the List-iterator.
+Your iterator should also provide a close function which clears all resources allocated by it. 
 Most often the iterator just destroys itself in the close function.
 
 Look at the 2 examples from the stdlib:
@@ -292,6 +305,9 @@ Look at the 2 examples from the stdlib:
 
 	public function group.close()
 		DestroyGroup(this)
+		
+As you can see, the iterator is a group, therefore the group needs to provide the functions mentioned above.
+This is done via extension functions.
 		
 **LinkedList-Iterator**
 
@@ -319,6 +335,9 @@ Look at the 2 examples from the stdlib:
 
 		function close()
 			destroy this
+			
+The LinkedList Iterator is a little different, because it's a class. Still it provides the needed functions and is therefore viable as iterator.
+It also contains some members to help iterating. A new instance if LLIterator is returned from the .iterator() function of the LinkedList.
 
 ### Assignment Shorthands
 
@@ -354,13 +373,13 @@ Packages can import other packages to access classes, functions, variables, etc.
 	package Blub
 		import SomePackage
 		import AnotherPackge // importing more than 1 package
-		import MyExternalWurstFile // Import a scriptfile from the class-lib directory 
+		import MyExternalWurstFile // Import a scriptfile from the eclipseProject
 		import public PackageX // public import (see below)
 	endpackage
 
 
 When importing an external Scriptfile you just write the Filename without .wurst.
-Remember to name the package inside your file the same as the name of the scriptfile (In the EclipsePlugin this is enforced, when working with WE only, this might be the source of packages not being found).
+**Remember** to name the package inside your file the same as the name of the scriptfile (In the EclipsePlugin this is enforced, when working with WE only, this might be the source of packages not being found).
 
 ### import public
 
@@ -378,9 +397,9 @@ By default imported names are not exported by the package. For example the follo
 	endpackage
 
 
-The variable x is usable in package B but it is not exported from B. So in the package C we cannot use the variable x. We could 
-fix this by simply importing A into C but sometimes you want to avoid those imports. Then you can use public imports. Those
-imports will export everything which is imported. Thus the following code will work:
+The variable x is usable in package B but it is not exported from B. So in package C we cannot use the variable x. 
+We could fix this by simply importing A into C but sometimes you want to avoid those imports.
+Using public imports solves this problem because they will export everything that is imported. Thus the following code will work:
 
 	package A
 		public constant x = 5
@@ -395,7 +414,7 @@ imports will export everything which is imported. Thus the following code will w
 
 ### The special Wurst package
 
-By default, every package imports a package named Wurst which is defined in the standard library. This package exports some
+By default, every package imports a package named Wurst.wurst which is defined in the standard library. This package exports some
 packages which are used very often. 
 
 If you do not want this standard import you can disable it by importing a package NoWurst. This directive is mainly used to
@@ -458,7 +477,7 @@ current package are initialized.
 The initialization rules for Wurst are very simple:
 
 1. Inside a package initialization is done from top to bottom.
-	The initializer of a package is the union of all global variable static initializers
+	The initializer of a package is the union of all globale variable static initializers
 	(including static class variables) and all init blocks.
 2. If a package A imports a package B, the initializer of package B is run before A's.
 3. If packages import each other, the order is undefined.
