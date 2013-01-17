@@ -25,13 +25,20 @@ Wir werden in diesem Tutorial das Wurst-Plugin für Eclipse benutzen. Um dies zu
 2. Das Heruntergeladene Paket kann an einer beliebigen Stelle entpackt werden. Im entpackten Ordner befindet sich die Anwendung eclipse, welche wir nun starten.
 3. Um das Wurst-Plugin zu installieren gehen wir in das Menü unter "Help -> Install New Software"
 	Dort tragen wir nun die Update-Seite für das Plugin ein, indem wir auf "Add..." klicken.
-	Als "Location" geben wir "http://peeeq.de/wurst/updateSite/" ein und als "Name" geben wir "Wurst" ein.
+	Als "Location" geben wir "http://sunayama.de/WurstUpdt/site" ein und als "Name" geben wir "Wurst" ein.
 	Nun müssen wir nur noch die Update-Seite auswählen, dann in der Liste "Wurst IDE support" markieren und mit
 	einem Klick auf "Next" fortfahren. Die Warnung während der Installation kann ignoriert werden.
 	Nach der Installation muss Eclipse neu gestartet werden.
 
 
-Außerdem brauchen wir noch das Wurstpack: [Download](http://peeeq.de/wurst/Wurstpack.zip)
+Außerdem brauchen wir noch das Wurstpack: 
+[Download 32 Bit Version](https://dl.dropbox.com/u/103859688/WURST/Wurstpack32.rar)
+[Download 64 Bit Version](https://dl.dropbox.com/u/103859688/WURST/Wurstpack64.rar)
+Die benötigte Version hängt nicht von deinem Betriebsystem ab, sondern von deiner Java Version!
+
+Um den Wurstpack zu installieren entpackage das Archiv in ein belibiges Verzeichnis, und führe dann die "updater.jar aus.
+
+Weitere Tipps bezüglich der Installation kannst du [hier](http://peq.github.com/WurstScript/installation.html) finden.
 
 Das Wurstpack beinhaltet den Worldeditor mit eingebautem Wurst-Compiler und es beinhaltet die Standard-Bibliothek.
 	
@@ -427,6 +434,132 @@ Tipp: Der Operator `mod` berechnet den Rest einer Division (zum Beispiel 5 mod 3
 
 
 ### For Schleife
+
+For Schleifen ermöglichen es dir einen gewissen Codeabschnitt mehrmals aufzurufen. 
+Dabei wird eine sogenannte Laufvariable welche den Typ Integer hat bei jedem Durchlauf um eins erhöht bis eine Grenze erreicht ist.
+For Schleifen können überall in einer Funktion deklariert(((, und sogar ineinander verschachtelt))) werden.  
+Um eine For Schleife zu erstellen, schreiben wir einfach das Schlüsselwort "for" am Anfang der Zeile. Danach legen wir die Laufvariable fest,
+und abschließend legen wir die Grenze fest bist zu welcher gezählt werden soll mit dem Schlüsselwort "to". Zusammengefasst in eine For Schleife also so aufgebaut:
+
+	for + Laufvariable + to + Grenze
+
+Eine Schleife die von eins bis zehn zählt mit der Laufvariable "i" sieht demnach so aus:
+
+	for int i = 1 to 10
+
+Um besser Verstehen zu können was genau eine For Scheife macht, führen wir die folgende Funktion aus:
+
+	function forSchleife()
+		for int i = 1 to 10
+			print(I2S(i)) // Diese Printfunktion gibt immer den aktuellen Wert von i aus
+			
+
+Ausgabe der Konsole:
+
+	> forSchleife()
+	1
+	2
+	3
+	4
+	5
+	6
+	7
+	8
+	9
+	10
+	
+Wie man sieht wird die Funktion print so lange aufgerufen bis i den Wert 10 hat.
+
+
+Wichtiges zu For Schleifen:
+
+* Auch hier gibt wieder die Einrückung an, was in die Schleife gehört und was nicht
+* In Schleifen können beliebig viele Funktionen (((und Natives))) aufgerufen werden
+* Mit dem Schlüsselwort "downto" statt "to" zählen wir nach unten statt nach oben
+	*Beispiel: for int i = 10 downto 1
+* Mit der Erweiterung "step" können wir in größeren Schritten zählen
+	*Beispiel: for int i = 0 to 10 step 2
+* For Schleifen werden "sofort" ausgeführt, zwischen den Durchläufen gibt es keine Pausen
+
+
+(((Einschub Typecasting:)))
+Wie dir sicherlich aufgefallen ist, wird oben in der print Funktion eine weitere Funktion mit dem Namen I2S aufgerufen.
+Dies ist nötig, weil Ausgaben müssen immer in der Form von Strings stattfinden. Wollen wir also den Wert einer Integer Variable ausgeben,
+müssen wir diese zuerst in einen String umwandeln. Wc3 liefert uns dazu funktionen (((eigentlich natives))) wie I2S mit welcher
+wir eine Integervariable zu einem String umwandeln. Ausgeschieben hätte diese Funktion diese Bedeutung: "Integer to String"
+Demnach ergibt sich auch die Namensgebung der Funktionen: Anfangsbuchstabe vom Ursprungsdatentyp + 2 + Anfangsbuchstaben vom Zieldatentyp.
+
+####Übung 3.1
+Nicht die Console benutzen!
+	
+	function blub(int bisHier)
+		for int i = 0 to bisHier
+			print(I2S(i)) // gibt den wert von i1 aus
+			
+	function bla(int vonHier, int bisHier)
+		for int i = vonHier to bisHier
+			print(I2S(i)) // gibt den wert von i1 aus
+			
+	function blop(int vonHier, int bisHier)
+		for int i = vonHier downto bisHier
+			print(I2S(i)) // gibt den wert von i1 aus
+			
+	function bip(int vonHier, int bisHier)
+		for int i = vonHier to bisHier step 2
+			print(I2S(i)) // gibt den wert von i1 aus
+			
+	function bibber(int vonHier, int bisHier, int soSchnell)
+		for int i = vonHier to bisHier step soSchnell
+			print(I2S(i)) // gibt den wert von i1 aus
+			
+	function blubber(int vonHier, int bisHier, int soSchnell)
+		for int i = vonHier downto bisHier step soSchnell
+			print(I2S(i)) // gibt den wert von i1 aus
+			
+	function baba()
+		for int i = 1 to 2
+			print(I2S(i)) // gibt den wert von i1 aus
+			for int i2 = 10 downto 9
+				print(I2S(i2)) // gibt den wert von i2 aus
+			
+Was gibt die Konsole bei folgenden Aufrufen aus?
+	
+	blub(5)
+	blub(-1)
+	bla(5, 10)
+	bla(10, 5)
+	blop(3, 9)
+	blop(8, 4)
+	blop(8, 8)
+	bip(2, 3)
+	bip(3, 7)
+	bip(100, 100)
+	bibber(10, 16, 3)
+	bibber(10, 15, 5)
+	bibber(20, 25, 1)
+	blubber(10, 15, 9)
+	blubber(45, 5, 5)
+	baba()
+	
+Zum Überprüfen darf die Konsole verwendet werden, nehm dir aber Zeit für die Lösungen.
+
+####Übung 3.2
+
+Schreibe eine Funktion "abstand", die als Parameter einen Integer übergeben bekommt. 
+Die Funktion soll für jeden Punkt den der übergebende Wert von der Zahl 20 abweicht das Wort "Abstand" ausgeben.
+
+Wird die Funktion also mit 20 aufgerufen soll nichts geschehen. Wird sie mit 14 aufgerufen soll 6 mal Abstand ausgeben werden, da der Abstand zu der Zahl 20 den Wert 6 beträgt.
+
+Hier ein paar Testwerte und das richtige ergebnis:
+1 = 19 mal  
+20 = 0  
+-5 = 25  
+19 = 1  
+25 = 5  
+21 = 1  
+30 = 10  
+
+Tip: Verusche das Problem aufzuteilen, für Zahlen die größer als 20 sind und die kleiner als 20 sind
 
 ### While Schleife
 
