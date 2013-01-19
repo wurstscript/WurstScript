@@ -11,6 +11,7 @@ import org.junit.Test;
 
 import com.google.common.base.Function;
 
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
@@ -40,7 +41,7 @@ public class UtilsTest {
 			  Ast.WPackage(source.copy() , Ast.Modifiers(), "test", Ast.WImports(), Ast.WEntities(
 					  Ast.GlobalVarDef(source.copy(), Ast.Modifiers(), Ast.NoTypeExpr(), "v1", Ast.ExprIntVal(source.copy(), 5)),
 					  Ast.GlobalVarDef(source.copy(), Ast.Modifiers(), Ast.NoTypeExpr(), "v2", Ast.ExprVarAccess(source.copy(), "r1")),
-					  Ast.GlobalVarDef(source.copy(), Ast.Modifiers(), Ast.NoTypeExpr(), "v3", Ast.ExprBinary(source.copy(), Ast.ExprIntVal(source.copy(), 3), Ast.OpPlus(), Ast.ExprVarAccess(source.copy(), "r2"))),
+					  Ast.GlobalVarDef(source.copy(), Ast.Modifiers(), Ast.NoTypeExpr(), "v3", Ast.ExprBinary(source.copy(), Ast.ExprIntVal(source.copy(), 3), WurstOperator.PLUS, Ast.ExprVarAccess(source.copy(), "r2"))),
 					  Ast.GlobalVarDef(source.copy(), Ast.Modifiers(), Ast.NoTypeExpr(), "v4", Ast.ExprVarAccess(source.copy(), "r3"))
 					  )))		  
 			  );

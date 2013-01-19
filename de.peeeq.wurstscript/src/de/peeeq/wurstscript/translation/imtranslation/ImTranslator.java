@@ -36,6 +36,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 import de.peeeq.datastructures.Partitions;
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithName;
@@ -779,21 +780,21 @@ public class ImTranslator {
 			List<ImExpr> conditions = Lists.newArrayList();
 			if (knownRange.start < knownRange.end) {
 				if (range.start == range.end) {
-					conditions.add(JassIm.ImOperatorCall(Ast.OpEquals(), 
+					conditions.add(JassIm.ImOperatorCall(WurstOperator.EQ, 
 							JassIm.ImExprs(
 									typeId.get(thisVar),
 									JassIm.ImIntVal(range.start))));
 				} else {
 					// start condition
 					if (range.start > knownRange.start) {
-						conditions.add(JassIm.ImOperatorCall(Ast.OpGreaterEq(), 
+						conditions.add(JassIm.ImOperatorCall(WurstOperator.GREATER_EQ, 
 								JassIm.ImExprs(
 										typeId.get(thisVar),
 										JassIm.ImIntVal(range.start))));
 					}
 					// end condition
 					if (range.end < knownRange.end) {
-						conditions.add(JassIm.ImOperatorCall(Ast.OpLessEq(),
+						conditions.add(JassIm.ImOperatorCall(WurstOperator.LESS_EQ,
 								JassIm.ImExprs(
 										typeId.get(thisVar),
 										JassIm.ImIntVal(range.end))));
@@ -808,7 +809,7 @@ public class ImTranslator {
 						);
 			} else {
 				return Collections.<ImStmt>singletonList(
-						JassIm.ImIf(emptyTrace, JassIm.ImOperatorCall(Ast.OpAnd(), 
+						JassIm.ImIf(emptyTrace, JassIm.ImOperatorCall(WurstOperator.AND, 
 								ImExprs(conditions.get(0), conditions.get(1))), 
 								ImStmts(result), ImStmts())
 						);
@@ -825,7 +826,7 @@ public class ImTranslator {
 			List<ImStmt> case2 = createDispatchHelper(instances2, splitAt+1, end, funcDef, f, typeId, new IntRange(typeIdSplitPoint+1, knownRange.end));
 
 			// if (thistype <= typeIdSplitPoint)
-			ImExpr cond = JassIm.ImOperatorCall(Ast.OpLessEq(), 
+			ImExpr cond = JassIm.ImOperatorCall(WurstOperator.LESS_EQ, 
 					JassIm.ImExprs(
 							typeId.get(thisVar),
 							JassIm.ImIntVal(typeIdSplitPoint)));

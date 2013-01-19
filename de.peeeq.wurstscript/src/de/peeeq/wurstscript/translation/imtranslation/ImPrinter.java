@@ -289,10 +289,10 @@ public class ImPrinter {
 		if (e.getArguments().size() == 2) {
 			// binary operator
 			e.getArguments().get(0).print(sb, indent);
-			sb.append(" " + e.getOp().toSymbol() + " ");
+			sb.append(" " + e.getOp() + " ");
 			e.getArguments().get(1).print(sb, indent);
 		} else {
-			sb.append(e.getOp().toSymbol());
+			sb.append(e.getOp());
 			for (ImExpr a : e.getArguments()) {
 				sb.append(" ");
 				a.print(sb, indent);

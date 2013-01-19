@@ -5,6 +5,7 @@ import java.util.Map;
 
 import com.google.common.collect.Lists;
 
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
@@ -38,24 +39,6 @@ import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.NoTypeExpr;
-import de.peeeq.wurstscript.ast.OpAnd;
-import de.peeeq.wurstscript.ast.OpBinary;
-import de.peeeq.wurstscript.ast.OpDivInt;
-import de.peeeq.wurstscript.ast.OpDivReal;
-import de.peeeq.wurstscript.ast.OpEquals;
-import de.peeeq.wurstscript.ast.OpGreater;
-import de.peeeq.wurstscript.ast.OpGreaterEq;
-import de.peeeq.wurstscript.ast.OpLess;
-import de.peeeq.wurstscript.ast.OpLessEq;
-import de.peeeq.wurstscript.ast.OpMinus;
-import de.peeeq.wurstscript.ast.OpModInt;
-import de.peeeq.wurstscript.ast.OpModReal;
-import de.peeeq.wurstscript.ast.OpMult;
-import de.peeeq.wurstscript.ast.OpNot;
-import de.peeeq.wurstscript.ast.OpOr;
-import de.peeeq.wurstscript.ast.OpPlus;
-import de.peeeq.wurstscript.ast.OpUnary;
-import de.peeeq.wurstscript.ast.OpUnequals;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
@@ -267,270 +250,167 @@ public class AttrExprType {
 	public static  WurstType calculate(final ExprBinary term)  {
 		final WurstType  leftType = term.getLeft().attrTyp();
 		final WurstType  rightType = term.getRight().attrTyp();
-		return term.getOp().match(new OpBinary.Matcher<WurstType>() {
-
-
-
-			private WurstType requireEqualTypes(
-					WurstTypeBool requiredType, WurstTypeBool resultType) {
-				if (!leftType.isSubtypeOf(requiredType, term)) {
-					term.getLeft().addError("Operator " + term.getOp() + " requires two operands of " +
-					"type " + requiredType + " but left type was " + leftType);
-					return WurstTypeUnknown.instance();
-				}
-				if (!leftType.isSubtypeOf(requiredType, term)) {
-					term.getRight().addError("Operator " + term.getOp() + " requires two operands of " +
-					"type " + requiredType + " but right type was " + leftType);
-					return WurstTypeUnknown.instance();
-				}
-				return resultType;
+		switch (term.getOp()) {
+		case AND:
+		case OR:
+			return requireEqualTypes(term, WurstTypeBool.instance(), WurstTypeBool.instance());
+		case EQ:
+		case NOTEQ: {
+			if (leftType.equalsType(rightType, term)) {
+				return WurstTypeBool.instance();
 			}
 
-			@Override
-			public WurstType case_OpOr(OpOr op)  {
-				return requireEqualTypes(WurstTypeBool.instance(), WurstTypeBool.instance());
+			if (leftType.isSubtypeOf(rightType, term) || rightType.isSubtypeOf(leftType, term)) {
+				return  WurstTypeBool.instance();
 			}
 
-
-			@Override
-			public WurstType case_OpAnd(OpAnd op)  {
-				return requireEqualTypes(WurstTypeBool.instance(), WurstTypeBool.instance());
-			}
-
-
-			@Override
-			public WurstType case_OpEquals(OpEquals op)
-			{
-				return caseEquality();
-
-			}
-
-
-			@Override
-			public WurstType case_OpUnequals(OpUnequals term)
-			{
-				return caseEquality();
-			}
-
-			private WurstType caseEquality() {
-
-				if (leftType.equalsType(rightType, term)) {
-					return WurstTypeBool.instance();
-				}
-
-				if (leftType.isSubtypeOf(rightType, term) || rightType.isSubtypeOf(leftType, term)) {
-					return  WurstTypeBool.instance();
-				}
-
-				if (Utils.isJassCode(term)) {
-					if (leftType.isSubtypeOf(WurstTypeReal.instance(), term) || leftType.isSubtypeOf(WurstTypeInt.instance(), term)) {
-						if (rightType.isSubtypeOf(WurstTypeReal.instance(), term) || rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
-							return  WurstTypeBool.instance();									
-						}
+			if (Utils.isJassCode(term)) {
+				if (leftType.isSubtypeOf(WurstTypeReal.instance(), term) || leftType.isSubtypeOf(WurstTypeInt.instance(), term)) {
+					if (rightType.isSubtypeOf(WurstTypeReal.instance(), term) || rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
+						return  WurstTypeBool.instance();									
 					}
 				}
-
-				// TODO check if the intersection of the basetypes of lefttpye and righttype is
-				// not empty. Example:
-				// class A implements B,C
-				// -> B and C should be comparable
-				term.addError("Cannot compare types " + leftType + " with " + rightType);
-
-				return WurstTypeBool.instance();
 			}
 
+			// TODO check if the intersection of the basetypes of lefttpye and righttype is
+			// not empty. Example:
+			// class A implements B,C
+			// -> B and C should be comparable
+			term.addError("Cannot compare types " + leftType + " with " + rightType);
 
+			return WurstTypeBool.instance();
+		}
 
-
-			@Override
-			public WurstType case_OpLessEq(OpLessEq term)
-			{
-				return caseCompare();
+		case GREATER:
+		case GREATER_EQ:
+		case LESS:
+		case LESS_EQ: {
+			if (!(leftType.isSubtypeOf(WurstTypeInt.instance(), term)
+					|| leftType.isSubtypeOf(WurstTypeReal.instance(), term))) {
+				term.getLeft().addError("Can not compare with value of type " + leftType);
 			}
-
-
-
-
-			@Override
-			public WurstType case_OpLess(OpLess term)  {
-				return caseCompare();
+			if (!(rightType.isSubtypeOf(WurstTypeInt.instance(), term)
+					|| rightType.isSubtypeOf(WurstTypeReal.instance(), term))) {
+				term.getRight().addError("Can not compare with value of type " + rightType);
 			}
-
-			@Override
-			public WurstType case_OpGreaterEq(OpGreaterEq term)
-			{
-				return caseCompare();
+			return WurstTypeBool.instance();
+		}
+		case PLUS:
+			if (leftType instanceof WurstTypeString && rightType instanceof WurstTypeString) {
+				return WurstTypeString.instance();
+			} if (bothTypesRealOrInt(term)) {
+				return caseMathOperation(term);
+			} else {
+				return handleOperatorOverloading(term);
 			}
-
-			@Override
-			public WurstType case_OpGreater(OpGreater term)
-			{
-				return caseCompare();
+		case MINUS:
+		case MULT:
+			if (bothTypesRealOrInt(term)) {
+				return caseMathOperation(term);
+			} else {
+				return handleOperatorOverloading(term);
 			}
-
-			private WurstType caseCompare() {
-				if (!(leftType.isSubtypeOf(WurstTypeInt.instance(), term)
-						|| leftType.isSubtypeOf(WurstTypeReal.instance(), term))) {
-					term.getLeft().addError("Can not compare with value of type " + leftType);
+		case DIV_REAL:
+			if (Utils.isJassCode(term)) {
+				return caseMathOperation(term);
+			} else if (bothTypesRealOrInt(term)) {
+				return WurstTypeReal.instance();			
+			} else {
+				return handleOperatorOverloading(term);
+			}
+		case MOD_REAL:
+			if (leftType.isSubtypeOf(WurstTypeReal.instance(), term) || leftType.isSubtypeOf(WurstTypeInt.instance(), term)) {
+				if (rightType.isSubtypeOf(WurstTypeReal.instance(), term) || rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
+					return WurstTypeReal.instance();
 				}
-				if (!(rightType.isSubtypeOf(WurstTypeInt.instance(), term)
-						|| rightType.isSubtypeOf(WurstTypeReal.instance(), term))) {
-					term.getRight().addError("Can not compare with value of type " + rightType);
-				}
-				return WurstTypeBool.instance();
 			}
-			
-			public boolean bothTypesRealOrInt() {
-				return ((leftType.isSubtypeOf(WurstTypeInt.instance(), term) || leftType .isSubtypeOf(WurstTypeReal.instance(), term)) 
-						&& (rightType.isSubtypeOf(WurstTypeInt.instance(), term) || rightType.isSubtypeOf(WurstTypeReal.instance(), term)));
+			term.addError("Operator " + term.getOp() +" is not defined for " +
+			"operands " + leftType + " and " + rightType);
+			return WurstTypeUnknown.instance();
+		case MOD_INT:
+		case DIV_INT:
+			if (leftType.isSubtypeOf(WurstTypeInt.instance(), term) || rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
+				return leftType;
 			}
-
-			@Override
-			public WurstType case_OpPlus(OpPlus op)  {
-				if (leftType instanceof WurstTypeString && rightType instanceof WurstTypeString) {
-					return WurstTypeString.instance();
-				} if (bothTypesRealOrInt()) {
-					return caseMathOperation();
-				} else {
-					return handleOperatorOverloading(term);
-				}
+			term.addError("Operator " + term.getOp() +" is not defined for " +
+			"operands " + leftType + " and " + rightType);
+			return WurstTypeUnknown.instance();
 		
-				
-			}
-
-			private WurstType handleOperatorOverloading(final ExprBinary term) {
-				FunctionDefinition def = term.attrFuncDef();
-				if (def == null) {
-					term.addError("No operator overloading function for operator " + term.getOp() +
-					" was found for operands " + leftType + " and " + rightType + ". The overloading function has to be named: " + convertOpToOpol(term.getOp()));
-					return WurstTypeUnknown.instance();
-				}
-				return def.getReturnTyp().attrTyp();
-			}
-
-			private WurstType caseMathOperation() {
-				if (leftType.isSubtypeOf(WurstTypeInt.instance(), term) && rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
-					return WurstTypeInt.instance();
-				}
-				if (leftType.isSubtypeOf(WurstTypeReal.instance(), term) || leftType.isSubtypeOf(WurstTypeInt.instance(), term)) {
-					if (rightType.isSubtypeOf(WurstTypeReal.instance(), term) || rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
-						return WurstTypeReal.instance();
-					}
-				}
-				term.addError("Operator " + term.getOp() +" is not defined for " +
-				"operands " + leftType + " and " + rightType);
-				return WurstTypeUnknown.instance();
-			}
-
-			@Override
-			public WurstType case_OpMinus(OpMinus op)
-			{
-				if (bothTypesRealOrInt()) {
-					return caseMathOperation();
-				} else {
-					return handleOperatorOverloading(term);
-				}
-			}
-
-			@Override
-			public WurstType case_OpMult(OpMult op)  {
-				if (bothTypesRealOrInt()) {
-					return caseMathOperation();
-				} else {
-					return handleOperatorOverloading(term);
-				}
-			}
-
-			@Override
-			public WurstType case_OpDivReal(OpDivReal op)
-			{
-				if (Utils.isJassCode(op)) {
-					return caseMathOperation();
-				} else if (bothTypesRealOrInt()) {
-					return WurstTypeReal.instance();			
-				} else {
-					return handleOperatorOverloading(term);
-				}
-//				attr.addError(term.getSource(), "Operator " + term.getOp() +" is not defined for " +
-//						"operands " + leftType + " and " + rightType);
-//				return PScriptTypeUnknown.instance();
-			}
-
-			@Override
-			public WurstType case_OpModReal(OpModReal op)
-			{
-				if (leftType.isSubtypeOf(WurstTypeReal.instance(), term) || leftType.isSubtypeOf(WurstTypeInt.instance(), term)) {
-					if (rightType.isSubtypeOf(WurstTypeReal.instance(), term) || rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
-						return WurstTypeReal.instance();
-					}
-				}
-				term.addError("Operator " + term.getOp() +" is not defined for " +
-				"operands " + leftType + " and " + rightType);
-				return WurstTypeUnknown.instance();
-			}
-
-			@Override
-			public WurstType case_OpModInt(OpModInt op)
-			{
-				if (leftType.isSubtypeOf(WurstTypeInt.instance(), term) || rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
-					return leftType;
-				}
-				term.addError("Operator " + term.getOp() +" is not defined for " +
-				"operands " + leftType + " and " + rightType);
-				return WurstTypeUnknown.instance();
-			}
-
-			@Override
-			public WurstType case_OpDivInt(OpDivInt op)
-			{
-				if (leftType.isSubtypeOf(WurstTypeInt.instance(), term) && rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
-					return leftType;
-				}
-				term.addError("Operator " + term.getOp() +" is not defined for " +
-				"operands " + leftType + " and " + rightType);
-				return WurstTypeUnknown.instance();
-			}
-		});
+		case NOT:
+		case UNARY_MINUS:
+		}
+		throw new Error("unhandled op " + term.getOp());
 	}
 
 
-	protected static String convertOpToOpol(OpBinary op) {
-		String result = "";
-		if ( op instanceof OpPlus) {
-			result = AttrFuncDef.overloadingPlus;
-		}else if ( op instanceof OpMinus) {
-			result = AttrFuncDef.overloadingMinus;
-		}else if ( op instanceof OpDivReal) {
-			result = AttrFuncDef.overloadingDiv;
-		}else if ( op instanceof OpMult) {
-			result = AttrFuncDef.overloadingMult;
+	private static WurstType caseMathOperation(ExprBinary term) {
+		WurstType leftType = term.getLeft().attrTyp();
+		WurstType  rightType = term.getRight().attrTyp();
+		if (leftType.isSubtypeOf(WurstTypeInt.instance(), term) && rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
+			return WurstTypeInt.instance();
 		}
-		return result;
+		if (leftType.isSubtypeOf(WurstTypeReal.instance(), term) || leftType.isSubtypeOf(WurstTypeInt.instance(), term)) {
+			if (rightType.isSubtypeOf(WurstTypeReal.instance(), term) || rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
+				return WurstTypeReal.instance();
+			}
+		}
+		term.addError("Operator " + term.getOp() +" is not defined for " +
+		"operands " + leftType + " and " + rightType);
+		return WurstTypeUnknown.instance();
+	}
+	
+	private static WurstType handleOperatorOverloading(ExprBinary term) {
+		WurstType leftType = term.getLeft().attrTyp();
+		WurstType  rightType = term.getRight().attrTyp();
+		FunctionDefinition def = term.attrFuncDef();
+		if (def == null) {
+			term.addError("No operator overloading function for operator " + term.getOp() +
+			" was found for operands " + leftType + " and " + rightType + ". The overloading function has to be named: " + term.getOp().getOverloadingFuncName());
+			return WurstTypeUnknown.instance();
+		}
+		return def.getReturnTyp().attrTyp();
+	}
+	
+	private static WurstType requireEqualTypes(ExprBinary term,
+			WurstTypeBool requiredType, WurstTypeBool resultType) {
+		final WurstType  leftType = term.getLeft().attrTyp();
+		final WurstType  rightType = term.getRight().attrTyp();
+		if (!leftType.isSubtypeOf(requiredType, term)) {
+			term.getLeft().addError("Operator " + term.getOp() + " requires two operands of " +
+			"type " + requiredType + " but left type was " + leftType);
+			return WurstTypeUnknown.instance();
+		}
+		if (!rightType.isSubtypeOf(requiredType, term)) {
+			term.getRight().addError("Operator " + term.getOp() + " requires two operands of " +
+			"type " + requiredType + " but right type was " + leftType);
+			return WurstTypeUnknown.instance();
+		}
+		return resultType;
+	}
+	
+	private static boolean bothTypesRealOrInt(ExprBinary term) {
+		WurstType  leftType = term.getLeft().attrTyp();
+		WurstType  rightType = term.getRight().attrTyp();
+		return ((leftType.isSubtypeOf(WurstTypeInt.instance(), term) || leftType .isSubtypeOf(WurstTypeReal.instance(), term)) 
+				&& (rightType.isSubtypeOf(WurstTypeInt.instance(), term) || rightType.isSubtypeOf(WurstTypeReal.instance(), term)));
 	}
 
 
 	public static  WurstType calculate(final ExprUnary term)  {
 		final WurstType rightType = term.getRight().attrTyp();
-		return term.getOpU().match(new OpUnary.Matcher<WurstType>() {
-
-
-			public WurstType case_OpNot(OpNot op)  {
-				if (!(rightType instanceof WurstTypeBool)) {
-					term.addError("Expected Boolean after not but found " + rightType);
-				}
-				return WurstTypeBool.instance();
+		if (term.getOpU() == WurstOperator.NOT) {
+			if (!(rightType instanceof WurstTypeBool)) {
+				term.addError("Expected Boolean after not but found " + rightType);
 			}
-
-
-			public WurstType case_OpMinus(OpMinus op)
-			{
-				if (rightType.isSubtypeOf(WurstTypeInt.instance(), term) || rightType.isSubtypeOf(WurstTypeReal.instance(), term)) { 
-					return rightType;
-				}
-				term.addError("Expected Int or Real after Minus but found " + rightType);
-				return WurstTypeReal.instance();
+			return WurstTypeBool.instance();
+		} else if (term.getOpU() == WurstOperator.UNARY_MINUS) {
+			if (rightType.isSubtypeOf(WurstTypeInt.instance(), term) || rightType.isSubtypeOf(WurstTypeReal.instance(), term)) { 
+				return rightType;
 			}
-		});
+			term.addError("Expected Int or Real after Minus but found " + rightType);
+			return WurstTypeReal.instance();
+		}
+		throw new Error("unhandled case: " + term.getOpU());
 	}
 
 

@@ -5,10 +5,7 @@ import java.util.ListIterator;
 
 import com.google.common.base.Preconditions;
 
-import de.peeeq.wurstscript.ast.Ast;
-import de.peeeq.wurstscript.ast.Op;
-import de.peeeq.wurstscript.ast.OpEquals;
-import de.peeeq.wurstscript.ast.OpUnequals;
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImCall;
 import de.peeeq.wurstscript.jassIm.ImConst;
@@ -21,7 +18,6 @@ import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImIf;
 import de.peeeq.wurstscript.jassIm.ImLoop;
 import de.peeeq.wurstscript.jassIm.ImNoExpr;
-import de.peeeq.wurstscript.jassIm.ImNull;
 import de.peeeq.wurstscript.jassIm.ImOperatorCall;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImReturn;
@@ -551,6 +547,9 @@ public class EliminateTuples {
 		List<ImVar> varsForTuple = translator.getVarsForTuple(v);
 		if (varsForTuple.size() > 1 || varsForTuple.get(0) != v) {
 			ImVar tempIndex = JassIm.ImVar(e.getIndex().attrTyp(), "tempIndex", false);
+			if (((ImSimpleType)tempIndex.getType()).getTypename().equals("real")) {
+				System.out.println(e);
+			}
 			f.getLocals().add(tempIndex);
 			
 			ImStmts statements = JassIm.ImStmts(JassIm.ImSet(e.attrTrace(), tempIndex, copyExpr(e.getIndex().eliminateTuplesExpr(translator, f))));
@@ -587,12 +586,12 @@ public class EliminateTuples {
 		if (e.getArguments().size() > 2) {
 			List<ImExpr> arguments = e.getArguments().removeAll();
 			int size = arguments.size() / 2;
-			Op logicOp;
-			Op compareOp = e.getOp();
-			if (compareOp instanceof OpEquals) {
-				logicOp = Ast.OpAnd();
-			} else if (compareOp instanceof OpUnequals) {
-				logicOp = Ast.OpOr();
+			WurstOperator logicOp;
+			WurstOperator compareOp = e.getOp();
+			if (compareOp == WurstOperator.EQ) {
+				logicOp = WurstOperator.AND;
+			} else if (compareOp == WurstOperator.NOTEQ) {
+				logicOp = WurstOperator.OR;
 			} else {
 				throw new Error("unsupported tuple operator " + e);
 			}

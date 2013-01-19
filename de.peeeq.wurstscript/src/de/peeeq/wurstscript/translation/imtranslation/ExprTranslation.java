@@ -18,6 +18,7 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElementWithIndexes;
 import de.peeeq.wurstscript.ast.ClassDef;
@@ -45,8 +46,6 @@ import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.NoExpr;
-import de.peeeq.wurstscript.ast.OpBinary;
-import de.peeeq.wurstscript.ast.OpDivReal;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.attributes.CompileError;
@@ -77,17 +76,17 @@ public class ExprTranslation {
 	public static ImExpr translate(ExprBinary e, ImTranslator t, ImFunction f) {
 		ImExpr left = e.getLeft().imTranslateExpr(t, f);
 		ImExpr right = e.getRight().imTranslateExpr(t, f);
-		OpBinary op = e.getOp();
+		WurstOperator op = e.getOp();
 		if (e.attrFuncDef() != null) {
 			// overloaded operator
 			ImFunction calledFunc = t.getFuncFor(e.attrFuncDef());
 			return JassIm.ImFunctionCall(e, calledFunc, ImExprs(left, right));
 		} 
-		if (op instanceof OpDivReal && !Utils.isJassCode(op)) {
+		if (op == WurstOperator.DIV_REAL && !Utils.isJassCode(e)) {
 			if (e.getLeft().attrTyp().isSubtypeOf(WurstTypeInt.instance(), e)
 					&& e.getRight().attrTyp().isSubtypeOf(WurstTypeInt.instance(), e)) {
 				// we want a real division but have 2 ints so we need to multiply with 1.0
-				left = ImOperatorCall(Ast.OpMult(), ImExprs(left, ImRealVal("1.")));
+				left = ImOperatorCall(WurstOperator.MULT, ImExprs(left, ImRealVal("1.")));
 			}
 		}
 		return ImOperatorCall(op, ImExprs(left, right));
@@ -343,7 +342,7 @@ public class ExprTranslation {
 			for (ClassDef st : subTypes) {
 				int id = translator.getTypeId(st);
 				ClassManagementVars cmv = translator.getClassManagementVarsFor(st);
-				return JassIm.ImOperatorCall(Ast.OpEquals(), JassIm.ImExprs(
+				return JassIm.ImOperatorCall(WurstOperator.EQ, JassIm.ImExprs(
 						JassIm.ImVarArrayAccess(cmv.typeId, e.getExpr().imTranslateExpr(translator, f)),
 						JassIm.ImIntVal(id)));
 			}
@@ -357,13 +356,13 @@ public class ExprTranslation {
 				int id = translator.getTypeId(st);
 				ClassManagementVars cmv = translator.getClassManagementVarsFor(st);
 				
-				ImOperatorCall check = JassIm.ImOperatorCall(Ast.OpEquals(), JassIm.ImExprs(
+				ImOperatorCall check = JassIm.ImOperatorCall(WurstOperator.EQ, JassIm.ImExprs(
 						JassIm.ImVarArrayAccess(cmv.typeId, JassIm.ImVarAccess(tempVar)),
 						JassIm.ImIntVal(id)));
 				if (condition instanceof ImBoolVal) {
 					condition = check;
 				} else {
-					condition = JassIm.ImOperatorCall(Ast.OpOr(), JassIm.ImExprs(condition, check));
+					condition = JassIm.ImOperatorCall(WurstOperator.OR, JassIm.ImExprs(condition, check));
 				}
 				
 			}

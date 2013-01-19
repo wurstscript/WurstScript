@@ -197,5 +197,29 @@ public class BugTests extends WurstScriptTest {
 				"endpackage");
 	}
 	
+	@Test
+	public void realIndex() {
+		testAssertOkLines(false,  
+				"package test",
+				"tuple color(int r, int g, int b)",
+				"enum COLOR",
+				"	YELLOW",
+				"	ORANGE",
+				"color array colors",
+				"class Test",
+				"	COLOR col",
+				"	function colorize()",
+				"		color c = color(0,0,0)",
+				"		if col == COLOR.YELLOW",
+				"			c = colors[col castTo int +1]",
+				"		else if col == COLOR.ORANGE",
+				"			c = colors[col castTo int -1]",
+				"		else",
+				"			c = colors[col castTo int]",
+				"init",
+				"	let t = new Test()",
+				"	t.colorize()",
+				"endpackage");
+	}
 	
 }
