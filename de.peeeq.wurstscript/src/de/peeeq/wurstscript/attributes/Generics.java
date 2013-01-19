@@ -32,6 +32,9 @@ public class Generics {
 
 	public static Map<TypeParamDef, WurstType> getTypeParameterBindings(FunctionCall fc) {
 		FunctionDefinition def = fc.attrFuncDef();
+		if (def == null) {
+			return Collections.emptyMap();
+		}
 		TypeParamDefs typeParams = getTypeParameters(def);
 		if (hasTypeParams(fc, typeParams)) {
 			return givenBinding(fc, typeParams);
