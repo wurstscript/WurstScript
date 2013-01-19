@@ -6,6 +6,7 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
@@ -15,11 +16,6 @@ import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.FuncRef;
 import de.peeeq.wurstscript.ast.FunctionCall;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
-import de.peeeq.wurstscript.ast.OpBinary;
-import de.peeeq.wurstscript.ast.OpDivReal;
-import de.peeeq.wurstscript.ast.OpMinus;
-import de.peeeq.wurstscript.ast.OpMult;
-import de.peeeq.wurstscript.ast.OpPlus;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.Visibility;
@@ -35,10 +31,10 @@ import de.peeeq.wurstscript.utils.Utils;
  *
  */
 public class AttrFuncDef {
-	final static String overloadingPlus = "op_plus";
-	final static String overloadingMinus = "op_minus";
-	final static String overloadingMult = "op_mult";
-	final static String overloadingDiv = "op_div";
+	public final static String overloadingPlus = "op_plus";
+	public final static String overloadingMinus = "op_minus";
+	public final static String overloadingMult = "op_mult";
+	public final static String overloadingDiv = "op_div";
 
 	public static  FunctionDefinition calculate(final ExprFuncRef node) {
 
@@ -104,8 +100,8 @@ public class AttrFuncDef {
 		return result;
 	}
 
-	private static FunctionDefinition getExtensionFunction(Expr left, Expr right, OpBinary op) {
-		String funcName = getOperatorFuncName(op);
+	private static FunctionDefinition getExtensionFunction(Expr left, Expr right, WurstOperator op) {
+		String funcName = op.getOverloadingFuncName();
 		if (funcName == null || nativeOperator(left.attrTyp(), right.attrTyp(), left)) {
 			return null;
 		}
@@ -113,19 +109,6 @@ public class AttrFuncDef {
 	}
 
 
-	private static String getOperatorFuncName(OpBinary op) {
-		if ( op instanceof OpPlus) {
-			return overloadingPlus;
-		} else if ( op instanceof OpMinus) {
-			return overloadingMinus;
-		} else if ( op instanceof OpMult) {
-			return overloadingMult;
-		} else if ( op instanceof OpDivReal) {
-			return overloadingDiv;
-		} else {
-			return null;
-		}
-	}
 
 	/**
 	 * checks if operator is a native operator like for 1+2

@@ -154,8 +154,8 @@ LoopStatementWithVarDef =
 Expr =
 	  NameRef
 	| FunctionCall
-	| ExprBinary(WPos source, Expr left, OpBinary op, Expr right)
-	| ExprUnary(WPos source, OpUnary opU, Expr right)
+	| ExprBinary(WPos source, Expr left, de.peeeq.wurstscript.WurstOperator op, Expr right)
+	| ExprUnary(WPos source, de.peeeq.wurstscript.WurstOperator opU, Expr right)
 	| ExprMemberVar(WPos source, Expr left, String varName)
 	| ExprMemberArrayVar(WPos source, Expr left, String varName, Indexes indexes)
 	| ExprMemberMethod(WPos source, Expr left, String funcName, TypeExprList typeArgs, Arguments args)
@@ -184,28 +184,7 @@ Indexes * Expr
 Arguments * Expr
 	
 	
-OpBinary = 
-	  OpOr() 
-	| OpAnd()
-	| OpEquals()
-	| OpUnequals()
-	| OpLessEq()
-	| OpLess()
-	| OpGreaterEq()
-	| OpGreater()
-	| OpPlus()
-	| OpMinus()
-	| OpMult()
-	| OpDivReal()
-	| OpModReal()
-	| OpModInt()
-	| OpDivInt()
-	
-OpUnary = 
-	  OpNot()
-	| OpMinus
-	
-Op = OpBinary | OpUnary	
+
 	
 // auxiliary types:
 
@@ -311,8 +290,6 @@ TranslatedToImFunction = ConstructorDef | FunctionDefinition | InitBlock | OnDes
 
 
 attributes:
-
-Op.toSymbol() returns String implemented by de.peeeq.wurstscript.attributes.PrettyPrinter.toSymbol
 
 WStatement.attrNextStatements "returns all statements which can be executed after this statement"
 	returns java.util.List<WStatement>
@@ -582,15 +559,6 @@ CompilationUnit.attrGetByType
 	
 
 
-OpUnary.jassTranslateUnary()
-	returns de.peeeq.wurstscript.jassAst.JassOpUnary
-	implemented by de.peeeq.wurstscript.translation.imtojass.OpTranslation.translateOpUnary
-	
-OpBinary.jassTranslateBinary()
-	returns de.peeeq.wurstscript.jassAst.JassOpBinary
-	implemented by de.peeeq.wurstscript.translation.imtojass.OpTranslation.translateOpBinary
-	
-	
 // Im translation
 	
 	WPackage.imTranslateTLD(
@@ -648,15 +616,6 @@ OpBinary.jassTranslateBinary()
 		
 		
 	
-OpBinary.evaluateBinaryOperator(de.peeeq.wurstscript.intermediateLang.ILconst left, com.google.common.base.Supplier<de.peeeq.wurstscript.intermediateLang.ILconst> right)
-	returns de.peeeq.wurstscript.intermediateLang.ILconst	
-	implemented by de.peeeq.wurstscript.intermediateLang.interpreter.EvaluateBinaryOperator.eval
-
-OpUnary.evaluateUnaryOperator(de.peeeq.wurstscript.intermediateLang.ILconst val)
-	returns de.peeeq.wurstscript.intermediateLang.ILconst	
-	implemented by de.peeeq.wurstscript.intermediateLang.interpreter.EvaluateUnaryOperator.eval
-	
-
 AstElement.addError(String msg)
 	returns void
 	implemented by de.peeeq.wurstscript.attributes.ErrorHandling.addError

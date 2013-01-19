@@ -2,9 +2,7 @@ package de.peeeq.wurstscript.intermediateLang.interpreter;
 
 import com.google.common.base.Supplier;
 
-import de.peeeq.wurstscript.ast.Op;
-import de.peeeq.wurstscript.ast.OpBinary;
-import de.peeeq.wurstscript.ast.OpUnary;
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstBool;
 import de.peeeq.wurstscript.intermediateLang.ILconstFuncRef;
@@ -63,19 +61,17 @@ public class EvaluateExpr {
 
 	public static ILconst eval(ImOperatorCall e, final ProgramState globalState, final LocalState localState) {
 		final ImExprs arguments = e.getArguments();
-		Op op = e.getOp();
-		if (arguments.size() == 2 && op instanceof OpBinary) {
-			OpBinary opb = (OpBinary) op;
-			return opb.evaluateBinaryOperator(arguments.get(0).evaluate(globalState, localState), new Supplier<ILconst>() {
+		WurstOperator op = e.getOp();
+		if (arguments.size() == 2 && op.isBinaryOp()) {
+			return op.evaluateBinaryOperator(arguments.get(0).evaluate(globalState, localState), new Supplier<ILconst>() {
 				
 				@Override
 				public ILconst get() {
 					return arguments.get(1).evaluate(globalState, localState);
 				}
 			});
-		} else if (arguments.size() == 1 && op instanceof OpUnary) {
-			OpUnary opu = (OpUnary) op;
-			return opu.evaluateUnaryOperator(arguments.get(0).evaluate(globalState, localState));
+		} else if (arguments.size() == 1 && op.isUnaryOp()) {
+			return op.evaluateUnaryOperator(arguments.get(0).evaluate(globalState, localState));
 		} else {
 			throw new Error();
 		}

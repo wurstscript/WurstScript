@@ -21,6 +21,7 @@ import java.util.Map;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
@@ -108,7 +109,7 @@ public class ClassTranslator {
 			}
 			ImStmts thenBlock = ImStmts();
 			ImStmts elseBlock = ImStmts();
-			addTo.add(ImIf(trace, ImOperatorCall(Ast.OpEquals(), 
+			addTo.add(ImIf(trace, ImOperatorCall(WurstOperator.EQ, 
 						ImExprs(ImVarArrayAccess(m.typeId, ImVarAccess(thisVar)), 
 								ImIntVal(translator.getTypeId(sc)))), 
 					thenBlock, elseBlock));
@@ -144,7 +145,7 @@ public class ClassTranslator {
 	private void addDeallocateCode(ImFunction f, ImVar thisVar) {
 		f.getBody().add(		
 		// if nextFree[this] < 0 then
-			ImIf(emptyTrace, ImOperatorCall(Ast.OpLess(), ImExprs(ImVarArrayAccess(m.nextFree, ImVarAccess(thisVar)), ImIntVal(0))), 
+			ImIf(emptyTrace, ImOperatorCall(WurstOperator.LESS, ImExprs(ImVarArrayAccess(m.nextFree, ImVarAccess(thisVar)), ImIntVal(0))), 
 				// then
 				ImStmts(
 						// nextFree[this] = firstFree
@@ -304,12 +305,12 @@ public class ClassTranslator {
 		}
 		if (translator.debugLevel.methodDispatchChecks) {
 			AstElement trace = funcDef;
-			f.getBody().add(JassIm.ImIf(trace, JassIm.ImOperatorCall(Ast.OpLessEq(), 
+			f.getBody().add(JassIm.ImIf(trace, JassIm.ImOperatorCall(WurstOperator.LESS_EQ, 
 					JassIm.ImExprs(ImVarAccess(f.getParameters().get(0)), ImIntVal(0))), 
 						ImStmts(ImFunctionCall(trace, translator.getDebugPrintFunc(), 
 								ImExprs(ImStringVal("Nullpointer dereference when calling " + Utils.printElementWithSource(funcDef))))), 
 						ImStmts(
-								JassIm.ImIf(trace, JassIm.ImOperatorCall(Ast.OpGreaterEq(), 
+								JassIm.ImIf(trace, JassIm.ImOperatorCall(WurstOperator.GREATER_EQ, 
 										JassIm.ImExprs(ImVarArrayAccess(m.nextFree, ImVarAccess(f.getParameters().get(0))), ImIntVal(0))), 
 											ImStmts(ImFunctionCall(trace, translator.getDebugPrintFunc(), 
 													ImExprs(ImStringVal("Calling " + Utils.printElementWithSource(funcDef) + " on a destroyed object.")))), 
@@ -378,7 +379,7 @@ public class ClassTranslator {
 		f.getLocals().add(thisVar);
 		f.getBody().add(
 		// if firstFree > 0
-				ImIf(trace, ImOperatorCall(Ast.OpGreater(), ImExprs(ImVarAccess(m.firstFree), ImIntVal(0))),
+				ImIf(trace, ImOperatorCall(WurstOperator.GREATER, ImExprs(ImVarAccess(m.firstFree), ImIntVal(0))),
 				// then
 					ImStmts(
 						// this = firstFree
@@ -388,7 +389,7 @@ public class ClassTranslator {
 				// else
 					ImStmts(
 						// maxindex = maxindex + 1
-						ImSet(emptyTrace, m.maxIndex, ImOperatorCall(Ast.OpPlus(), ImExprs(ImVarAccess(m.maxIndex), ImIntVal(1)))),
+						ImSet(emptyTrace, m.maxIndex, ImOperatorCall(WurstOperator.PLUS, ImExprs(ImVarAccess(m.maxIndex), ImIntVal(1)))),
 						// this = maxindex
 								ImSet(trace, thisVar, ImVarAccess(m.maxIndex))))
 		// endif

@@ -58,7 +58,7 @@ ImFlatExpr =
 	
 ImCall = 
 	  ImFunctionCall(de.peeeq.wurstscript.ast.AstElement trace, &ImFunction func, ImExprs arguments)
-	| ImOperatorCall(de.peeeq.wurstscript.ast.Op op, ImExprs arguments)
+	| ImOperatorCall(de.peeeq.wurstscript.WurstOperator op, ImExprs arguments)
 	
 ImConst = 
 	  ImIntVal(int valI)

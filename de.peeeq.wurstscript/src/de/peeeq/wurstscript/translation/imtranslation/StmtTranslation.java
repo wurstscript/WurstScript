@@ -21,6 +21,7 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
@@ -28,7 +29,6 @@ import de.peeeq.wurstscript.ast.EndFunctionStatement;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.NoDefaultCase;
-import de.peeeq.wurstscript.ast.OpBinary;
 import de.peeeq.wurstscript.ast.StartFunctionStatement;
 import de.peeeq.wurstscript.ast.StmtDestroy;
 import de.peeeq.wurstscript.ast.StmtErr;
@@ -125,18 +125,18 @@ public class StmtTranslation {
 
 
 	public static ImStmt translate(StmtForRange s, ImTranslator t, ImFunction f) {
-		return case_StmtForRange(t, f, s.getLoopVar(), s.getTo(), s.getStep(), s.getBody(), Ast.OpPlus(),
-				Ast.OpGreater(), s);
+		return case_StmtForRange(t, f, s.getLoopVar(), s.getTo(), s.getStep(), s.getBody(), WurstOperator.PLUS,
+				WurstOperator.GREATER, s);
 	}
 
 
 	public static ImStmt translate(StmtForRangeDown s, ImTranslator t, ImFunction f) {
 		return case_StmtForRange(t, f, s.getLoopVar(), s.getTo(), s.getStep(), s.getBody(),
-				Ast.OpMinus(), Ast.OpLess(), s);
+				WurstOperator.MINUS, WurstOperator.LESS, s);
 	}
 
 	private static ImStmt case_StmtForRange(ImTranslator t, ImFunction f, LocalVarDef loopVar,
-			Expr to, Expr step, WStatements body, OpBinary opStep, OpBinary opCompare, AstElement trace) {
+			Expr to, Expr step, WStatements body, WurstOperator opStep, WurstOperator opCompare, AstElement trace) {
 		ImVar imLoopVar = t.getVarFor(loopVar);
 		f.getLocals().add(imLoopVar);
 
@@ -239,7 +239,7 @@ public class StmtTranslation {
 	public static ImStmt translate(StmtWhile s, ImTranslator t, ImFunction f) {
 		List<ImStmt> body = Lists.newArrayList();
 		// exitwhen not while_condition
-		body.add(ImExitwhen(s.getCond(), ImOperatorCall(Ast.OpNot(), ImExprs(s.getCond().imTranslateExpr(t, f)))));
+		body.add(ImExitwhen(s.getCond(), ImOperatorCall(WurstOperator.NOT, ImExprs(s.getCond().imTranslateExpr(t, f)))));
 		body.addAll(t.translateStatements(f, s.getBody()));
 		return ImLoop(s, ImStmts(body));
 	}
@@ -265,10 +265,10 @@ public class StmtTranslation {
 		for ( int i = 0; i < switchStmt.getCases().size(); i++ ) {
 			cse = switchStmt.getCases().get(i);
 			if (lastIf == null) {
-				lastIf = ImIf(switchStmt, ImOperatorCall(Ast.OpEquals(), ImExprs((ImExpr)tempVar.copy(), cse.getExpr().imTranslateExpr(t, f)) ), ImStmts(t.translateStatements(f, cse.getStmts())), ImStmts() );
+				lastIf = ImIf(switchStmt, ImOperatorCall(WurstOperator.EQ, ImExprs((ImExpr)tempVar.copy(), cse.getExpr().imTranslateExpr(t, f)) ), ImStmts(t.translateStatements(f, cse.getStmts())), ImStmts() );
 				result.add(lastIf);
 			} else {
-				ImIf tmp = ImIf(switchStmt, ImOperatorCall(Ast.OpEquals(), ImExprs((ImExpr)tempVar.copy(), cse.getExpr().imTranslateExpr(t, f)) ), ImStmts(t.translateStatements(f, cse.getStmts())), ImStmts() );
+				ImIf tmp = ImIf(switchStmt, ImOperatorCall(WurstOperator.EQ, ImExprs((ImExpr)tempVar.copy(), cse.getExpr().imTranslateExpr(t, f)) ), ImStmts(t.translateStatements(f, cse.getStmts())), ImStmts() );
 				lastIf.setElseBlock(ImStmts(tmp));
 				lastIf = tmp;
 			}

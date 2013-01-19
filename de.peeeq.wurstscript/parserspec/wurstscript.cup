@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.ast.*;
 import java.util.*;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
+import de.peeeq.wurstscript.WurstOperator;
 
 action code {: 
 
@@ -679,17 +680,17 @@ StmtSet ::=
 	  ExprAssignable:left EQ Expr:right NL
 		{: RESULT = Ast.StmtSet(pos(left, right), left, right); :}
 	| ExprAssignable:left PLUS_EQ Expr:right NL
-		{: RESULT = Ast.StmtSet(pos(left, right), left, Ast.ExprBinary(pos(left, right), (Expr) left.copy(), Ast.OpPlus(), right)); :}
+		{: RESULT = Ast.StmtSet(pos(left, right), left, Ast.ExprBinary(pos(left, right), (Expr) left.copy(), WurstOperator.PLUS, right)); :}
 	| ExprAssignable:left MINUS_EQ Expr:right NL
-		{: RESULT = Ast.StmtSet(pos(left, right), left, Ast.ExprBinary(pos(left, right), (Expr) left.copy(), Ast.OpMinus(), right)); :}
+		{: RESULT = Ast.StmtSet(pos(left, right), left, Ast.ExprBinary(pos(left, right), (Expr) left.copy(), WurstOperator.MINUS, right)); :}
 	| ExprAssignable:left MULT_EQ Expr:right NL
-		{: RESULT = Ast.StmtSet(pos(left, right), left, Ast.ExprBinary(pos(left, right), (Expr) left.copy(), Ast.OpMult(), right)); :}
+		{: RESULT = Ast.StmtSet(pos(left, right), left, Ast.ExprBinary(pos(left, right), (Expr) left.copy(), WurstOperator.MULT, right)); :}
 	| ExprAssignable:left DIV_EQ Expr:right NL
-		{: RESULT = Ast.StmtSet(pos(left, right), left,  Ast.ExprBinary(pos(left, right), (Expr) left.copy(), Ast.OpDivReal(), right)); :}
+		{: RESULT = Ast.StmtSet(pos(left, right), left,  Ast.ExprBinary(pos(left, right), (Expr) left.copy(), WurstOperator.DIV_REAL, right)); :}
 	| ExprAssignable:left PLUS_PLUS:x NL
-		{: RESULT = Ast.StmtSet(pos(left, xright), left, Ast.ExprBinary(pos(left, xright), (Expr) left.copy(), Ast.OpPlus(), Ast.ExprIntVal(pos(xleft, xright), 1))); :}
+		{: RESULT = Ast.StmtSet(pos(left, xright), left, Ast.ExprBinary(pos(left, xright), (Expr) left.copy(), WurstOperator.PLUS, Ast.ExprIntVal(pos(xleft, xright), 1))); :}
 	| ExprAssignable:left MINUS_MINUS:x NL
-		{: RESULT = Ast.StmtSet(pos(left, xright), left, Ast.ExprBinary(pos(left, xright), (Expr) left.copy(), Ast.OpMinus(), Ast.ExprIntVal(pos(xleft, xright), 1))); :}
+		{: RESULT = Ast.StmtSet(pos(left, xright), left, Ast.ExprBinary(pos(left, xright), (Expr) left.copy(), WurstOperator.MINUS, Ast.ExprIntVal(pos(xleft, xright), 1))); :}
 	| ExprAssignable:left NL
 		{: RESULT = Ast.StmtSet(pos(left, left), left, Ast.ExprIncomplete(pos(left, Integer.MIN_VALUE), "missing right side of expression")); :}
 ;
@@ -839,35 +840,35 @@ ArgumentRest ::=
 
 ExprBinary ::= 
 	  Expr:left OR Expr:right
-		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpOr(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, WurstOperator.OR, right); :}
 	| Expr:left AND Expr:right
-		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpAnd(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, WurstOperator.AND, right); :}
 	| Expr:left PLUS Expr:right
-		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpPlus(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, WurstOperator.PLUS, right); :}
 	| Expr:left MINUS Expr:right
-		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpMinus(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, WurstOperator.MINUS, right); :}
 	| Expr:left MULT Expr:right
-		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpMult(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, WurstOperator.MULT, right); :}
 	| Expr:left DIV_REAL Expr:right
-		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpDivReal(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, WurstOperator.DIV_REAL, right); :}
 	| Expr:left DIV_INT Expr:right
-		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpDivInt(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, WurstOperator.DIV_INT, right); :}
 	| Expr:left MOD_REAL Expr:right
-		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpModReal(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, WurstOperator.MOD_REAL, right); :}
 	| Expr:left MOD_INT Expr:right
-		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpModInt(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, WurstOperator.MOD_INT, right); :}
 	| Expr:left EQEQ Expr:right
-		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpEquals(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, WurstOperator.EQ, right); :}
 	| Expr:left GTEQ Expr:right
-		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpGreaterEq(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, WurstOperator.GREATER_EQ, right); :}
 	| Expr:left LTEQ Expr:right
-		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpLessEq(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, WurstOperator.LESS_EQ, right); :}
 	| Expr:left LT Expr:right
-		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpLess(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, WurstOperator.LESS, right); :}
 	| Expr:left GT Expr:right
-		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpGreater(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, WurstOperator.GREATER, right); :}
 	| Expr:left NOTEQ Expr:right
-		{: RESULT = Ast.ExprBinary(pos(left, right), left, Ast.OpUnequals(), right); :}
+		{: RESULT = Ast.ExprBinary(pos(left, right), left, WurstOperator.NOTEQ, right); :}
 //	| Expr:left IDENTIFIER:f Expr:right 
 //		{: RESULT = Ast.ExprFunctionCall(pos(left, right), f, Ast.TypeExprList(), Ast.Arguments(left, right)); :}
 //		%prec INFIX_CALL
@@ -875,9 +876,9 @@ ExprBinary ::=
 
 ExprUnary ::=
 	NOT:x Expr:right
-		{: RESULT = Ast.ExprUnary(pos(xleft, right), Ast.OpNot(), right); :}
+		{: RESULT = Ast.ExprUnary(pos(xleft, right), WurstOperator.NOT, right); :}
 	| MINUS:x Expr:right
-		{: RESULT = Ast.ExprUnary(pos(xleft, right), Ast.OpMinus(), right); :}
+		{: RESULT = Ast.ExprUnary(pos(xleft, right), WurstOperator.UNARY_MINUS, right); :}
 ;
 
 ExprFunctionCall ::=

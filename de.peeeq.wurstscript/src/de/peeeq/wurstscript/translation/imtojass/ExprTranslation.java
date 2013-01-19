@@ -11,10 +11,7 @@ import static de.peeeq.wurstscript.jassAst.JassAst.JassExprUnary;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassExprVarAccess;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassExprVarArrayAccess;
 import static de.peeeq.wurstscript.jassAst.JassAst.JassExprlist;
-import de.peeeq.wurstscript.ast.OpBinary;
-import de.peeeq.wurstscript.ast.OpModInt;
-import de.peeeq.wurstscript.ast.OpModReal;
-import de.peeeq.wurstscript.ast.OpUnary;
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
@@ -74,20 +71,19 @@ public class ExprTranslation {
 	}
 
 	public static JassExpr translate(ImOperatorCall e, ImToJassTranslator translator) {
-		if (e.getOp() instanceof OpBinary && e.getArguments().size() == 2) {
-			OpBinary op = (OpBinary) e.getOp();
+		WurstOperator op = e.getOp();
+		if (op.isBinaryOp() && e.getArguments().size() == 2) {
 			JassExpr left  = e.getArguments().get(0).translate(translator);
 			JassExpr right = e.getArguments().get(1).translate(translator);
 			
-			if (op instanceof OpModReal) {
+			if (op == WurstOperator.MOD_REAL) {
 				return JassExprFunctionCall("ModuloReal", JassExprlist(left, right));
-			} else if (op instanceof OpModInt) {
+			} else if (op == WurstOperator.MOD_INT) {
 				return JassExprFunctionCall("ModuloInteger", JassExprlist(left, right));
 			}
 			
 			return JassExprBinary(left, op.jassTranslateBinary(), right);
-		} else if (e.getOp() instanceof OpUnary && e.getArguments().size() == 1) {
-			OpUnary op = (OpUnary) e.getOp();
+		} else if (op.isUnaryOp() && e.getArguments().size() == 1) {
 			return JassExprUnary(op.jassTranslateUnary(), e.getArguments().get(0).translate(translator));
 		} else {
 			throw new Error("not implemented: " + e);

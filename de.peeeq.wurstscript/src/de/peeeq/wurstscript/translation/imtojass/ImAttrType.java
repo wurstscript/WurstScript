@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImBoolVal;
 import de.peeeq.wurstscript.jassIm.ImExpr;
@@ -53,8 +54,29 @@ public class ImAttrType {
 	}
 
 	public static ImType getType(ImOperatorCall e) {
-		// TODO this is a lie
-		return WurstTypeReal.instance().imTranslateType();
+		switch (e.getOp()) {
+		case AND:
+		case OR:
+		case EQ:
+		case NOTEQ:
+		case GREATER_EQ:
+		case GREATER:
+		case LESS:
+		case LESS_EQ:
+		case NOT:
+			return WurstTypeBool.instance().imTranslateType();
+		case DIV_INT:
+		case MOD_INT:
+			return WurstTypeInt.instance().imTranslateType();
+		case DIV_REAL:
+		case MOD_REAL:
+			return WurstTypeReal.instance().imTranslateType();
+		case PLUS:
+		case MINUS:
+		case MULT:
+		case UNARY_MINUS:
+		}
+		return e.getArguments().get(0).attrTyp();
 	}
 
 	public static ImType getType(ImRealVal e) {
