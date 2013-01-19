@@ -1175,8 +1175,12 @@ public class WurstValidator {
 						}
 					}
 					if (!implExists) {
-						c.addError("Class " + c.getName() + " must implement the abstract function " +
+						if (c == func.attrNearestStructureDef()) {
+							func.addError("Class " + c.getName() + " is not abstract so it cannot have abstract functions like " + func.getName() + ".");
+						} else {
+							c.addError("Class " + c.getName() + " must implement the abstract function " +
 								func.getName() + " from " + Utils.printElement(func.attrNearestStructureDef()));
+						}
 					}
 				}
 				
@@ -1194,7 +1198,13 @@ public class WurstValidator {
 								&& overriden.getNameDef() instanceof FuncDef) {
 							FuncDef overriddenFunc = (FuncDef) overriden.getNameDef();
 							if (overriddenFunc.attrIsStatic()) {
-								func.addError("Cannot overwrite static function from classes.");
+								func.addError("Cannot override static function from classes.");
+							}
+							if (func.attrIsStatic() && !overriddenFunc.attrIsStatic()) {
+								func.addError("Cannot override nonstatic function " + func.getName() + " with a static function.");
+							}
+							if (!func.attrIsStatic() && overriddenFunc.attrIsStatic()) {
+								func.addError("Cannot override static function " + func.getName() + " with a nonstatic function.");
 							}
 						}
 					}
