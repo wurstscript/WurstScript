@@ -32,9 +32,9 @@ Wir werden in diesem Tutorial das Wurst-Plugin für Eclipse benutzen. Um dies zu
 
 
 Außerdem brauchen wir noch das Wurstpack: 
-[Download 32 Bit Version](https://dl.dropbox.com/u/103859688/WURST/Wurstpack32.rar)
-[Download 64 Bit Version](https://dl.dropbox.com/u/103859688/WURST/Wurstpack64.rar)
-Die benötigte Version hängt nicht von deinem Betriebsystem ab, sondern von deiner Java Version!
+[Download 32 Bit Version](https://dl.dropbox.com/u/103859688/WURST/Wurstpack32.rar)  
+[Download 64 Bit Version](https://dl.dropbox.com/u/103859688/WURST/Wurstpack64.rar)  
+Die benötigte Version hängt nicht von deinem Betriebsystem ab, sondern von deiner Java Version!  
 
 Um den Wurstpack zu installieren entpackage das Archiv in ein belibiges Verzeichnis, und führe dann die "updater.jar aus.
 
@@ -445,13 +445,13 @@ und abschließend legen wir die Grenze fest bist zu welcher gezählt werden soll
 
 Eine Schleife die von eins bis zehn zählt mit der Laufvariable "i" sieht demnach so aus:
 
-	for int i = 1 to 10
+	for i = 1 to 10
 
 Um besser Verstehen zu können was genau eine For Scheife macht, führen wir die folgende Funktion aus:
 
 	function forSchleife()
 		for int i = 1 to 10
-			print(I2S(i)) // Diese Printfunktion gibt immer den aktuellen Wert von i aus
+			print(i.toString()) // Diese Printfunktion gibt immer den aktuellen Wert von i aus
 			
 
 Ausgabe der Konsole:
@@ -474,66 +474,49 @@ Wie man sieht wird die Funktion print so lange aufgerufen bis i den Wert 10 hat.
 Wichtiges zu For Schleifen:
 
 * Auch hier gibt wieder die Einrückung an, was in die Schleife gehört und was nicht
-* In Schleifen können beliebig viele Funktionen (((und Natives))) aufgerufen werden
 * Mit dem Schlüsselwort "downto" statt "to" zählen wir nach unten statt nach oben
 	*Beispiel: for int i = 10 downto 1
 * Mit der Erweiterung "step" können wir in größeren Schritten zählen
 	*Beispiel: for int i = 0 to 10 step 2
-* For Schleifen werden "sofort" ausgeführt, zwischen den Durchläufen gibt es keine Pausen
 
 
-(((Einschub Typecasting:)))
-Wie dir sicherlich aufgefallen ist, wird oben in der print Funktion eine weitere Funktion mit dem Namen I2S aufgerufen.
+(((Einschub Conversion:)))
+Wie dir sicherlich aufgefallen ist, wird oben in der print Funktion eine weitere Funktion mit dem Namen toString aufgerufen.
 Dies ist nötig, weil Ausgaben müssen immer in der Form von Strings stattfinden. Wollen wir also den Wert einer Integer Variable ausgeben,
-müssen wir diese zuerst in einen String umwandeln. Wc3 liefert uns dazu funktionen (((eigentlich natives))) wie I2S mit welcher
-wir eine Integervariable zu einem String umwandeln. Ausgeschieben hätte diese Funktion diese Bedeutung: "Integer to String"
-Demnach ergibt sich auch die Namensgebung der Funktionen: Anfangsbuchstabe vom Ursprungsdatentyp + 2 + Anfangsbuchstaben vom Zieldatentyp.
+müssen wir diese zuerst in einen String umwandeln. Daher wird oben die to String funktion benutzt.
 
 ####Übung 3.1
 Nicht die Console benutzen!
 	
 	function blub(int bisHier)
 		for int i = 0 to bisHier
-			print(I2S(i)) // gibt den wert von i1 aus
-			
-	function bla(int vonHier, int bisHier)
-		for int i = vonHier to bisHier
-			print(I2S(i)) // gibt den wert von i1 aus
+			print(i.toString()) // gibt den wert von i1 aus
 			
 	function blop(int vonHier, int bisHier)
 		for int i = vonHier downto bisHier
-			print(I2S(i)) // gibt den wert von i1 aus
-			
-	function bip(int vonHier, int bisHier)
-		for int i = vonHier to bisHier step 2
-			print(I2S(i)) // gibt den wert von i1 aus
+			print(i.toString()) // gibt den wert von i1 aus
 			
 	function bibber(int vonHier, int bisHier, int soSchnell)
 		for int i = vonHier to bisHier step soSchnell
-			print(I2S(i)) // gibt den wert von i1 aus
-			
+			print(i.toString()) // gibt den wert von i1 aus
+
 	function blubber(int vonHier, int bisHier, int soSchnell)
 		for int i = vonHier downto bisHier step soSchnell
-			print(I2S(i)) // gibt den wert von i1 aus
+			print(i.toString()) // gibt den wert von i1 aus
 			
 	function baba()
 		for int i = 1 to 2
-			print(I2S(i)) // gibt den wert von i1 aus
+			print(i.toString()) // gibt den wert von i1 aus
 			for int i2 = 10 downto 9
-				print(I2S(i2)) // gibt den wert von i2 aus
+				print(i.toString()) // gibt den wert von i2 aus
 			
 Was gibt die Konsole bei folgenden Aufrufen aus?
 	
 	blub(5)
 	blub(-1)
-	bla(5, 10)
-	bla(10, 5)
 	blop(3, 9)
 	blop(8, 4)
 	blop(8, 8)
-	bip(2, 3)
-	bip(3, 7)
-	bip(100, 100)
 	bibber(10, 16, 3)
 	bibber(10, 15, 5)
 	bibber(20, 25, 1)
