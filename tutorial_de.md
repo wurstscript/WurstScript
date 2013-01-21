@@ -31,7 +31,7 @@ Wir werden in diesem Tutorial das Wurst-Plugin für Eclipse benutzen. Um dies zu
 	Nach der Installation muss Eclipse neu gestartet werden.
 
 
-Außerdem brauchen wir noch das Wurstpack: 
+Außerdem brauchen wir noch das Wurstpack:  
 [Download 32 Bit Version](https://dl.dropbox.com/u/103859688/WURST/Wurstpack32.rar)  
 [Download 64 Bit Version](https://dl.dropbox.com/u/103859688/WURST/Wurstpack64.rar)  
 Die benötigte Version hängt nicht von deinem Betriebsystem ab, sondern von deiner Java Version!  
@@ -545,6 +545,32 @@ Hier ein paar Testwerte und das richtige ergebnis:
 Tip: Verusche das Problem aufzuteilen, für Zahlen die größer als 20 sind und die kleiner als 20 sind
 
 ### While Schleife
+
+While Schleifen sind sehr ähnlich zu For Schleifen. Jedoch besitzen diese keine Laufvariablen sondern haben nur ein Abbruchkriterium.
+Es wird also ein Codeabschnitt so lange durchlaufen, bis eine gewisse Aussage falsch ist.
+Eine While Schleife erstellt man mit dem Schlüsselwort *while*, danach folgt in Klammern die Aussage.
+Eine normale While Schleife sieht bspw. so aus:
+	while(a > b)
+		print("Irgendwas")
+  
+
+While Schleifen müssen endlich sein, d.h. die Aussage, welche bei jedem Durchlauf geprüft wird, muss irgedwann falsch sein, damit die Schleife zu einem Ende kommt.  
+Beispiel einer While Schleife welche nicht terminiert (zu einem Ende kommt):
+	while(true)
+		print("endlos")
+Eine solche Schleife hätte zur Folge, dass Warcraft abstützt!!!
+
+####Übung 3.3
+
+Was wird die Konsole ausgeben?
+	function foo()
+		int i = 1.5
+		while(i < 35)
+			i = i * i
+			print("done")
+		
+
+	
 
 
 
