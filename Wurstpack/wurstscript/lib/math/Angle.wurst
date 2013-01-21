@@ -8,6 +8,10 @@ public tuple angle(real radians)
 /** get the real representation of this angle in degrees */
 public function angle.degrees() returns real
 	return this.radians*RADTODEG
+	
+/** get the real representation of this angle in radians */
+public function angle.radians() returns real
+	return this.radians
 
 /** interpret this real as an angle given in degrees */
 public function real.asAngleDegrees() returns angle
