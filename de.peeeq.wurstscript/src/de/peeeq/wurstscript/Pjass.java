@@ -73,7 +73,12 @@ public class Pjass {
 				}
 				int line = Integer.parseInt(match.group(1));
 				String msg = match.group(2);
-				result.add(new CompileError(Ast.WPos(jassFile.getAbsolutePath(), lineOffsets, lineOffsets.get(line), lineOffsets.get(line+1)), msg));
+				result.add(new CompileError(
+						Ast.WPos(jassFile.getAbsolutePath(), lineOffsets,
+								lineOffsets.get(line),
+								lineOffsets.get(line + 1)),
+						"This is a bug in the Wurst Compiler. Please Report it. Pjass has found the following problem: "
+								+ msg));
 			}
 			
 			return result;
