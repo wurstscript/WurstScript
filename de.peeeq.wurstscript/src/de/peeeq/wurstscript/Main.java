@@ -144,21 +144,8 @@ public class Main {
 				Result pJassResult = Pjass.runPjass(outputMapscript);
 				System.out.println(pJassResult.getMessage());
 				if (!pJassResult.isOk()) {
-					for (String error : pJassResult.getMessage().split("(\n|\r)+")) {
-						WLogger.info("Error = " + error);
-						int pos = error.indexOf(".j:") + 3;
-						if (pos < 0) {
-							continue;
-						}
-						String line = "";
-						while (Character.isDigit(error.charAt(pos))) {
-							line+=error.charAt(pos);
-							pos++;
-						}
-						if (line.isEmpty()) {
-							line = "0";
-						}
-						gui.sendError(new CompileError(Ast.WPos(outputMapscript.getAbsolutePath(), LineOffsets.dummy, Integer.parseInt(line), 0), error.substring(pos)));
+					for (CompileError err : pJassResult.getErrors()) {
+						gui.sendError(err);
 					}
 					break compilation;
 				}
