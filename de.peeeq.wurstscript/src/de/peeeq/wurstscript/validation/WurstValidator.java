@@ -321,6 +321,9 @@ public class WurstValidator {
 				"Cannot assign to " + leftType);
 			}
 		}
+		if (leftType instanceof WurstTypeArray) {
+			pos.addError("Missing array index for assignment to array variable.s");
+		}
 	}
 
 	@CheckMethod
