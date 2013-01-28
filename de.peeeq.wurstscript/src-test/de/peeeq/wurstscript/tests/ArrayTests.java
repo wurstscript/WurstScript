@@ -20,6 +20,16 @@ public class ArrayTests extends WurstScriptTest {
 	}
 	
 	@Test
+	public void testArrayParam() {
+		testAssertErrorsLines(false, "arrays as parameter", 
+				"package Test",
+				"function foo(int array a)",	
+				"endpackage");
+	}
+	
+	
+	
+	@Test
 	public void testArray_jass() {
 		String[] lines = {
 				"native testSuccess takes nothing returns nothing",

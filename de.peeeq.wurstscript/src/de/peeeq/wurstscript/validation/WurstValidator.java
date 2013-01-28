@@ -1489,4 +1489,11 @@ public class WurstValidator {
 			}
 		}
 	}
+	
+	@CheckMethod
+	public void checkParameter(WParameter param) {
+		if (param.attrTyp() instanceof WurstTypeArray) {
+			param.addError("Cannot use arrays as parameters.");
+		}
+	}
 }
