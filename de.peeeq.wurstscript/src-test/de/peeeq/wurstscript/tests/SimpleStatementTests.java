@@ -457,6 +457,17 @@ public class SimpleStatementTests extends WurstScriptTest {
 				);
 	}
 	
+	@Test
+	public void test_array_assign() {
+		testAssertErrorsLines(false, "Missing array index", 
+				"package test",
+				"int array a",
+				"int array b",
+				"init",
+				"	a = b"
+				);
+	}
+	
 
 	public void assertError( boolean executeProg, String expected, String ... body) {
 		String prog = "package test\n" +
