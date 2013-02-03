@@ -1,0 +1,74 @@
+package Image
+	import Colors
+
+	public constant integer imageLevel_1 = 1
+	public constant integer imageLevel_2 = 3
+	public constant integer imageLevel_3 = 2
+	public constant integer imageLevel_4 = 4
+		
+	/** Create an image at the target location, the Image has to be a blp, with transparent borders */
+	public function createImage(string path, vec2 pos, real sizeX, real sizeY) returns image
+		return CreateImage("UI\\Glues\\BattleNet\\BattlenetWorking\\BattlenetWorking0000.blp", sizeX, sizeY, 0, pos.y, pos.x, 0, sizeX / 2, sizeY / 2, 0, 1)
+	
+	/** Create an image at the target location, the Image has to be a blp, with transparent borders.
+	The imageLevel specifis which image is drawn about an other: Level 1 is always on the top, and lvl 4 always in the background. Use the constants "imageLevel_x" */
+	public function createImage(string path, vec2 pos, real sizeX, real sizeY, integer imageLevel) returns image
+		if imageLevel > 0 and imageLevel < 5
+			return CreateImage("UI\\Glues\\BattleNet\\BattlenetWorking\\BattlenetWorking0000.blp", sizeX, sizeY, 0, pos.y, pos.x, 0, sizeX / 2, sizeY / 2, 0, imageLevel)
+		else
+			printError("Invaild image level")
+			return null
+				
+	/** Shows the image */
+	public function image.show()
+		SetImageRenderAlways(this, true)
+	
+	/** Hides the image */
+	public function image.hide()
+		SetImageRenderAlways(this, false)
+		
+	/** Shows the image for a specific player  */
+	public function image.showForPlayer(player p)
+		if GetLocalPlayer() == p
+			SetImageRenderAlways(this, true)
+		
+	/** Hides the image for a specific player */
+	public function image.hideForPlayer(player p)
+		if GetLocalPlayer() == p
+			SetImageRenderAlways(this, true)
+			
+	/** Set the image 2D position */
+	public function image.setPos(vec2 pos)
+		SetImagePosition(this, pos.x, pos.y, 0)
+	
+	/** Set the image 3D position */	
+	public function image.setPos(vec3 pos)
+		SetImagePosition(this, pos.x, pos.y, 0)
+		SetImageConstantHeight(this, true, pos.z)
+		
+	/** Set the image height */	
+	public function image.setHeight(real z)
+		SetImageConstantHeight(this, true, z)
+		
+	/** Set the image color by using the colorA tuple */		
+	public function image.setColor(colorA col)
+		SetImageColor(this, col.red, col.green, col.blue, col.alpha)
+		
+	/** Set the image color by using the color tuple */		
+	public function image.setColor(color col)
+		SetImageColor(this, col.red, col.green, col.blue, 255)
+		
+	/** Set the image color */		
+	public function image.setColor(integer red, integer blue, integer green, integer alpha)
+		SetImageColor(this, red, green, blue, alpha)
+		
+	/** Set the image level (use the constants) */		
+	public function image.setLevel(integer level)
+		SetImageType(this, level)
+		
+	/** Destroy the image */		
+	public function image.remove()
+		DestroyImage(this)
+	
+
+endpackage
