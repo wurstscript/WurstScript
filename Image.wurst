@@ -1,11 +1,12 @@
 package Image
 	import public Colors
 
-	public constant int IMAGE_LEVEL_1 = 1
-	public constant int IMAGE_LEVEL_2 = 3
-	public constant int IMAGE_LEVEL_3 = 2
-	public constant int IMAGE_LEVEL_4 = 4
-		
+	public enum Layer
+		L1
+		L2
+		L3
+		L4
+	
 	/** Create an image at the target location, the Image has to be a blp, with transparent borders */
 	public function createImage(string path, vec2 pos, real sizeX, real sizeY) returns image
 		return CreateImage(path, sizeX, sizeY, 0, pos.y, pos.x, 0, sizeX / 2, sizeY / 2, 0, 1)
