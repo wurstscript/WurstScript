@@ -3,8 +3,8 @@ package Image
 
 	public enum Layer
 		L1
-		L2
 		L3
+		L2
 		L4
 	
 	/** Create an image at the target location, the Image has to be a blp, with transparent borders */
@@ -12,12 +12,12 @@ package Image
 		return CreateImage(path, sizeX, sizeY, 0, pos.y, pos.x, 0, sizeX / 2, sizeY / 2, 0, 1)
 	
 	/** Create an image at the target location, the Image has to be a blp, with transparent borders.
-	The imageLevel specifis which image overlaps an other: Level 1 is always on the top, and level 4 always in the background. Use the constants "imageLevel_x" */
-	public function createImage(string path, vec2 pos, real sizeX, real sizeY, int imageLevel) returns image
-		if imageLevel > 0 and imageLevel < 5
-			return CreateImage(path, sizeX, sizeY, 0, pos.y, pos.x, 0, sizeX / 2, sizeY / 2, 0, imageLevel)
+	The imageLevel specifies which image overlaps another: Level 1 is always on the top, and level 4 always in the background. Use the enums "Layer.LX" */
+	public function createImage(string path, vec2 pos, real sizeX, real sizeY, Layer layer) returns image
+		if layer castTo int > 0 and layer castTo int < 5
+			return CreateImage(path, sizeX, sizeY, 0, pos.y, pos.x, 0, sizeX / 2, sizeY / 2, 0, layer castTo int)
 		else
-			printError("Invaild image level")
+			printError("Invaild image layer")
 			return null
 				
 	/** Shows the image */
@@ -60,8 +60,11 @@ package Image
 		SetImageColor(this, col.red, col.green, col.blue, 255)
 		
 	/** Set the image level (use the constants) */		
-	public function image.setLevel(int level)
-		SetImageType(this, level)
+	public function image.setLevel(Layer layer)
+		if layer castTo int > 0 and layer castTo int < 5
+			SetImageType(this, layer castTo int)
+		else
+			printError("Invaild image layer")
 		
 	/** Destroy the image */		
 	public function image.remove()
