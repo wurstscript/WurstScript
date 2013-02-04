@@ -46,7 +46,7 @@ import de.peeeq.wurstscript.intermediateLang.interpreter.LocalState;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImStmt;
-import de.peeeq.wurstscript.jassinterpreter.DebugPrintError;
+import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlag;
@@ -100,10 +100,9 @@ public class WurstREPL {
 	private void init() {
 		currentState = Maps.newHashMap();
 		importedPackages = Sets.newHashSet();
-		interpreter = new ILInterpreter(null, gui, null);
 		RobustProgramState globalState = new RobustProgramState(null, gui);
+		interpreter = new ILInterpreter(null, gui, null, globalState);
 		globalState.setOutStream(new PrintStream(out));
-		interpreter.setGlobalState(globalState);
 	}
 	
 	private void print(String msg) {

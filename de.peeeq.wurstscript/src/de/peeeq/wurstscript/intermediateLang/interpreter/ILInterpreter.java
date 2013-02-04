@@ -12,18 +12,24 @@ import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVoid;
-import de.peeeq.wurstscript.jassinterpreter.NativeFunctions;
 import de.peeeq.wurstscript.jassinterpreter.ReturnException;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class ILInterpreter {
 	private ImProg prog;
-	private ProgramState globalState;
+	private final ProgramState globalState;
+	
 
+	
+	public ILInterpreter(ImProg prog, WurstGui gui, File mapFile, ProgramState globalState) {
+		this.prog = prog;
+		this.globalState = globalState;
+		globalState.addNativeProvider(new BuiltinFuncs(globalState));
+		globalState.addNativeProvider(new NativeFunctions());
+	}
 
 	public ILInterpreter(ImProg prog, WurstGui gui, File mapFile) {
-		this.prog = prog;
-		this.globalState = new ProgramState(mapFile, gui);
+		this(prog, gui, mapFile, new ProgramState(mapFile, gui));
 	}
 
 	public static LocalState runFunc(ProgramState globalState, ImFunction f, ILconst ... args) {
@@ -34,13 +40,12 @@ public class ILInterpreter {
 		System.out.println("calling function " + f.getName() + "("+ Utils.printSep(", ", parameterTypes) +  ")");
 		
 		if (isCompiletimeNative(f)) {
-			return runBuiltinFunction(globalState, f, new CompiletimeNatives(globalState), args);
+			return runBuiltinFunction(globalState, f, args);
 		}
 		
 		
 		if (f.isNative()) {
-			NativesProvider nativeFuncs = new NativeFunctions();
-			return runBuiltinFunction(globalState, f, nativeFuncs, args);
+			return runBuiltinFunction(globalState, f, args);
 		}
 		LocalState localState = new LocalState();
 		int i = 0;
@@ -59,9 +64,17 @@ public class ILInterpreter {
 		throw new InterprationError("function " + f.getName() + " did not return any value...");
 	}
 
-	private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, NativesProvider natives, ILconst... args)	throws Error, InterprationError {
-		natives.setOutStream(globalState.getOutStream());
-		return new LocalState(natives.invoke(f.getName(), args));
+	private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, ILconst... args)	throws Error, InterprationError {
+		
+		for (NativesProvider natives : globalState.getNativeProviders()) {
+			try {
+				System.out.println("Searchin func " + f.getName() + " in " + natives.getClass());
+				return new LocalState(natives.invoke(f.getName(), args));
+			} catch (NoSuchNativeException e) {
+				// ignore
+			}
+		}
+		throw new Error("function " + f.getName() + " not found.");
 	}
 
 	private static boolean isCompiletimeNative(ImFunction f) {
@@ -105,12 +118,13 @@ public class ILInterpreter {
 		return globalState;
 	}
 
-	public void setGlobalState(ProgramState globalState) {
-		this.globalState = globalState;
+	public void addNativeProvider(NativesProvider np) {
+		globalState.addNativeProvider(np);		
 	}
 
 	public void setProgram(ImProg imProg) {
 		this.prog = imProg;
 	}
+
 
 }

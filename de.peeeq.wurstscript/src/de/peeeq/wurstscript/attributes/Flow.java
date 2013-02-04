@@ -63,7 +63,7 @@ public class Flow {
 	}
 	
 	public static List<WStatement> getNext(StmtExitwhen s) {
-		LoopStatement loop = getParent(LoopStatement.class, s);
+		LoopStatement loop = getParentLoopStatement(s);
 		if (loop == null) {
 			s.addError("Break statements must be used inside a loop.");
 			return Collections.emptyList();
@@ -252,10 +252,10 @@ public class Flow {
 		return getFollowingStatements(s);
 	}
 
-	private static <T extends AstElement> T getParent(Class<T> clazz, AstElement node) {
+	private static LoopStatement getParentLoopStatement(AstElement node) {
 		while (node != null) {
-			if (clazz.isAssignableFrom(node.getClass())) {
-				return (T) node;
+			if (node instanceof LoopStatement) {
+				return (LoopStatement) node;
 			}
 			node = node.getParent();
 		}

@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.parser;
 
-import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -12,7 +11,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.attributes.CompileError;
@@ -91,16 +89,133 @@ public class ExtendedParser extends parser {
 	 * uses reflection to get the name of a Symbol
 	 */
 	public static String translateSym(int index) {
-		try {
-			Class<TokenType> symbolClass = TokenType.class;
-
-			for (Field f : symbolClass.getDeclaredFields()) {
-				if (f.getInt(null) == index) {
-					return translateSymbolName(f.getName());
-				}
-			}
-		} catch (Throwable e) {
-			WLogger.severe(e);
+		return translateSymbolName(translateSymRaw(index));
+	}
+	
+	private static String translateSymRaw(int index) {
+		switch (index) {
+		case TokenType.MINUS_MINUS: return "MINUS_MINUS";
+		  case TokenType.ENDGLOBALS: return "ENDGLOBALS";
+		  case TokenType.IDENTIFIER: return "IDENTIFIER";
+		  case TokenType.FROM: return "FROM";
+		  case TokenType.GT: return "GT";
+		  case TokenType.ARROW: return "ARROW";
+		  case TokenType.ENDPACKAGE: return "ENDPACKAGE";
+		  case TokenType.TYPE: return "TYPE";
+		  case TokenType.IMPLEMENTS: return "IMPLEMENTS";
+		  case TokenType.PLUS_EQ: return "PLUS_EQ";
+		  case TokenType.NOTEQ: return "NOTEQ";
+		  case TokenType.DIV_INT: return "DIV_INT";
+		  case TokenType.NOTHING: return "NOTHING";
+		  case TokenType.LOWEST: return "LOWEST";
+		  case TokenType.ENDFUNCTION: return "ENDFUNCTION";
+		  case TokenType.ENUM: return "ENUM";
+		  case TokenType.CUSTOM_ERROR: return "CUSTOM_ERROR";
+		  case TokenType.INDENT: return "INDENT";
+		  case TokenType.RBRACK: return "RBRACK";
+		  case TokenType.INIT: return "INIT";
+		  case TokenType.COMMA: return "COMMA";
+		  case TokenType.TUPLE: return "TUPLE";
+		  case TokenType.PUBLICREAD: return "PUBLICREAD";
+		  case TokenType.GLOBALS: return "GLOBALS";
+		  case TokenType.LBRACK: return "LBRACK";
+		  case TokenType.LT: return "LT";
+		  case TokenType.THISTYPE: return "THISTYPE";
+		  case TokenType.LOOP: return "LOOP";
+		  case TokenType.DIV_REAL: return "DIV_REAL";
+		  case TokenType.PROTECTED: return "PROTECTED";
+		  case TokenType.DESTROY: return "DESTROY";
+		  case TokenType.INTEGER_LITERAL: return "INTEGER_LITERAL";
+		  case TokenType.FALSE: return "FALSE";
+		  case TokenType.NOT: return "NOT";
+		  case TokenType.ELSEIF: return "ELSEIF";
+		  case TokenType.ARRAY: return "ARRAY";
+		  case TokenType.INSTANCE: return "INSTANCE";
+		  case TokenType.VAR: return "VAR";
+		  case TokenType.OVERRIDE: return "OVERRIDE";
+		  case TokenType.THEN: return "THEN";
+		  case TokenType.ENDLOOP: return "ENDLOOP";
+		  case TokenType.PLUS_PLUS: return "PLUS_PLUS";
+		  case TokenType.PACKAGE: return "PACKAGE";
+		  case TokenType.EQ: return "EQ";
+		  case TokenType.NATIVETYPE: return "NATIVETYPE";
+		  case TokenType.CLASS: return "CLASS";
+		  case TokenType.SUPER: return "SUPER";
+		  case TokenType.ABSTRACT: return "ABSTRACT";
+		  case TokenType.EXITWHEN: return "EXITWHEN";
+		  case TokenType.TRUE: return "TRUE";
+		  case TokenType.NATIVE: return "NATIVE";
+		  case TokenType.PLUS: return "PLUS";
+		  case TokenType.WHILE: return "WHILE";
+		  case TokenType.LPAR: return "LPAR";
+		  case TokenType.USE: return "USE";
+		  case TokenType.EXTENDS: return "EXTENDS";
+		  case TokenType.MODULE: return "MODULE";
+		  case TokenType.INTERFACE: return "INTERFACE";
+		  case TokenType.REAL_LITERAL: return "REAL_LITERAL";
+		  case TokenType.RSQUARE: return "RSQUARE";
+		  case TokenType.WURSTDOC: return "WURSTDOC";
+		  case TokenType.SWITCH: return "SWITCH";
+		  case TokenType.MOD_REAL: return "MOD_REAL";
+		  case TokenType.SKIP: return "SKIP";
+		  case TokenType.FOR: return "FOR";
+		  case TokenType.DIV_EQ: return "DIV_EQ";
+		  case TokenType.RETURN: return "RETURN";
+		  case TokenType.PUBLIC: return "PUBLIC";
+		  case TokenType.DOWNTO: return "DOWNTO";
+		  case TokenType.MULT: return "MULT";
+		  case TokenType.ELSE: return "ELSE";
+		  case TokenType.CONSTRUCT: return "CONSTRUCT";
+		  case TokenType.BREAK: return "BREAK";
+		  case TokenType.GTEQ: return "GTEQ";
+		  case TokenType.DOT: return "DOT";
+		  case TokenType.STRING_LITERAL: return "STRING_LITERAL";
+		  case TokenType.NULL: return "NULL";
+		  case TokenType.EQEQ: return "EQEQ";
+		  case TokenType.EOF: return "EOF";
+		  case TokenType.SEMICOLON: return "SEMICOLON";
+		  case TokenType.LSQUARE: return "LSQUARE";
+		  case TokenType.THIS: return "THIS";
+		  case TokenType.RPAR: return "RPAR";
+		  case TokenType.INFIX_CALL: return "INFIX_CALL";
+		  case TokenType.DEFAULT: return "DEFAULT";
+		  case TokenType.MINUS_EQ: return "MINUS_EQ";
+		  case TokenType.FUNCTION: return "FUNCTION";
+		  case TokenType.ENDIF: return "ENDIF";
+		  case TokenType.LOCAL: return "LOCAL";
+		  case TokenType.IMPORT: return "IMPORT";
+		  case TokenType.IDENTIFIER_LT: return "IDENTIFIER_LT";
+		  case TokenType.IT: return "IT";
+		  case TokenType.MINUS: return "MINUS";
+		  case TokenType.CONSTANT: return "CONSTANT";
+		  case TokenType.IMMUTABLE: return "IMMUTABLE";
+		  case TokenType.LTEQ: return "LTEQ";
+		  case TokenType.IN: return "IN";
+		  case TokenType.OR: return "OR";
+		  case TokenType.SET: return "SET";
+		  case TokenType.error: return "error";
+		  case TokenType.CASTTO: return "CASTTO";
+		  case TokenType.ANNOTATION: return "ANNOTATION";
+		  case TokenType.IF: return "IF";
+		  case TokenType.INSTANCEOF: return "INSTANCEOF";
+		  case TokenType.ONDESTROY: return "ONDESTROY";
+		  case TokenType.COLON: return "COLON";
+		  case TokenType.MULT_EQ: return "MULT_EQ";
+		  case TokenType.TAKES: return "TAKES";
+		  case TokenType.CASE: return "CASE";
+		  case TokenType.NEW: return "NEW";
+		  case TokenType.RETURNS: return "RETURNS";
+		  case TokenType.STEP: return "STEP";
+		  case TokenType.MOD_INT: return "MOD_INT";
+		  case TokenType.UNINDENT: return "UNINDENT";
+		  case TokenType.NL: return "NL";
+		  case TokenType.AND: return "AND";
+		  case TokenType.PRIVATE: return "PRIVATE";
+		  case TokenType.TO: return "TO";
+		  case TokenType.STATIC: return "STATIC";
+		  case TokenType.UMINUS: return "UMINUS";
+		  case TokenType.LET: return "LET";
+		  case TokenType.CALL: return "CALL";
 		}
 		return "Symbol#" + index;
 	}

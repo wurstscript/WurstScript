@@ -7,6 +7,9 @@ import java.util.Map;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import de.peeeq.wurstio.intermediateLang.interpreter.CompiletimeNatives;
+import de.peeeq.wurstio.intermediateLang.interpreter.ProgramStateIO;
+import de.peeeq.wurstio.jassinterpreter.NativeFunctionsIO;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -35,7 +38,11 @@ public class CompiletimeFunctionRunner {
 	public CompiletimeFunctionRunner(ImProg imProg, File mapFile, WurstGui gui, FunctionFlag flag) {
 		this.imProg = imProg;
 		this.mapFile = mapFile;
-		this.interpreter = new ILInterpreter(imProg, gui, mapFile);
+		ProgramStateIO globalState = new ProgramStateIO(mapFile, gui);
+		this.interpreter = new ILInterpreter(imProg, gui, mapFile, globalState);
+		
+		interpreter.addNativeProvider(new NativeFunctionsIO());
+		interpreter.addNativeProvider(new CompiletimeNatives(globalState));
 		this.gui = gui;
 		this.functionFlag = flag;
 	}

@@ -1,0 +1,219 @@
+package Setup
+	// Everything you declare here will be done first
+	// DONT import anything into here and import this into each package
+	// This is a perfect place to declare anything that need to be global..
+	
+	//--------------------//
+	//------BonusMod------//
+	//--------------------//
+	
+	public timer timeTest
+	
+	public int array attackBon
+	public int attackBonNeg
+	public int array attackPerm
+	public int attackNegPerm
+	public int array attackSpeedBon
+	public int attackSpeedBonNeg
+	public int array armorBon
+	public int armorBonNeg
+	public int array hpBon
+	public int hpBonNeg
+	public int array manaBon
+	public int manaBonNeg
+	public int array agiBon
+	public int agiBonNeg
+	public int array strBon
+	public int strBonNeg
+	public int array intBon
+	public int intBonNeg
+	public int permHp
+	public int permHpNeg
+	public int permMp
+	public int permMpNeg
+	
+	init
+		timeTest = null
+		
+		//-----------------------//
+		//------BonusMod---------//
+		//-----------------------//
+		
+		//------AttackBons-------//
+		
+		attackBon[0] = '(B)a' // + 1
+		attackBon[1] = '(B)b' // + 2
+		attackBon[2] = '(B)c' // + 4
+		attackBon[3] = '(B)d' // + 8
+		attackBon[4] = '(B)e' // + 16
+		attackBon[5] = '(B)f' // + 32
+		attackBon[6] = '(B)g' // + 64
+		attackBon[7] = '(B)h' // + 128
+		attackBon[8] = '(B)i' // + 256
+		attackBon[9] = '(B)j' // + 512
+		attackBonNeg = '(B)-' // -1024
+		
+		//-------Attack Perm-------//
+		
+		attackPerm[0] = '(Z)a' // + 1
+		attackPerm[1] = '(Z)b' // + 2
+		attackPerm[2] = '(Z)c' // + 4
+		attackPerm[3] = '(Z)d' // + 8
+		attackPerm[4] = '(Z)e' // + 16
+		attackPerm[5] = '(Z)f' // + 32
+		attackPerm[6] = '(Z)g' // + 64
+		attackPerm[7] = '(Z)h' // + 128
+		attackPerm[8] = '(Z)i' // + +256
+		attackNegPerm = '(Z)-' // - 512
+		
+		//----AttackSpeedBons----//
+		
+		attackSpeedBon[0] = '(I)a' // + 1
+		attackSpeedBon[1] = '(I)b' // + 2
+		attackSpeedBon[2] = '(I)c' // + 4
+		attackSpeedBon[3] = '(I)d' // + 8
+		attackSpeedBon[4] = '(I)e' // + 16
+		attackSpeedBon[5] = '(I)f' // + 32
+		attackSpeedBon[6] = '(I)g' // + 64
+		attackSpeedBon[7] = '(I)h' // + 128
+		attackSpeedBon[8] = '(I)i' // + 256
+		attackSpeedBonNeg = '(I)-' // - 512
+		
+		//-------ArmorBons-------//
+		
+		armorBon[0] = '(A)a' // + 1
+		armorBon[1] = '(A)b' // + 2
+		armorBon[2] = '(A)c' // + 4
+		armorBon[3] = '(A)d' // + 8
+		armorBon[4] = '(A)e' // + 16
+		armorBon[5] = '(A)f' // + 32
+		armorBon[6] = '(A)g' // + 64
+		armorBon[7] = '(A)h' // + 128
+		armorBon[8] = '(A)i' // + 256
+		armorBon[9] = '(A)j' // + 512
+		armorBonNeg = '(A)-' // - 1024
+		
+		//--------HPBons--------//
+		
+		hpBon[0] = '(Y)a' // + 1
+		hpBon[1] = '(Y)b' // + 2
+		hpBon[2] = '(Y)c' // + 4
+		hpBon[3] = '(Y)d' // + 8
+		hpBon[4] = '(Y)e' // + 16
+		hpBon[5] = '(Y)f' // + 32
+		hpBon[6] = '(Y)g' // + 64
+		hpBon[7] = '(Y)h' // + 128
+		hpBon[8] = '(Y)i' // + 256
+		hpBon[9] = '(Y)j' // + 512
+		hpBon[10] = '(Y)k'// + 1024
+		hpBon[11] = '(Y)l'// + 2048
+		hpBonNeg = '(Y)-' // - 4096
+				
+		//-------ManaBons-------//
+		
+		manaBon[0] = '(X)a' // + 1
+		manaBon[1] = '(X)b' // + 2
+		manaBon[2] = '(X)c' // + 4
+		manaBon[3] = '(X)d' // + 8
+		manaBon[4] = '(X)e' // + 16
+		manaBon[5] = '(X)f' // + 32
+		manaBon[6] = '(X)g' // + 64
+		manaBon[7] = '(X)h' // + 128
+		manaBon[8] = '(X)i' // + 256
+		manaBon[9] = '(X)j' // + 512
+		manaBon[10] = '(X)k'// + 1024
+		manaBon[11] = '(X)l'// + 2048
+		manaBonNeg = '(X)-' // - 4096
+				
+		//-------Agility-------//
+		
+		agiBon[0] = '(G)a' // + 1
+		agiBon[1] = '(G)b' // + 2
+		agiBon[2] = '(G)c' // + 4
+		agiBon[3] = '(G)d' // + 8
+		agiBon[4] = '(G)e' // + 16
+		agiBon[5] = '(G)f' // + 32
+		agiBon[6] = '(G)g' // + 64
+		agiBon[7] = '(G)h' // + 128
+		agiBon[8] = '(G)i' // + 256
+		agiBonNeg = '(G)-' // - 512
+				
+		//-------Strength-------//
+		
+		strBon[0] = '(F)a' // + 1
+		strBon[1] = '(F)b' // + 2
+		strBon[2] = '(F)c' // + 4
+		strBon[3] = '(F)d' // + 8
+		strBon[4] = '(F)e' // + 16
+		strBon[5] = '(F)f' // + 32
+		strBon[6] = '(F)g' // + 64
+		strBon[7] = '(F)h' // + 128
+		strBon[8] = '(F)i' // + 256
+		strBonNeg = '(F)-' // - 512
+						
+		//------Inteligenz-------//
+		
+		intBon[0] = '(H)a' // + 1
+		intBon[1] = '(H)b' // + 2
+		intBon[2] = '(H)c' // + 4
+		intBon[3] = '(H)d' // + 8
+		intBon[4] = '(H)e' // + 16
+		intBon[5] = '(H)f' // + 32
+		intBon[6] = '(H)g' // + 64
+		intBon[7] = '(H)h' // + 128
+		intBon[8] = '(H)i' // + 256
+		intBonNeg = '(H)-' // - 512
+						
+		//------Perm HP|Mana------//
+		
+		permHp = 'HP_+'
+		permHpNeg = 'HP_-'
+		permMp = 'MP_+'
+		permMpNeg = 'HP_-'
+		
+	
+	
+	public enum Update
+		ATTACK
+		ATTACKSPEED
+		ARMOR
+		AGI
+		INT
+		STR
+		LIFE
+		MANA
+	
+	public enum BonType
+		ATTACK
+		ATTACK_PER
+		ATTACKSPEED
+		MOVESPEED
+		MOVESPEED_PER
+		ARMOR
+		ARMOR_PER
+		AGI
+		AGI_PER
+		INT
+		INT_PER
+		STR
+		STR_PER
+		LIFE
+		LIFE_PER
+		MANA
+		MANA_PER
+		
+	public enum TextType
+		DAMAGE
+		HEAL
+		DOT
+		MISS
+		DODGE
+		GOLD
+		
+	public function roundReal(real value) returns integer
+		if value > 0
+			return R2I(value + 0.5)
+		else
+			return R2I(value - 0.5)
+		
+endpackage

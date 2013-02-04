@@ -32,7 +32,6 @@ import org.xml.sax.helpers.DefaultHandler;
 
 import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.wurstscript.RunArgs;
-import de.peeeq.wurstscript.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.WurstModel;

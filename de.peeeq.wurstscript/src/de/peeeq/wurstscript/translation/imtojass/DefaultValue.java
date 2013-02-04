@@ -20,13 +20,12 @@ public class DefaultValue {
 	}
 
 	public static ILconst get(ImSimpleType t) {
-		switch (t.getTypename()) {
-		case "string": return ILconstNull.instance();
-		case "integer": return new ILconstInt(0);
-		case "real" : return new ILconstReal(0);
-		case "boolean": return ILconstBool.FALSE;
-		}
-		return new ILconstError(t.getTypename());
+		String typename = t.getTypename();
+		if (typename.equals("string")) return ILconstNull.instance();
+		if (typename.equals("integer")) return new ILconstInt(0);
+		if (typename.equals("real" )) return new ILconstReal(0);
+		if (typename.equals("boolean")) return ILconstBool.FALSE;
+		return new ILconstError(typename);
 	}
 
 	public static ILconst get(ImTupleArrayType t) {

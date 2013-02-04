@@ -1,7 +1,5 @@
 package de.peeeq.wurstscript.validation;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -17,6 +15,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
@@ -139,10 +138,8 @@ public class WurstValidator {
 	private WurstModel prog;
 	private int functionCount;
 	private int visitedFunctions;
-	private List<Method> checkMethods = Lists.newArrayList();
-	private HashMultimap<Class<?>, Method> typeToMethod = HashMultimap.create();
 	private Multimap<WScope	, WScope> calledFunctions = HashMultimap.create();
-	
+
 	public WurstValidator(WurstModel root) {
 		this.prog = root;
 	}
@@ -151,26 +148,8 @@ public class WurstValidator {
 		functionCount = countFunctions();
 		visitedFunctions = 0;
 
-//		prog.accept(this);
-		// TODO reflection mechanism
-		
-		
-		for (Method m : WurstValidator.class.getMethods()) {
-			if (m.getAnnotation(CheckMethod.class) != null) {
-				// this is a checkmethod
-				checkMethods.add(m);
-				if (m.getParameterTypes().length != 1) {
-					throw new Error("check method must have exactly one parameter: " + m);
-				}
-			}
-		}
-		
 		walkTree(prog);		
 		postChecks();
-//		for (CompileError e : attr.getErrors()) {
-//			throw e;
-//		}
-//		throw new Error("exit..");
 	}
 
 	/**
@@ -185,7 +164,7 @@ public class WurstValidator {
 				}
 			}
 		}
-		
+
 	}
 
 	private void walkTree(AstElement e) {
@@ -196,36 +175,60 @@ public class WurstValidator {
 	}
 
 	private void check(AstElement e) {
-		if (!typeToMethod.containsKey(e.getClass())) {
-			for (Method m : checkMethods) {
-				if (m.getParameterTypes()[0].isInstance(e)) {
-					typeToMethod.put(e.getClass(), m);
-				}
-			}
-		}
-		for (Method m : typeToMethod.get(e.getClass())) {
-			try {
-				m.invoke(this, e);
-			} catch (Error t) {
-				throw t;
-			} catch (IllegalArgumentException t) {
-				throw new Error(t);
-			} catch (IllegalAccessException t) {
-				throw new Error(t);
-			} catch (InvocationTargetException t) {
-				Throwable cause = t.getCause();
-				if (cause instanceof CyclicDependencyError) {
-					CyclicDependencyError cde = (CyclicDependencyError) cause;
-					cde.printStackTrace();
-					AstElement element = cde.getElement();
-					String attr = cde.getAttributeName().replaceFirst("^attr", "");
-					throw new CompileError(element.attrSource(), Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
-				} else if (cause instanceof Error) {
-					throw (Error)cause;
-				} else {
-					throw new Error(cause);
-				}
-			}
+		try {
+			if (e instanceof ClassDef) checkInstanceDef((ClassDef) e);
+			if (e instanceof ClassDef) checkOverrides((ClassDef) e);
+			if (e instanceof ClassDef) visit((ClassDef) e);
+			if (e instanceof CompilationUnit) checkPackageName((CompilationUnit) e);
+			if (e instanceof ConstructorDef) checkConstructor((ConstructorDef) e);
+			if (e instanceof ConstructorDef) checkConstructorSuperCall((ConstructorDef) e);
+			if (e instanceof ExprBinary) visit((ExprBinary) e);
+			if (e instanceof ExprFuncRef) checkFuncRef((ExprFuncRef) e);
+			if (e instanceof ExprFunctionCall) checkBannedFunctions((ExprFunctionCall) e);
+			if (e instanceof ExprFunctionCall) visit((ExprFunctionCall) e);
+			if (e instanceof ExprMemberMethod) visit((ExprMemberMethod) e);
+			if (e instanceof ExprMemberVar) checkMemberVar((ExprMemberVar) e);
+			if (e instanceof ExprNewObject) checkNewObj((ExprNewObject) e);
+			if (e instanceof ExprNewObject) visit((ExprNewObject) e);
+			if (e instanceof ExprVarAccess) visit((ExprVarAccess) e);
+			if (e instanceof ExprVarArrayAccess) checkArrayAccess((ExprVarArrayAccess) e);
+			if (e instanceof ExtensionFuncDef) visit((ExtensionFuncDef) e);
+			if (e instanceof FuncDef) visit((FuncDef) e);
+			if (e instanceof FuncRef) checkFuncRef((FuncRef) e);
+			if (e instanceof FunctionLike) checkUninitializedVars((FunctionLike) e);
+			if (e instanceof GlobalVarDef) checkInitOrderGlobal((GlobalVarDef) e);
+			if (e instanceof GlobalVarDef) visit((GlobalVarDef) e);
+			if (e instanceof HasModifier) checkModifiers((HasModifier) e);
+			if (e instanceof HasTypeArgs) checkTypeBinding((HasTypeArgs) e);
+			if (e instanceof InitBlock) checkInitOrderInitBlock((InitBlock) e);
+			if (e instanceof InterfaceDef) checkInterfaceDef((InterfaceDef) e);
+			if (e instanceof LocalVarDef) checkLocalShadowing((LocalVarDef) e);
+			if (e instanceof LocalVarDef) visit((LocalVarDef) e);
+			if (e instanceof Modifiers) visit((Modifiers) e);
+			if (e instanceof ModuleDef) visit((ModuleDef) e);
+			if (e instanceof NameDef) nameDefsMustNotBeNamedAfterJassNativeTypes((NameDef) e);
+			if (e instanceof StmtCall) checkCall((StmtCall) e); 
+			if (e instanceof StmtDestroy) visit((StmtDestroy) e);
+			if (e instanceof StmtIf) visit((StmtIf) e);
+			if (e instanceof StmtReturn) visit((StmtReturn) e);
+			if (e instanceof StmtSet) checkStmtSet((StmtSet) e);
+			if (e instanceof StmtWhile) visit((StmtWhile) e);
+			if (e instanceof SwitchStmt) checkSwitch((SwitchStmt) e);
+			if (e instanceof TypeExprArray) chechCodeArrays((TypeExprArray) e);
+			if (e instanceof VarDef) checkTypenameAsVar((VarDef) e);
+			if (e instanceof VarDef) checkVarDef((VarDef) e);
+			if (e instanceof WImport) visit((WImport) e);
+			if (e instanceof WPackage) checkForDuplicateImports((WPackage) e);
+			if (e instanceof WParameter) checkParameter((WParameter) e);
+			if (e instanceof WParameter) visit((WParameter) e);
+			if (e instanceof WScope) checkForDuplicateMethods((WScope) e);
+			if (e instanceof WStatement) checkReachability((WStatement) e);
+			if (e instanceof WurstModel) checkForDuplicatePackages((WurstModel) e);
+		} catch (CyclicDependencyError cde) {
+			cde.printStackTrace();
+			AstElement element = cde.getElement();
+			String attr = cde.getAttributeName().replaceFirst("^attr", "");
+			throw new CompileError(element.attrSource(), Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
 		}
 	}
 
@@ -251,29 +254,29 @@ public class WurstValidator {
 			s.getUpdatedExpr().addError("Invalid assignment. This is not a variable, this is a " + Utils.printElement(nameDef));
 			return;
 		}
-		
+
 		WurstType leftType = s.getUpdatedExpr().attrTyp();
 		WurstType rightType = s.getRight().attrTyp();
 
 		checkAssignment(Utils.isJassCode(s), s, leftType, rightType);
-		
+
 		checkIfAssigningToConstant(s.getUpdatedExpr());
-		
+
 	}
 
 	private void checkIfAssigningToConstant(final NameRef left) {
 		left.match(new NameRef.MatcherVoid() {
-			
+
 			@Override
 			public void case_ExprVarArrayAccess(ExprVarArrayAccess e) {
-				
+
 			}
-			
+
 			@Override
 			public void case_ExprVarAccess(ExprVarAccess e) {
 				checkVarNotConstant(left, e.attrNameDef());
 			}
-			
+
 			@Override
 			public void case_ExprMemberVar(ExprMemberVar e) {
 				if (e.attrNameDef() instanceof WParameter) {
@@ -289,14 +292,14 @@ public class WurstValidator {
 				}
 				checkVarNotConstant(left, e.attrNameDef());
 			}
-			
+
 			@Override
 			public void case_ExprMemberArrayVar(ExprMemberArrayVar e) {
-				
+
 			}
 		});
 	}
-	
+
 	private void checkVarNotConstant(NameRef left, NameDef var) {
 		if (var != null && var.attrIsConstant()) {
 			left.addError("Cannot assign a new value to constant " + Utils.printElement(var));
@@ -318,7 +321,7 @@ public class WurstValidator {
 			WurstTypeNamedScope ns = (WurstTypeNamedScope) leftType;
 			if (ns.isStaticRef()) {
 				pos.addError("Missing variable name in variable declaration.\n" +
-				"Cannot assign to " + leftType);
+						"Cannot assign to " + leftType);
 			}
 		}
 		if (leftType instanceof WurstTypeArray) {
@@ -352,9 +355,9 @@ public class WurstValidator {
 		}else if ( varName.matches("code")) {
 			s.addError("\"code\" is not a valid variable name");
 		}
-		
+
 	}
-	
+
 	@CheckMethod
 	public void visit(WParameter wParameter) {
 		checkVarName(wParameter, false);
@@ -369,11 +372,11 @@ public class WurstValidator {
 			WurstType rightType = initial.attrTyp();
 			checkAssignment(Utils.isJassCode(s), s, leftType, rightType);
 		}
-		
-		
+
+
 		if (s.attrTyp() instanceof WurstTypeArray && !s.attrIsStatic() && s.attrIsDynamicClassMember()) {
 			s.addError("Array variables must be static.\n" +
-			"Hint: use Lists for dynamic stuff.");
+					"Hint: use Lists for dynamic stuff.");
 		}
 	}
 
@@ -406,11 +409,11 @@ public class WurstValidator {
 		}
 	}
 
-	
 
-	
 
-	
+
+
+
 	private void checkReturn(FunctionLike func) {
 		if (!func.attrHasEmptyBody()) {
 			new ReturnsAnalysis().execute(func);
@@ -435,22 +438,22 @@ public class WurstValidator {
 			}
 		}
 	}
-	
+
 	@CheckMethod
 	public void visit(FuncDef func) {
 		visitedFunctions++;
 		func.getErrorHandler().setProgress(null, ProgressHelper.getValidatorPercent(visitedFunctions, functionCount));
 
 		checkFunctionName(func);
-		
+
 		Map<TypeParamDef, WurstType> typeParamBinding = Collections.emptyMap();
-		
+
 		if (func.attrIsAbstract() && !func.attrHasEmptyBody()) {
 			func.addError("Abstract function " + func.getName() + " must not have a body.");			
 		}
 	}
-	
-	
+
+
 	@CheckMethod
 	public void checkUninitializedVars(FunctionLike f) {
 		boolean isAbstract = false;
@@ -460,7 +463,7 @@ public class WurstValidator {
 				isAbstract = true;
 				if (!func.attrHasEmptyBody()) {
 					func.getBody().get(0).addError("The abstract function " + func.getName()
-					+ " must not have any statements.");
+							+ " must not have any statements.");
 				}
 			}
 		}
@@ -471,7 +474,7 @@ public class WurstValidator {
 			}
 		}
 	}
-	
+
 	@CheckMethod
 	public void checkCall(StmtCall call) { 
 		String funcName = call.match(new StmtCall.Matcher<String>() {
@@ -491,7 +494,7 @@ public class WurstValidator {
 				return c.getFuncName();
 			}
 		});
-		
+
 		call.attrCallSignature().checkSignatureCompatibility(call.attrFunctionSignature(), funcName, call);
 	}
 
@@ -500,19 +503,19 @@ public class WurstValidator {
 		String funcName = stmtCall.getFuncName();
 		// calculating the exprType should reveal most errors:
 		stmtCall.attrTyp();
-		
+
 		FunctionImplementation nearestFunc = stmtCall.attrNearestFuncDef();
 		if (stmtCall.attrFuncDef() != null) {
-			
+
 			FunctionDefinition calledFunc = stmtCall.attrFuncDef();
 			if (calledFunc.attrIsDynamicClassMember()) {
 				if (!stmtCall.attrIsDynamicContext()) {
-							stmtCall.addError("Cannot call dynamic function " + funcName  +
+					stmtCall.addError("Cannot call dynamic function " + funcName  +
 							" from static function " + nearestFunc.getName());
 				}
 			}
 		}
-		
+
 		// special check for filter & condition:
 		if (Utils.oneOf(funcName, "Condition", "Filter")) {
 			Expr firstArg = stmtCall.getArgs().get(0);
@@ -528,14 +531,14 @@ public class WurstValidator {
 		}
 	}
 
-//	private void checkParams(AstElement where, List<Expr> args, FunctionDefinition calledFunc) {
-//		if (calledFunc == null) {
-//			return;
-//		}
-//		List<PscriptType> parameterTypes = calledFunc.attrParameterTypes();
-//		checkParams(where, args, parameterTypes);
-//	}
-	
+	//	private void checkParams(AstElement where, List<Expr> args, FunctionDefinition calledFunc) {
+	//		if (calledFunc == null) {
+	//			return;
+	//		}
+	//		List<PscriptType> parameterTypes = calledFunc.attrParameterTypes();
+	//		checkParams(where, args, parameterTypes);
+	//	}
+
 	@Deprecated
 	private void checkParams(AstElement where, String preMsg, List<Expr> args, FunctionSignature sig) {
 		checkParams(where, preMsg, args, sig.getParamTypes());
@@ -545,15 +548,15 @@ public class WurstValidator {
 	private void checkParams(AstElement where, String preMsg, List<Expr> args, List<WurstType> parameterTypes) {
 		if (args.size() > parameterTypes.size()) {
 			where.addError(preMsg + "Too many parameters.");
-			
+
 		} else if (args.size() < parameterTypes.size()) {
 			where.addError(preMsg + "Missing parameters.");
 		} else {
 			for (int i=0; i<args.size(); i++) {
-				
+
 				WurstType actual = args.get(i).attrTyp();
 				WurstType expected = parameterTypes.get(i);
-//				if (expected instanceof AstElementWithTypeArgs)
+				//				if (expected instanceof AstElementWithTypeArgs)
 				if (!actual.isSubtypeOf(expected, where)) {
 					args.get(i).addError(preMsg + "Expected " + expected + " as parameter " + (i+1) + " but  found " + actual);
 				}
@@ -570,14 +573,14 @@ public class WurstValidator {
 			callSig.checkSignatureCompatibility(sig, ""+expr.getOp(), expr);
 		}
 	}
-	
+
 	@CheckMethod
 	public void visit(ExprMemberMethod stmtCall) {
 		// calculating the exprType should reveal all errors:
 		stmtCall.attrTyp();
 	}
 
-	
+
 
 	@CheckMethod
 	public void visit(ExprNewObject stmtCall) {
@@ -620,7 +623,7 @@ public class WurstValidator {
 				WurstType returnedType = returned.attrTyp();
 				if (!returnedType.isSubtypeOf(returnType, s)) {
 					s.addError("Cannot return " + returnedType + ", expected expression of type "
-					+ returnType);
+							+ returnType);
 				}
 			}
 		} else { // empty return
@@ -648,13 +651,13 @@ public class WurstValidator {
 		// calculate all functions to find possible errors
 		moduleDef.attrNameLinks();
 	}
-	
+
 
 	@CheckMethod
 	public void visit(StmtDestroy stmtDestroy) {
 		WurstType typ = stmtDestroy.getDestroyedObj().attrTyp();
 		if (typ instanceof WurstTypeModule) {
-			
+
 		} else if (typ instanceof WurstTypeClass) {
 			WurstTypeClass c = (WurstTypeClass) typ;
 			if (c.isStaticRef()) {
@@ -666,14 +669,14 @@ public class WurstValidator {
 			return;
 		}
 	}
-	
+
 	@CheckMethod 
 	public void visit(ExprVarAccess e) {
 		checkVarRef(e, e.attrIsDynamicContext());
 	}
 
-	
-	
+
+
 	@CheckMethod
 	public void visit(WImport wImport) {
 		if (wImport.attrImportedPackage() == null) {
@@ -702,7 +705,7 @@ public class WurstValidator {
 			}
 		}
 	}
-	
+
 	@CheckMethod
 	public void checkTypeBinding(HasTypeArgs e) {
 		for (Entry<TypeParamDef, WurstType> t : e.attrTypeParameterBindings().entrySet()) {
@@ -711,11 +714,11 @@ public class WurstValidator {
 					&& !(typ instanceof WurstTypeNamedScope)
 					&& !(typ instanceof WurstTypeTypeParam)) {
 				e.addError("Type parameters can only be bound to ints and class types, but " +
-				"not to " + typ);
+						"not to " + typ);
 			}
 		}
 	}
-	
+
 	@CheckMethod
 	public void checkFuncRef(FuncRef ref) {
 		FunctionDefinition called = ref.attrFuncDef();
@@ -725,7 +728,7 @@ public class WurstValidator {
 		}
 		calledFunctions.put(scope, called);
 	}
-	
+
 	@CheckMethod
 	public void checkFuncRef(ExprFuncRef ref) {
 		FunctionDefinition called = ref.attrFuncDef();
@@ -742,29 +745,29 @@ public class WurstValidator {
 			}
 		}
 	}
-	
+
 	@CheckMethod
 	public void checkModifiers(final HasModifier e) {
 		for (final Modifier m : e.getModifiers()) {
 			final StringBuilder error = new StringBuilder();
-			
+
 			e.match(new HasModifier.MatcherVoid() {
-				
+
 				@Override
 				public void case_WParameter(WParameter wParameter) {
 					check(ModConstant.class);
 				}
-				
+
 				@Override
 				public void case_TypeParamDef(TypeParamDef typeParamDef) {
 					error.append("Type Parameters must not have modifiers");
 				}
-				
+
 				@Override
 				public void case_NativeType(NativeType nativeType) {
 					check(VisibilityPublic.class);
 				}
-				
+
 				private void check(Class<? extends Modifier> ...allowed) {
 					if (m instanceof WurstDoc) {
 						// wurstdoc always allowed
@@ -772,7 +775,11 @@ public class WurstValidator {
 					}
 					boolean isAllowed = false;
 					for (Class<? extends Modifier> a : allowed) {
-						if (a.isInstance(m)) {
+						String modName = m.getClass().getName();
+						String allowedName = a.getName();
+						WLogger.info("comparing " +modName + " vs " + allowedName );
+						if (modName.startsWith(allowedName)) {
+							WLogger.info("equal");
 							isAllowed  = true;
 							break;
 						}
@@ -796,23 +803,23 @@ public class WurstValidator {
 				public void case_NativeFunc(NativeFunc nativeFunc) {
 					check(VisibilityPublic.class, Annotation.class);
 				}
-				
+
 				@Override
 				public void case_ModuleInstanciation(ModuleInstanciation moduleInstanciation) {
 					check(VisibilityPrivate.class, VisibilityProtected.class);
 				}
-				
+
 				@Override
 				public void case_ModuleDef(ModuleDef moduleDef) {
 					check(VisibilityPublic.class);
 				}
-				
+
 				@SuppressWarnings("unchecked")
 				@Override
 				public void case_LocalVarDef(LocalVarDef localVarDef) {
 					check(ModConstant.class);
 				}
-				
+
 				@SuppressWarnings("unchecked")
 				@Override
 				public void case_GlobalVarDef(GlobalVarDef g) {
@@ -823,14 +830,14 @@ public class WurstValidator {
 						check(VisibilityPublic.class, ModConstant.class);
 					}
 				}
-				
+
 				@SuppressWarnings("unchecked")
 				@Override
 				public void case_FuncDef(FuncDef f) {
 					if (f.attrNearestStructureDef() != null) {
 						if (f.attrNearestStructureDef() instanceof InterfaceDef) {
 							check(VisibilityPrivate.class, VisibilityProtected.class,
-								ModAbstract.class, ModOverride.class);
+									ModAbstract.class, ModOverride.class);
 						} else {
 							check(VisibilityPrivate.class, VisibilityProtected.class,
 									ModAbstract.class, ModOverride.class, ModStatic.class);
@@ -844,17 +851,17 @@ public class WurstValidator {
 						check(VisibilityPublic.class, Annotation.class);
 					}
 				}
-				
+
 				@Override
 				public void case_ExtensionFuncDef(ExtensionFuncDef extensionFuncDef) {
 					check(VisibilityPublic.class, Annotation.class);
 				}
-				
+
 				@Override
 				public void case_ConstructorDef(ConstructorDef constructorDef) {
 					check(VisibilityPrivate.class);
 				}
-				
+
 				@Override
 				public void case_ClassDef(ClassDef classDef) {
 					check(VisibilityPublic.class, ModAbstract.class);
@@ -893,7 +900,7 @@ public class WurstValidator {
 	}
 
 	protected String printMod(Class<? extends Modifier> c) {
-		String name = c.getSimpleName().toLowerCase();
+		String name = c.getName().toLowerCase();
 		name = name.replaceAll("^(mod|visibility)", "");
 		name = name.replaceAll("impl$", "");
 		return name;
@@ -905,7 +912,7 @@ public class WurstValidator {
 		}
 		return printMod(m.getClass());
 	}
-	
+
 	@CheckMethod
 	public void checkConstructor(ConstructorDef d) {
 		if (d.attrNearestClassOrModule() instanceof ModuleDef) {
@@ -930,7 +937,7 @@ public class WurstValidator {
 			}
 		}
 	}
-	
+
 	@CheckMethod
 	public void checkInstanceDef(ClassDef classDef) {
 		for (WurstTypeInterface interfaceType : classDef.attrImplementedInterfaces()) {
@@ -939,24 +946,24 @@ public class WurstValidator {
 			// TODO check type mapping
 
 			nextFunction: 
-			for (FuncDef i_funcDef : interfaceDef.getMethods()) {
-				Collection<NameLink> c_funcDefs = classDef.attrNameLinks().get(i_funcDef.getName());
-				for (NameLink nameLink : c_funcDefs) {
-					NameDef c_nameDef = nameLink.getNameDef();
-					if (c_nameDef instanceof FuncDef) {
-						FuncDef c_funcDef = (FuncDef) c_nameDef;
+				for (FuncDef i_funcDef : interfaceDef.getMethods()) {
+					Collection<NameLink> c_funcDefs = classDef.attrNameLinks().get(i_funcDef.getName());
+					for (NameLink nameLink : c_funcDefs) {
+						NameDef c_nameDef = nameLink.getNameDef();
+						if (c_nameDef instanceof FuncDef) {
+							FuncDef c_funcDef = (FuncDef) c_nameDef;
 
-						CheckHelper.checkIfIsRefinement(typeParamMapping, i_funcDef, c_funcDef, "Cannot implement interface because of function ", true);
-						continue nextFunction;
+							CheckHelper.checkIfIsRefinement(typeParamMapping, i_funcDef, c_funcDef, "Cannot implement interface because of function ", true);
+							continue nextFunction;
+						}
+					}
+					if (i_funcDef.attrHasEmptyBody()) {
+						classDef.addError("The class " + classDef.getName() + " must implement the function " +
+								i_funcDef.getName() + ".");
 					}
 				}
-				if (i_funcDef.attrHasEmptyBody()) {
-					classDef.addError("The class " + classDef.getName() + " must implement the function " +
-					i_funcDef.getName() + ".");
-				}
-			}
 		}
-		
+
 		if (!classDef.attrIsAbstract() && classDef.attrExtendedClass() != null) {
 			for (Entry<String, NameLink> e : classDef.attrExtendedClass().attrNameLinks().entries()) {
 				if (e.getValue() instanceof FuncDef) {
@@ -982,7 +989,7 @@ public class WurstValidator {
 			}
 		}
 	}
-	
+
 	@CheckMethod
 	public void checkArrayAccess( ExprVarArrayAccess ea) {
 		for (Expr index : ea.getIndexes()) {
@@ -991,13 +998,13 @@ public class WurstValidator {
 			}
 		}
 	}
-	
+
 	@CheckMethod
 	public void checkInterfaceDef(InterfaceDef i) {
 		checkTypeName(i.getSource(), i.getName());
 		// TODO check if functions are refinements
 	}
-	 
+
 	@CheckMethod
 	public void checkNewObj(ExprNewObject e) {
 		ConstructorDef constr = e.attrConstructorDef();
@@ -1009,10 +1016,10 @@ public class WurstValidator {
 			} 
 			checkParams(e, "Wrong object creation: ", e.getArgs(), e.attrFunctionSignature());
 		}
-		
+
 	}
-	
-	
+
+
 	@CheckMethod
 	public void nameDefsMustNotBeNamedAfterJassNativeTypes(NameDef n) {
 		PackageOrGlobal p = n.attrNearestPackage();
@@ -1020,26 +1027,26 @@ public class WurstValidator {
 			n.addError("Not in package or global: " + n.getName());
 			return;
 		}
-//		checkIfTypeDefExists(n, p);
-//		if (p instanceof WPackage) {
-//			// check global scope
-//			p = p.getParent().attrNearestPackage();
-//			checkIfTypeDefExists(n, p);
-//		}
+		//		checkIfTypeDefExists(n, p);
+		//		if (p instanceof WPackage) {
+		//			// check global scope
+		//			p = p.getParent().attrNearestPackage();
+		//			checkIfTypeDefExists(n, p);
+		//		}
 	}
 
-//	private void checkIfTypeDefExists(NameDef n, PackageOrGlobal p) {
-//		if (n instanceof WPackage) {
-//			// TODO check that there is no other package with same name?
-//			return;
-//		}
-//		TypeDef def = p.lookupType(n.getName());
-//		if (def != null) {
-//			n.addError("The definition for "+Utils.printElement(n)+" defines the same name as the type definition " + Utils.printElement(def));
-//		}
-//	}
-	
-	
+	//	private void checkIfTypeDefExists(NameDef n, PackageOrGlobal p) {
+	//		if (n instanceof WPackage) {
+	//			// TODO check that there is no other package with same name?
+	//			return;
+	//		}
+	//		TypeDef def = p.lookupType(n.getName());
+	//		if (def != null) {
+	//			n.addError("The definition for "+Utils.printElement(n)+" defines the same name as the type definition " + Utils.printElement(def));
+	//		}
+	//	}
+
+
 	@CheckMethod
 	public void checkMemberVar(ExprMemberVar e) {
 		if (e.getVarName().length() == 0) {
@@ -1048,7 +1055,7 @@ public class WurstValidator {
 			e.addError("Incomplete statement.");
 		}
 	}
-	
+
 	@CheckMethod
 	public void checkPackageName(CompilationUnit cu) {
 		if (cu.getPackages().size() == 1 && cu.getFile().endsWith(".wurst")) {
@@ -1059,12 +1066,12 @@ public class WurstValidator {
 			}
 		}
 	}
-	
+
 	@CheckMethod
 	public void checkForDuplicatePackages(WurstModel model) {
 		model.attrPackages();
 	}
-	
+
 	@CheckMethod
 	public void checkBannedFunctions(ExprFunctionCall e) {
 		String[] banned = new String[] {"TriggerRegisterVariableEvent", "ExecuteFunc"};
@@ -1074,19 +1081,19 @@ public class WurstValidator {
 			}
 		}
 	}
-	
+
 	private boolean isViableSwitchtype(Expr expr) {
 		WurstType typ = expr.attrTyp();
 		if( typ.equalsType(WurstTypeInt.instance(), null) 
 				|| typ.equalsType(WurstTypeString.instance(), null) 
 				|| (typ instanceof WurstTypeEnum) ) {
 			return true;
-			
+
 		}else {
 			return false;
 		}
 	}
-	
+
 	@CheckMethod
 	public void checkSwitch(SwitchStmt s) {
 		if (! isViableSwitchtype(s.getExpr()))
@@ -1094,14 +1101,14 @@ public class WurstValidator {
 		else {
 			int i = 0;
 			for (SwitchCase c : s.getCases()) {	
-//				if ( i > 0 ) {
-//					for( int j = 0; j<i; j++) {
-//						System.out.println(">>>>>>>>>>>>>>>>"+c.getExpr());
-//						System.out.println(">>>>>>>>>>>>>>>>"+s.getCases().get(j).getExpr());
-//						if ( c.getExpr().attrN.equals(s.getCases().get(j).getExpr()) )
-//							c.addError("Case " + j + " and " + i + " are the same.");
-//					}
-//				}
+				//				if ( i > 0 ) {
+				//					for( int j = 0; j<i; j++) {
+				//						System.out.println(">>>>>>>>>>>>>>>>"+c.getExpr());
+				//						System.out.println(">>>>>>>>>>>>>>>>"+s.getCases().get(j).getExpr());
+				//						if ( c.getExpr().attrN.equals(s.getCases().get(j).getExpr()) )
+				//							c.addError("Case " + j + " and " + i + " are the same.");
+				//					}
+				//				}
 				i++;
 				if( !c.getExpr().attrTyp().isSubtypeOf(s.getExpr().attrTyp(), c)) {
 					c.addError("The type " + c.getExpr().attrTyp() + " does not match the switchtype "
@@ -1124,10 +1131,10 @@ public class WurstValidator {
 					}
 					s.addError("Enum member " + e.getName() + " from enum " + wurstTypeEnum.getName() + " not covered in switchstatement and no default found.");
 				}
-				
+
 		}
 		// TODO check if all cases for switch are covered
-		
+
 	}
 
 	public static void computeFlowAttributes(AstElement node) {
@@ -1135,13 +1142,13 @@ public class WurstValidator {
 			WStatement s = (WStatement) node;
 			s.attrNextStatements();
 		}
-		
+
 		// traverse childs
 		for (int i =0; i<node.size(); i++) {
 			computeFlowAttributes(node.get(i));
 		}
 	}
-	
+
 	@CheckMethod
 	public void chechCodeArrays(TypeExprArray e) {
 		if (e.getBase() instanceof TypeExprSimple) {
@@ -1149,10 +1156,10 @@ public class WurstValidator {
 			if (base.getTypeName().equals("code")) {
 				e.addError("Code arrays are not supported. Try using an array of triggers or conditionfuncs.");
 			}
-			
+
 		}
 	}
-	
+
 	@CheckMethod
 	public void checkOverrides(ClassDef c) {
 		int level = c.attrLevel();
@@ -1160,12 +1167,12 @@ public class WurstValidator {
 			List<NameLink> funcs = Lists.newArrayList(c.attrNameLinks().get(funcName)); 
 			keepFunctions(funcs);
 			sortByLevel(funcs);
-			
+
 			List<NameLink> abstractFuncs = Lists.newArrayList();
-			
+
 			Multimap<NameLink, NameLink> overridesMap = calcOverrides(funcs);
 			Multimap<NameLink, NameLink> overriddenByMap = Utils.inverse(overridesMap);
-			
+
 			for (NameLink link : funcs) {
 				FuncDef func = (FuncDef) link.getNameDef();
 				if (func.attrIsAbstract() && !(c.attrIsAbstract())) {
@@ -1182,16 +1189,16 @@ public class WurstValidator {
 							func.addError("Class " + c.getName() + " is not abstract so it cannot have abstract functions like " + func.getName() + ".");
 						} else {
 							c.addError("Class " + c.getName() + " must implement the abstract function " +
-								func.getName() + " from " + Utils.printElement(func.attrNearestStructureDef()));
+									func.getName() + " from " + Utils.printElement(func.attrNearestStructureDef()));
 						}
 					}
 				}
-				
+
 				if (link.getLevel() < level) {
 					// only check functions from current level
 					continue;
 				}
-				 
+
 				if (func.attrIsOverride()) {
 					if (overridesMap.get(link).size() == 0) {
 						func.addError("Function " + func.getName() + " uses override modifier but overrides nothing.");
@@ -1213,23 +1220,27 @@ public class WurstValidator {
 					}
 				} else {
 					for (NameLink overriden : overridesMap.get(link)) {
-						if (!(overriden.getDefinedIn() instanceof InterfaceDef)) {
+						if (overriden.getDefinedIn() == link.getDefinedIn()) {
+							func.addError("A function with name " + func.getName() + " is already defined " +
+									"and the two functions can not be disambiguated using overloading.");
+							break;
+						} else if (!(overriden.getDefinedIn() instanceof InterfaceDef)) {
 							func.addError("Function " + func.getName() + " needs the 'override' modifier.");
 							break;
 						}
 					}
 				}
-				
+
 			}
-			
-			
+
+
 		}
 	}
 
 
 	private Multimap<NameLink, NameLink> calcOverrides(List<NameLink> funcs) {
 		Multimap<NameLink, NameLink> overridesMap = HashMultimap.create();
-					
+
 		for (NameLink link1 : funcs) {
 			for (NameLink link2 : funcs) {
 				if (link1 == link2) {
@@ -1238,7 +1249,7 @@ public class WurstValidator {
 				if (overrides(link1, link2)) {
 					overridesMap.put(link1, link2);
 				}
-				
+
 			}
 		}
 		return overridesMap;
@@ -1251,7 +1262,7 @@ public class WurstValidator {
 		if (func1.getParameterTypes().size() != func2.getParameterTypes().size()) {
 			return false;
 		}
-		
+
 		// contravariant parametertypes
 		for (int i=0; i<func1.getParameterTypes().size(); i++) {
 			if (!func1.getParameterTypes().get(i)
@@ -1294,8 +1305,8 @@ public class WurstValidator {
 			}
 		});
 	}
-	
-	
+
+
 	@CheckMethod
 	public void checkForDuplicateMethods(WScope scope) {
 		Multimap<String, NameLink> links = scope.attrNameLinks();
@@ -1351,16 +1362,16 @@ public class WurstValidator {
 		}
 		return false;
 	}
-	
+
 	@CheckMethod
 	public void checkTypenameAsVar(VarDef v) {
 		TypeDef t = v.lookupType(v.getName(), false);
 		if (t != null) {
 			v.addError("Variable " + v.getName() + " defines the same name as " + Utils.printElementWithSource(t));
 		}
-		
+
 	}
-	
+
 	@CheckMethod
 	public void checkForDuplicateImports(WPackage p) {
 		Set<String> imports = Sets.newHashSet();
@@ -1370,18 +1381,18 @@ public class WurstValidator {
 			}
 		}
 	}
-	
+
 	@CheckMethod
 	public void checkVarDef(VarDef v) {
 		v.attrTyp();
-		
+
 		if (v.attrTyp() instanceof WurstTypeCode && v.attrIsDynamicClassMember()) { 
 			v.addError("Code members not allowed as dynamic class members (variable "+v.getName()+")\n" +
 					"Try using a trigger or conditionfunc instead.");
 		}
 	}
-	
-	
+
+
 	@CheckMethod
 	public void checkInitOrderGlobal(final GlobalVarDef v) {
 		if (v.getInitialExpr() instanceof Expr) {
@@ -1389,7 +1400,7 @@ public class WurstValidator {
 			checkInitializationElement(v, expr, v.attrIsDynamicClassMember());
 		}
 	}
-	
+
 	@CheckMethod
 	public void checkInitOrderInitBlock(InitBlock ib) {
 		checkInitializationElement(ib, ib.getBody(), false);
@@ -1437,7 +1448,7 @@ public class WurstValidator {
 						WurstTypeClass t = (WurstTypeClass) t1;
 						checkUsedIsInitializedBefore(e, initPart, v_definedIn, t.getClassDef());
 					}
-					
+
 				}
 				return true;
 			}
@@ -1467,7 +1478,7 @@ public class WurstValidator {
 			}
 		});
 	}
-	
+
 	@CheckMethod
 	public void checkLocalShadowing(LocalVarDef v) {
 		NameDef shadowed = v.getParent().getParent().lookupVar(v.getName(), false);
@@ -1477,7 +1488,7 @@ public class WurstValidator {
 			v.addError("Variable " + v.getName() + " hides a parameter with the same name.");
 		}
 	}
-	
+
 	@CheckMethod
 	public void checkConstructorSuperCall(ConstructorDef c) {
 		if (c.getIsExplicit()) {
@@ -1489,7 +1500,7 @@ public class WurstValidator {
 			}
 		}
 	}
-	
+
 	@CheckMethod
 	public void checkParameter(WParameter param) {
 		if (param.attrTyp() instanceof WurstTypeArray) {

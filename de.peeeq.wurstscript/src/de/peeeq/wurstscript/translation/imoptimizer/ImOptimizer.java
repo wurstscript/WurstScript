@@ -1,7 +1,5 @@
 package de.peeeq.wurstscript.translation.imoptimizer;
 
-import java.util.Collection;
-
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;

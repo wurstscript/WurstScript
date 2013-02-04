@@ -90,7 +90,6 @@ import de.peeeq.wurstscript.jassIm.ImTupleSelection;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
-import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.JassIm;
@@ -408,7 +407,7 @@ public class ImTranslator {
 		} else if (e instanceof ConstructorDef) {
 			return "new_" + e.attrNearestClassDef().getName();
 		}
-		String r = e.getClass().getSimpleName();
+		String r = e.getClass().getName();
 		while (e != null) {
 			if (e instanceof AstElementWithName) {
 				AstElementWithName wn = (AstElementWithName) e;
@@ -709,7 +708,7 @@ public class ImTranslator {
 	 * the resulting list is sorted by the intrange and the intervals are disjunct
 	 */
 	private List<Pair<IntRange, FuncDef>> transformInstances(Map<ClassDef, FuncDef> instances) {
-		Vector<FuncDef> funcs = new Vector<>();
+		Vector<FuncDef> funcs = new Vector<FuncDef>();
 		List<ClassDef> classes = Lists.newArrayList(instances.keySet());
 		Collections.sort(classes, new TypeIdComparator(this));
 		for (ClassDef c : classes) {

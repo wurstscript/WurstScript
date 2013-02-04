@@ -109,9 +109,9 @@ public class PackageLevels {
 	 * import each other
 	 */
 	private static Partitions<WPackage> calcPackageClusters(List<WPackage> packs) {
-		Partitions<WPackage> packageClusters = new Partitions<>(packs);
+		Partitions<WPackage> packageClusters = new Partitions<WPackage>(packs);
 		HashSet<WPackage> visited = Sets.<WPackage>newHashSet();
-		Stack<WPackage> active = new Stack<>();
+		Stack<WPackage> active = new Stack<WPackage>();
 		for (WPackage p : packs) {
 			calculatePackageClusters(packageClusters, visited, active, p);
 		}

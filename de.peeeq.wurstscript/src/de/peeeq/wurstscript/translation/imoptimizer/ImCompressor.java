@@ -3,7 +3,6 @@ package de.peeeq.wurstscript.translation.imoptimizer;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImVar;
-import de.peeeq.wurstscript.jassoptimizer.NameGenerator;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 public class ImCompressor {
