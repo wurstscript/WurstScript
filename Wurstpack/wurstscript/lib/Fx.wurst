@@ -144,6 +144,11 @@ package Fx
 				i = 0
 			SetUnitAnimationByIndex(dummy, i)
 			return this
+			
+		/** Set the z angle with an angle tuple */
+		function setZAngle(angle value) returns Fx
+			setZAngle(value.radians())
+			return this
 		
 		/** Get the x coordinate */
 		function getX() returns real

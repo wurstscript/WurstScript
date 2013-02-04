@@ -1,0 +1,89 @@
+//package BuffObjEditing
+//import ObjEditingNatives
+//
+//public class BuffDefinition
+//	ObjectDefinition def
+//	
+//	construct(string newAbilityId, string origAbilityId)
+//		def = createObjectDefinition("w3h", newAbilityId, origAbilityId)
+//	
+//	function setName(int level, string value)
+//		def.setLvlDataString("fnam",  level, 0,  value)
+//
+//	function setEditorSuffix(int level, string value)
+//		def.setLvlDataString("fnsf",  level, 0,  value)
+//
+//	function setRace(int level, string value)
+//		def.setLvlDataString("frac",  level, 0,  value)
+//
+//	function setIconNormal(int level, string value)
+//		def.setLvlDataString("fart",  level, 0,  value)
+//
+//	function setCaster(int level, string value)
+//		def.setLvlDataString("fcat",  level, 0,  value)
+//
+//	function setTarget(int level, string value)
+//		def.setLvlDataString("ftat",  level, 0,  value)
+//
+//	function setSpecial(int level, string value)
+//		def.setLvlDataString("fsat",  level, 0,  value)
+//
+//	function setEffect(int level, string value)
+//		def.setLvlDataString("feat",  level, 0,  value)
+//
+//	function setAreaEffect(int level, string value)
+//		def.setLvlDataString("faea",  level, 0,  value)
+//
+//	function setMissileArt(int level, string value)
+//		def.setLvlDataString("fmat",  level, 0,  value)
+//
+//	function setMissileSpeed(int level, int value)
+//		def.setLvlDataInt("fmsp",  level, 0,  value)
+//
+//	function setMissileArc(int level, real value)
+//		def.setLvlDataReal("fmac",  level, 0,  value)
+//
+//	function setMissileHomingEnabled(int level, boolean value)
+//		def.setLvlDataBoolean("fmho",  level, 0,  value)
+//
+//	function setTargetAttachments(int level, int value)
+//		def.setLvlDataInt("ftac",  level, 0,  value)
+//
+//	function setTargetAttachmentPoint0(int level, string value)
+//		def.setLvlDataString("fta0",  level, 0,  value)
+//
+//	function setTargetAttachmentPoint1(int level, string value)
+//		def.setLvlDataString("fta1",  level, 0,  value)
+//
+//	function setTargetAttachmentPoint2(int level, string value)
+//		def.setLvlDataString("fta2",  level, 0,  value)
+//
+//	function setTargetAttachmentPoint3(int level, string value)
+//		def.setLvlDataString("fta3",  level, 0,  value)
+//
+//	function setTargetAttachmentPoint4(int level, string value)
+//		def.setLvlDataString("fta4",  level, 0,  value)
+//
+//	function setTargetAttachmentPoint5(int level, string value)
+//		def.setLvlDataString("fta5",  level, 0,  value)
+//
+//	function setCasterAttachments(int level, int value)
+//		def.setLvlDataInt("fcac",  level, 0,  value)
+//
+//	function setSpecialAttachmentPoint(int level, string value)
+//		def.setLvlDataString("fspt",  level, 0,  value)
+//
+//	function setTooltipNormal(int level, string value)
+//		def.setLvlDataString("ftip",  level, 0,  value)
+//
+//	function setTooltipNormalExtended(int level, string value)
+//		def.setLvlDataString("fube",  level, 0,  value)
+//
+//	function setEffectSound(int level, string value)
+//		def.setLvlDataString("fefs",  level, 0,  value)
+//
+//	function setEffectSoundLooping(int level, string value)
+//		def.setLvlDataString("fefl",  level, 0,  value)
+//
+//
+//

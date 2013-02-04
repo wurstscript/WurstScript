@@ -127,6 +127,9 @@ package Vectors
 	public function vec3.rotate( vec3 axis, angle ang ) returns vec3
 		return this.rotate(axis, ang.radians)
 		
+	public function vec3.offset2d(angle ang, real dist) returns vec3
+		return this + ang.toVec(dist)
+		
 	/*************************
 	 ********2D-Vector********
 	 *************************/

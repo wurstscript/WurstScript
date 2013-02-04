@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <site>
-   <feature url="features/EclipseWurstPluginFeatures_1.0.0.12.jar" id="EclipseWurstPluginFeatures" version="1.0.0.12">
+   <feature url="features/EclipseWurstPluginFeatures_1.0.0.13.jar" id="EclipseWurstPluginFeatures" version="1.0.0.13">
       <category name="wurstPlugin"/>
    </feature>
    <category-def name="wurstPlugin" label="WurstScript Eclipse Plugin"/>

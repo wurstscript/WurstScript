@@ -35,6 +35,15 @@ package Rect
 	
 	public function region.loadRegionData() returns int
 		return regionData.loadInt(GetHandleId(this))
+		
+	public function region.removeRegionData()
+		regionData.removeInt(GetHandleId(this))
+		
+	public function region.destr()
+		RemoveRegion(this)
+		
+	public function trigger.unregisterRectEvent()
+		sourceTable.removeHandle(GetHandleId(this))
 
 
 endpackage
