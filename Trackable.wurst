@@ -1,6 +1,6 @@
 package Trackable
 
-  /* 
+	/* 
 	If you need invisible Trackable models here are a few downloadlinks:
 	8x8 	"https://dl.dropbox.com/u/103859688/Trackables/8x8Track.mdx"
 	16x16	"https://dl.dropbox.com/u/103859688/Trackables/16x16Track.mdx"
@@ -51,14 +51,21 @@ package Trackable
 	public function trackable.getOwner() returns player
 		int hID = GetHandleId(this)
 		return trackData.loadPlayerHandle(hID, 4)
+	
+	/** Returns the right handle if you use the "registerTrackableHit/TrackEventForAllPlayers" function */
+	public function trackable.getZentralHandleId() returns int
+		return trackData.loadInt(GetHandleId(this), 5)
 		
 	/** This function creates 12 trackables (one for each player) so you can get the triggering player: GetTriggeringTrackable.getOwner()
 	Keep in mind, that this function is not realy performant!!! */
 	public function trigger.registerTrackableTrackEventForAllPlayers(trackable t)
 		vec2 pos = t.getPosition()
 		string path = t.getPath()
+		int zentralHID = GetHandleId(t)
 		for int i = 0 to 11
 			trackable tempT = createTrackableForPlayer(path, pos, Player(i))
+			int hID = GetHandleId(tempT)
+			trackData.saveInt(hID, 5, zentralHID)
 			this.registerTrackableTrackEvent(tempT)
 			
 	/** This function creates 12 trackables (one for each player) so you can get the triggering player: GetTriggeringTrackable.getOwner()
@@ -66,8 +73,11 @@ package Trackable
 	public function trigger.registerTrackableHitEventForAllPlayers(trackable t)
 		vec2 pos = t.getPosition()
 		string path = t.getPath()
+		int zentralHID = GetHandleId(t)
 		for int i = 0 to 11
 			trackable tempT = createTrackableForPlayer(path, pos, Player(i))
+			int hID = GetHandleId(tempT)
+			trackData.saveInt(hID, 5, zentralHID)
 			this.registerTrackableHitEvent(tempT)
 			
 	
