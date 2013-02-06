@@ -1,105 +1,14 @@
 package LastOrder
-//******************************************************************************
-//* BY: Rising_Dusk
-//* 
-//* LastOrder is a library that was designed to allow interfacing with the last
-//* N orders any unit on your map has received. This library was also designed
-//* to be used as a means to reissue lost orders to a unit either after
-//* preventing a spell cast or in many other situations.
-//* 
-//* There are two configuration constants for you to play with in using this
-//* script. ORDERS_TO_HOLD is basically the size of the game's memory for each
-//* individual unit. The larger the number is, the further back you can retrace
-//* a unit's order list. Setting this value to 3 suffices for all actual
-//* mechanics purposes. Raise it only if you have a specific application where
-//* you need more. Lowering it to 2 covers most cases, but may miss a few, and
-//* lowering it to 1 prevents you from adequately canceling spells and properly
-//* reissuing previous orders. I recommend leaving it alone at 3. The MAX_ORDERS
-//* constant is the number of orders that the system holds over all units at a
-//* given time. If you are worried about running out, go ahead and increase it,
-//* but be aware that it will use big arrays (which are slower) if you use a
-//* number over 8191. Don't lower it under 8191, there's no reason to. Don't
-//* change the non-private constants, there's no reason to.
-//* 
-//*	 function GetPastOrder takes unit u, int whichOrder returns order
-//*	 function GetPastOrderId takes unit u, int whichOrder returns int
-//*	 function GetPastOrderString takes unit u, int whichOrder returns string
-//*	 function GetPastOrderType takes unit u, int whichOrder returns int
-//*	 function GetPastOrderX takes unit u, int whichOrder returns real
-//*	 function GetPastOrderY takes unit u, int whichOrder returns real
-//*	 function GetPastOrderTarget takes unit u, int whichOrder returns widget
-//* 
-//* The above API is the main list of functions the user can use to interface
-//* with past orders. If you want the immediate last order for a player, use 1
-//* for the whichOrder int. The 'order' returned by GetPastOrder is a struct
-//* that contains all information of an issued order. If you want to interface
-//* directly with the struct and skip all of the interfacing wrappers, you have
-//* access to them via the following commands:
-//* 
-//*	 [unit]	 .u	   The unit being ordered.
-//*	 [int]  .id	  The order id of the past order.
-//*	 [int]  .typ	 The type of the past order. (See constants)
-//*	 [boolean]  .fin	 A flag indicating whether the order was finished.
-//*	 [widget]   .tar	 The target widget of the past order.
-//*	 [real]	 .x	   The x coordinate of the target point of the order.
-//*	 [real]	 .y	   The y coordinate of the target point of the order.
-//* 
-//* There is also a sizable API for backwards compatibility with older versions
-//* of the library. This API assumes that you're talking about a specific past
-//* order, either the lastmost order or the second lastmost. In most cases,
-//* these are still useful because they remove an argument from the call.
-//* 
-//*	 function GetLastOrder takes unit u returns order
-//*	 function GetLastOrderId takes unit u returns int
-//*	 function GetLastOrderString takes unit u returns string
-//*	 function GetLastOrderType takes unit u returns int
-//*	 function GetLastOrderX takes unit u returns real
-//*	 function GetLastOrderY takes unit u returns real
-//*	 function GetLastOrderTarget takes unit u returns widget
-//*	 function IsLastOrderFinished takes unit u returns boolean
-//* 
-//* Besides being able to get information about all of the past orders a unit
-//* has been issued, the most useful part of this system is actually reissuing
-//* those orders as a means to fix lost orders or intercept and prevent spell
-//* casting. The following API is available to the user:
-//* 
-//*	 function IssuePastOrder takes unit u, int whichOrder returns boolean
-//*	 function IssueLastOrder takes unit u returns boolean
-//*	 function IssueSecondLastOrder takes unit u returns boolean
-//*	 function AbortOrder takes unit u returns boolean
-//* 
-//* If you want to reissue a past order for a given unit, IssuePastOrder is the
-//* function that you'll want to use on a unit. To issue the last or second last
-//* orders, there are functions for those as well. (They mostly exist for
-//* backwards compatibility) AbortOrder is a means for anyone using this script
-//* to stop a unit from running any given order that they happen to have at any
-//* moment. AbortOrder is used in conjunction with a supplementary library,
-//* AbortSpell, to seamlessly replicate WC3's spell error messages.
-//* 
-//*	 function IssueArbitraryOrder takes unit u, order o returns boolean
-//* 
-//* IssueArbitraryOrder is special in that it ignores many of the normal checks
-//* and automatically forces a unit to take on a specific order. This can be
-//* convenient if you want to make one unit take on another unit's order, for
-//* instance. Be forewarned that this overwrites whatever the unit was doing and
-//* issues the order no matter what, so use only as needed.
-//* 
-//* If you have any further questions regarding LastOrder or how to use it, feel
-//* free to visit [url]www.wc3c.net[/url] and ask questions there. This library should only
-//* ever be released at WC3C and at no other site. Please give credits if this
-//* library finds its way into your maps, and otherwise thanks for reading!
-//* 
-//* Enjoy!
-//* 
-	//Order type variables
+
+//Order type variables
 constant int ORDER_TYPE_TARGET	= 1
 constant int ORDER_TYPE_POINT	 = 2
 constant int ORDER_TYPE_IMMEDIATE = 3
 	
 	//System constants
 constant int ORDERS_TO_HOLD	   = 3	//How many past orders the
-														 //system holds for each unit.
-														 //Should be at least 2.
+									//system holds for each unit.
+									//Should be at least 2.
 
 hashtable ht = InitHashtable()
 
@@ -124,7 +33,7 @@ public class Order
 		x   = ordx
 		y   = ordy
 		//Handle stored orders in the hashtable
-		for i = ORDERS_TO_HOLD downto 1
+		for i = ORDERS_TO_HOLD downto 2
 			//We hold up to the constant ORDERS_TO_HOLD in the table
 			//Moves the N-1th order to the Nth slot, etc. except storing new last order
 			if ht.hasInt(hid, i-1)
@@ -206,7 +115,7 @@ function unit.orderFilter( int id ) returns boolean
 	return (id == 851971 or id == 851986 or id == 851983 or id == 851984 or id == 851990 or id == 851993 or (id >= 852055 and id <= 852762)) and not badOrderList(id)
 
 
-function unit.issuePastOrderFilter( int whichOrder ) returns boolean
+public function unit.issuePastOrderFilter( int whichOrder ) returns boolean
 	//* Some criteria for whether or not a unit's last order should be given
 	//* 
 	//* INSTANT type orders are excluded because generally, reissuing an instant
@@ -225,7 +134,7 @@ function unit.issuePastOrderFilter( int whichOrder ) returns boolean
 
 //******************************************************************************
 
-function unit.issuePastOrder( int whichOrder ) returns boolean
+public function unit.issuePastOrder( int whichOrder ) returns boolean
 	if ht.hasInt( GetHandleId(this), whichOrder)
 		//Only do this if the past order actually exists
 		let ord = this.getPastOrder( whichOrder)
@@ -245,7 +154,7 @@ function unit.issuePastOrder( int whichOrder ) returns boolean
 	return false
 
 
-function unit.abortOrder() returns boolean
+public function unit.abortOrder() returns boolean
 	if IsUnitPaused(this)
 		return false
 	else
@@ -290,7 +199,7 @@ function onAdd() returns boolean
 	int hid = GetHandleId(GetFilterUnit())
 	
 	//Handle stored orders in the hashtable
-	for i = ORDERS_TO_HOLD downto 0
+	for i = ORDERS_TO_HOLD downto 1
 		//If any of the N orders exist for this handle id, kill them all
 		if ht.hasInt( hid, i)
 			destroy (ht.loadInt(hid, i)castTo Order)

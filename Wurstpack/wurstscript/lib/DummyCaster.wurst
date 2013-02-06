@@ -396,7 +396,7 @@ package DummyCaster
 		DummyCaster.T=CreateTimer()
 		DummyCaster.gametime=CreateTimer()
 		TimerStart(DummyCaster.gametime,12.*60.*60.,false,null)
-		print("DUMMYCASTERS INITED")
+		debugPrint("DUMMYCASTERS INITED", 1)
 
 
 endpackage 

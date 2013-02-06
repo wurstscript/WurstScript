@@ -5,6 +5,7 @@ package Maths
 
 	public constant real PI			=  3.141592654
 	public constant real PI2 		=  6.28318
+	public constant real PIHALF		=  1.570796326
 	public constant real DEGTORAD  	=  0.017453293
 	public constant real RADTODEG  	= 57.295779513
 	
@@ -13,7 +14,7 @@ package Maths
 	
 	public function polarProjectionYR ( real y,  real dist, real ang ) returns real
 		return y + dist * Sin(ang)
-		
+
 	public function polarProjectionZR ( real z,  real dist, real ang ) returns real
 		return z + dist * Sin(ang)
 		
