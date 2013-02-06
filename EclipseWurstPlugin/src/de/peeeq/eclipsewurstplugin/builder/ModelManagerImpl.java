@@ -7,7 +7,6 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.URL;
 import java.util.Collections;
-import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 
@@ -21,14 +20,13 @@ import org.eclipse.core.runtime.Platform;
 import org.osgi.framework.Bundle;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.eclipsewurstplugin.editor.CompilationUnitChangeListener;
+import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.RunArgs;
-import de.peeeq.wurstscript.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -105,9 +103,11 @@ public class ModelManagerImpl implements ModelManager {
 			return;
 		}
 		model.clearAttributes();
-		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, RunArgs.defaults());
+		WurstConfig config = new WurstConfig();
+		config.setSetting("lib", Utils.join(dependencies, ";"));
+		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(config, gui, RunArgs.defaults());
 		comp.setHasCommonJ(true);
-		WurstConfig.get().setSetting("lib", Utils.join(dependencies, ";"));
+		
 		try {
 			comp.addImportedLibs(model);		
 			comp.checkProg(model);
@@ -169,7 +169,8 @@ public class ModelManagerImpl implements ModelManager {
 
 	private CompilationUnit compileFromBundle(WurstGui gui, Bundle bundle, String fileName) throws IOException {
 		InputStream source = FileLocator.openStream(bundle, new Path(fileName), false);
-		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, RunArgs.defaults());
+		WurstConfig config = new WurstConfig();
+		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(config, gui, RunArgs.defaults());
 		InputStreamReader reader = new InputStreamReader(source);
 
 		URL fileUrl = FileLocator.find(bundle, new Path(fileName), Collections.emptyMap());
@@ -177,7 +178,7 @@ public class ModelManagerImpl implements ModelManager {
 		if (bundleFile.matches("^/[a-zA-Z]:/.*")) {
 			bundleFile = bundleFile.substring(1);
 		}
-		CompilationUnit cu = comp.parse(reader, bundleFile);
+		CompilationUnit cu = comp.parse(bundleFile, reader);
 		cu.setFile(bundleFile);
 		return cu;
 	}
@@ -203,9 +204,10 @@ public class ModelManagerImpl implements ModelManager {
 
 	@Override
 	public synchronized CompilationUnit parse(WurstGui gui, String fileName, Reader source) {
-		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, RunArgs.defaults());
+		WurstConfig config = new WurstConfig();
+		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(config, gui, RunArgs.defaults());
 		comp.setHasCommonJ(true); // we always want to have a common.j if we have an eclipse plugin
-		CompilationUnit cu = comp.parse(source, fileName);
+		CompilationUnit cu = comp.parse(fileName, source);
 		
 		IFile file = nature.getProject().getFile(fileName);
 		if (file != null) {

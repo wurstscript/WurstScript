@@ -14,8 +14,6 @@ import de.peeeq.wurstscript.jassAst.JassVar;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImExprs;
-import de.peeeq.wurstscript.jassIm.ImSimpleType;
-import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.utils.Utils;

@@ -19,7 +19,6 @@ import java.util.List;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.WurstOperator;
-import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElementWithIndexes;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ConstructorDef;

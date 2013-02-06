@@ -11,20 +11,16 @@ import com.google.common.io.Files;
 
 public class WurstConfig {
 
-	private static ThreadLocal<WurstConfig> instance = new ThreadLocal<WurstConfig>() {
-		protected WurstConfig initialValue() {
-			return new WurstConfig();
-		}
-	};
-
 	private Map<String, String> settings = Maps.newHashMap();
 	
-	private WurstConfig() {
+	public WurstConfig() {
+		readDefaults();
+	}
+
+	public WurstConfig initFromStandardFiles() {
 		File config1 = new File("./wurstscript/wurst.config");
 		File config2 = new File("./wurst.config");
 		 
-		readDefaults();
-		
 		if (config1.exists()) {
 			readFromFile(config1);
 		} else if (config2.exists()) {
@@ -32,6 +28,7 @@ public class WurstConfig {
 		} else {
 			WLogger.severe("Could not find config file wurst.config!");
 		}
+		return this;
 	}
 	
 	private void readDefaults() {
@@ -42,11 +39,6 @@ public class WurstConfig {
 		settings.put("lib", "./wurstscript/lib/");
 	}
 
-	public static WurstConfig get() {
-		return instance.get();
-	}
-	
-	
 	private void readFromFile(File file) {
 		if (!file.exists()) {
 			throw new Error("Config file " + file.getAbsolutePath() + " was not found.");

@@ -135,7 +135,7 @@ public class AttrExprType {
 			return WurstTypeUnknown.instance();
 		}
 		if (varDef instanceof VarDef) {
-			if (Utils.getParentOfType(VarDef.class, term) == varDef) {
+			if (Utils.getParentVarDef(term) == varDef) {
 				term.addError("Recursive variable definition is not allowed.");
 				return WurstTypeUnknown.instance();
 			}

@@ -28,4 +28,10 @@ de.peeeq.wurstscript/logs/*
 de.peeeq.wurstscript/test-output/*
 de.peeeq.wurstscript/junitTestResults/
 
+
+WurstWeb/gwt-unitCache/*
+WurstWeb/war/WEB-INF/classes/*
+WurstWeb/war/WEB-INF/deploy/*
+WurstWeb/war/wurstweb/*
+
 *~

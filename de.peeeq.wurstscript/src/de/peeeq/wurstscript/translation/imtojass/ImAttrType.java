@@ -4,7 +4,6 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 
-import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImBoolVal;
 import de.peeeq.wurstscript.jassIm.ImExpr;

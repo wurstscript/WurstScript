@@ -1,13 +1,5 @@
 package de.peeeq.wurstscript.utils;
 
-import java.awt.Rectangle;
-import java.awt.Window;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -15,7 +7,6 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -23,11 +14,9 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 import de.peeeq.immutablecollections.ImmutableList;
-import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithName;
 import de.peeeq.wurstscript.ast.ClassOrModule;
@@ -180,13 +169,6 @@ public class Utils {
 		return (int) Long.parseLong(yytext.substring(2), 16);
 	}
 
-	public static void sleep(int i) {
-		try {
-			Thread.sleep(i);
-		} catch (InterruptedException e) {
-		}
-	}
-
 	public static String printSep(String sep, String[] args) {
 		StringBuilder sb = new StringBuilder();
 		printSep(sb , sep, args);
@@ -207,22 +189,6 @@ public class Utils {
 	}
 
 	
-	public static <T extends AstElement> List<T> collect(Class<T> t, AstElement pos) {
-		List<T> result = Lists.newArrayList();
-		collectRec(t, pos, result);
-		return result ;
-	}
-	
-	@SuppressWarnings("unchecked")
-	static <T extends AstElement> void collectRec(Class<T> t, AstElement pos, List<T> result) {
-		if (t.isInstance(pos)) {
-			result.add((T) pos);
-		}
-		for (int i = 0; i < pos.size(); i++) {
-			collectRec(t, pos.get(i), result);
-		}
-	}
-
 	public static <T>  T[] array(T ... ar) {
 		return ar;
 	}
@@ -363,33 +329,7 @@ public class Utils {
 		}
 	}
 
-	  /**
-	   * Get the method name for a depth in call stack. <br />
-	   * Utility function
-	   * @param depth depth in the call stack (0 means current method, 1 means call method, ...)
-	   * @return method name
-	   */
-	  public static String getMethodName(final int depth)
-	  {
-	    StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-	    int i = 0;
-	    for (StackTraceElement s : ste) {
-//	    	System.out.println("Trace " +i+++ " = " + s.getMethodName());
-	    }
-	    
-	    return ste[depth+2].getMethodName(); 
-	  }
 	  
-	  public static String getMethodNameExt(final int depth)
-	  {
-	    StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-	    int i = 0;
-	    for (StackTraceElement s : ste) {
-//	    	System.out.println("Trace " +i+++ " = " + s.getMethodName());
-	    }
-	    StackTraceElement sf = ste[depth+2];
-	    return sf.getMethodName() + "" + sf.getLineNumber(); 
-	  }
 
 	public static <T> List<T> topSortIgnoreCycles(Collection<T> input,
 			final Multimap<T, T> biggerItems) {
@@ -426,68 +366,8 @@ public class Utils {
 		result.add(item);
 	}
 
-	public static void saveToFile(Object object, String filename) {
-		FileOutputStream fos = null;
-		ObjectOutputStream out = null;
-		try {
-			fos = new FileOutputStream(filename);
-			out = new ObjectOutputStream(fos);
-			out.writeObject(object);
-			out.close();
-		} catch (IOException e) {
-			WLogger.info(e);
-		}
-
-	}
-
 	
-	public static Object loadFromFile(String filename) {
-		FileInputStream fos = null;
-		ObjectInputStream out = null;
-		Object obj = null;
-		try {
-			fos = new FileInputStream(filename);
-			out = new ObjectInputStream(fos);
-			obj = out.readObject();
-			out.close();
-		} catch (IOException e) {
-			WLogger.info(e);
-		} catch (ClassNotFoundException e) {
-			WLogger.info(e);
-		}
-		return obj;
-	}
 
-	public static void setWindowToCenterOfScreen(Window frm) {
-        Rectangle screenBounds = frm.getGraphicsConfiguration().getBounds();
-        
-        int center_x = screenBounds.x + screenBounds.width / 2;
-        int center_y = screenBounds.y + screenBounds.height / 2;
-        
-        frm.setLocation(center_x - frm.getWidth()/2, center_y - frm.getHeight()/2);
-	}
-
-	public static<K,V> Map<V, K> filterByType(
-			Class<? extends K> type, Map<V, ?> map) {
-		Map<V, K> result = Maps.newHashMap();
-		for (Entry<V, ?> e : map.entrySet()) {
-			if (type.isInstance(e.getValue())) {
-				result.put(e.getKey(), (K) e.getValue());
-			}
-		}
-		return result;
-	}
-
-
-	public static <T extends AstElement> T findParentOfType(Class<T> class1, AstElement node) {
-		while (node != null) {
-			if (class1.isInstance(node)) {
-				return (T) node;
-			}
-			node = node.getParent();
-		}
-		return null;
-	}
 
 	public static String printScope(WScope scope) {
 		if (scope == null) {
@@ -544,7 +424,7 @@ public class Utils {
 	}
 
 	private static String makeReadableTypeName(AstElement e) {
-		String type = e.getClass().getSimpleName()
+		String type = e.getClass().getName()
 				.replaceAll("Impl$", "")
 				.replaceAll("Def$", "")
 				.toLowerCase();
@@ -680,12 +560,7 @@ public class Utils {
 		  || (cu.getJassDecls().size() + cu.getPackages().size() == 0);
 	}
 
-	public static <T> T[] copyArray(T[] ar) {
-		@SuppressWarnings("unchecked")
-		T[] r = (T[]) Array.newInstance(ar.getClass(), ar.length);
-		System.arraycopy(ar, 0, r, 0, ar.length);
-		return r;
-	}
+	
 
 	public static String printElementWithSource(AstElement e) {
 		WPos src = e.attrSource();
@@ -705,11 +580,10 @@ public class Utils {
 		return s.substring(0, 1).toUpperCase() + s.substring(1);
 	}
 
-	@SuppressWarnings("unchecked")
-	public static <T extends AstElement> T getParentOfType(Class<T> class1, AstElement node) {
+	public static VarDef getParentVarDef(AstElement node) {
 		while (node != null) {
-			if (class1.isAssignableFrom(node.getClass())) {
-				return (T) node;
+			if (node instanceof VarDef) {
+				return (VarDef) node;
 			}
 			node = node.getParent();
 		}

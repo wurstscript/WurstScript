@@ -17,8 +17,6 @@
 	<property name="parseq" location="./tools/parseq.jar" />
 	<property name="junitTestResults" location="./junitTestResults/" />
 	<property name="hotDocLoc" location="${build}/hotdoc/" />
-	<property name="frotty_grammarspec" location="./src/de/peeeq/wurstscript/frotty/jassParser/frottyjass.g" />
-	<property name="frotty_output" location="./src-gen/de/peeeq/wurstscript/frotty/jassParser" />
 
 	<path id="classpath">
 		<fileset dir="${lib}">
@@ -26,15 +24,6 @@
 		</fileset>
 	</path>
 	
-	<target name="jassparser_antlr">
-		<java jar="${antlr}" fork="true" failonerror="true">
-			<arg value="-o" />
-			<arg value="${frotty_output}" />
-			<arg value="${frotty_grammarspec}" />
-		</java>
-	</target>
-
-
 
 	<target name="checkForChanges">
 		<uptodate targetfile="${srcgen}/de/peeeq/wurstscript/parser/WurstScriptScannerIntern.java" srcfile="${scannerspec}" property="jflexNotChanged" />
@@ -111,7 +100,7 @@
 			</java>
 		</target>
 	
-	<target name="gen" depends="cup, jflex, parseq_ast, parseq_jassAst, parseq_jassImAst, jassparser_antlr" >
+	<target name="gen" depends="cup, jflex, parseq_ast, parseq_jassAst, parseq_jassImAst" >
 	</target>
 	
 	<target name="compile" depends="gen, just_compile">
@@ -160,7 +149,7 @@
 			<classpath location="${build}" />
 			<classpath refid="classpath.test">
 			</classpath>
-			<test name="de.peeeq.wurstscript.tests.AllTests" todir="${junitTestResults}">
+			<test name="tests.wurstscript.tests.AllTests" todir="${junitTestResults}">
 						</test>
 						<formatter type="xml" />
 		</junit>
