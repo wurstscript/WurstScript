@@ -23,3 +23,7 @@ public function getUnit(player p, int id, vec2 pos, angle facing) returns unit
 	else
 		objectLists.saveInt(id, (new Stack<unit>() )castTo int)
 		return createUnit(p, id, pos, facing)
+		
+init
+	unit u = getUnit(Player(0), 0, vec2(0,0), angle(0))
+	u.recycle()
