@@ -43,7 +43,9 @@ import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.VarDef;
+import de.peeeq.wurstscript.ast.StmtCall;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.translation.imtranslation.StmtTranslation;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeArray;
@@ -447,118 +449,15 @@ public class AttrExprType {
 		return typ;
 	}
 
-
-	public static  WurstType calculate(ExprMemberMethod term)
-	{
-		FunctionDefinition f = term.attrFuncDef();
-		if (f == null) {
-			return WurstTypeUnknown.instance();
-		}
-		if (f.getReturnTyp() instanceof NoTypeExpr) {
-			return WurstTypeVoid.instance();
-		}
-		WurstType typ = f.getReturnTyp().attrTyp().dynamic();
-		if (term.getSource().getFile().endsWith("Test.wurst")) {
-			System.out.println("typ = " + typ);
-		}
-		if (typ instanceof WurstTypeModule) {
-			// example:
-			// module A 
-			//    function foo() returns thistype
-			// class C
-			//    use A
-			// ...
-			// C c = new C()
-			// c.foo() // this should return type c  
-			WurstType leftType = term.getLeft().attrTyp();
-			if (leftType instanceof WurstTypeClass ||
-					leftType instanceof WurstTypeModule) {
-				return leftType.dynamic();
-			}
-		} else if (typ instanceof WurstTypeTypeParam) {
-			WurstTypeTypeParam typParam = (WurstTypeTypeParam) typ;
-			// typ referes to a type parameter so we have to get the binding
-			
-			// try function type args
-			if (term.attrTypeParameterBindings().containsKey(typParam.getDef())) {
-				return term.attrTypeParameterBindings().get(typParam.getDef());
-			}
-			// try left hand side type args	
-			if (term.getLeft().attrTyp() instanceof WurstTypeNamedScope) {
-				WurstTypeNamedScope ns = (WurstTypeNamedScope) term.getLeft().attrTyp();
-				return ns.getTypeParameterBinding(typParam.getDef()).dynamic();
-			}
-		}
-		return typ.setTypeArgs(term.getLeft().attrTyp().getTypeArgBinding()).dynamic();
-	}
-
-
-	public static  WurstType calculate(ExprFunctionCall term)
-	{
-		if (term.attrFuncDef() == null) {
-			return WurstTypeUnknown.instance();
-		}
-
-		FunctionDefinition f = term.attrFuncDef();
-		if (f == null) {
-			return WurstTypeUnknown.instance();
-		}
-		if (f.getReturnTyp() instanceof NoTypeExpr) {
-			if (f instanceof TupleDef) {
-				return new WurstTypeTuple((TupleDef) f);
-			}
-			return WurstTypeVoid.instance();
-		}
-		WurstType typ = f.getReturnTyp().attrTyp().dynamic();
-		if (typ instanceof WurstTypeModule) {
-			ClassOrModule classOrModule = term.attrNearestClassOrModule();
-			if (classOrModule != null) {
-				return TypesHelper.typeOf(classOrModule, false);
-			}
-		} else if (typ instanceof WurstTypeTypeParam) {
-			WurstTypeTypeParam typParam = (WurstTypeTypeParam) typ;
-			// typ referes to a type parameter so we have to get the binding
-			
-			// try function type args
-			if (term.attrTypeParameterBindings().containsKey(typParam.getDef())) {
-				return term.attrTypeParameterBindings().get(typParam.getDef());
-			}
-		} else if (typ instanceof WurstTypeJassInt && !Utils.isJassCode(term)) {
-			return WurstTypeInt.instance();
-		}
-		return typ;
-	}
-
-
-	public static  WurstType calculate(ExprNewObject term)
-	{
-
-		TypeDef typeDef = term.attrTypeDef();
-		if (typeDef instanceof ClassDef) {
-			ClassDef c = (ClassDef) typeDef;
-			final Map<TypeParamDef, WurstType> bindings = term.attrTypeParameterBindings();
-			List<WurstType> types = Lists.newArrayList();
-			for (TypeParamDef t: c.getTypeParameters()) {
-				WurstType r = bindings.get(t);
-				if (r != null) {
-					types.add(r);
-				} else {
-					types.add(WurstTypeUnknown.instance());
-				}
-			}
-			return new WurstTypeClass(c, types, false);
-		} else {
-			term.addError("Can only create instances of classes, but found " + Utils.printElement(typeDef) + ".");
-			return WurstTypeUnknown.instance();
-		}
+	
+	public static  WurstType calculate(StmtCall term) {
+		return term.attrFunctionSignature().getReturnType();
 	}
 
 
 	public static  WurstType calculate(ExprNull term)  {
 		return WurstTypeNull.instance();
 	}
-	
-
 
 	public static  WurstType calculate(ExprCast term)  {
 		WurstType targetTyp = term.getTyp().attrTyp().dynamic();

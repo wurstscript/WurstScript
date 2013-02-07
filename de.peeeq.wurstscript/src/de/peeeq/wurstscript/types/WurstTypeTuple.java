@@ -30,7 +30,7 @@ public class WurstTypeTuple extends WurstType {
 	}
 
 	@Override
-	public boolean isSubtypeOf(WurstType other, AstElement location) {
+	public boolean isSubtypeOfIntern(WurstType other, AstElement location) {
 		if (other instanceof WurstTypeTuple) {
 			WurstTypeTuple otherTuple = (WurstTypeTuple) other;
 			return tupleDef == otherTuple.tupleDef;

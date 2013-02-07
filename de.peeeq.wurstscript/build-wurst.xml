@@ -190,7 +190,7 @@
 	</target>
 	
 	<target name="generate_hotdoc">
-		<java classpathref="classpath.test" classname="de.peeeq.wurstscript.Main">
+		<java classpathref="classpath.test" classname="de.peeeq.wurstio.Main">
 			<arg value="--hotdoc"/>		
 			<arg value="./../Wurstpack/wurstscript/lib"/>
 			<arg value="${hotDocLoc}"/>

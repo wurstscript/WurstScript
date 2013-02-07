@@ -121,5 +121,21 @@ public class ExtensionMethodsTests extends WurstScriptTest {
 			);
 	}
 	
+	@Test
+	public void intreal() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	function int.bla()",
+				"		testSuccess()",
+				"	function real.bla()",
+				"		skip",
+				"	init",
+				"		int i = 2",
+				"		i.bla()",
+				"endpackage"
+			);
+	}
+	
 	
 }

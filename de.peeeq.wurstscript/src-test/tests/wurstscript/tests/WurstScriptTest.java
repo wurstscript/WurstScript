@@ -165,7 +165,7 @@ public class WurstScriptTest {
 		boolean success = false;
 		WurstGui gui = new WurstGuiCliImpl();
 		RunArgs runArgs = new RunArgs(new String[] {
-				"-inline", "-opt"
+//				"-inline", "-opt"
 			});
 		WurstConfig config = new WurstConfig();
 		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(config , gui, runArgs);

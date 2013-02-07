@@ -10,10 +10,14 @@ import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.FunctionCall;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
+import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeInt;
+import de.peeeq.wurstscript.types.WurstTypeJassInt;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class AttrFunctionSignature {
 
@@ -22,7 +26,16 @@ public class AttrFunctionSignature {
 		if (f == null) {
 			return FunctionSignature.empty;
 		}
-		WurstType returnType = f.getReturnTyp().attrTyp();
+		WurstType returnType = f.getReturnTyp().attrTyp().dynamic();
+		if (f instanceof TupleDef) {
+			TupleDef tupleDef = (TupleDef) f;
+			returnType = tupleDef.attrTyp().dynamic();
+		}
+		
+		if (returnType instanceof WurstTypeJassInt && !Utils.isJassCode(fc)) {
+			returnType = WurstTypeInt.instance();
+		}
+		
 		List<WurstType> paramTypes = f.attrParameterTypes(); 
 		FunctionSignature sig = new FunctionSignature(f.attrReceiverType(), paramTypes, returnType);
 		if (fc.attrImplicitParameter() instanceof Expr) {
@@ -38,12 +51,13 @@ public class AttrFunctionSignature {
 		if (f == null) {
 			return FunctionSignature.empty;
 		}
-		WurstType returnType = fc.attrTyp();
+		WurstType returnType = f.attrNearestStructureDef().attrTyp().dynamic();
 		Map<TypeParamDef, WurstType> binding2 = fc.attrTypeParameterBindings();
 		List<WurstType> paramTypes = Lists.newArrayList();
 		for (WParameter p : f.getParameters()) {
 			paramTypes.add(p.attrTyp().setTypeArgs(binding2));
 		}
+		returnType = returnType.setTypeArgs(binding2);
 		return new FunctionSignature(null, paramTypes, returnType);
 	}
 

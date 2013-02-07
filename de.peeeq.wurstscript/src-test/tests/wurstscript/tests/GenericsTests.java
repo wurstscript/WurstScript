@@ -86,7 +86,7 @@ public class GenericsTests extends WurstScriptTest {
 
 	@Test
 	public void identityFail2() {
-		testAssertErrorsLines(true, "Cannot assign C",  
+		testAssertErrorsLines(true, "Cannot assign A<--C",  
 				"package test",
 				"	function identity<A>(A a) returns A",
 				"		return a",
@@ -94,6 +94,80 @@ public class GenericsTests extends WurstScriptTest {
 				"		int y",
 				"	init",
 				"		real x = identity(new C())",
+				"endpackage"
+			);
+	}
+	
+	
+	@Test
+	public void cellExample() {
+		testAssertErrorsLines(true, "Wrong parameter type",  
+				"package test",
+				"	native testSuccess()",
+				"	class Cell<T>",
+				"		T elem",
+				"		function set(T t)",
+				"			elem = t",
+				"		function get() returns T",
+				"			return elem",
+				"	class A",
+				"	class B",
+				"	init",
+				"		Cell<A> c = new Cell<A>()",
+				"		c.set(new B())",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void implicitConversions() {
+		testAssertOkLines(true,  
+				"package test",
+				"	native testSuccess()",
+				"	class Cell<T>",
+				"		T elem",
+				"		function set(T t)",
+				"			elem = t",
+				"		function get() returns T",
+				"			return elem",
+				"",
+				"	tuple bla(int z, int y)",	
+				"	function blaToIndex(bla b) returns int",
+				"		return b.z",
+				"	function blaFromIndex(int i) returns bla",
+				"		return bla(i, 2)",
+				"	init",
+				"		Cell<bla> c = new Cell<bla>()",
+				"		c.set(bla(5, 3))",
+				"		if c.get() == bla(5, 2)",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void implicitConversions2() {
+		testAssertOkLines(true,  
+				"package test",
+				"	native testSuccess()",
+				"	class Cell<T>",
+				"		T elem",
+				"		function set(T t)",
+				"			elem = t",
+				"		function get() returns T",
+				"			return elem",
+				"",
+				"	tuple bla(int z, int y)",	
+				"	function blaToIndex(bla b) returns int",
+				"		return b.z",
+				"	function blaFromIndex(int i) returns bla",
+				"		return bla(i, 2)",
+				"	init",
+				"		Cell<bla> c = new Cell<bla>()",
+				"		c.set(bla(5, 3))",
+				"		c.set(c.get())",
+				"		if c.get() == bla(5, 2)",
+				"			testSuccess()",
 				"endpackage"
 			);
 	}

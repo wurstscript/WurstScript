@@ -95,6 +95,7 @@ import de.peeeq.wurstscript.ast.WurstDoc;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CheckHelper;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.ImplicitFuncs;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.NameLinkType;
 import de.peeeq.wurstscript.attributes.names.Visibility;
@@ -713,8 +714,29 @@ public class WurstValidator {
 			if (!(typ.isSubtypeOf(WurstTypeInt.instance(), e))
 					&& !(typ instanceof WurstTypeNamedScope)
 					&& !(typ instanceof WurstTypeTypeParam)) {
-				e.addError("Type parameters can only be bound to ints and class types, but " +
-						"not to " + typ);
+				String toIndexFuncName = ImplicitFuncs.toIndexFuncName(typ);
+				String fromIndexFuncName = ImplicitFuncs.fromIndexFuncName(typ);
+				Collection<NameLink> toIndexFuncs = ImplicitFuncs.findToIndexFuncs(typ, e);
+				Collection<NameLink> fromIndexFuncs = ImplicitFuncs.findFromIndexFuncs(typ, e);
+				if (toIndexFuncs.isEmpty()) {
+					e.addError("Type parameters can only be bound to ints and class types, but " +
+						"not to " + typ + ".\n" +
+							"You can provide functions " + toIndexFuncName + " and " + fromIndexFuncName + " to use this type " +
+									"with generics.");
+				} else if (fromIndexFuncName.isEmpty()) {
+					e.addError("Could not find function " + fromIndexFuncName 
+							+ " which is required to use " + typ + " with generics.");
+				} else {
+					if (toIndexFuncs.size() > 1) {
+						e.addError("There is more than one function named " + toIndexFuncName);
+					}
+					if (fromIndexFuncs.size() > 1) {
+						e.addError("There is more than one function named " + fromIndexFuncName);
+					}
+					NameLink toIndex = Utils.getFirst(toIndexFuncs);
+					NameLink fromIndex = Utils.getFirst(fromIndexFuncs);
+				}
+				System.out.println("toIndex + fromIndex");
 			}
 		}
 	}

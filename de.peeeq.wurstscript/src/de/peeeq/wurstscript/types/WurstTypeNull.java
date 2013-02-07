@@ -15,10 +15,7 @@ public class WurstTypeNull extends WurstTypePrimitive {
 	}
 	
 	@Override
-	public boolean isSubtypeOf(WurstType other, AstElement location) {
-		if (other instanceof WurstTypeBoundTypeParam) {
-			return isSubtypeOf(((WurstTypeBoundTypeParam) other).getBaseType(), location);
-		}
+	public boolean isSubtypeOfIntern(WurstType other, AstElement location) {
 		return other instanceof WurstTypeNull
 				|| other instanceof WurstTypeHandle
 				|| other instanceof WurstNativeType

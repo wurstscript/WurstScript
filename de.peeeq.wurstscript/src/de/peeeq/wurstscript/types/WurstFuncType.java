@@ -18,7 +18,7 @@ public class WurstFuncType extends WurstType {
 	}
 
 	@Override
-	public boolean isSubtypeOf(WurstType other, AstElement location) {
+	public boolean isSubtypeOfIntern(WurstType other, AstElement location) {
 		if (! (other instanceof WurstFuncType)) {
 			return false;
 		}

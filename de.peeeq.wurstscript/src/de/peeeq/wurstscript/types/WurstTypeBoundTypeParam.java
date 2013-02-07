@@ -18,8 +18,8 @@ public class WurstTypeBoundTypeParam extends WurstType {
 	}
 
 	@Override
-	public boolean isSubtypeOf(WurstType other, AstElement location) {
-		return baseType.isSubtypeOf(other, location);
+	public boolean isSubtypeOfIntern(WurstType other, AstElement location) {
+		return baseType.isSubtypeOfIntern(other, location);
 	}
 
 	@Override

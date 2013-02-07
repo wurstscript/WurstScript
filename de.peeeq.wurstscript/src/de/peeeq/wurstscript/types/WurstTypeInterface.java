@@ -61,9 +61,9 @@ public class WurstTypeInterface extends WurstTypeNamedScope {
 	}
 
 	@Override
-	public boolean isSubtypeOf(WurstType other, AstElement location) {
+	public boolean isSubtypeOfIntern(WurstType other, AstElement location) {
 		System.out.println(this + " <: " + other + "   ?");
-		if (super.isSubtypeOf(other, location)) {
+		if (super.isSubtypeOfIntern(other, location)) {
 			System.out.println("	yes 1");
 			return true;
 		}

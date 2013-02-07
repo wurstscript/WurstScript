@@ -44,7 +44,7 @@ public class WurstTypeArray extends WurstType {
 
 
 	@Override
-	public boolean isSubtypeOf(WurstType other, AstElement location) {
+	public boolean isSubtypeOfIntern(WurstType other, AstElement location) {
 		if (other instanceof WurstTypeArray) {
 			WurstTypeArray otherArray = (WurstTypeArray) other;
 			return baseType.equalsType(otherArray.baseType, location) && getDimensions() == otherArray.getDimensions();

@@ -15,7 +15,7 @@ public class WurstTypeHandle extends WurstTypePrimitive {
 	}
 	
 	@Override
-	public boolean isSubtypeOf(WurstType other, AstElement location) {
+	public boolean isSubtypeOfIntern(WurstType other, AstElement location) {
 		return other instanceof WurstTypeHandle;
 	}
 

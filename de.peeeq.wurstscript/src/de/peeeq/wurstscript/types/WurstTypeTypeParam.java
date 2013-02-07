@@ -18,12 +18,7 @@ public class WurstTypeTypeParam extends WurstType {
 	}
 
 	@Override
-	public boolean isSubtypeOf(WurstType other, AstElement location) {
-		if (other instanceof WurstTypeBoundTypeParam) {
-			WurstTypeBoundTypeParam b = (WurstTypeBoundTypeParam) other;
-			return isSubtypeOf(b.getBaseType(), location);
-		}
-		
+	public boolean isSubtypeOfIntern(WurstType other, AstElement location) {
 		if (other instanceof WurstTypeTypeParam) {
 			WurstTypeTypeParam other2 = (WurstTypeTypeParam) other;
 			return other2.def == this.def;

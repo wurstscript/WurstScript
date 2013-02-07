@@ -27,8 +27,8 @@ public class WurstTypeModuleInstanciation extends WurstTypeNamedScope {
 	}
 
 	@Override
-	public boolean isSubtypeOf(WurstType obj, AstElement location) {
-		if (super.isSubtypeOf(obj, location)) {
+	public boolean isSubtypeOfIntern(WurstType obj, AstElement location) {
+		if (super.isSubtypeOfIntern(obj, location)) {
 			return true;
 		}
 		if (obj instanceof WurstTypeModuleInstanciation) {

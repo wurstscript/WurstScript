@@ -15,7 +15,23 @@ public abstract class WurstType {
 	 * @param location 
 	 * @return is this type a subtype (or equal) to other type?
 	 */
-	public abstract boolean isSubtypeOf(WurstType other, AstElement location);
+	public final boolean isSubtypeOf(WurstType other, AstElement location) {
+		if (other instanceof WurstTypeBoundTypeParam) {
+			WurstTypeBoundTypeParam btp = (WurstTypeBoundTypeParam) other;
+			return isSubtypeOf(btp.getBaseType(), location);
+		}
+		if (this.isSubtypeOfIntern(other, location)) {
+			return true;
+		}
+		return false;
+	}
+	
+	/**
+	 * @param other
+	 * @param location 
+	 * @return is this type a subtype (or equal) to other type?
+	 */
+	public abstract boolean isSubtypeOfIntern(WurstType other, AstElement location);
 	
 	
 	/**

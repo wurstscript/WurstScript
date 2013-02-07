@@ -52,12 +52,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
 	}
 
 	@Override
-	public boolean isSubtypeOf(WurstType obj, AstElement location) {
-		if (obj instanceof WurstTypeBoundTypeParam) {
-			WurstTypeBoundTypeParam b = (WurstTypeBoundTypeParam) obj;
-			return this.isSubtypeOf(b.getBaseType(), location);
-		}
-		
+	public boolean isSubtypeOfIntern(WurstType obj, AstElement location) {
 		if (obj instanceof WurstTypeTypeParam) {
 			return false;
 		}

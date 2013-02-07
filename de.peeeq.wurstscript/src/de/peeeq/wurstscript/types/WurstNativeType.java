@@ -14,12 +14,12 @@ public class WurstNativeType extends WurstType {
 	}
 	
 	@Override
-	public boolean isSubtypeOf(WurstType other, AstElement location) {
+	public boolean isSubtypeOfIntern(WurstType other, AstElement location) {
 		if (other instanceof WurstNativeType) {
 			return ((WurstNativeType)other).name.equals(name)
-				|| superType.isSubtypeOf(other, location);
+				|| superType.isSubtypeOfIntern(other, location);
 		}
-		return superType.isSubtypeOf(other, location);
+		return superType.isSubtypeOfIntern(other, location);
 	}
 
 	@Override

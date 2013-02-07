@@ -13,7 +13,7 @@ public class WurstTypeError extends WurstType {
 	}
 
 	@Override
-	public boolean isSubtypeOf(WurstType other, AstElement location) {
+	public boolean isSubtypeOfIntern(WurstType other, AstElement location) {
 		return false;
 	}
 

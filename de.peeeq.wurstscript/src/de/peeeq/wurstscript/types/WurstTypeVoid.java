@@ -14,7 +14,7 @@ public class WurstTypeVoid extends WurstType {
 	private WurstTypeVoid() {}
 	
 	@Override
-	public boolean isSubtypeOf(WurstType other, AstElement location) {
+	public boolean isSubtypeOfIntern(WurstType other, AstElement location) {
 		return other instanceof WurstTypeVoid;
 	}
 
