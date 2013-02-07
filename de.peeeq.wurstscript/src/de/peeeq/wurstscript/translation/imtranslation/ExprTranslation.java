@@ -145,28 +145,37 @@ public class ExprTranslation {
 	
 	private static ImExpr wrapTranslation(Expr e, ImTranslator t,
 			ImFunction f, ImExpr translated) {
-		if (!(e.attrTyp() instanceof WurstTypeNamedScope 
-				|| e.attrTyp() instanceof WurstTypeNull
-				|| e.attrTyp() instanceof WurstTypeInt
-				|| e.attrTyp() instanceof WurstTypeTypeParam
-				|| e.attrTyp() instanceof WurstTypeBoundTypeParam
-				|| e.attrTyp() instanceof WurstTypeFreeTypeParam
-				|| e.attrTyp() instanceof WurstTypeIntLiteral)) {
-			if (e.attrExpectedTyp() instanceof WurstTypeBoundTypeParam) {
-				WurstTypeBoundTypeParam wtb = (WurstTypeBoundTypeParam) e.attrExpectedTyp();
-				List<FunctionFlag> l = Collections.emptyList();
-				
-				ImFunction toIndex =  t.getFuncFor(ImplicitFuncs.findToIndexFunc(e.attrTyp(), e));
+		WurstType actualType = e.attrTyp();
+		if (e.attrExpectedTyp() instanceof WurstTypeBoundTypeParam) {
+//			if (actualType instanceof WurstTypeBoundTypeParam) {
+//				// this would yield someting like toIndex(fromIndex(translated))
+//				// but this is the same as just 'translated' (assuming a sane implementation of those functions)
+//				return translated;
+//			}
+			if (!typeSupportsGenerics(actualType)) {
+				// if we expect a generic type but have something different, use the toIndex func
+				ImFunction toIndex =  t.getFuncFor(ImplicitFuncs.findToIndexFunc(actualType, e));
 				return JassIm.ImFunctionCall(e, toIndex, JassIm.ImExprs(translated));
 			}
-			if (e.attrTyp() instanceof WurstTypeBoundTypeParam) {
-				WurstTypeBoundTypeParam wtb = (WurstTypeBoundTypeParam) e.attrTyp();
-				List<FunctionFlag> l = Collections.emptyList();
+		} else if (actualType instanceof WurstTypeBoundTypeParam) {
+			WurstTypeBoundTypeParam wtb = (WurstTypeBoundTypeParam) actualType;
+			if (!typeSupportsGenerics(wtb.getBaseType())) {
+				// if we have a generic type, convert it to the original type using the fromIndex func
 				ImFunction fromIndex = t.getFuncFor(ImplicitFuncs.findFromIndexFunc(wtb.getBaseType(), e));
 				return JassIm.ImFunctionCall(e, fromIndex, JassIm.ImExprs(translated));
 			}
 		}
 		return translated;
+	}
+
+	private static boolean typeSupportsGenerics(WurstType t) {
+		return t instanceof WurstTypeNamedScope 
+				|| t instanceof WurstTypeNull
+				|| t instanceof WurstTypeInt
+				|| t instanceof WurstTypeTypeParam
+				|| t instanceof WurstTypeBoundTypeParam
+				|| t instanceof WurstTypeFreeTypeParam
+				|| t instanceof WurstTypeIntLiteral;
 	}
 
 	public static ImExpr translateIntern(ExprBinary e, ImTranslator t, ImFunction f) {
