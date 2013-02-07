@@ -128,6 +128,12 @@ package Table
 		
 		function saveEffect( int parentKey, effect value )
 			ht.saveEffectHandle( this castTo int, parentKey, value )
+			
+		function loadFogState( int parentKey ) returns fogstate
+			return ht.loadFogStateHandle( this castTo int, parentKey )
+		
+		function saveFogState( int parentKey, fogstate value )
+			ht.saveFogStateHandle( this castTo int, parentKey, value )
 				
 		function loadDialog( int parentKey ) returns dialog
 			return ht.loadDialogHandle( this castTo int, parentKey )

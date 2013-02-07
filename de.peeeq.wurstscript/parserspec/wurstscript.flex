@@ -390,6 +390,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 
   \\r                            { string.append('\r'); }
   \\n                            { string.append('\n'); }
+  \\t                            { string.append('\t'); }
   \\\"                           { string.append('\"'); }
   \\\\                             { string.append('\\'); }
   

@@ -2,6 +2,7 @@ package Unit
 	import NoWurst
 	import public Vectors
 	import Angle
+	import PrintingHelper
 	
 	public function unit.getX() returns real
 		return GetUnitX(this)
@@ -157,5 +158,11 @@ package Unit
 		
 	public function unit.issuePointOrder(string order, vec2 target)
 		IssuePointOrder(this, order, target.x, target.y)
+		
+	public function unit.hasAbility(int id) returns boolean
+		return (GetUnitAbilityLevel(this, id) > 0)
+		
+	public function unit.getHandleId() returns int
+		return GetHandleId(this)
 
 endpackage

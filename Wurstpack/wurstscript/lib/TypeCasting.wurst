@@ -1,0 +1,45 @@
+package TypeCasting
+
+Table data = new Table()
+
+function unitToIndex(unit u) returns int
+	return u.getHandleId()
+
+function unitFromIndex(int index) returns unit
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadUnit(0)
+
+    //! endtextmacro
+    //! runtextmacro Typecasting_I2X("Unit", "unit")
+    //! runtextmacro Typecasting_I2X("Effect", "effect")
+    //! runtextmacro Typecasting_I2X("Trigger", "trigger")
+    //! runtextmacro Typecasting_I2X("Timer", "timer")
+    //! runtextmacro Typecasting_I2X("Widget", "widget")
+    //! runtextmacro Typecasting_I2X("Group", "group")
+    //! runtextmacro Typecasting_I2X("Location", "location")
+    //! runtextmacro Typecasting_I2X("Item", "item")
+    //! runtextmacro Typecasting_I2X("Destructable", "destructable")
+    //! runtextmacro Typecasting_I2X("Ability", "ability")
+    //! runtextmacro Typecasting_I2X("TriggerCondition", "triggercondition")
+    //! runtextmacro Typecasting_I2X("TriggerAction", "triggeraction")
+    //! runtextmacro Typecasting_I2X("Force", "force")
+    //! runtextmacro Typecasting_I2X("Rect", "rect")
+    //! runtextmacro Typecasting_I2X("Sound", "sound")
+    //! runtextmacro Typecasting_I2X("UnitPool", "unitpool")
+    //! runtextmacro Typecasting_I2X("ItemPool", "itempool")
+    //! runtextmacro Typecasting_I2X("Quest", "quest")
+    //! runtextmacro Typecasting_I2X("QuestItem", "questitem")
+    //! runtextmacro Typecasting_I2X("DefeatCondition", "defeatcondition")
+    //! runtextmacro Typecasting_I2X("TimerDialog", "timerdialog")
+    //! runtextmacro Typecasting_I2X("Leaderboard", "leaderboard")
+    //! runtextmacro Typecasting_I2X("Multiboard", "multiboard")
+    //! runtextmacro Typecasting_I2X("MultiboardItem", "multiboarditem")
+    //! runtextmacro Typecasting_I2X("Trackable", "trackable")
+    //! runtextmacro Typecasting_I2X("Dialog", "dialog")
+    //! runtextmacro Typecasting_I2X("Button", "button")
+    //! runtextmacro Typecasting_I2X("TextTag", "texttag")
+    //! runtextmacro Typecasting_I2X("Image", "image")
+    //! runtextmacro Typecasting_I2X("Ubersplat", "ubersplat")
+    //! runtextmacro Typecasting_I2X("Region", "region")
+    //! runtextmacro Typecasting_I2X("FogState", "fogstate")
+    //! runtextmacro Typecasting_I2X("FogModifier", "fogmodifier")
