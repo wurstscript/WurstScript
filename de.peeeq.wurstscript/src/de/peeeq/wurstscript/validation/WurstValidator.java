@@ -723,7 +723,7 @@ public class WurstValidator {
 						"not to " + typ + ".\n" +
 							"You can provide functions " + toIndexFuncName + " and " + fromIndexFuncName + " to use this type " +
 									"with generics.");
-				} else if (fromIndexFuncName.isEmpty()) {
+				} else if (fromIndexFuncs.isEmpty()) {
 					e.addError("Could not find function " + fromIndexFuncName 
 							+ " which is required to use " + typ + " with generics.");
 				} else {
@@ -733,8 +733,43 @@ public class WurstValidator {
 					if (fromIndexFuncs.size() > 1) {
 						e.addError("There is more than one function named " + fromIndexFuncName);
 					}
-					NameLink toIndex = Utils.getFirst(toIndexFuncs);
-					NameLink fromIndex = Utils.getFirst(fromIndexFuncs);
+					NameDef toIndex = Utils.getFirst(toIndexFuncs).getNameDef();
+					if (toIndex instanceof FuncDef) {
+						FuncDef toIndexF = (FuncDef) toIndex;
+						
+						if (toIndexF.getParameters().size() != 1) {
+							toIndexF.addError("Must have exactly one parameter");
+							
+						} else if (!toIndexF.getParameters().get(0).attrTyp().equalsType(typ, e)) {
+							toIndexF.addError("Parameter must be of type " + typ);
+						}
+						
+						if (!toIndexF.getReturnTyp().attrTyp().equalsType(WurstTypeInt.instance(), e)) {
+							toIndexF.addError("Return type must be of type int ");
+						}
+					} else {
+						toIndex.addError("This should be a function.");
+					}
+					
+					NameDef fromIndex = Utils.getFirst(fromIndexFuncs).getNameDef();
+					if (fromIndex instanceof FuncDef) {
+						FuncDef fromIndexF = (FuncDef) fromIndex;
+						
+						if (fromIndexF.getParameters().size() != 1) {
+							fromIndexF.addError("Must have exactly one parameter");
+							
+						} else if (!fromIndexF.getParameters().get(0).attrTyp().equalsType(WurstTypeInt.instance(), e)) {
+							fromIndexF.addError("Parameter must be of type int");
+						}
+						
+						if (!fromIndexF.getReturnTyp().attrTyp().equalsType(typ, e)) {
+							fromIndexF.addError("Return type must be of type " + typ);
+						}
+						
+						
+					} else {
+						fromIndex.addError("This should be a function.");
+					}
 				}
 				System.out.println("toIndex + fromIndex");
 			}

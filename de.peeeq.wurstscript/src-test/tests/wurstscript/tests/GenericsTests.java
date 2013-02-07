@@ -171,5 +171,51 @@ public class GenericsTests extends WurstScriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void implicitConversionsFail() {
+		testAssertErrorsLines(true,"Could not find function blaFromIndex",  
+				"package test",
+				"	native testSuccess()",
+				"	class Cell<T>",
+				"		T elem",
+				"		function set(T t)",
+				"			elem = t",
+				"		function get() returns T",
+				"			return elem",
+				"",
+				"	tuple bla(int z, int y)",	
+				"	function blaToIndex(bla b) returns int",
+				"		return b.z",
+				"	function blaaFromIndex(int i) returns bla",
+				"		return bla(i, 2)",
+				"	init",
+				"		Cell<bla> c = new Cell<bla>()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void implicitConversionsFail2() {
+		testAssertErrorsLines(true, "Parameter must be of type int",  
+				"package test",
+				"	native testSuccess()",
+				"	class Cell<T>",
+				"		T elem",
+				"		function set(T t)",
+				"			elem = t",
+				"		function get() returns T",
+				"			return elem",
+				"",
+				"	tuple bla(int z, int y)",	
+				"	function blaToIndex(bla b) returns int",
+				"		return b.z",
+				"	function blaFromIndex(string i) returns bla",
+				"		return bla(1, 2)",
+				"	init",
+				"		Cell<bla> c = new Cell<bla>()",
+				"endpackage"
+			);
+	}
 
 }
