@@ -217,5 +217,28 @@ public class GenericsTests extends WurstScriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void implicitConversionsAssign() {
+		testAssertOkLines(false,  
+				"type unit extends handle",
+				"package test",
+				"	native testSuccess()",
+				"	class Cell<T>",
+				"		T elem",
+				"		function set(T t)",
+				"			elem = t",
+				"		function get() returns T",
+				"			return elem",
+				"	function unitToIndex(unit u) returns int",
+				"		return 0",
+				"	function unitFromIndex(int i) returns unit",
+				"		return null",
+				"	init",
+				"		Cell<unit> c = new Cell<unit>()",
+				"		Cell<unit> c2 = c",
+				"endpackage"
+			);
+	}
 
 }

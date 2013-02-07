@@ -122,7 +122,7 @@ public class Generics {
 	private static Map<TypeParamDef, WurstType> givenBinding(AstElementWithTypeArgs fc, TypeParamDefs typeParams) {
 		Map<TypeParamDef, WurstType> result = Maps.newHashMap();
 		for (int i = 0; i < typeParams.size(); i++) {
-			result.put(typeParams.get(i), fc.getTypeArgs().get(i).attrTyp());
+			result.put(typeParams.get(i), fc.getTypeArgs().get(i).attrTyp().dynamic());
 		}
 		return result;
 	}

@@ -105,6 +105,7 @@ import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeArray;
 import de.peeeq.wurstscript.types.WurstTypeBool;
+import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeCode;
 import de.peeeq.wurstscript.types.WurstTypeEnum;
@@ -661,14 +662,24 @@ public class WurstValidator {
 
 		} else if (typ instanceof WurstTypeClass) {
 			WurstTypeClass c = (WurstTypeClass) typ;
-			if (c.isStaticRef()) {
-				stmtDestroy.addError("Cannot destroy class " + typ);
+			checkDestroyClass(stmtDestroy, c); 
+		} else if (typ instanceof WurstTypeBoundTypeParam) {
+			WurstTypeBoundTypeParam bt = (WurstTypeBoundTypeParam) typ;
+			if (bt.getBaseType() instanceof WurstTypeClass) {
+				WurstTypeClass c = (WurstTypeClass) bt.getBaseType();
+				checkDestroyClass(stmtDestroy, c);
 			}
-			calledFunctions.put(stmtDestroy.attrNearestScope(), c.getClassDef().getOnDestroy()); 
 		} else {
 			stmtDestroy.addError("Cannot destroy objects of type " + typ);
 			return;
 		}
+	}
+
+	public void checkDestroyClass(StmtDestroy stmtDestroy, WurstTypeClass c) {
+		if (c.isStaticRef()) {
+			stmtDestroy.addError("Cannot destroy class " + c);
+		}
+		calledFunctions.put(stmtDestroy.attrNearestScope(), c.getClassDef().getOnDestroy());
 	}
 
 	@CheckMethod 
@@ -740,12 +751,13 @@ public class WurstValidator {
 						if (toIndexF.getParameters().size() != 1) {
 							toIndexF.addError("Must have exactly one parameter");
 							
-						} else if (!toIndexF.getParameters().get(0).attrTyp().equalsType(typ, e)) {
+						} else if (!toIndexF.getParameters().get(0).attrTyp().dynamic().equalsType(typ, e)) {
 							toIndexF.addError("Parameter must be of type " + typ);
 						}
 						
-						if (!toIndexF.getReturnTyp().attrTyp().equalsType(WurstTypeInt.instance(), e)) {
-							toIndexF.addError("Return type must be of type int ");
+						WurstType returnType = toIndexF.getReturnTyp().attrTyp().dynamic();
+						if (!returnType.equalsType(WurstTypeInt.instance(), e)) {
+							toIndexF.addError("Return type must be of type int "+ " but was " + returnType);
 						}
 					} else {
 						toIndex.addError("This should be a function.");
@@ -758,12 +770,14 @@ public class WurstValidator {
 						if (fromIndexF.getParameters().size() != 1) {
 							fromIndexF.addError("Must have exactly one parameter");
 							
-						} else if (!fromIndexF.getParameters().get(0).attrTyp().equalsType(WurstTypeInt.instance(), e)) {
+						} else if (!fromIndexF.getParameters().get(0).attrTyp().dynamic().equalsType(WurstTypeInt.instance(), e)) {
 							fromIndexF.addError("Parameter must be of type int");
 						}
 						
-						if (!fromIndexF.getReturnTyp().attrTyp().equalsType(typ, e)) {
-							fromIndexF.addError("Return type must be of type " + typ);
+						
+						WurstType returnType = fromIndexF.getReturnTyp().attrTyp().dynamic();
+						if (!returnType.equalsType(typ, e)) {
+							fromIndexF.addError("Return type must be of type " + typ + " but was " + returnType);
 						}
 						
 						

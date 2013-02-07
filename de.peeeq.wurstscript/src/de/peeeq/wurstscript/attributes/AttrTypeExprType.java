@@ -38,7 +38,7 @@ public class AttrTypeExprType {
 
 					@Override
 					public WurstType apply(TypeExpr input) {
-						return input.attrTyp();
+						return input.attrTyp().dynamic();
 					}
 					
 				});
