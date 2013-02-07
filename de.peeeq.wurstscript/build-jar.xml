@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<project default="create_run_jar" name="Create Runnable Jar for Project de.peeeq.wurstscript">
+<project default="create_run_jar" name="Create Runnable Jar for Project de.peeeq.wurstio">
 	<!--this file was created by Eclipse Runnable JAR Export Wizard-->
 	<!--ANT 1.7 is required                                        -->
 	<target name="create_run_jar">
 		<mkdir dir="./dist/"/>
 		<jar destfile="./dist/wurstscript.jar">
 			<manifest>
-				<attribute name="Main-Class" value="de.peeeq.wurstscript.Main"/>
-				<attribute name="Class-Path" value=". wurstscript_lib/java-cup-runtime.jar wurstscript_lib/log4j-1.2.16.jar wurstscript_lib/guava-12.0.jar wurstscript_lib/junit-4.10.jar wurstscript_lib/chardet.jar"/>
+				<attribute name="Main-Class" value="de.peeeq.wurstio.Main"/>
+				<attribute name="Class-Path" value=". wurstscript_lib/java-cup-runtime.jar wurstscript_lib/log4j-1.2.16.jar wurstscript_lib/guava-14.0-rc1.jar wurstscript_lib/junit-4.10.jar wurstscript_lib/chardet.jar"/>
 			</manifest>
 			<fileset dir="./bin"/>
 		</jar>

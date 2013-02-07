@@ -25,6 +25,11 @@ public class BugTests extends WurstScriptTest {
 	}
 	
 	@Test
+	public void ObjectRecycler() throws IOException {
+		testAssertOkFileWithStdLib(new File(TEST_DIR + "ObjectRecycler.wurst"), false);
+	}
+	
+	@Test
 	public void intBoundaries() {
 		testAssertOkLines(false,
 				"package test",
