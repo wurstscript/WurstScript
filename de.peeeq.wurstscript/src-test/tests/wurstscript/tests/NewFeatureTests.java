@@ -19,6 +19,16 @@ public class NewFeatureTests extends WurstScriptTest {
 	}
 	
 	@Test
+	public void testGenericUnit() {
+		try {
+			testAssertOkFileWithStdLib(new File(TEST_DIR + "generics.wurst"), false);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	@Test
 	public void testMinusOne() {
 		try {
 			testAssertOkFileWithStdLib(new File(TEST_DIR + "MinusOne.wurst"), false);

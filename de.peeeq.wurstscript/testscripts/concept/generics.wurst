@@ -1,0 +1,22 @@
+package GenericsTest
+	import Stack
+	import TypeCasting
+	import LinkedList
+
+	Stack<unit> stack = new Stack<unit>()
+	
+	function foo()
+		unit u = stack.pop()
+		stack.push(u)
+		int i = stack castTo int
+		
+
+	class SpinNode
+
+	class Spinner
+		LinkedList<SpinNode> spinningEntities = new LinkedList<SpinNode>()
+		
+		function remove(int i)
+			destroy spinningEntities.get(i)
+	
+endpackage

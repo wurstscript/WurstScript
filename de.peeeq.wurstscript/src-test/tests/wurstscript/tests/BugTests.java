@@ -24,6 +24,14 @@ public class BugTests extends WurstScriptTest {
 		testAssertOkFileWithStdLib(new File(TEST_DIR + "ForFrom.wurst"), false);
 	}
 	
+	@Test
+	public void intBoundaries() {
+		testAssertOkLines(false,
+				"package test",
+				"	int i1 = -2147483648",
+				"	int i2 = 2147483647",
+				"endpackage");
+	}
 	
 	@Test
 	public void bug62_codearray() {
