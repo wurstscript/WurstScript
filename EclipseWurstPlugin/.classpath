@@ -3,7 +3,7 @@
 	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="lib" path="C:/Users/Frotty/Documents/GitHub/WurstScript/de.peeeq.wurstscript/lib/guava-14.0-rc1.jar" sourcepath="/home/peter/Downloads/guava-12.0-sources.jar"/>
 	<classpathentry kind="lib" path="/de.peeeq.wurstscript/lib/java-cup-runtime.jar" sourcepath="/de.peeeq.wurstscript/lib/java-cup.jar"/>
+	<classpathentry kind="lib" path="/de.peeeq.wurstscript/lib/guava-14.0-rc1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
