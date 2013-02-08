@@ -16,7 +16,6 @@ import de.peeeq.wurstio.hotdoc.HotdocGenerator;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstscript.BackupController;
-import de.peeeq.wurstscript.CompiletimeFunctionRunner;
 import de.peeeq.wurstscript.ErrorReporting;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;

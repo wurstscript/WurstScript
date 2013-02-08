@@ -33,62 +33,75 @@ public class WurstWeb implements EntryPoint {
 	 */
 	public void onModuleLoad() {
 		
-		final TextArea codeArea = new TextArea();
-		codeArea.setWidth("800px");
-		codeArea.setHeight("400px");
-		final Button compileButton = new Button("Compile");
+		exportStaticMethod();
 		
-		final Label errorLabel = new Label();
-	
-
-		// We can add style names to widgets
-		compileButton.addStyleName("sendButton");
-
-		
-		
-		RootPanel.get("editorArea").add(codeArea);
-		RootPanel.get("buttonArea").add(compileButton);
-		RootPanel.get("outputArea").add(errorLabel);
-
-		// Focus the cursor on the name field when the app loads
-		codeArea.setFocus(true);
-
-		
-
-		class MyHandler implements ClickHandler {
-			/**
-			 * Fired when the user clicks on the sendButton.
-			 */
-			public void onClick(ClickEvent event) {
-				WurstGuiLogger gui = new WurstGuiLogger();
-				RunArgs runArgs = new RunArgs(new String[] {});
-				
-				WurstConfig config = new WurstConfig();
-				ErrorHandler errorHandler = new ErrorHandler(gui);;
-				
-				WurstParser parser = new WurstParser(errorHandler, gui);
-				CompilationUnit cu = parser.parse(new StringReader(codeArea.getText()), "web", false);
-				
-				WurstModel model =  Ast.WurstModel(cu);
-				
-				WurstChecker checker = new WurstChecker(gui, errorHandler);
-				checker.checkProg(model);
-				
-				
-				if (gui.getErrorCount() > 0) {
-					StringBuilder errs = new StringBuilder();
-					for (CompileError err : gui.getErrorList()) {
-						errs.append(err + "\n\n");
-					}
-					errorLabel.setText(errs.toString());
-				} else {
-					errorLabel.setText("Ok");
-				}
-			}
-		}
-
-		// Add a handler to send the name to the server
-		MyHandler handler = new MyHandler();
-		compileButton.addClickHandler(handler);
+//		final TextArea codeArea = new TextArea();
+//		codeArea.setWidth("800px");
+//		codeArea.setHeight("400px");
+//		final Button compileButton = new Button("Compile");
+//		
+//		final Label errorLabel = new Label();
+//	
+//
+//		// We can add style names to widgets
+//		compileButton.addStyleName("sendButton");
+//
+//		
+//		
+//		RootPanel.get("editorArea").add(codeArea);
+//		RootPanel.get("buttonArea").add(compileButton);
+//		RootPanel.get("outputArea").add(errorLabel);
+//
+//		// Focus the cursor on the name field when the app loads
+//		codeArea.setFocus(true);
+//
+//		
+//
+//		class MyHandler implements ClickHandler {
+//			/**
+//			 * Fired when the user clicks on the sendButton.
+//			 */
+//			public void onClick(ClickEvent event) {
+//				
+//			}
+//		}
+//
+//		// Add a handler to send the name to the server
+//		MyHandler handler = new MyHandler();
+//		compileButton.addClickHandler(handler);
 	}
+	
+	
+	public static String parseWurst(String input) {
+		WurstGuiLogger gui = new WurstGuiLogger();
+		RunArgs runArgs = new RunArgs(new String[] {});
+		
+		WurstConfig config = new WurstConfig();
+		ErrorHandler errorHandler = new ErrorHandler(gui);;
+		
+		WurstParser parser = new WurstParser(errorHandler, gui);
+		
+		CompilationUnit cu = parser.parse(new StringReader(input), "web", false);
+		
+		WurstModel model =  Ast.WurstModel(cu);
+		
+		WurstChecker checker = new WurstChecker(gui, errorHandler);
+		checker.checkProg(model);
+		
+		if (gui.getErrorCount() > 0) {
+			StringBuilder errs = new StringBuilder();
+			for (CompileError err : gui.getErrorList()) {
+				errs.append(err + "\n\n");
+			}
+			return errs.toString();
+		} else {
+			return "Ok";
+		}
+	}
+	
+	public static native void exportStaticMethod() /*-{
+	    $wnd.wurst_parse =
+	       $entry(@de.peeeq.web.client.WurstWeb::parseWurst(Ljava/lang/String;));
+ 	}-*/;
+
 }

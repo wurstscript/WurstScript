@@ -18,6 +18,11 @@
     <!--                                           -->
     <title>Web Application Starter Project</title>
     
+	
+	<script src="codemirror-3.02/lib/codemirror.js"></script>
+	<link rel="stylesheet" href="codemirror-3.02/lib/codemirror.css">
+	<script src="codemirror-3.02/mode/python/python.js"></script>
+	
     <!--                                           -->
     <!-- This script loads your compiled module.   -->
     <!-- If you add any GWT meta tags, they must   -->
@@ -51,7 +56,26 @@
 
 	<div id="editorArea"></div>
 	<div id="buttonArea"></div>
-	<pre id="outputArea"></pre>
+	<pre id="outputArea"><a href="#" id="compileBtn">Compile</a></pre>
 
+	<script type="text/javascript" language="javascript" src="jquery-1.9.1.min.js"></script>
+	<script type="text/javascript" language="javascript">
+	$(function () {
+		/*alert("a");
+		var myTextArea = $("#editorArea").get();
+		alert("a" + myTextArea);*/
+		var myCodeMirror = CodeMirror(document.getElementById("editorArea"), {
+		  value: "package Test\n",
+		  mode:  "python"
+		});
+		
+		$("#compileBtn").click(function() {
+			alert(myCodeMirror.getValue());
+			var result = window.wurst_parse(myCodeMirror.getValue());
+			alert(result);
+		});
+	});
+	
+	</script>
   </body>
 </html>
