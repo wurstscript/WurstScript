@@ -21,7 +21,7 @@
 	
 	<script src="codemirror-3.02/lib/codemirror.js"></script>
 	<link rel="stylesheet" href="codemirror-3.02/lib/codemirror.css">
-	<script src="codemirror-3.02/mode/python/python.js"></script>
+	<script src="codemirror-3.02/mode/wurst/wurst.js"></script>
 	
     <!--                                           -->
     <!-- This script loads your compiled module.   -->
@@ -66,7 +66,7 @@
 		alert("a" + myTextArea);*/
 		var myCodeMirror = CodeMirror(document.getElementById("editorArea"), {
 		  value: "package Test\n",
-		  mode:  "python"
+		  mode:  "wurst"
 		});
 		
 		$("#compileBtn").click(function() {
