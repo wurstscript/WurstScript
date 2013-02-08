@@ -6,6 +6,7 @@
 	<classpathentry kind="src" path="src-gen"/>
 	<classpathentry kind="src" path="resources"/>
 	<classpathentry kind="src" path="src-test"/>
+	<classpathentry excluding="de/peeeq/emulation/" kind="src" path="src-gwt"/>
 	<classpathentry kind="lib" path="lib/guava-14.0-rc1.jar"/>
 	<classpathentry kind="lib" path="lib/guava-gwt-14.0-rc1.jar"/>
 	<classpathentry kind="lib" path="lib/velocity-1.7-dep.jar"/>
