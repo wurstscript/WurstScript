@@ -1,6 +1,7 @@
 package de.peeeq.web.client;
 
 import java.io.StringReader;
+import java.util.logging.Logger;
 
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.event.dom.client.ClickEvent;
@@ -32,7 +33,6 @@ public class WurstWeb implements EntryPoint {
 	 * This is the entry point method.
 	 */
 	public void onModuleLoad() {
-		
 		exportStaticMethod();
 		
 //		final TextArea codeArea = new TextArea();

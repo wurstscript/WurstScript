@@ -189,7 +189,7 @@ CodeMirror.defineMode("wurst", function(conf, parserConf) {
         tokenString.isString = true;
         return tokenString;
     }
-    
+    /*
     function indent(stream, state, type) {
         type = type || 'py';
         var indentUnit = 0;
@@ -245,7 +245,7 @@ CodeMirror.defineMode("wurst", function(conf, parserConf) {
             }
         }
     }
-
+*/
     function tokenLexer(stream, state) {
         indentInfo = null;
         var style = state.tokenize(stream, state);
@@ -273,6 +273,7 @@ CodeMirror.defineMode("wurst", function(conf, parserConf) {
         }
         
         // Handle scope changes.
+        /*
         if (current === 'pass' || current === 'return') {
             state.dedent += 1;
         }
@@ -300,6 +301,7 @@ CodeMirror.defineMode("wurst", function(conf, parserConf) {
             if (state.scopes.length > 1) state.scopes.shift();
             state.dedent -= 1;
         }
+        */
         
         return style;
     }
@@ -326,7 +328,7 @@ CodeMirror.defineMode("wurst", function(conf, parserConf) {
             
             return style;
         },
-        
+        /*
         indent: function(state) {
             if (state.tokenize != tokenBase) {
                 return state.tokenize.isString ? CodeMirror.Pass : 0;
@@ -334,6 +336,7 @@ CodeMirror.defineMode("wurst", function(conf, parserConf) {
             
             return state.scopes[0].offset;
         }
+        */
         
     };
     return external;
