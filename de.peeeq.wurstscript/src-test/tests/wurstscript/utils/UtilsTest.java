@@ -6,6 +6,8 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
+import javax.validation.constraints.AssertTrue;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -66,6 +68,30 @@ public class UtilsTest {
     Object[] ar = {3, 2, 1};
 	Assert.assertArrayEquals(ar , sorted.toArray());
   }
+  
+  @Test
+  public void testSubseq() {
+	  Assert.assertFalse(Utils.isSubsequence("aaa", "aa"));
+	  Assert.assertTrue(Utils.isSubsequence("abc", "1a2b3c45"));
+	  Assert.assertTrue(Utils.isSubsequence("aaa", "aaaa"));
+	  Assert.assertTrue(Utils.isSubsequence("aaa", "aaa"));
+	  Assert.assertTrue(Utils.isSubsequence("aaa", "abaa"));
+	  Assert.assertTrue(Utils.isSubsequence("d", "OrderId2StringBJ"));
+  }
+  
+  
+  @Test
+  public void testAvgSubseqLen() {
+	  Assert.assertEquals(2.5, Utils.averageSubsequenceLength("KilUn", "KillUnit"), 0.05);
+	  Assert.assertEquals(2.0, Utils.averageSubsequenceLength("llut", "KillUnit"), 0.05);
+	  Assert.assertEquals(1.33, Utils.averageSubsequenceLength("llnt", "KillUnit"), 0.05);
+	  
+	  Assert.assertEquals(5.0, Utils.averageSubsequenceLength("light", "LoadLightning"), 0.05);
+	  Assert.assertEquals(2.5, Utils.averageSubsequenceLength("light", "GetUnitFlyHeight"), 0.05);
+	  
+  }
+  
+  
   
 /* TODO utils unit tests
   @Test
