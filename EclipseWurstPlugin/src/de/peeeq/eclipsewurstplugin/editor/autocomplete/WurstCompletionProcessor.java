@@ -1,6 +1,7 @@
 package de.peeeq.eclipsewurstplugin.editor.autocomplete;
 
 import java.text.MessageFormat;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -85,7 +86,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		alreadyEntered = getAlreadyEnteredText(viewer, offset);
 		System.out.println("already entered = " + alreadyEntered);
 		
-		List<ICompletionProposal> completions = Lists.newArrayList();
+		List<WurstCompletion> completions = Lists.newArrayList();
 		
 		
 		
@@ -121,7 +122,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			WImport imp = (WImport) elem;
 			WurstModel model = elem.getModel();
 			for (WPackage p : model.attrPackagesFresh().values()) {
-				if (p.getName().toLowerCase().startsWith(alreadyEntered)) {
+				if (isSuitableCompletion(p.getName())) {
 					completions.add(makeNameDefCompletion(p));
 				}
 			}
@@ -131,7 +132,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				Multimap<String, NameLink> visibleNames = scope.attrNameLinks();
 				for (NameLink n : visibleNames.values()) {
 					if (n.getNameDef() instanceof ClassDef 
-						&& n.getName().toLowerCase().startsWith(alreadyEntered)) {
+						&& isSuitableCompletion(n.getName())) {
 						ClassDef c = (ClassDef) n.getNameDef();
 						for (ConstructorDef constr : c.attrConstructors()) {
 							completions.add(makeConstructorCompletion(c, constr));
@@ -150,12 +151,36 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		}
 		removeDuplicates(completions);
 		
+//		Collections.sort(completions, c)
+		
 		if (completions.size() > 0) {
-			return completions.toArray(new ICompletionProposal[completions.size()]);
+			return toCompletionsArray(completions);
 		}
 		errorMessage = null;
 		return null;
 	}
+
+
+	private ICompletionProposal[] toCompletionsArray(
+			List<WurstCompletion> completions) {
+		Collections.sort(completions);
+		ICompletionProposal[] result = new ICompletionProposal[completions.size()];
+		for (int i=0; i<result.length; i++) {
+			result[i] = completions.get(i).getProposal();
+		}
+		return result;
+	}
+
+
+	public boolean isSuitableCompletion(String name) {
+//		return name.toLowerCase().startsWith(alreadyEntered);
+		boolean r = Utils.isSubsequence(alreadyEntered, name);
+//		System.out.println("isSuitable? " + name + " for " + alreadyEntered + " -> " + r);
+		return r;
+	}
+
+
+	
 
 
 	private boolean isEnteringRealNumber(ITextViewer viewer, int offset) {
@@ -175,13 +200,13 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	
 
 
-	private void removeDuplicates(List<ICompletionProposal> cs) {
-		for (int i=0; i<cs.size()-1; i++) {
-			String displayStringI = firstPartOfDisplayString(cs.get(i).getDisplayString());
-			for (int j=cs.size()-1; j>i; j--) {				
-				String displayStringJ =firstPartOfDisplayString(cs.get(j).getDisplayString());
+	private void removeDuplicates(List<WurstCompletion> completions) {
+		for (int i=0; i<completions.size()-1; i++) {
+			String displayStringI = firstPartOfDisplayString(completions.get(i).getDisplayString());
+			for (int j=completions.size()-1; j>i; j--) {				
+				String displayStringJ =firstPartOfDisplayString(completions.get(j).getDisplayString());
 				if (displayStringI.equals(displayStringJ)) {
-					cs.remove(j);
+					completions.remove(j);
 				}
 			}
 		}
@@ -216,15 +241,15 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 
 	private void completionsAddVisibleNames(String alreadyEntered,
-			List<ICompletionProposal> completions, Multimap<String, NameLink> visibleNames) {
+			List<WurstCompletion> completions, Multimap<String, NameLink> visibleNames) {
 		for (Entry<String, NameLink> e : visibleNames.entries()) {
-			if (!e.getKey().toLowerCase().startsWith(alreadyEntered)) {
+			if (!isSuitableCompletion(e.getKey())) {
 				continue;
 			}
 			if (e.getValue().getNameDef() instanceof FunctionDefinition) {
 				FunctionDefinition f = (FunctionDefinition) e.getValue().getNameDef();
 				
-				ICompletionProposal completion = makeFunctionCompletion(f);
+				WurstCompletion completion = makeFunctionCompletion(f);
 				completions.add(completion);
 			} else {
 				completions.add(makeNameDefCompletion(e.getValue().getNameDef()));
@@ -233,7 +258,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		}
 	}
 	
-	private ICompletionProposal makeNameDefCompletion(NameDef n) {
+	private WurstCompletion makeNameDefCompletion(NameDef n) {
 		String replacementString = n.getName();
 		int replacementOffset = offset - alreadyEntered.length();
 		int replacementLength = alreadyEntered.length();
@@ -263,8 +288,21 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		additionalProposalInfo += "<pre><hr />" + typ + n.getName()
 					+ "<br /></pre>" + "defined in " + nearestScopeName(n);
 
-		return new CompletionProposal(replacementString, replacementOffset, replacementLength,
-				cursorPosition, image, displayString, contextInformation, additionalProposalInfo);
+		double rating = calculateRating(n.getName(), alreadyEntered);
+		return new WurstCompletion(replacementString, replacementOffset, replacementLength,
+				cursorPosition, image, displayString, contextInformation, additionalProposalInfo, rating);
+	}
+
+
+	private double calculateRating(String name, String alreadyEntered) {
+		if (name.startsWith(alreadyEntered)) {
+			// perfect match
+			return 1;
+		}
+		if (alreadyEntered.isEmpty()) {
+			return 0.5;
+		}
+		return Utils.averageSubsequenceLength(alreadyEntered, name) / (alreadyEntered.length()+1);
 	}
 
 
@@ -277,7 +315,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	}
 
 
-	private ICompletionProposal makeFunctionCompletion(FunctionDefinition f) {
+	private WurstCompletion makeFunctionCompletion(FunctionDefinition f) {
 		String replacementString = f.getName() + "()";
 		
 		int replacementOffset = offset - alreadyEntered.length();
@@ -327,11 +365,12 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				+ "<br /></pre>" + "defined in " + nearestScopeName(f);
 
 		
-		return new CompletionProposal(replacementString, replacementOffset, replacementLength, cursorPosition, image, displayString,
-				contextInformation, additionalProposalInfo);
+		double rating = calculateRating(f.getName(), alreadyEntered);
+		return new WurstCompletion(replacementString, replacementOffset, replacementLength, cursorPosition, image, displayString,
+				contextInformation, additionalProposalInfo, rating);
 	}
 	
-	private ICompletionProposal makeConstructorCompletion(ClassDef c, ConstructorDef constr) {
+	private WurstCompletion makeConstructorCompletion(ClassDef c, ConstructorDef constr) {
 		String replacementString = c.getName() + "()";
 		
 		int replacementOffset = offset - alreadyEntered.length();
@@ -371,17 +410,17 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		additionalProposalInfo += "<pre><hr /><b><font color=\"rgb(127,0,85)\">" + "construct</font></b>(" + descrhtml.toString() + ") "
 				+ "<br /></pre>" + "defined in class " + c.getName();
 
-		
-		return new CompletionProposal(replacementString, replacementOffset, replacementLength, cursorPosition, image, displayString,
-				contextInformation, additionalProposalInfo);
+		double rating = calculateRating(c.getName(), alreadyEntered);
+		return new WurstCompletion(replacementString, replacementOffset, replacementLength, cursorPosition, image, displayString,
+				contextInformation, additionalProposalInfo, rating);
 	}
 
 
 	private void completionsAddVisibleExtensionFunctions(String alreadyEntered,
-			List<ICompletionProposal> completions,
+			List<WurstCompletion> completions,
 			Multimap<String, NameLink> visibleNames, WurstType leftType) {
 		for (Entry<String, NameLink> e : visibleNames.entries()) {
-			if (!e.getKey().toLowerCase().startsWith(alreadyEntered)) {
+			if (!isSuitableCompletion(e.getKey())) {
 				continue;
 			}
 			if (e.getValue().getNameDef() instanceof ExtensionFuncDef) {

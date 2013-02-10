@@ -1,4 +1,4 @@
-package de.peeeq.wurstscript;
+package de.peeeq.wurstio;
 
 import java.io.File;
 import java.util.List;
@@ -10,6 +10,7 @@ import com.google.common.collect.Maps;
 import de.peeeq.wurstio.intermediateLang.interpreter.CompiletimeNatives;
 import de.peeeq.wurstio.intermediateLang.interpreter.ProgramStateIO;
 import de.peeeq.wurstio.jassinterpreter.NativeFunctionsIO;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;

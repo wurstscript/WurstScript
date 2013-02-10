@@ -17,12 +17,12 @@ import com.google.common.io.Files;
 
 import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.Pjass.Result;
+import de.peeeq.wurstio.CompiletimeFunctionRunner;
 import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.jassinterpreter.JassInterpreter;
 import de.peeeq.wurstio.jassinterpreter.NativeFunctionsIO;
 import de.peeeq.wurstio.utils.FileReading;
-import de.peeeq.wurstscript.CompiletimeFunctionRunner;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.ast.WurstModel;

@@ -100,6 +100,9 @@ public class NameLinks {
 	public static Multimap<String, NameLink> calculate(WPackage p) {
 		Multimap<String, NameLink> result = HashMultimap.create();
 		for (WImport imp : p.getImports()) {
+			if (imp.getPackagename().equals("NoWurst")) {
+				continue;
+			}
 			WPackage importedPackage = imp.attrImportedPackage();
 			if (importedPackage == null) {
 				System.out.println("could not resolve import: " + Utils.printElementWithSource(imp)); 

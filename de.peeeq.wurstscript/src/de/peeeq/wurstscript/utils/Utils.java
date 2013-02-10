@@ -11,6 +11,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
@@ -23,6 +24,7 @@ import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
+import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
@@ -404,6 +406,9 @@ public class Utils {
 			return "variable " + l.getName();
 		} else if (e instanceof AstElementWithName) {
 			name = ((AstElementWithName) e).getName();
+		} else if (e instanceof WImport) {
+			WImport wImport = (WImport) e;
+			return "import " + wImport.getPackagename();
 		} else if (e instanceof TypeExprSimple) {
 			TypeExprSimple t = (TypeExprSimple) e;
 			name = t.getTypeName();
@@ -425,6 +430,7 @@ public class Utils {
 
 	private static String makeReadableTypeName(AstElement e) {
 		String type = e.getClass().getName()
+				.replaceAll("de.peeeq.wurstscript.ast.","")
 				.replaceAll("Impl$", "")
 				.replaceAll("Def$", "")
 				.toLowerCase();
@@ -630,5 +636,90 @@ public class Utils {
 		}
 		return true;
 	}
+
+	public static boolean isSubsequence(String a, String b) {
+		int bPos = -1;
+		for (int i=0; i<a.length(); i++) {
+			char c = Character.toLowerCase(a.charAt(i));
+			do {
+				bPos++;
+				if (bPos >= b.length()) {
+					return false;
+				}
+			} while(Character.toLowerCase(b.charAt(bPos)) != c);
+		}
+		return true;
+	}
+
+	public static double averageSubsequenceLength1(String a, String b) {
+		List<Integer> subseqLength = Lists.newArrayList();
+		int bPos = 0;
+		int currentLen = 0;
+		for (int i=0; i<a.length(); i++) {
+			char c = Character.toLowerCase(a.charAt(i));
+			if (Character.toLowerCase(b.charAt(bPos)) == c) {
+				currentLen++;
+			} else {
+				if (currentLen > 0) {
+					subseqLength.add(currentLen);
+				}
+				currentLen = 0;
+				do {
+					bPos++;
+					if (bPos >= b.length()) break;
+				} while(Character.toLowerCase(b.charAt(bPos)) != c);
+				currentLen = 1;
+			}
+			bPos++;
+			if (bPos >= b.length()) break;
+		}
+		subseqLength.add(currentLen);
+		return average(subseqLength);
+	}
+	
+	public static double averageSubsequenceLength(String a, String b) {
+		// TODO performance
+		a = a.toLowerCase();
+		b = b.toLowerCase();
+		List<Integer> subseqLength = Lists.newArrayList();
+		while (!a.isEmpty()) {
+			int prefixlen = a.length();
+			while (prefixlen > 0 && !containsPrefix(b, a, prefixlen)) {
+				prefixlen--;
+			}
+			if (prefixlen == 0) {
+				subseqLength.add(0);
+				break;
+			}
+			subseqLength.add(prefixlen);
+			String found = a.substring(0, prefixlen);
+			b = b.substring(prefixlen + b.indexOf(found));
+			a = a.substring(prefixlen);
+			
+		}
+		return average(subseqLength);
+	}
+
+	/** 
+	 * checks if b contains the first n characters of a as a substring
+	 */
+	private static boolean containsPrefix(String b, String a, int n) {
+		// TODO performance
+		return b.contains(a.substring(0, n));
+	}
+
+	private static double average(List<Integer> l) {
+		Preconditions.checkArgument(l.size() > 0);
+		return sum(l)*1. / l.size();
+	}
+
+	private static int sum(List<Integer> l) {
+		int sum = 0;
+		for (int i : l) {
+			sum += i;
+		}
+		return sum;
+	}
+	
 
 }
