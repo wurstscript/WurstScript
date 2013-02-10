@@ -47,6 +47,19 @@ public class OptimizerTests extends WurstScriptTest {
 	}
 	
 	@Test
+	public void test_remove_useless() {
+		assertOk(false,
+				"package test",
+				"	int testVar1 = 1",
+				"	real testVar2 = 1.1",
+				"	string testVar3 = \"blub\"",
+				"	boolean testVar4 = true",
+				"	init",
+				"		int i = testVar1",
+				"endpackage");
+	}
+	
+	@Test
 	public void test_inline_globals() {
 		assertOk(false,
 				"package test",

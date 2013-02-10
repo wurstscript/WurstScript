@@ -48,6 +48,10 @@ public class Order
 
 //******************************************************************************
 
+public function unit.clearLastOrders() returns unit
+	ht.flushChild(this.getHandleId())
+	return this
+
 public function unit.getPastOrder( int whichOrder ) returns Order
 	return ht.loadInt( GetHandleId(this), whichOrder) castTo Order
 

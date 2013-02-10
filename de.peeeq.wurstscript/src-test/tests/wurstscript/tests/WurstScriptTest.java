@@ -37,6 +37,7 @@ import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
+import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlag;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
@@ -165,7 +166,7 @@ public class WurstScriptTest {
 		boolean success = false;
 		WurstGui gui = new WurstGuiCliImpl();
 		RunArgs runArgs = new RunArgs(new String[] {
-//				"-inline", "-opt"
+				"-inline", "-opt"
 			});
 		WurstConfig config = new WurstConfig();
 		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(config , gui, runArgs);
@@ -257,16 +258,7 @@ public class WurstScriptTest {
 		// run the optimizer:
 		System.out.println("optimizer1");
 		if (testOptimizer()) {
-			
-//			System.out.println("optimizer2");
-//			JassOptimizer optimizer = new JassOptimizerImpl();
-//			System.out.println("optimizer3");
-//			try {
-//				optimizer.optimize(prog);
-//				System.out.println("optimizer4");
-//			} catch (FileNotFoundException e) {
-//				throw new Error(e);
-//			}
+
 			
 	
 			// write optimized file:

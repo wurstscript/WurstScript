@@ -164,5 +164,17 @@ package Unit
 		
 	public function unit.getHandleId() returns int
 		return GetHandleId(this)
+	
+	public function unit.pause() returns unit
+		PauseUnit(this, true)
+		return this
+		
+	public function unit.unpause() returns unit
+		PauseUnit(this, false)
+		return this
+	
+	public function unit.issueRallyPoint(vec2 pos) returns unit
+		this.issuePointOrder("rally", pos)
+		return this
 
 endpackage
