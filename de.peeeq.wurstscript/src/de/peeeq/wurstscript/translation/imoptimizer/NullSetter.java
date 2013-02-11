@@ -50,6 +50,9 @@ public class NullSetter {
 	}
 
 	private void optimizeFunc(final ImFunction f) {
+		if (f.isBj() || f.isNative() || f.isCompiletime()) {
+			return;
+		}
 		final List<ImVar> handleVars = Lists.newArrayList();
 		for (ImVar local : f.getLocals()) {
 			if (isHandleType(local.getType())) {

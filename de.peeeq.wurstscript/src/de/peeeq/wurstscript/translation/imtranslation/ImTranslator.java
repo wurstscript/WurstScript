@@ -1046,12 +1046,15 @@ public class ImTranslator {
 	}
 
 	private Map<ImFunction, List<ImVar>> tempReturnVars = Maps.newHashMap();
-	public List<ImVar> getTempReturnVarsFor(ImFunction f) {
+	public List<ImVar> getTupleTempReturnVarsFor(ImFunction f) {
 		List<ImVar> result = tempReturnVars.get(f);
 		if (result == null) {
 			result = Lists.newArrayList();
 			addVarsForType(result, f.getName() +  "_return", getOriginalReturnValue(f), false);
-			imProg.getGlobals().addAll(result);
+			if (result.size() > 1) {
+				imProg.getGlobals().addAll(result);
+				// if we only have one return var it will never get used
+			}
 			tempReturnVars.put(f, result);
 		}
 		return result ;

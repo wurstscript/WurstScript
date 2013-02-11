@@ -79,7 +79,7 @@ public class EliminateTuples {
 			@Override
 			public void visit(ImFunctionCall e) {
 				// use temp return valus instead of tuples
-				List<ImVar> tempVars = translator.getTempReturnVarsFor(e.getFunc());
+				List<ImVar> tempVars = translator.getTupleTempReturnVarsFor(e.getFunc());
 				if (tempVars.size() > 1) {
 					JassImElement parent = e.getParent();
 					int parentIndex = -1;
@@ -653,13 +653,17 @@ public class EliminateTuples {
 		ImExpr result;
 		if (retExpr instanceof ImTupleExpr) {
 			ImTupleExpr te = (ImTupleExpr) retExpr;
-			List<ImVar> tempReturnVars = translator.getTempReturnVarsFor(f);
-			for (int i=0; i<tempReturnVars.size(); i++) {
-				statements.add(JassIm.ImSet(e.getTrace(), 
-						tempReturnVars.get(i), 
-						copyExpr(te.getExprs().get(i))));
+			List<ImVar> tempReturnVars = translator.getTupleTempReturnVarsFor(f);
+			if (tempReturnVars.size() == 1) {
+				result = copyExpr(te.getExprs().get(0));
+			} else {
+				for (int i=0; i<tempReturnVars.size(); i++) {
+					statements.add(JassIm.ImSet(e.getTrace(), 
+							tempReturnVars.get(i), 
+							copyExpr(te.getExprs().get(i))));
+				}
+				result = JassIm.ImVarAccess(tempReturnVars.get(0));
 			}
-			result = JassIm.ImVarAccess(tempReturnVars.get(0));
 		} else {
 			result = copyExpr(retExpr);
 		}
