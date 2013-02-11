@@ -129,6 +129,20 @@ public class OptimizerTests extends WurstScriptTest {
 				"		testSuccess()",
 				"endpackage");
 	}
+	
+//	(04:49:22 PM) Frotty: öh
+//	(04:49:24 PM) Frotty: einfach
+//	(04:49:28 PM) Frotty: 1 var erstellen
+//	(04:49:31 PM) Frotty: constant int = 5
+//	(04:49:34 PM) Frotty: nicht benutzen
+//	(04:49:36 PM) Frotty: wird nicht entfernt
+	@Test
+	public void test_varRemoval() {
+		assertOk(false,
+				"package test",
+				"	constant i = 5",
+				"endpackage");
+	}
 
 	
 	private String makeCode(String... body) {

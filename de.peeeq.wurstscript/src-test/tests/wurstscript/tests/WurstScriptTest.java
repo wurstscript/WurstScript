@@ -65,9 +65,9 @@ public class WurstScriptTest {
 	
 	public void testAssertOk(boolean excuteProg, boolean withStdLib, CU ... units) {
 		List<File> inputFiles = Collections.emptyList();
-		Map<String, Reader> inputs = Maps.newHashMap();
+		Map<String, String> inputs = Maps.newHashMap();
 		for (CU cu : units) {
-			inputs.put(cu.name, new StringReader(cu.content));
+			inputs.put(cu.name, cu.content);
 		}
 		String name = UtilsIO.getMethodName(2);
 		testScript(inputFiles, inputs, name, excuteProg, withStdLib, false);
@@ -75,9 +75,9 @@ public class WurstScriptTest {
 	
 	public void testAssertErrors(String errorMessage, boolean excuteProg, boolean withStdLib, CU ... units) {
 		List<File> inputFiles = Collections.emptyList();
-		Map<String, Reader> inputs = Maps.newHashMap();
+		Map<String, String> inputs = Maps.newHashMap();
 		for (CU cu : units) {
-			inputs.put(cu.name, new StringReader(cu.content));
+			inputs.put(cu.name, cu.content);
 		}
 		String name = UtilsIO.getMethodName(2);
 		try {
@@ -103,7 +103,7 @@ public class WurstScriptTest {
 		if (name.length() == 0) {
 			name = UtilsIO.getMethodName(1);
 		}
-		testScript(name, new StringReader(prog), this.getClass().getSimpleName() + "_" + name, executeProg, false);
+		testScript(name, prog, this.getClass().getSimpleName() + "_" + name, executeProg, false);
 	}
 
 	public void testAssertOkFile(File file, boolean executeProg) throws IOException {
@@ -113,31 +113,29 @@ public class WurstScriptTest {
 	}
 	
 	public void testAssertOkFileWithStdLib(File file, boolean executeProg) throws IOException {
-		Reader reader= FileReading.getFileReader(file);
-		testScript(file.getAbsolutePath(), reader, file.getName(), executeProg, true);
-		reader.close();
+		String input = Files.toString(file, Charsets.UTF_8);
+		testScript(file.getAbsolutePath(), input, file.getName(), executeProg, true);
 	}
 	
 	public void testAssertOkLinesWithStdLib(boolean executeProg, String ... input) {
 		String prog = Utils.join(input, "\n") + "\n";
 		String name = UtilsIO.getMethodName(1);
-		testScript(name, new StringReader(prog), this.getClass().getSimpleName() + "_" + name, executeProg, true);
+		testScript(name, prog, this.getClass().getSimpleName() + "_" + name, executeProg, true);
 	}
 	
 	public void testAssertErrorFileWithStdLib(File file, String errorMessage, boolean executeProg) throws IOException {
-		Reader reader= FileReading.getFileReader(file);
 		try { 
-			testScript(file.getAbsolutePath(), reader, file.getName(), executeProg, true);
+			String input = Files.toString(file, Charsets.UTF_8);
+			testScript(file.getAbsolutePath(), input, file.getName(), executeProg, true);
 		} catch (CompileError e) {
 			Assert.assertTrue(e.toString(), e.getMessage().contains(errorMessage));
 		}
-		reader.close();
 	}
 
 	public void testAssertErrors(String name, boolean executeProg, String prog, String errorMessage) {
 		name = UtilsIO.getMethodName(2);
 		try {
-			testScript(name, new StringReader(prog), this.getClass().getSimpleName() + "_" + name, executeProg, false);
+			testScript(name, prog, this.getClass().getSimpleName() + "_" + name, executeProg, false);
 			Assert.assertTrue("No errors were discovered", false);
 		} catch (CompileError e) {
 			if (!e.getMessage().toLowerCase().contains(errorMessage.toLowerCase())) {
@@ -148,13 +146,29 @@ public class WurstScriptTest {
 		
 	}
 
-	protected void testScript(String inputName, Reader input, String name, boolean executeProg, boolean withStdLib) {
-		Map<String, Reader> inputs = Maps.newHashMap();
+	protected void testScript(String inputName, String input, String name, boolean executeProg, boolean withStdLib) {
+		Map<String, String> inputs = Maps.newHashMap();
 		inputs.put(inputName, input);
 		testScript(null, inputs, name, executeProg, withStdLib, false);
 	}
 	
-	protected void testScript(Iterable<File> inputFiles, Map<String, Reader> inputs, String name, boolean executeProg, boolean withStdLib, boolean executeTests) {
+	protected void testScript(Iterable<File> inputFiles, Map<String, String> inputs, String name, boolean executeProg, boolean withStdLib, boolean executeTests) {
+		// test without inlining and optimization
+		testScript(inputFiles, inputs, name, executeProg, withStdLib, executeTests, 
+				new RunArgs(new String[] {}));
+		
+		// test with inlining		
+		testScript(inputFiles, inputs, name + "_inl", executeProg, withStdLib, executeTests, 
+				new RunArgs(new String[] {"-inline"	}));
+		
+		// test with inlining and optimization 
+		testScript(inputFiles, inputs, name + "_inlopt", executeProg, withStdLib, executeTests, 
+				new RunArgs(new String[] {"-inline", "-opt"	}));
+		
+		
+	}
+	
+	protected void testScript(Iterable<File> inputFiles, Map<String, String> inputs, String name, boolean executeProg, boolean withStdLib, boolean executeTests, RunArgs runArgs) {
 		if (inputFiles == null) {
 			inputFiles = Collections.emptyList();
 		}
@@ -164,9 +178,6 @@ public class WurstScriptTest {
 		
 		boolean success = false;
 		WurstGui gui = new WurstGuiCliImpl();
-		RunArgs runArgs = new RunArgs(new String[] {
-//				"-inline", "-opt"
-			});
 		WurstConfig config = new WurstConfig();
 		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(config , gui, runArgs);
 		compiler.getErrorHandler().enableUnitTestMode();
@@ -177,8 +188,8 @@ public class WurstScriptTest {
 		for (File input : inputFiles) {
 			compiler.loadFiles(input);
 		}
-		for (Entry<String, Reader> input : inputs.entrySet()) {
-			compiler.loadReader(input.getKey(), input.getValue());
+		for (Entry<String, String> input : inputs.entrySet()) {
+			compiler.loadReader(input.getKey(), new StringReader(input.getValue()));
 		}
 		WurstModel model = compiler.parseFiles();
 		
