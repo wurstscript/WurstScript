@@ -162,8 +162,8 @@ public class WurstScriptTest {
 				new RunArgs(new String[] {"-inline"	}));
 		
 		// test with inlining and optimization 
-		testScript(inputFiles, inputs, name + "_inlopt", executeProg, withStdLib, executeTests, 
-				new RunArgs(new String[] {"-inline", "-opt"	}));
+//		testScript(inputFiles, inputs, name + "_inlopt", executeProg, withStdLib, executeTests, 
+//				new RunArgs(new String[] {"-inline", "-opt"	}));
 		
 		
 	}
