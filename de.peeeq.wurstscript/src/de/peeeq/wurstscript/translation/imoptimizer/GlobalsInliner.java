@@ -18,6 +18,8 @@ import de.peeeq.wurstscript.jassIm.ImVarRead;
 import de.peeeq.wurstscript.jassIm.ImVarWrite;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.utils.Utils;
+import de.peeeq.wurstscript.jassIm.ImStmts;
 
 public class GlobalsInliner {
 	
@@ -57,6 +59,7 @@ public class GlobalsInliner {
 					}
 				}
 				if( valid ) {
+					boolean obsolete = true;
 					for ( ImVarRead v3 : v.attrReads()) {
 						if (right instanceof ImIntVal) {
 							System.out.println("replaced");
@@ -64,32 +67,44 @@ public class GlobalsInliner {
 							v3.replaceWith(JassIm.ImIntVal(val.getValI()));
 							if (obs.getParent() != null)
 								obs.replaceWith(JassIm.ImNull());
-							obsoleteVars.add(v);
 						}else if (right instanceof ImRealVal) {
 							System.out.println("replaced");
 							ImRealVal val = (ImRealVal)right;
 							v3.replaceWith(JassIm.ImRealVal(val.getValR()));
 							if (obs.getParent() != null)
 								obs.replaceWith(JassIm.ImNull());
-							obsoleteVars.add(v);
 						}else if (right instanceof ImStringVal) {
 							System.out.println("replaced");
 							ImStringVal val = (ImStringVal)right;
 							v3.replaceWith(JassIm.ImStringVal(val.getValS()));
 							if (obs.getParent() != null)
 								obs.replaceWith(JassIm.ImNull());
-							obsoleteVars.add(v);
 						}else if (right instanceof ImBoolVal) {
 							System.out.println("replaced");
 							ImBoolVal val = (ImBoolVal)right;
 							v3.replaceWith(JassIm.ImBoolVal(val.getValB()));
 							if (obs.getParent() != null)
 								obs.replaceWith(JassIm.ImNull());
-							obsoleteVars.add(v);
+						} else {
+							obsolete = false;
 						}
-						
-						
 					}
+					if (obsolete) {
+						obsoleteVars.add(v);
+					}
+				}
+			}
+		}
+		for (ImVar i : obsoleteVars) { 
+			// remove the write
+			System.out.println("obsolete var: " + i);
+			ImVarWrite write = Utils.getFirstAndOnly(i.attrWrites());
+			if (write.getParent() instanceof ImStmts) {
+				ImStmts stmts = (ImStmts) write.getParent();
+				stmts.remove(write);
+			} else {
+				if (write.getParent() != null) {
+					throw new Error("unexpected parent: " + write.getParent());
 				}
 			}
 		}
