@@ -39,8 +39,11 @@ public class GlobalsInliner {
 	
 
 	public void inlineGlobals() {
+		prog.clearAttributes(); // TODO only clear read/write attributes
+		
 		Set<ImVar> obsoleteVars = Sets.newHashSet();
 		for ( final ImVar v : prog.getGlobals() ) {
+			System.out.println("### " + v.getName() + " has " + v.attrWrites().size() + " writes");
 			if (v.attrWrites().size() == 1) {
 				System.out.println(">>>>>only 1 write");
 				boolean valid = false;
@@ -59,37 +62,40 @@ public class GlobalsInliner {
 					}
 				}
 				if( valid ) {
-					boolean obsolete = true;
-					for ( ImVarRead v3 : v.attrReads()) {
-						if (right instanceof ImIntVal) {
-							System.out.println("replaced");
-							ImIntVal val = (ImIntVal)right;
-							v3.replaceWith(JassIm.ImIntVal(val.getValI()));
-							if (obs.getParent() != null)
-								obs.replaceWith(JassIm.ImNull());
-						}else if (right instanceof ImRealVal) {
-							System.out.println("replaced");
-							ImRealVal val = (ImRealVal)right;
-							v3.replaceWith(JassIm.ImRealVal(val.getValR()));
-							if (obs.getParent() != null)
-								obs.replaceWith(JassIm.ImNull());
-						}else if (right instanceof ImStringVal) {
-							System.out.println("replaced");
-							ImStringVal val = (ImStringVal)right;
-							v3.replaceWith(JassIm.ImStringVal(val.getValS()));
-							if (obs.getParent() != null)
-								obs.replaceWith(JassIm.ImNull());
-						}else if (right instanceof ImBoolVal) {
-							System.out.println("replaced");
-							ImBoolVal val = (ImBoolVal)right;
-							v3.replaceWith(JassIm.ImBoolVal(val.getValB()));
-							if (obs.getParent() != null)
-								obs.replaceWith(JassIm.ImNull());
-						} else {
-							obsolete = false;
+					ImExpr replacement;
+					if (right instanceof ImIntVal) {
+						System.out.println("replaced");
+						ImIntVal val = (ImIntVal)right;
+						replacement = (JassIm.ImIntVal(val.getValI()));
+						if (obs.getParent() != null)
+							obs.replaceWith(JassIm.ImNull());
+					}else if (right instanceof ImRealVal) {
+						System.out.println("replaced");
+						ImRealVal val = (ImRealVal)right;
+						replacement = (JassIm.ImRealVal(val.getValR()));
+						if (obs.getParent() != null)
+							obs.replaceWith(JassIm.ImNull());
+					}else if (right instanceof ImStringVal) {
+						System.out.println("replaced");
+						ImStringVal val = (ImStringVal)right;
+						replacement = (JassIm.ImStringVal(val.getValS()));
+						if (obs.getParent() != null)
+							obs.replaceWith(JassIm.ImNull());
+					}else if (right instanceof ImBoolVal) {
+						System.out.println("replaced");
+						ImBoolVal val = (ImBoolVal)right;
+						replacement = (JassIm.ImBoolVal(val.getValB()));
+						if (obs.getParent() != null)
+							obs.replaceWith(JassIm.ImNull());
+					} else {
+						replacement = null;
+					}
+					if (replacement != null) {
+						for ( ImVarRead v3 : v.attrReads()) {
+							v3.replaceWith(replacement.copy());
 						}
 					}
-					if (obsolete) {
+					if (replacement != null || v.attrReads().size() == 0) {
 						obsoleteVars.add(v);
 					}
 				}
@@ -97,16 +103,21 @@ public class GlobalsInliner {
 		}
 		for (ImVar i : obsoleteVars) { 
 			// remove the write
-			System.out.println("obsolete var: " + i);
 			ImVarWrite write = Utils.getFirstAndOnly(i.attrWrites());
-			if (write.getParent() instanceof ImStmts) {
-				ImStmts stmts = (ImStmts) write.getParent();
-				stmts.remove(write);
-			} else {
-				if (write.getParent() != null) {
-					throw new Error("unexpected parent: " + write.getParent());
-				}
+			System.out.println("obsolete var: " + i + " written in " + write);
+			System.out.println("parent" + write.getParent());
+			if (write.getParent() != null) {
+				write.replaceWith(write.getRight().copy());
 			}
+//			if (write.getParent() instanceof ImStmts) {
+//				ImStmts stmts = (ImStmts) write.getParent();
+//				System.out.println("removing write " + write);
+//				stmts.remove(write);
+//			} else {
+//				if (write.getParent() != null) {
+//					throw new Error("unexpected parent: " + write.getParent());
+//				}
+//			}
 		}
 		prog.getGlobals().removeAll(obsoleteVars);
 	}
