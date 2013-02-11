@@ -6,8 +6,6 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
-import javax.validation.constraints.AssertTrue;
-
 import org.junit.Assert;
 import org.junit.Test;
 
