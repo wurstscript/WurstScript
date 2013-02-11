@@ -38,7 +38,7 @@ public class ImOptimizer {
 	
 	public void removeGarbage() {
 		if (trans.isUnitTestMode()) {
-			return;
+//			return;
 		}
 		ImProg prog = trans.imProg();
 		trans.calculateCallRelationsAndUsedVariables();

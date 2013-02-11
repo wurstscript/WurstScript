@@ -35,6 +35,7 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.jassIm.ImVarWrite;
 
 public class Utils {
 
@@ -719,6 +720,13 @@ public class Utils {
 			sum += i;
 		}
 		return sum;
+	}
+
+	public static <T> T getFirstAndOnly(Collection<T> c) {
+		if (c.size() != 1) {
+			throw new Error("Size must be 1 but was " + c.size());
+		}
+		return getFirst(c);
 	}
 	
 
