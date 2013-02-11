@@ -43,7 +43,7 @@ public class WurstReconcilingStategy implements IReconcilingStrategy {
 		reconcile(true);
 	}
 
-	public CompilationUnit reconcile(boolean doTypecheck) {
+	public synchronized CompilationUnit reconcile(boolean doTypecheck) {
 		ModelManager mm = editor.getModelManager();
 		WurstGui gui = new WurstGuiLogger();
 		IFile file = editor.getFile();
