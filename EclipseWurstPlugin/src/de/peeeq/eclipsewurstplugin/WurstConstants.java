@@ -74,6 +74,13 @@ public class WurstConstants {
 	public static final RGB SYNTAXCOLOR_RGB_INTERFACE    = SYNTAXCOLOR_RGB_FIELD;          
 	public static final RGB SYNTAXCOLOR_RGB_CONSTRUCTOR  = COLOR_BLACK;
 
+	// config
+	public static final String WURST_AUTOCOMPLETION_DELAY = "WURST_AUTOCOMPLETION_DELAY";
+	public static final String WURST_ENABLE_AUTOCOMPLETE = "WURST_ENABLE_AUTOCOMPLETE";
+	public static final String WURST_ENABLE_RECONCILING = "WURST_ENABLE_RECONCILING";
+	public static final String WURST_RECONCILATION_DELAY = "WURST_RECONCILATION_DELAY";
+	
+	
 	//Partition Scanner
 	public static final String PARTITION_SINLGE_LINE_COMMENT = "singleComment";
 	public static final String PARTITION_MULTI_LINE_COMMENT  = "multiComment";
