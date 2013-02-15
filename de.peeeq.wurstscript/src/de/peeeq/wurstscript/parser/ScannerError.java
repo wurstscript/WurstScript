@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.parser;
 
-import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.attributes.CompileError;
 
 public class ScannerError {
@@ -16,9 +15,7 @@ public class ScannerError {
 	}
 
 	public CompileError makeCompilerError(WPos p) {
-		WPos pos = p.copy();
-		pos.setLeftPos(start);
-		pos.setRightPos(end);
+		WPos pos = new WPos(p.getFile(), p.getLineOffsets(), start, end); 
 		return new CompileError(pos, message);
 	}
 

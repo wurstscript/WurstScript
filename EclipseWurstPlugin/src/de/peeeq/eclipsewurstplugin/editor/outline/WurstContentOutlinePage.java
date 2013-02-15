@@ -1,14 +1,10 @@
 package de.peeeq.eclipsewurstplugin.editor.outline;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.jface.text.projection.Segment;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
-import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
-import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.jface.viewers.TreePath;
 import org.eclipse.jface.viewers.TreeSelection;
 import org.eclipse.jface.viewers.TreeViewer;
@@ -16,7 +12,6 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.texteditor.IDocumentProvider;
-import org.eclipse.ui.views.contentoutline.ContentOutline;
 import org.eclipse.ui.views.contentoutline.ContentOutlinePage;
 
 import com.google.common.collect.Lists;
@@ -24,7 +19,7 @@ import com.google.common.collect.Lists;
 import de.peeeq.eclipsewurstplugin.editor.CompilationUnitChangeListener;
 import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
 import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.WPos;
+import de.peeeq.wurstscript.parser.WPos;
 
 public class WurstContentOutlinePage extends ContentOutlinePage implements CompilationUnitChangeListener {
 

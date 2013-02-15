@@ -3,17 +3,9 @@ package de.peeeq.eclipsewurstplugin.builder;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.StringReader;
-import java.util.ListIterator;
 import java.util.Map;
-
-import javax.swing.text.BadLocationException;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.parsers.SAXParser;
-import javax.xml.parsers.SAXParserFactory;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
@@ -26,18 +18,10 @@ import org.eclipse.core.resources.IResourceVisitor;
 import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
-import org.xml.sax.helpers.DefaultHandler;
 
-import de.peeeq.eclipsewurstplugin.WurstConstants;
-import de.peeeq.wurstscript.RunArgs;
-import de.peeeq.wurstscript.ast.Ast;
-import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
-import de.peeeq.wurstscript.gui.WurstGuiLogger;
+import de.peeeq.wurstscript.parser.WPos;
 
 public class WurstBuilder extends IncrementalProjectBuilder {
 
@@ -195,10 +179,10 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 	private void addDependency(WurstGui gui, IFile depfile, String fileName) {
 		File f = new File(fileName);
 		if (!f.exists()) {
-			gui.sendError(new CompileError(Ast.WPos(depfile.getProjectRelativePath().toString(), 0, 0, 0), "Path '"+fileName + "' could not be found."));
+			gui.sendError(new CompileError(new WPos(depfile.getProjectRelativePath().toString(), null, 0, 0), "Path '"+fileName + "' could not be found."));
 			return;
 		} else if (!f.isDirectory()) {
-			gui.sendError(new CompileError(Ast.WPos(depfile.getProjectRelativePath().toString(), 0, 0, 0), "Path '"+fileName + "' is not a folder."));
+			gui.sendError(new CompileError(new WPos(depfile.getProjectRelativePath().toString(), null, 0, 0), "Path '"+fileName + "' is not a folder."));
 			return;
 		}
 		

@@ -4,7 +4,7 @@ import java.util.ListIterator;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.WPos;
+import de.peeeq.wurstscript.parser.WPos;
 
 public class ErrorHandling {
 	

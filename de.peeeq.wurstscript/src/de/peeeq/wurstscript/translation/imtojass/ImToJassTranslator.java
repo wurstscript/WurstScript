@@ -24,7 +24,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassFunction;
@@ -40,6 +39,7 @@ import de.peeeq.wurstscript.jassIm.ImTupleArrayType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.JassImElement;
 import de.peeeq.wurstscript.jassIm.JassImElementWithTrace;
+import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 

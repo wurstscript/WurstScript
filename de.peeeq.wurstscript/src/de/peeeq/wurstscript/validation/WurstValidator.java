@@ -87,7 +87,6 @@ import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WParameters;
-import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
@@ -100,6 +99,7 @@ import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.NameLinkType;
 import de.peeeq.wurstscript.attributes.names.Visibility;
 import de.peeeq.wurstscript.gui.ProgressHelper;
+import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.CallSignature;
 import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.WurstType;
@@ -637,11 +637,11 @@ public class WurstValidator {
 
 	@CheckMethod
 	public void visit(ClassDef classDef) {
-		checkTypeName(classDef.getSource(), classDef.getName());
+		checkTypeName(classDef, classDef.getName());
 	}
 
 
-	private void checkTypeName(WPos source, String name) {
+	private void checkTypeName(AstElement source, String name) {
 		if (!Character.isUpperCase(name.charAt(0))) {
 			source.addError("Type names must start with upper case characters.");
 		}
@@ -649,7 +649,7 @@ public class WurstValidator {
 
 	@CheckMethod
 	public void visit(ModuleDef moduleDef) {
-		checkTypeName(moduleDef.getSource(), moduleDef.getName());
+		checkTypeName(moduleDef, moduleDef.getName());
 		// calculate all functions to find possible errors
 		moduleDef.attrNameLinks();
 	}
@@ -1072,7 +1072,7 @@ public class WurstValidator {
 
 	@CheckMethod
 	public void checkInterfaceDef(InterfaceDef i) {
-		checkTypeName(i.getSource(), i.getName());
+		checkTypeName(i, i.getName());
 		// TODO check if functions are refinements
 	}
 

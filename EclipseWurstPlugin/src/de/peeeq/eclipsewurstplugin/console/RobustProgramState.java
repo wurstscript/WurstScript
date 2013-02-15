@@ -6,12 +6,10 @@ import java.util.Map.Entry;
 
 import com.google.common.collect.Maps;
 
-import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState;
 import de.peeeq.wurstscript.jassIm.ImVar;
-import de.peeeq.wurstscript.utils.Pair;
 
 /**
  * a more robust global state, because it does not use vars as keys

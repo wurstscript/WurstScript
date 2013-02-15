@@ -24,7 +24,6 @@ import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.TypeParamDefs;
 import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.attributes.CompileError;
 
 public class AstHelper {
@@ -34,7 +33,7 @@ public class AstHelper {
 		for (TypeExpr t : p) {
 			if (t instanceof TypeExprSimple) {
 				TypeExprSimple ts = (TypeExprSimple) t;
-				result.add(Ast.TypeParamDef(t.getSource().copy(), Ast.Modifiers(), ts.getTypeName()));
+				result.add(Ast.TypeParamDef(t.getSource(), Ast.Modifiers(), ts.getTypeName()));
 			} else {
 				t.addError("Type Parameters must be simple names.");
 			}
@@ -45,7 +44,7 @@ public class AstHelper {
 	public static TypeExprList makeTypeArgs(TypeParamDefs typeParams) {
 		TypeExprList result = Ast.TypeExprList();
 		for (TypeParamDef tp : typeParams) {
-			result.add(Ast.TypeExprSimple(tp.getSource().copy(), tp.getName(), Ast.TypeExprList()));
+			result.add(Ast.TypeExprSimple(tp.getSource(), tp.getName(), Ast.TypeExprList()));
 		}
 		return result;
 	}
@@ -53,7 +52,7 @@ public class AstHelper {
 	public static ClassDef ClassDef(WPos pos, Modifiers mod, String name, TypeParamDefs typeParams, OptTypeExpr extendedClass, TypeExprList il,
 			List<ClassSlot> slots) {
 		ClassDef c = Ast.ClassDef(pos, mod, name, typeParams, extendedClass, il, Ast.FuncDefs(), Ast.GlobalVarDefs(), 
-				Ast.ConstructorDefs(), Ast.ModuleInstanciations(), Ast.ModuleUses(), Ast.OnDestroyDef(pos.copy(), Ast.WStatements()));
+				Ast.ConstructorDefs(), Ast.ModuleInstanciations(), Ast.ModuleUses(), Ast.OnDestroyDef(pos, Ast.WStatements()));
 		addClassSlots(slots, c);		
 		return c;
 	}
@@ -82,7 +81,7 @@ public class AstHelper {
 
 	public static ModuleDef ModuleDef(WPos pos, Modifiers mod, String name, TypeParamDefs typeParams, List<ClassSlot> slots) {
 		ModuleDef m = Ast.ModuleDef(pos, mod, name, typeParams, Ast.FuncDefs(), Ast.GlobalVarDefs(), 
-				Ast.ConstructorDefs(), Ast.ModuleInstanciations(), Ast.ModuleUses(), Ast.OnDestroyDef(pos.copy(), Ast.WStatements()));
+				Ast.ConstructorDefs(), Ast.ModuleInstanciations(), Ast.ModuleUses(), Ast.OnDestroyDef(pos, Ast.WStatements()));
 		addClassSlots(slots, m);		
 		return m;
 	}
@@ -90,7 +89,7 @@ public class AstHelper {
 	public static InterfaceDef InterfaceDef(WPos pos, Modifiers mod, String name, TypeParamDefs typeParams, TypeExprList el,
 			List<ClassSlot> slots) {
 		InterfaceDef i = Ast.InterfaceDef(pos, mod, name, typeParams, el, Ast.FuncDefs(), Ast.GlobalVarDefs(), 
-				Ast.ConstructorDefs(), Ast.ModuleInstanciations(), Ast.ModuleUses(), Ast.OnDestroyDef(pos.copy(), Ast.WStatements()));
+				Ast.ConstructorDefs(), Ast.ModuleInstanciations(), Ast.ModuleUses(), Ast.OnDestroyDef(pos, Ast.WStatements()));
 		addClassSlots(slots, i);		
 		return i;
 	}
