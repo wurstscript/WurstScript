@@ -1,0 +1,83 @@
+package Interpolation
+// Credits to BlinkyBoy
+
+/** 
+	Linear Interpolation
+	Sample Usage:
+	AddSpecialEffect(TEST_SFX,linear(P1X,P2X,time),linear(P1Y,P2Y,time))
+*/
+function linear( real start, real end, real time ) returns real
+	return start + (end-start)*time
+
+/**
+	3-Point-Bezier Interpolation
+	Sample Usage:
+	AddSpecialEffect(TEST_SFX,bezier_3(P1X,P3X,P2X,time),bezier_3(P1Y,P3Y,P2Y,time))
+*/
+function bezier_3( real start, real mid, real end, real time ) returns real
+	return start + 2.*(mid-start)*time + (end -2.*mid + start)*time*time
+
+
+/** 
+	This function returns the derivate of the 3-Point-Bezier curve on certain point. 
+	(d(bezier_3())/dt)
+*/
+function derivBezier_3( real start, real mid, real end, real time ) returns real
+	return 2.*(mid-start) + 2.*(end-2.*mid+start)*time 
+	
+
+/**
+	4-Point-Bezier Interpolation
+	Sample Usage:
+	AddSpecialEffect(TEST_SFX,bezier_4(P1X,P3X,P4X,P2X,t),bezier_4(P1Y,P3Y,P4Y,P2Y,t))
+*/
+function bezier_4( real start, real mid1, real mid2, real end, real time ) returns real
+	real m = time*time
+	return  start + 3.*time*(mid1 - start) + 3.*m*(mid2 - 2.*mid1 + start) + m*time*(3.*(mid1-mid2) + end - start)
+
+/** 
+	This function returns the derivate of the 4-Point-Bezier curve on certain point. 
+	(d(bezier_4())/dt)
+*/	
+function derivBezier_4( real start, real mid1, real mid2, real end, real time ) returns real
+	return 3.*(mid1-start) + 6.*(mid2-2.*mid1+start)*time + 3.*(3.*(mid1-mid2) + end -start)*time*time
+	
+	
+//You can use Bezier 3 to graphic perfect parabolas
+//Bezier_4(<Start Point>, <OutTan_of_StartPoint>, <InTan_of_EndPoint>, <EndPoint>)
+
+/**	Hermite Interpolation */
+function hermite( real start, real end, real tangent1, real tangent2, real s ) returns real
+	real s2 = s*s
+	real h1 = 8.0*s*s2 - 9.0*s2
+	real h2 = h1*(-1)
+	real h3 = s2*(s - 2.0) + s
+	real h4 = s2*(s - 1.0)
+	h1 = h1 + 1
+	return h1*start + h2*end + h3*tangent1 + h4*tangent2
+	
+	
+
+// TCB functions for finding the tangents among 3 points
+// Most modellers may know TCB from 3dsmax, in which they are used to make rotations
+// look very smooth.
+// time = tension, c = continuity, b = bias
+// tension is how sharply the curve makes turns.
+// continuity specifies the rate of change between speed and direction.
+// bias specifies the direction of the curve.
+// sidenote: specify p1 as 0, when working with 2 points.
+
+/** Returns the intan of p2 */
+function inTan( real p1, real p2, real p3, real time, real c, real b ) returns real
+	return (1.0-time)*(1.0-c)*(1.0+b)*(p2-p1)/2. + (1.0-time)*(1.0+c)*(1.0-b)*(p3-p2)/2.
+
+
+/** Returns the outtan of p2 */
+function outTan( real p1, real p2, real p3, real time, real c, real b ) returns real
+	return (1.0-time)*(1.0+c)*(1.0+b)*(p2-p1)/2. + (1.0-time)*(1.0-c)*(1.0-b)*(p3-p2)/2.
+	
+function axiAngle( real dy, real dx ) returns real
+	return Atan2(dy,dx)
+
+function getCardTan( real p1, real p3 ) returns real
+	return 0.5*(p3-p1)
