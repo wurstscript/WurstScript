@@ -27,26 +27,26 @@ package Fx
 		private colorA col
 		
 		construct(real x, real y, angle facing)
-			dummy = newDummy( x, y, 0, facing.degrees())
+			dummy = newDummy( vec2(x, y), facing)
 		
 		construct(vec2 pos, angle facing)
-			dummy = newDummy( pos.x, pos.y, 0, facing.degrees())
+			dummy = newDummy( pos, facing)
 		
 		construct(vec2 pos, angle facing, string fxpath)
-			dummy = newDummy( pos.x, pos.y, 0, facing.degrees())
+			dummy = newDummy( pos, facing)
 			setFx( fxpath )
 		
 		construct(vec3 pos, angle facing)
-			dummy = newDummy( pos.x, pos.y, 0, facing.degrees())
+			dummy = newDummy( pos, facing)
 			setZ(pos.z)	
 		
 		construct(vec3 pos, angle facing, string fxpath)
-			dummy = newDummy( pos.x, pos.y, 0, facing.degrees())
+			dummy = newDummy( pos, facing)
 			setZ(pos.z)
 			setFx( fxpath )	
 		
 		construct(real x, real y, angle facing, string fxpath)
-			dummy = newDummy( x, y, 0, facing.degrees())
+			dummy = newDummy( vec2(x,y), facing)
 			//print(GetUnitName(dummy))
 			setFx( fxpath )
 				
@@ -123,10 +123,10 @@ package Fx
 			return this
 		
 		/** Creates a new dummy with the given facing in order to achieve instant turning. */
-		function setXYAngleInstant(real value) returns Fx
+		function setXYAngleInstant(angle value) returns Fx
 			fx.destr()
 			recycleDummy(dummy)
-			dummy = newDummy( getX(), getY(), 0, value)
+			dummy = newDummy( vec2(getX(), getY()), value)
 			setFx(sfxPath)
 			return this
 		
@@ -225,7 +225,7 @@ package Fx
 		/** Destroys the Fx object without showing the effect's death animation 
 			Sort of a workaround by setting the position to the top right corner, hopefully not visible.*/
 		function hiddenDestroy()
-			dummy.setXY(maxx, maxy)
+			dummy.setPos( 2147483647, 2147483647)
 			destroy this
 			
 
