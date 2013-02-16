@@ -4,7 +4,10 @@ import java.io.PrintStream;
 
 import de.peeeq.wurstio.jassinterpreter.ReflectionBasedNativeProvider;
 import de.peeeq.wurstio.objectreader.ObjectDefinition;
+import de.peeeq.wurstio.objectreader.ObjectFile;
 import de.peeeq.wurstio.objectreader.ObjectModification;
+import de.peeeq.wurstio.objectreader.ObjectModificationInt;
+import de.peeeq.wurstio.objectreader.ObjectTable;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
@@ -12,6 +15,7 @@ import de.peeeq.wurstscript.intermediateLang.ILconstReal;
 import de.peeeq.wurstscript.intermediateLang.ILconstString;
 import de.peeeq.wurstscript.intermediateLang.ILconstTuple;
 import de.peeeq.wurstscript.intermediateLang.interpreter.NativesProvider;
+import de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState;
 import de.peeeq.wurstscript.intermediateLang.interpreter.VariableType;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
@@ -50,21 +54,21 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
 		return new ILconstTuple(new ILconstString(key));
 	}
 	
-//	public ILconstTuple createObjectDefinition(ILconstString fileType, ILconstString newUnitId, ILconstString deriveFrom) {
-//		ObjectFile unitStore = globalState.getDataStore(fileType.getVal());
-//		ObjectTable modifiedTable = unitStore.getModifiedTable();
-//		for (ObjectDefinition od : modifiedTable.getObjectDefinitions()) {
-//			if (od.getNewObjectId().equals(newUnitId.getVal())) {
-//				throw new Error("Object definition with id " + newUnitId.getVal() + " already exists.");
-//			}
-//		}
-//		ObjectDefinition objDef = new ObjectDefinition(modifiedTable, deriveFrom.getVal(), newUnitId.getVal());
-//		// mark object with special field
-//		objDef.add(new ObjectModificationInt(objDef, "wurs", 0, 0, ProgramState.GENERATED_BY_WURST));
-//		String key = globalState.addObjectDefinition(objDef);		
-//		modifiedTable.add(objDef);
-//		return makeKey(key);
-//	}
+	public ILconstTuple createObjectDefinition(ILconstString fileType, ILconstString newUnitId, ILconstString deriveFrom) {
+		ObjectFile unitStore = globalState.getDataStore(fileType.getVal());
+		ObjectTable modifiedTable = unitStore.getModifiedTable();
+		for (ObjectDefinition od : modifiedTable.getObjectDefinitions()) {
+			if (od.getNewObjectId().equals(newUnitId.getVal())) {
+				throw new Error("Object definition with id " + newUnitId.getVal() + " already exists.");
+			}
+		}
+		ObjectDefinition objDef = new ObjectDefinition(modifiedTable, deriveFrom.getVal(), newUnitId.getVal());
+		// mark object with special field
+		objDef.add(new ObjectModificationInt(objDef, "wurs", 0, 0, ProgramState.GENERATED_BY_WURST));
+		String key = globalState.addObjectDefinition(objDef);		
+		modifiedTable.add(objDef);
+		return makeKey(key);
+	}
 
 
 	public void ObjectDefinition_setInt(ILconstTuple unitType, ILconstString modification, ILconstInt value) {

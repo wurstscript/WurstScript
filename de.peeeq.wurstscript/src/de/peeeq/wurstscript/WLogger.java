@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript;
 
+import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -35,5 +36,12 @@ public class WLogger {
 		logger.log(Level.INFO, "Error" + e);
 		
 	}
+
+	public static void setHandler(Handler handler) {
+		logger.addHandler(handler);
+	}
 	
+	public static void setLevel(Level level) {
+		logger.setLevel(level);
+	}
 }
