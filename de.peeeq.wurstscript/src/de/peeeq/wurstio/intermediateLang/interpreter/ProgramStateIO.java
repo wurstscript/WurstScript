@@ -1,6 +1,7 @@
 package de.peeeq.wurstio.intermediateLang.interpreter;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Iterator;
@@ -15,15 +16,18 @@ import com.google.common.io.Files;
 
 import de.peeeq.wurstio.mpq.LadikMpq;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
+import de.peeeq.wurstio.objectreader.BinaryDataOutputStream;
 import de.peeeq.wurstio.objectreader.ObjectDefinition;
 import de.peeeq.wurstio.objectreader.ObjectFile;
 import de.peeeq.wurstio.objectreader.ObjectFileType;
 import de.peeeq.wurstio.objectreader.ObjectModification;
 import de.peeeq.wurstio.objectreader.ObjectModificationInt;
 import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState;
 import de.peeeq.wurstscript.jassIm.ImStmt;
+import de.peeeq.wurstscript.parser.WPos;
 
 public class ProgramStateIO extends ProgramState {
 
@@ -35,6 +39,7 @@ public class ProgramStateIO extends ProgramState {
 	private int id = 0;
 	private Map<String, ObjectDefinition> objDefinitions = Maps.newHashMap();
 	private PrintStream outStream = System.out;
+	private boolean injectObjectFilesIntoMap = false;
 
 	public ProgramStateIO(File mapFile, WurstGui gui) {
 		super(mapFile, gui);
@@ -74,6 +79,7 @@ public class ProgramStateIO extends ProgramState {
 				File w3u = editor.extractFile(mapFile, "war3map."+filetype.getExt());
 				dataStore = new ObjectFile(w3u, filetype);
 			} catch (Error e) {
+				WLogger.info(e);
 				dataStore = new ObjectFile(filetype);
 			}
 			dataStoreMap.put(filetype, dataStore);
@@ -89,6 +95,7 @@ public class ProgramStateIO extends ProgramState {
 	}
 
 	private void deleteWurstObjects(ObjectFile unitStore) {
+		WLogger.info("deleteWurstObjects start " + unitStore.getFileType() + "\n\n" + unitStore);
 		Iterator<ObjectDefinition> it = unitStore.getModifiedTable().getObjectDefinitions().iterator();
 		while (it.hasNext()) {
 			ObjectDefinition od = it.next();
@@ -96,12 +103,14 @@ public class ProgramStateIO extends ProgramState {
 				if (om.getModificationId().equals("wurs") && om instanceof ObjectModificationInt) {
 					ObjectModificationInt om2 = (ObjectModificationInt) om;
 					if (om2.getData() == GENERATED_BY_WURST) {
+						WLogger.info( "Removing " + od + " from " + unitStore.getFileType());
 						it.remove();
 						break;
 					}
 				}
 			}
 		}
+		WLogger.info("deleteWurstObjects end " + unitStore.getFileType() + "\n\n" + unitStore);
 	}
 	
 
@@ -119,15 +128,41 @@ public class ProgramStateIO extends ProgramState {
 
 	public void writeBack() {
 		gui.sendProgress("Writing back generated objects", 0.9);
-		for (Entry<ObjectFileType, ObjectFile> e : dataStoreMap.entrySet()) {
-			ObjectFile dataStore = e.getValue();
-			ObjectFileType fileType = e.getKey();
-			writebackObjectFile(dataStore, fileType);
+		
+		for (ObjectFileType fileType : ObjectFileType.values()) {
+			ObjectFile dataStore = getDataStore(fileType);
+			if (!dataStore.isEmpty()) {
+				writebackObjectFile(dataStore, fileType);
+			}
+		}
+		writeW3oFile();
+	}
+
+	private void writeW3oFile() {
+		try {
+			File objFile = new File(mapFile.getParentFile(), "wurstCreatedObjects.w3o");
+			BinaryDataOutputStream objFileStream = new BinaryDataOutputStream(objFile, true);
+			objFileStream.writeInt(1); // version
+			for (ObjectFileType fileType : ObjectFileType.values()) {
+				ObjectFile dataStore = getDataStore(fileType);
+				if (!dataStore.isEmpty()) {
+					objFileStream.writeInt(1); // exists
+					dataStore.writeTo(objFileStream);
+				} else {
+					objFileStream.writeInt(0); // does not exist
+				}
+			}
+		} catch (FileNotFoundException e) {
+			WLogger.severe(e);
+		} catch (IOException e) {
+			WLogger.severe(e);
+		} catch (Error e) {
+			WLogger.severe(e);
 		}
 	}
 
 	private void writebackObjectFile(ObjectFile dataStore, ObjectFileType fileType) throws Error {
-		File w3u = new File("./temp/new_war3map." + fileType.getExt());
+		File w3u = new File(mapFile.getParent(), "wurstCreatedObjects." + fileType.getExt());
 		if (w3u.exists()) {
 			w3u.delete();
 		}
@@ -135,37 +170,38 @@ public class ProgramStateIO extends ProgramState {
 		
 		
 		try {
-			Files.write(dataStore.exportToWurst(),  new File("./temp/exportedObjects_"+fileType.getExt()+".wurst"), Charsets.UTF_8);
+			Files.write(dataStore.exportToWurst(),  new File(mapFile.getParent(), "wurstExportedObjects_"+fileType.getExt()+".wurst"), Charsets.UTF_8);
 		} catch (IOException e1) {
 			WLogger.severe(e1);
 		}
-		
-		try {
-			LadikMpq editor = MpqEditorFactory.getEditor();
-			String filenameInMpq = "war3map." + fileType.getExt();
-			editor.deleteFile(mapFile, filenameInMpq);
-			int tries = 1;
-			while (tries < 20) {
-				editor.insertFile(mapFile, filenameInMpq, w3u);
-				
-				File extr;
-				try {
-					extr = editor.extractFile(mapFile, filenameInMpq);
-				} catch (Error e) {
-					extr = null;
+		if (injectObjectFilesIntoMap) {
+			try {
+				LadikMpq editor = MpqEditorFactory.getEditor();
+				String filenameInMpq = "war3map." + fileType.getExt();
+				editor.deleteFile(mapFile, filenameInMpq);
+				int tries = 1;
+				while (tries < 20) {
+					editor.insertFile(mapFile, filenameInMpq, w3u);
+					
+					File extr;
+					try {
+						extr = editor.extractFile(mapFile, filenameInMpq);
+					} catch (Error e) {
+						extr = null;
+					}
+					if (extr != null && extr.exists()) {
+						break;
+					}
+					System.gc();
+					tries++;
 				}
-				if (extr != null && extr.exists()) {
-					break;
+				if (tries >= 20) {
+					JOptionPane.showMessageDialog(null, "Could not insert " + fileType.getExt());
 				}
-				System.gc();
-				tries++;
+			} catch (Exception e) {
+				WLogger.severe(e);
+				throw new Error(e);
 			}
-			if (tries >= 20) {
-				JOptionPane.showMessageDialog(null, "Could not insert " + fileType.getExt());
-			}
-		} catch (Exception e) {
-			WLogger.severe(e);
-			throw new Error(e);
 		}
 	}
 

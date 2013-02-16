@@ -70,7 +70,7 @@ public class ObjectDefinition {
 	}
 
 	public void exportToWurst(Appendable out) throws IOException {
-		out.append("@compiletime function createUnit"+newObjectId+"()\n");
+		out.append("@compiletime function create_" + parent.getFileType().getExt() + "_"+newObjectId+"()\n");
 		out.append("	let u = createObjectDefinition(\""+parent.getFileType().getExt()+ "\", \"");
 		out.append(newObjectId);
 		out.append("\", \"");
@@ -88,6 +88,13 @@ public class ObjectDefinition {
 	
 	public ObjectFileType getFileType() {
 		return parent.getFileType();
+	}
+	
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		prettyPrint(sb);
+		return sb.toString();
 	}
 
 	

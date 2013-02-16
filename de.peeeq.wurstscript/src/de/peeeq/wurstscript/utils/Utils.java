@@ -728,5 +728,34 @@ public class Utils {
 		return getFirst(c);
 	}
 	
+	public static String escapeString(String v) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("\"");
+		for (int i=0;i<v.length(); i++) {
+			char c = v.charAt(i);
+			switch (c) {
+				case '\n':
+					sb.append("\\n");
+					break;
+				case '\r':
+					sb.append("\\r");
+					break;
+				case '\"':
+					sb.append("\\\"");
+					break;
+				case '\t':
+					sb.append("\\t");
+					break;
+				case '\\':
+					sb.append("\\\\");
+					break;
+				default:
+					sb.append(c);
+			}
+		}
+		sb.append("\"");
+		return sb.toString();
+	}
+	
 
 }

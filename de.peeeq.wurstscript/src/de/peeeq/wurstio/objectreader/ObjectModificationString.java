@@ -2,6 +2,8 @@ package de.peeeq.wurstio.objectreader;
 
 import java.io.IOException;
 
+import de.peeeq.wurstscript.utils.Utils;
+
 public class ObjectModificationString extends ObjectModification<String> {
 
 	public ObjectModificationString(ObjectDefinition parent, String modificationId, int levelCount, int dataPointer,
@@ -23,6 +25,11 @@ public class ObjectModificationString extends ObjectModification<String> {
 	@Override
 	protected String getFuncPostfix() {
 		return "String";
+	}
+
+	@Override
+	protected String escapedData() {
+		return Utils.escapeString(data);
 	}
 	
 	

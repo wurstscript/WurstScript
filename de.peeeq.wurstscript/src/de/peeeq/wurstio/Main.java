@@ -1,8 +1,13 @@
 package de.peeeq.wurstio;
 
 import java.io.File;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.logging.FileHandler;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.swing.JOptionPane;
 
@@ -34,6 +39,9 @@ public class Main {
 	 * @param args
 	 */
 	public static void main(String[] args) {
+		
+		setUpFileLogging();
+		
 		//		JOptionPane.showMessageDialog(null , "time to connect profiler ^^");
 		SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy hh:mm:ss");
 		Date myDate = new Date();
@@ -186,6 +194,20 @@ public class Main {
 			if (gui != null) {
 				gui.sendFinished();
 			}
+		}
+	}
+
+	public static void setUpFileLogging() {
+		try {
+			// set up file logging:
+			Handler handler = new FileHandler("logs/test.log", Integer.MAX_VALUE, 20);
+			WLogger.setHandler(handler);
+			WLogger.setLevel(Level.INFO);
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 
