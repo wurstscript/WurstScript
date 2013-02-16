@@ -140,6 +140,12 @@ public class WurstPlugin extends AbstractUIPlugin {
 		setDefaultValue(SYNTAXCOLOR_STRIKETHROUGH + SYNTAXCOLOR_INTERFACE,  false);
 		setDefaultValue(SYNTAXCOLOR_STRIKETHROUGH + SYNTAXCOLOR_CONSTRUCTOR,false);
 		
+		
+		setDefaultValue(WurstConstants.WURST_ENABLE_AUTOCOMPLETE, true);
+		setDefaultValue(WurstConstants.WURST_AUTOCOMPLETION_DELAY, "0.5");
+		setDefaultValue(WurstConstants.WURST_ENABLE_RECONCILING, true);
+		setDefaultValue(WurstConstants.WURST_RECONCILATION_DELAY, "0.5");
+		
 	}
 	
 	private void setDefaultValue(String name, boolean value){
@@ -160,6 +166,11 @@ public class WurstPlugin extends AbstractUIPlugin {
 
 	public ScannerFactory scanners() {
 		return scanners;
+	}
+
+	public static WurstEclipseConfig config() {
+		return new WurstEclipseConfig(getDefaultPreferenceStore());
+		
 	}
 	
 }

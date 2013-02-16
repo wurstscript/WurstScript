@@ -30,11 +30,11 @@ import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.parser.WPos;
 
 
 /**
@@ -93,10 +93,10 @@ public class SyntacticSugar {
 			}
 			
 			private void addEnd(AstElementWithBody f) {
-				WPos pos = f.attrSource().copy();
-				pos.setRightPos(pos.getLeftPos()-1);
+				WPos pos = f.attrSource();
+				pos = pos.withRightPos(pos.getLeftPos()-1);
 				f.getBody().add(Ast.EndFunctionStatement(pos));
-				f.getBody().add(0, Ast.StartFunctionStatement(pos.copy()));
+				f.getBody().add(0, Ast.StartFunctionStatement(pos));
 			}
 			
 		});
@@ -120,8 +120,8 @@ public class SyntacticSugar {
 					continue nextPackage;
 				}
 			}
-			WPos source = p.getSource().copy();
-			source.setRightPos(source.getLeftPos() + 7);
+			WPos source = p.getSource();
+			source = source.withRightPos(source.getLeftPos() + 7);
 			p.getImports().add(Ast.WImport(source, false, "Wurst"));
 		}
 	}
@@ -156,23 +156,23 @@ public class SyntacticSugar {
 				WPos loopInPos = loop.getIn().getSource();
 				parent.add(position, 
 						Ast.LocalVarDef(
-								loopInPos.copy(), 
+								loopInPos, 
 								Ast.Modifiers(), 
 								NoTypeExpr(), iteratorName, 
-									Ast.ExprMemberMethod(loopInPos.copy(), (Expr) loop.getIn().copy(), "iterator", Ast.TypeExprList(), Arguments())));
+									Ast.ExprMemberMethod(loopInPos, (Expr) loop.getIn().copy(), "iterator", Ast.TypeExprList(), Arguments())));
 				WStatements body = WStatements(
-							Ast.LocalVarDef(loopVarPos.copy(), 
+							Ast.LocalVarDef(loopVarPos, 
 									Ast.Modifiers(),
 									(OptTypeExpr) loop.getLoopVar().getOptTyp().copy(), 
 									loop.getLoopVar().getName(), 
-									ExprMemberMethod(loopInPos.copy(), 
-											ExprVarAccess(loopVarPos.copy(), iteratorName), "next", Ast.TypeExprList(), Arguments()))
+									ExprMemberMethod(loopInPos, 
+											ExprVarAccess(loopVarPos, iteratorName), "next", Ast.TypeExprList(), Arguments()))
 						);
 				body.addAll(addIteratorCloseStatemenst(loop.getBody().removeAll(), iteratorName, loopVarPos, loopInPos));
 				parent.add(position + 1, Ast.StmtWhile(
-						loop.getSource().copy(), 
-						ExprMemberMethod(loopInPos.copy(), 
-								ExprVarAccess(loopVarPos.copy(), iteratorName), "hasNext", Ast.TypeExprList(), Arguments()),
+						loop.getSource(), 
+						ExprMemberMethod(loopInPos, 
+								ExprVarAccess(loopVarPos, iteratorName), "hasNext", Ast.TypeExprList(), Arguments()),
 						body));
 				parent.add(position+2, 
 						closeIteratorStatement(iteratorName, loopVarPos, loopInPos));
@@ -198,25 +198,25 @@ public class SyntacticSugar {
 				} else {
 					parent.add(position, 
 							Ast.LocalVarDef(
-									loopInPos.copy(), 
+									loopInPos, 
 									Ast.Modifiers(), 
 									NoTypeExpr(), iteratorName, 
 										(Expr) loop.getIn().copy()));
 					position++;
 				}
 				WStatements body = WStatements(
-							Ast.LocalVarDef(loopVarPos.copy(), 
+							Ast.LocalVarDef(loopVarPos, 
 									Ast.Modifiers(),
 									(OptTypeExpr) loop.getLoopVar().getOptTyp().copy(), 
 									loop.getLoopVar().getName(), 
-									ExprMemberMethod(loopInPos.copy(), 
-											ExprVarAccess(loopVarPos.copy(), iteratorName), "next", Ast.TypeExprList(), Arguments()))
+									ExprMemberMethod(loopInPos, 
+											ExprVarAccess(loopVarPos, iteratorName), "next", Ast.TypeExprList(), Arguments()))
 						);
 				body.addAll(addIteratorCloseStatemenst(loop.getBody().removeAll(), iteratorName, loopVarPos, loopInPos));
 				parent.add(position + 0, Ast.StmtWhile(
-						loop.getSource().copy(), 
-						ExprMemberMethod(loopInPos.copy(), 
-								ExprVarAccess(loopVarPos.copy(), iteratorName), "hasNext", Ast.TypeExprList(), Arguments()),
+						loop.getSource(), 
+						ExprMemberMethod(loopInPos, 
+								ExprVarAccess(loopVarPos, iteratorName), "hasNext", Ast.TypeExprList(), Arguments()),
 						body));
 			} else {
 				throw new CompileError(loop.getSource(), "Loop not in statements - " + loop.getParent().getClass().getName());
@@ -226,8 +226,8 @@ public class SyntacticSugar {
 
 
 	private ExprMemberMethod closeIteratorStatement(String iteratorName, WPos loopVarPos, WPos loopInPos) {
-		return ExprMemberMethod(loopInPos.copy(), 
-				ExprVarAccess(loopVarPos.copy(), iteratorName), "close", Ast.TypeExprList(), Arguments());
+		return ExprMemberMethod(loopInPos, 
+				ExprVarAccess(loopVarPos, iteratorName), "close", Ast.TypeExprList(), Arguments());
 	}
 	
 	private List<WStatement> addIteratorCloseStatemenst(List<WStatement> statements, String iteratorName, WPos loopVarPos, WPos loopInPos) {
@@ -260,7 +260,7 @@ public class SyntacticSugar {
 			if (c.getConstructors().size() == 0) {
 				// add default constructor if none exists:
 				c.getConstructors().add(Ast.ConstructorDef(
-					c.getSource().copy(), 
+					c.getSource(), 
 					Ast.Modifiers(), 
 					Ast.WParameters(), 
 					false, Ast.Arguments(),

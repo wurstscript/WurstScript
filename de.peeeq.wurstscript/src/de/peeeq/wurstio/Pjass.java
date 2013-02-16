@@ -16,6 +16,7 @@ import com.google.common.io.Files;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
 
 /** 
@@ -75,9 +76,7 @@ public class Pjass {
 				int line = Integer.parseInt(match.group(1));
 				String msg = match.group(2);
 				result.add(new CompileError(
-						Ast.WPos(jassFile.getAbsolutePath(), lineOffsets,
-								lineOffsets.get(line),
-								lineOffsets.get(line + 1)),
+						new WPos(jassFile.getAbsolutePath(), lineOffsets, lineOffsets.get(line), lineOffsets.get(line + 1)),
 						"This is a bug in the Wurst Compiler. Please Report it. Pjass has found the following problem: "
 								+ msg));
 			}

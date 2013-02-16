@@ -5,12 +5,12 @@ import java.io.Reader;
 import java_cup.runtime.Symbol;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.WPos;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.parser.ExtendedParser;
 import de.peeeq.wurstscript.parser.ScannerError;
+import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.parser.WurstScriptScanner;
 import de.peeeq.wurstscript.utils.LineOffsets;
 
@@ -35,8 +35,8 @@ public class WurstParser {
 			if (sym.value instanceof CompilationUnit) {
 				CompilationUnit root = (CompilationUnit) sym.value;
 				removeSyntacticSugar(root, hasCommonJ);
-				WPos p = root.attrErrorPos().copy();
-				p.setFile(source);
+				WPos p = root.attrErrorPos();
+				p = p.withFile(source);
 				for (ScannerError err : scanner.getErrors()) {
 					CompileError ce = err.makeCompilerError(p);
 					gui.sendError(ce);
@@ -48,7 +48,7 @@ public class WurstParser {
 			gui.sendError(e);
 			return emptyCompilationUnit();
 		} catch (Exception e) {
-			gui.sendError(new CompileError(Ast.WPos(source, LineOffsets.dummy, 0, 0), "This is a bug and should not have happened.\n" + e.getMessage()));
+			gui.sendError(new CompileError(new WPos(source, LineOffsets.dummy, 0, 0), "This is a bug and should not have happened.\n" + e.getMessage()));
 			WLogger.severe(e);
 			throw new Error(e);
 		}

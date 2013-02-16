@@ -35,6 +35,7 @@ import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassIm.ImProg;
+import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
 import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.AssertProperty;
@@ -240,7 +241,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	private CompilationUnit loadLibPackage(List<CompilationUnit> compilationUnits, String imp) {
 		File file = getLibs().get(imp);
 		if (file == null) {
-			gui.sendError(new CompileError(Ast.WPos("", 0, 0, 0), "Could not find lib-package " + imp));
+			gui.sendError(new CompileError(new WPos("", null, 0, 0), "Could not find lib-package " + imp));
 			return Ast.CompilationUnit("", errorHandler, Ast.JassToplevelDeclarations(), Ast.WPackages());
 		} else {
 			CompilationUnit lib = parseFile(file);
@@ -447,10 +448,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			gui.sendError(e);
 			return emptyCompilationUnit();
 		} catch (FileNotFoundException e) {
-			gui.sendError(new CompileError(Ast.WPos(source, LineOffsets.dummy, 0, 0), "File not found."));
+			gui.sendError(new CompileError(new WPos(source, LineOffsets.dummy, 0, 0), "File not found."));
 			return emptyCompilationUnit();
 		} catch (IOException e) {
-			gui.sendError(new CompileError(Ast.WPos(source, LineOffsets.dummy, 0, 0), "Could not read file."));
+			gui.sendError(new CompileError(new WPos(source, LineOffsets.dummy, 0, 0), "Could not read file."));
 			return emptyCompilationUnit();
 		} finally {
 			try {

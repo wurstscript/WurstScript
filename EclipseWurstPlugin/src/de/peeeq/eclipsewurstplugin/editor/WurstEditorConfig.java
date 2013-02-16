@@ -27,6 +27,7 @@ import de.peeeq.eclipsewurstplugin.editor.autocomplete.WurstCompletionProcessor;
 import de.peeeq.eclipsewurstplugin.editor.autoedit.WurstAutoIndentStrategy;
 import de.peeeq.eclipsewurstplugin.editor.highlighting.WurstScanner;
 import de.peeeq.eclipsewurstplugin.editor.reconciling.WurstReconcilingStategy;
+import de.peeeq.eclipsewurstplugin.util.UtilityFunctions;
 
 
 
@@ -88,7 +89,11 @@ public class WurstEditorConfig extends SourceViewerConfiguration {
 		WurstReconcilingStategy strategy = new WurstReconcilingStategy(editor);
 		MonoReconciler r = new MonoReconciler(strategy , false);
 		// check after x ms:
-		r.setDelay(500);
+		if (WurstPlugin.config().reconilationEnabled()) {
+			r.setDelay((int) (WurstPlugin.config().reconilationDelay()*1000));
+		} else {
+			r.setDelay(Integer.MAX_VALUE);
+		}
 		return r;
 	}
 	
@@ -127,14 +132,18 @@ public class WurstEditorConfig extends SourceViewerConfiguration {
 			assistant = new ContentAssistant();
 			assistant.setDocumentPartitioning(getConfiguredDocumentPartitioning(sourceViewer));
 			assistant.setContentAssistProcessor(new WurstCompletionProcessor(editor), IDocument.DEFAULT_CONTENT_TYPE);
-	
-			assistant.enableAutoActivation(true);
-			assistant.setAutoActivationDelay(500);
+			
 			assistant.setProposalPopupOrientation(IContentAssistant.PROPOSAL_OVERLAY);
 			assistant.setContextInformationPopupOrientation(IContentAssistant.CONTEXT_INFO_ABOVE);
 	//		assistant.setContextInformationPopupBackground(...);
 			assistant.setInformationControlCreator(getInformationControlCreator(sourceViewer));
 			assistant.enableAutoInsert(true);
+		}
+		if (WurstPlugin.config().autocompleteEnabled()) {
+			assistant.enableAutoActivation(true);
+			assistant.setAutoActivationDelay((int) (1000*WurstPlugin.config().autocompleteDelay()));
+		} else {
+			assistant.enableAutoActivation(false);
 		}
 		return assistant;
 	}

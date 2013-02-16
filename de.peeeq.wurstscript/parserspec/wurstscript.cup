@@ -13,19 +13,19 @@ action code {:
 
 
 	private WPos pos(int left, int right) {
-		return Ast.WPos(parser.filename, parser.scanner.lineStartOffsets, left, right);
+		return new WPos(parser.filename, parser.scanner.lineStartOffsets, left, right);
 	}
 	
 	private WPos pos(WPos left, WPos right) {
-		return Ast.WPos(left.getFile(), left.getLineOffsets(), left.getLeftPos(), right.getRightPos());
+		return new WPos(left.getFile(), left.getLineOffsets(), left.getLeftPos(), right.getRightPos());
 	}
 	
 	private WPos pos(int left, WPos right) {
-		return Ast.WPos(right.getFile(), right.getLineOffsets(), left, right.getRightPos());
+		return new WPos(right.getFile(), right.getLineOffsets(), left, right.getRightPos());
 	}
 	
 	private WPos pos(WPos left, int right) {
-		return Ast.WPos(left.getFile(), left.getLineOffsets(), left.getLeftPos(), right);
+		return new WPos(left.getFile(), left.getLineOffsets(), left.getLeftPos(), right);
 	}
 	
 	private WPos pos(AstElementWithSource left, int right) {

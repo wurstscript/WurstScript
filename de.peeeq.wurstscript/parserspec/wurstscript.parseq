@@ -3,8 +3,6 @@ package de.peeeq.wurstscript.ast
 
 abstract syntax:
 
-WPos ( String file, Object lineOffsets, int leftPos, int rightPos )
-
 WurstModel * CompilationUnit
 
 CompilationUnit( String file, de.peeeq.wurstscript.attributes.ErrorHandler cuErrorHandler, 
@@ -19,46 +17,46 @@ WPackages * WPackage
 TopLevelDeclaration = JassToplevelDeclaration | WPackage
 TopLevelDeclarations * TopLevelDeclaration
 
-WPackage(WPos source, Modifiers modifiers, String name, WImports imports, WEntities elements)
+WPackage(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, WImports imports, WEntities elements)
 
 WImports * WImport
 WEntities * WEntity
 
-WImport(WPos source, boolean isPublic, String packagename)
+WImport(de.peeeq.wurstscript.parser.WPos source, boolean isPublic, String packagename)
 
 WEntity = 
 	  TypeDef
 	| FuncDef
 	| GlobalVarDef
-	| ExtensionFuncDef(WPos source, Modifiers modifiers, TypeExpr extendedType, String name, TypeParamDefs typeParameters, WParameters parameters, OptTypeExpr returnTyp, WStatements body)
-	| InitBlock (WPos source, WStatements body)
-	| NativeFunc(WPos source, Modifiers modifiers, String name, WParameters parameters, OptTypeExpr returnTyp)
-	| ModuleDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, 
+	| ExtensionFuncDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, TypeExpr extendedType, String name, TypeParamDefs typeParameters, WParameters parameters, OptTypeExpr returnTyp, WStatements body)
+	| InitBlock (de.peeeq.wurstscript.parser.WPos source, WStatements body)
+	| NativeFunc(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, WParameters parameters, OptTypeExpr returnTyp)
+	| ModuleDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, 
 			FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
 			ModuleInstanciations moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy)
 	
 
 
 TypeExpr = 
-	  TypeExprSimple(WPos source, String typeName, TypeExprList typeArgs)
-	| TypeExprArray(WPos source, TypeExpr base)
-	| TypeExprThis(WPos source)
+	  TypeExprSimple(de.peeeq.wurstscript.parser.WPos source, String typeName, TypeExprList typeArgs)
+	| TypeExprArray(de.peeeq.wurstscript.parser.WPos source, TypeExpr base)
+	| TypeExprThis(de.peeeq.wurstscript.parser.WPos source)
 	
 	
 OptTypeExpr = NoTypeExpr() | TypeExpr
 OptExpr = NoExpr() | Expr
 	
 TypeDef = 
-	  NativeType(WPos source, Modifiers modifiers, String name, OptTypeExpr optTyp)
-	| ClassDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, OptTypeExpr extendedClass, TypeExprList implementsList, 
+	  NativeType(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, OptTypeExpr optTyp)
+	| ClassDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, OptTypeExpr extendedClass, TypeExprList implementsList, 
 			FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
 			ModuleInstanciations moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy)
-	| InterfaceDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, TypeExprList extendsList, 
+	| InterfaceDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, TypeExprList extendsList, 
 			FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
 			ModuleInstanciations moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy)
-	| TupleDef(WPos source, Modifiers modifiers, String name, WParameters parameters, OptTypeExpr returnTyp)
+	| TupleDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, WParameters parameters, OptTypeExpr returnTyp)
 	| TypeParamDef
-	| EnumDef(WPos source, Modifiers modifiers, String name, EnumMembers members )
+	| EnumDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, EnumMembers members )
 	| StructureDef
 	
 EnumMembers * EnumMember
@@ -71,14 +69,14 @@ TypeExprList * TypeExpr
 SwitchCases * SwitchCase
 
 
-SwitchCase( WPos source, Expr expr, WStatements stmts )
-SwitchDefaultCase = SwitchDefaultCaseStatements(WPos source, WStatements stmts) | NoDefaultCase()
+SwitchCase( de.peeeq.wurstscript.parser.WPos source, Expr expr, WStatements stmts )
+SwitchDefaultCase = SwitchDefaultCaseStatements(de.peeeq.wurstscript.parser.WPos source, WStatements stmts) | NoDefaultCase()
 
 ClassSlot = 
-	  ConstructorDef(WPos source, Modifiers modifiers, WParameters parameters, boolean isExplicit, Arguments superArgs, WStatements body)
-	| OnDestroyDef(WPos source, WStatements body)
-	| ModuleUse(WPos source, String moduleName, TypeExprList typeArgs)
-	| ModuleInstanciation(WPos source, Modifiers modifiers, String name, 
+	  ConstructorDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, WParameters parameters, boolean isExplicit, Arguments superArgs, WStatements body)
+	| OnDestroyDef(de.peeeq.wurstscript.parser.WPos source, WStatements body)
+	| ModuleUse(de.peeeq.wurstscript.parser.WPos source, String moduleName, TypeExprList typeArgs)
+	| ModuleInstanciation(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, 
 			FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
 			ModuleInstanciations moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy) 
 	| ClassMember
@@ -87,97 +85,97 @@ ClassMember =
 	  GlobalVarDef
 	| FuncDef
 	
-EnumMember(WPos source, Modifiers modifiers, String name)
+EnumMember(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name)
 	
 
-GlobalVarDef(WPos source, Modifiers modifiers, OptTypeExpr optTyp, String name, OptExpr initialExpr)
-LocalVarDef(WPos source, Modifiers modifiers, OptTypeExpr optTyp, String name, OptExpr initialExpr) 
+GlobalVarDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, OptTypeExpr optTyp, String name, OptExpr initialExpr)
+LocalVarDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, OptTypeExpr optTyp, String name, OptExpr initialExpr) 
 
 	
-FuncDef(WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, WParameters parameters, OptTypeExpr returnTyp, WStatements body)
+FuncDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, WParameters parameters, OptTypeExpr returnTyp, WStatements body)
 	
 
 
 ArraySizes * Expr
 	
-FuncSignature(WPos source, String name, TypeParamDefs typeParameters, WParameters parameters, OptTypeExpr returnTyp)	
+FuncSignature(de.peeeq.wurstscript.parser.WPos source, String name, TypeParamDefs typeParameters, WParameters parameters, OptTypeExpr returnTyp)	
 
 TypeParamDefs * TypeParamDef
 
-TypeParamDef(WPos source, Modifiers modifiers, String name)
+TypeParamDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name)
 
 
 WParameters * WParameter
-WParameter(WPos source, Modifiers modifiers, TypeExpr typ, String name)
+WParameter(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, TypeExpr typ, String name)
 	
 	
 WStatements * WStatement
 
 ExprOrStatements = WStatements | WStatement | Expr
 	
-WStatement = ActionStatement | ControlflowStatement | EndFunctionStatement(WPos source) | StartFunctionStatement(WPos source)
+WStatement = ActionStatement | ControlflowStatement | EndFunctionStatement(de.peeeq.wurstscript.parser.WPos source) | StartFunctionStatement(de.peeeq.wurstscript.parser.WPos source)
 
 ActionStatement = 
-	  StmtSkip(WPos source)
+	  StmtSkip(de.peeeq.wurstscript.parser.WPos source)
 	| LocalVarDef
-	| StmtSet(WPos source, NameRef updatedExpr, Expr right)
+	| StmtSet(de.peeeq.wurstscript.parser.WPos source, NameRef updatedExpr, Expr right)
 	| StmtCall
-	| StmtDestroy(WPos source, Expr destroyedObj)
-	| StmtErr(WPos source)
+	| StmtDestroy(de.peeeq.wurstscript.parser.WPos source, Expr destroyedObj)
+	| StmtErr(de.peeeq.wurstscript.parser.WPos source)
 	| ExprMemberVar
 	
 	  
 ControlflowStatement = 
 	  CompoundStatement
-	| StmtReturn(WPos source, OptExpr returnedObj)
-	| StmtExitwhen(WPos source, Expr cond)
+	| StmtReturn(de.peeeq.wurstscript.parser.WPos source, OptExpr returnedObj)
+	| StmtExitwhen(de.peeeq.wurstscript.parser.WPos source, Expr cond)
 	  
 CompoundStatement = 
-	  StmtIf(WPos source, Expr cond, WStatements thenBlock, WStatements elseBlock)
-	| SwitchStmt(WPos source, Expr expr, SwitchCases cases, SwitchDefaultCase switchDefault)
-	| WBlock(WPos source, WStatements body)
+	  StmtIf(de.peeeq.wurstscript.parser.WPos source, Expr cond, WStatements thenBlock, WStatements elseBlock)
+	| SwitchStmt(de.peeeq.wurstscript.parser.WPos source, Expr expr, SwitchCases cases, SwitchDefaultCase switchDefault)
+	| WBlock(de.peeeq.wurstscript.parser.WPos source, WStatements body)
 	| LoopStatement
 
 LoopStatement = 
-	  StmtWhile(WPos source, Expr cond, WStatements body)
-	| StmtLoop(WPos source, WStatements body)
+	  StmtWhile(de.peeeq.wurstscript.parser.WPos source, Expr cond, WStatements body)
+	| StmtLoop(de.peeeq.wurstscript.parser.WPos source, WStatements body)
 	| LoopStatementWithVarDef
 	
 LoopStatementWithVarDef = 
-	  StmtForRange(WPos source, LocalVarDef loopVar, Expr to, Expr step, WStatements body)
-	| StmtForRangeDown(WPos source, LocalVarDef loopVar, Expr to, Expr step, WStatements body)
-	| StmtForIn(WPos source, LocalVarDef loopVar, Expr in, WStatements body)
-	| StmtForFrom(WPos source, LocalVarDef loopVar, Expr in, WStatements body)
+	  StmtForRange(de.peeeq.wurstscript.parser.WPos source, LocalVarDef loopVar, Expr to, Expr step, WStatements body)
+	| StmtForRangeDown(de.peeeq.wurstscript.parser.WPos source, LocalVarDef loopVar, Expr to, Expr step, WStatements body)
+	| StmtForIn(de.peeeq.wurstscript.parser.WPos source, LocalVarDef loopVar, Expr in, WStatements body)
+	| StmtForFrom(de.peeeq.wurstscript.parser.WPos source, LocalVarDef loopVar, Expr in, WStatements body)
 	
 	
 
 Expr =
 	  NameRef
 	| FunctionCall
-	| ExprBinary(WPos source, Expr left, de.peeeq.wurstscript.WurstOperator op, Expr right)
-	| ExprUnary(WPos source, de.peeeq.wurstscript.WurstOperator opU, Expr right)
-	| ExprMemberVar(WPos source, Expr left, String varName)
-	| ExprMemberArrayVar(WPos source, Expr left, String varName, Indexes indexes)
-	| ExprMemberMethod(WPos source, Expr left, String funcName, TypeExprList typeArgs, Arguments args)
-	| ExprFunctionCall(WPos source, String funcName, TypeExprList typeArgs, Arguments args)
-	| ExprNewObject(WPos source, String typeName, TypeExprList typeArgs, Arguments args)
-	| ExprCast(WPos source, TypeExpr typ, Expr expr)
-	| ExprInstanceOf(WPos source, TypeExpr typ, Expr expr)
+	| ExprBinary(de.peeeq.wurstscript.parser.WPos source, Expr left, de.peeeq.wurstscript.WurstOperator op, Expr right)
+	| ExprUnary(de.peeeq.wurstscript.parser.WPos source, de.peeeq.wurstscript.WurstOperator opU, Expr right)
+	| ExprMemberVar(de.peeeq.wurstscript.parser.WPos source, Expr left, String varName)
+	| ExprMemberArrayVar(de.peeeq.wurstscript.parser.WPos source, Expr left, String varName, Indexes indexes)
+	| ExprMemberMethod(de.peeeq.wurstscript.parser.WPos source, Expr left, String funcName, TypeExprList typeArgs, Arguments args)
+	| ExprFunctionCall(de.peeeq.wurstscript.parser.WPos source, String funcName, TypeExprList typeArgs, Arguments args)
+	| ExprNewObject(de.peeeq.wurstscript.parser.WPos source, String typeName, TypeExprList typeArgs, Arguments args)
+	| ExprCast(de.peeeq.wurstscript.parser.WPos source, TypeExpr typ, Expr expr)
+	| ExprInstanceOf(de.peeeq.wurstscript.parser.WPos source, TypeExpr typ, Expr expr)
 	| ExprAtomic
-	| ExprIncomplete(WPos source, String errorMessage)
+	| ExprIncomplete(de.peeeq.wurstscript.parser.WPos source, String errorMessage)
 	
 	
 ExprAtomic = 
-	  ExprIntVal(WPos source, int valI)
-	| ExprRealVal(WPos source, String valR)
-	| ExprStringVal(WPos source, String valS)
-	| ExprBoolVal(WPos source, boolean valB)
-	| ExprFuncRef(WPos source, String scopeName, String funcName)
-	| ExprVarAccess(WPos source, String varName)
-	| ExprVarArrayAccess(WPos source, String varName, Indexes indexes)
-	| ExprThis(WPos source)
-	| ExprNull(WPos source)
-	| ExprSuper(WPos source)
+	  ExprIntVal(de.peeeq.wurstscript.parser.WPos source, int valI)
+	| ExprRealVal(de.peeeq.wurstscript.parser.WPos source, String valR)
+	| ExprStringVal(de.peeeq.wurstscript.parser.WPos source, String valS)
+	| ExprBoolVal(de.peeeq.wurstscript.parser.WPos source, boolean valB)
+	| ExprFuncRef(de.peeeq.wurstscript.parser.WPos source, String scopeName, String funcName)
+	| ExprVarAccess(de.peeeq.wurstscript.parser.WPos source, String varName)
+	| ExprVarArrayAccess(de.peeeq.wurstscript.parser.WPos source, String varName, Indexes indexes)
+	| ExprThis(de.peeeq.wurstscript.parser.WPos source)
+	| ExprNull(de.peeeq.wurstscript.parser.WPos source)
+	| ExprSuper(de.peeeq.wurstscript.parser.WPos source)
 	
 	
 Indexes * Expr
@@ -188,9 +186,9 @@ Arguments * Expr
 	
 // auxiliary types:
 
-IdentifierWithTypeArgs(WPos source, String name, &TypeExprList typeArgs)
+IdentifierWithTypeArgs(de.peeeq.wurstscript.parser.WPos source, String name, &TypeExprList typeArgs)
 
-IdentifierWithTypeParamDefs(WPos source, String name, &TypeParamDefs typeParams)
+IdentifierWithTypeParamDefs(de.peeeq.wurstscript.parser.WPos source, String name, &TypeParamDefs typeParams)
 
 
 // a reference to a variable, needs a varName:String attribute
@@ -243,22 +241,22 @@ TypeRef = TypeExpr | ExprNewObject
 NameDef = VarDef | TypeDef | ModuleDef | ModuleInstanciation | FunctionDefinition | WPackage | EnumDef | EnumMember
 
 VisibilityModifier = 
-	  VisibilityPublic(WPos source) 
-	| VisibilityPrivate(WPos source) 
-	| VisibilityPublicread(WPos source) 
-	| VisibilityProtected(WPos source)
-	| VisibilityDefault(WPos source)
+	  VisibilityPublic(de.peeeq.wurstscript.parser.WPos source) 
+	| VisibilityPrivate(de.peeeq.wurstscript.parser.WPos source) 
+	| VisibilityPublicread(de.peeeq.wurstscript.parser.WPos source) 
+	| VisibilityProtected(de.peeeq.wurstscript.parser.WPos source)
+	| VisibilityDefault(de.peeeq.wurstscript.parser.WPos source)
 
 Modifiers * Modifier
 
 Modifier = 
 	  VisibilityModifier
-	| Annotation(WPos source, String annotationType)
-	| ModStatic(WPos source)
-	| ModOverride(WPos source)
-	| ModAbstract(WPos source)
-	| ModConstant(WPos source)
-	| WurstDoc(WPos source, String rawComment)
+	| Annotation(de.peeeq.wurstscript.parser.WPos source, String annotationType)
+	| ModStatic(de.peeeq.wurstscript.parser.WPos source)
+	| ModOverride(de.peeeq.wurstscript.parser.WPos source)
+	| ModAbstract(de.peeeq.wurstscript.parser.WPos source)
+	| ModConstant(de.peeeq.wurstscript.parser.WPos source)
+	| WurstDoc(de.peeeq.wurstscript.parser.WPos source, String rawComment)
 	
 // AstElementWithBody = FunctionImplementation | InitBlock | ConstructorDef | OnDestroyDef
 //AstElementWithModifier = NameDef | TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition
@@ -495,28 +493,12 @@ StmtCall.attrCallSignature
 	implemented by de.peeeq.wurstscript.attributes.AttrCallSignature.calculate
 	
 AstElement.attrSource()
-	returns WPos
+	returns de.peeeq.wurstscript.parser.WPos
 	implemented by de.peeeq.wurstscript.attributes.AttrPos.getPos
 	
 AstElement.attrErrorPos() "returns the position where errors are marked"
-	returns WPos
+	returns de.peeeq.wurstscript.parser.WPos
 	implemented by de.peeeq.wurstscript.attributes.AttrPos.getErrorPos	
-
-WPos.getColumn()
-	returns int
-	implemented by de.peeeq.wurstscript.attributes.AttrPos.getColumn
-	
-WPos.getLine()
-	returns int
-	implemented by de.peeeq.wurstscript.attributes.AttrPos.getLine
-
-WPos.getEndColumn()
-	returns int
-	implemented by de.peeeq.wurstscript.attributes.AttrPos.getEndColumn
-	
-WPos.getEndLine()
-	returns int
-	implemented by de.peeeq.wurstscript.attributes.AttrPos.getEndLine
 
 	
 HasTypeArgs.attrTypeParameterBindings

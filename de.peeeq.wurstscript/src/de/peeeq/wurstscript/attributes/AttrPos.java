@@ -11,7 +11,7 @@ import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.ast.WPos;
+import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
 
 public class AttrPos {
@@ -35,7 +35,7 @@ public class AttrPos {
 				min = Math.min(min, childSource.getLeftPos());
 				max = Math.max(max, childSource.getRightPos());
 			}
-			return Ast.WPos(e.get(0).attrSource().getFile(), e.get(0).attrSource().getLineOffsets(), min, max);
+			return new WPos(e.get(0).attrSource().getFile(), e.get(0).attrSource().getLineOffsets(), min, max);
 		}
 		// if no childs exist, search a parent element with a explicit position
 		AstElement parent = e.getParent();
@@ -43,12 +43,11 @@ public class AttrPos {
 			if (parent instanceof AstElementWithSource) {
 				WPos parentSource = ((AstElementWithSource) parent).getSource();
 				// use parent position but with size -1, so we do not go into this
-				return Ast.WPos(parentSource.getFile(), parentSource.getLineOffsets(), 
-						parentSource.getLeftPos(), parentSource.getLeftPos()-1);
+				return new WPos(parentSource.getFile(), parentSource.getLineOffsets(), parentSource.getLeftPos(), parentSource.getLeftPos()-1);
 			}
 			parent = parent.getParent();
 		} 
-		return Ast.WPos("<source of " + e + " not found>", new LineOffsets(), 0, 0);
+		return new WPos("<source of " + e + " not found>", new LineOffsets(), 0, 0);
 	}
 	
 	
@@ -88,50 +87,42 @@ public class AttrPos {
 	}
 	
 	public static WPos getErrorPos(WPackage e) {
-		WPos pos = e.getSource().copy();
-		pos.setRightPos(pos.getLeftPos() + ("package " + e.getName()).length());
-		return pos;
+		WPos pos = e.getSource();
+		return pos.withRightPos(pos.getLeftPos() + ("package " + e.getName()).length());
 	}
 	
 	public static WPos getErrorPos(FuncDef e) {
-		WPos pos = e.getSource().copy();
-		pos.setRightPos(pos.getLeftPos() + ("function " + e.getName()).length());
-		return pos;
+		WPos pos = e.getSource();
+		return pos.withRightPos(pos.getLeftPos() + ("function " + e.getName()).length());
 	}
 	
 	public static WPos getErrorPos(ExtensionFuncDef e) {
-		WPos pos = e.getSource().copy();
-		pos.setRightPos(e.getExtendedType().getSource().getRightPos() + (".function " + e.getName()).length());
-		return pos;
+		WPos pos = e.getSource();
+		return pos.withRightPos(e.getExtendedType().getSource().getRightPos() + (".function " + e.getName()).length());
 	}
 	
 	public static WPos getErrorPos(ClassDef e) {
-		WPos pos = e.getSource().copy();
-		pos.setRightPos(pos.getLeftPos() + ("class " + e.getName()).length());
-		return pos;
+		WPos pos = e.getSource();
+		return pos.withRightPos(pos.getLeftPos() + ("class " + e.getName()).length());
 	}
 	
 	public static WPos getErrorPos(ConstructorDef e) {
-		WPos pos = e.getSource().copy();
-		pos.setRightPos(pos.getLeftPos() + ("construct").length());
-		return pos;
+		WPos pos = e.getSource();
+		return pos.withRightPos(pos.getLeftPos() + ("construct").length());
 	}
 	
 	public static WPos getErrorPos(InitBlock e) {
-		WPos pos = e.getSource().copy();
-		pos.setRightPos(pos.getLeftPos() + ("init").length());
-		return pos;
+		WPos pos = e.getSource();
+		return pos.withRightPos(pos.getLeftPos() + ("init").length());
 	}
 	
 	public static WPos getErrorPos(OnDestroyDef e) {
-		WPos pos = e.getSource().copy();
-		pos.setRightPos(pos.getLeftPos() + ("ondestroy").length());
-		return pos;
+		WPos pos = e.getSource();
+		return pos.withRightPos(pos.getLeftPos() + ("ondestroy").length());
 	}
 	
 	public static WPos getErrorPos(StructureDef e) {
-		WPos pos = e.getSource().copy();
-		pos.setRightPos(pos.getLeftPos() + 5 + e.getName().length());
-		return pos;
+		WPos pos = e.getSource();
+		return pos.withRightPos(pos.getLeftPos() + 5 + e.getName().length());
 	}
 }
