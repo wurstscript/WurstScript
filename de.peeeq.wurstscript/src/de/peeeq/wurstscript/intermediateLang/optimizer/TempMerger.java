@@ -13,6 +13,7 @@ import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImIf;
 import de.peeeq.wurstscript.jassIm.ImLoop;
+import de.peeeq.wurstscript.jassIm.ImOperatorCall;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImSet;
 import de.peeeq.wurstscript.jassIm.ImSetArray;
@@ -112,6 +113,12 @@ public class TempMerger {
 		} else if (elem instanceof ImIf) {
 			ImIf imIf = (ImIf) elem;
 			return getPossibleReplacement(imIf.getCondition(), kn);
+		} else if (elem instanceof ImOperatorCall) {
+			ImOperatorCall opCall = (ImOperatorCall) elem;
+			if (opCall.getOp().isLazy()) {
+				// for lazy operators (and, or) we only search the left expression for possible replacements
+				return getPossibleReplacement(opCall.getArguments().get(0), kn);
+			}
 		}
 		// process children
 		for (int i=0; i<elem.size(); i++) {
