@@ -89,6 +89,7 @@ if havewurst then
 	wurstmenu = wehack.addmenu("WurstScript")
 	wurst_enable = TogMenuEntry:New(wurstmenu,"Enable WurstScript",nil,true)
 	wurst_optenable = TogMenuEntry:New(wurstmenu,"Enable Froptimizer",nil,false)
+	wurst_localoptenable = TogMenuEntry:New(wurstmenu,"Enable (experimental) local optimizations",nil,false)
 	wurst_inliner = TogMenuEntry:New(wurstmenu, "Enable Inliner",nil,false)
 	wurst_compiletimefunctions  = TogMenuEntry:New(wurstmenu, "Run compiletime functions",nil,false)
 	
@@ -410,6 +411,9 @@ grim.log("running tool on save: "..cmdargs)
 		--end
 		if wurst_optenable.checked then
 			cmdline = cmdline .. " -opt"
+		end
+		if wurst_localoptenable.checked then
+			cmdline = cmdline .. " -localOptimizations"
 		end
 		if wurst_inliner.checked then
 			cmdline = cmdline .. " -inline"
