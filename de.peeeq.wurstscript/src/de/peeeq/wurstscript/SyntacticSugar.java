@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import com.google.common.collect.Lists;
-import com.google.gwt.thirdparty.guava.common.collect.Maps;
+import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
