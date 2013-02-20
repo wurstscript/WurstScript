@@ -200,7 +200,9 @@ public class Main {
 	public static void setUpFileLogging() {
 		try {
 			// set up file logging:
-			Handler handler = new FileHandler("logs/test.log", Integer.MAX_VALUE, 20);
+			String logFile = "logs/test.log";
+			new File(logFile).mkdirs();
+			Handler handler = new FileHandler(logFile, Integer.MAX_VALUE, 20);
 			WLogger.setHandler(handler);
 			WLogger.setLevel(Level.INFO);
 		} catch (SecurityException e) {
