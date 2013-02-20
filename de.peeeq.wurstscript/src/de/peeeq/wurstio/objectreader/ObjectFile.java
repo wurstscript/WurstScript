@@ -62,13 +62,7 @@ public class ObjectFile {
 		try {
 			out = new BinaryDataOutputStream(file, true);
 			
-			out.writeInt(version);
-			
-			this.origTable.writeToStream(out, fileType);
-			this.modifiedTable.writeToStream(out, fileType);
-			
-			
-			out.flush();
+			writeTo(out);
 		} catch (IOException e) {
 			WLogger.severe(e);
 			throw new Error(e);
@@ -83,6 +77,13 @@ public class ObjectFile {
 			}
 		}
 	}
+
+	public void writeTo(BinaryDataOutputStream out) throws IOException {
+		out.writeInt(version);
+		this.origTable.writeToStream(out, fileType);
+		this.modifiedTable.writeToStream(out, fileType);
+		out.flush();
+	}
 	
 	@Override
 	public String toString() {
@@ -91,7 +92,7 @@ public class ObjectFile {
 		sb.append("origTable:\n");
 		sb.append("##################\n");
 		origTable.prettyPrint(sb);
-		sb.append("origTable:\n");
+		sb.append("modifiedTable:\n");
 		sb.append("##################\n");
 		modifiedTable.prettyPrint(sb);
 		
@@ -102,6 +103,9 @@ public class ObjectFile {
 	public void exportToWurst(Appendable out) throws IOException {
 		out.append("package ExportedObjects\n");
 		out.append("import ObjEditingNatives\n\n");
+		out.append("//origTable: \n\n");
+		origTable.exportToWurst(out);
+		out.append("//modifiedTable: \n\n");
 		modifiedTable.exportToWurst(out);
 	}
 	
@@ -114,6 +118,10 @@ public class ObjectFile {
 			WLogger.severe(e);
 		}
 		return sb.toString();
+	}
+	
+	public boolean isEmpty() {
+		return origTable.isEmpty() && modifiedTable.isEmpty();
 	}
 	
 }

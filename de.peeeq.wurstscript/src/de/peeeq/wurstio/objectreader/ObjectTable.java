@@ -66,4 +66,8 @@ public class ObjectTable {
 		return fileType;
 	}
 
+	public boolean isEmpty() {
+		return objectDefinitions.isEmpty();
+	}
+
 }

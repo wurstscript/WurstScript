@@ -4,6 +4,9 @@ package Camera
 	
 	timer array noiseTimer
 
+	/**
+	*	Shake the camera of the player for the given parameters
+	*/
 	public function setCameraNoiseTimed(player owner, real value, real velocity, real time)
 		int id = GetPlayerId(owner)
 		if TimerGetRemaining(noiseTimer[id]) == 0

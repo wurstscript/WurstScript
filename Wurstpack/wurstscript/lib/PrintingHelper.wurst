@@ -1,7 +1,9 @@
 package PrintingHelper
 	import NoWurst
 	
-	int DEBUG_LEVEL = 10
+	public boolean array wantDebug
+	
+	int DEBUG_LEVEL = 100
 	real DEBUG_MSG_DURATION = 60.
 	
 	public function setDebugLvl( int value )
@@ -12,7 +14,7 @@ package PrintingHelper
 	
 	public function debugPrint(string msg, int level)
 		if level >= DEBUG_LEVEL
-			print("|cff9C9C9CDEBUG - |r" + msg)
+			DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION,"|cff9C9C9CDEBUG - |r" + msg)
 			
 	public function print(string msg)
 		DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, msg)
@@ -33,4 +35,5 @@ package PrintingHelper
 		if this
 			return "true"
 		return "false"
+		
 endpackage 

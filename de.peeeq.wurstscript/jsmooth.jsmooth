@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <jsmoothproject>
 <arguments></arguments>
-<classPath>wurstscript_lib\guava-r09.jar</classPath>
 <classPath>wurstscript_lib\java-cup-runtime.jar</classPath>
 <classPath>wurstscript_lib\katja.jar</classPath>
 <classPath>wurstscript_lib\log4j-1.2.16.jar</classPath>
@@ -9,25 +8,33 @@
 <embeddedJar>false</embeddedJar>
 <executableName>wurstscript.exe</executableName>
 <initialMemoryHeap>-1</initialMemoryHeap>
-<mainClassName>de.peeeq.wurstscript.Main</mainClassName>
+<mainClassName>de.peeeq.wurstio.Main</mainClassName>
 <maximumMemoryHeap>-1</maximumMemoryHeap>
 <maximumVersion></maximumVersion>
 <minimumVersion></minimumVersion>
-<skeletonName>Windowed Wrapper</skeletonName>
+<skeletonName>WinService Wrapper</skeletonName>
+<skeletonProperties>
+<key>ServiceName</key>
+<value></value>
+</skeletonProperties>
+<skeletonProperties>
+<key>ServiceDisplayName</key>
+<value></value>
+</skeletonProperties>
 <skeletonProperties>
 <key>Message</key>
 <value>Java has not been found on your computer. Do you want to download it?</value>
 </skeletonProperties>
 <skeletonProperties>
-<key>URL</key>
-<value>http://www.java.com</value>
-</skeletonProperties>
-<skeletonProperties>
-<key>SingleProcess</key>
+<key>Autostart</key>
 <value>0</value>
 </skeletonProperties>
 <skeletonProperties>
-<key>SingleInstance</key>
+<key>Logfile</key>
+<value></value>
+</skeletonProperties>
+<skeletonProperties>
+<key>Interactive</key>
 <value>0</value>
 </skeletonProperties>
 <skeletonProperties>

@@ -78,14 +78,16 @@ package DummyRecycler
 	group protect   = CreateGroup() //Used to prevent double frees.
 
 
-
 	//=======================================================================
 	// Get a recycled dummy missile unit. If there are no recycled dummies
 	// that are already facing the angle you need, it creates a new dummy for
 	// you.
 	//
-	public function newDummy( real x, real y, real z, real facing ) returns unit
-		int i = ModuloInteger(R2I(facing), 360) div ANG_VAL
+	public function newDummy( vec2 pos, angle facing ) returns unit
+		return newDummy(pos.toVec3(), facing)
+	
+	public function newDummy( vec3 pos, angle facing ) returns unit
+		int i = ModuloInteger(R2I(facing.degrees()), 360) div ANG_VAL
 		int qn = queueNext[i]
 		unit u
 		if qn != 0 and TimerGetElapsed(gameTime) >= timeStamp[qn] 
@@ -100,18 +102,17 @@ package DummyRecycler
 			recycle = qn
 			//Old unit will return as new
 			u = stack[qn]
-			SetUnitFacing(u, facing)
+			SetUnitFacing(u, facing.degrees())
 			GroupRemoveUnit(protect, u)
 		else
-			u = CreateUnit(DUMMY_PLAYER, DUMMY_UNIT_ID, x, y, facing)
+			u = CreateUnit(DUMMY_PLAYER, DUMMY_UNIT_ID, pos.x, pos.y, facing.degrees())
 			u.addAbility(HEIGHT_ENABLER).removeAbility(HEIGHT_ENABLER)
 			u.addAbility(LOCUST_ID)
 			PauseUnit(u, true)
 
-		u.setX(x)
-		u.setY(y)
-		u.setFlyHeight(z, 0)
-		u.show()
+		u.setX(pos.x)
+		u.setY(pos.y)
+		u.setFlyHeight(pos.z, 0)
 		bj_lastCreatedUnit = u
 		return bj_lastCreatedUnit
 
@@ -120,8 +121,6 @@ package DummyRecycler
 	//
 	public function recycleDummy( unit u )
 		int rc = recycle
-		u.removeAbility(LOCUST_ID)
-		u.addAbility(LOCUST_ID)
 		if GetUnitTypeId(u) == DUMMY_UNIT_ID and not IsUnitInGroup(u, protect) 
 			if rc == 0 
 				RemoveUnit(u)
@@ -151,7 +150,7 @@ package DummyRecycler
 			SetUnitAnimationByIndex(u, 90)
 			SetUnitScale(u, 1, 0, 0)
 			u.setOwner(DUMMY_PLAYER, true)
-			//PauseUnit(u, false) -- you can disable "resets" that you don't need to worry about.
+			u.setPos( 2147483647, 2147483647)
 		else
 			printError("[MissileRecycler] Error: Attempt to recycle invalid unit.")
 

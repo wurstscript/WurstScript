@@ -127,12 +127,17 @@ public abstract class ObjectModification<T> { // TODO split into appropiate subc
 		if (parent.getFileType().usesLevels()) {
 			out.append("	u.setLvlData"+getFuncPostfix()+"(\"");
 			out.append(modificationId);
-			out.append("\", "+levelCount+", "+dataPointer+", "+data+")\n");
+			out.append("\", "+levelCount+", "+dataPointer+", "+escapedData()+")\n");
 		} else {
 			out.append("	u.set"+getFuncPostfix()+"(\"");
 			out.append(modificationId);
-			out.append("\", "+data+")\n");
+			out.append("\", "+escapedData()+")\n");
 		}
+	}
+
+
+	protected String escapedData() {
+		return data.toString();
 	}
 
 

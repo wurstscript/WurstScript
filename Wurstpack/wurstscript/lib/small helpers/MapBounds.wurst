@@ -1,6 +1,7 @@
 package MapBounds
 	import Vectors
  
+	public rect mapRect
 	public real minx
 	public real miny
 	public real maxx
@@ -13,10 +14,10 @@ package MapBounds
 		return vec2(GetRandomReal(minx,maxx), GetRandomReal(miny, maxy))
 		
 	init
-		var r = GetPlayableMapRect()
-		minx = GetRectMinX( r )
-		miny = GetRectMinY( r )
-		maxx = GetRectMaxX( r )
-		maxy = GetRectMaxY( r )
+		mapRect = GetPlayableMapRect()
+		minx = GetRectMinX( mapRect )
+		miny = GetRectMinY( mapRect )
+		maxx = GetRectMaxX( mapRect )
+		maxy = GetRectMaxY( mapRect )
  
 endpackage

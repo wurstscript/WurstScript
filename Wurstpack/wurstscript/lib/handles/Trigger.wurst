@@ -107,7 +107,7 @@ package Trigger
 		TriggerRegisterPlayerStateEvent(this, whichPlayer, whichState, opcode, limitval)
 		return this
 		
-	public function trigger.registerPlayerUnitEventplayer(player whichPlayer, playerunitevent whichPlayerUnitEvent, boolexpr filter) returns trigger
+	public function trigger.registerPlayerUnitEvent(player whichPlayer, playerunitevent whichPlayerUnitEvent, boolexpr filter) returns trigger
 		TriggerRegisterPlayerUnitEvent(this, whichPlayer, whichPlayerUnitEvent, filter)
 		return this
 		

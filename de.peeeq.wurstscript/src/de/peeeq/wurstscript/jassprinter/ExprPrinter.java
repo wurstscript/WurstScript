@@ -18,6 +18,7 @@ import de.peeeq.wurstscript.jassAst.JassOpAnd;
 import de.peeeq.wurstscript.jassAst.JassOpMult;
 import de.peeeq.wurstscript.jassAst.JassOpOr;
 import de.peeeq.wurstscript.jassAst.JassOpPlus;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class ExprPrinter {
 
@@ -61,31 +62,7 @@ public class ExprPrinter {
 		sb.append(e.getValR());
 	}
 	public static void print(JassExprStringVal e, StringBuilder sb, boolean withSpace) {
-		sb.append("\"");
-		String v = e.getValS();
-		for (int i=0;i<v.length(); i++) {
-			char c = v.charAt(i);
-			switch (c) {
-				case '\n':
-					sb.append("\\n");
-					break;
-				case '\r':
-					sb.append("\\r");
-					break;
-				case '\"':
-					sb.append("\\\"");
-					break;
-				case '\t':
-					sb.append("\\t");
-					break;
-				case '\\':
-					sb.append("\\\\");
-					break;
-				default:
-					sb.append(c);
-			}
-		}
-		sb.append("\"");
+		sb.append(Utils.escapeString(e.getValS()));
 	}
 	public static void print(JassExprVarAccess e, StringBuilder sb, boolean withSpace) {
 		sb.append(e.getVarName());
