@@ -32,10 +32,12 @@ public class WPos {
 	}
 
 	public int getLine() {
+		if (lineOffsets == null) return 0;
 		return lineOffsets.getLine(leftPos) + 1;
 	}
 
 	public int getEndLine() {
+		if (lineOffsets == null) return 0;
 		return lineOffsets.getLine(rightPos) + 1;
 	}
 
