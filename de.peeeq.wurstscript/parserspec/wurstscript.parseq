@@ -166,7 +166,7 @@ Expr =
 	
 	
 ExprAtomic = 
-	  ExprIntVal(de.peeeq.wurstscript.parser.WPos source, int valI)
+	  ExprIntVal(de.peeeq.wurstscript.parser.WPos source, String valIraw)
 	| ExprRealVal(de.peeeq.wurstscript.parser.WPos source, String valR)
 	| ExprStringVal(de.peeeq.wurstscript.parser.WPos source, String valS)
 	| ExprBoolVal(de.peeeq.wurstscript.parser.WPos source, boolean valB)
@@ -760,3 +760,7 @@ WurstModel.attrPackageLevels
 WPackage.attrPackageLevel
 	returns int
 	implemented by de.peeeq.wurstscript.attributes.PackageLevels.get
+	
+ExprIntVal.getValI
+	returns int
+	implemented by de.peeeq.wurstscript.attributes.IntVal.getValI
