@@ -84,7 +84,22 @@ function badOrderList( int id ) returns boolean
 	//* 852158 rechargeon	   852484 spellstealon	 852672 incineratearrowoff
 	//* 852159 rechargeoff	  852485 spellstealoff
 	//* 852162 renewon		  852515 phaseshifton
-	return id==852055 or id==852056 or id==852064 or id==852065 or id==852067 or id==852068 or id==852076 or id==852077 or id==852090 or id==852091 or id==852100 or id==852102 or id==852103 or id==852107 or id==852108 or id==852129 or id==852130 or id==852133 or id==852134 or id==852136 or id==852137 or id==852150 or id==852151 or id==852174 or id==852158 or id==852159 or id==852162 or id==852163 or id==852174 or id==852175 or id==852177 or id==852178 or id==852191 or id==852192 or id==852198 or id==852199 or id==852203 or id==852204 or id==852212 or id==852213 or id==852244 or id==852245 or id==852249 or id==852250 or id==852255 or id==852256 or id==852458 or id==852459 or id==852478 or id==852479 or id==852484 or id==852485 or id==852515 or id==852516 or id==852522 or id==852523 or id==852540 or id==852541 or id==852543 or id==852544 or id==852546 or id==852547 or id==852549 or id==852550 or id==852552 or id==852553 or id==852562 or id==852563 or id==852571 or id==852578 or id==852579 or id==852589 or id==852590 or id==852602 or id==852603 or id==852671 or id==852672
+	return ( id==852055 or id==852056 or id==852064 or id==852065 or id==852067 or 
+			 id==852068 or id==852076 or id==852077 or id==852090 or id==852091 or 
+			 id==852100 or id==852102 or id==852103 or id==852107 or id==852108 or 
+			 id==852129 or id==852130 or id==852133 or id==852134 or id==852136 or 
+			 id==852137 or id==852150 or id==852151 or id==852174 or id==852158 or 
+			 id==852159 or id==852162 or id==852163 or id==852174 or id==852175 or 
+			 id==852177 or id==852178 or id==852191 or id==852192 or id==852198 or 
+			 id==852199 or id==852203 or id==852204 or id==852212 or id==852213 or 
+			 id==852244 or id==852245 or id==852249 or id==852250 or id==852255 or 
+			 id==852256 or id==852458 or id==852459 or id==852478 or id==852479 or 
+			 id==852484 or id==852485 or id==852515 or id==852516 or id==852522 or 
+			 id==852523 or id==852540 or id==852541 or id==852543 or id==852544 or 
+			 id==852546 or id==852547 or id==852549 or id==852550 or id==852552 or 
+			 id==852553 or id==852562 or id==852563 or id==852571 or id==852578 or 
+			 id==852579 or id==852589 or id==852590 or id==852602 or id==852603 or 
+			 id==852671 or id==852672 )
 
 
 function unit.orderFilter( int id ) returns boolean

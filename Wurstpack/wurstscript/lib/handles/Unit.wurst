@@ -176,5 +176,9 @@ package Unit
 	public function unit.issueRallyPoint(vec2 pos) returns unit
 		this.issuePointOrder("rally", pos)
 		return this
+		
+	public function unit.setPropWindow(real value) returns unit
+		SetUnitPropWindow(this, value)
+		return this
 
 endpackage
