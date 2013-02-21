@@ -10,8 +10,8 @@ Since the JNGP only works on Windows, Wurstpack usage is limited to windows, too
 
 [JRE](http://www.java.com/de/download/) Java Runtime Environment
 
-[Wurstpack-32 Bit](https://dl.dropbox.com/u/103859688/WURST/Wurstpack32.rar) or
-[Wurstpack-64 Bit](https://dl.dropbox.com/u/103859688/WURST/Wurstpack64.rar)
+[Wurstpack-32 Bit](http://sunayama.de/WurstUpdt/Wurstpack32.rar) or
+[Wurstpack-64 Bit](http://sunayama.de/WurstUpdt/Wurstpack64.rar)
 This depends on the Java-Version listed in your HOME path, not on the OS. 
 
 Run the updater.jar in the updater folder inside Wurstpack/ to download and extract the required files. Some AnitVirus programs falsely detect harmless injection-dlls. Ignore the warning and/or turn off your AV-Program for the process and add an exception. The Updater might not respond while downloading the required packages.
@@ -26,7 +26,7 @@ Run the updater.jar in the updater folder inside Wurstpack/ to download and extr
 
 1. Start Eclipse from the directory you extracted it to
 2. Open the installation window with _Help_ -> _Install new Software_
-3. Enter _http://peeeq.de/wurst/updateSite/_ into the "Work with:" textfield and press Enter
+3. Enter _http://sunayama.de/WurstUpdt/site/_ into the "Work with:" textfield and press Enter
 4. A WurstScript Eclipse Plugin Entry should appear in the list. Select it and press next.
 5. Accept the license agreement, press next and wait for the install to finish.
 6. Restart Eclipse to complete the installation
