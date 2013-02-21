@@ -65,7 +65,7 @@ parser code {:
 	protected WurstScriptScanner scanner;
 :};
 
-terminal Integer INTEGER_LITERAL;
+terminal String INTEGER_LITERAL;
 terminal String IDENTIFIER, IDENTIFIER_LT;
 terminal String ANNOTATION;
 terminal String STRING_LITERAL;
@@ -571,11 +571,11 @@ Statement ::=
 	| StmtDestroy:x
 		{: RESULT = x; :} 
 	| FOR:x LocalVarDefInline:loopVar EQ Expr:from TO Expr:to NL:y OptionalBlock:body
-		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRange(pos(xleft, yright, body), loopVar, to, Ast.ExprIntVal(pos(to, Integer.MIN_VALUE), 1), body); :}
+		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRange(pos(xleft, yright, body), loopVar, to, Ast.ExprIntVal(pos(to, Integer.MIN_VALUE), "1"), body); :}
 	| FOR:x LocalVarDefInline:loopVar EQ Expr:from TO Expr:to STEP Expr:step NL:y OptionalBlock:body
 		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRange(pos(xleft, yright, body), loopVar, to, step, body); :}
 	| FOR:x LocalVarDefInline:loopVar EQ Expr:from DOWNTO Expr:to NL:y OptionalBlock:body
-		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRangeDown(pos(xleft, yright, body), loopVar, to, Ast.ExprIntVal(pos(to, Integer.MIN_VALUE), 1), body); :}
+		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRangeDown(pos(xleft, yright, body), loopVar, to, Ast.ExprIntVal(pos(to, Integer.MIN_VALUE), "1"), body); :}
 	| FOR:x LocalVarDefInline:loopVar EQ Expr:from DOWNTO Expr:to STEP Expr:step NL:y OptionalBlock:body
 		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRangeDown(pos(xleft, yright, body), loopVar, to, step, body); :}
 	| FOR:x LocalVarDefInline:loopVar IN Expr:in NL:y OptionalBlock:body
@@ -688,9 +688,9 @@ StmtSet ::=
 	| ExprAssignable:left DIV_EQ Expr:right NL
 		{: RESULT = Ast.StmtSet(pos(left, right), left,  Ast.ExprBinary(pos(left, right), (Expr) left.copy(), WurstOperator.DIV_REAL, right)); :}
 	| ExprAssignable:left PLUS_PLUS:x NL
-		{: RESULT = Ast.StmtSet(pos(left, xright), left, Ast.ExprBinary(pos(left, xright), (Expr) left.copy(), WurstOperator.PLUS, Ast.ExprIntVal(pos(xleft, xright), 1))); :}
+		{: RESULT = Ast.StmtSet(pos(left, xright), left, Ast.ExprBinary(pos(left, xright), (Expr) left.copy(), WurstOperator.PLUS, Ast.ExprIntVal(pos(xleft, xright), "1"))); :}
 	| ExprAssignable:left MINUS_MINUS:x NL
-		{: RESULT = Ast.StmtSet(pos(left, xright), left, Ast.ExprBinary(pos(left, xright), (Expr) left.copy(), WurstOperator.MINUS, Ast.ExprIntVal(pos(xleft, xright), 1))); :}
+		{: RESULT = Ast.StmtSet(pos(left, xright), left, Ast.ExprBinary(pos(left, xright), (Expr) left.copy(), WurstOperator.MINUS, Ast.ExprIntVal(pos(xleft, xright), "1"))); :}
 	| ExprAssignable:left NL
 		{: RESULT = Ast.StmtSet(pos(left, left), left, Ast.ExprIncomplete(pos(left, Integer.MIN_VALUE), "missing right side of expression")); :}
 ;

@@ -185,5 +185,13 @@ public enum WurstOperator {
 		throw new Error("unhandled operator " + this);
 	}
 
+	/**
+	 * an operator is lazy if it evaluates its second argument only 
+	 * when its first argument evaluates to a certain value 
+	 */
+	public boolean isLazy() {
+		return this == OR || this == AND;
+	}
+
 	
 }

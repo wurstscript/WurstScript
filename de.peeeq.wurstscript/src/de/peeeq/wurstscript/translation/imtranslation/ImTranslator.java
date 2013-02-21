@@ -118,38 +118,36 @@ public class ImTranslator {
 
 	private ImFunction debugPrintFunction;
 
-	Map<ClassDef, ImFunction> destroyFuncMap = Maps.newHashMap();
+	final Map<ClassDef, ImFunction> destroyFuncMap = Maps.newHashMap();
 
-	private List<ImFunction> entryPoints = Lists.newArrayList();
-
-	private Map<TranslatedToImFunction, ImFunction> functionMap = Maps.newHashMap();
-	private Map<TranslatedToImFunction, ImFunction> dynamicDispatchFunctionMap = Maps.newHashMap();
+	private final Map<TranslatedToImFunction, ImFunction> functionMap = Maps.newHashMap();
+	private final Map<TranslatedToImFunction, ImFunction> dynamicDispatchFunctionMap = Maps.newHashMap();
 
 	private ImFunction globalInitFunc;
 
-	private ImProg imProg;
+	private final ImProg imProg;
 
-	Map<WPackage, ImFunction> initFuncMap = Maps.newHashMap();
+	final Map<WPackage, ImFunction> initFuncMap = Maps.newHashMap();
 
-	private Map<TranslatedToImFunction, ImVar> thisVarMap = Maps.newHashMap();
+	private final Map<TranslatedToImFunction, ImVar> thisVarMap = Maps.newHashMap();
 
-	private Set<WPackage> translatedPackages = Sets.newHashSet();
-	private Set<ClassDef>  translatedClasses = Sets.newHashSet();
+	private final Set<WPackage> translatedPackages = Sets.newHashSet();
+	private final Set<ClassDef>  translatedClasses = Sets.newHashSet();
 
 	private int typeIdCounter = 0;
 
-	Map<ClassDef, Integer> typeIdMap = Maps.newHashMap();
-	Map<ClassDef, Integer> typeIdMapMax = Maps.newHashMap();
+	final Map<ClassDef, Integer> typeIdMap = Maps.newHashMap();
+	final Map<ClassDef, Integer> typeIdMapMax = Maps.newHashMap();
 
-	private Map<VarDef, ImVar> varMap = Maps.newHashMap();
+	private final Map<VarDef, ImVar> varMap = Maps.newHashMap();
 
-	private WurstModel wurstProg;
+	private final WurstModel wurstProg;
 
 	private ImFunction mainFunc = null;
 
 	private ImFunction configFunc = null;
 
-	private Map<ImVar, List<ImVar>> varsForTupleVar = Maps.newHashMap();
+	private final Map<ImVar, List<ImVar>> varsForTupleVar = Maps.newHashMap();
 
 	private boolean isUnitTestMode;
 
@@ -157,13 +155,13 @@ public class ImTranslator {
 	public ImTranslator(WurstModel wurstProg, boolean isUnitTestMode) {
 		this.wurstProg = wurstProg;
 		this.isUnitTestMode = isUnitTestMode;
+		imProg = ImProg(ImVars(), ImFunctions(), Maps.<ImVar,ImExpr>newHashMap());
 	}
 
 	/**
 	 * translates a program 
 	 */
 	public ImProg translateProg() {
-		imProg = ImProg(ImVars(), ImFunctions(), Maps.<ImVar,ImExpr>newHashMap());
 
 		globalInitFunc = ImFunction(emptyTrace, "initGlobals", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
 		addFunction(globalInitFunc);

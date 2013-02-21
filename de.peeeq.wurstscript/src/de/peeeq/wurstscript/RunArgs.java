@@ -17,6 +17,7 @@ public class RunArgs {
 	private boolean runCompiletimeFunctions;
 	private boolean runtests;
 	private boolean createHotDoc;
+	private boolean localOptimizations;
 	
 	public static RunArgs defaults() {
 		return new RunArgs(new String[] {});
@@ -30,6 +31,8 @@ public class RunArgs {
 					this.optimize = true;
 				} else if (a.equals("-inline")) {
 					inline = true;
+				} else if (a.equals("-localOptimizations")) {
+					localOptimizations = true;
 				} else if (a.equals("-runtests")) {
 					runtests = true;
 				} else if (a.equals("-gui")) {
@@ -103,6 +106,10 @@ public class RunArgs {
 
 	public boolean isNullsetting() {
 		return true;
+	}
+
+	public boolean isLocalOptimizations() {
+		return localOptimizations;
 	}
 
 

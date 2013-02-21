@@ -343,6 +343,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		printDebugImProg("./test-output/im " + stage++ + "_flat.im");
 		
 		
+		if (runArgs.isLocalOptimizations()) {
+			optimizer.localOptimizations();
+		}
+		
 		if (runArgs.isOptimize()) {
 			optimizer.optimize();
 			

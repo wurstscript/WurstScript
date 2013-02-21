@@ -8,16 +8,22 @@ import static de.peeeq.wurstscript.ast.Ast.WStatements;
 
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.ast.Ast;
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithBody;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
+import de.peeeq.wurstscript.ast.ExprIntVal;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
+import de.peeeq.wurstscript.ast.ExprUnary;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
@@ -53,6 +59,7 @@ public class SyntacticSugar {
 		if (hasCommonJ) {
 			addDefaultImports(root);
 		}
+		rewriteNegatedInts(root);
 		addDefaultConstructors(root);
 		addEndFunctionStatements(root);
 		expandForInLoops(root);
@@ -61,6 +68,45 @@ public class SyntacticSugar {
 	
 
 	
+
+	private void rewriteNegatedInts(CompilationUnit root) {
+		final Map<Expr, Expr> replacements = Maps.newHashMap();
+		root.accept(new WurstModel.DefaultVisitor() {
+			public void visit(ExprUnary e) {
+				if (e.getOpU() == WurstOperator.UNARY_MINUS
+						&& e.getRight() instanceof ExprIntVal) {
+					ExprIntVal iv = (ExprIntVal) e.getRight();
+					ExprIntVal newExpr = Ast.ExprIntVal(e.getSource(), "-"+iv.getValIraw());
+					replacements.put(e, newExpr);
+				}
+			}
+		});
+		doReplacements(replacements);
+	}
+
+
+
+
+
+	private void doReplacements(Map<Expr, Expr> replacements) {
+		for (Entry<Expr, Expr> e : replacements.entrySet()) {
+			Expr oldE = e.getKey();
+			Expr newE = e.getValue();
+			AstElement parent = oldE.getParent();
+			for (int i=0; i<parent.size(); i++) {
+				if (parent.get(i) == oldE) {
+					parent.set(i, newE);
+					return;
+				}
+			}
+			throw new Error("could not replace " + oldE + " with " + newE);
+		}
+		
+	}
+
+
+
+
 
 	private void addEndFunctionStatements(CompilationUnit root) {
 		

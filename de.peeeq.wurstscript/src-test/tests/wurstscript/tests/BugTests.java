@@ -39,6 +39,22 @@ public class BugTests extends WurstScriptTest {
 	}
 	
 	@Test
+	public void intBoundariesL() {
+		testAssertErrorsLines(false, "Invalid number",
+				"package test",
+				"	int i1 = -2147483649",
+				"endpackage");
+	}
+	
+	@Test
+	public void intBoundariesH() {
+		testAssertErrorsLines(false, "Invalid number",
+				"package test",
+				"	int i1 = 2147483648",
+				"endpackage");
+	}
+	
+	@Test
 	public void bug62_codearray() {
 		testAssertErrorsLines(false, "Code arrays", 
 				"package test",

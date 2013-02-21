@@ -66,8 +66,9 @@ public class CompiletimeFunctionRunner {
 					}
 				}
 			}
-			
-			interpreter.writebackGlobalState();
+			if (functionFlag == FunctionFlag.IS_COMPILETIME) {
+				interpreter.writebackGlobalState();
+			}
 		} catch (Throwable e) {
 			WLogger.severe(e);
 			ImStmt s = interpreter.getLastStatement();

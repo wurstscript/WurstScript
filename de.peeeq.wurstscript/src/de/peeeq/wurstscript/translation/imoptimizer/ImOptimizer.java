@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.translation.imoptimizer;
 
+import de.peeeq.wurstscript.intermediateLang.optimizer.TempMerger;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
@@ -27,6 +28,11 @@ public class ImOptimizer {
 		inliner.doInlining();
 		trans.assertProperties();
 		// remove garbage, because inlined functions can be removed
+		removeGarbage();
+	}
+	
+	public void localOptimizations() {
+		new TempMerger(trans).optimize();
 		removeGarbage();
 	}
 

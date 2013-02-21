@@ -17,10 +17,10 @@ public class ClassManagementVars {
 		translator.addGlobal(nextFree);
 		firstFree = JassIm.ImVar(TypesHelper.imInt(), repClass.getName() + "_firstFree", false);
 		translator.addGlobal(firstFree);
-		translator.addGlobalInitalizer(firstFree, null, Ast.ExprIntVal(repClass.getSource(), 0));
+		translator.addGlobalInitalizer(firstFree, null, Ast.ExprIntVal(repClass.getSource(), "0"));
 		maxIndex = JassIm.ImVar(TypesHelper.imInt(), repClass.getName() + "_maxIndex", false);
 		translator.addGlobal(maxIndex);
-		translator.addGlobalInitalizer(maxIndex, null, Ast.ExprIntVal(repClass.getSource(), 0));
+		translator.addGlobalInitalizer(maxIndex, null, Ast.ExprIntVal(repClass.getSource(), "0"));
 		typeId = JassIm.ImVar(JassIm.ImArrayType("integer"), repClass.getName() + "_typeId", false);
 		translator.addGlobal(typeId);
 	}
