@@ -35,5 +35,7 @@ public interface ModelManager {
 	void clearDependencies();
 
 	WurstModel getModel();
+	
+	WurstNature getNature();
 
 }

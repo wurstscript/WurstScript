@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -50,6 +51,8 @@ public class JassPrinter {
 	}
 	
 	public void printProg(StringBuilder sb, JassProg prog) {
+		Preconditions.checkNotNull(sb);
+		Preconditions.checkNotNull(prog);
 		this.prog = prog;
 		
 		printTypes(sb, prog.getDefs());
@@ -409,7 +412,7 @@ public class JassPrinter {
 	}
 
 
-	public CharSequence printProg(JassProg prog) {
+	public String printProg(JassProg prog) {
 		StringBuilder sb = new StringBuilder();
 		printProg(sb, prog);
 		return sb.toString();
