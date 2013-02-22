@@ -136,6 +136,9 @@ public class WurstREPL {
 			} else if (line.equals("tests")) {
 				runTests();
 				return;
+			} else if (line.startsWith("compile ")) {
+				compileProject(line.substring(8));
+				return;
 			}
 			
 			gui.clearErrors();
@@ -243,6 +246,13 @@ public class WurstREPL {
 			e.printStackTrace();
 			return;
 		}
+	}
+
+	private void compileProject(String args) {
+		args = args.trim();
+		String[] runArgs = args.split("\\s+");
+		
+		
 	}
 
 	private void runTests() {

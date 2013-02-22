@@ -87,8 +87,13 @@ public class TempMerger {
 		}
 		if (s instanceof ImSet) {
 			ImSet imSet = (ImSet) s;
-			// update the knowledge with the new set statement
-			kn.update(imSet.getLeft(), imSet);
+			ImVar var = imSet.getLeft();
+			if (var.attrReads().size() == 0) {
+				// var is never read, replace it with just the right hand side:
+				imSet.replaceWith(imSet.getRight().copy());
+			} else {
+				kn.update(var, imSet);
+			}
 		} else if (s instanceof ImSetArray) {
 			kn.invalidateVar(((ImSetArray) s).getLeft());
 		} else if (s instanceof ImExitwhen || s instanceof ImIf || s instanceof ImLoop) {
