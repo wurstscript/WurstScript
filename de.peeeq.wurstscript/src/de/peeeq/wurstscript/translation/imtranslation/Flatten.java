@@ -79,7 +79,7 @@ public class Flatten {
 
 	private static void exprToStatements(List<ImStmt> result, JassImElement e, ImTranslator t, ImFunction f) {
 		if (e instanceof ImCall) {
-			result.add((ImStmt) e);			
+			result.add((ImStmt) ((ImStmt) e).copy());			
 		} else if (e instanceof ImStatementExpr) {
 			ImStatementExpr e2 = (ImStatementExpr) e;
 			flattenStatements(result, e2.getStatements(), t, f);
