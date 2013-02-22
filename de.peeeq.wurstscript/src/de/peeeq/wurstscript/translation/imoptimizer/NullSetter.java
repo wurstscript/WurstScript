@@ -94,12 +94,12 @@ public class NullSetter {
 		for (int i=0; i<parent.size(); i++) {
 			JassImElement elem = parent.get(i);
 			if (elem instanceof ImReturn) {
-				handleReturnStmt(f, handleVars, nullSetStmts, trace, elem);
+				handleReturnStmt(f, handleVars, nullSetStmts, trace, (ImReturn) elem);
 				return true;
 			} else if (elem instanceof ImIf) {
 				ImIf imIf = (ImIf) elem;
 				boolean returnsThen = optimizeChildren(f, handleVars, nullSetStmts, trace, imIf.getThenBlock());
-				boolean returnsElse = optimizeChildren(f, handleVars, nullSetStmts, trace, imIf.getThenBlock());
+				boolean returnsElse = optimizeChildren(f, handleVars, nullSetStmts, trace, imIf.getElseBlock());
 				if (returnsThen && returnsElse) {
 					return true;
 				}
@@ -119,8 +119,7 @@ public class NullSetter {
 
 	private void handleReturnStmt(final ImFunction f,
 			final List<ImVar> handleVars, final List<ImStmt> nullSetStmts,
-			final AstElement trace, JassImElement elem) {
-		ImReturn imReturn = (ImReturn) elem;
+			final AstElement trace, ImReturn imReturn) {
 		ImStmts parent2 = (ImStmts) imReturn.getParent();
 		int parentIndex = parent2.indexOf(imReturn);
 		if (imReturn.getReturnValue() instanceof ImExpr) { // returns some value

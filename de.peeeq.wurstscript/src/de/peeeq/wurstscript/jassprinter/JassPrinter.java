@@ -413,6 +413,7 @@ public class JassPrinter {
 
 
 	public String printProg(JassProg prog) {
+		Preconditions.checkNotNull(prog);
 		StringBuilder sb = new StringBuilder();
 		printProg(sb, prog);
 		return sb.toString();
