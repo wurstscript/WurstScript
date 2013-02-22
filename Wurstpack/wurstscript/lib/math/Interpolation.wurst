@@ -1,6 +1,13 @@
 package Interpolation
 // Credits to BlinkyBoy
 
+/**Look at linear*/
+function linear(vec2 start, vec2 end, real p) returns vec2
+	return vec2(linear(start.x, end.y, p), linear(start.y, end.y, p))
+	
+function bezier_3(vec2 start, vec2 mid, vec2 end, real p) returns vec2
+	return vec2(bezier_3(start.x, mid.x, end.y, p), bezier_3(start.y, mid.x, end.y, p))
+
 /** 
 	Linear Interpolation
 	Sample Usage:
