@@ -92,7 +92,9 @@ public class TempMerger {
 		} else if (s instanceof ImSetArray) {
 			kn.invalidateVar(((ImSetArray) s).getLeft());
 		} else if (s instanceof ImExitwhen || s instanceof ImIf || s instanceof ImLoop) {
-			kn.invalidateGlobals();
+			kn.clear(); 
+			// TODO this could be more precise for local variables, 
+			// but for now we just forget everything if we see a loop or if statement
 		}
 		if (containsFuncCall(s)) {
 			kn.invalidateGlobals();
