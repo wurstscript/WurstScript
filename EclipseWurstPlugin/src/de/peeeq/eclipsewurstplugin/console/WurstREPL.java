@@ -1,8 +1,8 @@
 package de.peeeq.eclipsewurstplugin.console;
 
-import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.OutputStream;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Reader;
@@ -15,6 +15,10 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IncrementalProjectBuilder;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.ui.console.IOConsoleOutputStream;
 
 import com.google.common.collect.Lists;
@@ -22,20 +26,21 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import de.peeeq.eclipsewurstplugin.builder.ModelManager;
-import de.peeeq.eclipsewurstplugin.ui.WurstPerspective;
+import de.peeeq.wurstio.WurstCompilerJassImpl;
+import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
+import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.TupleDef;
-import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstReal;
@@ -43,17 +48,16 @@ import de.peeeq.wurstscript.intermediateLang.ILconstTuple;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreter;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ILconstError;
 import de.peeeq.wurstscript.intermediateLang.interpreter.LocalState;
+import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImStmt;
-import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
+import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlag;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeClass;
-import de.peeeq.wurstscript.types.WurstTypeInt;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypePrimitive;
 import de.peeeq.wurstscript.types.WurstTypeTuple;
@@ -136,8 +140,8 @@ public class WurstREPL {
 			} else if (line.equals("tests")) {
 				runTests();
 				return;
-			} else if (line.startsWith("compile ")) {
-				compileProject(line.substring(8));
+			} else if (line.startsWith("compile")) {
+				compileProject(line.substring("compile".length()));
 				return;
 			}
 			
@@ -249,10 +253,40 @@ public class WurstREPL {
 	}
 
 	private void compileProject(String args) {
-		args = args.trim();
-		String[] runArgs = args.split("\\s+");
-		
-		
+		try {
+			args = args.trim();
+			String[] runArgs = args.split("\\s+");
+			modelManager.clean();
+			IProject project = modelManager.getNature().getProject();
+			print("compiling project "+project.getName()+", please wait ...\n");
+			project.build(IncrementalProjectBuilder.INCREMENTAL_BUILD, null);
+			WurstConfig config = new WurstConfig();
+			WurstCompilerJassImpl comp = new WurstCompilerJassImpl(config, gui, new RunArgs(runArgs));
+			WurstModel root = modelManager.getModel();
+			comp.checkAndTranslate(root);
+			JassProg jassProg = comp.getProg();
+			if (jassProg == null) {
+				print("Could not compile project\n");
+				return;
+			}
+
+
+			JassPrinter printer = new JassPrinter(true);
+			String mapScript = printer.printProg(jassProg);
+
+			IFile f = project.getFile("compiled.j");
+			if (f.exists()) {
+				f.delete(true, null);
+			}
+			InputStream source = new ByteArrayInputStream(mapScript.getBytes());
+
+			f.create(source, true, null);
+			
+			print("Output created in " + f.getFullPath() + "\n");
+		} catch (CoreException e) {
+			e.printStackTrace();
+			print(e.getMessage()+ "\n");
+		}
 	}
 
 	private void runTests() {

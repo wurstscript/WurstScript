@@ -249,4 +249,7 @@ public class ModelManagerImpl implements ModelManager {
 		return model;
 	}
 	
+	public WurstNature getNature() {
+		return nature;
+	}
 }

@@ -67,4 +67,9 @@ public class ModelManagerStub implements ModelManager {
 		return null;
 	}
 
+	@Override
+	public WurstNature getNature() {
+		return null;
+	}
+
 }

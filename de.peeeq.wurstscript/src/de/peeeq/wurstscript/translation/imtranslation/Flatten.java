@@ -77,22 +77,18 @@ public class Flatten {
 		exprToStatements(stmts, e, t, f);
 	}
 
-	private static void exprToStatements(List<ImStmt> result, ImExpr e, ImTranslator t, ImFunction f) {  	
-		if (e instanceof ImStatementExpr) {
-//	private static void exprToStatements(List<ImStmt> result, JassImElement e, ImTranslator t, ImFunction f) {
-//		if (e instanceof ImCall) {
-//			result.add((ImStmt) e);			
-//		} else if (e instanceof ImStatementExpr) {
+	private static void exprToStatements(List<ImStmt> result, JassImElement e, ImTranslator t, ImFunction f) {
+		if (e instanceof ImCall) {
+			result.add((ImStmt) ((ImStmt) e).copy());			
+		} else if (e instanceof ImStatementExpr) {
 			ImStatementExpr e2 = (ImStatementExpr) e;
 			flattenStatements(result, e2.getStatements(), t, f);
 			exprToStatements(result, e2, t, f);
-		} else if (e instanceof ImCall) {	
-			result.add(e);
-//		} else {
-//			// visit children:
-//			for (int i=0; i<e.size(); i++) {
-//				exprToStatements(result, e.get(i), t, f);
-//			}
+		} else {
+			// visit children:
+			for (int i=0; i<e.size(); i++) {
+				exprToStatements(result, e.get(i), t, f);
+			}
 		}
 	}
 
