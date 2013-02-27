@@ -1543,7 +1543,9 @@ public class WurstValidator {
 					if (definedIn == v_definedIn) {
 						// defined in same package
 						if (used.attrSource().getLeftPos() > initPart.attrSource().getLeftPos()) {
-							errorPos.addError(Utils.printElement(used) + " is used before it is initialized.");
+							errorPos.addError(Utils.printElement(used) + " is used before it is initialized.\n" + 
+								"It is defined in " + initPart.attrSource().getFile() + " line " + initPart.attrSource().getLine() + ".\n" +
+									"You can probably fix this problem by moving the use below this line.");
 						}
 					} else {
 						// defined in different package
