@@ -1510,7 +1510,9 @@ public class WurstValidator {
 						return true;
 					}
 					for (VarDef used : f.attrUsedGlobalVariables()) {
-						checkUsedIsInitializedBefore(e, initPart, v_definedIn, used);
+						if (!used.attrIsDynamicClassMember()) {
+							checkUsedIsInitializedBefore(e, initPart, v_definedIn, used);
+						}
 					}
 				}
 				if (e instanceof ExprNewObject) {
