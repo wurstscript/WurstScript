@@ -1,12 +1,15 @@
 package AbilityObjEditing
-import ObjEditingNatives
+import public ObjEditingNatives
 
 public class AbilityDefinition
-	ObjectDefinition def
+	protected ObjectDefinition def
 	
 	construct(string newAbilityId, string origAbilityId)
 		def = createObjectDefinition("w3a", newAbilityId, origAbilityId)
 	
+	function setBuff(string value)
+		def.setLvlDataString("abuf", 0, 0, value)
+		
 	function setName(int level, string value)
 		def.setLvlDataString("anam",  level, 0,  value)
 

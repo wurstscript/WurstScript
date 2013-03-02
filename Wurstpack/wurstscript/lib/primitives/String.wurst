@@ -1,21 +1,39 @@
 package String
 	import NoWurst
+	import PrintingHelper
 
+	/** returns a substring specified by end and start position. */
 	public function string.substring(int start, int end) returns string
 		return SubString(this, start, end)
 	
+	/** Length of the string */
 	public function string.length() returns int
 		return StringLength(this)
 		
+	/** Returns the char at the given position. 0 = first char */
 	public function string.charAt(int index) returns string
 		return SubString(this, index, index+1)
 	
+	/**	Converts a string to an ability id */
 	public function string.toAbilityId() returns int
 		return AbilityId(this)
 		
-	public function string.indexOf( string s ) returns int
+	/**	Returns if the given string ends with the specified string.	*/
+	public function string.endsWith(string s) returns boolean
+		int l = this.length()
+		return this.substring(l-s.length(), l) == s
+			
+	/**
+		Returns the index of the specified char inside the given string.
+		Only works for single chars!
+		If the char does not exist, the returnvalue is -1
+	*/
+	public function string.indexOf( string char ) returns int
+		if char.length() > 1
+			printError("string.indexOf is only for single-chars")
+			return -1
 		for int i = 0 to this.length() - 1
-			if this.substring(i, i+1) == s
+			if this.substring(i, i+1) == char
 				return i
 		return -1
 
