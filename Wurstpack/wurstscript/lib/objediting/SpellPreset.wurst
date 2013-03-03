@@ -14,10 +14,9 @@ public class SpellPreset extends AbilityDefinition
 		string s = "ReplaceableTextures\\CommandButtons\\" + name
 		if not name.endsWith(".blp")
 			s += ".blp"
-			
-		for i = 1 to lvl
-			setIconResearch(i, s)
-			setIconNormal(i, s)
+
+		setIconResearch(0, s)
+		setIconNormal(0, s)
 			
 	
 		

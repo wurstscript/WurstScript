@@ -49,8 +49,11 @@ public class ChannelSpellPreset extends SpellPreset
 		int v = 0
 		if flag
 			v = 1 
-		for i = 1 to lvl
-			def.setLvlDataInt("Ncl5", i, 5, v)
+		//for i = 1 to lvl
+		def.setLvlDataInt("Ncl5", 1, 5, v)
+		def.setLvlDataInt("Ncl5", 2, 5, v)
+		def.setLvlDataInt("Ncl5", 3, 5, v)
+		def.setLvlDataInt("Ncl5", 4, 5, v)
 			
 	function setOptions(options opt, boolean flag)
 		switch opt
@@ -102,6 +105,10 @@ public class ChannelSpellPreset extends SpellPreset
 				
 		for i = 1 to lvl
 			def.setLvlDataInt("Ncl2", i, 2, typ)
+			
+	function setFollowThroughTime(real time)
+		for i = 1 to lvl
+			def.setLvlDataUnreal("Ncl1", lvl, 1, 0.0)
 
 			
 

@@ -7,8 +7,8 @@ public class AbilityDefinition
 	construct(string newAbilityId, string origAbilityId)
 		def = createObjectDefinition("w3a", newAbilityId, origAbilityId)
 	
-	function setBuff(string value)
-		def.setLvlDataString("abuf", 0, 0, value)
+	function setBuff(int level, string value)
+		def.setLvlDataString("abuf", level, 0, value)
 		
 	function setName(int level, string value)
 		def.setLvlDataString("anam",  level, 0,  value)

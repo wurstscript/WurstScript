@@ -140,4 +140,12 @@ public class NativeFunctionsIO extends ReflectionBasedNativeProvider implements 
 			ILconstString msg) {
 		outStream.println(msg.getVal());
 	}
+	
+	public ILconstInt StringLength(ILconstString string) {
+		return new ILconstInt(string.getVal().length());
+	}
+	
+	public ILconstString SubString(ILconstString string, ILconstInt start, ILconstInt end ) {
+		return new ILconstString(string.getVal().substring(start.getVal(), end.getVal()));
+	}
 }
