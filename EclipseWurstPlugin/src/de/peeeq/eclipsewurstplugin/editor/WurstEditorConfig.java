@@ -114,7 +114,7 @@ public class WurstEditorConfig extends SourceViewerConfiguration {
 	
 	@Override
 	public IHyperlinkDetector[] getHyperlinkDetectors(ISourceViewer sourceViewer) {
-		return new IHyperlinkDetector[] {new WurstHylerlinkDetector(editor)};
+		return new IHyperlinkDetector[] {new WurstHyperlinkDetector(editor)};
 	}
 	
 	@Override

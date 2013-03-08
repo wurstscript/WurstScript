@@ -22,12 +22,12 @@ import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.utils.Utils;
 
-public class WurstHylerlinkDetector implements IHyperlinkDetector {
+public class WurstHyperlinkDetector implements IHyperlinkDetector {
 
 	private static final IHyperlink[] NONE = new IHyperlink[] {};
 	private WurstEditor editor;
 
-	public WurstHylerlinkDetector(WurstEditor editor) {
+	public WurstHyperlinkDetector(WurstEditor editor) {
 		this.editor = editor;
 	}
 

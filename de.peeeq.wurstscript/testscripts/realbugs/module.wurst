@@ -1,0 +1,285 @@
+package Hero
+	import OnCast
+	
+	public module Hero
+		
+		abstract static function onCast(int abilId, thistype caster, int lvl)
+		
+		abstract static function onPointCast(int abildId, thistype caster, int lvl, vec2 tpos)
+		
+		abstract static function onUnitCast(int abildId, thistype caster, int lvl, unit target)
+		
+		abstract static function onEndCast(int abilId, thistype caster, int lvl )
+		
+		static function evalCast() returns boolean
+			let u = GetTriggerUnit()
+			let id = GetSpellAbilityId()
+			let tx = GetSpellTargetX()
+			let ty = GetSpellTargetY()
+			let tu = GetSpellTargetUnit()
+			if tx == 0 and tu == null
+				onCast(id, u.getUserData() castTo thistype, GetUnitAbilityLevel(u, id) )
+			else if tu == null
+				onPointCast(id, u.getUserData() castTo thistype, GetUnitAbilityLevel(u, id), vec2(tx,ty))
+			else
+				onUnitCast(id, u.getUserData() castTo thistype, GetUnitAbilityLevel(u, id), tu)
+			return false
+			
+		static function evalPointCast() returns boolean
+			let u = GetTriggerUnit()
+			let id = GetSpellAbilityId()
+			onCast(id, u.getUserData() castTo thistype, GetUnitAbilityLevel(u, id) )
+			return false
+			
+			
+		static function evalEndcast() returns boolean
+			let u = GetTriggerUnit()
+			let id = GetSpellAbilityId()
+			onEndCast(id, u.getUserData() castTo thistype, GetUnitAbilityLevel(u, id) )
+			return false
+		
+		static function registerEvents(unit u)
+			var t = CreateTrigger()
+			t.registerUnitEvent(u, EVENT_UNIT_SPELL_EFFECT)
+			t.addCondition(Condition(function Hero.evalCast) )
+			t = CreateTrigger()
+			t.registerUnitEvent(u, EVENT_UNIT_SPELL_ENDCAST)
+			t.addCondition(Condition(function Hero.evalEndcast) )
+endpackage
+		
+package HeroNAdept
+	import Hero
+	import Entity
+	import SpellEnergyBarrier
+	
+	// Angelica
+	public class HeroNAdept extends UnitEntity
+		use Hero
+	
+		
+		construct(vec3 pos, player owner)
+			super(pos, 64., CreateUnit(owner, '0000', pos.x, pos.y, 0.))
+			registerEvents(actor)
+			debugPrint("created", 2)
+	
+		override static function onCast(int abilId, thistype caster, int lvl)
+			BarrierBuff.onCast(caster, lvl)
+		override static function onPointCast(int abildId, thistype caster, int lvl, vec2 tpos)
+		
+		override static function onUnitCast(int abildId, thistype caster, int lvl, unit target)
+		
+		override static function onEndCast(int abilId, thistype caster, int lvl )
+endpackage
+
+package SpellEnergyBarrier
+	import Entity
+	import HeroNAdept
+	import TimedLoop
+	import Texttag
+
+	
+	ChannelData cdata
+	
+	class ChannelData
+		use TimedLoop
+		texttag tt
+		real currentAmount = 0.
+		real incAmount = 0.
+		UnitEntity caster
+		
+		construct(real inc, UnitEntity caster)
+			incAmount = inc
+			this.caster = caster
+			tt = createTTEx(caster.pos, vec2(0,0), "0", 12, 10, colorA(90,200,80,200))
+			startTimedLoop()
+			
+		override function onTimedLoop()
+			currentAmount += incAmount
+			tt.setText(currentAmount.toString(), 15 * 0.0023)
+			
+	
+	public class BarrierBuff
+		UnitEntity victim
+		construct(UnitEntity victim, real dur, real amount)
+			skip
+		function defenseModifier()
+
+	
+		static function onCast(UnitEntity caster, int lvl)
+			cdata = new ChannelData(lvl*1.5, caster)
+	
+		
+		static function onEndCast(int abilId, UnitEntity caster, int lvl )
+			cdata.stopTimedLoop()
+			new BarrierBuff(cdata.caster, 20., cdata.currentAmount)
+			
+endpackage
+
+package Entity
+	import LinkedListModule
+	import Terrain
+	import Fx
+	import Angle
+	import public LinkedList
+	
+	/** Base Entity Class  */
+	public abstract class Entity
+		use LinkedListModule
+		
+		/** 3d vector position */
+		protected vec3 pos
+		/** 3d vector velocity */
+		protected vec3 vel
+		
+		/** radius */
+		real radius = 0.
+		/** speed factor (multiplies to added velocity) */
+		real speedFactor = 1.
+		
+		/** owning player */
+		player owner
+		
+		/** flag for being static */
+		boolean isStatic 	= false
+		/** sleeping or active? */
+		boolean active 		= true
+		/** for removing */
+		boolean done 		= false
+		/** even if the Entites pos.z might be > 0, it still can be below terrainZ */
+		boolean flying 		= false
+		
+	
+		construct( vec3 pos, player owner )
+			this.pos = pos
+			this.vel = vec3(0,0,0)
+			this.owner = owner
+
+	
+		construct( vec3 pos, real radius, player owner )
+			this.pos = pos
+			this.vel = vec3(0,0,0)
+			this.owner = owner
+			this.radius = radius
+
+			
+		construct( vec3 pos, vec3 vel, player owner )
+			this.pos = pos
+			this.vel = vel
+			this.owner = owner
+
+			
+		construct( vec3 pos, vec3 vel, real radius, player owner )
+			this.pos = pos
+			this.vel = vel
+			this.owner = owner
+			this.radius = radius
+
+			
+		function getPos() returns vec3
+			return pos
+			
+		function setPos( vec3 pos )
+			this.pos = pos
+			
+		function addPos( vec3 pos )
+			this.pos += pos
+			
+		function getVel() returns vec3
+			return vel
+			
+		function setVel( vec3 vel )
+			this.vel = vel
+		
+		function addVel( vec3 vel )
+			this.vel += vel
+			
+		function setTarget( vec3 tpos, real speed )
+			var t = distanceBetweenCoords(pos.x, pos.y, tpos.x, tpos.y) / speed
+			let tangle = angleBetweenCoords(pos.x, pos.y, tpos.x, tpos.y)
+			let e = getTerrainZ(tpos.x,tpos.y)
+			
+			if t < 1.
+				t = 1./speed
+			
+			let startZVelocity = ((-0.7 * t) / 2 - pos.z/t + e/t)
+			this.setVel( vec3( Cos(tangle.radians()) * speed, Sin(tangle.radians()) * speed, startZVelocity) )
+			
+		function terminate()
+			done = true
+			
+		/** This function is called every ANIMATION_PERIOD tick if the Entity is active */
+		abstract function update()
+		
+	abstract public class UnitEntity extends Entity
+		static trigger dmgTrig = CreateTrigger()
+		protected unit actor
+	
+		
+		construct( vec3 pos, unit actor )
+			super(pos, actor.getOwner())
+			this.actor = actor
+			actor.setUserData(this castTo int).addAbility(HEIGHT_ENABLER).removeAbility(HEIGHT_ENABLER)
+			dmgTrig.registerUnitEvent(actor, EVENT_UNIT_DAMAGED)
+			
+		construct( vec3 pos, real radius, unit actor )
+			super(pos, radius, actor.getOwner())
+			this.actor = actor
+			actor.setUserData(this castTo int).addAbility(HEIGHT_ENABLER).removeAbility(HEIGHT_ENABLER)
+			dmgTrig.registerUnitEvent(actor, EVENT_UNIT_DAMAGED)
+			
+		override function update()
+			pos = vec3(actor.getX(), actor.getY(), 0.)
+			
+		function setNewActor(unit u)
+			actor.remove()
+			actor = u
+			actor.setUserData(this castTo int)
+			
+		override function setPos(vec3 tpos)
+			pos = tpos
+			actor.setPos(tpos.x,tpos.y)
+			actor.setFlyHeight(tpos.z - getTerrainZ(tpos.x, tpos.y), 0)
+			
+		function setXY(vec3 tpos)
+			pos = tpos
+			actor.setXY(tpos.x,tpos.y)
+			
+		static function onDamage()
+			let victimData = GetTriggerUnit().getUserData() castTo UnitEntity
+			let attackerData = GetAttacker().getUserData() castTo UnitEntity
+
+			
+	init
+		UnitEntity.dmgTrig.addAction(function UnitEntity.onDamage)		
+	
+	abstract public class FxEntity extends Entity
+		protected Fx fx
+		
+		construct( vec3 pos, real radius, player owner, angle xyAngle, string sfxpath )
+			super(pos, radius, owner)
+			fx = new Fx(pos, xyAngle, sfxpath)
+			
+		construct( vec3 pos, real radius, player owner, angle xyAngle )
+			super(pos, radius, owner)
+			fx = new Fx(pos, xyAngle)
+		
+		construct( vec3 pos, player owner, angle xyAngle )
+			super(pos, 0., owner)
+			fx = new Fx(pos, xyAngle)
+			
+		override function update()
+			pos += (vel*speedFactor)
+			fx.setPos(pos)
+			
+		function setFx(string sfxpath)
+			fx.setFx(sfxpath)
+			
+		override function setPos(vec3 tpos)
+			pos = tpos
+			fx.setPos(tpos.x,tpos.y)
+
+endpackage
+
+
+
+	

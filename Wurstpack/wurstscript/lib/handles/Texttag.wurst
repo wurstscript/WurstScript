@@ -46,6 +46,16 @@ package Texttag
 		SetTextTagVisibility(this, flag)
 		return this
 		
+	public function texttag.destr()
+		DestroyTextTag(this)
+		
+	public function createTTEx(vec3 pos, string message, int size, colorA col ) returns texttag
+		texttag tt = CreateTextTag()
+		tt.setPos(pos.toVec2().withZ(20.))
+		.setText( message, size * 0.0023 )
+		.setColor( col )
+		return tt
+		
 	public function createTTEx(vec3 pos, vec2 vel, string message, int size, real duration, colorA col ) returns texttag
 		texttag tt = CreateTextTag()
 		tt.setPos(pos.toVec2().withZ(20.))

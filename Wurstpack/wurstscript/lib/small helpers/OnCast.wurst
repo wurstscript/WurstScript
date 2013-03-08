@@ -61,8 +61,7 @@ public module OnUnitTargetCast
 			.addCondition(Condition(function actions))		
 			
 		
-		
-				
+
 								
 	// TODO add other onCast modules (unit target etc...)
 	
