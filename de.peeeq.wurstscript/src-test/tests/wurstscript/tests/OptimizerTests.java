@@ -174,7 +174,7 @@ public class OptimizerTests extends WurstScriptTest {
 	
 	@Test
 	public void test_ifTrue() {
-		assertOk(false,
+		assertOk(true,
 				"package test",
 				"	native testSuccess()",
 				"	native testFail(string s)",
@@ -184,6 +184,97 @@ public class OptimizerTests extends WurstScriptTest {
 				"			testSuccess()",
 				"		else",
 				"			testFail(\"\")",
+				"endpackage");
+	}
+	
+	@Test
+	public void test_ifFalse() {
+		assertOk(true,
+				"package test",
+				"	native testSuccess()",
+				"	native testFail(string s)",
+				"	constant b = false",
+				"	init",
+				"		if b",
+				"			testFail(\"\")",
+				"		else",
+				"			testSuccess()",
+				"endpackage");
+	}
+	
+	@Test
+	public void test_ifDoubleOr1() {
+		assertOk(true,
+				"package test",
+				"	native testSuccess()",
+				"	native testFail(string s)",
+				"	constant b = false",
+				"	init",
+				"		if b or true",
+				"			testSuccess()",
+				"		else",
+				"			testFail(\"\")",
+				"endpackage");
+	}
+	
+	@Test
+	public void test_ifDoubleOr2() {
+		assertOk(true,
+				"package test",
+				"	native testSuccess()",
+				"	native testFail(string s)",
+				"	constant b = false",
+				"	init",
+				"		if b or false",
+				"			testFail(\"\")",
+				"		else",
+				"			testSuccess()",
+				"endpackage");
+	}
+	
+	@Test
+	public void test_ifDoubleAnd1() {
+		assertOk(true,
+				"package test",
+				"	native testSuccess()",
+				"	native testFail(string s)",
+				"	constant b = true",
+				"	init",
+				"		if b and true",
+				"			testSuccess()",
+				"		else",
+				"			testFail(\"\")",
+				"endpackage");
+	}
+	
+	@Test
+	public void test_ifDoubleAnd2() {
+		assertOk(true,
+				"package test",
+				"	native testSuccess()",
+				"	native testFail(string s)",
+				"	constant b = true",
+				"	init",
+				"		if b and false",
+				"			testFail(\"\")",
+				"		else",
+				"			testSuccess()",
+				"endpackage");
+	}
+	
+	@Test
+	public void test_ifMulti() {
+		assertOk(true,
+				"package test",
+				"	native testSuccess()",
+				"	native testFail(string s)",
+				"	constant b = true",
+				"	constant c = true",
+				"	init",
+				"		if b and true and c and true and false",
+				"			testFail(\"\")",
+				"		else",
+				"			testSuccess()",
 				"endpackage");
 	}
 
