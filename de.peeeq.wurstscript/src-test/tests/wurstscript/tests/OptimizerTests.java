@@ -171,5 +171,20 @@ public class OptimizerTests extends WurstScriptTest {
 		String prog = makeCode(body);
 		testAssertErrors(UtilsIO.getMethodName(1), executeProg, prog, expected);
 	}
+	
+	@Test
+	public void test_ifTrue() {
+		assertOk(false,
+				"package test",
+				"	native testSuccess()",
+				"	native testFail(string s)",
+				"	constant b = true",
+				"	init",
+				"		if b",
+				"			testSuccess()",
+				"		else",
+				"			testFail(\"\")",
+				"endpackage");
+	}
 
 }

@@ -249,6 +249,16 @@ public class ModuleTests extends WurstScriptTest {
 			);
 	}
 	
-	
+	@Test
+	public void staticmeth_external() {
+		testAssertErrorsLines(false, "from within",
+				"package test",
+				"	module A",
+				"		static function b(int b)",
+				"	init",
+				"		A.b(0)",
+				"endpackage"
+			);
+	}
 	
 }

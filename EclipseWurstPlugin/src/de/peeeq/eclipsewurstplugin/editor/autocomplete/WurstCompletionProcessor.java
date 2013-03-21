@@ -1,6 +1,5 @@
 package de.peeeq.eclipsewurstplugin.editor.autocomplete;
 
-import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
@@ -8,18 +7,14 @@ import java.util.Map.Entry;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextViewer;
-import org.eclipse.jface.text.contentassist.CompletionProposal;
-import org.eclipse.jface.text.contentassist.ContentAssistant;
 import org.eclipse.jface.text.contentassist.ContextInformation;
 import org.eclipse.jface.text.contentassist.ICompletionProposal;
 import org.eclipse.jface.text.contentassist.IContentAssistProcessor;
-import org.eclipse.jface.text.contentassist.IContentAssistant;
 import org.eclipse.jface.text.contentassist.IContextInformation;
 import org.eclipse.jface.text.contentassist.IContextInformationValidator;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.RGB;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
@@ -36,12 +31,10 @@ import de.peeeq.wurstscript.ast.ExprRealVal;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.NameDef;
-import de.peeeq.wurstscript.ast.StmtErr;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WScope;
-import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.WurstType;
@@ -51,12 +44,14 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class WurstCompletionProcessor implements IContentAssistProcessor {
 
+	private static final int MAX_COMPLETIONS = 50;
 	private final WurstEditor editor;
 	private int offset;
-	private String alreadyEntered;
 	private String errorMessage;
 	private IContextInformationValidator validator;
-	
+	private String alreadyEntered;
+	private String alreadyEnteredLower;
+	private int lastStartPos = -1;
 
 	public WurstCompletionProcessor(WurstEditor editor) {
 		this.editor = editor;
@@ -75,16 +70,30 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		if (isEnteringRealNumber(viewer, offset)) {
 			return null;
 		}
-		CompilationUnit cu = editor.reconcile(false);
+		
+		
+		alreadyEntered = getAlreadyEnteredText(viewer, offset);
+		alreadyEnteredLower = alreadyEntered.toLowerCase();
+		System.out.println("already entered = " + alreadyEntered);
+		
+		int startPos = offset - alreadyEntered.length();
+		
+		CompilationUnit cu = null;
+		System.out.println("POS " + startPos + " == " + lastStartPos);
+		if (startPos == lastStartPos) {
+			// we have already parsed the document, just use the old compilation unit
+			cu = editor.getCompilationUnit();
+		}
+		lastStartPos = startPos;
+		if (cu == null) {
+			cu = editor.reconcile(false);
+		}
 		if (Utils.isEmptyCU(cu)) {
 			errorMessage = "Could not parse file.";
 			System.out.println("cu is empty ...");
 			return null;
 		}
 		
-		
-		alreadyEntered = getAlreadyEnteredText(viewer, offset);
-		System.out.println("already entered = " + alreadyEntered);
 		
 		List<WurstCompletion> completions = Lists.newArrayList();
 		
@@ -233,7 +242,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				start--;
 			}
 			start++;
-			return doc.get(start, offset-start).toLowerCase();
+			return doc.get(start, offset-start);
 		} catch (BadLocationException e) {
 		}
 		return "";
@@ -243,6 +252,9 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	private void completionsAddVisibleNames(String alreadyEntered,
 			List<WurstCompletion> completions, Multimap<String, NameLink> visibleNames) {
 		for (Entry<String, NameLink> e : visibleNames.entries()) {
+			if (completions.size() >= MAX_COMPLETIONS) {
+				return;
+			}
 			if (!isSuitableCompletion(e.getKey())) {
 				continue;
 			}
@@ -288,21 +300,29 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		additionalProposalInfo += "<pre><hr />" + typ + n.getName()
 					+ "<br /></pre>" + "defined in " + nearestScopeName(n);
 
-		double rating = calculateRating(n.getName(), alreadyEntered);
+		double rating = calculateRating(n.getName());
 		return new WurstCompletion(replacementString, replacementOffset, replacementLength,
 				cursorPosition, image, displayString, contextInformation, additionalProposalInfo, rating);
 	}
 
 
-	private double calculateRating(String name, String alreadyEntered) {
+	private double calculateRating(String name) {
 		if (name.startsWith(alreadyEntered)) {
 			// perfect match
 			return 1;
 		}
+		String nameLower = name.toLowerCase();
+		if (nameLower.startsWith(alreadyEnteredLower)) {
+			// close to perfect
+			return 0.999;
+		}
 		if (alreadyEntered.isEmpty()) {
 			return 0.5;
 		}
-		return Utils.averageSubsequenceLength(alreadyEntered, name) / (alreadyEntered.length()+1);
+		return Math.max(
+				Utils.averageSubsequenceLength(alreadyEntered, name),
+				Utils.averageSubsequenceLength(alreadyEnteredLower, nameLower)
+				) / (alreadyEntered.length()+1);
 	}
 
 
@@ -365,7 +385,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				+ "<br /></pre>" + "defined in " + nearestScopeName(f);
 
 		
-		double rating = calculateRating(f.getName(), alreadyEntered);
+		double rating = calculateRating(f.getName());
 		return new WurstCompletion(replacementString, replacementOffset, replacementLength, cursorPosition, image, displayString,
 				contextInformation, additionalProposalInfo, rating);
 	}
@@ -410,7 +430,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		additionalProposalInfo += "<pre><hr /><b><font color=\"rgb(127,0,85)\">" + "construct</font></b>(" + descrhtml.toString() + ") "
 				+ "<br /></pre>" + "defined in class " + c.getName();
 
-		double rating = calculateRating(c.getName(), alreadyEntered);
+		double rating = calculateRating(c.getName());
 		return new WurstCompletion(replacementString, replacementOffset, replacementLength, cursorPosition, image, displayString,
 				contextInformation, additionalProposalInfo, rating);
 	}

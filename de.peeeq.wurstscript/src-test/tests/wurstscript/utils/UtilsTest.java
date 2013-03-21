@@ -81,11 +81,11 @@ public class UtilsTest {
   @Test
   public void testAvgSubseqLen() {
 	  Assert.assertEquals(2.5, Utils.averageSubsequenceLength("KilUn", "KillUnit"), 0.05);
-	  Assert.assertEquals(2.0, Utils.averageSubsequenceLength("llut", "KillUnit"), 0.05);
+	  Assert.assertEquals(2.0, Utils.averageSubsequenceLength("llUt", "KillUnit"), 0.05);
 	  Assert.assertEquals(1.33, Utils.averageSubsequenceLength("llnt", "KillUnit"), 0.05);
 	  
-	  Assert.assertEquals(5.0, Utils.averageSubsequenceLength("light", "LoadLightning"), 0.05);
-	  Assert.assertEquals(2.5, Utils.averageSubsequenceLength("light", "GetUnitFlyHeight"), 0.05);
+	  Assert.assertEquals(5.0, Utils.averageSubsequenceLength("light", "LoadLightning".toLowerCase()), 0.05);
+	  Assert.assertEquals(2.5, Utils.averageSubsequenceLength("light", "GetUnitFlyHeight".toLowerCase()), 0.05);
 	  
   }
   

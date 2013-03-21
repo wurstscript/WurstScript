@@ -13,6 +13,8 @@ import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.FuncRef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
+import de.peeeq.wurstscript.ast.ModuleDef;
+import de.peeeq.wurstscript.ast.ModuleUse;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.TypeDef;
@@ -64,6 +66,10 @@ public class WurstHyperlinkDetector implements IHyperlinkDetector {
 			} else if (e instanceof ExprNewObject) {
 				ExprNewObject exprNew = (ExprNewObject) e;
 				ConstructorDef def = exprNew.attrConstructorDef();
+				return linkTo(def, e.attrSource().getLeftPos(), e.attrSource().getRightPos()-1);
+			} else if (e instanceof ModuleUse) {
+				ModuleUse use = (ModuleUse) e;
+				ModuleDef def = use.attrModuleDef();
 				return linkTo(def, e.attrSource().getLeftPos(), e.attrSource().getRightPos()-1);
 			}
 		}

@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.translation.imoptimizer;
 
+import de.peeeq.wurstscript.intermediateLang.optimizer.SimpleRewrites;
 import de.peeeq.wurstscript.intermediateLang.optimizer.TempMerger;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
@@ -33,6 +34,7 @@ public class ImOptimizer {
 	
 	public void localOptimizations() {
 		new TempMerger(trans).optimize();
+		new SimpleRewrites(trans).optimize();
 		removeGarbage();
 	}
 
