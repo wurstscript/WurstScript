@@ -150,7 +150,6 @@ package DummyRecycler
 			SetUnitAnimationByIndex(u, 90)
 			SetUnitScale(u, 1, 0, 0)
 			u.setOwner(DUMMY_PLAYER, true)
-			u.setPos( 2147483647, 2147483647)
 		else
 			printError("[MissileRecycler] Error: Attempt to recycle invalid unit.")
 
@@ -187,6 +186,7 @@ package DummyRecycler
 
 
 		TimerStart(gameTime, 1000000., false, null)
+
 
 
 endpackage

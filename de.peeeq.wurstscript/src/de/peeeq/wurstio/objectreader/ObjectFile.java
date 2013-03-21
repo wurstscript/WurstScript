@@ -89,10 +89,10 @@ public class ObjectFile {
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("version = " + version + "\n");
-		sb.append("origTable:\n");
+		sb.append(" original Table(modified standard units):\n");
 		sb.append("##################\n");
 		origTable.prettyPrint(sb);
-		sb.append("modifiedTable:\n");
+		sb.append(" modified Table(newly created unit):\n");
 		sb.append("##################\n");
 		modifiedTable.prettyPrint(sb);
 		
