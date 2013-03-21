@@ -40,6 +40,7 @@ import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeTuple;
+import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class WurstCompletionProcessor implements IContentAssistProcessor {
@@ -99,7 +100,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		
 		
 		
-		AstElement elem =  Utils.getAstElementAtPos(cu, offset);
+		AstElement elem =  Utils.getAstElementAtPos(cu, lastStartPos);
 		System.out.println("get completions at " + Utils.printElement(elem));
 		
 		if (elem instanceof ExprMemberVar) {
@@ -258,6 +259,10 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			if (!isSuitableCompletion(e.getKey())) {
 				continue;
 			}
+			if (e.getValue().getReceiverType() != null) { 
+				// skip extension funcitons 
+				continue;
+			}
 			if (e.getValue().getNameDef() instanceof FunctionDefinition) {
 				FunctionDefinition f = (FunctionDefinition) e.getValue().getNameDef();
 				
@@ -281,7 +286,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		String comment = n.attrComment();
 		comment = comment.replaceAll("\n", "<br />");
 		
-		String displayString = n.getName() + " : " + n.attrTyp().getFullName() + " - [" + nearestScopeName(n) +"]";
+		String displayString = n.getName() + " : " + n.attrTyp().toString() + " - [" + nearestScopeName(n) +"]";
 		IContextInformation contextInformation= new ContextInformation(
 				n.getName(), Utils.printElement(n)+" : " + n.attrTyp().getFullName() + " -  defined in " + nearestScopeName(n)); //$NON-NLS-1$
 		String additionalProposalInfo;
@@ -364,7 +369,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			descr.append(p.attrTyp() + " " + p.getName());
 			descrhtml.append(typ + " " + p.getName());
 		}
-		String returnType = f.getReturnTyp().attrTyp().getFullName();
+		String returnType = f.getReturnTyp().attrTyp().toString();
 		String returnTypeHtml = returnType;
 		for (String s : WurstConstants.JASSTYPES) {
 			if ( s.equals(returnTypeHtml) ) {
@@ -380,7 +385,13 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		}else{
 			additionalProposalInfo = "<i>No hotdoc provided</i>";
 		}
-		additionalProposalInfo += "<pre><hr /><b><font color=\"rgb(127,0,85)\">" + "function</font></b> " + f.getName() +"(" + descrhtml.toString() + ") "
+		
+		String funcName = f.getName();
+		if (f instanceof ExtensionFuncDef) {
+			ExtensionFuncDef exf = (ExtensionFuncDef) f;
+			funcName = exf.getExtendedType().attrTyp() + "." + funcName;
+		}
+		additionalProposalInfo += "<pre><hr /><b><font color=\"rgb(127,0,85)\">" + "function</font></b> " + funcName +"(" + descrhtml.toString() + ") "
 				+ "<br /><b><font color=\"rgb(127,0,85)\">returns</font></b> " + returnTypeHtml
 				+ "<br /></pre>" + "defined in " + nearestScopeName(f);
 
