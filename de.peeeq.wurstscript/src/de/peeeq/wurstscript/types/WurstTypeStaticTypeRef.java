@@ -19,7 +19,7 @@ public class WurstTypeStaticTypeRef extends WurstType {
 
 	@Override
 	public String getName() {
-		return "static reference to " + base.getName();
+		return base.getName();
 	}
 
 	@Override
