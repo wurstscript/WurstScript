@@ -679,8 +679,6 @@ public class Utils {
 	
 	public static double averageSubsequenceLength(String a, String b) {
 		// TODO performance
-		a = a.toLowerCase();
-		b = b.toLowerCase();
 		List<Integer> subseqLength = Lists.newArrayList();
 		while (!a.isEmpty()) {
 			int prefixlen = a.length();

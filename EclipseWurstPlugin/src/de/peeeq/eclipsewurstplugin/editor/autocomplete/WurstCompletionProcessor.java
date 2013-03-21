@@ -53,9 +53,10 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 	private final WurstEditor editor;
 	private int offset;
-	private String alreadyEntered;
 	private String errorMessage;
 	private IContextInformationValidator validator;
+	private String alreadyEntered;
+	private String alreadyEnteredLower;
 	
 
 	public WurstCompletionProcessor(WurstEditor editor) {
@@ -84,6 +85,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		
 		
 		alreadyEntered = getAlreadyEnteredText(viewer, offset);
+		alreadyEnteredLower = alreadyEntered.toLowerCase();
 		System.out.println("already entered = " + alreadyEntered);
 		
 		List<WurstCompletion> completions = Lists.newArrayList();
@@ -233,7 +235,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				start--;
 			}
 			start++;
-			return doc.get(start, offset-start).toLowerCase();
+			return doc.get(start, offset-start);
 		} catch (BadLocationException e) {
 		}
 		return "";
@@ -288,21 +290,30 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		additionalProposalInfo += "<pre><hr />" + typ + n.getName()
 					+ "<br /></pre>" + "defined in " + nearestScopeName(n);
 
-		double rating = calculateRating(n.getName(), alreadyEntered);
+		double rating = calculateRating(n.getName());
 		return new WurstCompletion(replacementString, replacementOffset, replacementLength,
 				cursorPosition, image, displayString, contextInformation, additionalProposalInfo, rating);
 	}
 
 
-	private double calculateRating(String name, String alreadyEntered) {
+	private double calculateRating(String name) {
+		System.out.println(name  + " ... " + alreadyEntered);
 		if (name.startsWith(alreadyEntered)) {
 			// perfect match
 			return 1;
 		}
+		String nameLower = name.toLowerCase();
+		if (nameLower.startsWith(alreadyEnteredLower)) {
+			// close to perfect
+			return 0.999;
+		}
 		if (alreadyEntered.isEmpty()) {
 			return 0.5;
 		}
-		return Utils.averageSubsequenceLength(alreadyEntered, name) / (alreadyEntered.length()+1);
+		return Math.max(
+				Utils.averageSubsequenceLength(alreadyEntered, name),
+				Utils.averageSubsequenceLength(alreadyEnteredLower, nameLower)
+				) / (alreadyEntered.length()+1);
 	}
 
 
@@ -365,7 +376,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				+ "<br /></pre>" + "defined in " + nearestScopeName(f);
 
 		
-		double rating = calculateRating(f.getName(), alreadyEntered);
+		double rating = calculateRating(f.getName());
 		return new WurstCompletion(replacementString, replacementOffset, replacementLength, cursorPosition, image, displayString,
 				contextInformation, additionalProposalInfo, rating);
 	}
@@ -410,7 +421,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		additionalProposalInfo += "<pre><hr /><b><font color=\"rgb(127,0,85)\">" + "construct</font></b>(" + descrhtml.toString() + ") "
 				+ "<br /></pre>" + "defined in class " + c.getName();
 
-		double rating = calculateRating(c.getName(), alreadyEntered);
+		double rating = calculateRating(c.getName());
 		return new WurstCompletion(replacementString, replacementOffset, replacementLength, cursorPosition, image, displayString,
 				contextInformation, additionalProposalInfo, rating);
 	}
