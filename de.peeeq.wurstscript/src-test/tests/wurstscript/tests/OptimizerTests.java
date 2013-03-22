@@ -277,5 +277,81 @@ public class OptimizerTests extends WurstScriptTest {
 				"			testSuccess()",
 				"endpackage");
 	}
+	
+	@Test
+	public void test_ifInt1() {
+		assertOk(true,
+				"package test",
+				"	native testSuccess()",
+				"	native testFail(string s)",
+				"	init",
+				"		if 3 > 4",
+				"			testFail(\"\")",
+				"		else",
+				"			testSuccess()",
+				"endpackage");
+	}
+	
+	@Test
+	public void test_ifInt2() {
+		assertOk(true,
+				"package test",
+				"	native testSuccess()",
+				"	native testFail(string s)",
+				"	init",
+				"		if 3 < 4 - 2",
+				"			testFail(\"\")",
+				"		else",
+				"			testSuccess()",
+				"endpackage");
+	}
+	
+	@Test
+	public void test_ifInt3() {
+		assertOk(true,
+				"package test",
+				"	native testSuccess()",
+				"	native testFail(string s)",
+				"	init",
+				"		if 8 >= 8 and 50 != 40",
+				"			testSuccess()",
+				"		else",
+				"			testFail(\"\")",
+				"endpackage");
+	}
+	
+	@Test
+	public void test_exitwhen() {
+		assertOk(false,
+				"package test",
+				"	native testSuccess()",
+				"	native testFail(string s)",
+				"	init",
+				"		while true",
+				"			testSuccess()",
+				"endpackage");
+	}
+	
+	@Test
+	public void test_ConstFolding() {
+		assertOk(false,
+				"package test",
+				"	init",
+				"		int i = 3 + 7 * 2 * 33",
+				"endpackage");
+	}
+	
+	@Test
+	public void test_ConstFoldingCombined() {
+		assertOk(true,
+				"package test",
+				"	native testSuccess()",
+				"	native testFail(string s)",
+				"	init",
+				"		int i = 3 + 7 * 2 * 33",
+				"		if i == 465",
+				"			testSuccess()",
+				"endpackage");
+	}
 
 }
