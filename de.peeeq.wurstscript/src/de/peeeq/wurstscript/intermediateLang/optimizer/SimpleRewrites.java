@@ -91,12 +91,17 @@ public class SimpleRewrites {
 					case NOTEQ : result = i1 != i2; isConditional = true; break;
 					case PLUS : resultVal = i1 + i2; isArithmetic = true; break;
 					case MINUS : resultVal = i1 - i2; isArithmetic = true; break;
-					case MOD_INT : resultVal = i1 % i2; isArithmetic = true; break;
 					case MULT : resultVal = i1 * i2; isArithmetic = true; break;
-					case DIV_INT : resultVal = i1 / i2; isArithmetic = true; break;
-					case DIV_REAL : 
+					case MOD_INT : if ( i2 != 0 ) {resultVal = i1 % i2; isArithmetic = true;} break;
+					case MOD_REAL: 
 						float f1 = i1; float f2 = i2;
-						float resultF = f1 / f2; opc.replaceWith(JassIm.ImRealVal(String.valueOf(resultF))); break;
+						if ( f2 != 0 ) {
+						float resultF = f1 % f2; opc.replaceWith(JassIm.ImRealVal(String.valueOf(resultF)));} break;
+					case DIV_INT : if ( i2 != 0 ) {resultVal = i1 / i2; isArithmetic = true;} break;
+					case DIV_REAL : 
+						float f3 = i1; float f4 = i2;
+						if ( f4 != 0 ) {
+						float resultF = f3 / f4; opc.replaceWith(JassIm.ImRealVal(String.valueOf(resultF)));} break;
 					default : result = false; isConditional = false; isArithmetic = false; break;
 				}
 				if (isConditional) {
@@ -120,10 +125,10 @@ public class SimpleRewrites {
 					case NOTEQ : result = f1 != f2; isConditional = true; break;
 					case PLUS : resultVal = f1 + f2; isArithmetic = true; break;
 					case MINUS : resultVal = f1 - f2; isArithmetic = true; break;
-					case MOD_INT : resultVal = f1 % f2; isArithmetic = true; break;
 					case MULT : resultVal = f1 * f2; isArithmetic = true; break;
-					case DIV_INT : resultVal = f1 / f2; isArithmetic = true; break;
-					case DIV_REAL : resultVal = f1 / f2; isArithmetic = true; break;
+					case MOD_REAL : if ( f2 != 0 ) {resultVal = f1 % f2; isArithmetic = true;} break;
+					case DIV_INT : if ( f2 != 0 ) {resultVal = f1 / f2; isArithmetic = true;} break;
+					case DIV_REAL : if ( f2 != 0 ) {resultVal = f1 / f2; isArithmetic = true;} break;
 					default : result = false; isConditional = false; isArithmetic = false; break;
 				}
 				if (isConditional) {
