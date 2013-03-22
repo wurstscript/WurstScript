@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.ImBoolVal;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImIf;
+import de.peeeq.wurstscript.jassIm.ImIntVal;
 import de.peeeq.wurstscript.jassIm.ImOperatorCall;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.JassIm;
@@ -47,12 +48,29 @@ public class SimpleRewrites {
 		ImExpr left = opc.getArguments().get(0);
 		ImExpr right = opc.getArguments().get(1);
 		if (left instanceof ImBoolVal && right instanceof ImBoolVal) {
-			if (opc.getOp() == WurstOperator.OR) {
-				boolean b = ((ImBoolVal) left).getValB() || ((ImBoolVal) right).getValB();
-				opc.replaceWith(JassIm.ImBoolVal(b));
-			}else if (opc.getOp() == WurstOperator.AND) {
-				boolean b = ((ImBoolVal) left).getValB() && ((ImBoolVal) right).getValB();
-				opc.replaceWith(JassIm.ImBoolVal(b));
+			boolean b1 = ((ImBoolVal) left).getValB();
+			boolean b2 = ((ImBoolVal) right).getValB();
+			boolean result;
+			switch (opc.getOp()) {
+				case OR : result = b1 || b2; break;
+				case AND : result = b1 && b2; break;
+				case EQ : result = b1 == b2; break;
+				case NOTEQ : result = b1 != b2; break;
+				default : result = false; break;
+			}
+			opc.replaceWith(JassIm.ImBoolVal(result));
+		}else if (left instanceof ImIntVal && right instanceof ImIntVal) {
+			int i1 = ((ImIntVal) left).getValI();
+			int i2 = ((ImIntVal) right).getValI();
+			boolean result;
+			switch (opc.getOp()) {
+				case GREATER : result = i1 > i2; break;
+				case GREATER_EQ : result = i1 >= i2; break;
+				case LESS : result = i1 < i2; break;
+				case LESS_EQ : result = i1 <= i2; break;
+				case EQ : result = i1 == i2; break;
+				case NOTEQ : result = i1 != i2; break;
+				default : result = false; break;
 			}
 		}
 		
