@@ -4,6 +4,21 @@ import NoWurst
 public function player.getId() returns int
 	return GetPlayerId(this)
 
+public function player.addGold(int val) returns player
+	this.addState(PLAYER_STATE_RESOURCE_GOLD, val)
+	return this
+	
+public function player.setState(playerstate state, int val) returns player
+	SetPlayerState(this, state, val)
+	return this
+	
+public function player.addState(playerstate state, int val) returns player
+	SetPlayerState(this, state, this.getState(state) + val)
+	return this
+	
+public function player.getState(playerstate state) returns int
+	return GetPlayerState(this, state)
+
 	
 public function player.getName() returns string
 	return GetPlayerName(this)

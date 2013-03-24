@@ -37,7 +37,7 @@ public class Order
 			//We hold up to the constant ORDERS_TO_HOLD in the table
 			//Moves the N-1th order to the Nth slot, etc. except storing new last order
 			if ht.hasInt(hid, i-1)
-				if i == ORDERS_TO_HOLD and ht.hasInt(hid, i)
+				if i == ORDERS_TO_HOLD and ht.hasInt(hid, i-1)
 					//Destroy lastmost order struct
 					destroy	(ht.loadInt(hid, i) castTo Order)
 				//Can only do this if the N-1th order exists

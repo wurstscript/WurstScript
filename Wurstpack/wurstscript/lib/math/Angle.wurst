@@ -23,7 +23,7 @@ public function int.asAngleRadians() returns angle
 
 /** interpret this real as an angle given in radians*/
 public function real.asAngleRadians() returns angle
-	return angle(this)
+	return angle(this*DEGTORAD)
 /** get the sinus of this angle */
 
 public function angle.sin() returns real

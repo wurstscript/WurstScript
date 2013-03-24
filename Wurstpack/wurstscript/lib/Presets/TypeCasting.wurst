@@ -8,4 +8,27 @@ function unitToIndex(unit u) returns int
 function unitFromIndex(int index) returns unit
 	data.saveFogState(0,ConvertFogState(index))
 	return data.loadUnit(0)
+	
+function destructableToIndex(destructable d) returns int
+	return d.getHandleId()
+
+function destructableFromIndex(int index) returns destructable
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadDestructable(0)
+	
+function effectToIndex(effect e) returns int
+	return e.getHandleId()
+
+function effectFromIndex(int index) returns effect
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadEffect(0)
+	
+	
+function booleanToIndex(boolean u) returns int
+	if u
+		return 1
+	return 0
+
+function booleanFromIndex(int index) returns boolean
+	return index > 0
 

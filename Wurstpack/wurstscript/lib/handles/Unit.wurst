@@ -164,8 +164,8 @@ package Unit
 		
 	public function unit.hasAbility(int id) returns boolean
 		return (GetUnitAbilityLevel(this, id) > 0)
-		
-	public function unit.getHandleId() returns int
+
+	public function handle.getHandleId() returns int
 		return GetHandleId(this)
 	
 	public function unit.pause() returns unit

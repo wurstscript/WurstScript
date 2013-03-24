@@ -58,10 +58,6 @@ package HashList
 
 		function close()
 			destroy this
-			
 
-
-
-	
 
 endpackage
