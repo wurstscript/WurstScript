@@ -335,6 +335,9 @@ public class WurstValidator {
 		if (leftType instanceof WurstTypeArray) {
 			pos.addError("Missing array index for assignment to array variable.s");
 		}
+		if (rightType instanceof WurstTypeVoid) {
+			pos.addError("Function or expression returns nothing. Cannot assign nothing to a variable.");
+		}
 	}
 
 	@CheckMethod
