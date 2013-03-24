@@ -1,0 +1,27 @@
+package SpellDesignConfig
+import ChannelSpellPreset
+
+
+
+var TITLECOLOR = "|cff3B97D3"
+var TITLE_COOLDOWN = "Cooldown:"
+var TITLE_TTYPE = "Target Type:"
+var TITLE_EFFECT = "Effect:"
+
+public function generateTooltipNormal(string spellName, string hotkey, int lvl) returns string
+	return spellName + " - Level " + lvl.toString() + " [|cffFFCC00" + hotkey + "|r]"
+	
+public function generateTooltipExtended(int cooldown, targettype ttype, real aoe, string description ) returns string
+	var s = ""
+	if cooldown > 0
+		s += TITLECOLOR + TITLE_COOLDOWN + "|r " + cooldown.toString() + "|n"
+	
+	if aoe > 0
+		if ttype == targettype.ptarget
+			s += TITLECOLOR + TITLE_TTYPE + "|r " + ttype.toString()
+	else
+		s += TITLECOLOR + TITLE_TTYPE + "|r " + ttype.toString()
+		
+	
+
+	return s

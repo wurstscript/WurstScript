@@ -24,5 +24,6 @@ package Wurst
 	import public Sound
 	import public Vectors
 	import public Angle
+	import public Interpolation
 	
 endpackage

@@ -1,7 +1,6 @@
 package Multiboard
 	import NoWurst
-//Since it is long to type multiboard, ill leave it out from the functions.
-//multiboards
+
 	public function multiboard.destr()
 		DestroyMultiboard(this)
 
@@ -19,7 +18,6 @@ package Multiboard
 		MultiboardDisplay(this,show)
 		return this
 
-	//get smthg
 	public function multiboard.getColumnCount() returns integer
 		return MultiboardGetColumnCount(this)
 
@@ -36,7 +34,6 @@ package Multiboard
 		MultiboardMinimize(this,minimalize)
 		return this
 
-	//set smthg
 	public function multiboard.setColumnCount(integer count) returns multiboard
 		MultiboardSetColumnCount(this, count)
 		return this

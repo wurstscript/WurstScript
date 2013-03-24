@@ -110,7 +110,7 @@ public class ExtensionMethodsTests extends WurstScriptTest {
 	
 	@Test
 	public void extmethontype() {
-		testAssertErrorsLines(true, "static reference", 
+		testAssertErrorsLines(true, "bla is undefined", 
 				"type unit extends handle",
 				"package test",
 				"	function unit.bla()",

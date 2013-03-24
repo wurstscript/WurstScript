@@ -18,7 +18,7 @@ public class JumpToDeclaration implements IEditorActionDelegate {
 		}
 		WurstEditor editor = (WurstEditor) this.editor;
 		TextSelection  sel = (TextSelection) editor.getSelectionProvider().getSelection();
-		IHyperlink[] links = new WurstHylerlinkDetector(editor).getHyperlinks(sel.getOffset()); 
+		IHyperlink[] links = new WurstHyperlinkDetector(editor).getHyperlinks(sel.getOffset()); 
 		if (links != null && links.length > 0) {
 			links[0].open();
 		}
