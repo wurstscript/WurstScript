@@ -103,8 +103,8 @@ public class ObjectFile {
 	public void exportToWurst(Appendable out, ObjectFileType fileType ) throws IOException {
 		out.append("package WurstExportedObjects_"+ fileType.getExt() +"\n");
 		out.append("import ObjEditingNatives\n\n");
-		out.append("//origTable: \n\n");
-		origTable.exportToWurst(out);
+//		out.append("//origTable: \n\n");
+//		origTable.exportToWurst(out);
 		out.append("//modifiedTable: \n\n");
 		modifiedTable.exportToWurst(out);
 	}

@@ -754,6 +754,17 @@ public class Utils {
 		sb.append("\"");
 		return sb.toString();
 	}
+
+	/**
+	 * returns the filename from the given path 
+	 */
+	public static String fileName(String path) {
+		int pos = Math.max(path.lastIndexOf('/'),path.lastIndexOf('\\'));
+		if (pos > 0) {
+			return path.substring(pos+1);
+		}
+		return path;
+	}
 	
 
 }
