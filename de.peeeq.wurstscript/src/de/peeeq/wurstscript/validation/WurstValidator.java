@@ -1138,7 +1138,7 @@ public class WurstValidator {
 		if (cu.getPackages().size() == 1 && cu.getFile().endsWith(".wurst")) {
 			// only one package in a wurst file
 			WPackage p = cu.getPackages().get(0);
-			if (!cu.getFile().endsWith(p.getName()+".wurst")) {
+			if (!Utils.fileName(cu.getFile()).equals(p.getName()+".wurst")) {
 				p.addError("The file must have the same name as the package " + p.getName());
 			}
 		}
