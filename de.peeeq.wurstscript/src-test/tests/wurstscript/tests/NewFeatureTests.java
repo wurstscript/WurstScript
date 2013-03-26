@@ -214,34 +214,24 @@ public class NewFeatureTests extends WurstScriptTest {
 				);
 	}
 	
-	/*
-	 * 
-	 * case A
-	 * 	foo()
-	 * case B
-	 * 	foo()
-	 * 
-	 * 
-	 * i =1 
-	 * lastIf = (if b == Blub.A
-	 * 	skip
-	 * else
-	 * 	LEER)
-	 * 
-	 * i = 2
-	 * lastIf.setElse()
-	 * 
-	 * if b == Blub.A
-	 *   skip
-	 * else 
-	 * 		if b == Blub.B
-	 *   		testSuccess()
-	 * 1,2,3,4,5
-	 * b <= 3
-	 * switch foo()
-	 * 	case Blub.A
-	 * 
-	 */
+	@Test
+	public void testTypeId() {
+		testAssertOkLines(false,
+				"package Test",
+				"native testSuccess()",
+				"class Blub",
+				"	int i = 0",
+				"class Foo",
+				"	int j = 0",
+				"init",
+				"	Blub b = new Blub()",
+				"	Foo f = new Foo()",
+				"	if b.typeId != f.typeId",
+				"		testSuccess()"
+				);
+	}
+	
+
 	
 
 }

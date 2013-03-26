@@ -42,6 +42,9 @@ package TimerUtils
 		
 	public function timer.resume()
 		ResumeTimer(this)
+		
+	public function timer.getElapsed() returns real
+		return TimerGetElapsed(this)
 	
 	public function timer.start(real time, code timerCallBack) returns timer
 		TimerStart(this, time, false, timerCallBack)

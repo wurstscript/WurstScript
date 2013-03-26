@@ -183,5 +183,8 @@ package Unit
 	public function unit.setPropWindow(real value) returns unit
 		SetUnitPropWindow(this, value)
 		return this
+		
+	public function unit.getTypeId() returns int
+		return GetUnitTypeId(this)
 
 endpackage

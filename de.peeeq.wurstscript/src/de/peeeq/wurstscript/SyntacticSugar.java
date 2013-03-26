@@ -27,20 +27,25 @@ import de.peeeq.wurstscript.ast.ExprUnary;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.GlobalVarDefs;
 import de.peeeq.wurstscript.ast.InitBlock;
+import de.peeeq.wurstscript.ast.Modifiers;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.StmtForFrom;
 import de.peeeq.wurstscript.ast.StmtForIn;
 import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtReturn;
+import de.peeeq.wurstscript.ast.VisibilityPublic;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.ModifiersHelper;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.types.WurstTypeInt;
 
 
 /**
@@ -171,6 +176,19 @@ public class SyntacticSugar {
 			p.getImports().add(Ast.WImport(source, false, "Wurst"));
 		}
 	}
+	
+//	private void addTypeIds(CompilationUnit root) {
+//		nextClass: for (ClassDef d : root.attrGetByType().classes) {
+//			// add typeId
+//			GlobalVarDefs defs = d.getVars();
+//			defs.add(Ast.GlobalVarDef(defs.get(0).attrSource(), Ast.Modifiers(),
+//					Ast.NoTypeExpr() , "typeId", Ast.NoExpr()));
+//			d.setVars(defs);
+//			WPos source = p.getSource();
+//			source = source.withRightPos(source.getLeftPos() + 7);
+//			p.getImports().add(Ast.WImport(source, false, "Wurst"));
+//		}
+//	}
 
 
 	private void expandForInLoops(CompilationUnit root) {

@@ -15,15 +15,15 @@ public function angle.radians() returns real
 
 /** interpret this real as an angle given in degrees */
 public function real.asAngleDegrees() returns angle
-	return angle(this*RADTODEG)
+	return angle(this*DEGTORAD)
 
 /** interpret this int as an angle given in radians */
 public function int.asAngleRadians() returns angle
-	return angle(this*DEGTORAD)
+	return angle(this * .0)
 
 /** interpret this real as an angle given in radians*/
 public function real.asAngleRadians() returns angle
-	return angle(this*DEGTORAD)
+	return angle(this)
 /** get the sinus of this angle */
 
 public function angle.sin() returns real
