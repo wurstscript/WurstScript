@@ -154,7 +154,8 @@ public abstract class WurstTypeNamedScope extends WurstType {
 		for (int i=0; i<tps1.size(); i++) {
 			WurstType thisTp = tps1.get(i);
 			WurstType otherTp = tps2.get(i);
-			if (otherTp instanceof WurstTypeFreeTypeParam) {
+			if (otherTp instanceof WurstTypeFreeTypeParam
+					|| otherTp instanceof WurstTypeTypeParam) {
 				// free type params can later be bound to the right type
 				continue;
 			}

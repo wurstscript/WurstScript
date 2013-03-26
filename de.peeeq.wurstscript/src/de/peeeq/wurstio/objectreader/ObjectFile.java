@@ -89,10 +89,10 @@ public class ObjectFile {
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("version = " + version + "\n");
-		sb.append("origTable:\n");
+		sb.append(" original Table(modified standard units):\n");
 		sb.append("##################\n");
 		origTable.prettyPrint(sb);
-		sb.append("modifiedTable:\n");
+		sb.append(" modified Table(newly created unit):\n");
 		sb.append("##################\n");
 		modifiedTable.prettyPrint(sb);
 		
@@ -100,8 +100,8 @@ public class ObjectFile {
 	}
 
 	
-	public void exportToWurst(Appendable out) throws IOException {
-		out.append("package ExportedObjects\n");
+	public void exportToWurst(Appendable out, ObjectFileType fileType ) throws IOException {
+		out.append("package WurstExportedObjects_"+ fileType.getExt() +"\n");
 		out.append("import ObjEditingNatives\n\n");
 		out.append("//origTable: \n\n");
 		origTable.exportToWurst(out);
@@ -110,10 +110,10 @@ public class ObjectFile {
 	}
 	
 
-	public String exportToWurst() {
+	public String exportToWurst(ObjectFileType fileType) {
 		StringBuilder sb = new StringBuilder();
 		try {
-			exportToWurst(sb);
+			exportToWurst(sb, fileType);
 		} catch (IOException e) {
 			WLogger.severe(e);
 		}

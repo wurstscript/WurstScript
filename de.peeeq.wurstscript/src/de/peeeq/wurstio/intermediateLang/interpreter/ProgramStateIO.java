@@ -170,7 +170,7 @@ public class ProgramStateIO extends ProgramState {
 		
 		
 		try {
-			Files.write(dataStore.exportToWurst(),  new File(mapFile.getParent(), "wurstExportedObjects_"+fileType.getExt()+".wurst"), Charsets.UTF_8);
+			Files.write(dataStore.exportToWurst(fileType),  new File(mapFile.getParent(), "WurstExportedObjects_"+fileType.getExt()+".wurst"), Charsets.UTF_8);
 		} catch (IOException e1) {
 			WLogger.severe(e1);
 		}

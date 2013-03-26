@@ -31,6 +31,11 @@ public class RealWorldExamples extends WurstScriptTest {
 	}
 	
 	@Test
+	public void module() throws IOException {
+		super.testAssertOkFileWithStdLib(new File(BUG_DIR + "module.wurst"), false);
+	}
+	
+	@Test
 	public void tuplebug() throws IOException {
 		super.testAssertOkFileWithStdLib(new File(BUG_DIR + "tuplebug.wurst"), false);
 	}

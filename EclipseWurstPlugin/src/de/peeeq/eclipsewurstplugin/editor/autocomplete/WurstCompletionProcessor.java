@@ -102,18 +102,18 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		
 		AstElement elem =  Utils.getAstElementAtPos(cu, lastStartPos);
 		System.out.println("get completions at " + Utils.printElement(elem));
-		
+		WurstType leftType = null;
 		if (elem instanceof ExprMemberVar) {
 			ExprMemberVar e = (ExprMemberVar) elem;
-			WurstType leftType = e.getLeft().attrTyp();
+			leftType = e.getLeft().attrTyp();
 			if (leftType instanceof WurstTypeNamedScope) {
 				WurstTypeNamedScope ns = (WurstTypeNamedScope) leftType;
 				Multimap<String, NameLink> visibleNames = ns.getDef().attrNameLinks();
-				completionsAddVisibleNames(alreadyEntered, completions, visibleNames);
+				completionsAddVisibleNames(alreadyEntered, completions, visibleNames, leftType, elem);
 			} else if (leftType instanceof WurstTypeTuple) {
 				WurstTypeTuple tt = (WurstTypeTuple) leftType;
 				Multimap<String, NameLink> visibleNames = tt.getTupleDef().attrNameLinks();
-				completionsAddVisibleNames(alreadyEntered, completions, visibleNames);
+				completionsAddVisibleNames(alreadyEntered, completions, visibleNames, leftType, elem);
 			}
 			
 			// add member vars
@@ -155,7 +155,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			WScope scope = elem.attrNearestScope();
 			while (scope != null) {
 				Multimap<String, NameLink> visibleNames = scope.attrNameLinks();
-				completionsAddVisibleNames(alreadyEntered, completions, visibleNames);
+				completionsAddVisibleNames(alreadyEntered, completions, visibleNames, leftType, elem);
 				scope = scope.attrNextScope();
 			}
 		}
@@ -251,7 +251,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 
 	private void completionsAddVisibleNames(String alreadyEntered,
-			List<WurstCompletion> completions, Multimap<String, NameLink> visibleNames) {
+			List<WurstCompletion> completions, Multimap<String, NameLink> visibleNames, WurstType leftType, AstElement pos) {
 		for (Entry<String, NameLink> e : visibleNames.entries()) {
 			if (completions.size() >= MAX_COMPLETIONS) {
 				return;
@@ -259,9 +259,23 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			if (!isSuitableCompletion(e.getKey())) {
 				continue;
 			}
-			if (e.getValue().getReceiverType() != null) { 
-				// skip extension funcitons 
-				continue;
+			System.out.println("aadasdas " + e.getValue());
+			WurstType receiverType = e.getValue().getReceiverType();
+			if (leftType == null) {
+				if (receiverType != null) { 
+					// skip extension functions, when not needed 
+					continue;
+				}
+			} else {
+//				if (receiverType instanceof WurstTypeNamedScope) {
+//					WurstTypeNamedScope rt = (WurstTypeNamedScope) receiverType;
+//					receiverType = rt.setTypeArgs(leftType.getTypeArgBinding());
+//				}
+				if (!leftType.isSubtypeOf(receiverType, pos)) {
+					// skip elements with wrong receiver type
+					System.out.println("	receiver = " + receiverType);
+					continue;
+				}
 			}
 			if (e.getValue().getNameDef() instanceof FunctionDefinition) {
 				FunctionDefinition f = (FunctionDefinition) e.getValue().getNameDef();
@@ -295,14 +309,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		}else{
 			additionalProposalInfo = "<i>No hotdoc provided</i>";
 		}
-		String typ = n.attrTyp().getFullName();
-		for (String s : WurstConstants.JASSTYPES) {
-			if ( s.equals(typ) ) {
-				typ = "<font color=\"rgb(34,136,143)\">" + typ + " </font>";
-				break;
-			}
-		}
-		additionalProposalInfo += "<pre><hr />" + typ + n.getName()
+		additionalProposalInfo += "<pre><hr />" + htmlType(n.attrTyp()) + n.getName()
 					+ "<br /></pre>" + "defined in " + nearestScopeName(n);
 
 		double rating = calculateRating(n.getName());
@@ -359,24 +366,11 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				descr.append(", ");
 				descrhtml.append(", ");
 			}
-			String typ = p.attrTyp().toString();
-			for (String s : WurstConstants.JASSTYPES) {
-				if ( s.equals(typ) ) {
-					typ = "<font color=\"rgb(34,136,143)\">" + typ + "</font>";
-					break;
-				}
-			}
 			descr.append(p.attrTyp() + " " + p.getName());
-			descrhtml.append(typ + " " + p.getName());
+			descrhtml.append(htmlType(p.attrTyp()) + " " + p.getName());
 		}
 		String returnType = f.getReturnTyp().attrTyp().toString();
-		String returnTypeHtml = returnType;
-		for (String s : WurstConstants.JASSTYPES) {
-			if ( s.equals(returnTypeHtml) ) {
-				returnTypeHtml = "<font color=\"rgb(34,136,143)\">" + returnTypeHtml + "</font>";
-				break;
-			}
-		}
+		String returnTypeHtml = htmlType(f.getReturnTyp().attrTyp());
 		String displayString = f.getName() +"(" + descr.toString() + ") returns " + returnType + " - [" + nearestScopeName(f) +"]";
 		IContextInformation contextInformation = descr.length() == 0 ? null : new ContextInformation(f.getName(), descr.toString());
 		String additionalProposalInfo;
@@ -389,7 +383,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		String funcName = f.getName();
 		if (f instanceof ExtensionFuncDef) {
 			ExtensionFuncDef exf = (ExtensionFuncDef) f;
-			funcName = exf.getExtendedType().attrTyp() + "." + funcName;
+			funcName = htmlType(exf.getExtendedType().attrTyp()) + "." + funcName;
 		}
 		additionalProposalInfo += "<pre><hr /><b><font color=\"rgb(127,0,85)\">" + "function</font></b> " + funcName +"(" + descrhtml.toString() + ") "
 				+ "<br /><b><font color=\"rgb(127,0,85)\">returns</font></b> " + returnTypeHtml
@@ -420,15 +414,8 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				descr.append(", ");
 				descrhtml.append(", ");
 			}
-			String typ = p.attrTyp().toString();
-			for (String s : WurstConstants.JASSTYPES) {
-				if ( s.equals(typ) ) {
-					typ = "<font color=\"rgb(34,136,143)\">" + typ + "</font>";
-					break;
-				}
-			}
 			descr.append(p.attrTyp() + " " + p.getName());
-			descrhtml.append(typ + " " + p.getName());
+			descrhtml.append(htmlType(p.attrTyp()) + " " + p.getName());
 		}
 		String displayString = c.getName() +"(" + descr.toString() + ")";
 		IContextInformation contextInformation = descr.length() == 0 ? null : new ContextInformation(c.getName(), descr.toString());
@@ -444,6 +431,19 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		double rating = calculateRating(c.getName());
 		return new WurstCompletion(replacementString, replacementOffset, replacementLength, cursorPosition, image, displayString,
 				contextInformation, additionalProposalInfo, rating);
+	}
+
+
+	public String htmlType(WurstType attrTyp) {
+		String typ = attrTyp.toString();
+		for (String s : WurstConstants.JASSTYPES) {
+			if ( s.equals(typ) ) {
+				return "<font color=\"rgb(34,136,143)\">" + typ + "</font>";
+			}
+		}
+		typ = typ.replace("<", "&lt;");
+		typ = typ.replace(">", "&gt;");
+		return typ;
 	}
 
 

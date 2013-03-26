@@ -17,5 +17,6 @@ package Basics
 	public constant player  DUMMY_PLAYER 			= Player(15)
 	/** Neutral Hostile (darkgreen) */
 	public constant player	DUMMY_HOSTILE_PLAYER 	= Player(12)
+
 	
 endpackage

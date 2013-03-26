@@ -19,6 +19,7 @@
 */src-gen/*
 */logs/*
 */temp/*
+*/WurstSetup/*
 Wurstpack/wurstscript/lib/MapStuff/*
 Wurstpack/wurstscript/lib/EBR/*
 
@@ -35,3 +36,5 @@ WurstWeb/war/WEB-INF/deploy/*
 WurstWeb/war/wurstweb/*
 
 *~
+/WurstSetup/WurstSetup/nbproject/private/
+/WurstSetup/WurstSetup/build/
