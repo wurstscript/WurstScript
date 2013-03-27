@@ -36,10 +36,12 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.ast.WurstModel;
+import de.peeeq.wurstscript.attributes.AttrExprType;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeTuple;
+import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -152,6 +154,10 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				scope = scope.attrNextScope();
 			}
 		} else {
+			leftType = AttrExprType.caclulateThistype(elem, false);
+			if (leftType instanceof WurstTypeUnknown) {
+				leftType = null;
+			}
 			WScope scope = elem.attrNearestScope();
 			while (scope != null) {
 				Multimap<String, NameLink> visibleNames = scope.attrNameLinks();
