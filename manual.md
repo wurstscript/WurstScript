@@ -4,10 +4,10 @@ title: WurstScript Manual
 ---
 
 
-_by peq & Frotty_ _Last Change: 29.10.12_ 
+_by peq & Frotty_ _Last Change: 27.03.13_ 
 
 
-WurstScript is a programming language named after the german word for sausage.
+WurstScript (short Wurst) is a programming language named after the german word for sausage.
 
 The sausage is a symbol for encapsulation (Peel/Pelle), compactness (sausage meat/Brät) and modularization (cut it into slices!). And because you normally know whats inside a sausage the project is also open source and easy to use (cook).
 
@@ -15,16 +15,52 @@ The sausage is a symbol for encapsulation (Peel/Pelle), compactness (sausage mea
 problem with our [issue tracker at GitHub](https://github.com/peq/WurstScript/issues/new).
 
 *Note*: WurstScript is written in Java and should therefore be useable on Windows, OS/X and most Linux Distributions. 
-This applies only to the compiler & the eclipse plugin, because the Wurstpack is based on the Jass New Gen Pack.
+This applies only to the compiler & the eclipse plugin, because the Wurstpack is based on the Jass New Gen Pack (and therefore windows-only).
 
+# Philosophy
+
+WurstScript aims at a fast and easy workflow with comfort- and security features.
+The execution speed isn't the highest priority (even though it is pretty fast, especially due to heavy optimization), but instead ease of use
+and stress-free map-development.
+It should be easy to use and learn (especially with knowledge of (v)Jass) to be Beginner-friendly and also understandable to non-Jass users.
+
+While we know that WurstScript won't replace vJass in the wc3 mapping scene (also because of the tons of vjass scripts that can't be simply ported) we still hope it will be a very good alternative, in particular for users that are trying to learn Jass.
+
+### Need help?
+
+If you have any questions regarding Wurst-related tools or the language itself, feel free to write us a message or visit the [IRC channel we usually hang out](http://webchat.quakenet.org/?channels=inwc.de-maps).
 
 # Syntax
-The WurstScript Syntax uses indention to define Blocks, rather than using curly
-braces (as in Java) or keywords like 'endif' (as in Jass). Indentation must not use spaces, only tabs are permitted.
+The WurstScript Syntax uses indention to define Blocks, instead of using curly
+brackets (as in Java) or keywords like 'endif' (as in Jass). Indentation must not use spaces, only tabs are permitted.
+
+	// Some language using curly brackets (e.g. Java or Zinc)
+	if condition 
+	{
+		ifStatements
+	}
+	nextStatements
+	// Some language using keywords (e.g. Jass)
+	if condition
+		ifStatements
+	endif
+	nextStatements
+	// Some language using indention (e.g. WurstScript or phyton)
+	if condition
+		ifStatements
+	nextStatements
 
 In general newlines come at the end of a statement, with two exceptions: 
 - Inside parenthesis newlines are ignored. You can use this to break longer expressions or long parameter lists over several lines.
 - Newlines are ignored when the next line starts with a dot. This can be used to chain method invocations.
+
+	someFunc(param1, param2
+		param3, param4)
+
+	someUnit.setX(...)
+		.setY(...)
+		.setName(...)
+
 
 In general WurstScript tries to avoid using symbols as much as possible to
 provide a clear and readable look. At the same time most of Jass' verbosity got removed. 
@@ -33,13 +69,13 @@ provide a clear and readable look. At the same time most of Jass' verbosity got 
 
 Wurst code is organized into _packages_. All your wurst code has to be inside a _package_. 
 Packages can also _import_ other packages in order to use variables, functions, classes, etc. from the imported package. 
-Packages can have an _init_ block to do stuff when the map is loaded.
+Packages can have an _init_ block that is executed when the map is loaded.
 
 
 	package HelloWurst
 		// you can import stuff from other packages:
 		import PrintingHelper
-        // NOTE: Since the Wurst.wurst-Update this isn't needed anymore.
+        // NOTE: Since the Wurst.wurst-Update this import isn't needed anymore.
 	
 		// the init block is called at map start
 		init
@@ -49,7 +85,7 @@ Packages can have an _init_ block to do stuff when the map is loaded.
 	endpackage
 
 For more information about packages, read the packages section. 
-You can still use normal jass syntax/code outside of packages, but inside packages you have to adhere
+You can still use normal jass syntax/code outside of packages(when using WurstWE, those will be parsed by PJass), but inside packages you have to adhere
 to the wurst rules.
 
 ## Naming Conventions
@@ -270,7 +306,7 @@ The translation is very similar:
 ### Iterators
 
 
-So how do you write your own iterator? Just provide the following functions:
+You can provide Wurst with an iterator for your desired type by providing a set of functions. By providing an iterator, the type can be used in for-loops:
 -  function **hasNext()** returns boolean (return if there is another object left)
 -  function **next()** returns TYPE (return the next element for your type)
 
@@ -359,6 +395,21 @@ As mentioned above every code-segment written in Wurst has to be inside a _packa
 packages define the code organization and separate name-spaces.
 Packages can also have global variables - every variable that is not inside another block (function/class/module)
 is declared global for that package.
+
+When working in WurstWE, packages have to end with the **endpackage** keyword and the code inside has to be indent.
+
+In WurstEclipse however, the **endpackage** can be omitted when the code inside is not indented.
+	
+	package SomeWurstWePackage
+		...
+		(code)
+	endpackage
+
+	package SomeWursteclipsePackage
+	...
+	(code)
+
+
 
 ## Imports
 
@@ -452,7 +503,7 @@ This has no impact on the generated code but throws an error when trying to comp
 		function blub()
 			myImportantNumber = 123 // Error
 		
-		private constant int myPrivateNumber = 123 // Correct keyword order
+		public constant int myPrivateNumber2 = 123 // Correct keyword order
 	endpackage
 
 
@@ -462,11 +513,15 @@ This has no impact on the generated code but throws an error when trying to comp
 
 ## Init blocks
 Another package feature are init blocks.
-Every package can have one init block anywhere inside it. 
-All operations inside the init block of a package are being executed at mapstart. 
+Every package can have one or multiple init blocks anywhere inside it. 
+All operations inside the init block of a package are executed at mapstart. 
 
 At the beginning of an init block you can assume that all global variables inside the 
 current package are initialized.
+
+	package MyPackage
+		init
+			print("this is the initblock)
 
 
 *Note:* Since wc3 has a micro op limitation, too many operations inside init-blocks may stop it from fully executing. In order to avoid this you should only place map-init Stuff inside the init blocks and use timers and own inits for the other stuff.
@@ -505,7 +560,7 @@ Classes are easy, powerful and very helpful constructs. A _class_ defines data a
 
 
 In this example we created a Caster named "dummyCaster" at the location(200, 400). 
-Then we ordered dummyCaster to cast a flame strike at another position and finally we destroyed "dummyCaster".
+Then we ordered **dummyCaster** to cast a flame strike at another position and finally we destroyed **dummyCaster**.
 
 This example shows you how to create a new object (line 1), invoke a function on an object (line 2) and how to destroy an object (line 3).
 But how can you define a new object type like "Caster"? This is where classes come in. A class defines a new kind of object.
@@ -540,12 +595,12 @@ The constructor is called when creating the class via the _new_ keyword and allo
 		int a
 		int b
 
-		construct( int a, int b )
-		    this.a = a
-		    this.b = b
+		construct( int pA, int pB )
+		    	a = pA
+		    	b = pB
 
 		function add() returns int
-		    return a + b
+		    	return a + b
 
 
 	function test()
@@ -557,22 +612,22 @@ The constructor is called when creating the class via the _new_ keyword and allo
 
 
 In this example the constructor takes two integers a and b as parameters and sets the class variables to those. 
-You can define more than one constructor.
+You can define more than one constructor as long as the parameters differ.
 
 
 	class Pair
 		int a
 		int b
 
-		construct( int a, int b )
-		    this.a = a
-		    this.b = b
+		construct( int pA, int pB )
+		    	a = pA
+		    	b = pB
 	
-		construct( int a, int b, int c )
-		    this.a = a
-		    this.b = b
-			a += c
-			b += c
+		construct( int pA, int pB, int pC )
+		    	a = pA
+		    	b = pB
+			a += pC
+			b += pC
 
 	function test()
 		Pair p = new Pair(2,4)
@@ -587,7 +642,17 @@ Depending on parameter-type and -count Wurst automatically decides which constru
 ## This 
 
 The _this_ keyword refers to the current instance of the class on which the function was called. This also allows us to name the parameters the same as the class variables.
-However it can be left out in classfunctions.
+However it can be left out in classfunctions, as seen above.
+
+	class Pair
+		int a
+		int b
+
+		// With the this keyword we can access the classmembers
+		construct( int a, int b )
+		    	this.a = a
+		    	this.b = b
+
 
 ## ondestroy
 
@@ -672,7 +737,7 @@ This process also needs to be reversed (casting from int to a classtype)
 But typecasting is also necessary when using subtyping, in order to down- and upcast instances.
 In order to typecast, you use the keyword _castTo_
 
-_Note_: You should avoid castTo whenever possible. Casts are noch checked at runtime so they can go horribly wrong. 
+_Note_: You should avoid castTo whenever possible. Casts are not checked at runtime so they can go horribly wrong. 
 Casts can be avoided by using high level libraries and object oriented programming.
 
 ### Examples
@@ -742,7 +807,7 @@ It is easier to understand with an example:
         A a = new B("first") // This works because B extends A
         a.printName() // This will print "Instance of B named: first", because a is an Instance of B.
         
-This is especially usefull when iterating through ClassInstances of the same supertype,
+This is especially useful when iterating through ClassInstances of the same supertype,
 meaning you don't have to cast the instance to it's proper subtype.
 
 ## super calls
@@ -765,6 +830,21 @@ As an example consider a fireball spell for which we want to create a more power
 			createSomeBigExplosionEffect(u)
 			// then we call the original hitUnit function but with doubled damage
 			super.hitUnit(u, damage*2)
+
+The **super** keyword also _has_ to be used when defining custom constructors. The Constructor of the superclass has to be called in the constructor of the subclass.
+
+	class Missile
+		...
+		construct(vec2 position)
+			...
+
+	class TimedMissile extends Missile
+		...
+		construct(vec2 position, real duration)
+			// Here the constructor of the superclass is called
+			// The super statement has to be the first statement in the constructor of the subclass
+			super(position)
+			...
 
 
 ## instanceof
@@ -1133,6 +1213,36 @@ If there is more than one feasible function the compiler will give an error.
 Note that this is different to many other languages like Java, where the
 function with the most specific feasible type is chosen instead of giving an error.
 
+	function unit.setPosition(vec2 pos)
+		...
+
+	function unit.setPosition(vec3 pos)
+		...
+
+	function real.add(real r)
+		...
+
+	function real.add(real r1, real r2)
+		...
+
+This works because the parameters are of different types or have a different amount of paramaters and the correct function can therefore be determined at compiletime.
+
+	function real.add(real r1)
+		...
+
+	function real.add(real r1) returns real
+
+This does not work because only the returntype is different and the correct function cannot be determined.
+
+	function foo(myClass c)
+		...
+
+	function foo(myOtherClass c)
+		...
+
+This does not work either, because classtypes are all translated as ints, the function cannot be determined.
+
+
 ## Operator Overloading
 
 Operator Overloading allows you to change the behaviour of internal operators +, -, \* and / for custom arguments.
@@ -1159,7 +1269,7 @@ In order to define an overloading function it has to be named as following:
     /  "op_divReal"
     
 ## Compiletime Functions
-Compiletime Functions are functions, that get executed when compiling yur script/map.
+Compiletime Functions are functions, that get executed when compiling your script/map.
 They mainly offer the possibility to create Object-Editor Objects via code.
 
 ### Declaration
@@ -1167,6 +1277,8 @@ They mainly offer the possibility to create Object-Editor Objects via code.
     @compiltetime function foo()
     
 Compiltetime functions cannot take nor return anything.
+
+Take a look at the ObjectEditing natives and presets to see how to use compiletime functions to generate objectdata.
 
 # Standard Library 
 
@@ -1538,13 +1650,12 @@ Installation: You can find information on how to install the plugin at the [Wurs
 
 # Optimizer
 
-The Wurstcompiler has a build-in scriptoptimizer which will, when enabled, optimize the Jass code in various ways.
+The Wurstcompiler has a set of build-in scriptoptimizing tools which will, when enabled, optimize the generated Jass code in various ways.
 Jass optimization got very important to provide playable framerates when using very enhanced and complex systems.
 On the one hand the optimizer cleans the code, making it smaller in size and removing useless stuff in order to reduce RAM-usage.
-On the other hand it also has some optimizations to increase the speed of execution and performance of the code.
+On the other hand it also offers some optimizations to increase the speed of execution and performance of the code.
 
 ## Cleaning
-
 
 Stuff that is being removed, changed or not even printed
 
@@ -1555,8 +1666,7 @@ Stuff that is being removed, changed or not even printed
 
 ## Name compression
 
-Smaller names execute faster, so all the names of functions and variables are being compressed to the shortest name possible.
-
+Smaller names execute faster and take less space, so all names of functions and variables are compressed to the shortest name possible.
 
 ## Inlining
 
@@ -1570,11 +1680,13 @@ also the parameter-order and usage doesn't matter.
 
 All blizzard.j functions, such as BJs and Swaps, also get inlined.
 
-Global variables that have a constant value get inlined as well as constant locals. (not yet implemented)
+Global variables that have a constant value get inlined as well as constant locals.
 
+## Constant Folding and Constant propagation
 
-## Garbage Removal
+Expressions containing only constants are calculated at compiletime.
+Ifs with constant conditions are removed. 
+Both mechanics work together to remove unneeded and unreachable code.
 
-The optimizer tries to get rid of every unused function and variable to lower the mapscript's filesize.
 
 
