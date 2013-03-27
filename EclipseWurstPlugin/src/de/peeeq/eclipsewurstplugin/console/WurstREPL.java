@@ -1,6 +1,7 @@
 package de.peeeq.eclipsewurstplugin.console;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -27,7 +28,11 @@ import com.google.common.collect.Sets;
 
 import de.peeeq.eclipsewurstplugin.builder.ModelManager;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
+import de.peeeq.wurstio.intermediateLang.interpreter.CompiletimeNatives;
+import de.peeeq.wurstio.intermediateLang.interpreter.ProgramStateIO;
 import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
+import de.peeeq.wurstio.jassinterpreter.NativeFunctionsIO;
+import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstConfig;
@@ -106,6 +111,10 @@ public class WurstREPL {
 		importedPackages = Sets.newHashSet();
 		RobustProgramState globalState = new RobustProgramState(null, gui);
 		interpreter = new ILInterpreter(null, gui, null, globalState);
+		
+		interpreter.addNativeProvider(new NativeFunctionsIO());
+//		interpreter.addNativeProvider(new CompiletimeNatives(globalState));
+		
 		globalState.setOutStream(new PrintStream(out));
 	}
 	

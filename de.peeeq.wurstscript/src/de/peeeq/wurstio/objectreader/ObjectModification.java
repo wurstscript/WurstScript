@@ -2,6 +2,7 @@ package de.peeeq.wurstio.objectreader;
 
 import java.io.IOException;
 
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediateLang.interpreter.VariableType;
 
 public abstract class ObjectModification<T> { // TODO split into appropiate subclasses
@@ -16,6 +17,7 @@ public abstract class ObjectModification<T> { // TODO split into appropiate subc
 	protected T data;
 
 	public ObjectModification(ObjectDefinition parent, String modificationId, int variableType, int levelCount, int dataPointer, T data) {
+		WLogger.info("parent " + parent + ", modificationId " + modificationId + ", variableType " + variableType + ", levelCount " + levelCount + ", dataPointer " + dataPointer + ", data " +  data);
 		this.parent = parent;
 		this.modificationId = modificationId;
 		this.variableType = variableType;

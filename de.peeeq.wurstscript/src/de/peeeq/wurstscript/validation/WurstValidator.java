@@ -336,7 +336,12 @@ public class WurstValidator {
 			pos.addError("Missing array index for assignment to array variable.s");
 		}
 		if (rightType instanceof WurstTypeVoid) {
-			pos.addError("Function or expression returns nothing. Cannot assign nothing to a variable.");
+			if (pos.attrNearestPackage() instanceof WPackage) {
+				WPackage pack = (WPackage) pos.attrNearestPackage();
+				if (!pack.getName().equals("WurstREPL")) { // allow assigning nothing to a variable in the Repl
+					pos.addError("Function or expression returns nothing. Cannot assign nothing to a variable.");
+				}
+			}
 		}
 	}
 
