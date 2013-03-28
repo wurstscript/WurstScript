@@ -562,4 +562,30 @@ public class ClassesTests extends WurstScriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void constant_fields() {
+		testAssertErrorsLines(false, "constant",
+				"package test",
+				"	class A",
+				"		constant int i = 0",
+				"	init",
+				"		A a = new A()",
+				"		a.i = 1",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void constant_fields2() {
+		testAssertErrorsLines(false, "constant",
+				"package test",
+				"	class A",
+				"		constant int i",
+				"	init",
+				"		A a = new A()",
+				"		a.i = 1",
+				"endpackage"
+			);
+	}
 }

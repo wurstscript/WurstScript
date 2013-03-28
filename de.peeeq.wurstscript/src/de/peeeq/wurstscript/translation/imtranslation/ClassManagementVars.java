@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.StructureDef;
+import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -21,7 +22,6 @@ public class ClassManagementVars {
 		maxIndex = JassIm.ImVar(TypesHelper.imInt(), repClass.getName() + "_maxIndex", false);
 		translator.addGlobal(maxIndex);
 		translator.addGlobalInitalizer(maxIndex, null, Ast.ExprIntVal(repClass.getSource(), "0"));
-		typeId = JassIm.ImVar(JassIm.ImArrayType("integer"), repClass.getName() + "_typeId", false);
-		translator.addGlobal(typeId);
+		typeId = translator.getVarFor((VarDef) repClass.lookupVar("typeId"));
 	}
 }

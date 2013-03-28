@@ -27,9 +27,11 @@ import de.peeeq.wurstscript.ast.ExprUnary;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.GlobalVarDefs;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.Modifiers;
+import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.StmtForFrom;
@@ -68,6 +70,7 @@ public class SyntacticSugar {
 		addDefaultConstructors(root);
 		addEndFunctionStatements(root);
 		expandForInLoops(root);
+		addTypeIds(root);
 	}
 	
 	
@@ -177,18 +180,21 @@ public class SyntacticSugar {
 		}
 	}
 	
-//	private void addTypeIds(CompilationUnit root) {
-//		nextClass: for (ClassDef d : root.attrGetByType().classes) {
-//			// add typeId
-//			GlobalVarDefs defs = d.getVars();
-//			defs.add(Ast.GlobalVarDef(defs.get(0).attrSource(), Ast.Modifiers(),
-//					Ast.NoTypeExpr() , "typeId", Ast.NoExpr()));
-//			d.setVars(defs);
-//			WPos source = p.getSource();
-//			source = source.withRightPos(source.getLeftPos() + 7);
-//			p.getImports().add(Ast.WImport(source, false, "Wurst"));
-//		}
-//	}
+	private void addTypeIds(CompilationUnit root) {
+		nextClass: for (ClassDef d : root.attrGetByType().classes) {
+			if (d.attrExtendedClass() instanceof NoTypeExpr)
+				continue;
+			// add typeId
+			GlobalVarDefs defs = d.getVars();
+			for (GlobalVarDef def : defs) {
+				if ( def.getName().equals("typeId") ) {
+					continue nextClass;
+				}
+			}
+			defs.add(Ast.GlobalVarDef(d.attrSource(), Ast.Modifiers(Ast.ModConstant(d.attrSource())),
+					Ast.TypeExprSimple(d.attrSource(), "int", Ast.TypeExprList()) , "typeId", Ast.NoExpr()));
+		}
+	}
 
 
 	private void expandForInLoops(CompilationUnit root) {
