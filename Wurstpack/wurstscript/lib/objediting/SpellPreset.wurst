@@ -7,7 +7,7 @@ public class SpellPreset extends AbilityDefinition
 	
 	construct(string newAbilityId, string origAbilityId, int lvls)
 		super(newAbilityId, origAbilityId)
-		setLevels(0, lvls)
+		setLevels(lvls)
 		this.lvl = lvls
 		
 	function setIcon(string name)
@@ -15,8 +15,8 @@ public class SpellPreset extends AbilityDefinition
 		if not name.endsWith(".blp")
 			s += ".blp"
 
-		setIconResearch(0, s)
-		setIconNormal(0, s)
+		setIconResearch(s)
+		setIconNormal(s)
 			
 	
 		
