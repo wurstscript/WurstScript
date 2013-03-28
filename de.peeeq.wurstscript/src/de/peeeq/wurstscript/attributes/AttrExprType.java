@@ -183,11 +183,15 @@ public class AttrExprType {
 		return WurstTypeUnknown.instance();
 	}
 
-
+	
 	public static  WurstType calculate(ExprThis term)  {
+		return caclulateThistype(term, true);
+	}
+
+	public static  WurstType caclulateThistype(AstElement term, boolean showErrors)  {
 		if (term.getParent() == null) {
 			// not attached to the tree -> generated
-			throw new CompileError(term.getSource(), "Expression 'this' not attached to AST.");
+			throw new CompileError(term.attrSource(), "Expression 'this' not attached to AST.");
 		}
 
 		// check if we are in an extension function
@@ -197,7 +201,9 @@ public class AttrExprType {
 			return extensionFuncDef.getExtendedType().attrTyp().dynamic();
 		}
 		if (!term.attrIsDynamicContext()) {
-			term.addError("Cannot use 'this' in static methods.");
+			if (showErrors) {
+				term.addError("Cannot use 'this' in static methods.");
+			}
 			return WurstTypeUnknown.instance();
 		}
 
@@ -243,7 +249,9 @@ public class AttrExprType {
 
 			});
 		} else {
-			term.addError("The keyword 'this' can only be used inside methods.");
+			if (showErrors) {
+				term.addError("The keyword 'this' can only be used inside methods.");
+			}
 			return WurstTypeUnknown.instance();
 		}
 	}

@@ -21,9 +21,6 @@ import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 
 public class CompiletimeNatives extends ReflectionBasedNativeProvider implements NativesProvider {
-
-	
-
 	private ProgramStateIO globalState;
 	private PrintStream outStream = System.out;
 
@@ -31,24 +28,6 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
 		this.globalState = globalState;
 	}
 
-	public void testFail(ILconstString msg) {
-		throw new TestFailException(msg.getVal());
-	}
-	
-	public void testPrint(ILconstString msg) {
-		outStream.println(msg.getVal());
-	}
-	
-	
-	public void testSuccess() {
-		throw TestSuccessException.instance;
-	}
-	
-	public void compileError(ILconstString msg) {
-		AstElement trace = globalState.getLastStatement().attrTrace();
-		globalState.getGui().sendError(new CompileError(trace.attrSource(), msg.getVal()));
-	}
-	
 	
 	private ILconstTuple makeKey(String key) {
 		return new ILconstTuple(new ILconstString(key));
@@ -147,7 +126,7 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
 	private <T> void modifyObject(ObjectDefinition od, ILconstString modification, VariableType<T> variableType, int level, int datapointer, T value) {
 		String modificationId = modification.getVal();
 		for (ObjectModification<?> m : od.getModifications()) {
-			if (m.getModificationId().equals(modificationId)) {
+			if (m.getModificationId().equals(modificationId) && m.getLevelCount() == level) {
 				ObjectModification<T> m2 = m.castTo(value);
 				m2.setData(value);
 				return;
@@ -159,6 +138,11 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
 
 	private String getKey(ILconstTuple unitType) {
 		return ((ILconstString)unitType.getValue(0)).getVal();
+	}
+	
+	public void compileError(ILconstString msg) {
+		AstElement trace = globalState.getLastStatement().attrTrace();
+		globalState.getGui().sendError(new CompileError(trace.attrSource(), msg.getVal()));
 	}
 
 }

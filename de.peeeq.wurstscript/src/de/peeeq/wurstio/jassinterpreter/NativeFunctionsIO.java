@@ -6,6 +6,8 @@ import java.util.Random;
 
 import com.google.common.collect.Maps;
 
+import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
 import de.peeeq.wurstscript.intermediateLang.ILconstNull;
 import de.peeeq.wurstscript.intermediateLang.ILconstReal;
@@ -148,4 +150,10 @@ public class NativeFunctionsIO extends ReflectionBasedNativeProvider implements 
 	public ILconstString SubString(ILconstString string, ILconstInt start, ILconstInt end ) {
 		return new ILconstString(string.getVal().substring(start.getVal(), end.getVal()));
 	}
+	
+	
+	public void testPrint(ILconstString msg) {
+		outStream.println(msg.getVal());
+	}
+	
 }
