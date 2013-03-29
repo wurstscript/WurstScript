@@ -182,8 +182,10 @@ public class SyntacticSugar {
 	
 	private void addTypeIds(CompilationUnit root) {
 		nextClass: for (ClassDef d : root.attrGetByType().classes) {
-			if (d.attrExtendedClass() instanceof NoTypeExpr)
+			if (!(d.getExtendedClass() instanceof NoTypeExpr)) {
+				// has superclass, does not need own typeId
 				continue;
+			}
 			// add typeId
 			GlobalVarDefs defs = d.getVars();
 			for (GlobalVarDef def : defs) {
@@ -191,8 +193,8 @@ public class SyntacticSugar {
 					continue nextClass;
 				}
 			}
-			defs.add(Ast.GlobalVarDef(d.attrSource(), Ast.Modifiers(Ast.ModConstant(d.attrSource())),
-					Ast.TypeExprSimple(d.attrSource(), "int", Ast.TypeExprList()) , "typeId", Ast.NoExpr()));
+			defs.add(Ast.GlobalVarDef(d.getSource(), Ast.Modifiers(Ast.ModConstant(d.getSource())),
+					Ast.TypeExprSimple(d.getSource(), "int", Ast.TypeExprList()) , "typeId", Ast.NoExpr()));
 		}
 	}
 
