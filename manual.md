@@ -54,7 +54,7 @@ In general newlines come at the end of a statement, with two exceptions:
 - Inside parenthesis newlines are ignored. You can use this to break longer expressions or long parameter lists over several lines.
 - Newlines are ignored when the next line starts with a dot. This can be used to chain method invocations.
 
-		someFunc(param1, param2
+		someFunc(param1, param2,
 		
 			param3, param4)
 
