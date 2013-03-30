@@ -36,6 +36,9 @@ package Unit
 		SetUnitPosition(this, pos.x, pos.y)
 		return this
 		
+	public function unit.getPos() returns vec2
+		return vec2(this.getX(), this.getY())
+		
 	public function unit.kill() returns unit
 		KillUnit(this)
 		return this
