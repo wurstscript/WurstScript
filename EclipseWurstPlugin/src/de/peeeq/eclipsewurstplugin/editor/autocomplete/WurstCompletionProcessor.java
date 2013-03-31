@@ -82,7 +82,6 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		int startPos = offset - alreadyEntered.length();
 		
 		CompilationUnit cu = null;
-		System.out.println("POS " + startPos + " == " + lastStartPos);
 		if (startPos == lastStartPos) {
 			// we have already parsed the document, just use the old compilation unit
 			cu = editor.getCompilationUnit();
@@ -93,7 +92,6 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		}
 		if (Utils.isEmptyCU(cu)) {
 			errorMessage = "Could not parse file.";
-			System.out.println("cu is empty ...");
 			return null;
 		}
 		
@@ -191,7 +189,6 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	public boolean isSuitableCompletion(String name) {
 //		return name.toLowerCase().startsWith(alreadyEntered);
 		boolean r = Utils.isSubsequence(alreadyEntered, name);
-//		System.out.println("isSuitable? " + name + " for " + alreadyEntered + " -> " + r);
 		return r;
 	}
 
@@ -265,7 +262,6 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			if (!isSuitableCompletion(e.getKey())) {
 				continue;
 			}
-			System.out.println("aadasdas " + e.getValue());
 			WurstType receiverType = e.getValue().getReceiverType();
 			if (leftType == null) {
 				if (receiverType != null) { 
@@ -279,7 +275,6 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 //				}
 				if (!leftType.isSubtypeOf(receiverType, pos)) {
 					// skip elements with wrong receiver type
-					System.out.println("	receiver = " + receiverType);
 					continue;
 				}
 			}
