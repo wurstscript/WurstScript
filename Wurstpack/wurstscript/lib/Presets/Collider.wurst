@@ -103,7 +103,7 @@ package Collider
 		//
 		function setDirection( angle v )
 			dir = v
-			fx.setXYAngle( dir.degrees() )
+			fx.setXYAngle( dir )
 
 
 		//---
@@ -269,7 +269,7 @@ package Collider
 						d += PI2
 	
 					cl.dir = angle(d)
-					cl.fx.setXYAngle( d )
+					cl.fx.setXYAngle( cl.dir )
 	
 	
 					ns = cl.speed + cl.acceleration * ANIMATION_PERIOD

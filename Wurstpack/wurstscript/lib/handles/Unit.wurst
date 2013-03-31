@@ -28,6 +28,11 @@ package Unit
 		SetUnitY(this, pos.y)
 		return this
 		
+	public function unit.setXY(vec3 pos) returns unit
+		SetUnitX(this, pos.x)
+		SetUnitY(this, pos.y)
+		return this
+		
 	public function unit.setPos(real x, real y) returns unit
 		SetUnitPosition(this, x, y)
 		return this

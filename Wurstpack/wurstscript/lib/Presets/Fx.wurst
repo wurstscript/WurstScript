@@ -114,11 +114,11 @@ package Fx
 			return this
 		
 		/** Get the xy angle in radians */
-		function getXYAngle() returns real
-			return dummy.getFacing()*bj_DEGTORAD
+		function getXYAngle() returns angle
+			return dummy.getFacing().asAngleDegrees()
  
 		/** Set the angle in degrees */
-		function setXYAngle(real value) returns Fx
+		function setXYAngle(angle value) returns Fx
 			dummy.setFacing(value)
 			return this
 		

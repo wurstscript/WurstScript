@@ -265,7 +265,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			if (!isSuitableCompletion(e.getKey())) {
 				continue;
 			}
-			System.out.println("aadasdas " + e.getValue());
+//			System.out.println("aadasdas " + e.getValue());
 			WurstType receiverType = e.getValue().getReceiverType();
 			if (leftType == null) {
 				if (receiverType != null) { 
