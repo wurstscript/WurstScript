@@ -1,30 +1,29 @@
 package LastOrder
 
-//Order type variables
-constant int ORDER_TYPE_TARGET	= 1
-constant int ORDER_TYPE_POINT	 = 2
-constant int ORDER_TYPE_IMMEDIATE = 3
-	
-	//System constants
-constant int ORDERS_TO_HOLD	   = 3	//How many past orders the
-									//system holds for each unit.
-									//Should be at least 2.
+/** How many bast orders to hold.
+	Should be at least 2 */
+constant int ORDERS_TO_HOLD = 3
+
+enum ORDER_TYPE
+	TARGET
+	POINT
+	IMMEDIATE
 
 hashtable ht = InitHashtable()
 
 
 public class Order
-	unit	u
+	unit u
 	int id
-	int typ
+	ORDER_TYPE typ
 	boolean fin
 	widget  tar
 	real	x
 	real	y
 	
-	construct( unit ordered, int ordid, int ordtyp, widget target, real ordx, real ordy )
+	construct( unit ordered, int ordid, ORDER_TYPE ordtyp, widget target, real ordx, real ordy )
+		debugPrint("Allocated instance of Order with id: " + (this castTo int).toString(), 3)
 		int hid = GetHandleId(ordered)
-		
 		u   = ordered
 		id  = ordid
 		typ = ordtyp
@@ -37,7 +36,7 @@ public class Order
 			//We hold up to the constant ORDERS_TO_HOLD in the table
 			//Moves the N-1th order to the Nth slot, etc. except storing new last order
 			if ht.hasInt(hid, i-1)
-				if i == ORDERS_TO_HOLD and ht.hasInt(hid, i-1)
+				if i == ORDERS_TO_HOLD and ht.hasInt(hid, i)
 					//Destroy lastmost order struct
 					destroy	(ht.loadInt(hid, i) castTo Order)
 				//Can only do this if the N-1th order exists
@@ -45,11 +44,19 @@ public class Order
 		//Store the new order to the hashtable as 1th last order
 		ht.saveInt( hid, 1, this castTo int)
 
+	ondestroy
+		debugPrint("ondestroy id: " + (this castTo int).toString(), 3)
 
 //******************************************************************************
 
 public function unit.clearLastOrders() returns unit
-	ht.flushChild(this.getHandleId())
+	let hid = this.getHandleId()
+	for i = ORDERS_TO_HOLD downto 1
+		//If any of the N orders exist for this handle id, kill them all
+		if ht.hasInt( hid, i)
+			debugPrint("clearing order id: " + ht.loadInt(hid, i).toString() , 3)
+			destroy (ht.loadInt(hid, i)castTo Order)
+			RemoveSavedInteger(ht, hid, i)
 	return this
 
 public function unit.getPastOrder( int whichOrder ) returns Order
@@ -58,32 +65,6 @@ public function unit.getPastOrder( int whichOrder ) returns Order
 //******************************************************************************
 
 function badOrderList( int id ) returns boolean
-	//* 852055 defend		   852163 renewoff		 852516 phaseshiftoff
-	//* 852056 undefend		 852174 flamingarrows	852522 vengeanceon
-	//* 852064 healon		   852175 unflamingarrows  852523 vengeanceoff
-	//* 852065 healoff		  852177 immolation	   852540 flamingattack
-	//* 852067 innerfireon	  852178 unimmolation	 852541 unflamingattack
-	//* 852068 innerfireoff	 852191 curseon		  852543 replenishon
-	//* 852076 slowon		   852192 curseoff		 852544 replenishoff
-	//* 852077 slowoff		  852198 raisedeadon	  852546 replenishlifeon
-	//* 852090 divineshield	 852199 raisedeadoff	 852547 replenishlifeoff
-	//* 852091 undivineshield   852203 restorationon	852549 replenishmanaon
-	//* 852100 berserk		  852204 restorationoff   852550 replenishmanaoff
-	//* 852102 bloodluston	  852212 webon			852552 carrionscarabson
-	//* 852103 bloodlustoff	 852213 weboff		   852553 carrionscarabsoff
-	//* 852107 ensnareon		852244 coldarrows	   852562 frenzyon
-	//* 852108 ensnareoff	   852245 uncoldarrows	 852563 frenzyoff
-	//* 852129 windwalk		 852249 creephealon	  852571 spellshield
-	//* 852130 unwindwalk	   852250 creephealoff	 852578 blackarrowon
-	//* 852133 autodispelon	 852255 poisonarrows	 852579 blackarrowoff
-	//* 852134 autodispeloff	852256 unpoisonarrows   852589 manashieldon
-	//* 852136 barkskinon	   852458 frostarmoron	 852590 manashieldoff
-	//* 852137 barkskinoff	  852459 frostarmoroff	852602 parasiteon
-	//* 852150 faeriefireon	 852478 magicdefense	 852603 parasiteoff
-	//* 852151 faeriefireoff	852479 magicundefense   852671 incineratearrowon
-	//* 852158 rechargeon	   852484 spellstealon	 852672 incineratearrowoff
-	//* 852159 rechargeoff	  852485 spellstealoff
-	//* 852162 renewon		  852515 phaseshifton
 	return ( id==852055 or id==852056 or id==852064 or id==852065 or id==852067 or 
 			 id==852068 or id==852076 or id==852077 or id==852090 or id==852091 or 
 			 id==852100 or id==852102 or id==852103 or id==852107 or id==852108 or 
@@ -103,52 +84,13 @@ function badOrderList( int id ) returns boolean
 
 
 function unit.orderFilter( int id ) returns boolean
-	//* Excludes specific orders or unit types from registering with the system
-	//* 
-	//* 851972: stop
-	//*		 Stop is excluded from the system because it is the order that
-	//*		 tells a unit to do nothing. It should be ignored by the system.
-	//* 
-	//* 851971: smart
-	//* 851986: move
-	//* 851983: attack
-	//* 851984: attackground
-	//* 851990: patrol
-	//* 851993: holdposition
-	//*		 These are the UI orders that are passed to the system.
-	//*
-	//* 851973: stunned
-	//*		 This order is issued when a unit is stunned onto the stunner
-	//*		 It's ignored by the system, since you'd never want to reissue it
-	//* 
-	//* >= 852055, <= 852762
-	//*		 These are all spell IDs from defend to incineratearrowoff with
-	//*		 a bit of leeway at the ends for orders with no strings.
-	//* 
-	//* BadOrderList
-	//*		 These are the order IDs that are problematic to hold onto. The
-	//*		 unorder IDs all get issued whenever a unit is paused, resulting
-	//*		 in a misrepresentative flooding of the LastOrder list under such
-	//*		 a situation that can lead to a potential infinite loop with
-	//*		 AbortOrder().
-	return (id == 851971 or id == 851986 or id == 851983 or id == 851984 or id == 851990 or id == 851993 or (id >= 852055 and id <= 852762)) and not badOrderList(id)
+	return (id == 851971 or id == 851986 or id == 851983 or id == 851984 or id == 851990 or 
+			id == 851993 or (id >= 852055 and id <= 852762)) and not badOrderList(id)
 
 
 public function unit.issuePastOrderFilter( int whichOrder ) returns boolean
-	//* Some criteria for whether or not a unit's last order should be given
-	//* 
-	//* INSTANT type orders are excluded because generally, reissuing an instant
-	//* order doesn't make sense. You can remove that check below if you'd like,
-	//* though.
-	//* 
-	//* The Type check is really just to ensure that no spell recursion can
-	//* occur with IssueLastOrder. The problem with intercepting the spell cast
-	//* event is that it happens after the order is 'caught' and registered to
-	//* this system. Therefore, to just IssueLastOrder tells it to recast the
-	//* spell! That's a problem, so we need a method to eliminate it.
-	//* 
 	let od = this.getPastOrder(whichOrder)
-	return GetUnitTypeId(this) != 0 and not IsUnitType(this, UNIT_TYPE_DEAD) and od.typ != 0 and od.typ != ORDER_TYPE_IMMEDIATE
+	return GetUnitTypeId(this) != 0 and not IsUnitType(this, UNIT_TYPE_DEAD) and od.typ != ORDER_TYPE.IMMEDIATE
 
 
 //******************************************************************************
@@ -158,9 +100,9 @@ public function unit.issuePastOrder( int whichOrder ) returns boolean
 		//Only do this if the past order actually exists
 		let ord = this.getPastOrder( whichOrder)
 		if this.issuePastOrderFilter(whichOrder) and not ord.fin
-			if ord.typ == ORDER_TYPE_TARGET
+			if ord.typ == ORDER_TYPE.TARGET
 				return IssueTargetOrderById(this, ord.id, ord.tar)
-			else if ord.typ == ORDER_TYPE_POINT
+			else if ord.typ == ORDER_TYPE.POINT
 				if ord.id == 851971
 					//This adjusts for a bug in the point order's boolean return 
 					//when issuing a smart order
@@ -168,7 +110,7 @@ public function unit.issuePastOrder( int whichOrder ) returns boolean
 					return true
 				else
 					return IssuePointOrderById(this, ord.id, ord.x, ord.y)
-			else if ord.typ == ORDER_TYPE_IMMEDIATE
+			else if ord.typ == ORDER_TYPE.IMMEDIATE
 				return IssueImmediateOrderById(this, ord.id)
 	return false
 
@@ -194,13 +136,13 @@ function actions()
 	widget  t   = GetOrderTarget()
 	int oid = GetIssuedOrderId()
 	int oty = 0
-	
+	debugPrint("actions: " + OrderId2String(oid), 3)
 	if GetTriggerEventId() == EVENT_PLAYER_UNIT_ISSUED_TARGET_ORDER
-		new Order(u, oid, ORDER_TYPE_TARGET, t, GetWidgetX(t), GetWidgetY(t))
+		new Order(u, oid, ORDER_TYPE.TARGET, t, GetWidgetX(t), GetWidgetY(t))
 	else if GetTriggerEventId() == EVENT_PLAYER_UNIT_ISSUED_POINT_ORDER
-		new Order(u, oid, ORDER_TYPE_POINT, null, GetOrderPointX(), GetOrderPointY())
+		new Order(u, oid, ORDER_TYPE.POINT, null, GetOrderPointX(), GetOrderPointY())
 	else if GetTriggerEventId() == EVENT_PLAYER_UNIT_ISSUED_ORDER
-		new Order(u, oid, ORDER_TYPE_IMMEDIATE, null, GetUnitX(u), GetUnitY(u))
+		new Order(u, oid, ORDER_TYPE.IMMEDIATE, null, GetUnitX(u), GetUnitY(u))
 	else
 		printError("invalid Ordertype")
 
@@ -246,8 +188,8 @@ init
 	TriggerRegisterAnyUnitEventBJ(trg, EVENT_PLAYER_UNIT_SPELL_EFFECT)
 	
 	//Entering world trigger that clears old data from handle ids
-	trg = CreateTrigger()
-	RegionAddRect(re, m)
-	TriggerRegisterEnterRegion(trg, re, Condition(function onAdd))
-	RemoveRect(m)
+//	trg = CreateTrigger()
+//	RegionAddRect(re, m)
+//	TriggerRegisterEnterRegion(trg, re, Condition(function onAdd))
+//	RemoveRect(m)
 	

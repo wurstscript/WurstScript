@@ -24,7 +24,7 @@ import de.peeeq.wurstscript.jassprinter.JassPrinter;
 public class SimpleTestRun {
 
 
-	private static final String PSCRIPT_ENDING = ".wurst";
+	private static final String WURSTSCRIPT_ENDING = ".wurst";
 
 
 	public static void main(String ... args) throws IOException, InterruptedException {
@@ -62,7 +62,7 @@ public class SimpleTestRun {
 				throw new TestFailException("Compiler Errors:\n" + gui.getErrors());
 			}
 
-			File outputFile = new File(filename.replaceAll("\\"+PSCRIPT_ENDING+"$", ".j"));
+			File outputFile = new File(filename.replaceAll("\\"+WURSTSCRIPT_ENDING+"$", ".j"));
 			if (!outputFile.getName().endsWith(".j")) {
 				outputFile = new File(outputFile.getAbsolutePath()+".j");
 			}

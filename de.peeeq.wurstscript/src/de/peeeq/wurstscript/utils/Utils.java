@@ -183,7 +183,7 @@ public class Utils {
 	public static boolean isJassCode(AstElement pos) {
 		while (pos != null) {
 			if (pos instanceof WPackage) {
-				return false; // code is inside package -> pscript code 
+				return false; // code is inside package -> wurstscript code 
 			}
 			pos = pos.getParent();
 		}

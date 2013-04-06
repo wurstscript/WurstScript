@@ -123,7 +123,7 @@ import de.peeeq.wurstscript.validation.controlflow.DataflowAnomalyAnalysis;
 import de.peeeq.wurstscript.validation.controlflow.ReturnsAnalysis;
 
 /**
- * this class validates a pscript program
+ * this class validates a wurstscript program
  * 
  * it has visit methods for different elements in the AST and checks whether
  * these are correct

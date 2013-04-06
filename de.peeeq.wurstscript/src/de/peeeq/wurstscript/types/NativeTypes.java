@@ -9,7 +9,7 @@ import de.peeeq.wurstscript.intermediateLang.ILconstString;
 
 public class NativeTypes {
 	/**
-	 * returns the PscriptType for a given nativetype definition
+	 * returns the WurstScriptType for a given nativetype definition
 	 * @param b 
 	 */
 	public static WurstType nativeType(String typeName, boolean isJassCode) {

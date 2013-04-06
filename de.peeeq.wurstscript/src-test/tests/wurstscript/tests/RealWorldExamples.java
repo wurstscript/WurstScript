@@ -64,7 +64,7 @@ public class RealWorldExamples extends WurstScriptTest {
 	
 	@Test
 	public void setNullTests() throws IOException {
-		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "SetNullTests.pscript"), false);
+		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "SetNullTests.wurst"), false);
 	}
 	
 	@Test

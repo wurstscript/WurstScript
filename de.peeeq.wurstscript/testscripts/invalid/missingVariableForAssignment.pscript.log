@@ -1,3 +1,0 @@
-Errors in validation phase:
-Error in File missingVariableForAssignment.pscript line 4:3:
-Grammatical error: unexpected EQ	expected: error, INTEGER_LITERAL, IDENTIFIER, STRING_LITERAL, REAL_LITERAL, TRUE, FALSE, NOT, MINUS, LPAR, RBRACK, NL, FUNCTION, VAL, IF, WHILE, RETURN, NEW, NULL, THIS, DESTROY

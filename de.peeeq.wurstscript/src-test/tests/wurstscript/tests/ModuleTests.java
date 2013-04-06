@@ -12,42 +12,42 @@ public class ModuleTests extends WurstScriptTest {
 	
 	@Test
 	public void simple() throws IOException {
-		testAssertOkFile(new File(TEST_DIR + "simple.pscript"), true);
+		testAssertOkFile(new File(TEST_DIR + "simple.wurst"), true);
 	}
 
 	@Test
 	public void multi1() throws IOException {
-		testAssertOkFile(new File(TEST_DIR + "multi.pscript"), true);
+		testAssertOkFile(new File(TEST_DIR + "multi.wurst"), true);
 	}
 	
 	@Test
 	public void multi2() throws IOException {
-		testAssertOkFile(new File(TEST_DIR + "multi2.pscript"), true);
+		testAssertOkFile(new File(TEST_DIR + "multi2.wurst"), true);
 	}
 	
 	@Test
 	public void override() throws IOException {
-		testAssertOkFile(new File(TEST_DIR + "override.pscript"), true);
+		testAssertOkFile(new File(TEST_DIR + "override.wurst"), true);
 	}
 	
 	@Test
 	public void override2() throws IOException {
-		testAssertOkFile(new File(TEST_DIR + "override2.pscript"), true);
+		testAssertOkFile(new File(TEST_DIR + "override2.wurst"), true);
 	}
 	
 	@Test
 	public void diamond1() throws IOException {
-		testAssertOkFile(new File(TEST_DIR + "diamond.pscript"), true);
+		testAssertOkFile(new File(TEST_DIR + "diamond.wurst"), true);
 	}
 	
 	@Test
 	public void diamond2() throws IOException {
-		testAssertOkFile(new File(TEST_DIR + "diamond2.pscript"), true);
+		testAssertOkFile(new File(TEST_DIR + "diamond2.wurst"), true);
 	}
 	
 	@Test
 	public void initdestroy() throws IOException {
-		testAssertOkFile(new File(TEST_DIR + "initdestroy.pscript"), true);
+		testAssertOkFile(new File(TEST_DIR + "initdestroy.wurst"), true);
 	}
 	
 	

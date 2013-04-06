@@ -5,7 +5,7 @@ import de.peeeq.wurstscript.ast.AstElement;
 
 
 /**
- * a JassInt int is a special int for jass-code and not used in pscript-code
+ * a JassInt int is a special int for jass-code and not used in wurstscript-code
  * The only difference is that in jass int is like a subtype of real 
  *
  */

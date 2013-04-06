@@ -1,233 +1,217 @@
 package Fx
-	import DummyRecycler
-	import Effect
-	import Colors
-	import Vectors
-	import Angle
-	import MapBounds
+import DummyRecycler
+import Effect
+import Colors
+import Vectors
+import Angle
 
-	/********************************************************
-	 * * * * * * * * * * Fx * * * * * * * * * * * * * * * * *
-	 * An Fx-Object is basically just a moveable effect.  	*
-	 * Up above you find the Fx-Class. By creating			*
-	 * an instace of it, you recieve the mentioned,			*
-	 * moveable effect.										*
-	 * Constructors and functions defined as following,		*
-	 * should be self-explanatory.							*
-	 * Also features automatic recycling of Fx-instances	*
-	 *														*
-	 * Credits to Vexorian 								  	*
-	 ********************************************************/
-	public class Fx
-		private unit 	dummy	= null
-		private effect 	fx 		= null
-		private real 	zAngle  = 0.
-		private string 	sfxPath
-		
-		private colorA col
-		
-		construct(real x, real y, angle facing)
-			dummy = newDummy( vec2(x, y), facing)
-		
-		construct(vec2 pos, angle facing)
-			dummy = newDummy( pos, facing)
-		
-		construct(vec2 pos, angle facing, string fxpath)
-			dummy = newDummy( pos, facing)
-			setFx( fxpath )
-		
-		construct(vec3 pos, angle facing)
-			dummy = newDummy( pos, facing)
-			setZ(pos.z)	
-		
-		construct(vec3 pos, angle facing, string fxpath)
-			dummy = newDummy( pos, facing)
-			setZ(pos.z)
-			setFx( fxpath )	
-		
-		construct(real x, real y, angle facing, string fxpath)
-			dummy = newDummy( vec2(x,y), facing)
-			//print(GetUnitName(dummy))
-			setFx( fxpath )
-				
-		/** Get the owner of this Fx Object */
-		function getOwner() returns player
-			return dummy.getOwner()
+/********************************************************
+ * * * * * * * * * * Fx * * * * * * * * * * * * * * * * *
+ * An Fx-Object is basically just a moveable effect.  	*
+ * Up above you find the Fx-Class. By creating			*
+ * an instace of it, you recieve the mentioned,			*
+ * moveable effect.										*
+ * Constructors and functions defined as following,		*
+ * should be self-explanatory.							*
+ * Also features automatic recycling of Fx-instances	*
+ *														*
+ * Credits to Vexorian, Anitarf							*
+ ********************************************************/
+public class Fx
+	private unit 	dummy	= null
+	private effect 	fx 		= null
+	private real 	zAngle  = 0.
+	private string 	sfxPath 
+	
+	private colorA col
+	
+	construct(real x, real y, angle facing)
+		dummy = newDummy( vec2(x, y), facing)
+	
+	construct(vec2 pos, angle facing)
+		dummy = newDummy( pos, facing)
+	
+	construct(vec2 pos, angle facing, string fxpath)
+		dummy = newDummy( pos, facing)
+		setFx( fxpath )
+	
+	construct(vec3 pos, angle facing)
+		dummy = newDummy( pos, facing)
+		setZ(pos.z)	
+	
+	construct(vec3 pos, angle facing, string fxpath)
+		dummy = newDummy( pos, facing)
+		setZ(pos.z)
+		setFx( fxpath )	
+	
+	construct(real x, real y, angle facing, string fxpath)
+		dummy = newDummy( vec2(x,y), facing)
+		setFx( fxpath )
 			
-		/** Set the owner of this Fx Object */
-		function setOwner(player p, boolean changeColor) returns Fx
-			dummy.setOwner(p, changeColor)
-			return this
-			
-		/** Set the teamcolor of this Fx Object */
-		function setTeamcolor(playercolor c) returns Fx
-			SetUnitColor(dummy, c)
-			return this
+	/** Get the owner of this Fx Object */
+	function getOwner() returns player
+		return dummy.getOwner()
 		
-		/** Set the scale of this Fx Object */
-		function setScale(real value) returns Fx
-			dummy.setScale(value)
-			return this
+	/** Set the owner of this Fx Object */
+	function setOwner(player p, boolean changeColor) returns Fx
+		dummy.setOwner(p, changeColor)
+		return this
+		
+	/** Set the teamcolor of this Fx Object */
+	function setTeamcolor(playercolor c) returns Fx
+		SetUnitColor(dummy, c)
+		return this
+	
+	/** Set the scale of this Fx Object */
+	function setScale(real value) returns Fx
+		dummy.setScale(value)
+		return this
 
-		/** Get the green color value (rgba) */
-		function getGreen() returns int
-			return col.green
+	/** Get the green color value (rgba) */
+	function getGreen() returns int
+		return col.green
+	
+	/** Get the blue color value (rgba) */
+	function getBlue() returns int
+		return col.blue
+	
+	/** Get the red color value (rgba) */
+	function getRed() returns int
+		return col.red
+	
+	/** Get the alpha color value (rgba) */
+	function getAlpha() returns int
+		return col.alpha
 		
-		/** Get the blue color value (rgba) */
-		function getBlue() returns int
-			return col.blue
-		
-		/** Get the red color value (rgba) */
-		function getRed() returns int
-			return col.red
-		
-		/** Get the alpha color value (rgba) */
-		function getAlpha() returns int
-			return col.alpha
-		
-		/** Recolor the Fx object with the given color values (rgba) 
-		Color: 0 = no color - 255 = full color
-		Alpha: 0 = transparent - 255 = visible */
-		function recolor(int r, int g, int b, int a) returns Fx
-			col.red = r
-			col.green = g
-			col.blue = b
-			col.alpha = a
-			dummy.setVertexColor(r, g, b, a)
-			return this
-		
-		/** Recolor the Fx object with the given color tuple (colorA) 
-		Color: 0 = no color - 255 = full color
-		Alpha: 0 = transparent - 255 = visible */
-		function recolor(colorA newColor) returns Fx
-			col.red = newColor.red
-			col.green = newColor.green
-			col.blue = newColor.blue
-			col.alpha = newColor.alpha
-			dummy.setVertexColor(newColor)
-			return this
+	/** Recolor the Fx object with the given color tuple (colorA) 
+	Color: 0 = no color - 255 = full color
+	Alpha: 0 = transparent - 255 = visible */
+	function recolor(colorA newColor) returns Fx
+		col.red = newColor.red
+		col.green = newColor.green
+		col.blue = newColor.blue
+		col.alpha = newColor.alpha
+		dummy.setVertexColor(newColor)
+		return this
 
-		/** "Flashs" the given effect.
-		Flashing plays the death animation of the effect at the fx' position. */
-		function flash(string fx) returns Fx
-			dummy.addEffect(fx, "origin").destr()
-			return this
+	/** "flashs" the given effect.
+	Flashing plays the death animation of the effect at the fx' position. */
+	function flash(string fx) returns Fx
+		dummy.addEffect(fx, "origin").destr()
+		return this
 		
-		/** Get the xy angle in radians */
-		function getXYAngle() returns angle
-			return dummy.getFacing().asAngleDegrees()
+	/** Get the xy angle in radians */
+	function getXYAngle() returns angle
+		return dummy.getFacing().asAngleDegrees()
  
-		/** Set the angle in degrees */
-		function setXYAngle(angle value) returns Fx
-			dummy.setFacing(value)
-			return this
+	/** Set the angle in degrees */
+	function setXYAngle(angle value) returns Fx
+		dummy.setFacing(value)
+		return this
 		
-		/** Creates a new dummy with the given facing in order to achieve instant turning. */
-		function setXYAngleInstant(angle value) returns Fx
+	/** Creates a new dummy with the given facing in order to achieve instant turning. */
+	function setXYAngleInstant(angle value) returns Fx
+		fx.destr()
+		recycleDummy(dummy)
+		dummy = newDummy( vec2(getX(), getY()), value)
+		setFx(sfxPath)
+		return this
+		
+	/** Get the z angle in radians */
+	function getZAngle() returns real
+		return zAngle
+		
+	/** Set the z angle in radians */
+	function setZAngle(real value) returns Fx
+		int i = R2I(value*bj_RADTODEG + 90.5)
+		zAngle = value
+		if i >= 180
+			i = 179
+		else if i < 0
+			i = 0
+		SetUnitAnimationByIndex(dummy, i)
+		return this
+		
+	/** Set the z angle with an angle tuple */
+	function setZAngle(angle value) returns Fx
+		setZAngle(value.radians())
+		return this
+		
+	/** Get the x coordinate */
+	function getX() returns real
+		return dummy.getX()
+	
+	/** Get the y coordinate */
+	function getY() returns real
+		return dummy.getY()
+	
+	/** Get the z coordinate (fly height) */
+	function getZ() returns real
+		return dummy.getFlyHeight()
+		
+	/** Get the xy position as vector tuple */			
+	function getPos2() returns vec2
+		return vec2(getX(), getY())
+	
+	/** Set the x coordinate */
+	function setX(real x) returns Fx
+		dummy.setX(x)
+		return this
+		
+	/** Set the y coordinate */
+	function setY(real y) returns Fx
+		dummy.setY(y)
+		return this
+		
+	/** Set the position to the given xy coordinates */
+	function setPos(real x, real y) returns Fx
+		dummy.setPos(x, y)
+		return this
+	
+	/** Set the position to the given xyz coordinates
+	z = flyHeight */
+	function setPos(real x, real y, real z) returns Fx
+		dummy.setPos(x, y)
+		dummy.setFlyHeight(z, 0.)
+		return this
+		
+	/** Set the position to the given xy vector tuple */
+	function setPos(vec2 pos) returns Fx
+		dummy.setPos(pos.x, pos.y)
+		return this
+	
+	/** Set the position to the given xyz vector tuple */
+	function setPos(vec3 pos) returns Fx
+		dummy.setPos(pos.x, pos.y)
+		setZ(pos.z)
+		return this
+		
+	/** Set the z coordinate (flyHeight) */
+	function setZ(real z) returns Fx
+		dummy.setFlyHeight(z, 0.)
+		return this
+			
+	/** Set the path to the sfx model that should be displayed. 
+	If there is already a model displayed, it will be replaced with the new one.*/
+	function setFx(string newpath) returns Fx
+		if fx != null
 			fx.destr()
-			recycleDummy(dummy)
-			dummy = newDummy( vec2(getX(), getY()), value)
-			setFx(sfxPath)
-			return this
-		
-		/** Get the z angle in radians */
-		function getZAngle() returns real
-			return zAngle
-		
-		/** Set the z angle in radians */
-		function setZAngle(real value) returns Fx
-			int i = R2I(value*bj_RADTODEG + 90.5)
-			zAngle = value
-			if i >= 180
-				i = 179
-			else if i < 0
-				i = 0
-			SetUnitAnimationByIndex(dummy, i)
-			return this
-			
-		/** Set the z angle with an angle tuple */
-		function setZAngle(angle value) returns Fx
-			setZAngle(value.radians())
-			return this
-		
-		/** Get the x coordinate */
-		function getX() returns real
-			return dummy.getX()
-		
-		/** Get the y coordinate */
-		function getY() returns real
-			return dummy.getY()
-		
-		/** Get the z coordinate (fly height) */
-		function getZ() returns real
-			return dummy.getFlyHeight()
-			
-		/** Get the xy position as vector tuple */			
-		function getPos2() returns vec2
-			return vec2(getX(), getY())
-		
-		/** Set the x coordinate */
-		function setX(real x) returns Fx
-			dummy.setX(x)
-			return this
-		
-		/** Set the y coordinate */
-		function setY(real y) returns Fx
-			dummy.setY(y)
-			return this
-			
-		/** Set the position to the given xy coordinates */
-		function setPos(real x, real y) returns Fx
-			dummy.setPos(x, y)
-			return this
-		
-		/** Set the position to the given xyz coordinates
-		z = flyHeight */
-		function setPos(real x, real y, real z) returns Fx
-			dummy.setPos(x, y)
-			dummy.setFlyHeight(z, 0.)
-			return this
-		
-		/** Set the position to the given xy vector tuple */
-		function setPos(vec2 pos) returns Fx
-			dummy.setPos(pos.x, pos.y)
-			return this
-		
-		/** Set the position to the given xyz vector tuple */
-		function setPos(vec3 pos) returns Fx
-			dummy.setPos(pos.x, pos.y)
-			setZ(pos.z)
-			return this
-			
-		/** Set the z coordinate (flyHeight) */
-		function setZ(real z) returns Fx
-			dummy.setFlyHeight(z, 0.)
-			return this
-			
-		/** Set the path to the sfx model that shoulöd be displayed. 
-		If there is already a model displayed, it will be replaced with the new one.*/
-		function setFx(string newpath) returns Fx
-			if fx != null
-				fx.destr()
-			if newpath == ""
-				fx = null
-			else
-				fx = dummy.addEffect(newpath, "origin")
-			sfxPath = newpath
-			return this
+		if newpath == ""
+			fx = null
+		else
+			fx = dummy.addEffect(newpath, "origin")
+		sfxPath = newpath
+		return this
 				
-		ondestroy  			
-			if fx != null
-				fx.destr()
+	ondestroy  			
+		if fx != null
+			fx.destr()
 
-			recycleDummy(dummy)
+		recycleDummy(dummy)
 
-		/** Destroys the Fx object without showing the effect's death animation 
-			Sort of a workaround by setting the position to the top right corner, hopefully not visible.*/
-		function hiddenDestroy()
-			dummy.setPos( 2147483647, 2147483647)
-			destroy this
-			
+	/** Destroys the Fx object without showing the effect's death animation 
+		Sort of a workaround by setting the position to the top right corner, hopefully not visible.*/
+	function hiddenDestroy()
+		dummy.setPos( 2147483647, 2147483647)
+		destroy this
 
-			
-endpackage
