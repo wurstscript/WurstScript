@@ -578,7 +578,7 @@ public class ClassesTests extends WurstScriptTest {
 	
 	@Test
 	public void constant_fields2() {
-		testAssertErrorsLines(false, "constant",
+		testAssertErrorsLines(false, "unexpected newline",
 				"package test",
 				"	class A",
 				"		constant int i",
