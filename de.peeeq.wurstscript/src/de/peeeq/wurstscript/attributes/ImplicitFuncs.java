@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.HasTypeArgs;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 
 public class ImplicitFuncs {
 
@@ -39,11 +40,21 @@ public class ImplicitFuncs {
 
 	public static Collection<NameLink> findToIndexFuncs(WurstType typ,
 			AstElement e) {
+		typ = resolveBound(typ);
 		return e.lookupFuncs(toIndexFuncName(typ), false);
 	}
 
+
 	public static Collection<NameLink> findFromIndexFuncs(WurstType typ,
 			AstElement e) {
+		typ = resolveBound(typ);
 		return e.lookupFuncs(fromIndexFuncName(typ), false);
+	}
+	
+	static WurstType resolveBound(WurstType typ) {
+		while (typ instanceof WurstTypeBoundTypeParam) {
+			typ = ((WurstTypeBoundTypeParam) typ).getBaseType();
+		}
+		return typ;
 	}
 }

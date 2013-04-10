@@ -240,5 +240,46 @@ public class GenericsTests extends WurstScriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void implicitConversionFail() { // see bug #121
+		testAssertOkLinesWithStdLib(false,  
+				"package Test",
+				"import LinkedList",
+				"Table data",
+				"function effectToIndex(effect e) returns int",
+				"	return e.getHandleId()",
+
+				"function effectFromIndex(int index) returns effect",
+				"	data.saveFogState(0,ConvertFogState(index))",
+				"	return data.loadEffect(0)",
+				
+				"init",
+				"	LinkedList<effect> fxs = new LinkedList<effect>()",
+				"	for f in fxs",
+				"		f.destr()",
+				"endpackage");
+	}
+	
+	@Test
+	public void implicitConversionFailSimple() { // see bug #121
+		testAssertOkLines(false,  
+				"type effect extends handle",
+				"package Test",
+				"function effectToIndex(effect e) returns int",
+				"	return 2",
+
+				"function effectFromIndex(int index) returns effect",
+				"	return null",
+				
+				"class List<T>",
+				"	function get() returns T",
+				"		return 0 castTo T",
+				
+				"init",
+				"	List<effect> fxs = new List<effect>()",
+				"	let f = fxs.get()",
+				"endpackage");
+	}
 
 }

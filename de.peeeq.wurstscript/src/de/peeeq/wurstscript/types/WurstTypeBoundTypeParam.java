@@ -43,7 +43,7 @@ public class WurstTypeBoundTypeParam extends WurstType {
 
 	@Override
 	public ImType imTranslateType() {
-		return TypesHelper.imInt();
+		return baseType.imTranslateType();
 	}
 
 	@Override
