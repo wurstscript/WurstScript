@@ -19,7 +19,7 @@ package Texttag
 		return this
 
 	public function texttag.setText( string text, real height ) returns texttag
-		SetTextTagText(this, text, height)
+		SetTextTagText(this, text, height * 0.0023)
 		return this
 		
 	public function texttag.setLifespan( real span ) returns texttag
@@ -54,6 +54,17 @@ package Texttag
 		tt.setPos(pos.toVec2().withZ(20.))
 		.setText( message, size * 0.0023 )
 		.setColor( col )
+		return tt
+		
+	public function createTTEx(vec3 pos, string message, int size, colorA col, player p ) returns texttag
+		texttag tt = CreateTextTag()
+		tt.setPos(pos.toVec2().withZ(20.))
+		.setText( message, size * 0.0023 )
+		.setColor( col )
+		if GetLocalPlayer() == p
+			tt.setVisibility(true)
+		else
+			tt.setVisibility(false)
 		return tt
 		
 	public function createTTEx(vec3 pos, vec2 vel, string message, int size, real duration, colorA col ) returns texttag

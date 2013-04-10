@@ -1,9 +1,13 @@
 package Rect
 	import NoWurst
 	import Table
+	import Vectors
 
 	Table sourceTable = new Table()
 	Table regionData = new Table()
+	
+	public function rect.getCenter() returns vec2
+		return vec2(this.getCenterX(), this.getCenterY())
 	
 	public function rect.getCenterX() returns real
 		return GetRectCenterX(this)
@@ -22,6 +26,18 @@ package Rect
 		
 	public function rect.getMinY() returns real
 		return GetRectMinY(this)
+		
+	public function rect.getLeftTop() returns vec2
+		return vec2(this.getMinX(), this.getMaxY())
+		
+	public function rect.getRightTop() returns vec2
+		return vec2(this.getMaxX(), this.getMaxY())
+		
+	public function rect.getLeftBot() returns vec2
+		return vec2(this.getMinX(), this.getMinY())
+		
+	public function rect.getRightBot() returns vec2
+		return vec2(this.getMaxX(), this.getMinY())
 	
 	public function trigger.registerRectEnterEventSource( rect r )
 		TriggerRegisterEnterRectSimple(this, r)

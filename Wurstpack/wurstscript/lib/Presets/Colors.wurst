@@ -103,7 +103,7 @@ package Colors
 		SetUnitVertexColor(this, col.red, col.green, col.blue, 255)
 		return this
 		
-	/** Returns a string that is in the wc3 hexcolor format (|crrggbbaa) */
+	/** Returns a string that is in the wc3 hexcolor format (|caarrggbb) */
 	public function colorA.toColorString() returns string
 		return "|C" + toHex(this.alpha) + toHex(this.red) + toHex(this.green) + toHex(this.blue)
 	

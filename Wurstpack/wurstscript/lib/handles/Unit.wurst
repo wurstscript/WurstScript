@@ -120,6 +120,14 @@ package Unit
 	public function unit.getState( unitstate state ) returns real
 		return GetUnitState( this, state )
 		
+	public function unit.addState( unitstate state, real value ) returns unit
+		SetUnitState( this, state, this.getState(state) + value )
+		return this
+
+	public function unit.subState( unitstate state, real value ) returns unit
+		SetUnitState( this, state, this.getState(state) - value )
+		return this
+		
 	public function unit.setHP( real hp ) returns unit
 		this.setState( UNIT_STATE_LIFE, hp )
 		return this
@@ -194,5 +202,17 @@ package Unit
 		
 	public function unit.getTypeId() returns int
 		return GetUnitTypeId(this)
+		
+	public function unit.getMana() returns real
+		return this.getState(UNIT_STATE_MANA)
+
+		
+	public function unit.subMana(real val) returns unit
+		this.subState(UNIT_STATE_MANA, val)
+		return this
+		
+	public function unit.addMana(real val) returns unit
+		this.addState(UNIT_STATE_MANA, val)
+		return this
 
 endpackage

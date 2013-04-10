@@ -24,6 +24,9 @@ package Real
 	public function real.toString() returns string
 		return R2S(this)
 		
+	public function real.toString(int precision) returns string
+		return R2SW(this, precision, precision)
+		
 	public function real.acos() returns real
 		return Acos(this)
 		
