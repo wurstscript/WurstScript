@@ -1,204 +1,202 @@
 package Knockback 
-	import LinkedListModule
-	import Terrain
-	import TimerUtils
-	import TimedLoop
+import LinkedListModule
+import Terrain
+import TimerUtils
+import TimedLoop
+
+//Please check the Knockback Info Trigger for more information about this system.
+
+
+constant real STANDARD_DEST_RADIUS	  = 100.00
+constant real STANDARD_UNIT_RADIUS	  = 75.00
+constant boolean STOP_WHEN_IMPASSABLE   = false
+constant boolean USE_KNOCKBACK_EFFECTS  = false
+//will only be used, if USE_KNOCKBACK_EFFECTS is true
+constant string EARTH_EFFECT					= "Objects\\Spawnmodels\\Undead\\ImpaleTargetDust\\ImpaleTargetDust.mdl"
+constant string WATER_EFFECT					= "Abilities\\Spells\\Undead\\AbsorbMana\\AbsorbManaBirthMissile.mdl"
+constant string KNOCKBACK_EFFECT_ATTACHPOINT	= "origin"
+constant boolean IGNORE_FLYING_UNITS			= true
+
+
+//The Knockback Struct
+public class Knockback 
+	use TimedLoop
+	use LinkedListModule
+
+	private unit caster = null
+	private unit target = null
+	private real timeOver = 0.00
+	private real currentSpeed = 0.00
+	private real movedDistance = 0.00
+	private real duration = 0.00
+	private real distance = 0.00
+	private real knockbackAngle = 0.00
 	
-	//Please check the Knockback Info Trigger for more information about this system.
+	//variables you can change while the unit is being knocked back
+	real aoeUnit = STANDARD_UNIT_RADIUS
+	real aoeDest = STANDARD_DEST_RADIUS
+	
+	
+	//private variables
+	private real deceleration = 0.00
+	private real cos = 0.00
+	private real sin = 0.00
+	private effect fx = null
+	private effect kbEffect = null
+	private int kbEffectMode = 0
+	private boolean ranDeathAction = false
+	private boolean isGround = false
+	
 
 	
-	constant real STANDARD_DEST_RADIUS	  = 100.00
-	constant real STANDARD_UNIT_RADIUS	  = 75.00
-	constant boolean STOP_WHEN_IMPASSABLE   = false
-	constant boolean USE_KNOCKBACK_EFFECTS  = false
-	//will only be used, if USE_KNOCKBACK_EFFECTS is true
-	constant string EARTH_EFFECT					= "Objects\\Spawnmodels\\Undead\\ImpaleTargetDust\\ImpaleTargetDust.mdl"
-	constant string WATER_EFFECT					= "Abilities\\Spells\\Undead\\AbsorbMana\\AbsorbManaBirthMissile.mdl"
-	constant string KNOCKBACK_EFFECT_ATTACHPOINT	= "origin"
-	constant boolean IGNORE_FLYING_UNITS			= true
-
-
-	//The Knockback Struct
-	public class Knockback 
-		use TimedLoop
-		use LinkedListModule
+	//just some static variables to make the system faster/work
+	private static boolexpr unitFilter  = null 
+	private static boolexpr destFilter  = null
+	private static code unitActions	 = null
+	private static code destActions	 = null
+	private static thistype temp		= null
+	private static rect destRect		= Rect(0,0,1,1)
+	private static real tx			  = 0.00
+	private static real ty			  = 0.00
 	
-		private unit caster = null
-		private unit target = null
-		private real timeOver = 0.00
-		private real currentSpeed = 0.00
-		private real movedDistance = 0.00
-		private real duration = 0.00
-		private real distance = 0.00
-		private real knockbackAngle = 0.00
+	//this is the filter for destructables around the target
+	private static function destFilterMethod() returns boolean
+		real x = GetDestructableX(GetFilterDestructable())
+		real y = GetDestructableY(GetFilterDestructable())
+		return (Knockback.tx-x)*(Knockback.tx-x) + (Knockback.ty-y)*(Knockback.ty-y) <= Knockback.temp.aoeDest * Knockback.temp.aoeDest
+	
+	
+	//cleans up the struct and runs the onEnd actions
+	ondestroy
+		if fx != null
+			DestroyEffect(fx)
 		
-		//variables you can change while the unit is being knocked back
-		real aoeUnit = STANDARD_UNIT_RADIUS
-		real aoeDest = STANDARD_DEST_RADIUS
-		
-		
-		//private variables
-		private real deceleration = 0.00
-		private real cos = 0.00
-		private real sin = 0.00
-		private effect fx = null
-		private effect kbEffect = null
-		private int kbEffectMode = 0
-		private boolean ranDeathAction = false
-		private boolean isGround = false
-		
-
-		
-		//just some static variables to make the system faster/work
-		private static boolexpr unitFilter  = null 
-		private static boolexpr destFilter  = null
-		private static code unitActions	 = null
-		private static code destActions	 = null
-		private static thistype temp		= null
-		private static rect destRect		= Rect(0,0,1,1)
-		private static real tx			  = 0.00
-		private static real ty			  = 0.00
-		
-		//this is the filter for destructables around the target
-		private static function destFilterMethod() returns boolean
-			real x = GetDestructableX(GetFilterDestructable())
-			real y = GetDestructableY(GetFilterDestructable())
-			return (Knockback.tx-x)*(Knockback.tx-x) + (Knockback.ty-y)*(Knockback.ty-y) <= Knockback.temp.aoeDest * Knockback.temp.aoeDest
-		
-		
-		//cleans up the struct and runs the onEnd actions
-		ondestroy
-			if fx != null
-				DestroyEffect(fx)
-			
-			if USE_KNOCKBACK_EFFECTS
-				DestroyEffect(kbEffect)
+		if USE_KNOCKBACK_EFFECTS
+			DestroyEffect(kbEffect)
 
 
-		
-		//this method will be called every TIMER_INTERVAL and update the units position as well as runs the onLoop action
-		override function onTimedLoop()
-			real x
-			real y 
-						
-			//print("yes")
-			//change the time which has been gone
-			timeOver += PERIOD
-			currentSpeed -= deceleration
-			movedDistance += currentSpeed
-			
-			x = GetUnitX(target) + (currentSpeed) * cos
-			y = GetUnitY(target) + (currentSpeed) * sin
-			
-			///check for destructables arround the target
-			Knockback.tx = x
-			Knockback.ty = y
-			SetRect(Knockback.destRect, -aoeDest, -aoeDest, aoeDest, aoeDest)
-			MoveRectTo(Knockback.destRect, x, y)
-			EnumDestructablesInRect(Knockback.destRect, Knockback.destFilter, Knockback.destActions)
-			
-			//check pathability and new unit position if walkable
-			if isTerrainWalkable(x, y)
-				SetUnitX(target, x)
-				SetUnitY(target, y)
-				//print("foo")
-			else
-				if STOP_WHEN_IMPASSABLE
-					//print("impassable")
-					stopTimedLoop()
-				
-			//change the knockback effect if the user want to use it
-			if USE_KNOCKBACK_EFFECTS
-				if isGround or not IGNORE_FLYING_UNITS
-					if kbEffectMode == 2 and isTerrainLand(x, y)
-						DestroyEffect(kbEffect)
-						kbEffect = AddSpecialEffectTarget(EARTH_EFFECT, target, KNOCKBACK_EFFECT_ATTACHPOINT)
-					else if kbEffectMode == 1 and isTerrainShallowWater(x, y)
-						DestroyEffect(kbEffect)
-						kbEffect = AddSpecialEffectTarget(WATER_EFFECT, target, KNOCKBACK_EFFECT_ATTACHPOINT)
+	
+	//this method will be called every TIMER_INTERVAL and update the units position as well as runs the onLoop action
+	override function onTimedLoop()
+		real x
+		real y 
 					
-			
-			//if the knockback ended because the target reached the end or the speed is smaller than 0
-			if currentSpeed <= 0 or movedDistance >= distance
-				//print("ende")
+		//print("yes")
+		//change the time which has been gone
+		timeOver += PERIOD
+		currentSpeed -= deceleration
+		movedDistance += currentSpeed
+		
+		x = GetUnitX(target) + (currentSpeed) * cos
+		y = GetUnitY(target) + (currentSpeed) * sin
+		
+		///check for destructables arround the target
+		Knockback.tx = x
+		Knockback.ty = y
+		SetRect(Knockback.destRect, -aoeDest, -aoeDest, aoeDest, aoeDest)
+		MoveRectTo(Knockback.destRect, x, y)
+		EnumDestructablesInRect(Knockback.destRect, Knockback.destFilter, Knockback.destActions)
+		
+		//check pathability and new unit position if walkable
+		if isTerrainWalkable(x, y)
+			SetUnitX(target, x)
+			SetUnitY(target, y)
+			//print("foo")
+		else
+			if STOP_WHEN_IMPASSABLE
+				//print("impassable")
 				stopTimedLoop()
 			
-			
-			
-			
-			//get next instance
-
-
-		//adds or changes the current effect attached to the target
-		function addSpecialEffect( string fxpath, string attachPoint )
-			if fx != null
-				DestroyEffect(fx)
-			
-			fx = AddSpecialEffectTarget(fxpath, target, attachPoint)
-		
-		//changes the angle of the knockback
-		function setAngle( real newAngle )
-			knockbackAngle = newAngle
-			cos = Cos(knockbackAngle * bj_DEGTORAD)
-			sin = Sin(knockbackAngle * bj_DEGTORAD)
-
-		
-		//use this method to check if a unit is being knocked back
-		static function isUnitKnockedBack( unit whichUnit ) returns boolean
-			thistype kb = Knockback.first
-			if kb == null
-				return false
-			
-			while kb != null
-				if kb.target == whichUnit
-					return true
+		//change the knockback effect if the user want to use it
+		if USE_KNOCKBACK_EFFECTS
+			if isGround or not IGNORE_FLYING_UNITS
+				if kbEffectMode == 2 and isTerrainLand(x, y)
+					DestroyEffect(kbEffect)
+					kbEffect = AddSpecialEffectTarget(EARTH_EFFECT, target, KNOCKBACK_EFFECT_ATTACHPOINT)
+				else if kbEffectMode == 1 and isTerrainShallowWater(x, y)
+					DestroyEffect(kbEffect)
+					kbEffect = AddSpecialEffectTarget(WATER_EFFECT, target, KNOCKBACK_EFFECT_ATTACHPOINT)
 				
-				kb = kb.next
+		
+		//if the knockback ended because the target reached the end or the speed is smaller than 0
+		if currentSpeed <= 0 or movedDistance >= distance
+			//print("ende")
+			stopTimedLoop()
+		
+		
+		
+		
+		//get next instance
 
+
+	//adds or changes the current effect attached to the target
+	function addSpecialEffect( string fxpath, string attachPoint )
+		if fx != null
+			DestroyEffect(fx)
+		
+		fx = AddSpecialEffectTarget(fxpath, target, attachPoint)
+	
+	//changes the angle of the knockback
+	function setAngle( real newAngle )
+		knockbackAngle = newAngle
+		cos = Cos(knockbackAngle * bj_DEGTORAD)
+		sin = Sin(knockbackAngle * bj_DEGTORAD)
+
+	
+	//use this method to check if a unit is being knocked back
+	static function isUnitKnockedBack( unit whichUnit ) returns boolean
+		thistype kb = Knockback.first
+		if kb == null
 			return false
-				
 		
-		//this method creates a new knockback
-		construct( unit caster, unit target, real distance, real time, real xyangle )
-			real speed = 2 * distance / ((time / PERIOD) + 1)
-			real deceleration = speed / (time / PERIOD)
-			int i = 0
-						
-			//variables
-			this.caster = caster
-			this.target = target
-			this.knockbackAngle = xyangle
-			this.distance = distance
-			this.duration = time
-			this.currentSpeed = speed
-			this.deceleration = deceleration
-			this.knockbackAngle = xyangle
-			this.cos = Cos(this.knockbackAngle * bj_DEGTORAD)
-			this.sin = Sin(this.knockbackAngle * bj_DEGTORAD)
+		while kb != null
+			if kb.target == whichUnit
+				return true
 			
-			this.isGround = not IsUnitType(this.target, UNIT_TYPE_FLYING)
+			kb = kb.next
+
+		return false
 			
-			//Adds the knockback effect when USE_KNOCKBACK_EFFECTS is to true
-			if USE_KNOCKBACK_EFFECTS
-				if isGround or not IGNORE_FLYING_UNITS
-					if isTerrainLand(GetUnitX(target), GetUnitY(target))
-						kbEffect = AddSpecialEffectTarget(EARTH_EFFECT, target, KNOCKBACK_EFFECT_ATTACHPOINT)
-						kbEffectMode = 1
-					else if isTerrainShallowWater(GetUnitX(target), GetUnitY(target))
-						kbEffect = AddSpecialEffectTarget(WATER_EFFECT, target, KNOCKBACK_EFFECT_ATTACHPOINT)
-						kbEffectMode = 2
+	
+	//this method creates a new knockback
+	construct( unit caster, unit target, real distance, real time, real xyangle )
+		real speed = 2 * distance / ((time / PERIOD) + 1)
+		real deceleration = speed / (time / PERIOD)
+		int i = 0
 					
+		//variables
+		this.caster = caster
+		this.target = target
+		this.knockbackAngle = xyangle
+		this.distance = distance
+		this.duration = time
+		this.currentSpeed = speed
+		this.deceleration = deceleration
+		this.knockbackAngle = xyangle
+		this.cos = Cos(this.knockbackAngle * bj_DEGTORAD)
+		this.sin = Sin(this.knockbackAngle * bj_DEGTORAD)
+		
+		this.isGround = not IsUnitType(this.target, UNIT_TYPE_FLYING)
+		
+		//Adds the knockback effect when USE_KNOCKBACK_EFFECTS is to true
+		if USE_KNOCKBACK_EFFECTS
+			if isGround or not IGNORE_FLYING_UNITS
+				if isTerrainLand(GetUnitX(target), GetUnitY(target))
+					kbEffect = AddSpecialEffectTarget(EARTH_EFFECT, target, KNOCKBACK_EFFECT_ATTACHPOINT)
+					kbEffectMode = 1
+				else if isTerrainShallowWater(GetUnitX(target), GetUnitY(target))
+					kbEffect = AddSpecialEffectTarget(WATER_EFFECT, target, KNOCKBACK_EFFECT_ATTACHPOINT)
+					kbEffectMode = 2
 				
 			
-			//start the timer if the new instance is the only one
-			print("done")
-			startTimedLoop()
-
-	
-		//Initialization
-	init
-		Knockback.destFilter  = Condition(function Knockback.destFilterMethod)
+		
+		//start the timer if the new instance is the only one
+		print("done")
+		startTimedLoop()
 
 
-	
-endpackage
+	//Initialization
+init
+	Knockback.destFilter  = Condition(function Knockback.destFilterMethod)
+
+

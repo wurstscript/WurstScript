@@ -34,7 +34,7 @@ constant int BONUS_EXP = 9 //
 /** How long the message will last */
 constant real DURATION = 5.
 /** Font size */
-constant int SIZE = 12 
+constant real SIZE = 12 
 /** Red value (of 255) for the text */
 constant int RED = 0
 /** Green value (of 255) for the text */

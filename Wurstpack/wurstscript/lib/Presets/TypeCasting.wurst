@@ -2,27 +2,174 @@ package TypeCasting
 
 Table data = new Table()
 
-function unitToIndex(unit u) returns int
-	return u.getHandleId()
+
+function playerFromIndex(int index) returns player
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadPlayer(0)
+
+function playerToIndex(player object) returns int
+	return object.getHandleId()
+
+function widgetFromIndex(int index) returns widget
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadWidget(0)
+
+function widgetToIndex(widget object) returns int
+	return object.getHandleId()
 
 function unitFromIndex(int index) returns unit
 	data.saveFogState(0,ConvertFogState(index))
 	return data.loadUnit(0)
-	
-function destructableToIndex(destructable d) returns int
-	return d.getHandleId()
+
+function unitToIndex(unit object) returns int
+	return object.getHandleId()
 
 function destructableFromIndex(int index) returns destructable
 	data.saveFogState(0,ConvertFogState(index))
 	return data.loadDestructable(0)
-	
-function effectToIndex(effect e) returns int
-	return e.getHandleId()
+
+function destructableToIndex(destructable object) returns int
+	return object.getHandleId()
+
+function itemFromIndex(int index) returns item
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadItem(0)
+
+function itemToIndex(item object) returns int
+	return object.getHandleId()
+
+function abilityFromIndex(int index) returns ability
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadAbility(0)
+
+function abilityToIndex(ability object) returns int
+	return object.getHandleId()
+
+function forceFromIndex(int index) returns force
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadForce(0)
+
+function forceToIndex(force object) returns int
+	return object.getHandleId()
+
+function groupFromIndex(int index) returns group
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadGroup(0)
+
+function groupToIndex(group object) returns int
+	return object.getHandleId()
+
+function triggerFromIndex(int index) returns trigger
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadTrigger(0)
+
+function triggerToIndex(trigger object) returns int
+	return object.getHandleId()
+
+function timerFromIndex(int index) returns timer
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadTimer(0)
+
+function timerToIndex(timer object) returns int
+	return object.getHandleId()
+
+function locationFromIndex(int index) returns location
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadLocation(0)
+
+function locationToIndex(location object) returns int
+	return object.getHandleId()
+
+function regionFromIndex(int index) returns region
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadRegion(0)
+
+function regionToIndex(region object) returns int
+	return object.getHandleId()
+
+function rectFromIndex(int index) returns rect
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadRect(0)
+
+function rectToIndex(rect object) returns int
+	return object.getHandleId()
+
+function soundFromIndex(int index) returns sound
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadSound(0)
+
+function soundToIndex(sound object) returns int
+	return object.getHandleId()
 
 function effectFromIndex(int index) returns effect
 	data.saveFogState(0,ConvertFogState(index))
 	return data.loadEffect(0)
-	
+
+function effectToIndex(effect object) returns int
+	return object.getHandleId()
+
+function dialogFromIndex(int index) returns dialog
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadDialog(0)
+
+function dialogToIndex(dialog object) returns int
+	return object.getHandleId()
+
+function buttonFromIndex(int index) returns button
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadButton(0)
+
+function buttonToIndex(button object) returns int
+	return object.getHandleId()
+
+function questFromIndex(int index) returns quest
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadQuest(0)
+
+function questToIndex(quest object) returns int
+	return object.getHandleId()
+
+function leaderboardFromIndex(int index) returns leaderboard
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadLeaderboard(0)
+
+function leaderboardToIndex(leaderboard object) returns int
+	return object.getHandleId()
+
+function multiboardFromIndex(int index) returns multiboard
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadMultiboard(0)
+
+function multiboardToIndex(multiboard object) returns int
+	return object.getHandleId()
+
+function trackableFromIndex(int index) returns trackable
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadTrackable(0)
+
+function trackableToIndex(trackable object) returns int
+	return object.getHandleId()
+
+function lightningFromIndex(int index) returns lightning
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadLightning(0)
+
+function lightningToIndex(lightning object) returns int
+	return object.getHandleId()
+
+function imageFromIndex(int index) returns image
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadImage(0)
+
+function imageToIndex(image object) returns int
+	return object.getHandleId()
+
+function ubersplatFromIndex(int index) returns ubersplat
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadUbersplat(0)
+
+function ubersplatToIndex(ubersplat object) returns int
+	return object.getHandleId()
 	
 function booleanToIndex(boolean u) returns int
 	if u

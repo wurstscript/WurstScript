@@ -1,5 +1,4 @@
 package SoundHelper
-
 import Stack
 
 constant boolean DEFAULT_SOUND_STOPS_ON_LEAVE_RANGE = true

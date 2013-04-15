@@ -86,6 +86,7 @@ public class WurstREPL {
 	private ILInterpreter interpreter;
 	private Map<String, String> currentState;
 	private Set<String> importedPackages;
+	private Random rand = new Random();
 	
 	private class ReplGui extends WurstGuiLogger {
 
@@ -187,7 +188,7 @@ public class WurstREPL {
 			if (assignment instanceof LocalVarDef) {
 				LocalVarDef def = (LocalVarDef) assignment;
 				// change name to some temporary name
-				tempName = "tempName" + (new Random().nextInt());
+				tempName = "tempName" + (rand.nextInt());
 				def.setName(tempName);
 			}
 			
@@ -226,7 +227,7 @@ public class WurstREPL {
 				
 				if (value instanceof ILconstReal) {
 					ILconstReal r = (ILconstReal) value;
-					if (r.getVal() == Float.NaN || r.getVal() == Float.NEGATIVE_INFINITY || r.getVal() == Float.POSITIVE_INFINITY) {
+					if (Float.isNaN(r.getVal()) || r.getVal() == Float.NEGATIVE_INFINITY || r.getVal() == Float.POSITIVE_INFINITY) {
 						print("cannot store result of computation: " + r.getVal() + "\n");
 						return;
 					}

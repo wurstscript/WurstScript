@@ -1,65 +1,62 @@
 package Rect
-	import NoWurst
-	import Table
-	import Vectors
+import NoWurst
+import Table
+import Vectors
 
-	Table sourceTable = new Table()
-	Table regionData = new Table()
-	
-	public function rect.getCenter() returns vec2
-		return vec2(this.getCenterX(), this.getCenterY())
-	
-	public function rect.getCenterX() returns real
-		return GetRectCenterX(this)
-	
-	public function rect.getCenterY() returns real
-		return GetRectCenterY(this)
-		
-	public function rect.getMaxX() returns real
-		return GetRectMaxX(this)
-		
-	public function rect.getMaxY() returns real
-		return GetRectMaxY(this)
-		
-	public function rect.getMinX() returns real
-		return GetRectMinX(this)
-		
-	public function rect.getMinY() returns real
-		return GetRectMinY(this)
-		
-	public function rect.getLeftTop() returns vec2
-		return vec2(this.getMinX(), this.getMaxY())
-		
-	public function rect.getRightTop() returns vec2
-		return vec2(this.getMaxX(), this.getMaxY())
-		
-	public function rect.getLeftBot() returns vec2
-		return vec2(this.getMinX(), this.getMinY())
-		
-	public function rect.getRightBot() returns vec2
-		return vec2(this.getMaxX(), this.getMinY())
-	
-	public function trigger.registerRectEnterEventSource( rect r )
-		TriggerRegisterEnterRectSimple(this, r)
-		sourceTable.saveRect(GetHandleId(this), r)
-	
-	public function trigger.getSourceRect() returns rect
-		return sourceTable.loadRect(GetHandleId(this))
-	
-	public function region.setRegionData(int data)
-		regionData.saveInt(GetHandleId(this), data)
-	
-	public function region.loadRegionData() returns int
-		return regionData.loadInt(GetHandleId(this))
-		
-	public function region.removeRegionData()
-		regionData.removeInt(GetHandleId(this))
-		
-	public function region.destr()
-		RemoveRegion(this)
-		
-	public function trigger.unregisterRectEvent()
-		sourceTable.removeHandle(GetHandleId(this))
+Table sourceTable = new Table()
+Table regionData = new Table()
 
+public function rect.getCenter() returns vec2
+	return vec2(this.getCenterX(), this.getCenterY())
 
-endpackage
+public function rect.getCenterX() returns real
+	return GetRectCenterX(this)
+
+public function rect.getCenterY() returns real
+	return GetRectCenterY(this)
+	
+public function rect.getMaxX() returns real
+	return GetRectMaxX(this)
+	
+public function rect.getMaxY() returns real
+	return GetRectMaxY(this)
+	
+public function rect.getMinX() returns real
+	return GetRectMinX(this)
+	
+public function rect.getMinY() returns real
+	return GetRectMinY(this)
+	
+public function rect.getLeftTop() returns vec2
+	return vec2(this.getMinX(), this.getMaxY())
+	
+public function rect.getRightTop() returns vec2
+	return vec2(this.getMaxX(), this.getMaxY())
+	
+public function rect.getLeftBot() returns vec2
+	return vec2(this.getMinX(), this.getMinY())
+	
+public function rect.getRightBot() returns vec2
+	return vec2(this.getMaxX(), this.getMinY())
+
+public function trigger.registerRectEnterEventSource( rect r )
+	TriggerRegisterEnterRectSimple(this, r)
+	sourceTable.saveRect(GetHandleId(this), r)
+
+public function trigger.getSourceRect() returns rect
+	return sourceTable.loadRect(GetHandleId(this))
+
+public function region.setRegionData(int data)
+	regionData.saveInt(GetHandleId(this), data)
+
+public function region.loadRegionData() returns int
+	return regionData.loadInt(GetHandleId(this))
+	
+public function region.removeRegionData()
+	regionData.removeInt(GetHandleId(this))
+	
+public function region.destr()
+	RemoveRegion(this)
+	
+public function trigger.unregisterRectEvent()
+	sourceTable.removeHandle(GetHandleId(this))

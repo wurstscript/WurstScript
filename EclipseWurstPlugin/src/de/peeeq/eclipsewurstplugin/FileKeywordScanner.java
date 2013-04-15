@@ -23,6 +23,11 @@ public class FileKeywordScanner {
 	public static void main(String[] args) {
 		Scanner sc;
 		try {
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		try {
 			sc = new Scanner(new File("./resources/common.j"));
 			File f = new File("./resources/helper.j");
 			StringBuilder sb = new StringBuilder();
@@ -38,13 +43,15 @@ public class FileKeywordScanner {
 					s = sc.next();
 					String s2 = s.substring(0,1);
 					s2 = s2.toUpperCase() + s.substring(1, s.length());
-					sb.append("function load" + s2 + "( int parentKey ) returns " + s);
+					sb.append("function " + s + "FromIndex( int index ) returns " + s);
 					sb.append("\n");
-					sb.append("    return ht.load" + s2 + "Handle" + "( this castTo int, parentKey )");
+					sb.append("\t" + "data.saveFogState(0,ConvertFogState(index))");
+					sb.append("\n");
+					sb.append("\t" + "return data.load" + s2 + "(0)");
 					sb.append("\n");sb.append("\n");
-					sb.append("function save" + s2 + "( int parentKey, " + s + " value )");
+					sb.append("function " + s + "ToIndex(" + s + " object ) returns int");
 					sb.append("\n");
-					sb.append("    ht.save" + s2 + "Handle" + "( this castTo int, parentKey, value )");
+					sb.append("\t" + "return object.getHandleId()");
 					sb.append("\n");sb.append("\n");
 					i++;
 				}

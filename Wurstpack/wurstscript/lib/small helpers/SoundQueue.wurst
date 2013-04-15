@@ -19,7 +19,7 @@ public class SoundQueue
 			let snd = queue.dequeue()
 			snd.play()
 			debugPrint("playing Sound " + (snd castTo int).toString() , 1)
-			tm.start(snd.duration * 0.001, c)
+			tm.start(snd.duration + 0.001, c)
 		else
 			tm.release()
 			destroy this

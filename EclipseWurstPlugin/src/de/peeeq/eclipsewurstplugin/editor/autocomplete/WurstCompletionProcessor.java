@@ -131,7 +131,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		} else if (elem instanceof WPackage) {
 			// no hints at package level
 		} else if (elem instanceof WImport) {
-			WImport imp = (WImport) elem;
+			//WImport imp = (WImport) elem;
 			WurstModel model = elem.getModel();
 			for (WPackage p : model.attrPackagesFresh().values()) {
 				if (isSuitableCompletion(p.getName())) {
@@ -301,7 +301,6 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		int replacementLength = alreadyEntered.length();
 		int cursorPosition = replacementString.length();
 		Image image = Icons.var;
-		RGB rbg  = new RGB(255, 255, 222);
 		
 		String comment = n.attrComment();
 		comment = comment.replaceAll("\n", "<br />");

@@ -6,7 +6,7 @@ package PrintingHelper
 	public boolean array wantDebug
 	
 	int DEBUG_LEVEL = 2
-	real DEBUG_MSG_DURATION = 60.
+	real DEBUG_MSG_DURATION = 45.
 	
 	public function setDebugLvl( int value )
 		DEBUG_LEVEL = value

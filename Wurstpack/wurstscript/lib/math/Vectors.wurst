@@ -1,278 +1,277 @@
 package Vectors
-	import NoWurst
-	import PrintingHelper
-	import Maths
-	import Real
-	import Angle
-	
-	/** 3d Vector tuple */
-	public tuple vec3( real x, real y, real z )
-	
-	/** Sets the length of the given Vector */
-	public function vec3.setLength( real length ) returns vec3
-		real l = SquareRoot(this.x*this.x + this.y*this.y + this.z*this.z)
-		if l == 0.0
-			printError("vector.setLength error: The length of the vector is 0.0!")
-			return vec3(0.,0.,0.)
-		l = length/l
-		return vec3(this.x*l, this.y*l, this.z*l)
+import NoWurst
+import PrintingHelper
+import Maths
+import Real
+import Angle
 
-	/** + Operator */
-	public function vec3.op_plus( vec3 v )	returns vec3
-		return vec3(this.x + v.x, this.y + v.y, this.z + v.z)
-	
-	/** + Operator */
-	public function vec3.op_plus( vec2 v )	returns vec3
-		return vec3(this.x + v.x, this.y + v.y, this.z)
-	
-	/** - Operator */
-	public function vec3.op_minus( vec3 v )	returns vec3
-		return vec3(this.x - v.x, this.y - v.y, this.z - v.z)
-		
-	/** - Operator */
-	public function vec3.op_minus( vec2 v )	returns vec3
-		return vec3(this.x - v.x, this.y - v.y, this.z)
-	
-	/** * Operator */	
-	public function vec3.op_mult(real factor) returns vec3
-		return vec3(this.x*factor, this.y*factor, this.z*factor) 
-	
-	/** add 3 realvalues to the coordinates of this Vector */
-	public function vec3.addReals( real x, real y, real z )	returns vec3
-		return vec3(this.x + x, this.y + y, this.z + z)
-	
-	/** Scale only the X and Y components of this vector by the given value */	
-	public function vec3.scaleXY( real factor )	returns vec3
-		return vec3(this.x * factor, this.y * factor, this.z)
-		
-	/** Get the cross-product */
-	public function vec3.cross( vec3 v ) returns vec3
-		return vec3( this.y*v.z-this.z*v.y, this.z*v.x-this.x*v.z, this.x*v.y-this.y*v.x ) 
-		
-	/** Get the dot-product */
-	public function vec3.dot( vec3 v ) returns real
-		return this.x*v.x + this.y*v.y + this.z*v.z
-		
-	/** Project this vector onto the given directional vector */		
-	public function vec3.project( vec3 direction ) returns vec3
-		real l = direction.x*direction.x+direction.y*direction.y+direction.z*direction.z
-		if l == 0.0
-			printError("vector.projectVector error: The length of the direction vector is 0.0!")
-			return vec3(0.,0.,0.)
-			
-		l = (this.x*direction.x+this.y*direction.y+this.z*direction.z) / l
-		return vec3( direction.x*l, direction.y*l, direction.z*l )
-		
-	/** Normalize this Vector */
-	public function vec3.norm() returns vec3
-		real len = this.length()
-		real x = 0 
-		real y = 0
-		real z = 0
-		if (len != 0.0)
-			x = (this.x / len)
-			y = (this.y / len)
-			z = (this.z / len)
-		return vec3(x,y,z)
-	
-	/** Trim this Vector */
-	public function vec3.trim( real value ) returns vec3
-		vec3 result = this
-		if result.x > -value and result.x < value
-			result.x = 0.
-		if result.y > -value and result.y < value
-			result.y = 0.
-		if result.z > -value and result.z < value
-			result.z = 0.
-		return result
-		
-	/** Convert a vec3 to a vec2 (z-coordinate gets removed) */
-	public function vec3.toVec2() returns vec2
-		return vec2( this.x, this.y )		
-		
-	/** Get the length of this Vector */
-	public function vec3.length() returns real
-		return SquareRoot(this.x*this.x+this.y*this.y+this.z*this.z)
-	
-	/** Get the squared length of this Vector */
-	public function vec3.lengthSquared() returns real
-		return this.x*this.x+this.y*this.y+this.z*this.z
-		
-	/** Get the length of the XY-Components of this Vector */
-	public function vec3.lengthXY() returns real
-		return SquareRoot(this.x*this.x+this.y*this.y)
-			
-	/** Is this vector inside the given circle */
-	public function vec3.inCircle( vec3 v2, real radius ) returns boolean
-		if (this.x-v2.x).squared() + (this.y-v2.y).squared() <= radius*radius
-			return true
-		return false
-		
-	/** Get the distance to another Vector */
-	public function vec3.distToVec( vec3 v ) returns real
-		return SquareRoot((v.x - this.x).squared() + (v.y - this.y).squared() + (v.z - this.z).squared())
-	
-	/** Get the squared distance to another Vector */
-	public function vec3.distToVecSquared( vec3 v ) returns real
-		return (v.x - this.x).squared() + (v.y - this.y).squared() + (v.z - this.z).squared()
-		
-	/** Get a String-represantation of the vector (for debugging) */
-	public function vec3.toString() returns string
-		return "Vector3 [ " + this.x.toString() + ", " + this.y.toString() + ", " + this.z.toString() + " ]"
-	
-	/** Rotate this vector around an axis */
-	public function vec3.rotate( vec3 axis, real radians ) returns vec3 //angle is taken in radians
-		var al = axis.x*axis.x+axis.y*axis.y+axis.z*axis.z //axis length^2
-		var c = Cos(radians)
-		var s = Sin(radians)
-		if al == 0.0
-			printError("vector.rotate error: The length of the axis vector is 0.0!")
-			return vec3(0,0,0)
+/** 3d Vector tuple */
+public tuple vec3( real x, real y, real z )
 
-		var f = (this.x*axis.x+this.y*axis.y+this.z*axis.z) / al
-		var zx = axis.x*f
-		var zy = axis.y*f
-		var zz = axis.z*f //axis component of rotated vector
-		var xx = this.x-zx
-		var xy = this.y-zy
-		var xz = this.z-zz //component of vector perpendicular to axis
-		al = SquareRoot(al)
-		var yx = (axis.y*xz - axis.z*xy)/al
-		var yy = (axis.z*xx - axis.x*xz)/al //y same length as x by using cross product and dividing with axis length
-		var yz = (axis.x*xy - axis.y*xx)/al //x,y - coordinate system in which we rotate
-		return vec3(xx*c+yx*s+zx, xy*c+yy*s+zy, xz*c+yz*s+zz )
+/** Sets the length of the given Vector */
+public function vec3.setLength( real length ) returns vec3
+	real l = SquareRoot(this.x*this.x + this.y*this.y + this.z*this.z)
+	if l == 0.0
+		printError("vector.setLength error: The length of the vector is 0.0!")
+		return vec3(0.,0.,0.)
+	l = length/l
+	return vec3(this.x*l, this.y*l, this.z*l)
 
-	/** Rotate this vector around an axis */
-	public function vec3.rotate( vec3 axis, angle ang ) returns vec3
-		return this.rotate(axis, ang.radians)
-		
-	/** Offset this vector in 2d space */
-	public function vec3.offset2d(angle ang, real dist) returns vec3
-		return this + ang.toVec(dist)
-		
-	/** Get the angle to a 2d vector */
-	public function vec3.angleTo2d(vec2 v) returns angle
-		return Atan2(v.y - this.y, v.x - this.x).asAngleRadians()
-		
-	/** Get a polarprojection of this Vector */
-	public function vec3.polarProject( real distance, angle angleGround, angle angleAir ) returns vec3
-		real x = this.x + distance * angleGround.cos() * angleAir.sin()
-		real y = this.y + distance * angleGround.sin() * angleAir.sin()
-		real z = this.z + distance * angleAir.cos() 
-		return vec3(x,y,z)
-		
-	/** 2d Vector tuple */
-	public tuple vec2( real x, real y )
-			
-	/** + Operator */
-	public function vec2.op_plus( vec2 v )	returns vec2
-		return vec2(this.x + v.x, this.y + v.y)
+/** + Operator */
+public function vec3.op_plus( vec3 v )	returns vec3
+	return vec3(this.x + v.x, this.y + v.y, this.z + v.z)
+
+/** + Operator */
+public function vec3.op_plus( vec2 v )	returns vec3
+	return vec3(this.x + v.x, this.y + v.y, this.z)
+
+/** - Operator */
+public function vec3.op_minus( vec3 v )	returns vec3
+	return vec3(this.x - v.x, this.y - v.y, this.z - v.z)
 	
-	/** - Operator */
-	public function vec2.op_minus( vec2 v )	returns vec2
-		return vec2(this.x - v.x, this.y - v.y)
+/** - Operator */
+public function vec3.op_minus( vec2 v )	returns vec3
+	return vec3(this.x - v.x, this.y - v.y, this.z)
+
+/** * Operator */	
+public function vec3.op_mult(real factor) returns vec3
+	return vec3(this.x*factor, this.y*factor, this.z*factor) 
+
+/** add 3 realvalues to the coordinates of this Vector */
+public function vec3.addReals( real x, real y, real z )	returns vec3
+	return vec3(this.x + x, this.y + y, this.z + z)
+
+/** Scale only the X and Y components of this vector by the given value */	
+public function vec3.scaleXY( real factor )	returns vec3
+	return vec3(this.x * factor, this.y * factor, this.z)
 	
-	/** * Operator */
-	public function vec2.op_mult(real factor) returns vec2
-		return vec2(this.x*factor, this.y*factor) 
+/** Get the cross-product */
+public function vec3.cross( vec3 v ) returns vec3
+	return vec3( this.y*v.z-this.z*v.y, this.z*v.x-this.x*v.z, this.x*v.y-this.y*v.x ) 
 	
-	/** Add two reals to the coordiantes of this vector */	
-	public function vec2.addReals( real x, real y )	returns vec2
-		return vec2(this.x + x, this.y + y)
+/** Get the dot-product */
+public function vec3.dot( vec3 v ) returns real
+	return this.x*v.x + this.y*v.y + this.z*v.z
 	
-	/** Convert this vector to a 3d vector with z = 0. */
-	public function vec2.toVec3() returns vec3
-		return vec3( this.x, this.y, 0. )
+/** Project this vector onto the given directional vector */		
+public function vec3.project( vec3 direction ) returns vec3
+	real l = direction.x*direction.x+direction.y*direction.y+direction.z*direction.z
+	if l == 0.0
+		printError("vector.projectVector error: The length of the direction vector is 0.0!")
+		return vec3(0.,0.,0.)
 		
-	/** Get the dot-product */
-	public function vec2.dot( vec2 v ) returns real
-		return this.x*v.x+this.y*v.y
+	l = (this.x*direction.x+this.y*direction.y+this.z*direction.z) / l
+	return vec3( direction.x*l, direction.y*l, direction.z*l )
 	
-	/** Normalize this vector */
-	public function vec2.norm() returns vec2
-		real len = this.length()
-		real x = 0 
-		real y = 0
-		if (len != 0.0)
-			x = (this.x / len)
-			y = (this.y / len)
-		return vec2(x,y)
+/** Normalize this Vector */
+public function vec3.norm() returns vec3
+	real len = this.length()
+	real x = 0 
+	real y = 0
+	real z = 0
+	if (len != 0.0)
+		x = (this.x / len)
+		y = (this.y / len)
+		z = (this.z / len)
+	return vec3(x,y,z)
+
+/** Trim this Vector */
+public function vec3.trim( real value ) returns vec3
+	vec3 result = this
+	if result.x > -value and result.x < value
+		result.x = 0.
+	if result.y > -value and result.y < value
+		result.y = 0.
+	if result.z > -value and result.z < value
+		result.z = 0.
+	return result
 	
-	/** trim this vector */
-	public function vec2.trim( real value ) returns vec2
-		vec2 result = this
-		if result.x > -value and result.x < value
-			result.x = 0.
-		if this.y > -value and this.y < value
-			result.y = 0.
-		return result
+/** Convert a vec3 to a vec2 (z-coordinate gets removed) */
+public function vec3.toVec2() returns vec2
+	return vec2( this.x, this.y )		
+	
+/** Get the length of this Vector */
+public function vec3.length() returns real
+	return SquareRoot(this.x*this.x+this.y*this.y+this.z*this.z)
+
+/** Get the squared length of this Vector */
+public function vec3.lengthSquared() returns real
+	return this.x*this.x+this.y*this.y+this.z*this.z
+	
+/** Get the length of the XY-Components of this Vector */
+public function vec3.lengthXY() returns real
+	return SquareRoot(this.x*this.x+this.y*this.y)
 		
-	/** Get the length of this vector */
-	public function vec2.length() returns real
-		return SquareRoot(this.x*this.x+this.y*this.y)
+/** Is this vector inside the given circle */
+public function vec3.inCircle( vec3 v2, real radius ) returns boolean
+	if (this.x-v2.x).squared() + (this.y-v2.y).squared() <= radius*radius
+		return true
+	return false
 	
-	/** Get the squared length of this vector */
-	public function vec2.lengthSquared() returns real
-		return this.x*this.x+this.y*this.y
+/** Get the distance to another Vector */
+public function vec3.distToVec( vec3 v ) returns real
+	return SquareRoot((v.x - this.x).squared() + (v.y - this.y).squared() + (v.z - this.z).squared())
+
+/** Get the squared distance to another Vector */
+public function vec3.distToVecSquared( vec3 v ) returns real
+	return (v.x - this.x).squared() + (v.y - this.y).squared() + (v.z - this.z).squared()
 	
-	/** Is this vector inside the given circle */
-	public function vec2.inCircle( vec2 v2, real radius ) returns boolean
-		if (this.x-v2.x).squared() + (this.y-v2.y).squared() <= radius*radius
-			return true
-		return false
-		
-	/** Get a String-representation of this Vector (for debugging) */
-	public function vec2.toString() returns string
-		return "Vector2 [ " + this.x.toString() + ", " + this.y.toString() + " ]"
-		
-	/** Get this vetor's angleto another one */	
-	public function vec2.angleTo(vec2 v) returns angle
-		return Atan2(v.y - this.y, v.x - this.x).asAngleRadians()
+/** Get a String-represantation of the vector (for debugging) */
+public function vec3.toString() returns string
+	return "Vector3 [ " + this.x.toString() + ", " + this.y.toString() + ", " + this.z.toString() + " ]"
+
+/** Rotate this vector around an axis */
+public function vec3.rotate( vec3 axis, real radians ) returns vec3 //angle is taken in radians
+	var al = axis.x*axis.x+axis.y*axis.y+axis.z*axis.z //axis length^2
+	var c = Cos(radians)
+	var s = Sin(radians)
+	if al == 0.0
+		printError("vector.rotate error: The length of the axis vector is 0.0!")
+		return vec3(0,0,0)
+
+	var f = (this.x*axis.x+this.y*axis.y+this.z*axis.z) / al
+	var zx = axis.x*f
+	var zy = axis.y*f
+	var zz = axis.z*f //axis component of rotated vector
+	var xx = this.x-zx
+	var xy = this.y-zy
+	var xz = this.z-zz //component of vector perpendicular to axis
+	al = SquareRoot(al)
+	var yx = (axis.y*xz - axis.z*xy)/al
+	var yy = (axis.z*xx - axis.x*xz)/al //y same length as x by using cross product and dividing with axis length
+	var yz = (axis.x*xy - axis.y*xx)/al //x,y - coordinate system in which we rotate
+	return vec3(xx*c+yx*s+zx, xy*c+yy*s+zy, xz*c+yz*s+zz )
+
+/** Rotate this vector around an axis */
+public function vec3.rotate( vec3 axis, angle ang ) returns vec3
+	return this.rotate(axis, ang.radians)
 	
-	/** Get the poalrOffset of this vector */
-	public function vec2.polarOffset(angle ang, real dist) returns vec2
-		return this + ang.toVec(dist)
-		
-	/** Set the length of this vector */
-	public function vec2.setLength( real length ) returns vec2
-		real l = SquareRoot(this.x*this.x + this.y*this.y)
-		if l == 0.0
-			printError("vector.setLength error: The length of the vector is 0.0!")
-			return vec2(0.,0.)
-		l = length/l
-		return vec2(this.x*l, this.y*l)
-		
-	/** Get a 3d Vector with the original xy and the given z coordinate */
-	public function vec2.withZ(real z) returns vec3
-		return vec3(this.x, this.y, z)
-		
-	/** Get distance to another vector */
-	public function vec2.distToVec( vec2 v ) returns real
-		return SquareRoot((v.x - this.x).squared() + (v.y - this.y).squared())
+/** Offset this vector in 2d space */
+public function vec3.offset2d(angle ang, real dist) returns vec3
+	return this + ang.toVec(dist)
 	
-	/** Get squared distance to another vector */
-	public function vec2.distToVecSquared( vec2 v ) returns real
-		return (v.x - this.x).squared() + (v.y - this.y).squared()
-		 
-	/** Get squared distance to a line segment */
-	public function vec2.distToSegmentSquared( vec2 v1, vec2 v2) returns real
-		var l2 = v1.distToVecSquared(v2)
-		if l2 == 0 
-			return this.distToVecSquared(v1)
-		var t = ((this.x - v1.x) * (v2.x - v1.x) + (this.y - v1.y) * (v2.y - v1.y)) / l2
-		if (t < 0) 
-			return this.distToVecSquared(v1)
-		if (t > 1) 
-			return this.distToVecSquared(v2)
-		return this.distToVecSquared( vec2( v1.x + t * (v2.x - v1.x), v1.y + t * (v2.y - v1.y) ) )
+/** Get the angle to a 2d vector */
+public function vec3.angleTo2d(vec2 v) returns angle
+	return Atan2(v.y - this.y, v.x - this.x).asAngleRadians()
+	
+/** Get a polarprojection of this Vector */
+public function vec3.polarProject( real distance, angle angleGround, angle angleAir ) returns vec3
+	real x = this.x + distance * angleGround.cos() * angleAir.sin()
+	real y = this.y + distance * angleGround.sin() * angleAir.sin()
+	real z = this.z + distance * angleAir.cos() 
+	return vec3(x,y,z)
+	
+/** 2d Vector tuple */
+public tuple vec2( real x, real y )
 		
-	public tuple isInRangeHelper2(vec2 v, real range)
+/** + Operator */
+public function vec2.op_plus( vec2 v )	returns vec2
+	return vec2(this.x + v.x, this.y + v.y)
+
+/** - Operator */
+public function vec2.op_minus( vec2 v )	returns vec2
+	return vec2(this.x - v.x, this.y - v.y)
+
+/** * Operator */
+public function vec2.op_mult(real factor) returns vec2
+	return vec2(this.x*factor, this.y*factor) 
+
+/** Add two reals to the coordiantes of this vector */	
+public function vec2.addReals( real x, real y )	returns vec2
+	return vec2(this.x + x, this.y + y)
+
+/** Convert this vector to a 3d vector with z = 0. */
+public function vec2.toVec3() returns vec3
+	return vec3( this.x, this.y, 0. )
 	
+/** Get the dot-product */
+public function vec2.dot( vec2 v ) returns real
+	return this.x*v.x+this.y*v.y
+
+/** Normalize this vector */
+public function vec2.norm() returns vec2
+	real len = this.length()
+	real x = 0 
+	real y = 0
+	if (len != 0.0)
+		x = (this.x / len)
+		y = (this.y / len)
+	return vec2(x,y)
+
+/** trim this vector */
+public function vec2.trim( real value ) returns vec2
+	vec2 result = this
+	if result.x > -value and result.x < value
+		result.x = 0.
+	if this.y > -value and this.y < value
+		result.y = 0.
+	return result
 	
-	public function vec2.isInRange(real range) returns isInRangeHelper2
-		return isInRangeHelper2(this, range)
-		
-	public function isInRangeHelper2.of(vec2 other) returns boolean
-		return this.v.distToVecSquared(other) <= this.range*this.range
+/** Get the length of this vector */
+public function vec2.length() returns real
+	return SquareRoot(this.x*this.x+this.y*this.y)
+
+/** Get the squared length of this vector */
+public function vec2.lengthSquared() returns real
+	return this.x*this.x+this.y*this.y
+
+/** Is this vector inside the given circle */
+public function vec2.inCircle( vec2 v2, real radius ) returns boolean
+	if (this.x-v2.x).squared() + (this.y-v2.y).squared() <= radius*radius
+		return true
+	return false
 	
-endpackage 
+/** Get a String-representation of this Vector (for debugging) */
+public function vec2.toString() returns string
+	return "Vector2 [ " + this.x.toString() + ", " + this.y.toString() + " ]"
+	
+/** Get this vetor's angleto another one */	
+public function vec2.angleTo(vec2 v) returns angle
+	return Atan2(v.y - this.y, v.x - this.x).asAngleRadians()
+
+/** Get the poalrOffset of this vector */
+public function vec2.polarOffset(angle ang, real dist) returns vec2
+	return this + ang.toVec(dist)
+	
+/** Set the length of this vector */
+public function vec2.setLength( real length ) returns vec2
+	real l = SquareRoot(this.x*this.x + this.y*this.y)
+	if l == 0.0
+		printError("vector.setLength error: The length of the vector is 0.0!")
+		return vec2(0.,0.)
+	l = length/l
+	return vec2(this.x*l, this.y*l)
+	
+/** Get a 3d Vector with the original xy and the given z coordinate */
+public function vec2.withZ(real z) returns vec3
+	return vec3(this.x, this.y, z)
+	
+/** Get distance to another vector */
+public function vec2.distToVec( vec2 v ) returns real
+	return SquareRoot((v.x - this.x).squared() + (v.y - this.y).squared())
+
+/** Get squared distance to another vector */
+public function vec2.distToVecSquared( vec2 v ) returns real
+	return (v.x - this.x).squared() + (v.y - this.y).squared()
+	 
+/** Get squared distance to a line segment */
+public function vec2.distToSegmentSquared( vec2 v1, vec2 v2) returns real
+	var l2 = v1.distToVecSquared(v2)
+	if l2 == 0 
+		return this.distToVecSquared(v1)
+	var t = ((this.x - v1.x) * (v2.x - v1.x) + (this.y - v1.y) * (v2.y - v1.y)) / l2
+	if (t < 0) 
+		return this.distToVecSquared(v1)
+	if (t > 1) 
+		return this.distToVecSquared(v2)
+	return this.distToVecSquared( vec2( v1.x + t * (v2.x - v1.x), v1.y + t * (v2.y - v1.y) ) )
+	
+public tuple isInRangeHelper2(vec2 v, real range)
+
+
+public function vec2.isInRange(real range) returns isInRangeHelper2
+	return isInRangeHelper2(this, range)
+	
+public function isInRangeHelper2.of(vec2 other) returns boolean
+	return this.v.distToVecSquared(other) <= this.range*this.range
+

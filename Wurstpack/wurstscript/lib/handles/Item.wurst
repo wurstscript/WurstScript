@@ -1,31 +1,29 @@
 package Item
-	import NoWurst
-	import public Vectors
+import NoWurst
+import public Vectors
+
+public function item.getName() returns string
+	return GetItemName( this )
 	
-	public function item.getName() returns string
-		return GetItemName( this )
+public function item.getX() returns real
+	return GetItemX( this )
 		
-	public function item.getX() returns real
-		return GetItemX( this )
-			
-	public function item.getY() returns real
-		return GetItemY( this )
+public function item.getY() returns real
+	return GetItemY( this )
+
+public function item.setPos( real x, real y ) returns item
+	SetItemPosition( this, x, y )
+	return this
 	
-	public function item.setPos( real x, real y ) returns item
-		SetItemPosition( this, x, y )
-		return this
-		
-	public function item.setPos( vec2 pos ) returns item
-		SetItemPosition( this, pos.x, pos.y )
-		return this
-		
-	public function item.getUserData() returns int
-		return GetItemUserData(this)
-		
-	public function item.setUserData(int data)
-		SetItemUserData(this, data)
-		
-	public function item.remove()
-		RemoveItem(this)
-		
-endpackage
+public function item.setPos( vec2 pos ) returns item
+	SetItemPosition( this, pos.x, pos.y )
+	return this
+	
+public function item.getUserData() returns int
+	return GetItemUserData(this)
+	
+public function item.setUserData(int data)
+	SetItemUserData(this, data)
+	
+public function item.remove()
+	RemoveItem(this)

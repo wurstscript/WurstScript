@@ -1,546 +1,637 @@
-function loadAgent( int parentKey ) returns agent
-    return ht.loadAgentHandle( this castTo int, parentKey )
+function agentFromIndex( int index ) returns agent
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadAgent(0)
 
-function saveAgent( int parentKey, agent value )
-    ht.saveAgentHandle( this castTo int, parentKey, value )
+function agentToIndex(agent object ) returns int
+	return object.getHandleId()
 
-function loadEvent( int parentKey ) returns event
-    return ht.loadEventHandle( this castTo int, parentKey )
+function eventFromIndex( int index ) returns event
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadEvent(0)
 
-function saveEvent( int parentKey, event value )
-    ht.saveEventHandle( this castTo int, parentKey, value )
+function eventToIndex(event object ) returns int
+	return object.getHandleId()
 
-function loadPlayer( int parentKey ) returns player
-    return ht.loadPlayerHandle( this castTo int, parentKey )
+function playerFromIndex( int index ) returns player
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadPlayer(0)
 
-function savePlayer( int parentKey, player value )
-    ht.savePlayerHandle( this castTo int, parentKey, value )
+function playerToIndex(player object ) returns int
+	return object.getHandleId()
 
-function loadWidget( int parentKey ) returns widget
-    return ht.loadWidgetHandle( this castTo int, parentKey )
+function widgetFromIndex( int index ) returns widget
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadWidget(0)
 
-function saveWidget( int parentKey, widget value )
-    ht.saveWidgetHandle( this castTo int, parentKey, value )
+function widgetToIndex(widget object ) returns int
+	return object.getHandleId()
 
-function loadUnit( int parentKey ) returns unit
-    return ht.loadUnitHandle( this castTo int, parentKey )
+function unitFromIndex( int index ) returns unit
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadUnit(0)
 
-function saveUnit( int parentKey, unit value )
-    ht.saveUnitHandle( this castTo int, parentKey, value )
+function unitToIndex(unit object ) returns int
+	return object.getHandleId()
 
-function loadDestructable( int parentKey ) returns destructable
-    return ht.loadDestructableHandle( this castTo int, parentKey )
+function destructableFromIndex( int index ) returns destructable
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadDestructable(0)
 
-function saveDestructable( int parentKey, destructable value )
-    ht.saveDestructableHandle( this castTo int, parentKey, value )
+function destructableToIndex(destructable object ) returns int
+	return object.getHandleId()
 
-function loadItem( int parentKey ) returns item
-    return ht.loadItemHandle( this castTo int, parentKey )
+function itemFromIndex( int index ) returns item
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadItem(0)
 
-function saveItem( int parentKey, item value )
-    ht.saveItemHandle( this castTo int, parentKey, value )
+function itemToIndex(item object ) returns int
+	return object.getHandleId()
 
-function loadAbility( int parentKey ) returns ability
-    return ht.loadAbilityHandle( this castTo int, parentKey )
+function abilityFromIndex( int index ) returns ability
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadAbility(0)
 
-function saveAbility( int parentKey, ability value )
-    ht.saveAbilityHandle( this castTo int, parentKey, value )
+function abilityToIndex(ability object ) returns int
+	return object.getHandleId()
 
-function loadBuff( int parentKey ) returns buff
-    return ht.loadBuffHandle( this castTo int, parentKey )
+function buffFromIndex( int index ) returns buff
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadBuff(0)
 
-function saveBuff( int parentKey, buff value )
-    ht.saveBuffHandle( this castTo int, parentKey, value )
+function buffToIndex(buff object ) returns int
+	return object.getHandleId()
 
-function loadForce( int parentKey ) returns force
-    return ht.loadForceHandle( this castTo int, parentKey )
+function forceFromIndex( int index ) returns force
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadForce(0)
 
-function saveForce( int parentKey, force value )
-    ht.saveForceHandle( this castTo int, parentKey, value )
+function forceToIndex(force object ) returns int
+	return object.getHandleId()
 
-function loadGroup( int parentKey ) returns group
-    return ht.loadGroupHandle( this castTo int, parentKey )
+function groupFromIndex( int index ) returns group
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadGroup(0)
 
-function saveGroup( int parentKey, group value )
-    ht.saveGroupHandle( this castTo int, parentKey, value )
+function groupToIndex(group object ) returns int
+	return object.getHandleId()
 
-function loadTrigger( int parentKey ) returns trigger
-    return ht.loadTriggerHandle( this castTo int, parentKey )
+function triggerFromIndex( int index ) returns trigger
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadTrigger(0)
 
-function saveTrigger( int parentKey, trigger value )
-    ht.saveTriggerHandle( this castTo int, parentKey, value )
+function triggerToIndex(trigger object ) returns int
+	return object.getHandleId()
 
-function loadTriggercondition( int parentKey ) returns triggercondition
-    return ht.loadTriggerconditionHandle( this castTo int, parentKey )
+function triggerconditionFromIndex( int index ) returns triggercondition
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadTriggercondition(0)
 
-function saveTriggercondition( int parentKey, triggercondition value )
-    ht.saveTriggerconditionHandle( this castTo int, parentKey, value )
+function triggerconditionToIndex(triggercondition object ) returns int
+	return object.getHandleId()
 
-function loadTriggeraction( int parentKey ) returns triggeraction
-    return ht.loadTriggeractionHandle( this castTo int, parentKey )
+function triggeractionFromIndex( int index ) returns triggeraction
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadTriggeraction(0)
 
-function saveTriggeraction( int parentKey, triggeraction value )
-    ht.saveTriggeractionHandle( this castTo int, parentKey, value )
+function triggeractionToIndex(triggeraction object ) returns int
+	return object.getHandleId()
 
-function loadTimer( int parentKey ) returns timer
-    return ht.loadTimerHandle( this castTo int, parentKey )
+function timerFromIndex( int index ) returns timer
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadTimer(0)
 
-function saveTimer( int parentKey, timer value )
-    ht.saveTimerHandle( this castTo int, parentKey, value )
+function timerToIndex(timer object ) returns int
+	return object.getHandleId()
 
-function loadLocation( int parentKey ) returns location
-    return ht.loadLocationHandle( this castTo int, parentKey )
+function locationFromIndex( int index ) returns location
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadLocation(0)
 
-function saveLocation( int parentKey, location value )
-    ht.saveLocationHandle( this castTo int, parentKey, value )
+function locationToIndex(location object ) returns int
+	return object.getHandleId()
 
-function loadRegion( int parentKey ) returns region
-    return ht.loadRegionHandle( this castTo int, parentKey )
+function regionFromIndex( int index ) returns region
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadRegion(0)
 
-function saveRegion( int parentKey, region value )
-    ht.saveRegionHandle( this castTo int, parentKey, value )
+function regionToIndex(region object ) returns int
+	return object.getHandleId()
 
-function loadRect( int parentKey ) returns rect
-    return ht.loadRectHandle( this castTo int, parentKey )
+function rectFromIndex( int index ) returns rect
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadRect(0)
 
-function saveRect( int parentKey, rect value )
-    ht.saveRectHandle( this castTo int, parentKey, value )
+function rectToIndex(rect object ) returns int
+	return object.getHandleId()
 
-function loadBoolexpr( int parentKey ) returns boolexpr
-    return ht.loadBoolexprHandle( this castTo int, parentKey )
+function boolexprFromIndex( int index ) returns boolexpr
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadBoolexpr(0)
 
-function saveBoolexpr( int parentKey, boolexpr value )
-    ht.saveBoolexprHandle( this castTo int, parentKey, value )
+function boolexprToIndex(boolexpr object ) returns int
+	return object.getHandleId()
 
-function loadSound( int parentKey ) returns sound
-    return ht.loadSoundHandle( this castTo int, parentKey )
+function soundFromIndex( int index ) returns sound
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadSound(0)
 
-function saveSound( int parentKey, sound value )
-    ht.saveSoundHandle( this castTo int, parentKey, value )
+function soundToIndex(sound object ) returns int
+	return object.getHandleId()
 
-function loadConditionfunc( int parentKey ) returns conditionfunc
-    return ht.loadConditionfuncHandle( this castTo int, parentKey )
+function conditionfuncFromIndex( int index ) returns conditionfunc
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadConditionfunc(0)
 
-function saveConditionfunc( int parentKey, conditionfunc value )
-    ht.saveConditionfuncHandle( this castTo int, parentKey, value )
+function conditionfuncToIndex(conditionfunc object ) returns int
+	return object.getHandleId()
 
-function loadFilterfunc( int parentKey ) returns filterfunc
-    return ht.loadFilterfuncHandle( this castTo int, parentKey )
+function filterfuncFromIndex( int index ) returns filterfunc
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadFilterfunc(0)
 
-function saveFilterfunc( int parentKey, filterfunc value )
-    ht.saveFilterfuncHandle( this castTo int, parentKey, value )
+function filterfuncToIndex(filterfunc object ) returns int
+	return object.getHandleId()
 
-function loadUnitpool( int parentKey ) returns unitpool
-    return ht.loadUnitpoolHandle( this castTo int, parentKey )
+function unitpoolFromIndex( int index ) returns unitpool
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadUnitpool(0)
 
-function saveUnitpool( int parentKey, unitpool value )
-    ht.saveUnitpoolHandle( this castTo int, parentKey, value )
+function unitpoolToIndex(unitpool object ) returns int
+	return object.getHandleId()
 
-function loadItempool( int parentKey ) returns itempool
-    return ht.loadItempoolHandle( this castTo int, parentKey )
+function itempoolFromIndex( int index ) returns itempool
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadItempool(0)
 
-function saveItempool( int parentKey, itempool value )
-    ht.saveItempoolHandle( this castTo int, parentKey, value )
+function itempoolToIndex(itempool object ) returns int
+	return object.getHandleId()
 
-function loadRace( int parentKey ) returns race
-    return ht.loadRaceHandle( this castTo int, parentKey )
+function raceFromIndex( int index ) returns race
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadRace(0)
 
-function saveRace( int parentKey, race value )
-    ht.saveRaceHandle( this castTo int, parentKey, value )
+function raceToIndex(race object ) returns int
+	return object.getHandleId()
 
-function loadAlliancetype( int parentKey ) returns alliancetype
-    return ht.loadAlliancetypeHandle( this castTo int, parentKey )
+function alliancetypeFromIndex( int index ) returns alliancetype
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadAlliancetype(0)
 
-function saveAlliancetype( int parentKey, alliancetype value )
-    ht.saveAlliancetypeHandle( this castTo int, parentKey, value )
+function alliancetypeToIndex(alliancetype object ) returns int
+	return object.getHandleId()
 
-function loadRacepreference( int parentKey ) returns racepreference
-    return ht.loadRacepreferenceHandle( this castTo int, parentKey )
+function racepreferenceFromIndex( int index ) returns racepreference
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadRacepreference(0)
 
-function saveRacepreference( int parentKey, racepreference value )
-    ht.saveRacepreferenceHandle( this castTo int, parentKey, value )
+function racepreferenceToIndex(racepreference object ) returns int
+	return object.getHandleId()
 
-function loadGamestate( int parentKey ) returns gamestate
-    return ht.loadGamestateHandle( this castTo int, parentKey )
+function gamestateFromIndex( int index ) returns gamestate
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadGamestate(0)
 
-function saveGamestate( int parentKey, gamestate value )
-    ht.saveGamestateHandle( this castTo int, parentKey, value )
+function gamestateToIndex(gamestate object ) returns int
+	return object.getHandleId()
 
-function loadIgamestate( int parentKey ) returns igamestate
-    return ht.loadIgamestateHandle( this castTo int, parentKey )
+function igamestateFromIndex( int index ) returns igamestate
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadIgamestate(0)
 
-function saveIgamestate( int parentKey, igamestate value )
-    ht.saveIgamestateHandle( this castTo int, parentKey, value )
+function igamestateToIndex(igamestate object ) returns int
+	return object.getHandleId()
 
-function loadFgamestate( int parentKey ) returns fgamestate
-    return ht.loadFgamestateHandle( this castTo int, parentKey )
+function fgamestateFromIndex( int index ) returns fgamestate
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadFgamestate(0)
 
-function saveFgamestate( int parentKey, fgamestate value )
-    ht.saveFgamestateHandle( this castTo int, parentKey, value )
+function fgamestateToIndex(fgamestate object ) returns int
+	return object.getHandleId()
 
-function loadPlayerstate( int parentKey ) returns playerstate
-    return ht.loadPlayerstateHandle( this castTo int, parentKey )
+function playerstateFromIndex( int index ) returns playerstate
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadPlayerstate(0)
 
-function savePlayerstate( int parentKey, playerstate value )
-    ht.savePlayerstateHandle( this castTo int, parentKey, value )
+function playerstateToIndex(playerstate object ) returns int
+	return object.getHandleId()
 
-function loadPlayerscore( int parentKey ) returns playerscore
-    return ht.loadPlayerscoreHandle( this castTo int, parentKey )
+function playerscoreFromIndex( int index ) returns playerscore
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadPlayerscore(0)
 
-function savePlayerscore( int parentKey, playerscore value )
-    ht.savePlayerscoreHandle( this castTo int, parentKey, value )
+function playerscoreToIndex(playerscore object ) returns int
+	return object.getHandleId()
 
-function loadPlayergameresult( int parentKey ) returns playergameresult
-    return ht.loadPlayergameresultHandle( this castTo int, parentKey )
+function playergameresultFromIndex( int index ) returns playergameresult
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadPlayergameresult(0)
 
-function savePlayergameresult( int parentKey, playergameresult value )
-    ht.savePlayergameresultHandle( this castTo int, parentKey, value )
+function playergameresultToIndex(playergameresult object ) returns int
+	return object.getHandleId()
 
-function loadUnitstate( int parentKey ) returns unitstate
-    return ht.loadUnitstateHandle( this castTo int, parentKey )
+function unitstateFromIndex( int index ) returns unitstate
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadUnitstate(0)
 
-function saveUnitstate( int parentKey, unitstate value )
-    ht.saveUnitstateHandle( this castTo int, parentKey, value )
+function unitstateToIndex(unitstate object ) returns int
+	return object.getHandleId()
 
-function loadAidifficulty( int parentKey ) returns aidifficulty
-    return ht.loadAidifficultyHandle( this castTo int, parentKey )
+function aidifficultyFromIndex( int index ) returns aidifficulty
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadAidifficulty(0)
 
-function saveAidifficulty( int parentKey, aidifficulty value )
-    ht.saveAidifficultyHandle( this castTo int, parentKey, value )
+function aidifficultyToIndex(aidifficulty object ) returns int
+	return object.getHandleId()
 
-function loadEventid( int parentKey ) returns eventid
-    return ht.loadEventidHandle( this castTo int, parentKey )
+function eventidFromIndex( int index ) returns eventid
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadEventid(0)
 
-function saveEventid( int parentKey, eventid value )
-    ht.saveEventidHandle( this castTo int, parentKey, value )
+function eventidToIndex(eventid object ) returns int
+	return object.getHandleId()
 
-function loadGameevent( int parentKey ) returns gameevent
-    return ht.loadGameeventHandle( this castTo int, parentKey )
+function gameeventFromIndex( int index ) returns gameevent
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadGameevent(0)
 
-function saveGameevent( int parentKey, gameevent value )
-    ht.saveGameeventHandle( this castTo int, parentKey, value )
+function gameeventToIndex(gameevent object ) returns int
+	return object.getHandleId()
 
-function loadPlayerevent( int parentKey ) returns playerevent
-    return ht.loadPlayereventHandle( this castTo int, parentKey )
+function playereventFromIndex( int index ) returns playerevent
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadPlayerevent(0)
 
-function savePlayerevent( int parentKey, playerevent value )
-    ht.savePlayereventHandle( this castTo int, parentKey, value )
+function playereventToIndex(playerevent object ) returns int
+	return object.getHandleId()
 
-function loadPlayerunitevent( int parentKey ) returns playerunitevent
-    return ht.loadPlayeruniteventHandle( this castTo int, parentKey )
+function playeruniteventFromIndex( int index ) returns playerunitevent
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadPlayerunitevent(0)
 
-function savePlayerunitevent( int parentKey, playerunitevent value )
-    ht.savePlayeruniteventHandle( this castTo int, parentKey, value )
+function playeruniteventToIndex(playerunitevent object ) returns int
+	return object.getHandleId()
 
-function loadUnitevent( int parentKey ) returns unitevent
-    return ht.loadUniteventHandle( this castTo int, parentKey )
+function uniteventFromIndex( int index ) returns unitevent
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadUnitevent(0)
 
-function saveUnitevent( int parentKey, unitevent value )
-    ht.saveUniteventHandle( this castTo int, parentKey, value )
+function uniteventToIndex(unitevent object ) returns int
+	return object.getHandleId()
 
-function loadLimitop( int parentKey ) returns limitop
-    return ht.loadLimitopHandle( this castTo int, parentKey )
+function limitopFromIndex( int index ) returns limitop
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadLimitop(0)
 
-function saveLimitop( int parentKey, limitop value )
-    ht.saveLimitopHandle( this castTo int, parentKey, value )
+function limitopToIndex(limitop object ) returns int
+	return object.getHandleId()
 
-function loadWidgetevent( int parentKey ) returns widgetevent
-    return ht.loadWidgeteventHandle( this castTo int, parentKey )
+function widgeteventFromIndex( int index ) returns widgetevent
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadWidgetevent(0)
 
-function saveWidgetevent( int parentKey, widgetevent value )
-    ht.saveWidgeteventHandle( this castTo int, parentKey, value )
+function widgeteventToIndex(widgetevent object ) returns int
+	return object.getHandleId()
 
-function loadDialogevent( int parentKey ) returns dialogevent
-    return ht.loadDialogeventHandle( this castTo int, parentKey )
+function dialogeventFromIndex( int index ) returns dialogevent
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadDialogevent(0)
 
-function saveDialogevent( int parentKey, dialogevent value )
-    ht.saveDialogeventHandle( this castTo int, parentKey, value )
+function dialogeventToIndex(dialogevent object ) returns int
+	return object.getHandleId()
 
-function loadUnittype( int parentKey ) returns unittype
-    return ht.loadUnittypeHandle( this castTo int, parentKey )
+function unittypeFromIndex( int index ) returns unittype
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadUnittype(0)
 
-function saveUnittype( int parentKey, unittype value )
-    ht.saveUnittypeHandle( this castTo int, parentKey, value )
+function unittypeToIndex(unittype object ) returns int
+	return object.getHandleId()
 
-function loadGamespeed( int parentKey ) returns gamespeed
-    return ht.loadGamespeedHandle( this castTo int, parentKey )
+function gamespeedFromIndex( int index ) returns gamespeed
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadGamespeed(0)
 
-function saveGamespeed( int parentKey, gamespeed value )
-    ht.saveGamespeedHandle( this castTo int, parentKey, value )
+function gamespeedToIndex(gamespeed object ) returns int
+	return object.getHandleId()
 
-function loadGamedifficulty( int parentKey ) returns gamedifficulty
-    return ht.loadGamedifficultyHandle( this castTo int, parentKey )
+function gamedifficultyFromIndex( int index ) returns gamedifficulty
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadGamedifficulty(0)
 
-function saveGamedifficulty( int parentKey, gamedifficulty value )
-    ht.saveGamedifficultyHandle( this castTo int, parentKey, value )
+function gamedifficultyToIndex(gamedifficulty object ) returns int
+	return object.getHandleId()
 
-function loadGametype( int parentKey ) returns gametype
-    return ht.loadGametypeHandle( this castTo int, parentKey )
+function gametypeFromIndex( int index ) returns gametype
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadGametype(0)
 
-function saveGametype( int parentKey, gametype value )
-    ht.saveGametypeHandle( this castTo int, parentKey, value )
+function gametypeToIndex(gametype object ) returns int
+	return object.getHandleId()
 
-function loadMapflag( int parentKey ) returns mapflag
-    return ht.loadMapflagHandle( this castTo int, parentKey )
+function mapflagFromIndex( int index ) returns mapflag
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadMapflag(0)
 
-function saveMapflag( int parentKey, mapflag value )
-    ht.saveMapflagHandle( this castTo int, parentKey, value )
+function mapflagToIndex(mapflag object ) returns int
+	return object.getHandleId()
 
-function loadMapvisibility( int parentKey ) returns mapvisibility
-    return ht.loadMapvisibilityHandle( this castTo int, parentKey )
+function mapvisibilityFromIndex( int index ) returns mapvisibility
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadMapvisibility(0)
 
-function saveMapvisibility( int parentKey, mapvisibility value )
-    ht.saveMapvisibilityHandle( this castTo int, parentKey, value )
+function mapvisibilityToIndex(mapvisibility object ) returns int
+	return object.getHandleId()
 
-function loadMapsetting( int parentKey ) returns mapsetting
-    return ht.loadMapsettingHandle( this castTo int, parentKey )
+function mapsettingFromIndex( int index ) returns mapsetting
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadMapsetting(0)
 
-function saveMapsetting( int parentKey, mapsetting value )
-    ht.saveMapsettingHandle( this castTo int, parentKey, value )
+function mapsettingToIndex(mapsetting object ) returns int
+	return object.getHandleId()
 
-function loadMapdensity( int parentKey ) returns mapdensity
-    return ht.loadMapdensityHandle( this castTo int, parentKey )
+function mapdensityFromIndex( int index ) returns mapdensity
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadMapdensity(0)
 
-function saveMapdensity( int parentKey, mapdensity value )
-    ht.saveMapdensityHandle( this castTo int, parentKey, value )
+function mapdensityToIndex(mapdensity object ) returns int
+	return object.getHandleId()
 
-function loadMapcontrol( int parentKey ) returns mapcontrol
-    return ht.loadMapcontrolHandle( this castTo int, parentKey )
+function mapcontrolFromIndex( int index ) returns mapcontrol
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadMapcontrol(0)
 
-function saveMapcontrol( int parentKey, mapcontrol value )
-    ht.saveMapcontrolHandle( this castTo int, parentKey, value )
+function mapcontrolToIndex(mapcontrol object ) returns int
+	return object.getHandleId()
 
-function loadPlayerslotstate( int parentKey ) returns playerslotstate
-    return ht.loadPlayerslotstateHandle( this castTo int, parentKey )
+function playerslotstateFromIndex( int index ) returns playerslotstate
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadPlayerslotstate(0)
 
-function savePlayerslotstate( int parentKey, playerslotstate value )
-    ht.savePlayerslotstateHandle( this castTo int, parentKey, value )
+function playerslotstateToIndex(playerslotstate object ) returns int
+	return object.getHandleId()
 
-function loadVolumegroup( int parentKey ) returns volumegroup
-    return ht.loadVolumegroupHandle( this castTo int, parentKey )
+function volumegroupFromIndex( int index ) returns volumegroup
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadVolumegroup(0)
 
-function saveVolumegroup( int parentKey, volumegroup value )
-    ht.saveVolumegroupHandle( this castTo int, parentKey, value )
+function volumegroupToIndex(volumegroup object ) returns int
+	return object.getHandleId()
 
-function loadCamerafield( int parentKey ) returns camerafield
-    return ht.loadCamerafieldHandle( this castTo int, parentKey )
+function camerafieldFromIndex( int index ) returns camerafield
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadCamerafield(0)
 
-function saveCamerafield( int parentKey, camerafield value )
-    ht.saveCamerafieldHandle( this castTo int, parentKey, value )
+function camerafieldToIndex(camerafield object ) returns int
+	return object.getHandleId()
 
-function loadCamerasetup( int parentKey ) returns camerasetup
-    return ht.loadCamerasetupHandle( this castTo int, parentKey )
+function camerasetupFromIndex( int index ) returns camerasetup
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadCamerasetup(0)
 
-function saveCamerasetup( int parentKey, camerasetup value )
-    ht.saveCamerasetupHandle( this castTo int, parentKey, value )
+function camerasetupToIndex(camerasetup object ) returns int
+	return object.getHandleId()
 
-function loadPlayercolor( int parentKey ) returns playercolor
-    return ht.loadPlayercolorHandle( this castTo int, parentKey )
+function playercolorFromIndex( int index ) returns playercolor
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadPlayercolor(0)
 
-function savePlayercolor( int parentKey, playercolor value )
-    ht.savePlayercolorHandle( this castTo int, parentKey, value )
+function playercolorToIndex(playercolor object ) returns int
+	return object.getHandleId()
 
-function loadPlacement( int parentKey ) returns placement
-    return ht.loadPlacementHandle( this castTo int, parentKey )
+function placementFromIndex( int index ) returns placement
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadPlacement(0)
 
-function savePlacement( int parentKey, placement value )
-    ht.savePlacementHandle( this castTo int, parentKey, value )
+function placementToIndex(placement object ) returns int
+	return object.getHandleId()
 
-function loadStartlocprio( int parentKey ) returns startlocprio
-    return ht.loadStartlocprioHandle( this castTo int, parentKey )
+function startlocprioFromIndex( int index ) returns startlocprio
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadStartlocprio(0)
 
-function saveStartlocprio( int parentKey, startlocprio value )
-    ht.saveStartlocprioHandle( this castTo int, parentKey, value )
+function startlocprioToIndex(startlocprio object ) returns int
+	return object.getHandleId()
 
-function loadRaritycontrol( int parentKey ) returns raritycontrol
-    return ht.loadRaritycontrolHandle( this castTo int, parentKey )
+function raritycontrolFromIndex( int index ) returns raritycontrol
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadRaritycontrol(0)
 
-function saveRaritycontrol( int parentKey, raritycontrol value )
-    ht.saveRaritycontrolHandle( this castTo int, parentKey, value )
+function raritycontrolToIndex(raritycontrol object ) returns int
+	return object.getHandleId()
 
-function loadBlendmode( int parentKey ) returns blendmode
-    return ht.loadBlendmodeHandle( this castTo int, parentKey )
+function blendmodeFromIndex( int index ) returns blendmode
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadBlendmode(0)
 
-function saveBlendmode( int parentKey, blendmode value )
-    ht.saveBlendmodeHandle( this castTo int, parentKey, value )
+function blendmodeToIndex(blendmode object ) returns int
+	return object.getHandleId()
 
-function loadTexmapflags( int parentKey ) returns texmapflags
-    return ht.loadTexmapflagsHandle( this castTo int, parentKey )
+function texmapflagsFromIndex( int index ) returns texmapflags
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadTexmapflags(0)
 
-function saveTexmapflags( int parentKey, texmapflags value )
-    ht.saveTexmapflagsHandle( this castTo int, parentKey, value )
+function texmapflagsToIndex(texmapflags object ) returns int
+	return object.getHandleId()
 
-function loadEffect( int parentKey ) returns effect
-    return ht.loadEffectHandle( this castTo int, parentKey )
+function effectFromIndex( int index ) returns effect
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadEffect(0)
 
-function saveEffect( int parentKey, effect value )
-    ht.saveEffectHandle( this castTo int, parentKey, value )
+function effectToIndex(effect object ) returns int
+	return object.getHandleId()
 
-function loadEffecttype( int parentKey ) returns effecttype
-    return ht.loadEffecttypeHandle( this castTo int, parentKey )
+function effecttypeFromIndex( int index ) returns effecttype
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadEffecttype(0)
 
-function saveEffecttype( int parentKey, effecttype value )
-    ht.saveEffecttypeHandle( this castTo int, parentKey, value )
+function effecttypeToIndex(effecttype object ) returns int
+	return object.getHandleId()
 
-function loadWeathereffect( int parentKey ) returns weathereffect
-    return ht.loadWeathereffectHandle( this castTo int, parentKey )
+function weathereffectFromIndex( int index ) returns weathereffect
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadWeathereffect(0)
 
-function saveWeathereffect( int parentKey, weathereffect value )
-    ht.saveWeathereffectHandle( this castTo int, parentKey, value )
+function weathereffectToIndex(weathereffect object ) returns int
+	return object.getHandleId()
 
-function loadTerraindeformation( int parentKey ) returns terraindeformation
-    return ht.loadTerraindeformationHandle( this castTo int, parentKey )
+function terraindeformationFromIndex( int index ) returns terraindeformation
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadTerraindeformation(0)
 
-function saveTerraindeformation( int parentKey, terraindeformation value )
-    ht.saveTerraindeformationHandle( this castTo int, parentKey, value )
+function terraindeformationToIndex(terraindeformation object ) returns int
+	return object.getHandleId()
 
-function loadFogstate( int parentKey ) returns fogstate
-    return ht.loadFogstateHandle( this castTo int, parentKey )
+function fogstateFromIndex( int index ) returns fogstate
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadFogstate(0)
 
-function saveFogstate( int parentKey, fogstate value )
-    ht.saveFogstateHandle( this castTo int, parentKey, value )
+function fogstateToIndex(fogstate object ) returns int
+	return object.getHandleId()
 
-function loadFogmodifier( int parentKey ) returns fogmodifier
-    return ht.loadFogmodifierHandle( this castTo int, parentKey )
+function fogmodifierFromIndex( int index ) returns fogmodifier
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadFogmodifier(0)
 
-function saveFogmodifier( int parentKey, fogmodifier value )
-    ht.saveFogmodifierHandle( this castTo int, parentKey, value )
+function fogmodifierToIndex(fogmodifier object ) returns int
+	return object.getHandleId()
 
-function loadDialog( int parentKey ) returns dialog
-    return ht.loadDialogHandle( this castTo int, parentKey )
+function dialogFromIndex( int index ) returns dialog
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadDialog(0)
 
-function saveDialog( int parentKey, dialog value )
-    ht.saveDialogHandle( this castTo int, parentKey, value )
+function dialogToIndex(dialog object ) returns int
+	return object.getHandleId()
 
-function loadButton( int parentKey ) returns button
-    return ht.loadButtonHandle( this castTo int, parentKey )
+function buttonFromIndex( int index ) returns button
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadButton(0)
 
-function saveButton( int parentKey, button value )
-    ht.saveButtonHandle( this castTo int, parentKey, value )
+function buttonToIndex(button object ) returns int
+	return object.getHandleId()
 
-function loadQuest( int parentKey ) returns quest
-    return ht.loadQuestHandle( this castTo int, parentKey )
+function questFromIndex( int index ) returns quest
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadQuest(0)
 
-function saveQuest( int parentKey, quest value )
-    ht.saveQuestHandle( this castTo int, parentKey, value )
+function questToIndex(quest object ) returns int
+	return object.getHandleId()
 
-function loadQuestitem( int parentKey ) returns questitem
-    return ht.loadQuestitemHandle( this castTo int, parentKey )
+function questitemFromIndex( int index ) returns questitem
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadQuestitem(0)
 
-function saveQuestitem( int parentKey, questitem value )
-    ht.saveQuestitemHandle( this castTo int, parentKey, value )
+function questitemToIndex(questitem object ) returns int
+	return object.getHandleId()
 
-function loadDefeatcondition( int parentKey ) returns defeatcondition
-    return ht.loadDefeatconditionHandle( this castTo int, parentKey )
+function defeatconditionFromIndex( int index ) returns defeatcondition
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadDefeatcondition(0)
 
-function saveDefeatcondition( int parentKey, defeatcondition value )
-    ht.saveDefeatconditionHandle( this castTo int, parentKey, value )
+function defeatconditionToIndex(defeatcondition object ) returns int
+	return object.getHandleId()
 
-function loadTimerdialog( int parentKey ) returns timerdialog
-    return ht.loadTimerdialogHandle( this castTo int, parentKey )
+function timerdialogFromIndex( int index ) returns timerdialog
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadTimerdialog(0)
 
-function saveTimerdialog( int parentKey, timerdialog value )
-    ht.saveTimerdialogHandle( this castTo int, parentKey, value )
+function timerdialogToIndex(timerdialog object ) returns int
+	return object.getHandleId()
 
-function loadLeaderboard( int parentKey ) returns leaderboard
-    return ht.loadLeaderboardHandle( this castTo int, parentKey )
+function leaderboardFromIndex( int index ) returns leaderboard
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadLeaderboard(0)
 
-function saveLeaderboard( int parentKey, leaderboard value )
-    ht.saveLeaderboardHandle( this castTo int, parentKey, value )
+function leaderboardToIndex(leaderboard object ) returns int
+	return object.getHandleId()
 
-function loadMultiboard( int parentKey ) returns multiboard
-    return ht.loadMultiboardHandle( this castTo int, parentKey )
+function multiboardFromIndex( int index ) returns multiboard
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadMultiboard(0)
 
-function saveMultiboard( int parentKey, multiboard value )
-    ht.saveMultiboardHandle( this castTo int, parentKey, value )
+function multiboardToIndex(multiboard object ) returns int
+	return object.getHandleId()
 
-function loadMultiboarditem( int parentKey ) returns multiboarditem
-    return ht.loadMultiboarditemHandle( this castTo int, parentKey )
+function multiboarditemFromIndex( int index ) returns multiboarditem
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadMultiboarditem(0)
 
-function saveMultiboarditem( int parentKey, multiboarditem value )
-    ht.saveMultiboarditemHandle( this castTo int, parentKey, value )
+function multiboarditemToIndex(multiboarditem object ) returns int
+	return object.getHandleId()
 
-function loadTrackable( int parentKey ) returns trackable
-    return ht.loadTrackableHandle( this castTo int, parentKey )
+function trackableFromIndex( int index ) returns trackable
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadTrackable(0)
 
-function saveTrackable( int parentKey, trackable value )
-    ht.saveTrackableHandle( this castTo int, parentKey, value )
+function trackableToIndex(trackable object ) returns int
+	return object.getHandleId()
 
-function loadGamecache( int parentKey ) returns gamecache
-    return ht.loadGamecacheHandle( this castTo int, parentKey )
+function gamecacheFromIndex( int index ) returns gamecache
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadGamecache(0)
 
-function saveGamecache( int parentKey, gamecache value )
-    ht.saveGamecacheHandle( this castTo int, parentKey, value )
+function gamecacheToIndex(gamecache object ) returns int
+	return object.getHandleId()
 
-function loadVersion( int parentKey ) returns version
-    return ht.loadVersionHandle( this castTo int, parentKey )
+function versionFromIndex( int index ) returns version
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadVersion(0)
 
-function saveVersion( int parentKey, version value )
-    ht.saveVersionHandle( this castTo int, parentKey, value )
+function versionToIndex(version object ) returns int
+	return object.getHandleId()
 
-function loadItemtype( int parentKey ) returns itemtype
-    return ht.loadItemtypeHandle( this castTo int, parentKey )
+function itemtypeFromIndex( int index ) returns itemtype
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadItemtype(0)
 
-function saveItemtype( int parentKey, itemtype value )
-    ht.saveItemtypeHandle( this castTo int, parentKey, value )
+function itemtypeToIndex(itemtype object ) returns int
+	return object.getHandleId()
 
-function loadTexttag( int parentKey ) returns texttag
-    return ht.loadTexttagHandle( this castTo int, parentKey )
+function texttagFromIndex( int index ) returns texttag
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadTexttag(0)
 
-function saveTexttag( int parentKey, texttag value )
-    ht.saveTexttagHandle( this castTo int, parentKey, value )
+function texttagToIndex(texttag object ) returns int
+	return object.getHandleId()
 
-function loadAttacktype( int parentKey ) returns attacktype
-    return ht.loadAttacktypeHandle( this castTo int, parentKey )
+function attacktypeFromIndex( int index ) returns attacktype
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadAttacktype(0)
 
-function saveAttacktype( int parentKey, attacktype value )
-    ht.saveAttacktypeHandle( this castTo int, parentKey, value )
+function attacktypeToIndex(attacktype object ) returns int
+	return object.getHandleId()
 
-function loadDamagetype( int parentKey ) returns damagetype
-    return ht.loadDamagetypeHandle( this castTo int, parentKey )
+function damagetypeFromIndex( int index ) returns damagetype
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadDamagetype(0)
 
-function saveDamagetype( int parentKey, damagetype value )
-    ht.saveDamagetypeHandle( this castTo int, parentKey, value )
+function damagetypeToIndex(damagetype object ) returns int
+	return object.getHandleId()
 
-function loadWeapontype( int parentKey ) returns weapontype
-    return ht.loadWeapontypeHandle( this castTo int, parentKey )
+function weapontypeFromIndex( int index ) returns weapontype
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadWeapontype(0)
 
-function saveWeapontype( int parentKey, weapontype value )
-    ht.saveWeapontypeHandle( this castTo int, parentKey, value )
+function weapontypeToIndex(weapontype object ) returns int
+	return object.getHandleId()
 
-function loadSoundtype( int parentKey ) returns soundtype
-    return ht.loadSoundtypeHandle( this castTo int, parentKey )
+function soundtypeFromIndex( int index ) returns soundtype
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadSoundtype(0)
 
-function saveSoundtype( int parentKey, soundtype value )
-    ht.saveSoundtypeHandle( this castTo int, parentKey, value )
+function soundtypeToIndex(soundtype object ) returns int
+	return object.getHandleId()
 
-function loadLightning( int parentKey ) returns lightning
-    return ht.loadLightningHandle( this castTo int, parentKey )
+function lightningFromIndex( int index ) returns lightning
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadLightning(0)
 
-function saveLightning( int parentKey, lightning value )
-    ht.saveLightningHandle( this castTo int, parentKey, value )
+function lightningToIndex(lightning object ) returns int
+	return object.getHandleId()
 
-function loadPathingtype( int parentKey ) returns pathingtype
-    return ht.loadPathingtypeHandle( this castTo int, parentKey )
+function pathingtypeFromIndex( int index ) returns pathingtype
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadPathingtype(0)
 
-function savePathingtype( int parentKey, pathingtype value )
-    ht.savePathingtypeHandle( this castTo int, parentKey, value )
+function pathingtypeToIndex(pathingtype object ) returns int
+	return object.getHandleId()
 
-function loadImage( int parentKey ) returns image
-    return ht.loadImageHandle( this castTo int, parentKey )
+function imageFromIndex( int index ) returns image
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadImage(0)
 
-function saveImage( int parentKey, image value )
-    ht.saveImageHandle( this castTo int, parentKey, value )
+function imageToIndex(image object ) returns int
+	return object.getHandleId()
 
-function loadUbersplat( int parentKey ) returns ubersplat
-    return ht.loadUbersplatHandle( this castTo int, parentKey )
+function ubersplatFromIndex( int index ) returns ubersplat
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadUbersplat(0)
 
-function saveUbersplat( int parentKey, ubersplat value )
-    ht.saveUbersplatHandle( this castTo int, parentKey, value )
+function ubersplatToIndex(ubersplat object ) returns int
+	return object.getHandleId()
 
-function loadHashtable( int parentKey ) returns hashtable
-    return ht.loadHashtableHandle( this castTo int, parentKey )
+function hashtableFromIndex( int index ) returns hashtable
+	data.saveFogState(0,ConvertFogState(index))
+	return data.loadHashtable(0)
 
-function saveHashtable( int parentKey, hashtable value )
-    ht.saveHashtableHandle( this castTo int, parentKey, value )
+function hashtableToIndex(hashtable object ) returns int
+	return object.getHandleId()
 

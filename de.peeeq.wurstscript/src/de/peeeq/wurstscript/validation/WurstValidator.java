@@ -711,7 +711,8 @@ public class WurstValidator {
 			}
 			return;
 		}
-		if (! wImport.attrImportedPackage().getName().equals("Wurst") && wImport.attrImportedPackage().getName() ==  wImport.attrNearestNamedScope().getName()) {
+		if (! wImport.attrImportedPackage().getName().equals("Wurst") 
+				&& wImport.attrImportedPackage().getName().equals( wImport.attrNearestNamedScope().getName())) {
 			wImport.addError("Packages cannot import themselves");
 		}
 	}
