@@ -142,12 +142,13 @@ LoopStatement =
 	| LoopStatementWithVarDef
 	
 LoopStatementWithVarDef = 
-	  StmtForRange(de.peeeq.wurstscript.parser.WPos source, LocalVarDef loopVar, Expr to, Expr step, WStatements body)
-	| StmtForRangeDown(de.peeeq.wurstscript.parser.WPos source, LocalVarDef loopVar, Expr to, Expr step, WStatements body)
+	  StmtForRange
 	| StmtForIn(de.peeeq.wurstscript.parser.WPos source, LocalVarDef loopVar, Expr in, WStatements body)
 	| StmtForFrom(de.peeeq.wurstscript.parser.WPos source, LocalVarDef loopVar, Expr in, WStatements body)
 	
-	
+StmtForRange = 
+	  StmtForRangeUp(de.peeeq.wurstscript.parser.WPos source, LocalVarDef loopVar, Expr to, Expr step, WStatements body)
+	| StmtForRangeDown(de.peeeq.wurstscript.parser.WPos source, LocalVarDef loopVar, Expr to, Expr step, WStatements body)
 
 Expr =
 	  NameRef

@@ -34,8 +34,8 @@ import de.peeeq.wurstscript.ast.StmtErr;
 import de.peeeq.wurstscript.ast.StmtExitwhen;
 import de.peeeq.wurstscript.ast.StmtForFrom;
 import de.peeeq.wurstscript.ast.StmtForIn;
-import de.peeeq.wurstscript.ast.StmtForRange;
 import de.peeeq.wurstscript.ast.StmtForRangeDown;
+import de.peeeq.wurstscript.ast.StmtForRangeUp;
 import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtLoop;
 import de.peeeq.wurstscript.ast.StmtReturn;
@@ -127,7 +127,7 @@ public class StmtTranslation {
 	}
 
 
-	public static ImStmt translate(StmtForRange s, ImTranslator t, ImFunction f) {
+	public static ImStmt translate(StmtForRangeUp s, ImTranslator t, ImFunction f) {
 		return case_StmtForRange(t, f, s.getLoopVar(), s.getTo(), s.getStep(), s.getBody(), WurstOperator.PLUS,
 				WurstOperator.GREATER, s);
 	}

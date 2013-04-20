@@ -309,4 +309,13 @@ public class BugTests extends WurstScriptTest {
 				"endpackage");
 	}
 	
+	@Test
+	public void forLoop() { // see #122
+		testAssertErrorsLines(false, "must be int", 
+				"package test",
+				"init",
+				"	for s = \"\" to \"aaaa\" step \"a\"",
+				"endpackage");
+	}
+	
 }

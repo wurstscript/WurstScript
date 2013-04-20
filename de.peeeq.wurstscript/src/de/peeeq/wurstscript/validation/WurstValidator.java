@@ -66,6 +66,7 @@ import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.StmtCall;
 import de.peeeq.wurstscript.ast.StmtDestroy;
+import de.peeeq.wurstscript.ast.StmtForRange;
 import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StmtSet;
@@ -213,6 +214,7 @@ public class WurstValidator {
 			if (e instanceof NameDef) nameDefsMustNotBeNamedAfterJassNativeTypes((NameDef) e);
 			if (e instanceof StmtCall) checkCall((StmtCall) e); 
 			if (e instanceof StmtDestroy) visit((StmtDestroy) e);
+			if (e instanceof StmtForRange) checkForRange((StmtForRange) e);
 			if (e instanceof StmtIf) visit((StmtIf) e);
 			if (e instanceof StmtReturn) visit((StmtReturn) e);
 			if (e instanceof StmtSet) checkStmtSet((StmtSet) e);
@@ -233,6 +235,18 @@ public class WurstValidator {
 			AstElement element = cde.getElement();
 			String attr = cde.getAttributeName().replaceFirst("^attr", "");
 			throw new CompileError(element.attrSource(), Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
+		}
+	}
+
+	private void checkForRange(StmtForRange e) {
+		if (!(e.getLoopVar().attrTyp().isSubtypeOf(WurstTypeInt.instance(), e))) {
+			e.getLoopVar().addError("For-loop variable must be int.");
+		}
+		if (!(e.getTo().attrTyp().isSubtypeOf(WurstTypeInt.instance(), e))) {
+			e.getLoopVar().addError("For-loop target must be int.");
+		}
+		if (!(e.getStep().attrTyp().isSubtypeOf(WurstTypeInt.instance(), e))) {
+			e.getLoopVar().addError("For-loop step must be int.");
 		}
 	}
 
