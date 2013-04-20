@@ -249,6 +249,16 @@ public class BugTests extends WurstScriptTest {
 				"endpackage");
 	}
 	
+	@Test
+	public void constFolding() { // see #124
+		testAssertOkLines(false,  
+				"package test",
+				"init",
+				"	let a = 0.00023 * 0.06",
+				"	let b = 20.5 * 300.1",
+				"endpackage");
+	}
+	
 	
 	
 }
