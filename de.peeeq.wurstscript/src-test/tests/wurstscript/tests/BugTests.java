@@ -259,6 +259,54 @@ public class BugTests extends WurstScriptTest {
 				"endpackage");
 	}
 	
+	@Test
+	public void inlinerBugShortCircuit() { // see #123
+		testAssertOkLines(true,  
+				"package test",
+				"native testSuccess()",
+				"var z = 0",
+				"function sideEffect() returns boolean",
+				"	z++",
+				"	return true",
+				"init",
+				"	let b = false and sideEffect()",
+				"	if z == 0",
+				"		testSuccess()",
+				"endpackage");
+	}
+
+	@Test
+	public void inlinerBugShortCircuit2() { // see #123
+		testAssertOkLines(true,  
+				"package test",
+				"native testSuccess()",
+				"var z = 0",
+				"function sideEffect() returns boolean",
+				"	z++",
+				"	return true",
+				"init",
+				"	if z == 1 and sideEffect()",
+				"		skip",
+				"	else",
+				"		testSuccess()",
+				"endpackage");
+	}
 	
+	
+	@Test
+	public void flattenBug() {
+		testAssertOkLines(true,  
+				"package test",
+				"native testSuccess()",
+				"var x = 0",
+				"function sideEffect(int r) returns int",
+				"	x = 4",
+				"	return r",
+				"init",
+				"	let y = x + sideEffect(2)",
+				"	if y == 2",
+				"		testSuccess()",
+				"endpackage");
+	}
 	
 }
