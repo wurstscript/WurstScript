@@ -319,4 +319,14 @@ public class BugTests extends WurstScriptTest {
 				"endpackage");
 	}
 	
+
+	@Test
+	public void division() {
+		testAssertErrorsLines(false, "div",
+				"package test",
+				"int x = 5 div 3.",
+				"endpackage"
+				);
+	}
+
 }

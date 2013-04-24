@@ -339,7 +339,7 @@ public class AttrExprType {
 			return WurstTypeUnknown.instance();
 		case MOD_INT:
 		case DIV_INT:
-			if (leftType.isSubtypeOf(WurstTypeInt.instance(), term) || rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
+			if (leftType.isSubtypeOf(WurstTypeInt.instance(), term) && rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
 				return leftType;
 			}
 			term.addError("Operator " + term.getOp() +" is not defined for " +
