@@ -1,5 +1,8 @@
 package de.peeeq.wurstscript.intermediateLang.optimizer;
 
+import java.math.BigDecimal;
+import java.text.DecimalFormat;
+
 import de.peeeq.wurstscript.jassIm.ImBoolVal;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImExpr;
@@ -133,8 +136,14 @@ public class SimpleRewrites {
 				}
 				if (isConditional) {
 					opc.replaceWith(JassIm.ImBoolVal(result));
-				}else if (isArithmetic) {
-					opc.replaceWith(JassIm.ImRealVal(String.valueOf(resultVal)));
+				} else if (isArithmetic) {
+					// convert result to string, using 4 decimal digits
+					String s = new DecimalFormat("#.####").format(resultVal);
+//					String s = new BigDecimal(resultVal).toPlainString();
+					// check if the string representation is exact
+					if (Float.parseFloat(s) == resultVal) {
+						opc.replaceWith(JassIm.ImRealVal(s));	
+					}
 				}
 			}
 		} 

@@ -571,9 +571,9 @@ Statement ::=
 	| StmtDestroy:x
 		{: RESULT = x; :} 
 	| FOR:x LocalVarDefInline:loopVar EQ Expr:from TO Expr:to NL:y OptionalBlock:body
-		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRange(pos(xleft, yright, body), loopVar, to, Ast.ExprIntVal(pos(to, Integer.MIN_VALUE), "1"), body); :}
+		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRangeUp(pos(xleft, yright, body), loopVar, to, Ast.ExprIntVal(pos(to, Integer.MIN_VALUE), "1"), body); :}
 	| FOR:x LocalVarDefInline:loopVar EQ Expr:from TO Expr:to STEP Expr:step NL:y OptionalBlock:body
-		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRange(pos(xleft, yright, body), loopVar, to, step, body); :}
+		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRangeUp(pos(xleft, yright, body), loopVar, to, step, body); :}
 	| FOR:x LocalVarDefInline:loopVar EQ Expr:from DOWNTO Expr:to NL:y OptionalBlock:body
 		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRangeDown(pos(xleft, yright, body), loopVar, to, Ast.ExprIntVal(pos(to, Integer.MIN_VALUE), "1"), body); :}
 	| FOR:x LocalVarDefInline:loopVar EQ Expr:from DOWNTO Expr:to STEP Expr:step NL:y OptionalBlock:body

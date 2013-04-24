@@ -100,21 +100,21 @@ public class SyntacticSugar {
 		for (Entry<Expr, Expr> e : replacements.entrySet()) {
 			Expr oldE = e.getKey();
 			Expr newE = e.getValue();
-			AstElement parent = oldE.getParent();
-			for (int i=0; i<parent.size(); i++) {
-				if (parent.get(i) == oldE) {
-					parent.set(i, newE);
-					return;
-				}
-			}
-			throw new Error("could not replace " + oldE + " with " + newE);
+			doSingleReplacement(oldE, newE);
 		}
 		
 	}
 
-
-
-
+	public void doSingleReplacement(Expr oldE, Expr newE) throws Error {
+		AstElement parent = oldE.getParent();
+		for (int i=0; i<parent.size(); i++) {
+			if (parent.get(i) == oldE) {
+				parent.set(i, newE);
+				return;
+			}
+		}
+		throw new Error("could not replace " + oldE + " with " + newE);
+	}
 
 	private void addEndFunctionStatements(CompilationUnit root) {
 		

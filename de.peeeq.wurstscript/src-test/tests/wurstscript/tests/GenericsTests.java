@@ -247,12 +247,12 @@ public class GenericsTests extends WurstScriptTest {
 				"package Test",
 				"import LinkedList",
 				"Table data",
-				"function effectToIndex(effect e) returns int",
-				"	return e.getHandleId()",
-
-				"function effectFromIndex(int index) returns effect",
-				"	data.saveFogState(0,ConvertFogState(index))",
-				"	return data.loadEffect(0)",
+//				"function effectToIndex(effect e) returns int",
+//				"	return e.getHandleId()",
+//
+//				"function effectFromIndex(int index) returns effect",
+//				"	data.saveFogState(0,ConvertFogState(index))",
+//				"	return data.loadEffect(0)",
 				
 				"init",
 				"	LinkedList<effect> fxs = new LinkedList<effect>()",

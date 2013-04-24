@@ -229,6 +229,7 @@ public class ExprTranslation {
 
 	public static ImExpr translateIntern(ExprNull e, ImTranslator t, ImFunction f) {
 		WurstType expectedType = e.attrExpectedTyp();
+		System.out.println("EXPECTED TYPE = " + expectedType);
 		if (expectedType instanceof WurstTypeNamedScope
 				|| expectedType instanceof WurstTypeTypeParam
 				|| expectedType instanceof WurstTypeFreeTypeParam
