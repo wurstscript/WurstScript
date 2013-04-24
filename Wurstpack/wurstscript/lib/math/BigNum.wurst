@@ -1,0 +1,241 @@
+package BigNum
+
+//prefer algebraic approach because of real subtraction issues
+public function log( real py, real pbase ) returns real
+	real x
+	real y = py
+	real base = pbase
+	real factor = 1.0
+	real logy = 0.0
+	real sign = 1.0
+	if y < 0.
+		return 0.0
+
+	if y < 1.
+		y = 1.0/y
+		sign = -1.0
+
+	//Chop out powers of the base
+	while not y < 1.0001
+		if y > base
+			y = y / base
+			logy = logy + factor
+		else
+			base = SquareRoot(base)	 //If you use just one base a lot, precompute its squareroots
+			factor = factor / 2.
+
+	return sign*logy
+
+public class BigNum_l
+	int leaf = 0
+	BigNum_l next = null
+	static int count = 0
+	
+	construct()
+		count++
+		
+	ondestroy
+		count--
+
+	//true:  want destroy
+	function clean() returns boolean
+		if next castTo int == 0 and leaf == 0
+			return true
+		else if next != null and next.clean()
+			destroy next
+			next = null
+			return leaf == 0
+		else
+			return false
+
+	
+	function divSmall ( int base, int denom ) returns int
+		int quotient = 0
+		int remainder = 0
+		int num = 0
+		
+		if (next castTo int) != 0
+			remainder = next.divSmall(base,denom)
+
+		
+		num = leaf + remainder * base
+		quotient = num div denom
+		remainder = num - quotient * denom
+		leaf = quotient
+		print("divSmall: quo=" + quotient.toString()
+				+" remain=" + remainder.toString()
+				+ " num=" + num.toString())
+		return remainder
+
+
+public class BigNum
+	BigNum_l list = null
+	int base
+		
+	construct( int base )
+		this.base = base
+
+	ondestroy
+		BigNum_l cur = list
+		BigNum_l next
+		while cur castTo int != 0
+			next = cur.next
+			destroy cur
+			cur = next
+
+	function isZero() returns boolean
+		BigNum_l cur = list
+		while cur castTo int != 0
+			if cur.leaf != 0
+				return false
+			cur = cur.next
+		return true
+
+	
+	function clean()
+		BigNum_l cur = list
+		cur.clean()
+
+	
+	//fails if bignum is null
+	//BASE() + carry must be less than MAXINT()
+	function addSmall( int pcarry )
+		BigNum_l next
+		BigNum_l cur = list
+		int sum
+		int carry = pcarry
+		
+		if cur castTo int == 0
+			cur = new BigNum_l()
+			list = cur
+		
+		
+		while carry != 0
+			sum = cur.leaf + carry
+			carry = sum div base
+			sum = sum - carry*base
+			cur.leaf = sum
+			
+			if cur.next == null
+				cur.next = new BigNum_l()
+			
+			cur = cur.next
+
+	
+	//x*BASE() must be less than MAXINT()
+	function mulSmall( int x )
+		BigNum_l cur = list
+		int product
+		int remainder
+		int carry = 0
+		while not ( cur castTo int == 0 and carry == 0 )
+			product = x * cur.leaf + carry
+			carry = product div base
+			remainder = product - carry * base
+			cur.leaf = remainder
+			if cur castTo int == 0 and carry != 0
+				cur.next = new BigNum_l()
+			
+			cur = cur.next
+
+	
+	//Returns remainder
+	function divSmall( int denom ) returns int
+		print("in divSmall : base=" + base.toString() + " denom=" + denom.toString()) 
+		return list.divSmall(base,denom)
+
+	
+	function lastDigit() returns int
+		BigNum_l cur = list
+		BigNum_l next = cur.next
+		while next castTo int != 0
+			cur = next
+			next = cur.next
+
+		return cur.leaf
+		
+	function dump() returns string
+		BigNum_l cur = this.list
+		string s = ""
+		while cur castTo int != 0
+			s = I2S(cur.leaf)+" "+s
+			cur = cur.next
+		return s
+
+		
+function closeto(real x, real y) returns boolean
+	return RAbsBJ(x - y) <= 0.001
+
+function prop_Closeto() returns boolean
+	return closeto(1,1) and closeto(1,1.0005) and not closeto(0,1)
+
+function debugMsg( string s )
+	BJDebugMsg(s)
+	Cheat("DebugMsg: "+s)
+
+	
+function prop_Log() returns boolean
+	if not closeto(log(10,10),1)
+		return false
+	else if not closeto(log(10,2.7182818),2.302585)
+		return false
+	else if not closeto(log(0.5,10),-0.30103)
+		return false
+	return true
+
+function prop_Allocator1() returns boolean
+	BigNum b1
+	BigNum b2
+	b1 = new BigNum(37)
+	destroy b1
+	b2 = new BigNum(37)
+	destroy b2
+	return b1 == b2
+
+function prop_Allocator2() returns boolean
+	BigNum b1
+	boolean b = false
+	b1 = new BigNum(37)
+	b1.addSmall(17)
+	b1.mulSmall(19)
+	if BigNum_l.count < 1
+		return false
+
+	destroy b1
+	b = BigNum_l.count == 0
+	return b
+
+
+function prop_Arith() returns boolean
+	BigNum b1
+	b1 = new BigNum(37)
+	b1.addSmall(73)
+	b1.mulSmall(39)
+	b1.addSmall(17)
+
+	if b1.divSmall(100) != 64
+		print("here 1 fail")
+		return false
+	else if b1.divSmall(7) != 0
+		print("here 2 fail")
+		return false
+	else if b1.isZero()
+		print("here 3 fail")
+		return false
+	else if b1.divSmall(3) != 1
+		print("here 4 fail")
+		return false
+	else if b1.divSmall(3) != 1
+		print("here 5 fail")
+		return false
+	else if not b1.isZero()
+		print("here 6 fail")
+		return false
+
+	return true
+
+
+
+
+
+

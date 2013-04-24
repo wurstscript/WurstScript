@@ -9,7 +9,7 @@ timer array noiseTimer
 */
 public function setCameraNoiseTimed(player owner, real value, real velocity, real time)
 	int id = GetPlayerId(owner)
-	if TimerGetRemaining(noiseTimer[id]) == 0
+	if TimerGetRemaining(noiseTimer[id]) < 0.15
 		noiseTimer[id] = getTimer()
 		CameraSetSourceNoiseForPlayer( owner, value, velocity)
 		noiseTimer[id].setData(id).start(time, function resetCam)

@@ -35,7 +35,8 @@ public class FileKeywordScanner {
 			if (sc.hasNext()) {
 				System.out.println("yo");
 			}
-			int i = 0;
+			int i = 30;
+			double numba = -0.050;
 			while(sc.hasNext()) {
 				String s = sc.next();
 				if (s.equals("type")) {
@@ -43,17 +44,29 @@ public class FileKeywordScanner {
 					s = sc.next();
 					String s2 = s.substring(0,1);
 					s2 = s2.toUpperCase() + s.substring(1, s.length());
-					sb.append("function " + s + "FromIndex( int index ) returns " + s);
+					if (numba > 0.02)
+						numba -= 0.001;
+					else if (numba <0)
+						numba += 0.001;
+					String sss = String.valueOf(numba);
+					if (sss.length() < 5)
+						sb.append("offsets["+i+"] = " + String.valueOf(numba));
+					else if (numba < 0f)
+						sb.append("offsets["+i+"] = " + String.valueOf(numba).substring(0, 6));
 					sb.append("\n");
-					sb.append("\t" + "data.saveFogState(0,ConvertFogState(index))");
-					sb.append("\n");
-					sb.append("\t" + "return data.load" + s2 + "(0)");
-					sb.append("\n");sb.append("\n");
-					sb.append("function " + s + "ToIndex(" + s + " object ) returns int");
-					sb.append("\n");
-					sb.append("\t" + "return object.getHandleId()");
-					sb.append("\n");sb.append("\n");
+//					sb.append("function " + s + "FromIndex( int index ) returns " + s);
+//					sb.append("\n");
+//					sb.append("\t" + "data.saveFogState(0,ConvertFogState(index))");
+//					sb.append("\n");
+//					sb.append("\t" + "return data.load" + s2 + "(0)");
+//					sb.append("\n");sb.append("\n");
+//					sb.append("function " + s + "ToIndex(" + s + " object ) returns int");
+//					sb.append("\n");
+//					sb.append("\t" + "return object.getHandleId()");
+//					sb.append("\n");sb.append("\n");
 					i++;
+					if ( i > 59)
+						break;
 				}
 //				function getInt( int parentKey ) returns int
 //	            return ht.loadInt(this castTo int, parentKey)
