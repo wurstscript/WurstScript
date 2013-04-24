@@ -35,6 +35,7 @@ public class BugTests extends WurstScriptTest {
 				"package test",
 				"	int i1 = -2147483648",
 				"	int i2 = 2147483647",
+				"	int i3 = 0 + (-2147483648)",
 				"endpackage");
 	}
 	
