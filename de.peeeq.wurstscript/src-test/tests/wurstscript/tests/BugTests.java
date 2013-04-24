@@ -328,5 +328,19 @@ public class BugTests extends WurstScriptTest {
 				"endpackage"
 				);
 	}
+	
+	@Test
+	public void classNull() {
+		testAssertOkLines(true,
+				"package test",
+				"native testSuccess()",
+				"class A",
+				"A a = null",
+				"init",
+				"	if not (a != null)",
+				"		testSuccess()",
+				"endpackage"
+				);
+	}
 
 }

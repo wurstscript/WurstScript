@@ -61,23 +61,23 @@ public class AttrExprExpectedType {
 				VarDef varDef = (VarDef) parent;
 				WurstType leftType = varDef.attrTyp();
 				return leftType;
-//			} else if (parent instanceof ExprBinary) {
-//				ExprBinary exprBinary = (ExprBinary) parent;
-//				if (exprBinary.getLeft() == expr) {
-//					return exprBinary.getRight().attrTyp();
-//				} else if (exprBinary.getRight() == expr) {
-//					return exprBinary.getLeft().attrTyp();
-//				}
-//				throw new CompileError(expr.getSource(), "c) could not find expr " + expr + " in parent " + parent);
-//			} else if (parent instanceof ExprUnary) {
-//				ExprUnary exprUnary = (ExprUnary) parent;
-//				if (exprUnary.attrExpectedTyp().isSubtypeOf(WurstTypeInt.instance(), expr)) {
-//					return WurstTypeInt.instance();
-//				} else if (exprUnary.attrExpectedTyp().isSubtypeOf(WurstTypeReal.instance(), expr)) {
-//					return WurstTypeReal.instance();
-//				} else if (exprUnary.attrExpectedTyp() instanceof WurstTypeBool) {
-//					return WurstTypeBool.instance();
-//				}
+			} else if (parent instanceof ExprBinary) {
+				ExprBinary exprBinary = (ExprBinary) parent;
+				if (exprBinary.getLeft() == expr) {
+					return exprBinary.getRight().attrTyp();
+				} else if (exprBinary.getRight() == expr) {
+					return exprBinary.getLeft().attrTyp();
+				}
+				throw new CompileError(expr.getSource(), "c) could not find expr " + expr + " in parent " + parent);
+			} else if (parent instanceof ExprUnary) {
+				ExprUnary exprUnary = (ExprUnary) parent;
+				if (exprUnary.attrExpectedTyp().isSubtypeOf(WurstTypeInt.instance(), expr)) {
+					return WurstTypeInt.instance();
+				} else if (exprUnary.attrExpectedTyp().isSubtypeOf(WurstTypeReal.instance(), expr)) {
+					return WurstTypeReal.instance();
+				} else if (exprUnary.attrExpectedTyp() instanceof WurstTypeBool) {
+					return WurstTypeBool.instance();
+				}
 			} else if (parent instanceof StmtReturn) {
 				StmtReturn stmtReturn = (StmtReturn) parent;
 				FunctionImplementation nearestFuncDef = stmtReturn.attrNearestFuncDef();

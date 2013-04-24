@@ -33,6 +33,7 @@ import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprNewObject;
+import de.peeeq.wurstscript.ast.ExprNull;
 import de.peeeq.wurstscript.ast.ExprThis;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
@@ -118,6 +119,7 @@ import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeReal;
 import de.peeeq.wurstscript.types.WurstTypeString;
 import de.peeeq.wurstscript.types.WurstTypeTypeParam;
+import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.controlflow.DataflowAnomalyAnalysis;
@@ -195,6 +197,7 @@ public class WurstValidator {
 			if (e instanceof ExprMemberVar) checkMemberVar((ExprMemberVar) e);
 			if (e instanceof ExprNewObject) checkNewObj((ExprNewObject) e);
 			if (e instanceof ExprNewObject) visit((ExprNewObject) e);
+			if (e instanceof ExprNull) checkExprNull((ExprNull) e);
 			if (e instanceof ExprVarAccess) visit((ExprVarAccess) e);
 			if (e instanceof ExprVarArrayAccess) checkArrayAccess((ExprVarArrayAccess) e);
 			if (e instanceof ExtensionFuncDef) visit((ExtensionFuncDef) e);
@@ -236,6 +239,14 @@ public class WurstValidator {
 			String attr = cde.getAttributeName().replaceFirst("^attr", "");
 			throw new CompileError(element.attrSource(), Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
 		}
+	}
+
+	private void checkExprNull(ExprNull e) {
+		if (!Utils.isJassCode(e) && e.attrExpectedTyp() instanceof WurstTypeUnknown) {
+			e.addError("Cannot use 'null' constant here because " +
+					"the compiler cannot infer which kind of null it is.");
+		}
+		
 	}
 
 	private void checkForRange(StmtForRange e) {
