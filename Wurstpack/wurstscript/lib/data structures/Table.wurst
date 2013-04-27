@@ -11,6 +11,12 @@ public class Table
 
 	function saveBoolean(int parentKey, boolean value)
 		ht.saveBoolean( this castTo int, parentKey, value )
+
+	function hasBoolean(int parentKey) returns boolean
+		return ht.hasBoolean(this castTo int, parentKey)
+		
+	function removeBoolean( integer parentKey )
+		RemoveSavedBoolean(ht, this castTo int, parentKey)
 	
 	function loadInt( int parentKey ) returns int
 		return ht.loadInt(this castTo int, parentKey)
