@@ -55,10 +55,13 @@ public class ModelManagerImpl implements ModelManager {
 		if (model == null) {
 			return;
 		}
+		if (!(resource instanceof IFile)) {
+			return;
+		}
 		ListIterator<CompilationUnit> it = model.listIterator();
 		while (it.hasNext()) {
 			CompilationUnit cu = it.next();
-			if (cu.getFile().equals(resource.getName())) {
+			if (cu.getFile().equals(resource.getProjectRelativePath().toString())) {
 				it.remove();
 				break;
 			}

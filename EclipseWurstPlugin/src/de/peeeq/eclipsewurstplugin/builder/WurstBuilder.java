@@ -44,14 +44,18 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 			switch (delta.getKind()) {
 			case IResourceDelta.ADDED:
 				// handle added resource
+				System.out.println("ADDED " + delta.getKind() + " --> " + resource);
 				checkCompilatinUnit(gui, resource);
 				break;
 			case IResourceDelta.REMOVED:
 				// handle removed resource
+				System.out.println("REMOVED " + delta.getKind() + " --> " + resource);
+
 				getModelManager().removeCompilationUnit(resource);
 				break;
 			case IResourceDelta.CHANGED:
 				// handle changed resource
+				System.out.println("CHANGED " + delta.getKind() + " --> " + resource);
 				checkCompilatinUnit(gui, resource);
 				break;
 			}
