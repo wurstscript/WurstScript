@@ -53,6 +53,7 @@ public class AttrTypeExprType {
 	public static WurstType calculate(TypeExprThis node) {
 		ClassOrModule n = node.attrNearestClassOrModule();
 		if (n == null) {
+			node.addError("'thistype' can only be used in classes and modules.");
 			return WurstTypeUnknown.instance();
 		}
 		return n.match(new ClassOrModule.Matcher<WurstType>() {
