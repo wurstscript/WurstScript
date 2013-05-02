@@ -63,12 +63,21 @@ public class AttrExprExpectedType {
 				return leftType;
 			} else if (parent instanceof ExprBinary) {
 				ExprBinary exprBinary = (ExprBinary) parent;
-				if (exprBinary.getLeft() == expr) {
-					return exprBinary.getRight().attrTyp();
-				} else if (exprBinary.getRight() == expr) {
-					return exprBinary.getLeft().attrTyp();
+				WurstType leftType = exprBinary.getLeft().attrTyp();
+				WurstType rightType = exprBinary.getRight().attrTyp();
+				if (leftType.equalsType(rightType, expr)) {
+					// if both types are equal, result is clear:
+					return leftType;
+				} else {
+					// otherwise, take the more specific type
+					if (leftType.isSubtypeOf(rightType, expr)) {
+						return rightType;
+					} else if (rightType.isSubtypeOf(leftType, expr)) {
+						return leftType;
+					}
 				}
-				throw new CompileError(expr.getSource(), "c) could not find expr " + expr + " in parent " + parent);
+				// no type is more specific. Not really clear what we want here...
+				return WurstTypeUnknown.instance();
 			} else if (parent instanceof ExprUnary) {
 				ExprUnary exprUnary = (ExprUnary) parent;
 				if (exprUnary.attrExpectedTyp().isSubtypeOf(WurstTypeInt.instance(), expr)) {
