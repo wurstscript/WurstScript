@@ -450,7 +450,7 @@ public class EliminateTuples {
 			range = getTupleIndexRange(tt, e.getTupleIndex());
 		} else {
 			if (e.getTupleIndex() == 0) {
-				return tupleExpr;
+				return (ImExpr) tupleExpr.copy();
 			}
 			throw new Error("problem with " + tupleExpr + "\n" +
 					"has type " + tupleExpr.attrTyp());
