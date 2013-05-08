@@ -331,14 +331,26 @@ public class Flatten {
 		return flattenExprs(t,f, Arrays.asList(exprs));
 	}
 	
-	private static MultiResult flattenExprs(ImTranslator t, ImFunction f, Iterable<ImExpr> exprs) {
+	private static MultiResult flattenExprs(ImTranslator t, ImFunction f, List<ImExpr> exprs) {
 		// TODO optimize this function to use less temporary variables
 		List<ImStmt> stmts = Lists.newArrayList();
 		List<ImExpr> newExprs = Lists.newArrayList();
-		for (ImExpr e : exprs) {
-			Result r = e.flatten(t, f);
+		List<Result> results = Lists.newArrayList();
+		int withStmts = -1;
+		for (int i=0; i<exprs.size(); i++) {
+			Result r = exprs.get(i).flatten(t, f);
+			results.add(r);
+			if (!r.stmts.isEmpty()) {
+				withStmts = i;
+			}
+		}
+		for (int i=0; i<exprs.size(); i++) {
+			ImExpr e = exprs.get(i);
+			Result r = results.get(i); 
+			
 			stmts.addAll(r.stmts);
-			if (r.expr.attrPurity() instanceof Pure) {
+			if (r.expr.attrPurity() instanceof Pure
+					|| i >= withStmts) {
 				newExprs.add(r.expr);
 			} else {
 				ImVar tempVar = JassIm.ImVar(r.expr.attrTyp(), "temp", false);
