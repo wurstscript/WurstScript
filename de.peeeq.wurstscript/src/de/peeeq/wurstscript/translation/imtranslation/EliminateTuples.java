@@ -449,6 +449,9 @@ public class EliminateTuples {
 			ImTupleType tt = (ImTupleType) tupleExpr.attrTyp();
 			range = getTupleIndexRange(tt, e.getTupleIndex());
 		} else {
+			if (e.getTupleIndex() == 0) {
+				return tupleExpr;
+			}
 			throw new Error("problem with " + tupleExpr + "\n" +
 					"has type " + tupleExpr.attrTyp());
 		}
