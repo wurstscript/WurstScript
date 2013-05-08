@@ -57,7 +57,7 @@ ImFlatExpr =
 	| ImConst
 	
 ImCall = 
-	  ImFunctionCall(de.peeeq.wurstscript.ast.AstElement trace, &ImFunction func, ImExprs arguments)
+	  ImFunctionCall(de.peeeq.wurstscript.ast.AstElement trace, &ImFunction func, ImExprs arguments, boolean tuplesEliminated)
 	| ImOperatorCall(de.peeeq.wurstscript.WurstOperator op, ImExprs arguments)
 	
 ImConst = 
@@ -100,29 +100,15 @@ ImFunction.flatten(de.peeeq.wurstscript.translation.imtranslation.ImTranslator t
 	implemented by de.peeeq.wurstscript.translation.imtranslation.Flatten.flattenFunc
 	
 ImStmt.flatten(
-		java.util.List<ImStmt> stmts,
 		de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
 		de.peeeq.wurstscript.jassIm.ImFunction f	
 	)
-	returns void
+	returns de.peeeq.wurstscript.translation.imtranslation.Flatten.Result
 	implemented by de.peeeq.wurstscript.translation.imtranslation.Flatten.flatten
 	
-ImExpr.flattenExpr(
-		java.util.List<ImStmt> stmts,
-		de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
-		de.peeeq.wurstscript.jassIm.ImFunction f	
-	)
-	returns ImFlatExpr
-	implemented by de.peeeq.wurstscript.translation.imtranslation.Flatten.flattenExpr
-	
-ImExprOpt.flattenExprOpt(
-		java.util.List<ImStmt> stmts,
-		de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
-		de.peeeq.wurstscript.jassIm.ImFunction f	
-	)
-	returns ImFlatExprOpt
-	implemented by de.peeeq.wurstscript.translation.imtranslation.Flatten.flattenExpr
-	
+ImStmt.attrPurity
+	returns de.peeeq.wurstscript.translation.imtranslation.purity.PurityLevel
+	implemented by de.peeeq.wurstscript.translation.imtranslation.purity.PurityLevels.calculate
 
 ImProg.eliminateTuples(de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator)
 	returns void

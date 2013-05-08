@@ -62,7 +62,7 @@ public class InterfaceTranslator {
 			// create dynamic message when not matched:
 			String msg = "ERROR: invalid type for interface dispatch when calling " + interfaceDef.getName() + "." + funcDef.getName();
 			
-			f.getBody().add(JassIm.ImFunctionCall(trace, translator.getDebugPrintFunc(), ImExprs(ImStringVal(msg))));
+			f.getBody().add(JassIm.ImFunctionCall(trace, translator.getDebugPrintFunc(), ImExprs(ImStringVal(msg)), false));
 			if (!(funcDef.attrTyp() instanceof WurstTypeVoid)) {
 				// add return statement
 				ImType type = f.getReturnType();

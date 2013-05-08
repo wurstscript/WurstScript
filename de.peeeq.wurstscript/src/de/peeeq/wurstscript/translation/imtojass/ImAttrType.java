@@ -13,6 +13,7 @@ import de.peeeq.wurstscript.jassIm.ImIntVal;
 import de.peeeq.wurstscript.jassIm.ImNull;
 import de.peeeq.wurstscript.jassIm.ImOperatorCall;
 import de.peeeq.wurstscript.jassIm.ImRealVal;
+import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImStatementExpr;
 import de.peeeq.wurstscript.jassIm.ImStringVal;
 import de.peeeq.wurstscript.jassIm.ImTupleArrayType;
@@ -41,7 +42,14 @@ public class ImAttrType {
 	}
 
 	public static ImType getType(ImFunctionCall e) {
-		return e.getFunc().getReturnType();
+		ImType t = e.getFunc().getReturnType();
+		if (e.getTuplesEliminated()) {
+			if (t instanceof ImTupleType) {
+				ImTupleType tt = (ImTupleType) t;
+				return tt.getTypes().get(0);
+			}
+		}
+		return t;
 	}
 
 	public static ImType getType(ImIntVal e) {
@@ -54,6 +62,11 @@ public class ImAttrType {
 
 	public static ImType getType(ImOperatorCall e) {
 		switch (e.getOp()) {
+		case MOD_REAL:
+			return WurstTypeReal.instance().imTranslateType();
+		case DIV_INT:
+		case MOD_INT:
+			return WurstTypeInt.instance().imTranslateType();
 		case AND:
 		case OR:
 		case EQ:
@@ -64,18 +77,27 @@ public class ImAttrType {
 		case LESS_EQ:
 		case NOT:
 			return WurstTypeBool.instance().imTranslateType();
-		case DIV_INT:
-		case MOD_INT:
-			return WurstTypeInt.instance().imTranslateType();
 		case DIV_REAL:
-		case MOD_REAL:
-			return WurstTypeReal.instance().imTranslateType();
 		case PLUS:
 		case MINUS:
-		case MULT:
-		case UNARY_MINUS:
+		case MULT: {
+			ImType leftType = e.getArguments().get(0).attrTyp();
+			ImType rightType = e.getArguments().get(1).attrTyp();
+			if (typeReal(leftType) || typeReal(rightType)) {
+				return WurstTypeReal.instance().imTranslateType();
+			}
+		}
+		case UNARY_MINUS: 
 		}
 		return e.getArguments().get(0).attrTyp();
+	}
+
+	private static boolean typeReal(ImType t) {
+		if (t instanceof ImSimpleType) {
+			ImSimpleType st = (ImSimpleType) t;
+			return st.getTypename().equals("real");
+		}
+		return false;
 	}
 
 	public static ImType getType(ImRealVal e) {

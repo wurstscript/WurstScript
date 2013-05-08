@@ -205,7 +205,7 @@ public class ImTranslator {
 
 	private void finishInitFunctions() {
 		// init globals, at beginning of main func:
-		mainFunc.getBody().add(0, ImFunctionCall(emptyTrace, globalInitFunc, ImExprs()));
+		mainFunc.getBody().add(0, ImFunctionCall(emptyTrace, globalInitFunc, ImExprs(), false));
 		for (ImFunction initFunc : initFuncMap.values()) {
 			addFunction(initFunc);
 		}
@@ -227,7 +227,7 @@ public class ImTranslator {
 		if (initFunc == null) {
 			return;
 		}
-		mainFunc.getBody().add(ImFunctionCall(emptyTrace, initFunc, ImExprs()));
+		mainFunc.getBody().add(ImFunctionCall(emptyTrace, initFunc, ImExprs(), false));
 	}
 
 	private void addFunction(ImFunction f) {
@@ -765,7 +765,7 @@ public class ImTranslator {
 				ImVar p = f.getParameters().get(i);
 				arguments.add(JassIm.ImVarAccess(p));
 			}
-			ImCall call = JassIm.ImFunctionCall(emptyTrace, calledJassFunc, arguments);
+			ImCall call = JassIm.ImFunctionCall(emptyTrace, calledJassFunc, arguments, false);
 			if (returnsVoid) {
 				result.add(call);
 				result.add(JassIm.ImReturn(emptyTrace, JassIm.ImNoExpr()));

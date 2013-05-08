@@ -13,10 +13,16 @@ import static de.peeeq.wurstscript.jassIm.JassIm.ImTupleExpr;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImTupleSelection;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVarArrayAccess;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Stack;
 
 import com.google.common.collect.Lists;
 
+import de.peeeq.wurstscript.WurstOperator;
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.jassIm.ImCall;
 import de.peeeq.wurstscript.jassIm.ImConst;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
@@ -29,6 +35,7 @@ import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImIf;
 import de.peeeq.wurstscript.jassIm.ImLoop;
 import de.peeeq.wurstscript.jassIm.ImNoExpr;
+import de.peeeq.wurstscript.jassIm.ImNull;
 import de.peeeq.wurstscript.jassIm.ImOperatorCall;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImReturn;
@@ -41,10 +48,13 @@ import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImTupleExpr;
 import de.peeeq.wurstscript.jassIm.ImTupleSelection;
+import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.jassIm.JassImElement;
+import de.peeeq.wurstscript.translation.imtranslation.purity.Pure;
+import de.peeeq.wurstscript.types.WurstTypeBool;
 
 /**
  * 
@@ -71,10 +81,49 @@ import de.peeeq.wurstscript.jassIm.JassImElement;
 public class Flatten {
 
 	
-	public static void flatten(ImExpr s, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
-		ImExpr e = s.flattenExpr(stmts, t, f);
+	public static class Result {
+		final List<ImStmt> stmts;
+		final ImExpr expr;
 		
-		exprToStatements(stmts, e, t, f);
+		
+		public Result(List<ImStmt> stmts, ImExpr epxr) {
+			this.stmts = stmts;
+			this.expr = epxr;
+		}
+		
+		public Result(ImExpr epxr) {
+			this.stmts = Collections.emptyList();
+			this.expr = epxr;
+		}
+
+		public Result(List<ImStmt> stmts) {
+			this.stmts = stmts;
+			this.expr = JassIm.ImNull();
+		}
+
+		public void intoStatements(List<ImStmt> result, ImTranslator t, ImFunction f) {
+			result.addAll(stmts);
+			exprToStatements(result, expr, t, f);
+		}
+	}
+	
+	public static class MultiResult {
+		final List<ImStmt> stmts;
+		final List<ImExpr> exprs;
+		
+		
+		public MultiResult(List<ImStmt> stmts, List<ImExpr> exprs) {
+			this.stmts = stmts;
+			this.exprs = exprs;
+		}
+
+
+		public ImExpr expr(int i) {
+			return exprs.get(i);
+		}
+		
+		
+		
 	}
 
 	private static void exprToStatements(List<ImStmt> result, JassImElement e, ImTranslator t, ImFunction f) {
@@ -82,7 +131,7 @@ public class Flatten {
 			result.add((ImStmt) ((ImStmt) e).copy());			
 		} else if (e instanceof ImStatementExpr) {
 			ImStatementExpr e2 = (ImStatementExpr) e;
-			flattenStatements(result, e2.getStatements(), t, f);
+			flattenStatementsInto(result, e2.getStatements(), t, f);
 			exprToStatements(result, e2, t, f);
 		} else {
 			// visit children:
@@ -92,124 +141,178 @@ public class Flatten {
 		}
 	}
 
-	private static void flattenStatements(List<ImStmt> result, ImStmts statements, ImTranslator t, ImFunction f) {
-		for (ImStmt s : statements) {
-			s.flatten(result, t, f);
-		}
-	}
-
-	public static void flatten(ImExitwhen s, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
-		ImExpr cond = s.getCondition().flattenExpr(stmts, t, f);
-		stmts.add(ImExitwhen(s.getTrace(), cond));
-	}
-
-
-	public static void flatten(ImIf s, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
-		ImExpr cond = s.getCondition().flattenExpr(stmts, t, f);
-		stmts.add(ImIf(s.getTrace(), cond, flattenStatements(s.getThenBlock(), t, f), flattenStatements(s.getElseBlock(), t, f)));
-	}
-
+	
 	private static ImStmts flattenStatements(ImStmts statements, ImTranslator t, ImFunction f) {
 		ImStmts result = ImStmts();
-		flattenStatements(result, statements, t, f);
+		flattenStatementsInto(result, statements, t, f);
 		return result;
 	}
-
-	public static void flatten(ImLoop s, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
-		stmts.add(ImLoop(s.getTrace(), flattenStatements(s.getBody(), t, f)));
-	}
-
-	public static void flatten(ImReturn s, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
-		ImExprOpt imExpr = s.getReturnValue().flattenExprOpt(stmts, t, f);
-		stmts.add(ImReturn(s.getTrace(), imExpr));
-	}
-
-
-	public static void flatten(ImSet s, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
-		ImExpr e = s.getRight().flattenExpr(stmts, t, f);
-		e.setParent(null);
-		stmts.add(ImSet(s.getTrace(), s.getLeft(), e));
-	}
-
-	public static void flatten(ImSetArray s, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
-		ImExpr i = s.getIndex().flattenExpr(stmts, t, f);
-		ImExpr e = s.getRight().flattenExpr(stmts, t, f);
-		stmts.add(ImSetArray(s.getTrace(), s.getLeft(), i, e));
-	}
-
-	public static void flatten(ImSetArrayTuple s, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
-		ImExpr i = s.getIndex().flattenExpr(stmts, t, f);
-		ImExpr e = s.getRight().flattenExpr(stmts, t, f);
-		stmts.add(JassIm.ImSetArrayTuple(s.getTrace(), s.getLeft(), i, s.getTupleIndex(), e));
-	}
-
-	public static void flatten(ImSetTuple s, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
-		ImExpr e = s.getRight().flattenExpr(stmts, t, f);
-		stmts.add(ImSetTuple(s.getTrace(), s.getLeft(), s.getTupleIndex(), e));
-	}
-
-	public static ImFlatExpr flattenExpr(ImFunctionCall e, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
-		return JassIm.ImFunctionCall(e.getTrace(), e.getFunc(), ImExprs(flattenArgs(e, stmts, t, f)));
-	}
-
-	public static ImFlatExpr flattenExpr(ImOperatorCall e, List<ImStmt> stmts, ImTranslator t,	ImFunction f) {
-		return JassIm.ImOperatorCall(e.getOp(), ImExprs(flattenArgs(e, stmts, t, f)));
-	}
-
-	private static List<ImExpr> flattenArgs(ImCall e, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
-		List<ImExpr> args = Lists.newArrayList();
-		for (ImExpr a : e.getArguments()) {
-			a = a.flattenExpr(stmts, t, f);
-			args.add(a);
+	
+	private static void flattenStatementsInto(List<ImStmt> result, ImStmts statements, ImTranslator t, ImFunction f) {
+		for (ImStmt s : statements) {
+			s.flatten(t, f).intoStatements(result, t, f);
 		}
-		return args;
 	}
+
+	public static Result flatten(ImExitwhen s, ImTranslator t, ImFunction f) {
+		Result cond = s.getCondition().flatten(t, f);
+		List<ImStmt> stmts = Lists.newArrayList(cond.stmts);
+		stmts.add(ImExitwhen(s.getTrace(), cond.expr));
+		return new Result(stmts);
+	}
+
+
+	public static Result flatten(ImIf s, ImTranslator t, ImFunction f) {
+		Result cond = s.getCondition().flatten(t, f);
+		List<ImStmt> stmts = Lists.newArrayList(cond.stmts);
+		stmts.add(
+			JassIm.ImIf(s.getTrace(), cond.expr, 
+				flattenStatements(s.getThenBlock(), t, f), 
+				flattenStatements(s.getElseBlock(), t, f)));
+		return new Result(stmts);
+	}
+
 	
 
-	public static ImFlatExpr flattenExpr(ImConst e, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
-		e.setParent(null);
-		return e;
+	public static Result flatten(ImLoop s, ImTranslator t, ImFunction f) {
+		return new Result(Collections.<ImStmt>singletonList(
+				JassIm.ImLoop(s.getTrace(), flattenStatements(s.getBody(), t, f))));
 	}
 
-
-	public static ImFlatExpr flattenExpr(ImStatementExpr e, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
-		flattenStatements(stmts, e.getStatements(), t, f);
-		return e.getExpr().flattenExpr(stmts, t, f);
-	}
-
-
-	public static ImFlatExpr flattenExpr(ImTupleExpr e, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
-		List<ImExpr> exprs = Lists.newArrayList();
-		for (ImExpr expr : e.getExprs()) {
-			expr = expr.flattenExpr(stmts, t, f);
-			exprs.add(expr);
+	public static Result flatten(ImReturn s, ImTranslator t, ImFunction f) {
+		if (s.getReturnValue() instanceof ImExpr) {
+			ImExpr ret = (ImExpr) s.getReturnValue();
+			Result result = ret.flatten(t, f);
+			List<ImStmt> stmts = Lists.newArrayList(result.stmts);
+			stmts.add(ImReturn(s.getTrace(), result.expr));
+			return new Result(stmts);
+		} else {
+			s.setParent(null);
+			return new Result(Collections.<ImStmt>singletonList(s));
 		}
-		return ImTupleExpr(ImExprs(exprs));
 	}
 
 
-	public static ImFlatExpr flattenExpr(ImTupleSelection e, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
-		ImFlatExpr tupleExpr = e.getTupleExpr().flattenExpr(stmts, t, f);
-		return ImTupleSelection(tupleExpr, e.getTupleIndex());
+	public static Result flatten(ImSet s, ImTranslator t, ImFunction f) {
+		Result e = s.getRight().flatten(t, f);
+		List<ImStmt> stmts = Lists.newArrayList(e.stmts);
+		stmts.add(JassIm.ImSet(s.getTrace(), s.getLeft(), e.expr));
+		return new Result(stmts);
+	}
+
+	
+	public static Result flatten(ImSetTuple s, ImTranslator t, ImFunction f) {
+		Result e = s.getRight().flatten(t, f);
+		List<ImStmt> stmts = Lists.newArrayList(e.stmts);
+		stmts.add(ImSetTuple(s.getTrace(), s.getLeft(), s.getTupleIndex(), e.expr));
+		return new Result(stmts);
+	}
+	
+	public static Result flatten(ImSetArray s, ImTranslator t, ImFunction f) {
+		MultiResult res = flattenExprs(t, f, s.getIndex(), s.getRight());
+		res.stmts.add(JassIm.ImSetArray(s.getTrace(), s.getLeft(), res.expr(0), res.expr(1)));
+		return new Result(res.stmts);
+	}
+
+	public static Result flatten(ImSetArrayTuple s, ImTranslator t, ImFunction f) {
+		MultiResult res = flattenExprs(t, f, s.getIndex(), s.getRight());
+		res.stmts.add(JassIm.ImSetArrayTuple(s.getTrace(), s.getLeft(), res.expr(0), s.getTupleIndex(), res.expr(1)));
+		return new Result(res.stmts);
+	}
+
+	
+
+	public static Result flatten(ImFunctionCall e, ImTranslator t, ImFunction f) {
+		MultiResult r = flattenExprs(t, f, e.getArguments());
+		return new Result(r.stmts, JassIm.ImFunctionCall(e.getTrace(), e.getFunc(), ImExprs(r.exprs), e.getTuplesEliminated()));
+	}
+
+	public static Result flatten(ImOperatorCall e, ImTranslator t,	ImFunction f) {
+		// TODO special case and, or
+		AstElement trace = e.attrTrace();
+		if (e.getOp() == WurstOperator.AND) {
+			Result left = e.getArguments().get(0).flatten(t, f);
+			Result right = e.getArguments().get(1).flatten(t, f);
+			
+			if (right.stmts.isEmpty()) {
+				return new Result(left.stmts, JassIm.ImOperatorCall(WurstOperator.AND, ImExprs(left.expr, right.expr)));
+			} else {
+				ArrayList<ImStmt> stmts = Lists.newArrayList(left.stmts);
+				ImVar tempVar = JassIm.ImVar(WurstTypeBool.instance().imTranslateType(), "andLeft", false);
+				f.getLocals().add(tempVar);
+				ImStmts thenBlock = JassIm.ImStmts();
+				// if left is true then check right
+				thenBlock.addAll(right.stmts);
+				thenBlock.add(JassIm.ImSet(trace, tempVar, right.expr));
+				// else the result is false
+				ImStmts elseBlock = JassIm.ImStmts(JassIm.ImSet(trace, tempVar, JassIm.ImBoolVal(false)));
+				stmts.add(ImIf(trace, left.expr, thenBlock, elseBlock));
+				return new Result(stmts, JassIm.ImVarAccess(tempVar));
+			}
+		} else if (e.getOp() == WurstOperator.OR) {
+			Result left = e.getArguments().get(0).flatten(t, f);
+			Result right = e.getArguments().get(1).flatten(t, f);
+			
+			if (right.stmts.isEmpty()) {
+				return new Result(left.stmts, JassIm.ImOperatorCall(WurstOperator.OR, ImExprs(left.expr, right.expr)));
+			} else {
+				ArrayList<ImStmt> stmts = Lists.newArrayList(left.stmts);
+				ImVar tempVar = JassIm.ImVar(WurstTypeBool.instance().imTranslateType(), "andLeft", false);
+				f.getLocals().add(tempVar);
+				// if left is true then result is ture
+				ImStmts thenBlock = JassIm.ImStmts(JassIm.ImSet(trace, tempVar, JassIm.ImBoolVal(true)));
+				// else check right
+				ImStmts elseBlock = JassIm.ImStmts();
+				elseBlock.addAll(right.stmts);
+				elseBlock.add(JassIm.ImSet(trace, tempVar, right.expr));
+				stmts.add(ImIf(trace, left.expr, thenBlock, elseBlock));
+				return new Result(stmts, JassIm.ImVarAccess(tempVar));
+			}
+		} else {
+			MultiResult r = flattenExprs(t, f, e.getArguments());
+			return new Result(r.stmts, JassIm.ImOperatorCall(e.getOp(), ImExprs(r.exprs)));
+		}
 	}
 
 
-	public static ImFlatExpr flattenExpr(ImVarAccess e, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
+	public static Result flatten(ImConst e, ImTranslator t, ImFunction f) {
 		e.setParent(null);
-		return e;
+		return new Result(e);
 	}
 
 
-	public static ImFlatExpr flattenExpr(ImVarArrayAccess e, List<ImStmt> stmts, ImTranslator t, ImFunction f) {
-		ImFlatExpr index = e.getIndex().flattenExpr(stmts, t, f);
-		return ImVarArrayAccess(e.getVar(), index);
+	public static Result flatten(ImStatementExpr e, ImTranslator t, ImFunction f) {
+		List<ImStmt> stmts = Lists.newArrayList();
+		flattenStatementsInto(stmts, e.getStatements(), t, f);
+		Result r = e.getExpr().flatten(t, f);
+		stmts.addAll(r.stmts);
+		return new Result(stmts, r.expr);
 	}
 
 
-	public static ImFlatExprOpt flattenExpr(ImNoExpr e, List<ImStmt> stmts, ImTranslator translator, ImFunction f) {
+	public static Result flatten(ImTupleExpr e, ImTranslator t, ImFunction f) {
+		MultiResult r = flattenExprs(t, f, e.getExprs());
+		return new Result(r.stmts, JassIm.ImTupleExpr(ImExprs(r.exprs)));
+	}
+
+
+	public static Result flatten(ImTupleSelection e, ImTranslator t, ImFunction f) {
+		Result r = e.getTupleExpr().flatten(t, f);
+		return new Result(r.stmts, JassIm.ImTupleSelection(r.expr, e.getTupleIndex()));
+	}
+
+
+	public static Result flatten(ImVarAccess e, ImTranslator t, ImFunction f) {
 		e.setParent(null);
-		return e;
+		return new Result(e);
 	}
+
+
+	public static Result flatten(ImVarArrayAccess e, ImTranslator t, ImFunction f) {
+		Result index = e.getIndex().flatten(t, f);
+		return new Result(index.stmts, ImVarArrayAccess(e.getVar(), index.expr));
+	}
+
 
 	public static void flattenFunc(ImFunction f, ImTranslator translator) {
 		ImStmts newBody = flattenStatements(f.getBody(), translator, f);
@@ -224,7 +327,28 @@ public class Flatten {
 	}
 
 	
-
+	private static MultiResult flattenExprs(ImTranslator t, ImFunction f, ImExpr ... exprs) {
+		return flattenExprs(t,f, Arrays.asList(exprs));
+	}
+	
+	private static MultiResult flattenExprs(ImTranslator t, ImFunction f, Iterable<ImExpr> exprs) {
+		// TODO optimize this function to use less temporary variables
+		List<ImStmt> stmts = Lists.newArrayList();
+		List<ImExpr> newExprs = Lists.newArrayList();
+		for (ImExpr e : exprs) {
+			Result r = e.flatten(t, f);
+			stmts.addAll(r.stmts);
+			if (r.expr.attrPurity() instanceof Pure) {
+				newExprs.add(r.expr);
+			} else {
+				ImVar tempVar = JassIm.ImVar(r.expr.attrTyp(), "temp", false);
+				f.getLocals().add(tempVar);
+				stmts.add(JassIm.ImSet(e.attrTrace(), tempVar, r.expr));
+				newExprs.add(JassIm.ImVarAccess(tempVar));
+			}
+		}
+		return new MultiResult(stmts, newExprs);
+	}
 		
 	
 }

@@ -98,6 +98,8 @@ public class EliminateTuples {
 					ImExpr newExpr = JassIm.ImTupleExpr(exprs);
 					parent.set(parentIndex, newExpr);
 				}
+				e.setTuplesEliminated(true);
+				e.clearAttributes();
 			}
 			
 		});
