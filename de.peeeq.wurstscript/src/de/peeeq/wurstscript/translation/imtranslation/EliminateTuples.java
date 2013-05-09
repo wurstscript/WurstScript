@@ -222,6 +222,7 @@ public class EliminateTuples {
 				return JassIm.ImStatementExpr(statements, JassIm.ImNull());
 			} else {
 				e.setLeft(vars.get(0));
+				newExpr.setParent(null);
 				e.setRight(newExpr);
 				return e;
 			}
