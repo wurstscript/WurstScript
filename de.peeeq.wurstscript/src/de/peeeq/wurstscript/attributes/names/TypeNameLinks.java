@@ -27,6 +27,7 @@ public class TypeNameLinks {
 	public static Multimap<String, NameLink> calculate(ClassOrModuleOrModuleInstanciation c) {
 		Multimap<String, NameLink> result = HashMultimap.create();
 		addTypeParametersIfAny(result, c);
+		result.put(c.getName(), c.createNameLink(c.attrNextScope()));
 		return result;
 	}
 

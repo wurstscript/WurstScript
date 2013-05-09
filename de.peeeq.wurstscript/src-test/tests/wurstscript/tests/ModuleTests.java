@@ -239,7 +239,7 @@ public class ModuleTests extends WurstScriptTest {
 	
 	@Test
 	public void static_external() {
-		testAssertErrorsLines(false, "from within",
+		testAssertErrorsLines(false, "variable b",
 				"package test",
 				"	module A",
 				"		static int b = 0",
@@ -251,7 +251,7 @@ public class ModuleTests extends WurstScriptTest {
 	
 	@Test
 	public void staticmeth_external() {
-		testAssertErrorsLines(false, "from within",
+		testAssertErrorsLines(false, "method b is undefined",
 				"package test",
 				"	module A",
 				"		static function b(int b)",
