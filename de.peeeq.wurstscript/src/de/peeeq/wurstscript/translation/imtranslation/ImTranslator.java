@@ -104,6 +104,7 @@ import de.peeeq.wurstscript.types.WurstTypeString;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
+import de.peeeq.wurstscript.validation.WurstValidator;
 
 public class ImTranslator {
 
@@ -675,12 +676,25 @@ public class ImTranslator {
 		}
 		Map<ClassDef, FuncDef> result = Maps.newHashMap();
 		for (ClassDef c : instances) {
+			NameLink funcNameLink = null;
+			for (NameLink nameLink : c.attrNameLinks().get(func.getName())) {
+				if (nameLink.getNameDef() == func) {
+					funcNameLink = nameLink;
+				}
+			}
+			if (funcNameLink == null) {
+				throw new Error("must not happen");
+			}
 			for (NameLink nameLink : c.attrNameLinks().get(func.getName())) {
 				NameDef nameDef = nameLink.getNameDef();
-				// TODO FIXME XXX overloading stuff ...
-				if (nameDef instanceof FuncDef && nameDef.attrNearestClassDef() == c) {
-					FuncDef f = (FuncDef) nameDef;
-					result.put(c, f);
+				if (nameLink.getDefinedIn() == c) {
+					if (nameDef instanceof FuncDef) {
+						FuncDef f = (FuncDef) nameDef;
+						// check if function f overrides func 
+						if (WurstValidator.canOverride(nameLink, funcNameLink)) {
+							result.put(c, f);
+						}
+					}
 				}
 			}
 		}

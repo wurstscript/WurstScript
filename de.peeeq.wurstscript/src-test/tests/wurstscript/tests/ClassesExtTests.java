@@ -534,7 +534,7 @@ public class ClassesExtTests extends WurstScriptTest {
 	
 	@Test
 	public void testNoDispatch() {
-		testAssertOkLines(true,
+		testAssertOkLines(false,
 				"package test",
 				"	class A",
 				"		function foo(int i, int i2)",
