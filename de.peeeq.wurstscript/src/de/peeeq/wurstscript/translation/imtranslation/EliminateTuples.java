@@ -98,6 +98,8 @@ public class EliminateTuples {
 					ImExpr newExpr = JassIm.ImTupleExpr(exprs);
 					parent.set(parentIndex, newExpr);
 				}
+				e.setTuplesEliminated(true);
+				e.clearAttributes();
 			}
 			
 		});
@@ -220,6 +222,7 @@ public class EliminateTuples {
 				return JassIm.ImStatementExpr(statements, JassIm.ImNull());
 			} else {
 				e.setLeft(vars.get(0));
+				newExpr.setParent(null);
 				e.setRight(newExpr);
 				return e;
 			}
@@ -447,6 +450,9 @@ public class EliminateTuples {
 			ImTupleType tt = (ImTupleType) tupleExpr.attrTyp();
 			range = getTupleIndexRange(tt, e.getTupleIndex());
 		} else {
+			if (e.getTupleIndex() == 0) {
+				return (ImExpr) tupleExpr.copy();
+			}
 			throw new Error("problem with " + tupleExpr + "\n" +
 					"has type " + tupleExpr.attrTyp());
 		}

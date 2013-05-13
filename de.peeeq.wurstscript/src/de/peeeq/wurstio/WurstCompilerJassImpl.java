@@ -322,10 +322,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			printDebugImProg("./test-output/im " + stage++ + "_afterinline.im");
 		}
 		
-		if (runArgs.isNullsetting()) {
-			optimizer.doNullsetting();
-			printDebugImProg("./test-output/im " + stage++ + "_afternullsetting.im");
-		}
+		
 		
 		
 		printDebugImProg("./test-output/test_opt.im");
@@ -345,6 +342,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		
 		if (runArgs.isLocalOptimizations()) {
 			optimizer.localOptimizations();
+		}
+		
+		
+		if (runArgs.isNullsetting()) {
+			optimizer.doNullsetting();
+			printDebugImProg("./test-output/im " + stage++ + "_afternullsetting.im");
 		}
 		
 		if (runArgs.isOptimize()) {

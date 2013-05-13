@@ -36,11 +36,6 @@ public class RealWorldExamples extends WurstScriptTest {
 	}
 	
 	@Test
-	public void tuplebug() throws IOException {
-		super.testAssertOkFileWithStdLib(new File(BUG_DIR + "tuplebug.wurst"), false);
-	}
-	
-	@Test
 	public void testCyclic() throws IOException {
 		super.testAssertErrorFileWithStdLib(new File(BUG_DIR + "cyclic.wurst"), "cyclic dependency", true);
 	}

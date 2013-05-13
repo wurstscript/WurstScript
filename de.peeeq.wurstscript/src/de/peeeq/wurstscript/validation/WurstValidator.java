@@ -18,6 +18,8 @@ import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.AstElementWithTypeArgs;
+import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
@@ -182,6 +184,7 @@ public class WurstValidator {
 
 	private void check(AstElement e) {
 		try {
+			if (e instanceof AstElementWithTypeParameters) checkTypeParameters((AstElementWithTypeParameters) e);
 			if (e instanceof ClassDef) checkInstanceDef((ClassDef) e);
 			if (e instanceof ClassDef) checkOverrides((ClassDef) e);
 			if (e instanceof ClassDef) visit((ClassDef) e);
@@ -238,6 +241,17 @@ public class WurstValidator {
 			AstElement element = cde.getElement();
 			String attr = cde.getAttributeName().replaceFirst("^attr", "");
 			throw new CompileError(element.attrSource(), Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
+		}
+	}
+
+	private void checkTypeParameters(AstElementWithTypeParameters e) {
+		for (TypeParamDef ta : e.getTypeParameters()) {
+			if (ta.getName().contains("<") || ta.getName().startsWith("#")) {
+				ta.addError("Type parameter must be a simple name ");
+			} else {
+				checkTypeName(ta, ta.getName());
+			}
+			ta.attrTyp();
 		}
 	}
 
@@ -440,6 +454,7 @@ public class WurstValidator {
 	@CheckMethod
 	public void visit(ExtensionFuncDef func) {
 		checkFunctionName(func);
+		func.getExtendedType().attrTyp();
 	}
 
 	private void checkFunctionName(FunctionDefinition f) {

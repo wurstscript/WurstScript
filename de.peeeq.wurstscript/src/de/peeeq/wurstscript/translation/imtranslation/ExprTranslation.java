@@ -166,9 +166,9 @@ public class ExprTranslation {
 			// the two conversions cancel each other out
 			return translated;
 		} else if (fromIndex != null) {
-			return JassIm.ImFunctionCall(e, fromIndex, JassIm.ImExprs(translated));
+			return JassIm.ImFunctionCall(e, fromIndex, JassIm.ImExprs(translated), false);
 		} else if (toIndex != null) {
-			return JassIm.ImFunctionCall(e, toIndex, JassIm.ImExprs(translated));
+			return JassIm.ImFunctionCall(e, toIndex, JassIm.ImExprs(translated), false);
 		}
 		return translated;
 	}
@@ -193,13 +193,22 @@ public class ExprTranslation {
 		if (e.attrFuncDef() != null) {
 			// overloaded operator
 			ImFunction calledFunc = t.getFuncFor(e.attrFuncDef());
-			return JassIm.ImFunctionCall(e, calledFunc, ImExprs(left, right));
+			return JassIm.ImFunctionCall(e, calledFunc, ImExprs(left, right), false);
 		} 
-		if (op == WurstOperator.DIV_REAL && !Utils.isJassCode(e)) {
-			if (e.getLeft().attrTyp().isSubtypeOf(WurstTypeInt.instance(), e)
-					&& e.getRight().attrTyp().isSubtypeOf(WurstTypeInt.instance(), e)) {
-				// we want a real division but have 2 ints so we need to multiply with 1.0
-				left = ImOperatorCall(WurstOperator.MULT, ImExprs(left, ImRealVal("1.")));
+		if (op == WurstOperator.DIV_REAL) {
+			if (Utils.isJassCode(e)) {
+				if (e.getLeft().attrTyp().isSubtypeOf(WurstTypeInt.instance(), e)
+						&& e.getRight().attrTyp().isSubtypeOf(WurstTypeInt.instance(), e)) {
+					// in jass when we have int1 / int2 this actually means int1 div int2
+					op = WurstOperator.DIV_INT;
+				}
+			} else {
+				if (e.getLeft().attrTyp().isSubtypeOf(WurstTypeInt.instance(), e)
+						&& e.getRight().attrTyp().isSubtypeOf(WurstTypeInt.instance(), e)) {
+					// we want a real division but have 2 ints so we need to multiply with 1.0
+					// TODO is this really needed or handled in IM->Jass translation?
+					left = ImOperatorCall(WurstOperator.MULT, ImExprs(left, ImRealVal("1.")));
+				}
 			}
 		}
 		return ImOperatorCall(op, ImExprs(left, right));
@@ -404,7 +413,7 @@ public class ExprTranslation {
 		} else {
 			calledImFunc = t.getFuncFor(calledFunc);
 		}
-		ImFunctionCall fc = ImFunctionCall(e, calledImFunc, imArgs);
+		ImFunctionCall fc = ImFunctionCall(e, calledImFunc, imArgs, false);
 		return fc;
 	}
 
@@ -441,7 +450,7 @@ public class ExprTranslation {
 	public static ImExpr translateIntern(ExprNewObject e, ImTranslator t, ImFunction f) {
 		ConstructorDef constructorFunc = e.attrConstructorDef();
 		ImFunction constructorImFunc = t.getConstructNewFunc(constructorFunc);
-		return ImFunctionCall(e, constructorImFunc, translateExprs(e.getArgs(), t, f));
+		return ImFunctionCall(e, constructorImFunc, translateExprs(e.getArgs(), t, f), false);
 	}
 
 	public static ImExprOpt translate(NoExpr e, ImTranslator translator, ImFunction f) {

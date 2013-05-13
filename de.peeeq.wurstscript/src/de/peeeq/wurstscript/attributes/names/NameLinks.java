@@ -18,6 +18,7 @@ import de.peeeq.wurstscript.ast.JassGlobalBlock;
 import de.peeeq.wurstscript.ast.JassToplevelDeclaration;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.LoopStatementWithVarDef;
+import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NativeFunc;
@@ -130,7 +131,7 @@ public class NameLinks {
 				NameDef n = (NameDef) e;
 				result.put(n.getName(), n.createNameLink(wEntities));
 			}
-			if (e instanceof WScope) {
+			if (e instanceof WScope && !(e instanceof ModuleDef)) {
 				WScope scope = (WScope) e;
 				addHidingPrivate(result, scope.attrNameLinks());
 			}

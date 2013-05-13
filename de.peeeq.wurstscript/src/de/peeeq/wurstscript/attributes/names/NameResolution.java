@@ -6,6 +6,7 @@ import java.util.List;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.TypeDef;
@@ -90,11 +91,15 @@ public class NameResolution {
 			WurstTypeNamedScope wurstTypeNamedScope = (WurstTypeNamedScope) receiverType;
 			// add public method from receiver
 			scope = wurstTypeNamedScope.getDef();
-			for (NameLink n : scope.attrNameLinks().get(name)) {
-				if (n.getType() == NameLinkType.FUNCTION
-						&& n.getReceiverType() != null
-						&& n.getReceiverType().isSupertypeOf(receiverType, node)) {
-					result.add(n.hidingPrivateAndProtected());
+			if (scope instanceof ModuleDef) {
+				// cannot access functions from outside of module 
+			} else {
+				for (NameLink n : scope.attrNameLinks().get(name)) {
+					if (n.getType() == NameLinkType.FUNCTION
+							&& n.getReceiverType() != null
+							&& n.getReceiverType().isSupertypeOf(receiverType, node)) {
+						result.add(n.hidingPrivateAndProtected());
+					}
 				}
 			}
 		}
