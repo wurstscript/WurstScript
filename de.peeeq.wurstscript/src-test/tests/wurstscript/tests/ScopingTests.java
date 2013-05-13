@@ -70,5 +70,17 @@ public class ScopingTests extends WurstScriptTest {
 				"			testSuccess()",
 				"endpackage");
 	}
+
+	
+	@Test
+	public void privateClassMember() {
+		testAssertErrorsLines(false, "visible",
+				"package A",
+				"class C",
+				"	private static int b = 0",
+				"init",
+				"	C.b++",
+				"endpackage");
+	}
 	
 }
