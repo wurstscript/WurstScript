@@ -51,7 +51,7 @@ public class Knockback
 	
 	//just some static variables to make the system faster/work
 	private static boolexpr unitFilter  = null 
-	private static boolexpr destFilter  = null
+	private static boolexpr destFilter  = Condition(function destFilterMethod)
 	private static code unitActions	 = null
 	private static code destActions	 = null
 	private static thistype temp		= null
@@ -195,8 +195,5 @@ public class Knockback
 		startTimedLoop()
 
 
-	//Initialization
-init
-	Knockback.destFilter  = Condition(function Knockback.destFilterMethod)
 
 

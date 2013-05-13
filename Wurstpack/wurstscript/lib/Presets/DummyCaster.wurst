@@ -136,7 +136,7 @@ public class DummyCaster
 	private static real		 aoey
 	private static real		 aoeradius
 	private static DummyCaster  cinstance
-	private static boolexpr	 aoefunc
+	private static boolexpr	 aoefunc = Condition(function filterAOE)
 
 	
 
@@ -175,19 +175,13 @@ public class DummyCaster
 
 
 
-// Might look wrong, but this is the way to make it consider collision size, a spell that
+	// Might look wrong, but this is the way to make it consider collision size, a spell that
 	// got a target circle and uses this method will let the user know which units it will
 	// hit with the mass cast.
-function filterAOE() returns boolean
-	unit u=GetFilterUnit()
-	if IsUnitInRangeXY(u, DummyCaster.aoex, DummyCaster.aoey, DummyCaster.aoeradius)
-		DummyCaster.cinstance.castOnTarget(u)
-
-
-	return false
+	static function filterAOE() returns boolean
+		unit u=GetFilterUnit()
+		if IsUnitInRangeXY(u, DummyCaster.aoex, DummyCaster.aoey, DummyCaster.aoeradius)
+			DummyCaster.cinstance.castOnTarget(u)
+		return false
 		
-init
-	DummyCaster.aoefunc=Condition(function filterAOE)
-	debugPrint("DUMMYCASTERS INITED", 1)
-
 

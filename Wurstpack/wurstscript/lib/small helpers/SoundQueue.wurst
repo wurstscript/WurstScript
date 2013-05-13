@@ -15,7 +15,7 @@ public class SoundQueue
 		queue.enqueue(snd)
 		
 	function startQueue()
-		if queue.size > 0
+		if queue.getSize() > 0
 			let snd = queue.dequeue()
 			snd.play()
 			debugPrint("playing Sound " + (snd castTo int).toString() , 1)

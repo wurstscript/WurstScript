@@ -46,13 +46,17 @@ class Memory
 	static function hasB( int k1, int k2, int k3 ) returns boolean
 		return HaveStoredBoolean(data[k1], keyStr[k2], keyStr[k3])
 	
+	static function doInit()
+		for k = Memory.KEY_LENGTH downto 0
+			Memory.keyStr[k] = SubString(Memory.KEY, k, k + 1)
+	
+		for k = Memory.KEY_LENGTH downto 0
+			Memory.data[k] = InitGameCache(Memory.keyStr[k])
+	
 	
 init
-	for k = Memory.KEY_LENGTH downto 0
-		Memory.keyStr[k] = SubString(Memory.KEY, k, k + 1)
-
-	for k = Memory.KEY_LENGTH downto 0
-		Memory.data[k] = InitGameCache(Memory.keyStr[k])
+	Memory.doInit()
+	
 
 
 class Data   
@@ -80,11 +84,13 @@ class Data
 	function write( int pid, int k, int v )
 		SaveInteger(data[pid], this castTo int, k, v)
 	
-
+	static function doInit()
+		for i = 11 downto 0
+			if (GetPlayerSlotState(Player(i)) == PLAYER_SLOT_STATE_PLAYING and GetPlayerController(Player(i)) == MAP_CONTROL_USER)
+				Data.data[i] = InitHashtable()
 init
-	for i = 11 downto 0
-		if (GetPlayerSlotState(Player(i)) == PLAYER_SLOT_STATE_PLAYING and GetPlayerController(Player(i)) == MAP_CONTROL_USER)
-			Data.data[i] = InitHashtable()
+	Data.doInit()
+	
 
 
 class BufferQueue

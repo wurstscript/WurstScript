@@ -110,17 +110,20 @@ public class Thread
 		
 		thread.addOfflinePlayers()
 		return false
-
 	
 	/*
 	*   Struct Initialization
 	*/
+	static function doInit()
+		Thread.syncThreadTrigger = CreateTrigger()
+		TriggerAddCondition(Thread.syncThreadTrigger, Condition(function Thread.syncThread))
+		for i = 11 downto 0
+			if (GetPlayerSlotState(Player(i)) == PLAYER_SLOT_STATE_PLAYING and GetPlayerController(Player(i)) == MAP_CONTROL_USER)
+				TriggerRegisterPlayerUnitEvent(Thread.syncThreadTrigger, Player(i), EVENT_PLAYER_UNIT_SELECTED, null)
+	
 init
-	Thread.syncThreadTrigger = CreateTrigger()
-	TriggerAddCondition(Thread.syncThreadTrigger, Condition(function Thread.syncThread))
-	for i = 11 downto 0
-		if (GetPlayerSlotState(Player(i)) == PLAYER_SLOT_STATE_PLAYING and GetPlayerController(Player(i)) == MAP_CONTROL_USER)
-			TriggerRegisterPlayerUnitEvent(Thread.syncThreadTrigger, Player(i), EVENT_PLAYER_UNIT_SELECTED, null)
+	Thread.doInit()
+	
 
 
 

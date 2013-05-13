@@ -94,7 +94,7 @@ function HashList<int>.sync(player source)
 	let missionKey = messageCount.toString()
 	messageCount++
 	// sync all the messages:
-	for i=0 to this.size-1
+	for i=0 to this.getSize()-1
 		let localKey2 = localKey + "_" + i.toString()
 		StoreInteger(gc, missionKey, localKey2, this.get(i))
 		SyncStoredInteger(gc, missionKey, localKey2)
@@ -102,7 +102,7 @@ function HashList<int>.sync(player source)
 	// wait until all message from source have arrived
 	while true
 		var allMessagesDone = true
-		for i=0 to this.size-1
+		for i=0 to this.getSize()-1
 			if not HaveStoredInteger(gc, missionKey, sourceKey + "_" + i.toString())
 				allMessagesDone = false
 		if allMessagesDone and not localSynced

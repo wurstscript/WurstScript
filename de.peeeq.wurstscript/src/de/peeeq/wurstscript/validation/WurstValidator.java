@@ -813,7 +813,6 @@ public class WurstValidator {
 						fromIndex.addError("This should be a function.");
 					}
 				}
-				System.out.println("toIndex + fromIndex");
 			}
 		}
 	}

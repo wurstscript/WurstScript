@@ -39,7 +39,7 @@ class LocalFileTest
 		PreloadGenEnd("!! AllowLocalFiles\\AllowLocalFiles.bat")
 
 	
-	private static function onInit()
+	static function onInit()
 		DestroyTimer(GetExpiredTimer())
 		writeLocalFileTest()
 		testForLocalEnabled()
@@ -238,13 +238,16 @@ public class File
 		
 		dataIndex = 0
 		data = ""
-
 		
+	static function doInit()
+		extra0[1] = "000"
+		extra0[2] = "00"
+		extra0[3] = "0"
+		extra0[4] = ""
+		stringTable = InitHashtable()
+
+
 init
-	File.extra0[1] = "000"
-	File.extra0[2] = "00"
-	File.extra0[3] = "0"
-	File.extra0[4] = ""
-	
-	File.stringTable = InitHashtable()
+	File.doInit()
+
 

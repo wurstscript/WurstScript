@@ -420,7 +420,7 @@ public class EliminateTuples {
 	public static ImExpr eliminateTuplesExpr(ImTupleSelection e, ImTranslator translator, ImFunction f) {
 		IntRange range;
 		
-		System.out.println("tuple selection = " + e);
+//		System.out.println("tuple selection = " + e);
 		if (e.getTupleExpr() instanceof ImVarAccess) {
 			ImVarAccess varAccess = (ImVarAccess) e.getTupleExpr();
 			if (varAccess.attrTyp() instanceof ImTupleType) {
@@ -432,7 +432,7 @@ public class EliminateTuples {
 			}
 			ImVar v = varAccess.getVar();
 			List<ImVar> vars = translator.getVarsForTuple(v);
-			System.out.println("is a var, selecting range " + range + " from vars " + vars);
+//			System.out.println("is a var, selecting range " + range + " from vars " + vars);
 			if (range.size() == 1) {		
 				return JassIm.ImVarAccess(vars.get(range.start));
 			} else {
@@ -553,9 +553,6 @@ public class EliminateTuples {
 		List<ImVar> varsForTuple = translator.getVarsForTuple(v);
 		if (varsForTuple.size() > 1 || varsForTuple.get(0) != v) {
 			ImVar tempIndex = JassIm.ImVar(e.getIndex().attrTyp(), "tempIndex", false);
-			if (((ImSimpleType)tempIndex.getType()).getTypename().equals("real")) {
-				System.out.println(e);
-			}
 			f.getLocals().add(tempIndex);
 			
 			ImStmts statements = JassIm.ImStmts(JassIm.ImSet(e.attrTrace(), tempIndex, copyExpr(e.getIndex().eliminateTuplesExpr(translator, f))));

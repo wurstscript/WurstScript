@@ -171,6 +171,15 @@ public class NameResolution {
 				if (n.getType() == NameLinkType.VAR
 						&& n.getReceiverType() != null
 						&& n.getReceiverType().isSupertypeOf(receiverType, node)) {
+					if (showErrors) {
+						if (n.getVisibility() == Visibility.PRIVATE_OTHER ) {
+							node.addError(Utils.printElement(n.getNameDef()) + " is private and cannot be used here.");
+						}
+						if (n.getVisibility() == Visibility.PROTECTED_OTHER ) {
+							node.addError(Utils.printElement(n.getNameDef()) + " is protected and cannot be used here.");
+						}
+					}
+					
 					return n.getNameDef(); 
 				}
 			}
