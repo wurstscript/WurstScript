@@ -531,4 +531,21 @@ public class ClassesExtTests extends WurstScriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void testNoDispatch() {
+		testAssertOkLines(true,
+				"package test",
+				"	class A",
+				"		function foo(int i, int i2)",
+				"	class B extends A",
+				"		function foo(int i)",
+				"	init",
+				"		let a = new A()",
+				"		let b = new B()",
+				"		a.foo(1,1)",
+				"		b.foo(1)",
+				"endpackage"
+			);
+	}
 }
