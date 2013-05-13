@@ -622,21 +622,21 @@ OptionalBlock ::=
 
 SwitchCases ::=
 	Newlines CASE:x Expr:expr NL INDENT Statements:stmts UNINDENT:y SwitchCases:cases
-		{: cases.addFront( Ast.SwitchCase( pos(xleft,exprright), expr, stmts ) ); RESULT = cases; :}
+		{: cases.addFront( Ast.SwitchCase( pos(xleft,yright), expr, stmts ) ); RESULT = cases; :}
 	| Newlines
 		{: RESULT = Ast.SwitchCases(); :} 
 ;
 
 SwitchDefaultCase ::=
 	DEFAULT:x NL INDENT Statements:stmts UNINDENT:y
-		{: RESULT = Ast.SwitchDefaultCaseStatements(pos(xleft,xright), stmts ); :}
+		{: RESULT = Ast.SwitchDefaultCaseStatements(pos(xleft,yright), stmts ); :}
 ;
 
 SwitchStmt ::=
 	SWITCH:x Expr:expr NL INDENT SwitchCases:cases SwitchDefaultCase:defaultCase UNINDENT:y
-		{: RESULT = Ast.SwitchStmt(pos(xleft,exprright), expr, cases, defaultCase ); :}
+		{: RESULT = Ast.SwitchStmt(pos(xleft,yright), expr, cases, defaultCase ); :}
 	| SWITCH:x Expr:expr NL INDENT SwitchCases:cases UNINDENT:y
-		{: RESULT = Ast.SwitchStmt(pos(xleft,exprright), expr, cases, Ast.NoDefaultCase() ); :}
+		{: RESULT = Ast.SwitchStmt(pos(xleft,yright), expr, cases, Ast.NoDefaultCase() ); :}
 ;
 
 
