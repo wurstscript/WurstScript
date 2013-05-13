@@ -135,8 +135,8 @@ init
 	int end
 	int n = ANG_N
 	real angl
-	real x = maxx
-	real y = maxy
+	real x = mapMaxX
+	real y = mapMaxY
 	for int i = ANG_N downto 0
 		stackN[i] = ANG_STORAGE_MAX
 		queueNext[i] = n

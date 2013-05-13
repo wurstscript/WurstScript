@@ -16,7 +16,7 @@ public function log( real py, real pbase ) returns real
 		sign = -1.0
 
 	//Chop out powers of the base
-	while not y < 1.0001
+	while y >= 1.0001
 		if y > base
 			y = y / base
 			logy = logy + factor
@@ -39,7 +39,7 @@ public class BigNum_l
 
 	//true:  want destroy
 	function clean() returns boolean
-		if next castTo int == 0 and leaf == 0
+		if next == null and leaf == 0
 			return true
 		else if next != null and next.clean()
 			destroy next
@@ -54,7 +54,7 @@ public class BigNum_l
 		int remainder = 0
 		int num = 0
 		
-		if (next castTo int) != 0
+		if next != null
 			remainder = next.divSmall(base,denom)
 
 		
@@ -62,9 +62,9 @@ public class BigNum_l
 		quotient = num div denom
 		remainder = num - quotient * denom
 		leaf = quotient
-		print("divSmall: quo=" + quotient.toString()
-				+" remain=" + remainder.toString()
-				+ " num=" + num.toString())
+//		print("divSmall: quo=" + quotient.toString()
+//				+" remain=" + remainder.toString()
+//				+ " num=" + num.toString())
 		return remainder
 
 
@@ -78,14 +78,14 @@ public class BigNum
 	ondestroy
 		BigNum_l cur = list
 		BigNum_l next
-		while cur castTo int != 0
+		while cur != null
 			next = cur.next
 			destroy cur
 			cur = next
 
 	function isZero() returns boolean
 		BigNum_l cur = list
-		while cur castTo int != 0
+		while cur != null
 			if cur.leaf != 0
 				return false
 			cur = cur.next
@@ -105,7 +105,7 @@ public class BigNum
 		int sum
 		int carry = pcarry
 		
-		if cur castTo int == 0
+		if cur == null
 			cur = new BigNum_l()
 			list = cur
 		
@@ -128,12 +128,12 @@ public class BigNum
 		int product
 		int remainder
 		int carry = 0
-		while not ( cur castTo int == 0 and carry == 0 )
+		while cur != null or carry != 0
 			product = x * cur.leaf + carry
 			carry = product div base
 			remainder = product - carry * base
 			cur.leaf = remainder
-			if cur castTo int == 0 and carry != 0
+			if cur.next == null and carry != 0
 				cur.next = new BigNum_l()
 			
 			cur = cur.next
@@ -141,14 +141,14 @@ public class BigNum
 	
 	//Returns remainder
 	function divSmall( int denom ) returns int
-		print("in divSmall : base=" + base.toString() + " denom=" + denom.toString()) 
+//		print("in divSmall : base=" + base.toString() + " denom=" + denom.toString()) 
 		return list.divSmall(base,denom)
 
 	
 	function lastDigit() returns int
 		BigNum_l cur = list
 		BigNum_l next = cur.next
-		while next castTo int != 0
+		while next != null
 			cur = next
 			next = cur.next
 
@@ -157,7 +157,7 @@ public class BigNum
 	function dump() returns string
 		BigNum_l cur = this.list
 		string s = ""
-		while cur castTo int != 0
+		while cur != null
 			s = I2S(cur.leaf)+" "+s
 			cur = cur.next
 		return s
@@ -214,22 +214,16 @@ function prop_Arith() returns boolean
 	b1.addSmall(17)
 
 	if b1.divSmall(100) != 64
-		print("here 1 fail")
 		return false
 	else if b1.divSmall(7) != 0
-		print("here 2 fail")
 		return false
 	else if b1.isZero()
-		print("here 3 fail")
 		return false
 	else if b1.divSmall(3) != 1
-		print("here 4 fail")
 		return false
 	else if b1.divSmall(3) != 1
-		print("here 5 fail")
 		return false
 	else if not b1.isZero()
-		print("here 6 fail")
 		return false
 
 	return true

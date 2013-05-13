@@ -154,6 +154,9 @@ public function vec3.offset2d(angle ang, real dist) returns vec3
 public function vec3.angleTo2d(vec2 v) returns angle
 	return Atan2(v.y - this.y, v.x - this.x).asAngleRadians()
 	
+public function vec3.angle2d(vec3 v) returns angle
+	return Atan2(v.y - this.y, v.x - this.x).asAngleRadians()
+	
 /** Get a polarprojection of this Vector */
 public function vec3.polarProject( real distance, angle angleGround, angle angleAir ) returns vec3
 	real x = this.x + distance * angleGround.cos() * angleAir.sin()

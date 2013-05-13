@@ -1,6 +1,7 @@
 package TimerUtils
 import NoWurst
 import Table
+import PrintingHelper
 
 //	Credits: 
 //		* Vexorian (original TimerUtils + TimedLoop)
@@ -11,16 +12,18 @@ import Table
 timer array freeTimers
 int freeTimersCount = 0
 Table timerData = new Table()
+constant HELD = 0x28829022
 
 /** Get a new timer. Use this instead of "CreateTimer".
 You can attach data to the timer with .setData and retrieve it with .getData
 If you're done with the timer, release it with .release */
 public function getTimer() returns timer
 	if freeTimersCount > 0
-		freeTimersCount -= 1
+		freeTimersCount--
+		freeTimers[freeTimersCount].setData(0)
 		return freeTimers[freeTimersCount]
 	else
-		return CreateTimer()
+		return CreateTimer().setData(0)
 		
 /** Attach Data to this timer */
 public function timer.setData(integer data) returns timer
@@ -33,6 +36,13 @@ public function timer.getData() returns integer
 
 /** Release the timer. Use this instead of "DestroyTimer" ! */
 public function timer.release()
+	if this == null
+		printError("Trying to release a null timer")
+		return
+	if this.getData() == HELD
+		printError("ReleaseTimer: Double free!")
+		return
+	this.setData(HELD)
 	this.pause()
 	freeTimers[freeTimersCount] = this
 	freeTimersCount++

@@ -2,7 +2,37 @@ package String
 	import NoWurst
 	import Char
 	import Integer
+	import Real
 	import PrintingHelper
+	
+	string charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	string numberset = "0123456789"
+	int numbersetlength = numberset.length()
+	int charsetlength = charset.length()
+	
+	public function string.toCharsetInt() returns int
+		if this.length() > 1
+			return -1
+		else
+			for i = 0 to charsetlength - 1
+				if charset.substring(i, i+1) == this
+					return i
+			return -1
+			
+	public function string.toInt() returns int
+		int result = 0
+		int len = this.length()
+		for i = len downto 1 
+			for j = 0 to numbersetlength - 1
+				if numberset.substring(j, j+1) == this.substring(i-1, i)
+					result += j * (Pow(10, (len - i)*1.).toInt())
+					break
+			
+				
+		return result
+	
+	public function int.toCharsetString() returns string
+		return charset.substring(this, this+1)
 
 	/** returns a substring specified by end and start position. */
 	public function string.substring(int start, int end) returns string

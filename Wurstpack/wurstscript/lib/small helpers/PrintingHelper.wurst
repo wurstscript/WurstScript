@@ -2,11 +2,15 @@ package PrintingHelper
 	import NoWurst
 	import Trigger
 	import Player
+	import FileIO
+	import TimerUtils
 	
 	public boolean array wantDebug
 	
 	int DEBUG_LEVEL = 1
 	real DEBUG_MSG_DURATION = 45.
+	int msgcount = 0
+	string array texts
 	
 	public function setDebugLvl( int value )
 		DEBUG_LEVEL = value
@@ -16,11 +20,13 @@ package PrintingHelper
 	
 	public function debugPrint(string msg, int level)
 		if level >= DEBUG_LEVEL
+			texts[msgcount] = msg
+			msgcount++
 			for i = 0 to 11
 				if wantDebug[i]
 					DisplayTimedTextToPlayer(Player(i), 0., 0., DEBUG_MSG_DURATION,"|cff9C9C9CDEBUG - |r" + msg)
 			
-	public function print(string msg)
+	public function print(string msg)		
 		DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, msg)
 
 	public function printNote(string msg)
@@ -43,6 +49,12 @@ package PrintingHelper
 	function activateDebug()
 		let p = GetTriggerPlayer()
 		let id = p.getId()
+		if msgcount > 150
+			if File.isEnabled()
+				var debugFile = File.open("EBR", "debug", Flag.WRITE)
+				for i = msgcount - 150 to msgcount
+					debugFile.write( "  " + texts[msgcount] + "\n" )
+				debugFile.close()
 		if wantDebug[id]
 			wantDebug[id] = false
 			DisplayTimedTextToPlayer(p, 0., 0., 20., "|cff9C9C9CDEBUG-View|r |cffB55208deactivated")
@@ -50,6 +62,8 @@ package PrintingHelper
 			wantDebug[id] = true
 			DisplayTimedTextToPlayer(p, 0., 0., 20., "|cff9C9C9CDEBUG-View|r |cff3AAD42activated")
 			
+		
+
 		
 	init
 		let t = CreateTrigger()

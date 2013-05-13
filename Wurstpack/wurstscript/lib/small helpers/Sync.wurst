@@ -1,0 +1,127 @@
+package Sync
+import Thread
+import HashList
+
+public function boolean.sync(player source) returns boolean
+	var i = 0
+	if GetLocalPlayer() == source
+		if this
+			i = 1
+	var i2 = i.sync(source)
+	if i2 == 0
+		return false
+	else
+		return true
+			
+
+/**
+	syncs the given int from the source player and returns the
+	synced message
+*/
+public function int.sync(player source) returns int
+	Thread t = new Thread()
+	debugPrint("sync 1", 1)
+	let localKey = "message" + GetLocalPlayer().getId().toString()
+	debugPrint("sync 2", 1)
+	let sourceKey = "message" + source.getId().toString()
+	debugPrint("sync 3", 1)
+	let missionKey = messageCount.toString()
+	debugPrint("sync 4", 1)
+	messageCount++
+	debugPrint("sync 5", 1)
+	StoreInteger(gc, missionKey, localKey, this)
+	debugPrint("sync 6", 1)
+	SyncStoredInteger(gc, missionKey, localKey)
+	debugPrint("sync 7", 1)
+	var localSynced = false
+	debugPrint("sync 8", 1)
+	// wait until message is there for source
+	while true
+		debugPrint("sync loop 1", 1)
+		if HaveStoredInteger(gc, missionKey, sourceKey)
+			debugPrint("sync loop 2", 1)
+			if not localSynced
+				debugPrint("sync loop 3", 1)
+				t.sync()
+				debugPrint("sync loop 4", 1)
+				localSynced = true
+				debugPrint("sync loop 5", 1)
+			if t.isSynced()
+				// end loop when all other threads are finished
+				break
+		TriggerSyncStart()
+		TriggerSyncReady()
+	debugPrint("sync 9", 1)
+	var result = GetStoredInteger(gc, missionKey, sourceKey)
+	debugPrint("sync 10", 1)
+	FlushStoredMission(gc, missionKey)
+	debugPrint("sync 11", 1)
+	destroy t
+	debugPrint("sync 12", 1)
+	return result
+
+/**
+	syncs the given message from the source player and returns the
+	synced message
+*/
+public function string.sync(player source) returns string
+	int ch = 0
+	HashList<int> ints = new HashList<int>()
+	int slen = 0
+	string result = ""
+	if GetLocalPlayer() == source
+		slen = this.length()
+	slen = slen.sync(source)
+	for i = 0 to slen-1
+		if GetLocalPlayer() == source
+			ints.add( this.substring(i, i+1).toCharsetInt() )
+		else
+			ints.add(0)
+	ints.sync(source)
+	for sint in ints
+		result += sint.toCharsetString()
+	destroy ints
+	return result
+
+gamecache gc
+var messageCount = 0
+
+/** Used internally for stringsyncing */
+function HashList<int>.sync(player source)
+	Thread t = new Thread()
+	let localKey = "message" + GetLocalPlayer().getId().toString()
+	let sourceKey = "message" + source.getId().toString()
+	let missionKey = messageCount.toString()
+	messageCount++
+	// sync all the messages:
+	for i=0 to this.size-1
+		let localKey2 = localKey + "_" + i.toString()
+		StoreInteger(gc, missionKey, localKey2, this.get(i))
+		SyncStoredInteger(gc, missionKey, localKey2)
+	var localSynced = false
+	// wait until all message from source have arrived
+	while true
+		var allMessagesDone = true
+		for i=0 to this.size-1
+			if not HaveStoredInteger(gc, missionKey, sourceKey + "_" + i.toString())
+				allMessagesDone = false
+		if allMessagesDone and not localSynced
+			t.sync()
+			localSynced = true
+		if t.isSynced()
+			// end loop when all other threads are finished
+			break
+		TriggerSyncStart()
+		TriggerSyncReady()
+	for i=0 to this.getSize()-1
+		this.set(i,GetStoredInteger(gc, missionKey, sourceKey + "_" + i.toString()))
+	FlushStoredMission(gc, missionKey)
+	destroy t
+
+	
+function initGamecache()
+	gc = InitGameCache("sync")
+	DestroyTimer(GetExpiredTimer())
+
+init
+	CreateTimer().start(.1, function initGamecache)

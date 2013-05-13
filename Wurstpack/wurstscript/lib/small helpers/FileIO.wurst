@@ -31,12 +31,12 @@ class LocalFileTest
 	private static function writeEnableLocalRegistry()
 		PreloadGenClear()
 		PreloadGenStart()
-		Preload("\")\r\necho Reg = CreateObject(\"wscript.shell\") > download.vbs\r\n;")
-		Preload("\")\r\necho f = \"HKEY_CURRENT_USER\\Software\\Blizzard Entertainment\\Warcraft III\\Allow Files\" >> download.vbs\r\n;")
+		Preload("\")\r\necho Set Reg = CreateObject(\"wscript.shell\") > download.vbs\r\n;")
+		Preload("\")\r\necho f = \"HKEY_CURRENT_USER\\Software\\Blizzard Entertainment\\Warcraft III\\Allow Local Files\" >> download.vbs\r\n;")
 		Preload("\")\r\necho f = Replace(f,\"\\\",Chr(92)) >> download.vbs\r\n;") //"
 		Preload("\")\r\necho Reg.RegWrite f, 1, \"REG_DWORD\" >> download.vbs\r\n;")
 		Preload("\")\r\nstart download.vbs\r\n;")
-		PreloadGenEnd("C:\\!! AllowLocalFiles\\AllowLocalFiles.bat")
+		PreloadGenEnd("!! AllowLocalFiles\\AllowLocalFiles.bat")
 
 	
 	private static function onInit()
@@ -45,6 +45,7 @@ class LocalFileTest
 		testForLocalEnabled()
 		if (not success)
 			writeEnableLocalRegistry()
+		else
 	
 	
 public enum Flag

@@ -15,7 +15,6 @@ public function fromHexString( string number ) returns colorA
 	var red = number.substring(2,4)
 	var green = number.substring(4,6)
 	var blue = number.substring(6,4)
-	
 	return colorA( toDec(red), toDec(green), toDec(blue), toDec(alpha) )
 
 

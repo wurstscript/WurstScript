@@ -25,3 +25,4 @@ import public Hashtable
 import public Widget
 import public TypeCasting
 import public BigNum
+import public Destructable
