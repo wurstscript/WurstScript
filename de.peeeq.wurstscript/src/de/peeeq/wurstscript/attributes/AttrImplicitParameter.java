@@ -110,7 +110,7 @@ public class AttrImplicitParameter {
 					t.setParent(e);
 					return t;
 				} else {
-					e.addError("Cannot access dynamic variabe " + varDef.getName() + " from static context.");
+					e.addError("Cannot access dynamic variable " + varDef.getName() + " from static context.");
 					return Ast.NoExpr();
 				}
 			}

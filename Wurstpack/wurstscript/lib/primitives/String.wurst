@@ -1,6 +1,38 @@
 package String
 	import NoWurst
+	import Char
+	import Integer
+	import Real
 	import PrintingHelper
+	
+	string charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	string numberset = "0123456789"
+	int numbersetlength = numberset.length()
+	int charsetlength = charset.length()
+	
+	public function string.toCharsetInt() returns int
+		if this.length() > 1
+			return -1
+		else
+			for i = 0 to charsetlength - 1
+				if charset.substring(i, i+1) == this
+					return i
+			return -1
+			
+	public function string.toInt() returns int
+		int result = 0
+		int len = this.length()
+		for i = len downto 1 
+			for j = 0 to numbersetlength - 1
+				if numberset.substring(j, j+1) == this.substring(i-1, i)
+					result += j * (Pow(10, (len - i)*1.).toInt())
+					break
+			
+				
+		return result
+	
+	public function int.toCharsetString() returns string
+		return charset.substring(this, this+1)
 
 	/** returns a substring specified by end and start position. */
 	public function string.substring(int start, int end) returns string
@@ -13,6 +45,12 @@ package String
 	/** Returns the char at the given position. 0 = first char */
 	public function string.charAt(int index) returns string
 		return SubString(this, index, index+1)
+		
+	public function string.getWidth() returns int
+		int width = 0
+		for int i = 0 to this.length() - 1
+			width += char(this.charAt(i)).getWidth()
+		return width
 	
 	/**	Converts a string to an ability id */
 	public function string.toAbilityId() returns int
@@ -23,19 +61,127 @@ package String
 		int l = this.length()
 		return this.substring(l-s.length(), l) == s
 			
+	/**	Returns if the given string starts with the specified string.	*/
+	public function string.startsWith(string s) returns boolean
+		return this.substring(0, s.length()) == s
+
+	public function string.toLowerCase() returns string
+		return StringCase(this, false)
+		
+	public function string.toUpperCase() returns string
+		return StringCase(this, true)
+		
+	function string.isUpper() returns boolean
+		return this == StringCase(this,true)
+
+	function string.ischar() returns boolean
+		return S2I(this) == 0 and this != "0"
+	
+	public function string.trim() returns string
+		int i = 0
+		while (this.charAt(i) == " ")
+			i++
+		int j = this.length()
+		while (this.charAt(j) == " ")
+			j--
+		return this.substring(i, j)
+	
 	/**
-		Returns the index of the specified char inside the given string.
-		Only works for single chars!
-		If the char does not exist, the returnvalue is -1
+		Returns the index of the specified string inside the given string.
+		If the string does not exist, the returnvalue is -1
 	*/
-	public function string.indexOf( string char ) returns int
-		if char.length() > 1
-			printError("string.indexOf is only for single-chars")
-			return -1
-		for int i = 0 to this.length() - 1
-			if this.substring(i, i+1) == char
+	public function string.indexOf(string s) returns int
+		for int i = 0 to this.length() - s.length()
+			if this.substring(i, i + s.length()) == s
 				return i
 		return -1
+		
+	public function string.indexOf(string s, int startpos) returns int
+		for int i = startpos to this.length() - s.length()
+			if this.substring(i, i + s.length()) == s
+				return i
+		return -1
+		
+	public function string.lastIndexOf(string s) returns int
+		for int i = this.length() - s.length() downto 0
+			if this.substring(i, i + s.length()) == s
+				return i
+		return -1
+		
+	public function string.countOccurences(string findStr) returns int
+		int lastIndex = 0
+		int count = 0
+		while(lastIndex != -1)
+			lastIndex = this.indexOf(findStr,lastIndex)
+		
+			if( lastIndex != -1)
+				count++
+				lastIndex+=findStr.length()
+		return count
+	
+	public function string.contains(string s) returns boolean
+		return this.indexOf(s) != -1
+	
+	public function string.isWhitespace() returns boolean
+		return this == " " or this == "\n" or this == "\t" or this == "\r"
+		
+	class StringIterator
+		string s
+		int currentpos
+		int stringLen
+		
+		construct(string s, int currentpos, int stringLen)
+			this.s = s
+			this.currentpos = currentpos
+			this.stringLen = stringLen
+			
+		function hasNext() returns boolean
+			return currentpos < stringLen
+			
+		function next() returns string
+			let val = s.substring(currentpos, currentpos+1)
+			currentpos++
+			return val
+			
+		function close()
+			destroy this
+			
+	class StringLines
+		string s
+		int currentLine = 0
+		int lineCount
+		int lastIndex
+		
+		construct(string s, int lastIndex, int lineCount)
+			this.s = s
+			this.lineCount = lineCount
+			this.lastIndex = lastIndex
+			print(lastIndex.toString() + " - " + lineCount.toString())
+			
+		function iterator() returns thistype
+			return this
+			
+		function hasNext() returns boolean
+			return currentLine < lineCount
+		
+		function next() returns string
+			let idx = this.lastIndex
+			this.lastIndex = this.s.indexOf("\n", idx) + 1
+			currentLine++
+			return this.s.substring(idx, this.lastIndex)
+			
+		function close()
+			destroy this
+			
+		
+	
+	public function string.toLines() returns StringLines
+		return new StringLines(this, 0, this.countOccurences("\n")+1)
+		
+		
+	
+	
+	
 
 endpackage
 

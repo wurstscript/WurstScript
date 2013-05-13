@@ -1,0 +1,329 @@
+package Char
+import NoWurst
+import String
+import LinkedList
+
+/**
+ * Credits go here: http://www.hiveworkshop.com/forums/jass-resources-412/snippet-ascii-190746/
+ */
+
+string array c2s
+int array s2c
+int array width
+constant int MAX_INDEX = '~' + 1
+constant int DEFAULT_WIDTH = 0
+constant string DEFAULT_STRING = ""
+
+public tuple char(int c)
+
+public function char(string s) returns char
+	if ("\\" == s)
+		return char('\')
+	int a = s2c[StringHash(s) div 0x1F0748 + 0x3EA]
+	if (s != c2s[a])
+		return char(a + 32)
+	return char(a)
+
+public function char.toString() returns string
+	if (this.c > MAX_INDEX)
+		return DEFAULT_STRING
+	return c2s[this.c]
+
+public function char.toInt() returns int
+	return this.c
+
+public function char.getWidth() returns int
+	if (this.c > MAX_INDEX)
+		return DEFAULT_WIDTH
+	return width[this.c]
+
+public function string.toChar() returns char
+	return char(this)
+
+public function string.toCharList() returns LinkedList<char>
+	LinkedList<char> res = new LinkedList<char>()
+	for int i = 0 to this.length() - 1
+		res.add(char(this.charAt(i)))
+	return res
+
+public function int.toChar() returns char
+	return char(this)
+
+public function charToIndex(char c) returns int
+	return c.toInt()
+
+public function charFromIndex(int index) returns char
+	return char(index)
+
+init
+	c2sInit()
+	s2cInit()
+	widthInit()
+
+function widthInit()
+	width[0] = 0
+	width[1] = 0
+	width[2] = 0
+	width[3] = 0
+	width[4] = 0
+	width[5] = 0
+	width[6] = 0
+	width[7] = 0 //\a
+	width[8] = 0 //\b
+	width[9] = 0 //\t
+	width[10] = 1000000000 //\n
+	width[11] = 0 //\v
+	width[12] = 0 //\f
+	width[13] = 0 //\r
+	width[14] = 0
+	width[15] = 0
+	width[16] = 0
+	width[17] = 0
+	width[18] = 0
+	width[19] = 0
+	width[20] = 0
+	width[21] = 0
+	width[22] = 0
+	width[23] = 0
+	width[24] = 0
+	width[25] = 0
+	width[26] = 0
+	width[27] = 0 //\e
+	width[28] = 0
+	width[29] = 0
+	width[30] = 0
+	width[31] = 0
+	width[' '] = 70
+	width['!'] = 60
+	width['"'] = 80
+	width['#'] = 180
+	width['$'] = 140
+	width['%'] = 199
+	width['&'] = 219
+	width['''] = 40
+	width['('] = 80
+	width[')'] = 80
+	width['*'] = 121
+	width['+'] = 140
+	width[','] = 55
+	width['-'] = 104
+	width['.'] = 51
+	width['/'] = 121
+	width['0'] = 160
+	width['1'] = 60
+	width['2'] = 160
+	width['3'] = 160
+	width['4'] = 180
+	width['5'] = 160
+	width['6'] = 160
+	width['7'] = 140
+	width['8'] = 160
+	width['9'] = 160
+	width[':'] = 60
+	width[';'] = 60
+	width['<'] = 140
+	width['='] = 140
+	width['>'] = 140
+	width['?'] = 140
+	width['@'] = 199
+	width['A'] = 206
+	width['B'] = 162
+	width['C'] = 183
+	width['D'] = 193
+	width['E'] = 153
+	width['F'] = 122
+	width['G'] = 204
+	width['H'] = 200
+	width['I'] = 77
+	width['J'] = 80
+	width['K'] = 183
+	width['L'] = 148
+	width['M'] = 264
+	width['N'] = 200
+	width['O'] = 225
+	width['P'] = 156
+	width['Q'] = 237
+	width['R'] = 179
+	width['S'] = 156
+	width['T'] = 151
+	width['U'] = 187
+	width['V'] = 183
+	width['W'] = 282
+	width['X'] = 204
+	width['Y'] = 179
+	width['Z'] = 179
+	width['['] = 80
+	width['\'] = 100
+	width[']'] = 80
+	width['^'] = 140
+	width['_'] = 140
+	width['`'] = 100
+	width['a'] = 151
+	width['b'] = 159
+	width['c'] = 147
+	width['d'] = 162
+	width['e'] = 159
+	width['f'] = 98
+	width['g'] = 176
+	width['h'] = 159
+	width['i'] = 65
+	width['j'] = 77
+	width['k'] = 147
+	width['l'] = 68
+	width['m'] = 227
+	width['n'] = 156
+	width['o'] = 166
+	width['p'] = 162
+	width['q'] = 162
+	width['r'] = 98
+	width['s'] = 126
+	width['t'] = 100
+	width['u'] = 159
+	width['v'] = 159
+	width['w'] = 229
+	width['x'] = 159
+	width['y'] = 159
+	width['z'] = 147
+	width['{'] = 80
+	width['|'] = 60
+	width['}'] = 80
+	width['~'] = 140
+	width[127] = 0
+
+function s2cInit()
+	for int i = 0 to MAX_INDEX
+		if c2s[i].toUpperCase() == c2s[i]
+			s2c[StringHash(c2s[i]) div 0x1F0748 + 0x3EA] = i
+		else
+			skip
+
+function c2sInit()
+	c2s[0] = ""
+	c2s[1] = ""
+	c2s[2] = ""
+	c2s[3] = ""
+	c2s[4] = ""
+	c2s[5] = ""
+	c2s[6] = ""
+	c2s[7] = "" //\a
+	c2s[8] = "" //\b
+	c2s[9] = "\t"
+	c2s[10] = "\n"
+	c2s[11] = "" //\v
+	c2s[12] = "" //\f
+	c2s[13] = "\r"
+	c2s[14] = ""
+	c2s[15] = ""
+	c2s[16] = ""
+	c2s[17] = ""
+	c2s[18] = ""
+	c2s[19] = ""
+	c2s[20] = ""
+	c2s[21] = ""
+	c2s[22] = ""
+	c2s[23] = ""
+	c2s[24] = ""
+	c2s[25] = ""
+	c2s[26] = ""
+	c2s[27] = "" //\e
+	c2s[28] = ""
+	c2s[29] = ""
+	c2s[30] = ""
+	c2s[31] = ""		
+	c2s[' '] = " "
+	c2s['!'] = "!"
+	c2s['"'] = "\""
+	c2s['#'] = "#"
+	c2s['$'] = "$"
+	c2s['%'] = "%"
+	c2s['&'] = "&"
+	c2s['''] = "'"
+	c2s['('] = "("
+	c2s[')'] = ")"
+	c2s['*'] = "*"
+	c2s['+'] = "+"
+	c2s[','] = ","
+	c2s['-'] = "-"
+	c2s['.'] = "."
+	c2s['/'] = "/"
+	c2s['0'] = "0"
+	c2s['1'] = "1"
+	c2s['2'] = "2"
+	c2s['3'] = "3"
+	c2s['4'] = "4"
+	c2s['5'] = "5"
+	c2s['6'] = "6"
+	c2s['7'] = "7"
+	c2s['8'] = "8"
+	c2s['9'] = "9"
+	c2s[':'] = ":"
+	c2s[';'] = ";"
+	c2s['<'] = "<"
+	c2s['='] = "="
+	c2s['>'] = ">"
+	c2s['?'] = "?"
+	c2s['@'] = "@"
+	c2s['A'] = "A"
+	c2s['B'] = "B"
+	c2s['C'] = "C"
+	c2s['D'] = "D"
+	c2s['E'] = "E"
+	c2s['F'] = "F"
+	c2s['G'] = "G"
+	c2s['H'] = "H"
+	c2s['I'] = "I"
+	c2s['J'] = "J"
+	c2s['K'] = "K"
+	c2s['L'] = "L"
+	c2s['M'] = "M"
+	c2s['N'] = "N"
+	c2s['O'] = "O"
+	c2s['P'] = "P"
+	c2s['Q'] = "Q"
+	c2s['R'] = "R"
+	c2s['S'] = "S"
+	c2s['T'] = "T"
+	c2s['U'] = "U"
+	c2s['V'] = "V"
+	c2s['W'] = "W"
+	c2s['X'] = "X"
+	c2s['Y'] = "Y"
+	c2s['Z'] = "Z"
+	c2s['['] = "["
+	c2s['\'] = "\\"
+	c2s[']'] = "]"
+	c2s['^'] = "^"
+	c2s['_'] = "_"
+	c2s['`'] = "`"
+	c2s['a'] = "a"
+	c2s['b'] = "b"
+	c2s['c'] = "c"
+	c2s['d'] = "d"
+	c2s['e'] = "e"
+	c2s['f'] = "f"
+	c2s['g'] = "g"
+	c2s['h'] = "h"
+	c2s['i'] = "i"
+	c2s['j'] = "j"
+	c2s['k'] = "k"
+	c2s['l'] = "l"
+	c2s['m'] = "m"
+	c2s['n'] = "n"
+	c2s['o'] = "o"
+	c2s['p'] = "p"
+	c2s['q'] = "q"
+	c2s['r'] = "r"
+	c2s['s'] = "s"
+	c2s['t'] = "t"
+	c2s['u'] = "u"
+	c2s['v'] = "v"
+	c2s['w'] = "w"
+	c2s['x'] = "x"
+	c2s['y'] = "y"
+	c2s['z'] = "z"
+	c2s['{'] = "{"
+	c2s['|'] = "|"
+	c2s['}'] = "}"
+	c2s['~'] = "~"
+	c2s[127] = ""
+

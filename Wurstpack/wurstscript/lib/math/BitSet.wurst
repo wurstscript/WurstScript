@@ -1,0 +1,66 @@
+package BitSet
+import Wurstunit
+
+/** a bitset is a set of small integers represented by a single integer */
+public tuple bitset(int val)
+
+function int.pow(int x) returns int
+	int result = 1
+	for int i=1 to x
+		result *= this
+	return result
+	
+
+
+
+function bitset.containsPow(int pow) returns boolean
+	return (this.val mod (pow*2)) >= pow
+
+/** the empty bitset */
+public function emptyBitset() returns bitset
+	return bitset(0)
+
+/** checks if bitset contains value v*/
+public function bitset.contains(int v) returns boolean
+	return this.containsPow(2 .pow(v))
+
+/** adds value v to the bitset */
+public function bitset.add(int v) returns bitset
+	let pow = 2 .pow(v)
+	if not this.containsPow(pow)
+		return bitset(this.val + pow)
+	else
+		return this
+
+/** removes value v from the bitset */		
+public function bitset.remove(int v) returns bitset
+	let pow = 2 .pow(v)
+	if this.containsPow(pow)
+		return bitset(this.val - pow)
+	else
+		return this
+		
+// Tests:
+//
+//@test function testContains()
+//	if not bitset(45).contains(0)
+//		testFail("a")
+//	if bitset(45).contains(1)
+//		testFail("b")
+//	if not bitset(45).contains(2)
+//		testFail("c")
+//	if not bitset(45).contains(3)
+//		testFail("d")
+//	if bitset(45).contains(4)
+//		testFail("e")
+//	if not bitset(45).contains(5)
+//		testFail("f")	
+//			
+//
+//@test function testAdd()	
+//	emptyBitset().add(0).add(2).add(3).add(5).val.assertEquals(45) 	
+//	
+//
+//@test function testRemove()	
+//	bitset(45).remove(3).val.assertEquals(37) 
+	

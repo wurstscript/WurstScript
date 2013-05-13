@@ -6,6 +6,9 @@ import Vectors
 Table sourceTable = new Table()
 Table regionData = new Table()
 
+public function vec2.isInRect(rect r)returns boolean
+	return this.x > r.getMinX() and this.x < r.getMaxX() and this.y > r.getMinY() and this.y < r.getMaxY()
+
 public function rect.getCenter() returns vec2
 	return vec2(this.getCenterX(), this.getCenterY())
 

@@ -50,6 +50,9 @@ public function unit.setPos(vec2 pos) returns unit
 public function unit.getPos() returns vec2
 	return vec2(this.getX(), this.getY())
 	
+public function unit.getPos3fake() returns vec3
+	return vec3(this.getX(), this.getY(), 0.)
+	
 public function unit.kill() returns unit
 	KillUnit(this)
 	return this

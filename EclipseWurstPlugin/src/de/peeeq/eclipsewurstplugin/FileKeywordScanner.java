@@ -17,63 +17,60 @@ import com.google.common.io.Files;
  */
 public class FileKeywordScanner {
 
+	public static String charset(){
+		return "0aUb1GLwR2kHvP3CQIM4npFs5iSW6tzAr7TNxo8JXVjy9OcdEfBKgqeuYDhmlZ";
+	}
+
+	public static int charsetlen(){
+		return (charset()).length();
+	}
+	
+	public static int chartoi( String c ) {
+		int i = 0;
+		String cs = charset();
+		int len = charsetlen();
+		while ( i < len && ! c.equals(cs.substring(i,i+1)))
+			i = i + 1;
+		return i;
+	}
+			
+	public static int fhash( String ps ) {
+		int hash = 7;
+		for( int i = 0; i<= ps.length()-1; i++)
+			hash = hash*31+chartoi(String.valueOf(ps.charAt(i)))+11;
+		if (hash < 0)
+			hash = -hash;
+		return hash;
+	}
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		Scanner sc;
-		try {
-			
-		} catch (Exception e) {
-			// TODO: handle exception
+		StringBuilder sb = new StringBuilder();
+		//sc.useDelimiter(" *");
+		int frotty = fhash("Frotty");
+		NameGenerator ng = new NameGenerator();
+		String t = ng.getToken();
+		int length = t.length();
+		int ol = 0;
+		while(length < 15) {
+			int s = fhash(t);
+			if (s == frotty && ! t.equals("Frotty"))  {
+				System.out.println("found");
+				sb.append(t);
+				sb.append("\n");
+				break;
+			}
+			if (length > ol) {
+				ol = length;
+				System.out.println(length);
+			}
+			t = ng.getToken();
+			length = t.length();
 		}
-		try {
-			sc = new Scanner(new File("./resources/common.j"));
-			File f = new File("./resources/helper.j");
-			StringBuilder sb = new StringBuilder();
-			//sc.useDelimiter(" *");
-			if (sc.hasNext()) {
-				System.out.println("yo");
-			}
-			int i = 0;
-			while(sc.hasNext()) {
-				String s = sc.next();
-				if (s.equals("type")) {
-					System.out.println(s);
-					s = sc.next();
-					String s2 = s.substring(0,1);
-					s2 = s2.toUpperCase() + s.substring(1, s.length());
-					sb.append("function " + s + "FromIndex( int index ) returns " + s);
-					sb.append("\n");
-					sb.append("\t" + "data.saveFogState(0,ConvertFogState(index))");
-					sb.append("\n");
-					sb.append("\t" + "return data.load" + s2 + "(0)");
-					sb.append("\n");sb.append("\n");
-					sb.append("function " + s + "ToIndex(" + s + " object ) returns int");
-					sb.append("\n");
-					sb.append("\t" + "return object.getHandleId()");
-					sb.append("\n");sb.append("\n");
-					i++;
-				}
-//				function getInt( int parentKey ) returns int
-//	            return ht.loadInt(this castTo int, parentKey)
-//	        
-//	        function setInt( int parentKey, int value )
-//	            ht.saveInt(this castTo int, parentKey, value)
-			}
-			System.out.println("yo2");
-			System.out.println(sb);
-			try {
-				Files.write(sb.toString(), f, Charsets.UTF_8);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		System.out.println("FOUND!!!!");
+		System.out.println(sb);
 		
 	}
-
 }
+
