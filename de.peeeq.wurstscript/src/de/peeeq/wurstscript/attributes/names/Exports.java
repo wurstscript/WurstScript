@@ -11,17 +11,19 @@ import de.peeeq.wurstscript.ast.WPackage;
 
 public class Exports {
 
+	/**
+	 * calculates all the namelinks exported by package p 
+	 */
 	public static Multimap<String, NameLink> exportedNameLinks(WPackage p) {
 		Multimap<String, NameLink> result = HashMultimap.create();
-
 		addExportedNameLinks(result, p, Sets.<WPackage>newHashSet());
-//		result.putAll(p.getElements().attrNameLinks());
-		// TODO hide package privates...
-		// TODO add public imports
-
 		return result;
 	}
 
+
+	/**
+	 * recursively adds all exported namelinks from package p to the result map
+	 */
 	private static void addExportedNameLinks(Multimap<String, NameLink> result,	WPackage p, HashSet<WPackage> alreadyImported) {
 		if (p == null || alreadyImported.contains(p)) {
 			return;

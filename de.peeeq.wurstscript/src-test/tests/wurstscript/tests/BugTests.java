@@ -343,4 +343,14 @@ public class BugTests extends WurstScriptTest {
 				);
 	}
 
+	@Test
+	public void dynamicVarFromStaticContext() { // see #139
+		testAssertErrorsLines(false, "from static context",
+				"package test",
+				"class A",
+				"	int i",
+				"	static function foo() returns int",
+				"		return A.i",
+				"endpackage");
+	}
 }

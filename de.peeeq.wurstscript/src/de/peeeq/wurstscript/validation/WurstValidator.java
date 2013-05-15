@@ -216,6 +216,7 @@ public class WurstValidator {
 			if (e instanceof Modifiers) visit((Modifiers) e);
 			if (e instanceof ModuleDef) visit((ModuleDef) e);
 			if (e instanceof NameDef) nameDefsMustNotBeNamedAfterJassNativeTypes((NameDef) e);
+			if (e instanceof NameRef) checkImplicitParameter((NameRef) e);
 			if (e instanceof StmtCall) checkCall((StmtCall) e); 
 			if (e instanceof StmtDestroy) visit((StmtDestroy) e);
 			if (e instanceof StmtForRange) checkForRange((StmtForRange) e);
@@ -240,6 +241,10 @@ public class WurstValidator {
 			String attr = cde.getAttributeName().replaceFirst("^attr", "");
 			throw new CompileError(element.attrSource(), Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
 		}
+	}
+
+	private void checkImplicitParameter(NameRef e) {
+		e.attrImplicitParameter();
 	}
 
 	private void checkTypeParameters(AstElementWithTypeParameters e) {
