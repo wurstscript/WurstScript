@@ -280,8 +280,8 @@ public class EliminateTuples {
 				return JassIm.ImStatementExpr(statements, JassIm.ImNull());
 			} else {
 				e.setLeft(vars.get(0));
-				e.setRight(newExpr);
-				e.setIndex(indexExpr);
+				e.setRight(copyExpr(newExpr));
+				e.setIndex(copyExpr(indexExpr));
 				return e;
 			}
 		}
@@ -413,6 +413,11 @@ public class EliminateTuples {
 			} else if (newExpr != expr) {
 				it.set(newExpr);
 			}
+		}
+		if (e.getExprs().size() == 1) {
+			ImExpr r = e.getExprs().get(0);
+			r.setParent(null);
+			return r;
 		}
 		return e;
 	}
@@ -639,7 +644,7 @@ public class EliminateTuples {
 				if (!stmts.isEmpty()) {
 					newArg = JassIm.ImStatementExpr(stmts, copyExpr(newArg));
 				}
-				it.set(newArg);
+				it.set(copyExpr(newArg));
 			}
 		}
 	}
@@ -674,4 +679,5 @@ public class EliminateTuples {
 		return JassIm.ImStatementExpr(statements, JassIm.ImNull());
 	}
 
+	
 }
