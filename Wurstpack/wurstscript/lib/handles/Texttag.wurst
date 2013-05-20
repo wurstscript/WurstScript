@@ -13,6 +13,10 @@ public function texttag.setPos( vec3 pos ) returns texttag
 public function texttag.setColor( int r, int g, int b, int a ) returns texttag
 	SetTextTagColor(this, r, g , b, a)
 	return this
+	
+public function texttag.setSuspended(boolean flag) returns texttag
+	SetTextTagSuspended(this, flag)
+	return this
 
 public function texttag.setColor( colorA col) returns texttag
 	SetTextTagColor(this, col.red, col.green , col.blue, col.alpha)

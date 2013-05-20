@@ -143,7 +143,7 @@ package CustomBar
 			position = pos
 			bg_color = makeColor(DEFAULT_BACKGROUND)
 			
-			textsize = TextTagSize2Height(size)
+			textsize = size
 			fg_color = makeColor(DEFAULT_FOREGROUND)
 			NUM_CHARS = numochars
 			setChar(char)
@@ -152,8 +152,13 @@ package CustomBar
 			setValue(.0)
 			
 			if t != null
-				t.setPos( position )
+				t.setAge(0.)
 				.setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
+				.setFadepoint(0.)
+				.setLifespan(0.)
+				.setPermanent(true)
+				.setPos( position )
+				.setSuspended(false)
 				.setText( txt, textsize)
 
 			rebuildText()
@@ -198,6 +203,7 @@ package CustomBar
 			chars = (R2I((value * NUM_CHARS * char.length())+0.5) div char.length())*char.length() // calculate the number of chars needed to display the new value
 			txt += ptext.substring( 0, chars)
 			
+
 			txt += "|r"
 			txt += ptext.substring( 0, ptext.length()-chars)
 
