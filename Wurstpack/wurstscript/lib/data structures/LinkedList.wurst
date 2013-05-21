@@ -4,24 +4,25 @@ package LinkedList
 		private LLEntry<T> dummy
 		private int size = 0
 
+		/** create a new, empty list */
 		construct()
 			dummy =  new LLEntry<T>(null, null, null)
 			dummy.next = dummy
 			dummy.prev = dummy
 
-		// add an element to the end of the list
+		/** add an element to the end of the list */
 		function add(T elem)
 			let entry = new LLEntry(elem, dummy.prev, dummy)
 			dummy.prev.next = entry
 			dummy.prev = entry
 			size ++
 
-		// add all elements from elems to this list
+		/** add all elements from elems to the end of this list */
 		function addAll(LinkedList<T> elems)
 			for T elem in elems
 				add(elem)
 
-		// remove element at index
+		/** remove element at index */
 		function removeAt(int index)
 			let e = getEntry(index)
 			e.prev.next = e.next
@@ -29,7 +30,7 @@ package LinkedList
 			destroy e	
 			size--
 			
-		// removes the first occurence of t from this list
+		/** removes the first occurence of t from this list */
 		function remove(T t)
 			LLEntry<T> r = dummy.next
 			while r != dummy
@@ -41,7 +42,7 @@ package LinkedList
 					return
 				r = r.next
 		
-		// gets the size of the list
+		/** gets the size of the list */
 		function getSize() returns int
 			return size
 
@@ -51,13 +52,33 @@ package LinkedList
 				r = r.next
 			return r
 
-		// get the element at the specified index
+		/** get the element at the specified index */
 		function get(int index) returns T
 			return getEntry(index).elem
 
-		// get an iterator for this list
+		/** get an iterator for this list */
 		function iterator() returns LLIterator<T>
 			return new LLIterator(dummy)			
+
+		/** adds an element to the beginning of the list */	
+		function addtoStart(T elem)
+			let entry = new LLEntry(elem, dummy, dummy.next)
+			dummy.next.prev = entry
+			dummy.next = entry
+			size ++
+
+		/** replaces the first occurence of 'whichElement' with 'newElement' 
+			returns true when an element has been replaced, 
+			false if 'whichelement' is not contained in the list
+		*/
+		function replace(T whichElement, T newElement) returns boolean
+			LLEntry<T> current = dummy.next
+			while current != dummy
+				if current.elem == whichElement
+					current.elem = newElement
+					return true
+				current = current.next
+			return false
 
 		ondestroy
 			LLEntry<T> current = dummy.next
@@ -85,7 +106,7 @@ package LinkedList
 			this.dummy = dummy
 			this.current = dummy
 
-		// remove the current element from the list
+		/** remove the current element from the list */
 		function remove()
 			if current != dummy
 				current.next.prev = current.prev
