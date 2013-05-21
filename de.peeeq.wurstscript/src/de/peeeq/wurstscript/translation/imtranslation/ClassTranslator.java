@@ -117,13 +117,13 @@ public class ClassTranslator {
 			ImFunction scOnDestroy = translator.getFuncFor(sc.getOnDestroy());
 			thenBlock.add(ImFunctionCall(trace, 
 					scOnDestroy, 
-					ImExprs(ImVarAccess(thisVar))));
+					ImExprs(ImVarAccess(thisVar)), false));
 			addTo = elseBlock;
 		}
 		ImFunction onDestroy = translator.getFuncFor(classDef.getOnDestroy());
 		addTo.add(ImFunctionCall(trace, 
 				onDestroy, 
-				ImExprs(ImVarAccess(thisVar))));
+				ImExprs(ImVarAccess(thisVar)), false));
 		addDeallocateCode(f, thisVar);	
 	}
 
@@ -157,7 +157,7 @@ public class ClassTranslator {
 				ImStmts(
 						// print error message: double free
 						ImFunctionCall(emptyTrace, translator.getDebugPrintFunc(), 
-								ImExprs(ImStringVal("Double Free of " + classDef.getName())))
+								ImExprs(ImStringVal("Double Free of " + classDef.getName())), false)
 						)));
 		
 	}
@@ -186,7 +186,7 @@ public class ClassTranslator {
 				ImFunction onDestroy = translator.getFuncFor(cd.attrExtendedClass().getOnDestroy());
 				addTo.add(ImFunctionCall(c, 
 						onDestroy, 
-						ImExprs(ImVarAccess(thisVar))));
+						ImExprs(ImVarAccess(thisVar)), false));
 			}
 		}
 	}
@@ -308,12 +308,12 @@ public class ClassTranslator {
 			f.getBody().add(JassIm.ImIf(trace, JassIm.ImOperatorCall(WurstOperator.LESS_EQ, 
 					JassIm.ImExprs(ImVarAccess(f.getParameters().get(0)), ImIntVal(0))), 
 						ImStmts(ImFunctionCall(trace, translator.getDebugPrintFunc(), 
-								ImExprs(ImStringVal("Nullpointer dereference when calling " + Utils.printElementWithSource(funcDef))))), 
+								ImExprs(ImStringVal("Nullpointer dereference when calling " + Utils.printElementWithSource(funcDef))), false)), 
 						ImStmts(
 								JassIm.ImIf(trace, JassIm.ImOperatorCall(WurstOperator.GREATER_EQ, 
 										JassIm.ImExprs(ImVarArrayAccess(m.nextFree, ImVarAccess(f.getParameters().get(0))), ImIntVal(0))), 
 											ImStmts(ImFunctionCall(trace, translator.getDebugPrintFunc(), 
-													ImExprs(ImStringVal("Calling " + Utils.printElementWithSource(funcDef) + " on a destroyed object.")))), 
+													ImExprs(ImStringVal("Calling " + Utils.printElementWithSource(funcDef) + " on a destroyed object.")), false)), 
 													ImStmts()))
 								
 								));
@@ -329,9 +329,9 @@ public class ClassTranslator {
 			arguments.add(ImVarAccess(f.getParameters().get(i)));
 		}
 		if (f.getReturnType() instanceof ImVoid) {
-			f.getBody().add(JassIm.ImFunctionCall(funcDef, staticF, arguments));
+			f.getBody().add(JassIm.ImFunctionCall(funcDef, staticF, arguments, false));
 		} else {
-			f.getBody().add(JassIm.ImReturn(funcDef, JassIm.ImFunctionCall(funcDef, staticF, arguments)));
+			f.getBody().add(JassIm.ImReturn(funcDef, JassIm.ImFunctionCall(funcDef, staticF, arguments, false)));
 		}
 		
 		
@@ -406,7 +406,7 @@ public class ClassTranslator {
 		for (ImVar a : f.getParameters()) {
 			arguments.add(ImVarAccess(a));
 		}
-		f.getBody().add(ImFunctionCall(trace, constrFunc, arguments));
+		f.getBody().add(ImFunctionCall(trace, constrFunc, arguments, false));
 		
 		
 		// return this
@@ -428,7 +428,7 @@ public class ClassTranslator {
 			for (Expr a : constr.getSuperArgs()) {
 				arguments.add(a.imTranslateExpr(translator, f));
 			}
-			f.getBody().add(ImFunctionCall(trace, superConstrFunc, arguments));
+			f.getBody().add(ImFunctionCall(trace, superConstrFunc, arguments, false));
 		}
 		// initialize vars
 		for (Pair<ImVar, OptExpr> i : translator.getDynamicInits(classDef)) {

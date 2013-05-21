@@ -571,9 +571,9 @@ Statement ::=
 	| StmtDestroy:x
 		{: RESULT = x; :} 
 	| FOR:x LocalVarDefInline:loopVar EQ Expr:from TO Expr:to NL:y OptionalBlock:body
-		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRange(pos(xleft, yright, body), loopVar, to, Ast.ExprIntVal(pos(to, Integer.MIN_VALUE), "1"), body); :}
+		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRangeUp(pos(xleft, yright, body), loopVar, to, Ast.ExprIntVal(pos(to, Integer.MIN_VALUE), "1"), body); :}
 	| FOR:x LocalVarDefInline:loopVar EQ Expr:from TO Expr:to STEP Expr:step NL:y OptionalBlock:body
-		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRange(pos(xleft, yright, body), loopVar, to, step, body); :}
+		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRangeUp(pos(xleft, yright, body), loopVar, to, step, body); :}
 	| FOR:x LocalVarDefInline:loopVar EQ Expr:from DOWNTO Expr:to NL:y OptionalBlock:body
 		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRangeDown(pos(xleft, yright, body), loopVar, to, Ast.ExprIntVal(pos(to, Integer.MIN_VALUE), "1"), body); :}
 	| FOR:x LocalVarDefInline:loopVar EQ Expr:from DOWNTO Expr:to STEP Expr:step NL:y OptionalBlock:body
@@ -621,22 +621,28 @@ OptionalBlock ::=
 ;
 
 SwitchCases ::=
-	Newlines CASE:x Expr:expr NL INDENT Statements:stmts UNINDENT:y SwitchCases:cases
-		{: cases.addFront( Ast.SwitchCase( pos(xleft,exprright), expr, stmts ) ); RESULT = cases; :}
+	  Newlines CASE:x Expr:expr NL INDENT Statements:stmts UNINDENT:y SwitchCases:cases
+		{: cases.addFront( Ast.SwitchCase( pos(xleft,yright), expr, stmts ) ); RESULT = cases; :}
+	| Newlines CASE:x Expr:expr NL:y SwitchCases:cases
+		{: cases.addFront( Ast.SwitchCase( pos(xleft,yright), expr, Ast.WStatements() ) ); RESULT = cases; :}
 	| Newlines
 		{: RESULT = Ast.SwitchCases(); :} 
 ;
 
 SwitchDefaultCase ::=
-	DEFAULT:x NL INDENT Statements:stmts UNINDENT:y
-		{: RESULT = Ast.SwitchDefaultCaseStatements(pos(xleft,xright), stmts ); :}
+	  DEFAULT:x NL INDENT Statements:stmts UNINDENT:y
+		{: RESULT = Ast.SwitchDefaultCaseStatements(pos(xleft,yright), stmts ); :}
+	| DEFAULT:x NL:y
+		{: RESULT = Ast.SwitchDefaultCaseStatements(pos(xleft,yright), Ast.WStatements() ); :}
 ;
 
 SwitchStmt ::=
 	SWITCH:x Expr:expr NL INDENT SwitchCases:cases SwitchDefaultCase:defaultCase UNINDENT:y
-		{: RESULT = Ast.SwitchStmt(pos(xleft,exprright), expr, cases, defaultCase ); :}
+		{: RESULT = Ast.SwitchStmt(pos(xleft,yright), expr, cases, defaultCase ); :}
 	| SWITCH:x Expr:expr NL INDENT SwitchCases:cases UNINDENT:y
-		{: RESULT = Ast.SwitchStmt(pos(xleft,exprright), expr, cases, Ast.NoDefaultCase() ); :}
+		{: RESULT = Ast.SwitchStmt(pos(xleft,yright), expr, cases, Ast.NoDefaultCase() ); :}
+	| SWITCH:x Expr:expr NL:y
+		{: RESULT = Ast.SwitchStmt(pos(xleft,yright), expr, Ast.SwitchCases(), Ast.NoDefaultCase() ); :}
 ;
 
 

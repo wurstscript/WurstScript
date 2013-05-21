@@ -1,48 +1,46 @@
 package PreloadHandler
-	/*
-	 * * * * * * * * PreloadHandler * * * * * * * * * * * * *
-	 * The PreloadHandler helps you to preload resources  	*
-	 * at mapstart, to avoid first-laggs.					*
-	 * Use the corresponding function to preload the data	*
-	 * you want.											*
-	 *														*
-															*/
-	
-
-	/** use this function to preload an ability */
-	public function preloadAbility( int abilid )
-		UnitAddAbility(dum, abilid)
-		if dum == null 
-			printError("PreloadAbility: do not load abilities after map init or during modules' onInit")
-		else if GetUnitAbilityLevel(dum, abilid) == 0
-			printWarning("PreloadAbility: Ability "+debugIdInteger2IdString(abilid)+" does not exist.")
+/*
+ * * * * * * * * PreloadHandler * * * * * * * * * * * * *
+ * The PreloadHandler helps you to preload resources  	*
+ * at mapstart, to avoid first-laggs.					*
+ * Use the corresponding function to preload the data	*
+ * you want.											*
+ *														*
+														*/
 
 
-	/** Convert a integer id value into a 4-letter id code. */
-	function debugIdInteger2IdString (int value) returns string
-		string charMap = ".................................!.#$%&'()*+,-./0123456789:;<=>.@ABCDEFGHIJKLMNOPQRSTUVWXYZ[.]^_`abcdefghijklmnopqrstuvwxyz{|}~................................................................................................................................."
-		string result = ""
-		int remainingValue = value
-		int charValue
+/** use this function to preload an ability */
+public function preloadAbility( int abilid )
+	UnitAddAbility(dum, abilid)
+	if dum == null 
+		printError("PreloadAbility: do not load abilities after map init or during modules' onInit")
+	else if GetUnitAbilityLevel(dum, abilid) == 0
+		printWarning("PreloadAbility: Ability "+debugIdInteger2IdString(abilid)+" does not exist.")
 
-		for int byteno = 0 to 3
-			charValue = ModuloInteger(remainingValue, 256)
-			remainingValue = remainingValue div 256
-			result = SubString(charMap, charValue, charValue + 1) + result
 
-		return result
-	
-	unit dum
-	
-	function kill()
-		RemoveUnit(dum)
-		DestroyTimer(GetExpiredTimer())
+/** Convert a integer id value into a 4-letter id code. */
+function debugIdInteger2IdString (int value) returns string
+	string charMap = ".................................!.#$%&'()*+,-./0123456789:;<=>.@ABCDEFGHIJKLMNOPQRSTUVWXYZ[.]^_`abcdefghijklmnopqrstuvwxyz{|}~................................................................................................................................."
+	string result = ""
+	int remainingValue = value
+	int charValue
 
-	init
-		dum = CreateUnit( Player(15), DUMMY_UNIT_ID, 0., 0., 0. )
-		if dum == null
-			printError("xePreload : DUMMY_UNITID ("+debugIdInteger2IdString(DUMMY_UNIT_ID)+") not added correctly to the map.")
+	for int byteno = 0 to 3
+		charValue = ModuloInteger(remainingValue, 256)
+		remainingValue = remainingValue div 256
+		result = SubString(charMap, charValue, charValue + 1) + result
 
-		TimerStart( CreateTimer(), 0.0, false, function kill )
+	return result
 
-endpackage 
+unit dum
+
+function kill()
+	RemoveUnit(dum)
+	DestroyTimer(GetExpiredTimer())
+
+init
+	dum = CreateUnit( Player(15), DUMMY_UNIT_ID, 0., 0., 0. )
+	if dum == null
+		printError("xePreload : DUMMY_UNITID ("+debugIdInteger2IdString(DUMMY_UNIT_ID)+") not added correctly to the map.")
+
+	TimerStart( CreateTimer(), 0.0, false, function kill )

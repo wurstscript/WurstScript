@@ -104,6 +104,7 @@ import de.peeeq.wurstscript.types.WurstTypeString;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
+import de.peeeq.wurstscript.validation.WurstValidator;
 
 public class ImTranslator {
 
@@ -205,7 +206,7 @@ public class ImTranslator {
 
 	private void finishInitFunctions() {
 		// init globals, at beginning of main func:
-		mainFunc.getBody().add(0, ImFunctionCall(emptyTrace, globalInitFunc, ImExprs()));
+		mainFunc.getBody().add(0, ImFunctionCall(emptyTrace, globalInitFunc, ImExprs(), false));
 		for (ImFunction initFunc : initFuncMap.values()) {
 			addFunction(initFunc);
 		}
@@ -227,7 +228,7 @@ public class ImTranslator {
 		if (initFunc == null) {
 			return;
 		}
-		mainFunc.getBody().add(ImFunctionCall(emptyTrace, initFunc, ImExprs()));
+		mainFunc.getBody().add(ImFunctionCall(emptyTrace, initFunc, ImExprs(), false));
 	}
 
 	private void addFunction(ImFunction f) {
@@ -582,10 +583,10 @@ public class ImTranslator {
 		calculateCallRelations(getMainFunc());
 		calculateCallRelations(getConfFunc());
 		
-		System.out.println("USED FUNCS:");
-		for (ImFunction f : usedFunctions) {
-			System.out.println("	" + f.getName());
-		}
+//		System.out.println("USED FUNCS:");
+//		for (ImFunction f : usedFunctions) {
+//			System.out.println("	" + f.getName());
+//		}
 	}
 
 	private void calculateCallRelations(ImFunction f) {
@@ -594,12 +595,12 @@ public class ImTranslator {
 		}
 		usedFunctions.add(f);
 		Set<ImVar> usedVars = f.calcUsedVariables();
-		System.out.println("Function " + f.getName() + " uses vars: " + usedVars);
+//		System.out.println("Function " + f.getName() + " uses vars: " + usedVars);
 		usedVariables.addAll(usedVars);
 		Set<ImFunction> calledFuncs = f.calcUsedFunctions();
 		
 		for (ImFunction called : calledFuncs) {
-			System.out.println("Function " + f.getName() + " calls: " + called.getName());
+//			System.out.println("Function " + f.getName() + " calls: " + called.getName());
 			callRelations.put(f, called);
 			calculateCallRelations(called);
 		}
@@ -675,12 +676,25 @@ public class ImTranslator {
 		}
 		Map<ClassDef, FuncDef> result = Maps.newHashMap();
 		for (ClassDef c : instances) {
+			NameLink funcNameLink = null;
+			for (NameLink nameLink : c.attrNameLinks().get(func.getName())) {
+				if (nameLink.getNameDef() == func) {
+					funcNameLink = nameLink;
+				}
+			}
+			if (funcNameLink == null) {
+				throw new Error("must not happen");
+			}
 			for (NameLink nameLink : c.attrNameLinks().get(func.getName())) {
 				NameDef nameDef = nameLink.getNameDef();
-				// TODO FIXME XXX overloading stuff ...
-				if (nameDef instanceof FuncDef && nameDef.attrNearestClassDef() == c) {
-					FuncDef f = (FuncDef) nameDef;
-					result.put(c, f);
+				if (nameLink.getDefinedIn() == c) {
+					if (nameDef instanceof FuncDef) {
+						FuncDef f = (FuncDef) nameDef;
+						// check if function f overrides func 
+						if (WurstValidator.canOverride(nameLink, funcNameLink)) {
+							result.put(c, f);
+						}
+					}
 				}
 			}
 		}
@@ -765,7 +779,7 @@ public class ImTranslator {
 				ImVar p = f.getParameters().get(i);
 				arguments.add(JassIm.ImVarAccess(p));
 			}
-			ImCall call = JassIm.ImFunctionCall(emptyTrace, calledJassFunc, arguments);
+			ImCall call = JassIm.ImFunctionCall(emptyTrace, calledJassFunc, arguments, false);
 			if (returnsVoid) {
 				result.add(call);
 				result.add(JassIm.ImReturn(emptyTrace, JassIm.ImNoExpr()));

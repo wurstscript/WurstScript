@@ -87,6 +87,11 @@ public class AttrImplicitParameter {
 				// dynamic context means we have a 'this':
 				ExprThis t = Ast.ExprThis(e.getSource());
 				t.setParent(e);
+				// check if 'this' has correct type
+				if (!t.attrTyp().isSubtypeOf(calledFunc.attrNearestStructureDef().attrTyp(), e)) {
+					e.addError("Cannot access dynamic function " + e.getFuncName() + " from context of type " + 
+							t.attrTyp() + ".");
+				}
 				return t;
 			} else {
 				e.addError("Cannot call dynamic function " + e.getFuncName() + " from static context.");
@@ -108,9 +113,14 @@ public class AttrImplicitParameter {
 					// dynamic context means we have a 'this':
 					ExprThis t = Ast.ExprThis(e.getSource());
 					t.setParent(e);
+					// check if 'this' has correct type
+					if (!t.attrTyp().isSubtypeOf(varDef.attrNearestStructureDef().attrTyp(), e)) {
+						e.addError("Cannot access dynamic variable " + varDef.getName() + " from context of type " + 
+								t.attrTyp() + ".");
+					}
 					return t;
 				} else {
-					e.addError("Cannot access dynamic variabe " + varDef.getName() + " from static context.");
+					e.addError("Cannot access dynamic variable " + varDef.getName() + " from static context.");
 					return Ast.NoExpr();
 				}
 			}

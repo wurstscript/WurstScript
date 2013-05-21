@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <site>
-   <feature url="features/EclipseWurstPluginFeatures_1.0.0.16.jar" id="EclipseWurstPluginFeatures" version="1.0.0.16">
+   <description name="WurstEclipse" url="http://site.sunayama.de/">
+      WurstScript Eclipse Plugin Support
+   </description>
+   <feature url="features/EclipseWurstPluginFeatures_1.0.0.17.jar" id="EclipseWurstPluginFeatures" version="1.0.0.17">
       <category name="wurstPlugin"/>
    </feature>
    <category-def name="wurstPlugin" label="WurstScript Eclipse Plugin"/>

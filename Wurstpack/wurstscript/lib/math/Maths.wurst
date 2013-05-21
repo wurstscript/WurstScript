@@ -1,38 +1,43 @@
 package Maths	
-	import NoWurst
-	import Vectors
-	import Angle
+import NoWurst
+import Vectors
+import Angle
 
-	public constant real PI			=  3.141592654
-	public constant real PI2 		=  6.28318
-	public constant real PIHALF		=  1.570796326
-	public constant real DEGTORAD  	=  0.017453293
-	public constant real RADTODEG  	= 57.295779513
+/** PI constant */
+public constant real PI			=  3.141592654
+/** PI * 2 constant */
+public constant real PI2 		=  6.28318
+/** PI / 2 constant */
+public constant real PIHALF		=  1.570796326
+/** Converts Degrees to Radians */
+public constant real DEGTORAD  	=  0.017453293
+/** Converts Radians to Degrees */
+public constant real RADTODEG  	= 57.295779513
+
+/** Polar Projection for x Coordiante */
+public function polarProjectionX( real x,  real dist, angle ang ) returns real
+	return x + dist * Cos(ang.radians())
+
+/** Polar Projection for y Coordiante */
+public function polarProjectionY( real y,  real dist, angle ang ) returns real
+	return y + dist * Sin(ang.radians())
+
+/** Polar Projection for z Coordiante */
+public function polarProjectionZ( real z,  real dist, angle ang ) returns real
+	return z + dist * Sin(ang.radians())
 	
-	public function polarProjectionX( real x,  real dist, angle ang ) returns real
-		return x + dist * Cos(ang.radians())
+/** Returns the angle between two points */
+public function angleBetweenCoords ( real x1, real y1, real x2, real y2 ) returns angle
+	return Atan2(y2 - y1, x2 - x1).asAngleRadians()
+
+/** Returns the distance between two points */
+public function distanceBetweenCoords ( real x1, real y1, real x2, real y2 ) returns real
+	return SquareRoot((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1))
+
+/** Returns the angle of a height-slope */	
+public function getSlopeAngle( real z1, real z2, real dist ) returns real
+	return Atan2(z2-z1, dist )
 	
-	public function polarProjectionY( real y,  real dist, angle ang ) returns real
-		return y + dist * Sin(ang.radians())
-
-	public function polarProjectionZ( real z,  real dist, angle ang ) returns real
-		return z + dist * Sin(ang.radians())
-		
-	public function angleBetweenCoords ( real x1, real y1, real x2, real y2 ) returns angle
-		return Atan2(y2 - y1, x2 - x1).asAngleRadians()
-
-	public function distanceBetweenCoords ( real x1, real y1, real x2, real y2 ) returns real
-		return SquareRoot((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1))
-		
-	public function getSlopeAngle( real z1, real z2, real dist ) returns real
-		return Atan2(z2-z1, dist )
-		
-	public function polarProjection3d( vec3 pos, real distance, angle angleGround, angle angleAir ) returns vec3
-		real x = pos.x + distance * angleGround.cos() * angleAir.sin()
-		real y = pos.y + distance * angleGround.sin() * angleAir.sin()
-		real z = pos.z + distance * angleAir.cos() 
-		return vec3(x,y,z)
-		
-
-endpackage
+public function int.moduloInt(int divisor) returns int
+	return this - (this div divisor) * divisor
 

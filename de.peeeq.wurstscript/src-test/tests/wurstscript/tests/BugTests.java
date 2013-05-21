@@ -35,6 +35,7 @@ public class BugTests extends WurstScriptTest {
 				"package test",
 				"	int i1 = -2147483648",
 				"	int i2 = 2147483647",
+				"	int i3 = 0 + (-2147483648)",
 				"endpackage");
 	}
 	
@@ -249,4 +250,119 @@ public class BugTests extends WurstScriptTest {
 				"endpackage");
 	}
 	
+	@Test
+	public void constFolding() { // see #124
+		testAssertOkLines(false,  
+				"package test",
+				"init",
+				"	let a = 0.00023 * 0.06",
+				"	let b = 20.5 * 300.1",
+				"endpackage");
+	}
+	
+	@Test
+	public void inlinerBugShortCircuit() { // see #123
+		testAssertOkLines(true,  
+				"package test",
+				"native testSuccess()",
+				"var z = 0",
+				"function sideEffect() returns boolean",
+				"	z++",
+				"	return true",
+				"init",
+				"	let b = false and sideEffect()",
+				"	if z == 0",
+				"		testSuccess()",
+				"endpackage");
+	}
+
+	@Test
+	public void inlinerBugShortCircuit2() { // see #123
+		testAssertOkLines(true,  
+				"package test",
+				"native testSuccess()",
+				"var z = 0",
+				"function sideEffect() returns boolean",
+				"	z++",
+				"	return true",
+				"init",
+				"	if z == 1 and sideEffect()",
+				"		skip",
+				"	else",
+				"		testSuccess()",
+				"endpackage");
+	}
+	
+	
+	@Test
+	public void flattenBug() {
+		testAssertOkLines(true,  
+				"package test",
+				"native testSuccess()",
+				"var x = 0",
+				"function sideEffect(int r) returns int",
+				"	x = 4",
+				"	return r",
+				"init",
+				"	let y = x + sideEffect(2)",
+				"	if y == 2",
+				"		testSuccess()",
+				"endpackage");
+	}
+	
+	@Test
+	public void forLoop() { // see #122
+		testAssertErrorsLines(false, "must be int", 
+				"package test",
+				"init",
+				"	for s = \"\" to \"aaaa\" step \"a\"",
+				"endpackage");
+	}
+	
+
+	@Test
+	public void division() {
+		testAssertErrorsLines(false, "div",
+				"package test",
+				"int x = 5 div 3.",
+				"endpackage"
+				);
+	}
+	
+	@Test
+	public void classNull() {
+		testAssertOkLines(true,
+				"package test",
+				"native testSuccess()",
+				"class A",
+				"A a = null",
+				"init",
+				"	if not (a != null)",
+				"		testSuccess()",
+				"endpackage"
+				);
+	}
+
+	@Test
+	public void dynamicVarFromStaticContext() { // see #139
+		testAssertErrorsLines(false, "from static context",
+				"package test",
+				"class A",
+				"	int i",
+				"	static function foo() returns int",
+				"		return A.i",
+				"endpackage");
+	}
+	
+	@Test
+	public void dynamicVarFromStaticContext2() {
+		testAssertErrorsLines(false, "from context",
+				"package test",
+				"class A",
+				"	int i",
+				"class B",
+				"	function foo() returns int",
+				"		return A.i",
+				"endpackage");
+	}
 }

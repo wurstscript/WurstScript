@@ -1,4 +1,3 @@
 package TempGroups
 
-
 public group ENUM_GROUP = CreateGroup()

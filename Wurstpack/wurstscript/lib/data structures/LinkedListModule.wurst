@@ -1,67 +1,44 @@
 package LinkedListModule
 
-	public module LinkedListModule
-		static thistype first = null
-		static thistype last = null
-		static int size = 0
-		thistype prev
-		thistype next
+public module LinkedListModule
+	static thistype first = null
+	static thistype last = null
+	static int size = 0
+	thistype prev
+	thistype next
 
-		construct()
-			size++
-			if size == 1
-				first = this
-				prev = null	
-			else
-				prev = last
-				last.next = this
-				first.prev = this
-			next = null
-			last = this
+	construct()
+		size++
+		if size == 1
+			first = this
+			prev = null	
+		else
+			prev = last
+			last.next = this
+			first.prev = this
+		next = null
+		last = this
 
-		static function getFirst() returns thistype
-			return first
-			
-		function getNext() returns thistype
-			return next
-
-		function getPrev() returns thistype
-			return prev
-			
-		function remove()
-			size--
-			if this != first
-				prev.next = next
-			if this != last
-				next.prev = prev	
-			if this == last
-				last = prev
-			if this == first
-				first = next
-				
-		ondestroy
-			remove()
-
+	static function getFirst() returns thistype
+		return first
 		
-		// linked list iterator functions
+	function getNext() returns thistype
+		return next
 
-/* this feature would need inner classes
-		static function iterator() returns Iterator
-			return new Iterator()
-	
-		public class Iterator
-			private parenttype current
+	function getPrev() returns thistype
+		return prev
+		
+	function remove()
+		size--
+		if this != first
+			prev.next = next
+		if this != last
+			next.prev = prev	
+		if this == last
+			last = prev
+		if this == first
+			first = next
 			
-			construct()
-				this.current = parent.current
-					
-			function hasNext() returns boolean
-				return current.next != null
-				
-			function next() returns parenttype
-				current = current.next
-				return current
-*/
+	ondestroy
+		remove()
 
-
-endpackage

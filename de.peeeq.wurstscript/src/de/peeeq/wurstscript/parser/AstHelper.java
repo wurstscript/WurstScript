@@ -33,9 +33,13 @@ public class AstHelper {
 		for (TypeExpr t : p) {
 			if (t instanceof TypeExprSimple) {
 				TypeExprSimple ts = (TypeExprSimple) t;
-				result.add(Ast.TypeParamDef(t.getSource(), Ast.Modifiers(), ts.getTypeName()));
+				String typeName = ts.getTypeName();
+				for (TypeExpr s: ts.getTypeArgs()) {
+					typeName += "<" + s + ">";
+				}
+				result.add(Ast.TypeParamDef(t.getSource(), Ast.Modifiers(), typeName));
 			} else {
-				t.addError("Type Parameters must be simple names.");
+				result.add(Ast.TypeParamDef(t.getSource(), Ast.Modifiers(), "#" + t));
 			}
 		}
 		return result;

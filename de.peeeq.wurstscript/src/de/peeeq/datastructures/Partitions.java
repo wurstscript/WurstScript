@@ -6,18 +6,18 @@ import java.util.Map;
 import com.google.common.collect.Maps;
 
 public class Partitions<T> {
-	
+
 	private class Partition {
 		private Partition rep;
 		private T item;
-		
+
 		public Partition(T item) {
 			rep = this;
 			this.item = item;
 		}
 
 		public void unionWith(Partition other) {
-			rep = other.getRep();			
+			rep = other.getRep();
 		}
 
 		private Partition getRep() {
@@ -40,32 +40,29 @@ public class Partitions<T> {
 			partitions.put(t, new Partition(t));
 		}
 	}
-	
+
 	/**
-	 * unions the partition of a and the partition of b 
+	 * unions the partition of a and the partition of b.
 	 */
 	public void union(T a, T b) {
 		getPartition(a).unionWith(getPartition(b));
 	}
 
-	
-	
+
 	/**
 	 * add a new partition
 	 */
 	public void add(T t) {
 		getPartition(t);
 	}
-	
+
 	/**
 	 * get the representing item for the partition containing t 
 	 */
 	public T getRep(T t) {
 		return getPartition(t).getRep().item;
 	}
-	
-	
-	
+
 	private Partition getPartition(T b) {
 		Partition p = partitions.get(b);
 		if (p == null) {

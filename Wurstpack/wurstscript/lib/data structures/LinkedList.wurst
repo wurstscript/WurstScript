@@ -1,132 +1,126 @@
 package LinkedList
 
-	public class LinkedList<T>
-		private LLEntry<T> dummy
-		private int size = 0
+public class LinkedList<T>
+	private LLEntry<T> dummy
+	private int size = 0
 
-		/** create a new, empty list */
-		construct()
-			dummy =  new LLEntry<T>(null, null, null)
-			dummy.next = dummy
-			dummy.prev = dummy
+	/** create a new, empty list */
+	construct()
+		dummy =  new LLEntry<T>(null, null, null)
+		dummy.next = dummy
+		dummy.prev = dummy
 
-		/** add an element to the end of the list */
-		function add(T elem)
-			let entry = new LLEntry(elem, dummy.prev, dummy)
-			dummy.prev.next = entry
-			dummy.prev = entry
-			size ++
+	/** add an element to the end of the list */
+	function add(T elem)
+		let entry = new LLEntry(elem, dummy.prev, dummy)
+		dummy.prev.next = entry
+		dummy.prev = entry
+		size ++
 
-		/** add all elements from elems to the end of this list */
-		function addAll(LinkedList<T> elems)
-			for T elem in elems
-				add(elem)
+	/** add all elements from elems to the end of this list */
+	function addAll(LinkedList<T> elems)
+		for T elem in elems
+			add(elem)
 
-		/** remove element at index */
-		function removeAt(int index)
-			let e = getEntry(index)
-			e.prev.next = e.next
-			e.next.prev = e.prev
-			destroy e	
-			size--
-			
-		/** removes the first occurence of t from this list */
-		function remove(T t)
-			LLEntry<T> r = dummy.next
-			while r != dummy
-				if r.elem == t
-					r.prev.next = r.next
-					r.next.prev = r.prev
-					destroy r
-					size--
-					return
-				r = r.next
+	/** remove element at index */
+	function removeAt(int index)
+		let e = getEntry(index)
+		e.prev.next = e.next
+		e.next.prev = e.prev
+		destroy e	
+		size--
 		
-		/** gets the size of the list */
-		function getSize() returns int
-			return size
-
-		private function getEntry(int index) returns LLEntry<T>
-			LLEntry<T> r = dummy
-			for int i = 0 to index
-				r = r.next
-			return r
-
-		/** get the element at the specified index */
-		function get(int index) returns T
-			return getEntry(index).elem
-
-		/** get an iterator for this list */
-		function iterator() returns LLIterator<T>
-			return new LLIterator(dummy)			
-
-		/** adds an element to the beginning of the list */	
-		function addtoStart(T elem)
-			let entry = new LLEntry(elem, dummy, dummy.next)
-			dummy.next.prev = entry
-			dummy.next = entry
-			size ++
-
-		/** replaces the first occurence of 'whichElement' with 'newElement' 
-			returns true when an element has been replaced, 
-			false if 'whichelement' is not contained in the list
-		*/
-		function replace(T whichElement, T newElement) returns boolean
-			LLEntry<T> current = dummy.next
-			while current != dummy
-				if current.elem == whichElement
-					current.elem = newElement
-					return true
-				current = current.next
-			return false
-
-		ondestroy
-			LLEntry<T> current = dummy.next
-			while current != dummy
-				let temp = current
-				current = current.next
-				destroy temp
-			destroy dummy
-
-	class LLEntry<S>
-		S elem
-		LLEntry<S> prev
-		LLEntry<S> next
-
-		construct(S elem, LLEntry<S> prev, LLEntry<S> next)
-			this.elem = elem
-			this.prev = prev
-			this.next = next
-
-	class LLIterator<Q>
-		LLEntry<Q> dummy
-		LLEntry<Q> current
-
-		construct(LLEntry<Q> dummy)
-			this.dummy = dummy
-			this.current = dummy
-
-		/** remove the current element from the list */
-		function remove()
-			if current != dummy
-				current.next.prev = current.prev
-				current.prev.next = current.next
-				current = current.prev
-				destroy current
-
-				
-		function hasNext() returns boolean
-			return current.next != dummy
-
-		function next() returns Q
-			current = current.next
-			return current.elem
-
-		function close()
-			destroy this
-
-
-
+	/** removes the first occurence of t from this list */
+	function remove(T t)
+		LLEntry<T> r = dummy.next
+		while r != dummy
+			if r.elem == t
+				r.prev.next = r.next
+				r.next.prev = r.prev
+				destroy r
+				size--
+				return
+			r = r.next
 	
+	/** gets the size of the list */
+	function getSize() returns int
+		return size
 
-endpackage
+	private function getEntry(int index) returns LLEntry<T>
+		LLEntry<T> r = dummy
+		for int i = 0 to index
+			r = r.next
+		return r
+
+	/** get the element at the specified index */
+	function get(int index) returns T
+		return getEntry(index).elem
+
+	/** get an iterator for this list */
+	function iterator() returns LLIterator<T>
+		return new LLIterator(dummy)			
+
+	/** adds an element to the beginning of the list */	
+	function addtoStart(T elem)
+		let entry = new LLEntry(elem, dummy, dummy.next)
+		dummy.next.prev = entry
+		dummy.next = entry
+		size ++
+
+	/** replaces the first occurence of 'whichElement' with 'newElement' 
+		returns true when an element has been replaced, 
+		false if 'whichelement' is not contained in the list
+	*/
+	function replace(T whichElement, T newElement) returns boolean
+		LLEntry<T> current = dummy.next
+		while current != dummy
+			if current.elem == whichElement
+				current.elem = newElement
+				return true
+			current = current.next
+		return false
+
+	ondestroy
+		LLEntry<T> current = dummy.next
+		while current != dummy
+			let temp = current
+			current = current.next
+			destroy temp
+		destroy dummy
+
+class LLEntry<S>
+	S elem
+	LLEntry<S> prev
+	LLEntry<S> next
+
+	construct(S elem, LLEntry<S> prev, LLEntry<S> next)
+		this.elem = elem
+		this.prev = prev
+		this.next = next
+
+class LLIterator<Q>
+	LLEntry<Q> dummy
+	LLEntry<Q> current
+
+	construct(LLEntry<Q> dummy)
+		this.dummy = dummy
+		this.current = dummy
+
+	/** remove the current element from the list */
+	function remove()
+		if current != dummy
+			current.next.prev = current.prev
+			current.prev.next = current.next
+			current = current.prev
+			destroy current
+
+			
+	function hasNext() returns boolean
+		return current.next != dummy
+
+	function next() returns Q
+		current = current.next 
+		return current.elem 
+ 		
+	function close() 
+		destroy this

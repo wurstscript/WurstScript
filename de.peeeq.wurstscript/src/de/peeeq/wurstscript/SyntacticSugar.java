@@ -27,20 +27,27 @@ import de.peeeq.wurstscript.ast.ExprUnary;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.GlobalVarDef;
+import de.peeeq.wurstscript.ast.GlobalVarDefs;
 import de.peeeq.wurstscript.ast.InitBlock;
+import de.peeeq.wurstscript.ast.Modifiers;
+import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.StmtForFrom;
 import de.peeeq.wurstscript.ast.StmtForIn;
 import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtReturn;
+import de.peeeq.wurstscript.ast.VisibilityPublic;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.ModifiersHelper;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.types.WurstTypeInt;
 
 
 /**
@@ -63,6 +70,7 @@ public class SyntacticSugar {
 		addDefaultConstructors(root);
 		addEndFunctionStatements(root);
 		expandForInLoops(root);
+		addTypeIds(root);
 	}
 	
 	
@@ -92,21 +100,21 @@ public class SyntacticSugar {
 		for (Entry<Expr, Expr> e : replacements.entrySet()) {
 			Expr oldE = e.getKey();
 			Expr newE = e.getValue();
-			AstElement parent = oldE.getParent();
-			for (int i=0; i<parent.size(); i++) {
-				if (parent.get(i) == oldE) {
-					parent.set(i, newE);
-					return;
-				}
-			}
-			throw new Error("could not replace " + oldE + " with " + newE);
+			doSingleReplacement(oldE, newE);
 		}
 		
 	}
 
-
-
-
+	public void doSingleReplacement(Expr oldE, Expr newE) throws Error {
+		AstElement parent = oldE.getParent();
+		for (int i=0; i<parent.size(); i++) {
+			if (parent.get(i) == oldE) {
+				parent.set(i, newE);
+				return;
+			}
+		}
+		throw new Error("could not replace " + oldE + " with " + newE);
+	}
 
 	private void addEndFunctionStatements(CompilationUnit root) {
 		
@@ -169,6 +177,24 @@ public class SyntacticSugar {
 			WPos source = p.getSource();
 			source = source.withRightPos(source.getLeftPos() + 7);
 			p.getImports().add(Ast.WImport(source, false, "Wurst"));
+		}
+	}
+	
+	private void addTypeIds(CompilationUnit root) {
+		nextClass: for (ClassDef d : root.attrGetByType().classes) {
+			if (!(d.getExtendedClass() instanceof NoTypeExpr)) {
+				// has superclass, does not need own typeId
+				continue;
+			}
+			// add typeId
+			GlobalVarDefs defs = d.getVars();
+			for (GlobalVarDef def : defs) {
+				if ( def.getName().equals("typeId") ) {
+					continue nextClass;
+				}
+			}
+			defs.add(Ast.GlobalVarDef(d.getSource(), Ast.Modifiers(Ast.ModConstant(d.getSource())),
+					Ast.TypeExprSimple(d.getSource(), "int", Ast.TypeExprList()) , "typeId", Ast.NoExpr()));
 		}
 	}
 

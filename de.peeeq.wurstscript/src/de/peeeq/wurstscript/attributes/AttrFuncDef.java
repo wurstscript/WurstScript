@@ -53,7 +53,13 @@ public class AttrFuncDef {
 		if (funcs.size() == 0) {
 			node.addError("Could not find a function with name " + node.getFuncName());
 			return null;
-		} else if (funcs.size() > 1) {
+		}
+		try {
+			funcs = filterInvisible(node.getFuncName(), node, funcs);
+		} catch (EarlyReturn e) {
+			return e.getFunc();
+		}
+		if (funcs.size() > 1) {
 			node.addError("Reference to function " + node.getFuncName() + " is ambiguous. Alternatives are:\n" + Utils.printAlternatives(funcs));
 		}
 		NameLink nameLink = Utils.getFirst(funcs);

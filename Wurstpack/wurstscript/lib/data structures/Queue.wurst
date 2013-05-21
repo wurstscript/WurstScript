@@ -1,91 +1,87 @@
 package Queue
 
-	public class Queue<T>
-		private SEntry<T> dummy
-		private SEntry<T> front
-		private SEntry<T> back
-		private int size = 0
+public class Queue<T>
+	private SEntry<T> dummy
+	private SEntry<T> front
+	private SEntry<T> back
+	private int size = 0
 
-		construct()
-			dummy = new SEntry<T>(null, null)
-			front = dummy
+	construct()
+		dummy = new SEntry<T>(null, null)
+		front = dummy
 
-		// add an element
-		function enqueue(T elem)
-			if front == dummy
-				front = new SEntry(elem, dummy)
-				back = front
-			else
-				back.next = new SEntry(elem, dummy)
-				back = back.next
-			size++
-			
-		// get & remove the top element
-		function dequeue() returns T
-			let tmp = front
-			front = front.next
-			size--
-			return tmp.elem
-			
-
-		// add all elements from elems to this queue
-		function addAll(Queue<T> elems)
-			for T elem in elems
-				enqueue(elem)
-
+	// add an element
+	function enqueue(T elem)
+		if front == dummy
+			front = new SEntry(elem, dummy)
+			back = front
+		else
+			back.next = new SEntry(elem, dummy)
+			back = back.next
+		size++
 		
-		// gets the size of the queue
-		function getSize() returns int
-			return size
+	// get & remove the top element
+	function dequeue() returns T
+		let tmp = front
+		front = front.next
+		size--
+		return tmp.elem
+		
 
-		// get an iterator for this queue
-		function iterator() returns SIterator<T>
-			return new SIterator(dummy, front)			
-
-		ondestroy
-			SEntry<T> current = front
-			while current != dummy
-				let temp = current
-				current = current.next
-				destroy temp
-			destroy dummy
-
-	class SEntry<S>
-		S elem
-		SEntry<S> next
-
-		construct(S elem, SEntry<S> next)
-			this.elem = elem
-			this.next = next
-
-	class SIterator<Q>
-		SEntry<Q> dummy
-		SEntry<Q> current
-
-		construct(SEntry<Q> dummy, SEntry<Q> front)
-			this.dummy = dummy
-			this.current = front
-			
-		// remove the current element from the queue
-		function remove()
-			if current != dummy
-				let cp = current.next
-				destroy current
-				current = cp
-				
-
-		function hasNext() returns boolean
-			return current.next != dummy
-
-		function next() returns Q
-			let tmp = current
-			current = current.next
-			return tmp.elem
-
-		function close()
-			destroy this
-
+	// add all elements from elems to this queue
+	function addAll(Queue<T> elems)
+		for T elem in elems
+			enqueue(elem)
 
 	
+	// gets the size of the queue
+	function getSize() returns int
+		return size
 
-endpackage
+	// get an iterator for this queue
+	function iterator() returns SIterator<T>
+		return new SIterator(dummy, front)			
+
+	ondestroy
+		SEntry<T> current = front
+		while current != dummy
+			let temp = current
+			current = current.next
+			destroy temp
+		destroy dummy
+
+class SEntry<S>
+	S elem
+	SEntry<S> next
+
+	construct(S elem, SEntry<S> next)
+		this.elem = elem
+		this.next = next
+
+class SIterator<Q>
+	SEntry<Q> dummy
+	SEntry<Q> current
+
+	construct(SEntry<Q> dummy, SEntry<Q> front)
+		this.dummy = dummy
+		this.current = front
+		
+	// remove the current element from the queue
+	function remove()
+		if current != dummy
+			let cp = current.next
+			destroy current
+			current = cp
+			
+
+	function hasNext() returns boolean
+		return current.next != dummy
+
+	function next() returns Q
+		let tmp = current
+		current = current.next
+		return tmp.elem
+
+	function close()
+		destroy this
+

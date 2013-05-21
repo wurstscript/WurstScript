@@ -103,7 +103,7 @@ package Collider
 		//
 		function setDirection( angle v )
 			dir = v
-			fx.setXYAngle( dir.degrees() )
+			fx.setXYAngle( dir )
 
 
 		//---
@@ -269,7 +269,7 @@ package Collider
 						d += PI2
 	
 					cl.dir = angle(d)
-					cl.fx.setXYAngle( d )
+					cl.fx.setXYAngle( cl.dir )
 	
 	
 					ns = cl.speed + cl.acceleration * ANIMATION_PERIOD
@@ -310,14 +310,16 @@ package Collider
 			if c == 0 
 				PauseTimer(Collider.T)
 
-
+		static function doInit()
+			Collider.enumGroup = CreateGroup()
+			Collider.tempGroup = CreateGroup()
+			Collider.T=CreateTimer()
 	//============================================================================
 	// you aren't supposed to doInit yourself, try not to do it.
 	//
 	init
-		Collider.enumGroup = CreateGroup()
-		Collider.tempGroup = CreateGroup()
-		Collider.T=CreateTimer()
+		Collider.doInit()
+		
 
 
 endpackage 

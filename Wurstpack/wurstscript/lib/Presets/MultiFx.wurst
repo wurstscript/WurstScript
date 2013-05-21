@@ -1,0 +1,193 @@
+package MultiFx
+import DummyRecycler
+import Effect
+import Colors
+import Vectors
+import Angle
+import LinkedList
+import TypeCasting
+/********************************************************
+ * * * * * * * * * * MultiFx * * * * * * * * * * * * * * * * *
+ * An MultiFx-Object is basically just a moveable effect.  	*
+ * Up above you find the MultiFx-Class. By creating			*
+ * an instace of it, you recieve the mentioned,			*
+ * moveable effect.										*
+ * Constructors and functions defined as following,		*
+ * should be self-explanatory.							*
+ * Also features automatic recycling of MultiFx-instances	*
+ *														*
+ * Credits to Vexorian, Anitarf							*
+ ********************************************************/
+//class Effect
+//	effect e
+//	construct(effect e)
+//		this.e = e
+//	ondestroy
+//		e.destr()
+		
+public class MultiFx
+	private unit 	dummy	= null
+	private LinkedList<effect> fxs = new LinkedList<effect>()
+	private real 	zAngle  = 0.
+	private string 	sMultiFxPath 
+	
+	private colorA col
+	
+	construct(real x, real y, angle facing)
+		dummy = newDummy( vec2(x, y), facing)
+	
+	construct(vec2 pos, angle facing)
+		dummy = newDummy( pos, facing)
+	
+	construct(vec3 pos, angle facing)
+		dummy = newDummy( pos, facing)
+		setZ(pos.z)	
+
+	function addFx(string fxPath)
+		fxs.add(dummy.addEffect(fxPath, "origin"))
+			
+	/** Get the owner of this MultiFx Object */
+	function getOwner() returns player
+		return dummy.getOwner()
+		
+	/** Set the owner of this MultiFx Object */
+	function setOwner(player p, boolean changeColor) returns MultiFx
+		dummy.setOwner(p, changeColor)
+		return this
+		
+	/** Set the teamcolor of this MultiFx Object */
+	function setTeamcolor(playercolor c) returns MultiFx
+		SetUnitColor(dummy, c)
+		return this
+	
+	/** Set the scale of this MultiFx Object */
+	function setScale(real value) returns MultiFx
+		dummy.setScale(value)
+		return this
+
+	/** Get the green color value (rgba) */
+	function getGreen() returns int
+		return col.green
+	
+	/** Get the blue color value (rgba) */
+	function getBlue() returns int
+		return col.blue
+	
+	/** Get the red color value (rgba) */
+	function getRed() returns int
+		return col.red
+	
+	/** Get the alpha color value (rgba) */
+	function getAlpha() returns int
+		return col.alpha
+		
+	/** Recolor the MultiFx object with the given color tuple (colorA) 
+	Color: 0 = no color - 255 = full color
+	Alpha: 0 = transparent - 255 = visible */
+	function recolor(colorA newColor) returns MultiFx
+		col.red = newColor.red
+		col.green = newColor.green
+		col.blue = newColor.blue
+		col.alpha = newColor.alpha
+		dummy.setVertexColor(newColor)
+		return this
+
+		
+	/** Get the xy angle in radians */
+	function getXYAngle() returns angle
+		return dummy.getFacing().asAngleDegrees()
+ 
+	/** Set the angle in degrees */
+	function setXYAngle(angle value) returns MultiFx
+		dummy.setFacing(value)
+		return this
+		
+	/** Get the z angle in radians */
+	function getZAngle() returns real
+		return zAngle
+		
+	/** Set the z angle in radians */
+	function setZAngle(real value) returns MultiFx
+		int i = R2I(value*bj_RADTODEG + 90.5)
+		zAngle = value
+		if i >= 180
+			i = 179
+		else if i < 0
+			i = 0
+		SetUnitAnimationByIndex(dummy, i)
+		return this
+		
+	/** Set the z angle with an angle tuple */
+	function setZAngle(angle value) returns MultiFx
+		setZAngle(value.radians())
+		return this
+		
+	/** Get the x coordinate */
+	function getX() returns real
+		return dummy.getX()
+	
+	/** Get the y coordinate */
+	function getY() returns real
+		return dummy.getY()
+	
+	/** Get the z coordinate (fly height) */
+	function getZ() returns real
+		return dummy.getFlyHeight()
+		
+	/** Get the xy position as vector tuple */			
+	function getPos2() returns vec2
+		return vec2(getX(), getY())
+	
+	/** Set the x coordinate */
+	function setX(real x) returns MultiFx
+		dummy.setX(x)
+		return this
+		
+	/** Set the y coordinate */
+	function setY(real y) returns MultiFx
+		dummy.setY(y)
+		return this
+		
+	/** Set the position to the given xy coordinates */
+	function setPos(real x, real y) returns MultiFx
+		dummy.setPos(x, y)
+		return this
+	
+	/** Set the position to the given xyz coordinates
+	z = flyHeight */
+	function setPos(real x, real y, real z) returns MultiFx
+		dummy.setPos(x, y)
+		dummy.setFlyHeight(z, 0.)
+		return this
+		
+	/** Set the position to the given xy vector tuple */
+	function setPos(vec2 pos) returns MultiFx
+		dummy.setPos(pos.x, pos.y)
+		return this
+	
+	/** Set the position to the given xyz vector tuple */
+	function setPos(vec3 pos) returns MultiFx
+		dummy.setPos(pos.x, pos.y)
+		setZ(pos.z)
+		return this
+		
+	/** Set the z coordinate (flyHeight) */
+	function setZ(real z) returns MultiFx
+		dummy.setFlyHeight(z, 0.)
+		return this
+			
+				
+	ondestroy  			
+		for effect fx in fxs
+			fx.destr()
+			
+		destroy fxs
+
+		recycleDummy(dummy)
+
+	/** Destroys the MultiFx object without showing the effect's death animation 
+		Sort of a workaround by setting the position to the top right corner, hopefully not visible.*/
+	function hiddenDestroy()
+		dummy.setPos( 2147483647, 2147483647)
+		destroy this
+

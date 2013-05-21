@@ -180,9 +180,9 @@ public class WurstScriptTest {
 		boolean success = false;
 		WurstGui gui = new WurstGuiCliImpl();
 		WurstConfig config = new WurstConfig();
+		config.setSetting("lib", "../Wurstpack/wurstscript/lib/");
 		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(config , gui, runArgs);
 		compiler.getErrorHandler().enableUnitTestMode();
-		config.setSetting("lib", "../Wurstpack/wurstscript/lib/");
 		if (withStdLib) {
 			compiler.loadFiles(new File("./resources/common.j"), new File("./resources/blizzard.j"));
 		}

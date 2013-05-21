@@ -82,7 +82,6 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		int startPos = offset - alreadyEntered.length();
 		
 		CompilationUnit cu = null;
-		System.out.println("POS " + startPos + " == " + lastStartPos);
 		if (startPos == lastStartPos) {
 			// we have already parsed the document, just use the old compilation unit
 			cu = editor.getCompilationUnit();
@@ -93,7 +92,6 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		}
 		if (Utils.isEmptyCU(cu)) {
 			errorMessage = "Could not parse file.";
-			System.out.println("cu is empty ...");
 			return null;
 		}
 		
@@ -105,17 +103,19 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		AstElement elem =  Utils.getAstElementAtPos(cu, lastStartPos);
 		System.out.println("get completions at " + Utils.printElement(elem));
 		WurstType leftType = null;
+		boolean isMemberAccess = false;
 		if (elem instanceof ExprMemberVar) {
 			ExprMemberVar e = (ExprMemberVar) elem;
 			leftType = e.getLeft().attrTyp();
+			isMemberAccess = true;
 			if (leftType instanceof WurstTypeNamedScope) {
 				WurstTypeNamedScope ns = (WurstTypeNamedScope) leftType;
 				Multimap<String, NameLink> visibleNames = ns.getDef().attrNameLinks();
-				completionsAddVisibleNames(alreadyEntered, completions, visibleNames, leftType, elem);
+				completionsAddVisibleNames(alreadyEntered, completions, visibleNames, leftType, isMemberAccess, elem);
 			} else if (leftType instanceof WurstTypeTuple) {
 				WurstTypeTuple tt = (WurstTypeTuple) leftType;
 				Multimap<String, NameLink> visibleNames = tt.getTupleDef().attrNameLinks();
-				completionsAddVisibleNames(alreadyEntered, completions, visibleNames, leftType, elem);
+				completionsAddVisibleNames(alreadyEntered, completions, visibleNames, leftType, isMemberAccess, elem);
 			}
 			
 			// add member vars
@@ -131,7 +131,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		} else if (elem instanceof WPackage) {
 			// no hints at package level
 		} else if (elem instanceof WImport) {
-			WImport imp = (WImport) elem;
+			//WImport imp = (WImport) elem;
 			WurstModel model = elem.getModel();
 			for (WPackage p : model.attrPackagesFresh().values()) {
 				if (isSuitableCompletion(p.getName())) {
@@ -161,7 +161,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			WScope scope = elem.attrNearestScope();
 			while (scope != null) {
 				Multimap<String, NameLink> visibleNames = scope.attrNameLinks();
-				completionsAddVisibleNames(alreadyEntered, completions, visibleNames, leftType, elem);
+				completionsAddVisibleNames(alreadyEntered, completions, visibleNames, leftType, isMemberAccess, elem);
 				scope = scope.attrNextScope();
 			}
 		}
@@ -191,7 +191,6 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	public boolean isSuitableCompletion(String name) {
 //		return name.toLowerCase().startsWith(alreadyEntered);
 		boolean r = Utils.isSubsequence(alreadyEntered, name);
-//		System.out.println("isSuitable? " + name + " for " + alreadyEntered + " -> " + r);
 		return r;
 	}
 
@@ -257,7 +256,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 
 	private void completionsAddVisibleNames(String alreadyEntered,
-			List<WurstCompletion> completions, Multimap<String, NameLink> visibleNames, WurstType leftType, AstElement pos) {
+			List<WurstCompletion> completions, Multimap<String, NameLink> visibleNames, WurstType leftType, boolean isMemberAccess, AstElement pos) {
 		for (Entry<String, NameLink> e : visibleNames.entries()) {
 			if (completions.size() >= MAX_COMPLETIONS) {
 				return;
@@ -265,22 +264,23 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			if (!isSuitableCompletion(e.getKey())) {
 				continue;
 			}
-			System.out.println("aadasdas " + e.getValue());
 			WurstType receiverType = e.getValue().getReceiverType();
 			if (leftType == null) {
 				if (receiverType != null) { 
 					// skip extension functions, when not needed 
 					continue;
 				}
-			} else {
-//				if (receiverType instanceof WurstTypeNamedScope) {
-//					WurstTypeNamedScope rt = (WurstTypeNamedScope) receiverType;
-//					receiverType = rt.setTypeArgs(leftType.getTypeArgBinding());
-//				}
+			} else { // leftType != null
+				
 				if (!leftType.isSubtypeOf(receiverType, pos)) {
 					// skip elements with wrong receiver type
-					System.out.println("	receiver = " + receiverType);
-					continue;
+					if (!isMemberAccess && receiverType == null) {
+						// if it is not a member access, then also include normals vars
+						// and functions
+					} else {
+						// otherwise skip
+						continue;
+					}
 				}
 			}
 			if (e.getValue().getNameDef() instanceof FunctionDefinition) {
@@ -301,7 +301,6 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		int replacementLength = alreadyEntered.length();
 		int cursorPosition = replacementString.length();
 		Image image = Icons.var;
-		RGB rbg  = new RGB(255, 255, 222);
 		
 		String comment = n.attrComment();
 		comment = comment.replaceAll("\n", "<br />");

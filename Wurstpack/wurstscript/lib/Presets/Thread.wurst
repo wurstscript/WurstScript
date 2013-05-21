@@ -1,0 +1,134 @@
+package Thread
+// Credits Nestharus
+import MapBounds
+import BitSet
+
+/*
+*   This unit can be retrieved from the map attached to this thread. Copy and paste
+*   the unit in the map into target map and put the unit type id of that unit here.
+*/
+constant int UNIT_SYNC_ID = 'h111'
+
+/*
+************************************************************************************
+*
+*   function SynchronizeThread takes nothing returns nothing
+*	   -   synchronizes a thread
+*
+*   struct Thread extends array
+*
+*	   readonly boolean synced
+*		   -   loop until this is true
+*
+*	   static method create takes nothing returns Thread
+*	   method destroy takes nothing returns nothing
+*
+*	   method sync takes nothing returns nothing
+*		   -   from player when that player's operation is complete
+*
+*	   method wait takes nothing returns nothing
+*		   -   wait for synchronization to complete
+*
+*   Examples
+*
+*	   Thread thread = Thread.create()
+*
+*	   if (GetLocalPlayer() != targetPlayer)
+*		   thread.sync()  //synchronize waiting players
+*	   endif
+* 
+*	   loop
+*		   if (GetLocalPlayer() == targetPlayer)
+*			   //the hefty operation here should segment how much it does per iteration
+*			   //too much per iteration and slower computers will desync from the sheer magnitude
+*			   //of the operation
+*			   //this will have to be fine tuned based on the size of the operation
+*			   if (doHeftyOperation())
+*				   thread.sync()
+*			   endif
+*		   endif
+*
+*		   TriggerSyncReady()
+*		   exitwhen thread.synced
+*	   endloop
+*
+*	   thread.destroy()
+*
+*************************************************************************************/
+public class Thread
+	unit threadSyncer
+	
+	private static trigger syncThreadTrigger
+	// set of players who already have called sync method
+	private bitset syncedPlayers = emptyBitset()
+	// set of all players
+	private static bitset allPlayers = bitset(4095)
+	
+	/** adds all offline players to the set of syncedPlayers */
+	private function addOfflinePlayers()
+		for i = 0 to 11
+			if (GetPlayerSlotState(Player(i)) != PLAYER_SLOT_STATE_PLAYING or GetPlayerController(Player(i)) != MAP_CONTROL_USER)
+				syncedPlayers = syncedPlayers.add(i)
+				
+	/** returns true when all players have synced */
+	function isSynced() returns boolean
+		if (syncedPlayers == allPlayers)
+			return true
+		// call addOfflinePlayers, because in the meantime a player could have leaved the game
+		addOfflinePlayers()
+		return syncedPlayers == allPlayers
+	
+	construct()
+		if (null == threadSyncer)
+			threadSyncer = CreateUnit(Player(0), UNIT_SYNC_ID, mapMaxX, mapMaxY, 0)
+			threadSyncer.setUserData(this castTo int)
+			threadSyncer.pause()
+			threadSyncer.setX(mapMaxX)
+			threadSyncer.setY(mapMaxY)
+
+	/** call this function to sync the thread for the local player*/
+	function sync()
+		SelectUnit(threadSyncer, true)
+		SelectUnit(threadSyncer, false)
+	
+	/** wait until all threads have synced */
+	function wait()
+		while syncedPlayers != allPlayers
+			TriggerSyncStart()
+			TriggerSyncReady()
+
+	
+	private static function syncThread() returns boolean
+		var thread = GetTriggerUnit().getUserData() castTo Thread
+		int playerId = GetPlayerId(GetTriggerPlayer())
+		int val
+		
+		if (thread.threadSyncer != GetTriggerUnit())
+			return false
+		
+		thread.syncedPlayers = thread.syncedPlayers.add(playerId)
+		
+		thread.addOfflinePlayers()
+		return false
+	
+	/*
+	*   Struct Initialization
+	*/
+	static function doInit()
+		Thread.syncThreadTrigger = CreateTrigger()
+		TriggerAddCondition(Thread.syncThreadTrigger, Condition(function Thread.syncThread))
+		for i = 11 downto 0
+			if (GetPlayerSlotState(Player(i)) == PLAYER_SLOT_STATE_PLAYING and GetPlayerController(Player(i)) == MAP_CONTROL_USER)
+				TriggerRegisterPlayerUnitEvent(Thread.syncThreadTrigger, Player(i), EVENT_PLAYER_UNIT_SELECTED, null)
+	
+init
+	Thread.doInit()
+	
+
+
+
+public function synchronizeThread()
+	Thread thread = new Thread()
+	thread.sync()
+	thread.wait()
+	destroy thread

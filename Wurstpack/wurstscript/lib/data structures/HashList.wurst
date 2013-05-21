@@ -1,0 +1,75 @@
+package HashList
+
+public class HashList<T>
+	private static hashtable ht = InitHashtable()
+	private int size = 0
+
+	/** Add an element to the end of the list */
+	function add(T elem)
+		ht.saveInt(this castTo int, size, elem castTo int)
+		size++
+	
+	/** Set an existing element at the given positiob to a new value */
+	function set(int index, T elem)
+		ht.saveInt(this castTo int, index, elem castTo int)
+
+
+	/** Add all elements from elems to this list */
+	function addAll(HashList<T> elems)
+		for T elem in elems
+			add(elem)
+	
+	/** Remove all elements from this list without destroying it */
+	function removeAll()
+		ht.flushChild(this castTo int)
+		size = 0
+
+	/** Remov the element at the given index */
+	function removeAt(int index)
+		for i = index to size
+			ht.saveInt(this castTo int, i, ht.loadInt(this castTo int, i+1))
+		size--
+		
+	/* Removes the first occurence of t from this list */
+	function remove(T t)
+		for i = 0 to size-1
+			if t castTo int == ht.loadInt(this castTo int, i)
+				removeAt(i)
+				break
+	
+	/** Get the size of the list */
+	function getSize() returns int
+		return size
+
+	/** Get the element at the given index from this list */
+	function get(int index) returns T
+		return ht.loadInt(this castTo int, index) castTo T
+
+
+	/** Get an iterator for this list */
+	function iterator() returns HLIterator<T>
+		return new HLIterator(this)			
+
+	ondestroy
+		ht.flushChild(this castTo int)
+
+class HLIterator<Q>
+	int i = 0
+	HashList<Q> list
+	
+	construct(HashList<Q> list)
+		this.list = list
+		
+	function hasNext() returns boolean
+		return i < list.getSize()
+		
+	function remove()
+		
+
+	function next() returns Q
+		i++
+		return list.get(i-1)
+
+	function close()
+		destroy this
+

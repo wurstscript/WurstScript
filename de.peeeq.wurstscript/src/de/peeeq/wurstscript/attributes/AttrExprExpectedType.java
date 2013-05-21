@@ -61,23 +61,32 @@ public class AttrExprExpectedType {
 				VarDef varDef = (VarDef) parent;
 				WurstType leftType = varDef.attrTyp();
 				return leftType;
-//			} else if (parent instanceof ExprBinary) {
-//				ExprBinary exprBinary = (ExprBinary) parent;
-//				if (exprBinary.getLeft() == expr) {
-//					return exprBinary.getRight().attrTyp();
-//				} else if (exprBinary.getRight() == expr) {
-//					return exprBinary.getLeft().attrTyp();
-//				}
-//				throw new CompileError(expr.getSource(), "c) could not find expr " + expr + " in parent " + parent);
-//			} else if (parent instanceof ExprUnary) {
-//				ExprUnary exprUnary = (ExprUnary) parent;
-//				if (exprUnary.attrExpectedTyp().isSubtypeOf(WurstTypeInt.instance(), expr)) {
-//					return WurstTypeInt.instance();
-//				} else if (exprUnary.attrExpectedTyp().isSubtypeOf(WurstTypeReal.instance(), expr)) {
-//					return WurstTypeReal.instance();
-//				} else if (exprUnary.attrExpectedTyp() instanceof WurstTypeBool) {
-//					return WurstTypeBool.instance();
-//				}
+			} else if (parent instanceof ExprBinary) {
+				ExprBinary exprBinary = (ExprBinary) parent;
+				WurstType leftType = exprBinary.getLeft().attrTyp();
+				WurstType rightType = exprBinary.getRight().attrTyp();
+				if (leftType.equalsType(rightType, expr)) {
+					// if both types are equal, result is clear:
+					return leftType;
+				} else {
+					// otherwise, take the more specific type
+					if (leftType.isSubtypeOf(rightType, expr)) {
+						return rightType;
+					} else if (rightType.isSubtypeOf(leftType, expr)) {
+						return leftType;
+					}
+				}
+				// no type is more specific. Not really clear what we want here...
+				return WurstTypeUnknown.instance();
+			} else if (parent instanceof ExprUnary) {
+				ExprUnary exprUnary = (ExprUnary) parent;
+				if (exprUnary.attrExpectedTyp().isSubtypeOf(WurstTypeInt.instance(), expr)) {
+					return WurstTypeInt.instance();
+				} else if (exprUnary.attrExpectedTyp().isSubtypeOf(WurstTypeReal.instance(), expr)) {
+					return WurstTypeReal.instance();
+				} else if (exprUnary.attrExpectedTyp() instanceof WurstTypeBool) {
+					return WurstTypeBool.instance();
+				}
 			} else if (parent instanceof StmtReturn) {
 				StmtReturn stmtReturn = (StmtReturn) parent;
 				FunctionImplementation nearestFuncDef = stmtReturn.attrNearestFuncDef();

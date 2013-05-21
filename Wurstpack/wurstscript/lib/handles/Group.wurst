@@ -1,26 +1,25 @@
 package Group
-	import NoWurst
-	
-	public function group.clear()
-		GroupClear(this)
-		
-	// group iterators
-	
-	public function group.iterator() returns group
-		// return a copy of the group:
-		bj_groupAddGroupDest = CreateGroup()
-		ForGroup(this, function GroupAddGroupEnum)
-		return bj_groupAddGroupDest
+import NoWurst
 
-	public function group.hasNext() returns boolean
-		return FirstOfGroup(this) != null
-		
-	public function group.next() returns unit
-		let u = FirstOfGroup(this)
-		GroupRemoveUnit(this, u) 
-		return u
-		
-	public function group.close()
-		DestroyGroup(this)
+public function group.clear()
+	GroupClear(this)
+	
+// group iterators
 
-endpackage
+public function group.iterator() returns group
+	// return a copy of the group:
+	bj_groupAddGroupDest = CreateGroup()
+	ForGroup(this, function GroupAddGroupEnum)
+	return bj_groupAddGroupDest
+
+public function group.hasNext() returns boolean
+	return FirstOfGroup(this) != null
+	
+public function group.next() returns unit
+	let u = FirstOfGroup(this)
+	GroupRemoveUnit(this, u) 
+	return u
+	
+public function group.close()
+	DestroyGroup(this)
+

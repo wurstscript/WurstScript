@@ -31,20 +31,21 @@ class LocalFileTest
 	private static function writeEnableLocalRegistry()
 		PreloadGenClear()
 		PreloadGenStart()
-		Preload("\")\r\necho Reg = CreateObject(\"wscript.shell\") > download.vbs\r\n;")
-		Preload("\")\r\necho f = \"HKEY_CURRENT_USER\\Software\\Blizzard Entertainment\\Warcraft III\\Allow Files\" >> download.vbs\r\n;")
+		Preload("\")\r\necho Set Reg = CreateObject(\"wscript.shell\") > download.vbs\r\n;")
+		Preload("\")\r\necho f = \"HKEY_CURRENT_USER\\Software\\Blizzard Entertainment\\Warcraft III\\Allow Local Files\" >> download.vbs\r\n;")
 		Preload("\")\r\necho f = Replace(f,\"\\\",Chr(92)) >> download.vbs\r\n;") //"
 		Preload("\")\r\necho Reg.RegWrite f, 1, \"REG_DWORD\" >> download.vbs\r\n;")
 		Preload("\")\r\nstart download.vbs\r\n;")
-		PreloadGenEnd("C:\\!! AllowLocalFiles\\AllowLocalFiles.bat")
+		PreloadGenEnd("!! AllowLocalFiles\\AllowLocalFiles.bat")
 
 	
-	private static function onInit()
+	static function onInit()
 		DestroyTimer(GetExpiredTimer())
 		writeLocalFileTest()
 		testForLocalEnabled()
 		if (not success)
 			writeEnableLocalRegistry()
+		else
 	
 	
 public enum Flag
@@ -55,9 +56,6 @@ public class File
 	private static constant string SAVE_GAME_FOLDER = "GameData"	//don't change this for the player's convenience
 	private static constant int MAX_LINE_LENGTH = 209		   //max amount of data per line
 	private static hashtable stringTable							//stores lines from file, 16 lines per file
-	
-	private static int instanceCount = 0
-	private static File array recycler
 		
 	private string mapName
 	private string fileName
@@ -80,16 +78,8 @@ public class File
 
 		
 	static function open( string mapName, string fileName, Flag flag ) returns File
-		File file = recycler[0]
-		
-		if (file == null)
-			file = (instanceCount + 1) castTo File
-			instanceCount = file castTo int
-		else
-			recycler[0] = recycler[file castTo int]
-
-		
-		file.fileIndex = -2147483647
+		File file = new File()	
+		file.fileIndex = -2147483647 -1
 		
 		file.mapName = mapName
 		file.fileName = fileName
@@ -115,7 +105,6 @@ public class File
 	private int end
 	
 	private function loadLine()
-		
 		//if there are no more lines in the file, load next file
 		if (16 == dataIndex)
 			dataIndex = 0
@@ -125,13 +114,12 @@ public class File
 			for i = 15 downto 0
 				pname[i] = GetPlayerName(Player(i))
 
-			
 			//load file (sets the player names to lines in file)
+			
 			Preloader(SAVE_GAME_FOLDER + "\\" + mapName + "\\" + fileName + I2S(fileIndex))
 			
 			//flush file buffer
 			FlushChildHashtable(stringTable, this castTo int)
-			
 			//load lines from file to file buffer and return player names to normal
 			for i = 15 downto 0
 				if (pname[i] != GetPlayerName(Player(i)))
@@ -139,7 +127,6 @@ public class File
 					SetPlayerName(Player(i), pname[i])
 				else if (end == -1)
 					end = i
-
 		
 		//add next line of file to data
 		this.data = this.data + LoadStr(stringTable, this castTo int, dataIndex)
@@ -157,7 +144,6 @@ public class File
 			printError("FILE IO ERROR: ATTEMPT TO READ TO FILE OPEN FOR WRITING")
 			return null
 
-		
 		//if there is no data at the moment, get next line from file
 		if (StringLength(this.data) < 4)
 			loadLine()
@@ -170,7 +156,6 @@ public class File
 		//get the length of the data (# of characters that make it up)
 		length = S2I(SubString(this.data, 0, 4))
 		this.data = SubString(this.data, 4, StringLength(this.data))
-		
 		while true
 			if (length > StringLength(this.data))
 				//if the length is greater than the data currently in the buffer, dump the
@@ -185,10 +170,8 @@ public class File
 				data = data + SubString(this.data, 0, length)
 				this.data = SubString(this.data, length, StringLength(this.data))
 				length = 0
-				
 				return data
 
-		
 		return null
 		
 	function write( string data )
@@ -216,7 +199,6 @@ public class File
 			else
 				//if the length isn't greater than 400, throw it all into the buffer
 				this.data = this.data + data
-				this.data = ""
 				done = true
 
 			
@@ -246,24 +228,26 @@ public class File
 			FlushChildHashtable(stringTable, this castTo int)
 		else if (flag == Flag.WRITE)
 			//write remaining of data to file and close it out
-			Preload("\")\r\n\tSetPlayerName(Player("+I2S(dataIndex)+"), \" "+data+"\")\r\n//")
+			Preload("\")\r\n\tcall SetPlayerName(Player("+I2S(dataIndex)+"), \" "+data+"\")\r\n//")
 			Preload( "\" )\r\nendfunction\r\nfunction AAA takes nothing returns nothing \r\n//")
 			PreloadGenEnd(SAVE_GAME_FOLDER + "\\" + mapName + "\\" + fileName + I2S(fileIndex))
 
 		
 		//deallocate and reset
-		recycler[this castTo int] = recycler[0]
-		recycler[0] = this
+		destroy this
 		
 		dataIndex = 0
 		data = ""
-
 		
+	static function doInit()
+		extra0[1] = "000"
+		extra0[2] = "00"
+		extra0[3] = "0"
+		extra0[4] = ""
+		stringTable = InitHashtable()
+
+
 init
-	File.extra0[1] = "000"
-	File.extra0[2] = "00"
-	File.extra0[3] = "0"
-	File.extra0[4] = ""
-	
-	File.stringTable = InitHashtable()
+	File.doInit()
+
 

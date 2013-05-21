@@ -1,187 +1,244 @@
 package Unit
-	import NoWurst
-	import public Vectors
-	import Angle
-	import PrintingHelper
-	
-	public function unit.getX() returns real
-		return GetUnitX(this)
-		
-	public function unit.getY() returns real
-		return GetUnitY(this)
-		
-	public function unit.setX(real x) returns unit
-		SetUnitX(this, x)
-		return this
-		
-	public function unit.setY(real y) returns unit
-		SetUnitY(this, y)
-		return this
-		
-	public function unit.setXY(real x, real y) returns unit
-		SetUnitX(this, x)
-		SetUnitY(this, y)
-		return this
-		
-	public function unit.setXY(vec2 pos) returns unit
-		SetUnitX(this, pos.x)
-		SetUnitY(this, pos.y)
-		return this
-		
-	public function unit.setPos(real x, real y) returns unit
-		SetUnitPosition(this, x, y)
-		return this
-		
-	public function unit.setPos(vec2 pos) returns unit
-		SetUnitPosition(this, pos.x, pos.y)
-		return this
-		
-	public function unit.kill() returns unit
-		KillUnit(this)
-		return this
-		
-	public function unit.addAbility(int abil) returns unit
-		UnitAddAbility(this, abil)
-		return this
-		
-	public function unit.removeAbility(int abil) returns unit
-		UnitRemoveAbility(this, abil)
-		return this
-	
-	public function unit.getOwner() returns player
-		return GetOwningPlayer(this)
-		
-	public function unit.setOwner(player p, boolean changeColor) returns unit
-		SetUnitOwner(this, p, changeColor)
-		return this
-		
-	public function unit.setScale(real scale) returns unit
-		SetUnitScale(this, scale, scale, scale)
-		return this
-		
-	public function unit.setVertexColor(int r, int g, int b, int a) returns unit
-		SetUnitVertexColor(this, r, g, b, a)
-		return this
-		
-	public function unit.addEffect(string fx, string attachment) returns effect
-		return AddSpecialEffectTarget(fx, this, attachment)
-	
-	public function unit.setFacing(real deg) returns unit
-		SetUnitFacing(this, deg)
-		return this
-	
-	public function unit.setFacing(angle a) returns unit
-		SetUnitFacing(this, a.degrees())
-		return this
-		
-	public function unit.getFacing() returns real
-		return GetUnitFacing(this)
-		
-	public function unit.getFacingAngle() returns angle
-		return GetUnitFacing(this).asAngleDegrees()
-		
-	public function unit.getFlyHeight() returns real
-		return GetUnitFlyHeight(this)
-		
-	public function unit.setFlyHeight(real height, real rate) returns unit
-		SetUnitFlyHeight(this, height, rate)
-		return this
-	
-	public function unit.hide() returns unit
-		ShowUnit(this, false)
-		return this
-	
-	public function unit.show() returns unit
-		ShowUnit(this, true)
-		return this
-		
-	public function unit.setUserData(int data) returns unit
-		SetUnitUserData(this, data)
-		return this
-		
-	public function unit.getUserData() returns int
-		return GetUnitUserData(this)
-		
-	public function unit.remove()
-		RemoveUnit(this)
-		
-	public function unit.setState( unitstate state, real value ) returns unit
-		SetUnitState( this, state, value )
-		return this
-		
-	public function unit.getState( unitstate state ) returns real
-		return GetUnitState( this, state )
-		
-	public function unit.setHP( real hp ) returns unit
-		this.setState( UNIT_STATE_LIFE, hp )
-		return this
-		
-	public function unit.getHP() returns real
-		return this.getState( UNIT_STATE_LIFE )
-		
-	public function unit.addItem(int id) returns unit
-		UnitAddItemById(this, id)
-		return this
-		
-	public function unit.setTimedLife( real time ) returns unit
-		UnitApplyTimedLife( this, 'BTLF', time )
-		return this
+import NoWurst
+import public Vectors
+import Angle
+import PrintingHelper
 
-	public function unit.getName() returns string
-		return GetUnitName(this)
-		
-	public function unit.getMoveSpeed() returns real
-		return GetUnitMoveSpeed(this)
-		
-	public function unit.setMoveSpeed(real speed) returns unit
-		SetUnitMoveSpeed(this, speed)
-		return this
-		
-	public function unit.damageTarget(unit target, real amount) returns unit
-		UnitDamageTarget(this, target, amount, false, false, ATTACK_TYPE_NORMAL, DAMAGE_TYPE_UNIVERSAL, WEAPON_TYPE_WHOKNOWS)
-		return this
-		
-	public function unit.setAnimation(string animation) returns unit
-		SetUnitAnimation(this, animation)
-		return this
-		
-	public function unit.queueAnimation(string animation) returns unit
-		QueueUnitAnimation(this, animation)
-		return this
-		
-	public function unit.setTimeScale(real scale) returns unit
-		SetUnitTimeScale(this, scale)
-		return this
-		
-	public function createUnit(player p, int unitId, vec2 pos, angle facing) returns unit
-		return CreateUnit(p, unitId, pos.x, pos.y, facing.degrees())
-		
-	public function createUnit(player p, int unitId, vec3 pos, angle facing) returns unit
-		return CreateUnit(p, unitId, pos.x, pos.y, facing.degrees())
-		
-	public function unit.issuePointOrder(string order, vec2 target)
-		IssuePointOrder(this, order, target.x, target.y)
-		
-	public function unit.hasAbility(int id) returns boolean
-		return (GetUnitAbilityLevel(this, id) > 0)
-		
-	public function unit.getHandleId() returns int
-		return GetHandleId(this)
+public function unit.getX() returns real
+	return GetUnitX(this)
 	
-	public function unit.pause() returns unit
-		PauseUnit(this, true)
-		return this
-		
-	public function unit.unpause() returns unit
-		PauseUnit(this, false)
-		return this
+public function unit.getY() returns real
+	return GetUnitY(this)
 	
-	public function unit.issueRallyPoint(vec2 pos) returns unit
-		this.issuePointOrder("rally", pos)
-		return this
-		
-	public function unit.setPropWindow(real value) returns unit
-		SetUnitPropWindow(this, value)
-		return this
+public function unit.setX(real x) returns unit
+	SetUnitX(this, x)
+	return this
+	
+public function unit.setY(real y) returns unit
+	SetUnitY(this, y)
+	return this
+	
+public function unit.setXY(real x, real y) returns unit
+	SetUnitX(this, x)
+	SetUnitY(this, y)
+	return this
+	
+public function unit.setXY(vec2 pos) returns unit
+	SetUnitX(this, pos.x)
+	SetUnitY(this, pos.y)
+	return this
+	
+public function unit.setXY(vec3 pos) returns unit
+	SetUnitX(this, pos.x)
+	SetUnitY(this, pos.y)
+	return this
+	
+public function unit.setXYZ(vec3 pos) returns unit
+	SetUnitX(this, pos.x)
+	SetUnitY(this, pos.y)
+	SetUnitFlyHeight(this, pos.z, 0)
+	return this
+	
+public function unit.setPos(real x, real y) returns unit
+	SetUnitPosition(this, x, y)
+	return this
+	
+public function unit.setPos(vec2 pos) returns unit
+	SetUnitPosition(this, pos.x, pos.y)
+	return this
+	
+public function unit.getPos() returns vec2
+	return vec2(this.getX(), this.getY())
+	
+public function unit.getPos3fake() returns vec3
+	return vec3(this.getX(), this.getY(), 0.)
+	
+public function unit.kill() returns unit
+	KillUnit(this)
+	return this
+	
+public function unit.addAbility(int abil) returns unit
+	UnitAddAbility(this, abil)
+	return this
+	
+public function unit.removeAbility(int abil) returns unit
+	UnitRemoveAbility(this, abil)
+	return this
 
-endpackage
+public function unit.getOwner() returns player
+	return GetOwningPlayer(this)
+	
+public function unit.setOwner(player p, boolean changeColor) returns unit
+	SetUnitOwner(this, p, changeColor)
+	return this
+	
+public function unit.setScale(real scale) returns unit
+	SetUnitScale(this, scale, scale, scale)
+	return this
+	
+public function unit.setVertexColor(int r, int g, int b, int a) returns unit
+	SetUnitVertexColor(this, r, g, b, a)
+	return this
+	
+public function unit.addEffect(string fx, string attachment) returns effect
+	return AddSpecialEffectTarget(fx, this, attachment)
+
+public function unit.setFacing(real deg) returns unit
+	SetUnitFacing(this, deg)
+	return this
+
+public function unit.setFacing(angle a) returns unit
+	SetUnitFacing(this, a.degrees())
+	return this
+	
+public function unit.getFacing() returns real
+	return GetUnitFacing(this)
+	
+public function unit.getFacingAngle() returns angle
+	return GetUnitFacing(this).asAngleDegrees()
+	
+public function unit.getFlyHeight() returns real
+	return GetUnitFlyHeight(this)
+	
+public function unit.setFlyHeight(real height, real rate) returns unit
+	SetUnitFlyHeight(this, height, rate)
+	return this
+
+public function unit.hide() returns unit
+	ShowUnit(this, false)
+	return this
+
+public function unit.show() returns unit
+	ShowUnit(this, true)
+	return this
+	
+public function unit.setUserData(int data) returns unit
+	SetUnitUserData(this, data)
+	return this
+	
+public function unit.getUserData() returns int
+	return GetUnitUserData(this)
+	
+public function unit.remove()
+	RemoveUnit(this)
+	
+public function unit.setState( unitstate state, real value ) returns unit
+	SetUnitState( this, state, value )
+	return this
+	
+public function unit.getState( unitstate state ) returns real
+	return GetUnitState( this, state )
+	
+public function unit.addState( unitstate state, real value ) returns unit
+	SetUnitState( this, state, this.getState(state) + value )
+	return this
+
+public function unit.subState( unitstate state, real value ) returns unit
+	SetUnitState( this, state, this.getState(state) - value )
+	return this
+	
+public function unit.setHP( real hp ) returns unit
+	this.setState( UNIT_STATE_LIFE, hp )
+	return this
+	
+public function unit.getHP() returns real
+	return this.getState( UNIT_STATE_LIFE )
+	
+public function unit.addItem(int id) returns unit
+	UnitAddItemById(this, id)
+	return this
+	
+public function unit.setTimedLife( real time ) returns unit
+	UnitApplyTimedLife( this, 'BTLF', time )
+	return this
+
+public function unit.getName() returns string
+	return GetUnitName(this)
+	
+public function unit.getMoveSpeed() returns real
+	return GetUnitMoveSpeed(this)
+	
+public function unit.setMoveSpeed(real speed) returns unit
+	SetUnitMoveSpeed(this, speed)
+	return this
+	
+public function unit.damageTarget(unit target, real amount) returns unit
+	UnitDamageTarget(this, target, amount, false, false, ATTACK_TYPE_NORMAL, DAMAGE_TYPE_UNIVERSAL, WEAPON_TYPE_WHOKNOWS)
+	return this
+	
+public function unit.setAnimation(string animation) returns unit
+	SetUnitAnimation(this, animation)
+	return this
+	
+public function unit.queueAnimation(string animation) returns unit
+	QueueUnitAnimation(this, animation)
+	return this
+	
+public function unit.setTimeScale(real scale) returns unit
+	SetUnitTimeScale(this, scale)
+	return this
+	
+public function createUnit(player p, int unitId, vec2 pos, angle facing) returns unit
+	return CreateUnit(p, unitId, pos.x, pos.y, facing.degrees())
+	
+public function createUnit(player p, int unitId, vec3 pos, angle facing) returns unit
+	return CreateUnit(p, unitId, pos.x, pos.y, facing.degrees())
+	
+public function unit.issuePointOrder(string order, vec2 target)
+	IssuePointOrder(this, order, target.x, target.y)
+	
+public function unit.hasAbility(int id) returns boolean
+	return (GetUnitAbilityLevel(this, id) > 0)
+
+public function handle.getHandleId() returns int
+	return GetHandleId(this)
+
+public function unit.pause() returns unit
+	PauseUnit(this, true)
+	return this
+	
+public function unit.unpause() returns unit
+	PauseUnit(this, false)
+	return this
+
+public function unit.issueRallyPoint(vec2 pos) returns unit
+	this.issuePointOrder("rally", pos)
+	return this
+	
+public function unit.setPropWindow(real value) returns unit
+	SetUnitPropWindow(this, value)
+	return this
+	
+public function unit.getTypeId() returns int
+	return GetUnitTypeId(this)
+	
+public function unit.getMana() returns real
+	return this.getState(UNIT_STATE_MANA)
+
+public function unit.setMana(real val) returns unit
+	this.setState(UNIT_STATE_MANA, val)
+	return this
+	
+public function unit.subMana(real val) returns unit
+	this.subState(UNIT_STATE_MANA, val)
+	return this
+	
+public function unit.addMana(real val) returns unit
+	this.addState(UNIT_STATE_MANA, val)
+	return this
+	
+public function unit.setAbilityLevel(int abilId, int lvl) returns unit
+	SetUnitAbilityLevel(this, abilId, lvl)
+	return this
+	
+public function unit.issueTargetOrderById(int id, widget target) returns unit
+	IssueTargetOrderById(this, id, target)
+	return this
+	
+public function unit.issuePointOrderById(int id, vec2 target) returns unit
+	IssuePointOrderById(this, id, target.x, target.y)
+	return this
+	
+public function unit.issueImmediateOrderById(int id) returns unit
+	IssueImmediateOrderById(this, id)
+	return this

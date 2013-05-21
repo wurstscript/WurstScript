@@ -1,87 +1,83 @@
 package Trackable
 
-	/* 
-	If you need invisible Trackable models here are a few downloadlinks:
-	8x8 	"https://dl.dropbox.com/u/103859688/Trackables/8x8Track.mdx"
-	16x16	"https://dl.dropbox.com/u/103859688/Trackables/16x16Track.mdx"
-	32x32	"https://dl.dropbox.com/u/103859688/Trackables/32x32Track.mdx"
-	64x64	"https://dl.dropbox.com/u/103859688/Trackables/64x64Track.mdx"
-	128x128 "https://dl.dropbox.com/u/103859688/Trackables/128x128Track.mdx"
-	256x256 "https://dl.dropbox.com/u/103859688/Trackables/256x256Track.mdx"
-	512x512	"https://dl.dropbox.com/u/103859688/Trackables/512x512Track.mdx"
-	*/
+/* 
+If you need invisible Trackable models here are a few downloadlinks:
+8x8 	"https://dl.dropbox.com/u/103859688/Trackables/8x8Track.mdx"
+16x16	"https://dl.dropbox.com/u/103859688/Trackables/16x16Track.mdx"
+32x32	"https://dl.dropbox.com/u/103859688/Trackables/32x32Track.mdx"
+64x64	"https://dl.dropbox.com/u/103859688/Trackables/64x64Track.mdx"
+128x128 "https://dl.dropbox.com/u/103859688/Trackables/128x128Track.mdx"
+256x256 "https://dl.dropbox.com/u/103859688/Trackables/256x256Track.mdx"
+512x512	"https://dl.dropbox.com/u/103859688/Trackables/512x512Track.mdx"
+*/
 
-	hashtable trackData = InitHashtable()
+hashtable trackData = InitHashtable()
 
-	/** Creates a Trackable at the target location */
-	public function createTrackable(string path, vec2 pos) returns trackable
-		trackable t = CreateTrackable(path, pos.x, pos.y, 0)
-		int hID = GetHandleId(t)
-		trackData.saveReal(hID, 1, pos.x)
-		trackData.saveReal(hID, 2, pos.y)
-		trackData.saveString(hID, 3, path)
-		return t
-		
-	/** Creates a Trackable at the target location which is just click and trackable for a specific player */
-	public function createTrackableForPlayer(string path, vec2 pos, player p) returns trackable
-		string newPath = ""
-		if GetLocalPlayer() == p
-			newPath = path
-		trackable t = CreateTrackable(newPath, pos.x, pos.y, 0)
-		int hID = GetHandleId(t)
-		trackData.saveReal(hID, 1, pos.x)
-		trackData.saveReal(hID, 2, pos.y)
-		trackData.saveString(hID, 3, path)
-		trackData.savePlayerHandle(hID, 4, p)
-		return t
-
-	/** Returns the owner of the trackable. This just works if the trackable was created with the "createTrackableForPlayer" function */
-	public function trackable.getPosition() returns vec2
-		int hID = GetHandleId(this)
-		real x = trackData.loadReal(hID, 1)
-		real y = trackData.loadReal(hID, 2)
-		return vec2(x, y)
-		
-	/** Returns the modelpath of the trackable */
-	public function trackable.getPath() returns string
-		int hID = GetHandleId(this)
-		return trackData.loadString(hID, 3)
-		
-	/** Returns the owner of the trackable. This just works if the trackable was created with the "createTrackableForPlayer" function */
-	public function trackable.getOwner() returns player
-		int hID = GetHandleId(this)
-		return trackData.loadPlayerHandle(hID, 4)
+/** Creates a Trackable at the target location */
+public function createTrackable(string path, vec2 pos) returns trackable
+	trackable t = CreateTrackable(path, pos.x, pos.y, 0)
+	int hID = GetHandleId(t)
+	trackData.saveReal(hID, 1, pos.x)
+	trackData.saveReal(hID, 2, pos.y)
+	trackData.saveString(hID, 3, path)
+	return t
 	
-	/** Returns the right handle if you use the "registerTrackableHit/TrackEventForAllPlayers" function */
-	public function trackable.getCentralHandleId() returns int
-		return trackData.loadInt(GetHandleId(this), 5)
-		
-	/* This function creates 12 trackables (one for each player) so you can get the triggering player: GetTriggeringTrackable.getOwner()
-	Keep in mind, that this function is not realy performant!!! */
-	/* TODO commented out because of comments in https://github.com/peq/WurstScript/pull/100#discussion_r2923090 
-	public function trigger.registerTrackableTrackEventForAllPlayers(trackable t)
-		vec2 pos = t.getPosition()
-		string path = t.getPath()
-		int centralHID = GetHandleId(t)
-		for int i = 0 to 11
-			trackable tempT = createTrackableForPlayer(path, pos, Player(i))
-			int hID = GetHandleId(tempT)
-			trackData.saveInt(hID, 5, centralHID)
-			this.registerTrackableTrackEvent(tempT)
-	*/
-			
-	/** This function creates 12 trackables (one for each player) so you can get the triggering player: GetTriggeringTrackable.getOwner()
-	Keep in mind, that this function is not realy performant!!! */
-	public function trigger.registerTrackableHitEventForAllPlayers(trackable t)
-		vec2 pos = t.getPosition()
-		string path = t.getPath()
-		int centralHID = GetHandleId(t)
-		for int i = 0 to 11
-			trackable tempT = createTrackableForPlayer(path, pos, Player(i))
-			int hID = GetHandleId(tempT)
-			trackData.saveInt(hID, 5, centralHID)
-			this.registerTrackableHitEvent(tempT)
-			
-	
+/** Creates a Trackable at the target location which is just click and trackable for a specific player */
+public function createTrackableForPlayer(string path, vec2 pos, player p) returns trackable
+	string newPath = ""
+	if GetLocalPlayer() == p
+		newPath = path
+	trackable t = CreateTrackable(newPath, pos.x, pos.y, 0)
+	int hID = GetHandleId(t)
+	trackData.saveReal(hID, 1, pos.x)
+	trackData.saveReal(hID, 2, pos.y)
+	trackData.saveString(hID, 3, path)
+	trackData.savePlayerHandle(hID, 4, p)
+	return t
 
-endpackage
+/** Returns the owner of the trackable. This just works if the trackable was created with the "createTrackableForPlayer" function */
+public function trackable.getPosition() returns vec2
+	int hID = GetHandleId(this)
+	real x = trackData.loadReal(hID, 1)
+	real y = trackData.loadReal(hID, 2)
+	return vec2(x, y)
+	
+/** Returns the modelpath of the trackable */
+public function trackable.getPath() returns string
+	int hID = GetHandleId(this)
+	return trackData.loadString(hID, 3)
+	
+/** Returns the owner of the trackable. This just works if the trackable was created with the "createTrackableForPlayer" function */
+public function trackable.getOwner() returns player
+	int hID = GetHandleId(this)
+	return trackData.loadPlayerHandle(hID, 4)
+
+/** Returns the right handle if you use the "registerTrackableHit/TrackEventForAllPlayers" function */
+public function trackable.getCentralHandleId() returns int
+	return trackData.loadInt(GetHandleId(this), 5)
+	
+/* This function creates 12 trackables (one for each player) so you can get the triggering player: GetTriggeringTrackable.getOwner()
+Keep in mind, that this function is not realy performant!!! */
+/* TODO commented out because of comments in https://github.com/peq/WurstScript/pull/100#discussion_r2923090 
+public function trigger.registerTrackableTrackEventForAllPlayers(trackable t)
+	vec2 pos = t.getPosition()
+	string path = t.getPath()
+	int centralHID = GetHandleId(t)
+	for int i = 0 to 11
+		trackable tempT = createTrackableForPlayer(path, pos, Player(i))
+		int hID = GetHandleId(tempT)
+		trackData.saveInt(hID, 5, centralHID)
+		this.registerTrackableTrackEvent(tempT)
+*/
+		
+/** This function creates 12 trackables (one for each player) so you can get the triggering player: GetTriggeringTrackable.getOwner()
+Keep in mind, that this function is not realy performant!!! */
+public function trigger.registerTrackableHitEventForAllPlayers(trackable t)
+	vec2 pos = t.getPosition()
+	string path = t.getPath()
+	int centralHID = GetHandleId(t)
+	for int i = 0 to 11
+		trackable tempT = createTrackableForPlayer(path, pos, Player(i))
+		int hID = GetHandleId(tempT)
+		trackData.saveInt(hID, 5, centralHID)
+		this.registerTrackableHitEvent(tempT)

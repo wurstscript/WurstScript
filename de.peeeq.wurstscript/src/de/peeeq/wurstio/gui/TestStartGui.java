@@ -16,19 +16,19 @@ public class TestStartGui {
 
 		gui.sendProgress(null, 0.1);
 		UtilsIO.sleep(1000);
-		gui.sendError(new CompileError(new WPos("C:/pscript/de.peeeq.wurstscript/testscripts/valid/testIf_1.pscript", LineOffsets.dummy, 1, 8), "test"));
+		gui.sendError(new CompileError(new WPos("C:/pscript/de.peeeq.wurstscript/testscripts/valid/testIf_1.wurst", LineOffsets.dummy, 1, 8), "test"));
 		UtilsIO.sleep(1000);
-		gui.sendError(new CompileError(new WPos("C:/pscript/de.peeeq.wurstscript/testscripts/valid/testIf_1.pscript", LineOffsets.dummy, 3, 14), "string"));
+		gui.sendError(new CompileError(new WPos("C:/pscript/de.peeeq.wurstscript/testscripts/valid/testIf_1.wurst", LineOffsets.dummy, 3, 14), "string"));
 		gui.sendProgress(null, 0.4);
 		UtilsIO.sleep(1000);
-		gui.sendError(new CompileError(new WPos("C:/pscript/de.peeeq.wurstscript/testscripts/valid/testIf_1.pscript", LineOffsets.dummy, 4, 3), "nativetype"));
-		gui.sendError(new CompileError(new WPos("C:/pscript/de.peeeq.wurstscript/testscripts/valid/testIf_1.pscript", LineOffsets.dummy, 46, 9), "2 == 2"));
-		gui.sendError(new CompileError(new WPos("C:/pscript/de.peeeq.wurstscript/testscripts/valid/testIf_1.pscript", LineOffsets.dummy, 49, 9), "testFail?"));
+		gui.sendError(new CompileError(new WPos("C:/pscript/de.peeeq.wurstscript/testscripts/valid/testIf_1.wurst", LineOffsets.dummy, 4, 3), "nativetype"));
+		gui.sendError(new CompileError(new WPos("C:/pscript/de.peeeq.wurstscript/testscripts/valid/testIf_1.wurst", LineOffsets.dummy, 46, 9), "2 == 2"));
+		gui.sendError(new CompileError(new WPos("C:/pscript/de.peeeq.wurstscript/testscripts/valid/testIf_1.wurst", LineOffsets.dummy, 49, 9), "testFail?"));
 		gui.sendProgress(null, 0.7);
 		UtilsIO.sleep(1000);
 		UtilsIO.sleep(1000);
 		gui.sendError(new CompileError(
-				new WPos("C:/pscript/de.peeeq.wurstscript/testscripts/valid/natives_bj.pscript", LineOffsets.dummy, 10000, 9),
+				new WPos("C:/pscript/de.peeeq.wurstscript/testscripts/valid/natives_bj.wurst", LineOffsets.dummy, 10000, 9),
 				"Some really large Text "
 						+ "which might not fit in here. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. Bla blub blabbel probel blub. "));
 		gui.sendProgress(null, 0.9);

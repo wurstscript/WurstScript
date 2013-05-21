@@ -83,7 +83,7 @@ public class ErrorReportingIO extends ErrorReporting {
 		} else if (n == 2) {
 			Desktop desk = Desktop.getDesktop();
 			try {
-				desk.browse(new URI("http://code.google.com/p/pscript-lang/issues/entry"));
+				desk.browse(new URI("https://github.com/peq/WurstScript/issues"));
 			} catch (Exception e) {
 				WLogger.severe(e);
 				JOptionPane.showMessageDialog(parent, "Could not open browser.");

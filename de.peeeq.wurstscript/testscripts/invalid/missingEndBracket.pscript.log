@@ -1,3 +1,0 @@
-Errors in validation phase:
-Error in File missingEndBracket.pscript line 4:6:
-Grammatical error: unexpected '='	expected: operator, ')', ']', '{', ',', newline, 'then'

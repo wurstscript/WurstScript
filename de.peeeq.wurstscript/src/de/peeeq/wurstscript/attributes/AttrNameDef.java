@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.attributes;
 
+import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
@@ -10,6 +11,7 @@ import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.StmtSet;
+import de.peeeq.wurstscript.parser.AstHelper;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeModule;
 
@@ -60,8 +62,11 @@ public class AttrNameDef {
 		WurstType receiverType = left.attrTyp();
 		NameDef result = node.lookupMemberVar(receiverType, varName);
 		if (result == null) {
+			
+
 			node.addError("Could not resolve reference to variable " + varName + " for receiver of type " + 
 					receiverType + ".");
+
 		}
 		if (receiverType instanceof WurstTypeModule) {
 			WurstTypeModule wurstTypeModule = (WurstTypeModule) receiverType;

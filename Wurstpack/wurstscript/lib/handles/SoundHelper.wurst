@@ -1,5 +1,4 @@
 package SoundHelper
-
 import Stack
 
 constant boolean DEFAULT_SOUND_STOPS_ON_LEAVE_RANGE = true
@@ -64,7 +63,7 @@ public class Sound
 
 	function getSound() returns SData
 		// If there is a handle on the stack
-		if soundStack.size > 0
+		if soundStack.getSize() > 0
 			return soundStack.pop()
 		else
 			// No free handle, create a new one
@@ -126,7 +125,7 @@ public class Sound
 	private static function recycle()
 		var tm = GetExpiredTimer()
 		var sdata = tm.getData() castTo SData
-		if sdata.soundData.soundStack.size < 4
+		if sdata.soundData.soundStack.getSize() < 4
 			sdata.soundData.soundStack.push(sdata)
 		else
 			StopSound(sdata.snd, true, true)

@@ -1,78 +1,90 @@
 package Texttag
-	import public Vectors
-	import public Colors
-	
-	public function texttag.setPos( real x, real y, real z) returns texttag
-		SetTextTagPos(this, x ,y , z)
-		return this
-		
-	public function texttag.setPos( vec3 pos ) returns texttag
-		SetTextTagPos(this, pos.x , pos.y , pos.z)
-		return this
+import public Vectors
+import public Colors
 
-	public function texttag.setColor( int r, int g, int b, int a ) returns texttag
-		SetTextTagColor(this, r, g , b, a)
-		return this
+public function texttag.setPos( real x, real y, real z) returns texttag
+	SetTextTagPos(this, x ,y , z)
+	return this
 	
-	public function texttag.setColor( colorA col) returns texttag
-		SetTextTagColor(this, col.red, col.green , col.blue, col.alpha)
-		return this
+public function texttag.setPos( vec3 pos ) returns texttag
+	SetTextTagPos(this, pos.x , pos.y , pos.z)
+	return this
 
-	public function texttag.setText( string text, real height ) returns texttag
-		SetTextTagText(this, text, height)
-		return this
-		
-	public function texttag.setLifespan( real span ) returns texttag
-		SetTextTagLifespan(this, span)
-		return this
-		
-	public function texttag.setPermanent( boolean flag ) returns texttag
-		SetTextTagPermanent(this, flag)
-		return this
-		
-	public function texttag.setFadepoint( real fadepoint ) returns texttag
-		SetTextTagFadepoint(this, fadepoint)
-		return this
-		
-	public function texttag.setAge( real age ) returns texttag
-		SetTextTagAge(this, age)
-		return this
-		
-	public function texttag.setVelocity( real xvel, real yvel ) returns texttag
-		SetTextTagVelocity(this, xvel, yvel)
-		return this
-		
-	public function texttag.setVisibility( boolean flag ) returns texttag
-		SetTextTagVisibility(this, flag)
-		return this
-		
-	public function texttag.destr()
-		DestroyTextTag(this)
-		
-	public function createTTEx(vec3 pos, string message, int size, colorA col ) returns texttag
-		texttag tt = CreateTextTag()
-		tt.setPos(pos.toVec2().withZ(20.))
-		.setText( message, size * 0.0023 )
-		.setColor( col )
-		return tt
-		
-	public function createTTEx(vec3 pos, vec2 vel, string message, int size, real duration, colorA col ) returns texttag
-		texttag tt = CreateTextTag()
-		tt.setPos(pos.toVec2().withZ(20.))
-		.setText( message, size * 0.0023 )
-		.setColor( col )
-		.setVelocity( vel.x, vel.y)
-		.setLifespan( duration) 
-		tt.setFadepoint(.1) 
-		tt.setPermanent(false)
-		return tt
-		
-	public function createTTEx(vec3 pos, vec2 vel, string message, int size, real duration, colorA col, player p ) returns texttag
-		texttag tt = createTTEx(pos, vel, message,size,duration,col)
-		if GetLocalPlayer() == p
-			tt.setVisibility(true)
-		else
-			tt.setVisibility(false)
-		return tt
-		
-endpackage
+public function texttag.setColor( int r, int g, int b, int a ) returns texttag
+	SetTextTagColor(this, r, g , b, a)
+	return this
+
+public function texttag.setColor( colorA col) returns texttag
+	SetTextTagColor(this, col.red, col.green , col.blue, col.alpha)
+	return this
+
+public function texttag.setText( string text, real size ) returns texttag
+	SetTextTagText(this, text, size * 0.0023)
+	return this
+	
+public function texttag.setLifespan( real span ) returns texttag
+	SetTextTagLifespan(this, span)
+	return this
+	
+public function texttag.setPermanent( boolean flag ) returns texttag
+	SetTextTagPermanent(this, flag)
+	return this
+	
+public function texttag.setFadepoint( real fadepoint ) returns texttag
+	SetTextTagFadepoint(this, fadepoint)
+	return this
+	
+public function texttag.setAge( real age ) returns texttag
+	SetTextTagAge(this, age)
+	return this
+	
+public function texttag.setVelocity( real xvel, real yvel ) returns texttag
+	SetTextTagVelocity(this, xvel, yvel)
+	return this
+	
+public function texttag.setVisibility( boolean flag ) returns texttag
+	SetTextTagVisibility(this, flag)
+	return this
+	
+public function texttag.destr()
+	DestroyTextTag(this)
+	
+public function createTTEx(vec3 pos, string message, real size, colorA col ) returns texttag
+	texttag tt = CreateTextTag()
+	tt.setText( message, size )
+	.setPos(pos.toVec2().withZ(20.))
+	.setColor( col )
+	.setLifespan(2000) 
+	.setPermanent(false)
+	return tt
+	
+public function createTTEx(vec3 pos, string message, real size, colorA col, player p ) returns texttag
+	texttag tt = CreateTextTag()
+	tt.setPos(pos.toVec2().withZ(20.))
+	.setText( message, size )
+	.setColor( col )
+	if GetLocalPlayer() == p
+		tt.setVisibility(true)
+	else
+		tt.setVisibility(false)
+	return tt
+	
+public function createTTEx(vec3 pos, vec2 vel, string message, real size, real duration, colorA col ) returns texttag
+	texttag tt = CreateTextTag()
+	tt.setPos(pos.toVec2().withZ(20.))
+	.setText( message, size )
+	.setColor( col )
+	.setVelocity( vel.x, vel.y)
+	.setLifespan( duration) 
+	.setFadepoint(.1) 
+	.setPermanent(false)
+	return tt
+	
+public function createTTEx(vec3 pos, vec2 vel, string message, real size, real duration, colorA col, player p ) returns texttag
+	texttag tt = createTTEx(pos, vel, message,size,duration,col)
+	if GetLocalPlayer() == p
+		tt.setVisibility(true)
+	else
+		tt.setVisibility(false)
+	return tt
+

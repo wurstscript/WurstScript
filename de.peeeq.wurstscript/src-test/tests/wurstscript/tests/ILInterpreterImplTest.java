@@ -18,7 +18,7 @@ import de.peeeq.wurstscript.jassprinter.JassPrinter;
 
 public class ILInterpreterImplTest {
 	
-	private final static String PSCRIPT_ENDING = ".pscript"; 
+	private final static String WURSTSCRIPT_ENDING = ".wurst"; 
 	
 	static public void main(String ... args) throws IOException {
 		
@@ -33,14 +33,14 @@ public class ILInterpreterImplTest {
 		
 		
 		File[] fileList = dir.listFiles();
-		List<File> pscriptFiles = new LinkedList<File>();
+		List<File> wurstFiles = new LinkedList<File>();
 		
 		int files = 0;
 		if ( fileList != null ) {
 			for(File f : fileList) {
 				String name = f.getName().toLowerCase();
-				if (name.endsWith(PSCRIPT_ENDING)) {
-					pscriptFiles.add(f);
+				if (name.endsWith(WURSTSCRIPT_ENDING)) {
+					wurstFiles.add(f);
 					files++;
 				}
 	
@@ -50,7 +50,7 @@ public class ILInterpreterImplTest {
 		int testsFailed = 0;
 		int testCount = 0;
 		System.out.println( "Found Files: " + files );
-		for ( File file : pscriptFiles) {
+		for ( File file : wurstFiles) {
 			
 			System.out.println( "----------------------------------------------");
 			System.out.println( "Testing file: " + file );
@@ -94,7 +94,7 @@ public class ILInterpreterImplTest {
 			throw new TestFailException("Compiler errors ...");
 		}
 		
-		File outputFile = new File(filename.replaceAll(PSCRIPT_ENDING, ".j"));
+		File outputFile = new File(filename.replaceAll(WURSTSCRIPT_ENDING, ".j"));
 		StringBuilder sb = new StringBuilder();
 		new JassPrinter(true).printProg(sb, prog);
 		try {

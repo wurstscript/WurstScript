@@ -1,0 +1,104 @@
+package TimerUtils
+import NoWurst
+import Table
+import PrintingHelper
+
+//	Credits: 
+//		* Vexorian (original TimerUtils + TimedLoop)
+//		* Nestharus (orignial Constant Timer Loop 32)
+
+// basic TimerUtils functions with Timer-Pool and setData/getData functions
+	
+timer array freeTimers
+int freeTimersCount = 0
+Table timerData = new Table()
+constant HELD = 0x28829022
+
+/** Get a new timer. Use this instead of "CreateTimer".
+You can attach data to the timer with .setData and retrieve it with .getData
+If you're done with the timer, release it with .release */
+public function getTimer() returns timer
+	if freeTimersCount > 0
+		freeTimersCount--
+		freeTimers[freeTimersCount].setData(0)
+		return freeTimers[freeTimersCount]
+	else
+		return CreateTimer().setData(0)
+		
+/** Attach Data to this timer */
+public function timer.setData(integer data) returns timer
+	timerData.saveInt( GetHandleId(this), data )
+	return this
+	
+/** Retrieve the data attached to this timer */
+public function timer.getData() returns integer
+	return timerData.loadInt( GetHandleId(this) )
+
+/** Release the timer. Use this instead of "DestroyTimer" ! */
+public function timer.release()
+	if this == null
+		printError("Trying to release a null timer")
+		return
+	if this.getData() == HELD
+		printError("ReleaseTimer: Double free!")
+		return
+	this.setData(HELD)
+	this.pause()
+	freeTimers[freeTimersCount] = this
+	freeTimersCount++
+
+public function timer.pause()
+	PauseTimer(this)
+	
+public function timer.resume()
+	ResumeTimer(this)
+	
+public function timer.getElapsed() returns real
+	return TimerGetElapsed(this)
+
+public function timer.start(real time, code timerCallBack) returns timer
+	TimerStart(this, time, false, timerCallBack)
+	return this
+	
+public function timer.startPeriodic(real time, code timerCallBack) returns timer
+	TimerStart(this, time, true, timerCallBack)
+	return this
+
+// module to execute a function after a certain time
+public module Timed
+	abstract function onTimer()
+	
+	private static function timerCallback()
+		timer t = GetExpiredTimer()
+		thistype c = t.getData() castTo thistype
+		c.onTimer()
+		t.release()
+	
+	function startTimer(real time)
+		timer t = getTimer()
+		t.setData(this castTo integer)
+		TimerStart(t, time, false, function timerCallback)
+
+// module to execute a function periodically
+public module Periodic
+
+	private timer t
+
+	abstract function periodic()
+	
+	function stopPeriodic()
+		t.release()
+		t = null
+	
+	private static function timerCallback()
+		timer t = GetExpiredTimer()
+		thistype c = t.getData() castTo thistype
+		c.periodic()
+	
+	function startPeriodic(real time)
+		t = getTimer()
+		t.setData(this castTo integer)
+		TimerStart(t, time, true, function timerCallback)
+
+
+

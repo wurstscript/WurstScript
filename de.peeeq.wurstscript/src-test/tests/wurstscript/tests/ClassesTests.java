@@ -14,12 +14,12 @@ public class ClassesTests extends WurstScriptTest {
 
 	@Test
 	public void classes1() throws IOException {
-		testAssertOkFile(new File(TEST_DIR + "Classes_1.pscript"), true);
+		testAssertOkFile(new File(TEST_DIR + "Classes_1.wurst"), true);
 	}
 
 	@Test
 	public void classes_construct() throws IOException {
-		testAssertOkFile(new File(TEST_DIR + "Classes_construct.pscript"), true);
+		testAssertOkFile(new File(TEST_DIR + "Classes_construct.wurst"), true);
 	}
 	
 	@Test
@@ -29,17 +29,17 @@ public class ClassesTests extends WurstScriptTest {
 
 	@Test
 	public void classes_lifecycle() throws IOException {
-		testAssertOkFile(new File(TEST_DIR + "Classes_lifecycle.pscript"), true);
+		testAssertOkFile(new File(TEST_DIR + "Classes_lifecycle.wurst"), true);
 	}
 
 	@Test
 	public void classes_method_implicit() throws IOException {
-		testAssertOkFile(new File(TEST_DIR + "Classes_method_implicit.pscript"), true);
+		testAssertOkFile(new File(TEST_DIR + "Classes_method_implicit.wurst"), true);
 	}
 
 	@Test
 	public void classes_method() throws IOException {
-		testAssertOkFile(new File(TEST_DIR + "Classes_method.pscript"), true);
+		testAssertOkFile(new File(TEST_DIR + "Classes_method.wurst"), true);
 	}
 	
 	@Test
@@ -559,6 +559,32 @@ public class ClassesTests extends WurstScriptTest {
 				"	class B extends A",
 				"		construct (player p)",
 				"			super(p)",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void constant_fields() {
+		testAssertErrorsLines(false, "constant",
+				"package test",
+				"	class A",
+				"		constant int i = 0",
+				"	init",
+				"		A a = new A()",
+				"		a.i = 1",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void constant_fields2() {
+		testAssertErrorsLines(false, "unexpected newline",
+				"package test",
+				"	class A",
+				"		constant int i",
+				"	init",
+				"		A a = new A()",
+				"		a.i = 1",
 				"endpackage"
 			);
 	}

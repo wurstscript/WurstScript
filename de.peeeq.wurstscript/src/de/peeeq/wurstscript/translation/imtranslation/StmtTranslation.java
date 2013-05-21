@@ -34,8 +34,8 @@ import de.peeeq.wurstscript.ast.StmtErr;
 import de.peeeq.wurstscript.ast.StmtExitwhen;
 import de.peeeq.wurstscript.ast.StmtForFrom;
 import de.peeeq.wurstscript.ast.StmtForIn;
-import de.peeeq.wurstscript.ast.StmtForRange;
 import de.peeeq.wurstscript.ast.StmtForRangeDown;
+import de.peeeq.wurstscript.ast.StmtForRangeUp;
 import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtLoop;
 import de.peeeq.wurstscript.ast.StmtReturn;
@@ -103,7 +103,7 @@ public class StmtTranslation {
 			throw new CompileError(s.getSource(), "cannot destroy object of type " + typ);
 		}
 		ImFunction destroyFunc = t.getDestroyFuncFor(classDef);
-		return ImFunctionCall(s, destroyFunc, ImExprs(s.getDestroyedObj().imTranslateExpr(t, f)));
+		return ImFunctionCall(s, destroyFunc, ImExprs(s.getDestroyedObj().imTranslateExpr(t, f)), false);
 	}
 
 
@@ -127,7 +127,7 @@ public class StmtTranslation {
 	}
 
 
-	public static ImStmt translate(StmtForRange s, ImTranslator t, ImFunction f) {
+	public static ImStmt translate(StmtForRangeUp s, ImTranslator t, ImFunction f) {
 		return case_StmtForRange(t, f, s.getLoopVar(), s.getTo(), s.getStep(), s.getBody(), WurstOperator.PLUS,
 				WurstOperator.GREATER, s);
 	}
@@ -277,14 +277,14 @@ public class StmtTranslation {
 			}
 			
 		}
-		System.out.println("it is a " + switchStmt.getSwitchDefault().getClass());
+//		System.out.println("it is a " + switchStmt.getSwitchDefault().getClass());
 		if (switchStmt.getSwitchDefault() instanceof SwitchDefaultCaseStatements) {
 			
-			System.out.println("indeed it is");
+//			System.out.println("indeed it is");
 			SwitchDefaultCaseStatements dflt = (SwitchDefaultCaseStatements) switchStmt.getSwitchDefault();
 			lastIf.setElseBlock(ImStmts(t.translateStatements(f,dflt.getStmts())));
 		}else if (switchStmt.getSwitchDefault() instanceof NoDefaultCase) {
-			System.out.println("wtf?");
+//			System.out.println("wtf?");
 		}
 		
 		

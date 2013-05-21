@@ -1,3 +1,0 @@
-Errors in validation phase:
-Error in File missingOpenBracket.pscript line 4:4:
-Grammatical error: unexpected integer number 1	expected: operator, name, '=', '(', '[', 'array'
