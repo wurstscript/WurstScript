@@ -738,6 +738,7 @@ public class WurstValidator {
 			WurstType typ = t.getValue();
 			if (!(typ.isSubtypeOf(WurstTypeInt.instance(), e))
 					&& !(typ instanceof WurstTypeNamedScope)
+					&& !(typ instanceof WurstTypeBoundTypeParam)
 					&& !(typ instanceof WurstTypeTypeParam)) {
 				String toIndexFuncName = ImplicitFuncs.toIndexFuncName(typ);
 				String fromIndexFuncName = ImplicitFuncs.fromIndexFuncName(typ);
