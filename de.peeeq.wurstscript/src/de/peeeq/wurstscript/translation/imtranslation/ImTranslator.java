@@ -67,6 +67,7 @@ import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
 import de.peeeq.wurstscript.ast.VarDef;
+import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
@@ -157,6 +158,20 @@ public class ImTranslator {
 		this.wurstProg = wurstProg;
 		this.isUnitTestMode = isUnitTestMode;
 		imProg = ImProg(ImVars(), ImFunctions(), Maps.<ImVar,ImExpr>newHashMap());
+		buildClassParitions();
+	}
+
+	private void buildClassParitions() {
+		for (CompilationUnit cu : wurstProg) {
+			for (WPackage p : cu.getPackages()) {
+				for (WEntity s : p.getElements()) {
+					if (s instanceof StructureDef) {
+						
+						buildClassParition((StructureDef) s);
+					}
+				}
+			}
+		}
 	}
 
 	/**
@@ -616,13 +631,10 @@ public class ImTranslator {
 	}
 
 
-	private Partitions<StructureDef> classPartitions = new Partitions<StructureDef>();
+	private Partitions<StructureDef> classPartitions = new Partitions<StructureDef>();;
 	private Map<StructureDef, ClassManagementVars> classManagementVars = Maps.newHashMap();
 
 	public ClassManagementVars getClassManagementVarsFor(StructureDef classDef) {
-		buildClassParition(classDef);
-
-
 		// class representing this partition
 		StructureDef repClass = classPartitions.getRep(classDef);
 
@@ -659,9 +671,6 @@ public class ImTranslator {
 					buildClassParition(t.getInterfaceDef());
 					classPartitions.union(i, t.getInterfaceDef());
 				}
-
-			} else {
-				throw new Error("invalid type: " + s.getClass());
 			}
 		}
 	}

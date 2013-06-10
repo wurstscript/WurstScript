@@ -187,7 +187,7 @@ public class AttrExprType {
 	public static  WurstType calculate(ExprThis term)  {
 		return caclulateThistype(term, true);
 	}
-
+	
 	public static  WurstType caclulateThistype(AstElement term, boolean showErrors)  {
 		if (term.getParent() == null) {
 			// not attached to the tree -> generated
