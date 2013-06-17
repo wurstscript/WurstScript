@@ -242,3 +242,7 @@ public function unit.issuePointOrderById(int id, vec2 target) returns unit
 public function unit.issueImmediateOrderById(int id) returns unit
 	IssueImmediateOrderById(this, id)
 	return this
+	
+public function unit.removeItem(item itm) returns unit
+	UnitRemoveItem(this, itm)
+	return this
