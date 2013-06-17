@@ -1,8 +1,14 @@
 package de.peeeq.datastructures;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public class Partitions<T> {
@@ -17,7 +23,7 @@ public class Partitions<T> {
 		}
 
 		public void unionWith(Partition other) {
-			rep = other.getRep();
+			getRep().rep = other.getRep();
 		}
 
 		private Partition getRep() {
@@ -45,6 +51,7 @@ public class Partitions<T> {
 	 * unions the partition of a and the partition of b.
 	 */
 	public void union(T a, T b) {
+		System.out.println("union " + a + " with " + b);
 		getPartition(a).unionWith(getPartition(b));
 	}
 

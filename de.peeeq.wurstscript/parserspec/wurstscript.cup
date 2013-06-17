@@ -326,7 +326,7 @@ ExtendsListOpt ::=
 ImplementsList ::= 
 	IMPLEMENTS TypeExpr:e
 		{: RESULT = Ast.TypeExprList(e); :}
-	| ExtendsList:el COMMA TypeExpr:e
+	| ImplementsList:el COMMA TypeExpr:e
 		{: el.add(e); RESULT = el; :}
 ;
 

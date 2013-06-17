@@ -391,4 +391,42 @@ public class InterfaceTests extends WurstScriptTest {
 			);
 	}
 	
+	@Test
+	public void twoInterfaces() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	native testFail(string s)",
+				"	interface A",
+				"		function foo() returns int",
+				"	interface B",
+				"		function bar() returns int",
+				"	class C implements A, B",
+				"		function foo() returns int",
+				"			return 1",
+				"		function bar() returns int",
+				"			return 3",
+				"	class D implements A, B",
+				"		function foo() returns int",
+				"			return 2",
+				"		function bar() returns int",
+				"			return 4",
+				"	init",
+				"		A x1 = new C()",
+				"		A x2 = new D()",
+				"		B x3 = new C()",
+				"		B x4 = new D()",
+				"		if x1.foo() != 1",
+				"			testFail(\"1\")",
+				"		if x2.foo() != 2",
+				"			testFail(\"2\")",
+				"		if x3.bar() != 3",
+				"			testFail(\"3\")",
+				"		if x4.bar() != 4",
+				"			testFail(\"4\")",
+				"		testSuccess()",
+				"endpackage"
+			);
+	}
+	
 }
