@@ -65,6 +65,14 @@ public class NativeFunctionsIO extends ReflectionBasedNativeProvider implements 
 		return new ILconstString("" + r.getVal());
 	}
 	
+	public ILconstInt R2I(ILconstReal i) {
+		return new ILconstInt((int) i.getVal());
+	}
+	
+	public ILconstReal I2R(ILconstInt i) {
+		return new ILconstReal(i.getVal());
+	}
+	
 	@Native
 	public ILconstInt StringHash(ILconstString s) {
 		// TODO can we use same string hash function as used in wc3?
