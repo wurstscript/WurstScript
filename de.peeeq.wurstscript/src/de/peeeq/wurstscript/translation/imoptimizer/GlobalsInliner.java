@@ -43,46 +43,42 @@ public class GlobalsInliner {
 		
 		Set<ImVar> obsoleteVars = Sets.newHashSet();
 		for ( final ImVar v : prog.getGlobals() ) {
-			System.out.println("### " + v.getName() + " has " + v.attrWrites().size() + " writes");
+//			System.out.println("### " + v.getName() + " has " + v.attrWrites().size() + " writes");
 			if (v.attrWrites().size() == 1) {
-				System.out.println(">>>>>only 1 write");
+//				System.out.println(">>>>>only 1 write");
 				boolean valid = false;
 				ImExpr right = null;
 				ImVarWrite obs = null;
 				for ( ImVarWrite v2 : v.attrWrites()) {
 					ImFunction func = v2.getNearestFunc();
-					System.out.println(">>>>>checking write..");
+//					System.out.println(">>>>>checking write..");
 					if (func.getName().startsWith("init_") || func.getName().equals("main") ) {
-						System.out.println(">>>>>in init or main");
+//						System.out.println(">>>>>in init or main");
 						valid = true;
 						right = v2.getRight();
 						obs = v2;
-						System.out.println(">>>>>set");
+//						System.out.println(">>>>>set");
 						break;
 					}
 				}
 				if( valid ) {
 					ImExpr replacement;
 					if (right instanceof ImIntVal) {
-						System.out.println("replaced");
 						ImIntVal val = (ImIntVal)right;
 						replacement = (JassIm.ImIntVal(val.getValI()));
 						if (obs.getParent() != null)
 							obs.replaceWith(JassIm.ImNull());
 					}else if (right instanceof ImRealVal) {
-						System.out.println("replaced");
 						ImRealVal val = (ImRealVal)right;
 						replacement = (JassIm.ImRealVal(val.getValR()));
 						if (obs.getParent() != null)
 							obs.replaceWith(JassIm.ImNull());
 					}else if (right instanceof ImStringVal) {
-						System.out.println("replaced");
 						ImStringVal val = (ImStringVal)right;
 						replacement = (JassIm.ImStringVal(val.getValS()));
 						if (obs.getParent() != null)
 							obs.replaceWith(JassIm.ImNull());
 					}else if (right instanceof ImBoolVal) {
-						System.out.println("replaced");
 						ImBoolVal val = (ImBoolVal)right;
 						replacement = (JassIm.ImBoolVal(val.getValB()));
 						if (obs.getParent() != null)
@@ -104,8 +100,8 @@ public class GlobalsInliner {
 		for (ImVar i : obsoleteVars) { 
 			// remove the write
 			ImVarWrite write = Utils.getFirstAndOnly(i.attrWrites());
-			System.out.println("obsolete var: " + i + " written in " + write);
-			System.out.println("parent" + write.getParent());
+//			System.out.println("obsolete var: " + i + " written in " + write);
+//			System.out.println("parent" + write.getParent());
 			if (write.getParent() != null) {
 				write.replaceWith(write.getRight().copy());
 			}

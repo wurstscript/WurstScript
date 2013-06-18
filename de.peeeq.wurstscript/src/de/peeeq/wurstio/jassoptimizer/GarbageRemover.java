@@ -22,19 +22,12 @@ public class GarbageRemover {
 		HashMap<String, Boolean> useMap = new HashMap<String, Boolean>();
 		findFunctionUses(prog, useMap);
 		
-		System.out.println(useMap);
-		
 		// Remove Unneeded ones
 		JassFunctions originalFuncs = prog.getFunctions();
 		Collection<JassFunction> toRemove = Sets.newHashSet();
 		for ( JassFunction func : originalFuncs ) {
-			System.out.println("Process: " + func.getName());
 			if ( useMap.get(func.getName())  == null && ! RestrictedStandardNames.contains(func.getName()) ) {
-				System.out.println("unneeded " + func.getName());
 				toRemove.add(func);
-				
-				
-				System.out.println("Removed: " + func.getName());
 			}
 		}
 		originalFuncs.removeAll(toRemove);
