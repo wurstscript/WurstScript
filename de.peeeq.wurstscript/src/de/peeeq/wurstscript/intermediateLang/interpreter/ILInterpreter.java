@@ -40,7 +40,6 @@ public class ILInterpreter {
 		for (int i=0; i<args.length; i++) {
 			parameterTypes[i] = "" + args[i];
 		}
-		System.out.println("calling function " + f.getName() + "("+ Utils.printSep(", ", parameterTypes) +  ")");
 		
 		if (isCompiletimeNative(f)) {
 			return runBuiltinFunction(globalState, f, args);
@@ -71,7 +70,6 @@ public class ILInterpreter {
 		
 		for (NativesProvider natives : globalState.getNativeProviders()) {
 			try {
-				System.out.println("Searchin func " + f.getName() + " in " + natives.getClass());
 				return new LocalState(natives.invoke(f.getName(), args));
 			} catch (NoSuchNativeException e) {
 				// ignore

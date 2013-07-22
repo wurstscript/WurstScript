@@ -51,7 +51,6 @@ public class Partitions<T> {
 	 * unions the partition of a and the partition of b.
 	 */
 	public void union(T a, T b) {
-		System.out.println("union " + a + " with " + b);
 		getPartition(a).unionWith(getPartition(b));
 	}
 

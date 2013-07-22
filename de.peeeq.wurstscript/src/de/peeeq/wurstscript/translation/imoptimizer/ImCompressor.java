@@ -18,10 +18,8 @@ public class ImCompressor {
 	}
 	
 	public void compressNames() {
-		System.out.println("Compressing Names......");
 		compressGlobals();
 		compressFunctions();
-		System.out.println("Compressing Names......DONE");
 	}
 	
 	
