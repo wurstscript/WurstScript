@@ -4,7 +4,7 @@ title: WurstScript Manual
 ---
 
 
-_by peq & Frotty_ _Last Change: 27.03.13_ 
+_by peq & Frotty_ _Last Change: 25.07.13_ 
 
 
 WurstScript (short Wurst) is a programming language named after the German word for sausage.
@@ -1009,8 +1009,22 @@ If we have a class defined like this, we can then use it with a concrete type (e
 	// add a missile m
 	missiles.add(m);
 
-Generic parameters in Wurst can be bound to integers, class types and interface types but 
-not to other native types or to tuple types.
+Generic parameters in Wurst can be bound to integers, class types and interface types directly.
+In order to bind generic parameters to primitive-, handle- and tuple types you have to provide the functions
+	
+	function [TYPE]ToIndex([TYPE] t) returns int
+
+	function [TYPE]FromIndex(int index) returns [TYPE]
+		return ...
+		
+The typecasting functions for primitive- and handle types are provided in _Typecasting.wurst_ using the fogstate bug.
+
+	function unitToIndex(unit u) returns int
+		return u.getHandleId()
+
+	function unitFromIndex(int index) returns unit
+		data.saveFogState(0,ConvertFogState(index))
+		return data.loadUnit(0)
 
 
 # Modules
@@ -1283,6 +1297,8 @@ In order to define an overloading function it has to be named as following:
     /  "op_divReal"
     
 ## Compiletime Functions
+_Compiletime Functions hardly work at the moment, so you shouldn't use them!!_
+
 Compiletime Functions are functions, that get executed when compiling your script/map.
 They mainly offer the possibility to create Object-Editor Objects via code.
 
