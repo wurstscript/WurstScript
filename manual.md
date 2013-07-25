@@ -7,28 +7,39 @@ title: WurstScript Manual
 _by peq & Frotty_ _Last Change: 27.03.13_ 
 
 
-WurstScript (short Wurst) is a programming language named after the german word for sausage.
+WurstScript (short Wurst) is a programming language named after the German word for sausage.
 
 The sausage is a symbol for encapsulation (Peel/Pelle), compactness (sausage meat/Brät) and modularization (cut it into slices!). And because you normally know whats inside a sausage the project is also open source and easy to use (cook).
 
 **Remember**: WurstScript and its related tools are in a probably unstable state and under heavy development, so you may encounter errors and bugs we don't know about. Please report any
 problem with our [issue tracker at GitHub](https://github.com/peq/WurstScript/issues/new).
 
-*Note*: WurstScript is written in Java and should therefore be useable on Windows, OS/X and most Linux Distributions. 
+*Note*: WurstScript is written in Java and should therefore be usable on Windows, OS/X and most Linux Distributions. 
 This applies only to the compiler & the eclipse plugin, because the Wurstpack is based on the Jass New Gen Pack (and therefore windows-only).
 
 # Philosophy
 
-WurstScript aims at a fast and easy workflow with comfort- and security features.
-The execution speed isn't the highest priority (even though it is pretty fast, especially due to heavy optimization), but instead ease of use
+WurstScript aims at a fast and easy work-flow with comfort- and safety features.
+The execution speed is not the highest priority (even though it is pretty fast, an optimizer is included in the compiler), but instead ease of use
 and stress-free map-development.
-It should be easy to use and learn (especially with knowledge of (v)Jass) to be Beginner-friendly and also understandable to non-Jass users.
+It should be easy to use and learn (especially with knowledge of (v)Jass) to be beginner-friendly and also understandable to non-Jass users.
 
-While we know that WurstScript won't replace vJass in the wc3 mapping scene (also because of the tons of vjass scripts that can't be simply ported) we still hope it will be a very good alternative, in particular for users that are trying to learn Jass.
+While we know that WurstScript won't replace vJass in the WC3 mapping scene (also because of the tons of vJass scripts that can't be simply ported) we still hope it will be a very good alternative, in particular for users that are trying to learn Jass.
 
 ### Need help?
 
-If you have any questions regarding Wurst-related tools or the language itself, feel free to write us a message or visit the [IRC channel we usually hang out](http://webchat.quakenet.org/?channels=inwc.de-maps).
+If you have any questions regarding Wurst-related tools or the language itself, feel free to write us a message.
+
+You can contact us on Hive:
+
+* [Frotty](http://www.hiveworkshop.com/forums/members/frotty/)
+* [peq](http://www.hiveworkshop.com/forums/members/peq/)
+
+Or visit the [IRC channel we usually hang out](http://webchat.quakenet.org/?channels=inwc.de-maps).
+
+
+
+
 
 # Syntax
 The WurstScript Syntax uses indention to define Blocks, instead of using curly
@@ -50,23 +61,23 @@ brackets (as in Java) or keywords like 'endif' (as in Jass). Indentation must no
 		ifStatements
 	nextStatements
 
+A block has to be indented by exactly one tab. Using spaces for indentation is not permitted.
+
 In general newlines come at the end of a statement, with two exceptions: 
 - Inside parenthesis newlines are ignored. You can use this to break longer expressions or long parameter lists over several lines.
 - Newlines are ignored when the next line starts with a dot. This can be used to chain method invocations.
 
 		someFunc(param1, param2,
-		
 			param3, param4)
 
 		someUnit.setX(...)
-		
 			.setY(...)
-			
 			.setName(...)
 
 
 In general WurstScript tries to avoid using symbols as much as possible to
-provide a clear and readable look. At the same time most of Jass' verbosity got removed. 
+provide a clear and readable look. At the same time it is less verbose than Jass.
+
 
 # Basics
 
@@ -88,7 +99,7 @@ Packages can have an _init_ block that is executed when the map is loaded.
 	endpackage
 
 For more information about packages, read the packages section. 
-You can still use normal jass syntax/code outside of packages(when using WurstWE, those will be parsed by PJass), but inside packages you have to adhere
+You can still use normal Jass syntax/code outside of packages(when using WurstWE, those will be parsed by PJass), but inside packages you have to adhere
 to the wurst rules.
 
 ## Naming Conventions
