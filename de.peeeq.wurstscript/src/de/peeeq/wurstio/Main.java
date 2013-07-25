@@ -39,7 +39,9 @@ public class Main {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		
+		if (args.length == 0) {
+			RunArgs.printHelpAndExit();
+		}
 		setUpFileLogging();
 		
 		//		JOptionPane.showMessageDialog(null , "time to connect profiler ^^");
