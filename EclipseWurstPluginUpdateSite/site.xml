@@ -3,7 +3,7 @@
    <description name="WurstEclipse" url="http://site.sunayama.de/">
       WurstScript Eclipse Plugin Support
    </description>
-   <feature url="features/EclipseWurstPluginFeatures_1.0.0.17.jar" id="EclipseWurstPluginFeatures" version="1.0.0.17">
+   <feature url="features/EclipseWurstPluginFeatures_1.0.0.18.jar" id="EclipseWurstPluginFeatures" version="1.0.0.18">
       <category name="wurstPlugin"/>
    </feature>
    <category-def name="wurstPlugin" label="WurstScript Eclipse Plugin"/>
