@@ -24,9 +24,6 @@ public class RunArgs {
 	}
 	
 	public RunArgs(String[] args) {
-		if (args.length == 0) {
-			printHelpAndExit();
-		}
 		for (int i=0; i<args.length; i++) {
 			String a = args[i];
 			if (a.startsWith("-")) {
@@ -65,7 +62,7 @@ public class RunArgs {
 		}
 	}
 
-	private void printHelpAndExit() {
+	public static void printHelpAndExit() {
 		System.out.println("Usage: ");
 		System.out.println("wurst <options> <files>");
 		System.out.println();
