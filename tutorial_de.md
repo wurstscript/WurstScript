@@ -475,9 +475,13 @@ Wichtiges zu For Schleifen:
 
 * Auch hier gibt wieder die Einrückung an, was in die Schleife gehört und was nicht
 * Mit dem Schlüsselwort "downto" statt "to" zählen wir nach unten statt nach oben
-	*Beispiel: for int i = 10 downto 1
+  
+
+		for int i = 10 downto 1
+
 * Mit der Erweiterung "step" können wir in größeren Schritten zählen
-	*Beispiel: for int i = 0 to 10 step 2
+    
+		for int i = 0 to 10 step 2
 
 
 (((Einschub Conversion:)))

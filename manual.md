@@ -7,28 +7,39 @@ title: WurstScript Manual
 _by peq & Frotty_ _Last Change: 25.07.13_ 
 
 
-WurstScript (short Wurst) is a programming language named after the german word for sausage.
+WurstScript (short Wurst) is a programming language named after the German word for sausage.
 
 The sausage is a symbol for encapsulation (Peel/Pelle), compactness (sausage meat/Brät) and modularization (cut it into slices!). And because you normally know whats inside a sausage the project is also open source and easy to use (cook).
 
 **Remember**: WurstScript and its related tools are in a probably unstable state and under heavy development, so you may encounter errors and bugs we don't know about. Please report any
 problem with our [issue tracker at GitHub](https://github.com/peq/WurstScript/issues/new).
 
-*Note*: WurstScript is written in Java and should therefore be useable on Windows, OS/X and most Linux Distributions. 
+*Note*: WurstScript is written in Java and should therefore be usable on Windows, OS/X and most Linux Distributions. 
 This applies only to the compiler & the eclipse plugin, because the Wurstpack is based on the Jass New Gen Pack (and therefore windows-only).
 
 # Philosophy
 
-WurstScript aims at a fast and easy workflow with comfort- and security features.
-The execution speed isn't the highest priority (even though it is pretty fast, especially due to heavy optimization), but instead ease of use
+WurstScript aims at a fast and easy work-flow with comfort- and safety features.
+The execution speed is not the highest priority (even though it is pretty fast, an optimizer is included in the compiler), but instead ease of use
 and stress-free map-development.
-It should be easy to use and learn (especially with knowledge of (v)Jass) to be Beginner-friendly and also understandable to non-Jass users.
+It should be easy to use and learn (especially with knowledge of (v)Jass) to be beginner-friendly and also understandable to non-Jass users.
 
-While we know that WurstScript won't replace vJass in the wc3 mapping scene (also because of the tons of vjass scripts that can't be simply ported) we still hope it will be a very good alternative, in particular for users that are trying to learn Jass.
+While we know that WurstScript won't replace vJass in the WC3 mapping scene (also because of the tons of vJass scripts that can't be simply ported) we still hope it will be a very good alternative, in particular for users that are trying to learn Jass.
 
 ### Need help?
 
-If you have any questions regarding Wurst-related tools or the language itself, feel free to write us a message or visit the [IRC channel we usually hang out](http://webchat.quakenet.org/?channels=inwc.de-maps).
+If you have any questions regarding Wurst-related tools or the language itself, feel free to write us a message.
+
+You can contact us on Hive:
+
+* [Frotty](http://www.hiveworkshop.com/forums/members/frotty/)
+* [peq](http://www.hiveworkshop.com/forums/members/peq/)
+
+Or visit the [IRC channel we usually hang out](http://webchat.quakenet.org/?channels=inwc.de-maps).
+
+
+
+
 
 # Syntax
 The WurstScript Syntax uses indention to define Blocks, instead of using curly
@@ -50,23 +61,23 @@ brackets (as in Java) or keywords like 'endif' (as in Jass). Indentation must no
 		ifStatements
 	nextStatements
 
+A block has to be indented by exactly one tab. Using spaces for indentation is not permitted.
+
 In general newlines come at the end of a statement, with two exceptions: 
 - Inside parenthesis newlines are ignored. You can use this to break longer expressions or long parameter lists over several lines.
 - Newlines are ignored when the next line starts with a dot. This can be used to chain method invocations.
 
 		someFunc(param1, param2,
-		
 			param3, param4)
 
 		someUnit.setX(...)
-		
 			.setY(...)
-			
 			.setName(...)
 
 
 In general WurstScript tries to avoid using symbols as much as possible to
-provide a clear and readable look. At the same time most of Jass' verbosity got removed. 
+provide a clear and readable look. At the same time it is less verbose than Jass.
+
 
 # Basics
 
@@ -88,7 +99,7 @@ Packages can have an _init_ block that is executed when the map is loaded.
 	endpackage
 
 For more information about packages, read the packages section. 
-You can still use normal jass syntax/code outside of packages(when using WurstWE, those will be parsed by PJass), but inside packages you have to adhere
+You can still use normal Jass syntax/code outside of packages(when using WurstWE, those will be parsed by PJass), but inside packages you have to adhere
 to the wurst rules.
 
 ## Naming Conventions
@@ -138,15 +149,15 @@ If the function does not return a value this part is omitted.
 ## Variables
 
 Global (local) variables can be declared anywhere in a package (function). 
-A constant value may be declared using the _let_ or the _constant_ keyword, as seen below. Variables are declared
-by using the _var_ keyword or writing the type of the variable before its name.
-Remember that functionnames have to start with a lowercase letter.
+A constant value may be declared using the _constant_ or _let_ keyword. _let_ is for local variables and
+_constant_ is for global variables.
+Mutable variables are declared by using the _var_ keyword or by writing the type of the variable before its name.
 
 	// declaring a constant - the type is inferred from the initial expression
-	let x = 5
+	constant x = 5
 	// The same but with explicit type
 	constant real x = 5
-	// declaring a variable - the inferring works the same as 'let', but the value cn be changed
+	// declaring a variable - the inferring works the same as 'let', but the value can be changed
 	var y = 5
 	// declaring a variable with explicit type
 	int z = 7
@@ -163,7 +174,7 @@ Remember that functionnames have to start with a lowercase letter.
 		let sum = x + y
         
         
-With these basic concepts you should be able to do anything you already know for jass.
+With these basic concepts you should be able to do anything you already know for Jass.
 The syntax is a little bit different of course, but this is covered in the next chapter.
 
 
@@ -172,7 +183,7 @@ The syntax is a little bit different of course, but this is covered in the next 
 Semi-Formal syntax:
 
 	Expr ::= 
-		  Expr + Expr       
+		  Expr + Expr
 		| Expr - Expr   
 		| Expr / Expr       // real division
 		| Expr div Expr     // integer division
@@ -188,10 +199,14 @@ Semi-Formal syntax:
 		| Expr != Expr 
 		| - Expr            
 		| not Expr 		
-		| IDENTIFIER // variable access
-		| IDENTIFIER(Expr, Expr, ...) // function call 	
-		| Expr . IDENTIFIER // member variable		
-		| Expr . IDENTIFIER(Expr, Expr, ...) // member function		
+		| IDENTIFIER 				// variable access
+		| IDENTIFIER(Expr, Expr, ...) 		// function call 	
+		| Expr . IDENTIFIER 			// member variable		
+		| Expr . IDENTIFIER(Expr, Expr, ...) 	// member function	
+		| new IDENTIFIER(Expr, Expr, ...) 		// constructor call
+		| Expr castTo Type				// casting
+		| Expr instanceof Type			// instance checking	
+		| (Expr)
 
 An _IDENTIFIER_ is a name of a variable or function. It may start with letters and may
 contain letters, numbers and underscores. 
@@ -206,7 +221,7 @@ a separate chapter about generics.
 
 The simplest statement is the _skip_ statement. It has no effect and can be used to create empty blocks.
 
-### Ifs
+### If
 
 
 	if x > y 
@@ -224,7 +239,7 @@ The simplest statement is the _skip_ statement. It has no effect and can be used
 	if GetSpellAbilityId() == 'A000'
 		AddSpecialEffect( GetSpellTargetX(), GetSpellTargetY(), FX_PATH )
     
-### Switchs
+### Switch
     
     // i is of type int
     switch i
@@ -324,7 +339,7 @@ This can either be a handle, like in the group-iterator or an object like the Li
 Your iterator should also provide a close function which clears all resources allocated by it. 
 Most often the iterator just destroys itself in the close function.
 
-Look at the 2 examples from the stdlib:
+Look at the 2 examples from the standard library:
 
 **Group-Iterator**
 
@@ -432,8 +447,8 @@ Packages can import other packages to access classes, functions, variables, etc.
 	endpackage
 
 
-When importing an external Scriptfile you just write the Filename without .wurst.
-**Remember** to name the package inside your file the same as the name of the scriptfile (In the EclipsePlugin this is enforced, when working with WE only, this might be the source of packages not being found).
+When importing an external scriptfile you just write the Filename without .wurst.
+**Remember** to name the package inside your file the same as the name of the scriptfile (In the EclipsePlugin this is enforced, when working with WE only, this might be the cause of packages not being found).
 
 ### import public
 
@@ -524,7 +539,7 @@ current package are initialized.
 
 	package MyPackage
 		init
-			print("this is the initblock)
+			print("this is the initblock")
 
 
 *Note:* Since wc3 has a micro op limitation, too many operations inside init-blocks may stop it from fully executing. In order to avoid this you should only place map-init Stuff inside the init blocks and use timers and own inits for the other stuff.
@@ -532,10 +547,10 @@ current package are initialized.
 
 ## Initialization 
 
-The initialization rules for Wurst are very simple:
+The initialization rules for Wurst are simple:
 
 1. Inside a package initialization is done from top to bottom.
-	The initializer of a package is the union of all globale variable static initializers
+	The initializer of a package is the union of all global variable static initializers
 	(including static class variables) and all init blocks.
 2. If a package A imports a package B, the initializer of package B is run before A's.
 3. If packages import each other, the order is undefined.
@@ -568,7 +583,7 @@ Then we ordered **dummyCaster** to cast a flame strike at another position and f
 This example shows you how to create a new object (line 1), invoke a function on an object (line 2) and how to destroy an object (line 3).
 But how can you define a new object type like "Caster"? This is where classes come in. A class defines a new kind of object.
 A class defines variables and functions, which every instance of this class should understand.
-A class can also define how a new object is constructed ("construct") and what should happen, when it is destroyed ("ondestroy").
+A class can also define how a new object is constructed (_construct_) and what should happen, when it is destroyed (_ondestroy_).
 
 Defining a caster-class might look like this:
 
@@ -692,8 +707,8 @@ other elements belong to instances of the class. So you can call static function
 
 ## Visibility Rules 
 
-By default class elements are visible everywhere. You can add the modifiers "private" or "protected" in front of a variable or function definition to restrict its visibility.
-Private elements can only be seen from within the class. Protected elements can be seen within the enclosing package.
+By default class elements are visible everywhere. You can add the modifiers _private_ or _protected_ in front of a variable or function definition to restrict its visibility.
+Private elements can only be seen from within the class. Protected elements can be seen within the enclosing package and in subclasses.
 
 ## Subclassing
 
@@ -834,7 +849,7 @@ As an example consider a fireball spell for which we want to create a more power
 			// then we call the original hitUnit function but with doubled damage
 			super.hitUnit(u, damage*2)
 
-The **super** keyword also _has_ to be used when defining custom constructors. The Constructor of the superclass has to be called in the constructor of the subclass.
+The **super** keyword also should be used when defining custom constructors. The Constructor of the superclass has to be called in the constructor of the subclass. When no super constructor call is given, the compiler will try to call a constructor with no arguments. If no such constructor exists, then you will get an error like: "Incorrect call to super constructor: Missing parameters."
 
 	class Missile
 		...
@@ -874,7 +889,7 @@ _Note_: You should avoid instanceof checks whenever possible and prefer object o
 
 An _abstract_ class is a class, that is declared abstract — it may or may not
 include abstract functions. You cannot create an instance of an abstract class,
-but subclass it.
+but you can create subclasses for it which are not abstract.
 
 An abstract function is declared with the keyword 'abstract' and by leaving out
 an implementation.
@@ -924,6 +939,7 @@ from its superclass, it has to be abstract, too.
             
 # Interfaces 
 
+*NOTE:* Interfaces are an experimental feature and might be removed from the language later.
 
 	interface Listener
 		function onClick()
@@ -953,6 +969,8 @@ With interfaces (and modules if implicit) you can now up- and downcast any Class
 This is especially useful for saving all instances from classes that inherit 1 interface in only 1 List/Array
 
 ## Defender methods
+
+*NOTE:* Defender methods are a very experimental feature and will probably be removed from the language.
 
 An interface can have functions with an implementation. This implementation is used, when a class implementing the interface
 does not provide an implementation of the method itself. Usually this is not needed but in some cases it might
@@ -1017,6 +1035,8 @@ The typecasting functions for primitive- and handle types are provided in _Typec
 
 
 # Modules
+
+*NOTE:* It is likely that the concept of modules will change in later versions of the language. If you want to be on the safe side you should not create modules which use other modules themselves. Plain, flat modules will most likely stay in the language.
 
 A _module_ is a small package which provides some functionality for classes. Classes can _use_ modules to inherit the functionality of the module.
 
@@ -1135,7 +1155,7 @@ Note that tuples are not like classes. There are some important differences:
 - As tuple types are not created on the heap you have no performance overhead compared to using single variables.
 
 
-	// Example 1:
+		// Example 1:
 
 		// define a tuple
 		tuple vec(real x, real y, real z)
@@ -1150,9 +1170,9 @@ Note that tuples are not like classes. There are some important differences:
 			u.y = 5
 			if v.x == 4 and v.y == 2 and u.y == 5
 				testSuccess()
-
-
-	// Example 2:
+	
+	
+		// Example 2:
 
 		tuple pair(real x, real y)
 		init
@@ -1167,7 +1187,7 @@ Because tuples don't have any functions themselves, you can add extension
 functions to an existing tuple type in order to achieve class-like
 functionality.
 Remember that you can't modify the value of a tuple in it's extension function
-- so you have to return a new tuple everytime if you wan't to change something.
+- so you have to return a new tuple every time if you wan't to change something.
 Look at the Vector package in the Standard Library for some tuple usage
 examples. (Math/Vectors.wurst)
 
@@ -1251,18 +1271,29 @@ This works because the parameters are of different types or have a different amo
 
 This does not work because only the returntype is different and the correct function cannot be determined.
 
-	function foo(myClass c)
+	
+	class A
+	class B extends A
+	
+	function foo(A c)
 		...
 
-	function foo(myOtherClass c)
+	function foo(B c)
 		...
+	
+	// somewhere else:
+		foo(new B)
+		
 
-This does not work either, because classtypes are all translated as ints, the function cannot be determined.
+
+This does not work either, because B is a subtype of A. If you would call the function foo 
+with a value of type B, both functions would be viable. Other languages just take the 
+"most specific type" but Wurst does not allow this. If A and B are incomparable types, the overloading is allowed.
 
 
 ## Operator Overloading
 
-Operator Overloading allows you to change the behaviour of internal operators +, -, \* and / for custom arguments.
+Operator Overloading allows you to change the behavior of internal operators +, -, \* and / for custom arguments.
 A quick example from the standard library (Vectors.wurst):
 
     // Defining the "+" operator for the tupletype vec3
@@ -1286,7 +1317,8 @@ In order to define an overloading function it has to be named as following:
     /  "op_divReal"
     
 ## Compiletime Functions
-_Compiletime Functions hardly work at the moment, so you shouldn't use them!!_
+*NOTE:* Compiletime Functions hardly work at the moment, so you should only use them for fun but not for profit. 
+Do not use them for a real project yet!
 
 Compiletime Functions are functions, that get executed when compiling your script/map.
 They mainly offer the possibility to create Object-Editor Objects via code.
@@ -1298,6 +1330,40 @@ They mainly offer the possibility to create Object-Editor Objects via code.
 Compiltetime functions cannot take nor return anything.
 
 Take a look at the ObjectEditing natives and presets to see how to use compiletime functions to generate objectdata.
+
+### Test function
+
+You can add the annotation @test to a function. Then when you type "tests" into the Wurst Console all functions
+annotated with @test are executed.
+
+You have to import the Wurstunit package to use functions like assertEquals.
+
+Example:
+
+		package Test
+		import Wurstunit
+
+		@test public function a()
+			12 .assertEquals (3*4)
+	
+		@test public function b()
+			12 .assertEquals (5+8) 	 
+
+If you run this, you get the following output:
+
+		> 1+1
+		res = 2     // integer
+		> tests
+		1 tests OK, 1 tests failed
+		function b (Test.wurst, line 8)
+			test failed: expected 13 but was 12
+			at stmtreturn  (.../lib/primitives/Integer.wurst, line 25)
+		> 
+	
+The first line is just to check whether the console is working ;)
+
+You can search the standard library for "@test" to get some more examples.
+
 
 # Standard Library 
 
@@ -1437,7 +1503,7 @@ to Wurst or got replaced.
 </table>
 
 
-## xGlobals 
+## Globals 
 
 Instead of a globals block, every variable outside a block inside a package is considered a global in that package.
 
@@ -1456,7 +1522,7 @@ _*Wurst:*_
 	endpackage
 
 
-## xFunctions
+## Functions
 
 _*vJass:*_
 
@@ -1478,7 +1544,7 @@ _*Wurst:*_
 		...
 
 
-## xLocals 
+## Locals 
 
 locals can be declared and initialized anywhere inside a function.
 
@@ -1500,7 +1566,7 @@ _*Wurst:*_
 		int j = i
 
 
-## xLibrarys/Scopes 
+## Librarys/Scopes 
 
 Name-spaces/code organisation in wurst is handled by packages.
 All code in Wurst has to be inside a package.
@@ -1519,7 +1585,7 @@ _*Wurst:*_
 	endpackage
 
 
-### ximporting 
+### importing 
 
 _*vJass:*_
 
@@ -1538,7 +1604,7 @@ _*Wurst:*_
 	endpackage
 
 
-### xinit-blocks 
+### init-blocks 
 
 _*vJass:*_
 
@@ -1560,7 +1626,7 @@ _*Wurst:*_
 
 
 
-## xStructs / Classes 
+## Structs / Classes 
 
 _*vJass:*_
 
@@ -1620,7 +1686,7 @@ _*Wurst:*_
 
 
 
-## xModules 
+## Modules 
 
 _*vJass:*_
 
@@ -1665,6 +1731,8 @@ Installation: You can find information on how to install the plugin at the [Wurs
 
 * Press *Ctrl*+*space* to open the auto complete assistant.
 * Hold down *Ctrl* and click on a function or variable to jump to the point where it was defined. 
+* Press *Ctrl*+*Shift*+*R* to search for a wurst filename.
+
 
 
 # Optimizer
