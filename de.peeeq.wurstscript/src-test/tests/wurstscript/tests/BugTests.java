@@ -365,4 +365,25 @@ public class BugTests extends WurstScriptTest {
 				"		return A.i",
 				"endpackage");
 	}
+	
+	@Test
+	public void duplicateNamesOk() {
+		testAssertOkLines(false, 
+				"package test",
+				"class A",
+				"	int i",
+				"class B",
+				"	int i",
+				"endpackage");
+	}
+	
+	@Test
+	public void duplicateNames() {
+		testAssertErrorsLines(false, "An element with name i already exists",
+				"package test",
+				"class A",
+				"	int i",
+				"	int i",
+				"endpackage");
+	}
 }
