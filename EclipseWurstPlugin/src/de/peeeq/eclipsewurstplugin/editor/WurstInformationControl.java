@@ -287,6 +287,12 @@ public class WurstInformationControl extends DefaultInformationControl {
 					
 				}
 			});
+			nodeHandlers.put("root", new NodeHandler() {
+
+				@Override
+				void after(List<StyleRangeCustom> styles, StringBuilder sb, int stop, int length) {					
+				}
+			});
 		}
 
 		private void parseElement(Element e,

@@ -246,5 +246,9 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 		throw new Error("Got IEditorInput of type " + input.getClass());
 		
 	}
+
+	public int getLastReconcileDocumentHashcode() {
+		return reconciler.getLastReconcileDocumentHashcode();
+	}
 	
 }
