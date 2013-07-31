@@ -279,7 +279,7 @@ nesting ifs and else ifs, with the special default case.
 		...
 
 
-In for loops you can also ommit the type of the loop variable.
+In for loops you can also omit the type of the loop variable.
 
 	for i = 0 to 10
 	for u in someGroup
