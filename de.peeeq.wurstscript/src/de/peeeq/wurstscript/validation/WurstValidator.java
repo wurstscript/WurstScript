@@ -232,7 +232,7 @@ public class WurstValidator {
 			if (e instanceof WPackage) checkForDuplicateImports((WPackage) e);
 			if (e instanceof WParameter) checkParameter((WParameter) e);
 			if (e instanceof WParameter) visit((WParameter) e);
-			if (e instanceof WScope) checkForDuplicateMethods((WScope) e);
+			if (e instanceof WScope) checkForDuplicateNames((WScope) e);
 			if (e instanceof WStatement) checkReachability((WStatement) e);
 			if (e instanceof WurstModel) checkForDuplicatePackages((WurstModel) e);
 		} catch (CyclicDependencyError cde) {
@@ -1389,7 +1389,7 @@ public class WurstValidator {
 	}
 
 
-	private void checkForDuplicateMethods(WScope scope) {
+	private void checkForDuplicateNames(WScope scope) {
 		Multimap<String, NameLink> links = scope.attrNameLinks();
 		for (String name : links.keySet()) {
 			Collection<NameLink> nameLinks = links.get(name);
@@ -1397,10 +1397,30 @@ public class WurstValidator {
 				continue;
 			}
 			List<NameLink> funcs = Lists.newArrayList();
+			List<NameLink> other = Lists.newArrayList();
 			for (NameLink nl : nameLinks) {
-				if (nl.getType() == NameLinkType.FUNCTION
-						&& nl.getDefinedIn() == scope) {
-					funcs.add(nl);
+				if (nl.getDefinedIn() == scope) {
+					if (nl.getType() == NameLinkType.FUNCTION) {
+						funcs.add(nl);
+					} else {
+						other.add(nl);
+					}
+				}
+			}
+			if (other.size() > 0 && other.size() + funcs.size() > 1) {
+				other.addAll(funcs);
+				Collections.sort(other, new Comparator<NameLink>() {
+
+					@Override
+					public int compare(NameLink o1, NameLink o2) {
+						return o1.getNameDef().attrSource().getLeftPos() 
+								- o2.getNameDef().attrSource().getLeftPos() ;
+					}
+				});
+				NameLink l1 = other.get(0);
+				for (int j=1; j<other.size(); j++) {
+					other.get(j).getNameDef().addError("An element with name " + name + " already exists: " +
+							Utils.printElementWithSource(l1.getNameDef()));
 				}
 			}
 			if (funcs.size() <= 1) {

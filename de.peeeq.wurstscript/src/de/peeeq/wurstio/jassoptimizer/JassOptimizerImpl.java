@@ -37,13 +37,11 @@ public class JassOptimizerImpl implements JassOptimizer {
 	
 	@Override
 	public void optimize(final JassProg prog) throws FileNotFoundException {
-		System.out.println("Optimizer Start");
 		// Cleanup the Globals and Functions
 		prog.getGlobals().removeAll(prog.attrIgnoredVariables());
 		prog.getFunctions().removeAll(prog.attrIgnoredFunctions());
 
 		// Remove useless Stuff
-		System.out.println("Garbage");
 		GarbageRemover.removeGarbage(prog);
 		
 		// Compress Names

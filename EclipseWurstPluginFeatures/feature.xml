@@ -2,7 +2,7 @@
 <feature
       id="EclipseWurstPluginFeatures"
       label="Wurst IDE support"
-      version="1.0.0.17">
+      version="1.0.0.19">
 
    <description url="https://github.com/peq/WurstScript">
       WurstScript is a super awesome scripting language and after using it you will never want anything else.

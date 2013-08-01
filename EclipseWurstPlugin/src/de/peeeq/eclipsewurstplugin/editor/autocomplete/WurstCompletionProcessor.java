@@ -38,6 +38,7 @@ import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.AttrExprType;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.Visibility;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeTuple;
@@ -55,6 +56,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	private String alreadyEntered;
 	private String alreadyEnteredLower;
 	private int lastStartPos = -1;
+	private int lastdocumentHash = 0;
 
 	public WurstCompletionProcessor(WurstEditor editor) {
 		this.editor = editor;
@@ -82,11 +84,13 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		int startPos = offset - alreadyEntered.length();
 		
 		CompilationUnit cu = null;
-		if (startPos == lastStartPos) {
+		if (startPos == lastStartPos 
+				&& lastdocumentHash == editor.getLastReconcileDocumentHashcode()) {
 			// we have already parsed the document, just use the old compilation unit
 			cu = editor.getCompilationUnit();
 		}
 		lastStartPos = startPos;
+		lastdocumentHash = viewer.getDocument().get().hashCode();
 		if (cu == null) {
 			cu = editor.reconcile(false);
 		}
@@ -108,21 +112,11 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			ExprMemberVar e = (ExprMemberVar) elem;
 			leftType = e.getLeft().attrTyp();
 			isMemberAccess = true;
-			if (leftType instanceof WurstTypeNamedScope) {
-				WurstTypeNamedScope ns = (WurstTypeNamedScope) leftType;
-				Multimap<String, NameLink> visibleNames = ns.getDef().attrNameLinks();
-				completionsAddVisibleNames(alreadyEntered, completions, visibleNames, leftType, isMemberAccess, elem);
-			} else if (leftType instanceof WurstTypeTuple) {
-				WurstTypeTuple tt = (WurstTypeTuple) leftType;
-				Multimap<String, NameLink> visibleNames = tt.getTupleDef().attrNameLinks();
-				completionsAddVisibleNames(alreadyEntered, completions, visibleNames, leftType, isMemberAccess, elem);
-			}
-			
-			// add member vars
 			WScope scope = elem.attrNearestScope();
+			// add member vars
 			while (scope != null) {
 				Multimap<String, NameLink> visibleNames = scope.attrNameLinks();
-				
+				completionsAddVisibleNames(alreadyEntered, completions, visibleNames, leftType, isMemberAccess, elem);
 				completionsAddVisibleExtensionFunctions(alreadyEntered, completions, visibleNames, leftType);
 				scope = scope.attrNextScope();
 			}
@@ -264,6 +258,13 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			if (!isSuitableCompletion(e.getKey())) {
 				continue;
 			}
+			
+			// remove invisible functions
+			if (e.getValue().getVisibility() == Visibility.PRIVATE_OTHER
+					|| e.getValue().getVisibility() == Visibility.PROTECTED_OTHER) {
+				continue;
+			}
+			
 			WurstType receiverType = e.getValue().getReceiverType();
 			if (leftType == null) {
 				if (receiverType != null) { 
@@ -283,6 +284,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 					}
 				}
 			}
+			
 			if (e.getValue().getNameDef() instanceof FunctionDefinition) {
 				FunctionDefinition f = (FunctionDefinition) e.getValue().getNameDef();
 				

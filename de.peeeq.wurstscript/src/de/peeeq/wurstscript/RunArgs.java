@@ -27,7 +27,9 @@ public class RunArgs {
 		for (int i=0; i<args.length; i++) {
 			String a = args[i];
 			if (a.startsWith("-")) {
-				if (a.equals("-opt")) {
+				if (a.equals("-help")) {
+					printHelpAndExit();
+				} else if (a.equals("-opt")) {
 					this.optimize = true;
 				} else if (a.equals("-inline")) {
 					inline = true;
@@ -58,6 +60,47 @@ public class RunArgs {
 				}
 			}
 		}
+	}
+
+	public static void printHelpAndExit() {
+		System.out.println("Usage: ");
+		System.out.println("wurst <options> <files>");
+		System.out.println();
+		System.out.println("Example: wurst -opt common.j Blizzard.j myMap.w3x");
+		System.out.println("Compiles the given map with the two script files and optimizations enabled.");
+		System.out.println();
+		System.out.println("Options:");
+		System.out.println("-help");
+		System.out.println("	Prints this help message.");
+		System.out.println();
+		System.out.println("-opt");
+		System.out.println("	Enable the Froptimizer. Compresses names.");
+		System.out.println();
+		System.out.println("-localOptimizations");
+		System.out.println("	Experimental feature. Does some local optimizations like removing redundant variables.");
+		System.out.println();
+		System.out.println("-runtests");
+		System.out.println("	Run all test functions found in the scripts.");
+		System.out.println();
+		System.out.println("-gui");
+		System.out.println("	Show a graphical user interface.");
+		System.out.println();
+		System.out.println("-out <filename>");
+		System.out.println("	Write the translated script to the given file.");
+		System.out.println();
+		System.out.println("--about");
+		System.out.println("	Shows the 'about' window.");
+		System.out.println();
+		System.out.println("--hotdoc");
+		System.out.println("	Generate hotdoc html documentation.");
+		System.out.println();
+		System.out.println("--showerrors");
+		System.out.println("	Show errors from last compilation. Not yet implemented.");
+		System.out.println();
+		System.out.println("--runcompiletimefunctions");
+		System.out.println("	Run all compiletime functions found in the scripts.");
+		System.out.println();
+		System.exit(0);
 	}
 
 	public List<String> getFiles() {

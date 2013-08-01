@@ -4,6 +4,7 @@ import Effect
 import Colors
 import Vectors
 import Angle
+import Terrain
 
 /********************************************************
  * * * * * * * * * * Fx * * * * * * * * * * * * * * * * *
@@ -82,6 +83,10 @@ public class Fx
 	/** Get the alpha color value (rgba) */
 	function getAlpha() returns int
 		return col.alpha
+		
+	/** Get the dummyunit */
+	function getDummy() returns unit
+		return dummy
 		
 	/** Recolor the Fx object with the given color tuple (colorA) 
 	Color: 0 = no color - 255 = full color
@@ -183,7 +188,7 @@ public class Fx
 	/** Set the position to the given xyz vector tuple */
 	function setPos(vec3 pos) returns Fx
 		dummy.setPos(pos.x, pos.y)
-		setZ(pos.z)
+		setZ(pos.z-getTerrainZ(pos.x, pos.y))
 		return this
 		
 	/** Set the z coordinate (flyHeight) */

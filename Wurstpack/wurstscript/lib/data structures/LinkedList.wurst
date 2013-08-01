@@ -12,7 +12,7 @@ public class LinkedList<T>
 
 	/** add an element to the end of the list */
 	function add(T elem)
-		let entry = new LLEntry(elem, dummy.prev, dummy)
+		let entry = new LLEntry<T>(elem, dummy.prev, dummy)
 		dummy.prev.next = entry
 		dummy.prev = entry
 		size ++
@@ -62,7 +62,7 @@ public class LinkedList<T>
 
 	/** adds an element to the beginning of the list */	
 	function addtoStart(T elem)
-		let entry = new LLEntry(elem, dummy, dummy.next)
+		let entry = new LLEntry<T>(elem, dummy, dummy.next)
 		dummy.next.prev = entry
 		dummy.next = entry
 		size ++

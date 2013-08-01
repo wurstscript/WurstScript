@@ -39,7 +39,9 @@ public class Main {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		
+		if (args.length == 0) {
+			RunArgs.printHelpAndExit();
+		}
 		setUpFileLogging();
 		
 		//		JOptionPane.showMessageDialog(null , "time to connect profiler ^^");
@@ -154,7 +156,7 @@ public class Main {
 				Files.write(mapScript, outputMapscript, Charsets.UTF_8); // use ascii here, wc3 no understand utf8, you know?
 
 				Result pJassResult = Pjass.runPjass(outputMapscript);
-				System.out.println(pJassResult.getMessage());
+				WLogger.info(pJassResult.getMessage());
 				if (!pJassResult.isOk()) {
 					for (CompileError err : pJassResult.getErrors()) {
 						gui.sendError(err);

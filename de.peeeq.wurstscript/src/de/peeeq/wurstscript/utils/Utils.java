@@ -166,8 +166,6 @@ public class Utils {
 
 
 	public static int parseHexInt(String yytext) {
-		System.out.println(yytext);
-		System.out.println(yytext.substring(2));
 		return (int) Long.parseLong(yytext.substring(2), 16);
 	}
 

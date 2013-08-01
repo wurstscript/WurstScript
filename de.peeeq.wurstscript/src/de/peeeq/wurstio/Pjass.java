@@ -70,7 +70,7 @@ public class Pjass {
 				Pattern pat = Pattern.compile(".*:([0-9]+):(.*)");
 				Matcher match = pat.matcher(error);
 				if (!match.matches()) {
-					System.out.println("no match: " + error);
+					WLogger.warning("no match: " + error);
 					continue;
 				}
 				int line = Integer.parseInt(match.group(1));

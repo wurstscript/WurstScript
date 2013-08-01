@@ -53,6 +53,7 @@ public class ImToJassTranslator {
 	private Stack<ImFunction> translatingFunctions = new Stack<ImFunction>();
 	private Set<ImFunction> translatedFunctions = Sets.newHashSet();
 	private Set<String> usedNames = Sets.newHashSet();
+	private static String restrictedNames[] = {"loop", "endif", "endfunction", "endloop", "globals", "endglobals", "local", "call"};
 	private Multimap<ImFunction, String> usedLocalNames = HashMultimap.create();
 
 	public ImToJassTranslator(ImProg imProg, Multimap<ImFunction, ImFunction> calledFunctions, 
@@ -173,11 +174,18 @@ public class ImToJassTranslator {
 	}
 
 	private String getUniqueGlobalName(String name) { // TODO find local names
-		if (!usedNames.contains(name)) {
-			usedNames.add(name);
-			return name;
+		String name2 = "";
+		for (int i = 0; i < restrictedNames.length; i++) {
+			if ( restrictedNames[i].equals(name)) {
+				name2 = "w" + name;
+			}
 		}
-		String name2;
+		if (name2.length() < 1) {
+			if (!usedNames.contains(name)) {
+				usedNames.add(name);
+				return name;
+			}
+		}
 		int i = 1;
 		do {
 			i++;

@@ -20,6 +20,7 @@ public class WurstReconcilingStategy implements IReconcilingStrategy {
 
 	private WurstEditor editor;
 	private IDocument document;
+	private int lastReconcileDocumentHashcode = -1;
 
 	public WurstReconcilingStategy(WurstEditor editor) {
 		this.editor = editor;
@@ -49,7 +50,10 @@ public class WurstReconcilingStategy implements IReconcilingStrategy {
 		IFile file = editor.getFile();
 		if (file != null) {
 			// TODO handle parser-error markers
-			CompilationUnit cu = mm.parse(gui, file.getProjectRelativePath().toString(), new StringReader(document.get()));
+			
+			String doc = document.get();
+			lastReconcileDocumentHashcode = doc.hashCode();
+			CompilationUnit cu = mm.parse(gui, file.getProjectRelativePath().toString(), new StringReader(doc));
 			if (doTypecheck) {
 				mm.typeCheckModel(gui, true);
 			}
@@ -57,5 +61,10 @@ public class WurstReconcilingStategy implements IReconcilingStrategy {
 		}
 		return null;
 	}
+
+	public int getLastReconcileDocumentHashcode() {
+		return lastReconcileDocumentHashcode;
+	}
+
 
 }

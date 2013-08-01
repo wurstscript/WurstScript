@@ -7,7 +7,7 @@ package PrintingHelper
 	
 	public boolean array wantDebug
 	
-	int DEBUG_LEVEL = 1
+	int DEBUG_LEVEL = 3
 	real DEBUG_MSG_DURATION = 45.
 	int msgcount = 0
 	string array texts
