@@ -242,7 +242,7 @@ public class EliminateTuples {
 				statements.add(JassIm.ImSet(e.getTrace(), vars.get(i), copyExpr(exprs.get(i))));
 			}	
 		} else {
-			throw new Error("unhandled case: " + right1);
+			throw new Error("unhandled case: " + right1.getClass());
 		}
 		return JassIm.ImStatementExpr(statements, JassIm.ImNull());
 	}
@@ -314,7 +314,7 @@ public class EliminateTuples {
 
 	private static ImExpr elimStatementExpr(ImStmts statements, ImExpr expr,
 			ImTranslator translator, ImFunction f) {
-		if (expr instanceof ImStatementExpr) {
+		while (expr instanceof ImStatementExpr) {
 			ImStatementExpr right = (ImStatementExpr) expr;
 			List<ImStmt> ss = right.getStatements().removeAll();
 			for (ImStmt s : ss) {

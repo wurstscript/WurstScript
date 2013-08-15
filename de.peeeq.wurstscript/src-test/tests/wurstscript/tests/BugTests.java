@@ -386,4 +386,29 @@ public class BugTests extends WurstScriptTest {
 				"	int i",
 				"endpackage");
 	}
+	
+	
+	@Test
+	public void polarOfffsetInline() { // #149
+		testAssertOkLines(true, 
+				"package test",
+				"native testSuccess()",
+				"native Cos(real x) returns real",
+				"native Sin(real x) returns real",
+				"public tuple angle(real radians)",
+				"public function angle.toVec(real len) returns vec2",
+				"	return vec2(Cos(this.radians)*len, Sin(this.radians)*len)",
+				"public tuple vec2( real x, real y )",
+				"public function vec2.op_plus( vec2 v )	returns vec2",
+				"	return vec2(this.x + v.x, this.y + v.y)",
+				"public function vec2.polarOffset(angle ang, real dist) returns vec2",
+				"	return this + ang.toVec(dist)",
+				"init",
+				"	vec2 v = vec2(1,2)",
+				"	v = v.polarOffset(angle(1.5708), 10)",
+				"	if v.x >= 0.99 and v.x <= 1.01 and v.y >= 11.99 and v.y <= 12.01",
+				"		testSuccess()",
+				"endpackage"
+				);
+	}
 }
