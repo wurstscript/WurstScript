@@ -1,9 +1,12 @@
 package de.peeeq.wurstscript.intermediateLang.interpreter;
 
+import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstBool;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
+import de.peeeq.wurstscript.intermediateLang.ILconstString;
 import de.peeeq.wurstscript.intermediateLang.ILconstTuple;
+import de.peeeq.wurstscript.jassIm.ImError;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImIf;
@@ -18,6 +21,7 @@ import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassinterpreter.ExitwhenException;
 import de.peeeq.wurstscript.jassinterpreter.ReturnException;
+import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 
 public class RunStatement {
 
@@ -118,6 +122,12 @@ public class RunStatement {
 			globalState.setLastStatement(s);
 			s.runStatement(globalState, localState);
 		}
+	}
+
+	public static void run(ImError s, ProgramState globalState,
+			LocalState localState) {
+		ILconstString msg = (ILconstString) s.getMessage().evaluate(globalState, localState);
+		throw new DebugPrintError(msg.getVal());
 	}
 
 }

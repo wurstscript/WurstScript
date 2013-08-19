@@ -4,12 +4,17 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 
+import de.peeeq.wurstscript.jassIm.ImAlloc;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImBoolVal;
+import de.peeeq.wurstscript.jassIm.ImDealloc;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImFuncRef;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
+import de.peeeq.wurstscript.jassIm.ImInstanceof;
 import de.peeeq.wurstscript.jassIm.ImIntVal;
+import de.peeeq.wurstscript.jassIm.ImMemberAccess;
+import de.peeeq.wurstscript.jassIm.ImMethodCall;
 import de.peeeq.wurstscript.jassIm.ImNull;
 import de.peeeq.wurstscript.jassIm.ImOperatorCall;
 import de.peeeq.wurstscript.jassIm.ImRealVal;
@@ -21,9 +26,12 @@ import de.peeeq.wurstscript.jassIm.ImTupleExpr;
 import de.peeeq.wurstscript.jassIm.ImTupleSelection;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.ImTypeIdOfClass;
+import de.peeeq.wurstscript.jassIm.ImTypeIdOfObj;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstTypeBool;
 import de.peeeq.wurstscript.types.WurstTypeCode;
 import de.peeeq.wurstscript.types.WurstTypeHandle;
@@ -142,6 +150,34 @@ public class ImAttrType {
 			names.add("" + i++);
 		}
 		return JassIm.ImTupleType(types, names);
+	}
+
+	public static ImType getType(ImMethodCall mc) {
+		return mc.getMethod().getImplementation().getReturnType();
+	}
+
+	public static ImType getType(ImMemberAccess e) {
+		return e.getVar().getType();
+	}
+
+	public static ImType getType(ImAlloc imAlloc) {
+		return TypesHelper.imInt();
+	}
+
+	public static ImType getType(ImDealloc imDealloc) {
+		return TypesHelper.imVoid();
+	}
+
+	public static ImType getType(ImInstanceof imInstanceof) {
+		return TypesHelper.imBool();
+	}
+
+	public static ImType getType(ImTypeIdOfClass imTypeIdOfClass) {
+		return TypesHelper.imInt();
+	}
+
+	public static ImType getType(ImTypeIdOfObj imTypeIdOfObj) {
+		return TypesHelper.imInt();
 	}
 
 }

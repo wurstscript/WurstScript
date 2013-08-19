@@ -23,6 +23,7 @@ import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprIntVal;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
+import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprUnary;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
@@ -70,12 +71,28 @@ public class SyntacticSugar {
 		addDefaultConstructors(root);
 		addEndFunctionStatements(root);
 		expandForInLoops(root);
-		addTypeIds(root);
+		replaceTypeIdUse(root);
 	}
 	
 	
 
 	
+
+	private void replaceTypeIdUse(CompilationUnit root) {
+		final Map<Expr, Expr> replacements = Maps.newHashMap();
+		root.accept(new WurstModel.DefaultVisitor() {
+			public void visit(ExprMemberVar e) {
+				if (e.getVarName().equals("typeId")) {
+					replacements.put(e, Ast.ExprTypeId(e.getSource(), (Expr) e.getLeft().copy()));
+				}
+			}
+		});
+		doReplacements(replacements, "Cannot use typeId here");
+	}
+
+
+
+
 
 	private void rewriteNegatedInts(CompilationUnit root) {
 		final Map<Expr, Expr> replacements = Maps.newHashMap();
@@ -89,18 +106,24 @@ public class SyntacticSugar {
 				}
 			}
 		});
-		doReplacements(replacements);
+		doReplacements(replacements, "Cannot use typeId here");
 	}
 
 
 
-
-
 	private void doReplacements(Map<Expr, Expr> replacements) {
+		doReplacements(replacements, "Cannot use this type of expression here.");
+	}
+
+	private void doReplacements(Map<Expr, Expr> replacements, String msg) {
 		for (Entry<Expr, Expr> e : replacements.entrySet()) {
 			Expr oldE = e.getKey();
 			Expr newE = e.getValue();
-			doSingleReplacement(oldE, newE);
+			try {
+				doSingleReplacement(oldE, newE);
+			} catch (ClassCastException ex) {
+				oldE.addError(msg);
+			}
 		}
 		
 	}
@@ -180,25 +203,6 @@ public class SyntacticSugar {
 		}
 	}
 	
-	private void addTypeIds(CompilationUnit root) {
-		nextClass: for (ClassDef d : root.attrGetByType().classes) {
-			if (!(d.getExtendedClass() instanceof NoTypeExpr)) {
-				// has superclass, does not need own typeId
-				continue;
-			}
-			// add typeId
-			GlobalVarDefs defs = d.getVars();
-			for (GlobalVarDef def : defs) {
-				if ( def.getName().equals("typeId") ) {
-					continue nextClass;
-				}
-			}
-			defs.add(Ast.GlobalVarDef(d.getSource(), Ast.Modifiers(Ast.ModConstant(d.getSource())),
-					Ast.TypeExprSimple(d.getSource(), "int", Ast.TypeExprList()) , "typeId", Ast.NoExpr()));
-		}
-	}
-
-
 	private void expandForInLoops(CompilationUnit root) {
 		// collect loops
 		final List<StmtForIn> loops = Lists.newArrayList();

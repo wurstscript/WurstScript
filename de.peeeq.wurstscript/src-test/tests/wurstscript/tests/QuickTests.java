@@ -5,6 +5,7 @@ import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
 import tests.immutablecollections.ImmutableListTest;
+import tests.immutablecollections.IntRangeTests;
 import tests.wurstscript.utils.UtilsTest;
 
 
@@ -12,7 +13,8 @@ import tests.wurstscript.utils.UtilsTest;
 @SuiteClasses({ 
 	SimpleStatementTests.class, 
 	SimpleFunctionTests.class,
-	ImmutableListTest.class, 
+	ImmutableListTest.class,
+	IntRangeTests.class,
 	UtilsTest.class,
 	ArrayTests.class,
 	ExpressionTests.class,

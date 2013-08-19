@@ -1,15 +1,26 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
+import java.util.List;
+
+import de.peeeq.wurstscript.jassIm.ImAlloc;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImBoolVal;
+import de.peeeq.wurstscript.jassIm.ImClass;
+import de.peeeq.wurstscript.jassIm.ImDealloc;
+import de.peeeq.wurstscript.jassIm.ImError;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImExpr;
+import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFuncRef;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImIf;
+import de.peeeq.wurstscript.jassIm.ImInstanceof;
 import de.peeeq.wurstscript.jassIm.ImIntVal;
 import de.peeeq.wurstscript.jassIm.ImLoop;
+import de.peeeq.wurstscript.jassIm.ImMemberAccess;
+import de.peeeq.wurstscript.jassIm.ImMethod;
+import de.peeeq.wurstscript.jassIm.ImMethodCall;
 import de.peeeq.wurstscript.jassIm.ImNoExpr;
 import de.peeeq.wurstscript.jassIm.ImNull;
 import de.peeeq.wurstscript.jassIm.ImOperatorCall;
@@ -31,6 +42,8 @@ import de.peeeq.wurstscript.jassIm.ImTupleExpr;
 import de.peeeq.wurstscript.jassIm.ImTupleSelection;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.ImTypeIdOfClass;
+import de.peeeq.wurstscript.jassIm.ImTypeIdOfObj;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
@@ -49,6 +62,31 @@ public class ImPrinter {
 			f.print(sb, indent);
 			sb.append("\n");
 		}
+		sb.append("\n\n");
+		for (ImClass c : p.getClasses()) {
+			sb.append("class " + c.getName() + smallHash(c) + " extends ");
+			for (ImClass sc : c.getSuperClasses()) {
+				sb.append(sc.getName() + smallHash(sc) + " ");
+			}
+			sb.append("{\n");
+			for (ImVar f : c.getFields()) {
+				f.print(sb, 1);
+				sb.append("\n");
+			}
+			sb.append("\n\n");
+			for (ImMethod m : c.getMethods()) {
+				sb.append("	method " + m.getName() + smallHash(m) + " implemented by " + m.getImplementation().getName());
+				sb.append("\n");
+				for (ImMethod sm : m.getSubMethods()) {
+					sb.append("		sub: " + sm.getName() + smallHash(sm));
+					sb.append("\n");
+				}
+				sb.append("\n");
+			}
+			
+			sb.append("}\n\n");
+		}
+		
 	}
 
 	
@@ -186,9 +224,16 @@ public class ImPrinter {
 	
 	
 	public static void print(ImFunctionCall p, StringBuilder sb, int indent) {
-		sb.append(p.getFunc().getName() + "(");
+		sb.append(p.getFunc().getName());
+		printArgumentList(sb, indent, p.getArguments());
+	}
+
+
+	public static void printArgumentList(StringBuilder sb, int indent,
+			List<ImExpr> args) {
+		sb.append("(");
 		boolean first = true;
-		for (ImExpr a : p.getArguments()) {
+		for (ImExpr a : args) {
 			if (!first) {
 				sb.append(", ");
 			}
@@ -313,6 +358,69 @@ public class ImPrinter {
 		return sb.toString();
 	}
 
+
+	public static void print(ImMethodCall mc, StringBuilder sb,
+			int indent) {
+		mc.getReceiver().print(sb, 0);
+		sb.append(".");
+		sb.append(mc.getMethod().getName());
+		printArgumentList(sb, 0, mc.getArguments());
+	}
+
+
+	public static void print(ImMemberAccess e, StringBuilder sb,
+			int indent) {
+		e.getReceiver().print(sb, 0);
+		sb.append(".");
+		sb.append(e.getVar().getName());
+	}
+
+
+	public static void print(ImAlloc e, StringBuilder sb, int indent) {
+		sb.append("#alloc(class ");
+		sb.append(e.getClazz().getName());
+		sb.append(")");
+		
+	}
+
+
+	public static void print(ImDealloc e, StringBuilder sb, int indent) {
+		sb.append("#dealloc(class ");
+		sb.append(e.getClazz().getName());
+		sb.append(", ");
+		e.getObj().print(sb, 0);
+		sb.append(")");
+	}
+
+
+	public static void print(ImError e, StringBuilder sb, int indent) {
+		sb.append("#error(");
+		e.getMessage().print(sb, 0);
+		sb.append(")");
+	}
+
+
+	public static void print(ImInstanceof e, StringBuilder sb,
+			int indent) {
+		e.getObj().print(sb, 0);
+		sb.append(" instanceof " + e.getClazz().getName());
+		
+		
+	}
+
+
+	public static void print(ImTypeIdOfClass e, StringBuilder sb,
+			int indent) {
+		sb.append(e.getClass().getName() + ".typeId");
+		
+	}
+
+
+	public static void print(ImTypeIdOfObj e, StringBuilder sb,
+			int indent) {
+		e.getObj().print(sb, 0);
+		sb.append(".typeId");
+	}
 
 	
 	

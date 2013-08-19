@@ -8,6 +8,7 @@ import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.intermediateLang.ILconstBool;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
 import de.peeeq.wurstscript.intermediateLang.ILconstNull;
 import de.peeeq.wurstscript.intermediateLang.ILconstReal;
@@ -159,6 +160,12 @@ public class NativeFunctionsIO extends ReflectionBasedNativeProvider implements 
 		return new ILconstString(string.getVal().substring(start.getVal(), end.getVal()));
 	}
 	
+	public ILconstString StringCase(ILconstString string, ILconstBool lowerCase) {
+		return new ILconstString(
+				lowerCase.getVal() ? 
+				string.getVal().toLowerCase()
+				: string.getVal().toUpperCase());
+	}
 	
 	public void testPrint(ILconstString msg) {
 		outStream.println(msg.getVal());

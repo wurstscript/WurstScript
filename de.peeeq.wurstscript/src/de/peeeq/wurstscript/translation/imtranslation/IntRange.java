@@ -1,6 +1,11 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
+
+import com.google.common.collect.Lists;
 
 public class IntRange implements Iterable<Integer> {
 	final int start;
@@ -39,6 +44,36 @@ public class IntRange implements Iterable<Integer> {
 				throw new Error("Ranges are immutable");
 			}
 		};
+	}
+
+	public static List<IntRange> createFromIntList(List<Integer> list) {
+		ArrayList<Integer> l = Lists.newArrayList(list);
+		Collections.sort(l);
+		List<IntRange> result = Lists.newArrayList();
+		
+		boolean start = true;
+		int min=0;
+		int max=0;
+		for (int i : l) {
+			if (start) {
+				min = i;
+				max = i;
+				start = false;
+			} else {
+				if (i == max + 1) {
+					max = i;
+				} else {
+					result.add(new IntRange(min, max));
+					min = i;
+					max = i;
+				}
+			}
+		}
+		if (!start) {
+			result.add(new IntRange(min, max));
+		}
+		
+		return result;
 	}
 	
 }

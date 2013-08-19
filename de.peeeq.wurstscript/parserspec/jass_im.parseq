@@ -3,10 +3,14 @@ package de.peeeq.wurstscript.jassIm
 
 abstract syntax:
 	
-ImProg(ImVars globals, ImFunctions functions, java.util.Map<ImVar, ImExpr> globalInits)
+ImProg(ImVars globals, 
+	ImFunctions functions, 
+	ImClasses classes, 
+	java.util.Map<ImVar, ImExpr> globalInits)
 
 ImVars * ImVar
 ImFunctions * ImFunction
+ImClasses * ImClass
 
 ImVar(&ImType type, String name, boolean isBJ)
 
@@ -17,7 +21,27 @@ ImType =
 	| ImTupleArrayType(java.util.List<ImType> types, java.util.List<String> names)
 	| ImVoid()
 	
-ImFunction(de.peeeq.wurstscript.ast.AstElement trace, String name, ImVars parameters, &ImType returnType, ImVars locals, ImStmts body, java.util.List<de.peeeq.wurstscript.translation.imtranslation.FunctionFlag> flags)
+ImFunction(de.peeeq.wurstscript.ast.AstElement trace, 
+	String name, 
+	ImVars parameters, 
+	&ImType returnType, 
+	ImVars locals, 
+	ImStmts body, 
+	java.util.List<de.peeeq.wurstscript.translation.imtranslation.FunctionFlag> flags)
+
+ImClass(de.peeeq.wurstscript.ast.AstElement trace, 
+	String name, 
+	ImVars fields, 
+	ImMethods methods, 
+	java.util.List<ImClass> superClasses)
+
+ImMethods * ImMethod
+
+ImMethod(de.peeeq.wurstscript.ast.AstElement trace, 
+	String name, 
+	&ImFunction implementation,
+	java.util.List<ImMethod> subMethods,
+	boolean isAbstract)
 	
 	
 ImStmts * ImStmt
@@ -31,6 +55,7 @@ ImStmt =
 	| ImSetTuple(de.peeeq.wurstscript.ast.AstElement trace, &ImVar left, int tupleIndex, ImExpr right)
 	| ImSetArray(de.peeeq.wurstscript.ast.AstElement trace, &ImVar left, ImExpr index, ImExpr right)
 	| ImSetArrayTuple(de.peeeq.wurstscript.ast.AstElement trace, &ImVar left, ImExpr index, int tupleIndex, ImExpr right)
+	| ImError(ImExpr message);
 	| ImExpr
 	
 	
@@ -54,8 +79,19 @@ ImFlatExpr =
 	| ImVarArrayAccess(&ImVar var, ImExpr index)
 	| ImTupleExpr(ImExprs exprs)
 	| ImTupleSelection(ImExpr tupleExpr, int tupleIndex)
+	| ImClassRelatedExpr
 	| ImConst
 	
+ImClassRelatedExpr = 
+	  ImMethodCall(de.peeeq.wurstscript.ast.AstElement trace, &ImMethod method, ImExpr receiver, ImExprs arguments, boolean tuplesEliminated)
+	| ImAlloc(&ImClass clazz)
+	| ImDealloc(&ImClass clazz, ImExpr obj)
+	| ImMemberAccess(ImExpr receiver, &ImVar var)
+	| ImInstanceof(ImExpr obj, &ImClass clazz)
+	| ImTypeIdOfObj(ImExpr obj, &ImClass clazz)
+	| ImTypeIdOfClass(&ImClass clazz)
+	
+
 ImCall = 
 	  ImFunctionCall(de.peeeq.wurstscript.ast.AstElement trace, &ImFunction func, ImExprs arguments, boolean tuplesEliminated)
 	| ImOperatorCall(de.peeeq.wurstscript.WurstOperator op, ImExprs arguments)
@@ -247,5 +283,24 @@ ImFunction.calcUsedFunctions()
 	implemented by de.peeeq.wurstscript.translation.imtranslation.UsedFunctions.calculate
 	
 
+ImMethod.attrClass()
+	returns ImClass
+	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.attrClass
 	
+ImClass.attrTypeId
+	returns int
+	implemented by de.peeeq.wurstscript.translation.imtranslation.TypeId.get
 	
+ImProg.attrTypeId
+	returns java.util.Map<ImClass, Integer>
+	implemented by de.peeeq.wurstscript.translation.imtranslation.TypeId.calculate
+
+ImClass.attrSubclasses
+	returns java.util.List<ImClass>
+	implemented by de.peeeq.wurstscript.translation.imtranslation.Subclasses.get
+	
+ImProg.attrSubclasses
+	returns com.google.common.collect.Multimap<ImClass, ImClass>
+	implemented by de.peeeq.wurstscript.translation.imtranslation.Subclasses.calculate
+		
+		

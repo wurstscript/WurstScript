@@ -20,11 +20,17 @@ import de.peeeq.wurstscript.jassAst.JassExprVarArrayAccess;
 import de.peeeq.wurstscript.jassAst.JassExprlist;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassVar;
+import de.peeeq.wurstscript.jassIm.ImAlloc;
 import de.peeeq.wurstscript.jassIm.ImBoolVal;
+import de.peeeq.wurstscript.jassIm.ImClassRelatedExpr;
+import de.peeeq.wurstscript.jassIm.ImDealloc;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImFuncRef;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
+import de.peeeq.wurstscript.jassIm.ImInstanceof;
 import de.peeeq.wurstscript.jassIm.ImIntVal;
+import de.peeeq.wurstscript.jassIm.ImMemberAccess;
+import de.peeeq.wurstscript.jassIm.ImMethodCall;
 import de.peeeq.wurstscript.jassIm.ImNull;
 import de.peeeq.wurstscript.jassIm.ImOperatorCall;
 import de.peeeq.wurstscript.jassIm.ImRealVal;
@@ -119,6 +125,11 @@ public class ExprTranslation {
 	public static JassExprVarArrayAccess translate(ImVarArrayAccess e, ImToJassTranslator translator) {
 		JassVar v = translator.getJassVarFor(e.getVar());
 		return JassExprVarArrayAccess(v.getName(), e.getIndex().translate(translator));
+	}
+
+	public static JassExpr translate(ImClassRelatedExpr e,
+			ImToJassTranslator translator) {
+		throw new RuntimeException("Eliminate method calls before translating to jass");
 	}
 
 }

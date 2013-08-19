@@ -27,6 +27,7 @@ import de.peeeq.wurstscript.ast.ExprRealVal;
 import de.peeeq.wurstscript.ast.ExprStringVal;
 import de.peeeq.wurstscript.ast.ExprSuper;
 import de.peeeq.wurstscript.ast.ExprThis;
+import de.peeeq.wurstscript.ast.ExprTypeId;
 import de.peeeq.wurstscript.ast.ExprUnary;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
@@ -534,6 +535,20 @@ public class AttrExprType {
 			e.addError("No super class found.");
 		}
 		return WurstTypeUnknown.instance();
+	}
+
+
+	public static WurstType calculate(ExprTypeId e) {
+		WurstType exprTyp = e.getLeft().attrTyp();
+		if (exprTyp instanceof WurstTypeClass) {
+			WurstTypeClass wtc = (WurstTypeClass) exprTyp;
+			if (wtc.getClassDef().attrIsAbstract()) {
+				e.addError("abstract classes do not have a typeId");
+			}
+		} else {
+			e.addError("typeId can only be used with classes");
+		}
+		return WurstTypeInt.instance();
 	}
 
 }

@@ -17,6 +17,7 @@ import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassStatement;
 import de.peeeq.wurstscript.jassAst.JassStatements;
 import de.peeeq.wurstscript.jassAst.JassVar;
+import de.peeeq.wurstscript.jassIm.ImError;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImIf;
@@ -98,6 +99,14 @@ public class StatementTranslation {
 		for (ImStmt s : imStmts) {
 			s.translate(stmts, f, translator);
 		}
+	}
+
+	public static void translate(ImError s, List<JassStatement> stmts,
+			JassFunction f, ImToJassTranslator translator) {
+		stmts.add(JassAst.JassStmtCall("BJDebugMsg", JassAst.JassExprlist(s.getMessage().translate(translator))));
+		// crash thread (divide by zero)
+		stmts.add(JassAst.JassStmtCall("I2S", JassAst.JassExprlist(JassAst.JassExprBinary(JassAst.JassExprIntVal("1"), JassAst.JassOpDiv(), JassAst.JassExprIntVal("0")))));
+		
 	}
 
 }

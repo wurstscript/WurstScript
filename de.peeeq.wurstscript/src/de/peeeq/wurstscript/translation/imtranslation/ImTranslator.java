@@ -76,9 +76,12 @@ import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImCall;
+import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
+import de.peeeq.wurstscript.jassIm.ImIntVal;
+import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImStatementExpr;
@@ -136,7 +139,6 @@ public class ImTranslator {
 	private final Set<WPackage> translatedPackages = Sets.newHashSet();
 	private final Set<ClassDef>  translatedClasses = Sets.newHashSet();
 
-	private int typeIdCounter = 0;
 
 	final Map<ClassDef, Integer> typeIdMap = Maps.newHashMap();
 	final Map<ClassDef, Integer> typeIdMapMax = Maps.newHashMap();
@@ -157,22 +159,9 @@ public class ImTranslator {
 	public ImTranslator(WurstModel wurstProg, boolean isUnitTestMode) {
 		this.wurstProg = wurstProg;
 		this.isUnitTestMode = isUnitTestMode;
-		imProg = ImProg(ImVars(), ImFunctions(), Maps.<ImVar,ImExpr>newHashMap());
-		buildClassParitions();
+		imProg = ImProg(ImVars(), ImFunctions(), JassIm.ImClasses(), Maps.<ImVar,ImExpr>newHashMap());
 	}
 
-	private void buildClassParitions() {
-		for (CompilationUnit cu : wurstProg) {
-			for (WPackage p : cu.getPackages()) {
-				for (WEntity s : p.getElements()) {
-					if (s instanceof StructureDef) {
-						
-						buildClassParition((StructureDef) s);
-					}
-				}
-			}
-		}
-	}
 
 	/**
 	 * translates a program 
@@ -273,8 +262,14 @@ public class ImTranslator {
 				// bj-vars are already initalized by blizzard
 				f.getBody().add(ImSet(trace, v, translated));
 			}
-			imProg.getGlobalInits().put(v, (ImExpr) translated.copy());
+			imProg.getGlobalInits().put(v, translated);
 		}
+	}
+	
+	public void addGlobalWithInitalizer(ImVar g, ImExpr initial) {
+		imProg.getGlobals().add(g);
+		globalInitFunc.getBody().add(ImSet(emptyTrace, g, initial));
+		imProg.getGlobalInits().put(g, (ImExpr) initial.copy());
 	}
 
 	public ImFunction getDebugPrintFunc() {
@@ -305,17 +300,59 @@ public class ImTranslator {
 			return ImNull();
 		}
 	}
-
-	public ImFunction getDestroyFuncFor(ClassDef classDef) {
-		ImFunction f = destroyFuncMap.get(classDef); 
-		if (f == null) {
-			f = JassIm.ImFunction(classDef.getOnDestroy(), "destroy" + classDef.getName(), ImVars(), TypesHelper.imVoid(), ImVars(), ImStmts(), flags());
+	
+	public GetAForB<ClassDef, ImFunction> destroyFunc = new GetAForB<ClassDef, ImFunction>() {
+		
+		@Override
+		ImFunction initFor(ClassDef classDef) {
+			ImVars params = ImVars(JassIm.ImVar(TypesHelper.imInt(), "this", false));
+			ImFunction f = JassIm.ImFunction(classDef.getOnDestroy(), "destroy" + classDef.getName(), params, TypesHelper.imVoid(), ImVars(), ImStmts(), flags());
 			destroyFuncMap.put(classDef, f);
 			addFunction(f);
+			return f;
 		}
-		return f ;
-	}
+	};
+	
+	public GetAForB<StructureDef, ImMethod> destroyMethod = new GetAForB<StructureDef, ImMethod>() {
+		
+		@Override
+		ImMethod initFor(StructureDef classDef) {
+			ImFunction impl;
+			boolean abstr;
+			if (classDef instanceof ClassDef) {
+				ClassDef c = (ClassDef) classDef;
+				impl = destroyFunc.getFor(c);
+				abstr = false;
+			} else {
+				impl = JassIm.ImFunction(classDef.getOnDestroy(), "destroy" + classDef.getName(), ImVars(), TypesHelper.imVoid(), ImVars(), ImStmts(), flags());
+				abstr = true;
+			}
+			ImMethod m = JassIm.ImMethod(classDef, "destroy" + classDef.getName(), 
+					impl, Lists.<ImMethod>newArrayList(), abstr);
+			return m;
+		}
+	};
+	
+	public GetAForB<ImClass, ImFunction> allocFunc = new GetAForB<ImClass, ImFunction>() {
 
+		@Override
+		ImFunction initFor(ImClass c) {
+			return JassIm.ImFunction(c.getTrace(), "alloc_" + c.getName(), JassIm.ImVars(), TypesHelper.imInt(), 
+					JassIm.ImVars(), JassIm.ImStmts(), Collections.<FunctionFlag>emptyList());
+		}
+		
+	};
+	
+	public GetAForB<ImClass, ImFunction> deallocFunc = new GetAForB<ImClass, ImFunction>() {
+
+		@Override
+		ImFunction initFor(ImClass c) {
+			return JassIm.ImFunction(c.getTrace(), "dealloc_" + c.getName(), JassIm.ImVars(JassIm.ImVar(TypesHelper.imInt(), "obj", false)), TypesHelper.imVoid(), 
+					JassIm.ImVars(), JassIm.ImStmts(), Collections.<FunctionFlag>emptyList());
+		}
+		
+	};
+	
 
 	public ImFunction getFuncFor(TranslatedToImFunction funcDef) {
 		if (functionMap.containsKey(funcDef)) {
@@ -348,29 +385,6 @@ public class ImTranslator {
 		return f;
 	}
 
-	public ImFunction getDynamicDispatchFuncFor(TranslatedToImFunction funcDef) {
-		if (dynamicDispatchFunctionMap.containsKey(funcDef)) {
-			return dynamicDispatchFunctionMap.get(funcDef);
-		}
-		if (funcDef.attrNearestStructureDef() instanceof InterfaceDef // for interfaces use same function.. 
-				|| funcDef instanceof ExtensionFuncDef // extension func defs are always statically bound
-				) {
-
-			return getFuncFor(funcDef);
-		}
-		String name = "dispatch_" + getNameFor(funcDef);
-		if (funcDef instanceof NativeFunc) {
-			throw new Error("native dispatch not possible");
-		}
-		if (isBJ(funcDef.getSource())) {
-			throw new Error("bj dispatch not possible");
-		}
-		ImFunction f = getFuncFor(funcDef);
-		ImFunction dispatchFunc = JassIm.ImFunction(funcDef, name, f.getParameters().copy(), (ImType) f.getReturnType().copy(), ImVars(), ImStmts(), flags());
-		addFunction(dispatchFunc);
-		dynamicDispatchFunctionMap.put(funcDef, dispatchFunc);
-		return dispatchFunc;
-	}
 
 	private boolean isBJ(WPos source) {
 		String f = source.getFile().toLowerCase();
@@ -478,42 +492,7 @@ public class ImTranslator {
 		throw new Error("");
 	}
 
-	public int getTypeId(ClassDef c) {
-		Integer r = typeIdMap.get(c); 
-		if (r == null) {   
-			makeTypeIdsForHiearchy(c);
-			r = typeIdMap.get(c); 
-		}
-		//			typeIdCounter++;
-		//			int typeId = typeIdCounter;
-		//			typeIdMap.put(c, typeId);
-		//			
-		//			// also assign types to subclasses:
-		//			
-		//			return typeId;
-		return r;
-	}
 
-	private void makeTypeIdsForHiearchy(ClassDef c) {
-		if (c.getExtendedClass() instanceof TypeExpr) {
-			TypeExpr sc = (TypeExpr) c.getExtendedClass();
-			if (sc.attrTyp() instanceof WurstTypeClass) {
-				WurstTypeClass ct = (WurstTypeClass) sc.attrTyp();
-				makeTypeIdsForHiearchy(ct.getClassDef());
-				return;
-			}
-		}
-		makeTypeIdsForClass(c);
-	}
-
-	private void makeTypeIdsForClass(ClassDef c) {
-		typeIdCounter++;
-		typeIdMap.put(c, typeIdCounter);
-		for (ClassDef sc : getDirectSubClasses(c)) {
-			makeTypeIdsForClass(sc);
-		}
-		typeIdMapMax.put(c, typeIdCounter);
-	}
 
 	public ImVar getVarFor(VarDef varDef) {
 		ImVar v = varMap.get(varDef);
@@ -631,49 +610,6 @@ public class ImTranslator {
 	}
 
 
-	private Partitions<StructureDef> classPartitions = new Partitions<StructureDef>();;
-	private Map<StructureDef, ClassManagementVars> classManagementVars = Maps.newHashMap();
-
-	public ClassManagementVars getClassManagementVarsFor(StructureDef classDef) {
-		// class representing this partition
-		StructureDef repClass = classPartitions.getRep(classDef);
-
-		ClassManagementVars m = classManagementVars.get(repClass);
-		if (m == null) {
-			m = new ClassManagementVars(repClass, this);
-			classManagementVars.put(repClass, m);
-		}
-		return m;
-	}
-
-
-
-	private void buildClassParition(StructureDef s) {
-		if (!classPartitions.contains(s)) {
-			classPartitions.add(s);
-			if (s instanceof ClassDef) {
-				ClassDef c = (ClassDef) s;
-
-				if (c.attrExtendedClass() != null) {
-					// union with extended class
-					buildClassParition(c.attrExtendedClass());
-					classPartitions.union(c, c.attrExtendedClass());
-				}
-				for (WurstTypeInterface i : c.attrImplementedInterfaces()) {
-					// union with implemented interfaces
-					buildClassParition(i.getInterfaceDef());
-					classPartitions.union(c, i.getInterfaceDef());
-				}
-			} else if (s instanceof InterfaceDef)  {
-				InterfaceDef i = (InterfaceDef) s;
-				for (WurstTypeInterface t : i.attrExtendedInterfaces()) {
-					// union with extended interfaces
-					buildClassParition(t.getInterfaceDef());
-					classPartitions.union(i, t.getInterfaceDef());
-				}
-			}
-		}
-	}
 
 	/**
 	 * returns a list of classes and functions implementing funcDef
@@ -710,152 +646,6 @@ public class ImTranslator {
 		return result;
 	}
 
-	public List<ImStmt> createDispatch(Map<ClassDef, FuncDef> instances, FuncDef funcDef, ImFunction f, int maxTypeId, TypeIdGetter typeId) {
-		List<Pair<IntRange, FuncDef>> instances2 = transformInstances(instances);
-		IntRange knownRange;
-		if (instances2.size() == 0) {
-			// does not matter
-			knownRange = new IntRange(0, 0);
-		} else {
-			knownRange = new IntRange(0, maxTypeId);
-		}
-		return createDispatchHelper(instances2, 0, instances2.size()-1, funcDef, f, typeId, knownRange);
-	}
-
-	/**
-	 * returns a mapping from classdefs to functions into a mapping 
-	 * from typeid ranges to functions 	
-	 * 
-	 * the resulting list is sorted by the intrange and the intervals are disjunct
-	 */
-	private List<Pair<IntRange, FuncDef>> transformInstances(Map<ClassDef, FuncDef> instances) {
-		Vector<FuncDef> funcs = new Vector<FuncDef>();
-		List<ClassDef> classes = Lists.newArrayList(instances.keySet());
-		Collections.sort(classes, new TypeIdComparator(this));
-		for (ClassDef c : classes) {
-			getTypeId(c);
-		}
-		funcs.setSize(typeIdCounter+2);
-		for (ClassDef c : classes) {
-			FuncDef f = instances.get(c);
-			funcs.set(getTypeId(c), f);
-			for (ClassDef sc : getSubClasses(c)) {
-				funcs.set(getTypeId(sc), f);
-			}
-		}
-
-		List<Pair<IntRange, FuncDef>> result = Lists.newArrayList();
-
-		for (int i=0; i<=typeIdCounter; i++) {
-			FuncDef f = funcs.get(i);
-			if (f == null) {
-				continue;
-			}
-			int j = i;
-			while (funcs.get(j) == f) {
-				j++;
-			}
-			result.add(Pair.create(new IntRange(i, j-1), f));
-			i = j-1;
-		}
-		return result;
-	}
-
-	private List<ImStmt> createDispatchHelper(List<Pair<IntRange, FuncDef>> instances2, int start, int end
-			, FuncDef funcDef, ImFunction f, TypeIdGetter typeId, IntRange knownRange) {
-
-
-		List<ImStmt> result = Lists.newArrayList();
-		ImVar thisVar = f.getParameters().get(0);
-		boolean returnsVoid = funcDef.attrTyp() instanceof WurstTypeVoid;
-		if (start > end) {
-			// there seem to be no instances
-			assert instances2.size() == 0;
-			// just create an dummy return
-			if (returnsVoid) {
-				// empty function
-			} else {
-				ImType type = f.getReturnType();
-				ImExpr def = getDefaultValueForJassType(type);
-				result.add(JassIm.ImReturn(emptyTrace, def));
-			}
-			return result;
-		} else if (start == end) {
-			FuncDef calledFunc = instances2.get(start).getB();
-			ImFunction calledJassFunc = getFuncFor(calledFunc);
-			ImExprs arguments = JassIm.ImExprs();
-			for (int i=0; i<f.getParameters().size(); i++) {
-				ImVar p = f.getParameters().get(i);
-				arguments.add(JassIm.ImVarAccess(p));
-			}
-			ImCall call = JassIm.ImFunctionCall(emptyTrace, calledJassFunc, arguments, false);
-			if (returnsVoid) {
-				result.add(call);
-				result.add(JassIm.ImReturn(emptyTrace, JassIm.ImNoExpr()));
-			} else {
-				result.add(JassIm.ImReturn(emptyTrace, call));
-			}
-			// check for equality
-			IntRange range = instances2.get(start).getA();
-			List<ImExpr> conditions = Lists.newArrayList();
-			if (knownRange.start < knownRange.end) {
-				if (range.start == range.end) {
-					conditions.add(JassIm.ImOperatorCall(WurstOperator.EQ, 
-							JassIm.ImExprs(
-									typeId.get(thisVar),
-									JassIm.ImIntVal(range.start))));
-				} else {
-					// start condition
-					if (range.start > knownRange.start) {
-						conditions.add(JassIm.ImOperatorCall(WurstOperator.GREATER_EQ, 
-								JassIm.ImExprs(
-										typeId.get(thisVar),
-										JassIm.ImIntVal(range.start))));
-					}
-					// end condition
-					if (range.end < knownRange.end) {
-						conditions.add(JassIm.ImOperatorCall(WurstOperator.LESS_EQ,
-								JassIm.ImExprs(
-										typeId.get(thisVar),
-										JassIm.ImIntVal(range.end))));
-					}
-				}
-			}
-			if (conditions.size() == 0) {
-				return result;
-			} else if (conditions.size() == 1) {
-				return Collections.<ImStmt>singletonList(
-						JassIm.ImIf(emptyTrace, conditions.get(0), ImStmts(result), ImStmts())
-						);
-			} else {
-				return Collections.<ImStmt>singletonList(
-						JassIm.ImIf(emptyTrace, JassIm.ImOperatorCall(WurstOperator.AND, 
-								ImExprs(conditions.get(0), conditions.get(1))), 
-								ImStmts(result), ImStmts())
-						);
-			}
-
-
-		} else {
-			int splitAt = start + (end-start) / 2;
-
-
-			int typeIdSplitPoint = instances2.get(splitAt).getA().end;
-
-			List<ImStmt> case1 = createDispatchHelper(instances2, start, splitAt, funcDef, f, typeId, new IntRange(knownRange.start, typeIdSplitPoint));
-			List<ImStmt> case2 = createDispatchHelper(instances2, splitAt+1, end, funcDef, f, typeId, new IntRange(typeIdSplitPoint+1, knownRange.end));
-
-			// if (thistype <= typeIdSplitPoint)
-			ImExpr cond = JassIm.ImOperatorCall(WurstOperator.LESS_EQ, 
-					JassIm.ImExprs(
-							typeId.get(thisVar),
-							JassIm.ImIntVal(typeIdSplitPoint)));
-			ImStmts thenBlock = JassIm.ImStmts(case1);
-			ImStmts elseBlock = JassIm.ImStmts(case2);
-			result.add(JassIm.ImIf(emptyTrace, cond, thenBlock, elseBlock));
-			return result;
-		}
-	}
 
 	private Map<ClassDef, List<Pair<ImVar, OptExpr>>> classDynamicInitMap = Maps.newHashMap();
 	private Map<ClassDef, List<WStatement>> classInitStatements = Maps.newHashMap();
@@ -998,13 +788,6 @@ public class ImTranslator {
 		throw new Error("not implemented");
 	}
 
-	public int getMaxTypeId(List<ClassDef> cs) {
-		int max = 0;
-		for (ClassDef c : cs) {
-			max = Math.max(max, getTypeId(c));
-		}
-		return max;
-	}
 
 
 	public int getEnumMemberId(EnumMember enumMember) {
@@ -1164,4 +947,63 @@ public class ImTranslator {
 	}
 
 
+	Map<StructureDef, ImClass> classForStructureDef = Maps.newHashMap();
+	public ImClass getClassFor(StructureDef s) {
+		ImClass c = classForStructureDef.get(s);
+		if (c == null) {
+			c = JassIm.ImClass(s, s.getName(), JassIm.ImVars(), JassIm.ImMethods(), Lists.<ImClass>newArrayList());
+			classForStructureDef.put(s, c);
+		}
+		return c;
+	}
+
+
+	Map<FuncDef, ImMethod> methodForFuncDef = Maps.newHashMap();
+	public ImMethod getMethodFor(FuncDef f) {
+		ImMethod m = methodForFuncDef.get(f);
+		if (m == null) {
+			ImFunction imFunc = getFuncFor(f);
+			m = JassIm.ImMethod(f, f.getName(), imFunc, Lists.<ImMethod>newArrayList(), false);
+			methodForFuncDef.put(f, m);
+		}
+		return m;
+	}
+	
+	public ClassManagementVars getClassManagementVarsFor(ImClass c) {
+		return getClassManagementVars().get(c);
+	}
+
+	
+	private Map<ImClass, ClassManagementVars> classManagementVars = null;
+	
+	public Map<ImClass, ClassManagementVars> getClassManagementVars() {
+		if (classManagementVars != null) {
+			return classManagementVars;
+		}
+		// create partitions, such that each sub-class and super-class are in 
+		// the same partition
+		Partitions<ImClass> p = new Partitions<>();
+		for (ImClass c : imProg.getClasses()) {
+			p.add(c);
+			for (ImClass sc : c.getSuperClasses()) {
+				p.union(c, sc);
+			}
+		}
+		// generate typeId variables
+		classManagementVars = Maps.newHashMap();
+		for (ImClass c : imProg.getClasses()) {
+			ImClass rep = p.getRep(c);
+			ClassManagementVars v = classManagementVars.get(rep);
+			if (v == null) {
+				v = new ClassManagementVars(rep, this);
+				classManagementVars.put(rep, v);
+			}
+			classManagementVars.put(c, v);
+		}
+		return classManagementVars;
+	}
+
+
+	
+	
 }

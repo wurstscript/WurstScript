@@ -23,8 +23,12 @@ import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.jassIm.ImAlloc;
 import de.peeeq.wurstscript.jassIm.ImCall;
+import de.peeeq.wurstscript.jassIm.ImClassRelatedExpr;
 import de.peeeq.wurstscript.jassIm.ImConst;
+import de.peeeq.wurstscript.jassIm.ImDealloc;
+import de.peeeq.wurstscript.jassIm.ImError;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
@@ -34,6 +38,8 @@ import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImIf;
 import de.peeeq.wurstscript.jassIm.ImLoop;
+import de.peeeq.wurstscript.jassIm.ImMemberAccess;
+import de.peeeq.wurstscript.jassIm.ImMethodCall;
 import de.peeeq.wurstscript.jassIm.ImNoExpr;
 import de.peeeq.wurstscript.jassIm.ImNull;
 import de.peeeq.wurstscript.jassIm.ImOperatorCall;
@@ -53,6 +59,8 @@ import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.jassIm.JassImElement;
+import de.peeeq.wurstscript.jassinterpreter.TestFailException;
+import de.peeeq.wurstscript.translation.imtranslation.Flatten.Result;
 import de.peeeq.wurstscript.translation.imtranslation.purity.Pure;
 import de.peeeq.wurstscript.types.WurstTypeBool;
 
@@ -161,6 +169,13 @@ public class Flatten {
 		return new Result(stmts);
 	}
 
+	public static Result flatten(ImError s, ImTranslator t, ImFunction f) {
+		Result msg = s.getMessage().flatten(t, f);
+		List<ImStmt> stmts = Lists.newArrayList(msg.stmts);
+		stmts.add(JassIm.ImError(msg.expr));
+		return new Result(stmts);
+	}
+	
 
 	public static Result flatten(ImIf s, ImTranslator t, ImFunction f) {
 		Result cond = s.getCondition().flatten(t, f);
@@ -361,6 +376,14 @@ public class Flatten {
 		}
 		return new MultiResult(stmts, newExprs);
 	}
+
+
+	public static Result flatten(ImClassRelatedExpr e,
+			ImTranslator translator, ImFunction f) {
+		throw new RuntimeException("Eliminate method calls before calling flatten.");
+	}
+
+
 		
 	
 }
