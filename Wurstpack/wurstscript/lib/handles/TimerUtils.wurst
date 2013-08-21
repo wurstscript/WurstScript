@@ -99,6 +99,9 @@ public module Periodic
 		t = getTimer()
 		t.setData(this castTo integer)
 		TimerStart(t, time, true, function timerCallback)
+		
+	ondestroy
+		stopPeriodic()
 
 
 

@@ -280,8 +280,8 @@ package Collider
 	
 					d = ((cl.speed + ns) /2) * ANIMATION_PERIOD
 					cl.speed = ns
-					Collider.newx= cl.fx.getX()+d*Cos(cl.dir.degrees())
-					Collider.newy= cl.fx.getY()+d*Sin(cl.dir.degrees())
+					Collider.newx= cl.fx.getX()+d*Cos(cl.dir.radians())
+					Collider.newy= cl.fx.getY()+d*Sin(cl.dir.radians())
 					cl.fx.setX( Collider.newx )
 					cl.fx.setY( Collider.newy )
 	

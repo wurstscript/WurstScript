@@ -3,6 +3,7 @@ import NoWurst
 import public Vectors
 import Angle
 import PrintingHelper
+import Terrain
 
 public function unit.getX() returns real
 	return GetUnitX(this)
@@ -182,13 +183,17 @@ public function createUnit(player p, int unitId, vec2 pos, angle facing) returns
 	return CreateUnit(p, unitId, pos.x, pos.y, facing.degrees())
 	
 public function createUnit(player p, int unitId, vec3 pos, angle facing) returns unit
-	return CreateUnit(p, unitId, pos.x, pos.y, facing.degrees())
+	return CreateUnit(p, unitId, pos.x, pos.y, facing.degrees()).setFlyHeight(pos.z - getTerrainZ(pos.x, pos.y), 0)
+
 	
 public function unit.issuePointOrder(string order, vec2 target)
 	IssuePointOrder(this, order, target.x, target.y)
 	
 public function unit.hasAbility(int id) returns boolean
 	return (GetUnitAbilityLevel(this, id) > 0)
+	
+public function unit.getAbilityLevel(int id) returns int
+	return GetUnitAbilityLevel(this, id)
 
 public function handle.getHandleId() returns int
 	return GetHandleId(this)

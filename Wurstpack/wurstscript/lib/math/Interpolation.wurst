@@ -1,6 +1,5 @@
 package Interpolation
 // Credits to BlinkyBoy
-
 /**Look at linear*/
 public function linear(vec2 start, vec2 end, real p) returns vec2
 	return vec2(linear(start.x, end.y, p), linear(start.y, end.y, p))

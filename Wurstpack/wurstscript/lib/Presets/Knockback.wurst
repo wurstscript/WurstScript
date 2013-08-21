@@ -21,7 +21,8 @@ constant boolean IGNORE_FLYING_UNITS			= true
 //The Knockback Struct
 public class Knockback 
 	use TimedLoop
-	use LinkedListModule
+
+	boolean autodestroy = true
 
 	private unit caster = null
 	private unit target = null
@@ -83,7 +84,7 @@ public class Knockback
 					
 		//print("yes")
 		//change the time which has been gone
-		timeOver += PERIOD
+		timeOver += ANIMATION_PERIOD
 		currentSpeed -= deceleration
 		movedDistance += currentSpeed
 		
@@ -120,8 +121,11 @@ public class Knockback
 		
 		//if the knockback ended because the target reached the end or the speed is smaller than 0
 		if currentSpeed <= 0 or movedDistance >= distance
-			//print("ende")
-			stopTimedLoop()
+			if autodestroy
+				stopTimedLoopAndDestroy()
+			else
+				stopTimedLoop()
+
 		
 		
 		
@@ -142,39 +146,24 @@ public class Knockback
 		cos = Cos(knockbackAngle * bj_DEGTORAD)
 		sin = Sin(knockbackAngle * bj_DEGTORAD)
 
-	
-	//use this method to check if a unit is being knocked back
-	static function isUnitKnockedBack( unit whichUnit ) returns boolean
-		thistype kb = Knockback.first
-		if kb == null
-			return false
-		
-		while kb != null
-			if kb.target == whichUnit
-				return true
-			
-			kb = kb.next
-
-		return false
 			
 	
 	//this method creates a new knockback
-	construct( unit caster, unit target, real distance, real time, real xyangle )
-		real speed = 2 * distance / ((time / PERIOD) + 1)
-		real deceleration = speed / (time / PERIOD)
+	construct( unit caster, unit target, real distance, real time, angle xyangle )
+		real speed = 2 * distance / ((time / ANIMATION_PERIOD) + 1)
+		real deceleration = speed / (time / ANIMATION_PERIOD)
 		int i = 0
 					
 		//variables
 		this.caster = caster
 		this.target = target
-		this.knockbackAngle = xyangle
+		this.knockbackAngle = xyangle.radians()
 		this.distance = distance
 		this.duration = time
 		this.currentSpeed = speed
 		this.deceleration = deceleration
-		this.knockbackAngle = xyangle
-		this.cos = Cos(this.knockbackAngle * bj_DEGTORAD)
-		this.sin = Sin(this.knockbackAngle * bj_DEGTORAD)
+		this.cos = Cos(this.knockbackAngle)
+		this.sin = Sin(this.knockbackAngle)
 		
 		this.isGround = not IsUnitType(this.target, UNIT_TYPE_FLYING)
 		
@@ -191,7 +180,6 @@ public class Knockback
 			
 		
 		//start the timer if the new instance is the only one
-		print("done")
 		startTimedLoop()
 
 
