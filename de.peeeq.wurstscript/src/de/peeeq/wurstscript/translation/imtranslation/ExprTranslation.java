@@ -40,22 +40,27 @@ import de.peeeq.wurstscript.ast.ExprRealVal;
 import de.peeeq.wurstscript.ast.ExprStringVal;
 import de.peeeq.wurstscript.ast.ExprSuper;
 import de.peeeq.wurstscript.ast.ExprThis;
+import de.peeeq.wurstscript.ast.ExprTypeId;
 import de.peeeq.wurstscript.ast.ExprUnary;
+import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionCall;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.NoExpr;
+import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
 import de.peeeq.wurstscript.jassIm.ImBoolVal;
+import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
+import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImOperatorCall;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImVar;
@@ -63,6 +68,7 @@ import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
+import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeFreeTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeInt;
 import de.peeeq.wurstscript.types.WurstTypeIntLiteral;
@@ -360,15 +366,18 @@ public class ExprTranslation {
 		List<Expr> arguments = Lists.newArrayList(e.getArgs());
 		boolean dynamicDispatch = false;
 
+		FunctionDefinition calledFunc = e.attrFuncDef();
+		
 		if (e.attrImplicitParameter() instanceof Expr) {
-			if (isCalledOnDynamicRef(e)) {
+			if (isCalledOnDynamicRef(e) && calledFunc instanceof FuncDef) {
 				dynamicDispatch = true;	
 			}
 			// add implicit parameter to front
+			// TODO why would I add the implicit parameter here, if it is
+			// not a dynamic dispatch?
 			arguments.add(0, (Expr) e.attrImplicitParameter());
 		}
 
-		FunctionDefinition calledFunc = e.attrFuncDef();
 		
 		// get real func def (override of module function)
 		boolean useRealFuncDef = true;
@@ -408,12 +417,14 @@ public class ExprTranslation {
 		}
 		ImFunction calledImFunc;
 		if (dynamicDispatch) {
-			calledImFunc = t.getDynamicDispatchFuncFor(calledFunc);
+			ImMethod method = t.getMethodFor((FuncDef) calledFunc);
+			ImExpr receiver = imArgs.remove(0);
+			return JassIm.ImMethodCall(e, method, receiver, imArgs, false);
 		} else {
 			calledImFunc = t.getFuncFor(calledFunc);
+			ImFunctionCall fc = ImFunctionCall(e, calledImFunc, imArgs, false);
+			return fc;
 		}
-		ImFunctionCall fc = ImFunctionCall(e, calledImFunc, imArgs, false);
-		return fc;
 	}
 
 	
@@ -458,38 +469,27 @@ public class ExprTranslation {
 
 	public static ImExpr translateIntern(ExprInstanceOf e, ImTranslator translator, ImFunction f) {
 		WurstType targetType = e.getTyp().attrTyp();
-		
-		Collection<ClassDef> subTypes = translator.getConcreteSubtypes(targetType);
-		if (subTypes.size() == 1) {
-			for (ClassDef st : subTypes) {
-				int id = translator.getTypeId(st);
-				ClassManagementVars cmv = translator.getClassManagementVarsFor(st);
-				return JassIm.ImOperatorCall(WurstOperator.EQ, JassIm.ImExprs(
-						JassIm.ImVarArrayAccess(cmv.typeId, e.getExpr().imTranslateExpr(translator, f)),
-						JassIm.ImIntVal(id)));
-			}
-			throw new Error();
-		} else {
-			ImVar tempVar = JassIm.ImVar(TypesHelper.imInt(), "tempInstanceOfExpr", false);
-			f.getLocals().add(tempVar);
+		if (targetType instanceof WurstTypeNamedScope) {
+			WurstTypeNamedScope t = (WurstTypeNamedScope) targetType;
+			ImClass clazz = translator.getClassFor((StructureDef) t.getDef());
+			return JassIm.ImInstanceof(e.getExpr().imTranslateExpr(translator, f), clazz);
+		}
+		throw new Error("Cannot compile instanceof " + targetType);
+	}
+
+	public static ImExpr translate(ExprTypeId e, ImTranslator translator, ImFunction f) {
+		WurstType leftType = e.getLeft().attrTyp();
+		if (leftType instanceof WurstTypeClass) {
+			WurstTypeClass wtc = (WurstTypeClass) leftType;
 			
-			ImExpr condition = JassIm.ImBoolVal(false);
-			for (ClassDef st : subTypes) {
-				int id = translator.getTypeId(st);
-				ClassManagementVars cmv = translator.getClassManagementVarsFor(st);
-				
-				ImOperatorCall check = JassIm.ImOperatorCall(WurstOperator.EQ, JassIm.ImExprs(
-						JassIm.ImVarArrayAccess(cmv.typeId, JassIm.ImVarAccess(tempVar)),
-						JassIm.ImIntVal(id)));
-				if (condition instanceof ImBoolVal) {
-					condition = check;
-				} else {
-					condition = JassIm.ImOperatorCall(WurstOperator.OR, JassIm.ImExprs(condition, check));
-				}
-				
+			ImClass c = translator.getClassFor(wtc.getClassDef());
+			if (wtc.isStaticRef()) {
+				return JassIm.ImTypeIdOfClass(c);
+			} else {
+				return JassIm.ImTypeIdOfObj(e.getLeft().imTranslateExpr(translator, f), c);
 			}
-			ImStmt evalExpr = JassIm.ImSet(e, tempVar, e.getExpr().imTranslateExpr(translator, f));
-			return JassIm.ImStatementExpr(JassIm.ImStmts(evalExpr), condition);
+		} else {
+			throw new Error("not implemented for " + leftType);
 		}
 	}
 

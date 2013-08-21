@@ -13,8 +13,12 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
+import de.peeeq.wurstscript.ast.StructureDef;
+import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImFunction;
+import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.JassIm;
@@ -24,61 +28,54 @@ public class InterfaceTranslator {
 
 	private InterfaceDef interfaceDef;
 	private ImTranslator translator;
-	private ClassManagementVars m;
+	private ImClass imClass;
 
 	public InterfaceTranslator(InterfaceDef interfaceDef, ImTranslator translator) {
 		this.interfaceDef = interfaceDef;
 		this.translator = translator;
-		m = translator.getClassManagementVarsFor(interfaceDef);
+		imClass = translator.getClassFor(interfaceDef);
 	}
 
 	public void translate() {
-		// TODO implement @castable
-
-		// get classes implementing this interface
-		List<ClassDef> instances = Lists.newArrayList(translator.getInterfaceInstances(interfaceDef));
-
-		// sort instances by typeid
-		Collections.sort(instances, new TypeIdComparator(translator));
-
-		// create dispatch methods
-		for (FuncDef f: interfaceDef.getMethods()) {
-			translateInterfaceFuncDef(interfaceDef, instances, f);
-		}
-	}
-
-	private void translateInterfaceFuncDef(InterfaceDef interfaceDef, List<ClassDef> instances, FuncDef funcDef) {
-		AstElement trace = funcDef;
-		ImFunction f = translator.getDynamicDispatchFuncFor(funcDef);
-		Map<ClassDef, FuncDef> instances2 = translator.getClassesWithImplementation(instances, funcDef);
-		if (instances2.size() > 0) {
-			int maxTypeId = translator.getMaxTypeId(instances);
-			f.getBody().addAll(translator.createDispatch(instances2, funcDef, f, maxTypeId, new TypeIdGetterImpl()));
-		}
-		if (!funcDef.attrHasEmptyBody()) {
-			// TODO add default implementation
-			f.getBody().addAll(translator.translateStatements(f, funcDef.getBody()));
-		} else {
-			// create dynamic message when not matched:
-			String msg = "ERROR: invalid type for interface dispatch when calling " + interfaceDef.getName() + "." + funcDef.getName();
-			
-			f.getBody().add(JassIm.ImFunctionCall(trace, translator.getDebugPrintFunc(), ImExprs(ImStringVal(msg)), false));
-			if (!(funcDef.attrTyp() instanceof WurstTypeVoid)) {
-				// add return statement
-				ImType type = f.getReturnType();
-				ImExpr def = translator.getDefaultValueForJassType(type);
-				f.getBody().add(JassIm.ImReturn(trace, def));
+		translator.getImProg().getClasses().add(imClass);
+		
+		// set super-classes
+		for (TypeExpr ext : interfaceDef.getExtendsList()) {
+			if (ext.attrTypeDef() instanceof StructureDef) {
+				StructureDef sup = (StructureDef) ext.attrTypeDef();
+				imClass.getSuperClasses().add(translator.getClassFor(sup));
 			}
 		}
-	}
-
-	
-	private class TypeIdGetterImpl implements TypeIdGetter {
-		@Override
-		public ImExpr get(ImVar thisVar) {
-			return JassIm.ImVarArrayAccess(m.typeId, JassIm.ImVarAccess(thisVar));
+		
+		// create dispatch methods
+		for (FuncDef f: interfaceDef.getMethods()) {
+			translateInterfaceFuncDef(f);
 		}
 	}
-	
+
+	private void translateInterfaceFuncDef(FuncDef f) {
+		ImMethod imMeth = translator.getMethodFor(f);
+		ImFunction imFunc = translator.getFuncFor(f);
+		imClass.getMethods().add(imMeth);
+		
+		// translate implementation
+		if (f.attrHasEmptyBody()) {
+			imMeth.setIsAbstract(true);
+		} else {
+			// there is a default implementation
+			imFunc.getBody().addAll(translator.translateStatements(imFunc, f.getBody()));
+		}
+		
+		
+		List<ClassDef> subClasses = Lists.newArrayList(translator.getInterfaceInstances(interfaceDef));
+		// TODO also add extended interfaces
+		
+		// set sub methods
+		Map<ClassDef, FuncDef> subClasses2 = translator.getClassesWithImplementation(subClasses, f);
+		for (FuncDef subM : subClasses2.values()) {
+			imMeth.getSubMethods().add(translator.getMethodFor(subM));
+		}
+		
+	}
 
 }

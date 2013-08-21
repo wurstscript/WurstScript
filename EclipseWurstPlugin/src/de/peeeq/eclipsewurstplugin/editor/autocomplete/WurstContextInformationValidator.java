@@ -25,12 +25,18 @@ public class WurstContextInformationValidator implements IContextInformationVali
 	public boolean isContextInformationValid(int offset) {
 		try {
 			IDocument doc = viewer.getDocument();
-			IRegion lineInfo = doc.getLineInformationOfOffset(offset);
-			if (offset < lineInfo.getOffset()) return false;
-			if (offset > lineInfo.getOffset() + lineInfo.getLength()) return false;
+			IRegion lineInfo = doc.getLineInformationOfOffset(installOffset);
+			if (offset < installOffset) {
+				// cursor left of the initial parenthesis
+				return false;
+			}
+			if (offset > lineInfo.getOffset() + lineInfo.getLength()) {
+				//cursor in next line
+				return false;
+			}
 			String line = doc.get(lineInfo.getOffset(), lineInfo.getLength());
 			
-			
+			// count parenthesis
 			int parenCount = 0;
 			int parenInit = 0;
 			int parenNow = 0;
@@ -49,11 +55,12 @@ public class WurstContextInformationValidator implements IContextInformationVali
 					parenNow = parenCount;
 				}
 			}
-			if (parenNow < parenInit) {
-				return false;
-			} else {
-				return true;
-			}
+			return parenNow >= parenInit;
+//			if (parenNow < parenInit) {
+//				return false;
+//			} else {
+//				return true;
+//			}
 		} catch (BadLocationException e) {
 		}
 		return false;

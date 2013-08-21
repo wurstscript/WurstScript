@@ -53,6 +53,7 @@ import de.peeeq.wurstscript.jassIm.ImConst;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImIf;
+import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImStatementExpr;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmts;
@@ -102,8 +103,8 @@ public class StmtTranslation {
 			// TODO destroy interfaces?
 			throw new CompileError(s.getSource(), "cannot destroy object of type " + typ);
 		}
-		ImFunction destroyFunc = t.getDestroyFuncFor(classDef);
-		return ImFunctionCall(s, destroyFunc, ImExprs(s.getDestroyedObj().imTranslateExpr(t, f)), false);
+		ImMethod destroyFunc = t.destroyMethod.getFor(classDef);
+		return JassIm.ImMethodCall(s, destroyFunc, s.getDestroyedObj().imTranslateExpr(t, f), ImExprs(), false);
 	}
 
 

@@ -162,6 +162,7 @@ Expr =
 	| ExprNewObject(de.peeeq.wurstscript.parser.WPos source, String typeName, TypeExprList typeArgs, Arguments args)
 	| ExprCast(de.peeeq.wurstscript.parser.WPos source, TypeExpr typ, Expr expr)
 	| ExprInstanceOf(de.peeeq.wurstscript.parser.WPos source, TypeExpr typ, Expr expr)
+	| ExprTypeId(de.peeeq.wurstscript.parser.WPos source, Expr left)
 	| ExprAtomic
 	| ExprIncomplete(de.peeeq.wurstscript.parser.WPos source, String errorMessage)
 	

@@ -39,6 +39,7 @@ import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
 import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.AssertProperty;
+import de.peeeq.wurstscript.translation.imtranslation.EliminateClasses;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.NotNullList;
@@ -313,6 +314,15 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		
 		printDebugImProg("./test-output/im " + stage++ + ".im");
 		
+		
+		
+		// eliminate classes
+		new EliminateClasses(imTranslator, imProg).eliminateClasses();
+
+		printDebugImProg("./test-output/im " + stage++ + "_classesEliminated.im");
+		
+		
+		// inliner
 		ImOptimizer optimizer = new ImOptimizer(imTranslator);
 		
 		
@@ -327,6 +337,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		
 		printDebugImProg("./test-output/test_opt.im");
 	
+		
+		
 		// eliminate tuples
 		imProg.eliminateTuples(imTranslator);
 		imTranslator.assertProperties(AssertProperty.NOTUPLES);

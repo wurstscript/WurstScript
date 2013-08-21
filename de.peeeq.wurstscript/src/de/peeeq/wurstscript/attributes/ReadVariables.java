@@ -17,6 +17,7 @@ import de.peeeq.wurstscript.ast.ExprRealVal;
 import de.peeeq.wurstscript.ast.ExprStringVal;
 import de.peeeq.wurstscript.ast.ExprSuper;
 import de.peeeq.wurstscript.ast.ExprThis;
+import de.peeeq.wurstscript.ast.ExprTypeId;
 import de.peeeq.wurstscript.ast.ExprUnary;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
@@ -135,6 +136,10 @@ public class ReadVariables {
 
 	public static ImmutableList<NameDef> calculate(ExprFuncRef exprFuncRef) {
 		return ImmutableList.emptyList();
+	}
+
+	public static ImmutableList<NameDef> calculate(ExprTypeId e) {
+		return e.getLeft().attrReadVariables();
 	}
 
 

@@ -6,9 +6,13 @@ import java.util.ListIterator;
 import com.google.common.base.Preconditions;
 
 import de.peeeq.wurstscript.WurstOperator;
+import de.peeeq.wurstscript.jassIm.ImAlloc;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImCall;
+import de.peeeq.wurstscript.jassIm.ImClassRelatedExpr;
 import de.peeeq.wurstscript.jassIm.ImConst;
+import de.peeeq.wurstscript.jassIm.ImDealloc;
+import de.peeeq.wurstscript.jassIm.ImError;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
@@ -17,6 +21,8 @@ import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImIf;
 import de.peeeq.wurstscript.jassIm.ImLoop;
+import de.peeeq.wurstscript.jassIm.ImMemberAccess;
+import de.peeeq.wurstscript.jassIm.ImMethodCall;
 import de.peeeq.wurstscript.jassIm.ImNoExpr;
 import de.peeeq.wurstscript.jassIm.ImOperatorCall;
 import de.peeeq.wurstscript.jassIm.ImProg;
@@ -147,6 +153,10 @@ public class EliminateTuples {
 		}
 	}
 
+	/**
+	 * eliminates tuples in all subexpressions.
+	 * Use this for all ast-elements which are not directly related to tuple-elimination 
+	 */
 	public static JassImElement eliminateTuples2(JassImElement e, ImTranslator translator, ImFunction f) {
 		for (int i=0; i<e.size(); i++) {
 			JassImElement c = e.get(i);
@@ -188,7 +198,9 @@ public class EliminateTuples {
 		return (ImStmt) eliminateTuples2(e, translator, f);
 	}
 	
-	
+	public static ImStmt eliminateTuples(ImError e, ImTranslator translator, ImFunction f) {
+		return (ImStmt) eliminateTuples2(e, translator, f);
+	}
 	
 	public static ImStmt eliminateTuples(ImExpr e, ImTranslator translator, ImFunction f) {
 		ImExpr e2 = e.eliminateTuplesExpr(translator, f);
@@ -242,7 +254,7 @@ public class EliminateTuples {
 				statements.add(JassIm.ImSet(e.getTrace(), vars.get(i), copyExpr(exprs.get(i))));
 			}	
 		} else {
-			throw new Error("unhandled case: " + right1);
+			throw new Error("unhandled case: " + right1.getClass());
 		}
 		return JassIm.ImStatementExpr(statements, JassIm.ImNull());
 	}
@@ -314,7 +326,7 @@ public class EliminateTuples {
 
 	private static ImExpr elimStatementExpr(ImStmts statements, ImExpr expr,
 			ImTranslator translator, ImFunction f) {
-		if (expr instanceof ImStatementExpr) {
+		while (expr instanceof ImStatementExpr) {
 			ImStatementExpr right = (ImStatementExpr) expr;
 			List<ImStmt> ss = right.getStatements().removeAll();
 			for (ImStmt s : ss) {
@@ -678,6 +690,14 @@ public class EliminateTuples {
 		statements.add(JassIm.ImReturn(e.attrTrace(), result));
 		return JassIm.ImStatementExpr(statements, JassIm.ImNull());
 	}
+
+
+
+	public static ImExpr eliminateTuplesExpr(ImClassRelatedExpr e,
+			ImTranslator translator, ImFunction f) {
+		throw new RuntimeException("Must execute method elemination first.");
+	}
+
 
 	
 }

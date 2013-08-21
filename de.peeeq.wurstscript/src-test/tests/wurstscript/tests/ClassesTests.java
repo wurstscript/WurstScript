@@ -259,7 +259,7 @@ public class ClassesTests extends WurstScriptTest {
 				"			destroy cs[j]",
 				"		for int k = 0 to 6000",
 				"			cs[k] = new C()",
-				"			println(I2S(cs[k] castTo int))",
+				"			println(I2S(k) + \" --> \"  +I2S(cs[k] castTo int))",
 				"		if cs[6000] castTo int <= 6001",
 				"			testSuccess()",
 				"endpackage"
@@ -342,6 +342,25 @@ public class ClassesTests extends WurstScriptTest {
 				"	init",
 				"		A b = new B()",
 				"		if b.foo() == 8",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void override_valid2() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	class A",
+				"		function foo() returns int",
+				"			return 7",
+				"	class B extends A",
+				"		override function foo() returns int",
+				"			return 8",
+				"	init",
+				"		A b = new A()",
+				"		if b.foo() == 7",
 				"			testSuccess()",
 				"endpackage"
 			);

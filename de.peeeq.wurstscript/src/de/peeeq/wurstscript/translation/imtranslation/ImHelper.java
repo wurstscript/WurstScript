@@ -5,6 +5,11 @@ import java.util.Map;
 
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WParameters;
+import de.peeeq.wurstscript.intermediateLang.ILconstBool;
+import de.peeeq.wurstscript.intermediateLang.ILconstInt;
+import de.peeeq.wurstscript.intermediateLang.ILconstNull;
+import de.peeeq.wurstscript.intermediateLang.ILconstReal;
+import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImNoExpr;
 import de.peeeq.wurstscript.jassIm.ImSet;
 import de.peeeq.wurstscript.jassIm.ImSetArray;
@@ -168,5 +173,18 @@ public class ImHelper {
 			}
 		}
 		throw new Error("Element " + oldElem + " not found in parent. This should never happen ;)");
+	}
+
+	public static ImExpr defaultValueForType(ImSimpleType t) {
+		String type = t.getTypename();
+		if (type.equals("integer")) {
+			return JassIm.ImIntVal(0);
+		}else if (type.equals("boolean")) {
+			return JassIm.ImBoolVal(false);
+		}else if (type.equals("real")) {
+			return JassIm.ImRealVal("0.");
+		}else {
+			return JassIm.ImNull();
+		}
 	}
 }

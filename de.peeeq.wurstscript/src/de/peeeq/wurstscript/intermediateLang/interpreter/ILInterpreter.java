@@ -49,6 +49,11 @@ public class ILInterpreter {
 		if (f.isNative()) {
 			return runBuiltinFunction(globalState, f, args);
 		}
+		
+		if (f.getParameters().size() != args.length) {
+			throw new Error("wrong number of parameters when calling func " + f.getName());
+		}
+		
 		LocalState localState = new LocalState();
 		int i = 0;
 		for (ImVar p : f.getParameters()) {

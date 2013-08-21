@@ -3,7 +3,9 @@ package de.peeeq.wurstscript.translation.imtojass;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
+import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImFunction;
+import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImTupleArrayType;
@@ -91,13 +93,19 @@ public class ImAttributes {
 	}
 
 
-	public static ImProg getProg(JassImElement e) {
-		while (e != null) {
+	public static ImProg getProg(JassImElement el) {
+		JassImElement e = el;
+		while (e  != null) {
 			if (e instanceof ImProg) {
 				return (ImProg) e;
 			}
 			e = e.getParent();
 		}
-		throw new Error("Element "+ e + " not attached to root.");
+		throw new Error("Element "+ el + " not attached to root.");
+	}
+
+
+	public static ImClass attrClass(ImMethod m) {
+		return (ImClass) m.getParent().getParent();
 	}
 }

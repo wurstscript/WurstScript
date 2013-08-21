@@ -33,10 +33,15 @@ import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.OptExpr;
+import de.peeeq.wurstscript.ast.StructureDef;
+import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
+import de.peeeq.wurstscript.jassIm.ImMethod;
+import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImSet;
 import de.peeeq.wurstscript.jassIm.ImSetArray;
 import de.peeeq.wurstscript.jassIm.ImSetArrayTuple;
@@ -51,6 +56,7 @@ import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstTypeClass;
+import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
@@ -61,13 +67,14 @@ public class ClassTranslator {
 	private ClassDef classDef;
 	private ImTranslator translator;
 //	/** list of statements to initialize a new object **/
-//	final private List<WStatement> initStatements;
 	final private List<Pair<ImVar, OptExpr>> dynamicInits;
-	private ClassManagementVars m;
+	private ImClass imClass;
+	private ImProg prog;
 
 	public ClassTranslator(ClassDef classDef, ImTranslator translator) {
 		this.classDef = classDef;
 		this.translator = translator;
+		this.prog = translator.getImProg();
 //		initStatements = translator.getInitStatement(classDef);
 		dynamicInits = translator.getDynamicInits(classDef);
 	}
@@ -81,50 +88,67 @@ public class ClassTranslator {
 	 * translates the given classDef
 	 */
 	private void translate() {
+		imClass = translator.getClassFor(classDef);
+		prog.getClasses().add(imClass);
+		
+		addSuperClasses();
+		
 		List<ClassDef> subClasses = Lists.newArrayList(translator.getSubClasses(classDef));
-		// sort subclasses by typeid
-		Collections.sort(subClasses, new TypeIdComparator(translator));
 		
 		// order is important here
-		createClassManagementVars();
 		translateMethods(classDef, subClasses);
 		translateVars(classDef);
 		translateConstructors();
 		createOnDestroyMethod();
-		createDestroyMethod();
+		createDestroyMethod(subClasses);
 
 	}
 
 
-	private void createDestroyMethod() {
-		ImFunction f = translator.getDestroyFuncFor(classDef);
-		OnDestroyDef trace = classDef.getOnDestroy();
-		ImVar thisVar = ImVar(JassIm.ImSimpleType("integer"), "this", false);
-		f.getParameters().add(thisVar);
-		
-		ImStmts addTo = f.getBody();
-		for (ClassDef sc :  translator.getSubClasses(classDef)) {
-			if (!hasOwnDestroy(sc, classDef)) {
-				
-			}
-			ImStmts thenBlock = ImStmts();
-			ImStmts elseBlock = ImStmts();
-			addTo.add(ImIf(trace, ImOperatorCall(WurstOperator.EQ, 
-						ImExprs(ImVarArrayAccess(m.typeId, ImVarAccess(thisVar)), 
-								ImIntVal(translator.getTypeId(sc)))), 
-					thenBlock, elseBlock));
-			
-			ImFunction scOnDestroy = translator.getFuncFor(sc.getOnDestroy());
-			thenBlock.add(ImFunctionCall(trace, 
-					scOnDestroy, 
-					ImExprs(ImVarAccess(thisVar)), false));
-			addTo = elseBlock;
+	private void addSuperClasses() {
+		if (classDef.getExtendedClass() instanceof TypeExpr) {
+			TypeExpr extended = (TypeExpr) classDef.getExtendedClass();
+			addSuperClass(extended);
 		}
-		ImFunction onDestroy = translator.getFuncFor(classDef.getOnDestroy());
-		addTo.add(ImFunctionCall(trace, 
-				onDestroy, 
+		for (TypeExpr impl: classDef.getImplementsList()) {
+			addSuperClass(impl);
+		}
+		
+	}
+
+	private void addSuperClass(TypeExpr extended) {
+		if (extended.attrTypeDef() instanceof StructureDef) {
+			StructureDef sc = (StructureDef) extended.attrTypeDef();
+			imClass.getSuperClasses().add(translator.getClassFor(sc));
+		}
+	}
+
+	private void createDestroyMethod(List<ClassDef> subClasses) {
+		ImMethod m = translator.destroyMethod.getFor(classDef);
+		imClass.getMethods().add(m);
+		ImFunction f = translator.destroyFunc.getFor(classDef);
+		
+		// set sub methods
+		for (ClassDef sc : subClasses) {
+			ImMethod dm = translator.destroyMethod.getFor(sc);
+			if (hasOwnDestroy(sc, classDef)) {
+				m.getSubMethods().add(dm);
+			}
+		}
+		
+		AstElement trace = classDef.getOnDestroy();
+		
+		ImVar thisVar = f.getParameters().get(0);
+		
+		// call ondestroy methods
+		ClassDef c = classDef;
+		ImFunction scOnDestroy = translator.getFuncFor(c.getOnDestroy());
+		f.getBody().add(ImFunctionCall(trace, 
+				scOnDestroy, 
 				ImExprs(ImVarAccess(thisVar)), false));
-		addDeallocateCode(f, thisVar);	
+		
+		// deallocate
+		f.getBody().add(JassIm.ImDealloc(imClass, JassIm.ImVarAccess(thisVar)));
 	}
 
 	/**
@@ -140,26 +164,6 @@ public class ClassTranslator {
 		} else {
 			return true;
 		}
-	}
-
-	private void addDeallocateCode(ImFunction f, ImVar thisVar) {
-		f.getBody().add(		
-		// if nextFree[this] < 0 then
-			ImIf(emptyTrace, ImOperatorCall(WurstOperator.LESS, ImExprs(ImVarArrayAccess(m.nextFree, ImVarAccess(thisVar)), ImIntVal(0))), 
-				// then
-				ImStmts(
-						// nextFree[this] = firstFree
-						ImSetArray(emptyTrace, m.nextFree, ImVarAccess(thisVar), ImVarAccess(m.firstFree)),
-						// firstFree = this				
-						ImSet(emptyTrace, m.firstFree, ImVarAccess(thisVar))
-						), 
-				// else
-				ImStmts(
-						// print error message: double free
-						ImFunctionCall(emptyTrace, translator.getDebugPrintFunc(), 
-								ImExprs(ImStringVal("Double Free of " + classDef.getName())), false)
-						)));
-		
 	}
 
 	private void createOnDestroyMethod() {
@@ -244,18 +248,6 @@ public class ClassTranslator {
 
 	}
 
-//	private void collectModuleInitializers(ModuleInstanciation mi) {
-//		for (ModuleInstanciation mi2 : mi.getModuleInstanciations()) {
-//			collectModuleInitializers(mi2);
-//		}
-//		for (ConstructorDef c : mi.getConstructors()) {
-//			initStatements.addAll(c.getBody());
-//		}
-//	}
-
-	private void createClassManagementVars() {
-		m = translator.getClassManagementVarsFor(classDef);
-	}
 
 	private void translateVars(ClassOrModuleInstanciation c) {
 		for (GlobalVarDef v : c.getVars()) {
@@ -289,71 +281,33 @@ public class ClassTranslator {
 	}
 
 	public void translateMethod(FuncDef s, List<ClassDef> subClasses) {
-		if (!s.attrIsStatic()) {
-			createDynamicDispatchMethod(s, subClasses);
-		}
-		createStaticCallFunc(s);
-	}
-
-	private ImFunction createDynamicDispatchMethod(FuncDef funcDef, List<ClassDef> subClasses) {
-		ImFunction f = translator.getDynamicDispatchFuncFor(funcDef);
-		ImFunction staticF = translator.getFuncFor(funcDef);
-		
-		
-		if (f.getParameters().isEmpty()) {
-			funcDef.addError("meh");
-		}
-		if (translator.debugLevel.methodDispatchChecks) {
-			AstElement trace = funcDef;
-			f.getBody().add(JassIm.ImIf(trace, JassIm.ImOperatorCall(WurstOperator.LESS_EQ, 
-					JassIm.ImExprs(ImVarAccess(f.getParameters().get(0)), ImIntVal(0))), 
-						ImStmts(ImFunctionCall(trace, translator.getDebugPrintFunc(), 
-								ImExprs(ImStringVal("Nullpointer dereference when calling " + Utils.printElementWithSource(funcDef))), false)), 
-						ImStmts(
-								JassIm.ImIf(trace, JassIm.ImOperatorCall(WurstOperator.GREATER_EQ, 
-										JassIm.ImExprs(ImVarArrayAccess(m.nextFree, ImVarAccess(f.getParameters().get(0))), ImIntVal(0))), 
-											ImStmts(ImFunctionCall(trace, translator.getDebugPrintFunc(), 
-													ImExprs(ImStringVal("Calling " + Utils.printElementWithSource(funcDef) + " on a destroyed object.")), false)), 
-													ImStmts()))
-								
-								));
-		}
-		
-		Map<ClassDef, FuncDef> subClasses2 = translator.getClassesWithImplementation(subClasses, funcDef);
-		if (subClasses2.size() > 0) {
-			int maxTypeId = translator.getMaxTypeId(subClasses);
-			f.getBody().addAll(translator.createDispatch(subClasses2, funcDef, f, maxTypeId, new TypeIdGetterImpl()));
-		}
-		ImExprs arguments = ImExprs();
-		for (int i=0; i<f.getParameters().size(); i++) {
-			arguments.add(ImVarAccess(f.getParameters().get(i)));
-		}
-		if (f.getReturnType() instanceof ImVoid) {
-			f.getBody().add(JassIm.ImFunctionCall(funcDef, staticF, arguments, false));
+		ImFunction f = createStaticCallFunc(s);
+		if (s.attrIsStatic()) {
+			// static method
 		} else {
-			f.getBody().add(JassIm.ImReturn(funcDef, JassIm.ImFunctionCall(funcDef, staticF, arguments, false)));
+			// dynamic method
+			ImMethod m = translator.getMethodFor(s);
+			imClass.getMethods().add(m);
+			m.setImplementation(f);
+			m.setIsAbstract(s.attrIsAbstract());
+			// set sub methods
+			Map<ClassDef, FuncDef> subClasses2 = translator.getClassesWithImplementation(subClasses, s);
+			for (FuncDef subM : subClasses2.values()) {
+				m.getSubMethods().add(translator.getMethodFor(subM));
+			}
 		}
-		
-		
-		return f;
 	}
 
-	private void createStaticCallFunc(FuncDef funcDef) {
+	private ImFunction createStaticCallFunc(FuncDef funcDef) {
 		ImFunction f = translator.getFuncFor(funcDef);
 		f.getBody().addAll(translator.translateStatements(f, funcDef.getBody()));
 		// TODO add return for abstract function
 		if (funcDef.attrIsAbstract() && !(funcDef.attrReturnType() instanceof WurstTypeVoid)) {
 			f.getBody().add(ImReturn(funcDef, funcDef.attrReturnType().getDefaultValue()));
 		}
+		return f;
 	}
 
-
-	private class TypeIdGetterImpl implements TypeIdGetter {
-		@Override
-		public ImExpr get(ImVar thisVar) {
-			return JassIm.ImVarArrayAccess(m.typeId, JassIm.ImVarAccess(thisVar));
-		}
-	}
 
 	public void translateConstructor(ConstructorDef constr) {
 		createNewFunc(constr);
@@ -377,28 +331,9 @@ public class ClassTranslator {
 		ImVar thisVar = JassIm.ImVar(TypesHelper.imInt(), "this", false);
 		varReplacements.put(translator.getThisVar(constr), thisVar);
 		f.getLocals().add(thisVar);
-		f.getBody().add(
-		// if firstFree > 0
-				ImIf(trace, ImOperatorCall(WurstOperator.GREATER, ImExprs(ImVarAccess(m.firstFree), ImIntVal(0))),
-				// then
-					ImStmts(
-						// this = firstFree
-						ImSet(trace, thisVar, ImVarAccess(m.firstFree)),
-						// firstFree = nextFree[thisVar]
-								ImSet(trace, m.firstFree, ImVarArrayAccess(m.nextFree, ImVarAccess(thisVar)))),
-				// else
-					ImStmts(
-						// maxindex = maxindex + 1
-						ImSet(emptyTrace, m.maxIndex, ImOperatorCall(WurstOperator.PLUS, ImExprs(ImVarAccess(m.maxIndex), ImIntVal(1)))),
-						// this = maxindex
-								ImSet(trace, thisVar, ImVarAccess(m.maxIndex))))
-		// endif
-				);
-		// nextFree[thisVar] = -1
-		f.getBody().add(ImSetArray(trace, m.nextFree, ImVarAccess(thisVar), ImIntVal(-1)));
 		
-		// set typeId:
-		f.getBody().add(ImSetArray(trace, m.typeId, ImVarAccess(thisVar), ImIntVal(translator.getTypeId(classDef))));
+		// allocate class
+		f.getBody().add(ImSet(trace, thisVar, JassIm.ImAlloc(imClass)));
 		
 		// call user defined constructor code:
 		ImFunction constrFunc = translator.getConstructFunc(constr);

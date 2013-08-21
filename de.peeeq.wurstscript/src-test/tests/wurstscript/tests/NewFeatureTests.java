@@ -231,9 +231,11 @@ public class NewFeatureTests extends WurstScriptTest {
 				);
 	}
 	
+	
+	
 	@Test
 	public void testTypeId2() {
-		testAssertErrorsLines(false, "cannot assign",
+		testAssertErrorsLines(false, "cannot use typeId",
 				"package Test",
 				"class Blub",
 				"	int i = 0",
@@ -243,7 +245,22 @@ public class NewFeatureTests extends WurstScriptTest {
 				);
 	}
 	
-
+	@Test
+	public void testTypeId3() {
+		testAssertOkLines(true,
+				"package Test",
+				"native testSuccess()",
+				"class Blub",
+				"	int i = 0",
+				"class Foo extends Blub",
+				"	int j = 0",
+				"init",
+				"	Blub b = new Blub()",
+				"	Blub f = new Foo()",
+				"	if b.typeId == Blub.typeId and f.typeId == Foo.typeId",
+				"		testSuccess()"
+				);
+	}
 	
 
 }
