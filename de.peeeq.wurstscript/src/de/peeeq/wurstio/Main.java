@@ -5,9 +5,11 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.logging.FileHandler;
+import java.util.logging.Formatter;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 import javax.swing.JOptionPane;
 
@@ -44,6 +46,8 @@ public class Main {
 		}
 		setUpFileLogging();
 		
+		
+		
 		//		JOptionPane.showMessageDialog(null , "time to connect profiler ^^");
 		SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy hh:mm:ss");
 		Date myDate = new Date();
@@ -69,6 +73,8 @@ public class Main {
 			
 			if (runArgs.isGui()) {
 				gui = new WurstGuiImpl();
+				// use the error reporting with GUI
+				ErrorReporting.instance = new ErrorReportingIO();
 			} else {
 				gui = new WurstGuiCliImpl();
 			}
@@ -205,6 +211,7 @@ public class Main {
 			String logFile = "logs/test.log";
 			new File(logFile).mkdirs();
 			Handler handler = new FileHandler(logFile, Integer.MAX_VALUE, 20);
+			handler.setFormatter(new SimpleFormatter());
 			WLogger.setHandler(handler);
 			WLogger.setLevel(Level.INFO);
 		} catch (SecurityException e) {

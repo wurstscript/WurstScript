@@ -7,7 +7,7 @@ import java.util.logging.Logger;
 public class WLogger {
 
 //	static Logger logger;
-	static Logger logger;
+	private static Logger logger;
 
 	static {
 			logger = Logger.getLogger("wurstlog");
