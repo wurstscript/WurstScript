@@ -7,7 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.antlr.runtime.Token;
+import org.antlr.v4.runtime.Token;
+
 
 public class Program {
 
@@ -78,8 +79,8 @@ public class Program {
 		return packageName;
 	}
 	
-	public void addAttribute(List<Parameter> parameters, String typ, String attr, String returnType, String implementedBy, Token doc) {
-		String docStr = doc != null ? doc.getText() : "";
+	public void addAttribute(List<Parameter> parameters, String typ, String attr, String returnType, String implementedBy, String doc) {
+		String docStr = doc != null ? doc : "";
 		attrDefs.add(new AttributeDef(parameters, typ, attr, docStr, returnType, implementedBy));
 	}
 

@@ -25,7 +25,7 @@ import java.util.logging.Logger;
 public class About extends javax.swing.JDialog {
     final URI uri;
     final static String homepage = "http://peq.github.com/WurstScript/";
-    public final static String version = "0.0013a";
+    public final static String version = "0.0014";
     final static String authors = "peq & Frotty";
 
     /** Creates new form About */

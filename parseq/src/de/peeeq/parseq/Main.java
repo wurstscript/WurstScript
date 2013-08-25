@@ -4,14 +4,13 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 
-import org.antlr.runtime.ANTLRFileStream;
-import org.antlr.runtime.CharStream;
-import org.antlr.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.ANTLRFileStream;
+import org.antlr.v4.runtime.CommonTokenStream;
+
 
 import de.peeeq.parseq.ast.Program;
 import de.peeeq.parseq.parser.ParseqAntlrParserLexer;
 import de.peeeq.parseq.parser.ParseqAntlrParserParser;
-import de.peeeq.parseq.parser.ParseqScanner;
 
 public class Main {
 
@@ -32,17 +31,24 @@ public class Main {
 			//			ParseqScanner scanner = new ParseqScanner(new FileInputStream(inputFile));
 //			ParseqParser parser = new ParseqParser(scanner);
 //			Program prog = parser.parse();
+			
+			
 			ParseqAntlrParserLexer lexer = new ParseqAntlrParserLexer(new ANTLRFileStream(inputFile));
-			CommonTokenStream tokens = new CommonTokenStream();
-			tokens.setTokenSource(lexer);
+			CommonTokenStream tokens = new CommonTokenStream(lexer);
 			ParseqAntlrParserParser parser = new ParseqAntlrParserParser(tokens);
-			Program prog = parser.spec();
-			for (String error : parser.getErrors()) {
-				System.err.println(error);
-			}
-			if (parser.getErrors().size() > 0) {
-				return;
-			}
+			Program prog = parser.spec().prog;
+			
+//			ParseqAntlrParserLexer lexer = new ParseqAntlrParserLexer(new ANTLRFileStream(inputFile));
+//			CommonTokenStream tokens = new CommonTokenStream();
+//			tokens.setTokenSource(lexer);
+//			ParseqAntlrParserParser parser = new ParseqAntlrParserParser(tokens);
+//			Program prog = parser.spec();
+//			for (String error : parser.getErrors()) {
+//				System.err.println(error);
+//			}
+//			if (parser.getErrors().size() > 0) {
+//				return;
+//			}
 			Generator gen = new Generator(prog, outputFolder);
 			gen.generate();
 		} catch (Throwable t) {

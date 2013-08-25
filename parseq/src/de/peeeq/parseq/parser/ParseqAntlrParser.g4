@@ -2,17 +2,16 @@ grammar ParseqAntlrParser;
 
 	
 
-@lexer::header {
-	package de.peeeq.parseq.parser;	
-}
-
 @header {
 	package de.peeeq.parseq.parser;	
 	import de.peeeq.parseq.ast.*;
 	import com.google.common.collect.Lists;
+	import java.util.ArrayList;
+	import java.util.List;
 }
 
 @members {
+/* TODO
     private List<String> errors = new ArrayList<String>();
     public void displayRecognitionError(String[] tokenNames,
                                         RecognitionException e) {
@@ -24,6 +23,7 @@ grammar ParseqAntlrParser;
     public List<String> getErrors() {
         return errors;
     }
+*/
 }
 
 
@@ -31,7 +31,7 @@ grammar ParseqAntlrParser;
 spec returns [Program prog]:
 	'package' p=qID
 	{
-	 $prog = new Program(p);
+	 $prog = new Program($p.text);
 	}
 	'abstract syntax:'
 	element[$prog]*
@@ -49,7 +49,7 @@ element[Program prog]:
 contructorDef[Program prog] returns [ConstructorDef c]:
 	name=ID 
 	{
-		$c = new ConstructorDef(name.getText());
+		$c = new ConstructorDef($name.text);
 		prog.addConstructorDef($c);		
 	}
 	'(' (paramDef[$c] (',' paramDef[$c] )*)? ')'
@@ -62,29 +62,29 @@ paramDef[ConstructorDef c]:
 	('&' {ref = true;})?
 	 t=javaType n=ID 
 	{ 
-		$c.addParam(ref, t, n.getText());
+		$c.addParam(ref, $t.name, $n.text);
 	}
 	;
 	
 listDef[Program prog]:
 	name=ID '*' of=ID
 	{
-		$prog.addListDef(new ListDef(name.getText(), of.getText()));
+		$prog.addListDef(new ListDef($name.text, $of.text));
 	}
 	;
 	
-caseDef[Program prog] returns [CaseDef caseDef]:
+caseDef[Program prog] returns [CaseDef cd]:
 	name=ID 
 	{
-		$caseDef = new CaseDef(name.getText());
-		prog.addCaseDef($caseDef);
+		$cd = new CaseDef($name.text);
+		prog.addCaseDef($cd);
 	}
-	'=' c=choice[prog, caseDef] ('|' c=choice[prog, caseDef])*
+	'=' c=choice[prog, $cd] ('|' c=choice[prog, $cd])*
 	;
 	
-choice[Program prog, CaseDef caseDef]:
-	  name=ID { caseDef.addAlternative(name.getText()); }
-	| c=contructorDef[prog] { caseDef.addAlternative(c.getName()); }
+choice[Program prog, CaseDef cd]:
+	  name=ID { cd.addAlternative($name.text); }
+	| c=contructorDef[prog] { cd.addAlternative($c.c.getName()); }
 	;
 
 attributeDef[Program prog]:
@@ -99,11 +99,11 @@ attributeDef[Program prog]:
 		 }
 		 (t=javaType n=ID 
 			{ 
-				parameters.add(new Parameter(t, n.getText()));
+				parameters.add(new Parameter($t.name, $n.text));
 			}
 			(',' t=javaType n=ID 
 			{
-				parameters.add(new Parameter(t, n.getText()));
+				parameters.add(new Parameter($t.name, $n.text));
 			}
 			)*
 		)?
@@ -111,15 +111,15 @@ attributeDef[Program prog]:
 	 )?
 	 (doc=STRVAL)? 'returns' returnType=javaType 'implemented' 'by' implementedBy=qID
 	{
-		prog.addAttribute(parameters, elem.getText(), attrName.getText(), returnType, implementedBy, doc);	
+		prog.addAttribute(parameters, $elem.text, $attrName.text, $returnType.name, $implementedBy.s, $doc.text);	
 	}
 	;
 	
 javaType returns [String name]: 
-	n1=qID { $name = n1; } ('<' n=javaType { $name += "<" + n; } (',' n=javaType { $name +=", " + n; } )* { $name += ">"; } '>')?;
+	n1=qID { $name = $n1.text; } ('<' n=javaType { $name += "<" + $n.name; } (',' n=javaType { $name +=", " + $n.name; } )* { $name += ">"; } '>')?;
 
 
-qID returns [String s]: n=ID {$s=n.getText();} ('.' n=ID {$s+="."+n.getText();})*;
+qID returns [String s]: n=ID {$s=$n.text;} ('.' n=ID {$s+="."+$n.text;})*;
 
 // Lexer rules:
 

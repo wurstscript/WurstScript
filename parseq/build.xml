@@ -1,30 +1,52 @@
-<project name="Parseq" default="antlr" basedir=".">
+<project name="Parseq" default="create_run_jar" basedir=".">
 	<property name="root" location="." />
 	<property name="lib" location="./lib" />
 	<property name="src" location="./src" />
-	<property name="scannerspec" location="./src/de/peeeq/parseq/parseq.flex" />
-	<property name="grammarspec" location="./src/de/peeeq/parseq/parser/ParseqAntlrParser.g" />
-	<property name="output" location="./src/de/peeeq/parseq/parser" />
-	<property name="jflex" location="../de.peeeq.wurstscript/tools/jflex.jar" />
-	<property name="cup" location="../de.peeeq.wurstscript/tools/java-cup.jar" />
-	<property name="cup" location="../de.peeeq.wurstscript/tools/java-cup.jar" />
-	<property name="antlr" location="../de.peeeq.wurstscript/tools/antlr-3.4-complete-no-antlrv2.jar" />
-	
-	<target name="antlr">
-		<java jar="${antlr}" fork="true" failonerror="true">
+	<property name="src-gen" location="./src-gen" />
+	<property name="output" location="./src-gen/de/peeeq/parseq/parser" />
+	<property name="antlr4" location="../de.peeeq.wurstscript/tools/antlr-4.1-complete.jar" />
+	<property name="grammarspec4" location="./src/de/peeeq/parseq/parser/ParseqAntlrParser.g4" />
+
+	<target name="clean">
+		<delete dir="./bin/">
+		</delete>
+		<delete dir="${src-gen}">
+		</delete>
+	</target>
+
+	<target name="compile" depends="antlr4">
+		<mkdir dir="./bin/" />
+		<javac srcdir="${src}:${src-gen}" destdir="bin" includeantruntime="false">
+			<classpath>
+				<path path="./lib/guava-r09.jar">
+				</path>
+				<path path="./lib/antlr-runtime-4.1.jar">
+				</path>
+			</classpath>
+		</javac>
+	</target>
+
+	<target name="create_run_jar" depends="clean, compile">
+		<jar destfile="../de.peeeq.wurstscript/tools/parseq.jar" filesetmanifest="mergewithoutmain">
+			<manifest>
+				<attribute name="Main-Class" value="de.peeeq.parseq.Main" />
+				<attribute name="Class-Path" value="." />
+			</manifest>
+			<fileset dir="./bin" />
+			<zipfileset excludes="META-INF/*.SF" src="./lib/guava-r09.jar" />
+			<zipfileset excludes="META-INF/*.SF" src="./lib/antlr-runtime-4.1.jar" />
+		</jar>
+	</target>
+
+
+	<target name="antlr4">
+		<mkdir dir="./src-gen/" />
+		<java jar="${antlr4}" fork="true" failonerror="true">
 			<arg value="-o" />
 			<arg value="${output}" />
-			<arg value="${grammarspec}" />
-		</java>
-	</target>
-	
-	<target name="jflex" >
-		<java jar="${jflex}" fork="true" failonerror="true">
-			<arg value="-d" />
-			<arg value="${output}" />
-			<arg value="${scannerspec}" />
-			<!-- <classpath refid="classpath" />-->
+			<arg value="${grammarspec4}" />
 		</java>
 	</target>
 
 </project>
+

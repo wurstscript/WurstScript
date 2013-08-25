@@ -11,13 +11,15 @@ import org.junit.Test;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
+import de.peeeq.wurstio.ErrorReportingIO;
 import de.peeeq.wurstscript.ErrorReporting;
 
 public class ErrorReportingTest {
+	ErrorReporting instance = new ErrorReportingIO();
 
 	@Test
 	public void testSendErrorReport() {
-		boolean result = ErrorReporting.instance.sendErrorReport(new Error("bla"), "source");
+		boolean result = instance.sendErrorReport(new Error("bla"), "source");
 		assertEquals(true, result);
 	}
 	
@@ -28,7 +30,7 @@ public class ErrorReportingTest {
 //		
 		String source = Files.toString(new File("/home/peter/kram/errorreport_source.wurst"), Charsets.UTF_8);
 		
-		boolean result = ErrorReporting.instance.sendErrorReport(new Error("bla"), source);
+		boolean result = instance.sendErrorReport(new Error("bla"), source);
 		assertEquals(true, result);
 	}
 
