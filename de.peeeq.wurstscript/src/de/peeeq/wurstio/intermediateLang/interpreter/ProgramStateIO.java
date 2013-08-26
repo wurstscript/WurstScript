@@ -139,9 +139,8 @@ public class ProgramStateIO extends ProgramState {
 	}
 
 	private void writeW3oFile() {
-		try {
-			File objFile = new File(mapFile.getParentFile(), "wurstCreatedObjects.w3o");
-			BinaryDataOutputStream objFileStream = new BinaryDataOutputStream(objFile, true);
+		File objFile = new File(mapFile.getParentFile(), "wurstCreatedObjects.w3o");
+		try (BinaryDataOutputStream objFileStream = new BinaryDataOutputStream(objFile, true)) {
 			objFileStream.writeInt(1); // version
 			for (ObjectFileType fileType : ObjectFileType.values()) {
 				ObjectFile dataStore = getDataStore(fileType);
