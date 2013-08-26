@@ -33,7 +33,7 @@ public class WLogger {
 	}
 
 	public static void info(Throwable e) {
-		logger.log(Level.INFO, "Error" + e);
+		logger.log(Level.INFO, "Error", e);
 		
 	}
 

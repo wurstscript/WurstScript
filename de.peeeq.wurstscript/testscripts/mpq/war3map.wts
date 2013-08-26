@@ -1,0 +1,41 @@
+﻿STRING 1
+{
+Player 1
+}
+
+STRING 2
+{
+Force 1
+}
+
+STRING 9
+// Abilities: A001 (BlubLol), Name (Name (anam))
+{
+BlubLol
+}
+
+STRING 10
+// Abilities: A000 (RoflKopter), Name (Name (anam))
+{
+RoflKopter
+}
+
+STRING 14
+// Abilities: A001 (BlubLol), Researchtip (Tooltip - Learn (aret))
+{
+hi there
+Blub {"Hi" '|cff800080Das|r ist ein Test' 
+next line
+// this is a comment
+and so on
+}
+}
+still in?
+}
+
+STRING 11
+// Abilities: A000 (RoflKopter), Name (Name (anam))
+{
+xaxaxaxaxaxa
+}
+
