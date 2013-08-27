@@ -1348,7 +1348,7 @@ You can find the corresponding natives and higher level libraries in the objedit
 
 The package ObjEditingNatives contains natives to create and manipulate objects. If you are familiar with
 the object format of Wc3 and know similar tools like [Lua Object Generation](http://www.hiveworkshop.com/forums/jass-ai-scripts-tutorials-280/lua-object-generation-191740/) 
-or the ObjectMerger from JNGP. If you run Wurst with compiletime functions enabled, it will generate 
+or the ObjectMerger from JNGP, you should have no problems in using them. If you run Wurst with compiletime functions enabled, it will generate 
 the object creation code for all the objects in your map. This code is saved in files named similar to "WurstExportedObjects_w3a.wurst.txt" and
 can be found right next to your map file. You can use this code as a starting point if you want to use the natives.
 
