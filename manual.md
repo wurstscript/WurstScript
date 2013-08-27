@@ -1317,12 +1317,15 @@ In order to define an overloading function it has to be named as following:
     /  "op_divReal"
     
 ## Object Editing
-*NOTE:* Object Editing hardly work at the moment, so you should only use it for fun but not for profit. 
+
+Creating Object-Editor Objects via Wurst code.
+
+*NOTE:* Object Editing hardly works at the moment, so you should only use it for fun but not for profit. 
 Do not use it for a real project yet!
 
 ### Compiletime Functions
 
-Compiletime Functions are functions, that get executed when compiling your script/map.
+Compiletime Functions are functions, that are executed when compiling your script/map.
 They mainly offer the possibility to create Object-Editor Objects via code.
 
 A compiletime function is just a normal Wurst function annotated with @compiletime.
@@ -1344,29 +1347,38 @@ The standard library provides some functions to edit objects in compiletime func
 You can find the corresponding natives and higher level libraries in the objediting folder of the standard library.
 
 The package ObjEditingNatives contains natives to create and manipulate objects. If you are familiar with
-the object format of Wc3 and know similar tools like [Luat Object Generation](http://www.hiveworkshop.com/forums/jass-ai-scripts-tutorials-280/lua-object-generation-191740/) 
-or the Object Merger from JNGP. If you run Wurst with compiletime functions enabled, it will generate 
+the object format of Wc3 and know similar tools like [Lua Object Generation](http://www.hiveworkshop.com/forums/jass-ai-scripts-tutorials-280/lua-object-generation-191740/) 
+or the ObjectMerger from JNGP. If you run Wurst with compiletime functions enabled, it will generate 
 the object creation code for all the objects in your map. This code is saved in files named similar to "WurstExportedObjects_w3a.wurst.txt" and
 can be found right next to your map file. You can use this code as a starting point if you want to use the natives.
 
-Wurst also provides a higher level ob abstraction. For example the package AbilityObjEditing provides many classes 
+Wurst also provides a higher level of abstraction. For example the package AbilityObjEditing provides many classes 
 for the different base abilities of Wc3 with readable method names. That way you do not have to look up the IDs.
 
-The following example creates a new Spell based on "Channel". The Spell has the ID "A000".
+The following example creates a new spell based on "Thunder Bolt". The created spell has the ID "A005".
 In the next line the name of the spell is changed to "Test Spell".
-The for loop changes the cast range of the spell for the 3 different levels.
+Level specific properties are changed inside the loop.
 
 	package Objects
 	import AbilityObjEditing
 
-	@compiletime function levelTest()	
-		let a = new AbilityDefinitionIllidanChannel("A000")
-		a.setName("Test Spell")
+	@compiletime function myThunderBolt()
+		// create new spell based on thunder bolt from mountain king	
+		let a = new AbilityDefinitionMountainKingThunderBolt("A005")
+		// change the name
+		a.setName("Wurst Bolt")
+		a.setTooltipLearn("The Wurstinator throws a Salami at the target.")
 		for i=1 to 3
-			a.setCastRange(i, 500. + i*100)
+			// 400 damage, increase by 100 every level
+			a.setDamage(i, 400. + i*100)
+			// 10 seconds cooldown
+			a.setCooldown(i, 10.)
+			// 0 mana, because no magic is needed to master Wurst
+			a.setManaCost(i, 0)
+			// ... and so on
 
 
-There are also packages for other object types, but those packages are even less mature.
+*NOTE* There are also packages for other object types, but those packages are even more WIP.
 
 
 
