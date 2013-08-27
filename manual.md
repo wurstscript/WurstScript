@@ -1316,22 +1316,61 @@ In order to define an overloading function it has to be named as following:
     *  "op_mult"
     /  "op_divReal"
     
-## Compiletime Functions
-*NOTE:* Compiletime Functions hardly work at the moment, so you should only use them for fun but not for profit. 
-Do not use them for a real project yet!
+## Object Editing
+*NOTE:* Object Editing hardly work at the moment, so you should only use it for fun but not for profit. 
+Do not use it for a real project yet!
+
+### Compiletime Functions
 
 Compiletime Functions are functions, that get executed when compiling your script/map.
 They mainly offer the possibility to create Object-Editor Objects via code.
 
-### Declaration
+A compiletime function is just a normal Wurst function annotated with @compiletime.
 
     @compiltetime function foo()
-    
-Compiltetime functions cannot take nor return anything.
 
-Take a look at the ObjectEditing natives and presets to see how to use compiletime functions to generate objectdata.
+Compiltetime functions have no parameters and no return value.
 
-### Test function
+In order to run compiletime functions you have to enable the checkbox in the Wurstpack Menu.
+When you use compiletime functions to generate objects, Wurst will generate the object files
+next to your map and you can import them into your map using the object editors normal import
+function. Compared to ObjectMerger this has the advantage, that you can directly see your new 
+objects in the object editor.
+
+
+### Object Editing Natives
+
+The standard library provides some functions to edit objects in compiletime functions. 
+You can find the corresponding natives and higher level libraries in the objediting folder of the standard library.
+
+The package ObjEditingNatives contains natives to create and manipulate objects. If you are familiar with
+the object format of Wc3 and know similar tools like [Luat Object Generation](http://www.hiveworkshop.com/forums/jass-ai-scripts-tutorials-280/lua-object-generation-191740/) 
+or the Object Merger from JNGP. If you run Wurst with compiletime functions enabled, it will generate 
+the object creation code for all the objects in your map. This code is saved in files named similar to "WurstExportedObjects_w3a.wurst.txt" and
+can be found right next to your map file. You can use this code as a starting point if you want to use the natives.
+
+Wurst also provides a higher level ob abstraction. For example the package AbilityObjEditing provides many classes 
+for the different base abilities of Wc3 with readable method names. That way you do not have to look up the IDs.
+
+The following example creates a new Spell based on "Channel". The Spell has the ID "A000".
+In the next line the name of the spell is changed to "Test Spell".
+The for loop changes the cast range of the spell for the 3 different levels.
+
+	package Objects
+	import AbilityObjEditing
+
+	@compiletime function levelTest()	
+		let a = new AbilityDefinitionIllidanChannel("A000")
+		a.setName("Test Spell")
+		for i=1 to 3
+			a.setCastRange(i, 500. + i*100)
+
+
+There are also packages for other object types, but those packages are even less mature.
+
+
+
+## Automated Unit Tests
 
 You can add the annotation @test to a function. Then when you type "tests" into the Wurst Console all functions
 annotated with @test are executed.
