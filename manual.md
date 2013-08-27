@@ -749,34 +749,45 @@ Functions inherited from super classes can be overridden in the subclass. Such f
 			
 ## Typecasting
 
+In order to typecast, you use the _castTo_ operator
+
 You need typecasting for several reasons.
+
 One being to save class instances and for example attaching them onto a timer, like done in TimerUtils.wurst
-This process also needs to be reversed (casting from int to a classtype)
-But typecasting is also necessary when using subtyping, in order to down- and upcast instances.
-In order to typecast, you use the keyword _castTo_
+This process can also be reversed (casting from int to a classtype).
 
-_Note_: You should avoid castTo whenever possible. Casts are not checked at runtime so they can go horribly wrong. 
-Casts can be avoided by using high level libraries and object oriented programming.
 
-### Examples
 	class Test
 		int val
 		
 	init
 		Test t = new Test()
 		int i = t castTo int
-		
-		
-	--
-	
+
+
+
+Typecasting is sometimes useful when using subtyping. If you have an object of static type A but know 
+that the dynamic type of the object is B, you can cast the object to B to change the static type.
+
+			
 	class A
 	
 	class B extends A
+		function special()
+			...
 	
 	init
-		B b = new B()
-		A a = b castTo a
-		
+		A a = new B()
+		// we know that a is actually of type B, so we can safely cast it to B:
+		B b = a castTo B
+		// now we can call functions from class B
+		b.special()
+
+
+
+_Note_: You should avoid castTo whenever possible. Casts are not checked at runtime so they can go horribly wrong. 
+Casts can be avoided by using high level libraries and object oriented programming.
+
 		
 ## Dynamic dispatch
 
@@ -867,11 +878,17 @@ The **super** keyword also should be used when defining custom constructors. The
 
 ## instanceof
 
-If you want to typecast a classinstance, remember it can only be cast to an int, or a sub/super- class.
-To ensure correct casting, a typecheck is needed.
 In Wurst you can check the type of a classinstance with the _instanceof_ keyword.
 
 _Note_: You should avoid instanceof checks whenever possible and prefer object oriented programming.
+
+The instanceof expression "o instanceof C" returns true, if object o is a subtype of type C.
+
+It is not possible to use instanceof with types from different type partitions, as instanceof 
+is based on typeIds (see following chapter). This is also the reason why you cannot use instanceof 
+to check the type of an integer.
+
+The compiler will try to reject instanceof expressions, which will always yield true or always yield false.
 
 ###Example
 
@@ -889,13 +906,15 @@ _Note_: You should avoid instanceof checks whenever possible and prefer object o
 
 *NOTE*: typeIds are an experimental feature. Try to avoid using them.
 
-Sometimes it is necessary to check the exact type of an object. To do this you can write "a.typeId" if a is an object or "A.typeId" if a is a class.
+Sometimes it is necessary to check the exact type of an object. To do this you can write "a.typeId" if a is an object or "A.typeId" if A is a class.
 
 		// check if a is of class A
 		if a.typeId == A.typeId
 			print("It's an A")
 			
 The typeId is an integer which is unique for each class inside a type partition.
+
+### type partitions
 
 The type partition of A is the smallest set containing A such that for all classes or interfaces T1 and T2 it holds that:
 If T1 is in the set and T1 is a subtype or supertype of T2, then T2 is also in the set.
