@@ -884,6 +884,23 @@ _Note_: You should avoid instanceof checks whenever possible and prefer object o
 		
 		if a instanceof B
 			print("It's a B")
+			
+## typeId
+
+*NOTE*: typeIds are an experimental feature. Try to avoid using them.
+
+Sometimes it is necessary to check the exact type of an object. To do this you can write "a.typeId" if a is an object or "A.typeId" if a is a class.
+
+		// check if a is of class A
+		if a.typeId == A.typeId
+			print("It's an A")
+			
+The typeId is an integer which is unique for each class inside a type partition.
+
+The type partition of A is the smallest set containing A such that for all classes or interfaces T1 and T2 it holds that:
+If T1 is in the set and T1 is a subtype or supertype of T2, then T2 is also in the set.
+Or expressed differently: A and B are in the same partition if and only if their type hierarchies are somehow connected.
+
 
 ## Abstract Classes
 
