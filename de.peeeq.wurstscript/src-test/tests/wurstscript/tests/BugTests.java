@@ -387,6 +387,16 @@ public class BugTests extends WurstScriptTest {
 				"endpackage");
 	}
 	
+	@Test
+	public void duplicateNames2() {
+		testAssertOkLines(false, 
+				"package test",
+				"class A",
+				"	int i",
+				"	function i()",
+				"endpackage");
+	}
+	
 	
 	@Test
 	public void polarOfffsetInline() { // #149

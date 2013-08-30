@@ -1415,7 +1415,7 @@ public class WurstValidator {
 					}
 				}
 			}
-			if (other.size() > 0 && other.size() + funcs.size() > 1) {
+			if (other.size() > 1) {
 				other.addAll(funcs);
 				Collections.sort(other, new Comparator<NameLink>() {
 
