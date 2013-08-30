@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
+import utils.AbilityNames;
 import utils.WEStrings;
 
 import com.csvreader.CsvReader;
@@ -19,6 +20,7 @@ import com.google.common.io.Files;
 public class GenAbilities {
 	static WEStrings strings = new WEStrings().parseFile(new File("./WorldEditStrings.txt"));
 	static StringBuilder sb = new StringBuilder();
+	static AbilityNames abilityNames = new AbilityNames(new File("./abilityNames.txt"));
 	
 	static void println(String s)  {
 		sb.append(s);
@@ -64,13 +66,15 @@ public class GenAbilities {
 			print(type() + " value)");
 			println("");
 			print("		def.set");
-			if (useLevels) {
+//			if (useLevels) {
 				print("LvlData");
-			}
+//			}
 			print(typePost());
 			print("(\""+id+"\", ");
 			if (useLevels) {
 				print("level, " + data + ", ");
+			} else {
+				print("0, " + data + ", ");
 			}
 			println("value)");
 			
@@ -155,7 +159,8 @@ public class GenAbilities {
 			println("");
 			println("");
 			println("");
-			println("public class AbilityDefinition"+spell+" extends AbilityDefinition");
+			String spellName = abilityNames.get(spell);
+			println("public class AbilityDefinition"+spellName+" extends AbilityDefinition");
 			println("	construct(string newAbilityId)");
 			println("		super(newAbilityId, \""+spell+"\")");
 			for (FieldData fd : specificData.get(spell)) {
