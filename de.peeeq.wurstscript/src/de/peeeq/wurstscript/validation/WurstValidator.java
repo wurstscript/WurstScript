@@ -880,9 +880,7 @@ public class WurstValidator {
 					for (Class<? extends Modifier> a : allowed) {
 						String modName = m.getClass().getName();
 						String allowedName = a.getName();
-						WLogger.info("comparing " +modName + " vs " + allowedName );
 						if (modName.startsWith(allowedName)) {
-							WLogger.info("equal");
 							isAllowed  = true;
 							break;
 						}
