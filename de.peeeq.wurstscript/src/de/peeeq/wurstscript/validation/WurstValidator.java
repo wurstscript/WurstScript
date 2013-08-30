@@ -1416,7 +1416,6 @@ public class WurstValidator {
 				}
 			}
 			if (other.size() > 1) {
-				other.addAll(funcs);
 				Collections.sort(other, new Comparator<NameLink>() {
 
 					@Override
