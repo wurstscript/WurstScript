@@ -1037,6 +1037,10 @@ public class WurstValidator {
 							d.getSuperArgs(), paramTypes);
 				}
 			}
+		} else {
+			if (!d.getSuperArgs().isEmpty()) {
+				d.addError("Module constructors cannot have super calls.");
+			}
 		}
 	}
 
