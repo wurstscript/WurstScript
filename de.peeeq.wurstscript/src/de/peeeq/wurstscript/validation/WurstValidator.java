@@ -73,6 +73,7 @@ import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.StmtWhile;
+import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.SwitchCase;
 import de.peeeq.wurstscript.ast.SwitchStmt;
 import de.peeeq.wurstscript.ast.TranslatedToImFunction;
@@ -1018,20 +1019,23 @@ public class WurstValidator {
 				d.getParameters().addError("Module constructors must not have parameters.");
 			}
 		}
-		ClassDef c = d.attrNearestClassDef();
-		if (c != null && c.attrExtendedClass() != null) {
-			;
-			// check if super constructor is called correctly...
-			// TODO check constr.
-			ConstructorDef sc = d.attrSuperConstructor();
-			if (sc == null) {
-				d.addError("No super constructor found.");
-			} else {
-				List<WurstType> paramTypes = Lists.newArrayList();
-				for (WParameter p : sc.getParameters()) {
-					paramTypes.add(p.attrTyp());
+		StructureDef s = d.attrNearestStructureDef();
+		if (s instanceof ClassDef) {
+			ClassDef c = (ClassDef) s;
+			if (c.attrExtendedClass() != null) {
+				// check if super constructor is called correctly...
+				// TODO check constr.
+				ConstructorDef sc = d.attrSuperConstructor();
+				if (sc == null) {
+					d.addError("No super constructor found.");
+				} else {
+					List<WurstType> paramTypes = Lists.newArrayList();
+					for (WParameter p : sc.getParameters()) {
+						paramTypes.add(p.attrTyp());
+					}
+					checkParams(d, "Incorrect call to super constructor: ",
+							d.getSuperArgs(), paramTypes);
 				}
-				checkParams(d, "Incorrect call to super constructor: ", d.getSuperArgs(), paramTypes);
 			}
 		}
 	}
