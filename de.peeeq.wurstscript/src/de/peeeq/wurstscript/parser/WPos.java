@@ -54,5 +54,9 @@ public class WPos {
 		// returning empty string to make AST.toString more readable
 		return "";
 	}
+
+	public String print() {
+		return "[" + file + ", line " + getLine() + "]";
+	}
 	
 }

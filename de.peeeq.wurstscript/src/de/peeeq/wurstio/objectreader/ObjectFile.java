@@ -58,23 +58,11 @@ public class ObjectFile {
 	}
 
 	public void writeTo(File file) {
-		BinaryDataOutputStream out = null;
-		try {
-			out = new BinaryDataOutputStream(file, true);
-			
+		try (BinaryDataOutputStream out = new BinaryDataOutputStream(file, true)) {
 			writeTo(out);
 		} catch (IOException e) {
 			WLogger.severe(e);
 			throw new Error(e);
-		} finally {
-			
-			if (out != null) {
-				try {
-					out.close();
-				} catch (IOException e) {
-					throw new Error(e);
-				}
-			}
 		}
 	}
 

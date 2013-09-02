@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.attributes;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.AstElementWithArgs;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
@@ -46,7 +47,7 @@ public class AttrExprExpectedType {
 					}
 					throw new CompileError(expr.getSource(), "a) could not find expr " + expr + " in parent " + parent);
 				} else {
-					throw new CompileError(expr.getSource(), "could not calculate expected type");
+					throw new CompileError(expr.getSource(), "could not calculate expected type, arguments in " + args.getParent() + " " + args.attrSource().print());
 				}
 			} else if (parent instanceof StmtSet) {
 				StmtSet stmtSet = (StmtSet) parent;
@@ -97,7 +98,7 @@ public class AttrExprExpectedType {
 //					return m.attrFunctionSignature().getReceiverType();
 //				}
 			}
-		} catch (Throwable t) {
+		} catch (CompileError t) {
 			WLogger.info(t);
 		}
 		return WurstTypeUnknown.instance();

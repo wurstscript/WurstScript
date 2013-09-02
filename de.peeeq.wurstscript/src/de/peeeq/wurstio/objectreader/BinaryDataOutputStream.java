@@ -1,6 +1,7 @@
 package de.peeeq.wurstio.objectreader;
 
 import java.io.BufferedOutputStream;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -8,7 +9,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
-public class BinaryDataOutputStream {
+public class BinaryDataOutputStream implements Closeable {
 
 	private BufferedOutputStream out;
 	private boolean littleEndian;

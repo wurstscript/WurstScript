@@ -260,5 +260,22 @@ public class ModuleTests extends WurstScriptTest {
 				"endpackage"
 			);
 	}
-	
+	@Test
+	public void moduleConstructor() { // see bug #150
+		testAssertOkLines(false,
+				"package Test",
+				"module Test",
+				"	construct()",
+				"		skip",
+
+				"class A",
+				"	construct(int x)",
+				"		skip",
+
+				"class B extends A",
+				"	use Test",
+				"	construct()",
+				"		super(3)"
+				);
+	}
 }

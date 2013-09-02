@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import javax.swing.JOptionPane;
 
@@ -22,12 +21,13 @@ import de.peeeq.wurstio.objectreader.ObjectFile;
 import de.peeeq.wurstio.objectreader.ObjectFileType;
 import de.peeeq.wurstio.objectreader.ObjectModification;
 import de.peeeq.wurstio.objectreader.ObjectModificationInt;
+import de.peeeq.wurstio.objectreader.ObjectModificationString;
+import de.peeeq.wurstio.objectreader.ObjectTable;
+import de.peeeq.wurstio.objectreader.WTSFile;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState;
 import de.peeeq.wurstscript.jassIm.ImStmt;
-import de.peeeq.wurstscript.parser.WPos;
 
 public class ProgramStateIO extends ProgramState {
 
@@ -40,6 +40,7 @@ public class ProgramStateIO extends ProgramState {
 	private Map<String, ObjectDefinition> objDefinitions = Maps.newHashMap();
 	private PrintStream outStream = System.out;
 	private boolean injectObjectFilesIntoMap = false;
+	private Map<Integer, String> trigStrings = null;
 
 	public ProgramStateIO(File mapFile, WurstGui gui) {
 		super(mapFile, gui);
@@ -59,6 +60,28 @@ public class ProgramStateIO extends ProgramState {
 		return gui;
 	}
 
+	public String getTrigString(int id) {
+		loadTrigStrings();
+		String r = trigStrings.get(id);
+		return r == null ? "" : r;
+	}
+	
+	private void loadTrigStrings() {
+		if (trigStrings != null) {
+			return;
+		}
+		try {
+			LadikMpq editor = MpqEditorFactory.getEditor();
+			File wts = editor.extractFile(mapFile, "war3map.wts");
+			trigStrings = WTSFile.parse(wts);
+		} catch (Exception e) {
+			// dummy result
+			trigStrings = Maps.newHashMap();
+			WLogger.warning("Could not load trigger strings");
+			WLogger.info(e);
+		}
+	}
+
 	public ObjectFile getDataStore(String fileExtension) {
 		return getDataStore(ObjectFileType.fromExt(fileExtension));
 	}
@@ -73,12 +96,15 @@ public class ProgramStateIO extends ProgramState {
 		}
 		
 		try {
-			// extract unit file:
+			// extract specific object file:
 			try {
 				LadikMpq editor = MpqEditorFactory.getEditor();
-				File w3u = editor.extractFile(mapFile, "war3map."+filetype.getExt());
-				dataStore = new ObjectFile(w3u, filetype);
-			} catch (Error e) {
+				File w3_ = editor.extractFile(mapFile, "war3map."+filetype.getExt());
+				dataStore = new ObjectFile(w3_, filetype);
+				replaceTrigStrings(dataStore);
+			} catch (IOException | InterruptedException e) {
+				// TODO maybe tell the user, that something has gone wrong
+				WLogger.info("Could not extract file war3map."+filetype.getExt());
 				WLogger.info(e);
 				dataStore = new ObjectFile(filetype);
 			}
@@ -92,6 +118,35 @@ public class ProgramStateIO extends ProgramState {
 		}
 		
 		return dataStore;
+	}
+
+	private void replaceTrigStrings(ObjectFile dataStore) {
+		replaceTrigStringsInTable(dataStore.getOrigTable());
+		replaceTrigStringsInTable(dataStore.getModifiedTable());
+		
+		
+	}
+
+	private void replaceTrigStringsInTable(ObjectTable modifiedTable) {
+		for (ObjectDefinition od : modifiedTable.getObjectDefinitions()) {
+			for (ObjectModification<?> mod : od.getModifications()) {
+				if (mod instanceof ObjectModificationString) {
+					ObjectModificationString modS = (ObjectModificationString) mod;
+					WLogger.info("mod: " + mod);
+					if (modS.getData().startsWith("TRIGSTR_")) {
+						try {
+							int id = Integer.parseInt(modS.getData().substring("TRIGSTR_".length()), 10);
+							String newVal = getTrigString(id);
+							WLogger.info("replace id: " + id + " with '" + newVal + "'");
+							modS.setData(newVal);
+						} catch (NumberFormatException e) {
+							// ignore
+							WLogger.info("number format in trigstr: " + modS.getData());
+						}
+					}
+				}
+			}
+		}
 	}
 
 	private void deleteWurstObjects(ObjectFile unitStore) {
@@ -139,9 +194,8 @@ public class ProgramStateIO extends ProgramState {
 	}
 
 	private void writeW3oFile() {
-		try {
-			File objFile = new File(mapFile.getParentFile(), "wurstCreatedObjects.w3o");
-			BinaryDataOutputStream objFileStream = new BinaryDataOutputStream(objFile, true);
+		File objFile = new File(mapFile.getParentFile(), "wurstCreatedObjects.w3o");
+		try (BinaryDataOutputStream objFileStream = new BinaryDataOutputStream(objFile, true)) {
 			objFileStream.writeInt(1); // version
 			for (ObjectFileType fileType : ObjectFileType.values()) {
 				ObjectFile dataStore = getDataStore(fileType);

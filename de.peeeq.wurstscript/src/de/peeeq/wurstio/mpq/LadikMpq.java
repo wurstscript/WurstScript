@@ -35,7 +35,7 @@ public class LadikMpq implements MpqEditor {
 			WLogger.info(line);
 		}
 		if (!tempFile1.exists()) {
-			throw new Error("could not extract file");
+			throw new IOException("could not extract file");
 		}
 		script.delete();
 		return tempFile1;

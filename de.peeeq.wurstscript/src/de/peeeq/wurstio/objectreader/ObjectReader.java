@@ -12,7 +12,7 @@ public class ObjectReader {
 		ObjectTable modT = objFile.getModifiedTable();
 		for (ObjectDefinition od : modT.getObjectDefinitions()) {
 			System.out.println(od.getNewObjectId() + " (derived from " + od.getOrigObjectId() + ")");
-			for (ObjectModification m : od.getModifications()) {
+			for (ObjectModification<?> m : od.getModifications()) {
 				System.out.println("    " + m.toString());
 			}
 		}

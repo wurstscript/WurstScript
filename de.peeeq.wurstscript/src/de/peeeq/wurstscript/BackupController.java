@@ -51,7 +51,6 @@ public class BackupController {
 		int count = 0;
 		for ( File f : backupFolder.listFiles()) {
 			String name = f.getName();
-			WLogger.info(name + " " + name.substring(0,name.lastIndexOf("-")));
 			if (name.lastIndexOf("-") > 0){
 				if (name.length() > 4 && name.substring(0,name.lastIndexOf("-")).equals(mapName) ) {
 					count++;
