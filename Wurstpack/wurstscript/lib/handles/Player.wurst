@@ -45,3 +45,6 @@ public function player.getSlotState() returns playerslotstate
 public function player.getController() returns mapcontrol
 	return GetPlayerController(this)
 	
+public function player.isEnemyOf(player p) returns boolean
+	return IsPlayerEnemy(this, p)
+	

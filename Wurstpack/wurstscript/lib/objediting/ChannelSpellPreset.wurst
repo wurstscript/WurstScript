@@ -3,12 +3,18 @@ import public SpellPreset
 
 constant string CHANNEL_ID = "ANcl"
 
-public enum options
-	visible
-	targetimage
-	physicalspell
-	universalspell
-	uniquecast
+public enum Option
+	VISIBLE
+	TARGETIMAGE
+	PHYSICALSPELL
+	UNIVERSALSPELL
+	UNIQUECAST
+	
+public enum Targettype
+	//instant == standard
+	PTARGET
+	UTARGET
+	PUTARGET
 	
 constant int visibleval = 1
 constant int targetimageval = 2
@@ -16,28 +22,24 @@ constant int physicalspellval = 4
 constant int universalspellval = 8
 constant int uniquecastval = 16
 	
-public enum targettype
-	//instant == standard
-	ptarget
-	utarget
-	putarget
+
 	
-public function targettype.toString() returns string
+public function Targettype.toString() returns string
 	switch this
-		case targettype.ptarget
+		case Targettype.PTARGET
 			return "Point Target"
-		case targettype.utarget
+		case Targettype.UTARGET
 			return "Unit Target"
-		case targettype.putarget
+		case Targettype.PUTARGET
 			return "Point & Unit Target"
 	return ""
 
 public class ChannelSpellPreset extends SpellPreset
-	boolean visible
-	boolean targetimage
-	boolean physicalspell
-	boolean universalspell
-	boolean uniquecast
+	boolean VISIBLE
+	boolean TARGETIMAGE
+	boolean PHYSICALSPELL
+	boolean UNIVERSALSPELL
+	boolean UNIQUECAST
 	int optionval = 0
 	
 
@@ -49,41 +51,39 @@ public class ChannelSpellPreset extends SpellPreset
 		int v = 0
 		if flag
 			v = 1 
-		//for i = 1 to lvl
-		def.setLvlDataInt("Ncl5", 1, 5, v)
-		def.setLvlDataInt("Ncl5", 2, 5, v)
-		def.setLvlDataInt("Ncl5", 3, 5, v)
-		def.setLvlDataInt("Ncl5", 4, 5, v)
+		for i = 1 to lvl
+			def.setLvlDataInt("Ncl5", i, 5, v)
+
 			
-	function setOptions(options opt, boolean flag)
+	function setOption(Option opt, boolean flag)
 		switch opt
-			case options.visible
-				visible = flag
-				if visible
+			case Option.VISIBLE
+				VISIBLE = flag
+				if VISIBLE
 					optionval+=visibleval
 				else
 					optionval-=visibleval
-			case options.targetimage
-				targetimage = flag
-				if visible
+			case Option.TARGETIMAGE
+				TARGETIMAGE = flag
+				if VISIBLE
 					optionval+=targetimageval
 				else
 					optionval-=targetimageval
-			case options.physicalspell
-				physicalspell = flag
-				if visible
+			case Option.PHYSICALSPELL
+				PHYSICALSPELL = flag
+				if VISIBLE
 					optionval+=physicalspellval
 				else
 					optionval-=physicalspellval
-			case options.universalspell
-				universalspell = flag
-				if visible
+			case Option.UNIVERSALSPELL
+				UNIVERSALSPELL = flag
+				if VISIBLE
 					optionval+=universalspellval
 				else
 					optionval-=universalspellval
-			case options.uniquecast
-				uniquecast = flag
-				if visible
+			case Option.UNIQUECAST
+				UNIQUECAST = flag
+				if VISIBLE
 					optionval+=uniquecastval
 				else
 					optionval-=uniquecastval
@@ -93,14 +93,14 @@ public class ChannelSpellPreset extends SpellPreset
 
 			
 		
-	function setTargetType(targettype ttype)
+	function setTargetType(Targettype ttype)
 		int typ = 0
 		switch ttype
-			case targettype.ptarget
+			case Targettype.PTARGET
 				typ = 1
-			case targettype.utarget
+			case Targettype.UTARGET
 				typ = 2
-			case targettype.putarget
+			case Targettype.PUTARGET
 				typ = 3
 				
 		for i = 1 to lvl
