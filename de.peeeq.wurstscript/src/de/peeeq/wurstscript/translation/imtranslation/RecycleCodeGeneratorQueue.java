@@ -84,7 +84,9 @@ public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
 						JassIm.ImIf(tr, JassIm.ImOperatorCall(WurstOperator.EQ, JassIm.ImExprs(JassIm.ImVarAccess(mVars.firstFree), JassIm.ImIntVal(0))), 
 						// 		then firstFree = this
 								JassIm.ImStmts(
-										JassIm.ImSet(tr, mVars.firstFree, JassIm.ImVarAccess(thisVar))
+										JassIm.ImSet(tr, mVars.firstFree, JassIm.ImVarAccess(thisVar)),
+								// nextFree[this] = 0
+										JassIm.ImSetArray(tr, mVars.nextFree, JassIm.ImVarAccess(thisVar), JassIm.ImIntVal(0))
 								), JassIm.ImStmts()),
 						// typeId[this] = 0
 						JassIm.ImSetArray(tr, mVars.typeId, JassIm.ImVarAccess(thisVar), JassIm.ImIntVal(0))
