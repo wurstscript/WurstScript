@@ -138,7 +138,7 @@ public class SimpleRewrites {
 					opc.replaceWith(JassIm.ImBoolVal(result));
 				} else if (isArithmetic) {
 					// convert result to string, using 4 decimal digits
-					String s = new DecimalFormat("#.####").format(resultVal);
+					String s = floatToStringWith4decimalDigits(resultVal);
 //					String s = new BigDecimal(resultVal).toPlainString();
 					// check if the string representation is exact
 					if (Float.parseFloat(s) == resultVal) {
@@ -162,6 +162,15 @@ public class SimpleRewrites {
 			
 		}
 		
+	}
+
+	private String floatToStringWith4decimalDigits(float resultVal) {
+		DecimalFormat format = new DecimalFormat();
+		// use the localized pattern, so that it does not randomly replace a dot by comma on German PCs
+		// hope this works
+		format.applyLocalizedPattern("#.####");
+		String s = format.format(resultVal);
+		return s;
 	}
 
 	private void optimizeIf(ImIf imIf) {

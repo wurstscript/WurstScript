@@ -267,6 +267,30 @@ public class ClassesTests extends WurstScriptTest {
 	}
 	
 	@Test
+	public void recyling2() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	native println(string msg)",
+				"	native I2S(int i) returns string",
+				"	class C",
+				"		int i",
+				"",
+				"	init",
+				"		C a = new C",
+				"		destroy a",
+				"		a = new C",
+				"		destroy a",
+				"		a = new C",
+				"		C b = new C",
+//				"		println(\"###### \" + I2S(a castTo int) + \" -- \" + I2S(b castTo int))",
+				"		if a != b",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
 	public void cast_class() {
 		testAssertOkLines(true, 
 				"package test",
