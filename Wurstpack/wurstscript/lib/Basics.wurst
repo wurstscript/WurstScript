@@ -1,22 +1,20 @@
 package Basics
-	import NoWurst
+import NoWurst
 
-	/** Id of the dummy unit */
-	public constant int 	DUMMY_UNIT_ID 	   		= 'e000'
-	/** Id of Ravenform to allow setting fly height */
-	public constant int 	HEIGHT_ENABLER	 		= 'Amrf'
-	/** Id of Eattree to recognize trees */
-	public constant int		TREE_RECOGNITION  		= 'Aeat'
-	/** Id of Locust */
-	public constant int 	LOCUST_ID				= 'Aloc'
-	/** Standard Period for animation.
- 		Note that 0.03125 is also possible, but doesn't work with order cancel from SetUnitPos */
-	public constant real	ANIMATION_PERIOD   		=  0.03
-	public constant real	MAX_COLLISION_SIZE 		=  197.0
-	/** Neutral Passive (grey) */
-	public constant player  DUMMY_PLAYER 			= Player(15)
-	/** Neutral Hostile (darkgreen) */
-	public constant player	DUMMY_HOSTILE_PLAYER 	= Player(12)
+/** Id of the dummy unit */
+public constant int 	DUMMY_UNIT_ID 	   		= 'e000'
+/** Id of Ravenform to allow setting fly height */
+public constant int 	HEIGHT_ENABLER	 		= 'Amrf'
+/** Id of Eattree to recognize trees */
+public constant int		TREE_RECOGNITION  		= 'Aeat'
+/** Id of Locust */
+public constant int 	LOCUST_ID				= 'Aloc'
+/** Standard Period for animation.
+	Note that 0.03125 is also possible, but doesn't work with order cancel from SetUnitPos */
+public constant real	ANIMATION_PERIOD   		=  0.03
+public constant real	MAX_COLLISION_SIZE 		=  197.0
+/** Neutral Passive (grey) */
+public constant player  DUMMY_PLAYER 			= Player(15)
+/** Neutral Hostile (darkgreen) */
+public constant player	DUMMY_HOSTILE_PLAYER 	= Player(12)
 
-	
-endpackage

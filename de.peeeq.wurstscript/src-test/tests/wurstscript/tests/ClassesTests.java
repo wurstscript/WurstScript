@@ -607,4 +607,18 @@ public class ClassesTests extends WurstScriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void duplicateConstructor() {
+		testAssertErrorsLines(false, "Double Constructor",
+				"package test",
+				"	class A",
+				"		int i",
+				"		construct(int j)",
+				"			i = j",
+				"		construct(int j)",
+				"			i = j",
+				"endpackage"
+			);
+	}
 }

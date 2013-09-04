@@ -18,12 +18,6 @@ import TypeCasting
  *														*
  * Credits to Vexorian, Anitarf							*
  ********************************************************/
-//class Effect
-//	effect e
-//	construct(effect e)
-//		this.e = e
-//	ondestroy
-//		e.destr()
 		
 public class MultiFx
 	private unit 	dummy	= null

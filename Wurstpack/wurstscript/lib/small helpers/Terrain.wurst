@@ -1,5 +1,6 @@
 package Terrain
-	import Vectors
+import Vectors
+import MapBounds
 // ******************************************************************************
 // BY: Rising_Dusk
 // 
@@ -38,80 +39,69 @@ package Terrain
 //	 [real]	TerrainPathability_X
 //	 [real]	TerrainPathability_Y
 // 
-	constant real	MAX_RANGE	 = 10.
-	constant integer DUMMY_ITEM_ID = 'wolg'
-	location tempLoc = Location(0.,0.)
-	public rect worldRect = GetWorldBounds()
-	public real	 minWorldX
-	public real	 minWorldY
-	public real	 maxWorldX
-	public real	 maxWorldY
-	item	   dItem   = null
-	rect	   find   = null
-	item array hid
-	integer	hidMax = 0
-	real	   X	  = 0.
-	real	   Y	  = 0.
+constant real	MAX_RANGE	 = 10.
+constant integer DUMMY_ITEM_ID = 'wolg'
+location tempLoc = Location(0.,0.)
+item	   dItem   = null
+rect	   find   = null
+item array hid
+integer	hidMax = 0
+real	   X	  = 0.
+real	   Y	  = 0.
 
-	init
-		find = Rect(0., 0., 128., 128.)
-		dItem = CreateItem(DUMMY_ITEM_ID, 0, 0)
-		SetItemVisible(dItem, false)
-		minWorldX = GetRectMinX(worldRect)
-		minWorldY = GetRectMinY(worldRect)
-		maxWorldX = GetRectMaxX(worldRect)
-		maxWorldY = GetRectMaxY(worldRect)
-		
-		
-	public function getTerrainNormal( real x, real y, real sampleRadius) returns vec3
-		MoveLocation(tempLoc, x-sampleRadius, y)
-		var zx = GetLocationZ(tempLoc)
-		MoveLocation(tempLoc, x+sampleRadius, y)
-		zx -= GetLocationZ(tempLoc)
-		MoveLocation(tempLoc, x, y-sampleRadius)
-		var zy = GetLocationZ(tempLoc)
-		MoveLocation(tempLoc, x, y+sampleRadius)
-		zy -= GetLocationZ(tempLoc)
-		var sampleRadius2 = 2*sampleRadius
-		return vec3( zx*sampleRadius2, zy*sampleRadius2, sampleRadius2*sampleRadius2 )
+init
+	find = Rect(0., 0., 128., 128.)
+	dItem = CreateItem(DUMMY_ITEM_ID, 0, 0)
+	SetItemVisible(dItem, false)
 	
-	public function getTerrainZ(real x, real y) returns real
-		MoveLocation( tempLoc, x, y )
-		return GetLocationZ( tempLoc )
+	
+public function getTerrainNormal( real x, real y, real sampleRadius) returns vec3
+	MoveLocation(tempLoc, x-sampleRadius, y)
+	var zx = GetLocationZ(tempLoc)
+	MoveLocation(tempLoc, x+sampleRadius, y)
+	zx -= GetLocationZ(tempLoc)
+	MoveLocation(tempLoc, x, y-sampleRadius)
+	var zy = GetLocationZ(tempLoc)
+	MoveLocation(tempLoc, x, y+sampleRadius)
+	zy -= GetLocationZ(tempLoc)
+	var sampleRadius2 = 2*sampleRadius
+	return vec3( zx*sampleRadius2, zy*sampleRadius2, sampleRadius2*sampleRadius2 )
 
-	public function isTerrainDeepWater(real x, real y) returns boolean
-		return not IsTerrainPathable(x, y, PATHING_TYPE_FLOATABILITY) and IsTerrainPathable(x, y, PATHING_TYPE_WALKABILITY)
-	
-	public function isTerrainShallowWater(real x, real y) returns boolean
-		return not IsTerrainPathable(x, y, PATHING_TYPE_FLOATABILITY) and not IsTerrainPathable(x, y, PATHING_TYPE_WALKABILITY) and IsTerrainPathable(x, y, PATHING_TYPE_BUILDABILITY)
-	
-	public function isTerrainLand(real x, real y) returns boolean
-		return IsTerrainPathable(x, y, PATHING_TYPE_FLOATABILITY)
-	
-	public function isTerrainPlatform(real x, real y) returns boolean
-		return not IsTerrainPathable(x, y, PATHING_TYPE_FLOATABILITY) and not IsTerrainPathable(x, y, PATHING_TYPE_WALKABILITY) and not IsTerrainPathable(x, y, PATHING_TYPE_BUILDABILITY)
-	
-	function hideItem()
-		if IsItemVisible(GetEnumItem())
-			hid[hidMax] = GetEnumItem()
-			SetItemVisible(hid[hidMax], false)
-			hidMax++
+public function getTerrainZ(real x, real y) returns real
+	MoveLocation( tempLoc, x, y )
+	return GetLocationZ( tempLoc )
 
-	public function isTerrainWalkable(real x, real y) returns boolean
-		//Hide any items in the area to avoid conflicts with our item
-		MoveRectTo(find, x, y)
-		EnumItemsInRect(find ,null, function hideItem)
-		//Try to move the test item and get its coords
-		SetItemPosition(dItem, x, y) //Unhides the item
-		X = GetItemX(dItem)
-		Y = GetItemY(dItem)
-		SetItemVisible(dItem, false)//Hide it again
-		//Unhide any items hidden at the start
-		while hidMax > 0
-			hidMax--
-			SetItemVisible(hid[hidMax], true)
-			hid[hidMax] = null
-		//Return walkability
-		return (X-x)*(X-x)+(Y-y)*(Y-y) <= MAX_RANGE*MAX_RANGE and not IsTerrainPathable(x, y, PATHING_TYPE_WALKABILITY)
+public function isTerrainDeepWater(real x, real y) returns boolean
+	return not IsTerrainPathable(x, y, PATHING_TYPE_FLOATABILITY) and IsTerrainPathable(x, y, PATHING_TYPE_WALKABILITY)
 
-endpackage
+public function isTerrainShallowWater(real x, real y) returns boolean
+	return not IsTerrainPathable(x, y, PATHING_TYPE_FLOATABILITY) and not IsTerrainPathable(x, y, PATHING_TYPE_WALKABILITY) and IsTerrainPathable(x, y, PATHING_TYPE_BUILDABILITY)
+
+public function isTerrainLand(real x, real y) returns boolean
+	return IsTerrainPathable(x, y, PATHING_TYPE_FLOATABILITY)
+
+public function isTerrainPlatform(real x, real y) returns boolean
+	return not IsTerrainPathable(x, y, PATHING_TYPE_FLOATABILITY) and not IsTerrainPathable(x, y, PATHING_TYPE_WALKABILITY) and not IsTerrainPathable(x, y, PATHING_TYPE_BUILDABILITY)
+
+function hideItem()
+	if IsItemVisible(GetEnumItem())
+		hid[hidMax] = GetEnumItem()
+		SetItemVisible(hid[hidMax], false)
+		hidMax++
+
+public function isTerrainWalkable(real x, real y) returns boolean
+	//Hide any items in the area to avoid conflicts with our item
+	MoveRectTo(find, x, y)
+	EnumItemsInRect(find ,null, function hideItem)
+	//Try to move the test item and get its coords
+	SetItemPosition(dItem, x, y) //Unhides the item
+	X = GetItemX(dItem)
+	Y = GetItemY(dItem)
+	SetItemVisible(dItem, false)//Hide it again
+	//Unhide any items hidden at the start
+	while hidMax > 0
+		hidMax--
+		SetItemVisible(hid[hidMax], true)
+		hid[hidMax] = null
+	//Return walkability
+	return (X-x)*(X-x)+(Y-y)*(Y-y) <= MAX_RANGE*MAX_RANGE and not IsTerrainPathable(x, y, PATHING_TYPE_WALKABILITY)

@@ -69,7 +69,7 @@ public class Sound
 			// No free handle, create a new one
 			 /*
 			*   Create new sound and point it to
-			*   Sound struct instance.
+			*   Sound class instance.
 			*/
 			var sdata = new SData()
 			sdata.snd = CreateSound(this.file, this.looping, this.is3D, this.stopOnLeaveRange, this.fadeIn, this.fadeOut, this.eaxSetting)

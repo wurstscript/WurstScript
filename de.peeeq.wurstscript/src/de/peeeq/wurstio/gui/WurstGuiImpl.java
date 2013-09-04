@@ -28,8 +28,8 @@ public class WurstGuiImpl implements WurstGui {
 	public WurstGuiImpl() {
 		// this constructor is called from the main thread, so we should not create the gui
 		// here. This would block the main compiler thread until the gui is created.
-		guiUpdater = new GuiUpdater();
-		guiUpdater.start();
+//		guiUpdater = new GuiUpdater();
+//		guiUpdater.start();
 	}
 
 	/**
