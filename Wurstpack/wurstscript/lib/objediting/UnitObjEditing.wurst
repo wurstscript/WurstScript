@@ -40,7 +40,6 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	
 	construct(string newUnitId, string origUnitId)
 		super(newUnitId, origUnitId)
-		def = createObjectDefinition("w3u", newUnitId, origUnitId)
 	
 	function setUseExtendedLineofSight(boolean data)
 		def.setBoolean("ulos", data)
