@@ -32,7 +32,7 @@ public class ILInterpreter {
 	}
 
 	public ILInterpreter(ImProg prog, WurstGui gui, File mapFile) {
-		this(prog, gui, mapFile, new ProgramState(mapFile, gui));
+		this(prog, gui, mapFile, new ProgramState(mapFile, gui).setProg(prog));
 	}
 
 	public static LocalState runFunc(ProgramState globalState, ImFunction f, ILconst ... args) {
@@ -132,6 +132,7 @@ public class ILInterpreter {
 
 	public void setProgram(ImProg imProg) {
 		this.prog = imProg;
+		this.getGlobalState().setProg(imProg);
 	}
 
 

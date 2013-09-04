@@ -129,7 +129,7 @@ public class EvaluateExpr {
 		if (var.isGlobal()) {
 			ILconst r = globalState.getVal(var);
 			if (r == null) {
-				ImExpr initExpr = e.attrProg().getGlobalInits().get(var);
+				ImExpr initExpr = globalState.getProg().getGlobalInits().get(var);
 				if (initExpr != null) {
 					r = initExpr.evaluate(globalState, localState);
 				} else {

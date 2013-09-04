@@ -40,6 +40,7 @@ public class CompiletimeFunctionRunner {
 		this.imProg = imProg;
 		this.mapFile = mapFile;
 		ProgramStateIO globalState = new ProgramStateIO(mapFile, gui);
+		globalState.setProg(imProg);
 		this.interpreter = new ILInterpreter(imProg, gui, mapFile, globalState);
 		
 		interpreter.addNativeProvider(new NativeFunctionsIO());

@@ -7,6 +7,7 @@ import java.util.List;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 
 public class ProgramState extends State {
@@ -18,6 +19,7 @@ public class ProgramState extends State {
 	private int id = 0;
 	private PrintStream outStream = System.out;
 	private List<NativesProvider> nativeProviders = Lists.newArrayList();
+	private ImProg prog;
 
 	public ProgramState(File mapFile, WurstGui gui) {
 		this.gui = gui;
@@ -61,6 +63,15 @@ public class ProgramState extends State {
 
 	public Iterable<NativesProvider> getNativeProviders() {
 		return nativeProviders;
+	}
+
+	public ProgramState setProg(ImProg p) {
+		prog = p;
+		return this;
+	}
+	
+	public ImProg getProg() {
+		return prog;
 	}
 	
 
