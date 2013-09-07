@@ -3,9 +3,11 @@
 	<property name="lib" location="./lib" />
 	<property name="src" location="./src" />
 	<property name="src-gen" location="./src-gen" />
-	<property name="output" location="./src-gen/de/peeeq/parseq/parser" />
 	<property name="antlr4" location="../de.peeeq.wurstscript/tools/antlr-4.1-complete.jar" />
-	<property name="grammarspec4" location="./src/de/peeeq/parseq/parser/ParseqAntlrParser.g4" />
+	<property name="astsParserOutput" location="./src-gen/de/peeeq/parseq/asts/parser" />
+	<property name="astsParserSpec" location="./src/de/peeeq/parseq/asts/parser/ParseqAntlrParser.g4" />
+	<property name="grammarParserOutput" location="./src-gen/de/peeeq/parseq/grammars/parser" />
+	<property name="grammarParserSpec" location="./src/de/peeeq/parseq/grammars/parser/GrammarsParser.g4" />
 
 	<target name="clean">
 		<delete dir="./bin/">
@@ -43,8 +45,13 @@
 		<mkdir dir="./src-gen/" />
 		<java jar="${antlr4}" fork="true" failonerror="true">
 			<arg value="-o" />
-			<arg value="${output}" />
-			<arg value="${grammarspec4}" />
+			<arg value="${astsParserOutput}" />
+			<arg value="${astsParserSpec}" />
+		</java>
+		<java jar="${antlr4}" fork="true" failonerror="true">
+			<arg value="-o" />
+			<arg value="${grammarParserOutput}" />
+			<arg value="${grammarParserSpec}" />
 		</java>
 	</target>
 
