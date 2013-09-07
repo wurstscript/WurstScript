@@ -5,13 +5,14 @@ import java.util.List;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.NamedScope;
+import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
 
 
-public class WurstTypeClass extends WurstTypeNamedScope {
+public class WurstTypeClass extends WurstTypeClassOrInterface {
 
 	ClassDef classDef;
 
@@ -48,7 +49,7 @@ public class WurstTypeClass extends WurstTypeNamedScope {
 	}
 	
 	@Override
-	public NamedScope getDef() {
+	public StructureDef getDef() {
 		return classDef;
 	}
 

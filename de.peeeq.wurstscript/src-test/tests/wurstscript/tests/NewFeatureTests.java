@@ -262,5 +262,38 @@ public class NewFeatureTests extends WurstScriptTest {
 				);
 	}
 	
+	@Test
+	public void testTypeId4() {
+		testAssertOkLines(true,
+				"package Test",
+				"native testSuccess()",
+				"abstract class Blub",
+				"class A extends Blub",
+				"class B extends Blub",
+				"init",
+				"	Blub a = new A()",
+				"	Blub b = new B()",
+				"	if b.typeId == B.typeId and a.typeId == A.typeId",
+				"		testSuccess()"
+				);
+	}
+	
+	@Test
+	public void testTypeId5() {
+		testAssertOkLines(true,
+				"package Test",
+				"native testSuccess()",
+				"interface Blub",
+				"	function foo()",
+				"		skip",
+				"class A extends Blub",
+				"class B extends Blub",
+				"init",
+				"	Blub a = new A()",
+				"	Blub b = new B()",
+				"	if b.typeId == B.typeId and a.typeId == A.typeId",
+				"		testSuccess()"
+				);
+	}
 
 }

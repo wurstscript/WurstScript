@@ -47,11 +47,6 @@ public class RealWorldExamples extends WurstScriptTest {
 
 	
 	@Test
-	public void testVecs() throws IOException {
-		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "VecTest.wurst"), true);
-	}
-	
-	@Test
 	public void testEditorVars() throws IOException {
 		// we expect an error here, but only in the translation phase
 		testAssertErrorFileWithStdLib(new File(TEST_DIR + "EditorVariables.wurst"), "Translation Error: Could not find definition of gg_", false);

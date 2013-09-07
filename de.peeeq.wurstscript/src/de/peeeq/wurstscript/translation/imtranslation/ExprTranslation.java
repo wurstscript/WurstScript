@@ -69,6 +69,7 @@ import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeClass;
+import de.peeeq.wurstscript.types.WurstTypeClassOrInterface;
 import de.peeeq.wurstscript.types.WurstTypeFreeTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeInt;
 import de.peeeq.wurstscript.types.WurstTypeIntLiteral;
@@ -479,10 +480,10 @@ public class ExprTranslation {
 
 	public static ImExpr translate(ExprTypeId e, ImTranslator translator, ImFunction f) {
 		WurstType leftType = e.getLeft().attrTyp();
-		if (leftType instanceof WurstTypeClass) {
-			WurstTypeClass wtc = (WurstTypeClass) leftType;
+		if (leftType instanceof WurstTypeClassOrInterface) {
+			WurstTypeClassOrInterface wtc = (WurstTypeClassOrInterface) leftType;
 			
-			ImClass c = translator.getClassFor(wtc.getClassDef());
+			ImClass c = translator.getClassFor(wtc.getDef());
 			if (wtc.isStaticRef()) {
 				return JassIm.ImTypeIdOfClass(c);
 			} else {

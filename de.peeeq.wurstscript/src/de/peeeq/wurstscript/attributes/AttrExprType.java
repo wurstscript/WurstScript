@@ -53,6 +53,7 @@ import de.peeeq.wurstscript.types.WurstTypeArray;
 import de.peeeq.wurstscript.types.WurstTypeBool;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeClass;
+import de.peeeq.wurstscript.types.WurstTypeClassOrInterface;
 import de.peeeq.wurstscript.types.WurstTypeCode;
 import de.peeeq.wurstscript.types.WurstTypeEnum;
 import de.peeeq.wurstscript.types.WurstTypeInt;
@@ -540,13 +541,21 @@ public class AttrExprType {
 
 	public static WurstType calculate(ExprTypeId e) {
 		WurstType exprTyp = e.getLeft().attrTyp();
-		if (exprTyp instanceof WurstTypeClass) {
-			WurstTypeClass wtc = (WurstTypeClass) exprTyp;
-			if (wtc.getClassDef().attrIsAbstract()) {
-				e.addError("abstract classes do not have a typeId");
+		if (exprTyp instanceof WurstTypeClassOrInterface) {
+			WurstTypeClassOrInterface t = (WurstTypeClassOrInterface) exprTyp;
+			if (t.isStaticRef()) {
+				// static reference to a type --> only concrete classes allowed
+				if (t instanceof WurstTypeClass) {
+					WurstTypeClass wtc = (WurstTypeClass) exprTyp;
+					if (wtc.getClassDef().attrIsAbstract()) {
+						e.addError("abstract classes do not have a typeId");
+					}		
+				} else {
+					e.addError(t + " does not have a typeId. Only classes have one.");
+				}				
 			}
 		} else {
-			e.addError("typeId can only be used with classes");
+			e.addError(exprTyp + " does not have a typeId, because it is not an object type.");
 		}
 		return WurstTypeInt.instance();
 	}
