@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.intermediateLang.interpreter;
 
 import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
+import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstBool;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
@@ -120,7 +121,11 @@ public class RunStatement {
 	public static void run(ImStmts stmts, ProgramState globalState, LocalState localState) {
 		for (ImStmt s : stmts) {
 			globalState.setLastStatement(s);
-			s.runStatement(globalState, localState);
+			try {
+				s.runStatement(globalState, localState);
+			} catch (InterpreterException e) {
+				globalState.getOutStream().print(e.toString());
+			}
 		}
 	}
 

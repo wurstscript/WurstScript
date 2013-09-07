@@ -1,11 +1,11 @@
 package de.peeeq.wurstscript.translation.imtojass;
 
+import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstBool;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
 import de.peeeq.wurstscript.intermediateLang.ILconstNull;
 import de.peeeq.wurstscript.intermediateLang.ILconstReal;
-import de.peeeq.wurstscript.intermediateLang.interpreter.ILconstError;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImTupleArrayType;
@@ -25,7 +25,8 @@ public class DefaultValue {
 		if (typename.equals("integer")) return new ILconstInt(0);
 		if (typename.equals("real" )) return new ILconstReal(0);
 		if (typename.equals("boolean")) return ILconstBool.FALSE;
-		return new ILconstError(typename);
+		System.out.println("could not get default value for " + typename);
+		return ILconstNull.instance();
 	}
 
 	public static ILconst get(ImTupleArrayType t) {

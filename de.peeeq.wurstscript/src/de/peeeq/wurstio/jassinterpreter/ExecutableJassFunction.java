@@ -4,7 +4,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import de.peeeq.wurstscript.intermediateLang.ILconst;
-import de.peeeq.wurstscript.intermediateLang.interpreter.ILconstError;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 
 public interface ExecutableJassFunction {
@@ -72,7 +71,7 @@ class UnknownJassFunction implements ExecutableJassFunction {
 	@Override
 	public ILconst execute(JassInterpreter jassInterpreter, ILconst[] arguments) {
 		System.out.println("Function " + name + " could not be found.");
-		return new ILconstError("Function " + name + " could not be found.");
+		throw new InterpreterException("Function " + name + " could not be found.");
 	}
 	
 }
