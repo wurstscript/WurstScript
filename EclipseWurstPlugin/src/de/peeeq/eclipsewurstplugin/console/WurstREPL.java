@@ -51,7 +51,6 @@ import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstReal;
 import de.peeeq.wurstscript.intermediateLang.ILconstTuple;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreter;
-import de.peeeq.wurstscript.intermediateLang.interpreter.ILconstError;
 import de.peeeq.wurstscript.intermediateLang.interpreter.LocalState;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassIm.ImFunction;
@@ -223,7 +222,6 @@ public class WurstREPL {
 				
 				String valueTranslated = getTranslatedValue(typ, value);
 				if (valueTranslated == null) return;
-				if (value instanceof ILconstError) return;
 				
 				if (value instanceof ILconstReal) {
 					ILconstReal r = (ILconstReal) value;
