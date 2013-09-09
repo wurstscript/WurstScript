@@ -1,0 +1,46 @@
+package ObjectIds
+import Wurstunit
+
+string charMap = ".................................!.#$%&'()*+,-./0123456789:;<=>.@ABCDEFGHIJKLMNOPQRSTUVWXYZ[.]^_`abcdefghijklmnopqrstuvwxyz{|}~................................................................................................................................."
+
+
+/** Convert a integer id value into a 4-letter id code. */
+public function idInteger2IdString(int value) returns string
+	string result = ""
+	int remainingValue = value
+	int charValue
+
+	for int byteno = 0 to 3
+		charValue = ModuloInteger(remainingValue, 256)
+		remainingValue = remainingValue div 256
+		result = SubString(charMap, charValue, charValue + 1) + result
+
+	return result
+
+/** converts a 4-letter id code to an integer */
+public function idString2IdInteger(string value) returns int
+	var result = 0
+	if value.length() != 4
+		printError("idInteger2IdString: value must be 4 chars long")
+	else
+		var factor = 1
+		for i=0 to 3
+			let pos = charMap.indexOf(value.charAt(3-i))
+			result += factor*pos
+			factor *= 256
+		
+	
+	return result	
+	
+	
+@test function test_idString2IdInteger()
+	idString2IdInteger("hfoo") .assertEquals('hfoo')
+	idString2IdInteger("abcd") .assertEquals('abcd')
+	idString2IdInteger("ABCD") .assertEquals('ABCD')
+
+	
+@test function test_idInteger2IdString()
+	idInteger2IdString('hfoo') .assertEquals("hfoo")
+	idInteger2IdString('abcd') .assertEquals("abcd")
+	idInteger2IdString('ABCD') .assertEquals("ABCD")
+	
