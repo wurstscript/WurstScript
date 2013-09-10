@@ -9,3 +9,11 @@ package Wurstunit
 public function int.assertEquals(int other)
 	if this != other
 		testFail("expected " + other.toString() + " but was " + this.toString())
+		
+public function string.assertEquals(string other)
+	if this != other
+		testFail("expected " + other + " but was " + this)
+		
+public function real.assertEquals(real other)
+	if this != other
+		testFail("expected " + other.toString() + " but was " + this.toString())
