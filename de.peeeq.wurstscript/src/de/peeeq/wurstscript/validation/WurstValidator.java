@@ -1265,6 +1265,13 @@ public class WurstValidator {
 					boolean implExists = false;
 					for (NameLink link2 : overriddenByMap.get(link)) {
 						FuncDef func2 = (FuncDef) link2.getNameDef();
+						
+						if (func.attrIsStatic() && !func2.attrIsStatic()) {
+							func2.addError("Cannot override static function with nonstatic function.");
+						} else if (!func.attrIsStatic() && func2.attrIsStatic()) {
+							func2.addError("Cannot override nonstatic function with static function.");
+						}
+						
 						if (!func2.attrIsAbstract()) {
 							implExists = true;
 							break;
@@ -1348,7 +1355,7 @@ public class WurstValidator {
 		if (func1.getParameterTypes().size() != func2.getParameterTypes().size()) {
 			return false;
 		}
-
+		
 		// contravariant parametertypes
 		for (int i=0; i<func1.getParameterTypes().size(); i++) {
 			if (!func1.getParameterTypes().get(i)

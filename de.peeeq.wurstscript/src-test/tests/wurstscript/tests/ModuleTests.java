@@ -278,4 +278,18 @@ public class ModuleTests extends WurstScriptTest {
 				"		super(3)"
 				);
 	}
+	
+	@Test
+	public void overrideStatic() {
+		testAssertErrorsLines(false, "override static function",
+				"package Test",
+				"module Test",
+				"	abstract static function foo()",
+
+				"class A",
+				"	use Test",
+				"	override function foo()",
+				"		skip"
+				);
+	}
 }
