@@ -1,4 +1,5 @@
 package PreloadHandler
+import ObjectIds
 /*
  * * * * * * * * PreloadHandler * * * * * * * * * * * * *
  * The PreloadHandler helps you to preload resources  	*
@@ -15,22 +16,10 @@ public function preloadAbility( int abilid )
 	if dum == null 
 		printError("PreloadAbility: do not load abilities after map init or during modules' onInit")
 	else if GetUnitAbilityLevel(dum, abilid) == 0
-		printWarning("PreloadAbility: Ability "+debugIdInteger2IdString(abilid)+" does not exist.")
+		printWarning("PreloadAbility: Ability "+idInteger2IdString(abilid)+" does not exist.")
 
 
-/** Convert a integer id value into a 4-letter id code. */
-function debugIdInteger2IdString (int value) returns string
-	string charMap = ".................................!.#$%&'()*+,-./0123456789:;<=>.@ABCDEFGHIJKLMNOPQRSTUVWXYZ[.]^_`abcdefghijklmnopqrstuvwxyz{|}~................................................................................................................................."
-	string result = ""
-	int remainingValue = value
-	int charValue
 
-	for int byteno = 0 to 3
-		charValue = ModuloInteger(remainingValue, 256)
-		remainingValue = remainingValue div 256
-		result = SubString(charMap, charValue, charValue + 1) + result
-
-	return result
 
 
 unit dum
@@ -42,6 +31,6 @@ function kill()
 init
 	dum = CreateUnit( Player(15), DUMMY_UNIT_ID, 0., 0., 0. )
 	if dum == null
-		printError("xePreload : DUMMY_UNITID ("+debugIdInteger2IdString(DUMMY_UNIT_ID)+") not added correctly to the map.")
+		printError("xePreload : DUMMY_UNITID ("+idInteger2IdString(DUMMY_UNIT_ID)+") not added correctly to the map.")
 
 	TimerStart( CreateTimer(), 0.0, false, function kill )

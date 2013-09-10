@@ -6,6 +6,7 @@ import java.util.List;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
 
+import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstBool;
@@ -133,7 +134,7 @@ public class EvaluateExpr {
 				if (initExpr != null) {
 					r = initExpr.evaluate(globalState, localState);
 				} else {
-					throw new Error("Variable " + var.getName() + " is not initalized.");
+					throw new InterpreterException(globalState, "Variable " + var.getName() + " is not initalized.");
 				}
 				globalState.setVal(var, r);
 			}

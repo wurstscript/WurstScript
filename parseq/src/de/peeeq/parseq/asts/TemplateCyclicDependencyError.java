@@ -1,4 +1,4 @@
-package de.peeeq.parseq;
+package de.peeeq.parseq.asts;
 
 public class TemplateCyclicDependencyError {
 

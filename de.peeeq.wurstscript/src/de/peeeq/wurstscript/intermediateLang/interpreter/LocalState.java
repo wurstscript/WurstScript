@@ -7,15 +7,13 @@ import de.peeeq.wurstscript.intermediateLang.ILconst;
 
 public class LocalState extends State {
 
-	private ILconst returnVal;
-	private static final ILconstError emptyReturn = new ILconstError("<no return value>");
+	private ILconst returnVal = null;
 	
 	public LocalState(ILconst returnVal) {
 		this.setReturnVal(returnVal);
 	}
 
 	public LocalState() {
-		returnVal = emptyReturn;
 	}
 
 	public ILconst getReturnVal() {

@@ -1,16 +1,19 @@
 package de.peeeq.parseq;
 
-import java.io.FileInputStream;
+import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.IOException;
 
 import org.antlr.v4.runtime.ANTLRFileStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 
-
-import de.peeeq.parseq.ast.Program;
-import de.peeeq.parseq.parser.ParseqAntlrParserLexer;
-import de.peeeq.parseq.parser.ParseqAntlrParserParser;
+import de.peeeq.parseq.asts.Generator;
+import de.peeeq.parseq.asts.ast.Program;
+import de.peeeq.parseq.asts.parser.ParseqAntlrParserLexer;
+import de.peeeq.parseq.asts.parser.ParseqAntlrParserParser;
+import de.peeeq.parseq.grammars.parser.GrammarsParserLexer;
+import de.peeeq.parseq.grammars.parser.GrammarsParserParser;
+import de.peeeq.parseq.grammars.parser.GrammarsParserParser.GrammarFileeContext;
 
 public class Main {
 
@@ -33,29 +36,59 @@ public class Main {
 //			Program prog = parser.parse();
 			
 			
-			ParseqAntlrParserLexer lexer = new ParseqAntlrParserLexer(new ANTLRFileStream(inputFile));
-			CommonTokenStream tokens = new CommonTokenStream(lexer);
-			ParseqAntlrParserParser parser = new ParseqAntlrParserParser(tokens);
-			Program prog = parser.spec().prog;
+			Program prog = compileAstSpec(inputFile, outputFolder);
 			
-//			ParseqAntlrParserLexer lexer = new ParseqAntlrParserLexer(new ANTLRFileStream(inputFile));
-//			CommonTokenStream tokens = new CommonTokenStream();
-//			tokens.setTokenSource(lexer);
-//			ParseqAntlrParserParser parser = new ParseqAntlrParserParser(tokens);
-//			Program prog = parser.spec();
-//			for (String error : parser.getErrors()) {
-//				System.err.println(error);
-//			}
-//			if (parser.getErrors().size() > 0) {
-//				return;
-//			}
-			Generator gen = new Generator(prog, outputFolder);
-			gen.generate();
+			String inputFileG = inputFile + ".g";
+			if (new File(inputFileG).exists()) {
+				compileGrammarSpec(inputFileG, outputFolder);
+			} else {
+				System.out.println("No Grammar file given for " + inputFileG);
+			}
+			
 		} catch (Throwable t) {
 			t.printStackTrace();
 			System.out.println(t.getMessage());
 			System.exit(3);
 		}
+	}
+
+	public static Program compileAstSpec(String inputFile, String outputFolder)
+			throws IOException {
+		
+		ParseqAntlrParserLexer lexer = new ParseqAntlrParserLexer(new ANTLRFileStream(inputFile));
+		CommonTokenStream tokens = new CommonTokenStream(lexer);
+		ParseqAntlrParserParser parser = new ParseqAntlrParserParser(tokens);
+		
+		ErrorListener errListener = new ErrorListener();
+		parser.addErrorListener(errListener);
+		
+		Program prog = parser.spec().prog;
+		
+		
+		if (errListener.getErrCount() > 0) {
+			System.exit(1);
+		}
+		
+		Generator gen = new Generator(prog, outputFolder);
+		gen.generate();
+		return prog;
+	}
+	
+	public static void compileGrammarSpec(String inputFile, String outputFolder)
+			throws IOException {
+		
+		GrammarsParserLexer lexer = new GrammarsParserLexer(new ANTLRFileStream(inputFile));
+		
+		CommonTokenStream tokens = new CommonTokenStream(lexer);
+		
+		GrammarsParserParser parser = new GrammarsParserParser(tokens);
+		
+		ErrorListener errListener = new ErrorListener();
+		parser.addErrorListener(errListener);
+
+		GrammarFileeContext f = parser.grammarFilee();
+		System.out.println("GrammarFileContext: ");
+		System.out.println(f.toStringTree(parser));
 	}
 
 }

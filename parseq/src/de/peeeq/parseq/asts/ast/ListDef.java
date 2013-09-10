@@ -1,4 +1,4 @@
-package de.peeeq.parseq.ast;
+package de.peeeq.parseq.asts.ast;
 
 public class ListDef implements AstBaseTypeDefinition {
 

@@ -1,4 +1,4 @@
-package de.peeeq.parseq;
+package de.peeeq.parseq.asts;
 
 import java.io.File;
 import java.io.IOException;
@@ -16,15 +16,15 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 
-import de.peeeq.parseq.ast.Alternative;
-import de.peeeq.parseq.ast.AstBaseTypeDefinition;
-import de.peeeq.parseq.ast.AstEntityDefinition;
-import de.peeeq.parseq.ast.AttributeDef;
-import de.peeeq.parseq.ast.CaseDef;
-import de.peeeq.parseq.ast.ConstructorDef;
-import de.peeeq.parseq.ast.ListDef;
-import de.peeeq.parseq.ast.Parameter;
-import de.peeeq.parseq.ast.Program;
+import de.peeeq.parseq.asts.ast.Alternative;
+import de.peeeq.parseq.asts.ast.AstBaseTypeDefinition;
+import de.peeeq.parseq.asts.ast.AstEntityDefinition;
+import de.peeeq.parseq.asts.ast.AttributeDef;
+import de.peeeq.parseq.asts.ast.CaseDef;
+import de.peeeq.parseq.asts.ast.ConstructorDef;
+import de.peeeq.parseq.asts.ast.ListDef;
+import de.peeeq.parseq.asts.ast.Parameter;
+import de.peeeq.parseq.asts.ast.Program;
 
 public class Generator {
 
@@ -248,7 +248,7 @@ public class Generator {
 		}
 	}
 
-	void generate() {
+	public void generate() {
 		System.out.println("calculating types ... ");
 		calculateProperties();
 		calculateSubTypes();

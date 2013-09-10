@@ -3,27 +3,11 @@ grammar ParseqAntlrParser;
 	
 
 @header {
-	package de.peeeq.parseq.parser;	
-	import de.peeeq.parseq.ast.*;
+	package de.peeeq.parseq.asts.parser;	
+	import de.peeeq.parseq.asts.ast.*;
 	import com.google.common.collect.Lists;
 	import java.util.ArrayList;
 	import java.util.List;
-}
-
-@members {
-/* TODO
-    private List<String> errors = new ArrayList<String>();
-    public void displayRecognitionError(String[] tokenNames,
-                                        RecognitionException e) {
-        String hdr = getErrorHeader(e);
-        String msg = getErrorMessage(e, tokenNames);
-        errors.add(hdr + " " + msg);
-        //throw new Error(e);
-    }
-    public List<String> getErrors() {
-        return errors;
-    }
-*/
 }
 
 

@@ -4,16 +4,21 @@ import java.io.File;
 import java.io.Serializable;
 
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.utils.LineOffsets;
 
 
 public class CompileError extends Error implements Serializable {
 	private static final long serialVersionUID = 5589441532198109034L;
 	
-	private WPos source;
-	private String message;
+	private final WPos source;
+	private final String message;
 	
 	public CompileError(WPos source, String message) {
-		this.source = source;
+		if (source == null) {
+			this.source = new WPos("", new LineOffsets(), 0, 0);
+		} else {
+			this.source = source;
+		}
 		this.message = message;
 	}
 	

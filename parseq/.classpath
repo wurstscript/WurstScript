@@ -4,6 +4,6 @@
 	<classpathentry kind="src" path="src-gen"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
 	<classpathentry kind="lib" path="lib/guava-r09.jar"/>
-	<classpathentry kind="lib" path="lib/antlr-runtime-4.1.jar"/>
+	<classpathentry kind="lib" path="lib/antlr-runtime-4.1.jar" sourcepath="/home/peter/kram/antlr4-4.1/runtime/Java/src"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
