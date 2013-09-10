@@ -1,8 +1,10 @@
 package Basics
 import NoWurst
+import UnitObjEditing
 
 /** Id of the dummy unit */
-public constant int 	DUMMY_UNIT_ID 	   		= 'e000'
+public constant int 	DUMMY_UNIT_ID 	   		= 'xdum'
+public constant string 	DUMMY_UNIT_ID_STRING 	= "xdum"
 /** Id of Ravenform to allow setting fly height */
 public constant int 	HEIGHT_ENABLER	 		= 'Amrf'
 /** Id of Eattree to recognize trees */
@@ -18,3 +20,32 @@ public constant player  DUMMY_PLAYER 			= Player(15)
 /** Neutral Hostile (darkgreen) */
 public constant player	DUMMY_HOSTILE_PLAYER 	= Player(12)
 
+@compiletime function generateDummyUnit()
+	let u = new UnitDefinition(DUMMY_UNIT_ID_STRING, "ewsp")
+	u.setName("Effect Dummy Unit")
+	u.setUpgradesUsed("")
+	u.setStructuresBuilt("")
+	u.setNormal("Aeth")
+	u.setManaRegeneration(0.1)
+	u.setManaInitialAmount(1000)
+	u.setManaMaximum(1000)
+	u.setCollisionSize(0.0)
+	u.setRace("commoner")
+	u.setFoodCost(0)
+	u.setArmorType("divine")
+	u.setIconGameInterface("replaceableTextures\\CommandButtons\\BTNtemp.blp")
+	u.setSpeedBase(522)
+	u.setModelFile("dummy.mdl")
+	u.setAnimationBlendTimeseconds(0.0)
+	u.setAnimationCastBackswing(0.0)
+	u.setMaximumPitchAngledegrees(0.0)
+	u.setMaximumRollAngledegrees(0.0)
+	u.setSpecial("")
+	u.setProjectileImpactZ(0.0)
+	u.setProjectileLaunchZ(0.0)
+	u.setNameEditorSuffix("(Caster System?)")
+	u.setSightRadiusDay(1)
+	u.setSightRadiusNight(1)
+	u.setUnitClassification("_")
+	u.setPropulsionWindowdegrees(1.0)
+	u.setTooltipBasic("")
