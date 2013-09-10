@@ -550,14 +550,12 @@ public class WurstValidator {
 		// calculating the exprType should reveal most errors:
 		stmtCall.attrTyp();
 
-		FunctionImplementation nearestFunc = stmtCall.attrNearestFuncDef();
 		if (stmtCall.attrFuncDef() != null) {
-
 			FunctionDefinition calledFunc = stmtCall.attrFuncDef();
 			if (calledFunc.attrIsDynamicClassMember()) {
 				if (!stmtCall.attrIsDynamicContext()) {
 					stmtCall.addError("Cannot call dynamic function " + funcName  +
-							" from static function " + nearestFunc.getName());
+							" from static context.");
 				}
 			}
 		}
