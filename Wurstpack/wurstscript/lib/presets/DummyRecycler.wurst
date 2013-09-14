@@ -1,6 +1,7 @@
 package DummyRecycler
 import MapBounds 
 import LinkedListModule
+import GameTimer
 // Credits to Bribe
 
 /** Number of different angles recognized by the system 
@@ -29,8 +30,6 @@ real array timeStamp
 int array queueNext
 int array queueLast
 int recycle = 0
-/** Used for visual continuity. */
-timer gameTime  = CreateTimer()
 /** Used to prevent double frees. */
 group protect   = CreateGroup()
 
@@ -55,7 +54,7 @@ public function newDummy( vec3 pos, angle facing ) returns unit
 	int i = R2I(facing.degrees()).moduloInt(360) div ANG_VAL
 	int qn = queueNext[i]
 	unit u
-	if qn != 0 and gameTime.getElapsed() >= timeStamp[qn] 
+	if qn != 0 and getElapsedGameTime() >= timeStamp[qn] 
 		//Dequeue this
 		queueNext[i] = queueNext[qn]
 		if queueNext[i] == 0 
@@ -106,7 +105,7 @@ public function recycleDummy( unit u )
 		queueNext[rc] = 0
 		stackN[i] = stackN[i] + 1
 		//Allow a time barrier for the effect to destroy/turn to complete.
-		timeStamp[rc] = gameTime.getElapsed() + DEATH_TIME
+		timeStamp[rc] = getElapsedGameTime() + DEATH_TIME
 		stack[rc] = u
 		//Prevent double-free of this unit.
 		GroupAddUnit(protect, u)
@@ -154,4 +153,4 @@ init
 		queueNext[n - 1] = 0
 
 	TimerStart(CreateTimer(), 0.1, true, function checkDelayed)
-	TimerStart(gameTime, 1000000., false, null)
+

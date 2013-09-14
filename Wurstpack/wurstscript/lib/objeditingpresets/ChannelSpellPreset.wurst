@@ -12,8 +12,9 @@ public enum Option
 	
 public enum Targettype
 	//instant == standard
-	PTARGET
+	
 	UTARGET
+	PTARGET
 	PUTARGET
 	
 constant int visibleval = 1
@@ -93,18 +94,9 @@ public class ChannelSpellPreset extends SpellPreset
 
 			
 		
-	function setTargetType(Targettype ttype)
-		int typ = 0
-		switch ttype
-			case Targettype.PTARGET
-				typ = 1
-			case Targettype.UTARGET
-				typ = 2
-			case Targettype.PUTARGET
-				typ = 3
-				
+	function setTargetType(Targettype ttype)			
 		for i = 1 to lvl
-			def.setLvlDataInt("Ncl2", i, 2, typ)
+			def.setLvlDataInt("Ncl2", i, 2, (ttype castTo int)+1)
 			
 	function setFollowThroughTime(real time)
 		for i = 1 to lvl

@@ -8,29 +8,36 @@ import ObjectIds
  * you want.											*
  *														*
 														*/
-
+boolean autoFinish = false
 
 /** use this function to preload an ability */
 public function preloadAbility( int abilid )
 	UnitAddAbility(dum, abilid)
 	if dum == null 
-		printError("PreloadAbility: do not load abilities after map init or during modules' onInit")
+		printError("PreloadAbility: do not load abilities after map init when autoFinish = true")
 	else if GetUnitAbilityLevel(dum, abilid) == 0
 		printWarning("PreloadAbility: Ability "+idInteger2IdString(abilid)+" does not exist.")
 
+public function preloadUnit( int unitId )
+	if dumg == null 
+		printError("PreloadUnit: Group dumg does not exist")
+		return
+	GroupAddUnit(dumg, CreateUnit(DUMMY_PLAYER, unitId, 0, 0, 0))
 
-
-
-
+group dumg
 unit dum
 
-function kill()
+public function finishPreload()
 	RemoveUnit(dum)
-	DestroyTimer(GetExpiredTimer())
+	for u in dumg
+		u.remove()
+	dumg.destr()
+	if GetExpiredTimer() != null
+		DestroyTimer(GetExpiredTimer())
 
 init
 	dum = CreateUnit( Player(15), DUMMY_UNIT_ID, 0., 0., 0. )
 	if dum == null
-		printError("xePreload : DUMMY_UNITID ("+idInteger2IdString(DUMMY_UNIT_ID)+") not added correctly to the map.")
-
-	TimerStart( CreateTimer(), 0.0, false, function kill )
+		printError("PreloadHandler : DUMMY_UNITID ("+idInteger2IdString(DUMMY_UNIT_ID)+") not added correctly to the map.")
+	if autoFinish
+		TimerStart( CreateTimer(), 0.0, false, function finishPreload )
