@@ -995,14 +995,15 @@ public class WurstValidator {
 		}
 	}
 
-	protected String printMod(Class<? extends Modifier> c) {
+	public static String printMod(Class<? extends Modifier> c) {
 		String name = c.getName().toLowerCase();
+		name = name.replaceFirst("^.*\\.", "");
 		name = name.replaceAll("^(mod|visibility)", "");
 		name = name.replaceAll("impl$", "");
 		return name;
 	}
 
-	protected String printMod(Modifier m) {
+	protected static String printMod(Modifier m) {
 		if (m instanceof Annotation) {
 			return ((Annotation) m).getAnnotationType();
 		}
