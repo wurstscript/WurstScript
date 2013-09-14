@@ -384,7 +384,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 <STRING> {
   [\"]                             { yybegin(afterString); 
                                    return symbol(TokenType.STRING_LITERAL, string.toString()); }
-	{NEWLINE}			{ yybegin(YYINITIAL); 
+	{NEWLINE}			{ yybegin(afterString); 
 								return symbol(TokenType.CUSTOM_ERROR, "unterminated String"); }
   [^\n\r\"\\]+                   { string.append( yytext() ); }
 
