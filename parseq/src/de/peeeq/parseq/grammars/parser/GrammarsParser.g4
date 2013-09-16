@@ -6,37 +6,42 @@ Parser for parseq grammars
 
 @header {
 	package de.peeeq.parseq.grammars.parser;	
-	import de.peeeq.parseq.asts.ast.*;
+	import de.peeeq.parseq.grammars.ast.*;
 	import com.google.common.collect.Lists;
 	import java.util.ArrayList;
 	import java.util.List;
 }
 
-grammarFilee: 
-	grammarRule+ 
+grammarFile returns [GrammarFile result]: 
+	rules+=grammarRule+ 
 	EOF
+	{ $result = new GrammarFile($rules); }
 ;
 
-grammarRule:
-ID ID? ':' gExpr ';'
+grammarRule returns [Rule result]:
+t=ID? n=ID ':' p=gExpr ';' 
+	{ $result = new Rule($t,$n,$p.result); }
 ;
 
-gExpr:
-	  gExprParts ('|' gExprParts)*
+gExpr returns [Production result]:
+	  parts+=gExprParts ('|' parts+=gExprParts)*
+	  { $result = new ProdAlternative($parts); }
 ;
 
-gExprParts:
-	gExprPart+
+gExprParts returns [Production result]:
+	parts+=gExprPart+ 
+		{ $result = new ProdSequence($parts); }
 ;
 
-gExprPart:
-	gExprAtomic ('+' | '-' | '*' )? // repeat-modifier
+gExprPart returns [Production result]:
+	e=gExprAtomic mod=('+' | '-' | '*')?
+	{ $result = ProdRepeat.create($e.result, $mod);}
 ;
 
-gExprAtomic:
-	  LEX 
-	| ID
-	| '(' gExpr ')'
+gExprAtomic returns [Production result]:
+	  lex=LEX  			{ $result = new ProdLex($lex); }
+	| i=ID				{ $result = new ProdId($i); }
+	| '(' e=gExpr ')'	{ $result = $e.result; }		
 ;
 
 

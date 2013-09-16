@@ -11,9 +11,10 @@ import de.peeeq.parseq.asts.Generator;
 import de.peeeq.parseq.asts.ast.Program;
 import de.peeeq.parseq.asts.parser.ParseqAntlrParserLexer;
 import de.peeeq.parseq.asts.parser.ParseqAntlrParserParser;
+import de.peeeq.parseq.grammars.GrammarTranslation;
 import de.peeeq.parseq.grammars.parser.GrammarsParserLexer;
 import de.peeeq.parseq.grammars.parser.GrammarsParserParser;
-import de.peeeq.parseq.grammars.parser.GrammarsParserParser.GrammarFileeContext;
+import de.peeeq.parseq.grammars.parser.GrammarsParserParser.GrammarFileContext;
 
 public class Main {
 
@@ -40,7 +41,7 @@ public class Main {
 			
 			String inputFileG = inputFile + ".g";
 			if (new File(inputFileG).exists()) {
-				compileGrammarSpec(inputFileG, outputFolder);
+				compileGrammarSpec(inputFileG, outputFolder, prog);
 			} else {
 				System.out.println("No Grammar file given for " + inputFileG);
 			}
@@ -74,7 +75,7 @@ public class Main {
 		return prog;
 	}
 	
-	public static void compileGrammarSpec(String inputFile, String outputFolder)
+	public static void compileGrammarSpec(String inputFile, String outputFolder, Program prog)
 			throws IOException {
 		
 		GrammarsParserLexer lexer = new GrammarsParserLexer(new ANTLRFileStream(inputFile));
@@ -86,7 +87,9 @@ public class Main {
 		ErrorListener errListener = new ErrorListener();
 		parser.addErrorListener(errListener);
 
-		GrammarFileeContext f = parser.grammarFilee();
+		GrammarFileContext f = parser.grammarFile();
+		
+		new GrammarTranslation(f.result).translate();
 		System.out.println("GrammarFileContext: ");
 		System.out.println(f.toStringTree(parser));
 	}
