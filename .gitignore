@@ -12,6 +12,7 @@
 *.classpath
 *.im
 *.db
+*.zip
 
 #bin folders
 */bin/*
