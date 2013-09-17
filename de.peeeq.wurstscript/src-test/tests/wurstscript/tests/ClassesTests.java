@@ -632,9 +632,10 @@ public class ClassesTests extends WurstScriptTest {
 			);
 	}
 	
+	
 	@Test
 	public void duplicateConstructor() {
-		testAssertErrorsLines(false, "Double Constructor",
+		testAssertErrorsLines(false, "Duplicate constructor",
 				"package test",
 				"	class A",
 				"		int i",

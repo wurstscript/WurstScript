@@ -186,6 +186,7 @@ public class WurstValidator {
 			if (e instanceof AstElementWithTypeParameters) checkTypeParameters((AstElementWithTypeParameters) e);
 			if (e instanceof ClassDef) checkInstanceDef((ClassDef) e);
 			if (e instanceof ClassDef) checkOverrides((ClassDef) e);
+			if (e instanceof ClassDef) checkConstructorsUnique((ClassDef) e);
 			if (e instanceof ClassDef) visit((ClassDef) e);
 			if (e instanceof CompilationUnit) checkPackageName((CompilationUnit) e);
 			if (e instanceof ConstructorDef) checkConstructor((ConstructorDef) e);
@@ -242,6 +243,38 @@ public class WurstValidator {
 			String attr = cde.getAttributeName().replaceFirst("^attr", "");
 			throw new CompileError(element.attrSource(), Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
 		}
+	}
+
+	private void checkConstructorsUnique(ClassDef c) {
+		List<ConstructorDef> constrs = c.getConstructors();
+		
+		for (int i=0; i<constrs.size()-1; i++) {
+			ConstructorDef c1 = constrs.get(i);
+			for (int j=i+1; i<constrs.size(); i++) {
+				ConstructorDef c2 = constrs.get(j);
+				if (c1.getParameters().size() != c2.getParameters().size()) {
+					continue;
+				}
+				
+				if (!parametersTypeDisjunct(c1.getParameters(),c2.getParameters())) {
+					c2.addError("Duplicate constructor, an other constructor with similar types is already defined in line " + c1.attrSource().getLine());
+				}
+			}
+		}
+		
+	}
+
+
+	private boolean parametersTypeDisjunct(WParameters params1,
+			WParameters params2) {
+		for (int i = 0; i < params1.size(); i++) {
+			WurstType t1 = params1.get(i).attrTyp();
+			WurstType t2 = params2.get(i).attrTyp();
+			if (!t1.isSubtypeOf(t2, params1) && !t2.isSubtypeOf(t1, params2)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private void checkImplicitParameter(NameRef e) {
