@@ -38,4 +38,16 @@ public class TypeId {
 		return c.attrProg().attrTypeId().get(c);
 	}
 
+	public static boolean isSubclass(ImClass c, ImClass other) {
+		if (c == other) {
+			return true;
+		}
+		for (ImClass sc : c.getSuperClasses()) {
+			if (sc.isSubclassOf(other)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 }

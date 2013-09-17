@@ -8,6 +8,7 @@ import com.google.common.collect.Lists;
 
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.WurstOperator;
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstBool;
 import de.peeeq.wurstscript.intermediateLang.ILconstFuncRef;
@@ -163,23 +164,29 @@ public class EvaluateExpr {
 
 	public static ILconst eval(ImMethodCall mc,
 			ProgramState globalState, LocalState localState) {
-		ImClass c = mc.getMethod().attrClass();
-		ImVar typeIdVar = null; // TODO c.attrManagementVars().typeId;
 		ILconstInt receiver = (ILconstInt)mc.getReceiver().evaluate(globalState, localState);
-		if (receiver.getVal() == 0) {
-			throw new RuntimeException("Null pointer derefenced at " + mc.getTrace());
-		}
-		ImIntVal typeId = (ImIntVal) globalState.getArrayVal(typeIdVar, receiver.getVal());
+
+		globalState.assertAllocated(receiver.getVal(), mc.attrTrace());
+		
+		
 		ArrayList<ImExpr> args = Lists.newArrayList(mc.getArguments());
 		args.add(0, JassIm.ImIntVal(receiver.getVal()));
+		
+		
+		ImMethod mostPrecise = mc.getMethod();
+		
 		// find correct implementation:
 		for (ImMethod m : mc.getMethod().getSubMethods()) {
-			if (typeId.getValI() == m.attrClass().attrTypeId()) {
-				return evaluateFunc(globalState, localState, m.getImplementation(), args);
+			
+			if (m.attrClass().isSubclassOf(mostPrecise.attrClass())) {
+				if (globalState.isInstanceOf(receiver.getVal(), m.attrClass(), mc.attrTrace())) {
+					// found more precise method
+					mostPrecise = m;
+				}
 			}
 		}
-		// default implementation
-		return evaluateFunc(globalState, localState, mc.getMethod().getImplementation(), args);
+		// execute most precise method
+		return evaluateFunc(globalState, localState, mostPrecise.getImplementation(), args);
 	}
 
 	public static ILconst eval(ImMemberAccess ma, ProgramState globalState, LocalState localState) {
@@ -192,27 +199,31 @@ public class EvaluateExpr {
 
 	public static ILconst eval(ImAlloc imAlloc, ProgramState globalState,
 			LocalState localState) {
-		throw new Error("not implemented"); // TODO
+		return new ILconstInt(globalState.allocate(imAlloc.getClazz(), imAlloc.attrTrace()));
 	}
 
 	public static ILconst eval(ImDealloc imDealloc, ProgramState globalState,
 			LocalState localState) {
-		throw new Error("not implemented"); // TODO
+		ILconstInt obj = (ILconstInt) imDealloc.getObj().evaluate(globalState, localState);
+		globalState.deallocate(obj.getVal(), imDealloc.getClazz(), imDealloc.attrTrace());
+		return ILconstNull.instance();
 	}
 
 	public static ILconst eval(ImInstanceof e, ProgramState globalState,
 			LocalState localState) {
-		throw new Error("not implemented"); // TODO
+		ILconstInt obj = (ILconstInt) e.getObj().evaluate(globalState, localState);
+		return ILconstBool.instance(globalState.isInstanceOf(obj.getVal(), e.getClazz(), e.attrTrace()));
 	}
 
-	public static ILconst eval(ImTypeIdOfClass imTypeIdOfClass,
+	public static ILconst eval(ImTypeIdOfClass e,
 			ProgramState globalState, LocalState localState) {
-		throw new Error("not implemented"); // TODO
+		return new ILconstInt(e.getClazz().attrTypeId());
 	}
 
-	public static ILconst eval(ImTypeIdOfObj imTypeIdOfObj,
+	public static ILconst eval(ImTypeIdOfObj e,
 			ProgramState globalState, LocalState localState) {
-		throw new Error("not implemented"); // TODO
+		ILconstInt obj = (ILconstInt) e.getObj().evaluate(globalState, localState);
+		return new ILconstInt(globalState.getTypeId(obj.getVal(), e.attrTrace()));
 	}
 	
 }

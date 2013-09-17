@@ -3,10 +3,16 @@ package de.peeeq.wurstscript.intermediateLang.interpreter;
 import java.io.File;
 import java.io.PrintStream;
 import java.util.List;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.intermediateLang.ILconst;
+import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 
@@ -20,6 +26,8 @@ public class ProgramState extends State {
 	private PrintStream outStream = System.out;
 	private List<NativesProvider> nativeProviders = Lists.newArrayList();
 	private ImProg prog;
+	private int objectIdCounter;
+	private Map<Integer, ImClass> objectToClass = Maps.newHashMap();
 
 	public ProgramState(File mapFile, WurstGui gui) {
 		this.gui = gui;
@@ -73,7 +81,38 @@ public class ProgramState extends State {
 	public ImProg getProg() {
 		return prog;
 	}
-	
+
+	public int allocate(ImClass clazz, AstElement trace) {
+		objectIdCounter++;
+		objectToClass.put(objectIdCounter, clazz);
+		return objectIdCounter;
+	}
+
+	public void deallocate(int obj, ImClass clazz, AstElement trace) {
+		assertAllocated(obj, trace);
+		objectToClass.remove(obj);
+		// TODO recycle ids
+	}
+
+	public void assertAllocated(int obj, AstElement trace) {
+		if (obj == 0) {
+			throw new RuntimeException("Null pointer derefenced at " + trace);
+		}
+		if (!objectToClass.containsKey(obj)) {
+			throw new InterprationError("Object already destroyed " + trace);
+		}
+	}
+
+	public boolean isInstanceOf(int obj, ImClass clazz, AstElement trace) {
+		assertAllocated(obj, trace);
+		return objectToClass.get(obj).isSubclassOf(clazz); // TODO more efficient check
+	}
+
+	public int getTypeId(int obj,  AstElement trace) {
+		assertAllocated(obj, trace);
+		return objectToClass.get(obj).attrTypeId();
+	}
+
 
 	
 }

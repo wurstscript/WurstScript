@@ -34,6 +34,11 @@ public class RobustProgramState extends ProgramState {
 	}
 
 	private String key(ImVar v) {
+		if (v == null) throw new IllegalArgumentException();
+		if (v.attrTrace() == null) {
+			System.err.println("Variable has no trace: " + v);
+			return v.getName();
+		}
 		return v.attrTrace().attrPathDescription() + "^" + v.getName();
 	}
 

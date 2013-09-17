@@ -291,6 +291,10 @@ ImClass.attrTypeId
 	returns int
 	implemented by de.peeeq.wurstscript.translation.imtranslation.TypeId.get
 	
+ImClass.isSubclassOf(ImClass other)
+	returns boolean
+	implemented by de.peeeq.wurstscript.translation.imtranslation.TypeId.isSubclass
+	
 ImProg.attrTypeId
 	returns java.util.Map<ImClass, Integer>
 	implemented by de.peeeq.wurstscript.translation.imtranslation.TypeId.calculate
