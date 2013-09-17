@@ -42,41 +42,9 @@ public class WurstConsole extends IOConsole implements Runnable {
 				if (line == null) {
 					break;
 				}
-				final boolean[] locked = new boolean[]{true};
 				
-				PlatformUI.getWorkbench().getDisplay().asyncExec(new Runnable() {
-					
-					@Override
-					public void run() {
-						WurstEditor editor = WurstEditor.getActiveEditor();
-						if (editor == null) {
-							try {
-								out.write("No wurst editor is active.\n");
-							} catch (IOException e) {
-							}
-						} else {
-							repl.setModelManager(editor.getModelManager());
-							repl.setEditorCompilationUnit(editor.getCompilationUnit());
-						}
-						synchronized (locked) {
-							locked[0] = false;
-							locked.notifyAll();
-						}
-					}
-				});
-				
-				while (locked[0]) {
-					synchronized (locked) {
-						locked.wait();
-					}
-				}
+				attachConsoleToCurrentEditor(out);
 				repl.putLine(line);
-				
-				
-				
-//				out.write("Entered text: " + line);
-//				out.write("\n> ");
-//				out.flush();
 			}
 		} catch (IOException e) {
 			if (e.getMessage().contains("Stream Closed")) {
@@ -86,6 +54,38 @@ public class WurstConsole extends IOConsole implements Runnable {
 			}
 		} catch (InterruptedException e) {
 			WLogger.severe(e);
+		}
+	}
+
+	public void attachConsoleToCurrentEditor(
+			final IOConsoleOutputStream out) throws InterruptedException {
+		final boolean[] locked = new boolean[]{true};
+		
+		PlatformUI.getWorkbench().getDisplay().asyncExec(new Runnable() {
+			
+			@Override
+			public void run() {
+				WurstEditor editor = WurstEditor.getActiveEditor();
+				if (editor == null) {
+					try {
+						out.write("No wurst editor is active.\n");
+					} catch (IOException e) {
+					}
+				} else {
+					repl.setModelManager(editor.getModelManager());
+					repl.setEditorCompilationUnit(editor.getCompilationUnit());
+				}
+				synchronized (locked) {
+					locked[0] = false;
+					locked.notifyAll();
+				}
+			}
+		});
+		
+		while (locked[0]) {
+			synchronized (locked) {
+				locked.wait();
+			}
 		}
 	}
 }

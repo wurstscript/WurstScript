@@ -31,6 +31,7 @@ import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.intermediateLang.interpreter.CompiletimeNatives;
 import de.peeeq.wurstio.intermediateLang.interpreter.ProgramStateIO;
 import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
+import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.NativeFunctionsIO;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstscript.RunArgs;
@@ -66,6 +67,7 @@ import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypePrimitive;
 import de.peeeq.wurstscript.types.WurstTypeTuple;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
+import de.peeeq.wurstscript.utils.ExecutiontimeMeasure;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -77,6 +79,7 @@ import de.peeeq.wurstscript.utils.Utils;
 public class WurstREPL {
 
 	
+	private static final String REPL_DUMMY_FILENAME = "<REPL>";
 	private static final String WURST_REPL_RESULT = "res";
 	private IOConsoleOutputStream out;
 	private ModelManager modelManager;
@@ -92,8 +95,7 @@ public class WurstREPL {
 		@Override
 		public void sendError(CompileError err) {
 			super.sendError(err);
-			String msg = err.toString() + "\n";
-			print(msg);			
+			throw err;
 		}
 
 	}
@@ -191,27 +193,32 @@ public class WurstREPL {
 				def.setName(tempName);
 			}
 			
-			
-			WurstModel model = cu.getModel();
-			modelManager.typeCheckModel(gui, false);
-			if (gui.getErrorCount() > 0) {
+			LocalState val = null;
+			try {
+				val = executeReplCode(cu);
+			} catch (CompileError err) {
+				handleCompileError(err);
 				return;
+			} catch (Throwable t) {
+				// if there was an error, check if there is a problem in typechecking:
+				
+				try (ExecutiontimeMeasure tt = new ExecutiontimeMeasure("type checking")) {
+					modelManager.typeCheckModel(gui, false);
+				} catch (CompileError err) {
+					handleCompileError(err);
+					return;
+				}
+				
+				// if there was no comile error
+				// this is probably a bug
+				print("You discovered a bug in the interpreter: \n");
+				print(t.getMessage()+"\n");
+				WLogger.severe(t);
 			}
 			
-			ImProg imProg = translate(model);
-			
-			if (gui.getErrorCount() > 0) {
+			if (val == null) {
 				return;
 			}
-			
-			
-			
-			
-			interpreter.setProgram(imProg);
-			LocalState val = interpreter.executeFunction("repl_start");
-			
-			
-			
 			
 			if (assignment instanceof LocalVarDef) {
 				LocalVarDef lvd = (LocalVarDef) assignment;
@@ -246,7 +253,7 @@ public class WurstREPL {
 			
 			
 		} catch (CompileError e) {
-			print(e.toString() + "\n");
+			handleCompileError(e);
 		} catch (DebugPrintError e) {
 			if (interpreter != null) {
 				print("Runtime error at: " + Utils.printElementWithSource(interpreter.getLastStatement().attrTrace()) 
@@ -258,6 +265,33 @@ public class WurstREPL {
 			e.printStackTrace();
 			return;
 		}
+	}
+
+	public void handleCompileError(CompileError err) {
+		if (err.getSource().getFile().equals(REPL_DUMMY_FILENAME)) {
+			print("Error in last entered statement:\n" + err.getMessage() + "\n");
+		} else {
+			print(err.toString() + "\n");
+		}
+	}
+
+	public LocalState executeReplCode(CompilationUnit replCU)
+			throws IOException {
+		WurstModel model = replCU.getModel();
+		
+		
+		
+		ImProg imProg;
+		try (ExecutiontimeMeasure t = new ExecutiontimeMeasure("translation")) {
+			imProg = translate(model);
+		}
+		
+		LocalState val;
+		try (ExecutiontimeMeasure t = new ExecutiontimeMeasure("interpretation")) {
+			interpreter.setProgram(imProg);
+			val = interpreter.executeFunction("repl_start");
+		}
+		return val;
 	}
 
 	private void compileProject(String args) {
@@ -393,7 +427,7 @@ public class WurstREPL {
 
 	private CompilationUnit parse(StringBuilder code) {
 		Reader source = new StringReader(code.toString());
-		CompilationUnit cu = modelManager.parse(gui, "<REPL>", source);
+		CompilationUnit cu = modelManager.parse(gui, REPL_DUMMY_FILENAME, source);
 		return cu;
 	}
 
