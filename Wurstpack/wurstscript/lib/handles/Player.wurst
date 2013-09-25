@@ -1,6 +1,28 @@
 package Player
 import NoWurst
 
+public enum PlayerId
+	RED
+	BLUE
+	TEAL
+	PURPLE
+	YELLOW
+	ORANGE
+	GREEN
+	PINK
+	GRAY
+	LIGHTBLUE
+	DARKGREEN
+	BROWN
+	
+public class Player
+	static player array get
+	
+init
+	for i = 0 to 14
+		Player.get[i] = Player(i)
+	
+
 public function player.getId() returns int
 	return GetPlayerId(this)
 

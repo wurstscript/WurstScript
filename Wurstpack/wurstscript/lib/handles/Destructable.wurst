@@ -3,6 +3,9 @@ import NoWurst
 import public Vectors
 import Angle
 
+public function destructable.kill() returns destructable
+	KillDestructable(this)
+	return this
 
 public function destructable.getX() returns real
 	return GetDestructableX(this)

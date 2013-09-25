@@ -1,9 +1,20 @@
 package Group
 import NoWurst
+import Vectors
+
+public function group.enumUnitsInRange(vec2 pos, real range)
+	GroupEnumUnitsInRange(this, pos.x, pos.y, range, null)
 
 public function group.clear()
 	GroupClear(this)
 	
+public function group.addUnit(unit u) returns group
+	GroupAddUnit(this, u)
+	return this
+	
+public function group.destr()
+	DestroyGroup(this)	
+
 // group iterators
 
 public function group.iterator() returns group

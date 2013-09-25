@@ -1,0 +1,10 @@
+package GameTimer
+
+timer gameTimer
+
+public function getElapsedGameTime() returns real
+	return gameTimer.getElapsed()
+
+init
+	gameTimer = CreateTimer()
+	gameTimer.start(100000, null)

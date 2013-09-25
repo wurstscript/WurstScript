@@ -5,6 +5,10 @@ import Angle
 import PrintingHelper
 import Terrain
 
+public function unit.setTurnSpeed(real speed) returns unit
+	SetUnitTurnSpeed(this, speed)
+	return this
+
 public function unit.getX() returns real
 	return GetUnitX(this)
 	
