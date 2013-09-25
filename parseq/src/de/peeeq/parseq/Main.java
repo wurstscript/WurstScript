@@ -89,7 +89,7 @@ public class Main {
 
 		GrammarFileContext f = parser.grammarFile();
 		
-		new GrammarTranslation(f.result).translate();
+		new GrammarTranslation(f.result, prog).translate();
 		System.out.println("GrammarFileContext: ");
 		System.out.println(f.toStringTree(parser));
 	}

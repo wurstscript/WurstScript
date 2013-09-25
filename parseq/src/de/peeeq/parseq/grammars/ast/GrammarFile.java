@@ -6,7 +6,7 @@ import com.google.common.collect.Lists;
 
 import de.peeeq.parseq.grammars.parser.GrammarsParserParser.GrammarRuleContext;
 
-public class GrammarFile {
+public class GrammarFile extends AstElement {
 
 	public final List<Rule> rules;
 	
@@ -14,6 +14,7 @@ public class GrammarFile {
 		this.rules = Lists.newArrayList();
 		for (GrammarRuleContext g : rules) {
 			this.rules.add(g.result);
+			g.result.setParent(this);
 		}
 	}
 

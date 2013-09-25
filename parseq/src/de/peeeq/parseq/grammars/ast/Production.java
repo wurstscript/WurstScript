@@ -1,5 +1,10 @@
 package de.peeeq.parseq.grammars.ast;
 
-public class Production {
+import de.peeeq.parseq.grammars.GrammarTranslation;
 
+public abstract class Production extends AstElement {
+
+	public abstract void print(GrammarTranslation grammarTranslation);
+	
+	
 }
