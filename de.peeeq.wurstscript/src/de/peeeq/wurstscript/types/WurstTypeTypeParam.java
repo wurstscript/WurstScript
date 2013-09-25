@@ -66,5 +66,11 @@ public class WurstTypeTypeParam extends WurstType {
 	public ImExprOpt getDefaultValue() {
 		return JassIm.ImNull();
 	}
+	
 
+	@Override
+	public boolean isCastableToInt() {
+		return true;
+	}
+	
 }

@@ -46,5 +46,10 @@ public class WurstTypeVoid extends WurstType {
 	public ImExprOpt getDefaultValue() {
 		return JassIm.ImNoExpr();
 	}
+	
+	@Override
+	public boolean isVoid() {
+		return true;
+	}
 
 }

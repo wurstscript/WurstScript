@@ -74,4 +74,9 @@ public class WurstTypeModule extends WurstTypeNamedScope {
 	public ImExprOpt getDefaultValue() {
 		return JassIm.ImNull();
 	}
+	
+	@Override
+	public boolean isCastableToInt() {
+		return true;
+	}
 }

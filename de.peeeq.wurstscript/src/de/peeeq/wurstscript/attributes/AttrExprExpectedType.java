@@ -85,7 +85,7 @@ public class AttrExprExpectedType {
 					return WurstTypeInt.instance();
 				} else if (exprUnary.attrExpectedTyp().isSubtypeOf(WurstTypeReal.instance(), expr)) {
 					return WurstTypeReal.instance();
-				} else if (exprUnary.attrExpectedTyp() instanceof WurstTypeBool) {
+				} else if (exprUnary.attrExpectedTyp().isSubtypeOf(WurstTypeBool.instance(), expr)) {
 					return WurstTypeBool.instance();
 				}
 			} else if (parent instanceof StmtReturn) {

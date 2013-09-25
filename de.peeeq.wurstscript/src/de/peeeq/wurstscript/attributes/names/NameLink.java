@@ -257,16 +257,8 @@ public class NameLink {
 	}
 
 	private WurstType adjustType(WurstType t, Map<TypeParamDef, WurstType> binding) {
-		TypeParamDef def = null;
-		if (t instanceof WurstTypeTypeParam) {
-			def = ((WurstTypeTypeParam) t).getDef();
-		} else if (t instanceof WurstTypeFreeTypeParam) {
-			def = ((WurstTypeFreeTypeParam) t).getDef();
-		}
-		if (t != null && binding.containsKey(def)) {
-			return binding.get(def);
-		}
-		return t;
+		if (t == null) return null;
+		return t.setTypeArgs(binding);
 	}
 
 	

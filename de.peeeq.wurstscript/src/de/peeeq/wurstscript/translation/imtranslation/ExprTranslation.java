@@ -432,12 +432,7 @@ public class ExprTranslation {
 	private static boolean isCalledOnDynamicRef(FunctionCall e) {
 		if (e instanceof ExprMemberMethod) {
 			ExprMemberMethod mm = (ExprMemberMethod) e;
-			if (mm.getLeft().attrTyp() instanceof WurstTypeNamedScope) {
-				WurstTypeNamedScope tns = (WurstTypeNamedScope) mm.getLeft().attrTyp();
-				if (!tns.isStaticRef()) {
-					return true;
-				}
-			}
+			return mm.getLeft().attrTyp().allowsDynamicDispatch();
 		} else if (e.attrIsDynamicContext()) {
 			return true;
 		}

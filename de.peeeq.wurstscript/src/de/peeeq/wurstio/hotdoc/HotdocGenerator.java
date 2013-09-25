@@ -225,7 +225,7 @@ public class HotdocGenerator {
 				first = false;
 			}
 			descr.append(")");
-			if (f.getReturnTyp().attrTyp() instanceof WurstTypeVoid) {
+			if (f.getReturnTyp().attrTyp().isVoid()) {
 				
 			} else {
 				descr.append(" returns ");

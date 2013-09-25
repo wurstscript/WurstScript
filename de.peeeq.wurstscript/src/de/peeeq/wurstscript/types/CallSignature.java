@@ -4,13 +4,18 @@ import java.util.List;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.Expr;
+import de.peeeq.wurstscript.ast.OptExpr;
 
 public class CallSignature {
 	private final Expr receiver;
 	private final List<Expr> arguments;
 	
-	public CallSignature(Expr receiver, List<Expr> arguments) {
-		this.receiver = receiver;
+	public CallSignature(OptExpr optExpr, List<Expr> arguments) {
+		if (optExpr instanceof Expr) {
+			this.receiver = (Expr) optExpr;
+		} else {
+			this.receiver = null;
+		}
 		this.arguments = arguments;
 	}
 	

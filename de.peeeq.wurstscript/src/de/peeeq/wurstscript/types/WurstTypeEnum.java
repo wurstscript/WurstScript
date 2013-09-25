@@ -54,5 +54,11 @@ public class WurstTypeEnum extends WurstTypeNamedScope {
 	public ImExprOpt getDefaultValue() {
 		return JassIm.ImIntVal(0);
 	}
+	
+
+	@Override
+	public boolean isCastableToInt() {
+		return true;
+	}
 
 }

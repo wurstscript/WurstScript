@@ -67,4 +67,6 @@ public class WurstTypeFreeTypeParam extends WurstType {
 		return JassIm.ImNull();
 	}
 
+	
+	
 }

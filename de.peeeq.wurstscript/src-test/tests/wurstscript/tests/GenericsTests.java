@@ -282,4 +282,46 @@ public class GenericsTests extends WurstScriptTest {
 				"endpackage");
 	}
 
+	
+	@Test
+	public void cast() { 
+		testAssertOkLines(false,  
+				"package Test",
+				"native testSuccess()",
+				"class Cell<T>",
+				"	T o",
+				"class A",
+				"	function foo() returns int",
+				"		return 5",
+				"class B extends A",
+				"	override function foo() returns int",
+				"		return 6",
+				"init",
+				"	Cell<A> c = new Cell<A>()",
+				"	c.o = new B()",
+				"	B b = c.o castTo B"
+				);
+	}
+	
+	@Test
+	public void generics_dispatch() { 
+		testAssertOkLines(true,  
+				"package Test",
+				"native testSuccess()",
+				"class Cell<T>",
+				"	T o",
+				"class A",
+				"	function foo() returns int",
+				"		return 5",
+				"class B extends A",
+				"	override function foo() returns int",
+				"		return 6",
+				"init",
+				"	Cell<A> c = new Cell<A>()",
+				"	c.o = new B()",
+				"	if c.o.foo() == 6",
+				"		testSuccess()"
+				);
+	}
+	
 }

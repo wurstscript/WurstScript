@@ -87,23 +87,13 @@ public class NameResolution {
 			}
 			scope = nextScope(scope);
 		}
-		if (receiverType instanceof WurstTypeNamedScope) {
-			WurstTypeNamedScope wurstTypeNamedScope = (WurstTypeNamedScope) receiverType;
-			// add public method from receiver
-			scope = wurstTypeNamedScope.getDef();
-			if (scope instanceof ModuleDef) {
-				// cannot access functions from outside of module 
-			} else {
-				for (NameLink n : scope.attrNameLinks().get(name)) {
-					if (n.getType() == NameLinkType.FUNCTION
-							&& n.getReceiverType() != null
-							&& n.getReceiverType().isSupertypeOf(receiverType, node)) {
-						result.add(n.hidingPrivateAndProtected());
-					}
-				}
-			}
-		}
+		addMemberMethods(node, receiverType, name, result);
 		return removeDuplicates(result);
+	}
+
+	public static void addMemberMethods(AstElement node,
+			WurstType receiverType, String name, List<NameLink> result) {
+		receiverType.addMemberMethods(node, name, result);
 	}
 	
 	public static NameDef lookupVar(AstElement node, String name, boolean showErrors) {

@@ -435,11 +435,8 @@ public class AttrExprType {
 		if (varDef instanceof FunctionDefinition) {
 			term.addError("Missing parantheses for function call");
 		}
-		if (varDef.attrIsStatic() && term.getLeft().attrTyp() instanceof WurstTypeNamedScope) {
-			WurstTypeNamedScope ns = (WurstTypeNamedScope) term.getLeft().attrTyp();
-			if (!ns.isStaticRef()) {
-				term.addError("Cannot access static variable " + term.getVarName() + " via a dynamic reference.");
-			}
+		if (varDef.attrIsStatic() && !term.getLeft().attrTyp().isStaticRef()) {
+			term.addError("Cannot access static variable " + term.getVarName() + " via a dynamic reference.");
 		}
 		return varDef.attrTyp().setTypeArgs(term.getLeft().attrTyp().getTypeArgBinding());
 	}
@@ -489,12 +486,7 @@ public class AttrExprType {
 
 
 	protected static boolean isCastableToInt(WurstType typ) {
-		return typ instanceof WurstTypeClass 
-				|| typ instanceof WurstTypeModule
-				|| typ instanceof WurstTypeInterface
-				|| typ instanceof WurstTypeTypeParam
-				|| typ instanceof WurstTypeBoundTypeParam
-				|| typ instanceof WurstTypeEnum;
+		return typ.isCastableToInt();
 	}
 
 
@@ -507,16 +499,14 @@ public class AttrExprType {
 
 
 	private static void checkCastOrInstanceOf(AstElement e, WurstType exprType, WurstType targetType, String msgPre) {
-		if (!(exprType instanceof WurstTypeClass
-				|| exprType instanceof WurstTypeInterface)) {
+		if (!exprType.canBeUsedInInstanceOf()) {
 			e.addError(msgPre + " not defined for expression type " + exprType);
 		}
-		if (!(targetType instanceof WurstTypeClass
-				|| targetType instanceof WurstTypeInterface)) {
-			e.addError(msgPre + "instanceof expression not defined for target type " + targetType);
+		if (!targetType.canBeUsedInInstanceOf()) {
+			e.addError(msgPre + " not defined for target type " + targetType);
 		}
 		if (exprType.isSubtypeOf(targetType, e)) {
-			e.addError("This "+ msgPre + " is always true");
+			e.addError("This "+ msgPre + " is useless");
 		} else if (!exprType.isSupertypeOf(targetType, e)) {
 			e.addError(msgPre + " is not allowed because types " + exprType + " and " + targetType + " are not directly related.\n" +
 					"Consider adding a cast to a common superType first.");
@@ -540,7 +530,7 @@ public class AttrExprType {
 
 
 	public static WurstType calculate(ExprTypeId e) {
-		WurstType exprTyp = e.getLeft().attrTyp();
+		WurstType exprTyp = e.getLeft().attrTyp().normalize();
 		if (exprTyp instanceof WurstTypeClassOrInterface) {
 			WurstTypeClassOrInterface t = (WurstTypeClassOrInterface) exprTyp;
 			if (t.isStaticRef()) {

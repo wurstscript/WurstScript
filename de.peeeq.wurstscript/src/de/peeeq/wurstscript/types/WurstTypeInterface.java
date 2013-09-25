@@ -102,4 +102,6 @@ public class WurstTypeInterface extends WurstTypeClassOrInterface {
 	public ImExprOpt getDefaultValue() {
 		return JassIm.ImNull();
 	}
+	
+
 }
