@@ -120,6 +120,15 @@ public abstract class WurstType {
 	public boolean isStaticRef() {
 		return false;
 	}
+	
+	public boolean isTranslatedToInt() {
+		return this instanceof WurstTypeInt
+				|| this instanceof WurstTypeIntLiteral
+				|| this instanceof WurstTypeNamedScope
+				|| this instanceof WurstTypeTypeParam
+				|| this instanceof WurstTypeFreeTypeParam
+				|| this instanceof WurstTypeBoundTypeParam;
+	}
 
 	public boolean isCastableToInt() {
 		return this instanceof WurstTypeClass 
@@ -132,6 +141,16 @@ public abstract class WurstType {
 
 	public WurstType normalize() {
 		return this;
+	}
+	
+	public boolean supportsGenerics() {
+		WurstType t = this.normalize();
+		return t instanceof WurstTypeNamedScope 
+				|| t instanceof WurstTypeNull
+				|| t instanceof WurstTypeInt
+				|| t instanceof WurstTypeTypeParam
+				|| t instanceof WurstTypeFreeTypeParam
+				|| t instanceof WurstTypeIntLiteral;
 	}
 
 

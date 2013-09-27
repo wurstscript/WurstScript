@@ -40,21 +40,14 @@ public class ImplicitFuncs {
 
 	public static Collection<NameLink> findToIndexFuncs(WurstType typ,
 			AstElement e) {
-		typ = resolveBound(typ);
+		typ = typ.normalize();
 		return e.lookupFuncs(toIndexFuncName(typ), false);
 	}
 
 
 	public static Collection<NameLink> findFromIndexFuncs(WurstType typ,
 			AstElement e) {
-		typ = resolveBound(typ);
+		typ = typ.normalize();
 		return e.lookupFuncs(fromIndexFuncName(typ), false);
-	}
-	
-	static WurstType resolveBound(WurstType typ) {
-		while (typ instanceof WurstTypeBoundTypeParam) {
-			typ = ((WurstTypeBoundTypeParam) typ).getBaseType();
-		}
-		return typ;
 	}
 }

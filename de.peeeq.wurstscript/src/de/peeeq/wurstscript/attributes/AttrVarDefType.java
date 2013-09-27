@@ -75,7 +75,7 @@ public class AttrVarDefType {
 		OptTypeExpr typ = v.getOptTyp();
 		final OptExpr initialExpr = v.getInitialExpr();
 		if (typ instanceof TypeExpr) {
-			return ImplicitFuncs.resolveBound(typ.attrTyp().dynamic());
+			return typ.attrTyp().dynamic().normalize();
 		} else {
 			if (initialExpr instanceof Expr) {
 				WurstType result = ((Expr) initialExpr).attrTyp();
@@ -83,7 +83,7 @@ public class AttrVarDefType {
 					// let a = 1 // we want an int here
 					return WurstTypeInt.instance();
 				}
-				return ImplicitFuncs.resolveBound(result);
+				return result.normalize();
 			} else {
 				v.addError("Could not infer the type of variable '" + v.getName() + "' because it does not have an initial expression.\n"
 						+ "Fix this error by providing a type (e.g. 'int "+v.getName()+"' or 'string "+v.getName()+"').");

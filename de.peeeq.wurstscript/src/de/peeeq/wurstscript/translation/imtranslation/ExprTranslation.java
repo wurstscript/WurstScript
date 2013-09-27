@@ -157,13 +157,13 @@ public class ExprTranslation {
 		ImFunction fromIndex = null;
 		if (actualType instanceof WurstTypeBoundTypeParam) {
 			WurstTypeBoundTypeParam wtb = (WurstTypeBoundTypeParam) actualType;
-			if (!typeSupportsGenerics(wtb.getBaseType())) {
+			if (!wtb.getBaseType().supportsGenerics()) {
 				// if we have a generic type, convert it to the original type using the fromIndex func
 				fromIndex = t.getFuncFor(ImplicitFuncs.findFromIndexFunc(wtb.getBaseType(), e));
 			}
 		} 
 		if (e.attrExpectedTyp() instanceof WurstTypeBoundTypeParam) {
-			if (!typeSupportsGenerics(actualType)) {
+			if (!actualType.supportsGenerics()) {
 				// if we expect a generic type but have something different, use the toIndex func
 				toIndex =  t.getFuncFor(ImplicitFuncs.findToIndexFunc(actualType, e));
 			}
@@ -178,19 +178,6 @@ public class ExprTranslation {
 			return JassIm.ImFunctionCall(e, toIndex, JassIm.ImExprs(translated), false);
 		}
 		return translated;
-	}
-
-	private static boolean typeSupportsGenerics(WurstType t) {
-		if (t instanceof WurstTypeBoundTypeParam) {
-			WurstTypeBoundTypeParam b = (WurstTypeBoundTypeParam) t;
-			return typeSupportsGenerics(b.getBaseType());
-		}
-		return t instanceof WurstTypeNamedScope 
-				|| t instanceof WurstTypeNull
-				|| t instanceof WurstTypeInt
-				|| t instanceof WurstTypeTypeParam
-				|| t instanceof WurstTypeFreeTypeParam
-				|| t instanceof WurstTypeIntLiteral;
 	}
 
 	public static ImExpr translateIntern(ExprBinary e, ImTranslator t, ImFunction f) {
@@ -245,30 +232,10 @@ public class ExprTranslation {
 
 	public static ImExpr translateIntern(ExprNull e, ImTranslator t, ImFunction f) {
 		WurstType expectedType = e.attrExpectedTyp();
-		if (expectedType instanceof WurstTypeNamedScope
-				|| expectedType instanceof WurstTypeTypeParam
-				|| expectedType instanceof WurstTypeFreeTypeParam
-				|| expectedType instanceof WurstTypeBoundTypeParam) {
+		if (expectedType.isTranslatedToInt()) {
 			return ImIntVal(0);
 		}
 		return ImNull();
-//		ImType imType = e.attrTyp().imTranslateType();
-//		if (imType instanceof ImSimpleType) {
-//			ImSimpleType st = (ImSimpleType) imType;
-//			if (st.getTypename().equals(TypesHelper.imInt().getTypename())) {
-//				return ImIntVal(0);
-//			} else {
-//				return ImNull();
-//			}
-//		} else if (imType instanceof ImTupleType) {
-//			ImTupleType tt = (ImTupleType) imType;
-//			ImExprs exprs = JassIm.ImExprs();
-//			for (String $ : tt.getTypes()) {
-//				exprs.add(ImIntVal(0));
-//			}
-//			return ImTupleExpr(exprs);
-//		}
-//		throw new Error("unhandled case");
 	}
 
 	public static ImExpr translateIntern(ExprRealVal e, ImTranslator t, ImFunction f) {

@@ -725,17 +725,12 @@ public class WurstValidator {
 
 	private void visit(StmtDestroy stmtDestroy) {
 		WurstType typ = stmtDestroy.getDestroyedObj().attrTyp();
+		typ = typ.normalize();
 		if (typ instanceof WurstTypeModule) {
 
 		} else if (typ instanceof WurstTypeClass) {
 			WurstTypeClass c = (WurstTypeClass) typ;
 			checkDestroyClass(stmtDestroy, c); 
-		} else if (typ instanceof WurstTypeBoundTypeParam) {
-			WurstTypeBoundTypeParam bt = (WurstTypeBoundTypeParam) typ;
-			if (bt.getBaseType() instanceof WurstTypeClass) {
-				WurstTypeClass c = (WurstTypeClass) bt.getBaseType();
-				checkDestroyClass(stmtDestroy, c);
-			}
 		} else {
 			stmtDestroy.addError("Cannot destroy objects of type " + typ);
 			return;
@@ -787,10 +782,7 @@ public class WurstValidator {
 	private void checkTypeBinding(HasTypeArgs e) {
 		for (Entry<TypeParamDef, WurstType> t : e.attrTypeParameterBindings().entrySet()) {
 			WurstType typ = t.getValue();
-			if (!(typ.isSubtypeOf(WurstTypeInt.instance(), e))
-					&& !(typ instanceof WurstTypeNamedScope)
-					&& !(typ instanceof WurstTypeBoundTypeParam)
-					&& !(typ instanceof WurstTypeTypeParam)) {
+			if (!typ.isTranslatedToInt()) {
 				String toIndexFuncName = ImplicitFuncs.toIndexFuncName(typ);
 				String fromIndexFuncName = ImplicitFuncs.fromIndexFuncName(typ);
 				Collection<NameLink> toIndexFuncs = ImplicitFuncs.findToIndexFuncs(typ, e);
