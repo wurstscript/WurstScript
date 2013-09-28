@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.EnumDef;
+import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprBoolVal;
 import de.peeeq.wurstscript.ast.ExprCast;
@@ -40,6 +41,7 @@ import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.NoTypeExpr;
+import de.peeeq.wurstscript.ast.OptExpr;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
@@ -530,7 +532,7 @@ public class AttrExprType {
 
 
 	public static WurstType calculate(ExprTypeId e) {
-		WurstType exprTyp = e.getLeft().attrTyp().normalize();
+		WurstType exprTyp = e.getLeft().attrTyp();
 		if (exprTyp instanceof WurstTypeClassOrInterface) {
 			WurstTypeClassOrInterface t = (WurstTypeClassOrInterface) exprTyp;
 			if (t.isStaticRef()) {
@@ -548,6 +550,11 @@ public class AttrExprType {
 			e.addError(exprTyp + " does not have a typeId, because it is not an object type.");
 		}
 		return WurstTypeInt.instance();
+	}
+
+
+	public static WurstType normalizedType(Expr e) {
+		return e.attrTypRaw().normalize();
 	}
 
 }

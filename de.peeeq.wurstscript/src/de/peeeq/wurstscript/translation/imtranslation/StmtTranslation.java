@@ -90,7 +90,6 @@ public class StmtTranslation {
 	public static ImStmt translate(StmtDestroy s, ImTranslator t, ImFunction f) {
 		WurstType typ = s.getDestroyedObj().attrTyp();
 		ClassDef classDef;
-		typ = typ.normalize();
 		if (typ instanceof WurstTypeClass) {
 			WurstTypeClass classType = (WurstTypeClass) typ;
 			classDef = classType.getClassDef();

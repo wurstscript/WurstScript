@@ -725,7 +725,6 @@ public class WurstValidator {
 
 	private void visit(StmtDestroy stmtDestroy) {
 		WurstType typ = stmtDestroy.getDestroyedObj().attrTyp();
-		typ = typ.normalize();
 		if (typ instanceof WurstTypeModule) {
 
 		} else if (typ instanceof WurstTypeClass) {

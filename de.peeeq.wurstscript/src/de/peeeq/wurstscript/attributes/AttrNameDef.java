@@ -60,8 +60,8 @@ public class AttrNameDef {
 	}
 
 	public static NameDef lookupEnumConst(String varName, WurstType t) {
-		if (t.normalize() instanceof WurstTypeEnum) {
-			WurstTypeEnum e = (WurstTypeEnum) t.normalize();
+		if (t instanceof WurstTypeEnum) {
+			WurstTypeEnum e = (WurstTypeEnum) t;
 			// if we expect an enum type we can as well directly look into the enum
 			EnumDef eDef = e.getDef();
 			return eDef.lookupMemberVar(e, varName, false);

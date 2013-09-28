@@ -152,7 +152,7 @@ public class ExprTranslation {
 	
 	private static ImExpr wrapTranslation(Expr e, ImTranslator t,
 			ImFunction f, ImExpr translated) {
-		WurstType actualType = e.attrTyp();
+		WurstType actualType = e.attrTypRaw();
 		ImFunction toIndex = null;
 		ImFunction fromIndex = null;
 		if (actualType instanceof WurstTypeBoundTypeParam) {
@@ -162,7 +162,7 @@ public class ExprTranslation {
 				fromIndex = t.getFuncFor(ImplicitFuncs.findFromIndexFunc(wtb.getBaseType(), e));
 			}
 		} 
-		if (e.attrExpectedTyp() instanceof WurstTypeBoundTypeParam) {
+		if (e.attrExpectedTypRaw() instanceof WurstTypeBoundTypeParam) {
 			if (!actualType.supportsGenerics()) {
 				// if we expect a generic type but have something different, use the toIndex func
 				toIndex =  t.getFuncFor(ImplicitFuncs.findToIndexFunc(actualType, e));

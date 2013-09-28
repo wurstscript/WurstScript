@@ -320,15 +320,28 @@ WStatement.attrReadVariables2
 
 OptTypeExpr.attrTyp
 	returns de.peeeq.wurstscript.types.WurstType
-	implemented by de.peeeq.wurstscript.attributes.AttrTypeExprType.calculate
+	implemented by de.peeeq.wurstscript.attributes.AttrTypeExprType.normalizedType
 
 Expr.attrTyp
 	returns de.peeeq.wurstscript.types.WurstType 
+	implemented by de.peeeq.wurstscript.attributes.AttrExprType.normalizedType
+
+
+OptTypeExpr.attrTypRaw
+	returns de.peeeq.wurstscript.types.WurstType
+	implemented by de.peeeq.wurstscript.attributes.AttrTypeExprType.calculate
+
+Expr.attrTypRaw
+	returns de.peeeq.wurstscript.types.WurstType 
 	implemented by de.peeeq.wurstscript.attributes.AttrExprType.calculate
+
+Expr.attrExpectedTypRaw 
+	returns de.peeeq.wurstscript.types.WurstType
+	implemented by de.peeeq.wurstscript.attributes.AttrExprExpectedType.calculate
 
 Expr.attrExpectedTyp "try to guess what type is expected here"
 	returns de.peeeq.wurstscript.types.WurstType
-	implemented by de.peeeq.wurstscript.attributes.AttrExprExpectedType.calculate
+	implemented by de.peeeq.wurstscript.attributes.AttrExprExpectedType.normalizedType
 
 FunctionCall.attrImplicitParameter
 	returns OptExpr

@@ -86,7 +86,7 @@ public class GenericsTests extends WurstScriptTest {
 
 	@Test
 	public void identityFail2() {
-		testAssertErrorsLines(true, "Cannot assign A<--C",  
+		testAssertErrorsLines(true, "Cannot assign C to real",  
 				"package test",
 				"	function identity<A>(A a) returns A",
 				"		return a",

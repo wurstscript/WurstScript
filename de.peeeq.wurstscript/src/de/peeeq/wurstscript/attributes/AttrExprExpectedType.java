@@ -110,4 +110,8 @@ public class AttrExprExpectedType {
 		return WurstTypeUnknown.instance();
 	}
 
+	public static WurstType normalizedType(Expr e) {
+		return e.attrExpectedTypRaw().normalize();
+	}
+
 }

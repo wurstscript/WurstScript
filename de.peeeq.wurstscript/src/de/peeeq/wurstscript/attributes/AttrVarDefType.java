@@ -75,7 +75,7 @@ public class AttrVarDefType {
 		OptTypeExpr typ = v.getOptTyp();
 		final OptExpr initialExpr = v.getInitialExpr();
 		if (typ instanceof TypeExpr) {
-			return typ.attrTyp().dynamic().normalize();
+			return typ.attrTyp().dynamic();
 		} else {
 			if (initialExpr instanceof Expr) {
 				WurstType result = ((Expr) initialExpr).attrTyp();
