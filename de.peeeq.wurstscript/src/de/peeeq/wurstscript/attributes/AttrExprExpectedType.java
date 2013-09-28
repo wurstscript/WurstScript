@@ -12,6 +12,8 @@ import de.peeeq.wurstscript.ast.FunctionImplementation;
 import de.peeeq.wurstscript.ast.StmtCall;
 import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StmtSet;
+import de.peeeq.wurstscript.ast.SwitchCase;
+import de.peeeq.wurstscript.ast.SwitchStmt;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.WurstType;
@@ -91,7 +93,11 @@ public class AttrExprExpectedType {
 			} else if (parent instanceof StmtReturn) {
 				StmtReturn stmtReturn = (StmtReturn) parent;
 				FunctionImplementation nearestFuncDef = stmtReturn.attrNearestFuncDef();
-				return nearestFuncDef.getReturnTyp().attrTyp();		
+				return nearestFuncDef.getReturnTyp().attrTyp();	
+			} else if (parent instanceof SwitchCase) {
+				SwitchCase sc = (SwitchCase) parent;
+				SwitchStmt s = (SwitchStmt) sc.getParent().getParent();
+				return s.getExpr().attrTyp();
 //			} else if (parent instanceof ExprMemberMethod) {
 //				ExprMemberMethod m = (ExprMemberMethod) parent;
 //				if (m.getLeft() == expr) {

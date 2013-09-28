@@ -20,6 +20,7 @@ import tests.wurstscript.utils.UtilsTest;
 	ExpressionTests.class,
 	ClassesTests.class,
 	ClassesExtTests.class,
+	EnumTests.class,
 	ModuleTests.class,
 	PackageTests.class,
 	OptimizerTests.class,

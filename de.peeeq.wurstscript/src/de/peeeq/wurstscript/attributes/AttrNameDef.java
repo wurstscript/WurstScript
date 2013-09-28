@@ -1,18 +1,25 @@
 package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.Ast;
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassOrModule;
+import de.peeeq.wurstscript.ast.EnumDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
+import de.peeeq.wurstscript.ast.GlobalOrLocalVarDef;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.StmtSet;
+import de.peeeq.wurstscript.ast.SwitchCase;
+import de.peeeq.wurstscript.ast.SwitchStmt;
+import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.parser.AstHelper;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeEnum;
 import de.peeeq.wurstscript.types.WurstTypeModule;
 
 /**
@@ -27,7 +34,39 @@ public class AttrNameDef {
 	}
 
 	public static NameDef calculate(ExprVarAccess term) {
+		NameDef result = specialEnumLookupRules(term);
+		if (result != null) {
+			return result;
+		}
 		return searchNameInScope(term.getVarName(), term);
+	}
+
+	public static NameDef specialEnumLookupRules(ExprVarAccess term) {
+		NameDef result = null;
+		AstElement parent = term.getParent();
+		if (parent instanceof SwitchCase) {
+			SwitchStmt s = (SwitchStmt) parent.getParent().getParent();
+			result = lookupEnumConst(term.getVarName(), s.getExpr().attrTyp());
+		} else if (parent instanceof StmtSet) {
+			StmtSet s = (StmtSet) parent;
+			if (s.getRight() == term) {
+				result = lookupEnumConst(term.getVarName(), s.getUpdatedExpr().attrTyp());
+			}
+		} else if (parent instanceof GlobalOrLocalVarDef) {
+			GlobalOrLocalVarDef v = (GlobalOrLocalVarDef) parent;
+			result = lookupEnumConst(term.getVarName(), v.getOptTyp().attrTyp());
+		}
+		return result;
+	}
+
+	public static NameDef lookupEnumConst(String varName, WurstType t) {
+		if (t.normalize() instanceof WurstTypeEnum) {
+			WurstTypeEnum e = (WurstTypeEnum) t.normalize();
+			// if we expect an enum type we can as well directly look into the enum
+			EnumDef eDef = e.getDef();
+			return eDef.lookupMemberVar(e, varName, false);
+		}
+		return null;
 	}
 
 	public static NameDef calculate(ExprMemberVar term) {
