@@ -250,13 +250,13 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 		{ 
 			beginEndParenthesesStack.push(numberOfParantheses); 
 			numberOfParantheses=0; 
-			return symbolP(TokenType.BEGIN); 
+			return symbol(TokenType.BEGIN); 
 		}
 	"end"                  
 		{
 			if (!beginEndParenthesesStack.isEmpty())
 				numberOfParantheses = beginEndParenthesesStack.pop();
-			return symbolP(TokenType.END); 
+			return symbol(TokenType.END); 
 		}
 	
 	

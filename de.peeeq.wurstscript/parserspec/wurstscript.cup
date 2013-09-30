@@ -771,6 +771,8 @@ Expr ::=
 ExprStatementsBlock ::=
 	  BEGIN:x NL INDENT Statements:s UNINDENT END:y
 		{: RESULT = Ast.ExprStatementsBlock(pos(xleft, yright), s); :}
+	| BEGIN:x NL END:y
+		{: RESULT = Ast.ExprStatementsBlock(pos(xleft, yright), Ast.WStatements()); :}
 ;
 	
 ExprCast ::= 
