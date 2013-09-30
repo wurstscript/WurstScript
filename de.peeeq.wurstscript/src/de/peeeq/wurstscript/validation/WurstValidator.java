@@ -27,6 +27,7 @@ import de.peeeq.wurstscript.ast.EnumDef;
 import de.peeeq.wurstscript.ast.EnumMember;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
+import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprIntVal;
@@ -112,6 +113,7 @@ import de.peeeq.wurstscript.types.WurstTypeArray;
 import de.peeeq.wurstscript.types.WurstTypeBool;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeClass;
+import de.peeeq.wurstscript.types.WurstTypeClosure;
 import de.peeeq.wurstscript.types.WurstTypeCode;
 import de.peeeq.wurstscript.types.WurstTypeEnum;
 import de.peeeq.wurstscript.types.WurstTypeInt;
@@ -193,6 +195,7 @@ public class WurstValidator {
 			if (e instanceof ConstructorDef) checkConstructor((ConstructorDef) e);
 			if (e instanceof ConstructorDef) checkConstructorSuperCall((ConstructorDef) e);
 			if (e instanceof ExprBinary) visit((ExprBinary) e);
+			if (e instanceof ExprClosure) checkClosure((ExprClosure) e);
 			if (e instanceof ExprIntVal) checkIntVal((ExprIntVal) e);
 			if (e instanceof ExprFuncRef) checkFuncRef((ExprFuncRef) e);
 			if (e instanceof ExprFunctionCall) checkBannedFunctions((ExprFunctionCall) e);
@@ -243,6 +246,16 @@ public class WurstValidator {
 			AstElement element = cde.getElement();
 			String attr = cde.getAttributeName().replaceFirst("^attr", "");
 			throw new CompileError(element.attrSource(), Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
+		}
+	}
+
+	private void checkClosure(ExprClosure e) {
+		if (e.attrExpectedTyp() instanceof WurstTypeUnknown
+				|| e.attrExpectedTyp() instanceof WurstTypeClosure) {
+			e.addError("Closures can only be used when a interface or class type is given.");
+		} else if (!(e.attrExpectedTyp() instanceof WurstTypeInterface
+				|| e.attrExpectedTyp() instanceof WurstTypeInterface)) {
+			e.addError("Closures can only be used when a interface or class type is given.");
 		}
 	}
 

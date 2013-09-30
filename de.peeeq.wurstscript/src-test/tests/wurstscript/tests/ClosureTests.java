@@ -55,6 +55,21 @@ public class ClosureTests extends WurstScriptTest {
 	}
 	
 	@Test
+	public void closure_inferType() {
+		testAssertErrorsLines(true, "interface or class type",  
+				"package test",
+				"native testSuccess()",
+				"interface SimpleFunc",
+				"	function apply(int x) returns int",
+				"init",
+				"	int y = 4",
+				"	let f = (int x) -> x + y",
+				"	if f.apply(3) == 7",
+				"		testSuccess()"
+			);
+	}
+	
+	@Test
 	public void closure_begin_end1() {
 		testAssertOkLines(true, 
 				"package test",
