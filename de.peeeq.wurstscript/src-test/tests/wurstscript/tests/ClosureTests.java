@@ -113,4 +113,23 @@ public class ClosureTests extends WurstScriptTest {
 			);
 	}
 	
+	
+	@Test
+	public void beginEndExpr() {
+		testAssertOkLines(true, 
+				"package test",
+				"native testSuccess()",
+				"init",
+				"	int a = 1",
+				"	let b = (((begin",
+				"		int c = ((begin",
+				"			let d = a",
+				"			return d+2",
+				"		end)+3)",
+				"		return c + 4",
+				"	end)))",
+				"	if b == 10",
+				"		testSuccess()"
+			);
+	}
 }

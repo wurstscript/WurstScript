@@ -469,8 +469,15 @@ public class ExprTranslation {
 	public static ImExpr translate(ExprStatementsBlock e,
 			ImTranslator translator, ImFunction f) {
 		
-		ImStmts statements = JassIm.ImStmts( 
-				translator.translateStatements(f, e.getBody()));
+		ImStmts statements = JassIm.ImStmts(); 
+		for (WStatement s : e.getBody()) {
+			if (s instanceof StmtReturn) {
+				continue;
+			}
+			ImStmt translated = s.imTranslateStmt(translator, f);
+			statements.add(translated);
+		}
+		
 		ImExprOpt expr = null;
 		StmtReturn r = e.getReturnStmt();
 		if (r != null && r.getReturnedObj() instanceof Expr) {
