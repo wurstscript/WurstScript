@@ -13,7 +13,7 @@ public class ClosureTests extends WurstScriptTest {
 				"interface SimpleFunc",
 				"	function apply(int x, int y) returns int",
 				"init",
-				"	SimpleFunc f = (int x, int y) => x + y",
+				"	SimpleFunc f = (int x, int y) -> x + y",
 				"	if f.apply(3,4) == 7",
 				"		testSuccess()"
 			);
@@ -30,7 +30,7 @@ public class ClosureTests extends WurstScriptTest {
 				"	override function apply(int x, int y) returns int",
 				"		return x*y",
 				"init",
-				"	SimpleFunc f = (int x, int y) => x + y",
+				"	SimpleFunc f = (int x, int y) -> x + y",
 				"	SimpleFunc g = new Test()",
 				"	if f.apply(3,4) == 7 and g.apply(3,4) == 12",
 				"		testSuccess()"
@@ -48,7 +48,7 @@ public class ClosureTests extends WurstScriptTest {
 				"	function apply(int x) returns int",
 				"init",
 				"	int y = 4",
-				"	SimpleFunc f = (int x) => x + y",
+				"	SimpleFunc f = (int x) -> x + y",
 				"	if f.apply(3) == 7",
 				"		testSuccess()"
 			);

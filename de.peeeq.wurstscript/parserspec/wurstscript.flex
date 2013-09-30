@@ -337,7 +337,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"mod"                               { return symbol(TokenType.MOD_INT); } 
 	"exitwhen"							{ return symbol(TokenType.EXITWHEN); }
 	
-	"=>"								{ return symbol(TokenType.ARROW); }
+	"->"								{ return symbol(TokenType.ARROW); }
 	
 	"("                               { numberOfParantheses++; return symbol(TokenType.LPAR); }
 	")"                               { numberOfParantheses--; return symbol(TokenType.RPAR); }
