@@ -86,7 +86,7 @@ public class File
 		
 		file.flag = flag
 		
-		file.end = -1
+		file.endPos = -1
 		
 		if (flag == Flag.READ)
 			//if reading, go to previous file index so that the reader can auto load up the file
@@ -102,7 +102,7 @@ public class File
 		
 	//loads file and returns lines out of file
 	private static string array pname
-	private int end
+	private int endPos
 	
 	private function loadLine()
 		//if there are no more lines in the file, load next file
@@ -125,8 +125,8 @@ public class File
 				if (pname[i] != GetPlayerName(Player(i)))
 					SaveStr(stringTable, this castTo int, i, SubString(GetPlayerName(Player(i)), 1, StringLength(GetPlayerName(Player(i)))))
 					SetPlayerName(Player(i), pname[i])
-				else if (end == -1)
-					end = i
+				else if (endPos == -1)
+					endPos = i
 		
 		//add next line of file to data
 		this.data = this.data + LoadStr(stringTable, this castTo int, dataIndex)
@@ -137,7 +137,7 @@ public class File
 		int length
 		string data = ""
 		
-		if (end == dataIndex)
+		if (endPos == dataIndex)
 			return null
 
 		if (flag != Flag.READ)
