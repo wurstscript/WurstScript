@@ -422,6 +422,7 @@ public class Utils {
 				}
 				name += "}";
 			}
+			type = "type";
 		}
 		return type + " " + name;
 	}

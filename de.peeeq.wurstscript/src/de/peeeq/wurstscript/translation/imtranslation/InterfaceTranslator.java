@@ -51,6 +51,22 @@ public class InterfaceTranslator {
 		for (FuncDef f: interfaceDef.getMethods()) {
 			translateInterfaceFuncDef(f);
 		}
+		
+		// add destroy method
+		addDestroyMethod();
+	}
+
+	public void addDestroyMethod() {
+		ImMethod m = translator.destroyMethod.getFor(interfaceDef);
+		imClass.getMethods().add(m);
+		
+		List<ClassDef> subClasses = Lists.newArrayList(translator.getInterfaceInstances(interfaceDef));
+		
+		// set sub methods
+		for (ClassDef sc : subClasses) {
+			ImMethod dm = translator.destroyMethod.getFor(sc);
+			m.getSubMethods().add(dm);
+		}
 	}
 
 	private void translateInterfaceFuncDef(FuncDef f) {

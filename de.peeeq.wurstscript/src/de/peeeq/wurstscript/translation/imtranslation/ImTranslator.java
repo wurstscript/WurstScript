@@ -124,8 +124,6 @@ public class ImTranslator {
 
 	private ImFunction debugPrintFunction;
 
-	final Map<ClassDef, ImFunction> destroyFuncMap = Maps.newHashMap();
-
 	private final Map<TranslatedToImFunction, ImFunction> functionMap = Maps.newHashMap();
 	private final Map<TranslatedToImFunction, ImFunction> dynamicDispatchFunctionMap = Maps.newHashMap();
 
@@ -302,13 +300,12 @@ public class ImTranslator {
 		}
 	}
 	
-	public GetAForB<ClassDef, ImFunction> destroyFunc = new GetAForB<ClassDef, ImFunction>() {
+	public GetAForB<StructureDef, ImFunction> destroyFunc = new GetAForB<StructureDef, ImFunction>() {
 		
 		@Override
-		ImFunction initFor(ClassDef classDef) {
+		ImFunction initFor(StructureDef classDef) {
 			ImVars params = ImVars(JassIm.ImVar(TypesHelper.imInt(), "this", false));
 			ImFunction f = JassIm.ImFunction(classDef.getOnDestroy(), "destroy" + classDef.getName(), params, TypesHelper.imVoid(), ImVars(), ImStmts(), flags());
-			destroyFuncMap.put(classDef, f);
 			addFunction(f);
 			return f;
 		}
@@ -318,14 +315,12 @@ public class ImTranslator {
 		
 		@Override
 		ImMethod initFor(StructureDef classDef) {
-			ImFunction impl;
+			ImFunction impl = destroyFunc.getFor(classDef);
 			boolean abstr;
 			if (classDef instanceof ClassDef) {
 				ClassDef c = (ClassDef) classDef;
-				impl = destroyFunc.getFor(c);
-				abstr = false;
+				abstr = c.attrIsAbstract();
 			} else {
-				impl = JassIm.ImFunction(classDef.getOnDestroy(), "destroy" + classDef.getName(), ImVars(), TypesHelper.imVoid(), ImVars(), ImStmts(), flags());
 				abstr = true;
 			}
 			ImMethod m = JassIm.ImMethod(classDef, "destroy" + classDef.getName(), 

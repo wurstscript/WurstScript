@@ -253,9 +253,10 @@ public class WurstValidator {
 		if (e.attrExpectedTyp() instanceof WurstTypeUnknown
 				|| e.attrExpectedTyp() instanceof WurstTypeClosure) {
 			e.addError("Closures can only be used when a interface or class type is given.");
-		} else if (!(e.attrExpectedTyp() instanceof WurstTypeInterface
+		} else if (!(e.attrExpectedTyp() instanceof WurstTypeClass
 				|| e.attrExpectedTyp() instanceof WurstTypeInterface)) {
-			e.addError("Closures can only be used when a interface or class type is given.");
+			e.addError("Closures can only be used when a interface or class type is given, "
+					+ "but at this position a " + e.attrExpectedTyp() + " is expected.");
 		}
 	}
 
@@ -765,9 +766,19 @@ public class WurstValidator {
 		} else if (typ instanceof WurstTypeClass) {
 			WurstTypeClass c = (WurstTypeClass) typ;
 			checkDestroyClass(stmtDestroy, c); 
+		} else if (typ instanceof WurstTypeInterface) {
+			WurstTypeInterface i = (WurstTypeInterface) typ;
+			checkDestroyInterface(stmtDestroy, i);
 		} else {
 			stmtDestroy.addError("Cannot destroy objects of type " + typ);
 			return;
+		}
+	}
+
+	public void checkDestroyInterface(StmtDestroy stmtDestroy,
+			WurstTypeInterface i) {
+		if (i.isStaticRef()) {
+			stmtDestroy.addError("Cannot destroy interface " + i);
 		}
 	}
 
