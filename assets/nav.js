@@ -55,7 +55,7 @@
 	var lastHeader = -1;
 			
 	function updateScroll() {
-		var scroll = $(window).scrollTop() + $(window).height()*0.5;
+		var scroll = $(window).scrollTop() + 150;
 		var currentHeader = -1;
 		for (var i=0; i<headers.length; i++) {
 			if (headers[i].offset().top > scroll) {

@@ -14,7 +14,7 @@ hljs.LANGUAGES.wurst = function(){
 	   'endfunction' : 1, 'nothing' : 1, 'takes' : 1, 'local' : 1, 'loop' : 1, 'endloop' : 1, 'exitwhen' : 1,
 	   'set' : 1, 'call' : 1, 'then' : 1, 'elseif' : 1, 'endif' : 1, 'init' : 1, 'castTo' : 1, 'tuple' : 1, 'div' : 1,
 	   'mod' : 1, 'let' : 1, 'var' : 1, 'from' : 1, 'to' : 1, 'downto' : 1, 'step' : 1, 'endpackage' : 1,
-	   'switch' : 1, 'case' : 1, 'default' : 1, 'super' : 1, 'skip' : 1, 'instanceof' : 1, 'enum' : 1,
+	   'switch' : 1, 'case' : 1, 'default' : 1, 'super' : 1, 'skip' : 1, 'instanceof' : 1, 'enum' : 1, 'begin' : 1, 'end' : 1
     },
     'constant': {
        'true': 1, 'false': 1, 'null': 1

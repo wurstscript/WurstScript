@@ -4,7 +4,7 @@ title: WurstScript Manual
 ---
 
 
-_by peq & Frotty_ _Last Change: 25.07.13_ 
+_by peq & Frotty_ _Last Change: 30.09.13_ 
 
 
 WurstScript (short Wurst) is a programming language named after the German word for sausage.
@@ -1176,8 +1176,15 @@ Note that all Enummembers have to be checked (or a defaut).
         case State.WATER
             print("water")
             
-        
-        
+In switch statements and variable assignments the qualifier can be ommited so you can also write:
+
+    switch currentState
+        case FLYING
+            print("flying")
+        case GROUND
+            print("ground")
+        case WATER
+            print("water")        
 
 
 # Tuple Types 
@@ -1270,6 +1277,119 @@ as if they were instance functions of the extended type.
 	// And tuples as mentioned above
 	public function vec2.lengthSquared returns real
 		return this.x*this.x+this.y*this.y
+
+
+# Lambda expressions (Closures)
+
+A lambda expression is a lightweight way to define a function. 
+Functions defined with lambda expressions do not have a name and are usually
+just used at one point.
+Here are some examples:
+
+	// closures can be stored in variables:
+	BinaryOperation opAdd = (int x, int y) -> x + y
+	
+	// or used in function calls, for example to remove all even numbers
+	// from a list of numbers:
+	myList.removeWhen((int x) ->  x mod 2 == 0 ) 
+	
+As can be seen in the examples a lambda expression starts with a list of
+parameters, followed by the arrow symbol '->' and last is the expression
+returned by the function.
+
+The type of a closure is just a normal class or interface. You can think of
+a closure as an object implementing an interface or abstract class. As 
+a lambda expression is just a single function, it can only be used for interfaces
+with only one method (or abstract classes with only one abstract method).
+Because closures are just like normal objects you also have to destroy them 
+like normal objects. And you can do all the other stuff you can do with
+other objects like putting them in a list or into a table.
+
+
+The really cool feature with lambda expressions is, that they are closures.
+This means that they can close over local variables outside their scope
+and capture them.
+Here is a very simple example:
+
+	let min = 10
+	let max = 50
+	// remove all elements not between min and max:
+	myList.removeWhen((int x) ->  x < min or x > max)
+	
+In this example the lambda expression captured the local variables min and max.
+
+## begin-end expression
+
+Sometimes one expression is not enough for a closure. In this case, the begin-end 
+expression can be used. It allows to have statements inside an expression. The
+begin keyword has to be followed by a newline and an increase in indentation.
+The rule that newlines are ignored inside parenthesis is ignored for the begin-end
+expression, so that it is possible to have multiple lines of statements within:
+
+	doLater(10.0, () -> begin
+		KillUnit(u)
+		createNiceExplosion()
+		doMoreStuff()
+	end)
+
+It is also possible to have a return statement inside a begin-end expression
+but only the very last statement can be a return.
+
+## Capturing of Variables
+
+It is important to know, that variables are captured by value. When a closure
+is created the value is copied into the closure and the closure only works on that copy.
+The variable can still be changed in the environment or in the closure, but this will have no effect
+on the respective other copy of the variable.
+
+This can be observed when a variable is changed after the closure is created:
+
+	var s = "Hello!"
+	CallbackFunc f = () -> begin
+		print(s)
+		s = s + "!"
+	end
+	s = "Bye!"
+	f.run()  // will print "Hello!"
+	f.run()  // will print "Hello!!"
+	print(s) // will print "Bye!"
+
+
+## Behind the scenes
+
+The compiler will just create a new class for every lambda expression in your code.
+This class implements the interface which is given by the context in which
+the lambda expression is used.
+The generated class has fields for all local variables which are captured.
+Whenever the lambda expression is evaluated, a new object of the class is created
+and the fields are set. 
+
+So the "Hello!" example above is roughly equivalent to the following code:
+
+	// (the interface was not shown in the above code, but it is the same):
+	interface CallbackFunc
+		function run()
+		
+	// compiler creates this closure class implementing the interface:
+	class Closure implements CallbackFunc
+		// a field for each captured variable:
+		string s
+	
+		function run()	
+			// body of the lambda expression == body of the function
+			print(s)
+			s = s + "!"
+
+	var s = "Hello!"
+	CallbackFunc f = new Closure()
+	// captured fields are set
+	f.s = s
+	s = "Bye!"
+	f.run()  // will print "Hello!"
+	f.run()  // will print "Hello!!"
+	print(s) // will print "Bye!"
+	
+
 
 # Advanced Concepts
 
