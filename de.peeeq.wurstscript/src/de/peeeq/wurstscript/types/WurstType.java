@@ -83,9 +83,6 @@ public abstract class WurstType {
 
 
 
-	public abstract String[] jassTranslateType();
-
-
 	public WurstType setTypeArgs(Map<TypeParamDef, WurstType> typeParamMapping) {
 		return this;
 	}

@@ -32,7 +32,8 @@ import tests.wurstscript.utils.UtilsTest;
 	ScopingTests.class,
 	OpOverloading.class,
 	FlowAnalysisTests.class,
-	NewFeatureTests.class
+	NewFeatureTests.class,
+	ClosureTests.class
 })
 public class QuickTests {
 

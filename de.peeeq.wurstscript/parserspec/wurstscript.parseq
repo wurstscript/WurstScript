@@ -163,6 +163,7 @@ Expr =
 	| ExprCast(de.peeeq.wurstscript.parser.WPos source, TypeExpr typ, Expr expr)
 	| ExprInstanceOf(de.peeeq.wurstscript.parser.WPos source, TypeExpr typ, Expr expr)
 	| ExprTypeId(de.peeeq.wurstscript.parser.WPos source, Expr left)
+	| ExprClosure(de.peeeq.wurstscript.parser.WPos source, WParameters parameters, Expr implementation)
 	| ExprAtomic
 	| ExprIncomplete(de.peeeq.wurstscript.parser.WPos source, String errorMessage)
 	
@@ -235,6 +236,7 @@ WScope =
 	| LoopStatementWithVarDef
 	| WBlock
 	| WEntities
+	| ExprClosure
 
 PackageOrGlobal = WPackage | CompilationUnit	
 	
@@ -285,7 +287,7 @@ JassGlobalBlock * GlobalVarDef
 
 
 // special types for translation
-TranslatedToImFunction = ConstructorDef | FunctionDefinition | InitBlock | OnDestroyDef
+TranslatedToImFunction = ConstructorDef | FunctionDefinition | InitBlock | OnDestroyDef | ExprClosure
 
 
 

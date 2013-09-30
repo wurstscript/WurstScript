@@ -34,11 +34,6 @@ public class WurstTypeInfer extends WurstType {
 	}
 
 	@Override
-	public String[] jassTranslateType() {
-		throw new Error("not implemented");
-	}
-
-	@Override
 	public ImType imTranslateType() {
 		throw new Error("not implemented");
 	}

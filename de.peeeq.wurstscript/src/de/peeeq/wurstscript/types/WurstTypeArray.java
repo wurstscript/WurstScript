@@ -73,13 +73,6 @@ public class WurstTypeArray extends WurstType {
 
 
 	@Override
-	public String[] jassTranslateType() {
-		return baseType.jassTranslateType();
-	}
-
-
-
-	@Override
 	public ImType imTranslateType() {
 		ImType bt = baseType.imTranslateType();
 		if (bt instanceof ImSimpleType) {

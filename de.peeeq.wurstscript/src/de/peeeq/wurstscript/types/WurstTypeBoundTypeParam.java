@@ -35,10 +35,6 @@ public class WurstTypeBoundTypeParam extends WurstType {
 		return typeParamDef.getName() + "<--" + baseType.getName();
 	}
 
-	@Override
-	public String[] jassTranslateType() {
-		return new String[] { "integer", "integer" };
-	}
 
 	public WurstType getBaseType() {
 		return baseType;

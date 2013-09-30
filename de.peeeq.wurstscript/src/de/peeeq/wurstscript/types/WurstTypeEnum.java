@@ -40,10 +40,6 @@ public class WurstTypeEnum extends WurstTypeNamedScope {
 		return this;
 	}
 
-	@Override
-	public String[] jassTranslateType() {
-		return WurstTypeInt.instance().jassTranslateType();
-	}
 	
 	@Override
 	public ImType imTranslateType() {

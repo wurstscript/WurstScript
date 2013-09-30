@@ -41,11 +41,6 @@ public class WurstTypePackage extends WurstTypeNamedScope {
 	}
 
 	@Override
-	public String[] jassTranslateType() {
-		throw new Error("not implemented");
-	}
-
-	@Override
 	public ImType imTranslateType() {
 		throw new Error("not implemented");
 	}

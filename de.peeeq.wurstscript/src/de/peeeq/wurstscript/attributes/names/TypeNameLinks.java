@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.ClassOrModuleOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.EnumDef;
+import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.JassToplevelDeclaration;
 import de.peeeq.wurstscript.ast.NativeFunc;
@@ -126,5 +127,10 @@ public class TypeNameLinks {
 		for (WPackage p : cu.getPackages()) {
 			result.put(p.getName(), p.createNameLink(cu));
 		}
+	}
+
+	public static Multimap<String, NameLink> calculate(ExprClosure exprClosure) {
+		Multimap<String, NameLink> result = HashMultimap.create();
+		return result;
 	}
 }

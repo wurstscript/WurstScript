@@ -13,6 +13,7 @@ import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModuleOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.EnumDef;
+import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.JassGlobalBlock;
 import de.peeeq.wurstscript.ast.JassToplevelDeclaration;
@@ -244,6 +245,12 @@ public class NameLinks {
 			r.put(e.getKey(), e.getValue().hidingPrivateAndProtected());
 		}
 		
+	}
+
+	public static Multimap<String, NameLink> calculate(ExprClosure e) {
+		Multimap<String, NameLink> result = HashMultimap.create();
+		addParametersIfAny(result, e);
+		return result;
 	}
 
 	

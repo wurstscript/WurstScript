@@ -28,6 +28,7 @@ import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprBoolVal;
 import de.peeeq.wurstscript.ast.ExprCast;
+import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprIncomplete;
 import de.peeeq.wurstscript.ast.ExprInstanceOf;
@@ -454,6 +455,10 @@ public class ExprTranslation {
 		} else {
 			throw new Error("not implemented for " + leftType);
 		}
+	}
+
+	public static ImExpr translate(ExprClosure e, ImTranslator tr, ImFunction f) {
+		return new ClosureTranslator(e, tr, f).translate();
 	}
 
 	

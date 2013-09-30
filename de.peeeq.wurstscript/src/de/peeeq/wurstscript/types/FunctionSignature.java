@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.types;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -44,5 +45,18 @@ public class FunctionSignature {
 		return new FunctionSignature(receiverType, pt2, r2);
 	}
 	
+	
+	public WurstTypeClosure asClosureType() {
+		if (receiverType == null) {
+			return new WurstTypeClosure(paramTypes, returnType);
+		} else {
+			ArrayList<WurstType> params = Lists.newArrayListWithCapacity(paramTypes.size() + 1);
+			params.add(receiverType);
+			params.addAll(paramTypes);
+			return new WurstTypeClosure(params, returnType);
+		}
+		
+		
+	}
 	
 }

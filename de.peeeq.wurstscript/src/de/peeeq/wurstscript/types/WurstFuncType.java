@@ -54,10 +54,6 @@ public class WurstFuncType extends WurstType {
 		return result ;
 	}
 
-	@Override
-	public String[] jassTranslateType() {
-		return new String[] { "code" };
-	}
 
 	@Override
 	public ImType imTranslateType() {

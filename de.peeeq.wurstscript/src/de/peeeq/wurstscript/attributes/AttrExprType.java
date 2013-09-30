@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprBoolVal;
 import de.peeeq.wurstscript.ast.ExprCast;
+import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprIncomplete;
@@ -48,6 +49,7 @@ import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.StmtCall;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.translation.imtranslation.StmtTranslation;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstType;
@@ -56,6 +58,7 @@ import de.peeeq.wurstscript.types.WurstTypeBool;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeClassOrInterface;
+import de.peeeq.wurstscript.types.WurstTypeClosure;
 import de.peeeq.wurstscript.types.WurstTypeCode;
 import de.peeeq.wurstscript.types.WurstTypeEnum;
 import de.peeeq.wurstscript.types.WurstTypeInt;
@@ -555,6 +558,16 @@ public class AttrExprType {
 
 	public static WurstType normalizedType(Expr e) {
 		return e.attrTypRaw().normalize();
+	}
+
+
+	public static WurstType calculate(ExprClosure e) {
+		WurstType returnType = e.getImplementation().attrTyp();
+		List<WurstType> paramTypes = Lists.newArrayList();
+		for (WParameter p : e.getParameters()) {
+			paramTypes.add(p.attrTyp());
+		}
+		return new WurstTypeClosure(paramTypes, returnType);
 	}
 
 }

@@ -33,11 +33,6 @@ public class WurstTypeVoid extends WurstType {
 	}
 
 	@Override
-	public String[] jassTranslateType() {
-		return new String[] { "nothing" };
-	}
-
-	@Override
 	public ImType imTranslateType() {
 		return JassIm.ImVoid();
 	}

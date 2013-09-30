@@ -84,7 +84,7 @@ terminal
 	LSQUARE, RSQUARE,
 	INDENT, UNINDENT,
 	LBRACK, RBRACK, 
-	COMMA, SEMICOLON, COLON,   
+	COMMA, SEMICOLON, COLON,  
 	NL,
 	TUPLE, MODULE, USE, ABSTRACT, IN, FOR, FROM, TO, DOWNTO, STEP, BREAK,
 	THISTYPE, ARROW, IT, IMMUTABLE, OVERRIDE, INSTANCE, INSTANCEOF, ENUM,
@@ -111,6 +111,7 @@ non terminal ExprBinary ExprBinary;
 non terminal ExprCast ExprCast;
 non terminal Expr Expr;
 non terminal Expr ExprAtomic;
+non terminal ExprClosure ExprClosure; 
 non terminal ExprFunctionCall ExprFunctionCall;
 non terminal ExprMemberArrayVar ExprMemberArrayVar;
 non terminal ExprMemberMethod ExprMemberMethod;
@@ -749,6 +750,8 @@ Expr ::=
 	  	{: RESULT = x; :}
 	| ExprNewObject:x
 	  	{: RESULT = x; :}
+	| ExprClosure:x
+		{: RESULT = x; :}
 	| ExprAtomic:x
 	  	{: RESULT = x; :}
 	| ExprCast:x
@@ -817,6 +820,12 @@ ExprNewObject ::=
 		{: RESULT = Ast.ExprNewObject(pos(xleft, n), n.getName(), n.getTypeArgs(), Ast.Arguments()); :}
 	| NEW:x	
 		{: RESULT = Ast.ExprNewObject(pos(xleft, xright+1), "", Ast.TypeExprList(), Ast.Arguments()); :}
+;
+
+
+ExprClosure ::=
+	LPAR:x Parameters:parameters RPAR ARROW Expr:e
+		{: RESULT = Ast.ExprClosure(pos(xleft,e), parameters, e); :} 
 ;
 
 Indexes ::=
