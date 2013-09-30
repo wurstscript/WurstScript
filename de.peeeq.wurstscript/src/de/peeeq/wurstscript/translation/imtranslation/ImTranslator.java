@@ -46,6 +46,7 @@ import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.EnumMember;
 import de.peeeq.wurstscript.ast.EnumMembers;
 import de.peeeq.wurstscript.ast.Expr;
+import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.ExprSuper;
 import de.peeeq.wurstscript.ast.ExprThis;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
@@ -474,7 +475,7 @@ public class ImTranslator {
 	}
 
 	private ImVar getThisVarForNode(AstElement node) {
-		while (!(node instanceof TranslatedToImFunction)) {
+		while (!(node instanceof TranslatedToImFunction) || node instanceof ExprClosure) {
 			node = node.getParent();
 		}
 		return getThisVar((TranslatedToImFunction) node);

@@ -46,6 +46,7 @@ import de.peeeq.wurstscript.utils.Utils;
 	int currentLine = -1;
 	
 	int numberOfParantheses = 0;
+	Stack<Integer> beginEndParenthesesStack = new Stack<Integer>();
 
 	{
 		indentationLevels.push(0);
@@ -239,9 +240,27 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 								}
 							}
 					}	
+	// comments
 	"//" [^\r\n]* 			           { }
 	"/**" ~"*/"                       { return symbol(TokenType.WURSTDOC, yytext()); }
 	"/*" ~"*/"                        { }
+	
+	// begin-end blocks
+	"begin"                        		
+		{ 
+			beginEndParenthesesStack.push(numberOfParantheses); 
+			numberOfParantheses=0; 
+			return symbolP(TokenType.BEGIN); 
+		}
+	"end"                  
+		{
+			if (!beginEndParenthesesStack.isEmpty())
+				numberOfParantheses = beginEndParenthesesStack.pop();
+			return symbolP(TokenType.END); 
+		}
+	
+	
+	
 	
 	// classes
 	"class"                           	{ return symbolP(TokenType.CLASS); }

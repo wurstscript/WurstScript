@@ -35,6 +35,7 @@ import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprNull;
+import de.peeeq.wurstscript.ast.ExprStatementsBlock;
 import de.peeeq.wurstscript.ast.ExprThis;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
@@ -517,7 +518,8 @@ public class WurstValidator {
 		if (s.getParent() instanceof WStatements) {
 			WStatements stmts = (WStatements) s.getParent();
 			if (s.attrPreviousStatements().isEmpty()) {
-				if (s.attrListIndex() > 0 || !(stmts.getParent() instanceof TranslatedToImFunction)) {
+				if (s.attrListIndex() > 0 || !(stmts.getParent() instanceof TranslatedToImFunction
+												|| stmts.getParent() instanceof ExprStatementsBlock)) {
 					s.addError("unreachable code");
 				}
 			}
@@ -681,11 +683,31 @@ public class WurstValidator {
 	}
 
 	private void visit(StmtReturn s) {
-		FunctionImplementation func = s.attrNearestFuncDef();
-		if (func == null) {
-			s.addError("return statements can only be used inside functions");
-			return;
+		if (s.attrNearestExprStatementsBlock() != null) {
+			ExprStatementsBlock e = s.attrNearestExprStatementsBlock();
+			if (e.getReturnStmt() != s) {
+				s.addError("Return in a statements block can only be at the end.");
+				return;
+			}
+			if (s.getReturnedObj() instanceof Expr) {
+				Expr expr = (Expr) s.getReturnedObj();
+				if (expr.attrTyp().isVoid()) {
+					s.addError("Cannot return void from statements block.");
+				}
+			} else {
+				s.addError("Cannot have empty return statement in statements block.");
+			}
+		} else {
+			FunctionImplementation func = s.attrNearestFuncDef();
+			if (func == null) {
+				s.addError("return statements can only be used inside functions");
+				return;
+			}
+			checkReturnInFunc(s, func);
 		}
+	}
+
+	public void checkReturnInFunc(StmtReturn s, FunctionImplementation func) {
 		WurstType returnType = func.getReturnTyp().attrTyp().dynamic();
 		if (s.getReturnedObj() instanceof Expr) {
 			Expr returned = (Expr) s.getReturnedObj();

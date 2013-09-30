@@ -54,4 +54,63 @@ public class ClosureTests extends WurstScriptTest {
 			);
 	}
 	
+	@Test
+	public void closure_begin_end1() {
+		testAssertOkLines(true, 
+				"package test",
+				"native testSuccess()",
+				"interface SimpleFunc",
+				"	function apply(int x) returns int",
+				"init",
+				"	int y = 4",
+				"	SimpleFunc f = (int x) -> begin",
+				"		let a = y",
+				"		let b = a+x",
+				"		return b",
+				"	end",
+				"	if f.apply(3) == 7",
+				"		testSuccess()"
+			);
+	}
+	
+	@Test
+	public void captureParam() {
+		testAssertOkLines(true, 
+				"package test",
+				"native testSuccess()",
+				"interface SimpleFunc",
+				"	function apply(int x) returns int",
+				"function test(int y)",
+				"	SimpleFunc f = (int x) -> x + y",
+				"	if f.apply(3) == 7",
+				"		testSuccess()",
+				"init",
+				"	test(4)"
+			);
+	}
+	
+	@Test
+	public void captureThis() {
+		testAssertOkLines(true, 
+				"package test",
+				"native testSuccess()",
+				"interface SimpleFunc",
+				"	function apply() returns int",
+				"class C",
+				"	int y",
+				"	function foo()",
+				"		bar(() -> x() + y)",
+				"	function bar(SimpleFunc f)",
+				"		if f.apply() == 7",
+				"			testSuccess()",
+				"	function x() returns int",
+				"		return 3",
+				"init",
+				"	new C()",
+				"	let c = new C()",
+				"	c.y = 4",
+				"	c.foo()"
+			);
+	}
+	
 }

@@ -99,7 +99,7 @@ public class ClosureTranslator {
 		superMethodIm.getSubMethods().add(m);
 		
 		
-		ImExpr translated = e.getImplementation().imTranslateExpr(tr, f);
+		ImExpr translated = e.getImplementation().imTranslateExpr(tr, impl);
 		
 		transformTranslated(translated);
 		

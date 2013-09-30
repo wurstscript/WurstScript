@@ -166,6 +166,7 @@ Expr =
 	| ExprClosure(de.peeeq.wurstscript.parser.WPos source, WParameters parameters, Expr implementation)
 	| ExprAtomic
 	| ExprIncomplete(de.peeeq.wurstscript.parser.WPos source, String errorMessage)
+	| ExprStatementsBlock(de.peeeq.wurstscript.parser.WPos source, WStatements body)
 	
 	
 ExprAtomic = 
@@ -428,9 +429,19 @@ AstElement.attrNearestFuncDef
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestFuncDef
 
 
+AstElement.attrNearestExprClosure
+	returns ExprClosure
+	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestExprClosure
+
+AstElement.attrNearestExprStatementsBlock
+	returns ExprStatementsBlock
+	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestExprStatementsBlock
 
 
 
+ExprStatementsBlock.getReturnStmt()
+	returns StmtReturn
+	implemented by de.peeeq.wurstscript.attributes.SmallHelpers.getReturnStatement
 
 
 

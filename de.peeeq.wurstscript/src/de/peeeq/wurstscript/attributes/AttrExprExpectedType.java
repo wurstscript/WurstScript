@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
+import javax.print.attribute.standard.MediaSize.NA;
+
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.AstElement;
@@ -93,7 +95,9 @@ public class AttrExprExpectedType {
 			} else if (parent instanceof StmtReturn) {
 				StmtReturn stmtReturn = (StmtReturn) parent;
 				FunctionImplementation nearestFuncDef = stmtReturn.attrNearestFuncDef();
-				return nearestFuncDef.getReturnTyp().attrTyp();	
+				if (nearestFuncDef != null) {
+					return nearestFuncDef.getReturnTyp().attrTyp();
+				}
 			} else if (parent instanceof SwitchCase) {
 				SwitchCase sc = (SwitchCase) parent;
 				SwitchStmt s = (SwitchStmt) sc.getParent().getParent();

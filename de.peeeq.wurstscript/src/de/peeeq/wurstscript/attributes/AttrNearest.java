@@ -1,9 +1,12 @@
 package de.peeeq.wurstscript.attributes;
 
+import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.ExprClosure;
+import de.peeeq.wurstscript.ast.ExprStatementsBlock;
 import de.peeeq.wurstscript.ast.FunctionImplementation;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
@@ -134,6 +137,26 @@ public class AttrNearest {
 		} else {
 			return null;
 		}
+	}
+
+	public static ExprClosure nearestExprClosure(AstElement e) {
+		while (e != null) {
+			if (e instanceof ExprClosure) {
+				return (ExprClosure) e;
+			}
+			e = e.getParent();
+		}
+		return null;
+	}
+
+	public static ExprStatementsBlock nearestExprStatementsBlock(AstElement e) {
+		while (e != null) {
+			if (e instanceof ExprStatementsBlock) {
+				return (ExprStatementsBlock) e;
+			}
+			e = e.getParent();
+		}
+		return null;
 	}
 	
 	

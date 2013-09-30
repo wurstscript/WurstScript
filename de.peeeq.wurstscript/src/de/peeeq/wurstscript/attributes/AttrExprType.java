@@ -26,6 +26,7 @@ import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprNull;
 import de.peeeq.wurstscript.ast.ExprRealVal;
+import de.peeeq.wurstscript.ast.ExprStatementsBlock;
 import de.peeeq.wurstscript.ast.ExprStringVal;
 import de.peeeq.wurstscript.ast.ExprSuper;
 import de.peeeq.wurstscript.ast.ExprThis;
@@ -43,6 +44,7 @@ import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.OptExpr;
+import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
@@ -50,6 +52,7 @@ import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.StmtCall;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.translation.imtranslation.StmtTranslation;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstType;
@@ -568,6 +571,18 @@ public class AttrExprType {
 			paramTypes.add(p.attrTyp());
 		}
 		return new WurstTypeClosure(paramTypes, returnType);
+	}
+
+
+	public static WurstType calculate(ExprStatementsBlock e) {
+		StmtReturn r = (StmtReturn) e.getReturnStmt();
+		if (r != null) {
+			if (r.getReturnedObj() instanceof Expr) {
+				Expr re = (Expr) r.getReturnedObj();
+				return re.attrTyp();
+			}
+		}
+		return WurstTypeVoid.instance();
 	}
 
 }
