@@ -53,7 +53,6 @@ public class WurstTypeClosure extends WurstType {
 
 	private boolean closureImplementsAbstractMethod(FunctionSignature abstractMethod,
 			AstElement location) {
-		System.out.println(abstractMethod.getParamTypes());
 		if (paramTypes.size() != abstractMethod.getParamTypes().size()) {
 			return false;
 		}
