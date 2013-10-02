@@ -546,8 +546,13 @@ public class WurstValidator {
 
 		checkFunctionName(func);
 
-		if (func.attrIsAbstract() && !func.attrHasEmptyBody()) {
-			func.addError("Abstract function " + func.getName() + " must not have a body.");			
+		if (func.attrIsAbstract()) { 
+			if (!func.attrHasEmptyBody()) {
+				func.addError("Abstract function " + func.getName() + " must not have a body.");
+			}
+			if (func.attrIsPrivate()) {
+				func.addError("Abstract functions must not be private.");
+			}
 		}
 	}
 

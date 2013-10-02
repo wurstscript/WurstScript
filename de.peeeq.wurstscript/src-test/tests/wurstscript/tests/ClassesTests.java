@@ -563,6 +563,16 @@ public class ClassesTests extends WurstScriptTest {
 			);
 	}
 	
+	
+	@Test
+	public void abstract_must_not_be_private() {
+		testAssertErrorsLines(true, "Abstract functions must not be private", 
+				"package test",
+				"	abstract class A",
+				"		abstract private function foo()",
+				"endpackage"
+			);
+	}
 
 	@Test
 	public void abstract_fail2() {
