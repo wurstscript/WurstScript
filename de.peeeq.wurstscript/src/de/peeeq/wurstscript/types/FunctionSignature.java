@@ -8,7 +8,11 @@ import java.util.Map;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import de.peeeq.wurstscript.ast.FunctionDefinition;
+import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class FunctionSignature {
 	public static final FunctionSignature empty = new FunctionSignature(null, Collections.<WurstType>emptyList(), WurstTypeUnknown.instance());
@@ -57,6 +61,34 @@ public class FunctionSignature {
 		}
 		
 		
+	}
+
+
+	public static FunctionSignature forFunctionDefinition(FunctionDefinition f) {
+//		return new FunctionSignature(def.attrReceiverType(), def.attrParameterTypes(), def.getReturnTyp().attrTyp());
+		if (f == null) {
+			return FunctionSignature.empty;
+		}
+		WurstType returnType = f.getReturnTyp().attrTyp().dynamic();
+		if (f instanceof TupleDef) {
+			TupleDef tupleDef = (TupleDef) f;
+			returnType = tupleDef.attrTyp().dynamic();
+		}
+		
+		
+		
+		List<WurstType> paramTypes = f.attrParameterTypes(); 
+		return new FunctionSignature(f.attrReceiverType(), paramTypes, returnType);
+	}
+
+
+	public FunctionSignature withReturnType(WurstTypeInt r) {
+		return new FunctionSignature(receiverType, paramTypes, r);
+	}
+
+
+	public static FunctionSignature fromNameLink(NameLink f) {
+		return new FunctionSignature(f.getReceiverType(), f.getParameterTypes(), f.getReturnType());
 	}
 	
 }

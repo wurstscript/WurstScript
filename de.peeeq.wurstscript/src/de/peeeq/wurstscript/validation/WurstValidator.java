@@ -660,7 +660,7 @@ public class WurstValidator {
 	private void visit(ExprBinary expr) {
 		FunctionDefinition def = expr.attrFuncDef();
 		if (def != null) {
-			FunctionSignature sig = new FunctionSignature(def.attrReceiverType(), def.attrParameterTypes(), def.getReturnTyp().attrTyp());
+			FunctionSignature sig = FunctionSignature.forFunctionDefinition(def);
 			CallSignature callSig = new CallSignature(expr.getLeft(), Collections.singletonList(expr.getRight()));
 			callSig.checkSignatureCompatibility(sig, ""+expr.getOp(), expr);
 		}

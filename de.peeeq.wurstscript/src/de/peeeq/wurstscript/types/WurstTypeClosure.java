@@ -42,7 +42,7 @@ public class WurstTypeClosure extends WurstType {
 			}
 			return true;
 		} else {
-			NameLink abstractMethod = findAbstractMethod(other);
+			FunctionSignature abstractMethod = getAbstractMethodSignature(other);
 			if (abstractMethod != null) {
 				return closureImplementsAbstractMethod(abstractMethod, location);
 			}
@@ -51,15 +51,16 @@ public class WurstTypeClosure extends WurstType {
 	}
 
 
-	private boolean closureImplementsAbstractMethod(NameLink abstractMethod,
+	private boolean closureImplementsAbstractMethod(FunctionSignature abstractMethod,
 			AstElement location) {
-		if (paramTypes.size() != abstractMethod.getParameterTypes().size()) {
+		System.out.println(abstractMethod.getParamTypes());
+		if (paramTypes.size() != abstractMethod.getParamTypes().size()) {
 			return false;
 		}
 		
 		// contravariant parameter types
 		for (int i=0; i<paramTypes.size(); i++) {
-			if (!abstractMethod.getParameterTypes().get(i).isSubtypeOf(paramTypes.get(i), location)) {
+			if (!abstractMethod.getParamTypes().get(i).isSubtypeOf(paramTypes.get(i), location)) {
 				return false;
 			}
 		}
@@ -70,7 +71,15 @@ public class WurstTypeClosure extends WurstType {
 		return true;
 	}
 
-	private NameLink findAbstractMethod(Multimap<String, NameLink> nameLinks) {
+	private FunctionSignature getAbstractMethodSignature(Multimap<String, NameLink> nameLinks) {
+		NameLink abstractMethod = findAbstractMethod(nameLinks);
+		if (abstractMethod != null) {
+			return FunctionSignature.fromNameLink(abstractMethod);
+		}
+		return null;
+	}
+
+	public NameLink findAbstractMethod(Multimap<String, NameLink> nameLinks) {
 		NameLink abstractMethod = null; 
 		for (NameLink nl : nameLinks.values()) {
 			if (nl.getType() == NameLinkType.FUNCTION
@@ -86,14 +95,21 @@ public class WurstTypeClosure extends WurstType {
 		return abstractMethod;
 	}
 	
-	
 	public NameLink findAbstractMethod(WurstType type) {
-		if (type instanceof WurstTypeInterface) {
-			WurstTypeInterface it = (WurstTypeInterface) type;
-			return findAbstractMethod(it.getDef().attrNameLinks());
-		} else if (type instanceof WurstTypeClass) {
-			WurstTypeClass ct = (WurstTypeClass) type;
-			return findAbstractMethod(ct.getDef().attrNameLinks());
+		if (type instanceof WurstTypeClassOrInterface) {
+			WurstTypeClassOrInterface t = (WurstTypeClassOrInterface) type;
+			return findAbstractMethod(t.getDef().attrNameLinks());
+		}
+		return null;
+	}
+	
+	
+	public FunctionSignature getAbstractMethodSignature(WurstType type) {
+		if (type instanceof WurstTypeClassOrInterface) {
+			WurstTypeClassOrInterface ct = (WurstTypeClassOrInterface) type;
+			FunctionSignature sig = getAbstractMethodSignature(ct.getDef().attrNameLinks());
+			sig = sig.setTypeArgs(ct.getTypeArgBinding());
+			return sig;
 		}
 		return null;
 	}
@@ -129,5 +145,7 @@ public class WurstTypeClosure extends WurstType {
 	public ImExprOpt getDefaultValue() {
 		return JassIm.ImIntVal(0);
 	}
+
+	
 
 }

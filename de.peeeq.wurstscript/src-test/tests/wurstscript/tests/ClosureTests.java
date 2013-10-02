@@ -128,6 +128,30 @@ public class ClosureTests extends WurstScriptTest {
 			);
 	}
 	
+	@Test
+	public void captureThis2() {
+		testAssertOkLines(true, 
+				"package test",
+				"native testSuccess()",
+				"interface SimpleFunc",
+				"	function apply() returns int",
+				"class C",
+				"	int y",
+				"	function foo()",
+				"		bar(() -> this.x() + this.y)",
+				"	function bar(SimpleFunc f)",
+				"		if f.apply() == 7",
+				"			testSuccess()",
+				"	function x() returns int",
+				"		return 3",
+				"init",
+				"	new C()",
+				"	let c = new C()",
+				"	c.y = 4",
+				"	c.foo()"
+			);
+	}
+	
 	
 	@Test
 	public void beginEndExpr() {
@@ -144,6 +168,33 @@ public class ClosureTests extends WurstScriptTest {
 				"		return c + 4",
 				"	end)))",
 				"	if b == 10",
+				"		testSuccess()"
+			);
+	}
+	
+	@Test
+	public void closureWithGenerics() {
+		testAssertOkLines(true, 
+				"package test",
+				"native testSuccess()",
+				"interface Blub<T,S>",
+				"	function foo(T t, S s) returns S",
+				"function callMe<T,S>(T t, S s, Blub<T,S> b) returns S",
+				"	S s2 = b.foo(t, s)", 
+				"	return b.foo(t, s2)",
+				"class A",
+				"	int x",
+				"	construct(int x)",
+				"		this.x = x",
+				"	function foo(B b) returns B",
+				"		return new B(x + b.x)",
+				"class B",
+				"	int x",
+				"	construct(int x)",
+				"		this.x = x",
+				"init",
+				"	B i = callMe<A,B>(new A(3), new B(4), (A a, B b) -> a.foo(b))",
+				"	if i.x == 10",
 				"		testSuccess()"
 			);
 	}
