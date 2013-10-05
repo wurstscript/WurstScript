@@ -1279,44 +1279,62 @@ as if they were instance functions of the extended type.
 		return this.x*this.x+this.y*this.y
 
 
-# Lambda expressions (Closures)
+# Lambda expressions and Closures
 
-A lambda expression is a lightweight way to define a function. 
-Functions defined with lambda expressions do not have a name and are usually
-just used at one point.
-Here are some examples:
+A lambda expression is a lightweight way to provide an implementation
+of a functional interface or abstract class (To keep the text simple, the following
+explanations are all referring to interfaces, but abstract classes can be used in the same way). 
 
-	// closures can be stored in variables:
-	BinaryOperation opAdd = (int x, int y) -> x + y
+A *functional interface* is an interface which has only one method.
+Here is an example:
+
+	// the functional interface:
+	interface Predicate<T>
+		function isTrueFor(T t)
+		
+	// a simple implementation
+	class IsEven implements Predicate<int>
+		function isTrueFor(int x)
+			return x mod 2 == 0
+		
+	// and then we can use it like so:
+	let x = 3
+	Predicate<int> pred = new IsEven()
+	if pred.isTrueFor(x)
+		print("x is even")
+	else
+		print("x is odd")
+	destroy pred
 	
-	// or used in function calls, for example to remove all even numbers
-	// from a list of numbers:
-	myList.removeWhen((int x) ->  x mod 2 == 0 ) 
-	
-As can be seen in the examples a lambda expression starts with a list of
-parameters, followed by the arrow symbol '->' and last is the expression
-returned by the function.
 
-The type of a closure is just a normal class or interface. You can think of
-a closure as an object implementing an interface or abstract class. As 
-a lambda expression is just a single function, it can only be used for interfaces
-with only one method (or abstract classes with only one abstract method).
-Because closures are just like normal objects you also have to destroy them 
+When using lambda expressions, it is not necessary to define a new class 
+implementing the functional interface. Instead the only function of the
+functional interface can be implemented where it is used, like so:
+
+	let x = 3
+	// Predicate is defined here:
+	Predicate<int> pred = (int x) -> x mod 2 == 0
+	if pred.isTrueFor(x)
+		print("x is even")
+	else
+		print("x is odd")
+	destroy pred
+
+The important part is: 
+
+	(int x) -> x mod 2 == 0
+	
+This is a lambda expression. It consists of two parts and an arrow symbol *->* 
+between the two parts. The left hand side of the arrow is a list of formal parameters, 
+as you know them from function definitions. On the right hand side there
+is an expression, which is the implementation. The implementation consists only
+of a single expressions, because lambda expressions are typically small and used 
+in one line. But if one expression is not enough there is the begin-end expression.
+
+Remember that, because closures are just like normal objects, you also have to destroy them 
 like normal objects. And you can do all the other stuff you can do with
 other objects like putting them in a list or into a table.
 
-
-The really cool feature with lambda expressions is, that they are closures.
-This means that they can close over local variables outside their scope
-and capture them.
-Here is a very simple example:
-
-	let min = 10
-	let max = 50
-	// remove all elements not between min and max:
-	myList.removeWhen((int x) ->  x < min or x > max)
-	
-In this example the lambda expression captured the local variables min and max.
 
 ## begin-end expression
 
@@ -1335,7 +1353,21 @@ expression, so that it is possible to have multiple lines of statements within:
 It is also possible to have a return statement inside a begin-end expression
 but only the very last statement can be a return.
 
+
 ## Capturing of Variables
+
+
+The really cool feature with lambda expressions is, that they create a *closure*.
+This means that they can close over local variables outside their scope
+and capture them.
+Here is a very simple example:
+
+	let min = 10
+	let max = 50
+	// remove all elements not between min and max:
+	myList.removeWhen((int x) ->  x < min or x > max)
+	
+In this example the lambda expression captured the local variables min and max.
 
 It is important to know, that variables are captured by value. When a closure
 is created the value is copied into the closure and the closure only works on that copy.
