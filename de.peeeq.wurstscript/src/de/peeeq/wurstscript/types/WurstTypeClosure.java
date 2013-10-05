@@ -125,7 +125,7 @@ public class WurstTypeClosure extends WurstType {
 			sb.append(t.getName());
 			first = false;
 		}
-		sb.append(") => ");
+		sb.append(") -> ");
 		sb.append(returnType.getName());
 		return sb.toString();
 	}
