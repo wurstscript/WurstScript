@@ -44,14 +44,12 @@ public class AttrExprExpectedType {
 				if (args.getParent() instanceof StmtCall) {
 					StmtCall stmtCall = (StmtCall) args.getParent();
 					FunctionSignature sig = stmtCall.attrFunctionSignature();
-					for (int i = 0; i < args.size(); i++) {
+					int maxI = Math.min(args.size(), sig.getParamTypes().size()); 
+					for (int i = 0; i < maxI; i++) {
 						if (args.get(i) == expr) {
 							return sig.getParamTypes().get(i);
 						}
 					}
-					throw new CompileError(expr.getSource(), "a) could not find expr " + expr + " in parent " + parent);
-				} else {
-					throw new CompileError(expr.getSource(), "could not calculate expected type, arguments in " + args.getParent() + " " + args.attrSource().print());
 				}
 			} else if (parent instanceof StmtSet) {
 				StmtSet stmtSet = (StmtSet) parent;
@@ -61,7 +59,6 @@ public class AttrExprExpectedType {
 				} else if (stmtSet.getUpdatedExpr() == expr) {
 					return WurstTypeUnknown.instance();
 				}
-				throw new CompileError(expr.getSource(), "b) could not find expr " + expr + " in parent " + parent);
 			} else if (parent instanceof VarDef) {
 				VarDef varDef = (VarDef) parent;
 				WurstType leftType = varDef.attrTyp();
