@@ -1421,6 +1421,33 @@ So the "Hello!" example above is roughly equivalent to the following code:
 	f.run()  // will print "Hello!!"
 	print(s) // will print "Bye!"
 	
+## Function types
+
+A lambda expression has a special type which captures the type of the parameter
+and the return type. This type is called a *function type*. Here are some examples with their type:
+
+	() -> 1   						
+		// type: () -> integer
+	
+	(real r) -> 2*r
+		// type: (real) -> real
+	
+	(int x, string s) -> s + I2S(x)  
+		// type: (int,string) -> string
+
+
+While function types are part of the type system, Wurst has no way to write down 
+a function type. There are no variables of type "(int,string) -> string".
+Because of this, a lambda expression can only be used in places where
+a concrete interface or class type is known. 
+This can be an assignment where the type of the variable is given. 
+
+	Predicate<int> pred = (int x) -> x mod 2 == 0
+	
+However it is not possible to use lambda expressions if the type of the variable is only inferred:
+
+	// will not compile, error "Could not get super class for closure"
+	let pred = (int x) -> x mod 2 == 0
 
 
 # Advanced Concepts
