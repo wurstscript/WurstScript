@@ -1,14 +1,10 @@
 package de.peeeq.wurstscript.attributes;
 
-import javax.print.attribute.standard.MediaSize.NA;
-
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.AstElementWithArgs;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
-import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExprUnary;
 import de.peeeq.wurstscript.ast.FunctionImplementation;
 import de.peeeq.wurstscript.ast.StmtCall;
