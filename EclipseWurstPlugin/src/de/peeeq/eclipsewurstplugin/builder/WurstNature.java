@@ -110,6 +110,17 @@ public class WurstNature implements IProjectNature {
 	}
 	
 	
+	public void renewErrorMarkers(WurstGui gui, IFile file) {
+		if (gui.getErrorCount() > 0) {
+			// when there are parse errors we also should clear the type errors:
+			if (file != null) {
+				WurstNature.deleteMarkers(file, WurstBuilder.MARKER_TYPE_TYPES);
+			}
+			addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_GRAMMAR);
+//			gui.clearErrors();
+		}
+	}
+	
 	public void addErrorMarkers(WurstGui gui, String markerType) {
 		for (CompileError e : gui.getErrorList()) {
 			IFile file = getProject().getFile(e.getSource().getFile());
@@ -117,7 +128,7 @@ public class WurstNature implements IProjectNature {
 				addErrorMarker(file, e, markerType);
 			}
 		}
-		gui.clearErrors();
+//		gui.clearErrors();
 	}
 	
 	public static void deleteMarkers(IFile file, String markerType) {

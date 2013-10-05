@@ -103,7 +103,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
 			if (i > 0) {
 				s += ", ";
 			}
-			s += typeParameters.get(i);
+			s += typeParameters.get(i).getName();
 		}
 		return s + ">";
 	}

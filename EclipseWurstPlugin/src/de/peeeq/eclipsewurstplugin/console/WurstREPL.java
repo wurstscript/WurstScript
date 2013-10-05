@@ -388,7 +388,7 @@ public class WurstREPL {
 			valueTranslated = value + "";
 		} else if (typ instanceof WurstTypeNamedScope) {
 			WurstTypeNamedScope ct = (WurstTypeNamedScope) typ;
-			valueTranslated = value + " castTo " + ct;
+			valueTranslated = value + " castTo " + ct.getName();
 		} else if (typ instanceof WurstTypeTuple) {
 			WurstTypeTuple tt = (WurstTypeTuple) typ;
 			TupleDef def = tt.getTupleDef();

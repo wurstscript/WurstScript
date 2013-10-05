@@ -27,12 +27,12 @@ public class WurstTypeBoundTypeParam extends WurstType {
 
 	@Override
 	public String getName() {
-		return typeParamDef.getName() + "<--" + baseType.getName();
+		return baseType.getName();
 	}
 
 	@Override
 	public String getFullName() {
-		return typeParamDef.getName() + "<--" + baseType.getName();
+		return typeParamDef.getName() + "<--" + baseType.getFullName();
 	}
 
 
