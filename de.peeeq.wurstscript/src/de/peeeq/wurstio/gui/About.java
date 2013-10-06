@@ -81,7 +81,7 @@ public class About extends javax.swing.JDialog {
         
 
         logo.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        logo.setIcon(new javax.swing.ImageIcon(getClass().getResource("wurst.jpg"))); // NOI18N
+        logo.setIcon(new javax.swing.ImageIcon(getClass().getClassLoader().getResource("wurst.jpg"))); // NOI18N
         logo.setName("logo"); // NOI18N
         logo.setLocation(0, 0);
 

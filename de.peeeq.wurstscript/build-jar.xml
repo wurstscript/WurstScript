@@ -10,6 +10,7 @@
 				<attribute name="Class-Path" value=". wurstscript_lib/java-cup-runtime.jar wurstscript_lib/log4j-1.2.16.jar wurstscript_lib/guava-14.0-rc1.jar wurstscript_lib/junit-4.10.jar wurstscript_lib/chardet.jar"/>
 			</manifest>
 			<fileset dir="./bin"/>
+			<fileset dir="./resources"/>
 		</jar>
 		<delete dir="./dist/wurstscript_lib"/>
 		<mkdir dir="./dist/wurstscript_lib"/>
