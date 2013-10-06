@@ -198,4 +198,47 @@ public class ClosureTests extends WurstScriptTest {
 				"		testSuccess()"
 			);
 	}
+	
+	@Test
+	public void noAbstractMethod() {
+		testAssertErrorsLines(false, "Cannot assign () -> Void to A", 
+				"package test",
+				"native testSuccess()",
+				"abstract class A",
+				"	function foo()",
+				"init",
+				"	A a = () -> begin",
+				"		skip",
+				"	end"
+			);
+	}
+	
+	@Test
+	public void oneAbstractMethod() {
+		testAssertOkLines(false,  
+				"package test",
+				"native testSuccess()",
+				"abstract class A",
+				"	abstract function foo()",
+				"init",
+				"	A a = () -> begin",
+				"		skip",
+				"	end"
+			);
+	}
+	
+	@Test
+	public void twoAbstractMethods() {
+		testAssertErrorsLines(false, "Cannot assign () -> Void to A", 
+				"package test",
+				"native testSuccess()",
+				"abstract class A",
+				"	abstract function foo()",
+				"	abstract function bar()",
+				"init",
+				"	A a = () -> begin",
+				"		skip",
+				"	end"
+			);
+	}
 }

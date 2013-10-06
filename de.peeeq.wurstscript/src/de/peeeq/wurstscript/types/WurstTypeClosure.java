@@ -107,6 +107,9 @@ public class WurstTypeClosure extends WurstType {
 		if (type instanceof WurstTypeClassOrInterface) {
 			WurstTypeClassOrInterface ct = (WurstTypeClassOrInterface) type;
 			FunctionSignature sig = getAbstractMethodSignature(ct.getDef().attrNameLinks());
+			if (sig == null) {
+				return null;
+			}
 			sig = sig.setTypeArgs(ct.getTypeArgBinding());
 			return sig;
 		}
