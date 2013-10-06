@@ -11,13 +11,10 @@ item array 			hid
 integer				hidMax 			= 0
 vec2 				tempPos 		= vec2(0,0)
 
-native UnitAlive(unit a) returns boolean
-
 init
 	find = Rect(0., 0., 128., 128.)
 	dItem = CreateItem(DUMMY_ITEM_ID, 0, 0)
 	SetItemVisible(dItem, false)
-	UnitAlive(null)
 	
 /** Returns the (not normalised) terrain-normal at the given point */
 public function getTerrainNormal( real x, real y, real sampleRadius) returns vec3
