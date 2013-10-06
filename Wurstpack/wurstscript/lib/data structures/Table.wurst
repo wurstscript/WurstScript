@@ -2,10 +2,9 @@ package Table
 import NoWurst
 import Hashtable
 
-hashtable ht = InitHashtable()
-
 public class Table
-
+	private static hashtable ht = InitHashtable()
+	
 	function loadBoolean(int parentKey) returns boolean
 		return ht.loadBoolean( this castTo int, parentKey )
 

@@ -53,23 +53,24 @@ public class FileKeywordScanner {
 		String t = ng.getToken();
 		int length = t.length();
 		int ol = 0;
-		while(length < 15) {
-			int s = fhash(t);
-			if (s == frotty && ! t.equals("Frotty"))  {
-				System.out.println("found");
-				sb.append(t);
-				sb.append("\n");
-				break;
-			}
-			if (length > ol) {
-				ol = length;
-				System.out.println(length);
-			}
-			t = ng.getToken();
-			length = t.length();
-		}
-		System.out.println("FOUND!!!!");
-		System.out.println(sb);
+		System.out.println(String.valueOf(args));
+//		while(length < 15) {
+//			int s = fhash(t);
+//			if (s == frotty && ! t.equals("Frotty"))  {
+//				System.out.println("found");
+//				sb.append(t);
+//				sb.append("\n");
+//				break;
+//			}
+//			if (length > ol) {
+//				ol = length;
+//				System.out.println(length);
+//			}
+//			t = ng.getToken();
+//			length = t.length();
+//		}
+//		System.out.println("FOUND!!!!");
+//		System.out.println(sb);
 		
 	}
 }

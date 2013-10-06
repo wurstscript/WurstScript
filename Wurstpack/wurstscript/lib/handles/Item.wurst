@@ -19,6 +19,9 @@ public function item.setPos( vec2 pos ) returns item
 	SetItemPosition( this, pos.x, pos.y )
 	return this
 	
+public function item.getPos() returns vec2
+	return vec2(this.getX(), this.getY())
+	
 public function item.getUserData() returns int
 	return GetItemUserData(this)
 	

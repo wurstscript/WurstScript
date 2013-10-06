@@ -5,6 +5,10 @@ import Angle
 import PrintingHelper
 import Terrain
 
+public function unit.addXp(int toAdd, boolean showEyeCandy) returns unit
+	AddHeroXP(this, toAdd, showEyeCandy)
+	return this
+
 public function unit.setTurnSpeed(real speed) returns unit
 	SetUnitTurnSpeed(this, speed)
 	return this

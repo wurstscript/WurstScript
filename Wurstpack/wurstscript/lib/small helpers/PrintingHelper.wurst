@@ -1,75 +1,74 @@
 package PrintingHelper
-	import NoWurst
-	import Trigger
-	import Player
-	import FileIO
-	import TimerUtils
+import NoWurst
+import Trigger
+import Player
+import FileIO
+import TimerUtils
+
+public boolean array wantDebug
+
+int DEBUG_LEVEL = 3
+real DEBUG_MSG_DURATION = 45.
+int msgcount = 0
+string array texts
+
+public function setDebugLvl( int value )
+	DEBUG_LEVEL = value
 	
-	public boolean array wantDebug
-	
-	int DEBUG_LEVEL = 3
-	real DEBUG_MSG_DURATION = 45.
-	int msgcount = 0
-	string array texts
-	
-	public function setDebugLvl( int value )
-		DEBUG_LEVEL = value
-		
-	public function setDebugMsgDuration( real value )
-		DEBUG_MSG_DURATION = value
-	
-	public function debugPrint(string msg, int level)
-		if level >= DEBUG_LEVEL
-			texts[msgcount] = msg
-			msgcount++
-			for i = 0 to 11
-				if wantDebug[i]
-					DisplayTimedTextToPlayer(Player(i), 0., 0., DEBUG_MSG_DURATION,"|cff9C9C9CDEBUG - |r" + msg)
-			
-	public function print(string msg)		
-		DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, msg)
+public function setDebugMsgDuration( real value )
+	DEBUG_MSG_DURATION = value
 
-	public function printNote(string msg)
-		DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, "|cffFFFF00[NOTIFICATION]|r - " + msg)
-
-	public function printWarning(string msg)
-		DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, "|cffFF8000[WARNING]|r - " + msg)
-
-	public function printError(string msg)
-		DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, "|cffFF0000[ERROR]|r - " + msg)
-		
-	public function printTimed(string msg, real duration)
-		DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., duration, msg)
-
-	public function boolean.toString() returns string
-		if this
-			return "true"
-		return "false"
-		
-	function activateDebug()
-		let p = GetTriggerPlayer()
-		let id = p.getId()
-		if msgcount > 150
-			if File.isEnabled()
-				var debugFile = File.open("EBR", "debug", Flag.WRITE)
-				for i = msgcount - 150 to msgcount
-					debugFile.write( "  " + texts[msgcount] + "\n" )
-				debugFile.close()
-		if wantDebug[id]
-			wantDebug[id] = false
-			DisplayTimedTextToPlayer(p, 0., 0., 20., "|cff9C9C9CDEBUG-View|r |cffB55208deactivated")
-		else
-			wantDebug[id] = true
-			DisplayTimedTextToPlayer(p, 0., 0., 20., "|cff9C9C9CDEBUG-View|r |cff3AAD42activated")
-			
-		
-
-		
-	init
-		let t = CreateTrigger()
-		t.addAction(function activateDebug)
+public function debugPrint(string msg, int level)
+	if level >= DEBUG_LEVEL
+		texts[msgcount] = msg
+		msgcount++
 		for i = 0 to 11
-			wantDebug[i] = false
-			t.registerPlayerChatEvent(Player(i), "-d", true)
+			if wantDebug[i]
+				DisplayTimedTextToPlayer(Player(i), 0., 0., DEBUG_MSG_DURATION,"|cff9C9C9CDEBUG - |r" + msg)
 		
-endpackage 
+public function print(string msg)		
+	DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, msg)
+
+public function printNote(string msg)
+	DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, "|cffFFFF00[NOTIFICATION]|r - " + msg)
+
+public function printWarning(string msg)
+	DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, "|cffFF8000[WARNING]|r - " + msg)
+
+public function printError(string msg)
+	DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, "|cffFF0000[ERROR]|r - " + msg)
+	
+public function printTimed(string msg, real duration)
+	DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., duration, msg)
+
+public function boolean.toString() returns string
+	if this
+		return "true"
+	return "false"
+	
+function activateDebug()
+	let p = GetTriggerPlayer()
+	let id = p.getId()
+	if msgcount > 150
+		if File.isEnabled()
+			var debugFile = File.open("EBR", "debug", Flag.WRITE)
+			for i = msgcount - 150 to msgcount
+				debugFile.write( "  " + texts[msgcount] + "\n" )
+			debugFile.close()
+	if wantDebug[id]
+		wantDebug[id] = false
+		DisplayTimedTextToPlayer(p, 0., 0., 20., "|cff9C9C9CDEBUG-View|r |cffB55208deactivated")
+	else
+		wantDebug[id] = true
+		DisplayTimedTextToPlayer(p, 0., 0., 20., "|cff9C9C9CDEBUG-View|r |cff3AAD42activated")
+		
+	
+
+	
+init
+	let t = CreateTrigger()
+	t.addAction(function activateDebug)
+	for i = 0 to 11
+		wantDebug[i] = false
+		t.registerPlayerChatEvent(Player(i), "-d", true)
+
