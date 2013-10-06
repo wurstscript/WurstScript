@@ -87,6 +87,32 @@ public class LinkedList<T>
 			current = current.next
 			destroy temp
 		destroy dummy
+	
+	function removeWhen(LinkedListPredicate<T> predicate) 
+		LLEntry<T> r = dummy.next
+		while r != dummy
+			if predicate.isTrueFor(r.elem)
+				r.prev.next = r.next
+				r.next.prev = r.prev
+				destroy r
+				size--
+			r = r.next
+		destroy predicate
+		
+	function updateAll(LinkedListUpdater<T> f)
+		LLEntry<T> r = dummy.next
+		while r != dummy
+			r.elem = f.update(r.elem) 
+			r = r.next
+		destroy f
+		
+	function toString() returns string
+		string s=""
+		for e from iterator()
+			if s != ""
+				s += ", "
+			s += I2S(e castTo int)
+		return s
 
 class LLEntry<S>
 	S elem
@@ -124,3 +150,10 @@ class LLIterator<Q>
  		
 	function close() 
 		destroy this
+
+		
+public interface LinkedListPredicate<T>
+	function isTrueFor(T t) returns boolean
+
+public interface LinkedListUpdater<T>
+	function update(T t) returns T

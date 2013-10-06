@@ -19,13 +19,12 @@ public class AttrCallSignature {
 
 	public static CallSignature calculate(ExprMemberMethod c) {
 		Expr receiver = c.getLeft();
-		if (receiver.attrTyp() instanceof WurstTypeNamedScope) {
-			WurstTypeNamedScope t = (WurstTypeNamedScope) receiver.attrTyp();
-			if (t.isStaticRef()) {
-				receiver = null;
-			}
+		if (receiver.attrTyp().isStaticRef()) {
+			// if we use a static ref like A.foo()
+			// then there is no real receiver
+			receiver = null;
 		}
-		return new CallSignature(receiver, c.getArgs());
+		return new CallSignature(c.attrImplicitParameter(), c.getArgs());
 	}
 
 	public static CallSignature calculate(ExprNewObject c) {

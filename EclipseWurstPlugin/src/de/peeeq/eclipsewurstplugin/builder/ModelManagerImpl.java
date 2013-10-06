@@ -216,14 +216,7 @@ public class ModelManagerImpl implements ModelManager {
 		if (file != null) {
 			WurstNature.deleteMarkers(file, WurstBuilder.MARKER_TYPE_GRAMMAR);
 		}
-		if (gui.getErrorCount() > 0) {
-			// when there are parse errors we also should clear the type errors:
-			if (file != null) {
-				WurstNature.deleteMarkers(file, WurstBuilder.MARKER_TYPE_TYPES);
-			}
-			nature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_GRAMMAR);
-			gui.clearErrors();
-		}
+		nature.renewErrorMarkers(gui, file);
 		
 		if (cu != null && cu.getJassDecls().size() + cu.getPackages().size() > 0) {
 			cu.setFile(fileName);

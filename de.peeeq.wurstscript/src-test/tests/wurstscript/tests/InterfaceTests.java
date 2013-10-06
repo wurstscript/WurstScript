@@ -429,4 +429,29 @@ public class InterfaceTests extends WurstScriptTest {
 			);
 	}
 	
+	
+	@Test
+	public void destroyInterface() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	int x = 0",
+				"	interface I",
+				"		function foo()",
+				"	class B implements I",
+				"		override function foo()",
+				"		ondestroy",
+				"			x = 1",
+				"	class C implements I",
+				"		override function foo()",
+				"		ondestroy",
+				"			x = 2",
+				"	init",
+				"		I i = new C()",
+				"		destroy i",
+				"		if x == 2",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
 }

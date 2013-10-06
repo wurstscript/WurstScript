@@ -1,10 +1,12 @@
 package de.peeeq.wurstscript.types;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 
@@ -81,9 +83,6 @@ public abstract class WurstType {
 
 
 
-	public abstract String[] jassTranslateType();
-
-
 	public WurstType setTypeArgs(Map<TypeParamDef, WurstType> typeParamMapping) {
 		return this;
 	}
@@ -98,6 +97,58 @@ public abstract class WurstType {
 
 
 	public abstract ImExprOpt getDefaultValue();
+
+	public boolean isVoid() {
+		return false;
+	}
+
+	public boolean canBeUsedInInstanceOf() {
+		return false;
+	}
+
+	public boolean allowsDynamicDispatch() {
+		return false;
+	}
+
+	public void addMemberMethods(AstElement node, String name,
+			List<NameLink> result) {
+	}
+
+	public boolean isStaticRef() {
+		return false;
+	}
+	
+	public boolean isTranslatedToInt() {
+		return this instanceof WurstTypeInt
+				|| this instanceof WurstTypeIntLiteral
+				|| this instanceof WurstTypeNamedScope
+				|| this instanceof WurstTypeTypeParam
+				|| this instanceof WurstTypeFreeTypeParam
+				|| this instanceof WurstTypeBoundTypeParam;
+	}
+
+	public boolean isCastableToInt() {
+		return this instanceof WurstTypeClass 
+				|| this instanceof WurstTypeModule
+				|| this instanceof WurstTypeClassOrInterface
+				|| this instanceof WurstTypeTypeParam
+				|| this instanceof WurstTypeBoundTypeParam
+				|| this instanceof WurstTypeEnum;
+	}
+
+	public WurstType normalize() {
+		return this;
+	}
+	
+	public boolean supportsGenerics() {
+		WurstType t = this.normalize();
+		return t instanceof WurstTypeNamedScope 
+				|| t instanceof WurstTypeNull
+				|| t instanceof WurstTypeInt
+				|| t instanceof WurstTypeTypeParam
+				|| t instanceof WurstTypeFreeTypeParam
+				|| t instanceof WurstTypeIntLiteral;
+	}
 
 
 }

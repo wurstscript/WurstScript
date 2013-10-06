@@ -422,6 +422,7 @@ public class Utils {
 				}
 				name += "}";
 			}
+			type = "type";
 		}
 		return type + " " + name;
 	}
@@ -753,6 +754,13 @@ public class Utils {
 		return sb.toString();
 	}
 
+	public static String escapeHtml(String s) {
+		// TODO could use apache commons library?
+		s = s.replace("<", "&lt;");
+		s = s.replace(">", "&gt;");
+		return s;
+	}
+	
 	/**
 	 * returns the filename from the given path 
 	 */
@@ -763,6 +771,13 @@ public class Utils {
 		}
 		return path;
 	}
+
+	public static String printException(Throwable e) {
+		StackTraceElement[] trace = e.getStackTrace();
+		return e + "\n" + Utils.printStackTrace(trace);
+	}
+
+
 	
 
 }

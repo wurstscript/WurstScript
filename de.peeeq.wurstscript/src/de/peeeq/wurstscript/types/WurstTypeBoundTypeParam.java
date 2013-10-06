@@ -1,7 +1,10 @@
 package de.peeeq.wurstscript.types;
 
+import java.util.List;
+
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
@@ -24,18 +27,14 @@ public class WurstTypeBoundTypeParam extends WurstType {
 
 	@Override
 	public String getName() {
-		return typeParamDef.getName() + "<--" + baseType.getName();
+		return baseType.getName();
 	}
 
 	@Override
 	public String getFullName() {
-		return typeParamDef.getName() + "<--" + baseType.getName();
+		return typeParamDef.getName() + "<--" + baseType.getFullName();
 	}
 
-	@Override
-	public String[] jassTranslateType() {
-		return new String[] { "integer", "integer" };
-	}
 
 	public WurstType getBaseType() {
 		return baseType;
@@ -55,5 +54,37 @@ public class WurstTypeBoundTypeParam extends WurstType {
 	@Override
 	public WurstType dynamic() {
 		return baseType.dynamic();
+	}
+	
+	@Override
+	public boolean canBeUsedInInstanceOf() {
+		return baseType.canBeUsedInInstanceOf();
+	}
+	
+	@Override
+	public boolean allowsDynamicDispatch() {
+		return baseType.allowsDynamicDispatch();
+	}
+	
+	@Override
+	public void addMemberMethods(AstElement node, String name,
+			List<NameLink> result) {
+		baseType.addMemberMethods(node, name, result);
+	}
+	
+	@Override
+	public boolean isStaticRef() {
+		return baseType.isStaticRef();
+	}
+	
+	@Override
+	public boolean isCastableToInt() {
+		return true; // because baseType must always be castable to int 
+		//return baseType.isCastableToInt();
+	}
+	
+	@Override
+	public WurstType normalize() {
+		return baseType.normalize();
 	}
 }

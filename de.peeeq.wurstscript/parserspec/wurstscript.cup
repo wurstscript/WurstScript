@@ -84,7 +84,7 @@ terminal
 	LSQUARE, RSQUARE,
 	INDENT, UNINDENT,
 	LBRACK, RBRACK, 
-	COMMA, SEMICOLON, COLON,   
+	COMMA, SEMICOLON, COLON,  
 	NL,
 	TUPLE, MODULE, USE, ABSTRACT, IN, FOR, FROM, TO, DOWNTO, STEP, BREAK,
 	THISTYPE, ARROW, IT, IMMUTABLE, OVERRIDE, INSTANCE, INSTANCEOF, ENUM,
@@ -94,6 +94,7 @@ terminal
 	EXTENDS, SUPER, THIS, CONSTRUCT, ONDESTROY, SWITCH, CASE, DEFAULT,
 	TYPE, GLOBALS, ENDGLOBALS, CONSTANT, ENDFUNCTION, TAKES, NOTHING, LOCAL,
 	LOOP, ENDLOOP, EXITWHEN, SET, CALL, THEN, ELSEIF, ENDIF, DESTROY, CASTTO,
+	BEGIN, END,
 	// virtual terminals:
 	INFIX_CALL, LOWEST
 	;
@@ -111,11 +112,13 @@ non terminal ExprBinary ExprBinary;
 non terminal ExprCast ExprCast;
 non terminal Expr Expr;
 non terminal Expr ExprAtomic;
+non terminal ExprClosure ExprClosure; 
 non terminal ExprFunctionCall ExprFunctionCall;
 non terminal ExprMemberArrayVar ExprMemberArrayVar;
 non terminal ExprMemberMethod ExprMemberMethod;
 non terminal ExprMemberVar ExprMemberVar;
 non terminal ExprNewObject ExprNewObject;
+non terminal ExprStatementsBlock ExprStatementsBlock;
 non terminal ExprUnary ExprUnary;
 non terminal ExprVarAccess ExprVarAccess;
 non terminal ExprVarArrayAccess ExprVarArrayAccess;
@@ -749,6 +752,8 @@ Expr ::=
 	  	{: RESULT = x; :}
 	| ExprNewObject:x
 	  	{: RESULT = x; :}
+	| ExprClosure:x
+		{: RESULT = x; :}
 	| ExprAtomic:x
 	  	{: RESULT = x; :}
 	| ExprCast:x
@@ -759,8 +764,16 @@ Expr ::=
 		{: RESULT = Ast.ExprMemberVar(pos(left,yright), left, ""); :}
 	| SUPER:x
 		{: RESULT = Ast.ExprSuper(pos(xleft, xright)); :}
+	| ExprStatementsBlock:x
+		{: RESULT = x; :}
 ;
 	
+ExprStatementsBlock ::=
+	  BEGIN:x NL INDENT Statements:s UNINDENT END:y
+		{: RESULT = Ast.ExprStatementsBlock(pos(xleft, yright), s); :}
+	| BEGIN:x NL END:y
+		{: RESULT = Ast.ExprStatementsBlock(pos(xleft, yright), Ast.WStatements()); :}
+;
 	
 ExprCast ::= 
 	Expr:e CASTTO TypeExpr:t 
@@ -817,6 +830,12 @@ ExprNewObject ::=
 		{: RESULT = Ast.ExprNewObject(pos(xleft, n), n.getName(), n.getTypeArgs(), Ast.Arguments()); :}
 	| NEW:x	
 		{: RESULT = Ast.ExprNewObject(pos(xleft, xright+1), "", Ast.TypeExprList(), Ast.Arguments()); :}
+;
+
+
+ExprClosure ::=
+	LPAR:x Parameters:parameters RPAR ARROW Expr:e
+		{: RESULT = Ast.ExprClosure(pos(xleft,e), parameters, e); :} 
 ;
 
 Indexes ::=

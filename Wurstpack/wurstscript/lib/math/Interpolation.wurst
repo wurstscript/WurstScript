@@ -1,35 +1,35 @@
 package Interpolation
 // Credits to BlinkyBoy
 /**Look at linear*/
-public function linear(vec2 start, vec2 end, real p) returns vec2
-	return vec2(linear(start.x, end.y, p), linear(start.y, end.y, p))
+public function linear(vec2 start, vec2 stop, real p) returns vec2
+	return vec2(linear(start.x, stop.y, p), linear(start.y, stop.y, p))
 	
-public function bezier_3(vec2 start, vec2 mid, vec2 end, real p) returns vec2
-	return vec2(bezier_3(start.x, mid.x, end.y, p), bezier_3(start.y, mid.x, end.y, p))
+public function bezier_3(vec2 start, vec2 mid, vec2 stop, real p) returns vec2
+	return vec2(bezier_3(start.x, mid.x, stop.y, p), bezier_3(start.y, mid.x, stop.y, p))
 
 /** 
 	Linear Interpolation
 	Sample Usage:
 	AddSpecialEffect(TEST_SFX,linear(P1X,P2X,p),linear(P1Y,P2Y,p))
 */
-public function linear( real start, real end, real p ) returns real
-	return start + (end-start)*p
+public function linear( real start, real stop, real p ) returns real
+	return start + (stop-start)*p
 
 /**
 	3-Point-Bezier Interpolation
 	Sample Usage:
 	AddSpecialEffect(TEST_SFX,bezier_3(P1X,P3X,P2X,p),bezier_3(P1Y,P3Y,P2Y,p))
 */
-public function bezier_3( real start, real mid, real end, real p ) returns real
-	return start + 2.*(mid-start)*p + (end -2.*mid + start)*p*p
+public function bezier_3( real start, real mid, real stop, real p ) returns real
+	return start + 2.*(mid-start)*p + (stop -2.*mid + start)*p*p
 
 
 /** 
 	This function returns the derivate of the 3-Point-Bezier curve on certain point. 
 	(d(bezier_3())/dt)
 */
-public function derivBezier_3( real start, real mid, real end, real p ) returns real
-	return 2.*(mid-start) + 2.*(end-2.*mid+start)*p 
+public function derivBezier_3( real start, real mid, real stop, real p ) returns real
+	return 2.*(mid-start) + 2.*(stop-2.*mid+start)*p 
 	
 
 /**
@@ -37,30 +37,30 @@ public function derivBezier_3( real start, real mid, real end, real p ) returns 
 	Sample Usage:
 	AddSpecialEffect(TEST_SFX,bezier_4(P1X,P3X,P4X,P2X,t),bezier_4(P1Y,P3Y,P4Y,P2Y,t))
 */
-function bezier_4( real start, real mid1, real mid2, real end, real p ) returns real
+function bezier_4( real start, real mid1, real mid2, real stop, real p ) returns real
 	real m = p*p
-	return  start + 3.*p*(mid1 - start) + 3.*m*(mid2 - 2.*mid1 + start) + m*p*(3.*(mid1-mid2) + end - start)
+	return  start + 3.*p*(mid1 - start) + 3.*m*(mid2 - 2.*mid1 + start) + m*p*(3.*(mid1-mid2) + stop - start)
 
 /** 
 	This function returns the derivate of the 4-Point-Bezier curve on certain point. 
 	(d(bezier_4())/dt)
 */	
-public function derivBezier_4( real start, real mid1, real mid2, real end, real p ) returns real
-	return 3.*(mid1-start) + 6.*(mid2-2.*mid1+start)*p + 3.*(3.*(mid1-mid2) + end -start)*p*p
+public function derivBezier_4( real start, real mid1, real mid2, real stop, real p ) returns real
+	return 3.*(mid1-start) + 6.*(mid2-2.*mid1+start)*p + 3.*(3.*(mid1-mid2) + stop -start)*p*p
 	
 	
 //You can use Bezier 3 to graphic perfect parabolas
 //Bezier_4(<Start Point>, <OutTan_of_StartPoint>, <InTan_of_EndPoint>, <EndPoint>)
 
 /**	Hermite Interpolation */
-public function hermite( real start, real end, real tangent1, real tangent2, real s ) returns real
+public function hermite( real start, real stop, real tangent1, real tangent2, real s ) returns real
 	real s2 = s*s
 	real h1 = 8.0*s*s2 - 9.0*s2
 	real h2 = h1*(-1)
 	real h3 = s2*(s - 2.0) + s
 	real h4 = s2*(s - 1.0)
 	h1 = h1 + 1
-	return h1*start + h2*end + h3*tangent1 + h4*tangent2
+	return h1*start + h2*stop + h3*tangent1 + h4*tangent2
 	
 	
 

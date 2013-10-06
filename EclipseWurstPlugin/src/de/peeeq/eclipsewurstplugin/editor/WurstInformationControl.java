@@ -152,6 +152,7 @@ public class WurstInformationControl extends DefaultInformationControl {
 			try {
 				DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
 				DocumentBuilder builder = builderFactory.newDocumentBuilder();
+				hoverInfo = Utils.escapeHtml(hoverInfo);
 				Document doc = builder.parse(
 						new InputSource(new StringReader("<root>" + hoverInfo + "</root>")));
 				parseDocument(doc, presentation, sb);
@@ -162,6 +163,7 @@ public class WurstInformationControl extends DefaultInformationControl {
 			
 			return sb.toString();
 		}
+
 
 		private void parseDocument(Document doc, TextPresentation presentation,	StringBuilder sb) {
 			initNodeHandlers();

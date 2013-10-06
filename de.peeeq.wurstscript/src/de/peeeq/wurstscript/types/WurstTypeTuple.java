@@ -53,41 +53,8 @@ public class WurstTypeTuple extends WurstType {
 		return getName();
 	}
 
-	@Override
-	public String[] jassTranslateType() {
-		List<String> result = Lists.newArrayList();
-		for (WParameter p : tupleDef.getParameters()) {
-			for (String t : p.attrTyp().jassTranslateType()) {
-				result.add(t);
-			}
-		}
-		return result.toArray(new String[result.size()]);
-	}
 
-	public List<JassVar> getJassVars(List<JassVar> jassVars, VarDef param) {
-		int i = 0;
-		for (WParameter p : tupleDef.getParameters()) {
-			int varCount = p.attrTyp().jassTranslateType().length;
-			if (p == param) {
-				return Utils.slice(jassVars, i, varCount);
-			}
-			i+= varCount;
-		}
-		throw new Error("Could not find parameter " + param.getName() + " for tuple " + tupleDef.getName());
-	}
 	
-	public List<JassExpr> getJassExprs(List<JassExpr> jassExprs, NameDef param) {
-		int i = 0;
-		for (WParameter p : tupleDef.getParameters()) {
-			int varCount = p.attrTyp().jassTranslateType().length;
-			if (p == param) {
-				return Utils.slice(jassExprs, i, varCount);
-			}
-			i+= varCount;
-		}
-		throw new Error("Could not find parameter " + param.getName() + " for tuple " + tupleDef.getName());
-	}
-
 	@Override
 	public ImType imTranslateType() {
 		List<ImType> types = Lists.newArrayList();

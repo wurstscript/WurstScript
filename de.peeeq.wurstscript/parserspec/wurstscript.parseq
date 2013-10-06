@@ -163,8 +163,10 @@ Expr =
 	| ExprCast(de.peeeq.wurstscript.parser.WPos source, TypeExpr typ, Expr expr)
 	| ExprInstanceOf(de.peeeq.wurstscript.parser.WPos source, TypeExpr typ, Expr expr)
 	| ExprTypeId(de.peeeq.wurstscript.parser.WPos source, Expr left)
+	| ExprClosure(de.peeeq.wurstscript.parser.WPos source, WParameters parameters, Expr implementation)
 	| ExprAtomic
 	| ExprIncomplete(de.peeeq.wurstscript.parser.WPos source, String errorMessage)
+	| ExprStatementsBlock(de.peeeq.wurstscript.parser.WPos source, WStatements body)
 	
 	
 ExprAtomic = 
@@ -235,6 +237,7 @@ WScope =
 	| LoopStatementWithVarDef
 	| WBlock
 	| WEntities
+	| ExprClosure
 
 PackageOrGlobal = WPackage | CompilationUnit	
 	
@@ -285,7 +288,7 @@ JassGlobalBlock * GlobalVarDef
 
 
 // special types for translation
-TranslatedToImFunction = ConstructorDef | FunctionDefinition | InitBlock | OnDestroyDef
+TranslatedToImFunction = ConstructorDef | FunctionDefinition | InitBlock | OnDestroyDef | ExprClosure
 
 
 
@@ -320,15 +323,28 @@ WStatement.attrReadVariables2
 
 OptTypeExpr.attrTyp
 	returns de.peeeq.wurstscript.types.WurstType
-	implemented by de.peeeq.wurstscript.attributes.AttrTypeExprType.calculate
+	implemented by de.peeeq.wurstscript.attributes.AttrTypeExprType.normalizedType
 
 Expr.attrTyp
 	returns de.peeeq.wurstscript.types.WurstType 
+	implemented by de.peeeq.wurstscript.attributes.AttrExprType.normalizedType
+
+
+OptTypeExpr.attrTypRaw
+	returns de.peeeq.wurstscript.types.WurstType
+	implemented by de.peeeq.wurstscript.attributes.AttrTypeExprType.calculate
+
+Expr.attrTypRaw
+	returns de.peeeq.wurstscript.types.WurstType 
 	implemented by de.peeeq.wurstscript.attributes.AttrExprType.calculate
+
+Expr.attrExpectedTypRaw 
+	returns de.peeeq.wurstscript.types.WurstType
+	implemented by de.peeeq.wurstscript.attributes.AttrExprExpectedType.calculate
 
 Expr.attrExpectedTyp "try to guess what type is expected here"
 	returns de.peeeq.wurstscript.types.WurstType
-	implemented by de.peeeq.wurstscript.attributes.AttrExprExpectedType.calculate
+	implemented by de.peeeq.wurstscript.attributes.AttrExprExpectedType.normalizedType
 
 FunctionCall.attrImplicitParameter
 	returns OptExpr
@@ -413,9 +429,19 @@ AstElement.attrNearestFuncDef
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestFuncDef
 
 
+AstElement.attrNearestExprClosure
+	returns ExprClosure
+	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestExprClosure
+
+AstElement.attrNearestExprStatementsBlock
+	returns ExprStatementsBlock
+	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestExprStatementsBlock
 
 
 
+ExprStatementsBlock.getReturnStmt()
+	returns StmtReturn
+	implemented by de.peeeq.wurstscript.attributes.SmallHelpers.getReturnStatement
 
 
 

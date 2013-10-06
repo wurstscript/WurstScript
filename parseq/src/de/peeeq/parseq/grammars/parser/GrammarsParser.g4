@@ -39,9 +39,12 @@ gExprPart returns [Production result]:
 ;
 
 gExprAtomic returns [Production result]:
-	  lex=LEX  			{ $result = new ProdLex($lex); }
-	| i=ID				{ $result = new ProdId($i); }
-	| '(' e=gExpr ')'	{ $result = $e.result; }		
+	(name=ID op=('='|'+='))?
+	(
+	   lex=LEX  			{ $result = new ProdLex($name, $op, $lex); }
+	|  i=ID					{ $result = new ProdId($name, $op, $i); }
+	| '(' e=gExpr ')'	{ $result = $e.result; }
+	)		
 ;
 
 

@@ -10,9 +10,11 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.EnumDef;
+import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprBoolVal;
 import de.peeeq.wurstscript.ast.ExprCast;
+import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprIncomplete;
@@ -24,6 +26,7 @@ import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprNull;
 import de.peeeq.wurstscript.ast.ExprRealVal;
+import de.peeeq.wurstscript.ast.ExprStatementsBlock;
 import de.peeeq.wurstscript.ast.ExprStringVal;
 import de.peeeq.wurstscript.ast.ExprSuper;
 import de.peeeq.wurstscript.ast.ExprThis;
@@ -40,12 +43,16 @@ import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.NoTypeExpr;
+import de.peeeq.wurstscript.ast.OptExpr;
+import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.StmtCall;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.translation.imtranslation.StmtTranslation;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstType;
@@ -54,6 +61,7 @@ import de.peeeq.wurstscript.types.WurstTypeBool;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeClassOrInterface;
+import de.peeeq.wurstscript.types.WurstTypeClosure;
 import de.peeeq.wurstscript.types.WurstTypeCode;
 import de.peeeq.wurstscript.types.WurstTypeEnum;
 import de.peeeq.wurstscript.types.WurstTypeInt;
@@ -435,11 +443,8 @@ public class AttrExprType {
 		if (varDef instanceof FunctionDefinition) {
 			term.addError("Missing parantheses for function call");
 		}
-		if (varDef.attrIsStatic() && term.getLeft().attrTyp() instanceof WurstTypeNamedScope) {
-			WurstTypeNamedScope ns = (WurstTypeNamedScope) term.getLeft().attrTyp();
-			if (!ns.isStaticRef()) {
-				term.addError("Cannot access static variable " + term.getVarName() + " via a dynamic reference.");
-			}
+		if (varDef.attrIsStatic() && !term.getLeft().attrTyp().isStaticRef()) {
+			term.addError("Cannot access static variable " + term.getVarName() + " via a dynamic reference.");
 		}
 		return varDef.attrTyp().setTypeArgs(term.getLeft().attrTyp().getTypeArgBinding());
 	}
@@ -489,12 +494,7 @@ public class AttrExprType {
 
 
 	protected static boolean isCastableToInt(WurstType typ) {
-		return typ instanceof WurstTypeClass 
-				|| typ instanceof WurstTypeModule
-				|| typ instanceof WurstTypeInterface
-				|| typ instanceof WurstTypeTypeParam
-				|| typ instanceof WurstTypeBoundTypeParam
-				|| typ instanceof WurstTypeEnum;
+		return typ.isCastableToInt();
 	}
 
 
@@ -507,16 +507,14 @@ public class AttrExprType {
 
 
 	private static void checkCastOrInstanceOf(AstElement e, WurstType exprType, WurstType targetType, String msgPre) {
-		if (!(exprType instanceof WurstTypeClass
-				|| exprType instanceof WurstTypeInterface)) {
+		if (!exprType.canBeUsedInInstanceOf()) {
 			e.addError(msgPre + " not defined for expression type " + exprType);
 		}
-		if (!(targetType instanceof WurstTypeClass
-				|| targetType instanceof WurstTypeInterface)) {
-			e.addError(msgPre + "instanceof expression not defined for target type " + targetType);
+		if (!targetType.canBeUsedInInstanceOf()) {
+			e.addError(msgPre + " not defined for target type " + targetType);
 		}
 		if (exprType.isSubtypeOf(targetType, e)) {
-			e.addError("This "+ msgPre + " is always true");
+			e.addError("This "+ msgPre + " is useless");
 		} else if (!exprType.isSupertypeOf(targetType, e)) {
 			e.addError(msgPre + " is not allowed because types " + exprType + " and " + targetType + " are not directly related.\n" +
 					"Consider adding a cast to a common superType first.");
@@ -558,6 +556,33 @@ public class AttrExprType {
 			e.addError(exprTyp + " does not have a typeId, because it is not an object type.");
 		}
 		return WurstTypeInt.instance();
+	}
+
+
+	public static WurstType normalizedType(Expr e) {
+		return e.attrTypRaw().normalize();
+	}
+
+
+	public static WurstType calculate(ExprClosure e) {
+		WurstType returnType = e.getImplementation().attrTyp();
+		List<WurstType> paramTypes = Lists.newArrayList();
+		for (WParameter p : e.getParameters()) {
+			paramTypes.add(p.attrTyp());
+		}
+		return new WurstTypeClosure(paramTypes, returnType);
+	}
+
+
+	public static WurstType calculate(ExprStatementsBlock e) {
+		StmtReturn r = (StmtReturn) e.getReturnStmt();
+		if (r != null) {
+			if (r.getReturnedObj() instanceof Expr) {
+				Expr re = (Expr) r.getReturnedObj();
+				return re.attrTyp();
+			}
+		}
+		return WurstTypeVoid.instance();
 	}
 
 }

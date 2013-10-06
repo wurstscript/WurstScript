@@ -78,11 +78,6 @@ public class WurstTypeModuleInstanciation extends WurstTypeNamedScope {
 	}
 
 	@Override
-	public String[] jassTranslateType() {
-		return WurstTypeInt.instance().jassTranslateType();
-	}
-	
-	@Override
 	public ImType imTranslateType() {
 		return TypesHelper.imInt();
 	}

@@ -215,6 +215,8 @@ public class ExtendedParser extends parser {
 		  case TokenType.UMINUS: return "UMINUS";
 		  case TokenType.LET: return "LET";
 		  case TokenType.CALL: return "CALL";
+		  case TokenType.END: return "END";
+		  case TokenType.BEGIN: return "BEGIN";
 		}
 		return "Symbol#" + index;
 	}
@@ -223,6 +225,7 @@ public class ExtendedParser extends parser {
 		Map<String, String> translations = Maps.newHashMap();
 		translations.put("IDENTIFIER", "name");
 		translations.put("IDENTIFIER_LT", "name with type args");
+		translations.put("ARROW", "'->'");
 		translations.put("GT", "'>'");
 		translations.put("NOTEQ", "'!='");
 		translations.put("DIV_INT", "'div'");

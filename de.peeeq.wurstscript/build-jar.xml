@@ -10,6 +10,7 @@
 				<attribute name="Class-Path" value=". wurstscript_lib/java-cup-runtime.jar wurstscript_lib/log4j-1.2.16.jar wurstscript_lib/guava-14.0-rc1.jar wurstscript_lib/junit-4.10.jar wurstscript_lib/chardet.jar"/>
 			</manifest>
 			<fileset dir="./bin"/>
+			<fileset dir="./resources"/>
 		</jar>
 		<delete dir="./dist/wurstscript_lib"/>
 		<mkdir dir="./dist/wurstscript_lib"/>
@@ -31,4 +32,12 @@
 		<copy file="./lib/velocity-1.7-dep.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true"/>
 	</target>
 
+	<target name="create_zips" depends="make_for_wurstpack">
+		<mkdir dir="../downloads/"/>
+		<zip destfile="../downloads/wurstpack_complete.zip" basedir="../Wurstpack"></zip>
+		<zip destfile="../downloads/wurstpack_lib.zip" basedir="../Wurstpack/wurstscript/lib"></zip>
+		<zip destfile="../downloads/wurstpack_compiler.zip" basedir="../Wurstpack/wurstscript/"></zip>
+		<copy file="./dist/wurstscript.jar" todir="../downloads/" overwrite="true"></copy>
+	</target>
+	
 </project>

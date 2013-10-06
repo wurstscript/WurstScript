@@ -63,15 +63,11 @@ public class AttrImplicitParameter {
 	}
 	
 	private static Expr getImplicitParameterUsingLeft(AstElementWithLeft e) {
-		WurstType leftType = e.getLeft().attrTyp();
-		if (leftType instanceof WurstTypeNamedScope) {
-			WurstTypeNamedScope ns = (WurstTypeNamedScope) leftType;
-			if (ns.isStaticRef()) {
-				// we have a static ref like Math.sqrt()
-				// this will be handled like if we just have sqrt()
-				// if we have an implicit parameter depends on whether sqrt is static or not
-				return null;
-			}
+		if (e.getLeft().attrTyp().isStaticRef()) {
+			// we have a static ref like Math.sqrt()
+			// this will be handled like if we just have sqrt()
+			// if we have an implicit parameter depends on whether sqrt is static or not
+			return null;
 		}
 		return e.getLeft();
 	}

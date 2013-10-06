@@ -131,7 +131,7 @@ function checkDelayed()
 				
 			
 init
-	int end
+	int endPos
 	int n = ANG_N
 	real angl
 	real x = mapMaxX
@@ -140,9 +140,9 @@ init
 		stackN[i] = ANG_STORAGE_MAX
 		queueNext[i] = n
 		angl = (i * ANG_VAL + ANG_MID).toReal()
-		end = n + ANG_STORAGE_MAX
-		queueLast[i] = end - 1
-		while n < end
+		endPos = n + ANG_STORAGE_MAX
+		queueLast[i] = endPos - 1
+		while n < endPos
 			queueNext[n] = n + 1
 			stack[n] = CreateUnit(DUMMY_PLAYER, DUMMY_UNIT_ID, x, y, angl)
 			stack[n].addAbility(HEIGHT_ENABLER).removeAbility(HEIGHT_ENABLER)

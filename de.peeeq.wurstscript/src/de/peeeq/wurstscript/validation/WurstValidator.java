@@ -27,6 +27,7 @@ import de.peeeq.wurstscript.ast.EnumDef;
 import de.peeeq.wurstscript.ast.EnumMember;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
+import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprIntVal;
@@ -35,6 +36,7 @@ import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprNull;
+import de.peeeq.wurstscript.ast.ExprStatementsBlock;
 import de.peeeq.wurstscript.ast.ExprThis;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
@@ -111,6 +113,7 @@ import de.peeeq.wurstscript.types.WurstTypeArray;
 import de.peeeq.wurstscript.types.WurstTypeBool;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeClass;
+import de.peeeq.wurstscript.types.WurstTypeClosure;
 import de.peeeq.wurstscript.types.WurstTypeCode;
 import de.peeeq.wurstscript.types.WurstTypeEnum;
 import de.peeeq.wurstscript.types.WurstTypeInt;
@@ -146,17 +149,29 @@ public class WurstValidator {
 	private int functionCount;
 	private int visitedFunctions;
 	private Multimap<WScope	, WScope> calledFunctions = HashMultimap.create();
+	private AstElement lastElement = null;
 
 	public WurstValidator(WurstModel root) {
 		this.prog = root;
 	}
 
 	public void validate() {
-		functionCount = countFunctions();
-		visitedFunctions = 0;
-
-		walkTree(prog);		
-		postChecks();
+		try {
+			functionCount = countFunctions();
+			visitedFunctions = 0;
+	
+			walkTree(prog);		
+			postChecks();
+		} catch (RuntimeException e) {
+			if (lastElement != null) {
+				lastElement.addError("Encountered compiler bug near element " + Utils.printElement(lastElement) + ":\n" +
+						Utils.printException(e));
+				WLogger.severe(e);
+			} else {
+				// rethrow
+				throw e;
+			}
+		}
 	}
 
 	/**
@@ -171,11 +186,12 @@ public class WurstValidator {
 				}
 			}
 		}
-
 	}
 
 	private void walkTree(AstElement e) {
+		lastElement = e;
 		check(e);
+		lastElement = null;
 		for (int i=0; i<e.size(); i++) {
 			walkTree(e.get(i));
 		}
@@ -192,6 +208,7 @@ public class WurstValidator {
 			if (e instanceof ConstructorDef) checkConstructor((ConstructorDef) e);
 			if (e instanceof ConstructorDef) checkConstructorSuperCall((ConstructorDef) e);
 			if (e instanceof ExprBinary) visit((ExprBinary) e);
+			if (e instanceof ExprClosure) checkClosure((ExprClosure) e);
 			if (e instanceof ExprIntVal) checkIntVal((ExprIntVal) e);
 			if (e instanceof ExprFuncRef) checkFuncRef((ExprFuncRef) e);
 			if (e instanceof ExprFunctionCall) checkBannedFunctions((ExprFunctionCall) e);
@@ -242,6 +259,17 @@ public class WurstValidator {
 			AstElement element = cde.getElement();
 			String attr = cde.getAttributeName().replaceFirst("^attr", "");
 			throw new CompileError(element.attrSource(), Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
+		}
+	}
+
+	private void checkClosure(ExprClosure e) {
+		if (e.attrExpectedTyp() instanceof WurstTypeUnknown
+				|| e.attrExpectedTyp() instanceof WurstTypeClosure) {
+			e.addError("Closures can only be used when a interface or class type is given.");
+		} else if (!(e.attrExpectedTyp() instanceof WurstTypeClass
+				|| e.attrExpectedTyp() instanceof WurstTypeInterface)) {
+			e.addError("Closures can only be used when a interface or class type is given, "
+					+ "but at this position a " + e.attrExpectedTyp() + " is expected.");
 		}
 	}
 
@@ -517,7 +545,8 @@ public class WurstValidator {
 		if (s.getParent() instanceof WStatements) {
 			WStatements stmts = (WStatements) s.getParent();
 			if (s.attrPreviousStatements().isEmpty()) {
-				if (s.attrListIndex() > 0 || !(stmts.getParent() instanceof TranslatedToImFunction)) {
+				if (s.attrListIndex() > 0 || !(stmts.getParent() instanceof TranslatedToImFunction
+												|| stmts.getParent() instanceof ExprStatementsBlock)) {
 					s.addError("unreachable code");
 				}
 			}
@@ -530,8 +559,13 @@ public class WurstValidator {
 
 		checkFunctionName(func);
 
-		if (func.attrIsAbstract() && !func.attrHasEmptyBody()) {
-			func.addError("Abstract function " + func.getName() + " must not have a body.");			
+		if (func.attrIsAbstract()) { 
+			if (!func.attrHasEmptyBody()) {
+				func.addError("Abstract function " + func.getName() + " must not have a body.");
+			}
+			if (func.attrIsPrivate()) {
+				func.addError("Abstract functions must not be private.");
+			}
 		}
 	}
 
@@ -644,7 +678,7 @@ public class WurstValidator {
 	private void visit(ExprBinary expr) {
 		FunctionDefinition def = expr.attrFuncDef();
 		if (def != null) {
-			FunctionSignature sig = new FunctionSignature(def.attrReceiverType(), def.attrParameterTypes(), def.getReturnTyp().attrTyp());
+			FunctionSignature sig = FunctionSignature.forFunctionDefinition(def);
 			CallSignature callSig = new CallSignature(expr.getLeft(), Collections.singletonList(expr.getRight()));
 			callSig.checkSignatureCompatibility(sig, ""+expr.getOp(), expr);
 		}
@@ -681,11 +715,31 @@ public class WurstValidator {
 	}
 
 	private void visit(StmtReturn s) {
-		FunctionImplementation func = s.attrNearestFuncDef();
-		if (func == null) {
-			s.addError("return statements can only be used inside functions");
-			return;
+		if (s.attrNearestExprStatementsBlock() != null) {
+			ExprStatementsBlock e = s.attrNearestExprStatementsBlock();
+			if (e.getReturnStmt() != s) {
+				s.addError("Return in a statements block can only be at the end.");
+				return;
+			}
+			if (s.getReturnedObj() instanceof Expr) {
+				Expr expr = (Expr) s.getReturnedObj();
+				if (expr.attrTyp().isVoid()) {
+					s.addError("Cannot return void from statements block.");
+				}
+			} else {
+				s.addError("Cannot have empty return statement in statements block.");
+			}
+		} else {
+			FunctionImplementation func = s.attrNearestFuncDef();
+			if (func == null) {
+				s.addError("return statements can only be used inside functions");
+				return;
+			}
+			checkReturnInFunc(s, func);
 		}
+	}
+
+	public void checkReturnInFunc(StmtReturn s, FunctionImplementation func) {
 		WurstType returnType = func.getReturnTyp().attrTyp().dynamic();
 		if (s.getReturnedObj() instanceof Expr) {
 			Expr returned = (Expr) s.getReturnedObj();
@@ -730,15 +784,19 @@ public class WurstValidator {
 		} else if (typ instanceof WurstTypeClass) {
 			WurstTypeClass c = (WurstTypeClass) typ;
 			checkDestroyClass(stmtDestroy, c); 
-		} else if (typ instanceof WurstTypeBoundTypeParam) {
-			WurstTypeBoundTypeParam bt = (WurstTypeBoundTypeParam) typ;
-			if (bt.getBaseType() instanceof WurstTypeClass) {
-				WurstTypeClass c = (WurstTypeClass) bt.getBaseType();
-				checkDestroyClass(stmtDestroy, c);
-			}
+		} else if (typ instanceof WurstTypeInterface) {
+			WurstTypeInterface i = (WurstTypeInterface) typ;
+			checkDestroyInterface(stmtDestroy, i);
 		} else {
 			stmtDestroy.addError("Cannot destroy objects of type " + typ);
 			return;
+		}
+	}
+
+	public void checkDestroyInterface(StmtDestroy stmtDestroy,
+			WurstTypeInterface i) {
+		if (i.isStaticRef()) {
+			stmtDestroy.addError("Cannot destroy interface " + i);
 		}
 	}
 
@@ -787,10 +845,7 @@ public class WurstValidator {
 	private void checkTypeBinding(HasTypeArgs e) {
 		for (Entry<TypeParamDef, WurstType> t : e.attrTypeParameterBindings().entrySet()) {
 			WurstType typ = t.getValue();
-			if (!(typ.isSubtypeOf(WurstTypeInt.instance(), e))
-					&& !(typ instanceof WurstTypeNamedScope)
-					&& !(typ instanceof WurstTypeBoundTypeParam)
-					&& !(typ instanceof WurstTypeTypeParam)) {
+			if (!typ.isTranslatedToInt()) {
 				String toIndexFuncName = ImplicitFuncs.toIndexFuncName(typ);
 				String fromIndexFuncName = ImplicitFuncs.fromIndexFuncName(typ);
 				Collection<NameLink> toIndexFuncs = ImplicitFuncs.findToIndexFuncs(typ, e);

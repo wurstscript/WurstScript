@@ -9,9 +9,12 @@ import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
+import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.TypeParamDefs;
+import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.NameLinkType;
 
 public abstract class WurstTypeNamedScope extends WurstType {
 
@@ -47,6 +50,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
 		return getName();
 	}
 
+	@Override
 	public boolean isStaticRef() {
 		return isStaticRef;
 	}
@@ -99,7 +103,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
 			if (i > 0) {
 				s += ", ";
 			}
-			s += typeParameters.get(i);
+			s += typeParameters.get(i).getName();
 		}
 		return s + ">";
 	}
@@ -164,6 +168,29 @@ public abstract class WurstTypeNamedScope extends WurstType {
 			}
 		}
 		return true;
+	}
+	
+	@Override
+	public boolean allowsDynamicDispatch() {
+		// dynamic dispatch is possible if this is not a static reference
+		return !isStaticRef();
+	}
+	
+	@Override
+	public void addMemberMethods(AstElement node, String name,
+			List<NameLink> result) {
+		NamedScope scope = getDef();
+		if (scope instanceof ModuleDef) {
+			// cannot access functions from outside of module 
+		} else {
+			for (NameLink n : scope.attrNameLinks().get(name)) {
+				if (n.getType() == NameLinkType.FUNCTION
+						&& n.getReceiverType() != null
+						&& n.getReceiverType().isSupertypeOf(this, node)) {
+					result.add(n.hidingPrivateAndProtected());
+				}
+			}
+		}
 	}
 	
 }

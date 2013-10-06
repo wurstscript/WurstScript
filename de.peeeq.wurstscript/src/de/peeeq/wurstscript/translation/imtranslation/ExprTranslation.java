@@ -28,6 +28,7 @@ import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprBoolVal;
 import de.peeeq.wurstscript.ast.ExprCast;
+import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprIncomplete;
 import de.peeeq.wurstscript.ast.ExprInstanceOf;
@@ -37,6 +38,7 @@ import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprNull;
 import de.peeeq.wurstscript.ast.ExprRealVal;
+import de.peeeq.wurstscript.ast.ExprStatementsBlock;
 import de.peeeq.wurstscript.ast.ExprStringVal;
 import de.peeeq.wurstscript.ast.ExprSuper;
 import de.peeeq.wurstscript.ast.ExprThis;
@@ -48,9 +50,11 @@ import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.NoExpr;
+import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.VarDef;
+import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
 import de.peeeq.wurstscript.jassIm.ImBoolVal;
@@ -62,7 +66,9 @@ import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImOperatorCall;
+import de.peeeq.wurstscript.jassIm.ImReturn;
 import de.peeeq.wurstscript.jassIm.ImStmt;
+import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -152,18 +158,18 @@ public class ExprTranslation {
 	
 	private static ImExpr wrapTranslation(Expr e, ImTranslator t,
 			ImFunction f, ImExpr translated) {
-		WurstType actualType = e.attrTyp();
+		WurstType actualType = e.attrTypRaw();
 		ImFunction toIndex = null;
 		ImFunction fromIndex = null;
 		if (actualType instanceof WurstTypeBoundTypeParam) {
 			WurstTypeBoundTypeParam wtb = (WurstTypeBoundTypeParam) actualType;
-			if (!typeSupportsGenerics(wtb.getBaseType())) {
+			if (!wtb.getBaseType().supportsGenerics()) {
 				// if we have a generic type, convert it to the original type using the fromIndex func
 				fromIndex = t.getFuncFor(ImplicitFuncs.findFromIndexFunc(wtb.getBaseType(), e));
 			}
 		} 
-		if (e.attrExpectedTyp() instanceof WurstTypeBoundTypeParam) {
-			if (!typeSupportsGenerics(actualType)) {
+		if (e.attrExpectedTypRaw() instanceof WurstTypeBoundTypeParam) {
+			if (!actualType.supportsGenerics()) {
 				// if we expect a generic type but have something different, use the toIndex func
 				toIndex =  t.getFuncFor(ImplicitFuncs.findToIndexFunc(actualType, e));
 			}
@@ -178,19 +184,6 @@ public class ExprTranslation {
 			return JassIm.ImFunctionCall(e, toIndex, JassIm.ImExprs(translated), false);
 		}
 		return translated;
-	}
-
-	private static boolean typeSupportsGenerics(WurstType t) {
-		if (t instanceof WurstTypeBoundTypeParam) {
-			WurstTypeBoundTypeParam b = (WurstTypeBoundTypeParam) t;
-			return typeSupportsGenerics(b.getBaseType());
-		}
-		return t instanceof WurstTypeNamedScope 
-				|| t instanceof WurstTypeNull
-				|| t instanceof WurstTypeInt
-				|| t instanceof WurstTypeTypeParam
-				|| t instanceof WurstTypeFreeTypeParam
-				|| t instanceof WurstTypeIntLiteral;
 	}
 
 	public static ImExpr translateIntern(ExprBinary e, ImTranslator t, ImFunction f) {
@@ -245,30 +238,10 @@ public class ExprTranslation {
 
 	public static ImExpr translateIntern(ExprNull e, ImTranslator t, ImFunction f) {
 		WurstType expectedType = e.attrExpectedTyp();
-		if (expectedType instanceof WurstTypeNamedScope
-				|| expectedType instanceof WurstTypeTypeParam
-				|| expectedType instanceof WurstTypeFreeTypeParam
-				|| expectedType instanceof WurstTypeBoundTypeParam) {
+		if (expectedType.isTranslatedToInt()) {
 			return ImIntVal(0);
 		}
 		return ImNull();
-//		ImType imType = e.attrTyp().imTranslateType();
-//		if (imType instanceof ImSimpleType) {
-//			ImSimpleType st = (ImSimpleType) imType;
-//			if (st.getTypename().equals(TypesHelper.imInt().getTypename())) {
-//				return ImIntVal(0);
-//			} else {
-//				return ImNull();
-//			}
-//		} else if (imType instanceof ImTupleType) {
-//			ImTupleType tt = (ImTupleType) imType;
-//			ImExprs exprs = JassIm.ImExprs();
-//			for (String $ : tt.getTypes()) {
-//				exprs.add(ImIntVal(0));
-//			}
-//			return ImTupleExpr(exprs);
-//		}
-//		throw new Error("unhandled case");
 	}
 
 	public static ImExpr translateIntern(ExprRealVal e, ImTranslator t, ImFunction f) {
@@ -432,12 +405,7 @@ public class ExprTranslation {
 	private static boolean isCalledOnDynamicRef(FunctionCall e) {
 		if (e instanceof ExprMemberMethod) {
 			ExprMemberMethod mm = (ExprMemberMethod) e;
-			if (mm.getLeft().attrTyp() instanceof WurstTypeNamedScope) {
-				WurstTypeNamedScope tns = (WurstTypeNamedScope) mm.getLeft().attrTyp();
-				if (!tns.isStaticRef()) {
-					return true;
-				}
-			}
+			return mm.getLeft().attrTyp().allowsDynamicDispatch();
 		} else if (e.attrIsDynamicContext()) {
 			return true;
 		}
@@ -491,6 +459,34 @@ public class ExprTranslation {
 			}
 		} else {
 			throw new Error("not implemented for " + leftType);
+		}
+	}
+
+	public static ImExpr translate(ExprClosure e, ImTranslator tr, ImFunction f) {
+		return new ClosureTranslator(e, tr, f).translate();
+	}
+
+	public static ImExpr translate(ExprStatementsBlock e,
+			ImTranslator translator, ImFunction f) {
+		
+		ImStmts statements = JassIm.ImStmts(); 
+		for (WStatement s : e.getBody()) {
+			if (s instanceof StmtReturn) {
+				continue;
+			}
+			ImStmt translated = s.imTranslateStmt(translator, f);
+			statements.add(translated);
+		}
+		
+		ImExprOpt expr = null;
+		StmtReturn r = e.getReturnStmt();
+		if (r != null && r.getReturnedObj() instanceof Expr) {
+			expr = ((Expr) r.getReturnedObj()).imTranslateExpr(translator, f);
+		}
+		if (expr instanceof ImExpr) {
+			return JassIm.ImStatementExpr(statements, (ImExpr) expr);
+		} else {
+			return JassIm.ImStatementExpr(statements, JassIm.ImNull());
 		}
 	}
 

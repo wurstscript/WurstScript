@@ -12,6 +12,7 @@ import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 public class ImplicitFuncs {
 
 	public static FuncDef findToIndexFunc(WurstType typ, AstElement e) {
+		typ = typ.normalize();
 		for (NameLink nl : findToIndexFuncs(typ, e)) {
 			if (nl.getNameDef() instanceof FuncDef) {
 				return (FuncDef) nl.getNameDef();
@@ -21,6 +22,7 @@ public class ImplicitFuncs {
 	}
 	
 	public static FuncDef findFromIndexFunc(WurstType typ, AstElement e) {
+		typ = typ.normalize();
 		for (NameLink nl : findFromIndexFuncs(typ, e)) {
 			if (nl.getNameDef() instanceof FuncDef) {
 				return (FuncDef) nl.getNameDef();
@@ -40,21 +42,12 @@ public class ImplicitFuncs {
 
 	public static Collection<NameLink> findToIndexFuncs(WurstType typ,
 			AstElement e) {
-		typ = resolveBound(typ);
 		return e.lookupFuncs(toIndexFuncName(typ), false);
 	}
 
 
 	public static Collection<NameLink> findFromIndexFuncs(WurstType typ,
 			AstElement e) {
-		typ = resolveBound(typ);
 		return e.lookupFuncs(fromIndexFuncName(typ), false);
-	}
-	
-	static WurstType resolveBound(WurstType typ) {
-		while (typ instanceof WurstTypeBoundTypeParam) {
-			typ = ((WurstTypeBoundTypeParam) typ).getBaseType();
-		}
-		return typ;
 	}
 }

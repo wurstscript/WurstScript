@@ -61,11 +61,6 @@ public class WurstTypeModule extends WurstTypeNamedScope {
 	}
 
 	@Override
-	public String[] jassTranslateType() {
-		return WurstTypeInt.instance().jassTranslateType();
-	}
-
-	@Override
 	public ImType imTranslateType() {
 		return TypesHelper.imInt();
 	}
@@ -73,5 +68,10 @@ public class WurstTypeModule extends WurstTypeNamedScope {
 	@Override
 	public ImExprOpt getDefaultValue() {
 		return JassIm.ImNull();
+	}
+	
+	@Override
+	public boolean isCastableToInt() {
+		return true;
 	}
 }

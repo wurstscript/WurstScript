@@ -40,8 +40,8 @@ public function int.toCharsetString() returns string
 	return charset.substring(this, this+1)
 
 /** returns a substring specified by end and start position. */
-public function string.substring(int start, int end) returns string
-	return SubString(this, start, end)
+public function string.substring(int start, int stop) returns string
+	return SubString(this, start, stop)
 
 /** Length of the string */
 public function string.length() returns int

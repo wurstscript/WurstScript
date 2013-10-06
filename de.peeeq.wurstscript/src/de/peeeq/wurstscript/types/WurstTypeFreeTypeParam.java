@@ -40,11 +40,6 @@ public class WurstTypeFreeTypeParam extends WurstType {
 		return def;
 	}
 
-	@Override
-	public String[] jassTranslateType() {
-		return new String[] { "integer", "integer" };
-	}
-	
 	public Map<TypeParamDef, WurstType> getTypeArgBinding() {
 		return Collections.emptyMap();
 	}
@@ -67,4 +62,6 @@ public class WurstTypeFreeTypeParam extends WurstType {
 		return JassIm.ImNull();
 	}
 
+	
+	
 }

@@ -24,11 +24,6 @@ public abstract class WurstTypePrimitive extends WurstType {
 	}
 	
 	@Override
-	public String[] jassTranslateType() {
-		return jassType;
-	}
-	
-	@Override
 	public ImSimpleType imTranslateType() {
 		return imType;
 	}

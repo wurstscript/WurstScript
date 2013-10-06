@@ -2,7 +2,7 @@ package de.peeeq.parseq.grammars.ast;
 
 import org.antlr.v4.runtime.Token;
 
-public class Rule {
+public class Rule extends AstElement {
 	final public String name;
 	final public String returnType;
 	final public Production production;
@@ -12,6 +12,7 @@ public class Rule {
 		this.name = name;
 		this.returnType = returnType;
 		this.production = production;
+		production.setParent(this);
 	}
 
 

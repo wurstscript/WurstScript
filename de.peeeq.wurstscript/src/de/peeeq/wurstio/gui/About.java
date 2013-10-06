@@ -25,7 +25,7 @@ import java.util.logging.Logger;
 public class About extends javax.swing.JDialog {
     final URI uri;
     final static String homepage = "http://peq.github.com/WurstScript/";
-    public final static String version = "1.0.0.22";
+    public final static String version = "1.1.0.2";
     final static String authors = "peq & Frotty";
 
     /** Creates new form About */
@@ -81,7 +81,7 @@ public class About extends javax.swing.JDialog {
         
 
         logo.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        logo.setIcon(new javax.swing.ImageIcon(getClass().getResource("wurst.jpg"))); // NOI18N
+        logo.setIcon(new javax.swing.ImageIcon(getClass().getClassLoader().getResource("wurst.jpg"))); // NOI18N
         logo.setName("logo"); // NOI18N
         logo.setLocation(0, 0);
 

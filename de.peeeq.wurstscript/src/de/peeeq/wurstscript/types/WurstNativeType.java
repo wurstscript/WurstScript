@@ -40,11 +40,6 @@ public class WurstNativeType extends WurstType {
 	}
 
 	@Override
-	public String[] jassTranslateType() {
-		return new String[] {name};
-	}
-
-	@Override
 	public ImType imTranslateType() {
 		return JassIm.ImSimpleType(name);
 	}

@@ -20,6 +20,7 @@ import tests.wurstscript.utils.UtilsTest;
 	ExpressionTests.class,
 	ClassesTests.class,
 	ClassesExtTests.class,
+	EnumTests.class,
 	ModuleTests.class,
 	PackageTests.class,
 	OptimizerTests.class,
@@ -31,7 +32,8 @@ import tests.wurstscript.utils.UtilsTest;
 	ScopingTests.class,
 	OpOverloading.class,
 	FlowAnalysisTests.class,
-	NewFeatureTests.class
+	NewFeatureTests.class,
+	ClosureTests.class
 })
 public class QuickTests {
 

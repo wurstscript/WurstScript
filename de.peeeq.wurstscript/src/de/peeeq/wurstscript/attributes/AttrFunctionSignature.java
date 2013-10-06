@@ -23,21 +23,15 @@ public class AttrFunctionSignature {
 
 	public static FunctionSignature calculate(FunctionCall fc) {
 		FunctionDefinition f = fc.attrFuncDef();
-		if (f == null) {
-			return FunctionSignature.empty;
-		}
-		WurstType returnType = f.getReturnTyp().attrTyp().dynamic();
-		if (f instanceof TupleDef) {
-			TupleDef tupleDef = (TupleDef) f;
-			returnType = tupleDef.attrTyp().dynamic();
+		
+		
+		
+		FunctionSignature sig = FunctionSignature.forFunctionDefinition(f);
+		
+		if (sig.getReturnType() instanceof WurstTypeJassInt && !Utils.isJassCode(fc)) {
+			sig = sig.withReturnType(WurstTypeInt.instance());
 		}
 		
-		if (returnType instanceof WurstTypeJassInt && !Utils.isJassCode(fc)) {
-			returnType = WurstTypeInt.instance();
-		}
-		
-		List<WurstType> paramTypes = f.attrParameterTypes(); 
-		FunctionSignature sig = new FunctionSignature(f.attrReceiverType(), paramTypes, returnType);
 		if (fc.attrImplicitParameter() instanceof Expr) {
 			Expr expr = (Expr) fc.attrImplicitParameter();
 			sig = sig.setTypeArgs(expr.attrTyp().getTypeArgBinding());

@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.NoTypeExpr;
+import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprArray;
@@ -93,6 +94,10 @@ public class AttrTypeExprType {
 			return new WurstTypeUnknown(typename);
 		}
 		return t.attrTyp();
+	}
+
+	public static WurstType normalizedType(OptTypeExpr e) {
+		return e.attrTypRaw().normalize();
 	}
 
 }

@@ -28,11 +28,6 @@ public class WurstTypeStaticTypeRef extends WurstType {
 	}
 
 	@Override
-	public String[] jassTranslateType() {
-		return base.jassTranslateType();
-	}
-
-	@Override
 	public ImType imTranslateType() {
 		return base.imTranslateType();
 	}

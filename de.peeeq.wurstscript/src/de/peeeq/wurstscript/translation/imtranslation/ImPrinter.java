@@ -75,6 +75,9 @@ public class ImPrinter {
 			}
 			sb.append("\n\n");
 			for (ImMethod m : c.getMethods()) {
+				if (m.getIsAbstract()) {
+					sb.append("	abstract");
+				}
 				sb.append("	method " + m.getName() + smallHash(m) + " implemented by " + m.getImplementation().getName());
 				sb.append("\n");
 				for (ImMethod sm : m.getSubMethods()) {

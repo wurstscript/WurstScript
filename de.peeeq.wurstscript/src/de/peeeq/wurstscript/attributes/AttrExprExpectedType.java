@@ -3,15 +3,15 @@ package de.peeeq.wurstscript.attributes;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.AstElementWithArgs;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
-import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExprUnary;
 import de.peeeq.wurstscript.ast.FunctionImplementation;
 import de.peeeq.wurstscript.ast.StmtCall;
 import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StmtSet;
+import de.peeeq.wurstscript.ast.SwitchCase;
+import de.peeeq.wurstscript.ast.SwitchStmt;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.WurstType;
@@ -40,14 +40,12 @@ public class AttrExprExpectedType {
 				if (args.getParent() instanceof StmtCall) {
 					StmtCall stmtCall = (StmtCall) args.getParent();
 					FunctionSignature sig = stmtCall.attrFunctionSignature();
-					for (int i = 0; i < args.size(); i++) {
+					int maxI = Math.min(args.size(), sig.getParamTypes().size()); 
+					for (int i = 0; i < maxI; i++) {
 						if (args.get(i) == expr) {
 							return sig.getParamTypes().get(i);
 						}
 					}
-					throw new CompileError(expr.getSource(), "a) could not find expr " + expr + " in parent " + parent);
-				} else {
-					throw new CompileError(expr.getSource(), "could not calculate expected type, arguments in " + args.getParent() + " " + args.attrSource().print());
 				}
 			} else if (parent instanceof StmtSet) {
 				StmtSet stmtSet = (StmtSet) parent;
@@ -57,7 +55,6 @@ public class AttrExprExpectedType {
 				} else if (stmtSet.getUpdatedExpr() == expr) {
 					return WurstTypeUnknown.instance();
 				}
-				throw new CompileError(expr.getSource(), "b) could not find expr " + expr + " in parent " + parent);
 			} else if (parent instanceof VarDef) {
 				VarDef varDef = (VarDef) parent;
 				WurstType leftType = varDef.attrTyp();
@@ -85,13 +82,19 @@ public class AttrExprExpectedType {
 					return WurstTypeInt.instance();
 				} else if (exprUnary.attrExpectedTyp().isSubtypeOf(WurstTypeReal.instance(), expr)) {
 					return WurstTypeReal.instance();
-				} else if (exprUnary.attrExpectedTyp() instanceof WurstTypeBool) {
+				} else if (exprUnary.attrExpectedTyp().isSubtypeOf(WurstTypeBool.instance(), expr)) {
 					return WurstTypeBool.instance();
 				}
 			} else if (parent instanceof StmtReturn) {
 				StmtReturn stmtReturn = (StmtReturn) parent;
 				FunctionImplementation nearestFuncDef = stmtReturn.attrNearestFuncDef();
-				return nearestFuncDef.getReturnTyp().attrTyp();		
+				if (nearestFuncDef != null) {
+					return nearestFuncDef.getReturnTyp().attrTyp();
+				}
+			} else if (parent instanceof SwitchCase) {
+				SwitchCase sc = (SwitchCase) parent;
+				SwitchStmt s = (SwitchStmt) sc.getParent().getParent();
+				return s.getExpr().attrTyp();
 //			} else if (parent instanceof ExprMemberMethod) {
 //				ExprMemberMethod m = (ExprMemberMethod) parent;
 //				if (m.getLeft() == expr) {
@@ -102,6 +105,10 @@ public class AttrExprExpectedType {
 			WLogger.info(t);
 		}
 		return WurstTypeUnknown.instance();
+	}
+
+	public static WurstType normalizedType(Expr e) {
+		return e.attrExpectedTypRaw().normalize();
 	}
 
 }

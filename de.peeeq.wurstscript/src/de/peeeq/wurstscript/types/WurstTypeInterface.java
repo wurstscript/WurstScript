@@ -35,7 +35,7 @@ public class WurstTypeInterface extends WurstTypeClassOrInterface {
 	}
 
 	@Override
-	public StructureDef getDef() {
+	public InterfaceDef getDef() {
 		return interfaceDef;
 	}
 
@@ -87,13 +87,6 @@ public class WurstTypeInterface extends WurstTypeClassOrInterface {
 	
 
 	@Override
-	public String[] jassTranslateType() {
-		// one int for the id and one int for the type
-		return new String[]{ "integer", "integer" };
-	}
-	
-	
-	@Override
 	public ImType imTranslateType() {
 		return TypesHelper.imInt();
 	}
@@ -102,4 +95,6 @@ public class WurstTypeInterface extends WurstTypeClassOrInterface {
 	public ImExprOpt getDefaultValue() {
 		return JassIm.ImNull();
 	}
+	
+
 }
