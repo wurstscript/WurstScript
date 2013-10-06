@@ -772,6 +772,11 @@ public class Utils {
 		return path;
 	}
 
+	public static String printException(Throwable e) {
+		StackTraceElement[] trace = e.getStackTrace();
+		return e + "\n" + Utils.printStackTrace(trace);
+	}
+
 
 	
 

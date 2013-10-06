@@ -149,17 +149,29 @@ public class WurstValidator {
 	private int functionCount;
 	private int visitedFunctions;
 	private Multimap<WScope	, WScope> calledFunctions = HashMultimap.create();
+	private AstElement lastElement = null;
 
 	public WurstValidator(WurstModel root) {
 		this.prog = root;
 	}
 
 	public void validate() {
-		functionCount = countFunctions();
-		visitedFunctions = 0;
-
-		walkTree(prog);		
-		postChecks();
+		try {
+			functionCount = countFunctions();
+			visitedFunctions = 0;
+	
+			walkTree(prog);		
+			postChecks();
+		} catch (RuntimeException e) {
+			if (lastElement != null) {
+				lastElement.addError("Encountered compiler bug near element " + Utils.printElement(lastElement) + ":\n" +
+						Utils.printException(e));
+				WLogger.severe(e);
+			} else {
+				// rethrow
+				throw e;
+			}
+		}
 	}
 
 	/**
@@ -174,11 +186,12 @@ public class WurstValidator {
 				}
 			}
 		}
-
 	}
 
 	private void walkTree(AstElement e) {
+		lastElement = e;
 		check(e);
+		lastElement = null;
 		for (int i=0; i<e.size(); i++) {
 			walkTree(e.get(i));
 		}
