@@ -32,6 +32,7 @@
 	</target>
 
 	<target name="create_zips" depends="make_for_wurstpack">
+		<mkdir dir="../downloads/"/>
 		<zip destfile="../downloads/wurstpack_complete.zip" basedir="../Wurstpack"></zip>
 		<zip destfile="../downloads/wurstpack_lib.zip" basedir="../Wurstpack/wurstscript/lib"></zip>
 		<zip destfile="../downloads/wurstpack_compiler.zip" basedir="../Wurstpack/wurstscript/"></zip>
