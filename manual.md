@@ -1,6 +1,6 @@
 ---
 layout: default
-title: WurstScript Manual
+title: Manual
 ---
 
 
