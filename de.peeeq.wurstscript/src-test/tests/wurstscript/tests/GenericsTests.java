@@ -324,4 +324,72 @@ public class GenericsTests extends WurstScriptTest {
 				);
 	}
 	
+	@Test
+	public void generics_substitute1() { 
+		testAssertOkLines(false,  
+				"package Test",
+				"native testSuccess()",
+				"class A<T>",
+				"	function bla(T t)",
+				"class B extends A<C>",
+				"class C",
+				"init",
+				"	let b = new B",
+				"	b.bla(new C)"
+				);
+	}
+	
+	@Test
+	public void generics_substitute2() { 
+		testAssertOkLines(false,  
+				"package Test",
+				"native testSuccess()",
+				"interface I<S,T>",
+				"	function bla(T t, S s)",
+				"		skip",
+				"class A<U> implements I<U,D>",
+				"class B extends A<C>",
+				"class C",
+				"class D",
+				"init",
+				"	let b = new B",
+				"	b.bla(new D, new C)"
+				);
+	}
+	
+	@Test
+	public void generics_substitute3() { 
+		testAssertOkLines(false,  
+				"package Test",
+				"native testSuccess()",
+				"interface I<S,T>",
+				"	function bla(T t, S s)",
+				"		skip",
+				"interface J<T,S> extends I<S,T>",
+				"	function foo()",
+				"		skip",
+				"class A<U> implements J<D,U>",
+				"class B extends A<C>",
+				"class C",
+				"class D",
+				"init",
+				"	let b = new B",
+				"	b.bla(new D, new C)"
+				);
+	}
+	
+	@Test
+	public void generics_substitute() { 
+		testAssertOkLines(false,  
+				"package Test",
+				"class A<T>",
+				"	function bla(T a)",
+				"class B extends A<MyType>",
+				"	function do()",
+				"		bla(new MyType)",
+				"class MyType"
+
+				);
+	}
+	
 }
