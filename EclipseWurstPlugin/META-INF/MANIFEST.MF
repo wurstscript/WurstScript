@@ -10,7 +10,6 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.jface.text,
  de.peeeq.wurstscript
 Bundle-ActivationPolicy: lazy
-Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Import-Package: java_cup.runtime,
  org.eclipse.core.filebuffers,
  org.eclipse.core.filesystem,
