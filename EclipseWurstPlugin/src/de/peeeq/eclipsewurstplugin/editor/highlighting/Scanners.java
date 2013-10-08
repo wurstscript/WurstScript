@@ -25,6 +25,7 @@ import org.eclipse.swt.widgets.Display;
 import de.peeeq.eclipsewurstplugin.WurstPlugin;
 import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.eclipsewurstplugin.util.UtilityFunctions;
+import de.peeeq.wurstscript.WLogger;
 
 
 public class Scanners {
@@ -69,7 +70,7 @@ public class Scanners {
 			Color color = new Color(Display.getCurrent(),PreferenceConverter.getColor(store, SYNTAXCOLOR_COLOR + SYNTAXCOLOR_STRING));
 			
 //			color = new Color(Display.getCurrent(), 255, 0, 0);
-			System.out.println("color = " + color);
+			WLogger.info("color = " + color);
 			IToken token = new Token(new TextAttribute(color, null, UtilityFunctions.computeAttributes(store, SYNTAXCOLOR_STRING)));
 			IRule singleLineRule = new SingleLineRule("\"", "\"", token, '\\');
 			setRules(new IRule[] {singleLineRule});

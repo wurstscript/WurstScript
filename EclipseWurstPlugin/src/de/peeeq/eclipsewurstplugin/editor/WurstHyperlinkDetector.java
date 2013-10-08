@@ -5,6 +5,7 @@ import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.jface.text.hyperlink.IHyperlink;
 import org.eclipse.jface.text.hyperlink.IHyperlinkDetector;
 
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithSource;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -43,7 +44,7 @@ public class WurstHyperlinkDetector implements IHyperlinkDetector {
 		CompilationUnit cu = editor.getCompilationUnit();
 		if (cu != null) {
 			AstElement e = Utils.getAstElementAtPos(cu, offset);
-			System.out.println("hover: " + e.getClass().getSimpleName());
+			WLogger.info("hover: " + e.getClass().getSimpleName());
 			if (e instanceof FuncRef) {
 				FuncRef funcRef = (FuncRef) e;
 				FunctionDefinition decl = funcRef.attrFuncDef();

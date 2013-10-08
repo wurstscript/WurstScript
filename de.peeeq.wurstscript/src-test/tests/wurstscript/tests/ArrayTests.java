@@ -3,6 +3,7 @@ package tests.wurstscript.tests;
 import org.junit.Test;
 
 import de.peeeq.wurstio.UtilsIO;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class ArrayTests extends WurstScriptTest {
@@ -63,7 +64,6 @@ public class ArrayTests extends WurstScriptTest {
 				"	native testSuccess()\n" +
 				Utils.join(input, "\n") + "\n" +
 				"endpackage\n";
-		System.out.println(prog);
 		testAssertOk(UtilsIO.getMethodName(1), executeProg, prog);
 	}
 

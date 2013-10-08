@@ -13,6 +13,7 @@ import de.peeeq.wurstio.Pjass.Result;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.jassinterpreter.JassInterpreter;
 import de.peeeq.wurstscript.RunArgs;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
@@ -40,9 +41,9 @@ public class SimpleTestRun {
 		boolean success = false;
 		WurstGui gui = null;
 		try{
-			System.out.println("file b = " + file);
+			WLogger.info("file b = " + file);
 			String filename = file.getAbsolutePath();
-			System.out.println("parsing script ...");
+			WLogger.info("parsing script ...");
 //			gui = new WurstGuiImpl();
 			gui = new WurstGuiCliImpl();
 			WurstConfig config = new WurstConfig();
@@ -72,7 +73,7 @@ public class SimpleTestRun {
 
 			// run pjass:
 			Result pJassResult = Pjass.runPjass(outputFile);
-			System.out.println(pJassResult.getMessage());
+			WLogger.info(pJassResult.getMessage());
 			if (!pJassResult.isOk()) {
 				throw new TestFailException(pJassResult.getMessage());
 			}

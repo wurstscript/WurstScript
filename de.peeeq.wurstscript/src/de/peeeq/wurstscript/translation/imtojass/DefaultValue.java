@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.translation.imtojass;
 
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstBool;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
@@ -25,7 +26,7 @@ public class DefaultValue {
 		if (typename.equals("integer")) return new ILconstInt(0);
 		if (typename.equals("real" )) return new ILconstReal(0);
 		if (typename.equals("boolean")) return ILconstBool.FALSE;
-		System.out.println("could not get default value for " + typename);
+		WLogger.info("could not get default value for " + typename);
 		return ILconstNull.instance();
 	}
 

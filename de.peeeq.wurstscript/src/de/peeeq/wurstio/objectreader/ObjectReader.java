@@ -2,6 +2,8 @@ package de.peeeq.wurstio.objectreader;
 
 import java.io.File;
 
+import de.peeeq.wurstscript.WLogger;
+
 public class ObjectReader {
 	
 	
@@ -11,9 +13,9 @@ public class ObjectReader {
 		
 		ObjectTable modT = objFile.getModifiedTable();
 		for (ObjectDefinition od : modT.getObjectDefinitions()) {
-			System.out.println(od.getNewObjectId() + " (derived from " + od.getOrigObjectId() + ")");
+			WLogger.info(od.getNewObjectId() + " (derived from " + od.getOrigObjectId() + ")");
 			for (ObjectModification<?> m : od.getModifications()) {
-				System.out.println("    " + m.toString());
+				WLogger.info("    " + m.toString());
 			}
 		}
 		

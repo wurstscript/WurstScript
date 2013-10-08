@@ -113,8 +113,8 @@ public class NameResolution {
 		
 		WScope scope = node.attrNearestScope();
 		while (scope != null) {
-//			System.out.println("searching " + receiverType + "." + name + " in scope " + Utils.printElement(scope));
-//			System.out.println("		" + scope.attrNameLinks());
+//			WLogger.info("searching " + receiverType + "." + name + " in scope " + Utils.printElement(scope));
+//			WLogger.info("		" + scope.attrNameLinks());
 			
 			for (NameLink n : scope.attrNameLinks().get(name)) {
 				if (n.getType() == NameLinkType.VAR
@@ -153,11 +153,11 @@ public class NameResolution {
 	}
 	
 	public static NameDef lookupMemberVar(AstElement node, WurstType receiverType, String name, boolean showErrors) {
-//		System.out.println("lookupMemberVar " + receiverType+"."+name);
+//		WLogger.info("lookupMemberVar " + receiverType+"."+name);
 		WScope scope = node.attrNearestScope();
 		while (scope != null) {
 			for (NameLink n : scope.attrNameLinks().get(name)) {
-//				System.out.println("	- " + n);
+//				WLogger.info("	- " + n);
 				if (n.getType() == NameLinkType.VAR
 						&& n.getReceiverType() != null
 						&& n.getReceiverType().isSupertypeOf(receiverType, node)) {

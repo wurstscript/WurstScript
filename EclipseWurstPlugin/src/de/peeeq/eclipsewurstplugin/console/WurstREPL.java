@@ -178,8 +178,8 @@ public class WurstREPL {
 			String varName = addEnteredCommand(line, code);
 			
 			
-			System.out.println("############ code:");
-			System.out.println(code.toString());
+			WLogger.info("############ code:");
+			WLogger.info(code.toString());
 			
 			
 			CompilationUnit cu = parse(code);

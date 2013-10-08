@@ -12,8 +12,10 @@ import org.eclipse.jface.text.rules.IToken;
 import org.eclipse.jface.text.rules.Token;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.widgets.Display;
+
 import static de.peeeq.eclipsewurstplugin.WurstConstants.*;
 import de.peeeq.eclipsewurstplugin.util.UtilityFunctions;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.parser.TokenType;
 import de.peeeq.wurstscript.parser.WurstScriptScanner;
 import java_cup.runtime.Symbol;
@@ -69,7 +71,7 @@ public class CodeScanner implements WurstScanner {
 				if (t.right >= endOFfset) {
 					return Token.EOF;
 				}
-				System.out.println("t.sym = " + t.sym + ", " + t.value);
+				WLogger.info("t.sym = " + t.sym + ", " + t.value);
 				switch (t.sym) {
 					case 0: return Token.EOF;
 					case TokenType.IDENTIFIER:
@@ -88,13 +90,13 @@ public class CodeScanner implements WurstScanner {
 
 	@Override
 	public int getTokenOffset() {
-		System.out.println("offset = " + lastOffset);
+		WLogger.info("offset = " + lastOffset);
 		return lastOffset;
 	}
 
 	@Override
 	public int getTokenLength() {
-		System.out.println("lastLength = " + lastLength);
+		WLogger.info("lastLength = " + lastLength);
 		return lastLength;
 	}
 

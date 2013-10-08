@@ -9,6 +9,7 @@ import org.junit.Test;
 
 import de.peeeq.wurstio.objectreader.ObjectFile;
 import de.peeeq.wurstio.objectreader.ObjectFileType;
+import de.peeeq.wurstscript.WLogger;
 
 public class TestW3u {
 
@@ -39,7 +40,7 @@ public class TestW3u {
 		
 		// compare objFiles:
 		assertEquals(objFile2.toString(), objFile.toString());
-		System.out.println(objFile.toString());
+		WLogger.info(objFile.toString());
 	}
 
 

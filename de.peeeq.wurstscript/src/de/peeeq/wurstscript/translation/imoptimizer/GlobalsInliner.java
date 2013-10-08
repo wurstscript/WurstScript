@@ -43,21 +43,21 @@ public class GlobalsInliner {
 		
 		Set<ImVar> obsoleteVars = Sets.newHashSet();
 		for ( final ImVar v : prog.getGlobals() ) {
-//			System.out.println("### " + v.getName() + " has " + v.attrWrites().size() + " writes");
+//			WLogger.info("### " + v.getName() + " has " + v.attrWrites().size() + " writes");
 			if (v.attrWrites().size() == 1) {
-//				System.out.println(">>>>>only 1 write");
+//				WLogger.info(">>>>>only 1 write");
 				boolean valid = false;
 				ImExpr right = null;
 				ImVarWrite obs = null;
 				for ( ImVarWrite v2 : v.attrWrites()) {
 					ImFunction func = v2.getNearestFunc();
-//					System.out.println(">>>>>checking write..");
+//					WLogger.info(">>>>>checking write..");
 					if (func.getName().startsWith("init_") || func.getName().equals("main") ) {
-//						System.out.println(">>>>>in init or main");
+//						WLogger.info(">>>>>in init or main");
 						valid = true;
 						right = v2.getRight();
 						obs = v2;
-//						System.out.println(">>>>>set");
+//						WLogger.info(">>>>>set");
 						break;
 					}
 				}
@@ -100,14 +100,14 @@ public class GlobalsInliner {
 		for (ImVar i : obsoleteVars) { 
 			// remove the write
 			ImVarWrite write = Utils.getFirstAndOnly(i.attrWrites());
-//			System.out.println("obsolete var: " + i + " written in " + write);
-//			System.out.println("parent" + write.getParent());
+//			WLogger.info("obsolete var: " + i + " written in " + write);
+//			WLogger.info("parent" + write.getParent());
 			if (write.getParent() != null) {
 				write.replaceWith(write.getRight().copy());
 			}
 //			if (write.getParent() instanceof ImStmts) {
 //				ImStmts stmts = (ImStmts) write.getParent();
-//				System.out.println("removing write " + write);
+//				WLogger.info("removing write " + write);
 //				stmts.remove(write);
 //			} else {
 //				if (write.getParent() != null) {

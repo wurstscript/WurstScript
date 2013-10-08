@@ -2,46 +2,51 @@ package de.peeeq.wurstscript;
 
 import java.util.logging.Handler;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
-public class WLogger {
 
-//	static Logger logger;
-	private static Logger logger;
+public abstract class WLogger {
 
-	static {
-			logger = Logger.getLogger("wurstlog");
-			logger.setLevel(Level.OFF); // adjust level for debugging
+	private static WLoggerI instance = new WLoggerDefault();
+	private static Level level;
+
+
+	public static void info(Throwable e) {
+		instance.info(e);		
 	}
 
 	public static void info(String msg) {
-		logger.info(msg);
-	}
-
-	public static void warning(String msg) {
-		logger.log(Level.WARNING, msg);
-	}
-	
-	public static void severe(String msg) {
-//		dialogBox(msg);
-		logger.log(Level.SEVERE, msg);
-	}
-
-	public static void severe(Throwable t) {
-		t.printStackTrace();
-		logger.log(Level.SEVERE, "Error", t);
-	}
-
-	public static void info(Throwable e) {
-		logger.log(Level.INFO, "Error", e);
+		instance.info(msg);
 		
 	}
 
 	public static void setHandler(Handler handler) {
-		logger.addHandler(handler);
+		instance.setHandler(handler);
+	}
+
+	public static void setLevel(Level level) {
+		WLogger.level = level;
+		instance.setLevel(level);
+	}
+
+	public static void severe(Throwable e) {
+		instance.severe(e);
+		
+	}
+
+	public static void severe(String msg) {
+		instance.severe(msg);
+		
+	}
+
+	public static void warning(String msg) {
+		instance.warning(msg);
+		
 	}
 	
-	public static void setLevel(Level level) {
-		logger.setLevel(level);
+	public static void setInstance(WLoggerI instance) {
+		WLogger.instance = instance;
+		instance.setLevel(level);
 	}
+	
+	
 }

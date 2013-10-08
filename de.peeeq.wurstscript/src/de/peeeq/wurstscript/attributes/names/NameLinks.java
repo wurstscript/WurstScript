@@ -7,6 +7,7 @@ import java.util.Map.Entry;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.AstElementWithBody;
 import de.peeeq.wurstscript.ast.AstElementWithParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
@@ -108,7 +109,7 @@ public class NameLinks {
 			}
 			WPackage importedPackage = imp.attrImportedPackage();
 			if (importedPackage == null) {
-				System.out.println("could not resolve import: " + Utils.printElementWithSource(imp)); 
+				WLogger.info("could not resolve import: " + Utils.printElementWithSource(imp)); 
 				continue;
 			}
 			if (p.getName().equals("WurstREPL")) {

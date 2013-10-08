@@ -27,6 +27,7 @@ import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.eclipsewurstplugin.editor.CompilationUnitChangeListener;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.RunArgs;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -83,10 +84,10 @@ public class ModelManagerImpl implements ModelManager {
 	
 	@Override
 	public synchronized void typeCheckModel(WurstGui gui, boolean addErrorMarkers) {
-		System.out.println("#typechecking");
+		WLogger.info("#typechecking");
 		long time = System.currentTimeMillis();
 		if (needsFullBuild) {
-			System.out.println("needs full build...");
+			WLogger.info("needs full build...");
 			try {
 				nature.getProject().build(IncrementalProjectBuilder.FULL_BUILD, null);
 			} catch (CoreException e) {
@@ -99,7 +100,7 @@ public class ModelManagerImpl implements ModelManager {
 			if (addErrorMarkers) {
 				nature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_GRAMMAR);
 			}
-			System.out.println("finished typechecking* in " + (System.currentTimeMillis() - time) + "ms");
+			WLogger.info("finished typechecking* in " + (System.currentTimeMillis() - time) + "ms");
 			return;
 		}
 		if (model == null) {
@@ -119,7 +120,7 @@ public class ModelManagerImpl implements ModelManager {
 		}
 		if (addErrorMarkers) {
 			nature.clearMarkers(WurstBuilder.MARKER_TYPE_TYPES);
-			System.out.println("finished typechecking in " + (System.currentTimeMillis() - time) + "ms");
+			WLogger.info("finished typechecking in " + (System.currentTimeMillis() - time) + "ms");
 			nature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_TYPES);
 		}
 	}
@@ -145,11 +146,6 @@ public class ModelManagerImpl implements ModelManager {
 				model.add(cu);
 			}
 		}
-		System.out.print("model updated: ");
-		for (CompilationUnit c : model) {
-			System.out.print(c.getFile() +", ");
-		}
-		System.out.println();
 		for (CompilationUnitChangeListener cl : changeListeners.get(cu.getFile())) {
 			cl.onCompilationUnitChanged(cu);
 		}

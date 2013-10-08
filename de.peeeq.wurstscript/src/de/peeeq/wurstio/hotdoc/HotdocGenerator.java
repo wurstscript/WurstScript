@@ -19,6 +19,7 @@ import com.google.common.io.Files;
 
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.RunArgs;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.ast.AstElementWithName;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
@@ -57,9 +58,9 @@ public class HotdocGenerator {
 		try {
 			setupVelocity();
 			
-			System.out.println("Generating hotdoc into " + outputfolder.getAbsolutePath());
+			WLogger.info("Generating hotdoc into " + outputfolder.getAbsolutePath());
 			for (String f : files) {
-				System.out.println("	input: " + f);
+				WLogger.info("	input: " + f);
 			}
 			if (outputfolder.exists()) {
 				// clean folder
@@ -83,7 +84,7 @@ public class HotdocGenerator {
 			for (String file: files) {
 				File f = new File(file);
 				if (!f.exists()) {
-					System.out.println("Folder " + f + " does not exist");
+					WLogger.info("Folder " + f + " does not exist");
 					continue;
 				}
 				if (f.isDirectory()) {
@@ -121,7 +122,7 @@ public class HotdocGenerator {
 		context.put("navbar", getNavbarWithHighlight(null));
 		context.put("content", "");
 		String s = render(t, context);
-		System.out.println( s );     
+		WLogger.info( s );     
 		// TODO
 		try {
 			Files.write(render(t, context), new File(outputfolder + "/index.html"), Charsets.UTF_8);
@@ -152,7 +153,7 @@ public class HotdocGenerator {
 		context.put("navbar", getNavbarWithHighlight(pack));
 		context.put("content", getPackageContent(pack));
 		String s = render(t, context);
-		System.out.println( s );     
+		WLogger.info( s );     
 		// TODO
 		try {
 			Files.write(render(t, context), new File(outputfolder + "/" + pack.getName() + ".html"), Charsets.UTF_8);
@@ -272,7 +273,7 @@ public class HotdocGenerator {
 	private <T> List<T> getElements(WPackage pack, Class<T> clazz) {
 		List<T> result = Lists.newArrayList();
 		for (WEntity e : pack.getElements()) {
-			System.out.println(Utils.printElement(e));
+			WLogger.info(Utils.printElement(e));
 			if (clazz.isAssignableFrom(e.getClass())) {
 				@SuppressWarnings("unchecked")
 				T t = (T) e;

@@ -573,9 +573,9 @@ public class ImTranslator {
 		calculateCallRelations(getMainFunc());
 		calculateCallRelations(getConfFunc());
 		
-//		System.out.println("USED FUNCS:");
+//		WLogger.info("USED FUNCS:");
 //		for (ImFunction f : usedFunctions) {
-//			System.out.println("	" + f.getName());
+//			WLogger.info("	" + f.getName());
 //		}
 	}
 
@@ -585,12 +585,12 @@ public class ImTranslator {
 		}
 		usedFunctions.add(f);
 		Set<ImVar> usedVars = f.calcUsedVariables();
-//		System.out.println("Function " + f.getName() + " uses vars: " + usedVars);
+//		WLogger.info("Function " + f.getName() + " uses vars: " + usedVars);
 		usedVariables.addAll(usedVars);
 		Set<ImFunction> calledFuncs = f.calcUsedFunctions();
 		
 		for (ImFunction called : calledFuncs) {
-//			System.out.println("Function " + f.getName() + " calls: " + called.getName());
+//			WLogger.info("Function " + f.getName() + " calls: " + called.getName());
 			callRelations.put(f, called);
 			calculateCallRelations(called);
 		}

@@ -180,9 +180,9 @@ public class ImInliner {
 		if (f.isNative()) {
 			return false;
 		}
-//		System.out.println("Should I inline function " + f.getName() + "?");
-//		System.out.println("	ininable: " + inlinableFunctions.contains(f));
-//		System.out.println("	rating: " + getRating(f));
+//		WLogger.info("Should I inline function " + f.getName() + "?");
+//		WLogger.info("	ininable: " + inlinableFunctions.contains(f));
+//		WLogger.info("	rating: " + getRating(f));
 		return  inlinableFunctions.contains(f) 
 				&& getRating(f) < inlineTreshold;
 	}

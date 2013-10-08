@@ -34,6 +34,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class WurstInformationControl extends DefaultInformationControl {
@@ -302,7 +303,7 @@ public class WurstInformationControl extends DefaultInformationControl {
 			NodeHandler nh = nodeHandlers.get(e.getNodeName());
 			int offset = sb.length();
 			if (nh == null) {
-				System.out.println("unhandled tag " + e.getNodeName());
+				WLogger.info("unhandled tag " + e.getNodeName());
 			} else {
 				nh.element = e;
 				nh.before(styles, sb, offset);
@@ -325,7 +326,7 @@ public class WurstInformationControl extends DefaultInformationControl {
 				Text text = (Text) item;
 				sb.append(text.getWholeText());
 			} else {
-				System.out.println("unhandled case " + item.getClass() + "\n\t" + item);
+				WLogger.info("unhandled case " + item.getClass() + "\n\t" + item);
 			}
 			
 		}

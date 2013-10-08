@@ -7,6 +7,7 @@ import org.junit.Test;
 import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.Pjass.Result;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 
 public class PjassTests {

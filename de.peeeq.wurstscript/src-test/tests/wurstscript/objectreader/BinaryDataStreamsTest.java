@@ -11,6 +11,7 @@ import org.junit.Test;
 
 import de.peeeq.wurstio.objectreader.BinaryDataInputStream;
 import de.peeeq.wurstio.objectreader.BinaryDataOutputStream;
+import de.peeeq.wurstscript.WLogger;
 
 public class BinaryDataStreamsTest {
 
@@ -27,14 +28,14 @@ public class BinaryDataStreamsTest {
 		// 2 0000 000 0000
 		out.flush();
 		
-		System.out.println("bytes = " + outStream);
+		WLogger.info("bytes = " + outStream);
 		byte[] bytes = outStream.toByteArray();
 		
 		
 		BinaryDataInputStream in = new BinaryDataInputStream(new ByteArrayInputStream(bytes), true);
 		for (int i=0; i < numbers.length; i++) {
 			int read = in.readInt();
-			System.out.println("read = " + read);
+			WLogger.info("read = " + read);
 			assertEquals(numbers[i], read);
 		}
 		
@@ -75,7 +76,7 @@ public class BinaryDataStreamsTest {
 		byte[] bytes = outStream.toByteArray();
 		
 		for (byte b: bytes) {
-			System.out.println(b + " " + (b >= 0 ? (char)b : ""));
+			WLogger.info(b + " " + (b >= 0 ? (char)b : ""));
 		}
 		
 		BinaryDataInputStream in = new BinaryDataInputStream(new ByteArrayInputStream(bytes), true);

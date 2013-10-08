@@ -21,6 +21,7 @@ import com.google.common.collect.Multimap;
 import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
 import de.peeeq.eclipsewurstplugin.editor.outline.Icons;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -79,7 +80,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		
 		alreadyEntered = getAlreadyEnteredText(viewer, offset);
 		alreadyEnteredLower = alreadyEntered.toLowerCase();
-		System.out.println("already entered = " + alreadyEntered);
+		WLogger.info("already entered = " + alreadyEntered);
 		
 		int startPos = offset - alreadyEntered.length();
 		
@@ -105,7 +106,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		
 		
 		AstElement elem =  Utils.getAstElementAtPos(cu, lastStartPos);
-		System.out.println("get completions at " + Utils.printElement(elem));
+		WLogger.info("get completions at " + Utils.printElement(elem));
 		WurstType leftType = null;
 		boolean isMemberAccess = false;
 		if (elem instanceof ExprMemberVar) {
@@ -148,7 +149,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				scope = scope.attrNextScope();
 			}
 		} else {
-			leftType = AttrExprType.caclulateThistype(elem, false);
+			leftType = AttrExprType.caclulateThistype(elem, true, null);
 			if (leftType instanceof WurstTypeUnknown) {
 				leftType = null;
 			}

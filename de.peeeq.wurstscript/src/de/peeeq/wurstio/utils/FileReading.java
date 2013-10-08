@@ -100,7 +100,7 @@ public class FileReading {
 //	    if (encoding == null) {
 //	    	throw new IOException("Could not get encoding for " + file.getAbsolutePath());
 //	    } else {
-//	    	System.out.println("encoding = " + encoding);
+//	    	WLogger.info("encoding = " + encoding);
 //	    	return getFileReader(file, Charset.forName(encoding));
 //	    }
 //	}

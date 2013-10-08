@@ -9,6 +9,7 @@ import java.util.List;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.jassinterpreter.JassInterpreter;
 import de.peeeq.wurstscript.RunArgs;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.jassAst.JassProg;
@@ -26,9 +27,9 @@ public class ILInterpreterImplTest {
 		
 		boolean exists = dir.exists();
 		if (exists) {
-			System.out.println("Directory " + dir + " exists!");
+			WLogger.info("Directory " + dir + " exists!");
 		} else {
-			System.out.println("Directory " + dir + " could not be found!");	
+			WLogger.info("Directory " + dir + " could not be found!");	
 		}
 		
 		
@@ -49,40 +50,40 @@ public class ILInterpreterImplTest {
 		
 		int testsFailed = 0;
 		int testCount = 0;
-		System.out.println( "Found Files: " + files );
+		WLogger.info( "Found Files: " + files );
 		for ( File file : wurstFiles) {
 			
-			System.out.println( "----------------------------------------------");
-			System.out.println( "Testing file: " + file );
+			WLogger.info( "----------------------------------------------");
+			WLogger.info( "Testing file: " + file );
 			try {
 				testCount++;
 				runTest(file.getPath());
-				System.out.println("Test did not succeed");
+				WLogger.info("Test did not succeed");
 				testsFailed++;
 			} catch (TestFailException e) {
 				testsFailed++;
-				System.out.println("Failed: " + e.getVal());
+				WLogger.info("Failed: " + e.getVal());
 			} catch (TestSuccessException e) {
-				System.out.println("Ok");
+				WLogger.info("Ok");
 			} catch (Throwable e) {
 				testsFailed++;
 				System.err.println(file + " failed with exception.");
 				e.printStackTrace();
 			}
-			System.out.println();
+			WLogger.info("");
 			Process p = Runtime.getRuntime().exec("lib/pjass.exe common.j blizzard.j " + file.getPath());
 		}
 		
-		System.out.println(testsFailed + " of " + testCount + " Tests failed.");
+		WLogger.info(testsFailed + " of " + testCount + " Tests failed.");
 		if (testsFailed == 0) {
-			System.out.println("Everything went better than expected :)");
+			WLogger.info("Everything went better than expected :)");
 		}
 		
 	}
 	
 	
 	private static void runTest(String filename) {
-		System.out.println("parsing script ...");
+		WLogger.info("parsing script ...");
 		WurstConfig config = new WurstConfig();
 		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(config, new WurstGuiCliImpl(), RunArgs.defaults());
 		compiler.loadFiles(filename);

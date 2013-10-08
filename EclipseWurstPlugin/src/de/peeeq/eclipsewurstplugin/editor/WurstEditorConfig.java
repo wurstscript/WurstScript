@@ -28,6 +28,7 @@ import de.peeeq.eclipsewurstplugin.editor.autoedit.WurstAutoIndentStrategy;
 import de.peeeq.eclipsewurstplugin.editor.highlighting.WurstScanner;
 import de.peeeq.eclipsewurstplugin.editor.reconciling.WurstReconcilingStategy;
 import de.peeeq.eclipsewurstplugin.util.UtilityFunctions;
+import de.peeeq.wurstscript.WLogger;
 
 
 
@@ -37,7 +38,7 @@ public class WurstEditorConfig extends SourceViewerConfiguration {
 
 	public WurstEditorConfig(WurstEditor editor) {
 		this.editor = editor;
-		System.out.println("blas");
+		WLogger.info("blas");
 	}
 	
 	@Override

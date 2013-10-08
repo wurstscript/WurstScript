@@ -1283,8 +1283,8 @@ public class WurstValidator {
 			for (SwitchCase c : s.getCases()) {	
 				//				if ( i > 0 ) {
 				//					for( int j = 0; j<i; j++) {
-				//						System.out.println(">>>>>>>>>>>>>>>>"+c.getExpr());
-				//						System.out.println(">>>>>>>>>>>>>>>>"+s.getCases().get(j).getExpr());
+				//						WLogger.info(">>>>>>>>>>>>>>>>"+c.getExpr());
+				//						WLogger.info(">>>>>>>>>>>>>>>>"+s.getCases().get(j).getExpr());
 				//						if ( c.getExpr().attrN.equals(s.getCases().get(j).getExpr()) )
 				//							c.addError("Case " + j + " and " + i + " are the same.");
 				//					}

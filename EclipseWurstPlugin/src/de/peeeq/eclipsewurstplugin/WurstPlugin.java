@@ -2,7 +2,12 @@ package de.peeeq.eclipsewurstplugin;
 
 import static de.peeeq.eclipsewurstplugin.WurstConstants.*;
 
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
 
+import org.eclipse.core.runtime.ILog;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.preference.PreferenceConverter;
 import org.eclipse.jface.resource.ImageDescriptor;
@@ -12,11 +17,39 @@ import org.osgi.framework.BundleContext;
 
 import de.peeeq.eclipsewurstplugin.editor.highlighting.ScannerFactory;
 import de.peeeq.eclipsewurstplugin.ui.WurstPerspective;
+import de.peeeq.wurstscript.WLogger;
 
 /**
  * The activator class controls the plug-in life cycle
  */
 public class WurstPlugin extends AbstractUIPlugin {
+
+	private final class PluginLogHandler extends Handler {
+		private final ILog log;
+
+		private PluginLogHandler(ILog log) {
+			this.log = log;
+		}
+
+		@Override
+		public void publish(LogRecord record) {
+			int level = Status.WARNING;
+			if (record.getLevel() == Level.SEVERE) {
+				level = Status.ERROR;
+			} else if (record.getLevel() == Level.INFO) {
+				level = Status.INFO;
+			}
+			log.log(new Status(level, PLUGIN_ID, Status.OK, record.getMessage(), record.getThrown()));
+		}
+
+		@Override
+		public void flush() {
+		}
+
+		@Override
+		public void close() throws SecurityException {
+		}
+	}
 
 	// The plug-in ID
 	public static final String PLUGIN_ID = "EclipseWurstPlugin"; //$NON-NLS-1$
@@ -40,10 +73,12 @@ public class WurstPlugin extends AbstractUIPlugin {
 	 */
 	public void start(BundleContext context) throws Exception {
 		super.start(context);
+		WLogger.setHandler(new PluginLogHandler(getLog()));
 		plugin = this;
 		initializePreferenceStore();
 		scanners = new ScannerFactory();
 		WurstPerspective.findConsole();
+		
 	}
 
 	/*

@@ -8,6 +8,8 @@ import java.util.Scanner;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
+import de.peeeq.wurstscript.WLogger;
+
 /**
  * Temporary Class for parsing the common.j in order 
  * to extract the jasstype names.
@@ -53,24 +55,24 @@ public class FileKeywordScanner {
 		String t = ng.getToken();
 		int length = t.length();
 		int ol = 0;
-		System.out.println(String.valueOf(args));
+		WLogger.info(String.valueOf(args));
 //		while(length < 15) {
 //			int s = fhash(t);
 //			if (s == frotty && ! t.equals("Frotty"))  {
-//				System.out.println("found");
+//				WLogger.info("found");
 //				sb.append(t);
 //				sb.append("\n");
 //				break;
 //			}
 //			if (length > ol) {
 //				ol = length;
-//				System.out.println(length);
+//				WLogger.info(length);
 //			}
 //			t = ng.getToken();
 //			length = t.length();
 //		}
-//		System.out.println("FOUND!!!!");
-//		System.out.println(sb);
+//		WLogger.info("FOUND!!!!");
+//		WLogger.info(sb);
 		
 	}
 }

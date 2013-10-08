@@ -44,6 +44,7 @@ import de.peeeq.eclipsewurstplugin.builder.ModelManagerStub;
 import de.peeeq.eclipsewurstplugin.builder.WurstNature;
 import de.peeeq.eclipsewurstplugin.editor.outline.WurstContentOutlinePage;
 import de.peeeq.eclipsewurstplugin.editor.reconciling.WurstReconcilingStategy;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 
 public class WurstEditor extends TextEditor implements IPersistableEditor, CompilationUnitChangeListener, ISelectionChangedListener {
@@ -140,9 +141,9 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 
 //	@Override
 //	public void propertyChanged(Object source, int propId) {
-//		System.out.println("property changed " + propId + ", " + source);
+//		WLogger.info("property changed " + propId + ", " + source);
 //		if (propId == IEditorPart.PROP_INPUT) {
-//			System.out.println("property changed: PROP_INPUT ");
+//			WLogger.info("property changed: PROP_INPUT ");
 //			WurstNature nature = getNature();
 //			if (nature != null) {
 //				modelManager = nature.getModelManager();
@@ -209,12 +210,12 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 	public static WurstEditor getActiveEditor() {
 		IWorkbenchWindow wb = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
 		if (wb == null) {
-			System.out.println("not called from UI thread?");
+			WLogger.info("not called from UI thread?");
 			return null;
 		}
 		IWorkbenchPage activePage = wb.getActivePage();
 		if (activePage == null) {
-			System.out.println("no active page");
+			WLogger.info("no active page");
 			return null;
 		}
 		IEditorPart editor = activePage.getActiveEditor();
