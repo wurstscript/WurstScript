@@ -195,10 +195,18 @@ public class AttrExprType {
 
 	
 	public static  WurstType calculate(ExprThis term)  {
-		return caclulateThistype(term, true);
+		return caclulateThistype(term, true, "this");
 	}
 	
-	public static  WurstType caclulateThistype(AstElement term, boolean showErrors)  {
+	/**
+	 * calculates the type of 'thistype' or 'this'
+	 * 
+	 *  @param term where the expr 'this' or 'thistype' is used
+	 *  @param dynamic true when searching for 'this'
+	 *  @param searchedTerm what to display in error messages, null for no error messages
+	 */
+	public static  WurstType caclulateThistype(AstElement term, boolean dynamic, String searchedTerm)  {
+		boolean showErrors = searchedTerm != null;
 		if (term.getParent() == null) {
 			// not attached to the tree -> generated
 			throw new CompileError(term.attrSource(), "Expression 'this' not attached to AST.");
@@ -210,9 +218,9 @@ public class AttrExprType {
 			ExtensionFuncDef extensionFuncDef = (ExtensionFuncDef) func;
 			return extensionFuncDef.getExtendedType().attrTyp().dynamic();
 		}
-		if (!term.attrIsDynamicContext()) {
+		if (dynamic && !term.attrIsDynamicContext()) {
 			if (showErrors) {
-				term.addError("Cannot use 'this' in static methods.");
+				term.addError("Cannot use '"+searchedTerm+"' in static methods.");
 			}
 			return WurstTypeUnknown.instance();
 		}
@@ -260,7 +268,7 @@ public class AttrExprType {
 			});
 		} else {
 			if (showErrors) {
-				term.addError("The keyword 'this' can only be used inside methods.");
+				term.addError("The keyword '"+searchedTerm+"' can only be used inside methods.");
 			}
 			return WurstTypeUnknown.instance();
 		}
