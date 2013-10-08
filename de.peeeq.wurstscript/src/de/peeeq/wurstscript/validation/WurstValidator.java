@@ -1191,6 +1191,8 @@ public class WurstValidator {
 	private void checkInterfaceDef(InterfaceDef i) {
 		checkTypeName(i, i.getName());
 		// TODO check if functions are refinements
+		
+		i.attrExtendedInterfaces();
 	}
 
 	private void checkNewObj(ExprNewObject e) {

@@ -141,6 +141,8 @@ public abstract class WurstTypeNamedScope extends WurstType {
 			}
 			if (def instanceof ClassDef) {
 				ClassDef c = (ClassDef) def;
+				c.attrExtendedClass(); // to protect against the case where interface extends itself
+				
 				// type binding for extended class
 				result.putAll(c.getExtendedClass().attrTyp()
 						.getTypeArgBinding());

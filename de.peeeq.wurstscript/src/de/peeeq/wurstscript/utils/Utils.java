@@ -7,6 +7,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -29,12 +30,14 @@ import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
+import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.types.WurstType;
 
 public class Utils {
 
@@ -44,19 +47,20 @@ public class Utils {
 			return ((Collection) i).size();
 		}
 		int size = 0;
-		for (@SuppressWarnings("unused") Object o : i) {
+		for (@SuppressWarnings("unused")
+		Object o : i) {
 			size++;
 		}
 		return size;
 	}
-	
+
 	public static void printIndent(StringBuilder sb, int indent) {
-		for (int i=0; i<indent; i++) {
+		for (int i = 0; i < indent; i++) {
 			sb.append("\t");
 		}
 	}
 
-	public static <T,R> List<R> map(Iterable<T> list, Function<T, R> function) {
+	public static <T, R> List<R> map(Iterable<T> list, Function<T, R> function) {
 		List<R> result = new NotNullList<R>();
 		for (T t : list) {
 			result.add(function.apply(t));
@@ -64,8 +68,7 @@ public class Utils {
 		return result;
 	}
 
-
-	public static <T> List<T> list(T ... args) {
+	public static <T> List<T> list(T... args) {
 		List<T> result = new NotNullList<T>();
 		for (T t : args) {
 			result.add(t);
@@ -73,10 +76,11 @@ public class Utils {
 		return result;
 	}
 
-
-	public static <T> List<T> filter(List<T> list,	Function<T, Boolean> filter) {
-		if (list == null) throw new IllegalArgumentException("list must not be null");
-		if (filter == null) throw new IllegalArgumentException("filter must not be null");
+	public static <T> List<T> filter(List<T> list, Function<T, Boolean> filter) {
+		if (list == null)
+			throw new IllegalArgumentException("list must not be null");
+		if (filter == null)
+			throw new IllegalArgumentException("filter must not be null");
 		List<T> result = new NotNullList<T>();
 		for (T t : list) {
 			if (filter.apply(t)) {
@@ -97,18 +101,18 @@ public class Utils {
 
 	}
 
-	//	public static void visitPostOrder(SortPos p, Function<SortPos, Void> func) {
-	//		p = p.postOrderStart();
-	//		while (p != null) {
-	//			func.apply(p);
-	//			p = p.postOrder();
-	//		}
-	//	}
+	// public static void visitPostOrder(SortPos p, Function<SortPos, Void>
+	// func) {
+	// p = p.postOrderStart();
+	// while (p != null) {
+	// func.apply(p);
+	// p = p.postOrder();
+	// }
+	// }
 
-
-
-	public static <T> void printSep(StringBuilder sb, String seperator, T[] args, Function<T, String> function) {
-		for (int i=0; i < args.length; i++) {
+	public static <T> void printSep(StringBuilder sb, String seperator,
+			T[] args, Function<T, String> function) {
+		for (int i = 0; i < args.length; i++) {
 			if (i > 0) {
 				sb.append(seperator);
 			}
@@ -116,9 +120,8 @@ public class Utils {
 		}
 	}
 
-
 	public static <T> void printSep(StringBuilder sb, String seperator, T[] args) {
-		for (int i=0; i < args.length; i++) {
+		for (int i = 0; i < args.length; i++) {
 			if (i > 0) {
 				sb.append(seperator);
 			}
@@ -126,7 +129,8 @@ public class Utils {
 		}
 	}
 
-	public static <T> void printSep(StringBuilder sb, String seperator, Iterable<T> params, Function<T, String> function) {
+	public static <T> void printSep(StringBuilder sb, String seperator,
+			Iterable<T> params, Function<T, String> function) {
 		boolean first = true;
 		for (T t : params) {
 			if (!first) {
@@ -155,15 +159,12 @@ public class Utils {
 	public static int parseAsciiInt4(String yytext) {
 		int result = 0;
 		int power = 1;
-		for (int i=4; i>0; i--) {
-			result += yytext.charAt(i)*power;
-			power*=256;
+		for (int i = 4; i > 0; i--) {
+			result += yytext.charAt(i) * power;
+			power *= 256;
 		}
-		return result;		
+		return result;
 	}
-	
-
-
 
 	public static int parseHexInt(String yytext) {
 		return (int) Long.parseLong(yytext.substring(2), 16);
@@ -171,29 +172,28 @@ public class Utils {
 
 	public static String printSep(String sep, String[] args) {
 		StringBuilder sb = new StringBuilder();
-		printSep(sb , sep, args);
-		return sb.toString();		
+		printSep(sb, sep, args);
+		return sb.toString();
 	}
 
 	/**
-	 *	is a piece of code jass code? 
+	 * is a piece of code jass code?
 	 */
 	public static boolean isJassCode(AstElement pos) {
 		while (pos != null) {
 			if (pos instanceof WPackage) {
-				return false; // code is inside package -> wurstscript code 
+				return false; // code is inside package -> wurstscript code
 			}
 			pos = pos.getParent();
 		}
 		return true; // no package found -> jass code
 	}
 
-	
-	public static <T>  T[] array(T ... ar) {
+	public static <T> T[] array(T... ar) {
 		return ar;
 	}
 
-	public static int[] array(int ... ar) {
+	public static int[] array(int... ar) {
 		return ar;
 	}
 
@@ -222,8 +222,7 @@ public class Utils {
 		}
 		return result.toString();
 	}
-	
-	
+
 	public static <S, T> List<T> map(List<S> items, Function<S, T> function) {
 		List<T> result = new ArrayList<T>(items.size());
 		for (S s : items) {
@@ -233,49 +232,64 @@ public class Utils {
 	}
 
 	/**
-	 * sorts a list with partitial ordering topologically.
-	 * If a > b then a will appear before b in the result list
-	 * @param items items to sort
-	 * @param biggerItems a function to get all the bigger items for a given item
+	 * sorts a list with partitial ordering topologically. If a > b then a will
+	 * appear before b in the result list
+	 * 
+	 * @param items
+	 *            items to sort
+	 * @param biggerItems
+	 *            a function to get all the bigger items for a given item
 	 * @return a sorted list
-	 * @throws TopsortCycleException if there exist items a,b so that a > b and b > a 
+	 * @throws TopsortCycleException
+	 *             if there exist items a,b so that a > b and b > a
 	 */
-	public static <T> List<T> topSort(Collection<T> items, Function<T, ? extends Collection<T>> biggerItems) throws TopsortCycleException {
+	public static <T> List<T> topSort(Collection<T> items,
+			Function<T, ? extends Collection<T>> biggerItems)
+			throws TopsortCycleException {
 		Set<T> visitedItems = new HashSet<T>();
 		List<T> result = new ArrayList<T>(items.size());
 		LinkedList<T> activeItems = Lists.newLinkedList();
 		for (T t : items) {
-			if (t == null) throw new IllegalArgumentException();
+			if (t == null)
+				throw new IllegalArgumentException();
 			topSortHelper(result, visitedItems, activeItems, biggerItems, t);
 		}
 		return result;
 	}
-	
+
 	/**
-	 * sorts a list with partitial ordering topologically.
-	 * If a > b then a will appear before b in the result list
-	 * @param items items to sort
-	 * @param biggerItems a multimap to get all the bigger items for a given item
+	 * sorts a list with partitial ordering topologically. If a > b then a will
+	 * appear before b in the result list
+	 * 
+	 * @param items
+	 *            items to sort
+	 * @param biggerItems
+	 *            a multimap to get all the bigger items for a given item
 	 * @return a sorted list
-	 * @throws TopsortCycleException if there exist items a,b so that a > b and b > a 
+	 * @throws TopsortCycleException
+	 *             if there exist items a,b so that a > b and b > a
 	 */
-	public static <T> List<T> topSort(Collection<T> items, final Multimap<T, T> biggerItems) throws TopsortCycleException {
+	public static <T> List<T> topSort(Collection<T> items,
+			final Multimap<T, T> biggerItems) throws TopsortCycleException {
 		return topSort(items, new Function<T, Collection<T>>() {
 
 			@Override
 			public Collection<T> apply(T input) {
 				return biggerItems.get(input);
 			}
-			
+
 		});
 	}
-	
 
-	private static <T> void topSortHelper(List<T> result, Set<T> visitedItems, LinkedList<T> activeItems, Function<T, ? extends Collection<T>> biggerItems, T item) throws TopsortCycleException {
+	private static <T> void topSortHelper(List<T> result, Set<T> visitedItems,
+			LinkedList<T> activeItems,
+			Function<T, ? extends Collection<T>> biggerItems, T item)
+			throws TopsortCycleException {
 		if (visitedItems.contains(item)) {
 			return;
 		}
-		if (activeItems.contains(item)) { // This is not constant time, could be more efficient
+		if (activeItems.contains(item)) { // This is not constant time, could be
+											// more efficient
 			while (activeItems.get(0) != item) {
 				activeItems.remove(0);
 			}
@@ -284,14 +298,15 @@ public class Utils {
 		activeItems.add(item);
 		visitedItems.add(item);
 		for (T t : biggerItems.apply(item)) {
-			if (t == null) throw new IllegalArgumentException();
+			if (t == null)
+				throw new IllegalArgumentException();
 			topSortHelper(result, visitedItems, activeItems, biggerItems, t);
 		}
 		result.add(item);
 		activeItems.removeLast();
 	}
 
-	public static <T> boolean oneOf(T obj, T ... ts ) {
+	public static <T> boolean oneOf(T obj, T... ts) {
 		for (T t : ts) {
 			if (t.equals(obj)) {
 				return true;
@@ -307,7 +322,7 @@ public class Utils {
 			public String apply(ClassOrModule c) {
 				return c.getName();
 			}
-			
+
 		}), "->");
 	}
 
@@ -318,7 +333,8 @@ public class Utils {
 		throw new Error("collection has no first element");
 	}
 
-	public static int getCommonPrefixLength(ImmutableList<?> list1, ImmutableList<?> list2) {
+	public static int getCommonPrefixLength(ImmutableList<?> list1,
+			ImmutableList<?> list2) {
 		if (list1.isEmpty() || list2.isEmpty()) {
 			return 0;
 		}
@@ -328,8 +344,6 @@ public class Utils {
 			return 0;
 		}
 	}
-
-	  
 
 	public static <T> List<T> topSortIgnoreCycles(Collection<T> input,
 			final Multimap<T, T> biggerItems) {
@@ -347,36 +361,36 @@ public class Utils {
 		Set<T> visitedItems = new HashSet<T>();
 		List<T> result = new ArrayList<T>(items.size());
 		for (T t : items) {
-			if (t == null) throw new IllegalArgumentException();
+			if (t == null)
+				throw new IllegalArgumentException();
 			topSortHelperIgnoreCycles(result, visitedItems, biggerItems, t);
 		}
 		return result;
 	}
-	
 
-	private static <T> void topSortHelperIgnoreCycles(List<T> result, Set<T> visitedItems, Function<T, ? extends Collection<T>> biggerItems, T item) {
+	private static <T> void topSortHelperIgnoreCycles(List<T> result,
+			Set<T> visitedItems,
+			Function<T, ? extends Collection<T>> biggerItems, T item) {
 		if (visitedItems.contains(item)) {
 			return;
 		}
 		visitedItems.add(item);
 		for (T t : biggerItems.apply(item)) {
-			if (t == null) throw new IllegalArgumentException();
+			if (t == null)
+				throw new IllegalArgumentException();
 			topSortHelperIgnoreCycles(result, visitedItems, biggerItems, t);
 		}
 		result.add(item);
 	}
-
-	
-
 
 	public static String printScope(WScope scope) {
 		if (scope == null) {
 			return "null-scope";
 		} else if (scope instanceof AstElementWithName) {
 			AstElementWithName wn = (AstElementWithName) scope;
-			return wn.getName() + " (" + scope.getClass().getName() +")";
+			return wn.getName() + " (" + scope.getClass().getName() + ")";
 		} else {
-			return "scope (" + scope.getClass().getName() +")";
+			return "scope (" + scope.getClass().getName() + ")";
 		}
 	}
 
@@ -388,12 +402,13 @@ public class Utils {
 		String name = "";
 		if (e instanceof ExprFunctionCall) {
 			ExprFunctionCall fc = (ExprFunctionCall) e;
-			return "function call " +fc.getFuncName() + "()";
+			return "function call " + fc.getFuncName() + "()";
 		} else if (e instanceof FuncDef) {
 			FuncDef fd = (FuncDef) e;
 			return "function " + fd.getName();
 		} else if (e instanceof OnDestroyDef) {
-			return "destroy function for " + e.attrNearestStructureDef().getName();
+			return "destroy function for "
+					+ e.attrNearestStructureDef().getName();
 		} else if (e instanceof ConstructorDef) {
 			return "constructor for " + e.attrNearestStructureDef().getName();
 		} else if (e instanceof LocalVarDef) {
@@ -429,10 +444,8 @@ public class Utils {
 
 	private static String makeReadableTypeName(AstElement e) {
 		String type = e.getClass().getName()
-				.replaceAll("de.peeeq.wurstscript.ast.","")
-				.replaceAll("Impl$", "")
-				.replaceAll("Def$", "")
-				.toLowerCase();
+				.replaceAll("de.peeeq.wurstscript.ast.", "")
+				.replaceAll("Impl$", "").replaceAll("Def$", "").toLowerCase();
 		if (type.equals("wpackage")) {
 			type = "package";
 		}
@@ -459,17 +472,17 @@ public class Utils {
 	}
 
 	public static <T> void addAll(List<T> result, T[] elements) {
-		for (T t: elements) {
+		for (T t : elements) {
 			result.add(t);
 		}
 	}
 
 	public static <T> List<T> slice(List<T> ts, int firstIndex, int count) {
 		List<T> result = Lists.newArrayListWithCapacity(count);
-		for (int i=0; i<count; i++) {
-			result.add(ts.get(firstIndex+i));
+		for (int i = 0; i < count; i++) {
+			result.add(ts.get(firstIndex + i));
 		}
-		return result ;
+		return result;
 	}
 
 	public static String printElementQualified(AstElementWithName e) {
@@ -484,33 +497,34 @@ public class Utils {
 		}
 		return name;
 	}
-	
+
 	/**
-	 * calculates the transient closure of a multimap 
+	 * calculates the transient closure of a multimap
 	 */
 	public static <T> Multimap<T, T> transientClosure(Multimap<T, T> start) {
 		Multimap<T, T> result = HashMultimap.create();
 		result.putAll(start);
-		
+
 		boolean changed;
 		do {
 			Multimap<T, T> changes = HashMultimap.create();
-			
+
 			for (Entry<T, T> e1 : result.entries()) {
 				for (T t : result.get(e1.getValue())) {
 					changes.put(e1.getKey(), t);
 				}
 			}
 			changed = result.putAll(changes);
-			
+
 		} while (changed);
-		
+
 		return result;
 	}
 
-	public static AstElement getAstElementAtPos(AstElement elem, int caretPosition) {
+	public static AstElement getAstElementAtPos(AstElement elem,
+			int caretPosition) {
 		List<AstElement> betterResults = Lists.newArrayList();
-		for (int i=0; i < elem.size(); i++) {
+		for (int i = 0; i < elem.size(); i++) {
 			AstElement e = elem.get(i);
 			if (elementContainsPos(e, caretPosition)) {
 				betterResults.add(getAstElementAtPos(e, caretPosition));
@@ -524,13 +538,14 @@ public class Utils {
 	}
 
 	/**
-	 * return the element with the smallest size 
+	 * return the element with the smallest size
 	 */
 	private static AstElement bestResult(List<AstElement> betterResults) {
 		int minSize = Integer.MAX_VALUE;
 		AstElement min = null;
 		for (AstElement e : betterResults) {
-			int size = e.attrSource().getRightPos() - e.attrSource().getLeftPos();
+			int size = e.attrSource().getRightPos()
+					- e.attrSource().getLeftPos();
 			if (size < minSize) {
 				minSize = size;
 				min = e;
@@ -539,12 +554,13 @@ public class Utils {
 		return min;
 	}
 
-
 	public static boolean elementContainsPos(AstElement e, int pos) {
-		return e.attrSource().getLeftPos() <= pos && e.attrSource().getRightPos() >= pos;
+		return e.attrSource().getLeftPos() <= pos
+				&& e.attrSource().getRightPos() >= pos;
 	}
 
-	public static <T extends AstElementWithName> List<T> sortByName(Collection<T> c) {
+	public static <T extends AstElementWithName> List<T> sortByName(
+			Collection<T> c) {
 		List<T> r = Lists.newArrayList(c);
 		Collections.sort(r, new Comparator<T>() {
 
@@ -561,15 +577,14 @@ public class Utils {
 	}
 
 	public static boolean isEmptyCU(CompilationUnit cu) {
-		return (cu == null) 
-		  || (cu.getJassDecls().size() + cu.getPackages().size() == 0);
+		return (cu == null)
+				|| (cu.getJassDecls().size() + cu.getPackages().size() == 0);
 	}
-
-	
 
 	public static String printElementWithSource(AstElement e) {
 		WPos src = e.attrSource();
-		return printElement(e) + " (" + src.getFile() + ", line " + src.getLine() +")";
+		return printElement(e) + " (" + src.getFile() + ", line "
+				+ src.getLine() + ")";
 	}
 
 	public static int[] copyArray(int[] ar) {
@@ -594,25 +609,28 @@ public class Utils {
 		}
 		return null;
 	}
-	
-	public static String printAlternatives(Iterable<? extends AstElement> alternatives) {
+
+	public static String printAlternatives(
+			Iterable<? extends AstElement> alternatives) {
 		List<String> result = Lists.newArrayList();
 		for (AstElement a : alternatives) {
 			WPos source = a.attrSource();
-			String s = Utils.printElement(a) + " defined in line " + source.getLine() + " ("+source.getFile()+")" ;
+			String s = Utils.printElement(a) + " defined in line "
+					+ source.getLine() + " (" + source.getFile() + ")";
 			result.add(s);
 		}
-		return " * " + Utils.join(result, "\n * ") ;
+		return " * " + Utils.join(result, "\n * ");
 	}
 
 	public static String printAlternatives(Collection<NameLink> alternatives) {
 		List<String> result = Lists.newArrayList();
 		for (NameLink a : alternatives) {
 			WPos source = a.getNameDef().attrSource();
-			String s = Utils.printElement(a.getNameDef()) + " defined in line " + source.getLine() + " ("+source.getFile()+")" ;
+			String s = Utils.printElement(a.getNameDef()) + " defined in line "
+					+ source.getLine() + " (" + source.getFile() + ")";
 			result.add(s);
 		}
-		return " * " + Utils.join(result, "\n * ") ;
+		return " * " + Utils.join(result, "\n * ");
 	}
 
 	public static <T, S> Multimap<T, S> inverse(Multimap<S, T> orig) {
@@ -627,7 +645,7 @@ public class Utils {
 		if (!f.apply(e)) {
 			return false;
 		}
-		for (int i=0; i<e.size(); i++) {
+		for (int i = 0; i < e.size(); i++) {
 			boolean r = visitRec(e.get(i), f);
 			if (!r) {
 				return false;
@@ -638,14 +656,14 @@ public class Utils {
 
 	public static boolean isSubsequence(String a, String b) {
 		int bPos = -1;
-		for (int i=0; i<a.length(); i++) {
+		for (int i = 0; i < a.length(); i++) {
 			char c = Character.toLowerCase(a.charAt(i));
 			do {
 				bPos++;
 				if (bPos >= b.length()) {
 					return false;
 				}
-			} while(Character.toLowerCase(b.charAt(bPos)) != c);
+			} while (Character.toLowerCase(b.charAt(bPos)) != c);
 		}
 		return true;
 	}
@@ -654,7 +672,7 @@ public class Utils {
 		List<Integer> subseqLength = Lists.newArrayList();
 		int bPos = 0;
 		int currentLen = 0;
-		for (int i=0; i<a.length(); i++) {
+		for (int i = 0; i < a.length(); i++) {
 			char c = Character.toLowerCase(a.charAt(i));
 			if (Character.toLowerCase(b.charAt(bPos)) == c) {
 				currentLen++;
@@ -665,17 +683,19 @@ public class Utils {
 				currentLen = 0;
 				do {
 					bPos++;
-					if (bPos >= b.length()) break;
-				} while(Character.toLowerCase(b.charAt(bPos)) != c);
+					if (bPos >= b.length())
+						break;
+				} while (Character.toLowerCase(b.charAt(bPos)) != c);
 				currentLen = 1;
 			}
 			bPos++;
-			if (bPos >= b.length()) break;
+			if (bPos >= b.length())
+				break;
 		}
 		subseqLength.add(currentLen);
 		return average(subseqLength);
 	}
-	
+
 	public static double averageSubsequenceLength(String a, String b) {
 		// TODO performance
 		List<Integer> subseqLength = Lists.newArrayList();
@@ -692,12 +712,12 @@ public class Utils {
 			String found = a.substring(0, prefixlen);
 			b = b.substring(prefixlen + b.indexOf(found));
 			a = a.substring(prefixlen);
-			
+
 		}
 		return average(subseqLength);
 	}
 
-	/** 
+	/**
 	 * checks if b contains the first n characters of a as a substring
 	 */
 	private static boolean containsPrefix(String b, String a, int n) {
@@ -707,7 +727,7 @@ public class Utils {
 
 	private static double average(List<Integer> l) {
 		Preconditions.checkArgument(l.size() > 0);
-		return sum(l)*1. / l.size();
+		return sum(l) * 1. / l.size();
 	}
 
 	private static int sum(List<Integer> l) {
@@ -724,30 +744,30 @@ public class Utils {
 		}
 		return getFirst(c);
 	}
-	
+
 	public static String escapeString(String v) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("\"");
-		for (int i=0;i<v.length(); i++) {
+		for (int i = 0; i < v.length(); i++) {
 			char c = v.charAt(i);
 			switch (c) {
-				case '\n':
-					sb.append("\\n");
-					break;
-				case '\r':
-					sb.append("\\r");
-					break;
-				case '\"':
-					sb.append("\\\"");
-					break;
-				case '\t':
-					sb.append("\\t");
-					break;
-				case '\\':
-					sb.append("\\\\");
-					break;
-				default:
-					sb.append(c);
+			case '\n':
+				sb.append("\\n");
+				break;
+			case '\r':
+				sb.append("\\r");
+				break;
+			case '\"':
+				sb.append("\\\"");
+				break;
+			case '\t':
+				sb.append("\\t");
+				break;
+			case '\\':
+				sb.append("\\\\");
+				break;
+			default:
+				sb.append(c);
 			}
 		}
 		sb.append("\"");
@@ -760,14 +780,14 @@ public class Utils {
 		s = s.replace(">", "&gt;");
 		return s;
 	}
-	
+
 	/**
-	 * returns the filename from the given path 
+	 * returns the filename from the given path
 	 */
 	public static String fileName(String path) {
-		int pos = Math.max(path.lastIndexOf('/'),path.lastIndexOf('\\'));
+		int pos = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
 		if (pos > 0) {
-			return path.substring(pos+1);
+			return path.substring(pos + 1);
 		}
 		return path;
 	}
@@ -777,7 +797,32 @@ public class Utils {
 		return e + "\n" + Utils.printStackTrace(trace);
 	}
 
+	public static String printBinding(Map<TypeParamDef, WurstType> binding) {
+		StringBuilder sb = new StringBuilder();
+		List<TypeParamDef> keys = Lists.newArrayList(binding.keySet());
+		Collections.sort(keys, byName());
+		sb.append("[");
+		boolean first = true;
+		for (TypeParamDef k : keys) {
+			if (!first) {
+				sb.append(", ");
+			}
+			sb.append(k.getName());
+			sb.append(" -> ");
+			sb.append(binding.get(k));
+			first = false;
+		}
+		sb.append("]");
+		return sb.toString();
+	}
 
-	
+	private static <T extends AstElementWithName> Comparator<T> byName() {
+		return new Comparator<T>() {
+			@Override
+			public int compare(T o1, T o2) {
+				return o1.getName().compareTo(o2.getName());
+			}
+		};
+	}
 
 }

@@ -31,7 +31,7 @@ public class InterfaceInstances {
 	public static Collection<WurstTypeInterface> getImplementedInterfaces(ClassDef c) {
 		Collection<WurstTypeInterface> result = Lists.newArrayList();
 		for (TypeExpr t : c.getImplementsList()) {
-			addInterface(result, t);
+			addInterface(result, t, null);
 		}
 		return result;
 	}
@@ -39,19 +39,24 @@ public class InterfaceInstances {
 	public static Collection<WurstTypeInterface> getExtendedInterfaces(InterfaceDef in) {
 		Collection<WurstTypeInterface> result = Lists.newArrayList();
 		for (TypeExpr t : in.getExtendsList()) {
-			addInterface(result, t);
+			addInterface(result, t, in);
 		}
 		return result;
 	}
 	
-	private static void addInterface(Collection<WurstTypeInterface> result, TypeExpr t) {
+	private static void addInterface(Collection<WurstTypeInterface> result, TypeExpr t, InterfaceDef in) {
 		if (t.attrTyp() instanceof WurstTypeInterface) {
 			WurstTypeInterface i = (WurstTypeInterface) t.attrTyp();
+			if (i.getDef() == in) {
+				t.addError("Interfaces must not extend themselves.");
+				return;
+			}
 			result.add(i);
 			Map<TypeParamDef, WurstType> typeParamBounds = i.getTypeArgBinding();
 			for (WurstTypeInterface i2 : i.getInterfaceDef().attrExtendedInterfaces()) {
 				result.add((WurstTypeInterface) i2.setTypeArgs(typeParamBounds));
 			}
+			
 		} else {
 			t.addError(Utils.printElement(t) + " is not an interface.");
 		}

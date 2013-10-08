@@ -27,6 +27,10 @@ public class SubClasses {
 	public static ClassDef getExtendedClass(ClassDef classDef) {
 		if (classDef.getExtendedClass().attrTyp() instanceof WurstTypeClass) {
 			WurstTypeClass c = (WurstTypeClass) classDef.getExtendedClass().attrTyp();
+			if (classDef == c.getClassDef()) {
+				classDef.getExtendedClass().addError("Classes must not extend themselves");
+				return null;
+			}
 			return c.getClassDef();
 		}
 		return null;

@@ -199,9 +199,18 @@ public class BugTests extends WurstScriptTest {
 	
 	@Test
 	public void cyclicDependency() {
-		testAssertErrorsLines(false, "depends on itself", 
+		testAssertErrorsLines(false, "must not extend themselves", 
 				"package test",
 				"	class A extends A",
+				"endpackage");
+	}
+	
+	@Test
+	public void cyclicDependency2() {
+		testAssertErrorsLines(false, "must not extend themselves", 
+				"package test",
+				"	interface I extends I",
+				"		function foo()",
 				"endpackage");
 	}
 	
