@@ -31,7 +31,7 @@ public class CompiletimeFunctionRunner {
 	private WurstGui gui;
 	private FunctionFlag functionFlag;
 	private List<ImFunction> successTests = Lists.newArrayList();
-	private Map<ImFunction, Pair<ImStmt, String>> failTests = Maps.newHashMap();
+	private Map<ImFunction, Pair<ImStmt, String>> failTests = Maps.newLinkedHashMap();
 
 	
 

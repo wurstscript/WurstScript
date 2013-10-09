@@ -1,6 +1,6 @@
 package de.peeeq.wurstio.jassoptimizer;
 
-import java.util.HashMap;
+import java.util.Map;
 
 import com.google.common.collect.Maps;
 
@@ -23,7 +23,7 @@ import de.peeeq.wurstscript.utils.Debug;
 
 public class NameCompressor {
 		
-	public static void generateGlobalReplacements(JassProg prg, final HashMap<String, String> replacements, final NameGenerator ng) {
+	public static void generateGlobalReplacements(JassProg prg, final Map<String, String> replacements, final NameGenerator ng) {
 		prg.accept(new JassProg.DefaultVisitor() {			
 			@Override
 			public void visit(JassProg prog) {
@@ -42,7 +42,7 @@ public class NameCompressor {
 	
 	public static void compressNames(JassProg prog) {
 		// The replacement map
-		final HashMap<String, String> replacements = Maps.newHashMap();
+		final Map<String, String> replacements = Maps.newLinkedHashMap();
 		// The Namegenerator used for creating the shortened names
 		final NameGenerator ng = new NameGenerator();
 						
@@ -67,7 +67,7 @@ public class NameCompressor {
 				
 				
 				// Create small replacements for parameters and locals
-				final HashMap<String, String> localReplacements = Maps.newHashMap();
+				final Map<String, String> localReplacements = Maps.newLinkedHashMap();
 				JassSimpleVars params = jassFunction.getParams();
 				Debug.println("Parameters:");
 				// params

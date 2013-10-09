@@ -18,7 +18,7 @@ import de.peeeq.wurstscript.utils.Utils;
 public class ForwardExecution<T> {
 
 	private ForwardMethod<T> method;
-	private Map<WStatement, T> currentValues = Maps.newHashMap();
+	private Map<WStatement, T> currentValues = Maps.newLinkedHashMap();
 	private FunctionLike f;
 	
 	private PriorityQueue<WStatement> todo = new PriorityQueue<WStatement>(11, new Comparator<WStatement>() {

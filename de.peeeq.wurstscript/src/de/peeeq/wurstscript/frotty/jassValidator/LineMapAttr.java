@@ -10,7 +10,7 @@ import de.peeeq.wurstscript.jassAst.JassProg;
 public class LineMapAttr {
 
 	public static Map<JassAstElement, Integer> get(JassProg jassProgImpl) {
-		return Maps.newHashMap();
+		return Maps.newLinkedHashMap();
 	}
 
 	public static int getLine(JassAstElement e) {

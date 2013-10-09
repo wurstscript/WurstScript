@@ -46,7 +46,7 @@ public class Generics {
 	// TODO in the future this should also take return type into account
 	// e.g. List<String> = new List() // infer String here
 	private static Map<TypeParamDef, WurstType> inferTypeParametersUsingArguments(Arguments args, WParameters params,	TypeParamDefs typeParams) {
-		Map<TypeParamDef, WurstType> result = Maps.newHashMap();
+		Map<TypeParamDef, WurstType> result = Maps.newLinkedHashMap();
 		// calculate (most general) unifier
 		for (int i = 0; i < args.size() && i < params.size(); i++) {
 			inferTypeParameters(result, args, args.get(i).attrTyp(), params.get(i).attrTyp(), typeParams);
@@ -120,7 +120,7 @@ public class Generics {
 	 * returns the binding given by the user
 	 */
 	private static Map<TypeParamDef, WurstType> givenBinding(AstElementWithTypeArgs fc, TypeParamDefs typeParams) {
-		Map<TypeParamDef, WurstType> result = Maps.newHashMap();
+		Map<TypeParamDef, WurstType> result = Maps.newLinkedHashMap();
 		for (int i = 0; i < typeParams.size(); i++) {
 			result.put(typeParams.get(i), fc.getTypeArgs().get(i).attrTyp().dynamic());
 		}

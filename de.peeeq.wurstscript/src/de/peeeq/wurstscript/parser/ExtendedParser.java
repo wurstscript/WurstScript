@@ -222,7 +222,7 @@ public class ExtendedParser extends parser {
 	}
 
 	private static String translateSymbolName(String name) {
-		Map<String, String> translations = Maps.newHashMap();
+		Map<String, String> translations = Maps.newLinkedHashMap();
 		translations.put("IDENTIFIER", "name");
 		translations.put("IDENTIFIER_LT", "name with type args");
 		translations.put("ARROW", "'->'");
@@ -331,7 +331,7 @@ public class ExtendedParser extends parser {
 	}
 
 	private void groupEntries(List<String> expectedSymbols) {
-		Map<String, Set<String>> groups = Maps.newHashMap();
+		Map<String, Set<String>> groups = Maps.newLinkedHashMap();
 		groups.put("operator", Sets.newHashSet(
 				"'=='", "'>='", "'<='", "'!='", "'>'", "'<'", "'and'", "'or'", "'+'", "'-'", "'*'", 
 				"'/'", "'div'", "'%'", "'mod'", "'.'", "'cast_to'"));
@@ -351,7 +351,7 @@ public class ExtendedParser extends parser {
 				translateSym(TokenType.THIS)
 				));
 
-		Set<String> matchingGroups = Sets.newHashSet();
+		Set<String> matchingGroups = Sets.newLinkedHashSet();
 		for (Entry<String, Set<String>> e : groups.entrySet()) {
 			String groupName = e.getKey();
 			Set<String> group = e.getValue();

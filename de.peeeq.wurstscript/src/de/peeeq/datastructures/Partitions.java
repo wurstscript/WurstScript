@@ -36,7 +36,7 @@ public class Partitions<T> {
 		}
 	}
 	
-	private Map<T, Partition> partitions = Maps.newHashMap();
+	private Map<T, Partition> partitions = Maps.newLinkedHashMap();
 	
 	public Partitions() {
 	}

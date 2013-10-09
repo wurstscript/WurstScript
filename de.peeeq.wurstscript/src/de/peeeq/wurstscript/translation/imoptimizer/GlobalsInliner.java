@@ -41,7 +41,7 @@ public class GlobalsInliner {
 	public void inlineGlobals() {
 		prog.clearAttributes(); // TODO only clear read/write attributes
 		
-		Set<ImVar> obsoleteVars = Sets.newHashSet();
+		Set<ImVar> obsoleteVars = Sets.newLinkedHashSet();
 		for ( final ImVar v : prog.getGlobals() ) {
 //			WLogger.info("### " + v.getName() + " has " + v.attrWrites().size() + " writes");
 			if (v.attrWrites().size() == 1) {

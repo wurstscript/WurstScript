@@ -205,7 +205,7 @@ public class TempMerger {
 
 	class Knowledge {
 
-		private Map<ImVar, ImSet> currentValues = Maps.newHashMap();
+		private Map<ImVar, ImSet> currentValues = Maps.newLinkedHashMap();
 
 		public void invalidateGlobals() {
 			// invalidate all knowledge which might be based on global state

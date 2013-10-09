@@ -79,7 +79,7 @@ public class SyntacticSugar {
 	
 
 	private void replaceTypeIdUse(CompilationUnit root) {
-		final Map<Expr, Expr> replacements = Maps.newHashMap();
+		final Map<Expr, Expr> replacements = Maps.newLinkedHashMap();
 		root.accept(new WurstModel.DefaultVisitor() {
 			public void visit(ExprMemberVar e) {
 				if (e.getVarName().equals("typeId")) {
@@ -95,7 +95,7 @@ public class SyntacticSugar {
 
 
 	private void rewriteNegatedInts(CompilationUnit root) {
-		final Map<Expr, Expr> replacements = Maps.newHashMap();
+		final Map<Expr, Expr> replacements = Maps.newLinkedHashMap();
 		root.accept(new WurstModel.DefaultVisitor() {
 			public void visit(ExprUnary e) {
 				if (e.getOpU() == WurstOperator.UNARY_MINUS

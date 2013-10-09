@@ -1574,7 +1574,7 @@ public class WurstValidator {
 	}
 
 	private void checkForDuplicateImports(WPackage p) {
-		Set<String> imports = Sets.newHashSet();
+		Set<String> imports = Sets.newLinkedHashSet();
 		for (WImport imp : p.getImports()) {
 			if (!imports.add(imp.getPackagename())) {
 				imp.addError("The package " + imp.getPackagename() + " is already imported.");

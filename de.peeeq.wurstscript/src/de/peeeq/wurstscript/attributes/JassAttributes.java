@@ -15,11 +15,11 @@ import de.peeeq.wurstscript.jassAst.JassVar;
 public class JassAttributes {
 
 	public static Set<JassVar> attrIgnoredVariables(JassProg jassProgImpl) {
-		return Sets.newHashSet();
+		return Sets.newLinkedHashSet();
 	}
 
 	public static Set<JassFunction> attrIgnoredFunctions(JassProg jassProgImpl) {
-		return Sets.newHashSet();
+		return Sets.newLinkedHashSet();
 	}
 
 	public static JassFunction attrFuncDef(JassFuncRef f) {
@@ -45,7 +45,7 @@ public class JassAttributes {
 	}
 
 	public static Map<JassAstElement, String> attrComments(JassProg jassProgImpl) {
-		return Maps.newHashMap();
+		return Maps.newLinkedHashMap();
 	}
 
 }

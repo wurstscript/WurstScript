@@ -39,7 +39,7 @@ public class AttrImportedPackage {
 	}
 
 	public static Map<String, WPackage> getPackages(WurstModel wurstModel) {
-		Map<String, WPackage> result = Maps.newHashMap();
+		Map<String, WPackage> result = Maps.newLinkedHashMap();
 		for (CompilationUnit cu : wurstModel) {
 			for (WPackage p : cu.getPackages()) {
 				WPackage old = result.put(p.getName(), p);

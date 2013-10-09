@@ -231,7 +231,7 @@
 //				FuncDef funcDef = (FuncDef) def;
 //				if (result.containsKey(name)) {
 //					Collection<NameDef> names = result.get(name);
-//					Set<NameDef> toRemove = Sets.newHashSet();
+//					Set<NameDef> toRemove = Sets.newLinkedHashSet();
 //					for (NameDef n : names) {
 //						if (n instanceof FuncDef) {
 //							FuncDef overriddenFunc = (FuncDef) n;

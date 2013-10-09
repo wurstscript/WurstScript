@@ -48,7 +48,7 @@ public class TypesHelper {
 //			return true;
 //		}
 //		
-//		Map<TypeParamDef, PscriptType> typeParamBinding = Maps.newHashMap(); 
+//		Map<TypeParamDef, PscriptType> typeParamBinding = Maps.newLinkedHashMap(); 
 //		
 //		PscriptTypeClass classType = (PscriptTypeClass) iDef.getClassTyp().attrTyp();
 //		int i = 0;

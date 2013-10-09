@@ -1,6 +1,8 @@
 package de.peeeq.wurstscript.attributes.names;
 
-import java.util.HashSet;
+
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -16,7 +18,7 @@ public class Exports {
 	 */
 	public static Multimap<String, NameLink> exportedNameLinks(WPackage p) {
 		Multimap<String, NameLink> result = HashMultimap.create();
-		addExportedNameLinks(result, p, Sets.<WPackage>newHashSet());
+		addExportedNameLinks(result, p, Sets.<WPackage>newLinkedHashSet());
 		return result;
 	}
 
@@ -24,7 +26,7 @@ public class Exports {
 	/**
 	 * recursively adds all exported namelinks from package p to the result map
 	 */
-	private static void addExportedNameLinks(Multimap<String, NameLink> result,	WPackage p, HashSet<WPackage> alreadyImported) {
+	private static void addExportedNameLinks(Multimap<String, NameLink> result,	WPackage p, Set<WPackage> alreadyImported) {
 		if (p == null || alreadyImported.contains(p)) {
 			return;
 		}
@@ -44,12 +46,12 @@ public class Exports {
 
 	public static Multimap<String, NameLink> exportedTypeNameLinks(WPackage p) {
 		Multimap<String, NameLink> result = HashMultimap.create();
-		addExportedTypeNameLinks(result, p, new HashSet<WPackage>());
+		addExportedTypeNameLinks(result, p, Sets.<WPackage>newLinkedHashSet());
 		return result;
 	}
 
 
-	private static void addExportedTypeNameLinks(Multimap<String, NameLink> result,	WPackage p, HashSet<WPackage> alreadyImported) {
+	private static void addExportedTypeNameLinks(Multimap<String, NameLink> result,	WPackage p, Set<WPackage> alreadyImported) {
 		if (p == null || alreadyImported.contains(p)) {
 			return;
 		}

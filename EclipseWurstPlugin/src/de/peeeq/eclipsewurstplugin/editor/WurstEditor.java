@@ -51,7 +51,7 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 	
 	private WurstContentOutlinePage fOutlinePage;
 	private ModelManager modelManager = new ModelManagerStub();
-	private Set<CompilationUnitChangeListener> changeListeners = Sets.newHashSet();
+	private Set<CompilationUnitChangeListener> changeListeners = Sets.newLinkedHashSet();
 	private CompilationUnit compiationUnit;
 	private WurstReconcilingStategy reconciler;
 

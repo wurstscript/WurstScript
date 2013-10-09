@@ -12,7 +12,7 @@ public class UsedFunctions {
 
 
 	public static Set<ImFunction> calculate(ImFunction imFunction) {
-		final Set<ImFunction> result = Sets.newHashSet();
+		final Set<ImFunction> result = Sets.newLinkedHashSet();
 		imFunction.accept(new ImFunction.DefaultVisitor() {
 			@Override
 			public void visit(ImFunctionCall e) {

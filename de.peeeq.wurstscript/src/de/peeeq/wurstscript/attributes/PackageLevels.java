@@ -38,7 +38,7 @@ public class PackageLevels {
 		Partitions<WPackage> packageClusters = calcPackageClusters(packs);
 		Multimap<WPackage, WPackage> clusterImports = calcClusterImports(packs, packageClusters);
 		
-		Map<WPackage, Integer> result = Maps.newHashMap();
+		Map<WPackage, Integer> result = Maps.newLinkedHashMap();
 		for (CompilationUnit cu : wurstModel) {
 			for (WPackage p : cu.getPackages()) {
 				calcLevels(packageClusters, clusterImports, result, packageClusters.getRep(p));

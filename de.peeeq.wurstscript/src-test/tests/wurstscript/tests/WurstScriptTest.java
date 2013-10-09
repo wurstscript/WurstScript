@@ -67,7 +67,7 @@ public class WurstScriptTest {
 	
 	public void testAssertOk(boolean excuteProg, boolean withStdLib, CU ... units) {
 		List<File> inputFiles = Collections.emptyList();
-		Map<String, String> inputs = Maps.newHashMap();
+		Map<String, String> inputs = Maps.newLinkedHashMap();
 		for (CU cu : units) {
 			inputs.put(cu.name, cu.content);
 		}
@@ -77,7 +77,7 @@ public class WurstScriptTest {
 	
 	public void testAssertErrors(String errorMessage, boolean excuteProg, boolean withStdLib, CU ... units) {
 		List<File> inputFiles = Collections.emptyList();
-		Map<String, String> inputs = Maps.newHashMap();
+		Map<String, String> inputs = Maps.newLinkedHashMap();
 		for (CU cu : units) {
 			inputs.put(cu.name, cu.content);
 		}
@@ -149,7 +149,7 @@ public class WurstScriptTest {
 	}
 
 	protected void testScript(String inputName, String input, String name, boolean executeProg, boolean withStdLib) {
-		Map<String, String> inputs = Maps.newHashMap();
+		Map<String, String> inputs = Maps.newLinkedHashMap();
 		inputs.put(inputName, input);
 		testScript(null, inputs, name, executeProg, withStdLib, false);
 	}

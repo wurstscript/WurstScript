@@ -86,7 +86,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
 	Map<TypeParamDef, WurstType> cache_typeParamBounds;
 	private Map<TypeParamDef, WurstType> getTypeParamBounds() {
 		if (cache_typeParamBounds == null) {
-			cache_typeParamBounds = Maps.newHashMap();
+			cache_typeParamBounds = Maps.newLinkedHashMap();
 			if (getDef() instanceof AstElementWithTypeParameters) {
 				AstElementWithTypeParameters wtp = (AstElementWithTypeParameters) getDef();
 				TypeParamDefs tps = wtp.getTypeParameters();
@@ -133,7 +133,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
 		
 		if (getDef() instanceof AstElementWithTypeParameters) {
 			AstElementWithTypeParameters def = (AstElementWithTypeParameters) getDef();
-			Map<TypeParamDef, WurstType> result = Maps.newHashMap();
+			Map<TypeParamDef, WurstType> result = Maps.newLinkedHashMap();
 			for (int i=0; i<typeParameters.size(); i++) {
 				WurstType t = typeParameters.get(i);
 				TypeParamDef tDef = def.getTypeParameters().get(i);

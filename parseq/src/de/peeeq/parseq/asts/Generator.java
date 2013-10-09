@@ -45,7 +45,7 @@ public class Generator {
 	private Multimap<AstEntityDefinition, AstEntityDefinition> transientSubTypes;
 	private Multimap<AstEntityDefinition, AstEntityDefinition> transientSuperTypes;
 	
-	private Map<String, Parameter> parameters = Maps.newHashMap();
+	private Map<String, Parameter> parameters = Maps.newLinkedHashMap();
 
 	public Generator(Program prog, String p_outputFolder) {
 		System.out.println(prog);
@@ -101,7 +101,7 @@ public class Generator {
 		for (AstBaseTypeDefinition base : baseTypes.get(c)) {
 			if (base instanceof ConstructorDef) {
 				ConstructorDef baseClass = (ConstructorDef) base;
-				Set<Parameter> attributes = Sets.newHashSet();
+				Set<Parameter> attributes = Sets.newLinkedHashSet();
 				for (Parameter p : baseClass.parameters) {
 					attributes.add(p);
 				}
@@ -111,13 +111,13 @@ public class Generator {
 					commonAttributes = Sets.intersection(commonAttributes, attributes);
 				}
 			} else if (base instanceof ListDef) {
-				return Sets.newHashSet();
+				return Sets.newLinkedHashSet();
 			} else {
 				throw new Error("Case not possible.");
 			}
 		}
 		if (commonAttributes == null) {
-			commonAttributes = Sets.newHashSet();
+			commonAttributes = Sets.newLinkedHashSet();
 		}
 		return commonAttributes;
 	}

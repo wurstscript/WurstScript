@@ -23,7 +23,7 @@ public class CompilationServerImpl implements CompilationServer {
 		}
 	}
 	
-	private Map<String, CacheEntry> cuCache = Maps.newHashMap();
+	private Map<String, CacheEntry> cuCache = Maps.newLinkedHashMap();
 	
 	@Override
 	public List<CompileError> compile(List<WInput> inputs, File outFile) {

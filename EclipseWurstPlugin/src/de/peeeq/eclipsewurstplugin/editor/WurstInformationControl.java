@@ -45,7 +45,7 @@ public class WurstInformationControl extends DefaultInformationControl {
 	}
 	
 	private static class WurstInformationPresenter implements IInformationPresenter {
-		private Map<String, NodeHandler> nodeHandlers = Maps.newHashMap();
+		private Map<String, NodeHandler> nodeHandlers = Maps.newLinkedHashMap();
 		private Display display;
 		
 		abstract class NodeHandler {
@@ -207,7 +207,7 @@ public class WurstInformationControl extends DefaultInformationControl {
 		}
 
 		private Set<Integer> getChangePoints(List<StyleRangeCustom> styles) {
-			Set<Integer> result = Sets.newHashSet();
+			Set<Integer> result = Sets.newLinkedHashSet();
 			for (StyleRangeCustom style : styles) {
 				result.add(style.start);
 				result.add(style.stop);

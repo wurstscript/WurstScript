@@ -45,7 +45,7 @@ public class ModelManagerImpl implements ModelManager {
 	private final WurstNature nature;
 	private Multimap<String, CompilationUnitChangeListener> changeListeners = HashMultimap.create();
 	private boolean needsFullBuild = true;
-	private Set<String> dependencies = Sets.newHashSet();
+	private Set<String> dependencies = Sets.newLinkedHashSet();
 	
 	public ModelManagerImpl(WurstNature nature) {
 		this.nature = nature;

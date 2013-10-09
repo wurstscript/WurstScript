@@ -166,7 +166,7 @@ public class JassPrinter {
 		sb.append("\n");
 		
 		List<JassStatement> body = Lists.newLinkedList(f.getBody());
-		Set<JassVar> locals = Sets.newHashSet(); 
+		Set<JassVar> locals = Sets.newLinkedHashSet(); 
 		
 		
 		// first print all the initalized vars:

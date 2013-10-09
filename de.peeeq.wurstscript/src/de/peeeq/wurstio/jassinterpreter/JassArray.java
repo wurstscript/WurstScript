@@ -11,7 +11,7 @@ import de.peeeq.wurstscript.types.WurstType;
 public class JassArray extends ILconstAbstract {
 
 	private String type;
-	private Map<Integer, ILconst> values = Maps.newHashMap();
+	private Map<Integer, ILconst> values = Maps.newLinkedHashMap();
 	
 	public JassArray(String type) {
 		this.type = type;

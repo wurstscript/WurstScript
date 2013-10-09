@@ -30,10 +30,10 @@ public class ImInliner {
 	
 	private ImTranslator translator;
 	private ImProg prog;
-	private Set<ImFunction> inlinableFunctions = Sets.newHashSet();
-	private Map<ImFunction, Integer> callCounts = Maps.newHashMap();
-	private Map<ImFunction, Integer> funcSizes = Maps.newHashMap();
-	private Set<ImFunction> done = Sets.newHashSet();
+	private Set<ImFunction> inlinableFunctions = Sets.newLinkedHashSet();
+	private Map<ImFunction, Integer> callCounts = Maps.newLinkedHashMap();
+	private Map<ImFunction, Integer> funcSizes = Maps.newLinkedHashMap();
+	private Set<ImFunction> done = Sets.newLinkedHashSet();
 	private double inlineTreshold = 50;
 	
 	public ImInliner(ImTranslator translator) {
@@ -102,7 +102,7 @@ public class ImInliner {
 		List<ImStmt> stmts = Lists.newArrayList();
 		// save arguments to temp vars:
 		List<ImExpr> args = call.getArguments().removeAll();
-		Map<ImVar, ImVar> varSubtitutions = Maps.newHashMap();
+		Map<ImVar, ImVar> varSubtitutions = Maps.newLinkedHashMap();
 		for (int pi =0; pi < called.getParameters().size(); pi++) {
 			ImVar param = called.getParameters().get(pi);
 			ImExpr arg = args.get(pi);

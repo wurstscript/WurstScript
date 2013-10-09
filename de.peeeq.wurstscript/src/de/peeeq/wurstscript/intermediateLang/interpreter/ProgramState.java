@@ -27,7 +27,7 @@ public class ProgramState extends State {
 	private List<NativesProvider> nativeProviders = Lists.newArrayList();
 	private ImProg prog;
 	private int objectIdCounter;
-	private Map<Integer, ImClass> objectToClass = Maps.newHashMap();
+	private Map<Integer, ImClass> objectToClass = Maps.newLinkedHashMap();
 
 	public ProgramState(File mapFile, WurstGui gui) {
 		this.gui = gui;

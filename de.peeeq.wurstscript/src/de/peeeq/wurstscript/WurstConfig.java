@@ -11,7 +11,7 @@ import com.google.common.io.Files;
 
 public class WurstConfig {
 
-	private Map<String, String> settings = Maps.newHashMap();
+	private Map<String, String> settings = Maps.newLinkedHashMap();
 	
 	public WurstConfig() {
 		readDefaults();

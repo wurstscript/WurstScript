@@ -1,9 +1,10 @@
 package de.peeeq.wurstio.jassinterpreter;
 
 import java.lang.reflect.Method;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
@@ -70,7 +71,7 @@ public class JassInterpreter {
 
 	public void loadProgram(JassProg prog) {
 		this.prog = prog;
-		globalVarMap = new HashMap<String, ILconst>();
+		globalVarMap = Maps.newLinkedHashMap();
 
 		List<JassVar> globals = prog.getGlobals();
 		// globals initialisieren
@@ -114,7 +115,7 @@ public class JassInterpreter {
 
 		List<JassStatement> body = func.getBody();
 
-		Map<String, ILconst> localVarMap = new HashMap<String, ILconst>();
+		Map<String, ILconst> localVarMap = Maps.newLinkedHashMap();
 		// locals initialisieren
 		for (JassVar v : locals) {
 			ILconst value = null;
