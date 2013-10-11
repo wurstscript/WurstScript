@@ -28,7 +28,7 @@ public class WurstTypeTypeParam extends WurstType {
 
 	@Override
 	public String getName() {
-		return def.getName() + " (type parameter)";
+		return def.getName();
 	}
 
 	@Override

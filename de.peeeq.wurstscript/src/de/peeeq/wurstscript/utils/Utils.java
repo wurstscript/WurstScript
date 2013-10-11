@@ -536,6 +536,15 @@ public class Utils {
 			return bestResult(betterResults);
 		}
 	}
+	
+	public static AstElement getAstElementAtPosIgnoringLists(AstElement elem,
+			int caretPosition, boolean usesMouse) {
+		AstElement r = getAstElementAtPos(elem, caretPosition, usesMouse);
+		while (r instanceof List<?>) {
+			r = r.getParent();
+		}
+		return r;
+	}
 
 	/**
 	 * return the element with the smallest size
@@ -823,6 +832,10 @@ public class Utils {
 				return o1.getName().compareTo(o2.getName());
 			}
 		};
+	}
+
+	public static String stripHtml(String s) {
+		return s.replaceAll("\\<.*?\\>", "");
 	}
 
 }

@@ -396,7 +396,7 @@ public class AttrExprType {
 			" was found for operands " + leftType + " and " + rightType + ". The overloading function has to be named: " + term.getOp().getOverloadingFuncName());
 			return WurstTypeUnknown.instance();
 		}
-		return def.getReturnTyp().attrTyp();
+		return def.getReturnTyp().attrTyp().dynamic();
 	}
 	
 	private static WurstType requireEqualTypes(ExprBinary term,

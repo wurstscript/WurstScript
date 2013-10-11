@@ -404,7 +404,10 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 
 <STRING> {
   [\"]                             { yybegin(afterString); 
-                                   return symbol(TokenType.STRING_LITERAL, string.toString()); }
+                                   Symbol s = symbol(TokenType.STRING_LITERAL, string.toString());
+                                   // correct string position
+                                   s.left = s.right - string.length();
+                                   return s; }
 	{NEWLINE}			{ yybegin(afterString); 
 								return symbol(TokenType.CUSTOM_ERROR, "unterminated String"); }
   [^\n\r\"\\]+                   { string.append( yytext() ); }

@@ -28,7 +28,7 @@ public class WurstTypeFreeTypeParam extends WurstType {
 
 	@Override
 	public String getName() {
-		return def.getName() + " (free type parameter)";
+		return def.getName();
 	}
 
 	@Override

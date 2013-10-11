@@ -26,6 +26,7 @@ import org.eclipse.swt.widgets.Display;
 
 import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.eclipsewurstplugin.util.UtilityFunctions;
+import de.peeeq.wurstscript.WurstKeywords;
 
 public class SimpleCodeScanner extends RuleBasedScanner implements WurstScanner {
 
@@ -53,11 +54,11 @@ public class SimpleCodeScanner extends RuleBasedScanner implements WurstScanner 
 			}
 		}, identifierToken, false);
 		// add tokens for each reserved word
-		for (String keyword : WurstConstants.KEYWORDS) {
+		for (String keyword : WurstKeywords.KEYWORDS) {
 			keywordRule.addWord(keyword, keywordToken);
 		}
 		
-		for (String jasstype : WurstConstants.JASSTYPES) {
+		for (String jasstype : WurstKeywords.JASSTYPES) {
 			keywordRule.addWord(jasstype, jasstypeToken);
 		}
 		
