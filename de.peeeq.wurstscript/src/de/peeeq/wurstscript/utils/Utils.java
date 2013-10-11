@@ -522,12 +522,12 @@ public class Utils {
 	}
 
 	public static AstElement getAstElementAtPos(AstElement elem,
-			int caretPosition) {
+			int caretPosition, boolean usesMouse) {
 		List<AstElement> betterResults = Lists.newArrayList();
 		for (int i = 0; i < elem.size(); i++) {
 			AstElement e = elem.get(i);
-			if (elementContainsPos(e, caretPosition)) {
-				betterResults.add(getAstElementAtPos(e, caretPosition));
+			if (elementContainsPos(e, caretPosition, usesMouse)) {
+				betterResults.add(getAstElementAtPos(e, caretPosition, usesMouse));
 			}
 		}
 		if (betterResults.size() == 0) {
@@ -554,9 +554,9 @@ public class Utils {
 		return min;
 	}
 
-	public static boolean elementContainsPos(AstElement e, int pos) {
+	public static boolean elementContainsPos(AstElement e, int pos, boolean usesMouse) {
 		return e.attrSource().getLeftPos() <= pos
-				&& e.attrSource().getRightPos() >= pos;
+				&& e.attrSource().getRightPos() >= pos + (usesMouse ? 1 : 0);
 	}
 
 	public static <T extends AstElementWithName> List<T> sortByName(

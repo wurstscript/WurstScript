@@ -105,7 +105,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		
 		
 		
-		AstElement elem =  Utils.getAstElementAtPos(cu, lastStartPos);
+		AstElement elem =  Utils.getAstElementAtPos(cu, lastStartPos, false);
 		WLogger.info("get completions at " + Utils.printElement(elem));
 		WurstType leftType = null;
 		boolean isMemberAccess = false;
