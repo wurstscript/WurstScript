@@ -58,11 +58,7 @@ public class WurstTextHover implements ITextHover,
 		}
 		AstElement elem = Utils.getAstElementAtPosIgnoringLists(cu, hoverRegion.getOffset(), true);
 		try {
-			String h = elem.descriptionHtml();
-			if (h == null) {
-				h = elem.getClass().getSimpleName();
-			}
-			return h;
+			return elem.descriptionHtml();
 		} catch (Throwable t) {
 			t.printStackTrace();
 			return null;
