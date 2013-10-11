@@ -53,6 +53,18 @@ public function angle.op_plus(angle other) returns angle
 public function angle.op_minus(angle other) returns angle
 	return angle(this.radians - other.radians)
 
+/** multiplies the angle with the given scalar */
+public function angle.op_mult(real scalar) returns angle
+	return angle(this.radians*scalar)
+
+/** multiplies with the given angle */
+public function real.op_mult(angle ang) returns angle
+	return angle(ang.radians*this)
+
+/** divides the angle by the given scalar */
+public function angle.op_div(real scalar) returns angle
+	return angle(this.radians/scalar)
+
 /** returns the angle of this vector */	
 public function vec2.getAngle() returns angle
 	return angle(Atan2(this.y, this.x))
