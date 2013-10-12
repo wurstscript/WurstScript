@@ -96,7 +96,7 @@ public class ModelManagerImpl implements ModelManager {
 			// full build will trigger a new run of typeCheckModel ...
 			return;
 		}
-		doTypeCheck(gui, addErrorMarkers, refreshAttributes);
+		doTypeCheck(gui, addErrorMarkers, true /*refreshAttributes*/);
 	}
 
 	private void doTypeCheck(WurstGui gui, boolean addErrorMarkers, boolean refreshAttributes) {
