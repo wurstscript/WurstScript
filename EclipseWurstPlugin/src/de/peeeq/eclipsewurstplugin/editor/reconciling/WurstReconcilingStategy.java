@@ -59,7 +59,7 @@ public class WurstReconcilingStategy implements IReconcilingStrategy {
 				return cu;
 			}
 			if (doTypecheck) {
-				mm.typeCheckModel(gui, true);
+				mm.typeCheckModel(gui, true, false);
 			}
 			return cu;
 		}

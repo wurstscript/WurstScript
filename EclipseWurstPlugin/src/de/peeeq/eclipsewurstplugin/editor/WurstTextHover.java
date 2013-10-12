@@ -60,7 +60,7 @@ public class WurstTextHover implements ITextHover,
 		try {
 			return elem.descriptionHtml();
 		} catch (Throwable t) {
-			t.printStackTrace();
+//			t.printStackTrace();
 			return null;
 		}
 	}

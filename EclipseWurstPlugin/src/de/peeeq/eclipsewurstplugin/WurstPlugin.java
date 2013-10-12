@@ -74,6 +74,7 @@ public class WurstPlugin extends AbstractUIPlugin {
 	public void start(BundleContext context) throws Exception {
 		super.start(context);
 		WLogger.setHandler(new PluginLogHandler(getLog()));
+		WLogger.setLevel(Level.INFO);
 		plugin = this;
 		initializePreferenceStore();
 		scanners = new ScannerFactory();

@@ -203,7 +203,7 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 			WurstGui gui = new WurstGuiEclipse(monitor);
 			getProject().accept(new SampleResourceVisitor(gui));
 			getModelManager().fullBuildDone();
-			getModelManager().typeCheckModel(gui, true);
+			getModelManager().typeCheckModel(gui, true, true);
 		} catch (CoreException e) {
 		}
 	}
@@ -215,7 +215,7 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 		WLogger.info("incremental build ...");
 		WurstGui gui = new WurstGuiEclipse(monitor);
 		delta.accept(new SampleDeltaVisitor(gui));
-		getModelManager().typeCheckModel(gui, true);
+		getModelManager().typeCheckModel(gui, true, true);
 	}
 
 
