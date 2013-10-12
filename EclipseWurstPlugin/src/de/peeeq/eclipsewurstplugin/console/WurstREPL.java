@@ -203,7 +203,7 @@ public class WurstREPL {
 				// if there was an error, check if there is a problem in typechecking:
 				
 				try (ExecutiontimeMeasure tt = new ExecutiontimeMeasure("type checking")) {
-					modelManager.typeCheckModel(gui, false);
+					modelManager.typeCheckModel(gui, false, false);
 				} catch (CompileError err) {
 					handleCompileError(err);
 					return;
@@ -361,7 +361,7 @@ public class WurstREPL {
 
 	private ImProg translateProg() {
 		WurstModel model = modelManager.getModel();
-		modelManager.typeCheckModel(gui, false);
+		modelManager.typeCheckModel(gui, false, false);
 		if (gui.getErrorCount() > 0) {
 			return null;
 		}

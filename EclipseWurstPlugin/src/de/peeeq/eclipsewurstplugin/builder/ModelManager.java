@@ -18,8 +18,8 @@ public interface ModelManager {
 
 	 void clean();
 
-	 void typeCheckModel(WurstGui gui, boolean addErrorMarkers);
-
+	 void typeCheckModel(WurstGui gui, boolean addErrorMarkers, boolean refreshAttributes);
+	 
 	 void updateModel(CompilationUnit cu, WurstGui gui);
 
 	 CompilationUnit getCompilationUnit(String fileName);

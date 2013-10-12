@@ -35,6 +35,7 @@ import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.utils.Utils;
+import de.peeeq.wurstscript.validation.WurstValidator;
 
 /**
  * keeps a version of the model which is always the most recent one 
@@ -82,10 +83,9 @@ public class ModelManagerImpl implements ModelManager {
 		needsFullBuild = true;
 	}
 	
+	
 	@Override
-	public void typeCheckModel(WurstGui gui, boolean addErrorMarkers) {
-		WLogger.info("#typechecking");
-		long time = System.currentTimeMillis();
+	public void typeCheckModel(WurstGui gui, boolean addErrorMarkers, boolean refreshAttributes) {
 		if (needsFullBuild) {
 			WLogger.info("needs full build...");
 			try {
@@ -96,7 +96,13 @@ public class ModelManagerImpl implements ModelManager {
 			// full build will trigger a new run of typeCheckModel ...
 			return;
 		}
+		doTypeCheck(gui, addErrorMarkers, refreshAttributes);
+	}
+
+	private void doTypeCheck(WurstGui gui, boolean addErrorMarkers, boolean refreshAttributes) {
 		synchronized (this) {
+			WLogger.info("#typechecking with refresh = " + refreshAttributes);
+			long time = System.currentTimeMillis();
 			if (gui.getErrorCount() > 0) {
 				if (addErrorMarkers) {
 					nature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_GRAMMAR);
@@ -107,7 +113,9 @@ public class ModelManagerImpl implements ModelManager {
 			if (model == null) {
 				return;
 			}
-			model.clearAttributes();
+			if (refreshAttributes) {
+				model.clearAttributes();
+			}
 			WurstConfig config = new WurstConfig();
 			config.setSetting("lib", Utils.join(dependencies, ";"));
 			WurstCompilerJassImpl comp = new WurstCompilerJassImpl(config, gui, RunArgs.defaults());
@@ -119,9 +127,9 @@ public class ModelManagerImpl implements ModelManager {
 			} catch (CompileError e) {
 				gui.sendError(e);
 			}
+			WLogger.info("finished typechecking in " + (System.currentTimeMillis() - time) + "ms");
 			if (addErrorMarkers) {
 				nature.clearMarkers(WurstBuilder.MARKER_TYPE_TYPES);
-				WLogger.info("finished typechecking in " + (System.currentTimeMillis() - time) + "ms");
 				nature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_TYPES);
 			}
 		}
@@ -246,4 +254,6 @@ public class ModelManagerImpl implements ModelManager {
 	public WurstNature getNature() {
 		return nature;
 	}
+
+	
 }
