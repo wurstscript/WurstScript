@@ -56,7 +56,7 @@ public class AstHelper {
 	public static ClassDef ClassDef(WPos pos, Modifiers mod, String name, TypeParamDefs typeParams, OptTypeExpr extendedClass, TypeExprList il,
 			List<ClassSlot> slots) {
 		ClassDef c = Ast.ClassDef(pos, mod, name, typeParams, extendedClass, il, Ast.FuncDefs(), Ast.GlobalVarDefs(), 
-				Ast.ConstructorDefs(), Ast.ModuleInstanciations(), Ast.ModuleUses(), Ast.OnDestroyDef(pos, Ast.WStatements()));
+				Ast.ConstructorDefs(), Ast.ModuleInstanciations(), Ast.ModuleUses(), Ast.OnDestroyDef(pos.withRightPos(pos.getLeftPos()-1), Ast.WStatements()));
 		addClassSlots(slots, c);		
 		return c;
 	}

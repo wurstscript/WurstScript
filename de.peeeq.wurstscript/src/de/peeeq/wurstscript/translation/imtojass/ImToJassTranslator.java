@@ -51,8 +51,8 @@ public class ImToJassTranslator {
 	private ImFunction confFunction;
 	private JassProg prog;
 	private Stack<ImFunction> translatingFunctions = new Stack<ImFunction>();
-	private Set<ImFunction> translatedFunctions = Sets.newHashSet();
-	private Set<String> usedNames = Sets.newHashSet();
+	private Set<ImFunction> translatedFunctions = Sets.newLinkedHashSet();
+	private Set<String> usedNames = Sets.newLinkedHashSet();
 	private static String restrictedNames[] = {"loop", "endif", "endfunction", "endloop", "globals", "endglobals", "local", "call"};
 	private Multimap<ImFunction, String> usedLocalNames = HashMultimap.create();
 
@@ -210,7 +210,7 @@ public class ImToJassTranslator {
 		return name2;
 	}
 
-	Map<Pair<String, Integer>, JassVar> tempReturnVars = Maps.newHashMap();
+	Map<Pair<String, Integer>, JassVar> tempReturnVars = Maps.newLinkedHashMap();
 	
 	public JassVar getTempReturnVar(String type, int nr) {
 		Pair<String, Integer> key = Pair.create(type, nr);
@@ -223,8 +223,8 @@ public class ImToJassTranslator {
 		return v;
 	}
 
-	Map<ImVar, JassVar> jassVars = Maps.newHashMap();
-	private Set<ImVar> globalImVars = Sets.newHashSet();
+	Map<ImVar, JassVar> jassVars = Maps.newLinkedHashMap();
+	private Set<ImVar> globalImVars = Sets.newLinkedHashSet();
 	
 	public JassVar getJassVarFor(ImVar v) {
 		JassVar result = jassVars.get(v);
@@ -261,7 +261,7 @@ public class ImToJassTranslator {
 		return v;
 	}
 
-	Map<ImFunction, JassFunction> jassFuncs = Maps.newHashMap();
+	Map<ImFunction, JassFunction> jassFuncs = Maps.newLinkedHashMap();
 	
 	public JassFunction getJassFuncFor(ImFunction func) {
 		JassFunction f = jassFuncs.get(func);

@@ -34,6 +34,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class WurstInformationControl extends DefaultInformationControl {
@@ -44,7 +45,7 @@ public class WurstInformationControl extends DefaultInformationControl {
 	}
 	
 	private static class WurstInformationPresenter implements IInformationPresenter {
-		private Map<String, NodeHandler> nodeHandlers = Maps.newHashMap();
+		private Map<String, NodeHandler> nodeHandlers = Maps.newLinkedHashMap();
 		private Display display;
 		
 		abstract class NodeHandler {
@@ -152,7 +153,7 @@ public class WurstInformationControl extends DefaultInformationControl {
 			try {
 				DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
 				DocumentBuilder builder = builderFactory.newDocumentBuilder();
-				hoverInfo = Utils.escapeHtml(hoverInfo);
+//				hoverInfo = Utils.escapeHtml(hoverInfo);
 				Document doc = builder.parse(
 						new InputSource(new StringReader("<root>" + hoverInfo + "</root>")));
 				parseDocument(doc, presentation, sb);
@@ -206,7 +207,7 @@ public class WurstInformationControl extends DefaultInformationControl {
 		}
 
 		private Set<Integer> getChangePoints(List<StyleRangeCustom> styles) {
-			Set<Integer> result = Sets.newHashSet();
+			Set<Integer> result = Sets.newLinkedHashSet();
 			for (StyleRangeCustom style : styles) {
 				result.add(style.start);
 				result.add(style.stop);
@@ -302,7 +303,7 @@ public class WurstInformationControl extends DefaultInformationControl {
 			NodeHandler nh = nodeHandlers.get(e.getNodeName());
 			int offset = sb.length();
 			if (nh == null) {
-				System.out.println("unhandled tag " + e.getNodeName());
+				WLogger.info("unhandled tag " + e.getNodeName());
 			} else {
 				nh.element = e;
 				nh.before(styles, sb, offset);
@@ -325,7 +326,7 @@ public class WurstInformationControl extends DefaultInformationControl {
 				Text text = (Text) item;
 				sb.append(text.getWholeText());
 			} else {
-				System.out.println("unhandled case " + item.getClass() + "\n\t" + item);
+				WLogger.info("unhandled case " + item.getClass() + "\n\t" + item);
 			}
 			
 		}

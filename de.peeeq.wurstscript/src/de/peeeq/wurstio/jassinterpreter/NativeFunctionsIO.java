@@ -1,6 +1,5 @@
 package de.peeeq.wurstio.jassinterpreter;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
@@ -91,14 +90,14 @@ public class NativeFunctionsIO extends ReflectionBasedNativeProvider implements 
 	}
 	
 	public IlConstHandle InitHashtable() {
-		return new IlConstHandle(getRandomName("ht"), new HashMap<Integer, Map<Integer, Object>>());
+		return new IlConstHandle(getRandomName("ht"), Maps.newLinkedHashMap());
 	}
 
 	public void SaveInteger(IlConstHandle ht, ILconstInt key1, ILconstInt key2, ILconstInt value) {
 		Map<Integer, Map<Integer, Object>> map = (Map<Integer, Map<Integer, Object>>) ht.getObj();
 		Map<Integer, Object> map2 = map.get(key1.getVal());
 		if (map2 == null) {
-			map2 = Maps.newHashMap();
+			map2 = Maps.newLinkedHashMap();
 			map.put(key1.getVal(), map2);
 		}
 		map2.put(key2.getVal(), value);

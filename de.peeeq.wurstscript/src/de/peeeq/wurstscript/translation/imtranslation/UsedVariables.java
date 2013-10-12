@@ -16,7 +16,7 @@ import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
 public class UsedVariables {
 	
 	public static Set<ImVar> calculate(ImFunction f) {
-		final Set<ImVar> result = Sets.newHashSet();
+		final Set<ImVar> result = Sets.newLinkedHashSet();
 		f.accept(new ImFunction.DefaultVisitor() {
 			public void visit(ImSet e) {
 				result.add(e.getLeft());

@@ -13,7 +13,7 @@ public class TypeId {
 
 	public static Map<ImClass, Integer> calculate(ImProg prog) {
 		int[] count = new int[1];
-		Map<ImClass, Integer> result = Maps.newHashMap();
+		Map<ImClass, Integer> result = Maps.newLinkedHashMap();
 		assignIds(count, result, prog.getClasses());
 		return result;
 	}

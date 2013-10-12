@@ -324,4 +324,121 @@ public class GenericsTests extends WurstScriptTest {
 				);
 	}
 	
+	@Test
+	public void generics_substitute1() { 
+		testAssertOkLines(false,  
+				"package Test",
+				"native testSuccess()",
+				"class A<T>",
+				"	function bla(T t)",
+				"class B extends A<C>",
+				"class C",
+				"init",
+				"	let b = new B",
+				"	b.bla(new C)"
+				);
+	}
+	
+	@Test
+	public void generics_substitute2() { 
+		testAssertOkLines(false,  
+				"package Test",
+				"native testSuccess()",
+				"interface I<S,T>",
+				"	function bla(T t, S s)",
+				"		skip",
+				"class A<U> implements I<U,D>",
+				"class B extends A<C>",
+				"class C",
+				"class D",
+				"init",
+				"	let b = new B",
+				"	b.bla(new D, new C)"
+				);
+	}
+	
+	@Test
+	public void generics_substitute3() { 
+		testAssertOkLines(false,  
+				"package Test",
+				"native testSuccess()",
+				"interface I<S,T>",
+				"	function bla(T t, S s)",
+				"		skip",
+				"interface J<T,S> extends I<S,T>",
+				"	function foo()",
+				"		skip",
+				"class A<U> implements J<D,U>",
+				"class B extends A<C>",
+				"class C",
+				"class D",
+				"init",
+				"	let b = new B",
+				"	b.bla(new D, new C)"
+				);
+	}
+	
+	@Test
+	public void generics_substitute() { 
+		testAssertOkLines(false,  
+				"package Test",
+				"class A<T>",
+				"	function bla(T a)",
+				"class B extends A<MyType>",
+				"	function do()",
+				"		bla(new MyType)",
+				"class MyType"
+
+				);
+	}
+	
+	@Test
+	public void generics_substitute_override() { 
+		testAssertOkLines(false,  
+				"package Test",
+				"class A<T>",
+				"	function bla(T a)",
+				"class B extends A<MyType>",
+				"	override function bla(MyType t)",
+				"		skip",
+				"class MyType"
+
+				);
+	}
+	
+
+	@Test
+	public void generics_substitute_override_interface() { 
+		testAssertOkLines(false,  
+				"package Test",
+				"interface I<S,T>",
+				"	function bla(S s, T t)",
+				"interface J<T> extends I<int,T>",
+				"	function foo(T t)",
+				"class B implements J<MyType>",
+				"	override function bla(int s, MyType t)",
+				"		skip",
+				"	override function foo(MyType t)",
+				"class MyType"
+
+				);
+	}
+	
+	@Test
+	public void generics_substitute_override_interface_fail() { 
+		testAssertErrorsLines(false, "implement",  
+				"package Test",
+				"interface I<T,S>",
+				"	function bla(S s, T t)",
+				"interface J<T> extends I<int,T>",
+				"	function foo(T t)",
+				"class B implements J<MyType>",
+				"	override function bla(int s, MyType t)",
+				"		skip",
+				"	override function foo(MyType t)",
+				"class MyType"
+
+				);
+	}
+	
 }

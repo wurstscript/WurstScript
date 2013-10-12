@@ -7,6 +7,7 @@ import java.util.Map.Entry;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.AstElementWithBody;
 import de.peeeq.wurstscript.ast.AstElementWithParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
@@ -108,7 +109,7 @@ public class NameLinks {
 			}
 			WPackage importedPackage = imp.attrImportedPackage();
 			if (importedPackage == null) {
-				System.out.println("could not resolve import: " + Utils.printElementWithSource(imp)); 
+				WLogger.info("could not resolve import: " + Utils.printElementWithSource(imp)); 
 				continue;
 			}
 			if (p.getName().equals("WurstREPL")) {
@@ -189,7 +190,6 @@ public class NameLinks {
 	}
 
 	private static void addNamesFromImplementedInterfaces(Multimap<String, NameLink> result, ClassDef classDef) {
-		// TODO type param mapping
 		for (WurstTypeInterface interfaceType : classDef.attrImplementedInterfaces()) {
 			Map<TypeParamDef, WurstType> binding = interfaceType.getTypeArgBinding();
 			InterfaceDef i = interfaceType.getInterfaceDef();
@@ -200,13 +200,15 @@ public class NameLinks {
 	}
 
 	private static void addNamesFormSuperClass(Multimap<String, NameLink> result, ClassDef classDef) {
-		// TODO type param mapping
 		if (classDef.getExtendedClass().attrTyp() instanceof WurstTypeClass) {
 			WurstTypeClass wurstTypeClass = (WurstTypeClass) classDef.getExtendedClass().attrTyp();
 			ClassDef extendedClass = wurstTypeClass.getClassDef();
-			addHidingPrivate(result, extendedClass.attrNameLinks());
+			Map<TypeParamDef, WurstType> binding = wurstTypeClass.getTypeArgBinding();
+			addHidingPrivate(result, extendedClass.attrNameLinks(), binding);
 		}
 	}
+
+	
 
 	private static void addNamesFromUsedModuleInstantiations(ClassOrModuleOrModuleInstanciation c,
 			Multimap<String, NameLink> result) {
@@ -236,6 +238,18 @@ public class NameLinks {
 			r.put(e.getKey(), e.getValue().hidingPrivate());
 		}
 
+	}
+	
+	private static void addHidingPrivate(Multimap<String, NameLink> r,
+			Multimap<String, NameLink> adding,
+			Map<TypeParamDef, WurstType> binding) {
+		for (Entry<String, NameLink> e : adding.entries()) {
+			if (e.getValue().getVisibility() == Visibility.LOCAL) {
+				continue;
+			}
+			r.put(e.getKey(), e.getValue().withTypeArgBinding(binding).hidingPrivate());
+		}
+		
 	}
 
 	public static void addHidingPrivateAndProtected(Multimap<String, NameLink> r, Multimap<String, NameLink> adding) {

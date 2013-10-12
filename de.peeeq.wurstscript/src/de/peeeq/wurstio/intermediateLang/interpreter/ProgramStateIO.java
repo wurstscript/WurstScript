@@ -35,9 +35,9 @@ public class ProgramStateIO extends ProgramState {
 	private ImStmt lastStatement;
 	private WurstGui gui;
 	private File mapFile;
-	private Map<ObjectFileType, ObjectFile> dataStoreMap = Maps.newHashMap();
+	private Map<ObjectFileType, ObjectFile> dataStoreMap = Maps.newLinkedHashMap();
 	private int id = 0;
-	private Map<String, ObjectDefinition> objDefinitions = Maps.newHashMap();
+	private Map<String, ObjectDefinition> objDefinitions = Maps.newLinkedHashMap();
 	private PrintStream outStream = System.out;
 	private boolean injectObjectFilesIntoMap = false;
 	private Map<Integer, String> trigStrings = null;
@@ -76,7 +76,7 @@ public class ProgramStateIO extends ProgramState {
 			trigStrings = WTSFile.parse(wts);
 		} catch (Exception e) {
 			// dummy result
-			trigStrings = Maps.newHashMap();
+			trigStrings = Maps.newLinkedHashMap();
 			WLogger.warning("Could not load trigger strings");
 			WLogger.info(e);
 		}

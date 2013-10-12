@@ -1,13 +1,13 @@
 package de.peeeq.wurstscript.utils;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
  * This is a Map which calls the method onElementRedefined if you try to add two elements with the same key
  * everything else works just like a normal HashMap 
  */
-public abstract class DefinitionMap<K,V> extends HashMap<K, V> {
+public abstract class DefinitionMap<K,V> extends LinkedHashMap<K, V> {
 	private static final long serialVersionUID = -2053400305717662756L;
 
 	

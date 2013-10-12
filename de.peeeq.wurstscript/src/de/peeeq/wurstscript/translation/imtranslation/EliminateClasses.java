@@ -48,8 +48,8 @@ public class EliminateClasses {
 
 	private final ImTranslator translator;
 	private final ImProg prog;
-	private final Map<ImVar, ImVar> fieldToArray = Maps.newHashMap();
-	private final Map<ImMethod, ImFunction> dispatchFuncs = Maps.newHashMap();
+	private final Map<ImVar, ImVar> fieldToArray = Maps.newLinkedHashMap();
+	private final Map<ImMethod, ImFunction> dispatchFuncs = Maps.newLinkedHashMap();
 	private final RecycleCodeGenerator recycleCodeGen = new RecycleCodeGeneratorQueue();
 
 	public EliminateClasses(ImTranslator tr, ImProg prog) {
@@ -217,7 +217,7 @@ public class EliminateClasses {
 	 */
 	private List<Pair<IntRange, ImMethod>> calculateTypeIdRanges(ImClass c,
 			List<ImMethod> methods) {
-		Map<Integer, ImMethod> typeIdToMethod = Maps.newHashMap();
+		Map<Integer, ImMethod> typeIdToMethod = Maps.newLinkedHashMap();
 		calculateTypeIdToMethodHelper(c, methods, null, typeIdToMethod);
 
 		int min = Integer.MAX_VALUE;

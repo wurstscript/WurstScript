@@ -5,10 +5,12 @@ import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.jface.text.hyperlink.IHyperlink;
 import org.eclipse.jface.text.hyperlink.IHyperlinkDetector;
 
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithSource;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.FuncRef;
@@ -40,10 +42,16 @@ public class WurstHyperlinkDetector implements IHyperlinkDetector {
 	}
 
 	public IHyperlink[] getHyperlinks(int offset) {
+		boolean useMouse = true;
+		return calculateHyperlinks(offset, useMouse);
+	}
+
+	public IHyperlink[] calculateHyperlinks(int offset, boolean useMouse) {
+		System.out.println("calc hyperlinks @ " + useMouse);
 		CompilationUnit cu = editor.getCompilationUnit();
 		if (cu != null) {
-			AstElement e = Utils.getAstElementAtPos(cu, offset);
-			System.out.println("hover: " + e.getClass().getSimpleName());
+			AstElement e = Utils.getAstElementAtPos(cu, offset, useMouse);
+			System.out.println(offset + "	hover: " + e.getClass().getSimpleName());
 			if (e instanceof FuncRef) {
 				FuncRef funcRef = (FuncRef) e;
 				FunctionDefinition decl = funcRef.attrFuncDef();
@@ -71,6 +79,12 @@ public class WurstHyperlinkDetector implements IHyperlinkDetector {
 				ModuleUse use = (ModuleUse) e;
 				ModuleDef def = use.attrModuleDef();
 				return linkTo(def, e.attrSource().getLeftPos(), e.attrSource().getRightPos()-1);
+			} else if (e instanceof ExprBinary) {
+				ExprBinary eb = (ExprBinary) e;
+				FunctionDefinition def = eb.attrFuncDef();
+				if (def != null) {
+					return linkTo(def, eb.getLeft().attrSource().getRightPos(), eb.getRight().attrSource().getLeftPos()-1);
+				}
 			}
 		}
 		return null;

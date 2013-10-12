@@ -43,7 +43,7 @@ public class VariableDefinition {
 	}
 
 	public static Map<String, JassVar> getVariableMap(JassFunction f) {
-		Map<String, JassVar> result = Maps.newHashMap();
+		Map<String, JassVar> result = Maps.newLinkedHashMap();
 		addVarsToMap(result, f.getLocals());
 		addVarsToMap(result, f.getParams());
 		return result ;
@@ -60,7 +60,7 @@ public class VariableDefinition {
 	}
 
 	public static Map<String, JassVar> getVariableMap(JassProg p) {
-		Map<String, JassVar> result = Maps.newHashMap();
+		Map<String, JassVar> result = Maps.newLinkedHashMap();
 		addVarsToMap(result, p.getGlobals());
 		return result ;
 	}

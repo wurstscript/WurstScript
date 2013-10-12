@@ -21,7 +21,7 @@ public class GuiUtils {
 
 	public static <K, V> Map<V, K> filterByType(Class<? extends K> type,
 			Map<V, ?> map) {
-		Map<V, K> result = Maps.newHashMap();
+		Map<V, K> result = Maps.newLinkedHashMap();
 		for (Entry<V, ?> e : map.entrySet()) {
 			if (type.isInstance(e.getValue())) {
 				result.put(e.getKey(), (K) e.getValue());

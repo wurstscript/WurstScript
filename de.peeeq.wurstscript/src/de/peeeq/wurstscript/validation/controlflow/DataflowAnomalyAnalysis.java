@@ -24,13 +24,13 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class DataflowAnomalyAnalysis extends ForwardMethod<Set<LocalVarDef>> {
 
-	Map<WStatement, String> errors = Maps.newHashMap();
+	Map<WStatement, String> errors = Maps.newLinkedHashMap();
 	
 	@Override
 	Set<LocalVarDef> calculate(WStatement s, Set<LocalVarDef> incoming) {
 		if (s instanceof StartFunctionStatement) {
 			// initially all vars are uninitialized
-			final Set<LocalVarDef> r = Sets.newHashSet();
+			final Set<LocalVarDef> r = Sets.newLinkedHashSet();
 			getFuncDef().accept(new FunctionLike.DefaultVisitor() {
 				@Override
 				public void visit(LocalVarDef localVarDef) {
@@ -81,7 +81,7 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<Set<LocalVarDef>> {
 		if (values.size() == 1) {
 			return Utils.getFirst(values);
 		}
-		Set<LocalVarDef> r = Sets.newHashSet();
+		Set<LocalVarDef> r = Sets.newLinkedHashSet();
 		for (Set<LocalVarDef> v : values) {
 			r.addAll(v);
 		}

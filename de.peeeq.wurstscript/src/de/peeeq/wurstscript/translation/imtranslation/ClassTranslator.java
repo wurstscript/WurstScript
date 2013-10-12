@@ -319,7 +319,7 @@ public class ClassTranslator {
 	private void createNewFunc(ConstructorDef constr) {
 		ConstructorDef trace = constr;
 		ImFunction f = translator.getConstructNewFunc(constr);
-		Map<ImVar, ImVar> varReplacements = Maps.newHashMap();
+		Map<ImVar, ImVar> varReplacements = Maps.newLinkedHashMap();
 		
 		for (WParameter p : constr.getParameters()) {
 			ImVar imP = ImVar(p.attrTyp().imTranslateType(), p.getName(), false);

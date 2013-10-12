@@ -792,3 +792,11 @@ WPackage.attrPackageLevel
 ExprIntVal.getValI
 	returns int
 	implemented by de.peeeq.wurstscript.attributes.IntVal.getValI
+
+AstElement.description()
+	returns String
+	implemented by de.peeeq.wurstscript.attributes.Description.description
+
+AstElement.descriptionHtml()
+	returns String
+	implemented by de.peeeq.wurstscript.attributes.DescriptionHtml.description

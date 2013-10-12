@@ -1,14 +1,18 @@
 package de.peeeq.wurstscript.types;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
+import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.TypeParamDef;
@@ -82,7 +86,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
 	Map<TypeParamDef, WurstType> cache_typeParamBounds;
 	private Map<TypeParamDef, WurstType> getTypeParamBounds() {
 		if (cache_typeParamBounds == null) {
-			cache_typeParamBounds = Maps.newHashMap();
+			cache_typeParamBounds = Maps.newLinkedHashMap();
 			if (getDef() instanceof AstElementWithTypeParameters) {
 				AstElementWithTypeParameters wtp = (AstElementWithTypeParameters) getDef();
 				TypeParamDefs tps = wtp.getTypeParameters();
@@ -126,17 +130,60 @@ public abstract class WurstTypeNamedScope extends WurstType {
 
 
 	public Map<TypeParamDef, WurstType> getTypeArgBinding() {
+		
 		if (getDef() instanceof AstElementWithTypeParameters) {
-			Map<TypeParamDef, WurstType> result = Maps.newHashMap();
 			AstElementWithTypeParameters def = (AstElementWithTypeParameters) getDef();
+			Map<TypeParamDef, WurstType> result = Maps.newLinkedHashMap();
 			for (int i=0; i<typeParameters.size(); i++) {
 				WurstType t = typeParameters.get(i);
 				TypeParamDef tDef = def.getTypeParameters().get(i);
 				result.put(tDef, t);
 			}
+			if (def instanceof ClassDef) {
+				ClassDef c = (ClassDef) def;
+				c.attrExtendedClass(); // to protect against the case where interface extends itself
+				
+				// type binding for extended class
+				result.putAll(c.getExtendedClass().attrTyp()
+						.getTypeArgBinding());
+				// type binding for implemented interfaces:
+				for (WurstTypeInterface i : c.attrImplementedInterfaces()) {
+					result.putAll(i.getTypeArgBinding());
+				}
+			} else if (def instanceof InterfaceDef) {
+				InterfaceDef i = (InterfaceDef) def;
+				// type binding for implemented interfaces:
+				for (WurstTypeInterface ii : i.attrExtendedInterfaces()) {
+					result.putAll(ii.getTypeArgBinding());
+				}
+			}
+			normalizeTypeArgsBinding(result);
 			return result ;
 		}
 		return super.getTypeArgBinding();
+	}
+
+	private void normalizeTypeArgsBinding(Map<TypeParamDef, WurstType> b) {
+		List<TypeParamDef> keys = Lists.newArrayList(b.keySet());
+		for (TypeParamDef p : keys) {
+			WurstType t = b.get(p);
+			b.put(p, normalizeType(t,b));
+		}
+	}
+
+	private WurstType normalizeType(WurstType t, Map<TypeParamDef, WurstType> b) {
+		t = t.normalize();
+		if (t instanceof WurstTypeTypeParam) {
+			WurstTypeTypeParam tp = (WurstTypeTypeParam) t;
+			TypeParamDef tpDef = tp.getDef();
+			if (b.containsKey(tpDef)) {
+				WurstType t2 = b.get(tpDef);
+				if (t != t2) {
+					return normalizeType(t2, b);
+				}
+			}
+		}
+		return t;
 	}
 
 	public WurstType setTypeArgs(Map<TypeParamDef, WurstType> typeParamBounds) {

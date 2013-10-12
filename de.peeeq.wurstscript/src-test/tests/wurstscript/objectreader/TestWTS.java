@@ -10,6 +10,7 @@ import java.util.Map.Entry;
 import org.junit.Test;
 
 import de.peeeq.wurstio.objectreader.WTSFile;
+import de.peeeq.wurstscript.WLogger;
 
 public class TestWTS {
 
@@ -19,8 +20,8 @@ public class TestWTS {
 		File wts = new File("testscripts/mpq/war3map.wts");
 		Map<Integer, String> result = WTSFile.parse(wts);
 		for (Entry<Integer, String> e : result.entrySet()) {
-			System.out.println(e.getKey() + " -> '" + e.getValue() + "'");
-			System.out.println();
+			WLogger.info(e.getKey() + " -> '" + e.getValue() + "'");
+			WLogger.info("");
 		}
 		assertEquals("Player 1", result.get(1));
 		

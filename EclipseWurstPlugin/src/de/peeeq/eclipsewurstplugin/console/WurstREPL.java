@@ -109,8 +109,8 @@ public class WurstREPL {
 	}
 
 	private void init() {
-		currentState = Maps.newHashMap();
-		importedPackages = Sets.newHashSet();
+		currentState = Maps.newLinkedHashMap();
+		importedPackages = Sets.newLinkedHashSet();
 		RobustProgramState globalState = new RobustProgramState(null, gui);
 		interpreter = new ILInterpreter(null, gui, null, globalState);
 		
@@ -178,8 +178,8 @@ public class WurstREPL {
 			String varName = addEnteredCommand(line, code);
 			
 			
-			System.out.println("############ code:");
-			System.out.println(code.toString());
+			WLogger.info("############ code:");
+			WLogger.info(code.toString());
 			
 			
 			CompilationUnit cu = parse(code);
@@ -337,7 +337,7 @@ public class WurstREPL {
 			return;
 		}
 		List<ImFunction> successTests = Lists.newArrayList();
-		Map<ImFunction, Pair<ImStmt, String>> failTests = Maps.newHashMap();
+		Map<ImFunction, Pair<ImStmt, String>> failTests = Maps.newLinkedHashMap();
 		for (ImFunction f : imProg.getFunctions()) {
 			if (f.hasFlag(FunctionFlag.IS_TEST)) {
 				try {

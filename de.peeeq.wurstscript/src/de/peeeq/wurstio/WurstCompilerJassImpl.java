@@ -48,7 +48,7 @@ import de.peeeq.wurstscript.utils.Utils;
 public class WurstCompilerJassImpl implements WurstCompiler {
 
 	private List<File> files = Lists.newArrayList();
-	private Map<String, Reader> otherInputs = Maps.newHashMap();
+	private Map<String, Reader> otherInputs = Maps.newLinkedHashMap();
 	private JassProg prog;
 	private WurstGui gui;
 	private boolean hasCommonJ;
@@ -185,8 +185,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	 * this method scans for unsatisfied imports and tries to find them in the lib-path 
 	 */
 	public void addImportedLibs(List<CompilationUnit> compilationUnits) {
-		Set<String> packages = Sets.newHashSet();
-		Map<String, WImport> imports = Maps.newHashMap();
+		Set<String> packages = Sets.newLinkedHashSet();
+		Map<String, WImport> imports = Maps.newLinkedHashMap();
 		for (CompilationUnit c : compilationUnits) {
 			c.setCuErrorHandler(errorHandler);
 			for (WPackage p : c.getPackages()) {
@@ -255,7 +255,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	
 	public Map<String, File> getLibs() {
 		if (libCache == null) {
-			libCache = Maps.newHashMap();
+			libCache = Maps.newLinkedHashMap();
 			String[] libFolders = config.getSetting("lib").split(";");
 			for (String libDirName : libFolders) {
 				if (libDirName.length() == 0) { 

@@ -27,6 +27,7 @@ import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.eclipsewurstplugin.editor.CompilationUnitChangeListener;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.RunArgs;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -40,11 +41,11 @@ import de.peeeq.wurstscript.utils.Utils;
  */
 public class ModelManagerImpl implements ModelManager {
 
-	private WurstModel model;
+	private volatile WurstModel model;
 	private final WurstNature nature;
-	private Multimap<String, CompilationUnitChangeListener> changeListeners = HashMultimap.create();
-	private boolean needsFullBuild = true;
-	private Set<String> dependencies = Sets.newHashSet();
+	private final Multimap<String, CompilationUnitChangeListener> changeListeners = HashMultimap.create();
+	private volatile boolean needsFullBuild = true;
+	private final Set<String> dependencies = Sets.newLinkedHashSet();
 	
 	public ModelManagerImpl(WurstNature nature) {
 		this.nature = nature;
@@ -70,7 +71,7 @@ public class ModelManagerImpl implements ModelManager {
 	}
 
 	@Override
-	public synchronized boolean needsFullBuild() {
+	public boolean needsFullBuild() {
 		return needsFullBuild;
 	}
 
@@ -82,11 +83,11 @@ public class ModelManagerImpl implements ModelManager {
 	}
 	
 	@Override
-	public synchronized void typeCheckModel(WurstGui gui, boolean addErrorMarkers) {
-		System.out.println("#typechecking");
+	public void typeCheckModel(WurstGui gui, boolean addErrorMarkers) {
+		WLogger.info("#typechecking");
 		long time = System.currentTimeMillis();
 		if (needsFullBuild) {
-			System.out.println("needs full build...");
+			WLogger.info("needs full build...");
 			try {
 				nature.getProject().build(IncrementalProjectBuilder.FULL_BUILD, null);
 			} catch (CoreException e) {
@@ -95,32 +96,34 @@ public class ModelManagerImpl implements ModelManager {
 			// full build will trigger a new run of typeCheckModel ...
 			return;
 		}
-		if (gui.getErrorCount() > 0) {
-			if (addErrorMarkers) {
-				nature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_GRAMMAR);
+		synchronized (this) {
+			if (gui.getErrorCount() > 0) {
+				if (addErrorMarkers) {
+					nature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_GRAMMAR);
+				}
+				WLogger.info("finished typechecking* in " + (System.currentTimeMillis() - time) + "ms");
+				return;
 			}
-			System.out.println("finished typechecking* in " + (System.currentTimeMillis() - time) + "ms");
-			return;
-		}
-		if (model == null) {
-			return;
-		}
-		model.clearAttributes();
-		WurstConfig config = new WurstConfig();
-		config.setSetting("lib", Utils.join(dependencies, ";"));
-		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(config, gui, RunArgs.defaults());
-		comp.setHasCommonJ(true);
-		
-		try {
-			comp.addImportedLibs(model);		
-			comp.checkProg(model);
-		} catch (CompileError e) {
-			gui.sendError(e);
-		}
-		if (addErrorMarkers) {
-			nature.clearMarkers(WurstBuilder.MARKER_TYPE_TYPES);
-			System.out.println("finished typechecking in " + (System.currentTimeMillis() - time) + "ms");
-			nature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_TYPES);
+			if (model == null) {
+				return;
+			}
+			model.clearAttributes();
+			WurstConfig config = new WurstConfig();
+			config.setSetting("lib", Utils.join(dependencies, ";"));
+			WurstCompilerJassImpl comp = new WurstCompilerJassImpl(config, gui, RunArgs.defaults());
+			comp.setHasCommonJ(true);
+			
+			try {
+				comp.addImportedLibs(model);		
+				comp.checkProg(model);
+			} catch (CompileError e) {
+				gui.sendError(e);
+			}
+			if (addErrorMarkers) {
+				nature.clearMarkers(WurstBuilder.MARKER_TYPE_TYPES);
+				WLogger.info("finished typechecking in " + (System.currentTimeMillis() - time) + "ms");
+				nature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_TYPES);
+			}
 		}
 	}
 
@@ -145,11 +148,6 @@ public class ModelManagerImpl implements ModelManager {
 				model.add(cu);
 			}
 		}
-		System.out.print("model updated: ");
-		for (CompilationUnit c : model) {
-			System.out.print(c.getFile() +", ");
-		}
-		System.out.println();
 		for (CompilationUnitChangeListener cl : changeListeners.get(cu.getFile())) {
 			cl.onCompilationUnitChanged(cu);
 		}

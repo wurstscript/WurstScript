@@ -17,6 +17,7 @@ import de.peeeq.wurstscript.ast.TypeExprThis;
 import de.peeeq.wurstscript.types.NativeTypes;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeArray;
+import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeModule;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
@@ -52,24 +53,26 @@ public class AttrTypeExprType {
 	}
 	
 	public static WurstType calculate(TypeExprThis node) {
-		ClassOrModule n = node.attrNearestClassOrModule();
-		if (n == null) {
-			node.addError("'thistype' can only be used in classes and modules.");
-			return WurstTypeUnknown.instance();
-		}
-		return n.match(new ClassOrModule.Matcher<WurstType>() {
-
-			@Override
-			public WurstType case_ClassDef(ClassDef classDef) {
-				return classDef.attrTyp();
-			}
-
-			@Override
-			public WurstType case_ModuleDef(ModuleDef moduleDef) {
-				return new WurstTypeModule(moduleDef, true);
-			}
-
-		});
+		return AttrExprType.caclulateThistype(node, false, "thistype");
+//		ClassOrModule n = node.attrNearestClassOrModule();
+//		if (n == null) {
+//			node.addError("'thistype' can only be used in classes and modules.");
+//			return WurstTypeUnknown.instance();
+//		}
+//		return n.match(new ClassOrModule.Matcher<WurstType>() {
+//
+//			@Override
+//			public WurstType case_ClassDef(ClassDef classDef) {
+//				WurstTypeClass t = (WurstTypeClass) classDef.attrTyp();
+//				t.gett
+//			}
+//
+//			@Override
+//			public WurstType case_ModuleDef(ModuleDef moduleDef) {
+//				return new WurstTypeModule(moduleDef, true);
+//			}
+//
+//		});
 	}
 	
 	public static WurstType calculate(NoTypeExpr optType) {

@@ -24,7 +24,7 @@ public class WTSFile {
 	}
 
 	public static Map<Integer, String> parse(String wts) {
-		Map<Integer, String> result = Maps.newHashMap();
+		Map<Integer, String> result = Maps.newLinkedHashMap();
 		try (Scanner sc = new Scanner(wts)) {
 			while (sc.findWithinHorizon("STRING", 0) != null) {
 				int id = sc.nextInt();

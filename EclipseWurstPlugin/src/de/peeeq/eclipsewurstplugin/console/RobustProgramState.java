@@ -19,10 +19,10 @@ public class RobustProgramState extends ProgramState {
 
 	
 	// (varname, line) -> value)
-	private Map<String, ILconst> values = Maps.newHashMap();
+	private Map<String, ILconst> values = Maps.newLinkedHashMap();
 	
 	// (varname, line) -> (index -> value))
-	private Map<String, Map<Integer, ILconst>> arrayValues = Maps.newHashMap();
+	private Map<String, Map<Integer, ILconst>> arrayValues = Maps.newLinkedHashMap();
 	
 	public RobustProgramState(File mapFile, WurstGui gui) {
 		super(mapFile, gui);
@@ -50,7 +50,7 @@ public class RobustProgramState extends ProgramState {
 	private Map<Integer, ILconst> getArray(String key) {
 		Map<Integer, ILconst> r = arrayValues.get(key);
 		if (r == null) {
-			r = Maps.newHashMap();
+			r = Maps.newLinkedHashMap();
 			arrayValues.put(key, r);
 		}
 		return r;

@@ -30,7 +30,7 @@ public class UtilsIO {
 		StackTraceElement[] ste = Thread.currentThread().getStackTrace();
 		int i = 0;
 		for (StackTraceElement s : ste) {
-			// System.out.println("Trace " +i+++ " = " + s.getMethodName());
+			// WLogger.info("Trace " +i+++ " = " + s.getMethodName());
 		}
 
 		return ste[depth + 2].getMethodName();
@@ -40,7 +40,7 @@ public class UtilsIO {
 		StackTraceElement[] ste = Thread.currentThread().getStackTrace();
 		int i = 0;
 		for (StackTraceElement s : ste) {
-			// System.out.println("Trace " +i+++ " = " + s.getMethodName());
+			// WLogger.info("Trace " +i+++ " = " + s.getMethodName());
 		}
 		StackTraceElement sf = ste[depth + 2];
 		return sf.getMethodName() + "" + sf.getLineNumber();

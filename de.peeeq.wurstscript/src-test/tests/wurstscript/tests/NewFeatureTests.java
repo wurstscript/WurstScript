@@ -283,7 +283,7 @@ public class NewFeatureTests extends WurstScriptTest {
 		testAssertOkLines(true,
 				"package Test",
 				"native testSuccess()",
-				"interface Blub",
+				"class Blub",
 				"	function foo()",
 				"		skip",
 				"class A extends Blub",

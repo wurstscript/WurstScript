@@ -6,7 +6,7 @@ import com.google.common.collect.Maps;
 
 public abstract class GetAForB<A,B> {
 
-	private final Map<A, B> thing = Maps.newHashMap();
+	private final Map<A, B> thing = Maps.newLinkedHashMap();
 	
 	abstract B initFor(A a);
 	

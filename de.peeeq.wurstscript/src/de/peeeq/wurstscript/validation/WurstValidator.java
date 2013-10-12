@@ -1191,6 +1191,8 @@ public class WurstValidator {
 	private void checkInterfaceDef(InterfaceDef i) {
 		checkTypeName(i, i.getName());
 		// TODO check if functions are refinements
+		
+		i.attrExtendedInterfaces();
 	}
 
 	private void checkNewObj(ExprNewObject e) {
@@ -1283,8 +1285,8 @@ public class WurstValidator {
 			for (SwitchCase c : s.getCases()) {	
 				//				if ( i > 0 ) {
 				//					for( int j = 0; j<i; j++) {
-				//						System.out.println(">>>>>>>>>>>>>>>>"+c.getExpr());
-				//						System.out.println(">>>>>>>>>>>>>>>>"+s.getCases().get(j).getExpr());
+				//						WLogger.info(">>>>>>>>>>>>>>>>"+c.getExpr());
+				//						WLogger.info(">>>>>>>>>>>>>>>>"+s.getCases().get(j).getExpr());
 				//						if ( c.getExpr().attrN.equals(s.getCases().get(j).getExpr()) )
 				//							c.addError("Case " + j + " and " + i + " are the same.");
 				//					}
@@ -1572,7 +1574,7 @@ public class WurstValidator {
 	}
 
 	private void checkForDuplicateImports(WPackage p) {
-		Set<String> imports = Sets.newHashSet();
+		Set<String> imports = Sets.newLinkedHashSet();
 		for (WImport imp : p.getImports()) {
 			if (!imports.add(imp.getPackagename())) {
 				imp.addError("The package " + imp.getPackagename() + " is already imported.");

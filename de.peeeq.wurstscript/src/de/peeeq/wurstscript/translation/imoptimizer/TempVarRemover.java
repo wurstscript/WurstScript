@@ -97,7 +97,7 @@ public class TempVarRemover {
 		private class VarKnowledge {
 			ImVar var;
 			ImExpr value;
-			Set<ImVar> usedVars = Sets.newHashSet();
+			Set<ImVar> usedVars = Sets.newLinkedHashSet();
 			private boolean callsFunc;
 			public VarKnowledge(ImVar var, ImExpr value) {
 				this.var = var;

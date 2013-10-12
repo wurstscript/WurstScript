@@ -18,10 +18,12 @@ import org.eclipse.swt.graphics.RGB;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
-import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
 import de.peeeq.eclipsewurstplugin.editor.outline.Icons;
+import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.WurstKeywords;
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.AstElementWithParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
@@ -79,7 +81,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		
 		alreadyEntered = getAlreadyEnteredText(viewer, offset);
 		alreadyEnteredLower = alreadyEntered.toLowerCase();
-		System.out.println("already entered = " + alreadyEntered);
+		WLogger.info("already entered = " + alreadyEntered);
 		
 		int startPos = offset - alreadyEntered.length();
 		
@@ -104,8 +106,8 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		
 		
 		
-		AstElement elem =  Utils.getAstElementAtPos(cu, lastStartPos);
-		System.out.println("get completions at " + Utils.printElement(elem));
+		AstElement elem =  Utils.getAstElementAtPos(cu, lastStartPos, false);
+		WLogger.info("get completions at " + Utils.printElement(elem));
 		WurstType leftType = null;
 		boolean isMemberAccess = false;
 		if (elem instanceof ExprMemberVar) {
@@ -148,7 +150,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				scope = scope.attrNextScope();
 			}
 		} else {
-			leftType = AttrExprType.caclulateThistype(elem, false);
+			leftType = AttrExprType.caclulateThistype(elem, true, null);
 			if (leftType instanceof WurstTypeUnknown) {
 				leftType = null;
 			}
@@ -182,7 +184,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	}
 
 
-	public boolean isSuitableCompletion(String name) {
+	private boolean isSuitableCompletion(String name) {
 //		return name.toLowerCase().startsWith(alreadyEntered);
 		boolean r = Utils.isSubsequence(alreadyEntered, name);
 		return r;
@@ -310,18 +312,11 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		String displayString = n.getName() + " : " + n.attrTyp().toString() + " - [" + nearestScopeName(n) +"]";
 		IContextInformation contextInformation= new ContextInformation(
 				n.getName(), Utils.printElement(n)+" : " + n.attrTyp().getFullName() + " -  defined in " + nearestScopeName(n)); //$NON-NLS-1$
-		String additionalProposalInfo;
-		if (n.attrComment().length() > 1) {
-			additionalProposalInfo = comment;
-		}else{
-			additionalProposalInfo = "<i>No hotdoc provided</i>";
-		}
-		additionalProposalInfo += "<pre><hr />" + htmlType(n.attrTyp()) + n.getName()
-					+ "<br /></pre>" + "defined in " + nearestScopeName(n);
 
+		String additionalProposalInfo2 = n.descriptionHtml();
 		double rating = calculateRating(n.getName());
 		return new WurstCompletion(replacementString, replacementOffset, replacementLength,
-				cursorPosition, image, displayString, contextInformation, additionalProposalInfo, rating);
+				cursorPosition, image, displayString, contextInformation, additionalProposalInfo2, rating);
 	}
 
 
@@ -345,7 +340,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	}
 
 
-	private String nearestScopeName(NameDef n) {
+	private static String nearestScopeName(NameDef n) {
 		if (n.attrNearestNamedScope() != null) {
 			return Utils.printElement(n.attrNearestNamedScope());
 		} else {
@@ -364,42 +359,46 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			cursorPosition++; // outside parentheses
 		}
 		Image image = Icons.function;
-		String comment = f.attrComment();
-		comment = comment.replaceAll("\n", "<br />");
-		StringBuilder descr = new StringBuilder();
-		StringBuilder descrhtml = new StringBuilder();
-		for (WParameter p : f.getParameters()) {
-			if (descr.length() > 0) {
-				descr.append(", ");
-				descrhtml.append(", ");
-			}
-			descr.append(p.attrTyp() + " " + p.getName());
-			descrhtml.append(htmlType(p.attrTyp()) + " " + p.getName());
-		}
-		String returnType = f.getReturnTyp().attrTyp().toString();
-		String returnTypeHtml = htmlType(f.getReturnTyp().attrTyp());
-		String displayString = f.getName() +"(" + descr.toString() + ") returns " + returnType + " - [" + nearestScopeName(f) +"]";
-		IContextInformation contextInformation = descr.length() == 0 ? null : new ContextInformation(f.getName(), descr.toString());
-		String additionalProposalInfo;
-		if (f.attrComment().length() > 1) {
-			additionalProposalInfo = comment;
-		}else{
-			additionalProposalInfo = "<i>No hotdoc provided</i>";
+		
+		String displayString = getFunctionDescriptionShort(f);
+		
+		IContextInformation contextInformation = null;
+		if (!f.getParameters().isEmpty()) {
+			// context information for parameters
+			contextInformation = new ContextInformation(f.getName(), getParameterListText(f));
 		}
 		
-		String funcName = f.getName();
-		if (f instanceof ExtensionFuncDef) {
-			ExtensionFuncDef exf = (ExtensionFuncDef) f;
-			funcName = htmlType(exf.getExtendedType().attrTyp()) + "." + funcName;
-		}
-		additionalProposalInfo += "<pre><hr /><b><font color=\"rgb(127,0,85)\">" + "function</font></b> " + funcName +"(" + descrhtml.toString() + ") "
-				+ "<br /><b><font color=\"rgb(127,0,85)\">returns</font></b> " + returnTypeHtml
-				+ "<br /></pre>" + "defined in " + nearestScopeName(f);
 
+		String additionalProposalInfo2 = getFunctionDescriptionHtml(f);
 		
 		double rating = calculateRating(f.getName());
 		return new WurstCompletion(replacementString, replacementOffset, replacementLength, cursorPosition, image, displayString,
-				contextInformation, additionalProposalInfo, rating);
+				contextInformation, additionalProposalInfo2, rating);
+	}
+
+
+	private String getParameterListText(AstElementWithParameters f) {
+		StringBuilder descr = new StringBuilder();
+		for (WParameter p : f.getParameters()) {
+			if (descr.length() > 0) {
+				descr.append(", ");
+			}
+			descr.append(p.attrTyp() + " " + p.getName());
+		}
+		return descr.toString();
+	}
+
+
+	private String getFunctionDescriptionShort(FunctionDefinition f) {
+		String comment = f.attrComment();
+		comment = comment.replaceAll("\n", "<br />");
+		String returnType = f.getReturnTyp().attrTyp().toString();
+		String displayString = f.getName() +"(" + getParameterListText(f) + ") returns " + returnType + " - [" + nearestScopeName(f) +"]";
+		return displayString;
+	}
+	
+	public static String getFunctionDescriptionHtml(FunctionDefinition f) {
+		return f.descriptionHtml();
 	}
 	
 	private WurstCompletion makeConstructorCompletion(ClassDef c, ConstructorDef constr) {
@@ -412,46 +411,19 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			cursorPosition++; // outside parentheses
 		}
 		Image image = Icons.block;
-		String comment = constr.attrComment();
-		comment = comment.replaceAll("\n", "<br />");
-		StringBuilder descr = new StringBuilder();
-		StringBuilder descrhtml = new StringBuilder();
-		for (WParameter p : constr.getParameters()) {
-			if (descr.length() > 0) {
-				descr.append(", ");
-				descrhtml.append(", ");
-			}
-			descr.append(p.attrTyp() + " " + p.getName());
-			descrhtml.append(htmlType(p.attrTyp()) + " " + p.getName());
-		}
-		String displayString = c.getName() +"(" + descr.toString() + ")";
-		IContextInformation contextInformation = descr.length() == 0 ? null : new ContextInformation(c.getName(), descr.toString());
-		String additionalProposalInfo;
-		if (constr.attrComment().length() > 1) {
-			additionalProposalInfo = comment;
-		}else{
-			additionalProposalInfo = "<i>No hotdoc provided</i>";
-		}
-		additionalProposalInfo += "<pre><hr /><b><font color=\"rgb(127,0,85)\">" + "construct</font></b>(" + descrhtml.toString() + ") "
-				+ "<br /></pre>" + "defined in class " + c.getName();
+		
+		String params = getParameterListText(constr);
+		IContextInformation contextInformation = params.length() == 0 ? null : new ContextInformation(c.getName(), params);
+		String displayString = c.getName() +"(" + getParameterListText(constr) + ")";
 
+		String additionalProposalInfo2 = constr.descriptionHtml();
+		
 		double rating = calculateRating(c.getName());
 		return new WurstCompletion(replacementString, replacementOffset, replacementLength, cursorPosition, image, displayString,
-				contextInformation, additionalProposalInfo, rating);
+				contextInformation, additionalProposalInfo2, rating);
 	}
 
 
-	public String htmlType(WurstType attrTyp) {
-		String typ = attrTyp.toString();
-		for (String s : WurstConstants.JASSTYPES) {
-			if ( s.equals(typ) ) {
-				return "<font color=\"rgb(34,136,143)\">" + typ + "</font>";
-			}
-		}
-		typ = typ.replace("<", "&lt;");
-		typ = typ.replace(">", "&gt;");
-		return typ;
-	}
 
 
 	private void completionsAddVisibleExtensionFunctions(String alreadyEntered,

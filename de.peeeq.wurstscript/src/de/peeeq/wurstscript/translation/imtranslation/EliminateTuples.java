@@ -437,7 +437,7 @@ public class EliminateTuples {
 	public static ImExpr eliminateTuplesExpr(ImTupleSelection e, ImTranslator translator, ImFunction f) {
 		IntRange range;
 		
-//		System.out.println("tuple selection = " + e);
+//		WLogger.info("tuple selection = " + e);
 		if (e.getTupleExpr() instanceof ImVarAccess) {
 			ImVarAccess varAccess = (ImVarAccess) e.getTupleExpr();
 			if (varAccess.attrTyp() instanceof ImTupleType) {
@@ -449,7 +449,7 @@ public class EliminateTuples {
 			}
 			ImVar v = varAccess.getVar();
 			List<ImVar> vars = translator.getVarsForTuple(v);
-//			System.out.println("is a var, selecting range " + range + " from vars " + vars);
+//			WLogger.info("is a var, selecting range " + range + " from vars " + vars);
 			if (range.size() == 1) {		
 				return JassIm.ImVarAccess(vars.get(range.start));
 			} else {

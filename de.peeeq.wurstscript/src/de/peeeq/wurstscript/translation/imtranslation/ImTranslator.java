@@ -124,25 +124,25 @@ public class ImTranslator {
 
 	private ImFunction debugPrintFunction;
 
-	private final Map<TranslatedToImFunction, ImFunction> functionMap = Maps.newHashMap();
-	private final Map<TranslatedToImFunction, ImFunction> dynamicDispatchFunctionMap = Maps.newHashMap();
+	private final Map<TranslatedToImFunction, ImFunction> functionMap = Maps.newLinkedHashMap();
+	private final Map<TranslatedToImFunction, ImFunction> dynamicDispatchFunctionMap = Maps.newLinkedHashMap();
 
 	private ImFunction globalInitFunc;
 
 	private final ImProg imProg;
 
-	final Map<WPackage, ImFunction> initFuncMap = Maps.newHashMap();
+	final Map<WPackage, ImFunction> initFuncMap = Maps.newLinkedHashMap();
 
-	private final Map<TranslatedToImFunction, ImVar> thisVarMap = Maps.newHashMap();
+	private final Map<TranslatedToImFunction, ImVar> thisVarMap = Maps.newLinkedHashMap();
 
-	private final Set<WPackage> translatedPackages = Sets.newHashSet();
-	private final Set<ClassDef>  translatedClasses = Sets.newHashSet();
+	private final Set<WPackage> translatedPackages = Sets.newLinkedHashSet();
+	private final Set<ClassDef>  translatedClasses = Sets.newLinkedHashSet();
 
 
-	final Map<ClassDef, Integer> typeIdMap = Maps.newHashMap();
-	final Map<ClassDef, Integer> typeIdMapMax = Maps.newHashMap();
+	final Map<ClassDef, Integer> typeIdMap = Maps.newLinkedHashMap();
+	final Map<ClassDef, Integer> typeIdMapMax = Maps.newLinkedHashMap();
 
-	private final Map<VarDef, ImVar> varMap = Maps.newHashMap();
+	private final Map<VarDef, ImVar> varMap = Maps.newLinkedHashMap();
 
 	private final WurstModel wurstProg;
 
@@ -150,7 +150,7 @@ public class ImTranslator {
 
 	private ImFunction configFunc = null;
 
-	private final Map<ImVar, List<ImVar>> varsForTupleVar = Maps.newHashMap();
+	private final Map<ImVar, List<ImVar>> varsForTupleVar = Maps.newLinkedHashMap();
 
 	private boolean isUnitTestMode;
 
@@ -213,7 +213,7 @@ public class ImTranslator {
 		for (ImFunction initFunc : initFuncMap.values()) {
 			addFunction(initFunc);
 		}
-		Set<WPackage> calledInitializers = Sets.newHashSet();
+		Set<WPackage> calledInitializers = Sets.newLinkedHashSet();
 		for (WPackage p : Utils.sortByName(initFuncMap.keySet())) {
 			callInitFunc(calledInitializers, p);
 		}
@@ -568,14 +568,14 @@ public class ImTranslator {
 
 	public void calculateCallRelationsAndUsedVariables() {
 		callRelations = HashMultimap.create();
-		usedVariables = Sets.newHashSet();
-		usedFunctions = Sets.newHashSet();
+		usedVariables = Sets.newLinkedHashSet();
+		usedFunctions = Sets.newLinkedHashSet();
 		calculateCallRelations(getMainFunc());
 		calculateCallRelations(getConfFunc());
 		
-//		System.out.println("USED FUNCS:");
+//		WLogger.info("USED FUNCS:");
 //		for (ImFunction f : usedFunctions) {
-//			System.out.println("	" + f.getName());
+//			WLogger.info("	" + f.getName());
 //		}
 	}
 
@@ -585,12 +585,12 @@ public class ImTranslator {
 		}
 		usedFunctions.add(f);
 		Set<ImVar> usedVars = f.calcUsedVariables();
-//		System.out.println("Function " + f.getName() + " uses vars: " + usedVars);
+//		WLogger.info("Function " + f.getName() + " uses vars: " + usedVars);
 		usedVariables.addAll(usedVars);
 		Set<ImFunction> calledFuncs = f.calcUsedFunctions();
 		
 		for (ImFunction called : calledFuncs) {
-//			System.out.println("Function " + f.getName() + " calls: " + called.getName());
+//			WLogger.info("Function " + f.getName() + " calls: " + called.getName());
 			callRelations.put(f, called);
 			calculateCallRelations(called);
 		}
@@ -615,7 +615,7 @@ public class ImTranslator {
 			// private functions cannot be overridden
 			return Collections.emptyMap();
 		}
-		Map<ClassDef, FuncDef> result = Maps.newHashMap();
+		Map<ClassDef, FuncDef> result = Maps.newLinkedHashMap();
 		for (ClassDef c : instances) {
 			NameLink funcNameLink = null;
 			for (NameLink nameLink : c.attrNameLinks().get(func.getName())) {
@@ -643,8 +643,8 @@ public class ImTranslator {
 	}
 
 
-	private Map<ClassDef, List<Pair<ImVar, OptExpr>>> classDynamicInitMap = Maps.newHashMap();
-	private Map<ClassDef, List<WStatement>> classInitStatements = Maps.newHashMap();
+	private Map<ClassDef, List<Pair<ImVar, OptExpr>>> classDynamicInitMap = Maps.newLinkedHashMap();
+	private Map<ClassDef, List<WStatement>> classInitStatements = Maps.newLinkedHashMap();
 
 	public List<Pair<ImVar, OptExpr>> getDynamicInits(ClassDef c) {
 		List<Pair<ImVar, OptExpr>> r = classDynamicInitMap.get(c);
@@ -664,7 +664,7 @@ public class ImTranslator {
 		return r;
 	}
 
-	Map<ConstructorDef, ImFunction> constructorFuncs = Maps.newHashMap();
+	Map<ConstructorDef, ImFunction> constructorFuncs = Maps.newLinkedHashMap();
 
 	public ImFunction getConstructFunc(ConstructorDef constr) {
 		ImFunction f = constructorFuncs.get(constr);
@@ -682,7 +682,7 @@ public class ImTranslator {
 	}
 
 
-	Map<ConstructorDef, ImFunction> constrNewFuncs = Maps.newHashMap();
+	Map<ConstructorDef, ImFunction> constrNewFuncs = Maps.newLinkedHashMap();
 
 	public ImFunction getConstructNewFunc(ConstructorDef constr) {
 		ImFunction f = constrNewFuncs.get(constr);
@@ -845,7 +845,7 @@ public class ImTranslator {
 
 	}
 
-	private Map<ImFunction, List<ImVar>> tempReturnVars = Maps.newHashMap();
+	private Map<ImFunction, List<ImVar>> tempReturnVars = Maps.newLinkedHashMap();
 	public List<ImVar> getTupleTempReturnVarsFor(ImFunction f) {
 		List<ImVar> result = tempReturnVars.get(f);
 		if (result == null) {
@@ -860,7 +860,7 @@ public class ImTranslator {
 		return result ;
 	}
 
-	private Map<ImFunction, ImType> originalReturnValues = Maps.newHashMap();
+	private Map<ImFunction, ImType> originalReturnValues = Maps.newLinkedHashMap();
 
 
 	public void setOriginalReturnValue(ImFunction f, ImType t) {
@@ -943,7 +943,7 @@ public class ImTranslator {
 	}
 
 
-	Map<StructureDef, ImClass> classForStructureDef = Maps.newHashMap();
+	Map<StructureDef, ImClass> classForStructureDef = Maps.newLinkedHashMap();
 	public ImClass getClassFor(StructureDef s) {
 		ImClass c = classForStructureDef.get(s);
 		if (c == null) {
@@ -954,7 +954,7 @@ public class ImTranslator {
 	}
 
 
-	Map<FuncDef, ImMethod> methodForFuncDef = Maps.newHashMap();
+	Map<FuncDef, ImMethod> methodForFuncDef = Maps.newLinkedHashMap();
 	public ImMethod getMethodFor(FuncDef f) {
 		ImMethod m = methodForFuncDef.get(f);
 		if (m == null) {
@@ -986,7 +986,7 @@ public class ImTranslator {
 			}
 		}
 		// generate typeId variables
-		classManagementVars = Maps.newHashMap();
+		classManagementVars = Maps.newLinkedHashMap();
 		for (ImClass c : imProg.getClasses()) {
 			ImClass rep = p.getRep(c);
 			ClassManagementVars v = classManagementVars.get(rep);

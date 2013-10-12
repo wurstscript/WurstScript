@@ -19,6 +19,7 @@ import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.parser.WPos;
@@ -107,7 +108,7 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 	 */
 	@Override
 	protected IProject[] build(int kind, Map args, IProgressMonitor monitor) throws CoreException {
-		System.out.println("build ...");
+		WLogger.info("build ...");
 		if (kind == FULL_BUILD || getModelManager().needsFullBuild()) {
 			fullBuild(monitor);
 		} else {
@@ -198,7 +199,7 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 
 	private void fullBuild(final IProgressMonitor monitor) throws CoreException {
 		try {
-			System.out.println("full build ...");
+			WLogger.info("full build ...");
 			WurstGui gui = new WurstGuiEclipse(monitor);
 			getProject().accept(new SampleResourceVisitor(gui));
 			getModelManager().fullBuildDone();
@@ -211,7 +212,7 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 
 	private void incrementalBuild(IResourceDelta delta, IProgressMonitor monitor) throws CoreException {
 		// the visitor does the work.
-		System.out.println("incremental build ...");
+		WLogger.info("incremental build ...");
 		WurstGui gui = new WurstGuiEclipse(monitor);
 		delta.accept(new SampleDeltaVisitor(gui));
 		getModelManager().typeCheckModel(gui, true);

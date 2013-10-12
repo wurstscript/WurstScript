@@ -3,6 +3,7 @@ package de.peeeq.wurstio.jassinterpreter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 
@@ -70,7 +71,7 @@ class UnknownJassFunction implements ExecutableJassFunction {
 
 	@Override
 	public ILconst execute(JassInterpreter jassInterpreter, ILconst[] arguments) {
-		System.out.println("Function " + name + " could not be found.");
+		WLogger.info("Function " + name + " could not be found.");
 		throw new InterpreterException("Function " + name + " could not be found.");
 	}
 	

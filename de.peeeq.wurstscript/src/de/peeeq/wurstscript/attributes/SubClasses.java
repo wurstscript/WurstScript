@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ConstructorDefs;
+import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -27,7 +28,13 @@ public class SubClasses {
 	public static ClassDef getExtendedClass(ClassDef classDef) {
 		if (classDef.getExtendedClass().attrTyp() instanceof WurstTypeClass) {
 			WurstTypeClass c = (WurstTypeClass) classDef.getExtendedClass().attrTyp();
+			if (classDef == c.getClassDef()) {
+				classDef.getExtendedClass().addError("Classes must not extend themselves");
+				return null;
+			}
 			return c.getClassDef();
+		} else if (classDef.getExtendedClass() instanceof TypeExpr) {
+			classDef.getExtendedClass().addError("Cannot extend " + classDef.getExtendedClass().attrTyp() + ", because it is not a class.");
 		}
 		return null;
 	}

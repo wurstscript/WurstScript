@@ -285,14 +285,14 @@ public class StmtTranslation {
 			}
 			
 		}
-//		System.out.println("it is a " + switchStmt.getSwitchDefault().getClass());
+//		WLogger.info("it is a " + switchStmt.getSwitchDefault().getClass());
 		if (switchStmt.getSwitchDefault() instanceof SwitchDefaultCaseStatements) {
 			
-//			System.out.println("indeed it is");
+//			WLogger.info("indeed it is");
 			SwitchDefaultCaseStatements dflt = (SwitchDefaultCaseStatements) switchStmt.getSwitchDefault();
 			lastIf.setElseBlock(ImStmts(t.translateStatements(f,dflt.getStmts())));
 		}else if (switchStmt.getSwitchDefault() instanceof NoDefaultCase) {
-//			System.out.println("wtf?");
+//			WLogger.info("wtf?");
 		}
 		
 		

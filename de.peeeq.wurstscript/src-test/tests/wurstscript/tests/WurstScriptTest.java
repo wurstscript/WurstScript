@@ -24,6 +24,7 @@ import de.peeeq.wurstio.jassinterpreter.JassInterpreter;
 import de.peeeq.wurstio.jassinterpreter.NativeFunctionsIO;
 import de.peeeq.wurstio.utils.FileReading;
 import de.peeeq.wurstscript.RunArgs;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
@@ -66,7 +67,7 @@ public class WurstScriptTest {
 	
 	public void testAssertOk(boolean excuteProg, boolean withStdLib, CU ... units) {
 		List<File> inputFiles = Collections.emptyList();
-		Map<String, String> inputs = Maps.newHashMap();
+		Map<String, String> inputs = Maps.newLinkedHashMap();
 		for (CU cu : units) {
 			inputs.put(cu.name, cu.content);
 		}
@@ -76,7 +77,7 @@ public class WurstScriptTest {
 	
 	public void testAssertErrors(String errorMessage, boolean excuteProg, boolean withStdLib, CU ... units) {
 		List<File> inputFiles = Collections.emptyList();
-		Map<String, String> inputs = Maps.newHashMap();
+		Map<String, String> inputs = Maps.newLinkedHashMap();
 		for (CU cu : units) {
 			inputs.put(cu.name, cu.content);
 		}
@@ -148,7 +149,7 @@ public class WurstScriptTest {
 	}
 
 	protected void testScript(String inputName, String input, String name, boolean executeProg, boolean withStdLib) {
-		Map<String, String> inputs = Maps.newHashMap();
+		Map<String, String> inputs = Maps.newLinkedHashMap();
 		inputs.put(inputName, input);
 		testScript(null, inputs, name, executeProg, withStdLib, false);
 	}
@@ -205,9 +206,9 @@ public class WurstScriptTest {
 		if (executeTests) {
 			CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(imProg, null, gui, FunctionFlag.IS_TEST);
 			cfr.run();
-			System.out.println("Successfull tests: " + cfr.getSuccessTests().size());
+			WLogger.info("Successfull tests: " + cfr.getSuccessTests().size());
 			int failedTestCount = cfr.getFailTests().size();
-			System.out.println("Failed tests: " + failedTestCount);
+			WLogger.info("Failed tests: " + failedTestCount);
 			if (failedTestCount > 0 ) {
 				for (Entry<ImFunction, Pair<ImStmt, String>> e : cfr.getFailTests().entrySet()) {
 					Assert.assertFalse(Utils.printElementWithSource(e.getKey().attrTrace()) + " " + e.getValue().getB()
@@ -246,7 +247,7 @@ public class WurstScriptTest {
 
 		// run pjass:
 		Result pJassResult = Pjass.runPjass(outputFile);
-		System.out.println(pJassResult.getMessage());
+		WLogger.info(pJassResult.getMessage());
 		if (!pJassResult.isOk() && !pJassResult.getMessage().equals("IO Exception")) {
 			throw new Error(pJassResult.getMessage());
 		}
@@ -267,7 +268,7 @@ public class WurstScriptTest {
 		}
 
 		// run the optimizer:
-		System.out.println("optimizer1");
+		WLogger.info("optimizer1");
 		if (testOptimizer()) {
 
 			
@@ -277,7 +278,7 @@ public class WurstScriptTest {
 	
 			// test optimized file with pjass:
 			pJassResult = Pjass.runPjass(outputFile);
-			System.out.println(pJassResult.getMessage());
+			WLogger.info(pJassResult.getMessage());
 			if (!pJassResult.isOk() && !pJassResult.getMessage().equals("IO Exception")) {
 				throw new Error("Errors in optimized version: " + pJassResult.getMessage());
 			}

@@ -13,11 +13,11 @@ import de.peeeq.wurstscript.jassAst.JassVar;
 
 public class JassProgsAttr {
 
-	private static Map<String, JassFunction> functionsMap = Maps.newHashMap();
-	private static Map<String, JassNative> nativesMap = Maps.newHashMap();
-	private static Map<String, JassVar> globalsMap = Maps.newHashMap();
-	private static Map<String, JassTypeDef> typeDefsMap = Maps.newHashMap();
-	private static Map<String, String> extendsMap = Maps.newHashMap();
+	private static Map<String, JassFunction> functionsMap = Maps.newLinkedHashMap();
+	private static Map<String, JassNative> nativesMap = Maps.newLinkedHashMap();
+	private static Map<String, JassVar> globalsMap = Maps.newLinkedHashMap();
+	private static Map<String, JassTypeDef> typeDefsMap = Maps.newLinkedHashMap();
+	private static Map<String, String> extendsMap = Maps.newLinkedHashMap();
 
 	
 	public static void addFunction(JassProgs jassProgs, JassFunction f) {

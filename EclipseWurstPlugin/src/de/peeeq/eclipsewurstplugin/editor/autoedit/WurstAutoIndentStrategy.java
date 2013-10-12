@@ -11,6 +11,7 @@ import org.eclipse.jface.text.IRegion;
 import org.eclipse.jface.text.TextUtilities;
 
 import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
+import de.peeeq.wurstscript.WLogger;
 
 public class WurstAutoIndentStrategy extends DefaultIndentLineAutoEditStrategy implements IAutoEditStrategy {
 
@@ -72,7 +73,7 @@ public class WurstAutoIndentStrategy extends DefaultIndentLineAutoEditStrategy i
 					buf.append(d.get(start, startOfWord - start));
 				}
 			}
-			System.out.println("buf = " + buf.toString().replace('\t', '_').replace(' ','-').replace('\n', 'n'));
+			WLogger.info("buf = " + buf.toString().replace('\t', '_').replace(' ','-').replace('\n', 'n'));
 			c.text= buf.toString();
 		} catch (BadLocationException excp) {
 			// stop work

@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.utils;
 import java.io.Closeable;
 import java.io.IOException;
 
+import de.peeeq.wurstscript.WLogger;
+
 public class ExecutiontimeMeasure implements Closeable {
 
 	private String message;
@@ -16,7 +18,7 @@ public class ExecutiontimeMeasure implements Closeable {
 	@Override
 	public void close() throws IOException {
 		long time = System.currentTimeMillis() - startTime;
-		System.out.println("Executed " + message + " in " + time + "ms.");
+		WLogger.info("Executed " + message + " in " + time + "ms.");
 	}
 
 }
