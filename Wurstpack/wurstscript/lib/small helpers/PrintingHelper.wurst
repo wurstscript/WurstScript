@@ -7,7 +7,7 @@ import TimerUtils
 
 public boolean array wantDebug
 
-int DEBUG_LEVEL = 3
+int DEBUG_LEVEL = 0
 real DEBUG_MSG_DURATION = 45.
 int msgcount = 0
 string array texts
