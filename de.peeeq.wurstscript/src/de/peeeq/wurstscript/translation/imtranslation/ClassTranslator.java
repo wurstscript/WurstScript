@@ -131,10 +131,9 @@ public class ClassTranslator {
 		// set sub methods
 		for (ClassDef sc : subClasses) {
 			ImMethod dm = translator.destroyMethod.getFor(sc);
-			// TODO optimize?
-//			if (hasOwnDestroy(sc, classDef)) {
+			if (hasOwnDestroy(sc, classDef)) {
 				m.getSubMethods().add(dm);
-//			}
+			}
 		}
 		
 		AstElement trace = classDef.getOnDestroy();

@@ -37,11 +37,14 @@ import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstConfig;
+import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.TupleDef;
+import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WStatement;
@@ -154,6 +157,9 @@ public class WurstREPL {
 			} else if (line.startsWith("compile")) {
 				compileProject(line.substring("compile".length()));
 				return;
+			} else if (line.startsWith("printClasses")) {
+				printClasses();
+				return;
 			}
 			
 			gui.clearErrors();
@@ -265,6 +271,25 @@ public class WurstREPL {
 			e.printStackTrace();
 			return;
 		}
+	}
+
+	private void printClasses() {
+		WurstModel model = modelManager.getModel();
+		for (CompilationUnit cu : model) {
+			for(ClassDef c: cu.attrGetByType().classes) {
+				String s = "class "+ c.getName();
+				if (c.attrExtendedClass() != null) {
+					s += " extends " + c.attrExtendedClass().getName();
+				}
+				s += "\n";
+				if (!c.getOnDestroy().attrHasEmptyBody()) {
+					s += "	ondestroy\n";
+					s += "		s+=\""+c.getName()+"\"\n";
+				}
+				print(s);
+			}
+		}
+		
 	}
 
 	public void handleCompileError(CompileError err) {

@@ -318,9 +318,9 @@ public class ImTranslator {
 			ImFunction impl = destroyFunc.getFor(classDef);
 			boolean abstr;
 			if (classDef instanceof ClassDef) {
-				ClassDef c = (ClassDef) classDef;
-				abstr = c.attrIsAbstract();
+				abstr = false; // all classes can have ondestroy, so this is not abstract 
 			} else {
+				// interface destroy methods are abstract
 				abstr = true;
 			}
 			ImMethod m = JassIm.ImMethod(classDef, "destroy" + classDef.getName(), 
