@@ -1,6 +1,12 @@
 package tests.wurstscript.tests;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
+
 import org.junit.Test;
+
+import com.google.common.collect.Lists;
 
 public class ClassesExtTests extends WurstScriptTest {
 	
@@ -388,6 +394,73 @@ public class ClassesExtTests extends WurstScriptTest {
 				"			testSuccess()",
 				"endpackage"
 			);
+	}
+	
+	@Test
+	public void ondestroy_dynamicdispatchFrotty1() {
+		testAssertOkLines(true,  
+				"package test",
+				"	native testSuccess()",
+				"	class A extends T",
+				"	class B extends T",
+				"		ondestroy",
+				"			s += \"B\"",
+				"	abstract class T",
+				"	string s=\"\"",
+				"	init",
+				"		T t = new A()",
+				"		destroy t",
+				"		if s == \"\"",
+				"			testSuccess()",
+				"endpackage"
+				);
+	}
+	
+	@Test
+	public void ondestroy_dynamicdispatchFrotty2() {
+		testAssertOkLines(true,  
+				"package test",
+				"	native testSuccess()",
+				"	class A implements T",
+				"	class B implements T",
+				"		ondestroy",
+				"			s += \"B\"",
+				"	interface T",
+				"		function f()",
+				"			skip",
+				"	string s=\"\"",
+				"	init",
+				"		T t = new A()",
+				"		destroy t",
+				"		if s == \"\"",
+				"			testSuccess()",
+				"endpackage"
+				);
+	}
+	
+	@Test
+	public void ondestroy_dynamicdispatchFrotty3() {
+		testAssertOkLines(true,  
+				"package test",
+				"	native testSuccess()",
+				"	abstract class C",
+				"		ondestroy",
+				"			s+=\"C\"",
+				"	class A extends C implements T",
+				"	class B extends C implements T",
+				"		ondestroy",
+				"			s += \"B\"",
+				"	interface T",
+				"		function f()",
+				"			skip",
+				"	string s=\"\"",
+				"	init",
+				"		T t = new A()",
+				"		destroy t",
+				"		if s == \"C\"",
+				"			testSuccess()",
+				"endpackage"
+				);
 	}
 	
 	@Test

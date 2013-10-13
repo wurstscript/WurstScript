@@ -1,5 +1,8 @@
 package de.peeeq.wurstscript.parser;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import de.peeeq.wurstscript.utils.LineOffsets;
 
 public class WPos {
@@ -57,6 +60,16 @@ public class WPos {
 
 	public String print() {
 		return "[" + file + ", line " + getLine() + "]";
+	}
+	
+	public String printShort() {
+		Pattern p = Pattern.compile("^.*[/\\\\]([^/\\\\]+)\\.[^\\.]*$");
+		String shortFile = file;
+		Matcher m = p.matcher(file);
+		if (m.find()) {
+		    shortFile = m.group(1);
+		}
+		return shortFile + ", line " + getLine();
 	}
 	
 }

@@ -20,11 +20,14 @@ import org.eclipse.jface.text.rules.SingleLineRule;
 import org.eclipse.jface.text.rules.Token;
 import org.eclipse.jface.text.rules.WhitespaceRule;
 import org.eclipse.jface.text.rules.WordRule;
+import org.eclipse.jface.util.IPropertyChangeListener;
+import org.eclipse.jface.util.PropertyChangeEvent;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.widgets.Display;
 
 import de.peeeq.eclipsewurstplugin.WurstConstants;
+import de.peeeq.eclipsewurstplugin.WurstPlugin;
 import de.peeeq.eclipsewurstplugin.util.UtilityFunctions;
 import de.peeeq.wurstscript.WurstKeywords;
 
@@ -35,15 +38,25 @@ public class SimpleCodeScanner extends RuleBasedScanner implements WurstScanner 
 	private Token commentToken;
 	private Token stringToken;
 	private Token jasstypeToken;
+	private Token identifierToken;
 
 	public SimpleCodeScanner() {
-		IPreferenceStore preferencestore = UtilityFunctions.getDefaultPreferenceStore();
-		jasstypeToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_JASSTYPE);
-		keywordToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_KEYWORD);
-		commentToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_COMMENT);
-		stringToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_STRING);
-		IToken identifierToken = new Token(new TextAttribute(new Color(Display.getCurrent(), 0,0,0), null, 0));
 		
+		UtilityFunctions.getDefaultPreferenceStore()
+		  .addPropertyChangeListener(new IPropertyChangeListener() {
+		    @Override
+		    public void propertyChange(PropertyChangeEvent event) {
+		    	updateColors();
+		    	setRules();
+		    	WurstPlugin.refreshEditors();
+		    }
+		  }); 
+		
+		updateColors();
+		setRules();
+	}
+
+	private void setRules() {
 		WordRule keywordRule = new WordRule(new IWordDetector() {
 			public boolean isWordStart(char c) {
 				return Character.isJavaIdentifierStart(c);
@@ -76,6 +89,16 @@ public class SimpleCodeScanner extends RuleBasedScanner implements WurstScanner 
 				keywordRule,
 
 			});
+	}
+
+	private void updateColors() {
+		IPreferenceStore preferencestore = UtilityFunctions.getDefaultPreferenceStore();
+		jasstypeToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_JASSTYPE);
+		keywordToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_KEYWORD);
+		commentToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_COMMENT);
+		stringToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_STRING);
+		identifierToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_TEXT);
+		System.out.println("Colors updated");
 	}
 
 	private Token makeToken(IPreferenceStore preferencestore, String key) {

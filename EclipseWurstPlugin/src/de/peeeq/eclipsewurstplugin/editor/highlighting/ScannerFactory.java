@@ -19,16 +19,10 @@ import de.peeeq.eclipsewurstplugin.util.UtilityFunctions;
 
 public class ScannerFactory {
 
-	private ITokenScanner hotDocScanner;
-	private ITokenScanner wurstCodeScanner;
-	private ITokenScanner multilineCommentScanner;
 	private IPreferenceStore preferencestore;
 
 	public ScannerFactory() {
 		preferencestore = UtilityFunctions.getDefaultPreferenceStore();
-		wurstCodeScanner = new SimpleCodeScanner();
-		hotDocScanner = new SingleTokenScanner(getStyle(WurstConstants.SYNTAXCOLOR_COMMENT));
-		multilineCommentScanner = new SingleTokenScanner(getStyle(WurstConstants.SYNTAXCOLOR_COMMENT));
 	}
 	
 	private TextAttribute getStyle(String key) {

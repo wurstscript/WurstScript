@@ -236,6 +236,15 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 		setDocumentProvider(createDocumentProvider(input));
 		super.doSetInput(input);
 	}
+	
+	public void refresh() {
+		try {
+			// TODO is there a nicer solution to refresh? :D
+			doSetInput(getEditorInput());
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
+	}
 
 	private IDocumentProvider createDocumentProvider(IEditorInput input) {
 		if (input instanceof IStorageEditorInput){

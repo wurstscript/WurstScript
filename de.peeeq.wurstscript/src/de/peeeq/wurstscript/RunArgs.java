@@ -18,6 +18,7 @@ public class RunArgs {
 	private boolean runtests;
 	private boolean createHotDoc;
 	private boolean localOptimizations;
+	private boolean includeStacktraces;
 	
 	public static RunArgs defaults() {
 		return new RunArgs(new String[] {});
@@ -50,6 +51,8 @@ public class RunArgs {
 					this.showLastErrors = true;
 				} else if (a.equals("-runcompiletimefunctions")) {
 					runCompiletimeFunctions  = true;
+				} else if (a.equals("-stacktraces")) {
+					includeStacktraces = true;
 				} else {
 					throw new Error("Unknown option: " + a);
 				}
@@ -155,6 +158,9 @@ public class RunArgs {
 		return localOptimizations;
 	}
 
-
+	public boolean isIncludeStacktraces() {
+		return includeStacktraces;
+	}
+	
 
 }
