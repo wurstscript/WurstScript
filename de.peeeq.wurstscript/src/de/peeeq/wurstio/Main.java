@@ -52,6 +52,11 @@ public class Main {
 		SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy hh:mm:ss");
 		Date myDate = new Date();
 		WLogger.info( ">>> " + sdf.format(myDate) + " - Started compiler ("+About.version+") with args " + Utils.printSep(", ", args));
+		try {
+			WLogger.info("compiler path1: " + Main.class.getProtectionDomain().getCodeSource().getLocation());
+			WLogger.info("compiler path2: " + ClassLoader.getSystemClassLoader().getResource(".").getPath());
+		} catch (Throwable t) {}
+		
 		
 		WurstGui gui = null;
 		WurstCompilerJassImpl compiler = null;
