@@ -1,0 +1,103 @@
+package ClosureEvents
+import HashMap
+
+//CastStuff
+
+init
+	CreateTrigger()
+		.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_CAST)
+		.addAction(function handleCasts)
+
+/** run an onCast action whenever an ability without target of type abiCode is cast 
+
+Example usage: 
+|	onCast('A000', (unit caster, int lvl) -> begin
+|		doStuff()
+|	end)
+
+*/
+public function onCast(int abiCode, OnCast action)
+	action.register(abiCode)
+	
+/** run an onCast action whenever an ability with point target of type abiCode is cast 
+
+Example usage:
+|	onPointCast('A000', (unit caster, int lvl, vec2 pos) -> begin
+|		doStuff()
+|	end)
+
+*/
+public function onPointCast(int abiCode, OnPointCast action)
+	action.register(abiCode)
+
+/** run an onCast action whenever an ability with a unit target of type abiCode is cast 
+
+Example usage:
+|	onUnitCast('A000', (unit caster, int lvl, unit target) -> begin
+|		doStuff()
+|	end)
+
+*/	
+public function onUnitCast(int abiCode, OnUnitCast action)
+	action.register(abiCode)
+
+
+	
+public abstract class OnCast
+	static HashMap<int, thistype> casts = new HashMap<int, thistype>()
+	private int abiCode
+	
+	function register(int abiCode)
+		this.abiCode = abiCode
+		casts.put(abiCode, this)
+	
+	protected abstract function run(unit caster, int lvl)
+	
+	ondestroy
+		casts.put(abiCode, null)
+		
+public abstract class OnPointCast
+	static HashMap<int, thistype> casts = new HashMap<int, thistype>()
+	private int abiCode
+	
+	function register(int abiCode)
+		this.abiCode = abiCode
+		casts.put(abiCode, this)
+	
+	protected abstract function run(unit caster, int lvl, vec2 pos)
+	
+	ondestroy
+		casts.put(abiCode, null)
+		
+public abstract class OnUnitCast
+	static HashMap<int, thistype> casts = new HashMap<int, thistype>()
+	private int abiCode
+	
+	function register(int abiCode)
+		this.abiCode = abiCode
+		casts.put(abiCode, this)
+	
+	protected abstract function run(unit caster, int lvl, unit target)
+	
+	ondestroy
+		casts.put(abiCode, null)
+		
+function handleCasts()
+	unit caster = GetTriggerUnit()
+	int lvl = GetUnitAbilityLevel(caster, GetSpellAbilityId())
+	if GetSpellTargetUnit() != null
+		let c = OnUnitCast.casts.get(GetSpellAbilityId())
+		if c != null
+			c.run(caster, lvl, GetSpellTargetUnit())
+	else if GetSpellTargetX() != 0
+		let c = OnPointCast.casts.get(GetSpellAbilityId())
+		if c != null
+			c.run(caster, lvl, vec2(GetSpellTargetX(), GetSpellTargetY()))
+	else
+		let c = OnCast.casts.get(GetSpellAbilityId())
+		if c != null
+			c.run(caster, lvl)
+		
+
+	
+
