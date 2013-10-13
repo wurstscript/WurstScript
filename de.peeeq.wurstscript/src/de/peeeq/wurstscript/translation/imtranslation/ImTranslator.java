@@ -74,6 +74,7 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WurstModel;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImCall;
@@ -461,19 +462,26 @@ public class ImTranslator {
 		return v ;
 	}
 
-	public ImVar getThisVar(ExprThis e) {
-		return getThisVarForNode(e);
+	public ImVar getThisVar(ImFunction f, ExprThis e) {
+		return getThisVarForNode(f, e);
 	}
 
-	public ImVar getThisVar(ExprSuper e) {
-		return getThisVarForNode(e);
+	public ImVar getThisVar(ImFunction f, ExprSuper e) {
+		return getThisVarForNode(f, e);
 	}
 
-	private ImVar getThisVarForNode(AstElement node) {
-		while (!(node instanceof TranslatedToImFunction) || node instanceof ExprClosure) {
+	private ImVar getThisVarForNode(ImFunction f, AstElement node1) {
+		AstElement node = node1;
+		while (node != null ) {
+			if (node instanceof TranslatedToImFunction && !(node instanceof ExprClosure)) {
+				return getThisVar((TranslatedToImFunction) node);
+			}
 			node = node.getParent();
 		}
-		return getThisVar((TranslatedToImFunction) node);
+		if (f.getParameters().isEmpty()) {
+			throw new CompileError(node1.attrSource(), "Could not get 'this'.");
+		}
+		return f.getParameters().get(0);
 	}
 
 

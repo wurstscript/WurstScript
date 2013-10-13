@@ -386,6 +386,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		
 		// translate flattened intermediate lang to jass:
 		
+		
+		imTranslator.calculateCallRelationsAndUsedVariables();
 		ImToJassTranslator translator = new ImToJassTranslator(imProg, imTranslator.getCalledFunctions()
 				, imTranslator.getMainFunc(), imTranslator.getConfFunc());
 		JassProg p = translator.translate();

@@ -253,12 +253,12 @@ public class ExprTranslation {
 	}
 
 	public static ImExpr translateIntern(ExprThis e, ImTranslator t, ImFunction f) {
-		ImVar var = t.getThisVar(e);
+		ImVar var = t.getThisVar(f, e);
 		return ImVarAccess(var);
 	}
 	
 	public static ImExpr translateIntern(ExprSuper e, ImTranslator t, ImFunction f) {
-		ImVar var = t.getThisVar(e);
+		ImVar var = t.getThisVar(f, e);
 		return ImVarAccess(var);
 	}
 
