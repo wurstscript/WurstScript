@@ -656,4 +656,19 @@ public class ClassesTests extends WurstScriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void thisHandling() { // see bug #145
+		testAssertOkLines(true,
+				"package test",
+				"	native testSuccess()",
+				"	class A",
+				"		int i = this castTo int",
+				"	init",
+				"		let a = new A",
+				"		if a.i == 1",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
 }

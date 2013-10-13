@@ -20,6 +20,7 @@ public class LadikMpq implements MpqEditor {
 			throws IOException, InterruptedException {
 		Runtime rt = Runtime.getRuntime();
 		File tempFile1 = getNewTempFile(fileToExtract, 0);
+		WLogger.info("Extracting " + fileToExtract + " from " + mpqArchive.getAbsolutePath() + " into " + tempFile1.getAbsolutePath());
 		File script = MoPaqScriptfiles.extractFile(mpqArchive, fileToExtract);
 		
 		String[] commands = {MpqEditorFactory.getFilepath(), "/console", script.getAbsolutePath()};
@@ -35,7 +36,7 @@ public class LadikMpq implements MpqEditor {
 			WLogger.info(line);
 		}
 		if (!tempFile1.exists()) {
-			throw new IOException("could not extract file");
+			throw new IOException("Could not extract file " + fileToExtract + " from " + mpqArchive.getAbsolutePath());
 		}
 		script.delete();
 		return tempFile1;

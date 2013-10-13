@@ -1,0 +1,122 @@
+package ClosureTimers
+
+import HashMap
+
+/** execute an action periodically.
+	The callback has to be destroyed manually.
+	
+	Example use:
+	| doPeriodically(0.5, (CallbackPeriodic cb) -> begin
+	|     doSomething()		
+	|     if someCondition()
+	|         destroy cb
+	| end)
+	
+*/
+public function doPeriodically(real time, CallbackPeriodic cb)
+	cb.start(time)
+	
+/** execute an action periodically, with a limited amount of calls 
+	The callback object is destroyed after the action has been executed callAmount times.
+	
+	Example use:
+	| doPeriodicallyCounted(0.5, 100, () -> begin
+	|     doSomething()		
+	| end)
+	
+*/
+public function doPeriodicallyCounted(real time, int callAmount, CallbackCounted cb) 
+	cb.start(time, callAmount)
+	
+/** execute an action periodically, with a limited duration 
+	The callback object is destroyed afterwards.
+	
+	Example use:
+	| doPeriodicallyCounted(0.5, 10., () -> begin
+	|     doSomething()		
+	| end)
+	
+*/	
+public function doPeriodicallyTimed(real interval, real timerDuration, CallbackCounted cb)
+	doPeriodicallyCounted(interval, (timerDuration / interval + 0.5).toInt(), cb)
+			
+/** execute an action after a certain time 
+	The callback object is destroyed afterwards.
+	
+	Example use:
+	| doAfter(10.0, () -> begin
+	|     print("10 seconds later")		
+	| end)
+	
+*/			
+public function doAfter(real timeToWait, CallbackSingle cb)
+	cb.start(timeToWait)
+	
+/** execute an action after running a 0-second timer 
+	The callback object is destroyed afterwards.
+*/
+public function nullTimer(CallbackSingle cb)
+	doAfter(0, cb)
+	
+	
+
+//Timer Stuff	
+public abstract class CallbackSingle
+	
+	abstract function call()
+	
+	function start(real time)
+		getTimer()
+		.setData(this castTo int)
+		.start(time, function staticCallback)
+			
+	private static function staticCallback()
+		timer t = GetExpiredTimer()
+		thistype cb = t.getData() castTo thistype
+		cb.call()
+		destroy cb
+		t.release()
+		
+
+public abstract class CallbackPeriodic
+	private timer t
+	
+	protected abstract function call(thistype cb)
+
+	function start(real time)
+		this.t = getTimer()
+		t.start(time, function staticCallback)
+		
+	private static function staticCallback()
+		let cb = (GetExpiredTimer().getData() castTo thistype)
+		cb.call(cb)
+		
+	ondestroy
+		t.release()
+		
+public abstract class CallbackCounted
+	private timer t
+	private int count = 0
+	private int maxCount
+	
+	protected abstract function call(thistype cb)
+
+	function start(real time, int callAmount)
+		this.t = getTimer()
+		maxCount = callAmount
+		t.start(time, function staticCallback)
+		
+	private static function staticCallback()
+		(GetExpiredTimer().getData() castTo thistype).callAndCount()
+		
+	private function callAndCount()
+		call(this)
+		count++
+		if count >= maxCount
+			destroy this
+		
+	ondestroy
+		t.release()
+		
+
+	

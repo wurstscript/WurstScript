@@ -45,13 +45,18 @@ public class Main {
 			RunArgs.printHelpAndExit();
 		}
 		setUpFileLogging();
-		
+		WLogger.keepLogs(true);
 		
 		
 		//		JOptionPane.showMessageDialog(null , "time to connect profiler ^^");
 		SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy hh:mm:ss");
 		Date myDate = new Date();
-		WLogger.info( ">>> " + sdf.format(myDate) + " - Started compiler at with args " + Utils.printSep(", ", args));
+		WLogger.info( ">>> " + sdf.format(myDate) + " - Started compiler ("+About.version+") with args " + Utils.printSep(", ", args));
+		try {
+			WLogger.info("compiler path1: " + Main.class.getProtectionDomain().getCodeSource().getLocation());
+			WLogger.info("compiler path2: " + ClassLoader.getSystemClassLoader().getResource(".").getPath());
+		} catch (Throwable t) {}
+		
 		
 		WurstGui gui = null;
 		WurstCompilerJassImpl compiler = null;
@@ -194,7 +199,7 @@ public class Main {
 			} catch (Throwable t2) {
 				WLogger.severe(t2);
 			}
-
+			
 			ErrorReporting.instance.handleSevere(t, source);
 			
 
