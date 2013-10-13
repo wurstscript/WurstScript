@@ -39,6 +39,7 @@ import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
 import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.AssertProperty;
+import de.peeeq.wurstscript.translation.imtranslation.DebugMessageRemover;
 import de.peeeq.wurstscript.translation.imtranslation.EliminateClasses;
 import de.peeeq.wurstscript.translation.imtranslation.FuncRefRemover;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
@@ -324,10 +325,16 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		printDebugImProg("./test-output/im " + stage++ + "_classesEliminated.im");
 		
 		
-		// debug: add stacktraces
-		if (runArgs.isIncludeStacktraces()) {
-			new StackTraceInjector(imProg).transform();
+		
+		if (runArgs.isNoDebugMessages()) {
+			DebugMessageRemover.removeDebugMessages(imProg);
+		} else {
+			// debug: add stacktraces
+			if (runArgs.isIncludeStacktraces()) {
+				new StackTraceInjector(imProg).transform();
+			}
 		}
+		
 		
 		// inliner
 		ImOptimizer optimizer = new ImOptimizer(imTranslator);

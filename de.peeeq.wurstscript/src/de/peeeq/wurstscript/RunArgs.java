@@ -19,6 +19,7 @@ public class RunArgs {
 	private boolean createHotDoc;
 	private boolean localOptimizations;
 	private boolean includeStacktraces;
+	private boolean noDebugMessages;
 	
 	public static RunArgs defaults() {
 		return new RunArgs(new String[] {});
@@ -53,6 +54,8 @@ public class RunArgs {
 					runCompiletimeFunctions  = true;
 				} else if (a.equals("-stacktraces")) {
 					includeStacktraces = true;
+				} else if (a.equals("-nodebug")) {
+					noDebugMessages = true;
 				} else {
 					throw new Error("Unknown option: " + a);
 				}
@@ -162,5 +165,7 @@ public class RunArgs {
 		return includeStacktraces;
 	}
 	
-
+	public boolean isNoDebugMessages() {
+		return noDebugMessages;
+	}
 }

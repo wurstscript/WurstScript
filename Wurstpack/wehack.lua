@@ -91,6 +91,8 @@ if havewurst then
 	wurst_optenable = TogMenuEntry:New(wurstmenu,"Enable Froptimizer",nil,false)
 	wurst_localoptenable = TogMenuEntry:New(wurstmenu,"Enable (experimental) local optimizations",nil,false)
 	wurst_inliner = TogMenuEntry:New(wurstmenu, "Enable Inliner",nil,false)
+	wurst_stacktraces = TogMenuEntry:New(wurstmenu, "Enable stack-traces",nil,false)
+	wurst_nodebug = TogMenuEntry:New(wurstmenu, "Disable debug messages",nil,false)
 	wurst_compiletimefunctions  = TogMenuEntry:New(wurstmenu, "Run compiletime functions",nil,false)
 	
 	wehack.addmenuseparator(wurstmenu)
@@ -417,6 +419,12 @@ grim.log("running tool on save: "..cmdargs)
 		end
 		if wurst_inliner.checked then
 			cmdline = cmdline .. " -inline"
+		end
+		if wurst_stacktraces.checked then
+			cmdline = cmdline  .. " -stacktraces"
+		end
+		if wurst_nodebug.checked then
+			cmdline = cmdline  .. " -nodebug"
 		end
 		if wurst_compiletimefunctions.checked then
 			cmdline = cmdline .. " -runcompiletimefunctions"
