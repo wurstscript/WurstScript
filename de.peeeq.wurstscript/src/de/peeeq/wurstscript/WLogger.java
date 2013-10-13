@@ -22,6 +22,8 @@ public abstract class WLogger {
 	}
 	
 	private static void keep(String string, String msg) {
+		if (logSb == null) 
+			return;
 		logSb.append(level + ":" + msg + "\n");
 	}
 
