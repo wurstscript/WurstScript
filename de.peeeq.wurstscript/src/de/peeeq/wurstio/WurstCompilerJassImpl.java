@@ -40,7 +40,9 @@ import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
 import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.AssertProperty;
 import de.peeeq.wurstscript.translation.imtranslation.EliminateClasses;
+import de.peeeq.wurstscript.translation.imtranslation.FuncRefRemover;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.StackTraceInjector;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.NotNullList;
 import de.peeeq.wurstscript.utils.Utils;
@@ -322,6 +324,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		printDebugImProg("./test-output/im " + stage++ + "_classesEliminated.im");
 		
 		
+		// debug: add stacktraces
+		if (runArgs.isIncludeStacktraces()) {
+			new StackTraceInjector(imProg).transform();
+		}
+		
 		// inliner
 		ImOptimizer optimizer = new ImOptimizer(imTranslator);
 		
@@ -367,6 +374,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			
 			printDebugImProg("./test-output/im " + stage++ + "_afteroptimize.im");
 		}
+		
+		new FuncRefRemover(imProg, imTranslator).run();
 		
 		// translate flattened intermediate lang to jass:
 		
