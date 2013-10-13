@@ -12,9 +12,15 @@ import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.preference.PreferenceConverter;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.swt.graphics.RGB;
+import org.eclipse.ui.IEditorPart;
+import org.eclipse.ui.IEditorReference;
+import org.eclipse.ui.IEditorSite;
+import org.eclipse.ui.IWorkbenchWindow;
+import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 
+import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
 import de.peeeq.eclipsewurstplugin.editor.highlighting.ScannerFactory;
 import de.peeeq.eclipsewurstplugin.ui.WurstPerspective;
 import de.peeeq.wurstscript.WLogger;
@@ -115,6 +121,7 @@ public class WurstPlugin extends AbstractUIPlugin {
 		//Initialize default values of preferenceStore
 		
 		//Colors for syntax highlighting
+		setDefaultValue(SYNTAXCOLOR_COLOR + SYNTAXCOLOR_TEXT,    	 SYNTAXCOLOR_RGB_TEXT);
 		setDefaultValue(SYNTAXCOLOR_COLOR + SYNTAXCOLOR_KEYWORD,     SYNTAXCOLOR_RGB_KEYWORD);
 		setDefaultValue(SYNTAXCOLOR_COLOR + SYNTAXCOLOR_JASSTYPE,    SYNTAXCOLOR_RGB_JASSTYPE);
 		setDefaultValue(SYNTAXCOLOR_COLOR + SYNTAXCOLOR_STRING,      SYNTAXCOLOR_RGB_STRING);
@@ -207,6 +214,16 @@ public class WurstPlugin extends AbstractUIPlugin {
 	public static WurstEclipseConfig config() {
 		return new WurstEclipseConfig(getDefaultPreferenceStore());
 		
+	}
+
+	public static void refreshEditors() {
+		IWorkbenchWindow wb = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+		for (IEditorReference ref:wb.getActivePage().getEditorReferences()) {
+			if (ref.getEditor(false) instanceof WurstEditor) {
+				WurstEditor ed = (WurstEditor) ref.getEditor(false);
+				ed.refresh();
+			}
+		}
 	}
 	
 }

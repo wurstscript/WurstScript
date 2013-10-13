@@ -16,11 +16,11 @@ import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 
 import de.peeeq.eclipsewurstplugin.util.UtilityFunctions;
-
 import static de.peeeq.eclipsewurstplugin.WurstConstants.*;
+
+
 /**
- * Preference page for syntax highlighting of the ABS editor.
- * @author tfischer
+ * Preference page for syntax highlighting of the editor.
  */
 public class WurstSyntaxColoring extends PreferencePage implements IWorkbenchPreferencePage{
 
@@ -30,6 +30,14 @@ public class WurstSyntaxColoring extends PreferencePage implements IWorkbenchPre
 	private BooleanFieldEditor styleItalic;
 	private BooleanFieldEditor styleUnderline;
 	private BooleanFieldEditor styleStrikethrough;
+	
+	final String[] options = {
+			SYNTAXCOLOR_KEYWORD,
+			SYNTAXCOLOR_STRING, 
+			SYNTAXCOLOR_COMMENT,
+			SYNTAXCOLOR_JASSTYPE,
+			SYNTAXCOLOR_TEXT,			
+	};
 	
 	/**
 	 * Selection listener handling selection events on the list of elements
@@ -45,17 +53,10 @@ public class WurstSyntaxColoring extends PreferencePage implements IWorkbenchPre
 		@Override
 		public void widgetSelected(SelectionEvent e) {
 			performOk();
-			switch(list.getSelectionIndex()){
-			case 0: updateEditors(SYNTAXCOLOR_KEYWORD);  	break;
-			case 1: updateEditors(SYNTAXCOLOR_STRING);   	break;
-			case 2: updateEditors(SYNTAXCOLOR_COMMENT);  	break;
-			case 3: updateEditors(SYNTAXCOLOR_FUNCTION); 	break;
-			case 4: updateEditors(SYNTAXCOLOR_DATATYPE); 	break;
-			case 5: updateEditors(SYNTAXCOLOR_VAR);     	break;
-			case 6: updateEditors(SYNTAXCOLOR_PARAM);		break;
-			case 7: updateEditors(SYNTAXCOLOR_FIELD);    	break;
-			case 8: updateEditors(SYNTAXCOLOR_INTERFACE);	break;
-			case 9: updateEditors(SYNTAXCOLOR_CONSTRUCTOR); break;
+			
+			int i = list.getSelectionIndex();
+			if (i >= 0 && i < options.length) {
+				updateEditors(options[i]);
 			}
 		}
 
@@ -90,9 +91,11 @@ public class WurstSyntaxColoring extends PreferencePage implements IWorkbenchPre
 		Composite selectorContainer = new Composite(container, SWT.NONE);
 		selectorContainer.setLayout(new GridLayout(1, false));
 		
+		String selection = options[0];
+		
 		//Add color editor
 		Composite colorContainer = new Composite(selectorContainer, SWT.NONE);
-		color = new ColorFieldEditor(SYNTAXCOLOR_COLOR + SYNTAXCOLOR_KEYWORD, "Color", colorContainer);
+		color = new ColorFieldEditor(SYNTAXCOLOR_COLOR + selection, "Color", colorContainer);
 
 		//Create and add style group
 		Group styleContainer = new Group(selectorContainer, SWT.NONE);
@@ -106,10 +109,10 @@ public class WurstSyntaxColoring extends PreferencePage implements IWorkbenchPre
 		Composite styleUnderlineContainer     = new Composite(styleContainer, SWT.NONE);
 		Composite styleStrikethroughContainer = new Composite(styleContainer, SWT.NONE);
 		
-		styleBold          = new BooleanFieldEditor(SYNTAXCOLOR_BOLD + SYNTAXCOLOR_KEYWORD, "Bold", styleBoldContainer);
-		styleItalic        = new BooleanFieldEditor(SYNTAXCOLOR_ITALIC + SYNTAXCOLOR_KEYWORD, "Italic", styleItalicContainer);
-		styleUnderline     = new BooleanFieldEditor(SYNTAXCOLOR_UNDERLINE + SYNTAXCOLOR_KEYWORD, "Underline", styleUnderlineContainer);
-		styleStrikethrough = new BooleanFieldEditor(SYNTAXCOLOR_STRIKETHROUGH + SYNTAXCOLOR_KEYWORD, "Strike through", styleStrikethroughContainer);
+		styleBold          = new BooleanFieldEditor(SYNTAXCOLOR_BOLD + selection, "Bold", styleBoldContainer);
+		styleItalic        = new BooleanFieldEditor(SYNTAXCOLOR_ITALIC + selection, "Italic", styleItalicContainer);
+		styleUnderline     = new BooleanFieldEditor(SYNTAXCOLOR_UNDERLINE + selection, "Underline", styleUnderlineContainer);
+		styleStrikethrough = new BooleanFieldEditor(SYNTAXCOLOR_STRIKETHROUGH + selection, "Strike through", styleStrikethroughContainer);
 		
 		//Link editors with the default preferenceStore
 		color.setPreferenceStore(UtilityFunctions.getDefaultPreferenceStore());
@@ -119,7 +122,7 @@ public class WurstSyntaxColoring extends PreferencePage implements IWorkbenchPre
 		styleStrikethrough.setPreferenceStore(UtilityFunctions.getDefaultPreferenceStore());
 		
 		//Load values for keyword
-		updateEditors(SYNTAXCOLOR_KEYWORD);
+		updateEditors(selection);
 		return container;
 	}
 
@@ -130,16 +133,9 @@ public class WurstSyntaxColoring extends PreferencePage implements IWorkbenchPre
 	 */
 	private void populateList(final List list) {
 		if(list != null){
-			list.add("Keywords");
-			list.add("Strings");
-			list.add("Comments");
-//			list.add("Functions");
-//			list.add("Datatypes");
-//			list.add("Variables");
-//			list.add("Parameters");
-//			list.add("Fields");
-//			list.add("Interfaces");
-//			list.add("Typeconstructors");
+			for (String option : options) {
+				list.add(option);
+			}
 		}
 	}
 	
