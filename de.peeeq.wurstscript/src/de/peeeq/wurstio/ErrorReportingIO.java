@@ -32,6 +32,7 @@ public class ErrorReportingIO extends ErrorReporting {
 	public void handleSevere(Throwable t, String sourcecode) {
 		WLogger.severe(t);
 		
+		sourcecode = WLogger.getLog() + "\n\nSource Code: \n\n" + sourcecode;
 		
 		try {
 			UIManager.setLookAndFeel(
@@ -42,6 +43,8 @@ public class ErrorReportingIO extends ErrorReporting {
 		
 		String title  = "Sorry!";
 		String message = "You have encountered a bug in the Wurst Compiler.\n" +
+				"Your version is: " + About.version + "\n" +
+				"The Error message is: " + t.getMessage() + "\n" + Utils.printStackTrace(t.getStackTrace()) + "\n\n" + 
 				"What do you want to do in order to help us fix this bug?";
 		
 		Object[] options = {
