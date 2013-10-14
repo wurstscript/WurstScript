@@ -120,6 +120,7 @@ public class StackTraceInjector {
 			
 			ImFunction bridgeFunc = JassIm.ImFunction(f.getTrace(), "bridge_" + f.getName(), 
 					f.getParameters().copy(), (ImType) f.getReturnType().copy(), JassIm.ImVars(), JassIm.ImStmts(), f.getFlags());
+			prog.getFunctions().add(bridgeFunc);
 			
 			//remove statcktrace var from params
 			bridgeFunc.getParameters().remove(getStackTraceVar(bridgeFunc));
