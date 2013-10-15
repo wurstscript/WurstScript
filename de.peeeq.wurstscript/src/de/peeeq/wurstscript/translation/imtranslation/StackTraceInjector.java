@@ -81,8 +81,15 @@ public class StackTraceInjector {
 	private void addStackTraceParams(Set<ImFunction> affectedFuncs) {
 		// add parameter to affected functions
 		for (ImFunction f : affectedFuncs) {
+			if (isMainOrConfig(f)) {
+				continue;
+			}
 			f.getParameters().add(JassIm.ImVar(WurstTypeString.instance().imTranslateType(), WURST_STACK_TRACE, false));
 		}
+	}
+
+	private boolean isMainOrConfig(ImFunction f) {
+		return f.getName().equals("main") || f.getName().equals("config");
 	}
 
 	private void passStacktraceParams(
@@ -93,13 +100,11 @@ public class StackTraceInjector {
 			for (ImFunctionCall call : calls.get(f)) {
 				ImFunction caller = call.getNearestFunc();
 				ImExpr stExpr;
-				if (caller.getName().equals("main")) {
-					stExpr = str("   main");
-				} else if (caller.getName().equals("config")) {
-					stExpr = str("   config");
+				if (isMainOrConfig(caller)) {
+					stExpr = str("   " + f.getName());
 				} else {
 					ImVar stackTraceVar = getStackTraceVar(caller); 
-					String callPos = "\\n   " + call.attrTrace().attrSource().printShort();
+					String callPos = "\n   " + call.attrTrace().attrSource().printShort();
 					stExpr = JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(
 							str(callPos),
 							JassIm.ImVarAccess(stackTraceVar)
