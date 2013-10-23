@@ -104,7 +104,7 @@ public class ClosureTranslator {
 		
 		transformTranslated(translated);
 		
-		if (e.attrTyp().isVoid()) {
+		if (e.getImplementation().attrTyp().isVoid()) {
 			impl.getBody().add(translated);
 		} else {
 			impl.getBody().add(JassIm.ImReturn(e, translated));
