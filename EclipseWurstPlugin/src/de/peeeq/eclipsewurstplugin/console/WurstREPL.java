@@ -205,6 +205,10 @@ public class WurstREPL {
 			} catch (CompileError err) {
 				handleCompileError(err);
 				return;
+			} catch (TestFailException e) {
+				print(e + "\n");
+			} catch (TestSuccessException e) {
+				print("Test successful.\n");
 			} catch (Throwable t) {
 				// if there was an error, check if there is a problem in typechecking:
 				
@@ -218,7 +222,7 @@ public class WurstREPL {
 				// if there was no comile error
 				// this is probably a bug
 				print("You discovered a bug in the interpreter: \n");
-				print(t.getMessage()+"\n");
+				print(t+"\n");
 				WLogger.severe(t);
 			}
 			
@@ -270,6 +274,9 @@ public class WurstREPL {
 			print("Error: " + e + "\n");
 			e.printStackTrace();
 			return;
+		} finally {
+			// remove repl file again
+			modelManager.removeCompilationUnitByName(REPL_DUMMY_FILENAME);
 		}
 	}
 
@@ -357,6 +364,7 @@ public class WurstREPL {
 	}
 
 	private void runTests() {
+		modelManager.removeCompilationUnit(null);
 		ImProg imProg = translateProg();
 		if (imProg == null) {
 			return;
@@ -365,14 +373,19 @@ public class WurstREPL {
 		Map<ImFunction, Pair<ImStmt, String>> failTests = Maps.newLinkedHashMap();
 		for (ImFunction f : imProg.getFunctions()) {
 			if (f.hasFlag(FunctionFlag.IS_TEST)) {
+				print("Testing " + Utils.printElementWithSource(f.attrTrace()) + "	... ");
 				try {
 					interpreter.runVoidFunc(f);
 					successTests.add(f);
 				} catch (TestSuccessException e) {
-					successTests.add(f);
+					print("  ✓");
 				} catch (TestFailException e) {
 					failTests.put(f, Pair.create(interpreter.getLastStatement(), e.toString()));
+					print("FAIL\n");
+					continue;
 				}
+				successTests.add(f);
+				print("✓\n");
 			}
 		}
 		print(successTests.size() + " tests OK, ");
@@ -385,9 +398,11 @@ public class WurstREPL {
 	}
 
 	private ImProg translateProg() {
+		gui.clearErrors();
 		WurstModel model = modelManager.getModel();
 		modelManager.typeCheckModel(gui, false, false);
 		if (gui.getErrorCount() > 0) {
+			print(gui.getErrors() + "\n");
 			return null;
 		}
 		ImProg imProg = translate(model);

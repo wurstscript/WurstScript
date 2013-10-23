@@ -255,5 +255,17 @@ public class ModelManagerImpl implements ModelManager {
 		return nature;
 	}
 
+	@Override
+	public void removeCompilationUnitByName(String fileName) {
+		ListIterator<CompilationUnit> it = model.listIterator();
+		while (it.hasNext()) {
+			CompilationUnit cu = it.next();
+			if (cu.getFile().equals(fileName)) {
+				it.remove();
+				break;
+			}
+		}
+	}
+
 	
 }

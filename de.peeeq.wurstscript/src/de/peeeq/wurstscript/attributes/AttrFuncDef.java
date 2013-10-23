@@ -243,6 +243,10 @@ public class AttrFuncDef {
 
 
 	private static List<NameLink> filterInvisible(String funcName, AstElement node, Collection<NameLink> funcs1) throws EarlyReturn {
+		if (node.attrSource().getFile().equals("<REPL>")) {
+			// no filtering of invisible names in repl:
+			return Lists.newArrayList(funcs1);
+		}
 		List<NameLink> funcs2 = Lists.newArrayListWithCapacity(funcs1.size());
 		for (NameLink nl : funcs1) {
 			if (!(nl.getVisibility() == Visibility.PRIVATE_OTHER

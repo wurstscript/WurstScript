@@ -38,4 +38,6 @@ public interface ModelManager {
 	
 	WurstNature getNature();
 
+	void removeCompilationUnitByName(String replDummyFilename);
+
 }
