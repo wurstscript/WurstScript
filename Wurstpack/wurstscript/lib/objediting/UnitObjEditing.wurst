@@ -56,7 +56,7 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setUnitClassification(string data)
 		def.setString("utyp", data)
 
-	function setType(string data)
+	function setMovementType(string data)
 		def.setString("umvt", data)
 
 	function setTurnRate(real data)
@@ -77,7 +77,7 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setTeamColor(string data)
 		def.setString("utco", data)
 
-	function setTargetedas(string data)
+	function setTargetedAs(string data)
 		def.setString("utar", data)
 
 	function setTarget(string data)
@@ -167,7 +167,7 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setRepairGoldCost(int data)
 		def.setInt("ugor", data)
 
-	function setRandom(string data)
+	function setRandomSound(string data)
 		def.setString("ursl", data)
 
 	function setRace(string data)
@@ -215,7 +215,7 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setNameEditorSuffix(string data)
 		def.setString("unsf", data)
 
-	function setMovement(string data)
+	function setMovementSound(string data)
 		def.setString("umsl", data)
 
 	function setModelFileExtraVersions(string data)
@@ -245,10 +245,10 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setLumberCost(int data)
 		def.setInt("ulum", data)
 
-	function setLoopingFadeOutRate(int data)
+	function setSoundLoopingFadeOutRate(int data)
 		def.setInt("ulfo", data)
 
-	function setLoopingFadeInRate(int data)
+	function setSoundLoopingFadeInRate(int data)
 		def.setInt("ulfi", data)
 
 	function setIsaBuilding(boolean data)
@@ -269,10 +269,10 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setHitPointsMaximumBase(int data)
 		def.setInt("uhpm", data)
 
-	function setHeightMinimum(real data)
+	function setMovementHeightMinimum(real data)
 		def.setReal("umvf", data)
 
-	function setHeight(real data)
+	function setMovementHeight(real data)
 		def.setReal("umvh", data)
 
 	function setHasWaterShadow(boolean data)
@@ -299,7 +299,7 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setFoodCost(int data)
 		def.setInt("ufoo", data)
 
-	function setFogofWarSampleRadius(real data)
+	function setFogOfWarSampleRadius(real data)
 		def.setReal("ufrd", data)
 
 	function setElevationSampleRadius(real data)
@@ -589,7 +589,7 @@ public class HeroDefinition extends UnitOrHeroDefinition
 	function setTooltipAwaken(string data)
 		def.setString("uawt", data)
 
-	function setStrengthperLevel(real data)
+	function setStrengthPerLevel(real data)
 		def.setReal("ustp", data)
 
 	function setStartingStrength(int data)
@@ -610,7 +610,7 @@ public class HeroDefinition extends UnitOrHeroDefinition
 	function setPrimaryAttribute(string data)
 		def.setString("upra", data)
 
-	function setIntelligenceperLevel(real data)
+	function setIntelligencePerLevel(real data)
 		def.setReal("uinp", data)
 
 	function setHeroRevivalLocations(string data)
@@ -619,7 +619,7 @@ public class HeroDefinition extends UnitOrHeroDefinition
 	function setHeroAbilities(string data)
 		def.setString("uhab", data)
 
-	function setAgilityperLevel(real data)
+	function setAgilityPerLevel(real data)
 		def.setReal("uagp", data)
 
 public class UnitDefinition extends UnitOrHeroDefinition
@@ -686,7 +686,7 @@ public class BuildingDefinition extends UnitOrBuildingOrHeroDefinition
 	function setGroundTexture(string data)
 		def.setString("uubs", data)
 
-	function setConstruction(string data)
+	function setConstructionSound(string data)
 		def.setString("ubsl", data)
 
 public class ItemDefinition extends W3UDefinition
@@ -783,4 +783,3 @@ public class ItemDefinition extends W3UDefinition
 
 	function setInterfaceIcon(string data)
 		def.setString("iico", data)
-
