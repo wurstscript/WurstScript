@@ -209,7 +209,7 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setOccluderHeight(real data)
 		def.setReal("uocc", data)
 
-	function setNormal(string data)
+	function setAbilities(string data)
 		def.setString("uabi", data)
 
 	function setNameEditorSuffix(string data)
@@ -616,7 +616,7 @@ public class HeroDefinition extends UnitOrHeroDefinition
 	function setHeroRevivalLocations(string data)
 		def.setString("urva", data)
 
-	function setHero(string data)
+	function setHeroAbilities(string data)
 		def.setString("uhab", data)
 
 	function setAgilityperLevel(real data)
