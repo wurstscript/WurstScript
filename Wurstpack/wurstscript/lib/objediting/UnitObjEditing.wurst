@@ -783,4 +783,3 @@ public class ItemDefinition extends W3UDefinition
 
 	function setInterfaceIcon(string data)
 		def.setString("iico", data)
-
