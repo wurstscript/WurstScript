@@ -5,6 +5,7 @@ import java.io.PrintStream;
 import de.peeeq.wurstio.jassinterpreter.ReflectionBasedNativeProvider;
 import de.peeeq.wurstio.objectreader.ObjectDefinition;
 import de.peeeq.wurstio.objectreader.ObjectFile;
+import de.peeeq.wurstio.objectreader.ObjectHelper;
 import de.peeeq.wurstio.objectreader.ObjectModification;
 import de.peeeq.wurstio.objectreader.ObjectModificationInt;
 import de.peeeq.wurstio.objectreader.ObjectTable;
@@ -33,12 +34,12 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
 		return new ILconstTuple(new ILconstString(key));
 	}
 	
-	public ILconstTuple createObjectDefinition(ILconstString fileType, ILconstString newUnitId, ILconstString deriveFrom) {
+	public ILconstTuple createObjectDefinition(ILconstString fileType, ILconstInt newUnitId, ILconstInt deriveFrom) {
 		ObjectFile unitStore = globalState.getDataStore(fileType.getVal());
 		ObjectTable modifiedTable = unitStore.getModifiedTable();
 		for (ObjectDefinition od : modifiedTable.getObjectDefinitions()) {
-			if (od.getNewObjectId().equals(newUnitId.getVal())) {
-				throw new Error("Object definition with id " + newUnitId.getVal() + " already exists.");
+			if (od.getNewObjectId() == newUnitId.getVal()) {
+				throw new Error("Object definition with id " + ObjectHelper.objectIdIntToString(newUnitId.getVal()) + " already exists.");
 			}
 		}
 		ObjectDefinition objDef = new ObjectDefinition(modifiedTable, deriveFrom.getVal(), newUnitId.getVal());

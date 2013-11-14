@@ -21,7 +21,7 @@ public constant player  DUMMY_PLAYER 			= Player(15)
 public constant player	DUMMY_HOSTILE_PLAYER 	= Player(12)
 
 @compiletime function generateDummyUnit()
-	let u = new UnitDefinition(DUMMY_UNIT_ID_STRING, "ewsp")
+	let u = new UnitDefinition(DUMMY_UNIT_ID, 'ewsp')
 	u.setName("Effect Dummy Unit")
 	u.setUpgradesUsed("")
 	u.setStructuresBuilt("")

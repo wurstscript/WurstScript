@@ -137,6 +137,7 @@ public class ILInterpreter {
 	public void setProgram(ImProg imProg) {
 		this.prog = imProg;
 		this.getGlobalState().setProg(imProg);
+		globalState.resetStackframes();
 	}
 
 	public Stack<ILStackFrame> getStackFrames() {

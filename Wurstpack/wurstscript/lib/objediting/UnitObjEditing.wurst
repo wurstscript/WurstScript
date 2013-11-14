@@ -5,7 +5,7 @@ import ObjEditingNatives
 public class W3UDefinition
 	ObjectDefinition def
 	
-	construct(string newUnitId, string origUnitId)
+	construct(int newUnitId, int origUnitId)
 		def = createObjectDefinition("w3u", newUnitId, origUnitId)
 		
 	function setTooltipExtended(string data)
@@ -38,7 +38,7 @@ public class W3UDefinition
 
 class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	
-	construct(string newUnitId, string origUnitId)
+	construct(int newUnitId, int origUnitId)
 		super(newUnitId, origUnitId)
 	
 	function setUseExtendedLineofSight(boolean data)
@@ -553,7 +553,7 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	
 class UnitOrHeroDefinition extends UnitOrBuildingOrHeroDefinition
 	
-	construct(string newId, string origId)
+	construct(int newId, int origId)
 		super(newId, origId)
 	
 	function setTransportedSize(int data)
@@ -579,7 +579,7 @@ class UnitOrHeroDefinition extends UnitOrBuildingOrHeroDefinition
 	
 public class HeroDefinition extends UnitOrHeroDefinition						
 
-	construct(string newId, string origId)
+	construct(int newId, int origId)
 		super(newId, origId)
 	
 	
@@ -624,7 +624,7 @@ public class HeroDefinition extends UnitOrHeroDefinition
 
 public class UnitDefinition extends UnitOrHeroDefinition
 	
-	construct(string newId, string origId)
+	construct(int newId, int origId)
 		super(newId, origId)
 		
 	function setStructuresBuilt(string data)
@@ -641,7 +641,7 @@ public class UnitDefinition extends UnitOrHeroDefinition
 		
 public class BuildingDefinition extends UnitOrBuildingOrHeroDefinition
 	
-	construct(string newId, string origId)
+	construct(int newId, int origId)
 		super(newId, origId)
 		
 	function setUpgradesTo(string data)
@@ -691,7 +691,7 @@ public class BuildingDefinition extends UnitOrBuildingOrHeroDefinition
 
 public class ItemDefinition extends W3UDefinition
 	
-	construct(string newId, string origId)
+	construct(int newId, int origId)
 		super(newId, origId)
 	
 	function setAbilities(string data)

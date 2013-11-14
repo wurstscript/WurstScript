@@ -145,7 +145,7 @@ public class GenAbilities {
 		println("public class AbilityDefinition");
 		println("	protected ObjectDefinition def");
 		println("	");
-		println("	construct(string newAbilityId, string origAbilityId)");
+		println("	construct(int newAbilityId, int origAbilityId)");
 		println("		def = createObjectDefinition(\"w3a\", newAbilityId, origAbilityId)");
 		
 		Set<String> usedNames = Sets.newHashSet();
@@ -161,8 +161,8 @@ public class GenAbilities {
 			println("");
 			String spellName = abilityNames.get(spell);
 			println("public class AbilityDefinition"+spellName+" extends AbilityDefinition");
-			println("	construct(string newAbilityId)");
-			println("		super(newAbilityId, \""+spell+"\")");
+			println("	construct(int newAbilityId)");
+			println("		super(newAbilityId, '"+spell+"')");
 			for (FieldData fd : specificData.get(spell)) {
 				fd.printFunc(usedNames);
 			}

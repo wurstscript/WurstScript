@@ -77,16 +77,16 @@ public abstract class ObjectModification<T> { // TODO split into appropiate subc
 				throw new Error("unsupported vartype " + variableType);
 		}
 
-		String end = in.readString(4);
-		String originalObjectId = parent.getOrigObjectId();
-		Object newObjectId = parent.getNewObjectId();
+		int end = in.readInt();
+		int originalObjectId = parent.getOrigObjectId();
+		int newObjectId = parent.getNewObjectId();
 		// check the end value, according to spec:
 		// int: end of modification structure (this is either 0, or equal to the original object ID or equal to 
 		//		the new object ID of the current object, when reading files you can use this to check if the 
 		//		format is correct, when writing a file you should use the new object ID of the current object here)
-		if (end.length() > 0 && !(end.charAt(0) == 0) && !end.equals(originalObjectId) && !end.equals(newObjectId)) {
+		if (end != 0 && end != originalObjectId && end != newObjectId) {
 			// TODO should this be an error visible to the user?
-			WLogger.warning("corrupt end value: " + (int) end.charAt(0) + ", " + end + ", expected " + originalObjectId
+			WLogger.warning("corrupt end value: " + end + ", " + end + ", expected " + originalObjectId
 					+ " or " + newObjectId);
 		}
 		return result;
@@ -100,7 +100,7 @@ public abstract class ObjectModification<T> { // TODO split into appropiate subc
 			out.writeInt(dataPointer);
 		}
 		writeDataToStream(out, fileType);
-		out.writeString(parent.getNewObjectId(), 4);
+		out.writeInt(parent.getNewObjectId());
 	}
 
 	

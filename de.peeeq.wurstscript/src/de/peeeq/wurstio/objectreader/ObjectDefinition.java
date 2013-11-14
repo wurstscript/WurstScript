@@ -7,12 +7,12 @@ import com.google.common.collect.Lists;
 
 public class ObjectDefinition {
 
-	private String origObjectId;
-	private String newObjectId;
+	private int origObjectId;
+	private int newObjectId;
 	private List<ObjectModification<?>> modifications = Lists.newArrayList();
 	private final ObjectTable parent;
 	
-	public ObjectDefinition(ObjectTable parent, String origObjectId, String newObjectId) {
+	public ObjectDefinition(ObjectTable parent, int origObjectId, int newObjectId) {
 		this.origObjectId =  origObjectId;
 		this.newObjectId = newObjectId;
 		this.parent = parent;
@@ -24,8 +24,8 @@ public class ObjectDefinition {
 	
 	static ObjectDefinition readFromStream(BinaryDataInputStream in, ObjectTable parent) throws IOException {
 		ObjectFileType fileType = parent.getFileType();
-		String origObjectId = in.readString(4);
-		String newObjectId = in.readString(4);
+		int origObjectId = in.readInt();
+		int newObjectId = in.readInt();
 		ObjectDefinition def = new ObjectDefinition(parent, origObjectId, newObjectId);
 		int numberOfModifications = in.readInt();
 		for (int i = 0; i < numberOfModifications; i++) {
@@ -36,8 +36,8 @@ public class ObjectDefinition {
 	}
 	
 	public void writeToStream(BinaryDataOutputStream out, ObjectFileType fileType) throws IOException {
-		out.writeString(origObjectId, 4);
-		out.writeString(newObjectId, 4);
+		out.writeInt(origObjectId);
+		out.writeInt(newObjectId);
 		
 		// write number of modifications.
 		out.writeInt(modifications.size());
@@ -47,11 +47,11 @@ public class ObjectDefinition {
 		
 	}
 
-	public String getOrigObjectId() {
+	public int getOrigObjectId() {
 		return origObjectId;
 	}
 
-	public String getNewObjectId() {
+	public int getNewObjectId() {
 		return newObjectId;
 	}
 
@@ -70,12 +70,12 @@ public class ObjectDefinition {
 	}
 
 	public void exportToWurst(Appendable out) throws IOException {
-		out.append("@compiletime function create_" + parent.getFileType().getExt() + "_"+newObjectId+"()\n");
-		out.append("	let u = createObjectDefinition(\""+parent.getFileType().getExt()+ "\", \"");
-		out.append(newObjectId);
-		out.append("\", \"");
-		out.append(origObjectId);
-		out.append("\")\n");
+		out.append("@compiletime function create_" + parent.getFileType().getExt() + "_"+ObjectHelper.objectIdIntToString(newObjectId)+"()\n");
+		out.append("	let u = createObjectDefinition(\""+parent.getFileType().getExt()+ "\", '");
+		out.append(ObjectHelper.objectIdIntToString(newObjectId));
+		out.append("', '");
+		out.append(ObjectHelper.objectIdIntToString(origObjectId));
+		out.append("')\n");
 		for (ObjectModification<?> m : modifications) {
 			m.exportToWurst(out);
 		}
