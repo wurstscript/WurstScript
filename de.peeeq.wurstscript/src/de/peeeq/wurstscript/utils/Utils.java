@@ -5,11 +5,16 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.Stack;
+
+import org.apache.commons.collections.IteratorUtils;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -36,6 +41,7 @@ import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.intermediateLang.interpreter.ILStackFrame;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.WurstType;
 
@@ -836,6 +842,75 @@ public class Utils {
 
 	public static String stripHtml(String s) {
 		return s.replaceAll("\\<.*?\\>", "");
+	}
+
+	
+	
+	public static <T> Iterable<T> iterateReverse(final List<T> elements) {
+		return new Iterable<T>() {
+
+			@Override
+			public Iterator<T> iterator() {
+				return new Iterator<T>() {
+					
+					ListIterator<T> it = elements.listIterator(elements.size());
+					
+					@Override
+					public boolean hasNext() {
+						return it.hasPrevious();
+					}
+
+					@Override
+					public T next() {
+						return it.previous();
+					}
+
+					@Override
+					public void remove() {
+						it.remove();
+					}
+				};
+			}
+			
+		};
+	}
+	
+	
+	public static <T> Iterable<T> iterateReverse(Iterable<T> elements) {
+		if (elements instanceof List<?>) {
+			List<T> elements2 = (List<T>) elements;
+			return iterateReverse(elements2);
+		}
+		
+		final ArrayList<T> temp = Lists.newArrayList(elements);
+		
+		return new Iterable<T>() {
+
+			@Override
+			public Iterator<T> iterator() {
+				return new Iterator<T>() {
+
+					int i = temp.size();
+					
+					@Override
+					public boolean hasNext() {
+						return i>0;
+					}
+
+					@Override
+					public T next() {
+						i--;
+						return temp.get(i);
+					}
+
+					@Override
+					public void remove() {
+						throw new Error("not implemented");
+					}
+					
+				};
+			}
+		};
 	}
 
 }
