@@ -12,9 +12,6 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.Stack;
-
-import org.apache.commons.collections.IteratorUtils;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -41,7 +38,6 @@ import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.attributes.names.NameLink;
-import de.peeeq.wurstscript.intermediateLang.interpreter.ILStackFrame;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.WurstType;
 
