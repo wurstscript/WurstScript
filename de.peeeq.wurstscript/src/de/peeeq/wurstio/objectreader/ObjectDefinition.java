@@ -24,8 +24,8 @@ public class ObjectDefinition {
 	
 	static ObjectDefinition readFromStream(BinaryDataInputStream in, ObjectTable parent) throws IOException {
 		ObjectFileType fileType = parent.getFileType();
-		int origObjectId = in.readInt();
-		int newObjectId = in.readInt();
+		int origObjectId = in.readIntReverse();
+		int newObjectId = in.readIntReverse();
 		ObjectDefinition def = new ObjectDefinition(parent, origObjectId, newObjectId);
 		int numberOfModifications = in.readInt();
 		for (int i = 0; i < numberOfModifications; i++) {
@@ -36,8 +36,8 @@ public class ObjectDefinition {
 	}
 	
 	public void writeToStream(BinaryDataOutputStream out, ObjectFileType fileType) throws IOException {
-		out.writeInt(origObjectId);
-		out.writeInt(newObjectId);
+		out.writeIntReverse(origObjectId);
+		out.writeIntReverse(newObjectId);
 		
 		// write number of modifications.
 		out.writeInt(modifications.size());

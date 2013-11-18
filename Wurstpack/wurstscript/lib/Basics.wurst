@@ -4,7 +4,6 @@ import UnitObjEditing
 
 /** Id of the dummy unit */
 public constant int 	DUMMY_UNIT_ID 	   		= 'xdum'
-public constant string 	DUMMY_UNIT_ID_STRING 	= "xdum"
 /** Id of Ravenform to allow setting fly height */
 public constant int 	HEIGHT_ENABLER	 		= 'Amrf'
 /** Id of Eattree to recognize trees */
