@@ -25,7 +25,7 @@ public class BinaryDataInputStream {
 		this.littleEndian = littleEndian;
 	}
 
-	public int readInt() throws IOException {
+	public int readInt(boolean littleEndian) throws IOException {
 		byte[] data = readBytes(4);
 		int result = 0;
 		if (littleEndian) {
@@ -43,6 +43,14 @@ public class BinaryDataInputStream {
 		}
 		return result;
 		
+	}
+	
+	public int readInt() throws IOException {
+		return readInt(littleEndian);
+	}
+	
+	public int readIntReverse() throws IOException {
+		return readInt(!littleEndian);
 	}
 
 	private int interpret2compl(byte b) {

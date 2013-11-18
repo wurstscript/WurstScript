@@ -29,7 +29,7 @@ public class BinaryDataOutputStream implements Closeable {
 		out.flush();
 	}
 
-	public void writeInt(int i) throws IOException {
+	public void writeInt(int i, boolean littleEndian) throws IOException {
 //		byte[] data = new byte[4];
 //		data[3] = (byte) (i >> 24);
 //		data[2] = (byte) (i >> 16);
@@ -43,6 +43,13 @@ public class BinaryDataOutputStream implements Closeable {
 		}
 	}
 	
+	public void writeInt(int i) throws IOException {
+		writeInt(i, littleEndian);
+	}
+	
+	public void writeIntReverse(int i) throws IOException {
+		writeInt(i, !littleEndian);
+	}
 
 	public void writeString(String s, int len) throws IOException {
 		byte [] bytes = new byte[len];
@@ -64,5 +71,8 @@ public class BinaryDataOutputStream implements Closeable {
 	public void close() throws IOException {
 		out.close();
 	}
+
+
+	
 
 }

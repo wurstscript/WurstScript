@@ -25,6 +25,7 @@ import de.peeeq.wurstio.objectreader.ObjectModificationString;
 import de.peeeq.wurstio.objectreader.ObjectTable;
 import de.peeeq.wurstio.objectreader.WTSFile;
 import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState;
 import de.peeeq.wurstscript.jassIm.ImStmt;
@@ -65,7 +66,7 @@ public class ProgramStateIO extends ProgramState {
 		String r = trigStrings.get(id);
 		return r == null ? "" : r;
 	}
-	
+
 	private void loadTrigStrings() {
 		if (trigStrings != null) {
 			return;
@@ -94,7 +95,7 @@ public class ProgramStateIO extends ProgramState {
 		if (mapFile == null) {
 			throw new Error("Mapfile not set.");
 		}
-		
+
 		try {
 			// extract specific object file:
 			try {
@@ -109,22 +110,22 @@ public class ProgramStateIO extends ProgramState {
 				dataStore = new ObjectFile(filetype);
 			}
 			dataStoreMap.put(filetype, dataStore);
-			
+
 			// clean datastore, remove all objects created by wurst
 			deleteWurstObjects(dataStore);
 		} catch (Exception e) {
 			WLogger.severe(e);
 			throw new Error(e);
 		}
-		
+
 		return dataStore;
 	}
 
 	private void replaceTrigStrings(ObjectFile dataStore) {
 		replaceTrigStringsInTable(dataStore.getOrigTable());
 		replaceTrigStringsInTable(dataStore.getModifiedTable());
-		
-		
+
+
 	}
 
 	private void replaceTrigStringsInTable(ObjectTable modifiedTable) {
@@ -167,7 +168,7 @@ public class ProgramStateIO extends ProgramState {
 		}
 		WLogger.info("deleteWurstObjects end " + unitStore.getFileType() + "\n\n" + unitStore);
 	}
-	
+
 
 
 	public String addObjectDefinition(ObjectDefinition objDef) {
@@ -183,7 +184,7 @@ public class ProgramStateIO extends ProgramState {
 
 	public void writeBack() {
 		gui.sendProgress("Writing back generated objects", 0.9);
-		
+
 		for (ObjectFileType fileType : ObjectFileType.values()) {
 			ObjectFile dataStore = getDataStore(fileType);
 			if (!dataStore.isEmpty()) {
@@ -194,7 +195,7 @@ public class ProgramStateIO extends ProgramState {
 	}
 
 	private void writeW3oFile() {
-		File objFile = new File(mapFile.getParentFile(), "wurstCreatedObjects.w3o");
+		File objFile = new File(getObjectEditingOutputFolder(), "wurstCreatedObjects.w3o");
 		try (BinaryDataOutputStream objFileStream = new BinaryDataOutputStream(objFile, true)) {
 			objFileStream.writeInt(1); // version
 			for (ObjectFileType fileType : ObjectFileType.values()) {
@@ -216,27 +217,26 @@ public class ProgramStateIO extends ProgramState {
 	}
 
 	private void writebackObjectFile(ObjectFile dataStore, ObjectFileType fileType) throws Error {
-		File w3u = new File(mapFile.getParent(), "wurstCreatedObjects." + fileType.getExt());
-		if (w3u.exists()) {
-			w3u.delete();
-		}
-		dataStore.writeTo(w3u);
-		
-		
+
+
 		try {
-			Files.write(dataStore.exportToWurst(fileType),  new File(mapFile.getParent(), "WurstExportedObjects_"+fileType.getExt()+".wurst.txt"), Charsets.UTF_8);
-		} catch (IOException e1) {
-			WLogger.severe(e1);
-		}
-		if (injectObjectFilesIntoMap) {
-			try {
+			File folder = getObjectEditingOutputFolder();
+
+			File w3u = new File(folder, "wurstCreatedObjects." + fileType.getExt());
+			if (w3u.exists()) {
+				w3u.delete();
+			}
+			dataStore.writeTo(w3u);
+			Files.write(dataStore.exportToWurst(fileType),  new File(folder, "WurstExportedObjects_"+fileType.getExt()+".wurst.txt"), Charsets.UTF_8);
+
+			if (injectObjectFilesIntoMap) {
 				LadikMpq editor = MpqEditorFactory.getEditor();
 				String filenameInMpq = "war3map." + fileType.getExt();
 				editor.deleteFile(mapFile, filenameInMpq);
 				int tries = 1;
 				while (tries < 20) {
 					editor.insertFile(mapFile, filenameInMpq, w3u);
-					
+
 					File extr;
 					try {
 						extr = editor.extractFile(mapFile, filenameInMpq);
@@ -252,23 +252,34 @@ public class ProgramStateIO extends ProgramState {
 				if (tries >= 20) {
 					JOptionPane.showMessageDialog(null, "Could not insert " + fileType.getExt());
 				}
-			} catch (Exception e) {
-				WLogger.severe(e);
-				throw new Error(e);
+
 			}
+		} catch (IOException e) {
+			WLogger.severe(e);
+			throw new Error(e);
+		} catch (Exception e) {
+			WLogger.severe(e);
+			throw new Error(e);
 		}
+
+	}
+
+	private File getObjectEditingOutputFolder() {
+		File folder = new File(mapFile.getParent(), "objectEditingOutput");
+		folder.mkdirs();
+		return folder;
 	}
 
 	public PrintStream getOutStream() {
 		return outStream ;
 	}
-	
+
 	public void setOutStream(PrintStream os) {
 		outStream = os;
 	}
 
-	
 
-	
+
+
 }
 

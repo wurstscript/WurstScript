@@ -15,6 +15,7 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreter;
+import de.peeeq.wurstscript.intermediateLang.interpreter.ILStackFrame;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImStmt;
@@ -22,6 +23,7 @@ import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlag;
 import de.peeeq.wurstscript.utils.Pair;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class CompiletimeFunctionRunner {
 
@@ -76,6 +78,12 @@ public class CompiletimeFunctionRunner {
 			AstElement origin = s.attrTrace();
 			if (origin != null) { 
 				gui.sendError(new CompileError(origin.attrSource(), e.getMessage()));
+				
+				// stackframe messages ...
+				for (ILStackFrame sf : Utils.iterateReverse(interpreter.getStackFrames())) {
+					gui.sendError(sf.makeCompileError());
+				}
+				
 			} else {
 				throw new Error("could not get origin");
 			}

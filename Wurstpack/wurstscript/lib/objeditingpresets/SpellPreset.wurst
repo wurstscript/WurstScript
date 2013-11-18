@@ -5,7 +5,7 @@ import public AbilityObjEditing
 public class SpellPreset extends AbilityDefinition
 	int lvl
 	
-	construct(string newAbilityId, string origAbilityId, int lvls)
+	construct(int newAbilityId, int origAbilityId, int lvls)
 		super(newAbilityId, origAbilityId)
 		setLevels(lvls)
 		this.lvl = lvls

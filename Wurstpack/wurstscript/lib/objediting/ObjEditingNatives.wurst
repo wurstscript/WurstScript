@@ -6,13 +6,13 @@ package ObjEditingNatives
 @compiletimenative public function compileError(string msg)
 
 
-public tuple ObjectDefinition(string key)
+public tuple ObjectDefinition(int key)
 
 // creates a new unit objectdefinition
 // for example to create a new unit with id "h000" which is based on a footman ("hfoo") 
 // let u = createObjectDefinition("w3u", "h000", "hfoo")
-@compiletimenative public function createObjectDefinition(string fileType, string newId, string deriveFrom) returns ObjectDefinition
-	return ObjectDefinition("") // dummy implementation
+@compiletimenative public function createObjectDefinition(string fileType, int newId, int deriveFrom) returns ObjectDefinition
+	return ObjectDefinition(0) // dummy implementation
 	
 // changes an integer value of an objectdefinition
 @compiletimenative public function ObjectDefinition.setInt(string modification, int value)

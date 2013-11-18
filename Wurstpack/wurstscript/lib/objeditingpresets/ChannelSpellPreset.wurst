@@ -1,7 +1,7 @@
 package ChannelSpellPreset
 import public SpellPreset
 
-constant string CHANNEL_ID = "ANcl"
+constant CHANNEL_ID = 'ANcl'
 
 public enum Option
 	VISIBLE
@@ -44,7 +44,7 @@ public class ChannelSpellPreset extends SpellPreset
 	
 
 	
-	construct(string newId, int lvls)
+	construct(int newId, int lvls)
 		super(newId, CHANNEL_ID, lvls)
 		
 	function setDisablesOther(boolean flag)

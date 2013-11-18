@@ -72,4 +72,8 @@ public class ModelManagerStub implements ModelManager {
 		return null;
 	}
 
+	@Override
+	public void removeCompilationUnitByName(String replDummyFilename) {
+	}
+
 }

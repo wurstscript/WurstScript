@@ -9,55 +9,65 @@ public enum Layer
 
 /** Create an image at the target location, the Image has to be a blp, with transparent borders */
 public function createImage(string path, vec2 pos, real sizeX, real sizeY) returns image
-	return CreateImage(path, sizeX, sizeY, 0, pos.y, pos.x, 0, sizeX / 2, sizeY / 2, 0, 1)
+	return CreateImage(path, sizeX, sizeY, 0, pos.x, pos.y, 0, sizeX / 2, sizeY / 2, 0, 1)
 
 /** Create an image at the target location, the Image has to be a blp, with transparent borders.
 The layer specifies which image overlaps another: Level 1 is always on the top, and level 4 always in the background. Use the enums "Layer.LX" */
 public function createImage(string path, vec2 pos, real sizeX, real sizeY, Layer layer) returns image
-	return CreateImage(path, sizeX, sizeY, 0, pos.y, pos.x, 0, sizeX / 2, sizeY / 2, 0, layer castTo int + 1)
+	return CreateImage(path, sizeX, sizeY, 0, pos.x, pos.y, 0, sizeX / 2, sizeY / 2, 0, layer castTo int + 1)
 			
 /** Shows the image */
-public function image.show()
+public function image.show() returns image
 	SetImageRenderAlways(this, true)
+	return this
 
 /** Hides the image */
-public function image.hide()
+public function image.hide() returns image
 	SetImageRenderAlways(this, false)
+	return this
 	
 /** Shows the image for a specific player  */
-public function image.showForPlayer(player p)
+public function image.showForPlayer(player p) returns image
 	if GetLocalPlayer() == p
 		SetImageRenderAlways(this, true)
+	return this
 	
 /** Hides the image for a specific player */
-public function image.hideForPlayer(player p)
+public function image.hideForPlayer(player p) returns image
 	if GetLocalPlayer() == p
 		SetImageRenderAlways(this, true)
+	return this
 		
 /** Set the image 2D position */
-public function image.setPos(vec2 pos)
+public function image.setPos(vec2 pos) returns image
 	SetImagePosition(this, pos.x, pos.y, 0)
+	return this
 
 /** Set the image 3D position */	
-public function image.setPos(vec3 pos)
+public function image.setPos(vec3 pos) returns image
 	SetImagePosition(this, pos.x, pos.y, 0)
 	SetImageConstantHeight(this, true, pos.z)
+	return this
 	
 /** Set the image height */	
-public function image.setHeight(real z)
+public function image.setHeight(real z) returns image
 	SetImageConstantHeight(this, true, z)
+	return this
 	
 /** Set the image color by using the colorA tuple */		
-public function image.setColor(colorA col)
+public function image.setColor(colorA col) returns image
 	SetImageColor(this, col.red, col.green, col.blue, col.alpha)
+	return this
 	
 /** Set the image color by using the color tuple */		
-public function image.setColor(color col)
+public function image.setColor(color col) returns image
 	SetImageColor(this, col.red, col.green, col.blue, 255)
+	return this
 	
 /** Set the image layer (use the constants) */		
-public function image.setLevel(Layer layer)
+public function image.setLevel(Layer layer) returns image
 	SetImageType(this, layer castTo int + 1)
+	return this
 	
 /** Destroy the image */		
 public function image.remove()

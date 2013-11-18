@@ -2,6 +2,7 @@ package Maths
 import NoWurst
 import Vectors
 import Angle
+import Wurstunit
 
 /** PI constant */
 public constant real PI			=  3.141592654
@@ -41,3 +42,51 @@ public function getSlopeAngle( real z1, real z2, real dist ) returns real
 public function int.moduloInt(int divisor) returns int
 	return this - (this div divisor) * divisor
 
+
+/** returns the bigger number of the two parameters */
+public function max(int x, int y) returns int
+	int r
+	if x > y
+		r = x
+	else
+		r = y
+	return r
+		
+/** returns the bigger number of the two parameters */
+public function max(real x, real y) returns real
+	real r
+	if x > y
+		r = x
+	else
+		r = y
+	return r
+
+
+/** returns the smaller number of the two parameters */
+public function min(int x, int y) returns int
+	int r
+	if x < y
+		r = x
+	else
+		r = y
+	return r
+
+/** returns the smaller number of the two parameters */		
+public function min(real x, real y) returns real
+	real r
+	if x < y
+		r = x
+	else
+		r = y
+	return r
+	
+	
+@test function minmax()
+	// better test min and max, they are difficult to implement M;D
+	int three = 3
+	max(three,4)	.assertEquals(4)	
+	max(4,three)	.assertEquals(4)
+	min(three,4)	.assertEquals(3)
+	max(3.,4.)		.assertEquals(4.)
+	min(3.,4.)		.assertEquals(3.)
+	
