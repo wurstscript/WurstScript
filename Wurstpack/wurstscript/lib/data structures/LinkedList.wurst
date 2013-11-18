@@ -45,6 +45,14 @@ public class LinkedList<T>
 	/** gets the size of the list */
 	function getSize() returns int
 		return size
+		
+	function contains(T elem) returns boolean
+		LLEntry<T> r = dummy.next
+		while r != dummy
+			if r.elem == elem
+				return true
+			r = r.next
+		return false
 
 	private function getEntry(int index) returns LLEntry<T>
 		LLEntry<T> r = dummy
