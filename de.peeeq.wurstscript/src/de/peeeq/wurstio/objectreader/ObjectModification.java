@@ -100,7 +100,7 @@ public abstract class ObjectModification<T> { // TODO split into appropiate subc
 			out.writeInt(dataPointer);
 		}
 		writeDataToStream(out, fileType);
-		out.writeInt(parent.getNewObjectId());
+		out.writeIntReverse(parent.getNewObjectId());
 	}
 
 	

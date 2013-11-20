@@ -498,7 +498,7 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 		def.setInt("ua1b", data)
 
 	function setAttack1CooldownTime(real data)
-		def.setReal("ua1c", data)
+		def.setUnreal("ua1c", data)
 
 	function setAttack1AttackType(string data)
 		def.setString("ua1t", data)
