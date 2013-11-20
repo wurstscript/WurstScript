@@ -116,7 +116,7 @@ public class GenAbilities {
 		CsvReader reader = new CsvReader(new FileReader(metaData));
 		reader.readHeaders();
 		while (reader.readRecord()) {
-			String id = reader.get("s");
+			String id = reader.get("ID");
 			String displayName = strings.get(reader.get("displayName"));
 			if (displayName == null) {
 				displayName = reader.get("field");

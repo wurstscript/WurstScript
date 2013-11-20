@@ -1164,3 +1164,806 @@ AIcl	Chain Lightning (item)
 AIx3	(All + 3)
 AIx4	(All + 4)
 AIxk	Beserk (item)
+AHbz	Arch Mage - Blizzard
+AHab	Arch Mage - Brilliance Aura
+AHmt	Arch Mage - Mass Teleport
+AHwe	Arch Mage - Water Elemental
+ANst	Beast Master - Stampede
+ANsg	Beast Master - Summon Bear
+ANsq	Beast Master - Summon Quilbeast
+ANsw	Beast Master - Summon Hawk
+AOww	Blade Master - Bladestorm
+AOcr	Blade Master - Critical Strike
+AOmi	Blade Master - Mirror Image
+AOwk	Blade Master - Wind Walk
+AHbn	Blood Mage - Banish
+AHfs	Blood Mage - Flame Strike
+AHdr	Blood Mage - Siphon Mana
+AHpx	Blood Mage - Phoenix
+AUcb	Crypt Lord - Carrion Scarabs
+AUim	Crypt Lord - Impale
+AUls	Crypt Lord - Locust Swarm
+AUts	Crypt Lord - Spiked Carapace
+ANba	Dark Ranger - Black Arrow
+ANch	Dark Ranger - Charm
+ANdr	Dark Ranger - Drain
+ANsi	Dark Ranger - Silence
+AUan	Death Knight - Animate Dead
+AUdc	Death Knight - Death Coil
+AUdp	Death Knight - Death Pact
+AUau	Death Knight - Unholy Aura
+AEev	Demon Hunter - Evasion
+AEim	Demon Hunter - Immolation
+AEmb	Demon Hunter - Mana Burn
+AEme	Demon Hunter - Metamorphosis
+AUsl	Dreadlord - Sleep
+AUav	Dreadlord - Vampiric Aura
+AUcs	Dreadlord - Carrion Swarm
+AUin	Dreadlord - Inferno
+AOcl	Farseer - Chain Lightning
+AOeq	Farseer - Earthquake
+AOfs	Farseer - Far Sight
+AOsf	Farseer - Spirit Wolf
+AEer	Keeper - Entangling Roots
+AEfn	Keeper - Force of Nature
+AEah	Keeper - Thorns Aura
+AEtq	Keeper - Tranquility
+AUdr	Lich - Dark Ritual
+AUdd	Lich - Death and Decay
+AUfa	Lich - Frost Armor
+AUfu	Lich - Frost Armor (Autocast)
+AUfn	Lich - Frost Nova
+AHav	Mountain King - Avatar
+AHbh	Mountain King - Bash
+AHtb	Mountain King - Thunder Bolt
+AHtc	Mountain King - Thunder Clap
+ANfl	Sea Witch - Forked Lightning
+ANfa	Sea Witch - Frost Arrows
+ANto	Sea Witch - Tornado
+ANms	Sea Witch - Mana Shield
+AHad	Paladin - Devotion Aura
+AHds	Paladin - Divine Shield
+AHhb	Paladin - Holy Light
+AHre	Paladin - Resurrection
+ANbf	Brewmaster - Breath of Fire
+ANdb	Brewmaster - Drunken Brawler
+ANdh	Brewmaster - Drunken Haze
+ANef	Brewmaster - Storm, Earth and Fire
+ANdo	Pit Lord - Doom
+ANht	Pit Lord - Howl of Terror
+ANca	Pit Lord - Cleaving Attack
+ANrf	Pit Lord - Rain of Fire
+AHfa	Priestess - Searing Arrows
+AEst	Priestess - Scout
+AEsf	Priestess - Starfall
+AEar	Priestess - Trueshot Aura
+AOae	Chieftain - Endurance Aura
+AOre	Chieftain - Reincarnation
+AOsh	Chieftain - Shock Wave
+AOws	Chieftain - War Stomp
+AOhw	Shadow Hunter - Healing Wave
+AOhx	Shadow Hunter - Hex
+AOsw	Shadow Hunter - Serpent Ward
+AOvd	Shadow Hunter - Voodooo
+AEbl	Warden - Blink
+AEfk	Warden - Fan of Knives
+AEsh	Warden - Shadow Strike
+AEsv	Warden - Spirit of Vengeance
+ANab	Alchemist - Acid Bomb
+ANcr	Alchemist - Chemical Rage
+ANhs	Alchemist - Healing Spray
+ANtm	Alchemist - Transmute
+ANeg	Tinkerer - Engineering Upgrade
+ANcs	Tinkerer - Cluster Rockets (Level 0)
+ANc1	Tinkerer - Cluster Rockets (Level 1)
+ANc2	Tinkerer - Cluster Rockets (Level 2)
+ANc3	Tinkerer - Cluster Rockets (Level 3)
+ANrg	Tinkerer - Robo-Goblin (Level 0)
+ANg1	Tinkerer - Robo-Goblin (Level 1)
+ANg2	Tinkerer - Robo-Goblin (Level 2)
+ANg3	Tinkerer - Robo-Goblin (Level 3)
+ANsy	Tinkerer - Summon Factory (Level 0)
+ANs1	Tinkerer - Summon Factory (Level 1)
+ANs2	Tinkerer - Summon Factory (Level 2)
+ANs3	Tinkerer - Summon Factory (Level 3)
+ANde	Tinkerer - Demolish (Level 0)
+ANd1	Tinkerer - Demolish (Level 1)
+ANd2	Tinkerer - Demolish (Level 2)
+ANd3	Tinkerer - Demolish (Level 3)
+ANic	Firelord - Incinerate
+ANia	Firelord - Incinerate
+ANso	Firelord - Soul Burn
+ANlm	Firelord - Summon Lava Spawn
+ANvc	Firelord - Volcano
+	
+ANin	Inferno
+SNin	Tichondrius - Inferno
+ANfb	Fire Bolt
+ANfd	Finger of Death
+ACfd	Finger of Pain
+ACf3	Finger of Pain (2,1 Button)
+ANdp	Dark Portal
+ANrc	Rain of Chaos
+ANr3	Rain of Chaos(Button 0,2)
+AEsb	Cenarius - Beefy Starfall
+ANrn	Mannoroth - Reincarnation
+ANdc	Malganis - Dark Conversion
+SNdc	Dark Conversion (Fast)
+ANsl	Malganis - Soul Preservation
+AEIl	Illidan - Metamorphosis
+AEvi	Evil Illidan - Metamorphosis
+SNeq	Super Earthquake
+SNdd	Super Death and Decay
+ANmo	Monsoon
+AEpa	Poison Arrows
+ANwm	Watery Minion
+AHca	Cold Arrows
+	
+ANbr	Battle Roar
+Arsg	Rexxar - Summon Bear
+Aamk	Attribute Modifier Skill
+Arsq	Rexxar - Summon Quilbeast
+Arsp	Rexxar - Stampede
+ANsb	Rexxar - Storm Bolt
+ANhw	Rokhan - Healing Wave
+Arsw	Rokhan - Serpent Ward
+ANhx	Rokhan - Hex
+AOls	Rokhan - Voodoo Spirits
+ANcf	Chen - Breath of Fire
+Acdb	Chen- Drunken Brawler
+Acdh	Chen - Drunken Haze
+Acef	Chen - Storm, Earth and Fire
+AOr2	Cairne - Endurance Aura
+AOr3	Cairne - Reincarnation
+AOs2	Cairne - Shock Wave
+AOw2	Cairne- War Stomp
+	
+ANcl	Illidan - Channel
+Aadm	Abolish Magic
+Andm	Abolish Magic(naga)
+ACdm	Abolish Magic (Creep)
+ACd2	Abolish Magic (Creep, 1,2 pos)
+Aabs	Absorb Mana
+Aaha	Acolyte Harvest
+ANav	Avatar(Garithos)
+Aalr	Alarm
+Aall	Allied Building
+Aast	Ancestral Spirit
+ACad	Animate Dead (creep)
+Aams	Anti-magic Shield
+Aam2	Anti-magic Shield (Matrix)
+ACam	Anti-magic Shield (creep)
+Aatk	Attack
+ACba	Aura - Brilliance (creep)
+ACac	Aura - Command (Creep)
+ACav	Aura - Devotion (Creep)
+SCae	Aura - Endurance (Creep)
+Aap1	Aura - Plague (Abomination)
+Aap2	Aura - Plague (Plague Ward)
+Aap3	Aura - Plague (Creep)
+Aap4	Aura - Plague (Creep gfx)
+Aoar	Aura - Regeneration (Ward)
+Aabr	Aura - Regeneration (Statue)
+Aasl	Aura - Slow
+ACat	Aura - Trueshot (Creep)
+Aakb	Aura - War Drums
+Aave	Avenger Form
+Aawa	Awaken
+Abof	Balls of Fire
+ACbn	Banish(Creep)
+ACbh	Bash (creep)
+ANbh	Bash (Beastmaster Bear)
+ANb2	Bash (maul , SP Bear, level 3)
+Abtl	Battlestations
+Sbtl	Battlestations (Chaos)
+Abrf	Bearform
+Absk	Beserk
+Sbsk	Berserker Upgrade
+ACbk	Black Arrow (melee, creep)
+Abds	Blight Dispel (Small)
+Abdl	Blight Dispel (Large)
+Abgs	Blight Growth (Small)
+Abgl	Blight Growth (Large)
+Abgm	Blighted Gold mine
+ANbl	Blink(Beastmaster Bear)
+ACbz	Blizzard (creep)
+Ablo	Bloodlust
+ACbl	Bloodlust (Creep)
+ACbb	Bloodlust (creep, Hotkey B)
+ACbc	Breath of Fire(Creep)
+ACbf	Breath of Frost(Creep)
+ANbu	Build (Neutral)
+AHbu	Build (Human)
+AObu	Build (Orc)
+AEbu	Build (Night Elf)
+AUbu	Build (Undead)
+AGbu	Build (Naga)
+Abur	Burrow
+Abu2	Burrow(scarab lvl 2)
+Abu3	Burrow(scarab lvl 3)
+Abu5	Burrow(Barbed Arachnathid)
+Abdt	Burrow Detection (Flyers)
+Acan	Cannibalize
+Acn2	Cannibalize (Abomination)
+ACcn	Cannibalize (creep)
+Abun	Cargo Hold (Burrow)
+Advc	Cargo Hold (Devour)
+Sch2	Cargo Hold (Meat Wagon)
+Sch5	Cargo Hold (Ship)
+Sch4	Cargo Hold (Tank)
+Sch3	Cargo Hold (Transport)
+Aenc	Cargo Hold (Gold Mine)
+Achd	Cargo Hold Death
+ACca	Carrion Swarm (creep)
+ACcv	Crushing Wave
+ACc2	Crushing Wave (Dragon Turtle)
+ACc3	Crushing Wave (Lesser)
+ACcl	Chain Lightning (creep)
+Ache	Chain Dispel
+Sca1	Chaos (Grunt)
+Sca2	Chaos (Raider)
+Sca3	Chaos (Shaman)
+Sca4	Chaos (Kodo)
+Sca5	Chaos (Peon)
+Sca6	Chaos (Grom)
+Achl	Chaos Cargo Load
+ACch	Charm
+ACce	Cleaving Attack (Creep)
+Aclf	Cloud of Fog
+ACcw	Cold Arrows (creep)
+Acmg	Control Magic
+Acpf	Corporeal Form
+Acor	Corrosive Breath
+Acoa	Couple (Archer)
+Acoh	Couple (Hippogryph)
+Aco2	Couple Instant (Archer)
+Aco3	Couple Instant (Hippogryph)
+ACsp	Creep Sleep
+Acri	Cripple
+Scri	Cripple (Warlock)
+ACcr	Cripple (creep)
+ACct	Critical Strike (creep)
+Acrs	Curse
+ACcs	Curse (creep)
+Acyc	Cyclone
+Acny	Cyclone (naga)
+ACcy	Cyclone (creep)
+SCc1	Cyclone (Cenarius)
+ACdc	Death Coil (creep)
+Adda	Death Damage (sapper)
+Amnx	Death Damage (mine)
+Amnz	Death Damage (mine BIG)
+Adec	Decouple
+Adef	Defend
+Adt1	Detect (Sentry Ward)
+Atru	Detect (Shade)
+Adtg	Detect (general)
+ANtr	Detect(War Eagle)
+Agyv	Detect (Gyrocopter)
+Adts	Detect (Magic Sentinel)
+Adtn	Detonate
+Adev	Devour
+ACdv	Devour (Dragon Creep)
+Advm	Devour Magic
+ACde	Devour Magic(creep)
+Adch	Disenchant(old)
+Adcn	Disenchant(new)
+Adis	Dispel Magic
+Adsm	Dispel Magic (creep)
+ACds	Divine Shield (creep)
+ACdr	Drain Life(Creep)
+Adri	Drop Instant
+Adro	Drop
+Sdro	Drop
+Atdp	Drop Pilot
+Aeat	Eat Tree
+Aegr	Elune's Grace
+ANen	Ensnare(Naga)
+Aens	Ensnare
+ACen	Ensnare (Creep)
+Aent	Entangle
+Aegm	Entangled Gold Mine
+Aenr	Entangling Roots (creep)
+Aenw	Entangling Seaweed
+Aetl	Ethereal
+Aetf	Ethereal Form
+ACev	Evasion (creep)
+ACes	Evasion (creep 100%)
+Aexh	Exhume
+ANfy	Factory
+Afae	Faerie Fire
+Afa2	Faerie Fire
+ACff	Faerie Fire (creep)
+Afbk	Feedback
+Afbt	Feedback(Arcane Tower)
+Afbb	Feedback (Spirit Beast)
+ACsf	Feral Spirit (creep)
+ACs9	Feral Spirit (creep - pig)
+ACs8	Feral Spirit (Spirit Beast)
+ACs7	Feral Spirit (Akama)
+Afod	Finger of Death
+Awfb	Fire Bolt (warlock)
+ACfb	Fire Bolt (creep)
+Aflk	Flak Cannon
+Afla	Flare
+ACfs	Flame Strike (Creep)
+ANfs	Flame Strike (Improved Creep)
+ACfr	Force of Nature (creep)
+ACfl	Forked Lightning(creep)
+Afsh	Frag Shards
+Afrz	Freezing Breath
+Afzy	Frenzy
+ACfa	Frost Armor (creep,old)
+ACf2	Frost Armor (creep,autocast)
+ACfu	Frost Armor (Autocast, Naga)
+Afra	Frost Attack
+Afr2	Frost Attack (1,2)
+Afrb	Frost Breath
+ACfn	Frost Nova (creep)
+ACcb	Frost Bolt
+Agho	Ghost
+Aeth	Ghost (Visible)
+Agld	Gold Mine
+Agra	Grab Tree
+Agyd	Graveyard
+Agyb	Gyrocopter Bombs
+Assk	Hardened Skin
+Ansk	Hardened Skin(Naga Turtle)
+Ahar	Harvest
+ANha	Harvest (naga)
+Ahrl	Harvest Lumber
+Ahr3	Harvest Lumber (shredder)
+Ahr2	Harvest Lumber (Arch ghouls)
+Ahea	Heal
+Anhe	Heal (Creep Normal)
+Anh1	Heal (Creep Normal)
+Anh2	Heal (Creep High)
+Ahwd	Healing Ward
+AChw	Healing Ward (creep)
+AChv	Healing Wave(Creep)
+Ahnl	null roar (summoner)
+AHer	Hero
+AChx	Hex (Creep)
+Acht	Howl of Terror
+ACim	Immolation (creep)
+ACmp	Impale(Creep)
+Aimp	Impaling Bolt
+Ainf	Inner Fire
+ACif	Inner Fire (Creep)
+Aivs	Invisibility
+AInv	Inventory
+Apak	Inventory (Pack Mule)
+Aion	Inventory(2 slot unit) Orc
+Aihn	Inventory(2 slot unit) Human
+Aien	Inventory(2 slot unit) Night Elf
+Aiun	Inventory(2 slot unit) Undead
+Avul	Invulnerable
+Alit	Lightning Attack
+Alsh	Lightning Shield
+ACls	Lightning Shield (creep)
+Aliq	Liquid Fire
+Aloa	Load
+Sloa	Load (Burrow)
+Slo2	Load (Entangled Gold Mine)
+Slo3	Load (Navies)
+Atlp	Load Pilot
+Aloc	Locust
+Amdf	Magic Defense
+Amim	Magic Immunity
+ACmi	Magic Immunity (Creep)
+ACm2	Magic Immunity (Archimonde)
+ACm3	Magic Immunity (Dragons)
+Amls	Aerial Shackles
+Ambt	Mana Battery
+Amb2	Mana Battery (Obsidian Statue)
+Amnb	Mana Burn (demon)
+Ambd	Mana Burn (demon)
+Ambb	Mana Burn (Hotkey B)
+Amfl	Mana Flare
+ACmf	Mana Shield(Creep)
+Amed	Meat Drop
+Amel	Meat Load
+Amil	Militia
+Amic	Militia Conversion
+ANmr	Mind Rot
+Amin	Mine
+ACmo	Monsoon(creep)
+Amgl	Moon Glaive
+Amgr	Moon Glaive (No research)
+Amov	Move
+Aneu	Neutral Building
+Ane2	Neutral Building (any unit)
+Andt	Neutral Detection (Reveal ability)
+ANre	Neutral Regen (mana only)
+ACnr	Neutral Regen (health only)
+AAns	Neutral Spell
+Ansp	Neutral Spies
+Afak	Orb of Annihilation
+ANak	Orb of Annihilation (Quill Spray)
+Afir	On Fire
+Afih	On Fire (Human)
+Afio	On Fire (Orc)
+Afin	On Fire (Night Elf)
+Afiu	On Fire (Undead)
+ANpa	Parasite
+ACpa	Parasite(eredar)
+ANpi	Permanent Immolation
+Apmf	Permanent Immolation (flying)
+Apig	Permanent Immolation (graphic)
+Apiv	Permanent Invisibility
+Apsh	Phase Shift
+Aphx	Phoenix
+Apxf	PhoenixFire
+Apts	Plague Toss
+Apoi	Poison Attack
+Aply	Polymorph
+ACpy	Polymorph (creep)
+Apos	Possession
+ACps	Possession (creep)
+Aps2	Possession (Channeling)
+Awar	Pulverize
+ACpv	Pulverize (Sea Giant)
+Apit	Purchase Item
+Aprg	Purge
+Apg2	Purge
+ACpu	Purge (Creep)
+ACrf	Rain of Fire (creep)
+ACrg	Rain of Fire (creep,greater)
+Arai	Raise Dead
+ACrd	Raise Dead (Creep)
+ARal	Rally
+Arav	Raven Form (Druid)
+Amrf	Raven Form (Medivh)
+ACrn	Reincarnation (creep)
+ANr2	Reincarnation (generic)
+Arbr	Reinforced Burrows
+Arej	Rejuvination
+ACrj	Rejuvination (creep)
+ACr2	Rejuvination (Furbolg)
+Aren	Renew
+Ahrp	Repair (Human)
+Arep	Repair (Orc)
+Arpb	Replenish (Life & Mana)
+Arpl	Replenish (Life)
+Arpm	Replenish (Mana)
+Arsk	Resistant Skin
+ACrk	Resistant Skin (creep)
+ACsk	Resistant Skin(3,1 pos, creep)
+Arst	Restoration
+Argd	Return (Gold)
+Argl	Return (Gold & Lumber)
+Arlm	Return (Lumber)
+AHta	Reveal(Arcane Tower)
+Arng	Revenge
+Arev	Revive
+Aroa	Roar
+Ara2	Roar
+ACr1	Roar (creep) -- Skeletal Orc
+ACro	Roar (creep)
+Aroc	Rocket Attack
+Aro1	Root (Ancients)
+Aro2	Root (Ancient Protector)
+Asac	Sacrifice (Sacrificial Pit)
+Asal	Pillage
+Alam	Sacrifice (Acolyte)
+ACsa	Searing Arrows (creep)
+Asds	Self Destruct
+Asdg	Self Destruct (Clockwerk Goblins)
+Asd2	Self Destruct 2 (Clockwerk Goblins)
+Asd3	Self Destruct 3 (Clockwerk Goblins)
+Asid	Sell Item
+Asud	Sell Unit
+Aesn	Sentinel
+Aesr	Sentinel (no research)
+Aeye	Sentry Ward
+ACtn	Serpent Ward (tentacle, Forgotten one)
+Ashm	Shadow Meld
+Sshm	Shadow Meld (Instant)
+Ahid	Shadow Meld (Akama)
+ACss	Shadow Strike(Creep)
+ACsh	Shockwave (Creep)
+ACst	Shockwave (Trap)
+ANsh	Garithos - Shock Wave
+ACsi	Silence(Creep)
+ACsm	Siphon Mana (Creep)
+ACsl	Sleep (creep)
+Asla	Sleep Always
+Aslo	Slow
+ACsw	Slow (Creep)
+Aspo	Slow Poison
+Asod	Spawn Skeleton
+Assp	Spawn Spiderling
+Aspd	Spawn Spider
+Aspy	Spawn Hydra
+Aspt	Spawn Hydra Hatchling
+Asps	Spell Steal
+Asph	Sphere
+Asp1	Sphere (SoV Level 1)
+Asp2	Sphere (SoV Level 2)
+Asp3	Sphere (SoV Level 3)
+Asp4	Sphere (SoV Level 4)
+Asp5	Sphere (SoV Level 5)
+Asp6	Sphere (SoV Level 6)
+Aspa	Spider Attack
+Aspi	Spiked Barricades
+Aspl	Spirit Link
+Astd	Stand Down
+Asta	Stasis Trap
+Astn	Stone Form
+Asth	Storm Hammers
+Asb1	Submerge (Myrmidon)
+Asb2	Submerge (Royal Guard)
+Asb3	Submerge (Snap Dragon)
+Aslp	Summon Lobstrok Prawns
+ACwe	Summon Sea Elemental
+Attu	Tank Turret
+Srtt	Tank Upgrade
+Atau	Taunt
+ANta	Taunt(Creep)
+ANth	Thorny Shield (Creep)
+ANt2	Thorny Shield (Dragon Turtle)
+ACah	Thorns Aura (creep)
+ACtb	Thunder Bolt (Creep)
+ACtc	Thunder Clap (Creep)
+ACt2	Thunder Clap (Thunder Lizard)
+Atdg	TornadoDamage
+Atsp	TornadoSpin
+Atwa	TornadoWander
+Atol	Tree of life (for attaching art)
+Ault	Ultravision
+ACua	Unholy Aura (creep)
+Auhf	Unholy Frenzy
+Suhf	Unholy Frenzy (Warlock)
+ACuf	Unholy Frenzy (creep)
+Auco	Unstable Concoction
+Auns	Unsummon
+SCva	Vampiric attack
+ACvp	Vampiric Aura (creep)
+Avng	Vengeance
+Awan	Wander
+Awrs	War Stomp (creep)
+Awrg	War Stomp (sea giant)
+Awrh	War Stomp (hydra)
+ANwk	Wind Walk
+Awha	Wisp Harvest
+Awh2	Wisp Harvest (Invulnerable)
+Aven	Venom Spears
+ACvs	Venom Spears (Creep)
+Awrp	Warp
+Aweb	Web
+ACwb	Web (creep)
+	
+AIa1	AgilityBonus (+1)
+AIa3	AgilityBonus (+3)
+AIa4	AgilityBonus (+4)   
+AIa6	AgilityBonus (+6)
+AIx5	Crown of Kings (All + 5)
+AIx1	(All + 1)
+AIx2	(All + 2)
+AIs1	StrengthBonus (+1)
+AIs3	StrengthBonus (+3)
+AIs4	StrengthBonus (+4)
+AIs6	StrengthBonus (+6)
+AIi1	IntelligenceBonus (+1)
+AIi3	IntelligenceBonus (+3)
+AIi4	IntelligenceBonus (+4)
+AIi6	IntelligenceBonus (+6)
+AIxm	Permanent All + 1
+AIam	AgilityMod          
+AIim	IntelligenceMod     
+AIsm	StrengthMod         
+AIgm	AgilityMod +2
+AItm	IntelligenceMod +2
+AInm	StrengthMod +2
+AIaa	AttackMod
+AIat	AttackBonus         
+AIt6	AttackBonus         
+AIt9	AttackBonus         
+AItc	AttackBonus         
+AItf	AttackBonus         
+AItg	AttackBonus +1
+AIth	AttackBonus +2
+AIti	AttackBonus +4
+AItj	AttackBonus +5
+AItk	AttackBonus +7
+AItl	AttackBonus +8
+AItn	AttackBonus +10
+AIva	Vampiric attack
+AIbk	Blink (Item)
+AIbl	Build Tiny Castle
+AIbg	Build Tiny Great Hall
+AIbt	Build Tiny Scout Tower
+AIbb	Build Tiny Blacksmith
+AIbf	Build Tiny Farm
+AIbr	Build Tiny Lumber Mill
+AIbs	Build Tiny Barracks
+AIbh	Build Tiny Altar
+AIcy	Cyclone
+AId1	DefenseBonus (+1)
+AId2	DefenseBonus (+2)
+AId3	DefenseBonus (+3)
+AId4	DefenseBonus (+4)
+AId5	DefenseBonus (+5)
+AIgf	FortificationGlyph
+AIgu	UltraVisionGlyph
+AIem	ExperienceMod       
+AIe2	ExperienceMod greater
+AIfd	FigurineRedDrake    
+AIff	FigurineFurbolg
+AIfr	FigurineRockGolem   
+AIfu	FigurineDoomGuard   
+AIfh	FigurineFelHound    
+AIfs	FigurineSkeleton    
+AIir	FigurineIceRevenant
+AIuw	FigurineUrsaWarrior
+AIfl	Flag                
+AIfm	Flag (Human)
+AIfo	Flag (Orc)
+AIfn	Flag (Night Elf)
+AIfe	Flag (Undead)
+AIfx	Flag (Orc Battle Standard)
+AIfa	FlareGun
+AIin	ItemInferno
+AIlm	LevelMod       
+AIlp	LightningPurge
+AIlf	MaxLifeBonus (Least)
+AIl1	MaxLifeBonus (Lesser)
+AIl2	MaxLifeBonus (Greater)
+AIms	MoveSpeedBonus      
+ANbs	Orb of Darkness (Black Arrow)
+AIdf	Orb of Darkness
+AIcb	Orb of Corruption
+AIdn	Shadow Orb Ability
+AIfb	Orb of Fire
+AIgd	Orb of Guldan
+AIzb	Orb of Freezing
+AIob	Orb of Frost
+AIll	Orb of Lightning
+AIlb	Orb of Lightning(old)
+AIsb	Orb of Spells
+AIpb	Orb of Venom
+Apo2	Orb of Venom (Poison Attack)
+AInd	Animate Dead (item, special)
+Arel	Regen Life
+Arll	Regen Life
+AIsi	SightBonus          
+AIos	Slow
+AIso	SoulTrap            
+Asou	SoulPossession
+AIcf	ItemCloakOfFlames
+AIco	ItemCommand         
+AIdm	ItemDamageAoe       
+AIda	ItemDefenseAoe      
+AIdb	ItemDefenseAoe (+ Healing)
+AIta	ItemDetectAoe       
+AIdi	ItemDispelAoe       
+AIds	ItemDispelAoeWithCooldown
+APdi	PowerupDispelAoe       
+AIh1	ItemHeal (Lesser)
+AIh2	ItemHeal (Greater)
+AIh3	ItemHeal (Least)
+AIha	ItemHealAoe         
+AIhb	ItemHealAoeGreater
+APh1	PowerupHealAoeLesser
+APh2	PowerupHealAoe
+APh3	PowerupHealAoeGreater
+AIhw	Healing Ward
+AIsw	Sentry Ward
+AIil	ItemIllusion        
+AIv1	ItemInvis (Lesser)
+AIv2	ItemInvis (Greater)
+AIvu	ItemInvul           
+AIvl	ItemInvul           
+AIm1	ItemManaRestore (Lesser)
+AIm2	ItemManaRestore (Greater)
+AImr	ItemManaRestoreAoe  
+APmr	RuneManaRestoreAoe
+APmg	RuneManaRestoreGreaterAoe
+AIpm	ItemPlaceMine       
+AIrt	ItemRecall
+AIrm	ItemRegenMana       
+AIrn	ItemRegenMana lesser
+AIrc	ItemReincarnation   
+AIre	ItemRestore         
+AIra	ItemRestoreAoe      
+APra	RuneRestoreAoe
+AIsp	ItemSpeed
+AIsa	ItemSpeedAoe
+APsa	RuneSpeedAoe
+AItp	ItemTownPortal      
+AIad	ItemAuraDevotion
+AIcd	ItemAuraCommand
+AIba	ItemAuraBrilliance
+AIav	ItemAuraVampiric
+AIar	ItemAuraTrueshot
+AIae	ItemAuraEndurance
+AIau	ItemAuraUnholy
+AIuv	ItemUltravision
+AIls	Lightning Shield
+AIxs	Anti-magic Shield
+AIan	Animate Dead
+AIrs	Resurrection
+AIrr	Roar
+AIev	Evasion
+AImx	Magic Immunity
+AImh	Permanent Hit point Bonus
+AImb	MaxManaBonus (Least)
+AIbm	MaxManaBonus (Most)
+AIsx	Attack Speed Increase
+AIs2	Attack Speed Increase(greater)
+AIrl	Potion of Life Regen
+AIpr	Potion of Mana Regen(greater)
+AIsl	Scroll of Life Regen
+AIpl	Potion of Mana Regen(lesser)
+AIp1	Potion of Rejuv I
+AIp2	Potion of Rejuv II
+AIp3	Potion of Rejuv III
+AIp4	Potion of Rejuv IV
+AIp5	Scroll of Rejuv I
+AIp6	Scroll of Rejuv II
+AIgo	GiveGold       
+AIlu	GiveLumber       
+AIrv	ItemRevealMap
+AIdc	ItemDispelChain
+AIwb	ItemWeb
+AImo	ItemMonsterLure
+AIct	ItemChangeTOD
+AIri	ItemRandomItem
+AIsr	Runed Bracers
+Ablp	BlightPlacement
+AIpv	ItemPotionVampirism
+Aste	ManaSteal
+Amec	MechanicalCritter
+Ashs	ShadowSight
+ANpr	Preservation
+ANsa	Sanctuary
+ANss	Spell Shield
+ANse	Spell Shield AOE
+Aret	Retrain
+AImt	Staff o' Teleportation
+Aspb	Spell Book
+AIrd	Raise Dead (Item)
+AItb	Dust of Appearance
+AIdv	Divine Shield (Item)
+AIse	Silence(Item)
+AIpg	Purge(orb)
+AIps	Purge(Totem, SP)
+AIfg	Cloud of Fog (Item)
+APrl	Rune of Lesser Resurrection
+APrr	Rune of Greater Resurrection
+AIrb	Rune of Rebirth
+Aspp	Rune of Spirit Link
+AUds	Dark Summoning
+APwt	Rune of the Watcher
+AIuf	Unholy Frenzy (item)
+AId0	DefenseBonus (+10)
+AIcm	Control Magic (item)
+AImz	MaxManaBonus (Leastest)
+AIfz	Finger of Death (item)
+AIdp	Death Pact (item)
+AImv	MaxManaBonus (Leastest, Really)
+AIpx	Permanent Hit point Bonus (small)
+AIdd	Defend (Item)
+AId8	DefenseBonus (+8)
+AId7	DefenseBonus (+7)
+AIlz	MaxLifeBonus (Leastest)
+AIhx	ItemHeal (Leastest)
+AIaz	AgilityBonus (+10)
+AIrx	Resurrection - Item
+AIbx	Bash (item)
+AItx	AttackBonus +20
+AIwm	Watery Minion (item)
+AIsh	Summon Headhunter (item)
+AI2m	200 mana bonus
+AIgx	Aura - Regeneration (item)
+AIhl	Holy Light (item)
+AIsz	Slow Poison (item)
+AIpz	Penguin Squeek
+AIfw	Searing Blade - fire melee
+AIft	Frostguard - frost melee
+AIlx	Shaman Claws - lightning melee
+AIcs	Critical Strike (item)
+AIcl	Chain Lightning (item)
+AIx3	(All + 3)
+AIx4	(All + 4)
+AIxk	Beserk (item)
