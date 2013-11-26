@@ -217,7 +217,8 @@ public class WurstREPL {
 				
 				// if there was no comile error
 				// this is probably a bug
-				if (t instanceof InterpreterException) {
+				if (t instanceof InterpreterException
+						|| t instanceof DebugPrintError) {
 					print(t.getMessage() + "\n");
 				}  else {
 					print("You discovered a bug in the interpreter: \n");

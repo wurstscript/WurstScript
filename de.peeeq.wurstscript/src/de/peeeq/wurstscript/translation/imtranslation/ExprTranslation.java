@@ -83,6 +83,7 @@ import de.peeeq.wurstscript.types.WurstTypeModuleInstanciation;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeNull;
 import de.peeeq.wurstscript.types.WurstTypeReal;
+import de.peeeq.wurstscript.types.WurstTypeString;
 import de.peeeq.wurstscript.types.WurstTypeTuple;
 import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 import de.peeeq.wurstscript.utils.Utils;
@@ -337,6 +338,19 @@ public class ExprTranslation {
 	}
 
 	private static ImExpr translateFunctionCall(FunctionCall e, ImTranslator t, ImFunction f) {
+		
+		
+		if (e.getFuncName().equals("error") 
+				&& e.attrImplicitParameter() instanceof NoExpr
+				&& e.getArgs().size() == 1
+				&& e.getArgs().get(0).attrTyp().isSubtypeOf(WurstTypeString.instance(), e)) {
+			// special built-in error function
+			return JassIm.ImStatementExpr(JassIm.ImStmts(
+					JassIm.ImError(e.getArgs().get(0).imTranslateExpr(t, f))),
+					JassIm.ImNull());
+		}
+		
+		
 		List<Expr> arguments = Lists.newArrayList(e.getArgs());
 		boolean dynamicDispatch = false;
 
@@ -352,6 +366,10 @@ public class ExprTranslation {
 			arguments.add(0, (Expr) e.attrImplicitParameter());
 		}
 
+		
+		
+		
+		
 		
 		// get real func def (override of module function)
 		boolean useRealFuncDef = true;
