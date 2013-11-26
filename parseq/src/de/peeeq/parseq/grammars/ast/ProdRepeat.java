@@ -22,13 +22,17 @@ public class ProdRepeat extends Production {
 			return p;
 		}
 		RepeatType repType;
-		if (mod.getText() == "+") {
+		switch (mod.getText()) {
+		case "+":
 			repType = RepeatType.AT_LEAST_ONCE;
-		} else if (mod.getText() == "*") {
+			break;
+		case "*":
 			repType = RepeatType.ARBITRARY;
-		} else if (mod.getText() == "?") {
+			break;
+		case "?":
 			repType = RepeatType.ZERO_OR_ONCE;
-		} else {
+			break;
+		default:
 			throw new Error(mod.getText());
 		}
 		return new ProdRepeat(p, repType);
