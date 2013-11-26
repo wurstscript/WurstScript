@@ -2,7 +2,9 @@ package de.peeeq.wurstscript.intermediateLang.interpreter;
 
 import java.io.File;
 import java.security.acl.LastOwnerException;
+import java.util.Stack;
 
+import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithModifiers;
@@ -68,10 +70,10 @@ public class ILInterpreter {
 		if (f.getReturnType() instanceof ImVoid) {
 			return localState;
 		}
-		throw new InterprationError("function " + f.getName() + " did not return any value...");
+		throw new InterpreterException("function " + f.getName() + " did not return any value...");
 	}
 
-	private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, ILconst... args)	throws Error, InterprationError {
+	private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, ILconst... args) {
 		
 		for (NativesProvider natives : globalState.getNativeProviders()) {
 			try {
@@ -101,6 +103,7 @@ public class ILInterpreter {
 	}
 
 	public LocalState executeFunction(String funcName) {
+		globalState.resetStackframes();
 		for (ImFunction f : prog.getFunctions()) {
 			if (f.getName().equals(funcName)) {
 				return runFunc(globalState, f);
@@ -110,6 +113,7 @@ public class ILInterpreter {
 	}
 
 	public void runVoidFunc(ImFunction f) {
+		globalState.resetStackframes();
 		runFunc(globalState, f);
 	}
 
@@ -133,6 +137,12 @@ public class ILInterpreter {
 	public void setProgram(ImProg imProg) {
 		this.prog = imProg;
 		this.getGlobalState().setProg(imProg);
+		globalState.resetStackframes();
+	}
+
+	public Stack<ILStackFrame> getStackFrames() {
+		return globalState.getStackFrames();
+		
 	}
 
 

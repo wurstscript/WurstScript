@@ -4,7 +4,7 @@ import ObjEditingNatives
 public class BuffDefinition
 	ObjectDefinition def
 	
-	construct(string newAbilityId, string origAbilityId)
+	construct(int newAbilityId, int origAbilityId)
 		def = createObjectDefinition("w3h", newAbilityId, origAbilityId)
 	
 	function setName(int level, string value)

@@ -6,6 +6,7 @@ import org.junit.runners.Suite.SuiteClasses;
 
 import tests.immutablecollections.ImmutableListTest;
 import tests.immutablecollections.IntRangeTests;
+import tests.wurstscript.objectreader.ObjectHelperTests;
 import tests.wurstscript.utils.UtilsTest;
 
 
@@ -33,7 +34,8 @@ import tests.wurstscript.utils.UtilsTest;
 	OpOverloading.class,
 	FlowAnalysisTests.class,
 	NewFeatureTests.class,
-	ClosureTests.class
+	ClosureTests.class,
+	ObjectHelperTests.class
 })
 public class QuickTests {
 

@@ -4,17 +4,22 @@ import java.io.File;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
+import java.util.Stack;
 import java.util.WeakHashMap;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.jassIm.ImClass;
+import de.peeeq.wurstscript.jassIm.ImExpr;
+import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImStmt;
+import de.peeeq.wurstscript.parser.WPos;
 
 public class ProgramState extends State {
 
@@ -28,7 +33,9 @@ public class ProgramState extends State {
 	private ImProg prog;
 	private int objectIdCounter;
 	private Map<Integer, ImClass> objectToClass = Maps.newLinkedHashMap();
-
+	private Stack<ILStackFrame> stackFrames = new Stack<>();
+	
+	
 	public ProgramState(File mapFile, WurstGui gui) {
 		this.gui = gui;
 		this.mapFile = mapFile;
@@ -96,10 +103,10 @@ public class ProgramState extends State {
 
 	public void assertAllocated(int obj, AstElement trace) {
 		if (obj == 0) {
-			throw new RuntimeException("Null pointer derefenced at " + trace);
+			throw new InterpreterException(trace, "Null pointer derefenced");
 		}
 		if (!objectToClass.containsKey(obj)) {
-			throw new InterprationError("Object already destroyed " + trace);
+			throw new InterpreterException(trace, "Object already destroyed");
 		}
 	}
 
@@ -111,6 +118,26 @@ public class ProgramState extends State {
 	public int getTypeId(int obj,  AstElement trace) {
 		assertAllocated(obj, trace);
 		return objectToClass.get(obj).attrTypeId();
+	}
+
+	public void pushStackframe(ImFunction f, ILconst[] args, WPos trace) {
+		stackFrames.push(new ILStackFrame(f, args, trace));
+		
+	}
+
+	public void popStackframe() {
+		if (!stackFrames.isEmpty()) {
+			stackFrames.pop();
+		}
+	}
+	
+	public void resetStackframes() {
+		stackFrames.clear();
+	}
+	
+	
+	public Stack<ILStackFrame> getStackFrames() {
+		return stackFrames;
 	}
 
 

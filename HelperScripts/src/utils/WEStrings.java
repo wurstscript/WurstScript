@@ -44,7 +44,15 @@ public class WEStrings {
 	}
 	
 	public String get(String key) {
-		return data.get(key);
+		String result = key; 
+		while (result.startsWith("WESTRING_")) {
+			String newResult = data.get(result);
+			if (newResult == null || newResult.equals(result)) {
+				return result;
+			}
+			result = newResult;
+		}
+		return result;
 	}
 	
 }

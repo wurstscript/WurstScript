@@ -46,6 +46,7 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.parser.WPos;
 
 public class EvaluateExpr {
 
@@ -60,16 +61,18 @@ public class EvaluateExpr {
 	public static ILconst eval(ImFunctionCall e, ProgramState globalState, LocalState localState) {
 		ImFunction f = e.getFunc();
 		ImExprs arguments = e.getArguments();
-		return evaluateFunc(globalState, localState, f, arguments);
+		return evaluateFunc(globalState, localState, f, arguments, e.attrTrace().attrSource());
 	}
 
 	public static ILconst evaluateFunc(ProgramState globalState,
-			LocalState localState, ImFunction f, List<ImExpr> args2) {
+			LocalState localState, ImFunction f, List<ImExpr> args2, WPos trace) {
 		ILconst[] args = new ILconst[args2.size()];
 		for (int i=0; i < args2.size(); i++) {
 			args[i] = args2.get(i).evaluate(globalState, localState);
 		}
+		globalState.pushStackframe(f, args, trace);
 		LocalState r = ILInterpreter.runFunc(globalState, f, args);
+		globalState.popStackframe();
 		return r.getReturnVal();
 	}
 
@@ -186,7 +189,7 @@ public class EvaluateExpr {
 			}
 		}
 		// execute most precise method
-		return evaluateFunc(globalState, localState, mostPrecise.getImplementation(), args);
+		return evaluateFunc(globalState, localState, mostPrecise.getImplementation(), args, mc.attrTrace().attrSource());
 	}
 
 	public static ILconst eval(ImMemberAccess ma, ProgramState globalState, LocalState localState) {

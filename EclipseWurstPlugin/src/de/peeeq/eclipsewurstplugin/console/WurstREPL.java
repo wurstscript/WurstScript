@@ -1,7 +1,6 @@
 package de.peeeq.eclipsewurstplugin.console;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -28,12 +27,9 @@ import com.google.common.collect.Sets;
 
 import de.peeeq.eclipsewurstplugin.builder.ModelManager;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
-import de.peeeq.wurstio.intermediateLang.interpreter.CompiletimeNatives;
-import de.peeeq.wurstio.intermediateLang.interpreter.ProgramStateIO;
 import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.NativeFunctionsIO;
-import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstConfig;
@@ -43,8 +39,6 @@ import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.TupleDef;
-import de.peeeq.wurstscript.ast.TypeExpr;
-import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WStatement;
@@ -55,6 +49,7 @@ import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstReal;
 import de.peeeq.wurstscript.intermediateLang.ILconstTuple;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreter;
+import de.peeeq.wurstscript.intermediateLang.interpreter.ILStackFrame;
 import de.peeeq.wurstscript.intermediateLang.interpreter.LocalState;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassIm.ImFunction;
@@ -63,6 +58,7 @@ import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
+import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlag;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.WurstType;
@@ -221,8 +217,21 @@ public class WurstREPL {
 				
 				// if there was no comile error
 				// this is probably a bug
-				print("You discovered a bug in the interpreter: \n");
-				print(t+"\n");
+				if (t instanceof InterpreterException) {
+					print(t.getMessage() + "\n");
+				}  else {
+					print("You discovered a bug in the interpreter: \n");
+					print(t+"\n");
+				}
+				
+				
+				WPos source = interpreter.getLastStatement().attrTrace().attrSource();
+				print("When executing line " + source.getLine() + " in " + source.getFile() + "\n");
+				
+				for (ILStackFrame sf : Utils.iterateReverse(interpreter.getStackFrames())) {
+					print(sf.getMessage() + "\n");
+				}
+				
 				WLogger.severe(t);
 			}
 			
