@@ -78,7 +78,7 @@ public class WurstTextHover implements ITextHover,
 				if (p != null && p.overlapsWith(hoverRegion.getOffset(), hoverRegion.getLength())) {
 					String msg= a.getText();
 					if (msg != null && msg.trim().length() > 0)
-						return msg;
+						return Utils.escapeHtml(msg);
 				}
 			}
 		}
