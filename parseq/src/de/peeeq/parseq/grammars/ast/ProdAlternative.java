@@ -21,19 +21,29 @@ public class ProdAlternative extends Production {
 
 
 	@Override
-	public void print(GrammarTranslation tr) {
+	public void print(StringBuilder tr) {
 		boolean first = true;
 		
-		tr.print("(");
+		tr.append("(");
 		for (Production a : alternatives) {
 			if (!first) {
-				tr.print(") | (");
+				tr.append(") | (");
 			}
 			a.print(tr);;
 			first = false;
 		}
-		tr.print(")");
+		tr.append(")");
 		
+	}
+
+
+	@Override
+	public ProdType getType() {
+		ProdType result = new ProdType();
+		for (Production p: alternatives) {
+			result = result.alternative(p.getType());
+		}
+		return result;
 	}
 
 

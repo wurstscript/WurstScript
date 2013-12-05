@@ -53,7 +53,7 @@ public class Main {
 			if (new File(inputFileG).exists()) {
 				compileGrammarSpec(fileGenerator, inputFileG, prog);
 			} else {
-				System.out.println("No Grammar file given for " + inputFileG);
+				System.err.println("No Grammar file given for " + inputFileG);
 			}
 			fileGenerator.removeOldFiles();
 		} catch (Throwable t) {
@@ -94,6 +94,7 @@ public class Main {
 		parser.addErrorListener(errListener);
 
 		GrammarFileContext f = parser.grammarFile();
+		f.result.program = prog;
 		
 		new GrammarTranslation(fileGenerator, f.result, prog).translate();
 		System.out.println("GrammarFileContext: ");

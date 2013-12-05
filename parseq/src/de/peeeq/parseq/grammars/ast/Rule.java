@@ -2,6 +2,8 @@ package de.peeeq.parseq.grammars.ast;
 
 import org.antlr.v4.runtime.Token;
 
+import de.peeeq.parseq.asts.ast.AstEntityDefinition;
+
 public class Rule extends AstElement {
 	final public String name;
 	final public String returnType;
@@ -24,8 +26,22 @@ public class Rule extends AstElement {
 			returnType = t.getText();
 		}
 		production = p;
+		p.setParent(this);
 	}
 
+
+	public SimpleType getReturnType() {
+		switch (returnType) {
+		case "void":
+			return new SimpleTypeVoid();
+		case "String":
+			return new SimpleTypeString();
+		default:
+			// lookup ast type
+			AstEntityDefinition astType = lookupAstEntity(returnType);
+			return new SimpleTypeAst(astType);
+		}
+	}
 	
 	
 }

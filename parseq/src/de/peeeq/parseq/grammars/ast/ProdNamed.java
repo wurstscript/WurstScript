@@ -19,13 +19,13 @@ public abstract class ProdNamed extends Production {
 		}
 	}
 
-	public void printName(GrammarTranslation tr) {
+	public void printName(StringBuilder tr) {
 		if (name != null) {
-			tr.print(name);
+			tr.append(name);
 			if (isList) {
-				tr.print("+=");
+				tr.append("+=");
 			} else {
-				tr.print("=");
+				tr.append("=");
 			}
 		}
 		

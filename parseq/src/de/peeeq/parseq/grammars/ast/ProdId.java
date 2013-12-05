@@ -13,9 +13,26 @@ public class ProdId extends ProdNamed {
 	}
 	
 	@Override
-	public void print(GrammarTranslation tr) {
+	public void print(StringBuilder tr) {
 		super.printName(tr);
-		tr.print(text);
+		tr.append(text);
+	}
+
+	@Override
+	public ProdType getType() {
+		Rule r = lookupRule(text);
+		if (r == null) {
+			throw new Error("Could not find rule " + text);
+		}
+		SimpleType t = r.getReturnType();
+		if (t instanceof SimpleTypeVoid) {
+			return ProdType.empty();
+		}
+		String name2 = name;
+		if (name2 == null) {
+			name2 = "anon";
+		}
+		return new ProdType(name2, t);
 	}
 
 }

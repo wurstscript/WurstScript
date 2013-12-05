@@ -39,21 +39,27 @@ public class ProdRepeat extends Production {
 	}
 
 	@Override
-	public void print(GrammarTranslation tr) {
-		tr.print("(");
+	public void print(StringBuilder tr) {
+		tr.append("(");
 		prod.print(tr);
-		tr.print(")");
+		tr.append(")");
 		switch (repType) {
 		case ARBITRARY:
-			tr.print("*");
+			tr.append("*");
 			break;
 		case AT_LEAST_ONCE:
-			tr.print("+");
+			tr.append("+");
 			break;
 		case ZERO_OR_ONCE:
-			tr.print("+");
+			tr.append("+");
 			break;
 		}
+	}
+
+	@Override
+	public ProdType getType() {
+		// TODO add repeat- and optional- types?
+		return prod.getType();
 	}
 	
 	
