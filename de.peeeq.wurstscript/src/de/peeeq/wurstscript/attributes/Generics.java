@@ -52,7 +52,11 @@ public class Generics {
 			inferTypeParameters(result, args, args.get(i).attrTyp(), params.get(i).attrTyp(), typeParams);
 		}
 		if (result.size() < typeParams.size()) {
-			args.addError("Could not infer all type parameters.");
+			for (TypeParamDef tp : typeParams) {
+				if (!result.containsKey(tp)) {
+					args.getParent().addError("Could not infer type parameter " + tp.getName() + ".");
+				}
+			}
 		}
 		return result;
 	}
