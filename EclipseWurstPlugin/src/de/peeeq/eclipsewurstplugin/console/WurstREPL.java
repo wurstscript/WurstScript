@@ -358,7 +358,7 @@ public class WurstREPL {
 			JassPrinter printer = new JassPrinter(true);
 			String mapScript = printer.printProg(jassProg);
 
-			IFile f = project.getFile("compiled.j");
+			IFile f = project.getFile("compiled.j.txt");
 			if (f.exists()) {
 				f.delete(true, null);
 			}

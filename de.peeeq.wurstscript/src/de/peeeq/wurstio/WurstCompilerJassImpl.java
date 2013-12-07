@@ -249,6 +249,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			return Ast.CompilationUnit("", errorHandler, Ast.JassToplevelDeclarations(), Ast.WPackages());
 		} else {
 			CompilationUnit lib = parseFile(file);
+			lib.setFile(file.getAbsolutePath());
 			compilationUnits.add(lib);
 			return lib;
 		}
@@ -462,7 +463,14 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		try {
 			mpqEditor = MpqEditorFactory.getEditor();
 			File tempFile = mpqEditor.extractFile(file, "war3map.j");
-			return parseFile(tempFile);
+			// move file to wurst directory
+			File wurstwar3map = new File(new File(file.getParentFile(), "wurst"), "war3map.j");
+			wurstwar3map.delete();
+			if (tempFile.renameTo(wurstwar3map)) {
+				return parseFile(wurstwar3map);
+			} else {
+				throw new Error("Could not move war3map.j to " + wurstwar3map);
+			}
 		} catch (Exception e) {
 			throw new Error(e);
 		}

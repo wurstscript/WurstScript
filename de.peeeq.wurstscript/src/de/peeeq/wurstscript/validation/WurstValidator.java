@@ -461,16 +461,16 @@ public class WurstValidator {
 
 	private void checkVarName(VarDef s, boolean isConstant) {
 		String varName = s.getName(); 
-		if (!Utils.isJassCode(s)) {
-			if (!Character.isLowerCase(varName.charAt(0))) {
-				if (!varName.matches("[A-Z0-9_]+")) {
-					s.addError("Variable names must start with a lower case character. (" + varName + ")");
-				}
-			}
+		
+		if (!Character.isLowerCase(varName.charAt(0)) // first letter not lower case
+				&& !Utils.isJassCode(s) // not in jass code
+				&& !varName.matches("[A-Z0-9_]+") // not a constant
+				) {
+			s.addError("Variable names must start with a lower case character. (" + varName + ")");
 		}
-		if ( varName.matches("handle")) {
+		if (varName.equals("handle")) {
 			s.addError("\"handle\" is not a valid variable name");
-		}else if ( varName.matches("code")) {
+		}else if (varName.equals("code")) {
 			s.addError("\"code\" is not a valid variable name");
 		}
 

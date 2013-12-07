@@ -136,43 +136,59 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 			if (!file.exists()) {
 				return;
 			}
-			if (file.getName().endsWith(".wurst")) {
-				WurstNature.deleteAllMarkers(file);
-	
-				Reader reader;
-				boolean doChecks = true;
-				try {
-					reader = new InputStreamReader(file.getContents());
-					String fileName = file.getProjectRelativePath().toString();
-					getModelManager().parse(gui, fileName, reader);
-				} catch (CoreException e) {
-					e.printStackTrace();
-				}
-	
-				if (doChecks) {
-					WurstNature.get(file.getProject()).addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_GRAMMAR);
-				}
+			if (isWurstOrJassFile(file)) {
+				handleWurstFile(gui, file);
 			} else if (file.getName().equals("wurst.dependencies")) {
-				WurstNature.deleteAllMarkers(file);
-				try {
-					getModelManager().clearDependencies();
-					BufferedReader reader = new BufferedReader(new InputStreamReader(file.getContents()));
-					while (true) {
-						String line = reader.readLine();
-						if (line == null) break;
-						addDependency(gui, file, line);						
-					}
-				} catch (CoreException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			
-				
+				handleWurstDependencyFile(gui, file);
 			}
 		}
+	}
+
+
+	private void handleWurstDependencyFile(WurstGui gui, IFile file) {
+		WurstNature.deleteAllMarkers(file);
+		try {
+			getModelManager().clearDependencies();
+			BufferedReader reader = new BufferedReader(new InputStreamReader(file.getContents()));
+			while (true) {
+				String line = reader.readLine();
+				if (line == null) break;
+				addDependency(gui, file, line);						
+			}
+		} catch (CoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+
+
+	private void handleWurstFile(WurstGui gui, IFile file) {
+		WurstNature.deleteAllMarkers(file);
+
+		Reader reader;
+		boolean doChecks = true;
+		try {
+			reader = new InputStreamReader(file.getContents());
+			String fileName = file.getProjectRelativePath().toString();
+			getModelManager().parse(gui, fileName, reader);
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
+
+		if (doChecks) {
+			WurstNature.get(file.getProject()).addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_GRAMMAR);
+		}
+	}
+
+
+
+	private boolean isWurstOrJassFile(IFile file) {
+		return file.getName().endsWith(".wurst")
+				|| file.getName().endsWith(".j");
 	}
 	
 	
