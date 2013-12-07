@@ -27,4 +27,12 @@ public class WurstEclipseConfig {
 		return pref.getFloat(WurstConstants.WURST_AUTOCOMPLETION_DELAY);
 	}
 	
+	public String wc3Path() {
+		return pref.getString(WurstConstants.WURST_WC3_PATH);
+	}
+	
+	public String mpqEditorPath() {
+		return pref.getString(WurstConstants.WURST_MPQEDIT_PATH);
+	}
+	
 }

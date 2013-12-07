@@ -909,4 +909,18 @@ public class Utils {
 		};
 	}
 
+	public static <T> String arrayToString(T[] ar) {
+		StringBuilder sb = new StringBuilder("[");
+		boolean first = true;
+		for (Object o : ar) {
+			if (!first) {
+				sb.append(", ");
+			}
+			sb.append(o);
+			first = false;
+		}
+		sb.append("]");
+		return sb.toString();
+	}
+
 }

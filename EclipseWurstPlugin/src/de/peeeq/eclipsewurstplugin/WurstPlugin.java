@@ -24,6 +24,7 @@ import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
 import de.peeeq.eclipsewurstplugin.editor.highlighting.ScannerFactory;
 import de.peeeq.eclipsewurstplugin.ui.WurstPerspective;
 import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.utils.WinRegistry;
 
 /**
  * The activator class controls the plug-in life cycle
@@ -188,6 +189,18 @@ public class WurstPlugin extends AbstractUIPlugin {
 		setDefaultValue(WurstConstants.WURST_AUTOCOMPLETION_DELAY, "0.5");
 		setDefaultValue(WurstConstants.WURST_ENABLE_RECONCILING, true);
 		setDefaultValue(WurstConstants.WURST_RECONCILATION_DELAY, "0.5");
+		setDefaultValue(WurstConstants.WURST_MPQEDIT_PATH, "C:\\mpqedit\\MPQEditor.exe");
+		setDefaultValue(WurstConstants.WURST_WC3_PATH, "C:\\Warcraft III\\");
+		try {
+			// try to use the registry to find wc3 path
+			String installPath = WinRegistry.readString(WinRegistry.HKEY_CURRENT_USER, "Software\\Blizzard Entertainment\\Warcraft III", "InstallPath");
+			if (installPath != null) {
+				setDefaultValue(WurstConstants.WURST_WC3_PATH, installPath);
+			}
+		} catch (Throwable t) {
+			t.printStackTrace();
+		}
+		
 		
 	}
 	

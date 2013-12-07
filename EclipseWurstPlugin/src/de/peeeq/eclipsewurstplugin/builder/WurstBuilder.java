@@ -110,10 +110,12 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 	protected IProject[] build(int kind, Map args, IProgressMonitor monitor) throws CoreException {
 		WLogger.info("build ...");
 		if (kind == FULL_BUILD || getModelManager().needsFullBuild()) {
+			WLogger.info("needs full build: " + kind + ", " + getModelManager().needsFullBuild());
 			fullBuild(monitor);
 		} else {
 			IResourceDelta delta = getDelta(getProject());
 			if (delta == null) {
+				WLogger.info("delta is null");
 				fullBuild(monitor);
 			} else {
 				incrementalBuild(delta, monitor);

@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.google.common.collect.Lists;
@@ -66,6 +67,10 @@ public class RunArgs {
 				}
 			}
 		}
+	}
+
+	public RunArgs(List<String> runArgs) {
+		this(runArgs.toArray(new String[runArgs.size()]));
 	}
 
 	public static void printHelpAndExit() {

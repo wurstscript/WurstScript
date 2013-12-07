@@ -469,7 +469,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			if (tempFile.renameTo(wurstwar3map)) {
 				return parseFile(wurstwar3map);
 			} else {
-				throw new Error("Could not move war3map.j to " + wurstwar3map);
+				throw new Error("Could not move war3map.j from " + tempFile + " to " + wurstwar3map);
 			}
 		} catch (Exception e) {
 			throw new Error(e);

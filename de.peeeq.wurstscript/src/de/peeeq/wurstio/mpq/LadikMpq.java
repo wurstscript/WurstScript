@@ -23,7 +23,7 @@ public class LadikMpq implements MpqEditor {
 		WLogger.info("Extracting " + fileToExtract + " from " + mpqArchive.getAbsolutePath() + " into " + tempFile1.getAbsolutePath());
 		File script = MoPaqScriptfiles.extractFile(mpqArchive, fileToExtract);
 		
-		String[] commands = {MpqEditorFactory.getFilepath(), "/console", script.getAbsolutePath()};
+		String[] commands = {MpqEditorFactory.getFilepath(), "extract", mpqArchive.getAbsolutePath(), fileToExtract, tempFile1.getParentFile().getAbsolutePath()};
 		Debug.println(Arrays.toString(commands));
 		
 		Process proc = rt.exec(commands);
@@ -38,7 +38,7 @@ public class LadikMpq implements MpqEditor {
 		if (!tempFile1.exists()) {
 			throw new IOException("Could not extract file " + fileToExtract + " from " + mpqArchive.getAbsolutePath());
 		}
-		script.delete();
+//		script.delete();
 		return tempFile1;
 		
 	}
@@ -64,14 +64,14 @@ public class LadikMpq implements MpqEditor {
 		Runtime rt = Runtime.getRuntime();
 		File script = MoPaqScriptfiles.insertFile(mpqArchive, tempFile, filenameInMpq);
 		
-		String[] commands = {MpqEditorFactory.getFilepath(), "/console", script.getAbsolutePath()};
+		String[] commands = {MpqEditorFactory.getFilepath(), "add", mpqArchive.getAbsolutePath(), tempFile.getAbsolutePath(), filenameInMpq};
 		
 		Process proc = rt.exec(commands);
 		InputStream procOut = proc.getInputStream();
 		BufferedReader procOutReader = new BufferedReader(new InputStreamReader(procOut));
 		proc.waitFor();
 		String line;
-		script.delete();
+//		script.delete();
 		while ((line = procOutReader.readLine()) != null) {
 			WLogger.info(line);
 		}
@@ -84,14 +84,14 @@ public class LadikMpq implements MpqEditor {
 		Runtime rt = Runtime.getRuntime();
 		File script = MoPaqScriptfiles.deleteMapfile(mpqArchive, filenameInMpq);
 		
-		String[] commands = {MpqEditorFactory.getFilepath(), "/console", script.getAbsolutePath()};		
+		String[] commands = {MpqEditorFactory.getFilepath(), "delete", mpqArchive.getAbsolutePath(), filenameInMpq};		
 		
 		Process proc = rt.exec(commands);
 		InputStream procOut = proc.getInputStream();
 		BufferedReader procOutReader = new BufferedReader(new InputStreamReader(procOut));
 		proc.waitFor();
 		String line;
-		script.delete();
+//		script.delete();
 		while ((line = procOutReader.readLine()) != null) {
 			WLogger.info(line);
 		}
@@ -127,7 +127,7 @@ public class LadikMpq implements MpqEditor {
 		BufferedReader procOutReader = new BufferedReader(new InputStreamReader(procOut));
 		proc.waitFor();
 		String line;
-		script.delete();
+//		script.delete();
 		while ((line = procOutReader.readLine()) != null) {
 			WLogger.info(line);
 		}

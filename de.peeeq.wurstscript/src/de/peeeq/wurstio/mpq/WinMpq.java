@@ -10,7 +10,14 @@ import de.peeeq.wurstscript.WLogger;
 
 public class WinMpq implements MpqEditor {
 
-	WinMpq() {
+	private final String winmpqExe;
+
+	public WinMpq() {
+		this("./winmpq/WinMPQ.exe");
+	}
+	
+	public WinMpq(String exe) {
+		this.winmpqExe = exe;
 	}
 	
 	@Override
@@ -19,7 +26,7 @@ public class WinMpq implements MpqEditor {
 		Runtime rt = Runtime.getRuntime();
 		File tempFile1 = new File("./temp/" + fileToExtract);
 		File tempFolder = new File(tempFile1.getParent());
-		String[] commands = {"./winmpq/WinMPQ.exe", "extract", mpqArchive.getAbsolutePath(), fileToExtract, tempFolder.getAbsolutePath()};
+		String[] commands = {winmpqExe, "extract", mpqArchive.getAbsolutePath(), fileToExtract, tempFolder.getAbsolutePath()};
 		
 		
 		Process proc = rt.exec(commands);
@@ -45,7 +52,7 @@ public class WinMpq implements MpqEditor {
 	public void insertFile(File mpqArchive, String filenameInMpq, File tempFile)
 			throws IOException, InterruptedException {
 		Runtime rt = Runtime.getRuntime();
-		String[] commands = {"./winmpq/WinMPQ.exe", "add", mpqArchive.getAbsolutePath(), tempFile.getAbsolutePath(), filenameInMpq};
+		String[] commands = {winmpqExe, "add", mpqArchive.getAbsolutePath(), tempFile.getAbsolutePath(), filenameInMpq};
 		
 		Process proc = rt.exec(commands);
 		InputStream procOut = proc.getInputStream();
@@ -62,7 +69,7 @@ public class WinMpq implements MpqEditor {
 	public void deleteFile(File mpqArchive, String filenameInMpq)
 			throws IOException, InterruptedException {
 		Runtime rt = Runtime.getRuntime();
-		String[] commands = {"./winmpq/WinMPQ.exe", "delete", mpqArchive.getAbsolutePath(), filenameInMpq};
+		String[] commands = {winmpqExe, "delete", mpqArchive.getAbsolutePath(), filenameInMpq};
 		
 		Process proc = rt.exec(commands);
 		InputStream procOut = proc.getInputStream();
