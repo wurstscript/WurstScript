@@ -1,15 +1,13 @@
 package tests.immutablecollections;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-import de.peeeq.datastructures.Partitions;
 import de.peeeq.wurstscript.translation.imtranslation.IntRange;
 
 public class IntRangeTests {

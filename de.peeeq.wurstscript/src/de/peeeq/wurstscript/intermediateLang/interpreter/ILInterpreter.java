@@ -1,12 +1,10 @@
 package de.peeeq.wurstscript.intermediateLang.interpreter;
 
 import java.io.File;
-import java.security.acl.LastOwnerException;
 import java.util.Stack;
 
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.ast.Annotation;
-import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithModifiers;
 import de.peeeq.wurstscript.ast.Modifier;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -18,7 +16,6 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassinterpreter.ReturnException;
 import de.peeeq.wurstscript.parser.WPos;
-import de.peeeq.wurstscript.utils.Utils;
 
 public class ILInterpreter {
 	private ImProg prog;

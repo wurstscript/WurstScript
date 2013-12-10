@@ -5,8 +5,6 @@ import java.util.List;
 import com.google.common.collect.Multimap;
 
 import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.InterfaceDef;
-import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.NameLinkType;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;

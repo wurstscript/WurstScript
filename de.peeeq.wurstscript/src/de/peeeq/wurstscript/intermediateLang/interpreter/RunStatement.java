@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.intermediateLang.interpreter;
 
 import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
-import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstBool;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
@@ -22,7 +21,6 @@ import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassinterpreter.ExitwhenException;
 import de.peeeq.wurstscript.jassinterpreter.ReturnException;
-import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 
 public class RunStatement {
 

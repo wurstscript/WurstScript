@@ -14,7 +14,6 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;

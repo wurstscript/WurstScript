@@ -1,28 +1,18 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import static de.peeeq.wurstscript.jassIm.JassIm.ImExprs;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImStringVal;
-
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.Lists;
 
-import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.jassIm.ImClass;
-import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImMethod;
-import de.peeeq.wurstscript.jassIm.ImType;
-import de.peeeq.wurstscript.jassIm.ImVar;
-import de.peeeq.wurstscript.jassIm.JassIm;
-import de.peeeq.wurstscript.types.WurstTypeVoid;
 
 public class InterfaceTranslator {
 

@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.intermediateLang.optimizer;
 
-import java.math.BigDecimal;
 import java.text.DecimalFormat;
 
 import de.peeeq.wurstscript.jassIm.ImBoolVal;

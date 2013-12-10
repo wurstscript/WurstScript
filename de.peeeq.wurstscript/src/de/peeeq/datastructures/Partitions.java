@@ -1,14 +1,8 @@
 package de.peeeq.datastructures;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public class Partitions<T> {

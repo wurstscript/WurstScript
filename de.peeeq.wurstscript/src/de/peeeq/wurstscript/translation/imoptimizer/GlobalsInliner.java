@@ -19,7 +19,6 @@ import de.peeeq.wurstscript.jassIm.ImVarWrite;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
-import de.peeeq.wurstscript.jassIm.ImStmts;
 
 public class GlobalsInliner {
 	

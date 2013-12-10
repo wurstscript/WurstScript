@@ -2,12 +2,10 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.Collection;
 
-import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.HasTypeArgs;
+import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 
 public class ImplicitFuncs {
 

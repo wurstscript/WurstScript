@@ -5,8 +5,6 @@ import java.util.Random;
 
 import com.google.common.collect.Maps;
 
-import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.intermediateLang.ILconstBool;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
 import de.peeeq.wurstscript.intermediateLang.ILconstNull;

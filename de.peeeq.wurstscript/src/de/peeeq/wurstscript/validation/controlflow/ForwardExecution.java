@@ -10,10 +10,8 @@ import java.util.PriorityQueue;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.FunctionLike;
 import de.peeeq.wurstscript.ast.WStatement;
-import de.peeeq.wurstscript.utils.Utils;
 
 public class ForwardExecution<T> {
 

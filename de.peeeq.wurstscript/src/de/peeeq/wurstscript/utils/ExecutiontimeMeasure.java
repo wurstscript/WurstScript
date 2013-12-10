@@ -1,8 +1,5 @@
 package de.peeeq.wurstscript.utils;
 
-import java.io.Closeable;
-import java.io.IOException;
-
 import de.peeeq.wurstscript.WLogger;
 
 public class ExecutiontimeMeasure implements AutoCloseable {

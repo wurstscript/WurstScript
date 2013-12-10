@@ -15,9 +15,9 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.Maps;
 import com.google.common.io.Files;
 
+import de.peeeq.wurstio.CompiletimeFunctionRunner;
 import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.Pjass.Result;
-import de.peeeq.wurstio.CompiletimeFunctionRunner;
 import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.jassinterpreter.JassInterpreter;
@@ -38,7 +38,6 @@ import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
-import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlag;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;

@@ -2,10 +2,10 @@ package de.peeeq.wurstscript.utils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.prefs.Preferences;
 
 // source: http://stackoverflow.com/questions/62289/read-write-to-windows-registry-using-java

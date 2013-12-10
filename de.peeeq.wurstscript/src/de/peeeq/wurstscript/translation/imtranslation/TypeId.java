@@ -6,7 +6,6 @@ import java.util.Map;
 import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.jassIm.ImClass;
-import de.peeeq.wurstscript.jassIm.ImClasses;
 import de.peeeq.wurstscript.jassIm.ImProg;
 
 public class TypeId {

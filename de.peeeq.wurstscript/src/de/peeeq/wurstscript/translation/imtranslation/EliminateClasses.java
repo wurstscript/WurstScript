@@ -3,20 +3,16 @@ package de.peeeq.wurstscript.translation.imtranslation;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Stack;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import de.peeeq.wurstio.jassinterpreter.JassInterpreter;
 import de.peeeq.wurstscript.WurstOperator;
-import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.jassIm.ImAlloc;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImDealloc;
 import de.peeeq.wurstscript.jassIm.ImExpr;
-import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
@@ -32,11 +28,8 @@ import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImTypeIdOfClass;
 import de.peeeq.wurstscript.jassIm.ImTypeIdOfObj;
 import de.peeeq.wurstscript.jassIm.ImVar;
-import de.peeeq.wurstscript.jassIm.ImVarAccess;
-import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.JassIm;
-import de.peeeq.wurstscript.jassIm.JassImElement;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
 

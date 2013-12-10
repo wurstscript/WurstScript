@@ -5,10 +5,6 @@ import java.util.Map;
 
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WParameters;
-import de.peeeq.wurstscript.intermediateLang.ILconstBool;
-import de.peeeq.wurstscript.intermediateLang.ILconstInt;
-import de.peeeq.wurstscript.intermediateLang.ILconstNull;
-import de.peeeq.wurstscript.intermediateLang.ILconstReal;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImNoExpr;
 import de.peeeq.wurstscript.jassIm.ImSet;

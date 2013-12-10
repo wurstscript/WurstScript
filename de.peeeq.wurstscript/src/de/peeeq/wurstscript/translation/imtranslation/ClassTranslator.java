@@ -2,26 +2,18 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.ImExprs;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImFunctionCall;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImIf;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImIntVal;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImOperatorCall;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImReturn;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImSet;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImSetArray;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImStmts;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImStringVal;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVar;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVarAccess;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImVarArrayAccess;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
@@ -37,7 +29,6 @@ import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.jassIm.ImClass;
-import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImMethod;
@@ -48,18 +39,14 @@ import de.peeeq.wurstscript.jassIm.ImSetArrayTuple;
 import de.peeeq.wurstscript.jassIm.ImSetTuple;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmt.DefaultVisitor;
-import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
-import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstTypeClass;
-import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.utils.Pair;
-import de.peeeq.wurstscript.utils.Utils;
 
 public class ClassTranslator {
 

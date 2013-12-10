@@ -25,7 +25,6 @@ import de.peeeq.wurstio.objectreader.ObjectModificationString;
 import de.peeeq.wurstio.objectreader.ObjectTable;
 import de.peeeq.wurstio.objectreader.WTSFile;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState;
 import de.peeeq.wurstscript.jassIm.ImStmt;

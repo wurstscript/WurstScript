@@ -5,7 +5,6 @@ import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.types.CallSignature;
-import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 
 public class AttrCallSignature {
 

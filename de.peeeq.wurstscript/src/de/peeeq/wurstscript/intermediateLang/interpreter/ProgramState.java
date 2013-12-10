@@ -5,7 +5,6 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
-import java.util.WeakHashMap;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -15,7 +14,6 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.jassIm.ImClass;
-import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImStmt;
