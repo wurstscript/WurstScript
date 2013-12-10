@@ -283,8 +283,12 @@ public class StmtTranslation {
 				lastIf.setElseBlock(ImStmts(tmp));
 				lastIf = tmp;
 			}
-			
 		}
+		
+		if (lastIf == null) {
+			throw new CompileError(switchStmt.attrSource(), "No cases in switch?");
+		}
+		
 //		WLogger.info("it is a " + switchStmt.getSwitchDefault().getClass());
 		if (switchStmt.getSwitchDefault() instanceof SwitchDefaultCaseStatements) {
 			

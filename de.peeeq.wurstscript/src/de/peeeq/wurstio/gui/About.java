@@ -206,20 +206,19 @@ public class About extends javax.swing.JDialog {
         java.awt.EventQueue.invokeLater(new Runnable() {
 
             public void run() {
-                About dialog = null;
                 try {
-                    dialog = new About(new javax.swing.JFrame(), true);
-                } catch (URISyntaxException ex) {
-                    Logger.getLogger(About.class.getName()).log(Level.SEVERE, null, ex);
-                }
-                dialog.addWindowListener(new java.awt.event.WindowAdapter() {
+                	About dialog = new About(new javax.swing.JFrame(), true);
+                	dialog.addWindowListener(new java.awt.event.WindowAdapter() {
 
-                    @Override
-                    public void windowClosing(java.awt.event.WindowEvent e) {
-                        System.exit(0);
-                    }
-                });
-                dialog.setVisible(true);
+                		@Override
+                		public void windowClosing(java.awt.event.WindowEvent e) {
+                			System.exit(0);
+                		}
+                	});
+                	dialog.setVisible(true);
+                } catch (URISyntaxException ex) {
+                	Logger.getLogger(About.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
         });
     }
