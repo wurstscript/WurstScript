@@ -23,6 +23,9 @@ import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.ui.console.IOConsoleOutputStream;
 
 import com.google.common.collect.Lists;
@@ -351,6 +354,9 @@ public class WurstREPL {
 			// create the file in the wc3 maps directory, because otherwise it does not work sometimes 
 			String testMapName = "wurstTestMap.w3x";
 			File testMap = new File(new File(wc3Path, "Maps"), testMapName);
+			if (testMap.exists()) {
+				testMap.delete();
+			}
 			testMap.delete();
 			Files.copy(map, testMap);
 
@@ -382,10 +388,30 @@ public class WurstREPL {
 			println("running " + cmd);
 			Process p = Runtime.getRuntime().exec(cmd.toArray(new String[0]));
 		} catch (CompileError e) {
+			showMessage("There was an error when compiling the map: \n" + e.getMessage());
 			print(e.getMessage() + "\n");
-		} catch (Exception e) {
-			throw new Error(e);
+		} catch (final Exception e) {
+			WLogger.severe(e);
+			final String message = "Could not start the map.\n\nPlease check the configuration in Window>Preferences>Wurst. \n\n"
+					+ "The exact error message is:\n " + e.getMessage();
+			showMessage(message);
 		}
+	}
+
+	private void showMessage(final String message) {
+		final Display display = Display.getDefault();
+		display.syncExec(new Runnable() {
+			
+			@Override
+			public void run() {
+				MessageBox dialog = 
+						  new MessageBox(display.getActiveShell(), SWT.ICON_INFORMATION | SWT.OK);
+						dialog.setText("Could not start map");
+						dialog.setMessage(message);
+
+						dialog.open(); 
+			}
+		});
 	}
 
 	private void printClasses() {

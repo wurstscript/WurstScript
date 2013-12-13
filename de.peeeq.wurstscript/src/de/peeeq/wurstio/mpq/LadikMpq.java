@@ -12,6 +12,7 @@ import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.utils.Debug;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class LadikMpq implements MpqEditor {
 
@@ -71,13 +72,16 @@ public class LadikMpq implements MpqEditor {
 			argsList.add(0, "wine");
 		}
 		Runtime rt = Runtime.getRuntime();
+		
 		Process proc = rt.exec(argsList.toArray(new String[0]));
-		InputStream procOut = proc.getInputStream();
-		BufferedReader procOutReader = new BufferedReader(new InputStreamReader(procOut));
-		proc.waitFor();
-		String line;
-		while ((line = procOutReader.readLine()) != null) {
-			WLogger.info(line);
+		int exit = proc.waitFor();
+		String out = Utils.readWholeStream(proc.getInputStream());
+		String err = Utils.readWholeStream(proc.getErrorStream());
+		WLogger.info("exit code =" + exit);
+		WLogger.info("out =" + out);
+		WLogger.info("err =" + err);
+		if (!err.isEmpty()) {
+			throw new IOException("Could not run MPQ editor: " + err);
 		}
 	}
 

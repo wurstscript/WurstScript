@@ -1,5 +1,9 @@
 package de.peeeq.wurstscript.utils;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -21,6 +25,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 import de.peeeq.immutablecollections.ImmutableList;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithName;
 import de.peeeq.wurstscript.ast.ClassOrModule;
@@ -921,6 +926,20 @@ public class Utils {
 		}
 		sb.append("]");
 		return sb.toString();
+	}
+
+	public static String readWholeStream(BufferedReader r) throws IOException {
+		StringBuilder sb = new StringBuilder();
+		String line;
+		while ((line = r.readLine()) != null) {
+			sb.append(line);
+		}
+		return sb.toString();
+	}
+
+	public static String readWholeStream(InputStream inputStream) throws IOException {
+		BufferedReader r = new BufferedReader(new InputStreamReader(inputStream));
+		return readWholeStream(r);
 	}
 
 }
