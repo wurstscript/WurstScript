@@ -330,17 +330,10 @@ public class WurstREPL {
 
 	public void runMap(File map, List<String> compileArgs, IProgressMonitor monitor) {
 		try {
-			File frozenThroneExe = new File(WurstPlugin.config().wc3Path(), "Frozen Throne.exe");
+			String wc3Path = WurstPlugin.config().wc3Path();
+			File frozenThroneExe = new File(wc3Path, "Frozen Throne.exe");
 			File mpqEditorExe = new File(WurstPlugin.config().mpqEditorPath());
 
-			if (!frozenThroneExe.exists()) {
-				throw new Error("Could not find Frozen Throne.exe at " + frozenThroneExe.getAbsolutePath()+".\n" +
-						"You can change the path via Window->Preferences->Wurst.");
-			}
-			if (!mpqEditorExe.exists()) {
-				throw new Error("Could not find MPQEditor.exe at " + mpqEditorExe.getAbsolutePath()+".\n" +
-						"You can change the path via Window->Preferences->Wurst.");
-			}
 
 			if (!map.exists()) {
 				println(map.getAbsolutePath() + " does not exist.");
@@ -355,7 +348,9 @@ public class WurstREPL {
 			monitor.beginTask("Preparing testmap", IProgressMonitor.UNKNOWN);
 			
 			// now copy the map so that we do not corrupt the original
-			File testMap = new File(map.getParentFile(), "testMap.w3x");
+			// create the file in the wc3 maps directory, because otherwise it does not work sometimes 
+			String testMapName = "wurstTestMap.w3x";
+			File testMap = new File(new File(wc3Path, "Maps"), testMapName);
 			testMap.delete();
 			Files.copy(map, testMap);
 
@@ -373,14 +368,21 @@ public class WurstREPL {
 			monitor.beginTask("Starting wc3", IProgressMonitor.UNKNOWN);
 			
 			// now start the map
-			String[] cmd = new String[] {
+			List<String> cmd = Lists.newArrayList(
 					frozenThroneExe.getAbsolutePath(),
 					"-window",
 					"-loadfile",
-					testMap.getAbsolutePath()
-			};
-			println("running " + Utils.arrayToString(cmd));
-			Process p = Runtime.getRuntime().exec(cmd);
+					"Maps/"+ testMapName);
+			
+			if (!System.getProperty("os.name").startsWith("Windows")) {
+				// run with wine
+				cmd.add(0, "wine");
+			}
+			
+			println("running " + cmd);
+			Process p = Runtime.getRuntime().exec(cmd.toArray(new String[0]));
+		} catch (CompileError e) {
+			print(e.getMessage() + "\n");
 		} catch (Exception e) {
 			throw new Error(e);
 		}

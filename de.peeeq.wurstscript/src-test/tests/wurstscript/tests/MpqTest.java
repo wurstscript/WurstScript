@@ -101,21 +101,6 @@ public class MpqTest {
 		
 	}
 	
-	@Test
-	public void test_compact() {
-		try {
-			MpqEditorFactory.setFilepath("./lib/mpqedit/mpqeditor.exe");
-			MpqEditorFactory.setTempfolder(TEST_OUTPUT_PATH);
-			LadikMpq edit = MpqEditorFactory.getEditor();
-			edit.compact(new File(TEST_W3X));
-			Assert.assertTrue(true);
-
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-	}
 	
 	
 

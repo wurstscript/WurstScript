@@ -6,6 +6,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Arrays;
+import java.util.List;
+
+import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.utils.Debug;
@@ -57,81 +60,57 @@ public class LadikMpq implements MpqEditor {
 		}
 		return f;
 	}
-
-	@Override
-	public void insertFile(File mpqArchive, String filenameInMpq, File tempFile)
-			throws IOException, InterruptedException {
+	
+	private void runCommand(String ... args) throws IOException, InterruptedException {
+		List<String> argsList = Lists.newArrayList(args);
+		
+		argsList.add(0, MpqEditorFactory.getFilepath());
+		
+		if (!System.getProperty("os.name").startsWith("Windows")) {
+			// run with wine
+			argsList.add(0, "wine");
+		}
 		Runtime rt = Runtime.getRuntime();
-		File script = MoPaqScriptfiles.insertFile(mpqArchive, tempFile, filenameInMpq);
-		
-		String[] commands = {MpqEditorFactory.getFilepath(), "add", mpqArchive.getAbsolutePath(), tempFile.getAbsolutePath(), filenameInMpq};
-		
-		Process proc = rt.exec(commands);
+		Process proc = rt.exec(argsList.toArray(new String[0]));
 		InputStream procOut = proc.getInputStream();
 		BufferedReader procOutReader = new BufferedReader(new InputStreamReader(procOut));
 		proc.waitFor();
 		String line;
-//		script.delete();
 		while ((line = procOutReader.readLine()) != null) {
 			WLogger.info(line);
 		}
-		
+	}
+
+	@Override
+	public void insertFile(File mpqArchive, String filenameInMpq, File tempFile)
+			throws IOException, InterruptedException {
+		runCommand("add", mpqArchive.getAbsolutePath(), tempFile.getAbsolutePath(), filenameInMpq);
 	}
 
 	@Override
 	public void deleteFile(File mpqArchive, String filenameInMpq)
 			throws IOException, InterruptedException {
-		Runtime rt = Runtime.getRuntime();
-		File script = MoPaqScriptfiles.deleteMapfile(mpqArchive, filenameInMpq);
-		
-		String[] commands = {MpqEditorFactory.getFilepath(), "delete", mpqArchive.getAbsolutePath(), filenameInMpq};		
-		
-		Process proc = rt.exec(commands);
-		InputStream procOut = proc.getInputStream();
-		BufferedReader procOutReader = new BufferedReader(new InputStreamReader(procOut));
-		proc.waitFor();
-		String line;
-//		script.delete();
-		while ((line = procOutReader.readLine()) != null) {
-			WLogger.info(line);
-		}
-		
+		runCommand("delete", mpqArchive.getAbsolutePath(), filenameInMpq);		
 	}
 	
-	public void compact(File mpqArchive)
-			throws IOException, InterruptedException {
-		Runtime rt = Runtime.getRuntime();
-		String[] commands = {MpqEditorFactory.getFilepath(),"/console", "compact", mpqArchive.getAbsolutePath()};
-		
-		Process proc = rt.exec(commands);
-		InputStream procOut = proc.getInputStream();
-		BufferedReader procOutReader = new BufferedReader(new InputStreamReader(procOut));
-		proc.waitFor();
-		String line;
-		while ((line = procOutReader.readLine()) != null) {
-			WLogger.info(line);
-		}
-		
-	}
-
 	@Override
 	public void compactArchive(File mpqArchive) throws IOException,
 			InterruptedException {
-		Runtime rt = Runtime.getRuntime();
-		File script = MoPaqScriptfiles.compactMapfile(mpqArchive);
-		
-		String[] commands = {MpqEditorFactory.getFilepath(), "/console", script.getAbsolutePath()};		
-		
-		Process proc = rt.exec(commands);
-		InputStream procOut = proc.getInputStream();
-		BufferedReader procOutReader = new BufferedReader(new InputStreamReader(procOut));
-		proc.waitFor();
-		String line;
-//		script.delete();
-		while ((line = procOutReader.readLine()) != null) {
-			WLogger.info(line);
-		}
-		
+		runCommand("compact", mpqArchive.getAbsolutePath());
+//		Runtime rt = Runtime.getRuntime();
+//		File script = MoPaqScriptfiles.compactMapfile(mpqArchive);
+//		
+//		String[] commands = {MpqEditorFactory.getFilepath(), "/console", script.getAbsolutePath()};		
+//		
+//		Process proc = rt.exec(commands);
+//		InputStream procOut = proc.getInputStream();
+//		BufferedReader procOutReader = new BufferedReader(new InputStreamReader(procOut));
+//		proc.waitFor();
+//		String line;
+////		script.delete();
+//		while ((line = procOutReader.readLine()) != null) {
+//			WLogger.info(line);
+//		}
 	}
 
 }
