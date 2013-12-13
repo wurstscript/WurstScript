@@ -60,7 +60,7 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 		def.setString("umvt", data)
 
 	function setTurnRate(real data)
-		def.setReal("umvr", data)
+		def.setUnreal("umvr", data)
 
 	function setTintingColor3Blue(int data)
 		def.setInt("uclb", data)
@@ -174,25 +174,25 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 		def.setString("urac", data)
 
 	function setPropulsionWindowdegrees(real data)
-		def.setReal("uprw", data)
+		def.setUnreal("uprw", data)
 
 	function setProjectileLaunchZSwimming(real data)
-		def.setReal("ulsz", data)
+		def.setUnreal("ulsz", data)
 
 	function setProjectileLaunchZ(real data)
-		def.setReal("ulpz", data)
+		def.setUnreal("ulpz", data)
 
 	function setProjectileLaunchY(real data)
-		def.setReal("ulpy", data)
+		def.setUnreal("ulpy", data)
 
 	function setProjectileLaunchX(real data)
-		def.setReal("ulpx", data)
+		def.setUnreal("ulpx", data)
 
 	function setProjectileImpactZSwimming(real data)
-		def.setReal("uisz", data)
+		def.setUnreal("uisz", data)
 
 	function setProjectileImpactZ(real data)
-		def.setReal("uimz", data)
+		def.setUnreal("uimz", data)
 
 	function setPriority(int data)
 		def.setInt("upri", data)
@@ -207,7 +207,7 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 		def.setInt("uori", data)
 
 	function setOccluderHeight(real data)
-		def.setReal("uocc", data)
+		def.setUnreal("uocc", data)
 
 	function setAbilities(string data)
 		def.setString("uabi", data)
@@ -234,7 +234,7 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 		def.setReal("umxp", data)
 
 	function setManaRegeneration(real data)
-		def.setReal("umpr", data)
+		def.setUnreal("umpr", data)
 
 	function setManaMaximum(int data)
 		def.setInt("umpm", data)
@@ -264,16 +264,16 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 		def.setString("uhrt", data)
 
 	function setHitPointsRegenerationRate(real data)
-		def.setReal("uhpr", data)
+		def.setUnreal("uhpr", data)
 
 	function setHitPointsMaximumBase(int data)
 		def.setInt("uhpm", data)
 
 	function setMovementHeightMinimum(real data)
-		def.setReal("umvf", data)
+		def.setUnreal("umvf", data)
 
 	function setMovementHeight(real data)
-		def.setReal("umvh", data)
+		def.setUnreal("umvh", data)
 
 	function setHasWaterShadow(boolean data)
 		def.setBoolean("ushr", data)
@@ -330,10 +330,10 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 		def.setInt("udea", data)
 
 	function setDeathTimeseconds(real data)
-		def.setReal("udtm", data)
+		def.setUnreal("udtm", data)
 
 	function setCollisionSize(real data)
-		def.setReal("ucol", data)
+		def.setUnreal("ucol", data)
 
 	function setCategorizationSpecial(boolean data)
 		def.setBoolean("uspe", data)
@@ -366,7 +366,7 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 		def.setBoolean("uwu2", data)
 
 	function setAttack2RangeMotionBuffer(real data)
-		def.setReal("urb2", data)
+		def.setUnreal("urb2", data)
 
 	function setAttack2Range(int data)
 		def.setInt("ua2r", data)
@@ -381,7 +381,7 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 		def.setString("ua2m", data)
 
 	function setAttack2ProjectileArc(real data)
-		def.setReal("uma2", data)
+		def.setUnreal("uma2", data)
 
 	function setAttack2MaximumNumberofTargets(int data)
 		def.setInt("utc2", data)
@@ -390,10 +390,10 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 		def.setInt("udu2", data)
 
 	function setAttack2DamageSpillRadius(real data)
-		def.setReal("usr2", data)
+		def.setUnreal("usr2", data)
 
 	function setAttack2DamageSpillDistance(real data)
-		def.setReal("usd2", data)
+		def.setUnreal("usd2", data)
 
 	function setAttack2DamageSidesperDie(int data)
 		def.setInt("ua2s", data)
@@ -402,19 +402,19 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 		def.setInt("ua2d", data)
 
 	function setAttack2DamageLossFactor(real data)
-		def.setReal("udl2", data)
+		def.setUnreal("udl2", data)
 
 	function setAttack2DamageFactorSmall(real data)
-		def.setReal("uqd2", data)
+		def.setUnreal("uqd2", data)
 
 	function setAttack2DamageFactorMedium(real data)
-		def.setReal("uhd2", data)
+		def.setUnreal("uhd2", data)
 
 	function setAttack2DamageBase(int data)
 		def.setInt("ua2b", data)
 
 	function setAttack2CooldownTime(real data)
-		def.setReal("ua2c", data)
+		def.setUnreal("ua2c", data)
 
 	function setAttack2AttackType(string data)
 		def.setString("ua2t", data)
@@ -432,10 +432,10 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 		def.setInt("ua2f", data)
 
 	function setAttack2AnimationDamagePoint(real data)
-		def.setReal("udp2", data)
+		def.setUnreal("udp2", data)
 
 	function setAttack2AnimationBackswingPoint(real data)
-		def.setReal("ubs2", data)
+		def.setUnreal("ubs2", data)
 
 	function setAttack1WeaponType(string data)
 		def.setString("ua1w", data)
@@ -450,7 +450,7 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 		def.setBoolean("uwu1", data)
 
 	function setAttack1RangeMotionBuffer(real data)
-		def.setReal("urb1", data)
+		def.setUnreal("urb1", data)
 
 	function setAttack1Range(int data)
 		def.setInt("ua1r", data)
@@ -465,7 +465,7 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 		def.setString("ua1m", data)
 
 	function setAttack1ProjectileArc(real data)
-		def.setReal("uma1", data)
+		def.setUnreal("uma1", data)
 
 	function setAttack1MaximumNumberofTargets(int data)
 		def.setInt("utc1", data)
@@ -474,10 +474,10 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 		def.setInt("udu1", data)
 
 	function setAttack1DamageSpillRadius(real data)
-		def.setReal("usr1", data)
+		def.setUnreal("usr1", data)
 
 	function setAttack1DamageSpillDistance(real data)
-		def.setReal("usd1", data)
+		def.setUnreal("usd1", data)
 
 	function setAttack1DamageSidesperDie(int data)
 		def.setInt("ua1s", data)
@@ -486,13 +486,13 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 		def.setInt("ua1d", data)
 
 	function setAttack1DamageLossFactor(real data)
-		def.setReal("udl1", data)
+		def.setUnreal("udl1", data)
 
 	function setAttack1DamageFactorSmall(real data)
-		def.setReal("uqd1", data)
+		def.setUnreal("uqd1", data)
 
 	function setAttack1DamageFactorMedium(real data)
-		def.setReal("uhd1", data)
+		def.setUnreal("uhd1", data)
 
 	function setAttack1DamageBase(int data)
 		def.setInt("ua1b", data)
@@ -516,10 +516,10 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 		def.setInt("ua1f", data)
 
 	function setAttack1AnimationDamagePoint(real data)
-		def.setReal("udp1", data)
+		def.setUnreal("udp1", data)
 
 	function setAttack1AnimationBackswingPoint(real data)
-		def.setReal("ubs1", data)
+		def.setUnreal("ubs1", data)
 
 	function setArmorType(string data)
 		def.setString("uarm", data)
@@ -531,10 +531,10 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 		def.setReal("urun", data)
 
 	function setAnimationCastPoint(real data)
-		def.setReal("ucpt", data)
+		def.setUnreal("ucpt", data)
 
 	function setAnimationCastBackswing(real data)
-		def.setReal("ucbs", data)
+		def.setUnreal("ucbs", data)
 
 	function setAnimationBlendTimeseconds(real data)
 		def.setReal("uble", data)
@@ -546,10 +546,10 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 		def.setString("uabt", data)
 
 	function setAIPlacementRadius(real data)
-		def.setReal("uabr", data)
+		def.setUnreal("uabr", data)
 
 	function setAcquisitionRange(real data)
-		def.setReal("uacq", data)
+		def.setUnreal("uacq", data)
 	
 class UnitOrHeroDefinition extends UnitOrBuildingOrHeroDefinition
 	
@@ -590,7 +590,7 @@ public class HeroDefinition extends UnitOrHeroDefinition
 		def.setString("uawt", data)
 
 	function setStrengthPerLevel(real data)
-		def.setReal("ustp", data)
+		def.setUnreal("ustp", data)
 
 	function setStartingStrength(int data)
 		def.setInt("ustr", data)
@@ -611,7 +611,7 @@ public class HeroDefinition extends UnitOrHeroDefinition
 		def.setString("upra", data)
 
 	function setIntelligencePerLevel(real data)
-		def.setReal("uinp", data)
+		def.setUnreal("uinp", data)
 
 	function setHeroRevivalLocations(string data)
 		def.setString("urva", data)
@@ -620,7 +620,7 @@ public class HeroDefinition extends UnitOrHeroDefinition
 		def.setString("uhab", data)
 
 	function setAgilityPerLevel(real data)
-		def.setReal("uagp", data)
+		def.setUnreal("uagp", data)
 
 public class UnitDefinition extends UnitOrHeroDefinition
 	
@@ -660,7 +660,7 @@ public class BuildingDefinition extends UnitOrBuildingOrHeroDefinition
 		def.setString("ures", data)
 
 	function setPlacementRequiresWaterRadius(real data)
-		def.setReal("upaw", data)
+		def.setUnreal("upaw", data)
 
 	function setPlacementRequires(string data)
 		def.setString("upap", data)
