@@ -27,7 +27,9 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassFunction;
+import de.peeeq.wurstscript.jassAst.JassFunctionOrNative;
 import de.peeeq.wurstscript.jassAst.JassFunctions;
+import de.peeeq.wurstscript.jassAst.JassNative;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassAst.JassSimpleVar;
 import de.peeeq.wurstscript.jassAst.JassVar;
@@ -90,6 +92,7 @@ public class ImToJassTranslator {
 			return;
 		}
 		if (translatingFunctions.contains(imFunc)) {
+			// TODO extract method
 			if (imFunc != translatingFunctions.peek()) {
 				String msg = "cyclic dependency between functions: " ;
 				boolean start = false;
@@ -148,18 +151,25 @@ public class ImToJassTranslator {
 	}
 
 	private void translateFunction(ImFunction imFunc) {
-		JassFunction f = getJassFuncFor(imFunc);
-		
+		if (imFunc.isBj()) {
+			return;
+		}
+		// not a native
+		JassFunctionOrNative f = getJassFuncFor(imFunc);
+
 		f.setReturnType(imFunc.getReturnType().translateType());
 		// translate parameters
 		for (ImVar v : imFunc.getParameters()) {
 			f.getParams().add((JassSimpleVar) getJassVarFor(v));
 		}
-		// translate locals
-		for (ImVar v : imFunc.getLocals()) {
-			f.getLocals().add(getJassVarFor(v));
+		if (f instanceof JassFunction) {
+			JassFunction jf = (JassFunction) f;
+			// translate locals
+			for (ImVar v : imFunc.getLocals()) {
+				jf.getLocals().add(getJassVarFor(v));
+			}
+			imFunc.getBody().translate(jf.getBody(), jf, this);
 		}
-		imFunc.getBody().translate(f.getBody(), f, this);
 		
 	}
 
@@ -261,19 +271,30 @@ public class ImToJassTranslator {
 		return v;
 	}
 
-	Map<ImFunction, JassFunction> jassFuncs = Maps.newLinkedHashMap();
+	Map<ImFunction, JassFunctionOrNative> jassFuncs = Maps.newLinkedHashMap();
 	
-	public JassFunction getJassFuncFor(ImFunction func) {
-		JassFunction f = jassFuncs.get(func);
+	public JassFunctionOrNative getJassFuncFor(ImFunction func) {
+		JassFunctionOrNative f = jassFuncs.get(func);
 		if (f == null) {
-			f = JassFunction(getUniqueGlobalName(func.getName()), JassSimpleVars(), "nothing", JassVars(), JassStatements());
-			if (!func.isNative() && !func.isBj()) {
-				prog.getFunctions().add(f);
+			if (func.isNative()) {
+				f = JassAst.JassNative(func.getName(), JassSimpleVars(), "nothing");
+				if (!func.isBj() && !func.isExtern()) {
+					prog.getNatives().add((JassNative) f);
+				}
+			} else {
+				String name = getUniqueGlobalName(func.getName());
+				f = JassFunction(name, JassSimpleVars(), "nothing", JassVars(), JassStatements());
+				if (!func.isBj() && !func.isExtern()) {
+					prog.getFunctions().add((JassFunction) f);
+				}
 			}
 			jassFuncs.put(func, f);
 		}
 		return f;
 	}
+	
+	Map<ImFunction, JassNative> jassJassNatives = Maps.newLinkedHashMap();
+	
 
 	
 }

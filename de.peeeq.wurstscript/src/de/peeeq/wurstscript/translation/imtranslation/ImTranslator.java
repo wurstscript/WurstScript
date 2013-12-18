@@ -35,8 +35,10 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 import de.peeeq.datastructures.Partitions;
+import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.AstElementWithModifiers;
 import de.peeeq.wurstscript.ast.AstElementWithName;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -51,6 +53,7 @@ import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.JassToplevelDeclaration;
+import de.peeeq.wurstscript.ast.Modifier;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NamedScope;
@@ -188,6 +191,7 @@ public class ImTranslator {
 
 
 	private void translateCompilationUnit(CompilationUnit cu) {
+		// TODO can we make this smarter? Only translate functions which are actually called...
 		for (WPackage p : cu.getPackages()) {
 			p.imTranslateTLD(this);
 		}
@@ -201,7 +205,7 @@ public class ImTranslator {
 
 	private void finishInitFunctions() {
 		// init globals, at beginning of main func:
-		mainFunc.getBody().add(0, ImFunctionCall(emptyTrace, globalInitFunc, ImExprs(), false));
+		mainFunc.getBody().add(0, ImFunctionCall(emptyTrace, globalInitFunc, ImExprs(), false, CallType.NORMAL));
 		for (ImFunction initFunc : initFuncMap.values()) {
 			addFunction(initFunc);
 		}
@@ -223,7 +227,7 @@ public class ImTranslator {
 		if (initFunc == null) {
 			return;
 		}
-		mainFunc.getBody().add(ImFunctionCall(emptyTrace, initFunc, ImExprs(), false));
+		mainFunc.getBody().add(ImFunctionCall(emptyTrace, initFunc, ImExprs(), false, CallType.NORMAL));
 	}
 
 	private void addFunction(ImFunction f) {
@@ -354,6 +358,9 @@ public class ImTranslator {
 		if (isBJ(funcDef.getSource())) {
 			flags.add(IS_BJ);
 		}
+		if (isExtern(funcDef)) {
+			flags.add(FunctionFlag.IS_EXTERN);
+		}
 		if (funcDef instanceof FuncDef) {
 			FuncDef funcDef2 = (FuncDef) funcDef;
 			if (funcDef2.attrIsCompiletime()) {
@@ -371,6 +378,22 @@ public class ImTranslator {
 		addFunction(f);
 		functionMap.put(funcDef, f);
 		return f;
+	}
+
+
+	private boolean isExtern(TranslatedToImFunction funcDef) {
+		if (funcDef instanceof AstElementWithModifiers) {
+			AstElementWithModifiers f = (AstElementWithModifiers) funcDef;
+			for (Modifier m: f.getModifiers()) {
+				if (m instanceof Annotation) {
+					Annotation a = (Annotation) m;
+					if (a.getAnnotationType().equals("@extern")) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
 	}
 
 

@@ -6,7 +6,7 @@ package test
 	native testFail(string msg)
 	
 	native testSuccess()
-	native I2S(integer i) returns string
+	@extern native I2S(integer i) returns string
 	
 	class Blub 
 		int x

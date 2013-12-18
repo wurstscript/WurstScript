@@ -93,7 +93,8 @@ ImClassRelatedExpr =
 	
 
 ImCall = 
-	  ImFunctionCall(de.peeeq.wurstscript.ast.AstElement trace, &ImFunction func, ImExprs arguments, boolean tuplesEliminated)
+	  ImFunctionCall(de.peeeq.wurstscript.ast.AstElement trace, &ImFunction func, ImExprs arguments
+	  				, boolean tuplesEliminated, de.peeeq.wurstscript.translation.imtranslation.CallType callType)
 	| ImOperatorCall(de.peeeq.wurstscript.WurstOperator op, ImExprs arguments)
 	
 ImConst = 
@@ -239,7 +240,11 @@ ImFunction.isNative()
 ImFunction.isBj()
 	returns boolean
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.isBj
-	
+
+ImFunction.isExtern()
+	returns boolean
+	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.isExtern
+
 ImFunction.isCompiletime()
 	returns boolean
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.isCompiletime

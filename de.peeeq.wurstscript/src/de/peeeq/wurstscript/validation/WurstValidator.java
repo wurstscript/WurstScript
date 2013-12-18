@@ -37,6 +37,7 @@ import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprNull;
 import de.peeeq.wurstscript.ast.ExprStatementsBlock;
+import de.peeeq.wurstscript.ast.ExprStringVal;
 import de.peeeq.wurstscript.ast.ExprThis;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
@@ -1256,10 +1257,40 @@ public class WurstValidator {
 	}
 
 	private void checkBannedFunctions(ExprFunctionCall e) {
-		String[] banned = new String[] {"TriggerRegisterVariableEvent", "ExecuteFunc"};
+		String[] banned = new String[] {"TriggerRegisterVariableEvent" /*, "ExecuteFunc" */};
 		for (String name : banned) {
 			if (e.getFuncName().equals(name)) {
 				e.addError("The function " + name + " is not allowed in Wurst.");
+			}
+		}
+		
+		if (e.getFuncName().equals("ExecuteFunc")) {
+			// executeFunc can only use constant string arguments
+			if (e.getArgs().size() != 1) {
+				e.addError("Wrong number of args");
+				return;
+			}
+			if (e.getArgs().get(0) instanceof ExprStringVal) {
+				ExprStringVal s = (ExprStringVal) e.getArgs().get(0);
+				String exFunc = s.getValS();
+				Collection<NameLink> funcs = e.lookupFuncs(exFunc);
+				if (funcs.isEmpty()) {
+					e.addError("Could not find function " + exFunc + ".");
+					return;
+				}
+				if (funcs.size() > 1) {
+					StringBuilder alternatives = new StringBuilder();
+					for (NameLink nameLink : funcs) {
+						alternatives.append("\n - " + Utils.printElementWithSource(nameLink.getNameDef()));
+					}
+					e.addError("Ambigious function name: " + exFunc + ". Alternatives are: " + alternatives);
+					return;
+				}
+				NameLink func = Utils.getFirst(funcs);
+				if (func.getParameterTypes().size() != 0) {
+					e.addError("Function " + exFunc + " must not have any parameters.");
+					return; 
+				}
 			}
 		}
 	}

@@ -50,7 +50,7 @@ public class NullSetter {
 	}
 
 	private void optimizeFunc(final ImFunction f) {
-		if (f.isBj() || f.isNative() || f.isCompiletime()) {
+		if (f.isBj() || f.isNative() || f.isCompiletime() || f.isExtern()) {
 			return;
 		}
 		final List<ImVar> handleVars = Lists.newArrayList();

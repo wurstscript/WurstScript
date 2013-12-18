@@ -132,7 +132,7 @@ public class StackTraceInjector {
 			
 			ImStmt stmt;
 			ImExprs args = JassIm.ImExprs(str("\\n   " + fr.attrTrace().attrSource().printShort()));
-			ImFunctionCall call = JassIm.ImFunctionCall(fr.attrTrace(), f, args, true);
+			ImFunctionCall call = JassIm.ImFunctionCall(fr.attrTrace(), f, args, true, CallType.NORMAL);
 			if (bridgeFunc.getReturnType() instanceof ImVoid) {
 				stmt = call; 
 			} else {

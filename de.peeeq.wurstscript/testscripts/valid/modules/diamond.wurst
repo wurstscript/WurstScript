@@ -3,7 +3,7 @@ package test
 	native testFail(string msg)
 	native testSuccess()
 	native println(string s)
-	native I2S(int x) returns string
+	@extern native I2S(int x) returns string
 
 	module A 
 		int x

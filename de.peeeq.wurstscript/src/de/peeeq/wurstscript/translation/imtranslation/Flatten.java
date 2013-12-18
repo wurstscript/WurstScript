@@ -222,7 +222,7 @@ public class Flatten {
 
 	public static Result flatten(ImFunctionCall e, ImTranslator t, ImFunction f) {
 		MultiResult r = flattenExprs(t, f, e.getArguments());
-		return new Result(r.stmts, JassIm.ImFunctionCall(e.getTrace(), e.getFunc(), ImExprs(r.exprs), e.getTuplesEliminated()));
+		return new Result(r.stmts, JassIm.ImFunctionCall(e.getTrace(), e.getFunc(), ImExprs(r.exprs), e.getTuplesEliminated(), e.getCallType()));
 	}
 
 	public static Result flatten(ImOperatorCall e, ImTranslator t,	ImFunction f) {
