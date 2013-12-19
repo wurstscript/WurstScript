@@ -13,7 +13,6 @@ import static de.peeeq.wurstscript.jassIm.JassIm.ImTupleSelection;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVarAccess;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVarArrayAccess;
 
-import java.util.Collection;
 import java.util.List;
 
 import com.google.common.collect.Lists;

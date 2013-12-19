@@ -6,7 +6,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
 
 import com.google.common.collect.Lists;
 
