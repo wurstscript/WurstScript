@@ -49,4 +49,10 @@ public class WurstGuiCliImpl implements WurstGui {
 		errors.clear();
 	}
 
+	@Override
+	public void showInfoMessage(String message) {
+		System.out.println(message);
+		
+	}
+
 }

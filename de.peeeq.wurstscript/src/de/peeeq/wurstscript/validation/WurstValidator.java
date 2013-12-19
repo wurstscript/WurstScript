@@ -159,7 +159,9 @@ public class WurstValidator {
 			functionCount = countFunctions();
 			visitedFunctions = 0;
 	
-			walkTree(prog);		
+			prog.getErrorHandler().setProgress("Checking wurst types", ProgressHelper.getValidatorPercent(visitedFunctions, functionCount));
+			walkTree(prog);	
+			prog.getErrorHandler().setProgress("Searching cyclic dependencies", 0.55);
 			postChecks();
 		} catch (RuntimeException e) {
 			if (lastElement != null) {
