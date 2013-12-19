@@ -45,15 +45,18 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 			switch (delta.getKind()) {
 			case IResourceDelta.ADDED:
 				// handle added resource
-				checkCompilatinUnit(gui, resource);
+				WLogger.info("added " + resource.getName());
+				changed |= checkCompilatinUnit(gui, resource);
 				break;
 			case IResourceDelta.REMOVED:
 				// handle removed resource
-				getModelManager().removeCompilationUnit(resource);
+				WLogger.info("removed " + resource.getName());
+				changed |= getModelManager().removeCompilationUnit(resource);
 				break;
 			case IResourceDelta.CHANGED:
 				// handle changed resource
-				checkCompilatinUnit(gui, resource);
+				WLogger.info("changed " + resource.getName());
+				changed |= checkCompilatinUnit(gui, resource);
 				break;
 			}
 			// return true to continue visiting children.
@@ -84,6 +87,8 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 
 	public static final String MARKER_TYPE_GRAMMAR = "EclipseWurstPlugin.wurstProblemGrammar";
 	public static final String MARKER_TYPE_TYPES = "EclipseWurstPlugin.wurstProblemTypes";
+
+	private boolean changed;
 
 	private ModelManager getModelManager() {
 		try {
@@ -131,19 +136,22 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 		getModelManager().clean();
 	}
 
-	void checkCompilatinUnit(WurstGui gui, IResource resource) {
+	boolean checkCompilatinUnit(WurstGui gui, IResource resource) {
 		// TODO move to model manager?
 		if (resource instanceof IFile) {
 			IFile file = (IFile) resource;
 			if (!file.exists()) {
-				return;
+				return false;
 			}
 			if (isWurstOrJassFile(file)) {
 				handleWurstFile(gui, file);
+				return true;
 			} else if (file.getName().equals("wurst.dependencies")) {
 				handleWurstDependencyFile(gui, file);
+				return true;
 			}
 		}
+		return false;
 	}
 
 
@@ -232,8 +240,11 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 		// the visitor does the work.
 		WLogger.info("incremental build ...");
 		WurstGui gui = new WurstGuiEclipse(monitor);
+		changed = false;
 		delta.accept(new SampleDeltaVisitor(gui));
-		getModelManager().typeCheckModel(gui, true, true);
+		if (changed) {
+			getModelManager().typeCheckModel(gui, true, true);
+		}
 	}
 
 

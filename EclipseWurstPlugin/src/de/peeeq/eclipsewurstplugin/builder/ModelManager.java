@@ -12,7 +12,7 @@ import de.peeeq.wurstscript.gui.WurstGui;
 
 public interface ModelManager {
 
-	 void removeCompilationUnit(IResource resource);
+	 boolean removeCompilationUnit(IResource resource);
 
 	 boolean needsFullBuild();
 
