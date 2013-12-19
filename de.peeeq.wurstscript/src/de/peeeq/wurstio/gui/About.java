@@ -18,6 +18,8 @@ import java.net.URISyntaxException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import de.peeeq.wurstscript.CompileTimeInfo;
+
 /**
  *
  * @author Frotty
@@ -25,7 +27,7 @@ import java.util.logging.Logger;
 public class About extends javax.swing.JDialog {
     final URI uri;
     final static String homepage = "http://peq.github.com/WurstScript/";
-    public final static String version = "1.1.0.7";
+    public final static String version = "1.1.0.8." + CompileTimeInfo.revision;
     final static String authors = "peq & Frotty";
 
     /** Creates new form About */
