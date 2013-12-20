@@ -13,7 +13,9 @@ import de.peeeq.wurstscript.ast.AstElementWithTypeArgs;
 import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExprNewObject;
+import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FunctionCall;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.ModuleDef;
@@ -40,13 +42,29 @@ public class Generics {
 			return givenBinding(fc, typeParams);
 		}
 		
-		return inferTypeParametersUsingArguments(fc.getArgs(), def.getParameters(), typeParams);
+		Map<TypeParamDef, WurstType> result = Maps.newLinkedHashMap();
+		if (fc instanceof ExprMemberMethod) {
+			ExprMemberMethod emm = (ExprMemberMethod) fc;
+			inferTypeParameterUsingReceiver(result, emm, typeParams);
+		}
+		inferTypeParametersUsingArguments(result, fc.getArgs(), def.getParameters(), typeParams);
+		return result;
+	}
+
+	private static void inferTypeParameterUsingReceiver(
+			Map<TypeParamDef, WurstType> result, ExprMemberMethod emm, TypeParamDefs typeParams) {
+		FunctionDefinition def = emm.attrFuncDef();
+		if (def instanceof ExtensionFuncDef) {
+			ExtensionFuncDef ef = (ExtensionFuncDef) def;
+			WurstType argType = emm.getLeft().attrTyp();
+			WurstType paramType = ef.attrReceiverType();
+			inferTypeParameters(result, emm, argType, paramType, typeParams);
+		}
 	}
 
 	// TODO in the future this should also take return type into account
 	// e.g. List<String> = new List() // infer String here
-	private static Map<TypeParamDef, WurstType> inferTypeParametersUsingArguments(Arguments args, WParameters params,	TypeParamDefs typeParams) {
-		Map<TypeParamDef, WurstType> result = Maps.newLinkedHashMap();
+	private static void inferTypeParametersUsingArguments(Map<TypeParamDef, WurstType> result, Arguments args, WParameters params,	TypeParamDefs typeParams) {
 		// calculate (most general) unifier
 		for (int i = 0; i < args.size() && i < params.size(); i++) {
 			inferTypeParameters(result, args, args.get(i).attrTyp(), params.get(i).attrTyp(), typeParams);
@@ -58,7 +76,6 @@ public class Generics {
 				}
 			}
 		}
-		return result;
 	}
 
 	private static void inferTypeParameters(Map<TypeParamDef, WurstType> result, AstElement pos, WurstType argType, WurstType paramTyp,
@@ -96,7 +113,9 @@ public class Generics {
 			return givenBinding(e, typeParams);
 		}
 		
-		return inferTypeParametersUsingArguments(e.getArgs(), constrDef.getParameters(), typeParams);
+		Map<TypeParamDef, WurstType> result = Maps.newLinkedHashMap();
+		inferTypeParametersUsingArguments(result, e.getArgs(), constrDef.getParameters(), typeParams);
+		return result;
 	}
 	
 	public static Map<TypeParamDef, WurstType> getTypeParameterBindings(ModuleUse m) {

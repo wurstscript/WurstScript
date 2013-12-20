@@ -59,46 +59,46 @@ public class Main {
 		WurstGui gui = null;
 		WurstCompilerJassImpl compiler = null;
 		try {
+			RunArgs runArgs = new RunArgs(args);
+			WurstConfig config = new WurstConfig().initFromStandardFiles();
+
+			if (runArgs.showAbout()) {
+				About about = new About(null, false);
+				about.setVisible(true);
+				return;
+			}
+
+			if (runArgs.createHotDoc()) {
+				HotdocGenerator hg = new HotdocGenerator(config, runArgs.getFiles());
+				hg.generateDoc();
+			}
+
+
+			if (runArgs.isGui()) {
+				gui = new WurstGuiImpl();
+				// use the error reporting with GUI
+				ErrorReporting.instance = new ErrorReportingIO();
+			} else {
+				gui = new WurstGuiCliImpl();
+			}
+
+			if (runArgs.showLastErrors()) {
+				//				@SuppressWarnings("unchecked")
+				//
+				//				List<CompileError> errors = (List<CompileError>) Utils.loadFromFile("lastErrors.data");
+				//				if (errors == null || errors.size() == 0) {
+				//					JOptionPane.showMessageDialog(null, "No errors where found.");
+				//				} else {
+				//					for (CompileError e : errors) {
+				//						gui.sendError(e);
+				//					}
+				//				}
+				//				gui.sendFinished();
+				JOptionPane.showMessageDialog(null, "not implemented");
+				return;
+			}
+
 			try {
-				RunArgs runArgs = new RunArgs(args);
-				WurstConfig config = new WurstConfig().initFromStandardFiles();
-
-				if (runArgs.showAbout()) {
-					About about = new About(null, false);
-					about.setVisible(true);
-					return;
-				}
-
-				if (runArgs.createHotDoc()) {
-					HotdocGenerator hg = new HotdocGenerator(config, runArgs.getFiles());
-					hg.generateDoc();
-				}
-
-
-				if (runArgs.isGui()) {
-					gui = new WurstGuiImpl();
-					// use the error reporting with GUI
-					ErrorReporting.instance = new ErrorReportingIO();
-				} else {
-					gui = new WurstGuiCliImpl();
-				}
-
-				if (runArgs.showLastErrors()) {
-					//				@SuppressWarnings("unchecked")
-					//
-					//				List<CompileError> errors = (List<CompileError>) Utils.loadFromFile("lastErrors.data");
-					//				if (errors == null || errors.size() == 0) {
-					//					JOptionPane.showMessageDialog(null, "No errors where found.");
-					//				} else {
-					//					for (CompileError e : errors) {
-					//						gui.sendError(e);
-					//					}
-					//				}
-					//				gui.sendFinished();
-					JOptionPane.showMessageDialog(null, "not implemented");
-					return;
-				}
-
 				if (runArgs.getMapFile() != null) {
 					// tempfolder
 					File tempFolder = new File("./temp/");
