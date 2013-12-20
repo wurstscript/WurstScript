@@ -287,8 +287,8 @@ Entity ::=
 		{: RESULT = x; :}
 	| INIT:x NL INDENT Statements:body UNINDENT:y
 		{: RESULT = Ast.InitBlock(pos(xleft, body), body); :}
-	| NATIVE:x FuncSignature:sig NL
-		{: RESULT = Ast.NativeFunc(pos(xleft, sig), Ast.Modifiers(), sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy()); :}
+	| ModifiersWithDoc:mod NATIVE:x FuncSignature:sig NL
+		{: RESULT = Ast.NativeFunc(pos(xleft, sig), mod, sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy()); :}
 	| ClassDef:x
 		{: RESULT = x; :}
 	| EnumDef:x
@@ -969,6 +969,11 @@ JassNativeDecl ::=
 
 JassFuncDef ::=
 	FUNCTION:x JassFuncSignature:sig NL JassLocals:body1 JassStatements:body2 ENDFUNCTION:y NL
+		{: 
+			body1.addAll(body2.removeAll());
+			RESULT = Ast.FuncDef(pos(xleft, yright), Ast.Modifiers(), sig.getName(), sig.getTypeParameters().copy(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body1); 
+		:}
+	| CONSTANT:x FUNCTION JassFuncSignature:sig NL JassLocals:body1 JassStatements:body2 ENDFUNCTION:y NL
 		{: 
 			body1.addAll(body2.removeAll());
 			RESULT = Ast.FuncDef(pos(xleft, yright), Ast.Modifiers(), sig.getName(), sig.getTypeParameters().copy(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body1); 

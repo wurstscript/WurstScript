@@ -37,7 +37,7 @@ public class BackupController {
 		Files.copy(mapFile, backupFile);
 	}
 	
-	public String toCorrectString(int i){
+	private String toCorrectString(int i){
 		String val = String.valueOf(i);
 		if ( i < 10 ){
 			val = "00" + val;
@@ -47,7 +47,7 @@ public class BackupController {
 		return val;
 	}
 	
-	public int backupCount(String mapName) throws Error, IOException {
+	private int backupCount(String mapName) throws Error, IOException {
 		int count = 0;
 		for ( File f : backupFolder.listFiles()) {
 			String name = f.getName();
@@ -61,7 +61,7 @@ public class BackupController {
 		
 	}
 	
-	public void deleteOldBackups(String mapName) throws Error, IOException {
+	private void deleteOldBackups(String mapName) throws Error, IOException {
 		File[] files = new File[backupLimit+1];
 		for ( File f : backupFolder.listFiles()) {
 			String name = f.getName();
@@ -77,7 +77,7 @@ public class BackupController {
 			File f = files[i];
 			String name = f.getName();
 			WLogger.info("Current in array: " + name);
-			name = name.replaceFirst("-"+toCorrectString(i+1)+".", "-"+toCorrectString(i)+".");
+			name = name.replaceFirst("-"+toCorrectString(i+1)+"\\.", "-"+toCorrectString(i)+".");
 			WLogger.info("Current in array replaced: " + name);
 			File backupFile = new File("./backups/" + name );
 			Files.copy(f, backupFile);
@@ -85,8 +85,5 @@ public class BackupController {
 		}
 		
 	}
-	
-	
-	
 	
 }

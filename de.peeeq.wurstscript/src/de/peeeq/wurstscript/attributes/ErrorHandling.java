@@ -4,6 +4,7 @@ import java.util.ListIterator;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.parser.WPos;
 
 public class ErrorHandling {
@@ -49,6 +50,13 @@ public class ErrorHandling {
 	
 	public static ErrorHandler getErrorHandler(CompilationUnit e) {
 		return e.getCuErrorHandler();
+	}
+	
+	public static ErrorHandler getErrorHandler(WurstModel m) {
+		for (CompilationUnit cu : m) {
+			return cu.getCuErrorHandler();
+		}
+		throw new Error("Empty model.");
 	}
 
 }

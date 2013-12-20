@@ -132,7 +132,7 @@ public class ClassTranslator {
 		ImFunction scOnDestroy = translator.getFuncFor(c.getOnDestroy());
 		f.getBody().add(ImFunctionCall(trace, 
 				scOnDestroy, 
-				ImExprs(ImVarAccess(thisVar)), false));
+				ImExprs(ImVarAccess(thisVar)), false, CallType.NORMAL));
 		
 		// deallocate
 		f.getBody().add(JassIm.ImDealloc(imClass, JassIm.ImVarAccess(thisVar)));
@@ -177,7 +177,7 @@ public class ClassTranslator {
 				ImFunction onDestroy = translator.getFuncFor(cd.attrExtendedClass().getOnDestroy());
 				addTo.add(ImFunctionCall(c, 
 						onDestroy, 
-						ImExprs(ImVarAccess(thisVar)), false));
+						ImExprs(ImVarAccess(thisVar)), false, CallType.NORMAL));
 			}
 		}
 	}
@@ -328,7 +328,7 @@ public class ClassTranslator {
 		for (ImVar a : f.getParameters()) {
 			arguments.add(ImVarAccess(a));
 		}
-		f.getBody().add(ImFunctionCall(trace, constrFunc, arguments, false));
+		f.getBody().add(ImFunctionCall(trace, constrFunc, arguments, false, CallType.NORMAL));
 		
 		
 		// return this
@@ -350,7 +350,7 @@ public class ClassTranslator {
 			for (Expr a : constr.getSuperArgs()) {
 				arguments.add(a.imTranslateExpr(translator, f));
 			}
-			f.getBody().add(ImFunctionCall(trace, superConstrFunc, arguments, false));
+			f.getBody().add(ImFunctionCall(trace, superConstrFunc, arguments, false, CallType.NORMAL));
 		}
 		// initialize vars
 		for (Pair<ImVar, OptExpr> i : translator.getDynamicInits(classDef)) {

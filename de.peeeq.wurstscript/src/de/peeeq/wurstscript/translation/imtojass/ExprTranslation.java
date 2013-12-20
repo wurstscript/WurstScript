@@ -14,11 +14,10 @@ import static de.peeeq.wurstscript.jassAst.JassAst.JassExprlist;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassExpr;
-import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
 import de.peeeq.wurstscript.jassAst.JassExprVarAccess;
 import de.peeeq.wurstscript.jassAst.JassExprVarArrayAccess;
 import de.peeeq.wurstscript.jassAst.JassExprlist;
-import de.peeeq.wurstscript.jassAst.JassFunction;
+import de.peeeq.wurstscript.jassAst.JassFunctionOrNative;
 import de.peeeq.wurstscript.jassAst.JassVar;
 import de.peeeq.wurstscript.jassIm.ImBoolVal;
 import de.peeeq.wurstscript.jassIm.ImClassRelatedExpr;
@@ -44,13 +43,13 @@ public class ExprTranslation {
 	}
 
 	public static JassExpr translate(ImFuncRef e, ImToJassTranslator translator) {
-		JassFunction f = translator.getJassFuncFor(e.getFunc());
+		JassFunctionOrNative f = translator.getJassFuncFor(e.getFunc());
 		return JassAst.JassExprFuncRef(f.getName());
 	}
 
 	public static JassExpr translate(ImFunctionCall e, ImToJassTranslator translator) {
 		
-		JassFunction f = translator.getJassFuncFor(e.getFunc());
+		JassFunctionOrNative f = translator.getJassFuncFor(e.getFunc());
 		JassExprlist arguments = JassExprlist();
 		for (ImExpr arg : e.getArguments()) {
 			arguments.add(arg.translate(translator));
@@ -59,8 +58,14 @@ public class ExprTranslation {
 		if (funcName.equals(ImTranslator.$DEBUG_PRINT)) {
 			funcName = "BJDebugMsg";
 		}
-		JassExprFunctionCall call = JassAst.JassExprFunctionCall(funcName, arguments);
-		return call;
+		switch (e.getCallType()) {
+		case NORMAL:
+			return JassAst.JassExprFunctionCall(funcName, arguments);
+		case EXECUTE:
+			return JassAst.JassExprFunctionCall("ExecuteFunc", JassAst.JassExprlist(JassAst.JassExprStringVal(f.getName())));
+		default:
+			throw new Error("unhandled case");
+		}
 	}
 
 	public static JassExpr translate(ImIntVal e, ImToJassTranslator translator) {

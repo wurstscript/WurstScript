@@ -15,6 +15,8 @@ JassFunctions * JassFunction
 
 JassTypeDef( String name, String ext)
 
+JassFunctionOrNative = JassNative | JassFunction
+
 JassNative(String name, JassSimpleVars params, String returnType )
 	
 	

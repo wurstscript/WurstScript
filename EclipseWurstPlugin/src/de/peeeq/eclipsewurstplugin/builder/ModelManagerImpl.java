@@ -53,22 +53,22 @@ public class ModelManagerImpl implements ModelManager {
 	}
 	
 	@Override
-	public synchronized void removeCompilationUnit(IResource resource) {
+	public synchronized boolean removeCompilationUnit(IResource resource) {
 		if (model == null) {
-			return;
+			return false;
 		}
 		if (!(resource instanceof IFile)) {
-			return;
+			return false;
 		}
 		ListIterator<CompilationUnit> it = model.listIterator();
 		while (it.hasNext()) {
 			CompilationUnit cu = it.next();
 			if (cu.getFile().equals(resource.getProjectRelativePath().toString())) {
 				it.remove();
-				break;
+				return true;
 			}
 		}
-
+		return false;
 	}
 
 	@Override
@@ -81,6 +81,7 @@ public class ModelManagerImpl implements ModelManager {
 		model = null;
 		dependencies.clear();
 		needsFullBuild = true;
+		WLogger.info("Clean done.");
 	}
 	
 	
@@ -234,6 +235,7 @@ public class ModelManagerImpl implements ModelManager {
 	@Override
 	public synchronized void fullBuildDone() {
 		needsFullBuild = false;
+		WLogger.info("Full build done.");
 	}
 
 	@Override

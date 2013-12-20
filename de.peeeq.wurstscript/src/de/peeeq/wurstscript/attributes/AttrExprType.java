@@ -54,7 +54,6 @@ import de.peeeq.wurstscript.types.WurstTypeCode;
 import de.peeeq.wurstscript.types.WurstTypeInt;
 import de.peeeq.wurstscript.types.WurstTypeIntLiteral;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
-import de.peeeq.wurstscript.types.WurstTypeJassInt;
 import de.peeeq.wurstscript.types.WurstTypeModule;
 import de.peeeq.wurstscript.types.WurstTypeNull;
 import de.peeeq.wurstscript.types.WurstTypeReal;
@@ -74,11 +73,7 @@ public class AttrExprType {
 
 
 	public static  WurstType calculate(ExprIntVal term)  {
-		if (Utils.isJassCode(term)) {
-			return WurstTypeJassInt.instance();
-		} else {
-			return WurstTypeIntLiteral.instance();
-		}
+		return WurstTypeIntLiteral.instance();
 	}
 
 
@@ -141,9 +136,6 @@ public class AttrExprType {
 			term.addError("Missing parantheses for function call");
 		}
 		WurstType typ = varDef.attrTyp();
-		if (typ instanceof WurstTypeJassInt && !Utils.isJassCode(term)) {
-			return WurstTypeInt.instance();
-		}
 		return typ;
 	}
 
@@ -167,9 +159,6 @@ public class AttrExprType {
 		WurstType varDefType = varDef.attrTyp().dynamic();
 		if (varDefType instanceof WurstTypeArray) {
 			WurstType typ = ((WurstTypeArray) varDefType).getBaseType();
-			if (typ instanceof WurstTypeJassInt && !Utils.isJassCode(term)) {
-				return WurstTypeInt.instance();
-			}
 			return typ;
 		} else {
 			term.addError("Variable " + varDef.getName() + " is no array variable.");
@@ -279,8 +268,15 @@ public class AttrExprType {
 			if (Utils.isJassCode(term)) {
 				if (leftType.isSubtypeOf(WurstTypeReal.instance(), term) || leftType.isSubtypeOf(WurstTypeInt.instance(), term)) {
 					if (rightType.isSubtypeOf(WurstTypeReal.instance(), term) || rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
+						// in jass code it is allowed to compare reals and ints
 						return  WurstTypeBool.instance();									
 					}
+				}
+				
+				if (leftType.isSubtypeOf(WurstTypeNull.instance(), term) && rightType.isSubtypeOf(WurstTypeInt.instance(), term)
+					|| leftType.isSubtypeOf(WurstTypeInt.instance(), term) && rightType.isSubtypeOf(WurstTypeNull.instance(), term)) {
+					// in jass code it is allowed to compare an integer with 'null'. wat?
+					return  WurstTypeBool.instance();		
 				}
 			}
 

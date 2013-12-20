@@ -39,7 +39,7 @@ public class ImCompressor {
 	
 	public void compressFunctions() {
 		for( ImFunction func : prog.getFunctions() ) {
-			if (func.isNative() || func.isBj() || func.isCompiletime()) {
+			if (func.isNative() || func.isBj() || func.isCompiletime() || func.isExtern()) {
 				// do not rename builtin an bj functions
 				continue;
 			}

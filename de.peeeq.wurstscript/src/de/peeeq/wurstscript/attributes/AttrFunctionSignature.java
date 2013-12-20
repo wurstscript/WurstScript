@@ -14,9 +14,6 @@ import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeInt;
-import de.peeeq.wurstscript.types.WurstTypeJassInt;
-import de.peeeq.wurstscript.utils.Utils;
 
 public class AttrFunctionSignature {
 
@@ -26,10 +23,6 @@ public class AttrFunctionSignature {
 		
 		
 		FunctionSignature sig = FunctionSignature.forFunctionDefinition(f);
-		
-		if (sig.getReturnType() instanceof WurstTypeJassInt && !Utils.isJassCode(fc)) {
-			sig = sig.withReturnType(WurstTypeInt.instance());
-		}
 		
 		if (fc.attrImplicitParameter() instanceof Expr) {
 			Expr expr = (Expr) fc.attrImplicitParameter();

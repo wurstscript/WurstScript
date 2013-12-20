@@ -15,7 +15,8 @@ import de.peeeq.wurstscript.gui.WurstGui;
 public class ModelManagerStub implements ModelManager {
 
 	@Override
-	public void removeCompilationUnit(IResource resource) {
+	public boolean removeCompilationUnit(IResource resource) {
+		return false;
 	}
 
 	@Override

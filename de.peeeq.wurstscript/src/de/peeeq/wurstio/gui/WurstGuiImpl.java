@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 import com.google.common.collect.Lists;
@@ -99,10 +100,19 @@ public class WurstGuiImpl implements WurstGui {
 		errors.add(err);
 	}
 
+	boolean show = true;
 
 	@Override
 	public void sendProgress(String whatsRunningNow, double percent) {
-		progress = percent;
+		if (percent >= progress) {
+			progress = percent;
+		} else {
+			if (show) {
+				WLogger.info("Progress bar going backwards: \n " +
+						"changed from " + progress + " to " + percent + "\n" + whatsRunningNow + "\n " + Utils.printStackTrace(Thread.currentThread().getStackTrace()));
+				show = false;
+			}
+		}
 		this.currentlyWorkingOn = whatsRunningNow;
 	}
 
@@ -136,5 +146,19 @@ public class WurstGuiImpl implements WurstGui {
 		errors.clear();
 	}
 
+
+	@Override
+	public void showInfoMessage(final String message) {
+		try {
+			SwingUtilities.invokeLater(new Runnable() {
+				@Override
+				public void run() {
+					JOptionPane.showMessageDialog(null, message);
+				}
+			});
+		} catch (Exception e) {
+			throw new Error(e);
+		}
+	}
 
 }

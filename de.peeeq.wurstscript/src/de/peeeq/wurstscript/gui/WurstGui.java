@@ -19,6 +19,8 @@ public interface WurstGui {
 	List<CompileError> getErrorList();
 
 	void clearErrors();
+
+	void showInfoMessage(String message);
 	
 
 }

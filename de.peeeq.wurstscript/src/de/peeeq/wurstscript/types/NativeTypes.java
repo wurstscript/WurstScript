@@ -14,11 +14,7 @@ public class NativeTypes {
 	 */
 	public static WurstType nativeType(String typeName, boolean isJassCode) {
 		if (typeName.equals("int") || typeName.equals("integer")) {
-			if (isJassCode) {
-				return WurstTypeJassInt.instance();
-			} else {
-				return WurstTypeInt.instance();
-			}
+			return WurstTypeInt.instance();
 		}
 		if (typeName.equals("bool") || typeName.equals("boolean")) {
 			return WurstTypeBool.instance();

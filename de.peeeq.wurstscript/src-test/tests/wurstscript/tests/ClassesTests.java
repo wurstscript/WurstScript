@@ -247,7 +247,7 @@ public class ClassesTests extends WurstScriptTest {
 				"package test",
 				"	native testSuccess()",
 				"	native println(string msg)",
-				"	native I2S(int i) returns string",
+				"	@extern native I2S(int i) returns string",
 				"	class C",
 				"		int i",
 				"",

@@ -168,7 +168,7 @@ public class EliminateClasses {
 			}
 			// only one method, call it
 			ImFunctionCall call = JassIm.ImFunctionCall(df.getTrace(), ranges
-					.get(start).getB().getImplementation(), arguments, false);
+					.get(start).getB().getImplementation(), arguments, false, CallType.NORMAL);
 			if (resultVar == null) {
 				stmts.add(call);
 			} else {
@@ -401,13 +401,13 @@ public class EliminateClasses {
 		ImFunction deallocFunc = translator.deallocFunc.getFor(e.getClazz());
 		ImExpr obj = e.getObj();
 		obj.setParent(null);
-		e.replaceWith(JassIm.ImFunctionCall(e.attrTrace(), deallocFunc, JassIm.ImExprs(obj), false));
+		e.replaceWith(JassIm.ImFunctionCall(e.attrTrace(), deallocFunc, JassIm.ImExprs(obj), false, CallType.NORMAL));
 		
 	}
 
 	private void replaceAlloc(ImAlloc e) {
 		ImFunction allocFunc = translator.allocFunc.getFor(e.getClazz());
-		e.replaceWith(JassIm.ImFunctionCall(e.attrTrace(), allocFunc, JassIm.ImExprs(), false));
+		e.replaceWith(JassIm.ImFunctionCall(e.attrTrace(), allocFunc, JassIm.ImExprs(), false, CallType.NORMAL));
 	}
 
 	private void replaceMethodCall(ImMethodCall mc) {
@@ -418,7 +418,7 @@ public class EliminateClasses {
 		arguments.addAll(mc.getArguments().removeAll());
 
 		mc.replaceWith(JassIm.ImFunctionCall(mc.getTrace(),
-				dispatchFuncs.get(mc.getMethod()), arguments, false));
+				dispatchFuncs.get(mc.getMethod()), arguments, false, CallType.NORMAL));
 
 	}
 

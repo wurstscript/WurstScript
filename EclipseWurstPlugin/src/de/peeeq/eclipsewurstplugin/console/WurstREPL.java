@@ -483,7 +483,10 @@ public class WurstREPL {
 	}
 
 	private IFile compileScript(List<String> compileArgs) throws CoreException {
-		modelManager.clean();
+		if (compileArgs.contains("-clean")) {
+			modelManager.clean();
+			compileArgs.remove("-clean");
+		}
 		IProject project = modelManager.getNature().getProject();
 		print("compiling project "+project.getName()+", please wait ...\n");
 		project.build(IncrementalProjectBuilder.INCREMENTAL_BUILD, null);

@@ -44,8 +44,8 @@ public class Main {
 		}
 		setUpFileLogging();
 		WLogger.keepLogs(true);
-		
-		
+
+
 		//		JOptionPane.showMessageDialog(null , "time to connect profiler ^^");
 		SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy hh:mm:ss");
 		Date myDate = new Date();
@@ -54,140 +54,141 @@ public class Main {
 			WLogger.info("compiler path1: " + Main.class.getProtectionDomain().getCodeSource().getLocation());
 			WLogger.info("compiler path2: " + ClassLoader.getSystemClassLoader().getResource(".").getPath());
 		} catch (Throwable t) {}
-		
-		
+
+
 		WurstGui gui = null;
 		WurstCompilerJassImpl compiler = null;
 		try {
-			RunArgs runArgs = new RunArgs(args);
-			WurstConfig config = new WurstConfig().initFromStandardFiles();
-			
-			if (runArgs.showAbout()) {
-				About about = new About(null, false);
-				about.setVisible(true);
-				return;
-			}
-			
-			if (runArgs.createHotDoc()) {
-				HotdocGenerator hg = new HotdocGenerator(config, runArgs.getFiles());
-				hg.generateDoc();
-			}
+			try {
+				RunArgs runArgs = new RunArgs(args);
+				WurstConfig config = new WurstConfig().initFromStandardFiles();
 
-			
-			if (runArgs.isGui()) {
-				gui = new WurstGuiImpl();
-				// use the error reporting with GUI
-				ErrorReporting.instance = new ErrorReportingIO();
-			} else {
-				gui = new WurstGuiCliImpl();
-			}
-
-			if (runArgs.showLastErrors()) {
-//				@SuppressWarnings("unchecked")
-//
-//				List<CompileError> errors = (List<CompileError>) Utils.loadFromFile("lastErrors.data");
-//				if (errors == null || errors.size() == 0) {
-//					JOptionPane.showMessageDialog(null, "No errors where found.");
-//				} else {
-//					for (CompileError e : errors) {
-//						gui.sendError(e);
-//					}
-//				}
-//				gui.sendFinished();
-				JOptionPane.showMessageDialog(null, "not implemented");
-				return;
-			}
-			
-			if (runArgs.getMapFile() != null) {
-				// tempfolder
-				File tempFolder = new File("./temp/");
-				tempFolder.mkdirs();
-				BackupController bc = new BackupController();
-				bc.makeBackup(runArgs.getMapFile(), 24);
-			}
-
-			compilation : do {
-
-
-				compiler = new WurstCompilerJassImpl(config, gui, runArgs);
-				for (String file: runArgs.getFiles()) {
-					compiler.loadFiles(file);
-				}
-				compiler.parseFiles();
-
-				if (gui.getErrorCount() > 0) {
-					break compilation;
-				}
-				
-				
-				if (runArgs.runCompiletimeFunctions()) {
-					CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), gui, FunctionFlag.IS_TEST);
-					ctr.run();
-				}
-				if (runArgs.runCompiletimeFunctions()) {
-					CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), gui, FunctionFlag.IS_COMPILETIME);
-					ctr.run();
+				if (runArgs.showAbout()) {
+					About about = new About(null, false);
+					about.setVisible(true);
+					return;
 				}
 
-				JassProg jassProg = compiler.getProg();
-
-				if (jassProg == null || gui.getErrorCount() > 0) {
-					break compilation;
+				if (runArgs.createHotDoc()) {
+					HotdocGenerator hg = new HotdocGenerator(config, runArgs.getFiles());
+					hg.generateDoc();
 				}
 
-				boolean withSpace;
-				if (runArgs.isOptimize()) {
-					gui.sendProgress("Pretty Jass", 0.85);
-//					JassOptimizer optimizer = new JassOptimizerImpl();
-//					optimizer.optimize(jassProg);
-					withSpace = false;
+
+				if (runArgs.isGui()) {
+					gui = new WurstGuiImpl();
+					// use the error reporting with GUI
+					ErrorReporting.instance = new ErrorReportingIO();
 				} else {
-					withSpace = true;
+					gui = new WurstGuiCliImpl();
 				}
 
-				gui.sendProgress("Printing Jass", 0.90);
-				JassPrinter printer = new JassPrinter(withSpace);
-				CharSequence mapScript = printer.printProg(jassProg);
-
-
-
-
-
-				// output to file
-				gui.sendProgress("Writing output file", 0.98);
-				File outputMapscript; 
-				if (runArgs.getOutFile() != null) {
-					outputMapscript = new File(runArgs.getOutFile());
-				} else {
-					//outputMapscript = File.createTempFile("outputMapscript", ".j");
-					outputMapscript = new File("./temp/output.j");
+				if (runArgs.showLastErrors()) {
+					//				@SuppressWarnings("unchecked")
+					//
+					//				List<CompileError> errors = (List<CompileError>) Utils.loadFromFile("lastErrors.data");
+					//				if (errors == null || errors.size() == 0) {
+					//					JOptionPane.showMessageDialog(null, "No errors where found.");
+					//				} else {
+					//					for (CompileError e : errors) {
+					//						gui.sendError(e);
+					//					}
+					//				}
+					//				gui.sendFinished();
+					JOptionPane.showMessageDialog(null, "not implemented");
+					return;
 				}
-				Files.write(mapScript, outputMapscript, Charsets.UTF_8); // use ascii here, wc3 no understand utf8, you know?
 
-				Result pJassResult = Pjass.runPjass(outputMapscript);
-				WLogger.info(pJassResult.getMessage());
-				if (!pJassResult.isOk()) {
-					for (CompileError err : pJassResult.getErrors()) {
-						gui.sendError(err);
+				if (runArgs.getMapFile() != null) {
+					// tempfolder
+					File tempFolder = new File("./temp/");
+					tempFolder.mkdirs();
+					BackupController bc = new BackupController();
+					bc.makeBackup(runArgs.getMapFile(), 24);
+				}
+
+				compilation : do {
+
+
+					compiler = new WurstCompilerJassImpl(config, gui, runArgs);
+					for (String file: runArgs.getFiles()) {
+						compiler.loadFiles(file);
 					}
-					break compilation;
-				}
+					compiler.parseFiles();
 
-				if (runArgs.getMapFile() != null) { // output to map
-					gui.sendProgress("Writing to map", 0.99);
-					File mapFile = new File(runArgs.getMapFile());
+					if (gui.getErrorCount() > 0) {
+						break compilation;
+					}
 
-					MpqEditor mpqEditor = MpqEditorFactory.getEditor();
-					mpqEditor.deleteFile(mapFile, "war3map.j");
-					mpqEditor.insertFile(mapFile, "war3map.j", outputMapscript);
-					mpqEditor.compactArchive(mapFile);
-				}
 
-			} while (false); // dummy loop to allow "break compilation"
-			gui.sendProgress("Finished!", 1);
-			
-//			List<CompileError> errors = gui.getErrorList();
-//			Utils.saveToFile(errors, "lastErrors.data");
+					if (runArgs.runCompiletimeFunctions()) {
+						CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), gui, FunctionFlag.IS_TEST);
+						ctr.run();
+					}
+					if (runArgs.runCompiletimeFunctions()) {
+						CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), gui, FunctionFlag.IS_COMPILETIME);
+						ctr.run();
+					}
+
+					JassProg jassProg = compiler.getProg();
+
+					if (jassProg == null || gui.getErrorCount() > 0) {
+						break compilation;
+					}
+
+					boolean withSpace;
+					if (runArgs.isOptimize()) {
+						withSpace = false;
+					} else {
+						withSpace = true;
+					}
+
+					gui.sendProgress("Printing Jass", 0.91);
+					JassPrinter printer = new JassPrinter(withSpace);
+					CharSequence mapScript = printer.printProg(jassProg);
+
+
+
+
+
+					// output to file
+					gui.sendProgress("Writing output file", 0.98);
+					File outputMapscript; 
+					if (runArgs.getOutFile() != null) {
+						outputMapscript = new File(runArgs.getOutFile());
+					} else {
+						//outputMapscript = File.createTempFile("outputMapscript", ".j");
+						outputMapscript = new File("./temp/output.j");
+					}
+					Files.write(mapScript, outputMapscript, Charsets.UTF_8); // use ascii here, wc3 no understand utf8, you know?
+
+					Result pJassResult = Pjass.runPjass(outputMapscript);
+					WLogger.info(pJassResult.getMessage());
+					if (!pJassResult.isOk()) {
+						for (CompileError err : pJassResult.getErrors()) {
+							gui.sendError(err);
+						}
+						break compilation;
+					}
+
+					if (runArgs.getMapFile() != null) { // output to map
+						gui.sendProgress("Writing to map", 0.99);
+						File mapFile = new File(runArgs.getMapFile());
+
+						MpqEditor mpqEditor = MpqEditorFactory.getEditor();
+						mpqEditor.deleteFile(mapFile, "war3map.j");
+						mpqEditor.insertFile(mapFile, "war3map.j", outputMapscript);
+						mpqEditor.compactArchive(mapFile);
+					}
+
+				} while (false); // dummy loop to allow "break compilation"
+				gui.sendProgress("Finished!", 1);
+
+				//			List<CompileError> errors = gui.getErrorList();
+				//			Utils.saveToFile(errors, "lastErrors.data");
+			} catch (AbortCompilationException e) {
+				gui.showInfoMessage(e.getMessage());
+			}
 		} catch (Throwable t) {
 			String source = "";
 			try {
@@ -197,9 +198,9 @@ public class Main {
 			} catch (Throwable t2) {
 				WLogger.severe(t2);
 			}
-			
+
 			ErrorReporting.instance.handleSevere(t, source);
-			
+
 
 		} finally {
 			if (gui != null) {
@@ -225,7 +226,7 @@ public class Main {
 		}
 	}
 
-	
-	
+
+
 
 }
