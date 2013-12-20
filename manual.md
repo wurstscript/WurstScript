@@ -1069,6 +1069,44 @@ The typecasting functions for primitive- and handle types are provided in _Typec
 		data.saveFogState(0,ConvertFogState(index))
 		return data.loadUnit(0)
 
+## Generic Functions
+
+Functions can use generic types. The type parameter is written after the name of the function.
+In the following example the function *forall* tests if a predicate is true for all elements in a list.
+The function has to be generic, because it has to work on all kinds of lists.
+
+	function forall<T>(LinkedList<T> l, LinkedListPredicate<T> pred) returns boolean
+		for x in l
+			if not pred.isTrueFor(x)
+				return false
+		return true
+		
+	// usage:
+		LinkedList<int> l = ...
+		// check if all elements in the list are even
+		if forall<int>(l, (int x) -> x mod 2 == 0)
+			print("true")
+
+When calling a generic function, the type arguments can be omitted if they can be inferred 
+from the arguments to the function:
+
+	...
+	if forall(l, (int x) -> x mod 2 == 0)
+		...
+
+Extension functions can also be generic, as shown by the following example:
+
+	function LinkedList<T>.forall<T>(LinkedListPredicate<T> pred) returns boolean
+		for x in this
+			if not pred.isTrueFor(x)
+				return false
+		return true	
+
+	// usage:
+		...
+		if l.forall((int x) -> x mod 2 == 0)
+			...
+
 
 # Modules
 
