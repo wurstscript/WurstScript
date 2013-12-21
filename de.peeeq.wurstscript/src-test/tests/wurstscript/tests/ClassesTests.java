@@ -291,6 +291,43 @@ public class ClassesTests extends WurstScriptTest {
 	}
 	
 	@Test
+	public void recyling_random() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	native println(string msg)",
+				"	native testFail(string msg)",
+				"	@extern native I2S(int i) returns string",
+				"	@extern native GetRandomReal(real a, real b) returns real",
+				"	@extern native GetRandomInt(int a, int b) returns int",
+				"	class C",
+				"		int alive",
+				"		construct()",
+				"			println(\"creating \" + I2S(this castTo int))",
+				"			if alive == 1",
+				"				testFail(\"already alive\")",
+				"			alive = 1",
+				"		ondestroy",
+				"			println(\"destroying \" + I2S(this castTo int))",
+				"			alive = 2",
+				"	C array cs",
+				"	int count = 0",
+				"	init",
+				"		for i = 0 to 10000",
+				"			if count < 100 and GetRandomReal(0,1) <= 0.5",
+				"				cs[count] = new C",
+				"				count++",
+				"			if count > 0 and GetRandomReal(0,1) <= 0.1",
+				"				let j = GetRandomInt(0,count-1)",
+				"				destroy cs[j]",
+				"				count--",
+				"				cs[j] = cs[count]",
+				"		testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
 	public void cast_class() {
 		testAssertOkLines(true, 
 				"package test",
