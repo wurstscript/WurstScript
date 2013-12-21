@@ -23,6 +23,8 @@ import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
  */
 public class NativeFunctionsIO extends ReflectionBasedNativeProvider implements NativesProvider {
 
+	private Random r = new Random(0);
+	
 	@Native
 	public void testSuccess() {
 		throw TestSuccessException.instance;
@@ -168,4 +170,11 @@ public class NativeFunctionsIO extends ReflectionBasedNativeProvider implements 
 		outStream.println(msg.getVal());
 	}
 	
+	
+	public ILconstReal GetRandomReal(ILconstReal a, ILconstReal b) {
+		return new ILconstReal(a.getVal() + r.nextFloat()*(b.getVal()-a.getVal()));
+	}
+	public ILconstInt GetRandomInt(ILconstInt a, ILconstInt b) {
+		return new ILconstInt(a.getVal() + r.nextInt(1+b.getVal()-a.getVal()));
+	}
 }
