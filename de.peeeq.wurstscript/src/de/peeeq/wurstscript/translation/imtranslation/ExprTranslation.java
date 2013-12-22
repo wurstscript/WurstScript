@@ -19,6 +19,7 @@ import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.AstElementWithIndexes;
+import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.EnumMember;
 import de.peeeq.wurstscript.ast.Expr;
@@ -26,6 +27,7 @@ import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprBoolVal;
 import de.peeeq.wurstscript.ast.ExprCast;
 import de.peeeq.wurstscript.ast.ExprClosure;
+import de.peeeq.wurstscript.ast.ExprDestroy;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprIncomplete;
 import de.peeeq.wurstscript.ast.ExprInstanceOf;
@@ -69,8 +71,10 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
+import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeClassOrInterface;
 import de.peeeq.wurstscript.types.WurstTypeInt;
+import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.types.WurstTypeModuleInstanciation;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeReal;
@@ -503,6 +507,30 @@ public class ExprTranslation {
 		} else {
 			return JassIm.ImStatementExpr(statements, JassIm.ImNull());
 		}
+	}
+
+	public static ImExpr translate(ExprDestroy s, ImTranslator t, ImFunction f) {
+		WurstType typ = s.getDestroyedObj().attrTyp();
+		if (typ instanceof WurstTypeClass) {
+			WurstTypeClass classType = (WurstTypeClass) typ;
+			return destroyClass(s, t, f, classType.getClassDef());
+		} else if (typ instanceof WurstTypeInterface) {
+			WurstTypeInterface wti = (WurstTypeInterface) typ;
+			return destroyClass(s, t, f, wti.getDef());
+		} else if (typ instanceof WurstTypeModuleInstanciation) {
+			WurstTypeModuleInstanciation minsType = (WurstTypeModuleInstanciation) typ;
+			ClassDef classDef = minsType.getDef().attrNearestClassDef();
+			return destroyClass(s, t, f, classDef);
+		}
+		// TODO destroy interfaces?
+		throw new CompileError(s.getSource(), "cannot destroy object of type " + typ);
+	}
+
+	
+	public static ImExpr destroyClass(ExprDestroy s, ImTranslator t,
+			ImFunction f, StructureDef classDef) {
+		ImMethod destroyFunc = t.destroyMethod.getFor(classDef);
+		return JassIm.ImMethodCall(s, destroyFunc, s.getDestroyedObj().imTranslateExpr(t, f), ImExprs(), false);
 	}
 
 	

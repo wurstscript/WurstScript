@@ -120,9 +120,9 @@ ActionStatement =
 	| LocalVarDef
 	| StmtSet(de.peeeq.wurstscript.parser.WPos source, NameRef updatedExpr, Expr right)
 	| StmtCall
-	| StmtDestroy(de.peeeq.wurstscript.parser.WPos source, Expr destroyedObj)
 	| StmtErr(de.peeeq.wurstscript.parser.WPos source)
 	| ExprMemberVar
+	| ExprDestroy
 	
 	  
 ControlflowStatement = 
@@ -167,7 +167,7 @@ Expr =
 	| ExprAtomic
 	| ExprIncomplete(de.peeeq.wurstscript.parser.WPos source, String errorMessage)
 	| ExprStatementsBlock(de.peeeq.wurstscript.parser.WPos source, WStatements body)
-	
+	| ExprDestroy(de.peeeq.wurstscript.parser.WPos source, Expr destroyedObj)
 	
 ExprAtomic = 
 	  ExprIntVal(de.peeeq.wurstscript.parser.WPos source, String valIraw)

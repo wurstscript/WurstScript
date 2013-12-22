@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprBoolVal;
 import de.peeeq.wurstscript.ast.ExprCast;
 import de.peeeq.wurstscript.ast.ExprClosure;
+import de.peeeq.wurstscript.ast.ExprDestroy;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprIncomplete;
 import de.peeeq.wurstscript.ast.ExprInstanceOf;
@@ -152,6 +153,10 @@ public class ReadVariables {
 			ExprStatementsBlock e) {
 		// TODO not sure what to do here
 		return ImmutableList.emptyList();
+	}
+
+	public static ImmutableList<NameDef> calculate(ExprDestroy e) {
+		return e.getDestroyedObj().attrReadVariables();
 	}
 
 

@@ -28,6 +28,7 @@ import de.peeeq.wurstscript.ast.EnumMember;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprClosure;
+import de.peeeq.wurstscript.ast.ExprDestroy;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprIntVal;
@@ -70,7 +71,6 @@ import de.peeeq.wurstscript.ast.NoDefaultCase;
 import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.StmtCall;
-import de.peeeq.wurstscript.ast.StmtDestroy;
 import de.peeeq.wurstscript.ast.StmtForRange;
 import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtReturn;
@@ -238,7 +238,7 @@ public class WurstValidator {
 			if (e instanceof NameDef) nameDefsMustNotBeNamedAfterJassNativeTypes((NameDef) e);
 			if (e instanceof NameRef) checkImplicitParameter((NameRef) e);
 			if (e instanceof StmtCall) checkCall((StmtCall) e); 
-			if (e instanceof StmtDestroy) visit((StmtDestroy) e);
+			if (e instanceof ExprDestroy) visit((ExprDestroy) e);
 			if (e instanceof StmtForRange) checkForRange((StmtForRange) e);
 			if (e instanceof StmtIf) visit((StmtIf) e);
 			if (e instanceof StmtReturn) visit((StmtReturn) e);
@@ -778,7 +778,7 @@ public class WurstValidator {
 	}
 
 
-	private void visit(StmtDestroy stmtDestroy) {
+	private void visit(ExprDestroy stmtDestroy) {
 		WurstType typ = stmtDestroy.getDestroyedObj().attrTyp();
 		if (typ instanceof WurstTypeModule) {
 
@@ -794,14 +794,14 @@ public class WurstValidator {
 		}
 	}
 
-	public void checkDestroyInterface(StmtDestroy stmtDestroy,
+	public void checkDestroyInterface(ExprDestroy stmtDestroy,
 			WurstTypeInterface i) {
 		if (i.isStaticRef()) {
 			stmtDestroy.addError("Cannot destroy interface " + i);
 		}
 	}
 
-	public void checkDestroyClass(StmtDestroy stmtDestroy, WurstTypeClass c) {
+	public void checkDestroyClass(ExprDestroy stmtDestroy, WurstTypeClass c) {
 		if (c.isStaticRef()) {
 			stmtDestroy.addError("Cannot destroy class " + c);
 		}
@@ -1671,8 +1671,8 @@ public class WurstValidator {
 					ConstructorDef c = exprNewObject.attrConstructorDef();
 					checkUsedIsInitializedBefore(e, initPart, v_definedIn, c);
 				}
-				if (e instanceof StmtDestroy) {
-					StmtDestroy stmtDestroy = (StmtDestroy) e;
+				if (e instanceof ExprDestroy) {
+					ExprDestroy stmtDestroy = (ExprDestroy) e;
 					WurstType t1 = stmtDestroy.getDestroyedObj().attrTyp();
 					if (t1 instanceof WurstTypeClass) {
 						WurstTypeClass t = (WurstTypeClass) t1;

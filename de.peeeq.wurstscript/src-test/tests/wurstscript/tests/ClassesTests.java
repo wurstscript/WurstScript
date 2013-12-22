@@ -259,7 +259,7 @@ public class ClassesTests extends WurstScriptTest {
 				"			destroy cs[j]",
 				"		for int k = 0 to 6000",
 				"			cs[k] = new C()",
-				"			println(I2S(k) + \" --> \"  +I2S(cs[k] castTo int))",
+//				"			println(I2S(k) + \" --> \"  +I2S(cs[k] castTo int))",
 				"		if cs[6000] castTo int <= 6001",
 				"			testSuccess()",
 				"endpackage"
@@ -303,17 +303,15 @@ public class ClassesTests extends WurstScriptTest {
 				"	class C",
 				"		int alive",
 				"		construct()",
-				"			println(\"creating \" + I2S(this castTo int))",
 				"			if alive == 1",
 				"				testFail(\"already alive\")",
 				"			alive = 1",
 				"		ondestroy",
-				"			println(\"destroying \" + I2S(this castTo int))",
 				"			alive = 2",
 				"	C array cs",
 				"	int count = 0",
 				"	init",
-				"		for i = 0 to 10000",
+				"		for i = 0 to 1000",
 				"			if count < 100 and GetRandomReal(0,1) <= 0.5",
 				"				cs[count] = new C",
 				"				count++",
@@ -376,6 +374,29 @@ public class ClassesTests extends WurstScriptTest {
 			);
 	}
 	
+	
+	@Test
+	public void big_instanceof() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	class A",
+				"	class B extends A",
+				"	class B1 extends B",
+				"	class B2 extends B",
+				"	class B2a extends B2",
+				"	class B2b extends B2",
+				"	class B2c extends B2",
+				"	class B3 extends B",
+				"	class B4 extends B",
+				"	class B5 extends B",
+				"	init",
+				"		A a = new B2a()",
+				"		if a instanceof B",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
 	
 	@Test
 	public void override() {
