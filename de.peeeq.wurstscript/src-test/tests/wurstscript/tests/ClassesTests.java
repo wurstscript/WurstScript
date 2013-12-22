@@ -376,6 +376,29 @@ public class ClassesTests extends WurstScriptTest {
 	
 	
 	@Test
+	public void big_instanceof() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	class A",
+				"	class B extends A",
+				"	class B1 extends B",
+				"	class B2 extends B",
+				"	class B2a extends B2",
+				"	class B2b extends B2",
+				"	class B2c extends B2",
+				"	class B3 extends B",
+				"	class B4 extends B",
+				"	class B5 extends B",
+				"	init",
+				"		A a = new B2a()",
+				"		if a instanceof B",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
 	public void override() {
 		testAssertErrorsLines(false, "uses override", 
 				"package test",
