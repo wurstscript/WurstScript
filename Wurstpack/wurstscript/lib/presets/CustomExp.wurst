@@ -20,9 +20,9 @@ constant real MEDIUM_FACTOR = .5 //
 /** Determines what % of exp heroes in the "far" range get. (.25 == 25%) */
 constant real FAR_FACTOR = .25//
 /** How much exp per level (of the unit) units give. */
-constant int UNIT_EXP = 25 //
+constant int UNIT_EXP = 30 //
 /** How much exp per level (of the dying hero) heroes give. */
-constant int HERO_EXP = 30 //
+constant int HERO_EXP = 45 //
 /** How much exp is granted per allies hero nearby. 
 	If this value is positive, more heroes == more exp each
 	if this value is negative, more heroes == less exp each ('Blizzard' method)
