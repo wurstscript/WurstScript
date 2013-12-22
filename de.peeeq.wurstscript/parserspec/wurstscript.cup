@@ -149,7 +149,7 @@ non terminal NativeFunc JassNativeDecl;
 non terminal NativeType JassTypeDecl;
 non terminal Newlines;
 non terminal StmtCall StmtCall;
-non terminal StmtDestroy StmtDestroy;
+non terminal ExprDestroy ExprDestroy;
 non terminal StmtIf StmtIf;
 non terminal StmtReturn StmtReturn;
 non terminal StmtSet StmtSet;
@@ -571,8 +571,8 @@ Statement ::=
 		{: RESULT = x; :}
 	| StmtReturn:x
 		{: RESULT = x; :}
-	| StmtDestroy:x
-		{: RESULT = x; :} 
+	| ExprDestroy:x NL
+		{: RESULT = x; :}
 	| FOR:x LocalVarDefInline:loopVar EQ Expr:from TO Expr:to NL:y OptionalBlock:body
 		{: loopVar.setInitialExpr(from); RESULT = Ast.StmtForRangeUp(pos(xleft, yright, body), loopVar, to, Ast.ExprIntVal(pos(to, Integer.MIN_VALUE), "1"), body); :}
 	| FOR:x LocalVarDefInline:loopVar EQ Expr:from TO Expr:to STEP Expr:step NL:y OptionalBlock:body
@@ -597,9 +597,9 @@ Statement ::=
 		{: RESULT = x; :}
 ;
 
-StmtDestroy ::=
-	DESTROY:x Expr:e NL
-		{: RESULT = Ast.StmtDestroy(pos(xleft, e), e); :}
+ExprDestroy ::=
+	DESTROY:x Expr:e
+		{: RESULT = Ast.ExprDestroy(pos(xleft, e), e); :}
 ;
 
 StmtReturn ::=
@@ -765,6 +765,8 @@ Expr ::=
 	| SUPER:x
 		{: RESULT = Ast.ExprSuper(pos(xleft, xright)); :}
 	| ExprStatementsBlock:x
+		{: RESULT = x; :}
+	| ExprDestroy:x
 		{: RESULT = x; :}
 ;
 	

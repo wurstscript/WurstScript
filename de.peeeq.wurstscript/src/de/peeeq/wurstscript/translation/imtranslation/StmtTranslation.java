@@ -25,10 +25,10 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.EndFunctionStatement;
 import de.peeeq.wurstscript.ast.Expr;
+import de.peeeq.wurstscript.ast.ExprDestroy;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.NoDefaultCase;
 import de.peeeq.wurstscript.ast.StartFunctionStatement;
-import de.peeeq.wurstscript.ast.StmtDestroy;
 import de.peeeq.wurstscript.ast.StmtErr;
 import de.peeeq.wurstscript.ast.StmtExitwhen;
 import de.peeeq.wurstscript.ast.StmtForFrom;
@@ -86,30 +86,6 @@ public class StmtTranslation {
 		}
 	}
 
-
-	public static ImStmt translate(StmtDestroy s, ImTranslator t, ImFunction f) {
-		WurstType typ = s.getDestroyedObj().attrTyp();
-		if (typ instanceof WurstTypeClass) {
-			WurstTypeClass classType = (WurstTypeClass) typ;
-			return destroyClass(s, t, f, classType.getClassDef());
-		} else if (typ instanceof WurstTypeInterface) {
-			WurstTypeInterface wti = (WurstTypeInterface) typ;
-			return destroyClass(s, t, f, wti.getDef());
-		} else if (typ instanceof WurstTypeModuleInstanciation) {
-			WurstTypeModuleInstanciation minsType = (WurstTypeModuleInstanciation) typ;
-			ClassDef classDef = minsType.getDef().attrNearestClassDef();
-			return destroyClass(s, t, f, classDef);
-		}
-		// TODO destroy interfaces?
-		throw new CompileError(s.getSource(), "cannot destroy object of type " + typ);
-	}
-
-	
-	public static ImStmt destroyClass(StmtDestroy s, ImTranslator t,
-			ImFunction f, StructureDef classDef) {
-		ImMethod destroyFunc = t.destroyMethod.getFor(classDef);
-		return JassIm.ImMethodCall(s, destroyFunc, s.getDestroyedObj().imTranslateExpr(t, f), ImExprs(), false);
-	}
 
 
 	public static ImStmt translate(StmtErr s, ImTranslator t, ImFunction f) {
