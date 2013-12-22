@@ -629,6 +629,11 @@ CompilationUnit.attrGetByType
 AstElement.addError(String msg)
 	returns void
 	implemented by de.peeeq.wurstscript.attributes.ErrorHandling.addError
+
+AstElement.addWarning(String msg)
+	returns void
+	implemented by de.peeeq.wurstscript.attributes.ErrorHandling.addWarning
+
 	
 AstElement.getErrorHandler()
 	returns de.peeeq.wurstscript.attributes.ErrorHandler

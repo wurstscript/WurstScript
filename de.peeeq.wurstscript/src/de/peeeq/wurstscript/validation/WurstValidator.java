@@ -164,10 +164,10 @@ public class WurstValidator {
 			prog.getErrorHandler().setProgress("Searching cyclic dependencies", 0.55);
 			postChecks();
 		} catch (RuntimeException e) {
+			WLogger.severe(e);
 			if (lastElement != null) {
 				lastElement.addError("Encountered compiler bug near element " + Utils.printElement(lastElement) + ":\n" +
 						Utils.printException(e));
-				WLogger.severe(e);
 			} else {
 				// rethrow
 				throw e;
@@ -548,7 +548,14 @@ public class WurstValidator {
 			if (s.attrPreviousStatements().isEmpty()) {
 				if (s.attrListIndex() > 0 || !(stmts.getParent() instanceof TranslatedToImFunction
 												|| stmts.getParent() instanceof ExprStatementsBlock)) {
-					s.addError("unreachable code");
+					if (Utils.isJassCode(s)) {
+						// in jass this is just a warning, because
+						// the shitty code emitted by jasshelper sometimes 
+						// contains unreachable code
+						s.addWarning("unreachable code");
+					} else {
+						s.addError("unreachable code");
+					}
 				}
 			}
 		}

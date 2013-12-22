@@ -10,6 +10,7 @@ import org.eclipse.swt.widgets.Shell;
 
 import com.google.common.collect.Lists;
 
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.utils.NotNullList;
@@ -34,7 +35,10 @@ public class WurstGuiEclipse implements WurstGui {
 
 	@Override
 	public void sendProgress(String whatsRunningNow, double percent) {
-		int p = (int) percent;
+		if (whatsRunningNow != null) {
+			WLogger.info("progress: " + whatsRunningNow);
+		}
+		int p = (int) (10000*percent);
 		int workDone = p - lastPercent;
 		if (workDone <= 0) {
 			workDone = 1;

@@ -1,0 +1,1085 @@
+<html><head><title>ZINC 0.A.2.7</title><meta name="Generator" content="gedit"><meta http-equiv="content-type" content="text/html; charset=iso-8859-1"><style type='text/css'>    pre { padding-left: 20px; }</style></head><body bgcolor="#ffffff" text="#000000">
+
+
+<h1>ZINC 0.A.2.7</h1><h2>Table of contents</h2><h3>I. Why Zinc?</h3><ul>    <li><a href="#clike">C-like syntax</a></li>
+    <li><a href="#lverb">Less verbosity</a></li>    <li><a href="#readab">Readability</a></li>
+    <li><a href="#segre">Segregation</a></li>
+    <li><a href="#dijkstra">Structured programming</a></li>
+    <li><a href="#vjass">vJass interoperability</a></li>
+    <li><a href="#nolie">Do not &quot;live a lie&quot;</a></li>
+    <li><a href="#rigid">Rigidity</a></li>
+    <li><a href="#fixvjass">Fix vJass mistakes</a></li>
+</ul>
+<h3>II. Because it is good for your brains</h3><ul>    <li><a href="#helloworld">Hello world</a></li>
+    <li><a href="#bottles">99 bottles of beer</a></li>
+    <li><a href="#factorial">Factorial</a></li>
+    <li><a href="#instantkill">Instant kill</a></li>
+    <li><a href="#timedeffect">AddSpecialEffectTimed</a></li>   
+    <li><a href="#countunits">CountUnitsInGroup</a></li>   
+</ul>
+<h3>III. Enough propaganda, how do I use it?</h3>
+<ul>    <li><a href="#zincendzinc">zinc..endzinc preprocessor</a></li>
+    <li><a href="#import">import preprocessor</a></li>
+    <li><a href="#basic">syntax basics</a></li>
+    <li><a href="#library">library</a></li>
+    <li><a href="#publicprivate">library public or private</a></li>
+    <li><a href="#globals">globals</a></li>
+    <li><a href="#functions">functions</a></li>
+    <li><a href="#assign">assignment</a></li>
+    <li><a href="#if">if</a></li>
+    <li><a href="#logical">Logical operations</a></li>
+    <li><a href="#arithments">Arithmetic statements</a></li>
+    <li><a href="#staticif">static if</a></li>
+    <li><a href="#while">while</a></li>
+    <li><a href="#for">for</a></li>
+    <li><a href="#break">break</a></li>
+    <li><a href="#debug">debug</a></li>
+    <li><a href="#local">local variables</a></li>
+    <li><a href="#struct">structs</a></li>
+    <li><a href="#dynarr">Dynamic arrays</a></li>
+    <li><a href="#funcpoint">Function pointers (interfaces)</a></li>
+    <li><a href="#anonfunc">Anonymous functions</a></li>
+    <li><a href="#anonmeth">Anonymous methods</a></li>
+</ul>
+<h3>IV. The small print</h3>
+<ul>
+    <li><a href='#textmacros'>Textmacros?</a></li>
+    <li><a href='#compileerror'>The compile error abomination</a></li>
+    <li><a href='#comment'>Comment eating extravaganza</a></li>
+    <li><a href='#whilenot'>how is while compiled?</a></li>
+</ul>
+<style type='text/css'>
+<style type="text/css"><!--
+
+.syntax-NULL {
+  color: #010101;
+}
+.syntax-COMMENT1 {
+  color: #0f6601;
+  font-style: italic;
+}
+.syntax-COMMENT2 {
+  background: #f7fef7;
+  color: #016f0b;
+  font-style: italic;
+}
+.syntax-COMMENT3 {
+  color: #8e8e8e;
+  font-weight: bold;
+}
+.syntax-COMMENT4 {
+  color: #cc6600;
+}
+.syntax-DIGIT {
+  color: #000066;
+}
+.syntax-FUNCTION {
+  color: #ff7200;
+}
+.syntax-INVALID {
+  background: #ff0f00;
+  color: #fefefe;
+}
+.syntax-KEYWORD1 {
+  color: #190090;
+  font-weight: bold;
+}
+.syntax-KEYWORD2 {
+  color: #010101;
+  font-weight: bold;
+}
+.syntax-KEYWORD3 {
+  color: #6868fd;
+  font-weight: bold;
+}
+.syntax-KEYWORD4 {
+  color: #ff3900;
+}
+.syntax-LABEL {
+  color: #02b902;
+}
+.syntax-LITERAL1 {
+  color: #ae01a3;
+  font-style: italic;
+}
+.syntax-LITERAL2 {
+  color: #000066;
+}
+.syntax-LITERAL3 {
+  color: #cc0096;
+}
+.syntax-LITERAL4 {
+  color: #2d00ff;
+}
+.syntax-MARKUP {
+  color: #0000ff;
+}
+.syntax-OPERATOR {
+  color: #016241;
+  font-weight: bold;
+}
+
+
+--></style>
+
+
+<h2>I. Why Zinc?</h2>
+<p>I&apos;ve kept thinking that vJass&apos; must remain as close to JASS as possible. This is a good thing as it keeps some consistency, but it might be bad as it forces it to JASS ideas that were not really good. vJass as the single language alternative was not going to work forever, so it has always been a plan to somehow let different languages in. Another reason for making a new language was the fun that is designing a language&apos;s syntax...</p>
+<p>I only had the vague idea of making another language, until one day, I started trying to come up with it, and started to write random text in a <a href='http://www.wc3c.net'>wc3c.net</a> pastebin thread, and asking some fellows for opinion. This event was inspired by some other things that were going on at that time that convinced me of this necessity. Basically, a lot of discussions about JASS&apos; verbosity came to fruition, which caused me to really feel lame while re-coding my <a href='http://www.wc3c.net/showthread.php?t=107709'>Hydra spell</a>, suddenly I felt like typing more than I should. It was not just the verbosity, it was stuff like not making all members of a library implicitely private, or having to declare library private members before they are ever used. At that time there were alternatives to vJass that were very powerful, perhaps they were too powerful, and were full of things I was not looking for while not really taking real care of the problems I noticed besides of adding new problems. All was pointing towards it, it was the time to do it.</p>
+
+<p>Zinc serves a purpose different to Jass, to  be honest, it is main purpose is to test the grounds for more multi-language support, and to have fun implementing yet another language. But it should also be a good alternative to vJass in its own. </p>
+<p>Zinc is actually an acronym that stands for <b>Z</b>INC <b>i</b>s <b>n</b>ot <b>C</b>. However, to continue with JASS&apos; tradition, you may call it Zinc or ZINC indistinctively.</p>
+<p>Why call it it Zinc is not C? Well, because while the syntax tries to follow that classic C-style paradigm, it does not follow it 100%, there are parts of that style of syntax I didn&apos;t want to use. It also avoids giving the false impression that learning Zinc would somehow help you learn C, or that people that know C-style languages will have it easier with Zinc, and such non-sense...</p>
+
+<p>Let me list the values, the rules behind its syntax and workings.</p>
+<h3><a name="clike"></a>C-like syntax</h3>
+<p>So, the syntax is mostly inspired by C, why? Well, that's just because I like this syntax the most. In many ways, it is not really <i>that great</i>. It is not a panacea that will make your code more readable or anything like that, in fact, it has quite the potential to make your code incredibly hard to follow. Yet, I like it, it is for simple things things like {} and not having to use them for a single statement. (Using {} gives you a certain advantage when your editor has bracket highlighting)</p>
+
+<h3><a name="lverb"></a>Less verbosity</h3>
+<p>Many guys do not like verbosity, yet it is really one of the things that makes Jass (and vJass for that matter), much easier to follow. It has pros and cons, Zinc is meant as a complement to vJass. vJass fails at being quick to write, yet it is very readable for the most part. Zinc will sacrifice much of this readability to allow some code that is faster to write.</p>
+<p>It is not just the large amount of keywords you have to write, it is also the amount of keywords you can write. Zinc aims to reduce both. Although you will still see things like <b>library</b> you will not see anything like <b>array</b>... Zinc tries to use operators where possible or recycle keywords. </p>
+<p>This is again, no panacea, it is a trade off. Code will become more symbollic or context-requiring, and will need some extra attention and knowledge to read.</p>
+
+<h3><a name="readab"></a>Readability</h3>
+<p>That Zinc does not likes verbosity should not be an excuse to make the language downright unreadable, this is one of the reasons Zinc does not blindly follow C-like syntax. It is also the reason you won&apos;t see silly abbreviations to merely cut a token&apos;s length.</p>
+
+<h3><a name="segre"></a>Segregation</h3>
+<p>This is a very important thing, if we allowed vJass and Zinc code to get thrown together anywhere without distinction, a) Everything would get very hard to read, b) There would be no consistency and most importantly: c) it would be very hard to parse...</p>
+<p>Zinc is a different language than Jass, and thus it should be kept in different files and &apos;triggers&apos; than it. vJass syntax should give errors when used inside Zinc areas, and viceversa.</p>
+
+<h3><a name="dijkstra"></a>Structured programming</h3>
+<p>What really made me start this all over, was seeing the loop..exitwhen..endloop construct while coding Hydra. Zinc introduces while and loop, and kills that loop stuff. This makes it closer to a well structured code. Rather than spaguetty all around-</p>
+
+
+<h3><a name="vjass"></a>vJass interoperability</h3>
+<p>We should be able to use Zinc in a library even if all the remaining libraries in the map are in vJass. We should be able to call vJass libraries from Zinc and vice versa. Nuff said. Why? Because having to port whole code to other languages is work that we can&apos;t spare. Also because vJass is a good language by itself, and we cannot expect everyone to switch from it. In fact, they shouldn&apos;t, as there is a lot more documentation to vJass, and it has a more human readable syntax, it is a good language for many people.</p>
+
+<h3><a name="nolie"></a>Do not &quot;live a lie&quot;</h3>
+<p>It is best to avoid implementing features that look cool in paper but do not plain work when compiled.</p>
+
+<h3><a name="rigidity"></a>Rigidity</h3>
+<p>If you used vJass and read the stuff in this page, you will soon notice Zinc has fewer features. For example, scopes are missing from the picture. There are lot of rules to Zinc that force you to do things more correctly. For example, you are pretty much forced to use libraries if you wish to use Zinc at all. You cannot even write a function without a library. What&apos;s more, all things inside a library are private - not public - by default.</p>
+<h3><a name="fixvjass"></a>Fix vJass mistakes</h3>
+<p>This and rigidity go together. There are many things about vJass that I ended not liking at all, yet removing/changing them would break backwards compatibility. I am taking the chance that Zinc is a new language to kill them.</p>
+
+<h2>II. Because it is good for your brains.</h2>
+<p>Zinc is good for your brain&apos;s development. Likewise, the Zinc scripting language is good for ...your code development. So let&apos;s see some examples of code...</p>
+
+<h3><a name="helloworld"></a>Hello world</h3>
+<font face="monospace">
+<font color="#000000"><b>library</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">HelloWorld</font></span><br>
+{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">onInit</font></span>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>(<font color="#0000cc"><i>&quot;Hello World&quot;</i></font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+}<br>
+</font>
+<p>For better or worse, Zinc is completely library-based. So we begin by declaring a Hello World library. Unlike vJass, there is no need to explicitly declare an initializer function name, and the function called onInit will be used directly (if it exists), The function has no arguments, and no return value. It simply calls a <i>jass function</i> BJDebugMsg to do the text display.</p>
+
+<h3><a name="bottles"></a>99 bottles of beer</h3>
+<font face="monospace">
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>library</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">Bottles99</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">/* 99 Bottles of beer sample,</font><br>
+<font color="#008800">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; prints the lyrics at: <a href="http://99-bottles-of-beer.net/lyrics.html">http://99-bottles-of-beer.net/lyrics.html</a></font><br>
+<font color="#008800">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">onInit</font></span>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>string</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">bot</font></span>&nbsp;= <font color="#0000cc"><i>&quot;99 bottles&quot;</i></font>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">i</font></span>=<font color="#000066">99</font>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>while</b></font>&nbsp;(<span style="background-color: #ffffff"><font color="#000000">i</font></span>&gt;=<font color="#000066">0</font>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>(<span style="background-color: #ffffff"><font color="#000000">bot</font></span>+<font color="#0000cc"><i>&quot; of beer on the wall, &quot;</i></font>+<span style="background-color: #ffffff"><font color="#000000">bot</font></span>+<font color="#0000cc"><i>&quot; of beer&quot;</i></font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">i</font></span>=<span style="background-color: #ffffff"><font color="#000000">i</font></span>-<font color="#000066">1</font>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>if</b></font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span style="background-color: #ffffff"><font color="#000000">i</font></span>== <font color="#000066">1</font>) <span style="background-color: #ffffff"><font color="#000000">bot</font></span>&nbsp;= <font color="#0000cc"><i>&quot;1 bottle&quot;</i></font>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>else</b></font>&nbsp;<font color="#000000"><b>if</b></font>&nbsp;(<span style="background-color: #ffffff"><font color="#000000">i</font></span>== <font color="#000066">0</font>) <span style="background-color: #ffffff"><font color="#000000">bot</font></span>&nbsp;= <font color="#0000cc"><i>&quot;No more bottles&quot;</i></font>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>else</b></font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">bot</font></span>&nbsp;= <span style="background-color: #ffffff"><font color="#000000">I2S</font></span>(<span style="background-color: #ffffff"><font color="#000000">i</font></span>)+<font color="#0000cc"><i>&quot; bottles&quot;</i></font>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//Lazyness = &quot;No more&quot; is always capitalized.</font><br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>if</b></font>(<span style="background-color: #ffffff"><font color="#000000">i</font></span>&gt;=<font color="#000066">0</font>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>(<font color="#0000cc"><i>&quot;Take one down and pass it around, &quot;</i></font>+<span style="background-color: #ffffff"><font color="#000000">bot</font></span>+<font color="#0000cc"><i>&quot; of beer on the wall.\n&quot;</i></font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>(<font color="#0000cc"><i>&quot;Go to the store and buy some more, 99 bottles of beer on the wall.&quot;</i></font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+</font>
+<p>This sample illustrates yet more syntax elements, you can see the while and if constructs, also how {} is actually optional when it is a single statement. Also some comments. There is no <b>elseif</b> construct in Zinc, because as you can see, nesting an if inside an else is just as easy.</p>
+
+<h3><a name='factorial'></a>Factorial</h3>
+<font face="monospace">
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>library</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">Factorial</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">/*</font><br>
+<font color="#008800">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp; Calculates the factorial of a number</font><br>
+<font color="#008800">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*</font><br>
+<font color="#008800">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>public</b></font>&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">Factorial</font></span>(<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">n</font></span>) -&gt; <font color="#7777cc"><b>integer</b></font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">result</font></span>=<font color="#000066">1</font>, <span style="background-color: #ffffff"><font color="#000000">i</font></span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>for</b></font>&nbsp;( <font color="#000066">1</font>&nbsp;&lt;= <span style="background-color: #ffffff"><font color="#000000">i</font></span>&nbsp;&lt;= <span style="background-color: #ffffff"><font color="#000000">n</font></span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">result</font></span>&nbsp;= <span style="background-color: #ffffff"><font color="#000000">result</font></span>&nbsp;* <span style="background-color: #ffffff"><font color="#000000">i</font></span>;<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>return</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">result</font></span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+</font>
+<p>This simple code is a function that calculates the factorial of a number n, that is 1*2*3*...n . Notice the for loop construct. It basically means that the code should be repeated for all numbers i between 1 and n. Also notice that two integer variables are declared in the same line. We probably wish to call this function in other libraries, so we declare the function as public.<p>
+
+<h3><a name="instantkill"></a>Instant Kill</h3>
+<font face="monospace">
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>library</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">InstantKill</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">/*</font><br>
+<font color="#008800">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp; INSTANT K1LL !</font><br>
+<font color="#008800">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp; This custom spell Kills the target unit!</font><br>
+<font color="#008800">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*</font><br>
+<font color="#008800">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>constant</b></font>&nbsp;<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">SPELL_ID</font></span>&nbsp;= <font color="#000066">'A001'</font>;<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">onSpellCast</font></span>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">KillUnit</font></span>(&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">GetSpellTargetUnit</font></span>() );<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">spellIdMatch</font></span>() -&gt; <font color="#7777cc"><b>boolean</b></font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>return</b></font>&nbsp;(<span style="background-color: #ffffff"><font color="#000000">GetSpellAbilityId</font></span>() == <span style="background-color: #ffffff"><font color="#000000">SPELL_ID</font></span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">onInit</font></span>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>trigger</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">t</font></span>&nbsp;= <span style="background-color: #ffffff"><font color="#000000">CreateTrigger</font></span>();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">TriggerAddAction</font></span>(<span style="background-color: #ffffff"><font color="#000000">t</font></span>, <font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">onSpellCast</font></span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">TriggerAddCondition</font></span>(<span style="background-color: #ffffff"><font color="#000000">t</font></span>, <span style="background-color: #ffffff"><font color="#000000">Condition</font></span>(<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">spellIdMatch</font></span>) );<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+</font>
+
+<p>This is a quick custom spell that will kill the target unit instantly. You may notice the syntax for return values and also that constant global declaration not inside a globals block.</p>
+
+<h3><a name="timedeffect"></a>AddSpecialEffectTimed</h3>
+
+<font face="monospace">
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>library</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">TimedEffect</font></span>&nbsp;<font color="#000000"><b>requires</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">TimerUtils</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">/*</font><br>
+<font color="#008800">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp; Adds a special effect to the ground, destroys it after</font><br>
+<font color="#008800">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*</font><br>
+<font color="#008800">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>struct</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">data</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>effect</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">fx</font></span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">destroyEffect</font></span>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>timer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">t</font></span>=<span style="background-color: #ffffff"><font color="#000000">GetExpiredTimer</font></span>();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">data</font></span>&nbsp;<span style="background-color: #ffffff"><font color="#000000">dt</font></span>&nbsp;= <span style="background-color: #ffffff"><font color="#000000">data</font></span>( <span style="background-color: #ffffff"><font color="#000000">GetTimerData</font></span>(<span style="background-color: #ffffff"><font color="#000000">t</font></span>));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">DestroyEffect</font></span>(<span style="background-color: #ffffff"><font color="#000000">dt</font></span><font color="#000066">.</font><span style="background-color: #ffffff"><font color="#000000">fx</font></span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">ReleaseTimer</font></span>(<span style="background-color: #ffffff"><font color="#000000">t</font></span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>public</b></font>&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">AddSpecialEffectTimed</font></span>( <font color="#7777cc"><b>string</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">fxpath</font></span>, <font color="#7777cc"><b>real</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">x</font></span>, <font color="#7777cc"><b>real</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">y</font></span>, <font color="#7777cc"><b>real</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">duration</font></span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>timer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">t</font></span>=<span style="background-color: #ffffff"><font color="#000000">NewTimer</font></span>();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">data</font></span>&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">dt</font></span>&nbsp;= <span style="background-color: #ffffff"><font color="#000000">data</font></span><font color="#000066">.</font><span style="background-color: #ffffff"><font color="#000000">create</font></span>();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">dt</font></span><font color="#000066">.</font><span style="background-color: #ffffff"><font color="#000000">fx</font></span>&nbsp;= <span style="background-color: #ffffff"><font color="#000000">AddSpecialEffect</font></span>(<span style="background-color: #ffffff"><font color="#000000">fxpath</font></span>, <span style="background-color: #ffffff"><font color="#000000">x</font></span>, <span style="background-color: #ffffff"><font color="#000000">y</font></span>);<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">SetTimerData</font></span>(<span style="background-color: #ffffff"><font color="#000000">t</font></span>, <font color="#7777cc"><b>integer</b></font>(<span style="background-color: #ffffff"><font color="#000000">dt</font></span>));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">TimerStart</font></span>(<span style="background-color: #ffffff"><font color="#000000">t</font></span>, <span style="background-color: #ffffff"><font color="#000000">duration</font></span>&nbsp;, <font color="#000066">false</font>, <font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">destroyEffect</font></span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+</font>
+
+<p>This is a library that comes with the AddSpecialEffectTimed, just an example. TimerUtils is a vJass library, but that is not a problem for Zinc. Do notice that all members of a library are private by default, which means that the data struct and the destroyEffect function are private. Public library members also work differently in Zinc than in vJass, it will <b>not</b> add a prefix to the name, therefore the way to call this function is AddSpecialEffectTimed, not TimedEffect_AddSpecialEffectTimed. </p>
+
+<p>As you can see, things like type casts work the same as in vJass. There is also a struct which follows the same declaration rules as local variables and global variables.</p>
+<h3><a name="countunits"></a>CountUnitsInGroup</h3>
+<font face="monospace">
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>library</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">CountUnitsInGroup</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">count</font></span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>public</b></font>&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">CountUnitsInGroup</font></span>( <font color="#7777cc"><b>group</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">g</font></span>&nbsp;) -&gt; <font color="#7777cc"><b>integer</b></font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">count</font></span>&nbsp;= <font color="#000066">0</font>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">ForGroup</font></span>(<span style="background-color: #ffffff"><font color="#000000">g</font></span>, <font color="#000000"><b>function</b></font>() { <span style="background-color: #ffffff"><font color="#000000">count</font></span>= <span style="background-color: #ffffff"><font color="#000000">count</font></span>&nbsp;+ <font color="#000066">1</font>; });<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>return</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">count</font></span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+</font>
+<p>This example replicates a blizzard.j function, as an excersise I invite you to check blizzard&apos;s implementation of it in Jass. This example features an <a href='#anonfunc'>anonymous function</a> which are simply a way to allow you to declare functions on the go in cases like this one (very frequent in Jass) where the count=count+1 action is not really part of another function&apos;s logic but something inherent to the CountUnitsOne.</p>
+
+<h2>III. Enough propaganda, how do I use it?</h2>
+
+<h3><a name="zincendzinc"></a>zinc..endzinc preprocessor</h3>
+<p>Zinc and vJass code must be kept separate from each other. One way is using a vJass preprocessor command to tell it where zinc code begins and ends. I do not prefer this method over zinc import, but it should be good for people that can&apos;t adapt to working outside of WE (and therefore require newgen pack).</p>
+
+<p>It is easy, if you wish to code in Zinc, you must first use a //! zinc preprocessor. However, you must also specify where the code ends, and thus add a //! endzinc preprocessor.</p>
+<font face="monospace">
+<font color="#666666">//! zinc</font><br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>library</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">HelloWorld</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">onInit</font></span>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>(<font color="#0000cc"><i>&quot;Hello World&quot;</i></font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+<font color="#666666">//! endzinc</font></font>
+<p> I assume you got newgen pack installed (and jasshelper 0.9.Z.0 or greater), try to put this code in some &quot;trigger&quot;, then test the map and see your first Zinc program at work.</p>
+
+<h3><a name="import"></a>import preprocessor</h3>
+<p>A saner way is this extension to the good, old and reliable import preprocessor in vJass. It is now [//! import [vjass/zinc] "filename"], which means that while importing the file you may also specify the language in the file. This language specification is optional and implied from the place in which you call it. In example, if you call it from a vJass area, it will assume the imported file is in vJass format unless  you explicitely include the zinc word. Likewise, if you perform the import from a Zinc area, it will assume the imported file is in zinc language.</p>
+
+<font face="monospace">
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//imports the file main.zn from code folder, consider it in zinc language</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#666666">//! import zinc &quot;code/main.zn&quot;</font><br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//imports the file libTimerUtils.j from code/libs folder, consider it in vJassc language</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#666666">//! import vjass &quot;code/libs/libTimerUtils.j&quot;</font><br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//imports the file spell1.j from code folder, use the current language.</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#666666">//! import &quot;code/spell1.j&quot;</font><br>
+</font>
+<h3><a name="basic"></a>Syntax basics</h3>
+<p>In Zinc, every statement/command will either start a block of code or finish with a single ; character.</p>
+<p> ; Means that you are ending what you are saying. It works to separate different statements of code. Other languages, like jass, would often need whitespace to make this differentation, for example, require a line break after each command.</p>
+<p> Code blocks are groups of code inside two bracket delimiters, { marks the beginning of a code block, and } marks the end of a code block. All syntax constructs that require code blocks use this same syntax.</p>
+<p>Since most things ignore whitespace, you can pretty much do plenty of things. You can have multiple declarations in the same line, and you can also split a declaration that is very long into multiple lines. Notice that this means that you will need some self control, and also setting up some code style standards for your code would not hurt.</p>
+
+<p>There are two comment constructs: // and /* .. */. // Makes the compiler ignore all the text between // and the next line break. While /* */ can make it ignore all the text between the /* and the */. /* */ comments can be nested.</p>
+
+<h3><a name="library"></a>library</h3>
+<p>Libraries are the main, mandatory construction blocks in Zinc, they are defined as a group of code, variables, and data structures that do something for your own good. Libraries may use stuff from other libraries, in which case they need to explicitely say so by mentioning a "requires". Libraries are also your way into running code. If a library has a function called onInit, this function will get called on startup.</p>
+
+<font face="monospace">
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>library</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">CodeGoesHereo</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">// code goes here:</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font color="#008800">// * global variables</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font color="#008800">// * functions</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font color="#008800">// * structs</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font color="#008800">// * interfaces</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font color="#008800">// * other types (dynamic arrays, function pointer types)</font><br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">onInit</font></span>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//Your onInit() function gets called when the map is starting.</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+<br>
+<br>
+</font>
+
+<p>If we wish to use stuff from library BB inside our library AA, we need to tell the compiler that the library AA, <i>requires</i> library BB. Basically, when your library requires other libraries, first the onInit functions of the other libraries get executed before yours. Their code is also moved to a place that is above yours in the output code.</p>
+
+<font face="monospace">
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>library</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">AA</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>public</b></font>&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">AABoom</font></span>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>(<font color="#0000cc"><i>&quot;AA BOOM&quot;</i></font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">onInit</font></span>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>(<font color="#0000cc"><i>&quot;AA&quot;</i></font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>library</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">BB</font></span>&nbsp;<font color="#000000"><b>requires</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">AA</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">onInit</font></span>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>(<font color="#0000cc"><i>&quot;BB&quot;</i></font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">AABoom</font></span>();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">AABoom</font></span>();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+<br>
+<br>
+</font>
+
+<p>Do notice that a library may have many requirements, in that case, separate each requirement by a comma ( <b>library</b> name <b>requires</b> requirement1, requirement2, ... requirementN ).</p>
+
+<p>This last sample illustrates a public library member:</p>
+
+<p>requirements can be made <b>optional</b> by adding the <b>optional</b> keyword before the requirement&apos;s name, this makes the compiler just consider the requirement if the required library exists, without giving any syntax errors if the requirement is not found. This is useful when combined with <a href='#staticif'>static ifs</a>.</p>
+
+<h3><a name="publicprivate"></a>library public or private</h3>
+
+<p>Library members (variables, functions, structs, interfaces, types) can be either private or public.</p>
+<ul><li><b>private:</b> Only your library has access to the member in question, other libraries may have their own private or public members using the same name, it would not matter.</li>
+<li><b>public:</b> The member is available for use on other libraries. If two public such members in different libraries have the same name, an error will happen, therefore, please be careful, and name your public stuff carefully.</li>
+</ul>
+<p>When declaring a library member, you can place it inside a  <b>public</b> or <b>private</b> block to specify what access rule you want. Note that library members are <b>private</b> unless you specify otherwise.</p>
+
+<font face="monospace">
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>library</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">PublicTest</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>public</b></font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">PublicTest1</font></span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">PublicTest2</font></span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">PublicTest3</font></span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//all these variables are public.</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+<br>
+<br>
+</font>
+
+<p>If you are only including a single member in one of these blocks, the {} are optional. There is also no need to include all public members in the same block. This looks like vJass/Java/etc code, but is equivalent to the previous example:</p>
+
+<font face="monospace">
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>library</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">PublicTest</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>public</b></font>&nbsp;<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">PublicTest1</font></span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>public</b></font>&nbsp;<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">PublicTest2</font></span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>public</b></font>&nbsp;<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">PublicTest3</font></span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+<br>
+<br>
+</font>
+
+<h3><a name="globals"></a>Globals</h3>
+<p>Global variables, are those things that hold a state and any function can use. If these variables are public, every function outside the library will also be able to use. There is also the aspect of global constants, which behave exactly like global variables except they are read-only.</p>
+
+<p>They are declared inside a library, and the syntax is: ( (constant) type varname ( = initialvalue) ). Adding the constant prefix makes the global a constant (which means it is read-only, in that case the initial value is mandatory, else it is optional. Another variation is when you want arrays.  You can use name[] for an array with default size (8191),  name[SIZE] for an array with another size value (which may be bigger, but if it is bigger than 8191, it will need function calls to be read), name[SIZE1][SIZE2] for a 2D array, the total storage needed for this array is SIZE1*SIZE2. Arrays cannot be assigned to an initial value.</p>
+
+<p>You may also separate globals of the same type using a comma.</p>
+
+<font face="monospace">
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>library</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">PublicTest</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//the following are private constants:</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>constant</b></font>&nbsp;<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">SPELL_ID</font></span>&nbsp;= <font color="#000066">'A000'</font>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>constant</b></font>&nbsp;<font color="#7777cc"><b>real</b></font>&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">HEIGHT</font></span>&nbsp;= <font color="#000066">10.0</font>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>constant</b></font>&nbsp;<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">UNIT_COUNT</font></span>&nbsp;= <font color="#000066">7</font>, <span style="background-color: #ffffff"><font color="#000000">ITEM_COUNT</font></span>&nbsp;= <span style="background-color: #ffffff"><font color="#000000">UNIT_COUNT</font></span>*<font color="#000066">6</font>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font color="#008800">// A, B, C, ... E are global variables of integer type,</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font color="#008800">// they are public</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>public</b></font>&nbsp;<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">A</font></span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>public</b></font>&nbsp;<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">B</font></span>&nbsp;= <font color="#000066">1</font>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>public</b></font>&nbsp;<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">C</font></span>,<span style="background-color: #ffffff"><font color="#000000">D</font></span>&nbsp;= <font color="#000066">1</font>,<span style="background-color: #ffffff"><font color="#000000">E</font></span>;<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">// B and D begin assigned to 1</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>real</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">X</font></span>[], <span style="background-color: #ffffff"><font color="#000000">Y</font></span>[<font color="#000066">16000</font>];<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>real</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">Z</font></span>[<font color="#000066">200</font>][<font color="#000066">200</font>];<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//X: real array.</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//Y: real array of size 16000</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//Z: real 2D array 200x200.</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">// They are private</font><br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">onInit</font></span>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">A</font></span>&nbsp;= <span style="background-color: #ffffff"><font color="#000000">B</font></span>; <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">X</font></span>[<font color="#000066">0</font>] = <span style="background-color: #ffffff"><font color="#000000">A</font></span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">X</font></span>[<font color="#000066">1</font>] = <span style="background-color: #ffffff"><font color="#000000">B</font></span>+<font color="#000066">1</font>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">E</font></span>&nbsp;= <span style="background-color: #ffffff"><font color="#000000">D</font></span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">D</font></span>&nbsp;= <font color="#000066">7</font>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">C</font></span>&nbsp;= <span style="background-color: #ffffff"><font color="#000000">E</font></span>*<font color="#000066">3</font>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">Y</font></span>[<font color="#000066">10000</font>] = <span style="background-color: #ffffff"><font color="#000000">D</font></span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">Z</font></span>[<font color="#000066">4</font>][<font color="#000066">4</font>] = <font color="#000066">10</font>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+<br>
+<br>
+</font>
+
+<h3><a name="functions"></a>Functions</h3>
+<p>A function is a piece of code you can call, it may take some arguments and also have a return value. The syntax is : ( function name ([arguments]) (-> returntype { contents })</p>
+
+<p>The arguments list is a comma separated list containing an item per argument, each argument is represented as the argument&apos;s type followed by its name.</p>
+
+<p>If the function does not have a return type, then the -> is not included. If the function has a return type, then you must include a -> and the return type towards the end.</p>
+
+<p>The contents of the function is a series of Zinc statements. It may include local variables, return statements, if-then-else, while, for, breaks, assignments, function calls and method calls.</p>
+
+<p>To call a function, simply use functionname(argumentslist). The argument list when called is similar to the one when functions are declared, it is a comma separated list of expressions, one for each argument. If the function has a return value, you can use the function call in place of a value.</p>
+
+<p>Notice that calling a function is... complicated. It requires the function to get declared in a required library or in the same library in a line above the line from which you are calling. Else there are alternatives, like the .evaluate() and .execute() methods which may get into detail later if I have time (they are act like in vJass')</p>
+
+<p>There are Jass functions that come either from common.j or from blizzard.j that you may use following these rules. You may also use functions from vJass libraries that are required by yours.</p>
+
+<font face="monospace">
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>library</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">FunctionTest</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">x</font></span>&nbsp;= <font color="#000066">0</font>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">increaseX</font></span>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">// a lame function that merely increases the</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">// value of the x global</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">x</font></span>&nbsp;= <span style="background-color: #ffffff"><font color="#000000">x</font></span>&nbsp;+ <font color="#000066">1</font>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">sum3</font></span>(<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">a</font></span>, <font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">b</font></span>, <font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">c</font></span>) -&gt; <font color="#7777cc"><b>integer</b></font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font color="#008800">//returns the sum of 3 numbers</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font color="#000000"><b>return</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">a</font></span>+<span style="background-color: #ffffff"><font color="#000000">b</font></span>+<span style="background-color: #ffffff"><font color="#000000">c</font></span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">onInit</font></span>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">increaseX</font></span>();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">x</font></span>&nbsp;= <span style="background-color: #ffffff"><font color="#000000">sum3</font></span>( <span style="background-color: #ffffff"><font color="#000000">x</font></span>, <span style="background-color: #ffffff"><font color="#000000">x</font></span>, <font color="#000066">7</font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">increaseX</font></span>();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">/* BJDebugMsg = blizzard.j function&nbsp;&nbsp;and I2S = wc3 native&nbsp;&nbsp;*/</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>( <span style="background-color: #ffffff"><font color="#000000">I2S</font></span>(<span style="background-color: #ffffff"><font color="#000000">x</font></span>) );<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//should show a message containing &quot;10&quot; in game.</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+<br>
+<br>
+</font>
+
+<h3><a name="assign"></a>assignment</h3>
+<p>An assignment inside a function/method simply sets the value inside a variable, or array. It is syntax is (thing to assign) = (value). You may see many examples of assignments in the snippets above and bellow.</p>
+
+
+<h3><a name="if"></a>if</h3>
+<p>The syntax is : if (condition) { statements1 } else { statements2 } . If the condition is true, it will execute statements1, else it will execute statements2. Notice that the { } sorrounding the statements are only necessary if the statements are more than one. The else part is optional.</p>
+
+<font face="monospace">
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>library</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">IfTest</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">x</font></span>&nbsp;= <font color="#000066">0</font>;<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">onInit</font></span>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>if</b></font>(<span style="background-color: #ffffff"><font color="#000000">x</font></span>==<font color="#000066">0</font>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>(<font color="#0000cc"><i>&quot;it is 0&quot;</i></font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>else</b></font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>(<font color="#0000cc"><i>&quot;it is not 0&quot;</i></font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">x</font></span>&nbsp;= <span style="background-color: #ffffff"><font color="#000000">GetRandomInt</font></span>(<font color="#000066">0</font>,<font color="#000066">3</font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//shorter way (take advantage that the blocks are one liners</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">// (does the same as above)</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>if</b></font>(<span style="background-color: #ffffff"><font color="#000000">x</font></span>==<font color="#000066">0</font>)&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>(<font color="#0000cc"><i>&quot;it is 0&quot;</i></font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>else</b></font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>(<font color="#0000cc"><i>&quot;it is not 0&quot;</i></font>);<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">x</font></span>&nbsp;= <span style="background-color: #ffffff"><font color="#000000">GetRandomInt</font></span>(<font color="#000066">0</font>,<font color="#000066">6</font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>if</b></font>(<span style="background-color: #ffffff"><font color="#000000">x</font></span>==<font color="#000066">5</font>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>(<font color="#0000cc"><i>&quot;Today is your lucky day, because you got a 5&quot;</i></font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>else</b></font>&nbsp;<font color="#000000"><b>if</b></font>&nbsp;(<span style="background-color: #ffffff"><font color="#000000">x</font></span>==<font color="#000066">0</font>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//There is no such thing as an elseif in Zinc, but as you</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">// can see, since the only thing inside this else block is</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">// an if statement, it can work the same.</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>(<font color="#0000cc"><i>&quot;Today is your unlucky day,&quot;</i></font>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>(<font color="#0000cc"><i>&quot; you got a 0&quot;</i></font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>else</b></font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>(<font color="#0000cc"><i>&quot;Normal day&quot;</i></font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//ifs can be nested.</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>if</b></font>( <span style="background-color: #ffffff"><font color="#000000">x</font></span>==<font color="#000066">4</font>) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>(<font color="#0000cc"><i>&quot;But hey, at least it is a 4, that is good&quot;</i></font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+<br>
+<br>
+</font>
+
+<p>The condition is expected to be of a boolean type, the boolean type can either be true or false. e.g: Comparisons like == return true or false.
+
+<h3><a name="logical"></a>Logical operations</h3>
+<p>There are some operations that can be done to booleans to combine or change their results.</p>
+<ul><li> <b>!</b> : The not operator, it negates the boolean ( ! true equal false and ! false equals true ). </li>
+    <li> <b>&&</b>: The and operator, it requires both booleans to be true, else it returns false ( true&&true equals true, true&&false and any other combination equals false).</li>
+    <li> <b>||</b>: The or operator, it requires any of the booleans to be true, it returns false if both are false ( false||false equals false, true&&false and any other combination equals true).</li></ul>
+
+<h3><a name="arithments"></a>Arithmetic assignments</h3>
+<p>Zinc now includes statements to quickly assign and perform artithmetic operations at the same time.</p>
+
+<pre><span class="syntax0"><span class="gutter">   1 </span><span class="syntax-KEYWORD2">library</span> ForTest
+<span class="gutter">   2 </span><span class="syntax-OPERATOR">{</span>
+<span class="gutter">   3 </span>    <span class="syntax-KEYWORD2">function</span> <span class="syntax-KEYWORD4">onInit</span><span class="syntax-OPERATOR">(</span><span class="syntax-OPERATOR">)</span><span class="syntax-OPERATOR">{</span>
+<span class="gutter">   4 </span>        
+<span class="gutter">   5 </span>        <span class="syntax-KEYWORD3">integer</span> x <span class="syntax-OPERATOR">=</span> <span class="syntax-DIGIT">5</span>;
+<span class="gutter">   6 </span>        x<span class="syntax-OPERATOR">+</span><span class="syntax-OPERATOR">=</span><span class="syntax-DIGIT">3</span>;   <span class="syntax-COMMENT2">//</span><span class="syntax-COMMENT2"> </span><span class="syntax-COMMENT2"> </span><span class="syntax-COMMENT2">x</span><span class="syntax-COMMENT2"> </span><span class="syntax-COMMENT2">=</span><span class="syntax-COMMENT2"> </span><span class="syntax-COMMENT2">8</span>
+<span class="gutter">   7 </span>        x <span class="syntax-OPERATOR">-</span><span class="syntax-OPERATOR">=</span> <span class="syntax-DIGIT">6</span>; <span class="syntax-COMMENT2">//</span><span class="syntax-COMMENT2"> </span><span class="syntax-COMMENT2">x</span><span class="syntax-COMMENT2"> </span><span class="syntax-COMMENT2">=</span><span class="syntax-COMMENT2"> </span><span class="syntax-COMMENT2">2</span>
+<span class="gutter">   8 </span>        x <span class="syntax-OPERATOR">*</span><span class="syntax-OPERATOR">=</span> <span class="syntax-DIGIT">32</span>;<span class="syntax-COMMENT2">//</span><span class="syntax-COMMENT2"> </span><span class="syntax-COMMENT2">x</span><span class="syntax-COMMENT2"> </span><span class="syntax-COMMENT2">=</span><span class="syntax-COMMENT2"> </span><span class="syntax-COMMENT2">64</span>
+<span class="gutter">   9 </span>        x <span class="syntax-OPERATOR">/</span><span class="syntax-OPERATOR">=</span> <span class="syntax-DIGIT">8</span>; <span class="syntax-COMMENT2">//</span><span class="syntax-COMMENT2"> </span><span class="syntax-COMMENT2">x</span><span class="syntax-COMMENT2"> </span><span class="syntax-COMMENT2">=</span><span class="syntax-COMMENT2"> </span><span class="syntax-COMMENT2">8</span>
+<span class="gutterH">  10 </span>        
+<span class="gutter">  11 </span>    <span class="syntax-OPERATOR">}</span>
+<span class="gutter">  12 </span><span class="syntax-OPERATOR">}</span>
+<span class="gutter">  13 </span>
+<span class="gutter">  14 </span>
+</span></pre>
+
+<p>Note that these are assignments and not usable in places where expressions are expected.</p>
+
+<h3><a name="staticif"></a>static if</h3>
+<p>A static if is similar to a normal if, except that it can only use constant booleans, and the && and ! logical operators. Also, non-existant constant booleans can be used, and instead of giving a syntax error, the compiler will assume they are false.</p>
+<p>More importantly, static ifs are evaluated during compilation time, code is either added or not to the script depending on what the static ifs evaluate.</p>
+
+<p>Something to consider is that if a library called libraryname exists in the map, the compiler will add a constant boolean called LIBRARY_libraryname and set it to true.</p>
+<font face="monospace">
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>library</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">OptionalCode</font></span>&nbsp;<font color="#000000"><b>requires</b></font>&nbsp;<font color="#000000"><b>optional</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">UnitKiller</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>constant</b></font>&nbsp;<font color="#7777cc"><b>boolean</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">DO_KILL_LIB</font></span>&nbsp;= <font color="#000066">true</font><br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">fun</font></span>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>unit</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">u</font></span>&nbsp;= <span style="background-color: #ffffff"><font color="#000000">GetTriggerUnit</font></span>();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//the following code may need to kill the unit</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//but is alternatively able to use the external</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//'UnitKiller' library to do the library.</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">// ONLY when DO_KILL_LIB is true AND the</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">// library UnitKiller is in the map.</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>static</b></font>&nbsp;<font color="#000000"><b>if</b></font>(<span style="background-color: #ffffff"><font color="#000000">DO_KILL_LIB</font></span>&nbsp;&amp;&amp; <span style="background-color: #ffffff"><font color="#000000">LIBRARY_UnitKiller</font></span>&nbsp;)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//static if because if the UnitKiller</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">// library was not in the map, using a normal</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">// if would not remove this line of code and</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">// therefore it would cause a syntax error.</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">// (unable to find function UnitKiller)</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">UnitKiller</font></span>(<span style="background-color: #ffffff"><font color="#000000">u</font></span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>else</b></font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">KillUnit</font></span>(<span style="background-color: #ffffff"><font color="#000000">u</font></span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>library</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">UnitKiller</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">UnitKiller</font></span>(<font color="#7777cc"><b>unit</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">u</font></span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>(<font color="#0000cc"><i>&quot;Unit kill!&quot;</i></font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">KillUnit</font></span>(<span style="background-color: #ffffff"><font color="#000000">u</font></span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+</font>
+<h3><a name="while"></a>while</h3>
+<p>Conditional constructs are one thing, we also need looping structs. The <b>while</b> statement has a syntax: <b>while</b> (condition) { statements}. It will repeat the statements as long as the condition is true. </p>
+
+<p>The following code will print the numbers from 5 to 1 in decreasing order:</p>
+<font face="monospace">
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>library</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">WhileTest</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">onInit</font></span>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">x</font></span>&nbsp;= <font color="#000066">5</font>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>while</b></font>( <span style="background-color: #ffffff"><font color="#000000">x</font></span>&nbsp;&gt; <font color="#000066">0</font>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>( <span style="background-color: #ffffff"><font color="#000000">I2S</font></span>(<span style="background-color: #ffffff"><font color="#000000">x</font></span>) );<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//decrease x</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">x</font></span>&nbsp;= <span style="background-color: #ffffff"><font color="#000000">x</font></span>&nbsp;- <font color="#000066">1</font>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+</font>
+
+<h3><a name="for"></a>for</h3>
+<p>Another looping construct, but this one is specialized for iterations. e.g. That previous example is better as a for. The <b>for</b> control structure has syntax <b>for</b> ( range ) { statements } . It will repeat the statements based on the range sounds confusing.</p>
+
+<p>Let&apos;s say you want a variable i to go from 0 to n-1 , this means that you want to repeat the statements for i such that (i >= 0) and (i&lt;n) , another way to write this is : ( 0 &lt;= i &lt; n) which is how the for construct works. Notice that it can only work with a normal variable (do not use arrays or struct members as the loop variable).</p>
+
+<font face="monospace">
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>library</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">WhileTest</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">onInit</font></span>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">x</font></span>, <span style="background-color: #ffffff"><font color="#000000">n</font></span>=<font color="#000066">7</font>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//numbers from 0 to 9, </font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">// ascending order</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>for</b></font>&nbsp;( <font color="#000066">0</font>&nbsp;&lt;= <span style="background-color: #ffffff"><font color="#000000">x</font></span>&nbsp;&lt; <font color="#000066">10</font>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>( <span style="background-color: #ffffff"><font color="#000000">I2S</font></span>(<span style="background-color: #ffffff"><font color="#000000">x</font></span>) );<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//numbers from 9 to 0,</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">// descending order</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>for</b></font>&nbsp;( <font color="#000066">10</font>&nbsp;&gt; <span style="background-color: #ffffff"><font color="#000000">x</font></span>&nbsp;&gt;= <font color="#000066">0</font>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>( <span style="background-color: #ffffff"><font color="#000000">I2S</font></span>(<span style="background-color: #ffffff"><font color="#000000">x</font></span>) );<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//numbers from 1 to 10,</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">// ascending order:</font><br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>for</b></font>( <font color="#000066">1</font>&nbsp;&lt;= <span style="background-color: #ffffff"><font color="#000000">x</font></span>&nbsp;&lt;= <font color="#000066">10</font>&nbsp;)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>( <span style="background-color: #ffffff"><font color="#000000">I2S</font></span>(<span style="background-color: #ffffff"><font color="#000000">x</font></span>) );<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//decrease x</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">x</font></span>&nbsp;= <span style="background-color: #ffffff"><font color="#000000">x</font></span>&nbsp;- <font color="#000066">1</font>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//numbers from 0 to n-1,</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">// ascending number</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>for</b></font>&nbsp;( <font color="#000066">0</font>&nbsp;&lt;= <span style="background-color: #ffffff"><font color="#000000">x</font></span>&nbsp;&lt; <span style="background-color: #ffffff"><font color="#000000">n</font></span>&nbsp;)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>( <span style="background-color: #ffffff"><font color="#000000">I2S</font></span>(<span style="background-color: #ffffff"><font color="#000000">x</font></span>) );<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+</font>
+<p><b>for</b> also has an alternate, more C-like syntax: for( assignment1; condition; assignment2) { statements }. Allowed assignment operations are =, +=, /=, *= and -= . The condition is a boolean expression which must be true, otherwise the for execution is stopped. Assignment1 is called at the beginning of the loop. assignment2 is done just after each iteration...</p>
+
+<pre><span class="syntax0"><span class="gutter">   1 </span><span class="syntax-KEYWORD2">library</span> ForTest
+<span class="gutter">   2 </span><span class="syntax-OPERATOR">{</span>
+<span class="gutter">   3 </span>    <span class="syntax-KEYWORD2">function</span> <span class="syntax-KEYWORD4">onInit</span><span class="syntax-OPERATOR">(</span><span class="syntax-OPERATOR">)</span><span class="syntax-OPERATOR">{</span>
+<span class="gutter">   4 </span>        
+<span class="gutter">   5 </span>        <span class="syntax-KEYWORD3">integer</span> x;
+<span class="gutter">   6 </span>        <span class="syntax-COMMENT2">//</span><span class="syntax-COMMENT2">shows</span><span class="syntax-COMMENT2"> </span><span class="syntax-COMMENT2"> </span><span class="syntax-COMMENT2">all</span><span class="syntax-COMMENT2"> </span><span class="syntax-COMMENT2">even</span><span class="syntax-COMMENT2"> </span><span class="syntax-COMMENT2">numbers</span><span class="syntax-COMMENT2"> </span><span class="syntax-COMMENT2">from</span><span class="syntax-COMMENT2"> </span><span class="syntax-COMMENT2">2</span><span class="syntax-COMMENT2"> </span><span class="syntax-COMMENT2">to</span><span class="syntax-COMMENT2"> </span><span class="syntax-COMMENT2">100:</span>
+<span class="gutter">   7 </span>        <span class="syntax-KEYWORD1">for</span> <span class="syntax-OPERATOR">(</span>x<span class="syntax-OPERATOR">=</span><span class="syntax-DIGIT">2</span>; x<span class="syntax-OPERATOR">&lt;</span><span class="syntax-OPERATOR">=</span><span class="syntax-DIGIT">100</span>; x<span class="syntax-OPERATOR">+</span><span class="syntax-OPERATOR">=</span><span class="syntax-DIGIT">2</span> <span class="syntax-OPERATOR">)</span> <span class="syntax-OPERATOR">{</span>
+<span class="gutter">   8 </span>            <span class="syntax-FUNCTION">BJDebugMsg</span><span class="syntax-OPERATOR">(</span><span class="syntax-KEYWORD4">I2S</span><span class="syntax-OPERATOR">(</span>x<span class="syntax-OPERATOR">)</span><span class="syntax-OPERATOR">)</span>;
+<span class="gutter">   9 </span>        <span class="syntax-OPERATOR">}</span>
+<span class="gutterH">  10 </span>    <span class="syntax-OPERATOR">}</span>
+<span class="gutter">  11 </span><span class="syntax-OPERATOR">}</span>
+<span class="gutter">  12 </span>
+<span class="gutter">  13 </span>
+</span></pre>
+
+<h3><a name="break"></a>break</h3>
+<p>Well, perhaps while and for are not flexible enough for you, in that case, you may use the break statement. It will make the current loop halt.</p>
+<p>Just type break;</p>
+
+<h3><a name="debug"></a>debug</h3>
+<p>Another control structure, its syntax is debug { statements }. It will only add those statements when jasshelper&apos;s debug mode is enabled.</p>
+
+<font face="monospace">
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>library</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">Test</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">onInit</font></span>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#666666">debug</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>(<font color="#0000cc"><i>&quot;Debug mode is enabled&quot;</i></font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+</font>
+
+<h3><a name="local"></a>local variables</h3>
+<p>local variables are just like the global ones, they are even declared using the same syntax, the main difference is that they are declared inside a function, and only the function can access them. In fact, function arguments are also local variables.</p>
+<p>You must declare local variables at the beginning of a function. You may not have sized or 2D arrays as locals.</p>
+
+<h3><a name="struct"></a>structs</h3>
+<p>structs, well, it is a long story, and I am in a rush to release Zinc, let us say that they are very similar to vJass structs, except with this syntax. To declare members, use the same syntax we&apos;ve been using for globals and locals, except there is also a <b>static</b> keyword to consider. Do notice that unlike libraries, struct members are public by default. </p>
+
+<p>There are some differences regarding struct storage limit and array structs, mostly a side effect of killing the array keyword:</p>
+
+<p>There are many things to say, and little time, so I'll just post many examples:</p>
+
+<font face="monospace">
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>library</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">WhileTest</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//a struct</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>struct</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">A</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">x</font></span>,<span style="background-color: #ffffff"><font color="#000000">y</font></span>,<span style="background-color: #ffffff"><font color="#000000">z</font></span>;<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//a interface</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>interface</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">B</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>method</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">move</font></span>();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//a struct with 20000 storage space:</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>struct</b></font>[<font color="#000066">20000</font>] <span style="background-color: #ffffff"><font color="#000000">C</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>real</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">a</font></span>,<span style="background-color: #ffffff"><font color="#000000">b</font></span>,<span style="background-color: #ffffff"><font color="#000000">c</font></span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>string</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">s</font></span>,<span style="background-color: #ffffff"><font color="#000000">t</font></span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//a interface with 30000 storage space:</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>interface</b></font>[<font color="#000066">30000</font>] <span style="background-color: #ffffff"><font color="#000000">D</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">meh</font></span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>method</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">transform</font></span>(<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">a</font></span>) -&gt; <font color="#7777cc"><b>integer</b></font>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//an &quot;array struct&quot;</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>struct</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">myArr</font></span>[]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>static</b></font>&nbsp;<font color="#7777cc"><b>constant</b></font>&nbsp;<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">meh</font></span>&nbsp;= <font color="#000066">30004</font>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">a</font></span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">b</font></span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//an array struct of size 10000:</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>struct</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">myErr</font></span>[<font color="#000066">10000</font>]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">x</font></span>,<span style="background-color: #ffffff"><font color="#000000">y</font></span>,<span style="background-color: #ffffff"><font color="#000000">z</font></span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>interface</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">F</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>method</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">balls</font></span>(<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">x</font></span>) = <font color="#000066">null</font>; <font color="#008800">//this method 'defaults nothing'</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>method</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">bells</font></span>(<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">y</font></span>) -&gt; <font color="#7777cc"><b>real</b></font>&nbsp;= <font color="#000066">0.0</font>&nbsp;; <font color="#008800">//this method defaults a 0.0 for the real return</font><br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//a static create method for the interface</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>static</b></font>&nbsp;<font color="#000000"><b>method</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">create</font></span>();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>struct</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">G</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>static</b></font>&nbsp;<font color="#000000"><b>method</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">onCast</font></span>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">KillUnit</font></span>( <span style="background-color: #ffffff"><font color="#000000">GetTriggerUnit</font></span>() );<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>static</b></font>&nbsp;<font color="#000000"><b>method</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">onInit</font></span>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//a static method, onInit too.</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>trigger</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">t</font></span>= <span style="background-color: #ffffff"><font color="#000000">CreateTrigger</font></span>();<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//unlike vJass in which it uses function G.onCast.</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">TriggerAddAction</font></span>(<span style="background-color: #ffffff"><font color="#000000">t</font></span>, <font color="#000000"><b>static</b></font>&nbsp;<font color="#000000"><b>method</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">G</font></span><font color="#000066">.</font><span style="background-color: #ffffff"><font color="#000000">onCast</font></span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">x</font></span>;<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//operator overloading:</font><br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>method</b></font>&nbsp;<font color="#000000"><b>operator</b></font>&lt; (<span style="background-color: #ffffff"><font color="#000000">G</font></span>&nbsp;<span style="background-color: #ffffff"><font color="#000000">other</font></span>) -&gt; <font color="#7777cc"><b>boolean</b></font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>return</b></font>&nbsp;(<font color="#000066">this</font><font color="#000066">.</font><span style="background-color: #ffffff"><font color="#000000">x</font></span>&nbsp;&lt; <span style="background-color: #ffffff"><font color="#000000">other</font></span><font color="#000066">.</font><span style="background-color: #ffffff"><font color="#000000">x</font></span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>method</b></font>&nbsp;<font color="#000000"><b>operator</b></font>[](<font color="#7777cc"><b>integer</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">x</font></span>) -&gt; <font color="#7777cc"><b>real</b></font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>return</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">x</font></span>*<font color="#000066">2.5</font>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>method</b></font>&nbsp;<font color="#000000"><b>operator</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">readOnly</font></span>() -&gt; <font color="#7777cc"><b>integer</b></font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>return</b></font>&nbsp;<font color="#000066">0</font>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>module</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">H</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>method</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">kill</font></span>() { <span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>(<font color="#0000cc"><i>&quot;Kill it&quot;</i></font>); }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>struct</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">K</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>module</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">H</font></span>; <font color="#008800">//implements module H</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>optional</b></font>&nbsp;<font color="#000000"><b>module</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">XX</font></span>; <font color="#008800">//optionally-implements module XX</font><br>
+<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>delegate</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">G</font></span>&nbsp;<span style="background-color: #ffffff"><font color="#000000">myg</font></span>; <font color="#008800">//a delegate</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+</font>
+
+<h3><a name="dynarr"></a>Dynamic arrays</h3>
+
+<p>Dynamic arrays are declared similarly to vJass.</p>
+<font face="monospace">
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>library</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">Test</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">// a dynamic integer array of size 5.</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>type</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">myDinArray</font></span>&nbsp;<font color="#000000"><b>extends</b></font>&nbsp;<font color="#7777cc"><b>integer</b></font>[<font color="#000066">5</font>];<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">// a dynamic real array of size 6, storage size = 10000</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>type</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">myDinArray2</font></span>&nbsp;<font color="#000000"><b>extends</b></font>&nbsp;<font color="#7777cc"><b>real</b></font>[<font color="#000066">6</font>, <font color="#000066">10000</font>];<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+</font>
+
+<h3><a name="funcpoint"></a>Function pointers (interfaces)</h3>
+<p>This are declared very differently from the vJass ones.</p>
+
+<font face="monospace">
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>library</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">Test</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//a function type with a single unit argument</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>type</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">unitFunc</font></span>&nbsp;<font color="#000000"><b>extends</b></font>&nbsp;<font color="#000000"><b>function</b></font>(<font color="#7777cc"><b>unit</b></font>);<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//a function type with two integer arguments that returns boolean</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>type</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">evFunction</font></span>&nbsp;<font color="#000000"><b>extends</b></font>&nbsp;<font color="#000000"><b>function</b></font>(<font color="#7777cc"><b>integer</b></font>,<font color="#7777cc"><b>integer</b></font>) -&gt; <font color="#7777cc"><b>boolean</b></font>;<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">TortureUnit</font></span>(<font color="#7777cc"><b>unit</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">u</font></span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>(<span style="background-color: #ffffff"><font color="#000000">GetUnitName</font></span>(<span style="background-color: #ffffff"><font color="#000000">u</font></span>)+<font color="#0000cc"><i>&quot; is being tortured!&quot;</i></font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">KillUnit</font></span>(<span style="background-color: #ffffff"><font color="#000000">u</font></span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">HealUnit</font></span>(<font color="#7777cc"><b>unit</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">u</font></span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">SetWidgetLife</font></span>(<span style="background-color: #ffffff"><font color="#000000">u</font></span>, <font color="#000066">1000</font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">/* This function calls F(u) if the unit is an ally or G(u) if the unit is an enemy</font><br>
+<font color="#008800">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; the example sucks as it is much slower than an if-else but should be good</font><br>
+<font color="#008800">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; to explain it... */</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">AllyEnemyFunctionPicker</font></span>(<font color="#7777cc"><b>player</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">p</font></span>, <font color="#7777cc"><b>unit</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">u</font></span>, <span style="background-color: #ffffff"><font color="#000000">unitFunc</font></span>&nbsp;<span style="background-color: #ffffff"><font color="#000000">F</font></span>, <span style="background-color: #ffffff"><font color="#000000">unitFunc</font></span>&nbsp;<span style="background-color: #ffffff"><font color="#000000">G</font></span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>if</b></font>&nbsp;(<span style="background-color: #ffffff"><font color="#000000">IsUnitAlly</font></span>(<span style="background-color: #ffffff"><font color="#000000">u</font></span>, <span style="background-color: #ffffff"><font color="#000000">p</font></span>) ) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">F</font></span><font color="#000066">.</font><span style="background-color: #ffffff"><font color="#000000">evaluate</font></span>(<span style="background-color: #ffffff"><font color="#000000">u</font></span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} <font color="#000000"><b>else</b></font>&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">G</font></span><font color="#000066">.</font><span style="background-color: #ffffff"><font color="#000000">evaluate</font></span>(<span style="background-color: #ffffff"><font color="#000000">u</font></span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">test</font></span>(<font color="#7777cc"><b>unit</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">u</font></span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">// We are using the functions as arguments here...</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">AllyEnemyFunctionPicker</font></span>( <span style="background-color: #ffffff"><font color="#000000">Player</font></span>(<font color="#000066">0</font>), <span style="background-color: #ffffff"><font color="#000000">u</font></span>,&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">TortureUnit</font></span>, <span style="background-color: #ffffff"><font color="#000000">HealUnit</font></span>&nbsp;);<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">// will torture the unit if it is an ally, or heal it otherwise.</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+</font>
+<h3><a name="anonfunc"></a>Anonymous functions</h3>
+<p>Many natives, BJ functions and also functions  made  by the community, ask for you to use a function as an argument to pass to do some actions or conditions. Which is cool and all.</p>
+<p>Anonymous functions are just functions that have no name. They are also &quot;expressions&quot; so you use them in a place where an expression is expected, which basically means you declare these functions inside another function... They get converted into either a Jass <strong>code</strong> or a function pointer (see above) depending on their number of arguments (it becomes a code value if and only if it has zero arguments). Zinc will give it a name and place the function in an appropriate place for you.</p>
+
+<p>Do notice that anonymous functions cannot use their parent&apos;s local variables (it will possibly cause a PJass error). They will be able to receive a read-only version of these variables, but that comes later. For now they are meant for quicker syntax and better structure (refer to the CountUnitsInGroup example, sometimes giving names to actions just overcomplicates the thing).</p>
+
+<font face="monospace">
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>library</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">Test</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">test1</font></span>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">//Also refer to the CountUnitsInGroup example ...</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">TimerStart</font></span>(<span style="background-color: #ffffff"><font color="#000000">CreateTimer</font></span>(), <font color="#000066">5.0</font>, <font color="#000066">false</font>, <font color="#000000"><b>function</b></font>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>(<font color="#0000cc"><i>&quot;5 seconds since you called test1&quot;</i></font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>type</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">unitFunc</font></span>&nbsp;<font color="#000000"><b>extends</b></font>&nbsp;<font color="#000000"><b>function</b></font>(<font color="#7777cc"><b>unit</b></font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">AllyEnemyFunctionPicker</font></span>(<font color="#7777cc"><b>player</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">p</font></span>, <font color="#7777cc"><b>unit</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">u</font></span>, <span style="background-color: #ffffff"><font color="#000000">unitFunc</font></span>&nbsp;<span style="background-color: #ffffff"><font color="#000000">F</font></span>, <span style="background-color: #ffffff"><font color="#000000">unitFunc</font></span>&nbsp;<span style="background-color: #ffffff"><font color="#000000">G</font></span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>if</b></font>&nbsp;(<span style="background-color: #ffffff"><font color="#000000">IsUnitAlly</font></span>(<span style="background-color: #ffffff"><font color="#000000">u</font></span>, <span style="background-color: #ffffff"><font color="#000000">p</font></span>) ) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">F</font></span><font color="#000066">.</font><span style="background-color: #ffffff"><font color="#000000">evaluate</font></span>(<span style="background-color: #ffffff"><font color="#000000">u</font></span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} <font color="#000000"><b>else</b></font>&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">G</font></span><font color="#000066">.</font><span style="background-color: #ffffff"><font color="#000000">evaluate</font></span>(<span style="background-color: #ffffff"><font color="#000000">u</font></span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">/* those things up there are just the function pointers example */</font><br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>function</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">test2</font></span>(<font color="#7777cc"><b>unit</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">u</font></span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">unitFunc</font></span>&nbsp;<span style="background-color: #ffffff"><font color="#000000">F</font></span>,&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">G</font></span>;<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">F</font></span>&nbsp;= <font color="#000000"><b>function</b></font>(<font color="#7777cc"><b>unit</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">u</font></span>) { <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>(<font color="#0000cc"><i>&quot;We are torturing &quot;</i></font>+<span style="background-color: #ffffff"><font color="#000000">GetUnitName</font></span>(<span style="background-color: #ffffff"><font color="#000000">u</font></span>)+<font color="#0000cc"><i>&quot; again&quot;</i></font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">KillUnit</font></span>(<span style="background-color: #ffffff"><font color="#000000">u</font></span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;};<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">G</font></span>&nbsp;= <font color="#000000"><b>function</b></font>(<font color="#7777cc"><b>unit</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">u</font></span>) { <span style="background-color: #ffffff"><font color="#000000">SetWidgetLife</font></span>(<span style="background-color: #ffffff"><font color="#000000">u</font></span>, <font color="#000066">100</font>); };<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">AllyEnemyFunctionPicker</font></span>( <span style="background-color: #ffffff"><font color="#000000">Player</font></span>(<font color="#000066">0</font>), <span style="background-color: #ffffff"><font color="#000000">u</font></span>, <span style="background-color: #ffffff"><font color="#000000">F</font></span>, <span style="background-color: #ffffff"><font color="#000000">G</font></span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">// will torture the unit if it is an ally, or heal it otherwise.</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008800">// notice this does the same as the function pointers example.</font><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+</font>
+
+<h3><a name="anonmeth"></a>Anonymous methods</h3>
+<p>Well, just like anonymous functions, except you cannot use them outside structs/modules. An anonymous method will be converted to a method so it implicitly takes this in the arguments list.</p>
+
+<p>Anonymous methods are always converted to a function pointer. You can call the struct&apos;s static and non-static members from anonymous methods.</p>
+
+<font face="monospace">
+<font color="#000000"><b>library</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">Test</font></span><br>
+{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>type</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">IntFunc</font></span>&nbsp;<font color="#000000"><b>extends</b></font>&nbsp;<font color="#000000"><b>function</b></font>(<font color="#7777cc"><b>integer</b></font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>struct</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">abuse</font></span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">IntFunc</font></span>&nbsp;<span style="background-color: #ffffff"><font color="#000000">fn</font></span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#7777cc"><b>string</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">msg</font></span>;<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#000000"><b>method</b></font>&nbsp;<span style="background-color: #ffffff"><font color="#000000">cantThinkOfAName</font></span>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">fn</font></span>&nbsp;= <font color="#000000"><b>method</b></font>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">BJDebugMsg</font></span>(<span style="background-color: #ffffff"><font color="#000000">msg</font></span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="background-color: #ffffff"><font color="#000000">fn</font></span><font color="#000066">.</font><span style="background-color: #ffffff"><font color="#000000">evaluate</font></span>(<font color="#000066">this</font>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<br>
+}<br>
+</font>
+
+<p><b>Anonymous static methods:</b> You may prefix anonymous methods with a static keyword, but that would just be an anonymous function in disguise.</p>
+
+<h2>IV. The small print</h2>
+
+<p>Many details about Zinc, some of which are not nice.</p>
+<h3><a name="textmacro"></a>Textmacros?</h3>
+<p>For better or worse, due to an implementaton detail, Zinc inherits many vJass preprocessors, for example //! external and loaddata. But most importantly, textmacros. These vJass preprocessors ought to keep the same syntax. So textmacros in Zinc works exactly as they do in vJass.</p>
+
+<h3><a name="compileerror"></a>The compile error abomination</h3>
+<p>jasshelper is a multi-phase process. To list some of its processes in the correct order I will mention:</p>
+<ul>
+<li><b>Phase 1: </b>import/novjass/delimited comments</li>
+<li><b>Phase 2: </b>text macros</li>
+<li><b>Phase 3: </b>Zinc</li>
+<li><b>Phase 4: </b>Libraries</li>
+<li><b>Phase 5: </b>Static ifs</li>
+<li><b>Phase 6: </b>Modules</li>
+<li><b>Phase 7: </b>Structs and many other things</li>
+<li><b>Phase 8: </b>PJass</li>
+<li><b>Phase 9: </b>Shadowhelper</li>
+<li><b>Phase 10: </b>PJass</li>
+<li><b>Phase 11: </b>Optimization (inline)</li>
+</ul>
+<p>The problem is that each phase receives a different input, the output of the previous phase. import phase begins by joining all the files into a same source, after that (and this is nice, textmacros, zinc, libraries, work basically using the same source, which means that any syntax error found before the static ifs phase will look all right to you (except it will not tell you the exact file from which it found the error line).</p>
+<p>Problem begins afterwards. Although Modules and structs share the same input file, the remaining phases each use a different file, and give errors in a different input file. In vJass, it kind of works, because the compiled code in which you find the errors is not that different to what you wrote. Problem with Zinc is that if the error is not found before the static if phase, you will see your syntax erros in some vJass code that is completely different to your original Zinc code. This is excessively unfriendly, and sucks, so be warned.</p>
+<p>My priority is fixing this issue so that each phase will give you errors on the original code. It is complicated, as requires rewriting of many things, but it is possible.</p>
+
+
+<h3><a name="comment"></a>Comment eating</h3>
+<p>The Zinc compiler eats all your comments, in case of the delimited ones, that&apos;s necessary for them to work. But as for the line comments, it is not really necessary for it to happen. The problem is with the way parsing is done right now, Gold grammar is set to ignore the whitespace and comments completely. A hacky fix, tries to recover the comments but it may miss some and it puts them in odd places.</p>
+
+<h3><a name="whilenot"></a>how is while compiled?</h3>
+<p>Now on to good things, compiling while to Jass&apos; exitwhen requires to negate the condition. However, the compiler does some magic such that the condition sometimes does not take more time or space. For example, instead of converting (a==b) into not (a==b) it will convert it into a!=b. Of course, sometimes the expression is very complicated and just adding the not is better.</p>
+
+
+</body></html>
+

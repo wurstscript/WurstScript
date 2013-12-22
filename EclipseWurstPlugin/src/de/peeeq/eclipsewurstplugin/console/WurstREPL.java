@@ -56,6 +56,7 @@ import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.CompileError.ErrorType;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstReal;
@@ -106,7 +107,11 @@ public class WurstREPL {
 		@Override
 		public void sendError(CompileError err) {
 			super.sendError(err);
-			throw err;
+			if (err.getErrorType() == ErrorType.ERROR) {
+				throw err;
+			} else {
+				println("Warning: " + err);
+			}
 		}
 
 	}
@@ -332,6 +337,7 @@ public class WurstREPL {
 	}
 
 	public void runMap(File map, List<String> compileArgs, IProgressMonitor monitor) {
+		WLogger.info("runMap " + map.getAbsolutePath() + " " + compileArgs);
 		try {
 			String wc3Path = WurstPlugin.config().wc3Path();
 			File frozenThroneExe = new File(wc3Path, "Frozen Throne.exe");
@@ -344,11 +350,11 @@ public class WurstREPL {
 			}
 
 			// first compile the script:
-			monitor.beginTask("Compiling Script", IProgressMonitor.UNKNOWN);
+			monitor.beginTask("Compiling Script", 100);
 			IFile compiledScript = compileScript(compileArgs);
 
 
-			monitor.beginTask("Preparing testmap", IProgressMonitor.UNKNOWN);
+			monitor.beginTask("Preparing testmap", 100);
 			
 			// now copy the map so that we do not corrupt the original
 			// create the file in the wc3 maps directory, because otherwise it does not work sometimes 
@@ -388,6 +394,7 @@ public class WurstREPL {
 			println("running " + cmd);
 			Process p = Runtime.getRuntime().exec(cmd.toArray(new String[0]));
 		} catch (CompileError e) {
+			e.printStackTrace();
 			showMessage("There was an error when compiling the map: \n" + e.getMessage());
 			print(e.getMessage() + "\n");
 		} catch (final Exception e) {

@@ -12,6 +12,7 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.CompileError.ErrorType;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -96,14 +97,19 @@ public class WurstGuiImpl implements WurstGui {
 
 	@Override
 	public void sendError(CompileError err) {
-		errorQueue.add(err);
-		errors.add(err);
+		if (err.getErrorType() == ErrorType.ERROR) {
+			errorQueue.add(err);
+			errors.add(err);
+		}
 	}
 
 	boolean show = true;
 
 	@Override
 	public void sendProgress(String whatsRunningNow, double percent) {
+		if (whatsRunningNow != null) {
+			WLogger.info("progress: " + whatsRunningNow);
+		}
 		if (percent >= progress) {
 			progress = percent;
 		} else {

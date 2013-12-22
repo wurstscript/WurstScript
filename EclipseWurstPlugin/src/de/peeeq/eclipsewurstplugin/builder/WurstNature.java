@@ -16,6 +16,7 @@ import org.eclipse.jface.text.IDocumentExtension;
 import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.CompileError.ErrorType;
 import de.peeeq.wurstscript.gui.WurstGui;
 
 import org.eclipse.ui.IEditorPart;
@@ -99,7 +100,11 @@ public class WurstNature implements IProjectNature {
 		try {
 			IMarker marker = file.createMarker(markerType);
 			marker.setAttribute(IMarker.MESSAGE, e.getMessage());
-			marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
+			if (e.getErrorType() == ErrorType.ERROR) {
+				marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
+			} else {
+				marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_WARNING);
+			}
 
 			marker.setAttribute(IMarker.LINE_NUMBER, e.getSource().getLine());
 			marker.setAttribute(WurstConstants.START_POS, e.getSource().getLeftPos());
