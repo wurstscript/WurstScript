@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.List;
 import java.util.concurrent.locks.Lock;
 
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -94,8 +95,8 @@ public class WurstConsole extends IOConsole implements Runnable {
 		}
 	}
 
-	public void launchMap(File file, IProgressMonitor monitor) {
-		repl.runMap(file, Lists.<String>newArrayList(), monitor);
+	public void launchMap(File file, List<String> args, IProgressMonitor monitor) {
+		repl.runMap(file, args, monitor);
 		
 	}
 
