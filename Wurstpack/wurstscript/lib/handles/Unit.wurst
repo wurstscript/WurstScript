@@ -5,6 +5,11 @@ import Angle
 import PrintingHelper
 import Terrain
 
+native UnitAlive(unit id) returns boolean
+
+public function unit.isAlive() returns boolean
+	return UnitAlive(this)
+
 public function unit.addXp(int toAdd, boolean showEyeCandy) returns unit
 	AddHeroXP(this, toAdd, showEyeCandy)
 	return this

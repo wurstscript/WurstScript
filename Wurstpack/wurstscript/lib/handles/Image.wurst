@@ -74,5 +74,5 @@ public function image.remove()
 	if this != null
 		DestroyImage(this)
 	else
-		printError("Nullpointer exeption by destroying an image")
+		error("Nullpointer exeption by destroying an image")
 
