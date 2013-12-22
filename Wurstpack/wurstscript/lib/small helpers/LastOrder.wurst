@@ -144,7 +144,7 @@ function actions()
 	else if GetTriggerEventId() == EVENT_PLAYER_UNIT_ISSUED_ORDER
 		new Order(u, oid, ORDER_TYPE.IMMEDIATE, null, GetUnitX(u), GetUnitY(u))
 	else
-		printError("invalid Ordertype")
+		error("invalid Ordertype")
 
 //**********************************************************
 

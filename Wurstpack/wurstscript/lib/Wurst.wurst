@@ -27,11 +27,6 @@ import public TypeCasting
 import public BigNum
 import public Destructable
 import public TempGroups
+import public MagicFunctions
 
-/** builtin error function.
-Outputs an error message and terminates the current thread.
-There is a compiler flag to augment the error messages with stack traces.
-Error messages can also be disabled. 
-*/
-public function error(string msg)
 

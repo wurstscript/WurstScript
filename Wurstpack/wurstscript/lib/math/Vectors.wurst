@@ -4,6 +4,7 @@ import PrintingHelper
 import Maths
 import Real
 import Angle
+import MagicFunctions
 
 /** 3d Vector tuple */
 public tuple vec3( real x, real y, real z )
@@ -12,7 +13,7 @@ public tuple vec3( real x, real y, real z )
 public function vec3.setLength( real length ) returns vec3
 	real l = SquareRoot(this.x*this.x + this.y*this.y + this.z*this.z)
 	if l == 0.0
-		printError("vector.setLength error: The length of the vector is 0.0!")
+		error("vector.setLength error: The length of the vector is 0.0!")
 		return vec3(0.,0.,0.)
 	l = length/l
 	return vec3(this.x*l, this.y*l, this.z*l)
@@ -57,7 +58,7 @@ public function vec3.dot( vec3 v ) returns real
 public function vec3.project( vec3 direction ) returns vec3
 	real l = direction.x*direction.x+direction.y*direction.y+direction.z*direction.z
 	if l == 0.0
-		printError("vector.projectVector error: The length of the direction vector is 0.0!")
+		error("vector.projectVector error: The length of the direction vector is 0.0!")
 		return vec3(0.,0.,0.)
 		
 	l = (this.x*direction.x+this.y*direction.y+this.z*direction.z) / l
@@ -126,7 +127,7 @@ public function vec3.rotate( vec3 axis, real radians ) returns vec3 //angle is t
 	var c = Cos(radians)
 	var s = Sin(radians)
 	if al == 0.0
-		printError("vector.rotate error: The length of the axis vector is 0.0!")
+		error("vector.rotate error: The length of the axis vector is 0.0!")
 		return vec3(0,0,0)
 
 	var f = (this.x*axis.x+this.y*axis.y+this.z*axis.z) / al
@@ -240,7 +241,7 @@ public function vec2.polarOffset(angle ang, real dist) returns vec2
 public function vec2.setLength( real length ) returns vec2
 	real l = SquareRoot(this.x*this.x + this.y*this.y)
 	if l == 0.0
-		printError("vector.setLength error: The length of the vector is 0.0!")
+		error("vector.setLength error: The length of the vector is 0.0!")
 		return vec2(0.,0.)
 	l = length/l
 	return vec2(this.x*l, this.y*l)

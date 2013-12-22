@@ -207,7 +207,7 @@ public class Damager
 		UnitDamageTarget(dmger,u, fc ,false,false,a,d,null)
 		
 		if IsUnitType(u, UNIT_TYPE_DEAD) and (hp>0.405) 
-			printError("xedamage: For some reason, the unit being tested by getDamageTypeFactor has died. Verify MAX_DAMAGE_FACTOR is to a correct value. ") 
+			error("xedamage: For some reason, the unit being tested by getDamageTypeFactor has died. Verify MAX_DAMAGE_FACTOR is to a correct value. ") 
 
 		
 		isDummyDamage = false

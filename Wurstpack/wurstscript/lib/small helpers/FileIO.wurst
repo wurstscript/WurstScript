@@ -141,7 +141,7 @@ public class File
 			return null
 
 		if (flag != Flag.READ)
-			printError("FILE IO ERROR: ATTEMPT TO READ TO FILE OPEN FOR WRITING")
+			error("FILE IO ERROR: ATTEMPT TO READ TO FILE OPEN FOR WRITING")
 			return null
 
 		//if there is no data at the moment, get next line from file
@@ -180,7 +180,7 @@ public class File
 		boolean done = false
 		
 		if (flag != Flag.WRITE)
-			printError("FILE IO ERROR: ATTEMPT TO WRITE TO FILE OPEN FOR READING")
+			error("FILE IO ERROR: ATTEMPT TO WRITE TO FILE OPEN FOR READING")
 			return
 		
 		//first, retrieve the # of digits for the length
