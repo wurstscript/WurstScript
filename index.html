@@ -76,24 +76,37 @@
     
     
 
-    <h2>Download</h2>
-	<a href="./installation.html">Installation Notes (EN)</a>
-    <h3>Eclipse Plugin</h3>
+    <h2 id="Download">Download</h2>
+	You can find more detailed installation notes here: <a href="./installation.html">Installation Notes (EN)</a>.
+    <h3 id="EclipsePlugin">Eclipse Plugin</h3>
     <p>
     	You can install the Eclipse plugin using the update site at<br /> <div align="center"><strong>http://site.sunayama.de/</strong></div><br />
     	In Eclipse go to "Help - Install New Software" and add the update site mentioned above.
     </p>
-    <h3>Wurst Pack</h3>
+    <h3 id="WurstPack">Wurst Pack</h3>
     <p>
     	The Wurst Pack contains a version of the editor with the Wurst compiler built in.
-		You can download the Updater from this link (See installation notes for more info):<br />
-		<div align="center"><a href="http://sunayama.de/Wurst/WurstUpdater.jar">WurstScript Updater</a></div><br />
-				
-		<p>
-    	If you are a more advanced user and always want a bleeding edge version you can build it from the sources
-    	using the build-jar.xml file which you can find in the compiler project "de.peeeq.wurstscript". Or you can
-    	download the <a href="http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/">latest build from our build server</a>.
-    	</p>
+	<p>
+	<p>
+		You can always download the 
+		<a href="http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/">latest build from our build server</a>.
+		
+		<ul>
+		<li><a href="http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/wurstpack_compiler.zip">Complete Pack</a>: 
+			This is the complete pack. You usually should download this, but you can use the other downloads if you only want to update
+			parts of the Wurst Pack.</li>
+		<li><a href="http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/wurstpack_compiler.zip">Compiler</a>: 
+			This download only contains the wurstscript folder of the Pack. Usually it is sufficient to update this folder, since 
+			other parts of the Pack are rarely changed.</li>
+		<li><a href="http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/wurstpack_lib.zip">Standard Library</a>: 
+			This is standard library.</li>
+		<li><a href="http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/wurstscript.jar">Wurstscript.jar</a>: 
+			This is only the main jar file for the compiler. For small bugfixes it is often sufficient to replace this file, but
+			to be sure you should usually choose the bigger downloads.</li>
+		</ul>
+		
+		
+    	
     </p>
     
     <h3>Source Code</h3>
