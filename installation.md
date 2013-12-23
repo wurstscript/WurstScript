@@ -8,9 +8,9 @@ Since the JNGP only works on Windows, Wurstpack usage is limited to windows, too
 
 ##Requirements:
 
-- [Java](http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html) Java Development Kit
+- [Java](http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html)
 	Many systems already have Java installed. In that case you should make sure that you have the latest version installed.
-- Wurst Pack ([Download Links on Wurst Homepage](http://peq.github.io/WurstScript/#Downloads)
+- [Wurst Pack](http://peq.github.io/WurstScript/#Downloads)
 	Some AnitVirus programs falsely detect harmless injection-dlls. Ignore the warning and/or turn off your AV-Program for the process and add an exception. The Updater might not respond while downloading the required packages.
 - [Eclipse](http://www.eclipse.org/downloads/packages/eclipse-classic-421/junosr1)  
 	Needed for working with the Wurst-Plugin
