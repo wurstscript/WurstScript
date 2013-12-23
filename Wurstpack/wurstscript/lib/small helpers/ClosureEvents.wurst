@@ -41,62 +41,45 @@ Example usage:
 public function onUnitCast(int abiCode, OnUnitCast action)
 	action.register(abiCode)
 
-
-	
-public abstract class OnCast
+public abstract class Cast
 	static HashMap<int, thistype> casts = new HashMap<int, thistype>()
 	private int abiCode
 	
 	function register(int abiCode)
 		this.abiCode = abiCode
 		casts.put(abiCode, this)
+		
+	ondestroy
+		casts.put(abiCode, null)
+
+	
+public abstract class OnCast extends Cast
 	
 	protected abstract function run(unit caster, int lvl)
 	
-	ondestroy
-		casts.put(abiCode, null)
 		
-public abstract class OnPointCast
-	static HashMap<int, thistype> casts = new HashMap<int, thistype>()
-	private int abiCode
-	
-	function register(int abiCode)
-		this.abiCode = abiCode
-		casts.put(abiCode, this)
+public abstract class OnPointCast extends Cast
 	
 	protected abstract function run(unit caster, int lvl, vec2 pos)
 	
-	ondestroy
-		casts.put(abiCode, null)
-		
-public abstract class OnUnitCast
-	static HashMap<int, thistype> casts = new HashMap<int, thistype>()
-	private int abiCode
-	
-	function register(int abiCode)
-		this.abiCode = abiCode
-		casts.put(abiCode, this)
-	
+			
+public abstract class OnUnitCast extends Cast
+
 	protected abstract function run(unit caster, int lvl, unit target)
 	
-	ondestroy
-		casts.put(abiCode, null)
-		
+	
 function handleCasts()
 	unit caster = GetTriggerUnit()
 	int lvl = GetUnitAbilityLevel(caster, GetSpellAbilityId())
-	if GetSpellTargetUnit() != null
-		let c = OnUnitCast.casts.get(GetSpellAbilityId())
-		if c != null
-			c.run(caster, lvl, GetSpellTargetUnit())
-	else if GetSpellTargetX() != 0
-		let c = OnPointCast.casts.get(GetSpellAbilityId())
-		if c != null
-			c.run(caster, lvl, vec2(GetSpellTargetX(), GetSpellTargetY()))
-	else
-		let c = OnCast.casts.get(GetSpellAbilityId())
-		if c != null
-			c.run(caster, lvl)
+	Cast c = Cast.casts.get(GetSpellAbilityId())
+	if c!= null
+		if c instanceof OnCast
+			(c castTo OnCast).run(caster, lvl)
+		if c instanceof OnPointCast
+			(c castTo OnPointCast).run(caster, lvl, vec2(GetSpellTargetX(), GetSpellTargetY()))
+		if c instanceof OnUnitCast
+			(c castTo OnUnitCast).run(caster, lvl, GetSpellTargetUnit())
+	
 		
 
 	
