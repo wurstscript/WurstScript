@@ -36,11 +36,11 @@ public class WurstCompletion implements Comparable<WurstCompletion> {
 	}
 
 	public String getDisplayString() {
-		return displayString;
+		return displayString + " // " + rating;
 	}
 
 	public ICompletionProposal getProposal() {
-		return new CompletionProposal(replacementString, replacementOffset, replacementLength, cursorPosition, image, displayString, contextInformation, additionalProposalInfo);
+		return new CompletionProposal(replacementString, replacementOffset, replacementLength, cursorPosition, image, getDisplayString(), contextInformation, additionalProposalInfo);
 	}
 
 	@Override

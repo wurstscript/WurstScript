@@ -186,7 +186,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 	private boolean isSuitableCompletion(String name) {
 //		return name.toLowerCase().startsWith(alreadyEntered);
-		boolean r = Utils.isSubsequence(alreadyEntered, name);
+		boolean r = Utils.isSubsequenceIgnoreCase(alreadyEntered, name);
 		return r;
 	}
 
@@ -321,22 +321,29 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 
 	private double calculateRating(String name) {
+		if (alreadyEntered.isEmpty()) {
+			return 0.5;
+		}
 		if (name.startsWith(alreadyEntered)) {
 			// perfect match
-			return 1;
+			return 1.23;
 		}
 		String nameLower = name.toLowerCase();
 		if (nameLower.startsWith(alreadyEnteredLower)) {
 			// close to perfect
 			return 0.999;
 		}
-		if (alreadyEntered.isEmpty()) {
-			return 0.5;
+		
+		
+		int ssLen;
+		if (Utils.isSubsequence(alreadyEntered, name)) {
+			ssLen = Math.min(
+					Utils.subsequenceLengthes(alreadyEntered, name).size(),
+					Utils.subsequenceLengthes(alreadyEnteredLower, nameLower).size());
+		} else {
+			ssLen = Utils.subsequenceLengthes(alreadyEnteredLower, nameLower).size();
 		}
-		return Math.max(
-				Utils.averageSubsequenceLength(alreadyEntered, name),
-				Utils.averageSubsequenceLength(alreadyEnteredLower, nameLower)
-				) / (alreadyEntered.length()+1);
+		return 1 - ssLen * 1. / alreadyEntered.length();
 	}
 
 
