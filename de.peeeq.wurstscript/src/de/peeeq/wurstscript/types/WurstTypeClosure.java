@@ -36,6 +36,8 @@ public class WurstTypeClosure extends WurstType {
 				return false;
 			}
 			return true;
+		} else if (other instanceof WurstTypeCode) {
+			return paramTypes.size() == 0;
 		} else {
 			FunctionSignature abstractMethod = AttrClosureAbstractMethod.getAbstractMethodSignature(other);
 			if (abstractMethod != null) {

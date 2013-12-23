@@ -27,9 +27,12 @@ import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeBool;
 import de.peeeq.wurstscript.types.WurstTypeClass;
+import de.peeeq.wurstscript.types.WurstTypeCode;
 import de.peeeq.wurstscript.types.WurstTypeInt;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
+import de.peeeq.wurstscript.types.WurstTypeVoid;
 
 public class ClosureTranslator {
 	private final ExprClosure e;
@@ -49,20 +52,63 @@ public class ClosureTranslator {
 
 
 	public ImExpr translate() {
-		ImClass c = createClass();
-		ImVar clVar = JassIm.ImVar(WurstTypeInt.instance().imTranslateType(), "clVar", false);
-		f.getLocals().add(clVar);
-		ImStmts stmts = JassIm.ImStmts();
-		// allocate closure
-		stmts.add(JassIm.ImSet(e, clVar, JassIm.ImAlloc(c)));
-		// set closure vars
-		for (Entry<ImVar, ImVar> entry : closureVars.entrySet()) {
-			ImVar orig = entry.getKey();
-			ImVar v = entry.getValue();
-			WLogger.info(orig + " ---> " + v);
-			stmts.add(JassIm.ImSetArray(e, v, JassIm.ImVarAccess(clVar), JassIm.ImVarAccess(orig)));		
+		if (e.attrExpectedTyp() instanceof WurstTypeCode) {
+			return translateAnonFunc();
+		} else {
+			ImClass c = createClass();
+			ImVar clVar = JassIm.ImVar(WurstTypeInt.instance().imTranslateType(), "clVar", false);
+			f.getLocals().add(clVar);
+			ImStmts stmts = JassIm.ImStmts();
+			// allocate closure
+			stmts.add(JassIm.ImSet(e, clVar, JassIm.ImAlloc(c)));
+			// set closure vars
+			for (Entry<ImVar, ImVar> entry : closureVars.entrySet()) {
+				ImVar orig = entry.getKey();
+				ImVar v = entry.getValue();
+				WLogger.info(orig + " ---> " + v);
+				stmts.add(JassIm.ImSetArray(e, v, JassIm.ImVarAccess(clVar), JassIm.ImVarAccess(orig)));		
+			}
+			return JassIm.ImStatementExpr(stmts, JassIm.ImVarAccess(clVar));
 		}
-		return JassIm.ImStatementExpr(stmts, JassIm.ImVarAccess(clVar));
+	}
+
+
+
+	private ImExpr translateAnonFunc() {
+		impl = tr.getFuncFor(e);
+		impl.getParameters().clear();
+		ImExpr translated = e.getImplementation().imTranslateExpr(tr, impl);
+		
+		verifyTranslatedAnonfunc(translated);
+		
+		if (e.getImplementation().attrTyp() instanceof WurstTypeBool) {
+			impl.getBody().add(JassIm.ImReturn(e, translated));
+			impl.setReturnType(WurstTypeBool.instance().imTranslateType());
+		} else {
+			impl.getBody().add(translated);
+			impl.setReturnType(WurstTypeVoid.instance().imTranslateType());
+		}
+		return JassIm.ImFuncRef(impl);
+	}
+
+
+	/** checks that there are  no captured variables */
+	private void verifyTranslatedAnonfunc(ImExpr translated) {
+		translated.accept(new ImExpr.DefaultVisitor() {
+			@Override
+			public void visit(ImVarAccess va) {
+				if (isLocalToOtherFunc(va.getVar())) {
+					throw new CompileError(va.attrTrace().attrSource(), "Anonymous functions used as 'code' cannot capture variables. Captured " + va.getVar().getName());
+				}
+			}
+			
+			@Override
+			public void visit(ImSet s) {
+				if (isLocalToOtherFunc(s.getLeft())) {
+					throw new CompileError(s.attrTrace().attrSource(), "Anonymous functions used as 'code' cannot capture variables. Captured " + s.getLeft().getName());
+				}
+			}
+		});
 	}
 
 

@@ -350,6 +350,11 @@ ExprClosure.attrClosureAbstractMethod
 	returns de.peeeq.wurstscript.attributes.names.NameLink
 	implemented by de.peeeq.wurstscript.attributes.AttrClosureAbstractMethod.calculate
 
+ExprClosure.attrCapturedVariables
+	returns com.google.common.collect.Multimap<AstElement,VarDef>
+	implemented by de.peeeq.wurstscript.attributes.AttrClosureCapturedVariables.calculate
+
+
 FunctionCall.attrImplicitParameter
 	returns OptExpr
 	implemented by de.peeeq.wurstscript.attributes.AttrImplicitParameter.getImplicitParameter
