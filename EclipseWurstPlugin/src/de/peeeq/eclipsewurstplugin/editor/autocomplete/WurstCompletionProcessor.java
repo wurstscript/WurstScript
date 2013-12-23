@@ -1,5 +1,6 @@
 package de.peeeq.eclipsewurstplugin.editor.autocomplete;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
@@ -161,6 +162,8 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				scope = scope.attrNextScope();
 			}
 		}
+		
+		dropBadCompletions(completions);
 		removeDuplicates(completions);
 		
 //		Collections.sort(completions, c)
@@ -185,9 +188,13 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 
 	private boolean isSuitableCompletion(String name) {
-//		return name.toLowerCase().startsWith(alreadyEntered);
-		boolean r = Utils.isSubsequenceIgnoreCase(alreadyEntered, name);
-		return r;
+		if (alreadyEntered.length() <= 2) {
+			return name.toLowerCase().startsWith(alreadyEnteredLower);
+		} else if (alreadyEntered.length() <= 3) {
+			return name.toLowerCase().contains(alreadyEnteredLower);
+		} else {
+			return Utils.isSubsequenceIgnoreCase(alreadyEntered, name);
+		}
 	}
 
 
@@ -253,10 +260,8 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 	private void completionsAddVisibleNames(String alreadyEntered,
 			List<WurstCompletion> completions, Multimap<String, NameLink> visibleNames, WurstType leftType, boolean isMemberAccess, AstElement pos) {
-		for (Entry<String, NameLink> e : visibleNames.entries()) {
-			if (completions.size() >= MAX_COMPLETIONS) {
-				return;
-			}
+		Collection<Entry<String, NameLink>> entries = visibleNames.entries();
+		for (Entry<String, NameLink> e : entries) {
 			if (!isSuitableCompletion(e.getKey())) {
 				continue;
 			}
@@ -295,10 +300,26 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			} else {
 				completions.add(makeNameDefCompletion(e.getValue().getNameDef()));
 			}
-			
+			if (alreadyEntered.length() <= 3 
+					&& completions.size() >= MAX_COMPLETIONS) {
+				// got enough completions
+				return;
+			}
 		}
 	}
 	
+	private void dropBadCompletions(List<WurstCompletion> completions) {
+		Collections.sort(completions);
+		for (int i=completions.size()-1; i>=MAX_COMPLETIONS; i--) {
+			if (completions.get(i).getRating() > 0.4) {
+				// good enough
+				return;
+			}
+			completions.remove(i);
+		}
+	}
+
+
 	private WurstCompletion makeNameDefCompletion(NameDef n) {
 		String replacementString = n.getName();
 		int replacementOffset = offset - alreadyEntered.length();

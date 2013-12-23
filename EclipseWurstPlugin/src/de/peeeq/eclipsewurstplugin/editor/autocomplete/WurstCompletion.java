@@ -51,5 +51,14 @@ public class WurstCompletion implements Comparable<WurstCompletion> {
 		}
 		return Double.compare(o.rating, rating) ;
 	}
+	
+	@Override
+	public String toString() {
+		return displayString;
+	}
+
+	public double getRating() {
+		return rating;
+	}
 
 }
