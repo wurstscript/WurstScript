@@ -346,6 +346,10 @@ Expr.attrExpectedTyp "try to guess what type is expected here"
 	returns de.peeeq.wurstscript.types.WurstType
 	implemented by de.peeeq.wurstscript.attributes.AttrExprExpectedType.normalizedType
 
+ExprClosure.attrClosureAbstractMethod
+	returns de.peeeq.wurstscript.attributes.names.NameLink
+	implemented by de.peeeq.wurstscript.attributes.AttrClosureAbstractMethod.calculate
+
 FunctionCall.attrImplicitParameter
 	returns OptExpr
 	implemented by de.peeeq.wurstscript.attributes.AttrImplicitParameter.getImplicitParameter

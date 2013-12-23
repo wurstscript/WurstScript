@@ -256,4 +256,20 @@ public class ClosureTests extends WurstScriptTest {
 				"	f.apply()"
 			);
 	}
+	
+	@Test
+	public void closure_void_call() {
+		testAssertOkLines(true, 
+				"package test",
+				"native testSuccess()",
+				"interface SimpleFunc",
+				"	function apply()",
+				"function foo() returns int",
+				"	testSuccess()",
+				"	return 4",
+				"init",
+				"	SimpleFunc f = () -> foo()",
+				"	f.apply()"
+			);
+	}
 }

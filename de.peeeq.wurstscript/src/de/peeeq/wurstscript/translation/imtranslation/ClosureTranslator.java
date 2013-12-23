@@ -28,7 +28,6 @@ import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeClass;
-import de.peeeq.wurstscript.types.WurstTypeClosure;
 import de.peeeq.wurstscript.types.WurstTypeInt;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
 
@@ -187,7 +186,7 @@ public class ClosureTranslator {
 
 
 	private FuncDef getSuperMethod() {
-		NameLink nl = ((WurstTypeClosure) e.attrTyp()).findAbstractMethod(e.attrExpectedTyp());
+		NameLink nl = e.attrClosureAbstractMethod();
 		return (FuncDef) nl.getNameDef();
 	}
 
