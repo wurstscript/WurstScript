@@ -1319,6 +1319,8 @@ public class WurstValidator {
 					e.addError("Function " + exFunc + " must not have any parameters.");
 					return; 
 				}
+			} else {
+				e.addError("Wurst does only support ExecuteFunc with a single string as argument.");
 			}
 		}
 	}
