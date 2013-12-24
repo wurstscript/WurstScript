@@ -18,6 +18,7 @@ import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.AstElementWithFuncName;
 import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -33,8 +34,14 @@ import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprIntVal;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
+import de.peeeq.wurstscript.ast.ExprMemberArrayVarDot;
+import de.peeeq.wurstscript.ast.ExprMemberArrayVarDotDot;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
+import de.peeeq.wurstscript.ast.ExprMemberMethodDot;
+import de.peeeq.wurstscript.ast.ExprMemberMethodDotDot;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
+import de.peeeq.wurstscript.ast.ExprMemberVarDot;
+import de.peeeq.wurstscript.ast.ExprMemberVarDotDot;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprNull;
 import de.peeeq.wurstscript.ast.ExprStatementsBlock;
@@ -359,6 +366,7 @@ public class WurstValidator {
 		final int functionCount[] = new int[1];
 		prog.accept(new WurstModel.DefaultVisitor() {
 			
+			@Override
 			public void visit(FuncDef f) {
 				functionCount[0]++;
 			}
@@ -400,7 +408,7 @@ public class WurstValidator {
 			}
 
 			@Override
-			public void case_ExprMemberVar(ExprMemberVar e) {
+			public void case_ExprMemberVarDot(ExprMemberVarDot e) {
 				if (e.attrNameDef() instanceof WParameter) {
 					// we have an assignment to a tuple variable
 					// check whether left side is 'this' or a constant variable
@@ -416,8 +424,18 @@ public class WurstValidator {
 			}
 
 			@Override
-			public void case_ExprMemberArrayVar(ExprMemberArrayVar e) {
+			public void case_ExprMemberArrayVarDot(ExprMemberArrayVarDot e) {
 
+			}
+
+			@Override
+			public void case_ExprMemberArrayVarDotDot(ExprMemberArrayVarDotDot e) {
+				e.addError("Cannot assign to dot-dot-expression.");
+			}
+
+			@Override
+			public void case_ExprMemberVarDotDot(ExprMemberVarDotDot e) {
+				e.addError("Cannot assign to dot-dot-expression.");
 			}
 		});
 	}
@@ -609,23 +627,14 @@ public class WurstValidator {
 	}
 
 	private void checkCall(StmtCall call) { 
-		String funcName = call.match(new StmtCall.Matcher<String>() {
-
-			@Override
-			public String case_ExprNewObject(ExprNewObject c) {
-				return "constructor";
-			}
-
-			@Override
-			public String case_ExprMemberMethod(ExprMemberMethod c) {
-				return c.getFuncName();
-			}
-
-			@Override
-			public String case_ExprFunctionCall(ExprFunctionCall c) {
-				return c.getFuncName();
-			}
-		});
+		String funcName;
+		if (call instanceof FunctionCall) {
+			funcName = ((FunctionCall) call).getFuncName();
+		} else if (call instanceof ExprNewObject) {
+			funcName = "constructor";
+		} else {
+			throw new Error("unhandled case: " + Utils.printElement(call));
+		}
 
 		call.attrCallSignature().checkSignatureCompatibility(call.attrFunctionSignature(), funcName, call);
 	}
@@ -1657,6 +1666,7 @@ public class WurstValidator {
 		}
 		final WPackage v_definedIn = (WPackage) expr.attrNearestPackage();
 		Utils.visitRec(expr, new Predicate<AstElement>() {
+			@Override
 			public boolean apply(AstElement e) {
 				if (e instanceof NameRef) {
 					NameRef nameRef = (NameRef) e;

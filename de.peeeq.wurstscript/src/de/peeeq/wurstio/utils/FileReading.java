@@ -42,6 +42,7 @@ public class FileReading {
 		final String[] charset = new String[1];
 		
 		det.Init(new nsICharsetDetectionObserver() {
+			@Override
 			public void Notify(String cs) {
 				found[0] = true ;
 				charset[0] = cs;

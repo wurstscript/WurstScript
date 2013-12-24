@@ -76,7 +76,8 @@ public class About extends javax.swing.JDialog {
         homepageButton.setHorizontalTextPosition(javax.swing.SwingConstants.LEFT);
         homepageButton.setName("homepageButton"); // NOI18N
         homepageButton.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
+            @Override
+			public void mouseClicked(java.awt.event.MouseEvent evt) {
                 homepageButtonMouseClicked(evt);
             }
         });
@@ -207,7 +208,8 @@ public class About extends javax.swing.JDialog {
         /* Create and display the dialog */
         java.awt.EventQueue.invokeLater(new Runnable() {
 
-            public void run() {
+            @Override
+			public void run() {
                 try {
                 	About dialog = new About(new javax.swing.JFrame(), true);
                 	dialog.addWindowListener(new java.awt.event.WindowAdapter() {

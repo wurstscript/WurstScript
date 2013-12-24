@@ -26,6 +26,7 @@ public class WurstGuiLogger implements WurstGui {
 		// ignore
 	}
 	
+	@Override
 	public String getErrors() {
 		String result = "";
 		for (CompileError e : errors) {
@@ -34,6 +35,7 @@ public class WurstGuiLogger implements WurstGui {
 		return result;
 	}
 
+	@Override
 	public int getErrorCount() {
 		return errors.size();
 	}

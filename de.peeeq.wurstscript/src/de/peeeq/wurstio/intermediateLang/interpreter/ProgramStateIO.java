@@ -48,14 +48,17 @@ public class ProgramStateIO extends ProgramState {
 		this.mapFile = mapFile;
 	}
 
+	@Override
 	public void setLastStatement(ImStmt s) {
 		lastStatement = s;		
 	}
 
+	@Override
 	public ImStmt getLastStatement() {
 		return lastStatement;
 	}
 
+	@Override
 	public WurstGui getGui() {
 		return gui;
 	}
@@ -181,6 +184,7 @@ public class ProgramStateIO extends ProgramState {
 		return objDefinitions.get(key);
 	}
 
+	@Override
 	public void writeBack() {
 		gui.sendProgress("Writing back generated objects", 0.9);
 
@@ -269,10 +273,12 @@ public class ProgramStateIO extends ProgramState {
 		return folder;
 	}
 
+	@Override
 	public PrintStream getOutStream() {
 		return outStream ;
 	}
 
+	@Override
 	public void setOutStream(PrintStream os) {
 		outStream = os;
 	}

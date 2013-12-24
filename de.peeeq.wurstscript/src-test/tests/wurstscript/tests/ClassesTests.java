@@ -729,4 +729,26 @@ public class ClassesTests extends WurstScriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void dotdotOperator() { 
+		testAssertOkLines(true,
+				"package test",
+				"	native testSuccess()",
+				"	class A",
+				"		int i",
+				"		function plus(int x)",
+				"			i += x",
+				"		function minus(int x)",
+				"			i -= x",
+				"	init",
+				"		A a = new A",
+				"			..plus(3)",
+				"			..minus(4)",
+				"			..plus(5)",
+				"		if a.i == 4",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
 }

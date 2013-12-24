@@ -11,6 +11,7 @@ public class CompileError extends Error implements Serializable {
 	public enum ErrorType {
 		ERROR, WARNING;
 		
+		@Override
 		public String toString() {
 			if (this == ERROR) return "Error";
 			else return "Warning";
@@ -41,6 +42,7 @@ public class CompileError extends Error implements Serializable {
 	public WPos getSource() {
 		return source;
 	}
+	@Override
 	public String getMessage() {
 		return message;
 	}

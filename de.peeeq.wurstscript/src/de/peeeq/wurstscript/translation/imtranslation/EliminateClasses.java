@@ -264,10 +264,12 @@ public class EliminateClasses {
 		final List<ImTypeIdOfObj> typeIdObjs = Lists.newArrayList();
 		final List<ImTypeIdOfClass> typeIdClasses = Lists.newArrayList();
 		f.getBody().accept(new ImStmts.DefaultVisitor() {
+			@Override
 			public void visit(ImMemberAccess e) {
 				mas.add(e);
 			};
 
+			@Override
 			public void visit(ImMethodCall e) {
 				mcs.add(e);
 			}
@@ -335,6 +337,7 @@ public class EliminateClasses {
 		ImFunction f = e.getNearestFunc();
 		List<ImClass> allSubClasses = getAllSubclasses(e.getClazz()); 
 		List<Integer> subClassIds = Lists.transform(allSubClasses, new Function<ImClass, Integer>() {
+			@Override
 			public Integer apply(ImClass c) {
 				return c.attrTypeId();
 			}

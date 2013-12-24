@@ -187,30 +187,35 @@ public class ClassTranslator {
 			return;
 		}
 		DefaultVisitor replacer = new ImStmt.DefaultVisitor() {
+			@Override
 			public void visit(ImVarAccess v) {
 				if (v.getVar() == oldThis) {
 					v.setVar(newThis);
 				}
 			}
 			
+			@Override
 			public void visit(ImSet v) {
 				if (v.getLeft() == oldThis) {
 					v.setLeft(newThis);
 				}
 			}
 			
+			@Override
 			public void visit(ImSetArray v) {
 				if (v.getLeft() == oldThis) {
 					v.setLeft(newThis);
 				}
 			}
 			
+			@Override
 			public void visit(ImSetTuple v) {
 				if (v.getLeft() == oldThis) {
 					v.setLeft(newThis);
 				}
 			}
 			
+			@Override
 			public void visit(ImSetArrayTuple v) {
 				if (v.getLeft() == oldThis) {
 					v.setLeft(newThis);

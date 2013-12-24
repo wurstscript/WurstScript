@@ -148,7 +148,8 @@ public class WurstErrorWindow extends javax.swing.JFrame {
 
         closeButton.setText("Close");
         closeButton.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
+            @Override
+			public void mouseClicked(java.awt.event.MouseEvent evt) {
                 closeButtonMouseClicked(evt);
             }
         });
@@ -157,7 +158,8 @@ public class WurstErrorWindow extends javax.swing.JFrame {
         
         aboutButton.setText("About...");
         aboutButton.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
+            @Override
+			public void mouseClicked(java.awt.event.MouseEvent evt) {
                 aboutButtonMouseClicked(evt);
             }
         });

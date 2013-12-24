@@ -155,9 +155,9 @@ Expr =
 	| FunctionCall
 	| ExprBinary(de.peeeq.wurstscript.parser.WPos source, Expr left, de.peeeq.wurstscript.WurstOperator op, Expr right)
 	| ExprUnary(de.peeeq.wurstscript.parser.WPos source, de.peeeq.wurstscript.WurstOperator opU, Expr right)
-	| ExprMemberVar(de.peeeq.wurstscript.parser.WPos source, Expr left, String varName)
-	| ExprMemberArrayVar(de.peeeq.wurstscript.parser.WPos source, Expr left, String varName, Indexes indexes)
-	| ExprMemberMethod(de.peeeq.wurstscript.parser.WPos source, Expr left, String funcName, TypeExprList typeArgs, Arguments args)
+	| ExprMemberVar
+	| ExprMemberArrayVar
+	| ExprMemberMethod
 	| ExprFunctionCall(de.peeeq.wurstscript.parser.WPos source, String funcName, TypeExprList typeArgs, Arguments args)
 	| ExprNewObject(de.peeeq.wurstscript.parser.WPos source, String typeName, TypeExprList typeArgs, Arguments args)
 	| ExprCast(de.peeeq.wurstscript.parser.WPos source, TypeExpr typ, Expr expr)
@@ -169,6 +169,19 @@ Expr =
 	| ExprStatementsBlock(de.peeeq.wurstscript.parser.WPos source, WStatements body)
 	| ExprDestroy(de.peeeq.wurstscript.parser.WPos source, Expr destroyedObj)
 	
+ExprMemberVar =
+	  ExprMemberVarDot(de.peeeq.wurstscript.parser.WPos source, Expr left, String varName)
+	| ExprMemberVarDotDot(de.peeeq.wurstscript.parser.WPos source, Expr left, String varName)
+
+ExprMemberArrayVar =
+	  ExprMemberArrayVarDot(de.peeeq.wurstscript.parser.WPos source, Expr left, String varName, Indexes indexes)
+	| ExprMemberArrayVarDotDot(de.peeeq.wurstscript.parser.WPos source, Expr left, String varName, Indexes indexes)
+
+ExprMemberMethod =
+	  ExprMemberMethodDot(de.peeeq.wurstscript.parser.WPos source, Expr left, String funcName, TypeExprList typeArgs, Arguments args)
+	| ExprMemberMethodDotDot(de.peeeq.wurstscript.parser.WPos source, Expr left, String funcName, TypeExprList typeArgs, Arguments args)
+
+
 ExprAtomic = 
 	  ExprIntVal(de.peeeq.wurstscript.parser.WPos source, String valIraw)
 	| ExprRealVal(de.peeeq.wurstscript.parser.WPos source, String valR)

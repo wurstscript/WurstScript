@@ -33,6 +33,7 @@ import de.peeeq.wurstscript.ast.ExprIncomplete;
 import de.peeeq.wurstscript.ast.ExprInstanceOf;
 import de.peeeq.wurstscript.ast.ExprIntVal;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
+import de.peeeq.wurstscript.ast.ExprMemberMethodDotDot;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprNull;
@@ -328,10 +329,14 @@ public class ExprTranslation {
 	}
 
 	public static ImExpr translateIntern(FunctionCall e, ImTranslator t, ImFunction f) {
-		return translateFunctionCall(e, t, f);
+		if (e instanceof ExprMemberMethodDotDot) {
+			return translateFunctionCall(e, t, f, true);
+		} else {
+			return translateFunctionCall(e, t, f, false);
+		}
 	}
 
-	private static ImExpr translateFunctionCall(FunctionCall e, ImTranslator t, ImFunction f) {
+	private static ImExpr translateFunctionCall(FunctionCall e, ImTranslator t, ImFunction f, boolean returnReveiver) {
 		
 		
 		if (e.getFuncName().equals("error") 
@@ -353,6 +358,7 @@ public class ExprTranslation {
 		}
 		
 		List<Expr> arguments = Lists.newArrayList(e.getArgs());
+		Expr leftExpr = null;
 		boolean dynamicDispatch = false;
 
 		FunctionDefinition calledFunc = e.attrFuncDef();
@@ -364,7 +370,7 @@ public class ExprTranslation {
 			// add implicit parameter to front
 			// TODO why would I add the implicit parameter here, if it is
 			// not a dynamic dispatch?
-			arguments.add(0, (Expr) e.attrImplicitParameter());
+			leftExpr = (Expr) e.attrImplicitParameter();
 		}
 
 		
@@ -402,21 +408,43 @@ public class ExprTranslation {
 			dynamicDispatch = false;
 		}
 		
+		ImExpr receiver = leftExpr == null ? null : leftExpr.imTranslateExpr(t, f);
 		ImExprs imArgs = translateExprs(arguments, t, f);
 		
 		if (calledFunc instanceof TupleDef) {
 			// creating a new tuple...
 			return ImTupleExpr(imArgs);
 		}
-		ImFunction calledImFunc;
+		
+		ImStmts stmts = null;
+		ImVar tempVar = null;
+		if (returnReveiver) {
+			tempVar = JassIm.ImVar(leftExpr.attrTyp().imTranslateType(), "receiver", false);
+			f.getLocals().add(tempVar);
+			stmts = JassIm.ImStmts(
+					JassIm.ImSet(e, tempVar, receiver)
+					);
+			receiver = JassIm.ImVarAccess(tempVar);
+		}
+		
+		
+		ImExpr call;
 		if (dynamicDispatch) {
 			ImMethod method = t.getMethodFor((FuncDef) calledFunc);
-			ImExpr receiver = imArgs.remove(0);
-			return JassIm.ImMethodCall(e, method, receiver, imArgs, false);
+			call = JassIm.ImMethodCall(e, method, receiver, imArgs, false);
 		} else {
-			calledImFunc = t.getFuncFor(calledFunc);
-			ImFunctionCall fc = ImFunctionCall(e, calledImFunc, imArgs, false, CallType.NORMAL);
-			return fc;
+			ImFunction calledImFunc = t.getFuncFor(calledFunc);
+			if (receiver != null) {
+				imArgs.add(0, receiver);
+			}
+			call = ImFunctionCall(e, calledImFunc, imArgs, false, CallType.NORMAL);
+		}
+		
+		if (returnReveiver) {
+			stmts.add(call);
+			return JassIm.ImStatementExpr(stmts, JassIm.ImVarAccess(tempVar));
+		} else {
+			return call;
 		}
 	}
 

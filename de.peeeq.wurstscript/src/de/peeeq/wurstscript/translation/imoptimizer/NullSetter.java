@@ -152,6 +152,7 @@ public class NullSetter {
 	private boolean exprContainsVar(ImExpr returnExpr, final List<ImVar> handleVars) {
 		final boolean[] result = { false };
 		returnExpr.accept(new ImExpr.DefaultVisitor() {
+			@Override
 			public void visit(ImVarAccess e) {
 				if (handleVars.contains(e.getVar())) {
 					result[0] = true;
