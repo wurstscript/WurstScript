@@ -18,6 +18,7 @@ import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.AstElementWithFuncName;
 import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -28,12 +29,19 @@ import de.peeeq.wurstscript.ast.EnumMember;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprClosure;
+import de.peeeq.wurstscript.ast.ExprDestroy;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprIntVal;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
+import de.peeeq.wurstscript.ast.ExprMemberArrayVarDot;
+import de.peeeq.wurstscript.ast.ExprMemberArrayVarDotDot;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
+import de.peeeq.wurstscript.ast.ExprMemberMethodDot;
+import de.peeeq.wurstscript.ast.ExprMemberMethodDotDot;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
+import de.peeeq.wurstscript.ast.ExprMemberVarDot;
+import de.peeeq.wurstscript.ast.ExprMemberVarDotDot;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprNull;
 import de.peeeq.wurstscript.ast.ExprStatementsBlock;
@@ -70,7 +78,6 @@ import de.peeeq.wurstscript.ast.NoDefaultCase;
 import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.StmtCall;
-import de.peeeq.wurstscript.ast.StmtDestroy;
 import de.peeeq.wurstscript.ast.StmtForRange;
 import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtReturn;
@@ -164,10 +171,10 @@ public class WurstValidator {
 			prog.getErrorHandler().setProgress("Searching cyclic dependencies", 0.55);
 			postChecks();
 		} catch (RuntimeException e) {
+			WLogger.severe(e);
 			if (lastElement != null) {
 				lastElement.addError("Encountered compiler bug near element " + Utils.printElement(lastElement) + ":\n" +
 						Utils.printException(e));
-				WLogger.severe(e);
 			} else {
 				// rethrow
 				throw e;
@@ -238,7 +245,7 @@ public class WurstValidator {
 			if (e instanceof NameDef) nameDefsMustNotBeNamedAfterJassNativeTypes((NameDef) e);
 			if (e instanceof NameRef) checkImplicitParameter((NameRef) e);
 			if (e instanceof StmtCall) checkCall((StmtCall) e); 
-			if (e instanceof StmtDestroy) visit((StmtDestroy) e);
+			if (e instanceof ExprDestroy) visit((ExprDestroy) e);
 			if (e instanceof StmtForRange) checkForRange((StmtForRange) e);
 			if (e instanceof StmtIf) visit((StmtIf) e);
 			if (e instanceof StmtReturn) visit((StmtReturn) e);
@@ -264,14 +271,24 @@ public class WurstValidator {
 	}
 
 	private void checkClosure(ExprClosure e) {
-		if (e.attrExpectedTyp() instanceof WurstTypeUnknown
+		if (e.attrExpectedTyp() instanceof WurstTypeCode) {
+			// TODO check if no vars are captured
+			if (!e.attrCapturedVariables().isEmpty()) {
+				for (Entry<AstElement, VarDef> elem : e.attrCapturedVariables().entries()) {
+					elem.getKey().addError("Cannot capture local variable '" + elem.getValue().getName() + 
+							"' in anonymous function. This is only possible with closures." );
+				}
+			}
+		} else if (e.attrExpectedTyp() instanceof WurstTypeUnknown
 				|| e.attrExpectedTyp() instanceof WurstTypeClosure) {
 			e.addError("Closures can only be used when a interface or class type is given.");
+			
 		} else if (!(e.attrExpectedTyp() instanceof WurstTypeClass
 				|| e.attrExpectedTyp() instanceof WurstTypeInterface)) {
 			e.addError("Closures can only be used when a interface or class type is given, "
 					+ "but at this position a " + e.attrExpectedTyp() + " is expected.");
 		}
+		e.attrCapturedVariables();
 	}
 
 	private void checkConstructorsUnique(ClassDef c) {
@@ -349,6 +366,7 @@ public class WurstValidator {
 		final int functionCount[] = new int[1];
 		prog.accept(new WurstModel.DefaultVisitor() {
 			
+			@Override
 			public void visit(FuncDef f) {
 				functionCount[0]++;
 			}
@@ -390,7 +408,7 @@ public class WurstValidator {
 			}
 
 			@Override
-			public void case_ExprMemberVar(ExprMemberVar e) {
+			public void case_ExprMemberVarDot(ExprMemberVarDot e) {
 				if (e.attrNameDef() instanceof WParameter) {
 					// we have an assignment to a tuple variable
 					// check whether left side is 'this' or a constant variable
@@ -406,8 +424,18 @@ public class WurstValidator {
 			}
 
 			@Override
-			public void case_ExprMemberArrayVar(ExprMemberArrayVar e) {
+			public void case_ExprMemberArrayVarDot(ExprMemberArrayVarDot e) {
 
+			}
+
+			@Override
+			public void case_ExprMemberArrayVarDotDot(ExprMemberArrayVarDotDot e) {
+				e.addError("Cannot assign to dot-dot-expression.");
+			}
+
+			@Override
+			public void case_ExprMemberVarDotDot(ExprMemberVarDotDot e) {
+				e.addError("Cannot assign to dot-dot-expression.");
 			}
 		});
 	}
@@ -548,7 +576,14 @@ public class WurstValidator {
 			if (s.attrPreviousStatements().isEmpty()) {
 				if (s.attrListIndex() > 0 || !(stmts.getParent() instanceof TranslatedToImFunction
 												|| stmts.getParent() instanceof ExprStatementsBlock)) {
-					s.addError("unreachable code");
+					if (Utils.isJassCode(s)) {
+						// in jass this is just a warning, because
+						// the shitty code emitted by jasshelper sometimes 
+						// contains unreachable code
+						s.addWarning("unreachable code");
+					} else {
+						s.addError("unreachable code");
+					}
 				}
 			}
 		}
@@ -592,23 +627,14 @@ public class WurstValidator {
 	}
 
 	private void checkCall(StmtCall call) { 
-		String funcName = call.match(new StmtCall.Matcher<String>() {
-
-			@Override
-			public String case_ExprNewObject(ExprNewObject c) {
-				return "constructor";
-			}
-
-			@Override
-			public String case_ExprMemberMethod(ExprMemberMethod c) {
-				return c.getFuncName();
-			}
-
-			@Override
-			public String case_ExprFunctionCall(ExprFunctionCall c) {
-				return c.getFuncName();
-			}
-		});
+		String funcName;
+		if (call instanceof FunctionCall) {
+			funcName = ((FunctionCall) call).getFuncName();
+		} else if (call instanceof ExprNewObject) {
+			funcName = "constructor";
+		} else {
+			throw new Error("unhandled case: " + Utils.printElement(call));
+		}
 
 		call.attrCallSignature().checkSignatureCompatibility(call.attrFunctionSignature(), funcName, call);
 	}
@@ -778,7 +804,7 @@ public class WurstValidator {
 	}
 
 
-	private void visit(StmtDestroy stmtDestroy) {
+	private void visit(ExprDestroy stmtDestroy) {
 		WurstType typ = stmtDestroy.getDestroyedObj().attrTyp();
 		if (typ instanceof WurstTypeModule) {
 
@@ -794,14 +820,14 @@ public class WurstValidator {
 		}
 	}
 
-	public void checkDestroyInterface(StmtDestroy stmtDestroy,
+	public void checkDestroyInterface(ExprDestroy stmtDestroy,
 			WurstTypeInterface i) {
 		if (i.isStaticRef()) {
 			stmtDestroy.addError("Cannot destroy interface " + i);
 		}
 	}
 
-	public void checkDestroyClass(StmtDestroy stmtDestroy, WurstTypeClass c) {
+	public void checkDestroyClass(ExprDestroy stmtDestroy, WurstTypeClass c) {
 		if (c.isStaticRef()) {
 			stmtDestroy.addError("Cannot destroy class " + c);
 		}
@@ -1293,6 +1319,8 @@ public class WurstValidator {
 					e.addError("Function " + exFunc + " must not have any parameters.");
 					return; 
 				}
+			} else {
+				e.addError("Wurst does only support ExecuteFunc with a single string as argument.");
 			}
 		}
 	}
@@ -1640,6 +1668,7 @@ public class WurstValidator {
 		}
 		final WPackage v_definedIn = (WPackage) expr.attrNearestPackage();
 		Utils.visitRec(expr, new Predicate<AstElement>() {
+			@Override
 			public boolean apply(AstElement e) {
 				if (e instanceof NameRef) {
 					NameRef nameRef = (NameRef) e;
@@ -1671,8 +1700,8 @@ public class WurstValidator {
 					ConstructorDef c = exprNewObject.attrConstructorDef();
 					checkUsedIsInitializedBefore(e, initPart, v_definedIn, c);
 				}
-				if (e instanceof StmtDestroy) {
-					StmtDestroy stmtDestroy = (StmtDestroy) e;
+				if (e instanceof ExprDestroy) {
+					ExprDestroy stmtDestroy = (ExprDestroy) e;
 					WurstType t1 = stmtDestroy.getDestroyedObj().attrTyp();
 					if (t1 instanceof WurstTypeClass) {
 						WurstTypeClass t = (WurstTypeClass) t1;

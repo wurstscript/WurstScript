@@ -45,6 +45,10 @@ public function rect.getRightBot() returns vec2
 public function trigger.registerRectEnterEventSource( rect r )
 	TriggerRegisterEnterRectSimple(this, r)
 	sourceTable.saveRect(GetHandleId(this), r)
+	
+public function trigger.registerRectLeaveEventSource( rect r )
+	TriggerRegisterLeaveRectSimple(this, r)
+	sourceTable.saveRect(GetHandleId(this), r)
 
 public function trigger.getSourceRect() returns rect
 	return sourceTable.loadRect(GetHandleId(this))

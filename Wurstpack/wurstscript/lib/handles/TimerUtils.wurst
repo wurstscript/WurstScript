@@ -2,6 +2,7 @@ package TimerUtils
 import NoWurst
 import Table
 import PrintingHelper
+import MagicFunctions
 
 //	Credits: 
 //		* Vexorian (original TimerUtils + TimedLoop)
@@ -37,10 +38,10 @@ public function timer.getData() returns integer
 /** Release the timer. Use this instead of "DestroyTimer" ! */
 public function timer.release()
 	if this == null
-		printError("Trying to release a null timer")
+		error("Trying to release a null timer")
 		return
 	if this.getData() == HELD
-		printError("ReleaseTimer: Double free!")
+		error("ReleaseTimer: Double free!")
 		return
 	this.setData(HELD)
 	this.pause()

@@ -292,6 +292,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	}
 
 	public void checkAndTranslate(WurstModel root) {
+		WLogger.info("begin checkAndTranslate");
 		checkProg(root);
 		
 		
@@ -486,7 +487,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			}
 			
 			// move file to wurst directory
-			File wurstwar3map = new File(new File(file.getParentFile(), "wurst"), "war3map.j");
+			File wurstFolder = new File(file.getParentFile(), "wurst");
+			wurstFolder.mkdirs();
+			if (!wurstFolder.isDirectory()) {
+				throw new AbortCompilationException("Could not create Wurst folder at " + wurstFolder + ".");
+			}
+			File wurstwar3map = new File(wurstFolder, "war3map.j");
 			wurstwar3map.delete();
 			if (tempFile.renameTo(wurstwar3map)) {
 				return parseFile(wurstwar3map);

@@ -392,7 +392,8 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"'" . . . . "'"					  { return symbol(TokenType.INTEGER_LITERAL, yytext()); }
 	{DIGIT}+ "." {DIGIT}*			  { return symbol(TokenType.REAL_LITERAL, yytext()); }
 	[ \t\n\r]* "." {DIGIT}+			 { return symbol(TokenType.REAL_LITERAL, yytext()); }
-	[ \t\n\r]* "."                    { return symbol(TokenType.DOT); } 
+	[ \t\n\r]* "."                    { return symbol(TokenType.DOT); }
+	[ \t\n\r]* ".."                    { return symbol(TokenType.DOTDOT); }  
 	"wurst__" {IDENT}				  { return symbol(TokenType.IDENTIFIER, "w" + yytext()); }
 	"@" {IDENT}							{ return symbol(TokenType.ANNOTATION, yytext()); }
 	{IDENT}                           { return symbol(TokenType.IDENTIFIER, yytext()); }

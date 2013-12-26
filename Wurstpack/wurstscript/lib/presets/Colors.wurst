@@ -119,7 +119,7 @@ public function toHex( int number ) returns string
 /** Converts a twochar string to an integer */
 public function toDec( string twochar ) returns int
 	if twochar.length() > 2
-		printError("todec is not made for this")
+		error("todec is not made for this")
 	
 	var first = twochar.substring(0,1)
 	var second = twochar.substring(1,2)

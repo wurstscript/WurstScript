@@ -120,9 +120,9 @@ ActionStatement =
 	| LocalVarDef
 	| StmtSet(de.peeeq.wurstscript.parser.WPos source, NameRef updatedExpr, Expr right)
 	| StmtCall
-	| StmtDestroy(de.peeeq.wurstscript.parser.WPos source, Expr destroyedObj)
 	| StmtErr(de.peeeq.wurstscript.parser.WPos source)
 	| ExprMemberVar
+	| ExprDestroy
 	
 	  
 ControlflowStatement = 
@@ -155,9 +155,9 @@ Expr =
 	| FunctionCall
 	| ExprBinary(de.peeeq.wurstscript.parser.WPos source, Expr left, de.peeeq.wurstscript.WurstOperator op, Expr right)
 	| ExprUnary(de.peeeq.wurstscript.parser.WPos source, de.peeeq.wurstscript.WurstOperator opU, Expr right)
-	| ExprMemberVar(de.peeeq.wurstscript.parser.WPos source, Expr left, String varName)
-	| ExprMemberArrayVar(de.peeeq.wurstscript.parser.WPos source, Expr left, String varName, Indexes indexes)
-	| ExprMemberMethod(de.peeeq.wurstscript.parser.WPos source, Expr left, String funcName, TypeExprList typeArgs, Arguments args)
+	| ExprMemberVar
+	| ExprMemberArrayVar
+	| ExprMemberMethod
 	| ExprFunctionCall(de.peeeq.wurstscript.parser.WPos source, String funcName, TypeExprList typeArgs, Arguments args)
 	| ExprNewObject(de.peeeq.wurstscript.parser.WPos source, String typeName, TypeExprList typeArgs, Arguments args)
 	| ExprCast(de.peeeq.wurstscript.parser.WPos source, TypeExpr typ, Expr expr)
@@ -167,8 +167,21 @@ Expr =
 	| ExprAtomic
 	| ExprIncomplete(de.peeeq.wurstscript.parser.WPos source, String errorMessage)
 	| ExprStatementsBlock(de.peeeq.wurstscript.parser.WPos source, WStatements body)
+	| ExprDestroy(de.peeeq.wurstscript.parser.WPos source, Expr destroyedObj)
 	
-	
+ExprMemberVar =
+	  ExprMemberVarDot(de.peeeq.wurstscript.parser.WPos source, Expr left, String varName)
+	| ExprMemberVarDotDot(de.peeeq.wurstscript.parser.WPos source, Expr left, String varName)
+
+ExprMemberArrayVar =
+	  ExprMemberArrayVarDot(de.peeeq.wurstscript.parser.WPos source, Expr left, String varName, Indexes indexes)
+	| ExprMemberArrayVarDotDot(de.peeeq.wurstscript.parser.WPos source, Expr left, String varName, Indexes indexes)
+
+ExprMemberMethod =
+	  ExprMemberMethodDot(de.peeeq.wurstscript.parser.WPos source, Expr left, String funcName, TypeExprList typeArgs, Arguments args)
+	| ExprMemberMethodDotDot(de.peeeq.wurstscript.parser.WPos source, Expr left, String funcName, TypeExprList typeArgs, Arguments args)
+
+
 ExprAtomic = 
 	  ExprIntVal(de.peeeq.wurstscript.parser.WPos source, String valIraw)
 	| ExprRealVal(de.peeeq.wurstscript.parser.WPos source, String valR)
@@ -345,6 +358,15 @@ Expr.attrExpectedTypRaw
 Expr.attrExpectedTyp "try to guess what type is expected here"
 	returns de.peeeq.wurstscript.types.WurstType
 	implemented by de.peeeq.wurstscript.attributes.AttrExprExpectedType.normalizedType
+
+ExprClosure.attrClosureAbstractMethod
+	returns de.peeeq.wurstscript.attributes.names.NameLink
+	implemented by de.peeeq.wurstscript.attributes.AttrClosureAbstractMethod.calculate
+
+ExprClosure.attrCapturedVariables
+	returns com.google.common.collect.Multimap<AstElement,VarDef>
+	implemented by de.peeeq.wurstscript.attributes.AttrClosureCapturedVariables.calculate
+
 
 FunctionCall.attrImplicitParameter
 	returns OptExpr
@@ -629,6 +651,11 @@ CompilationUnit.attrGetByType
 AstElement.addError(String msg)
 	returns void
 	implemented by de.peeeq.wurstscript.attributes.ErrorHandling.addError
+
+AstElement.addWarning(String msg)
+	returns void
+	implemented by de.peeeq.wurstscript.attributes.ErrorHandling.addWarning
+
 	
 AstElement.getErrorHandler()
 	returns de.peeeq.wurstscript.attributes.ErrorHandler

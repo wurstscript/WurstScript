@@ -10,6 +10,8 @@ import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
+import de.peeeq.wurstscript.ast.ExprMemberMethodDot;
+import de.peeeq.wurstscript.ast.ExprMemberMethodDotDot;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.FuncRef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
@@ -170,7 +172,12 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 					}
 
 					@Override
-					public Integer case_ExprMemberMethod(ExprMemberMethod term)  {
+					public Integer case_ExprMemberMethodDot(ExprMemberMethodDot term)  {
+						return term.getArgs().size(); // we do not count the implicit parameter here
+					}
+					
+					@Override
+					public Integer case_ExprMemberMethodDotDot(ExprMemberMethodDotDot term)  {
 						return term.getArgs().size(); // we do not count the implicit parameter here
 					}
 
@@ -191,14 +198,21 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 					}
 
 					@Override
-					public WurstType case_ExprMemberMethod(ExprMemberMethod term)  {
+					public WurstType case_ExprMemberMethodDot(ExprMemberMethodDot term)  {
 						return term.getArgs().get(i).attrTyp(); // the implicit parameter is not necessary for overloading
 					}
 
 					@Override
+					public WurstType case_ExprMemberMethodDotDot(ExprMemberMethodDotDot term) {
+						return term.getArgs().get(i).attrTyp(); // the implicit parameter is not necessary for overloading
+					}
+					
+					@Override
 					public WurstType case_ExprFunctionCall(ExprFunctionCall term)  {
 						return term.getArgs().get(i).attrTyp();
 					}
+
+					
 				});
 			}
 

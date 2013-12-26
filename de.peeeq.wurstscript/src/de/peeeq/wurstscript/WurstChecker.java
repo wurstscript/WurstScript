@@ -34,6 +34,7 @@ public class WurstChecker {
 		// validate the resource:
 		WurstValidator validator = new WurstValidator(root);
 		validator.validate();
+		WLogger.info("debug - finished checkProg");
 	}
 
 	private void attachErrorHanlder(WurstModel root) {

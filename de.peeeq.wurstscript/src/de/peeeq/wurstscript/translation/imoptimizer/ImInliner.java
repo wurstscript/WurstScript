@@ -251,6 +251,7 @@ public class ImInliner {
 	private boolean hasReturn(final ImStmt s) {
 		final boolean[] r = new boolean[]{false};		
 		s.accept(new ImStmt.DefaultVisitor() {
+			@Override
 			public void visit(ImReturn rs) {
 				r[0] = true;
 			}

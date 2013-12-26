@@ -13,6 +13,7 @@ import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprBoolVal;
 import de.peeeq.wurstscript.ast.ExprCast;
 import de.peeeq.wurstscript.ast.ExprClosure;
+import de.peeeq.wurstscript.ast.ExprDestroy;
 import de.peeeq.wurstscript.ast.ExprIncomplete;
 import de.peeeq.wurstscript.ast.ExprInstanceOf;
 import de.peeeq.wurstscript.ast.ExprIntVal;
@@ -45,7 +46,6 @@ import de.peeeq.wurstscript.ast.NoExpr;
 import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.StartFunctionStatement;
-import de.peeeq.wurstscript.ast.StmtDestroy;
 import de.peeeq.wurstscript.ast.StmtErr;
 import de.peeeq.wurstscript.ast.StmtExitwhen;
 import de.peeeq.wurstscript.ast.StmtForFrom;
@@ -334,7 +334,7 @@ public class DescriptionHtml {
 		return null;
 	}
 
-	public static String description(StmtDestroy s) {
+	public static String description(ExprDestroy s) {
 		return "Destroys an object.";
 	}
 

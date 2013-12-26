@@ -138,7 +138,7 @@ package CustomBar
 		construct( vec3 pos, string char, integer numochars, real size )
 			t=CreateTextTag()
 			if t==null
-				printError("TTBARS: TextTag limit reached!")
+				error("TTBARS: TextTag limit reached!")
 				
 			position = pos
 			bg_color = makeColor(DEFAULT_BACKGROUND)
@@ -308,7 +308,7 @@ package CustomBar
 						.setText( txt, textsize)
 						.setPos( position)
 					else
-						printError("CustomBar: TextTag limit reached!")
+						error("CustomBar: TextTag limit reached!")
 
 				else if t != null and not IsPlayerInForce(GetLocalPlayer(), disp)
 					DestroyTextTag(t)
@@ -322,7 +322,7 @@ package CustomBar
 						.setText( txt, textsize)
 						.setPos( position)
 					else
-						printError("CustomBar: TextTag limit reached!")
+						error("CustomBar: TextTag limit reached!")
 
 
 		function lockToUnit( unit u, real xOffset, real yOffset, real zOff )

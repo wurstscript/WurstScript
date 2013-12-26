@@ -2,16 +2,38 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.ListIterator;
 
+import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.WurstModel;
+import de.peeeq.wurstscript.attributes.CompileError.ErrorType;
 import de.peeeq.wurstscript.parser.WPos;
 
 public class ErrorHandling {
 	
 	public static void addError(AstElement e, String msg) {
-		WPos pos = e.attrErrorPos();
+		WLogger.info("Adding error: " + msg);
+		addErrorOrWarning(e, msg, ErrorType.ERROR);
+	}
+	
+	public static void addWarning(AstElement e, String msg) {
+		WLogger.info("Adding warning: " + msg);
+		addErrorOrWarning(e, msg, ErrorType.WARNING);
+	}
+
+	private static void addErrorOrWarning(AstElement e, String msg,
+			ErrorType errorType) throws CompileError {
 		ErrorHandler handler = e.getErrorHandler();
+		CompileError c = makeCompileError(e, msg, handler, errorType);
+		if (c != null) {
+			handler.sendError(c);
+		}
+	}
+
+	private static CompileError makeCompileError(AstElement e, String msg,
+			ErrorHandler handler, CompileError.ErrorType errorType) throws CompileError {
+		WPos pos = e.attrErrorPos();
 		if (handler.isUnitTestMode()) {
 			throw new CompileError(pos, msg);
 		}
@@ -24,13 +46,14 @@ public class ErrorHandling {
 					it.remove();
 				} else if (bigger(pos, err.getSource()) || equal(pos, err.getSource())) {
 					// do not add smaller or equal errors
-					return;
+					return null;
 				}
 			}
 		}
-		CompileError c = new CompileError(pos, msg);
-		handler.sendError(c);
+		return new CompileError(pos, msg, errorType);
 	}
+	
+	
 
 	private static boolean equal(WPos a, WPos b) {
 		return a.getLeftPos() == b.getLeftPos() && a.getRightPos() == b.getRightPos();
@@ -58,5 +81,7 @@ public class ErrorHandling {
 		}
 		throw new Error("Empty model.");
 	}
+
+	
 
 }

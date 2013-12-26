@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.intermediateLang;
 
 public abstract class ILconstAbstract implements ILconst {
 
+	@Override
 	public abstract String print();
 
 	

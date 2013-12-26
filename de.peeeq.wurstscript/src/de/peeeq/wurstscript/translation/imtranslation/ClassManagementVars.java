@@ -8,13 +8,10 @@ import de.peeeq.wurstscript.types.TypesHelper;
 
 public class ClassManagementVars {
 	/** array, nextFree[x] is the element which comes next in the queue */
-	public final ImVar nextFree;
+	public final ImVar free;
 	
 	/** first element of the queue, from here we take new objects */
-	public final ImVar firstFree;
-	
-	/** last element of the queue, here we put destroyed objects */
-	public final ImVar lastFree;
+	public final ImVar freeCount;
 	
 	/** the maximal index of current objects*/
 	public final ImVar maxIndex;
@@ -24,14 +21,11 @@ public class ClassManagementVars {
 
 	public ClassManagementVars(ImClass repClass, ImTranslator translator) {
 		ImProg prog = translator.getImProg();
-		nextFree = JassIm.ImVar(JassIm.ImArrayType("integer"), repClass.getName() + "_nextFree", false);
-		prog.getGlobals().add(nextFree);
+		free = JassIm.ImVar(JassIm.ImArrayType("integer"), repClass.getName() + "_nextFree", false);
+		prog.getGlobals().add(free);
 		
-		firstFree = JassIm.ImVar(TypesHelper.imInt(), repClass.getName() + "_firstFree", false);
-		translator.addGlobalWithInitalizer(firstFree, JassIm.ImIntVal(0));
-		
-		lastFree = JassIm.ImVar(TypesHelper.imInt(), repClass.getName() + "_lastFree", false);
-		translator.addGlobalWithInitalizer(lastFree, JassIm.ImIntVal(0));
+		freeCount = JassIm.ImVar(TypesHelper.imInt(), repClass.getName() + "_firstFree", false);
+		translator.addGlobalWithInitalizer(freeCount, JassIm.ImIntVal(0));
 		
 		maxIndex = JassIm.ImVar(TypesHelper.imInt(), repClass.getName() + "_maxIndex", false);
 		translator.addGlobalWithInitalizer(maxIndex, JassIm.ImIntVal(0));

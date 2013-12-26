@@ -67,7 +67,7 @@ public class DummyCaster
 
 		if level > 1 
 			dummy.setAbilityLevel(abilityId, level)
-		
+		debugPrint("Dummycaster created", 3)
 		return dummy
 		
 

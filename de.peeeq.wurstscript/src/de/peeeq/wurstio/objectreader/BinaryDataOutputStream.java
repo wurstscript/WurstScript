@@ -68,6 +68,7 @@ public class BinaryDataOutputStream implements Closeable {
 	}
 
 
+	@Override
 	public void close() throws IOException {
 		out.close();
 	}

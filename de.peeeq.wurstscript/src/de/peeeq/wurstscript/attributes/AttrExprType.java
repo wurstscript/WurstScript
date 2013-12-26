@@ -14,12 +14,18 @@ import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprBoolVal;
 import de.peeeq.wurstscript.ast.ExprCast;
 import de.peeeq.wurstscript.ast.ExprClosure;
+import de.peeeq.wurstscript.ast.ExprDestroy;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprIncomplete;
 import de.peeeq.wurstscript.ast.ExprInstanceOf;
 import de.peeeq.wurstscript.ast.ExprIntVal;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
+import de.peeeq.wurstscript.ast.ExprMemberArrayVarDot;
+import de.peeeq.wurstscript.ast.ExprMemberArrayVarDotDot;
+import de.peeeq.wurstscript.ast.ExprMemberMethodDotDot;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
+import de.peeeq.wurstscript.ast.ExprMemberVarDot;
+import de.peeeq.wurstscript.ast.ExprMemberVarDotDot;
 import de.peeeq.wurstscript.ast.ExprNull;
 import de.peeeq.wurstscript.ast.ExprRealVal;
 import de.peeeq.wurstscript.ast.ExprStatementsBlock;
@@ -44,6 +50,7 @@ import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeArray;
 import de.peeeq.wurstscript.types.WurstTypeBool;
@@ -422,7 +429,7 @@ public class AttrExprType {
 	}
 
 
-	public static  WurstType calculate(ExprMemberVar term)
+	public static  WurstType calculate(ExprMemberVarDot term)
 	{
 		NameDef varDef = term.attrNameDef();
 		if (varDef == null) {
@@ -438,7 +445,7 @@ public class AttrExprType {
 	}
 
 
-	public static  WurstType calculate(ExprMemberArrayVar term)  {
+	public static  WurstType calculate(ExprMemberArrayVarDot term)  {
 		NameDef varDef = term.attrNameDef();
 		if (varDef == null) {
 			return WurstTypeUnknown.instance();
@@ -571,6 +578,28 @@ public class AttrExprType {
 			}
 		}
 		return WurstTypeVoid.instance();
+	}
+
+
+	public static WurstType calculate(ExprDestroy e) {
+		return WurstTypeVoid.instance();
+	}
+
+
+	public static WurstType calculate(ExprMemberArrayVarDotDot e) {
+		e.addError("The dot-dot-operator can only be used with methods.");
+		return WurstTypeUnknown.instance();
+	}
+
+
+	public static WurstType calculate(ExprMemberVarDotDot e) {
+		e.addError("The dot-dot-operator can only be used with methods.");
+		return WurstTypeUnknown.instance();
+	}
+	
+	public static WurstType calculate(ExprMemberMethodDotDot e) {
+		e.attrFunctionSignature();
+		return e.getLeft().attrTyp();
 	}
 
 }

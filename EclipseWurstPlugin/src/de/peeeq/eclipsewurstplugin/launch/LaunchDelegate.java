@@ -1,6 +1,7 @@
 package de.peeeq.eclipsewurstplugin.launch;
 
 import java.io.File;
+import java.util.List;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.ResourcesPlugin;
@@ -9,6 +10,8 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.debug.core.ILaunch;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.core.model.ILaunchConfigurationDelegate;
+
+import com.google.common.collect.Lists;
 
 import de.peeeq.eclipsewurstplugin.builder.WurstNature;
 import de.peeeq.eclipsewurstplugin.console.WurstConsole;
@@ -29,7 +32,8 @@ public class LaunchDelegate implements ILaunchConfigurationDelegate {
 	private void launchMap(IProject project, File file, IProgressMonitor monitor) {
 		WurstConsole console = WurstPerspective.findConsole();
 		console.setModelManager(WurstNature.get(project).getModelManager());
-		console.launchMap(file, monitor);
+		List<String> args = Lists.newArrayList("-stacktraces");
+		console.launchMap(file, args, monitor);
 	}
 
 }

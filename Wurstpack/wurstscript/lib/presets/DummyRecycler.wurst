@@ -116,7 +116,7 @@ public function recycleDummy( unit u )
 		SetUnitScale(u, 1, 1, 1)
 		u.setOwner(DUMMY_PLAYER, true)
 	else
-		printError("[DummyRecycler] Error: Attempt to recycle invalid unit.")
+		error("[DummyRecycler] Error: Attempt to recycle invalid unit.")
 
 
 function checkDelayed()

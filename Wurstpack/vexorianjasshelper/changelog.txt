@@ -1,0 +1,68 @@
+//=====================================
+//  2012-03-10
+//=====================================
+* Fixed a bug with //! external 
+* Fixed a bug with debug keyword
+
+//=====================================
+//  2012-02-10
+//=====================================
+* Fixed a small bug with //! import 
+* Changed program icon to make it clearly distinct from Vexorian's version
+
+//=====================================
+//  2012-02-09
+//=====================================
+* Fixed map not working when you have zero structs
+
+//=====================================
+//  2012-02-07c
+//=====================================
+* Fixed library, scope, struct and module initialization orders.
+* Fixed initialization order for structs not inside scope or library.
+* InitTrig functions are no longer valid inside scopes and libraries. 
+
+//=====================================
+//  2012-01-14
+//=====================================
+* fixed a bug that prevented new loops to be used with function interfaces
+
+//=====================================
+//  2012-01-07
+//=====================================
+* removed WEWarlock support (outdated)
+* more speed improvements
+* much better display of external tool calls (ObjectMerger)
+
+//=====================================
+//  2012-01-06
+//=====================================
+* removed FILEPP preprocessor (not enough public support for it)
+* done some optimizations, jasshelper is now about 3x faster
+* progress bar now shows global progres
+
+//=====================================
+//  2011-12-25
+//=====================================
+* included #bigdef and #foreach modules with FILEPP
+
+//=====================================
+//  2011-12-24
+//=====================================
+* added FILEPP preprocessor (executes before everything else in the map script)
+* optimized for group loop as suggested by Troll-Brain.
+
+//=====================================
+//  2011-12-19
+//=====================================
+* added 3 for loops
+* added while loop
+* added break 
+  Check out this section in jasshelpermanual:
+    Better looping: for, while, break
+
+//=====================================
+//  2011-12-17
+//=====================================
+* jasshelper now displays full textual progress when used from WE.
+* jasshelper will now warn you to reopen your map if you used //! external command
