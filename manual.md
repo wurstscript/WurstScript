@@ -1319,7 +1319,7 @@ as if they were instance functions of the extended type.
 
 # Lambda expressions and Closures
 
-A lambda expression is a lightweight way to provide an implementation
+A lambda expression (also called anonymous function) is a lightweight way to provide an implementation
 of a functional interface or abstract class (To keep the text simple, the following
 explanations are all referring to interfaces, but abstract classes can be used in the same way). 
 
@@ -1487,6 +1487,30 @@ However it is not possible to use lambda expressions if the type of the variable
 	// will not compile, error "Could not get super class for closure"
 	let pred = (int x) -> x mod 2 == 0
 
+## Lambda expressions as code-type
+
+Lambda expressions can also be used where an expression of type `code` is expected. 
+The prerequisite for this is, that the lambda expression does not have any parameters
+and does not capture any variables. For example the following code is _not_ valid, 
+because the local variable `x` is captured.
+
+
+	let t = getTimer()
+	let x = 3
+	t.start(3.0, () -> doSomething(x)) // error: Cannot capture local variable 'x'
+
+	
+This can be fixed by attaching the data to the timer manually:
+
+	let t = getTimer()
+	let x = 3
+	t.setData(x)
+	t.start(3.0, () -> doSomething(GetExpiredTimer().getData()))
+
+If a lambda expression is used as `code`, there is no new object created and
+thus there is no object which has to be destroyed. The lambda expression will just
+be translated to a normal Jass function, so there is no performance overhead when 
+using lambda expressions in this way.
 
 # Advanced Concepts
 
