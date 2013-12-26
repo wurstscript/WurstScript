@@ -107,12 +107,14 @@ public class LinkedList<T>
 		destroy f
 		
 	function toString() returns string
-		string s=""
+		string s="["
+		var first = true
 		for e from iterator()
-			if s != ""
+			if not first
 				s += ", "
 			s += I2S(e castTo int)
-		return s
+			first = false
+		return s + "]"
 
 class LLEntry<S>
 	S elem

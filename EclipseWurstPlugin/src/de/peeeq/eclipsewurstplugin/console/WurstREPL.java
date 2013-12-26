@@ -9,6 +9,7 @@ import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -49,6 +50,7 @@ import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
+import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.WImport;
@@ -58,13 +60,16 @@ import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.CompileError.ErrorType;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstReal;
+import de.peeeq.wurstscript.intermediateLang.ILconstString;
 import de.peeeq.wurstscript.intermediateLang.ILconstTuple;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreter;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ILStackFrame;
 import de.peeeq.wurstscript.intermediateLang.interpreter.LocalState;
+import de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
@@ -150,6 +155,7 @@ public class WurstREPL {
 
 	
 	Pattern asignmentPattern = Pattern.compile("^\\s*([a-zA-Z0-9_]*\\s+)?([a-zA-Z][a-zA-Z0-9_]*)\\s*=.*");
+	private ImProg imProg;
 	
 	public void putLine(String line) {
 		
@@ -287,8 +293,22 @@ public class WurstREPL {
 						return;
 					}
 				}
+				String valueToString = value.toString();
+				Collection<NameLink> toStringFuncs = assignment.lookupMemberFuncs(typ, "toString");
+				if (!toStringFuncs.isEmpty()) {
+					NameLink toStringFunc = Utils.getFirst(toStringFuncs);
+					NameDef f = toStringFunc.getNameDef();
+					for (ImFunction imFunc : imProg.getFunctions()) {
+						if (imFunc.getTrace() == f) {
+							ProgramState globalState = interpreter.getGlobalState();
+							LocalState result = ILInterpreter.runFunc(globalState, imFunc, value);
+							valueToString = ((ILconstString) result.getReturnVal()).getVal();
+							break;
+						}
+					}
+				}
 				
-				print(varName + " = " + value + "     // " + typ + "\n");
+				print(varName + " = " + valueToString + "     // " + typ + "\n");
 				
 				
 				
@@ -317,6 +337,7 @@ public class WurstREPL {
 		} finally {
 			// remove repl file again
 			modelManager.removeCompilationUnitByName(REPL_DUMMY_FILENAME);
+			imProg = null;
 		}
 	}
 
@@ -461,7 +482,6 @@ public class WurstREPL {
 		
 		
 		
-		ImProg imProg;
 		try (ExecutiontimeMeasure t = new ExecutiontimeMeasure("translation")) {
 			imProg = translate(model);
 		}
