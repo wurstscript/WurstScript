@@ -2031,13 +2031,32 @@ Installation: You can find information on how to install the plugin at the [Wurs
 	As every project depends on the standard library you have to add the path to *Wurstpack/wurstscript/lib* in your Wurstpack folder.
 3. Create a new file with the *.wurst* filename extension and an arbitrary name. You can now start writing your code.
 
-### Useful Features 
+### Useful Shortcuts 
 
 * Press *Ctrl*+*space* to open the auto complete assistant.
 * Hold down *Ctrl* and click on a function or variable to jump to the point where it was defined. 
 * Press *Ctrl*+*Shift*+*R* to search for a wurst filename.
+* Hover the mouse over some element in your code to get additional information
 
+### The Wurst-Console
 
+The Wurst-Console provides an Read-Eval-Print-Loop (REPL) for Wurst. 
+The Console can be activated via Window -> Show View -> Console.
+The Console is always attached to the currently opened document. You can enter 
+expressions into the console and the expression will be evaluated in the context of the currently 
+opened document. 
+
+![Wurst Console](./assets/images/wurstConsole1.png)
+
+By default the result of the expression will be stored in the variable `res`, but you
+can also use a *let* statement to store the result in a different variable.
+
+The console supports other useful commands, which are not (yet) accessible. A list
+of commands can be displayed by typing `help` into the console. The most important 
+commands are probably `reset` and `tests`. `reset` will reset the state of the 
+console. This is sometimes necessary after switching to other files, or if 
+the console is in an invalid state because of bugs. `tests` will run all unit tests
+(functions annotated with @test) in the current project and show the test results.
 
 # Optimizer
 

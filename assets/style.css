@@ -27,6 +27,11 @@ em {
 	margin-left:300px;
 }
 
+#content p > img {
+	margin-left: 50px;
+	box-shadow: 0 0 15px;
+}
+
 #nav {
 	background: none repeat scroll 0 0 black;
 	box-shadow: 0 0 20px #000000;
@@ -79,6 +84,13 @@ h1.giant {
 	white-space:pre-wrap;
 	font-size: 16px;
 	line-height:20px;
+}
+
+#content p > code {
+	border: 1px solid #ccc;
+	background: #eee;
+	padding: 1px;
+	border-radius: 5px;
 }
 
 
