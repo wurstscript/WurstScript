@@ -77,4 +77,8 @@ public class ModelManagerStub implements ModelManager {
 	public void removeCompilationUnitByName(String replDummyFilename) {
 	}
 
+	@Override
+	public void resolveImports(WurstGui gui) {
+	}
+
 }

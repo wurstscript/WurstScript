@@ -51,6 +51,7 @@ import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.TupleDef;
+import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WStatement;
@@ -182,6 +183,9 @@ public class WurstREPL {
 			// import packages from current compilation unit
 			for (WPackage p : editorCu.getPackages()) {
 				importedPackages.add(p.getName());
+				for (WImport imp : p.getImports()) {
+					importedPackages.add(imp.getPackagename());
+				}
 			}
 			for (String pName : importedPackages) {
 				code.append("import " + pName + "\n");
@@ -243,9 +247,12 @@ public class WurstREPL {
 					print(t+"\n");
 				}
 				
-				
-				WPos source = interpreter.getLastStatement().attrTrace().attrSource();
-				print("When executing line " + source.getLine() + " in " + source.getFile() + "\n");
+				try {
+					WPos source = interpreter.getLastStatement().attrTrace().attrSource();
+					print("When executing line " + source.getLine() + " in " + source.getFile() + "\n");
+				} catch (Throwable e) {
+					e.printStackTrace();
+				}
 				
 				for (ILStackFrame sf : Utils.iterateReverse(interpreter.getStackFrames())) {
 					print(sf.getMessage() + "\n");
@@ -621,6 +628,7 @@ public class WurstREPL {
 	private CompilationUnit parse(StringBuilder code) {
 		Reader source = new StringReader(code.toString());
 		CompilationUnit cu = modelManager.parse(gui, REPL_DUMMY_FILENAME, source);
+		modelManager.resolveImports(gui);
 		return cu;
 	}
 

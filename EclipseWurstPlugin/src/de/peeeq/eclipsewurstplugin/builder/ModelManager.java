@@ -40,4 +40,6 @@ public interface ModelManager {
 
 	void removeCompilationUnitByName(String replDummyFilename);
 
+	void resolveImports(WurstGui gui);
+
 }
