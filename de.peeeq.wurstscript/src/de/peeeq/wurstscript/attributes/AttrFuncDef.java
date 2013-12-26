@@ -190,6 +190,7 @@ public class AttrFuncDef {
 		if (localCount == 0) {
 			return funcs;
 		} else if (localCount == 1) {
+			if (local == null) throw new Error("impossible");
 			throw new EarlyReturn((FunctionDefinition) local.getNameDef());
 		}
 		List<NameLink> result = Lists.newArrayList();
