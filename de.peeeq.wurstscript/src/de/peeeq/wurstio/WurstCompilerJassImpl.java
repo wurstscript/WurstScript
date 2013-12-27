@@ -346,6 +346,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		
 		ImOptimizer optimizer = new ImOptimizer(imTranslator);
 		
+		
+		
 		// inliner
 		if (runArgs.isInline()) {
 			beginPhase(5, "inlining");
@@ -385,15 +387,20 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			printDebugImProg("./test-output/im " + stage++ + "_afternullsetting.im");
 		}
 		
+		
+		beginPhase(10, "remove func refs");
+		new FuncRefRemover(imProg, imTranslator).run();
+		
+		
+		optimizer.removeGarbage();
+		
 		if (runArgs.isOptimize()) {
-			beginPhase(10, "froptimize");
+			beginPhase(11, "froptimize");
 			optimizer.optimize();
 			
 			printDebugImProg("./test-output/im " + stage++ + "_afteroptimize.im");
 		}
 		
-		beginPhase(11, "remove func refs");
-		new FuncRefRemover(imProg, imTranslator).run();
 		
 		// translate flattened intermediate lang to jass:
 		
