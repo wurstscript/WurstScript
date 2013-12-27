@@ -1,6 +1,14 @@
 package tests.wurstscript.tests;
 
+import static org.junit.Assert.*;
+
+import java.io.File;
+import java.io.IOException;
+
 import org.junit.Test;
+
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
 
 import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstscript.utils.Utils;
@@ -354,4 +362,42 @@ public class OptimizerTests extends WurstScriptTest {
 				"endpackage");
 	}
 
+	@Test
+	public void test_tempVarRemover() throws IOException {
+		assertOk(false,
+				"package test",
+				"	@extern native I2S(int i) returns string",
+				"	native println(string s)",
+				"	@extern native GetRandomInt(int a, int b) returns int",
+				"	init",
+				"		let blub_a = GetRandomInt(0,100)",
+				"		let blub_b = blub_a",
+				"		let blub_c = blub_b + blub_b",
+				"		println(I2S(blub_c))",
+				"endpackage");
+		String output = Files.toString(new File("./test-output/OptimizerTests_test_tempVarRemover_inlopt.j"), Charsets.UTF_8);
+		assertFalse(output.contains("blub_a"));
+		assertFalse(output.contains("blub_c"));
+	}
+	
+	
+	@Test
+	public void test_tempVarRemover2() throws IOException {
+		assertOk(false,
+				"package test",
+				"	@extern native I2S(int i) returns string",
+				"	native println(string s)",
+				"	@extern native GetRandomInt(int a, int b) returns int",
+				"	init",
+				"		let blablub = GetRandomInt(0,100)",
+				"		println(I2S(blablub))",
+				"endpackage");
+		String output = Files.toString(new File("./test-output/OptimizerTests_test_tempVarRemover2_inlopt.j"), Charsets.UTF_8);
+		assertFalse(output.contains("blablub"));
+	}
+	
+	/*	let blablub = AddSpecialEffect("Abilities\\Spells\\Undead\\DeathCoil\\DeathCoilSpecialArt.mdl", 1,2)
+	DestroyEffect(blablub)
+		*/
+	
 }

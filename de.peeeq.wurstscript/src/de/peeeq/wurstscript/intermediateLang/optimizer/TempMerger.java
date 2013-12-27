@@ -7,7 +7,9 @@ import java.util.Map.Entry;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import de.peeeq.wurstscript.jassIm.ImConst;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
+import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImIf;
@@ -85,27 +87,22 @@ public class TempMerger {
 		if (rep != null) {
 			return rep;
 		}
+		if (containsFuncCall(s)) {
+			kn.invalidateGlobals();
+		}	
+		if (readsGlobal(s)) {
+			kn.invalidateMutatingExpressions();
+		}
 		if (s instanceof ImSet) {
 			ImSet imSet = (ImSet) s;
 			// update the knowledge with the new set statement
-  	
 			kn.update(imSet.getLeft(), imSet);
-//			ImVar var = imSet.getLeft();
-//			if (var.attrReads().size() == 0) {
-//				// var is never read, replace it with just the right hand side:
-//				imSet.replaceWith(imSet.getRight().copy());
-//			} else {
-//				kn.update(var, imSet);
-//			}
 		} else if (s instanceof ImSetArray) {
 			kn.invalidateVar(((ImSetArray) s).getLeft());
 		} else if (s instanceof ImExitwhen || s instanceof ImIf || s instanceof ImLoop) {
 			kn.clear(); 
 			// TODO this could be more precise for local variables, 
 			// but for now we just forget everything if we see a loop or if statement
-		}
-		if (containsFuncCall(s)) {
-			kn.invalidateGlobals();
 		}
 		return null;
 	}
@@ -134,6 +131,16 @@ public class TempMerger {
 			Replacement r = getPossibleReplacement(elem.get(i), kn);
 			if (r != null) {
 				return r;
+			}
+		}
+		if (elem instanceof ImFunctionCall) {
+			// function call invalidates globals
+			kn.invalidateGlobals();
+		} else if (elem instanceof ImVarRead) {
+			ImVarRead va = (ImVarRead) elem;
+			if (va.getVar().isGlobal()) {
+				// in case we read a global variable
+				kn.invalidateMutatingExpressions();
 			}
 		}
 		return null;
@@ -197,8 +204,15 @@ public class TempMerger {
 		}
 
 		public void apply() {
-			set.replaceWith(JassIm.ImNull());
-			read.replaceWith(set.getRight().copy());
+			ImExpr e = set.getRight();
+			if (set.getLeft().attrReads().size() <= 1) {
+				// make sure that an impure expression is only evaluated once
+				// by removing the assignment
+				set.replaceWith(JassIm.ImNull());
+			}
+			read.replaceWith(e.copy());
+			// update attrReads
+			set.getLeft().attrReads().remove(read);
 		}
 
 	}
@@ -213,6 +227,19 @@ public class TempMerger {
 			List<ImVar> invalid = Lists.newArrayList();
 			for (Entry<ImVar, ImSet> e : currentValues.entrySet()) {
 				if (readsGlobal(e.getValue().getRight()) || containsFuncCall(e.getValue())) {
+					invalid.add(e.getKey());
+				}
+			}
+			removeKnowledge(invalid);
+			
+		}
+
+		public void invalidateMutatingExpressions() {
+			// invalidate all knowledge which can change global state
+			// i.e. calling a function
+			List<ImVar> invalid = Lists.newArrayList();
+			for (Entry<ImVar, ImSet> e : currentValues.entrySet()) {
+				if (containsFuncCall(e.getValue())) {
 					invalid.add(e.getKey());
 				}
 			}
@@ -240,10 +267,26 @@ public class TempMerger {
 		public void update(ImVar left, ImSet set) {
 			invalidateVar(left);
 
-			if (!left.isGlobal() && left.attrReads().size() == 1) {
+			if (isMergable(left, set.getRight())) {
 				// only store local vars which are read exactly once
 				currentValues.put(left, set);
 			}
+		}
+
+		private boolean isMergable(ImVar left, ImExpr e) {
+			if (left.isGlobal()) {
+				// never merge globals
+				return false;
+			}
+			if (left.attrReads().size() == 1) {
+				// variable read exactly once can be replaced
+				return true;
+			}
+			if (isSimplePureExpr(e)) {
+				// simple and pure expressions can always be merged
+				return true;
+			}
+			return false;
 		}
 
 		/** invalidates all expression depending on 'left' */
@@ -269,5 +312,16 @@ public class TempMerger {
 
 	}
 
+	private boolean isSimplePureExpr(ImExpr e) {
+		if (e instanceof ImConst) {
+			// constants are ok
+			return true;
+		} else if (e instanceof ImVarAccess) {
+			// local variables are ok
+			ImVarAccess va = (ImVarAccess) e;
+			return !va.getVar().isGlobal(); 
+		}
+		return false;
+	}
 	
 }

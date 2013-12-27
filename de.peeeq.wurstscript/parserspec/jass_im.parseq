@@ -282,6 +282,11 @@ ImVar.attrReads
 ImFunction.calcUsedVariables()
 	returns java.util.Set<ImVar>
 	implemented by de.peeeq.wurstscript.translation.imtranslation.UsedVariables.calculate
+
+	
+ImFunction.calcReadVariables()
+	returns java.util.Set<ImVar>
+	implemented by de.peeeq.wurstscript.translation.imtranslation.UsedVariables.calculateReadVars
 	
 ImFunction.calcUsedFunctions()
 	returns java.util.Set<ImFunction>

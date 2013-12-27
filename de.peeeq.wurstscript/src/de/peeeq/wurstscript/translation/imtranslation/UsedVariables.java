@@ -45,4 +45,19 @@ public class UsedVariables {
 		});
 		return result;
 	}
+
+	public static Set<ImVar> calculateReadVars(ImFunction f) {
+		final Set<ImVar> result = Sets.newLinkedHashSet();
+		f.accept(new ImFunction.DefaultVisitor() {
+			@Override
+			public void visit(ImVarAccess e) {
+				result.add(e.getVar());
+			}
+			@Override
+			public void visit(ImVarArrayAccess e) {
+				result.add(e.getVar());
+			}
+		});
+		return result;
+	}
 }

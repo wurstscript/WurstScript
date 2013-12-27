@@ -178,9 +178,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		}
 		WLogger.info("Compiling compilation units: " + sb);
 		
-		checkAndTranslate(merged);
-		gui.sendProgress("finished translation", .8);
-		
 		return merged;
 	}
 	
@@ -402,17 +399,18 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		}
 		
 		
+		
 		// translate flattened intermediate lang to jass:
 		
 		beginPhase(12, "translate to jass");
 		imTranslator.calculateCallRelationsAndUsedVariables();
 		ImToJassTranslator translator = new ImToJassTranslator(imProg, imTranslator.getCalledFunctions()
 				, imTranslator.getMainFunc(), imTranslator.getConfFunc());
-		JassProg p = translator.translate();
+		prog = translator.translate();
 		if (errorHandler.getErrorCount() > 0) {
-			return null;
+			prog = null;
 		}
-		return p;
+		return prog;
 	}
 
 	private void beginPhase(int phase, String description) {
@@ -618,6 +616,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			WLogger.severe(t);
 		}
 		return sb.toString();
+	}
+
+	public void setRunArgs(RunArgs runArgs) {
+		this.runArgs = runArgs;
 	}
 
 

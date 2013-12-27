@@ -1,10 +1,20 @@
 package de.peeeq.wurstscript.translation.imoptimizer;
 
+import java.util.List;
+
+import com.google.common.collect.Lists;
+
 import de.peeeq.wurstscript.intermediateLang.optimizer.SimpleRewrites;
 import de.peeeq.wurstscript.intermediateLang.optimizer.TempMerger;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
+import de.peeeq.wurstscript.jassIm.ImSet;
+import de.peeeq.wurstscript.jassIm.ImSetArray;
+import de.peeeq.wurstscript.jassIm.ImSetArrayTuple;
+import de.peeeq.wurstscript.jassIm.ImSetTuple;
+import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.utils.Pair;
 
 public class ImOptimizer {
 	
@@ -33,6 +43,7 @@ public class ImOptimizer {
 	}
 	
 	public void localOptimizations() {
+		removeGarbage();
 		new TempMerger(trans).optimize();
 		new SimpleRewrites(trans).optimize();
 		removeGarbage();
@@ -56,8 +67,41 @@ public class ImOptimizer {
 		prog.getFunctions().retainAll(trans.getUsedFunctions());
 		
 		for (ImFunction f: prog.getFunctions()) {
-			// keep only used local variables
-			f.getLocals().retainAll(trans.getUsedVariables());
+			// remove set statements to unread variables
+			final List<Pair<ImStmt, ImStmt>> replacements = Lists.newArrayList();
+			f.accept(new ImFunction.DefaultVisitor() {
+				@Override
+				public void visit(ImSet e) {
+					if (!trans.getReadVariables().contains(e.getLeft())) {
+						replacements.add(Pair.<ImStmt,ImStmt>create(e, e.getRight()));
+					}
+				}
+				@Override
+				public void visit(ImSetArrayTuple e) {
+					if (!trans.getReadVariables().contains(e.getLeft())) {
+						replacements.add(Pair.<ImStmt,ImStmt>create(e, e.getRight()));
+					}
+				}
+				@Override
+				public void visit(ImSetArray e) {
+					if (!trans.getReadVariables().contains(e.getLeft())) {
+						replacements.add(Pair.<ImStmt,ImStmt>create(e, e.getRight()));
+					}
+				}
+				@Override
+				public void visit(ImSetTuple e) {
+					if (!trans.getReadVariables().contains(e.getLeft())) {
+						replacements.add(Pair.<ImStmt,ImStmt>create(e, e.getRight()));
+					}
+				}
+			});
+			for (Pair<ImStmt, ImStmt> pair : replacements) {
+				pair.getB().setParent(null);
+				pair.getA().replaceWith(pair.getB());
+			}
+			
+			// keep only read local variables
+			f.getLocals().retainAll(trans.getReadVariables());
 		}
 	}
 	

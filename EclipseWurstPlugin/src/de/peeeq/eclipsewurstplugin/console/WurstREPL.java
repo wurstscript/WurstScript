@@ -186,6 +186,9 @@ public class WurstREPL {
 			} else if (line.startsWith("printClasses")) {
 				printClasses();
 				return;
+			} else if (line.equals("clean")) {
+				cleanProject();
+				return;
 			}
 			
 			gui.clearErrors();
@@ -340,6 +343,8 @@ public class WurstREPL {
 			imProg = null;
 		}
 	}
+
+	
 
 	private void runMap(String args) {
 		try {
@@ -516,9 +521,13 @@ public class WurstREPL {
 		return result;
 	}
 
+	private void cleanProject() {
+		modelManager.clean();
+	}
+	
 	private IFile compileScript(List<String> compileArgs) throws CoreException {
 		if (compileArgs.contains("-clean")) {
-			modelManager.clean();
+			cleanProject();
 			compileArgs.remove("-clean");
 		}
 		IProject project = modelManager.getNature().getProject();

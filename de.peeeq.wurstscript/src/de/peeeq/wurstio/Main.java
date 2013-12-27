@@ -25,6 +25,7 @@ import de.peeeq.wurstscript.ErrorReporting;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstConfig;
+import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
@@ -114,7 +115,8 @@ public class Main {
 					for (String file: runArgs.getFiles()) {
 						compiler.loadFiles(file);
 					}
-					compiler.parseFiles();
+					WurstModel model = compiler.parseFiles();
+					compiler.checkAndTranslate(model);
 
 					if (gui.getErrorCount() > 0) {
 						break compilation;

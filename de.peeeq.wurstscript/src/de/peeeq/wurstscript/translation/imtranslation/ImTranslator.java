@@ -115,6 +115,7 @@ public class ImTranslator {
 
 	private Multimap<ImFunction, ImFunction> callRelations = null;
 	private Set<ImVar> usedVariables = null;
+	private Set<ImVar> readVariables = null;
 	private Set<ImFunction> usedFunctions = null;
 
 	private ImFunction debugPrintFunction;
@@ -591,6 +592,7 @@ public class ImTranslator {
 	public void calculateCallRelationsAndUsedVariables() {
 		callRelations = HashMultimap.create();
 		usedVariables = Sets.newLinkedHashSet();
+		readVariables = Sets.newLinkedHashSet();
 		usedFunctions = Sets.newLinkedHashSet();
 		calculateCallRelations(getMainFunc());
 		calculateCallRelations(getConfFunc());
@@ -606,11 +608,11 @@ public class ImTranslator {
 			return;
 		}
 		usedFunctions.add(f);
-		Set<ImVar> usedVars = f.calcUsedVariables();
-//		WLogger.info("Function " + f.getName() + " uses vars: " + usedVars);
-		usedVariables.addAll(usedVars);
-		Set<ImFunction> calledFuncs = f.calcUsedFunctions();
+
+		usedVariables.addAll(f.calcUsedVariables());
+		readVariables.addAll(f.calcReadVariables());
 		
+		Set<ImFunction> calledFuncs = f.calcUsedFunctions();
 		for (ImFunction called : calledFuncs) {
 //			WLogger.info("Function " + f.getName() + " calls: " + called.getName());
 			callRelations.put(f, called);
@@ -951,6 +953,13 @@ public class ImTranslator {
 			calculateCallRelationsAndUsedVariables();
 		}
 		return usedVariables;
+	}
+	
+	public Set<ImVar> getReadVariables() {
+		if (readVariables == null) {
+			calculateCallRelationsAndUsedVariables();
+		}
+		return readVariables;
 	}
 
 	public Set<ImFunction> getUsedFunctions() {

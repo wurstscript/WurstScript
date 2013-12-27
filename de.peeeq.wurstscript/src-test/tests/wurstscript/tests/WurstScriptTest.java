@@ -154,46 +154,57 @@ public class WurstScriptTest {
 	}
 	
 	protected void testScript(Iterable<File> inputFiles, Map<String, String> inputs, String name, boolean executeProg, boolean withStdLib, boolean executeTests) {
-		// test without inlining and optimization
-		testScript(inputFiles, inputs, name, executeProg, withStdLib, executeTests, 
-				new RunArgs(new String[] {}));
-		
-		// test with inlining		
-		testScript(inputFiles, inputs, name + "_inl", executeProg, withStdLib, executeTests, 
-				new RunArgs(new String[] {"-inline"	}));
-		
-		// test with inlining and local optimization 
-		testScript(inputFiles, inputs, name + "_inlopt", executeProg, withStdLib, executeTests, 
-				new RunArgs(new String[] {"-inline", "-localOptimizations"}));
-		
-		
-	}
-	
-	protected void testScript(Iterable<File> inputFiles, Map<String, String> inputs, String name, boolean executeProg, boolean withStdLib, boolean executeTests, RunArgs runArgs) {
-		if (inputFiles == null) {
-			inputFiles = Collections.emptyList();
-		}
-		if (inputs == null) {
-			inputs = Collections.emptyMap();
-		}
-		
-		boolean success = false;
+		RunArgs runArgs = new RunArgs(new String[] {});
 		WurstGui gui = new WurstGuiCliImpl();
 		WurstConfig config = new WurstConfig();
 		config.setSetting("lib", "../Wurstpack/wurstscript/lib/");
 		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(config , gui, runArgs);
 		compiler.getErrorHandler().enableUnitTestMode();
-		if (withStdLib) {
-			compiler.loadFiles(new File("./resources/common.j"), new File("./resources/blizzard.j"));
+		WurstModel model = parseFiles(inputFiles, inputs, withStdLib, compiler);
+		// check prog
+		compiler.checkProg(model);
+		if (!gui.getErrorList().isEmpty()) {
+			throw gui.getErrorList().get(0);
 		}
-		for (File input : inputFiles) {
-			compiler.loadFiles(input);
-		}
-		for (Entry<String, String> input : inputs.entrySet()) {
-			compiler.loadReader(input.getKey(), new StringReader(input.getValue()));
-		}
-		WurstModel model = compiler.parseFiles();
 		
+		// translate with different options:
+		
+		// test without inlining and optimization
+		translateAndTest(name, executeProg, executeTests, gui, compiler,	model);
+		
+		// test with inlining	
+		compiler.setRunArgs(new RunArgs(new String[] {"-localOptimizations"	}));
+		translateAndTest(name+"_inl", executeProg, executeTests, gui, compiler,	model);
+				
+		// test with local optimization
+		compiler.setRunArgs(new RunArgs(new String[] {"-inline"	}));
+		translateAndTest(name+"_opt", executeProg, executeTests, gui, compiler,	model);
+		
+		// test with inlining and local optimization 
+		compiler.setRunArgs(new RunArgs(new String[] {"-inline", "-localOptimizations"}));
+		translateAndTest(name+"_inlopt", executeProg, executeTests, gui, compiler,	model);
+		
+		
+	}
+	
+	protected void testScript(Iterable<File> inputFiles, Map<String, String> inputs, String name, boolean executeProg, boolean withStdLib, boolean executeTests, RunArgs runArgs) {
+		WurstGui gui = new WurstGuiCliImpl();
+		WurstConfig config = new WurstConfig();
+		config.setSetting("lib", "../Wurstpack/wurstscript/lib/");
+		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(config , gui, runArgs);
+		compiler.getErrorHandler().enableUnitTestMode();
+		WurstModel model = parseFiles(inputFiles, inputs, withStdLib, compiler);
+		
+		compiler.checkProg(model);
+		
+		translateAndTest(name, executeProg, executeTests, gui, compiler,	model);
+
+	}
+
+	private void translateAndTest(String name, boolean executeProg,
+			boolean executeTests, WurstGui gui, WurstCompilerJassImpl compiler,
+			WurstModel model) throws CompileError, Error, TestFailException {
+		compiler.translateProg(model);
 		
 		if (gui.getErrorCount() > 0) {
 			throw gui.getErrorList().get(0);
@@ -203,33 +214,9 @@ public class WurstScriptTest {
 		ImProg imProg = compiler.getImProg();
 		writeJassImProg(name, gui, imProg);
 		if (executeTests) {
-			CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(imProg, null, gui, FunctionFlag.IS_TEST);
-			cfr.run();
-			WLogger.info("Successfull tests: " + cfr.getSuccessTests().size());
-			int failedTestCount = cfr.getFailTests().size();
-			WLogger.info("Failed tests: " + failedTestCount);
-			if (failedTestCount > 0 ) {
-				for (Entry<ImFunction, Pair<ImStmt, String>> e : cfr.getFailTests().entrySet()) {
-					Assert.assertFalse(Utils.printElementWithSource(e.getKey().attrTrace()) + " " + e.getValue().getB()
-							+ "\n" + "at " + Utils.printElementWithSource(e.getValue().getA().attrTrace()), true);
-				}
-			} else {
-				success = true;
-			}
+			executeTests(gui, imProg);
 		} if (executeProg) {
-			
-			try {
-				// run the interpreter on the intermediate language
-				success = false;
-				ILInterpreter interpreter = new ILInterpreter(imProg, gui, null);
-				interpreter.addNativeProvider(new NativeFunctionsIO());
-//				interpreter.addNativeProvider(new CompiletimeNatives((ProgramStateIO) interpreter.getGlobalState()));
-				interpreter.executeFunction("main");
-			} catch (TestFailException e) {
-				throw e;
-			} catch (TestSuccessException e)  {
-				success = true;
-			}
+			executeImProg(gui, imProg);
 		}
 		
 		
@@ -243,64 +230,92 @@ public class WurstScriptTest {
 
 		File outputFile = writeJassProg(name, gui, prog);
 
-
 		// run pjass:
+		runPjass(outputFile);
+
+		if (executeProg) {
+			executeJassProg(prog);
+		}
+	}
+
+	private WurstModel parseFiles(Iterable<File> inputFiles,
+			Map<String, String> inputs, boolean withStdLib,
+			WurstCompilerJassImpl compiler) {
+		if (inputFiles == null) {
+			inputFiles = Collections.emptyList();
+		}
+		if (inputs == null) {
+			inputs = Collections.emptyMap();
+		}
+		
+		if (withStdLib) {
+			compiler.loadFiles(new File("./resources/common.j"), new File("./resources/blizzard.j"));
+		}
+		for (File input : inputFiles) {
+			compiler.loadFiles(input);
+		}
+		for (Entry<String, String> input : inputs.entrySet()) {
+			compiler.loadReader(input.getKey(), new StringReader(input.getValue()));
+		}
+		WurstModel model = compiler.parseFiles();
+		return model;
+	}
+
+	
+
+	private void runPjass(File outputFile) throws Error {
 		Result pJassResult = Pjass.runPjass(outputFile);
 		WLogger.info(pJassResult.getMessage());
 		if (!pJassResult.isOk() && !pJassResult.getMessage().equals("IO Exception")) {
 			throw new Error(pJassResult.getMessage());
 		}
+	}
 
-		if (executeProg) {
-			try {
-				// run the interpreter
-				success = false;
-				JassInterpreter interpreter = new JassInterpreter();
-				interpreter.trace(true);
-				interpreter.loadProgram(prog);
-				interpreter.executeFunction("main");
-			} catch (TestFailException e) {
-				throw e;
-			} catch (TestSuccessException e)  {
-				success = true;
-			}
+	private void executeImProg(WurstGui gui, ImProg imProg) throws TestFailException {
+		try {
+			// run the interpreter on the intermediate language
+			ILInterpreter interpreter = new ILInterpreter(imProg, gui, null);
+			interpreter.addNativeProvider(new NativeFunctionsIO());
+//				interpreter.addNativeProvider(new CompiletimeNatives((ProgramStateIO) interpreter.getGlobalState()));
+			interpreter.executeFunction("main");
+		} catch (TestFailException e) {
+			throw e;
+		} catch (TestSuccessException e)  {
+			return;
 		}
-
-		// run the optimizer:
-		WLogger.info("optimizer1");
-		if (testOptimizer()) {
-
-			
+		throw new Error("Succeed function not called");
+	}
 	
-			// write optimized file:
-			outputFile = writeJassProg(name+"opt", gui, prog);
-	
-			// test optimized file with pjass:
-			pJassResult = Pjass.runPjass(outputFile);
-			WLogger.info(pJassResult.getMessage());
-			if (!pJassResult.isOk() && !pJassResult.getMessage().equals("IO Exception")) {
-				throw new Error("Errors in optimized version: " + pJassResult.getMessage());
-			}
-		
-			if (executeProg) {
-				try {
-					success = false;
-					// run the interpreter with the optimized program
-					JassInterpreter interpreter = new JassInterpreter();
-					interpreter.trace(true);
-					interpreter.loadProgram(prog);
-					interpreter.executeFunction("main");
-				} catch (TestFailException e) {
-					throw e;
-				} catch (TestSuccessException e)  {
-					success = true;
-				}
-			}
+	private void executeJassProg(JassProg prog)
+			throws TestFailException {
+		try {
+			// run the interpreter with the optimized program
+			JassInterpreter interpreter = new JassInterpreter();
+			interpreter.trace(true);
+			interpreter.loadProgram(prog);
+			interpreter.executeFunction("main");
+		} catch (TestFailException e) {
+			throw e;
+		} catch (TestSuccessException e)  {
+			return;
 		}
-		
-		if (executeProg && !success) {
-			throw new Error("Succeed function not called");
+		throw new Error("Succeed function not called");
+	}
+
+	private void executeTests(WurstGui gui, ImProg imProg) {
+		CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(imProg, null, gui, FunctionFlag.IS_TEST);
+		cfr.run();
+		WLogger.info("Successfull tests: " + cfr.getSuccessTests().size());
+		int failedTestCount = cfr.getFailTests().size();
+		WLogger.info("Failed tests: " + failedTestCount);
+		if (failedTestCount == 0 ) {
+			return;
 		}
+		for (Entry<ImFunction, Pair<ImStmt, String>> e : cfr.getFailTests().entrySet()) {
+			Assert.assertFalse(Utils.printElementWithSource(e.getKey().attrTrace()) + " " + e.getValue().getB()
+					+ "\n" + "at " + Utils.printElementWithSource(e.getValue().getA().attrTrace()), true);
+		}
+		throw new Error("tests failed");
 	}
 
 	/**
