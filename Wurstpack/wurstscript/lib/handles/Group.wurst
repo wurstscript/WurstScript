@@ -1,6 +1,7 @@
 package Group
 import NoWurst
 import Vectors
+import public TempGroups
 
 public function group.enumUnitsInRange(vec2 pos, real range)
 	GroupEnumUnitsInRange(this, pos.x, pos.y, range, null)
