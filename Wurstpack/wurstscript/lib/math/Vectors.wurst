@@ -38,6 +38,10 @@ public function vec3.op_minus( vec2 v )	returns vec3
 public function vec3.op_mult(real factor) returns vec3
 	return vec3(this.x*factor, this.y*factor, this.z*factor) 
 
+/** * Operator */	
+public function real.op_mult(vec3 v) returns vec3
+	return vec3(v.x*this, v.y*this, v.z*this) 
+
 /** add 3 realvalues to the coordinates of this Vector */
 public function vec3.addReals( real x, real y, real z )	returns vec3
 	return vec3(this.x + x, this.y + y, this.z + z)
@@ -164,6 +168,24 @@ public function vec3.polarProject( real distance, angle angleGround, angle angle
 	real y = this.y + distance * angleGround.sin() * angleAir.sin()
 	real z = this.z + distance * angleAir.cos() 
 	return vec3(x,y,z)
+
+/** returns a vector of length 1 which points into the direction of target,
+	when this vector and target are equal, then the pointer will point to the right */
+public function vec3.normalizedPointerTo(vec3 target) returns vec3
+	vec3 diff = target - this
+	real len = diff.length()
+	if len > 0
+		diff = diff * (1. / len)
+	else
+		diff = vec3(1,0,0)
+	return diff
+
+/** move a vector towards a given other vector, if the current vector
+	is equal to the target vector, then the vector will move to the right.
+	(this emulated the behavior of using polarOffset for this task)
+	*/
+public function vec3.moveTowards(vec3 target, real dist) returns vec3
+	return this + dist*this.normalizedPointerTo(target)
 	
 /** 2d Vector tuple */
 public tuple vec2( real x, real y )
@@ -179,6 +201,10 @@ public function vec2.op_minus( vec2 v )	returns vec2
 /** * Operator */
 public function vec2.op_mult(real factor) returns vec2
 	return vec2(this.x*factor, this.y*factor) 
+
+/** * Operator */
+public function real.op_mult(vec2 v) returns vec2
+	return vec2(v.x*this, v.y*this) 
 
 /** Add two reals to the coordiantes of this vector */	
 public function vec2.addReals( real x, real y )	returns vec2
@@ -236,6 +262,24 @@ public function vec2.angleTo(vec2 v) returns angle
 /** Get the poalrOffset of this vector */
 public function vec2.polarOffset(angle ang, real dist) returns vec2
 	return this + ang.toVec(dist)
+	
+/** returns a vector of length 1 which points into the direction of target,
+	when this vector and target are equal, then the pointer will point to the right */
+public function vec2.normalizedPointerTo(vec2 target) returns vec2
+	vec2 diff = target - this
+	real len = diff.length()
+	if len > 0
+		diff = diff * (1. / len)
+	else
+		diff = vec2(1,0)
+	return diff
+
+/** move a vector towards a given other vector, if the current vector
+	is equal to the target vector, then the vector will move to the right.
+	(this emulated the behavior of using polarOffset for this task)
+	*/
+public function vec2.moveTowards(vec2 target, real dist) returns vec2
+	return this + dist*this.normalizedPointerTo(target)
 	
 /** Set the length of this vector */
 public function vec2.setLength( real length ) returns vec2
