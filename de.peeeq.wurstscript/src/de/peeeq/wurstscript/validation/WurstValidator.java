@@ -943,7 +943,9 @@ public class WurstValidator {
 		if (scope == null) {
 			scope = ref.attrNearestScope();
 		}
-		calledFunctions.put(scope, called);
+		if (!(ref instanceof ExprFuncRef)) { // ExprFuncRef is not a direct call
+			calledFunctions.put(scope, called);
+		}
 	}
 
 	private void checkFuncRef(ExprFuncRef ref) {
