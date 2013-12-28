@@ -9,9 +9,14 @@ import java.util.Set;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import de.peeeq.immutablecollections.ImmutableList;
+import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.AstElementWithBody;
 import de.peeeq.wurstscript.ast.AstElementWithLoopVar;
+import de.peeeq.wurstscript.ast.CompoundStatement;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.FunctionLike;
+import de.peeeq.wurstscript.ast.HasReadVariables;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.StartFunctionStatement;
@@ -24,8 +29,6 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class DataflowAnomalyAnalysis extends ForwardMethod<Set<LocalVarDef>> {
 
-	Map<WStatement, String> errors = Maps.newLinkedHashMap();
-	
 	@Override
 	Set<LocalVarDef> calculate(WStatement s, Set<LocalVarDef> incoming) {
 		if (s instanceof StartFunctionStatement) {
@@ -42,16 +45,17 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<Set<LocalVarDef>> {
 		}
 		
 		
-		String err = null;
-		for (NameDef v : s.attrReadVariables2()) {
-			if (v.attrTyp() instanceof WurstTypeArray) {
-				continue;
+		if (s instanceof CompoundStatement) {
+			// for a compound statement check only the expressions in the statement
+			for (int i=0; i<s.size(); i++) {
+				if (s.get(i) instanceof Expr) {
+					Expr expr = (Expr) s.get(i);
+					checkIfVarsInitialized(expr, incoming);
+				}
 			}
-			if (incoming.contains(v)) {
-				err = "Variable " + v.getName() + " is not initialized ";
-			}
+		} else {
+			checkIfVarsInitialized(s, incoming);
 		}
-		errors.put(s, err);
 		
 		
 		NameDef n = null;
@@ -74,6 +78,42 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<Set<LocalVarDef>> {
 			return r;
 		}
 		return incoming;
+	}
+
+	private void checkIfVarsInitialized(HasReadVariables s,
+			Set<LocalVarDef> incoming) {
+		ImmutableList<NameDef> readVars = s.attrReadVariables();
+		for (NameDef v : readVars) {
+			if (v.attrTyp() instanceof WurstTypeArray) {
+				continue;
+			}
+			if (incoming.contains(v)) {
+				AstElement readingExpr = findRead(s, v);
+				if (readingExpr.attrNearestExprClosure() != s.attrNearestExprClosure()) {
+					// ignore inside closure
+					continue;
+				}
+				readingExpr.addError("Variable " + v.getName() + " is not initialized ");
+			}
+		}
+	}
+
+	private HasReadVariables findRead(AstElement e, NameDef v) {
+		HasReadVariables result = null;
+		if (e instanceof HasReadVariables) {
+			HasReadVariables r = (HasReadVariables) e;
+			if (!r.attrReadVariables().contains(v)) {
+				return null;
+			}
+			result = r;
+		}
+		for (int i=0; i<e.size(); i++) {
+			HasReadVariables r = findRead(e.get(i), v);
+			if (r != null) {
+				return r;
+			}
+		}
+		return result;
 	}
 
 	@Override
@@ -104,11 +144,6 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<Set<LocalVarDef>> {
 	
 	@Override
 	void checkFinal(Set<LocalVarDef> fin) {
-		for (Entry<WStatement, String> e : errors.entrySet()) {
-			if (e.getValue() != null) {
-				e.getKey().addError(e.getValue());
-			}
-		}
 	}
 
 	@Override

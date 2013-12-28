@@ -62,6 +62,7 @@ import de.peeeq.wurstscript.ast.HasTypeArgs;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
+import de.peeeq.wurstscript.ast.LoopStatementWithVarDef;
 import de.peeeq.wurstscript.ast.ModAbstract;
 import de.peeeq.wurstscript.ast.ModConstant;
 import de.peeeq.wurstscript.ast.ModOverride;
@@ -486,6 +487,21 @@ public class WurstValidator {
 
 			checkAssignment(Utils.isJassCode(s), s, leftType, rightType);
 		}
+		checkIfRead(s);
+	}
+
+	private void checkIfRead(VarDef s) {
+		if (Utils.isJassCode(s)) {
+			return;
+		}
+		if (s.getParent() instanceof StmtForRange) {
+			// it is ok, when the variable of a for-statement is not used
+			return;
+		}
+		WScope f = s.attrNearestScope();
+		if (f != null && !f.attrReadVariables().contains(s)) {
+			s.addWarning("The " + Utils.printElement(s) + " is never read.");
+		}
 	}
 
 	private void checkVarName(VarDef s, boolean isConstant) {
@@ -505,8 +521,28 @@ public class WurstValidator {
 
 	}
 
-	private void visit(WParameter wParameter) {
-		checkVarName(wParameter, false);
+	private void visit(WParameter p) {
+		checkVarName(p, false);
+		checkIfParameterIsRead(p);
+	}
+
+	private void checkIfParameterIsRead(WParameter p) {
+		FunctionImplementation f = p.attrNearestFuncDef();
+		if (f == null) {
+			return;
+		}
+		if (f.getParent().getParent() instanceof ExprClosure) {
+			// closures can ignore parameters
+			return;
+		}
+		if (f.attrIsOverride()) {
+			// if a function is overridden it is ok to ignore parameters
+			return;
+		}
+		if (f.attrHasAnnotation("compiletimenative")) {
+			return;
+		}
+		checkIfRead(p);
 	}
 
 	private void visit(GlobalVarDef s) {
@@ -766,7 +802,7 @@ public class WurstValidator {
 		}
 	}
 
-	public void checkReturnInFunc(StmtReturn s, FunctionImplementation func) {
+	private void checkReturnInFunc(StmtReturn s, FunctionImplementation func) {
 		WurstType returnType = func.getReturnTyp().attrTyp().dynamic();
 		if (s.getReturnedObj() instanceof Expr) {
 			Expr returned = (Expr) s.getReturnedObj();
@@ -820,14 +856,14 @@ public class WurstValidator {
 		}
 	}
 
-	public void checkDestroyInterface(ExprDestroy stmtDestroy,
+	private void checkDestroyInterface(ExprDestroy stmtDestroy,
 			WurstTypeInterface i) {
 		if (i.isStaticRef()) {
 			stmtDestroy.addError("Cannot destroy interface " + i);
 		}
 	}
 
-	public void checkDestroyClass(ExprDestroy stmtDestroy, WurstTypeClass c) {
+	private void checkDestroyClass(ExprDestroy stmtDestroy, WurstTypeClass c) {
 		if (c.isStaticRef()) {
 			stmtDestroy.addError("Cannot destroy class " + c);
 		}
@@ -1112,7 +1148,7 @@ public class WurstValidator {
 		}
 	}
 
-	public static String printMod(Class<? extends Modifier> c) {
+	private static String printMod(Class<? extends Modifier> c) {
 		String name = c.getName().toLowerCase();
 		name = name.replaceFirst("^.*\\.", "");
 		name = name.replaceAll("^(mod|visibility)", "");
@@ -1120,7 +1156,7 @@ public class WurstValidator {
 		return name;
 	}
 
-	protected static String printMod(Modifier m) {
+	private static String printMod(Modifier m) {
 		if (m instanceof Annotation) {
 			return ((Annotation) m).getAnnotationType();
 		}

@@ -1,9 +1,11 @@
 package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.immutablecollections.ImmutableList;
-import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.Expr;
+import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.EnumDef;
 import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprBoolVal;
 import de.peeeq.wurstscript.ast.ExprCast;
@@ -24,45 +26,53 @@ import de.peeeq.wurstscript.ast.ExprTypeId;
 import de.peeeq.wurstscript.ast.ExprUnary;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
+import de.peeeq.wurstscript.ast.FunctionImplementation;
+import de.peeeq.wurstscript.ast.HasReadVariables;
+import de.peeeq.wurstscript.ast.InitBlock;
+import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
+import de.peeeq.wurstscript.ast.ModuleDef;
+import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
+import de.peeeq.wurstscript.ast.NativeFunc;
+import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.StmtSet;
+import de.peeeq.wurstscript.ast.TupleDef;
+import de.peeeq.wurstscript.ast.WEntities;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WStatement;
+import de.peeeq.wurstscript.ast.WStatements;
+import de.peeeq.wurstscript.ast.WurstModel;
 
 public class ReadVariables {
 
 	public static ImmutableList<NameDef> calculate(WStatement e) {
-		return generic(e); 
+		return generic(e);
 	}
 
 	public static ImmutableList<NameDef> calculate(StmtSet e) {
-		return e.getRight().attrReadVariables().cons(generic(e.getUpdatedExpr()));
-		
-	}
-	
-	public static ImmutableList<NameDef> calculate(LocalVarDef e) {
-		return generic(e.getInitialExpr());
+		return e.getRight().attrReadVariables()
+				.cons(generic(e.getUpdatedExpr()));
+
 	}
 
+	public static ImmutableList<NameDef> calculate(LocalVarDef e) {
+		return generic(e);
+	}
 
 	private static ImmutableList<NameDef> generic(AstElement e) {
 		ImmutableList<NameDef> r = ImmutableList.emptyList();
-		for (int i=0; i<e.size(); i++) {
-			if (e.get(i) instanceof Expr) {
-				Expr child = (Expr) e.get(i);
+		for (int i = 0; i < e.size(); i++) {
+			if (e.get(i) instanceof HasReadVariables) {
+				HasReadVariables child = (HasReadVariables) e.get(i);
 				r = r.cons(child.attrReadVariables());
-			} else if (e.get(i) instanceof Arguments) {
-				Arguments args = (Arguments) e.get(i);
-				for (Expr a : args) {
-					r = r.cons(a.attrReadVariables());
-				}
+			} else {
+				r = r.cons(generic(e.get(i)));
 			}
 		}
 		return r;
 	}
-	
-	
-	
+
 	public static ImmutableList<NameDef> calculate(ExprVarAccess e) {
 		if (e.attrNameDef() != null) {
 			return ImmutableList.of(e.attrNameDef());
@@ -72,13 +82,14 @@ public class ReadVariables {
 	}
 
 	public static ImmutableList<NameDef> calculate(ExprVarArrayAccess e) {
+		ImmutableList<NameDef> r = ImmutableList.emptyList();
 		if (e.attrNameDef() != null) {
-			return ImmutableList.of(e.attrNameDef());
-		} else {
-			return ImmutableList.emptyList();
+			r = ImmutableList.of(e.attrNameDef());
 		}
+		r = r.cons(generic(e.getIndexes()));
+		return r;
 	}
-	
+
 	public static ImmutableList<NameDef> calculate(ExprMemberArrayVar e) {
 		if (e.attrNameDef() != null) {
 			return ImmutableList.of(e.attrNameDef());
@@ -86,9 +97,10 @@ public class ReadVariables {
 			return ImmutableList.emptyList();
 		}
 	}
-	
+
 	public static ImmutableList<NameDef> calculate(ExprBinary e) {
-		return e.getLeft().attrReadVariables().cons(e.getRight().attrReadVariables());
+		return e.getLeft().attrReadVariables()
+				.cons(e.getRight().attrReadVariables());
 	}
 
 	public static ImmutableList<NameDef> calculate(ExprCast e) {
@@ -135,8 +147,6 @@ public class ReadVariables {
 		return ImmutableList.emptyList();
 	}
 
-
-
 	public static ImmutableList<NameDef> calculate(ExprFuncRef exprFuncRef) {
 		return ImmutableList.emptyList();
 	}
@@ -149,17 +159,78 @@ public class ReadVariables {
 		return e.getImplementation().attrReadVariables();
 	}
 
-	public static ImmutableList<NameDef> calculate(
-			ExprStatementsBlock e) {
+	public static ImmutableList<NameDef> calculate(ExprStatementsBlock e) {
 		// TODO not sure what to do here
-		return ImmutableList.emptyList();
+		return generic(e);
+		// return ImmutableList.emptyList();
 	}
 
 	public static ImmutableList<NameDef> calculate(ExprDestroy e) {
 		return e.getDestroyedObj().attrReadVariables();
 	}
 
+	public static ImmutableList<NameDef> calculate(FunctionImplementation e) {
+		return generic(e);
+	}
 
-	
-	
+	public static ImmutableList<NameDef> calculate(ClassDef e) {
+		return generic(e);
+	}
+
+	public static ImmutableList<NameDef> calculate(CompilationUnit e) {
+		return generic(e);
+	}
+
+	public static ImmutableList<NameDef> calculate(ConstructorDef e) {
+		return generic(e);
+	}
+
+	public static ImmutableList<NameDef> calculate(EnumDef e) {
+		return generic(e);
+	}
+
+	public static ImmutableList<NameDef> calculate(InitBlock e) {
+		return generic(e);
+	}
+
+	public static ImmutableList<NameDef> calculate(InterfaceDef e) {
+		return generic(e);
+	}
+
+	public static ImmutableList<NameDef> calculate(ModuleDef e) {
+		return generic(e);
+	}
+
+	public static ImmutableList<NameDef> calculate(ModuleInstanciation e) {
+		return generic(e);
+	}
+
+	public static ImmutableList<NameDef> calculate(NativeFunc e) {
+		return generic(e);
+	}
+
+	public static ImmutableList<NameDef> calculate(OnDestroyDef e) {
+		return generic(e);
+	}
+
+	public static ImmutableList<NameDef> calculate(TupleDef e) {
+		return generic(e);
+	}
+
+	public static ImmutableList<NameDef> calculate(WEntities e) {
+		return generic(e);
+	}
+
+	public static ImmutableList<NameDef> calculate(WPackage e) {
+		return generic(e);
+	}
+
+	public static ImmutableList<NameDef> calculate(WurstModel e) {
+		return generic(e);
+	}
+
+	public static ImmutableList<NameDef> calculate(WStatements e) {
+		return generic(e);
+	}
+
 }

@@ -230,7 +230,7 @@ FuncRef = ExprFuncRef | FunctionCall
 	
 NotExtensionFunction = NativeFunc | FuncDef | TupleDef
 
-FunctionDefinition = NotExtensionFunction | ExtensionFuncDef
+FunctionDefinition = NotExtensionFunction | ExtensionFuncDef | FunctionImplementation
 	
 FunctionImplementation = FuncDef | ExtensionFuncDef
 
@@ -291,6 +291,7 @@ ClassOrModuleOrModuleInstanciation = ClassOrModule | ClassOrModuleInstanciation
 
 NamedScope = WPackage | StructureDef | InterfaceDef | EnumDef
 
+HasReadVariables = Expr | WStatement | WScope
 
 // Jass types:
 
@@ -325,14 +326,10 @@ WStatement.attrListIndex "returns the index this statement has in the underlying
 	implemented by  de.peeeq.wurstscript.attributes.Flow.getListIndex
 
 
-Expr.attrReadVariables
+HasReadVariables.attrReadVariables
 	returns de.peeeq.immutablecollections.ImmutableList<NameDef>
 	implemented by de.peeeq.wurstscript.attributes.ReadVariables.calculate
 
-
-WStatement.attrReadVariables2
-	returns de.peeeq.immutablecollections.ImmutableList<NameDef>
-	implemented by de.peeeq.wurstscript.attributes.ReadVariables.calculate
 
 OptTypeExpr.attrTyp
 	returns de.peeeq.wurstscript.types.WurstType
