@@ -16,10 +16,8 @@ import de.peeeq.wurstscript.attributes.CompileError.ErrorType;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.utils.Utils;
 
-public class WurstGuiImpl implements WurstGui {
+public class WurstGuiImpl extends WurstGui {
 
-
-	private List<CompileError> errors = Lists.newArrayList(); // this is not concurrent, because we only use this list from the main thread
 
 	private volatile Queue<CompileError> errorQueue = new ConcurrentLinkedQueue<CompileError>();
 	private volatile double progress = 0.0;
@@ -97,9 +95,9 @@ public class WurstGuiImpl implements WurstGui {
 
 	@Override
 	public void sendError(CompileError err) {
+		super.sendError(err);
 		if (err.getErrorType() == ErrorType.ERROR) {
 			errorQueue.add(err);
-			errors.add(err);
 		}
 	}
 
@@ -126,30 +124,6 @@ public class WurstGuiImpl implements WurstGui {
 	@Override
 	public void sendFinished() {
 		finished = true;
-	}
-
-
-	@Override
-	public int getErrorCount() {
-		return errors.size();
-	}
-
-
-	@Override
-	public String getErrors() {
-		return Utils.join(errors, "\n");
-	}
-
-
-	@Override
-	public List<CompileError> getErrorList() {
-		return Lists.newArrayList(errors);
-	}
-
-
-	@Override
-	public void clearErrors() {
-		errors.clear();
 	}
 
 

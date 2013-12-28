@@ -222,6 +222,10 @@ public class ClosureTranslator {
 
 
 	private boolean isLocalToOtherFunc(ImVar imVar) {
+		if (imVar.getParent() == null
+				|| imVar.getParent().getParent() == null) {
+			return false;
+		}
 		if (imVar.getParent().getParent() instanceof ImFunction) {
 			boolean r = imVar.getParent().getParent() != impl;
 			return r;

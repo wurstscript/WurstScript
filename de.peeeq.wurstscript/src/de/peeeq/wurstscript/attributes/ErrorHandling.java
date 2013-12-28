@@ -34,7 +34,7 @@ public class ErrorHandling {
 	private static CompileError makeCompileError(AstElement e, String msg,
 			ErrorHandler handler, CompileError.ErrorType errorType) throws CompileError {
 		WPos pos = e.attrErrorPos();
-		if (handler.isUnitTestMode()) {
+		if (errorType == ErrorType.ERROR && handler.isUnitTestMode()) {
 			throw new CompileError(pos, msg);
 		}
 		ListIterator<CompileError> it = handler.getErrors().listIterator();

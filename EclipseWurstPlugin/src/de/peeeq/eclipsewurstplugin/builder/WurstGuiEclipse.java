@@ -15,9 +15,8 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.utils.NotNullList;
 
-public class WurstGuiEclipse implements WurstGui {
+public class WurstGuiEclipse extends WurstGui {
 
-	private List<CompileError> errors = new NotNullList<CompileError>();
 	private IProgressMonitor monitor;
 	private String taskName;
 	private int lastPercent = 0;
@@ -28,10 +27,6 @@ public class WurstGuiEclipse implements WurstGui {
 		monitor.beginTask(taskName, 100);
 	}
 	
-	@Override
-	public void sendError(CompileError err) {
-		errors.add(err);
-	}
 
 	@Override
 	public void sendProgress(String whatsRunningNow, double percent) {
@@ -53,27 +48,6 @@ public class WurstGuiEclipse implements WurstGui {
 		monitor.done();
 	}
 	
-	public String getErrors() {
-		String result = "";
-		for (CompileError e : errors) {
-			result += e + "\n";
-		}
-		return result;
-	}
-
-	public int getErrorCount() {
-		return errors.size();
-	}
-	
-	@Override
-	public List<CompileError> getErrorList() {
-		return Lists.newArrayList(errors);
-	}
-
-	@Override
-	public void clearErrors() {
-		errors.clear();
-	}
 
 	@Override
 	public void showInfoMessage(final String message) {

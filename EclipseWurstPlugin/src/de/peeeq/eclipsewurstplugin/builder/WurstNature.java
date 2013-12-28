@@ -1,5 +1,7 @@
 package de.peeeq.eclipsewurstplugin.builder;
 
+import java.util.List;
+
 import org.eclipse.core.resources.ICommand;
 import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.filesystem.IFileStore;
@@ -127,13 +129,18 @@ public class WurstNature implements IProjectNature {
 	}
 	
 	public void addErrorMarkers(WurstGui gui, String markerType) {
-		for (CompileError e : gui.getErrorList()) {
+		addMarkers(markerType, gui.getErrorList());
+		addMarkers(markerType, gui.getWarningList());
+//		gui.clearErrors();
+	}
+
+	private void addMarkers(String markerType, List<CompileError> list) {
+		for (CompileError e : list) {
 			IFile file = getProject().getFile(e.getSource().getFile());
 			if (file != null) {
 				addErrorMarker(file, e, markerType);
 			}
 		}
-//		gui.clearErrors();
 	}
 	
 	public static void deleteMarkers(IFile file, String markerType) {
