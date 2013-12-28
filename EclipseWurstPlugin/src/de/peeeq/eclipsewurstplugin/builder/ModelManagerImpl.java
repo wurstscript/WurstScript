@@ -101,9 +101,11 @@ public class ModelManagerImpl implements ModelManager {
 	}
 
 	private void doTypeCheck(WurstGui gui, boolean addErrorMarkers, boolean refreshAttributes) {
+		// this line is not synchronized, because it can trigger a build in a different thread
+		WurstCompilerJassImpl comp = getCompiler(gui);
 		synchronized (this) {
-			WLogger.info("#typechecking with refresh = " + refreshAttributes);
 			long time = System.currentTimeMillis();
+			WLogger.info("#typechecking with refresh = " + refreshAttributes);
 			if (gui.getErrorCount() > 0) {
 				if (addErrorMarkers) {
 					nature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_GRAMMAR);
@@ -117,8 +119,6 @@ public class ModelManagerImpl implements ModelManager {
 			if (refreshAttributes) {
 				model.clearAttributes();
 			}
-			WurstCompilerJassImpl comp = getCompiler(gui);
-			
 			
 			try {
 				comp.addImportedLibs(model);		
