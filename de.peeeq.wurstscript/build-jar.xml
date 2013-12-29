@@ -3,43 +3,58 @@
 	<!--this file was created by Eclipse Runnable JAR Export Wizard-->
 	<!--ANT 1.7 is required                                        -->
 	<target name="create_run_jar">
-		<mkdir dir="./dist/"/>
+		<mkdir dir="./dist/" />
 		<jar destfile="./dist/wurstscript.jar">
 			<manifest>
-				<attribute name="Main-Class" value="de.peeeq.wurstio.Main"/>
-				<attribute name="Class-Path" value=". wurstscript_lib/java-cup-runtime.jar wurstscript_lib/log4j-1.2.16.jar wurstscript_lib/guava-14.0-rc1.jar wurstscript_lib/junit-4.10.jar wurstscript_lib/chardet.jar"/>
+				<attribute name="Main-Class" value="de.peeeq.wurstio.Main" />
+				<attribute name="Class-Path" value=". wurstscript_lib/java-cup-runtime.jar wurstscript_lib/log4j-1.2.16.jar wurstscript_lib/guava-14.0-rc1.jar wurstscript_lib/junit-4.10.jar wurstscript_lib/chardet.jar" />
 			</manifest>
-			<fileset dir="./bin"/>
-			<fileset dir="./resources"/>
+			<fileset dir="./bin" />
+			<fileset dir="./resources" />
 		</jar>
-		<delete dir="./dist/wurstscript_lib"/>
-		<mkdir dir="./dist/wurstscript_lib"/>
-		<copy file="./lib/java-cup-runtime.jar" todir="./dist/wurstscript_lib"/>
-		<copy file="./lib/log4j-1.2.16.jar" todir="./dist/wurstscript_lib"/>
-		<copy file="./lib/guava-14.0-rc1.jar" todir="./dist/wurstscript_lib"/>
-		<copy file="./lib/junit-4.10.jar" todir="./dist/wurstscript_lib"/>
-		<copy file="./lib/chardet.jar"  todir="./dist/wurstscript_lib"/>
-		<copy file="./lib/velocity-1.7-dep.jar"  todir="./dist/wurstscript_lib"/>
+		<delete dir="./dist/wurstscript_lib" />
+		<mkdir dir="./dist/wurstscript_lib" />
+		<copy file="./lib/java-cup-runtime.jar" todir="./dist/wurstscript_lib" />
+		<copy file="./lib/log4j-1.2.16.jar" todir="./dist/wurstscript_lib" />
+		<copy file="./lib/guava-14.0-rc1.jar" todir="./dist/wurstscript_lib" />
+		<copy file="./lib/junit-4.10.jar" todir="./dist/wurstscript_lib" />
+		<copy file="./lib/chardet.jar" todir="./dist/wurstscript_lib" />
+		<copy file="./lib/velocity-1.7-dep.jar" todir="./dist/wurstscript_lib" />
 	</target>
 
 	<target name="make_for_wurstpack" depends="create_run_jar">
 		<copy file="./dist/wurstscript.jar" todir="../Wurstpack/wurstscript/" overwrite="true" />
-		<copy file="./lib/java-cup-runtime.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true"/>
-		<copy file="./lib/log4j-1.2.16.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true"/>
-		<copy file="./lib/guava-14.0-rc1.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true"/>
-		<copy file="./lib/junit-4.10.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true"/>
-		<copy file="./lib/chardet.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true"/>
-		<copy file="./lib/velocity-1.7-dep.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true"/>
+		<copy file="./lib/java-cup-runtime.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true" />
+		<copy file="./lib/log4j-1.2.16.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true" />
+		<copy file="./lib/guava-14.0-rc1.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true" />
+		<copy file="./lib/junit-4.10.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true" />
+		<copy file="./lib/chardet.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true" />
+		<copy file="./lib/velocity-1.7-dep.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true" />
 	</target>
 
 	<target name="create_zips" depends="make_for_wurstpack">
-		<mkdir dir="../downloads/"/>
-		<zip destfile="../downloads/wurstpack_complete.zip" basedir="../Wurstpack"></zip>
-		<zip destfile="../downloads/wurstpack_lib.zip" basedir="../Wurstpack/wurstscript/lib"></zip>
-		<zip destfile="../downloads/wurstpack_compiler.zip" basedir="../Wurstpack/wurstscript/"></zip>
-		<copy file="./dist/wurstscript.jar" todir="../downloads/" overwrite="true"></copy>
-		<copydir  src="../EclipseWurstPluginUpdateSite/target/site" 
-			dest="../downloads/eclipseUpdateSite/"></copydir>
+		<mkdir dir="../downloads/" />
+		<zip destfile="../downloads/wurstpack_complete.zip" basedir="../Wurstpack">
+		</zip>
+		<zip destfile="../downloads/wurstpack_lib.zip" basedir="../Wurstpack/wurstscript/lib">
+		</zip>
+		<zip destfile="../downloads/wurstpack_compiler.zip" basedir="../Wurstpack/wurstscript/">
+		</zip>
+		<copy file="./dist/wurstscript.jar" todir="../downloads/" overwrite="true">
+		</copy>
+		<copy todir="../downloads/Wurstpack/">
+			<fileset dir="../Wurstpack" />
+		</copy>
+		<copy todir="../downloads/eclipseUpdateSite/">
+			<fileset dir="../EclipseWurstPluginUpdateSite/target/site" />
+		</copy>
+		<!-- create checksums -->
+		<javac srcdir="../Checksums/src" destdir="../Checksums/bin" includeantruntime="false" debug="true" debuglevel="vars,lines,source">
+		</javac>
+		<java classpath="../Checksums/bin:../de.peeeq.wurstscript/lib/guava-14.0-rc1.jar" classname="de.peeeq.checksums.Main">
+			<arg value="../downloads/Wurstpack/" />
+			<arg value="../downloads/wurstpack.md5" />
+		</java>
 	</target>
-	
+
 </project>
