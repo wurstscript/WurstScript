@@ -149,7 +149,7 @@ public class StmtTranslation {
 		if (r instanceof ImConst) {
 			return r;
 		}
-		ImVar tempVar = ImVar(type, "temp", false);
+		ImVar tempVar = JassIm.ImVar(toCache, type, "temp", false);
 		f.getLocals().add(tempVar);
 		result.add(ImSet(toCache, tempVar, r));
 		return ImVarAccess(tempVar);

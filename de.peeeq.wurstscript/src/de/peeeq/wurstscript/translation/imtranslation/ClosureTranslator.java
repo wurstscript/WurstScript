@@ -56,7 +56,7 @@ public class ClosureTranslator {
 			return translateAnonFunc();
 		} else {
 			ImClass c = createClass();
-			ImVar clVar = JassIm.ImVar(WurstTypeInt.instance().imTranslateType(), "clVar", false);
+			ImVar clVar = JassIm.ImVar(e, WurstTypeInt.instance().imTranslateType(), "clVar", false);
 			f.getLocals().add(clVar);
 			ImStmts stmts = JassIm.ImStmts();
 			// allocate closure
@@ -199,7 +199,7 @@ public class ClosureTranslator {
 	private ImVar getClosureVarFor(ImVar var) {
 		ImVar v = closureVars.get(var);
 		if (v == null) {
-			v = JassIm.ImVar(arrayType(var.getType()), var.getName(), false);
+			v = JassIm.ImVar(e, arrayType(var.getType()), var.getName(), false);
 			tr.imProg().getGlobals().add(v);
 			closureVars.put(var, v);
 		}

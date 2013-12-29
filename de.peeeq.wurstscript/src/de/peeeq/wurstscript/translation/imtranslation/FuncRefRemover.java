@@ -36,7 +36,7 @@ public class FuncRefRemover {
 		});
 		
 		for (ImFuncRef fr : funcRefs) {
-			ImVar g = JassIm.ImVar(WurstTypeCode.instance().imTranslateType(), 
+			ImVar g = JassIm.ImVar(fr.attrTrace(), WurstTypeCode.instance().imTranslateType(), 
 					"ref_function_" + fr.getFunc().getName(), false);
 			tr.addGlobalWithInitalizer(g, fr.copy());
 			fr.replaceWith(JassIm.ImVarAccess(g));

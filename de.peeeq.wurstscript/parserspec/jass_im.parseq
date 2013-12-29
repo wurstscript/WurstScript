@@ -12,7 +12,7 @@ ImVars * ImVar
 ImFunctions * ImFunction
 ImClasses * ImClass
 
-ImVar(&ImType type, String name, boolean isBJ)
+ImVar(de.peeeq.wurstscript.ast.AstElement trace, &ImType type, String name, boolean isBJ)
 
 ImType = 
 	  ImSimpleType(String typename)

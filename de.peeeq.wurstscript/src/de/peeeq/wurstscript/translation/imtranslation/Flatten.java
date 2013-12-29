@@ -236,7 +236,7 @@ public class Flatten {
 				return new Result(left.stmts, JassIm.ImOperatorCall(WurstOperator.AND, ImExprs(left.expr, right.expr)));
 			} else {
 				ArrayList<ImStmt> stmts = Lists.newArrayList(left.stmts);
-				ImVar tempVar = JassIm.ImVar(WurstTypeBool.instance().imTranslateType(), "andLeft", false);
+				ImVar tempVar = JassIm.ImVar(e.attrTrace(), WurstTypeBool.instance().imTranslateType(), "andLeft", false);
 				f.getLocals().add(tempVar);
 				ImStmts thenBlock = JassIm.ImStmts();
 				// if left is true then check right
@@ -255,7 +255,7 @@ public class Flatten {
 				return new Result(left.stmts, JassIm.ImOperatorCall(WurstOperator.OR, ImExprs(left.expr, right.expr)));
 			} else {
 				ArrayList<ImStmt> stmts = Lists.newArrayList(left.stmts);
-				ImVar tempVar = JassIm.ImVar(WurstTypeBool.instance().imTranslateType(), "andLeft", false);
+				ImVar tempVar = JassIm.ImVar(trace, WurstTypeBool.instance().imTranslateType(), "andLeft", false);
 				f.getLocals().add(tempVar);
 				// if left is true then result is ture
 				ImStmts thenBlock = JassIm.ImStmts(JassIm.ImSet(trace, tempVar, JassIm.ImBoolVal(true)));
@@ -351,7 +351,7 @@ public class Flatten {
 					|| i >= withStmts) {
 				newExprs.add(r.expr);
 			} else {
-				ImVar tempVar = JassIm.ImVar(r.expr.attrTyp(), "temp", false);
+				ImVar tempVar = JassIm.ImVar(e.attrTrace(), r.expr.attrTyp(), "temp", false);
 				f.getLocals().add(tempVar);
 				stmts.add(JassIm.ImSet(e.attrTrace(), tempVar, r.expr));
 				newExprs.add(JassIm.ImVarAccess(tempVar));

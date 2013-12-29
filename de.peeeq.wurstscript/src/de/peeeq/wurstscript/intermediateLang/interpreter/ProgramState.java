@@ -30,7 +30,7 @@ public class ProgramState extends State {
 	private List<NativesProvider> nativeProviders = Lists.newArrayList();
 	private ImProg prog;
 	private int objectIdCounter;
-	private Map<Integer, ImClass> objectToClass = Maps.newLinkedHashMap();
+	private Map<Integer, Object> objectToClassKey = Maps.newLinkedHashMap();
 	private Stack<ILStackFrame> stackFrames = new Stack<>();
 	
 	
@@ -89,13 +89,17 @@ public class ProgramState extends State {
 
 	public int allocate(ImClass clazz, AstElement trace) {
 		objectIdCounter++;
-		objectToClass.put(objectIdCounter, clazz);
+		objectToClassKey.put(objectIdCounter, classKey(clazz));
 		return objectIdCounter;
+	}
+
+	protected Object classKey(ImClass clazz) {
+		return clazz;
 	}
 
 	public void deallocate(int obj, ImClass clazz, AstElement trace) {
 		assertAllocated(obj, trace);
-		objectToClass.remove(obj);
+		objectToClassKey.remove(obj);
 		// TODO recycle ids
 	}
 
@@ -103,19 +107,32 @@ public class ProgramState extends State {
 		if (obj == 0) {
 			throw new InterpreterException(trace, "Null pointer derefenced");
 		}
-		if (!objectToClass.containsKey(obj)) {
+		if (!objectToClassKey.containsKey(obj)) {
 			throw new InterpreterException(trace, "Object already destroyed");
 		}
 	}
 
 	public boolean isInstanceOf(int obj, ImClass clazz, AstElement trace) {
 		assertAllocated(obj, trace);
-		return objectToClass.get(obj).isSubclassOf(clazz); // TODO more efficient check
+		return getObjectClass(obj).isSubclassOf(clazz); // TODO more efficient check
 	}
 
 	public int getTypeId(int obj,  AstElement trace) {
 		assertAllocated(obj, trace);
-		return objectToClass.get(obj).attrTypeId();
+		return getObjectClass(obj).attrTypeId();
+	}
+
+	private ImClass getObjectClass(int obj) {
+		return findClazz(objectToClassKey.get(obj));
+	}
+
+	private ImClass findClazz(Object key) {
+		for (ImClass c : prog.getClasses()) {
+			if (classKey(c).equals(key)) {
+				return c;
+			}
+		}
+		throw new Error("no class found for key " + key);
 	}
 
 	public void pushStackframe(ImFunction f, ILconst[] args, WPos trace) {

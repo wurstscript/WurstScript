@@ -66,7 +66,7 @@ public class EliminateClasses {
 		// for each field, create a global array variable
 		for (ImVar f : c.getFields()) {
 			ImVar v = JassIm
-					.ImVar(toArrayType(f.getType()), f.getName(), false);
+					.ImVar(f.getTrace(), toArrayType(f.getType()), f.getName(), false);
 			prog.getGlobals().add(v);
 			fieldToArray.put(f, v);
 		}
@@ -116,7 +116,7 @@ public class EliminateClasses {
 		if (df.getReturnType() instanceof ImVoid) {
 			resultVar = null;
 		} else {
-			resultVar = JassIm.ImVar(df.getReturnType(), m.getName()
+			resultVar = JassIm.ImVar(df.getTrace(), df.getReturnType(), m.getName()
 					+ "_result", false);
 			df.getLocals().add(resultVar);
 		}
@@ -354,7 +354,7 @@ public class EliminateClasses {
 		ImExpr objTypeIdExpr = objTypeId;
 		if (useTempVar) {
 			// use temporary variable
-			tempVar = JassIm.ImVar(TypesHelper.imInt(), "instanceOfTemp", false);
+			tempVar = JassIm.ImVar(e.attrTrace(), TypesHelper.imInt(), "instanceOfTemp", false);
 			f.getLocals().add(tempVar);
 			objTypeIdExpr = JassIm.ImVarAccess(tempVar);
 		}

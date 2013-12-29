@@ -26,7 +26,7 @@ public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
 		ImStmts body = f.getBody();
 		AstElement tr = c.getTrace();
 		
-		ImVar thisVar = JassIm.ImVar(TypesHelper.imInt(), "this", false);
+		ImVar thisVar = JassIm.ImVar(tr, TypesHelper.imInt(), "this", false);
 		locals.add(thisVar);
 		
 		ClassManagementVars mVars = translator.getClassManagementVarsFor(c);

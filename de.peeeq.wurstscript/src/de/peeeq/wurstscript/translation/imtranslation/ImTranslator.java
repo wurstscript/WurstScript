@@ -165,7 +165,7 @@ public class ImTranslator {
 
 		globalInitFunc = ImFunction(emptyTrace, "initGlobals", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
 		addFunction(globalInitFunc);
-		debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImVars(ImVar(WurstTypeString.instance().imTranslateType(), "msg", false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE));
+		debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(), "msg", false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE));
 
 
 
@@ -301,7 +301,7 @@ public class ImTranslator {
 		
 		@Override
 		ImFunction initFor(StructureDef classDef) {
-			ImVars params = ImVars(JassIm.ImVar(TypesHelper.imInt(), "this", false));
+			ImVars params = ImVars(JassIm.ImVar(classDef, TypesHelper.imInt(), "this", false));
 			ImFunction f = JassIm.ImFunction(classDef.getOnDestroy(), "destroy" + classDef.getName(), params, TypesHelper.imVoid(), ImVars(), ImStmts(), flags());
 			addFunction(f);
 			return f;
@@ -340,7 +340,7 @@ public class ImTranslator {
 
 		@Override
 		ImFunction initFor(ImClass c) {
-			return JassIm.ImFunction(c.getTrace(), "dealloc_" + c.getName(), JassIm.ImVars(JassIm.ImVar(TypesHelper.imInt(), "obj", false)), TypesHelper.imVoid(), 
+			return JassIm.ImFunction(c.getTrace(), "dealloc_" + c.getName(), JassIm.ImVars(JassIm.ImVar(c.getTrace(), TypesHelper.imInt(), "obj", false)), TypesHelper.imVoid(), 
 					JassIm.ImVars(), JassIm.ImStmts(), Collections.<FunctionFlag>emptyList());
 		}
 		
@@ -472,7 +472,7 @@ public class ImTranslator {
 		if (thisVarMap.containsKey(f)) {
 			return thisVarMap.get(f);
 		}
-		ImVar v = ImVar(ImSimpleType("integer"), "this", false);
+		ImVar v = JassIm.ImVar(f, ImSimpleType("integer"), "this", false);
 		thisVarMap.put(f, v);
 		return v ;
 	}
@@ -522,7 +522,7 @@ public class ImTranslator {
 				name = varDef.attrNearestNamedScope().getName() + "_" + name;
 			}
 			boolean isBj = isBJ(varDef.getSource());
-			v = JassIm.ImVar(type, name, isBj);
+			v = JassIm.ImVar(varDef, type, name, isBj);
 			varMap.put(varDef, v);
 		}
 		return v;
@@ -834,14 +834,14 @@ public class ImTranslator {
 				result = Collections.singletonList(v);
 			} else {
 				result = Lists.newArrayList();
-				addVarsForType(result, v.getName(), v.getType(), false);
+				addVarsForType(result, v.getName(), v.getType(), false, v.getTrace());
 			}
 			varsForTupleVar.put(v, result);
 		}
 		return result;
 	}
 
-	private void addVarsForType(List<ImVar> result, String name, ImType type, boolean array) {
+	private void addVarsForType(List<ImVar> result, String name, ImType type, boolean array, AstElement tr) {
 		Preconditions.checkNotNull(type);
 		Preconditions.checkNotNull(result);
 		// TODO handle names
@@ -849,13 +849,13 @@ public class ImTranslator {
 			ImTupleType tt = (ImTupleType) type;
 			int i=0;
 			for (ImType t : tt.getTypes()) {
-				addVarsForType(result, name + "_" + tt.getNames().get(i), t, false);
+				addVarsForType(result, name + "_" + tt.getNames().get(i), t, false, tr);
 				i++;
 			}
 		} else if (type instanceof ImTupleArrayType) {
 			ImTupleArrayType tt = (ImTupleArrayType) type;
 			for (ImType t : tt.getTypes()) {
-				addVarsForType(result, name, t, true);
+				addVarsForType(result, name, t, true, tr);
 			}
 		} else if (type instanceof ImVoid) {
 
@@ -864,7 +864,7 @@ public class ImTranslator {
 				ImSimpleType st = (ImSimpleType) type;
 				type = JassIm.ImArrayType(st.getTypename());
 			}
-			result.add(JassIm.ImVar(type, name, false));
+			result.add(JassIm.ImVar(tr, type, name, false));
 		}
 
 	}
@@ -874,7 +874,7 @@ public class ImTranslator {
 		List<ImVar> result = tempReturnVars.get(f);
 		if (result == null) {
 			result = Lists.newArrayList();
-			addVarsForType(result, f.getName() +  "_return", getOriginalReturnValue(f), false);
+			addVarsForType(result, f.getName() +  "_return", getOriginalReturnValue(f), false, f.getTrace());
 			if (result.size() > 1) {
 				imProg.getGlobals().addAll(result);
 				// if we only have one return var it will never get used

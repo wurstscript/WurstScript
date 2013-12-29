@@ -420,7 +420,7 @@ public class ExprTranslation {
 		ImVar tempVar = null;
 		if (returnReveiver) {
 			if (leftExpr == null) throw new Error("impossible");
-			tempVar = JassIm.ImVar(leftExpr.attrTyp().imTranslateType(), "receiver", false);
+			tempVar = JassIm.ImVar(leftExpr, leftExpr.attrTyp().imTranslateType(), "receiver", false);
 			f.getLocals().add(tempVar);
 			stmts = JassIm.ImStmts(
 					JassIm.ImSet(e, tempVar, receiver)

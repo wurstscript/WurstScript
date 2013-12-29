@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImVar;
@@ -20,17 +21,18 @@ public class ClassManagementVars {
 	public final ImVar typeId;
 
 	public ClassManagementVars(ImClass repClass, ImTranslator translator) {
+		AstElement tr = repClass.getTrace();
 		ImProg prog = translator.getImProg();
-		free = JassIm.ImVar(JassIm.ImArrayType("integer"), repClass.getName() + "_nextFree", false);
+		free = JassIm.ImVar(tr, JassIm.ImArrayType("integer"), repClass.getName() + "_nextFree", false);
 		prog.getGlobals().add(free);
 		
-		freeCount = JassIm.ImVar(TypesHelper.imInt(), repClass.getName() + "_firstFree", false);
+		freeCount = JassIm.ImVar(tr, TypesHelper.imInt(), repClass.getName() + "_firstFree", false);
 		translator.addGlobalWithInitalizer(freeCount, JassIm.ImIntVal(0));
 		
-		maxIndex = JassIm.ImVar(TypesHelper.imInt(), repClass.getName() + "_maxIndex", false);
+		maxIndex = JassIm.ImVar(tr, TypesHelper.imInt(), repClass.getName() + "_maxIndex", false);
 		translator.addGlobalWithInitalizer(maxIndex, JassIm.ImIntVal(0));
 		
-		typeId = JassIm.ImVar(JassIm.ImArrayType("integer"), repClass.getName() + "_typeId", false);
+		typeId = JassIm.ImVar(tr, JassIm.ImArrayType("integer"), repClass.getName() + "_typeId", false);
 		prog.getGlobals().add(typeId);
 	}
 	
