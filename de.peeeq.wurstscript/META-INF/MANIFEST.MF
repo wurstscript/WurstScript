@@ -5,12 +5,10 @@ Bundle-SymbolicName: de.peeeq.wurstscript
 Bundle-Version: 1.0.0.qualifier
 Bundle-ClassPath: wurstscript.jar,
  lib/java-cup-runtime.jar,
- lib/log4j-1.2.16.jar,
  lib/junit-4.10.jar,
- lib/antr_runtime.jar,
  lib/chardet.jar,
  lib/guava-14.0-rc1.jar,
- lib/guava-gwt-14.0-rc1.jar
+ lib/velocity-1.7-dep.jar
 Export-Package: com.google.common.annotations,
  com.google.common.base,
  com.google.common.base.internal,
