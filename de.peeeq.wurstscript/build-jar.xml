@@ -49,6 +49,7 @@
 			<fileset dir="../EclipseWurstPluginUpdateSite/target/site" />
 		</copy>
 		<!-- create checksums -->
+		<mkdir dir="../Checksums/bin"/>
 		<javac srcdir="../Checksums/src" destdir="../Checksums/bin" includeantruntime="false" debug="true" debuglevel="vars,lines,source">
 		</javac>
 		<java classpath="../Checksums/bin:../de.peeeq.wurstscript/lib/guava-14.0-rc1.jar" classname="de.peeeq.checksums.Main">
