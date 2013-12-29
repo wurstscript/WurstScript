@@ -38,6 +38,8 @@
 		<zip destfile="../downloads/wurstpack_lib.zip" basedir="../Wurstpack/wurstscript/lib"></zip>
 		<zip destfile="../downloads/wurstpack_compiler.zip" basedir="../Wurstpack/wurstscript/"></zip>
 		<copy file="./dist/wurstscript.jar" todir="../downloads/" overwrite="true"></copy>
+		<copydir  src="../EclipseWurstPluginUpdateSite/target/site" 
+			dest="../downloads/eclipseUpdateSite/"></copydir>
 	</target>
 	
 </project>
