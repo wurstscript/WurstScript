@@ -116,7 +116,13 @@ public class Main {
 						compiler.loadFiles(file);
 					}
 					WurstModel model = compiler.parseFiles();
-					compiler.checkAndTranslate(model);
+					compiler.checkProg(model);
+					
+					if (gui.getErrorCount() > 0) {
+						break compilation;
+					}
+					
+					compiler.translateProgToIm(model);
 
 					if (gui.getErrorCount() > 0) {
 						break compilation;
@@ -124,15 +130,17 @@ public class Main {
 
 
 					if (runArgs.runCompiletimeFunctions()) {
+						gui.sendProgress("Running tests", 0.9);
 						CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), gui, FunctionFlag.IS_TEST);
 						ctr.run();
 					}
 					if (runArgs.runCompiletimeFunctions()) {
+						gui.sendProgress("Running compiletime functions", 0.91);
 						CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), gui, FunctionFlag.IS_COMPILETIME);
 						ctr.run();
 					}
 
-					JassProg jassProg = compiler.getProg();
+					JassProg jassProg = compiler.transformProgToJass();
 
 					if (jassProg == null || gui.getErrorCount() > 0) {
 						break compilation;

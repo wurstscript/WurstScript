@@ -67,6 +67,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	private WurstConfig config;
 	private final WurstParser parser;
 	private final WurstChecker checker;
+	private ImTranslator imTranslator;
 
 	
 	public WurstCompilerJassImpl(WurstConfig config, WurstGui gui, RunArgs runArgs) {
@@ -312,16 +313,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	
 
 	public JassProg translateProg(WurstModel root) {
-		beginPhase(1, "to intermediate lang");
-		
-		// translate wurst to intermediate lang:
-		ImTranslator imTranslator = new ImTranslator(root, errorHandler.isUnitTestMode());
-		imProg = imTranslator.translateProg();
-		int stage = 1;
-		
-		printDebugImProg("./test-output/im " + stage++ + ".im");
-		
-		
+		translateProgToIm(root);
+		return transformProgToJass();
+	}
+
+	public JassProg transformProgToJass() {
+		int stage = 2;
 		// eliminate classes
 		beginPhase(2, "translate classes");
 		new EliminateClasses(imTranslator, imProg).eliminateClasses();
@@ -411,6 +408,18 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			prog = null;
 		}
 		return prog;
+	}
+
+	public ImProg translateProgToIm(WurstModel root) {
+		beginPhase(1, "to intermediate lang");
+		
+		// translate wurst to intermediate lang:
+		imTranslator = new ImTranslator(root, errorHandler.isUnitTestMode());
+		imProg = imTranslator.translateProg();
+		int stage = 1;
+		
+		printDebugImProg("./test-output/im " + stage++ + ".im");
+		return imProg;
 	}
 
 	private void beginPhase(int phase, String description) {

@@ -53,13 +53,13 @@ public class CompiletimeFunctionRunner {
 	
 
 	public void run() {
-		gui.sendProgress("Running compiletime functions", 0.9);
 //		interpreter.executeFunction("main");
 //		interpreter.executeFunction("initGlobals");
 		try {
 			for (ImFunction f : imProg.getFunctions()) {
 				if (f.hasFlag(functionFlag)) {
 					try {
+						WLogger.info("running " +functionFlag+" function " + f.getName());
 						interpreter.runVoidFunc(f);
 						successTests.add(f);
 					} catch (TestSuccessException e) {
