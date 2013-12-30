@@ -1,0 +1,264 @@
+[otable]
+  [tr]
+    [titletd][/titletd]
+    [titletd][size=6][color=#ccaa00]WurstScript[/color][/size][/titletd]
+    [titletd]
+      [size=2][color=#60a600][right]
+      by peq & Frotty[/right][/color][/size]
+    [/titletd]
+  [/tr]
+  [tr]
+    [tdalt][size=5][color=#222222]__[/color][/size][/tdalt]
+    [td][center][otable][td][indent][p][I]WurstScript is a Scripting language, which can, similar to vJass, cJass and zinc, be translated to Jass.[/I]
+[center][IMG]https://dl.dropboxusercontent.com/u/19704285/Wurst.jpg[/IMG]
+[img]https://dl.dropboxusercontent.com/u/19704285/wurstmall.jpg[/img][/center]
+[hr]*[/hr]
+[B]Why a new Scripting language? [/B]
+[hr]*[/hr]
+
+[SIZE="4"]1. Editor Support[/SIZE]
+[hr]*[/hr]
+
+vJass is mostly based on rexreplacements and generation (vJass modules, textmacros).
+This makes it hard to create a good editor for vJass, including features like autocomplete.
+
+Wurst instead goes for simple, structured code, that can be analyzed in a single compiler-phase.
+vJass however needs [url=http://www.wc3c.net/vexorian/zincmanual.html#compileerror]more phases[/url].
+
+The editor support for wurst is done as an eclipse plugin. This results in a [I]awesome[/I] full-fledged IDE including:
+[LIST]
+[*]Syntax highlighting
+[*]Autocomplete for Natives and Custom Code
+[*]Hot-Doc Documentation
+[*]Outline View
+[*]REPL console
+[*]Automatic Reconciling
+[*]All basic features of eclipse like Project-Tree-View, Tabbed-File-View, find&replace with regular expressions, hotkeys & shortcuts, etc. 
+[/LIST]
+
+[URL=http://i.imgur.com/6uOtqxr.png][IMG]http://i.imgur.com/6uOtqxrl.png[/IMG][/URL]
+[SIZE="1"][I](Click to enlarge)[/I][/SIZE]
+
+[SIZE="4"]2. Type-safety[/SIZE]
+[hr]*[/hr]
+
+vJass isn't typesafe. Look at this example:
+
+*vJass Code*
+
+	[JASS]struct A
+	endstruct
+
+	struct B
+	endstruct
+
+	private function init takes nothing returns nothing
+		local A a = A.create()
+		local B b = A.create() // no error ...
+		set a = 42 // no error ...
+		set a = "bla" // pjass error
+	endfunction[/JASS]
+
+vJass doesn't check if a variable of type B only stores values of type B.
+This leads to frequent errors, which can be discovered late or you recieve a pJass Error,
+which isn't easy to understand.
+
+The Wurst counterpart (Screenshot from the Eclipse Plugin):
+
+[IMG]http://peq.github.io/WurstScript/assets/images/error_sample1.png[/IMG]
+
+[SIZE="4"]3. Less writing, more readability[/SIZE]
+[hr]*[/hr]
+
+vJass features several redundant Syntax-Elements. For example "set", "call"
+or "takes nothing returns nothing". Additionally vJass doesn't have many features
+that allow for writing readable, clear code. Particularly there only exists 
+one type of loop.
+
+WurstScript features less verbosity, but without losing similarity to (v)Jass so switching is easier, and rapid code production for faster map creation.
+
+To support that, WurstScript also comes with a StandardLibrary 
+- a big Library full of packages that contain basic & advanced classes, functions and mechanics that are commonly used in wc3 maps.
+
+[/p][/indent]      [color=#332c29]____________________________________________________________________________________________________[/color]
+    [/td][/otable][/center][/td]
+    [tdalt][/tdalt]
+  [/tr]
+  [tr]
+    [tdalt][/tdalt]
+    [td][indent][size=5][color=#d0f680][b]Features (selected, full List [url=http://peq.github.io/WurstScript/manual.html]here[/url])[/b][/color][/size][/indent][/td]
+    [tdalt][/tdalt]
+  [/tr]
+  [tr]
+    [tdalt][/tdalt]
+    [td][center][tabs]
+      [tab=Local Type Inference + Local Variable Freedom][center][otable]
+        [tr][indent][p]
+The type of local variables is automatically derived from the starting value,
+which saves alot of writing time, especially when chaning the startingvalue to a different type.
+Furthermore variables can be declared at any position in a function, not just the beginning.[/p][/indent]          [color=#332c29]____________________________________________________________________________________________________[/color]
+        [/tr]
+        [tr][center]
+	  [JASS]	// "let" defines a local constant
+	let harald = CreateUnit(Player(0), 'hfoo', x, y, 0)
+	// "var" defines a local variable
+	var otto = CreateUnit(Player(0), 'hfoo', x, y, 0)
+	// traditional way works too
+	unit heinz = CreateUnit(Player(0), 'hfoo', x, y, 0)[/JASS]
+        [/center][/tr]
+      [/otable][/center][/tab]
+      [tab=Extension functions][center][otable]
+        [tr][indent][p]
+Extension functions allow to add specific functions to an already existing type,
+which can be used via dot-syntax. [/p][/indent]          [color=#332c29]____________________________________________________________________________________________________[/color]
+        [/tr]
+        [tr][center]
+	  Declaration: 
+
+[JASS]	public function unit.getOwner() returns player
+		return GetOwningPlayer(this)
+		
+	function player.getName() returns string
+		return GetPlayerName(this)[/JASS]
+
+Usage:
+	
+[JASS]	print(GetKillingUnit().getOwner().getName() + " killed " +
+		GetTriggerUnit().getOwner().getName() + "!")[/JASS]
+
+
+Extension functions have two pros in comparison to normal functions:
+
+- Easier to find autcompletion
+- In many cases the readabilty is improved a lot.
+[JASS]GetPlayerName(GetOwningPlayer(u)) vs u.getOwner().getName()[/JASS]
+        [/center][/tr]
+      [/otable][/center][/tab]
+      [tab=Tuples][center][otable]
+        [tr][indent][p]
+A Tuple is a very simple Datatype. It allows to group several values into one.
+This allows treating the group of values as a group.
+Other than classes, tuples don't create any overhead. They don't have to be created or destroyed and can be used for primitive data types (int, string, etc.)
+A good example are vectors(from the stdlib):[/p][/indent]          [color=#332c29]____________________________________________________________________________________________________[/color]
+        [/tr]
+        [tr][center]
+	  Definition:
+
+	[JASS]// A 2d vector with the components x and y
+	public tuple vec2( real x, real y )
+	
+	// Operator overloading functions:
+	public function vec2.op_plus( vec2 v )	returns vec2
+		return vec2(this.x + v.x, this.y + v.y)
+	
+	public function vec2.op_minus( vec2 v )	returns vec2
+		return vec2(this.x - v.x, this.y - v.y)
+		
+	public function vec2.op_mult(real factor) returns vec2
+		return vec2(this.x*factor, this.y*factor) 
+	
+	// dot product:
+	public function vec2.dot( vec2 v ) returns real
+		return this.x*v.x+this.y*v.y
+	
+	// length:
+	public function vec2.length() returns real
+		return SquareRoot(this.x*this.x+this.y*this.y)
+	
+	// normalized Vector:
+	public function vec2.norm() returns vec2
+        real len = this.length()
+        real x = 0 
+        real y = 0
+        if (len != 0.0)
+            x = (this.x / len)
+            y = (this.y / len)
+        return vec2(x,y)
+	
+	public function vec2.polarOffset(real angle, real dist) returns vec2
+		return vec2(this.x + Cos(angle)*dist, this.y + Sin(angle)*dist)[/JASS]
+
+Usage:
+	
+
+	[JASS]// A projectile homes the target unit(variable following)
+	function followHero()
+		// Increase angle
+		angle += TURN_SPEED*DT
+		// calculate new position
+		let newPos = following.getPos().polarOffset(angle, RANGE)
+		// current velocity is calculated from the difference between old and new position
+		vel = (newPos - pos)*(1/DT)
+		pos = newPos
+		fx.setPos(pos.x, pos.y)
+		SetUnitFacing(fx, (angle + bj_PI/2)*bj_RADTODEG)
+		checkCollisions()
+		
+	// projectile moving forward
+	function moveForward()
+		// Add velocity to position
+		pos = pos + vel*DT
+		if not pos.inBounds()
+			destroyed = true
+		else
+			fx.setPos(pos.x, pos.y)
+			checkCollisions()
+[/JASS][/center][/tr]
+      [/otable][/center][/tab]
+      [tab=Compiletime Functions][center][otable]
+        [tr][indent][p]Not yet working[/p][/indent]          [color=#332c29]____________________________________________________________________________________________________[/color]
+        [/tr]
+        [tr][center][jass]
+        [/jass][/center][/tr]
+      [/otable][/center][/tab]
+    [/tabs][/center][/td]
+    [tdalt][/tdalt]
+  [/tr]
+  [tr]
+    [tdalt][/tdalt]
+    [td][indent][size=5][color=#d0f680][b]How do I get it?[/b][/color][/size][/indent][/td]
+    [tdalt][/tdalt]
+  [/tr]
+  [tr]
+    [tdalt][/tdalt]
+    [td][center][tabs]
+      [tab=Links][center][otable][td]
+        [center]
+Java:
+[url]http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html[/url]
+Eclipse:
+[url]http://www.eclipse.org/downloads/[/url]
+WurstScript:
+[url]http://peq.github.io/WurstScript/[/url]
+Github Repo:
+[url]https://github.com/peq/WurstScript[/url]
+Manual:
+[url]http://peq.github.io/WurstScript/manual.html[/url]
+
+Youtube Tutorials:
+
+Download, Installation & Setup
+[YOUTUBE]http://youtu.be/JYhUkRsQe-o[/YOUTUBE]
+
+Eclipse & WorldEditor workflow
+[YOUTUBE]http://youtu.be/dRhw17Hxhv0[/YOUTUBE][/center]
+        [color=#332c29]____________________________________________________________________________________________________[/color]
+      [/td][/otable][/center][/tab]
+    [/tabs][/center][/td]
+    [tdalt][/tdalt]
+  [/tr]
+  [tr]
+    [tdalt][/tdalt]
+    [td][indent][size=5][color=#d0f680][b]Projects using WurstScript[/b][/color][/size][/indent][/td]
+    [tdalt][/tdalt]
+  [/tr]
+  [tr]
+    [tdalt][/tdalt]
+    [td][center]
+[url]http://www.hiveworkshop.com/forums/project-recruitment-256/heart-blackest-night-recruits-225237/[/url]
+[url]http://www.hiveworkshop.com/forums/maps-564/escape-builder-r-0-82z-184964/[/url]
+[url=http://webchat.quakenet.org/?channels=inwc.de-maps]IRC-Channel we usually hang out[/url][color=#332c29].[/color][/center][/td]
+    [tdalt][/tdalt]
+  [/tr]
+[/otable]
+
