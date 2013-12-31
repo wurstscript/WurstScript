@@ -1,29 +1,29 @@
-[otable]
-  [tr]
-    [titletd][/titletd]
-    [titletd][size=6][color=#ccaa00]WurstScript[/color][/size][/titletd]
-    [titletd]
-      [size=2][color=#60a600][right]
-      by peq & Frotty[/right][/color][/size]
-    [/titletd]
-  [/tr]
-  [tr]
-    [tdalt][size=5][color=#222222]__[/color][/size][/tdalt]
-    [td][center][otable][td][indent][p][I]WurstScript is a Scripting language, which can, similar to vJass, cJass and zinc, be translated to Jass.[/I]
-[center][IMG]https://dl.dropboxusercontent.com/u/19704285/Wurst.jpg[/IMG]
-[img]https://dl.dropboxusercontent.com/u/19704285/wurstmall.jpg[/img][/center]
-[hr]*[/hr]
-[B]Why a new Scripting language? [/B]
-[hr]*[/hr]
+[h1][size=6][color=#fff]WurstScript[/color][/size][/h1]
+[size=2][color=#888]by peq & Frotty[/color][/size]
+[size=2][color=#888]with contributions from Crigges & muzzel[/color][/size]
+    
+[center]
+	[IMG]https://dl.dropboxusercontent.com/u/19704285/Wurst.jpg[/IMG]
+	[img]https://dl.dropboxusercontent.com/u/19704285/wurstmall.jpg[/img]
+[/center]
+	
+WurstScript is a Scripting language, which can, similar to vJass, cJass and zinc, be translated to Jass.
 
-[SIZE="4"]1. Editor Support[/SIZE]
-[hr]*[/hr]
 
-vJass is mostly based on rexreplacements and generation (vJass modules, textmacros).
-This makes it hard to create a good editor for vJass, including features like autocomplete.
+[h2]Why a new Scripting language? [/h2]
 
-Wurst instead goes for simple, structured code, that can be analyzed in a single compiler-phase.
-vJass however needs [url=http://www.wc3c.net/vexorian/zincmanual.html#compileerror]more phases[/url].
+The only alternative to Wurst is vJass (or cJass, zinc, ..., which are basically all the same). 
+
+If you are interested in what we did not like about vJass click the button:
+[hidden="vJass critique"]
+
+[h3]1. Editor Support[/h3]
+
+vJass is mostly based on text-replacements and generation (vJass modules, textmacros). This makes it hard to create a good editor for vJass, including features like autocomplete.
+
+Wurst instead goes for simple, structured code, that can be analyzed in a single compiler-phase. vJass however needs [url=http://www.wc3c.net/vexorian/zincmanual.html#compileerror]more phases[/url].
+
+// TODO move this
 
 The editor support for wurst is done as an eclipse plugin. This results in a [I]awesome[/I] full-fledged IDE including:
 [LIST]
@@ -39,8 +39,7 @@ The editor support for wurst is done as an eclipse plugin. This results in a [I]
 [URL=http://i.imgur.com/6uOtqxr.png][IMG]http://i.imgur.com/6uOtqxrl.png[/IMG][/URL]
 [SIZE="1"][I](Click to enlarge)[/I][/SIZE]
 
-[SIZE="4"]2. Type-safety[/SIZE]
-[hr]*[/hr]
+[h3]2. Type-safety[/h3]
 
 vJass isn't typesafe. Look at this example:
 
@@ -59,92 +58,92 @@ vJass isn't typesafe. Look at this example:
 		set a = "bla" // pjass error
 	endfunction[/JASS]
 
-vJass doesn't check if a variable of type B only stores values of type B.
-This leads to frequent errors, which can be discovered late or you recieve a pJass Error,
-which isn't easy to understand.
+vJass doesn't check if a variable of type B only stores values of type B. This leads to frequent errors, which can be discovered late or you receive a pJass Error, which isn't easy to understand.
 
 The Wurst counterpart (Screenshot from the Eclipse Plugin):
 
 [IMG]http://peq.github.io/WurstScript/assets/images/error_sample1.png[/IMG]
 
-[SIZE="4"]3. Less writing, more readability[/SIZE]
-[hr]*[/hr]
+[h3]3. Verbose syntax[/h3]
 
-vJass features several redundant Syntax-Elements. For example "set", "call"
-or "takes nothing returns nothing". Additionally vJass doesn't have many features
-that allow for writing readable, clear code. Particularly there only exists 
-one type of loop.
+vJass features several redundant Syntax-Elements. For example "set", "call" or "takes nothing returns nothing". Additionally vJass doesn't have many features that allow for writing readable, clear code. Particularly there only exists one type of loop.
 
 WurstScript features less verbosity, but without losing similarity to (v)Jass so switching is easier, and rapid code production for faster map creation.
+[/hidden]
 
-To support that, WurstScript also comes with a StandardLibrary 
-- a big Library full of packages that contain basic & advanced classes, functions and mechanics that are commonly used in wc3 maps.
 
-[/p][/indent]      [color=#332c29]____________________________________________________________________________________________________[/color]
-    [/td][/otable][/center][/td]
-    [tdalt][/tdalt]
-  [/tr]
-  [tr]
-    [tdalt][/tdalt]
-    [td][indent][size=5][color=#d0f680][b]Features (selected, full List [url=http://peq.github.io/WurstScript/manual.html]here[/url])[/b][/color][/size][/indent][/td]
-    [tdalt][/tdalt]
-  [/tr]
-  [tr]
-    [tdalt][/tdalt]
-    [td][center][tabs]
-      [tab=Local Type Inference + Local Variable Freedom][center][otable]
-        [tr][indent][p]
-The type of local variables is automatically derived from the starting value,
-which saves alot of writing time, especially when chaning the startingvalue to a different type.
-Furthermore variables can be declared at any position in a function, not just the beginning.[/p][/indent]          [color=#332c29]____________________________________________________________________________________________________[/color]
-        [/tr]
-        [tr][center]
-	  [JASS]	// "let" defines a local constant
+[h2]Syntax[/h2]
+
+So how does it look like? Here is a simple spell to give you a first idea:
+
+// TODO add code
+
+As you can see, Wurst has an indentation based syntax, and therefore you do not have to write  words like [i]endif[/i] or [i]endfunction[/i]. The example also shows some of the syntactic sugar in Wurst, for example the for-in loop in line 13. // TODO line number
+
+
+[h2]Features[/h2]
+
+The full list of features is documented in the [url=http://peq.github.io/WurstScript/manual.html]Wurst Manual[/url]. Here we present only some selected features.
+
+
+
+[h3]Local Type Inference + Local Variable Freedom[/h3]
+
+The type of local variables can automatically be derived from the initial value. Furthermore variables can be declared at any position in a function, not just the beginning.
+
+[JASS]	
+	// "let" defines a local constant
 	let harald = CreateUnit(Player(0), 'hfoo', x, y, 0)
 	// "var" defines a local variable
 	var otto = CreateUnit(Player(0), 'hfoo', x, y, 0)
 	// traditional way works too
-	unit heinz = CreateUnit(Player(0), 'hfoo', x, y, 0)[/JASS]
-        [/center][/tr]
-      [/otable][/center][/tab]
-      [tab=Extension functions][center][otable]
-        [tr][indent][p]
-Extension functions allow to add specific functions to an already existing type,
-which can be used via dot-syntax. [/p][/indent]          [color=#332c29]____________________________________________________________________________________________________[/color]
-        [/tr]
-        [tr][center]
-	  Declaration: 
+	unit heinz = CreateUnit(Player(0), 'hfoo', x, y, 0)
+[/JASS]
 
-[JASS]	public function unit.getOwner() returns player
+We encourage you to use [b]let[/b] whenever possible, because code is easier read when you know which variables are changed later and which variables keep their initial value.
+
+[h3]Extension functions[/h3]
+
+Extension functions allow to add specific functions to an already existing type, which can be used via dot-syntax.
+
+Declaration: 
+[JASS]
+	public function unit.getOwner() returns player
 		return GetOwningPlayer(this)
 		
 	function player.getName() returns string
-		return GetPlayerName(this)[/JASS]
+		return GetPlayerName(this)
+[/JASS]
 
 Usage:
 	
-[JASS]	print(GetKillingUnit().getOwner().getName() + " killed " +
-		GetTriggerUnit().getOwner().getName() + "!")[/JASS]
+[JASS]	
+	print(GetKillingUnit().getOwner().getName() + " killed " +
+		GetTriggerUnit().getOwner().getName() + "!")
+[/JASS]
 
 
 Extension functions have two pros in comparison to normal functions:
+[list]
+[*]Functions are easier to find using auto-complete in Eclipse
+[*]In many cases the readability is improved as this way 
+[JASS]
+	// nested function calls:
+	name = GetPlayerName(GetOwningPlayer(u))
+	// chained function calls
+	name = u.getOwner().getName()
+[/JASS]
+[/list]
 
-- Easier to find autcompletion
-- In many cases the readabilty is improved a lot.
-[JASS]GetPlayerName(GetOwningPlayer(u)) vs u.getOwner().getName()[/JASS]
-        [/center][/tr]
-      [/otable][/center][/tab]
-      [tab=Tuples][center][otable]
-        [tr][indent][p]
-A Tuple is a very simple Datatype. It allows to group several values into one.
-This allows treating the group of values as a group.
-Other than classes, tuples don't create any overhead. They don't have to be created or destroyed and can be used for primitive data types (int, string, etc.)
-A good example are vectors(from the stdlib):[/p][/indent]          [color=#332c29]____________________________________________________________________________________________________[/color]
-        [/tr]
-        [tr][center]
-	  Definition:
+        
+[h3]Tuples[/h3]
+		
+A Tuple is a very simple Datatype. It allows to group several values into one. This allows treating the group of values as a group. Other than classes, tuples don't create any overhead. They don't have to be created or destroyed and can be used for primitive data types (int, string, etc.). A good example are vectors(from the stdlib):
 
-	[JASS]// A 2d vector with the components x and y
+Definition:
+
+[JASS]
+	// A 2d vector with the components x and y
 	public tuple vec2( real x, real y )
 	
 	// Operator overloading functions:
@@ -176,12 +175,13 @@ A good example are vectors(from the stdlib):[/p][/indent]          [color=#332c2
         return vec2(x,y)
 	
 	public function vec2.polarOffset(real angle, real dist) returns vec2
-		return vec2(this.x + Cos(angle)*dist, this.y + Sin(angle)*dist)[/JASS]
+		return vec2(this.x + Cos(angle)*dist, this.y + Sin(angle)*dist)
+[/JASS]
 
 Usage:
-	
 
-	[JASS]// A projectile homes the target unit(variable following)
+[JASS]
+	// A projectile homes the target unit(variable following)
 	function followHero()
 		// Increase angle
 		angle += TURN_SPEED*DT
@@ -203,62 +203,139 @@ Usage:
 		else
 			fx.setPos(pos.x, pos.y)
 			checkCollisions()
-[/JASS][/center][/tr]
-      [/otable][/center][/tab]
-      [tab=Compiletime Functions][center][otable]
-        [tr][indent][p]Not yet working[/p][/indent]          [color=#332c29]____________________________________________________________________________________________________[/color]
-        [/tr]
-        [tr][center][jass]
-        [/jass][/center][/tr]
-      [/otable][/center][/tab]
-    [/tabs][/center][/td]
-    [tdalt][/tdalt]
-  [/tr]
-  [tr]
-    [tdalt][/tdalt]
-    [td][indent][size=5][color=#d0f680][b]How do I get it?[/b][/color][/size][/indent][/td]
-    [tdalt][/tdalt]
-  [/tr]
-  [tr]
-    [tdalt][/tdalt]
-    [td][center][tabs]
-      [tab=Links][center][otable][td]
-        [center]
-Java:
-[url]http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html[/url]
-Eclipse:
-[url]http://www.eclipse.org/downloads/[/url]
-WurstScript:
-[url]http://peq.github.io/WurstScript/[/url]
-Github Repo:
-[url]https://github.com/peq/WurstScript[/url]
-Manual:
-[url]http://peq.github.io/WurstScript/manual.html[/url]
+[/JASS]
 
-Youtube Tutorials:
+[h3]Anonymous functions / closures[/h3]
+
+With anonymous you can define a new function where it is needed. This is useful for timers, as shown in the following example, where the timer t is started with an anonymous function:
+
+[JASS]
+class Fireball
+	timer t
+	//...
+	
+	construct(unit caster, vec2 target)
+		// ...
+		t = getTimer()
+		t.setData(this castTo int)
+		t.start(0.05, () -> begin
+			let fireball = GetExpiredTimer().getData() castTo Fireball
+			fireball.move()
+		end) 
+	
+	function move()
+		// do stuff
+[/JASS]
+
+Closures are more than just anonymous functions. They also capture variables. This allows to write some very concise code. For example it is easily  possible to destroy an Fx after some time:
+
+[jass]
+	let fx = new Fx(pos, facing, model)
+	fx.setScale(2.0)
+	// destroy fx after 2 seconds:
+	doAfter(2.0, () -> destroy fx)
+[/jass]
+
+Here the closure captured the local variable [i]fx[/i] without the need to get a timer, attach stuff to the timer, and all that boilerplate code. The doAfter function is defined in the standard library and it can not only destroy Fx objects. You can write any code inside the closure and it will run after the given time.
+
+[h3]Compiletime functions[/h3]
+
+You can execute Wurst code at compile-time. Wurst includes some pseudo-natives which can be executed at compile-time to generate object-editor entries. This is similar to what can be done with the ObjectMerger tool, but it also comes with nice readable method names. Here is an example which creates a spell based on Channel and a tower unit for each level:
+
+[jass]
+@compiletime function generateSpell()
+	// based on shadow hunter serpent wards
+	int levelCount = 4
+	let def = new ChannelSpellPreset(GUN_TURRET_SPELL_ID, levelCount)
+		..setName("Gun Turret")
+		..setIcon("ReplaceableTextures\\CommandButtons\\BTNElvenGuardTower.blp")
+		..setIconNormal("ReplaceableTextures\\CommandButtons\\BTNElvenGuardTower.blp")
+		..setTargetType(Targettype.PTARGET)
+		..setOption(Option.VISIBLE, true)
+		..setFollowThroughTime(0.4)
+		..setDisablesOther(false)
+	for lvl = 1 to levelCount
+		createTower(lvl)
+		def.setCastingTime(lvl,0)
+		def.setCastRange(lvl, 300)
+
+function createTower(int lvl)
+	// based on high elven guard tower:
+	let def = new BuildingDefinition(GUN_TURRET_TOWER_ID + lvl, 'negt')
+		..setName("Gun Turret Level " + lvl.toString())
+		..setHitPointsMaximumBase(100 + lvl*100)
+	// no projectile
+	def.setAttack1ProjectileArt("")
+	// 0 damage
+	def..setAttack1DamageBase(-1)
+		..setAttack1DamageNumberofDice(1)
+		..setAttack1DamageSidesperDie(1)
+		..setAttack1CooldownTime(attackCooldown(lvl))
+		..setAttack1Range(attackRange)
+		..setScalingValue(0.8)
+		..setGroundTexture("")
+[/jass]
+
+It is even possible to share code between compile-time functions and normal in-game functions. For example the constant GUN_TURRET_SPELL_ID or the function attackCooldown can be used to configure the generated objects and they can be used in the code for the spell.
+
+
+[h2]Eclipse Plugin[/h2]
+
+// TODO
+
+[list]
+[*]Start wc3 from eclipse
+[*]autocomplete
+[*]jump to decl
+[*]console
+[*]quick open file 
+[*]live errors/warnings
+[*]hotdoc
+[/list]
+
+[h2]Manual[/h2]
+
+You can read about all features in the [url=http://peq.github.io/WurstScript/manual.html]Wurst Manual[/url].
+
+[h2]Installation / Download[/h2]
+
+Please find the [url=http://peq.github.io/WurstScript/installation.html]installation instructions on GitHub[/url].
+
+Other links:
+[list]
+[*][url=http://peq.github.io/WurstScript/]WurstScript Home Page[/url]
+[*][url=https://github.com/peq/WurstScript]WurstScript Github Repository[/url]
+[/list]
+
+
+
+[h3]Youtube Tutorials:[/h3]
 
 Download, Installation & Setup
 [YOUTUBE]http://youtu.be/JYhUkRsQe-o[/YOUTUBE]
 
 Eclipse & WorldEditor workflow
 [YOUTUBE]http://youtu.be/dRhw17Hxhv0[/YOUTUBE][/center]
-        [color=#332c29]____________________________________________________________________________________________________[/color]
-      [/td][/otable][/center][/tab]
-    [/tabs][/center][/td]
-    [tdalt][/tdalt]
-  [/tr]
-  [tr]
-    [tdalt][/tdalt]
-    [td][indent][size=5][color=#d0f680][b]Projects using WurstScript[/b][/color][/size][/indent][/td]
-    [tdalt][/tdalt]
-  [/tr]
-  [tr]
-    [tdalt][/tdalt]
-    [td][center]
+
+
+[h2]Projects using Wurst[/h2]
+	
 [url]http://www.hiveworkshop.com/forums/project-recruitment-256/heart-blackest-night-recruits-225237/[/url]
 [url]http://www.hiveworkshop.com/forums/maps-564/escape-builder-r-0-82z-184964/[/url]
-[url=http://webchat.quakenet.org/?channels=inwc.de-maps]IRC-Channel we usually hang out[/url][color=#332c29].[/color][/center][/td]
-    [tdalt][/tdalt]
-  [/tr]
-[/otable]
+
+
+[h2]FAQ (Frequently asked questions):[/h2]
+
+[h3]Can I use vJass together with Wurst?[/h3]
+Yes, you can use both. However it is not possible to call Wurst-functions from vJass and calling vJass from Wurst is not very convenient.
+
+
+[h3] I have further problems, suggestions or questions. Where can I get help? [/h3]
+[list]
+[*]In this thread.
+[*]Create a [url=https://github.com/peq/WurstScript/issues?state=open]ticket on github[/url].
+[*]Private message to [url=http://www.hiveworkshop.com/forums/members/peq/]peq[/url] or [url=http://www.hiveworkshop.com/forums/members/Frotty/]Frotty[/url]
+[*][url=http://webchat.quakenet.org/?channels=inwc.de-maps]quakenet IRC #inwc.de-maps[/url] (German chat where you can usually find us)
+[/list]
+    
 
