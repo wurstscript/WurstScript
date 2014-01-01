@@ -371,4 +371,23 @@ public class ClosureTests extends WurstScriptTest {
 				"		testSuccess()"
 			);
 	}
+	
+	@Test
+	public void tryCaptureTuple() {
+		testAssertOkLines(true,  
+				"package test",
+				"native testSuccess()",
+				"tuple vec2(real x, real y)",
+				"interface SimpleFunc",
+				"	function call()",
+				"init",
+				"	vec2 v = vec2(1,2)",
+				"	SimpleFunc f = () -> begin",
+				"		v.x = v.y",
+				"		if v.x == v.y",
+				"			testSuccess()",
+				"	end",
+				"	f.call()"
+			);
+	}
 }
