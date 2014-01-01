@@ -11,6 +11,7 @@ WurstScript is a Scripting language, which can, similar to vJass, cJass and zinc
 
 
 [h2]Why a new Scripting language? [/h2]
+[indent]
 
 The only alternative to Wurst is vJass (or cJass, zinc, ..., which are basically all the same). 
 
@@ -71,8 +72,10 @@ vJass features several redundant Syntax-Elements. For example "set", "call" or "
 WurstScript features less verbosity, but without losing similarity to (v)Jass so switching is easier, and rapid code production for faster map creation.
 [/hidden]
 
-
+[/indent]
 [h2]Syntax[/h2]
+[indent]
+
 
 So how does it look like? Here is a simple spell to give you a first idea:
 
@@ -80,9 +83,9 @@ So how does it look like? Here is a simple spell to give you a first idea:
 
 As you can see, Wurst has an indentation based syntax, and therefore you do not have to write  words like [i]endif[/i] or [i]endfunction[/i]. The example also shows some of the syntactic sugar in Wurst, for example the for-in loop in line 13. // TODO line number
 
-
+[/indent]
 [h2]Features[/h2]
-
+[indent]
 The full list of features is documented in the [url=http://peq.github.io/WurstScript/manual.html]Wurst Manual[/url]. Here we present only some selected features.
 
 
@@ -278,27 +281,60 @@ function createTower(int lvl)
 
 It is even possible to share code between compile-time functions and normal in-game functions. For example the constant GUN_TURRET_SPELL_ID or the function attackCooldown can be used to configure the generated objects and they can be used in the code for the spell.
 
-
+[/indent]
 [h2]Eclipse Plugin[/h2]
+[indent]
 
-// TODO
+[h3]Run your map from eclipse[/h3]
 
+You can compile all scripts and run your map directly from eclipse. This can be much faster than saving the map in WorldEditor first, because only the script is updated and eclipse already has the script in memory.
+
+[h3]Live errors and warnings[/h3]
+
+[img]https://dl.dropboxusercontent.com/u/32231212/wurstpresentation/errors.png[/img]
+
+Errors and warnings are directly shown in your code without the need for pressing compile or saving the whole map.
+
+
+
+[h3]Context-sensitive auto-complete[/h3]
+
+[img]https://dl.dropboxusercontent.com/u/32231212/wurstpresentation/autocomplete.png[/img]
+
+If you have an expression with a dot, then auto-complete will show you all members available for the given type. This is especially useful when used with extension methods, because it is very easy to find the function you are looking for.
+
+[h3]Hotdoc[/h3]
+
+As already seen in the auto-complete screenshot, Wurst has support for documenting functions with so called Hotdoc comments. These comments are shown in auto-complete and when you hover your mouse above a function call.
+
+[h3]Jump to declaration[/h3]
+
+Hold down the [b]Ctrl[/b] key and click on a variable or function and you will directly jump to the place where it is declared.
+
+[h3]Console and REPL[/h3]
+
+[img]https://dl.dropboxusercontent.com/u/32231212/wurstpresentation/console.png[/img]
+
+You can use the console to evaluate expressions and test your code in eclipse, without even starting WarCraft. Of course this is limited, as not all natives are implemented in the Interpreter, but it is nice for testing data-structures or mathematical calculations.
+
+
+[h3]Other benefits of using eclipse[/h3]
+
+Many features are already available in Eclipse and not specific to the Wurst-Plugin:
 [list]
-[*]Start wc3 from eclipse
-[*]autocomplete
-[*]jump to decl
-[*]console
-[*]quick open file 
-[*]live errors/warnings
-[*]hotdoc
+[*]Press Ctrl+Shift+R to quickly jump to a file. It even supports using wildcards for searching files.
+[*]Powerful search (and replace) in all files.
+[*]Integration with version control (Git & co).
+[*]...
 [/list]
 
+[/indent]
 [h2]Manual[/h2]
-
+[indent]
 You can read about all features in the [url=http://peq.github.io/WurstScript/manual.html]Wurst Manual[/url].
-
+[/indent]
 [h2]Installation / Download[/h2]
-
+[indent]
 Please find the [url=http://peq.github.io/WurstScript/installation.html]installation instructions on GitHub[/url].
 
 Other links:
@@ -307,24 +343,24 @@ Other links:
 [*][url=https://github.com/peq/WurstScript]WurstScript Github Repository[/url]
 [/list]
 
-
-
 [h3]Youtube Tutorials:[/h3]
 
-Download, Installation & Setup
-[YOUTUBE]http://youtu.be/JYhUkRsQe-o[/YOUTUBE]
+[table]
+   Download, Installation & Setup                [c]Eclipse & WorldEditor workflow
+[r][YOUTUBE]http://youtu.be/JYhUkRsQe-o[/YOUTUBE][c][YOUTUBE]http://youtu.be/dRhw17Hxhv0[/YOUTUBE]
+[/table]
 
-Eclipse & WorldEditor workflow
-[YOUTUBE]http://youtu.be/dRhw17Hxhv0[/YOUTUBE][/center]
-
-
+[/indent]
 [h2]Projects using Wurst[/h2]
-	
-[url]http://www.hiveworkshop.com/forums/project-recruitment-256/heart-blackest-night-recruits-225237/[/url]
-[url]http://www.hiveworkshop.com/forums/maps-564/escape-builder-r-0-82z-184964/[/url]
+
+[list]	
+[*][url]http://www.hiveworkshop.com/forums/project-recruitment-256/heart-blackest-night-recruits-225237/[/url]
+[*][url]http://www.hiveworkshop.com/forums/maps-564/escape-builder-r-0-82z-184964/[/url]
+[/list]
 
 
 [h2]FAQ (Frequently asked questions):[/h2]
+[indent]
 
 [h3]Can I use vJass together with Wurst?[/h3]
 Yes, you can use both. However it is not possible to call Wurst-functions from vJass and calling vJass from Wurst is not very convenient.
@@ -337,5 +373,6 @@ Yes, you can use both. However it is not possible to call Wurst-functions from v
 [*]Private message to [url=http://www.hiveworkshop.com/forums/members/peq/]peq[/url] or [url=http://www.hiveworkshop.com/forums/members/Frotty/]Frotty[/url]
 [*][url=http://webchat.quakenet.org/?channels=inwc.de-maps]quakenet IRC #inwc.de-maps[/url] (German chat where you can usually find us)
 [/list]
-    
+
+[/indent]
 
