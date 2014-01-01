@@ -71,9 +71,10 @@ public function newDummy( vec3 pos, angle facing ) returns unit
 		u.pause()
 	else
 		u = createUnit(DUMMY_PLAYER, DUMMY_UNIT_ID, pos, facing)
-		u.addAbility(HEIGHT_ENABLER).removeAbility(HEIGHT_ENABLER)
-		.addAbility(LOCUST_ID)
-		.pause()
+			..addAbility(HEIGHT_ENABLER)
+			..removeAbility(HEIGHT_ENABLER)
+			..addAbility(LOCUST_ID)
+			..pause()
 
 	u.setXYZ(pos)
 	bj_lastCreatedUnit = u
@@ -145,9 +146,11 @@ init
 		while n < endPos
 			queueNext[n] = n + 1
 			stack[n] = CreateUnit(DUMMY_PLAYER, DUMMY_UNIT_ID, x, y, angl)
-			stack[n].addAbility(HEIGHT_ENABLER).removeAbility(HEIGHT_ENABLER)
-			.addAbility(LOCUST_ID)
-			.pause()
+			stack[n]
+				..addAbility(HEIGHT_ENABLER)
+				..removeAbility(HEIGHT_ENABLER)
+				..addAbility(LOCUST_ID)
+				..pause()
 			n++
 
 		queueNext[n - 1] = 0

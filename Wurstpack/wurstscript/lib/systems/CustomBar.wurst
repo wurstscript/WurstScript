@@ -152,14 +152,14 @@ package CustomBar
 			setValue(.0)
 			
 			if t != null
-				t.setAge(0.)
-				.setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
-				.setFadepoint(0.)
-				.setLifespan(0.)
-				.setPermanent(true)
-				.setPos( position )
-				.setSuspended(false)
-				.setText( txt, textsize)
+				t..setAge(0.)
+					..setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
+					..setFadepoint(0.)
+					..setLifespan(0.)
+					..setPermanent(true)
+					..setPos( position )
+					..setSuspended(false)
+					..setText( txt, textsize)
 
 			rebuildText()
 
@@ -304,9 +304,9 @@ package CustomBar
 				if IsPlayerInForce(GetLocalPlayer(), disp) and t == null
 					t = CreateTextTag()
 					if t != null
-						t.setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
-						.setText( txt, textsize)
-						.setPos( position)
+						t..setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
+							..setText( txt, textsize)
+							..setPos( position)
 					else
 						error("CustomBar: TextTag limit reached!")
 
@@ -318,9 +318,9 @@ package CustomBar
 				if t == null
 					t = CreateTextTag()
 					if t != null
-						t.setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
-						.setText( txt, textsize)
-						.setPos( position)
+						t..setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
+							..setText( txt, textsize)
+							..setPos( position)
 					else
 						error("CustomBar: TextTag limit reached!")
 
@@ -370,19 +370,18 @@ package CustomBar
 
 
 		function fadeOut( real overTime, boolean followThrough, real xVel, real yVel )
-			timer tim
 			if t != null
-				t.setLifespan(overTime)
-				.setAge(0)
-				.setFadepoint(0)
+				t..setLifespan(overTime)
+					..setAge(0)
+					..setFadepoint(0)
 				.setPermanent(false)
 				if not locked
 					t.setVelocity(TextTagSpeed2Velocity(xVel), TextTagSpeed2Velocity(yVel))
 
 			if followThrough
 				getTimer()
-				.setData( this castTo int )
-				.start( overTime, function CustomBar.fadeOutCallback)
+					..setData( this castTo int )
+					..start( overTime, function CustomBar.fadeOutCallback)
 			else
 				t = null
 				destroy this

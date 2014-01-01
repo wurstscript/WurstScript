@@ -26,119 +26,91 @@ public function unit.clearRegister()
 	triggerData.removeHandle(h)
 	triggerData.removeHandle(th)
 	
-public function trigger.enable() returns trigger
+public function trigger.enable()
 	EnableTrigger( this )
-	return this
-	
-public function trigger.disable() returns trigger
+
+public function trigger.disable()
 	DisableTrigger( this )
-	return this
 	
 public function trigger.destr()
 	DestroyTrigger( this )
 
-public function trigger.reset() returns trigger
+public function trigger.reset()
 	ResetTrigger( this )
-	return this
 	
-public function trigger.addAction(code actionFunc) returns trigger
+public function trigger.addAction(code actionFunc)
 	TriggerAddAction( this, actionFunc )
-	return this
 
-public function trigger.addCondition(boolexpr condition) returns trigger
+public function trigger.addCondition(boolexpr condition)
 	TriggerAddCondition( this, condition )
-	return this
 	
-public function trigger.removeCondition(triggercondition condition) returns trigger
+public function trigger.removeCondition(triggercondition condition)
 	TriggerRemoveCondition( this, condition )
-	return this
 	
-public function trigger.evaluate() returns trigger
+public function trigger.evaluate()
 	TriggerEvaluate( this )
-	return this
 
-public function trigger.execute() returns trigger
+public function trigger.execute()
 	TriggerExecute( this )
-	return this
 	
 //Events
 
-public function trigger.registerAnyUnitEvent(playerunitevent whichEvent) returns trigger
+public function trigger.registerAnyUnitEvent(playerunitevent whichEvent)
 	TriggerRegisterAnyUnitEventBJ(this, whichEvent)
-	return this
 
-public function trigger.registerPlayerEvent(player whichPlayer, playerevent whichPlayerEvent) returns trigger
+public function trigger.registerPlayerEvent(player whichPlayer, playerevent whichPlayerEvent)
 	TriggerRegisterPlayerEvent(this, whichPlayer, whichPlayerEvent)
-	return this
 	
-public function trigger.registerDeathEvent(widget whichWidget) returns trigger
+public function trigger.registerDeathEvent(widget whichWidget)
 	TriggerRegisterDeathEvent(this, whichWidget)
-	return this
 	
-public function trigger.registerDialogButtonEvent(button whichButton) returns trigger
+public function trigger.registerDialogButtonEvent(button whichButton)
 	TriggerRegisterDialogButtonEvent(this, whichButton)
-	return this
 	
-public function trigger.registerDialogEvent(dialog whichDialog) returns trigger
+public function trigger.registerDialogEvent(dialog whichDialog)
 	TriggerRegisterDialogEvent(this, whichDialog)
-	return this
 	
-public function trigger.registerEnterRegion(region whichRegion, boolexpr filter) returns trigger
+public function trigger.registerEnterRegion(region whichRegion, boolexpr filter)
 	TriggerRegisterEnterRegion(this, whichRegion, filter)
-	return this
 	
-public function trigger.registerGameEvent(gameevent whichGameEvent) returns trigger
+public function trigger.registerGameEvent(gameevent whichGameEvent)
 	TriggerRegisterGameEvent(this, whichGameEvent)
-	return this
 
-public function trigger.registerGameStateEvent(gamestate whichState, limitop opcode, real limitval) returns trigger
+public function trigger.registerGameStateEvent(gamestate whichState, limitop opcode, real limitval)
 	TriggerRegisterGameStateEvent(this, whichState, opcode, limitval)
-	return this
 	
-public function trigger.registerLeaveRegion(region whichRegion, boolexpr filter) returns trigger
+public function trigger.registerLeaveRegion(region whichRegion, boolexpr filter)
 	TriggerRegisterLeaveRegion(this, whichRegion, filter)
-	return this
 	
-public function trigger.registerPlayerChatEvent(player whichPlayer, string chatMessageToDetect, boolean exactMatchOnly) returns trigger
+public function trigger.registerPlayerChatEvent(player whichPlayer, string chatMessageToDetect, boolean exactMatchOnly)
 	TriggerRegisterPlayerChatEvent(this, whichPlayer, chatMessageToDetect, exactMatchOnly)
-	return this
 
-public function trigger.registerPlayerStateEvent(player whichPlayer, playerstate whichState, limitop opcode, real limitval) returns trigger
+public function trigger.registerPlayerStateEvent(player whichPlayer, playerstate whichState, limitop opcode, real limitval)
 	TriggerRegisterPlayerStateEvent(this, whichPlayer, whichState, opcode, limitval)
-	return this
 	
-public function trigger.registerPlayerUnitEvent(player whichPlayer, playerunitevent whichPlayerUnitEvent, boolexpr filter) returns trigger
+public function trigger.registerPlayerUnitEvent(player whichPlayer, playerunitevent whichPlayerUnitEvent, boolexpr filter)
 	TriggerRegisterPlayerUnitEvent(this, whichPlayer, whichPlayerUnitEvent, filter)
-	return this
 	
-public function trigger.registerTimerEvent(real timeout, boolean periodic) returns trigger
+public function trigger.registerTimerEvent(real timeout, boolean periodic)
 	TriggerRegisterTimerEvent(this, timeout, periodic)
-	return this
 	
-public function trigger.registerTimerExpireEvent(timer whichTimer) returns trigger
+public function trigger.registerTimerExpireEvent(timer whichTimer)
 	TriggerRegisterTimerExpireEvent(this, whichTimer)
-	return this
 	
-public function trigger.registerTrackableHitEvent(trackable whichTrackable) returns trigger
+public function trigger.registerTrackableHitEvent(trackable whichTrackable)
 	TriggerRegisterTrackableHitEvent(this, whichTrackable)
-	return this
 	
-public function trigger.registerTrackableTrackEvent(trackable whichTrackable) returns trigger
+public function trigger.registerTrackableTrackEvent(trackable whichTrackable)
 	TriggerRegisterTrackableTrackEvent(this, whichTrackable)
-	return this
 	
-public function trigger.registerUnitEvent(unit whichUnit, unitevent whichEvent ) returns trigger
+public function trigger.registerUnitEvent(unit whichUnit, unitevent whichEvent )
 	TriggerRegisterUnitEvent(this, whichUnit, whichEvent)
-	return this
 	
-public function trigger.registerUnitInRange(unit whichUnit, real range, boolexpr filter) returns trigger
+public function trigger.registerUnitInRange(unit whichUnit, real range, boolexpr filter)
 	TriggerRegisterUnitInRange(this, whichUnit, range, filter)
-	return this
 	
-public function trigger.registerUnitStateEvent(unit whichUnit, unitstate whichState, limitop opcode, real limitval) returns trigger
+public function trigger.registerUnitStateEvent(unit whichUnit, unitstate whichState, limitop opcode, real limitval)
 	TriggerRegisterUnitStateEvent(this, whichUnit, whichState, opcode, limitval)
-	return this
 	
-public function trigger.clearConditions() returns trigger
+public function trigger.clearConditions()
 	TriggerClearConditions(this)
-	return this

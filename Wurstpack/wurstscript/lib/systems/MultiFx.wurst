@@ -45,19 +45,16 @@ public class MultiFx
 		return dummy.getOwner()
 		
 	/** Set the owner of this MultiFx Object */
-	function setOwner(player p, boolean changeColor) returns MultiFx
+	function setOwner(player p, boolean changeColor)
 		dummy.setOwner(p, changeColor)
-		return this
 		
 	/** Set the teamcolor of this MultiFx Object */
-	function setTeamcolor(playercolor c) returns MultiFx
+	function setTeamcolor(playercolor c)
 		SetUnitColor(dummy, c)
-		return this
 	
 	/** Set the scale of this MultiFx Object */
-	function setScale(real value) returns MultiFx
+	function setScale(real value)
 		dummy.setScale(value)
-		return this
 
 	/** Get the green color value (rgba) */
 	function getGreen() returns int
@@ -78,13 +75,12 @@ public class MultiFx
 	/** Recolor the MultiFx object with the given color tuple (colorA) 
 	Color: 0 = no color - 255 = full color
 	Alpha: 0 = transparent - 255 = visible */
-	function recolor(colorA newColor) returns MultiFx
+	function recolor(colorA newColor)
 		col.red = newColor.red
 		col.green = newColor.green
 		col.blue = newColor.blue
 		col.alpha = newColor.alpha
 		dummy.setVertexColor(newColor)
-		return this
 
 		
 	/** Get the xy angle in radians */
@@ -92,16 +88,15 @@ public class MultiFx
 		return dummy.getFacing().asAngleDegrees()
  
 	/** Set the angle in degrees */
-	function setXYAngle(angle value) returns MultiFx
+	function setXYAngle(angle value)
 		dummy.setFacing(value)
-		return this
 		
 	/** Get the z angle in radians */
 	function getZAngle() returns real
 		return zAngle
 		
 	/** Set the z angle in radians */
-	function setZAngle(real value) returns MultiFx
+	function setZAngle(real value)
 		int i = R2I(value*bj_RADTODEG + 90.5)
 		zAngle = value
 		if i >= 180
@@ -109,12 +104,10 @@ public class MultiFx
 		else if i < 0
 			i = 0
 		SetUnitAnimationByIndex(dummy, i)
-		return this
 		
 	/** Set the z angle with an angle tuple */
-	function setZAngle(angle value) returns MultiFx
+	function setZAngle(angle value)
 		setZAngle(value.radians())
-		return this
 		
 	/** Get the x coordinate */
 	function getX() returns real
@@ -133,42 +126,35 @@ public class MultiFx
 		return vec2(getX(), getY())
 	
 	/** Set the x coordinate */
-	function setX(real x) returns MultiFx
+	function setX(real x)
 		dummy.setX(x)
-		return this
 		
 	/** Set the y coordinate */
-	function setY(real y) returns MultiFx
+	function setY(real y)
 		dummy.setY(y)
-		return this
 		
 	/** Set the position to the given xy coordinates */
-	function setPos(real x, real y) returns MultiFx
+	function setPos(real x, real y)
 		dummy.setPos(x, y)
-		return this
 	
 	/** Set the position to the given xyz coordinates
 	z = flyHeight */
-	function setPos(real x, real y, real z) returns MultiFx
+	function setPos(real x, real y, real z)
 		dummy.setPos(x, y)
 		dummy.setFlyHeight(z, 0.)
-		return this
 		
 	/** Set the position to the given xy vector tuple */
-	function setPos(vec2 pos) returns MultiFx
+	function setPos(vec2 pos)
 		dummy.setPos(pos.x, pos.y)
-		return this
 	
 	/** Set the position to the given xyz vector tuple */
-	function setPos(vec3 pos) returns MultiFx
+	function setPos(vec3 pos)
 		dummy.setPos(pos.x, pos.y)
 		setZ(pos.z)
-		return this
 		
 	/** Set the z coordinate (flyHeight) */
-	function setZ(real z) returns MultiFx
+	function setZ(real z)
 		dummy.setFlyHeight(z, 0.)
-		return this
 			
 				
 	ondestroy  			

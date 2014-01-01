@@ -18,8 +18,8 @@ public module OnPointCast
 	static function registerSpellEvent(int p_spellId)
 		spellId = p_spellId
 		CreateTrigger()
-			.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
-			.addCondition(Condition(function actions))
+			..registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
+			..addCondition(Condition(function actions))
 
 		
 public module OnCast
@@ -37,8 +37,8 @@ public module OnCast
 	static function registerSpellEvent(int p_spellId)
 		spellId = p_spellId
 		CreateTrigger()
-			.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
-			.addCondition(Condition(function actions))
+			..registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
+			..addCondition(Condition(function actions))
 			
 
 
@@ -57,8 +57,8 @@ public module OnUnitTargetCast
 	static function registerSpellEvent(int p_spellId)
 		spellId = p_spellId
 		CreateTrigger()
-			.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
-			.addCondition(Condition(function actions))		
+			..registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
+			..addCondition(Condition(function actions))		
 			
 		
 

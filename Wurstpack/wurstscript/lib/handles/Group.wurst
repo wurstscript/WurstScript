@@ -9,9 +9,8 @@ public function group.enumUnitsInRange(vec2 pos, real range)
 public function group.clear()
 	GroupClear(this)
 	
-public function group.addUnit(unit u) returns group
+public function group.addUnit(unit u)
 	GroupAddUnit(this, u)
-	return this
 	
 public function group.destr()
 	DestroyGroup(this)	

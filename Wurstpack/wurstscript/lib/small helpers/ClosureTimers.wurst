@@ -67,8 +67,8 @@ public abstract class CallbackSingle
 	
 	function start(real time)
 		getTimer()
-		.setData(this castTo int)
-		.start(time, function staticCallback)
+			..setData(this castTo int)
+			..start(time, function staticCallback)
 			
 	private static function staticCallback()
 		timer t = GetExpiredTimer()
