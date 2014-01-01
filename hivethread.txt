@@ -519,8 +519,14 @@ Other links:
 [h2]Projects using Wurst[/h2]
 
 [list]	
-[*][url]http://www.hiveworkshop.com/forums/project-recruitment-256/heart-blackest-night-recruits-225237/[/url]
+[*][url]http://www.hiveworkshop.com/forums/map-development-202/heart-night-225166/[/url]
 [*][url]http://www.hiveworkshop.com/forums/maps-564/escape-builder-r-0-82z-184964/[/url]
+[*][url]https://github.com/Frotty/24Challenge[/url]
+[*][url]https://github.com/Frotty/CastleAttack[/url]
+[*][url]https://github.com/Frotty/ForestDef[/url]
+[*][url]https://github.com/Frotty/InWcSchneeball[/url]
+[*][url]https://github.com/Ruk33/Phoenix-AI---Concurso-WW[/url]
+[*][url]https://github.com/muzzel/Momentum[/url]
 [/list]
 
 
