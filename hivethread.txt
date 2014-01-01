@@ -24,22 +24,6 @@ vJass is mostly based on text-replacements and generation (vJass modules, textma
 
 Wurst instead goes for simple, structured code, that can be analyzed in a single compiler-phase. vJass however needs [url=http://www.wc3c.net/vexorian/zincmanual.html#compileerror]more phases[/url].
 
-// TODO move this
-
-The editor support for wurst is done as an eclipse plugin. This results in a [I]awesome[/I] full-fledged IDE including:
-[LIST]
-[*]Syntax highlighting
-[*]Autocomplete for Natives and Custom Code
-[*]Hot-Doc Documentation
-[*]Outline View
-[*]REPL console
-[*]Automatic Reconciling
-[*]All basic features of eclipse like Project-Tree-View, Tabbed-File-View, find&replace with regular expressions, hotkeys & shortcuts, etc. 
-[/LIST]
-
-[URL=http://i.imgur.com/6uOtqxr.png][IMG]http://i.imgur.com/6uOtqxrl.png[/IMG][/URL]
-[SIZE="1"][I](Click to enlarge)[/I][/SIZE]
-
 [h3]2. Type-safety[/h3]
 
 vJass isn't typesafe. Look at this example:
@@ -77,11 +61,100 @@ WurstScript features less verbosity, but without losing similarity to (v)Jass so
 [indent]
 
 
-So how does it look like? Here is a simple spell to give you a first idea:
+So how does it look like? Here is a simple spell to give you a first idea. The spell fires a missile to the target location, where it damages and knocks back all units in a certain range.
 
-// TODO add code
+[JASS]
+package WarStomp
 
-As you can see, Wurst has an indentation based syntax, and therefore you do not have to write  words like [i]endif[/i] or [i]endfunction[/i]. The example also shows some of the syntactic sugar in Wurst, for example the for-in loop in line 13. // TODO line number
+import ClosureEvents
+import ClosureTimers
+import Fx
+import Knockback
+import TempGroups
+
+constant spellId = 'A001'
+constant impactAoe = 600.
+constant missileType = "Abilities\\Weapons\\AncientProtectorMissile\\AncientProtectorMissile.mdl"
+constant missileSpeed = 1000.
+constant gravity = 981.
+constant effectType = "Abilities\\Spells\\Human\\Thunderclap\\ThunderClapCaster.mdl"
+constant effectType2 = "Objects\\Spawnmodels\\Undead\\ImpaleTargetDust\\ImpaleTargetDust.mdl"
+constant maxSpellDamage = 100.
+constant lvlDamageBonus = 25.
+constant knockbackStrength = 700.
+constant knockbackTime = 1.5
+
+class WarStomb
+	unit caster
+	int spellLvl
+	Fx missile
+	vec3 missileVelocity
+	timer t = getTimer()
+	
+	construct(unit caster, int spellLvl, vec2 targetPos)
+		this.caster = caster
+		this.spellLvl = spellLvl
+		vec2 casterPos = caster.getPos()
+		angle castDirection = casterPos.angleTo(targetPos)
+		real distToTarget = casterPos.distToVec(targetPos)
+		
+		// the initial z-speed is calculated, so that the z-speed will be 0 after half the flytime
+		let flyTime = distToTarget / missileSpeed
+		let speedZ = (flyTime/2) * gravity
+		
+		let missileVelocity2D = missileSpeed * castDirection.direction()
+		missileVelocity = missileVelocity2D.withZ(speedZ)
+		
+		missile = new Fx(casterPos, castDirection, missileType)
+		missile.setScale(1.5)
+		
+		t.setData(this castTo int)
+		t.startPeriodic(ANIMATION_PERIOD, function callMoveMissile)
+		
+	static function callMoveMissile()
+		(GetExpiredTimer().getData() castTo WarStomb).moveMissile()
+		
+	function moveMissile()
+		vec3 missilePos = missile.getPos3d()
+		missilePos += missileVelocity * ANIMATION_PERIOD
+		missile.setPos(missilePos)
+		missileVelocity.z -= gravity * ANIMATION_PERIOD
+		if missilePos.z <= 0
+			onImpact()
+		
+	function onImpact()
+		let missilePos = missile.getPos2()
+		//create a big effect at location location of the missile
+		Fx fx = new Fx(missilePos, angle(0), effectType)
+			..setScale(2)
+			..flash(effectType2)
+		//destroy the effect after 2 seconds
+		doAfter(2, () -> destroy fx)
+		
+		for unit u from ENUM_GROUP..enumUnitsInRange(missilePos, impactAoe)
+			let distToImpact = missilePos.distToVec(u.getPos())
+			let distanceFactor = 1 - (distToImpact / impactAoe)
+			//damage the unit relative to it's damage distance to the caster
+			let damage = (maxSpellDamage + spellLvl * lvlDamageBonus)*distanceFactor
+			caster.damageTarget(u,  damage)
+			
+			//knockback the target unit away from the impact location
+			new Knockback(caster, u, knockbackStrength * distanceFactor, 
+							knockbackTime, missilePos.angleTo(u.getPos()))
+		destroy this
+		
+	ondestroy
+		t.release()
+		destroy missile
+		
+init
+	//Creates a new instance of the class WarStomb if the spell is casted
+	onPointCast(spellId, (unit caster, int spellLvl, vec2 targetPos) -> 
+		new WarStomb(caster, spellLvl, targetPos))
+[/JASS]
+
+
+As you can see, Wurst has an indentation based syntax, and therefore you do not have to write  words like [i]endif[/i] or [i]endfunction[/i]. The example also shows some of the syntactic sugar in Wurst, for example the for-from loop, update-assignments with [b]+=[/b], or the dot-dot-expression. You can also see some of the features like packages, classes, closures and tuples.
 
 [/indent]
 [h2]Features[/h2]
@@ -129,7 +202,7 @@ Usage:
 Extension functions have two pros in comparison to normal functions:
 [list]
 [*]Functions are easier to find using auto-complete in Eclipse
-[*]In many cases the readability is improved as this way 
+[*]In many cases the readability is improved, as chained calls are often easier to read than nested calls. With chained calls the order of execution is from left to right, while with nested calls the execution is from the inner to the outer:
 [JASS]
 	// nested function calls:
 	name = GetPlayerName(GetOwningPlayer(u))
@@ -241,6 +314,82 @@ Closures are more than just anonymous functions. They also capture variables. Th
 
 Here the closure captured the local variable [i]fx[/i] without the need to get a timer, attach stuff to the timer, and all that boilerplate code. The doAfter function is defined in the standard library and it can not only destroy Fx objects. You can write any code inside the closure and it will run after the given time.
 
+Of course you can do more crazy stuff with closures. Here is the spell from the introduction, but implemented with closures instead of a class:
+
+[Jass]
+package WarStompCl
+
+import ClosureEvents
+import ClosureTimers
+import ClosureForGroups
+import Fx
+import Knockback
+
+constant spellId = 'A001'
+constant impactAoe = 600.
+constant missileType = "Abilities\\Weapons\\AncientProtectorMissile\\AncientProtectorMissile.mdl"
+constant missileSpeed = 1000.
+constant gravity = 981.
+constant effectType = "Abilities\\Spells\\Human\\Thunderclap\\ThunderClapCaster.mdl"
+constant effectType2 = "Objects\\Spawnmodels\\Undead\\ImpaleTargetDust\\ImpaleTargetDust.mdl"
+constant maxSpellDamage = 100.
+constant lvlDamageBonus = 25.
+constant knockbackStrength = 700.
+constant knockbackTime = 1.5
+
+init
+	onPointCast(spellId, (unit caster, int spellLvl, vec2 targetPos) -> begin
+		let casterPos = caster.getPos()
+		let castDirection = casterPos.angleTo(targetPos)
+		let distToTarget = casterPos.distToVec(targetPos)
+		
+		// the initial z-speed is calculated, so that the z-speed will be 0 after half the flytime
+		let flyTime = distToTarget / missileSpeed
+		let speedZ = (flyTime/2) * gravity
+		
+		let missileVelocity2D = missileSpeed * castDirection.direction()
+		var missileVelocity = missileVelocity2D.withZ(speedZ)
+		
+		let missile = new Fx(casterPos, castDirection, missileType)
+			..setScale(1.5)
+		
+		doPeriodically(ANIMATION_PERIOD, (CallbackPeriodic cb) -> begin
+			var missilePos = missile.getPos3d()
+			missilePos += missileVelocity * ANIMATION_PERIOD
+			missile.setPos(missilePos)
+			missileVelocity.z -= gravity * ANIMATION_PERIOD
+			if missilePos.z <= 0
+				let impactPos = missilePos.toVec2()
+				
+				//create a big effect at location location of the missile
+				let fx = new Fx(missilePos, angle(0), effectType)
+					..setScale(2)
+					..flash(effectType2)
+				//destroy the effect after 2 seconds
+				doAfter(2, () -> destroy fx)
+
+				forUnitsInRange(impactPos, impactAoe, (unit u) -> begin
+					let distToImpact = impactPos.distToVec(u.getPos())
+					let distanceFactor = 1 - (distToImpact / impactAoe)
+					//damage the unit relative to it's damage distance to the caster
+					let damage = (maxSpellDamage + spellLvl * lvlDamageBonus)*distanceFactor
+					caster.damageTarget(u,  damage)
+					
+					//knockback the target unit away from the impact location
+					new Knockback(caster, u, knockbackStrength * distanceFactor, 
+									knockbackTime, impactPos.angleTo(u.getPos()))
+				end)
+				
+				destroy missile
+				// stop periodic call:
+				destroy cb
+				
+		end)
+	end)
+[/Jass]
+
+Please note, that this coding style is not recommended. Dividing code into several named functions is much more readable. Also the performance is worse, when using closures.
+
 [h3]Compiletime functions[/h3]
 
 You can execute Wurst code at compile-time. Wurst includes some pseudo-natives which can be executed at compile-time to generate object-editor entries. This is similar to what can be done with the ObjectMerger tool, but it also comes with nice readable method names. Here is an example which creates a spell based on Channel and a tower unit for each level:
@@ -281,9 +430,25 @@ function createTower(int lvl)
 
 It is even possible to share code between compile-time functions and normal in-game functions. For example the constant GUN_TURRET_SPELL_ID or the function attackCooldown can be used to configure the generated objects and they can be used in the code for the spell.
 
+[h3]Optimizer[/h3]
+
+Wurst has an integrated optimizer, with several optimizations:
+[list]
+[*]inline functions (can inline most functions, exception are multiple return statements in a function)
+[*]inline constants
+[*]simple local optmizations (e.g. optimize [ljass]3*4[/ljass] to [ljass]12[/ljass] or remove [ljass]if false ...[/ljass])
+[*]name-compression
+[*]tree-shaking (remove unused variables and functions)
+[*]automatic null-setting of handles
+[/list]
+
+
 [/indent]
 [h2]Eclipse Plugin[/h2]
 [indent]
+
+[URL=http://i.imgur.com/6uOtqxr.png][IMG]http://i.imgur.com/6uOtqxrl.png[/IMG][/URL]
+[SIZE="1"][I](Click to enlarge)[/I][/SIZE]
 
 [h3]Run your map from eclipse[/h3]
 
