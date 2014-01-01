@@ -218,13 +218,13 @@ package Entity
 		construct( vec3 pos, unit actor )
 			super(pos, actor.getOwner())
 			this.actor = actor
-			actor.setUserData(this castTo int).addAbility(HEIGHT_ENABLER).removeAbility(HEIGHT_ENABLER)
+			actor..setUserData(this castTo int)..addAbility(HEIGHT_ENABLER)..removeAbility(HEIGHT_ENABLER)
 			dmgTrig.registerUnitEvent(actor, EVENT_UNIT_DAMAGED)
 			
 		construct( vec3 pos, real radius, unit actor )
 			super(pos, radius, actor.getOwner())
 			this.actor = actor
-			actor.setUserData(this castTo int).addAbility(HEIGHT_ENABLER).removeAbility(HEIGHT_ENABLER)
+			actor..setUserData(this castTo int)..addAbility(HEIGHT_ENABLER)..removeAbility(HEIGHT_ENABLER)
 			dmgTrig.registerUnitEvent(actor, EVENT_UNIT_DAMAGED)
 			
 		override function update()

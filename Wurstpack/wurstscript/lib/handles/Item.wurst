@@ -2,6 +2,9 @@ package Item
 import NoWurst
 import public Vectors
 
+public function createItem(int itemId, vec2 pos) returns item
+	return CreateItem(itemId, pos.x, pos.y)
+
 public function item.getName() returns string
 	return GetItemName( this )
 	

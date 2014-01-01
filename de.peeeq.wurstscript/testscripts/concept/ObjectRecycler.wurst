@@ -19,7 +19,7 @@ public function unit.recycle()
 public function getUnit(player p, int id, vec2 pos, angle facing) returns unit
 	if objectLists.hasInt(id)
 		let stack = objectLists.loadInt(id) castTo Stack<unit>
-		return stack.pop().setFacing(facing).show()
+		return stack.pop()..setFacing(facing).show()
 	else
 		objectLists.saveInt(id, (new Stack<unit>() )castTo int)
 		return createUnit(p, id, pos, facing)
