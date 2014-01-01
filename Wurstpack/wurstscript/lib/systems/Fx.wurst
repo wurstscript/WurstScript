@@ -158,6 +158,10 @@ public class Fx
 	function getPos2() returns vec2
 		return vec2(getX(), getY())
 	
+	/** Get the xy position as vector tuple */			
+	function getPos3d() returns vec3
+		return vec3(getX(), getY(), getZ())
+	
 	/** Set the x coordinate */
 	function setX(real x) returns Fx
 		dummy.setX(x)

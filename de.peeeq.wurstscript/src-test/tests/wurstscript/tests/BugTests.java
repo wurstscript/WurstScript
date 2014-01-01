@@ -430,4 +430,18 @@ public class BugTests extends WurstScriptTest {
 				"endpackage"
 				);
 	}
+	
+	@Test
+	public void inlineBug() {
+		testAssertOkLines(false, 
+				"package test",
+				"tuple vec2(real x, real y)",
+				"tuple vec3(real x, real y, real z)",
+				"public function vec2.withZ(real z) returns vec3",
+				"	return vec3(this.x, this.y, z)",
+				"init",
+				"	vec2(3,4).withZ(5)",
+				"endpackage");
+	}
+	
 }

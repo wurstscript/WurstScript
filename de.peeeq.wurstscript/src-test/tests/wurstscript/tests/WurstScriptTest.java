@@ -172,13 +172,13 @@ public class WurstScriptTest {
 		// test without inlining and optimization
 		translateAndTest(name, executeProg, executeTests, gui, compiler,	model);
 		
-		// test with inlining	
-		compiler.setRunArgs(new RunArgs(new String[] {"-localOptimizations"	}));
-		translateAndTest(name+"_inl", executeProg, executeTests, gui, compiler,	model);
-				
 		// test with local optimization
-		compiler.setRunArgs(new RunArgs(new String[] {"-inline"	}));
+		compiler.setRunArgs(new RunArgs(new String[] {"-localOptimizations"	}));
 		translateAndTest(name+"_opt", executeProg, executeTests, gui, compiler,	model);
+				
+		// test with inlining	
+		compiler.setRunArgs(new RunArgs(new String[] {"-inline"	}));
+		translateAndTest(name+"_inl", executeProg, executeTests, gui, compiler,	model);
 		
 		// test with inlining and local optimization 
 		compiler.setRunArgs(new RunArgs(new String[] {"-inline", "-localOptimizations"}));
