@@ -126,7 +126,7 @@ class LLEntry<S>
 		this.prev = prev
 		this.next = next
 
-class LLIterator<Q>
+public class LLIterator<Q>
 	LLEntry<Q> dummy
 	LLEntry<Q> current
 
