@@ -45,40 +45,32 @@ public function int.moduloInt(int divisor) returns int
 
 /** returns the bigger number of the two parameters */
 public function max(int x, int y) returns int
-	int r
 	if x > y
-		r = x
+		return x
 	else
-		r = y
-	return r
+		return y
 		
 /** returns the bigger number of the two parameters */
 public function max(real x, real y) returns real
-	real r
 	if x > y
-		r = x
+		return x
 	else
-		r = y
-	return r
+		return y
 
 
 /** returns the smaller number of the two parameters */
 public function min(int x, int y) returns int
-	int r
 	if x < y
-		r = x
+		return x
 	else
-		r = y
-	return r
+		return y
 
 /** returns the smaller number of the two parameters */		
 public function min(real x, real y) returns real
-	real r
 	if x < y
-		r = x
+		return x
 	else
-		r = y
-	return r
+		return y
 	
 	
 @test function minmax()
