@@ -220,6 +220,7 @@ public class ImPrinter {
 		sb.append("{\n");
 		p.getStatements().print(sb, indent+1);
 		indent(sb, indent+1);
+		sb.append(">>>  ");
 		p.getExpr().print(sb, indent);
 		sb.append("}");
 	}
@@ -319,7 +320,7 @@ public class ImPrinter {
 		for (ImStmt s : ss) {
 			indent(sb, indent);
 			s.print(sb, indent);
-			sb.append("\n");
+			sb.append(";\n");
 		}
 	}
 

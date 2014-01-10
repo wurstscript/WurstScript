@@ -95,22 +95,30 @@ public class Sound
 			return sdata
 			
 	function play()
-		getTimer().setData(getSound() castTo int).start(0., function Sound.playSound)
+		getTimer()
+			..setData(getSound() castTo int)
+			..start(0., function Sound.playSound)
 		
 	function playOnUnit(unit u)
 		var s = getSound()
 		s.onUnit = u
-		getTimer().setData(s castTo int).start(0., function Sound.playSound)
+		getTimer()
+			..setData(s castTo int)
+			..start(0., function Sound.playSound)
 		
 	function playOnPoint(real x, real y, real z)
 		var s = getSound()
 		SetSoundPosition(s.snd, x, y, z)
-		getTimer().setData(s castTo int).start(0., function Sound.playSound)
+		getTimer()
+			..setData(s castTo int)
+			..start(0., function Sound.playSound)
 		
 	function playOnPoint(vec3 pos)
 		var s = getSound()
 		SetSoundPosition(s.snd, pos.x, pos.y, pos.z)
-		getTimer().setData(s castTo int).start(0., function Sound.playSound)
+		getTimer()
+			..setData(s castTo int)
+			..start(0., function Sound.playSound)
 			
 	private static function playSound()
 		var tm = GetExpiredTimer()
@@ -120,7 +128,9 @@ public class Sound
 		SetSoundVolume(sdata.snd, 100)
 		StartSound(sdata.snd)
 		tm.release()
-		getTimer().setData(sdata castTo int).start(sdata.soundData.duration * 0.001, function Sound.recycle)
+		getTimer()
+			..setData(sdata castTo int)
+			..start(sdata.soundData.duration * 0.001, function Sound.recycle)
 	
 	private static function recycle()
 		var tm = GetExpiredTimer()

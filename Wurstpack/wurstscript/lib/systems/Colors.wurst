@@ -93,14 +93,12 @@ public function colorA.toString() returns string
 	return "colorRBGA [" + this.red.toString() + "|" +this.green.toString() + "|" +this.blue.toString() + "|"+this.alpha.toString() +"]"
 		
 /** Set a units color to the tuplevalues with alpha */
-public function unit.setVertexColor(colorA col) returns unit
+public function unit.setVertexColor(colorA col)
 	SetUnitVertexColor(this, col.red, col.green, col.blue, col.alpha)
-	return this
 
 /** Set a units color to the tuplevalues without alpha */
-public function unit.setVertexColor(color col) returns unit
+public function unit.setVertexColor(color col)
 	SetUnitVertexColor(this, col.red, col.green, col.blue, 255)
-	return this
 	
 /** Returns a string that is in the wc3 hexcolor format (|caarrggbb) */
 public function colorA.toColorString() returns string

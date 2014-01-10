@@ -9,7 +9,7 @@ function filter() returns boolean
 	return false
 		
 ForGroupCallback array tempCallbacks
-int tempCallbacksCount
+int tempCallbacksCount = 0
 constant filter = Condition(function filter)
 
 function pushCallback(ForGroupCallback c)

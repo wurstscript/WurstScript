@@ -54,19 +54,16 @@ public class Fx
 		return dummy.getOwner()
 		
 	/** Set the owner of this Fx Object */
-	function setOwner(player p, boolean changeColor) returns Fx
+	function setOwner(player p, boolean changeColor)
 		dummy.setOwner(p, changeColor)
-		return this
 		
 	/** Set the teamcolor of this Fx Object */
-	function setTeamcolor(playercolor c) returns Fx
+	function setTeamcolor(playercolor c)
 		SetUnitColor(dummy, c)
-		return this
 	
 	/** Set the scale of this Fx Object */
-	function setScale(real value) returns Fx
+	function setScale(real value)
 		dummy.setScale(value)
-		return this
 
 	/** Get the green color value (rgba) */
 	function getGreen() returns int
@@ -91,43 +88,39 @@ public class Fx
 	/** Recolor the Fx object with the given color tuple (colorA) 
 	Color: 0 = no color - 255 = full color
 	Alpha: 0 = transparent - 255 = visible */
-	function recolor(colorA newColor) returns Fx
+	function recolor(colorA newColor)
 		col.red = newColor.red
 		col.green = newColor.green
 		col.blue = newColor.blue
 		col.alpha = newColor.alpha
 		dummy.setVertexColor(newColor)
-		return this
 
 	/** "flashs" the given effect.
 	Flashing plays the death animation of the effect at the fx' position. */
-	function flash(string fx) returns Fx
+	function flash(string fx)
 		dummy.addEffect(fx, "origin").destr()
-		return this
 		
 	/** Get the xy angle in radians */
 	function getXYAngle() returns angle
 		return dummy.getFacing().asAngleDegrees()
  
 	/** Set the angle in degrees */
-	function setXYAngle(angle value) returns Fx
+	function setXYAngle(angle value)
 		dummy.setFacing(value)
-		return this
 		
 	/** Creates a new dummy with the given facing in order to achieve instant turning. */
-	function setXYAngleInstant(angle value) returns Fx
+	function setXYAngleInstant(angle value)
 		fx.destr()
 		recycleDummy(dummy)
 		dummy = newDummy( vec2(getX(), getY()), value)
 		setFx(sfxPath)
-		return this
 		
 	/** Get the z angle in radians */
 	function getZAngle() returns real
 		return zAngle
 		
 	/** Set the z angle in radians */
-	function setZAngle(real value) returns Fx
+	function setZAngle(real value)
 		int i = R2I(value*bj_RADTODEG + 90.5)
 		zAngle = value
 		if i >= 180
@@ -135,12 +128,10 @@ public class Fx
 		else if i < 0
 			i = 0
 		SetUnitAnimationByIndex(dummy, i)
-		return this
 		
 	/** Set the z angle with an angle tuple */
-	function setZAngle(angle value) returns Fx
+	function setZAngle(angle value)
 		setZAngle(value.radians())
-		return this
 		
 	/** Get the x coordinate */
 	function getX() returns real
@@ -158,47 +149,44 @@ public class Fx
 	function getPos2() returns vec2
 		return vec2(getX(), getY())
 	
+	/** Get the xy position as vector tuple */			
+	function getPos3d() returns vec3
+		return vec3(getX(), getY(), getZ())
+	
 	/** Set the x coordinate */
-	function setX(real x) returns Fx
+	function setX(real x)
 		dummy.setX(x)
-		return this
 		
 	/** Set the y coordinate */
-	function setY(real y) returns Fx
+	function setY(real y)
 		dummy.setY(y)
-		return this
 		
 	/** Set the position to the given xy coordinates */
-	function setPos(real x, real y) returns Fx
+	function setPos(real x, real y)
 		dummy.setPos(x, y)
-		return this
 	
 	/** Set the position to the given xyz coordinates
 	z = flyHeight */
-	function setPos(real x, real y, real z) returns Fx
+	function setPos(real x, real y, real z)
 		dummy.setPos(x, y)
 		dummy.setFlyHeight(z, 0.)
-		return this
 		
 	/** Set the position to the given xy vector tuple */
-	function setPos(vec2 pos) returns Fx
+	function setPos(vec2 pos)
 		dummy.setPos(pos.x, pos.y)
-		return this
 	
 	/** Set the position to the given xyz vector tuple */
-	function setPos(vec3 pos) returns Fx
+	function setPos(vec3 pos)
 		dummy.setPos(pos.x, pos.y)
 		setZ(pos.z-getTerrainZ(pos.x, pos.y))
-		return this
 		
 	/** Set the z coordinate (flyHeight) */
-	function setZ(real z) returns Fx
+	function setZ(real z)
 		dummy.setFlyHeight(z, 0.)
-		return this
 			
 	/** Set the path to the sfx model that should be displayed. 
 	If there is already a model displayed, it will be replaced with the new one.*/
-	function setFx(string newpath) returns Fx
+	function setFx(string newpath)
 		if fx != null
 			fx.destr()
 		if newpath == ""
@@ -206,7 +194,6 @@ public class Fx
 		else
 			fx = dummy.addEffect(newpath, "origin")
 		sfxPath = newpath
-		return this
 				
 	ondestroy  			
 		if fx != null

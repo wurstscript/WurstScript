@@ -36,8 +36,8 @@ public function distanceBetweenCoords ( real x1, real y1, real x2, real y2 ) ret
 	return SquareRoot((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1))
 
 /** Returns the angle of a height-slope */	
-public function getSlopeAngle( real z1, real z2, real dist ) returns real
-	return Atan2(z2-z1, dist )
+public function getSlopeAngle( real z1, real z2, real dist ) returns angle
+	return angle(Atan2(z2-z1, dist ))
 	
 public function int.moduloInt(int divisor) returns int
 	return this - (this div divisor) * divisor

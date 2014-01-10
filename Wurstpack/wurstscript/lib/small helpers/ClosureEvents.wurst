@@ -5,8 +5,8 @@ import HashMap
 
 init
 	CreateTrigger()
-		.registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_CAST)
-		.addAction(function handleCasts)
+		..registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_CAST)
+		..addAction(function handleCasts)
 
 /** run an onCast action whenever an ability without target of type abiCode is cast 
 

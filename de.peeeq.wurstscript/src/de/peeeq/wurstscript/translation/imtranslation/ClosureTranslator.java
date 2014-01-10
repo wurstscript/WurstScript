@@ -18,6 +18,7 @@ import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImMethods;
 import de.peeeq.wurstscript.jassIm.ImSet;
+import de.peeeq.wurstscript.jassIm.ImSetTuple;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
@@ -162,6 +163,7 @@ public class ClosureTranslator {
 	private void transformTranslated(ImExpr t) {
 		final List<ImVarAccess> vas = Lists.newArrayList();
 		final List<ImSet> sets = Lists.newArrayList();
+		final List<ImSetTuple> tupleSets = Lists.newArrayList();
 		t.accept(new ImExpr.DefaultVisitor() {
 			@Override
 			public void visit(ImVarAccess va) {
@@ -176,6 +178,13 @@ public class ClosureTranslator {
 					sets.add(s);
 				}
 			}
+			
+			@Override
+			public void visit(ImSetTuple s) {
+				if (isLocalToOtherFunc(s.getLeft())) {
+					tupleSets.add(s);
+				}
+			}
 		});
 		
 		for (ImVarAccess va : vas) {
@@ -187,6 +196,12 @@ public class ClosureTranslator {
 			ImExpr right = s.getRight();
 			right.setParent(null);
 			s.replaceWith(JassIm.ImSetArray(e, v, closureThis(), right));
+		}
+		for (ImSetTuple s : tupleSets) {
+			ImVar v = getClosureVarFor(s.getLeft());
+			ImExpr right = s.getRight();
+			right.setParent(null);
+			s.replaceWith(JassIm.ImSetArrayTuple(e, v, closureThis(), s.getTupleIndex(), right));
 		}
 	}
 

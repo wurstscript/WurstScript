@@ -45,6 +45,10 @@ public function angle.toVec(real len) returns vec2
 public function angle.direction() returns vec2
 	return vec2(Cos(this.radians), Sin(this.radians))
 	
+/** returns a vector of length 'dist' pointing into the direction of this angle */
+public function angle.direction(real dist) returns vec2
+	return vec2(dist*Cos(this.radians), dist*Sin(this.radians))
+	
 /** adds two angles */
 public function angle.op_plus(angle other) returns angle
 	return angle(this.radians + other.radians)

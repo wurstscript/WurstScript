@@ -122,6 +122,15 @@ public class EliminateTuples {
 		while (it.hasNext()) {
 			ImStmt s = it.next();
 			ImStmt newS = s.eliminateTuples(translator, f);
+			if (newS instanceof ImStatementExpr) {
+				ImStatementExpr se = (ImStatementExpr) newS;
+				if (se.getExpr() instanceof ImTupleExpr) {
+					ImTupleExpr t = (ImTupleExpr) se.getExpr();
+					ImStmts tupleExprs = JassIm.ImStmts();
+					tupleExprs.addAll(t.getExprs().removeAll());
+					newS = JassIm.ImStatementExpr(tupleExprs, JassIm.ImNull());
+				}
+			}
 			if (newS != s) {
 				// element changed, replace it
 				it.set(newS);
