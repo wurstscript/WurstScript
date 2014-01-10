@@ -1031,6 +1031,9 @@ public class ImTranslator {
 	}
 
 
+	public ImFunction getGlobalInitFunc() {
+		return globalInitFunc;
+	}
 	
 	
 }

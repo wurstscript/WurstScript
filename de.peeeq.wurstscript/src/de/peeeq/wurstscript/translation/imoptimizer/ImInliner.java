@@ -220,6 +220,9 @@ public class ImInliner {
 				// do not inline natives
 				continue;
 			}
+			if (f == translator.getGlobalInitFunc()) {
+				continue;
+			}
 			if (maxOneReturn(f)) {
 				inlinableFunctions.add(f);
 			}
