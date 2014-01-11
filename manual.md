@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: simple
 title: Manual
 ---
 
@@ -1692,6 +1692,14 @@ The first line is just to check whether the console is working ;)
 
 You can search the standard library for "@test" to get some more examples.
 
+# Other Stuff
+
+## Stacktraces
+
+You can enable stacktraces in the the menu of WurstPack or with the commandline
+switch `-stacktraces`. Each error will then be displayed with a stacktrace showing
+the line number and filename of each function-call leading to the error. Errors
+must be generated with the magic function `function error(string msg)`.
 
 # Standard Library 
 
