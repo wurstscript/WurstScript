@@ -14,6 +14,7 @@ import com.google.common.collect.Maps;
 import com.google.common.io.Files;
 
 import de.peeeq.wurstio.mpq.LadikMpq;
+import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstio.objectreader.BinaryDataOutputStream;
 import de.peeeq.wurstio.objectreader.ObjectDefinition;
@@ -74,7 +75,7 @@ public class ProgramStateIO extends ProgramState {
 			return;
 		}
 		try {
-			LadikMpq editor = MpqEditorFactory.getEditor();
+			MpqEditor editor = MpqEditorFactory.getEditor();
 			File wts = editor.extractFile(mapFile, "war3map.wts");
 			trigStrings = WTSFile.parse(wts);
 		} catch (Exception e) {
@@ -101,7 +102,7 @@ public class ProgramStateIO extends ProgramState {
 		try {
 			// extract specific object file:
 			try {
-				LadikMpq editor = MpqEditorFactory.getEditor();
+				MpqEditor editor = MpqEditorFactory.getEditor();
 				File w3_ = editor.extractFile(mapFile, "war3map."+filetype.getExt());
 				dataStore = new ObjectFile(w3_, filetype);
 				replaceTrigStrings(dataStore);
@@ -233,7 +234,7 @@ public class ProgramStateIO extends ProgramState {
 			Files.write(dataStore.exportToWurst(fileType),  new File(folder, "WurstExportedObjects_"+fileType.getExt()+".wurst.txt"), Charsets.UTF_8);
 
 			if (injectObjectFilesIntoMap) {
-				LadikMpq editor = MpqEditorFactory.getEditor();
+				MpqEditor editor = MpqEditorFactory.getEditor();
 				String filenameInMpq = "war3map." + fileType.getExt();
 				editor.deleteFile(mapFile, filenameInMpq);
 				int tries = 1;

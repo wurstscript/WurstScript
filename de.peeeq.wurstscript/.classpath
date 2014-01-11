@@ -12,5 +12,6 @@
 	<classpathentry kind="lib" path="lib/chardet.jar"/>
 	<classpathentry kind="lib" path="lib/junit-4.10.jar"/>
 	<classpathentry kind="lib" path="lib/java-cup-runtime.jar"/>
+	<classpathentry kind="lib" path="lib/jmpq.jar" sourcepath="/de.peeeq.jmpq"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

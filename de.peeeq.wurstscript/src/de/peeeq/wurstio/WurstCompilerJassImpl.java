@@ -18,6 +18,7 @@ import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 
 import de.peeeq.wurstio.mpq.LadikMpq;
+import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstio.utils.FileReading;
 import de.peeeq.wurstscript.ErrorReporting;
@@ -487,7 +488,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		if ( MpqEditorFactory.getFilepath().equals("")) {
 			MpqEditorFactory.setFilepath("./mpqedit/mpqeditor.exe");
 		}
-		LadikMpq mpqEditor = null;
+		MpqEditor mpqEditor = null;
 		try {
 			mpqEditor = MpqEditorFactory.getEditor();
 			File tempFile = mpqEditor.extractFile(file, "war3map.j");

@@ -7,7 +7,7 @@
 		<jar destfile="./dist/wurstscript.jar">
 			<manifest>
 				<attribute name="Main-Class" value="de.peeeq.wurstio.Main" />
-				<attribute name="Class-Path" value=". wurstscript_lib/java-cup-runtime.jar wurstscript_lib/log4j-1.2.16.jar wurstscript_lib/guava-14.0-rc1.jar wurstscript_lib/junit-4.10.jar wurstscript_lib/chardet.jar" />
+				<attribute name="Class-Path" value=". wurstscript_lib/java-cup-runtime.jar wurstscript_lib/log4j-1.2.16.jar wurstscript_lib/guava-14.0-rc1.jar wurstscript_lib/junit-4.10.jar wurstscript_lib/chardet.jar wurstscript_lib/jmpq.jar" />
 			</manifest>
 			<fileset dir="./bin" />
 			<fileset dir="./resources" />
@@ -20,16 +20,15 @@
 		<copy file="./lib/junit-4.10.jar" todir="./dist/wurstscript_lib" />
 		<copy file="./lib/chardet.jar" todir="./dist/wurstscript_lib" />
 		<copy file="./lib/velocity-1.7-dep.jar" todir="./dist/wurstscript_lib" />
+		<copy file="./lib/jmpq.jar" todir="./dist/wurstscript_lib" />
 	</target>
 
 	<target name="make_for_wurstpack" depends="create_run_jar">
+		<delete dir="../Wurstpack/wurstscript/wurstscript_lib" />
+		<copy todir="../Wurstpack/wurstscript/wurstscript_lib">
+	    	<fileset dir="./dist/wurstscript_lib"/>
+	  	</copy>
 		<copy file="./dist/wurstscript.jar" todir="../Wurstpack/wurstscript/" overwrite="true" />
-		<copy file="./lib/java-cup-runtime.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true" />
-		<copy file="./lib/log4j-1.2.16.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true" />
-		<copy file="./lib/guava-14.0-rc1.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true" />
-		<copy file="./lib/junit-4.10.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true" />
-		<copy file="./lib/chardet.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true" />
-		<copy file="./lib/velocity-1.7-dep.jar" todir="../Wurstpack/wurstscript/wurstscript_lib" overwrite="true" />
 	</target>
 
 	<target name="create_zips" depends="make_for_wurstpack">

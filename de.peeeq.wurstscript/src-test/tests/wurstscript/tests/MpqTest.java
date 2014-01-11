@@ -10,8 +10,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.io.Files;
+import com.sun.jna.Native;
 
 import de.peeeq.wurstio.mpq.LadikMpq;
+import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
 
 public class MpqTest {
@@ -24,7 +26,7 @@ public class MpqTest {
 	public void before() throws IOException {
 		Files.copy(new File(TEST_W3X_ORIG), new File(TEST_W3X));
 	}
-	
+
 	@After
 	public void after() {
 		File f = new File(TEST_W3X);
@@ -32,78 +34,57 @@ public class MpqTest {
 			f.delete();
 		}
 	}
-	
-	
+
 	@Test
-	public void test_extract() {
-		try {
-			MpqEditorFactory.setFilepath("./lib/mpqedit/mpqeditor.exe");
-			MpqEditorFactory.setTempfolder(TEST_OUTPUT_PATH);
-			LadikMpq edit = MpqEditorFactory.getEditor();
-			File f = edit.extractFile(new File(TEST_W3X), "war3map.j");
-			//edit.insertFile(new File("./testscripts/mpq/test.w3x"), "war3map.j", f);
-			Assert.assertTrue(f.exists());
-			f.delete();
-			//bnlub
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
+	public void test_extract() throws Exception {
+		MpqEditorFactory.setFilepath("./lib/mpqedit/mpqeditor.exe");
+		MpqEditorFactory.setTempfolder(TEST_OUTPUT_PATH);
+		MpqEditor edit = MpqEditorFactory.getEditor();
+		File f = edit.extractFile(new File(TEST_W3X), "war3map.j");
+		// edit.insertFile(new File("./testscripts/mpq/test.w3x"), "war3map.j",
+		// f);
+		Assert.assertTrue(f.exists());
+		f.delete();
+		// bnlub
+
 	}
-	
-//	@Test
-//	public void test_extract_w3u() {
-//		try {
-//			MpqEditorFactory.setFilepath("./lib/mpqedit/mpqeditor.exe");
-//			MpqEditorFactory.setTempfolder(TEST_OUTPUT_PATH);
-//			LadikMpq edit = MpqEditorFactory.getEditor();
-//			File f = edit.extractFile(new File("./testscripts/mpq/objtest.w3x"), "war3map.w3u");
-//			Assert.assertTrue(f.exists());
-//			f.delete();
-//			//bnlub
-//		} catch (Exception e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
-//		
-//	}
-	
+
+	// @Test
+	// public void test_extract_w3u() {
+	// try {
+	// MpqEditorFactory.setFilepath("./lib/mpqedit/mpqeditor.exe");
+	// MpqEditorFactory.setTempfolder(TEST_OUTPUT_PATH);
+	// LadikMpq edit = MpqEditorFactory.getEditor();
+	// File f = edit.extractFile(new File("./testscripts/mpq/objtest.w3x"),
+	// "war3map.w3u");
+	// Assert.assertTrue(f.exists());
+	// f.delete();
+	// //bnlub
+	// } catch (Exception e) {
+	// // TODO Auto-generated catch block
+	// e.printStackTrace();
+	// }
+	//
+	// }
+
 	@Test
-	public void test_insert() {
-		try {
-			MpqEditorFactory.setFilepath("./lib/mpqedit/mpqeditor.exe");
-			MpqEditorFactory.setTempfolder(TEST_OUTPUT_PATH);
-			LadikMpq edit = MpqEditorFactory.getEditor();
-			edit.insertFile(new File(TEST_W3X), "test.txt", new File("./testscripts/mpq/test.txt"));
-			Assert.assertTrue(true);
+	public void test_insert() throws Exception {
+		MpqEditorFactory.setFilepath("./lib/mpqedit/mpqeditor.exe");
+		MpqEditorFactory.setTempfolder(TEST_OUTPUT_PATH);
+		MpqEditor edit = MpqEditorFactory.getEditor();
+		edit.insertFile(new File(TEST_W3X), "test.txt", new File(
+				"./testscripts/mpq/test.txt"));
+		Assert.assertTrue(true);
 
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
 	}
-	
+
 	@Test
-	public void test_delete() {
-		try {
-			MpqEditorFactory.setFilepath("./lib/mpqedit/mpqeditor.exe");
-			MpqEditorFactory.setTempfolder(TEST_OUTPUT_PATH);
-			LadikMpq edit = MpqEditorFactory.getEditor();
-			edit.deleteFile(new File(TEST_W3X), "test.txt");
-			Assert.assertTrue(true);
-
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
+	public void test_delete() throws Exception {
+		MpqEditorFactory.setFilepath("./lib/mpqedit/mpqeditor.exe");
+		MpqEditorFactory.setTempfolder(TEST_OUTPUT_PATH);
+		MpqEditor edit = MpqEditorFactory.getEditor();
+		edit.deleteFile(new File(TEST_W3X), "test.txt");
+		Assert.assertTrue(true);
 	}
-	
-	
-	
 
-
-	
 }
