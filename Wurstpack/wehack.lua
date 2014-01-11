@@ -182,6 +182,16 @@ if havejh then
 end
 -- # end jasshelper #
 
+-- # begin sharpcraft #
+haveSharpCraft = grim.exists("SharpCraft\\SharpCraft.exe")
+if haveSharpCraft then
+	sharpCraftMenu = wehack.addmenu("SharpCraft")
+	sharpCraftEnable = TogMenuEntry:New(sharpCraftMenu,"Run with ShapCraft",nil,true)
+end
+-- # end sharpcraft #
+
+
+
 function initshellext()
     local first, last = string.find(grim.getregpair("HKEY_CLASSES_ROOT\\WorldEdit.Scenario\\shell\\open\\command\\", ""),"NewGen",1)
     if first then
@@ -440,6 +450,14 @@ function testmap(cmdline)
 	--mappath = strsplit(" ",cmdline)[2]
 	--compilemap_path(mappath)
 	
+	if haveSharpCraft and sharpCraftEnable.checked then
+		-- remove default .exe
+		local pos = string.find(cmdline, ".exe")
+		cmdline = string.sub(cmdline, 4 + pos)
+		-- replace with SharpCraft exe
+		cmdline = "SharpCraft\\SharpCraft.exe -game " .. cmdline
+	end
+	
 	if wh_opengl.checked then
 		cmdline = cmdline .. " -opengl"
 	end
@@ -578,5 +596,7 @@ if haveext then
 	wehack.addmenuseparator(utils)
   aboutextensions = MenuEntry:New(utils,"About Grimex ...",extabout)
 end
+
+
 
 isstartup = false
