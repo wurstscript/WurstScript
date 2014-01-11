@@ -203,16 +203,44 @@ Semi-Formal syntax:
 		| IDENTIFIER(Expr, Expr, ...) 		// function call 	
 		| Expr . IDENTIFIER 			// member variable		
 		| Expr . IDENTIFIER(Expr, Expr, ...) 	// member function	
+		| Expr .. IDENTIFIER(Expr, Expr, ...) 	// member function, same as single dot
+		                                        // but returns the receiver type
 		| new IDENTIFIER(Expr, Expr, ...) 		// constructor call
+		| destroy Expr                  // destroy object
 		| Expr castTo Type				// casting
 		| Expr instanceof Type			// instance checking	
-		| (Expr)
+		| begin
+		    Statements
+		  end // statement expr
+		| (param1, param2, ...) -> Expr  // anonymous function
+		| (Expr)                        // parantheses
+		
 
 An _IDENTIFIER_ is a name of a variable or function. It may start with letters and may
 contain letters, numbers and underscores. 
 
 **Note**: The definition above does not show calls to generic functions. These will be handled in 
 a separate chapter about generics.
+
+
+### Cascade operator (dot-dot-operator)
+
+Use the cascade operator `..` is similar to the normal `.` operator and can be used for calling methods, but instead of returning the result
+of the called method, the cascade operator returns the receiver. This makes it possible to perform a number of operations on the same object.
+Here is a small example
+
+	CreateTrigger()
+		..registerAnyUnitEvent(EVENT_PLAYER_UNIT_ISSUED_ORDER)
+		..addCondition(Condition(function cond))
+		..addAction(function action)
+		
+The above code is basically equivalent to:
+
+	let temp = CreateTrigger()
+	temp.registerAnyUnitEvent(EVENT_PLAYER_UNIT_ISSUED_ORDER)
+	temp.addCondition(Condition(function cond))
+	temp.addAction(function action)
+
 
 
 ## Statements
