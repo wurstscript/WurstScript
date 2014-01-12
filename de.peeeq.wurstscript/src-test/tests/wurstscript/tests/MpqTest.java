@@ -10,9 +10,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.io.Files;
-import com.sun.jna.Native;
 
-import de.peeeq.wurstio.mpq.LadikMpq;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
 
@@ -24,7 +22,9 @@ public class MpqTest {
 
 	@Before
 	public void before() throws IOException {
-		Files.copy(new File(TEST_W3X_ORIG), new File(TEST_W3X));
+		File testMap = new File(TEST_W3X);
+		Files.copy(new File(TEST_W3X_ORIG), testMap);
+		Assert.assertTrue(testMap.exists());
 	}
 
 	@After

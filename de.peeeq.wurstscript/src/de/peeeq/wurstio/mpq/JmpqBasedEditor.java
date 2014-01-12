@@ -16,7 +16,7 @@ public class JmpqBasedEditor implements MpqEditor {
 	public File extractFile(File mpqArchive, String fileToExtract)
 			throws Exception {
 		File tempFile1 = getNewTempFile(fileToExtract, 0);
-		
+		tempFile1.getParentFile().mkdirs();
 		try (JmpqEditor editor = new JmpqEditor(mpqArchive)) {
 			editor.extractFile(fileToExtract, tempFile1);
 		}
