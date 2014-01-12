@@ -1,100 +1,90 @@
 (function ($) {
-	
 
 
 
+		//var debug = $("<div>").appendTo("#tableofcontents");
 
-
-	var debug = $("<div>").appendTo("#nav");
-
-	var headers = new Array();
-	var headerLinks = new Array();
-	function createNav() {
-		$("h1, h2, h3, h4, h5, h6").each(function() {
-			var elem = $(this);
-			//alert(elem.attr('id'));
-			if (elem.attr('id')) {
-				headers.push(elem);
+		var headers = new Array();
+		var headerLinks = new Array();
+		function createNav() {
+			$("h1, h2, h3, h4, h5, h6").each(function() {
+				var elem = $(this);
+				//alert(elem.attr('id'));
+				if (elem.attr('id')) {
+					headers.push(elem);
+				}
+			});
+			
+			function Node(pheader) {
+				this.header = pheader
+				this.children = new Array();
+				
 			}
-		});
 
-		var menus = new Array();
-		menus[1] = $("<ul>");
-		var lastLevel = 1;
-		for (var i=0; i<headers.length; i++) {
-			(function(i) {
+			
+			var currentNodes = new Array();
+			var currentLevel = 0;
+			
+			currentNodes[0] = new Node(null);
+			
+			
+			
+			for (var i in headers) {
+				var header = headers[i];
+				var node = new Node(header);
+				//alert("header = " + header);
+				var level = parseInt(header.prop('tagName').substr(1));
+				//alert("level = " + level);
+				
+				for (; currentLevel<level;currentLevel++) {
+					var node2 =  new Node(null)
+					currentNodes[currentLevel+1] = node2;
+					currentNodes[currentLevel].children.push(node2);
+				}
+				
+				currentNodes[level] = node;
+				currentNodes[level-1].children.push(node);
+			}
+
+
+			function makeHtml(node) {
+				var li = $("<li>");
+				if (node.header != null) {
+					li.html('<a href="#'+$(node.header).attr('id')+'">'+
+					$(node.header).html() + 
+					'</a>');
+				} else if (node.children.length == 0) {
+					//return $("<p>null</p>","<p>abc</p>");
+					return null;
+				}
+				var ul = $("<ul>").appendTo(li);
+				for (var n in node.children) {
+					var c = makeHtml(node.children[n]);
+					if (c != null) {
+						c.appendTo(ul)
+					}
+				}
+				return li;
+			}
+
+			$("#tableofcontents").html("<h2>Table of contents:</h2>");
+			makeHtml(currentNodes[0]).children().appendTo("#tableofcontents");
+
+		}
+
+
+		
+
+		createNav();
+
+
+		for (var i in headers) {
 			var header = headers[i];
-			var level = parseInt(header.prop('tagName').substr(1));
-			if (level > lastLevel) {
-				for(var j=lastLevel+1; j<=level; j++) {
-					menus[j] = $("<ul>").addClass('submenu');
-					var li = $("<li>").appendTo(menus[j-1]);
-					menus[j].appendTo(li);
-				}
-			}
-			var li = $('<li>');
-			headerLinks[i] = $('<a href="#'+$(header).attr('id')+'">'+
-				$(header).html() + 
-				'</a>'
-				).appendTo(li);
-				/*.click(function(e) {
-					$(window).scrollTop(header.offset().top + 1 - $(window).height()/2);
-					e.preventDefault();
-					return false;
-				});*/
-			li.appendTo(menus[level]);
 			
-			lastLevel = level;
-			})(i);
+			var id = header.attr('id');
+			var link = $('<a class="anchorlink" href="#'+id+'">#</a>')
+			link.appendTo($(header));
 		}
-		menus[1].appendTo("#nav");
-
-	}
-
-
-	var lastHeader = -1;
-			
-	function updateScroll() {
-		var scroll = $(window).scrollTop() + 150;
-		var currentHeader = -1;
-		for (var i=0; i<headers.length; i++) {
-			if (headers[i].offset().top > scroll) {
-				break;
-			}
-			currentHeader = i;
-		}
-		if (currentHeader != lastHeader) {
-			if (lastHeader >= 0) {
-				headerLinks[lastHeader].removeClass('current');
-			}
-			if (currentHeader >= 0) {
-				headerLinks[currentHeader].addClass('current');
-			}
-			lastHeader = currentHeader;
-			// first hide all nested elements
-			var hideset = new Array();
-			var showset = new Array();
-			$("#nav ul.submenu").each(function () {hideset.push(this)});
-			// now show all the childs and parents
-			headerLinks[currentHeader].parents("ul.submenu").each(function() { showset.push(this)});
-			headerLinks[currentHeader].parent().next().children("ul.submenu").each(function() { showset.push(this)});
-			
-			hideset.forEach(function(h) {
-				if (!showset.some(function (s) {return s == h;})) {
-					$(h).hide(500);
-				}
-			});
-			showset.forEach(function(s) {
-				$(s).show(500);
-			});
-		}
-	
-	}
-	$(window).scroll(updateScroll);
-
-	createNav();
-	$("#nav ul.submenu").hide();
-	updateScroll();
 				
 
 })(jQuery);

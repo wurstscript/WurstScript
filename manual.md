@@ -4,7 +4,7 @@ title: Manual
 ---
 
 
-_by peq & Frotty_ _Last Change: 30.09.13_ 
+_by peq & Frotty_ 
 
 
 WurstScript (short Wurst) is a programming language named after the German word for sausage.
@@ -16,6 +16,9 @@ problem with our [issue tracker at GitHub](https://github.com/peq/WurstScript/is
 
 *Note*: WurstScript is written in Java and should therefore be usable on Windows, OS/X and most Linux Distributions. 
 This applies only to the compiler & the eclipse plugin, because the Wurstpack is based on the Jass New Gen Pack (and therefore windows-only).
+
+<div id="tableofcontents">loading TOC ...</div>
+
 
 # Philosophy
 
