@@ -73,9 +73,9 @@ In general newlines come at the end of a statement, with two exceptions:
 		someFunc(param1, param2,
 			param3, param4)
 
-		someUnit.setX(...)
-			.setY(...)
-			.setName(...)
+		someUnit..setX(...)
+			..setY(...)
+			..setName(...)
 
 
 In general WurstScript tries to avoid using symbols as much as possible to
@@ -1839,7 +1839,7 @@ to Wurst or got replaced.
 <tr><td> <strong>nested scopes</strong> 	</td><td> yes 				</td><td> -  				</td><td></td></tr>
 <tr><td> <strong>classes</strong> 		</td><td> structs 			</td><td> classes 			</td><td></td></tr>
 <tr><td> <strong>modules</strong> 		</td><td> yes 		</td><td> yes 					</td><td></td></tr>
-<tr><td> <strong>function interfaces</strong> 	</td><td> yes 		</td><td> not yet 			</td><td></td></tr>
+<tr><td> <strong>function interfaces</strong> 	</td><td> yes 		</td><td> no </td><td></td></tr>
 <tr><td> <strong>interfaces</strong> 		</td><td> yes 		</td><td> yes 					</td><td></td></tr>
 <tr><td> <strong>textmacros</strong> 		</td><td> yes 		</td><td> - 					</td><td></td></tr>
 <tr><td> <strong>keyword</strong> 		</td><td> yes 		</td><td> - 					</td><td></td></tr>
@@ -1865,7 +1865,7 @@ to Wurst or got replaced.
 <tr><td> <strong>Extension functions</strong> 	</td><td> - 		</td><td> yes 					</td><td></td></tr>
 <tr><td> <strong>generics</strong> 		</td><td> - 		</td><td> yes 					</td><td></td></tr>
 <tr><td> <strong>tuple types</strong> 		</td><td> - 		</td><td> yes 					</td><td></td></tr>
-<tr><td> <strong>closures</strong> 		</td><td> - 		</td><td>planned </td><td></td></tr>
+<tr><td> <strong>closures</strong> 		</td><td> - 		</td><td>yes </td><td></td></tr>
 <tr><td> <strong>compiletimefunctions</strong>	</td><td> - 		</td><td> yes 					</td><td></td></tr>
 </table>
 
