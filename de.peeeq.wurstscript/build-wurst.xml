@@ -18,6 +18,9 @@
 	<property name="junitTestResults" location="./junitTestResults/" />
 	<property name="hotDocLoc" location="${build}/hotdoc/" />
 
+	<import file="build-generate-mvn.xml"/>
+	
+	
 	<path id="classpath">
 		<fileset dir="${lib}">
 			<include name="**/*.jar" />
@@ -101,7 +104,7 @@
 		</target>
 	
 	
-	<target name="gen" depends="cup, jflex, parseq_ast, parseq_jassAst, parseq_jassImAst" >
+	<target name="gen" depends="cup, jflex, parseq_ast, parseq_jassAst, parseq_jassImAst, compiletimefile" >
 	</target>
 	
 	<target name="compile" depends="gen, just_compile">

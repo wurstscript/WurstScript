@@ -31,7 +31,7 @@
 		<echo file="./version2.properties" append="false">wurst.baseversion=${wurst.baseversion}
 			wurst.version=${wurst.version}
 		</echo>
-
+	
 		<echo file="./src-gen/de/peeeq/wurstscript/CompileTimeInfo.java"
 			append="false">
 			package de.peeeq.wurstscript;
@@ -46,7 +46,9 @@
 			version="${wurst.version}";
 			}
 		</echo>
-
+	</target>
+	
+	<target name="updateversions" depends="compiletimefile">
 		<property name="ns" value="{http://maven.apache.org/POM/4.0.0}:"></property>
 
 		<xmltask source="../pom.xml" dest="../pom.xml">
