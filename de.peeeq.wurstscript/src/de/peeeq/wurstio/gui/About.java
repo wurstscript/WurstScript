@@ -27,7 +27,7 @@ import de.peeeq.wurstscript.CompileTimeInfo;
 public class About extends javax.swing.JDialog {
     final URI uri;
     final static String homepage = "http://peq.github.com/WurstScript/";
-    public final static String version = "1.3.0.0." + CompileTimeInfo.revision;
+    public final static String version = CompileTimeInfo.version;
     final static String authors = "peq & Frotty";
 
     /** Creates new form About */

@@ -37,6 +37,7 @@ import com.google.common.io.Files;
 import de.peeeq.eclipsewurstplugin.WurstPlugin;
 import de.peeeq.eclipsewurstplugin.builder.ModelManager;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
+import de.peeeq.wurstio.gui.About;
 import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.NativeFunctionsIO;
@@ -188,6 +189,9 @@ public class WurstREPL {
 				return;
 			} else if (line.equals("clean")) {
 				cleanProject();
+				return;
+			} else if (line.equals("about")) {
+				printAbout();
 				return;
 			}
 			
@@ -345,6 +349,10 @@ public class WurstREPL {
 	}
 
 	
+
+	private void printAbout() {
+		print("version = " + About.version);
+	}
 
 	private void runMap(String args) {
 		try {

@@ -101,35 +101,7 @@
 		</target>
 	
 	
-	<target name="compiletimefile">
-		<tstamp>
-		    <format property="current.time" pattern="yyyy/MM/dd KK:mm:ss" />
-		</tstamp>
-		<exec executable="git" outputproperty="git.revision" failifexecutionfails="false" errorproperty="">
-	        <arg value="describe"/>
-	        <arg value="--tags"/>
-	        <arg value="--always"/>
-	        <arg value="HEAD"/>
-	    </exec>
-		<exec executable="git" outputproperty="git.revisionlong" failifexecutionfails="false" errorproperty="">
-	        <arg value="describe"/>
-	        <arg value="--tags"/>
-	        <arg value="--always"/>
-			<arg value="--abbrev=0"/>
-	        <arg value="HEAD"/>
-	    </exec>
-		<echo file="${srcgen}/de/peeeq/wurstscript/CompileTimeInfo.java" append="false">
-		   package de.peeeq.wurstscript;
-	
-		   public class CompileTimeInfo {
-			 public static final String time="${current.time}";
-			 public static final String revision="${git.revision}";
-			public static final String revisionLong="${git.revisionlong}";
-		   }
-		</echo>
-	</target>
-	
-	<target name="gen" depends="cup, jflex, parseq_ast, parseq_jassAst, parseq_jassImAst,compiletimefile" >
+	<target name="gen" depends="cup, jflex, parseq_ast, parseq_jassAst, parseq_jassImAst" >
 	</target>
 	
 	<target name="compile" depends="gen, just_compile">
