@@ -99,4 +99,11 @@
 
 	</target>
 
+	<target name="cleanVersions">
+		<apply executable="git" parallel="false">
+			<arg value="checkout"></arg>
+            <srcfile/>               
+            <fileset dir=".." includes="**/site.xml,**/MANIFEST.MF,**/pom.xml,**/feature.xml" excludes="**/target/**,**/downloads/**"/>
+        </apply>
+	</target>
 </project>
