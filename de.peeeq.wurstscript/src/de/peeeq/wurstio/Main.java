@@ -41,7 +41,7 @@ public class Main {
 	 */
 	public static void main(String[] args) {
 		if (args.length == 0) {
-			RunArgs.printHelpAndExit();
+			new RunArgs("-help");
 		}
 		setUpFileLogging();
 		WLogger.keepLogs(true);
